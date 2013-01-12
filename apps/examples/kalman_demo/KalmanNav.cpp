@@ -42,10 +42,12 @@
 #include "KalmanNav.hpp"
 
 // constants
+// Titterton pg. 52
 static const float omega = 7.2921150e-5f; // earth rotation rate, rad/s
-static const float R = 6.371000e6f; // earth radius, m
-static const float RSq = 4.0589641e13f; // radius squared
-static const float g = 9.806f; // gravitational accel. m/s^2
+static const float R0 = 6378137.0f; // earth radius, m
+
+static const float RSq = 4.0680631591e+13; // radius squared
+static const float g = 9.78f; // gravitational accel. m/s^2, XXX should be calibrated
 
 KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	SuperBlock(parent, name),
@@ -126,9 +128,6 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 
 	// initialize dcm
 	C_nb = Dcm(q);
-
-	// initialize F to identity
-	F = Matrix::identity(9);
 
 	// HPos is constant
 	HPos(0, 3) = 1.0f;
@@ -312,16 +311,21 @@ void KalmanNav::predictFast(float dt)
 	// position update
 	// neglects angular deflections in local gravity
 	// see Titerton pg. 70
-	float LDot = vN / (R + float(alt));
-	float lDot = vE / (cosLSing * (R + float(alt)));
-	float vNDot = fN - vE * (2 * omega + lDot) * sinL +
+    float R = R0 + float(alt);
+	float LDot = vN / R;
+	float lDot = vE / (cosLSing * R);
+    float rotRate = 2*omega + lDot;
+	float vNDot = fN - vE * rotRate * sinL +
 		      vD * LDot;
-	float vDDot = fD - vE * (2 * omega + lDot) * cosL -
+	float vDDot = fD - vE * rotRate * cosL -
 		      vN * LDot + g;
-	float vEDot = fE + vN * (2 * omega + lDot) * sinL +
-		      vDDot * (2 * omega * cosL);
+	float vEDot = fE + vN * rotRate * sinL +
+		      vDDot * rotRate * cosL;
 
 	// rectangular integration
+    printf("dt: %8.4f\n", double(dt));
+    printf("fN: %8.4f, fE: %8.4f, fD: %8.4f\n", double(fN), double(fE), double(fD));
+    printf("vN: %8.4f, vE: %8.4f, vD: %8.4f\n", double(vN), double(vE), double(vD));
 	vN += vNDot * dt;
 	vE += vEDot * dt;
 	vD += vDDot * dt;
@@ -340,87 +344,88 @@ void KalmanNav::predictSlow(float dt)
 	float cosLSq = cosL * cosL;
 	float tanL = tanf(lat);
 
+    // prepare for matrix
+    float R = R0 + float(alt);
+
 	// F Matrix
 	// Titterton pg. 291
-	//
-	// difference from Jacobian
-	// multiplity by dt for all elements
-	// add 1.0 to diagonal elements
 
-	F(0, 1) = (-(omega * sinL + vE * tanL / R)) * dt;
-	F(0, 2) = (vN / R) * dt;
-	F(0, 4) = (1.0f / R) * dt;
-	F(0, 6) = (-omega * sinL) * dt;
-	F(0, 8) = (-vE / RSq) * dt;
+	F(0, 1) = -(omega * sinL + vE * tanL / R);
+	F(0, 2) = vN / R;
+	F(0, 4) = 1.0f / R;
+	F(0, 6) = -omega * sinL;
+	F(0, 8) = -vE / RSq;
 
-	F(1, 0) = (omega * sinL + vE * tanL / R) * dt;
-	F(1, 2) = (omega * cosL + vE / R) * dt;
-	F(1, 3) = (-1.0f / R) * dt;
-	F(1, 8) = (vN / RSq) * dt;
+	F(1, 0) = omega * sinL + vE * tanL / R;
+	F(1, 2) = omega * cosL + vE / R;
+	F(1, 3) = -1.0f / R;
+	F(1, 8) = vN / RSq;
 
-	F(2, 0) = (-vN / R) * dt;
-	F(2, 1) = (-omega * cosL - vE / R) * dt;
-	F(2, 4) = (-tanL / R) * dt;
-	F(2, 6) = (-omega * cosL - vE / (R * cosLSq)) * dt;
-	F(2, 8) = (vE * tanL / RSq) * dt;
+	F(2, 0) = -vN / R;
+	F(2, 1) = -omega * cosL - vE / R;
+	F(2, 4) = -tanL / R;
+	F(2, 6) = -omega * cosL - vE / (R * cosLSq);
+	F(2, 8) = vE * tanL / RSq;
 
-	F(3, 1) = (-fD) * dt;
-	F(3, 2) = (fE) * dt;
-	F(3, 3) = 1.0f + (vD / R) * dt; // on diagonal
-	F(3, 4) = (-2 * (omega * sinL + vE * tanL / R)) * dt;
-	F(3, 5) = (vN / R) * dt;
-	F(3, 6) = (-vE * (2 * omega * cosL + vE / (R * cosLSq))) * dt;
-	F(3, 8) = ((vE * vE * tanL - vN * vD) / RSq) * dt;
+	F(3, 1) = -fD;
+	F(3, 2) = fE;
+	F(3, 3) = vD / R;
+	F(3, 4) = -2 * (omega * sinL + vE * tanL / R);
+	F(3, 5) = vN / R;
+	F(3, 6) = -vE * (2 * omega * cosL + vE / (R * cosLSq));
+	F(3, 8) = (vE * vE * tanL - vN * vD) / RSq;
 
-	F(4, 0) = (fD) * dt;
-	F(4, 2) = (-fN) * dt;
-	F(4, 3) = (2 * omega * sinL + vE * tanL / R) * dt;
-	F(4, 4) = 1.0f + ((vN * tanL + vD) / R) * dt; // on diagonal
-	F(4, 5) = (2 * omega * cosL + vE / R) * dt;
-	F(4, 6) = (2 * omega * (vN * cosL - vD * sinL) +
-		   vN * vE / (R * cosLSq)) * dt;
-	F(4, 8) = (-vE * (vN * tanL + vD) / RSq) * dt;
+	F(4, 0) = fD;
+	F(4, 2) = -fN;
+	F(4, 3) = 2 * omega * sinL + vE * tanL / R;
+	F(4, 4) = (vN * tanL + vD) / R;
+	F(4, 5) = 2 * omega * cosL + vE / R;
+	F(4, 6) = 2 * omega * (vN * cosL - vD * sinL) +
+		   vN * vE / (R * cosLSq);
+	F(4, 8) = -vE * (vN * tanL + vD) / RSq;
 
-	F(5, 0) = (-fE) * dt;
-	F(5, 1) = (fN) * dt;
-	F(5, 3) = (-2 * vN / R) * dt;
-	F(5, 4) = (-2 * (omega * cosL + vE / R)) * dt;
-	F(5, 6) = (2 * omega * vE * sinL) * dt;
-	F(5, 8) = ((vN * vN + vE * vE) / RSq) * dt;
+	F(5, 0) = -fE;
+	F(5, 1) = fN;
+	F(5, 3) = -2 * vN / R;
+	F(5, 4) = -2 * (omega * cosL + vE / R);
+	F(5, 6) = 2 * omega * vE * sinL;
+	F(5, 8) = (vN * vN + vE * vE) / RSq;
 
-	F(6, 3) = (1 / R) * dt;
-	F(6, 8) = (-vN / RSq) * dt;
+	F(6, 3) = 1 / R;
+	F(6, 8) = -vN / RSq;
 
-	F(7, 4) = (1 / (R * cosL)) * dt;
-	F(7, 6) = (vE * tanL / (R * cosL)) * dt;
-	F(7, 8) = (-vE / (cosL * RSq)) * dt;
+	F(7, 4) = 1 / (R * cosL);
+	F(7, 6) = vE * tanL / (R * cosL);
+	F(7, 8) = -vE / (cosL * RSq);
 
-	F(8, 5) = (-1) * dt;
+	F(8, 5) = -1;
 
 	// G Matrix
 	// Titterton pg. 291
-	G(0, 0) = -C_nb(0, 0) * dt;
-	G(0, 1) = -C_nb(0, 1) * dt;
-	G(0, 2) = -C_nb(0, 2) * dt;
-	G(1, 0) = -C_nb(1, 0) * dt;
-	G(1, 1) = -C_nb(1, 1) * dt;
-	G(1, 2) = -C_nb(1, 2) * dt;
-	G(2, 0) = -C_nb(2, 0) * dt;
-	G(2, 1) = -C_nb(2, 1) * dt;
-	G(2, 2) = -C_nb(2, 2) * dt;
+	G(0, 0) = -C_nb(0, 0);
+	G(0, 1) = -C_nb(0, 1);
+	G(0, 2) = -C_nb(0, 2);
+	G(1, 0) = -C_nb(1, 0);
+	G(1, 1) = -C_nb(1, 1);
+	G(1, 2) = -C_nb(1, 2);
+	G(2, 0) = -C_nb(2, 0);
+	G(2, 1) = -C_nb(2, 1);
+	G(2, 2) = -C_nb(2, 2);
 
-	G(3, 3) = C_nb(0, 0) * dt;
-	G(3, 4) = C_nb(0, 1) * dt;
-	G(3, 5) = C_nb(0, 2) * dt;
-	G(4, 3) = C_nb(1, 0) * dt;
-	G(4, 4) = C_nb(1, 1) * dt;
-	G(4, 5) = C_nb(1, 2) * dt;
-	G(5, 3) = C_nb(2, 0) * dt;
-	G(5, 4) = C_nb(2, 1) * dt;
-	G(5, 5) = C_nb(2, 2) * dt;
+	G(3, 3) = C_nb(0, 0);
+	G(3, 4) = C_nb(0, 1);
+	G(3, 5) = C_nb(0, 2);
+	G(4, 3) = C_nb(1, 0);
+	G(4, 4) = C_nb(1, 1);
+	G(4, 5) = C_nb(1, 2);
+	G(5, 3) = C_nb(2, 0);
+	G(5, 4) = C_nb(2, 1);
+	G(5, 5) = C_nb(2, 2);
 
-	// predict equations for kalman filter
-	P = F * P * F.transpose() + G * V * G.transpose();
+    // continuous predictioon equations 
+    // for discrte time EKF
+    // http://en.wikipedia.org/wiki/Extended_Kalman_filter
+    P = P + (F*P + P*F.transpose() + G*V*G.transpose())*dt;
 }
 
 void KalmanNav::correctAtt()
@@ -525,6 +530,7 @@ void KalmanNav::correctAtt()
 	HAtt(5, 1) = cosPhi * sinTheta;
 
 	// compute correction
+    // http://en.wikipedia.org/wiki/Extended_Kalman_filter
 	Vector y = zAtt - zAttHat; // residual
 	Matrix S = HAtt * P * HAtt.transpose() + RAttAdjust; // residual covariance
 	Matrix K = P * HAtt.transpose() * S.inverse();
@@ -550,6 +556,7 @@ void KalmanNav::correctAtt()
 	psi += xCorrect(PSI);
 
 	// update state covariance
+    // http://en.wikipedia.org/wiki/Extended_Kalman_filter
 	P = P - K * HAtt * P;
 
 	// fault detection
@@ -577,12 +584,16 @@ void KalmanNav::correctPos()
 
 	// update gps noise
 	float cosLSing = cosf(lat);
+    float R = R0 + float(alt);
 	// prevent singularity
 	if (fabsf(cosLSing) < 0.01f) cosLSing = 0.01f;
-	RPos(2, 2) = _rGpsPos.get()/R; // L, rad
-	RPos(3, 3) = _rGpsPos.get()/(R*cosLSing); // l, rad
+    float noiseLat = _rGpsPos.get()/R;
+    float noiseLon = _rGpsPos.get()/(R*cosLSing);
+	RPos(2, 2) = noiseLat*noiseLat;
+	RPos(3, 3) = noiseLon*noiseLon;
 
 	// compute correction
+    // http://en.wikipedia.org/wiki/Extended_Kalman_filter
 	Matrix S = HPos * P * HPos.transpose() + RPos; // residual covariance
 	Matrix K = P * HPos.transpose() * S.inverse();
 	Vector xCorrect = K * y;
@@ -614,6 +625,7 @@ void KalmanNav::correctPos()
 	alt += double(xCorrect(ALT));
 
 	// update state covariance
+    // http://en.wikipedia.org/wiki/Extended_Kalman_filter
 	P = P - K * HPos * P;
 
 	// fault detetcion
@@ -631,6 +643,7 @@ void KalmanNav::updateParams()
 	using namespace control;
 	SuperBlock::updateParams();
 
+
 	// gyro noise
 	V(0, 0) = _vGyro.get();   // gyro x, rad/s
 	V(1, 1) = _vGyro.get();   // gyro y
@@ -642,22 +655,29 @@ void KalmanNav::updateParams()
 	V(5, 5) = _vAccel.get();   // accel z
 
 	// magnetometer noise
-	RAtt(0, 0) = _rMag.get(); // normalized direction
-	RAtt(1, 1) = _rMag.get();
-	RAtt(2, 2) = _rMag.get();
+    float noiseMagSq = _rMag.get()*_rMag.get();
+	RAtt(0, 0) = noiseMagSq; // normalized direction
+	RAtt(1, 1) = noiseMagSq;
+	RAtt(2, 2) = noiseMagSq;
 
 	// accelerometer noise
-	RAtt(3, 3) = _rAccel.get(); // normalized direction
-	RAtt(4, 4) = _rAccel.get();
-	RAtt(5, 5) = _rAccel.get();
+    float noiseAccelSq = _rAccel.get()*_rAccel.get();
+	RAtt(3, 3) = noiseAccelSq; // normalized direction
+	RAtt(4, 4) = noiseAccelSq;
+	RAtt(5, 5) = noiseAccelSq;
 
 	// gps noise
 	float cosLSing = cosf(lat);
+    float R = R0 + float(alt);
 	// prevent singularity
 	if (fabsf(cosLSing) < 0.01f) cosLSing = 0.01f;
-	RPos(0, 0) = _rGpsVel.get(); // vn, m/s
-	RPos(1, 1) = _rGpsVel.get(); // ve
-	RPos(2, 2) = _rGpsPos.get()/R; // L, rad
-	RPos(3, 3) = _rGpsPos.get()/(R*cosLSing); // l, rad
-	RPos(4, 4) = _rGpsAlt.get(); // h, m
+    float noiseVel = _rGpsVel.get();
+    float noiseLat = _rGpsPos.get()/R;
+    float noiseLon = _rGpsPos.get()/(R*cosLSing);
+    float noiseAlt = _rGpsAlt.get();
+	RPos(0, 0) = noiseVel*noiseVel; // vn
+	RPos(1, 1) = noiseVel*noiseVel; // ve
+	RPos(2, 2) = noiseLat*noiseLat; // lat
+	RPos(3, 3) = noiseLon*noiseLon; // lon
+	RPos(4, 4) = noiseAlt*noiseAlt; // h
 }

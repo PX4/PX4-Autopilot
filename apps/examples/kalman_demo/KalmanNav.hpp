@@ -60,6 +60,11 @@
 #include <poll.h>
 #include <unistd.h>
 
+/**
+ * Kalman filter navigation class
+ * http://en.wikipedia.org/wiki/Extended_Kalman_filter
+ * Discrete-time extended Kalman filter
+ */
 class KalmanNav : public control::SuperBlock
 {
 public:
