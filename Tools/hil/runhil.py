@@ -30,6 +30,14 @@ from math import sin, cos
 class SensorHIL(object):
     ''' This class executes sensor level hil communication '''
 
+    hilFlag = mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
+    armedFlag = mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED
+    autoFlag = mavutil.mavlink.MAV_MODE_FLAG_AUTO_ENABLED
+    #autoFlag = (mavutil.mavlink.MAV_MODE_FLAG_STABILIZE_ENABLED
+    #        | mavutil.mavlink.MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+    #        | mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED
+    #        | mavutil.mavlink.MAV_MODE_FLAG_AUTO_ENABLED)
+
     @classmethod
     def command_line(cls):
         ''' command line parser '''
@@ -59,7 +67,8 @@ class SensorHIL(object):
         self.waypoints = waypoints
         self.mode = mode
 
-        self.ac = hangar.BasicAircraft()
+        self.attack = None
+        self.ac = hangar.BasicAircraft(self.attack)
         self.jsb = None
         self.jsb_console = None
         self.gcs = None
@@ -74,6 +83,7 @@ class SensorHIL(object):
         self.init_jsbsim()
         self.init_mavlink(master_dev, gcs_dev, baudrate)
         self.wpm = gcs.WaypointManager(self.master)
+
 
     def __del__(self):
         print 'SensorHil shutting down'
@@ -139,19 +149,29 @@ class SensorHIL(object):
         self.jsb_console = jsb_console
         self.fdm = fgFDM.fgFDM()
 
-    def hil_enabled(self):
-        return self.master.base_mode & mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
+    def mode_flag_value(self, flag):
+        return self.master.base_mode & flag
 
-    def enable_hil(self):
-        ''' enable hil mode '''
+    def set_mode_flag(self, flag, navFlag=1):
+        self.master.mav.set_mode_send(self.master.target_system, flag, navFlag)
+
+    def set_mode_flag_loop(self, flag):
         t_start = time.time()
-        while not self.hil_enabled():
-            self.master.set_mode_flag(mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED,True)
+        while not self.mode_flag_value(flag):
+            self.set_mode_flag(flag)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
             time.sleep(0.001)
-            if time.time()  - t_start > 5: raise IOError('Failed to enable HIL, check port')
+            if time.time()  - t_start > 5: raise IOError('Failed to set mode flag, check port')
 
+    def mode_flag_test_and_set(self, flag):
+        if not self.mode_flag_value(flag):
+            self.set_mode_flag(flag)
+
+    def mode_flag_test_and_set_loop(self, flag):
+        if not self.mode_flag_value(flag):
+            self.set_mode_flag_loop(flag)
+        
     def wait_for_no_msg(self, msg, period, callback=None):
         done = False
         t_last = time.time()
@@ -180,7 +200,7 @@ class SensorHIL(object):
 
     def reboot_autopilot(self):
         # must be in hil mode to reboot from auto/ armed
-        if not self.hil_enabled(): self.enable_hil()
+        self.mode_flag_test_and_set_loop(self.hilFlag)
         # send reboot command 4 times so it gets it
         # consistently
         print 'shutting down ...'
@@ -194,7 +214,7 @@ class SensorHIL(object):
         time.sleep(1)
         print 'received heartbeat from sys: ', self.master.target_system
         # Reenable HIL and reset serial (clear buffer)
-        if not self.hil_enabled(): self.enable_hil()
+        self.mode_flag_test_and_set_loop(self.hilFlag)
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
@@ -211,6 +231,15 @@ class SensorHIL(object):
         print 'Rebooting autopilot'
         self.reboot_autopilot()
 
+        self.process_jsb_input()
+        self.ac.send_state(self.master.mav)
+        #if self.mode == 'state':
+        #    if (time.time() - t_hil_state) > 1.0/50:
+        #        t_hil_state = time.time()
+        #        self.ac.send_state(self.master.mav)
+        #elif self.mode == 'sensor':
+        #    self.ac.send_sensors(self.master.mav)
+
         print 'load waypoints'
         if not self.waypoints is None:
             self.wpm.set_waypoints(self.waypoints)
@@ -219,8 +248,12 @@ class SensorHIL(object):
         while self.wpm.state != 'IDLE':
             self.process_master()
         
-        print 'set auto'
-        self.master.set_mode_auto()
+        print 'Set HIL'
+        self.mode_flag_test_and_set_loop(self.hilFlag)
+        print 'Set Armed'
+        self.mode_flag_test_and_set_loop(self.armedFlag)
+        print 'Set Auto'
+        self.mode_flag_test_and_set(self.autoFlag)
 
         # resume simulation
         self.jsb_console.send('resume\n')
@@ -284,6 +317,10 @@ class SensorHIL(object):
         if msgs is None:
             return
         for m in msgs:
+            if m.get_type() == 'SET_MODE':
+                print self.autoFlag2
+                print m.get_payload()
+                #raw_input()
             self.master.write(m.get_msgbuf())
 
         if 'Slave' not in self.counts:
@@ -308,7 +345,8 @@ class SensorHIL(object):
         while True:
 
             # make sure hil is enabled
-            if not self.hil_enabled(): self.enable_hil()
+            self.mode_flag_test_and_set_loop(self.hilFlag)
+            #self.mode_flag_test_and_set(self.autoFlag)
 
             # watch files
             rin = [self.jsb_in.fileno(), self.jsb_console.fileno(), self.jsb.fileno(), self.gcs.fd]
