@@ -136,7 +136,8 @@ class Gps(object):
     @classmethod
     def from_state(cls, state, attack=None):
         vel = math.sqrt(state.vN*state.vN + state.vE*state.vE)
-        cog = math.atan2(state.vE,state.vN) + math.pi
+        cog = math.atan2(state.vE, state.vN)
+        if cog < 0: cog += 2*math.pi
 
         # TODO INSERT NOISE HERE
 
