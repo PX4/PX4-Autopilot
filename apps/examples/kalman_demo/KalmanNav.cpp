@@ -192,7 +192,7 @@ void KalmanNav::update()
 	float dtFast = (_sensors.timestamp - _fastTimeStamp) / 1.0e6f;
 	_fastTimeStamp = _sensors.timestamp;
 
-	if (dtFast < 1.0f / 100) {
+	if (dtFast < 1.0f) {
 		predictFast(dtFast);
 		// count fast frames
 		_navFrames += 1;
@@ -205,7 +205,7 @@ void KalmanNav::update()
 	if (dtSlow > 1.0f / 100) { // 100 Hz
 		_slowTimeStamp = _sensors.timestamp;
 
-		if (dtSlow < 1.0f / 50) predictSlow(dtSlow);
+		if (dtSlow < 1.0f) predictSlow(dtSlow);
 		else _missSlow ++;
 	}
 
@@ -558,8 +558,12 @@ void KalmanNav::correctAtt()
 		phi += xCorrect(PHI);
 		theta += xCorrect(THETA);
 	}
-
 	psi += xCorrect(PSI);
+    
+    // attitude also affects nav velocities
+	vN += xCorrect(VN);
+	vE += xCorrect(VE);
+	vD += xCorrect(VD);
 
 	// update state covariance
     // http://en.wikipedia.org/wiki/Extended_Kalman_filter
@@ -569,7 +573,7 @@ void KalmanNav::correctAtt()
 	float beta = y.dot(S.inverse() * y);
 
 	if (beta > 10.0f) {
-		//printf("fault in attitude: beta = %8.4f\n", (double)beta);
+        printf("fault in attitude: beta = %8.4f\n", (double)beta);
 		//printf("y:\n"); y.print();
 	}
 
@@ -637,8 +641,8 @@ void KalmanNav::correctPos()
 	// fault detetcion
 	float beta = y.dot(S.inverse() * y);
 
-	if (beta > 100.0f) {
-		//printf("fault in gps: beta = %8.4f\n", (double)beta);
+	if (beta > 10.0f) {
+		printf("fault in gps: beta = %8.4f\n", (double)beta);
 		//printf("y:\n"); y.print();
 	}
 }

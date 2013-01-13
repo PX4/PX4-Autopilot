@@ -2,10 +2,10 @@
 <?xml-stylesheet type="text/xsl" href="http://jsbsim.sf.net/JSBSimScript.xsl"?>
 <runscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="http://jsbsim.sf.net/JSBSimScript.xsd"
-    name="Testing Rascal110">
+    name="Testing EasyStar">
 
   <description>
-    test ArduPlane using Rascal110 and JSBSim
+      Test PX4 using EasyStar
   </description>
 
   <use aircraft="easystar" initialize="reset"/>
@@ -24,7 +24,7 @@
     </event>
 
     <event name="Trim">
-      <condition>simulation/sim-time-sec ge 0.01</condition>
+      <condition>simulation/sim-time-sec ge 5</condition>
       <set name="simulation/do_simple_trim" value="1"/>
       <notify/>
     </event>

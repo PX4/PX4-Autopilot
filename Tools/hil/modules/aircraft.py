@@ -139,8 +139,7 @@ class State(object):
         vN = fdm.get('v_north', units='mps')
         vE = fdm.get('v_east', units='mps')
         vD = fdm.get('v_down', units='mps')
-
-        print 'vel: ', math.sqrt(vN*vN + vE*vE + vD*vD)
+        #print 'vel: ', math.sqrt(vN*vN + vE*vE + vD*vD)
 
         return cls(time=time.time(),
                              phi=phi, theta=theta, psi=psi,

@@ -79,6 +79,7 @@ class SensorHIL(object):
         self.bytes_recv = 0
         self.frame_count = 0
         self.last_report = 0
+        self.jsbsim_bad_packet = 0
 
         self.init_jsbsim()
         self.init_mavlink(master_dev, gcs_dev, baudrate)
@@ -111,7 +112,7 @@ class SensorHIL(object):
         self.gcs = gcs
 
     def init_jsbsim(self):
-        cmd = "JSBSim --realtime --suspend --nice --simulation-rate=1000 --logdirectivefile=data/fgout.xml --script=%s" % self.script
+        cmd = "JSBSim --realtime --suspend --nice --simulation-rate=1000 --logdirectivefile=data/flightgear.xml --script=%s" % self.script
         if self.options:
             cmd += ' %s' % self.options
 
@@ -222,8 +223,8 @@ class SensorHIL(object):
 
     def reset_sim(self):
         # reset jsbsim state and then pause simulation
-        self.jsb_set('simulation/reset',1)
-        self.jsb.expect("trim computation time")
+        self.jsb_console.send('resume\n')
+        self.jsb.expect("\(Trim\) executed")
         self.jsb_console.send('hold\n')
         time.sleep(1.5)
 
@@ -268,9 +269,12 @@ class SensorHIL(object):
     def process_jsb_input(self):
         '''process FG FDM input from JSBSim'''
         buf = self.jsb_in.recv(self.fdm.packet_size())
-        self.fdm.parse(buf)
-        self.ac.update_state(self.fdm)
-        #self.ac.x.set_attitude(0,0,90*math.pi/180)
+        if len(buf) == 408:
+            self.fdm.parse(buf)
+            self.ac.update_state(self.fdm)
+        else:
+            self.jsbsim_bad_packet  += 1
+            print 'jsbsim bad packets: ', self.jsbsim_bad_packet
 
     @staticmethod
     def interpret_address(addrstr):
@@ -337,11 +341,6 @@ class SensorHIL(object):
         ''' main execution loop '''
 
         # start simulation
-        self.jsb_console.send('info\n')
-        self.jsb_console.send('resume\n')
-        self.jsb.expect("trim computation time")
-        self.jsb_console.send('hold\n')
-        time.sleep(1.5)
         self.jsb_console.logfile = None
         t_hil_state = 0
 

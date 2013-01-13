@@ -2,7 +2,7 @@
 <initialize name="Startup in San Fran">
   <latitude unit="DEG"> 37.616611 </latitude>
   <longitude unit="DEG"> -122.4161053 </longitude>
-  <altitude unit="M"> 1000.0 </altitude>
+  <altitude unit="M"> 300.0 </altitude>
   <vt unit="FT/SEC">      72.17 </vt>
   <gamma unit="DEG">      0.0 </gamma>
   <phi unit="DEG">        0.0 </phi>
