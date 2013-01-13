@@ -30,14 +30,6 @@ from math import sin, cos
 class SensorHIL(object):
     ''' This class executes sensor level hil communication '''
 
-    hilFlag = mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
-    armedFlag = mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED
-    autoFlag = mavutil.mavlink.MAV_MODE_FLAG_AUTO_ENABLED
-    #autoFlag = (mavutil.mavlink.MAV_MODE_FLAG_STABILIZE_ENABLED
-    #        | mavutil.mavlink.MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-    #        | mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED
-    #        | mavutil.mavlink.MAV_MODE_FLAG_AUTO_ENABLED)
-
     @classmethod
     def command_line(cls):
         ''' command line parser '''
@@ -71,6 +63,9 @@ class SensorHIL(object):
         self.ac = hangar.BasicAircraft(self.attack)
         self.jsb = None
         self.jsb_console = None
+        self.t_hil_state = 0
+
+
         self.gcs = None
         self.master = None
 
@@ -136,6 +131,7 @@ class SensorHIL(object):
         jsb_out.connect(jsb_out_address)
         jsb_console = fdpexpect.fdspawn(jsb_out.fileno(), logfile=sys.stdout)
         jsb_console.delaybeforesend = 0
+        jsb_console.logfile = None
 
         # setup input from jsbsim
         print("JSBSim FG FDM input on %s" % str(jsb_in_address))
@@ -150,29 +146,23 @@ class SensorHIL(object):
         self.jsb_console = jsb_console
         self.fdm = fgFDM.fgFDM()
 
-    def mode_flag_value(self, flag):
-        return self.master.base_mode & flag
+    def get_mode_flag(self, flag):
+        if (self.master.base_mode & flag) == 0:
+            return False
+        else:
+            return True
 
-    def set_mode_flag(self, flag, navFlag=1):
-        self.master.mav.set_mode_send(self.master.target_system, flag, navFlag)
-
-    def set_mode_flag_loop(self, flag):
+    def set_mode_flag(self, flag, enable):
         t_start = time.time()
-        while not self.mode_flag_value(flag):
-            self.set_mode_flag(flag)
+        if self.get_mode_flag(flag) == enable:
+            return
+        while not self.get_mode_flag(flag) == enable:
+            self.master.set_mode_flag(flag, enable)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
-            time.sleep(0.001)
+            time.sleep(0.1)
             if time.time()  - t_start > 5: raise IOError('Failed to set mode flag, check port')
 
-    def mode_flag_test_and_set(self, flag):
-        if not self.mode_flag_value(flag):
-            self.set_mode_flag(flag)
-
-    def mode_flag_test_and_set_loop(self, flag):
-        if not self.mode_flag_value(flag):
-            self.set_mode_flag_loop(flag)
-        
     def wait_for_no_msg(self, msg, period, callback=None):
         done = False
         t_last = time.time()
@@ -197,49 +187,36 @@ class SensorHIL(object):
                 if m.get_type() == msg:
                     done = True
                     break
-            time.sleep(0.001)
+            time.sleep(0.1)
 
     def reboot_autopilot(self):
         # must be in hil mode to reboot from auto/ armed
-        self.mode_flag_test_and_set_loop(self.hilFlag)
-        # send reboot command 4 times so it gets it
-        # consistently
-        print 'shutting down ...'
-        self.wait_for_no_msg('HEARTBEAT',3, self.master.reboot_autopilot)
-        print 'complete'
+        self.set_mode_flag(mavlink.MAV_MODE_FLAG_HIL_ENABLED, True)
+        print 'rebooting autopilot'
+        # request reboot until no heartbeat received
+        self.wait_for_no_msg('HEARTBEAT',2, self.master.reboot_autopilot)
         # clear master buffer
         self.master.reset()
-        print 'waiting for startup ...'
         self.wait_for_msg('HEARTBEAT')
-        print 'complete'
+        # avoid sending data immediately as this causes boot problem on px4
         time.sleep(1)
-        print 'received heartbeat from sys: ', self.master.target_system
-        # Reenable HIL and reset serial (clear buffer)
-        self.mode_flag_test_and_set_loop(self.hilFlag)
+        # reenable HIL and reset serial (clear buffer)
+        self.set_mode_flag(mavlink.MAV_MODE_FLAG_HIL_ENABLED, True)
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
         self.jsb_console.send('set %s %s\r\n' % (variable, value))
 
     def reset_sim(self):
-        # reset jsbsim state and then pause simulation
-        self.jsb_console.send('resume\n')
-        self.jsb.expect("\(Trim\) executed")
-        self.jsb_console.send('hold\n')
-        time.sleep(1.5)
 
         # reset autopilot state
-        print 'Rebooting autopilot'
         self.reboot_autopilot()
 
-        self.process_jsb_input()
-        self.ac.send_state(self.master.mav)
-        #if self.mode == 'state':
-        #    if (time.time() - t_hil_state) > 1.0/50:
-        #        t_hil_state = time.time()
-        #        self.ac.send_state(self.master.mav)
-        #elif self.mode == 'sensor':
-        #    self.ac.send_sensors(self.master.mav)
+        # reset jsbsim state and then pause simulation
+        self.jsb_console.send('resume\n')
+        self.jsb_set('simulation/reset',1)
+        self.jsb.expect("\(Trim\) executed")
+        self.jsb_console.send('hold\n')
 
         print 'load waypoints'
         if not self.waypoints is None:
@@ -248,22 +225,21 @@ class SensorHIL(object):
 
         while self.wpm.state != 'IDLE':
             self.process_master()
-        
-        print 'Set HIL'
-        self.mode_flag_test_and_set_loop(self.hilFlag)
-        print 'Set Armed'
-        self.mode_flag_test_and_set_loop(self.armedFlag)
-        print 'Set Auto'
-        self.mode_flag_test_and_set(self.autoFlag)
+
+        self.set_mode_flag(mavlink.MAV_MODE_FLAG_HIL_ENABLED, True)
+
+        self.jsb_console.send('resume\n')
 
         # send initial data
         print 'sending sensor data'
-        for i in range(1000):
-            self.ac.send_sensors(self.master.mav)
-            time.sleep(0.001)
+        time_start = time.time()
+        while time.time() - time_start < 5:
+            self.update()
+
+        self.set_mode_flag(mavlink.MAV_MODE_FLAG_SAFETY_ARMED, True)
+        self.set_mode_flag(mavlink.MAV_MODE_FLAG_AUTO_ENABLED, True)
 
         # resume simulation
-        self.jsb_console.send('resume\n')
         return time.time()
 
     def process_jsb_input(self):
@@ -327,15 +303,64 @@ class SensorHIL(object):
         if msgs is None:
             return
         for m in msgs:
-            if m.get_type() == 'SET_MODE':
-                print self.autoFlag
-                print m.get_payload()
-                #raw_input()
             self.master.write(m.get_msgbuf())
 
         if 'Slave' not in self.counts:
             self.counts['Slave'] = 0
         self.counts['Slave'] += 1
+
+    def update(self):
+        # watch files
+        rin = [self.jsb_in.fileno(), self.jsb_console.fileno(), self.jsb.fileno(), self.gcs.fd]
+
+        # receive messages on serial port
+        while self.master.port.inWaiting() > 0:
+            self.process_master()
+
+        try:
+            (rin, win, xin) = select.select(rin, [], [], 1.0)
+        except select.error:
+            util.check_parent()
+            return
+
+        # if new gcs input, process it
+        if self.gcs.fd in rin:
+            self.process_gcs()
+
+        # if new jsbsim input, process it
+        if self.jsb_in.fileno() in rin:
+            if self.mode == 'state':
+                if (time.time() - self.t_hil_state) > 1.0/50:
+                    self.t_hil_state = time.time()
+                    self.ac.send_state(self.master.mav)
+            elif self.mode == 'sensor':
+                self.ac.send_sensors(self.master.mav)
+            self.process_jsb_input()
+            # gcs not currently getting HIL_STATE message
+            #self.x.send_to_mav(self.gcs.mav)
+            self.frame_count += 1
+
+        # show any jsbsim console output
+        if self.jsb_console.fileno() in rin:
+            util.pexpect_drain(self.jsb_console)
+        if self.jsb.fileno() in rin:
+            util.pexpect_drain(self.jsb)
+
+        dt_report = time.time() - self.last_report
+        if dt_report > 5:
+            print '\nmode: {0:X}, JSBSim {1:5.0f} Hz, {2:d} sent, {3:d} received, {4:d} errors, bwin={5:.1f} kB/s, bwout={6:.1f} kB/s'.format(
+                self.master.base_mode,
+                self.frame_count/dt_report,
+                self.master.mav.total_packets_sent,
+                self.master.mav.total_packets_received,
+                self.master.mav.total_receive_errors,
+                0.001*(self.master.mav.total_bytes_received-self.bytes_recv)/dt_report,
+                0.001*(self.master.mav.total_bytes_sent-self.bytes_sent)/dt_report)
+            print self.counts
+            self.bytes_sent = self.master.mav.total_bytes_sent
+            self.bytes_recv = self.master.mav.total_bytes_received
+            self.frame_count = 0
+            self.last_report = time.time()
 
     def run(self):
         ''' main execution loop '''
@@ -348,62 +373,7 @@ class SensorHIL(object):
 
         # run main loop
         while True:
-
-            # make sure hil is enabled
-            self.mode_flag_test_and_set_loop(self.hilFlag)
-            #self.mode_flag_test_and_set(self.autoFlag)
-
-            # watch files
-            rin = [self.jsb_in.fileno(), self.jsb_console.fileno(), self.jsb.fileno(), self.gcs.fd]
-
-            # receive messages on serial port
-            while self.master.port.inWaiting() > 0:
-                self.process_master()
-
-            try:
-                (rin, win, xin) = select.select(rin, [], [], 1.0)
-            except select.error:
-                util.check_parent()
-                continue
-
-            # if new gcs input, process it
-            if self.gcs.fd in rin:
-                self.process_gcs()
-
-            # if new jsbsim input, process it
-            if self.jsb_in.fileno() in rin:
-                if self.mode == 'state':
-                    if (time.time() - t_hil_state) > 1.0/50:
-                        t_hil_state = time.time()
-                        self.ac.send_state(self.master.mav)
-                elif self.mode == 'sensor':
-                    self.ac.send_sensors(self.master.mav)
-                self.process_jsb_input()
-                # gcs not currently getting HIL_STATE message
-                #self.x.send_to_mav(self.gcs.mav)
-                self.frame_count += 1
-
-            # show any jsbsim console output
-            if self.jsb_console.fileno() in rin:
-                util.pexpect_drain(self.jsb_console)
-            if self.jsb.fileno() in rin:
-                util.pexpect_drain(self.jsb)
-
-            dt_report = time.time() - self.last_report
-            if dt_report > 5:
-                print '\nmode: {0:X}, JSBSim {1:5.0f} Hz, {2:d} sent, {3:d} received, {4:d} errors, bwin={5:.1f} kB/s, bwout={6:.1f} kB/s'.format(
-                    self.master.base_mode,
-                    self.frame_count/dt_report,
-                    self.master.mav.total_packets_sent,
-                    self.master.mav.total_packets_received,
-                    self.master.mav.total_receive_errors,
-                    0.001*(self.master.mav.total_bytes_received-self.bytes_recv)/dt_report,
-                    0.001*(self.master.mav.total_bytes_sent-self.bytes_sent)/dt_report)
-                print self.counts
-                self.bytes_sent = self.master.mav.total_bytes_sent
-                self.bytes_recv = self.master.mav.total_bytes_received
-                self.frame_count = 0
-                self.last_report = time.time()
+            self.update();
 
 if __name__ == "__main__":
     SensorHIL.command_line()
