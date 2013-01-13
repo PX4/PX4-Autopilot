@@ -52,7 +52,8 @@
 #include "tests.h"
 
 #include <nuttx/analog/adc.h>
-
+#include <drivers/drv_adc.h>
+#include <systemlib/err.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -89,129 +90,79 @@
 
 int test_jig_voltages(int argc, char *argv[])
 {
-	int		fd0 = 0;
-	int		ret = OK;
-	const int nchannels = 4;
+	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+	int ret = OK;
 
-	struct adc_msg4_s
-	{
-	  uint8_t      am_channel1;               /* The 8-bit ADC Channel */
-	  int32_t      am_data1;                  /* ADC convert result (4 bytes) */
-	  uint8_t      am_channel2;               /* The 8-bit ADC Channel */
-	  int32_t      am_data2;                  /* ADC convert result (4 bytes) */
-	  uint8_t      am_channel3;               /* The 8-bit ADC Channel */
-	  int32_t      am_data3;                  /* ADC convert result (4 bytes) */
-	  uint8_t      am_channel4;               /* The 8-bit ADC Channel */
-	  int32_t      am_data4;                  /* ADC convert result (4 bytes) */
-	}__attribute__((__packed__));;
-
-	struct adc_msg4_s sample1[4];
-
-	size_t readsize;
-	ssize_t nbytes;
-	int i = 0;
-	int j = 0;
-	int errval;
-
-	char name[11];
-	sprintf(name, "/dev/adc%d", j);
-	fd0 = open(name, O_RDONLY | O_NONBLOCK);
-	if (fd0 < 0)
-	{
-		printf("ADC: %s open fail\n", name);
-		return ERROR;
-	} else {
-		printf("Opened %s successfully\n", name);
+	if (fd < 0) {
+		warnx("can't open ADC device");
+		return 1;
 	}
 
+	/* make space for a maximum of eight channels */
+	struct adc_msg_s data[8];
+	/* read all channels available */
+	ssize_t count = read(fd, data, sizeof(data));
+
+	if (count < 0) {
+		close(fd);
+		warnx("can't read from ADC driver. Forgot 'adc start' command?");
+		return 1;
+	}
+
+	unsigned channels = count / sizeof(data[0]);
+
+	for (unsigned j = 0; j < channels; j++) {
+		printf("%d: %u  ", data[j].am_channel, data[j].am_data);
+	}
+
+	printf("\n");
+
+	warnx("\t ADC operational.\n");
 
 	/* Expected values */
 	int16_t expected_min[] = {2700, 2700, 2200, 2000};
 	int16_t expected_max[] = {3000, 3000, 2500, 2200};
-	char* check_res[nchannels];
+	char *check_res[channels];
 
-	/* first adc read round */
-	readsize = 4 * sizeof(struct adc_msg_s);
+	if (channels < 4) {
+		close(fd);
+		warnx("not all four test channels available, aborting.");
+		return 1;
 
-	/* Empty all buffers */
-	do {
-		nbytes = read(fd0, sample1, readsize);
+	} else {
+		/* Check values */
+		check_res[0] = (expected_min[0] < data[0].am_data && expected_max[0] > data[0].am_data) ? "OK" : "FAIL";
+		check_res[1] = (expected_min[1] < data[1].am_data && expected_max[1] > data[1].am_data) ? "OK" : "FAIL";
+		check_res[2] = (expected_min[2] < data[2].am_data && expected_max[2] > data[2].am_data) ? "OK" : "FAIL";
+		check_res[3] = (expected_min[3] < data[3].am_data && expected_max[3] > data[3].am_data) ? "OK" : "FAIL";
+
+		/* Accumulate result */
+		ret += (expected_min[0] > data[0].am_data || expected_max[0] < data[0].am_data) ? 1 : 0;
+		ret += (expected_min[1] > data[1].am_data || expected_max[1] < data[1].am_data) ? 1 : 0;
+		ret += (expected_min[2] > data[2].am_data || expected_max[2] < data[2].am_data) ? 1 : 0;
+		ret += (expected_min[3] > data[3].am_data || expected_max[3] < data[3].am_data) ? 1 : 0;
+
+		message("Sample:");
+		message("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
+			data[0].am_channel, (int)(data[0].am_data), expected_min[0], expected_max[0], check_res[0]);
+		message("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
+			data[1].am_channel, (int)(data[1].am_data), expected_min[1], expected_max[1], check_res[1]);
+		message("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
+			data[2].am_channel, (int)(data[2].am_data), expected_min[2], expected_max[2], check_res[2]);
+		message("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
+			data[3].am_channel, (int)(data[3].am_data), expected_min[3], expected_max[3], check_res[3]);
+
+		if (ret != OK) {
+			printf("\t JIG voltages test FAILED. Some channels where out of allowed range. Check supply voltages.\n");
+			goto errout_with_dev;
+		}
 	}
-	while (nbytes > 0);
 
-	up_udelay(20000);//microseconds
-	/* Take measurements */
-	nbytes = read(fd0, sample1, readsize);
+	printf("\t JIG voltages test successful.\n");
 
-    /* Handle unexpected return values */
+errout_with_dev:
 
-    if (nbytes <= 0)
-      {
-        errval = errno;
-        if (errval != EINTR)
-          {
-            message("read %s failed: %d\n",
-                    name, errval);
-            errval = 3;
-            goto errout_with_dev;
-          }
-
-        message("\tInterrupted read...\n");
-      }
-    else if (nbytes == 0)
-      {
-        message("\tNo data read, Ignoring\n");
-      }
-
-    /* Print the sample data on successful return */
-
-    else
-    {
-    	int nsamples = nbytes / sizeof(struct adc_msg_s);
-    	if (nsamples * sizeof(struct adc_msg_s) != nbytes)
-    	{
-    		message("\tread size=%d is not a multiple of sample size=%d, Ignoring\n",
-    				nbytes, sizeof(struct adc_msg_s));
-    	}
-    	else
-    	{
-    		/* Check values */
-    		check_res[0] = (expected_min[0] < sample1[i].am_data1 && expected_max[0] > sample1[i].am_data1) ? "OK" : "FAIL";
-    		check_res[1] = (expected_min[1] < sample1[i].am_data2 && expected_max[1] > sample1[i].am_data2) ? "OK" : "FAIL";
-    		check_res[2] = (expected_min[2] < sample1[i].am_data3 && expected_max[2] > sample1[i].am_data3) ? "OK" : "FAIL";
-    		check_res[3] = (expected_min[3] < sample1[i].am_data4 && expected_max[3] > sample1[i].am_data4) ? "OK" : "FAIL";
-
-    		/* Accumulate result */
-    		ret += (expected_min[0] > sample1[i].am_data1 || expected_max[0] < sample1[i].am_data1) ? 1 : 0;
-    		// XXX Chan 11 not connected on test setup
-    		//ret += (expected_min[1] > sample1[i].am_data2 || expected_max[1] < sample1[i].am_data2) ? 1 : 0;
-    		ret += (expected_min[2] > sample1[i].am_data3 || expected_max[2] < sample1[i].am_data3) ? 1 : 0;
-    		ret += (expected_min[3] > sample1[i].am_data4 || expected_max[3] < sample1[i].am_data4) ? 1 : 0;
-
-    		message("Sample:");
-    		message("%d: channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
-    					i, sample1[i].am_channel1, sample1[i].am_data1, expected_min[0], expected_max[0], check_res[0]);
-        	message("Sample:");
-    		message("%d: channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
-						i, sample1[i].am_channel2, sample1[i].am_data2, expected_min[1], expected_max[1], check_res[1]);
-        	message("Sample:");
-    		message("%d: channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
-						i, sample1[i].am_channel3, sample1[i].am_data3, expected_min[2], expected_max[2], check_res[2]);
-        	message("Sample:");
-    		message("%d: channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
-						i, sample1[i].am_channel4, sample1[i].am_data4, expected_min[3], expected_max[3], check_res[3]);
-
-    		if (ret != OK) {
-    			printf("\t ADC test FAILED. Some channels where out of allowed range. Check supply voltages.\n");
-    		 	goto errout_with_dev;
-    		}
-    	}
-    }
-
-	printf("\t ADC test successful.\n");
-
-	errout_with_dev:
-	  if (fd0 != 0) close(fd0);
+	if (fd != 0) close(fd);
 
 	return ret;
 }

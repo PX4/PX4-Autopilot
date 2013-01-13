@@ -78,11 +78,10 @@ static int test_jig(int argc, char *argv[]);
  * Private Data
  ****************************************************************************/
 
-struct {
+const struct {
 	const char 	*name;
 	int	(* fn)(int argc, char *argv[]);
 	unsigned	options;
-	int			passed;
 #define OPT_NOHELP	(1<<0)
 #define OPT_NOALLTEST	(1<<1)
 #define OPT_NOJIGTEST	(1<<2)
@@ -107,9 +106,9 @@ struct {
 	{"perf",		test_perf,	OPT_NOJIGTEST, 0},
 	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST, 0},
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"param",		test_param,	0, 0},
-	{"bson",		test_bson,	0, 0},
-	{"file",		test_file,	0, 0},
+	{"param",		test_param,	OPT_NOJIGTEST, 0},
+	{"bson",		test_bson,	OPT_NOJIGTEST, 0},
+	{"file",		test_file,	OPT_NOJIGTEST, 0},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST, 0},
 	{NULL,			NULL, 		0, 0}
 };
@@ -133,6 +132,11 @@ test_all(int argc, char *argv[])
 	unsigned	i;
 	char		*args[2] = {"all", NULL};
 	unsigned int failcount = 0;
+	unsigned int testscount = 0;
+
+	/* store test results */
+	bool passed[(sizeof(tests) / sizeof(tests[0]))];
+	memset(&passed, 0, sizeof(passed));
 
 	printf("\nRunning all tests...\n\n");
 
@@ -149,10 +153,12 @@ test_all(int argc, char *argv[])
 				failcount++;
 
 			} else {
-				tests[i].passed = 1;
+				passed[i] = true;
 				printf("  [%s] \t\t\tPASS\n", tests[i].name);
 				fflush(stdout);
 			}
+
+			testscount++;
 		}
 	}
 
@@ -175,7 +181,7 @@ test_all(int argc, char *argv[])
 		printf("  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\     \\ \\_____\\  \\ \\_\\ \\_\\ \n");
 		printf("   \\/_/\\/_/   \\/_____/   \\/_____/      \\/_____/   \\/_/\\/_/ \n");
 		printf("\n");
-		printf(" All tests passed (%d of %d)\n", i, i);
+		printf(" All tests passed (%d of %d)\n", testscount, testscount);
 
 	} else {
 		printf("  ______   ______     __     __ \n");
@@ -184,7 +190,7 @@ test_all(int argc, char *argv[])
 		printf("  \\ \\_\\    \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\ \n");
 		printf("   \\/_/     \\/_/\\/_/   \\/_/   \\/_____/ \n");
 		printf("\n");
-		printf(" Some tests failed (%d of %d)\n", failcount, i);
+		printf(" Some tests failed (%d of %d)\n", failcount, testscount);
 	}
 
 	printf("\n");
@@ -195,7 +201,7 @@ test_all(int argc, char *argv[])
 	unsigned int k;
 
 	for (k = 0; k < i; k++) {
-		if ((tests[k].passed == 0) && !(tests[k].options & OPT_NOALLTEST)) {
+		if (!passed[k] && !(tests[k].options & OPT_NOALLTEST)) {
 			printf(" [%s] to obtain details, please re-run with\n\t nsh> tests %s\n\n", tests[k].name, tests[k].name);
 		}
 	}
@@ -242,6 +248,11 @@ int test_jig(int argc, char *argv[])
 	unsigned	i;
 	char		*args[2] = {"jig", NULL};
 	unsigned int failcount = 0;
+	unsigned int testscount = 0;
+
+	/* store test results */
+	bool passed[(sizeof(tests) / sizeof(tests[0]))];
+	memset(&passed, 0, sizeof(passed));
 
 	printf("\nRunning all tests...\n\n");
 	for (i = 0; tests[i].name; i++) {
@@ -255,10 +266,12 @@ int test_jig(int argc, char *argv[])
 				fflush(stderr);
 				failcount++;
 			} else {
-				tests[i].passed = 1;
+				passed[i] = true;
 				printf("  [%s] \t\t\tPASS\n", tests[i].name);
 				fflush(stdout);
 			}
+
+			testscount++;
 		}
 	}
 
@@ -279,7 +292,7 @@ int test_jig(int argc, char *argv[])
 		printf("  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\     \\ \\_____\\  \\ \\_\\ \\_\\ \n");
 		printf("   \\/_/\\/_/   \\/_____/   \\/_____/      \\/_____/   \\/_/\\/_/ \n");
 		printf("\n");
-		printf(" All tests passed (%d of %d)\n", i, i);
+		printf(" All tests passed (%d of %d)\n", testscount, testscount);
 	} else {
 		printf("  ______   ______     __     __ \n");
 		printf(" /\\  ___\\ /\\  __ \\   /\\ \\   /\\ \\    \n");
@@ -287,7 +300,7 @@ int test_jig(int argc, char *argv[])
 		printf("  \\ \\_\\    \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\ \n");
 		printf("   \\/_/     \\/_/\\/_/   \\/_/   \\/_____/ \n");
 		printf("\n");
-		printf(" Some tests failed (%d of %d)\n", failcount, i);
+		printf(" Some tests failed (%d of %d)\n", failcount, testscount);
 	}
 	printf("\n");
 
@@ -296,7 +309,7 @@ int test_jig(int argc, char *argv[])
 	unsigned int k;
 	for (k = 0; k < i; k++)
 	{
-		if ((tests[k].passed == 0) && !(tests[k].options & OPT_NOJIGTEST))
+		if (!passed[k] && !(tests[k].options & OPT_NOJIGTEST))
 		{
 			printf(" [%s] to obtain details, please re-run with\n\t nsh> tests %s\n\n", tests[k].name, tests[k].name);
 		}

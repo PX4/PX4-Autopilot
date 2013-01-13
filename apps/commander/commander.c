@@ -1319,8 +1319,8 @@ int commander_thread_main(int argc, char *argv[])
 	uint16_t counter = 0;
 	uint8_t flight_env;
 
-	/* Initialize to 3.0V to make sure the low-pass loads below valid threshold */
-	float battery_voltage = 12.0f;
+	/* Initialize to 0.0V */
+	float battery_voltage = 0.0f;
 	bool battery_voltage_valid = true;
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
@@ -1473,8 +1473,8 @@ int commander_thread_main(int argc, char *argv[])
 			last_local_position_time = local_position.timestamp;
 		}
 
+		/* update battery status */
 		orb_check(battery_sub, &new_data);
-
 		if (new_data) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 			battery_voltage = battery.voltage_v;
