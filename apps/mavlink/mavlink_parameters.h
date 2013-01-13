@@ -48,7 +48,7 @@
 #include <systemlib/param/param.h>
 
 /**
- * Handle parameter related messages. 
+ * Handle parameter related messages.
  */
 void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg);
 
@@ -84,14 +84,14 @@ int mavlink_pm_send_param_for_index(uint16_t index);
  * @param name		The index of the parameter to send.
  * @return		zero on success, nonzero else.
  */
-int mavlink_pm_send_param_for_name(const char* name);
+int mavlink_pm_send_param_for_name(const char *name);
 
 /**
  * Send a queue of parameters, one parameter per function call.
  *
  * @return		zero on success, nonzero on failure
  */
- int mavlink_pm_queued_send(void);
+int mavlink_pm_queued_send(void);
 
 /**
  * Start sending the parameter queue.

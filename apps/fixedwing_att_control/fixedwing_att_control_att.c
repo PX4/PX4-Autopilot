@@ -112,9 +112,9 @@ static int parameters_update(const struct fw_pos_control_param_handles *h, struc
 }
 
 int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-		const struct vehicle_attitude_s *att,
-		const float speed_body[],
-		struct vehicle_rates_setpoint_s *rates_sp)
+				   const struct vehicle_attitude_s *att,
+				   const float speed_body[],
+				   struct vehicle_rates_setpoint_s *rates_sp)
 {
 	static int counter = 0;
 	static bool initialized = false;
@@ -126,8 +126,7 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	static PID_t pitch_controller;
 
 
-	if(!initialized)
-	{
+	if (!initialized) {
 		parameters_init(&h);
 		parameters_update(&h, &p);
 		pid_init(&roll_controller, p.roll_p, 0, 0, 0, p.rollrate_lim, PID_MODE_DERIVATIV_NONE); //P Controller
@@ -153,8 +152,8 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	float pitch_sp_rollcompensation = p.pitch_roll_compensation_p * fabsf(sinf(att_sp->roll_body));
 	/* set pitch plus feedforward roll compensation */
 	rates_sp->pitch = pid_calculate(&pitch_controller,
-				att_sp->pitch_body + pitch_sp_rollcompensation,
-				att->pitch, 0, 0);
+					att_sp->pitch_body + pitch_sp_rollcompensation,
+					att->pitch, 0, 0);
 
 	/* Yaw (from coordinated turn constraint or lateral force) */
 	rates_sp->yaw = (att->rollspeed * rates_sp->roll + 9.81f * sinf(att->roll) * cosf(att->pitch) + speed_body[0] * rates_sp->pitch * sinf(att->roll))

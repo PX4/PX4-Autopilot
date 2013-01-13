@@ -1,1 +1,1 @@
-#define MAVLINK_VERSION "1.0.10"
+#define MAVLINK_VERSION "1.0.7"

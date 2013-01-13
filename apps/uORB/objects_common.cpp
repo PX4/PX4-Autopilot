@@ -113,6 +113,12 @@ ORB_DEFINE(offboard_control_setpoint, struct offboard_control_setpoint_s);
 #include "topics/optical_flow.h"
 ORB_DEFINE(optical_flow, struct optical_flow_s);
 
+#include "topics/omnidirectional_flow.h"
+ORB_DEFINE(omnidirectional_flow, struct omnidirectional_flow_s);
+
+#include "topics/differential_pressure.h"
+ORB_DEFINE(differential_pressure, struct differential_pressure_s);
+
 #include "topics/subsystem_info.h"
 ORB_DEFINE(subsystem_info, struct subsystem_info_s);
 

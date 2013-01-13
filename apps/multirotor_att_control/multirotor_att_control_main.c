@@ -116,7 +116,7 @@ mc_thread_main(int argc, char *argv[])
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 
-	/* 
+	/*
 	 * Do not rate-limit the loop to prevent aliasing
 	 * if rate-limiting would be desired later, the line below would
 	 * enable it.
@@ -125,9 +125,9 @@ mc_thread_main(int argc, char *argv[])
 	 * orb_set_interval(att_sub, 5);
 	 */
 	struct pollfd fds[2] = {
-					{ .fd = att_sub, .events = POLLIN },
-					{ .fd = param_sub, .events = POLLIN }
-				};
+		{ .fd = att_sub, .events = POLLIN },
+		{ .fd = param_sub, .events = POLLIN }
+	};
 
 	/* publish actuator controls */
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
@@ -171,6 +171,7 @@ mc_thread_main(int argc, char *argv[])
 		if (ret < 0) {
 			/* poll error, count it in perf */
 			perf_count(mc_err_perf);
+
 		} else if (ret == 0) {
 			/* no return value, ignore */
 		} else {
@@ -193,9 +194,11 @@ mc_thread_main(int argc, char *argv[])
 				/* get a local copy of system state */
 				bool updated;
 				orb_check(state_sub, &updated);
+
 				if (updated) {
 					orb_copy(ORB_ID(vehicle_status), state_sub, &state);
 				}
+
 				/* get a local copy of manual setpoint */
 				orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 				/* get a local copy of attitude */
@@ -204,9 +207,11 @@ mc_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
 				/* get a local copy of rates setpoint */
 				orb_check(setpoint_sub, &updated);
+
 				if (updated) {
 					orb_copy(ORB_ID(offboard_control_setpoint), setpoint_sub, &offboard_sp);
 				}
+
 				/* get a local copy of the current sensor values */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
@@ -222,6 +227,7 @@ mc_thread_main(int argc, char *argv[])
 //						printf("thrust_rate=%8.4f\n",offboard_sp.p4);
 						rates_sp.timestamp = hrt_absolute_time();
 						orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
+
 					} else if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
 						att_sp.roll_body = offboard_sp.p1;
 						att_sp.pitch_body = offboard_sp.p2;
@@ -232,7 +238,7 @@ mc_thread_main(int argc, char *argv[])
 						/* STEP 2: publish the result to the vehicle actuators */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 					}
-					
+
 
 				} else if (state.flag_control_manual_enabled) {
 
@@ -240,8 +246,8 @@ mc_thread_main(int argc, char *argv[])
 
 						/* initialize to current yaw if switching to manual or att control */
 						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-					 	    state.flag_control_manual_enabled != flag_control_manual_enabled ||
-					 	    state.flag_system_armed != flag_system_armed) {
+						    state.flag_control_manual_enabled != flag_control_manual_enabled ||
+						    state.flag_system_armed != flag_system_armed) {
 							att_sp.yaw_body = att.yaw;
 						}
 
@@ -257,13 +263,14 @@ mc_thread_main(int argc, char *argv[])
 							/*
 							 * Only go to failsafe throttle if last known throttle was
 							 * high enough to create some lift to make hovering state likely.
-							 * 
+							 *
 							 * This is to prevent that someone landing, but not disarming his
 							 * multicopter (throttle = 0) does not make it jump up in the air
 							 * if shutting down his remote.
 							 */
 							if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
 								att_sp.thrust = failsafe_throttle;
+
 							} else {
 								att_sp.thrust = 0.0f;
 							}
@@ -290,11 +297,12 @@ mc_thread_main(int argc, char *argv[])
 
 							/* act if stabilization is active or if the (nonsense) direct pass through mode is set */
 							if (state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS ||
-								state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+							    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
 
 								if (state.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_RATE) {
 									rates_sp.yaw = manual.yaw;
 									control_yaw_position = false;
+
 								} else {
 									/*
 									 * This mode SHOULD be the default mode, which is:
@@ -309,11 +317,13 @@ mc_thread_main(int argc, char *argv[])
 										rates_sp.yaw = manual.yaw;
 										control_yaw_position = false;
 										first_time_after_yaw_speed_control = true;
+
 									} else {
 										if (first_time_after_yaw_speed_control) {
 											att_sp.yaw_body = att.yaw;
 											first_time_after_yaw_speed_control = false;
 										}
+
 										control_yaw_position = true;
 									}
 								}
@@ -340,7 +350,7 @@ mc_thread_main(int argc, char *argv[])
 					} else {
 						/* manual rate inputs, from RC control or joystick */
 						if (state.flag_control_rates_enabled &&
-							state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_RATES) {
+						    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_RATES) {
 							rates_sp.roll = manual.roll;
 
 							rates_sp.pitch = manual.pitch;
@@ -354,9 +364,9 @@ mc_thread_main(int argc, char *argv[])
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 				if (state.flag_control_attitude_enabled) {
-				 	multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
+					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
 
-				 	orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
+					orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 				}
 
 				/* measure in what intervals the controller runs */
@@ -367,6 +377,7 @@ mc_thread_main(int argc, char *argv[])
 				/* get current rate setpoint */
 				bool rates_sp_valid = false;
 				orb_check(rates_sp_sub, &rates_sp_valid);
+
 				if (rates_sp_valid) {
 					orb_copy(ORB_ID(vehicle_rates_setpoint), rates_sp_sub, &rates_sp);
 				}
@@ -394,6 +405,7 @@ mc_thread_main(int argc, char *argv[])
 	/* kill all outputs */
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
 		actuators.control[i] = 0.0f;
+
 	orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 
@@ -415,6 +427,7 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
+
 	fprintf(stderr, "usage: multirotor_att_control [-m <mode>] [-t] {start|status|stop}\n");
 	fprintf(stderr, "    <mode> is 'rates' or 'attitude'\n");
 	fprintf(stderr, "    -t enables motor test mode with 10%% thrust\n");
@@ -432,22 +445,25 @@ int multirotor_att_control_main(int argc, char *argv[])
 			motor_test_mode = true;
 			optioncount += 1;
 			break;
+
 		case ':':
 			usage("missing parameter");
 			break;
+
 		default:
 			fprintf(stderr, "option: -%c\n", ch);
 			usage("unrecognized option");
 			break;
 		}
 	}
+
 	argc -= optioncount;
 	//argv += optioncount;
 
 	if (argc < 1)
 		usage("missing command");
 
-	if (!strcmp(argv[1+optioncount], "start")) {
+	if (!strcmp(argv[1 + optioncount], "start")) {
 
 		thread_should_exit = false;
 		mc_task = task_spawn("multirotor_att_control",
@@ -459,7 +475,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1+optioncount], "stop")) {
+	if (!strcmp(argv[1 + optioncount], "stop")) {
 		thread_should_exit = true;
 		exit(0);
 	}

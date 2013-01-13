@@ -249,19 +249,23 @@ handle_message(mavlink_message_t *msg)
 			case 0:
 				ml_armed = false;
 				break;
+
 			case 1:
 				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
 				ml_armed = true;
 
 				break;
+
 			case 2:
 				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
 				ml_armed = true;
 
 				break;
+
 			case 3:
 				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
 				break;
+
 			case 4:
 				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
 				break;
@@ -615,7 +619,7 @@ receive_start(int uart)
 	fcntl(uart, F_SETFL, flags | O_NONBLOCK);
 
 	struct sched_param param;
-	param.sched_priority = SCHED_PRIORITY_MAX;
+	param.sched_priority = SCHED_PRIORITY_MAX - 40;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
 	pthread_attr_setstacksize(&receiveloop_attr, 4096);

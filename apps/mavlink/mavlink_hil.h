@@ -62,7 +62,7 @@ extern int hil_mode;
  * Enable / disable Hardware in the Loop simulation mode.
  *
  * @param hil_enabled	The new HIL enable/disable state.
- * @return		OK if the HIL state changed, ERROR if the 
+ * @return		OK if the HIL state changed, ERROR if the
  *			requested change could not be made or was
  *			redundant.
  */
