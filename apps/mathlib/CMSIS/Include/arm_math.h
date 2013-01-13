@@ -5520,7 +5520,7 @@ extern "C"
     *pIa = Ialpha;
 
     /* Calculating pIb from Ialpha and Ibeta by equation pIb = -(1/2) * Ialpha + (sqrt(3)/2) * Ibeta */
-    *pIb = -0.5 * Ialpha + (float32_t) 0.8660254039 *Ibeta;
+    *pIb = -0.5f * Ialpha + (float32_t) 0.8660254039f *Ibeta;
 
   }
 
@@ -5898,7 +5898,7 @@ extern "C"
       /* Iniatilize output for below specified range as least output value of table */
       y = pYData[0];
     }
-    else if(i >= S->nValues)
+    else if((unsigned)i >= S->nValues)
     {
       /* Iniatilize output for above specified range as last output value of table */
       y = pYData[S->nValues - 1];
