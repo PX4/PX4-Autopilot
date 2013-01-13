@@ -1014,7 +1014,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					}
 				}
 
-				raw.battery_voltage_counter++;
 				_last_adc = hrt_absolute_time();
 				break;
 			}
