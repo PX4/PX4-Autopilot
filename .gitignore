@@ -11,6 +11,7 @@ Make.dep
 *.pyc
 *.o
 *.a
+*.d
 *~
 *.dSYM
 Images/*.bin
