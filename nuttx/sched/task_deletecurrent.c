@@ -115,9 +115,12 @@ int task_deletecurrent(void)
    * does not correspond to the thread that is running.  Disabling pre-
    * emption on this TCB and marking the new ready-to-run task as not
    * running (see, for example, get_errno_ptr()).
+   *
+   * We disable pre-emption here by directly incrementing the lockcount
+   * (vs. calling sched_lock()).
    */
 
-  sched_lock();
+  rtcb->lockcount++;
   rtcb->task_state = TSTATE_TASK_READYTORUN;
 
   /* Move the TCB to the specified blocked task list and delete it */
@@ -143,7 +146,6 @@ int task_deletecurrent(void)
    * the lockcount on rctb.
    */
 
-  DEBUGASSERT(rtcb->lockcount > 0);
   rtcb->lockcount--;
   return OK;
 }

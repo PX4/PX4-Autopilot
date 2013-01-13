@@ -3918,7 +3918,7 @@
 	  the scenario: (1) sched_lock() is called increments the lockcount
 	  on the current TCB (i.e., the one at the head of the ready to run
 	  list), (2) sched_mergepending is called which may change the task
-	  at the head of the readytorun list, then (2) sched_lock() is called
+	  at the head of the readytorun list, then (2) sched_unlock() is called
 	  which decrements the lockcount on the wrong TCB.  The failure case
 	  that I saw was that pre-emption got disabled in the IDLE thread,
 	  locking up the whole system.
