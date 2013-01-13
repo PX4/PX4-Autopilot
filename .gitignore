@@ -10,6 +10,7 @@ apps/namedapp/namedapp_proto.h
 Make.dep
 *.o
 *.a
+*.d
 *~
 *.dSYM
 Images/*.bin
