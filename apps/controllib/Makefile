@@ -43,11 +43,4 @@ CXXSRCS		 = block/Block.cpp \
 		   blocks.cpp \
 		   fixedwing.cpp
 
-CXXHDRS		 = block/Block.hpp \
-		   block/BlockParam.hpp \
-		   block/UOrbPublication.hpp \
-		   block/UOrbSubscription.hpp \
-		   blocks.hpp \
-		   fixedwing.hpp
-
 include $(APPDIR)/mk/app.mk

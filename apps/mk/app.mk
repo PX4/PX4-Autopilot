@@ -81,7 +81,9 @@
 # Work out who included us so we can report decent errors
 #
 THIS_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
-PARENT_MAKEFILE	:= $(lastword $(filter-out $(THIS_MAKEFILE),$(MAKEFILE_LIST)))
+ifeq ($(APP_MAKEFILE),)
+APP_MAKEFILE	:= $(lastword $(filter-out $(THIS_MAKEFILE),$(MAKEFILE_LIST)))
+endif
 
 ############################################################################
 # Get configuration
@@ -93,7 +95,7 @@ include $(APPDIR)/Make.defs
 ############################################################################
 # Sanity-check the information we've been given and set any defaults
 #
-SRCDIR		?= $(dir $(PARENT_MAKEFILE))
+SRCDIR		?= $(dir $(APP_MAKEFILE))
 PRIORITY	?= SCHED_PRIORITY_DEFAULT
 STACKSIZE	?= CONFIG_PTHREAD_STACK_DEFAULT
 
@@ -112,14 +114,14 @@ endif
 
 # there has to be a source file
 ifeq ($(ASRCS)$(CSRCS)$(CXXSRCS),)
-$(error $(realpath $(PARENT_MAKEFILE)): at least one of ASRCS, CSRCS or CXXSRCS must be set)
+$(error $(realpath $(APP_MAKEFILE)): at least one of ASRCS, CSRCS or CXXSRCS must be set)
 endif
 
 # check that C++ is configured if we have C++ source files and we are building
 ifneq ($(CXXSRCS),)
 ifneq ($(CONFIG_HAVE_CXX),y)
 ifeq ($(MAKECMDGOALS),build)
-$(error $(realpath $(PARENT_MAKEFILE)): cannot set CXXSRCS if CONFIG_HAVE_CXX not set in configuration)
+$(error $(realpath $(APP_MAKEFILE)): cannot set CXXSRCS if CONFIG_HAVE_CXX not set in configuration)
 endif
 endif
 endif
@@ -153,6 +155,11 @@ COBJS		 = $(patsubst %.c,%.o,$(CSRCS))
 CXXOBJS		 = $(patsubst %.cpp,%.o,$(CXXSRCS))
 OBJS		 = $(AOBJS) $(COBJS) $(CXXOBJS)
 
+# Automatic depdendency generation
+DEPS		 = $(OBJS:$(OBJEXT)=.d)
+CFLAGS		+= -MD
+CXXFLAGS	+= -MD
+
 # The prelinked object that we are ultimately going to build
 ifneq ($(APPNAME),)
 PRELINKOBJ	 = $(APPNAME).pre.o
@@ -160,7 +167,7 @@ else
 PRELINKOBJ	 = $(LIBNAME).pre.o
 endif
 
-# The archive that the object file will be placed in
+# The archive the prelinked object will be linked into
 # XXX does WINTOOL ever get set?
 ifeq ($(WINTOOL),y)
   INCDIROPT	= -w
@@ -186,11 +193,8 @@ all:		.built
 #
 # Source dependencies
 #
-depend:		.depend
-.depend:	$(MAKEFILE_LIST) $(SRCS)
-	@$(MKDEP) --dep-path . $(CC) -- $(CFLAGS) -- $(CSRCS) $(CHDRS) >Make.dep
-	@$(MKDEP) --dep-path . $(CXX) -- $(CXXFLAGS) -- $(CXXSRCS) $(CXXHDRS) >>Make.dep
-	@touch $@
+depend:
+	@exit 0
 
 ifneq ($(APPNAME),)
 #
@@ -202,6 +206,7 @@ context:	.context
 	@touch $@
 else
 context:
+	@exit 0
 endif
 
 #
@@ -210,23 +215,23 @@ endif
 $(PRELINKOBJ):	$(OBJS)
 	$(call PRELINK, $@, $(OBJS))
 
-$(AOBJS): %.o : %.S
+$(AOBJS): %.o : %.S $(MAKEFILE_LIST)
 	$(call ASSEMBLE, $<, $@)
 
-$(COBJS): %.o : %.c
+$(COBJS): %.o : %.c $(MAKEFILE_LIST)
 	$(call COMPILE, $<, $@)
 
-$(CXXOBJS): %.o : %.cpp
+$(CXXOBJS): %.o : %.cpp $(MAKEFILE_LIST)
 	$(call COMPILEXX, $<, $@)
 
 #
 # Tidying up
 #
 clean:
-	@rm -f $(OBJS) $(PRELINKOBJ) Make.dep .built
+	@rm -f $(OBJS) $(DEPS) $(PRELINKOBJ) .built
 	$(call CLEAN)
 
 distclean:	clean
 	@rm -f Make.dep .depend
 
--include Make.dep
+-include $(DEPS)
