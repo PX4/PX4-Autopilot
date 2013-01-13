@@ -1,7 +1,7 @@
 /********************************************************************************
  * include/nuttx/sched.h
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -204,6 +204,7 @@ struct _TCB
   pid_t    pid;                          /* This is the ID of the thread        */
 #ifdef CONFIG_SCHED_HAVE_PARENT
   pid_t    parent;                       /* This is the ID of the parent thread */
+  uint16_t nchildren;                    /* This is the number active children  */
 #endif
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
@@ -226,7 +227,7 @@ struct _TCB
 # endif
 #endif
 
-#ifdef CONFIG_SCHED_WAITPID
+#if defined(CONFIG_SCHED_WAITPID) && !defined(CONFIG_SCHED_HAVE_PARENT)
   sem_t    exitsem;                      /* Support for waitpid                 */
   int     *stat_loc;                     /* Location to return exit status      */
 #endif

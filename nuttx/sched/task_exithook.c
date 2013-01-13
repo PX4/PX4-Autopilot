@@ -217,6 +217,20 @@ static inline void task_sigchild(FAR _TCB *tcb, int status)
       return;
     }
 
+  /* Decrement the number of children from this parent */
+
+  DEBUGASSERT(ptcb->nchildren > 0);
+  ptcb->nchildren--;
+
+  /* Set the parent to an impossible PID.  We do this because under certain
+   * conditions, task_exithook() can be called multiple times.  If this
+   * function is called again, sched_gettcb() will fail on the invalid
+   * parent PID above, nchildren will be decremented once and all will be
+   * well.
+   */
+
+  tcb->parent = INVALID_PROCESS_ID;
+
   /* Create the siginfo structure.  We don't actually know the cause.  That
    * is a bug. Let's just say that the child task just exit-ted for now.
    */
@@ -246,7 +260,7 @@ static inline void task_sigchild(FAR _TCB *tcb, int status)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SCHED_WAITPID
+#if defined(CONFIG_SCHED_WAITPID) && !defined(CONFIG_SCHED_HAVE_PARENT)
 static inline void task_exitwakeup(FAR _TCB *tcb, int status)
 {
   /* Wakeup any tasks waiting for this task to exit */
@@ -310,13 +324,13 @@ void task_exithook(FAR _TCB *tcb, int status)
 
   task_atexit(tcb);
 
-  /* Send SIGCHLD to the parent of the exiting task */
-
-  task_sigchild(tcb, status);
-
   /* Call any registered on_exit function(s) */
 
   task_onexit(tcb, status);
+
+  /* Send SIGCHLD to the parent of the exit-ing task */
+
+  task_sigchild(tcb, status);
 
   /* Wakeup any tasks waiting for this task to exit */
 

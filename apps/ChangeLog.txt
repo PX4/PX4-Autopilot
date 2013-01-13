@@ -464,4 +464,5 @@
 	* apps/exampes/posix_spawn: Added a test of poxis_spawn().
 	* apps/examples/ostest:  Extend signal handler test to catch
 	  death-of-child signals (SIGCHLD).
-
+	* apps/examples/ostest/waitpid.c:  Add a test for waitpid(), waitid(),
+	  and wait().

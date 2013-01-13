@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: January 12, 2013</p>
+      <p>Last Updated: January 13, 2013</p>
     </td>
   </tr>
 </table>
@@ -4482,7 +4482,8 @@ build
   </li>
   <li>
     <code>CONFIG_SCHED_HAVE_PARENT</code>: Remember the ID of the parent thread when a new child thread is created.
-    This support enables a few minor features (such as <code>SIGCHLD</code>) and slightly increases the size of the Task Control Block (TCB) of every task to hold the ID of the parent thread.
+    This support enables some additional features (such as <code>SIGCHLD</code>) and modifies the behavior of other interfaces.
+    For example, it makes <code>waitpid()</code> more standards complete by restricting the waited-for tasks to the children of the caller.
     Default: disabled.
   </li>
   <li>
@@ -4601,10 +4602,11 @@ build
     <code>CONFIG_SCHED_LPWORKPERIOD</code>:  How often the lower priority worker thread checks for work in units of microseconds.  Default: 50*1000 (50 MS).
   </li>
   <li>
-    <code>CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower priority worker thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
+    <code>CONFIG_SCHED_LPWORKSTACKSIZE</code>: The stack size allocated for the lower priority worker thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
   </li>
   <li>
-    <code>CONFIG_SCHED_WAITPID</code>: Enables the <a href="NuttxUserGuide.html#waitpid"><code>waitpid()</code><a> API
+    <code>CONFIG_SCHED_WAITPID</code>: Enables the <a href="NuttxUserGuide.html#waitpid"><code>waitpid()</code><a> interface in a default, non-standard mode (non-standard in the sense that the waited for PID need not be child of the caller).
+    If <code>SCHED_HAVE_PARENT</code> is also defined, then this setting will modify the behavior or <a href="NuttxUserGuide.html#waitpid"><code>waitpid()</code><a> (making more spec compliant) and will enable the <a href="NuttxUserGuide.html#waitid"><code>waitid()</code><a> and <a href="NuttxUserGuide.html#wait"><code>waitp()</code><a> interfaces as well.
   </li>
   <li>
     <code>CONFIG_SCHED_ATEXIT</code>:  Enables the <a href="NuttxUserGuide.html#atexit">atexit()</code><a> API

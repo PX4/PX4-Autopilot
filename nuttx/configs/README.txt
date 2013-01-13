@@ -335,10 +335,11 @@ defconfig -- This is a configuration file similar to the Linux
       task name to save in the TCB.  Useful if scheduler
       instrumentation is selected.  Set to zero to disable.
     CONFIG_SCHED_HAVE_PARENT - Remember the ID of the parent thread
-      when a new child thread is created.  This support enables a
-      few minor features (such as SIGCHLD) and slightly increases
-      the size of the Task Control Block (TCB) of every task to hold
-      the ID of the parent thread.  Default: disabled.
+      when a new child thread is created.  This support enables some
+      additional features (such as SIGCHLD) and modifies the behavior
+      of other interfaces.  For example, it makes waitpid() more
+      standards complete by restricting the waited-for tasks to the
+      children of the caller. Default: disabled.
     CONFIG_START_YEAR, CONFIG_START_MONTH, CONFIG_START_DAY -
       Used to initialize the internal time logic.
     CONFIG_GREGORIAN_TIME - Enables Gregorian time conversions.
@@ -417,7 +418,12 @@ defconfig -- This is a configuration file similar to the Linux
       checks for work in units of microseconds.  Default: 50*1000 (50 MS).
     CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower
       priority worker thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
-    CONFIG_SCHED_WAITPID - Enables the waitpid() API
+    CONFIG_SCHED_WAITPID - Enables the waitpid() interface in a default,
+      non-standard mode (non-standard in the sense that the waited for
+      PID need not be child of the caller).  If SCHED_HAVE_PARENT is
+      also defined, then this setting will modify the behavior or
+      waitpid() (making more spec compliant) and will enable the
+      waitid() and wait() interfaces as well.
     CONFIG_SCHED_ATEXIT -  Enables the atexit() API
     CONFIG_SCHED_ATEXIT_MAX -  By default if CONFIG_SCHED_ATEXIT is
       selected, only a single atexit() function is supported. That number

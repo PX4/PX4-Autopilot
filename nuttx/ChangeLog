@@ -3922,3 +3922,10 @@
 	  which decrements the lockcount on the wrong TCB.  The failure case
 	  that I saw was that pre-emption got disabled in the IDLE thread,
 	  locking up the whole system.
+	* sched/sched_waitpid.c:  Use SIGCHLD instead of a semaphore.  This
+	  is a much more spec-compliant implemenation.  However, there are
+	  some issues with overruning signals because NuttX does not support
+	  queueing of signals (POSIX does not require it).  I think it may
+	  need to.
+	* sched/sched_waitid.c and sched_wait.c:  Add support for waitid()
+	  and wait().  See issues with waitpid() above.

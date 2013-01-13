@@ -13,7 +13,7 @@
       <h1><big><font color="#3c34ec"><i>NuttX Operating System<p>User's Manual</i></font></big></h1>
       <p><small>by</small></p>
       <p>Gregory Nutt<p>
-      <p>Last Updated: January 11, 2013</p>
+      <p>Last Updated: January 13, 2013</p>
     </td>
   </tr>
 </table>
@@ -1776,8 +1776,10 @@ priority of the calling task is returned.
 <p>Task synchronization interfaces</p>
 <ul>
   <li><a href="#waitpid">2.3.4 waitpid</a></li>
-  <li><a href="#atexit">2.3.5 atexit</a></li>
-  <li><a href="#onexit">2.3.6 on_exit</a></li>
+  <li><a href="#waitid">2.3.5 waitid</a></li>
+  <li><a href="#wait">2.3.6 wait</a></li>
+  <li><a href="#atexit">2.3.7 atexit</a></li>
+  <li><a href="#onexit">2.3.8 on_exit</a></li>
 </ul>
 
 <H3><a name="schedlock">2.3.1 sched_lock</a></H3>
@@ -1886,10 +1888,12 @@ on this thread of execution.
   <b>Description:</b> 
 </p>
 <blockquote><small>
-  The following discussion is a general description of the <code>waitpid(</code>) interface.
-  However, as of this writing, the implementation of <code>waitpid()</code> is fragmentary (but usable).
-  It simply supports waiting for any task to complete execution.
-  NuttX does not support any concept of parent/child processes or of process groups nor signals related to child processes (<code>SIGCHLD</code>).
+  The following discussion is a general description of the <code>waitpid()</code> interface.
+  However, as of this writing, the implementation of <code>waitpid()</code> is incomplete (but usable).
+  If <code>CONFIG_SCHED_HAVE_PARENT</code> is defined, <code>waitpid()</code> will be a little more compliant to specifications.
+  Without <code>CONFIG_SCHED_HAVE_PARENT</code>, <code>waitpid()</code> simply supports waiting for any task to complete execution.
+  With <code>CONFIG_SCHED_HAVE_PARENT</code>, <code>waitpid()</code> will use <code>SIGCHLD</code> and can, therefore, wait for any child of the parent to complete.
+  The implementation is incomplete in either case, however: NuttX does not support any concept of process groups.
   Nor does NuttX retain the status of exited tasks so if <code>waitpid()</code> is called after a task has exited, then no status will be available.
   The options argument is currently ignored.
 </small></blockquote>
@@ -2038,7 +2042,158 @@ on this thread of execution.
   Comparable to the POSIX interface of the same name, but the implementation is incomplete (as detailed above).
 </P>
 
-<H3><a name="atexit">2.3.5 atexit</a></H3>
+<h3><a name="waitid">2.3.5 waitid</a></li></h3>
+<p>
+<b>Function Prototype:</b> 
+<pre>
+    #include &lt;sys/wait.h&gt;
+    #ifdef CONFIG_SCHED_HAVE_PARENT
+    int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options);
+    #endif
+</pre>
+<p>
+  <b>Description:</b>
+</p>
+<blockquote><small>
+  The following discussion is a general description of the <code>waitid()</code> interface.
+  However, as of this writing, the implementation of <code>waitid()</code> is incomplete (but usable).
+  If <code>CONFIG_SCHED_HAVE_PARENT</code> is defined, <code>waitid()</code> will be a little more compliant to specifications.
+  <code>waitpid()</code> simply supports waiting a specific child task (<code>P_PID</code> or for any child task <code>P_ALL</code> to complete execution.
+  <code>SIGCHLD</code> is used.
+  The implementation is incomplete in either case, however: NuttX does not support any concept of process groups.
+  Nor does NuttX retain the status of exited tasks so if <code>waitpid()</code> is called after a task has exited, then no status will be available.
+  The options argument is currently ignored.
+</small></blockquote>
+<p>
+  The <code>waitid()</code> function suspends the calling thread until one child of the process containing the calling thread changes state.
+  It records the current state of a child in the structure pointed to by <code>info</code>.
+  If a child process changed state prior to the call to <code>waitid()</code>, <code>waitid()</code> returns immediately.
+  If more than one thread is suspended in <code>wait()</code> or <code>waitpid()</code> waiting termination of the same process, exactly one thread will return the process status at the time of the target process termination
+</p>
+<p>
+  The <code>idtype</code> and <code>id</code> arguments are used to specify which children <code>waitid()</code> will wait for.
+</p>
+<p>
+<ul>
+  <li>
+   If <code>idtype</code> is P_PID, <code>waitid()</code> will wait for the child with a process ID equal to (pid_t)<code>id</code>.
+  </li>
+  <li>
+   If <code>idtype</code> is P_PGID, <code>waitid()</code> will wait for any child with a process group ID equal to (pid_t)<code>id</code>.
+  </li>
+  <li>
+   If <code>idtype</code> is P_ALL, <code>waitid()</code> will wait for any children and <code>id</code> is ignored.
+</ul>
+<p>
+  The <code>options</code> argument is used to specify which state changes <code>waitid()</code> will will wait for.
+  It is formed by OR-ing together one or more of the following flags:
+</p>
+<ul>
+  <li>
+    <code>WEXITED</code>:
+    Wait for processes that have exited. 
+  </li>
+  <li>
+    <code>WSTOPPED</code>:
+    Status will be returned for any child that has stopped upon receipt of a signal. 
+  </li>
+  <li>
+    <code>WCONTINUES</code>:
+    Status will be returned for any child that was stopped and has been continued. 
+  </li>
+  <li>
+    <code>WNOHANG</code>:
+    Return immediately if there are no children to wait for. 
+  </li>
+  <li>
+    <code>WNOWAIT</code>:
+    Keep the process whose status is returned in <code>info</code> in a waitable state.
+    This will not affect the state of the process;
+    the process may be waited for again after this call completes. 
+  </li>
+</ul>
+  The <code>info</code> argument must point to a <code>siginfo_t</code> structure.
+  If <code>waitid()</code> returns because a child process was found that satisfied the conditions indicated by the arguments <code>idtype</code> and options, then the structure pointed to by <code>info</code> will be filled in by the system with the status of the process.
+  The <code>si_signo</code> member will always be equal to <code>SIGCHLD</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  See the description above.
+</p>
+<p>
+  <b>Returned Value:</b> 
+  If <code>waitid()</code> returns due to the change of state of one of its children, 0 is returned.
+  Otherwise, -1 is returned and <code>errno</code> is set to indicate the error. 
+</p>
+<p>
+  The <code>waitid()</code> function will fail if:
+</p>
+<ul>
+  <li>
+    <code>ECHILD</code>:
+  </li>
+    The calling process has no existing unwaited-for child processes. 
+  <li>
+    <code>EINTR</code>:
+  </li>
+    The <code>waitid()</code> function was interrupted by a signal. 
+  <li>
+    <code>EINVAL</code>:
+     An invalid value was specified for <code>options</code>, or <code>idtype</code> and <code>id</code> specify an invalid set of processes.
+  </li>
+</ul>
+<p>
+  <b>Assumptions/Limitations:</b> 
+<p>
+  <b>POSIX  Compatibility:</b>
+  Comparable to the POSIX interface of the same name, but the implementation is incomplete (as detailed in the description above).
+</p>
+
+<h3><a name="wait">2.3.6 wait</a></li></h3>
+<p>
+<b>Function Prototype:</b> 
+<pre>
+    #include &lt;sys/wait.h&gt;
+    #ifdef CONFIG_SCHED_HAVE_PARENT
+    pid_t wait(FAR int *stat_loc);
+    #endif
+</pre>
+<p>
+  <b>Description:</b> 
+</p>
+<blockquote><small>
+  The following discussion is a general description of the <code>wait()</code> interface.
+  However, as of this writing, the implementation of <code>wait()</code> is incomplete (but usable).
+  <code>wait()</code> is based on <a href="#waitpid"><code>waitpaid()</code></a>.
+  See the description of <a href="#waitpid"><code>waitpaid()</code></a> for further information.
+</small></blockquote>
+<p>
+  The <code>wait()</code> function will suspend execution of the calling thread until status information for one of its terminated child processes is available, or until delivery of a signal whose action is either to execute a signal-catching function or to terminate the process.
+  If more than one thread is suspended in <code>wait()</code> awaiting termination of the same process, exactly one thread will return the process status at the time of the target process termination.
+  If status information is available prior to the call to<code>wait()</code>, return will be immediate.
+</p>
+<p>
+  The <code>waitpid()</code> function will behave identically to <code>wait()</code>, if its <code>pid</code> argument is (pid_t)-1 and the options argument is 0.
+  Otherwise, its behavior will be modified by the values of the <code>pid</code> and <code>options</code> arguments.
+</p>
+<p>
+  <b>Input Parameters:</b> 
+</p>
+<ul>
+  <li><code>stat_loc</code>. The location to return the exit status</li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  See the values returned by <a href="#waitpid"><code>waitpaid()</code></a>.
+</p>
+<p>
+  <b>Assumptions/Limitations:</b> 
+<p>
+  <b>POSIX  Compatibility:</b>
+  Comparable to the POSIX interface of the same name, but the implementation is incomplete (as detailed in the description <a href="#waitpid"><code>waitpaid()</code></a>).
+</p>
+
+<h3><a name="atexit">2.3.7 atexit</a></h3>
 
 <p>
 <b>Function Prototype:</b> 
@@ -2077,7 +2232,7 @@ on this thread of execution.
   <li><code>atexit()</code> functions are not inherited when a new task is created.</li>
 </ol>
 
-<H3><a name="onexit">2.3.6 on_exit</a></H3>
+<H3><a name="onexit">2.3.8 on_exit</a></H3>
 
 <p>
 <b>Function Prototype:</b> 
@@ -9023,9 +9178,9 @@ notify a task when a message is available on a queue.
   <li><a href="#pipe">pipe</a></li>
   <li><a href="#poll">poll</a></li>
   <li><a href="#drvrpollops">poll.h</a></li>
+  <li><a href="#posix_spawn">posix_spawn</a></li>
 </td>
 <td valign="top" width="33%">
-  <li><a href="#posix_spawn">posix_spawn</a></li>
   <li><a href="#posix_spawn_file_actions_addclose">posix_spawn_file_actions_addclose</a></li>
   <li><a href="#posix_spawn_file_actions_adddup2">posix_spawn_file_actions_adddup2</a></li>
   <li><a href="#posix_spawn_file_actions_addopen">posix_spawn_file_actions_addopen</a></li>
@@ -9107,10 +9262,10 @@ notify a task when a message is available on a queue.
   <li><a href="#recv">recv</a></li>
   <li><a href="#recvfrom">recvfrom</a></li>
   <li><a href="#standardio">rename</a></li>
-</td>
-<td valign="top">
   <li><a href="#standardio">rmdir</a></li>
   <li><a href="#dirdirentops">rewinddir</a></li>
+</td>
+<td valign="top">
   <li><a href="#mmapxip">ROM disk driver</a></li>
   <li><a href="#mmapxip">ROMFS</a></li>
   <li><a href="#schedgetparam">sched_getparam</a></li>
@@ -9183,6 +9338,8 @@ notify a task when a message is available on a queue.
   <li><a href="#standardio">vfprintf</a></li>
   <li><a href="#standardio">vprintf</a></li>
   <li><a href="#standardio">vsprintf</a></li>
+  <li><a href="#wait">wait</a></li>
+  <li><a href="#waitid">waitid</a></li>
   <li><a href="#waitpid">waitpid</a>
   <li><a href="#Watchdogs">Watchdog Timer Interfaces</a>
   <li><a href="#wdcancel">wd_cancel</a></li>

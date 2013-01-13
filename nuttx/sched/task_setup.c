@@ -168,7 +168,10 @@ static int task_assignpid(FAR _TCB *tcb)
 static inline void task_saveparent(FAR _TCB *tcb)
 {
   FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
+
+  DEBUGASSERT(rtcb->nchildren < UINT16_MAX);
   tcb->parent = rtcb->pid;
+  rtcb->nchildren++;
 }
 #else
 #  define task_saveparent(tcb)

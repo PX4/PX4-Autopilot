@@ -1,7 +1,7 @@
 ############################################################################
 # sched/Makefile
 #
-#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -69,6 +69,9 @@ endif
 
 ifeq ($(CONFIG_SCHED_WAITPID),y)
 SCHED_SRCS	+= sched_waitpid.c
+ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
+SCHED_SRCS	+= sched_waitid.c sched_wait.c
+endif
 endif
 
 ENV_SRCS	= env_getenvironptr.c env_dup.c env_share.c env_release.c \

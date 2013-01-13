@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/sys/wait.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,7 @@
 #define WTERMSIG(s)     (false)  /* Return signal number that caused process to terminate */
 
 /* The following symbolic constants are possible values for the options
- * argument to waitpi(1) (1) and/or waitid() (2),
+ * argument to waitpid() (1) and/or waitid() (2),
  */
 
 #define WCONTINUED      (1 << 0) /* Status for child that has been continued (1)(2) */
@@ -104,9 +104,9 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN pid_t wait(int *stat_loc);
-EXTERN int   waitid(idtype_t idtype, id_t id, siginfo_t *siginfo, int options);
-EXTERN pid_t waitpid(pid_t pid, int *stat_loc, int options);
+EXTERN pid_t wait(FAR int *stat_loc);
+EXTERN int   waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options);
+EXTERN pid_t waitpid(pid_t pid, FAR int *stat_loc, int options);
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -301,6 +301,14 @@ static int user_main(int argc, char *argv[])
       check_test_memory_usage();
 #endif
 
+#ifdef CONFIG_SCHED_WAITPID
+      /* Check waitpid() and friends */
+
+      printf("\nuser_main: waitpid test\n");
+      waitpid_test();
+      check_test_memory_usage();
+#endif
+
 #ifndef CONFIG_DISABLE_PTHREAD
       /* Verify pthreads and pthread mutex */
 

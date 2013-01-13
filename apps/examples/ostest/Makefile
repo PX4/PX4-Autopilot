@@ -52,6 +52,10 @@ ifeq ($(CONFIG_ARCH_FPU),y)
 CSRCS		+= fpu.c
 endif
 
+ifeq ($(CONFIG_SCHED_WAITPID),y)
+CSRCS		+= waitpid.c
+endif
+
 ifneq ($(CONFIG_DISABLE_PTHREAD),y)
 CSRCS		+= cancel.c cond.c mutex.c sem.c barrier.c
 ifneq ($(CONFIG_RR_INTERVAL),0)

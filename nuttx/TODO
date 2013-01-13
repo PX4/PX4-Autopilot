@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
- (11)  Task/Scheduler (sched/)
+ (10)  Task/Scheduler (sched/)
   (1)  Memory Managment (mm/)
   (2)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
@@ -57,17 +57,6 @@ o Task/Scheduler (sched/)
                terminated?
   Status:      Closed.  No, this behavior will not be implemented.
   Priority:    Medium, required for good emulation of process/pthread model.
-
-  Title:       WAIT.H
-  Description: Implement sys/wait.h and functions.  Consider implementing wait,
-               waitpid, waitid.  At present, a parent has no information about
-               child tasks.
-
-               Update: A simple but usable version of waitpid() has been included.
-               This version is not compliant with all specifications and can be
-               enabled with CONFIG_SCHED_WAITPID. 
-  Status:      Open, however no further work is planned.
-  Priority:    Low
 
   Title:       MISSING ERRNO SETTINGS
   Description: Several APIs do not set errno.  Need to review all APIs.

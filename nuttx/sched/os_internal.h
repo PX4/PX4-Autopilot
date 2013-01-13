@@ -83,10 +83,10 @@ enum os_crash_codes_e
   OSERR_BADREPRIORITIZESTATE  /* Attempt to reprioritize in bad state or priority */
 };
 
-/* Special task IDS */
+/* Special task IDS.  Any negative PID is invalid. */
 
-#define NULL_TASK_PROCESS_ID 0
-#define INVALID_PROCESS_ID   0
+#define NULL_TASK_PROCESS_ID (pid_t)0
+#define INVALID_PROCESS_ID   (pid_t)-1
 
 /* Although task IDs can take the (positive, non-zero)
  * range of pid_t, the number of tasks that will be supported
