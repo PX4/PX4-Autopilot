@@ -148,6 +148,10 @@ set_hil_on_off(bool hil_enabled)
 		pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
 		pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
 
+		/* sensore level hil */
+		pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
+		pub_hil_gps = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
+
 		mavlink_hil_enabled = true;
 
 		/* ramp up some HIL-related subscriptions */

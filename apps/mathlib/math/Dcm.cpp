@@ -52,6 +52,23 @@ Dcm::Dcm() :
 {
 }
 
+Dcm::Dcm(float c00, float c01, float c02,
+	float c10, float c11, float c12,
+	float c20, float c21, float c22) :
+	Matrix(3, 3)
+{
+	Dcm &dcm = *this;
+	dcm(0,0) = c00;
+	dcm(0,1) = c01;
+	dcm(0,2) = c02;
+	dcm(1,0) = c10;
+	dcm(1,1) = c11;
+	dcm(1,2) = c12;
+	dcm(2,0) = c20;
+	dcm(2,1) = c21;
+	dcm(2,2) = c22;
+}
+
 Dcm::Dcm(const float *data) :
 	Matrix(3, 3, data)
 {
@@ -61,22 +78,22 @@ Dcm::Dcm(const Quaternion &q) :
 	Matrix(3, 3)
 {
 	Dcm &dcm = *this;
-	float a = q.getA();
-	float b = q.getB();
-	float c = q.getC();
-	float d = q.getD();
-	float aSq = a * a;
-	float bSq = b * b;
-	float cSq = c * c;
-	float dSq = d * d;
+	double a = q.getA();
+	double b = q.getB();
+	double c = q.getC();
+	double d = q.getD();
+	double aSq = a * a;
+	double bSq = b * b;
+	double cSq = c * c;
+	double dSq = d * d;
 	dcm(0, 0) = aSq + bSq - cSq - dSq;
-	dcm(0, 1) = 2 * (b * c - a * d);
-	dcm(0, 2) = 2 * (a * c + b * d);
-	dcm(1, 0) = 2 * (b * c + a * d);
+	dcm(0, 1) = 2.0 * (b * c - a * d);
+	dcm(0, 2) = 2.0 * (a * c + b * d);
+	dcm(1, 0) = 2.0 * (b * c + a * d);
 	dcm(1, 1) = aSq - bSq + cSq - dSq;
-	dcm(1, 2) = 2 * (c * d - a * b);
-	dcm(2, 0) = 2 * (b * d - a * c);
-	dcm(2, 1) = 2 * (a * b + c * d);
+	dcm(1, 2) = 2.0 * (c * d - a * b);
+	dcm(2, 0) = 2.0 * (b * d - a * c);
+	dcm(2, 1) = 2.0 * (a * b + c * d);
 	dcm(2, 2) = aSq - bSq - cSq + dSq;
 }
 
@@ -84,12 +101,12 @@ Dcm::Dcm(const EulerAngles &euler) :
 	Matrix(3, 3)
 {
 	Dcm &dcm = *this;
-	float cosPhi = cosf(euler.getPhi());
-	float sinPhi = sinf(euler.getPhi());
-	float cosThe = cosf(euler.getTheta());
-	float sinThe = sinf(euler.getTheta());
-	float cosPsi = cosf(euler.getPsi());
-	float sinPsi = sinf(euler.getPsi());
+	double cosPhi = cos(euler.getPhi());
+	double sinPhi = sin(euler.getPhi());
+	double cosThe = cos(euler.getTheta());
+	double sinThe = sin(euler.getTheta());
+	double cosPsi = cos(euler.getPsi());
+	double sinPsi = sin(euler.getPsi());
 
 	dcm(0, 0) = cosThe * cosPsi;
 	dcm(0, 1) = -cosPhi * sinPsi + sinPhi * sinThe * cosPsi;
@@ -116,11 +133,23 @@ Dcm::~Dcm()
 int __EXPORT dcmTest()
 {
 	printf("Test DCM\t\t: ");
+	// default ctor
+	ASSERT(matrixEqual(Dcm(),
+			   Matrix::identity(3)));
+	// quaternion ctor
+	ASSERT(matrixEqual(
+	 	Dcm(Quaternion(0.983347, 0.034271, 0.106021, 0.143572)),
+		Dcm( 0.9362934, -0.2750958,  0.2183507,  
+ 			 0.2896295,  0.9564251, -0.0369570, 
+			-0.1986693,  0.0978434,  0.9751703)));
+	// euler angle ctor
+	ASSERT(matrixEqual(
+		Dcm(EulerAngles(0.1, 0.2, 0.3)),
+		Dcm( 0.9362934, -0.2750958,  0.2183507,  
+ 			 0.2896295,  0.9564251, -0.0369570, 
+			-0.1986693,  0.0978434,  0.9751703)));
+	// rotations
 	Vector3 vB(1, 2, 3);
-	ASSERT(matrixEqual(Dcm(Quaternion(1, 0, 0, 0)),
-			   Matrix::identity(3)));
-	ASSERT(matrixEqual(Dcm(EulerAngles(0, 0, 0)),
-			   Matrix::identity(3)));
 	ASSERT(vectorEqual(Vector3(-2, 1, 3),
 			   Dcm(EulerAngles(0, 0, M_PI_2_F))*vB));
 	ASSERT(vectorEqual(Vector3(3, 2, -1),

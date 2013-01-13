@@ -60,6 +60,11 @@
 #include <poll.h>
 #include <unistd.h>
 
+/**
+ * Kalman filter navigation class
+ * http://en.wikipedia.org/wiki/Extended_Kalman_filter
+ * Discrete-time extended Kalman filter
+ */
 class KalmanNav : public control::SuperBlock
 {
 public:
@@ -70,7 +75,7 @@ public:
 	void predictFast(float dt);
 	void predictSlow(float dt);
 	void correctAtt();
-	void correctGps();
+	void correctPos();
 	virtual void updateParams();
 protected:
 	math::Matrix F;
@@ -79,8 +84,8 @@ protected:
 	math::Matrix V;
 	math::Matrix HAtt;
 	math::Matrix RAtt;
-	math::Matrix HGps;
-	math::Matrix RGps;
+	math::Matrix HPos;
+	math::Matrix RPos;
 	math::Dcm C_nb;
 	math::Quaternion q;
 	control::UOrbSubscription<sensor_combined_s> _sensors;
@@ -94,6 +99,8 @@ protected:
 	uint64_t _attTimeStamp;
 	uint64_t _outTimeStamp;
 	uint16_t _navFrames;
+	uint16_t _missFast;
+	uint16_t _missSlow;
 	float fN, fE, fD;
 	// states
 	enum {PHI = 0, THETA, PSI, VN, VE, VD, LAT, LON, ALT};
@@ -103,8 +110,8 @@ protected:
 	control::BlockParam<float> _vGyro;
 	control::BlockParam<float> _vAccel;
 	control::BlockParam<float> _rMag;
-	control::BlockParam<float> _rGpsV;
-	control::BlockParam<float> _rGpsGeo;
+	control::BlockParam<float> _rGpsVel;
+	control::BlockParam<float> _rGpsPos;
 	control::BlockParam<float> _rGpsAlt;
 	control::BlockParam<float> _rAccel;
 	int32_t getLatDegE7() { return int32_t(lat * 1.0e7 * M_RAD_TO_DEG); }
