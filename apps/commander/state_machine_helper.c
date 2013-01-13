@@ -134,7 +134,8 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 
 	case SYSTEM_STATE_REBOOT:
 		if (current_status->state_machine == SYSTEM_STATE_STANDBY
-		    || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
+			|| current_status->state_machine == SYSTEM_STATE_PREFLIGHT
+			|| current_status->flag_hil_enabled) {
 			invalid_state = false;
 			/* set system flags according to state */
 			current_status->flag_system_armed = false;
