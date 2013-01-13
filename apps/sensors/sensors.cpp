@@ -780,7 +780,7 @@ Sensors::adc_init()
 	_fd_adc = open(ADC_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 
 	if (_fd_adc < 0) {
-		warnx(ADC_DEVICE_PATH);
+		warn(ADC_DEVICE_PATH);
 		warnx("FATAL: no ADC found");
 	}
 }
