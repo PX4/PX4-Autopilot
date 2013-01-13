@@ -1,8 +1,0 @@
-*.ac
-*.csv
-*.lfi
-*.xml
-*.dat
-*.out
-*.jiff
-!*_aero.xml
