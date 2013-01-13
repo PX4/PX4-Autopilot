@@ -617,7 +617,7 @@ receive_start(int uart)
 	param.sched_priority = SCHED_PRIORITY_MAX - 40;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, 4096);
+	pthread_attr_setstacksize(&receiveloop_attr, 3072);
 
 	pthread_t thread;
 	pthread_create(&thread, &receiveloop_attr, receive_thread, &uart);
