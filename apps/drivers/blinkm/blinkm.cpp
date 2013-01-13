@@ -119,6 +119,7 @@ public:
 	BlinkM(int bus);
 	~BlinkM();
 
+
 	virtual int		init();
 	virtual int		probe();
 	virtual int		setMode(int mode);
@@ -166,15 +167,15 @@ private:
 
 	work_s			_work;
 
-	static int led_color_1;
-	static int led_color_2;
-	static int led_color_3;
-	static int led_color_4;
-	static int led_color_5;
-	static int led_color_6;
-	static int led_blink;
+	int led_color_1;
+	int led_color_2;
+	int led_color_3;
+	int led_color_4;
+	int led_color_5;
+	int led_color_6;
+	int led_blink;
 
-	static bool systemstate_run;
+	bool systemstate_run;
 
 	void 			setLEDColor(int ledcolor);
 	static void		led_trampoline(void *arg);
@@ -233,7 +234,7 @@ const char *BlinkM::script_names[] = {
 	nullptr
 };
 
-
+/*
 int BlinkM::led_color_1 = LED_OFF;
 int BlinkM::led_color_2 = LED_OFF;
 int BlinkM::led_color_3 = LED_OFF;
@@ -243,12 +244,20 @@ int BlinkM::led_color_6 = LED_OFF;
 int BlinkM::led_blink = LED_NOBLINK;
 
 bool BlinkM::systemstate_run = false;
-
+*/
 
 extern "C" __EXPORT int blinkm_main(int argc, char *argv[]);
 
 BlinkM::BlinkM(int bus) :
-	I2C("blinkm", BLINKM_DEVICE_PATH, bus, 0x09, 100000)
+	I2C("blinkm", BLINKM_DEVICE_PATH, bus, 0x09, 100000),
+	led_color_1(LED_OFF),
+	led_color_2(LED_OFF),
+	led_color_3(LED_OFF),
+	led_color_4(LED_OFF),
+	led_color_5(LED_OFF),
+	led_color_6(LED_OFF),
+	led_blink(LED_NOBLINK),
+	systemstate_run(false)
 {
 	memset(&_work, 0, sizeof(_work));
 }
