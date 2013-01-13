@@ -45,6 +45,13 @@ INCLUDES		+= $(DSPLIB_SRCDIR)/Include \
 			   $(DSPLIB_SRCDIR)/Device/ARM/ARMCM4/Include \
 			   $(DSPLIB_SRCDIR)/Device/ARM/ARMCM3/Include
 
+# Suppress some warnings that ARM should fix, but haven't.
+EXTRADEFINES		+= -Wno-unsuffixed-float-constants \
+			   -Wno-sign-compare \
+			   -Wno-shadow \
+			   -Wno-float-equal \
+			   -Wno-unused-variable
+
 #
 # Override the default visibility for symbols, since the CMSIS DSPLib doesn't
 # have anything we can use to mark exported symbols.
