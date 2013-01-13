@@ -32,11 +32,10 @@ class SensorHIL(object):
 
     hilFlag = mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
     armedFlag = mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED
-    autoFlag = mavutil.mavlink.MAV_MODE_FLAG_AUTO_ENABLED
-    #autoFlag = (mavutil.mavlink.MAV_MODE_FLAG_STABILIZE_ENABLED
-    #        | mavutil.mavlink.MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-    #        | mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED
-    #        | mavutil.mavlink.MAV_MODE_FLAG_AUTO_ENABLED)
+    autoFlag = (mavutil.mavlink.MAV_MODE_FLAG_STABILIZE_ENABLED
+            | mavutil.mavlink.MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+            | mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED
+            | mavutil.mavlink.MAV_MODE_FLAG_AUTO_ENABLED)
 
     @classmethod
     def command_line(cls):
@@ -234,12 +233,6 @@ class SensorHIL(object):
 
         self.process_jsb_input()
         self.ac.send_state(self.master.mav)
-        #if self.mode == 'state':
-        #    if (time.time() - t_hil_state) > 1.0/50:
-        #        t_hil_state = time.time()
-        #        self.ac.send_state(self.master.mav)
-        #elif self.mode == 'sensor':
-        #    self.ac.send_sensors(self.master.mav)
 
         print 'load waypoints'
         if not self.waypoints is None:
@@ -327,10 +320,6 @@ class SensorHIL(object):
         if msgs is None:
             return
         for m in msgs:
-            if m.get_type() == 'SET_MODE':
-                print self.autoFlag
-                print m.get_payload()
-                #raw_input()
             self.master.write(m.get_msgbuf())
 
         if 'Slave' not in self.counts:
@@ -351,7 +340,6 @@ class SensorHIL(object):
 
             # make sure hil is enabled
             self.mode_flag_test_and_set_loop(self.hilFlag)
-            #self.mode_flag_test_and_set(self.autoFlag)
 
             # watch files
             rin = [self.jsb_in.fileno(), self.jsb_console.fileno(), self.jsb.fileno(), self.gcs.fd]
