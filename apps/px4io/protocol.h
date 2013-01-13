@@ -62,6 +62,11 @@
  * packed.
  */
 
+#define PX4IO_CONTROL_CHANNELS	8
+#define PX4IO_INPUT_CHANNELS	12
+#define PX4IO_RELAY_CHANNELS	4
+
+
 /* static configuration page */
 #define PX4IO_PAGE_CONFIG		0
 #define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers TBD */
@@ -73,7 +78,6 @@
 #define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
 #define PX4IO_P_CONFIG_ADC_INPUT_COUNT		7	/* hardcoded max ADC inputs */
 #define PX4IO_P_CONFIG_RELAY_COUNT		8	/* harcoded # of relay outputs */
-#define PX4IO_P_CONFIG_POWERSW_COUNT		9	/* harcoded # of switched power outputs */
 
 /* dynamic status page */
 #define PX4IO_PAGE_STATUS		1
@@ -83,9 +87,10 @@
 #define PX4IO_P_STATUS_FLAGS			2	/* monitoring flags */
 #define PX4IO_P_STATUS_FLAGS_ARMED		(1 << 0) /* arm-ok and locally armed */
 #define PX4IO_P_STATUS_FLAGS_OVERRIDE		(1 << 1) /* in manual override */
-#define PX4IO_P_STATUS_FLAGS_RC_PPM		(1 << 2) /* PPM input is valid */
-#define PX4IO_P_STATUS_FLAGS_RC_DSM		(1 << 3) /* DSM input is valid */
-#define PX4IO_P_STATUS_FLAGS_RC_SBUS		(1 << 4) /* SBUS input is valid */
+#define PX4IO_P_STATUS_FLAGS_RC_OK		(1 << 2) /* RC input is valid */
+#define PX4IO_P_STATUS_FLAGS_RC_PPM		(1 << 3) /* PPM input is valid */
+#define PX4IO_P_STATUS_FLAGS_RC_DSM		(1 << 4) /* DSM input is valid */
+#define PX4IO_P_STATUS_FLAGS_RC_SBUS		(1 << 5) /* SBUS input is valid */
 
 #define PX4IO_P_STATUS_ALARMS			3	/* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* VBatt is very close to regulator dropout */
@@ -107,7 +112,7 @@
 #define PX4IO_PAGE_RAW_RC_INPUT		4		/* 0..CONFIG_RC_INPUT_COUNT-1 */
 
 /* array of scaled RC input values, -10000..10000 */
-#define PX4IO_PAGE_RAW_RC_INPUT		5		/* 0..CONFIG_RC_INPUT_COUNT-1 */
+#define PX4IO_PAGE_RC_INPUT		5		/* 0..CONFIG_RC_INPUT_COUNT-1 */
 
 /* array of raw ADC values */
 #define PX4IO_PAGE_RAW_ADC_INPUT	6		/* 0..CONFIG_ADC_INPUT_COUNT-1 */
@@ -123,8 +128,7 @@
 #define PX4IO_P_SETUP_PWM_LOWRATE		3	/* 'low' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_PWM_HIGHRATE		4	/* 'high' PWM frame output rate in Hz */
 
-#define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay outputs, 0 = off, 1 = on */
-#define PX4IO_P_SETUP_POWERSW			6	/* bitmask of switched power outputs, 0 = off, 1 = on */
+#define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS		101		/* 0..STATUS_CONTROL_COUNT */
@@ -143,8 +147,6 @@
  */
 
 
-#define PX4IO_CONTROL_CHANNELS	8
-#define PX4IO_INPUT_CHANNELS	12
 #define PX4IO_RELAY_CHANNELS	4
 
 #pragma pack(push, 1)

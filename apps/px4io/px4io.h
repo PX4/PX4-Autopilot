@@ -64,7 +64,23 @@
 #endif
 
 /*
+ * Registers.
+ */
+extern uint16_t			r_page_status[];	/* PX4IO_PAGE_STATUS */
+extern uint16_t			r_page_actuators[];	/* PX4IO_PAGE_ACTUATORS */
+extern uint16_t			r_page_servos[];	/* PX4IO_PAGE_SERVOS */
+extern uint16_t			r_page_raw_rc_input[];	/* PX4IO_PAGE_RAW_RC_INPUT */
+extern uint16_t			r_page_rc_input[];	/* PX4IO_PAGE_RC_INPUT */
+extern uint16_t			r_page_adc[];		/* PX4IO_PAGE_RAW_ADC_INPUT */
+
+extern volatile uint16_t	r_page_setup[];		/* PX4IO_PAGE_SETUP */
+extern volatile uint16_t	r_page_controls[];	/* PX4IO_PAGE_CONTROLS */
+
+/*
  * System state structure.
+ *
+ * XXX note that many fields here are deprecated and replaced by 
+ *     registers.
  */
 struct sys_state_s {
 
@@ -127,12 +143,6 @@ struct sys_state_s {
 	 * Last FMU receive time, in microseconds since system boot
 	 */
 	uint64_t	fmu_data_received_time;
-
-	/**
-	 * Current serial interface mode, per the serial_rx_mode parameter
-	 * in the config packet.
-	 */
-	uint8_t		serial_rx_mode;
 
 	/**
 	 * If true, the RC signal has been lost for more than a timeout interval
@@ -206,6 +216,7 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 
 #define ADC_VBATT		4
 #define ADC_IN5			5
+#define ADC_CHANNEL_COUNT	2
 
 /*
  * Mixer
@@ -225,6 +236,12 @@ extern void	comms_main(void) __attribute__((noreturn));
 extern void	i2c_init(void);
 
 /*
+ * Register space
+ */
+extern void	registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
+extern int	registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_values);
+
+/*
  * Sensors/misc inputs
  */
 extern int	adc_init(void);
@@ -238,10 +255,3 @@ extern int	dsm_init(const char *device);
 extern bool	dsm_input(void);
 extern int	sbus_init(const char *device);
 extern bool	sbus_input(void);
-
-/*
- * Assertion codes
- */
-#define A_GPIO_OPEN_FAIL		100
-#define A_SERVO_OPEN_FAIL		101
-#define A_INPUTQ_OPEN_FAIL		102
