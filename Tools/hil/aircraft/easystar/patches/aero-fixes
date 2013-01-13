@@ -1,0 +1,20 @@
+Index: easystar/Datcom/datcom_aero.xml
+===================================================================
+--- easystar.orig/Datcom/datcom_aero.xml	2012-05-24 15:34:33.000000000 -0400
++++ easystar/Datcom/datcom_aero.xml	2012-05-24 15:39:49.000000000 -0400
+@@ -1098,6 +1098,7 @@
+                <property>metrics/Sw-sqft</property>
+                <property>metrics/bw-ft</property>
+                <property>aero/beta-deg</property>
++               <value>-1</value>
+                <table>
+                   <independentVar lookup="row">aero/alpha-deg</independentVar>
+                   <tableData>
+@@ -1230,6 +1231,7 @@
+                <property>metrics/bw-ft</property>
+                <table>
+                   <independentVar lookup="row">aero/alpha-deg</independentVar>
++                  <independentVar lookup="column">fcs/left-aileron-pos-deg</independentVar>
+                   <tableData>
+                                      -56.00        -40.00        -20.00        -10.00          .000         10.00         20.00         40.00         56.00    
+                        -16.00        -.1091E-01    -.9650E-02    -.6942E-02    -.3471E-02      .000         .3471E-02     .6942E-02     .9650E-02     .1091E-01

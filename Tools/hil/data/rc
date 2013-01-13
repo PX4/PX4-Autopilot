@@ -1,0 +1,20 @@
+#!nsh
+
+#
+# Init the EEPROM
+#
+echo "[init] eeprom"
+eeprom start
+if [ -f /eeprom/parameters ]
+then
+	param load
+fi
+
+uorb start
+
+mavlink start -d /dev/ttyS1 -b 921600
+hil mode_port2_pwm8
+mixer load /dev/pwm_output /etc/mixers/FMU_AERT.mix
+kalman_demo start
+control_demo start
+commander start
