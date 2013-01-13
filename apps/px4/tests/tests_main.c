@@ -181,7 +181,7 @@ test_all(int argc, char *argv[])
 		printf("  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\     \\ \\_____\\  \\ \\_\\ \\_\\ \n");
 		printf("   \\/_/\\/_/   \\/_____/   \\/_____/      \\/_____/   \\/_/\\/_/ \n");
 		printf("\n");
-		printf(" All tests passed (%d of %d)\n", i, i);
+		printf(" All tests passed (%d of %d)\n", testscount, testscount);
 
 	} else {
 		printf("  ______   ______     __     __ \n");
@@ -292,7 +292,7 @@ int test_jig(int argc, char *argv[])
 		printf("  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\     \\ \\_____\\  \\ \\_\\ \\_\\ \n");
 		printf("   \\/_/\\/_/   \\/_____/   \\/_____/      \\/_____/   \\/_/\\/_/ \n");
 		printf("\n");
-		printf(" All tests passed (%d of %d)\n", i, i);
+		printf(" All tests passed (%d of %d)\n", testscount, testscount);
 	} else {
 		printf("  ______   ______     __     __ \n");
 		printf(" /\\  ___\\ /\\  __ \\   /\\ \\   /\\ \\    \n");
