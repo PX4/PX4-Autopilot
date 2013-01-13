@@ -138,25 +138,25 @@ int __EXPORT dcmTest()
 			   Matrix::identity(3)));
 	// quaternion ctor
 	ASSERT(matrixEqual(
-	 	Dcm(Quaternion(0.983347, 0.034271, 0.106021, 0.143572)),
-		Dcm( 0.9362934, -0.2750958,  0.2183507,  
- 			 0.2896295,  0.9564251, -0.0369570, 
-			-0.1986693,  0.0978434,  0.9751703)));
+	 	Dcm(Quaternion(0.983347f, 0.034271f, 0.106021f, 0.143572f)),
+		Dcm( 0.9362934f, -0.2750958f,  0.2183507f,  
+ 			 0.2896295f,  0.9564251f, -0.0369570f, 
+			-0.1986693f,  0.0978434f,  0.9751703f)));
 	// euler angle ctor
 	ASSERT(matrixEqual(
-		Dcm(EulerAngles(0.1, 0.2, 0.3)),
-		Dcm( 0.9362934, -0.2750958,  0.2183507,  
- 			 0.2896295,  0.9564251, -0.0369570, 
-			-0.1986693,  0.0978434,  0.9751703)));
+		Dcm(EulerAngles(0.1f, 0.2f, 0.3f)),
+		Dcm( 0.9362934f, -0.2750958f,  0.2183507f,  
+ 			 0.2896295f,  0.9564251f, -0.0369570f, 
+			-0.1986693f,  0.0978434f,  0.9751703f)));
 	// rotations
 	Vector3 vB(1, 2, 3);
-	ASSERT(vectorEqual(Vector3(-2, 1, 3),
-			   Dcm(EulerAngles(0, 0, M_PI_2_F))*vB));
-	ASSERT(vectorEqual(Vector3(3, 2, -1),
-			   Dcm(EulerAngles(0, M_PI_2_F, 0))*vB));
-	ASSERT(vectorEqual(Vector3(1, -3, 2),
-			   Dcm(EulerAngles(M_PI_2_F, 0, 0))*vB));
-	ASSERT(vectorEqual(Vector3(3, 2, -1),
+	ASSERT(vectorEqual(Vector3(-2.0f, 1.0f, 3.0f),
+			   Dcm(EulerAngles(0.0f, 0.0f, M_PI_2_F))*vB));
+	ASSERT(vectorEqual(Vector3(3.0f, 2.0f, -1.0f),
+			   Dcm(EulerAngles(0.0f, M_PI_2_F, 0.0f))*vB));
+	ASSERT(vectorEqual(Vector3(1.0f, -3.0f, 2.0f),
+			   Dcm(EulerAngles(M_PI_2_F, 0.0f, 0.0f))*vB));
+	ASSERT(vectorEqual(Vector3(3.0f, 2.0f, -1.0f),
 			   Dcm(EulerAngles(
 				       M_PI_2_F, M_PI_2_F, M_PI_2_F))*vB));
 	printf("PASS\n");

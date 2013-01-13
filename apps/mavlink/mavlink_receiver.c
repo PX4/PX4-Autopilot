@@ -346,11 +346,6 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.adc_voltage_v[1] = 0;
 			hil_sensors.adc_voltage_v[2] = 0;
 
-			/* battery */
-			hil_sensors.battery_voltage_counter = hil_counter;
-			hil_sensors.battery_voltage_v = 11.1f;
-			hil_sensors.battery_voltage_valid = true;
-
 			/* magnetometer */
 			float mga2ga = 1.0e-3f;
 			hil_sensors.magnetometer_counter = hil_counter;
