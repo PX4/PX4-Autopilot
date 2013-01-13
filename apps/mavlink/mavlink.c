@@ -77,7 +77,7 @@
 /* define MAVLink specific parameters */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
-PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_QUADROTOR);
+PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
 
 __EXPORT int mavlink_main(int argc, char *argv[]);
 
@@ -145,8 +145,14 @@ set_hil_on_off(bool hil_enabled)
 	if (hil_enabled && !mavlink_hil_enabled) {
 
 		/* Advertise topics */
+
+		/* state level hil */
 		pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
 		pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
+
+		/* sensore level hil */
+		pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
+		pub_hil_gps = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
 
 		mavlink_hil_enabled = true;
 
@@ -230,6 +236,7 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 
 	switch (v_status.state_machine) {
 	case SYSTEM_STATE_PREFLIGHT:
+
 		if (v_status.flag_preflight_gyro_calibration ||
 		    v_status.flag_preflight_mag_calibration ||
 		    v_status.flag_preflight_accel_calibration) {
@@ -354,9 +361,9 @@ mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 	static unsigned int total_counter = 0;
 
 	switch (cmd) {
-	case (int)MAVLINK_IOC_SEND_TEXT_INFO:
-	case (int)MAVLINK_IOC_SEND_TEXT_CRITICAL:
-	case (int)MAVLINK_IOC_SEND_TEXT_EMERGENCY: {
+	case(int)MAVLINK_IOC_SEND_TEXT_INFO:
+	case(int)MAVLINK_IOC_SEND_TEXT_CRITICAL:
+	case(int)MAVLINK_IOC_SEND_TEXT_EMERGENCY: {
 			const char *txt = (const char *)arg;
 			struct mavlink_logmessage msg;
 			strncpy(msg.text, txt, sizeof(msg.text));
