@@ -1321,7 +1321,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Initialize to 0.0V */
 	float battery_voltage = 0.0f;
-	bool battery_voltage_valid = true;
+	bool battery_voltage_valid = false;
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
 	uint8_t low_voltage_counter = 0;
@@ -1411,9 +1411,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (new_data) {
 			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
-
-		} else {
-			sensors.battery_voltage_valid = false;
 		}
 
 		orb_check(cmd_sub, &new_data);
