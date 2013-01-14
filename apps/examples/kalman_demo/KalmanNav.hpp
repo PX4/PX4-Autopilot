@@ -81,6 +81,7 @@ protected:
 	math::Matrix F;
 	math::Matrix G;
 	math::Matrix P;
+	math::Matrix P0;
 	math::Matrix V;
 	math::Matrix HAtt;
 	math::Matrix RAtt;

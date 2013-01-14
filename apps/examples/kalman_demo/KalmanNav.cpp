@@ -45,8 +45,6 @@
 // Titterton pg. 52
 static const float omega = 7.2921150e-5f; // earth rotation rate, rad/s
 static const float R0 = 6378137.0f; // earth radius, m
-
-static const float RSq = 4.0680631591e+13; // earth radius squared
 static const float g = 9.806f; // gravitational accel. m/s^2, XXX should be calibrated
 
 KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
@@ -55,6 +53,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	F(9, 9),
 	G(9, 6),
 	P(9, 9),
+	P0(9, 9),
 	V(6, 6),
 	// attitude measurement ekf matrices
 	HAtt(6, 9),
@@ -100,7 +99,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	using namespace math;
 
 	// initial state covariance matrix
-	P = Matrix::identity(9) * 1.0f;
+	P0 = Matrix::identity(9) * 1.0f;
+    P = P0;
 
 	// wait for gps lock
 	while (1) {
@@ -131,6 +131,13 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	setLatDegE7(_gps.lat);
 	setLonDegE7(_gps.lon);
 	setAltE3(_gps.alt);
+
+    printf("[kalman_demo] initializing EKF state with GPS\n");
+    printf("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
+            double(phi), double(theta), double(psi));
+    printf("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
+            double(vN), double(vE), double(vD),
+            lat, lon, alt);
 
 	// initialize quaternions
 	q = Quaternion(EulerAngles(phi, theta, psi));
@@ -335,6 +342,10 @@ void KalmanNav::predictFast(float dt)
 		      vN * LDot + g;
 	float vEDot = fE + vN * rotRate * sinL +
 		      vDDot * rotRate * cosL;
+    printf("vNDot: %8.4f, vEDot: %8.4f, vDDot: %8.4f\n",
+            double(vNDot), double(vEDot), double(vDDot));
+    printf("LDot: %8.4f, lDot: %8.4f, rotRate: %8.4f\n",
+            double(LDot), double(lDot), double(rotRate));
 
 	// rectangular integration
 	//printf("dt: %8.4f\n", double(dt));
@@ -360,6 +371,7 @@ void KalmanNav::predictSlow(float dt)
 
 	// prepare for matrix
 	float R = R0 + float(alt);
+    float RSq = R*R;
 
 	// F Matrix
 	// Titterton pg. 291
@@ -558,7 +570,7 @@ void KalmanNav::correctAtt()
 			// abort correction and return
 			printf("[kalman_demo] numerical failure in att correction\n");
 			// reset P matrix to identity
-			P = Matrix::identity(9) * 1.0f;
+			P = P0;
 			return;
 		}
 	}
@@ -581,7 +593,7 @@ void KalmanNav::correctAtt()
 	P = P - K * HAtt * P;
 
 	// fault detection
-	float beta = y.dot((S * S.transpose()).inverse() * y);
+	float beta = y.dot(S.inverse()*y);
 
 	if (beta > 1000.0f) {
 		printf("fault in attitude: beta = %8.4f\n", (double)beta);
@@ -641,7 +653,7 @@ void KalmanNav::correctPos()
 			setLonDegE7(_gps.lon);
 			setAltE3(_gps.alt);
 			// reset P matrix to identity
-			P = Matrix::identity(9) * 1.0f;
+			P = P0;
 			return;
 		}
 	}
@@ -659,7 +671,7 @@ void KalmanNav::correctPos()
 	P = P - K * HPos * P;
 
 	// fault detetcion
-	float beta = y.dot((S * S.transpose()).inverse() * y);
+	float beta = y.dot(S.inverse()*y);
 
 	if (beta > 1000.0f) {
 		printf("fault in gps: beta = %8.4f\n", (double)beta);
