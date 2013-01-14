@@ -119,7 +119,7 @@
 
 int execv(FAR const char *path, FAR char *const argv[])
 {
-  FAR struct symtab_s *symtab;
+  FAR const struct symtab_s *symtab;
   int nsymbols;
   int ret;
 

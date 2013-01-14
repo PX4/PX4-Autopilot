@@ -69,13 +69,13 @@
  * Public Variables
  ****************************************************************************/
 
-extern struct symtab_s CONFIG_EXECFUNCS_SYMTAB;
+extern const struct symtab_s CONFIG_EXECFUNCS_SYMTAB;
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static FAR struct symtab_s *g_exec_symtab = &CONFIG_EXECFUNCS_SYMTAB;
+static FAR const struct symtab_s *g_exec_symtab = &CONFIG_EXECFUNCS_SYMTAB;
 static int g_exec_nsymbols = CONFIG_EXECFUNCS_NSYMBOLS;
 
 /****************************************************************************
@@ -97,7 +97,7 @@ static int g_exec_nsymbols = CONFIG_EXECFUNCS_NSYMBOLS;
  *
  ****************************************************************************/
 
-void exec_getsymtab(FAR struct symtab_s **symtab, FAR int *nsymbols)
+void exec_getsymtab(FAR const struct symtab_s **symtab, FAR int *nsymbols)
 {
   irqstate_t flags;
 

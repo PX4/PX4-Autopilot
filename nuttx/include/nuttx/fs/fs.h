@@ -161,6 +161,7 @@ struct mountpt_operations
    */
 
   int     (*sync)(FAR struct file *filp);
+  int     (*dup)(FAR const struct file *oldp, FAR struct file *newp);
 
   /* Directory operations */
 

@@ -121,28 +121,30 @@ static int     fat_stat(struct inode *mountpt, const char *relpath, struct stat 
 
 const struct mountpt_operations fat_operations =
 {
-  fat_open,
-  fat_close,
-  fat_read,
-  fat_write,
-  fat_seek,
-  fat_ioctl,
-  fat_sync,
+  fat_open,          /* open */
+  fat_close,         /* close */
+  fat_read,          /* read */
+  fat_write,         /* write */
+  fat_seek,          /* seek */
+  fat_ioctl,         /* ioctl */
 
-  fat_opendir,
-  NULL,
-  fat_readdir,
-  fat_rewinddir,
+  fat_sync,          /* sync */
+  NULL,              /* dup */
 
-  fat_bind,
-  fat_unbind,
-  fat_statfs,
+  fat_opendir,       /* opendir */
+  NULL,              /* closedir */
+  fat_readdir,       /* readdir */
+  fat_rewinddir,     /* rewinddir */
 
-  fat_unlink,
-  fat_mkdir,
-  fat_rmdir,
-  fat_rename,
-  fat_stat
+  fat_bind,          /* bind */
+  fat_unbind,        /* unbind */
+  fat_statfs,        /* statfs */
+
+  fat_unlink,        /* unlinke */
+  fat_mkdir,         /* mkdir */
+  fat_rmdir,         /* rmdir */
+  fat_rename,        /* rename */
+  fat_stat           /* stat */
 };
 
 /****************************************************************************

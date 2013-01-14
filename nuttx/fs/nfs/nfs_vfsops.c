@@ -166,7 +166,9 @@ const struct mountpt_operations nfs_operations =
   nfs_write,                    /* write */
   NULL,                         /* seek */
   NULL,                         /* ioctl */
+
   NULL,                         /* sync */
+  NULL,                         /* dup */
 
   nfs_opendir,                  /* opendir */
   NULL,                         /* closedir */

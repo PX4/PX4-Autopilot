@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/builtin/binfs.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -118,7 +118,9 @@ const struct mountpt_operations binfs_operations =
   NULL,              /* write */
   NULL,              /* seek */
   binfs_ioctl,       /* ioctl */
+
   NULL,              /* sync */
+  NULL,              /* dup */
 
   binfs_opendir,     /* opendir */
   NULL,              /* closedir */

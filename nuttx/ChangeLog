@@ -3929,3 +3929,14 @@
 	  need to.
 	* sched/sched_waitid.c and sched_wait.c:  Add support for waitid()
 	  and wait().  See issues with waitpid() above.
+	* include/nuttx/fs/fs.h and fs/fs_files.c:  Add a dup() method to
+	  the struct mountpt_operations.  When dup'ing a file that resides
+	  on a mounted volume, let the file system's dup() method do the
+	  work.
+	* fs/romfs/fs_romfs.c: Implemented the dup() method for the ROMFS
+	  file system.
+	* fs/fat/fs_fat32.c, fs/nxffs/nxffs_initialize, and
+	  fs/nfs/nfs_vfsops.c:  Add hooks for dup() method (not yet
+	  implemented).
+	* fs/romfs:  Remove the rf_open flag.  It looks good, but actually
+	  does nothing.

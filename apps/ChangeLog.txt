@@ -466,3 +466,4 @@
 	  death-of-child signals (SIGCHLD).
 	* apps/examples/ostest/waitpid.c:  Add a test for waitpid(), waitid(),
 	  and wait().
+	* builtin/binfs.c:  Add hooks for dup() method (not implemented).

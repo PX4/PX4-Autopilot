@@ -70,24 +70,33 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static int     romfs_open(FAR struct file *filep, const char *relpath,
+static int     romfs_open(FAR struct file *filep, FAR const char *relpath,
                           int oflags, mode_t mode);
 static int     romfs_close(FAR struct file *filep);
-static ssize_t romfs_read(FAR struct file *filep, char *buffer, size_t buflen);
+static ssize_t romfs_read(FAR struct file *filep, FAR char *buffer,
+                          size_t buflen);
 static off_t   romfs_seek(FAR struct file *filep, off_t offset, int whence);
-static int     romfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+static int     romfs_ioctl(FAR struct file *filep, int cmd,
+                           unsigned long arg);
 
-static int     romfs_opendir(struct inode *mountpt, const char *relpath,
-                           struct fs_dirent_s *dir);
-static int     romfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir);
-static int     romfs_rewinddir(struct inode *mountpt, struct fs_dirent_s *dir);
+static  int    romfs_dup(FAR const struct file *oldp, FAR struct file *newp);
 
-static int     romfs_bind(FAR struct inode *blkdriver, const void *data,
-                        void **handle);
-static int     romfs_unbind(void *handle, FAR struct inode **blkdriver);
-static int     romfs_statfs(struct inode *mountpt, struct statfs *buf);
+static int     romfs_opendir(FAR struct inode *mountpt,
+                             FAR const char *relpath,
+                             FAR struct fs_dirent_s *dir);
+static int     romfs_readdir(FAR struct inode *mountpt,
+                             FAR struct fs_dirent_s *dir);
+static int     romfs_rewinddir(FAR struct inode *mountpt,
+                               FAR struct fs_dirent_s *dir);
 
-static int     romfs_stat(struct inode *mountpt, const char *relpath, struct stat *buf);
+static int     romfs_bind(FAR struct inode *blkdriver, FAR const void *data,
+                          FAR void **handle);
+static int     romfs_unbind(FAR void *handle, FAR struct inode **blkdriver);
+static int     romfs_statfs(FAR struct inode *mountpt,
+                            FAR struct statfs *buf);
+
+static int     romfs_stat(FAR struct inode *mountpt, FAR const char *relpath,
+                          FAR struct stat *buf);
 
 /****************************************************************************
  * Private Variables
@@ -110,7 +119,9 @@ const struct mountpt_operations romfs_operations =
   NULL,            /* write */
   romfs_seek,      /* seek */
   romfs_ioctl,     /* ioctl */
+
   NULL,            /* sync */
+  romfs_dup,       /* dup */
 
   romfs_opendir,   /* opendir */
   NULL,            /* closedir */
@@ -136,13 +147,13 @@ const struct mountpt_operations romfs_operations =
  * Name: romfs_open
  ****************************************************************************/
 
-static int romfs_open(FAR struct file *filep, const char *relpath,
-                    int oflags, mode_t mode)
+static int romfs_open(FAR struct file *filep, FAR const char *relpath,
+                      int oflags, mode_t mode)
 {
-  struct romfs_dirinfo_s  dirinfo;
-  struct romfs_mountpt_s *rm;
-  struct romfs_file_s    *rf;
-  int                     ret;
+  struct romfs_dirinfo_s      dirinfo;
+  FAR struct romfs_mountpt_s *rm;
+  FAR struct romfs_file_s    *rf;
+  int                         ret;
 
   fvdbg("Open '%s'\n", relpath);
 
@@ -150,11 +161,11 @@ static int romfs_open(FAR struct file *filep, const char *relpath,
 
   DEBUGASSERT(filep->f_priv == NULL && filep->f_inode != NULL);
 
-  /* mountpoint private data from the inode reference from the file
+  /* Get mountpoint private data from the inode reference from the file
    * structure
    */
 
-  rm = (struct romfs_mountpt_s*)filep->f_inode->i_private;
+  rm = (FAR struct romfs_mountpt_s*)filep->f_inode->i_private;
 
   DEBUGASSERT(rm != NULL);
 
@@ -214,7 +225,7 @@ static int romfs_open(FAR struct file *filep, const char *relpath,
    * file.
    */
 
-  rf = (struct romfs_file_s *)zalloc(sizeof(struct romfs_file_s));
+  rf = (FAR struct romfs_file_s *)zalloc(sizeof(struct romfs_file_s));
   if (!rf)
     {
       fdbg("Failed to allocate private data\n", ret);
@@ -226,8 +237,7 @@ static int romfs_open(FAR struct file *filep, const char *relpath,
    * non-zero elements)
    */
 
-  rf->rf_open        = true;
-  rf->rf_size        = dirinfo.rd_size;
+  rf->rf_size = dirinfo.rd_size;
 
   /* Get the start of the file data */
 
@@ -277,9 +287,9 @@ errout_with_semaphore:
 
 static int romfs_close(FAR struct file *filep)
 {
-  struct romfs_mountpt_s *rm;
-  struct romfs_file_s    *rf;
-  int                     ret = OK;
+  FAR struct romfs_mountpt_s *rm;
+  FAR struct romfs_file_s    *rf;
+  int                         ret = OK;
 
   fvdbg("Closing\n");
 
@@ -321,19 +331,20 @@ static int romfs_close(FAR struct file *filep)
  * Name: romfs_read
  ****************************************************************************/
 
-static ssize_t romfs_read(FAR struct file *filep, char *buffer, size_t buflen)
+static ssize_t romfs_read(FAR struct file *filep, FAR char *buffer,
+                          size_t buflen)
 {
-  struct romfs_mountpt_s *rm;
-  struct romfs_file_s    *rf;
-  unsigned int            bytesread;
-  unsigned int            readsize;
-  unsigned int            nsectors;
-  uint32_t                offset;
-  size_t                  bytesleft;
-  off_t                   sector;
-  uint8_t                *userbuffer = (uint8_t*)buffer;
-  int                     sectorndx;
-  int                     ret;
+  FAR struct romfs_mountpt_s *rm;
+  FAR struct romfs_file_s    *rf;
+  unsigned int                bytesread;
+  unsigned int                readsize;
+  unsigned int                nsectors;
+  uint32_t                    offset;
+  size_t                      bytesleft;
+  off_t                       sector;
+  FAR uint8_t                *userbuffer = (FAR uint8_t*)buffer;
+  int                         sectorndx;
+  int                         ret;
 
   fvdbg("Read %d bytes from offset %d\n", buflen, filep->f_pos);
 
@@ -467,10 +478,10 @@ errout_with_semaphore:
 
 static off_t romfs_seek(FAR struct file *filep, off_t offset, int whence)
 {
-  struct romfs_mountpt_s *rm;
-  struct romfs_file_s    *rf;
-  off_t                   position;
-  int                     ret;
+  FAR struct romfs_mountpt_s *rm;
+  FAR struct romfs_file_s    *rf;
+  off_t                       position;
+  int                         ret;
 
   fvdbg("Seek to offset: %d whence: %d\n", offset, whence);
 
@@ -548,9 +559,9 @@ errout_with_semaphore:
 
 static int romfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
-  struct romfs_mountpt_s *rm;
-  struct romfs_file_s    *rf;
-  FAR void **ppv = (FAR void**)arg;
+  FAR struct romfs_mountpt_s *rm;
+  FAR struct romfs_file_s    *rf;
+  FAR void                  **ppv = (FAR void**)arg;
 
   fvdbg("cmd: %d arg: %08lx\n", cmd, arg);
 
@@ -582,6 +593,95 @@ static int romfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 }
 
 /****************************************************************************
+ * Name: romfs_dup
+ ****************************************************************************/
+
+static int romfs_dup(FAR const struct file *oldp, FAR struct file *newp)
+{
+  FAR struct romfs_mountpt_s *rm;
+  FAR struct romfs_file_s *oldrf;
+  FAR struct romfs_file_s *newrf;
+  int ret;
+
+  fvdbg("Dup %p->%p\n", oldp, newp);
+
+  /* Sanity checks */
+
+  DEBUGASSERT(oldp->f_priv != NULL &&
+              newp->f_priv == NULL &&
+              newp->f_inode != NULL);
+
+  /* Get mountpoint private data from the inode reference from the file
+   * structure
+   */
+
+  rm = (FAR struct romfs_mountpt_s*)newp->f_inode->i_private;
+  DEBUGASSERT(rm != NULL);
+
+  /* Check if the mount is still healthy */
+
+  romfs_semtake(rm);
+  ret = romfs_checkmount(rm);
+  if (ret != OK)
+    {
+      fdbg("romfs_checkmount failed: %d\n", ret);
+      goto errout_with_semaphore;
+    }
+
+  /* Recover the old private data from the old struct file instance */
+
+  oldrf = oldp->f_priv;
+
+  /* Create an new instance of the file private data to describe the new
+   * dup'ed file.
+   */
+
+  newrf = (FAR struct romfs_file_s *)malloc(sizeof(struct romfs_file_s));
+  if (!newrf)
+    {
+      fdbg("Failed to allocate private data\n", ret);
+      ret = -ENOMEM;
+      goto errout_with_semaphore;
+    }
+
+  /* Copy all file private data (except for the buffer) */
+
+  newrf->rf_startoffset = oldrf->rf_startoffset;
+  newrf->rf_size        = oldrf->rf_size;
+
+  /* Configure buffering to support access to this file */
+
+  ret = romfs_fileconfigure(rm, newrf);
+  if (ret < 0)
+    {
+      fdbg("Failed configure buffering: %d\n", ret);
+      goto errout_with_semaphore;
+    }
+
+  /* Attach the new private date to the new struct file instance */
+
+  newp->f_priv = newrf;
+
+  /* Then insert the new instance into the mountpoint structure.
+   * It needs to be there (1) to handle error conditions that effect
+   * all files, and (2) to inform the umount logic that we are busy
+   * (but a simple reference count could have done that).
+   */
+
+  newrf->rf_next = rm->rm_head;
+  rm->rm_head = newrf->rf_next;
+
+  romfs_semgive(rm);
+  return OK;
+
+  /* Error exits */
+
+errout_with_semaphore:
+  romfs_semgive(rm);
+  return ret;
+}
+
+/****************************************************************************
  * Name: romfs_opendir
  *
  * Description:
@@ -589,12 +689,12 @@ static int romfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 
-static int romfs_opendir(struct inode *mountpt, const char *relpath,
-                         struct fs_dirent_s *dir)
+static int romfs_opendir(FAR struct inode *mountpt, FAR const char *relpath,
+                         FAR struct fs_dirent_s *dir)
 {
-  struct romfs_mountpt_s *rm;
-  struct romfs_dirinfo_s  dirinfo;
-  int                     ret;
+  FAR struct romfs_mountpt_s *rm;
+  FAR struct romfs_dirinfo_s  dirinfo;
+  int                         ret;
 
   fvdbg("relpath: '%s'\n", relpath);
 
@@ -654,14 +754,15 @@ errout_with_semaphore:
  *
  ****************************************************************************/
 
-static int romfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
+static int romfs_readdir(FAR struct inode *mountpt,
+                         FAR struct fs_dirent_s *dir)
 {
-  struct romfs_mountpt_s *rm;
-  uint32_t                linkoffset;
-  uint32_t                next;
-  uint32_t                info;
-  uint32_t                size;
-  int                     ret;
+  FAR struct romfs_mountpt_s *rm;
+  uint32_t                    linkoffset;
+  uint32_t                    next;
+  uint32_t                    info;
+  uint32_t                    size;
+  int                         ret;
 
   fvdbg("Entry\n");
 
@@ -749,9 +850,10 @@ errout_with_semaphore:
  *
  ****************************************************************************/
 
-static int romfs_rewinddir(struct inode *mountpt, struct fs_dirent_s *dir)
+static int romfs_rewinddir(FAR struct inode *mountpt,
+                           FAR struct fs_dirent_s *dir)
 {
-  struct romfs_mountpt_s *rm;
+  FAR struct romfs_mountpt_s *rm;
   int ret;
 
   fvdbg("Entry\n");
@@ -788,8 +890,8 @@ static int romfs_rewinddir(struct inode *mountpt, struct fs_dirent_s *dir)
  *
  ****************************************************************************/
 
-static int romfs_bind(FAR struct inode *blkdriver, const void *data,
-                    void **handle)
+static int romfs_bind(FAR struct inode *blkdriver, FAR const void *data,
+                      FAR void **handle)
 {
   struct romfs_mountpt_s *rm;
   int ret;
@@ -813,7 +915,7 @@ static int romfs_bind(FAR struct inode *blkdriver, const void *data,
 
   /* Create an instance of the mountpt state structure */
 
-  rm = (struct romfs_mountpt_s *)zalloc(sizeof(struct romfs_mountpt_s));
+  rm = (FAR struct romfs_mountpt_s *)zalloc(sizeof(struct romfs_mountpt_s));
   if (!rm)
     {
       fdbg("Failed to allocate mountpoint structure\n");
@@ -874,9 +976,9 @@ errout_with_sem:
  *
  ****************************************************************************/
 
-static int romfs_unbind(void *handle, FAR struct inode **blkdriver)
+static int romfs_unbind(FAR void *handle, FAR struct inode **blkdriver)
 {
-  struct romfs_mountpt_s *rm = (struct romfs_mountpt_s*)handle;
+  FAR struct romfs_mountpt_s *rm = (FAR struct romfs_mountpt_s*)handle;
   int ret;
 
   fvdbg("Entry\n");
@@ -948,10 +1050,10 @@ static int romfs_unbind(void *handle, FAR struct inode **blkdriver)
  *
  ****************************************************************************/
 
-static int romfs_statfs(struct inode *mountpt, struct statfs *buf)
+static int romfs_statfs(FAR struct inode *mountpt, FAR struct statfs *buf)
 {
-  struct romfs_mountpt_s *rm;
-  int                   ret;
+  FAR struct romfs_mountpt_s *rm;
+  int ret;
 
   fvdbg("Entry\n");
 
@@ -1004,11 +1106,12 @@ errout_with_semaphore:
  *
  ****************************************************************************/
 
-static int romfs_stat(struct inode *mountpt, const char *relpath, struct stat *buf)
+static int romfs_stat(FAR struct inode *mountpt, FAR const char *relpath,
+                      FAR struct stat *buf)
 {
-  struct romfs_mountpt_s *rm;
-  struct romfs_dirinfo_s  dirinfo;
-  int                   ret;
+  FAR struct romfs_mountpt_s *rm;
+  FAR struct romfs_dirinfo_s dirinfo;
+  int ret;
 
   fvdbg("Entry\n");
 

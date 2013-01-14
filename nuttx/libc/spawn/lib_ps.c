@@ -70,8 +70,6 @@ struct spawn_parms_s
  * Public Data
  ****************************************************************************/
 
-extern struct symtab_s CONFIG_EXECFUNCS_SYMTAB;
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -157,7 +155,7 @@ static int ps_exec(FAR pid_t *pidp, FAR const char *path,
                    FAR char *const argv[])
 {
   struct sched_param param;
-  FAR struct symtab_s *symtab;
+  FAR const struct symtab_s *symtab;
   int nsymbols;
   int pid;
   int ret = OK;

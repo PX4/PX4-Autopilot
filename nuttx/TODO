@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 11, 2013)
+NuttX TODO List (Last updated January 13, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -8,7 +8,7 @@ nuttx/
 
  (10)  Task/Scheduler (sched/)
   (1)  Memory Managment (mm/)
-  (2)  Signals (sched/, arch/)
+  (3)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
   (2)  C++ Support
   (6)  Binary loaders (binfmt/)
@@ -99,13 +99,6 @@ o Task/Scheduler (sched/)
                someone gets motivated and drives the change.
   Priority:    Low
 
-  Title:       posix_spawn()
-  Description: This would be a good interface to add to NuttX.  It is really
-               just a re-packaging of the existing, non-standard NuttX exec()
-               function.
-  Status:      Open.  There are no plans to implement this capabilitiey now.
-  Priority:    Medium low.
-
   Title:       pause() NON-COMPLIANCE
   Description: In the POSIX description of this function is the pause() function
                will suspend the calling thread until delivery of a signal whose
@@ -178,6 +171,30 @@ o Task/Scheduler (sched/)
   Status:      Open
   Priority:    Medium Low for now
 
+  Title:       RETAINING TASK EXIT STATUS
+  Description: When a task exists, its exit status should be retained in
+               so data structure until it is reaped (via waitpid(), or
+               similar interface) or until the parent thread exists.
+
+               You would think that this should be a clone of the existing
+               pthread join logic.  Howver there is no need for zombies
+               in NuttX so, the status if the parent has already exit'ed.
+
+               At present, exit status is not retained.  If waitpid()
+               is called after the child task has exit'ed it simpley
+               returns with the ECHLD error.  That is not too bad, but
+               does not tell you what the exit status was.
+
+               A work-around is to:
+               1) Call sched_lock() to disable pre-emption.
+               2) Start the task (it cannot run because pre-emption is
+                  disbled.
+               3) Call waitpid();
+               4) Call sched_unlock() to re-enable pre-emption.
+
+  Status:      Open
+  Priority:    Low
+
 o Memory Managment (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -249,7 +266,9 @@ o Signals (sched/, arch/)
 
   Title:       STANDARD SIGNALS
   Description: 'Standard' signals and signal actions are not supported.
-               (e.g., SIGINT, SIGCHLD, SIGSEGV, etc).
+               (e.g., SIGINT, SIGSEGV, etc).
+
+               Update:  SIG_CHLD is support if configured.
   Status:      Open.  No changes are planned.
   Priority:    Low, required by standards but not so critical for an
                embedded system.
@@ -261,6 +280,14 @@ o Signals (sched/, arch/)
   Status:      Low, there are alternative designs.  However, these features
                are required by the POSIX standard.
   Priority:    Low for now
+
+  Title:       SIGNAL NUMBERING
+  Description: In signal.h, the range of valid signals is listed as 0-31.  However,
+               in many interfaces, 0 is not a valid signal number.  The valid
+               signal number should be 1-32.  The signal set operations would need
+               to map bits appropriately.
+  Status:      Open
+  Priority:    Low. Even if there are only 31 usable signals, that is still a lot.
 
 o pthreads (sched/)
   ^^^^^^^^^^^^^^^^^

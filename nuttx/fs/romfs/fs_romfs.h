@@ -159,7 +159,6 @@ struct romfs_mountpt_s
 struct romfs_file_s
 {
   struct romfs_file_s *rf_next;     /* Retained in a singly linked list */
-  bool     rf_open;                 /* true: The file is (still) open */
   uint32_t rf_startoffset;          /* Offset to the start of the file data */
   uint32_t rf_size;                 /* Size of the file in bytes */
   uint32_t rf_cachesector;          /* Current sector in the rf_buffer */
