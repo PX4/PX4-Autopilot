@@ -324,24 +324,6 @@ PX4IO::task_main()
 	_t_vstatus = orb_subscribe(ORB_ID(vehicle_status));
 	orb_set_interval(_t_vstatus, 200);		/* 5Hz update rate max. */
 
-	/* advertise the limited control inputs */
-	memset(&_controls_effective, 0, sizeof(_controls_effective));
-	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_1),
-				   &_controls_effective);
-
-	/* advertise the mixed control outputs */
-	memset(&_outputs, 0, sizeof(_outputs));
-	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
-				   &_outputs);
-
-	/* advertise the rc inputs */
-	memset(&_input_rc, 0, sizeof(_input_rc));
-	_to_input_rc = orb_advertise(ORB_ID(input_rc), &_input_rc);
-
-	/* do not advertise the battery status until its clear that a battery is connected */
-	memset(&_battery_status, 0, sizeof(_battery_status));
-	_to_battery = -1;
-
 	/* poll descriptor */
 	pollfd fds[3];
 	fds[0].fd = _t_actuators;
@@ -401,6 +383,20 @@ PX4IO::task_main()
 			/* XXX fetch servo outputs */
 			break;
 		}
+
+#if 0
+	/* advertise the limited control inputs */
+	memset(&_controls_effective, 0, sizeof(_controls_effective));
+	_to_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_1),
+				   &_controls_effective);
+
+	/* advertise the mixed control outputs */
+	memset(&_outputs, 0, sizeof(_outputs));
+	_to_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
+				   &_outputs);
+#endif
+
+
 
 	}
 
