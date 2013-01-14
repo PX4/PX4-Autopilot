@@ -152,7 +152,7 @@ extern uint32_t _sdata;             /* Start of .data */
 extern uint32_t _edata;             /* End+1 of .data */
 extern uint32_t _sbss;              /* Start of .bss */
 extern uint32_t _ebss;              /* End+1 of .bss */
-#ifdef CONFIG_PIC32MX_RAMFUNCS
+#ifdef CONFIG_ARCH_RAMFUNCS
 extern uint32_t _sramfunc;          /* Start of ramfuncs */
 extern uint32_t _eramfunc;          /* End+1 of ramfuncs */
 extern uint32_t _ramfunc_loadaddr;  /* Start of ramfuncs in FLASH */
@@ -160,7 +160,7 @@ extern uint32_t _ramfunc_sizeof;    /* Size of ramfuncs */
 extern uint32_t _bmxdkpba_address;  /* BMX register setting */
 extern uint32_t _bmxdudba_address;  /* BMX register setting */
 extern uint32_t _bmxdupba_address;  /* BMX register setting */
-#endif /* CONFIG_PIC32MX_RAMFUNCS */
+#endif /* CONFIG_ARCH_RAMFUNCS */
 #endif /* __ASSEMBLY__ */
 
 /****************************************************************************

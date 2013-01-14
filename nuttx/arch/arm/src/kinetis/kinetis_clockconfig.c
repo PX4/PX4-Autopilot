@@ -55,8 +55,8 @@
  * Private Definitions
  ****************************************************************************/
 
-#ifndef CONFIG_BOOT_RAMFUNCS
-# error "CONFIG_BOOT_RAMFUNCS must be defined for this logic"
+#ifndef CONFIG_ARCH_RAMFUNCS
+# error "CONFIG_ARCH_RAMFUNCS must be defined for this logic"
 #endif
 
 /****************************************************************************

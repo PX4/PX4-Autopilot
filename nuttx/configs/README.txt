@@ -1590,7 +1590,7 @@ defconfig -- This is a configuration file similar to the Linux
       operation from FLASH but must copy initialized .data sections to RAM.
     CONFIG_BOOT_COPYTORAM -  Some configurations boot in FLASH
       but copy themselves entirely into RAM for better performance.
-    CONFIG_BOOT_RAMFUNCS - Other configurations may copy just some functions
+    CONFIG_ARCH_RAMFUNCS - Other configurations may copy just some functions
       into RAM, either for better performance or for errata workarounds.
     CONFIG_STACK_ALIGNMENT - Set if the your application has specific
       stack alignment requirements (may not be supported

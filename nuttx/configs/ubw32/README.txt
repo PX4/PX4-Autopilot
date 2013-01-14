@@ -586,15 +586,26 @@ Where <subdir> is one of the following:
     This configuration directory, performs a simple OS test using
     apps/examples/ostest.
 
-    Serial Output.
-    --------------
-    The OS test produces all of its test output on the serial console.
-    This configuration has UART1 enabled as a serial console. 
+    NOTES:
+    ------ 
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
 
-    TX  -- J4 pin 31: U1TX/RF8
-    RX  -- J4 pin 30: U1RX/RF2
-    GND -- J4 pin 40: GND
-    Vcc -- J4 pin 39: 5V
+       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
+          and misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. Serial Output.
+
+       The OS test produces all of its test output on the serial console.
+       This configuration has UART1 enabled as a serial console. 
+
+       TX  -- J4 pin 31: U1TX/RF8
+       RX  -- J4 pin 30: U1RX/RF2
+       GND -- J4 pin 40: GND
+       Vcc -- J4 pin 39: 5V
  
   nsh:
   ====

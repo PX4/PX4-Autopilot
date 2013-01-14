@@ -12,6 +12,8 @@ config ARCH_CHIP_PIC32MX
 	bool "PIC32MX"
 	select ARCH_MIPS32
 	select ARCH_IRQPRIO
+	select ARCH_VECNOTIRQ
+	select ARCH_HAVE_RAMFUNCS
 	---help---
 		Microchip PIC32MX320F032H (MIPS32)
 

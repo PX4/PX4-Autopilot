@@ -533,8 +533,12 @@ config PIC32MX_CM1
 	bool "Comparator 1 (CM1)"
 	default n
 
-config PIC32MX_CM2 
+config PIC32MX_CM2
 	bool "Comparator 2 (CM2)"
+	default n
+
+config PIC32MX_CM3
+	bool "Comparator 3 (CM3)"
 	default n
 
 config PIC32MX_RTCC

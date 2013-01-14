@@ -116,7 +116,7 @@ void __start(void)
    * at _framfuncs
    */
 
-#ifdef CONFIG_BOOT_RAMFUNCS
+#ifdef CONFIG_ARCH_RAMFUNCS
   for (src = &_framfuncs, dest = &_sramfuncs; dest < &_eramfuncs; )
     {
       *dest++ = *src++;

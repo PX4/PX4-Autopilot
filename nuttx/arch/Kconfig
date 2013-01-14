@@ -109,6 +109,10 @@ config ARCH_NOINTC
 	bool
 	default n
 
+config ARCH_VECNOTIRQ
+	bool
+	default n
+
 config ARCH_DMA
 	bool
 	default n
@@ -140,6 +144,20 @@ config ENDIAN_BIG
 	default n
 	---help---
 		Select if architecture operates using big-endian byte ordering.
+
+config ARCH_HAVE_RAMFUNCS
+	bool
+	default n
+
+config ARCH_RAMFUNCS
+	bool "Copy functions to RAM on startup"
+	default n
+	depends on ARCH_HAVE_RAMFUNCS
+	---help---
+		Copy some functions to RAM at boot time.  This is done in some
+		architectures to improve performance.  In other cases, it is done
+		so that FLASH can be reconfigured while the MCU executes out of
+		SRAM.
 
 comment "Board Settings"
 
