@@ -134,7 +134,8 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 
 	case SYSTEM_STATE_REBOOT:
 		if (current_status->state_machine == SYSTEM_STATE_STANDBY
-		    || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
+			|| current_status->state_machine == SYSTEM_STATE_PREFLIGHT
+			|| current_status->flag_hil_enabled) {
 			invalid_state = false;
 			/* set system flags according to state */
 			current_status->flag_system_armed = false;
@@ -708,7 +709,9 @@ uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_
 	case SYSTEM_STATE_REBOOT:
 		printf("try to reboot\n");
 
-		if (current_system_state == SYSTEM_STATE_STANDBY || current_system_state == SYSTEM_STATE_PREFLIGHT) {
+		if (current_system_state == SYSTEM_STATE_STANDBY
+				|| current_system_state == SYSTEM_STATE_PREFLIGHT
+				|| current_status->flag_hil_enabled) {
 			printf("system will reboot\n");
 			mavlink_log_critical(mavlink_fd, "Rebooting..");
 			usleep(200000);

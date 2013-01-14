@@ -86,8 +86,12 @@ static struct offboard_control_setpoint_s offboard_control_sp;
 
 struct vehicle_global_position_s hil_global_pos;
 struct vehicle_attitude_s hil_attitude;
+struct vehicle_gps_position_s hil_gps;
+struct sensor_combined_s hil_sensors;
 orb_advert_t pub_hil_global_pos = -1;
 orb_advert_t pub_hil_attitude = -1;
+orb_advert_t pub_hil_gps = -1;
+orb_advert_t pub_hil_sensors = -1;
 
 static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;
@@ -302,6 +306,161 @@ handle_message(mavlink_message_t *msg)
 
 	if (mavlink_hil_enabled) {
 
+		uint64_t timestamp = hrt_absolute_time();
+
+		if (msg->msgid == MAVLINK_MSG_ID_RAW_IMU) {
+
+			mavlink_raw_imu_t imu;
+			mavlink_msg_raw_imu_decode(msg, &imu);
+
+			/* packet counter */
+			static uint16_t hil_counter = 0;
+			static uint16_t hil_frames = 0;
+			static uint64_t old_timestamp = 0;
+
+			/* hil gyro */
+			static const float mrad2rad = 1.0e-3f;
+			hil_sensors.timestamp = timestamp;
+			hil_sensors.gyro_counter = hil_counter;
+			hil_sensors.gyro_raw[0] = imu.xgyro;
+			hil_sensors.gyro_raw[1] = imu.ygyro;
+			hil_sensors.gyro_raw[2] = imu.zgyro;
+			hil_sensors.gyro_rad_s[0] = imu.xgyro * mrad2rad;
+			hil_sensors.gyro_rad_s[1] = imu.ygyro * mrad2rad;
+			hil_sensors.gyro_rad_s[2] = imu.zgyro * mrad2rad;
+
+			/* accelerometer */
+			hil_sensors.accelerometer_counter = hil_counter;
+			static const float mg2ms2 = 9.8f / 1000.0f;
+			hil_sensors.accelerometer_raw[0] = imu.xacc;
+			hil_sensors.accelerometer_raw[1] = imu.yacc;
+			hil_sensors.accelerometer_raw[2] = imu.zacc;
+			hil_sensors.accelerometer_m_s2[0] = mg2ms2 * imu.xacc;
+			hil_sensors.accelerometer_m_s2[1] = mg2ms2 * imu.yacc;
+			hil_sensors.accelerometer_m_s2[2] = mg2ms2 * imu.zacc;
+			hil_sensors.accelerometer_mode = 0; // TODO what is this?
+			hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
+
+			/* adc */
+			hil_sensors.adc_voltage_v[0] = 0;
+			hil_sensors.adc_voltage_v[1] = 0;
+			hil_sensors.adc_voltage_v[2] = 0;
+
+			/* magnetometer */
+			float mga2ga = 1.0e-3f;
+			hil_sensors.magnetometer_counter = hil_counter;
+			hil_sensors.magnetometer_raw[0] = imu.xmag;
+			hil_sensors.magnetometer_raw[1] = imu.ymag;
+			hil_sensors.magnetometer_raw[2] = imu.zmag;
+			hil_sensors.magnetometer_ga[0] = imu.xmag * mga2ga;
+			hil_sensors.magnetometer_ga[1] = imu.ymag * mga2ga;
+			hil_sensors.magnetometer_ga[2] = imu.zmag * mga2ga;
+			hil_sensors.magnetometer_range_ga = 32.7f; // int16
+			hil_sensors.magnetometer_mode = 0; // TODO what is this
+			hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
+
+			/* publish */
+			orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
+
+			// increment counters
+			hil_counter += 1 ;
+			hil_frames += 1 ;
+
+			// output
+			if ((timestamp - old_timestamp) > 1000000) {
+				printf("receiving hil imu at %d hz\n", hil_frames);
+				old_timestamp = timestamp;
+				hil_frames = 0;
+			}
+		}
+
+		if (msg->msgid == MAVLINK_MSG_ID_GPS_RAW_INT) {
+
+			mavlink_gps_raw_int_t gps;
+			mavlink_msg_gps_raw_int_decode(msg, &gps);
+
+			/* packet counter */
+			static uint16_t hil_counter = 0;
+			static uint16_t hil_frames = 0;
+			static uint64_t old_timestamp = 0;
+
+			/* gps */
+			hil_gps.timestamp = gps.time_usec;
+			hil_gps.counter = hil_counter++;
+			hil_gps.time_gps_usec = gps.time_usec;
+			hil_gps.lat = gps.lat;
+			hil_gps.lon = gps.lon;
+			hil_gps.alt = gps.alt;
+			hil_gps.counter_pos_valid = hil_counter++;
+			hil_gps.eph = gps.eph;
+			hil_gps.epv = gps.epv;
+			hil_gps.s_variance = 100;
+			hil_gps.p_variance = 100;
+			hil_gps.vel = gps.vel;
+			hil_gps.vel_n = gps.vel / 100.0f * cosf(gps.cog / M_RAD_TO_DEG_F / 100.0f);
+			hil_gps.vel_e = gps.vel / 100.0f * sinf(gps.cog / M_RAD_TO_DEG_F / 100.0f);
+			hil_gps.vel_d = 0.0f;
+			hil_gps.cog = gps.cog;
+			hil_gps.fix_type = gps.fix_type;
+			hil_gps.satellites_visible = gps.satellites_visible;
+
+			/* publish */
+			orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
+
+			// increment counters
+			hil_counter += 1 ;
+			hil_frames += 1 ;
+
+			// output
+			if ((timestamp - old_timestamp) > 1000000) {
+				printf("receiving hil gps at %d hz\n", hil_frames);
+				old_timestamp = timestamp;
+				hil_frames = 0;
+			}
+		}
+
+		if (msg->msgid == MAVLINK_MSG_ID_RAW_PRESSURE) {
+
+			mavlink_raw_pressure_t press;
+			mavlink_msg_raw_pressure_decode(msg, &press);
+
+			/* packet counter */
+			static uint16_t hil_counter = 0;
+			static uint16_t hil_frames = 0;
+			static uint64_t old_timestamp = 0;
+
+			/* baro */
+			/* TODO, set ground_press/ temp during calib */
+			static const float ground_press = 1013.25f; // mbar
+			static const float ground_tempC = 21.0f;
+			static const float ground_alt = 0.0f;
+			static const float T0 = 273.15;
+			static const float R = 287.05f;
+			static const float g = 9.806f;
+
+			float tempC =  press.temperature / 100.0f;
+			float tempAvgK = T0 + (tempC + ground_tempC) / 2.0f;
+			float h =  ground_alt + (R / g) * tempAvgK * logf(ground_press / press.press_abs);
+			hil_sensors.baro_counter = hil_counter;
+			hil_sensors.baro_pres_mbar = press.press_abs;
+			hil_sensors.baro_alt_meter = h;
+			hil_sensors.baro_temp_celcius = tempC;
+
+			/* publish */
+			orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
+
+			// increment counters
+			hil_counter += 1 ;
+			hil_frames += 1 ;
+
+			// output
+			if ((timestamp - old_timestamp) > 1000000) {
+				printf("receiving hil pressure at %d hz\n", hil_frames);
+				old_timestamp = timestamp;
+				hil_frames = 0;
+			}
+		}
+
 		if (msg->msgid == MAVLINK_MSG_ID_HIL_STATE) {
 
 			mavlink_hil_state_t hil_state;
@@ -412,7 +571,7 @@ receive_thread(void *arg)
 	int uart_fd = *((int *)arg);
 
 	const int timeout = 1000;
-	uint8_t ch;
+	uint8_t buf[32];
 
 	mavlink_message_t msg;
 
@@ -423,13 +582,12 @@ receive_thread(void *arg)
 		struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
 
 		if (poll(fds, 1, timeout) > 0) {
-			/* non-blocking read until buffer is empty */
-			int nread = 0;
+			/* non-blocking read */
+			size_t nread = read(uart_fd, buf, sizeof(buf));
+			ASSERT(nread > 0)
 
-			do {
-				nread = read(uart_fd, &ch, 1);
-
-				if (mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
+			for (size_t i = 0; i < nread; i++) {
+				if (mavlink_parse_char(chan, buf[i], &msg, &status)) { //parse the char
 					/* handle generic messages and commands */
 					handle_message(&msg);
 
@@ -439,7 +597,7 @@ receive_thread(void *arg)
 					/* Handle packet with parameter component */
 					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
 				}
-			} while (nread > 0);
+			}
 		}
 	}
 
@@ -451,6 +609,10 @@ receive_start(int uart)
 {
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
+
+	// set to non-blocking read
+	int flags = fcntl(uart, F_GETFL, 0);
+	fcntl(uart, F_SETFL, flags | O_NONBLOCK);
 
 	struct sched_param param;
 	param.sched_priority = SCHED_PRIORITY_MAX - 40;
