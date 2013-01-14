@@ -613,7 +613,7 @@ void KalmanNav::correctPos()
         else cosLSing = -0.01;
     }
 
-	float noiseLatDegE7 = 1.0e7f * M_RAD_TO_DEG * _rGpsPos.get() / R;
+	float noiseLatDegE7 = 1.0e7f * M_RAD_TO_DEG_F * _rGpsPos.get() / R;
 	float noiseLonDegE7 = noiseLatDegE7 / cosLSing;
 	RPos(2, 2) = noiseLatDegE7 * noiseLatDegE7;
 	RPos(3, 3) = noiseLonDegE7 * noiseLonDegE7;
@@ -662,11 +662,11 @@ void KalmanNav::correctPos()
 	if (beta > 1.0f) {
 		printf("fault in gps: beta = %8.4f\n", (double)beta);
 		printf("y:\n"); y.print();
-		printf("R:\n"); RPos.print();
-		printf("S:\n"); S.print();
-		printf("S*S^T:\n"); (S*S.transpose()).print();
-		printf("(S*S^T)^-1:\n"); ((S*S.transpose()).inverse()).print();
-		printf("(S*S^T)^-1*y:\n"); ((S*S.transpose()).inverse()*y).print();
+		//printf("R:\n"); RPos.print();
+		//printf("S:\n"); S.print();
+		//printf("S*S^T:\n"); (S*S.transpose()).print();
+		//printf("(S*S^T)^-1:\n"); ((S*S.transpose()).inverse()).print();
+		//printf("(S*S^T)^-1*y:\n"); ((S*S.transpose()).inverse()*y).print();
         printf("gps: vN: %8.5f, vE: %8.4f, vD: %8.4f, lat: %15.10f, lon: %15.10f, alt: %15.2f\n", 
                 double(_gps.vel_n), double(_gps.vel_e), double(_gps.vel_d),
                 double(_gps.lat)/ 1.0e7 / M_RAD_TO_DEG,
@@ -717,7 +717,7 @@ void KalmanNav::updateParams()
     }
 
 	float noiseVel = _rGpsVel.get();
-	float noiseLatDegE7 = 1.0e7f * M_RAD_TO_DEG * _rGpsPos.get() / R;
+	float noiseLatDegE7 = 1.0e7f * M_RAD_TO_DEG_F * _rGpsPos.get() / R;
 	float noiseLonDegE7 = noiseLatDegE7 / cosLSing;
 	float noiseAlt = _rGpsAlt.get();
 	RPos(0, 0) = noiseVel * noiseVel; // vn
