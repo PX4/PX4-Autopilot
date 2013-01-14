@@ -154,6 +154,16 @@ private:
 	int			io_set_arming_state();
 
 	/**
+	 * Fetch status and alarms from IO
+	 */
+	int			io_get_status();
+
+	/**
+	 * Fetch RC inputs from IO
+	 */
+	int			io_get_rc_input(rc_input_values &input_rc);
+
+	/**
 	 * write register(s)
 	 */
 	int			io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
@@ -498,8 +508,8 @@ PX4IO::io_get_status()
 	if (state.status & PX4IO_P_STATUS_FLAGS_RC_OK) {
 		rc_input_values		input_rc;
 
-		input_rc.timestamp = hrt_absolute_time();
-	
+		io_get_rc_input(input_rc);
+
 		if (state.status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
 			input_rc.input_source = RC_INPUT_SOURCE_PX4IO_PPM;
 		} else if (state.status & RC_INPUT_SOURCE_PX4IO_DSM) {
@@ -509,13 +519,6 @@ PX4IO::io_get_status()
 		} else {
 			input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
 		}
-
-		uint16_t channel_count;
-		io_get_reg(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &channel_count, 1);
-		input_rc.channel_count = channel_count;
-
-		if (channel_count > 0)
-			io_get_reg(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, channel_count);
 
 		if (_to_input_rc > 0) {
 			orb_publish(ORB_ID(input_rc), _to_input_rc, &input_rc);
@@ -527,15 +530,46 @@ PX4IO::io_get_status()
 }
 
 int
+PX4IO::io_get_rc_input(rc_input_values &input_rc)
+{
+	uint16_t channel_count;
+	int	ret;
+
+	input_rc.timestamp = hrt_absolute_time();
+
+	/* we don't have the status bits, so input_source has to be set elsewhere */
+	input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
+	
+	/*
+	 * XXX Because the channel count and channel data are fetched
+	 *     separately, there is a risk of a race between the two
+	 *     that could leave us with channel data and a count that 
+	 *     are out of sync.
+	 *     Fixing this would require a guarantee of atomicity from
+	 *     IO, and a single fetch for both count and channels.
+	 *
+	 * XXX Since IO has the input calibration info, we ought to be
+	 *     able to get the pre-fixed-up controls directly.
+	 */
+	ret = io_get_reg(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &channel_count, 1);
+	if (ret)
+		return ret;
+	input_rc.channel_count = channel_count;
+
+	if (channel_count > 0)
+		ret = io_get_reg(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, channel_count);
+
+	return ret;
+}
+
+int
 PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
 	i2c_msg_s	msgv[2];
 	t8_t		hdr[2];
 
 	hdr[0] = page;
-
 	hdr[1] = offset;
-	actuator_controls_effective_s _controls_effective; ///< effective controls
 
 	mgsv[0].flags = 0;
 	msgv[0].buffer = hdr;
