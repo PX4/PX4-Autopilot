@@ -39,11 +39,19 @@
 # Note that we pull a couple of specific files from the systemlib, since
 # we can't support it all.
 #
-CSRCS		= $(wildcard *.c) \
+CSRCS		= adc.c \
+		  controls.c \
+		  dsm.c \
+		  i2c.c \
+		  px4io.c \
+		  registers.c \
+		  safety.c \
+		  sbus.c \
 		  ../systemlib/hx_stream.c \
 		  ../systemlib/perf_counter.c \
 		  ../systemlib/up_cxxinitialize.c
-CXXSRCS		= $(wildcard *.cpp)
+
+CXXSRCS		= mixer.cpp
 
 INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
 

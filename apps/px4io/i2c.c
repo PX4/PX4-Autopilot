@@ -259,7 +259,6 @@ i2c_tx_complete(void)
 	/* XXX handle transmit-done */
 
 	/* prepare for the next transaction */
-	memset(tx_buf, 0, sizeof(tx_buf));
 	i2c_tx_setup();
 }
 

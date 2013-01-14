@@ -75,6 +75,29 @@ extern uint16_t			r_page_adc[];		/* PX4IO_PAGE_RAW_ADC_INPUT */
 
 extern volatile uint16_t	r_page_setup[];		/* PX4IO_PAGE_SETUP */
 extern volatile uint16_t	r_page_controls[];	/* PX4IO_PAGE_CONTROLS */
+extern uint16_t			r_page_rc_input_config[]; /* PX4IO_PAGE_RC_INPUT_CONFIG */
+
+/*
+ * Register aliases.
+ *
+ * Handy aliases for registers that are widely used.
+ */
+#define r_status_flags		r_page_status[PX4IO_P_STATUS_FLAGS]
+#define r_status_alarms		r_page_status[PX4IO_P_STATUS_ALARMS]
+
+#define r_raw_rc_count		r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT]
+#define r_raw_rc_values		(&r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE])
+#define r_rc_valid		r_page_rc_input[PX4IO_P_RC_VALID]
+#define r_rc_values		(&r_page_rc_input[PX4IO_P_RAW_RC_BASE])
+
+#define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
+#define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
+#define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
+#define r_setup_pwm_lowrate	r_page_setup[PX4IO_P_SETUP_PWM_LOWRATE]
+#define r_setup_pwm_highrate	r_page_setup[PX4IO_P_SETUP_PWM_HIGHRATE]
+#define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
+
+#define r_control_values	(&r_page_controls[0])
 
 /*
  * System state structure.
@@ -84,9 +107,9 @@ extern volatile uint16_t	r_page_controls[];	/* PX4IO_PAGE_CONTROLS */
  */
 struct sys_state_s {
 
-	bool		armed;			/* IO armed */
-	bool		arm_ok;			/* FMU says OK to arm */
-	uint16_t	servo_rate;		/* output rate of servos in Hz */
+//	bool		armed;			/* IO armed */
+//	bool		arm_ok;			/* FMU says OK to arm */
+//	uint16_t	servo_rate;		/* output rate of servos in Hz */
 
 	/**
 	 * Remote control input(s) channel mappings
@@ -105,39 +128,39 @@ struct sys_state_s {
 	/**
 	 * Data from the remote control input(s)
 	 */
-	unsigned	rc_channels;
-	uint16_t	rc_channel_data[PX4IO_INPUT_CHANNELS];
+//	unsigned	rc_channels;
+//	uint16_t	rc_channel_data[PX4IO_INPUT_CHANNELS];
 	uint64_t	rc_channels_timestamp;
 
 	/**
 	 * Control signals from FMU.
 	 */
-	uint16_t	fmu_channel_data[PX4IO_CONTROL_CHANNELS];
+//	uint16_t	fmu_channel_data[PX4IO_CONTROL_CHANNELS];
 
 	/**
 	 * Mixed servo outputs
 	 */
-	uint16_t	servos[IO_SERVO_COUNT];
+//	uint16_t	servos[IO_SERVO_COUNT];
 
 	/**
 	 * Relay controls
 	 */
-	bool		relays[PX4IO_RELAY_CHANNELS];
+//	bool		relays[PX4IO_RELAY_CHANNELS];
 
 	/**
 	 * If true, we are using the FMU controls, else RC input if available.
 	 */
-	bool		mixer_manual_override;
+//	bool		mixer_manual_override;
 
 	/**
 	 * If true, FMU input is available.
 	 */
-	bool		mixer_fmu_available;
+//	bool		mixer_fmu_available;
 
 	/**
 	 * If true, state that should be reported to FMU has been updated.
 	 */
-	bool		fmu_report_due;
+//	bool		fmu_report_due;
 
 	/**
 	 * Last FMU receive time, in microseconds since system boot
@@ -147,12 +170,12 @@ struct sys_state_s {
 	/**
 	 * If true, the RC signal has been lost for more than a timeout interval
 	 */
-	bool		rc_lost;
+//	bool		rc_lost;
 
 	/**
 	 * If true, the connection to FMU has been lost for more than a timeout interval
 	 */
-	bool		fmu_lost;
+//	bool		fmu_lost;
 
 	/**
 	 * If true, FMU is ready for autonomous position control. Only used for LED indication
@@ -162,40 +185,26 @@ struct sys_state_s {
 	/**
 	 * If true, IO performs an on-board manual override with the RC channel values
 	 */
-	bool manual_override_ok;
+//	bool manual_override_ok;
 
 	/*
 	 * Measured battery voltage in mV
 	 */
-	uint16_t	battery_mv;
+//	uint16_t	battery_mv;
 
 	/*
 	 * ADC IN5 measurement
 	 */
-	uint16_t	adc_in5;
+//	uint16_t	adc_in5;
 
 	/*
 	 * Power supply overcurrent status bits.
 	 */
-	uint8_t		overcurrent;
+//	uint8_t		overcurrent;
 
 };
 
 extern struct sys_state_s system_state;
-
-#if 0
-/*
- * Software countdown timers.
- *
- * Each timer counts down to zero at one tick per ms.
- */
-#define TIMER_BLINK_AMBER	0
-#define TIMER_BLINK_BLUE	1
-#define TIMER_STATUS_PRINT	2
-#define TIMER_SANITY		7
-#define TIMER_NUM_TIMERS	8
-extern volatile int	timers[TIMER_NUM_TIMERS];
-#endif
 
 /*
  * GPIO handling.
@@ -249,9 +258,11 @@ extern uint16_t	adc_measure(unsigned channel);
 
 /*
  * R/C receiver handling.
+ *
+ * Input functions return true when they receive an update from the RC controller.
  */
 extern void	controls_main(void);
 extern int	dsm_init(const char *device);
-extern bool	dsm_input(void);
+extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern int	sbus_init(const char *device);
-extern bool	sbus_input(void);
+extern bool	sbus_input(uint16_t *values, uint16_t *num_values);

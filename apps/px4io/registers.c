@@ -37,6 +37,11 @@
  * Implementation of the PX4IO register space.
  */
 
+#include <nuttx/config.h>
+
+#include <stdbool.h>
+#include <stdlib.h>
+
 #include "px4io.h"
 #include "protocol.h"
 
@@ -45,8 +50,9 @@ static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
 /**
  * Setup registers
  */
-uint16_t		r_page_setup[] =
+volatile uint16_t	r_page_setup[] =
 {
+	[PX4IO_P_SETUP_FEATURES]		= 0,
 	[PX4IO_P_SETUP_ARMING]			= 0,
 	[PX4IO_P_SETUP_PWM_RATES]		= 0,
 	[PX4IO_P_SETUP_PWM_LOWRATE]		= 50,
@@ -54,14 +60,16 @@ uint16_t		r_page_setup[] =
 	[PX4IO_P_SETUP_RELAYS]			= 0,
 };
 
-#define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_ARM_OK | PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE)
+#define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK)
+#define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_ARM_OK | \
+					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << IO_SERVO_COUNT) - 1)
-#define PX4IO_P_SETUP_RELAYS_VALID	((1 << PXIO_RELAY_CHANNELS) - 1)
+#define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
 /**
  * Control values from the FMU.
  */
-uint16_t		r_page_controls[PX4IO_CONTROL_CHANNELS];
+volatile uint16_t	r_page_controls[PX4IO_CONTROL_CHANNELS];
 
 /**
  * Static configuration parameters.
@@ -108,13 +116,26 @@ uint16_t		r_page_servos[IO_SERVO_COUNT];
 /**
  * Scaled/routed RC input
  */
-uint16_t		r_page_rc_input[MAX_CONTROL_CHANNELS];
+uint16_t		r_page_rc_input[] = {
+	[PX4IO_P_RC_VALID]			= 0,
+	[PX4IO_P_RC_BASE ... (PX4IO_P_RC_BASE + MAX_CONTROL_CHANNELS)] = 0
+};
 
 /**
  * Raw RC input
  */
-uint16_t		r_page_raw_rc_input[MAX_CONTROL_CHANNELS];
+uint16_t		r_page_raw_rc_input[] =
+{
+	[PX4IO_P_RAW_RC_COUNT]			= 0,
+	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + MAX_CONTROL_CHANNELS)] = 0
+};
 
+/**
+ * R/C channel input configuration.
+ */
+uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE];
+
+#define PX4IO_P_RC_CONFIG_OPTIONS_VALID	PX4IO_P_RC_CONFIG_OPTIONS_REVERSE
 
 void
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
@@ -136,7 +157,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		}
 
 		/* XXX we should cause a mixer tick ASAP */
-		system_state.mixer_fmu_available = true;
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 		break;
 
 		/* handle text going to the mixer parser */
@@ -168,7 +189,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		switch (offset) {
 		case PX4IO_P_STATUS_ALARMS:
 			/* clear bits being written */
-			r_page_status[PX4IO_P_STATUS_ALARMS] &= ~value;
+			r_status_alarms &= ~value;
 			break;
 
 		default:
@@ -179,20 +200,30 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 	case PX4IO_PAGE_SETUP:
 		switch (offset) {
+		case PX4IO_P_SETUP_FEATURES:
+
+			value &= PX4IO_P_SETUP_FEATURES_VALID;
+			r_setup_features = value;
+
+			/* update manual override state - disable if no longer OK */
+			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) && !(value & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK))
+				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
+
+			break;
+
 		case PX4IO_P_SETUP_ARMING:
 
 			value &= PX4IO_P_SETUP_ARMING_VALID;
-			r_page_setup[PX4IO_P_SETUP_ARMING] = value;
+			r_setup_arming = value;
 
 			/* update arming state - disarm if no longer OK */
-			if (system_state.armed && !(value & PX4IO_P_SETUP_ARMING_ARM_OK))
-				system_state.armed = false;
-
+			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) && !(value & PX4IO_P_SETUP_ARMING_ARM_OK))
+				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
 			break;
 
 		case PX4IO_P_SETUP_PWM_RATES:
 			value &= PX4IO_P_SETUP_RATES_VALID;
-			r_page_setup[PX4IO_P_SETUP_PWM_RATES] = value;
+			r_setup_pwm_rates = value;
 			/* XXX re-configure timers */
 			break;
 
@@ -201,7 +232,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				value = 50;
 			if (value > 400)
 				value = 400;
-			r_page_setup[PX4IO_P_SETUP_PWM_LOWRATE] = value;
+			r_setup_pwm_lowrate = value;
 			/* XXX re-configure timers */
 			break;
 
@@ -210,13 +241,13 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				value = 50;
 			if (value > 400)
 				value = 400;
-			r_page_setup[PX4IO_P_SETUP_PWM_HIGHRATE] = value;
+			r_setup_pwm_highrate = value;
 			/* XXX re-configure timers */
 			break;
 
 		case PX4IO_P_SETUP_RELAYS:
 			value &= PX4IO_P_SETUP_RELAYS_VALID;
-			r_page_setup[PX4IO_P_SETUP_RELAYS] = value;
+			r_setup_relays = value;
 			POWER_RELAY1(value & (1 << 0) ? 1 : 0);
 			POWER_RELAY2(value & (1 << 1) ? 1 : 0);
 			POWER_ACC1(value & (1 << 2) ? 1 : 0);
@@ -228,6 +259,63 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		}
 		break;
 
+	case PX4IO_PAGE_RC_CONFIG: {
+		unsigned channel = offset / PX4IO_P_RC_CONFIG_STRIDE;
+		unsigned index = offset % PX4IO_P_RC_CONFIG_STRIDE;
+		uint16_t *conf = &r_page_rc_input_config[offset * PX4IO_P_RC_CONFIG_STRIDE];
+
+		if (channel >= MAX_CONTROL_CHANNELS)
+			return -1;
+
+		/* disable the channel until we have a chance to sanity-check it */
+		conf[PX4IO_P_RC_CONFIG_OPTIONS] &= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+
+		switch (index) {
+
+		case PX4IO_P_RC_CONFIG_MIN:
+		case PX4IO_P_RC_CONFIG_CENTER:
+		case PX4IO_P_RC_CONFIG_MAX:
+		case PX4IO_P_RC_CONFIG_DEADZONE:
+		case PX4IO_P_RC_CONFIG_ASSIGNMENT:
+			conf[index] = value;
+			break;
+
+		case PX4IO_P_RC_CONFIG_OPTIONS:
+			value &= PX4IO_P_RC_CONFIG_OPTIONS_VALID;
+
+			/* set all options except the enabled option */
+			conf[index] = value & ~PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+
+			/* should the channel be enabled? */
+			/* this option is normally set last */
+			if (value & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
+				/* assert min..center..max ordering */
+				if (conf[PX4IO_P_RC_CONFIG_MIN] < 500)
+					break;
+				if (conf[PX4IO_P_RC_CONFIG_MAX] < 2500)
+					break;
+				if (conf[PX4IO_P_RC_CONFIG_CENTER] < conf[PX4IO_P_RC_CONFIG_MIN])
+					break;
+				if (conf[PX4IO_P_RC_CONFIG_CENTER] > conf[PX4IO_P_RC_CONFIG_MAX])
+					break;
+				/* assert deadzone is sane */
+				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500)
+					break;
+				if (conf[PX4IO_P_RC_CONFIG_MIN] > (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]))
+					break;
+				if (conf[PX4IO_P_RC_CONFIG_MAX] < (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]))
+					break;
+				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS)
+					break;
+
+				/* sanity checks pass, enable channel */
+				conf[index] |= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+			}
+			break;
+
+		}
+	}
+
 	default:
 		return -1;
 	}
@@ -237,27 +325,27 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 int
 registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_values)
 {
+#define SELECT_PAGE(_page_name)	{ *values = _page_name; *num_values = sizeof(_page_name) / sizeof(_page_name[0]); }
 
 	switch (page) {
-	case PX4IO_PAGE_CONFIG:
-		*values = r_page_config;
-		*num_values = sizeof(r_page_config) / sizeof(r_page_config[0]);
-		break;
 
+	/*
+	 * Handle pages that are updated dynamically at read time.
+	 */
 	case PX4IO_PAGE_STATUS:
+		/* PX4IO_P_STATUS_FREEMEM */
 		{
 			struct mallinfo minfo = mallinfo();
 			r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.fordblks;
 		}
+
 		/* XXX PX4IO_P_STATUS_CPULOAD */
-		r_page_status[PX4IO_P_STATUS_FLAGS] = 
-			(system_state.armed ? PX4IO_P_STATUS_FLAGS_ARMED : 0) |
-			(system_state.manual_override_ok ? PX4IO_P_STATUS_FLAGS_OVERRIDE : 0) |
-			((system_state.rc_channels > 0) ? PX4IO_P_STATUS_FLAGS_RC_OK : 0))
-			/* XXX specific receiver status */
 
-		/* XXX PX4IO_P_STATUS_ALARMS] */
+		/* PX4IO_P_STATUS_FLAGS maintained externally */
 
+		/* PX4IO_P_STATUS_ALARMS maintained externally */
+
+		/* PX4IO_P_STATUS_VBATT */
 		{
 			/*
 			 * Coefficients here derived by measurement of the 5-16V
@@ -285,42 +373,41 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			unsigned counts = adc_measure(ADC_VBATT);
 			r_page_status[PX4IO_P_STATUS_VBATT] = (4150 + (counts * 46)) / 10;
 		}
+
 		/* XXX PX4IO_P_STATUS_TEMPERATURE */
 
-		*values = r_page_status;
-		*num_values = sizeof(r_page_status) / sizeof(r_page_status[0]);
+		SELECT_PAGE(r_page_status);
 		break;
-
-	case PX4IO_PAGE_ACTUATORS:
-		*values = r_page_actuators;
-		*num_values = sizeof(r_page_actuators) / sizeof(r_page_actuators[0]);
-		break;
-
-	case PX4IO_PAGE_SERVOS:
-		*values = system_state.servos;
-		*num_values = IO_SERVO_COUNT;
-		break;
-
-	case PX4IO_PAGE_RAW_RC_INPUT:
-		*values = r_page_raw_rc_input;
-		*num_values = sizeof(r_page_raw_rc_input) / sizeof(r_page_raw_rc_input[0]);
-		break;
-
-	case PX4IO_PAGE_RC_INPUT:
-		*values = system_state.rc_channel_data;
-		*num_values = system_state.rc_channels;
-		return -1;
 
 	case PX4IO_PAGE_RAW_ADC_INPUT:
 		r_page_adc[0] = adc_measure(ADC_VBATT);
 		r_page_adc[1] = adc_measure(ADC_IN5);
-		*values = r_page_adc;
-		*num_values = ADC_CHANNEL_COUNT;
+
+		SELECT_PAGE(r_page_adc);
 		break;
+
+	/*
+	 * Pages that are just a straight read of the register state.
+	 */
+#define COPY_PAGE(_page_name, _page)	case _page_name: SELECT_PAGE(_page); break;
+
+	/* status pages */
+	COPY_PAGE(PX4IO_PAGE_CONFIG,		r_page_config);
+	COPY_PAGE(PX4IO_PAGE_ACTUATORS,		r_page_actuators);
+	COPY_PAGE(PX4IO_PAGE_SERVOS,		r_page_servos);
+	COPY_PAGE(PX4IO_PAGE_RAW_RC_INPUT,	r_page_raw_rc_input);
+	COPY_PAGE(PX4IO_PAGE_RC_INPUT,		r_page_rc_input);
+
+	/* readback of input pages */
+	COPY_PAGE(PX4IO_PAGE_SETUP,		r_page_setup);
+	COPY_PAGE(PX4IO_PAGE_CONTROLS,		r_page_controls);
+	COPY_PAGE(PX4IO_PAGE_RC_CONFIG,		r_page_rc_input_config);
 
 	default:
 		return -1;
 	}
+
+#undef SELECT_PAGE
 
 	/* if the offset is beyond the end of the page, we have no data */
 	if (*num_values <= offset)

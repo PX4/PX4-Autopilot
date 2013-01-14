@@ -38,22 +38,13 @@
  */
 
 #include <nuttx/config.h>
-#include <nuttx/arch.h>
 
 #include <sys/types.h>
 #include <stdbool.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sched.h>
-
-#include <debug.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/device/device.h>
 
 #include <systemlib/mixer/mixer.h>
 
@@ -78,10 +69,12 @@ extern "C" {
 bool mixer_servos_armed = false;
 
 /* selected control values and count for mixing */
-static uint16_t *control_values;
-static int control_count;
-
-static uint16_t rc_channel_data[PX4IO_INPUT_CHANNELS];
+enum mixer_source {
+	MIX_FMU,
+	MIX_OVERRIDE,
+	MIX_FAILSAFE
+};
+static mixer_source source;
 
 static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
@@ -93,23 +86,32 @@ static MixerGroup mixer_group(mixer_callback, 0);
 void
 mixer_tick(void)
 {
-	bool should_arm;
-
 	/* check that we are receiving fresh data from the FMU */
 	if ((hrt_absolute_time() - system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
+
 		/* too many frames without FMU input, time to go to failsafe */
-		system_state.mixer_manual_override = true;
-		system_state.mixer_fmu_available = false;
-		lib_lowprintf("RX timeout\n");
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_FMU_OK;
+		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
+		debug("AP RX timeout");
 	}
 
 	/*
-	 * Decide which set of inputs we're using.
+	 * Decide which set of controls we're using.
 	 */
-	 
-	/* this is for planes, where manual override makes sense */
-	if (system_state.manual_override_ok) {
+	if ((r_setup_features & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK) && 
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE)) {
+	 	/* this is for planes, where manual override makes sense */
+		source = MIX_OVERRIDE;
+	} else if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
+		source = MIX_FMU;
+	} else {
+		source = MIX_FAILSAFE;
+	}
+
+#if 0
 		/* if everything is ok */
+
 		if (!system_state.mixer_manual_override && system_state.mixer_fmu_available) {
 			/* we have recent control data from the FMU */
 			control_count = PX4IO_CONTROL_CHANNELS;
@@ -170,43 +172,40 @@ mixer_tick(void)
 			control_count = 0;
 		}
 	}
+#endif
+	/*
+	 * Run the mixers.
+	 */
+	float	outputs[IO_SERVO_COUNT];
+	unsigned mixed;
+
+	/* mix */
+	mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
+
+	/* scale to PWM and update the servo outputs as required */
+	for (unsigned i = 0; i < mixed; i++) {
+
+		/* save actuator values for FMU readback */
+		r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
+
+		/* scale to servo output */
+		r_page_servos[i] = (outputs[i] * 500.0f) + 1500;
+
+	}
+	for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
+		r_page_servos[i] = 0;
 
 	/*
-	 * Run the mixers if we have any control data at all.
+	 * Update the servo outputs.
 	 */
-	if (control_count > 0) {
-		float	outputs[IO_SERVO_COUNT];
-		unsigned mixed;
-
-		/* mix */
-		mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
-
-		/* scale to PWM and update the servo outputs as required */
-		for (unsigned i = 0; i < IO_SERVO_COUNT; i++) {
-			if (i < mixed) {
-				/* scale to servo output */
-				system_state.servos[i] = (outputs[i] * 500.0f) + 1500;
-
-			} else {
-				/* set to zero to inhibit PWM pulse output */
-				system_state.servos[i] = 0;
-			}
-
-			/*
-			 * If we are armed, update the servo output.
-			 */
-			if (system_state.armed && system_state.arm_ok) {
-				up_pwm_servo_set(i, system_state.servos[i]);
-			}
-		}
-	}
+	for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+		up_pwm_servo_set(i, r_page_servos[i]);
 
 	/*
 	 * Decide whether the servos should be armed right now.
-	 * A sufficient reason is armed state and either FMU or RC control inputs
 	 */
 
-	should_arm = system_state.armed && system_state.arm_ok && (control_count > 0);
+	bool should_arm = (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED);
 
 	if (should_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
@@ -226,21 +225,33 @@ mixer_callback(uintptr_t handle,
 	       uint8_t control_index,
 	       float &control)
 {
-	/* if the control index refers to an input that's not valid, we can't return it */
-	if (control_index >= control_count)
+	if (control_group != 0)
 		return -1;
 
-	/* scale from current PWM units (1000-2000) to mixer input values */
-	if (system_state.manual_override_ok && system_state.mixer_manual_override && control_index == 3) {
-		control = ((float)control_values[control_index] - 1000.0f) / 1000.0f;
-	} else {
-		control = ((float)control_values[control_index] - 1500.0f) / 500.0f;
+	switch (source) {
+	case MIX_FMU:
+		if (control_index < PX4IO_CONTROL_CHANNELS) {
+			control = REG_TO_FLOAT(r_page_controls[control_index]);
+			break;
+		}
+		return -1;
+
+	case MIX_OVERRIDE:
+		if (r_page_rc_input[PX4IO_P_RC_VALID] & (1 << control_index)) {
+			control = REG_TO_FLOAT(r_page_rc_input[PX4IO_P_RC_BASE + control_index]);
+			break;
+		}
+		return -1;
+
+	case MIX_FAILSAFE:
+		/* XXX we could allow for configuration of per-output failsafe values */
+		return -1;
 	}
 
 	return 0;
 }
 
-static char mixer_text[256];
+static char mixer_text[256];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
 
 void
@@ -267,6 +278,7 @@ mixer_handle_text(const void *buffer, size_t length)
 		debug("append %d", length);
 
 		/* check for overflow - this is really fatal */
+		/* XXX could add just what will fit & try to parse, then repeat... */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text))
 			return;
 

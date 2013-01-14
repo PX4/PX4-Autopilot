@@ -55,7 +55,9 @@
  *
  * As convention, values that would be floating point in other parts of 
  * the PX4 system are expressed as signed integer values scaled by 10000,
- * e.g. control values range from -10000..10000.
+ * e.g. control values range from -10000..10000.  Use the REG_TO_SIGNED and
+ * SIGNED_TO_REG macros to convert between register representation and
+ * the signed version, and REG_TO_FLOAT/FLOAT_TO_REG to convert to float.
  *
  * Note that the implementation of readable pages prefers registers within
  * readable pages to be densely packed. Page numbers do not need to be
@@ -66,6 +68,12 @@
 #define PX4IO_INPUT_CHANNELS	12
 #define PX4IO_RELAY_CHANNELS	4
 
+/* Per C, this is safe for all 2's complement systems */
+#define REG_TO_SIGNED(_reg)	((int16_t)(_reg))
+#define SIGNED_TO_REG(_signed)	((uint16_t)(_signed))
+
+#define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
+#define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
 
 /* static configuration page */
 #define PX4IO_PAGE_CONFIG		0
@@ -91,13 +99,15 @@
 #define PX4IO_P_STATUS_FLAGS_RC_PPM		(1 << 3) /* PPM input is valid */
 #define PX4IO_P_STATUS_FLAGS_RC_DSM		(1 << 4) /* DSM input is valid */
 #define PX4IO_P_STATUS_FLAGS_RC_SBUS		(1 << 5) /* SBUS input is valid */
+#define PX4IO_P_STATUS_FLAGS_FMU_OK		(1 << 6) /* controls from FMU are valid */
 
 #define PX4IO_P_STATUS_ALARMS			3	/* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* VBatt is very close to regulator dropout */
 #define PX4IO_P_STATUS_ALARMS_TEMPERATURE	(1 << 1) /* board temperature is high */
 #define PX4IO_P_STATUS_ALARMS_SERVO_CURRENT	(1 << 2) /* servo current limit was exceeded */
 #define PX4IO_P_STATUS_ALARMS_ACC_CURRENT	(1 << 3) /* accessory current limit was exceeded */
-#define PX4IO_P_STATUS_ALARMS_AP_LOST		(1 << 4)
+#define PX4IO_P_STATUS_ALARMS_FMU_LOST		(1 << 4) /* timed out waiting for controls from FMU */
+#define PX4IO_P_STATUS_ALARMS_RC_LOST		(1 << 5)
 
 #define PX4IO_P_STATUS_VBATT			4	/* battery voltage in mV */
 #define PX4IO_P_STATUS_TEMPERATURE		5	/* temperature in (units tbd) */
@@ -109,19 +119,26 @@
 #define PX4IO_PAGE_SERVOS		3		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* array of raw RC input values, microseconds */
-#define PX4IO_PAGE_RAW_RC_INPUT		4		/* 0..CONFIG_RC_INPUT_COUNT-1 */
+#define PX4IO_PAGE_RAW_RC_INPUT		4
+#define PX4IO_P_RAW_RC_COUNT			0	/* number of valid channels */
+#define PX4IO_P_RAW_RC_BASE			1	/* CONFIG_RC_INPUT_COUNT channels from here */
 
 /* array of scaled RC input values, -10000..10000 */
-#define PX4IO_PAGE_RC_INPUT		5		/* 0..CONFIG_RC_INPUT_COUNT-1 */
+#define PX4IO_PAGE_RC_INPUT		5
+#define PX4IO_P_RC_VALID			0	/* bitmask of valid controls */
+#define PX4IO_P_RC_BASE				1	/* CONFIG_RC_INPUT_COUNT controls from here */
 
 /* array of raw ADC values */
 #define PX4IO_PAGE_RAW_ADC_INPUT	6		/* 0..CONFIG_ADC_INPUT_COUNT-1 */
 
 /* setup page */
 #define PX4IO_PAGE_SETUP		100
+#define PX4IO_P_SETUP_FEATURES			0
+#define PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK	(1 << 0) /* OK to switch to manual override */
+
 #define PX4IO_P_SETUP_ARMING			1	/* arming controls */
 #define PX4IO_P_SETUP_ARMING_ARM_OK		(1 << 0) /* OK to arm */
-#define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE	(1 << 1) /* request local override */
+#define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE	(1 << 2) /* request switch to manual override */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 
@@ -136,7 +153,17 @@
 /* raw text load to the mixer parser - ignores offset */
 #define PX4IO_PAGE_MIXERLOAD		102
 
-
+/* R/C channel config */
+#define PX4IO_PAGE_RC_CONFIG		103	/* R/C input configuration */
+#define PX4IO_P_RC_CONFIG_MIN			0	/* lowest input value */
+#define PX4IO_P_RC_CONFIG_CENTER		1	/* center input value */
+#define PX4IO_P_RC_CONFIG_MAX			2	/* highest input value */
+#define PX4IO_P_RC_CONFIG_DEADZONE		3	/* band around center that is ignored */
+#define PX4IO_P_RC_CONFIG_ASSIGNMENT		4	/* mapped input value */
+#define PX4IO_P_RC_CONFIG_OPTIONS		5	/* channel options bitmask */
+#define PX4IO_P_RC_CONFIG_OPTIONS_ENABLED	(1 << 0)
+#define PX4IO_P_RC_CONFIG_OPTIONS_REVERSE	(1 << 1)
+#define PX4IO_P_RC_CONFIG_STRIDE		6	/* spacing between channel config data */
 
 /*
  * Old serial PX4FMU <-> PX4IO messaging protocol.
