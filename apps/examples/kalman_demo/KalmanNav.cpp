@@ -316,7 +316,11 @@ void KalmanNav::predictFast(float dt)
 	float cosL = cosf(lat);
 	float cosLSing = cosf(lat);
 
-	if (fabsf(cosLSing) < 0.01f) cosLSing = 0.01f;
+    // prevent singularity
+	if (fabsf(cosLSing) < 0.01f) {
+        if (cosLSing > 0) cosLSing = 0.01;
+        else cosLSing = -0.01;
+    }
 
 	// position update
 	// neglects angular deflections in local gravity
@@ -577,11 +581,11 @@ void KalmanNav::correctAtt()
 	P = P - K * HAtt * P;
 
 	// fault detection
-	float beta = y.dot(S.inverse() * y);
+	float beta = y.dot((S*S.transpose()).inverse() * y);
 
-	if (beta > 1000.0f) {
+	if (beta > 1.0f) {
 		printf("fault in attitude: beta = %8.4f\n", (double)beta);
-		//printf("y:\n"); y.print();
+		printf("y:\n"); y.print();
 	}
 
 	// update quaternions from euler
@@ -592,7 +596,7 @@ void KalmanNav::correctAtt()
 void KalmanNav::correctPos()
 {
 	using namespace math;
-	Vector y(6);
+	Vector y(5);
 	y(0) = _gps.vel_n - vN;
 	y(1) = _gps.vel_e - vE;
 	y(2) = double(_gps.lat) / 1.0e7 / M_RAD_TO_DEG - lat;
@@ -604,7 +608,10 @@ void KalmanNav::correctPos()
 	float R = R0 + float(alt);
 
 	// prevent singularity
-	if (fabsf(cosLSing) < 0.01f) cosLSing = 0.01f;
+	if (fabsf(cosLSing) < 0.01f) {
+        if (cosLSing > 0) cosLSing = 0.01;
+        else cosLSing = -0.01;
+    }
 
 	float noiseLat = _rGpsPos.get() / R;
 	float noiseLon = _rGpsPos.get() / (R * cosLSing);
@@ -650,11 +657,23 @@ void KalmanNav::correctPos()
 	P = P - K * HPos * P;
 
 	// fault detetcion
-	float beta = y.dot(S.inverse() * y);
+	float beta = y.dot((S*S.transpose()).inverse() * y);
 
-	if (beta > 1000.0f) {
+	if (beta > 1.0f) {
 		printf("fault in gps: beta = %8.4f\n", (double)beta);
-		//printf("y:\n"); y.print();
+		printf("y:\n"); y.print();
+		printf("R:\n"); RPos.print();
+		printf("S:\n"); S.print();
+		printf("S*S^T:\n"); (S*S.transpose()).print();
+		printf("(S*S^T)^-1:\n"); ((S*S.transpose()).inverse()).print();
+		printf("(S*S^T)^-1*y:\n"); ((S*S.transpose()).inverse()*y).print();
+        printf("gps: vN: %8.5f, vE: %8.4f, vD: %8.4f, lat: %15.10f, lon: %15.10f, alt: %15.2f\n", 
+                double(_gps.vel_n), double(_gps.vel_e), double(_gps.vel_d),
+                double(_gps.lat)/ 1.0e7 / M_RAD_TO_DEG,
+                double(_gps.lon)/ 1.0e7 / M_RAD_TO_DEG,
+                double(_gps.alt)/ 1.0e3);
+        printf("x  : vN: %8.5f, vE: %8.4f, vD: %8.4f, lat: %15.10f, lon: %15.10f, alt: %15.2f\n", 
+                double(vN), double(vE), double(vD), lat, lon, alt);
 	}
 }
 
@@ -692,7 +711,10 @@ void KalmanNav::updateParams()
 	float R = R0 + float(alt);
 
 	// prevent singularity
-	if (fabsf(cosLSing) < 0.01f) cosLSing = 0.01f;
+    if (fabsf(cosLSing) < 0.01f) {
+        if (cosLSing > 0) cosLSing = 0.01;
+        else cosLSing = -0.01;
+    }
 
 	float noiseVel = _rGpsVel.get();
 	float noiseLat = _rGpsPos.get() / R;
