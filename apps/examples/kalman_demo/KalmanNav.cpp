@@ -46,7 +46,7 @@
 static const float omega = 7.2921150e-5f; // earth rotation rate, rad/s
 static const float R0 = 6378137.0f; // earth radius, m
 
-static const float RSq = 4.0680631591e+13; // radius squared
+static const float RSq = 4.0680631591e+13; // earth radius squared
 static const float g = 9.806f; // gravitational accel. m/s^2, XXX should be calibrated
 
 KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
