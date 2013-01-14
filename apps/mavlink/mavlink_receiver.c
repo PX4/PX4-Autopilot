@@ -387,22 +387,22 @@ handle_message(mavlink_message_t *msg)
 			/* gps */
 			hil_gps.timestamp = gps.time_usec;
 			hil_gps.counter = hil_counter++;
-            hil_gps.time_gps_usec = gps.time_usec;
+			hil_gps.time_gps_usec = gps.time_usec;
 			hil_gps.lat = gps.lat;
 			hil_gps.lon = gps.lon;
 			hil_gps.alt = gps.alt;
-            hil_gps.counter_pos_valid = hil_counter++;
-            hil_gps.eph = gps.eph;
-            hil_gps.epv = gps.epv;
-            hil_gps.s_variance = 100;
-            hil_gps.p_variance = 100;
-            hil_gps.vel = gps.vel;
+			hil_gps.counter_pos_valid = hil_counter++;
+			hil_gps.eph = gps.eph;
+			hil_gps.epv = gps.epv;
+			hil_gps.s_variance = 100;
+			hil_gps.p_variance = 100;
+			hil_gps.vel = gps.vel;
 			hil_gps.vel_n = gps.vel / 100.0f * cosf(gps.cog / M_RAD_TO_DEG_F / 100.0f);
 			hil_gps.vel_e = gps.vel / 100.0f * sinf(gps.cog / M_RAD_TO_DEG_F / 100.0f);
 			hil_gps.vel_d = 0.0f;
-            hil_gps.cog = gps.cog;
+			hil_gps.cog = gps.cog;
 			hil_gps.fix_type = gps.fix_type;
-            hil_gps.satellites_visible = gps.satellites_visible;
+			hil_gps.satellites_visible = gps.satellites_visible;
 
 			/* publish */
 			orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
@@ -439,8 +439,8 @@ handle_message(mavlink_message_t *msg)
 			static const float g = 9.806f;
 
 			float tempC =  press.temperature / 100.0f;
-			float tempAvgK = T0 + (tempC + ground_tempC)/2.0f;
-			float h =  ground_alt + (R/g)*tempAvgK*logf(ground_press / press.press_abs);
+			float tempAvgK = T0 + (tempC + ground_tempC) / 2.0f;
+			float h =  ground_alt + (R / g) * tempAvgK * logf(ground_press / press.press_abs);
 			hil_sensors.baro_counter = hil_counter;
 			hil_sensors.baro_pres_mbar = press.press_abs;
 			hil_sensors.baro_alt_meter = h;
@@ -584,6 +584,7 @@ receive_thread(void *arg)
 		if (poll(fds, 1, timeout) > 0) {
 			/* non-blocking read */
 			size_t nread = read(uart_fd, buf, sizeof(buf));
+			ASSERT(nread > 0)
 
 			for (size_t i = 0; i < nread; i++) {
 				if (mavlink_parse_char(chan, buf[i], &msg, &status)) { //parse the char
