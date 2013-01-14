@@ -82,13 +82,13 @@ Quaternion::Quaternion(const Dcm &dcm) :
 	// avoiding singularities by not using
 	// division equations
 	setA(0.5 * sqrt(1.0 +
-		double( dcm(0, 0) + dcm(1, 1) + dcm(2, 2))));
+			double(dcm(0, 0) + dcm(1, 1) + dcm(2, 2))));
 	setB(0.5 * sqrt(1.0 +
-		double( dcm(0, 0) - dcm(1, 1) - dcm(2, 2))));
+			double(dcm(0, 0) - dcm(1, 1) - dcm(2, 2))));
 	setC(0.5 * sqrt(1.0 +
-		double(-dcm(0, 0) + dcm(1, 1) - dcm(2, 2))));
+			double(-dcm(0, 0) + dcm(1, 1) - dcm(2, 2))));
 	setD(0.5 * sqrt(1.0 +
-		double(-dcm(0, 0) - dcm(1, 1) + dcm(2, 2))));
+			double(-dcm(0, 0) - dcm(1, 1) + dcm(2, 2))));
 }
 
 Quaternion::Quaternion(const EulerAngles &euler) :

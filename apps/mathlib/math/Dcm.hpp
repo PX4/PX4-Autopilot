@@ -68,8 +68,8 @@ public:
 	 * scalar ctor
 	 */
 	Dcm(float c00, float c01, float c02,
-			float c10, float c11, float c12,
-			float c20, float c21, float c22);
+	    float c10, float c11, float c12,
+	    float c20, float c21, float c22);
 
 	/**
 	 * data ctor

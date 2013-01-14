@@ -53,20 +53,20 @@ Dcm::Dcm() :
 }
 
 Dcm::Dcm(float c00, float c01, float c02,
-	float c10, float c11, float c12,
-	float c20, float c21, float c22) :
+	 float c10, float c11, float c12,
+	 float c20, float c21, float c22) :
 	Matrix(3, 3)
 {
 	Dcm &dcm = *this;
-	dcm(0,0) = c00;
-	dcm(0,1) = c01;
-	dcm(0,2) = c02;
-	dcm(1,0) = c10;
-	dcm(1,1) = c11;
-	dcm(1,2) = c12;
-	dcm(2,0) = c20;
-	dcm(2,1) = c21;
-	dcm(2,2) = c22;
+	dcm(0, 0) = c00;
+	dcm(0, 1) = c01;
+	dcm(0, 2) = c02;
+	dcm(1, 0) = c10;
+	dcm(1, 1) = c11;
+	dcm(1, 2) = c12;
+	dcm(2, 0) = c20;
+	dcm(2, 1) = c21;
+	dcm(2, 2) = c22;
 }
 
 Dcm::Dcm(const float *data) :
@@ -138,16 +138,16 @@ int __EXPORT dcmTest()
 			   Matrix::identity(3)));
 	// quaternion ctor
 	ASSERT(matrixEqual(
-	 	Dcm(Quaternion(0.983347f, 0.034271f, 0.106021f, 0.143572f)),
-		Dcm( 0.9362934f, -0.2750958f,  0.2183507f,  
- 			 0.2896295f,  0.9564251f, -0.0369570f, 
-			-0.1986693f,  0.0978434f,  0.9751703f)));
+		       Dcm(Quaternion(0.983347f, 0.034271f, 0.106021f, 0.143572f)),
+		       Dcm(0.9362934f, -0.2750958f,  0.2183507f,
+			   0.2896295f,  0.9564251f, -0.0369570f,
+			   -0.1986693f,  0.0978434f,  0.9751703f)));
 	// euler angle ctor
 	ASSERT(matrixEqual(
-		Dcm(EulerAngles(0.1f, 0.2f, 0.3f)),
-		Dcm( 0.9362934f, -0.2750958f,  0.2183507f,  
- 			 0.2896295f,  0.9564251f, -0.0369570f, 
-			-0.1986693f,  0.0978434f,  0.9751703f)));
+		       Dcm(EulerAngles(0.1f, 0.2f, 0.3f)),
+		       Dcm(0.9362934f, -0.2750958f,  0.2183507f,
+			   0.2896295f,  0.9564251f, -0.0369570f,
+			   -0.1986693f,  0.0978434f,  0.9751703f)));
 	// rotations
 	Vector3 vB(1, 2, 3);
 	ASSERT(vectorEqual(Vector3(-2.0f, 1.0f, 3.0f),

@@ -107,17 +107,17 @@ int __EXPORT eulerAnglesTest()
 
 	// test dcm ctor
 	euler = Dcm(EulerAngles(0.1f, 0.2f, 0.3f));
-	ASSERT(vectorEqual(Vector3(0.1f, 0.2f, 0.3f),euler));
+	ASSERT(vectorEqual(Vector3(0.1f, 0.2f, 0.3f), euler));
 
 	// test quat ctor
 	euler = Quaternion(EulerAngles(0.1f, 0.2f, 0.3f));
-	ASSERT(vectorEqual(Vector3(0.1f, 0.2f, 0.3f),euler));
+	ASSERT(vectorEqual(Vector3(0.1f, 0.2f, 0.3f), euler));
 
 	// test assignment
 	euler.setPhi(0.4f);
 	euler.setTheta(0.5f);
 	euler.setPsi(0.6f);
-	ASSERT(vectorEqual(Vector3(0.4f, 0.5f, 0.6f),euler));
+	ASSERT(vectorEqual(Vector3(0.4f, 0.5f, 0.6f), euler));
 
 	printf("PASS\n");
 	return 0;
