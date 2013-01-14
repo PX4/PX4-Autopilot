@@ -151,7 +151,7 @@ safety_check_button(void *arg)
 	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) {
 		pattern = LED_PATTERN_FMU_ARMED;
 
-	} else if (system_state.vector_flight_mode_ok) {
+	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK) {
 		pattern = LED_PATTERN_VECTOR_FLIGHT_MODE_OK;
 	}
 

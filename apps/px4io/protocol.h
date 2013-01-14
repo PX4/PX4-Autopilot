@@ -185,5 +185,3 @@ struct px4io_mixdata {
 
 /* maximum size is limited by the link frame size XXX use config values to set this */
 #define F2I_MIXER_MAX_TEXT	(64 - sizeof(struct px4io_mixdata))
-
-#pragma pack(pop)

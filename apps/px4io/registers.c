@@ -42,6 +42,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include <drivers/drv_hrt.h>
+
 #include "px4io.h"
 #include "protocol.h"
 
@@ -140,6 +142,8 @@ uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE
 void
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
+	system_state.fmu_data_received_time = hrt_absolute_time();
+
 	switch (page) {
 
 		/* handle bulk controls input */
@@ -157,6 +161,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		}
 
 		/* XXX we should cause a mixer tick ASAP */
+		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 		break;
 

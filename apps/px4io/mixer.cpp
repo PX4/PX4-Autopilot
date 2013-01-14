@@ -66,7 +66,7 @@ extern "C" {
 #define OVERRIDE 4
 
 /* current servo arm/disarm state */
-bool mixer_servos_armed = false;
+static bool mixer_servos_armed = false;
 
 /* selected control values and count for mixing */
 enum mixer_source {
@@ -89,7 +89,7 @@ mixer_tick(void)
 	/* check that we are receiving fresh data from the FMU */
 	if ((hrt_absolute_time() - system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
-		/* too many frames without FMU input, time to go to failsafe */
+		/* too long without FMU input, time to go to failsafe */
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
 		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_FMU_OK;
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
