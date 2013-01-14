@@ -141,8 +141,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// HPos is constant
 	HPos(0, 3) = 1.0f;
 	HPos(1, 4) = 1.0f;
-	HPos(2, 6) = 1.0f;
-	HPos(3, 7) = 1.0f;
+	HPos(2, 6) = 1.0e7f * M_RAD_TO_DEG_F;
+	HPos(3, 7) = 1.0e7f * M_RAD_TO_DEG_F;
 	HPos(4, 8) = 1.0f;
 
 	// initialize all parameters
@@ -599,9 +599,9 @@ void KalmanNav::correctPos()
 	Vector y(5);
 	y(0) = _gps.vel_n - vN;
 	y(1) = _gps.vel_e - vE;
-	y(2) = double(_gps.lat) / 1.0e7 / M_RAD_TO_DEG - lat;
-	y(3) = double(_gps.lon) / 1.0e7 / M_RAD_TO_DEG - lon;
-	y(4) = double(_gps.alt) / 1.0e3 - alt;
+	y(2) = double(_gps.lat) - lat * 1.0e7 * M_RAD_TO_DEG;
+	y(3) = double(_gps.lon) - lon * 1.0e7 * M_RAD_TO_DEG;
+	y(4) = double(_gps.alt)/1.0e3 - alt;
 
 	// update gps noise
 	float cosLSing = cosf(lat);
@@ -613,10 +613,10 @@ void KalmanNav::correctPos()
         else cosLSing = -0.01;
     }
 
-	float noiseLat = _rGpsPos.get() / R;
-	float noiseLon = _rGpsPos.get() / (R * cosLSing);
-	RPos(2, 2) = noiseLat * noiseLat;
-	RPos(3, 3) = noiseLon * noiseLon;
+	float noiseLatDegE7 = 1.0e7f * M_RAD_TO_DEG_F * _rGpsPos.get() / R;
+	float noiseLonDegE7 = noiseLatDegE7 / cosLSing;
+	RPos(2, 2) = noiseLatDegE7 * noiseLatDegE7;
+	RPos(3, 3) = noiseLonDegE7 * noiseLonDegE7;
 
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
@@ -662,11 +662,11 @@ void KalmanNav::correctPos()
 	if (beta > 1.0f) {
 		printf("fault in gps: beta = %8.4f\n", (double)beta);
 		printf("y:\n"); y.print();
-		printf("R:\n"); RPos.print();
-		printf("S:\n"); S.print();
-		printf("S*S^T:\n"); (S*S.transpose()).print();
-		printf("(S*S^T)^-1:\n"); ((S*S.transpose()).inverse()).print();
-		printf("(S*S^T)^-1*y:\n"); ((S*S.transpose()).inverse()*y).print();
+		//printf("R:\n"); RPos.print();
+		//printf("S:\n"); S.print();
+		//printf("S*S^T:\n"); (S*S.transpose()).print();
+		//printf("(S*S^T)^-1:\n"); ((S*S.transpose()).inverse()).print();
+		//printf("(S*S^T)^-1*y:\n"); ((S*S.transpose()).inverse()*y).print();
         printf("gps: vN: %8.5f, vE: %8.4f, vD: %8.4f, lat: %15.10f, lon: %15.10f, alt: %15.2f\n", 
                 double(_gps.vel_n), double(_gps.vel_e), double(_gps.vel_d),
                 double(_gps.lat)/ 1.0e7 / M_RAD_TO_DEG,
@@ -717,12 +717,12 @@ void KalmanNav::updateParams()
     }
 
 	float noiseVel = _rGpsVel.get();
-	float noiseLat = _rGpsPos.get() / R;
-	float noiseLon = _rGpsPos.get() / (R * cosLSing);
+	float noiseLatDegE7 = 1.0e7f * M_RAD_TO_DEG_F * _rGpsPos.get() / R;
+	float noiseLonDegE7 = noiseLatDegE7 / cosLSing;
 	float noiseAlt = _rGpsAlt.get();
 	RPos(0, 0) = noiseVel * noiseVel; // vn
 	RPos(1, 1) = noiseVel * noiseVel; // ve
-	RPos(2, 2) = noiseLat * noiseLat; // lat
-	RPos(3, 3) = noiseLon * noiseLon; // lon
+	RPos(2, 2) = noiseLatDegE7 * noiseLatDegE7; // lat
+	RPos(3, 3) = noiseLonDegE7 * noiseLonDegE7; // lon
 	RPos(4, 4) = noiseAlt * noiseAlt; // h
 }
