@@ -85,6 +85,8 @@ static int     binfs_close(FAR struct file *filep);
 static ssize_t binfs_read(FAR struct file *filep, char *buffer, size_t buflen);
 static int     binfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 
+static int     binfs_dup(FAR const struct file *oldp, FAR struct file *newp);
+
 static int     binfs_opendir(struct inode *mountpt, const char *relpath,
                              struct fs_dirent_s *dir);
 static int     binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir);
@@ -120,7 +122,7 @@ const struct mountpt_operations binfs_operations =
   binfs_ioctl,       /* ioctl */
 
   NULL,              /* sync */
-  NULL,              /* dup */
+  binfs_dup,         /* dup */
 
   binfs_opendir,     /* opendir */
   NULL,              /* closedir */
@@ -294,6 +296,39 @@ static int binfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   /* No ioctl commands yet supported */
 
   return -ENOTTY;
+}
+
+/****************************************************************************
+ * Name: binfs_dup
+ *
+ * Description:
+ *   Duplicate open file data in the new file structure.
+ *
+ ****************************************************************************/
+
+static int binfs_dup(FAR const struct file *oldp, FAR struct file *newp)
+{
+  struct binfs_state_s *bm;
+  int ret = -ENOSYS;
+
+  fvdbg("Dup %p->%p\n", oldp, newp);
+
+  /* Sanity checks */
+
+  DEBUGASSERT(oldp->f_priv == NULL && oldp->f_inode != NULL);
+
+  /* mountpoint private data from the inode reference from the file
+   * structure
+   */
+
+  bm = (struct binfs_state_s*)oldp->f_inode->i_private;
+  DEBUGASSERT(bm != NULL);
+
+  /* Opening of elements within the pseudo-file system is not yet supported
+   * and, hence, neither is dup'ing the opened file.
+   */
+
+  return ret;
 }
 
 /****************************************************************************

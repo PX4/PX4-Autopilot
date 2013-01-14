@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 13, 2013)
+NuttX TODO List (Last updated January 14, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -15,7 +15,7 @@ nuttx/
  (17)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
  (12)  Libraries (libc/, )
- (10)  File system/Generic drivers (fs/, drivers/)
+  (9)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
   (1)  Documentation (Documentation/)
@@ -878,26 +878,6 @@ o File system / Generic drivers (fs/, drivers/)
                may be an assertion that is occuring before we have a console.
   Status:      Open
   Priority:    Medium
-
-  Title:       dup AND dup2 WILL NOT WORK ON FILES IN A MOUNTED VOLUME
-  Description: The current implementation of dup() and dup2() will only
-               work with open device drivers and sockets.  It will not
-               work with open files in a file system.  Support for dup'ing
-               open files on a mounted volume has not been implemented yet.
-
-               There is a stubbed out, partial implemenation in fs/fs_files.c.
-               In would perform the dup2() operation by re-opening the file
-               and setting the file pointer.  The logic, however, would require
-               that we remember the (relative) path to the file in the mounted
-               volume for each open file.
-
-               An option might to add a dup() method to the file system
-               mountpoint interface.
-
-               A limitation that results from this is that you cannot
-               redirect I/O to an from and file.
-  Status:      Open
-  Priority:    High
 
 o Graphics subystem (graphics/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

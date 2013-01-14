@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/nfs/nfs_vfsops.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
  *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
  *           Gregory Nutt <gnutt@nuttx.org>
@@ -133,6 +133,7 @@ static int     nfs_close(FAR struct file *filep);
 static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen);
 static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
                    size_t buflen);
+static int     nfs_dup(FAR const struct file *oldp, FAR struct file *newp);
 static int     nfs_opendir(struct inode *mountpt, const char *relpath,
                    struct fs_dirent_s *dir);
 static int     nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir);
@@ -168,7 +169,7 @@ const struct mountpt_operations nfs_operations =
   NULL,                         /* ioctl */
 
   NULL,                         /* sync */
-  NULL,                         /* dup */
+  nfs_dup,                      /* dup */
 
   nfs_opendir,                  /* opendir */
   NULL,                         /* closedir */
@@ -359,7 +360,7 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
 
       /* Save the attributes in the file data structure */
 
-      tmp = *ptr++;  /* handle_follows */
+      tmp = *ptr;  /* handle_follows */
       if (!tmp)
         {
           fdbg("WARNING: no file attributes\n");
@@ -369,7 +370,6 @@ static int nfs_filecreate(FAR struct nfsmount *nmp, struct nfsnode *np,
           /* Initialize the file attributes */
 
           nfs_attrupdate(np, (FAR struct nfs_fattr *)ptr);
-          ptr += uint32_increment(sizeof(struct nfs_fattr));
         }
 
       /* Any following dir_wcc data is ignored for now */
@@ -412,7 +412,7 @@ static int nfs_filetruncate(FAR struct nfsmount *nmp, struct nfsnode *np)
   reqlen += (int)np->n_fhsize;
   ptr    += uint32_increment(np->n_fhsize);
 
-  /* Copy the variable-length attribtes */
+  /* Copy the variable-length attributes */
 
   *ptr++  = nfs_false;                        /* Don't change mode */
   *ptr++  = nfs_false;                        /* Don't change uid */
@@ -423,7 +423,7 @@ static int nfs_filetruncate(FAR struct nfsmount *nmp, struct nfsnode *np)
   *ptr++  = HTONL(NFSV3SATTRTIME_TOSERVER);   /* Use the server's time */
   *ptr++  = HTONL(NFSV3SATTRTIME_TOSERVER);   /* Use the server's time */
   *ptr++  = nfs_false;                        /* No guard value */
-  reqlen += 9*sizeof(uint32_t)
+  reqlen += 9 * sizeof(uint32_t);
 
   /* Perform the SETATTR RPC */
 
@@ -553,9 +553,9 @@ static int nfs_fileopen(FAR struct nfsmount *nmp, struct nfsnode *np,
 static int nfs_open(FAR struct file *filep, FAR const char *relpath,
                     int oflags, mode_t mode)
 {
-  struct nfsmount   *nmp;
-  struct nfsnode    *np = NULL;
-  int                error;
+  struct nfsmount *nmp;
+  struct nfsnode *np;
+  int error;
 
   /* Sanity checks */
 
@@ -634,6 +634,8 @@ static int nfs_open(FAR struct file *filep, FAR const char *relpath,
    * non-zero elements)
    */
 
+  np->n_crefs = 1;
+
   /* Attach the private data to the struct file instance */
 
   filep->f_priv = np;
@@ -656,6 +658,7 @@ errout_with_semaphore:
     {
       kfree(np);
     }
+
   nfs_semgive(nmp);
   return -error;
 }
@@ -693,8 +696,22 @@ static int nfs_close(FAR struct file *filep)
 
   nfs_semtake(nmp);
 
-  /* Find our file structure in the list of file structures containted in the
-   * mount structure.
+  /* Decrement the reference count.  If the reference count would not
+   * decrement to zero, then that is all we have to do.
+   */
+
+  if (np->n_crefs > 1)
+    {
+      np->n_crefs--;
+      nfs_semgive(nmp);
+      return OK;
+    }
+
+  /* There are no more references to the file structure.  Now we need to
+   * free up all resources associated with the open file.
+   *
+   * First, find our file structure in the list of file structures
+   * containted in the mount structure.
    */
 
  for (prev = NULL, curr = nmp->nm_head; curr; prev = curr, curr = curr->n_next)
@@ -759,8 +776,8 @@ static ssize_t nfs_read(FAR struct file *filep, char *buffer, size_t buflen)
 
   /* Recover our private data from the struct file instance */
 
-  nmp = (struct nfsmount*) filep->f_inode->i_private;
-  np  = (struct nfsnode*) filep->f_priv;
+  nmp = (struct nfsmount*)filep->f_inode->i_private;
+  np  = (struct nfsnode*)filep->f_priv;
 
   DEBUGASSERT(nmp != NULL);
 
@@ -1091,6 +1108,66 @@ static ssize_t nfs_write(FAR struct file *filep, const char *buffer,
 errout_with_semaphore:
   nfs_semgive(nmp);
   return -error;
+}
+
+/****************************************************************************
+ * Name: binfs_dup
+ *
+ * Description:
+ *   Duplicate open file data in the new file structure.
+ *
+ ****************************************************************************/
+
+static int nfs_dup(FAR const struct file *oldp, FAR struct file *newp)
+{
+  struct nfsmount *nmp;
+  FAR struct nfsnode *np;
+  int error;
+
+  fvdbg("Dup %p->%p\n", oldp, newp);
+
+  /* Sanity checks */
+
+  DEBUGASSERT(oldp->f_priv != NULL && oldp->f_inode != NULL);
+
+  /* Recover our private data from the struct file instance */
+
+  nmp = (struct nfsmount*)oldp->f_inode->i_private;
+  np  = (struct nfsnode*)oldp->f_priv;
+
+  DEBUGASSERT(nmp != NULL);
+
+  /* Check if the mount is still healthy */
+
+  nfs_semtake(nmp);
+  error = nfs_checkmount(nmp);
+  if (error != OK)
+    {
+      fdbg("ERROR: nfs_checkmount failed: %d\n", error);
+      nfs_semgive(nmp);
+      return -error;
+    }
+
+  /* Increment the reference count on the NFS node structure */
+
+  DEBUGASSERT(np->n_crefs < 0xff);
+  np->n_crefs++;
+
+  /* And save this as the file data for the new node */
+
+  newp->f_priv = np;
+
+  /* Then insert the new instance at the head of the list in the mountpoint
+   * tructure. It needs to be there (1) to handle error conditions that effect
+   * all files, and (2) to inform the umount logic that we are busy.  We
+   * cannot unmount the file system if this list is not empty!
+   */
+
+  np->n_next   = nmp->nm_head;
+  nmp->nm_head = np;
+
+  nfs_semgive(nmp);
+  return OK;
 }
 
 /****************************************************************************
@@ -1756,12 +1833,15 @@ bad:
         {
           kfree(nmp->nm_so);
         }
+
       if (nmp->nm_rpcclnt)
         {
           kfree(nmp->nm_rpcclnt);
         }
+        
       kfree(nmp);
     }
+
   return error;
 }
 

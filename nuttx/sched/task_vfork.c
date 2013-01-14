@@ -291,7 +291,7 @@ pid_t task_vforkstart(FAR _TCB *child)
    * still running.
    */
 
-  while ((ret = kill(pid, 0)) == OK)
+  while (kill(pid, 0) == OK)
     {
       /* Yes.. then we can yield to it -- assuming that it has not lowered
        * its priority.  sleep(0) might be a safer thing to do since it does

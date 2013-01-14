@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/fat/fs_fat32.c
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
@@ -86,7 +86,9 @@ static ssize_t fat_write(FAR struct file *filep, const char *buffer,
                          size_t buflen);
 static off_t   fat_seek(FAR struct file *filep, off_t offset, int whence);
 static int     fat_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+
 static int     fat_sync(FAR struct file *filep);
+static int     fat_dup(FAR const struct file *oldp, FAR struct file *newp);
 
 static int     fat_opendir(struct inode *mountpt, const char *relpath,
                            struct fs_dirent_s *dir);
@@ -129,7 +131,7 @@ const struct mountpt_operations fat_operations =
   fat_ioctl,         /* ioctl */
 
   fat_sync,          /* sync */
-  NULL,              /* dup */
+  fat_dup,           /* dup */
 
   fat_opendir,       /* opendir */
   NULL,              /* closedir */
@@ -313,7 +315,6 @@ static int fat_open(FAR struct file *filep, const char *relpath,
 
   /* Initialize the file private data (only need to initialize non-zero elements) */
 
-  ff->ff_open             = true;
   ff->ff_oflags           = oflags;
 
   /* Save information that can be used later to recover the directory entry */
@@ -898,6 +899,7 @@ static off_t fat_seek(FAR struct file *filep, off_t offset, int whence)
   DEBUGASSERT(fs != NULL);
 
   /* Map the offset according to the whence option */
+
   switch (whence)
     {
       case SEEK_SET: /* The offset is set to offset bytes. */
@@ -971,6 +973,7 @@ static off_t fat_seek(FAR struct file *filep, off_t offset, int whence)
           ret = cluster;
           goto errout_with_semaphore;
         }
+
       ff->ff_startcluster = cluster;
     }
 
@@ -1226,6 +1229,123 @@ static int fat_sync(FAR struct file *filep)
       fs->fs_dirty = true;
       ret          = fat_updatefsinfo(fs);
     }
+
+errout_with_semaphore:
+  fat_semgive(fs);
+  return ret;
+}
+
+/****************************************************************************
+ * Name: fat_dup
+ *
+ * Description: Duplicate open file data in the new file structure.
+ *
+ ****************************************************************************/
+
+static int fat_dup(FAR const struct file *oldp, FAR struct file *newp)
+{
+  FAR struct fat_mountpt_s *fs;
+  FAR struct fat_file_s *oldff;
+  FAR struct fat_file_s *newff;
+  int ret;
+
+  fvdbg("Dup %p->%p\n", oldp, newp);
+
+  /* Sanity checks */
+
+  DEBUGASSERT(oldp->f_priv != NULL &&
+              newp->f_priv == NULL &&
+              newp->f_inode != NULL);
+
+  /* Recover our private data from the struct file instance */
+
+  fs = (struct fat_mountpt_s *)oldp->f_inode->i_private;
+  DEBUGASSERT(fs != NULL);
+
+  /* Check if the mount is still healthy */
+
+  fat_semtake(fs);
+  ret = fat_checkmount(fs);
+  if (ret != OK)
+    {
+      goto errout_with_semaphore;
+    }
+
+  /* Recover the old private data from the old struct file instance */
+
+  oldff = oldp->f_priv;
+
+  /* Create a new instance of the file private date to describe the
+   * dup'ed file.
+   */
+
+  newff = (struct fat_file_s *)kmalloc(sizeof(struct fat_file_s));
+  if (!newff)
+    {
+      ret = -ENOMEM;
+      goto errout_with_semaphore;
+    }
+
+  /* Create a file buffer to support partial sector accesses */
+
+  newff->ff_buffer = (uint8_t*)fat_io_alloc(fs->fs_hwsectorsize);
+  if (!newff->ff_buffer)
+    {
+      ret = -ENOMEM;
+      goto errout_with_struct;
+    }
+
+  /* Copy the rest of the open open file state from the old file structure.
+   * There are some assumptions and potential issues here:
+   *
+   * 1) We assume that the higher level logic has copied the elements of
+   *    the file structure, in particular, the file position.
+   * 2) There is a problem with ff_size if there are multiple opened
+   *    file structures, each believing they know the size of the file.
+   *    If one instance modifies the file length, then the new size of
+   *    the opened file will be unknown to the other.  That is a lurking
+   *    bug!
+   *
+   *    One good solution to this might be to add a refernce count to the
+   *    file structure.  Then, instead of dup'ing the whole structure
+   *    as is done here, just increment the reference count on the
+   *    structure.  The would have to be integrated with open logic as
+   *    well, however, so that the same file structure is re-used if the
+   *    file is re-opened.
+   */
+
+  newff->ff_bflags           = 0;
+  newff->ff_oflags           = oldff->ff_oflags;
+  newff->ff_sectorsincluster = oldff->ff_sectorsincluster;
+  newff->ff_dirindex         = oldff->ff_dirindex;
+  newff->ff_currentcluster   = oldff->ff_currentcluster;
+  newff->ff_dirsector        = oldff->ff_dirsector;
+  newff->ff_size             = oldff->ff_size;
+  newff->ff_currentsector    = 0;
+  newff->ff_cachesector      = 0;
+
+  /* Attach the private date to the struct file instance */
+
+  newp->f_priv = newff;
+
+  /* Then insert the new instance into the mountpoint structure.
+   * It needs to be there (1) to handle error conditions that effect
+   * all files, and (2) to inform the umount logic that we are busy
+   * (but a simple reference count could have done that).
+   */
+
+  newff->ff_next = fs->fs_head;
+  fs->fs_head = newff->ff_next;
+
+  fat_semgive(fs);
+  return OK;
+
+  /* Error exits -- goto's are nasty things, but they sure can make error
+   * handling a lot simpler.
+   */
+
+errout_with_struct:
+  kfree(newff);
 
 errout_with_semaphore:
   fat_semgive(fs);

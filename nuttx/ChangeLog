@@ -3940,3 +3940,12 @@
 	  implemented).
 	* fs/romfs:  Remove the rf_open flag.  It looks good, but actually
 	  does nothing.
+	* fs/fat:  Remove the ff_open flag.  Same story as for the ROMFS
+	  rf_open flag.
+	* fs/fat/fs_fat32.c, fs/nxffs/nxffs_initialize, and
+	  fs/nfs/nfs_vfsops.c:  Completed implementation of the dup() methods.
+	  There is still no good test available.
+	* sched/sig_timedwait.c:  sigtimedwait() would return a bad signal
+	  number if the signal was already pending when the function was
+	  called.
+	  called.
