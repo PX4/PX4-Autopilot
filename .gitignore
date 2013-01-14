@@ -8,6 +8,7 @@
 apps/namedapp/namedapp_list.h
 apps/namedapp/namedapp_proto.h
 Make.dep
+*.pyc
 *.o
 *.a
 *.d
@@ -43,3 +44,7 @@ cscope.out
 .configX-e
 nuttx-export.zip
 dot.gdbinit
+mavlink/include/mavlink/v0.9/
+.*.swp
+.swp
+core

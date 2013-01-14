@@ -97,23 +97,27 @@ EulerAngles::~EulerAngles()
 int __EXPORT eulerAnglesTest()
 {
 	printf("Test EulerAngles\t: ");
-	EulerAngles euler(1, 2, 3);
+	EulerAngles euler(0.1f, 0.2f, 0.3f);
 
 	// test ctor
-	ASSERT(vectorEqual(Vector3(1, 2, 3), euler));
-	ASSERT(equal(euler.getPhi(), 1));
-	ASSERT(equal(euler.getTheta(), 2));
-	ASSERT(equal(euler.getPsi(), 3));
+	ASSERT(vectorEqual(Vector3(0.1f, 0.2f, 0.3f), euler));
+	ASSERT(equal(euler.getPhi(), 0.1f));
+	ASSERT(equal(euler.getTheta(), 0.2f));
+	ASSERT(equal(euler.getPsi(), 0.3f));
 
 	// test dcm ctor
+	euler = Dcm(EulerAngles(0.1f, 0.2f, 0.3f));
+	ASSERT(vectorEqual(Vector3(0.1f, 0.2f, 0.3f), euler));
+
+	// test quat ctor
+	euler = Quaternion(EulerAngles(0.1f, 0.2f, 0.3f));
+	ASSERT(vectorEqual(Vector3(0.1f, 0.2f, 0.3f), euler));
 
 	// test assignment
-	euler.setPhi(4);
-	ASSERT(equal(euler.getPhi(), 4));
-	euler.setTheta(5);
-	ASSERT(equal(euler.getTheta(), 5));
-	euler.setPsi(6);
-	ASSERT(equal(euler.getPsi(), 6));
+	euler.setPhi(0.4f);
+	euler.setTheta(0.5f);
+	euler.setPsi(0.6f);
+	ASSERT(vectorEqual(Vector3(0.4f, 0.5f, 0.6f), euler));
 
 	printf("PASS\n");
 	return 0;
