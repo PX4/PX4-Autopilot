@@ -120,8 +120,8 @@ int test_jig_voltages(int argc, char *argv[])
 	warnx("\t ADC operational.\n");
 
 	/* Expected values */
-	int16_t expected_min[] = {2700, 2700, 2200, 2000};
-	int16_t expected_max[] = {3000, 3000, 2500, 2200};
+	int16_t expected_min[] = {2800, 2800, 1800,  800};
+	int16_t expected_max[] = {3100, 3100, 2100, 1100};
 	char *check_res[channels];
 
 	if (channels < 4) {
