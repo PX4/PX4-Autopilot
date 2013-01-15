@@ -172,13 +172,16 @@ handle_message(mavlink_message_t *msg)
 		struct omnidirectional_flow_s f;
 
 		f.timestamp = hrt_absolute_time();
-//		f.left = omnidirectional_flow.left;
-//		f.right = omnidirectional_flow.right;
-//		memcpy(&omnidirectional_flow.left, f.left, 10 * sizeof(int16_t));   // TODO uncomment this... if its logging
+//		memcpy(&omnidirectional_flow.left, f.left, 10 * sizeof(int16_t)); // TODO should this work???
 //		memcpy(&omnidirectional_flow.right, f.right, 10 * sizeof(int16_t));
 		f.front_distance_m = omnidirectional_flow.front_distance_m;
 		f.quality = omnidirectional_flow.quality;
 		f.sensor_id = omnidirectional_flow.sensor_id;
+
+		for (int i=0; i<10; i++) {
+			f.left[i] = omnidirectional_flow.left[i];
+			f.right[i] = omnidirectional_flow.right[i];
+		}
 
 		/* check if topic is advertised */
 		if (omnidirectional_flow_pub <= 0) {
