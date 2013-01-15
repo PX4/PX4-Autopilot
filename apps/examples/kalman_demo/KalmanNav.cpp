@@ -574,7 +574,6 @@ void KalmanNav::correctAtt()
 	// check correciton is sane
 	for (size_t i = 0; i < xCorrect.getRows(); i++) {
 		float val = xCorrect(i);
-
 		if (isnan(val) || isinf(val)) {
 			// abort correction and return
 			printf("[kalman_demo] numerical failure in att correction\n");
@@ -589,9 +588,7 @@ void KalmanNav::correctAtt()
 		phi += xCorrect(PHI);
 		theta += xCorrect(THETA);
 	}
-
 	psi += xCorrect(PSI);
-
 	// attitude also affects nav velocities
 	vN += xCorrect(VN);
 	vE += xCorrect(VE);
@@ -603,7 +600,6 @@ void KalmanNav::correctAtt()
 
 	// fault detection
 	float beta = y.dot(S.inverse() * y);
-
 	if (beta > _faultAtt.get()) {
 		printf("fault in attitude: beta = %8.4f\n", (double)beta);
 		printf("y:\n"); y.print();
@@ -620,29 +616,13 @@ void KalmanNav::correctPos()
 
 	if (!_positionInitialized) return;
 
+	// residual
 	Vector y(5);
 	y(0) = _gps.vel_n - vN;
 	y(1) = _gps.vel_e - vE;
 	y(2) = double(_gps.lat) - lat * 1.0e7 * M_RAD_TO_DEG;
 	y(3) = double(_gps.lon) - lon * 1.0e7 * M_RAD_TO_DEG;
 	y(4) = double(_gps.alt) / 1.0e3 - alt;
-
-	// update gps noise
-	float cosLSing = cosf(lat);
-	float R = R0 + float(alt);
-
-	// prevent singularity
-	if (fabsf(cosLSing) < 0.01f) {
-		if (cosLSing > 0) cosLSing = 0.01;
-		else cosLSing = -0.01;
-	}
-
-	float noiseVel = _rGpsVel.get();
-	float noiseLatDegE7 = 1.0e7f * M_RAD_TO_DEG_F * _rGpsPos.get() / R;
-	float noiseLonDegE7 = noiseLatDegE7 / cosLSing;
-	float noiseAlt = _rGpsAlt.get();
-	RPos(2, 2) = noiseLatDegE7 * noiseLatDegE7;
-	RPos(3, 3) = noiseLonDegE7 * noiseLonDegE7;
 
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
@@ -653,7 +633,6 @@ void KalmanNav::correctPos()
 	// check correction is sane
 	for (size_t i = 0; i < xCorrect.getRows(); i++) {
 		float val = xCorrect(i);
-
 		if (isnan(val) || isinf(val)) {
 			// abort correction and return
 			printf("[kalman_demo] numerical failure in gps correction\n");
@@ -684,15 +663,14 @@ void KalmanNav::correctPos()
 
 	// fault detetcion
 	float beta = y.dot(S.inverse() * y);
-
 	if (beta > _faultPos.get()) {
 		printf("fault in gps: beta = %8.4f\n", (double)beta);
 		printf("Y/N: vN: %8.4f, vE: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
-		       double(y(0) / noiseVel),
-		       double(y(1) / noiseVel),
-		       double(y(2) / noiseLatDegE7),
-		       double(y(3) / noiseLonDegE7),
-		       double(y(4) / noiseAlt));
+		       double(y(0) / sqrtf(RPos(0,0))),
+		       double(y(1) / sqrtf(RPos(1,1))),
+		       double(y(2) / sqrtf(RPos(2,2))),
+		       double(y(3) / sqrtf(RPos(3,3))),
+		       double(y(4) / sqrtf(RPos(3,3))));
 	}
 }
 
@@ -701,7 +679,6 @@ void KalmanNav::updateParams()
 	using namespace math;
 	using namespace control;
 	SuperBlock::updateParams();
-
 
 	// gyro noise
 	V(0, 0) = _vGyro.get();   // gyro x, rad/s
@@ -714,13 +691,17 @@ void KalmanNav::updateParams()
 	V(5, 5) = _vAccel.get();   // accel z
 
 	// magnetometer noise
+	float noiseMin = 1e-6f;
 	float noiseMagSq = _rMag.get() * _rMag.get();
+	if (noiseMagSq < noiseMin) noiseMagSq = noiseMin;
 	RAtt(0, 0) = noiseMagSq; // normalized direction
 	RAtt(1, 1) = noiseMagSq;
 	RAtt(2, 2) = noiseMagSq;
 
 	// accelerometer noise
 	float noiseAccelSq = _rAccel.get() * _rAccel.get();
+	// bound noise to prevent singularities
+	if (noiseAccelSq < noiseMin) noiseAccelSq = noiseMin;
 	RAtt(3, 3) = noiseAccelSq; // normalized direction
 	RAtt(4, 4) = noiseAccelSq;
 	RAtt(5, 5) = noiseAccelSq;
@@ -739,9 +720,16 @@ void KalmanNav::updateParams()
 	float noiseLatDegE7 = 1.0e7f * M_RAD_TO_DEG_F * _rGpsPos.get() / R;
 	float noiseLonDegE7 = noiseLatDegE7 / cosLSing;
 	float noiseAlt = _rGpsAlt.get();
+	// bound noise to prevent singularities
+	if (noiseVel < noiseMin) noiseVel = noiseMin;
+	if (noiseLatDegE7 < noiseMin) noiseLatDegE7 = noiseMin;
+	if (noiseLonDegE7 < noiseMin) noiseLonDegE7 = noiseMin;
+	if (noiseAlt < noiseMin) noiseAlt = noiseMin;
 	RPos(0, 0) = noiseVel * noiseVel; // vn
 	RPos(1, 1) = noiseVel * noiseVel; // ve
 	RPos(2, 2) = noiseLatDegE7 * noiseLatDegE7; // lat
 	RPos(3, 3) = noiseLonDegE7 * noiseLonDegE7; // lon
 	RPos(4, 4) = noiseAlt * noiseAlt; // h
+	// XXX, note that RPos depends on lat, so updateParams should
+	// be called if lat changes significantly
 }
