@@ -475,8 +475,8 @@ void KalmanNav::correctAtt()
 	// mag predicted measurement
 	// choosing some typical magnetic field properties,
 	//  TODO dip/dec depend on lat/ lon/ time
-	static const float dip = _magDip.get() / M_RAD_TO_DEG_F; // dip, inclination with level
-	static const float dec = _magDec.get() / M_RAD_TO_DEG_F; // declination, clockwise rotation from north
+	float dip = _magDip.get() / M_RAD_TO_DEG_F; // dip, inclination with level
+	float dec = _magDec.get() / M_RAD_TO_DEG_F; // declination, clockwise rotation from north
 	float bN = cosf(dip) * cosf(dec);
 	float bE = cosf(dip) * sinf(dec);
 	float bD = sinf(dip);
