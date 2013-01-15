@@ -239,9 +239,10 @@ void KalmanNav::update()
 	}
 
 	// output
-	if (newTimeStamp - _outTimeStamp > 1e6) { // 1 Hz
+	if (newTimeStamp - _outTimeStamp > 10e6) { // 0.1 Hz
 		_outTimeStamp = newTimeStamp;
-		printf("nav: %4d Hz, misses fast: %4d slow: %4d\n", _navFrames, _missFast, _missSlow);
+		printf("nav: %4d Hz, misses fast: %4d slow: %4d\n",
+				_navFrames/10, _missFast/10, _missSlow/10);
 		_navFrames = 0;
 		_missFast = 0;
 		_missSlow = 0;
@@ -616,6 +617,9 @@ void KalmanNav::correctAtt()
 void KalmanNav::correctPos()
 {
 	using namespace math;
+
+	if (!_positionInitialized) return;
+
 	Vector y(5);
 	y(0) = _gps.vel_n - vN;
 	y(1) = _gps.vel_e - vE;
