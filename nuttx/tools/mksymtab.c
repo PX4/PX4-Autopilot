@@ -222,7 +222,7 @@ int main(int argc, char **argv, char **envp)
 
   fprintf(outstream, "/* %s: Auto-generated symbol table.  Do not edit */\n\n", symtab);
   fprintf(outstream, "#include <nuttx/config.h>\n");
-  fprintf(outstream, "#include <nuttx/symtab.h>\n\n");
+  fprintf(outstream, "#include <nuttx/binfmt/symtab.h>\n\n");
 
   /* Output all of the require header files */
 

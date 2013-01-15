@@ -233,7 +233,7 @@ mkdir -p $workingdir || { echo "Failed to created the new $workingdir"; exit 1; 
 # Create the rcS file from the rcS.template
 
 if [ ! -r $rcstemplate ]; then
-    echo "$rcstemplete does not exist"
+    echo "$rcstemplate does not exist"
     rmdir $workingdir
     exit 1
 fi

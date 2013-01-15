@@ -289,7 +289,7 @@ int adc_main(int argc, char *argv[])
     {
       message("adc_main: open %s failed: %d\n", g_adcstate.devpath, errno);
       errval = 2;
-      goto errout_with_dev;
+      goto errout;
     }
 
   /* Now loop the appropriate number of times, displaying the collected
@@ -356,6 +356,11 @@ int adc_main(int argc, char *argv[])
           }
       }
   }
+
+  close(fd);
+  return OK;
+
+  /* Error exits */
 
 errout_with_dev:
   close(fd);

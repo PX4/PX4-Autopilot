@@ -238,10 +238,6 @@
 #define USBCOMPOSITE_TRACEERR_ALLOCDEVSTRUCT         0x000a
 #define USBCOMPOSITE_TRACEERR_CLASSOBJECT            0x000b
 #define USBCOMPOSITE_TRACEERR_DEVREGISTER            0x000c
-#define USBCOMPOSITE_TRACEERR_INVALIDARG             0x000d
-#define USBCOMPOSITE_TRACEERR_INVALIDARG             0x000f
-#define USBCOMPOSITE_TRACEERR_INVALIDARG             0x0010
-#define USBCOMPOSITE_TRACEERR_INVALIDARG             0x0011
 
 /* USB Storage driver class events ******************************************/
 

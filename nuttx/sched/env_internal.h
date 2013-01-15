@@ -80,7 +80,7 @@ EXTERN int env_dup(FAR _TCB *ptcb);
 EXTERN int env_share(FAR _TCB *ptcb);
 EXTERN int env_release(FAR _TCB *ptcb);
 
-/* functions used internally the environment handling logic */
+/* functions used internally by the environment handling logic */
 
 EXTERN FAR char *env_findvar(environ_t *envp, const char *pname);
 EXTERN int env_removevar(environ_t *envp, char *pvar);

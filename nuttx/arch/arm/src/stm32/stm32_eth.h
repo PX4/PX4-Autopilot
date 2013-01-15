@@ -66,14 +66,13 @@ extern "C" {
  * Function: stm32_ethinitialize
  *
  * Description:
- *   Initialize the Ethernet driver for one interface.  If the STM32 chip
- *   supports multiple Ethernet controllers, then board specific logic
- *   must implement up_netinitialize() and call this function to initialize
- *   the desired interfaces.
+ *   Initialize the Ethernet driver for one interface.  If the STM32 chip supports
+ *   multiple Ethernet controllers, then board specific logic must implement
+ *   up_netinitialize() and call this function to initialize the desired interfaces.
  *
  * Parameters:
- *   intf - In the case where there are multiple EMACs, this value
- *          identifies which EMAC is to be initialized.
+ *   intf - In the case where there are multiple EMACs, this value identifies which
+ *   EMAC is to be initialized.
  *
  * Returned Value:
  *   OK on success; Negated errno on failure.
@@ -84,6 +83,30 @@ extern "C" {
 
 #if STM32_NETHERNET > 1
 EXTERN int stm32_ethinitialize(int intf);
+#endif
+
+/************************************************************************************
+ * Function: stm32_phy_boardinitialize
+ *
+ * Description:
+ *   Some boards require specialized initialization of the PHY before it can be used.
+ *   This may include such things as configuring GPIOs, resetting the PHY, etc.  If
+ *   CONFIG_STM32_PHYINIT is defined in the configuration then the board specific
+ *   logic must provide stm32_phyinitialize();  The STM32 Ethernet driver will call
+ *   this function one time before it first uses the PHY.
+ *
+ * Parameters:
+ *   intf - Always zero for now.
+ *
+ * Returned Value:
+ *   OK on success; Negated errno on failure.
+ *
+ * Assumptions:
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_PHYINIT
+EXTERN int stm32_phy_boardinitialize(int intf);
 #endif
 
 #undef EXTERN

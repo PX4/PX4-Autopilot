@@ -42,8 +42,9 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
+
 #include <arpa/inet.h>
-#include <nuttx/nxflat.h>
+#include <nuttx/binfmt/nxflat.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -91,10 +92,10 @@ int nxflat_verifyheader(const struct nxflat_hdr_s *header)
   if (strncmp(header->h_magic, NXFLAT_MAGIC, 4) != 0)
     {
       bdbg("Unrecognized magic=\"%c%c%c%c\"\n",
-	  header->h_magic[0], header->h_magic[1],
-	  header->h_magic[2], header->h_magic[3]);
+      header->h_magic[0], header->h_magic[1],
+      header->h_magic[2], header->h_magic[3]);
       return -ENOEXEC;
     }
+
   return OK;
 }
-

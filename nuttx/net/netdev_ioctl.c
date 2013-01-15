@@ -138,19 +138,47 @@ static void ioctl_setipaddr(FAR uip_ipaddr_t *outaddr, FAR const void *inaddr)
  *
  ****************************************************************************/
 
-static inline void ioctl_ifup(FAR struct uip_driver_s *dev)
+static void ioctl_ifup(FAR struct uip_driver_s *dev)
 {
+  /* Make sure that the device supports the d_ifup() method */
+
   if (dev->d_ifup)
     {
-      dev->d_ifup(dev);
+      /* Is the interface already up? */
+
+      if ((dev->d_flags & IFF_RUNNING) == 0)
+        {
+          /* No, bring the interface up now */
+
+          if (dev->d_ifup(dev) == OK)
+            {
+              /* Mark the interface as up */
+
+              dev->d_flags |= IFF_RUNNING;
+            }
+        }
     }
 }
 
-static inline void ioctl_ifdown(FAR struct uip_driver_s *dev)
+static void ioctl_ifdown(FAR struct uip_driver_s *dev)
 {
+  /* Make sure that the device supports the d_ifdown() method */
+
   if (dev->d_ifdown)
     {
-      dev->d_ifdown(dev);
+      /* Is the interface already down? */
+
+      if ((dev->d_flags & IFF_RUNNING) != 0)
+        {
+          /* No, take the interface down now */
+
+          if (dev->d_ifdown(dev) == OK)
+            {
+              /* Mark the interface as down */
+
+              dev->d_flags &= ~IFF_RUNNING;
+            }
+        }
     }
 }
 
@@ -194,63 +222,130 @@ static int netdev_ifrioctl(FAR struct socket *psock, int cmd, struct ifreq *req)
 
   switch (cmd)
     {
-      case SIOCGIFADDR:     /* Get IP address */
-        ioctl_getipaddr(&req->ifr_addr, &dev->d_ipaddr);
+      case SIOCGIFADDR:  /* Get IP address */
+        {
+          ioctl_getipaddr(&req->ifr_addr, &dev->d_ipaddr);
+        }
         break;
 
-      case SIOCSIFADDR:     /* Set IP address */
-        ioctl_ifdown(dev);
-        ioctl_setipaddr(&dev->d_ipaddr, &req->ifr_addr);
-        ioctl_ifup(dev);
+      case SIOCSIFADDR:  /* Set IP address */
+        {
+          ioctl_ifdown(dev);
+          ioctl_setipaddr(&dev->d_ipaddr, &req->ifr_addr);
+          ioctl_ifup(dev);
+        }
         break;
 
       case SIOCGIFDSTADDR:  /* Get P-to-P address */
-        ioctl_getipaddr(&req->ifr_dstaddr, &dev->d_draddr);
+        {
+          ioctl_getipaddr(&req->ifr_dstaddr, &dev->d_draddr);
+        }
         break;
 
       case SIOCSIFDSTADDR:  /* Set P-to-P address */
-        ioctl_setipaddr(&dev->d_draddr, &req->ifr_dstaddr);
+        {
+          ioctl_setipaddr(&dev->d_draddr, &req->ifr_dstaddr);
+        }
         break;
 
       case SIOCGIFNETMASK:  /* Get network mask */
-        ioctl_getipaddr(&req->ifr_addr, &dev->d_netmask);
+        {
+          ioctl_getipaddr(&req->ifr_addr, &dev->d_netmask);
+        }
         break;
 
       case SIOCSIFNETMASK:  /* Set network mask */
-        ioctl_setipaddr(&dev->d_netmask, &req->ifr_addr);
+        {
+          ioctl_setipaddr(&dev->d_netmask, &req->ifr_addr);
+        }
         break;
 
       case SIOCGIFMTU:  /* Get MTU size */
-        req->ifr_mtu = CONFIG_NET_BUFSIZE;
+        {
+          req->ifr_mtu = CONFIG_NET_BUFSIZE;
+        }
+        break;
+
+      case SIOCSIFFLAGS:  /* Sets the interface flags */
+        {
+          /* Is this a request to bring the interface up? */
+
+          if (req->ifr_flags & IF_FLAG_IFUP)
+            {
+              /* Yes.. bring the interface up */
+
+              ioctl_ifup(dev);
+            }
+
+          /* Is this a request to take the interface down? */
+
+          else if (req->ifr_flags & IF_FLAG_IFDOWN)
+            {
+              /* Yes.. take the interface down */
+
+              ioctl_ifdown(dev);
+            }
+        }
+        break;
+
+      case SIOCGIFFLAGS:  /* Gets the interface flags */
+        {
+          req->ifr_flags = 0;
+
+          /* Is the interface running? */
+
+          if (dev->d_flags & IFF_RUNNING)
+            {
+              /* Yes.. report interface up */
+
+              req->ifr_flags |= IF_FLAG_IFUP;
+            }
+          else
+            {
+              /* No.. report interface down */
+
+              req->ifr_flags |= IF_FLAG_IFDOWN;
+            }
+        }
         break;
 
       /* MAC address operations only make sense if Ethernet is supported */
 
 #ifdef CONFIG_NET_ETHERNET
       case SIOCGIFHWADDR:  /* Get hardware address */
-        req->ifr_hwaddr.sa_family = AF_INETX;
-        memcpy(req->ifr_hwaddr.sa_data, dev->d_mac.ether_addr_octet, IFHWADDRLEN);
+        {
+          req->ifr_hwaddr.sa_family = AF_INETX;
+          memcpy(req->ifr_hwaddr.sa_data, dev->d_mac.ether_addr_octet, IFHWADDRLEN);
+        }
         break;
 
       case SIOCSIFHWADDR:  /* Set hardware address -- will not take effect until ifup */
-        req->ifr_hwaddr.sa_family = AF_INETX;
-        memcpy(dev->d_mac.ether_addr_octet, req->ifr_hwaddr.sa_data, IFHWADDRLEN);
+        {
+          req->ifr_hwaddr.sa_family = AF_INETX;
+          memcpy(dev->d_mac.ether_addr_octet, req->ifr_hwaddr.sa_data, IFHWADDRLEN);
+        }
         break;
 #endif
 
       case SIOCDIFADDR:  /* Delete IP address */
-        ioctl_ifdown(dev);
-        memset(&dev->d_ipaddr, 0, sizeof(uip_ipaddr_t));
+        {
+          ioctl_ifdown(dev);
+          memset(&dev->d_ipaddr, 0, sizeof(uip_ipaddr_t));
+        }
         break;
 
       case SIOCGIFCOUNT:  /* Get number of devices */
-        req->ifr_count = netdev_count();
-        ret = -ENOSYS;
+        {
+          req->ifr_count = netdev_count();
+          ret = -ENOSYS;
+        }
         break;
 
-      case SIOCGIFBRDADDR:  /* Get broadcast IP address	*/
-      case SIOCSIFBRDADDR:  /* Set broadcast IP address	*/
-        ret = -ENOSYS;
+      case SIOCGIFBRDADDR:  /* Get broadcast IP address */
+      case SIOCSIFBRDADDR:  /* Set broadcast IP address */
+        {
+          ret = -ENOSYS;
+        }
         break;
 
 #ifdef CONFIG_NET_ARPIOCTLS
@@ -261,7 +356,9 @@ static int netdev_ifrioctl(FAR struct socket *psock, int cmd, struct ifreq *req)
 #endif
 
       default:
-        ret = -EINVAL;
+        {
+          ret = -EINVAL;
+        }
         break;;
     }
 
