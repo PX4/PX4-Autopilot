@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +35,7 @@
  * @file px4io.cpp
  * Driver for the PX4IO board.
  *
- * PX4IO is connected via serial (or possibly some other interface at a later
- * point).
+ * PX4IO is connected via I2C.
  */
 
 #include <nuttx/config.h>
@@ -53,7 +52,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <termios.h>
 #include <fcntl.h>
 #include <math.h>
 
@@ -94,6 +92,7 @@ public:
 	virtual int		init();
 
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
 
 	/**
 	 * Set the PWM via serial update rate
@@ -105,7 +104,11 @@ public:
 
 private:
 	// XXX
-	static const unsigned	_max_actuators = PX4IO_CONTROL_CHANNELS;
+	uint16_t		_max_actuators;
+	uint16_t		_max_servos;
+	uint16_t		_max_rc_input;
+	uint16_t		_max_relays;
+
 	unsigned 		_update_rate;	///< serial send rate in Hz
 
 	volatile int		_task;		///< worker task
@@ -131,7 +134,6 @@ private:
 
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 
-	uint32_t		_relays;	///< state of the PX4IO relays, one bit per relay
 
 	/**
 	 * Trampoline to the worker task
@@ -160,21 +162,50 @@ private:
 
 	/**
 	 * Fetch RC inputs from IO
+	 *
+	 * @param input_rc	Input structure to populate.
 	 */
 	int			io_get_rc_input(rc_input_values &input_rc);
 
 	/**
 	 * write register(s)
+	 *
+	 * @param page		Register page to write to.
+	 * @param offset	Register offset to start writing at.
+	 * @param values	Pointer to array of values to write.
+	 * @param num_values	The number of values to write.
+	 * @return		Zero if all values were successfully written.
 	 */
 	int			io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
 
 	/**
+	 * write a register
+	 *
+	 * @param page		Register page to write to.
+	 * @param offset	Register offset to write to.
+	 * @param value		Value to write.
+	 * @return		Zero if the value was written successfully.
+	 */
+	int			io_reg_set(uint8_t page, uint8_t offset, const uint16_t value);
+
+	/**
 	 * read register(s)
+	 *
+	 * @param page		Register page to read from.
+	 * @param offset	Register offset to start reading from.
+	 * @param values	Pointer to array where values should be stored.
+	 * @param num_values	The number of values to read.
+	 * @return		Zero if all values were successfully read.
 	 */
 	int			io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values);
 
 	/**
-	 * modify s register
+	 * modify a register
+	 *
+	 * @param page		Register page to modify.
+	 * @param offset	Register offset to modify.
+	 * @param clearbits	Bits to clear in the register.
+	 * @param setbits	Bits to set in the register.
 	 */
 	int			io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t setbits);
 
@@ -191,6 +222,8 @@ PX4IO	*g_dev;
 PX4IO::PX4IO() :
 	CDev("px4io", "/dev/px4io", PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO, 320000),
 	dump_one(false),
+	_max_actuators(0),
+	_max_servos(0),
 	_update_rate(50),
 	_task(-1),
 	_task_should_exit(false),
@@ -246,6 +279,20 @@ PX4IO::init()
 	if (ret != OK)
 		return ret;
 
+	/* get some parameters */
+	if ((ret = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT, &_max_actuators, 1)) ||
+		(_max_actuators < 1) ||
+		(ret = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_SERVO_COUNT, &_max_servos, 1)) ||
+		(_max_servos < 1) ||
+		(ret = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RELAY_COUNT, &_max_relays, 1)) ||
+		(_max_relays < 1) ||
+		(ret = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT, &_max_rc_input, 1)) ||
+		(_max_rc_input < 1)) {
+
+		log("failed getting parameters from PX4IO");
+		return ret;
+	}
+
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
 	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
 
@@ -268,14 +315,13 @@ PX4IO::init()
 			debug("PX4IO connected");
 			break;
 		}
-
 		usleep(100000);
 	}
 
 	if (!_connected) {
 		/* error here will result in everything being torn down */
 		log("PX4IO not responding");
-		return -EIO;
+		ret = -EIO;
 	}
 
 	return OK;
@@ -813,66 +859,68 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	/* regular ioctl? */
 	switch (cmd) {
 	case PWM_SERVO_ARM:
-		/* fake an armed transition */
-		_armed.armed = true;
-		_send_needed = true;
+		/* set the 'armed' bit */
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_ARM_OK);
 		break;
 
 	case PWM_SERVO_DISARM:
-		/* fake a disarmed transition */
-		_armed.armed = false;
-		_send_needed = true;
+		/* clear the 'armed' bit */
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_ARM_OK, 0);
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
-		// not supported yet
-		ret = -EINVAL;
+		/* set the requested rate */
+		if ((arg >= 50) && (arg <= 400)) {
+			ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_HIGHRATE, arg);
+		} else {
+			ret = -EINVAL;
+		}
 		break;
 
-	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_actuators - 1):
+	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_servos - 1): {
 
-		/* fake an update to the selected 'servo' channel */
+		unsigned channel = cmd - PWM_SERVO_SET(0);
+
+		/* send a direct PWM value */
 		if ((arg >= 900) && (arg <= 2100)) {
-			_outputs.output[cmd - PWM_SERVO_SET(0)] = arg;
-			_send_needed = true;
-
+			ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
 		} else {
 			ret = -EINVAL;
 		}
 
 		break;
+	}
 
-	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(_max_actuators - 1):
-		/* copy the current output value from the channel */
-		*(servo_position_t *)arg = _outputs.output[cmd - PWM_SERVO_GET(0)];
-		break;
+	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(_max_servos - 1): {
 
-	case GPIO_RESET:
-		_relays = 0;
-		_send_needed = true;
+		unsigned channel = cmd - PWM_SERVO_GET(0);
+
+		/* fetch a current PWM value */
+		ret = io_reg_get(PX4IO_PAGE_DIRECT_PWM, channel, (uint16_t *)arg, 1);
 		break;
+	}
+
+	case GPIO_RESET: {
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, arg);
+		break;
+	}
 
 	case GPIO_SET:
+		arg &= ((1 << _max_relays) - 1);
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0, value);
+		break;
+
 	case GPIO_CLEAR:
-		/* make sure only valid bits are being set */
-		if ((arg & ((1UL << PX4IO_RELAY_CHANNELS) - 1)) != arg) {
-			ret = EINVAL;
-			break;
-		}
-		if (cmd == GPIO_SET) {
-			_relays |= arg;
-		} else {
-			_relays &= ~arg;
-		}
-		_send_needed = true;
+		arg &= ((1 << _max_relays) - 1);
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, value, 0);
 		break;
 
 	case GPIO_GET:
-		*(uint32_t *)arg = _relays;
+		ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, (uint16_t *)arg, 1);
 		break;
 
 	case MIXERIOCGETOUTPUTCOUNT:
-		*(unsigned *)arg = PX4IO_CONTROL_CHANNELS;
+		*(unsigned *)arg = _max_servos;
 		break;
 
 	case MIXERIOCRESET:
@@ -880,6 +928,9 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 
 	case MIXERIOCLOADBUF:
+
+
+XXX
 
 		/* set the buffer up for transfer */
 		_mix_buf = (const char *)arg;
@@ -902,6 +953,23 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	}
 
 	unlock();
+
+	return ret;
+}
+
+ssize_t
+write(file *filp, const char *buffer, size_t len)
+{
+	unsigned count = len / 2;
+	int ret;
+
+	if (count > 0) {
+		if (count > _max_servos)
+			count = _max_servos;
+		ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, buffer, count);
+	} else {
+		ret = -EINVAL;
+	}
 
 	return ret;
 }

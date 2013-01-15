@@ -77,9 +77,6 @@ typedef uint16_t	servo_position_t;
  * device.
  */
 struct pwm_output_values {
-	/** desired servo update rate in Hz */
-	uint32_t		update_rate;
-
 	/** desired pulse widths for each of the supported channels */
 	servo_position_t	values[PWM_OUTPUT_MAX_CHANNELS];
 };
