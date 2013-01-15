@@ -85,7 +85,8 @@ orb_advert_t pub_hil_global_pos = -1;
 orb_advert_t pub_hil_attitude = -1;
 
 static orb_advert_t cmd_pub = -1;
-static orb_advert_t flow_pub = -1;
+static orb_advert_t optical_flow_pub = -1;
+static orb_advert_t omnidirectional_flow_pub = -1;
 
 static orb_advert_t offboard_control_sp_pub = -1;
 static orb_advert_t vicon_position_pub = -1;
@@ -140,26 +141,51 @@ handle_message(mavlink_message_t *msg)
 	}
 
 	if (msg->msgid == MAVLINK_MSG_ID_OPTICAL_FLOW) {
-		mavlink_optical_flow_t flow;
-		mavlink_msg_optical_flow_decode(msg, &flow);
+		mavlink_optical_flow_t optical_flow;
+		mavlink_msg_optical_flow_decode(msg, &optical_flow);
 
 		struct optical_flow_s f;
 
 		f.timestamp = hrt_absolute_time();
-		f.flow_raw_x = flow.flow_x;
-		f.flow_raw_y = flow.flow_y;
-		f.flow_comp_x_m = flow.flow_comp_m_x;
-		f.flow_comp_y_m = flow.flow_comp_m_y;
-		f.ground_distance_m = flow.ground_distance;
-		f.quality = flow.quality;
-		f.sensor_id = flow.sensor_id;
+		f.flow_raw_x = optical_flow.flow_x;
+		f.flow_raw_y = optical_flow.flow_y;
+		f.flow_comp_x_m = optical_flow.flow_comp_m_x;
+		f.flow_comp_y_m = optical_flow.flow_comp_m_y;
+		f.ground_distance_m = optical_flow.ground_distance;
+		f.quality = optical_flow.quality;
+		f.sensor_id = optical_flow.sensor_id;
 
 		/* check if topic is advertised */
-		if (flow_pub <= 0) {
-			flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
+		if (optical_flow_pub <= 0) {
+			optical_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
 		} else {
 			/* publish */
-			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
+			orb_publish(ORB_ID(optical_flow), optical_flow_pub, &f);
+		}
+
+	}
+
+	if (msg->msgid == MAVLINK_MSG_ID_OMNIDIRECTIONAL_FLOW) {
+		mavlink_omnidirectional_flow_t omnidirectional_flow;
+		mavlink_msg_omnidirectional_flow_decode(msg, &omnidirectional_flow);
+
+		struct omnidirectional_flow_s f;
+
+		f.timestamp = hrt_absolute_time();
+//		f.left = omnidirectional_flow.left;
+//		f.right = omnidirectional_flow.right;
+//		memcpy(&omnidirectional_flow.left, f.left, 10 * sizeof(int16_t));   // TODO uncomment this... if its logging
+//		memcpy(&omnidirectional_flow.right, f.right, 10 * sizeof(int16_t));
+		f.front_distance_m = omnidirectional_flow.front_distance_m;
+		f.quality = omnidirectional_flow.quality;
+		f.sensor_id = omnidirectional_flow.sensor_id;
+
+		/* check if topic is advertised */
+		if (omnidirectional_flow_pub <= 0) {
+			omnidirectional_flow_pub = orb_advertise(ORB_ID(omnidirectional_flow), &f);
+		} else {
+			/* publish */
+			orb_publish(ORB_ID(omnidirectional_flow), omnidirectional_flow_pub, &f);
 		}
 
 	}

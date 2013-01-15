@@ -45,29 +45,30 @@ end
 % float true_airspeed;
 
 % Definition of the logged values
-logFormat{1} = struct('name', 'timestamp',         'bytes', 8, 'array', 1, 'precision', 'uint64', 'machineformat', 'ieee-le.l64');
-logFormat{2} = struct('name', 'gyro',              'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{3} = struct('name', 'accel',             'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{4} = struct('name', 'mag',               'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{5} = struct('name', 'baro',              'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{6} = struct('name', 'baro_alt',          'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{7} = struct('name', 'baro_temp',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{8} = struct('name', 'control',           'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{9} = struct('name', 'actuators',         'bytes', 4, 'array', 8, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{10} = struct('name', 'vbat',             'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{11} = struct('name', 'bat_current',      'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{12} = struct('name', 'bat_discharged',   'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{13} = struct('name', 'adc',              'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{14} = struct('name', 'local_position',   'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{15} = struct('name', 'gps_raw_position', 'bytes', 4, 'array', 3, 'precision', 'uint32',  'machineformat', 'ieee-le');
-logFormat{16} = struct('name', 'attitude',         'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{17} = struct('name', 'rot_matrix',       'bytes', 4, 'array', 9, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{18} = struct('name', 'vicon_position',   'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{19} = struct('name', 'actuator_control', 'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{20} = struct('name', 'optical_flow',     'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{21} = struct('name', 'diff_pressure',    'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{22} = struct('name', 'ind_airspeed',     'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{23} = struct('name', 'true_airspeed',    'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{1} = struct('name', 'timestamp',             'bytes', 8, 'array', 1, 'precision', 'uint64',  'machineformat', 'ieee-le.l64');
+logFormat{2} = struct('name', 'gyro',                  'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{3} = struct('name', 'accel',                 'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{4} = struct('name', 'mag',                   'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{5} = struct('name', 'baro',                  'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{6} = struct('name', 'baro_alt',              'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{7} = struct('name', 'baro_temp',             'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{8} = struct('name', 'control',               'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{9} = struct('name', 'actuators',             'bytes', 4, 'array', 8, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{10} = struct('name', 'vbat',                 'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{11} = struct('name', 'bat_current',          'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{12} = struct('name', 'bat_discharged',       'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{13} = struct('name', 'adc',                  'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{14} = struct('name', 'local_position',       'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{15} = struct('name', 'gps_raw_position',     'bytes', 4, 'array', 3, 'precision', 'uint32',  'machineformat', 'ieee-le');
+logFormat{16} = struct('name', 'attitude',             'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{17} = struct('name', 'rot_matrix',           'bytes', 4, 'array', 9, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{18} = struct('name', 'vicon_position',       'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{19} = struct('name', 'actuator_control',     'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{20} = struct('name', 'optical_flow',         'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{21} = struct('name', 'omnidirectional_flow', 'bytes', 4, 'array', 22,'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{22} = struct('name', 'diff_pressure',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{23} = struct('name', 'ind_airspeed',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{24} = struct('name', 'true_airspeed',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
 
 % First get length of one line
 columns = length(logFormat);

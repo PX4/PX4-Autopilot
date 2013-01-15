@@ -33,8 +33,8 @@
  ****************************************************************************/
 
 /**
- * @file optical_flow.h
- * Definition of the optical flow uORB topic.
+ * @file omnidirectional_flow.h
+ * Definition of the omnidirectional flow uORB topic.
  */
 
 #ifndef TOPIC_OMNIDIRECTIONAL_FLOW_H_
@@ -57,8 +57,8 @@ struct omnidirectional_flow_s {
 
 	uint64_t timestamp;		/**< in microseconds since system start          */
 
-	uint16_t left[10];		/**< Left flow, in decipixels */
-	uint16_t right[10];		/**< Right flow, in decipixels */
+	int16_t left[10];		/**< Left flow, in decipixels */
+	int16_t right[10];		/**< Right flow, in decipixels */
 	float front_distance_m;		/**< Altitude / distance to object front in meters */
 	uint8_t	quality;		/**< Quality of the measurement, 0: bad quality, 255: maximum quality */
 	uint8_t sensor_id;		/**< id of the sensor emitting the flow value */

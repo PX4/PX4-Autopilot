@@ -68,6 +68,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/omnidirectional_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 
@@ -408,7 +409,8 @@ int sdlog_thread_main(int argc, char *argv[])
 		struct vehicle_global_position_s global_pos;
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
-		struct optical_flow_s flow;
+		struct optical_flow_s optical_flow;
+		struct omnidirectional_flow_s omnidirectional_flow;
 		struct battery_status_s batt;
 		struct differential_pressure_s diff_pressure;
 	} buf;
@@ -426,7 +428,8 @@ int sdlog_thread_main(int argc, char *argv[])
 		int global_pos_sub;
 		int gps_pos_sub;
 		int vicon_pos_sub;
-		int flow_sub;
+		int optical_flow_sub;
+		int omnidirectional_flow_sub;
 		int batt_sub;
 		int diff_pressure_sub;
 	} subs;
@@ -510,10 +513,17 @@ int sdlog_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- FLOW measurements --- */
-	/* subscribe to ORB for flow measurements */
-	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
-	fds[fdsc_count].fd = subs.flow_sub;
+	/* --- OPTICAL FLOW measurements --- */
+	/* subscribe to ORB for optical flow measurements */
+	subs.optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
+	fds[fdsc_count].fd = subs.optical_flow_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- OMNIDIRECTIONAL FLOW measurements --- */
+	/* subscribe to ORB for omnidirectional flow measurements */
+	subs.omnidirectional_flow_sub = orb_subscribe(ORB_ID(omnidirectional_flow));
+	fds[fdsc_count].fd = subs.omnidirectional_flow_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -596,7 +606,8 @@ int sdlog_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
 			orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
 			orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
-			orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
+			orb_copy(ORB_ID(optical_flow), subs.optical_flow_sub, &buf.optical_flow);
+			orb_copy(ORB_ID(omnidirectional_flow), subs.omnidirectional_flow_sub, &buf.omnidirectional_flow);
 
 			if (skip_count < skip_value) {
 				skip_count++;
@@ -680,7 +691,8 @@ int sdlog_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
 			orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
 			orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
-			orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
+			orb_copy(ORB_ID(optical_flow), subs.optical_flow_sub, &buf.optical_flow);
+			orb_copy(ORB_ID(omnidirectional_flow), subs.omnidirectional_flow_sub, &buf.omnidirectional_flow);
 			orb_copy(ORB_ID(differential_pressure), subs.diff_pressure_sub, &buf.diff_pressure);
 			orb_copy(ORB_ID(battery_status), subs.batt_sub, &buf.batt);
 
@@ -707,7 +719,15 @@ int sdlog_thread_main(int argc, char *argv[])
 				.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]},
 				.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
 				.control_effective = {buf.act_controls_effective.control_effective[0], buf.act_controls_effective.control_effective[1], buf.act_controls_effective.control_effective[2], buf.act_controls_effective.control_effective[3]},
-				.flow = {buf.flow.flow_raw_x, buf.flow.flow_raw_y, buf.flow.flow_comp_x_m, buf.flow.flow_comp_y_m, buf.flow.ground_distance_m, buf.flow.quality},
+				.optical_flow = {buf.optical_flow.flow_raw_x, buf.optical_flow.flow_raw_y, buf.optical_flow.flow_comp_x_m, buf.optical_flow.flow_comp_y_m, buf.optical_flow.ground_distance_m, buf.optical_flow.quality},
+				.omnidirectional_flow = {
+						buf.omnidirectional_flow.left[0], buf.omnidirectional_flow.left[1], buf.omnidirectional_flow.left[2], buf.omnidirectional_flow.left[3],
+						buf.omnidirectional_flow.left[4], buf.omnidirectional_flow.left[5], buf.omnidirectional_flow.left[6], buf.omnidirectional_flow.left[7],
+						buf.omnidirectional_flow.left[8], buf.omnidirectional_flow.left[9], buf.omnidirectional_flow.right[0], buf.omnidirectional_flow.right[1],
+						buf.omnidirectional_flow.right[2], buf.omnidirectional_flow.right[3], buf.omnidirectional_flow.right[4], buf.omnidirectional_flow.right[5],
+						buf.omnidirectional_flow.right[6], buf.omnidirectional_flow.right[7], buf.omnidirectional_flow.right[8], buf.omnidirectional_flow.right[9],
+						buf.omnidirectional_flow.front_distance_m, buf.omnidirectional_flow.quality
+				},
 				.diff_pressure = buf.diff_pressure.differential_pressure_mbar,
 				.ind_airspeed = buf.diff_pressure.indicated_airspeed_m_s,
 				.true_airspeed = buf.diff_pressure.true_airspeed_m_s
