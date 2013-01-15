@@ -467,3 +467,5 @@
 	* apps/examples/ostest/waitpid.c:  Add a test for waitpid(), waitid(),
 	  and wait().
 	* builtin/binfs.c:  Add hooks for dup() method (not implemented).
+	* builtin/exec_builtin.c, nshlib/nsh_parse.c, and nshlib/nsh_builtin.c:
+	  NSH now supports re-direction of I/O to files (but still not from).

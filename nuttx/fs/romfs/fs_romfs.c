@@ -56,6 +56,7 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/fs/dirent.h>
@@ -225,7 +226,7 @@ static int romfs_open(FAR struct file *filep, FAR const char *relpath,
    * file.
    */
 
-  rf = (FAR struct romfs_file_s *)zalloc(sizeof(struct romfs_file_s));
+  rf = (FAR struct romfs_file_s *)kzalloc(sizeof(struct romfs_file_s));
   if (!rf)
     {
       fdbg("Failed to allocate private data\n", ret);
@@ -317,12 +318,12 @@ static int romfs_close(FAR struct file *filep)
 
   if (!rm->rm_xipbase && rf->rf_buffer)
     {
-      free(rf->rf_buffer);
+      kfree(rf->rf_buffer);
     }
 
   /* Then free the file structure itself. */
 
-  free(rf);
+  kfree(rf);
   filep->f_priv = NULL;
   return ret;
 }
@@ -915,7 +916,7 @@ static int romfs_bind(FAR struct inode *blkdriver, FAR const void *data,
 
   /* Create an instance of the mountpt state structure */
 
-  rm = (FAR struct romfs_mountpt_s *)zalloc(sizeof(struct romfs_mountpt_s));
+  rm = (FAR struct romfs_mountpt_s *)kzalloc(sizeof(struct romfs_mountpt_s));
   if (!rm)
     {
       fdbg("Failed to allocate mountpoint structure\n");
@@ -959,12 +960,12 @@ static int romfs_bind(FAR struct inode *blkdriver, FAR const void *data,
 errout_with_buffer:
   if (!rm->rm_xipbase)
     {
-      free(rm->rm_buffer);
+      kfree(rm->rm_buffer);
     }
 
 errout_with_sem:
   sem_destroy(&rm->rm_sem);
-  free(rm);
+  kfree(rm);
   return ret;
 }
 
@@ -1031,11 +1032,11 @@ static int romfs_unbind(FAR void *handle, FAR struct inode **blkdriver)
 
       if (!rm->rm_xipbase && rm->rm_buffer)
         {
-          free(rm->rm_buffer);
+          kfree(rm->rm_buffer);
         }
 
       sem_destroy(&rm->rm_sem);
-      free(rm);
+      kfree(rm);
       return OK;
     }
 

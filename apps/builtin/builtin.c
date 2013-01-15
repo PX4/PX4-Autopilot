@@ -64,7 +64,7 @@ extern "C" {
 
 #include "builtin_proto.h"
 
-const struct builtin_s builtins[] =
+const struct builtin_s g_builtins[] =
 {
 # include "builtin_list.h"
   { NULL, 0, 0, 0 }
@@ -90,7 +90,7 @@ const struct builtin_s builtins[] =
 
 int number_builtins(void)
 {
-  return sizeof(builtins)/sizeof(struct builtin_s) - 1;
+  return sizeof(g_builtins)/sizeof(struct builtin_s) - 1;
 }
 
 

@@ -12,8 +12,7 @@ Execution starts in the following order:
    is set. It must be set for the VSN board.
    
  - boot, performs initial chip and board initialization
- - sched/os_bringup.c then calls either user_start or exec_builtin()
-   with application as set in the .config
+ - sched/os_bringup.c then calls user entry defined in the .config file.
 
 
 Naming throughout the code

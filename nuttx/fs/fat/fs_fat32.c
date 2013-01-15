@@ -1314,15 +1314,16 @@ static int fat_dup(FAR const struct file *oldp, FAR struct file *newp)
    *    file is re-opened.
    */
 
-  newff->ff_bflags           = 0;
-  newff->ff_oflags           = oldff->ff_oflags;
-  newff->ff_sectorsincluster = oldff->ff_sectorsincluster;
-  newff->ff_dirindex         = oldff->ff_dirindex;
-  newff->ff_currentcluster   = oldff->ff_currentcluster;
-  newff->ff_dirsector        = oldff->ff_dirsector;
-  newff->ff_size             = oldff->ff_size;
-  newff->ff_currentsector    = 0;
-  newff->ff_cachesector      = 0;
+  newff->ff_bflags           = 0;                          /* File buffer flags */
+  newff->ff_oflags           = oldff->ff_oflags;           /* File open flags */
+  newff->ff_sectorsincluster = oldff->ff_sectorsincluster; /* Sectors remaining in cluster */
+  newff->ff_dirindex         = oldff->ff_dirindex;         /* Index to directory entry */
+  newff->ff_currentcluster   = oldff->ff_currentcluster;   /* Current cluster */
+  newff->ff_dirsector        = oldff->ff_dirsector;        /* Sector containing directory entry */
+  newff->ff_size             = oldff->ff_size;             /* Size of the file */
+  newff->ff_startcluster     = oldff->ff_startcluster;     /* Start cluster of file on media */
+  newff->ff_currentsector    = oldff->ff_currentsector;    /* Current sector */
+  newff->ff_cachesector      = 0;                          /* Sector in file buffer */
 
   /* Attach the private date to the struct file instance */
 

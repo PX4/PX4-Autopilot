@@ -60,7 +60,7 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN const struct builtin_s builtins[];
+EXTERN const struct builtin_s g_builtins[];
 
 /****************************************************************************
  * Public Functions

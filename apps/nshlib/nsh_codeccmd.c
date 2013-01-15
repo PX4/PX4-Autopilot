@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/nshlib/nsh_apps.c
+ * apps/nshlib/nsh_codeccmd.c
  *
  * This file is part of NuttX, contributed by Darcy Gong
  *

@@ -1,9 +1,15 @@
 /****************************************************************************
- * apps/nshlib/nsh_apps.c
+ * apps/nshlib/nsh_builtin.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ * Originally by:
+ *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
+ *
+ * With subsequent updates, modifications, and general maintenance by:
+ *
+ *   Copyright (C) 2011-2013 Gregory Nutt.  All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,7 +90,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_execapp
+ * Name: nsh_builtin
  *
  * Description:
  *    Attempt to execute the application task whose name is 'cmd'
@@ -104,8 +110,8 @@
  *
  ****************************************************************************/
 
-int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
-                FAR char **argv)
+int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+                FAR char **argv, FAR const char *redirfile, int oflags)
 {
   int ret = OK;
 
@@ -119,7 +125,7 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
    * applications.
    */
 
-  ret = exec_builtin(cmd, (FAR const char **)argv);
+  ret = exec_builtin(cmd, (FAR const char **)argv, redirfile, oflags);
   if (ret >= 0)
     {
       /* The application was successfully started (but still blocked because
@@ -191,7 +197,7 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 #if !defined(CONFIG_SCHED_WAITPID) || !defined(CONFIG_NSH_DISABLEBG)
         {
           struct sched_param param;
-          sched_getparam(0, &param);
+          sched_getparam(ret, &param);
           nsh_output(vtbl, "%s [%d:%d]\n", cmd, ret, param.sched_priority);
 
           /* Backgrounded commands always 'succeed' as long as we can start
@@ -205,13 +211,13 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 
   sched_unlock();
 
-  /* If exec_builtin() or waitpid() failed, then return the negated errno
-   * value.
+  /* If exec_builtin() or waitpid() failed, then return -1 (ERROR) with the
+   * errno value set appropriately.
    */
 
   if (ret < 0)
     {
-      return -errno;
+      return ERROR;
     }
 
   return ret;

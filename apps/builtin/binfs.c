@@ -399,7 +399,7 @@ static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   /* Have we reached the end of the directory */
 
   index = dir->u.binfs.fb_index;
-  if (builtins[index].name == NULL)
+  if (g_builtins[index].name == NULL)
     {
       /* We signal the end of the directory by returning the
        * special error -ENOENT
@@ -412,9 +412,9 @@ static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
     {
       /* Save the filename and file type */
 
-      fvdbg("Entry %d: \"%s\"\n", index, builtins[index].name);
+      fvdbg("Entry %d: \"%s\"\n", index, g_builtins[index].name);
       dir->fd_dir.d_type = DTYPE_FILE;
-      strncpy(dir->fd_dir.d_name, builtins[index].name, NAME_MAX+1);
+      strncpy(dir->fd_dir.d_name, g_builtins[index].name, NAME_MAX+1);
 
       /* The application list is terminated by an entry with a NULL name.
        * Therefore, there is at least one more entry in the list.

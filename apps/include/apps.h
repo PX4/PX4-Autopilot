@@ -1,8 +1,15 @@
 /****************************************************************************
  * apps/include/apps.h
  *
- *   Copyright(C) 2011 Uros Platise. All rights reserved.
+ * Originally by:
+ *
+ *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
+ *
+ * With subsequent updates, modifications, and general maintenance by:
+ *
+ *   Copyright (C) 2012-2013 Gregory Nutt.  All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,19 +71,6 @@ struct builtin_s
  * Public Data
  ****************************************************************************/
 
-/* The "bindir" is file system that supports access to the builtin applications.
- * It is typically mounted under /bin.
- */
-
-#ifdef CONFIG_APPS_BINDIR
-struct mountpt_operations;
-extern const struct mountpt_operations binfs_operations;
-#endif
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
@@ -84,6 +78,19 @@ extern "C" {
 #else
 #define EXTERN extern
 #endif
+
+/* The "bindir" is file system that supports access to the builtin applications.
+ * It is typically mounted under /bin.
+ */
+
+#ifdef CONFIG_APPS_BINDIR
+EXTERN mountpt_operations;
+EXTERN const struct mountpt_operations binfs_operations;
+#endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: builtin_isavail
@@ -129,8 +136,13 @@ EXTERN const char *builtin_getname(int index);
  *   New application is run in a separate task context (and thread).
  *
  * Input Parameter:
- *   filename - Name of the linked-in binary to be started.
- *   argv     - Argument list
+ *   filename  - Name of the linked-in binary to be started.
+ *   argv      - Argument list
+ *   redirfile - If output if redirected, this parameter will be non-NULL
+ *               and will provide the full path to the file.
+ *   oflags    - If output is redirected, this parameter will provide the
+ *               open flags to use.  This will support file replacement
+ *               of appending to an existing file.
  *
  * Returned Value:
  *   This is an end-user function, so it follows the normal convention:
@@ -139,7 +151,8 @@ EXTERN const char *builtin_getname(int index);
  *
  ****************************************************************************/
 
-EXTERN int exec_builtin(FAR const char *appname, FAR const char **argv);
+EXTERN int exec_builtin(FAR const char *appname, FAR const char **argv,
+                        FAR const char *redirfile, int oflags);
 
 #undef EXTERN
 #if defined(__cplusplus)
