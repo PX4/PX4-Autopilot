@@ -159,6 +159,8 @@ protected:
 	control::BlockParam<float> _rAccel;     /**< accelerometer measurement noise */
 	control::BlockParam<float> _magDip;     /**< magnetic inclination with level */
 	control::BlockParam<float> _magDec;     /**< magnetic declination, clockwise rotation */
+	control::BlockParam<float> _faultPos;   /**< fault detection threshold for position */
+	control::BlockParam<float> _faultAtt;   /**< fault detection threshold for attitude */
 	// status
 	bool _positionInitialized; 			    /**< status, if position has been init. */
 	// accessors

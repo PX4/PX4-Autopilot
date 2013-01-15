@@ -98,6 +98,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_rAccel(this, "R_ACCEL"),
 	_magDip(this, "MAG_DIP"),
 	_magDec(this, "MAG_DEC"),
+	_faultPos(this, "FAULT_POS"),
+	_faultAtt(this, "FAULT_ATT"),
 	_positionInitialized(false)
 {
 	using namespace math;
@@ -601,7 +603,7 @@ void KalmanNav::correctAtt()
 	// fault detection
 	float beta = y.dot(S.inverse() * y);
 
-	if (beta > 1000.0f) {
+	if (beta > _faultAtt.get()) {
 		printf("fault in attitude: beta = %8.4f\n", (double)beta);
 		printf("y:\n"); y.print();
 	}
@@ -679,7 +681,7 @@ void KalmanNav::correctPos()
 	// fault detetcion
 	float beta = y.dot(S.inverse() * y);
 
-	if (beta > 1000.0f) {
+	if (beta > _faultPos.get()) {
 		printf("fault in gps: beta = %8.4f\n", (double)beta);
 		printf("Y/N: vN: %8.4f, vE: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
 		       double(y(0) / noiseVel),
