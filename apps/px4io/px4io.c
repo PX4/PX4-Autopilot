@@ -115,6 +115,7 @@ int user_start(int argc, char *argv[])
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
 
 	/* run the mixer at 100Hz (for now...) */
+	/* XXX we should use CONFIG_IDLE_CUSTOM and take over the idle thread instead of running two additional tasks */
 	for (;;) {
 		poll(NULL, 0, 10);
 		perf_begin(mixer_perf);

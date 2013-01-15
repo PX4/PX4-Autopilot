@@ -100,6 +100,7 @@
 #define PX4IO_P_STATUS_FLAGS_RC_DSM		(1 << 4) /* DSM input is valid */
 #define PX4IO_P_STATUS_FLAGS_RC_SBUS		(1 << 5) /* SBUS input is valid */
 #define PX4IO_P_STATUS_FLAGS_FMU_OK		(1 << 6) /* controls from FMU are valid */
+#define PX4IO_P_STATUS_FLAGS_RAW_PPM		(1 << 7) /* raw PPM from FMU is bypassing the mixer */
 
 #define PX4IO_P_STATUS_ALARMS			3	/* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* VBatt is very close to regulator dropout */
@@ -149,7 +150,7 @@
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
 
 /* autopilot control values, -10000..10000 */
-#define PX4IO_PAGE_CONTROLS		101		/* 0..STATUS_CONTROL_COUNT */
+#define PX4IO_PAGE_CONTROLS		101		/* 0..CONFIG_CONTROL_COUNT */
 
 /* raw text load to the mixer parser - ignores offset */
 #define PX4IO_PAGE_MIXERLOAD		102
@@ -165,6 +166,9 @@
 #define PX4IO_P_RC_CONFIG_OPTIONS_ENABLED	(1 << 0)
 #define PX4IO_P_RC_CONFIG_OPTIONS_REVERSE	(1 << 1)
 #define PX4IO_P_RC_CONFIG_STRIDE		6	/* spacing between channel config data */
+
+/* PWM output - overrides mixer */
+#define PX4IO_PAGE_DIRECT_PWM		104		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.

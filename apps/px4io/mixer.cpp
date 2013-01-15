@@ -81,6 +81,7 @@ static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_index,
 			       float &control);
 
+static void mix();
 static MixerGroup mixer_group(mixer_callback, 0);
 
 void
@@ -91,7 +92,7 @@ mixer_tick(void)
 
 		/* too long without FMU input, time to go to failsafe */
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_FMU_OK;
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PPM);
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
 		debug("AP RX timeout");
 	}
@@ -100,13 +101,26 @@ mixer_tick(void)
 	 * Decide which set of controls we're using.
 	 */
 	if ((r_setup_features & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK) && 
-		(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE)) {
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
 	 	/* this is for planes, where manual override makes sense */
 		source = MIX_OVERRIDE;
+
+		/* mix from the override controls */
+		mix();
+
 	} else if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
-		source = MIX_FMU;
+
+		if (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PPM) {
+			/* FMU has already provided PWM values */
+		} else {
+			/* mix from FMU controls */
+			source = MIX_FMU;
+			mix();
+		}
 	} else {
 		source = MIX_FAILSAFE;
+		/* XXX actually, have no idea what to do here... load hardcoded failsafe controls? */
 	}
 
 #if 0
@@ -173,27 +187,6 @@ mixer_tick(void)
 		}
 	}
 #endif
-	/*
-	 * Run the mixers.
-	 */
-	float	outputs[IO_SERVO_COUNT];
-	unsigned mixed;
-
-	/* mix */
-	mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
-
-	/* scale to PWM and update the servo outputs as required */
-	for (unsigned i = 0; i < mixed; i++) {
-
-		/* save actuator values for FMU readback */
-		r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
-
-		/* scale to servo output */
-		r_page_servos[i] = (outputs[i] * 500.0f) + 1500;
-
-	}
-	for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
-		r_page_servos[i] = 0;
 
 	/*
 	 * Update the servo outputs.
@@ -217,6 +210,33 @@ mixer_tick(void)
 		up_pwm_servo_arm(false);
 		mixer_servos_armed = false;
 	}
+}
+
+static void
+mix()
+{
+	/*
+	 * Run the mixers.
+	 */
+	float	outputs[IO_SERVO_COUNT];
+	unsigned mixed;
+
+	/* mix */
+	mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
+
+	/* scale to PWM and update the servo outputs as required */
+	for (unsigned i = 0; i < mixed; i++) {
+
+		/* save actuator values for FMU readback */
+		r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
+
+		/* scale to servo output */
+		r_page_servos[i] = (outputs[i] * 500.0f) + 1500;
+
+	}
+	for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
+		r_page_servos[i] = 0;
+
 }
 
 static int

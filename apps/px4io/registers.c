@@ -152,7 +152,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* copy channel data */
 		while ((offset < PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
 
-			/* XXX scaling - should be -10000..10000 */
+			/* XXX range-check value? */
 			r_page_controls[offset] = *values;
 
 			offset++;
@@ -163,6 +163,26 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* XXX we should cause a mixer tick ASAP */
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PPM;
+		break;
+
+		/* handle raw PWM input */
+	case PX4IO_PAGE_DIRECT_PWM:
+
+		/* copy channel data */
+		while ((offset < PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
+
+			/* XXX range-check value? */
+			r_page_servos[offset] = *values;
+
+			offset++;
+			num_values--;
+			values++;
+		}
+
+		/* XXX need to force these values to the servos */
+		system_state.fmu_data_received_time = hrt_absolute_time();
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PPM;
 		break;
 
 		/* handle text going to the mixer parser */
