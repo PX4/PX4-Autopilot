@@ -78,7 +78,7 @@ controls_main(void)
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_MIN]        = 1000;
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_CENTER]     = 1500;
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_MAX]        = 2000;
-		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_DEADZONE]   = 50;
+		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_DEADZONE]   = 30;
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_ASSIGNMENT] = i;
 	}
 
