@@ -65,8 +65,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	C_nb(),
 	q(),
 	// subscriptions
-	_sensors(&getSubscriptions(), ORB_ID(sensor_combined), 1), // limit to 1000 Hz
-	_gps(&getSubscriptions(), ORB_ID(vehicle_gps_position), 100), // limit to 10 Hz
+	_sensors(&getSubscriptions(), ORB_ID(sensor_combined), 5), // limit to 200 Hz
+	_gps(&getSubscriptions(), ORB_ID(vehicle_gps_position), 1000), // limit to 1 Hz
 	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
 	// publications
 	_pos(&getPublications(), ORB_ID(vehicle_global_position)),
@@ -208,7 +208,6 @@ void KalmanNav::update()
 		predictFast(dtFast);
 		// count fast frames
 		_navFrames += 1;
-
 	} else _missFast++;
 
 	// slow prediction step
@@ -216,7 +215,6 @@ void KalmanNav::update()
 
 	if (dtSlow > 1.0f / 100) { // 100 Hz
 		_slowTimeStamp = _sensors.timestamp;
-
 		if (dtSlow < 1.0f / 50) predictSlow(dtSlow);
 		else _missSlow ++;
 	}
@@ -227,7 +225,7 @@ void KalmanNav::update()
 	}
 
 	// attitude correction step
-	if (_sensors.timestamp - _attTimeStamp > 1e6 / 20) { // 20 Hz
+	if (_sensors.timestamp - _attTimeStamp > 1e6 / 1) { // 1 Hz
 		_attTimeStamp = _sensors.timestamp;
 		correctAtt();
 	}
