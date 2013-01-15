@@ -159,6 +159,8 @@ protected:
 	control::BlockParam<float> _rAccel;     /**< accelerometer measurement noise */
 	control::BlockParam<float> _magDip;     /**< magnetic inclination with level */
 	control::BlockParam<float> _magDec;     /**< magnetic declination, clockwise rotation */
+	// status
+	bool _positionInitialized; 			    /**< status, if position has been init. */
 	// accessors
 	int32_t getLatDegE7() { return int32_t(lat * 1.0e7 * M_RAD_TO_DEG); }
 	void setLatDegE7(int32_t val) { lat = val / 1.0e7 / M_RAD_TO_DEG; }

@@ -97,50 +97,27 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_rGpsAlt(this, "R_GPS_ALT"),
 	_rAccel(this, "R_ACCEL"),
 	_magDip(this, "MAG_DIP"),
-	_magDec(this, "MAG_DEC")
+	_magDec(this, "MAG_DEC"),
+	_positionInitialized(false)
 {
 	using namespace math;
 
 	// initial state covariance matrix
-	P0 = Matrix::identity(9) * 1.0f;
+	P0 = Matrix::identity(9) * 0.01f;
 	P = P0;
-
-	// wait for gps lock
-	while (1) {
-		struct pollfd fds[1];
-		fds[0].fd = _gps.getHandle();
-		fds[0].events = POLLIN;
-
-		// poll 10 seconds for new data
-		int ret = poll(fds, 1, 10000);
-
-		if (ret > 0)  {
-			updateSubscriptions();
-
-			if (_gps.fix_type > 2) break;
-
-		} else if (ret == 0) {
-			printf("[kalman_demo] waiting for gps lock\n");
-		}
-	}
 
 	// initial state
 	phi = 0.0f;
 	theta = 0.0f;
 	psi = 0.0f;
-	vN = _gps.vel_n;
-	vE = _gps.vel_e;
-	vD = _gps.vel_d;
-	setLatDegE7(_gps.lat);
-	setLonDegE7(_gps.lon);
-	setAltE3(_gps.alt);
+	vN = 0.0f;
+	vE = 0.0f;
+	vD = 0.0f;
+	lat = 0.0f;
+	lon = 0.0f;
+	alt = 0.0f;
 
-	printf("[kalman_demo] initializing EKF state with GPS\n");
-	printf("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
-	       double(phi), double(theta), double(psi));
-	printf("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
-	       double(vN), double(vE), double(vD),
-	       lat, lon, alt);
+
 
 	// initialize quaternions
 	q = Quaternion(EulerAngles(phi, theta, psi));
@@ -198,6 +175,23 @@ void KalmanNav::update()
 
 	// abort update if no new data
 	if (!(sensorsUpdate || gpsUpdate)) return;
+
+	// if received gps for first time, reset position to gps
+	if (!_positionInitialized && gpsUpdate && _gps.fix_type > 2 && _gps.counter_pos_valid > 5) {
+		vN = _gps.vel_n;
+		vE = _gps.vel_e;
+		vD = _gps.vel_d;
+		setLatDegE7(_gps.lat);
+		setLonDegE7(_gps.lon);
+		setAltE3(_gps.alt);
+		_positionInitialized = true;
+		printf("[kalman_demo] initializing EKF state with GPS\n");
+		printf("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
+			   double(phi), double(theta), double(psi));
+		printf("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
+			   double(vN), double(vE), double(vD),
+			   lat, lon, alt);
+	}
 
 	// fast prediciton step
 	// note, using sensors timestamp so we can account
@@ -345,10 +339,10 @@ void KalmanNav::predictFast(float dt)
 		      vN * LDot + g;
 	float vEDot = fE + vN * rotRate * sinL +
 		      vDDot * rotRate * cosL;
-	printf("vNDot: %8.4f, vEDot: %8.4f, vDDot: %8.4f\n",
-	       double(vNDot), double(vEDot), double(vDDot));
-	printf("LDot: %8.4f, lDot: %8.4f, rotRate: %8.4f\n",
-	       double(LDot), double(lDot), double(rotRate));
+	//printf("vNDot: %8.4f, vEDot: %8.4f, vDDot: %8.4f\n",
+		   //double(vNDot), double(vEDot), double(vDDot));
+	//printf("LDot: %8.4f, lDot: %8.4f, rotRate: %8.4f\n",
+		   //double(LDot), double(lDot), double(rotRate));
 
 	// rectangular integration
 	//printf("dt: %8.4f\n", double(dt));
