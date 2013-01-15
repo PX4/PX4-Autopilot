@@ -318,9 +318,11 @@ handle_message(mavlink_message_t *msg)
 			static uint16_t hil_frames = 0;
 			static uint64_t old_timestamp = 0;
 
+			/* sensors general */
+			hil_sensors.timestamp = imu.time_usec;
+
 			/* hil gyro */
 			static const float mrad2rad = 1.0e-3f;
-			hil_sensors.timestamp = timestamp;
 			hil_sensors.gyro_counter = hil_counter;
 			hil_sensors.gyro_raw[0] = imu.xgyro;
 			hil_sensors.gyro_raw[1] = imu.ygyro;
@@ -428,6 +430,9 @@ handle_message(mavlink_message_t *msg)
 			static uint16_t hil_counter = 0;
 			static uint16_t hil_frames = 0;
 			static uint64_t old_timestamp = 0;
+
+			/* sensors general */
+			hil_sensors.timestamp = press.time_usec;
 
 			/* baro */
 			/* TODO, set ground_press/ temp during calib */
