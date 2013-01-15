@@ -77,16 +77,22 @@ static void		i2c_tx_complete(void);
 static DMA_HANDLE	rx_dma;
 static DMA_HANDLE	tx_dma;
 
-uint8_t			rx_buf[64];
-unsigned		rx_len;
-uint8_t			tx_buf[64];
+static uint8_t		rx_buf[64];
+static unsigned		rx_len;
+
+static const uint8_t	junk_buf[] = { 0xff, 0xff, 0xff, 0xff };
+
+static uint8_t		*tx_buf = junk_buf;
+static unsigned		tx_len = sizeof(junk_buf);
+
+static uint8_t		selected_page;
+static uint8_t		selected_offset;
 
 enum {
 	DIR_NONE = 0,
 	DIR_TX = 1,
 	DIR_RX = 2
-};
-unsigned		direction;
+} direction;
 
 void
 i2c_init(void)
@@ -223,10 +229,28 @@ i2c_rx_complete(void)
 	rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
 	stm32_dmastop(rx_dma);
 
-	/* XXX handle reception */
-	for (unsigned i = 0; i < rx_len; i++) {
-		tx_buf[i] = rx_buf[i] + 1;
-		rx_buf[i] = 0;
+	if (rx_len >= 2) {
+		selected_page = rx_buf[0];
+		selected_offset = rx_buf[1];
+
+		/* work out how many registers are being written */
+		unsigned count = (rx_len - 2) / 2;
+		if (count > 0) {
+			registers_set(selected_page, selected_offset, (const uint16_t *)&rx_buf[2], count);
+		} else {
+			/* no registers written, must be an address cycle */
+			uint16_t *regs;
+			unsigned reg_count;
+
+			int ret = registers_get(selected_page, selected_offset, &regs, &reg_count);
+			if (ret == 0) {
+				tx_buf = (uint8_t *)regs;
+				tx_len = reg_count *2;
+			} else {
+				tx_buf = junk_buf;
+				tx_len = sizeof(junk_buf);
+			}
+		}
 	}
 
 	/* prepare for the next transaction */
@@ -242,7 +266,7 @@ i2c_tx_setup(void)
 	 * to deal with bailing out of a transaction while the master is still 
 	 * babbling at us.
 	 */
-	stm32_dmasetup(tx_dma, (uintptr_t)&rDR, (uintptr_t)&tx_buf[0], sizeof(tx_buf),
+	stm32_dmasetup(tx_dma, (uintptr_t)&rDR, (uintptr_t)&tx_buf[0], tx_len,
 		DMA_CCR_DIR |
 		DMA_CCR_CIRC |
 		DMA_CCR_MINC |
@@ -256,7 +280,8 @@ i2c_tx_complete(void)
 {
 	stm32_dmastop(tx_dma);
 
-	/* XXX handle transmit-done */
+	tx_buf = junk_buf;
+	tx_len = sizeof(junk_buf);
 
 	/* prepare for the next transaction */
 	i2c_tx_setup();
