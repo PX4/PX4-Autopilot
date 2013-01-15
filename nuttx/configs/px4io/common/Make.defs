@@ -72,7 +72,7 @@ LDSCRIPT		 = ld.script
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
-  DIRLINK		 = $(TOPDIR)/tools/winlink.sh
+  DIRLINK		 = $(TOPDIR)/tools/copydir.sh
   DIRUNLINK		 = $(TOPDIR)/tools/unlink.sh
   MKDEP			 = $(TOPDIR)/tools/mknulldeps.sh
   ARCHINCLUDES		 = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
@@ -81,7 +81,7 @@ ifeq ($(WINTOOL),y)
 else
   ifeq ($(PX4_WINTOOL),y)
     # Windows-native toolchains (MSYS)
-    DIRLINK		 = $(TOPDIR)/tools/winlink.sh
+    DIRLINK		 = $(TOPDIR)/tools/copydir.sh
     DIRUNLINK		 = $(TOPDIR)/tools/unlink.sh
     MKDEP		 = $(TOPDIR)/tools/mknulldeps.sh
     ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
