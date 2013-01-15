@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/common/up_vfork.c
+ * arch/mips/src/mips32/up_vfork.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -56,21 +56,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* ARM requires at least a 4-byte stack alignment.  For use with EABI and
- * floating point, the stack must be aligned to 8-byte addresses.
- */
-
 #ifndef CONFIG_STACK_ALIGNMENT
-
-/* The symbol  __ARM_EABI__ is defined by GCC if EABI is being used.  If you
- * are not using GCC, make sure that CONFIG_STACK_ALIGNMENT is set correctly!
- */
-
-#  ifdef __ARM_EABI__
-#    define CONFIG_STACK_ALIGNMENT 8
-#  else
-#    define CONFIG_STACK_ALIGNMENT 4
-#  endif
+#  define CONFIG_STACK_ALIGNMENT 4
 #endif
 
 /****************************************************************************
@@ -130,20 +117,39 @@ pid_t up_vfork(const struct vfork_s *context)
   _TCB *child;
   size_t stacksize;
   uint32_t newsp;
+#if CONFIG_MIPS32_FRAMEPOINTER
   uint32_t newfp;
+#endif
   uint32_t stackutil;
   int ret;
 
-  svdbg("r4:%08x r5:%08x r6:%08x r7:%08x\n",
-        context->r4, context->r5, context->r6, context->r7);
-  svdbg("r8:%08x r9:%08x r10:%08x\n",
-        context->r8, context->r9, context->r10);
-  svdbg("fp:%08x sp:%08x lr:%08x\n",
-        context->fp, context->sp, context->lr);
+  svdbg("s0:%08x s1:%08x s2:%08x s3:%08x s4:%08x\n",
+        context->s0, context->s1, context->s2, context->s3, context->s4);
+#if CONFIG_MIPS32_FRAMEPOINTER
+  svdbg("s5:%08x s6:%08x s7:%08x\n",
+        context->s5, context->s6, context->s7);
+#ifdef MIPS32_SAVE_GP
+  svdbg("fp:%08x sp:%08x ra:%08x gp:%08x\n",
+        context->fp, context->sp, context->ra, context->gp);
+#else
+  svdbg("fp:%08x sp:%08x ra:%08x\n",
+        context->fp context->sp, context->ra);
+#endif
+#else
+  svdbg("s5:%08x s6:%08x s7:%08x s8:%08x\n",
+        context->s5, context->s6, context->s7, context->s8);
+#ifdef MIPS32_SAVE_GP
+  svdbg("sp:%08x ra:%08x gp:%08x\n",
+        context->sp, context->ra, context->gp);
+#else
+  svdbg("sp:%08x ra:%08x\n",
+        context->sp, context->ra);
+#endif
+#endif
 
   /* Allocate and initialize a TCB for the child task. */
 
-  child = task_vforksetup((start_t)(context->lr & ~1));
+  child = task_vforksetup((start_t)context->ra);
   if (!child)
     {
       sdbg("task_vforksetup failed\n");
@@ -169,7 +175,7 @@ pid_t up_vfork(const struct vfork_s *context)
       return (pid_t)ERROR;
     }
 
-  /* How much of the parent's stack was utilized?  The ARM uses
+  /* How much of the parent's stack was utilized?  The MIPS uses
    * a push-down stack so that the current stack pointer should
    * be lower than the initial, adjusted stack pointer.  The
    * stack usage should be the difference between those two.
@@ -192,6 +198,7 @@ pid_t up_vfork(const struct vfork_s *context)
 
   /* Was there a frame pointer in place before? */
 
+#if CONFIG_MIPS32_FRAMEPOINTER
   if (context->fp <= (uint32_t)parent->adj_stack_ptr &&
       context->fp >= (uint32_t)parent->adj_stack_ptr - stacksize)
     {
@@ -207,23 +214,37 @@ pid_t up_vfork(const struct vfork_s *context)
         parent->adj_stack_ptr, context->sp, context->fp);
   svdbg("New stack base:%08x SP:%08x FP:%08x\n",
         child->adj_stack_ptr, newsp, newfp);
+#else
+  svdbg("Old stack base:%08x SP:%08x\n",
+        parent->adj_stack_ptr, context->sp);
+  svdbg("New stack base:%08x SP:%08x\n",
+        child->adj_stack_ptr, newsp);
+#endif
 
- /* Update the stack pointer, frame pointer, and volatile registers.  When
-  * the child TCB was initialized, all of the values were set to zero.
-  * up_initial_state() altered a few values, but the return value in R0
-  * should be cleared to zero, providing the indication to the newly started
-  * child thread.
+ /* Update the stack pointer, frame pointer, global pointer and saved
+  * registers.  When the child TCB was initialized, all of the values
+  * were set to zero. up_initial_state() altered a few values, but the
+  * return value in v0 should be cleared to zero, providing the
+  * indication to the newly started child thread.
   */
 
-  child->xcp.regs[REG_R4]  = context->r4;  /* Volatile register r4 */
-  child->xcp.regs[REG_R5]  = context->r5;  /* Volatile register r5 */
-  child->xcp.regs[REG_R6]  = context->r6;  /* Volatile register r6 */
-  child->xcp.regs[REG_R7]  = context->r7;  /* Volatile register r7 */
-  child->xcp.regs[REG_R8]  = context->r8;  /* Volatile register r8 */
-  child->xcp.regs[REG_R9]  = context->r9;  /* Volatile register r9 */
-  child->xcp.regs[REG_R10] = context->r10; /* Volatile register r10 */
+  child->xcp.regs[REG_S0]  = context->s0;  /* Saved register s0 */
+  child->xcp.regs[REG_S1]  = context->s1;  /* Saved register s1 */
+  child->xcp.regs[REG_S2]  = context->s2;  /* Saved register s2 */
+  child->xcp.regs[REG_S3]  = context->s3;  /* Volatile register s3 */
+  child->xcp.regs[REG_S4]  = context->s4;  /* Volatile register s4 */
+  child->xcp.regs[REG_S5]  = context->s5;  /* Volatile register s5 */
+  child->xcp.regs[REG_S6]  = context->s6;  /* Volatile register s6 */
+  child->xcp.regs[REG_S7]  = context->s7;  /* Volatile register s7 */
+#if CONFIG_MIPS32_FRAMEPOINTER
   child->xcp.regs[REG_FP]  = newfp;        /* Frame pointer */
+#else
+  child->xcp.regs[REG_S8]  = context->s8;  /* Volatile register s8 */
+#endif
   child->xcp.regs[REG_SP]  = newsp;        /* Stack pointer */
+#if MIPS32_SAVE_GP
+  child->xcp.regs[REG_GP]  = newsp;        /* Global pointer */
+#endif
 
   /* And, finally, start the child task.  On a failure, task_vforkstart()
    * will discard the TCB by calling task_vforkabort().

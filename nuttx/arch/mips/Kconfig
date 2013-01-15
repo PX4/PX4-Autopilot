@@ -22,6 +22,7 @@ endchoice
 config ARCH_MIPS32
 	bool
 	default n
+	select ARCH_HAVE_VFORK
 
 config ARCH_FAMILY
 	string

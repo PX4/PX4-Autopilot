@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/arm/vfork.S
+ * arch/mips/src/mips32/vfork.S
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -97,42 +97,58 @@
  *
  ************************************************************************************/
 
+	.text
+	.align  2
 	.globl	vfork
 	.type	vfork, function
+	.set	nomips16
+	.ent	vfork
+
 vfork:
 	/* Create a stack frame */
 
-	mov		r0, sp					/* Save the value of the stack on entry */
-	sub		sp, sp, #VFORK_SIZEOF	/* Allocate the structure on the stack */
+	move	$t0, $sp					/* Save the value of the stack on entry */
+	addiu	$sp, $sp, -VFORK_SIZEOF		/* Allocate the structure on the stack */
 
 	/* CPU registers */
-	/* Save the volatile registers */
+	/* Save the saved registers */
 
-	str		r4, [sp, #VFORK_R4_OFFSET]
-	str		r5, [sp, #VFORK_R5_OFFSET]
-	str		r6, [sp, #VFORK_R6_OFFSET]
-	str		r7, [sp, #VFORK_R7_OFFSET]
-	str		r8, [sp, #VFORK_R8_OFFSET]
-	str		r9, [sp, #VFORK_R9_OFFSET]
-	str		r10, [sp, #VFORK_R10_OFFSET]
+	sw		$s0, VFORK_S0_OFFSET($sp)
+	sw		$s1, VFORK_S1_OFFSET($sp)
+	sw		$s2, VFORK_S2_OFFSET($sp)
+	sw		$s3, VFORK_S3_OFFSET($sp)
+	sw		$s4, VFORK_S4_OFFSET($sp)
+	sw		$s5, VFORK_S5_OFFSET($sp)
+	sw		$s6, VFORK_S6_OFFSET($sp)
+	sw		$s7, VFORK_S7_OFFSET($sp)
 
-	/* Save the frame pointer, stack pointer, and return address */
+#ifdef CONFIG_MIPS32_FRAMEPOINTER
+	sw		$fp, VFORK_FP_OFFSET($sp)
+#else
+	sw		$s8, VFORK_S8_OFFSET($sp)
+#endif
 
-	str		fp, [sp, #VFORK_FP_OFFSET]
-	str		r0, [sp, #VFORK_SP_OFFSET]
-	str		lr, [sp, #VFORK_LR_OFFSET]
+	/* Save the global pointer, stack pointer, and return address */
+
+	sw		$t0, VFORK_SP_OFFSET($sp)
+	sw		$ra, VFORK_RA_OFFSET($sp)
+#ifdef MIPS32_SAVE_GP
+	sw		$gp, VFORK_GP_OFFSET($sp)
+#endif
 
 	/* Floating point registers (not yet) */
 
 	/* Then, call up_vfork(), passing it a pointer to the stack structure */
 
-	mov		r0, sp
-	bl		up_vfork
+	move	$a0, $sp
+	jal		up_vfork
+	nop
 
 	/* Release the stack data and return the value returned by up_vfork */
 
-	ldr		lr, [sp, #VFORK_LR_OFFSET]
-	add		sp, sp, #VFORK_SIZEOF
-	mov		pc, lr
+	lw		$ra, VFORK_RA_OFFSET($sp)
+	addiu	$sp, $sp, VFORK_SIZEOF
+	j		$ra
+
+	.end	vfork
 	.size	vfork, .-vfork
-	.end

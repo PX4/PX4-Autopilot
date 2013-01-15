@@ -287,7 +287,11 @@ pid_t task_vforkstart(FAR _TCB *child)
 #endif
 
 #else
-  /* Again exploiting that execv() bug: Check if the child thread is
+  /* The following logic does not appear to work... It gets stuff in an
+   * infinite kill() loop and hogs the processor.  Therefore, it looks
+   * as though CONFIG_SCHED_WAITPID may be a requirement to used vfork().
+   *
+   * Again exploiting that execv() bug: Check if the child thread is
    * still running.
    */
 

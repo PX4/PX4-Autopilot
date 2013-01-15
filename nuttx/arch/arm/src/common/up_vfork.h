@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/common/arm-vfork.h
+ * arch/arm/src/common/up_vfork.h
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -53,6 +53,7 @@
 #define VFORK_R8_OFFSET  (4*4)   /* Volatile register r8 */
 #define VFORK_R9_OFFSET  (5*4)   /* Volatile register r9 */
 #define VFORK_R10_OFFSET (6*4)   /* Volatile register r10 */
+
 #define VFORK_FP_OFFSET  (7*4)   /* Frame pointer */
 #define VFORK_SP_OFFSET  (8*4)   /* Stack pointer*/
 #define VFORK_LR_OFFSET  (9*4)   /* Return address*/
@@ -66,6 +67,8 @@
 #ifndef __ASSEMBLY__
 struct vfork_s
 {
+  /* CPU registers */
+
   uint32_t r4;   /* Volatile register r4 */
   uint32_t r5;   /* Volatile register r5 */
   uint32_t r6;   /* Volatile register r6 */
@@ -73,9 +76,12 @@ struct vfork_s
   uint32_t r8;   /* Volatile register r8 */
   uint32_t r9;   /* Volatile register r9 */
   uint32_t r10;  /* Volatile register r10 */
+
   uint32_t fp;   /* Frame pointer */
   uint32_t sp;   /* Stack pointer*/
   uint32_t lr;   /* Return address*/
+
+  /* Floating point registers (not yet) */
 };
 #endif
 

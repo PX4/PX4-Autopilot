@@ -3952,4 +3952,7 @@
 	  scripts sub-directory
 	* configs/ubw32/ostest:  Configuration configured to use the
 	  kconfig-frontends tools.
+	* arch/mips/src/mips32/up_vfork.c, up_vfork.h, and vfork.S:
+	  Implement vfork() for MIPS32 (no floating point support)
+	* configs/ubw32/ostest: Enable the vfork() test.
 
