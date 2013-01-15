@@ -177,7 +177,10 @@ void KalmanNav::update()
 	if (!(sensorsUpdate || gpsUpdate)) return;
 
 	// if received gps for first time, reset position to gps
-	if (!_positionInitialized && gpsUpdate && _gps.fix_type > 2 && _gps.counter_pos_valid > 5) {
+	if (!_positionInitialized &&
+	    gpsUpdate &&
+	    _gps.fix_type > 2 &&
+	    _gps.counter_pos_valid > 10) {
 		vN = _gps.vel_n;
 		vE = _gps.vel_e;
 		vD = _gps.vel_d;
@@ -187,10 +190,10 @@ void KalmanNav::update()
 		_positionInitialized = true;
 		printf("[kalman_demo] initializing EKF state with GPS\n");
 		printf("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
-			   double(phi), double(theta), double(psi));
+		       double(phi), double(theta), double(psi));
 		printf("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
-			   double(vN), double(vE), double(vD),
-			   lat, lon, alt);
+		       double(vN), double(vE), double(vD),
+		       lat, lon, alt);
 	}
 
 	// fast prediciton step
@@ -340,9 +343,9 @@ void KalmanNav::predictFast(float dt)
 	float vEDot = fE + vN * rotRate * sinL +
 		      vDDot * rotRate * cosL;
 	//printf("vNDot: %8.4f, vEDot: %8.4f, vDDot: %8.4f\n",
-		   //double(vNDot), double(vEDot), double(vDDot));
+	//double(vNDot), double(vEDot), double(vDDot));
 	//printf("LDot: %8.4f, lDot: %8.4f, rotRate: %8.4f\n",
-		   //double(LDot), double(lDot), double(rotRate));
+	//double(LDot), double(lDot), double(rotRate));
 
 	// rectangular integration
 	//printf("dt: %8.4f\n", double(dt));
@@ -455,6 +458,12 @@ void KalmanNav::correctAtt()
 {
 	using namespace math;
 
+	// check for valid data, return if not ready
+	if (_sensors.accelerometer_counter < 10 ||
+	    _sensors.gyro_counter < 10 ||
+	    _sensors.magnetometer_counter < 10)
+		return;
+
 	// trig
 	float cosPhi = cosf(phi);
 	float cosTheta = cosf(theta);
@@ -566,7 +575,7 @@ void KalmanNav::correctAtt()
 		if (isnan(val) || isinf(val)) {
 			// abort correction and return
 			printf("[kalman_demo] numerical failure in att correction\n");
-			// reset P matrix to identity
+			// reset P matrix to P0
 			P = P0;
 			return;
 		}
@@ -649,7 +658,7 @@ void KalmanNav::correctPos()
 			setLatDegE7(_gps.lat);
 			setLonDegE7(_gps.lon);
 			setAltE3(_gps.alt);
-			// reset P matrix to identity
+			// reset P matrix to P0
 			P = P0;
 			return;
 		}
