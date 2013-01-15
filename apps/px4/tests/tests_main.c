@@ -86,32 +86,34 @@ const struct {
 #define OPT_NOALLTEST	(1<<1)
 #define OPT_NOJIGTEST	(1<<2)
 } tests[] = {
-	{"led",			test_led,	0, 0},
-	{"int",			test_int,	0, 0},
-	{"float",		test_float,	0, 0},
-	{"sensors",		test_sensors,	0, 0},
-	{"gpio",		test_gpio,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"hrt",			test_hrt,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"ppm",			test_ppm,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"servo",		test_servo,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"adc",			test_adc,	OPT_NOJIGTEST, 0},
-	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST, 0},
-	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"tone",		test_tone,	0, 0},
-	{"sleep",		test_sleep,	OPT_NOJIGTEST, 0},
-	{"time",		test_time,	OPT_NOJIGTEST, 0},
-	{"perf",		test_perf,	OPT_NOJIGTEST, 0},
-	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST, 0},
-	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"param",		test_param,	OPT_NOJIGTEST, 0},
-	{"bson",		test_bson,	OPT_NOJIGTEST, 0},
-	{"file",		test_file,	OPT_NOJIGTEST, 0},
-	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST, 0},
-	{NULL,			NULL, 		0, 0}
+	{"led",			test_led,	0},
+	{"int",			test_int,	0},
+	{"float",		test_float,	0},
+	{"sensors",		test_sensors,	0},
+	{"gpio",		test_gpio,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"hrt",			test_hrt,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"ppm",			test_ppm,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"servo",		test_servo,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"adc",			test_adc,	OPT_NOJIGTEST},
+	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
+	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"tone",		test_tone,	0},
+	{"sleep",		test_sleep,	OPT_NOJIGTEST},
+	{"time",		test_time,	OPT_NOJIGTEST},
+	{"perf",		test_perf,	OPT_NOJIGTEST},
+	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST},
+	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"param",		test_param,	0},
+	{"bson",		test_bson,	0},
+	{"file",		test_file,	0},
+	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
+	{NULL,			NULL, 		0}
 };
+
+#define NTESTS (sizeof(tests) / sizeof(tests[0]))
 
 static int
 test_help(int argc, char *argv[])
@@ -132,11 +134,7 @@ test_all(int argc, char *argv[])
 	unsigned	i;
 	char		*args[2] = {"all", NULL};
 	unsigned int failcount = 0;
-	unsigned int testscount = 0;
-
-	/* store test results */
-	bool passed[(sizeof(tests) / sizeof(tests[0]))];
-	memset(&passed, 0, sizeof(passed));
+	bool		passed[NTESTS];
 
 	printf("\nRunning all tests...\n\n");
 
@@ -151,14 +149,12 @@ test_all(int argc, char *argv[])
 				fprintf(stderr, "  [%s] \t\t\tFAIL\n", tests[i].name);
 				fflush(stderr);
 				failcount++;
-
+				passed[i] = false;
 			} else {
-				passed[i] = true;
 				printf("  [%s] \t\t\tPASS\n", tests[i].name);
 				fflush(stdout);
+				passed[i] = true;
 			}
-
-			testscount++;
 		}
 	}
 
@@ -181,7 +177,7 @@ test_all(int argc, char *argv[])
 		printf("  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\     \\ \\_____\\  \\ \\_\\ \\_\\ \n");
 		printf("   \\/_/\\/_/   \\/_____/   \\/_____/      \\/_____/   \\/_/\\/_/ \n");
 		printf("\n");
-		printf(" All tests passed (%d of %d)\n", testscount, testscount);
+		printf(" All tests passed (%d of %d)\n", i, i);
 
 	} else {
 		printf("  ______   ______     __     __ \n");
@@ -190,7 +186,7 @@ test_all(int argc, char *argv[])
 		printf("  \\ \\_\\    \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\ \n");
 		printf("   \\/_/     \\/_/\\/_/   \\/_/   \\/_____/ \n");
 		printf("\n");
-		printf(" Some tests failed (%d of %d)\n", failcount, testscount);
+		printf(" Some tests failed (%d of %d)\n", failcount, i);
 	}
 
 	printf("\n");
@@ -248,11 +244,7 @@ int test_jig(int argc, char *argv[])
 	unsigned	i;
 	char		*args[2] = {"jig", NULL};
 	unsigned int failcount = 0;
-	unsigned int testscount = 0;
-
-	/* store test results */
-	bool passed[(sizeof(tests) / sizeof(tests[0]))];
-	memset(&passed, 0, sizeof(passed));
+	bool		passed[NTESTS];
 
 	printf("\nRunning all tests...\n\n");
 	for (i = 0; tests[i].name; i++) {
@@ -265,13 +257,12 @@ int test_jig(int argc, char *argv[])
 				fprintf(stderr, "  [%s] \t\t\tFAIL\n", tests[i].name);
 				fflush(stderr);
 				failcount++;
+				passed[i] = false;
 			} else {
-				passed[i] = true;
 				printf("  [%s] \t\t\tPASS\n", tests[i].name);
 				fflush(stdout);
+				passed[i] = true;
 			}
-
-			testscount++;
 		}
 	}
 
@@ -292,7 +283,7 @@ int test_jig(int argc, char *argv[])
 		printf("  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\     \\ \\_____\\  \\ \\_\\ \\_\\ \n");
 		printf("   \\/_/\\/_/   \\/_____/   \\/_____/      \\/_____/   \\/_/\\/_/ \n");
 		printf("\n");
-		printf(" All tests passed (%d of %d)\n", testscount, testscount);
+		printf(" All tests passed (%d of %d)\n", i, i);
 	} else {
 		printf("  ______   ______     __     __ \n");
 		printf(" /\\  ___\\ /\\  __ \\   /\\ \\   /\\ \\    \n");
@@ -300,7 +291,7 @@ int test_jig(int argc, char *argv[])
 		printf("  \\ \\_\\    \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\ \n");
 		printf("   \\/_/     \\/_/\\/_/   \\/_/   \\/_____/ \n");
 		printf("\n");
-		printf(" Some tests failed (%d of %d)\n", failcount, testscount);
+		printf(" Some tests failed (%d of %d)\n", failcount, i);
 	}
 	printf("\n");
 
@@ -309,7 +300,7 @@ int test_jig(int argc, char *argv[])
 	unsigned int k;
 	for (k = 0; k < i; k++)
 	{
-		if (!passed[k] && !(tests[k].options & OPT_NOJIGTEST))
+		if (!passed[i] && !(tests[k].options & OPT_NOJIGTEST))
 		{
 			printf(" [%s] to obtain details, please re-run with\n\t nsh> tests %s\n\n", tests[k].name, tests[k].name);
 		}

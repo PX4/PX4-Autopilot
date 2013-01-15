@@ -70,6 +70,7 @@ namespace std
 #endif
 
   using ::strtol;
+  using ::strtoul;
   using ::strtod;
 
   using ::malloc;

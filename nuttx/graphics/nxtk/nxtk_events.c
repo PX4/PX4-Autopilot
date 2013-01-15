@@ -76,6 +76,9 @@ static void nxtk_mousein(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
 static void nxtk_kbdin(NXWINDOW hwnd, uint8_t nch, const uint8_t *ch,
                        FAR void *arg);
 #endif
+#ifdef CONFIG_NX_MULTIUSER
+static void nxtk_blocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2);
+#endif
 
 /****************************************************************************
  * Private Data
@@ -94,6 +97,9 @@ const struct nx_callback_s g_nxtkcb =
 #endif
 #ifdef CONFIG_NX_KBD
   , nxtk_kbdin    /* kbdin */
+#endif
+#ifdef CONFIG_NX_MULTIUSER
+  , nxtk_blocked
 #endif
 };
 
@@ -255,9 +261,20 @@ static void nxtk_mousein(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
 
   nxgl_vectoradd(&abspos, pos, &fwnd->wnd.bounds.pt1);
 
+  /* In order to deliver mouse release events to the same window where the
+   * mouse down event happened, we store the initial mouse down location.
+   */
+
+  if (fwnd->mbutton == 0 && buttons != 0)
+    {
+      fwnd->mpos = abspos;
+    }
+
+  fwnd->mbutton = buttons;
+
   /* Is the mouse position inside of the client window region? */
 
-  if (fwnd->fwcb->mousein && nxgl_rectinside(&fwnd->fwrect, &abspos))
+  if (fwnd->fwcb->mousein && nxgl_rectinside(&fwnd->fwrect, &fwnd->mpos))
     {
       nxgl_vectsubtract(&relpos, &abspos, &fwnd->fwrect.pt1);
       fwnd->fwcb->mousein((NXTKWINDOW)fwnd, &relpos, buttons, fwnd->fwarg);
@@ -265,7 +282,7 @@ static void nxtk_mousein(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
 
   /* If the mouse position inside the toobar region? */
 
-  else if (fwnd->tbcb->mousein && nxgl_rectinside(&fwnd->tbrect, &abspos))
+  else if (fwnd->tbcb->mousein && nxgl_rectinside(&fwnd->tbrect, &fwnd->mpos))
     {
       nxgl_vectsubtract(&relpos, &abspos, &fwnd->tbrect.pt1);
       fwnd->tbcb->mousein((NXTKWINDOW)fwnd, &relpos, buttons, fwnd->tbarg);
@@ -288,6 +305,24 @@ static void nxtk_kbdin(NXWINDOW hwnd, uint8_t nch, const uint8_t *ch,
   if (fwnd->fwcb->kbdin)
     {
       fwnd->fwcb->kbdin((NXTKWINDOW)fwnd, nch, ch, fwnd->fwarg);
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: nxtk_blocked
+ ****************************************************************************/
+
+#ifdef CONFIG_NX_MULTIUSER
+static void nxtk_blocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2)
+{
+  FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hwnd;
+
+  /* Only the client window gets keyboard input */
+
+  if (fwnd->fwcb->blocked)
+    {
+      fwnd->fwcb->blocked((NXTKWINDOW)fwnd, fwnd->fwarg, arg2);
     }
 }
 #endif

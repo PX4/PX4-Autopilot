@@ -1,7 +1,7 @@
 /****************************************************************************
  * binfmt/binfmt_loadmodule.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/binfmt.h>
+#include <nuttx/binfmt/binfmt.h>
 
 #include "binfmt_internal.h"
 
@@ -68,6 +68,62 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: exec_dtors
+ *
+ * Description:
+ *   Execute C++ static constructors.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+static inline int exec_dtors(FAR const struct binary_s *binp)
+{
+  binfmt_dtor_t *dtor = binp->dtors;
+#ifdef CONFIG_ADDRENV
+  hw_addrenv_t oldenv;
+  int ret;
+#endif
+  int i;
+
+  /* Instantiate the address enviroment containing the destructors */
+
+#ifdef CONFIG_ADDRENV
+  ret = up_addrenv_select(binp->addrenv, &oldenv);
+  if (ret < 0)
+    {
+      bdbg("up_addrenv_select() failed: %d\n", ret);
+      return ret;
+    }
+#endif
+
+  /* Execute each destructor */
+
+  for (i = 0; i < binp->ndtors; i++)
+    {
+      bvdbg("Calling dtor %d at %p\n", i, (FAR void *)dtor);
+
+      (*dtor)();
+      dtor++;
+    }
+
+  /* Restore the address enviroment */
+
+#ifdef CONFIG_ADDRENV
+  return up_addrenv_restore(oldenv);
+#else
+  return OK;
+#endif
+}
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -76,7 +132,12 @@
  *
  * Description:
  *   Unload a (non-executing) module from memory.  If the module has
- *   been started (via exec_module), calling this will be fatal.
+ *   been started (via exec_module) and has not exited, calling this will
+ *   be fatal.
+ *
+ *   However, this function must be called after the module exist.  How
+ *   this is done is up to your logic.  Perhaps you register it to be
+ *   called by on_exit()?
  *
  * Returned Value:
  *   This is a NuttX internal function so it follows the convention that
@@ -85,22 +146,52 @@
  *
  ****************************************************************************/
 
-int unload_module(FAR const struct binary_s *bin)
+int unload_module(FAR const struct binary_s *binp)
 {
-  if (bin)
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+  int ret;
+#endif
+  int i;
+ 
+  if (binp)
     {
-      if (bin->ispace)
+      /* Execute C++ desctructors */
+
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+      ret = exec_dtors(binp);
+      if (ret < 0)
         {
-          bvdbg("Unmapping ISpace: %p\n", bin->ispace);
-          munmap(bin->ispace, bin->isize);
+          bdbg("exec_ctors() failed: %d\n", ret);
+          set_errno(-ret);
+          return ERROR;
+        }
+#endif
+
+      /* Unmap mapped address spaces */
+
+      if (binp->mapped)
+        {
+          bvdbg("Unmapping address space: %p\n", binp->mapped);
+
+          munmap(binp->mapped, binp->mapsize);
         }
 
-      if (bin->dspace)
+      /* Free allocated address spaces */
+
+      for (i = 0; i < BINFMT_NALLOC; i++)
         {
-          bvdbg("Freeing DSpace: %p\n", bin->dspace);
-          free(bin->dspace);
+          if (binp->alloc[i])
+            {
+              bvdbg("Freeing alloc[%d]: %p\n", i, binp->alloc[i]);
+              free((FAR void *)binp->alloc[i]);
+            }
         }
+
+      /* Notice that the address environment is not destroyed.  This should
+       * happen automatically when the task exits.
+       */
     }
+
   return OK;
 }
 

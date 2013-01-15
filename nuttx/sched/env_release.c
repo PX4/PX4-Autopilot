@@ -94,11 +94,11 @@ int env_release(FAR _TCB *ptcb)
         {
           /* Check the reference count on the environment structure */
 
-          if ( envp->ev_crefs <= 1)
+          if (envp->ev_crefs <= 1)
             {
               /* Decrementing the reference count will destroy the environment */
 
-              sched_free( envp ); /* plain free() should be fine here */
+              sched_free(envp);
             }
           else
             {

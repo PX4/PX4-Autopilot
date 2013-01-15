@@ -246,7 +246,7 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
 {
   FAR _TCB *ptcb;
   FAR join_t *pjoin;
-  int status;
+  int ret;
   int priority;
 #if CONFIG_RR_INTERVAL > 0
   int policy;
@@ -268,13 +268,27 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
       return ENOMEM;
     }
 
-  /* Associate file descriptors with the new task */
+  /* Share the address environment of the parent task.  NOTE:  Only tasks
+   * created throught the nuttx/binfmt loaders may have an address
+   * environment.
+   */
 
-  status = sched_setuppthreadfiles(ptcb);
-  if (status != OK)
+#ifdef CONFIG_ADDRENV
+  ret = up_addrenv_share((FAR const _TCB *)g_readytorun.head, ptcb);
+  if (ret < 0)
     {
       sched_releasetcb(ptcb);
-      return status;
+      return -ret;
+    }
+#endif
+
+  /* Associate file descriptors with the new task */
+
+  ret = sched_setuppthreadfiles(ptcb);
+  if (ret != OK)
+    {
+      sched_releasetcb(ptcb);
+      return ret;
     }
 
   /* Share the parent's envionment */
@@ -292,8 +306,8 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
 
   /* Allocate the stack for the TCB */
 
-  status = up_create_stack(ptcb, attr->stacksize);
-  if (status != OK)
+  ret = up_create_stack(ptcb, attr->stacksize);
+  if (ret != OK)
     {
       sched_releasetcb(ptcb);
       sched_free(pjoin);
@@ -310,8 +324,8 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
       /* Get the priority for this thread. */
 
       struct sched_param param;
-      status = sched_getparam(0, &param);
-      if (status == OK)
+      ret = sched_getparam(0, &param);
+      if (ret == OK)
         {
           priority = param.sched_priority;
         }
@@ -348,11 +362,9 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
 
   /* Initialize the task control block */
 
-  status  = task_schedsetup(ptcb, priority, pthread_start,
-                            (main_t)start_routine);
-  if (status != OK)
+  ret  = task_schedsetup(ptcb, priority, pthread_start, (main_t)start_routine);
+  if (ret != OK)
     {
-
       sched_releasetcb(ptcb);
       sched_free(pjoin);
       return EBUSY;
@@ -390,21 +402,21 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
 
   /* Initialize the semaphores in the join structure to zero. */
 
-  status = sem_init(&pjoin->data_sem, 0, 0);
-  if (status == OK)
+  ret = sem_init(&pjoin->data_sem, 0, 0);
+  if (ret == OK)
     {
-      status = sem_init(&pjoin->exit_sem, 0, 0);
+      ret = sem_init(&pjoin->exit_sem, 0, 0);
     }
 
   /* Activate the task */
 
   sched_lock();
-  if (status == OK)
+  if (ret == OK)
     {
-      status = task_activate(ptcb);
+      ret = task_activate(ptcb);
     }
 
-  if (status == OK)
+  if (ret == OK)
     {
       /* Wait for the task to actually get running and to register
        * its join_t
@@ -414,8 +426,15 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
 
       /* Return the thread information to the caller */
 
-      if (thread) *thread = (pthread_t)pid;
-      if (!pjoin->started) status = ERROR;
+      if (thread)
+       {
+         *thread = (pthread_t)pid;
+       }
+
+      if (!pjoin->started)
+        {
+          ret = EINVAL;
+        }
 
       sched_unlock();
       (void)sem_destroy(&pjoin->data_sem);
@@ -428,8 +447,8 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
       (void)sem_destroy(&pjoin->exit_sem);
       sched_releasetcb(ptcb);
       sched_free(pjoin);
-      return EIO;
+      ret = EIO;
     }
 
-  return OK;
+  return ret;
 }

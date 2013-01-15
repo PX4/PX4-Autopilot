@@ -87,7 +87,7 @@ void nxfe_redrawreq(FAR struct nxbe_window_s *wnd, FAR const struct nxgl_rect_s 
   outmsg.more  = false;
   nxgl_rectoffset(&outmsg.rect, rect, -wnd->bounds.pt1.x, -wnd->bounds.pt1.y);
 
-  (void)nxmu_sendclient(wnd->conn, &outmsg, sizeof(struct nxclimsg_redraw_s));
+  (void)nxmu_sendclientwindow(wnd, &outmsg, sizeof(struct nxclimsg_redraw_s));
 }
 
 

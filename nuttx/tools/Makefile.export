@@ -37,10 +37,16 @@ include $(TOPDIR)/.config
 include $(EXPORTDIR)/Make.defs
 
 ifdef ARCHSCRIPT
-LDPATH = ${shell echo "$(ARCHSCRIPT)" | sed -e "s/^-T[ ]*//g"}
+ifeq ($(WINTOOL),y)
+LDPATH = ${shell cygpath -u $(patsubst -T,,$(ARCHSCRIPT))}
+else
+LDPATH = $(patsubst -T,,$(ARCHSCRIPT))
+endif
+
 LDNAME = ${shell basename ${LDPATH}}
 LDDIR = ${shell dirname ${LDPATH}}
 endif
+
 ARCHSUBDIR = "arch/$(CONFIG_ARCH)/src"
 ARCHDIR ="$(TOPDIR)/$(ARCHSUBDIR)"
 
@@ -61,7 +67,7 @@ endif
 	@echo "ARCHCFLAGS=\"$(ARCHCFLAGS) $(ARCHCPUFLAGS)\"" >> $(EXPORTDIR)/makeinfo.sh
 	@echo "ARCHCXXFLAGS=\"$(ARCHCXXFLAGS) $(ARCHCPUFLAGS)\"" >> $(EXPORTDIR)/makeinfo.sh
 	@echo "CROSSDEV=\"$(CROSSDEV)\"" >> $(EXPORTDIR)/makeinfo.sh
-	@chmod 755 $(EXPORTDIR)/makeinfo.sh
+	$(Q) chmod 755 $(EXPORTDIR)/makeinfo.sh
 
 clean:
-	@rm -f $(EXPORTDIR)/makeinfo.sh
+	$(Q) rm -f $(EXPORTDIR)/makeinfo.sh

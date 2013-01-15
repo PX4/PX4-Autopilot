@@ -49,3 +49,4 @@ mavlink/include/mavlink/v0.9/
 .swp
 core
 .gdbinit
+mkdeps

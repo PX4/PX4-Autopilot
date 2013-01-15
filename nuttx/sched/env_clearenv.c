@@ -79,5 +79,3 @@ int clearenv(void)
 
 #endif /* CONFIG_DISABLE_ENVIRON */
 
-
-

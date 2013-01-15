@@ -95,7 +95,7 @@ cycletime(void)
 
 	lasttime = cycles;
 
-	return (basetime + cycles) / 168;
+	return (basetime + cycles) / 168;	/* XXX magic number */
 }
 
 /****************************************************************************
@@ -133,9 +133,9 @@ int test_time(int argc, char *argv[])
 	lowdelta = abs(delta / 100);
 
 	/* loop checking the time */
-	for (unsigned i = 0; i < 100000; i++) {
+	for (unsigned i = 0; i < 100; i++) {
 
-		usleep(rand() * 10);
+		usleep(rand());
 
 		uint32_t flags = irqsave();
 
@@ -154,7 +154,7 @@ int test_time(int argc, char *argv[])
 			fprintf(stderr, "h %llu  c %llu  d %lld\n", h, c, delta - lowdelta);
 	}
 
-	printf("Maximum jitter %lld\n", maxdelta);
+	printf("Maximum jitter %lldus\n", maxdelta);
 
 	return 0;
 }

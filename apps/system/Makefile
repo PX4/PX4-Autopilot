@@ -41,31 +41,36 @@ SUBDIRS = free i2c install readline poweroff ramtron sdcard sysinfo
 
 # Create the list of installed runtime modules (INSTALLED_DIRS)
 
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define ADD_DIRECTORY
-INSTALLED_DIRS  += ${shell if [ -r $1/Makefile ]; then echo "$1"; fi}
+  INSTALLED_DIRS  += $(if $(wildcard .\$1\Makefile),$1,)
 endef
+else
+define ADD_DIRECTORY
+  INSTALLED_DIRS  += $(if $(wildcard ./$1/Makefile),$1,)
+endef
+endif
 
 $(foreach DIR, $(SUBDIRS), $(eval $(call ADD_DIRECTORY,$(DIR))))
 
 all: nothing
 .PHONY: nothing context depend clean distclean
 
+define SDIR_template
+$(1)_$(2):
+	$(Q) $(MAKE) -C $(1) $(2) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
+endef
+
+$(foreach SDIR, $(INSTALLED_DIRS), $(eval $(call SDIR_template,$(SDIR),depend)))
+$(foreach SDIR, $(INSTALLED_DIRS), $(eval $(call SDIR_template,$(SDIR),clean)))
+$(foreach SDIR, $(INSTALLED_DIRS), $(eval $(call SDIR_template,$(SDIR),distclean)))
+
 nothing:
 
 context:
 
-depend:
-	@for dir in $(INSTALLED_DIRS) ; do \
-		$(MAKE) -C $$dir depend TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+depend: $(foreach SDIR, $(INSTALLED_DIRS), $(SDIR)_depend)
 
-clean:
-	@for dir in $(INSTALLED_DIRS) ; do \
-		$(MAKE) -C $$dir clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+clean: $(foreach SDIR, $(INSTALLED_DIRS), $(SDIR)_clean)
 
-distclean: clean
-	@for dir in $(INSTALLED_DIRS) ; do \
-		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
-
+distclean: clean $(foreach SDIR, $(INSTALLED_DIRS), $(SDIR)_distclean)
