@@ -226,7 +226,7 @@ CONFIG_HEAP_SIZE=
 
 CONFIG_MMCSD=y
 CONFIG_MMCSD_SPI=y
-CONFIG_MMCSD_SDIO=y
+CONFIG_MTD=y
 
 ##########################################
 # RGMP specific configuration

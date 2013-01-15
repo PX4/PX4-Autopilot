@@ -394,7 +394,7 @@ CONFIG_USER_ENTRYPOINT="helloxx_main"
 
 CONFIG_MMCSD=y
 CONFIG_MMCSD_SPI=y
-CONFIG_MMCSD_SDIO=y
+CONFIG_MTD=y
 
 #
 # uClibc++ Standard C++ Library
