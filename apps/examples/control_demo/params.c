@@ -14,9 +14,9 @@ PARAM_DEFINE_FLOAT(FWB_R_LP, 300.0f); // yaw rate low pass cut freq
 PARAM_DEFINE_FLOAT(FWB_R_HP, 1.0f); // yaw rate high pass
 
 // stabilization mode
-PARAM_DEFINE_FLOAT(FWB_P2AIL, 0.5f); // roll rate 2 aileron
-PARAM_DEFINE_FLOAT(FWB_Q2ELV, 0.2f); // pitch rate 2 elevator
-PARAM_DEFINE_FLOAT(FWB_R2RDR, 0.2f); // yaw rate 2 rudder
+PARAM_DEFINE_FLOAT(FWB_P2AIL, 0.3f); // roll rate 2 aileron
+PARAM_DEFINE_FLOAT(FWB_Q2ELV, 0.1f); // pitch rate 2 elevator
+PARAM_DEFINE_FLOAT(FWB_R2RDR, 0.1f); // yaw rate 2 rudder
 
 //  psi -> phi -> p
 PARAM_DEFINE_FLOAT(FWB_PSI2PHI, 0.5f);      // heading 2 roll
