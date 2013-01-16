@@ -107,6 +107,8 @@ endif
 ROOTDEPPATH = --dep-path .
 VPATH = 
 
+MAXOPTIMIZATION = -Os
+
 # Build targets
 
 all: .built

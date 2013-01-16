@@ -64,8 +64,9 @@ VPATH		=
 APPNAME		= i2c
 PRIORITY	= SCHED_PRIORITY_DEFAULT
 STACKSIZE	= 2048
+MAXOPTIMIZATION = -Os
 
-# Build targets
+# Build Targets
 
 all:	.built
 .PHONY: context .depend depend clean distclean
