@@ -475,3 +475,9 @@
 	  binfmt.
 	* builtin/binfs.c:  Move apps/builtin/binfs.c to fs/binfs/fs_binfs.c
 	  CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS
+	* apps/include/builtin.h:  Some of the content of
+	  apps/include/apps.h moved to include/nuttx/binfmt/builtin.h.
+	  apps/include/apps.h renamed builtin.h
+	* pps/builtin/exec_builtins.c:  Move utility builtin
+	  utility functions from apps/builtin/exec_builtins.c to
+	  binfmt/libbuiltin/libbuiltin_utils.c

@@ -7,7 +7,6 @@ Contents
   General
   Directory Location
   Built-In Applications
-  Built-In Startup main() function
   NuttShell (NSH) Built-In Commands
   Synchronous Built-In Commands
   Application Configuration File
@@ -62,7 +61,7 @@ collected during the make context build phase.
 
 To execute an application function:
 
-  exec_builtin() is defined in the nuttx/include/apps/apps.h 
+  exec_builtin() is defined in the nuttx/include/apps/builtin.h 
 
 NuttShell (NSH) Built-In Commands
 ---------------------------------

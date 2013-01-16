@@ -42,22 +42,11 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/fs/ioctl.h>
-
 #ifdef CONFIG_FS_BINFS
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* This is the BINFS ioctl that can be used to recover the filename
- * associated with the builtin task.
- */
-
-#define FIOC_FILENAME FIOC_USER /* IN:  FAR const char ** pointer 
-                                 * OUT: Pointer to a persistent file name
-                                 *      (Guaranteed to persist while the file
-                                 *      is open).
-                                 */
 
 /****************************************************************************
  * Type Definitions

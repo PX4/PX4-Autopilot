@@ -42,7 +42,6 @@
 #include <nuttx/config.h>
 
 #include <nuttx/binfmt/builtin.h>
-#include <apps/apps.h>
 
 /****************************************************************************
  * Private Types

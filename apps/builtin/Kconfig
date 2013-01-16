@@ -3,21 +3,13 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config BUILTIN
-	bool "Support Builtin Applications"
-	default n
-	---help---
-		Enable support for builtin applications.  This features assigns a string
-		name to an application.  This feature is also the underlying requirement
-		to support built-in applications in the NuttShell (NSH).
-
 if BUILTIN
 
 config BUILTIN_PROXY_STACKSIZE
 	int "Builtin Proxy Stack Size"
 	default 1024
 	---help---
-		If exec_builting uses I/O redirection options, then it will require
+		If exec_builtin uses I/O redirection options, then it will require
 		an intermediary/proxy task to muck with the file descriptors.  This
 		configuration item specifies the stack size used for the proxy. Default:
 		1024 bytes.

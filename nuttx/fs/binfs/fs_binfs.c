@@ -54,9 +54,8 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/binfs.h>
 #include <nuttx/fs/dirent.h>
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/binfmt/builtin.h>
-
-#include <apps/apps.h>
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_FS_BINFS)
 

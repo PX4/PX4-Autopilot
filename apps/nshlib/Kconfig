@@ -15,7 +15,7 @@ if NSH_LIBRARY
 config NSH_BUILTIN_APPS
 	bool "Enable built-in applications"
 	default y
-	depends on BUILTIN
+	select BUILTIN
 	---help---
 		Support external registered, "built-in" applications that can be
 		executed from the NSH command line (see apps/README.txt for

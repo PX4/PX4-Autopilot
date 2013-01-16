@@ -59,7 +59,7 @@
 #endif
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-#  include <apps/apps.h>
+#  include <nuttx/binfmt/builtin.h>
 #endif
 #include <apps/nsh.h>
 

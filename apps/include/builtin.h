@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/include/apps.h
+ * apps/include/builtin.h
  *
  * Originally by:
  *
@@ -40,8 +40,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_INCLUDE_APPS_H
-#define __APPS_INCLUDE_APPS_H
+#ifndef __APPS_INCLUDE_BUILTIN_H
+#define __APPS_INCLUDE_BUILTIN_H
 
 /****************************************************************************
  * Included Files
@@ -50,9 +50,8 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
-#include <stdint.h>
 
-#include <nuttx/fs/ioctl.h>
+#include <nuttx/binfmt/builtin.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -77,42 +76,6 @@ extern "C" {
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: builtin_isavail
- *
- * Description:
- *   Checks for availabiliy of application registerred during compile time.
- *
- * Input Parameter:
- *   filename - Name of the linked-in binary to be started.
- *
- * Returned Value:
- *   This is an end-user function, so it follows the normal convention:
- *   Returns index of builtin application. If it is not found then it
- *   returns -1 (ERROR) and sets errno appropriately.
- *
- ****************************************************************************/
-
-EXTERN int builtin_isavail(FAR const char *appname);
-
-/****************************************************************************
- * Name: builtin_getname
- *
- * Description:
- *   Returns pointer to a name of built-in application pointed by the
- *   index.
- *
- * Input Parameter:
- *   index, from 0 and on ...
- *
- * Returned Value:
- *   Returns valid pointer pointing to the app name if index is valid.
- *   Otherwise NULL is returned.
- *
- ****************************************************************************/
-
-EXTERN const char *builtin_getname(int index);
 
 /****************************************************************************
  * Name: exec_builtin
@@ -145,4 +108,4 @@ EXTERN int exec_builtin(FAR const char *appname, FAR const char **argv,
 }
 #endif
 
-#endif /* __APPS_INCLUDE_APPS_H */
+#endif /* __APPS_INCLUDE_BUILTIN_H */

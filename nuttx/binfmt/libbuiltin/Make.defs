@@ -1,7 +1,7 @@
 ############################################################################
-# nxflat/Makefile
+# binfmt/libbuiltin/Make.defs
 #
-#   Copyright (C) 2007-2009, 2012-2013 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,71 +33,17 @@
 #
 ############################################################################
 
--include $(TOPDIR)/Make.defs
-DELIM ?= $(strip /)
+# Legacy configurations don't set CONFIG_BUILTIN
+# ifeq ($(CONFIG_BUILTIN),y)
 
-ifeq ($(WINTOOL),y)
-INCDIROPT = -w
-endif
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" "$(TOPDIR)$(DELIM)sched"}
+# Builtin application interfaces
 
-# Basic BINFMT source files 
+BINFMT_CSRCS += libbuiltin_utils.c
 
-BINFMT_ASRCS  =
-BINFMT_CSRCS  = binfmt_globals.c binfmt_register.c binfmt_unregister.c
-BINFMT_CSRCS += binfmt_loadmodule.c binfmt_unloadmodule.c binfmt_execmodule.c
-BINFMT_CSRCS += binfmt_exec.c binfmt_dumpmodule.c
+# Hook the libelf subdirectory into the build
 
-ifeq ($(CONFIG_BINFMT_EXEPATH),y)
-BINFMT_CSRCS += binfmt_exepath.c
-endif
+VPATH += libbuiltin
+SUBDIRS += libbuiltin
+DEPPATH += --dep-path libbuiltin
 
-# Symbol table source files
-
-BINFMT_CSRCS += symtab_findbyname.c symtab_findbyvalue.c
-BINFMT_CSRCS += symtab_findorderedbyname.c symtab_findorderedbyvalue.c
-
-# Add configured binary modules
-
-VPATH = 
-SUBDIRS =
-DEPPATH = --dep-path .
-
-include libnxflat$(DELIM)Make.defs
-include libelf$(DELIM)Make.defs
-include libbuiltin$(DELIM)Make.defs
-
-BINFMT_AOBJS = $(BINFMT_ASRCS:.S=$(OBJEXT))
-BINFMT_COBJS = $(BINFMT_CSRCS:.c=$(OBJEXT))
-
-BINFMT_SRCS = $(BINFMT_ASRCS) $(BINFMT_CSRCS)
-BINFMT_OBJS = $(BINFMT_AOBJS) $(BINFMT_COBJS)
-
-BIN = libbinfmt$(LIBEXT)
-
-all: $(BIN)
-
-$(BINFMT_AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(BINFMT_COBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-$(BIN): $(BINFMT_OBJS)
-	$(call ARCHIVE, $@, $(BINFMT_OBJS))
-
-.depend: Makefile $(BINFMT_SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
-	$(Q) touch $@
-
-depend: .depend
-
-clean:
-	$(call DELFILE, $(BIN))
-	$(call CLEAN)
-
-distclean: clean
-	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
-
--include Make.dep
+# endif

@@ -105,7 +105,11 @@
 #define FIOC_OPTIMIZE   _FIOC(0x0003)     /* IN:  None
                                            * OUT: None
                                            */
-#define FIOC_USER       _FIOC(0x0004)     /* File system-specific */
+#define FIOC_FILENAME   _FIOC(0x0004)     /* IN:  FAR const char ** pointer 
+                                           * OUT: Pointer to a persistent file name
+                                           *      (Guaranteed to persist while the file
+                                           *      is open).
+                                           */
 
 /* NuttX file system ioctl definitions **************************************/
 

@@ -54,7 +54,7 @@
 #include <debug.h>
 
 #include <nuttx/binfmt/builtin.h>
-#include <apps/apps.h>
+#include <apps/builtin.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -364,50 +364,6 @@ errout:
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: builtin_getname
- *
- * Description:
- *   Return the name of the application at index in the table of builtin
- *   applications.
- *
- ****************************************************************************/
-
-const char *builtin_getname(int index)
-{
-  if (index < 0 || index >= number_builtins())
-   {
-     return NULL;
-   }
-
-  return g_builtins[index].name;
-}
-
-/****************************************************************************
- * Name: builtin_isavail
- *
- * Description:
- *   Return the index into the table of applications for the applicaiton with
- *   the name 'appname'.
- *
- ****************************************************************************/
-
-int builtin_isavail(FAR const char *appname)
-{
-  int i;
-
-  for (i = 0; g_builtins[i].name; i++)
-    {
-      if (!strcmp(g_builtins[i].name, appname))
-        {
-          return i;
-        }
-    }
-
-  set_errno(ENOENT);
-  return ERROR;
-}
 
 /****************************************************************************
  * Name: exec_builtin

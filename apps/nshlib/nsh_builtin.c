@@ -54,7 +54,8 @@
 #include <errno.h>
 #include <string.h>
 
-#include <apps/apps.h>
+#include <nuttx/binfmt/builtin.h>
+#include <apps/builtin.h>
 
 #include "nsh.h"
 #include "nsh_console.h"
