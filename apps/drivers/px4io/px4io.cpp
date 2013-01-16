@@ -78,6 +78,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <px4io/protocol.h>
 #include "uploader.h"
@@ -117,6 +118,7 @@ private:
 	int			_t_actuators;	///< actuator output topic
 	int			_t_armed;	///< system armed control topic
 	int 			_t_vstatus;	///< system / vehicle status
+	int			_t_param;	///< parameter update topic
 
 	/* advertised topics */
 	orb_advert_t 		_to_input_rc;	///< rc inputs from io
@@ -152,6 +154,11 @@ private:
 	 * Update IO's arming-related state
 	 */
 	int			io_set_arming_state();
+
+	/**
+	 * Push RC channel configuration to IO.
+	 */
+	int			io_set_rc_config();
 
 	/**
 	 * Fetch status and alarms from IO
@@ -321,9 +328,15 @@ PX4IO::init()
 		log("failed getting parameters from PX4IO");
 		return ret;
 	}
-
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
 		_max_rc_input = RC_INPUT_MAX_CHANNELS;
+
+	/* publish RC config to IO */
+	ret = io_set_rc_config();
+	if (ret != OK) {
+		log("failed to update RC input config");
+		return ret;
+	}
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
 	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
@@ -353,7 +366,7 @@ PX4IO::init()
 	if (!_connected) {
 		/* error here will result in everything being torn down */
 		log("PX4IO not responding");
-		ret = -EIO;
+		return -EIO;
 	}
 
 	return OK;
@@ -386,14 +399,19 @@ PX4IO::task_main()
 	_t_vstatus = orb_subscribe(ORB_ID(vehicle_status));
 	orb_set_interval(_t_vstatus, 200);		/* 5Hz update rate max. */
 
+	_t_param = orb_subscribe(ORB_ID(parameter_update));
+	orb_set_interval(_t_param, 500);		/* 2Hz update rate max. */
+
 	/* poll descriptor */
-	pollfd fds[3];
+	pollfd fds[4];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
 	fds[1].fd = _t_armed;
 	fds[1].events = POLLIN;
 	fds[2].fd = _t_vstatus;
 	fds[2].events = POLLIN;
+	fds[3].fd = _t_param;
+	fds[3].events = POLLIN;
 
 	debug("ready");
 
@@ -459,6 +477,20 @@ PX4IO::task_main()
 		io_publish_mixed_controls();
 		io_publish_pwm_outputs();
 
+		/*
+		 * If parameters have changed, re-send RC mappings to IO
+		 *
+		 * XXX this may be a bit spammy
+		 */
+		if (fds[3].revents & POLLIN) {
+			parameter_update_s pupdate;
+
+			/* copy to reset the notification */
+			orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
+
+			/* re-upload RC input config as it may have changed */
+			io_set_rc_config();
+		}
 	}
 
 	unlock();
@@ -520,6 +552,85 @@ PX4IO::io_set_arming_state()
 	}
 
 	return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
+}
+
+int
+PX4IO::io_set_rc_config()
+{
+	unsigned offset = 0;
+	int input_map[_max_rc_input];
+	int32_t ichan;
+	int ret = OK;
+
+	/*
+	 * Generate the input channel -> control channel mapping table;
+	 * assign RC_MAP_ROLL/PITCH/YAW/THROTTLE to the canonical
+	 * controls.
+	 */
+	for (unsigned i = 0; i < _max_rc_input; i++)
+		input_map[i] = -1;
+
+	param_get(param_find("RC_MAP_ROLL"), &ichan);
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
+		input_map[ichan] = 0;
+
+	param_get(param_find("RC_MAP_PITCH"), &ichan);
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
+		input_map[ichan] = 1;
+
+	param_get(param_find("RC_MAP_YAW"), &ichan);
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
+		input_map[ichan] = 2;
+
+	param_get(param_find("RC_MAP_THROTTLE"), &ichan);
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
+		input_map[ichan] = 3;
+
+	ichan = 4;
+	for (unsigned i = 0; i < _max_rc_input; i++)
+		if (input_map[i] == -1)
+			input_map[i] = ichan++;
+
+	/*
+	 * Iterate all possible RC inputs.
+	 */
+	for (unsigned i = 0; i < _max_rc_input; i++) {
+		uint16_t regs[PX4IO_P_RC_CONFIG_STRIDE];
+		char pname[16];
+		float fval;
+
+		sprintf(pname, "RC%d_MIN", i + 1);
+		param_get(param_find(pname), &fval);
+		regs[PX4IO_P_RC_CONFIG_MIN] = FLOAT_TO_REG(fval);
+
+		sprintf(pname, "RC%d_TRIM", i + 1);
+		param_get(param_find(pname), &fval);
+		regs[PX4IO_P_RC_CONFIG_CENTER] = FLOAT_TO_REG(fval);
+
+		sprintf(pname, "RC%d_MAX", i + 1);
+		param_get(param_find(pname), &fval);
+		regs[PX4IO_P_RC_CONFIG_MAX] = FLOAT_TO_REG(fval);
+
+		sprintf(pname, "RC%d_DZ", i + 1);
+		param_get(param_find(pname), &fval);
+		regs[PX4IO_P_RC_CONFIG_DEADZONE] = FLOAT_TO_REG(fval);
+
+		regs[PX4IO_P_RC_CONFIG_ASSIGNMENT] = input_map[i];
+
+		regs[PX4IO_P_RC_CONFIG_OPTIONS] = PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+		sprintf(pname, "RC%d_REV", i + 1);
+		param_get(param_find(pname), &fval);
+		if (fval > 0)
+			regs[PX4IO_P_RC_CONFIG_OPTIONS] |= PX4IO_P_RC_CONFIG_OPTIONS_REVERSE;
+
+		/* send channel config to IO */
+		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
+		if (ret != OK)
+			break;
+		offset += PX4IO_P_RC_CONFIG_STRIDE;
+	}
+
+	return ret;
 }
 
 int
@@ -718,7 +829,6 @@ PX4IO::io_publish_pwm_outputs()
 	return OK;
 }
 
-
 int
 PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
@@ -790,6 +900,7 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 
 	return io_reg_set(page, offset, &value, 1);
 }
+
 
 #if 0
 void
