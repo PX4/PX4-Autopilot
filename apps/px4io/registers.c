@@ -60,6 +60,9 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_PWM_LOWRATE]		= 50,
 	[PX4IO_P_SETUP_PWM_HIGHRATE]		= 200,
 	[PX4IO_P_SETUP_RELAYS]			= 0,
+	[PX4IO_P_SETUP_VBATT_SCALE]		= 10000,
+	[PX4IO_P_SETUP_IBATT_SCALE]		= 0,
+	[PX4IO_P_SETUP_IBATT_BIAS]		= 0
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK)
@@ -80,7 +83,7 @@ static const uint16_t	r_page_config[] = {
 	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= 0,
 	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= 0,
 	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= 0,
-	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,
+	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
 	[PX4IO_P_CONFIG_ACTUATOR_COUNT]		= IO_SERVO_COUNT,
 	[PX4IO_P_CONFIG_RC_INPUT_COUNT]		= MAX_CONTROL_CHANNELS,
@@ -97,7 +100,7 @@ uint16_t		r_page_status[] = {
 	[PX4IO_P_STATUS_FLAGS]			= 0,
 	[PX4IO_P_STATUS_ALARMS]			= 0,
 	[PX4IO_P_STATUS_VBATT]			= 0,
-	[PX4IO_P_STATUS_TEMPERATURE]		= 0
+	[PX4IO_P_STATUS_IBATT]			= 0
 };
 
 /**
@@ -396,10 +399,21 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			 * Intercept corrected for best results @ 12V.
 			 */
 			unsigned counts = adc_measure(ADC_VBATT);
-			r_page_status[PX4IO_P_STATUS_VBATT] = (4150 + (counts * 46)) / 10;
+			unsigned mV = (4150 + (counts * 46)) / 10;
+			unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
+
+			r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
 		}
 
-		/* XXX PX4IO_P_STATUS_TEMPERATURE */
+		/* PX4IO_P_STATUS_IBATT */
+		{
+			unsigned counts = adc_measure(ADC_VBATT);
+			unsigned scaled = (counts * r_page_setup[PX4IO_P_SETUP_IBATT_SCALE]) / 10000;
+			int corrected = scaled + REG_TO_SIGNED(r_page_setup[PX4IO_P_SETUP_IBATT_BIAS]);
+			if (corrected < 0)
+				corrected = 0;
+			r_page_status[PX4IO_P_STATUS_IBATT] = corrected;
+		}
 
 		SELECT_PAGE(r_page_status);
 		break;

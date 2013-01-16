@@ -101,6 +101,7 @@
 #define PX4IO_P_STATUS_FLAGS_RC_SBUS		(1 << 5) /* SBUS input is valid */
 #define PX4IO_P_STATUS_FLAGS_FMU_OK		(1 << 6) /* controls from FMU are valid */
 #define PX4IO_P_STATUS_FLAGS_RAW_PPM		(1 << 7) /* raw PPM from FMU is bypassing the mixer */
+#define PX4IO_P_STATUS_FLAGS_MIXER_OK		(1 << 8) /* mixer is OK */
 
 #define PX4IO_P_STATUS_ALARMS			3	/* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* VBatt is very close to regulator dropout */
@@ -111,7 +112,7 @@
 #define PX4IO_P_STATUS_ALARMS_RC_LOST		(1 << 5)
 
 #define PX4IO_P_STATUS_VBATT			4	/* battery voltage in mV */
-#define PX4IO_P_STATUS_TEMPERATURE		5	/* temperature in (units tbd) */
+#define PX4IO_P_STATUS_IBATT			5	/* battery current in cA */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -143,11 +144,12 @@
 #define PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK	(1 << 3)
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
-
 #define PX4IO_P_SETUP_PWM_LOWRATE		3	/* 'low' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_PWM_HIGHRATE		4	/* 'high' PWM frame output rate in Hz */
-
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
+#define PX4IO_P_SETUP_VBATT_SCALE		6	/* battery voltage correction factor (float) */
+#define PX4IO_P_SETUP_IBATT_SCALE		7	/* battery current scaling factor (float) */
+#define PX4IO_P_SETUP_IBATT_BIAS		8	/* battery current bias value */
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS		101		/* 0..CONFIG_CONTROL_COUNT */
@@ -187,5 +189,3 @@ struct px4io_mixdata {
 	char		text[0];	/* actual text size may vary */
 };
 
-/* maximum size is limited by the link frame size XXX use config values to set this */
-#define F2I_MIXER_MAX_TEXT	(64 - sizeof(struct px4io_mixdata))

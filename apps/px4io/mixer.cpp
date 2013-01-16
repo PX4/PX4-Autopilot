@@ -70,6 +70,7 @@ static bool mixer_servos_armed = false;
 
 /* selected control values and count for mixing */
 enum mixer_source {
+	MIX_NONE,
 	MIX_FMU,
 	MIX_OVERRIDE,
 	MIX_FAILSAFE
@@ -81,7 +82,6 @@ static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_index,
 			       float &control);
 
-static void mix();
 static MixerGroup mixer_group(mixer_callback, 0);
 
 void
@@ -97,30 +97,56 @@ mixer_tick(void)
 		debug("AP RX timeout");
 	}
 
+	source = MIX_FAILSAFE;
+
 	/*
 	 * Decide which set of controls we're using.
 	 */
-	if ((r_setup_features & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK) && 
-		(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
-		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
-	 	/* this is for planes, where manual override makes sense */
-		source = MIX_OVERRIDE;
+	if (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PPM) {
 
-		/* mix from the override controls */
-		mix();
+		/* don't actually mix anything - we already have raw PWM values */
+		source = MIX_NONE;
 
-	} else if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
+	} else {
 
-		if (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PPM) {
-			/* FMU has already provided PWM values */
-		} else {
+		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+
 			/* mix from FMU controls */
 			source = MIX_FMU;
-			mix();
 		}
-	} else {
-		source = MIX_FAILSAFE;
-		/* XXX actually, have no idea what to do here... load hardcoded failsafe controls? */
+
+		if ( (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
+
+		 	/* if allowed, mix from RC inputs directly */
+			source = MIX_OVERRIDE;
+		}
+	}
+
+	/*
+	 * Run the mixers.
+	 */
+	if (source != MIX_NONE) {
+
+		float	outputs[IO_SERVO_COUNT];
+		unsigned mixed;
+
+		/* mix */
+		mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
+
+		/* scale to PWM and update the servo outputs as required */
+		for (unsigned i = 0; i < mixed; i++) {
+
+			/* save actuator values for FMU readback */
+			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
+
+			/* scale to servo output */
+			r_page_servos[i] = (outputs[i] * 500.0f) + 1500;
+
+		}
+		for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
+			r_page_servos[i] = 0;
 	}
 
 #if 0
@@ -196,9 +222,12 @@ mixer_tick(void)
 
 	/*
 	 * Decide whether the servos should be armed right now.
+	 *
+	 * We must be armed, and we must have a PWM source; either raw from
+	 * FMU or from the mixer.
 	 */
-
-	bool should_arm = (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED);
+	bool should_arm = ((r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
+		(r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PPM | PX4IO_P_STATUS_FLAGS_MIXER_OK)));
 
 	if (should_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
@@ -210,33 +239,6 @@ mixer_tick(void)
 		up_pwm_servo_arm(false);
 		mixer_servos_armed = false;
 	}
-}
-
-static void
-mix()
-{
-	/*
-	 * Run the mixers.
-	 */
-	float	outputs[IO_SERVO_COUNT];
-	unsigned mixed;
-
-	/* mix */
-	mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
-
-	/* scale to PWM and update the servo outputs as required */
-	for (unsigned i = 0; i < mixed; i++) {
-
-		/* save actuator values for FMU readback */
-		r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
-
-		/* scale to servo output */
-		r_page_servos[i] = (outputs[i] * 500.0f) + 1500;
-
-	}
-	for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
-		r_page_servos[i] = 0;
-
 }
 
 static int
@@ -264,6 +266,7 @@ mixer_callback(uintptr_t handle,
 		return -1;
 
 	case MIX_FAILSAFE:
+	case MIX_NONE:
 		/* XXX we could allow for configuration of per-output failsafe values */
 		return -1;
 	}
@@ -292,6 +295,7 @@ mixer_handle_text(const void *buffer, size_t length)
 		debug("reset");
 		mixer_group.reset();
 		mixer_text_length = 0;
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
 
 		/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:
@@ -299,8 +303,10 @@ mixer_handle_text(const void *buffer, size_t length)
 
 		/* check for overflow - this is really fatal */
 		/* XXX could add just what will fit & try to parse, then repeat... */
-		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text))
+		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
+			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
 			return;
+		}
 
 		/* append mixer text and nul-terminate */
 		memcpy(&mixer_text[mixer_text_length], msg->text, text_length);
@@ -314,6 +320,10 @@ mixer_handle_text(const void *buffer, size_t length)
 
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
+
+			/* ideally, this should test resid == 0 ? */
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_MIXER_OK;
+
 			debug("used %u", mixer_text_length - resid);
 
 			/* copy any leftover text to the base of the buffer for re-use */
