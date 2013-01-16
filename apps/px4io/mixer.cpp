@@ -274,6 +274,12 @@ mixer_callback(uintptr_t handle,
 	return 0;
 }
 
+/*
+ * XXX error handling here should be more aggressive; currently it is
+ * possible to get STATUS_FLAGS_MIXER_OK set even though the mixer has
+ * not loaded faithfully.
+ */
+
 static char mixer_text[256];		/* large enough for one mixer */
 static unsigned mixer_text_length = 0;
 
