@@ -73,15 +73,13 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_att(&getPublications(), ORB_ID(vehicle_attitude)),
 	// timestamps
 	_pubTimeStamp(hrt_absolute_time()),
-	_fastTimeStamp(hrt_absolute_time()),
-	_slowTimeStamp(hrt_absolute_time()),
+	_predictTimeStamp(hrt_absolute_time()),
 	_attTimeStamp(hrt_absolute_time()),
 	_outTimeStamp(hrt_absolute_time()),
 	// frame count
 	_navFrames(0),
 	// miss counts
-	_missFast(0),
-	_missSlow(0),
+	_miss(0),
 	// accelerations
 	fN(0), fE(0), fD(0),
 	// state
@@ -96,9 +94,9 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_rGpsPos(this, "R_GPS_POS"),
 	_rGpsAlt(this, "R_GPS_ALT"),
 	_rAccel(this, "R_ACCEL"),
-	_magDip(this, "MAG_DIP"),
-	_magDec(this, "MAG_DEC"),
-	_g(this, "G"),
+	_magDip(this, "ENV_MAG_DIP"),
+	_magDec(this, "ENV_MAG_DEC"),
+	_g(this, "ENV_G"),
 	_faultPos(this, "FAULT_POS"),
 	_faultAtt(this, "FAULT_ATT"),
 	_positionInitialized(false)
@@ -193,29 +191,21 @@ void KalmanNav::update()
 		       lat, lon, alt);
 	}
 
-	// fast prediciton step
-	// note, using sensors timestamp so we can account
-	// for packet lag
-	float dtFast = (_sensors.timestamp - _fastTimeStamp) / 1.0e6f;
-	printf("dtFast: %15.10f\n", double(dtFast));
-	_fastTimeStamp = _sensors.timestamp;
-
-	if (dtFast < 1.0f) {
-		predictFast(dtFast);
-		predictSlow(dtFast);
+	// prediciton step
+	// using sensors timestamp so we can account for packet lag
+	float dt= (_sensors.timestamp - _predictTimeStamp) / 1.0e6f;
+	//printf("dt: %15.10f\n", double(dtFast));
+	_predictTimeStamp = _sensors.timestamp;
+	// don't predict if time greater than a second
+	if (dt < 1.0f) {
+		predictState(dt);
+		predictStateCovariance(dt);
 		// count fast frames
 		_navFrames += 1;
+	}
 
-	} else _missFast++;
-
-	// slow prediction step
-	//float dtSlow = (_sensors.timestamp - _slowTimeStamp) / 1.0e6f;
-
-	//if (dtSlow > 1.0f / 100) { // 100 Hz
-	//_slowTimeStamp = _sensors.timestamp;
-	//if (dtSlow < 1.0f / 50) predictSlow(dtSlow);
-	//else _missSlow ++;
-	//}
+	// count times 100 Hz rate isn't met
+	if (dt > 0.01f) _miss++;
 
 	// gps correction step
 	if (gpsUpdate) {
@@ -237,11 +227,10 @@ void KalmanNav::update()
 	// output
 	if (newTimeStamp - _outTimeStamp > 10e6) { // 0.1 Hz
 		_outTimeStamp = newTimeStamp;
-		printf("nav: %4d Hz, misses fast: %4d slow: %4d\n",
-		       _navFrames / 10, _missFast / 10, _missSlow / 10);
+		printf("nav: %4d Hz, miss #: %4d\n",
+		       _navFrames / 10, _miss/ 10);
 		_navFrames = 0;
-		_missFast = 0;
-		_missSlow = 0;
+		_miss= 0;
 	}
 }
 
@@ -288,7 +277,7 @@ void KalmanNav::updatePublications()
 	SuperBlock::updatePublications();
 }
 
-void KalmanNav::predictFast(float dt)
+void KalmanNav::predictState(float dt)
 {
 	using namespace math;
 	Vector3 w(_sensors.gyro_rad_s);
@@ -336,20 +325,13 @@ void KalmanNav::predictFast(float dt)
 	float lDot = vE / (cosLSing * R);
 	float rotRate = 2 * omega + lDot;
 	float vNDot = fN - vE * rotRate * sinL +
-		      vD * LDot;
+			  vD * LDot;
 	float vDDot = fD - vE * rotRate * cosL -
-		      vN * LDot + _g.get();
+			  vN * LDot + _g.get();
 	float vEDot = fE + vN * rotRate * sinL +
-		      vDDot * rotRate * cosL;
-	printf("vNDot: %8.4f, vEDot: %8.4f, vDDot: %8.4f\n",
-	       double(vNDot), double(vEDot), double(vDDot));
-	printf("LDot: %8.4f, lDot: %8.4f, rotRate: %8.4f\n",
-	       double(LDot), double(lDot), double(rotRate));
+			  vDDot * rotRate * cosL;
 
 	// rectangular integration
-	printf("dt: %8.4f\n", double(dt));
-	printf("fN: %8.4f, fE: %8.4f, fD: %8.4f\n", double(fN), double(fE), double(fD));
-	printf("vN: %8.4f, vE: %8.4f, vD: %8.4f\n", double(vN), double(vE), double(vD));
 	vN += vNDot * dt;
 	vE += vEDot * dt;
 	vD += vDDot * dt;
@@ -358,7 +340,7 @@ void KalmanNav::predictFast(float dt)
 	alt += double(-vD * dt);
 }
 
-void KalmanNav::predictSlow(float dt)
+void KalmanNav::predictStateCovariance(float dt)
 {
 	using namespace math;
 
@@ -473,6 +455,8 @@ void KalmanNav::correctAtt()
 
 	// mag measurement
 	Vector3 zMag(_sensors.magnetometer_ga);
+	//float magNorm = zMag.norm();
+	zMag = zMag.unit();
 
 	// mag predicted measurement
 	// choosing some typical magnetic field properties,
@@ -588,9 +572,9 @@ void KalmanNav::correctAtt()
 
 	psi += xCorrect(PSI);
 	// attitude also affects nav velocities
-	//vN += xCorrect(VN);
-	//vE += xCorrect(VE);
-	//vD += xCorrect(VD);
+	vN += xCorrect(VN);
+	vE += xCorrect(VE);
+	vD += xCorrect(VD);
 
 	// update state covariance
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
@@ -602,6 +586,9 @@ void KalmanNav::correctAtt()
 	if (beta > _faultAtt.get()) {
 		printf("fault in attitude: beta = %8.4f\n", (double)beta);
 		printf("y:\n"); y.print();
+		printf("zMagHat:\n"); zMagHat.print();
+		printf("zMag:\n"); zMag.print();
+		printf("bNav:\n"); bNav.print();
 	}
 
 	// update quaternions from euler

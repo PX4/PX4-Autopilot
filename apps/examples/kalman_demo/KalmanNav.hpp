@@ -83,18 +83,23 @@ public:
 	 */
 	void update();
 
-	/**
-	 * Fast prediction
-	 * Contains: state integration
-	 */
-	virtual void updatePublications();
-	void predictFast(float dt);
 
 	/**
-	 * Slow prediction
-	 * Contains: covariance integration
+	 * Publication update
 	 */
-	void predictSlow(float dt);
+	virtual void updatePublications();
+
+	/**
+	 * State prediction
+	 * Continuous, non-linear
+	 */
+	void predictState(float dt);
+
+	/**
+	 * State covariance prediction
+	 * Continuous, linear
+	 */
+	void predictStateCovariance(float dt);
 
 	/**
 	 * Attitude correction
@@ -133,15 +138,13 @@ protected:
 	control::UOrbPublication<vehicle_attitude_s> _att;              /**< attitude pub. */
 	// time stamps
 	uint64_t _pubTimeStamp;     /**< output data publication time stamp */
-	uint64_t _fastTimeStamp;    /**< fast prediction time stamp */
-	uint64_t _slowTimeStamp;    /**< slow prediction time stamp */
+	uint64_t _predictTimeStamp; /**< prediction time stamp */
 	uint64_t _attTimeStamp;     /**< attitude correction time stamp */
 	uint64_t _outTimeStamp;     /**< output time stamp */
 	// frame count
 	uint16_t _navFrames;        /**< navigation frames completed in output cycle */
 	// miss counts
-	uint16_t _missFast;         /**< number of times fast prediction loop missed */
-	uint16_t _missSlow;         /**< number of times slow prediction loop missed */
+	uint16_t _miss;         	/**< number of times fast prediction loop missed */
 	// accelerations
 	float fN, fE, fD;           /**< navigation frame acceleration */
 	// states
