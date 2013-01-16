@@ -44,6 +44,8 @@
 
 #include <nuttx/fs/ioctl.h>
 
+#ifdef CONFIG_FS_BINFS
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -62,7 +64,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Public Data
  ****************************************************************************/
 
 #ifdef __cplusplus
@@ -72,9 +74,21 @@ extern "C" {
 #define EXTERN extern
 #endif
 
+/* The "bindir" is file system that supports access to the builtin applications.
+ * It is typically mounted under /bin.
+ */
+
+EXTERN mountpt_operations;
+EXTERN const struct mountpt_operations binfs_operations;
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
+#endif /* CONFIG_FS_BINFS */
 #endif /* __INCLUDE_NUTTX_FS_BINFS_H */

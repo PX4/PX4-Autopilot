@@ -41,10 +41,6 @@ include $(APPDIR)/Make.defs
 ASRCS		=
 CSRCS		= builtin.c exec_builtin.c
 
-ifeq ($(CONFIG_APPS_BINDIR),y)
-CSRCS		+= binfs.c
-endif
-
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 

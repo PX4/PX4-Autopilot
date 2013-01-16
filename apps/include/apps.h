@@ -62,14 +62,6 @@
  * Public Types
  ****************************************************************************/
 
-struct builtin_s
-{
-  const char *name;         /* Invocation name and as seen under /sbin/ */
-  int         priority;     /* Use: SCHED_PRIORITY_DEFAULT */
-  int         stacksize;    /* Desired stack size */
-  main_t      main;         /* Entry point: main(int argc, char *argv[]) */
-};
-
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -80,15 +72,6 @@ struct builtin_s
 extern "C" {
 #else
 #define EXTERN extern
-#endif
-
-/* The "bindir" is file system that supports access to the builtin applications.
- * It is typically mounted under /bin.
- */
-
-#ifdef CONFIG_APPS_BINDIR
-EXTERN mountpt_operations;
-EXTERN const struct mountpt_operations binfs_operations;
 #endif
 
 /****************************************************************************

@@ -13,20 +13,6 @@ config BUILTIN
 
 if BUILTIN
 
-	config APPS_BINDIR
-	bool "BINFS File System"
-	default n
-	---help---
-		The BINFS file system is current just a toy.  The BINFS may, for example,
-		be mount at /bin.  Then all of the built-in applications will appear as
-		executable file in /bin if you list them from NSH like:
-
-		nsh> ls -l /bin
-
-		At present, the BINFS supports nothing more than that.  It is planned,
-		however, to support execution of the builtin applications from BINFS as
-		well (via a binfmt/ loader).  However, that is down the road.
-
 config BUILTIN_PROXY_STACKSIZE
 	int "Builtin Proxy Stack Size"
 	default 1024

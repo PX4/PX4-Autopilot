@@ -526,4 +526,4 @@ CONFIG_HEAP_SIZE=
 CONFIG_APPS_DIR="../apps"
 
 # Provide /dev/ramX and then: mount -t binfs /dev/ram0 /bin
-CONFIG_APPS_BINDIR=y
+CONFIG_FS_BINFS=y

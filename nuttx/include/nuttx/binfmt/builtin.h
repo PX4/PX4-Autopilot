@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/builtin/builtin.h
+ * include/nuttx/binfmt/builtin.h
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
@@ -35,8 +35,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_BUILTIN_BUILTIN_H
-#define __APPS_BUILTIN_BUILTIN_H
+#ifndef __INCLUDE_NUTTX_BINFMT_BUILTIN_H
+#define __INCLUDE_NUTTX_BINFMT_BUILTIN_H
 
 /****************************************************************************
  * Included Files
@@ -48,6 +48,14 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
+struct builtin_s
+{
+  const char *name;         /* Invocation name and as seen under /sbin/ */
+  int         priority;     /* Use: SCHED_PRIORITY_DEFAULT */
+  int         stacksize;    /* Desired stack size */
+  main_t      main;         /* Entry point: main(int argc, char *argv[]) */
+};
 
 /****************************************************************************
  * Public Data
@@ -73,5 +81,5 @@ EXTERN int number_builtins(void);
 }
 #endif
 
-#endif /* __APPS_BUILTIN_BUILTIN_H */
+#endif /* __INCLUDE_NUTTX_BINFMT_BUILTIN_H */
 

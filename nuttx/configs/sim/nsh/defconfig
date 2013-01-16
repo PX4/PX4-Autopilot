@@ -1,7 +1,7 @@
 ############################################################################
 # sim/nsh/defconfig
 #
-#   Copyright (C) 2008-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2008-2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ CONFIG_ARCH_BOARD_SIM=y
 CONFIG_USER_ENTRYPOINT="nsh_main"
 CONFIG_DEBUG=n
 CONFIG_DEBUG_VERBOSE=n
-CONFIG_DEBUG_SYMBOLS=n
+CONFIG_DEBUG_SYMBOLS=y
 
 CONFIG_HAVE_CXX=n
 CONFIG_HAVE_CXXINITIALIZE=n
@@ -170,6 +170,7 @@ CONFIG_FAT_LFN=n
 CONFIG_FAT_MAXFNAME=32
 CONFIG_FS_NXFFS=n
 CONFIG_FS_ROMFS=y
+CONFIG_FS_BINFS=y
 
 #
 # TCP/IP and UDP support via uIP
@@ -192,6 +193,11 @@ CONFIG_NET_STATISTICS=y
 #CONFIG_NET_RECEIVE_WINDOW=
 #CONFIG_NET_ARPTAB_SIZE=8
 CONFIG_NET_BROADCAST=n
+
+#
+# Settings for examples/hello
+#
+CONFIG_EXAMPLES_HELLO_BUILTIN=y
 
 #
 # UIP Network Utilities
@@ -224,7 +230,7 @@ CONFIG_EXAMPLES_OSTEST_STACKSIZE=8192
 #
 # Settings for apps/nshlib
 #
-CONFIG_NSH_BUILTIN_APPS=n
+CONFIG_NSH_BUILTIN_APPS=y
 CONFIG_NSH_FILEIOSIZE=1024
 CONFIG_NSH_STRERROR=n
 CONFIG_NSH_LINELEN=80

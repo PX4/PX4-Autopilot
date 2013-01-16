@@ -42,3 +42,6 @@ CONFIGURED_APPS += examples/nsh
 CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += nshlib
 
+# Example built-in application
+
+CONFIGURED_APPS += examples/hello

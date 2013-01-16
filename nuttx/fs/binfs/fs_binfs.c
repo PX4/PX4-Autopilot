@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/builtin/binfs.c
+ * fs/binfs/fs_binfs.c
  *
  *   Copyright (C) 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -54,12 +54,11 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/binfs.h>
 #include <nuttx/fs/dirent.h>
+#include <nuttx/binfmt/builtin.h>
 
 #include <apps/apps.h>
 
-#include "builtin.h"
-
-#if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_APPS_BINDIR)
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_FS_BINFS)
 
 /****************************************************************************
  * Private Types
@@ -444,5 +443,5 @@ static int binfs_stat(struct inode *mountpt, const char *relpath, struct stat *b
  * Public Functions
  ****************************************************************************/
 
-#endif /* !CONFIG_DISABLE_MOUNTPOINT && CONFIG_APPS_BINDIR */
+#endif /* !CONFIG_DISABLE_MOUNTPOINT && CONFIG_FS_BINFS */
 

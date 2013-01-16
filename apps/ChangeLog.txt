@@ -473,3 +473,5 @@
 	  very lightweight).  Now supports open, close, and a new ioctl to recover
 	  the builtin filename.  The latter will be needed to support a binfs
 	  binfmt.
+	* builtin/binfs.c:  Move apps/builtin/binfs.c to fs/binfs/fs_binfs.c
+	  CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS

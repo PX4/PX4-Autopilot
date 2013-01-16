@@ -270,8 +270,9 @@ nsh
 
   Description
   -----------
-  Configures to use the NuttShell at apps/examples/nsh.  This configuration
-  may be selected as follows:
+  Configures to use the NuttShell at apps/examples/nsh.  This version has
+  one builtin function:  This configuration: apps/examples/hello.  This
+  configuration may be selected as follows:
 
     cd <nuttx-directory>/tools
     ./configure.sh sim/nsh
@@ -281,7 +282,7 @@ nsh2
   Description
   -----------
   This is another example that configures to use the NuttShell at apps/examples/nsh.
-  Unlike nsh, this version uses NSH built-in functions.  The nx, nxhello, and
+  Like nsh, this version uses NSH built-in functions:  The nx, nxhello, and
   nxlines examples are included as built-in functions.
 
   X11 Configuration

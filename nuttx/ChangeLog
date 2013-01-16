@@ -3955,4 +3955,5 @@
 	* arch/mips/src/mips32/up_vfork.c, up_vfork.h, and vfork.S:
 	  Implement vfork() for MIPS32 (no floating point support)
 	* configs/ubw32/ostest: Enable the vfork() test.
-
+	* fs/binfs:  Move apps/builtin/binfs.c to fs/binfs/fs_binfs.c
+	  CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS

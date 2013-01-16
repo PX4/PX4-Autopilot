@@ -53,9 +53,8 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/binfmt/builtin.h>
 #include <apps/apps.h>
-
-#include "builtin.h"
 
 /****************************************************************************
  * Pre-processor Definitions

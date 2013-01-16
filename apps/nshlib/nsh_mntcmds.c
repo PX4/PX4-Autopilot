@@ -131,7 +131,7 @@ static int mount_handler(FAR const char *mountpoint,
         break;
 #endif
 
-#ifdef CONFIG_APPS_BINDIR
+#ifdef CONFIG_FS_BINFS
       case BINFS_MAGIC:
         fstype = "bindir";
         break;

@@ -1,7 +1,7 @@
 /****************************************************************************
  * tools/mkconfig.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -213,14 +213,14 @@ int main(int argc, char **argv, char **envp)
   printf("# undef CONFIG_FS_FAT\n");
   printf("# undef CONFIG_FS_ROMFS\n");
   printf("# undef CONFIG_FS_NXFFS\n");
-  printf("# undef CONFIG_APPS_BINDIR\n");
+  printf("# undef CONFIG_FS_BINFS\n");
   printf("# undef CONFIG_NFS\n");
   printf("#endif\n\n");
   printf("/* Check if any readable and writable filesystem (OR USB storage) is supported */\n\n");
   printf("#undef CONFIG_FS_READABLE\n");
   printf("#undef CONFIG_FS_WRITABLE\n");
   printf("#if defined(CONFIG_FS_FAT) || defined(CONFIG_FS_ROMFS) || defined(CONFIG_USBMSC) || \\\n");
-  printf("    defined(CONFIG_FS_NXFFS) || defined(CONFIG_APPS_BINDIR) || defined(CONFIG_NFS)\n");
+  printf("    defined(CONFIG_FS_NXFFS) || defined(CONFIG_FS_BINFS) || defined(CONFIG_NFS)\n");
   printf("# define CONFIG_FS_READABLE 1\n");
   printf("#endif\n\n");
   printf("#if defined(CONFIG_FS_FAT) || defined(CONFIG_USBMSC) || defined(CONFIG_FS_NXFFS) || \\\n");
