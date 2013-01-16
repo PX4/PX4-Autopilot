@@ -178,7 +178,7 @@ I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
 	 * preference.  Really, this is pointless.
 	 */
 	I2C_SETFREQUENCY(_dev, _frequency);
-	ret = I2C_TRANSFER(_dev, msgv, msgs);
+	int ret = I2C_TRANSFER(_dev, msgv, msgs);
 
 	if (ret != OK)
 		up_i2creset(_dev);
