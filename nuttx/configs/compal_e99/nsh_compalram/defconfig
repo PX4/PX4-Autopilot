@@ -224,7 +224,7 @@ CONFIG_NET_RESOLV_ENTRIES=4
 
 #
 # Settings for examples/hello
-CONFIG_EXAMPLES_HELLO_BUILTIN=y
+#
 
 #
 # Settings for examples/uip

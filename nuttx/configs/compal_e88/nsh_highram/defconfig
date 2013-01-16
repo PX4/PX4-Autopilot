@@ -256,7 +256,7 @@ CONFIG_NSH_BUILTIN_APPS=y
 
 #
 # Settings for examples/hello
-CONFIG_EXAMPLES_HELLO_BUILTIN=y
+#
 
 #
 # Settings for examples/wget

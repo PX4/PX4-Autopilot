@@ -57,13 +57,11 @@ SUBDIRS += usbserial sendmail usbstorage usbterm watchdog wget wgetjson
 CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS += adc can cdcacm composite cxxtest dhcpd discover ftpd json keypadtest
-CNTXTDIRS += modbus nettest nxlines relays qencoder telnetd watchdog wgetjson
+CNTXTDIRS += adc can cdcacm composite cxxtest dhcpd discover ftpd hello json
+CNTXTDIRS += keypadtestmodbus nettest nxlines relays qencoder telnetd watchdog
+CNTXTDIRS += wgetjson
 endif
 
-ifeq ($(CONFIG_EXAMPLES_HELLO_BUILTIN),y)
-CNTXTDIRS += hello
-endif
 ifeq ($(CONFIG_EXAMPLES_HELLOXX_BUILTIN),y)
 CNTXTDIRS += helloxx
 endif

@@ -491,7 +491,7 @@ examples/hello
   than examples/null with a single printf statement.  Really useful only
   for bringing up new NuttX architectures.
 
-  * CONFIG_EXAMPLES_HELLO_BUILTIN
+  * CONFIG_NSH_BUILTIN_APPS
     Build the "Hello, World" example as an NSH built-in application.
 
 examples/helloxx

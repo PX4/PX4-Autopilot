@@ -270,12 +270,25 @@ nsh
 
   Description
   -----------
-  Configures to use the NuttShell at apps/examples/nsh.  This version has
-  one builtin function:  This configuration: apps/examples/hello.  This
-  configuration may be selected as follows:
+  Configures to use the NuttShell at apps/examples/nsh.  This configuration
+  may be selected as follows:
 
     cd <nuttx-directory>/tools
     ./configure.sh sim/nsh
+
+  NOTES:
+  ------ 
+  1. This configuration uses the mconf-based configuration tool.  To
+     change this configuration using that tool, you should:
+
+     a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
+        and misc/tools/
+
+     b. Execute 'make menuconfig' in nuttx/ in order to start the
+        reconfiguration process.
+
+  2. This version has one builtin function:  This configuration:
+     apps/examples/hello.
 
 nsh2
 

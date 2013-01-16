@@ -2518,6 +2518,8 @@ nsh>
       Support external registered, &quot;builtin&quot; applications that can be
       executed from the NSH command line (see apps/README.txt for
       more information).
+      This required <code>CONFIG_BUILTIN</code> to enable NuttX support for
+      &quot;builtin&quot; applications.
     </td>
   </tr>
   <tr>
@@ -3227,8 +3229,20 @@ struct cmdmap_s
 </p>
 <p>
   These applications are built-into NSH in the sense that they can be executed by simply typing the name of the application at the NSH prompt.
-  Built-in application support is enabled with the configuration option <code>CONFIG_NSH_BUILTIN_APPS</code>.
-  When this configuration option is set, you will also be able to see the built-in applications if you enter &quot;nsh&gt; help&quot;.
+  Built-in application support is enabled with these configuration option:
+</p>
+<ul>
+  <li>
+    <code>CONFIG_BUILTIN</code>:
+    Enable NuttX support for builtin applications.
+  </li>
+  <li>
+    <code>CONFIG_NSH_BUILTIN_APPS</code>:
+    Enable NSH support for builtin applications.
+  </li>
+</ul>
+<p>
+  When these configuration options are set, you will also be able to see the built-in applications if you enter &quot;nsh&gt; help&quot;.
   They will appear at the bottom of the list of NSH commands under:
 </p>
 

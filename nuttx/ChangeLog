@@ -3965,3 +3965,6 @@
 	* binfmt/builtin.c and binfmt/libbuiltin:  Add a binary "loader"
 	  that can be used to execute builtin programs from the BINFS
 	  file system.
+	* configs/sim/nsh: Convert to use kconfig-frontends configuration
+	  tool.
+
