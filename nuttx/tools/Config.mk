@@ -114,7 +114,7 @@ endef
 
 define COMPILE
 	@echo "CC: $1"
-	$(Q) $(CC) -c $(CFLAGS) $1 -o $2
+	$(Q) $(CC) -c $(CFLAGS) $(abspath $1) -o $2
 endef
 
 # COMPILEXX - Default macro to compile one C++ file
@@ -128,7 +128,7 @@ endef
 
 define COMPILEXX
 	@echo "CXX: $1"
-	$(Q) $(CXX) -c $(CXXFLAGS) $1 -o $2
+	$(Q) $(CXX) -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 
 # ASSEMBLE - Default macro to assemble one assembly language file
@@ -149,7 +149,7 @@ endef
 
 define ASSEMBLE
 	@echo "AS: $1"
-	$(Q) $(CC) -c $(AFLAGS) $1 -o $2
+	$(Q) $(CC) -c $(AFLAGS) $(abspath $1) -o $2
 endef
 
 # ARCHIVE - Add a list of files to an archive
