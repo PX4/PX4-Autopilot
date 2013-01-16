@@ -33,10 +33,13 @@
 #
 ############################################################################
 
-# Legacy configurations don't set CONFIG_BUILTIN
-# ifeq ($(CONFIG_BUILTIN),y)
+ifeq ($(CONFIG_BUILTIN),y)
 
 # Builtin application interfaces
+
+BINFMT_CSRCS += builtin.c
+
+# Builtin library interfaces
 
 BINFMT_CSRCS += libbuiltin_utils.c
 
@@ -46,4 +49,4 @@ VPATH += libbuiltin
 SUBDIRS += libbuiltin
 DEPPATH += --dep-path libbuiltin
 
-# endif
+endif

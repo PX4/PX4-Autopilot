@@ -502,6 +502,15 @@ CONFIG_MM_REGIONS=1
 # CONFIG_GRAN is not set
 
 #
+# Binary Formats
+#
+# CONFIG_BINFMT_DISABLE is not set
+# CONFIG_NXFLAT is not set
+# CONFIG_ELF is not set
+CONFIG_BUILTIN=y
+# CONFIG_SYMTAB_ORDEREDBYNAME is not set
+
+#
 # Library Routines
 #
 CONFIG_STDIO_BUFFER_SIZE=256
@@ -531,7 +540,6 @@ CONFIG_LIB_SENDFILE_BUFSIZE=512
 #
 # Named Applications
 #
-CONFIG_BUILTIN=y
 
 #
 # Examples

@@ -463,6 +463,7 @@ CONFIG_MM_REGIONS=1
 # CONFIG_BINFMT_DISABLE is not set
 # CONFIG_NXFLAT is not set
 # CONFIG_ELF is not set
+CONFIG_BUILTIN=y
 # CONFIG_SYMTAB_ORDEREDBYNAME is not set
 
 #
@@ -505,7 +506,6 @@ CONFIG_HAVE_CXX=y
 #
 # Named Applications
 #
-CONFIG_BUILTIN=y
 
 #
 # Examples

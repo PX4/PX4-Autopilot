@@ -478,6 +478,10 @@
 	* apps/include/builtin.h:  Some of the content of
 	  apps/include/apps.h moved to include/nuttx/binfmt/builtin.h.
 	  apps/include/apps.h renamed builtin.h
-	* pps/builtin/exec_builtins.c:  Move utility builtin
+	* apps/builtin/exec_builtins.c:  Move utility builtin
 	  utility functions from apps/builtin/exec_builtins.c to
 	  binfmt/libbuiltin/libbuiltin_utils.c
+	* apps/nshlib/nsh_mountcmds.c:  The block driver/source
+	  argument is now optional.  Many files systems do not need
+	  a source and it is really stupid to have to enter a bogus
+	  source parameter.

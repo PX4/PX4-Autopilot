@@ -3962,3 +3962,6 @@
 	* binfmt/libbuiltin/libbuiltin_utils.c:  Move utility builtin
 	  utility functions from apps/builtin/exec_builtins.c to
 	  binfmt/libbuiltin/libbuiltin_utils.c
+	* binfmt/builtin.c and binfmt/libbuiltin:  Add a binary "loader"
+	  that can be used to execute builtin programs from the BINFS
+	  file system.

@@ -221,7 +221,7 @@ int mount(FAR const char *source, FAR const char *target,
   /* Find the specified filesystem.  Try the block driver file systems first */
 
 #ifdef BDFS_SUPPORT
-  if ((mops = mount_findfs(g_bdfsmap, filesystemtype)) != NULL)
+  if (source && (mops = mount_findfs(g_bdfsmap, filesystemtype)) != NULL)
     {
       /* Make sure that a block driver argument was provided */
 
