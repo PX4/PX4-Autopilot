@@ -680,6 +680,7 @@ static int nfs_close(FAR struct file *filep)
   FAR struct nfsnode  *np;
   FAR struct nfsnode  *prev;
   FAR struct nfsnode  *curr;
+  int ret;
 
   /* Sanity checks */
 
@@ -703,8 +704,7 @@ static int nfs_close(FAR struct file *filep)
   if (np->n_crefs > 1)
     {
       np->n_crefs--;
-      nfs_semgive(nmp);
-      return OK;
+      ret = OK;
     }
 
   /* There are no more references to the file structure.  Now we need to
@@ -714,38 +714,47 @@ static int nfs_close(FAR struct file *filep)
    * containted in the mount structure.
    */
 
- for (prev = NULL, curr = nmp->nm_head; curr; prev = curr, curr = curr->n_next)
-   {
-     /* Check if this node is ours */
+  else
+    {
+      /* Assume file structure will not be found.  This should never happen. */
 
-     if (np == curr)
-       {
-         /* Yes.. remove it from the list of file structures */
+      ret = -EINVAL;
 
-         if (prev)
-           {
-             /* Remove from mid-list */
+      for (prev = NULL, curr = nmp->nm_head;
+           curr;
+           prev = curr, curr = curr->n_next)
+        {
+          /* Check if this node is ours */
 
-             prev->n_next = np->n_next;
-           }
-         else
-           {
-             /* Remove from the head of the list */
+          if (np == curr)
+            {
+              /* Yes.. remove it from the list of file structures */
 
-             nmp->nm_head = np->n_next;
-           }
+              if (prev)
+                {
+                  /* Remove from mid-list */
 
-         /* Then deallocate the file structure and return success */
+                  prev->n_next = np->n_next;
+                }
+              else
+                {
+                  /* Remove from the head of the list */
 
-         kfree(np);
-         nfs_semgive(nmp);
-         return OK;
-       }
-   }
+                  nmp->nm_head = np->n_next;
+                }
 
-  fdbg("ERROR: file structure not found in list: %p\n", np);
+              /* Then deallocate the file structure and return success */
+
+              kfree(np);
+              ret = OK;
+              break;
+            }
+        }
+    }
+
+  filep->f_priv = NULL;
   nfs_semgive(nmp);
-  return EINVAL;
+  return ret;
 }
 
 /****************************************************************************

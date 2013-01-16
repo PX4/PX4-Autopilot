@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
- (11)  Task/Scheduler (sched/)
+ (10)  Task/Scheduler (sched/)
   (1)  Memory Managment (mm/)
   (3)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
@@ -57,16 +57,6 @@ o Task/Scheduler (sched/)
                terminated?
   Status:      Closed.  No, this behavior will not be implemented.
   Priority:    Medium, required for good emulation of process/pthread model.
-
-  Title:       MISSING ERRNO SETTINGS
-  Description: Several APIs do not set errno.  Need to review all APIs.
-               Update:  These are being fixed as they are encountered.  There is
-               no accounting of how many interfaces have this problem.
-  Status:      Open?  There has been an effort over the past few years to assure
-               that all errno settings are in place.  What is the current state?
-               Unknown.
-  Priority:    Medium, required for standard compliance (but makes the
-               code bigger)
 
   Title:       TICKLESS OS
   Description: On a side note, I have thought about a tick-less timer for the OS
@@ -178,7 +168,14 @@ o Task/Scheduler (sched/)
 
                You would think that this should be a clone of the existing
                pthread join logic.  Howver there is no need for zombies
-               in NuttX so, the status if the parent has already exit'ed.
+               in NuttX so no need to keep the status if the parent has
+               already exit'ed.  Other simplifications:
+
+               1. Keep the array/list of return status in the parent
+                  tasks TCB.
+               2. Use a fixed size array of return status (perhaps the
+                  the enire array is allocated so that that is con
+                  penalty for tasks that have no childre.
 
                At present, exit status is not retained.  If waitpid()
                is called after the child task has exit'ed it simpley

@@ -1,7 +1,7 @@
 /****************************************************************************
  * binfmt/binfmt_execmodule.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,7 @@
 #include <errno.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/binfmt.h>
 
 #include "os_internal.h"
@@ -167,7 +168,7 @@ int exec_module(FAR const struct binary_s *binp, int priority)
 
   /* Allocate a TCB for the new task. */
 
-  tcb = (FAR _TCB*)zalloc(sizeof(_TCB));
+  tcb = (FAR _TCB*)kzalloc(sizeof(_TCB));
   if (!tcb)
     {
       err = ENOMEM;
@@ -177,7 +178,7 @@ int exec_module(FAR const struct binary_s *binp, int priority)
   /* Allocate the stack for the new task */
 
 #ifndef CONFIG_CUSTOM_STACK
-  stack = (FAR uint32_t*)malloc(binp->stacksize);
+  stack = (FAR uint32_t*)kmalloc(binp->stacksize);
   if (!tcb)
     {
       err = ENOMEM;
@@ -200,6 +201,9 @@ int exec_module(FAR const struct binary_s *binp, int priority)
       bdbg("task_init() failed: %d\n", err);
       goto errout_with_stack;
     }
+
+  /* Note that tcb->flags are not modified.  0=normal task */
+  /* tcb->flags |= TCB_FLAG_TTYPE_TASK; */
 
   /* Add the D-Space address as the PIC base address.  By convention, this
    * must be the first allocated address space.
@@ -257,14 +261,14 @@ errout_with_stack:
 #ifndef CONFIG_CUSTOM_STACK
   tcb->stack_alloc_ptr = NULL;
   sched_releasetcb(tcb);
-  free(stack);
+  kfree(stack);
 #else
   sched_releasetcb(tcb);
 #endif
   goto errout;
 
 errout_with_tcb:
-  free(tcb);
+  kfree(tcb);
 errout:
   errno = err;
   bdbg("returning errno: %d\n", err);

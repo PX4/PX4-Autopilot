@@ -469,3 +469,7 @@
 	* builtin/binfs.c:  Add hooks for dup() method (not implemented).
 	* builtin/exec_builtin.c, nshlib/nsh_parse.c, and nshlib/nsh_builtin.c:
 	  NSH now supports re-direction of I/O to files (but still not from).
+	* builtin/binfs.c:  Greatly simplified (it is going to need to be
+	  very lightweight).  Now supports open, close, and a new ioctl to recover
+	  the builtin filename.  The latter will be needed to support a binfs
+	  binfmt.

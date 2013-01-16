@@ -105,6 +105,7 @@
 #define FIOC_OPTIMIZE   _FIOC(0x0003)     /* IN:  None
                                            * OUT: None
                                            */
+#define FIOC_USER       _FIOC(0x0004)     /* File system-specific */
 
 /* NuttX file system ioctl definitions **************************************/
 
