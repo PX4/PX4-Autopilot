@@ -46,6 +46,8 @@
 static const float omega = 7.2921150e-5f; // earth rotation rate, rad/s
 static const float R0 = 6378137.0f; // earth radius, m
 static const float g0 = 9.806f; // standard gravitational accel. m/s^2
+static const int8_t ret_ok = 0; 		// no error in function
+static const int8_t ret_error = -1; 	// error occurred
 
 KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	SuperBlock(parent, name),
@@ -99,7 +101,9 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_g(this, "ENV_G"),
 	_faultPos(this, "FAULT_POS"),
 	_faultAtt(this, "FAULT_ATT"),
-	_positionInitialized(false)
+	_attitudeInitialized(false),
+	_positionInitialized(false),
+	_attitudeInitCounter(0)
 {
 	using namespace math;
 
@@ -146,7 +150,6 @@ void KalmanNav::update()
 	// poll for new data
 	int ret = poll(fds, 1, 1000);
 
-	// check return value
 	if (ret < 0) {
 		// XXX this is seriously bad - should be an emergency
 		return;
@@ -168,11 +171,24 @@ void KalmanNav::update()
 	// this clears update flag
 	updateSubscriptions();
 
-	// abort update if no new data
-	if (!(sensorsUpdate || gpsUpdate)) return;
+	// initialize attitude when sensors online
+	if (!_attitudeInitialized && sensorsUpdate &&
+	    _sensors.accelerometer_counter > 10 &&
+	    _sensors.gyro_counter > 10 &&
+	    _sensors.magnetometer_counter > 10) {
+		if (correctAtt() == ret_ok) _attitudeInitCounter++;
 
-	// if received gps for first time, reset position to gps
+		if (_attitudeInitCounter > 100) {
+			printf("[kalman_demo] initialized EKF attitude\n");
+			printf("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
+			       double(phi), double(theta), double(psi));
+			_attitudeInitialized = true;
+		}
+	}
+
+	// initialize position when gps received
 	if (!_positionInitialized &&
+	    _attitudeInitialized && // wait for attitude first
 	    gpsUpdate &&
 	    _gps.fix_type > 2 &&
 	    _gps.counter_pos_valid > 10) {
@@ -183,9 +199,7 @@ void KalmanNav::update()
 		setLonDegE7(_gps.lon);
 		setAltE3(_gps.alt);
 		_positionInitialized = true;
-		printf("[kalman_demo] initializing EKF state with GPS\n");
-		printf("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
-		       double(phi), double(theta), double(psi));
+		printf("[kalman_demo] initialized EKF state with GPS\n");
 		printf("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
 		       double(vN), double(vE), double(vD),
 		       lat, lon, alt);
@@ -194,7 +208,7 @@ void KalmanNav::update()
 	// prediciton step
 	// using sensors timestamp so we can account for packet lag
 	float dt = (_sensors.timestamp - _predictTimeStamp) / 1.0e6f;
-	//printf("dt: %15.10f\n", double(dtFast));
+	//printf("dt: %15.10f\n", double(dt));
 	_predictTimeStamp = _sensors.timestamp;
 
 	// don't predict if time greater than a second
@@ -209,12 +223,15 @@ void KalmanNav::update()
 	if (dt > 0.01f) _miss++;
 
 	// gps correction step
-	if (gpsUpdate) {
+	if (_positionInitialized && gpsUpdate) {
 		correctPos();
 	}
 
 	// attitude correction step
-	if (_sensors.timestamp - _attTimeStamp > 1e6 / 20) { // 20 Hz
+	if (_attitudeInitialized 								// initialized
+	    && sensorsUpdate 								// new data
+	    && _sensors.timestamp - _attTimeStamp > 1e6 / 20 	// 20 Hz
+	   ) {
 		_attTimeStamp = _sensors.timestamp;
 		correctAtt();
 	}
@@ -278,34 +295,9 @@ void KalmanNav::updatePublications()
 	SuperBlock::updatePublications();
 }
 
-void KalmanNav::predictState(float dt)
+int KalmanNav::predictState(float dt)
 {
 	using namespace math;
-	Vector3 w(_sensors.gyro_rad_s);
-
-	// attitude
-	q = q + q.derivative(w) * dt;
-
-	// renormalize quaternion if needed
-	if (fabsf(q.norm() - 1.0f) > 1e-4f) {
-		q = q.unit();
-	}
-
-	// C_nb update
-	C_nb = Dcm(q);
-
-	// euler update
-	EulerAngles euler(C_nb);
-	phi = euler.getPhi();
-	theta = euler.getTheta();
-	psi = euler.getPsi();
-
-	// specific acceleration in nav frame
-	Vector3 accelB(_sensors.accelerometer_m_s2);
-	Vector3 accelN = C_nb * accelB;
-	fN = accelN(0);
-	fE = accelN(1);
-	fD = accelN(2);
 
 	// trig
 	float sinL = sinf(lat);
@@ -318,30 +310,63 @@ void KalmanNav::predictState(float dt)
 		else cosLSing = -0.01;
 	}
 
-	// position update
-	// neglects angular deflections in local gravity
-	// see Titerton pg. 70
-	float R = R0 + float(alt);
-	float LDot = vN / R;
-	float lDot = vE / (cosLSing * R);
-	float rotRate = 2 * omega + lDot;
-	float vNDot = fN - vE * rotRate * sinL +
-		      vD * LDot;
-	float vDDot = fD - vE * rotRate * cosL -
-		      vN * LDot + _g.get();
-	float vEDot = fE + vN * rotRate * sinL +
-		      vDDot * rotRate * cosL;
+	// attitude prediction
+	if (_attitudeInitialized) {
+		Vector3 w(_sensors.gyro_rad_s);
 
-	// rectangular integration
-	vN += vNDot * dt;
-	vE += vEDot * dt;
-	vD += vDDot * dt;
-	lat += double(LDot * dt);
-	lon += double(lDot * dt);
-	alt += double(-vD * dt);
+		// attitude
+		q = q + q.derivative(w) * dt;
+
+		// renormalize quaternion if needed
+		if (fabsf(q.norm() - 1.0f) > 1e-4f) {
+			q = q.unit();
+		}
+
+		// C_nb update
+		C_nb = Dcm(q);
+
+		// euler update
+		EulerAngles euler(C_nb);
+		phi = euler.getPhi();
+		theta = euler.getTheta();
+		psi = euler.getPsi();
+
+		// specific acceleration in nav frame
+		Vector3 accelB(_sensors.accelerometer_m_s2);
+		Vector3 accelN = C_nb * accelB;
+		fN = accelN(0);
+		fE = accelN(1);
+		fD = accelN(2);
+	}
+
+	// position prediction
+	if (_positionInitialized) {
+		// neglects angular deflections in local gravity
+		// see Titerton pg. 70
+		float R = R0 + float(alt);
+		float LDot = vN / R;
+		float lDot = vE / (cosLSing * R);
+		float rotRate = 2 * omega + lDot;
+		float vNDot = fN - vE * rotRate * sinL +
+			      vD * LDot;
+		float vDDot = fD - vE * rotRate * cosL -
+			      vN * LDot + _g.get();
+		float vEDot = fE + vN * rotRate * sinL +
+			      vDDot * rotRate * cosL;
+
+		// rectangular integration
+		vN += vNDot * dt;
+		vE += vEDot * dt;
+		vD += vDDot * dt;
+		lat += double(LDot * dt);
+		lon += double(lDot * dt);
+		alt += double(-vD * dt);
+	}
+
+	return ret_ok;
 }
 
-void KalmanNav::predictStateCovariance(float dt)
+int KalmanNav::predictStateCovariance(float dt)
 {
 	using namespace math;
 
@@ -434,17 +459,13 @@ void KalmanNav::predictStateCovariance(float dt)
 	// for discrte time EKF
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
 	P = P + (F * P + P * F.transpose() + G * V * G.transpose()) * dt;
+
+	return ret_ok;
 }
 
-void KalmanNav::correctAtt()
+int KalmanNav::correctAtt()
 {
 	using namespace math;
-
-	// check for valid data, return if not ready
-	if (_sensors.accelerometer_counter < 10 ||
-	    _sensors.gyro_counter < 10 ||
-	    _sensors.magnetometer_counter < 10)
-		return;
 
 	// trig
 	float cosPhi = cosf(phi);
@@ -489,12 +510,8 @@ void KalmanNav::correctAtt()
 		//printf("correcting attitude with accel\n");
 	}
 
-	// account for banked turn
-	// this would only work for fixed wing, so try to avoid
-	//Vector3 zCentrip = Vector3(0, cosf(phi), -sinf(phi))*g*tanf(phi);
-
 	// accel predicted measurement
-	Vector3 zAccelHat = (C_nb.transpose() * Vector3(0, 0, -_g.get()) /*+ zCentrip*/).unit();
+	Vector3 zAccelHat = (C_nb.transpose() * Vector3(0, 0, -_g.get())).unit();
 
 	// combined measurement
 	Vector zAtt(6);
@@ -561,7 +578,7 @@ void KalmanNav::correctAtt()
 			printf("[kalman_demo] numerical failure in att correction\n");
 			// reset P matrix to P0
 			P = P0;
-			return;
+			return ret_error;
 		}
 	}
 
@@ -595,13 +612,13 @@ void KalmanNav::correctAtt()
 	// update quaternions from euler
 	// angle correction
 	q = Quaternion(EulerAngles(phi, theta, psi));
+
+	return ret_ok;
 }
 
-void KalmanNav::correctPos()
+int KalmanNav::correctPos()
 {
 	using namespace math;
-
-	if (!_positionInitialized) return;
 
 	// residual
 	Vector y(5);
@@ -633,7 +650,7 @@ void KalmanNav::correctPos()
 			setAltE3(_gps.alt);
 			// reset P matrix to P0
 			P = P0;
-			return;
+			return ret_error;
 		}
 	}
 
@@ -661,6 +678,8 @@ void KalmanNav::correctPos()
 		       double(y(3) / sqrtf(RPos(3, 3))),
 		       double(y(4) / sqrtf(RPos(4, 4))));
 	}
+
+	return ret_ok;
 }
 
 void KalmanNav::updateParams()

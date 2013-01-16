@@ -93,23 +93,23 @@ public:
 	 * State prediction
 	 * Continuous, non-linear
 	 */
-	void predictState(float dt);
+	int predictState(float dt);
 
 	/**
 	 * State covariance prediction
 	 * Continuous, linear
 	 */
-	void predictStateCovariance(float dt);
+	int predictStateCovariance(float dt);
 
 	/**
 	 * Attitude correction
 	 */
-	void correctAtt();
+	int correctAtt();
 
 	/**
 	 * Position correction
 	 */
-	void correctPos();
+	int correctPos();
 
 	/**
 	 * Overloaded update parameters
@@ -166,7 +166,9 @@ protected:
 	control::BlockParam<float> _faultPos;   /**< fault detection threshold for position */
 	control::BlockParam<float> _faultAtt;   /**< fault detection threshold for attitude */
 	// status
-	bool _positionInitialized; 			    /**< status, if position has been init. */
+	bool _attitudeInitialized;
+	bool _positionInitialized;
+	uint16_t _attitudeInitCounter;
 	// accessors
 	int32_t getLatDegE7() { return int32_t(lat * 1.0e7 * M_RAD_TO_DEG); }
 	void setLatDegE7(int32_t val) { lat = val / 1.0e7 / M_RAD_TO_DEG; }
