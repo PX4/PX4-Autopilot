@@ -66,7 +66,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	q(),
 	// subscriptions
 	_sensors(&getSubscriptions(), ORB_ID(sensor_combined), 5), // limit to 200 Hz
-	_gps(&getSubscriptions(), ORB_ID(vehicle_gps_position), 1000), // limit to 1 Hz
+	_gps(&getSubscriptions(), ORB_ID(vehicle_gps_position), 100), // limit to 10 Hz
 	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
 	// publications
 	_pos(&getPublications(), ORB_ID(vehicle_global_position)),
@@ -193,9 +193,10 @@ void KalmanNav::update()
 
 	// prediciton step
 	// using sensors timestamp so we can account for packet lag
-	float dt= (_sensors.timestamp - _predictTimeStamp) / 1.0e6f;
+	float dt = (_sensors.timestamp - _predictTimeStamp) / 1.0e6f;
 	//printf("dt: %15.10f\n", double(dtFast));
 	_predictTimeStamp = _sensors.timestamp;
+
 	// don't predict if time greater than a second
 	if (dt < 1.0f) {
 		predictState(dt);
@@ -213,7 +214,7 @@ void KalmanNav::update()
 	}
 
 	// attitude correction step
-	if (_sensors.timestamp - _attTimeStamp > 1e6 / 1) { // 1 Hz
+	if (_sensors.timestamp - _attTimeStamp > 1e6 / 20) { // 20 Hz
 		_attTimeStamp = _sensors.timestamp;
 		correctAtt();
 	}
@@ -228,9 +229,9 @@ void KalmanNav::update()
 	if (newTimeStamp - _outTimeStamp > 10e6) { // 0.1 Hz
 		_outTimeStamp = newTimeStamp;
 		printf("nav: %4d Hz, miss #: %4d\n",
-		       _navFrames / 10, _miss/ 10);
+		       _navFrames / 10, _miss / 10);
 		_navFrames = 0;
-		_miss= 0;
+		_miss = 0;
 	}
 }
 
@@ -325,11 +326,11 @@ void KalmanNav::predictState(float dt)
 	float lDot = vE / (cosLSing * R);
 	float rotRate = 2 * omega + lDot;
 	float vNDot = fN - vE * rotRate * sinL +
-			  vD * LDot;
+		      vD * LDot;
 	float vDDot = fD - vE * rotRate * cosL -
-			  vN * LDot + _g.get();
+		      vN * LDot + _g.get();
 	float vEDot = fE + vN * rotRate * sinL +
-			  vDDot * rotRate * cosL;
+		      vDDot * rotRate * cosL;
 
 	// rectangular integration
 	vN += vNDot * dt;
