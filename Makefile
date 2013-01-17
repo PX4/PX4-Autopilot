@@ -52,45 +52,33 @@ PLATFORM_FROM_CONFIG	 = $(word 1,$(subst _, ,$1))
 #
 # Built products
 #
-FIRMWARES		 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)/$(config).px4)
-BINARIES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build/firmware.bin)
+STAGED_FIRMWARES	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)/$(config).px4)
+FIRMWARES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build/firmware.px4)
 
 #
 # Debugging
 #
 MQUIET			 = --no-print-directory
 #MQUIET			 = --print-directory
-ifeq ($(V),)
-Q			 = @
-else
-Q			 =
-endif
+Q			:= $(if $(V),,@)
 
-all:			$(FIRMWARES)
-#all:			$(SYMBOLS)
-
+all:			$(STAGED_FIRMWARES)
 
 #
-# Generate FIRMWARES from BINARIES
+# Copy FIRMWARES into the image directory.
 #
-$(IMAGE_DIR)/%.px4:			basepath = $(basename $(@))
-$(IMAGE_DIR)/%.px4:			config = $(notdir $(basepath))
-$(IMAGE_DIR)/%.px4:			platform = $(call PLATFORM_FROM_CONFIG,$(config))
-$(FIRMWARES): $(IMAGE_DIR)/%.px4:	$(BUILD_DIR)/%.build/firmware.bin
-	@echo %% Generating $@ for $(config)
-	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(platform).prototype \
-		--git_identity $(PX4_BASE) \
-		--image $< > $@
+$(STAGED_FIRMWARES): $(IMAGE_DIR)/%.px4: $(BUILD_DIR)/%.build/firmware.px4
+	@echo %% Copying $@
+	$(Q) $(COPY) $< $@
 
 #
-# Generate the firmware executable
+# Generate FIRMWARES
 #
-# XXX pick the right build tool for the host OS - force it on the generation side too.
-#
-$(BUILD_DIR)/%.build/firmware.bin: config = $(patsubst $(BUILD_DIR)/%.build/firmware.bin,%,$@)
-$(BUILD_DIR)/%.build/firmware.bin: work_dir = $(BUILD_DIR)/$(config).build
-$(BINARIES): $(BUILD_DIR)/%.build/firmware.bin:	$(BUILD_DIR)/$(word 1,$(subst _, ,%)).build
-	@echo %% Building $(config) in $(work_dir)
+$(BUILD_DIR)/%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)/%.build/firmware.px4,%,$@)
+$(BUILD_DIR)/%.build/firmware.px4: work_dir = $(BUILD_DIR)/$(config).build
+$(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
+	@echo %%%% Building $(config) in $(work_dir)
+	$(Q) mkdir -p $(work_dir)
 	$(Q) make -C $(work_dir) \
 		-f $(PX4_BASE)/makefiles/$(config).mk \
 		CONFIG=$(config) \
@@ -100,23 +88,24 @@ $(BINARIES): $(BUILD_DIR)/%.build/firmware.bin:	$(BUILD_DIR)/$(word 1,$(subst _,
 #
 # Generate the config build directory.
 #
-BUILDAREAS		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build)
-.PHONY:			buildareas
-buildareas:		$(BUILDAREAS)
-
-$(BUILD_DIR)/%.build:	config = $(notdir $(basename $@))
-$(BUILD_DIR)/%.build:	platform = $(call PLATFORM_FROM_CONFIG,$(config))
-$(BUILDAREAS): $(BUILD_DIR)/%.build:
-	@echo %% Setting up build environment for $(config)
-	$(Q) mkdir -p $@
-	$(Q) (cd $@ && $(RMDIR) nuttx-export && unzip -q $(ARCHIVE_DIR)/$(platform).export)
+#BUILDAREAS		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build)
+#.PHONY:			buildareas
+#buildareas:		$(BUILDAREAS)
+#
+#$(BUILD_DIR)/%.build:	config = $(notdir $(basename $@))
+#$(BUILD_DIR)/%.build:	platform = $(call PLATFORM_FROM_CONFIG,$(config))
+#$(BUILDAREAS): $(BUILD_DIR)/%.build:
+#	@echo %% Setting up build environment for $(config)
+#	$(Q) mkdir -p $@
+#	$(Q) (cd $@ && $(RMDIR) nuttx-export && unzip -q $(ARCHIVE_DIR)/$(platform).export)
 
 #
 # Build the NuttX export archives.
 #
 # Note that there are no explicit dependencies extended from these
 # archives. If NuttX is updated, the user is expected to rebuild the 
-# archives/build area manually.
+# archives/build area manually. Likewise, when the 'archives' target is
+# invoked, all archives are always rebuilt.
 #
 # XXX Should support fetching/unpacking from a separate directory to permit
 #     downloads of the prebuilt archives as well...
@@ -196,8 +185,6 @@ endif
 .PHONY:	clean
 clean:
 	$(Q) $(RMDIR) $(BUILD_DIR)/*.build
-	$(Q) $(REMOVE) -f $(IMAGE_DIR)/*.bin
-	$(Q) $(REMOVE) -f $(IMAGE_DIR)/*.sym
 	$(Q) $(REMOVE) -f $(IMAGE_DIR)/*.px4
 	$(Q) make -C $(ROMFS_SRC) -r $(MQUIET) clean
 
