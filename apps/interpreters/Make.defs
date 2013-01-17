@@ -34,10 +34,10 @@
 #
 ############################################################################
 
-ifeq ($(CONFIG_PCODE),y)
+ifeq ($(CONFIG_INTERPRETERS_PCODE),y)
 CONFIGURED_APPS += interpreters/pcode
 endif
 
-ifeq ($(CONFIG_FICL),y)
+ifeq ($(CONFIG_INTERPRETERS_FICL),y)
 CONFIGURED_APPS += interpreters/ficl
 endif

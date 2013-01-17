@@ -72,6 +72,11 @@ struct nxtk_framedwindow_s
   struct nxgl_rect_s fwrect;
   FAR const struct nx_callback_s *fwcb;
   FAR void *fwarg;
+
+  /* Initial mouse down location */
+
+  uint8_t mbutton;
+  struct nxgl_point_s mpos;
 };
 
 /****************************************************************************

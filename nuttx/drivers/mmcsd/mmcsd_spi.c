@@ -38,6 +38,9 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined (CONFIG_MMCSD) && defined (CONFIG_MMCSD_SPI)
+
 #include <sys/types.h>
 
 #include <stdint.h>
@@ -508,7 +511,7 @@ static uint32_t mmcsd_sendcmd(FAR struct mmcsd_slot_s *slot,
       }
       break;
 
-    /* The R3 response is 5 bytes long */
+    /* The R3 response is 5 bytes long. The first byte is identical to R1. */
 
     case MMCSD_CMDRESP_R3:
       {
@@ -520,8 +523,10 @@ static uint32_t mmcsd_sendcmd(FAR struct mmcsd_slot_s *slot,
         fvdbg("CMD%d[%08x] R1=%02x OCR=%08x\n",
               cmd->cmd & 0x3f, arg, response, slot->ocr);
       }
+      break;
 
-    /* The R7 response is 5 bytes long */
+    /* The R7 response is 5 bytes long. The first byte is identical to R1. */
+
     case MMCSD_CMDRESP_R7:
     default:
       {
@@ -1876,3 +1881,5 @@ int mmcsd_spislotinitialize(int minor, int slotno, FAR struct spi_dev_s *spi)
   (void)SPI_REGISTERCALLBACK(spi, mmcsd_mediachanged, (void*)slot);
   return OK;
 }
+
+#endif /* defined (CONFIG_MMCSD) && defined (CONFIG_MMCSD_SPI) */

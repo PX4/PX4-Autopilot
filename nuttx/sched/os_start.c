@@ -426,7 +426,9 @@ void os_start(void)
       lib_initialize();
     }
 
-  /* Create stdout, stderr, stdin */
+  /* Create stdout, stderr, stdin on the IDLE task.  These will be
+   * inherited by all of the threads created by the IDLE task.
+   */
 
   (void)sched_setupidlefiles(&g_idletcb);
 
