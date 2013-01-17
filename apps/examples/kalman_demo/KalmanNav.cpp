@@ -590,9 +590,11 @@ int KalmanNav::correctAtt()
 
 	psi += xCorrect(PSI);
 	// attitude also affects nav velocities
-	vN += xCorrect(VN);
-	vE += xCorrect(VE);
-	vD += xCorrect(VD);
+	if (_positionInitialized) {
+		vN += xCorrect(VN);
+		vE += xCorrect(VE);
+		vD += xCorrect(VD);
+	}
 
 	// update state covariance
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
