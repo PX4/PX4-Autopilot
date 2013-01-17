@@ -485,3 +485,6 @@
 	  argument is now optional.  Many files systems do not need
 	  a source and it is really stupid to have to enter a bogus
 	  source parameter.
+	* apps/nshlib/nsh_fileapp.c:  Add the ability to execute a file
+	  from a file system using posix_spawn().
+	* apps/builtin/: Extensions from Mike Smith.

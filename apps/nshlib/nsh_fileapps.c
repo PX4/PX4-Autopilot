@@ -1,14 +1,7 @@
 /****************************************************************************
- * apps/nshlib/nsh_builtin.c
+ * apps/nshlib/nsh_fileapps.c
  *
- * Originally by:
- *
- *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *   Author: Uros Platise <uros.platise@isotel.eu>
- *
- * With subsequent updates, modifications, and general maintenance by:
- *
- *   Copyright (C) 2011-2013 Gregory Nutt.  All rights reserved.
+ *   Copyright (C) 2013 Gregory Nutt.  All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,16 +45,14 @@
 
 #include <stdbool.h>
 #include <signal.h>
+#include <spawn.h>
 #include <errno.h>
 #include <string.h>
-
-#include <nuttx/binfmt/builtin.h>
-#include <apps/builtin.h>
 
 #include "nsh.h"
 #include "nsh_console.h"
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
+#ifdef CONFIG_NSH_FILE_APPS
 
 /****************************************************************************
  * Definitions
@@ -92,7 +83,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_builtin
+ * Name: nsh_fileapp
  *
  * Description:
  *    Attempt to execute the application task whose name is 'cmd'
@@ -112,10 +103,56 @@
  *
  ****************************************************************************/
 
-int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+int nsh_fileapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
                 FAR char **argv, FAR const char *redirfile, int oflags)
 {
-  int ret = OK;
+  posix_spawn_file_actions_t file_actions;
+  posix_spawnattr_t attr;
+  pid_t pid;
+  int ret;
+
+  /* Initialize the attributes file actions structure */
+
+  ret = posix_spawn_file_actions_init(&file_actions);
+  if (ret != 0)
+    {
+      /* posix_spawn_file_actions_init returns a positive errno value on
+       * failure.
+       */
+
+      nsh_output(vtbl, g_fmtcmdfailed, cmd, "posix_spawn_file_actions_init",
+                NSH_ERRNO_OF(ret));
+      goto errout;
+    }
+
+  ret = posix_spawnattr_init(&attr);
+  if (ret != 0)
+    {
+      /* posix_spawnattr_init returns a positive errno value on failure. */
+
+      nsh_output(vtbl, g_fmtcmdfailed, cmd, "posix_spawnattr_init",
+                 NSH_ERRNO);
+      goto errout_with_actions;
+    }
+
+  /* Handle re-direction of output */
+
+  if (redirfile)
+    {
+      ret = posix_spawn_file_actions_addopen(&file_actions, 1, redirfile,
+                                             oflags, 0644);
+      if (ret != 0)
+        {
+           /* posix_spawn_file_actions_addopen returns a positive errno
+            * value on failure.
+            */
+
+          nsh_output(vtbl, g_fmtcmdfailed, cmd,
+                     "posix_spawn_file_actions_addopen",
+                     NSH_ERRNO);
+          goto errout_with_attrs;
+        }
+    }
 
   /* Lock the scheduler to prevent the application from running until the
    * waitpid() has been called.
@@ -123,12 +160,12 @@ int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 
   sched_lock();
 
-  /* Try to find and execute the command within the list of builtin
-   * applications.
+  /* Execute the program. posix_spawnp returns a positive errno value on
+   * failure.
    */
 
-  ret = exec_builtin(cmd, (FAR const char **)argv, redirfile, oflags);
-  if (ret >= 0)
+  ret = posix_spawnp(&pid, cmd, &file_actions, &attr, &argv[1], NULL);
+  if (ret == OK)
     {
       /* The application was successfully started with pre-emption disabled.
        * In the simplest cases, the application will not have run because the
@@ -145,7 +182,6 @@ int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
        */
 
 #ifdef CONFIG_SCHED_WAITPID
-
       /* Check if the application is still running */
 
       if (kill(ret, 0) < 0)
@@ -176,7 +212,7 @@ int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
            * application will be able to run.
            */
 
-          ret = waitpid(ret, &rc, 0);
+          ret = waitpid(pid, &rc, 0);
           if (ret >= 0)
             {
               /* We can't return the exact status (nsh has nowhere to put it)
@@ -227,16 +263,36 @@ int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 
   sched_unlock();
 
-  /* If exec_builtin() or waitpid() failed, then return -1 (ERROR) with the
-   * errno value set appropriately.
+  /* Free attibutes and file actions.  Ignoring return values in the case
+   * of an error.
    */
 
-  if (ret < 0)
+errout_with_actions:
+  (void)posix_spawn_file_actions_destroy(&file_actions);
+
+errout_with_attrs:
+  (void)posix_spawnattr_destroy(&attr);
+
+errout:
+  /* Most posix_spawn interfaces return a positive errno value on failure
+   * and do not set the errno variable.
+   */
+
+  if (ret > 0)
     {
-      return ERROR;
+      /* Set the errno value and return -1 */
+
+      set_errno(ret);
+      ret = ERROR;
+    }
+  else if (ret < 0)
+    {
+      /* Return -1 on failure.  errno should have been set. */
+
+      ret = ERROR;
     }
 
   return ret;
 }
 
-#endif /* CONFIG_NSH_BUILTIN_APPS */
+#endif /* CONFIG_NSH_FILE_APPS */

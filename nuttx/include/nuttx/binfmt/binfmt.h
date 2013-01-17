@@ -265,7 +265,7 @@ int exec_module(FAR const struct binary_s *bin);
  ****************************************************************************/
 
 #ifdef CONFIG_SCHED_HAVE_PARENT
-int schedule_unload(pid_t pid, FAR const struct binary_s *bin);
+int schedule_unload(pid_t pid, FAR struct binary_s *bin);
 #endif
 
 /****************************************************************************

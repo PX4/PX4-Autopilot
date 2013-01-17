@@ -3967,4 +3967,8 @@
 	  file system.
 	* configs/sim/nsh: Convert to use kconfig-frontends configuration
 	  tool.
+	* binfmt/binfmt_schedunload.c:  Add logic based on SIGCHLD to
+	  automatically unload and clean-up after running a task that
+	  was loaded into memory.
+	* binfmt/libbuiltin: Extensions from Mike Smith
 

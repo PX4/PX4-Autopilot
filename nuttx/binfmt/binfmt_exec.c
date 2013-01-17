@@ -43,6 +43,7 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/binfmt.h>
 
 #include "binfmt_internal.h"
@@ -97,6 +98,7 @@ int exec(FAR const char *filename, FAR const char **argv,
 #ifdef CONFIG_SCHED_ONEXIT
   FAR struct binary_s *bin;
   int errorcode;
+  int pid;
   int ret;
 
   /* Allocate the load information */
@@ -131,8 +133,8 @@ int exec(FAR const char *filename, FAR const char **argv,
 
   /* Then start the module */
 
-  ret = exec_module(bin);
-  if (ret < 0)
+  pid = exec_module(bin);
+  if (pid < 0)
     {
       bdbg("ERROR: Failed to execute program '%s'\n", filename);
       sched_unlock();
@@ -145,14 +147,14 @@ int exec(FAR const char *filename, FAR const char **argv,
    * when the task exists.
    */
 
-  ret = schedul_unload(ret, bin);
+  ret = schedule_unload(pid, bin);
   if (ret < 0)
     {
       bdbg("ERROR: Failed to schedul unload '%s'\n", filename);
     }
 
   sched_unlock();
-  return ret;
+  return pid;
 #else
   struct binary_s bin;
   int ret;

@@ -247,7 +247,7 @@ static int ps_exec(FAR pid_t *pidp, FAR const char *path,
 
 errout:
   sched_unlock();
-  return OK;
+  return ret;
 }
 
 /****************************************************************************

@@ -78,6 +78,36 @@ extern "C" {
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: builtin_initialize
+ *
+ * Description:
+ *   Builtin support is built unconditionally.  However, it order to
+ *   use this binary format, this function must be called during system
+ *   format in order to register the builtin binary format.
+ *
+ * Returned Value:
+ *   This is a NuttX internal function so it follows the convention that
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int builtin_initialize(void);
+
+/****************************************************************************
+ * Name: builtin_uninitialize
+ *
+ * Description:
+ *   Unregister the builtin binary loader
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void builtin_uninitialize(void);
+
+/****************************************************************************
  * Utility Functions Provided to Applications by binfmt/libbuiltin
  ****************************************************************************/
 /****************************************************************************

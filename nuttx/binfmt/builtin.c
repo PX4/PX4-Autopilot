@@ -98,11 +98,11 @@ static int builtin_loadbinary(struct binary_s *binp)
 
   /* Open the binary file for reading (only) */
 
-  fd = open(filename, O_RDONLY);
+  fd = open(binp->filename, O_RDONLY);
   if (fd < 0)
     {
       int errval = errno;
-      bdbg("ERROR: Failed to open binary %s: %d\n", filename, errval);
+      bdbg("ERROR: Failed to open binary %s: %d\n", binp->filename, errval);
       return -errval;
     }
 

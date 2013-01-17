@@ -1,15 +1,10 @@
 /****************************************************************************
- * binfmt/libbuiltin/libbuiltin_isavail.c
- *
- * Originally by:
+ * apps/builtin/builtin_list.c
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *   Author: Uros Platise <uros.platise@isotel.eu>
- *
- * With subsequent updates, modifications, and general maintenance by:
- *
- *   Copyright (C) 2012-2013 Gregory Nutt.  All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Authors: Uros Platise <uros.platise@isotel.eu>
+ *            Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,15 +41,7 @@
 
 #include <nuttx/config.h>
 
-#include <string.h>
-#include <limits.h>
-#include <errno.h>
-
 #include <nuttx/binfmt/builtin.h>
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
 
 /****************************************************************************
  * Private Types
@@ -63,6 +50,20 @@
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#include "builtin_proto.h"
+
+const struct builtin_s g_builtins[] =
+{
+# include "builtin_list.h"
+  { NULL, 0, 0, 0 }
+};
+
+const int g_builtin_count = sizeof(g_builtins) / sizeof(g_builtins[0]);
 
 /****************************************************************************
  * Private Data
@@ -76,28 +77,3 @@
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: builtin_isavail
- *
- * Description:
- *   Return the index into the table of applications for the application with
- *   the name 'appname'.
- *
- ****************************************************************************/
-
-int builtin_isavail(FAR const char *appname)
-{
-  FAR const char *name;
-  int i;
-
-  for (i = 0; (name = builtin_getname(i)); i++)
-    {
-      if (!strncmp(name, appname, NAME_MAX))
-        {
-          return i;
-        }
-    }
-
-  set_errno(ENOENT);
-  return ERROR;
-}
