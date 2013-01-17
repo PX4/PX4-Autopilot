@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
- (10)  Task/Scheduler (sched/)
+ (11)  Task/Scheduler (sched/)
   (1)  Memory Managment (mm/)
   (3)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
@@ -193,7 +193,7 @@ o Task/Scheduler (sched/)
   Priority:    Low
 
   Title:       IMPROVED TASK CONTROL BLOCK STRUCTURE
-               All task resources that are shared amongst threads have
+  Description: All task resources that are shared amongst threads have
                their own "break-away", reference-counted structure. The
                Task Control Block (TCB) of each thread holds a reference
                to each breakaway structure (see include/nuttx/sched.h).
@@ -206,10 +206,25 @@ o Task/Scheduler (sched/)
                - File descriptors (struct filelist)
                - FILE streams (struct streamlist)
                - Sockets (struct socketlist)
-   Status:     Open
-   Priority:   Low.  This is an enhancement.  It would slight reduce
+  Status:      Open
+  Priority:    Low.  This is an enhancement.  It would slight reduce
                memory usage but would also increase coupling.  These
                resources are nicely modular now.
+
+  Title:       ISSUES WITH atexit() AND on_exit()
+  Description: These functions execute with the following bad properties:
+  
+               1. They run with interrupts disabled,
+               2. They run in supervisor mode (if applicable), and
+               3. They do not obey any setup of PIC or address
+                  environments. Do they need to?
+
+               The fix for all of these issues it to have the callbacks
+               run on the caller's thread (as with signal handlers).
+  Status:      Open
+  Priority:    Medium Low.  This is an important change to some less
+               important interfaces.  For the average user, these
+               functions are just fine the way they are.
 
 o Memory Managment (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^

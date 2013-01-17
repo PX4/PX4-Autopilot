@@ -83,10 +83,14 @@
 
 FAR const char *builtin_getname(int index)
 {
-  if (index < 0 || index >= number_builtins())
-   {
-     return NULL;
-   }
+  struct builtin_s *b;
 
-  return g_builtins[index].name;
+  b = builtin_for_index(index);
+
+  if (b != NULL)
+    {
+      return b->name;
+    }
+
+  return NULL;
 }

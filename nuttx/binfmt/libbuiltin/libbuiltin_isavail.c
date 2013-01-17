@@ -80,18 +80,19 @@
  * Name: builtin_isavail
  *
  * Description:
- *   Return the index into the table of applications for the applicaiton with
+ *   Return the index into the table of applications for the application with
  *   the name 'appname'.
  *
  ****************************************************************************/
 
 int builtin_isavail(FAR const char *appname)
 {
+  FAR const char *n;
   int i;
 
-  for (i = 0; g_builtins[i].name; i++)
+  for (i = 0; n = builtin_getname(i); i++)
     {
-      if (!strncmp(g_builtins[i].name, appname, NAME_MAX))
+      if (!strncmp(n, appname, NAME_MAX))
         {
           return i;
         }

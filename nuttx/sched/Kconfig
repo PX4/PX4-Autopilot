@@ -4,7 +4,7 @@
 #
 
 config MSEC_PER_TICK
-	int "tick timer"
+	int "Milliseconds per system timer tick"
 	default 10
 	---help---
 		The default system timer is 100Hz or MSEC_PER_TICK=10.  This setting
@@ -12,7 +12,7 @@ config MSEC_PER_TICK
 		system timer interrupts at some interrupt interval other than 10 msec.
 
 config RR_INTERVAL
-	int "round robin timeslice"
+	int "Round robin timeslice (MSEC)"
 	default 0
 	---help---
 		The round robin timeslice will be set this number of milliseconds;
@@ -39,7 +39,7 @@ config TASK_NAME_SIZE
 		disable.
 
 config SCHED_HAVE_PARENT
-	bool "Remember Parent"
+	bool "Support parent/child task relationships"
 	default n
 	---help---
 		Remember the ID of the parent thread when a new child thread is
@@ -56,15 +56,15 @@ config JULIAN_TIME
 		Enables Julian time conversions
 
 config START_YEAR
-	int "start year"
+	int "Start year"
 	default 2013
 
 config START_MONTH
-	int "start month"
+	int "Start month"
 	default 1
 	
 config START_DAY
-	int "start day"
+	int "Start day"
 	default 1
 
 config DEV_CONSOLE
@@ -372,7 +372,7 @@ endif
 comment "Sizes of configurable things (0 disables)"
 
 config MAX_TASKS
-	int "Max tasks"
+	int "Max number of tasks"
 	default 32
 	---help---
 		The maximum number of simultaneously active tasks. This value must be
@@ -386,33 +386,32 @@ config MAX_TASK_ARGS
 		receive (i.e., maxmum value of 'argc')
 
 config NPTHREAD_KEYS
-	int "Number of pthread keys"
+	int "Maximum number of pthread keys"
 	default 4
 	---help---
 		The number of items of thread-
 		specific data that can be retained
 
 config NFILE_DESCRIPTORS
-	int "Max file descriptors"
+	int "Maximum number of file descriptors per task"
 	default 16
 	---help---
-		The maximum number of file
-		descriptors (one for each open)
+		The maximum number of file descriptors per task (one for each open)
 
 config NFILE_STREAMS
-	int "Max file streams"
+	int "Maximum number of FILE streams"
 	default 16
 	---help---
 		The maximum number of streams that can be fopen'ed
 
 config NAME_MAX
-	int "name max"
+	int "Maximum size of a file name"
 	default 32
 	---help---
 	The maximum size of a file name.
 
 config PREALLOC_MQ_MSGS
-	int "Pre-allocated messages"
+	int "Number of pre-allocated messages"
 	default 32
 	---help---
 		The number of pre-allocated message structures.  The system manages
@@ -426,21 +425,20 @@ config MQ_MAXMSGSIZE
 		setting (does not include other message structure overhead.
 
 config MAX_WDOGPARMS
-	int "max watchdog parms"
+	int "Maximum number of watchdog parameters"
 	default 4
 	---help---
-		Maximum number of parameters that
-		can be passed to a watchdog handler
+		Maximum number of parameters that can be passed to a watchdog handler
 
 config PREALLOC_WDOGS
-	int "Pre-allocated watchdogs"
+	int "Number of pre-allocated watchdog timers"
 	default 32
 	---help---
 		The number of pre-allocated watchdog structures.  The system manages a
 		pool of preallocated watchdog structures to minimize dynamic allocations
 	
 config PREALLOC_TIMERS
-	int "Pre-allocated timers"
+	int "Number of pre-allocated POSIX timers"
 	default 8
 	---help---
 		The number of pre-allocated POSIX timer structures.  The system manages a

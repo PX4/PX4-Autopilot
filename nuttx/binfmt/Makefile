@@ -52,6 +52,10 @@ ifeq ($(CONFIG_BINFMT_EXEPATH),y)
 BINFMT_CSRCS += binfmt_exepath.c
 endif
 
+ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
+BINFMT_CSRCS += binfmt_schedunload.c
+endif
+
 # Symbol table source files
 
 BINFMT_CSRCS += symtab_findbyname.c symtab_findbyvalue.c

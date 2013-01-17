@@ -39,7 +39,7 @@ include $(APPDIR)/Make.defs
 # Source and object files
 
 ASRCS		=
-CSRCS		= builtin.c exec_builtin.c
+CSRCS		= builtin.c builtin_list.c exec_builtin.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

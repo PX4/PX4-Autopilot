@@ -142,7 +142,16 @@ static void bultin_semtake(FAR sem_t *sem)
 
 static int builtin_taskcreate(int index, FAR const char **argv)
 {
+  FAR const struct builtin_s *b;
   int ret;
+
+  b = builtin_for_index(index);
+
+  if (b == NULL)
+    { 
+      errno = ENOENT;
+      return ERROR;
+    }
 
   /* Disable pre-emption.  This means that although we start the builtin
    * application here, it will not actually run until pre-emption is
@@ -153,8 +162,7 @@ static int builtin_taskcreate(int index, FAR const char **argv)
 
   /* Start the builtin application task */
 
-  ret = TASK_CREATE(g_builtins[index].name, g_builtins[index].priority,
-                    g_builtins[index].stacksize, g_builtins[index].main,
+  ret = TASK_CREATE(b->name, b->priority, b->stacksize, b->main,
                     (argv) ? &argv[1] : (FAR const char **)NULL);
 
   /* If robin robin scheduling is enabled, then set the scheduling policy
@@ -171,7 +179,7 @@ static int builtin_taskcreate(int index, FAR const char **argv)
        * new task cannot yet have changed from its initial value.
        */
 
-      param.sched_priority = g_builtins[index].priority;
+      param.sched_priority = b->priority;
       (void)sched_setscheduler(ret, SCHED_RR, &param);
     }
 #endif
@@ -292,8 +300,6 @@ static inline int builtin_startproxy(int index, FAR const char **argv,
   pid_t proxy;
   int errcode;
   int ret;
-
-  DEBUGASSERT(path);
 
   svdbg("index=%d argv=%p redirfile=%s oflags=%04x\n",
         index, argv, redirfile, oflags);

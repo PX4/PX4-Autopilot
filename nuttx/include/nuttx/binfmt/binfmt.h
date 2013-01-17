@@ -82,6 +82,18 @@ typedef FAR void (*binfmt_dtor_t)(void);
 struct symtab_s;
 struct binary_s
 {
+  /* If CONFIG_SCHED_HAVE_PARENT is defined then schedul_unload() will
+   * manage instances of struct binary_s allocated with kmalloc.  It
+   * will keep the binary data in a link list and when SIGCHLD is received
+   * (meaning that the task has exit'ed, schedul_unload() will find the
+   * data, unload the module, and free the structure.
+   */
+
+#ifdef CONFIG_SCHED_HAVE_PARENT
+  FAR struct binary_s *flink;          /* Supports a singly linked list */
+  pid_t pid;                           /* Task ID of the child task */
+#endif
+
   /* Information provided to the loader to load and bind a module */
 
   FAR const char *filename;            /* Full path to the binary to be loaded (See NOTE 1 above) */
@@ -222,7 +234,7 @@ int unload_module(FAR const struct binary_s *bin);
  *
  * Returned Value:
  *   This is an end-user function, so it follows the normal convention:
- *   Returns the PID of the exec'ed module.  On failure, it.returns
+ *   Returns the PID of the exec'ed module.  On failure, it returns
  *   -1 (ERROR) and sets errno appropriately.
  *
  ****************************************************************************/
@@ -230,11 +242,40 @@ int unload_module(FAR const struct binary_s *bin);
 int exec_module(FAR const struct binary_s *bin);
 
 /****************************************************************************
+ * Name: schedule_unload
+ *
+ * Description:
+ *   If CONFIG_SCHED_HAVE_PARENT is defined, this function may be called by
+ *   the parent of the the newly created task to automatically unload the
+ *   module when the task exits.  This assumes that (1) the caller is the
+ *   parent of the created task, (2) that bin was allocated with kmalloc()
+ *   or friends.  It will also automatically free the structure with kfree()
+ *   after unloading the module.
+ *
+ * Input Parameter:
+ *   pid - The task ID of the child task
+ *   bin - This structure must have been allocated with kmalloc() and must
+ *         persist until the task unloads
+ *
+ * Returned Value:
+ *   This is an end-user function, so it follows the normal convention:
+ *   It returns 0 (OK) if the callback was successfully scheduled. On
+ *  failure, it returns -1 (ERROR) and sets errno appropriately.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_HAVE_PARENT
+int schedule_unload(pid_t pid, FAR const struct binary_s *bin);
+#endif
+
+/****************************************************************************
  * Name: exec
  *
  * Description:
  *   This is a convenience function that wraps load_ and exec_module into
- *   one call.
+ *   one call.  If CONFIG_SCHED_ONEXIT is also defined, this function will
+ *   automatically call schedule_unload() to unload the module when task
+ *   exits.
  *
  * Input Parameter:
  *   filename - Fulll path to the binary to be loaded
@@ -244,7 +285,7 @@ int exec_module(FAR const struct binary_s *bin);
  *
  * Returned Value:
  *   This is an end-user function, so it follows the normal convention:
- *   Returns the PID of the exec'ed module.  On failure, it.returns
+ *   It returns the PID of the exec'ed module.  On failure, it returns
  *   -1 (ERROR) and sets errno appropriately.
  *
  ****************************************************************************/

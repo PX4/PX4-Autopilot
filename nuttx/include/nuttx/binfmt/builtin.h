@@ -73,14 +73,6 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-/* The g_builtins[] array holds information about each builtin function. If
- * support for builtin functions is enabled in the NuttX configuration, then
- * this arrary (along with the number_builtins() function) must be provided
- * by the application code.
- */
-
-EXTERN const struct builtin_s g_builtins[];
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -128,24 +120,24 @@ FAR const char *builtin_getname(int index);
  * Data Set Access Functions Provided to Applications by binfmt/libbuiltin
  ****************************************************************************/
 /****************************************************************************
- * Name: number_builtins
+ * Name: builtin_for_index
  *
  * Description:
- *   Returns the number of builtin functions in the g_builtins[] array.  If
- *   support for builtin functions is enabled in the NuttX configuration,
- *   then this function (along with g_builtins[]) must be provided by the
- *   application code.
+ *   Returns the builtin_s structure for the selected builtin.
+ *   If support for builtin functions is enabled in the NuttX configuration,
+ *   then this function must be provided by the application code.
  *
  * Input Parameter:
- *   None
+ *   index, from 0 and on...
  *
  * Returned Value:
- *   The number of entries in the g_builtins[] array.  This function does
- *   not return failures.
+ *   Returns valid pointer pointing to the builtin_s structure if index is
+ *   valid.
+ *   Otherwise, NULL is returned.
  *
  ****************************************************************************/
 
-int number_builtins(void);
+EXTERN FAR const struct builtin_s *builtin_for_index(int index);
 
 #undef EXTERN
 #if defined(__cplusplus)
