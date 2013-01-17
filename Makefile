@@ -1,110 +1,150 @@
 #
 # Top-level Makefile for building PX4 firmware images.
 #
-#
-# Note that this is a transitional process; the eventual goal is for this
-# project to slim down and simply generate PX4 link kits via the NuttX
-# 'make export' mechanism.
-#
-#
+
 
 #
 # Some useful paths.
 #
-export PX4BASE		 = $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-export NUTTX_SRC	 = $(PX4BASE)/nuttx
-export NUTTX_APPS	 = $(PX4BASE)/apps
-export MAVLINK_SRC	 = $(PX4BASE)/mavlink
-export ROMFS_SRC	 = $(PX4BASE)/ROMFS
-export IMAGE_DIR	 = $(PX4BASE)/Images
+export PX4_BASE		 = $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
+export NUTTX_SRC	 = $(PX4_BASE)/nuttx
+export NUTTX_APPS	 = $(PX4_BASE)/apps
+export MAVLINK_SRC	 = $(PX4_BASE)/mavlink
+export ROMFS_SRC	 = $(PX4_BASE)/ROMFS
+export IMAGE_DIR	 = $(PX4_BASE)/Images
+export BUILD_DIR	 = $(PX4_BASE)/Build
+export ARCHIVE_DIR	 = $(PX4_BASE)/Archives
 
 #
 # Tools
 #
-MKFW			 = $(PX4BASE)/Tools/px_mkfw.py
-UPLOADER		 = $(PX4BASE)/Tools/px_uploader.py
+MKFW			 = $(PX4_BASE)/Tools/px_mkfw.py
+UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py
+COPY			 = cp
+REMOVE			 = rm -f
+RMDIR			 = rm -rf
 
 #
-# What are we currently configured for?
+# Canned firmware configurations that we build.
 #
-CONFIGURED		 = $(PX4BASE)/.configured
-ifneq ($(wildcard $(CONFIGURED)),)
-export TARGET		:= $(shell cat $(CONFIGURED))
+CONFIGS			?= px4fmu_default px4io_default
+
+#
+# If the user has listed a config as a target, strip it out and override CONFIGS
+#
+EXPLICIT_CONFIGS	:= $(filter $(CONFIGS),$(MAKECMDGOALS))
+ifneq ($(EXPLICIT_CONFIGS),)
+CONFIGS			:= $(EXPLICIT_CONFIGS)
+.PHONY:			$(EXPLICIT_CONFIGS)
+$(EXPLICIT_CONFIGS):	all
 endif
 
 #
-# What we will build
+# Platforms (boards) that we build prelink kits for.
 #
-FIRMWARE_BUNDLE		 = $(IMAGE_DIR)/$(TARGET).px4
-FIRMWARE_BINARY		 = $(IMAGE_DIR)/$(TARGET).bin
-FIRMWARE_PROTOTYPE	 = $(IMAGE_DIR)/$(TARGET).prototype
+PLATFORMS		 = px4fmu px4io
+
+#
+# Some handy macros
+#
+PLATFORM_FROM_CONFIG	 = $(word 1,$(subst _, ,$1))
+
+#
+# Built products
+#
+FIRMWARES		 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)/$(config).px4)
+BINARIES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build/firmware.bin)
 
 #
 # Debugging
 #
 MQUIET			 = --no-print-directory
 #MQUIET			 = --print-directory
-
-all:			$(FIRMWARE_BUNDLE)
-
-#
-# Generate a wrapped .px4 file from the built binary
-#
-$(FIRMWARE_BUNDLE):	$(FIRMWARE_BINARY) $(MKFW) $(FIRMWARE_PROTOTYPE)
-	@echo Generating $@
-	@$(MKFW) --prototype $(FIRMWARE_PROTOTYPE) \
-		--git_identity $(PX4BASE) \
-		--image $(FIRMWARE_BINARY) > $@
-
-#
-# Build the firmware binary.
-#
-.PHONY:			$(FIRMWARE_BINARY)
-$(FIRMWARE_BINARY):	setup_$(TARGET) configure-check
-	@echo Building $@ for $(TARGET)
-	@make -C $(NUTTX_SRC) -r $(MQUIET) all
-	@cp $(NUTTX_SRC)/nuttx.bin $@
-
-#
-# The 'configure' targets select one particular firmware configuration
-# and makes it current.
-#
-configure_px4fmu:
-	@echo Configuring for px4fmu
-	@make -C $(PX4BASE) distclean
-	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4fmu/nsh
-	@echo px4fmu > $(CONFIGURED)
-
-configure_px4io:
-	@echo Configuring for px4io
-	@make -C $(PX4BASE) distclean
-	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4io/io
-	@echo px4io > $(CONFIGURED)
-
-configure-check:
-ifeq ($(wildcard $(CONFIGURED)),)
-	@echo
-	@echo "Not configured - use 'make configure_px4fmu' or 'make configure_px4io' first"
-	@echo
-	@exit 1
+ifeq ($(V),)
+Q			 = @
+else
+Q			 =
 endif
 
+all:			$(FIRMWARES)
+#all:			$(SYMBOLS)
+
 
 #
-# Per-configuration additional targets
+# Generate FIRMWARES from BINARIES
 #
-.PHONY:			px4fmu_setup
-setup_px4fmu:
-	@echo Generating ROMFS
-	@make -C $(ROMFS_SRC) all
+$(IMAGE_DIR)/%.px4:			basepath = $(basename $(@))
+$(IMAGE_DIR)/%.px4:			config = $(notdir $(basepath))
+$(IMAGE_DIR)/%.px4:			platform = $(call PLATFORM_FROM_CONFIG,$(config))
+$(FIRMWARES): $(IMAGE_DIR)/%.px4:	$(BUILD_DIR)/%.build/firmware.bin
+	@echo %% Generating $@ for $(config)
+	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(platform).prototype \
+		--git_identity $(PX4_BASE) \
+		--image $< > $@
+
+#
+# Generate the firmware executable
+#
+# XXX pick the right build tool for the host OS - force it on the generation side too.
+#
+$(BUILD_DIR)/%.build/firmware.bin: config = $(patsubst $(BUILD_DIR)/%.build/firmware.bin,%,$@)
+$(BUILD_DIR)/%.build/firmware.bin: work_dir = $(BUILD_DIR)/$(config).build
+$(BINARIES): $(BUILD_DIR)/%.build/firmware.bin:	$(BUILD_DIR)/$(word 1,$(subst _, ,%)).build
+	@echo %% Building $(config) in $(work_dir)
+	$(Q) make -C $(work_dir) \
+		-f $(PX4_BASE)/makefiles/$(config).mk \
+		CONFIG=$(config) \
+		PLATFORM=$(call PLATFORM_FROM_CONFIG,$(config)) \
+		WORK_DIR=$(work_dir)
+
+#
+# Generate the config build directory.
+#
+BUILDAREAS		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build)
+.PHONY:			buildareas
+buildareas:		$(BUILDAREAS)
+
+$(BUILD_DIR)/%.build:	config = $(notdir $(basename $@))
+$(BUILD_DIR)/%.build:	platform = $(call PLATFORM_FROM_CONFIG,$(config))
+$(BUILDAREAS): $(BUILD_DIR)/%.build:
+	@echo %% Setting up build environment for $(config)
+	$(Q) mkdir -p $@
+	$(Q) (cd $@ && $(RMDIR) nuttx-export && unzip -q $(ARCHIVE_DIR)/$(platform).export)
+
+#
+# Build the NuttX export archives.
+#
+# Note that there are no explicit dependencies extended from these
+# archives. If NuttX is updated, the user is expected to rebuild the 
+# archives/build area manually.
+#
+# XXX Should support fetching/unpacking from a separate directory to permit
+#     downloads of the prebuilt archives as well...
+#
+# XXX PX4IO config name is bad - we should just call them all "px4"
+#
+NUTTX_ARCHIVES		 = $(foreach platform,$(PLATFORMS),$(ARCHIVE_DIR)/$(platform).export)
+.PHONY:			archives
+archives:		$(NUTTX_ARCHIVES)
+
+$(ARCHIVE_DIR)/%.export:	platform = $(notdir $(basename $@))
+$(ARCHIVE_DIR)/%.export:	config = $(if $(filter $(platform),px4io),io,nsh)
+$(NUTTX_ARCHIVES): $(ARCHIVE_DIR)/%.export: $(NUTTX_SRC) $(NUTTX_APPS)
+	@echo %% Configuring NuttX for $(platform)
+	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
+	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) (cd $(NUTTX_SRC)/tools && ./configure.sh $(platform)/$(config))
+	@echo Generating ROMFS for $(platform) XXX move this!
+	$(Q) make -C $(ROMFS_SRC) all
+	@echo %% Exporting NuttX for $(platform)
+	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) export
+	$(Q) mkdir -p $(dir $@)
+	$(Q) $(COPY) $(NUTTX_SRC)/nuttx-export.zip $@
 
 setup_px4io:
 
-# fake target to make configure-check happy if TARGET is not set
-setup_:
-
 #
-# Firmware uploading.
+# Firmware upload.
 #
 
 # serial port defaults by operating system.
@@ -129,10 +169,12 @@ ifeq ($(JTAGCONFIG),)
 JTAGCONFIG=interface/olimex-jtag-tiny.cfg
 endif
 
-upload-jtag-px4fmu:
+.PHONY: upload-jtag-px4fmu
+upload-jtag-px4fmu: all
 	@echo Attempting to flash PX4FMU board via JTAG
 	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
 
+.PHONY: upload-jtag-px4io
 upload-jtag-px4io: all
 	@echo Attempting to flash PX4IO board via JTAG
 	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f1x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4io_bl.elf" -c "reset run" -c shutdown
@@ -151,14 +193,17 @@ endif
 # a complete re-compilation, 'distclean' should remove everything 
 # that's generated leaving only files that are in source control.
 #
-.PHONY:	clean upload-jtag-px4fmu
+.PHONY:	clean
 clean:
-	@make -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	@make -C $(ROMFS_SRC) -r $(MQUIET) clean
+	$(Q) $(RMDIR) $(BUILD_DIR)/*.build
+	$(Q) $(REMOVE) -f $(IMAGE_DIR)/*.bin
+	$(Q) $(REMOVE) -f $(IMAGE_DIR)/*.sym
+	$(Q) $(REMOVE) -f $(IMAGE_DIR)/*.px4
+	$(Q) make -C $(ROMFS_SRC) -r $(MQUIET) clean
 
 .PHONY:	distclean
-distclean:
-	@rm -f $(CONFIGURED)
-	@make -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	@make -C $(ROMFS_SRC) -r $(MQUIET) distclean
+distclean: clean
+	$(Q) $(REMOVE) -f $(ARCHIVE_DIR)/*.export
+	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) make -C $(ROMFS_SRC) -r $(MQUIET) distclean
 

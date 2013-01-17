@@ -9,7 +9,12 @@
 # Work out where this file is, so we can find other makefiles in the
 # same directory.
 #
+# If PX4_BASE wasn't set previously, set it here now.
+#
 export PX4_MK_INCLUDE	?= $(dir $(lastword $(MAKEFILE_LIST)))
+ifeq ($(PX4_BASE),)
+export PX4_BASE		:= $(abspath $(PX4_MK_INCLUDE)/..)
+endif
 
 #
 # Use the linker script from the NuttX export
@@ -36,6 +41,7 @@ include $(PX4_MK_INCLUDE)/$(PLATFORM).mk
 #
 # What we're going to build
 #
+PRODUCT_BUNDLE		 = $(WORK_DIR)/firmware.px4
 PRODUCT_BIN		 = $(WORK_DIR)/firmware.bin
 PRODUCT_SYM		 = $(WORK_DIR)/firmware.sym
 PRODUCTS		 = $(PRODUCT_BIN) $(PRODUCT_SYM)
