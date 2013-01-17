@@ -1,5 +1,5 @@
 #
-# Rules and tools for uploading firmware.
+# Rules and tools for uploading firmware to various PX4 boards.
 #
 
 UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py

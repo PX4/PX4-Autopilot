@@ -103,8 +103,6 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)/%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)/tools && ./configure.sh $(platform)/$(configuration))
-	@echo Generating ROMFS for $(platform) XXX move this!
-	$(Q) make -C $(ROMFS_SRC) all
 	@echo %% Exporting NuttX for $(platform)
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) export
 	$(Q) mkdir -p $(dir $@)

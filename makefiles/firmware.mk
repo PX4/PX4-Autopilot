@@ -23,6 +23,11 @@
 #	to the directory 'build' under the directory containing the
 #	parent Makefile.
 #
+# ROMFS_ROOT:
+#	If set to the path to a directory, a ROMFS image will be generated
+#	containing the files under the directory and linked into the final
+#	image.
+#
 
 ################################################################################
 # Paths and configuration
@@ -71,6 +76,7 @@ MKFW			 = $(PX4_BASE)/Tools/px_mkfw.py
 COPY			 = cp
 REMOVE			 = rm -f
 RMDIR			 = rm -rf
+GENROMFS		 = genromfs
 
 #
 # Sanity-check the PLATFORM variable and then get the platform config.
@@ -135,6 +141,29 @@ LIBS			+= -lapps -lnuttx
 LINK_DEPS		+= $(wildcard $(addsuffix /*.a,$(LIB_DIRS)))
 
 ################################################################################
+# ROMFS generation
+################################################################################
+
+#
+# Note that we can't just put romfs.c in SRCS, as it's depended on by the
+# NuttX export library. Instead, we have to treat it like a library.
+#
+ifneq ($(ROMFS_ROOT),)
+ROMFS_DEPS		+= $(wildcard \
+			     (ROMFS_ROOT)/* \
+			     (ROMFS_ROOT)/*/* \
+			     (ROMFS_ROOT)/*/*/* \
+			     (ROMFS_ROOT)/*/*/*/* \
+			     (ROMFS_ROOT)/*/*/*/*/* \
+			     (ROMFS_ROOT)/*/*/*/*/*/*)
+ROMFS_IMG		 = $(WORK_DIR)/romfs.img
+ROMFS_CSRC		 = $(ROMFS_IMG:.img=.c)
+ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
+LIBS			+= $(ROMFS_OBJ)
+LINK_DEPS		+= $(ROMFS_OBJ)
+endif
+
+################################################################################
 # Build rules
 ################################################################################
 
@@ -159,7 +188,7 @@ all:			$(PRODUCT_BUNDLE)
 OBJS			 = $(foreach src,$(SRCS),$(WORK_DIR)/$(src).o)
 
 #
-# Rules
+# SRCS -> OBJS rules
 #
 
 $(filter %.c.o,$(OBJS)): $(WORK_DIR)/%.c.o: %.c $(GLOBAL_DEPS)
@@ -174,10 +203,18 @@ $(filter %.S.o,$(OBJS)): $(WORK_DIR)/%.S.o: %.S $(GLOBAL_DEPS)
 	@mkdir -p $(dir $@)
 	$(call ASSEMBLE,$<,$@)
 
+#
+# Build directory setup rules
+#
+
 $(NUTTX_CONFIG_HEADER):	$(NUTTX_ARCHIVE)
 	@echo %% Unpacking $(NUTTX_ARCHIVE)
 	$(Q) unzip -q -o -d $(WORK_DIR) $(NUTTX_ARCHIVE)
 	$(Q) touch $@
+
+#
+# Built product rules
+#
 
 $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 	@echo %% Generating $@
@@ -190,6 +227,25 @@ $(PRODUCT_BIN):		$(PRODUCT_SYM)
 
 $(PRODUCT_SYM):		$(OBJS) $(GLOBAL_DEPS) $(LINK_DEPS)
 	$(call LINK,$@,$(OBJS))
+
+#
+# ROMFS rules
+#
+
+$(ROMFS_OBJ): $(ROMFS_CSRC)
+	$(call COMPILE,$<,$@)
+
+$(ROMFS_CSRC): $(ROMFS_IMG)
+	@echo %% generating $@
+	$(Q) (cd $(dir $<) && xxd -i $(notdir $<)) > $@
+
+$(ROMFS_IMG): $(ROMFS_DEPS)
+	@echo %% generating $@
+	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_ROOT) -V "NSHInitVol"
+
+#
+# Utility rules
+#
 
 upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
 	$(Q) make -f $(PX4_MK_INCLUDE)/upload.mk \
