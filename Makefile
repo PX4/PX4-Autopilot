@@ -86,20 +86,6 @@ $(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
 		WORK_DIR=$(work_dir)
 
 #
-# Generate the config build directory.
-#
-#BUILDAREAS		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build)
-#.PHONY:			buildareas
-#buildareas:		$(BUILDAREAS)
-#
-#$(BUILD_DIR)/%.build:	config = $(notdir $(basename $@))
-#$(BUILD_DIR)/%.build:	platform = $(call PLATFORM_FROM_CONFIG,$(config))
-#$(BUILDAREAS): $(BUILD_DIR)/%.build:
-#	@echo %% Setting up build environment for $(config)
-#	$(Q) mkdir -p $@
-#	$(Q) (cd $@ && $(RMDIR) nuttx-export && unzip -q $(ARCHIVE_DIR)/$(platform).export)
-
-#
 # Build the NuttX export archives.
 #
 # Note that there are no explicit dependencies extended from these
@@ -129,53 +115,6 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)/%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) export
 	$(Q) mkdir -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)/nuttx-export.zip $@
-
-setup_px4io:
-
-#
-# Firmware upload.
-#
-
-# serial port defaults by operating system.
-SYSTYPE			 = $(shell uname)
-ifeq ($(SYSTYPE),Darwin)
-SERIAL_PORTS		?= "/dev/tty.usbmodemPX1,/dev/tty.usbmodemPX2,/dev/tty.usbmodemPX3,/dev/tty.usbmodemPX4,/dev/tty.usbmodem1,/dev/tty.usbmodem2,/dev/tty.usbmodem3,/dev/tty.usbmodem4"
-endif
-ifeq ($(SYSTYPE),Linux)
-SERIAL_PORTS		?= "/dev/ttyACM5,/dev/ttyACM4,/dev/ttyACM3,/dev/ttyACM2,/dev/ttyACM1,/dev/ttyACM0"
-endif
-ifeq ($(SERIAL_PORTS),)
-SERIAL_PORTS		 = "\\\\.\\COM32,\\\\.\\COM31,\\\\.\\COM30,\\\\.\\COM29,\\\\.\\COM28,\\\\.\\COM27,\\\\.\\COM26,\\\\.\\COM25,\\\\.\\COM24,\\\\.\\COM23,\\\\.\\COM22,\\\\.\\COM21,\\\\.\\COM20,\\\\.\\COM19,\\\\.\\COM18,\\\\.\\COM17,\\\\.\\COM16,\\\\.\\COM15,\\\\.\\COM14,\\\\.\\COM13,\\\\.\\COM12,\\\\.\\COM11,\\\\.\\COM10,\\\\.\\COM9,\\\\.\\COM8,\\\\.\\COM7,\\\\.\\COM6,\\\\.\\COM5,\\\\.\\COM4,\\\\.\\COM3,\\\\.\\COM2,\\\\.\\COM1,\\\\.\\COM0"
-endif
-
-upload:		$(FIRMWARE_BUNDLE) $(UPLOADER)
-	@python -u $(UPLOADER) --port $(SERIAL_PORTS) $(FIRMWARE_BUNDLE)
-
-#
-# JTAG firmware uploading with OpenOCD
-#
-ifeq ($(JTAGCONFIG),)
-JTAGCONFIG=interface/olimex-jtag-tiny.cfg
-endif
-
-.PHONY: upload-jtag-px4fmu
-upload-jtag-px4fmu: all
-	@echo Attempting to flash PX4FMU board via JTAG
-	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
-
-.PHONY: upload-jtag-px4io
-upload-jtag-px4io: all
-	@echo Attempting to flash PX4IO board via JTAG
-	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f1x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4io_bl.elf" -c "reset run" -c shutdown
-
-#
-# Hacks and fixups
-#
-
-ifeq ($(SYSTYPE),Darwin)
-# PATH inherited by Eclipse may not include toolchain install location 
-export PATH			 := $(PATH):/usr/local/bin
-endif
 
 #
 # Cleanup targets.  'clean' should remove all built products and force

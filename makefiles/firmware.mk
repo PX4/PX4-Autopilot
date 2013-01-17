@@ -68,7 +68,6 @@ export ARCHIVE_DIR	 = $(PX4_BASE)/Archives
 # XXX should be in a common toolchain config somewhere.
 #
 MKFW			 = $(PX4_BASE)/Tools/px_mkfw.py
-UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py
 COPY			 = cp
 REMOVE			 = rm -f
 RMDIR			 = rm -rf
@@ -96,21 +95,6 @@ SYSTYPE			:= $(shell uname -s)
 ifeq ($(SYSTYPE),Darwin)
 # Eclipse may not have the toolchain on its path.
 export PATH		:= $(PATH):/usr/local/bin
-endif
-
-#
-# Serial port defaults.
-#
-# XXX The uploader should be smarter than this.
-#
-ifeq ($(SYSTYPE),Darwin)
-SERIAL_PORTS		?= "/dev/tty.usbmodemPX1,/dev/tty.usbmodemPX2,/dev/tty.usbmodemPX3,/dev/tty.usbmodemPX4,/dev/tty.usbmodem1,/dev/tty.usbmodem2,/dev/tty.usbmodem3,/dev/tty.usbmodem4"
-endif
-ifeq ($(SYSTYPE),Linux)
-SERIAL_PORTS		?= "/dev/ttyACM5,/dev/ttyACM4,/dev/ttyACM3,/dev/ttyACM2,/dev/ttyACM1,/dev/ttyACM0"
-endif
-ifeq ($(SERIAL_PORTS),)
-SERIAL_PORTS		 = "\\\\.\\COM32,\\\\.\\COM31,\\\\.\\COM30,\\\\.\\COM29,\\\\.\\COM28,\\\\.\\COM27,\\\\.\\COM26,\\\\.\\COM25,\\\\.\\COM24,\\\\.\\COM23,\\\\.\\COM22,\\\\.\\COM21,\\\\.\\COM20,\\\\.\\COM19,\\\\.\\COM18,\\\\.\\COM17,\\\\.\\COM16,\\\\.\\COM15,\\\\.\\COM14,\\\\.\\COM13,\\\\.\\COM12,\\\\.\\COM11,\\\\.\\COM10,\\\\.\\COM9,\\\\.\\COM8,\\\\.\\COM7,\\\\.\\COM6,\\\\.\\COM5,\\\\.\\COM4,\\\\.\\COM3,\\\\.\\COM2,\\\\.\\COM1,\\\\.\\COM0"
 endif
 
 ################################################################################
@@ -203,8 +187,12 @@ $(PRODUCT_BIN):		$(PRODUCT_SYM)
 $(PRODUCT_SYM):		$(OBJS) $(GLOBAL_DEPS) $(LINK_DEPS)
 	$(call LINK,$@,$(OBJS))
 
-upload:		$(PRODUCT_BUNDLE) $(UPLOADER)
-	@python -u $(UPLOADER) --port $(SERIAL_PORTS) $(PRODUCT_BUNDLE)
+upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
+	$(Q) make -f $(PX4_MK_INCLUDE)/upload.mk \
+		METHOD=serial \
+		PRODUCT=$(PRODUCT) \
+		BUNDLE=$(PRODUCT_BUNDLE) \
+		BIN=$(PRODUCT_BIN)
 
 clean:
 	@echo %% cleaning
