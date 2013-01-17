@@ -125,7 +125,6 @@ else
 fi
 
 src_config="${configpath}/defconfig"
-tmp_config="${TOPDIR}/.configX"
 dest_config="${TOPDIR}/.config"
 
 if [ ! -r "${src_config}" ]; then
@@ -201,7 +200,7 @@ if [ "X${have_setenv}" = "Xy" ]; then
     { echo "Failed to copy ${src_setenv}" ; exit 8 ; }
   chmod 755 "${dest_setenv}"
 fi
-install "${src_config}" "${tmp_config}" || \
+install "${src_config}" "${dest_config}" || \
   { echo "Failed to copy \"${src_config}\"" ; exit 9 ; }
 
 # If we did not use the CONFIG_APPS_DIR that was in the defconfig config file,
@@ -209,14 +208,14 @@ install "${src_config}" "${tmp_config}" || \
 # file
 
 if [ "X${defappdir}" = "Xy" ]; then
-  sed -i -e "/^CONFIG_APPS_DIR/d" "${tmp_config}"
-  echo "" >> "${tmp_config}"
-  echo "# Application configuration" >> "${tmp_config}"
-  echo "" >> "${tmp_config}"
+  sed -i -e "/^CONFIG_APPS_DIR/d" "${dest_config}"
+  echo "" >> "${dest_config}"
+  echo "# Application configuration" >> "${dest_config}"
+  echo "" >> "${dest_config}"
   if [ "X${winnative}" = "Xy" ]; then
-    echo "CONFIG_APPS_DIR=\"$winappdir\"" >> "${tmp_config}"
+    echo "CONFIG_APPS_DIR=\"$winappdir\"" >> "${dest_config}"
   else
-    echo "CONFIG_APPS_DIR=\"$posappdir\"" >> "${tmp_config}"
+    echo "CONFIG_APPS_DIR=\"$posappdir\"" >> "${dest_config}"
   fi
 fi 
 
@@ -232,9 +231,3 @@ if [ ! -z "${appdir}" -a "X${newconfig}" != "Xy" ]; then
       { echo "Failed to copy ${configpath}/appconfig" ; exit 10 ; }
   fi
 fi
-
-# install the final .configX only if it differs from any existing
-# .config file.
-
-install "${tmp_config}" "${dest_config}"
-rm -f "${tmp_config}"

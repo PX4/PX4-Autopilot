@@ -94,7 +94,6 @@ struct stm32_dma_s
   uint8_t        irq;      /* DMA stream IRQ number */
   uint8_t        shift;    /* ISR/IFCR bit shift value */
   uint8_t        channel;  /* DMA channel number (0-7) */
-  bool           nonstop;  /* Stream is configured in a non-stopping mode. */
   sem_t          sem;      /* Used to wait for DMA channel to become available */
   uint32_t       base;     /* DMA register channel base address */
   dma_callback_t callback; /* Callback invoked when the DMA completes */
@@ -728,7 +727,6 @@ void stm32_dmasetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr,
               DMA_SCR_DBM|DMA_SCR_CIRC|
               DMA_SCR_PBURST_MASK|DMA_SCR_MBURST_MASK);
   regval |= scr;
-  dmast->nonstop = (scr & (DMA_SCR_DBM|DMA_SCR_CIRC)) != 0;
   dmast_putreg(dmast, STM32_DMA_SCR_OFFSET, regval);
 }
 
@@ -764,7 +762,12 @@ void stm32_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg, bool 
   scr  = dmast_getreg(dmast, STM32_DMA_SCR_OFFSET);
   scr |= DMA_SCR_EN;
 
-  if (!dmast->nonstop)
+  /* In normal mode, interrupt at either half or full completion. In circular
+   * and double-buffered modes, always interrupt on buffer wrap, and optionally
+   * interrupt at the halfway point.
+   */
+
+  if ((scr & (DMA_SCR_DBM|DMA_SCR_CIRC)) == 0)
     {
       /* Once half of the bytes are transferred, the half-transfer flag (HTIF) is
        * set and an interrupt is generated if the Half-Transfer Interrupt Enable
@@ -777,7 +780,7 @@ void stm32_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg, bool 
     }
   else
     {
-      /* In nonstop mode, when the transfer completes it immediately resets
+      /* In non-stop modes, when the transfer completes it immediately resets
        * and starts again.  The transfer-complete interrupt is thus always
        * enabled, and the half-complete interrupt can be used in circular 
        * mode to determine when the buffer is half-full, or in double-buffered

@@ -61,11 +61,11 @@ static FILE *g_stubstream;
  * Private Functions
  ****************************************************************************/
 
-static bool is_vararg(const char *type, int index, int nparms)
+static bool is_vararg(const char *type, int ndx, int nparms)
 {
   if (strcmp(type,"...") == 0)
     {
-      if (index != (nparms-1))
+      if (ndx != (nparms-1))
         {
           fprintf(stderr, "%d: ... is not the last in the argument list\n", g_lineno);
           exit(11);
@@ -75,8 +75,10 @@ static bool is_vararg(const char *type, int index, int nparms)
           fprintf(stderr, "%d: Need one parameter before ...\n", g_lineno);
           exit(14);
         }
+
       return true;
     }
+
   return false;
 }
 

@@ -1,7 +1,7 @@
 /****************************************************************************
  * binfmt/binfmt_exec.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <string.h>
-#include <sched.h>
 #include <debug.h>
 #include <errno.h>
 
@@ -96,6 +95,8 @@ int exec(FAR const char *filename, FAR const char **argv,
   struct binary_s bin;
   int ret;
 
+  /* Load the module into memory */
+
   memset(&bin, 0, sizeof(struct binary_s));
   bin.filename = filename;
   bin.exports  = exports;
@@ -108,7 +109,9 @@ int exec(FAR const char *filename, FAR const char **argv,
       return ERROR;
     }
 
-  ret = exec_module(&bin, 50);
+  /* Then start the module */
+
+  ret = exec_module(&bin);
   if (ret < 0)
     {
       bdbg("ERROR: Failed to execute program '%s'\n", filename);

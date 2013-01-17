@@ -1,10 +1,8 @@
 /****************************************************************************
- * apps/namedaps/namedapp.h
+ * libc/string/lib_psa_dump.c
  *
- *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
- *   Authors: Uros Platise <uros.platise@isotel.eu>
- *            Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,44 +33,95 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_NAMEDAPP_NAMEDAPP_H
-#define __APPS_NAMEDAPP_NAMEDAPP_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <apps/apps.h>
+
+#include <spawn.h>
+#include <debug.h>
+
+#ifdef CONFIG_DEBUG
 
 /****************************************************************************
- * Public Types
+ * Global Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
+ * Name: posix_spawnattr_dump
+ *
+ * Description:
+ *   Show the current attributes.
+ *
+ * Input Parameters:
+ *   attr - The address of the spawn attributes to be dumped.
+ *
+ * Returned Value:
+ *   None
+ *
  ****************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
+void posix_spawnattr_dump(posix_spawnattr_t *attr)
+{
+  dbg("attr[%p]:\n", attr);
+  dbg("  flags:    %04x\n", attr->flags);
+  if (attr->flags == 0)
+    {
+      dbg("            None\n");
+    }
+  else
+    {
+      if ((attr->flags & POSIX_SPAWN_RESETIDS) != 0)
+        {
+          dbg("            POSIX_SPAWN_RESETIDS\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETPGROUP) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETPGROUP\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETSCHEDPARAM) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETSCHEDPARAM\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETSCHEDULER) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETSCHEDULER\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETSIGDEF) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETSIGDEF\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETSIGMASK) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETSIGMASK\n");
+        }
+    }
+
+  dbg("  priority: %d\n", attr->priority);
+
+  dbg("  policy:   %d\n", attr->policy);
+  if (attr->policy == SCHED_FIFO)
+    {
+      dbg("            SCHED_FIFO\n");
+    }
+  else if (attr->policy == SCHED_RR)
+    {
+      dbg("            SCHED_RR\n");
+    }
+  else
+    {
+      dbg("            Unrecognized\n");
+    }
+
+#ifndef CONFIG_DISABLE_SIGNALS
+  dbg("  sigmask:  %08x\n", attr->sigmask);
 #endif
+};
 
-EXTERN const struct namedapp_s namedapps[];
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-EXTERN int number_namedapps(void);
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* __APPS_NAMEDAPP_NAMEDAPP_H */
-
+#endif /* CONFIG_DEBUG */

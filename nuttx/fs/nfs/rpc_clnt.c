@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/nfs/rpc_clnt.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
  *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
  *           Gregory Nutt <gnutt@nuttx.org>
@@ -224,8 +224,6 @@ static int rpcclnt_receive(FAR struct rpcclnt *rpc, FAR struct sockaddr *aname,
 static int rpcclnt_reply(FAR struct rpcclnt *rpc, int procid, int prog,
                          FAR void *reply, size_t resplen)
 {
-  FAR struct rpc_reply_header *replyheader;
-  uint32_t rxid;
   int error;
 
   /* Get the next RPC reply from the socket */
@@ -235,22 +233,22 @@ static int rpcclnt_reply(FAR struct rpcclnt *rpc, int procid, int prog,
     {
       fdbg("ERROR: rpcclnt_receive returned: %d\n", error);
 
-        /* If we failed because of a timeout, then try sending the CALL 
-         * message again.
-         */
+      /* If we failed because of a timeout, then try sending the CALL 
+       * message again.
+       */
 
-        if (error == EAGAIN || error == ETIMEDOUT)
-          {
-            rpc->rc_timeout = true;
-         }
-     }
+      if (error == EAGAIN || error == ETIMEDOUT)
+        {
+          rpc->rc_timeout = true;
+       }
+    }
 
   /* Get the xid and check that it is an RPC replysvr */
 
   else
     {
-      replyheader = (FAR struct rpc_reply_header *)reply;
-      rxid        = replyheader->rp_xid;
+      FAR struct rpc_reply_header *replyheader =
+        (FAR struct rpc_reply_header *)reply;
 
       if (replyheader->rp_direction != rpc_reply)
         {
@@ -260,7 +258,7 @@ static int rpcclnt_reply(FAR struct rpcclnt *rpc, int procid, int prog,
         }
     }
 
-  return OK;
+  return error;
 }
 
 /****************************************************************************
@@ -275,7 +273,6 @@ static uint32_t rpcclnt_newxid(void)
 {
   static uint32_t rpcclnt_xid = 0;
   static uint32_t rpcclnt_xid_touched = 0;
-  int xidp = 0;
 
   srand(time(NULL));
   if ((rpcclnt_xid == 0) && (rpcclnt_xid_touched == 0))
@@ -285,6 +282,7 @@ static uint32_t rpcclnt_newxid(void)
     }
   else
     {
+      int xidp = 0;
       do
         {
           xidp = rand();

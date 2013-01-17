@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/semaphore.h
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -103,9 +103,13 @@ typedef struct sem_s sem_t;
 /* Initializers */
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
-#  define SEM_INITIALIZER(c) {(c), SEMHOLDER_INITIALIZER}
+# if CONFIG_SEM_PREALLOCHOLDERS > 0
+#  define SEM_INITIALIZER(c) {(c), NULL}  /* semcount, hhead */
+# else
+#  define SEM_INITIALIZER(c) {(c), SEMHOLDER_INITIALIZER} /* semcount, holder */
+# endif
 #else
-#  define SEM_INITIALIZER(c) {(c)}
+#  define SEM_INITIALIZER(c) {(c)} /* semcount */
 #endif
 
 /****************************************************************************

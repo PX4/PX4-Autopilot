@@ -2,6 +2,7 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
 config USBHOST_NPREALLOC
 	int "Number of pre-allocated class instances"
 	default 4
@@ -29,64 +30,85 @@ config USBHOST_ISOC_DISABLE
 		On some architectures, selecting this setting will reduce driver size
 		by disabling isochronous endpoint support
 
-config USBHOST_HIDKBD
-	bool "HID keyboad class support"
+config USBHOST_MSC
+	bool "Mass Storage Class Support"
 	default n
-	depends on !USBHOST_INT_DISABLE  && SCHED_WORKQUEUE && !DISABLE_SIGNALS
+	depends on !BULK_DISABLE
+	---help---
+		Enable support for the keyboard class driver.  This also depends on
+		NFILE_DESCRIPTORS > 0 && SCHED_WORKQUEUE=y
+
+config USBHOST_HIDKBD
+	bool "HID Keyboard Class Support"
+	default n
+	depends on !INT_DISABLE
+	---help---
+		Enable support for the keyboard class driver.  This also depends on
+		SCHED_WORKQUEUE && !DISABLE_SIGNALS
 
 if  USBHOST_HIDKBD
 config HIDKBD_POLLUSEC
-	bool ""
-	default n
+	int "Keyboard Poll Rate (MSEC)"
+	default 100000
 	---help---
-		Device poll rate in microseconds. Default: 100 milliseconds.
+		Device poll rate in microseconds. Default: 100,000 microseconds.
 
 config HIDKBD_DEFPRIO
-	bool ""
-	default n
+	int "Polling Thread Priority"
+	default 50
 	---help---
 		Priority of the polling thread.  Default: 50.
 
 config HIDKBD_STACKSIZE
-	bool ""
-	default n
+	int "Polling thread stack size"
+	default 1024
 	---help---
 		Stack size for polling thread.  Default: 1024
 
 config HIDKBD_BUFSIZE
-	bool ""
-	default n
+	int "Scancode Buffer Size"
+	default 64
 	---help---
 		Scancode buffer size.  Default: 64.
 
 config HIDKBD_NPOLLWAITERS
-	bool ""
-	default n
+	int "Max Number of Waiters for Poll Event"
+	default 2
+	depends on !DISABLE_POLL
 	---help---
 		If the poll() method is enabled, this defines the maximum number
 		of threads that can be waiting for keyboard events.  Default: 2.
 
 config HIDKBD_RAWSCANCODES
-	bool ""
+	bool "Use Raw Scan Codes"
 	default n
 	---help---
-		If set to y no conversion will be made on the raw keyboard scan
-		codes.  Default: ASCII conversion.
+		If set to y no conversions will be made on the raw keyboard scan
+		codes.  This option is useful during testing. Default: ASCII conversion.
+
+config HIDKBD_ENCODED
+	bool "Enocode Special Keys"
+	default n
+	depends on !HIDKBD_RAWSCANCODES && LIB_KBDCODEC
+	---help---
+		Encode special key press events in the user buffer.  In this case,
+		the user end must decode the encoded special key values using the
+		interfaces defined in include/nuttx/input/kbd_codec.h.  These
+		special keys include such things as up/down arrows, home and end
+		keys, etc.  If this not defined, only 7-bit print-able and control
+		ASCII characters will be provided to the user.
 
 config HIDKBD_ALLSCANCODES
-	bool ""
+	bool "Use All Scancodes"
 	default n
 	---help---
 		If set to y all 231 possible scancodes will be converted to
 		something.  Default:  104 key US keyboard.
 
 config HIDKBD_NODEBOUNCE
-	bool ""
+	bool "Disable Debounce"
 	default n
 	---help---
 		If set to y normal debouncing is disabled.  Default: 
 		Debounce enabled (No repeat keys).
-		USB host mass storage class driver. Requires USBHOST=y,
-		config USBHOST_BULK_DISABLE=n, NFILE_DESCRIPTORS > 0,
-		and SCHED_WORKQUEUE=y
 endif

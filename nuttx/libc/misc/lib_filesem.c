@@ -67,8 +67,8 @@
 
 void lib_sem_initialize(FAR struct file_struct *stream)
 {
-  /* Initialize the LIB semaphore to one (to support one-at-
-   * a-time access to private data sets.
+  /* Initialize the LIB semaphore to one (to support one-at-a-time access
+   * to private data sets.
    */
 
   (void)sem_init(&stream->fs_sem, 0, 1);
@@ -98,13 +98,13 @@ void lib_take_semaphore(FAR struct file_struct *stream)
       /* Take the semaphore (perhaps waiting) */
 
       while (sem_wait(&stream->fs_sem) != 0)
-	{
-	  /* The only case that an error should occr here is if
-	   * the wait was awakened by a signal.
-	   */
+        {
+          /* The only case that an error should occr here is if the wait
+           * was awakened by a signal.
+           */
 
-	  ASSERT(get_errno() == EINTR);
-	}
+          ASSERT(get_errno() == EINTR);
+        }
 
       /* We have it.  Claim the stak and return */
 

@@ -1,9 +1,15 @@
 /****************************************************************************
- * apps/nshlib/nsh_apps.c
+ * apps/nshlib/nsh_builtin.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ * Originally by:
+ *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
+ *
+ * With subsequent updates, modifications, and general maintenance by:
+ *
+ *   Copyright (C) 2011-2013 Gregory Nutt.  All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,7 +54,8 @@
 #include <errno.h>
 #include <string.h>
 
-#include <apps/apps.h>
+#include <nuttx/binfmt/builtin.h>
+#include <apps/builtin.h>
 
 #include "nsh.h"
 #include "nsh_console.h"
@@ -84,13 +91,13 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_execapp
+ * Name: nsh_builtin
  *
  * Description:
  *    Attempt to execute the application task whose name is 'cmd'
  *
  * Returned Value:
- *   <0          If exec_namedapp() fails, then the negated errno value
+ *   <0          If exec_builtin() fails, then the negated errno value
  *               is returned.
  *   -1 (ERROR)  if the application task corresponding to 'cmd' could not
  *               be started (possibly because it doesn not exist).
@@ -104,8 +111,8 @@
  *
  ****************************************************************************/
 
-int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
-                FAR char **argv)
+int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+                FAR char **argv, FAR const char *redirfile, int oflags)
 {
   int ret = OK;
 
@@ -119,7 +126,7 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
    * applications.
    */
 
-  ret = exec_namedapp(cmd, (FAR const char **)argv);
+  ret = exec_builtin(cmd, (FAR const char **)argv, redirfile, oflags);
   if (ret >= 0)
     {
       /* The application was successfully started (but still blocked because
@@ -191,7 +198,7 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 #if !defined(CONFIG_SCHED_WAITPID) || !defined(CONFIG_NSH_DISABLEBG)
         {
           struct sched_param param;
-          sched_getparam(0, &param);
+          sched_getparam(ret, &param);
           nsh_output(vtbl, "%s [%d:%d]\n", cmd, ret, param.sched_priority);
 
           /* Backgrounded commands always 'succeed' as long as we can start
@@ -205,13 +212,13 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 
   sched_unlock();
 
-  /* If exec_namedapp() or waitpid() failed, then return the negated errno
-   * value.
+  /* If exec_builtin() or waitpid() failed, then return -1 (ERROR) with the
+   * errno value set appropriately.
    */
 
   if (ret < 0)
     {
-      return -errno;
+      return ERROR;
     }
 
   return ret;

@@ -183,7 +183,7 @@ static int elf_loadbinary(struct binary_s *binp)
 
   bvdbg("Loading file: %s\n", binp->filename);
 
-  /* Initialize the xflat library to load the program binary. */
+  /* Initialize the ELF library to load the program binary. */
 
   ret = elf_init(binp->filename, &loadinfo);
   elf_dumploadinfo(&loadinfo);

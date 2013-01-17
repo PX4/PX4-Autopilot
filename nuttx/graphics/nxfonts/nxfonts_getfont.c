@@ -60,6 +60,12 @@
  * Private Data
  ****************************************************************************/
 
+/* MONO */
+
+#ifdef CONFIG_NXFONT_MONO5X8
+extern const struct nx_fontpackage_s g_mono5x8_package;
+#endif
+
 /* SANS */
 
 #ifdef CONFIG_NXFONT_SANS17X22
@@ -139,6 +145,12 @@ extern const struct nx_fontpackage_s g_serif38x49b_package;
 static FAR const struct nx_fontpackage_s *g_fontpackages[] =
 {
 
+/* MONO */
+
+#ifdef CONFIG_NXFONT_MONO5X8
+  &g_mono5x8_package,
+#endif
+  
 /* SANS */
 
 #ifdef CONFIG_NXFONT_SANS17X22

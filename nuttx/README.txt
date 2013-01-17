@@ -10,6 +10,9 @@ README
   o Configuring NuttX
     - Instantiating "Canned" Configurations
     - NuttX Configuration Tool
+    - Incompatibilities with Older Configurations
+    - Converting Older Configurations to use the Configuration Tool
+    - NuttX Configuration Tool under DOS
   o Toolchains
     - Cross-Development Toolchains
     - NuttX Buildroot Toolchain
@@ -38,6 +41,10 @@ Installing Cygwin
   tiny setup.exe program and it does the real, internet installation
   for you.
 
+     NOTE: NuttX can also be installed and built on a native Windows
+     system, but with some loss of tool functionality (see the
+     discussion "Native Windows Build" below).
+
   Some Cygwin installation tips:
   
   1. Install at C:\cygwin
@@ -58,8 +65,9 @@ Installing Cygwin
   After installing Cygwin, you will get lots of links for installed
   tools and shells.  I use the RXVT native shell.  It is fast and reliable
   and does not require you to run the Cygwin X server (which is neither
-  fast nor reliable).  The rest of these instructions assume that you
-  are at a bash command line prompt in either Linux or in Cygwin shell.
+  fast nor reliable).  Unless otherwise noted, the rest of these
+  instructions assume that you are at a bash command line prompt in
+  either Linux or in Cygwin shell.
 
 Download and Unpack
 -------------------
@@ -235,8 +243,8 @@ additional file to the directory the NuttX application package (APPSDIR)):
     The appconfig file describes the applications that need to be
     built in the appliction directory (APPSDIR).  Not all configurations
     have an appconfig file.  This file is deprecated and will not be
-    used with new defconfig files produced with the mconf configuration
-    tool.
+    used with new defconfig files produced with the kconfig-mconf
+    configuration tool.
 
 General information about configuring NuttX can be found in:
 
@@ -249,6 +257,13 @@ easier.  It is used as follows:
   cd ${TOPDIR}/tools
   ./configure.sh <board-name>/<config-dir>
 
+There is an alternative Windows batch file that can be used in the
+windows native enironment like:
+
+  cd ${TOPDIR}\tools
+  configure.bat <board-name>\<config-dir>
+
+See tools/README.txt for more information about these scripts.
 
 NuttX Configuration Tool
 ------------------------
@@ -291,6 +306,162 @@ NuttX Configuration Tool
      tool at /usr/local/bin/mconf.  Where ever you choose to
      install 'mconf', make certain that your PATH variable includes
      a path to that installation directory.
+
+  The basic configuration order is "bottom-up":
+
+    - Select the build environment,
+    - Select the processor,
+    - Select the board,
+    - Select the supported peripherals
+    - Configure the device drivers,
+    - Configure the application options on top of this.
+
+  This is pretty straight forward for creating new configurations
+  but may be less intuitive for modifying existing configurations.
+
+Incompatibilities with Older Configurations
+-------------------------------------------
+
+  ***** WARNING *****
+
+  The old legacy, manual configurations and the new kconfig-frontends
+  configurations are not 100% compatible.  Old legacy configurations
+  can *not* be used with the kconfig-frontends tool:  If you run
+  'make menuconfig' with a legacy configuration the resulting
+  configuration will probably not be functional.
+
+  Q: How can I tell if a configuration is a new kconfig-frontends
+     configuration or an older, manual configuration?
+
+  A: a) New kcondfig-frontends configurations will have this setting
+        within the defconfig/.config file":
+
+          CONFIG_NUTTX_NEWCONFIG=y
+
+     b) Only old, manual configurations will have an appconfig file
+
+Converting Older Configurations to use the Configuration Tool
+-------------------------------------------------------------
+
+  Q: How can I convert a older, manual configuration into a new,
+     kconfig-frontends toolchain.
+
+  A: 1) Look at the appconfig file:  Each application path there
+        will now have to have an enabling setting.  For example,
+        if the old appconfig file had:
+
+          CONFIGURED_APPS = examples/ostest
+
+        Then the new configuration will need:
+
+          CONFIG_EXAMPLES_OSTEST=y
+
+        The appconfig file can then be deleted because it will not
+        be needed after the conversion.
+
+     2) Build the cmpconfig utility at tools:
+
+          cd tools
+          make -f Makefile.host cmpconfig
+
+     3) Perform these steps repeatedly until you are convinced that
+        the configurations are the same:
+
+        a) Repeat the following until you have account for all of the differences:
+
+             cp configs/<board>/<condfiguration>/defconfig .config
+             make menuconfig  (Just exit and save the new .config file)
+             tools/cmpconfig configs/<board>/<condfiguration>/defconfig .config | grep file1
+ 
+           The final grep will show settings in the old defconfig file that
+           do not appear in the new .config file (or have a different value
+           in the new .config file).  In the new configuration, you will
+           probably have to enable certain groups of features.  Such
+           hierarachical enabling options were not part of the older
+           configuration.
+
+        b) Then make sure these all make sense:
+
+             tools/cmpconfig configs/<board>/<condfiguration>/defconfig .config | grep file2
+
+           The final grep will show settings in the new .config file that
+           do not appear in the older defconfig file (or have a different value
+           in the new .config file).  Here you should see only the new
+           hierarachical enabling options (such as CONFIG_SPI or CONFIG_MMCSD)
+           plus some other internal configuration settings (like CONFIG_ARCH_HAVE_UART0).
+           You will have to convince yourself that these new settings all make sense.
+
+     4) Finally, update the configuration:
+
+          cp .config configs/<board>/<condfiguration>/defconfig
+          rm configs/<board>/<condfiguration>/appconfig
+
+        NOTE:  You should comment out the line containing the CONFIG_APPS_DIR
+        in the new defconfig file.  Why?  Because the application directory
+        may reside at a different location when the configuration is installed
+        at some later time.
+
+          # CONFIG_APPS_DIR="../apps"
+
+     5) The updated configuration can then be instantiated in the normal
+        fashion:
+
+          cd tools
+          ./configure.sh <board>/<condfiguration>
+
+        (or configure.bat for the case of the Windows native build).
+
+        NOTE: If CONFIG_APPS_DIR is not defined in the defconfig file,
+        the configure.sh script will find and add the new, correct path to
+        the application directory (CONFIG_APPS_DIR) when it copies the
+        defconfig file to the .config file.  This is the setting that was
+        commented out in step 4.
+
+NuttX Configuration Tool under DOS
+----------------------------------
+
+  Recent versions of NuttX support building NuttX from a native Windows
+  console window (see "Native Windows Build" below).  But kconfig-frontends
+  is a Linux tool.  There have been some successes building a Windows
+  native version of the kconfig-frontends tool, but that is not ready
+  for prime time.
+
+  At this point, there are only a few options for the Windows user:
+
+  1. You can run the configuration tool using Cygwin.  However, the
+     Cygwin Makefile.win will complain so to do this will, you have
+     to manually edit the .config file:
+
+      a. Delete the line: CONFIG_WINDOWS_NATIVE=y
+      b. Change the apps/ directory path, CONFIG_APPS_DIR to use Unix
+         style delimiters.  For example, change "..\apps" to "../apps"
+
+     And of course, after you use the configuration tool you need to
+     restore CONFIG_WINDOWS_NATIVE=y and the correct CONFIG_APPS_DIR.
+
+  2) You can, with some effort, run the the Cygwin kconfig-mconf tool
+     directly in the Windows console window.  In this case, you do not
+     have to modify the .config file, but there are other complexities:
+
+      a. You need to temporarily set the Cgywin directories in the PATH
+         variable then run kconfig-mconf manually like:
+
+          kconfig-mconf Kconfig
+
+         There is a Windows bacht file at tools/kconfig.bat that automates
+         these steps:
+
+         tools/kconfig menuconfig
+
+       b. There is an issue with accessing DOS environment variables from
+          the Cygwin kconfig-mconf running in the Windows console.  The
+          following change to the top-level Kconfig file seems to work
+          around these problems:
+  
+          config APPSDIR
+              string
+          -   option env="APPSDIR"
+          +   default "../apps"
 
 TOOLCHAINS
 ^^^^^^^^^^
@@ -509,82 +680,93 @@ Native Windows Build
     - A few extensions from GNUWin32
 
   In this build, you cannot use a Cygwin or MSYS shell. Rather the build must
-  be performed in a Windows CMD shell. Here is a better shell than than the
-  standard issue, CMD shell:  ConEmu which can be downloaded from:
+  be performed in a Windows console window. Here is a better terminal than the
+  standard issue, CMD.exe terminal:  ConEmu which can be downloaded from:
   http://code.google.com/p/conemu-maximus5/
 
   Build Tools.  The build still relies on some Unix-like commands.  I use
   the GNUWin32 tools that can be downloaded from http://gnuwin32.sourceforge.net/.
 
-  Host Compiler:  I use the MingGW compiler which can be downloaded from
+  Host Compiler:  I use the MingGW GCC compiler which can be downloaded from
   http://www.mingw.org/.  If you are using GNUWin32, then it is recommended
   the you not install the optional MSYS components as there may be conflicts.
+
+  This capability should still be considered a work in progress because:
+ 
+  (1) It has not been verfied on all targets and tools, and
+  (2) it still lacks some of the creature-comforts of the more mature environments
+      (like 'make menuconfig' support.  See the section "NuttX Configuration Tool
+      under DOS" above).
+
+   There is an alternative to the setenv.sh script available for the Windows
+   native environment: tools/configure.bat.  See tools/README.txt for additional
+   information.
 
 Installing GNUWin32
 -------------------
 
-The Windows native build will depend upon a few Unix-like tools that can be
-provided either by MSYS or GNUWin32.  The GNUWin32 are available from
-http://gnuwin32.sourceforge.net/.  GNUWin32 provides ports of tools with a
-GPL or similar open source license to modern MS-Windows (Microsoft Windows
-2000 / XP / 2003 / Vista / 2008 / 7).  See
-http://gnuwin32.sourceforge.net/packages.html for a list of all of the tools
-available in the GNUWin32 package.
+  The Windows native build will depend upon a few Unix-like tools that can be
+  provided either by MSYS or GNUWin32.  The GNUWin32 are available from
+  http://gnuwin32.sourceforge.net/.  GNUWin32 provides ports of tools with a
+  GPL or similar open source license to modern MS-Windows (Microsoft Windows
+  2000 / XP / 2003 / Vista / 2008 / 7).  See
+  http://gnuwin32.sourceforge.net/packages.html for a list of all of the tools
+  available in the GNUWin32 package.
 
-The SourceForge project is located here:
-http://sourceforge.net/projects/gnuwin32/.  The project is still being
-actively supported (although some of the Windows ports have gotten very old).
+  The SourceForge project is located here:
+  http://sourceforge.net/projects/gnuwin32/.  The project is still being
+  actively supported (although some of the Windows ports have gotten very old).
 
-Some commercial toolchains include a subset of the GNUWin32 tools in the
-installation.  My recommendation is that you download the GNUWin32 tools
-directly from the sourceforge.net website so that you will know what you are
-using and can reproduce your build environment.
+  Some commercial toolchains include a subset of the GNUWin32 tools in the
+  installation.  My recommendation is that you download the GNUWin32 tools
+  directly from the sourceforge.net website so that you will know what you are
+  using and can reproduce your build environment.
 
-GNUWin32 Installation Steps:
+  GNUWin32 Installation Steps:
 
-The following steps will download and execute the GNUWin32 installer.
+  The following steps will download and execute the GNUWin32 installer.
 
-1. Download GetGNUWin32-x.x.x.exe from
-   http://sourceforge.net/projects/getgnuwin32/files/.  This is the
-   installer.  The current version as of this writing is 0.6.3.
+  1. Download GetGNUWin32-x.x.x.exe from
+     http://sourceforge.net/projects/getgnuwin32/files/.  This is the
+     installer.  The current version as of this writing is 0.6.3.
 
-2. Run the installer.
+  2. Run the installer.
 
-3. Accept the license.
+  3. Accept the license.
 
-4. Select the installation directory.  My recommendation is the
-   directory that contains this README file (<this-directory>).
+  4. Select the installation directory.  My recommendation is the
+     directory that contains this README file (<this-directory>).
 
-5. After running GetGNUWin32-0.x.x.exe, you will have a new directory
-   <this-directory>/GetGNUWin32
+  5. After running GetGNUWin32-0.x.x.exe, you will have a new directory
+     <this-directory>/GetGNUWin32
 
-Note the the GNUWin32 installer didn't install GNUWin32.  Instead, it
-installed another, smarter downloader.  That downloader is the GNUWin32
-package management tool developed by the Open SSL project.
+  Note the the GNUWin32 installer didn't install GNUWin32.  Instead, it
+  installed another, smarter downloader.  That downloader is the GNUWin32
+  package management tool developed by the Open SSL project.
 
-The following steps probably should be performed from inside a DOS shell.
+  The following steps probably should be performed from inside a DOS shell.
 
-6. Change to the directory created by GetGNUWin32-x.x.x.exe
+  6. Change to the directory created by GetGNUWin32-x.x.x.exe
 
-  cd GetGNUWin32
+    cd GetGNUWin32
 
-7. Execute the download.bat script.  The download.bat script will download
-   about 446 packages!  Enough to have a very complete Linux-like environment
-   under the DOS shell.  This will take awhile.  This step only downloads
-   the packages and the next step will install the packages.
+  7. Execute the download.bat script.  The download.bat script will download
+     about 446 packages!  Enough to have a very complete Linux-like environment
+     under the DOS shell.  This will take awhile.  This step only downloads
+     the packages and the next step will install the packages.
 
-   download
+     download
 
-8. This step will install the downloaded packages.  The argument of the
-   install.bat script is the installation location.  C:\gnuwin32 is the
-   standard install location:
+  8. This step will install the downloaded packages.  The argument of the
+     install.bat script is the installation location.  C:\gnuwin32 is the
+     standard install location:
 
-   install C:\gnuwin32
+     install C:\gnuwin32
 
-NOTE:  This installation step will install *all* GNUWin32 packages... far
-more than you will ever need.  If disc space is a problem for you, you might
-need to perform a manual installation of the individual ZIP files that you
-will find in the <this directory>/GetGNUWin32/packages directory.
+  NOTE:  This installation step will install *all* GNUWin32 packages... far
+  more than you will ever need.  If disc space is a problem for you, you might
+  need to perform a manual installation of the individual ZIP files that you
+  will find in the <this directory>/GetGNUWin32/packages directory.
 
 CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^

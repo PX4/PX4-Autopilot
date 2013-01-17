@@ -68,7 +68,7 @@
  * CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
  *   thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
  * CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
- *   the worker thread.  Default: 4
+ *   the worker thread.  Default: 17
  *
  * CONFIG_SCHED_LPWORK. If CONFIG_SCHED_WORKQUEUE is defined, then a single
  *   work queue is created by default.  If CONFIG_SCHED_LPWORK is also defined
