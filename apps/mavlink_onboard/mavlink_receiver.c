@@ -85,7 +85,8 @@ orb_advert_t pub_hil_global_pos = -1;
 orb_advert_t pub_hil_attitude = -1;
 
 static orb_advert_t cmd_pub = -1;
-static orb_advert_t flow_pub = -1;
+static orb_advert_t optical_flow_pub = -1;
+static orb_advert_t omnidirectional_flow_pub = -1;
 
 static orb_advert_t offboard_control_sp_pub = -1;
 static orb_advert_t vicon_position_pub = -1;
@@ -140,26 +141,54 @@ handle_message(mavlink_message_t *msg)
 	}
 
 	if (msg->msgid == MAVLINK_MSG_ID_OPTICAL_FLOW) {
-		mavlink_optical_flow_t flow;
-		mavlink_msg_optical_flow_decode(msg, &flow);
+		mavlink_optical_flow_t optical_flow;
+		mavlink_msg_optical_flow_decode(msg, &optical_flow);
 
 		struct optical_flow_s f;
 
 		f.timestamp = hrt_absolute_time();
-		f.flow_raw_x = flow.flow_x;
-		f.flow_raw_y = flow.flow_y;
-		f.flow_comp_x_m = flow.flow_comp_m_x;
-		f.flow_comp_y_m = flow.flow_comp_m_y;
-		f.ground_distance_m = flow.ground_distance;
-		f.quality = flow.quality;
-		f.sensor_id = flow.sensor_id;
+		f.flow_raw_x = optical_flow.flow_x;
+		f.flow_raw_y = optical_flow.flow_y;
+		f.flow_comp_x_m = optical_flow.flow_comp_m_x;
+		f.flow_comp_y_m = optical_flow.flow_comp_m_y;
+		f.ground_distance_m = optical_flow.ground_distance;
+		f.quality = optical_flow.quality;
+		f.sensor_id = optical_flow.sensor_id;
 
 		/* check if topic is advertised */
-		if (flow_pub <= 0) {
-			flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
+		if (optical_flow_pub <= 0) {
+			optical_flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
 		} else {
 			/* publish */
-			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
+			orb_publish(ORB_ID(optical_flow), optical_flow_pub, &f);
+		}
+
+	}
+
+	if (msg->msgid == MAVLINK_MSG_ID_OMNIDIRECTIONAL_FLOW) {
+		mavlink_omnidirectional_flow_t omnidirectional_flow;
+		mavlink_msg_omnidirectional_flow_decode(msg, &omnidirectional_flow);
+
+		struct omnidirectional_flow_s f;
+
+		f.timestamp = hrt_absolute_time();
+//		memcpy(&omnidirectional_flow.left, f.left, 10 * sizeof(int16_t)); // TODO should this work???
+//		memcpy(&omnidirectional_flow.right, f.right, 10 * sizeof(int16_t));
+		f.front_distance_m = omnidirectional_flow.front_distance_m;
+		f.quality = omnidirectional_flow.quality;
+		f.sensor_id = omnidirectional_flow.sensor_id;
+
+		for (int i=0; i<10; i++) {
+			f.left[i] = omnidirectional_flow.left[i];
+			f.right[i] = omnidirectional_flow.right[i];
+		}
+
+		/* check if topic is advertised */
+		if (omnidirectional_flow_pub <= 0) {
+			omnidirectional_flow_pub = orb_advertise(ORB_ID(omnidirectional_flow), &f);
+		} else {
+			/* publish */
+			orb_publish(ORB_ID(omnidirectional_flow), omnidirectional_flow_pub, &f);
 		}
 
 	}
@@ -282,10 +311,10 @@ handle_message(mavlink_message_t *msg)
 static void *
 receive_thread(void *arg)
 {
-	int uart_fd = *((int*)arg);
+	int uart_fd = *((int *)arg);
 
 	const int timeout = 1000;
-	uint8_t ch;
+	uint8_t buf[32];
 
 	mavlink_message_t msg;
 
@@ -296,17 +325,17 @@ receive_thread(void *arg)
 		struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
 
 		if (poll(fds, 1, timeout) > 0) {
-			/* non-blocking read until buffer is empty */
-			int nread = 0;
+			/* non-blocking read */
+			size_t nread = read(uart_fd, buf, sizeof(buf));
+			ASSERT(nread > 0)
 
-			do {
-				nread = read(uart_fd, &ch, 1);
-
-				if (mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
+			for (size_t i = 0; i < nread; i++) {
+				if (mavlink_parse_char(chan, buf[i], &msg, &status)) { //parse the char
 					/* handle generic messages and commands */
 					handle_message(&msg);
+
 				}
-			} while (nread > 0);
+			}
 		}
 	}
 
