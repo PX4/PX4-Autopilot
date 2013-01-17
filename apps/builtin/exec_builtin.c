@@ -293,7 +293,7 @@ static inline int builtin_startproxy(int index, FAR const char **argv,
   int errcode;
   int ret;
 
-  DEBUGASSERT(path);
+//  DEBUGASSERT(path);
 
   svdbg("index=%d argv=%p redirfile=%s oflags=%04x\n",
         index, argv, redirfile, oflags);
