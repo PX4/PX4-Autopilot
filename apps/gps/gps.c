@@ -189,7 +189,7 @@ int gps_thread_main(int argc, char *argv[]) {
 	gps_mode_success = true;
 	terminate_gps_thread = false;
 	bool retry = false;
-	gps_verbose = false;
+	gps_verbose = true;
 
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
