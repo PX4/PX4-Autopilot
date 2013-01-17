@@ -7,4 +7,4 @@
 #
 CONFIG_ARCH			 = CORTEXM4F
 
-include $(PX4_MK_INCLUDE)/gnu-arm-eabi.mk
+include $(PX4_MK_INCLUDE)/toolchain_gnu-arm-eabi.mk

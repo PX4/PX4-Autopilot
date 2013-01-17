@@ -69,13 +69,14 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)/%.px4: $(BUILD_DIR)/%.build/firmware.px4
 #
 # Generate FIRMWARES.
 #
+.PHONY: $(FIRMWARES)
 $(BUILD_DIR)/%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)/%.build/firmware.px4,%,$@)
 $(BUILD_DIR)/%.build/firmware.px4: work_dir = $(BUILD_DIR)/$(config).build
 $(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
 	@echo %%%% Building $(config) in $(work_dir)
 	$(Q) mkdir -p $(work_dir)
 	$(Q) make -C $(work_dir) \
-		-f $(PX4_BASE)/makefiles/$(config).mk \
+		-f $(PX4_BASE)/makefiles/config_$(config).mk \
 		WORK_DIR=$(work_dir)
 
 #
@@ -89,19 +90,19 @@ $(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
 # XXX Should support fetching/unpacking from a separate directory to permit
 #     downloads of the prebuilt archives as well...
 #
-# XXX PX4IO config name is bad - we should just call them all "px4"
+# XXX PX4IO configuration name is bad - NuttX configs should probably all be "px4"
 #
 NUTTX_ARCHIVES		 = $(foreach platform,$(PLATFORMS),$(ARCHIVE_DIR)/$(platform).export)
 .PHONY:			archives
 archives:		$(NUTTX_ARCHIVES)
 
 $(ARCHIVE_DIR)/%.export:	platform = $(notdir $(basename $@))
-$(ARCHIVE_DIR)/%.export:	config = $(if $(filter $(platform),px4io),io,nsh)
+$(ARCHIVE_DIR)/%.export:	configuration = $(if $(filter $(platform),px4io),io,nsh)
 $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)/%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 	@echo %% Configuring NuttX for $(platform)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/tools && ./configure.sh $(platform)/$(config))
+	$(Q) (cd $(NUTTX_SRC)/tools && ./configure.sh $(platform)/$(configuration))
 	@echo Generating ROMFS for $(platform) XXX move this!
 	$(Q) make -C $(ROMFS_SRC) all
 	@echo %% Exporting NuttX for $(platform)

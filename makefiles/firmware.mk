@@ -84,7 +84,7 @@ $(error At least one of the PLATFORM or CONFIG variables must be set before incl
 endif
 PLATFORM		:= $(firstword $(subst _, ,$(CONFIG)))
 endif
-include $(PX4_MK_INCLUDE)/$(PLATFORM).mk
+include $(PX4_MK_INCLUDE)/platform_$(PLATFORM).mk
 
 #
 # Makefile debugging.
