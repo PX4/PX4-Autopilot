@@ -117,6 +117,12 @@ struct binary_s
 #endif
 
   size_t mapsize;                      /* Size of the mapped address region (needed for munmap) */
+
+  /* Start-up information that is provided by the loader, but may be modified
+   * by the caller between load_module() and exec_module() calls.
+   */
+
+  uint8_t priority;                    /* Task execution priority */
   size_t stacksize;                    /* Size of the stack in bytes (unallocated) */
 };
 
@@ -221,15 +227,14 @@ int unload_module(FAR const struct binary_s *bin);
  *
  ****************************************************************************/
 
-int exec_module(FAR const struct binary_s *bin, int priority);
+int exec_module(FAR const struct binary_s *bin);
 
 /****************************************************************************
  * Name: exec
  *
  * Description:
  *   This is a convenience function that wraps load_ and exec_module into
- *   one call.  The priority of the executed program is set to be the
- *   same as the priority of the calling thread.
+ *   one call.
  *
  * Input Parameter:
  *   filename - Fulll path to the binary to be loaded

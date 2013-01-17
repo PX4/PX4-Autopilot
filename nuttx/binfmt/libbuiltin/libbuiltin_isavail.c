@@ -1,7 +1,14 @@
 /****************************************************************************
- * binfmt/builtin.c
+ * binfmt/libbuiltin/libbuiltin_isavail.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ * Originally by:
+ *
+ *   Copyright (C) 2011 Uros Platise. All rights reserved.
+ *   Author: Uros Platise <uros.platise@isotel.eu>
+ *
+ * With subsequent updates, modifications, and general maintenance by:
+ *
+ *   Copyright (C) 2012-2013 Gregory Nutt.  All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,158 +46,57 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
-
-#include <stdint.h>
 #include <string.h>
-#include <fcntl.h>
-#include <debug.h>
+#include <limits.h>
 #include <errno.h>
 
-#include <nuttx/fs/ioctl.h>
-#include <nuttx/binfmt/binfmt.h>
 #include <nuttx/binfmt/builtin.h>
-
-#ifdef CONFIG_BUILTIN
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Function Prototypes
+ * Private Types
  ****************************************************************************/
 
-static int builtin_loadbinary(FAR struct binary_s *binp);
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-
-static struct binfmt_s g_builtin_binfmt =
-{
-  NULL,               /* next */
-  builtin_loadbinary, /* load */
-};
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: builtin_loadbinary
- *
- * Description:
- *   Verify that the file is an builtin binary.
- *
- ****************************************************************************/
-
-static int builtin_loadbinary(struct binary_s *binp)
-{
-  FAR const char *filename;
-  int fd;
-  int index;
-  int ret;
-
-  bvdbg("Loading file: %s\n", binp->filename);
-
-  /* Open the binary file for reading (only) */
-
-  fd = open(filename, O_RDONLY);
-  if (fd < 0)
-    {
-      int errval = errno;
-      bdbg("ERROR: Failed to open binary %s: %d\n", filename, errval);
-      return -errval;
-    }
-
-  /* If this file is a BINFS file system, then we can recover the name of
-   * the file using the FIOC_FILENAME ioctl() call.
-   */
-
-  ret = ioctl(fd, FIOC_FILENAME, (unsigned long)((uintptr_t)&filename));
-  if (ret < 0)
-    {
-      int errval = errno;
-      bdbg("ERROR: FIOC_FILENAME ioctl failed: %d\n", errval);
-      return -errval;
-    }
-
-  /* Other file systems may also support FIOC_FILENAME, so the real proof
-   * is that we can look up the index to this name in g_builtins[].
-   */
-
-  index = builtin_isavail(filename);
-  if (index < 0)
-    {
-      int errval = errno;
-      bdbg("ERROR: %s is not a builtin application\n", filename);
-      return -errval;
-      
-    }
-
-  /* Return the load information.  NOTE: that there is no way to configure
-   * the priority.  That is a bug and needs to be fixed.
-   */
-
-  binp->entrypt   = g_builtins[index].main;
-  binp->stacksize = g_builtins[index].stacksize;
-  binp->priority  = g_builtins[index].priority;
-  return OK;
-}
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: builtin_initialize
+ * Name: builtin_isavail
  *
  * Description:
- *   Builtin support is built unconditionally.  However, it order to
- *   use this binary format, this function must be called during system
- *   format in order to register the builtin binary format.
- *
- * Returned Value:
- *   This is a NuttX internal function so it follows the convention that
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
+ *   Return the index into the table of applications for the applicaiton with
+ *   the name 'appname'.
  *
  ****************************************************************************/
 
-int builtin_initialize(void)
+int builtin_isavail(FAR const char *appname)
 {
-  int ret;
+  int i;
 
-  /* Register ourselves as a binfmt loader */
-
-  bvdbg("Registering Builtin Loader\n");
-
-  ret = register_binfmt(&g_builtin_binfmt);
-  if (ret != 0)
+  for (i = 0; g_builtins[i].name; i++)
     {
-      bdbg("Failed to register binfmt: %d\n", ret);
+      if (!strncmp(g_builtins[i].name, appname, NAME_MAX))
+        {
+          return i;
+        }
     }
 
-  return ret;
+  set_errno(ENOENT);
+  return ERROR;
 }
-
-/****************************************************************************
- * Name: builtin_uninitialize
- *
- * Description:
- *   Unregister the builtin binary loader
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void builtin_uninitialize(void)
-{
-  unregister_binfmt(&g_builtin_binfmt);
-}
-
-#endif /* CONFIG_BUILTIN */
-

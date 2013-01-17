@@ -67,6 +67,39 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: load_default_priority
+ *
+ * Description:
+ *   Set the default priority of the module to be loaded.  This may be
+ *   changed (1) by the actions of the binary format's load() method if
+ *   the binary format contains priority informaition, or (2) by the user
+ *   between calls to load_module() and exec_module().
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; Otherwise, -1 (ERROR) is returned and
+ *   the errno variable is set appropriately.
+ *
+ ****************************************************************************/
+
+static int load_default_priority(FAR struct binary_s *bin)
+{
+  struct sched_param param;
+
+  /* Get the priority of this thread */
+
+  ret = sched_getparam(0, &param);
+  if (ret < 0)
+    {
+      bdbg("ERROR: sched_getparam failed: %d\n", errno);
+      return ERROR;
+    }
+  
+  /* Save that as the priority of child thread */
+
+  bin->priority = param.sched_priority;
+}
+
+/****************************************************************************
  * Name: load_absmodule
  *
  * Description:
@@ -145,6 +178,16 @@ int load_module(FAR struct binary_s *bin)
   if (bin && bin->filename)
 #endif
     {
+      /* Set the default priority of the new program. */
+
+      ret = load_default_priority(bin)
+      if (ret < 0)
+        {
+          /* The errno is already set in this case */
+
+          return ERROR;
+        }
+
       /* Were we given a relative path?  Or an absolute path to the file to
        * be loaded?  Absolute paths start with '/'.
        */

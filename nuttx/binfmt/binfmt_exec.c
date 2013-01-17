@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <string.h>
-#include <sched.h>
 #include <debug.h>
 #include <errno.h>
 
@@ -75,8 +74,7 @@
  *
  * Description:
  *   This is a convenience function that wraps load_ and exec_module into
- *   one call.  The priority of the executed program is set to be the
- *   same as the priority of the calling thread.
+ *   one call.
  *
  * Input Parameter:
  *   filename - Fulll path to the binary to be loaded
@@ -95,18 +93,8 @@ int exec(FAR const char *filename, FAR const char **argv,
          FAR const struct symtab_s *exports, int nexports)
 {
   struct binary_s bin;
-  struct sched_param param;
   int ret;
 
-  /* Get the priority of this thread */
-
-  ret = sched_getparam(0, &param);
-  if (ret < 0)
-    {
-      bdbg("ERROR: sched_getparam failed: %d\n", errno);
-      return ERROR;
-    }
-  
   /* Load the module into memory */
 
   memset(&bin, 0, sizeof(struct binary_s));
@@ -121,9 +109,9 @@ int exec(FAR const char *filename, FAR const char **argv,
       return ERROR;
     }
 
-  /* Then start the module at the priority of this thread */
+  /* Then start the module */
 
-  ret = exec_module(&bin, param.sched_priority);
+  ret = exec_module(&bin);
   if (ret < 0)
     {
       bdbg("ERROR: Failed to execute program '%s'\n", filename);

@@ -1,5 +1,5 @@
 /****************************************************************************
- * binfmt/libbuiltin/libbuiltin_utils.c
+ * binfmt/libbuiltin/libbuiltin_getname.c
  *
  * Originally by:
  *
@@ -46,10 +46,6 @@
 
 #include <nuttx/config.h>
 
-#include <string.h>
-#include <limits.h>
-#include <errno.h>
-
 #include <nuttx/binfmt/builtin.h>
 
 /****************************************************************************
@@ -93,29 +89,4 @@ FAR const char *builtin_getname(int index)
    }
 
   return g_builtins[index].name;
-}
-
-/****************************************************************************
- * Name: builtin_isavail
- *
- * Description:
- *   Return the index into the table of applications for the applicaiton with
- *   the name 'appname'.
- *
- ****************************************************************************/
-
-int builtin_isavail(FAR const char *appname)
-{
-  int i;
-
-  for (i = 0; g_builtins[i].name; i++)
-    {
-      if (!strncmp(g_builtins[i].name, appname, NAME_MAX))
-        {
-          return i;
-        }
-    }
-
-  set_errno(ENOENT);
-  return ERROR;
 }

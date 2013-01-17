@@ -41,9 +41,9 @@ BINFMT_CSRCS += builtin.c
 
 # Builtin library interfaces
 
-BINFMT_CSRCS += libbuiltin_utils.c
+BINFMT_CSRCS += libbuiltin_getname.c libbuiltin_isavail.c
 
-# Hook the libelf subdirectory into the build
+# Hook the libbuiltin subdirectory into the build
 
 VPATH += libbuiltin
 SUBDIRS += libbuiltin

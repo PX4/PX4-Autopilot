@@ -144,7 +144,7 @@ static inline int exec_ctors(FAR const struct binary_s *binp)
  *
  ****************************************************************************/
 
-int exec_module(FAR const struct binary_s *binp, int priority)
+int exec_module(FAR const struct binary_s *binp)
 {
   FAR _TCB     *tcb;
 #ifndef CONFIG_CUSTOM_STACK
@@ -187,12 +187,12 @@ int exec_module(FAR const struct binary_s *binp, int priority)
 
   /* Initialize the task */
 
-  ret = task_init(tcb, binp->filename, priority, stack,
+  ret = task_init(tcb, binp->filename, binp->priority, stack,
                   binp->stacksize, binp->entrypt, binp->argv);
 #else
   /* Initialize the task */
 
-  ret = task_init(tcb, binp->filename, priority, stack,
+  ret = task_init(tcb, binp->filename, binp->priority, stack,
                   binp->entrypt, binp->argv);
 #endif
   if (ret < 0)

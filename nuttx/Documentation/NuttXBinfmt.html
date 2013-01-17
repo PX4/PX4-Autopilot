@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX Binary Loader</i></font></big></h1>
-      <p>Last Updated: December 17, 2012</p>
+      <p>Last Updated: January 16, 2013</p>
     </td>
   </tr>
 </table>
@@ -141,7 +141,7 @@ struct binary_s
 {
   /* Information provided to the loader to load and bind a module */
 
-  FAR const char *filename;            /* Full path to the binary to be loaded<sup>1</sup> */
+  FAR const char *filename;            /* Full path to the binary to be loaded */
   FAR const char **argv;               /* Argument list */
   FAR const struct symtab_s *exports;  /* Table of exported symbols */
   int nexports;                        /* The number of symbols in exports[] */
@@ -153,13 +153,33 @@ struct binary_s
   main_t entrypt;                      /* Entry point into a program module */
   FAR void *mapped;                    /* Memory-mapped, address space */
   FAR void *alloc[BINFMT_NALLOC];      /* Allocated address spaces */
+
+  /* Constructors/destructors */
+
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
   FAR binfmt_ctor_t *ctors;            /* Pointer to a list of constructors */
   FAR binfmt_dtor_t *dtors;            /* Pointer to a list of destructors */
   uint16_t nctors;                     /* Number of constructors in the list */
   uint16_t ndtors;                     /* Number of destructors in the list */
 #endif
+
+  /* Address environment.
+   *
+   * addrenv - This is the handle created by up_addrenv_create() that can be
+   *   used to manage the tasks address space.
+   */
+
+#ifdef CONFIG_ADDRENV
+  task_addrenv_t addrenv;              /* Task address environment */
+#endif
+
   size_t mapsize;                      /* Size of the mapped address region (needed for munmap) */
+
+  /* Start-up information that is provided by the loader, but may be modified
+   * by the caller between load_module() and exec_module() calls.
+   */
+
+  uint8_t priority;                    /* Task execution priority */
   size_t stacksize;                    /* Size of the stack in bytes (unallocated) */
 };
 </pre></ul>
@@ -291,7 +311,7 @@ This is a NuttX internal function so it follows the convention that 0 (<code>OK<
 <p><b>Function Prototype:</b></p>
 <ul><pre>
 #include &lt:nuttx/binfmt/binfmt.h&gt;
-int exec_module(FAR const struct binary_s *bin, int priority);
+int exec_module(FAR const struct binary_s *bin);
 </pre></ul>
 <p><b>Description:</b></p>
 <ul>

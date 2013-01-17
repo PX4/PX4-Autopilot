@@ -321,7 +321,7 @@ int elf_main(int argc, char *argv[])
 
       /* Execute the ELF module */
 
-      ret = exec_module(&bin, 50);
+      ret = exec_module(&bin);
 
       mm_update(&g_mmstep, "after exec_module");
 

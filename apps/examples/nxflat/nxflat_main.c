@@ -243,7 +243,7 @@ int nxflat_main(int argc, char *argv[])
 
       /* Execute the ELF module */
 
-      ret = exec_module(&bin, 50);
+      ret = exec_module(&bin);
       if (ret < 0)
         {
           err("ERROR: Failed to execute program '%s'\n", dirlist[i]);

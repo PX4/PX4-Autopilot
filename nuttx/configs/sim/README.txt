@@ -290,6 +290,16 @@ nsh
   2. This version has one builtin function:  This configuration:
      apps/examples/hello.
 
+  3. This configuration has BINFS enabled so that the builtin applications
+     can be made visible in the file system.  For example:
+
+     NuttShell (NSH) NuttX-6.24
+     nsh> mount -t binfs /bin
+     nsh> ls /bin
+     /bin:
+       hello
+     nsh> 
+
 nsh2
 
   Description
