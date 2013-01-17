@@ -74,11 +74,15 @@ RMDIR			 = rm -rf
 
 #
 # Sanity-check the PLATFORM variable and then get the platform config.
+# If PLATFORM is not set, but CONFIG is, use that.
 #
 # The platform config in turn will fetch the toolchain configuration.
 #
 ifeq ($(PLATFORM),)
-$(error The PLATFORM variable must be set before including firmware.mk)
+ifeq ($(CONFIG),)
+$(error At least one of the PLATFORM or CONFIG variables must be set before including firmware.mk)
+endif
+PLATFORM		:= $(firstword $(subst _, ,$(CONFIG)))
 endif
 include $(PX4_MK_INCLUDE)/$(PLATFORM).mk
 

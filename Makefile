@@ -30,6 +30,11 @@ RMDIR			 = rm -rf
 CONFIGS			?= px4fmu_default px4io_default
 
 #
+# Platforms (boards) that we build NuttX export kits for.
+#
+PLATFORMS		 = px4fmu px4io
+
+#
 # If the user has listed a config as a target, strip it out and override CONFIGS
 #
 EXPLICIT_CONFIGS	:= $(filter $(CONFIGS),$(MAKECMDGOALS))
@@ -38,16 +43,6 @@ CONFIGS			:= $(EXPLICIT_CONFIGS)
 .PHONY:			$(EXPLICIT_CONFIGS)
 $(EXPLICIT_CONFIGS):	all
 endif
-
-#
-# Platforms (boards) that we build prelink kits for.
-#
-PLATFORMS		 = px4fmu px4io
-
-#
-# Some handy macros
-#
-PLATFORM_FROM_CONFIG	 = $(word 1,$(subst _, ,$1))
 
 #
 # Built products
@@ -72,7 +67,7 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)/%.px4: $(BUILD_DIR)/%.build/firmware.px4
 	$(Q) $(COPY) $< $@
 
 #
-# Generate FIRMWARES
+# Generate FIRMWARES.
 #
 $(BUILD_DIR)/%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)/%.build/firmware.px4,%,$@)
 $(BUILD_DIR)/%.build/firmware.px4: work_dir = $(BUILD_DIR)/$(config).build
@@ -81,8 +76,6 @@ $(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
 	$(Q) mkdir -p $(work_dir)
 	$(Q) make -C $(work_dir) \
 		-f $(PX4_BASE)/makefiles/$(config).mk \
-		CONFIG=$(config) \
-		PLATFORM=$(call PLATFORM_FROM_CONFIG,$(config)) \
 		WORK_DIR=$(work_dir)
 
 #
