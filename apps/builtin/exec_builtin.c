@@ -46,6 +46,7 @@
 
 #include <nuttx/config.h>
 
+#include <sys/wait.h>
 #include <sched.h>
 #include <string.h>
 #include <fcntl.h>
@@ -92,7 +93,9 @@ struct builtin_parms_s
  ****************************************************************************/
 
 static sem_t g_builtin_parmsem = SEM_INITIALIZER(1);
+#ifndef CONFIG_SCHED_WAITPID
 static sem_t g_builtin_execsem = SEM_INITIALIZER(0);
+#endif
 static struct builtin_parms_s g_builtin_parms;
 
 /****************************************************************************
@@ -274,7 +277,9 @@ static int builtin_proxy(int argc, char *argv[])
    */
 
   g_builtin_parms.result = ret;
+#ifndef CONFIG_SCHED_WAITPID
   builtin_semgive(&g_builtin_execsem);
+#endif
   return 0;
 }
 
@@ -299,6 +304,9 @@ static inline int builtin_startproxy(int index, FAR const char **argv,
   struct sched_param param;
   pid_t proxy;
   int errcode;
+#ifdef CONFIG_SCHED_WAITPID
+  int status;
+#endif
   int ret;
 
   svdbg("index=%d argv=%p redirfile=%s oflags=%04x\n",
@@ -353,7 +361,15 @@ static inline int builtin_startproxy(int index, FAR const char **argv,
     * for this.
     */
 
+#ifdef CONFIG_SCHED_WAITPID
+   ret = waitpid(proxy, &status, 0);
+   if (ret < 0)
+     {
+      sdbg("ERROR: waitpid() failed: %d\n", errno);
+     }
+#else
    bultin_semtake(&g_builtin_execsem);
+#endif
 
    /* Get the result and relinquish our access to the parameter structure */
 

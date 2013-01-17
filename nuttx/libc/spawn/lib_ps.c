@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <sys/wait.h>
 #include <semaphore.h>
 #include <signal.h>
 #include <sched.h>
@@ -75,7 +76,9 @@ struct spawn_parms_s
  ****************************************************************************/
 
 static sem_t g_ps_parmsem = SEM_INITIALIZER(1);
+#ifndef CONFIG_SCHED_WAITPID
 static sem_t g_ps_execsem = SEM_INITIALIZER(0);
+#endif
 static struct spawn_parms_s g_ps_parms;
 
 /****************************************************************************
@@ -425,7 +428,9 @@ static int spawn_proxy(int argc, char *argv[])
    */
 
   g_ps_parms.result = ret;
+#ifndef CONFIG_SCHED_WAITPID
   ps_semgive(&g_ps_execsem);
+#endif
   return 0;
 }
 
@@ -540,6 +545,9 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
 {
   struct sched_param param;
   pid_t proxy;
+#ifdef CONFIG_SCHED_WAITPID
+  int status;
+#endif
   int ret;
 
   DEBUGASSERT(path);
@@ -613,7 +621,15 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
 
    /* Wait for the proxy to complete its job */
 
+#ifdef CONFIG_SCHED_WAITPID
+   ret = waitpid(proxy, &status, 0);
+   if (ret < 0)
+     {
+      sdbg("ERROR: waitpid() failed: %d\n", errno);
+     }
+#else
    ps_semtake(&g_ps_execsem);
+#endif
 
    /* Get the result and relinquish our access to the parameter structure */
 

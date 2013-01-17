@@ -51,7 +51,6 @@
 #endif
 
 #include <stdbool.h>
-#include <signal.h>
 #include <errno.h>
 #include <string.h>
 
@@ -117,8 +116,8 @@ int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 {
   int ret = OK;
 
-  /* Lock the scheduler to prevent the application from running until the
-   * waitpid() has been called.
+  /* Lock the scheduler in an attempt to prevent the application from
+   * running until waitpid() has been called.
    */
 
   sched_lock();
@@ -146,18 +145,6 @@ int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 
 #ifdef CONFIG_SCHED_WAITPID
 
-      /* Check if the application is still running */
-
-      if (kill(ret, 0) < 0)
-        {
-          /* It is not running.  In this case, we have no idea if the
-           * application ran successfully or not.  Let's assume that is
-           * did.
-           */
-
-          return 0;
-        }
-
       /* CONFIG_SCHED_WAITPID is selected, so we may run the command in
        * foreground unless we were specifically requested to run the command
        * in background (and running commands in background is enabled).
@@ -169,15 +156,40 @@ int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
         {
           int rc = 0;
 
-          /* Wait for the application to exit.  Since we have locked the
-           * scheduler above, we know that the application has not yet
-           * started and there is no possibility that it has already exited.
-           * The scheduler will be unlocked while waitpid is waiting and the
-           * application will be able to run.
+          /* Wait for the application to exit.  We did locked the scheduler
+           * above, but that does not guarantee that the application did not
+           * run in the case where I/O was redirected.  The scheduler will
+           * be unlocked while waitpid is waiting and if the application has
+           * not yet run, it will be able to to do so.
            */
 
           ret = waitpid(ret, &rc, 0);
-          if (ret >= 0)
+          if (ret < 0)
+            {
+              /* If the child thread does not exist, waitpid() will return
+               * the error ECHLD.  Since we know that the task was successfully
+               * started, this must be one of the cases described above; we
+               * have to assume that the task already exit'ed.  In this case,
+               * we have no idea if the application ran successfully or not
+               * (because NuttX does not retain exit status of child tasks).
+               * Let's assume that is did run successfully.
+               */
+
+              int errcode = errno;
+              if (errcode == ECHILD)
+                {
+                  ret = OK;
+                }
+              else
+                {
+                  nsh_output(vtbl, g_fmtcmdfailed, cmd, "waitpid",
+                             NSH_ERRNO_OF(errcode));
+                }
+            }
+
+          /* Waitpid completed the wait successfully */
+
+          else
             {
               /* We can't return the exact status (nsh has nowhere to put it)
                * so just pass back zero/nonzero in a fashion that doesn't look 

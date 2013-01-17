@@ -291,14 +291,31 @@ nsh
      apps/examples/hello.
 
   3. This configuration has BINFS enabled so that the builtin applications
-     can be made visible in the file system.  For example:
+     can be made visible in the file system.  Because of that, the
+     build in applications do not work as other examples.
 
-     NuttShell (NSH) NuttX-6.24
-     nsh> mount -t binfs /bin
-     nsh> ls /bin
-     /bin:
-       hello
-     nsh> 
+     For example trying to execute the hello builtin application will
+     fail:
+
+       nsh> hello   
+       nsh: hello: command not found
+       nsh>
+
+     Unless you first mount the BINFS file system:
+
+       nsh> mount -t binfs /bin
+       nsh> ls /bin
+       /bin:
+         hello
+       nsh> echo $PATH
+       /bin
+       nsh> hello
+       Hello, World!!
+       nsh> 
+
+     Notice that the executable 'hello' is found using the value in the PATH
+     variable (which was preset to "/bin").  If the PATH variable were not set
+     then you would have to use /bin/hello on the command line.
 
 nsh2
 
