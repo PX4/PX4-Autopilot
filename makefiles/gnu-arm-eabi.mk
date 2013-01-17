@@ -2,6 +2,8 @@
 # Definitions for a generic GNU ARM-EABI toolchain
 #
 
+$(info %% Toolchain: gnu-arm-eabi)
+
 CROSSDEV		 = arm-none-eabi-
 
 CC			 = $(CROSSDEV)gcc
@@ -31,13 +33,17 @@ ARCHCPUFLAGS_CORTEXM4	 = -mcpu=cortex-m4 \
 
 ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
 			   -mthumb \
-			   -march=armv6-m \
+			   -march=armv7-m \
 			   -mfloat-abi=soft
 
 ARCHCPUFLAGS		 = $(ARCHCPUFLAGS_$(CONFIG_ARCH))
+ifeq ($(ARCHCPUFLAGS),)
+$(error Must set CONFIG_ARCH to one of CORTEXM4F, CORTEXM4 or CORTEXM3)
+endif
 
 # optimisation flags
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
+			   -g \
 			   -fno-strict-aliasing \
 			   -fno-strength-reduce \
 			   -fomit-frame-pointer \
@@ -45,9 +51,6 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
    			   -fno-builtin-printf \
    			   -ffunction-sections \
    			   -fdata-sections
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
-ARCHOPTIMIZATION	+= -g
-endif
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
@@ -82,7 +85,7 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 ARCHWARNINGSXX		 = $(ARCHWARNINGS)
 
 # pull in *just* libm from the toolchain ... this is grody
-LIBM			 = $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
+LIBM			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a)
 EXTRA_LIBS		+= $(LIBM)
 
 CFLAGS			 = $(ARCHCFLAGS) \
@@ -117,7 +120,6 @@ LDFLAGS			+= --warn-common \
 			   $(addprefix -L,$(LIB_DIRS))
 
 LIBGCC			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name)
-
 
 # files that the final link depends on
 # XXX add libraries that we know about here...
