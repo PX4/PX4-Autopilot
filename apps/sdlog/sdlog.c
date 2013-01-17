@@ -280,7 +280,7 @@ sdlog_sysvector_write_thread(void *arg)
 		/* continue */
 		pthread_mutex_unlock(&sysvector_mutex);
 
-		if (ret == OK) {
+		if (ret == OK && poll_count % 2 == 0) {  // only log with 125Hz
 			sysvector_bytes += write(sysvector_file, (const char *)&sysvect, sizeof(sysvect));
 		}
 

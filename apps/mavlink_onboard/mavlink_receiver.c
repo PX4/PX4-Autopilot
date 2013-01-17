@@ -311,10 +311,10 @@ handle_message(mavlink_message_t *msg)
 static void *
 receive_thread(void *arg)
 {
-	int uart_fd = *((int*)arg);
+	int uart_fd = *((int *)arg);
 
 	const int timeout = 1000;
-	uint8_t ch;
+	uint8_t buf[32];
 
 	mavlink_message_t msg;
 
@@ -325,17 +325,17 @@ receive_thread(void *arg)
 		struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
 
 		if (poll(fds, 1, timeout) > 0) {
-			/* non-blocking read until buffer is empty */
-			int nread = 0;
+			/* non-blocking read */
+			size_t nread = read(uart_fd, buf, sizeof(buf));
+			ASSERT(nread > 0)
 
-			do {
-				nread = read(uart_fd, &ch, 1);
-
-				if (mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
+			for (size_t i = 0; i < nread; i++) {
+				if (mavlink_parse_char(chan, buf[i], &msg, &status)) { //parse the char
 					/* handle generic messages and commands */
 					handle_message(&msg);
+
 				}
-			} while (nread > 0);
+			}
 		}
 	}
 
