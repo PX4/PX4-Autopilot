@@ -124,7 +124,7 @@ static void bultin_semtake(FAR sem_t *sem)
   do
     {
       ret = sem_wait(sem);
-      ASSERT(ret == 0 || errno == EINTR);
+      ASSERT(ret == 0 || get_errno() == EINTR);
     }
   while (ret != 0);
 }
@@ -152,7 +152,7 @@ static int builtin_taskcreate(int index, FAR const char **argv)
 
   if (b == NULL)
     { 
-      errno = ENOENT;
+      set_errno(ENOENT);
       return ERROR;
     }
 
@@ -228,7 +228,7 @@ static int builtin_proxy(int argc, char *argv[])
     {
       /* Remember the errno value.  ret is already set to ERROR */
 
-      g_builtin_parms.errcode = errno;
+      g_builtin_parms.errcode = get_errno();
       sdbg("ERROR: open of %s failed: %d\n",
            g_builtin_parms.redirfile, g_builtin_parms.errcode);
     }
@@ -246,7 +246,7 @@ static int builtin_proxy(int argc, char *argv[])
       ret = dup2(fd, 1);
       if (ret < 0)
         {
-          g_builtin_parms.errcode = errno;
+          g_builtin_parms.errcode = get_errno();
           sdbg("ERROR: dup2 failed: %d\n", g_builtin_parms.errcode);
         }
 
@@ -266,11 +266,17 @@ static int builtin_proxy(int argc, char *argv[])
       ret = builtin_taskcreate(g_builtin_parms.index, g_builtin_parms.argv);
       if (ret < 0)
         {
-          g_builtin_parms.errcode = errno;
+          g_builtin_parms.errcode = get_errno();
           sdbg("ERROR: builtin_taskcreate failed: %d\n",
                g_builtin_parms.errcode);
         }
     }
+
+  /* NOTE:  There is a logical error here if CONFIG_SCHED_HAVE_PARENT is
+   * defined:  The new task is the child of this proxy task, not the
+   * original caller.  As a consequence, operations like waitpid() will
+   * fail on the caller's thread.
+   */
 
   /* Post the semaphore to inform the parent task that we have completed
    * what we need to do.
@@ -340,10 +346,20 @@ static inline int builtin_startproxy(int index, FAR const char **argv,
   ret = sched_getparam(0, &param);
   if (ret < 0)
     {
-      errcode = errno;
+      errcode = get_errno();
       sdbg("ERROR: sched_getparam failed: %d\n", errcode);
-      goto errout;
+      goto errout_with_sem;
     }
+
+  /* Disable pre-emption so that the proxy does not run until we waitpid
+   * is called.  This is probably unnecessary since the builtin_proxy has
+   * the same priority as this thread; it should be schedule behind this
+   * task in the ready-to-run list.
+   */
+
+#ifdef CONFIG_SCHED_WAITPID
+  sched_lock();
+#endif
 
   /* Start the intermediary/proxy task at the same priority as the parent task. */
 
@@ -352,9 +368,9 @@ static inline int builtin_startproxy(int index, FAR const char **argv,
                       (FAR const char **)NULL);
   if (proxy < 0)
     {
-      errcode = errno;
+      errcode = get_errno();
       sdbg("ERROR: Failed to start builtin_proxy: %d\n", errcode);
-      goto errout;
+      goto errout_with_lock;
     }
 
    /* Wait for the proxy to complete its job.  We could use waitpid()
@@ -365,7 +381,8 @@ static inline int builtin_startproxy(int index, FAR const char **argv,
    ret = waitpid(proxy, &status, 0);
    if (ret < 0)
      {
-      sdbg("ERROR: waitpid() failed: %d\n", errno);
+       sdbg("ERROR: waitpid() failed: %d\n", get_errno());
+       goto errout_with_lock;
      }
 #else
    bultin_semtake(&g_builtin_execsem);
@@ -377,7 +394,12 @@ static inline int builtin_startproxy(int index, FAR const char **argv,
    builtin_semgive(&g_builtin_parmsem);
    return g_builtin_parms.result;
 
-errout:
+errout_with_lock:
+#ifdef CONFIG_SCHED_WAITPID
+  sched_unlock();
+#endif
+
+errout_with_sem:
   set_errno(errcode);
   builtin_semgive(&g_builtin_parmsem);
   return ERROR;

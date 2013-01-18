@@ -48,7 +48,7 @@ TSK_SRCS	= prctl.c task_create.c task_init.c task_setup.c task_activate.c \
 		  task_restart.c task_vfork.c exit.c getpid.c sched_addreadytorun.c \
 		  sched_removereadytorun.c sched_addprioritized.c sched_mergepending.c \
 		  sched_addblocked.c sched_removeblocked.c sched_free.c sched_gettcb.c \
-		  sched_verifytcb.c sched_releasetcb.c
+		  sched_verifytcb.c sched_releasetcb.c task_posixspawn.c
 
 SCHED_SRCS	= sched_setparam.c sched_setpriority.c sched_getparam.c \
 		  sched_setscheduler.c sched_getscheduler.c \
@@ -65,6 +65,10 @@ endif
 
 ifeq ($(CONFIG_PRIORITY_INHERITANCE),y)
 SCHED_SRCS	+= sched_reprioritize.c 
+endif
+
+ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
+SCHED_SRCS	+= task_reparent.c 
 endif
 
 ifeq ($(CONFIG_SCHED_WAITPID),y)

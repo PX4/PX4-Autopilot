@@ -1,5 +1,5 @@
 /****************************************************************************
- * libc/string/lib_ps.c
+ * sched/task_posixspawn.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -50,8 +50,9 @@
 #include <debug.h>
 
 #include <nuttx/binfmt/binfmt.h>
+#include <nuttx/spawn.h>
 
-#include "spawn/spawn.h"
+#include "os_internal.h"
 
 /****************************************************************************
  * Private Types
@@ -86,7 +87,7 @@ static struct spawn_parms_s g_ps_parms;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ps_semtake and ps_semgive
+ * Name: spawn_semtake and spawn_semgive
  *
  * Description:
  *   Give and take semaphores
@@ -100,7 +101,7 @@ static struct spawn_parms_s g_ps_parms;
  *
  ****************************************************************************/
 
-static void ps_semtake(FAR sem_t *sem)
+static void spawn_semtake(FAR sem_t *sem)
 {
   int ret;
 
@@ -112,10 +113,10 @@ static void ps_semtake(FAR sem_t *sem)
   while (ret != 0);
 }
 
-#define ps_semgive(sem) sem_post(sem)
+#define spawn_semgive(sem) sem_post(sem)
 
 /****************************************************************************
- * Name: ps_exec
+ * Name: spawn_exec
  *
  * Description:
  *   Execute the task from the file system.
@@ -153,9 +154,9 @@ static void ps_semtake(FAR sem_t *sem)
  *
  ****************************************************************************/
 
-static int ps_exec(FAR pid_t *pidp, FAR const char *path,
-                   FAR const posix_spawnattr_t *attr,
-                   FAR char *const argv[])
+static int spawn_exec(FAR pid_t *pidp, FAR const char *path,
+                      FAR const posix_spawnattr_t *attr,
+                      FAR char *const argv[])
 {
   struct sched_param param;
   FAR const struct symtab_s *symtab;
@@ -420,7 +421,23 @@ static int spawn_proxy(int argc, char *argv[])
     {
       /* Start the task */
 
-      ret = ps_exec(g_ps_parms.pid, g_ps_parms.path, attr, g_ps_parms.argv);
+      ret = spawn_exec(g_ps_parms.pid, g_ps_parms.path, attr,
+                       g_ps_parms.argv);
+
+#ifdef CONFIG_SCHED_HAVE_PARENT
+      if (ret == OK)
+        {
+          /* Change of the parent of the task we just spawned to our parent.
+           * What should we do in the event of a failure?
+           */
+
+          int tmp = task_reparent(0, 0, *g_ps_parms.pid);
+          if (tmp < 0)
+            {
+              sdbg("ERROR: task_reparent() failed: %d\n", tmp);
+            }
+        }
+#endif
     }
 
   /* Post the semaphore to inform the parent task that we have completed
@@ -429,9 +446,9 @@ static int spawn_proxy(int argc, char *argv[])
 
   g_ps_parms.result = ret;
 #ifndef CONFIG_SCHED_WAITPID
-  ps_semgive(&g_ps_execsem);
+  spawn_semgive(&g_ps_execsem);
 #endif
-  return 0;
+  return OK;
 }
 
 /****************************************************************************
@@ -566,7 +583,7 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
   if (file_actions ==  NULL || *file_actions == NULL)
 #endif
     {
-      return ps_exec(pid, path, attr, argv);
+      return spawn_exec(pid, path, attr, argv);
     }
 
   /* Otherwise, we will have to go through an intermediary/proxy task in order
@@ -582,7 +599,7 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
 
   /* Get exclusive access to the global parameter structure */
 
-  ps_semtake(&g_ps_parmsem);
+  spawn_semtake(&g_ps_parmsem);
 
   /* Populate the parameter structure */
 
@@ -601,22 +618,33 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
       int errcode = errno;
 
       sdbg("ERROR: sched_getparam failed: %d\n", errcode);
-      ps_semgive(&g_ps_parmsem);
+      spawn_semgive(&g_ps_parmsem);
       return errcode;
     }
 
-  /* Start the intermediary/proxy task at the same priority as the parent task. */
+  /* Disable pre-emption so that the proxy does not run until we waitpid
+   * is called.  This is probably unnecessary since the spawn_proxy has
+   * the same priority as this thread; it should be schedule behind this
+   * task in the ready-to-run list.
+   */
+
+#ifdef CONFIG_SCHED_WAITPID
+  sched_lock();
+#endif
+
+  /* Start the intermediary/proxy task at the same priority as the parent
+   * task.
+   */
 
   proxy = TASK_CREATE("spawn_proxy", param.sched_priority,
                       CONFIG_POSIX_SPAWN_STACKSIZE, (main_t)spawn_proxy,
                       (FAR const char **)NULL);
   if (proxy < 0)
     {
-      int errcode = errno;
+      ret = get_errno();
+      sdbg("ERROR: Failed to start spawn_proxy: %d\n", ret);
 
-      sdbg("ERROR: Failed to start spawn_proxy: %d\n", errcode);
-      ps_semgive(&g_ps_parmsem);
-      return errcode;
+      goto errout_with_lock;
     }
 
    /* Wait for the proxy to complete its job */
@@ -625,15 +653,21 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
    ret = waitpid(proxy, &status, 0);
    if (ret < 0)
      {
-      sdbg("ERROR: waitpid() failed: %d\n", errno);
+       sdbg("ERROR: waitpid() failed: %d\n", errno);
+       goto errout_with_lock;
      }
 #else
-   ps_semtake(&g_ps_execsem);
+   spawn_semtake(&g_ps_execsem);
 #endif
 
    /* Get the result and relinquish our access to the parameter structure */
 
    ret = g_ps_parms.result;
-   ps_semgive(&g_ps_parmsem);
-   return ret;
+
+errout_with_lock:
+#ifdef CONFIG_SCHED_WAITPID
+  sched_unlock();
+#endif
+  spawn_semgive(&g_ps_parmsem);
+  return ret;
 }

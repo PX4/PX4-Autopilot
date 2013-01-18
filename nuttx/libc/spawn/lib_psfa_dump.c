@@ -43,7 +43,7 @@
 #include <assert.h>
 #include <debug.h>
 
-#include "spawn/spawn.h"
+#include <nuttx/spawn.h>
 
 #ifdef CONFIG_DEBUG
 

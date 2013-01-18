@@ -44,7 +44,7 @@
 #include <assert.h>
 #include <errno.h>
 
-#include "spawn/spawn.h"
+#include <nuttx/spawn.h>
 
 /****************************************************************************
  * Global Functions

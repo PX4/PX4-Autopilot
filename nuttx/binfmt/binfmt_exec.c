@@ -97,7 +97,6 @@ int exec(FAR const char *filename, FAR const char **argv,
 {
 #ifdef CONFIG_SCHED_ONEXIT
   FAR struct binary_s *bin;
-  int errorcode;
   int pid;
   int ret;
 

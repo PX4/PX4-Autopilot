@@ -168,12 +168,14 @@ int nsh_fileapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
     {
       /* The application was successfully started with pre-emption disabled.
        * In the simplest cases, the application will not have run because the
-       * the scheduler is locked.  but in the case were I/O redirected, a 
-       * proxy task ran and, as result, so may have the application.
+       * the scheduler is locked.  But in the case where I/O was redirected, a 
+       * proxy task ran and broke our lock.  As result, the application may
+       * have aso ran if its priority was higher than than the priority of
+       * this thread.
        *
-       * If the application did not run and if the application was not
-       * backgrounded, then we need to wait here for the application to
-       * exit.  This only works works with the following options:
+       * If the application did not run to completion and if the application
+       * was not backgrounded, then we need to wait here for the application
+       * to exit.  This only works works with the following options:
        *
        * - CONFIG_NSH_DISABLEBG - Do not run commands in background
        * - CONFIG_SCHED_WAITPID - Required to run external commands in
@@ -193,11 +195,12 @@ int nsh_fileapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
         {
           int rc = 0;
 
-          /* Wait for the application to exit.  We did locked the scheduler
+          /* Wait for the application to exit.  We did lock the scheduler
            * above, but that does not guarantee that the application did not
-           * run in the case where I/O was redirected.  The scheduler will
-           * be unlocked while waitpid is waiting and if the application has
-           * not yet run, it will be able to to do so.
+           * already run to completion in the case where I/O was redirected.
+           * Here the scheduler will be unlocked while waitpid is waiting
+           * and if the application has not yet run, it will now be able to
+           * do so.
            */
 
           ret = waitpid(pid, &rc, 0);

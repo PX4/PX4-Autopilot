@@ -1,5 +1,5 @@
 /****************************************************************************
- * libc/spawn/spawn.h
+ * include/nuttx/spawn.h
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __LIBC_SPAWN_SPAWN_H
-#define __LIBC_SPAWN_SPAWN_H
+#ifndef __INCLUDE_NUTTX_SPAWN_H
+#define __INCLUDE_NUTTX_SPAWN_H
 
 /****************************************************************************
  * Included Files
@@ -118,4 +118,4 @@ void add_file_action(FAR posix_spawn_file_actions_t *file_action,
 }
 #endif
 
-#endif /* __LIBC_SPAWN_SPAWN_H */
+#endif /* __INCLUDE_NUTTX_SPAWN_H */

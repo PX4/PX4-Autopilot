@@ -3971,4 +3971,9 @@
 	  automatically unload and clean-up after running a task that
 	  was loaded into memory.
 	* binfmt/libbuiltin: Extensions from Mike Smith
-
+	* sched/task_reparent.c:  Add internal interface to change the
+	  parent task.
+	* sched/task_posixspawn():  Move libc/spawn/lib_ps.c to
+	  sched/task_posixspawn() now it requires internal, reparenting
+	  interfaces
+	* include/nuttx/spawn():  Move libc/spawn.h to include/nuttx/spawn.h
