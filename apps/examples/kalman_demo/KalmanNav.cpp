@@ -239,7 +239,10 @@ void KalmanNav::update()
 	// publication
 	if (newTimeStamp - _pubTimeStamp > 1e6 / 50) { // 50 Hz
 		_pubTimeStamp = newTimeStamp;
-		updatePublications();
+
+		if (_positionInitialized) _pos.update();
+
+		if (_attitudeInitialized) _att.update();
 	}
 
 	// output
@@ -589,6 +592,7 @@ int KalmanNav::correctAtt()
 	}
 
 	psi += xCorrect(PSI);
+
 	// attitude also affects nav velocities
 	if (_positionInitialized) {
 		vN += xCorrect(VN);
