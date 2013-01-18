@@ -57,6 +57,9 @@
 #define LPC17_FIO2_OFFSET                0x0040
 #define LPC17_FIO3_OFFSET                0x0060
 #define LPC17_FIO4_OFFSET                0x0080
+#ifdef LPC178x
+#  define LPC17_FIO5_OFFSET              0x00a0
+#endif
 
 #define LPC17_FIO_DIR_OFFSET             0x0000  /* Fast GPIO Port Direction control */
 #define LPC17_FIO_MASK_OFFSET            0x0010  /* Fast Mask register for ports */
@@ -86,6 +89,9 @@
 #define LPC17_FIO2_BASE                  (LPC17_GPIO_BASE+LPC17_FIO2_OFFSET)
 #define LPC17_FIO3_BASE                  (LPC17_GPIO_BASE+LPC17_FIO3_OFFSET)
 #define LPC17_FIO4_BASE                  (LPC17_GPIO_BASE+LPC17_FIO4_OFFSET)
+#ifdef LPC178x
+#  define LPC17_FIO5_BASE                (LPC17_GPIO_BASE+LPC17_FIO5_OFFSET)
+#endif
 
 #define LPC17_FIO_DIR(n)                 (LPC17_FIO_BASE(n)+LPC17_FIO_DIR_OFFSET)
 #define LPC17_FIO_MASK(n)                (LPC17_FIO_BASE(n)+LPC17_FIO_MASK_OFFSET)
@@ -123,6 +129,14 @@
 #define LPC17_FIO4_SET                   (LPC17_FIO4_BASE+LPC17_FIO_SET_OFFSET)
 #define LPC17_FIO4_CLR                   (LPC17_FIO4_BASE+LPC17_FIO_CLR_OFFSET)
 
+#ifdef LPC178x
+#  define LPC17_FIO5_DIR                 (LPC17_FIO5_BASE+LPC17_FIO_DIR_OFFSET)
+#  define LPC17_FIO5_MASK                (LPC17_FIO5_BASE+LPC17_FIO_MASK_OFFSET)
+#  define LPC17_FIO5_PIN                 (LPC17_FIO5_BASE+LPC17_FIO_PIN_OFFSET)
+#  define LPC17_FIO5_SET                 (LPC17_FIO5_BASE+LPC17_FIO_SET_OFFSET)
+#  define LPC17_FIO5_CLR                 (LPC17_FIO5_BASE+LPC17_FIO_CLR_OFFSET)
+#endif
+
 /* GPIO interrupt block register addresses ******************************************/
 
 #define LPC17_GPIOINTn_BASE(n)           (LPC17_GPIOINT_BASE+LPC17_GPIOINT_OFFSET(n))
@@ -137,7 +151,7 @@
 #define LPC17_GPIOINT_INTENR(n)          (LPC17_GPIOINTn_BASE(n)+LPC17_GPIOINT_INTENR_OFFSET)
 #define LPC17_GPIOINT_INTENF(n)          (LPC17_GPIOINTn_BASE(n)+LPC17_GPIOINT_INTENF_OFFSET)
 
-/* Pins P0.0-31 (P0.12-14 nad P0.31 are reserved) */
+/* Pins P0.0-31 */
 
 #define LPC17_GPIOINT0_INTSTATR          (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_INTSTATR_OFFSET)
 #define LPC17_GPIOINT0_INTSTATF          (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_INTSTATF_OFFSET)
@@ -145,7 +159,7 @@
 #define LPC17_GPIOINT0_INTENR            (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_INTENR_OFFSET)
 #define LPC17_GPIOINT0_INTENF            (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_INTENF_OFFSET)
 
-/* Pins P2.0-13 (P0.14-31 are reserved) */
+/* Pins P2.0-31 */
 
 #define LPC17_GPIOINT2_INTSTATR          (LPC17_GPIOINT2_BASE+LPC17_GPIOINT_INTSTATR_OFFSET)
 #define LPC17_GPIOINT2_INTSTATF          (LPC17_GPIOINT2_BASE+LPC17_GPIOINT_INTSTATF_OFFSET)
@@ -189,105 +203,8 @@
  * Public Data
  ************************************************************************************/
 
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
-/************************************************************************************
- * Name: lpc17_gpioirqinitialize
- *
- * Description:
- *   Initialize logic to support a second level of interrupt decoding for GPIO pins.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_GPIO_IRQ
-void lpc17_gpioirqinitialize(void);
-#else
-#  define lpc17_gpioirqinitialize()
-#endif
-
-/************************************************************************************
- * Name: lpc17_configgpio
- *
- * Description:
- *   Configure a GPIO pin based on bit-encoded description of the pin.
- *
- ************************************************************************************/
-
-int lpc17_configgpio(uint16_t cfgset);
-
-/************************************************************************************
- * Name: lpc17_gpiowrite
- *
- * Description:
- *   Write one or zero to the selected GPIO pin
- *
- ************************************************************************************/
-
-void lpc17_gpiowrite(uint16_t pinset, bool value);
-
-/************************************************************************************
- * Name: lpc17_gpioread
- *
- * Description:
- *   Read one or zero from the selected GPIO pin
- *
- ************************************************************************************/
-
-bool lpc17_gpioread(uint16_t pinset);
-
-/************************************************************************************
- * Name: lpc17_gpioirqenable
- *
- * Description:
- *   Enable the interrupt for specified GPIO IRQ
- *
- ************************************************************************************/
-
-#ifdef CONFIG_GPIO_IRQ
-void lpc17_gpioirqenable(int irq);
-#else
-#  define lpc17_gpioirqenable(irq)
-#endif
-
-/************************************************************************************
- * Name: lpc17_gpioirqdisable
- *
- * Description:
- *   Disable the interrupt for specified GPIO IRQ
- *
- ************************************************************************************/
-
-#ifdef CONFIG_GPIO_IRQ
-void lpc17_gpioirqdisable(int irq);
-#else
-#  define lpc17_gpioirqdisable(irq)
-#endif
-
-/************************************************************************************
- * Function:  lpc17_dumpgpio
- *
- * Description:
- *   Dump all GPIO registers associated with the base address of the provided pinset.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_DEBUG_GPIO
-int lpc17_dumpgpio(uint16_t pinset, const char *msg);
-#else
-#  define lpc17_dumpgpio(p,m)
-#endif
-
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_CHIP_GPIO_H */

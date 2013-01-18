@@ -212,7 +212,7 @@ static int lpc17_pinsel(unsigned int port, unsigned int pin, unsigned int value)
  *
  ****************************************************************************/
 
-static int lpc17_pullup(uint16_t cfgset, unsigned int port, unsigned int pin)
+static int lpc17_pullup(lpc17_pinset_t cfgset, unsigned int port, unsigned int pin)
 {
   const uint32_t *table;
   uint32_t regaddr;
@@ -355,7 +355,7 @@ static void lpc17_clropendrain(unsigned int port, unsigned int pin)
  *
  ****************************************************************************/
 
-static inline int lpc17_configinput(uint16_t cfgset, unsigned int port, unsigned int pin)
+static inline int lpc17_configinput(lpc17_pinset_t cfgset, unsigned int port, unsigned int pin)
 {
   uint32_t regval;
   uint32_t fiobase;
@@ -419,7 +419,7 @@ static inline int lpc17_configinput(uint16_t cfgset, unsigned int port, unsigned
  *
  ****************************************************************************/
 
-static inline int lpc17_configinterrupt(uint16_t cfgset, unsigned int port,
+static inline int lpc17_configinterrupt(lpc17_pinset_t cfgset, unsigned int port,
                                         unsigned int pin)
 {
   /* First, configure the port as a generic input so that we have a known
@@ -445,7 +445,7 @@ static inline int lpc17_configinterrupt(uint16_t cfgset, unsigned int port,
  *
  ****************************************************************************/
 
-static inline int lpc17_configoutput(uint16_t cfgset, unsigned int port,
+static inline int lpc17_configoutput(lpc17_pinset_t cfgset, unsigned int port,
                                      unsigned int pin)
 {
   uint32_t fiobase;
@@ -494,7 +494,7 @@ static inline int lpc17_configoutput(uint16_t cfgset, unsigned int port,
  *
  ****************************************************************************/
 
-static int lpc17_configalternate(uint16_t cfgset, unsigned int port,
+static int lpc17_configalternate(lpc17_pinset_t cfgset, unsigned int port,
                                  unsigned int pin, uint32_t alt)
 {
   /* First, configure the port as an input so that we have a known
@@ -536,7 +536,7 @@ static int lpc17_configalternate(uint16_t cfgset, unsigned int port,
  *
  ****************************************************************************/
 
-int lpc17_configgpio(uint16_t cfgset)
+int lpc17_configgpio(lpc17_pinset_t cfgset)
 {
   unsigned int port;
   unsigned int pin;
@@ -597,7 +597,7 @@ int lpc17_configgpio(uint16_t cfgset)
  *
  ****************************************************************************/
 
-void lpc17_gpiowrite(uint16_t pinset, bool value)
+void lpc17_gpiowrite(lpc17_pinset_t pinset, bool value)
 {
   uint32_t fiobase;
   uint32_t offset;
@@ -637,7 +637,7 @@ void lpc17_gpiowrite(uint16_t pinset, bool value)
  *
  ****************************************************************************/
 
-bool lpc17_gpioread(uint16_t pinset)
+bool lpc17_gpioread(lpc17_pinset_t pinset)
 {
   uint32_t fiobase;
   unsigned int port;
