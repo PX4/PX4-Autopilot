@@ -104,9 +104,17 @@ config ARCH_FAMILY_LPC176X
 
 config ARCH_FAMILY_LPC177X
 	bool
+	select ARCH_HAVE_EXTNAND
+	select ARCH_HAVE_EXTSRAM0
+	select ARCH_HAVE_EXTDRAM
+	select ARCH_HAVE_EXTNOR
 
 config ARCH_FAMILY_LPC178X
 	bool
+	select ARCH_HAVE_EXTNAND
+	select ARCH_HAVE_EXTSRAM0
+	select ARCH_HAVE_EXTDRAM
+	select ARCH_HAVE_EXTNOR
 
 menu "LPC17xx Peripheral Support"
 

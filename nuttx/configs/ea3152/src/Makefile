@@ -44,7 +44,7 @@ CSRCS		= up_boot.c up_clkinit.c
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CSRCS		+= up_buttons.c
 endif
-ifeq ($(CONFIG_LPC31_EXTSDRAM),y)
+ifeq ($(CONFIG_ARCH_EXTDRAM),y)
 CSRCS		+= up_mem.c
 endif
 ifeq ($(CONFIG_ARCH_LEDS),y)

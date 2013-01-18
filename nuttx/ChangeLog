@@ -3982,3 +3982,8 @@
 	* configs/olimex-lpc1766stk/nsh:  Convert configuration to use
 	  the kconfig-frontends tools.
 	* sched/task_reparent.c:  Simplify reparenting interface.
+	* arch/arm/src/[many]: More LPC1788 definitions from Rommel
+	  Marcelo incorporated.
+	* configs/open1788:  Board configuration for the Wave Share
+	  Open1788 board.  Still fragmentary (contribnuted by Rommel
+	  Marcelo, adapted to use kconfig-frontends.

@@ -81,7 +81,7 @@
                                                 /* 0x60001000-0x6fffffff: Reserved */
 #define LPC31_NAND_PSECTION          0x70000000 /* 0x70000000-0x700007ff: NANDFLASH Ctrl 2Kb */
                                                 /* 0x70000800-0xffffffff: Reserved */
-#ifdef CONFIG_LPC31_EXTNAND                     /* End of the physical address space */
+#ifdef CONFIG_ARCH_EXTNAND                      /* End of the physical address space */
 #  define LPC31_LAST_PSECTION        (LPC31_NAND_PSECTION + (1 << 20))
 #else
 #  define LPC31_LAST_PSECTION        (LPC31_INTC_PSECTION + (1 << 20))
@@ -176,8 +176,8 @@
  * the size of the SDRAM installed.
  */
 
-#if defined(CONFIG_LPC31_EXTSDRAM) && CONFIG_LPC31_EXTSDRAMSIZE > 0
-#  define LPC31_EXTSDRAM0_NSECTIONS  _NSECTIONS(CONFIG_LPC31_EXTSDRAMSIZE)
+#if defined(CONFIG_ARCH_EXTDRAM) && CONFIG_ARCH_EXTDRAMSIZE > 0
+#  define LPC31_EXTSDRAM0_NSECTIONS  _NSECTIONS(CONFIG_ARCH_EXTDRAMSIZE)
 #endif
 
 /* Section MMU Flags */
@@ -233,7 +233,7 @@
 #  define LPC31_INTC_VSECTION        0x60000000 /* 0x60000000-0x60000fff: Interrupt controller 4Kb */
 #  define LPC31_NAND_VSECTION        0x70000000 /* 0x70000000-0x700007ff: NANDFLASH Ctrl 2Kb */
 #
-#  ifdef CONFIG_LPC31_EXTNAND                   /* End of the virtual address space */
+#  ifdef CONFIG_ARCH_EXTNAND                    /* End of the virtual address space */
 #    define LPC31_LAST_VSECTION      (LPC31_NAND_VSECTION + (1 << 20))
 #  else
 #    define LPC31_LAST_VSECTION      (LPC31_INTC_VSECTION + (1 << 20))

@@ -75,7 +75,7 @@ void lpc31_boardinitialize(void)
 {
   /* Initialize configured, external memory resources */
 
-#ifdef CONFIG_LPC31_EXTSDRAM
+#ifdef CONFIG_ARCH_EXTDRAM
   lpc31_meminitialize();
 #endif
 

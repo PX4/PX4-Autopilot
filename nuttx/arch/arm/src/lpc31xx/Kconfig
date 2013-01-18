@@ -12,15 +12,31 @@ choice
 
 config ARCH_CHIP_LPC3130
 	bool "LPC3130"
+	select ARCH_HAVE_EXTNAN
+	select ARCH_HAVE_EXTSRAM0
+	select ARCH_HAVE_EXTSRAM1
+	select ARCH_HAVE_EXTDRAM
 
 config ARCH_CHIP_LPC3131
 	bool "LPC3131"
+	select ARCH_HAVE_EXTNAND
+	select ARCH_HAVE_EXTSRAM0
+	select ARCH_HAVE_EXTSRAM1
+	select ARCH_HAVE_EXTDRAM
 
 config ARCH_CHIP_LPC3152
 	bool "LPC3152"
+	select ARCH_HAVE_EXTNAND
+	select ARCH_HAVE_EXTSRAM0
+	select ARCH_HAVE_EXTSRAM1
+	select ARCH_HAVE_EXTDRAM
 
 config ARCH_CHIP_LPC3154
 	bool "LPC3154"
+	select ARCH_HAVE_EXTNAND
+	select ARCH_HAVE_EXTSRAM0
+	select ARCH_HAVE_EXTSRAM1
+	select ARCH_HAVE_EXTDRAM
 
 endchoice
 
@@ -48,78 +64,11 @@ config LPC31_BUILDROOT
 
 endchoice
 
-menu "LPC31xx Memory Mapping"
-
-config LPC31_EXTNAND
-	bool "Map external NAND"
-	default n
-	---help---
-		Map external NAND into the memory map.
-
-config LPC31_EXTSDRAM
-	bool "Map external SDRAM"
-	default n
-	---help---
-		Map external SDRAM into the memory map.
-
-config LPC31_EXTSDRAMHEAP
-	bool "Add external SDRAM to the heap"
-	default y
-	depends on LPC31_EXTSDRAM
-	---help---
-		Add external SDRAM into the heap.
-
-config LPC31_EXTSDRAMSIZE
-	int "External SDRAM size"
-	depends on LPC31_EXTSDRAM
-	---help---
-		Size of the external SDRAM.
-
 config LPC31_SDRAMHCLK
 	int "External SDRAM HCLK"
-	depends on LPC31_EXTSDRAM
+	depends on ARCH_EXTSDRAM
 	---help---
 		The SDRAM HCLK may be specified here (if not, it will be calculated).
-
-config LPC31_EXTSRAM0
-	bool "Map external SRAM0"
-	default n
-	---help---
-		Map external SRAM0 into the memory map.
-
-config LPC31_EXTSRAM0HEAP
-	bool "Add external SRAM0 to the heap"
-	default y
-	depends on LPC31_EXTSRAM0
-	---help---
-		Add external SRAM0 into the heap.
-
-config LPC31_EXTSRAM0SIZE
-	int "External SRAM size"
-	depends on LPC31_EXTSRAM0
-	---help---
-		Size of the external SRAM.
-
-config LPC31_EXTSRAM1
-	bool "Map external SRAM0"
-	default n
-	---help---
-		Map external SRAM1 into the memory map.
-
-config LPC31_EXTSRAM1HEAP
-	bool "Add external SRAM1 to the heap"
-	default y
-	depends on LPC31_EXTSRAM1
-	---help---
-		Add external SRAM1 into the heap.
-
-config LPC31_EXTSRAM1SIZE
-	int "External SRAM1 size"
-	depends on LPC31_EXTSRAM1
-	---help---
-		Size of the external SRAM1.
-
-endmenu
 
 menu "LPC31xx Peripheral Support"
 

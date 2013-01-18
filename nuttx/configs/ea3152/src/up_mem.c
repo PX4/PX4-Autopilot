@@ -59,7 +59,7 @@
 #include "lpc31_mpmc.h"
 #include "ea3152_internal.h"
 
-#ifdef CONFIG_LPC31_EXTSDRAM
+#ifdef CONFIG_ARCH_EXTDRAM
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -356,4 +356,4 @@ void lpc31_meminitialize(void)
 
   lpc31_sdraminitialize();
 }
-#endif /* CONFIG_LPC31_EXTSDRAM */
+#endif /* CONFIG_ARCH_EXTDRAM */

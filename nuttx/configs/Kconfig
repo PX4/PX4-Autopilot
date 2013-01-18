@@ -346,6 +346,14 @@ config ARCH_BOARD_OLIMEX_STM32P107
 		Linux or Cygwin. See the http://www.olimex.com for further information. This
 		board features the STMicro STM32F107VC MCU
 
+config ARCH_BOARD_OPEN1788
+	bool "Wave Share Open1788"
+	depends on ARCH_CHIP_LPC1788
+	---help---
+		This port uses the Wave Share Open1788 board. See the
+		http://wvshare.com/product/Open1788-Standard.htm for further
+		information. This board features the NXP LPC1788 MCU
+
 config ARCH_BOARD_P112
 	bool "P112 Z180-based platform"
 	depends on ARCH_CHIP_Z8018216FSG
@@ -682,6 +690,7 @@ config ARCH_BOARD
 	default "olimex-lpc2378"      if ARCH_BOARD_OLIMEXLPC2378
 	default "olimex-stm32-p107"   if ARCH_BOARD_OLIMEX_STM32P107
 	default "olimex-strp711"      if ARCH_BOARD_OLIMEX_STRP711
+	default "open1788"            if ARCH_BOARD_OPEN1788
 	default "p112"                if ARCH_BOARD_P112
 	default "pcblogic-pic32mx"    if ARCH_BOARD_PCBLOGICPIC32MX
 	default "pic32-starterkit"    if ARCH_BOARD_PIC32_STARTERKIT
@@ -868,6 +877,9 @@ source "configs/olimex-stm32-p107/Kconfig"
 endif
 if ARCH_BOARD_OLIMEX_STRP711
 source "configs/olimex-strp711/Kconfig"
+endif
+if ARCH_BOARD_OPEN1788
+source "configs/open1788/Kconfig"
 endif
 if ARCH_BOARD_PCBLOGICPIC32MX
 source "configs/pcblogic-pic32mx/Kconfig"
