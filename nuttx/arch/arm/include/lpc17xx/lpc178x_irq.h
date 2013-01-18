@@ -95,7 +95,7 @@
 #define LPC17_IRQ_I2C0          (LPC17_IRQ_EXTINT+10) /* I2C0 SI (state change) */
 #define LPC17_IRQ_I2C1          (LPC17_IRQ_EXTINT+11) /* I2C1 SI (state change) */
 #define LPC17_IRQ_I2C2          (LPC17_IRQ_EXTINT+12) /* I2C2 SI (state change) */
-/*                              (LPC17_IRQ_EXTINT+13)    Unused  */
+#define LPC17_IRQ_RESERVED29    (LPC17_IRQ_EXTINT+13) /* Unused  */
 #define LPC17_IRQ_SSP0          (LPC17_IRQ_EXTINT+14) /* SSP0 Tx FIFO half empty of SSP0
                                                        * Rx FIFO half full of SSP0
                                                        * Rx Timeout of SSP0
