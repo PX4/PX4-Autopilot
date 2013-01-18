@@ -48,8 +48,8 @@
 
 #include "up_arch.h"
 #include "up_internal.h"
-#include "lpc17_internal.h"
-#include "lpc17_syscon.h"
+#include "lpc17_clockconfig.h"
+#include "chip/lpc17_syscon.h"
 
 /****************************************************************************
  * Pre-processor Definitions

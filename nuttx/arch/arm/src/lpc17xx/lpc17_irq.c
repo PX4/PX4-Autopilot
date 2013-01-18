@@ -51,7 +51,9 @@
 #include "up_arch.h"
 #include "os_internal.h"
 #include "up_internal.h"
-#include "lpc17_internal.h"
+
+#include "lpc17_gpio.h"
+#include "lpc17_clrpend.h"
 
 /****************************************************************************
  * Definitions

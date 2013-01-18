@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 
 #include "chip.h"
-#include "lpc17_memorymap.h"
+#include "chip/lpc17_memorymap.h"
 
 /************************************************************************************
  * Pre-processor Definitions

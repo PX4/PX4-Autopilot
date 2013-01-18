@@ -2,7 +2,7 @@
  * configs/nucleus2g/src/up_leds.c
  * arch/arm/src/board/up_leds.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lpc17_internal.h"
+#include "lpc17_gpio.h"
 
 #include "nucleus2g_internal.h"
 

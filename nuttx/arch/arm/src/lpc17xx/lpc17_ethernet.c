@@ -57,12 +57,13 @@
 #include <nuttx/net/uip/uip-arp.h>
 #include <nuttx/net/uip/uip-arch.h>
 
-#include "chip.h"
 #include "up_arch.h"
-#include "lpc17_syscon.h"
+#include "chip.h"
+#include "chip/lpc17_syscon.h"
+#include "lpc17_gpio.h"
 #include "lpc17_ethernet.h"
 #include "lpc17_emacram.h"
-#include "lpc17_internal.h"
+#include "lpc17_clrpend.h"
 
 #include <arch/board/board.h>
 

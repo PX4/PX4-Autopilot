@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/lpc17xx/lpc17_gpio.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,144 +42,128 @@
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-#include "lpc17_memorymap.h"
+#ifndef __ASSEMBLY__
+#  include <stdint.h>
+#endif
+
+#include "chip/lpc17_gpio.h"
+#include "chip/lpc17_pinconn.h"
+#include "chip/lpc17_pinconfig.h"
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+/* Bit-encoded input to lpc17_configgpio() ******************************************/
 
-/* Register offsets *****************************************************************/
-/* GPIO block register offsets ******************************************************/
-
-#define LPC17_FIO0_OFFSET                0x0000
-#define LPC17_FIO1_OFFSET                0x0020
-#define LPC17_FIO2_OFFSET                0x0040
-#define LPC17_FIO3_OFFSET                0x0060
-#define LPC17_FIO4_OFFSET                0x0080
-
-#define LPC17_FIO_DIR_OFFSET             0x0000  /* Fast GPIO Port Direction control */
-#define LPC17_FIO_MASK_OFFSET            0x0010  /* Fast Mask register for ports */
-#define LPC17_FIO_PIN_OFFSET             0x0014  /* Fast Port Pin value registers */
-#define LPC17_FIO_SET_OFFSET             0x0018  /* Fast Port Output Set registers */
-#define LPC17_FIO_CLR_OFFSET             0x001c  /* Fast Port Output Clear register */
-
-/* GPIO interrupt block register offsets ********************************************/
-
-#define LPC17_GPIOINT_OFFSET(n)          (0x10*(n) + 0x80)
-#define LPC17_GPIOINT0_OFFSET            0x0080
-#define LPC17_GPIOINT2_OFFSET            0x00a0
-
-#define LPC17_GPIOINT_IOINTSTATUS_OFFSET 0x0000  /* GPIO overall Interrupt Status */
-#define LPC17_GPIOINT_INTSTATR_OFFSET    0x0004  /* GPIO Interrupt Status Rising edge */
-#define LPC17_GPIOINT_INTSTATF_OFFSET    0x0008  /* GPIO Interrupt Status Falling edge */
-#define LPC17_GPIOINT_INTCLR_OFFSET      0x000c  /* GPIO Interrupt Clear */
-#define LPC17_GPIOINT_INTENR_OFFSET      0x0010  /* GPIO Interrupt Enable Rising edge */
-#define LPC17_GPIOINT_INTENF_OFFSET      0x0014  /* GPIO Interrupt Enable Falling edge */
-
-/* Register addresses ***************************************************************/
-/* GPIO block register addresses ****************************************************/
-
-#define LPC17_FIO_BASE(n)                (LPC17_GPIO_BASE+LPC17_GPIOINT_OFFSET(n))
-#define LPC17_FIO0_BASE                  (LPC17_GPIO_BASE+LPC17_FIO0_OFFSET)
-#define LPC17_FIO1_BASE                  (LPC17_GPIO_BASE+LPC17_FIO1_OFFSET)
-#define LPC17_FIO2_BASE                  (LPC17_GPIO_BASE+LPC17_FIO2_OFFSET)
-#define LPC17_FIO3_BASE                  (LPC17_GPIO_BASE+LPC17_FIO3_OFFSET)
-#define LPC17_FIO4_BASE                  (LPC17_GPIO_BASE+LPC17_FIO4_OFFSET)
-
-#define LPC17_FIO_DIR(n)                 (LPC17_FIO_BASE(n)+LPC17_FIO_DIR_OFFSET)
-#define LPC17_FIO_MASK(n)                (LPC17_FIO_BASE(n)+LPC17_FIO_MASK_OFFSET)
-#define LPC17_FIO_PIN(n)                 (LPC17_FIO_BASE(n)+LPC17_FIO_PIN_OFFSET)
-#define LPC17_FIO_SET(n)                 (LPC17_FIO_BASE(n)+LPC17_FIO_SET_OFFSET)
-#define LPC17_FIO_CLR(n)                 (LPC17_FIO_BASE(n)+LPC17_FIO_CLR_OFFSET)
-
-#define LPC17_FIO0_DIR                   (LPC17_FIO0_BASE+LPC17_FIO_DIR_OFFSET)
-#define LPC17_FIO0_MASK                  (LPC17_FIO0_BASE+LPC17_FIO_MASK_OFFSET)
-#define LPC17_FIO0_PIN                   (LPC17_FIO0_BASE+LPC17_FIO_PIN_OFFSET)
-#define LPC17_FIO0_SET                   (LPC17_FIO0_BASE+LPC17_FIO_SET_OFFSET)
-#define LPC17_FIO0_CLR                   (LPC17_FIO0_BASE+LPC17_FIO_CLR_OFFSET)
-
-#define LPC17_FIO1_DIR                   (LPC17_FIO1_BASE+LPC17_FIO_DIR_OFFSET)
-#define LPC17_FIO1_MASK                  (LPC17_FIO1_BASE+LPC17_FIO_MASK_OFFSET)
-#define LPC17_FIO1_PIN                   (LPC17_FIO1_BASE+LPC17_FIO_PIN_OFFSET)
-#define LPC17_FIO1_SET                   (LPC17_FIO1_BASE+LPC17_FIO_SET_OFFSET)
-#define LPC17_FIO1_CLR                   (LPC17_FIO1_BASE+LPC17_FIO_CLR_OFFSET)
-
-#define LPC17_FIO2_DIR                   (LPC17_FIO2_BASE+LPC17_FIO_DIR_OFFSET)
-#define LPC17_FIO2_MASK                  (LPC17_FIO2_BASE+LPC17_FIO_MASK_OFFSET)
-#define LPC17_FIO2_PIN                   (LPC17_FIO2_BASE+LPC17_FIO_PIN_OFFSET)
-#define LPC17_FIO2_SET                   (LPC17_FIO2_BASE+LPC17_FIO_SET_OFFSET)
-#define LPC17_FIO2_CLR                   (LPC17_FIO2_BASE+LPC17_FIO_CLR_OFFSET)
-
-#define LPC17_FIO3_DIR                   (LPC17_FIO3_BASE+LPC17_FIO_DIR_OFFSET)
-#define LPC17_FIO3_MASK                  (LPC17_FIO3_BASE+LPC17_FIO_MASK_OFFSET)
-#define LPC17_FIO3_PIN                   (LPC17_FIO3_BASE+LPC17_FIO_PIN_OFFSET)
-#define LPC17_FIO3_SET                   (LPC17_FIO3_BASE+LPC17_FIO_SET_OFFSET)
-#define LPC17_FIO3_CLR                   (LPC17_FIO3_BASE+LPC17_FIO_CLR_OFFSET)
-
-#define LPC17_FIO4_DIR                   (LPC17_FIO4_BASE+LPC17_FIO_DIR_OFFSET)
-#define LPC17_FIO4_MASK                  (LPC17_FIO4_BASE+LPC17_FIO_MASK_OFFSET)
-#define LPC17_FIO4_PIN                   (LPC17_FIO4_BASE+LPC17_FIO_PIN_OFFSET)
-#define LPC17_FIO4_SET                   (LPC17_FIO4_BASE+LPC17_FIO_SET_OFFSET)
-#define LPC17_FIO4_CLR                   (LPC17_FIO4_BASE+LPC17_FIO_CLR_OFFSET)
-
-/* GPIO interrupt block register addresses ******************************************/
-
-#define LPC17_GPIOINTn_BASE(n)           (LPC17_GPIOINT_BASE+LPC17_GPIOINT_OFFSET(n))
-#define LPC17_GPIOINT0_BASE              (LPC17_GPIOINT_BASE+LPC17_GPIOINT0_OFFSET)
-#define LPC17_GPIOINT2_BASE              (LPC17_GPIOINT_BASE+LPC17_GPIOINT2_OFFSET)
-
-#define LPC17_GPIOINT_IOINTSTATUS        (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_IOINTSTATUS_OFFSET)
-
-#define LPC17_GPIOINT_INTSTATR(n)        (LPC17_GPIOINTn_BASE(n)+LPC17_GPIOINT_INTSTATR_OFFSET)
-#define LPC17_GPIOINT_INTSTATF(n)        (LPC17_GPIOINTn_BASE(n)+LPC17_GPIOINT_INTSTATF_OFFSET)
-#define LPC17_GPIOINT_INTCLR(n)          (LPC17_GPIOINTn_BASE(n)+LPC17_GPIOINT_INTCLR_OFFSET)
-#define LPC17_GPIOINT_INTENR(n)          (LPC17_GPIOINTn_BASE(n)+LPC17_GPIOINT_INTENR_OFFSET)
-#define LPC17_GPIOINT_INTENF(n)          (LPC17_GPIOINTn_BASE(n)+LPC17_GPIOINT_INTENF_OFFSET)
-
-/* Pins P0.0-31 (P0.12-14 nad P0.31 are reserved) */
-
-#define LPC17_GPIOINT0_INTSTATR          (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_INTSTATR_OFFSET)
-#define LPC17_GPIOINT0_INTSTATF          (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_INTSTATF_OFFSET)
-#define LPC17_GPIOINT0_INTCLR            (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_INTCLR_OFFSET)
-#define LPC17_GPIOINT0_INTENR            (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_INTENR_OFFSET)
-#define LPC17_GPIOINT0_INTENF            (LPC17_GPIOINT0_BASE+LPC17_GPIOINT_INTENF_OFFSET)
-
-/* Pins P2.0-13 (P0.14-31 are reserved) */
-
-#define LPC17_GPIOINT2_INTSTATR          (LPC17_GPIOINT2_BASE+LPC17_GPIOINT_INTSTATR_OFFSET)
-#define LPC17_GPIOINT2_INTSTATF          (LPC17_GPIOINT2_BASE+LPC17_GPIOINT_INTSTATF_OFFSET)
-#define LPC17_GPIOINT2_INTCLR            (LPC17_GPIOINT2_BASE+LPC17_GPIOINT_INTCLR_OFFSET)
-#define LPC17_GPIOINT2_INTENR            (LPC17_GPIOINT2_BASE+LPC17_GPIOINT_INTENR_OFFSET)
-#define LPC17_GPIOINT2_INTENF            (LPC17_GPIOINT2_BASE+LPC17_GPIOINT_INTENF_OFFSET)
-
-/* Register bit definitions *********************************************************/
-/* GPIO block register bit definitions **********************************************/
-
-/* Fast GPIO Port Direction control registers (FIODIR) */
-/* Fast Mask register for ports (FIOMASK) */
-/* Fast Port Pin value registers using FIOMASK (FIOPIN) */
-/* Fast Port Output Set registers using FIOMASK (FIOSET) */
-/* Fast Port Output Clear register using FIOMASK (FIOCLR) */
-
-#define FIO(n)                           (1 << (n)) /* n=0,1,..31 */
-
-/* GPIO interrupt block register bit definitions ************************************/
-
-/* GPIO overall Interrupt Status (IOINTSTATUS) */
-#define GPIOINT_IOINTSTATUS_P0INT        (1 << 0)  /* Bit 0: Port 0 GPIO interrupt pending */
-                                                   /* Bit 1: Reserved */
-#define GPIOINT_IOINTSTATUS_P2INT        (1 << 2)  /* Bit 2: Port 2 GPIO interrupt pending */
-                                                   /* Bits 3-31: Reserved */
-
-/* GPIO Interrupt Status for Rising edge (INTSTATR)
- * GPIO Interrupt Status for Falling edge (INTSTATF)
- * GPIO Interrupt Clear (INTCLR)
- * GPIO Interrupt Enable for Rising edge (INTENR)
- * GPIO Interrupt Enable for Falling edge (INTENF)
+/* Encoding: FFFx MMOV PPPN NNNN
+ *
+ *   Pin Function:   FFF
+ *   Pin Mode bits:  MM
+ *   Open drain:     O (output pins)
+ *   Initial value:  V (output pins)
+ *   Port number:    PPP (0-4)
+ *   Pin number:     NNNNN (0-31)
+ */
+ 
+/* Pin Function bits: FFF
+ * Only meaningful when the GPIO function is GPIO_PIN
  */
 
-#define GPIOINT(n)                       (1 << (n)) /* n=0,1,..31 */
+#define GPIO_FUNC_SHIFT      (13)       /* Bits 13-15: GPIO mode */
+#define GPIO_FUNC_MASK       (7 << GPIO_FUNC_SHIFT)
+#  define GPIO_INPUT         (0 << GPIO_FUNC_SHIFT) /* 000 GPIO input pin */
+#  define GPIO_INTFE         (1 << GPIO_FUNC_SHIFT) /* 001 GPIO interrupt falling edge */
+#  define GPIO_INTRE         (2 << GPIO_FUNC_SHIFT) /* 010 GPIO interrupt rising edge */
+#  define GPIO_INTBOTH       (3 << GPIO_FUNC_SHIFT) /* 011 GPIO interrupt both edges */
+#  define GPIO_OUTPUT        (4 << GPIO_FUNC_SHIFT) /* 100 GPIO outpout pin */
+#  define GPIO_ALT1          (5 << GPIO_FUNC_SHIFT) /* 101 Alternate function 1 */
+#  define GPIO_ALT2          (6 << GPIO_FUNC_SHIFT) /* 110 Alternate function 2 */
+#  define GPIO_ALT3          (7 << GPIO_FUNC_SHIFT) /* 111 Alternate function 3 */
+
+#define GPIO_EDGE_SHIFT      (13)       /* Bits 13-14: Interrupt edge bits */
+#define GPIO_EDGE_MASK       (3 << GPIO_EDGE_SHIFT)
+
+#define GPIO_INOUT_MASK      GPIO_OUTPUT
+#define GPIO_FE_MASK         GPIO_INTFE
+#define GPIO_RE_MASK         GPIO_INTRE
+
+#define GPIO_ISGPIO(ps)      ((uint16_t(ps) & GPIO_FUNC_MASK) <= GPIO_OUTPUT)
+#define GPIO_ISALT(ps)       ((uint16_t(ps) & GPIO_FUNC_MASK) > GPIO_OUTPUT)
+#define GPIO_ISINPUT(ps)     (((ps) & GPIO_FUNC_MASK) == GPIO_INPUT)
+#define GPIO_ISOUTPUT(ps)    (((ps) & GPIO_FUNC_MASK) == GPIO_OUTPUT)
+#define GPIO_ISINORINT(ps)   (((ps) & GPIO_INOUT_MASK) == 0)
+#define GPIO_ISOUTORALT(ps)  (((ps) & GPIO_INOUT_MASK) != 0)
+#define GPIO_ISINTERRUPT(ps) (GPIO_ISOUTPUT(ps) && !GPIO_ISINPUT(ps))
+#define GPIO_ISFE(ps)        (((ps) & GPIO_FE_MASK) != 0)
+#define GPIO_ISRE(ps)        (((ps) & GPIO_RE_MASK) != 0)
+
+/* Pin Mode: MM */
+
+#define GPIO_PUMODE_SHIFT    (10)      /* Bits 10-11: Pin pull-up mode */
+#define GPIO_PUMODE_MASK     (3 << GPIO_PUMODE_SHIFT)
+#  define GPIO_PULLUP        (0 << GPIO_PUMODE_SHIFT) /* Pull-up resistor enabled */
+#  define GPIO_REPEATER      (1 << GPIO_PUMODE_SHIFT) /* Repeater mode enabled */
+#  define GPIO_FLOAT         (2 << GPIO_PUMODE_SHIFT) /* Neither pull-up nor -down */
+#  define GPIO_PULLDN        (3 << GPIO_PUMODE_SHIFT) /* Pull-down resistor enabled */
+
+/* Open drain: O */
+
+#define GPIO_OPEN_DRAIN      (1 << 9)  /* Bit 9:  Open drain mode */
+
+/* Initial value: V */
+
+#define GPIO_VALUE           (1 << 8)  /* Bit 8:  Initial GPIO output value */
+#define GPIO_VALUE_ONE       GPIO_VALUE
+#define GPIO_VALUE_ZERO      (0)
+
+/* Port number:    PPP (0-4) */
+
+#define GPIO_PORT_SHIFT      (5)         /* Bit 5-7:  Port number */
+#define GPIO_PORT_MASK       (7 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT0         (0 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT1         (1 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT2         (2 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT3         (3 << GPIO_PORT_SHIFT)
+#  define GPIO_PORT4         (4 << GPIO_PORT_SHIFT)
+
+#define GPIO_NPORTS          5
+
+/* Pin number:     NNNNN (0-31) */
+
+#define GPIO_PIN_SHIFT       0        /* Bits 0-4: GPIO number: 0-31 */
+#define GPIO_PIN_MASK        (31 << GPIO_PIN_SHIFT)
+#define GPIO_PIN0            (0  << GPIO_PIN_SHIFT)
+#define GPIO_PIN1            (1  << GPIO_PIN_SHIFT)
+#define GPIO_PIN2            (2  << GPIO_PIN_SHIFT)
+#define GPIO_PIN3            (3  << GPIO_PIN_SHIFT)
+#define GPIO_PIN4            (4  << GPIO_PIN_SHIFT)
+#define GPIO_PIN5            (5  << GPIO_PIN_SHIFT)
+#define GPIO_PIN6            (6  << GPIO_PIN_SHIFT)
+#define GPIO_PIN7            (7  << GPIO_PIN_SHIFT)
+#define GPIO_PIN8            (8  << GPIO_PIN_SHIFT)
+#define GPIO_PIN9            (9  << GPIO_PIN_SHIFT)
+#define GPIO_PIN10           (10 << GPIO_PIN_SHIFT)
+#define GPIO_PIN11           (11 << GPIO_PIN_SHIFT)
+#define GPIO_PIN12           (12 << GPIO_PIN_SHIFT)
+#define GPIO_PIN13           (13 << GPIO_PIN_SHIFT)
+#define GPIO_PIN14           (14 << GPIO_PIN_SHIFT)
+#define GPIO_PIN15           (15 << GPIO_PIN_SHIFT)
+#define GPIO_PIN16           (16 << GPIO_PIN_SHIFT)
+#define GPIO_PIN17           (17 << GPIO_PIN_SHIFT)
+#define GPIO_PIN18           (18 << GPIO_PIN_SHIFT)
+#define GPIO_PIN19           (19 << GPIO_PIN_SHIFT)
+#define GPIO_PIN20           (20 << GPIO_PIN_SHIFT)
+#define GPIO_PIN21           (21 << GPIO_PIN_SHIFT)
+#define GPIO_PIN22           (22 << GPIO_PIN_SHIFT)
+#define GPIO_PIN23           (23 << GPIO_PIN_SHIFT)
+#define GPIO_PIN24           (24 << GPIO_PIN_SHIFT)
+#define GPIO_PIN25           (25 << GPIO_PIN_SHIFT)
+#define GPIO_PIN26           (26 << GPIO_PIN_SHIFT)
+#define GPIO_PIN27           (27 << GPIO_PIN_SHIFT)
+#define GPIO_PIN28           (28 << GPIO_PIN_SHIFT)
+#define GPIO_PIN29           (29 << GPIO_PIN_SHIFT)
+#define GPIO_PIN30           (30 << GPIO_PIN_SHIFT)
+#define GPIO_PIN31           (31 << GPIO_PIN_SHIFT)
 
 /************************************************************************************
  * Public Types
@@ -189,8 +173,40 @@
  * Public Data
  ************************************************************************************/
 
-/************************************************************************************
+#ifndef __ASSEMBLY__
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+/* These tables have global scope only because they are shared between lpc17_gpio.c,
+ * lpc17_gpioint.c, and lpc17_gpiodbg.c
+ */
+
+#ifdef CONFIG_GPIO_IRQ
+EXTERN uint64_t g_intedge0;
+EXTERN uint64_t g_intedge2;
+#endif
+
+EXTERN const uint32_t g_fiobase[GPIO_NPORTS];
+EXTERN const uint32_t g_intbase[GPIO_NPORTS];
+EXTERN const uint32_t g_lopinsel[GPIO_NPORTS];
+EXTERN const uint32_t g_hipinsel[GPIO_NPORTS];
+EXTERN const uint32_t g_lopinmode[GPIO_NPORTS];
+EXTERN const uint32_t g_hipinmode[GPIO_NPORTS];
+EXTERN const uint32_t g_odmode[GPIO_NPORTS];
+
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
+
+#ifdef __cplusplus
+}
+#endif
+#endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_GPIO_H */

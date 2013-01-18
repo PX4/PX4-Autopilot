@@ -2,7 +2,7 @@
  * config/lpcxpresso-lpc1768/src/up_oled.c
  * arch/arm/src/board/up_oled.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,8 @@
 #include <nuttx/lcd/lcd.h>
 #include <nuttx/lcd/ug-9664hswag01.h>
 
-#include "lpc17_internal.h"
+#include "lpc17_gpio.h"
+#include "lpc17_ssp.h"
 #include "lpcxpresso_internal.h"
 
 /****************************************************************************

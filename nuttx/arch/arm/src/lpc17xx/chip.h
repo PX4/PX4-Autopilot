@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/lpc17xx/chip.h
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010-2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@
  * file for the proper setup
  */
 
-#include "lpc17_memorymap.h"
+#include "chip/lpc17_memorymap.h"
 
 /************************************************************************************
  * Pre-processor Definitions

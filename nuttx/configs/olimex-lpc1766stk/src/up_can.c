@@ -49,7 +49,6 @@
 #include "chip.h"
 #include "up_arch.h"
 
-#include "lpc17_internal.h"
 #include "lpc17_can.h"
 #include "lpc1766stk_internal.h"
 

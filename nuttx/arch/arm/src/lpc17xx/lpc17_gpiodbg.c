@@ -47,7 +47,7 @@
 #include "up_arch.h"
 #include "chip.h"
 #include "lpc17_gpio.h"
-#include "lpc17_internal.h"
+
 
 /****************************************************************************
  * Pre-processor Definitions

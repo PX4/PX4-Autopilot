@@ -44,7 +44,7 @@
 
 #include "nvic.h"
 #include "up_arch.h"
-#include "lpc17_internal.h"
+#include "lpc17_clrpend.h"
 
 /****************************************************************************
  * Definitions

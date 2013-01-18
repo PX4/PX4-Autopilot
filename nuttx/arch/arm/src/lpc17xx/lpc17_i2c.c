@@ -53,6 +53,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <wdog.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
@@ -61,15 +62,13 @@
 #include <arch/irq.h>
 #include <arch/board/board.h>
 
-#include "wdog.h"
-#include "chip.h"
 #include "up_arch.h"
 #include "up_internal.h"
 #include "os_internal.h"
 
-#include "lpc17_internal.h"
-#include "lpc17_syscon.h"
-#include "lpc17_pinconn.h"
+#include "chip.h"
+#include "chip/lpc17_syscon.h"
+#include "lpc17_gpio.h"
 #include "lpc17_i2c.h"
 
 #if defined(CONFIG_LPC17_I2C0) || defined(CONFIG_LPC17_I2C1) || defined(CONFIG_LPC17_I2C2)

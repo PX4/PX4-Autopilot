@@ -58,13 +58,13 @@
 #include <arch/serial.h>
 #include <arch/board/board.h>
 
-#include "chip.h"
 #include "up_arch.h"
 #include "os_internal.h"
 #include "up_internal.h"
 
-#include "lpc17_internal.h"
-#include "lpc17_uart.h"
+#include "chip.h"
+#include "chip/lpc17_uart.h"
+#include "lpc17_gpio.h"
 #include "lpc17_serial.h"
 
 /****************************************************************************

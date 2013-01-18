@@ -43,8 +43,10 @@
 #include <nuttx/config.h>
 #include <arch/board/board.h>
 
-#include "lpc17_uart.h"
-#include "lpc17_syscon.h"
+#include "chip/lpc17_uart.h"
+#include "chip/lpc17_syscon.h"
+
+#include "lpc17_gpio.h"
 
 /************************************************************************************
  * Pre-processor Definitions

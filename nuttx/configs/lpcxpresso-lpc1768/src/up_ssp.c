@@ -2,7 +2,7 @@
  * configs/lpcxpresso-lpc1768/src/up_ssp.c
  * arch/arm/src/board/up_ssp.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,8 @@
 
 #include "up_arch.h"
 #include "chip.h"
-#include "lpc17_internal.h"
+#include "lpc17_gpio.h"
+#include "lpc17_ssp.h"
 #include "lpcxpresso_internal.h"
 
 #if defined(CONFIG_LPC17_SSP0) || defined(CONFIG_LPC17_SSP1)
@@ -155,11 +156,11 @@ void weak_function lpc17_sspinitialize(void)
 void  lpc17_ssp0select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
   sspdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-  ssp_dumpgpio("lpc17_spi0select() Entry");
+  ssp_dumpgpio("lpc17_ssp0select() Entry");
 
 #warning "Assert CS here (false)"
 
-  ssp_dumpgpio("lpc17_spi0select() Exit");
+  ssp_dumpgpio("lpc17_ssp0select() Exit");
 }
 
 uint8_t lpc17_ssp0status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
@@ -173,7 +174,7 @@ uint8_t lpc17_ssp0status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 void  lpc17_ssp1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
   sspdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-  ssp_dumpgpio("lpc17_spi1select() Entry");
+  ssp_dumpgpio("lpc17_ssp1select() Entry");
 
   if (devid == SPIDEV_MMCSD)
     {
@@ -189,7 +190,7 @@ void  lpc17_ssp1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sel
       (void)lpc17_gpiowrite(LPCXPRESSO_OLED_CS, !selected);
     }
 #endif
-  ssp_dumpgpio("lpc17_spi1select() Exit");
+  ssp_dumpgpio("lpc17_ssp1select() Exit");
 }
 
 uint8_t lpc17_ssp1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)

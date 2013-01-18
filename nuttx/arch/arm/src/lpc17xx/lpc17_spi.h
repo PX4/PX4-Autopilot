@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/lpc17xx/lpc17_spi.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,89 +42,13 @@
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-#include "lpc17_memorymap.h"
+#include <nuttx/spi.h>
+
+#include "chip/lpc17_spi.h"
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-
-/* Register offsets *****************************************************************/
-
-#define LPC17_SPI_CR_OFFSET  0x0000  /* Control Register */
-#define LPC17_SPI_SR_OFFSET  0x0004  /* SPI Status Register */
-#define LPC17_SPI_DR_OFFSET  0x0008  /* SPI Data Register */
-#define LPC17_SPI_CCR_OFFSET 0x000c  /* SPI Clock Counter Register */
-#define LPC17_SPI_TCR_OFFSET 0x0010  /* SPI Test Control Register */
-#define LPC17_SPI_TSR_OFFSET 0x0014  /* SPI Test Status Register */
-#define LPC17_SPI_INT_OFFSET 0x001c  /* SPI Interrupt Register */
-
-/* Register addresses ***************************************************************/
-
-#define LPC17_SPI_CR         (LPC17_SPI_BASE+LPC17_SPI_CR_OFFSET)
-#define LPC17_SPI_SR         (LPC17_SPI_BASE+LPC17_SPI_SR_OFFSET)
-#define LPC17_SPI_DR         (LPC17_SPI_BASE+LPC17_SPI_DR_OFFSET)
-#define LPC17_SPI_CCR        (LPC17_SPI_BASE+LPC17_SPI_CCR_OFFSET)
-#define LPC17_TCR_CCR        (LPC17_SPI_BASE+LPC17_SPI_TCR_OFFSET)
-#define LPC17_TSR_CCR        (LPC17_SPI_BASE+LPC17_SPI_TSR_OFFSET)
-#define LPC17_SPI_INT        (LPC17_SPI_BASE+LPC17_SPI_INT_OFFSET)
-
-/* Register bit definitions *********************************************************/
-
-/* Control Register */
-                                       /* Bits 0-1: Reserved */
-#define SPI_CR_BITENABLE     (1 << 2)  /* Bit 2:  Enable word size selected by BITS */
-#define SPI_CR_CPHA          (1 << 3)  /* Bit 3:  Clock phase control */
-#define SPI_CR_CPOL          (1 << 4)  /* Bit 4:  Clock polarity control */
-#define SPI_CR_MSTR          (1 << 5)  /* Bit 5:  Master mode select */
-#define SPI_CR_LSBF          (1 << 6)  /* Bit 6:  SPI data is transferred LSB first */
-#define SPI_CR_SPIE          (1 << 7)  /* Bit 7:  Serial peripheral interrupt enable */
-#define SPI_CR_BITS_SHIFT    (8)       /* Bits 8-11: Number of bits per word (BITENABLE==1) */
-#define SPI_CR_BITS_MASK     (15 << SPI_CR_BITS_SHIFT)
-#  define SPI_CR_BITS_8BITS  (8 <<  SPI_CR_BITS_SHIFT) /* 8 bits per transfer */
-#  define SPI_CR_BITS_9BITS  (9 <<  SPI_CR_BITS_SHIFT) /* 9 bits per transfer */
-#  define SPI_CR_BITS_10BITS (10 << SPI_CR_BITS_SHIFT) /* 10 bits per transfer */
-#  define SPI_CR_BITS_11BITS (11 << SPI_CR_BITS_SHIFT) /* 11 bits per transfer */
-#  define SPI_CR_BITS_12BITS (12 << SPI_CR_BITS_SHIFT) /* 12 bits per transfer */
-#  define SPI_CR_BITS_13BITS (13 << SPI_CR_BITS_SHIFT) /* 13 bits per transfer */
-#  define SPI_CR_BITS_14BITS (14 << SPI_CR_BITS_SHIFT) /* 14 bits per transfer */
-#  define SPI_CR_BITS_15BITS (15 << SPI_CR_BITS_SHIFT) /* 15 bits per transfer */
-#  define SPI_CR_BITS_16BITS (0 <<  SPI_CR_BITS_SHIFT) /* 16 bits per transfer */
-                                       /* Bits 12-31: Reserved */
-/* SPI Status Register */
-                                       /* Bits 0-2: Reserved */
-#define SPI_SR_ABRT          (1 << 3)  /* Bit 3:  Slave abort */
-#define SPI_SR_MODF          (1 << 4)  /* Bit 4:  Mode fault */
-#define SPI_SR_ROVR          (1 << 5)  /* Bit 5:  Read overrun */
-#define SPI_SR_WCOL          (1 << 6)  /* Bit 6:  Write collision */
-#define SPI_SR_SPIF          (1 << 7)  /* Bit 7:  SPI transfer complete */
-                                       /* Bits 8-31: Reserved */
-/* SPI Data Register */
-
-#define SPI_DR_MASK          (0xff)    /* Bits 0-15: SPI Bi-directional data port */
-#define SPI_DR_MASKWIDE      (0xffff)  /* Bits 0-15: If SPI_CR_BITENABLE != 0 */
-                                       /* Bits 8-31: Reserved */
-/* SPI Clock Counter Register */
-
-#define SPI_CCR_MASK         (0xff)    /* Bits 0-7: SPI Clock counter setting */
-                                       /* Bits 8-31: Reserved */
-/* SPI Test Control Register */
-                                       /* Bit 0: Reserved */
-#define SPI_TCR_TEST_SHIFT   (1)       /* Bits 1-7: SPI test mode */
-#define SPI_TCR_TEST_MASK    (0x7f << SPI_TCR_TEST_SHIFT)
-                                       /* Bits 8-31: Reserved */
-/* SPI Test Status Register */
-                                       /* Bits 0-2: Reserved */
-#define SPI_TSR_ABRT         (1 << 3)  /* Bit 3:  Slave abort */
-#define SPI_TSR_MODF         (1 << 4)  /* Bit 4:  Mode fault */
-#define SPI_TSR_ROVR         (1 << 5)  /* Bit 5:  Read overrun */
-#define SPI_TSR_WCOL         (1 << 6)  /* Bit 6:  Write collision */
-#define SPI_TSR_SPIF         (1 << 7)  /* Bit 7:  SPI transfer complete */
-                                       /* Bits 8-31: Reserved */
-/* SPI Interrupt Register */
-
-#define SPI_INT_SPIF         (1 << 0)  /* SPI interrupt */
-                                       /* Bits 1-31: Reserved */
 
 /************************************************************************************
  * Public Types
@@ -134,8 +58,97 @@
  * Public Data
  ************************************************************************************/
 
+#ifdef CONFIG_LPC17_SPI
+
+#ifndef __ASSEMBLY__
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
+/************************************************************************************
+ * Name:  lpc17_spiselect, lpc17_status, and lpc17_spicmddata
+ *
+ * Description:
+ *   These external functions must be provided by board-specific logic.  They are
+ *   implementations of the select, status, and cmddata methods of the SPI interface
+ *   defined by struct spi_ops_s (see include/nuttx/spi.h). All other methods 
+ *   including up_spiinitialize()) are provided by common LPC17xx logic.  To use
+ *   this common SPI logic on your board:
+ *
+ *   1. Provide logic in lpc17_boardinitialize() to configure SPI chip select pins.
+ *   2. Provide lpc17_spiselect() and lpc17_spistatus() functions in your board-
+ *      specific logic.  These functions will perform chip selection and status
+ *      operations using GPIOs in the way your board is configured.
+ *   2. If CONFIG_SPI_CMDDATA is defined in the NuttX configuration, provide
+ *      lpc17_spicmddata() functions in your board-specific logic.  This function
+ *      will perform cmd/data selection operations using GPIOs in the way your
+ *      board is configured.
+ *   3. Add a call to up_spiinitialize() in your low level application
+ *      initialization logic
+ *   4. The handle returned by up_spiinitialize() may then be used to bind the
+ *      SPI driver to higher level logic (e.g., calling  mmcsd_spislotinitialize(),
+ *      for example, will bind the SPI driver to the SPI MMC/SD driver).
+ *
+ ************************************************************************************/
+
+void lpc17_spiselect(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+uint8_t lpc17_spistatus(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
+#ifdef CONFIG_SPI_CMDDATA
+int lpc17_spicmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+#endif
+
+/****************************************************************************
+ * Name: spi_flush
+ *
+ * Description:
+ *   Flush and discard any words left in the RX fifo.  This can be called
+ *   from spiselect after a device is deselected (if you worry about such
+ *   things).
+ *
+ * Input Parameters:
+ *   dev - Device-specific state data
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void spi_flush(FAR struct spi_dev_s *dev);
+
+/****************************************************************************
+ * Name: lpc17_spiregister
+ *
+ * Description:
+ *   If the board supports a card detect callback to inform the SPI-based
+ *   MMC/SD drvier when an SD card is inserted or removed, then
+ *   CONFIG_SPI_CALLBACK should be defined and the following function must
+ *   must be implemented.  These functions implements the registercallback
+ *   method of the SPI interface (see include/nuttx/spi.h for details)
+ *
+ * Input Parameters:
+ *   dev -      Device-specific state data
+ *   callback - The funtion to call on the media change
+ *   arg -      A caller provided value to return with the callback
+ *
+ * Returned Value:
+ *   0 on success; negated errno on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SPI_CALLBACK
+nt lpc17_spiregister(FAR struct spi_dev_s *dev, spi_mediachange_t callback,
+                     FAR void *arg);
+#endif
+
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
+#endif /* CONFIG_LPC17_SPI */
 #endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_SPI_H */

@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -49,8 +50,7 @@
 #include "up_arch.h"
 #include "chip.h"
 #include "lpc17_gpio.h"
-#include "lpc17_pinconn.h"
-#include "lpc17_internal.h"
+
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -199,6 +199,7 @@ static int lpc17_pinsel(unsigned int port, unsigned int pin, unsigned int value)
       putreg32(regval, regaddr);
       return OK;
     }
+
   return -EINVAL;
 }
 
@@ -265,6 +266,7 @@ static int lpc17_pullup(uint16_t cfgset, unsigned int port, unsigned int pin)
       putreg32(regval, regaddr);
       return OK;
     }
+
   return -EINVAL;
 }
 
@@ -518,6 +520,7 @@ static int lpc17_configalternate(uint16_t cfgset, unsigned int port,
 
       lpc17_setopendrain(port, pin);
    }
+
   return OK;
 }
 
@@ -582,6 +585,7 @@ int lpc17_configgpio(uint16_t cfgset)
           break;
         }
     }
+
   return ret;
 }
 
@@ -651,5 +655,6 @@ bool lpc17_gpioread(uint16_t pinset)
       pin = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
       return ((getreg32(fiobase + LPC17_FIO_PIN_OFFSET) & (1 << pin)) != 0);
     }
-  return 0;
+
+  return false;
 }

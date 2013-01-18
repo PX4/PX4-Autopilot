@@ -50,8 +50,7 @@
 #include "up_arch.h"
 #include "chip.h"
 #include "lpc17_gpio.h"
-#include "lpc17_pinconn.h"
-#include "lpc17_internal.h"
+
 
 #ifdef CONFIG_GPIO_IRQ
 

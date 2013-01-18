@@ -50,7 +50,7 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lpc17_internal.h"
+#include "lpc17_gpio.h"
 
 #include "lpc1766stk_internal.h"
 

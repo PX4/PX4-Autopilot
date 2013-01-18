@@ -52,7 +52,7 @@
 #include "up_arch.h"
 
 #include "chip.h"
-#include "lpc17_internal.h"
+
 
 /****************************************************************************
  * Definitions

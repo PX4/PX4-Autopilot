@@ -47,7 +47,6 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lpc17_internal.h"
 #include "lincoln60_internal.h"
 
 /************************************************************************************

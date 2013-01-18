@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/lpc17xx/lpc17_rit.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,41 +41,11 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
-
-#include "chip.h"
-#include "lpc17_memorymap.h"
+#include "chip/lpc17_rit.h"
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-
-/* Register offsets *****************************************************************/
-
-#define LPC17_RIT_COMPVAL_OFFSET 0x0000  /* Compare register */
-#define LPC17_RIT_MASK_OFFSET    0x0004  /* Mask register */
-#define LPC17_RIT_CTRL_OFFSET    0x0008  /* Control register */
-#define LPC17_RIT_COUNTER_OFFSET 0x000c  /* 32-bit counter */
-
-/* Register addresses ***************************************************************/
-
-#define LPC17_RIT_COMPVAL        (LPC17_RIT_BASE+LPC17_RIT_COMPVAL_OFFSET)
-#define LPC17_RIT_MASK           (LPC17_RIT_BASE+LPC17_RIT_MASK_OFFSET)
-#define LPC17_RIT_CTRL           (LPC17_RIT_BASE+LPC17_RIT_CTRL_OFFSET)
-#define LPC17_RIT_COUNTER        (LPC17_RIT_BASE+LPC17_RIT_COUNTER_OFFSET)
-
-/* Register bit definitions *********************************************************/
-/* Compare register (Bits 0-31: value compared to the counter) */
-
-/* Mask register (Bits 0-31: 32-bit mask value) */
-
-/* Control register */
-
-#define RIT_CTRL_INT             (1 << 0)  /* Bit 0: Interrupt flag */
-#define RIT_CTRL_ENCLR           (1 << 1)  /* Bit 1: Timer enable clear */
-#define RIT_CTRL_ENBR            (1 << 2)  /* Bit 2: Timer enable for debug */
-#define RIT_CTRL_EN              (1 << 3)  /* Bit 3: Timer enable */
-                                           /* Bits 4-31: Reserved */
-/* 32-bit counter (Bits 0-31: 32-bit up counter) */
 
 /************************************************************************************
  * Public Types

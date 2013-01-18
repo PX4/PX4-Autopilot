@@ -62,9 +62,8 @@
 #include "up_arch.h"
 
 #include "chip.h"
-#include "lpc17_internal.h"
-#include "lpc17_syscon.h"
-#include "lpc17_pinconn.h"
+#include "chip/lpc17_syscon.h"
+#include "lpc17_gpio.h"
 #include "lpc17_can.h"
 
 #if defined(CONFIG_LPC17_CAN1) || defined(CONFIG_LPC17_CAN2)

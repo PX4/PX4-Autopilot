@@ -47,7 +47,7 @@
 
 #include <arch/board/board.h>
 
-#include "lpc17_internal.h"
+#include "lpc17_gpio.h"
 #include "lpc1766stk_internal.h"
 
 #ifdef CONFIG_ARCH_BUTTONS

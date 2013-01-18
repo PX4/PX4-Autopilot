@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/lincoln60/src/up_buttons.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@
 
 #include <arch/board/board.h>
 
-#include "lpc17_internal.h"
+#include "lpc17_gpio.h"
 #include "lincoln60_internal.h"
 
 #ifdef CONFIG_ARCH_BUTTONS

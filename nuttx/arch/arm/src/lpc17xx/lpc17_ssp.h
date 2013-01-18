@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/lpc17xx/lpc17_ssp.h
  *
- *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,126 +42,25 @@
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-#include "lpc17_memorymap.h"
+#include <nuttx/spi.h>
+
+#include "chip/lpc17_ssp.h"
+
+#if defined(CONFIG_LPC17_SSP0) || defined(CONFIG_LPC17_SSP1)
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-/* 8 frame FIFOs for both transmit and receive */
-
-#define LPC17_SSP_FIFOSZ         8
-
-/* Register offsets *****************************************************************/
-
-#define LPC17_SSP_CR0_OFFSET     0x0000 /* Control Register 0 */
-#define LPC17_SSP_CR1_OFFSET     0x0004 /* Control Register 1 */
-#define LPC17_SSP_DR_OFFSET      0x0008 /* Data Register */
-#define LPC17_SSP_SR_OFFSET      0x000c /* Status Register */
-#define LPC17_SSP_CPSR_OFFSET    0x0010 /* Clock Prescale Register */
-#define LPC17_SSP_IMSC_OFFSET    0x0014 /* Interrupt Mask Set and Clear Register */
-#define LPC17_SSP_RIS_OFFSET     0x0018 /* Raw Interrupt Status Register */
-#define LPC17_SSP_MIS_OFFSET     0x001c /* Masked Interrupt Status Register */
-#define LPC17_SSP_ICR_OFFSET     0x0020 /* Interrupt Clear Register */
-#define LPC17_SSP_DMACR_OFFSET   0x0024 /* DMA Control Register */
-
-/* Register addresses ***************************************************************/
-
-#define LPC17_SSP0_CR0          (LPC17_SSP0_BASE+LPC17_SSP_CR0_OFFSET)
-#define LPC17_SSP0_CR1          (LPC17_SSP0_BASE+LPC17_SSP_CR1_OFFSET)
-#define LPC17_SSP0_DR           (LPC17_SSP0_BASE+LPC17_SSP_DR_OFFSET)
-#define LPC17_SSP0_SR           (LPC17_SSP0_BASE+LPC17_SSP_SR_OFFSET)
-#define LPC17_SSP0_CPSR         (LPC17_SSP0_BASE+LPC17_SSP_CPSR_OFFSET)
-#define LPC17_SSP0_IMSC         (LPC17_SSP0_BASE+LPC17_SSP_IMSC_OFFSET)
-#define LPC17_SSP0_RIS          (LPC17_SSP0_BASE+LPC17_SSP_RIS_OFFSET)
-#define LPC17_SSP0_MIS          (LPC17_SSP0_BASE+LPC17_SSP_MIS_OFFSET)
-#define LPC17_SSP0_ICR          (LPC17_SSP0_BASE+LPC17_SSP_ICR_OFFSET)
-#define LPC17_SSP0_DMACR        (LPC17_SSP0_BASE+LPC17_SSP_DMACR_OFFSET)
-
-#define LPC17_SSP1_CR0          (LPC17_SSP1_BASE+LPC17_SSP_CR0_OFFSET)
-#define LPC17_SSP1_CR1          (LPC17_SSP1_BASE+LPC17_SSP_CR1_OFFSET)
-#define LPC17_SSP1_DR           (LPC17_SSP1_BASE+LPC17_SSP_DR_OFFSET)
-#define LPC17_SSP1_SR           (LPC17_SSP1_BASE+LPC17_SSP_SR_OFFSET)
-#define LPC17_SSP1_CPSR         (LPC17_SSP1_BASE+LPC17_SSP_CPSR_OFFSET)
-#define LPC17_SSP1_IMSC         (LPC17_SSP1_BASE+LPC17_SSP_IMSC_OFFSET)
-#define LPC17_SSP1_RIS          (LPC17_SSP1_BASE+LPC17_SSP_RIS_OFFSET)
-#define LPC17_SSP1_MIS          (LPC17_SSP1_BASE+LPC17_SSP_MIS_OFFSET)
-#define LPC17_SSP1_ICR          (LPC17_SSP1_BASE+LPC17_SSP_ICR_OFFSET)
-#define LPC17_SSP1_DMACR        (LPC17_SSP1_BASE+LPC17_SSP_DMACR_OFFSET)
-
-/* Register bit definitions *********************************************************/
-/* Control Register 0 */
-
-#define SSP_CR0_DSS_SHIFT       (0)       /* Bits 0-3: DSS Data Size Select */
-#define SSP_CR0_DSS_MASK        (15 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_4BIT      (3 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_5BIT      (4 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_6BIT      (5 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_7BIT      (6 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_8BIT      (7 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_9BIT      (8 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_10BIT     (9 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_11BIT     (10 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_12BIT     (11 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_13BIT     (12 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_14BIT     (13 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_15BIT     (14 << SSP_CR0_DSS_SHIFT)
-#  define SSP_CR0_DSS_16BIT     (15 << SSP_CR0_DSS_SHIFT)
-#define SSP_CR0_FRF_SHIFT       (4)       /* Bits 4-5: FRF Frame Format */
-#define SSP_CR0_FRF_MASK        (3 << SSP_CR0_FRF_SHIFT)
-#  define SSP_CR0_FRF_SPI       (0 << SSP_CR0_FRF_SHIFT)
-#  define SSP_CR0_FRF_TI        (1 << SSP_CR0_FRF_SHIFT)
-#  define SSP_CR0_FRF_UWIRE     (2 << SSP_CR0_FRF_SHIFT)
-#define SSP_CR0_CPOL            (1 << 6)  /* Bit 6:  Clock Out Polarity */
-#define SSP_CR0_CPHA            (1 << 7)  /* Bit 7:  Clock Out Phase */
-#define SSP_CR0_SCR_SHIFT       (8)       /* Bits 8-15: Serial Clock Rate */
-#define SSP_CR0_SCR_MASK        (0xff << SSP_CR0_SCR_SHIFT)
-                                          /* Bits 8-31: Reserved */
-/* Control Register 1 */
-
-#define SSP_CR1_LBM             (1 << 0)  /* Bit 0:  Loop Back Mode */
-#define SSP_CR1_SSE             (1 << 1)  /* Bit 1:  SSP Enable */
-#define SSP_CR1_MS              (1 << 2)  /* Bit 2:  Master/Slave Mode */
-#define SSP_CR1_SOD             (1 << 3)  /* Bit 3:  Slave Output Disable */
-                                          /* Bits 4-31: Reserved */
-/* Data Register */
-
-#define SSP_DR_MASK             (0xffff)  /* Bits 0-15: Data */
-                                          /* Bits 16-31: Reserved */
-/* Status Register */
-
-#define SSP_SR_TFE              (1 << 0)  /* Bit 0:  Transmit FIFO Empty */
-#define SSP_SR_TNF              (1 << 1)  /* Bit 1:  Transmit FIFO Not Full */
-#define SSP_SR_RNE              (1 << 2)  /* Bit 2:  Receive FIFO Not Empty */
-#define SSP_SR_RFF              (1 << 3)  /* Bit 3:  Receive FIFO Full */
-#define SSP_SR_BSY              (1 << 4)  /* Bit 4:  Busy */
-                                          /* Bits 5-31: Reserved */
-/* Clock Prescale Register */
-
-#define SSP_CPSR_DVSR_MASK      (0xff)    /* Bits 0-7: clock = SSP_PCLK/DVSR */
-                                          /* Bits 8-31: Reserved */
-/* Common format for interrupt control registers:
- *
- *   Interrupt Mask Set and Clear Register (IMSC)
- *   Raw Interrupt Status Register (RIS)
- *   Masked Interrupt Status Register (MIS)
- *   Interrupt Clear Register (ICR)
- */
-
-#define SSP_INT_ROR             (1 << 0)  /* Bit 0: RX FIFO overrun */
-#define SSP_INT_RT              (1 << 1)  /* Bit 1: RX FIFO timeout */
-#define SSP_INT_RX              (1 << 2)  /* Bit 2: RX FIFO at least half full (not ICR) */
-#define SSP_INT_TX              (1 << 3 ) /* Bit 3: TX FIFO at least half empy (not ICR) */
-                                          /* Bits 4-31: Reserved */
-/* DMA Control Register */
-
-#define SSP_DMACR_RXDMAE        (1 << 0)  /* Bit 0:  Receive DMA Enable */
-#define SSP_DMACR_TXDMAE        (1 << 1)  /* Bit 1:  Transmit DMA Enable */
-                                          /* Bits 2-31: Reserved */
 
 /************************************************************************************
  * Public Types
  ************************************************************************************/
+
+#ifndef __ASSEMBLY__
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 /************************************************************************************
  * Public Data
@@ -171,4 +70,104 @@
  * Public Functions
  ************************************************************************************/
 
+/************************************************************************************
+ * Name:  lpc17_ssp0/ssp1select, lpc17_ssp0/ssp1status, and lpc17_ssp0/ssp1cmddata
+ *
+ * Description:
+ *   These external functions must be provided by board-specific logic.  They are
+ *   implementations of the select, status, and cmddata methods of the SPI interface
+ *   defined by struct spi_ops_s (see include/nuttx/spi.h). All other methods 
+ *   including up_spiinitialize()) are provided by common LPC17xx logic.  To use
+ *   this common SPI logic on your board:
+ *
+ *   1. Provide logic in lpc17_boardinitialize() to configure SSP chip select pins.
+ *   2. Provide lpc17_ssp0/ssp1select() and lpc17_ssp0/ssp1status() functions
+ *      in your board-specific logic.  These functions will perform chip selection
+ *      and status operations using GPIOs in the way your board is configured.
+ *   2. If CONFIG_SPI_CMDDATA is defined in the NuttX configuration, provide
+ *      lpc17_ssp0/ssp1cmddata() functions in your board-specific logic.  These
+ *      functions will perform cmd/data selection operations using GPIOs in the way
+ *      your board is configured.
+ *   3. Add a call to up_spiinitialize() in your low level application
+ *      initialization logic
+ *   4. The handle returned by up_spiinitialize() may then be used to bind the
+ *      SSP driver to higher level logic (e.g., calling mmcsd_spislotinitialize(),
+ *      for example, will bind the SSP driver to the SPI MMC/SD driver).
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_LPC17_SSP0
+void lpc17_ssp0select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+uint8_t lpc17_ssp0status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
+#ifdef CONFIG_SPI_CMDDATA
+int lpc17_ssp0cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+#endif
+#endif
+
+#ifdef CONFIG_LPC17_SSP1
+void lpc17_ssp1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+uint8_t lpc17_ssp1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
+#ifdef CONFIG_SPI_CMDDATA
+int lpc17_ssp1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+#endif
+#endif
+
+/****************************************************************************
+ * Name: ssp_flush
+ *
+ * Description:
+ *   Flush and discard any words left in the RX fifo.  This can be called
+ *   from ssp0/1select after a device is deselected (if you worry about such
+ *   things).
+ *
+ * Input Parameters:
+ *   dev - Device-specific state data
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_LPC17_SSP0) || defined(CONFIG_LPC17_SSP1)
+void ssp_flush(FAR struct spi_dev_s *dev);
+#endif
+
+/****************************************************************************
+ * Name: lpc17_ssp0/1register
+ *
+ * Description:
+ *   If the board supports a card detect callback to inform the SPI-based
+ *   MMC/SD drvier when an SD card is inserted or removed, then
+ *   CONFIG_SPI_CALLBACK should be defined and the following function(s) must
+ *   must be implemented.  These functiosn implements the registercallback
+ *   method of the SPI interface (see include/nuttx/spi.h for details)
+ *
+ * Input Parameters:
+ *   dev -      Device-specific state data
+ *   callback - The funtion to call on the media change
+ *   arg -      A caller provided value to return with the callback
+ *
+ * Returned Value:
+ *   0 on success; negated errno on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SPI_CALLBACK
+#ifdef CONFIG_LPC17_SSP0
+int lpc17_ssp0register(FAR struct spi_dev_s *dev, spi_mediachange_t callback,
+                       FAR void *arg);
+#endif
+
+#ifdef CONFIG_LPC17_SSP1
+int lpc17_ssp1register(FAR struct spi_dev_s *dev, spi_mediachange_t callback,
+                       FAR void *arg);
+#endif
+#endif
+
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
+#endif /* CONFIG_LPC17_SSP0 || CONFIG_LPC17_SSP1 */
 #endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_SSP_H */

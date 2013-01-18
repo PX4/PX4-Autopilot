@@ -50,7 +50,7 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lpc17_memorymap.h"
+#include "chip/lpc17_memorymap.h"
 #include "lpc17_emacram.h"
 #include "lpc17_ohciram.h"
 

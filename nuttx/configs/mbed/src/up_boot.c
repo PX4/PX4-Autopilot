@@ -47,7 +47,6 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lpc17_internal.h"
 #include "mbed_internal.h"
 
 /************************************************************************************
@@ -80,3 +79,4 @@ void lpc17_boardinitialize(void)
   up_ledinit();
 #endif
 }
+

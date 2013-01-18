@@ -7,7 +7,7 @@
  *
  * This file is part of NuttX:
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,7 +54,7 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lpc17_internal.h"
+#include "lpc17_gpio.h"
 
 #include "nucleus2g_internal.h"
 

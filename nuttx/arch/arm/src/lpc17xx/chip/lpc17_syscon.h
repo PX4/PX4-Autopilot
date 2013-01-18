@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lpc17xx/lpc17_syscon.h
+ * arch/arm/src/lpc17xx/chip/lpc17_syscon.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC17XX_LPC17_SYSCON_H
-#define __ARCH_ARM_SRC_LPC17XX_LPC17_SYSCON_H
+#ifndef __ARCH_ARM_SRC_LPC17XX_CHIP_LPC17_SYSCON_H
+#define __ARCH_ARM_SRC_LPC17XX_CHIP_LPC17_SYSCON_H
 
 /************************************************************************************
  * Included Files
@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 
 #include "chip.h"
-#include "lpc17_memorymap.h"
+#include "chip/lpc17_memorymap.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -491,4 +491,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_SYSCON_H */
+#endif /* __ARCH_ARM_SRC_LPC17XX_CHIP_LPC17_SYSCON_H */

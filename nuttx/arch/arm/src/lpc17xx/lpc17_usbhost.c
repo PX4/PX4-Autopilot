@@ -56,15 +56,15 @@
 
 #include <arch/irq.h>
 
-#include "lpc17_internal.h"   /* Includes default GPIO settings */
 #include <arch/board/board.h> /* May redefine GPIO settings */
 
-#include "chip.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lpc17_usb.h"
-#include "lpc17_syscon.h"
+#include "chip.h"
+#include "chip/lpc17_usb.h"
+#include "chip/lpc17_syscon.h"
+#include "lpc17_gpio.h"
 #include "lpc17_ohciram.h"
 
 /*******************************************************************************

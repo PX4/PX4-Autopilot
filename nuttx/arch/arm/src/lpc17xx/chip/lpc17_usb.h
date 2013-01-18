@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lpc17xx/lpc17_usb.h
+ * arch/arm/src/lpc17xx/chip/lpc17_usb.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC17XX_LPC17_USB_H
-#define __ARCH_ARM_SRC_LPC17XX_LPC17_USB_H
+#ifndef __ARCH_ARM_SRC_LPC17XX_CHIP_LPC17_USB_H
+#define __ARCH_ARM_SRC_LPC17XX_CHIP_LPC17_USB_H
 
 /************************************************************************************
  * Included Files
@@ -44,7 +44,7 @@
 #include <nuttx/usb/ohci.h>
 
 #include "chip.h"
-#include "lpc17_memorymap.h"
+#include "chip/lpc17_memorymap.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -775,4 +775,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC17XX_LPC17_USB_H */
+#endif /* __ARCH_ARM_SRC_LPC17XX_CHIP_LPC17_USB_H */

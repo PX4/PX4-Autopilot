@@ -53,7 +53,8 @@
 
 #include "up_arch.h"
 #include "chip.h"
-#include "lpc17_internal.h"
+#include "lpc17_gpio.h"
+#include "lpc17_ssp.h"
 #include "lpc1766stk_internal.h"
 
 #if defined(CONFIG_LPC17_SSP0) || defined(CONFIG_LPC17_SSP1)
