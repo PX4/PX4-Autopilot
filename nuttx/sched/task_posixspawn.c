@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <sys/wait.h>
+#include <unistd.h>
 #include <semaphore.h>
 #include <signal.h>
 #include <sched.h>
@@ -431,7 +432,7 @@ static int spawn_proxy(int argc, char *argv[])
            * What should we do in the event of a failure?
            */
 
-          int tmp = task_reparent(0, 0, *g_ps_parms.pid);
+          int tmp = task_reparent(0, *g_ps_parms.pid);
           if (tmp < 0)
             {
               sdbg("ERROR: task_reparent() failed: %d\n", tmp);

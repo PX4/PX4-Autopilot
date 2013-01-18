@@ -60,8 +60,8 @@
  *   Change the parent of a task.
  *
  * Parameters:
- *   oldpid - PID of the old parent task (0 if this task)
- *   newpid - PID ot the new parent task (0 for the parent of this task)
+ *   ppid - PID of the new parent task (0 for grandparent, i.e. the parent
+ *     of the current parent task)
  *   chpid  - PID of the child to be reparented.
  *
  * Return Value:
@@ -69,50 +69,22 @@
  *
  *****************************************************************************/
 
-int task_reparent(pid_t oldpid, pid_t newpid, pid_t chpid)
+int task_reparent(pid_t ppid, pid_t chpid)
 {
-  _TCB *oldtcb;
-  _TCB *newtcb;
+  _TCB *ptcb;
   _TCB *chtcb;
+  _TCB *otcb;
+  pid_t opid;
   irqstate_t flags;
   int ret;
 
-  /* If oldpid is zero, then we are parent task. */
-
-  if (oldpid == 0)
-    {
-      oldpid = getpid();
-    }
-
-  /* Get the current parent task's TCB */
-
-  oldtcb = sched_gettcb(oldpid);
-  if (!oldtcb)
-    {
-      return -ESRCH;
-    }
-
-  /* Disable interrupts so that nothing can change from this point */
+  /* Disable interrupts so that nothing can change in the relatinoship of
+   * the three task:  Child, current parent, and new parent.
+   */
 
   flags = irqsave();
 
-  /* If newpid is zero, then new is the parent of oldpid. */
-
-  if (newpid == 0)
-    {
-      newpid = oldtcb->parent;
-    }
-  
-  /* Get the new parent task's TCB */
-
-  newtcb = sched_gettcb(newpid);
-  if (!newtcb)
-    {
-      ret = -ESRCH;
-      goto errout_with_ints;
-    }
-
-  /* Get the child tasks TCB */
+  /* Get the child tasks TCB (chtcb) */
 
   chtcb = sched_gettcb(chpid);
   if (!chtcb)
@@ -121,20 +93,45 @@ int task_reparent(pid_t oldpid, pid_t newpid, pid_t chpid)
       goto errout_with_ints;
     }
 
-  /* Verify that oldpid is the parent of chpid */
+  /* Get the PID of the child task's parent (opid) */
 
-  if (chtcb->parent != oldpid)
+  opid = chtcb->parent;
+
+  /* Get the TCB of the child task's parent (otcb) */
+
+  otcb = sched_gettcb(opid);
+  if (!otcb)
     {
-      ret = -ECHILD;
+      ret = -ESRCH;
       goto errout_with_ints;
     }
 
-  /* Okay, reparent the child */
+  /* If new parent task's PID (ppid) is zero, then new parent is the
+   * grandparent will be the new parent, i.e., the parent of the current
+   * parent task.
+   */
 
-  DEBUGASSERT(oldtcb->nchildren > 0);
-  chtcb->parent = newpid;
-  oldtcb->nchildren--;
-  newtcb->nchildren++;
+  if (ppid == 0)
+    {
+      ppid = otcb->parent;
+    }
+  
+  /* Get the new parent task's TCB (ptcb) */
+
+  ptcb = sched_gettcb(ppid);
+  if (!ptcb)
+    {
+      ret = -ESRCH;
+      goto errout_with_ints;
+    }
+
+  /* Then reparent the child */
+
+  DEBUGASSERT(otcb->nchildren > 0);
+
+  chtcb->parent = ppid;  /* The task specified by ppid is the new parent */
+  otcb->nchildren--;     /* The orignal parent now has one few children */
+  ptcb->nchildren++;     /* The new parent has one additional child */
   ret = OK;
   
 errout_with_ints:

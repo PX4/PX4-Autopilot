@@ -269,7 +269,7 @@ int  task_argsetup(FAR _TCB *tcb, FAR const char *name, FAR const char *argv[]);
 void task_exithook(FAR _TCB *tcb, int status);
 int  task_deletecurrent(void);
 #ifdef CONFIG_SCHED_HAVE_PARENT
-int  task_reparent(pid_t oldpid, pid_t newpid, pid_t chpid);
+int  task_reparent(pid_t ppid, pid_t chpid);
 #endif
 #ifndef CONFIG_CUSTOM_STACK
 int  kernel_thread(FAR const char *name, int priority, int stack_size,

@@ -3977,3 +3977,8 @@
 	  sched/task_posixspawn() now it requires internal, reparenting
 	  interfaces
 	* include/nuttx/spawn():  Move libc/spawn.h to include/nuttx/spawn.h
+	* arch/arm/include/lpc17xx/chip.h, irq178x.h:  Integrate Marcelo
+	  Rommel's LPC1788 definitions into the base LPC17xx.
+	* configs/olimex-lpc1766stk/nsh:  Convert configuration to use
+	  the kconfig-frontends tools.
+	* sched/task_reparent.c:  Simplify reparenting interface.
