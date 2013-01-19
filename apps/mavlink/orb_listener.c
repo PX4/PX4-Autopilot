@@ -114,6 +114,7 @@ static void	l_vehicle_attitude_controls(struct listener *l);
 static void	l_debug_key_value(struct listener *l);
 static void	l_optical_flow(struct listener *l);
 static void	l_vehicle_rates_setpoint(struct listener *l);
+static void	l_home(struct listener *l);
 
 struct listener listeners[] = {
 	{l_sensor_combined,		&mavlink_subs.sensor_sub,	0},
@@ -137,6 +138,7 @@ struct listener listeners[] = {
 	{l_debug_key_value,		&mavlink_subs.debug_key_value,	0},
 	{l_optical_flow,		&mavlink_subs.optical_flow,	0},
 	{l_vehicle_rates_setpoint,	&mavlink_subs.rates_setpoint_sub,	0},
+	{l_home,			&mavlink_subs.home_sub,		0},
 };
 
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
@@ -621,6 +623,16 @@ l_optical_flow(struct listener *l)
 				      flow.flow_comp_x_m, flow.flow_comp_y_m, flow.quality, flow.ground_distance_m);
 }
 
+void
+l_home(struct listener *l)
+{
+	struct home_position_s home;
+
+	orb_copy(ORB_ID(home_position), mavlink_subs.home_sub, &home);
+
+	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, home.lat, home.lon, home.alt);
+}
+
 static void *
 uorb_receive_thread(void *arg)
 {
@@ -687,6 +699,10 @@ uorb_receive_start(void)
 	/* --- GPS VALUE --- */
 	mavlink_subs.gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	orb_set_interval(mavlink_subs.gps_sub, 1000);	/* 1Hz updates */
+
+	/* --- HOME POSITION --- */
+	mavlink_subs.home_sub = orb_subscribe(ORB_ID(home_position));
+	orb_set_interval(mavlink_subs.home_sub, 1000);	/* 1Hz updates */
 
 	/* --- SYSTEM STATE --- */
 	status_sub = orb_subscribe(ORB_ID(vehicle_status));
