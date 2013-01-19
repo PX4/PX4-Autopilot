@@ -488,3 +488,5 @@
 	* apps/nshlib/nsh_fileapp.c:  Add the ability to execute a file
 	  from a file system using posix_spawn().
 	* apps/builtin/: Extensions from Mike Smith.
+	* apps/examples/ftpd/Makefile: Name ftpd_start is not the name of
+	  the entrypoint.  Should be ftpd_main (from Yan T.)

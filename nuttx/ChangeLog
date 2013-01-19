@@ -3987,3 +3987,5 @@
 	* configs/open1788:  Board configuration for the Wave Share
 	  Open1788 board.  Still fragmentary (contribnuted by Rommel
 	  Marcelo, adapted to use kconfig-frontends.
+	* net/send():  Add logic to work around delayed ACKs by splitting
+	  packets (contributed by Yan T.).
