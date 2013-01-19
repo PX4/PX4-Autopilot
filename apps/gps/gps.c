@@ -107,8 +107,8 @@ enum GPS_MODES {
 
 
 #define AUTO_DETECTION_COUNT 8
-const int autodetection_baudrates[] = {B9600, B38400, B38400, B9600, B9600, B38400, B9600, B38400};
-const enum GPS_MODES autodetection_gpsmodes[] = {GPS_MODE_UBX, GPS_MODE_MTK, GPS_MODE_UBX, GPS_MODE_MTK, GPS_MODE_UBX, GPS_MODE_MTK, GPS_MODE_NMEA, GPS_MODE_NMEA}; //nmea is the fall-back if nothing else works, therefore we try the standard modes again before finally trying nmea
+const int autodetection_baudrates[] = {B38400, B9600, B38400, B9600, B38400, B9600, B38400, B9600};
+const enum GPS_MODES autodetection_gpsmodes[] = {GPS_MODE_UBX, GPS_MODE_UBX, GPS_MODE_MTK, GPS_MODE_MTK, GPS_MODE_UBX, GPS_MODE_UBX, GPS_MODE_NMEA, GPS_MODE_NMEA}; //nmea is the fall-back if nothing else works, therefore we try the standard modes again before finally trying nmea
 
 /****************************************************************************
  * Private functions
@@ -368,7 +368,6 @@ int gps_thread_main(int argc, char *argv[]) {
 				args.thread_should_exit_ptr = &thread_should_exit;
 
 				pthread_create(&ubx_thread, &ubx_loop_attr, ubx_loop, (void *)&args);
-				sleep(2); // XXX TODO Check if this is too short, try to lower sleeps in UBX driver
                 
 				pthread_attr_t ubx_wd_attr;
 				pthread_attr_init(&ubx_wd_attr);
