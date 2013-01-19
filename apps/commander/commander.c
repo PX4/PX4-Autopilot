@@ -1718,6 +1718,8 @@ int commander_thread_main(int argc, char *argv[])
 					home_pub = orb_advertise(ORB_ID(home_position), &home);
 				}
 
+				/* mark home position as set */
+				home_position_set = true;
 				tune_confirm();
 			}
 		}
