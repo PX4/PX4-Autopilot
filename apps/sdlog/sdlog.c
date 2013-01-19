@@ -51,6 +51,7 @@
 #include <poll.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <systemlib/err.h>
 #include <unistd.h>
 #include <drivers/drv_hrt.h>
@@ -180,7 +181,7 @@ int sdlog_main(int argc, char *argv[])
 					 SCHED_PRIORITY_DEFAULT - 30,
 					 4096,
 					 sdlog_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					 (const char **)argv);
 		exit(0);
 	}
 
@@ -332,15 +333,15 @@ int sdlog_thread_main(int argc, char *argv[])
 		warnx("ERROR: Failed to open MAVLink log stream, start mavlink app first.\n");
 	}
 
-	/* log every n'th value (skip one per default) */
-	int skip_value = 1;
+	/* log every n'th value (skip three per default) */
+	int skip_value = 3;
 
 	/* work around some stupidity in task_create's argv handling */
 	argc -= 2;
 	argv += 2;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "sr")) != EOF) {
+	while ((ch = getopt(argc, argv, "s:r")) != EOF) {
 		switch (ch) {
 		case 's':
 			{
@@ -360,8 +361,18 @@ int sdlog_thread_main(int argc, char *argv[])
 			logging_enabled = false;
 			break;
 
+		case '?':
+			if (optopt == 'c') {
+				warnx("Option -%c requires an argument.\n", optopt);
+			} else if (isprint(optopt)) {
+				warnx("Unknown option `-%c'.\n", optopt);
+			} else {
+				warnx("Unknown option character `\\x%x'.\n", optopt);
+			}
+
 		default:
 			usage("unrecognized flag");
+			errx(1, "exiting.");
 		}
 	}
 
@@ -454,7 +465,7 @@ int sdlog_thread_main(int argc, char *argv[])
 	} subs;
 
 	/* --- MANAGEMENT - LOGGING COMMAND --- */
-	/* subscribe to ORB for sensors raw */
+	/* subscribe to ORB for vehicle command */
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	fds[fdsc_count].fd = subs.cmd_sub;
 	fds[fdsc_count].events = POLLIN;
@@ -586,10 +597,8 @@ int sdlog_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit) {
 
-		// XXX only use gyro for now
-		int poll_ret = poll(fds, 2, 1000);
-
-		// int poll_ret = poll(fds, fdsc_count, timeout);
+		/* only poll for commands, gps and sensor_combined */
+		int poll_ret = poll(fds, 3, 1000);
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
@@ -598,7 +607,7 @@ int sdlog_thread_main(int argc, char *argv[])
 			/* XXX this is seriously bad - should be an emergency */
 		} else {
 
-			int ifds;
+			int ifds = 0;
 
 			/* --- VEHICLE COMMAND VALUE --- */
 			if (fds[ifds++].revents & POLLIN) {
@@ -691,7 +700,7 @@ int sdlog_thread_main(int argc, char *argv[])
 				pthread_mutex_lock(&sysvector_mutex);
 				sdlog_logbuffer_write(&lb, &sysvect);
 				/* signal the other thread new data, but not yet unlock */
-				if ((unsigned)lb.count > lb.size / 3) {
+				if ((unsigned)lb.count > (lb.size / 2)) {
 					/* only request write if several packets can be written at once */
 					pthread_cond_signal(&sysvector_cond);
 				}
@@ -705,13 +714,19 @@ int sdlog_thread_main(int argc, char *argv[])
 
 	print_sdlog_status();
 
+	/* wake up write thread one last time */
+	pthread_mutex_lock(&sysvector_mutex);
+	pthread_cond_signal(&sysvector_cond);
+	/* unlock, now the writer thread may return */
+	pthread_mutex_unlock(&sysvector_mutex);
+
 	/* wait for write thread to return */
 	(void)pthread_join(sysvector_pthread, NULL);
 
   	pthread_mutex_destroy(&sysvector_mutex);
   	pthread_cond_destroy(&sysvector_cond);
 
-	warnx("exiting.\n");
+	warnx("exiting.\n\n");
 
 	/* finish KML file */
 	// XXX
