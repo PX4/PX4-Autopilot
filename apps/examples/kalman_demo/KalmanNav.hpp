@@ -68,52 +68,108 @@
 class KalmanNav : public control::SuperBlock
 {
 public:
+	/**
+	 * Constructor
+	 */
 	KalmanNav(SuperBlock *parent, const char *name);
+
+	/**
+	 * Deconstuctor
+	 */
+
 	virtual ~KalmanNav() {};
+	/**
+	 * The main callback function for the class
+	 */
 	void update();
+
+
+	/**
+	 * Publication update
+	 */
 	virtual void updatePublications();
-	void predictFast(float dt);
-	void predictSlow(float dt);
-	void correctAtt();
-	void correctPos();
+
+	/**
+	 * State prediction
+	 * Continuous, non-linear
+	 */
+	int predictState(float dt);
+
+	/**
+	 * State covariance prediction
+	 * Continuous, linear
+	 */
+	int predictStateCovariance(float dt);
+
+	/**
+	 * Attitude correction
+	 */
+	int correctAtt();
+
+	/**
+	 * Position correction
+	 */
+	int correctPos();
+
+	/**
+	 * Overloaded update parameters
+	 */
 	virtual void updateParams();
 protected:
-	math::Matrix F;
-	math::Matrix G;
-	math::Matrix P;
-	math::Matrix V;
-	math::Matrix HAtt;
-	math::Matrix RAtt;
-	math::Matrix HPos;
-	math::Matrix RPos;
-	math::Dcm C_nb;
-	math::Quaternion q;
-	control::UOrbSubscription<sensor_combined_s> _sensors;
-	control::UOrbSubscription<vehicle_gps_position_s> _gps;
-	control::UOrbSubscription<parameter_update_s> _param_update;
-	control::UOrbPublication<vehicle_global_position_s> _pos;
-	control::UOrbPublication<vehicle_attitude_s> _att;
-	uint64_t _pubTimeStamp;
-	uint64_t _fastTimeStamp;
-	uint64_t _slowTimeStamp;
-	uint64_t _attTimeStamp;
-	uint64_t _outTimeStamp;
-	uint16_t _navFrames;
-	uint16_t _missFast;
-	uint16_t _missSlow;
-	float fN, fE, fD;
+	// kalman filter
+	math::Matrix F;             /**< Jacobian(f,x), where dx/dt = f(x,u) */
+	math::Matrix G;             /**< noise shaping matrix for gyro/accel */
+	math::Matrix P;             /**< state covariance matrix */
+	math::Matrix P0;            /**< initial state covariance matrix */
+	math::Matrix V;             /**< gyro/ accel noise matrix */
+	math::Matrix HAtt;          /**< attitude measurement matrix */
+	math::Matrix RAtt;          /**< attitude measurement noise matrix */
+	math::Matrix HPos;          /**< position measurement jacobian matrix */
+	math::Matrix RPos;          /**< position measurement noise matrix */
+	// attitude
+	math::Dcm C_nb;             /**< direction cosine matrix from body to nav frame */
+	math::Quaternion q;         /**< quaternion from body to nav frame */
+	// subscriptions
+	control::UOrbSubscription<sensor_combined_s> _sensors;          /**< sensors sub. */
+	control::UOrbSubscription<vehicle_gps_position_s> _gps;         /**< gps sub. */
+	control::UOrbSubscription<parameter_update_s> _param_update;    /**< parameter update sub. */
+	// publications
+	control::UOrbPublication<vehicle_global_position_s> _pos;       /**< position pub. */
+	control::UOrbPublication<vehicle_attitude_s> _att;              /**< attitude pub. */
+	// time stamps
+	uint64_t _pubTimeStamp;     /**< output data publication time stamp */
+	uint64_t _predictTimeStamp; /**< prediction time stamp */
+	uint64_t _attTimeStamp;     /**< attitude correction time stamp */
+	uint64_t _outTimeStamp;     /**< output time stamp */
+	// frame count
+	uint16_t _navFrames;        /**< navigation frames completed in output cycle */
+	// miss counts
+	uint16_t _miss;         	/**< number of times fast prediction loop missed */
+	// accelerations
+	float fN, fE, fD;           /**< navigation frame acceleration */
 	// states
-	enum {PHI = 0, THETA, PSI, VN, VE, VD, LAT, LON, ALT};
-	float phi, theta, psi;
-	float vN, vE, vD;
-	double lat, lon, alt;
-	control::BlockParam<float> _vGyro;
-	control::BlockParam<float> _vAccel;
-	control::BlockParam<float> _rMag;
-	control::BlockParam<float> _rGpsVel;
-	control::BlockParam<float> _rGpsPos;
-	control::BlockParam<float> _rGpsAlt;
-	control::BlockParam<float> _rAccel;
+	enum {PHI = 0, THETA, PSI, VN, VE, VD, LAT, LON, ALT};  /**< state enumeration */
+	float phi, theta, psi;                  /**< 3-2-1 euler angles */
+	float vN, vE, vD;                       /**< navigation velocity, m/s */
+	double lat, lon, alt;                   /**< lat, lon, alt, radians */
+	// parameters
+	control::BlockParam<float> _vGyro;      /**< gyro process noise */
+	control::BlockParam<float> _vAccel;     /**< accelerometer process noise  */
+	control::BlockParam<float> _rMag;       /**< magnetometer measurement noise  */
+	control::BlockParam<float> _rGpsVel;    /**< gps velocity measurement noise */
+	control::BlockParam<float> _rGpsPos;    /**< gps position measurement noise */
+	control::BlockParam<float> _rGpsAlt;    /**< gps altitude measurement noise */
+	control::BlockParam<float> _rAccel;     /**< accelerometer measurement noise */
+	control::BlockParam<float> _magDip;     /**< magnetic inclination with level */
+	control::BlockParam<float> _magDec;     /**< magnetic declination, clockwise rotation */
+	control::BlockParam<float> _g;          /**< gravitational constant */
+	control::BlockParam<float> _faultPos;   /**< fault detection threshold for position */
+	control::BlockParam<float> _faultAtt;   /**< fault detection threshold for attitude */
+	// status
+	bool _attitudeInitialized;
+	bool _positionInitialized;
+	uint16_t _attitudeInitCounter;
+	// accessors
 	int32_t getLatDegE7() { return int32_t(lat * 1.0e7 * M_RAD_TO_DEG); }
 	void setLatDegE7(int32_t val) { lat = val / 1.0e7 / M_RAD_TO_DEG; }
 	int32_t getLonDegE7() { return int32_t(lon * 1.0e7 * M_RAD_TO_DEG); }
