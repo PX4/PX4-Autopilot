@@ -563,12 +563,18 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
           pstate->rf_cb->priv    = NULL;
           pstate->rf_cb->event   = NULL;
 
-          /* If the peer gracefully closed the connection, then return zero
-           * (end-of-file).  Otherwise, report a not-connected error
-           * _SF_CONNECTED==0 && _SF_CLOSED==1 - the socket was
-           *   gracefully disconnected
-           * _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was
-           *  rudely disconnected
+          /* Check if the peer gracefully closed the connection.  We need
+           * these flags in case we return zero (below) to remember the
+           * state of the connection.
+           * 
+           *   _SF_CONNECTED==0 && _SF_CLOSED==1 - the socket was
+           *     gracefully disconnected
+           *   _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was
+           *     rudely disconnected
+           *
+           * These flag settings are probably not necessary if
+           * CONFIG_NET_TCP_RECVDELAY == 0; in that case we know that
+           * pstate->rf_recvlen == 0 and we will always return -ENOTCONN.
            */
 
           psock = pstate->rf_sock;
@@ -587,6 +593,7 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
            * be reported the next time that recv[from]() is called.
            */
 
+#if CONFIG_NET_TCP_RECVDELAY > 0
           if (pstate->rf_recvlen > 0)
             {
               pstate->rf_result = 0;
@@ -595,6 +602,9 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
             {
               pstate->rf_result = -ENOTCONN;
             }
+#else
+          pstate->rf_result = -ENOTCONN;
+#endif
 
           /* Wake up the waiting thread */
 
