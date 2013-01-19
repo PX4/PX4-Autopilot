@@ -319,7 +319,24 @@ sysvector_write_start(struct sdlog_logbuffer *logbuf)
 int sdlog_thread_main(int argc, char *argv[])
 {
 
+	/* log every 2nd value (skip one) */
+	int skip_value = 1;
+
+	if (argc > 1) {
+		if (!strcmp(argv[1], "-s") && argc > 2) {
+			int s = atoi(argv[2]);
+
+			if (s > 0 && s < 250) {
+				skip_value = s;
+			} else {
+				warnx("Ignoring skip value of %d, out of range (1..250)\n", s);
+			}
+		}
+	}
+
 	warnx("starting\n");
+
+	warnx("skipping %d sensor packets between logged packets.\n", skip_value);
 
 	if (file_exist(mountpoint) != OK) {
 		errx(1, "logging mount point %s not present, exiting.", mountpoint);
@@ -565,8 +582,6 @@ int sdlog_thread_main(int argc, char *argv[])
 	gyro_fd.fd = subs.sensor_sub;
 	gyro_fd.events = POLLIN;
 
-	/* log every 2nd value (skip one) */
-	int skip_value = 0;
 	/* track skipping */
 	int skip_count = 0;
 
@@ -717,7 +732,10 @@ int sdlog_thread_main(int argc, char *argv[])
 			pthread_mutex_lock(&sysvector_mutex);
 			sdlog_logbuffer_write(&lb, &sysvect);
 			/* signal the other thread new data, but not yet unlock */
-			pthread_cond_signal(&sysvector_cond);
+			if (lb.count > lb.size / 3) {
+				/* only request write if several packets can be written at once */
+				pthread_cond_signal(&sysvector_cond);
+			}
 			/* unlock, now the writer thread may run */
 			pthread_mutex_unlock(&sysvector_mutex);
 		}
