@@ -73,6 +73,7 @@ static void	eeprom_erase(void);
 static void	eeprom_ioctl(unsigned operation);
 static void	eeprom_save(const char *name);
 static void	eeprom_load(const char *name);
+static void	eeprom_test(void);
 
 static bool attached = false;
 static bool started = false;
@@ -92,6 +93,9 @@ int eeprom_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "erase"))
 			eeprom_erase();
+
+		if (!strcmp(argv[1], "test"))
+			eeprom_test();
 
 		if (0) {	/* these actually require a file on the filesystem... */
 
@@ -248,5 +252,14 @@ eeprom_load(const char *name)
 	if (result < 0)
 		errx(1, "error importing from '%s'", name);
 
+	exit(0);
+}
+
+extern void at24c_test(void);
+
+static void
+eeprom_test(void)
+{
+	at24c_test();
 	exit(0);
 }
