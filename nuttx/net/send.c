@@ -324,7 +324,7 @@ static uint16_t send_interrupt(struct uip_driver_s *dev, void *pvconn,
 
               if (next_sndlen > 0 && (next_sndlen - uip_mss(conn)) < 0)
                 {
-                  /* Here, we know that sndlen must be MSS <= sndlen <= 2*MSS
+                  /* Here, we know that sndlen must be MSS < sndlen <= 2*MSS
                    * and so (sndlen / 2) is <= MSS.
                    */
 

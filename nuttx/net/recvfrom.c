@@ -83,7 +83,7 @@ struct recvfrom_s
   FAR struct sockaddr_in    *rf_from;      /* Address of sender */
 #endif
   size_t                     rf_recvlen;   /* The received length */
-  int                        rf_result;    /* OK:success, failure:negated errno */
+  int                        rf_result;    /* Success:OK, failure:negated errno */
 };
 #endif /* CONFIG_NET_UDP || CONFIG_NET_TCP */
 
@@ -553,6 +553,8 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
 
       else if ((flags & (UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT)) != 0)
         {
+          FAR struct socket *psock = 0;
+
           nllvdbg("error\n");
 
           /* Stop further callbacks */
@@ -563,9 +565,29 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
 
           /* If the peer gracefully closed the connection, then return zero
            * (end-of-file).  Otherwise, report a not-connected error
+           * _SF_CONNECTED==0 && _SF_CLOSED==1 - the socket was
+           *   gracefully disconnected
+           * _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was
+           *  rudely disconnected
            */
 
+          psock = pstate->rf_sock;
           if ((flags & UIP_CLOSE) != 0)
+            {
+              psock->s_flags &= ~_SF_CONNECTED;
+              psock->s_flags |= _SF_CLOSED;
+            }
+          else
+            {
+              psock->s_flags &= ~(_SF_CONNECTED |_SF_CLOSED);
+            }
+
+          /* If no data has been received, then return ENOTCONN.
+           * Otherwise, let this return success.  The failure will
+           * be reported the next time that recv[from]() is called.
+           */
+
+          if (pstate->rf_recvlen > 0)
             {
               pstate->rf_result = 0;
             }

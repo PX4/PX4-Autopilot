@@ -3989,3 +3989,7 @@
 	  Marcelo, adapted to use kconfig-frontends.
 	* net/send():  Add logic to work around delayed ACKs by splitting
 	  packets (contributed by Yan T.).
+	* net/recvfrom():  Fix a bug.  When the host closes a connection
+	  (gracefully).  recv[from]() returned success and the closure
+	  was never detected.  Hmmm.. I don't know why the network monitor
+	  did not catch this event.  This is an important bug fix.
