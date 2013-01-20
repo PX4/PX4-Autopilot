@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/fs_stat.c
  *
- *   Copyright (C) 2007-2009 , 2012Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -122,7 +122,8 @@ static inline int statroot(FAR struct stat *buf)
 /****************************************************************************
  * Name: stat
  *
- * Return: Zero on success; -1 on failure with errno set:
+ * Returned Value:
+ *   Zero on success; -1 on failure with errno set:
  *
  *   EACCES  Search permission is denied for one of the directories in the
  *           path prefix of path.
@@ -134,7 +135,7 @@ static inline int statroot(FAR struct stat *buf)
  *
  ****************************************************************************/
 
-int stat(const char *path, FAR struct stat *buf)
+int stat(FAR const char *path, FAR struct stat *buf)
 {
   FAR struct inode *inode;
   const char       *relpath = NULL;

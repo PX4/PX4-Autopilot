@@ -233,7 +233,9 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch)
         }
     }
 
-  /* We won't get here */
+  /* We won't get here.  Some compilers may complain that this code is
+   * unreachable.
+   */
 
   return OK;
 }
@@ -252,7 +254,7 @@ static inline ssize_t uart_irqwrite(FAR uart_dev_t *dev, FAR const char *buffer,
     {
       int ch = *buffer++;
 
-      /* assume that this is console text output and always do \n -> \r\n conversion */
+     /* If this is the console, then we should replace LF with CR-LF */
 
       if (ch == '\n')
         {
@@ -660,9 +662,11 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   int ret = dev->ops->ioctl(filep, cmd, arg);
 
-  /* Append any higher level TTY flags */
-
-  if (ret == OK)
+  /*
+   * The device ioctl() handler returns -ENOTTY when it doesn't know
+   * how to handle the command. Check if we can handle it here.
+   */
+  if (ret == -ENOTTY)
     {
       switch (cmd)
         {
@@ -686,8 +690,43 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             irqrestore(state);
 
             *(int *)arg = count;
+            ret = 0;
+
+            break;
           }
 
+          case FIONWRITE:
+          {
+            int count;
+            irqstate_t state = irqsave();
+
+            /* determine the number of bytes free in the buffer */
+
+            if (dev->xmit.head < dev->xmit.tail)
+              { 
+                count = dev->xmit.tail - dev->xmit.head - 1;
+              }
+            else
+              {
+                count = dev->xmit.size - (dev->xmit.head - dev->xmit.tail) - 1;
+              }
+
+            irqrestore(state);
+
+            *(int *)arg = count;
+            ret = 0;
+
+            break;
+          }
+        }
+    }
+
+  /* Append any higher level TTY flags */
+
+  else if (ret == OK)
+    {
+      switch (cmd)
+        {
 #ifdef CONFIG_SERIAL_TERMIOS
           case TCGETS:
           {

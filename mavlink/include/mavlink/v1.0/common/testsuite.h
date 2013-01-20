@@ -1327,7 +1327,7 @@ static void mavlink_test_servo_output_raw(uint8_t system_id, uint8_t component_i
 	};
 	mavlink_servo_output_raw_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
-        	packet1.time_boot_ms = packet_in.time_boot_ms;
+        	packet1.time_usec = packet_in.time_usec;
         	packet1.servo1_raw = packet_in.servo1_raw;
         	packet1.servo2_raw = packet_in.servo2_raw;
         	packet1.servo3_raw = packet_in.servo3_raw;
@@ -1346,12 +1346,12 @@ static void mavlink_test_servo_output_raw(uint8_t system_id, uint8_t component_i
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_servo_output_raw_pack(system_id, component_id, &msg , packet1.time_boot_ms , packet1.port , packet1.servo1_raw , packet1.servo2_raw , packet1.servo3_raw , packet1.servo4_raw , packet1.servo5_raw , packet1.servo6_raw , packet1.servo7_raw , packet1.servo8_raw );
+	mavlink_msg_servo_output_raw_pack(system_id, component_id, &msg , packet1.time_usec , packet1.port , packet1.servo1_raw , packet1.servo2_raw , packet1.servo3_raw , packet1.servo4_raw , packet1.servo5_raw , packet1.servo6_raw , packet1.servo7_raw , packet1.servo8_raw );
 	mavlink_msg_servo_output_raw_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_servo_output_raw_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.time_boot_ms , packet1.port , packet1.servo1_raw , packet1.servo2_raw , packet1.servo3_raw , packet1.servo4_raw , packet1.servo5_raw , packet1.servo6_raw , packet1.servo7_raw , packet1.servo8_raw );
+	mavlink_msg_servo_output_raw_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.time_usec , packet1.port , packet1.servo1_raw , packet1.servo2_raw , packet1.servo3_raw , packet1.servo4_raw , packet1.servo5_raw , packet1.servo6_raw , packet1.servo7_raw , packet1.servo8_raw );
 	mavlink_msg_servo_output_raw_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
@@ -1364,7 +1364,7 @@ static void mavlink_test_servo_output_raw(uint8_t system_id, uint8_t component_i
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
         
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_servo_output_raw_send(MAVLINK_COMM_1 , packet1.time_boot_ms , packet1.port , packet1.servo1_raw , packet1.servo2_raw , packet1.servo3_raw , packet1.servo4_raw , packet1.servo5_raw , packet1.servo6_raw , packet1.servo7_raw , packet1.servo8_raw );
+	mavlink_msg_servo_output_raw_send(MAVLINK_COMM_1 , packet1.time_usec , packet1.port , packet1.servo1_raw , packet1.servo2_raw , packet1.servo3_raw , packet1.servo4_raw , packet1.servo5_raw , packet1.servo6_raw , packet1.servo7_raw , packet1.servo8_raw );
 	mavlink_msg_servo_output_raw_decode(last_msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }
@@ -3886,6 +3886,59 @@ static void mavlink_test_highres_imu(uint8_t system_id, uint8_t component_id, ma
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }
 
+static void mavlink_test_omnidirectional_flow(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
+{
+	mavlink_message_t msg;
+        uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+        uint16_t i;
+	mavlink_omnidirectional_flow_t packet_in = {
+		93372036854775807ULL,
+	73.0,
+	{ 17859, 17860, 17861, 17862, 17863, 17864, 17865, 17866, 17867, 17868 },
+	{ 18899, 18900, 18901, 18902, 18903, 18904, 18905, 18906, 18907, 18908 },
+	161,
+	228,
+	};
+	mavlink_omnidirectional_flow_t packet1, packet2;
+        memset(&packet1, 0, sizeof(packet1));
+        	packet1.time_usec = packet_in.time_usec;
+        	packet1.front_distance_m = packet_in.front_distance_m;
+        	packet1.sensor_id = packet_in.sensor_id;
+        	packet1.quality = packet_in.quality;
+        
+        	mav_array_memcpy(packet1.left, packet_in.left, sizeof(int16_t)*10);
+        	mav_array_memcpy(packet1.right, packet_in.right, sizeof(int16_t)*10);
+        
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_omnidirectional_flow_encode(system_id, component_id, &msg, &packet1);
+	mavlink_msg_omnidirectional_flow_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_omnidirectional_flow_pack(system_id, component_id, &msg , packet1.time_usec , packet1.sensor_id , packet1.left , packet1.right , packet1.quality , packet1.front_distance_m );
+	mavlink_msg_omnidirectional_flow_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_omnidirectional_flow_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.time_usec , packet1.sensor_id , packet1.left , packet1.right , packet1.quality , packet1.front_distance_m );
+	mavlink_msg_omnidirectional_flow_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+        mavlink_msg_to_send_buffer(buffer, &msg);
+        for (i=0; i<mavlink_msg_get_send_buffer_length(&msg); i++) {
+        	comm_send_ch(MAVLINK_COMM_0, buffer[i]);
+        }
+	mavlink_msg_omnidirectional_flow_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+        
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_omnidirectional_flow_send(MAVLINK_COMM_1 , packet1.time_usec , packet1.sensor_id , packet1.left , packet1.right , packet1.quality , packet1.front_distance_m );
+	mavlink_msg_omnidirectional_flow_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+}
+
 static void mavlink_test_file_transfer_start(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
 {
 	mavlink_message_t msg;
@@ -4562,6 +4615,7 @@ static void mavlink_test_common(uint8_t system_id, uint8_t component_id, mavlink
 	mavlink_test_vision_speed_estimate(system_id, component_id, last_msg);
 	mavlink_test_vicon_position_estimate(system_id, component_id, last_msg);
 	mavlink_test_highres_imu(system_id, component_id, last_msg);
+	mavlink_test_omnidirectional_flow(system_id, component_id, last_msg);
 	mavlink_test_file_transfer_start(system_id, component_id, last_msg);
 	mavlink_test_file_transfer_dir_list(system_id, component_id, last_msg);
 	mavlink_test_file_transfer_res(system_id, component_id, last_msg);

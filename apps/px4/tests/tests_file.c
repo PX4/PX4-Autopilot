@@ -37,6 +37,7 @@
  * File write test.
  */
 
+#include <sys/stat.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -51,6 +52,13 @@
 int
 test_file(int argc, char *argv[])
 {
+	/* check if microSD card is mounted */
+	struct stat buffer;
+	if (stat("/fs/microsd/", &buffer)) {
+		warnx("no microSD card mounted, aborting file test");
+		return 1;
+	}
+
 	uint8_t buf[512];
 	hrt_abstime start, end;
 	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes");

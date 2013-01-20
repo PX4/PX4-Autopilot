@@ -163,6 +163,8 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
 			    size_t nblocks, FAR const uint8_t *buf);
 static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 
+void at24c_test(void);
+
 /************************************************************************************
  * Private Data
  ************************************************************************************/
@@ -216,6 +218,31 @@ static int at24c_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbloc
 	/* EEprom need not erase */
 
 	return (int)nblocks;
+}
+
+/************************************************************************************
+ * Name: at24c_test
+ ************************************************************************************/
+
+void at24c_test(void)
+{
+	uint8_t buf[CONFIG_AT24XX_MTD_BLOCKSIZE];
+	unsigned count = 0;
+	unsigned errors = 0;
+
+	for (count = 0; count < 10000; count++) {
+		ssize_t result = at24c_bread(&g_at24c.mtd, 0, 1, buf);
+		if (result == ERROR) {
+			if (errors++ > 2) {
+				vdbg("too many errors\n");
+				return;
+			}
+		} else if (result != 1) {
+			vdbg("unexpected %u\n", result);
+		}
+		if ((count % 100) == 0)
+			vdbg("test %u errors %u\n", count, errors);
+	}
 }
 
 /************************************************************************************

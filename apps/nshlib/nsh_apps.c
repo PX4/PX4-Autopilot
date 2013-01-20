@@ -122,13 +122,28 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
   ret = exec_namedapp(cmd, (FAR const char **)argv);
   if (ret >= 0)
     {
-      /* The application was successfully started (but still blocked because the
-       * scheduler is locked).  If the application was not backgrounded, then we
-       * need to wait here for the application to exit.
+      /* The application was successfully started (but still blocked because
+       * the scheduler is locked).  If the application was not backgrounded,
+       * then we need to wait here for the application to exit.  These really
+       * only works works with the following options:
+       *
+       * - CONFIG_NSH_DISABLEBG - Do not run commands in background
+       * - CONFIG_SCHED_WAITPID - Required to run external commands in
+       *     foreground
+       *
+       * These concepts do not apply cleanly to the external applications.
        */
 
 #ifdef CONFIG_SCHED_WAITPID
+
+      /* CONFIG_SCHED_WAITPID is selected, so we may run the command in
+       * foreground unless we were specifically requested to run the command
+       * in background (and running commands in background is enabled).
+       */
+
+#  ifndef CONFIG_NSH_DISABLEBG
       if (vtbl->np.np_bg == false)
+#  endif /* CONFIG_NSH_DISABLEBG */
         {
           int rc = 0;
 
@@ -155,8 +170,25 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
               */
             }
         }
+#  ifndef CONFIG_NSH_DISABLEBG
       else
-#endif
+#  endif /* CONFIG_NSH_DISABLEBG */
+#endif /* CONFIG_SCHED_WAITPID */
+
+      /* We get here if either:
+       *
+       * - CONFIG_SCHED_WAITPID is not selected meaning that all commands
+       *   have to be run in background, or
+       * - CONFIG_SCHED_WAITPID and CONFIG_NSH_DISABLEBG are both selected, but the
+       *   user requested to run the command in background.
+       *
+       * NOTE that the case of a) CONFIG_SCHED_WAITPID is not selected and
+       * b) CONFIG_NSH_DISABLEBG selected cannot be supported.  In that event, all
+       * commands will have to run in background.  The waitpid() API must be
+       * available to support running the command in foreground.
+       */
+
+#if !defined(CONFIG_SCHED_WAITPID) || !defined(CONFIG_NSH_DISABLEBG)
         {
           struct sched_param param;
           sched_getparam(0, &param);
@@ -168,6 +200,7 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 
           ret = OK;
         }
+#endif /* !CONFIG_SCHED_WAITPID || !CONFIG_NSH_DISABLEBG */
     }
 
   sched_unlock();

@@ -3,7 +3,7 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config FICL
+config INTERPRETERS_FICL
 	bool "Ficl Forth interpreter"
 	default n
 	---help---
@@ -11,6 +11,6 @@ config FICL
 		apps/interpreters/ficl directory.  Use of this configuration assumes
 		that you have performed the required installation of the Ficl run-time code.
 
-if FICL
+if INTERPRETERS_FICL
 endif
 

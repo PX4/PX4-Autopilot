@@ -835,14 +835,6 @@ struct eth_rxdesc_s
  * Public Functions
  ****************************************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
 #endif /* __ASSEMBLY__ */
 #endif /* STM32_NETHERNET > 0 */
 #endif /* __ARCH_ARM_SRC_STM32_CHIP_STM32_ETH_H */

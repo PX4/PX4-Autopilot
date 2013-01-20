@@ -53,96 +53,40 @@
 #include "tests.h"
 
 #include <nuttx/analog/adc.h>
+#include <drivers/drv_adc.h>
+#include <systemlib/err.h>
 
 int test_adc(int argc, char *argv[])
 {
-	int		fd0 = 0;
-	int		ret = 0;
+	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
 
-	#pragma pack(push,1)
-	struct adc_msg4_s {
-		uint8_t      am_channel1;	/**< The 8-bit ADC Channel 1 */
-		int32_t      am_data1;		/**< ADC convert result 1 (4 bytes) */
-		uint8_t      am_channel2;	/**< The 8-bit ADC Channel 2 */
-		int32_t      am_data2;		/**< ADC convert result 2 (4 bytes) */
-		uint8_t      am_channel3;	/**< The 8-bit ADC Channel 3 */
-		int32_t      am_data3;		/**< ADC convert result 3 (4 bytes) */
-		uint8_t      am_channel4;	/**< The 8-bit ADC Channel 4 */
-		int32_t      am_data4;		/**< ADC convert result 4 (4 bytes) */
-	};
-	#pragma pack(pop)
+	if (fd < 0)
+		err(1, "can't open ADC device");
 
-	struct adc_msg4_s sample1;
+	for (unsigned i = 0; i < 5; i++) {
+		/* make space for a maximum of eight channels */
+		struct adc_msg_s data[8];
+		/* read all channels available */
+		ssize_t count = read(fd, data, sizeof(data));
 
-	ssize_t nbytes;
-	int j;
-	int errval;
+		if (count < 0)
+			goto errout_with_dev;
 
-	fd0 = open("/dev/adc0", O_RDONLY | O_NONBLOCK);
+		unsigned channels = count / sizeof(data[0]);
 
-	if (fd0 <= 0) {
-		message("/dev/adc0 open fail: %d\n", errno);
-		return ERROR;
-
-	} else {
-		message("opened /dev/adc0 successfully\n");
-	}
-	usleep(10000);
-
-	for (j = 0; j < 10; j++) {
-
-		/* sleep 20 milliseconds */
-		usleep(20000);
-		nbytes = read(fd0, &sample1, sizeof(sample1));
-
-		/* Handle unexpected return values */
-
-		if (nbytes < 0) {
-			errval = errno;
-
-			if (errval != EINTR) {
-				message("reading /dev/adc0 failed: %d\n", errval);
-				errval = 3;
-				goto errout_with_dev;
-			}
-
-			message("\tinterrupted read..\n");
-
-		} else if (nbytes == 0) {
-			message("\tno data read, ignoring.\n");
-			ret = ERROR;
+		for (unsigned j = 0; j < channels; j++) {
+			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
 		}
 
-		/* Print the sample data on successful return */
-
-		else {
-			if (nbytes != sizeof(sample1)) {
-				message("\tsample 1 size %d is not matching struct size %d, ignoring\n",
-					nbytes, sizeof(sample1));
-				ret = ERROR;
-
-			} else {
-
-				message("CYCLE %d:\n", j);
-
-				message("channel: %d value: %d\n",
-					(int)sample1.am_channel1, sample1.am_data1);
-				message("channel: %d value: %d\n",
-					(int)sample1.am_channel2, sample1.am_data2);
-				message("channel: %d value: %d\n",
-					(int)sample1.am_channel3, sample1.am_data3);
-				message("channel: %d value: %d\n",
-					(int)sample1.am_channel4, sample1.am_data4);
-			}
-		}
-		fflush(stdout);
+		printf("\n");
+		usleep(150000);
 	}
 
 	message("\t ADC test successful.\n");
 
 errout_with_dev:
 
-	if (fd0 != 0) close(fd0);
+	if (fd != 0) close(fd);
 
-	return ret;
+	return OK;
 }

@@ -160,11 +160,11 @@ int nsh_consolemain(int argc, char *argv[])
         }
     }
 
-  /* Clean up */
+  /* Clean up.  We do not get here, but this is necessary to keep some
+   * compilers happy.  But others will complain that this code is not
+   * reachable.
+   */
 
   nsh_exit(&pstate->cn_vtbl, 0);
-
-  /* We do not get here, but this is necessary to keep some compilers happy */
-
   return OK;
 }

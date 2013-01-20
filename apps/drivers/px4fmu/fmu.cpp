@@ -58,6 +58,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/boards/px4fmu/px4fmu_internal.h>
+#include <drivers/drv_hrt.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -65,6 +66,7 @@
 #include <drivers/drv_mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
 
 #include <systemlib/err.h>
@@ -97,6 +99,7 @@ private:
 	int		_t_actuators;
 	int		_t_armed;
 	orb_advert_t	_t_outputs;
+	orb_advert_t	_t_actuators_effective;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
 
@@ -162,6 +165,7 @@ PX4FMU::PX4FMU() :
 	_t_actuators(-1),
 	_t_armed(-1),
 	_t_outputs(0),
+	_t_actuators_effective(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_task_should_exit(false),
@@ -319,6 +323,13 @@ PX4FMU::task_main()
 	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
 				   &outputs);
 
+	/* advertise the effective control inputs */
+	actuator_controls_effective_s controls_effective;
+	memset(&controls_effective, 0, sizeof(controls_effective));
+	/* advertise the effective control inputs */
+	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
+				   &controls_effective);
+
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
@@ -336,8 +347,16 @@ PX4FMU::task_main()
 		if (_current_update_rate != _update_rate) {
 			int update_rate_in_ms = int(1000 / _update_rate);
 
-			if (update_rate_in_ms < 2)
+			/* reject faster than 500 Hz updates */
+			if (update_rate_in_ms < 2) {
 				update_rate_in_ms = 2;
+				_update_rate = 500;
+			}
+			/* reject slower than 50 Hz updates */
+			if (update_rate_in_ms > 20) {
+				update_rate_in_ms = 20;
+				_update_rate = 50;
+			}
 
 			orb_set_interval(_t_actuators, update_rate_in_ms);
 			up_pwm_servo_set_rate(_update_rate);
@@ -364,20 +383,39 @@ PX4FMU::task_main()
 			if (_mixers != nullptr) {
 
 				/* do mixing */
-				_mixers->mix(&outputs.output[0], num_outputs);
+				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
+				outputs.timestamp = hrt_absolute_time();
+
+				// XXX output actual limited values
+				memcpy(&controls_effective, &_controls, sizeof(controls_effective));
+
+				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
 
 				/* iterate actuators */
 				for (unsigned i = 0; i < num_outputs; i++) {
 
-					/* scale for PWM output 900 - 2100us */
-					outputs.output[i] = 1500 + (600 * outputs.output[i]);
+					/* last resort: catch NaN, INF and out-of-band errors */
+					if (i < outputs.noutputs &&
+						isfinite(outputs.output[i]) &&
+						outputs.output[i] >= -1.0f &&
+						outputs.output[i] <= 1.0f) {
+						/* scale for PWM output 900 - 2100us */
+						outputs.output[i] = 1500 + (600 * outputs.output[i]);
+					} else {
+						/*
+						 * Value is NaN, INF or out of band - set to the minimum value.
+						 * This will be clearly visible on the servo status and will limit the risk of accidentally
+						 * spinning motors. It would be deadly in flight.
+						 */
+						outputs.output[i] = 900;
+					}
 
 					/* output to the servo */
 					up_pwm_servo_set(i, outputs.output[i]);
 				}
 
 				/* and publish for anyone that cares to see */
-				orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &outputs);
+				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
 			}
 		}
 
@@ -394,6 +432,7 @@ PX4FMU::task_main()
 	}
 
 	::close(_t_actuators);
+	::close(_t_actuators_effective);
 	::close(_t_armed);
 
 	/* make sure servos are off */
@@ -470,6 +509,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		up_pwm_servo_arm(false);
 		break;
 
+	case PWM_SERVO_SET_UPDATE_RATE:
+		set_pwm_rate(arg);
+		break;
+
 	case PWM_SERVO_SET(2):
 	case PWM_SERVO_SET(3):
 		if (_mode != MODE_4PWM) {
@@ -500,7 +543,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		/* FALLTHROUGH */
 	case PWM_SERVO_GET(0):
 	case PWM_SERVO_GET(1): {
-			channel = cmd - PWM_SERVO_SET(0);
+			channel = cmd - PWM_SERVO_GET(0);
 			*(servo_position_t *)arg = up_pwm_servo_get(channel);
 			break;
 		}
@@ -544,28 +587,19 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOCADDMULTIROTOR:
-		/* XXX not yet supported */
-		ret = -ENOTTY;
-		break;
+	case MIXERIOCLOADBUF: {
+			const char *buf = (const char *)arg;
+			unsigned buflen = strnlen(buf, 1024);
 
-	case MIXERIOCLOADFILE: {
-			const char *path = (const char *)arg;
-
-			if (_mixers != nullptr) {
-				delete _mixers;
-				_mixers = nullptr;
-			}
-
-			_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+			if (_mixers == nullptr)
+				_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
 
 			if (_mixers == nullptr) {
 				ret = -ENOMEM;
 
 			} else {
 
-				debug("loading mixers from %s", path);
-				ret = _mixers->load_from_file(path);
+				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
 					debug("mixer load failed with %d", ret);
@@ -574,7 +608,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 					ret = -EINVAL;
 				}
 			}
-
 			break;
 		}
 

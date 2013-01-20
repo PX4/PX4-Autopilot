@@ -146,9 +146,15 @@
 
 #define SIOCSIWPMKSA     _SIOC(0x0036) /* PMKSA cache operation */
 
+/* Interface flags */
+
+#define SIOCSIFFLAGS     _SIOC(0x0037) /* Sets the interface flags */
+#define SIOCGIFFLAGS     _SIOC(0x0038) /* Gets the interface flags */
+
 /****************************************************************************
  * Type Definitions
  ****************************************************************************/
+
 /* See include/net/if.h */
 
 /****************************************************************************

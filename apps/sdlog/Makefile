@@ -36,7 +36,8 @@
 #
 
 APPNAME		 = sdlog
-PRIORITY	 = SCHED_PRIORITY_DEFAULT - 30
+# The main thread only buffers to RAM, needs a high priority
+PRIORITY	 = SCHED_PRIORITY_MAX - 30
 STACKSIZE	 = 2048
 
 include $(APPDIR)/mk/app.mk

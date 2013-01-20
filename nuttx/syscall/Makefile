@@ -1,7 +1,7 @@
 ############################################################################
 # syscall/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,11 +34,13 @@
 ###########################################################################
 
 -include $(TOPDIR)/Make.defs
-include proxies/Make.defs
-include stubs/Make.defs
+DELIM ?= $(strip /)
 
-MKSYSCALL = "$(TOPDIR)/tools/mksyscall$(EXEEXT)"
-CSVFILE = "$(TOPDIR)/syscall/syscall.csv"
+include proxies$(DELIM)Make.defs
+include stubs$(DELIM)Make.defs
+
+MKSYSCALL = "$(TOPDIR)$(DELIM)tools$(DELIM)mksyscall$(EXEEXT)"
+CSVFILE = "$(TOPDIR)$(DELIM)syscall$(DELIM)syscall.csv"
 
 STUB_SRCS += stub_lookup.c
 
@@ -72,42 +74,43 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN1): $(PROXY_OBJS)
-	@( for obj in $(PROXY_OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, $(PROXY_OBJS))
 
 $(BIN2): $(STUB_OBJS)
-	@( for obj in $(STUB_OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(STUB_OBJS)")
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(PROXYDEPPATH) $(STUBDEPPATH) \
-	  $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(ROOTDEPPATH) $(PROXYDEPPATH) $(STUBDEPPATH) \
+	  "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 $(MKSYSCALL):
-	@$(MAKE) -C $(TOPDIR)/tools -f Makefile.host mksyscall
+	$(Q) $(MAKE) -C $(TOPDIR)$(DELIM)tools -f Makefile.host mksyscall
 
 .context: syscall.csv
-	@(cd proxies; $(MKSYSCALL) -p $(CSVFILE);)
-	@(cd stubs; $(MKSYSCALL) -s $(CSVFILE);)
-	@touch $@
+	$(Q) (cd proxies; $(MKSYSCALL) -p $(CSVFILE);)
+	$(Q) (cd stubs; $(MKSYSCALL) -s $(CSVFILE);)
+	$(Q) touch $@
 
 context: $(MKSYSCALL) .context
 
 clean:
-	@rm -f $(BIN1) $(BIN2) *~ .*.swp
+	$(call DELFILE, $(BIN1))
+	$(call DELFILE, $(BIN2))
 ifneq ($(OBJEXT),)
-	@rm -f proxies/*$(OBJEXT) stubs/*$(OBJEXT)
+	$(call DELFILE, proxies$(DELIM)*$(OBJEXT))
+	$(call DELFILE, stubs$(DELIM)*$(OBJEXT))
 endif
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend .context
-	@rm -f proxies/*.c stubs/*.c
+	$(call DELFILE, .context)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+	$(call DELFILE, proxies$(DELIM)*.c)
+	$(call DELFILE, stubs$(DELIM)*.c)
 
 -include Make.dep
 

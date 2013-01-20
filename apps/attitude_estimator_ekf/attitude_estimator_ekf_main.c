@@ -35,7 +35,7 @@
 
 /*
  * @file attitude_estimator_ekf_main.c
- * 
+ *
  * Extended Kalman Filter for Attitude Estimation.
  */
 
@@ -79,18 +79,18 @@ static float dt = 0.005f;
 static float z_k[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 9.81f, 0.2f, -0.2f, 0.2f};					/**< Measurement vector */
 static float x_aposteriori_k[12];		/**< states */
 static float P_aposteriori_k[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-		0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-		0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-		0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
-		0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
-		0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
-		0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
-		0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
-		0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
-		0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
-		0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
-		0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
-}; /**< init: diagonal matrix with big values */
+				     0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				     0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				     0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
+				     0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
+				     0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
+				     0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
+				     0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
+				     0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
+				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
+				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
+				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
+				    }; /**< init: diagonal matrix with big values */
 
 static float x_aposteriori[12];
 static float P_aposteriori[144];
@@ -99,9 +99,9 @@ static float P_aposteriori[144];
 static float euler[3] = {0.0f, 0.0f, 0.0f};
 
 static float Rot_matrix[9] = {1.f,  0,  0,
-		0,  1.f,  0,
-		0,  0,  1.f
-};		/**< init: identity matrix */
+			      0,  1.f,  0,
+			      0,  0,  1.f
+			     };		/**< init: identity matrix */
 
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
@@ -123,6 +123,7 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
+
 	fprintf(stderr, "usage: attitude_estimator_ekf {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
 }
@@ -131,7 +132,7 @@ usage(const char *reason)
  * The attitude_estimator_ekf app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
- * 
+ *
  * The actual stack size should be set in the call
  * to task_create().
  */
@@ -150,11 +151,11 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		attitude_estimator_ekf_task = task_spawn("attitude_estimator_ekf",
-				SCHED_DEFAULT,
-				SCHED_PRIORITY_MAX - 5,
-				12000,
-				attitude_estimator_ekf_thread_main,
-				(argv) ? (const char **)&argv[2] : (const char **)NULL);
+					      SCHED_DEFAULT,
+					      SCHED_PRIORITY_MAX - 5,
+					      12000,
+					      attitude_estimator_ekf_thread_main,
+					      (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
@@ -166,9 +167,11 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			printf("\tattitude_estimator_ekf app is running\n");
+
 		} else {
 			printf("\tattitude_estimator_ekf app not started\n");
 		}
+
 		exit(0);
 	}
 
@@ -235,7 +238,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	/* advertise debug value */
 	// struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
 	// orb_advert_t pub_dbg = -1;
-	
+
 	float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};
 	// XXX write this out to perf regs
 
@@ -263,8 +266,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	while (!thread_should_exit) {
 
 		struct pollfd fds[2] = {
-				{ .fd = sub_raw,   .events = POLLIN },
-				{ .fd = sub_params, .events = POLLIN }
+			{ .fd = sub_raw,   .events = POLLIN },
+			{ .fd = sub_params, .events = POLLIN }
 		};
 		int ret = poll(fds, 2, 1000);
 
@@ -273,10 +276,12 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 		} else if (ret == 0) {
 			/* check if we're in HIL - not getting sensor data is fine then */
 			orb_copy(ORB_ID(vehicle_status), sub_state, &state);
+
 			if (!state.flag_hil_enabled) {
-				fprintf(stderr, 
+				fprintf(stderr,
 					"[att ekf] WARNING: Not getting sensors - sensor app running?\n");
 			}
+
 		} else {
 
 			/* only update parameters if they changed */
@@ -308,6 +313,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						gyro_offsets[1] /= offset_count;
 						gyro_offsets[2] /= offset_count;
 					}
+
 				} else {
 
 					perf_begin(ekf_loop_perf);
@@ -336,6 +342,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
 						sensor_last_timestamp[1] = raw.timestamp;
 					}
+
 					z_k[3] = raw.accelerometer_m_s2[0];
 					z_k[4] = raw.accelerometer_m_s2[1];
 					z_k[5] = raw.accelerometer_m_s2[2];
@@ -347,6 +354,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
 						sensor_last_timestamp[2] = raw.timestamp;
 					}
+
 					z_k[6] = raw.magnetometer_ga[0];
 					z_k[7] = raw.magnetometer_ga[1];
 					z_k[8] = raw.magnetometer_ga[2];
@@ -368,8 +376,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					static bool const_initialized = false;
 
 					/* initialize with good values once we have a reasonable dt estimate */
-					if (!const_initialized && dt < 0.05f && dt > 0.005f)
-					{
+					if (!const_initialized && dt < 0.05f && dt > 0.005f) {
 						dt = 0.005f;
 						parameters_update(&ekf_param_handles, &ekf_params);
 
@@ -395,13 +402,15 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					}
 
 					uint64_t timing_start = hrt_absolute_time();
-					
+
 					attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, ekf_params.q, ekf_params.r,
-							euler, Rot_matrix, x_aposteriori, P_aposteriori);
+							     euler, Rot_matrix, x_aposteriori, P_aposteriori);
+
 					/* swap values for next iteration, check for fatal inputs */
 					if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {
 						memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
 						memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
+
 					} else {
 						/* due to inputs or numerical failure the output is invalid, skip it */
 						continue;
@@ -413,9 +422,11 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 					/* send out */
 					att.timestamp = raw.timestamp;
-					att.roll = euler[0];
-					att.pitch = euler[1];
-					att.yaw = euler[2];
+
+					// XXX Apply the same transformation to the rotation matrix
+					att.roll = euler[0] - ekf_params.roll_off;
+					att.pitch = euler[1] - ekf_params.pitch_off;
+					att.yaw = euler[2] - ekf_params.yaw_off;
 
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
@@ -431,6 +442,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
 						// Broadcast
 						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
+
 					} else {
 						warnx("NaN in roll/pitch/yaw estimate!");
 					}

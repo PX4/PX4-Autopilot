@@ -183,3 +183,9 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 
 	return pid->last_output;
 }
+
+
+__EXPORT void pid_reset_integral(PID_t *pid)
+{
+	pid->integral = 0;
+}

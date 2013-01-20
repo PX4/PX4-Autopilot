@@ -92,4 +92,7 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_ACC_OC_DETECT);
 	stm32_configgpio(GPIO_SERVO_OC_DETECT);
 	stm32_configgpio(GPIO_BTN_SAFETY);
+
+	stm32_configgpio(GPIO_ADC_VBATT);
+	stm32_configgpio(GPIO_ADC_IN5);
 }

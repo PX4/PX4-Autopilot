@@ -1,7 +1,7 @@
 /********************************************************************************
  * examples/ostest/roundrobin.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "ostest.h"
 
 #if CONFIG_RR_INTERVAL > 0
@@ -47,115 +48,87 @@
  * Definitions
  ********************************************************************************/
 
-/* This number may need to be tuned for different processor speeds.  Since these
- * arrays must be large to very correct SCHED_RR behavior, this test may require
- * too much memory on many targets.
- */
+/* This numbers should be tuned for different processor speeds via .config file.
+ * With default values the test takes about 30s on Cortex-M3 @ 24MHz. With 32767
+ * range and 10 runs it takes ~320s. */
 
-/* #define CONFIG_NINTEGERS 32768 Takes forever on 60Mhz ARM7 */
+#ifndef CONFIG_EXAMPLES_OSTEST_RR_RANGE
+#  define CONFIG_EXAMPLES_OSTEST_RR_RANGE 10000
+#  warning "CONFIG_EXAMPLES_OSTEST_RR_RANGE undefined, using default value = 10000"
+#elif (CONFIG_EXAMPLES_OSTEST_RR_RANGE < 1) || (CONFIG_EXAMPLES_OSTEST_RR_RANGE > 32767)
+#  define CONFIG_EXAMPLES_OSTEST_RR_RANGE 10000
+#  warning "Invalid value of CONFIG_EXAMPLES_OSTEST_RR_RANGE, using default value = 10000"
+#endif
 
-#define CONFIG_NINTEGERS 2048
-
-/********************************************************************************
- * Private Data
- ********************************************************************************/
-
-static int prime1[CONFIG_NINTEGERS];
-static int prime2[CONFIG_NINTEGERS];
+#ifndef CONFIG_EXAMPLES_OSTEST_RR_RUNS
+#  define CONFIG_EXAMPLES_OSTEST_RR_RUNS 10
+#  warning "CONFIG_EXAMPLES_OSTEST_RR_RUNS undefined, using default value = 10"
+#elif (CONFIG_EXAMPLES_OSTEST_RR_RUNS < 1) || (CONFIG_EXAMPLES_OSTEST_RR_RUNS > 32767)
+#  define CONFIG_EXAMPLES_OSTEST_RR_RUNS 10
+#  warning "Invalid value of CONFIG_EXAMPLES_OSTEST_RR_RUNS, using default value = 10"
+#endif
 
 /********************************************************************************
  * Private Functions
  ********************************************************************************/
 
 /********************************************************************************
- * Name: dosieve
+ * Name: get_primes
  *
  * Description
- *   This implements a "sieve of aristophanes" algorithm for finding prime number.
- *   Credit for this belongs to someone, but I am not sure who anymore.  Anyway,
- *   the only purpose here is that we need some algorithm that takes a long period 
- *   of time to execute.
- *
+ *   This function searches for prime numbers in the most primitive way possible.
  ********************************************************************************/
 
-static void dosieve(int *prime)
+static void get_primes(int *count, int *last)
 {
-  int a,d;
-  int i;
-  int j;
+  int number;
+  int local_count = 0;
+  *last = 0;    // to make compiler happy
 
-  a = 2;
-  d = a;
+  for (number = 1; number < CONFIG_EXAMPLES_OSTEST_RR_RANGE; number++)
+  {
+    int div;
+    bool is_prime = true;
 
-  for (i = 0; i < CONFIG_NINTEGERS; i++)
+    for (div = 2; div <= number / 2; div++)
+      if (number % div == 0)
+      {
+        is_prime = false;
+        break;
+      }
+
+    if (is_prime)
     {
-      prime[i] = i+2;
-    }
-
-  for (i = 1; i < 10; i++)
-    {
-      for (j = 0; j < CONFIG_NINTEGERS; j++)
-        {
-          d = a + d;
-          if (d < CONFIG_NINTEGERS)
-            {
-              prime[d]=0;
-            }
-        }
-      a++;
-      d = a;
-      i++;
-    }
-
+      local_count++;
+      *last = number;
 #if 0 /* We don't really care what the numbers are */
-  for (i = 0, j= 0; i < CONFIG_NINTEGERS; i++)
-    {
-      if (prime[i] != 0)
-       {
-         printf(" Prime %d: %d\n", j, prime[i]);
-         j++;
-       }
-    }
+      printf(" Prime %d: %d\n", local_count, number);
 #endif
+    }
+  }
+
+  *count = local_count;
 }
 
 /********************************************************************************
- * Name: sieve1
+ * Name: get_primes_thread
  ********************************************************************************/
 
-static void *sieve1(void *parameter)
+static void *get_primes_thread(void *parameter)
 {
-  int i;
+  int id = (int)parameter;
+  int i, count, last;
 
-  printf("sieve1 started\n");
+  printf("get_primes_thread id=%d started, looking for primes < %d, doing %d run(s)\n",
+         id, CONFIG_EXAMPLES_OSTEST_RR_RANGE, CONFIG_EXAMPLES_OSTEST_RR_RUNS);
 
-  for (i = 0; i < 1000; i++)
+  for (i = 0; i < CONFIG_EXAMPLES_OSTEST_RR_RUNS; i++)
     {
-      dosieve(prime1);
+      get_primes(&count, &last);
     }
 
-  printf("sieve1 finished\n");
-
-  pthread_exit(NULL);
-  return NULL; /* To keep some compilers happy */
-}
-
-/********************************************************************************
- * Name: sieve2
- ********************************************************************************/
-
-static void *sieve2(void *parameter)
-{
-  int i;
-
-  printf("sieve2 started\n");
-
-  for (i = 0; i < 1000; i++)
-    {
-      dosieve(prime2);
-    }
-
-  printf("sieve2 finished\n");
+  printf("get_primes_thread id=%d finished, found %d primes, last one was %d\n",
+         id, count, last);
 
   pthread_exit(NULL);
   return NULL; /* To keep some compilers happy */
@@ -171,14 +144,13 @@ static void *sieve2(void *parameter)
 
 void rr_test(void)
 {
-  pthread_t sieve1_thread;
-  pthread_t sieve2_thread;
+  pthread_t get_primes1_thread;
+  pthread_t get_primes2_thread;
   struct sched_param sparam;
   pthread_attr_t attr;
   pthread_addr_t result;
   int status;
 
-  printf("rr_test: Starting sieve1 thread \n");
   status = pthread_attr_init(&attr);
   if (status != OK)
     {
@@ -203,29 +175,31 @@ void rr_test(void)
     }
   else
     {
-      printf("rr_test: Set thread policty to SCHED_RR\n");
+      printf("rr_test: Set thread policy to SCHED_RR\n");
     }
 
-  status = pthread_create(&sieve1_thread, &attr, sieve1, NULL);
+  printf("rr_test: Starting first get_primes_thread\n");
+
+  status = pthread_create(&get_primes1_thread, &attr, get_primes_thread, (void*)1);
   if (status != 0)
     {
       printf("rr_test: Error in thread 1 creation, status=%d\n",  status);
     }
 
-  printf("rr_test: Starting sieve1 thread \n");
+  printf("rr_test: Starting second get_primes_thread\n");
 
-  status = pthread_create(&sieve2_thread, &attr, sieve2, NULL);
+  status = pthread_create(&get_primes2_thread, &attr, get_primes_thread, (void*)2);
   if (status != 0)
     {
       printf("rr_test: Error in thread 2 creation, status=%d\n",  status);
     }
 
-  printf("rr_test: Waiting for sieves to complete -- this should take awhile\n");
+  printf("rr_test: Waiting for threads to complete -- this should take awhile\n");
   printf("rr_test: If RR scheduling is working, they should start and complete at\n");
   printf("rr_test: about the same time\n");
 
-  pthread_join(sieve2_thread, &result);
-  pthread_join(sieve1_thread, &result);
+  pthread_join(get_primes2_thread, &result);
+  pthread_join(get_primes1_thread, &result);
   printf("rr_test: Done\n");
 }
 

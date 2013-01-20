@@ -1,0 +1,51 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+comment "ARMV7M Configuration Options"
+
+choice
+	prompt "Toolchain Selection"
+	default ARMV7M_TOOLCHAIN_CODESOURCERYW if HOST_WINDOWS
+	default ARMV7M_TOOLCHAIN_GNU_EABI if !HOST_WINDOWS
+
+config ARMV7M_TOOLCHAIN_ATOLLIC
+	bool "Atollic Lite/Pro for Windows"
+	depends on HOST_WINDOWS
+
+config ARMV7M_TOOLCHAIN_BUILDROOT
+	bool "Buildroot (Cygwin or Linux)"
+	depends on !WINDOWS_NATIVE
+
+config ARMV7M_TOOLCHAIN_CODEREDL
+	bool "CodeRed for Linux"
+	depends on HOST_LINUX
+
+config ARMV7M_TOOLCHAIN_CODEREDW
+	bool "CodeRed for Windows"
+	depends on HOST_WINDOWS
+
+config ARMV7M_TOOLCHAIN_CODESOURCERYL
+	bool "CodeSourcery GNU toolchain under Linux"
+	depends on HOST_LINUX
+
+config ARMV7M_TOOLCHAIN_CODESOURCERYW
+	bool "CodeSourcery GNU toolchain under Windows"
+	depends on HOST_WINDOWS
+
+config ARMV7M_TOOLCHAIN_DEVKITARM
+	bool "devkitARM GNU toolchain"
+	depends on HOST_WINDOWS
+
+config ARMV7M_TOOLCHAIN_GNU_EABI
+	bool "Generic GNU EABI toolchain"
+	---help---
+		This option should work for any modern GNU toolchain (GCC 4.5 or newer)
+		configured for arm-none-eabi.
+
+config ARMV7M_TOOLCHAIN_RAISONANCE
+	bool "STMicro Raisonance for Windows"
+	depends on HOST_WINDOWS
+
+endchoice

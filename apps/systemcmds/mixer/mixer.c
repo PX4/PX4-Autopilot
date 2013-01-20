@@ -43,14 +43,17 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <ctype.h>
+#include <nuttx/compiler.h>
 
+#include <systemlib/err.h>
 #include <drivers/drv_mixer.h>
 #include <uORB/topics/actuator_controls.h>
 
 __EXPORT int mixer_main(int argc, char *argv[]);
 
-static void	usage(const char *reason);
-static void	load(const char *devname, const char *fname);
+static void	usage(const char *reason) noreturn_function;
+static void	load(const char *devname, const char *fname) noreturn_function;
 
 int
 mixer_main(int argc, char *argv[])
@@ -63,12 +66,9 @@ mixer_main(int argc, char *argv[])
 			usage("missing device or filename");
 
 		load(argv[2], argv[3]);
-
-	} else {
-		usage("unrecognised command");
 	}
 
-	return 0;
+	usage("unrecognised command");
 }
 
 static void
@@ -79,34 +79,58 @@ usage(const char *reason)
 
 	fprintf(stderr, "usage:\n");
 	fprintf(stderr, "  mixer load <device> <filename>\n");
-	/* XXX automatic setups for quad, etc. */
+	/* XXX other useful commands? */
 	exit(1);
 }
 
 static void
 load(const char *devname, const char *fname)
 {
-	int		dev = -1;
-	int		ret, result = 1;
+	int		dev;
+	FILE		*fp;
+	char		line[80];
+	char		buf[512];
 
 	/* open the device */
-	if ((dev = open(devname, 0)) < 0) {
-		fprintf(stderr, "can't open %s\n", devname);
-		goto out;
+	if ((dev = open(devname, 0)) < 0)
+		err(1, "can't open %s\n", devname);
+
+	/* reset mixers on the device */
+	if (ioctl(dev, MIXERIOCRESET, 0))
+		err(1, "can't reset mixers on %s", devname);
+
+	/* open the mixer definition file */
+	fp = fopen(fname, "r");
+	if (fp == NULL)
+		err(1, "can't open %s", fname);
+
+	/* read valid lines from the file into a buffer */
+	buf[0] = '\0';
+	for (;;) {
+
+		/* get a line, bail on error/EOF */
+		line[0] = '\0';
+		if (fgets(line, sizeof(line), fp) == NULL)
+			break;
+
+		/* if the line doesn't look like a mixer definition line, skip it */
+		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':'))
+			continue;
+
+		/* XXX an optimisation here would be to strip extra whitespace */
+
+		/* if the line is too long to fit in the buffer, bail */
+		if ((strlen(line) + strlen(buf) + 1) >= sizeof(buf))
+			break;
+
+		/* add the line to the buffer */
+		strcat(buf, line);
 	}
 
-	/* tell it to load the file */
-	ret = ioctl(dev, MIXERIOCLOADFILE, (unsigned long)fname);
+	/* XXX pass the buffer to the device */
+	int ret = ioctl(dev, MIXERIOCLOADBUF, (unsigned long)buf);
 
-	if (ret != 0) {
-		fprintf(stderr, "failed loading %s\n", fname);
-	}
-
-	result = 0;
-out:
-
-	if (dev != -1)
-		close(dev);
-
-	exit(result);
+	if (ret < 0)
+		err(1, "error loading mixers from %s", fname);
+	exit(0);
 }

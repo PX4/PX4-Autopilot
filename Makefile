@@ -28,12 +28,8 @@ UPLOADER		 = $(PX4BASE)/Tools/px_uploader.py
 # What are we currently configured for?
 #
 CONFIGURED		 = $(PX4BASE)/.configured
-ifeq ($(wildcard $(CONFIGURED)),)
-# the $(CONFIGURED) target will make this a reality before building
-export TARGET		 = px4fmu
-$(shell echo $(TARGET) > $(CONFIGURED))
-else
-export TARGET		 = $(shell cat $(CONFIGURED))
+ifneq ($(wildcard $(CONFIGURED)),)
+export TARGET		:= $(shell cat $(CONFIGURED))
 endif
 
 #
@@ -59,12 +55,13 @@ $(FIRMWARE_BUNDLE):	$(FIRMWARE_BINARY) $(MKFW) $(FIRMWARE_PROTOTYPE)
 	@$(MKFW) --prototype $(FIRMWARE_PROTOTYPE) \
 		--git_identity $(PX4BASE) \
 		--image $(FIRMWARE_BINARY) > $@
+
 #
 # Build the firmware binary.
 #
 .PHONY:			$(FIRMWARE_BINARY)
-$(FIRMWARE_BINARY):	configure_$(TARGET) setup_$(TARGET)
-	@echo Building $@
+$(FIRMWARE_BINARY):	setup_$(TARGET) configure-check
+	@echo Building $@ for $(TARGET)
 	@make -C $(NUTTX_SRC) -r $(MQUIET) all
 	@cp $(NUTTX_SRC)/nuttx.bin $@
 
@@ -73,18 +70,25 @@ $(FIRMWARE_BINARY):	configure_$(TARGET) setup_$(TARGET)
 # and makes it current.
 #
 configure_px4fmu:
-ifneq ($(TARGET),px4fmu)
+	@echo Configuring for px4fmu
 	@make -C $(PX4BASE) distclean
-endif
 	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4fmu/nsh
 	@echo px4fmu > $(CONFIGURED)
 
 configure_px4io:
-ifneq ($(TARGET),px4io)
+	@echo Configuring for px4io
 	@make -C $(PX4BASE) distclean
-endif
 	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4io/io
 	@echo px4io > $(CONFIGURED)
+
+configure-check:
+ifeq ($(wildcard $(CONFIGURED)),)
+	@echo
+	@echo "Not configured - use 'make configure_px4fmu' or 'make configure_px4io' first"
+	@echo
+	@exit 1
+endif
+
 
 #
 # Per-configuration additional targets
@@ -95,6 +99,9 @@ setup_px4fmu:
 	@make -C $(ROMFS_SRC) all
 
 setup_px4io:
+
+# fake target to make configure-check happy if TARGET is not set
+setup_:
 
 #
 # Firmware uploading.

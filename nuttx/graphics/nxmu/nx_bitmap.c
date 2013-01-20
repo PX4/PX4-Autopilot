@@ -100,6 +100,8 @@ int nx_bitmap(NXWINDOW hwnd, FAR const struct nxgl_rect_s *dest,
   FAR struct nxbe_window_s *wnd = (FAR struct nxbe_window_s *)hwnd;
   struct nxsvrmsg_bitmap_s outmsg;
   int i;
+  int ret;
+  sem_t sem_done;
 
 #ifdef CONFIG_DEBUG
   if (!wnd || !dest || !src || !origin)
@@ -124,7 +126,32 @@ int nx_bitmap(NXWINDOW hwnd, FAR const struct nxgl_rect_s *dest,
   outmsg.origin.y   = origin->y;
   nxgl_rectcopy(&outmsg.dest, dest);
 
+  
+  /* Create a semaphore for tracking command completion */
+
+  outmsg.sem_done = &sem_done;
+  ret = sem_init(&sem_done, 0, 0);
+  
+  if (ret != OK)
+    {
+      gdbg("sem_init failed: %d\n", errno);
+      return ret;
+    }
+  
   /* Forward the fill command to the server */
 
-  return nxmu_sendwindow(wnd, &outmsg, sizeof(struct nxsvrmsg_bitmap_s));
+  ret = nxmu_sendwindow(wnd, &outmsg, sizeof(struct nxsvrmsg_bitmap_s));
+  
+  /* Wait that the command is completed, so that caller can release the buffer. */
+  
+  if (ret == OK)
+    {
+      ret = sem_wait(&sem_done);
+    }
+  
+  /* Destroy the semaphore and return. */
+  
+  sem_destroy(&sem_done);
+  
+  return ret;
 }
