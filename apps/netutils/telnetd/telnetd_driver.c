@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/netutils/telnetd_driver.c
  *
- *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * This is a leverage of similar logic from uIP which has a compatible BSD
@@ -592,6 +592,13 @@ static ssize_t telnetd_read(FAR struct file *filep, FAR char *buffer, size_t len
         }
     }
   while (ret == 0);
+
+  /* Return:
+   *
+   * ret > 0:  The number of characters copied into the user buffer by
+   *           telnetd_receive().
+   * ret <= 0: Loss of connection or error events reported by recv().
+   */
 
   return ret;
 }

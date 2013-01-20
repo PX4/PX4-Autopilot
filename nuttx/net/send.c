@@ -227,6 +227,8 @@ static uint16_t send_interrupt(struct uip_driver_s *dev, void *pvconn,
       /* Report not connected */
 
       nllvdbg("Lost connection\n");
+
+      net_lostconnection(pstate->snd_sock, flags);
       pstate->snd_sent = -ENOTCONN;
       goto end_wait;
     }
@@ -275,10 +277,13 @@ static uint16_t send_interrupt(struct uip_driver_s *dev, void *pvconn,
        *   3. Not enough data for two packets.
        *
        * Then we will split the remaining, single packet into two partial
-       * packets.  This will stimulate the RFC 1122 not into ACKing sooner.
+       * packets.  This will stimulate the RFC 1122 peer to ACK sooner.
        *
-       * Check if there is more data to be sent (more than or equal to
-       * CONFIG_NET_TCP_SPLIT_SIZE):
+       * Don't try to split very small packets (less than CONFIG_NET_TCP_SPLIT_SIZE).
+       * Only the first even packet and the last odd packets could have
+       * sndlen less than CONFIG_NET_TCP_SPLIT_SIZE.  The value of sndlen on
+       * the last even packet is guaranteed to be at least MSS/2 by the
+       * logic below.
        */
 
       if (sndlen >= CONFIG_NET_TCP_SPLIT_SIZE)

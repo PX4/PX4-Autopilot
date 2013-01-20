@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/net_monitor.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,7 +67,6 @@ static void connection_event(struct uip_conn *conn, uint16_t flags);
  *   Some connection related event has occurred
  *
  * Parameters:
- *   dev      The sructure of the network driver that caused the interrupt
  *   conn     The connection structure associated with the socket
  *   flags    Set of events describing why the callback was invoked
  *
@@ -79,7 +78,7 @@ static void connection_event(struct uip_conn *conn, uint16_t flags);
  *
  ****************************************************************************/
 
-static void connection_event(struct uip_conn *conn, uint16_t flags)
+static void connection_event(FAR struct uip_conn *conn, uint16_t flags)
 {
   FAR struct socket *psock = (FAR struct socket *)conn->connection_private;
 
@@ -87,37 +86,11 @@ static void connection_event(struct uip_conn *conn, uint16_t flags)
     {
       nllvdbg("flags: %04x s_flags: %02x\n", flags, psock->s_flags);
 
-      /* These loss-of-connection events may be reported:
-       *
-       *   UIP_CLOSE: The remote host has closed the connection
-       *   UIP_ABORT: The remote host has aborted the connection
-       *   UIP_TIMEDOUT: Connection aborted due to too many retransmissions.
-       *
-       * And we need to set these two socket status bits appropriately:
-       *
-       *  _SF_CONNECTED==1 && _SF_CLOSED==0 - the socket is connected
-       *  _SF_CONNECTED==0 && _SF_CLOSED==1 - the socket was gracefully disconnected
-       *  _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was rudely disconnected
-       */
+      /* UIP_CLOSE, UIP_ABORT, or UIP_TIMEDOUT: Loss-of-connection events */
 
-      if ((flags & UIP_CLOSE) != 0)
+      if ((flags & (UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT)) != 0)
         {
-          /* The peer gracefully closed the connection.  Marking the
-           * connection as disconnected will suppress some subsequent
-           * ENOTCONN errors from receive.  A graceful disconnection is
-           * not handle as an error but as an "end-of-file"
-           */
-
-          psock->s_flags &= ~_SF_CONNECTED;
-          psock->s_flags |= _SF_CLOSED;
-        }
-      else if ((flags & (UIP_ABORT|UIP_TIMEDOUT)) != 0)
-        {
-          /* The loss of connection was less than graceful.  This will (eventually)
-           * be reported as an ENOTCONN error.
-           */
-
-          psock->s_flags &= ~(_SF_CONNECTED |_SF_CLOSED);
+          net_lostconnection(psock, flags);
         }
 
       /* UIP_CONNECTED: The socket is successfully connected */
@@ -182,6 +155,62 @@ void net_stopmonitor(FAR struct uip_conn *conn)
 
   conn->connection_private = NULL;
   conn->connection_event   = NULL;
+}
+
+/****************************************************************************
+ * Name: net_lostconnection
+ *
+ * Description:
+ *   Called when a loss-of-connection event has occurred.
+ *
+ * Parameters:
+ *   psock    The TCP socket structure associated.
+ *   flags    Set of connection events events
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   Running at the interrupt level
+ *
+ ****************************************************************************/
+
+void net_lostconnection(FAR struct socket *psock, uint16_t flags)
+{
+  DEBUGASSERT(psock)
+
+  /* These loss-of-connection events may be reported:
+   *
+   *   UIP_CLOSE: The remote host has closed the connection
+   *   UIP_ABORT: The remote host has aborted the connection
+   *   UIP_TIMEDOUT: Connection aborted due to too many retransmissions.
+   *
+   * And we need to set these two socket status bits appropriately:
+   *
+   *  _SF_CONNECTED==1 && _SF_CLOSED==0 - the socket is connected
+   *  _SF_CONNECTED==0 && _SF_CLOSED==1 - the socket was gracefully disconnected
+   *  _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was rudely disconnected
+   */
+
+  if ((flags & UIP_CLOSE) != 0)
+    {
+      /* The peer gracefully closed the connection.  Marking the
+       * connection as disconnected will suppress some subsequent
+       * ENOTCONN errors from receive.  A graceful disconnection is
+       * not handle as an error but as an "end-of-file"
+       */
+
+      psock->s_flags &= ~_SF_CONNECTED;
+      psock->s_flags |= _SF_CLOSED;
+    }
+  else if ((flags & (UIP_ABORT|UIP_TIMEDOUT)) != 0)
+    {
+      /* The loss of connection was less than graceful.  This will (eventually)
+       * be reported as an ENOTCONN error.
+       */
+
+      psock->s_flags &= ~(_SF_CONNECTED |_SF_CLOSED);
+    }
 }
 
 #endif /* CONFIG_NET && CONFIG_NET_TCP */
