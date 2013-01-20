@@ -558,6 +558,8 @@ static ssize_t telnetd_read(FAR struct file *filep, FAR char *buffer, size_t len
     {
       if (priv->td_pending > 0)
         {
+          /* Process the buffered telnet data */
+
           FAR const char *src = &priv->td_rxbuffer[priv->td_offset];
           ret = telnetd_receive(priv, src, priv->td_pending, buffer, len);
         }
@@ -568,13 +570,25 @@ static ssize_t telnetd_read(FAR struct file *filep, FAR char *buffer, size_t len
         {
           ret = psock_recv(&priv->td_psock, priv->td_rxbuffer,
                           CONFIG_TELNETD_RXBUFFER_SIZE, 0);
+
+          /* Did we receive anything? */
+
           if (ret > 0)
             {
-              /* Process the received telnet data */
+              /* Yes.. Process the newly received telnet data */
 
               telnetd_dumpbuffer("Received buffer", priv->td_rxbuffer, ret);
               ret = telnetd_receive(priv, priv->td_rxbuffer, ret, buffer, len);
            }
+
+          /* Otherwise the peer closed the connection (ret == 0) or an error
+           * occurred (ret < 0).
+           */
+
+          else
+            {
+              break;
+            }
         }
     }
   while (ret == 0);
@@ -746,7 +760,7 @@ FAR char *telnetd_driver(int sd, FAR struct telnetd_s *daemon)
    * instance resided in the daemon's socket array).
    */
 
-  psock =  sockfd_socket(sd);
+  psock = sockfd_socket(sd);
   if (!psock)
     {
       nlldbg("Failed to convert sd=%d to a socket structure\n", sd);

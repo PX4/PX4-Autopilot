@@ -490,3 +490,5 @@
 	* apps/builtin/: Extensions from Mike Smith.
 	* apps/examples/ftpd/Makefile: Name ftpd_start is not the name of
 	  the entrypoint.  Should be ftpd_main (from Yan T.)
+	* apps/netutils/telnetd/telnetd_driver: Was stuck in a loop if
+	  recv[from]() ever returned a value <= 0.

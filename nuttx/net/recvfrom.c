@@ -571,40 +571,47 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
            *     gracefully disconnected
            *   _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was
            *     rudely disconnected
-           *
-           * These flag settings are probably not necessary if
-           * CONFIG_NET_TCP_RECVDELAY == 0; in that case we know that
-           * pstate->rf_recvlen == 0 and we will always return -ENOTCONN.
            */
 
           psock = pstate->rf_sock;
           if ((flags & UIP_CLOSE) != 0)
             {
+              /* Report that the connection was gracefully closed */
+
               psock->s_flags &= ~_SF_CONNECTED;
               psock->s_flags |= _SF_CLOSED;
-            }
-          else
-            {
-              psock->s_flags &= ~(_SF_CONNECTED |_SF_CLOSED);
-            }
 
-          /* If no data has been received, then return ENOTCONN.
-           * Otherwise, let this return success.  The failure will
-           * be reported the next time that recv[from]() is called.
-           */
+              /* This case should always return success (zero)! The value of
+               * rf_recvlen, if zero, will indicate that the connection was
+               * gracefully closed.
+               */
 
-#if CONFIG_NET_TCP_RECVDELAY > 0
-          if (pstate->rf_recvlen > 0)
-            {
               pstate->rf_result = 0;
             }
           else
             {
-              pstate->rf_result = -ENOTCONN;
-            }
+              /* Report that the connection was rudely lost */
+
+              psock->s_flags &= ~(_SF_CONNECTED |_SF_CLOSED);
+
+              /* If no data has been received, then return ENOTCONN.
+               * Otherwise, let this return success.  The failure will
+               * be reported the next time that recv[from]() is called.
+               */
+
+#if CONFIG_NET_TCP_RECVDELAY > 0
+              if (pstate->rf_recvlen > 0)
+                {
+                  pstate->rf_result = 0;
+                }
+              else
+                {
+                  pstate->rf_result = -ENOTCONN;
+                }
 #else
-          pstate->rf_result = -ENOTCONN;
+              pstate->rf_result = -ENOTCONN;
 #endif
+            }
 
           /* Wake up the waiting thread */
 

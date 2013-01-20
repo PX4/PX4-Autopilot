@@ -3993,3 +3993,6 @@
 	  (gracefully).  recv[from]() returned success and the closure
 	  was never detected.  Hmmm.. I don't know why the network monitor
 	  did not catch this event.  This is an important bug fix.
+	* net/recvfrom():  Fix a introduced with the last bugfix.  If
+	  the peer does an orderly closure of the socket, report 0 not
+	  -ENOTCONN
