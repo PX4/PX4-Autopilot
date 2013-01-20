@@ -69,6 +69,16 @@ else
 	fi
 fi
 
+# if this is an APM build then there will be a rc.APM script
+# from an EXTERNAL_SCRIPTS build option
+if [ -f /etc/init.d/rc.APM ]
+then
+	echo Running rc.APM
+	# if APM startup is successful then nsh will exit
+	sh /etc/init.d/rc.APM
+fi
+
+
 #
 # If we are still in flight mode, work out what airframe 
 # configuration we have and start up accordingly.
