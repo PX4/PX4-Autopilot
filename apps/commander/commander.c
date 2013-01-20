@@ -1694,7 +1694,7 @@ int commander_thread_main(int argc, char *argv[])
 			 * the system is currently not armed, set home
 			 * position to the current position.
 			 */
-			if (gps_position.fix_type == GPS_FIX_TYPE_3D && (hdop < dop_threshold_m)
+			if (gps_position.fix_type == GPS_FIX_TYPE_3D && (hdop_m < dop_threshold_m)
 				&& (vdop_m < dop_threshold_m)
 				&& !home_position_set
 				&& (hrt_absolute_time() - gps_position.timestamp < 2000000)
