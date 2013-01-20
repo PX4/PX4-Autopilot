@@ -316,7 +316,7 @@ BMA180::init()
 	modify_reg(ADDR_OFFSET_T, OFFSET_T_READOUT_12BIT, 0);
 
 	/* disable shadow-disable mode */
-	//modify_reg(ADDR_GAIN_Y, GAIN_Y_SHADOW_DIS, 0);
+	modify_reg(ADDR_GAIN_Y, GAIN_Y_SHADOW_DIS, 0);
 
 	/* disable writing to chip config */
 	modify_reg(ADDR_CTRL_REG0, REG0_WRITE_ENABLE, 0);
@@ -719,9 +719,9 @@ BMA180::measure()
 	report->z_raw = ((read_reg(ADDR_ACC_X_LSB + 4) | ((int16_t)read_reg(ADDR_ACC_X_LSB + 5)) << 8)); // XXX PX4DEV raw_report.z;
 
 	/* discard two non-value bits in the 16 bit measurement */
-	report->x_raw = (report->x_raw / 4);
-	report->y_raw = (report->y_raw / 4);
-	report->z_raw = (report->z_raw / 4);
+	report->x_raw = (report->x_raw & (1 << 15)) ? (report->x_raw >> 2) | (int16_t)(3 << 14) : (report->x_raw >> 2);
+	report->y_raw = (report->y_raw & (1 << 15)) ? (report->y_raw >> 2) | (int16_t)(3 << 14) : (report->y_raw >> 2);
+	report->z_raw = (report->z_raw & (1 << 15)) ? (report->z_raw >> 2) | (int16_t)(3 << 14) : (report->z_raw >> 2);
 
 	/* invert y axis, due to 14 bit data no overflow can occur in the negation */
 	report->y_raw = -report->y_raw;
