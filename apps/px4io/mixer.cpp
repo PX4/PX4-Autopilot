@@ -100,7 +100,6 @@ mixer_tick(void)
 		/* too many frames without FMU input, time to go to failsafe */
 		system_state.mixer_manual_override = true;
 		system_state.mixer_fmu_available = false;
-		lib_lowprintf("RX timeout\n");
 	}
 
 	/*
