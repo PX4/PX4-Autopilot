@@ -1307,11 +1307,11 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
       }
       break;
 
-    /* Set RS485 mode */
-    case TIOCSRS485:
+    /* Set single-wire mode */
+    case TIOCSSINGLEWIRE:
       {
        /* Change the TX port to be open-drain/push-pull */
-        if (arg == SER_RS485_ENABLED) {
+        if (arg == SER_SINGLEWIRE_ENABLED) {
           stm32_configgpio(priv->tx_gpio | GPIO_OPENDRAIN);
         } else {
           stm32_configgpio(priv->tx_gpio | GPIO_PUSHPULL);
@@ -1319,7 +1319,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
 
         /* Enable/disable half-duplex mode */
         uint32_t cr = up_serialin(priv, STM32_USART_CR3_OFFSET);
-        if (arg == SER_RS485_ENABLED) {
+        if (arg == SER_SINGLEWIRE_ENABLED) {
           cr |= (USART_CR3_HDSEL);
         } else {
           cr &= ~(USART_CR3_HDSEL);

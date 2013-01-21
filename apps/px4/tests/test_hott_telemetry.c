@@ -143,7 +143,7 @@ int test_hott_telemetry(int argc, char *argv[])
 	}
 
 	/* Activate single wire mode */
-	ioctl(fd, TIOCSRS485, SER_RS485_ENABLED);
+	ioctl(fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 
 	char send = 'a';
 	write(fd, &send, 1);
@@ -223,7 +223,7 @@ int test_hott_telemetry(int argc, char *argv[])
 
 
 	/* Disable single wire */
-	ioctl(fd, TIOCSRS485, ~SER_RS485_ENABLED);
+	ioctl(fd, TIOCSSINGLEWIRE, ~SER_SINGLEWIRE_ENABLED);
 
 	write(fd, &send, 1);
 
