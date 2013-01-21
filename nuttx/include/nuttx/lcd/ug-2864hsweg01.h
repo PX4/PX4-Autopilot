@@ -1,5 +1,6 @@
 /**************************************************************************************
  * include/nuttx/lcd/ug-2864hsweg01.h
+ *
  * Driver for Univision UG-2864HSWEG01 OLED display (wih SSD1306 controller) in SPI
  * mode
  *
