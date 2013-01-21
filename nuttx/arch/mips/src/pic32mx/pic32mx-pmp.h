@@ -157,7 +157,8 @@
 #  define PMP_MODE_MODE_SLAVE      (1 << PMP_MODE_MODE_SHIFT) /* Enhanced slave mode */
 #  define PMP_MODE_MODE_MODE2      (2 << PMP_MODE_MODE_SHIFT) /* Master mode 2 */
 #  define PMP_MODE_MODE_MODE1      (3 << PMP_MODE_MODE_SHIFT) /* Master mode 1 */
-#define PMP_MODE_MODE16            (1 << 10) /* Bit 10: 8/16-bit mode */
+#define PMP_MODE_MODE16            (1 << 10) /* Bit 10: 1=16-bit mode */
+#define PMP_MODE_MODE8             (0)       /*         0=8-bit mode */
 #define PMP_MODE_INCM_SHIFT        (11)      /* Bits 11-12: Increment Mode */
 #define PMP_MODE_INCM_MASK         (3 << PMP_MODE_INCM_SHIFT)
 #  define PMP_MODE_INCM_NONE       (0 << PMP_MODE_INCM_SHIFT) /* No incr or decr of addr */

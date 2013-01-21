@@ -3996,3 +3996,8 @@
 	* net/recvfrom():  Fix a introduced with the last bugfix.  If
 	  the peer does an orderly closure of the socket, report 0 not
 	  -ENOTCONN
+	* configs/lm3s6965-ek/README.txt and tools/:  Add an OpenOCD
+	  configuration for the LM3S (from Jose Pablo Carballo).
+	* nuttx/lcd/hd4478ou.h and configs/pcblogic-pic32mx/src/up_lcd1602:
+	  Start of support of LCD1602 alphanumeric LCD.  I need a few
+	  more parts before I can finish integrating this one.

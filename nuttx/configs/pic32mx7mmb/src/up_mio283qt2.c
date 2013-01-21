@@ -138,7 +138,7 @@
 
 #define GPIO_LCD_RS   (GPIO_OUTPUT|GPIO_VALUE_ZERO|GPIO_PORTB|GPIO_PIN15)
 
- /* Debug ******************************************************************************/
+/* Debug ******************************************************************************/
 
 #ifdef CONFIG_DEBUG_LCD
 #  define lcddbg       dbg

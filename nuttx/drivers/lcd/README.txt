@@ -151,6 +151,12 @@ that makes then less re-usable:
       a TFT/Transmissive color LCD module with touch-screen, FTM280C12D,
       with integrated driver IC HX8346.
 
+  HX8347:
+
+    configs/pic32mx7mmb/src/up_mio283qt2.c.  This driver is for the MI0283QT-2
+      LCD from Multi-Inno Technology Co., Ltd. This LCD is based on the Himax
+      HX8347-D LCD controller.
+ 
   ILI93xx and Similar:
 
     configs/stm3210e-eval/src/up_lcd.c. This driver supports the following
@@ -171,10 +177,10 @@ that makes then less re-usable:
     configs/stm32f4discovery/src/up_ug2864hsweg01.c
     configs/zp214xpa/src/up_ug2864ambag01.c
 
-  Alphnumeric Displays:
+  Alphnumeric LCD Displays:
 
     configs/skp16c26/src/up_lcd.c.  Untested alphanumeric LCD driver.
-    configs/stm32f4discovery/src/up_lcd1602.c
+    configs/pcblogic-pic32/src/up_lcd1602.c
 
 graphics/
 =========
