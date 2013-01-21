@@ -290,7 +290,6 @@ void KalmanNav::updatePublications()
 
 	_att.R_valid = true;
 	_att.q_valid = true;
-	_att.counter = _navFrames;
 
 	// selectively update publications,
 	// do NOT call superblock do-all method

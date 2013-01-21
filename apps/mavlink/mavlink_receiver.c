@@ -511,7 +511,6 @@ handle_message(mavlink_message_t *msg)
 			hil_attitude.yawspeed = hil_state.yawspeed;
 
 			/* set timestamp and notify processes (broadcast) */
-			hil_attitude.counter++;
 			hil_attitude.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
 		}

@@ -3,7 +3,7 @@
  *
  * Code generation for function 'attitudeKalmanfilter'
  *
- * C source code generated on: Tue Oct 16 15:27:58 2012
+ * C source code generated on: Sat Jan 19 15:25:29 2013
  *
  */
 
@@ -26,8 +26,8 @@
  *   Number of bits:     char:   8    short:   16    int:  32
  *                       long:  32      native word size:  32
  *   Byte ordering: LittleEndian
- *   Signed integer division rounds to: Undefined
- *   Shift right on a signed integer as arithmetic shift: off
+ *   Signed integer division rounds to: Zero
+ *   Shift right on a signed integer as arithmetic shift: on
  *=======================================================================*/
 
 /*=======================================================================* 
