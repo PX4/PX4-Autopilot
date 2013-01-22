@@ -47,7 +47,7 @@
 #if defined(LPC176x)
 #  include "chip/lpc176x_pinconn.h"
 #elif defined(LPC178x)
-#  include "chip/lpc178x_pinconn.h"
+#  include "chip/lpc178x_iocon.h"
 #else
 #  error "Unrecognized LPC17xx family"
 #endif
