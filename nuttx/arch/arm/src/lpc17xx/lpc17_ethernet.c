@@ -104,11 +104,28 @@
 #endif
 
 /* If the user did not specify a priority for Ethernet interrupts, set the
- * interrupt priority to the maximum.
+ * interrupt priority to the maximum (unless CONFIG_ARMV7M_USEBASEPRI is
+ * defined, then set it to the maximum allowable priority).
  */
 
 #ifndef CONFIG_NET_PRIORITY
-#  define CONFIG_NET_PRIORITY NVIC_SYSH_PRIORITY_MAX
+#  ifdef CONFIG_ARMV7M_USEBASEPRI
+#    define CONFIG_NET_PRIORITY NVIC_SYSH_DISABLE_PRIORITY
+#  else
+#    define CONFIG_NET_PRIORITY NVIC_SYSH_PRIORITY_MAX
+#  endif
+#endif
+
+/* If the priority is set at the max (0) and CONFIG_ARMV7M_USEBASEPRI is
+ * defined, then silently drop the priority to NVIC_SYSH_DISABLE_PRIORITY.
+ * In this configuratin, nothing is permitted to run at priority zero
+ * except for the SVCALL handler.  NVIC_SYSH_DISABLE_PRIORITY is the
+ * maximum allowable priority in that case.
+ */
+
+#if CONFIG_NET_PRIORITY == 0 && defined(CONFIG_ARMV7M_USEBASEPRI)
+#  undef CONFIG_NET_PRIORITY
+#  define CONFIG_NET_PRIORITY NVIC_SYSH_DISABLE_PRIORITY
 #endif
 
 /* Debug Configuration *****************************************************/
