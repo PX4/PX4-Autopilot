@@ -2,7 +2,7 @@
  * arch/arm/src/lpc17/lpc17_irq.c
  * arch/arm/src/chip/lpc17_irq.c
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010-2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -190,6 +190,35 @@ static int lpc17_reserved(int irq, FAR void *context)
 #endif
 
 /****************************************************************************
+ * Name: up_prioritize_irq
+ *
+ * Description:
+ *   Set the priority of an exception.  This function may be needed
+ *   internally even if support for prioritized interrupts is not enabled.
+ *
+ ****************************************************************************/
+
+#if !defined(CONFIG_ARCH_IRQPRIO) && defined(CONFIG_ARMV7M_USEBASEPRI)
+static int up_prioritize_irq(int irq, int priority)
+{
+  uint32_t regaddr;
+  uint32_t regval;
+  int shift;
+
+  irq        -= 4;
+  regaddr     = NVIC_SYSH_PRIORITY(irq);
+  regval      = getreg32(regaddr);
+  shift       = ((irq & 3) << 3);
+  regval     &= ~(0xff << shift);
+  regval     |= (priority << shift);
+  putreg32(regval, regaddr);
+
+  stm32_dumpnvic("prioritize", irq);
+  return OK;
+}
+#endif
+
+/****************************************************************************
  * Name: lpc17_irqinfo
  *
  * Description:
@@ -304,6 +333,9 @@ void up_irqinitialize(void)
 
 #ifdef CONFIG_ARCH_IRQPRIO
 /* up_prioritize_irq(LPC17_IRQ_PENDSV, NVIC_SYSH_PRIORITY_MIN); */
+#endif
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+   up_prioritize_irq(LPC17_IRQ_SVCALL, NVIC_SYSH_SVCALL_PRIORITY);
 #endif
 
   /* If the MPU is enabled, then attach and enable the Memory Management
@@ -448,7 +480,14 @@ int up_prioritize_irq(int irq, int priority)
   uint32_t regval;
   int shift;
 
-  DEBUGASSERT(irq >= LPC17_IRQ_MEMFAULT && irq < LPC17_IRQ_NIRQS && (unsigned)priority <= NVIC_SYSH_PRIORITY_MIN);
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  DEBUGASSERT(irq >= LPC17_IRQ_MEMFAULT && irq < LPC17_IRQ_NIRQS &&
+              priority >= NVIC_SYSH_DISABLE_PRIORITY &&
+              priority <= NVIC_SYSH_PRIORITY_MIN);
+#else
+  DEBUGASSERT(irq >= LPC17_IRQ_MEMFAULT && irq < LPC17_IRQ_NIRQS &&
+              (unsigned)priority <= NVIC_SYSH_PRIORITY_MIN);
+#endif
 
   if (irq < LPC17_IRQ_EXTINT)
     {

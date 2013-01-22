@@ -51,22 +51,6 @@
  * to handle mapping tables.
  */
 
-/* Processor Exceptions (vectors 0-15) */
-
-#define LM_IRQ_RESERVED     (0) /* Reserved vector (only used with CONFIG_DEBUG) */
-                                /* Vector  0: Reset stack pointer value */
-                                /* Vector  1: Reset (not handler as an IRQ) */
-#define LM_IRQ_NMI          (2) /* Vector  2: Non-Maskable Interrupt (NMI) */
-#define LM_IRQ_HARDFAULT    (3) /* Vector  3: Hard fault */
-#define LM_IRQ_MEMFAULT     (4) /* Vector  4: Memory management (MPU) */
-#define LM_IRQ_BUSFAULT     (5) /* Vector  5: Bus fault */
-#define LM_IRQ_USAGEFAULT   (6) /* Vector  6: Usage fault */
-#define LM_IRQ_SVCALL      (11) /* Vector 11: SVC call */
-#define LM_IRQ_DBGMONITOR  (12) /* Vector 12: Debug Monitor */
-                                /* Vector 13: Reserved */
-#define LM_IRQ_PENDSV      (14) /* Vector 14: Pendable system service request */
-#define LM_IRQ_SYSTICK     (15) /* Vector 15: System tick */
-
 /* External interrupts (vectors >= 16) */
 
 #define LM_IRQ_INTERRUPTS  (16) /* Vector number of the first external interrupt */

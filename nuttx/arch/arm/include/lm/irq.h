@@ -43,6 +43,26 @@
 #include <nuttx/config.h>
 #include <nuttx/irq.h>
 
+/************************************************************************************
+ * Pre-processor Definitions
+ ************************************************************************************/
+
+/* Processor Exceptions (vectors 0-15) */
+
+#define LM_IRQ_RESERVED     (0) /* Reserved vector (only used with CONFIG_DEBUG) */
+                                /* Vector  0: Reset stack pointer value */
+                                /* Vector  1: Reset (not handler as an IRQ) */
+#define LM_IRQ_NMI          (2) /* Vector  2: Non-Maskable Interrupt (NMI) */
+#define LM_IRQ_HARDFAULT    (3) /* Vector  3: Hard fault */
+#define LM_IRQ_MEMFAULT     (4) /* Vector  4: Memory management (MPU) */
+#define LM_IRQ_BUSFAULT     (5) /* Vector  5: Bus fault */
+#define LM_IRQ_USAGEFAULT   (6) /* Vector  6: Usage fault */
+#define LM_IRQ_SVCALL      (11) /* Vector 11: SVC call */
+#define LM_IRQ_DBGMONITOR  (12) /* Vector 12: Debug Monitor */
+                                /* Vector 13: Reserved */
+#define LM_IRQ_PENDSV      (14) /* Vector 14: Pendable system service request */
+#define LM_IRQ_SYSTICK     (15) /* Vector 15: System tick */
+
 #if defined(CONFIG_ARCH_CHIP_LM3S)
 #  include <arch/lm/lm3s_irq.h>
 #elif defined(CONFIG_ARCH_CHIP_LM4F)
@@ -50,10 +70,6 @@
 #else
 #  error "Unsupported Stellaris IRQ file"
 #endif
-
-/************************************************************************************
- * Pre-processor Definitions
- ************************************************************************************/
 
 /* GPIO IRQs -- Note that support for individual GPIO ports can
  * be disabled in order to reduce the size of the implemenation.

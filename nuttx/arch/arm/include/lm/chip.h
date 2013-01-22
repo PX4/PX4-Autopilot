@@ -108,6 +108,20 @@
 #  error "Capabilities not specified for this Stellaris chip"
 #endif
 
+/* The LM3S69xx only supports 8 priority levels.  The hardware priority mechanism
+ * will only look at the upper N bits of the 8-bit priority level (where N is 3 for
+ * the Stellaris family), so any prioritization must be performed in those bits.
+ * The default priority level is set to the middle value
+ */
+
+#define NVIC_SYSH_PRIORITY_MIN     0xe0 /* Bits [5:7] set in minimum priority */
+#define NVIC_SYSH_PRIORITY_DEFAULT 0x80 /* Midpoint is the default */
+#define NVIC_SYSH_PRIORITY_MAX     0x00 /* Zero is maximum priority */
+#define NVIC_SYSH_PRIORITY_STEP    0x20 /* Three bits of interrupt priority used */
+
+#define NVIC_SYSH_DISABLE_PRIORITY (NVIC_SYSH_PRIORITY_MAX + NVIC_SYSH_PRIORITY_STEP)
+#define NVIC_SYSH_SVCALL_PRIORITY  NVIC_SYSH_PRIORITY_MAX
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/

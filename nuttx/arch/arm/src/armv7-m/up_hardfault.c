@@ -93,17 +93,16 @@
 int up_hardfault(int irq, FAR void *context)
 {
   uint32_t *regs = (uint32_t*)context;
-  uint16_t *pc;
-  uint16_t insn;
 
   /* Get the value of the program counter where the fault occurred */
 
-  pc = (uint16_t*)regs[REG_PC] - 1;
+#ifndef CONFIG_ARMV7M_USEBASEPRI
+  uint16_t *pc = (uint16_t*)regs[REG_PC] - 1;
   if ((void*)pc >= (void*)&_stext && (void*)pc < (void*)&_etext)
     {
       /* Fetch the instruction that caused the Hard fault */
 
-      insn = *pc;
+      uint16_t insn = *pc;
       hfdbg("  PC: %p INSN: %04x\n", pc, insn);
 
       /* If this was the instruction 'svc 0', then forward processing
@@ -116,6 +115,7 @@ int up_hardfault(int irq, FAR void *context)
           return up_svcall(irq, context);
         }
     }
+#endif
 
   /* Dump some hard fault info */
 

@@ -692,5 +692,15 @@
 #  error "Unsupported STM32 chip"
 #endif
 
+/* NVIC priority levels *************************************************************/
+
+#define NVIC_SYSH_PRIORITY_MIN     0xf0 /* All bits set in minimum priority */
+#define NVIC_SYSH_PRIORITY_DEFAULT 0x80 /* Midpoint is the default */
+#define NVIC_SYSH_PRIORITY_MAX     0x00 /* Zero is maximum priority */
+#define NVIC_SYSH_PRIORITY_STEP    0x10 /* Four bits of interrupt priority used */
+
+#define NVIC_SYSH_DISABLE_PRIORITY (NVIC_SYSH_PRIORITY_MAX + NVIC_SYSH_PRIORITY_STEP)
+#define NVIC_SYSH_SVCALL_PRIORITY  NVIC_SYSH_PRIORITY_MAX
+
 #endif /* __ARCH_ARM_INCLUDE_STM32_CHIP_H */
 

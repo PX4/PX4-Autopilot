@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/include/lpc43xx/chip.h
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -541,6 +541,35 @@
 #else
 #  error "Unsupported LPC43xx chip"
 #endif
+
+/* NVIC priority levels *************************************************************/
+/* Each priority field holds a priority value, 0-31. The lower the value, the greater
+ * the priority of the corresponding interrupt.
+ *
+ * The Cortex-M4 core supports up to 53 interrupts an 8 prgrammable interrupt
+ * priority levels; The Cortex-M0 core supports up to 32 interrupts with 4
+ * programmable interrupt priorities.
+ */
+
+#define LPC43M4_SYSH_PRIORITY_MIN     0xe0 /* All bits[7:5] set is minimum priority */
+#define LPC43M4_SYSH_PRIORITY_DEFAULT 0x80 /* Midpoint is the default */
+#define LPC43M4_SYSH_PRIORITY_MAX     0x00 /* Zero is maximum priority */
+#define LPC43M4_SYSH_PRIORITY_STEP    0x10 /* Steps between priorities */
+
+#define LPC43M0_SYSH_PRIORITY_MIN     0xc0 /* All bits[7:6] set is minimum priority */
+#define LPC43M0_SYSH_PRIORITY_DEFAULT 0x80 /* Midpoint is the default */
+#define LPC43M0_SYSH_PRIORITY_MAX     0x00 /* Zero is maximum priority */
+#define LPC43M0_SYSH_PRIORITY_STEP    0x20 /* Steps between priorities */
+
+/* Only the Cortex-M4 is supported by Nuttx */
+
+#define NVIC_SYSH_PRIORITY_MIN        LPC43M4_SYSH_PRIORITY_MIN
+#define NVIC_SYSH_PRIORITY_DEFAULT    LPC43M4_SYSH_PRIORITY_DEFAULT
+#define NVIC_SYSH_PRIORITY_MAX        LPC43M4_SYSH_PRIORITY_MAX
+#define NVIC_SYSH_PRIORITY_STEP       LPC43M4_SYSH_PRIORITY_INCR
+
+#define NVIC_SYSH_DISABLE_PRIORITY    (NVIC_SYSH_PRIORITY_MAX + NVIC_SYSH_PRIORITY_STEP)
+#define NVIC_SYSH_SVCALL_PRIORITY     NVIC_SYSH_PRIORITY_MAX
 
 /************************************************************************************
  * Public Types

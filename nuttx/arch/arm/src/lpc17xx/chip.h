@@ -41,27 +41,17 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
-#include <arch/lpc17xx/chip.h>
 
-/* Include only the memory map.  Other chip hardware files should then include this
- * file for the proper setup
+/* Include the memory map and the chip definitions file.  Other chip hardware files
+ * should then include this file for the proper setup.
  */
 
+#include <arch/lpc17xx/chip.h>
 #include "chip/lpc17_memorymap.h"
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-
-/* NVIC priority levels *************************************************************/
-/* Each priority field holds a priority value, 0-31. The lower the value, the greater
- * the priority of the corresponding interrupt. The processor implements only
- * bits[7:3] of each field, bits[2:0] read as zero and ignore writes.
- */
-
-#define NVIC_SYSH_PRIORITY_MIN     0xf8 /* All bits[7:3] set is minimum priority */
-#define NVIC_SYSH_PRIORITY_DEFAULT 0x80 /* Midpoint is the default */
-#define NVIC_SYSH_PRIORITY_MAX     0x00 /* Zero is maximum priority */
 
 /************************************************************************************
  * Public Types
