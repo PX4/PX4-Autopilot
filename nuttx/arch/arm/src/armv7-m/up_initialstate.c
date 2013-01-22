@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv7-m/up_initialstate.c
  *
- *   Copyright (C) 2009, 2011-2 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -148,7 +148,7 @@ void up_initial_state(_TCB *tcb)
   xcp->regs[REG_FPSCR] = 0; // XXX initial FPSCR should be configurable
   xcp->regs[REG_FPReserved] = 0;
 
-#endif
+#endif /* CONFIG_ARCH_FPU */
 
 #ifdef CONFIG_NUTTX_KERNEL
   if ((tcb->flags & TCB_FLAG_TTYPE_MASK) != TCB_FLAG_TTYPE_KERNEL)
@@ -157,7 +157,7 @@ void up_initial_state(_TCB *tcb)
 
       xcp->regs[REG_EXC_RETURN] = EXC_RETURN_PROCESS_STACK;
     }
-#endif
+#endif /* CONFIG_NUTTX_KERNEL */
 
 #else /* CONFIG_ARMV7M_CMNVECTOR */
 
@@ -181,12 +181,16 @@ void up_initial_state(_TCB *tcb)
 
       xcp->regs[REG_EXC_RETURN] = EXC_RETURN_UNPRIVTHR;
     }
-#endif
+#endif /* CONFIG_NUTTX_KERNEL */
 #endif /* CONFIG_ARMV7M_CMNVECTOR */
 
   /* Enable or disable interrupts, based on user configuration */
 
 #ifdef CONFIG_SUPPRESS_INTERRUPTS
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  xcp->regs[REG_BASEPRI] = NVIC_SYSH_DISABLE_PRIORITY;
+#else
   xcp->regs[REG_PRIMASK] = 1;
 #endif
+#endif /* CONFIG_SUPPRESS_INTERRUPTS */
 }

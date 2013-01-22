@@ -366,8 +366,7 @@ void up_irqinitialize(void)
 
   /* And finally, enable interrupts */
 
-  setbasepri(NVIC_SYSH_PRIORITY_MAX);
-  irqrestore(0);
+  irqenable();
 #endif
 }
 

@@ -4001,3 +4001,13 @@
 	* nuttx/lcd/hd4478ou.h and configs/pcblogic-pic32mx/src/up_lcd1602:
 	  Start of support of LCD1602 alphanumeric LCD.  I need a few
 	  more parts before I can finish integrating this one.
+	* arch/arm/src/*/chip.h and arch/arm/include/*/chip.h:  Move all
+	  priority ragnes from the src to the include chip.h header file.
+	* arch/arm/include/armv7-m/irq.h:  Add inline functions to enable
+	  and disable interrupts via the BASEPRI register.
+	* arch/arm/Kconfig:  Add new option CONFIG_ARM7VM_USEBASEI
+	* arch/arm/src/*/*_irq.c:  Set the priority of the SVCALL exception
+	  to the highest possible value.
+	* arch/armv7-m/up_hardfault.c:  Fail if a hardfault occurs
+	  while CONFIG_ARM7VM_USEBASEI=y.
+

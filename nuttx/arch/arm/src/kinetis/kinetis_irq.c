@@ -428,8 +428,7 @@ void up_irqinitialize(void)
   /* And finally, enable interrupts */
 
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
-  setbasepri(NVIC_SYSH_PRIORITY_MAX);
-  irqrestore(0);
+  irqenable();
 #endif
 }
 

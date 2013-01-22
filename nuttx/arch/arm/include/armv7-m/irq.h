@@ -118,7 +118,11 @@ struct xcptcontext
    */
 
   uint32_t saved_pc;
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  uint32_t saved_basepri;
+#else
   uint32_t saved_primask;
+#endif
   uint32_t saved_xpsr;
 #endif
 
@@ -134,7 +138,7 @@ struct xcptcontext
 
 #ifndef __ASSEMBLY__
 
-/* Get/set the primask register */
+/* Get/set the PRIMASK register */
 
 static inline uint8_t getprimask(void) inline_function;
 static inline uint8_t getprimask(void)
@@ -161,7 +165,11 @@ static inline void setprimask(uint32_t primask)
       : "memory");
 }
 
-/* Get/set the basepri register */
+/* Get/set the BASEPRI register.  The BASEPRI register defines the minimum
+ * priority for exception processing. When BASEPRI is set to a nonzero
+ * value, it prevents the activation of all exceptions with the same or
+ * lower priority level as the BASEPRI value.
+ */
 
 static inline uint8_t getbasepri(void) inline_function;
 static inline uint8_t getbasepri(void)
@@ -210,7 +218,7 @@ static inline irqstate_t irqsave(void)
 
   uint8_t basepri = getbasepri();
   setbasepri(NVIC_SYSH_DISABLE_PRIORITY);
-  return basepri;
+  return (irqstate_t)basepri;
 
 #else
 
@@ -237,11 +245,8 @@ static inline irqstate_t irqsave(void)
 static inline void irqenable(void) inline_function;
 static inline void irqenable(void)
 {
-#ifdef CONFIG_ARMV7M_USEBASEPRI
-  setbasepri(NVIC_SYSH_PRIORITY_MIN);
-#else
+  setbasepri(0);
   __asm__ __volatile__ ("\tcpsie  i\n");
-#endif
 }
 
 /* Restore saved primask state */
@@ -250,7 +255,7 @@ static inline void irqrestore(irqstate_t flags) inline_function;
 static inline void irqrestore(irqstate_t flags)
 {
 #ifdef CONFIG_ARMV7M_USEBASEPRI
-  setbasepri(flags);
+  setbasepri((uint32_t)flags);
 #else
   /* If bit 0 of the primask is 0, then we need to restore
    * interupts.

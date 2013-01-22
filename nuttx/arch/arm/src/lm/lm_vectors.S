@@ -203,7 +203,11 @@ lm_irqcommon:
 
 	mov		r2, r1					/* R2=Copy of the main/process stack pointer */
 	add		r2, #HW_XCPT_SIZE		/* R2=MSP/PSP before the interrupt was taken */
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+	mrs		r3, basepri				/* R3=Current BASEPRI setting */
+#else
 	mrs		r3, primask				/* R3=Current PRIMASK setting */
+#endif
 #ifdef CONFIG_NUTTX_KERNEL 
 	stmdb	r1!, {r2-r11,r14}		/* Save the remaining registers plus the SP value */
 #else
@@ -289,7 +293,12 @@ lm_irqcommon:
 
     /* Restore the interrupt state */
 
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+	msr		basepri, r3				/* Restore interrupts priority masking*/
+	cpsie	i						/* Re-enable interrupts */
+#else
 	msr		primask, r3				/* Restore interrupts */
+#endif
 
 	/* Always return with R14 containing the special value that will: (1)
 	 * return to thread mode, and (2) continue to use the MSP

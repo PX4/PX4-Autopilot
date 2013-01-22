@@ -21,7 +21,7 @@ nuttx/
   (1)  Documentation (Documentation/)
   (7)  Build system / Toolchains
   (5)  Linux/Cywgin simulation (arch/sim)
-  (6)  ARM (arch/arm/)
+  (5)  ARM (arch/arm/)
   (1)  ARM/C5471 (arch/arm/src/c5471/)
   (3)  ARM/DM320 (arch/arm/src/dm320/)
   (2)  ARM/i.MX (arch/arm/src/imx/)
@@ -1173,27 +1173,6 @@ o ARM (arch/arm/)
                context switch, then the static registers need not be restored
                because they will not be modified by the called C code.
                (see arch/sh/src/sh1/sh1_vector.S for example)
-  Status:      Open
-  Priority:    Low
-
-  Title:       SVCALLS AND HARDFAULTS
-  Description: The Cortex-M3 user context switch logic uses SVCall instructions.
-               This user context switching time could be improved by eliminating
-               the SVCalls and developing assembly language implementations
-               of the context save and restore logic.
-               Also, because interrupts are always disabled when the SVCall is
-               executed, the SVC goes to the hard fault handler where it must
-               be handled as a special case.  I recall seeing some controls
-               somewhere that will allow to suppress one hard fault.  I don't 
-               recall the control, but something like this should be used before
-               executing the SVCall so that it vectors directly to the SVC
-               handler.
-               Another, more standard option would be to use interrupt priority
-               levels to control interrupts.  In that case, (1) The SVC would
-               be the highest priority interrupt (0), (2) irqsave() would set
-               the interrupt mask level to just above that, and (2) irqrestore
-               would restore the interrupt level.  This would not be diffult,
-               but does affect a lot of files!
   Status:      Open
   Priority:    Low
 

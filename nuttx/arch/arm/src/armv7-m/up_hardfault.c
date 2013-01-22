@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv7-m/up_hardfault.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,9 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Debug output from this file may interfere with context switching! */
+/* If CONFIG_ARMV7M_USEBASEPRI=n, then debug output from this file may
+ * interfere with context switching!
+ */
 
 #ifdef CONFIG_DEBUG_HARDFAULT
 # define hfdbg(format, arg...) lldbg(format, ##arg)
@@ -92,7 +94,9 @@
 
 int up_hardfault(int irq, FAR void *context)
 {
+#if defined(CONFIG_DEBUG_HARDFAULT) || !defined(CONFIG_ARMV7M_USEBASEPRI)
   uint32_t *regs = (uint32_t*)context;
+#endif
 
   /* Get the value of the program counter where the fault occurred */
 
@@ -133,7 +137,13 @@ int up_hardfault(int irq, FAR void *context)
   hfdbg("  R8: %08x %08x %08x %08x %08x %08x %08x %08x\n",
         regs[REG_R8],  regs[REG_R9],  regs[REG_R10], regs[REG_R11],
         regs[REG_R12], regs[REG_R13], regs[REG_R14], regs[REG_R15]);
-  hfdbg("  PSR=%08x\n", regs[REG_XPSR]);
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  hfdbg("  xPSR: %08x BASEPRI: %08x (saved)\n",
+        current_regs[REG_XPSR],  current_regs[REG_BASEPRI]);
+#else
+  hfdbg("  xPSR: %08x PRIMASK: %08x (saved)\n",
+        current_regs[REG_XPSR],  current_regs[REG_PRIMASK]);
+#endif
 
   (void)irqsave();
   lldbg("PANIC!!! Hard fault: %08x\n", getreg32(NVIC_HFAULTS));
