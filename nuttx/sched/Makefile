@@ -74,7 +74,10 @@ SCHED_SRCS += sched_reprioritize.c
 endif
 
 ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
-SCHED_SRCS += task_reparent.c 
+SCHED_SRCS += task_reparent.c
+ifeq ($(CONFIG_SCHED_CHILD_STATUS),y)
+SCHED_SRCS += task_childstatus.c 
+endif
 endif
 
 ifeq ($(CONFIG_SCHED_WAITPID),y)

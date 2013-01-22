@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/os_internal.h
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -269,6 +269,16 @@ int  task_argsetup(FAR _TCB *tcb, FAR const char *name, FAR const char *argv[]);
 void task_exithook(FAR _TCB *tcb, int status);
 int  task_deletecurrent(void);
 #ifdef CONFIG_SCHED_HAVE_PARENT
+#ifdef CONFIG_SCHED_CHILD_STATUS
+void weak_functiontask_initialize(void);
+FAR struct child_status_s *task_allocchild(void);
+void task_freechild(FAR struct child_status_s *status);
+FAR struct child_status_s *task_addchild(FAR _TCB *tcb, pid_t pid, int status,
+                                         uint8_t flags);
+FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid);
+FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid);
+void task_removechildren(FAR _TCB *tcb);
+#endif
 int  task_reparent(pid_t ppid, pid_t chpid);
 #endif
 #ifndef CONFIG_CUSTOM_STACK

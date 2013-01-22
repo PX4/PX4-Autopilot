@@ -97,7 +97,7 @@
                                        /* -0x40023fff: Reserved */
 #define LPC17_RTC_BASE      0x40024000 /* -0x40027fff: RTC + backup registers */
 #define LPC17_GPIOINT_BASE  0x40028000 /* -0x4002bfff: GPIO interrupts */
-#define LPC17_PINCONN_BASE  0x4002c000 /* -0x4002ffff: Pin connect block */
+#define LPC17_IOCON_BASE    0x4002c000 /* -0x4002ffff: Pin connect block */
 #define LPC17_SSP1_BASE     0x40030000 /* -0x40033fff: SSP 1 */
 #define LPC17_ADC_BASE      0x40034000 /* -0x40037fff: ADC */
 #define LPC17_CANAFRAM_BASE 0x40038000 /* -0x4003bfff: CAN acceptance filter (AF) RAM */

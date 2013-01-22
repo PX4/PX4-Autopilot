@@ -155,7 +155,7 @@ int waitid(idtype_t idtype, id_t id, siginfo_t *info, int options)
 
   sched_lock();
 
-  /* Verify that this task actually has children and that the the requeste
+  /* Verify that this task actually has children and that the the requested
    * TCB is actually a child of this task.
    */
 

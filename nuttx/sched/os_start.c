@@ -314,6 +314,17 @@ void os_start(void)
   kmm_initialize((void*)CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE);
 #endif
 
+  /* Initialize tasking data structures */
+
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+#ifdef CONFIG_HAVE_WEAKFUNCTIONS
+  if (task_initialize != NULL)
+#endif
+    {
+      task_initialize();
+    }
+#endif
+
   /* Initialize the interrupt handling subsystem (if included) */
 
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS

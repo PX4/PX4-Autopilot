@@ -62,21 +62,30 @@
 
 /* This is the maximum number of times that a lock can be set */
 
-#define MAX_LOCK_COUNT    127
+#define MAX_LOCK_COUNT             127
 
 /* Values for the _TCB flags flag bits */
 
-#define TCB_FLAG_TTYPE_SHIFT     (0)      /* Bits 0-1: thread type */
-#define TCB_FLAG_TTYPE_MASK      (3 << TCB_FLAG_TTYPE_SHIFT)
-#  define TCB_FLAG_TTYPE_TASK    (0 << TCB_FLAG_TTYPE_SHIFT) /* Normal user task */
-#  define TCB_FLAG_TTYPE_PTHREAD (1 << TCB_FLAG_TTYPE_SHIFT) /* User pthread */
-#  define TCB_FLAG_TTYPE_KERNEL  (2 << TCB_FLAG_TTYPE_SHIFT) /* Kernel thread */
-#define TCB_FLAG_NONCANCELABLE   (1 << 2) /* Bit 2: Pthread is non-cancelable */
-#define TCB_FLAG_CANCEL_PENDING  (1 << 3) /* Bit 3: Pthread cancel is pending */
-#define TCB_FLAG_ROUND_ROBIN     (1 << 4) /* Bit 4: Round robin sched enabled */
+#define TCB_FLAG_TTYPE_SHIFT       (0)      /* Bits 0-1: thread type */
+#define TCB_FLAG_TTYPE_MASK        (3 << TCB_FLAG_TTYPE_SHIFT)
+#  define TCB_FLAG_TTYPE_TASK      (0 << TCB_FLAG_TTYPE_SHIFT) /* Normal user task */
+#  define TCB_FLAG_TTYPE_PTHREAD   (1 << TCB_FLAG_TTYPE_SHIFT) /* User pthread */
+#  define TCB_FLAG_TTYPE_KERNEL    (2 << TCB_FLAG_TTYPE_SHIFT) /* Kernel thread */
+#define TCB_FLAG_NONCANCELABLE     (1 << 2) /* Bit 2: Pthread is non-cancelable */
+#define TCB_FLAG_CANCEL_PENDING    (1 << 3) /* Bit 3: Pthread cancel is pending */
+#define TCB_FLAG_ROUND_ROBIN       (1 << 4) /* Bit 4: Round robin sched enabled */
+
+/* Values for struct child_status_s ch_flags */
+
+#define CHILD_FLAG_TTYPE_SHIFT     (0)      /* Bits 0-1: child thread type */
+#define CHILD_FLAG_TTYPE_MASK      (3 << CHILD_FLAG_TTYPE_SHIFT)
+#  define CHILD_FLAG_TTYPE_TASK    (0 << CHILD_FLAG_TTYPE_SHIFT) /* Normal user task */
+#  define CHILD_FLAG_TTYPE_PTHREAD (1 << CHILD_FLAG_TTYPE_SHIFT) /* User pthread */
+#  define CHILD_FLAG_TTYPE_KERNEL  (2 << CHILD_FLAG_TTYPE_SHIFT) /* Kernel thread */
+#define CHILD_FLAG_EXITED          (1 << 0) /* Bit 2: The child thread has exit'ed */
 
 /********************************************************************************
- * Global Type Definitions
+ * Public Type Definitions
  ********************************************************************************/
 
 #ifndef __ASSEMBLY__
@@ -163,6 +172,22 @@ typedef struct environ_s environ_t;
 # define SIZEOF_ENVIRON_T(alloc) (sizeof(environ_t) + alloc - 1)
 #endif
 
+/* This structure is used to maintin information about child tasks.
+ * pthreads work differently, they have join information.  This is 
+ * only for child tasks.
+ */
+
+#ifdef CONFIG_SCHED_CHILD_STATUS
+struct child_status_s
+{
+  FAR struct child_status_s *flink;
+
+  uint8_t ch_flags;           /* Child status:  See CHILD_FLAG_* definitions */
+  pid_y   ch_pid;             /* Child task ID */
+  int     ch_status;          /* Child exit status */
+};
+#endif
+
 /* This structure describes a reference counted D-Space region.  This must be a
  * separately allocated "break-away" structure that can be owned by a task and
  * any pthreads created by the task.
@@ -202,9 +227,13 @@ struct _TCB
   /* Task Management Fields *****************************************************/
 
   pid_t    pid;                          /* This is the ID of the thread        */
-#ifdef CONFIG_SCHED_HAVE_PARENT
+#ifdef CONFIG_SCHED_HAVE_PARENT          /* Support parent-child relationship   */
   pid_t    parent;                       /* This is the ID of the parent thread */
+#ifdef CONFIG_SCHED_CHILD_STATUS         /* Retain child thread status          */
+  FAR struct child_status_s *children;   /* Head of a list of child status      */
+#else
   uint16_t nchildren;                    /* This is the number active children  */
+#endif
 #endif
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
@@ -357,33 +386,38 @@ typedef void (*sched_foreach_t)(FAR _TCB *tcb, FAR void *arg);
 #endif /* __ASSEMBLY__ */
 
 /********************************************************************************
- * Global Function Prototypes
+ * Public Data
  ********************************************************************************/
 
 #ifndef __ASSEMBLY__
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
-extern "C" {
+extern "C"
+{
 #else
 #define EXTERN extern
 #endif
 
+/********************************************************************************
+ * Public Function Prototypes
+ ********************************************************************************/
+
 /* TCB helpers */
 
-EXTERN FAR _TCB *sched_self(void);
+FAR _TCB *sched_self(void);
 
 /* File system helpers */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-EXTERN FAR struct filelist *sched_getfiles(void);
+FAR struct filelist *sched_getfiles(void);
 #if CONFIG_NFILE_STREAMS > 0
-EXTERN FAR struct streamlist *sched_getstreams(void);
+FAR struct streamlist *sched_getstreams(void);
 #endif /* CONFIG_NFILE_STREAMS */
 #endif /* CONFIG_NFILE_DESCRIPTORS */
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-EXTERN FAR struct socketlist *sched_getsockets(void);
+FAR struct socketlist *sched_getsockets(void);
 #endif /* CONFIG_NSOCKET_DESCRIPTORS */
 
 /* Internal vfork support.The  overall sequence is:
@@ -417,7 +451,7 @@ void task_vforkabort(FAR _TCB *child, int errcode);
  * will be disabled throughout this enumeration!
  */
 
-EXTERN void sched_foreach(sched_foreach_t handler, FAR void *arg);
+void sched_foreach(sched_foreach_t handler, FAR void *arg);
 
 #undef EXTERN
 #if defined(__cplusplus)

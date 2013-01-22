@@ -171,19 +171,36 @@
 
 #elif defined(LPC178x)
 
-/* Encoding: TT FFFF MMOV PPPN NNNN
-   Encoding: TTTT TTTT FFFF MMOV PPPN NNNN
- */ 
-/* Encoding: FFFF MMOV PPPN NNNN
- *
- *   Pin Function:   FFFF
- *   Pin Mode bits:  MM
- *   Open drain:     O (output pins)
- *   Initial value:  V (output pins)
- *   Port number:    PPP (0-4)
- *   Pin number:     NNNNN (0-31)
+/* Encoding: TTTT TTTT FFFF MMOV PPPN NNNN
+ *   
+ *   Special Pin Functions: TTTT TTTT
+ *   Pin Function:           FFFF
+ *   Pin Mode bits:          MM
+ *   Open drain:             O (output pins)
+ *   Initial value:          V (output pins)
+ *   Port number:            PPP (0-4)
+ *   Pin number:             NNNNN (0-31)
  */
  
+/* Special Pin Functions
+ * For pins that has ADC/DAC, USB, I2C
+ */
+
+#define GPIO_IOCON_TYPE_D_MASK (0x0000067f) /* All port except where ADC/DAC, USB, I2C is present */
+#define GPIO_IOCON_TYPE_A_MASK (0x000105df) /* USB/ADC/DAC P0:12 to 13, P0:23 to 26, P1:30 to 31 */
+#define GPIO_IOCON_TYPE_U_MASK (0x00000007) /* USB P0:29 to 31 */
+#define GPIO_IOCON_TYPE_I_MASK (0x00000347) /* I2C/USB P0:27 to 28, P5:2 to 3  */
+#define GPIO_IOCON_TYPE_W_MASK (0x000007ff) /* I2S P0:7 to 9 */
+
+# define GPIO_HYS            (1 << 16) /* Bit 16: HYSTERESIS: 0-Disable, 1-Enabled */
+# define GPIO_INV            (1 << 17) /* Bit 17: Input: 0-Not Inverted, 1-Inverted */
+# define GPIO_SLEW           (1 << 18) /* Bit 18: Rate Control: 0-Standard mode, 1-Fast mode */
+# define GPIO_ADMODE         (1 << 19) /* Bit 19: A/D Modes: 0-Analog, 1-Digital  */
+# define GPIO_FILTER         (1 << 20) /* Bit 20: Filter: 0-Off, 1-ON */
+# define GPIO_DACEN          (1 << 21) /* Bit 21: DAC: 0-Disabled, 1-Enabled, P0:26 only */
+# define GPIO_I2CHS          (1 << 22) /* Bit 22: Filter and Rate Control: 0-Enabled, 1-Disabled */
+# define GPIO_HIDRIVE        (1 << 23) /* Bit 23: Current Sink: 0-4mA, 1-20mA  P5:2 and P5:3 only,*/
+
 /* Pin Function bits: FFFF
  * Only meaningful when the GPIO function is GPIO_PIN
  */
@@ -198,23 +215,10 @@
 #  define GPIO_ALT1          (5 << GPIO_FUNC_SHIFT) /* 0101 Alternate function 1 */
 #  define GPIO_ALT2          (6 << GPIO_FUNC_SHIFT) /* 0110 Alternate function 2 */
 #  define GPIO_ALT3          (7 << GPIO_FUNC_SHIFT) /* 0111 Alternate function 3 */
-
 #  define GPIO_ALT4          (8 << GPIO_FUNC_SHIFT) /* 1000 Alternate function 4 */
 #  define GPIO_ALT5          (9 << GPIO_FUNC_SHIFT) /* 1001 Alternate function 5 */
 #  define GPIO_ALT6          (10 << GPIO_FUNC_SHIFT) /* 1010 Alternate function 6 */
 #  define GPIO_ALT7          (11 << GPIO_FUNC_SHIFT) /* 1011 Alternate function 7 */
-
-/* Options for each IOCON Types */
-//~ #define GPIO_TYPE_SHIFT      (16)
-//~ #define GPIO_TYPE_MASK       (3 << GPIO_TYPE_SHIFT)
-//~ # define GPIO_HYSTERIS       (<< 0 << )
-//~ # define GPIO_INVERTED       (<< 1 << )
-//~ # define GPIO_SLEW           (<< 2 << )
-//~ # define GPIO_ADMODE         (<< 3 << )
-//~ # define GPIO_FILTER         (<< 4 << )
-//~ # define GPIO_DACEN          (<< 5 << )
-//~ # define GPIO_I2CHS          (<< 6 << )
-//~ # define GPIO_HIDRIVE        (<< 7 << )
 
 #define GPIO_EDGE_SHIFT      (13)       /* Bits 13-14: Interrupt edge bits */
 #define GPIO_EDGE_MASK       (3 << GPIO_EDGE_SHIFT)
