@@ -93,6 +93,7 @@ extern int	test_uart_send(int argc, char *argv[]);
 extern int	test_sleep(int argc, char *argv[]);
 extern int	test_time(int argc, char *argv[]);
 extern int	test_uart_console(int argc, char *argv[]);
+extern int	test_hott_telemetry(int argc, char *argv[]);
 extern int	test_jig_voltages(int argc, char *argv[]);
 extern int	test_param(int argc, char *argv[]);
 extern int	test_bson(int argc, char *argv[]);
