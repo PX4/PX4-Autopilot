@@ -90,6 +90,10 @@ struct uip_driver_s
   char d_ifname[IFNAMSIZ];
 #endif
 
+  /* Drivers interface flags.  See IFF_* definitions in include/net/if.h */
+
+  uint8_t d_flags;
+
   /* Ethernet device identity */
 
 #ifdef CONFIG_NET_ETHERNET

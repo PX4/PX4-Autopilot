@@ -141,6 +141,7 @@ static uint16_t poll_interrupt(struct uip_driver_s *dev, FAR void *conn,
           sem_post(fds->sem);
         }
     }
+
   return flags;
 }
 #endif /* HAVE_NETPOLL */
@@ -219,6 +220,7 @@ static inline int net_pollsetup(FAR struct socket *psock, struct pollfd *fds)
           sem_post(fds->sem);
         }
     }
+
   uip_unlock(flags);
   return OK;
 

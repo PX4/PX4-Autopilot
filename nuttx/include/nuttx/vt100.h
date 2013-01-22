@@ -179,8 +179,8 @@
 #define VT52_CLEAREOL        {ASCII_ESC, 'K'}                 /* Erase to end of current line */
 #define VT52_CLEAREOS        {ASCII_ESC, 'J'}                 /* Erase to end of screen */
 
-#define VT52_IDENT           {ASCII_ESC, 'Z'}                 /* dentify what the terminal is */
-#define VT52_IDENTRESP       {ASCII_ESC, '/', 'Z'}             /* Correct response to ident */
+#define VT52_IDENT           {ASCII_ESC, 'Z'}                 /* Identify what the terminal is */
+#define VT52_IDENTRESP       {ASCII_ESC, '/', 'Z'}            /* Correct response to ident */
 
 /* VT100 Special Key Codes
  *

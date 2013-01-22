@@ -133,6 +133,7 @@ EXTERN pid_t   getpid(void);
 EXTERN void    _exit(int status) noreturn_function;
 EXTERN unsigned int sleep(unsigned int seconds);
 EXTERN int     usleep(useconds_t usec);
+EXTERN int     pause(void);
 
 /* File descriptor operations */
 

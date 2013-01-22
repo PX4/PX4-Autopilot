@@ -408,9 +408,10 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 					cur_wp->current = 0;
 
 					if (wpm->current_active_wp_id == wpm->size - 1 && wpm->size > 1) {
-						//the last waypoint was reached, if auto continue is
-						//activated restart the waypoint list from the beginning
-						wpm->current_active_wp_id = 1;
+						/* the last waypoint was reached, if auto continue is
+						 * activated restart the waypoint list from the beginning
+						 */
+						wpm->current_active_wp_id = 0;
 
 					} else {
 						if ((uint16_t)(wpm->current_active_wp_id + 1) < wpm->size)

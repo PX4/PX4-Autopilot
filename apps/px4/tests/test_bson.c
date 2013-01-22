@@ -240,5 +240,5 @@ test_bson(int argc, char *argv[])
 	decode(&decoder);
 	free(buf);
 
-	exit(0);
+	return OK;
 }

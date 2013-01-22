@@ -95,9 +95,9 @@ void mm_initialize(FAR void *heapstart, size_t heapsize)
 
   mlldbg("Heap: start=%p size=%u\n", heapstart, heapsize);
 
-  /* The following two lines have cause problems for some ZiLog compilers
-   * in the past.  Life is easier if we just the suppress them for those
-   * tools.
+  /* The following two lines have cause problems for some older ZiLog
+   * compilers in the past (but not the more recent).  Life is easier if we
+   * just the suppress them altogther for those tools.
    */
 
 #ifndef __ZILOG__

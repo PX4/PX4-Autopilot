@@ -200,6 +200,10 @@ CONFIG_STM32_TIM9=y
 CONFIG_STM32_TIM10=y
 CONFIG_STM32_TIM11=y
 
+#
+# We want the flash prefetch on for max performance.
+#
+STM32_FLASH_PREFETCH=y
 
 #
 # Enable the MTD driver for the onboard I2C EEPROM
@@ -344,13 +348,8 @@ CONFIG_CAN_LOOPBACK=n
 CONFIG_CAN1_BAUD=700000
 CONFIG_CAN2_BAUD=700000
 
-#
-# I2C configuration
-#
-CONFIG_I2C=y
-CONFIG_I2C_POLLED=y
-CONFIG_I2C_TRANSFER=y
-CONFIG_I2C_TRACE=n
+
+# XXX remove after integration testing
 # Allow 180 us per byte, a wide margin for the 400 KHz clock we're using
 # e.g. 9.6 ms for an EEPROM page write, 0.9 ms for a MAG update
 CONFIG_STM32_I2CTIMEOUS_PER_BYTE=200
@@ -358,6 +357,42 @@ CONFIG_STM32_I2CTIMEOUS_PER_BYTE=200
 CONFIG_STM32_I2CTIMEOUS_START_STOP=700
 # XXX this is bad and we want it gone
 CONFIG_I2C_WRITEREAD=y
+
+#
+# I2C configuration
+#
+CONFIG_I2C=y
+CONFIG_I2C_POLLED=y
+CONFIG_I2C_TRANSFER=y
+CONFIG_I2C_TRACE=n
+CONFIG_I2C_RESET=y
+
+
+
+# XXX re-enable after integration testing
+
+#
+# I2C configuration
+#
+#CONFIG_I2C=y
+#CONFIG_I2C_POLLED=y
+#CONFIG_I2C_TRANSFER=y
+#CONFIG_I2C_TRACE=n
+#CONFIG_I2C_RESET=y
+
+# Dynamic timeout
+#CONFIG_STM32_I2C_DYNTIMEO=y
+#CONFIG_STM32_I2C_DYNTIMEO_STARTSTOP=500
+#CONFIG_STM32_I2C_DYNTIMEO_USECPERBYTE=200
+
+# Fixed per-transaction timeout
+#CONFIG_STM32_I2CTIMEOSEC=0
+#CONFIG_STM32_I2CTIMEOMS=10
+
+
+
+
+
 
 #
 # General build options
@@ -747,6 +782,8 @@ CONFIG_FS_ROMFS=y
 # CONFIG_MMCSD_SPICLOCK - Maximum SPI clock to drive MMC/SD card.
 #   Default is 20MHz, current setting 24 MHz
 #
+CONFIG_MMCSD=y
+CONFIG_MMCSD_SPI=y
 CONFIG_MMCSD_NSLOTS=1
 CONFIG_MMCSD_READONLY=n
 CONFIG_MMCSD_SPICLOCK=24000000

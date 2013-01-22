@@ -97,6 +97,6 @@ int clock_time2ticks(FAR const struct timespec *reltime, FAR int *ticks)
 
   /* Convert microseconds to clock ticks */
 
-  *ticks = relusec / USEC_PER_TICK;
+  *ticks = (relusec + USEC_PER_TICK - 1) / USEC_PER_TICK;
   return OK;
 }

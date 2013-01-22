@@ -163,7 +163,9 @@
 #  define RCC_CFGR_PLLMUL_CLKx14    (12 << RCC_CFGR_PLLMUL_SHIFT) /* 1100: PLL input clock x 14 */
 #  define RCC_CFGR_PLLMUL_CLKx15    (13 << RCC_CFGR_PLLMUL_SHIFT) /* 1101: PLL input clock x 15 */
 #  define RCC_CFGR_PLLMUL_CLKx16    (14 << RCC_CFGR_PLLMUL_SHIFT) /* 111x: PLL input clock x 16 */
-#define RCC_CFGR_USBPRE             (1 << 22) /* Bit 22: USB prescaler */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_CFGR_USBPRE           (1 << 22) /* Bit 22: USB prescaler */
+#endif
 #define RCC_CFGR_MCO_SHIFT          (24)      /* Bits 26-24: Microcontroller Clock Output */
 #define RCC_CFGR_MCO_MASK           (0x0f << RCC_CFGR_MCO_SHIFT)
 #  define RCC_CFGR_NOCLK            (0 << RCC_CFGR_MCO_SHIFT)  /* 0xx: No clock */
@@ -207,12 +209,22 @@
 #define TCC_APB2RSTR_IOPFRST        (1 << 7)  /* Bit 7: IO port F reset */
 #define TCC_APB2RSTR_IOPGRST        (1 << 8)  /* Bit 8: IO port G reset */
 #define RCC_APB2RSTR_ADC1RST        (1 << 9)  /* Bit 9: ADC 1 interface reset */
-#define RCC_APB2RSTR_ADC2RST        (1 << 10) /* Bit 10: ADC 2 interface reset */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_APB2RSTR_ADC2RST      (1 << 10) /* Bit 10: ADC 2 interface reset */
+#endif
 #define RCC_APB2RSTR_TIM1RST        (1 << 11) /* Bit 11: TIM1 Timer reset */
 #define RCC_APB2RSTR_SPI1RST        (1 << 12) /* Bit 12: SPI 1 reset */
-#define RCC_APB2RSTR_TIM8RST        (1 << 13) /* Bit 13: TIM8 Timer reset */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_APB2RSTR_TIM8RST      (1 << 13) /* Bit 13: TIM8 Timer reset */
+#endif
 #define RCC_APB2RSTR_USART1RST      (1 << 14) /* Bit 14: USART1 reset */
-#define RCC_APB2RSTR_ADC3RST        (1 << 15) /* Bit 15: ADC3 interface reset */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_APB2RSTR_ADC3RST      (1 << 15) /* Bit 15: ADC3 interface reset */
+#else
+#  define RCC_APB2RSTR_TIM15RST     (1 << 16) /* Bit 16: TIM15 reset */
+#  define RCC_APB2RSTR_TIM16RST     (1 << 17) /* Bit 17: TIM16 reset */
+#  define RCC_APB2RSTR_TIM17RST     (1 << 18) /* Bit 18: TIM17 reset */
+#endif
 
 /* APB1 Peripheral reset register */
 
@@ -222,6 +234,11 @@
 #define RCC_APB1RSTR_TIM5RST        (1 << 3)  /* Bit 3: Timer 5 reset */
 #define RCC_APB1RSTR_TIM6RST        (1 << 4)  /* Bit 4: Timer 6 reset */
 #define RCC_APB1RSTR_TIM7RST        (1 << 5)  /* Bit 5: Timer 7 reset */
+#ifdef CONFIG_STM32_VALUELINE
+#  define RCC_APB1RSTR_TIM12RST     (1 << 6) /* Bit 6: TIM12 reset */
+#  define RCC_APB1RSTR_TIM13RST     (1 << 7) /* Bit 7: TIM13 reset */
+#  define RCC_APB1RSTR_TIM14RST     (1 << 8) /* Bit 8: TIM14 reset */
+#endif
 #define RCC_APB1RSTR_WWDGRST        (1 << 11) /* Bit 11: Window Watchdog reset */
 #define RCC_APB1RSTR_SPI2RST        (1 << 14) /* Bit 14: SPI 2 reset */
 #define RCC_APB1RSTR_SPI3RST        (1 << 15) /* Bit 15: SPI 3 reset */
@@ -231,12 +248,17 @@
 #define RCC_APB1RSTR_UART5RST       (1 << 20) /* Bit 18: UART 5 reset */
 #define RCC_APB1RSTR_I2C1RST        (1 << 21) /* Bit 21: I2C 1 reset */
 #define RCC_APB1RSTR_I2C2RST        (1 << 22) /* Bit 22: I2C 2 reset */
-#define RCC_APB1RSTR_USBRST         (1 << 23) /* Bit 23: USB reset */
-#define RCC_APB1RSTR_CAN1RST        (1 << 25) /* Bit 25: CAN1 reset */
-#define RCC_APB1RSTR_CAN2RST        (1 << 26) /* Bit 26: CAN2 reset */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_APB1RSTR_USBRST       (1 << 23) /* Bit 23: USB reset */
+#  define RCC_APB1RSTR_CAN1RST      (1 << 25) /* Bit 25: CAN1 reset */
+#  define RCC_APB1RSTR_CAN2RST      (1 << 26) /* Bit 26: CAN2 reset */
+#endif
 #define RCC_APB1RSTR_BKPRST         (1 << 27) /* Bit 27: Backup interface reset */
 #define RCC_APB1RSTR_PWRRST         (1 << 28) /* Bit 28: Power interface reset */
 #define RCC_APB1RSTR_DACRST         (1 << 29) /* Bit 29: DAC interface reset */
+#ifdef CONFIG_STM32_VALUELINE
+#  define RCC_APB1RSTR_CECRST       (1 << 30) /* Bit 30: CEC reset */
+#endif
 
 /* AHB Peripheral Clock enable register */
 
@@ -246,7 +268,9 @@
 #define RCC_AHBENR_FLITFEN          (1 << 4)  /* Bit 4: FLITF clock enable */
 #define RCC_AHBENR_CRCEN            (1 << 6)  /* Bit 6: CRC clock enable */
 #define RCC_AHBENR_FSMCEN           (1 << 8)  /* Bit 8: FSMC clock enable */
-#define RCC_AHBENR_SDIOEN           (1 << 10) /* Bit 10: SDIO clock enable */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_AHBENR_SDIOEN         (1 << 10) /* Bit 10: SDIO clock enable */
+#endif
 #ifdef CONFIG_STM32_CONNECTIVITYLINE
 #  define RCC_AHBENR_ETHMACEN       (1 << 14) /* Bit 14: Ethernet MAC clock enable */
 #  define RCC_AHBENR_ETHMACTXEN     (1 << 15) /* Bit 15: Ethernet MAC TX clock enable */
@@ -272,12 +296,22 @@
 #define RCC_APB2ENR_IOPFEN          (1 << 7)  /* Bit 7: I/O port F clock enable */
 #define RCC_APB2ENR_IOPGEN          (1 << 8)  /* Bit 8: I/O port G clock enable */
 #define RCC_APB2ENR_ADC1EN          (1 << 9)  /* Bit 9: ADC 1 interface clock enable */
-#define RCC_APB2ENR_ADC2EN          (1 << 10) /* Bit 10: ADC 2 interface clock enable */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_APB2ENR_ADC2EN        (1 << 10) /* Bit 10: ADC 2 interface clock enable */
+#endif
 #define RCC_APB2ENR_TIM1EN          (1 << 11) /* Bit 11: TIM1 Timer clock enable */
 #define RCC_APB2ENR_SPI1EN          (1 << 12) /* Bit 12: SPI 1 clock enable */
-#define RCC_APB2ENR_TIM8EN          (1 << 13) /* Bit 13: TIM8 Timer clock enable */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_APB2ENR_TIM8EN        (1 << 13) /* Bit 13: TIM8 Timer clock enable */
+#endif
 #define RCC_APB2ENR_USART1EN        (1 << 14) /* Bit 14: USART1 clock enable */
-#define RCC_APB2ENR_ADC3EN          (1 << 15) /* Bit 14: ADC3 interface clock enable */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_APB2ENR_ADC3EN        (1 << 15) /* Bit 14: ADC3 interface clock enable */
+#else
+#  define RCC_APB2ENR_TIM15EN       (1 << 16) /* Bit 16: TIM15 clock enable */
+#  define RCC_APB2ENR_TIM16EN       (1 << 17) /* Bit 17: TIM16 clock enable */
+#  define RCC_APB2ENR_TIM17EN       (1 << 18) /* Bit 18: TIM17 clock enable */
+#endif
 
 /* APB1 Peripheral Clock enable register */
 
@@ -287,6 +321,11 @@
 #define RCC_APB1ENR_TIM5EN          (1 << 3)  /* Bit 3: Timer 5 clock enable */
 #define RCC_APB1ENR_TIM6EN          (1 << 4)  /* Bit 4: Timer 6 clock enable */
 #define RCC_APB1ENR_TIM7EN          (1 << 5)  /* Bit 5: Timer 7 clock enable */
+#ifdef CONFIG_STM32_VALUELINE
+#  define RCC_APB1ENR_TIM12EN       (1 << 6)  /* Bit 6: Timer 12 clock enable */
+#  define RCC_APB1ENR_TIM13EN       (1 << 7)  /* Bit 7: Timer 13 clock enable */
+#  define RCC_APB1ENR_TIM14EN       (1 << 8)  /* Bit 8: Timer 14 clock enable */
+#endif
 #define RCC_APB1ENR_WWDGEN          (1 << 11) /* Bit 11: Window Watchdog clock enable */
 #define RCC_APB1ENR_SPI2EN          (1 << 14) /* Bit 14: SPI 2 clock enable */
 #define RCC_APB1ENR_SPI3EN          (1 << 15) /* Bit 15: SPI 3 clock enable */
@@ -296,12 +335,17 @@
 #define RCC_APB1ENR_UART5EN         (1 << 20) /* Bit 20: UART 5 clock enable */
 #define RCC_APB1ENR_I2C1EN          (1 << 21) /* Bit 21: I2C 1 clock enable */
 #define RCC_APB1ENR_I2C2EN          (1 << 22) /* Bit 22: I2C 2 clock enable */
-#define RCC_APB1ENR_USBEN           (1 << 23) /* Bit 23: USB clock enable */
-#define RCC_APB1ENR_CAN1EN          (1 << 25) /* Bit 25: CAN1 clock enable */
-#define RCC_APB1ENR_CAN2EN          (1 << 26) /* Bit 25: CAN2 clock enable */
+#ifndef CONFIG_STM32_VALUELINE
+#  define RCC_APB1ENR_USBEN         (1 << 23) /* Bit 23: USB clock enable */
+#  define RCC_APB1ENR_CAN1EN        (1 << 25) /* Bit 25: CAN1 clock enable */
+#  define RCC_APB1ENR_CAN2EN        (1 << 26) /* Bit 25: CAN2 clock enable */
+#endif
 #define RCC_APB1ENR_BKPEN           (1 << 27) /* Bit 27: Backup interface clock enable */
 #define RCC_APB1ENR_PWREN           (1 << 28) /* Bit 28: Power interface clock enable */
 #define RCC_APB1ENR_DACEN           (1 << 29) /* Bit 29: DAC interface clock enable */
+#ifdef CONFIG_STM32_VALUELINE
+#  define RCC_APB1ENR_CECEN         (1 << 30) /* Bit 30: CEC clock enable */
+#endif
 
 /* Backup domain control register */
 
@@ -331,7 +375,7 @@
 
 #if defined(CONFIG_STM32_VALUELINE) || defined(CONFIG_STM32_CONNECTIVITYLINE)
 
-/* Clock configuration register 2 (For connectivity line only) */
+/* Clock configuration register 2 (For value line and connectivity line only) */
 
 #define RCC_CFGR2_PREDIV1_SHIFT     (0)
 #define RCC_CFGR2_PREDIV1_MASK      (0x0f << RCC_CFGR2_PREDIV1_SHIFT)
@@ -351,6 +395,10 @@
 #  define RCC_CFGR2_PREDIV1d14      (13 << RCC_CFGR2_PREDIV1_SHIFT)
 #  define RCC_CFGR2_PREDIV1d15      (14 << RCC_CFGR2_PREDIV1_SHIFT)
 #  define RCC_CFGR2_PREDIV1d16      (15 << RCC_CFGR2_PREDIV1_SHIFT)
+
+#endif
+
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
 
 #define RCC_CFGR2_PREDIV2_SHIFT     (4)
 #define RCC_CFGR2_PREDIV2_MASK      (0x0f << RCC_CFGR2_PREDIV2_SHIFT)

@@ -102,8 +102,6 @@ struct sensor_combined_s {
 	float adc_voltage_v[4];			/**< ADC voltages of ADC Chan 10/11/12/13 or -1      */
 	float mcu_temp_celcius;			/**< Internal temperature measurement of MCU */
 	uint32_t baro_counter;			/**< Number of raw baro measurements taken        */
-	uint32_t battery_voltage_counter;	/**< Number of voltage measurements taken         */
-	bool battery_voltage_valid;		/**< True if battery voltage can be measured      */
 
 };
 

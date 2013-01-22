@@ -223,6 +223,20 @@
 #  undef SERIAL_HAVE_ONLY_DMA
 #endif
 
+/* Is RS-485 used? */
+
+#if defined(CONFIG_USART1_RS485) || defined(CONFIG_USART2_RS485) || \
+    defined(CONFIG_USART3_RS485) || defined(CONFIG_UART4_RS485)  || \
+    defined(CONFIG_UART5_RS485) || defined(CONFIG_USART6_RS485)
+#  define HAVE_RS485 1
+#endif
+
+#ifdef HAVE_RS485
+#  define USART_CR1_USED_INTS    (USART_CR1_RXNEIE | USART_CR1_TXEIE | USART_CR1_PEIE | USART_CR1_TCIE)
+#else
+#  define USART_CR1_USED_INTS    (USART_CR1_RXNEIE | USART_CR1_TXEIE | USART_CR1_PEIE)
+#endif
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/

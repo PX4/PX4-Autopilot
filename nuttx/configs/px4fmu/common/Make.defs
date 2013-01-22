@@ -39,12 +39,15 @@
 # Make.defs in the per-config directories.
 #
 
+include ${TOPDIR}/tools/Config.mk
+
 #
 # We only support building with the ARM bare-metal toolchain from
 # https://launchpad.net/gcc-arm-embedded on Windows, Linux or Mac OS.
 #
+CONFIG_ARMV7M_TOOLCHAIN	:= GNU_EABI
 
-CROSSDEV		 = arm-none-eabi-
+include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
 CC			 = $(CROSSDEV)gcc
 CXX			 = $(CROSSDEV)g++
@@ -76,7 +79,7 @@ LDSCRIPT		 = ld.script
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
-  DIRLINK		 = $(TOPDIR)/tools/winlink.sh
+  DIRLINK		 = $(TOPDIR)/tools/copydir.sh
   DIRUNLINK		 = $(TOPDIR)/tools/unlink.sh
   MKDEP			 = $(TOPDIR)/tools/mknulldeps.sh
   ARCHINCLUDES		 = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
@@ -85,7 +88,7 @@ ifeq ($(WINTOOL),y)
 else
   ifeq ($(PX4_WINTOOL),y)
     # Windows-native toolchains (MSYS)
-    DIRLINK		 = $(TOPDIR)/tools/winlink.sh
+    DIRLINK		 = $(TOPDIR)/tools/copydir.sh
     DIRUNLINK		 = $(TOPDIR)/tools/unlink.sh
     MKDEP		 = $(TOPDIR)/tools/mknulldeps.sh
     ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
@@ -167,39 +170,11 @@ OBJEXT			 = .o
 LIBEXT			 = .a
 EXEEXT			 =
 
-define PREPROCESS
-	@echo "CPP: $1->$2"
-	@$(CPP) $(CPPFLAGS) $(abspath $1) -o $2
-endef
-
-define COMPILE
-	@echo "CC: $1"
-	$(Q)$(CC) -c $(CFLAGS) $(abspath $1) -o $2
-endef
-
-define COMPILEXX
-	@echo "CXX: $1"
-	$(Q)$(CXX) -c $(CXXFLAGS) $(abspath $1) -o $2
-endef
-
-define ASSEMBLE
-	@echo "AS: $1"
-	$(Q)$(CC) -c $(AFLAGS) $(abspath $1) -o $2
-endef
 
 # produce partially-linked $1 from files in $2
 define PRELINK
 	@echo "PRELINK: $1"
-	@$(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
-endef
-
-define ARCHIVE
-	echo "AR: $2"; \
-	$(AR) $1 $2 || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
-endef
-
-define CLEAN
-	@rm -f *.o *.a
+	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 endef
 
 HOSTCC			 = gcc

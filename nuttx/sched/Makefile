@@ -94,7 +94,7 @@ SIGNAL_SRCS	= sig_initialize.c \
 		  sig_findaction.c sig_allocatependingsigaction.c \
 		  sig_releasependingsigaction.c sig_unmaskpendingsignal.c \
 		  sig_removependingsignal.c sig_releasependingsignal.c sig_lowest.c \
-		  sig_mqnotempty.c sig_cleanup.c sig_received.c sig_deliver.c
+		  sig_mqnotempty.c sig_cleanup.c sig_received.c sig_deliver.c pause.c
 
 MQUEUE_SRCS	= mq_open.c mq_close.c mq_unlink.c mq_send.c mq_timedsend.c\
 		  mq_sndinternal.c mq_receive.c mq_timedreceive.c mq_rcvinternal.c \
@@ -188,6 +188,7 @@ OBJS		= $(AOBJS) $(COBJS)
 BIN		= libsched$(LIBEXT)
 
 all:	$(BIN)
+.PHONY: context depend clean distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -196,21 +197,20 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN): $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
+	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

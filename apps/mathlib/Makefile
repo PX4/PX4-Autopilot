@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-include $(TOPDIR)/.config
-
 #
 # Math library
 #
@@ -44,27 +42,21 @@ CXXSRCS		 = math/test/test.cpp \
 		   math/Dcm.cpp \
 		   math/Matrix.cpp
 
-CXXHDRS		 = math/test/test.hpp \
-		   math/Vector.hpp \
-		   math/Vector3.hpp \
-		   math/EulerAngles.hpp \
-		   math/Quaternion.hpp \
-		   math/Dcm.hpp \
-		   math/Matrix.hpp
+#
+# In order to include .config we first have to save off the
+# current makefile name, since app.mk needs it.
+#
+APP_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
+-include $(TOPDIR)/.config
 
-# XXX this really should be a CONFIG_* test
 ifeq ($(CONFIG_ARCH_CORTEXM4)$(CONFIG_ARCH_FPU),yy)
 INCLUDES	+= math/arm
 CXXSRCS		+= math/arm/Vector.cpp \
 		   math/arm/Matrix.cpp
-CXXHDRS		+= math/arm/Vector.hpp \
-		   math/arm/Matrix.hpp
 else
 INCLUDES	+= math/generic
 CXXSRCS		+= math/generic/Vector.cpp \
 		   math/generic/Matrix.cpp
-CXXHDRS		+= math/generic/Vector.hpp \
-		   math/generic/Matrix.hpp
 endif
 
 include $(APPDIR)/mk/app.mk
