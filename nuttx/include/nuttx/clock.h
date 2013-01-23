@@ -88,7 +88,7 @@
 /* The interrupt interval of the system timer is given by MSEC_PER_TICK.
  * This is the expected number of milliseconds between calls from the
  * processor-specific logic to sched_process_timer().  The default value
- * of MSEC_PER_TICK is 10 milliseconds (100KHz).  However, this default
+ * of MSEC_PER_TICK is 10 milliseconds (100Hz).  However, this default
  * setting can be overridden by defining the interval in milliseconds as
  * CONFIG_MSEC_PER_TICK in the board configuration file.
  *
