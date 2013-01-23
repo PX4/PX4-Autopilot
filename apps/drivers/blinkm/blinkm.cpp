@@ -57,7 +57,7 @@
  * System armed:
  * One message is made of 4 Blinks and a pause in the same length as the 4 blinks.
  *
- * X-X-X-X-_-_-_-_-
+ * X-X-X-X-_-_-_-_-_-_-
  * -------------------------
  * G G G M
  * P P P O
@@ -67,26 +67,26 @@
  * (X = on, _=off)
  *
  * The first 3 blinks indicates the status of the GPS-Signal (red):
- * 0-4 satellites = X-X-X-X-_-_-_-_-
- *   5 satellites = X-X-_-X-_-_-_-_-
- *   6 satellites = X-_-_-X-_-_-_-_-
- * >=7 satellites = _-_-_-X-_-_-_-_-
+ * 0-4 satellites = X-X-X-X-_-_-_-_-_-_-
+ *   5 satellites = X-X-_-X-_-_-_-_-_-_-
+ *   6 satellites = X-_-_-X-_-_-_-_-_-_-
+ * >=7 satellites = _-_-_-X-_-_-_-_-_-_-
  * If no GPS is found the first 3 blinks are white
  *
  * The fourth Blink indicates the Flightmode:
- * MANUAL     : off
+ * MANUAL     : amber
  * STABILIZED : yellow
  * HOLD		  : blue
  * AUTO       : green
  *
  * Battery Warning (low Battery Level):
- * Continuously blinking in yellow X-X-X-X-X-X-X-X
+ * Continuously blinking in yellow X-X-X-X-X-X-X-X-X-X
  *
  * Battery Alert (critical Battery Level)
- * Continuously blinking in red X-X-X-X-X-X-X-X
+ * Continuously blinking in red X-X-X-X-X-X-X-X-X-X
  *
  * General Error (no uOrb Data)
- * Continuously blinking in white X-X-X-X-X-X-X-X
+ * Continuously blinking in white X-X-X-X-X-X-X-X-X-X
  *
  */
 
