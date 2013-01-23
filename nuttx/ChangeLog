@@ -4009,5 +4009,7 @@
 	* arch/arm/src/*/*_irq.c:  Set the priority of the SVCALL exception
 	  to the highest possible value.
 	* arch/armv7-m/up_hardfault.c:  Fail if a hardfault occurs
-	  while CONFIG_ARM7VM_USEBASEI=y.
+	  while CONFIG_ARM7VM_USEBASEPRI=y.
+	* arch/arm/src/stm32/stm32_serial.c:  Add support for USART
+	  single wire more (Contributed by the PX4 team).
 

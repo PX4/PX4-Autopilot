@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32_serial.c
  *
- *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1400,6 +1400,31 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
           }
       }
       break;
+
+#ifdef CONFIG_STM32_USART_SINGLEWIRE
+    case TIOCSSINGLEWIRE:
+      {
+        /* Change the TX port to be open-drain/push-pull and enable/disable
+         * half-duplex mode.
+         */
+
+        uint32_t cr = up_serialin(priv, STM32_USART_CR3_OFFSET);
+
+        if (arg == SER_SINGLEWIRE_ENABLED)
+          {
+            stm32_configgpio(priv->tx_gpio | GPIO_OPENDRAIN);
+            cr |= USART_CR3_HDSEL;
+          }
+        else
+          {
+            stm32_configgpio(priv->tx_gpio | GPIO_PUSHPULL);
+            cr &= ~USART_CR3_HDSEL;
+          }
+
+        up_serialout(priv, STM32_USART_CR3_OFFSET, cr);
+      }
+     break;    
+#endif
 
 #ifdef CONFIG_SERIAL_TERMIOS
     case TCGETS:
