@@ -51,9 +51,9 @@
 //internal definitions (not depending on the ubx protocol
 #define UBX_NO_OF_MESSAGES 7								/**< Read 7 UBX GPS messages */
 #define UBX_WATCHDOG_CRITICAL_TIME_MICROSECONDS 3000000		/**< Allow 3 seconds maximum inter-message time */
-#define UBX_WATCHDOG_WAIT_TIME_MICROSECONDS 1000000			/**< Check for current state every second */
+#define UBX_WATCHDOG_WAIT_TIME_MICROSECONDS 2000000			/**< Check for current state every two seconds */
 
-#define UBX_CONFIG_TIMEOUT 500000
+#define UBX_CONFIG_TIMEOUT 1000000
 
 #define APPNAME "gps: ubx"
 
