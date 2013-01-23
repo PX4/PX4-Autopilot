@@ -4016,4 +4016,6 @@
 	  the child task exists.  This is behavior required by POSIX.
 	  But in NuttX is only enabled with CONFIG_SCHED_HAVE_PARENT and
 	  CONFIG_SCHED_CHILD_STATUS
+	* Add support for keyboard encode to the keypad test (from
+	  Denis Carikli).
 

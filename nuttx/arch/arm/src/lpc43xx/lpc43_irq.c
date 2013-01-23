@@ -386,9 +386,12 @@ void up_irqinitialize(void)
 
   lpc43_dumpnvic("initial", LPC43M4_IRQ_NIRQS);
 
-  /* If a debugger is connected, try to prevent it from catching hardfaults */
+  /* If a debugger is connected, try to prevent it from catching hardfaults.
+   * If CONFIG_ARMV7M_USEBASEPRI, no hardfaults are expected in normal
+   * operation.
+   */
 
-#ifdef CONFIG_DEBUG
+#if defined(CONFIG_DEBUG) && !defined(CONFIG_ARMV7M_USEBASEPRI)
   regval  = getreg32(NVIC_DEMCR);
   regval &= ~NVIC_DEMCR_VCHARDERR;
   putreg32(regval, NVIC_DEMCR);

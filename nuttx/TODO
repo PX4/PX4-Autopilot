@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 14, 2013)
+NuttX TODO List (Last updated January 23, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -38,14 +38,14 @@ nuttx/
   (3)  MIPS/PIC32 (arch/mips)
   (1)  Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   (4)  Renesas M16C/26 (arch/sh/src/m16c)
- (10)  z80/z8/ez80 (arch/z80/)
+ (11)  z80/z8/ez80/z180 (arch/z80/)
   (9)  z16 (arch/z16/)
   (1)  mc68hc1x (arch/hc)
 
 apps/
 
   (5)  Network Utilities (apps/netutils/)
-  (4)  NuttShell (NSH) (apps/nshlib)
+  (5)  NuttShell (NSH) (apps/nshlib)
   (1)  System libraries apps/system (apps/system)
   (5)  Other Applications & Tests (apps/examples/)
 
@@ -161,37 +161,6 @@ o Task/Scheduler (sched/)
   Status:      Open
   Priority:    Medium Low for now
 
-  Title:       RETAINING TASK EXIT STATUS
-  Description: When a task exists, its exit status should be retained in
-               so data structure until it is reaped (via waitpid(), or
-               similar interface) or until the parent thread exists.
-
-               You would think that this should be a clone of the existing
-               pthread join logic.  Howver there is no need for zombies
-               in NuttX so no need to keep the status if the parent has
-               already exit'ed.  Other simplifications:
-
-               1. Keep the array/list of return status in the parent
-                  tasks TCB.
-               2. Use a fixed size array of return status (perhaps the
-                  the enire array is allocated so that that is con
-                  penalty for tasks that have no childre.
-
-               At present, exit status is not retained.  If waitpid()
-               is called after the child task has exit'ed it simpley
-               returns with the ECHLD error.  That is not too bad, but
-               does not tell you what the exit status was.
-
-               A work-around is to:
-               1) Call sched_lock() to disable pre-emption.
-               2) Start the task (it cannot run because pre-emption is
-                  disbled.
-               3) Call waitpid();
-               4) Call sched_unlock() to re-enable pre-emption.
-
-  Status:      Open
-  Priority:    Low
-
   Title:       IMPROVED TASK CONTROL BLOCK STRUCTURE
   Description: All task resources that are shared amongst threads have
                their own "break-away", reference-counted structure. The
@@ -225,6 +194,23 @@ o Task/Scheduler (sched/)
   Priority:    Medium Low.  This is an important change to some less
                important interfaces.  For the average user, these
                functions are just fine the way they are.
+
+  Title:       execv() AND vfork()
+  Description: There is a problem when vfork() calls execv() (or execl()) to
+               start a new appliction:  When the parent thread calls vfork()
+               it receives and gets the pid of the vforked task, and *not*
+               the pid of the desired execv'ed application.
+
+               The same tasking arrangement is used by the standard function
+               posix_spawn().  However, posix_spawn uses the non-standard, internal
+               NuttX interface task_reparent() to replace the childs parent task
+               with the caller of posix_spawn().  That cannot be done with vfork()
+               because we don't know what vfor() is going to do.
+
+               Any solution to this is either very difficult or impossible with
+               an MMU.
+  Status:      Open
+  Priority:    Low (it might as well be low since it isn't going to be fixed).
 
 o Memory Managment (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^
@@ -531,7 +517,7 @@ o Network (net/, drivers/net)
   Status:      Open.  No changes are planned.
   Priority:    Low
 
-  Tile:        MULTIPLE NETWORK INTERFACE SUPPORT
+  Title:       MULTIPLE NETWORK INTERFACE SUPPORT
   Description: uIP polling issues / Multiple network interface support:
 
                (1) Current logic will not support multiple ethernet drivers.
@@ -680,6 +666,21 @@ o Network (net/, drivers/net)
                and the packet was rejected.
   Status:      Open
   Priority:    Low... fix defconfig files as necessary.
+
+  Title:       net_poll() DOES NOT HANDLE LOSS-OF-CONNECTION CORRECTLY
+  Description: When a loss of connection is detected by any logic waiting on the
+               networking events, the function net_lostconnection() must be called.
+               That function just sets some bits in the socket structure so that
+               it remembers that the connection is lost.
+
+               That is currently done in recvfrom(), send(), and net_monitor.c.  But
+               it is not done in the net_poll() logic; that logic correctly sets
+               the POLLHUP status, but it does not call net_lostconnection().  As a
+               result, if recv() is called after the poll() or select(), the system
+               will hang because the recv() does not know that the connection has
+               been lost.
+  Status:      Open
+  Priority:    High
 
 o USB (drivers/usbdev, drivers/usbhost)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1074,13 +1075,13 @@ o Build system
   Priority:    Low -- the kernel build configuration is not fully fielded
                yet.
 
-  Title:       mconf NOT AVAILABLE IN NATIVE WINDOWS BUILD
-  Description: NuttX is migrating to the use of the kconfig-frontends mconf
+  Title:       kconfig-mconf NOT AVAILABLE IN NATIVE WINDOWS BUILD
+  Description: NuttX is migrating to the use of the kconfig-frontends kconfig-mconf
                tool for all configurations.  In NuttX 6.24, support for native
-               Windows builds was added.  However, the mconf tool does not
+               Windows builds was added.  However, thekconfig- mconf tool does not
                build to run natively under Windows.
 
-               Some effort was spent trying to get a clean mconf build under
+               Some effort was spent trying to get a clean kconfig-mconf build under
                Windows.  This is documented in the message thread beginning
                here: http://tech.groups.yahoo.com/group/nuttx/message/2900.
                The build was successfully completed using:  MinGW-GCC, MSYS,
@@ -1092,8 +1093,8 @@ o Build system
                was considered a show stopper and the changs were not checked
                in.
 
-               Options:  (1) Use conf (not mconf).  confis the text-only
-               configuration tool, (2) fix mconf, (3) write another variant
+               Options:  (1) Use kconfigs-conf (not kconfig-mconf).  confis the text-only
+               configuration tool, (2) fix kconfig-mconf, (3) write another variant
                of the configuration tool for windows, or (4) do all configuration
                under Cygwin or MSYS.  I am doing (4) now, but this is very
                awkward because I have to set the apps path to ../apps (vs
@@ -1763,8 +1764,8 @@ o Renesas M16C/26 (arch/sh/src/m16c)
   Status:      Open
   Priority:    Medium
 
-o z80/z8/ez80 (arch/z80)
- ^^^^^^^^^^^^^^^^^^^^^^^
+o z80/z8/ez80/z180 (arch/z80)
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       SDCC INTEGER OVERFLOWS
   Description: The SDCC version the same problems with integer overflow during
@@ -1853,6 +1854,14 @@ o z80/z8/ez80 (arch/z80)
                the board (yet).
   Status:      Open
   Priority:    Med
+
+  Title:       UNFINISHED Z180 LOGIC NEEDED BY THE P112 BOARD
+  Description: 1) Need to revist the start-up logic.  Looking at the P112 Bios
+                  (Bios.mcd), I see that quite of bit of register setup is done
+                  there.
+               2) Finish ESCC driver logic.
+  Status:      Open
+  Priority:    Low (at least until I get P112 hardware)
 
 o z16 (arch/z16)
 ^^^^^^^^^^^^^^^^
@@ -2044,6 +2053,32 @@ o NuttShell (NSH) (apps/nshlib)
   Description: Add an ARP command so that we can see the contents of the ARP table.
   Status:      Open
   Priority:    Low (enhancement)
+
+  Title:       RE-DIRECTION OF BUILTIN APPLICATONS
+  Description: There is a problem with the re-direction of output form built-in
+               applications in NSH.  When output is re-directed, exec_builtin()
+               spawns a tiny trampoline task that re-directs the output as
+               requested, starts the built-in task and then exit.
+
+               The problem is that when exec_builtin() starts the trampoline task,
+               it receives and returns the pid of the trampoline task, and *not*
+               the pid of the desired builtin application.  This bad pid is returned
+               to NSH and when NSH tries to use that pid in the waitpid() call, it
+               fails because the trampoline task no longer exists.
+
+               The same tasking arrangement is used by the standard function
+               posix_spawn().  However, posix_spawn uses the non-standard, internal
+               NuttX interface task_reparent() to replace the childs parent task
+               with the caller of posix_spawn().
+
+               exec_builtin() should not use this internal interface, however,
+               since it resides in the application space.  The suggested solution
+               is (1) move the exec_builtin() logic into nuttx/sched, (2) make it
+               a semi-standard interface renamed to task_spawn() and prototyped
+               in nuttx/include/sched.h, and then (2) use task_reparent to solve
+               the parental problem in the same way that posix_spawn does.
+  Status:      Open
+  Priority:    Medium
 
 o System libraries apps/system (apps/system)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

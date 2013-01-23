@@ -18,4 +18,12 @@ if EXAMPLES_KEYPADTEST
 		The name of the keypad device that will be opened in order to perform
 		the keypad test.  Default: "/dev/keypad"
 
+config EXAMPLES_KEYPADTEST_ENCODED
+	bool "Use Keyboard CODEC"
+	default n
+	---help---
+		Use the keyboard encoded/decoder to pass control information from
+		the keypad driver to the keypad test.  This is the keyboard CODEC
+		defined in nuttx/input/kbd_codec.h.
+
 endif
