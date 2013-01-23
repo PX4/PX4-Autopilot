@@ -34,8 +34,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC17XX_CHIP_LPC17_IOCON_H
-#define __ARCH_ARM_SRC_LPC17XX_CHIP_LPC17_IOCON_H
+#ifndef __ARCH_ARM_SRC_LPC17XX_CHIP_LPC178X_IOCON_H
+#define __ARCH_ARM_SRC_LPC17XX_CHIP_LPC178X_IOCON_H
 
 /************************************************************************************
  * Included Files
@@ -149,4 +149,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LPC17XX_CHIP_LPC17_IOCON_H */
+#endif /* __ARCH_ARM_SRC_LPC17XX_CHIP_LPC178X_IOCON_H */
