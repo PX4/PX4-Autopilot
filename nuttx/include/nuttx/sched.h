@@ -74,6 +74,7 @@
 #define TCB_FLAG_NONCANCELABLE     (1 << 2) /* Bit 2: Pthread is non-cancelable */
 #define TCB_FLAG_CANCEL_PENDING    (1 << 3) /* Bit 3: Pthread cancel is pending */
 #define TCB_FLAG_ROUND_ROBIN       (1 << 4) /* Bit 4: Round robin sched enabled */
+#define TCB_FLAG_NOCLDWAIT         (1 << 5) /* Bit 5: Do not retain child exit status */
 
 /* Values for struct child_status_s ch_flags */
 
@@ -183,7 +184,7 @@ struct child_status_s
   FAR struct child_status_s *flink;
 
   uint8_t ch_flags;           /* Child status:  See CHILD_FLAG_* definitions */
-  pid_y   ch_pid;             /* Child task ID */
+  pid_t   ch_pid;             /* Child task ID */
   int     ch_status;          /* Child exit status */
 };
 #endif

@@ -159,8 +159,29 @@ int waitid(idtype_t idtype, id_t id, siginfo_t *info, int options)
    * TCB is actually a child of this task.
    */
 
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  if (rtcb->children == NULL)
+    {
+      /* There are no children */
+
+      err = ECHILD;
+      goto errout_with_errno;
+    }
+  else if (idtype == P_PID)
+    {
+      if (task_findchild(rtcb, (pid_t)id) == NULL)
+        {
+          /* This specific pid is not a child */
+
+          err = ECHILD;
+          goto errout_with_errno;
+        }
+    }
+#else
   if (rtcb->nchildren == 0)
     {
+      /* There are no children */
+
       err = ECHILD;
       goto errout_with_errno;
     }
@@ -175,11 +196,64 @@ int waitid(idtype_t idtype, id_t id, siginfo_t *info, int options)
           goto errout_with_errno;
         }
     }
+#endif
 
   /* Loop until the child that we are waiting for dies */
 
   for (;;)
     {
+#ifdef CONFIG_SCHED_CHILD_STATUS
+      /* Check if the task has already died. Signals are not queued in
+       * NuttX.  So a possibility is that the child has died and we
+       * missed the death of child signal (we got some other signal
+       * instead).
+       */
+
+      DEBUGASSERT(rtcb->children);
+      if (rtcb->children == NULL)
+        {
+          /* This should not happen.  I am just wasting your FLASH. */
+
+          err = ECHILD;
+          goto errout_with_errno;
+        }
+      else if (idtype == P_PID)
+        {
+          FAR struct child_status_s *child;
+
+          /* We are waiting for a specific PID.  Get the current status
+           * of the child task.
+           */
+
+          child = task_findchild(rtcb, (pid_t)id);
+          DEBUGASSERT(child);
+          if (!child)
+            {
+              /* Yikes!  The child status entry just disappeared! */
+
+              err = ECHILD;
+              goto errout_with_errno;
+            }
+
+          /* Did the child exit? */
+
+          if ((child->ch_flags & CHILD_FLAG_EXITED) != 0)
+            {
+              /* The child has exited. Return the saved exit status */
+
+              info->si_signo           = SIGCHLD;
+              info->si_code            = CLD_EXITED;
+              info->si_value.sival_ptr = NULL;
+              info->si_pid             = (pid_t)id;
+              info->si_status          = child->ch_status;
+
+              /* Discard the child entry and break out of the loop */
+
+              (void)task_removechild(rtcb, (pid_t)id);
+              task_freechild(child);
+            }
+        }
+#else
       /* Check if the task has already died. Signals are not queued in
        * NuttX.  So a possibility is that the child has died and we
        * missed the death of child signal (we got some other signal
@@ -197,6 +271,7 @@ int waitid(idtype_t idtype, id_t id, siginfo_t *info, int options)
           err = EINTR;
           goto errout_with_errno;
         }
+#endif
 
       /* Wait for any death-of-child signal */
 

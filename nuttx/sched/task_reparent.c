@@ -71,6 +71,9 @@
 
 int task_reparent(pid_t ppid, pid_t chpid)
 {
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  FAR struct child_status_s *child;
+#endif
   _TCB *ptcb;
   _TCB *chtcb;
   _TCB *otcb;
@@ -127,12 +130,30 @@ int task_reparent(pid_t ppid, pid_t chpid)
 
   /* Then reparent the child */
 
+  chtcb->parent = ppid;  /* The task specified by ppid is the new parent */
+
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  /* Remove the child status entry from old parent TCB */
+
+  child = task_removechild(otcb, chpid);
+  if (child)
+    {
+      /* Add the child status entry to the new parent TCB */
+
+      task_addchild(ptcb, child);
+      ret = OK;
+    }
+  else
+    {
+      ret = -ENOENT;
+    }
+#else
   DEBUGASSERT(otcb->nchildren > 0);
 
-  chtcb->parent = ppid;  /* The task specified by ppid is the new parent */
   otcb->nchildren--;     /* The orignal parent now has one few children */
   ptcb->nchildren++;     /* The new parent has one additional child */
   ret = OK;
+#endif
   
 errout_with_ints:
   irqrestore(flags);

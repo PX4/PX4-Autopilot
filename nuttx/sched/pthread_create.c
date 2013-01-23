@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/pthread_create.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -354,15 +354,10 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
 #endif
     }
 
-  /* Mark this task as a pthread (this setting will be needed in
-   * task_schedsetup() when up_initial_state() is called.
-   */
-
-  ptcb->flags |= TCB_FLAG_TTYPE_PTHREAD;
-
   /* Initialize the task control block */
 
-  ret  = task_schedsetup(ptcb, priority, pthread_start, (main_t)start_routine);
+  ret = task_schedsetup(ptcb, priority, pthread_start, (main_t)start_routine,
+                        TCB_FLAG_TTYPE_PTHREAD);
   if (ret != OK)
     {
       sched_releasetcb(ptcb);

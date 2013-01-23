@@ -264,17 +264,16 @@ extern const tasklist_t g_tasklisttable[NUM_TASK_STATES];
 int  os_bringup(void);
 void task_start(void);
 int  task_schedsetup(FAR _TCB *tcb, int priority, start_t start,
-                     main_t main);
+                     main_t main, uint8_t ttype);
 int  task_argsetup(FAR _TCB *tcb, FAR const char *name, FAR const char *argv[]);
 void task_exithook(FAR _TCB *tcb, int status);
 int  task_deletecurrent(void);
 #ifdef CONFIG_SCHED_HAVE_PARENT
 #ifdef CONFIG_SCHED_CHILD_STATUS
-void weak_functiontask_initialize(void);
+void weak_function task_initialize(void);
 FAR struct child_status_s *task_allocchild(void);
 void task_freechild(FAR struct child_status_s *status);
-FAR struct child_status_s *task_addchild(FAR _TCB *tcb, pid_t pid, int status,
-                                         uint8_t flags);
+void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child);
 FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid);
 FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid);
 void task_removechildren(FAR _TCB *tcb);

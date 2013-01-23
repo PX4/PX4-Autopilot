@@ -39,24 +39,44 @@
 
 #include <nuttx/config.h>
 
+#include <sched.h>
 #include <errno.h>
+#include <debug.h>
 
 #include "os_internal.h"
 
 #if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
 
 /*****************************************************************************
+ * Pre-processor Definitions
+ *****************************************************************************/
+/* Note that there cannot be more that CONFIG_MAX_TASKS tasks in total.
+ * However, the number of child status structures may need to be significantly
+ * larger because this number includes the maximum number of tasks that are
+ * running PLUS the number of tasks that have exit'ed without having their
+ * exit status reaped (via wait(), waitid(), or waitpid()).
+ *
+ * Obviously, if tasks spawn children indefinitely and never have the exit
+ * status reaped, then you have a memory leak!
+ */
+
+#if !defined(CONFIG_PREALLOC_CHILDSTATUS) || CONFIG_PREALLOC_CHILDSTATUS == 0
+#  undef  CONFIG_PREALLOC_CHILDSTATUS
+#  define CONFIG_PREALLOC_CHILDSTATUS (2*CONFIG_MAX_TASKS)
+#endif
+
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_DEBUG_CHILDSTATUS
+#endif
+
+/*****************************************************************************
  * Private Types
  *****************************************************************************/
-/* Globals are maintained in a structure to minimize name collisions.  Note
- * that there cannot be more that CONFIG_MAX_TASKS tasks in total.  So using
- * CONFIG_MAX_TASKS should be sufficient (at least one task, the IDLE thread,
- * will have no parent).
- */
+/* Globals are maintained in a structure to minimize name collisions. */
 
 struct child_pool_s
 {
-  struct child_status_s alloc[CONFIG_MAX_TASKS];
+  struct child_status_s alloc[CONFIG_PREALLOC_CHILDSTATUS];
   FAR struct child_status_s *freelist;
 };
 
@@ -69,6 +89,40 @@ static struct child_pool_s g_child_pool;
 /*****************************************************************************
  * Private Functions
  *****************************************************************************/
+
+/*****************************************************************************
+ * Name: task_dumpchildren
+ *
+ * Description:
+ *   Dump all of the children when the part TCB list is modified.
+ *
+ * Parameters:
+ *   tcb - The parent TCB.
+ *
+ * Return Value:
+ *   None.
+ *
+ * Assumptions:
+ *   Called early in initialization.  No special precautions are required.
+ *
+ *****************************************************************************/
+
+#ifdef CONFIG_DEBUG_CHILDSTATUS
+static void task_dumpchildren(FAR _TCB *tcb, FAR const char *msg)
+{
+  FAR struct child_status_s *child;
+  int i;
+
+  dbg("Parent TCB=%p: %s\n", tcb, msg);
+  for (i = 0, child = tcb->children; child; i++, child = child->flink)
+    {
+      dbg("  %d. ch_flags=%02x ch_pid=%d ch_status=%d\n",
+          i, child->ch_flags, child->ch_pid, child->ch_status);
+    }
+}
+#else
+#  task_dumpchildren(t,m)
+#endif
 
 /*****************************************************************************
  * Public Functions
@@ -88,7 +142,7 @@ static struct child_pool_s g_child_pool;
  *   None.
  *
  * Assumptions:
- *   Called early in initializatin.  No special precautions are required.
+ *   Called early in initialization.  No special precautions are required.
  *
  *****************************************************************************/
 
@@ -102,11 +156,11 @@ void task_initialize(void)
 
   prev = &g_child_pool.alloc[0];
   g_child_pool.freelist = prev;
-  for (i = 0; i < CONFIG_MAX_TASKS; i++)
+  for (i = 0; i < CONFIG_PREALLOC_CHILDSTATUS; i++)
     {
-      curr = &g_child_pool.alloc[i]
+      curr        = &g_child_pool.alloc[i];
       prev->flink = curr;
-      prev = curr;
+      prev        = curr;
     }
 }
 
@@ -140,7 +194,7 @@ FAR struct child_status_s *task_allocchild(void)
   if (ret)
     {
       g_child_pool.freelist = ret->flink;
-      ret->flink = NULL;
+      ret->flink            = NULL;
     }
 
   return ret;
@@ -170,7 +224,7 @@ void task_freechild(FAR struct child_status_s *child)
 
   if (child)
     {
-      child->flink = g_child_pool.freelist;
+      child->flink          = g_child_pool.freelist;
       g_child_pool.freelist = child;
     }
 }
@@ -179,18 +233,14 @@ void task_freechild(FAR struct child_status_s *child)
  * Name: task_addchild
  *
  * Description:
- *   Find a child status structure in the given TCB.
+ *   Add a child status structure in the given TCB.
  *
  * Parameters:
  *   tcb    - The TCB of the parent task to containing the child status.
- *   pid    - The ID of the child to create
- *   status - Child exit status (should be zero)
- *   flags  - Child flags (see CHILD_FLAGS_* defininitions)
+ *   child  - The structure to be added
  *
  * Return Value:
- *   On success, a non-NULL pointer to a child status structure.  NULL is
- *   returned if (1) there are no free status structures, or (2) an entry
- *   with this PID already exists.
+ *   N
  *
  * Assumptions:
  *   Called during task creation processing in a safe context.  No special
@@ -198,37 +248,14 @@ void task_freechild(FAR struct child_status_s *child)
  *
  *****************************************************************************/
 
-FAR struct child_status_s *task_addchild(FAR _TCB *tcb, pid_t pid, int status,
-                                         uint8_t flags)
+void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child)
 {
-  FAR struct child_status_s *child;
+  /* Add the entry into the TCB list of children */
 
-  /* Make sure that there is not already a structure for this PID */
+  child->flink  = tcb->children;
+  tcb->children = child;
 
-  child = task_findchild(tcb, pid);
-  if (child)
-    {
-      return NULL;
-    }
-
-  /* Allocate a new status structure  */
-
-  child = task_allocchild(void);
-  if (child)
-    {
-      /* Initialize the structure */
-
-      child->ch_flags  = flags;
-      child->ch_pid    = pid;
-      child->ch_status = status;
-
-      /* Add the entry into the TCB list of children */
-
-      status->flink     = tcb->children;
-      tcb->childen      = status;
-    }
-
-  return child;
+  task_dumpchildren(tcb, "task_addchild");
 }
 
 /*****************************************************************************
@@ -325,6 +352,7 @@ FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid)
         }
 
       curr->flink = NULL;
+      task_dumpchildren(tcb, "task_removechild");
     }
  
   return curr;
@@ -360,6 +388,9 @@ void task_removechildren(FAR _TCB *tcb)
       next = curr->flink;
       task_freechild(curr);
     }
+
+  tcb->children = NULL;
+  task_dumpchildren(tcb, "task_removechildren");
 }
 
 #endif /* CONFIG_SCHED_HAVE_PARENT && CONFIG_SCHED_CHILD_STATUS */

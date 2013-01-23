@@ -4002,7 +4002,7 @@
 	  Start of support of LCD1602 alphanumeric LCD.  I need a few
 	  more parts before I can finish integrating this one.
 	* arch/arm/src/*/chip.h and arch/arm/include/*/chip.h:  Move all
-	  priority ragnes from the src to the include chip.h header file.
+	  priority ranges from the src to the include chip.h header file.
 	* arch/arm/include/armv7-m/irq.h:  Add inline functions to enable
 	  and disable interrupts via the BASEPRI register.
 	* arch/arm/Kconfig:  Add new option CONFIG_ARM7VM_USEBASEI
@@ -4012,4 +4012,8 @@
 	  while CONFIG_ARM7VM_USEBASEPRI=y.
 	* arch/arm/src/stm32/stm32_serial.c:  Add support for USART
 	  single wire more (Contributed by the PX4 team).
+	* sched/: Implement support for retaining child task status after
+	  the child task exists.  This is behavior required by POSIX.
+	  But in NuttX is only enabled with CONFIG_SCHED_HAVE_PARENT and
+	  CONFIG_SCHED_CHILD_STATUS
 

@@ -83,9 +83,14 @@ CONFIG_BOARD_LOOPSPERMSEC=100
 # CONFIG_SIM_WALLTIME is not set
 
 #
+# External Memory Configuration
+#
+
+#
 # Architecture Options
 #
 # CONFIG_ARCH_NOINTC is not set
+# CONFIG_ARCH_VECNOTIRQ is not set
 # CONFIG_ARCH_DMA is not set
 # CONFIG_ARCH_IRQPRIO is not set
 # CONFIG_CUSTOM_STACK is not set
@@ -93,6 +98,7 @@ CONFIG_BOARD_LOOPSPERMSEC=100
 # CONFIG_ARCH_HAVE_VFORK is not set
 # CONFIG_ARCH_STACKDUMP is not set
 # CONFIG_ENDIAN_BIG is not set
+# CONFIG_ARCH_HAVE_RAMFUNCS is not set
 
 #
 # Board Settings
@@ -132,6 +138,7 @@ CONFIG_RR_INTERVAL=0
 # CONFIG_SCHED_INSTRUMENTATION is not set
 CONFIG_TASK_NAME_SIZE=32
 CONFIG_SCHED_HAVE_PARENT=y
+# CONFIG_SCHED_CHILD_STATUS is not set
 # CONFIG_JULIAN_TIME is not set
 CONFIG_START_YEAR=2007
 CONFIG_START_MONTH=2
@@ -242,8 +249,8 @@ CONFIG_SERIAL=y
 #
 # File system configuration
 #
-# CONFIG_FS_FAT is not set
 # CONFIG_FS_RAMMAP is not set
+# CONFIG_FS_FAT is not set
 # CONFIG_FS_NXFFS is not set
 # CONFIG_FS_ROMFS is not set
 
@@ -271,6 +278,7 @@ CONFIG_MM_REGIONS=1
 # CONFIG_BINFMT_EXEPATH is not set
 # CONFIG_NXFLAT is not set
 # CONFIG_ELF is not set
+# CONFIG_BUILTIN is not set
 # CONFIG_PIC is not set
 # CONFIG_SYMTAB_ORDEREDBYNAME is not set
 
@@ -318,7 +326,6 @@ CONFIG_LIB_SENDFILE_BUFSIZE=512
 #
 # Built-In Applications
 #
-# CONFIG_BUILTIN is not set
 
 #
 # Examples

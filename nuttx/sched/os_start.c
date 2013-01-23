@@ -286,7 +286,7 @@ void os_start(void)
 
   /* Initialize the processor-specific portion of the TCB */
 
-  g_idletcb.flags = TCB_FLAG_TTYPE_KERNEL;
+  g_idletcb.flags = (TCB_FLAG_TTYPE_KERNEL | TCB_FLAG_NOCLDWAIT);
   up_initial_state(&g_idletcb);
 
   /* Initialize the semaphore facility(if in link).  This has to be done

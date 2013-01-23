@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: January 13, 2013</p>
+      <p>Last Updated: January 23, 2013</p>
     </td>
   </tr>
 </table>
@@ -4481,10 +4481,72 @@ build
     instrumentation is selected.  Set to zero to disable.
   </li>
   <li>
-    <code>CONFIG_SCHED_HAVE_PARENT</code>: Remember the ID of the parent thread when a new child thread is created.
+    <code>CONFIG_SCHED_HAVE_PARENT</code>: Remember the ID of the parent thread when a new child task is created.
     This support enables some additional features (such as <code>SIGCHLD</code>) and modifies the behavior of other interfaces.
     For example, it makes <code>waitpid()</code> more standards complete by restricting the waited-for tasks to the children of the caller.
     Default: disabled.
+  </li>
+  <li>
+    <code>CONFIG_SCHED_CHILD_STATUS</code>: If this option is selected, then the exit status of the child task will be retained after the child task exits.
+    This option should be selected if you require knowledge of a child process' exit status.
+    Without this setting, <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code> may fail.
+    For example, if you do:
+    <p><ol>
+      <li>
+        Start child task
+      </li>
+      <li>
+        Wait for exit status (using <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code>).
+      </li>
+    </ol></p>
+    <p>
+      This can fail because the child task may run to completion before the wait begins.
+      There is a non-standard work-around in this case:
+      The above sequence will work if you disable pre-emption using <code>sched_lock()</code> prior to starting the child task, then re-enable pre-emption with <code>sched_unlock()</code> after the wait completes.
+      This works because the child task is not permitted to run until the wait is in place.
+    </p>
+    <p>
+      The standard solution would be to enable <code>CONFIG_SCHED_CHILD_STATUS</code>.
+      In this case the exit status of the child task is retained after the child exits and the wait will successful obtain the child task's exit status whether it is called before the child task exits or not.
+    </p>
+    <p>
+      <b>Warning</b>:
+      If you enable this feature, then your application must either (1) take responsibility for reaping the child status with <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code>, or (2) suppress retention of child status.
+      If you do not reap the child status, then you have a memory leak and your system will eventually fail.
+    </p>
+      Retention of child status can be suppressed on the parent using logic like:
+    </p>
+    <ul><pre>
+struct sigaction sa;
+
+sa.sa_handler = SIG_IGN;
+sa.sa_flags = SA_NOCLDWAIT;
+int ret = sigaction(SIGCHLD, &sa, NULL);
+</pre></ul>
+  </li>
+  <li>
+    <code>CONFIG_PREALLOC_CHILDSTATUS</code>: To prevent runaway child status allocations and to improve
+      allocation performance, child task exit status structures are pre-allocated when the system boots.
+      This setting determines the number of child status structures that will be pre-allocated.
+      If this setting is not defined or if it is defined to be zero then a value of 2*<code>MAX_TASKS</code> is used.
+    <p>
+      Note that there cannot be more that <code>CONFIG_MAX_TASKS</code> tasks in total.
+      However, the number of child status structures may need to be significantly larger because this number includes the maximum number of tasks that are running PLUS the number of tasks that have exit'ed without having their exit status reaped (via <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code>).
+    </p>
+    <p>
+      Obviously, if tasks spawn children indefinitely and never have the exit status reaped, then you may have a memory leak!
+      If you enable the <code>SCHED_CHILD_STATUS</code> feature, then your application must take responsibility for either (1) reaping the child status with <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code> or it must (2) suppress retention of child status.  Otherwise, your system will eventually fail.
+    </p>
+    <p>
+      Retention of child status can be suppressed on the parent using logic like:
+    </p>
+    <ul><pre>
+struct sigaction sa;
+
+sa.sa_handler = SIG_IGN;
+sa.sa_flags = SA_NOCLDWAIT;
+int ret = sigaction(SIGCHLD, &sa, NULL);
+</pre></ul>
   </li>
   <li>
   <code>CONFIG_SYSTEM_TIME16</code>:

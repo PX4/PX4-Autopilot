@@ -13,7 +13,7 @@
       <h1><big><font color="#3c34ec"><i>NuttX Operating System<p>User's Manual</i></font></big></h1>
       <p><small>by</small></p>
       <p>Gregory Nutt<p>
-      <p>Last Updated: January 13, 2013</p>
+      <p>Last Updated: January 23, 2013</p>
     </td>
   </tr>
 </table>
@@ -1767,20 +1767,114 @@ priority of the calling task is returned.
   </tr>
 </table>
 
-<p>Scheduler locking interfaces</p>
+<p>
+  <b>Task Control Interfaces</b>.
+</p>
 <ul>
-  <li><a href="#schedlock">2.3.1 sched_lock</a></li>
-  <li><a href="#schedunlock">2.3.2 sched_unlock</a></li>
-  <li><a href="#schedlockcount">2.3.3 sched_lockcount</a></li>
+  <li>
+    <p>
+      <b>Scheduler locking interfaces</b>.
+      This <i>non-standard</i> interfaces are used to enable and disable pre-emption and to test is pre-emption is currently enabled.
+    </p>
+    <ul>
+      <li><a href="#schedlock">2.3.1 sched_lock</a></li>
+      <li><a href="#schedunlock">2.3.2 sched_unlock</a></li>
+      <li><a href="#schedlockcount">2.3.3 sched_lockcount</a></li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Task synchronization interfaces</b>.
+      <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code> may be used to wait for termination of child tasks.
+    </p>
+    <ul>
+      <li><a href="#waitpid">2.3.4 waitpid</a></li>
+      <li><a href="#waitid">2.3.5 waitid</a></li>
+      <li><a href="#wait">2.3.6 wait</a></li>
+    </ul>
+    <p>
+      <code>atexit()</code> and <code>on_exit()</code> may be use to register callback functions that are executed when a task exits.
+    </p>
+    <ul>
+      <li><a href="#atexit">2.3.7 atexit</a></li>
+      <li><a href="#onexit">2.3.8 on_exit</a></li>
+    </ul>
+  </li>
 </ul>
-<p>Task synchronization interfaces</p>
+
+<p>
+  <b>Parent and Child Tasks</b>.
+  The task synchronization interfaces historically depend upon parent and child relationships between tasks.
+  But default, NuttX does not use any parent/child knowledge.
+  However, there are three important configuration options that can change that.
+</p>
 <ul>
-  <li><a href="#waitpid">2.3.4 waitpid</a></li>
-  <li><a href="#waitid">2.3.5 waitid</a></li>
-  <li><a href="#wait">2.3.6 wait</a></li>
-  <li><a href="#atexit">2.3.7 atexit</a></li>
-  <li><a href="#onexit">2.3.8 on_exit</a></li>
+  <li>
+    <p>
+      <b><code>CONFIG_SCHED_HAVE_PARENT</code></b>.
+      If this setting is defined, then it instructs NuttX to remember the task ID of the parent task when each new child task is created.
+      This support enables some additional features (such as <code>SIGCHLD</code>) and modifies the behavior of other interfaces.
+      For example, it makes <code>waitpid()</code> more standards complete by restricting the waited-for tasks to the children of the caller.
+    </p>
+  </li>
+  <li>
+    <p>
+      <b><code>CONFIG_SCHED_CHILD_STATUS</code></b>
+      If this option is selected, then the exit status of the child task will be retained after the child task exits.
+      This option should be selected if you require knowledge of a child process' exit status.
+      Without this setting, <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code> may fail.
+      For example, if you do:
+    </p>
+    <ol>
+      <li>
+        Start child task
+      </li>
+      <li>
+        Wait for exit status (using <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code>).
+      </li>
+    </ol>
+    <p>
+      This may fail because the child task may run to completion before the wait begins.
+      There is a non-standard work-around in this case:
+      The above sequence will work if you disable pre-emption using <code>sched_lock()</code> prior to starting the child task, then re-enable pre-emption with <code>sched_unlock()</code> after the wait completes.
+      This works because the child task is not permitted to run until the wait is in place.
+    </p>
+    <p>
+      The standard solution would be to enable <code>CONFIG_SCHED_CHILD_STATUS</code>.
+      In this case the exit status of the child task is retained after the child exits and the wait will successful obtain the child task's exit status whether it is called before the child task exits or not.
+    </p>
+  </li>
+  <li>
+    <p>
+      <b><code>CONFIG_PREALLOC_CHILDSTATUS</code></b>.
+      To prevent runaway child status allocations and to improve allocation performance, child task exit status structures are pre-allocated when the system boots.
+      This setting determines the number of child status structures that will be pre-allocated.
+      If this setting is not defined or if it is defined to be zero then a value of 2*<code>MAX_TASKS</code> is used.
+    </p>
+    <p>
+      Note that there cannot be more that <code>CONFIG_MAX_TASKS</code> tasks in total.
+      However, the number of child status structures may need to be significantly larger because this number includes the maximum number of tasks that are running PLUS the number of tasks that have exit'ed without having their exit status reaped (via <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code>).
+    </p>
+    <p>
+      Obviously, if tasks spawn children indefinitely and never have the exit status reaped, then you may have a memory leak!
+      (See <b>Warning</b> below)
+    </p>
+  </li>
 </ul>
+<p>
+  <b>Warning</b>:
+  If you enable the <code>CONFIG_SCHED_CHILD_STATUS</code> feature, then your application must either (1) take responsibility for reaping the child status with <code>wait()</code>, <code>waitpid()</code> or <code>waitid()</code>, or (2) suppress retention of child status.
+  If you do not reap the child status, then you have a memory leak and your system will eventually fail.
+</p>
+  Retention of child status can be suppressed on the parent using logic like:
+</p>
+<ul><pre>
+struct sigaction sa;
+
+sa.sa_handler = SIG_IGN;
+sa.sa_flags = SA_NOCLDWAIT;
+int ret = sigaction(SIGCHLD, &sa, NULL);
+</pre></ul>
 
 <H3><a name="schedlock">2.3.1 sched_lock</a></H3>
 
@@ -4589,10 +4683,14 @@ sigaction().
 interface of the same name.
 Differences from the POSIX implementation include:
 <ul>
-<li>Special values of sa_handler in the struct sigaction act input
-not handled (SIG_DFL, SIG_IGN).
-<li>All sa_flags in struct sigaction of act input are ignored
-(all treated like SA_SIGINFO).
+  <li>
+    There are no default actions so the special value <code>SIG_DFL</code> is treated like <code>SIG_IGN</code>.
+  </li>
+  <li>
+    All <code>sa_flags</code> in struct sigaction of act input are ignored (all treated like <code>SA_SIGINFO</code>).
+    The one exception is if <code>CONFIG_SCHED_CHILDSTATUS</code> is defined;
+    then <code>SA_NOCLDWAIT</code> is supported but only for <code>SIGCHLD</code>.
+  </li>
 </ul>
 
 <H3><a name="sigprocmask">2.8.7 sigprocmask</a></H3>

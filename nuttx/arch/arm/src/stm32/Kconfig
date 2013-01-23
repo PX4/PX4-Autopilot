@@ -1810,7 +1810,7 @@ config STM32_TIM14_DAC2
 
 endchoice
 
-bool STM32_USART
+config STM32_USART
 	bool
 
 menu "U[S]ART Configuration"
