@@ -72,8 +72,10 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/offboard_control_setpoint.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
@@ -1251,6 +1253,7 @@ int commander_thread_main(int argc, char *argv[])
 {
 	/* not yet initialized */
 	commander_initialized = false;
+	bool home_position_set = false;
 
 	/* set parameters */
 	failsafe_lowlevel_timeout_ms = 0;
@@ -1302,6 +1305,11 @@ int commander_thread_main(int argc, char *argv[])
 	/* publish current state machine */
 	state_machine_publish(stat_pub, &current_status, mavlink_fd);
 
+	/* home position */
+	orb_advert_t home_pub = -1;
+	struct home_position_s home;
+	memset(&home, 0, sizeof(home));
+
 	if (stat_pub < 0) {
 		warnx("ERROR: orb_advertise for topic vehicle_status failed.\n");
 		exit(ERROR);
@@ -1332,10 +1340,6 @@ int commander_thread_main(int argc, char *argv[])
 	uint16_t stick_off_counter = 0;
 	uint16_t stick_on_counter = 0;
 
-	float hdop = 65535.0f;
-
-	int gps_quality_good_counter = 0;
-
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	struct manual_control_setpoint_s sp_man;
@@ -1355,6 +1359,15 @@ int commander_thread_main(int argc, char *argv[])
 	struct vehicle_local_position_s local_position;
 	memset(&local_position, 0, sizeof(local_position));
 	uint64_t last_local_position_time = 0;
+
+	/* 
+	 * The home position is set based on GPS only, to prevent a dependency between
+	 * position estimator and commander. RAW GPS is more than good enough for a
+	 * non-flying vehicle.
+	 */
+	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	struct vehicle_gps_position_s gps_position;
+	memset(&gps_position, 0, sizeof(gps_position));
 
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	struct sensor_combined_s sensors;
@@ -1660,65 +1673,57 @@ int commander_thread_main(int argc, char *argv[])
 			state_changed = true;
 		}
 
+		if (orb_check(ORB_ID(vehicle_gps_position), &new_data)) {
 
-		/* Check if last transition deserved an audio event */
-// #warning This code depends on state that is no longer? maintained
-// #if 0
-// 		trigger_audio_alarm(vehicle_mode_previous, vehicle_state_previous, current_status.mode, current_status.state_machine);
-// #endif
+			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
 
-		/* only check gps fix if we are outdoor */
-//		if (flight_env == PX4_FLIGHT_ENVIRONMENT_OUTDOOR) {
-//
-//			hdop = (float)(gps.eph) / 100.0f;
-//
-//			/* check if gps fix is ok */
-//			if (gps.fix_type == GPS_FIX_TYPE_3D) { //TODO: is 2d-fix ok? //see http://en.wikipedia.org/wiki/Dilution_of_precision_%28GPS%29
-//
-//				if (gotfix_counter >= GPS_GOTFIX_COUNTER_REQUIRED) { //TODO: add also a required time?
-//					update_state_machine_got_position_fix(stat_pub, &current_status);
-//					gotfix_counter = 0;
-//				} else {
-//					gotfix_counter++;
-//				}
-//				nofix_counter = 0;
-//
-//				if (hdop < 5.0f) { //TODO: this should be a parameter
-//					if (gps_quality_good_counter > GPS_QUALITY_GOOD_COUNTER_LIMIT) {
-//						current_status.gps_valid = true;//--> position estimator can use the gps measurements
-//					}
-//
-//					gps_quality_good_counter++;
-//
-//
-////					if(counter%10 == 0)//for testing only
-////						warnx("gps_quality_good_counter = %u\n", gps_quality_good_counter);//for testing only
-//
-//				} else {
-//					gps_quality_good_counter = 0;
-//					current_status.gps_valid = false;//--> position estimator can not use the gps measurements
-//				}
-//
-//			} else {
-//				gps_quality_good_counter = 0;
-//				current_status.gps_valid = false;//--> position estimator can not use the gps measurements
-//
-//				if (nofix_counter > GPS_NOFIX_COUNTER_LIMIT) { //TODO: add also a timer limit?
-//					update_state_machine_no_position_fix(stat_pub, &current_status);
-//					nofix_counter = 0;
-//				} else {
-//					nofix_counter++;
-//				}
-//				gotfix_counter = 0;
-//			}
-//
-//		}
-//
-//
-//		if (flight_env == PX4_FLIGHT_ENVIRONMENT_TESTING) //simulate position fix for quick indoor tests
-		//update_state_machine_got_position_fix(stat_pub, &current_status, mavlink_fd);
-		/* end: check gps */
+			/* check for first, long-term and valid GPS lock -> set home position */
+			float hdop_m = gps_position.eph / 100.0f;
+			float vdop_m = gps_position.epv / 100.0f;
 
+			/* check if gps fix is ok */
+			// XXX magic number
+			float dop_threshold_m = 2.0f;
+
+			/*
+			 * If horizontal dilution of precision (hdop / eph)
+			 * and vertical diluation of precision (vdop / epv)
+			 * are below a certain threshold (e.g. 4 m), AND
+			 * home position is not yet set AND the last GPS
+			 * GPS measurement is not older than two seconds AND
+			 * the system is currently not armed, set home
+			 * position to the current position.
+			 */
+			if (gps_position.fix_type == GPS_FIX_TYPE_3D && (hdop_m < dop_threshold_m)
+				&& (vdop_m < dop_threshold_m)
+				&& !home_position_set
+				&& (hrt_absolute_time() - gps_position.timestamp < 2000000)
+				&& !current_status.flag_system_armed) {
+				warnx("setting home position");
+
+				/* copy position data to uORB home message, store it locally as well */
+				home.lat = gps_position.lat;
+				home.lon = gps_position.lon;
+				home.alt = gps_position.alt;
+
+				home.eph = gps_position.eph;
+				home.epv = gps_position.epv;
+
+				home.s_variance = gps_position.s_variance;
+				home.p_variance = gps_position.p_variance;
+
+				/* announce new home position */
+				if (home_pub > 0) {
+					orb_publish(ORB_ID(home_position), home_pub, &home);
+				} else {
+					home_pub = orb_advertise(ORB_ID(home_position), &home);
+				}
+
+				/* mark home position as set */
+				home_position_set = true;
+				tune_confirm();
+			}
+		}
 
 		/* ignore RC signals if in offboard control mode */
 		if (!current_status.offboard_control_signal_found_once && sp_man.timestamp != 0) {
@@ -1845,15 +1850,16 @@ int commander_thread_main(int argc, char *argv[])
 					update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
 
 				} else if (sp_man.manual_override_switch < -STICK_ON_OFF_LIMIT) {
-					/* check auto mode switch for correct mode */
-					if (sp_man.auto_mode_switch > STICK_ON_OFF_LIMIT) {
-						/* enable guided mode */
-						update_state_machine_mode_guided(stat_pub, &current_status, mavlink_fd);
+					// /* check auto mode switch for correct mode */
+					// if (sp_man.auto_mode_switch > STICK_ON_OFF_LIMIT) {
+					// 	/* enable guided mode */
+					// 	update_state_machine_mode_guided(stat_pub, &current_status, mavlink_fd);
 
-					} else if (sp_man.auto_mode_switch < -STICK_ON_OFF_LIMIT) {
+					// } else if (sp_man.auto_mode_switch < -STICK_ON_OFF_LIMIT) {
+						// XXX hardcode to auto for now
 						update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
 
-					}
+					// }
 
 				} else {
 					/* center stick position, set SAS for all vehicle types */
@@ -2041,4 +2047,3 @@ int commander_thread_main(int argc, char *argv[])
 
 	return 0;
 }
-
