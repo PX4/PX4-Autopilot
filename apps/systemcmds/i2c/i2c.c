@@ -80,12 +80,13 @@ int i2c_main(int argc, char *argv[])
 
 	usleep(100000);
 
-	uint32_t val = 0x12345678;
-	int ret = transfer(PX4_I2C_OBDEV_PX4IO, (uint8_t *)&val, sizeof(val), NULL, 0);
+	uint8_t buf[] = { 0, 4};
+	int ret = transfer(PX4_I2C_OBDEV_PX4IO, buf, sizeof(buf), NULL, 0);
 
 	if (ret)
 		errx(1, "send failed - %d", ret);
 
+	uint32_t val;
 	ret = transfer(PX4_I2C_OBDEV_PX4IO, NULL, 0, (uint8_t *)&val, sizeof(val));
 	if (ret)
 		errx(1, "recive failed - %d", ret);
@@ -128,7 +129,7 @@ transfer(uint8_t address, uint8_t *send, unsigned send_len, uint8_t *recv, unsig
 	 * if there are any devices on the bus with a different frequency
 	 * preference.  Really, this is pointless.
 	 */
-	I2C_SETFREQUENCY(i2c, 320000);
+	I2C_SETFREQUENCY(i2c, 400000);
 	ret = I2C_TRANSFER(i2c, &msgv[0], msgs);
 
 	// reset the I2C bus to unwedge on error
