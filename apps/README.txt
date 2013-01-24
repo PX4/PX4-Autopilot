@@ -6,26 +6,25 @@ Contents
 
   General
   Directory Location
-  Named Applications
-  Named Startup main() function
+  Built-In Applications
   NuttShell (NSH) Built-In Commands
   Synchronous Built-In Commands
   Application Configuration File
-  Example Named Application
+  Example Built-In Application
   Building NuttX with Board-Specific Pieces Outside the Source Tree
 
 General
 -------
 This folder provides various applications found in sub-directories.  These
-applications are not inherently a part of NuttX but are provided you help
+applications are not inherently a part of NuttX but are provided to help
 you develop your own applications.  The apps/ directory is a "break away"
-part of the configuration that you may chose to use or not.
+part of the configuration that you may choose to use or not.
 
 Directory Location
 ------------------
 The default application directory used by the NuttX build should be named
 apps/ (or apps-x.y/ where x.y is the NuttX version number).  This apps/
-directoy should appear in the directory tree at the same level as the
+directory should appear in the directory tree at the same level as the
 NuttX directory.  Like:
 
  .
@@ -47,14 +46,14 @@ ways to do that:
    path to the application directory on the configuration command line
    like: ./configure.sh -a <app-dir> <board-name>/<config-name>
 
-Named Applications
-------------------
+Built-In Applications
+---------------------
 NuttX also supports applications that can be started using a name string.
 In this case, application entry points with their requirements are gathered
 together in two files:
 
-  - namedapp/namedapp_proto.h  Entry points, prototype function
-  - namedapp/namedapp_list.h  Application specific information and requirements
+  - builtin/builtin_proto.h  Entry points, prototype function
+  - builtin/builtin_list.h   Application specific information and requirements
 
 The build occurs in several phases as different build targets are executed:
 (1) context, (2) depend, and (3) default (all). Application information is
@@ -62,18 +61,18 @@ collected during the make context build phase.
 
 To execute an application function:
 
-  exec_namedapp() is defined in the nuttx/include/apps/apps.h 
+  exec_builtin() is defined in the nuttx/include/apps/builtin.h 
 
 NuttShell (NSH) Built-In Commands
 ---------------------------------
-One use of named applications is to provide a way of invoking your custom
+One use of builtin applications is to provide a way of invoking your custom
 application through the NuttShell (NSH) command line.  NSH will support
 a seamless method invoking the applications, when the following option is
 enabled in the NuttX configuration file:
 
   CONFIG_NSH_BUILTIN_APPS=y
 
-Applications registered in the apps/namedapp/namedapp_list.h file will then
+Applications registered in the apps/builtin/builtin_list.h file will then
 be accessible from the NSH command line.  If you type 'help' at the NSH
 prompt, you will see a list of the registered commands.
 
@@ -96,11 +95,11 @@ after the NSH command.
 
 Application Configuration File
 ------------------------------
-A special configuration file is used to configure which applications
-are to be included in the build.  The source for this file is 
-configs/<board>/<configuration>/appconfig.  The existence of the appconfig
-file in the board configuration directory is sufficient to enable building
-of applications.
+The old-style NuttX configuration uses a special configuration file is
+used to configure which applications are to be included in the build.
+The source for this file is  configs/<board>/<configuration>/appconfig.
+The existence of the appconfig file in the board configuration directory\
+is sufficient to enable building of applications.
 
 The appconfig file is copied into the apps/ directory as .config when
 NuttX is configured.  .config is included in the toplevel apps/Makefile.
@@ -109,38 +108,101 @@ CONFIGURED_APPS list like:
 
   CONFIGURED_APPS  += examples/hello system/poweroff
 
-Named Start-Up main() function
-------------------------------
-A named application can even be used as the main, start-up entry point
-into your embedded software.  When the user defines this option in
-the NuttX configuration file:
+The new NuttX configuration uses kconfig-frontends tools and only the
+NuttX .config file.  The new configuration is indicated by the existence
+of the definition CONFIG_NUTTX_NEWCONFIG=y in the NuttX .config file.
+If CONFIG_NUTTX_NEWCONFIG is defined, then the Makefile will:
 
-  CONFIG_BUILTIN_APP_START=<application name>
-  
-that application shall be invoked immediately after system starts
-*instead* of the default "user_start" entry point.
-Note that <application name> must be provided as: "hello", 
-will call:
+- Assume that there is no apps/.config file and will instead
+- Include Make.defs files from each of the subdirectories.
 
-  int hello_main(int argc, char *argv[])
+When an application is enabled using the kconfig-frontends tool, then
+a new definition is added to the NuttX .config file.  For example, if
+you want to enable apps/examples/hello then the old apps/.config would
+have had:
 
-Example Named Application
--------------------------
+  CONFIGURED_APPS += examples/hello
+
+But in the new configuration there will be no apps/.config file and,
+instead, the NuttX .config will have:
+
+  CONFIG_EXAMPLES_HELLO=y
+
+This will select the apps/examples/hello in the following way:
+
+- The top-level make will include examples/Make.defs
+- examples/Make.defs will set CONFIGURED_APPS += examples/hello
+  like this:
+
+  ifeq ($(CONFIG_EXAMPLES_HELLO),y)
+  CONFIGURED_APPS += examples/hello
+  endif
+
+Thus accomplishing the same thing with no apps/.config file.
+
+Example Built-In Application
+----------------------------
 An example application skeleton can be found under the examples/hello
-sub-directory.  This example shows how a named application can be added
+sub-directory.  This example shows how a builtin application can be added
 to the project. One must define:
 
- 1. create sub-directory as: appname
- 2. provide entry point: appname_main()
- 3. set the requirements in the file: Makefile, specially the lines:
+Old configuration method:
 
-  APPNAME    = appname
-  PRIORITY  = SCHED_PRIORITY_DEFAULT
-  STACKSIZE  = 768
-  ASRCS    = asm source file list as a.asm b.asm ...
-  CSRCS    = C source file list as foo1.c foo2.c ..
+ 1. Create sub-directory as: appname
 
- 4. add application in the apps/.config
+ 2. In this directory there should be:
+
+    - A Makefile, and
+    - The application source code.
+
+ 3. The application source code should provide the entry point:
+    appname_main()
+
+ 4. Set the requirements in the file: Makefile, specially the lines:
+
+    APPNAME    = appname
+    PRIORITY   = SCHED_PRIORITY_DEFAULT
+    STACKSIZE  = 768
+    ASRCS      = asm source file list as a.asm b.asm ...
+    CSRCS      = C source file list as foo1.c foo2.c ..
+
+    Look at some of the other Makefiles for examples.  Note the
+    special registration logic needed for the context: target
+
+ 5. Add the to the application to the CONFIGIURED_APPS in the
+    apps/.config file:
+
+    CONFIGURED_APPS += appname
+
+New Configuration Method:
+
+ 1. Create sub-directory as: appname
+
+ 2. In this directory there should be:
+
+    - A Make.defs file that would be included by the apps/Makefile
+    - A Kconfig file that would be used by the configuration tool (see
+      misc/tools/kconfig-language.txt).  This Kconfig file should be
+      included by the apps/Kconfig file
+    - A Makefile, and
+    - The application source code.
+
+ 3. The application source code should provide the entry point:
+    appname_main()
+
+ 4. Set the requirements in the file: Makefile, specially the lines:
+
+    APPNAME    = appname
+    PRIORITY   = SCHED_PRIORITY_DEFAULT
+    STACKSIZE  = 768
+    ASRCS      = asm source file list as a.asm b.asm ...
+    CSRCS      = C source file list as foo1.c foo2.c ..
+
+ 4b. The Make.defs file should include a line like:
+
+    ifeq ($(CONFIG_APPNAME),y)
+    CONFIGURED_APPS += appname
+    endif
 
 Building NuttX with Board-Specific Pieces Outside the Source Tree
 -----------------------------------------------------------------

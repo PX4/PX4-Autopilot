@@ -26,11 +26,34 @@ Config.mk
   override these default definitions as necessary.
 
 configure.sh
+configure.bat
+configure.c, cfgparser.c, and cfgparser.h
 ------------
 
-  This is a bash script that is used to configure NuttX for a given
-  target board.  See configs/README.txt or Documentation/NuttxPortingGuide.html
+  configure.sh is a bash script that is used to configure NuttX for a given
+  target board in a environment that supports POSIX paths (Linux, Cygwin,
+  OSX, or similar).  See configs/README.txt or Documentation/NuttxPortingGuide.html
   for a description of how to configure NuttX with this script.
+
+  configure.c, cfgparser.c, and cfgparser.h can be used to build a work-alike
+  program as a replacement for configure.sh.  This work-alike program would be
+  used in environments that do not support Bash scripting (such as the Windows
+  native environment).
+
+  configure.bat is a small Windows batch file that can be used as a replacement
+  for configure.sh in a Windows native environment.  configure.bat is actually
+  just a thin layer that execuates configure.exe if it is available. If
+  configure.exe is not available, then configure.bat will attempt to build it
+  first.
+
+  In order two build configure.exe from configure.c in the Windows native
+  environment, two assumptions are made:
+
+  1) You have installed the MinGW GCC toolchain.  This toolchain can be
+     downloaded from http://www.mingw.org/.  Tt is recommended the you not
+     install the optional MSYS components as there may be conflicts.
+  2) That path to bin bin/ directory containing mingw-gcc.exe must be
+     included in the PATH variable.
 
 discover.py
 -----------
@@ -38,7 +61,7 @@ discover.py
   Example script for discovering devices in the local network.
   It is the counter part to apps/netutils/discover
 
-mkconfig.c, cfgparser.c, and cfgparser.h
+mkconfig.c, cfgdefine.c, and cfgdefine.h
 ----------------------------------------
 
   These are Cs file that are used to build mkconfig program.  The mkconfig
@@ -79,7 +102,7 @@ mkfsdata.pl
   NOTE:  This perl script comes from uIP and was (probably) written
   by Adam Dunkels.  uIP has a license that is compatible with NuttX.
 
-mkversion.c, cfgparser.c, and cfgparser.h
+mkversion.c, cfgdefine.c, and cfgdefine.h
 -----------------------------------------
 
   This is C file that is used to build mkversion program.  The mkversion
@@ -412,6 +435,36 @@ unlink.bat
   this case.  link.bat will attempt to create a symbolic link using the
   NTFS mklink.exe command instead of copying files.  That logic, however,
   has not been verified as of this writing.
+
+kconfig.bat
+-----------
+
+  Recent versions of NuttX support building NuttX from a native Windows
+  CMD.exe shell.  But kconfig-frontends is a Linux tool and is not yet
+  available in the pure CMD.exe environment.  At this point, there are
+  only a few options for the Windows user (see the top-level README.txt
+  file).
+
+  You can, with some effort, run the the Cygwin kconfig-mconf tool directly
+  in the CMD.exe shell.  In this case, you do not have to modify the
+  .config file, but there are other complexities:  You need to
+  temporarily set the Cgywin directories in the PATH variable and
+  then run kconfig-mconf outside of the Make system.
+
+  kconfig.bat is a Windows batch file at tools/kconfig.bat that automates
+  these steps.  It is used from the top-level NuttX directory like:
+
+    tools/kconfig menuconfig
+
+  NOTE: There is an currently an issue with accessing DOS environment
+  variables from the Cygwin kconfig-mconf running in the CMD.exe shell.
+  The following change to the top-level Kconfig file seems to work around
+  these problems:
+  
+     config APPSDIR
+          string
+     -   option env="APPSDIR"
+     +   default "../apps"
 
 mkimage.sh
 ----------

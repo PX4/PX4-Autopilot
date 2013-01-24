@@ -5,11 +5,12 @@
 
 comment "File system configuration"
 
-source fs/fat/Kconfig
 source fs/mmap/Kconfig
+source fs/fat/Kconfig
 source fs/nfs/Kconfig
 source fs/nxffs/Kconfig
 source fs/romfs/Kconfig
+source fs/binfs/Kconfig
 
 comment "System Logging"
 

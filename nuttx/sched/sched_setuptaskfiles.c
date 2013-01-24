@@ -200,7 +200,8 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
  *   tcb - tcb of the new task.
  *
  * Return Value:
- *   None
+ *   Zero (OK) is returned on success; A negated errno value is returned on
+ *   failure.
  *
  * Assumptions:
  *

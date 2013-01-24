@@ -140,7 +140,8 @@ menuconfig SPI
 	bool "SPI Driver Support"
 	default n
 	---help---
-		This selection enables building of the "upper-half" SPI driver.
+		This selection enables selection of common SPI options.  This option
+		should be enabled by all platforms that support SPI interfaces.
 		See include/nuttx/spi.h for further SPI driver information.
 
 if SPI

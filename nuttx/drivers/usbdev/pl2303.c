@@ -333,7 +333,7 @@ static void    usbclass_wrcomplete(FAR struct usbdev_ep_s *ep,
 
 /* USB class device ********************************************************/
 
-static int     usbclass_bind(FAR struct usbdevclass_driver_s *driver, 
+static int     usbclass_bind(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
 static void    usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
@@ -1295,7 +1295,7 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
   priv->usbdev   = dev;
 
   /* Save the reference to our private data structure in EP0 so that it
-   * can be recovered in ep0 completion events (Unless we are part of 
+   * can be recovered in ep0 completion events (Unless we are part of
    * a composite device and, in that case, the composite device owns
    * EP0).
    */
@@ -1859,7 +1859,7 @@ static void usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
    * re-enumerated.
    */
 
-  DEV_CONNECT(dev); 
+  DEV_CONNECT(dev);
 }
 
 /****************************************************************************
@@ -1878,7 +1878,7 @@ static int usbser_setup(FAR struct uart_dev_s *dev)
 {
   FAR struct pl2303_dev_s *priv;
 
-  usbtrace(PL2303_CLASSASPI_SETUP, 0);
+  usbtrace(PL2303_CLASSAPI_SETUP, 0);
 
   /* Sanity check */
 
@@ -1919,7 +1919,7 @@ static int usbser_setup(FAR struct uart_dev_s *dev)
 
 static void usbser_shutdown(FAR struct uart_dev_s *dev)
 {
-  usbtrace(PL2303_CLASSASPI_SHUTDOWN, 0);
+  usbtrace(PL2303_CLASSAPI_SHUTDOWN, 0);
 
   /* Sanity check */
 
@@ -1941,7 +1941,7 @@ static void usbser_shutdown(FAR struct uart_dev_s *dev)
 
 static int usbser_attach(FAR struct uart_dev_s *dev)
 {
-  usbtrace(PL2303_CLASSASPI_ATTACH, 0);
+  usbtrace(PL2303_CLASSAPI_ATTACH, 0);
   return OK;
 }
 
@@ -1955,7 +1955,7 @@ static int usbser_attach(FAR struct uart_dev_s *dev)
 
 static void usbser_detach(FAR struct uart_dev_s *dev)
 {
-  usbtrace(PL2303_CLASSASPI_DETACH, 0);
+  usbtrace(PL2303_CLASSAPI_DETACH, 0);
 }
 
 /****************************************************************************
@@ -1981,7 +1981,7 @@ static void usbser_rxint(FAR struct uart_dev_s *dev, bool enable)
   FAR uart_dev_t *serdev;
   irqstate_t flags;
 
-  usbtrace(PL2303_CLASSASPI_RXINT, (uint16_t)enable);
+  usbtrace(PL2303_CLASSAPI_RXINT, (uint16_t)enable);
 
   /* Sanity check */
 
@@ -2072,7 +2072,7 @@ static void usbser_txint(FAR struct uart_dev_s *dev, bool enable)
 {
   FAR struct pl2303_dev_s *priv;
 
-  usbtrace(PL2303_CLASSASPI_TXINT, (uint16_t)enable);
+  usbtrace(PL2303_CLASSAPI_TXINT, (uint16_t)enable);
 
   /* Sanity checks */
 
@@ -2117,7 +2117,7 @@ static bool usbser_txempty(FAR struct uart_dev_s *dev)
 {
   FAR struct pl2303_dev_s *priv = (FAR struct pl2303_dev_s*)dev->priv;
 
-  usbtrace(PL2303_CLASSASPI_TXEMPTY, 0);
+  usbtrace(PL2303_CLASSAPI_TXEMPTY, 0);
 
 #if CONFIG_DEBUG
   if (!priv)

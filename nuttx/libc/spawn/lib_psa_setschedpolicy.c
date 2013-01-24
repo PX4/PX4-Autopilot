@@ -1,10 +1,8 @@
 /****************************************************************************
- * apps/namedaps/namedapp.c
+ * libc/string/lib_psa_setschedpolicy.c
  *
- *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Authors: Uros Platise <uros.platise@isotel.eu>
- *            Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,57 +38,35 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <apps/apps.h>
+
+#include <spawn.h>
+#include <assert.h>
 
 /****************************************************************************
- * Private Types
+ * Global Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Function Prototypes
+ * Name: posix_spawnattr_setschedpolicy
+ *
+ * Description:
+ *   The posix_spawnattr_setschedpolicy() function will set the spawn-
+ *   schedpolicy attribute in an initialized attributes object referenced
+ *   by attr.
+ *
+ * Input Parameters:
+ *   attr - The address spawn attributes to be used.
+ *   flags - The new value of the spawn flags
+ *
+ * Returned Value:
+ *   On success, these functions return 0; on failure they return an error
+ *   number from <errno.h>.
+ *
  ****************************************************************************/
 
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-#include "namedapp_proto.h"
-
-const struct namedapp_s namedapps[] =
+int posix_spawnattr_setschedpolicy(FAR posix_spawnattr_t *attr, int policy)
 {
-# include "namedapp_list.h"
-  { NULL, 0, 0, 0 }
-};
-
-#undef EXTERN
-#if defined(__cplusplus)
+  DEBUGASSERT(attr && (policy == SCHED_FIFO || policy == SCHED_RR));
+  attr->policy = (uint8_t)policy;
+  return OK;
 }
-#endif
-
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-int number_namedapps(void)
-{
-  return sizeof(namedapps)/sizeof(struct namedapp_s) - 1;
-}
-
-
