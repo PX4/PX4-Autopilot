@@ -523,12 +523,12 @@ static int composite_setup(FAR struct usbdevclass_driver_s *driver,
               {
                 /* Save the configuration and inform the constituent classes */
 
-                ret = CLASS_SETUP(priv->dev1, dev, ctrl);
+                ret = CLASS_SETUP(priv->dev1, dev, ctrl, dataout, outlen);
                 dispatched = true;
 
                 if (ret >= 0)
                   {
-                    ret = CLASS_SETUP(priv->dev2, dev, ctrl);
+                    ret = CLASS_SETUP(priv->dev2, dev, ctrl, dataout, outlen);
                     if (ret >= 0)
                       {
                         priv->config = value;

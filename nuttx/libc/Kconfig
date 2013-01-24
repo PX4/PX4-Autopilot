@@ -3,6 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "Standard C Library Options"
+
 config STDIO_BUFFER_SIZE
 	int "C STDIO buffer size"
 	default 64
@@ -68,6 +70,67 @@ config EOL_IS_EITHER_CRLF
 	bool "EOL is CR or LF"
 
 endchoice
+
+config LIBC_EXECFUNCS
+	bool "Enable exec[l|v] / posix_spawn() Support"
+	default n
+	depends on !BINFMT_DISABLE
+	---help---
+		Enable support for the exec[l|v] family of functions that can be
+		used to start other programs, terminating the current program and
+		the posix_spawn() familty of functions that can be used start other
+		programs without terminating the current program.  The typical
+		usage of the exec[l|v] functions is (1) first call vfork() to create
+		a new thread, then (2) call exec[l|v] to replace the new thread with
+		a program from the file system.
+
+		NOTE 1: This two step process start is completely unnecessary in
+		NuttX and is provided only for compatibily with Unix systems.  These
+		functions are essentially just wrapper functions that (1) call the
+		non-standard binfmt function 'exec', and then (2) exit(0).  Since
+		the new thread will be terminated by the exec[l|v] call, it really
+		served no purpose other than to suport Unix compatility.
+
+		The posix_spawn() functions do not have this inefficiency.
+
+		NOTE 2: Support for exec[l|v] and posix_spawn() is conditional
+		because they require additional support for symbol tables that
+		will not be available in the typical system.
+
+if LIBC_EXECFUNCS
+
+config EXECFUNCS_SYMTAB
+	string "Symbol table used by exec[l|v]"
+	default "g_symtab"
+	---help---
+		The exec[l|v] and posix_spawn() functions are wrapper functions that
+		call the non-standard binfmt function 'exec').  The binfmt
+		function 'exec' needs to have (1) a symbol table that provides the
+		list of symbols exported by the base code, and (2) the number of
+		symbols in that table.  This selection provides the name of that
+		symbol table.
+
+config EXECFUNCS_NSYMBOLS
+	int "Number of Symbols in the Table"
+	default 0
+	---help---
+		The exec[l|v] and posix_spawn() functions are wrapper functions that
+		call the non-standard binfmt function 'exec').  The binfmt
+		function 'exec' needs to have (1) a symbol table that provides the
+		list of symbols exported by the base code, and (2) the number of
+		symbols in that table.  This selection provides the number of
+		symbols in the symbol table.
+
+config POSIX_SPAWN_STACKSIZE
+	int "posix_spawn Stack Size"
+	default 1024
+	---help---
+		If posix_spawn[p] uses I/O redirection options, then it will require
+		an intermediary/proxy task to muck with the file descriptors.  This
+		configuration item specifies the stack size used for the proxy. Default:
+		1024 bytes.
+
+endif
 
 config LIBC_STRERROR
 	bool "Enable strerror"
@@ -273,3 +336,29 @@ config ARCH_BZERO
 		of bzero().
 
 endif
+
+comment "Non-standard Helper Functions"
+
+config LIB_KBDCODEC
+	bool "Keyboard CODEC"
+	default n
+	---help---
+		In NuttX, a keyboard/keypad driver is simply a character driver that
+		may have an (optional) encoding/decoding layer on the data returned
+		by the character driver. A keyboard may return simple text data
+		(alphabetic, numeric, and punctuaction) or control characters
+		(enter, control-C, etc.).  We can think about this the normal
+		"in-band" keyboard data stream.  However, in addition, most
+		keyboards support actions that cannot be represented as text data.
+		Such actions include things like cursor controls (home, up arrow,
+		page down, etc.), editing functions (insert, delete, etc.), volume
+		controls, (mute, volume up, etc.) and other special functions.  We
+		can think about this as special, "out-of-band" keyboard commands.
+		In this case, some special encoding may be required to multiplex
+		the in-band text data and out-of-band command streams.
+
+		This option enables the functions that implement the encoding and
+		decoding of keyboard data.  These are the interfaces prototyped in
+		include/nuttx/input/kbd_codec.h.  While not correctly a part of
+		the C library, it is included here because the decoding side of this
+		interface must be accessible by end user programs.

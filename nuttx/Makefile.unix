@@ -642,13 +642,13 @@ pass2dep: context tools/mkdeps$(HOSTEXEEXT)
 # misc/tools/README.txt for additional information.
 
 config:
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} conf Kconfig
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-conf Kconfig
 
 oldconfig:
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} conf --oldconfig Kconfig
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-conf --oldconfig Kconfig
 
 menuconfig:
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} mconf Kconfig
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-mconf Kconfig
 
 # export
 #

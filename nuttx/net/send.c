@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/send.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,9 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -61,6 +63,10 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+
+#if defined(CONFIG_NET_TCP_SPLIT) && !defined(CONFIG_NET_TCP_SPLIT_SIZE)
+#  define CONFIG_NET_TCP_SPLIT_SIZE 40
+#endif
 
 #define TCPBUF ((struct uip_tcpip_hdr *)&dev->d_buf[UIP_LLH_LEN])
 
@@ -84,6 +90,9 @@ struct send_s
   uint32_t                   snd_acked;   /* The number of bytes acked */
 #if defined(CONFIG_NET_SOCKOPTS) && !defined(CONFIG_DISABLE_CLOCK)
   uint32_t                   snd_time;    /* last send time for determining timeout */
+#endif
+#if defined(CONFIG_NET_TCP_SPLIT)
+  bool                       snd_odd;     /* True: Odd packet in pair transaction */
 #endif
 };
 
@@ -200,6 +209,14 @@ static uint16_t send_interrupt(struct uip_driver_s *dev, void *pvconn,
 
       pstate->snd_sent = pstate->snd_acked;
 
+#if defined(CONFIG_NET_TCP_SPLIT)
+      /* Reset the the even/odd indicator to even since we need to
+       * retransmit.
+       */
+
+      pstate->snd_odd = false;
+#endif
+
       /* Fall through to re-send data from the last that was ACKed */
     }
 
@@ -210,6 +227,8 @@ static uint16_t send_interrupt(struct uip_driver_s *dev, void *pvconn,
       /* Report not connected */
 
       nllvdbg("Lost connection\n");
+
+      net_lostconnection(pstate->snd_sock, flags);
       pstate->snd_sent = -ENOTCONN;
       goto end_wait;
     }
@@ -242,6 +261,89 @@ static uint16_t send_interrupt(struct uip_driver_s *dev, void *pvconn,
       /* Get the amount of data that we can send in the next packet */
 
       uint32_t sndlen = pstate->snd_buflen - pstate->snd_sent;
+
+
+#if defined(CONFIG_NET_TCP_SPLIT)
+
+      /* RFC 1122 states that a host may delay ACKing for up to 500ms but
+       * must respond to every second  segment).  This logic here will trick
+       * the RFC 1122 recipient into responding sooner.  This logic will be
+       * activated if:
+       *
+       *   1. An even number of packets has been send (where zero is an even
+       *      number),
+       *   2. There is more data be sent (more than or equal to
+       *      CONFIG_NET_TCP_SPLIT_SIZE), but
+       *   3. Not enough data for two packets.
+       *
+       * Then we will split the remaining, single packet into two partial
+       * packets.  This will stimulate the RFC 1122 peer to ACK sooner.
+       *
+       * Don't try to split very small packets (less than CONFIG_NET_TCP_SPLIT_SIZE).
+       * Only the first even packet and the last odd packets could have
+       * sndlen less than CONFIG_NET_TCP_SPLIT_SIZE.  The value of sndlen on
+       * the last even packet is guaranteed to be at least MSS/2 by the
+       * logic below.
+       */
+
+      if (sndlen >= CONFIG_NET_TCP_SPLIT_SIZE)
+        {
+          /* sndlen is the number of bytes remaining to be sent.
+           * uip_mss(conn) will return the number of bytes that can sent
+           * in one packet.  The difference, then, is the number of bytes
+           * that would be sent in the next packet after this one.
+           */
+
+          int32_t next_sndlen = sndlen - uip_mss(conn);
+
+          /*  Is this the even packet in the packet pair transaction? */
+
+          if (!pstate->snd_odd)
+            {
+              /* next_sndlen <= 0 means that the entire remaining data
+               * could fit into this single packet.  This is condition
+               * in which we must do the split.
+               */
+
+              if (next_sndlen <= 0)
+                {
+                  /* Split so that there will be an odd packet.  Here
+                   * we know that 0 < sndlen <= MSS
+                   */
+
+                  sndlen = (sndlen / 2) + 1;
+                }
+            }
+
+          /* No... this is the odd packet in the packet pair transaction */
+
+          else
+            {
+              /* Will there be another (even) packet afer this one?
+               * (next_sndlen > 0)  Will the split conidition occur on that
+               * next, even packet? ((next_sndlen - uip_mss(conn)) < 0) If
+               * so, then perform the split now to avoid the case where the
+               * byte count is less than CONFIG_NET_TCP_SPLIT_SIZE on the
+               * next pair.
+               */
+
+              if (next_sndlen > 0 && (next_sndlen - uip_mss(conn)) < 0)
+                {
+                  /* Here, we know that sndlen must be MSS < sndlen <= 2*MSS
+                   * and so (sndlen / 2) is <= MSS.
+                   */
+
+                  sndlen /= 2;
+                }
+            }
+        }
+
+      /* Toggle the even/odd indicator */
+
+      pstate->snd_odd ^= true;
+
+#endif /* CONFIG_NET_TCP_SPLIT */
+
       if (sndlen > uip_mss(conn))
         {
           sndlen = uip_mss(conn);

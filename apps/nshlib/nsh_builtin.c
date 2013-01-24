@@ -1,9 +1,15 @@
 /****************************************************************************
- * apps/nshlib/nsh_apps.c
+ * apps/nshlib/nsh_builtin.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ * Originally by:
+ *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
+ *
+ * With subsequent updates, modifications, and general maintenance by:
+ *
+ *   Copyright (C) 2011-2013 Gregory Nutt.  All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,7 +54,8 @@
 #include <errno.h>
 #include <string.h>
 
-#include <apps/apps.h>
+#include <nuttx/binfmt/builtin.h>
+#include <apps/builtin.h>
 
 #include "nsh.h"
 #include "nsh_console.h"
@@ -84,13 +91,13 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_execapp
+ * Name: nsh_builtin
  *
  * Description:
  *    Attempt to execute the application task whose name is 'cmd'
  *
  * Returned Value:
- *   <0          If exec_namedapp() fails, then the negated errno value
+ *   <0          If exec_builtin() fails, then the negated errno value
  *               is returned.
  *   -1 (ERROR)  if the application task corresponding to 'cmd' could not
  *               be started (possibly because it doesn not exist).
@@ -104,13 +111,13 @@
  *
  ****************************************************************************/
 
-int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
-                FAR char **argv)
+int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+                FAR char **argv, FAR const char *redirfile, int oflags)
 {
   int ret = OK;
 
-  /* Lock the scheduler to prevent the application from running until the
-   * waitpid() has been called.
+  /* Lock the scheduler in an attempt to prevent the application from
+   * running until waitpid() has been called.
    */
 
   sched_lock();
@@ -119,19 +126,23 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
    * applications.
    */
 
-  ret = exec_namedapp(cmd, (FAR const char **)argv);
+  ret = exec_builtin(cmd, (FAR const char **)argv, redirfile, oflags);
   if (ret >= 0)
     {
-      /* The application was successfully started (but still blocked because
-       * the scheduler is locked).  If the application was not backgrounded,
-       * then we need to wait here for the application to exit.  These really
-       * only works works with the following options:
+      /* The application was successfully started with pre-emption disabled.
+       * In the simplest cases, the application will not have run because the
+       * the scheduler is locked.  But in the case where I/O was redirected, a 
+       * proxy task ran and broke our lock.  As result, the application may
+       * have aso ran if its priority was higher than than the priority of
+       * this thread.
+       *
+       * If the application did not run to completion and if the application
+       * was not backgrounded, then we need to wait here for the application
+       * to exit.  This only works works with the following options:
        *
        * - CONFIG_NSH_DISABLEBG - Do not run commands in background
        * - CONFIG_SCHED_WAITPID - Required to run external commands in
        *     foreground
-       *
-       * These concepts do not apply cleanly to the external applications.
        */
 
 #ifdef CONFIG_SCHED_WAITPID
@@ -147,15 +158,46 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
         {
           int rc = 0;
 
-          /* Wait for the application to exit.  Since we have locked the
-           * scheduler above, we know that the application has not yet
-           * started and there is no possibility that it has already exited.
-           * The scheduler will be unlocked while waitpid is waiting and the
-           * application will be able to run.
+          /* Wait for the application to exit.  We did lock the scheduler
+           * above, but that does not guarantee that the application did not
+           * already run to completion in the case where I/O was redirected.
+           * Here the scheduler will be unlocked while waitpid is waiting
+           * and if the application has not yet run, it will now be able to
+           * do so.
+           *
+           * Also, if CONFIG_SCHED_HAVE_PARENT is defined waitpid() might fail
+           * even if task is still active:  If the I/O was re-directed by a 
+           * proxy task, then the ask is a child of the proxy, and not this
+           * task.  waitpid() fails with ECHILD in either case.
            */
 
           ret = waitpid(ret, &rc, 0);
-          if (ret >= 0)
+          if (ret < 0)
+            {
+              /* If the child thread does not exist, waitpid() will return
+               * the error ECHLD.  Since we know that the task was successfully
+               * started, this must be one of the cases described above; we
+               * have to assume that the task already exit'ed.  In this case,
+               * we have no idea if the application ran successfully or not
+               * (because NuttX does not retain exit status of child tasks).
+               * Let's assume that is did run successfully.
+               */
+
+              int errcode = errno;
+              if (errcode == ECHILD)
+                {
+                  ret = OK;
+                }
+              else
+                {
+                  nsh_output(vtbl, g_fmtcmdfailed, cmd, "waitpid",
+                             NSH_ERRNO_OF(errcode));
+                }
+            }
+
+          /* Waitpid completed the wait successfully */
+
+          else
             {
               /* We can't return the exact status (nsh has nowhere to put it)
                * so just pass back zero/nonzero in a fashion that doesn't look 
@@ -191,7 +233,7 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 #if !defined(CONFIG_SCHED_WAITPID) || !defined(CONFIG_NSH_DISABLEBG)
         {
           struct sched_param param;
-          sched_getparam(0, &param);
+          sched_getparam(ret, &param);
           nsh_output(vtbl, "%s [%d:%d]\n", cmd, ret, param.sched_priority);
 
           /* Backgrounded commands always 'succeed' as long as we can start
@@ -205,13 +247,13 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 
   sched_unlock();
 
-  /* If exec_namedapp() or waitpid() failed, then return the negated errno
-   * value.
+  /* If exec_builtin() or waitpid() failed, then return -1 (ERROR) with the
+   * errno value set appropriately.
    */
 
   if (ret < 0)
     {
-      return -errno;
+      return ERROR;
     }
 
   return ret;

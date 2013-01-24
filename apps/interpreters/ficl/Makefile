@@ -108,7 +108,6 @@ context:
 depend: .depend
 
 clean:
-	$(call DELFILE, .context)
 	$(call DELFILE, .built)
 	$(call CLEAN)
 

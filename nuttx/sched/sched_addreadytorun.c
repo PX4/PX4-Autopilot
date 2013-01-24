@@ -84,8 +84,8 @@
  *   btcb - Points to the blocked TCB that is ready-to-run
  *
  * Return Value:
- *   true if the currently active task (the head of the 
- *     g_readytorun list) has changed.
+ *   true if the currently active task (the head of the g_readytorun list)
+ *   has changed.
  *
  * Assumptions:
  * - The caller has established a critical section before
@@ -104,7 +104,7 @@ bool sched_addreadytorun(FAR _TCB *btcb)
   bool ret;
 
   /* Check if pre-emption is disabled for the current running task and if
-   * the new ready-to-run task  would cause the current running task to be
+   * the new ready-to-run task would cause the current running task to be
    * preempted.
    */
 
@@ -123,7 +123,7 @@ bool sched_addreadytorun(FAR _TCB *btcb)
 
   else if (sched_addprioritized(btcb, (FAR dq_queue_t*)&g_readytorun))
     {
-      /* Information the instrumentation logic that we are switching tasks */
+      /* Inform the instrumentation logic that we are switching tasks */
 
       sched_note_switch(rtcb, btcb);
 

@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/net_internal.h
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -139,94 +139,96 @@
  * Public Variables
  ****************************************************************************/
 
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
 /* List of registered ethernet device drivers */
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-extern struct uip_driver_s *g_netdevices;
+EXTERN struct uip_driver_s *g_netdevices;
 #endif
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
 /* net_sockets.c *************************************************************/
 
-EXTERN int  sockfd_allocate(int minsd);
-EXTERN void sock_release(FAR struct socket *psock);
-EXTERN void sockfd_release(int sockfd);
-EXTERN FAR struct socket *sockfd_socket(int sockfd);
+int  sockfd_allocate(int minsd);
+void sock_release(FAR struct socket *psock);
+void sockfd_release(int sockfd);
+FAR struct socket *sockfd_socket(int sockfd);
 
 /* net_connect.c *************************************************************/
 
 #ifdef CONFIG_NET_TCP
-EXTERN int net_startmonitor(FAR struct socket *psock);
-EXTERN void net_stopmonitor(FAR struct uip_conn *conn);
+int net_startmonitor(FAR struct socket *psock);
+void net_stopmonitor(FAR struct uip_conn *conn);
+void net_lostconnection(FAR struct socket *psock, uint16_t flags);
 #endif
 
 /* net_close.c ***************************************************************/
 
-EXTERN int psock_close(FAR struct socket *psock);
+int psock_close(FAR struct socket *psock);
 
 /* sockopt support ***********************************************************/
 
 #if defined(CONFIG_NET_SOCKOPTS) && !defined(CONFIG_DISABLE_CLOCK)
-EXTERN int net_timeo(uint32_t start_time, socktimeo_t timeo);
-EXTERN socktimeo_t net_timeval2dsec(struct timeval *tv);
-EXTERN void net_dsec2timeval(uint16_t dsec, struct timeval *tv);
+int net_timeo(uint32_t start_time, socktimeo_t timeo);
+socktimeo_t net_timeval2dsec(FAR struct timeval *tv);
+void net_dsec2timeval(uint16_t dsec, FAR struct timeval *tv);
 #endif
 
 /* net_register.c ************************************************************/
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-EXTERN void netdev_seminit(void);
-EXTERN void netdev_semtake(void);
-EXTERN void netdev_semgive(void);
+void netdev_seminit(void);
+void netdev_semtake(void);
+void netdev_semgive(void);
 #endif
 
 /* net_findbyname.c **********************************************************/
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-EXTERN FAR struct uip_driver_s *netdev_findbyname(const char *ifname);
+FAR struct uip_driver_s *netdev_findbyname(FAR const char *ifname);
 #endif
 
 /* net_findbyaddr.c **********************************************************/
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-EXTERN FAR struct uip_driver_s *netdev_findbyaddr(const uip_ipaddr_t *raddr);
+FAR struct uip_driver_s *netdev_findbyaddr(FAR const uip_ipaddr_t *raddr);
 #endif
 
 /* net_txnotify.c ************************************************************/
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-EXTERN void netdev_txnotify(const uip_ipaddr_t *raddr);
+void netdev_txnotify(const uip_ipaddr_t *raddr);
 #endif
 
 /* net_count.c ***************************************************************/
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-EXTERN int netdev_count(void);
+int netdev_count(void);
 #endif
 
 /* net_arptimer.c ************************************************************/
 
 #ifdef CONFIG_NET_ARP
-EXTERN void arptimer_init(void);
+void arptimer_init(void);
 #else
 # define arptimer_init()
 #endif
 
 /* send.c ********************************************************************/
 
-EXTERN ssize_t psock_send(FAR struct socket *psock, const void *buf,
-                          size_t len, int flags);
+ssize_t psock_send(FAR struct socket *psock, FAR const void *buf, size_t len,
+                   int flags);
 
 #undef EXTERN
 #if defined(__cplusplus)

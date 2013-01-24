@@ -880,6 +880,7 @@ void *ubx_watchdog_loop(void *args)
 	int *fd = arguments->fd_ptr;
 	bool *thread_should_exit = arguments->thread_should_exit_ptr;
 
+	ubx_config_state = UBX_CONFIG_STATE_PRT;
 	/* first try to configure the GPS anyway */
 	configure_gps_ubx(fd);
 
@@ -892,7 +893,7 @@ void *ubx_watchdog_loop(void *args)
 	bool once_ok = false;
 
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-	ubx_config_state = UBX_CONFIG_STATE_PRT;
+
 	//int err_skip_counter = 0;
 
 	while (!(*thread_should_exit)) {
@@ -940,7 +941,9 @@ void *ubx_watchdog_loop(void *args)
 				ubx_healthy = false;
 				ubx_success_count = 0;
 			}
+
 			/* trying to reconfigure the gps configuration */
+			ubx_config_state = UBX_CONFIG_STATE_PRT;
 			configure_gps_ubx(fd);
 			fflush(stdout);
 			sleep(1);

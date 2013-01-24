@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/os_internal.h
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,10 +83,10 @@ enum os_crash_codes_e
   OSERR_BADREPRIORITIZESTATE  /* Attempt to reprioritize in bad state or priority */
 };
 
-/* Special task IDS */
+/* Special task IDS.  Any negative PID is invalid. */
 
-#define NULL_TASK_PROCESS_ID 0
-#define INVALID_PROCESS_ID   0
+#define NULL_TASK_PROCESS_ID (pid_t)0
+#define INVALID_PROCESS_ID   (pid_t)-1
 
 /* Although task IDs can take the (positive, non-zero)
  * range of pid_t, the number of tasks that will be supported
@@ -264,10 +264,22 @@ extern const tasklist_t g_tasklisttable[NUM_TASK_STATES];
 int  os_bringup(void);
 void task_start(void);
 int  task_schedsetup(FAR _TCB *tcb, int priority, start_t start,
-                     main_t main);
+                     main_t main, uint8_t ttype);
 int  task_argsetup(FAR _TCB *tcb, FAR const char *name, FAR const char *argv[]);
 void task_exithook(FAR _TCB *tcb, int status);
 int  task_deletecurrent(void);
+#ifdef CONFIG_SCHED_HAVE_PARENT
+#ifdef CONFIG_SCHED_CHILD_STATUS
+void weak_function task_initialize(void);
+FAR struct child_status_s *task_allocchild(void);
+void task_freechild(FAR struct child_status_s *status);
+void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child);
+FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid);
+FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid);
+void task_removechildren(FAR _TCB *tcb);
+#endif
+int  task_reparent(pid_t ppid, pid_t chpid);
+#endif
 #ifndef CONFIG_CUSTOM_STACK
 int  kernel_thread(FAR const char *name, int priority, int stack_size,
                    main_t entry, FAR const char *argv[]);

@@ -1,7 +1,7 @@
 /****************************************************************************
  * binfmt/binfmt_exec.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,10 +40,10 @@
 #include <nuttx/config.h>
 
 #include <string.h>
-#include <sched.h>
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/binfmt.h>
 
 #include "binfmt_internal.h"
@@ -75,7 +75,9 @@
  *
  * Description:
  *   This is a convenience function that wraps load_ and exec_module into
- *   one call.
+ *   one call.  If CONFIG_SCHED_ONEXIT is also defined, this function will
+ *   automatically call schedule_unload() to unload the module when task
+ *   exits.
  *
  * Input Parameter:
  *   filename - Fulll path to the binary to be loaded
@@ -85,7 +87,7 @@
  *
  * Returned Value:
  *   This is an end-user function, so it follows the normal convention:
- *   Returns the PID of the exec'ed module.  On failure, it.returns
+ *   It returns the PID of the exec'ed module.  On failure, it returns
  *   -1 (ERROR) and sets errno appropriately.
  *
  ****************************************************************************/
@@ -93,8 +95,70 @@
 int exec(FAR const char *filename, FAR const char **argv,
          FAR const struct symtab_s *exports, int nexports)
 {
+#ifdef CONFIG_SCHED_ONEXIT
+  FAR struct binary_s *bin;
+  int pid;
+  int ret;
+
+  /* Allocate the load information */
+
+  bin = (FAR struct binary_s *)kzalloc(sizeof(struct binary_s));
+  if (!bin)
+    {
+      set_errno(ENOMEM);
+      return ERROR;
+    }
+
+  /* Load the module into memory */
+
+  bin->filename = filename;
+  bin->exports  = exports;
+  bin->nexports = nexports;
+
+  ret = load_module(bin);
+  if (ret < 0)
+    {
+      bdbg("ERROR: Failed to load program '%s'\n", filename);
+      kfree(bin);
+      return ERROR;
+    }
+
+  /* Disable pre-emption so that the executed module does
+   * not return until we get a chance to connect the on_exit
+   * handler.
+   */
+
+  sched_lock();
+
+  /* Then start the module */
+
+  pid = exec_module(bin);
+  if (pid < 0)
+    {
+      bdbg("ERROR: Failed to execute program '%s'\n", filename);
+      sched_unlock();
+      unload_module(bin);
+      kfree(bin);
+      return ERROR;
+    }
+
+  /* Set up to unload the module (and free the binary_s structure)
+   * when the task exists.
+   */
+
+  ret = schedule_unload(pid, bin);
+  if (ret < 0)
+    {
+      bdbg("ERROR: Failed to schedul unload '%s'\n", filename);
+    }
+
+  sched_unlock();
+  return pid;
+#else
   struct binary_s bin;
   int ret;
+
+  /* Load the module into memory */
 
   memset(&bin, 0, sizeof(struct binary_s));
   bin.filename = filename;
@@ -108,7 +172,9 @@ int exec(FAR const char *filename, FAR const char **argv,
       return ERROR;
     }
 
-  ret = exec_module(&bin, 50);
+  /* Then start the module */
+
+  ret = exec_module(&bin);
   if (ret < 0)
     {
       bdbg("ERROR: Failed to execute program '%s'\n", filename);
@@ -116,7 +182,10 @@ int exec(FAR const char *filename, FAR const char **argv,
       return ERROR;
     }
 
+  /* TODO:  How does the module get unloaded in this case? */
+
   return ret;
+#endif
 }
 
 #endif /* CONFIG_BINFMT_DISABLE */

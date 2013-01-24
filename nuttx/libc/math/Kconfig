@@ -4,7 +4,7 @@
 #
 
 config LIBM
-	bool "Math library"
+	bool "Standard Math library"
 	default n
 	depends on !ARCH_MATH_H
 	---help---

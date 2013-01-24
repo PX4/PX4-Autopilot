@@ -334,6 +334,79 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_TASK_NAME_SIZE - Specifies that maximum size of a
       task name to save in the TCB.  Useful if scheduler
       instrumentation is selected.  Set to zero to disable.
+    CONFIG_SCHED_HAVE_PARENT - Remember the ID of the parent task
+      when a new child task is created.  This support enables some
+      additional features (such as SIGCHLD) and modifies the behavior
+      of other interfaces.  For example, it makes waitpid() more
+      standards complete by restricting the waited-for tasks to the
+      children of the caller. Default: disabled.
+    CONFIG_SCHED_CHILD_STATUS
+      If this option is selected, then the exit status of the child task
+      will be retained after the child task exits.  This option should be
+      selected if you require knowledge of a child process' exit status.
+      Without this setting, wait(), waitpid() or waitid() may fail.  For
+      example, if you do:
+
+        1) Start child task
+        2) Wait for exit status (using wait(), waitpid(), or waitid()).
+
+      This can fail because the child task may run to completion before
+      the wait begins.  There is a non-standard work-around in this case:
+      The above sequence will work if you disable pre-emption using
+      sched_lock() prior to starting the child task, then re-enable pre-
+      emption with sched_unlock() after the wait completes.  This works
+      because the child task is not permitted to run until the wait is in
+      place.
+
+      The standard solution would be to enable CONFIG_SCHED_CHILD_STATUS.  In
+      this case the exit status of the child task is retained after the
+      child exits and the wait will successful obtain the child task's
+      exit status whether it is called before the child task exits or not.
+
+      Warning:  If you enable this feature, then your application must
+      either (1) take responsibility for reaping the child status with wait(),
+      waitpid(), or waitid(), or (2) suppress retention of child status.
+      If you do not reap the child status, then you have a memory leak and
+      your system will eventually fail.
+
+      Retention of child status can be suppressed on the parent using logic like:
+
+        struct sigaction sa;
+
+        sa.sa_handler = SIG_IGN;
+        sa.sa_flags = SA_NOCLDWAIT;
+        int ret = sigaction(SIGCHLD, &sa, NULL);
+
+    CONFIG_PREALLOC_CHILDSTATUS
+      To prevent runaway child status allocations and to improve
+      allocation performance, child task exit status structures are pre-
+      allocated when the system boots.  This setting determines the number
+      of child status structures that will be pre-allocated.  If this
+      setting is not defined or if it is defined to be zero then a value
+      of 2*MAX_TASKS is used.
+
+      Note that there cannot be more that CONFIG_MAX_TASKS tasks in total.
+      However, the number of child status structures may need to be
+      significantly larger because this number includes the maximum number
+      of tasks that are running PLUS the number of tasks that have exit'ed
+      without having their exit status reaped (via wait(), waitid(), or
+      waitpid()).
+
+      Obviously, if tasks spawn children indefinitely and never have the
+      exit status reaped, then you may have a memory leak!  If you enable
+      the SCHED_CHILD_STATUS feature, then your application must take
+      responsibility for either (1) reaping the child status with wait(),
+      waitpid(), or waitid() or it must (2) suppress retention of child
+      status.  Otherwise, your system will eventually fail.
+
+      Retention of child status can be suppressed on the parent using logic like:
+
+        struct sigaction sa;
+
+        sa.sa_handler = SIG_IGN;
+        sa.sa_flags = SA_NOCLDWAIT;
+        int ret = sigaction(SIGCHLD, &sa, NULL);
+
     CONFIG_START_YEAR, CONFIG_START_MONTH, CONFIG_START_DAY -
       Used to initialize the internal time logic.
     CONFIG_GREGORIAN_TIME - Enables Gregorian time conversions.
@@ -400,7 +473,7 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
       thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
     CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
-      the worker thread.  Default: 4
+      the worker thread.  Default: 17
     CONFIG_SCHED_LPWORK. If CONFIG_SCHED_WORKQUEUE is defined, then a single
       work queue is created by default.  If CONFIG_SCHED_LPWORK is also defined
       then an additional, lower-priority work queue will also be created.  This
@@ -412,7 +485,12 @@ defconfig -- This is a configuration file similar to the Linux
       checks for work in units of microseconds.  Default: 50*1000 (50 MS).
     CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower
       priority worker thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
-    CONFIG_SCHED_WAITPID - Enables the waitpid() API
+    CONFIG_SCHED_WAITPID - Enables the waitpid() interface in a default,
+      non-standard mode (non-standard in the sense that the waited for
+      PID need not be child of the caller).  If SCHED_HAVE_PARENT is
+      also defined, then this setting will modify the behavior or
+      waitpid() (making more spec compliant) and will enable the
+      waitid() and wait() interfaces as well.
     CONFIG_SCHED_ATEXIT -  Enables the atexit() API
     CONFIG_SCHED_ATEXIT_MAX -  By default if CONFIG_SCHED_ATEXIT is
       selected, only a single atexit() function is supported. That number
@@ -425,6 +503,23 @@ defconfig -- This is a configuration file similar to the Linux
       applications.  For the example applications this is of the form 'app_main'
       where 'app' is the application name. If not defined, CONFIG_USER_ENTRYPOINT
       defaults to user_start.
+
+  Signal Numbers:
+
+    CONFIG_SIG_SIGUSR1 - Value of standard user signal 1 (SIGUSR1).
+      Default: 1
+    CONFIG_SIG_SIGUSR2 - Value of standard user signal 2 (SIGUSR2).
+      Default: 2
+    CONFIG_SIG_SIGALARM - Default the standard signal used with POSIX
+      timers (SIGALRM).  Default: 3
+    CONFIG_SIG_SIGCHLD - The SIGCHLD signal is sent to the parent of a child
+      process when it exits, is interrupted (stopped), or resumes after being
+      interrupted. Default: 4
+
+    CONFIG_SIG_SIGCONDTIMEDOUT - This non-standard signal number is used in
+      the implementation of pthread_cond_timedwait(). Default 16.
+    CONFIG_SIG_SIGWORK - SIGWORK is a non-standard signal used to wake up
+      the internal NuttX worker thread. Default: 17.
 
   Binary Loaders:
     CONFIG_BINFMT_DISABLE - By default, support for loadable binary formats
@@ -1562,7 +1657,7 @@ defconfig -- This is a configuration file similar to the Linux
       operation from FLASH but must copy initialized .data sections to RAM.
     CONFIG_BOOT_COPYTORAM -  Some configurations boot in FLASH
       but copy themselves entirely into RAM for better performance.
-    CONFIG_BOOT_RAMFUNCS - Other configurations may copy just some functions
+    CONFIG_ARCH_RAMFUNCS - Other configurations may copy just some functions
       into RAM, either for better performance or for errata workarounds.
     CONFIG_STACK_ALIGNMENT - Set if the your application has specific
       stack alignment requirements (may not be supported
@@ -1936,6 +2031,11 @@ configs/z8f64200100kit
   development kit, Z8F6423 part, and the Zilog ZDS-II Windows command line
   tools.  The development environment is Cygwin under WinXP.
 
+configs/zp214xpa
+  This port is for the NXP LPC2148 as provided on the The0.net
+  ZPA213X/4XPA development board. Includes support for the
+  UG-2864AMBAG01 OLED also from The0.net
+
 Configuring NuttX
 ^^^^^^^^^^^^^^^^^
 
@@ -1955,16 +2055,24 @@ tools/configure.sh
   There is a script that automates these steps.  The following steps will
   accomplish the same configuration:
 
-  cd tools
-  ./configure.sh <board-name>/<config-dir>
+    cd tools
+   ./configure.sh <board-name>/<config-dir>
 
-And if configs/<board-name>/<config-dir>/appconfig exists and your
-application directory is not in the standard loction (../apps), then
-you should also specify the location of the application directory on the
-command line like:
+  There is an alternative Windows batch file that can be used in the
+  windows native enironment like:
 
-  cd tools
-  ./configure.sh -a <app-dir> <board-name>/<config-dir>
+    cd ${TOPDIR}\tools
+    configure.bat <board-name>\<config-dir>
+
+  See tools/README.txt for more information about these scripts.
+
+  And if configs/<board-name>/<config-dir>/appconfig exists and your
+  application directory is not in the standard loction (../apps), then
+  you should also specify the location of the application directory on the
+  command line like:
+
+    cd tools
+    ./configure.sh -a <app-dir> <board-name>/<config-dir>
 
 Building Symbol Tables
 ^^^^^^^^^^^^^^^^^^^^^^

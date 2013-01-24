@@ -154,15 +154,17 @@ typedef uint16_t     dev_t;
 
 typedef uint16_t     ino_t;
 
-/* pid_t is used for process IDs and process group IDs */
+/* pid_t is used for process IDs and process group IDs. It must be signed because
+ * negative PID values are used to represent invalid PIDs.
+ */
 
-typedef int          pid_t;
+typedef int16_t      pid_t;
 
 /* id_t is a general identifier that can be used to contain at least a pid_t,
  * uid_t, or gid_t.
  */
 
-typedef unsigned int id_t;
+typedef int16_t      id_t;
 
 /* Signed integral type of the result of subtracting two pointers */
 

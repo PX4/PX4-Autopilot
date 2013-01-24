@@ -435,3 +435,60 @@
 	  logic to find the absolute path to the program using the PATH variable.
 
 6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* Makefiles: Removed dependency of distclean on clean in most top-level
+	  files.  It makes sense for 'leaf' Makefiles to have this dependency,
+	  but it does not make sense for upper-level Makefiles.
+	* apps/namedapp/: Renamed to builtins in preparation for another change.
+	* .context:  Removed the .context kludge.  This caused lots of problems
+	  when changing configurations because there is no easy way to get the
+	  system to rebuild the context.  Now, the context will be rebuilt
+	  whenever there is a change in either .config or the Makefile.
+	* apps/builtin/registry:  Updated new built-in registration logic to handle
+	  cases where (1) old apps/.config is used, and (2) applications ared
+	  removed, not just added.
+	* apps/examples/nettest/Makefile:  Fix an error that crept in during
+	  some of the recent, massive build system changes.
+	* apps/builtin/Makefile:  Need to have auto-generated header files
+	  in place early in the dependency generation phase to avoid warnings.
+	  It is not important if they are only stubbed out header files at
+	  this build phase.
+	* apps/examples/hidbkd: Now supports decoding of encoded special keys
+	  if CONFIG_EXAMPLES_HIDKBD_ENCODED is defined.
+	* apps/examples/hidbkd:  Add support for decoding key release events
+	  as well.  However, the USB HID keyboard drier has not yet been
+	  updated to detect key release events.  That is kind of tricky in
+	  the USB HID keyboard report data.
+	* apps/examples/wlan: Remove non-functional example.
+	* apps/examples/ostest/vfork.c:  Added a test of vfork().
+	* apps/exampes/posix_spawn: Added a test of poxis_spawn().
+	* apps/examples/ostest:  Extend signal handler test to catch
+	  death-of-child signals (SIGCHLD).
+	* apps/examples/ostest/waitpid.c:  Add a test for waitpid(), waitid(),
+	  and wait().
+	* builtin/binfs.c:  Add hooks for dup() method (not implemented).
+	* builtin/exec_builtin.c, nshlib/nsh_parse.c, and nshlib/nsh_builtin.c:
+	  NSH now supports re-direction of I/O to files (but still not from).
+	* builtin/binfs.c:  Greatly simplified (it is going to need to be
+	  very lightweight).  Now supports open, close, and a new ioctl to recover
+	  the builtin filename.  The latter will be needed to support a binfs
+	  binfmt.
+	* builtin/binfs.c:  Move apps/builtin/binfs.c to fs/binfs/fs_binfs.c
+	  CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS
+	* apps/include/builtin.h:  Some of the content of
+	  apps/include/apps.h moved to include/nuttx/binfmt/builtin.h.
+	  apps/include/apps.h renamed builtin.h
+	* apps/builtin/exec_builtins.c:  Move utility builtin
+	  utility functions from apps/builtin/exec_builtins.c to
+	  binfmt/libbuiltin/libbuiltin_utils.c
+	* apps/nshlib/nsh_mountcmds.c:  The block driver/source
+	  argument is now optional.  Many files systems do not need
+	  a source and it is really stupid to have to enter a bogus
+	  source parameter.
+	* apps/nshlib/nsh_fileapp.c:  Add the ability to execute a file
+	  from a file system using posix_spawn().
+	* apps/builtin/: Extensions from Mike Smith.
+	* apps/examples/ftpd/Makefile: Name ftpd_start is not the name of
+	  the entrypoint.  Should be ftpd_main (from Yan T.)
+	* apps/netutils/telnetd/telnetd_driver: Was stuck in a loop if
+	  recv[from]() ever returned a value <= 0.

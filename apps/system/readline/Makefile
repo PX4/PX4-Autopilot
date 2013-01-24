@@ -100,7 +100,6 @@ clean:
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE, .context)
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 

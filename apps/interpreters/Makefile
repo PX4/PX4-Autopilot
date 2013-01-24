@@ -73,4 +73,4 @@ depend: $(foreach SDIR, $(INSTALLED_DIRS), $(SDIR)_depend)
 
 clean: $(foreach SDIR, $(INSTALLED_DIRS), $(SDIR)_clean)
 
-distclean: clean $(foreach SDIR, $(INSTALLED_DIRS), $(SDIR)_distclean)
+distclean: $(foreach SDIR, $(INSTALLED_DIRS), $(SDIR)_distclean)

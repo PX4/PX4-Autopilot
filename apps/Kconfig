@@ -3,8 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-menu "Named Applications"
-source "$APPSDIR/namedapp/Kconfig"
+menu "Built-In Applications"
+source "$APPSDIR/builtin/Kconfig"
 endmenu
 
 menu "Examples"

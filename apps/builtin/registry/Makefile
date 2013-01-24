@@ -1,6 +1,5 @@
 ############################################################################
-# apps/namedapps/Make.defs
-# Adds selected applications to apps/ build
+# apps/builtin/registry/Makefile
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -34,7 +33,29 @@
 #
 ############################################################################
 
-ifeq ($(CONFIG_NAMEDAPP),y)
-CONFIGURED_APPS += namedapp
-endif
+-include $(TOPDIR)/Make.defs
+include $(APPDIR)/Make.defs
 
+# NSH Library
+
+all:
+.PHONY: context depend clean distclean
+
+.updated: $(DEPCONFIG)
+	$(call DELFILE, *.bdat)
+	$(call DELFILE, *.pdat)
+	$(Q) touch .updated
+
+# This must run before any other context target
+
+context: .updated
+
+depend:
+
+clean:
+	$(call CLEAN)
+
+distclean: clean
+	$(call DELFILE, *.bdat)
+	$(call DELFILE, *.pdat)
+	$(call DELFILE, .updated)

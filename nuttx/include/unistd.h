@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/unistd.h
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -129,6 +129,7 @@ EXTERN int       optopt; /* unrecognized option character */
 
 /* Task Control Interfaces */
 
+EXTERN pid_t   vfork(void);
 EXTERN pid_t   getpid(void);
 EXTERN void    _exit(int status) noreturn_function;
 EXTERN unsigned int sleep(unsigned int seconds);
@@ -158,6 +159,19 @@ EXTERN FAR char *getcwd(FAR char *buf, size_t size);
 
 EXTERN int     unlink(FAR const char *pathname);
 EXTERN int     rmdir(FAR const char *pathname);
+
+/* Execution of programs from files */
+
+#ifdef CONFIG_LIBC_EXECFUNCS
+EXTERN int     execl(FAR const char *path, ...);
+EXTERN int     execv(FAR const char *path, FAR char *const argv[]);
+
+/* Non-standard functions to manage symbol tables */
+
+struct symtab_s; /* See include/nuttx/binfmt/symtab.h */
+EXTERN void exec_getsymtab(FAR const struct symtab_s **symtab, FAR int *nsymbols);
+EXTERN void exec_setsymtab(FAR const struct symtab_s *symtab, int nsymbols);
+#endif
 
 /* Other */
 

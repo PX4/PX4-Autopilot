@@ -97,6 +97,14 @@ __EXPORT extern void		perf_begin(perf_counter_t handle);
  */
 __EXPORT extern void		perf_end(perf_counter_t handle);
 
+/**
+ * Reset a performance event.
+ *
+ * This call resets performance counter to initial state
+ *
+ * @param handle		The handle returned from perf_alloc.
+ */
+__EXPORT extern void		perf_reset(perf_counter_t handle);
 
 /**
  * Print one performance counter.
@@ -109,6 +117,11 @@ __EXPORT extern void		perf_print_counter(perf_counter_t handle);
  * Print all of the performance counters.
  */
 __EXPORT extern void		perf_print_all(void);
+
+/**
+ * Reset all of the performance counters.
+ */
+__EXPORT extern void		perf_reset_all(void);
 
 __END_DECLS
 

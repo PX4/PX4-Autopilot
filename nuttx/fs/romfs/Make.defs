@@ -1,7 +1,7 @@
 ############################################################################
 # fs/romfs/Make.defs
 #
-#   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2008, 2011, 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,10 @@ ifeq ($(CONFIG_FS_ROMFS),y)
 ASRCS +=
 CSRCS += fs_romfs.c fs_romfsutil.c
 
-# Argument for dependency checking
+# Include ROMFS build support
 
-ROMFSDEPPATH = --dep-path romfs
+DEPPATH += --dep-path romfs
+VPATH += :romfs
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)fs$(DELIM)romfs}
+
 endif

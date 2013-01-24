@@ -252,7 +252,7 @@ LINKLIBS = $(patsubst lib\\%,%,$(NUTTXLIBS))
 BIN = nuttx$(EXEEXT)
 
 all: $(BIN)
-.PHONY: context clean_context check_context export subdir_clean clean subdir_distclean distclean apps_clean apps_distclean
+.PHONY: context clean_context check_context configenv config oldconfig menuconfig export subdir_clean clean subdir_distclean distclean apps_clean apps_distclean
 
 # Target used to copy include\nuttx\math.h.  If CONFIG_ARCH_MATH_H is
 # defined, then there is an architecture specific math.h header file
@@ -452,7 +452,7 @@ clean_context:
 # check_context
 #
 # This target checks if NuttX has been configured.  NuttX is configured using
-# the script tools\configure.sh.  That script will install certain files in
+# the script tools\configure.bat.  That script will install certain files in
 # the top-level NuttX build directory.  This target verifies that those
 # configuration files have been installed and that NuttX is ready to be built.
 
@@ -647,14 +647,17 @@ pass2dep: context tools\mkdeps$(HOSTEXEEXT)
 # location: http://ymorin.is-a-geek.org/projects/kconfig-frontends.  See
 # misc\tools\README.txt for additional information.
 
-config:
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} conf Kconfig
+configenv:
+	$(Q) set APPSDIR=${CONFIG_APPS_DIR}
 
-oldconfig:
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} conf --oldconfig Kconfig
+config: configenv
+	$(Q) kconfig-conf Kconfig
 
-menuconfig:
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} mconf Kconfig
+oldconfig: configenv
+	$(Q) kconfig-conf --oldconfig Kconfig
+
+menuconfig: configenv
+	$(Q) kconfig-mconf Kconfig
 
 # export
 #

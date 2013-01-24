@@ -752,7 +752,6 @@ struct fat_mountpt_s
 struct fat_file_s
 {
   struct fat_file_s *ff_next;      /* Retained in a singly linked list */
-  bool     ff_open;                /* true: The file is (still) open */
   uint8_t  ff_bflags;              /* The file buffer flags */
   uint8_t  ff_oflags;              /* Flags provided when file was opened */
   uint8_t  ff_sectorsincluster;    /* Sectors remaining in cluster */

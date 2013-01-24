@@ -38,7 +38,9 @@
  ****************************************************************************/
 
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
+
 #include "cfgparser.h"
 
 /****************************************************************************
@@ -55,28 +57,7 @@ char line[LINESIZE+1];
  * Private Data
  ****************************************************************************/
 
-/* These are configuration variable name that are quoted by configuration tool
- * but which must be unquoted when used in C code.
- */
-
-static const char *dequote_list[] =
-{
-  /* NuttX */
-
-  "CONFIG_USER_ENTRYPOINT",            /* Name of entry point function */
-
-  /* NxWidgets/NxWM */
-
-  "CONFIG_NXWM_BACKGROUND_IMAGE",      /* Name of bitmap image class */
-  "CONFIG_NXWM_STARTWINDOW_ICON",      /* Name of bitmap image class */
-  "CONFIG_NXWM_NXCONSOLE_ICON",        /* Name of bitmap image class */
-  "CONFIG_NXWM_CALIBRATION_ICON",      /* Name of bitmap image class */
-  "CONFIG_NXWM_HEXCALCULATOR_ICON",    /* Name of bitmap image class */
-
-  NULL                                 /* Marks the end of the list */
-};
-
- /****************************************************************************
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -203,69 +184,15 @@ static void parse_line(char *ptr, char **varname, char **varval)
     }
 }
 
-static char *dequote_value(const char *varname, char *varval)
-{
-  const char **dqnam;
-  char *dqval = varval;
-  int len;
-
-  if (dqval)
-    {
-      /* Check if the variable name is in the list of strings to be dequoated */
-
-      for (dqnam = dequote_list; *dqnam; dqnam++)
-        {
-          if (strcmp(*dqnam, varname) == 0)
-            {
-              break;
-            }
-        }
-
-      /* Did we find the variable name in the list of configuration variables
-       * to be dequoated?
-       */
-
-      if (*dqnam)
-        {
-          /* Yes... Check if there is a traiing quote */
-
-          len = strlen(dqval);
-          if (dqval[len-1] == '"')
-            {
-              /* Yes... replace it with a terminator */
-
-              dqval[len-1] = '\0';
-              len--;
-            }
-
-          /* Is there a leading quote? */
-
-           if (dqval[0] == '"')
-             {
-               /* Yes.. skip over the leading quote */
-
-               dqval++;
-               len--;
-             }
-
-           /* Handle the case where nothing is left after dequoting */
-
-           if (len <= 0)
-             {
-               dqval = NULL;
-             }
-        }
-    }
-
-  return dqval;
-}
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-void parse_file(FILE *stream)
+void parse_file(FILE *stream, struct variable_s **list)
 {
+  struct variable_s *curr;
+  struct variable_s *prev;
+  struct variable_s *next;
   char *varname;
   char *varval;
   char *ptr;
@@ -283,40 +210,87 @@ void parse_file(FILE *stream)
 
           parse_line(ptr, &varname, &varval);
 
-          /* Was a variable name found? */
+          /* If the variable has not value (or the special value 'n'), then
+           * ignore it.
+           */
+
+          if (!varval || strcmp(varval, "n") == 0)
+            {
+              continue;
+            }
+
+          /* Make sure that a variable name was found. */
 
           if (varname)
             {
-              /* Yes.. dequote the value if necessary */
+              int varlen = strlen(varname) + 1;
+              int vallen = 0;
 
-              varval = dequote_value(varname, varval);
-
-              /* If no value was provided or if the special value 'n' was provided,
-               * then undefine the configuration variable.
+              /* Get the size of the value, including the NUL terminating
+               * character.
                */
 
-              if (!varval || strcmp(varval, "n") == 0)
+              if (varval)
                 {
-                  printf("#undef %s\n", varname);
+                  vallen = strlen(varval) + 1;
                 }
 
-              /* Simply define the configuration variable if it has the special
-               * value "y"
+              /* Allocate memory to hold the struct variable_s with the
+               * variable name and the value.
                */
 
-              else if (strcmp(varval, "y") == 0)
+              curr = (struct variable_s *)malloc(sizeof(struct variable_s) + varlen + vallen - 1);
+              if (curr)
                 {
-                  printf("#define %s 1\n", varname);
+                  /* Add the variable to the list */
+
+                  curr->var = &curr->storage[0];
+                  strcpy(curr->var, varname);
+
+                  curr->val = NULL;
+                  if (varval)
+                    {
+                      curr->val = &curr->storage[varlen];
+                      strcpy(curr->val, varval);
+                    }
                 }
 
-              /* Otherwise, use the value as provided */
+              prev = 0;
+              next = *list;
+              while (next && strcmp(next->var, curr->var) <= 0)
+                {
+                  prev = next;
+                  next = next->flink;
+                }
 
+              if (prev)
+                {
+                  prev->flink = curr;
+                }
               else
                 {
-                  printf("#define %s %s\n", varname, varval);
+                  *list = curr;
                 }
+
+              curr->flink = next;
             }
         }
     }
   while (ptr);
 }
+
+struct variable_s *find_variable(const char *varname, struct variable_s *list)
+{
+  while (list)
+    {
+      if (strcmp(varname, list->var) == 0)
+        {
+          return list;
+        }
+      
+      list = list->flink;
+    }
+
+  return NULL;
+}
+
