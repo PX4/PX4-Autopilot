@@ -177,7 +177,7 @@
 #define TIOCSSINGLEWIRE _TIOC(0x002c)  /* Set single-wire mode */
 #define TIOCGSINGLEWIRE _TIOC(0x002d)  /* Get single-wire mode */
 
-#  define SER_SINGLEWIRE_ENABLED   (1 << 0) /* Enable/disable single-wire support */
+#  define SER_SINGLEWIRE_ENABLED   (1 << 0) /* Enable/disble single-wire support */
 
 /* Debugging */
 
