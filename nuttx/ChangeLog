@@ -4021,4 +4021,7 @@
 	* configs/olimex-lpc1766stk/nettest:  Configuration converted to
 	  use the kconfig-frontends tools.
 	* net/net_poll.c:  Split net_poll() to create psock_poll() too.
-
+	* net/net_poll.c:  Fix poll/select issure reported by Qiang:
+	  poll_interrupt() must cat call net_lostconnection() when a
+	  loss of connection is reported.  Otherwise, the system will
+	  not know that the connection has been lost.

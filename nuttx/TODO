@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 23, 2013)
+NuttX TODO List (Last updated January 24, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -12,7 +12,7 @@ nuttx/
   (2)  pthreads (sched/)
   (2)  C++ Support
   (6)  Binary loaders (binfmt/)
- (17)  Network (net/, drivers/net)
+ (16)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
  (12)  Libraries (libc/, )
   (9)  File system/Generic drivers (fs/, drivers/)
@@ -666,21 +666,6 @@ o Network (net/, drivers/net)
                and the packet was rejected.
   Status:      Open
   Priority:    Low... fix defconfig files as necessary.
-
-  Title:       net_poll() DOES NOT HANDLE LOSS-OF-CONNECTION CORRECTLY
-  Description: When a loss of connection is detected by any logic waiting on the
-               networking events, the function net_lostconnection() must be called.
-               That function just sets some bits in the socket structure so that
-               it remembers that the connection is lost.
-
-               That is currently done in recvfrom(), send(), and net_monitor.c.  But
-               it is not done in the net_poll() logic; that logic correctly sets
-               the POLLHUP status, but it does not call net_lostconnection().  As a
-               result, if recv() is called after the poll() or select(), the system
-               will hang because the recv() does not know that the connection has
-               been lost.
-  Status:      Open
-  Priority:    High
 
 o USB (drivers/usbdev, drivers/usbhost)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

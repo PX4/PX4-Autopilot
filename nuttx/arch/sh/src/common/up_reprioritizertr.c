@@ -1,7 +1,7 @@
 /****************************************************************************
  *  arch/sh/src/common/up_reprioritizertr.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -89,9 +89,14 @@ void up_reprioritize_rtr(_TCB *tcb, uint8_t priority)
   /* Verify that the caller is sane */
 
   if (tcb->task_state < FIRST_READY_TO_RUN_STATE ||
-      tcb->task_state > LAST_READY_TO_RUN_STATE ||
-      priority < SCHED_PRIORITY_MIN || 
-      priority > SCHED_PRIORITY_MAX)
+      tcb->task_state > LAST_READY_TO_RUN_STATE
+#if SCHED_PRIORITY_MIN > 0
+      || priority < SCHED_PRIORITY_MIN
+#endif
+#if SCHED_PRIORITY_MAX < UINT8_MAX
+      || priority > SCHED_PRIORITY_MAX
+#endif
+    )
     {
        PANIC(OSERR_BADREPRIORITIZESTATE);
     }
