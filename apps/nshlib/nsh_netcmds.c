@@ -53,12 +53,13 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <net/ethernet.h>
+#include <netinet/ether.h>
+
 #include <nuttx/net/net.h>
 #include <nuttx/clock.h>
-#include <net/ethernet.h>
 #include <nuttx/net/uip/uip.h>
 #include <nuttx/net/uip/uip-arch.h>
-#include <netinet/ether.h>
 
 #ifdef CONFIG_NET_STATISTICS
 #  include <nuttx/net/uip/uip.h>

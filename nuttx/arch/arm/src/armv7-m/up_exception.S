@@ -2,7 +2,7 @@
  * arch/arm/src/stm32/up_exception.S
  * arch/arm/src/chip/up_exception.S
  *
- *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2013 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Michael Smith. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -100,7 +100,11 @@ exception_common:
 	mov		r2, r1					/* R2=Copy of the main/process stack pointer */
 	add		r2, #HW_XCPT_SIZE		/* R2=MSP/PSP before the interrupt was taken */
 									/* (ignoring the xPSR[9] alignment bit) */
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+	mrs		r3, basepri				/* R3=Current BASEPRI setting */
+#else
 	mrs		r3, primask				/* R3=Current PRIMASK setting */
+#endif
 
 #ifdef CONFIG_ARCH_FPU
 
@@ -205,7 +209,12 @@ exception_common:
 
 	/* Restore the interrupt state */
 
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+	msr		basepri, r3				/* Restore interrupts priority masking*/
+	cpsie	i						/* Re-enable interrupts */
+#else
 	msr		primask, r3				/* Restore interrupts */
+#endif
 
 	/* Always return with R14 containing the special value that will: (1)
 	 * return to thread mode, and (2) select the correct stack.

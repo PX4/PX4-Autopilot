@@ -116,7 +116,7 @@ int main(int argc, char **argv, char **envp)
   printf(" * configured (at present, NXFLAT is the only supported binary.\n");
   printf(" * format).\n");
   printf(" */\n\n");
-  printf("#if !defined(CONFIG_NXFLAT) && !defined(CONFIG_ELF)\n");
+  printf("#if !defined(CONFIG_NXFLAT) && !defined(CONFIG_ELF) && !defined(CONFIG_BUILTIN)\n");
   printf("# undef CONFIG_BINFMT_DISABLE\n");
   printf("# define CONFIG_BINFMT_DISABLE 1\n");
   printf("#endif\n\n");

@@ -103,6 +103,131 @@ source arch/x86/Kconfig
 source arch/z16/Kconfig
 source arch/z80/Kconfig
 
+comment "External Memory Configuration"
+
+config ARCH_HAVE_EXTNAND
+	bool
+
+config ARCH_HAVE_EXTNOR
+	bool
+
+config ARCH_HAVE_EXTDRAM
+	bool
+
+config ARCH_HAVE_EXTSRAM0
+	bool
+
+config ARCH_HAVE_EXTSRAM1
+	bool
+
+config ARCH_EXTNAND
+	bool "Configure external NAND"
+	default n
+	depends on ARCH_HAVE_EXTNAND
+	---help---
+		Configure external NAND memory and, if applicable, map then external
+		NAND into the memory map.
+
+if ARCH_EXTNAND
+
+config ARCH_EXTNANDSIZE
+	int "External NAND size"
+	default 0
+	---help---
+		Size of the external NAND in bytes.
+
+endif
+
+config ARCH_EXTNOR
+	bool "Configure external NOR memory"
+	default n
+	depends on ARCH_HAVE_EXTNOR
+	---help---
+		Configure external NOR memory and, if applicable, map then external
+		NOR into the memory map.
+
+if ARCH_EXTNOR
+
+config ARCH_EXTNORSIZE
+	int "External NOR size"
+	default 0
+	---help---
+		Size of the external NOR in bytes.
+
+endif
+
+config ARCH_EXTDRAM
+	bool "Configure external DRAM"
+	default n
+	depends on ARCH_HAVE_EXTDRAM
+	---help---
+		Configure external DRAM memory and, if applicable, map then external
+		DRAM into the memory map.
+
+if ARCH_EXTDRAM
+
+config ARCH_EXTDRAMSIZE
+	int "External SDRAM size"
+	default 0
+	---help---
+		Size of the external SDRAM in bytes.
+
+config ARCH_EXTDRAMHEAP
+	bool "Add external SDRAM to the heap"
+	default y
+	---help---
+		Add the external SDRAM into the heap.
+
+endif
+
+config ARCH_EXTSRAM0
+	bool "Configure external SRAM (Bank 0)"
+	default n
+	depends on ARCH_HAVE_EXTSRAM0
+	---help---
+		Configure external SRAM Bank 0 memory and, if applicable, map then
+		external SRAM Bank 0 into the memory map.
+
+if ARCH_EXTSRAM0
+
+config ARCH_EXTSRAM0SIZE
+	int "External SRAM size"
+	default 0
+	---help---
+		Size of the external SRAM Bank 0 in bytes.
+
+config ARCH_EXTSRAM0HEAP
+	bool "Add external SRAM (Bank 0) to the heap"
+	default y
+	---help---
+		Add external SRAM Bank 0 into the heap.
+
+endif
+
+config ARCH_EXTSRAM1
+	bool "Configure external SRAM (Bank 1)"
+	default n
+	depends on ARCH_HAVE_EXTSRAM1
+	---help---
+		Configure external SRAM Bank 1 memory and, if applicable, map then
+		external SRAM Bank 1 into the memory map.
+
+if ARCH_EXTSRAM1
+
+config ARCH_EXTSRAM1SIZE
+	int "External SRAM1 size"
+	default 0
+	---help---
+		Size of the external SRAM Bank 1 in bytes.
+
+config ARCH_EXTSRAM1HEAP
+	bool "Add external SRAM (Bank 1) to the heap"
+	default y
+	---help---
+		Add external SRAM Bank 1 into the heap.
+
+endif
+
 comment "Architecture Options"
 
 config ARCH_NOINTC

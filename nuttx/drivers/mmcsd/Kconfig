@@ -53,7 +53,7 @@ config MMCSD_SPICLOCK
 
 config MMCSD_SDIO
 	bool "MMC/SD sdio transfer support"
-	default y
+	default n
 
 if MMCSD_SDIO
 config SDIO_DMA

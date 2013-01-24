@@ -51,7 +51,11 @@
  */
 
 #define REG_R13             (0)  /* R13 = SP at time of interrupt */
-#define REG_PRIMASK         (1)  /* PRIMASK */
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+#  define REG_BASEPRI       (1)  /* BASEPRI */
+#else
+#  define REG_PRIMASK       (1)  /* PRIMASK */
+#endif
 #define REG_R4              (2)  /* R4 */
 #define REG_R5              (3)  /* R5 */
 #define REG_R6              (4)  /* R6 */

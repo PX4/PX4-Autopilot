@@ -3967,4 +3967,55 @@
 	  file system.
 	* configs/sim/nsh: Convert to use kconfig-frontends configuration
 	  tool.
+	* binfmt/binfmt_schedunload.c:  Add logic based on SIGCHLD to
+	  automatically unload and clean-up after running a task that
+	  was loaded into memory.
+	* binfmt/libbuiltin: Extensions from Mike Smith
+	* sched/task_reparent.c:  Add internal interface to change the
+	  parent task.
+	* sched/task_posixspawn():  Move libc/spawn/lib_ps.c to
+	  sched/task_posixspawn() now it requires internal, reparenting
+	  interfaces
+	* include/nuttx/spawn():  Move libc/spawn.h to include/nuttx/spawn.h
+	* arch/arm/include/lpc17xx/chip.h, irq178x.h:  Integrate Marcelo
+	  Rommel's LPC1788 definitions into the base LPC17xx.
+	* configs/olimex-lpc1766stk/nsh:  Convert configuration to use
+	  the kconfig-frontends tools.
+	* sched/task_reparent.c:  Simplify reparenting interface.
+	* arch/arm/src/[many]: More LPC1788 definitions from Rommel
+	  Marcelo incorporated.
+	* configs/open1788:  Board configuration for the Wave Share
+	  Open1788 board.  Still fragmentary (contribnuted by Rommel
+	  Marcelo, adapted to use kconfig-frontends.
+	* net/send():  Add logic to work around delayed ACKs by splitting
+	  packets (contributed by Yan T.).
+	* net/recvfrom():  Fix a bug.  When the host closes a connection
+	  (gracefully).  recv[from]() returned success and the closure
+	  was never detected.  Hmmm.. I don't know why the network monitor
+	  did not catch this event.  This is an important bug fix.
+	* net/recvfrom():  Fix a introduced with the last bugfix.  If
+	  the peer does an orderly closure of the socket, report 0 not
+	  -ENOTCONN
+	* configs/lm3s6965-ek/README.txt and tools/:  Add an OpenOCD
+	  configuration for the LM3S (from Jose Pablo Carballo).
+	* nuttx/lcd/hd4478ou.h and configs/pcblogic-pic32mx/src/up_lcd1602:
+	  Start of support of LCD1602 alphanumeric LCD.  I need a few
+	  more parts before I can finish integrating this one.
+	* arch/arm/src/*/chip.h and arch/arm/include/*/chip.h:  Move all
+	  priority ranges from the src to the include chip.h header file.
+	* arch/arm/include/armv7-m/irq.h:  Add inline functions to enable
+	  and disable interrupts via the BASEPRI register.
+	* arch/arm/Kconfig:  Add new option CONFIG_ARM7VM_USEBASEI
+	* arch/arm/src/*/*_irq.c:  Set the priority of the SVCALL exception
+	  to the highest possible value.
+	* arch/armv7-m/up_hardfault.c:  Fail if a hardfault occurs
+	  while CONFIG_ARM7VM_USEBASEPRI=y.
+	* arch/arm/src/stm32/stm32_serial.c:  Add support for USART
+	  single wire more (Contributed by the PX4 team).
+	* sched/: Implement support for retaining child task status after
+	  the child task exists.  This is behavior required by POSIX.
+	  But in NuttX is only enabled with CONFIG_SCHED_HAVE_PARENT and
+	  CONFIG_SCHED_CHILD_STATUS
+	* Add support for keyboard encode to the keypad test (from
+	  Denis Carikli).
 

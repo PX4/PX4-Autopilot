@@ -89,6 +89,7 @@ static struct binfmt_s g_builtin_binfmt =
 static int builtin_loadbinary(struct binary_s *binp)
 {
   FAR const char *filename;
+  FAR const struct builtin_s *b;
   int fd;
   int index;
   int ret;
@@ -97,11 +98,11 @@ static int builtin_loadbinary(struct binary_s *binp)
 
   /* Open the binary file for reading (only) */
 
-  fd = open(filename, O_RDONLY);
+  fd = open(binp->filename, O_RDONLY);
   if (fd < 0)
     {
       int errval = errno;
-      bdbg("ERROR: Failed to open binary %s: %d\n", filename, errval);
+      bdbg("ERROR: Failed to open binary %s: %d\n", binp->filename, errval);
       return -errval;
     }
 
@@ -134,9 +135,10 @@ static int builtin_loadbinary(struct binary_s *binp)
    * the priority.  That is a bug and needs to be fixed.
    */
 
-  binp->entrypt   = g_builtins[index].main;
-  binp->stacksize = g_builtins[index].stacksize;
-  binp->priority  = g_builtins[index].priority;
+  b = builtin_for_index(index);
+  binp->entrypt   = b->main;
+  binp->stacksize = b->stacksize;
+  binp->priority  = b->priority;
   return OK;
 }
 

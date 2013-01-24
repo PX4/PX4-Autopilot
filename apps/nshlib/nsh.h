@@ -495,6 +495,11 @@ int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
                 FAR char **argv, FAR const char *redirfile, int oflags);
 #endif
 
+#ifdef CONFIG_NSH_FILE_APPS
+int nsh_fileapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+                FAR char **argv, FAR const char *redirfile, int oflags);
+#endif
+
 /* Working directory support */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 && !defined(CONFIG_DISABLE_ENVIRON)

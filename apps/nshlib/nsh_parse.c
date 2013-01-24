@@ -61,6 +61,7 @@
 #ifdef CONFIG_NSH_BUILTIN_APPS
 #  include <nuttx/binfmt/builtin.h>
 #endif
+
 #include <apps/nsh.h>
 
 #include "nsh.h"
@@ -1398,6 +1399,40 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
       nsh_output(vtbl, g_fmttoomanyargs, cmd);
     }
 
+  /* Does this command correspond to an application filename?
+   * nsh_fileapp() returns:
+   *
+   *   -1 (ERROR)  if the application task corresponding to 'argv[0]' could not
+   *               be started (possibly because it doesn not exist).
+   *    0 (OK)     if the application task corresponding to 'argv[0]' was
+   *               and successfully started.  If CONFIG_SCHED_WAITPID is
+   *               defined, this return value also indicates that the
+   *               application returned successful status (EXIT_SUCCESS)
+   *    1          If CONFIG_SCHED_WAITPID is defined, then this return value
+   *               indicates that the application task was spawned successfully
+   *               but returned failure exit status.
+   *
+   * Note the priority if not effected by nice-ness.
+   */
+
+#ifdef CONFIG_NSH_FILE_APPS
+  ret = nsh_fileapp(vtbl, argv[0], argv, redirfile, oflags);
+  if (ret >= 0)
+    {
+      /* nsh_fileapp() returned 0 or 1.  This means that the builtin
+       * command was successfully started (although it may not have ran
+       * successfully).  So certainly it is not an NSH command.
+       */
+
+      return nsh_saveresult(vtbl, ret != OK);
+    }
+
+  /* No, not a built in command (or, at least, we were unable to start a
+   * builtin command of that name).  Treat it like an NSH command.
+   */
+
+#endif
+
   /* Does this command correspond to a builtin command?
    * nsh_builtin() returns:
    *
@@ -1414,7 +1449,7 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
    * Note the priority if not effected by nice-ness.
    */
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
+#if defined(CONFIG_NSH_BUILTIN_APPS) && (!defined(CONFIG_NSH_FILE_APPS) || !defined(CONFIG_FS_BINFS))
   ret = nsh_builtin(vtbl, argv[0], argv, redirfile, oflags);
   if (ret >= 0)
     {
