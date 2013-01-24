@@ -492,3 +492,4 @@
 	  the entrypoint.  Should be ftpd_main (from Yan T.)
 	* apps/netutils/telnetd/telnetd_driver: Was stuck in a loop if
 	  recv[from]() ever returned a value <= 0.
+	* apps/examples/nettest and poll:  Complete Kconfig files.

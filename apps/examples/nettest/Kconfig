@@ -6,8 +6,51 @@
 config EXAMPLES_NETTEST
 	bool "Network test example"
 	default n
+	depends on NET_TCP
 	---help---
 		Enable the network test example
 
 if EXAMPLES_NETTEST
+
+config EXAMPLES_NETTEST_SERVER
+	bool "Target is server"
+	default n
+	---help---
+	Select to use the host as the client side of the test.  Default:  The
+	target is the client side of the test
+
+config EXAMPLES_NETTEST_PERFORMANCE
+	bool "Test for Performance"
+	default n
+	---help---
+	Configure the example to test for network performance.  Default:  Test
+	is for network functionality.
+
+config EXAMPLES_NETTEST_NOMAC
+	bool "Use Canned MAC Address"
+	default n
+
+config EXAMPLES_NETTEST_IPADDR
+	hex "Target IP address"
+	default 0x0a000002
+
+config EXAMPLES_NETTEST_DRIPADDR
+	hex "Default Router IP address (Gateway)"
+	default 0x0a000001
+
+config EXAMPLES_NETTEST_NETMASK
+	hex "Network Mask"
+	default 0xffffff00
+
+config EXAMPLES_NETTEST_CLIENTIP
+	hex "Client IP Address"
+	default 0x0a000001 if !EXAMPLES_NETTEST_SERVER
+	default 0x0a000002 if EXAMPLES_NETTEST_SERVER
+	---help---
+		IP address of the client.  If the target is the client, then
+		EXAMPLES_NETTEST_CLIENTIP should be the same as
+		EXAMPLES_NETTEST_IPADDR (default).  If the target is the server,
+		then the default value of EXAMPLES_NETTEST_CLIENTIP is set to the
+		gateway address, EXAMPLES_NETTEST_DRIPADDR.
+
 endif

@@ -379,18 +379,8 @@ config DISABLE_MQUEUE
 	depends on DISABLE_OS_API
 	default n
 
-config DISABLE_MOUNTPOINT
-	bool "Disable support for mount points"
-	depends on DISABLE_OS_API
-	default n
-
 config DISABLE_ENVIRON
 	bool "Disable environment variable support"
-	depends on DISABLE_OS_API
-	default n
-
-config DISABLE_POLL
-	bool "Disable driver poll interfaces"
 	depends on DISABLE_OS_API
 	default n
 

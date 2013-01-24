@@ -5,6 +5,10 @@
 
 comment "File system configuration"
 
+config DISABLE_MOUNTPOINT
+	bool "Disable support for mount points"
+	default n
+
 source fs/mmap/Kconfig
 source fs/fat/Kconfig
 source fs/nfs/Kconfig
