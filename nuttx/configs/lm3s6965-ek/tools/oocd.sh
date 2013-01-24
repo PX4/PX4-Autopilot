@@ -22,7 +22,7 @@ TARGET_PATH="/usr/share/openocd/scripts"
 # like environment
 #OPENOCD_EXE=openocd.exe
 OPENOCD_EXE=openocd
-OPENOCD_CFG="${TOPDIR}/configs/lm3s6965-ek/tools/ek-lm3s6965.cfg"
+OPENOCD_CFG="${TOPDIR}/configs/lm3s6965-ek/tools/lm3s6965-ek.cfg"
 OPENOCD_ARGS="-f ${OPENOCD_CFG} -s ${TARGET_PATH}"
 
 if [ "X$2" = "X-d" ]; then

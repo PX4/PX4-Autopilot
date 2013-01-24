@@ -3,6 +3,7 @@
  *
  *   Copyright (C) 2009-2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Author: Jose Pablo Carballo <jcarballo@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,6 +51,7 @@
 
 #if defined(CONFIG_ARCH_CHIP_LM3S6918)
 #  define LM_NTIMERS         4  /* Four general purpose timers */
+#  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
 #  undef  LM_ETHTS              /* No timestamp register */
 #  define LM_NSSI            2  /* Two SSI modules */
@@ -59,8 +61,10 @@
 #  define LM_NPWM            0  /* No PWM generator modules */
 #  define LM_NQEI            0  /* No quadrature encoders */
 #  define LM_NPORTS          8  /* 8 Ports (GPIOA-H) 5-38 GPIOs */
+#  define LM_NCANCONTROLLER  0  /* No CAN controllers */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6432)
 #  define LM_NTIMERS         3  /* Three general purpose timers */
+#  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
 #  undef  LM_ETHTS              /* No timestamp register */
 #  define LM_NSSI            1  /* One SSI module */
@@ -70,8 +74,10 @@
 #  define LM_NPWM            1  /* One PWM generator module */
 #  define LM_NQEI            0  /* No quadrature encoders */
 #  define LM_NPORTS          7  /* 7 Ports (GPIOA-G), 0-42 GPIOs */
+#  define LM_NCANCONTROLLER  0  /* No CAN controllers */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6965)
 #  define LM_NTIMERS         4  /* Four general purpose timers */
+#  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
 #  undef  LM_ETHTS              /* No timestamp register */
 #  define LM_NSSI            1  /* One SSI module */
@@ -81,8 +87,10 @@
 #  define LM_NPWM            3  /* Three PWM generator modules */
 #  define LM_NQEI            2  /* Two quadrature encoders */
 #  define LM_NPORTS          7  /* 7 Ports (GPIOA-G), 0-42 GPIOs */
+#  define LM_NCANCONTROLLER  0  /* No CAN controllers */
 #elif defined(CONFIG_ARCH_CHIP_LM3S9B96) 
 #  define LM_NTIMERS         4  /* Four general purpose timers */
+#  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
 #  undef  LM_ETHTS              /* No timestamp register */
 #  define LM_NSSI            2  /* Two SSI modules */
@@ -93,8 +101,10 @@
 #  define LM_NPWM            4  /* Four PWM generator modules */
 #  define LM_NQEI            2  /* Two quadrature encoders */
 #  define LM_NPORTS          9  /* 9 Ports (GPIOA-H,J) 0-65 GPIOs */
+#  define LM_NCANCONTROLLER  0  /* No CAN controllers */
 #elif defined(CONFIG_ARCH_CHIP_LM3S8962)
-#  define LM_NTIMERS         4  /* Four general purpose timers */
+#  define LM_NTIMERS         6  /* Four general purpose timers */
+#  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
 #  define LM_NSSI            1  /* One SSI module */
 #  define LM_NUARTS          3  /* Two UART modules */
@@ -103,7 +113,19 @@
 #  define LM_NPWM            3  /* Three PWM generator modules */
 #  define LM_NQEI            2  /* Two quadrature encoders */
 #  define LM_NPORTS          7  /* 7 Ports (GPIOA-G), 5-42 GPIOs */
-#  define LM_CANCONTROLLER   1  /* One CAN controller */
+#  define LM_NCANCONTROLLER  1  /* One CAN controller */
+#elif defined(CONFIG_ARCH_CHIP_LM4F120)
+#  define LM_NTIMERS         6  /* Six general purpose timers */
+#  define LM_NWIDETIMERS     6  /* Six general purpose wide timers */
+#  define LM_NETHCONTROLLERS 0  /* No Ethernet controller */
+#  define LM_NSSI            4  /* Four SSI module */
+#  define LM_NUARTS          8  /* Eight UART modules */
+#  define LM_NI2C            4  /* Four I2C modules */
+#  define LM_NADC            2  /* Two ADC modules */
+#  define LM_NPWM            0  /* No PWM generator modules */
+#  define LM_NQEI            0  /* No quadrature encoders */
+#  define LM_NPORTS          6  /* 6 Ports (GPIOA-F), 0-43 GPIOs */
+#  define LM_NCANCONTROLLER  1  /* One CAN controller */
 #else
 #  error "Capabilities not specified for this Stellaris chip"
 #endif

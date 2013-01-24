@@ -4020,4 +4020,5 @@
 	  Denis Carikli).
 	* configs/olimex-lpc1766stk/nettest:  Configuration converted to
 	  use the kconfig-frontends tools.
+	* net/net_poll.c:  Split net_poll() to create psock_poll() too.
 

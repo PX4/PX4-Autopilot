@@ -117,110 +117,115 @@ struct uip_driver_s; /* Forward reference.  See nuttx/net/uip/uip-arch.h */
 typedef int (*netdev_callback_t)(FAR struct uip_driver_s *dev, void *arg);
 
 /****************************************************************************
- * Public Function Prototypes
+ * Public Data
  ****************************************************************************/
 
 #ifdef __cplusplus
 #define EXTERN extern "C"
-extern "C" {
+extern "C"
+{
 #else
 #define EXTERN extern
 #endif
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
 /* net_checksd.c *************************************************************/
 /* Check if the socket descriptor is valid for the provided TCB and if it
  * supports the requested access.
  */
 
-EXTERN int net_checksd(int fd, int oflags);
+int net_checksd(int fd, int oflags);
 
 /* net_sockets.c *************************************************************/
 /* There interfaces are called only from OS scheduling and iniialization logic
  * under sched/
  */
 
-EXTERN void weak_function net_initialize(void);
-EXTERN FAR struct socketlist *net_alloclist(void);
-EXTERN int net_addreflist(FAR struct socketlist *list);
-EXTERN int net_releaselist(FAR struct socketlist *list);
+void weak_function net_initialize(void);
+FAR struct socketlist *net_alloclist(void);
+int net_addreflist(FAR struct socketlist *list);
+int net_releaselist(FAR struct socketlist *list);
 
 /* Given a socket descriptor, return the underly NuttX-specific socket
  * structure.
  */
 
-EXTERN FAR struct socket *sockfd_socket(int sockfd);
+FAR struct socket *sockfd_socket(int sockfd);
 
 /* socket.c ******************************************************************/
 /* socket using underlying socket structure */
 
-EXTERN int psock_socket(int domain, int type, int protocol,
-                        FAR struct socket *psock);
+int psock_socket(int domain, int type, int protocol, FAR struct socket *psock);
 
 /* net_close.c ***************************************************************/
 /* The standard close() operation redirects operations on socket descriptors
  * to this function.
  */
 
-EXTERN int net_close(int sockfd);
+int net_close(int sockfd);
 
 /* Performs the close operation on a socket instance */
 
-EXTERN int psock_close(FAR struct socket *psock);
+int psock_close(FAR struct socket *psock);
 
 /* net_close.c ***************************************************************/
 /* Performs the bind() operation on a socket instance */
 
-EXTERN int psock_bind(FAR struct socket *psock,
-                      FAR const struct sockaddr *addr, socklen_t addrlen);
+int psock_bind(FAR struct socket *psock, FAR const struct sockaddr *addr,
+               socklen_t addrlen);
 
 /* connect.c *****************************************************************/
 /* Performs the connect() operation on a socket instance */
 
-EXTERN int psock_connect(FAR struct socket *psock,
-                         FAR const struct sockaddr *addr, socklen_t addrlen);
+int psock_connect(FAR struct socket *psock, FAR const struct sockaddr *addr,
+                  socklen_t addrlen);
 
 /* send.c ********************************************************************/
 /* Send using underlying socket structure */
 
-EXTERN ssize_t psock_send(FAR struct socket *psock, const void *buf,
-                          size_t len, int flags);
+ssize_t psock_send(FAR struct socket *psock, const void *buf, size_t len,
+                   int flags);
 
 /* sendto.c ******************************************************************/
 /* Sendto using underlying socket structure */
 
-EXTERN ssize_t psock_sendto(FAR struct socket *psock, FAR const void *buf,
-                            size_t len, int flags, FAR const struct sockaddr *to,
-                            socklen_t tolen);
+ssize_t psock_sendto(FAR struct socket *psock, FAR const void *buf,
+                     size_t len, int flags, FAR const struct sockaddr *to,
+                     socklen_t tolen);
 
 /* recvfrom.c ****************************************************************/
 /* recvfrom using the underlying socket structure */
 
-EXTERN ssize_t psock_recvfrom(FAR struct socket *psock, FAR void *buf,
-                              size_t len, int flags,FAR struct sockaddr *from,
-                              FAR socklen_t *fromlen);
+ssize_t psock_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
+                       int flags,FAR struct sockaddr *from,
+                       FAR socklen_t *fromlen);
 
 /* recv using the underlying socket structure */
 
-#define psock_recv(psock,buf,len,flags) psock_recvfrom(psock,buf,len,flags,NULL,0)
+#define psock_recv(psock,buf,len,flags) \
+  psock_recvfrom(psock,buf,len,flags,NULL,0)
 
 /* getsockopt.c **************************************************************/
 /* getsockopt using the underlying socket structure */
 
-EXTERN int psock_getsockopt(FAR struct socket *psock, int level, int option,
-                            FAR void *value, FAR socklen_t *value_len);
+int psock_getsockopt(FAR struct socket *psock, int level, int option,
+                     FAR void *value, FAR socklen_t *value_len);
 
 /* setsockopt.c **************************************************************/
 /* setsockopt using the underlying socket structure */
 
-EXTERN int psock_setsockopt(FAR struct socket *psock, int level, int option,
-                            FAR const void *value, socklen_t value_len);
+int psock_setsockopt(FAR struct socket *psock, int level, int option,
+                     FAR const void *value, socklen_t value_len);
 
 /* net_ioctl.c ***************************************************************/
 /* The standard ioctl() operation redirects operations on socket descriptors
  * to this function.
  */
 
-EXTERN int netdev_ioctl(int sockfd, int cmd, unsigned long arg);
+int netdev_ioctl(int sockfd, int cmd, unsigned long arg);
 
 /* net_poll.c ****************************************************************/
 /* The standard poll() operation redirects operations on socket descriptors
@@ -229,7 +234,9 @@ EXTERN int netdev_ioctl(int sockfd, int cmd, unsigned long arg);
 
 #ifndef CONFIG_DISABLE_POLL
 struct pollfd; /* Forward reference -- see poll.h */
-EXTERN int net_poll(int sockfd, struct pollfd *fds, bool setup);
+
+int psock_poll(FAR struct socket *psock, struct pollfd *fds, bool setup);
+int net_poll(int sockfd, struct pollfd *fds, bool setup);
 #endif
 
 /* net_dup.c *****************************************************************/
@@ -237,7 +244,7 @@ EXTERN int net_poll(int sockfd, struct pollfd *fds, bool setup);
  * this function
  */
 
-EXTERN int net_dup(int sockfd, int minsd);
+int net_dup(int sockfd, int minsd);
 
 /* net_dup2.c ****************************************************************/
 /* The standard dup2() operation redirects operations on socket descriptors to
@@ -245,7 +252,7 @@ EXTERN int net_dup(int sockfd, int minsd);
  */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-EXTERN int net_dup2(int sockfd1, int sockfd2);
+int net_dup2(int sockfd1, int sockfd2);
 #else
 #  define net_dup2(sockfd1, sockfd2) dup2(sockfd1, sockfd2)
 #endif
@@ -253,12 +260,12 @@ EXTERN int net_dup2(int sockfd1, int sockfd2);
 /* net_clone.c ***************************************************************/
 /* Performs the low level, common portion of net_dup() and net_dup2() */
 
-EXTERN int net_clone(FAR struct socket *psock1, FAR struct socket *psock2);
+int net_clone(FAR struct socket *psock1, FAR struct socket *psock2);
 
 /* net_vfcntl.c **************************************************************/
 /* Performs fcntl operations on socket */
 
-EXTERN int net_vfcntl(int sockfd, int cmd, va_list ap);
+int net_vfcntl(int sockfd, int cmd, va_list ap);
 
 /* netdev-register.c *********************************************************/
 /* This function is called by network interface device drivers to inform the
@@ -267,23 +274,23 @@ EXTERN int net_vfcntl(int sockfd, int cmd, va_list ap);
  * addresses
  */
 
-EXTERN int netdev_register(FAR struct uip_driver_s *dev);
+int netdev_register(FAR struct uip_driver_s *dev);
 
 /* netdev-unregister.c *********************************************************/
 /* Unregister a network device driver. */
 
-EXTERN int netdev_unregister(FAR struct uip_driver_s *dev);
+int netdev_unregister(FAR struct uip_driver_s *dev);
 
 /* net_foreach.c ************************************************************/
 /* Enumerates all registered network devices */
 
-EXTERN int netdev_foreach(netdev_callback_t callback, void *arg);
+int netdev_foreach(netdev_callback_t callback, void *arg);
 
 /* drivers/net/slip.c ******************************************************/
 /* Instantiate a SLIP network interface. */
 
 #ifdef CONFIG_NET_SLIP
-EXTERN int slip_initialize(int intf, const char *devname);
+int slip_initialize(int intf, const char *devname);
 #endif
 
 #undef EXTERN

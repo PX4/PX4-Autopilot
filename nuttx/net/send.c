@@ -448,7 +448,7 @@ end_wait:
  *   equivalent to sendto(sockfd,buf,len,flags,NULL,0).
  *
  * Parameters:
- *   psock    And instance of the internal socket structure.
+ *   psock    An instance of the internal socket structure.
  *   buf      Data to send
  *   len      Length of data to send
  *   flags    Send flags
