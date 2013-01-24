@@ -53,7 +53,7 @@ ifeq ($(filter y, \
 endif
 ifeq ($(filter y, \
       $(CONFIG_KINETIS_BUILDROOT) \
-      $(CONFIG_LM3S_BUILDROOT) \
+      $(CONFIG_LM_BUILDROOT) \
       $(CONFIG_LPC17_BUILDROOT) \
       $(CONFIG_LPC43_BUILDROOT) \
       $(CONFIG_SAM3U_BUILDROOT) \
@@ -77,7 +77,7 @@ ifeq ($(filter y, \
 endif
 ifeq ($(filter y, \
       $(CONFIG_KINETIS_CODESOURCERYL) \
-      $(CONFIG_LM3S_CODESOURCERYL) \
+      $(CONFIG_LM_CODESOURCERYL) \
       $(CONFIG_LPC17_CODESOURCERYL) \
       $(CONFIG_LPC43_CODESOURCERYL) \
       $(CONFIG_SAM3U_CODESOURCERYL) \
@@ -88,7 +88,7 @@ ifeq ($(filter y, \
 endif
 ifeq ($(filter y, \
       $(CONFIG_KINETIS_CODESOURCERYW) \
-      $(CONFIG_LM3S_CODESOURCERYW) \
+      $(CONFIG_LM_CODESOURCERYW) \
       $(CONFIG_LPC17_CODESOURCERYW) \
       $(CONFIG_LPC43_CODESOURCERYW) \
       $(CONFIG_SAM3U_CODESOURCERYW) \
@@ -99,7 +99,7 @@ ifeq ($(filter y, \
 endif
 ifeq ($(filter y, \
       $(CONFIG_KINETIS_DEVKITARM) \
-      $(CONFIG_LM3S_DEVKITARM) \
+      $(CONFIG_LM_DEVKITARM) \
       $(CONFIG_LPC17_DEVKITARM) \
       $(CONFIG_LPC43_DEVKITARM) \
       $(CONFIG_SAM3U_DEVKITARM) \
@@ -160,14 +160,15 @@ endif
 # NuttX buildroot under Linux or Cygwin
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),BUILDROOT)
-  # OABI
-  # CROSSDEV = arm-nuttx-elf-
-  # ARCROSSDEV = arm-nuttx-elf-
-  # ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
-  # EABI
+ifeq ($(CONFIG_ARMV7M_OABI_TOOLCHAIN),y)
+  CROSSDEV = arm-nuttx-elf-
+  ARCROSSDEV = arm-nuttx-elf-
+  ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
+else
   CROSSDEV = arm-nuttx-eabi-
   ARCROSSDEV = arm-nuttx-eabi-
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+endif
   MAXOPTIMIZATION = -Os
 endif
 

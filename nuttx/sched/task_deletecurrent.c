@@ -90,6 +90,9 @@
  * Return Value:
  *   OK on success; or ERROR on failure
  *
+ * Assumeptions:
+ *   Interrupts are disabled.
+ *
  ****************************************************************************/
 
 int task_deletecurrent(void)
@@ -108,13 +111,16 @@ int task_deletecurrent(void)
   (void)sched_removereadytorun(dtcb);
   rtcb = (FAR _TCB*)g_readytorun.head;
 
-  /* We are not in a bad state -- the head of the ready to run task list
+  /* We are now in a bad state -- the head of the ready to run task list
    * does not correspond to the thread that is running.  Disabling pre-
    * emption on this TCB and marking the new ready-to-run task as not
    * running (see, for example, get_errno_ptr()).
+   *
+   * We disable pre-emption here by directly incrementing the lockcount
+   * (vs. calling sched_lock()).
    */
 
-  sched_lock();
+  rtcb->lockcount++;
   rtcb->task_state = TSTATE_TASK_READYTORUN;
 
   /* Move the TCB to the specified blocked task list and delete it */
@@ -132,9 +138,15 @@ int task_deletecurrent(void)
       (void)sched_mergepending();
     }
 
-  /* Now calling sched_unlock() should have no effect */
+  /* We can't use sched_unlock() to decrement the lock count because the
+   * sched_mergepending() call above might have changed the task at the
+   * head of the ready-to-run list.  Furthermore, we should not need to
+   * perform the unlock action anyway because we know that the pending
+   * task list is empty.  So all we really need to do is to decrement
+   * the lockcount on rctb.
+   */
 
-  sched_unlock();
+  rtcb->lockcount--;
   return OK;
 }
 

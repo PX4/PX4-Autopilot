@@ -1,13 +1,8 @@
 /****************************************************************************
- * apps/namedaps/exec_namedapp.c
+ * binfmt/builtin.c
  *
- *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *   Author: Uros Platise <uros.platise@isotel.eu>
- *
- * With updates, modifications, and general maintenance by:
- *
- *   Copyright (C) 2012 Gregory Nutt.  All rights reserved.
- *   Auther: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,145 +38,159 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <apps/apps.h>
-#include <sched.h>
 
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
+#include <stdint.h>
 #include <string.h>
+#include <fcntl.h>
+#include <debug.h>
 #include <errno.h>
 
-#include "namedapp.h"
+#include <nuttx/fs/ioctl.h>
+#include <nuttx/binfmt/binfmt.h>
+#include <nuttx/binfmt/builtin.h>
+
+#ifdef CONFIG_BUILTIN
 
 /****************************************************************************
- * Private Types
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
+static int builtin_loadbinary(FAR struct binary_s *binp);
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
+static struct binfmt_s g_builtin_binfmt =
+{
+  NULL,               /* next */
+  builtin_loadbinary, /* load */
+};
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: builtin_loadbinary
+ *
+ * Description:
+ *   Verify that the file is an builtin binary.
+ *
+ ****************************************************************************/
+
+static int builtin_loadbinary(struct binary_s *binp)
+{
+  FAR const char *filename;
+  int fd;
+  int index;
+  int ret;
+
+  bvdbg("Loading file: %s\n", binp->filename);
+
+  /* Open the binary file for reading (only) */
+
+  fd = open(filename, O_RDONLY);
+  if (fd < 0)
+    {
+      int errval = errno;
+      bdbg("ERROR: Failed to open binary %s: %d\n", filename, errval);
+      return -errval;
+    }
+
+  /* If this file is a BINFS file system, then we can recover the name of
+   * the file using the FIOC_FILENAME ioctl() call.
+   */
+
+  ret = ioctl(fd, FIOC_FILENAME, (unsigned long)((uintptr_t)&filename));
+  if (ret < 0)
+    {
+      int errval = errno;
+      bdbg("ERROR: FIOC_FILENAME ioctl failed: %d\n", errval);
+      return -errval;
+    }
+
+  /* Other file systems may also support FIOC_FILENAME, so the real proof
+   * is that we can look up the index to this name in g_builtins[].
+   */
+
+  index = builtin_isavail(filename);
+  if (index < 0)
+    {
+      int errval = errno;
+      bdbg("ERROR: %s is not a builtin application\n", filename);
+      return -errval;
+      
+    }
+
+  /* Return the load information.  NOTE: that there is no way to configure
+   * the priority.  That is a bug and needs to be fixed.
+   */
+
+  binp->entrypt   = g_builtins[index].main;
+  binp->stacksize = g_builtins[index].stacksize;
+  binp->priority  = g_builtins[index].priority;
+  return OK;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: namedapp_getname
+ * Name: builtin_initialize
  *
  * Description:
- *   Return the name of the application at index in the table of named
- *   applications.
- *
- ****************************************************************************/
-
-const char *namedapp_getname(int index)
-{
-  if (index < 0 || index >= number_namedapps())
-   {
-     return NULL;
-   }
-    
-  return namedapps[index].name;
-}
- 
-/****************************************************************************
- * Name: namedapp_isavail
- *
- * Description:
- *   Return the index into the table of applications for the applicaiton with
- *   the name 'appname'.
- *
- ****************************************************************************/
-
-int namedapp_isavail(FAR const char *appname)
-{
-  int i;
-    
-  for (i = 0; namedapps[i].name; i++) 
-    {
-      if (!strcmp(namedapps[i].name, appname))
-        {
-          return i;
-        }
-    }
-
-  set_errno(ENOENT);
-  return ERROR;
-}
- 
-/****************************************************************************
- * Name: namedapp_isavail
- *
- * Description:
- *   Execute the application with name 'appname', providing the arguments
- *   in the argv[] array.
+ *   Builtin support is built unconditionally.  However, it order to
+ *   use this binary format, this function must be called during system
+ *   format in order to register the builtin binary format.
  *
  * Returned Value:
- *   On success, the task ID of the named application is returned.  On
- *   failure, -1 (ERROR) is returned an the errno value is set appropriately.
+ *   This is a NuttX internal function so it follows the convention that
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
  *
  ****************************************************************************/
 
-int exec_namedapp(FAR const char *appname, FAR const char **argv)
+int builtin_initialize(void)
 {
-  pid_t pid;
-  int index;
+  int ret;
 
-  /* Verify that an application with this name exists */
+  /* Register ourselves as a binfmt loader */
 
-  index = namedapp_isavail(appname);
-  if (index >= 0)
+  bvdbg("Registering Builtin Loader\n");
+
+  ret = register_binfmt(&g_builtin_binfmt);
+  if (ret != 0)
     {
-      /* Disable pre-emption.  This means that although we start the named
-       * application here, it will not actually run until pre-emption is
-       * re-enabled below.
-       */
-
-      sched_lock();
-
-      /* Start the named application task */
-
-      pid = TASK_CREATE(namedapps[index].name, namedapps[index].priority, 
-                        namedapps[index].stacksize, namedapps[index].main, 
-                        (argv) ? &argv[1] : (const char **)NULL);
-
-      /* If robin robin scheduling is enabled, then set the scheduling policy
-       * of the new task to SCHED_RR before it has a chance to run.
-       */
-
-#if CONFIG_RR_INTERVAL > 0
-      if (pid > 0)
-        {
-          struct sched_param param;
-
-          /* Pre-emption is disabled so the task creation and the
-           * following operation will be atomic.  The priority of the
-           * new task cannot yet have changed from its initial value.
-           */
-
-          param.sched_priority = namedapps[index].priority;
-          sched_setscheduler(pid, SCHED_RR, &param);
-        }
-#endif
-      /* Now let the named application run */
-
-      sched_unlock();
-
-      /* Return the task ID of the new task if the task was sucessfully
-       * started.  Otherwise, pid will be ERROR (and the errno value will
-       * be set appropriately).
-       */
-
-      return pid;
+      bdbg("Failed to register binfmt: %d\n", ret);
     }
 
-  /* Return ERROR with errno set appropriately */
-
-  return ERROR;
+  return ret;
 }
+
+/****************************************************************************
+ * Name: builtin_uninitialize
+ *
+ * Description:
+ *   Unregister the builtin binary loader
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void builtin_uninitialize(void)
+{
+  unregister_binfmt(&g_builtin_binfmt);
+}
+
+#endif /* CONFIG_BUILTIN */
+

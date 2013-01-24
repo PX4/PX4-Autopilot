@@ -113,7 +113,7 @@
 #define USEC2TICK(usec)       (((usec)+(USEC_PER_TICK/2))/USEC_PER_TICK) /* Rounds */
 #define MSEC2TICK(msec)       (((msec)+(MSEC_PER_TICK/2))/MSEC_PER_TICK) /* Rounds */
 #define DSEC2TICK(dsec)       MSEC2TICK((dsec)*MSEC_PER_DSEC)
-#define SEC2TICK(sec)         MSEC2TICK((sec)*MSEC_PER_SEC)
+#define SEC2TICK(sec)         MSEC2TICK((sec)*MSEC_PER_SEC)              /* Exact */
 
 #define TICK2NSEC(tick)       ((tick)*NSEC_PER_TICK)                     /* Exact */
 #define TICK2USEC(tick)       ((tick)*USEC_PER_TICK)                     /* Exact */

@@ -42,6 +42,12 @@ NXFCONV_CSRCS	= nxfonts_convert_1bpp.c nxfonts_convert_2bpp.c \
 NXFSET_ASRCS	=
 NXFSET_CSRCS	=
 
+# Monospace fonts
+
+ifeq ($(CONFIG_NXFONT_MONO5X8),y)
+NXFSET_CSRCS    += nxfonts_bitmaps_mono5x8.c
+endif
+
 # Sans serif fonts
 
 ifeq ($(CONFIG_NXFONT_SANS17X22),y)

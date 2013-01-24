@@ -84,6 +84,9 @@
 
 int kill(pid_t pid, int signo)
 {
+#ifdef CONFIG_SCHED_HAVE_PARENT
+  FAR _TCB *rtcb = (FAR _TCB *)g_readytorun.head;
+#endif
   FAR _TCB *stcb;
   siginfo_t info;
   int       ret = ERROR;
@@ -124,6 +127,10 @@ int kill(pid_t pid, int signo)
   info.si_signo           = signo;
   info.si_code            = SI_USER;
   info.si_value.sival_ptr = NULL;
+#ifdef CONFIG_SCHED_HAVE_PARENT
+  info.si_pid             = rtcb->pid;
+  info.si_status          = OK;
+#endif
 
   /* Send the signal */
 

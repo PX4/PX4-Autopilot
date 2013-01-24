@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/fs/fs.h
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -161,6 +161,7 @@ struct mountpt_operations
    */
 
   int     (*sync)(FAR struct file *filp);
+  int     (*dup)(FAR const struct file *oldp, FAR struct file *newp);
 
   /* Directory operations */
 

@@ -428,7 +428,7 @@ static inline void ug2864ambag01_configspi(FAR struct spi_dev_s *spi)
 
   SPI_SETMODE(spi, CONFIG_UG2864AMBAG01_SPIMODE);
   SPI_SETBITS(spi, 8);
-  SPI_SETFREQUENCY(spi, CONFIG_UG2864AMBAG01_FREQUENCY)
+  SPI_SETFREQUENCY(spi, CONFIG_UG2864AMBAG01_FREQUENCY);
 }
 #endif
 
@@ -1035,7 +1035,7 @@ FAR struct lcd_dev_s *ug2864ambag01_initialize(FAR struct spi_dev_s *spi, unsign
 
   /* Configure the SPI */
 
-  ug2864ambag01_configspi(spi)
+  ug2864ambag01_configspi(spi);
 
   /* Lock and select device */
 
@@ -1148,8 +1148,8 @@ void ug2864ambag01_fill(FAR struct lcd_dev_s *dev, uint8_t color)
 
       /* Transfer one page of the selected color */
 
-       (void)SPI_SNDBLOCK(priv->spi, &priv->fb[page * UG2864AMBAG01_XRES],
-                          UG2864AMBAG01_XRES);
+      (void)SPI_SNDBLOCK(priv->spi, &priv->fb[page * UG2864AMBAG01_XRES],
+                         UG2864AMBAG01_XRES);
     }
 
   /* De-select and unlock the device */

@@ -35,7 +35,7 @@
 
 /* Provides standard flash access functions, to be used by the  flash mtd driver.
  * The interface is defined in the include/nuttx/progmem.h
- * 
+ *
  * Requirements during write/erase operations on FLASH:
  *  - HSI must be ON.
  *  - Low Power Modes are not permitted during write/erase
@@ -80,7 +80,7 @@ void stm32_flash_unlock(void)
   if (getreg32(STM32_FLASH_CR) & FLASH_CR_LOCK)
     {
       /* Unlock sequence */
-        
+
       putreg32(FLASH_KEY1, STM32_FLASH_KEYR);
       putreg32(FLASH_KEY2, STM32_FLASH_KEYR);
     }
@@ -112,6 +112,11 @@ uint16_t up_progmem_pagesize(uint16_t page)
 
 int up_progmem_getpage(uint32_t addr)
 {
+  if (addr >= STM32_FLASH_BASE)
+    {
+      addr -= STM32_FLASH_BASE;
+    }
+
   if (addr >= STM32_FLASH_SIZE)
     {
       return -EFAULT;
@@ -131,14 +136,14 @@ int up_progmem_erasepage(uint16_t page)
     }
 
   /* Get flash ready and begin erasing single page */
-    
+
   if (!(getreg32(STM32_RCC_CR) & RCC_CR_HSION))
     {
       return -EPERM;
     }
-    
+
   stm32_flash_unlock();
-        
+
   modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_PER);
   putreg32(page * STM32_FLASH_PAGESIZE, STM32_FLASH_AR);
   modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_STRT);
@@ -146,10 +151,10 @@ int up_progmem_erasepage(uint16_t page)
   while(getreg32(STM32_FLASH_SR) & FLASH_SR_BSY) up_waste();
 
   modifyreg32(STM32_FLASH_CR, FLASH_CR_PER, 0);
-    
+
   /* Verify */
-    
-  for (addr = page * STM32_FLASH_PAGESIZE + STM32_FLASH_BASE, count = STM32_FLASH_PAGESIZE; 
+
+  for (addr = page * STM32_FLASH_PAGESIZE + STM32_FLASH_BASE, count = STM32_FLASH_PAGESIZE;
        count; count-=4, addr += 4)
     {
       if (getreg32(addr) != 0xffffffff)
@@ -173,8 +178,8 @@ int up_progmem_ispageerased(uint16_t page)
     }
 
   /* Verify */
-    
-  for (addr = page * STM32_FLASH_PAGESIZE + STM32_FLASH_BASE, count = STM32_FLASH_PAGESIZE; 
+
+  for (addr = page * STM32_FLASH_PAGESIZE + STM32_FLASH_BASE, count = STM32_FLASH_PAGESIZE;
        count; count--, addr++)
     {
       if (getreg8(addr) != 0xff)
@@ -200,6 +205,11 @@ int up_progmem_write(uint32_t addr, const void *buf, size_t count)
 
   /* Check for valid address range */
 
+  if (addr >= STM32_FLASH_BASE)
+    {
+      addr -= STM32_FLASH_BASE;
+    }
+
   if ((addr+count) >= STM32_FLASH_SIZE)
     {
       return -EFAULT;
@@ -213,10 +223,10 @@ int up_progmem_write(uint32_t addr, const void *buf, size_t count)
     }
 
   stm32_flash_unlock();
-    
+
   modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_PG);
-    
-  for (addr += STM32_FLASH_BASE; count; count--, hword++, addr+=2)
+
+  for (addr += STM32_FLASH_BASE; count; count-=2, hword++, addr+=2)
     {
       /* Write half-word and wait to complete */
 
@@ -237,7 +247,6 @@ int up_progmem_write(uint32_t addr, const void *buf, size_t count)
           modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);
           return -EIO;
         }
-
     }
 
   modifyreg32(STM32_FLASH_CR, FLASH_CR_PG, 0);

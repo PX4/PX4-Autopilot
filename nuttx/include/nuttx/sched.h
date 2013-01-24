@@ -1,7 +1,7 @@
 /********************************************************************************
  * include/nuttx/sched.h
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -202,6 +202,10 @@ struct _TCB
   /* Task Management Fields *****************************************************/
 
   pid_t    pid;                          /* This is the ID of the thread        */
+#ifdef CONFIG_SCHED_HAVE_PARENT
+  pid_t    parent;                       /* This is the ID of the parent thread */
+  uint16_t nchildren;                    /* This is the number active children  */
+#endif
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
 
@@ -223,7 +227,7 @@ struct _TCB
 # endif
 #endif
 
-#ifdef CONFIG_SCHED_WAITPID
+#if defined(CONFIG_SCHED_WAITPID) && !defined(CONFIG_SCHED_HAVE_PARENT)
   sem_t    exitsem;                      /* Support for waitpid                 */
   int     *stat_loc;                     /* Location to return exit status      */
 #endif
@@ -381,6 +385,32 @@ EXTERN FAR struct streamlist *sched_getstreams(void);
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
 EXTERN FAR struct socketlist *sched_getsockets(void);
 #endif /* CONFIG_NSOCKET_DESCRIPTORS */
+
+/* Internal vfork support.The  overall sequence is:
+ *
+ * 1) User code calls vfork().  vfork() is provided in architecture-specific
+ *    code.
+ * 2) vfork()and calls task_vforksetup().
+ * 3) task_vforksetup() allocates and configures the child task's TCB.  This
+ *    consists of:
+ *    - Allocation of the child task's TCB.
+ *    - Initialization of file descriptors and streams
+ *    - Configuration of environment variables
+ *    - Setup the intput parameters for the task.
+ *    - Initialization of the TCB (including call to up_initial_state()
+ * 4) vfork() provides any additional operating context. vfork must:
+ *    - Allocate and initialize the stack
+ *    - Initialize special values in any CPU registers that were not
+ *      already configured by up_initial_state()
+ * 5) vfork() then calls task_vforkstart()
+ * 6) task_vforkstart() then executes the child thread.
+ *
+ * task_vforkabort() may be called if an error occurs between steps 3 and 6.
+ */
+
+FAR _TCB *task_vforksetup(start_t retaddr);
+pid_t task_vforkstart(FAR _TCB *child);
+void task_vforkabort(FAR _TCB *child, int errcode);
 
 /* sched_foreach will enumerate over each task and provide the
  * TCB of each task to a user callback functions.  Interrupts

@@ -105,71 +105,83 @@
 
 /* dev_null.c ***************************************************************/
 
-extern int dev_null(void);
+int dev_null(void);
 
 /* fpu.c ********************************************************************/
 
-extern void fpu_test(void);
+void fpu_test(void);
+
+/* waitpid.c ****************************************************************/
+
+#ifdef CONFIG_SCHED_WAITPID
+int waitpid_test(void);
+#endif
 
 /* mutex.c ******************************************************************/
 
-extern void mutex_test(void);
+void mutex_test(void);
 
 /* rmutex.c ******************************************************************/
 
-extern void recursive_mutex_test(void);
+void recursive_mutex_test(void);
 
 /* sem.c ********************************************************************/
 
-extern void sem_test(void);
+void sem_test(void);
 
 /* cond.c *******************************************************************/
 
-extern void cond_test(void);
+void cond_test(void);
 
 /* mqueue.c *****************************************************************/
 
-extern void mqueue_test(void);
+void mqueue_test(void);
 
 /* timedmqueue.c ************************************************************/
 
-extern void timedmqueue_test(void);
+void timedmqueue_test(void);
 
 /* cancel.c *****************************************************************/
 
-extern void cancel_test(void);
+void cancel_test(void);
 
 /* timedwait.c **************************************************************/
 
-extern void timedwait_test(void);
+void timedwait_test(void);
 
 /* sighand.c ****************************************************************/
 
-extern void sighand_test(void);
+void sighand_test(void);
 
 /* posixtimers.c ************************************************************/
 
-extern void timer_test(void);
+void timer_test(void);
 
 /* roundrobin.c *************************************************************/
 
-extern void rr_test(void);
+void rr_test(void);
 
 /* barrier.c ****************************************************************/
 
-extern void barrier_test(void);
+void barrier_test(void);
 
 /* prioinherit.c ************************************************************/
 
-extern void priority_inheritance(void);
+void priority_inheritance(void);
+
+/* vfork.c ******************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_VFORK
+int vfork_test(void);
+#endif
 
 /* APIs exported (conditionally) by the OS specifically for testing of
  * priority inheritance
  */
 
 #if defined(CONFIG_DEBUG) && defined(CONFIG_PRIORITY_INHERITANCE) && defined(CONFIG_SEM_PHDEBUG)
-extern void sem_enumholders(FAR sem_t *sem);
-extern int sem_nfreeholders(void);
+void sem_enumholders(FAR sem_t *sem);
+int sem_nfreeholders(void);
 #else
 #  define sem_enumholders(sem)
 #  define sem_nfreeholders()

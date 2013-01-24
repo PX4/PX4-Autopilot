@@ -111,6 +111,9 @@ int sigqueue (int pid, int signo, union sigval value)
 int sigqueue(int pid, int signo, void *sival_ptr)
 #endif
 {
+#ifdef CONFIG_SCHED_HAVE_PARENT
+  FAR _TCB *rtcb = (FAR _TCB *)g_readytorun.head;
+#endif
   FAR _TCB *stcb;
   siginfo_t info;
   int       ret = ERROR;
@@ -142,12 +145,16 @@ int sigqueue(int pid, int signo, void *sival_ptr)
 
   /* Create the siginfo structure */
 
-  info.si_signo = signo;
-  info.si_code  = SI_QUEUE;
+  info.si_signo           = signo;
+  info.si_code            = SI_QUEUE;
 #ifdef CONFIG_CAN_PASS_STRUCTS
-  info.si_value = value;
+  info.si_value           = value;
 #else
   info.si_value.sival_ptr = sival_ptr;
+#endif
+#ifdef CONFIG_SCHED_HAVE_PARENT
+  info.si_pid             = rtcb->pid;
+  info.si_status          = OK;
 #endif
 
   /* Send the signal */

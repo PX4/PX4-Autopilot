@@ -1,7 +1,7 @@
 ############################################################################
 # fs/Makefile
 #
-#   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007, 2008, 2011-2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -72,6 +72,9 @@ CSRCS	+= fs_registerdriver.c fs_unregisterdriver.c
 CSRCS	+= fs_registerblockdriver.c fs_unregisterblockdriver.c \
 		   fs_findblockdriver.c fs_openblockdriver.c fs_closeblockdriver.c
 
+DEPPATH =
+VPATH = .
+
 include mmap/Make.defs
 
 # Stream support
@@ -91,13 +94,17 @@ endif
 # Additional files required is mount-able file systems are supported
 
 ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
+
 CSRCS	+= fs_fsync.c fs_mkdir.c fs_mount.c fs_rename.c fs_rmdir.c \
 		   fs_umount.c fs_unlink.c
 CSRCS	+= fs_foreachmountpoint.c 
+
 include fat/Make.defs
 include romfs/Make.defs
 include nxffs/Make.defs
 include nfs/Make.defs
+include binfs/Make.defs
+
 endif
 endif
 
@@ -108,8 +115,7 @@ OBJS	= $(AOBJS) $(COBJS)
 
 BIN		= libfs$(LIBEXT)
 
-SUBDIRS	= mmap fat romfs nxffs:nfs
-VPATH	= mmap:fat:romfs:nxffs:nfs
+SUBDIRS	= mmap fat romfs nxffs nfs binfs
 
 all:	$(BIN)
 
@@ -123,8 +129,7 @@ $(BIN):	$(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) --dep-path . $(MMAPDEPPATH) $(FATDEPPATH) $(ROMFSDEPPATH) $(NXFFSDEPPATH) $(NFSDEPPATH) \
-		"$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path . $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	$(Q) touch $@
 
 depend: .depend
