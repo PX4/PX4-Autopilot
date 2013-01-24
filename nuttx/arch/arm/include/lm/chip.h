@@ -2,8 +2,8 @@
  * arch/arm/include/lm/chip.h
  *
  *   Copyright (C) 2009-2010, 2013 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *   Author: Jose Pablo Carballo <jcarballo@nx-engineering.com>
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
+ *            Jose Pablo Carballo <jcarballo@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
