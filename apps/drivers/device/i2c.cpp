@@ -115,7 +115,7 @@ I2C::probe()
 }
 
 int
-I2C::transfer(uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
 	struct i2c_msg_s msgv[2];
 	unsigned msgs;
@@ -130,7 +130,7 @@ I2C::transfer(uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len
 		if (send_len > 0) {
 			msgv[msgs].addr = _address;
 			msgv[msgs].flags = 0;
-			msgv[msgs].buffer = send;
+			msgv[msgs].buffer = const_cast<uint8_t *>(send);
 			msgv[msgs].length = send_len;
 			msgs++;
 		}

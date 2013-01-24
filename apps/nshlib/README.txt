@@ -235,6 +235,10 @@ o test <expression>
                       integer -gt integer | integer -le integer |
                       integer -lt integer | integer -ne integer
 
+o base64dec [-w] [-f] <string or filepath>
+
+o base64dec [-w] [-f] <string or filepath>
+
 o cat <path> [<path> [<path> ...]]
 
   This command copies and concatentates all of the files at <path>
@@ -381,7 +385,11 @@ o help [-v] [<cmd>]
   <cmd>
     Show full command usage only for this command
 
-o ifconfig
+o hexdump <file or device>
+
+  Dump data in hexadecimal format from a file or character device.
+
+o ifconfig [nic_name [<ip-address>|dhcp]] [dr|gw|gateway <dr-address>] [netmask <net-mask>] [dns <dns-address>] [hw <hw-mac>]
 
   Show the current configuration of the network, for example:
 
@@ -391,6 +399,22 @@ o ifconfig
 
   if uIP statistics are enabled (CONFIG_NET_STATISTICS), then
   this command will also show the detailed state of uIP.
+
+o ifdown <nic-name>
+
+  Take down the interface identified by the name <nic-name>.
+
+  Example:
+
+    ifdown eth0
+
+o ifup <nic-name>
+
+  Bring up down the interface identified by the name <nic-name>.
+
+  Example:
+
+    ifup eth0
 
 o kill -<signal> <pid>
 
@@ -448,6 +472,8 @@ o ls [-lRs] <dir-path>
         listing
      -l Show size and mode information along with the filenames
         in the listing.
+
+o md5 [-f] <string or filepath>
 
 o mb <hex-address>[=<hex-value>][ <hex-byte-count>]
 o mh <hex-address>[=<hex-value>][ <hex-byte-count>]
@@ -781,6 +807,10 @@ o unset <name>
 
     nsh>
 
+ o urldecode [-f] <string or filepath>
+ 
+ o urlencode [-f] <string or filepath>
+
 o usleep <usec>
 
   Pause execution (sleep) of <usec> microseconds.
@@ -826,6 +856,8 @@ Command Dependencies on Configuration Settings
   Command    Depends on Configuration
   ---------- --------------------------
   [          !CONFIG_NSH_DISABLESCRIPT
+  base64dec  CONFIG_NETUTILS_CODECS && CONFIG_CODECS_BASE64
+  base64enc  CONFIG_NETUTILS_CODECS && CONFIG_CODECS_BASE64
   cat        CONFIG_NFILE_DESCRIPTORS > 0
   cd         !CONFIG_DISABLE_ENVIRON && CONFIG_NFILE_DESCRIPTORS > 0
   cp         CONFIG_NFILE_DESCRIPTORS > 0
@@ -837,10 +869,14 @@ Command Dependencies on Configuration Settings
   free       --
   get        CONFIG_NET && CONFIG_NET_UDP && CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NET_BUFSIZE >= 558  (see note 1)
   help       --
+  hexdump    CONFIG_NFILE_DESCRIPTORS > 0
   ifconfig   CONFIG_NET
+  ifdown     CONFIG_NET
+  ifup       CONFIG_NET
   kill       !CONFIG_DISABLE_SIGNALS
   losetup    !CONFIG_DISABLE_MOUNTPOINT && CONFIG_NFILE_DESCRIPTORS > 0
   ls         CONFIG_NFILE_DESCRIPTORS > 0
+  md5        CONFIG_NETUTILS_CODECS && CONFIG_CODECS_HASH_MD5
   mb,mh,mw   ---
   mkdir      !CONFIG_DISABLE_MOUNTPOINT && CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_FS_WRITABLE (see note 4)
   mkfatfs    !CONFIG_DISABLE_MOUNTPOINT && CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_FS_FAT
@@ -861,6 +897,8 @@ Command Dependencies on Configuration Settings
   test       !CONFIG_NSH_DISABLESCRIPT
   umount     !CONFIG_DISABLE_MOUNTPOINT && CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_FS_READABLE
   unset      !CONFIG_DISABLE_ENVIRON
+  urldecode  CONFIG_NETUTILS_CODECS && CONFIG_CODECS_URLCODE
+  urlencode  CONFIG_NETUTILS_CODECS && CONFIG_CODECS_URLCODE
   usleep     !CONFIG_DISABLE_SIGNALS
   get        CONFIG_NET && CONFIG_NET_TCP && CONFIG_NFILE_DESCRIPTORS > 0
   xd         ---
@@ -880,20 +918,22 @@ In addition, each NSH command can be individually disabled via one of the follow
 settings.  All of these settings make the configuration of NSH potentially complex but
 also allow it to squeeze into very small memory footprints.
 
-  CONFIG_NSH_DISABLE_CAT,      CONFIG_NSH_DISABLE_CD,       CONFIG_NSH_DISABLE_CP,
-  CONFIG_NSH_DISABLE_DD,       CONFIG_NSH_DISABLE_DF,       CONFIG_NSH_DISABLE_ECHO,
-  CONFIG_NSH_DISABLE_EXEC,     CONFIG_NSH_DISABLE_EXIT,     CONFIG_NSH_DISABLE_FREE,
-  CONFIG_NSH_DISABLE_GET,      CONFIG_NSH_DISABLE_HELP,     CONFIG_NSH_DISABLE_IFCONFIG,
-  CONFIG_NSH_DISABLE_KILL,     CONFIG_NSH_DISABLE_LOSETUP,  CONFIG_NSH_DISABLE_LS,
-  CONFIG_NSH_DISABLE_MB,       CONFIG_NSH_DISABLE_MKDIR,    CONFIG_NSH_DISABLE_MKFATFS,
-  CONFIG_NSH_DISABLE_MKFIFO,   CONFIG_NSH_DISABLE_MKRD,     CONFIG_NSH_DISABLE_MH,
-  CONFIG_NSH_DISABLE_MOUNT,    CONFIG_NSH_DISABLE_MW,       CONFIG_NSH_DISABLE_MV,
-  CONFIG_NSH_DISABLE_NFSMOUNT, CONFIG_NSH_DISABLE_PS,       CONFIG_NSH_DISABLE_PING,
-  CONFIG_NSH_DISABLE_PUT,      CONFIG_NSH_DISABLE_PWD,      CONFIG_NSH_DISABLE_RM,
-  CONFIG_NSH_DISABLE_RMDIR,    CONFIG_NSH_DISABLE_SET,      CONFIG_NSH_DISABLE_SH,
-  CONFIG_NSH_DISABLE_SLEEP,    CONFIG_NSH_DISABLE_TEST,     CONFIG_NSH_DISABLE_UMOUNT,
-  CONFIG_NSH_DISABLE_UNSET,    CONFIG_NSH_DISABLE_USLEEP,   CONFIG_NSH_DISABLE_WGET,
-  CONFIG_NSH_DISABLE_XD
+  CONFIG_NSH_DISABLE_BASE64DEC, CONFIG_NSH_DISABLE_BASE64ENC, CONFIG_NSH_DISABLE_CAT,
+  CONFIG_NSH_DISABLE_CD,        CONFIG_NSH_DISABLE_CP,        CONFIG_NSH_DISABLE_DD,
+  CONFIG_NSH_DISABLE_DF,        CONFIG_NSH_DISABLE_ECHO,      CONFIG_NSH_DISABLE_EXEC,
+  CONFIG_NSH_DISABLE_EXIT,      CONFIG_NSH_DISABLE_FREE,      CONFIG_NSH_DISABLE_GET,
+  CONFIG_NSH_DISABLE_HELP,      CONFIG_NSH_DISABLE_HEXDUMP,   CONFIG_NSH_DISABLE_IFCONFIG,
+  CONFIG_NSH_DISABLE_IFUPDOWN,  CONFIG_NSH_DISABLE_KILL,      CONFIG_NSH_DISABLE_LOSETUP,
+  CONFIG_NSH_DISABLE_LS,        CONFIG_NSH_DISABLE_MD5        CONFIG_NSH_DISABLE_MB,
+  CONFIG_NSH_DISABLE_MKDIR,     CONFIG_NSH_DISABLE_MKFATFS,   CONFIG_NSH_DISABLE_MKFIFO,
+  CONFIG_NSH_DISABLE_MKRD,      CONFIG_NSH_DISABLE_MH,        CONFIG_NSH_DISABLE_MOUNT,
+  CONFIG_NSH_DISABLE_MW,        CONFIG_NSH_DISABLE_MV,        CONFIG_NSH_DISABLE_NFSMOUNT,
+  CONFIG_NSH_DISABLE_PS,        CONFIG_NSH_DISABLE_PING,      CONFIG_NSH_DISABLE_PUT,
+  CONFIG_NSH_DISABLE_PWD,       CONFIG_NSH_DISABLE_RM,        CONFIG_NSH_DISABLE_RMDIR,
+  CONFIG_NSH_DISABLE_SET,       CONFIG_NSH_DISABLE_SH,        CONFIG_NSH_DISABLE_SLEEP,
+  CONFIG_NSH_DISABLE_TEST,      CONFIG_NSH_DISABLE_UMOUNT,    CONFIG_NSH_DISABLE_UNSET,
+  CONFIG_NSH_DISABLE_URLDECODE, CONFIG_NSH_DISABLE_URLENCODE, CONFIG_NSH_DISABLE_USLEEP,
+  CONFIG_NSH_DISABLE_WGET,      CONFIG_NSH_DISABLE_XD
 
 Verbose help output can be suppressed by defining CONFIG_NSH_HELP_TERSE.  In that
 case, the help command is still available but will be slightly smaller.
@@ -905,7 +945,7 @@ NSH-Specific Configuration Settings
   the configs/<board-name>/defconfig file:
 
   * CONFIG_NSH_BUILTIN_APPS
-      Support external registered, "named" applications that can be
+      Support external registered, "builtin" applications that can be
       executed from the NSH command line (see apps/README.txt for
       more information).
   
@@ -1083,6 +1123,10 @@ NSH-Specific Configuration Settings
   * CONFIG_NSH_NOMAC
       Set if your ethernet hardware has no built-in MAC address.
       If set, a bogus MAC will be assigned.
+
+  * CONFIG_NSH_MAX_ROUNDTRIP
+     This is the maximum round trip for a response to a ICMP ECHO request.
+    It is in units of deciseconds.  The default is 20 (2 seconds).
 
   If you use DHCPC, then some special configuration network options are
   required.  These include:

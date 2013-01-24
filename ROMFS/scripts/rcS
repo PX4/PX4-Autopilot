@@ -46,8 +46,12 @@ if [ -f /fs/microsd/etc/rc ]
 then
 	echo "[init] reading /fs/microsd/etc/rc"
 	sh /fs/microsd/etc/rc
-else
-	echo "[init] script /fs/microsd/etc/rc not present"
+fi
+# Also consider rc.txt files
+if [ -f /fs/microsd/etc/rc.txt ]
+then
+	echo "[init] reading /fs/microsd/etc/rc.txt"
+	sh /fs/microsd/etc/rc.txt
 fi
 
 #
@@ -64,6 +68,16 @@ else
 		echo "[init] No USB connected"
 	fi
 fi
+
+# if this is an APM build then there will be a rc.APM script
+# from an EXTERNAL_SCRIPTS build option
+if [ -f /etc/init.d/rc.APM ]
+then
+	echo Running rc.APM
+	# if APM startup is successful then nsh will exit
+	sh /etc/init.d/rc.APM
+fi
+
 
 #
 # If we are still in flight mode, work out what airframe 

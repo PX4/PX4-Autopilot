@@ -110,6 +110,7 @@
 #  define FLASH_ACR_HLFCYA          (1 << 3)                /* FLASH half cycle access */
 #  define FLASH_ACR_PRTFBE          (1 << 4)                /* FLASH prefetch enable */
 #elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#  define FLASH_ACR_PRFTEN          (1 << 8)                /* FLASH prefetch enable */
 #  define FLASH_ACR_ICEN            (1 << 9)                /* Bit 9: Instruction cache enable */
 #  define FLASH_ACR_DCEN            (1 << 10)               /* Bit 10: Data cache enable */
 #  define FLASH_ACR_ICRST           (1 << 11)               /* Bit 11: Instruction cache reset */

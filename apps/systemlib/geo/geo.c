@@ -60,14 +60,7 @@ static double cos_phi_1;
 static double lambda_0;
 static double scale;
 
-/**
- * Initializes the map transformation.
- *
- * Initializes the transformation between the geographic coordinate system and the azimuthal equidistant plane
- * @param lat in degrees (47.1234567°, not 471234567°)
- * @param lon in degrees (8.1234567°, not 81234567°)
- */
-__EXPORT static void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 	/* notation and formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html */
 	phi_1 = lat_0 / 180.0 * M_PI;
@@ -105,14 +98,7 @@ __EXPORT static void map_projection_init(double lat_0, double lon_0) //lat_0, lo
 
 }
 
-/**
- * Transforms a point in the geographic coordinate system to the local azimuthal equidistant plane
- * @param x north
- * @param y east
- * @param lat in degrees (47.1234567°, not 471234567°)
- * @param lon in degrees (8.1234567°, not 81234567°)
- */
-__EXPORT static void map_projection_project(double lat, double lon, float *x, float *y)
+__EXPORT void map_projection_project(double lat, double lon, float *x, float *y)
 {
 	/* notation and formulas accoring to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html */
 	double phi = lat / 180.0 * M_PI;
@@ -135,15 +121,7 @@ __EXPORT static void map_projection_project(double lat, double lon, float *x, fl
 //	printf("%phi_1=%.10f, lambda_0 =%.10f\n", phi_1, lambda_0);
 }
 
-/**
- * Transforms a point in the local azimuthal equidistant plane to the geographic coordinate system
- *
- * @param x north
- * @param y east
- * @param lat in degrees (47.1234567°, not 471234567°)
- * @param lon in degrees (8.1234567°, not 81234567°)
- */
-__EXPORT static void map_projection_reproject(float x, float y, double *lat, double *lon)
+__EXPORT void map_projection_reproject(float x, float y, double *lat, double *lon)
 {
 	/* notation and formulas accoring to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html */
 
@@ -228,7 +206,7 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
 	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) , cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
-	theta = _wrapPI(theta);
+	theta = _wrap_pi(theta);
 
 	return theta;
 }
@@ -257,7 +235,7 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, 
 	bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 	bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
 	bearing_diff = bearing_track - bearing_end;
-	bearing_diff = _wrapPI(bearing_diff);
+	bearing_diff = _wrap_pi(bearing_diff);
 
 	// Return past_end = true if past end point of line
 	if (bearing_diff > M_PI_2_F || bearing_diff < -M_PI_2_F) {
@@ -270,10 +248,10 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, 
 	crosstrack_error->distance = (dist_to_end) * sin(bearing_diff);
 
 	if (sin(bearing_diff) >= 0) {
-		crosstrack_error->bearing = _wrapPI(bearing_track - M_PI_2_F);
+		crosstrack_error->bearing = _wrap_pi(bearing_track - M_PI_2_F);
 
 	} else {
-		crosstrack_error->bearing = _wrapPI(bearing_track + M_PI_2_F);
+		crosstrack_error->bearing = _wrap_pi(bearing_track + M_PI_2_F);
 	}
 
 	return_value = OK;
@@ -380,22 +358,36 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, d
 	return return_value;
 }
 
-float _wrapPI(float bearing)
+__EXPORT float _wrap_pi(float bearing)
 {
-
-	while (bearing > M_PI_F) {
-		bearing = bearing - M_TWOPI_F;
+	/* value is inf or NaN */
+	if (!isfinite(bearing) || bearing == 0) {
+		return bearing;
 	}
 
-	while (bearing <=  -M_PI_F) {
-		bearing = bearing + M_TWOPI_F;
+	int c = 0;
+
+	while (bearing > M_PI_F && c < 30) {
+		bearing -= M_TWOPI_F;
+		c++;
+	}
+
+	c = 0;
+
+	while (bearing <=  -M_PI_F && c < 30) {
+		bearing += M_TWOPI_F;
+		c++;
 	}
 
 	return bearing;
 }
 
-float _wrap2PI(float bearing)
+__EXPORT float _wrap_2pi(float bearing)
 {
+	/* value is inf or NaN */
+	if (!isfinite(bearing)) {
+		return bearing;
+	}
 
 	while (bearing >= M_TWOPI_F) {
 		bearing = bearing - M_TWOPI_F;
@@ -408,8 +400,12 @@ float _wrap2PI(float bearing)
 	return bearing;
 }
 
-float _wrap180(float bearing)
+__EXPORT float _wrap_180(float bearing)
 {
+	/* value is inf or NaN */
+	if (!isfinite(bearing)) {
+		return bearing;
+	}
 
 	while (bearing > 180.0f) {
 		bearing = bearing - 360.0f;
@@ -422,8 +418,12 @@ float _wrap180(float bearing)
 	return bearing;
 }
 
-float _wrap360(float bearing)
+__EXPORT float _wrap_360(float bearing)
 {
+	/* value is inf or NaN */
+	if (!isfinite(bearing)) {
+		return bearing;
+	}
 
 	while (bearing >= 360.0f) {
 		bearing = bearing - 360.0f;

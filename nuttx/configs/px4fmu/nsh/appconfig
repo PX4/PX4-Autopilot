@@ -45,6 +45,16 @@ CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += systemlib
 CONFIGURED_APPS += systemlib/mixer
 
+# Math library
+CONFIGURED_APPS += mathlib
+CONFIGURED_APPS += mathlib/CMSIS
+CONFIGURED_APPS += examples/math_demo
+
+# Control library
+CONFIGURED_APPS	+= controllib
+CONFIGURED_APPS += examples/control_demo
+CONFIGURED_APPS += examples/kalman_demo
+
 # System utility commands
 CONFIGURED_APPS += systemcmds/reboot
 CONFIGURED_APPS += systemcmds/perf
@@ -55,7 +65,7 @@ CONFIGURED_APPS += systemcmds/eeprom
 CONFIGURED_APPS += systemcmds/param
 CONFIGURED_APPS += systemcmds/bl_update
 CONFIGURED_APPS += systemcmds/preflight_check
-#CONFIGURED_APPS += systemcmds/calibration
+CONFIGURED_APPS += systemcmds/delay_test
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
@@ -69,6 +79,7 @@ CONFIGURED_APPS += systemcmds/preflight_check
 CONFIGURED_APPS += uORB
 
 CONFIGURED_APPS += mavlink
+CONFIGURED_APPS += mavlink_onboard
 CONFIGURED_APPS += gps
 CONFIGURED_APPS += commander
 CONFIGURED_APPS += sdlog
@@ -98,7 +109,9 @@ CONFIGURED_APPS += drivers/l3gd20
 CONFIGURED_APPS	+= drivers/px4io
 CONFIGURED_APPS += drivers/stm32
 CONFIGURED_APPS += drivers/led
+CONFIGURED_APPS += drivers/blinkm
 CONFIGURED_APPS += drivers/stm32/tone_alarm
+CONFIGURED_APPS += drivers/stm32/adc
 CONFIGURED_APPS += drivers/px4fmu
 CONFIGURED_APPS += drivers/hil
 

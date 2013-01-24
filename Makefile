@@ -28,12 +28,8 @@ UPLOADER		 = $(PX4BASE)/Tools/px_uploader.py
 # What are we currently configured for?
 #
 CONFIGURED		 = $(PX4BASE)/.configured
-ifeq ($(wildcard $(CONFIGURED)),)
-# the $(CONFIGURED) target will make this a reality before building
-export TARGET		 = px4fmu
-$(shell echo $(TARGET) > $(CONFIGURED))
-else
-export TARGET		 = $(shell cat $(CONFIGURED))
+ifneq ($(wildcard $(CONFIGURED)),)
+export TARGET		:= $(shell cat $(CONFIGURED))
 endif
 
 #
@@ -59,12 +55,13 @@ $(FIRMWARE_BUNDLE):	$(FIRMWARE_BINARY) $(MKFW) $(FIRMWARE_PROTOTYPE)
 	@$(MKFW) --prototype $(FIRMWARE_PROTOTYPE) \
 		--git_identity $(PX4BASE) \
 		--image $(FIRMWARE_BINARY) > $@
+
 #
 # Build the firmware binary.
 #
 .PHONY:			$(FIRMWARE_BINARY)
-$(FIRMWARE_BINARY):	configure_$(TARGET) setup_$(TARGET)
-	@echo Building $@
+$(FIRMWARE_BINARY):	setup_$(TARGET) configure-check
+	@echo Building $@ for $(TARGET)
 	@make -C $(NUTTX_SRC) -r $(MQUIET) all
 	@cp $(NUTTX_SRC)/nuttx.bin $@
 
@@ -73,18 +70,25 @@ $(FIRMWARE_BINARY):	configure_$(TARGET) setup_$(TARGET)
 # and makes it current.
 #
 configure_px4fmu:
-ifneq ($(TARGET),px4fmu)
+	@echo Configuring for px4fmu
 	@make -C $(PX4BASE) distclean
-endif
 	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4fmu/nsh
 	@echo px4fmu > $(CONFIGURED)
 
 configure_px4io:
-ifneq ($(TARGET),px4io)
+	@echo Configuring for px4io
 	@make -C $(PX4BASE) distclean
-endif
 	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4io/io
 	@echo px4io > $(CONFIGURED)
+
+configure-check:
+ifeq ($(wildcard $(CONFIGURED)),)
+	@echo
+	@echo "Not configured - use 'make configure_px4fmu' or 'make configure_px4io' first"
+	@echo
+	@exit 1
+endif
+
 
 #
 # Per-configuration additional targets
@@ -95,6 +99,9 @@ setup_px4fmu:
 	@make -C $(ROMFS_SRC) all
 
 setup_px4io:
+
+# fake target to make configure-check happy if TARGET is not set
+setup_:
 
 #
 # Firmware uploading.
@@ -109,15 +116,26 @@ ifeq ($(SYSTYPE),Linux)
 SERIAL_PORTS		?= "/dev/ttyACM5,/dev/ttyACM4,/dev/ttyACM3,/dev/ttyACM2,/dev/ttyACM1,/dev/ttyACM0"
 endif
 ifeq ($(SERIAL_PORTS),)
-SERIAL_PORTS		 = "\\\\.\\COM18,\\\\.\\COM17,\\\\.\\COM16,\\\\.\\COM15,\\\\.\\COM14,\\\\.\\COM13,\\\\.\\COM12,\\\\.\\COM11,\\\\.\\COM10,\\\\.\\COM9,\\\\.\\COM8,\\\\.\\COM7,\\\\.\\COM6,\\\\.\\COM5,\\\\.\\COM4,\\\\.\\COM3,\\\\.\\COM2,\\\\.\\COM1,\\\\.\\COM0"
+SERIAL_PORTS		 = "\\\\.\\COM32,\\\\.\\COM31,\\\\.\\COM30,\\\\.\\COM29,\\\\.\\COM28,\\\\.\\COM27,\\\\.\\COM26,\\\\.\\COM25,\\\\.\\COM24,\\\\.\\COM23,\\\\.\\COM22,\\\\.\\COM21,\\\\.\\COM20,\\\\.\\COM19,\\\\.\\COM18,\\\\.\\COM17,\\\\.\\COM16,\\\\.\\COM15,\\\\.\\COM14,\\\\.\\COM13,\\\\.\\COM12,\\\\.\\COM11,\\\\.\\COM10,\\\\.\\COM9,\\\\.\\COM8,\\\\.\\COM7,\\\\.\\COM6,\\\\.\\COM5,\\\\.\\COM4,\\\\.\\COM3,\\\\.\\COM2,\\\\.\\COM1,\\\\.\\COM0"
 endif
 
 upload:		$(FIRMWARE_BUNDLE) $(UPLOADER)
 	@python -u $(UPLOADER) --port $(SERIAL_PORTS) $(FIRMWARE_BUNDLE)
-	
+
+#
+# JTAG firmware uploading with OpenOCD
+#
+ifeq ($(JTAGCONFIG),)
+JTAGCONFIG=interface/olimex-jtag-tiny.cfg
+endif
+
 upload-jtag-px4fmu:
 	@echo Attempting to flash PX4FMU board via JTAG
-	@openocd -f interface/olimex-jtag-tiny.cfg -f ../Bootloader/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
+	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
+
+upload-jtag-px4io: all
+	@echo Attempting to flash PX4IO board via JTAG
+	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f1x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4io_bl.elf" -c "reset run" -c shutdown
 
 #
 # Hacks and fixups

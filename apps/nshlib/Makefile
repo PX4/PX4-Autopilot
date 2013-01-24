@@ -39,64 +39,76 @@ include $(APPDIR)/Make.defs
 
 # NSH Library
 
-ASRCS	=
-CSRCS	= nsh_init.c nsh_parse.c nsh_console.c nsh_fscmds.c nsh_ddcmd.c \
+ASRCS =
+CSRCS = nsh_init.c nsh_parse.c nsh_console.c nsh_fscmds.c nsh_ddcmd.c \
 		nsh_proccmds.c nsh_mmcmds.c nsh_envcmds.c nsh_dbgcmds.c
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CSRCS	+= nsh_apps.c
+CSRCS += nsh_builtin.c
+endif
+
+ifeq ($(CONFIG_NSH_FILE_APPS),y)
+CSRCS += nsh_fileapps.c
 endif
 
 ifeq ($(CONFIG_NSH_ROMFSETC),y)
-CSRCS	+= nsh_romfsetc.c
+CSRCS += nsh_romfsetc.c
 endif
 
 ifeq ($(CONFIG_NET),y)
-CSRCS	+= nsh_netinit.c nsh_netcmds.c
+CSRCS += nsh_netinit.c nsh_netcmds.c
 endif
 
 ifeq ($(CONFIG_RTC),y)
-CSRCS	+= nsh_timcmds.c
+CSRCS += nsh_timcmds.c
 endif
 
 ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
-CSRCS	+= nsh_mntcmds.c
+CSRCS += nsh_mntcmds.c
 endif
 
 ifeq ($(CONFIG_NSH_CONSOLE),y)
-CSRCS	+= nsh_consolemain.c
+CSRCS += nsh_consolemain.c
 endif
 
 ifeq ($(CONFIG_NSH_TELNET),y)
-CSRCS	+= nsh_telnetd.c
+CSRCS += nsh_telnetd.c
 endif
 
 ifneq ($(CONFIG_NSH_DISABLESCRIPT),y)
-CSRCS	+= nsh_test.c
+CSRCS += nsh_test.c
 endif
 
 ifeq ($(CONFIG_USBDEV),y)
-CSRCS	+= nsh_usbdev.c
+CSRCS += nsh_usbdev.c
 endif
 
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+ifeq ($(CONFIG_NETUTILS_CODECS),y)
+CSRCS += nsh_codeccmd.c
+endif
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+AOBJS = $(ASRCS:.S=$(OBJEXT))
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
-ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  BIN		= ..\libapps$(LIBEXT)
 else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
+ifeq ($(WINTOOL),y)
+  BIN		= ..\\libapps$(LIBEXT)
+else
+  BIN		= ../libapps$(LIBEXT)
+endif
 endif
 
-ROOTDEPPATH	= --dep-path .
-VPATH		= 
+ROOTDEPPATH = --dep-path .
+VPATH = 
 
 # Build targets
 
-all:	.built
+all: .built
 .PHONY: context .depend depend clean distclean
 
 $(AOBJS): %$(OBJEXT): %.S
@@ -106,26 +118,24 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 .built: $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
+	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 
 context:
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) \
-	  $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep
 

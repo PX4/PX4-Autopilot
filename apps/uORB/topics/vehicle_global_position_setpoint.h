@@ -60,12 +60,12 @@
 struct vehicle_global_position_setpoint_s
 {
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	int32_t lat;				/**< latitude in degrees * 1E7						*/
-	int32_t lon;				/**< longitude in degrees * 1E7						*/
-	float altitude;				/**< altitude in meters								*/
-	float yaw;					/**< in radians NED -PI..+PI 						*/
-	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover */
-	bool is_loiter;				/**< true if loitering is enabled */
+	int32_t lat;			/**< latitude in degrees * 1E7				*/
+	int32_t lon;			/**< longitude in degrees * 1E7				*/
+	float altitude;			/**< altitude in meters					*/
+	float yaw;			/**< in radians NED -PI..+PI 				*/
+	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
+	bool is_loiter;			/**< true if loitering is enabled			*/
 };
 
 /**

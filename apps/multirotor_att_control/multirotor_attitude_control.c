@@ -158,16 +158,18 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 }
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-		const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, struct actuator_controls_s *actuators)
+				 const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position)
 {
 	static uint64_t last_run = 0;
 	static uint64_t last_input = 0;
 	float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 	float dT_input = (hrt_absolute_time() - last_input) / 1000000.0f;
 	last_run = hrt_absolute_time();
+
 	if (last_input != att_sp->timestamp) {
 		last_input = att_sp->timestamp;
 	}
+
 	static int sensor_delay;
 	sensor_delay = hrt_absolute_time() - att->timestamp;
 
@@ -181,43 +183,65 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	static bool initialized = false;
 
+	static float yaw_error;
+
 	/* initialize the pid controllers when the function is called for the first time */
 	if (initialized == false) {
 		parameters_init(&h);
 		parameters_update(&h, &p);
 
 		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f,
-				1000.0f, PID_MODE_DERIVATIV_SET);
+			 1000.0f, PID_MODE_DERIVATIV_SET);
 		pid_init(&roll_controller, p.att_p, p.att_i, p.att_d, 1000.0f,
-				1000.0f, PID_MODE_DERIVATIV_SET);
+			 1000.0f, PID_MODE_DERIVATIV_SET);
 
 		initialized = true;
 	}
 
 	/* load new parameters with lower rate */
-	if (motor_skip_counter % 1000 == 0) {
+	if (motor_skip_counter % 500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-
-		//printf("att ctrl: delays: %d us sens->ctrl, rate: %d Hz, input: %d Hz\n", sensor_delay, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
 
 		/* apply parameters */
 		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
 		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
 	}
 
+	/* reset integral if on ground */
+	if (att_sp->thrust < 0.1f) {
+		pid_reset_integral(&pitch_controller);
+		pid_reset_integral(&roll_controller);
+	}
+
+
 	/* calculate current control outputs */
 
 	/* control pitch (forward) output */
 	rates_sp->pitch = pid_calculate(&pitch_controller, att_sp->pitch_body ,
-			att->pitch, att->pitchspeed, deltaT);
+					att->pitch, att->pitchspeed, deltaT);
 
 	/* control roll (left/right) output */
 	rates_sp->roll = pid_calculate(&roll_controller, att_sp->roll_body ,
-			att->roll, att->rollspeed, deltaT);
+				       att->roll, att->rollspeed, deltaT);
 
-	/* control yaw rate */
-	rates_sp->yaw = p.yaw_p * atan2f(cosf(att->yaw - att_sp->yaw_body), sinf(att->yaw - att_sp->yaw_body)) - (p.yaw_d * att->yawspeed);
+	if (control_yaw_position) {
+		/* control yaw rate */
+
+		/* positive error: rotate to right, negative error, rotate to left (NED frame) */
+		// yaw_error = _wrap_pi(att_sp->yaw_body - att->yaw);
+
+		yaw_error = att_sp->yaw_body - att->yaw;
+
+		if (yaw_error > M_PI_F) {
+			yaw_error -= M_TWOPI_F;
+
+		} else if (yaw_error < -M_PI_F) {
+			yaw_error += M_TWOPI_F;
+		}
+
+		rates_sp->yaw = p.yaw_p * (yaw_error) - (p.yaw_d * att->yawspeed);
+	}
 
 	rates_sp->thrust = att_sp->thrust;
 

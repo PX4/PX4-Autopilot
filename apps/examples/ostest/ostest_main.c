@@ -301,6 +301,14 @@ static int user_main(int argc, char *argv[])
       check_test_memory_usage();
 #endif
 
+#ifdef CONFIG_SCHED_WAITPID
+      /* Check waitpid() and friends */
+
+      printf("\nuser_main: waitpid test\n");
+      waitpid_test();
+      check_test_memory_usage();
+#endif
+
 #ifndef CONFIG_DISABLE_PTHREAD
       /* Verify pthreads and pthread mutex */
 
@@ -409,6 +417,11 @@ static int user_main(int argc, char *argv[])
       check_test_memory_usage();
 #endif /* CONFIG_PRIORITY_INHERITANCE && !CONFIG_DISABLE_SIGNALS && !CONFIG_DISABLE_PTHREAD */
 
+#ifdef CONFIG_ARCH_HAVE_VFORK
+      printf("\nuser_main: vfork() test\n");
+      vfork_test();
+#endif
+
       /* Compare memory usage at time ostest_main started until
        * user_main exits.  These should not be identical, but should
        * be similar enough that we can detect any serious OS memory
@@ -428,6 +441,7 @@ static int user_main(int argc, char *argv[])
       show_memory_usage(&g_mmbefore, &g_mmafter);
 #endif
     }
+
   printf("user_main: Exitting\n");
   return 0;
 }

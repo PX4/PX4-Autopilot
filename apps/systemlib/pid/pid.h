@@ -72,6 +72,7 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 //void pid_set(PID_t *pid, float sp);
 __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
 
+__EXPORT void pid_reset_integral(PID_t *pid);
 
 
 #endif /* PID_H_ */

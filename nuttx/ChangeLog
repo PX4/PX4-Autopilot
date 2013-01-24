@@ -1452,7 +1452,7 @@
 	  complex:  'uname -o 2>/dev/null || echo "Other"'
 	* drivers/usbhost/usbhost_enumerate.c: Add logic to get the VID and PID.  This
 	  is necessary in order to support vendor-specific USB devices.
-	* examplex/wlan, configs/olimex-lpc1766stk/wlan, drivers/usbhost/usbhost_rtl8187.c,
+	* examples/wlan, configs/olimex-lpc1766stk/wlan, drivers/usbhost/usbhost_rtl8187.c,
 	  Add infrastructure to support RTL18187 wireless USB.
 	* configs/nucleus2g: backed out USB host changes... wrong board.
 	* Renamed arc/hc/include/mc9s12ne64 and src/mc9s12ne64 to m9s12.  That name is
@@ -1920,7 +1920,7 @@
 	  CONFIG_FAT_LCNAMES is not selected, all filenames are strictly upper
 	  case.
 	* configs/stm3210e-eval/nsh2:  Console is back on UART1; Added
-	  examplex/nx as an NSH "built-in" command as a demonstration.
+	  examples/nx as an NSH "built-in" command as a demonstration.
 	* fs/fat/fs_fat32dirent.c:  Fix an important bug in the directory
 	  allocation (fat_allocatedirentry()).  I looks like it could be
 	  initializing the wrong sectors! NOTE:  This function was in
@@ -3453,7 +3453,7 @@
 	* net/uip/uip_icmpping.c:  Fix problem that prevented ping from
 	  going outside of local network.  Submitted by Darcy Gong
 
-6.23 2012-09-29 Gregory Nutt <gnutt@nuttx.org>
+6.23 2012-11-05 Gregory Nutt <gnutt@nuttx.org>
 
 	* arch/arm/src/stm32/stm32_rng.c, chip/stm32_rng.h, and other files:
 	  Implementation of /dev/random using the STM32 Random Number
@@ -3470,4 +3470,552 @@
 	* configs/shenzhou/*/Make.defs:  Now uses the new buildroot 4.6.3
 	  EABI toolchain.
 	* lib/stdio/lib_libdtoa.c:  Another dtoa() fix from Mike Smith.
+	* configs/shenzhou/src/up_adc.c:  Add ADC support for the Shenzhou
+	  board (Darcy Gong).
+	* configs/shenzhou/thttpd:  Add a THTTPD configuration for the
+	  Shenzhou board (Darcy Gong).
+	* include/termios.h and lib/termios/libcf*speed.c: The non-standard,
+	  "hidden" c_speed cannot be type const or else static instantiations
+	  of termios will be required to initialize it (Mike Smith).
+	* drivers/input/max11802.c/h, and include/nuttx/input max11802.h:  Adds
+	  support for the Maxim MAX11802 touchscreen controller (contributed by
+	  Petteri Aimonen).
+	* graphics/nxtk/nxtk_events.c:  Missing implementation of the blocked
+	  method.  This is a critical bugfix for graphics support (contributed
+	  by Petteri Aimonen).
+	* drivers/usbdev/pl2303.c, drivers/usbdev/usbmsc.h, and
+	  include/nuttx/usb/cdcacm.h: USB_CONFIG_ATTR_SELFPOWER vs.
+	  USB_CONFIG_ATT_SELFPOWER (contributed by Petteri Aimonen).
+	* arch/arm/src/armv7-m/up_memcpy.S:  An optimized memcpy() function for
+	  the ARMv7-M family contributed by Mike Smith.
+	* lib/strings/lib_vikmemcpy.c:  As an option, the larger but faster
+	  implemementation of memcpy from Daniel Vik is now available (this is
+	  from http://www.danielvik.com/2010/02/fast-memcpy-in-c.html).
+	* lib/strings/lib_memset.c: CONFIG_MEMSET_OPTSPEED will select a
+	  version of memset() optimized for speed.  By default, memset() is
+	  optimized for size.
+	* lib/strings/lib_memset.c: CONFIG_MEMSET_64BIT will perform 64-bit
+	  aligned memset() operations.
+	* arch/arm/src/stm32/stm32_adc.c:  Need to put the ADC back into the
+	  initial reset in the open/setup logic.  Opening the ADC driver works
+	  the first time, but not the second because the device is left in a
+	  powered down state on the last close.
+	* configs/olimex-lpc1766stck/scripts:  Replace all of the identical
+	  ld.script files with the common one in this directory.
+	* configs/stm3220g-eval/scripts:  Replace all of the identical
+	  ld.script files with the common one in this directory.
+	* configs/hymini-stm32v/scripts:  Replace all of the identical
+	  ld.script files with the common one in this directory.
+	* configs/lpcxpresso-lpc1768/scripts:  Replace all of the identical
+	  ld.script files with the common one in this directory.
+	* binfmt/elf.c, binfmt/libelf, include/elf.h, include/nuttx/elf.h: Add
+	  basic framework for loadable ELF module support.  The initial check-
+	  in is non-functional and is simply the framework for ELF support.
+	* include/nuttx/binfmt.h, nxflat.h, elf.h, and symtab.h:  Moved to
+	  include/nuttx/binfmt/.
+	* arch/sim/src/up_elf.c and arch/x86/src/common/up_elf.c:  Add
+	  for ELF modules.
+	* arch/arm/include/elf.h:  Added ARM ELF header file.
+	* include/elf32.h:  Renamed elf.h to elf32.h.
+	* configs/stm32f4discovery/ostest:  Converted to use the new
+	  Kconfig-based configuration system.
+	* configs/stm32f4discovery/elf and configs/stm32f4discovery/scripts/gnu-elf.ld
+	  Add a configuration for testing the ARM ELF loader.
+	* binfmt/libelf:  Can't use fstat(). NuttX does not yet support it.  Damn!
+	* binfmt/libelf:  The basic ELF module execution appears fully functional.
+	* configs/shenzhou/src/up_relays.c:  Add support for relays from the
+	  Shenzhou board.  Contributed by Darcy Gong.
+	* lib/fixedmath: Moved the old lib/math to lib/fixedmath to make room for
+	  the math library from the Rhombus OS
+	* lib/math: Now contains the math library from the Rhombus OS by Nick Johnson
+	  (submitted by Darcy Gong).
+	* include/float.h:  Add a first cut at the float.h header file.  This
+	  really should be an architecture/toolchain-specific header file.  It
+	  is only used if CONFIG_ARCH_FLOAT_H is defined.
+	* lib/math: Files now conform to coding standards.  Separated float,
+	  double, and long double versions of code into separate files so that
+	  they don't draw in so much un-necessary code when doing a dumb link.
+	* binfmt/libelf:  The ELF loader is working correctly with C++ static
+	  constructors and destructors and all.
+	* Documentation/NuttXBinfmt.html:  Add documentation of the binary loader.
+	* configs/sim/ostest:  Converted to use the mconf configuration tool.
+	* configs/sim/cxxtest:  New test that will be used to verify the uClibc++
+	  port (eventually).
+	* include/nuttx/fs/fs.h, lib/stdio/lib_libfread.c, lib_ferror.c,
+	  lib_feof.c, and lib_clearerr.c:  Add support for ferror(), feof(),
+	  and clearerror().  ferror() support is bogus at the moment (it
+	  is equivalent to !feof()); the others should be good.
+	* configs/stm32f4discovery/include/board.h:  Correct timer 2-7
+	  base frequency (provided by Freddie Chopin).
+	* include/nuttx/sched.h, sched/atexit.c, and sched/task_deletehook.c:
+	  If both atexit() and on_exit() are enabled, then implement atexit()
+	  as just a special caseof on_exit().  This assumes that the ABI can
+	  handle receipt of more call parameters than the receiving function
+	  expects.  That is usually the case if parameters are passed in
+	  registers.
+	* libxx/libxx_cxa_atexit():  Implements __cxa_atexit()
+	* configs/stm32f4discovery/cxxtest:  New test that will be used to
+	  verify the uClibc++ port (eventually).  The sim platform turned not
+	  to be a good platform for testing uClibc++.  The sim example will not
+	  run because the simulator will attempt to execute the static
+	  constructors before main() starts. BUT... NuttX is not initialized
+	  and this results in a crash.  On the STM324Discovery, I will have
+	  better control over when the static constructors run.
+	* RGMP 4.0 updated from Qiany Yu.
+	* configs/*/Make.defs and configs/*/ld.script:  Massive clean-up
+	  and standardization of linker scripts from Freddie Chopin.
+	* net/netdev_ioctl.c:  Add interface state flags and ioctl calls
+	  to bring network interfaces up and down (from Darcy Gong).
+	* config/stm32f4discovery: Enable C++ exceptions.  Now the entire
+	  apps/examples/cxxtest works -- meaning the the uClibc++ is
+	  complete and verified for the STM32 platform.
+
+6.24 2012-12-20 Gregory Nutt <gnutt@nuttx.org>
+
+	* arch/arm/src/stm32:  Support for STM32F100 high density chips
+	  added by Freddie Chopin.
+	* configs/stm32f100_generic:  Support for generic STM32F100RC board
+	  contributed by Freddie Chopin.
+	* arch/arm/src/stm32_otgfsdev.c:  Partial fix from Petteri Aimonen.
+	* drivers/lcd/ug-2864ambag01.c and include/nuttx/lcd/ug_2864ambag01.h:
+	  LCD driver for the Univision OLED of the same name (untested on
+	  initial check-in).
+	* configs/stm32f4discovery/nxlines:  Configure to use mconf/Kconfig
+	  tool.
+	* configs/stm32f4discovery/src/up_ug2864ambag01.c:  Board-specific
+	  initialization for UG-2864AMBAG01 OLED connecte to STM32F4Disovery.
+	* libxx/libxx_stdthrow.cxx:  Exception stubs from Petteri Aimonen.
+	* configs/stm32f4discovery/src/up_ug2864ambag01.c: Driver has been
+	  verified on the STM32F4Discovery platform.  Some tuning of the
+	  configuration could improve the presentation.  Lower resolution displays
+	  are also more subject to the "fat, flat line bug" that I need to fix
+	  someday.  See http://www.nuttx.org/doku.php?id=wiki:graphics:nxgraphics
+	  for a description of the fat, flat line bug.
+	* libc:  Renamed nuttx/lib to nuttx/libc to make space for a true lib/
+	  directory that will be forthcoming.  Also rename libraries:  liblib.a -> libc.a,
+	  libulib.a -> libuc.a, libklib.a -> libkc.a, liblibxx.a ->libcxx.a.
+	  (I will probably, eventually rename libxx to libcxx for consistency)
+	* Makefile, lib/: A new, empty directory that will hold generated libraries.
+	  This simplifies the library patch calculations and lets me get rid of some
+	  bash logic.  The change is functional, but only partially complete;
+	  additional logic is needed in the arch/*/src/Makefile's as well.  Right
+	  now that logic generate multiple library paths, all pointing to the lib/
+	  directory.
+	* arch/*/src/Makefile:  Now uses only the libraries in lib/
+	  Replace bash fragments that test for board/Makefile.
+	* Makefile.win:  The beginnings of a Windows-native build.  This is just
+	  the beginning and not yet ready for prime time use.
+	* configs/stm32f4discovery/winbuild:  This is a version of the standard
+	  NuttX OS test, but configured to build natively on Windows.  Its only
+	  real purpose is to very the native Windows build logic.
+	* tools/mkdeps.bat and tools/mkdeps.c:  mkdeps.bat is a failed attempt
+	  to leverage mkdeps.sh to CMD.exe.  It fails because the are certain
+	  critical CFLAG values that cannot be passed on the CMD.exe command line
+	  (like '=').  mkdeps.c is a work in progress that will, hopefully,
+	  replace both mkdeps.sh and mkdeps.bat.
+	* tools/Config.mk:  Centralize the definition of the script that will be
+	  used to generated header file include paths for the compiler.  This
+	  needs to be centralized in order to support the Windows native build.
+	* tools/incdir.bat:  A replacement for tools/incdir.sh for use with the
+	  the Windows native build.
+	* Makefile.unix:  The existing top-level Makefile has been renamed
+	  Makefile.unix.
+	* Makefile:  This is a new top-level Makefile that just includes
+	  either Makefile.unix or Makefile.win
+	* configs/stm3240g-eval/src:  Qencoder fixes from Ryan Sundberg.
+	* arch/arm/src/stm32/stm32_qencoder.c: TIM3 bug fix from Ryan Sundberg.
+	* tools/mkromfsimg.sh: Correct typo in an error message (Ryan Sundberg)
+	* arch/*/src/Makefile:  Remove tftboot install and creation of System.map
+	  for Windows native build.  The first is a necessary change, the second
+	  just needs re-implemented.
+	* configs/mirtoo: Update Mirtoo pin definitions for Release 2.  Provided
+	  by Konstantin Dimitrov.
+	* Fixed an uninitialized variable in the file system that can cause 
+	  assertions if DEBUG on (contributed by Lorenz Meier).
+	* Config.mk:  Defined DELIM to be either / or \, depending upon
+	  CONFIG_WINDOWS_NATIVE.  This will allow me to eliminate a lot of
+	  conditional logic elsewhere.
+	* nuttx/graphics: One a mouse button is pressed, continue to report all
+	  mouse button events to the first window that received the the initial
+	  button down event, even if the mouse attempts to drag outside the
+	  window. From Petteri Aimonen.
+	* nuttx/graphics/nxmu/nx_block.c:  One more fix to the NX block message
+	  logic from Petteri Aimonen.
+	* include/nuttx/wqueue.h: Some basic definitions to support a user-
+	  space work queue (someday in the future).
+	* graphics/nxmu:  Add semaphores so buffers messages that send buffers
+	  will block until the buffer data has been acted upon.
+	* graphics/nxmw:  Extended the blocked messages to cover mouse movement
+	  and redraw events.  These will also cause problems if sent to a window
+	  while it is closing.
+	* arch/several:  Change UARTs are enabled for i.MX, LM3S, ez80, and M16C to
+	  match how they are enabled for other architectures.
+	* configs/ez80f910200kitg:  Convert to use mconf configuration.
+	* sched/pause.c:  Implements the POSIX pause() function.
+	* ez80: Lots of changes to ez80 configurations and build logic as I
+	  struggle to get a clean Windows build (still not working).
+	* configs/cloudctrl:   Darcy Gong's CloudController board.  This is a
+	  small network relay development board. Based on the Shenzhou IV development
+	  board design.  It is based on the STM32F107VC MCU.
+	* arch/arm/src/stm32_serial.c and stm32_lowputc.c:  Added optional RS-485
+	  direction bit control. From Freddie Chopin.
+	* Lots of build files:  ARMv7-M and MIPS32 Make.defs now include a common
+	  Toolchain.defs file that can be used to manage toolchains in a more
+	  configurable way.  Contributed by Mike Smith
+	* configs/stm32f4discovery/winbuild and configs/cloudctrl:  Adapted to use
+	  Mike's Toolchain.defs.
+	* tools/configure.sh:  Adapted to handle paths and setenv.bat files correctly
+	  for native Windows builds.
+	* More of build files:  AVR and AVR32 Make.defs now include a common
+	  Toolchain.defs file that can be used to manage toolchains in a more
+	  configurable way.  Contributed by Mike Smith
+	* tools/incdir.sh and incdir.bat: Add -s option to generate system header
+	  file paths.
+	* nuttx/arch/arm/src/arm/Toolchain.defs: Add support for more ARM toolchains
+	  (from Mike Smith).
+	* arch/arm/src/stm32/stm32f40xxx_rcc.c:  Enabled FLASH prefetch (from Petteri
+	  Aimonen).
+	* graphics/nxtk/nxtk_filltrapwindow.c:  Correct an offset problem (from
+	  Peterri Aimonen).
+	* graphics/nxglib/nxglib_splitline.c:  Fix error in drawing of near horizontal
+	  lines (from Peterri Aimonen).
+	* sched/task_exithook.c:  Missing right bracket with certain conditional
+	  compilation (thanks James Goppert).
+	* arch/arm/srch/stm32/stm32_otgfshost.c:  Replace timeout handling; use
+	  system tick instead of frame counter.  The frame counter gets reset to
+	  zero at 0x3fff making it error prone.
+	* arch/arm/src/stm32/stm32f20xx_rcc.c and stm32f40xx_rcc.c: Added option
+	  CONFIG_STM32_FLASH_PREFETCH.  FLASH prefetch will now only be enabled
+	  if this option is selected.
+	* confgs/ez80f910200zco/ostest:  Now uses Kconfig/mconf configuration
+	  tool. Updated to build in native Windows environment.  Other ez80f910200zco
+	  build scripts also updated.
+	* configs/z8f64200100kit/ostest: Update to same level as ez80 configurations.
+	* nuttx/configs/z8f64200100kit/scripts/setenv.bat: Add support for native
+	  Windows build.
+	* nuttx/arch/arm/src/lpc17xx/lpc17_i2c.c: Resources not being released when
+	  I2C is uninitialized.
+	* cloudctrl/src/up_chipid.c and shenzhou/src/up_chipid.c:  Add functions to
+	  get chip ID.  Contributed by Darcy Gong.  These should not be board-dependent,
+	  but should be in arch/arm/src/stm32 where they can be used from any board.
+	* sched/work_thread.c: Fix backward conditional compilation.  This might
+	  has caused a memory leak.  From Freddie Chopin.
+	* configs/<many>/Make.defs:  Fix typo -wstrict-prototypes should be
+	  -Wstrict-prototypes (From Denis Carilki).
+	* arch/arm/src/calapyso/calypso_keypad.c:  Add Calypso keypad driver.  From
+	  Denis Carilki.
+	* z8encore000zco/ostest and z8f64200100kit/ostest:  Converted to use Kconfig/
+	  mconf configuration tool.
+	* arch/arm/src/armv7-m/up_exception.S: missing curly braces for push/pop
+	  From Freddie Chopin.
+	* z8encore000zco/ostest and z8f64200100kit/ostest:  Can now be modified to
+	  support the Windows native builds (see corresponding README.txt files).
+	* configs/z16f2800100zcog - All configurations updated to use the ZDS-II
+	  5.0.1 toolchain.
+	* configs/z16f2800100zcog - All configurations updated to use Kconfig/mconf
+	  configuration tools.
+	* configs/z16f2800100zcog/ostest - Now supports a native Windows build
+	  (other ZNEO configs may also support the native build, but this has not
+	  been verfiied).
+	* include/nuttx/input/keypad.h, arch/arm/src/calypso/calypso_keypad.c, and
+	  configs/compal_e99/nsh_highram: First cut at a standard keypad interface
+	  definition.  Contributed by Denis Carikli.
+	* libc/stdlib/lib_rand.c:  Always add one to result congruential generators
+	  to avoid the value zero.  Suggested by Freddie Chopin.
+	* tools/b16.c:  Fixed precision math conversion utility.
+	* graphics/nxglib/nxglib_splitline.c:  Fix the "fat, flat line bug"
+	* arch/z80/src/*/Toolchain.defs:  Add dummy Toolchain.defs files for the
+	  z80 family.
+	* configs/z80sim/ostest:  Converted to build with the Kconfig/mconf tool.
+	  Current configuration failed to build for me (Ubuntu 12.10, SDCC 3.2.0
+	  pre-built for Linux) due to a glibc memory corruptionerror in SDCC.
+	* configs/z80sim/ostest: Default is now the Windows native build.  See
+	  configs/z80sim/README.txt for instructions to convert back to a Linux or
+	  or Cygwin build.
+	* arch/z80/src/Makefile.sdccw:  Renamed makefiles with extensions zdiil,
+	  zdiiw, sdccl, and sdccw for the ZDS-II vs SDCC compilers and for the
+	  POSIX vs Windows native builds.
+	* nuttx/drivers/mtd/ftl.c:  Fix for the flash translation layer. Short
+	  unaligned writes were buggy.  From Petteri Aimonen.
+	* nuttx/libc/math/lib_round*.c:  Add rounding functions to the math
+	  library.  Contributed by Petteri Aimonen.
+	* include/cxx/cstdlib:  Add stroul().  From Petteri Aimonen.
+	* arch/*/include/limits.h:  Change signed minimum values from, for example,
+	  (-128) to (-127 - 1) to avoid overflows under certain conditions.  From
+	  Peterri Aimonen.
+	* graphics/nxtk/nxtk_subwindowmove.c: Previously it was very difficult to
+	  do e.g. "scroll by dx, dy". When given the full window area, nxtk_subwindowmove
+	  would clip the offset always to 0,0. It makes more sense for it to clip the
+	  source area and not modify the offset.  From Petteri Aimonen.
+	* graphics/nxtk/nxtk_getwindow.c: Clipping would change the offset of returned
+	  data, and caller has no way to know what the new offset would be. This messes
+	  up font drawing when the text is partially out of window, e.g. when scrolling.
+	  Also from Petteri Aimonen.
+	* include/stdbool.h: Can now be disabled for C++ files if CONFIG_C99_BOOL8 is
+	  defined.  CONFIG_C99_BOOL8 indicates (1) that the sizeof(_Bool) is one in both
+	  C and C++, and (2) the the C compiler is C99 and supports the _Bool intrinsic
+	  type. Requested by Freddie Chopin.
+	* include/stdlib/lib_rand.c:  Various additional changes so that the integer
+	  value zero can be returned.  Requested by Freddie Chopin.
+	* arch/z80/src/Makefile.sdcc*, z80/up_mem.h:  Redesign Z80 build so that it
+	  no longer depends on Bash scripts.
+	* configs/z80sim/nsh and pashello:  Converted to (1) use the kconfig-frontends
+	  configuration tool, and (2) to build natively under Windows.  The NSH
+	  configuration is verified; the pashello configuration needs a more TLC.
+	* tools/copydir.sh:  Rename tools/winlink.sh to tools/copydir.sh
+	* tools/link.bat, unlink.bat, and copydir.bat:  Add Windows counterparts
+	  to the link.sh, unlink.sh, and copydir.sh Bash scripts.
+	* configs/z80sim/pashello:  Now builds correctly.
+	* configs/xtrs/ostest, nsh, and pashello:  Converted to (1) use the kconfig-
+	  frontends configuration tool, and (2) to build natively under Windows.
+	* drivers/serial/Kconfig and sched/Kconfig:  Two names for same configuration:
+	  CONFIG_LOWLEVEL_CONSOLE is bogus and CONFIG_DEV_LOWCONSOLE is in the wrong
+	  Kconfig file.  Moved to drivers/serial/Kconfig replacing CONFIG_LOWLEVEL_CONSOLE.
+	* arch/z80/include/z180:  Add header files for z180 chips.  Initial versions
+	  are just clones of z80 header files.
+	* arch/z80/src/z180:  Add source files for z180 chips.  Initial versions
+	  are just clones of z80 source files.
+	* include/nuttx/arch.h:  Add address environment control interfaces (for use
+	  with CPUs the provide MCUs and support process-like address environments).
+	* arch/z80/src/z180/z180_mmu.*:  Add MMU support for z180 tasks.
+	* configs/p112:  Add very basic board support and an examples/ostest
+	  configuration for the venerable P112 board.
+	* sched/os_bringup.c: If CONFIG_PATH_INITIAL is defined, then the initial
+	  environment of the task started by os_bringup() will have the PATH
+	  environment variable defined to be that string.
+	* binfmt/binfmt_exepath.c:  If CONFIG_BINFMT_EXEPATH is defined, then this
+	  file will be built.  It contains logic to search for regular files at
+	  the absolutes paths found in the current PATH environment variable
+	  setting.  This is untested and not yet hooked into the binfmt exec()
+	  logic on initial check-in
+	* binfmt/binfmt_loadmodule.c: load_module() will now traverse the PATH
+	  variable to locate files from their relative path.
+	* include/nuttx/arch.h and arch/z80/src/z180/z180_mmu.c:  Restructure the
+	  address environment interfaces so that they will better integrate with
+	  binfmt/.
+	* binfmt/libelf/*, binfmt/libnxflat/* and other files:  Integrate the
+	  address environment interfaces.  If CONFIG_ADDRENV=y, then binfmt/
+	  will now create an address environment for new tasks (instead of
+	  just malloc'ing the task memory).
+	* configs/stm32f4discovery/elf:  Enable support/test of the PATH
+	  to find executables using a relative path.
+
+6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* graphics/: Adds 5x8 monospace font. This tiny font is useful for graph
+	  labels and for small bitmapped display.  Contributed by Petteri
+	  Aimonen.
+	* configs/stm3220g-eval/nxwm:  Converted to use the kconfig-frontends
+	  configuration tool.
+	* configs/sim/nxwm:  Converted to use the kconfig-frontends configuration
+	  tool.
+	* include/pthread.h:  In sys/prctl.h because it is needed by
+	  pthread_[set|get]name_np()
+	* tools/kconfig.bat:  Kludge to run kconfig-frontends from a DOS shell.
+	* sched/sig_timedwait.c:  Should always move the time up to the next
+	  largest number of system ticks.  The logic was rounding.  Noted by
+	  Petteri Aimonen.
+	* arch/arm/src/up_head.S:  Fix backward conditional compilation.  NOTE
+	  there is a issue of ARM9 systems with low vectors and large memories
+	  that will have to be addressed in the future.
+	* libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Add logic to marshal
+	  and serialized "out-of-band" keyboard commands intermixed with normal
+	  ASCII data (not yet hooked into anything).
+	* drivers/usbhost/usbhost_hidkbd.c:  If CONFIG_HIDKBD_ENCODED is
+	  defined, this driver will now use libc/misc/lib_kbdencode.c to
+	  encode special function keys.
+	* configs/olimex-lpc1766stk/hidkbd:  This configuration has been
+	  converted to use the kconfig-frontends configuration tool.
+	* drivers/lcd/ug-2864hsweg01.c and include/nuttx/lcd/ug-2864hsweg01.h:
+	  Driver for UG-2864HSWEG01 OLED contributed by Darcy Gong.
+	* configs/stm32f4discovery/src/up_ug2864hsweg01.c: Support for the
+	  UG-2864HSWEG01 OLED for the STM32F4Discovery board.
+	* drivers/usbhost/usbhost_hidkbd.c:  Correct a logic error in how
+	  tasks waiting for read data are awakened.
+	* libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Now handles keypress
+	  events too.  However, the USB HID keyboard drier has not yet been
+	  updated to detect key release events.  That is kind of tricky in
+	  the USB HID keyboard report data.
+	* configs/mcu123-214x/nsh:  Converted to use the kconfig-frontends
+	  configuration tool.
+	* configs/zp214xpa:  Add basic support for the The0.net ZP213x/4xPA
+	  board (with the LPC2148 and the UG_2864AMBAG01).
+	* configs/sim/nxlines:  Add an nxlines configuration for the
+	  simulator.
+	* configs/zp214xpa/nxlines:  Add an nxlines configuration for the
+	  ZP213x/4xPA (with the LPC2148 and the UG_2864AMBAG01).  Working
+	  as of 2012-12-30.
+	* configs/olimex-lpc1766stk/wlan:  Remove non-functional
+	  configuration.
+	* configs/stm32f4discovery/src and nuttx/drivers/lcd/ug-2864hsweg01.c:
+	  Updates and correctinos for the UG-2864HSWEG01 from Darcy Gong.
+	* configs/lm326965-ek:  All configurations converted to use the
+	  kconfig-frontends configuration tool.
+	* configs/Kconfig: NSH_MMCSDSPIPORTNO should depend on MMCSD_SPI,
+	  not just SPI (from Jose Pablo Carballo).
+	* arch/arm/src/arm/Kconfig and armv7m/Kconfig:  Add an option for
+	  buildroot toolchains:  They may be EABI or OABI.
+	* include/nuttx/progmem and arch/arm/src/stm32/stm32_flash.c:
+	  Fix a counting bug plus change interface to use either relative
+	  or absolut FLASH addressing (from Freddie Chopin).
+	* libc/misc/Make.defs:  Fix error in conditional for KBD CODEC.
+	* libc/Kconfig and configs/*/defconfig (several):  The default
+	  setting should be CONFIG_LIB_KBDCODEC=n
+	* tools/configure.c:  configure.c can be used to build a work-alike
+	  program as a replacement for configure.sh.  This work-alike
+	  program would be used in environments that do not support Bash
+	  scripting (such as the Windows native environment).
+	* tools/configure.bat: configure.bat is a small Windows batch
+	  file that can be used as a replacement for configure.sh in a
+	  Windows native environment.  configure.bat is actually just a
+	  thin layer that execuates configure.exe if it is available. If
+	  configure.exe is not available, then configure.bat will attempt
+	  to build it first.
+	* arch/arm/src/lpc17xx/lpc17_syscon.h:  Correct some typos in bit
+	  definitions (from Rommel Marcelo).
+	* libc/string/lib_strndup.c: strndup() should use strnlen(), not
+	  strlen(), to determine the size of the string.
+	* sched/os_bringup.c:  Remove support for CONFIG_BUILTIN_APP_START.
+	  This is not really a useful feature and creates a violation of the
+	  OS layered architecture.
+	* include/unistd.h, arch/arch/src/*:  Implement a simple vfork().
+	  On initial checkin, this API is available only for ARM platforms.
+	* binfmt/binfmt_exec.c: exec() now sets the priority of the new task
+	  to the same priority as the current task (instead of the arbirtrary
+	  value of 50).
+	* libc/unisted/lib_execv.c and lib_execl.c:  New, somewhat flawed,
+	  implementations of execv() and execl().
+	* tools/cfgdefine.c:  Strips quotes from CONFIG_EXECFUNCS_SYMTAB
+	  value.
+	* arch/arm/include/lm3s/chip.h:  Move chip definitions into
+	  public include area for compatibility with other architectures.
+	* arch/arm/src/lm3s/chip:  Move register definition header files
+	  into a new chip/ sub-directory.
+	* arch/arm/src/lm3s/lm3s_internal.h:  Broke up into several
+	  smaller header files.
+	* arch/arm/src/lm:  Rename the arch/arm/src/lm3s directory to
+	  arch/arm/src/lm so that is can support other members of the
+	  Stellaris family.
+	* libc/spawn:  Add file action interfaces needed by posix_spawn().
+	* sched/clock_time2ticks.c:  Another case where time was being
+	  rounded down instead of up (from Mike Smith).
+	* libc/spawn:  Implementation of posix_spawn() is complete but
+	  untested and undocumented.
+	* drivers/usbdev/pl2303.c:  Fix typols in the PL2303 driver
+	  (from Max Holtzberg).
+	* configs/stm32f4discovery/posix_spawn:  Added a configuration
+	  that can be used for testing posix_spawn().
+	* arch/arm/src/stm32: Bring F1 support for general DMA and serial
+	  DMA in paricular up to parity with F2/F4 (from Mike Smith).
+	* libc/stdio/lib_libfread.c:  Correct some error handling when
+	  lib_fread() was passed a bad stream.  Needed to move the
+	  releasing of a semaphore inside of some conditional logic
+	  (cosmetic).
+	* include/nuttx/sched.h, sched/task_setup.c, and sched/task_exithook.c:
+	  Add support for remembering the parent task and sending
+	  SIGCHLD to the parent when the task exists.
+	* sched/task_exithook.c:  Fixed a *critical* bug.  Here is
+	  the scenario: (1) sched_lock() is called increments the lockcount
+	  on the current TCB (i.e., the one at the head of the ready to run
+	  list), (2) sched_mergepending is called which may change the task
+	  at the head of the readytorun list, then (2) sched_unlock() is called
+	  which decrements the lockcount on the wrong TCB.  The failure case
+	  that I saw was that pre-emption got disabled in the IDLE thread,
+	  locking up the whole system.
+	* sched/sched_waitpid.c:  Use SIGCHLD instead of a semaphore.  This
+	  is a much more spec-compliant implemenation.  However, there are
+	  some issues with overruning signals because NuttX does not support
+	  queueing of signals (POSIX does not require it).  I think it may
+	  need to.
+	* sched/sched_waitid.c and sched_wait.c:  Add support for waitid()
+	  and wait().  See issues with waitpid() above.
+	* include/nuttx/fs/fs.h and fs/fs_files.c:  Add a dup() method to
+	  the struct mountpt_operations.  When dup'ing a file that resides
+	  on a mounted volume, let the file system's dup() method do the
+	  work.
+	* fs/romfs/fs_romfs.c: Implemented the dup() method for the ROMFS
+	  file system.
+	* fs/fat/fs_fat32.c, fs/nxffs/nxffs_initialize, and
+	  fs/nfs/nfs_vfsops.c:  Add hooks for dup() method (not yet
+	  implemented).
+	* fs/romfs:  Remove the rf_open flag.  It looks good, but actually
+	  does nothing.
+	* fs/fat:  Remove the ff_open flag.  Same story as for the ROMFS
+	  rf_open flag.
+	* fs/fat/fs_fat32.c, fs/nxffs/nxffs_initialize, and
+	  fs/nfs/nfs_vfsops.c:  Completed implementation of the dup() methods.
+	  There is still no good test available.
+	* sched/sig_timedwait.c:  sigtimedwait() would return a bad signal
+	  number if the signal was already pending when the function was
+	  called.
+	* configs/ubw32/scripts:  All common linker scripts moved to this
+	  scripts sub-directory
+	* configs/ubw32/ostest:  Configuration configured to use the
+	  kconfig-frontends tools.
+	* arch/mips/src/mips32/up_vfork.c, up_vfork.h, and vfork.S:
+	  Implement vfork() for MIPS32 (no floating point support)
+	* configs/ubw32/ostest: Enable the vfork() test.
+	* fs/binfs:  Move apps/builtin/binfs.c to fs/binfs/fs_binfs.c
+	  CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS
+	* include/nuttx/binfmt/builtin.h:  Some of the content of
+	  apps/include/apps.h moved to include/nuttx/binfmt/builtin.h
+	* binfmt/libbuiltin/libbuiltin_utils.c:  Move utility builtin
+	  utility functions from apps/builtin/exec_builtins.c to
+	  binfmt/libbuiltin/libbuiltin_utils.c
+	* binfmt/builtin.c and binfmt/libbuiltin:  Add a binary "loader"
+	  that can be used to execute builtin programs from the BINFS
+	  file system.
+	* configs/sim/nsh: Convert to use kconfig-frontends configuration
+	  tool.
+	* binfmt/binfmt_schedunload.c:  Add logic based on SIGCHLD to
+	  automatically unload and clean-up after running a task that
+	  was loaded into memory.
+	* binfmt/libbuiltin: Extensions from Mike Smith
+	* sched/task_reparent.c:  Add internal interface to change the
+	  parent task.
+	* sched/task_posixspawn():  Move libc/spawn/lib_ps.c to
+	  sched/task_posixspawn() now it requires internal, reparenting
+	  interfaces
+	* include/nuttx/spawn():  Move libc/spawn.h to include/nuttx/spawn.h
+	* arch/arm/include/lpc17xx/chip.h, irq178x.h:  Integrate Marcelo
+	  Rommel's LPC1788 definitions into the base LPC17xx.
+	* configs/olimex-lpc1766stk/nsh:  Convert configuration to use
+	  the kconfig-frontends tools.
+	* sched/task_reparent.c:  Simplify reparenting interface.
+	* arch/arm/src/[many]: More LPC1788 definitions from Rommel
+	  Marcelo incorporated.
+	* configs/open1788:  Board configuration for the Wave Share
+	  Open1788 board.  Still fragmentary (contribnuted by Rommel
+	  Marcelo, adapted to use kconfig-frontends.
+	* net/send():  Add logic to work around delayed ACKs by splitting
+	  packets (contributed by Yan T.).
+	* net/recvfrom():  Fix a bug.  When the host closes a connection
+	  (gracefully).  recv[from]() returned success and the closure
+	  was never detected.  Hmmm.. I don't know why the network monitor
+	  did not catch this event.  This is an important bug fix.
+	* net/recvfrom():  Fix a introduced with the last bugfix.  If
+	  the peer does an orderly closure of the socket, report 0 not
+	  -ENOTCONN
+	* configs/lm3s6965-ek/README.txt and tools/:  Add an OpenOCD
+	  configuration for the LM3S (from Jose Pablo Carballo).
+	* nuttx/lcd/hd4478ou.h and configs/pcblogic-pic32mx/src/up_lcd1602:
+	  Start of support of LCD1602 alphanumeric LCD.  I need a few
+	  more parts before I can finish integrating this one.
+	* arch/arm/src/*/chip.h and arch/arm/include/*/chip.h:  Move all
+	  priority ranges from the src to the include chip.h header file.
+	* arch/arm/include/armv7-m/irq.h:  Add inline functions to enable
+	  and disable interrupts via the BASEPRI register.
+	* arch/arm/Kconfig:  Add new option CONFIG_ARM7VM_USEBASEI
+	* arch/arm/src/*/*_irq.c:  Set the priority of the SVCALL exception
+	  to the highest possible value.
+	* arch/armv7-m/up_hardfault.c:  Fail if a hardfault occurs
+	  while CONFIG_ARM7VM_USEBASEPRI=y.
+	* arch/arm/src/stm32/stm32_serial.c:  Add support for USART
+	  single wire more (Contributed by the PX4 team).
+	* sched/: Implement support for retaining child task status after
+	  the child task exists.  This is behavior required by POSIX.
+	  But in NuttX is only enabled with CONFIG_SCHED_HAVE_PARENT and
+	  CONFIG_SCHED_CHILD_STATUS
+	* Add support for keyboard encode to the keypad test (from
+	  Denis Carikli).
 

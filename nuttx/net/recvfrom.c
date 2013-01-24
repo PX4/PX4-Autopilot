@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/recvfrom.c
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,7 +83,7 @@ struct recvfrom_s
   FAR struct sockaddr_in    *rf_from;      /* Address of sender */
 #endif
   size_t                     rf_recvlen;   /* The received length */
-  int                        rf_result;    /* OK:success, failure:negated errno */
+  int                        rf_result;    /* Success:OK, failure:negated errno */
 };
 #endif /* CONFIG_NET_UDP || CONFIG_NET_TCP */
 
@@ -464,10 +464,11 @@ static inline void recvfrom_tcpsender(struct uip_driver_s *dev, struct recvfrom_
  ****************************************************************************/
 
 #ifdef CONFIG_NET_TCP
-static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
-                                      void *pvpriv, uint16_t flags)
+static uint16_t recvfrom_tcpinterrupt(FAR struct uip_driver_s *dev,
+                                      FAR void *conn, FAR void *pvpriv,
+                                      uint16_t flags)
 {
-  struct recvfrom_s *pstate = (struct recvfrom_s *)pvpriv;
+  FAR struct recvfrom_s *pstate = (struct recvfrom_s *)pvpriv;
 
   nllvdbg("flags: %04x\n", flags);
 
@@ -553,7 +554,7 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
 
       else if ((flags & (UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT)) != 0)
         {
-          nllvdbg("error\n");
+          nllvdbg("Lost connection\n");
 
           /* Stop further callbacks */
 
@@ -561,17 +562,40 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
           pstate->rf_cb->priv    = NULL;
           pstate->rf_cb->event   = NULL;
 
-          /* If the peer gracefully closed the connection, then return zero
-           * (end-of-file).  Otherwise, report a not-connected error
-           */
+          /* Handle loss-of-connection event */
+
+          net_lostconnection(pstate->rf_sock, flags);
+
+          /* Check if the peer gracefully closed the connection. */
 
           if ((flags & UIP_CLOSE) != 0)
             {
+              /* This case should always return success (zero)! The value of
+               * rf_recvlen, if zero, will indicate that the connection was
+               * gracefully closed.
+               */
+
               pstate->rf_result = 0;
             }
           else
             {
+              /* If no data has been received, then return ENOTCONN.
+               * Otherwise, let this return success.  The failure will
+               * be reported the next time that recv[from]() is called.
+               */
+
+#if CONFIG_NET_TCP_RECVDELAY > 0
+              if (pstate->rf_recvlen > 0)
+                {
+                  pstate->rf_result = 0;
+                }
+              else
+                {
+                  pstate->rf_result = -ENOTCONN;
+                }
+#else
               pstate->rf_result = -ENOTCONN;
+#endif
             }
 
           /* Wake up the waiting thread */

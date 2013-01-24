@@ -1,7 +1,7 @@
 ############################################################################
 # libxx/Makefile
 #
-#   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,20 +35,56 @@
 
 -include $(TOPDIR)/Make.defs
 
-ASRCS		= 
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-CSRCS		= 
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-CXXSRCS		= libxx_cxapurevirtual.cxx libxx_delete.cxx libxx_deletea.cxx \
-			  libxx_eabi_atexit.cxx libxx_new.cxx libxx_newa.cxx 
-CXXOBJS		= $(CXXSRCS:.cxx=$(OBJEXT))
+# Sources
 
-SRCS		= $(ASRCS) $(CSRCS) $(CXXSRCS)
-OBJS		= $(AOBJS) $(COBJS) $(CXXOBJS)
+ASRCS = 
+CSRCS = 
 
-BIN		= liblibxx$(LIBEXT)
+CXXSRCS  = libxx_cxapurevirtual.cxx libxx_eabi_atexit.cxx  libxx_cxa_atexit.cxx
 
-all:	$(BIN)
+# Some of the libxx/ files are not need if uClibc++ is installed because
+# uClibx++ replaces them
+
+ifneq ($(CONFIG_UCLIBCXX),y)
+CXXSRCS += libxx_delete.cxx libxx_deletea.cxx libxx_new.cxx libxx_newa.cxx
+CXXSRCS += libxx_stdthrow.cxx
+else
+ifneq ($(UCLIBCXX_EXCEPTION),y)
+CXXSRCS += libxx_stdthrow.cxx
+endif
+endif
+
+# Paths
+
+DEPPATH = --dep-path .
+VPATH = .
+
+# Include the uClibc++ Make.defs file if selected.  If it is included,
+# the uClibc++/Make.defs file will add its files to the source file list,
+# add its DEPPATH info, and will add the appropriate paths to the VPATH
+# variable
+#
+# Note that an error will occur if you select CONFIG_LIBXX_UCLIBCXX
+# without installing the uClibc++ package.  This is intentional to let
+# you know about the configuration problem.  Refer to misc/uClibc++/README.txt
+# for more information
+
+ifeq ($(CONFIG_UCLIBCXX),y)
+include uClibc++/Make.defs
+endif
+
+# Object Files
+
+AOBJS = $(ASRCS:.S=$(OBJEXT))
+COBJS = $(CSRCS:.c=$(OBJEXT))
+CXXOBJS = $(CXXSRCS:.cxx=$(OBJEXT))
+
+SRCS = $(ASRCS) $(CSRCS) $(CXXSRCS)
+OBJS = $(AOBJS) $(COBJS) $(CXXOBJS)
+
+BIN = libcxx$(LIBEXT)
+
+all: $(BIN)
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -60,21 +96,20 @@ $(CXXOBJS): %$(OBJEXT): %.cxx
 	$(call COMPILEXX, $<, $@)
 
 $(BIN):	$(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(CXX) -- $(CXXFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(DEPPATH) "$(CXX)" -- $(CXXFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
+	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

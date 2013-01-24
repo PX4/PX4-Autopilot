@@ -123,6 +123,25 @@ config STMPE811_I2C
 
 endchoice
 
+config STMPE811_ACTIVELOW
+	bool "Active Low Interrupt"
+	default n
+	---help---
+		The STMPE811 interrupt is provided by a discrete input (usually a
+		GPIO interrupt on most MCU architectures).  This setting determines
+		whether the interrupt is active high (or rising edge triggered) or
+		active low (or falling edge triggered).  Default:  Active
+		high/rising edge.
+
+config STMPE811_EDGE
+	bool "Edge triggered Interrupt"
+	default n
+	---help---
+		The STMPE811 interrupt is provided by a discrete input (usually a
+		GPIO interrupt on most MCU architectures).  This setting determines
+		whether the interrupt is edge or level triggered.  Default: Level
+		triggered.
+
 config STMPE811_MULTIPLE
 	bool "Multiple STMPE811 Devices"
 	default n

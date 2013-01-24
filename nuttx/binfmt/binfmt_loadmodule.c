@@ -43,7 +43,8 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/binfmt.h>
+#include <nuttx/kmalloc.h>
+#include <nuttx/binfmt/binfmt.h>
 
 #include "binfmt_internal.h"
 
@@ -66,6 +67,92 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: load_default_priority
+ *
+ * Description:
+ *   Set the default priority of the module to be loaded.  This may be
+ *   changed (1) by the actions of the binary format's load() method if
+ *   the binary format contains priority informaition, or (2) by the user
+ *   between calls to load_module() and exec_module().
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; Otherwise, -1 (ERROR) is returned and
+ *   the errno variable is set appropriately.
+ *
+ ****************************************************************************/
+
+static int load_default_priority(FAR struct binary_s *bin)
+{
+  struct sched_param param;
+  int ret;
+
+  /* Get the priority of this thread */
+
+  ret = sched_getparam(0, &param);
+  if (ret < 0)
+    {
+      bdbg("ERROR: sched_getparam failed: %d\n", errno);
+      return ERROR;
+    }
+  
+  /* Save that as the priority of child thread */
+
+  bin->priority = param.sched_priority;
+  return ret;
+}
+
+/****************************************************************************
+ * Name: load_absmodule
+ *
+ * Description:
+ *   Load a module into memory, bind it to an exported symbol take, and
+ *   prep the module for execution.  bin->filename is known to be an absolute
+ *   path to the file to be loaded.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+static int load_absmodule(FAR struct binary_s *bin)
+{
+  FAR struct binfmt_s *binfmt;
+  int ret = -ENOENT;
+
+  bdbg("Loading %s\n", bin->filename);
+
+  /* Disabling pre-emption should be sufficient protection while accessing
+   * the list of registered binary format handlers.
+   */
+
+  sched_lock();
+
+  /* Traverse the list of registered binary format handlers.  Stop
+   * when either (1) a handler recognized and loads the format, or
+   * (2) no handler recognizes the format.
+   */
+
+  for (binfmt = g_binfmts; binfmt; binfmt = binfmt->next)
+    {
+      /* Use this handler to try to load the format */
+
+      ret = binfmt->load(bin);
+      if (ret == OK)
+        {
+          /* Successfully loaded -- break out with ret == 0 */
+
+          bvdbg("Successfully loaded module %s\n", bin->filename);
+          dump_module(bin);
+          break;
+        }
+    }
+
+  sched_unlock();
+  return ret;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -85,42 +172,82 @@
 
 int load_module(FAR struct binary_s *bin)
 {
-  FAR struct binfmt_s *binfmt;
-  int ret = -ENOENT;
+  int ret = -EINVAL;
+
+  /* Verify that we were provided something to work with */
 
 #ifdef CONFIG_DEBUG
   if (bin && bin->filename)
 #endif
     {
-      bdbg("Loading %s\n", bin->filename);
+      /* Set the default priority of the new program. */
 
-      /* Disabling pre-emption should be sufficient protection while
-       * accessing the list of registered binary format handlers.
-       */
-
-      sched_lock();
-
-      /* Traverse the list of registered binary format handlers.  Stop
-       * when either (1) a handler recognized and loads the format, or
-       * (2) no handler recognizes the format.
-       */
-
-      for (binfmt = g_binfmts; binfmt; binfmt = binfmt->next)
+      ret = load_default_priority(bin);
+      if (ret < 0)
         {
-          /* Use this handler to try to load the format */
+          /* The errno is already set in this case */
 
-          ret = binfmt->load(bin);
-          if (ret == OK)
-            {
-              /* Successfully loaded -- break out with ret == 0 */
-
-              bvdbg("Successfully loaded module %s\n", bin->filename);
-              dump_module(bin);
-              break;
-            }
+          return ERROR;
         }
 
-      sched_unlock();
+      /* Were we given a relative path?  Or an absolute path to the file to
+       * be loaded?  Absolute paths start with '/'.
+       */
+
+#ifdef CONFIG_BINFMT_EXEPATH
+      if (bin->filename[0] != '/')
+        {
+          FAR const char *relpath;
+          FAR char *fullpath;
+          EXEPATH_HANDLE handle;
+
+          /* Set aside the relative path */
+
+          relpath = bin->filename;
+          ret     = -ENOENT;
+
+          /* Initialize to traverse the PATH variable */
+
+          handle = exepath_init();
+          if (handle)
+            {
+              /* Get the next absolute file path */
+
+              while ((fullpath = exepath_next(handle, relpath)) != NULL)
+                {
+                  /* Try to load the file at this path */
+
+                  bin->filename = fullpath;
+                  ret = load_absmodule(bin);
+
+                  /* Free the allocated fullpath */
+
+                  kfree(fullpath);
+
+                  /* Break out of the loop with ret == OK on success */
+
+                  if (ret == OK)
+                    {
+                      break;
+                    }
+                }
+            }
+
+          /* Restore the relative path.  This is not needed for anything
+           * but debug output after the file has been loaded.
+           */
+
+          bin->filename = relpath;
+        }
+      else
+#endif
+        {
+          /* We already have the one and only absolute path to the file to
+           * be loaded.
+           */
+
+          ret = load_absmodule(bin);
+        }
     }
 
   /* This is an end-user function.  Return failures via errno */
@@ -131,6 +258,7 @@ int load_module(FAR struct binary_s *bin)
       errno = -ret;
       return ERROR;
     }
+
   return OK;
 }
 

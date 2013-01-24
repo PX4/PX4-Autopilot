@@ -68,12 +68,6 @@
 #  undef CONFIG_DEBUG_QENCODER
 #endif
 
-/* NVIC priority levels *************************************************************/
-
-#define NVIC_SYSH_PRIORITY_MIN     0xff /* All bits set in minimum priority */
-#define NVIC_SYSH_PRIORITY_DEFAULT 0x80 /* Midpoint is the default */
-#define NVIC_SYSH_PRIORITY_MAX     0x00 /* Zero is maximum priority */
-
 /* Peripherals **********************************************************************/
 
 #include "chip.h"

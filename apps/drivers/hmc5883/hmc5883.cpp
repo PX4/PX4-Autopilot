@@ -288,6 +288,20 @@ private:
 	 */
 	 int 			check_calibration();
 
+	 /**
+	 * Check the current scale calibration
+	 *
+	 * @return 0 if scale calibration is ok, 1 else
+	 */
+	 int 			check_scale();
+
+	 /**
+	 * Check the current offset calibration
+	 *
+	 * @return 0 if offset calibration is ok, 1 else
+	 */
+	 int 			check_offset();
+
 };
 
 /* helper macro for handling report buffer indices */
@@ -1016,11 +1030,11 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 out:
 
 	if (ret == OK) {
-		if (!check_calibration()) {
+		if (!check_scale()) {
 			warnx("mag scale calibration successfully finished.");
 		} else {
 			warnx("mag scale calibration finished with invalid results.");
-			ret == ERROR;
+			ret = ERROR;
 		}
 
 	} else {
@@ -1030,9 +1044,9 @@ out:
 	return ret;
 }
 
-int HMC5883::check_calibration()
+int HMC5883::check_scale()
 {
-	bool scale_valid, offset_valid;
+	bool scale_valid;
 
 	if ((-FLT_EPSILON + 1.0f < _scale.x_scale && _scale.x_scale < FLT_EPSILON + 1.0f) &&
 		(-FLT_EPSILON + 1.0f < _scale.y_scale && _scale.y_scale < FLT_EPSILON + 1.0f) &&
@@ -1043,6 +1057,14 @@ int HMC5883::check_calibration()
 		scale_valid = true;
 	}
 
+	/* return 0 if calibrated, 1 else */
+	return !scale_valid;
+}
+
+int HMC5883::check_offset()
+{
+	bool offset_valid;
+
 	if ((-2.0f * FLT_EPSILON < _scale.x_offset && _scale.x_offset < 2.0f * FLT_EPSILON) &&
 		(-2.0f * FLT_EPSILON < _scale.y_offset && _scale.y_offset < 2.0f * FLT_EPSILON) &&
 		(-2.0f * FLT_EPSILON < _scale.z_offset && _scale.z_offset < 2.0f * FLT_EPSILON)) {
@@ -1052,17 +1074,36 @@ int HMC5883::check_calibration()
 		offset_valid = true;
 	}
 
+	/* return 0 if calibrated, 1 else */
+	return !offset_valid;
+}
+
+int HMC5883::check_calibration()
+{
+	bool offset_valid = (check_offset() == OK);
+	bool scale_valid  = (check_scale() == OK);
+
 	if (_calibrated != (offset_valid && scale_valid)) {
 		warnx("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
 					  (offset_valid) ? "" : "offset invalid");
 		_calibrated = (offset_valid && scale_valid);
+
+
+		// XXX Change advertisement
+
 		/* notify about state change */
 		struct subsystem_info_s info = {
 			true,
 			true,
 			_calibrated,
 			SUBSYSTEM_TYPE_MAG};
-		orb_advert_t pub = orb_advertise(ORB_ID(subsystem_info), &info);
+		static orb_advert_t pub = -1;
+
+		if (pub > 0) {
+			orb_publish(ORB_ID(subsystem_info), pub, &info);
+		} else {
+			pub = orb_advertise(ORB_ID(subsystem_info), &info);
+		}
 	}
 
 	/* return 0 if calibrated, 1 else */

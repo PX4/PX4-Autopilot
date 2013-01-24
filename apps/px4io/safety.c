@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
- /**
-  * @file Safety button logic.
-  */
+/**
+ * @file Safety button logic.
+ */
 
 #include <nuttx/config.h>
 #include <stdio.h>
@@ -51,51 +51,149 @@
 #include "px4io.h"
 
 static struct hrt_call arming_call;
+static struct hrt_call heartbeat_call;
+static struct hrt_call failsafe_call;
 
 /*
  * Count the number of times in a row that we see the arming button
  * held down.
  */
-static unsigned arm_counter;
+static unsigned counter = 0;
+
+/*
+ * Define the various LED flash sequences for each system state.
+ */
+#define LED_PATTERN_SAFE 			0xffff		/**< always on 				*/
+#define LED_PATTERN_VECTOR_FLIGHT_MODE_OK 	0xFFFE		/**< always on with short break 	*/
+#define LED_PATTERN_FMU_ARMED 			0x4444		/**< slow blinking			*/
+#define LED_PATTERN_IO_ARMED 			0x5555		/**< fast blinking 			*/
+#define LED_PATTERN_IO_FMU_ARMED 		0x5050		/**< long off then double blink 	*/
+
+static unsigned blink_counter = 0;
+
+/*
+ * IMPORTANT: The arming state machine critically
+ * 	      depends on using the same threshold
+ *            for arming and disarming. Since disarming
+ *            is quite deadly for the system, a similar
+ *            length can be justified.
+ */
 #define ARM_COUNTER_THRESHOLD	10
 
-static bool safety_led_state;
+static bool safety_button_pressed;
 
 static void safety_check_button(void *arg);
+static void heartbeat_blink(void *arg);
+static void failsafe_blink(void *arg);
 
 void
 safety_init(void)
 {
 	/* arrange for the button handler to be called at 10Hz */
 	hrt_call_every(&arming_call, 1000, 100000, safety_check_button, NULL);
+
+	/* arrange for the heartbeat handler to be called at 4Hz */
+	hrt_call_every(&heartbeat_call, 1000, 250000, heartbeat_blink, NULL);
+
+	/* arrange for the failsafe blinker to be called at 8Hz */
+	hrt_call_every(&failsafe_call, 1000, 125000, failsafe_blink, NULL);
 }
 
 static void
 safety_check_button(void *arg)
 {
-	/* 
+	/*
 	 * Debounce the safety button, change state if it has been held for long enough.
 	 *
-	 * Ignore the button if FMU has not said it's OK to arm yet.
 	 */
-	if (BUTTON_SAFETY && system_state.arm_ok) {
-		if (arm_counter < ARM_COUNTER_THRESHOLD) {
-			arm_counter++;
-		} else if (arm_counter == ARM_COUNTER_THRESHOLD) {
-			/* change our armed state and notify the FMU */
-			system_state.armed = !system_state.armed;
-			arm_counter++;
+	safety_button_pressed = BUTTON_SAFETY;
+
+	/*
+	 * Keep pressed for a while to arm.
+	 *
+	 * Note that the counting sequence has to be same length
+	 * for arming / disarming in order to end up as proper
+	 * state machine, keep ARM_COUNTER_THRESHOLD the same
+	 * length in all cases of the if/else struct below.
+	 */
+	if (safety_button_pressed && !system_state.armed) {
+
+		if (counter < ARM_COUNTER_THRESHOLD) {
+			counter++;
+
+		} else if (counter == ARM_COUNTER_THRESHOLD) {
+			/* change to armed state and notify the FMU */
+			system_state.armed = true;
+			counter++;
 			system_state.fmu_report_due = true;
 		}
+
+		/* Disarm quickly */
+
+	} else if (safety_button_pressed && system_state.armed) {
+
+		if (counter < ARM_COUNTER_THRESHOLD) {
+			counter++;
+
+		} else if (counter == ARM_COUNTER_THRESHOLD) {
+			/* change to disarmed state and notify the FMU */
+			system_state.armed = false;
+			counter++;
+			system_state.fmu_report_due = true;
+		}
+
 	} else {
-		arm_counter = 0;
+		counter = 0;
 	}
 
-	/* when armed, toggle the LED; when safe, leave it on */
+	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
+	uint16_t pattern = LED_PATTERN_SAFE;
+
 	if (system_state.armed) {
-		safety_led_state = !safety_led_state;
-	} else {
-		safety_led_state = true;
+		if (system_state.arm_ok) {
+			pattern = LED_PATTERN_IO_FMU_ARMED;
+
+		} else {
+			pattern = LED_PATTERN_IO_ARMED;
+		}
+
+	} else if (system_state.arm_ok) {
+		pattern = LED_PATTERN_FMU_ARMED;
+
+	} else if (system_state.vector_flight_mode_ok) {
+		pattern = LED_PATTERN_VECTOR_FLIGHT_MODE_OK;
 	}
-	LED_SAFETY(safety_led_state);
+
+	/* Turn the LED on if we have a 1 at the current bit position */
+	LED_SAFETY(pattern & (1 << blink_counter++));
+
+	if (blink_counter > 15) {
+		blink_counter = 0;
+	}
+}
+
+static void
+heartbeat_blink(void *arg)
+{
+	static bool heartbeat = false;
+
+	/* XXX add flags here that need to be frobbed by various loops */
+
+	LED_BLUE(heartbeat = !heartbeat);
+}
+
+static void
+failsafe_blink(void *arg)
+{
+	static bool failsafe = false;
+
+	/* blink the failsafe LED if we don't have FMU input */
+	if (!system_state.mixer_fmu_available) {
+		failsafe = !failsafe;
+
+	} else {
+		failsafe = false;
+	}
+
+	LED_AMBER(failsafe);
 }

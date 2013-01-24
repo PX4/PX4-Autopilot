@@ -4,6 +4,8 @@
 #
 
 if ARCH_ARM
+comment "ARM Options"
+
 choice
 	prompt "ARM chip selection"
 	default ARCH_CHIP_STM32
@@ -44,12 +46,13 @@ config ARCH_CHIP_KINETIS
 	bool "Freescale Kinetis"
 	select ARCH_CORTEXM4
 	select ARCH_HAVE_MPU
+	select ARCH_HAVE_RAMFUNCS
+	select ARCH_RAMFUNCS
 	---help---
 		Freescale Kinetis Architectures (ARM Cortex-M4)
 
-config ARCH_CHIP_LM3S
+config ARCH_CHIP_LM
 	bool "TI Stellaris"
-	select ARCH_CORTEXM3
 	select ARCH_HAVE_MPU
 	---help---
 		TI Stellaris LMS3 architecutres (ARM Cortex-M3)
@@ -127,9 +130,11 @@ config ARCH_ARM920T
 
 config ARCH_CORTEXM3
 	bool
+	select ARCH_IRQPRIO
 
 config ARCH_CORTEXM4
 	bool
+	select ARCH_IRQPRIO
 
 config ARCH_FAMILY
 	string
@@ -143,7 +148,7 @@ config ARCH_CHIP
 	default "dm320"		if ARCH_CHIP_DM320
 	default "imx"		if ARCH_CHIP_IMX
 	default "kinetis"	if ARCH_CHIP_KINETIS
-	default "lm3s"		if ARCH_CHIP_LM3S
+	default "lm"		if ARCH_CHIP_LM
 	default "lpc17xx"	if ARCH_CHIP_LPC17XX
 	default "lpc214x"	if ARCH_CHIP_LPC214X
 	default "lpc2378"	if ARCH_CHIP_LPC2378
@@ -152,6 +157,20 @@ config ARCH_CHIP
 	default "sam3u"		if ARCH_CHIP_SAM3U
 	default "stm32"		if ARCH_CHIP_STM32
 	default "str71x"	if ARCH_CHIP_STR71X
+
+config ARMV7M_USEBASEPRI
+	bool "Use BASEPRI Register"
+	default n
+	depends on ARCH_CORTEXM3 || ARCH_CORTEXM4
+	---help---
+		Use the BASEPRI register to enable and disable able interrupts.  By
+ 		default, the PRIMASK register is used for this purpose.  This
+		usually results in hardfaults that are properly handling by the
+		RTOS.  Using the BASEPRI register will avoid these hardfault.
+		That is needed primarily for integration with some toolchains.
+
+config ARCH_HAVE_CMNVECTOR
+	bool
 
 config ARMV7M_CMNVECTOR
 	bool "Use common ARMv7-M vectors"
@@ -217,12 +236,6 @@ config PAGING
 		If set =y in your configation file, this setting will enable the on-demand
 		paging feature as described in http://www.nuttx.org/NuttXDemandPaging.html.
 
-config ARCH_IRQPRIO
-	bool "Interrupt priority"
-	default y		if ARCH_CORTEXM3 || ARCH_CORTEXM4
-	---help---
-		Select if your board supports interrupt prioritization.
-
 config BOARD_LOOPSPERMSEC
 	int "Delay loops per millisecond"
 	default 5000
@@ -239,6 +252,21 @@ config ARCH_CALIBRATION
 		watch to measure the 100 second delay then adjust BOARD_LOOPSPERMSEC until
 		the delay actually is 100 seconds.
 
+config DEBUG_HARDFAULT
+	bool "Verbose Hard-Fault Debug"
+	default n
+	depends on DEBUG && (ARCH_CORTEXM3 || ARCH_CORTEXM4)
+	---help---
+		Enables verbose debug output when a hard fault is occurs.  This verbose
+		output is sometimes helpful when debugging difficult hard fault problems,
+		but may be more than you typcially want to see.
+
+if ARCH_CORTEXM3 || ARCH_CORTEXM4
+source arch/arm/src/armv7-m/Kconfig
+endif
+if ARCH_ARM7TDMI || ARCH_ARM926EJS
+source arch/arm/src/arm/Kconfig
+endif
 if ARCH_CHIP_C5471
 source arch/arm/src/c5471/Kconfig
 endif
@@ -254,8 +282,8 @@ endif
 if ARCH_CHIP_KINETIS
 source arch/arm/src/kinetis/Kconfig
 endif
-if ARCH_CHIP_LM3S
-source arch/arm/src/lm3s/Kconfig
+if ARCH_CHIP_LM
+source arch/arm/src/lm/Kconfig
 endif
 if ARCH_CHIP_LPC17XX
 source arch/arm/src/lpc17xx/Kconfig

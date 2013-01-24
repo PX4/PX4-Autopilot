@@ -33,7 +33,7 @@
 
 6.3 2011-05-15 Gregory Nutt <gnutt@nuttx.org>
 
-    * apps/interpreter: Add a directory to hold interpreters.  The Pascal add-
+	* apps/interpreter: Add a directory to hold interpreters.  The Pascal add-
 	  on module now installs and builds under this directory.
 	* apps/interpreter/ficl: Added logic to build Ficl (the "Forth Inspired
 	  Command Language").  See http://ficl.sourceforge.net/.
@@ -349,7 +349,7 @@
 	* apps/NxWidgets/Kconfig:  Add option to turn on the memory monitor
 	  feature of the NxWidgets/NxWM unit tests.
 
-6.23 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.23 2012-11-05 Gregory Nutt <gnutt@nuttx.org>
 
 	* vsn: Moved all NSH commands from vsn/ to system/.  Deleted the vsn/
 	  directory.
@@ -368,3 +368,127 @@
 	  recent check-ins (Darcy Gong).
 	* apps/netutils/webclient/webclient.c:  Fix another but that I introduced
 	  when I was trying to add correct handling for loss of connection (Darcy Gong)
+	* apps/nshlib/nsh_telnetd.c:  Add support for login to Telnet session via
+	  username and password (Darcy Gong).
+	* apps/netutils/resolv/resolv.c (and files using the DNS resolver): Various
+	  DNS address resolution improvements from Darcy Gong.
+	* apps/nshlib/nsh_netcmds.c:  The ping command now passes a maximum round
+	  trip time to uip_icmpping().  This allows pinging of hosts on complex
+	  networks where the ICMP ECHO round trip time may exceed the ping interval.
+	* apps/examples/nxtext/nxtext_main.c:  Fix bad conditional compilation
+	  when CONFIG_NX_KBD is not defined.  Submitted by Petteri Aimonen.
+	* apps/examples/nximage/nximage_main.c:  Add a 5 second delay after the
+	  NX logo is presented so that there is time for the image to be verified.
+	  Suggested by Petteri Aimonen.
+	* apps/Makefile: Small change that reduces the number of shell invocations
+	  by one (Mike Smith).
+	* apps/examples/elf:  Test example for the ELF loader.
+	* apps/examples/elf:  The ELF module test example appears fully functional.
+	* apps/netutils/json:  Add a snapshot of the cJSON project.  Contributed by
+	  Darcy Gong.
+	* apps/examples/json:  Test example for cJSON from Darcy Gong
+	* apps/nshlib/nsh_netinit.c: Fix static IP DNS problem (Darcy Gong)
+	* apps/netutils/resolv/resolv.c: DNS fixes from Darcy Gong.
+	* COPYING: Licensing information added.
+	* apps/netutils/codec and include/netutils/urldecode.h, base64.h, and md5.h:
+	  A port of the BASE46, MD5 and URL CODEC library from Darcy Gong.
+	* nsnlib/nsh_codeccmd.c:  NSH commands to use the CODEC library.
+	  Contributed by Darcy Gong.
+	* apps/examples/wgetjson: Test example contributed by Darcy Gong
+	* apps/examples/cxxtest:  A test for the uClibc++ library provided by
+	  Qiang Yu and the RGMP team.
+	* apps/netutils/webclient, apps/netutils.codes, and apps/examples/wgetjson:
+	  Add support for wget POST interface.  Contributed by Darcy Gong.
+	* apps/examples/relays:  A relay example contributed by Darcy Gong.
+	* apps/nshlib/nsh_netcmds: Add ifup and ifdown commands (from Darcy
+	  Gong).
+	* apps/nshlib/nsh_netcmds: Extend the ifconfig command so that it
+	  supports setting IP addresses, network masks, name server addresses,
+	  and hardware address (from Darcy Gong).
+
+6.24 2012-12-20 Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/ostest/roundrobin.c:  Replace large tables with
+	  algorithmic prime number generation.  This allows the roundrobin
+	  test to run on platforms with minimal SRAM (Freddie Chopin).
+	* apps/nshlib/nsh_dbgcmds.c:  Add hexdump command to dump the contents
+	  of a file (or character device) to the console  Contributed by Petteri
+	  Aimonen.
+	* apps/examples/modbus:  Fixes from Freddie Chopin
+	* apps/examples/modbus/Kconfig: Kconfig logic for FreeModBus contributed
+	  by Freddie Chopin.
+	* Makefile, */Makefile:  Various fixes for Windows native build.  Now uses
+	  make foreach loops instead of shell loops.
+	* apps/examples/elf/test/*/Makefile: OSX doesn't support install -D, use
+	  mkdir -p then install without the -D.  From Mike Smith.
+	* apps/examples/relays/Makefile: Reduced stack requirement (Darcy Gong).
+	* apps/nshlib and apps/netutils/dhcpc:  Extend the NSH ifconfig command plus
+	  various DHCPC improvements(Darcy Gong).
+	* apps/nshlib/nsh_apps.c: Fix compilation errors when CONFIG_NSH_DISABLEBG=y.
+	  From Freddie Chopin.
+	* Rename CONFIG_PCODE and CONFIG_FICL as CONFIG_INTERPRETERS_PCODE and
+	  CONFIG_INTERPRETERS_FICL for consistency with other configuration naming.
+	* apps/examples/keypadtest:  A keypad test example contributed by Denis
+	  Carikli.
+	* apps/examples/elf and nxflat:  If CONFIG_BINFMT_EXEPATH is defined, these
+	  tests will now use a relative path to the program and expect the binfmt/
+	  logic to find the absolute path to the program using the PATH variable.
+
+6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* Makefiles: Removed dependency of distclean on clean in most top-level
+	  files.  It makes sense for 'leaf' Makefiles to have this dependency,
+	  but it does not make sense for upper-level Makefiles.
+	* apps/namedapp/: Renamed to builtins in preparation for another change.
+	* .context:  Removed the .context kludge.  This caused lots of problems
+	  when changing configurations because there is no easy way to get the
+	  system to rebuild the context.  Now, the context will be rebuilt
+	  whenever there is a change in either .config or the Makefile.
+	* apps/builtin/registry:  Updated new built-in registration logic to handle
+	  cases where (1) old apps/.config is used, and (2) applications ared
+	  removed, not just added.
+	* apps/examples/nettest/Makefile:  Fix an error that crept in during
+	  some of the recent, massive build system changes.
+	* apps/builtin/Makefile:  Need to have auto-generated header files
+	  in place early in the dependency generation phase to avoid warnings.
+	  It is not important if they are only stubbed out header files at
+	  this build phase.
+	* apps/examples/hidbkd: Now supports decoding of encoded special keys
+	  if CONFIG_EXAMPLES_HIDKBD_ENCODED is defined.
+	* apps/examples/hidbkd:  Add support for decoding key release events
+	  as well.  However, the USB HID keyboard drier has not yet been
+	  updated to detect key release events.  That is kind of tricky in
+	  the USB HID keyboard report data.
+	* apps/examples/wlan: Remove non-functional example.
+	* apps/examples/ostest/vfork.c:  Added a test of vfork().
+	* apps/exampes/posix_spawn: Added a test of poxis_spawn().
+	* apps/examples/ostest:  Extend signal handler test to catch
+	  death-of-child signals (SIGCHLD).
+	* apps/examples/ostest/waitpid.c:  Add a test for waitpid(), waitid(),
+	  and wait().
+	* builtin/binfs.c:  Add hooks for dup() method (not implemented).
+	* builtin/exec_builtin.c, nshlib/nsh_parse.c, and nshlib/nsh_builtin.c:
+	  NSH now supports re-direction of I/O to files (but still not from).
+	* builtin/binfs.c:  Greatly simplified (it is going to need to be
+	  very lightweight).  Now supports open, close, and a new ioctl to recover
+	  the builtin filename.  The latter will be needed to support a binfs
+	  binfmt.
+	* builtin/binfs.c:  Move apps/builtin/binfs.c to fs/binfs/fs_binfs.c
+	  CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS
+	* apps/include/builtin.h:  Some of the content of
+	  apps/include/apps.h moved to include/nuttx/binfmt/builtin.h.
+	  apps/include/apps.h renamed builtin.h
+	* apps/builtin/exec_builtins.c:  Move utility builtin
+	  utility functions from apps/builtin/exec_builtins.c to
+	  binfmt/libbuiltin/libbuiltin_utils.c
+	* apps/nshlib/nsh_mountcmds.c:  The block driver/source
+	  argument is now optional.  Many files systems do not need
+	  a source and it is really stupid to have to enter a bogus
+	  source parameter.
+	* apps/nshlib/nsh_fileapp.c:  Add the ability to execute a file
+	  from a file system using posix_spawn().
+	* apps/builtin/: Extensions from Mike Smith.
+	* apps/examples/ftpd/Makefile: Name ftpd_start is not the name of
+	  the entrypoint.  Should be ftpd_main (from Yan T.)
+	* apps/netutils/telnetd/telnetd_driver: Was stuck in a loop if
+	  recv[from]() ever returned a value <= 0.

@@ -88,6 +88,9 @@ int sig_mqnotempty (int pid, int signo, union sigval value)
 int sig_mqnotempty (int pid, int signo, void *sival_ptr)
 #endif
 {
+#ifdef CONFIG_SCHED_HAVE_PARENT
+  FAR _TCB *rtcb = (FAR _TCB *)g_readytorun.head;
+#endif
   FAR _TCB *stcb;
   siginfo_t info;
   int       ret = ERROR;
@@ -112,6 +115,10 @@ int sig_mqnotempty (int pid, int signo, void *sival_ptr)
   info.si_value           = value;
 #else
   info.si_value.sival_ptr = sival_ptr;
+#endif
+#ifdef CONFIG_SCHED_HAVE_PARENT
+  info.si_pid             = rtcb->pid;
+  info.si_status          = OK;
 #endif
 
   /* Verify that we can perform the signalling operation */

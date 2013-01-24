@@ -41,7 +41,9 @@
 #
 CSRCS		= $(wildcard *.c) \
 		  ../systemlib/hx_stream.c \
-		  ../systemlib/perf_counter.c
+		  ../systemlib/perf_counter.c \
+		  ../systemlib/up_cxxinitialize.c
+CXXSRCS		= $(wildcard *.cpp)
 
 INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
 

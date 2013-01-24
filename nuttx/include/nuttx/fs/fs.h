@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/fs/fs.h
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,10 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+/* Stream flags for the fs_flags field of in struct file_struct */
+
+#define __FS_FLAG_EOF   (1 << 0) /* EOF detected by a read operation */
+#define __FS_FLAG_ERROR (1 << 1) /* Error detected by any operation */
 
 /****************************************************************************
  * Type Definitions
@@ -157,6 +161,7 @@ struct mountpt_operations
    */
 
   int     (*sync)(FAR struct file *filp);
+  int     (*dup)(FAR const struct file *oldp, FAR struct file *newp);
 
   /* Directory operations */
 
@@ -172,7 +177,7 @@ struct mountpt_operations
 
   int     (*statfs)(FAR struct inode *mountpt, FAR struct statfs *buf);
 
-  /* Operations on pathes */
+  /* Operations on paths */
 
   int     (*unlink)(FAR struct inode *mountpt, FAR const char *relpath);
   int     (*mkdir)(FAR struct inode *mountpt, FAR const char *relpath, mode_t mode);
@@ -270,11 +275,6 @@ struct filelist
 struct file_struct
 {
   int                fs_filedes;   /* File descriptor associated with stream */
-  uint16_t           fs_oflags;    /* Open mode flags */
-#if CONFIG_NUNGET_CHARS > 0
-  uint8_t            fs_nungotten; /* The number of characters buffered for ungetc */
-  unsigned char      fs_ungotten[CONFIG_NUNGET_CHARS];
-#endif
 #if CONFIG_STDIO_BUFFER_SIZE > 0
   sem_t              fs_sem;       /* For thread safety */
   pid_t              fs_holder;    /* Holder of sem */
@@ -283,6 +283,12 @@ struct file_struct
   FAR unsigned char *fs_bufend;    /* Pointer to 1 past end of buffer */
   FAR unsigned char *fs_bufpos;    /* Current position in buffer */
   FAR unsigned char *fs_bufread;   /* Pointer to 1 past last buffered read char. */
+#endif
+  uint16_t           fs_oflags;    /* Open mode flags */
+  uint8_t            fs_flags;     /* Stream flags */
+#if CONFIG_NUNGET_CHARS > 0
+  uint8_t            fs_nungotten; /* The number of characters buffered for ungetc */
+  unsigned char      fs_ungotten[CONFIG_NUNGET_CHARS];
 #endif
 };
 

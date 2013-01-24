@@ -170,12 +170,12 @@ arch/arm - ARM-based micro-controllers
         STATUS: This port has stalled because of development tool issues. Coding
         is complete on the basic port (timer, serial console, SPI).
 
-    arch/arm/include/lm3s and arch/arm/src/lm3s
-        These directories contain support for the Luminary LMS family, particularly
-        for the LM3S6918. The initial, release of this port was included in NuttX version
-        0.4.6. The current port includes timer, serial console, Ethernet, SSI, and microSD
-        support. There are working configurations the NuttX OS test, to run the NuttShell
-        (NSH), the NuttX networking test, and the uIP web server.
+    arch/arm/include/lm and arch/arm/src/lm
+        These directories contain support for the Luminary LM3S/4F family. The 
+        initial, release of this port was included in NuttX version 0.4.6.  The
+        current port includes timer, serial console, Ethernet, SSI, and microSD
+        support. There are working configurations the NuttX OS test, to run the
+        NuttShell (NSH), the NuttX networking test, and the uIP web server.
 
     arch/arm/include/lpc214x and arch/arm/src/lpc214x
         These directories provide support for NXP LPC214x family of

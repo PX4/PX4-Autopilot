@@ -1,7 +1,7 @@
 ############################################################################
 # drivers/input/Make.defs
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,10 @@ ifeq ($(CONFIG_INPUT_ADS7843E),y)
   CSRCS += ads7843e.c
 endif
 
+ifeq ($(CONFIG_INPUT_MAX11802),y)
+  CSRCS += max11802.c
+endif
+
 ifeq ($(CONFIG_INPUT_STMPE811),y)
   CSRCS += stmpe811_base.c
 ifneq ($(CONFIG_INPUT_STMPE811_TSC_DISABLE),y)
@@ -67,6 +71,6 @@ endif
 
 DEPPATH += --dep-path input
 VPATH += :input
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/input}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)input}
 endif
 

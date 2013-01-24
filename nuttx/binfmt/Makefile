@@ -1,7 +1,7 @@
 ############################################################################
 # nxflat/Makefile
 #
-#   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007-2009, 2012-2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,69 +34,74 @@
 ############################################################################
 
 -include $(TOPDIR)/Make.defs
+DELIM ?= $(strip /)
 
 ifeq ($(WINTOOL),y)
-INCDIROPT	= -w
+INCDIROPT = -w
 endif
-CFLAGS		+= ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/sched}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" "$(TOPDIR)$(DELIM)sched"}
 
-ifeq ($(CONFIG_NXFLAT),y)
-include libnxflat/Make.defs
-LIBNXFLAT_CSRCS	+= nxflat.c 
+# Basic BINFMT source files 
+
+BINFMT_ASRCS  =
+BINFMT_CSRCS  = binfmt_globals.c binfmt_register.c binfmt_unregister.c
+BINFMT_CSRCS += binfmt_loadmodule.c binfmt_unloadmodule.c binfmt_execmodule.c
+BINFMT_CSRCS += binfmt_exec.c binfmt_dumpmodule.c
+
+ifeq ($(CONFIG_BINFMT_EXEPATH),y)
+BINFMT_CSRCS += binfmt_exepath.c
 endif
 
-BINFMT_ASRCS	=
-BINFMT_CSRCS	= binfmt_globals.c binfmt_register.c binfmt_unregister.c \
-		  binfmt_loadmodule.c binfmt_unloadmodule.c binfmt_execmodule.c \
-		  binfmt_exec.c binfmt_dumpmodule.c
+ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
+BINFMT_CSRCS += binfmt_schedunload.c
+endif
 
-SYMTAB_ASRCS	=
-SYMTAB_CSRCS	= symtab_findbyname.c symtab_findbyvalue.c \
-		  symtab_findorderedbyname.c symtab_findorderedbyvalue.c
+# Symbol table source files
 
-SUBDIRS		= libnxflat
+BINFMT_CSRCS += symtab_findbyname.c symtab_findbyvalue.c
+BINFMT_CSRCS += symtab_findorderedbyname.c symtab_findorderedbyvalue.c
 
-ASRCS		= $(BINFMT_ASRCS) $(SYMTAB_ASRCS) $(LIBNXFLAT_ASRCS)
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
+# Add configured binary modules
 
-CSRCS		= $(BINFMT_CSRCS) $(SYMTAB_CSRCS) $(LIBNXFLAT_CSRCS)
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+VPATH = 
+SUBDIRS =
+DEPPATH = --dep-path .
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+include libnxflat$(DELIM)Make.defs
+include libelf$(DELIM)Make.defs
+include libbuiltin$(DELIM)Make.defs
 
-BIN		= libbinfmt$(LIBEXT)
+BINFMT_AOBJS = $(BINFMT_ASRCS:.S=$(OBJEXT))
+BINFMT_COBJS = $(BINFMT_CSRCS:.c=$(OBJEXT))
 
-VPATH		= libnxflat
+BINFMT_SRCS = $(BINFMT_ASRCS) $(BINFMT_CSRCS)
+BINFMT_OBJS = $(BINFMT_AOBJS) $(BINFMT_COBJS)
 
-all:	$(BIN)
+BIN = libbinfmt$(LIBEXT)
 
-$(AOBJS): %$(OBJEXT): %.S
+all: $(BIN)
+
+$(BINFMT_AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
 
-$(COBJS): %$(OBJEXT): %.c
+$(BINFMT_COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-$(BIN): $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+$(BIN): $(BINFMT_OBJS)
+	$(call ARCHIVE, $@, $(BINFMT_OBJS))
 
-.depend: Makefile $(SRCS)
-	@$(MKDEP) --dep-path . --dep-path libnxflat \
-		$(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+.depend: Makefile $(BINFMT_SRCS)
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
+	$(call DELFILE, $(BIN))
 	$(call CLEAN)
-	@( for dir in $(SUBDIRS); do \
-		rm -f $${dir}/*~ $${dir}/.*.swp; \
-	done ; )
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

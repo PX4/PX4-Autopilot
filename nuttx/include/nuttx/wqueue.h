@@ -68,7 +68,7 @@
  * CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
  *   thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
  * CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
- *   the worker thread.  Default: 4
+ *   the worker thread.  Default: 17
  *
  * CONFIG_SCHED_LPWORK. If CONFIG_SCHED_WORKQUEUE is defined, then a single
  *   work queue is created by default.  If CONFIG_SCHED_LPWORK is also defined
@@ -109,15 +109,33 @@
 #  endif
 #endif
 
-/* Work queue IDs (indices).  These are both zero if there is only one work
- * queue.
+/* Work queue IDs (indices):
+ *
+ * Kernel Work Queues:
+ *   HPWORK: This ID of the high priority work queue that should only be used for
+ *   hi-priority, time-critical, driver bottom-half functions.
+ *
+ *   LPWORK: This is the ID of the low priority work queue that can be used for any
+ *   purpose.  if CONFIG_SCHED_LPWORK is not defined, then there is only one kernel
+ *   work queue and LPWORK == HPWORK.
+ *
+ * User Work Queue:
+ *   USRWORK:  CONFIG_NUTTX_KERNEL and CONFIG_SCHED_USRWORK are defined, then NuttX
+ *   will also support a user-accessible work queue.  Otherwise, USRWORK == LPWORK.
  */
 
 #define HPWORK 0
 #ifdef CONFIG_SCHED_LPWORK
-#  define LPWORK 1
+#  define LPWORK (HPWORK+1)
 #else
 #  define LPWORK HPWORK
+#endif
+
+#if defined(CONFIG_NUTTX_KERNEL) && defined(CONFIG_SCHED_USRWORK)
+#  warning "Feature not implemented"
+#  define USRWORK (LPWORK+1)
+#else
+#  define USRWORK LPWORK
 #endif
 
 /****************************************************************************

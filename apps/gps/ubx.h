@@ -49,14 +49,16 @@
 
 
 //internal definitions (not depending on the ubx protocol
-#define CONFIGURE_UBX_FINISHED 0
-#define CONFIGURE_UBX_MESSAGE_ACKNOWLEDGED 1
-#define CONFIGURE_UBX_MESSAGE_NOT_ACKNOWLEDGED 2
 #define UBX_NO_OF_MESSAGES 7								/**< Read 7 UBX GPS messages */
 #define UBX_WATCHDOG_CRITICAL_TIME_MICROSECONDS 3000000		/**< Allow 3 seconds maximum inter-message time */
-#define UBX_WATCHDOG_WAIT_TIME_MICROSECONDS 500000			/**< Check for current state every 0.4 seconds */
+#define UBX_WATCHDOG_WAIT_TIME_MICROSECONDS 2000000			/**< Check for current state every two seconds */
+
+#define UBX_CONFIG_TIMEOUT 1000000
 
 #define APPNAME "gps: ubx"
+
+#define UBX_SYNC_1 0xB5
+#define UBX_SYNC_2 0x62
 
 //UBX Protocoll definitions (this is the subset of the messages that are parsed)
 #define UBX_CLASS_NAV 0x01
@@ -72,6 +74,24 @@
 #define UBX_MESSAGE_RXM_SVSI 0x20
 #define UBX_MESSAGE_ACK_ACK 0x01
 #define UBX_MESSAGE_ACK_NAK 0x00
+#define UBX_MESSAGE_CFG_PRT 0x00
+#define UBX_MESSAGE_CFG_NAV5 0x24
+#define UBX_MESSAGE_CFG_MSG 0x01
+
+#define UBX_CFG_PRT_LENGTH 20
+#define UBX_CFG_PRT_PAYLOAD_PORTID 0x01         /**< port 1 */
+#define UBX_CFG_PRT_PAYLOAD_MODE 0x000008D0     /**< 0b0000100011010000: 8N1 */
+#define UBX_CFG_PRT_PAYLOAD_BAUDRATE 38400      /**< always choose 38400 as GPS baudrate */
+#define UBX_CFG_PRT_PAYLOAD_INPROTOMASK 0x01    /**< ubx in */
+#define UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK 0x01   /**< ubx out */
+
+#define UBX_CFG_NAV5_LENGTH 36
+#define UBX_CFG_NAV5_PAYLOAD_MASK 0x0001		/**< only update dynamic model and fix mode */
+#define UBX_CFG_NAV5_PAYLOAD_DYNMODEL 7			/**< 0: portable, 2: stationary, 3: pedestrian, 4: automotive, 5: sea, 6: airborne <1g, 7: airborne <2g, 8: airborne <4g */
+#define UBX_CFG_NAV5_PAYLOAD_FIXMODE 2          /**< 1: 2D only, 2: 3D only, 3: Auto 2D/3D */
+
+#define UBX_CFG_MSG_LENGTH 8
+#define UBX_CFG_MSG_PAYLOAD_RATE {0x00, 0x01, 0x00, 0x00, 0x00, 0x00} /**< UART1 chosen */
 
 
 // ************
@@ -216,7 +236,7 @@ typedef type_gps_bin_rxm_svsi_packet gps_bin_rxm_svsi_packet_t;
 
 typedef struct {
 	uint8_t clsID;
-	uint8_t msgId;
+	uint8_t msgID;
 
 	uint8_t ck_a;
 	uint8_t ck_b;
@@ -226,7 +246,7 @@ typedef type_gps_bin_ack_ack_packet gps_bin_ack_ack_packet_t;
 
 typedef struct {
 	uint8_t clsID;
-	uint8_t msgId;
+	uint8_t msgID;
 
 	uint8_t ck_a;
 	uint8_t ck_b;
@@ -234,15 +254,91 @@ typedef struct {
 
 typedef type_gps_bin_ack_nak_packet gps_bin_ack_nak_packet_t;
 
+typedef struct {
+	uint8_t clsID;
+	uint8_t msgID;
+	uint16_t length;
+	uint8_t portID;
+	uint8_t res0;
+	uint16_t res1;
+	uint32_t mode;
+	uint32_t baudRate;
+	uint16_t inProtoMask;
+	uint16_t outProtoMask;
+	uint16_t flags;
+	uint16_t pad;
+
+	uint8_t ck_a;
+	uint8_t ck_b;
+} type_gps_bin_cfg_prt_packet;
+
+typedef type_gps_bin_cfg_prt_packet type_gps_bin_cfg_prt_packet_t;
+
+typedef struct {
+	uint8_t clsID;
+	uint8_t msgID;
+	uint16_t length;
+	uint16_t mask;
+	uint8_t dynModel;
+	uint8_t fixMode;
+	int32_t fixedAlt;
+	uint32_t fixedAltVar;
+	int8_t minElev;
+	uint8_t drLimit;
+	uint16_t pDop;
+	uint16_t tDop;
+	uint16_t pAcc;
+	uint16_t tAcc;
+	uint8_t staticHoldThresh;
+	uint8_t dgpsTimeOut;
+	uint32_t reserved2;
+	uint32_t reserved3;
+	uint32_t reserved4;
+
+	uint8_t ck_a;
+	uint8_t ck_b;
+} type_gps_bin_cfg_nav5_packet;
+
+typedef type_gps_bin_cfg_nav5_packet type_gps_bin_cfg_nav5_packet_t;
+
+typedef struct {
+	uint8_t clsID;
+	uint8_t msgID;
+	uint16_t length;
+	uint8_t msgClass_payload;
+	uint8_t msgID_payload;
+	uint8_t rate[6];
+
+	uint8_t ck_a;
+	uint8_t ck_b;
+} type_gps_bin_cfg_msg_packet;
+
+typedef type_gps_bin_cfg_msg_packet type_gps_bin_cfg_msg_packet_t;
+
 
 // END the structures of the binary packets
 // ************
+
+enum UBX_CONFIG_STATE {
+	UBX_CONFIG_STATE_NONE = 0,
+	UBX_CONFIG_STATE_PRT = 1,
+	UBX_CONFIG_STATE_NAV5 = 2,
+	UBX_CONFIG_STATE_MSG_NAV_POSLLH = 3,
+	UBX_CONFIG_STATE_MSG_NAV_TIMEUTC = 4,
+	UBX_CONFIG_STATE_MSG_NAV_DOP = 5,
+	UBX_CONFIG_STATE_MSG_NAV_SVINFO = 6,
+	UBX_CONFIG_STATE_MSG_NAV_SOL = 7,
+	UBX_CONFIG_STATE_MSG_NAV_VELNED = 8,
+	UBX_CONFIG_STATE_MSG_RXM_SVSI = 9,
+	UBX_CONFIG_STATE_CONFIGURED = 10
+};
 
 enum UBX_MESSAGE_CLASSES {
 	CLASS_UNKNOWN = 0,
 	NAV = 1,
 	RXM = 2,
-	ACK = 3
+	ACK = 3,
+	CFG = 4
 };
 
 enum UBX_MESSAGE_IDS {
@@ -254,7 +350,10 @@ enum UBX_MESSAGE_IDS {
 	NAV_DOP = 4,
 	NAV_SVINFO = 5,
 	NAV_VELNED = 6,
-	RXM_SVSI = 7
+	RXM_SVSI = 7,
+	CFG_NAV5 = 8,
+	ACK_ACK = 9,
+	ACK_NAK = 10
 };
 
 enum UBX_DECODE_STATES {
@@ -304,7 +403,7 @@ int configure_gps_ubx(int *fd);
 
 int read_gps_ubx(int *fd, char *gps_rx_buffer, int buffer_size);
 
-int write_config_message_ubx(uint8_t *message, size_t length, int fd);
+int write_config_message_ubx(const uint8_t *message, const size_t length, const int *fd);
 
 void calculate_ubx_checksum(uint8_t *message, uint8_t length);
 

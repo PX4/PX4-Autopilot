@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/nshlib/nsh_parse.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,8 +59,9 @@
 #endif
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-#  include <apps/apps.h>
+#  include <nuttx/binfmt/builtin.h>
 #endif
+
 #include <apps/nsh.h>
 
 #include "nsh.h"
@@ -72,20 +73,20 @@
 
 /* Argument list size
  *
- *   argv[0]:      The command name. 
- *   argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
+ *   argv[0]:      The command name.
+ *   argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
  *   argv[argc-3]: Possibly '>' or '>>'
  *   argv[argc-2]: Possibly <file>
  *   argv[argc-1]: Possibly '&' (if pthreads are enabled)
  *   argv[argc]:   NULL terminating pointer
  *
- * Maximum size is NSH_MAX_ARGUMENTS+5
+ * Maximum size is CONFIG_NSH_MAXARGUMENTS+5
  */
 
 #ifndef CONFIG_NSH_DISABLEBG
-#  define MAX_ARGV_ENTRIES (NSH_MAX_ARGUMENTS+5)
+#  define MAX_ARGV_ENTRIES (CONFIG_NSH_MAXARGUMENTS+5)
 #else
-#  define MAX_ARGV_ENTRIES (NSH_MAX_ARGUMENTS+4)
+#  define MAX_ARGV_ENTRIES (CONFIG_NSH_MAXARGUMENTS+4)
 #endif
 
 /* Help command summary layout */
@@ -146,16 +147,25 @@ static const char g_failure[]    = "1";
 static const struct cmdmap_s g_cmdmap[] =
 {
 #if !defined(CONFIG_NSH_DISABLESCRIPT) && !defined(CONFIG_NSH_DISABLE_TEST)
-  { "[",        cmd_lbracket, 4, NSH_MAX_ARGUMENTS, "<expression> ]" },
+  { "[",        cmd_lbracket, 4, CONFIG_NSH_MAXARGUMENTS, "<expression> ]" },
 #endif
 
 #ifndef CONFIG_NSH_DISABLE_HELP
   { "?",        cmd_help,     1, 1, NULL },
 #endif
 
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_BASE64)
+#  ifndef CONFIG_NSH_DISABLE_BASE64DEC
+  { "base64dec", cmd_base64decode, 2, 4, "[-w] [-f] <string or filepath>" },
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_BASE64ENC
+  { "base64enc", cmd_base64encode, 2, 4, "[-w] [-f] <string or filepath>" },
+#  endif
+#endif
+
 #if CONFIG_NFILE_DESCRIPTORS > 0
 # ifndef CONFIG_NSH_DISABLE_CAT
-  { "cat",      cmd_cat,      2, NSH_MAX_ARGUMENTS, "<path> [<path> [<path> ...]]" },
+  { "cat",      cmd_cat,      2, CONFIG_NSH_MAXARGUMENTS, "<path> [<path> [<path> ...]]" },
 # endif
 #ifndef CONFIG_DISABLE_ENVIRON
 # ifndef CONFIG_NSH_DISABLE_CD
@@ -187,9 +197,9 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #ifndef CONFIG_NSH_DISABLE_ECHO
 # ifndef CONFIG_DISABLE_ENVIRON
-  { "echo",     cmd_echo,     0, NSH_MAX_ARGUMENTS, "[<string|$name> [<string|$name>...]]" },
+  { "echo",     cmd_echo,     0, CONFIG_NSH_MAXARGUMENTS, "[<string|$name> [<string|$name>...]]" },
 # else
-  { "echo",     cmd_echo,     0, NSH_MAX_ARGUMENTS, "[<string> [<string>...]]" },
+  { "echo",     cmd_echo,     0, CONFIG_NSH_MAXARGUMENTS, "[<string> [<string>...]]" },
 # endif
 #endif
 
@@ -218,9 +228,19 @@ static const struct cmdmap_s g_cmdmap[] =
 # endif
 #endif
 
+#if CONFIG_NFILE_DESCRIPTORS > 0
+#ifndef CONFIG_NSH_DISABLE_HEXDUMP
+  { "hexdump",  cmd_hexdump,  2, 2, "<file or device>" },
+#endif
+#endif
+
 #ifdef CONFIG_NET
 # ifndef CONFIG_NSH_DISABLE_IFCONFIG
-  { "ifconfig", cmd_ifconfig, 1, 3, "[nic_name [ip]]" },
+  { "ifconfig", cmd_ifconfig, 1, 11, "[nic_name [<ip-address>|dhcp]] [dr|gw|gateway <dr-address>] [netmask <net-mask>] [dns <dns-address>] [hw <hw-mac>]" },
+# endif
+# ifndef CONFIG_NSH_DISABLE_IFUPDOWN
+  { "ifdown",   cmd_ifdown,   2, 2,  "<nic_name>" },
+  { "ifup",     cmd_ifup,     2, 2,  "<nic_name>" },
 # endif
 #endif
 
@@ -244,6 +264,12 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #ifndef CONFIG_NSH_DISABLE_MB
   { "mb",       cmd_mb,       2, 3, "<hex-address>[=<hex-value>][ <hex-byte-count>]" },
+#endif
+
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_HASH_MD5)
+#  ifndef CONFIG_NSH_DISABLE_MD5
+  { "md5",      cmd_md5,      2, 3, "[-f] <string or filepath>" },
+#  endif
 #endif
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_WRITABLE)
@@ -276,7 +302,7 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
 # ifndef CONFIG_NSH_DISABLE_MOUNT
-  { "mount",    cmd_mount,    1, 5, "[-t <fstype> <block-device> <mount-point>]" },
+  { "mount",    cmd_mount,    1, 5, "[-t <fstype> [<block-device>] <mount-point>]" },
 # endif
 #endif
 
@@ -348,7 +374,7 @@ static const struct cmdmap_s g_cmdmap[] =
 #endif
 
 #if !defined(CONFIG_NSH_DISABLESCRIPT) && !defined(CONFIG_NSH_DISABLE_TEST)
-  { "test",     cmd_test,     3, NSH_MAX_ARGUMENTS, "<expression>" },
+  { "test",     cmd_test,     3, CONFIG_NSH_MAXARGUMENTS, "<expression>" },
 #endif
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
@@ -361,6 +387,15 @@ static const struct cmdmap_s g_cmdmap[] =
 # ifndef CONFIG_NSH_DISABLE_UNSET
   { "unset",    cmd_unset,    2, 2, "<name>" },
 # endif
+#endif
+
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_URLCODE)
+#  ifndef CONFIG_NSH_DISABLE_URLDECODE
+  { "urldecode", cmd_urldecode, 2, 3, "[-f] <string or filepath>" },
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_URLENCODE
+  { "urlencode", cmd_urlencode, 2, 3, "[-f] <string or filepath>" },
+#  endif
 #endif
 
 #ifndef CONFIG_DISABLE_SIGNALS
@@ -378,6 +413,7 @@ static const struct cmdmap_s g_cmdmap[] =
 #ifndef CONFIG_NSH_DISABLE_XD
   { "xd",       cmd_xd,       3, 3, "<hex-address> <byte-count>" },
 #endif
+
   { NULL,       NULL,         1, 1, NULL }
 };
 
@@ -570,7 +606,7 @@ static inline void help_builtins(FAR struct nsh_vtbl_s *vtbl)
   /* List the set of available built-in commands */
 
   nsh_output(vtbl, "\nBuiltin Apps:\n");
-  for (i = 0; (name = namedapp_getname(i)) != NULL; i++)
+  for (i = 0; (name = builtin_getname(i)) != NULL; i++)
     {
       nsh_output(vtbl, "  %s\n", name);
     }
@@ -688,15 +724,11 @@ static int cmd_exit(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
  * Name: nsh_execute
  *
  * Description:
- *   Exectue the command in argv[0]
+ *   Execute the command in argv[0]
  *
  * Returned Value:
- *   <0          If exec_namedapp() fails, then the negated errno value
- *               is returned.
  *   -1 (ERRROR) if the command was unsuccessful
  *    0 (OK)     if the command was successful
- *    1          if an application task was spawned successfully, but
- *               returned failure exit status.
  *
  ****************************************************************************/
 
@@ -711,26 +743,11 @@ static int nsh_execute(FAR struct nsh_vtbl_s *vtbl, int argc, char *argv[])
    *
    * argv[0]:      The command name.  This is argv[0] when the arguments
    *               are, finally, received by the command vtblr
-   * argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
+   * argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
    * argv[argc]:   NULL terminating pointer
    */
 
   cmd = argv[0];
-   
-  /* Try to find a command in the application library. */
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-  ret = nsh_execapp(vtbl, cmd, argv);
-
-  /* If the built-in application was successfully started, return OK 
-   * or 1 (if the application returned a non-zero exit status).
-   */
-
-  if (ret >= 0)
-    {
-      return ret;
-    }
-#endif
 
   /* See if the command is one that we understand */
 
@@ -1317,14 +1334,14 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
   /* Parse all of the arguments following the command name.  The form
    * of argv is:
    *
-   *   argv[0]:      The command name. 
-   *   argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
+   *   argv[0]:      The command name.
+   *   argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
    *   argv[argc-3]: Possibly '>' or '>>'
    *   argv[argc-2]: Possibly <file>
    *   argv[argc-1]: Possibly '&'
    *   argv[argc]:   NULL terminating pointer
    *
-   * Maximum size is NSH_MAX_ARGUMENTS+5
+   * Maximum size is CONFIG_NSH_MAXARGUMENTS+5
    */
 
   argv[0] = cmd;
@@ -1375,6 +1392,81 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
         }
     }
 
+  /* Check if the maximum number of arguments was exceeded */
+
+  if (argc > CONFIG_NSH_MAXARGUMENTS)
+    {
+      nsh_output(vtbl, g_fmttoomanyargs, cmd);
+    }
+
+  /* Does this command correspond to an application filename?
+   * nsh_fileapp() returns:
+   *
+   *   -1 (ERROR)  if the application task corresponding to 'argv[0]' could not
+   *               be started (possibly because it doesn not exist).
+   *    0 (OK)     if the application task corresponding to 'argv[0]' was
+   *               and successfully started.  If CONFIG_SCHED_WAITPID is
+   *               defined, this return value also indicates that the
+   *               application returned successful status (EXIT_SUCCESS)
+   *    1          If CONFIG_SCHED_WAITPID is defined, then this return value
+   *               indicates that the application task was spawned successfully
+   *               but returned failure exit status.
+   *
+   * Note the priority if not effected by nice-ness.
+   */
+
+#ifdef CONFIG_NSH_FILE_APPS
+  ret = nsh_fileapp(vtbl, argv[0], argv, redirfile, oflags);
+  if (ret >= 0)
+    {
+      /* nsh_fileapp() returned 0 or 1.  This means that the builtin
+       * command was successfully started (although it may not have ran
+       * successfully).  So certainly it is not an NSH command.
+       */
+
+      return nsh_saveresult(vtbl, ret != OK);
+    }
+
+  /* No, not a built in command (or, at least, we were unable to start a
+   * builtin command of that name).  Treat it like an NSH command.
+   */
+
+#endif
+
+  /* Does this command correspond to a builtin command?
+   * nsh_builtin() returns:
+   *
+   *   -1 (ERROR)  if the application task corresponding to 'argv[0]' could not
+   *               be started (possibly because it doesn not exist).
+   *    0 (OK)     if the application task corresponding to 'argv[0]' was
+   *               and successfully started.  If CONFIG_SCHED_WAITPID is
+   *               defined, this return value also indicates that the
+   *               application returned successful status (EXIT_SUCCESS)
+   *    1          If CONFIG_SCHED_WAITPID is defined, then this return value
+   *               indicates that the application task was spawned successfully
+   *               but returned failure exit status.
+   *
+   * Note the priority if not effected by nice-ness.
+   */
+
+#if defined(CONFIG_NSH_BUILTIN_APPS) && (!defined(CONFIG_NSH_FILE_APPS) || !defined(CONFIG_FS_BINFS))
+  ret = nsh_builtin(vtbl, argv[0], argv, redirfile, oflags);
+  if (ret >= 0)
+    {
+      /* nsh_builtin() returned 0 or 1.  This means that the builtin
+       * command was successfully started (although it may not have ran
+       * successfully).  So certainly it is not an NSH command.
+       */
+
+      return nsh_saveresult(vtbl, ret != OK);
+    }
+
+  /* No, not a built in command (or, at least, we were unable to start a
+   * builtin command of that name).  Treat it like an NSH command.
+   */
+
+#endif
+
   /* Redirected output? */
 
   if (vtbl->np.np_redirect)
@@ -1396,23 +1488,13 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
         }
     }
 
-  /* Check if the maximum number of arguments was exceeded */
-
-  if (argc > NSH_MAX_ARGUMENTS)
-    {
-      nsh_output(vtbl, g_fmttoomanyargs, cmd);
-    }
-
   /* Handle the case where the command is executed in background.
-   * However is app is to be started as namedapp new process will
-   * be created anyway, so skip this step. */
+   * However is app is to be started as builtin new process will
+   * be created anyway, so skip this step.
+   */
 
 #ifndef CONFIG_NSH_DISABLEBG
-  if (vtbl->np.np_bg
-#ifdef CONFIG_NSH_BUILTIN_APPS
-      && namedapp_isavail(argv[0]) < 0     
-#endif
-  )
+  if (vtbl->np.np_bg)
     {
       struct sched_param param;
       struct nsh_vtbl_s *bkgvtbl;
@@ -1479,6 +1561,7 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
                   priority = min_priority;
                 }
             }
+
           param.sched_priority = priority;
         }
 
@@ -1518,8 +1601,6 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
        *
        * -1 (ERRROR) if the command was unsuccessful
        *  0 (OK)     if the command was successful
-       *  1          if an application task was spawned successfully, but
-       *             returned failure exit status.
        */
 
       ret = nsh_execute(vtbl, argc, argv);
@@ -1533,11 +1614,11 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
           nsh_undirect(vtbl, save);
         }
 
-      /* Treat both errors and non-zero return codes as "errors" so that
-       * it is possible to test for non-zero returns in nsh scripts.
+      /* Mark errors so that it is possible to test for non-zero return values
+       * in nsh scripts.
        */
 
-      if (ret != OK)
+      if (ret < 0)
         {
           goto errout;
         }

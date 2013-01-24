@@ -123,6 +123,7 @@ static inline int ping_timeout(struct icmp_ping_s *pstate)
     {
       return TRUE;
     }
+
   return FALSE;
 }
 
@@ -365,6 +366,7 @@ int uip_ping(uip_ipaddr_t addr, uint16_t id, uint16_t seqno,
 
       uip_icmpcallbackfree(state.png_cb);
     }
+
   uip_unlock(save);
 
   /* Return the negated error number in the event of a failure, or the

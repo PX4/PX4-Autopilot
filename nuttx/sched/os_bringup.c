@@ -44,6 +44,7 @@
 #include <nuttx/config.h>
 
 #include <sched.h>
+#include <stdlib.h>
 #include <debug.h>
 
 #include <nuttx/init.h>
@@ -55,9 +56,6 @@
 #endif
 #ifdef CONFIG_SCHED_WORKQUEUE
 # include "work_internal.h"
-#endif
-#ifdef CONFIG_BUILTIN_APP_START
-# include "apps/apps.h"
 #endif
 #ifdef CONFIG_NUTTX_KERNEL
 # include "arch/board/user_map.h"
@@ -111,23 +109,27 @@
  *                  function is to serve as the "bottom half" of device
  *                  drivers.
  *
- *   And the main application entry point.  This may be one of two different
+ *   And the main application entry point:
  *   symbols:
  *
- *   - USER_ENTRYPOINT: This is the default entry point used for all of the
- *                  example code in apps/examples.
- *   - CONFIG_BUILTIN_APP_START: The system can also be configured to start
- *                  custom applications at however CONFIG_BUILTIN_APP_START
- *                  is defined in the NuttX start-up file.
+ *   - USER_ENTRYPOINT: This is the default user application entry point.
  *                 
  ****************************************************************************/
 
 int os_bringup(void)
 {
-#ifdef CONFIG_BUILTIN_APP_START 
-  static const char *argv[3] = {NULL, "init", NULL};
-#endif
   int init_taskid;
+
+  /* Setup up the initial environment for the idle task.  At present, this
+   * may consist of only the initial PATH variable.  The PATH variable is
+   * (probably) not used by the IDLE task.  However, the environment
+   * containing the PATH variable will be inherited by all of the threads
+   * created by the IDLE task.
+   */
+
+#if !defined(CONFIG_DISABLE_ENVIRON) && defined(CONFIG_PATH_INITIAL)
+  (void)setenv("PATH", CONFIG_PATH_INITIAL, 1);
+#endif
 
   /* Start the page fill worker kernel thread that will resolve page faults.
    * This should always be the first thread started because it may have to
@@ -176,19 +178,18 @@ int os_bringup(void)
 
   svdbg("Starting init thread\n");
 
-#ifdef CONFIG_BUILTIN_APP_START
-  /* Start the built-in named application, passing an "init" argument, so that
-   * application can distinguish different run-levels 
-   */
-  
-  init_taskid = exec_namedapp(CONFIG_BUILTIN_APP_START, argv);
-#else
   /* Start the default application at CONFIG_USER_ENTRYPOINT() */
 
   init_taskid = TASK_CREATE("init", SCHED_PRIORITY_DEFAULT,
                             CONFIG_USERMAIN_STACKSIZE,
                             (main_t)CONFIG_USER_ENTRYPOINT, (const char **)NULL);
-#endif
   ASSERT(init_taskid != ERROR);
+
+  /* We an save a few bytes by discarding the IDLE thread's environment. */
+
+#if !defined(CONFIG_DISABLE_ENVIRON) && defined(CONFIG_PATH_INITIAL)
+  (void)clearenv();
+#endif
+
   return OK;
 }

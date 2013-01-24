@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include <nuttx/usb/usbdev_trace.h>
@@ -215,6 +216,15 @@
 
 #endif /* CONFIG_NSH_TELNET_LOGIN */
 
+/* CONFIG_NSH_MAX_ROUNDTRIP - This is the maximum round trip for a response to
+ *   a ICMP ECHO request. It is in units of deciseconds.  The default is 20
+ *   (2 seconds).
+ */
+
+#ifndef CONFIG_NSH_MAX_ROUNDTRIP
+#  define CONFIG_NSH_MAX_ROUNDTRIP 20
+#endif
+
 /* Verify support for ROMFS /etc directory support options */
 
 #ifdef CONFIG_NSH_ROMFSETC
@@ -258,12 +268,36 @@
 #  undef CONFIG_NSH_ROMFSSECTSIZE
 #endif
 
-/* This is the maximum number of arguments that will be accepted for a command */
-#ifdef CONFIG_NSH_MAX_ARGUMENTS
-#  define NSH_MAX_ARGUMENTS CONFIG_NSH_MAX_ARGUMENTS
-#else
-#  define NSH_MAX_ARGUMENTS 10
+/* This is the maximum number of arguments that will be accepted for a
+ * command.  Here we attempt to select the smallest number possible depending
+ * upon the of commands that are available.  Most commands use six or fewer
+ * arguments, but there are a few that require more.
+ *
+ * This value is also configurable with CONFIG_NSH_MAXARGUMENTS.  This
+ * configurability is necessary since there may also be external, "built-in"
+ * commands that require more commands than NSH is aware of.
+ */
+
+#ifndef CONFIG_NSH_MAXARGUMENTS
+#  define CONFIG_NSH_MAXARGUMENTS 6
 #endif
+
+#if CONFIG_NSH_MAXARGUMENTS < 11
+#  if defined(CONFIG_NET) && !defined(CONFIG_NSH_DISABLE_IFCONFIG)
+#    undef CONFIG_NSH_MAXARGUMENTS
+#    define CONFIG_NSH_MAXARGUMENTS 11
+#  endif
+#endif
+
+#if CONFIG_NSH_MAXARGUMENTS < 7
+#  if defined(CONFIG_NET_UDP) && CONFIG_NFILE_DESCRIPTORS > 0
+#    if !defined(CONFIG_NSH_DISABLE_GET) || !defined(CONFIG_NSH_DISABLE_PUT)
+#      undef CONFIG_NSH_MAXARGUMENTS
+#      define CONFIG_NSH_MAXARGUMENTS 7
+#    endif
+# endif
+#endif
+
 /* strerror() produces much nicer output but is, however, quite large and
  * will only be used if CONFIG_NSH_STRERROR is defined.  Note that the strerror
  * interface must also have been enabled with CONFIG_LIBC_STRERROR.
@@ -457,7 +491,13 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline);
 /* Application interface */
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd, FAR char **argv);
+int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+                FAR char **argv, FAR const char *redirfile, int oflags);
+#endif
+
+#ifdef CONFIG_NSH_FILE_APPS
+int nsh_fileapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+                FAR char **argv, FAR const char *redirfile, int oflags);
 #endif
 
 /* Working directory support */
@@ -507,7 +547,7 @@ void nsh_usbtrace(void);
 #ifndef CONFIG_NSH_DISABLE_XD
   int cmd_xd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #endif
-
+  
 #if !defined(CONFIG_NSH_DISABLESCRIPT) && !defined(CONFIG_NSH_DISABLE_TEST)
   int cmd_test(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
   int cmd_lbracket(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
@@ -529,6 +569,9 @@ void nsh_usbtrace(void);
 #  ifndef CONFIG_NSH_DISABLE_DD
       int cmd_dd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif
+#  ifndef CONFIG_NSH_DISABLE_HEXDUMP
+      int cmd_hexdump(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#   endif
 #  ifndef CONFIG_NSH_DISABLE_LS
       int cmd_ls(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif
@@ -595,6 +638,10 @@ void nsh_usbtrace(void);
 #  ifndef CONFIG_NSH_DISABLE_IFCONFIG
       int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif
+#  ifndef CONFIG_NSH_DISABLE_IFUPDOWN
+      int cmd_ifup(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+      int cmd_ifdown(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
 #if defined(CONFIG_NET_UDP) && CONFIG_NFILE_DESCRIPTORS > 0
 #  ifndef CONFIG_NSH_DISABLE_GET
       int cmd_get(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
@@ -642,5 +689,29 @@ void nsh_usbtrace(void);
       int cmd_usleep(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif
 #endif /* CONFIG_DISABLE_SIGNALS */
+
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_BASE64)
+#  ifndef CONFIG_NSH_DISABLE_BASE64DEC
+      int cmd_base64decode(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_BASE64ENC
+      int cmd_base64encode(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#endif
+
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_HASH_MD5)
+#  ifndef CONFIG_NSH_DISABLE_MD5
+      int cmd_md5(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#endif
+
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_URLCODE)
+#  ifndef CONFIG_NSH_DISABLE_URLDECODE
+      int cmd_urlencode(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_URLENCODE
+      int cmd_urldecode(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#endif
 
 #endif /* __APPS_NSHLIB_NSH_H */

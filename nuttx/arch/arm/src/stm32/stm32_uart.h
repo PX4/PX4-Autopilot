@@ -140,12 +140,9 @@
 #  undef HAVE_CONSOLE
 #endif
 
-/* DMA support is only provided if CONFIG_ARCH_DMA is in the NuttX configuration.
- * Furthermore, DMA support is currently only implemented for the F4 (but could be
- * extended to the F1 and F2 with a little effort in the DMA code.
- */
+/* DMA support is only provided if CONFIG_ARCH_DMA is in the NuttX configuration */
 
-#if !defined(HAVE_UART) || !defined(CONFIG_ARCH_DMA) || !defined(CONFIG_STM32_STM32F40XX)
+#if !defined(HAVE_UART) || !defined(CONFIG_ARCH_DMA)
 #  undef CONFIG_USART1_RXDMA
 #  undef CONFIG_USART2_RXDMA
 #  undef CONFIG_USART3_RXDMA
@@ -221,6 +218,20 @@
 #  undef SERIAL_HAVE_ONLY_DMA
 #elif defined(CONFIG_STM32_USART6) && !defined(CONFIG_USART6_RXDMA)
 #  undef SERIAL_HAVE_ONLY_DMA
+#endif
+
+/* Is RS-485 used? */
+
+#if defined(CONFIG_USART1_RS485) || defined(CONFIG_USART2_RS485) || \
+    defined(CONFIG_USART3_RS485) || defined(CONFIG_UART4_RS485)  || \
+    defined(CONFIG_UART5_RS485) || defined(CONFIG_USART6_RS485)
+#  define HAVE_RS485 1
+#endif
+
+#ifdef HAVE_RS485
+#  define USART_CR1_USED_INTS    (USART_CR1_RXNEIE | USART_CR1_TXEIE | USART_CR1_PEIE | USART_CR1_TCIE)
+#else
+#  define USART_CR1_USED_INTS    (USART_CR1_RXNEIE | USART_CR1_TXEIE | USART_CR1_PEIE)
 #endif
 
 /************************************************************************************

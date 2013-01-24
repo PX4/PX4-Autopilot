@@ -2,6 +2,7 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
 config MMCSD_NSLOTS
 	int "Number of MMC/SD slots"
 	default 1
@@ -38,8 +39,9 @@ config MMCSD_HAVECARDDETECT
 		100% accurate
 
 config MMCSD_SPI
-	bool "MMC/SD spi transfer support"
+	bool "MMC/SD SPI transfer support"
 	default y
+	depends on SPI
 
 config MMCSD_SPICLOCK
 	int "MMC/SD maximum SPI clock"
@@ -51,7 +53,7 @@ config MMCSD_SPICLOCK
 
 config MMCSD_SDIO
 	bool "MMC/SD sdio transfer support"
-	default y
+	default n
 
 if MMCSD_SDIO
 config SDIO_DMA

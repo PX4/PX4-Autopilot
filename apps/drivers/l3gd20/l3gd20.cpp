@@ -151,7 +151,7 @@ extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 class L3GD20 : public device::SPI
 {
 public:
-	L3GD20(int bus, spi_dev_e device);
+	L3GD20(int bus, const char* path, spi_dev_e device);
 	~L3GD20();
 
 	virtual int		init();
@@ -265,8 +265,8 @@ private:
 #define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
 
 
-L3GD20::L3GD20(int bus, spi_dev_e device) :
-	SPI("L3GD20", GYRO_DEVICE_PATH, bus, device, SPIDEV_MODE3, 8000000),
+L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
+	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 8000000),
 	_call_interval(0),
 	_num_reports(0),
 	_next_report(0),
@@ -745,7 +745,7 @@ start()
 		errx(1, "already started");
 
 	/* create the driver */
-	g_dev = new L3GD20(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_GYRO);
+	g_dev = new L3GD20(1 /* XXX magic number */, GYRO_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO);
 
 	if (g_dev == nullptr)
 		goto fail;

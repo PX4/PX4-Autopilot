@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -241,5 +240,5 @@ test_bson(int argc, char *argv[])
 	decode(&decoder);
 	free(buf);
 
-	exit(0);
+	return OK;
 }

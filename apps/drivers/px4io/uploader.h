@@ -64,20 +64,24 @@ private:
 		PROTO_CHIP_VERIFY	= 0x24,
 		PROTO_PROG_MULTI	= 0x27,
 		PROTO_READ_MULTI	= 0x28,
+		PROTO_GET_CRC		= 0x29,
 		PROTO_REBOOT		= 0x30,
 
 		INFO_BL_REV		= 1,		/**< bootloader protocol revision */
-		BL_REV			= 2,		/**< supported bootloader protocol  */
+		BL_REV			= 3,		/**< supported bootloader protocol  */
 		INFO_BOARD_ID		= 2,		/**< board type */
 		INFO_BOARD_REV		= 3,		/**< board revision */
 		INFO_FLASH_SIZE		= 4,		/**< max firmware size in bytes */
 
 		PROG_MULTI_MAX		= 60,		/**< protocol max is 255, must be multiple of 4 */
 		READ_MULTI_MAX		= 60,		/**< protocol max is 255, something overflows with >= 64 */
+
 	};
 
 	int			_io_fd;
 	int			_fw_fd;
+
+	uint32_t	bl_rev; /**< bootloader revision */
 
 	void			log(const char *fmt, ...);
 
@@ -91,7 +95,8 @@ private:
 	int			get_info(int param, uint32_t &val);
 	int			erase();
 	int			program();
-	int			verify();
+	int			verify_rev2();
+	int			verify_rev3();
 	int			reboot();
 	int			compare(bool &identical);
 };

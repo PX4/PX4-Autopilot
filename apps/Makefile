@@ -45,14 +45,14 @@ APPDIR = ${shell pwd}
 #   action. It is created by the configured appconfig file (a copy of which
 #   appears in this directory as .config)
 # SUBDIRS is the list of all directories containing Makefiles.  It is used
-#   only for cleaning. namedapp must always be the first in the list.  This
+#   only for cleaning. builtin must always be the first in the list.  This
 #   list can be extended by the .config file as well.
 
 CONFIGURED_APPS =
-#SUBDIRS = examples graphics interpreters modbus namedapp nshlib netutils system
-ALL_SUBDIRS = $(dir $(shell /usr/bin/find . -name Makefile))
-SUBDIRS = namedapp/ $(filter-out ./ ./namedapp/ ./examples/,$(ALL_SUBDIRS))
 
+SUBDIRS = examples interpreters builtin nshlib system
+
+#SUBDIRS = examples graphics interpreters modbus builtin nshlib netutils system
 
 # There are two different mechanisms for obtaining the list of configured
 # directories:
@@ -73,20 +73,20 @@ SUBDIRS = namedapp/ $(filter-out ./ ./namedapp/ ./examples/,$(ALL_SUBDIRS))
 
 ifeq ($(CONFIG_NUTTX_NEWCONFIG),y)
 
-# namedapp/Make.defs must be included first
+# builtin/Make.defs must be included first
 
--include namedapp/Make.defs
--include examples/Make.defs
--include graphics/Make.defs
--include interpreters/Make.defs
--include modbus/Make.defs
--include netutils/Make.defs
--include nshlib/Make.defs
--include system/Make.defs
+include builtin/Make.defs
+include examples/Make.defs
+include graphics/Make.defs
+include interpreters/Make.defs
+include modbus/Make.defs
+include netutils/Make.defs
+include nshlib/Make.defs
+include system/Make.defs
 
 # INSTALLED_APPS is the list of currently available application directories.  It
 # is the same as CONFIGURED_APPS, but filtered to exclude any non-existent
-# application directory. namedapp is always in the list of applications to be
+# application directory. builtin is always in the list of applications to be
 # built.
 
 INSTALLED_APPS =
@@ -98,27 +98,32 @@ else
 
 # INSTALLED_APPS is the list of currently available application directories.  It
 # is the same as CONFIGURED_APPS, but filtered to exclude any non-existent
-# application directory. namedapp is always in the list of applications to be
+# application directory. builtin is always in the list of applications to be
 # built.
 
-INSTALLED_APPS = namedapp
+INSTALLED_APPS = builtin
 endif
 
 # Create the list of available applications (INSTALLED_APPS)
 
 define ADD_BUILTIN
-INSTALLED_APPS += ${shell if [ -r $1/Makefile ]; then echo "$1"; fi}
+  INSTALLED_APPS += $(if $(wildcard $1$(DELIM)Makefile),$1,)
 endef
 
 $(foreach BUILTIN, $(CONFIGURED_APPS), $(eval $(call ADD_BUILTIN,$(BUILTIN))))
+
+# EXTERNAL_APPS is used to add out of tree apps to the build
+INSTALLED_APPS += $(EXTERNAL_APPS)
 
 # The external/ directory may also be added to the INSTALLED_APPS.  But there
 # is no external/ directory in the repository.  Rather, this directory may be
 # provided by the user (possibly as a symbolic link) to add libraries and
 # applications to the standard build from the repository.
 
-INSTALLED_APPS += ${shell if [ -r external/Makefile ]; then echo "external"; fi}
-SUBDIRS += ${shell if [ -r external/Makefile ]; then echo "external"; fi}
+EXTERNAL_DIR := $(dir $(wildcard external$(DELIM)Makefile))
+
+INSTALLED_APPS += $(EXTERNAL_DIR)
+SUBDIRS += $(EXTERNAL_DIR)
 
 # The final build target
 
@@ -130,48 +135,74 @@ all: $(BIN)
 .PHONY: $(INSTALLED_APPS) context depend clean distclean
 
 $(INSTALLED_APPS):
-	@$(MAKE) -C $@ TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)";
+	$(Q) $(MAKE) -C $@ TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 
 $(BIN):	$(INSTALLED_APPS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
 
-.context:
-	@for dir in $(INSTALLED_APPS) ; do \
-		rm -f $$dir/.context ; \
-		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)"  APPDIR="$(APPDIR)" context ; \
+context:
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for %%G in ($(INSTALLED_APPS)) do ( \
+		$(MAKE) -C %%G TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" context \
+	)
+else
+	$(Q) for dir in $(INSTALLED_APPS) ; do \
+		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" context ; \
 	done
-	@touch $@
-
-context: .context
+endif
 
 .depend: context Makefile $(SRCS)
-	@for dir in $(INSTALLED_APPS) ; do \
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for %%G in ($(INSTALLED_APPS)) do ( \
+		if exist %%G\.depend del /f /q %%G\.depend \
+		$(MAKE) -C %%G TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" depend \
+	)
+else
+	$(Q) for dir in $(INSTALLED_APPS) ; do \
 		rm -f $$dir/.depend ; \
-		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)"  APPDIR="$(APPDIR)" depend ; \
+		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" depend ; \
 	done
-	@touch $@
+endif
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@for dir in $(SUBDIRS) ; do \
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for %%G in ($(SUBDIRS)) do ( \
+		$(MAKE) -C %%G clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \
+	)
+else
+	$(Q) for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
-	@rm -f $(BIN) *~ .*.swp *.o
+endif
+	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
-distclean: # clean
-	@for dir in $(SUBDIRS) ; do \
+distclean:
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for %%G in ($(SUBDIRS)) do ( \
+		$(MAKE) -C %%G distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \
+	)
+	$(call DELFILE, .config)
+	$(call DELFILE, .depend)
+	$(Q) ( if exist  external ( \
+		echo ********************************************************" \
+		echo * The external directory/link must be removed manually *" \
+		echo ********************************************************" \
+	)
+else
+	$(Q) for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
-	@rm -f .config .context .depend
-	@( if [ -e external ]; then \
+	$(call DELFILE, .config)
+	$(call DELFILE, .depend)
+	$(Q) ( if [ -e external ]; then \
 		echo "********************************************************"; \
 		echo "* The external directory/link must be removed manually *"; \
 		echo "********************************************************"; \
 	   fi; \
 	) 
+endif
 
 

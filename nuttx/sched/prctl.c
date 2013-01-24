@@ -157,8 +157,14 @@ int prctl(int option, ...)
       goto errout;
     }
 
+  /* Not reachable unless CONFIG_TASK_NAME_SIZE is > 0.  NOTE: This might
+   * change if additional commands are supported.
+   */
+
+#if CONFIG_TASK_NAME_SIZE > 0
   va_end(ap);
   return OK;
+#endif
 
 errout:
   va_end(ap);

@@ -52,6 +52,10 @@ ifeq ($(CONFIG_ARCH_FPU),y)
 CSRCS		+= fpu.c
 endif
 
+ifeq ($(CONFIG_SCHED_WAITPID),y)
+CSRCS		+= waitpid.c
+endif
+
 ifneq ($(CONFIG_DISABLE_PTHREAD),y)
 CSRCS		+= cancel.c cond.c mutex.c sem.c barrier.c
 ifneq ($(CONFIG_RR_INTERVAL),0)
@@ -84,6 +88,10 @@ ifneq ($(CONFIG_DISABLE_POSIX_TIMERS),y)
 CSRCS		+= posixtimer.c
 endif
 
+ifeq ($(CONFIG_ARCH_HAVE_VFORK),y)
+CSRCS		+= vfork.c
+endif
+
 ifneq ($(CONFIG_DISABLE_SIGNALS),y)
 ifneq ($(CONFIG_DISABLE_PTHREAD),y)
 ifeq ($(CONFIG_PRIORITY_INHERITANCE),y)
@@ -98,10 +106,14 @@ COBJS		= $(CSRCS:.c=$(OBJEXT))
 SRCS		= $(ASRCS) $(CSRCS)
 OBJS		= $(AOBJS) $(COBJS)
 
-ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  BIN		= ..\..\libapps$(LIBEXT)
 else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
+ifeq ($(WINTOOL),y)
+  BIN		= ..\\..\\libapps$(LIBEXT)
+else
+  BIN		= ../../libapps$(LIBEXT)
+endif
 endif
 
 ROOTDEPPATH	= --dep-path .
@@ -120,30 +132,30 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 .built: $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
+	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 
-.context:
 ifeq ($(CONFIG_EXAMPLES_OSTEST_BUILTIN),y)
+$(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(DEPCONFIG) Makefile
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	@touch $@
+
+context: $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat
+else
+context:
 endif
 
-context: .context
-
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

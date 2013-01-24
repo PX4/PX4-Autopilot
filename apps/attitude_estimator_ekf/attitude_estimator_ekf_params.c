@@ -35,7 +35,7 @@
 
 /*
  * @file attitude_estimator_ekf_params.c
- * 
+ *
  * Parameters for EKF filter
  */
 
@@ -65,13 +65,17 @@ PARAM_DEFINE_FLOAT(EKF_ATT_R0, 0.01f);
 PARAM_DEFINE_FLOAT(EKF_ATT_R1, 0.01f);
 PARAM_DEFINE_FLOAT(EKF_ATT_R2, 0.01f);
 /* accelerometer measurement noise */
-PARAM_DEFINE_FLOAT(EKF_ATT_R3, 1e1f);
-PARAM_DEFINE_FLOAT(EKF_ATT_R4, 1e1f);
-PARAM_DEFINE_FLOAT(EKF_ATT_R5, 1e1f);
+PARAM_DEFINE_FLOAT(EKF_ATT_R3, 1e2f);
+PARAM_DEFINE_FLOAT(EKF_ATT_R4, 1e2f);
+PARAM_DEFINE_FLOAT(EKF_ATT_R5, 1e2f);
 /* magnetometer measurement noise */
 PARAM_DEFINE_FLOAT(EKF_ATT_R6, 1e-1f);
 PARAM_DEFINE_FLOAT(EKF_ATT_R7, 1e-1f);
 PARAM_DEFINE_FLOAT(EKF_ATT_R8, 1e-1f);
+/* offsets in roll, pitch and yaw of sensor plane and body */
+PARAM_DEFINE_FLOAT(ATT_ROLL_OFFS, 0.0f);
+PARAM_DEFINE_FLOAT(ATT_PITCH_OFFS, 0.0f);
+PARAM_DEFINE_FLOAT(ATT_YAW_OFFS, 0.0f);
 
 int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 {
@@ -98,6 +102,10 @@ int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 	h->r6 	=	param_find("EKF_ATT_R6");
 	h->r7 	=	param_find("EKF_ATT_R7");
 	h->r8 	=	param_find("EKF_ATT_R8");
+
+	h->roll_off  =	param_find("ATT_ROLL_OFFS");
+	h->pitch_off =	param_find("ATT_PITCH_OFFS");
+	h->yaw_off   =	param_find("ATT_YAW_OFFS");
 
 	return OK;
 }
@@ -126,6 +134,10 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 	param_get(h->r6, &(p->r[6]));
 	param_get(h->r7, &(p->r[7]));
 	param_get(h->r8, &(p->r[8]));
+
+	param_get(h->roll_off, &(p->roll_off));
+	param_get(h->pitch_off, &(p->pitch_off));
+	param_get(h->yaw_off, &(p->yaw_off));
 
 	return OK;
 }

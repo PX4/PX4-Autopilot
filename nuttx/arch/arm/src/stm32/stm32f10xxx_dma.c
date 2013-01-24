@@ -303,13 +303,13 @@ static int stm32_dmainterrupt(int irq, void *context)
     }
   dmach = &g_dma[chndx];
 
-  /* Get the interrupt status (for this channel only) -- not currently used */
+  /* Get the interrupt status (for this channel only) */
 
   isr = dmabase_getreg(dmach, STM32_DMA_ISR_OFFSET) & DMA_ISR_CHAN_MASK(dmach->chan);
 
-  /* Disable the DMA channel */
+  /* Clear the interrupts we are handling */
 
-  stm32_dmachandisable(dmach);
+  dmabase_putreg(dmach, STM32_DMA_IFCR_OFFSET, isr);
 
   /* Invoke the callback */
 
@@ -528,14 +528,34 @@ void stm32_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg, bool 
   ccr  = dmachan_getreg(dmach, STM32_DMACHAN_CCR_OFFSET);
   ccr |= DMA_CCR_EN;
 
-  /* Once half of the bytes are transferred, the half-transfer flag (HTIF) is
-   * set and an interrupt is generated if the Half-Transfer Interrupt Enable
-   * bit (HTIE) is set. At the end of the transfer, the Transfer Complete Flag
-   * (TCIF) is set and an interrupt is generated if the Transfer Complete
-   * Interrupt Enable bit (TCIE) is set.
+  /* In normal mode, interrupt at either half or full completion. In circular mode,
+   * always interrupt on buffer wrap, and optionally interrupt at the halfway point.
    */
 
-  ccr |= (half ? (DMA_CCR_HTIE|DMA_CCR_TEIE) : (DMA_CCR_TCIE|DMA_CCR_TEIE));
+  if ((ccr & DMA_CCR_CIRC) == 0)
+    {
+      /* Once half of the bytes are transferred, the half-transfer flag (HTIF) is
+       * set and an interrupt is generated if the Half-Transfer Interrupt Enable
+       * bit (HTIE) is set. At the end of the transfer, the Transfer Complete Flag
+       * (TCIF) is set and an interrupt is generated if the Transfer Complete
+       * Interrupt Enable bit (TCIE) is set.
+       */
+
+      ccr |= (half ? (DMA_CCR_HTIE|DMA_CCR_TEIE) : (DMA_CCR_TCIE|DMA_CCR_TEIE));
+
+    }
+  else
+    {
+      /* In nonstop mode, when the transfer completes it immediately resets
+       * and starts again.  The transfer-complete interrupt is thus always
+       * enabled, and the half-complete interrupt can be used in circular 
+       * mode to determine when the buffer is half-full, or in double-buffered
+       * mode to determine when one of the two buffers is full.
+       */
+
+      ccr |= (half ? DMA_CCR_HTIE : 0) | DMA_CCR_TCIE | DMA_CCR_TEIE;
+    }
+
   dmachan_putreg(dmach, STM32_DMACHAN_CCR_OFFSET, ccr);
 }
 
@@ -556,6 +576,24 @@ void stm32_dmastop(DMA_HANDLE handle)
 {
   struct stm32_dma_s *dmach = (struct stm32_dma_s *)handle;
   stm32_dmachandisable(dmach);
+}
+
+/****************************************************************************
+ * Name: stm32_dmaresidual
+ *
+ * Description:
+ *   Returns the number of bytes remaining to be transferred
+ *
+ * Assumptions:
+ *   - DMA handle allocated by stm32_dmachannel()
+ *
+ ****************************************************************************/
+
+size_t stm32_dmaresidual(DMA_HANDLE handle)
+{
+  struct stm32_dma_s *dmach = (struct stm32_dma_s *)handle;
+
+  return dmachan_getreg(dmach, STM32_DMACHAN_CNDTR_OFFSET);
 }
 
 /****************************************************************************

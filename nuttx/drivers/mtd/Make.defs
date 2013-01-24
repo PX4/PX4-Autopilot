@@ -37,6 +37,8 @@
 
 # Include MTD drivers
 
+ifeq ($(CONFIG_MTD),y)
+
 CSRCS += at45db.c flash_eraseall.c ftl.c m25px.c rammtd.c ramtron.c
 
 ifeq ($(CONFIG_MTD_AT24XX),y)
@@ -51,8 +53,13 @@ ifeq ($(CONFIG_MTD_W25),y)
 CSRCS += w25.c
 endif
 
+ifeq ($(CONFIG_MTD_AT25),y)
+CSRCS += at25.c
+endif
+
 # Include MTD driver support
 
 DEPPATH += --dep-path mtd
 VPATH += :mtd
 
+endif

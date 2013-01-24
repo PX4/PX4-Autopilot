@@ -14,130 +14,211 @@ config NSH_LIBRARY
 if NSH_LIBRARY
 config NSH_BUILTIN_APPS
 	bool "Enable built-in applications"
-	default y
-	depends on NAMEDAPP
+	default n
+	depends on BUILTIN
 	---help---
-		Support external registered, "named" applications that can be
+		Support external registered, "built-in" applications that can be
 		executed from the NSH command line (see apps/README.txt for
-		more information).  This options requires support for named applications
-		(NAMEDAPP).
+		more information).  This options requires support for builtin
+		applications (BUILTIN).
+
+config NSH_FILE_APPS
+	bool "Enable execution of program files"
+	default n
+	depends on LIBC_EXECFUNCS
+	---help---
+		Support execution of program files residing within a file
+		system.  This options requires support for the posix_spawn()
+		interface (LIBC_EXECFUNCS).
 
 menu "Disable Individual commands"
+
+config NSH_DISABLE_BASE64DEC
+	bool "Disable base64dec"
+	default n
+	depends on NETUTILS_CODECS && CODECS_BASE64
+
+config NSH_DISABLE_BASE64ENC
+	bool "Disable base64enc"
+	default n
+	depends on NETUTILS_CODECS && CODECS_BASE64
+
 config NSH_DISABLE_CAT
 	bool "Disable cat"
 	default n
+
 config NSH_DISABLE_CD
 	bool "Disable cd"
 	default n
+
 config NSH_DISABLE_CP
 	bool "Disable cp"
 	default n
+
 config NSH_DISABLE_DD
 	bool "Disable dd"
 	default n
+
 config NSH_DISABLE_ECHO
 	bool "Disable echo"
 	default n
+
 config NSH_DISABLE_EXEC
 	bool "Disable exec"
 	default n
+
 config NSH_DISABLE_EXIT
 	bool "Disable exit"
 	default n
+
 config NSH_DISABLE_FREE
 	bool "Disable free"
 	default n
+
 config NSH_DISABLE_GET
 	bool "Disable get"
 	default n
+
 config NSH_DISABLE_HELP
 	bool "Disable help"
 	default n
+
+config NSH_DISABLE_HEXDUMP
+	bool "Disable hexdump"
+	default n
+
 config NSH_DISABLE_IFCONFIG
 	bool "Disable ifconfig"
 	default n
+
 config NSH_DISABLE_KILL
 	bool "Disable kill"
 	default n
+
 config NSH_DISABLE_LOSETUP
 	bool "Disable losetup"
 	default n
+
 config NSH_DISABLE_LS
 	bool "Disable ls"
 	default n
+
 config NSH_DISABLE_MB
 	bool "Disable mb"
 	default n
+
+config NSH_DISABLE_MD5
+	bool "Disable md5"
+	default n
+	depends on NETUTILS_CODECS && CODECS_HASH_MD5
+
 config NSH_DISABLE_MKDIR
 	bool "Disable mkdir"
 	default n
+
 config NSH_DISABLE_MKFATFS
 	bool "Disable mkfatfs"
 	default n
+
 config NSH_DISABLE_MKFIFO
 	bool "Disable mkfifo"
 	default n
+
 config NSH_DISABLE_MKRD
 	bool "Disable mkrd"
 	default n
+
 config NSH_DISABLE_MH
 	bool "Disable mh"
 	default n
+
 config NSH_DISABLE_MOUNT
 	bool "Disable mount"
 	default n
+
 config NSH_DISABLE_MW
 	bool "Disable mw"
 	default n
+
 config NSH_DISABLE_NSFMOUNT
 	bool "Disable nfsmount"
 	default n
+
 config NSH_DISABLE_PS
 	bool "Disable ps"
 	default n
+
 config NSH_DISABLE_PING
 	bool "Disable ping"
 	default n
+
 config NSH_DISABLE_PUT
 	bool "Disable put"
 	default n
+
 config NSH_DISABLE_PWD
 	bool "Disable pwd"
 	default n
+
 config NSH_DISABLE_RM
 	bool "Disable rm"
 	default n
+
 config NSH_DISABLE_RMDIR
 	bool "Disable rmdir"
 	default n
+
 config NSH_DISABLE_SET
 	bool "Disable set"
 	default n
+
 config NSH_DISABLE_SH
 	bool "Disable sh"
 	default n
+
 config NSH_DISABLE_SLEEP
 	bool "Disable sleep"
 	default n
+
 config NSH_DISABLE_TEST
 	bool "Disable test"
 	default n
+
 config NSH_DISABLE_UMOUNT
 	bool "Disable umount"
 	default n
+
 config NSH_DISABLE_UNSET
 	bool "Disable unset"
 	default n
+
+config NSH_DISABLE_URLDECODE
+	bool "Disable urldecode"
+	default n
+	depends on NETUTILS_CODECS && CODECS_URLCODE
+
+config NSH_DISABLE_URLENCODE
+	bool "Disable urlencode"
+	default n
+	depends on NETUTILS_CODECS && CODECS_URLCODE
+
 config NSH_DISABLE_USLEEP
 	bool "Disable usleep"
 	default n
+
 config NSH_DISABLE_WGET
 	bool "Disable wget"
 	default n
+
 config NSH_DISABLE_XD
 	bool "Disable xd"
 	default n
+
 endmenu
+
+config NSH_CODECS_BUFSIZE
+	int "File buffer size used by CODEC commands"
+	default 128
 
 config NSH_FILEIOSIZE
 	int "NSH I/O buffer size"
@@ -490,7 +571,7 @@ config NSH_DHCPC
 
 config NSH_IPADDR
 	hex "Target IP address"
-	default 0x10000002
+	default 0xa0000002
 	depends on NSH_LIBRARY && NET && !NSH_DHCPC
 	---help---
 		If NSH_DHCPC is NOT set, then the static IP address must be provided.
@@ -499,7 +580,7 @@ config NSH_IPADDR
 
 config NSH_DRIPADDR
 	hex "Router IP address"
-	default 0x10000001
+	default 0xa0000001
 	depends on NSH_LIBRARY && NET && !NSH_DHCPC
 	---help---
 		Default router IP address (aka, Gateway).  This is a 32-bit integer
@@ -513,6 +594,21 @@ config NSH_NETMASK
 		Network mask.  This is a 32-bit integer value in host order.  So, as
 		an example, 0xffffff00 would be 255.255.255.0.
 
+config NSH_DNS
+	bool "Use DNS"
+	default n
+	depends on NSH_LIBRARY && NET && NET_UDP && NET_BROADCAST
+	---help---
+		Configure to use a DNS.
+
+config NSH_DNSIPADDR
+	hex "DNS IP address"
+	default 0xa0000001
+	depends on NSH_DNS
+	---help---
+		Configure the DNS address.  This is a 32-bit integer value in host
+		order.  So, as an example, 0xa0000001 would be 10.0.0.1.
+
 config NSH_NOMAC
 	bool "Hardware has no MAC address"
 	default n
@@ -520,3 +616,12 @@ config NSH_NOMAC
 	---help---
 		Set if your ethernet hardware has no built-in MAC address.
 		If set, a bogus MAC will be assigned.
+
+config NSH_MAX_ROUNDTRIP
+	int "Max Ping Round-Trip (DSEC)"
+	default 20
+	depends on NSH_LIBRARY && NET && !NSH_DISABLE_PING
+	---help---
+		This is the maximum round trip for a response to a ICMP ECHO request.
+		It is in units of deciseconds.  The default is 20 (2 seconds).
+
