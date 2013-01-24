@@ -37,8 +37,6 @@
 
 ifeq ($(CONFIG_LIBC_EXECFUNCS),y)
 
-CSRCS += lib_ps.c
-
 CSRCS += lib_psfa_addaction.c lib_psfa_addclose.c lib_psfa_adddup2.c
 CSRCS += lib_psfa_addopen.c lib_psfa_destroy.c lib_psfa_init.c
 

@@ -61,14 +61,17 @@
 
 /* All signals are "real time" signals */
 
-#define SIGRTMIN        0  /* First real time signal */
-#define SIGRTMAX        31 /* Last real time signal */
+#define SIGRTMIN        MIN_SIGNO  /* First real time signal */
+#define SIGRTMAX        MAX_SIGNO  /* Last real time signal */
 
 /* A few of the real time signals are used within the OS.  They have
  * default values that can be overridden from the configuration file. The
  * rest are all user signals.
  *
- * These are semi-standard signal definitions:
+ * The signal number zero is wasted for the most part.  It is a valid
+ * signal number, but has special meaning at many interfaces (e.g., Kill()).
+ *
+ * These are the semi-standard signal definitions:
  */
 
 #ifndef CONFIG_SIG_SIGUSR1
@@ -126,11 +129,13 @@
 
 /* struct sigaction flag values */
 
-#define SA_NOCLDSTOP    1 /* Do not generate SIGCHILD when
-                           * children stop (ignored) */
-#define SA_SIGINFO      2 /* Invoke the signal-catching function
-                           * with 3 args instead of 1
-                           * (always assumed) */
+#define SA_NOCLDSTOP    (1 << 0) /* Do not generate SIGCHILD when
+                                  * children stop (ignored) */
+#define SA_SIGINFO      (1 << 1) /* Invoke the signal-catching function
+                                  * with 3 args instead of 1
+                                  * (always assumed) */
+#define SA_NOCLDWAIT    (1 << 2) /* If signo=SIGCHLD, exit status of child
+                                  * processes will be discarded */
 
 /* These are the possible values of the signfo si_code field */
 

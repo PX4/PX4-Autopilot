@@ -44,6 +44,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 /****************************************************************************
  * Definitions
  ****************************************************************************/
@@ -87,7 +89,11 @@ typedef unsigned int       _uintptr_t;
  */
 
 #ifdef __thumb2__
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+typedef unsigned char      irqstate_t;
+#else
 typedef unsigned short     irqstate_t;
+#endif
 #else /* __thumb2__ */
 typedef unsigned int       irqstate_t;
 #endif /* __thumb2__ */

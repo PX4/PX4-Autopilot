@@ -274,6 +274,9 @@ errout:
 pid_t waitpid(pid_t pid, int *stat_loc, int options)
 {
   FAR _TCB *rtcb = (FAR _TCB *)g_readytorun.head;
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  FAR struct child_status_s *child;
+#endif
   FAR struct siginfo info;
   sigset_t sigset;
   int err;
@@ -300,12 +303,33 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   sched_lock();
 
-  /* Verify that this task actually has children and that the the requeste
+  /* Verify that this task actually has children and that the the request
    * TCB is actually a child of this task.
    */
 
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  if (rtcb->children == NULL)
+    {
+      /* There are no children */
+
+      err = ECHILD;
+      goto errout_with_errno;
+    }
+  else if (pid != (pid_t)-1)
+    {
+      /* This specific pid is not a child */
+
+      if (task_findchild(rtcb, pid) == NULL)
+        {
+          err = ECHILD;
+          goto errout_with_errno;
+        }
+    }
+#else
   if (rtcb->nchildren == 0)
     {
+      /* There are no children */
+
       err = ECHILD;
       goto errout_with_errno;
     }
@@ -320,6 +344,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
           goto errout_with_errno;
         }
     }
+#endif
 
   /* Loop until the child that we are waiting for dies */
 
@@ -337,7 +362,12 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
            * chilren.
            */
 
+#ifdef CONFIG_SCHED_CHILD_STATUS
+          DEBUGASSERT(rtcb->children);
+          if (rtcb->children == NULL)
+#else
           if (rtcb->nchildren == 0)
+#endif
             {
               /* There were one or more children when we started so they
                * must have exit'ed.  There are just no bread crumbs left
@@ -351,6 +381,35 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
         }
       else
         {
+#ifdef CONFIG_SCHED_CHILD_STATUS
+          /* We are waiting for a specific PID.  Get the current status
+           * of the child task.
+           */
+
+          child = task_findchild(rtcb, pid);
+          DEBUGASSERT(child);
+          if (!child)
+            {
+              /* Yikes!  The child status entry just disappeared! */
+
+              err = ECHILD;
+              goto errout_with_errno;
+            }
+
+          /* Did the child exit? */
+
+          if ((child->ch_flags & CHILD_FLAG_EXITED) != 0)
+            {
+              /* The child has exited. Return the saved exit status */
+
+              *stat_loc = child->ch_status;
+
+              /* Discard the child entry and break out of the loop */
+
+              (void)task_removechild(rtcb, pid);
+              task_freechild(child);
+            }
+#else
           /* We are waiting for a specific PID.  We can use kill() with
            * signal number 0 to determine if that task is still alive.
            */
@@ -368,6 +427,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
               err = ECHILD;
               goto errout_with_errno;
             }
+#endif
         }
 
       /* Wait for any death-of-child signal */

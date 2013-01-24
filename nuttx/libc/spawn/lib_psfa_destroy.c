@@ -43,7 +43,7 @@
 #include <spawn.h>
 #include <assert.h>
 
-#include "spawn/spawn.h"
+#include <nuttx/spawn.h>
 
 /****************************************************************************
  * Global Functions

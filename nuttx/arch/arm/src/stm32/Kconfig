@@ -457,32 +457,38 @@ config STM32_USART1
 	bool "USART1"
 	default n
 	select ARCH_HAVE_USART1
+	select STM32_USART
 
 config STM32_USART2
 	bool "USART2"
 	default n
 	select ARCH_HAVE_USART2
+	select STM32_USART
 
 config STM32_USART3
 	bool "USART3"
 	default n
 	select ARCH_HAVE_USART3
+	select STM32_USART
 
 config STM32_UART4
 	bool "UART4"
 	default n
 	select ARCH_HAVE_UART4
+	select STM32_USART
 
 config STM32_UART5
 	bool "UART5"
 	default n
 	select ARCH_HAVE_UART5
+	select STM32_USART
 
 config STM32_USART6
 	bool "USART6"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
 	select ARCH_HAVE_USART6
+	select STM32_USART
 
 config STM32_USB
 	bool "USB Device"
@@ -1804,8 +1810,11 @@ config STM32_TIM14_DAC2
 
 endchoice
 
+config STM32_USART
+	bool
+
 menu "U[S]ART Configuration"
-	depends on STM32_USART1 || STM32_USART2 || STM32_USART3 || STM32_USART4 || STM32_USART5 || STM32_USART6
+	depends on STM32_USART
 
 config USART1_RS485
 	bool "RS-485 on USART1"
@@ -1967,6 +1976,14 @@ config SERIAL_TERMIOS
 		are not configurable at runtime; serial streams cannot be flushed, etc..
 
 endmenu
+
+config STM32_USART_SINGLEWIRE
+	bool "Single Wire Support"
+	default n
+	depends on STM32_USART
+	---help---
+		Enable single wire UART support.  The option enables support for the
+		TIOCSSINGLEWIRE ioctl in the STM32 serial driver.
 
 menu "SPI Configuration"
 	depends on STM32_SPI

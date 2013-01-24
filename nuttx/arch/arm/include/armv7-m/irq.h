@@ -60,6 +60,10 @@
 #  include <arch/armv7-m/irq_lazyfpu.h>
 #endif
 
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+#  include <arch/chip/chip.h>
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -114,7 +118,11 @@ struct xcptcontext
    */
 
   uint32_t saved_pc;
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  uint32_t saved_basepri;
+#else
   uint32_t saved_primask;
+#endif
   uint32_t saved_xpsr;
 #endif
 
@@ -130,65 +138,7 @@ struct xcptcontext
 
 #ifndef __ASSEMBLY__
 
-/* Disable IRQs */
-
-static inline void irqdisable(void) inline_function;
-static inline void irqdisable(void)
-{
-  __asm__ __volatile__ ("\tcpsid  i\n");
-}
-
-/* Save the current primask state & disable IRQs */
-
-static inline irqstate_t irqsave(void) inline_function;
-static inline irqstate_t irqsave(void)
-{
-  unsigned short primask;
-
-  /* Return the current value of primask register and set
-   * bit 0 of the primask register to disable interrupts
-   */
-
-  __asm__ __volatile__
-    (
-     "\tmrs    %0, primask\n"
-     "\tcpsid  i\n"
-     : "=r" (primask)
-     :
-     : "memory");
-
-  return primask;
-}
-
-/* Enable IRQs */
-
-static inline void irqenable(void) inline_function;
-static inline void irqenable(void)
-{
-  __asm__ __volatile__ ("\tcpsie  i\n");
-}
-
-/* Restore saved primask state */
-
-static inline void irqrestore(irqstate_t primask) inline_function;
-static inline void irqrestore(irqstate_t primask)
-{
-  /* If bit 0 of the primask is 0, then we need to restore
-   * interupts.
-   */
-
-  __asm__ __volatile__
-    (
-      "\ttst    %0, #1\n"
-      "\tbne    1f\n"
-      "\tcpsie  i\n"
-      "1:\n"
-      :
-      : "r" (primask)
-      : "memory");
-}
-
-/* Get/set the primask register */
+/* Get/set the PRIMASK register */
 
 static inline uint8_t getprimask(void) inline_function;
 static inline uint8_t getprimask(void)
@@ -215,7 +165,11 @@ static inline void setprimask(uint32_t primask)
       : "memory");
 }
 
-/* Get/set the basepri register */
+/* Get/set the BASEPRI register.  The BASEPRI register defines the minimum
+ * priority for exception processing. When BASEPRI is set to a nonzero
+ * value, it prevents the activation of all exceptions with the same or
+ * lower priority level as the BASEPRI value.
+ */
 
 static inline uint8_t getbasepri(void) inline_function;
 static inline uint8_t getbasepri(void)
@@ -241,6 +195,82 @@ static inline void setbasepri(uint32_t basepri)
       :
       : "r" (basepri)
       : "memory");
+}
+
+/* Disable IRQs */
+
+static inline void irqdisable(void) inline_function;
+static inline void irqdisable(void)
+{
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  setbasepri(NVIC_SYSH_DISABLE_PRIORITY);
+#else
+  __asm__ __volatile__ ("\tcpsid  i\n");
+#endif
+}
+
+/* Save the current primask state & disable IRQs */
+
+static inline irqstate_t irqsave(void) inline_function;
+static inline irqstate_t irqsave(void)
+{
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+
+  uint8_t basepri = getbasepri();
+  setbasepri(NVIC_SYSH_DISABLE_PRIORITY);
+  return (irqstate_t)basepri;
+
+#else
+
+  unsigned short primask;
+
+  /* Return the current value of primask register and set
+   * bit 0 of the primask register to disable interrupts
+   */
+
+  __asm__ __volatile__
+    (
+     "\tmrs    %0, primask\n"
+     "\tcpsid  i\n"
+     : "=r" (primask)
+     :
+     : "memory");
+
+  return primask;
+#endif
+}
+
+/* Enable IRQs */
+
+static inline void irqenable(void) inline_function;
+static inline void irqenable(void)
+{
+  setbasepri(0);
+  __asm__ __volatile__ ("\tcpsie  i\n");
+}
+
+/* Restore saved primask state */
+
+static inline void irqrestore(irqstate_t flags) inline_function;
+static inline void irqrestore(irqstate_t flags)
+{
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  setbasepri((uint32_t)flags);
+#else
+  /* If bit 0 of the primask is 0, then we need to restore
+   * interupts.
+   */
+
+  __asm__ __volatile__
+    (
+      "\ttst    %0, #1\n"
+      "\tbne    1f\n"
+      "\tcpsie  i\n"
+      "1:\n"
+      :
+      : "r" (flags)
+      : "memory");
+#endif
 }
 
 /* Get/set IPSR */
