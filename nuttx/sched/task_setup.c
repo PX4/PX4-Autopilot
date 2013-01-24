@@ -219,7 +219,7 @@ static inline void task_saveparent(FAR _TCB *tcb, uint8_t ttype)
     }
 }
 #else
-#  define task_saveparent(tcb)
+#  define task_saveparent(tcb,ttype)
 #endif
 
 /****************************************************************************

@@ -4018,4 +4018,6 @@
 	  CONFIG_SCHED_CHILD_STATUS
 	* Add support for keyboard encode to the keypad test (from
 	  Denis Carikli).
+	* configs/olimex-lpc1766stk/nettest:  Configuration converted to
+	  use the kconfig-frontends tools.
 
