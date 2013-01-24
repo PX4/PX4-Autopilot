@@ -80,9 +80,9 @@ volatile uint16_t	r_page_controls[PX4IO_CONTROL_CHANNELS];
  * Static configuration parameters.
  */
 static const uint16_t	r_page_config[] = {
-	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= 0,
-	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= 0,
-	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= 0,
+	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= 1,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= 1,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= 3,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
 	[PX4IO_P_CONFIG_ACTUATOR_COUNT]		= IO_SERVO_COUNT,

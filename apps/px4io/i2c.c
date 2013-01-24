@@ -242,6 +242,7 @@ i2c_rx_complete(void)
 			uint16_t *regs;
 			unsigned reg_count;
 
+			/* work out which registers are being addressed */
 			int ret = registers_get(selected_page, selected_offset, &regs, &reg_count);
 			if (ret == 0) {
 				tx_buf = (uint8_t *)regs;
@@ -250,6 +251,14 @@ i2c_rx_complete(void)
 				tx_buf = junk_buf;
 				tx_len = sizeof(junk_buf);
 			}
+
+			/* disable interrupts while reconfiguring DMA for the selected registers */
+			irqstate_t flags = irqsave();
+
+			stm32_dmastop(tx_dma);
+			i2c_tx_setup();
+
+			irqrestore(flags);
 		}
 	}
 
