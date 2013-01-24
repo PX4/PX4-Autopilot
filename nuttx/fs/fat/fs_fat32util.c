@@ -692,8 +692,6 @@ int fat_checkmount(struct fat_mountpt_s *fs)
 
   if (fs && fs->fs_mounted)
     {
-      struct fat_file_s *file;
-
       /* We still think the mount is healthy.  Check an see if this is
        * still the case
        */
@@ -715,14 +713,8 @@ int fat_checkmount(struct fat_mountpt_s *fs)
       /* If we get here, the mount is NOT healthy */
 
       fs->fs_mounted = false;
-
-      /* Make sure that this is flagged in every opened file */
-
-      for (file = fs->fs_head; file; file = file->ff_next)
-        {
-          file->ff_open = false;
-        }
     }
+
   return -ENODEV;
 }
 

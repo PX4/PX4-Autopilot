@@ -99,7 +99,7 @@ uint16_t up_progmem_pagesize(uint16_t page);
  *   Address to page conversion 
  *
  * Input Parameters:
- *   addr - Address without flash offet (aligned to page0)
+ *   addr - Address with of without flash offset (absolute or aligned to page0)
  *
  * Returned Value:
  *   Page or negative value on error.  The following errors are reported
@@ -165,7 +165,7 @@ int up_progmem_ispageerased(uint16_t page);
  *   the address be aligned inside the page boundaries.
  *
  * Input Parameters:
- *   addr  - Address without flash offet (aligned to page0)
+ *   addr  - Address with or without flash offset (absolute or aligned to page0)
  *   buf   - Pointer to buffer
  *   count - Number of bytes to write *
  *

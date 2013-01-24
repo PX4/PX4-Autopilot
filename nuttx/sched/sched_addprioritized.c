@@ -114,7 +114,7 @@ bool sched_addprioritized(FAR _TCB *tcb, DSEG dq_queue_t *list)
       (next && sched_priority <= next->sched_priority);
       next = next->flink);
 
-  /* Add the tcb to the spot found in the list.  Check if the tcb 
+  /* Add the tcb to the spot found in the list.  Check if the tcb
    * goes at the end of the list. NOTE:  This could only happen if list
    * is the g_pendingtasks list!
    */

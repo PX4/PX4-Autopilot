@@ -113,6 +113,10 @@ static void inline timer_sigqueue(FAR struct posix_timer_s *timer)
 #else
        info.si_value.sival_ptr = timer->pt_value.sival_ptr;
 #endif
+#ifdef CONFIG_SCHED_HAVE_PARENT
+       info.si_pid             = 0;  /* Not applicable */
+       info.si_status          = OK;
+#endif
 
        /* Send the signal */
 

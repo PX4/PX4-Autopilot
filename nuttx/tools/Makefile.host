@@ -37,31 +37,41 @@ TOPDIR ?= ${shell pwd}/..
 -include $(TOPDIR)/Make.defs
 include ${TOPDIR}/tools/Config.mk
 
+# Define HOSTCC on the make command line if it differs from these defaults
+# Define HOSTCFLAGS with -g on the make command line to build debug versions
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+
+# In the Windows native environment, the MinGW GCC compiler is assumed
+
+HOSTCC ?= mingw-gcc.exe
+HOSTCFLAGS ?= -O2 -Wall -Wstrict-prototypes -Wshadow -I. -DCONFIG_WINDOWS_NATIVE=y
+
+else
+
+# GCC is assumed in the POSIX environment.
 # strtok_r is used in some tools, but does not seem to be available in
 # the MinGW environment.
 
-ifneq ($(CONFIG_WINDOWS_NATIVE),y)
-  HOSTCFLAGS += -D HAVE_STRTOK_C
+HOSTCC ?= gcc
+HOSTCFLAGS ?= -O2 -Wall -Wstrict-prototypes -Wshadow -I. -DHAVE_STRTOK_C
+
 endif
 
+# Targets
+
 all: b16$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) cmpconfig$(HOSTEXEEXT) \
-    mkconfig$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) \
+    configure$(HOSTEXEEXT) mkconfig$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) \
     mksyscall$(HOSTEXEEXT) mkversion$(HOSTEXEEXT) 
 default: mkconfig$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT)
 
 ifdef HOSTEXEEXT
-.PHONY: b16 bdf-converter cmpconfig clean mkconfig mkdeps mksymtab \
-    mksyscall mkversion
+.PHONY: b16 bdf-converter cmpconfig clean configure mkconfig mkdeps mksymtab mksyscall mkversion
 else
 .PHONY: clean
 endif
 
-# Add HOSTCFLAGS=-g on the make command line build debug versions
-
-HOSTCFLAGS ?= -O2 -Wall -I.
-HOSTCC ?= gcc
-
-# b16 - Fixed precision math converstion tool
+# b16 - Fixed precision math conversion tool
 
 b16$(HOSTEXEEXT): b16.c 
 	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o b16$(HOSTEXEEXT) b16.c 
@@ -70,10 +80,19 @@ ifdef HOSTEXEEXT
 b16: b16$(HOSTEXEEXT)
 endif
 
+# configure - Instantiate a canned NuttX configuration
+
+configure$(HOSTEXEEXT): configure.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o configure$(HOSTEXEEXT) configure.c cfgparser.c
+
+ifdef HOSTEXEEXT
+configure: configure$(HOSTEXEEXT)
+endif
+
 # mkconfig - Convert a .config file into a C config.h file
 
-mkconfig$(HOSTEXEEXT): mkconfig.c cfgparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkconfig$(HOSTEXEEXT) mkconfig.c cfgparser.c
+mkconfig$(HOSTEXEEXT): mkconfig.c cfgdefine.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkconfig$(HOSTEXEEXT) mkconfig.c cfgdefine.c
 
 ifdef HOSTEXEEXT
 mkconfig: mkconfig$(HOSTEXEEXT)
@@ -81,8 +100,8 @@ endif
 
 # cmpconfig - Compare the contents of two configuration files
 
-cmpconfig$(HOSTEXEEXT): cmpconfig.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig$(HOSTEXEEXT) cmpconfig.c
+cmpconfig$(HOSTEXEEXT): cmpconfig.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig$(HOSTEXEEXT) cmpconfig.c cfgparser.c
 
 ifdef HOSTEXEEXT
 cmpconfig: cmpconfig$(HOSTEXEEXT)
@@ -90,8 +109,8 @@ endif
 
 # mkversion - Convert a .version file into a C version.h file
 
-mkversion$(HOSTEXEEXT): mkconfig.c cfgparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkversion$(HOSTEXEEXT) mkversion.c cfgparser.c
+mkversion$(HOSTEXEEXT): mkconfig.c cfgdefine.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkversion$(HOSTEXEEXT) mkversion.c cfgdefine.c
 
 ifdef HOSTEXEEXT
 mkversion: mkversion$(HOSTEXEEXT)

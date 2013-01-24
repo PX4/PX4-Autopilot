@@ -57,7 +57,7 @@
  * System armed:
  * One message is made of 4 Blinks and a pause in the same length as the 4 blinks.
  *
- * X-X-X-X-_-_-_-_-
+ * X-X-X-X-_-_-_-_-_-_-
  * -------------------------
  * G G G M
  * P P P O
@@ -67,26 +67,26 @@
  * (X = on, _=off)
  *
  * The first 3 blinks indicates the status of the GPS-Signal (red):
- * 0-4 satellites = X-X-X-X-_-_-_-_-
- *   5 satellites = X-X-_-X-_-_-_-_-
- *   6 satellites = X-_-_-X-_-_-_-_-
- * >=7 satellites = _-_-_-X-_-_-_-_-
+ * 0-4 satellites = X-X-X-X-_-_-_-_-_-_-
+ *   5 satellites = X-X-_-X-_-_-_-_-_-_-
+ *   6 satellites = X-_-_-X-_-_-_-_-_-_-
+ * >=7 satellites = _-_-_-X-_-_-_-_-_-_-
  * If no GPS is found the first 3 blinks are white
  *
  * The fourth Blink indicates the Flightmode:
- * MANUAL     : off
+ * MANUAL     : amber
  * STABILIZED : yellow
  * HOLD		  : blue
  * AUTO       : green
  *
  * Battery Warning (low Battery Level):
- * Continuously blinking in yellow X-X-X-X-X-X-X-X
+ * Continuously blinking in yellow X-X-X-X-X-X-X-X-X-X
  *
  * Battery Alert (critical Battery Level)
- * Continuously blinking in red X-X-X-X-X-X-X-X
+ * Continuously blinking in red X-X-X-X-X-X-X-X-X-X
  *
  * General Error (no uOrb Data)
- * Continuously blinking in white X-X-X-X-X-X-X-X
+ * Continuously blinking in white X-X-X-X-X-X-X-X-X-X
  *
  */
 
@@ -118,8 +118,8 @@
 #include <uORB/topics/vehicle_gps_position.h>
 
 static const float MAX_CELL_VOLTAGE	= 4.3f;
-static const int LED_ONTIME = 100;
-static const int LED_OFFTIME = 100;
+static const int LED_ONTIME = 120;
+static const int LED_OFFTIME = 120;
 static const int LED_BLINK = 1;
 static const int LED_NOBLINK = 0;
 
@@ -167,7 +167,8 @@ private:
 		LED_PURPLE,
 		LED_GREEN,
 		LED_BLUE,
-		LED_WHITE
+		LED_WHITE,
+		LED_AMBER
 	};
 
 	work_s			_work;
@@ -178,6 +179,8 @@ private:
 	int led_color_4;
 	int led_color_5;
 	int led_color_6;
+	int led_color_7;
+	int led_color_8;
 	int led_blink;
 
 	bool systemstate_run;
@@ -250,6 +253,8 @@ BlinkM::BlinkM(int bus) :
 	led_color_4(LED_OFF),
 	led_color_5(LED_OFF),
 	led_color_6(LED_OFF),
+	led_color_7(LED_OFF),
+	led_color_8(LED_OFF),
 	led_blink(LED_NOBLINK),
 	systemstate_run(false)
 {
@@ -374,7 +379,7 @@ BlinkM::led()
 	static int num_of_cells = 0;
 	static int detected_cells_runcount = 0;
 
-	static int t_led_color[6] = { 0, 0, 0, 0, 0, 0};
+	static int t_led_color[8] = { 0, 0, 0, 0, 0, 0, 0, 0};
 	static int t_led_blink = 0;
 	static int led_thread_runcount=0;
 	static int led_interval = 1000;
@@ -416,6 +421,8 @@ BlinkM::led()
 				t_led_color[4] = LED_PURPLE;
 			}
 			t_led_color[5] = LED_OFF;
+			t_led_color[6] = LED_OFF;
+			t_led_color[7] = LED_OFF;
 			t_led_blink = LED_BLINK;
 		} else {
 			t_led_color[0] = led_color_1;
@@ -424,6 +431,8 @@ BlinkM::led()
 			t_led_color[3] = led_color_4;
 			t_led_color[4] = led_color_5;
 			t_led_color[5] = led_color_6;
+			t_led_color[6] = led_color_7;
+			t_led_color[7] = led_color_8;
 			t_led_blink = led_blink;
 		}
 		led_thread_ready = false;
@@ -434,15 +443,18 @@ BlinkM::led()
 			setLEDColor(LED_OFF);
 		led_interval = LED_OFFTIME;
 	} else {
-		setLEDColor(t_led_color[(led_thread_runcount / 2) % 6]);
+		setLEDColor(t_led_color[(led_thread_runcount / 2) % 8]);
 		//led_interval = (led_thread_runcount & 1) : LED_ONTIME;
 		led_interval = LED_ONTIME;
 	}
 
-	if (led_thread_runcount == 11) {
+	if (led_thread_runcount == 15) {
 		/* obtained data for the first file descriptor */
 		struct vehicle_status_s vehicle_status_raw;
 		struct vehicle_gps_position_s vehicle_gps_position_raw;
+
+		memset(&vehicle_status_raw, 0, sizeof(vehicle_status_raw));
+		memset(&vehicle_gps_position_raw, 0, sizeof(vehicle_gps_position_raw));
 
 		bool new_data_vehicle_status;
 		bool new_data_vehicle_gps_position;
@@ -473,7 +485,8 @@ BlinkM::led()
 
 		/* get number of used satellites in navigation */
 		num_of_used_sats = 0;
-		for(int satloop=0; satloop<20; satloop++) {
+		//for(int satloop=0; satloop<20; satloop++) {
+		for(int satloop=0; satloop<sizeof(vehicle_gps_position_raw.satellite_used); satloop++) {
 			if(vehicle_gps_position_raw.satellite_used[satloop] == 1) {
 				num_of_used_sats++;
 			}
@@ -497,6 +510,8 @@ BlinkM::led()
 					led_color_4 = LED_YELLOW;
 					led_color_5 = LED_YELLOW;
 					led_color_6 = LED_YELLOW;
+					led_color_7 = LED_YELLOW;
+					led_color_8 = LED_YELLOW;
 					led_blink = LED_BLINK;
 
 				} else if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
@@ -507,6 +522,8 @@ BlinkM::led()
 					led_color_4 = LED_RED;
 					led_color_5 = LED_RED;
 					led_color_6 = LED_RED;
+					led_color_7 = LED_RED;
+					led_color_8 = LED_RED;
 					led_blink = LED_BLINK;
 
 				} else {
@@ -520,6 +537,8 @@ BlinkM::led()
 						led_color_4 = LED_RED;
 						led_color_5 = LED_RED;
 						led_color_6 = LED_RED;
+						led_color_7 = LED_RED;
+						led_color_8 = LED_RED;
 						led_blink = LED_NOBLINK;
 
 					} else {
@@ -530,12 +549,14 @@ BlinkM::led()
 						led_color_4 = LED_OFF;
 						led_color_5 = LED_OFF;
 						led_color_6 = LED_OFF;
+						led_color_7 = LED_OFF;
+						led_color_8 = LED_OFF;
 						led_blink = LED_BLINK;
 
 						/* handle 4th led - flightmode indicator */
 						switch((int)vehicle_status_raw.flight_mode) {
 							case VEHICLE_FLIGHT_MODE_MANUAL:
-								led_color_4 = LED_OFF;
+								led_color_4 = LED_AMBER;
 								break;
 
 							case VEHICLE_FLIGHT_MODE_STAB:
@@ -583,6 +604,8 @@ BlinkM::led()
 			led_color_4 = LED_WHITE;
 			led_color_5 = LED_WHITE;
 			led_color_6 = LED_WHITE;
+			led_color_7 = LED_WHITE;
+			led_color_8 = LED_WHITE;
 			led_blink = LED_BLINK;
 
 		}
@@ -645,6 +668,9 @@ void BlinkM::setLEDColor(int ledcolor) {
 			break;
 		case LED_WHITE:	// white
 			set_rgb(255,255,255);
+			break;
+		case LED_AMBER:	// amber
+			set_rgb(255,20,0);
 			break;
 	}
 }

@@ -39,6 +39,7 @@
 #include <nuttx/config.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "systemlib/perf_counter.h"
 
@@ -63,6 +64,15 @@ __EXPORT int perf_main(int argc, char *argv[]);
 
 int perf_main(int argc, char *argv[])
 {
+	if (argc > 1) {
+		if (strcmp(argv[1], "reset") == 0) {
+			perf_reset_all();
+			return 0;
+		}
+		printf("Usage: perf <reset>\n");
+		return -1;
+	}
+
 	perf_print_all();
 	fflush(stdout);
 	return 0;

@@ -14,13 +14,22 @@ config NSH_LIBRARY
 if NSH_LIBRARY
 config NSH_BUILTIN_APPS
 	bool "Enable built-in applications"
-	default y
-	depends on NAMEDAPP
+	default n
+	depends on BUILTIN
 	---help---
-		Support external registered, "named" applications that can be
+		Support external registered, "built-in" applications that can be
 		executed from the NSH command line (see apps/README.txt for
-		more information).  This options requires support for named applications
-		(NAMEDAPP).
+		more information).  This options requires support for builtin
+		applications (BUILTIN).
+
+config NSH_FILE_APPS
+	bool "Enable execution of program files"
+	default n
+	depends on LIBC_EXECFUNCS
+	---help---
+		Support execution of program files residing within a file
+		system.  This options requires support for the posix_spawn()
+		interface (LIBC_EXECFUNCS).
 
 menu "Disable Individual commands"
 

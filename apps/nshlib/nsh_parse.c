@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/nshlib/nsh_parse.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,8 +59,9 @@
 #endif
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-#  include <apps/apps.h>
+#  include <nuttx/binfmt/builtin.h>
 #endif
+
 #include <apps/nsh.h>
 
 #include "nsh.h"
@@ -72,7 +73,7 @@
 
 /* Argument list size
  *
- *   argv[0]:      The command name. 
+ *   argv[0]:      The command name.
  *   argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
  *   argv[argc-3]: Possibly '>' or '>>'
  *   argv[argc-2]: Possibly <file>
@@ -226,7 +227,7 @@ static const struct cmdmap_s g_cmdmap[] =
   { "help",     cmd_help,     1, 3, "[-v] [<cmd>]" },
 # endif
 #endif
-  
+
 #if CONFIG_NFILE_DESCRIPTORS > 0
 #ifndef CONFIG_NSH_DISABLE_HEXDUMP
   { "hexdump",  cmd_hexdump,  2, 2, "<file or device>" },
@@ -301,7 +302,7 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
 # ifndef CONFIG_NSH_DISABLE_MOUNT
-  { "mount",    cmd_mount,    1, 5, "[-t <fstype> <block-device> <mount-point>]" },
+  { "mount",    cmd_mount,    1, 5, "[-t <fstype> [<block-device>] <mount-point>]" },
 # endif
 #endif
 
@@ -605,7 +606,7 @@ static inline void help_builtins(FAR struct nsh_vtbl_s *vtbl)
   /* List the set of available built-in commands */
 
   nsh_output(vtbl, "\nBuiltin Apps:\n");
-  for (i = 0; (name = namedapp_getname(i)) != NULL; i++)
+  for (i = 0; (name = builtin_getname(i)) != NULL; i++)
     {
       nsh_output(vtbl, "  %s\n", name);
     }
@@ -723,15 +724,11 @@ static int cmd_exit(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
  * Name: nsh_execute
  *
  * Description:
- *   Exectue the command in argv[0]
+ *   Execute the command in argv[0]
  *
  * Returned Value:
- *   <0          If exec_namedapp() fails, then the negated errno value
- *               is returned.
  *   -1 (ERRROR) if the command was unsuccessful
  *    0 (OK)     if the command was successful
- *    1          if an application task was spawned successfully, but
- *               returned failure exit status.
  *
  ****************************************************************************/
 
@@ -751,21 +748,6 @@ static int nsh_execute(FAR struct nsh_vtbl_s *vtbl, int argc, char *argv[])
    */
 
   cmd = argv[0];
-   
-  /* Try to find a command in the application library. */
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-  ret = nsh_execapp(vtbl, cmd, argv);
-
-  /* If the built-in application was successfully started, return OK 
-   * or 1 (if the application returned a non-zero exit status).
-   */
-
-  if (ret >= 0)
-    {
-      return ret;
-    }
-#endif
 
   /* See if the command is one that we understand */
 
@@ -1352,7 +1334,7 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
   /* Parse all of the arguments following the command name.  The form
    * of argv is:
    *
-   *   argv[0]:      The command name. 
+   *   argv[0]:      The command name.
    *   argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
    *   argv[argc-3]: Possibly '>' or '>>'
    *   argv[argc-2]: Possibly <file>
@@ -1410,6 +1392,81 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
         }
     }
 
+  /* Check if the maximum number of arguments was exceeded */
+
+  if (argc > CONFIG_NSH_MAXARGUMENTS)
+    {
+      nsh_output(vtbl, g_fmttoomanyargs, cmd);
+    }
+
+  /* Does this command correspond to an application filename?
+   * nsh_fileapp() returns:
+   *
+   *   -1 (ERROR)  if the application task corresponding to 'argv[0]' could not
+   *               be started (possibly because it doesn not exist).
+   *    0 (OK)     if the application task corresponding to 'argv[0]' was
+   *               and successfully started.  If CONFIG_SCHED_WAITPID is
+   *               defined, this return value also indicates that the
+   *               application returned successful status (EXIT_SUCCESS)
+   *    1          If CONFIG_SCHED_WAITPID is defined, then this return value
+   *               indicates that the application task was spawned successfully
+   *               but returned failure exit status.
+   *
+   * Note the priority if not effected by nice-ness.
+   */
+
+#ifdef CONFIG_NSH_FILE_APPS
+  ret = nsh_fileapp(vtbl, argv[0], argv, redirfile, oflags);
+  if (ret >= 0)
+    {
+      /* nsh_fileapp() returned 0 or 1.  This means that the builtin
+       * command was successfully started (although it may not have ran
+       * successfully).  So certainly it is not an NSH command.
+       */
+
+      return nsh_saveresult(vtbl, ret != OK);
+    }
+
+  /* No, not a built in command (or, at least, we were unable to start a
+   * builtin command of that name).  Treat it like an NSH command.
+   */
+
+#endif
+
+  /* Does this command correspond to a builtin command?
+   * nsh_builtin() returns:
+   *
+   *   -1 (ERROR)  if the application task corresponding to 'argv[0]' could not
+   *               be started (possibly because it doesn not exist).
+   *    0 (OK)     if the application task corresponding to 'argv[0]' was
+   *               and successfully started.  If CONFIG_SCHED_WAITPID is
+   *               defined, this return value also indicates that the
+   *               application returned successful status (EXIT_SUCCESS)
+   *    1          If CONFIG_SCHED_WAITPID is defined, then this return value
+   *               indicates that the application task was spawned successfully
+   *               but returned failure exit status.
+   *
+   * Note the priority if not effected by nice-ness.
+   */
+
+#if defined(CONFIG_NSH_BUILTIN_APPS) && (!defined(CONFIG_NSH_FILE_APPS) || !defined(CONFIG_FS_BINFS))
+  ret = nsh_builtin(vtbl, argv[0], argv, redirfile, oflags);
+  if (ret >= 0)
+    {
+      /* nsh_builtin() returned 0 or 1.  This means that the builtin
+       * command was successfully started (although it may not have ran
+       * successfully).  So certainly it is not an NSH command.
+       */
+
+      return nsh_saveresult(vtbl, ret != OK);
+    }
+
+  /* No, not a built in command (or, at least, we were unable to start a
+   * builtin command of that name).  Treat it like an NSH command.
+   */
+
+#endif
+
   /* Redirected output? */
 
   if (vtbl->np.np_redirect)
@@ -1431,23 +1488,13 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
         }
     }
 
-  /* Check if the maximum number of arguments was exceeded */
-
-  if (argc > CONFIG_NSH_MAXARGUMENTS)
-    {
-      nsh_output(vtbl, g_fmttoomanyargs, cmd);
-    }
-
   /* Handle the case where the command is executed in background.
-   * However is app is to be started as namedapp new process will
-   * be created anyway, so skip this step. */
+   * However is app is to be started as builtin new process will
+   * be created anyway, so skip this step.
+   */
 
 #ifndef CONFIG_NSH_DISABLEBG
-  if (vtbl->np.np_bg
-#ifdef CONFIG_NSH_BUILTIN_APPS
-      && namedapp_isavail(argv[0]) < 0     
-#endif
-  )
+  if (vtbl->np.np_bg)
     {
       struct sched_param param;
       struct nsh_vtbl_s *bkgvtbl;
@@ -1514,6 +1561,7 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
                   priority = min_priority;
                 }
             }
+
           param.sched_priority = priority;
         }
 
@@ -1553,8 +1601,6 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
        *
        * -1 (ERRROR) if the command was unsuccessful
        *  0 (OK)     if the command was successful
-       *  1          if an application task was spawned successfully, but
-       *             returned failure exit status.
        */
 
       ret = nsh_execute(vtbl, argc, argv);
@@ -1568,11 +1614,11 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
           nsh_undirect(vtbl, save);
         }
 
-      /* Treat both errors and non-zero return codes as "errors" so that
-       * it is possible to test for non-zero returns in nsh scripts.
+      /* Mark errors so that it is possible to test for non-zero return values
+       * in nsh scripts.
        */
 
-      if (ret != OK)
+      if (ret < 0)
         {
           goto errout;
         }

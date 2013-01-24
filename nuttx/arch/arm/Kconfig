@@ -46,15 +46,14 @@ config ARCH_CHIP_KINETIS
 	bool "Freescale Kinetis"
 	select ARCH_CORTEXM4
 	select ARCH_HAVE_MPU
-	select ARCH_IRQPRIO
+	select ARCH_HAVE_RAMFUNCS
+	select ARCH_RAMFUNCS
 	---help---
 		Freescale Kinetis Architectures (ARM Cortex-M4)
 
-config ARCH_CHIP_LM3S
+config ARCH_CHIP_LM
 	bool "TI Stellaris"
-	select ARCH_CORTEXM3
 	select ARCH_HAVE_MPU
-	select ARCH_IRQPRIO
 	---help---
 		TI Stellaris LMS3 architecutres (ARM Cortex-M3)
 
@@ -62,7 +61,6 @@ config ARCH_CHIP_LPC17XX
 	bool "NXP LPC17xx"
 	select ARCH_CORTEXM3
 	select ARCH_HAVE_MPU
-	select ARCH_IRQPRIO
 	---help---
 		NXP LPC17xx architectures (ARM Cortex-M3)
 
@@ -94,7 +92,6 @@ config ARCH_CHIP_LPC43XX
 	select ARCH_HAVE_CMNVECTOR
 	select ARMV7M_CMNVECTOR
 	select ARCH_HAVE_MPU
-	select ARCH_IRQPRIO
 	---help---
 		NPX LPC43XX architectures (ARM Cortex-M4).
 
@@ -102,7 +99,6 @@ config ARCH_CHIP_SAM3U
 	bool "Atmel AT91SAM3U"
 	select ARCH_CORTEXM3
 	select ARCH_HAVE_MPU
-	select ARCH_IRQPRIO
 	---help---
 		Atmel AT91SAM3U architectures (ARM Cortex-M3)
 
@@ -111,7 +107,6 @@ config ARCH_CHIP_STM32
 	select ARCH_HAVE_CMNVECTOR
 	select ARCH_HAVE_MPU
 	select ARCH_HAVE_I2CRESET
-	select ARCH_IRQPRIO
 	---help---
 		STMicro STM32 architectures (ARM Cortex-M3/4).
 
@@ -135,9 +130,11 @@ config ARCH_ARM920T
 
 config ARCH_CORTEXM3
 	bool
+	select ARCH_IRQPRIO
 
 config ARCH_CORTEXM4
 	bool
+	select ARCH_IRQPRIO
 
 config ARCH_FAMILY
 	string
@@ -151,7 +148,7 @@ config ARCH_CHIP
 	default "dm320"		if ARCH_CHIP_DM320
 	default "imx"		if ARCH_CHIP_IMX
 	default "kinetis"	if ARCH_CHIP_KINETIS
-	default "lm3s"		if ARCH_CHIP_LM3S
+	default "lm"		if ARCH_CHIP_LM
 	default "lpc17xx"	if ARCH_CHIP_LPC17XX
 	default "lpc214x"	if ARCH_CHIP_LPC214X
 	default "lpc2378"	if ARCH_CHIP_LPC2378
@@ -160,6 +157,17 @@ config ARCH_CHIP
 	default "sam3u"		if ARCH_CHIP_SAM3U
 	default "stm32"		if ARCH_CHIP_STM32
 	default "str71x"	if ARCH_CHIP_STR71X
+
+config ARMV7M_USEBASEPRI
+	bool "Use BASEPRI Register"
+	default n
+	depends on ARCH_CORTEXM3 || ARCH_CORTEXM4
+	---help---
+		Use the BASEPRI register to enable and disable able interrupts.  By
+ 		default, the PRIMASK register is used for this purpose.  This
+		usually results in hardfaults that are properly handling by the
+		RTOS.  Using the BASEPRI register will avoid these hardfault.
+		That is needed primarily for integration with some toolchains.
 
 config ARCH_HAVE_CMNVECTOR
 	bool
@@ -274,8 +282,8 @@ endif
 if ARCH_CHIP_KINETIS
 source arch/arm/src/kinetis/Kconfig
 endif
-if ARCH_CHIP_LM3S
-source arch/arm/src/lm3s/Kconfig
+if ARCH_CHIP_LM
+source arch/arm/src/lm/Kconfig
 endif
 if ARCH_CHIP_LPC17XX
 source arch/arm/src/lpc17xx/Kconfig

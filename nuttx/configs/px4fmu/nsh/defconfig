@@ -226,6 +226,8 @@ CONFIG_AT24XX_MTD_BLOCKSIZE=256
 # CONFIG_SERIAL_CONSOLE_REINIT - re-initializes the console serial port
 #   immediately after creating the /dev/console device.  This is required
 #   if the console serial port has RX DMA enabled.
+# CONFIG_STM32_USART_SINGLEWIRE - Serial driver supports single wire mode.  If
+#   this is not defined, then this mode cannot be enabled.
 #
 # CONFIG_USARTn_SERIAL_CONSOLE - selects the USARTn for the
 #   console and ttys0 (default is the USART1).
@@ -240,6 +242,7 @@ CONFIG_AT24XX_MTD_BLOCKSIZE=256
 #
 CONFIG_SERIAL_TERMIOS=y
 CONFIG_SERIAL_CONSOLE_REINIT=y
+CONFIG_STM32_USART_SINGLEWIRE=y
 
 CONFIG_USART1_SERIAL_CONSOLE=y
 CONFIG_USART2_SERIAL_CONSOLE=n
@@ -970,6 +973,7 @@ CONFIG_CDCACM_PRODUCTSTR="PX4 FMU v1.6"
 # CONFIG_NSH_FATNSECTORS - FAT FS number of sectors
 # CONFIG_NSH_FATMOUNTPT - FAT FS mountpoint
 #
+CONFIG_BUILTIN=y
 CONFIG_NSH_BUILTIN_APPS=y
 CONFIG_NSH_FILEIOSIZE=512
 CONFIG_NSH_STRERROR=y
@@ -1045,3 +1049,6 @@ CONFIG_PTHREAD_STACK_MIN=512
 CONFIG_PTHREAD_STACK_DEFAULT=2048
 CONFIG_HEAP_BASE=
 CONFIG_HEAP_SIZE=
+
+# enable bindir 
+CONFIG_APPS_BINDIR=y

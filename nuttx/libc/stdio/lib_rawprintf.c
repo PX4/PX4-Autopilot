@@ -149,3 +149,18 @@ int lib_rawprintf(const char *fmt, ...)
 
   return ret;
 }
+
+
+/****************************************************************************
+ * Name: lib_rawvdprintf
+ ****************************************************************************/
+
+int lib_rawvdprintf(int fd, const char *fmt, va_list ap)
+{
+  /* Wrap the fd in a stream object and let lib_vsprintf
+   * do the work.
+   */
+  struct lib_rawoutstream_s rawoutstream;
+  lib_rawoutstream(&rawoutstream, fd);
+  return lib_vsprintf(&rawoutstream.public, fmt, ap);
+}
