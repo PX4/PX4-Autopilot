@@ -491,7 +491,8 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline);
 /* Application interface */
 
 #ifdef CONFIG_NSH_BUILTIN_APPS
-int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd, FAR char **argv);
+int nsh_builtin(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+                FAR char **argv, FAR const char *redirfile, int oflags);
 #endif
 
 /* Working directory support */

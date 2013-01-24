@@ -63,6 +63,12 @@ CSRCS += lib_match.c
 CSRCS += lib_crc32.c
 CSRCS += lib_dbg.c lib_dumpbuffer.c
 
+# Keyboard driver encoder/decoder
+
+ifeq ($(CONFIG_LIB_KBDCODEC),y)
+CSRCS += lib_kbdencode.c lib_kbddecode.c
+endif
+
 # Add the misc directory to the build
 
 DEPPATH += --dep-path misc

@@ -1,7 +1,7 @@
 ############################################################################
-# apps/nshlib/Makefile
+# apps/examples/posix_spawn/Makefile
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,40 +37,35 @@
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
-# NSH Library
+# ELF Example
 
-# Source and object files
+ASRCS =
+CSRCS = spawn_main.c symtab.c
 
-ASRCS		=
-CSRCS		= namedapp.c exec_namedapp.c
+AOBJS = $(ASRCS:.S=$(OBJEXT))
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
-ifeq ($(CONFIG_APPS_BINDIR),y)
-CSRCS		+= binfs.c
-endif
-
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  BIN		= ..\libapps$(LIBEXT)
+  BIN		= ..\..\libapps$(LIBEXT)
 else
 ifeq ($(WINTOOL),y)
-  BIN		= ..\\libapps$(LIBEXT)
+  BIN		= ..\\..\\libapps$(LIBEXT)
 else
-  BIN		= ../libapps$(LIBEXT)
+  BIN		= ../../libapps$(LIBEXT)
 endif
 endif
 
-ROOTDEPPATH	= --dep-path .
-VPATH		= 
+ROOTDEPPATH	= --dep-path . --dep-path filesystem
 
-# Build Targets
+# Build targets
 
-all:	.built
-.PHONY: .context context depend clean distclean
+VPATH = filesystem
+
+all: build
+.PHONY: build clean_filesystem clean depend distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -78,33 +73,58 @@ $(AOBJS): %$(OBJEXT): %.S
 $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-.built: $(OBJS)
+# This is a little messy.  The build is broken into two pieces:  (1) the
+# filesystem/ subdir build that auto-generates several files, and (2) the library
+# build.  This is done because we need a fresh build context after auto-
+# generating the source files.
+
+build_lib: $(OBJS)
 	$(call ARCHIVE, $(BIN), $(OBJS))
-	$(Q) touch .built
 
-.context:
-	@echo "/* List of application requirements, generated during make context. */" > namedapp_list.h
-	@echo "/* List of application entry points, generated during make context. */" > namedapp_proto.h
-	$(Q) touch $@
+build:
+	@$(MAKE) -C filesystem TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV)
+	@$(MAKE) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" build_lib
 
-context: .context
+context:
 
-.depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	$(Q) touch $@
+# We can't make dependencies in this directory because the required
+# header files may not yet exist.
+
+.depend:
+	@touch $@
 
 depend: .depend
 
-clean:
-	$(call DELFILE, .built)
+clean_filesystem:
+	@$(MAKE) -C filesystem TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV) clean
+
+clean: clean_filesystem
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE, .context)
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
-	$(call DELFILE, namedapp_list.h)
-	$(call DELFILE, namedapp_proto.h)
 
--include Make.dep
+# There are no dependencies in this directory.  Some of more important
+# and more obvious dependencies are hard-coded here:
 
+spawn_main.o: spawn_main.c \
+	$(TOPDIR)/include/nuttx/config.h \
+	$(TOPDIR)/include/nuttx/compiler.h \
+	$(TOPDIR)/include/sys/mount.h \
+	$(TOPDIR)/include/stdio.h \
+	$(TOPDIR)/include/stdlib.h \
+	$(TOPDIR)/include/unistd.h \
+	$(TOPDIR)/include/string.h \
+	$(TOPDIR)/include/fcntl.h \
+	$(TOPDIR)/include/spawn.h \
+	$(TOPDIR)/include/debug.h \
+	$(TOPDIR)/include/errno.h \
+	$(TOPDIR)/include/nuttx/ramdisk.h \
+	$(TOPDIR)/include/nuttx/binfmt/elf.h \
+	$(TOPDIR)/include/nuttx/binfmt/symtab.h \
+	filesystem/romfs.h
+
+symtab.o: filesystem/symtab.c \
+	$(TOPDIR)/include/nuttx/compiler.h \
+	$(TOPDIR)/include/nuttx/binfmt/symtab.h

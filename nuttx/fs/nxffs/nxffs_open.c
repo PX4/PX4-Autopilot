@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/nxffs/nxffs_open.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: Linux/Documentation/filesystems/romfs.txt
@@ -1023,7 +1023,7 @@ int nxffs_open(FAR struct file *filep, FAR const char *relpath,
 #endif
 
   /* Limitation:  A file must be opened for reading or writing, but not both.
-   * There is no general for extending the size of of a file.  Extending the
+   * There is no general way of extending the size of a file.  Extending the
    * file size of possible if the file to be extended is the last in the
    * sequence on FLASH, but since that case is not the general case, no file
    * extension is supported.
@@ -1056,6 +1056,64 @@ int nxffs_open(FAR struct file *filep, FAR const char *relpath,
       filep->f_priv = ofile;
     }
   return ret;
+}
+
+/****************************************************************************
+ * Name: binfs_dup
+ *
+ * Description:
+ *   Duplicate open file data in the new file structure.
+ *
+ ****************************************************************************/
+
+int nxffs_dup(FAR const struct file *oldp, FAR struct file *newp)
+{
+#ifdef CONFIG_DEBUG
+  FAR struct nxffs_volume_s *volume;
+#endif
+  FAR struct nxffs_ofile_s *ofile;
+
+  fvdbg("Dup %p->%p\n", oldp, newp);
+
+  /* Sanity checks */
+
+#ifdef CONFIG_DEBUG
+  DEBUGASSERT(oldp->f_priv == NULL && oldp->f_inode != NULL);
+
+  /* Get the mountpoint private data from the NuttX inode reference in the
+   * file structure
+   */
+
+  volume = (FAR struct nxffs_volume_s*)oldp->f_inode->i_private;
+  DEBUGASSERT(volume != NULL);
+#endif
+
+  /* Recover the open file state from the struct file instance */
+
+  ofile = (FAR struct nxffs_ofile_s *)oldp->f_priv;
+
+  /* I do not think we need exclusive access to the volume to do this.
+   * The volume exclsem protects the open file list and, hence, would
+   * assure that the ofile is stable.  However, it is assumed that the
+   * caller holds a value file descriptor associated with this ofile,
+   * so it should be stable throughout the life of this function.
+   */
+
+  /* Limitations: I do not think we have to be concerned about the
+   * usual NXFFS file limitations here:  dup'ing cannot resulting
+   * in mixed reading and writing to the same file, or multiple
+   * writer to different file.
+   *
+   * I notice that nxffs_wropen will prohibit multiple opens for
+   * writing. But I do not thing that dup'ing a file already opened
+   * for writing suffers from any of these issues.
+   */
+
+  /* Just increment the reference count on the ofile */
+
+  ofile->crefs++;
+  newp->f_priv = (FAR void *)ofile;
+  return OK;
 }
 
 /****************************************************************************
@@ -1130,9 +1188,10 @@ int nxffs_close(FAR struct file *filep)
       ofile->crefs--;
     }
 
-  filep->f_priv = NULL;
 
+  filep->f_priv = NULL;
   sem_post(&volume->exclsem);
+
 errout:
   return ret;
 }

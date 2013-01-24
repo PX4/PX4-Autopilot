@@ -57,6 +57,7 @@ include time/Make.defs
 include libgen/Make.defs
 include dirent/Make.defs
 include termios/Make.defs
+include spawn/Make.defs
 include queue/Make.defs
 include misc/Make.defs
 

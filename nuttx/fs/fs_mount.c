@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/fs_mount.c
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,10 +47,6 @@
 
 #include <nuttx/fs/fs.h>
 
-#ifdef CONFIG_APPS_BINDIR
-#  include <apps/apps.h>
-#endif
-
 #include "fs_internal.h"
 
 /* At least one filesystem must be defined, or this file will not compile.
@@ -78,7 +74,7 @@
 
 /* These file systems do not require block drivers */
 
-#if defined(CONFIG_FS_NXFFS) || defined(CONFIG_APPS_BINDIR) || defined(CONFIG_NFS) 
+#if defined(CONFIG_FS_NXFFS) || defined(CONFIG_FS_BINFS) || defined(CONFIG_NFS) 
 #  define NONBDFS_SUPPORT
 #endif
 
@@ -123,6 +119,9 @@ extern const struct mountpt_operations nxffs_operations;
 #ifdef CONFIG_NFS
 extern const struct mountpt_operations nfs_operations;
 #endif
+#ifdef CONFIG_FS_BINFS
+extern const struct mountpt_operations binfs_operations;
+#endif
 
 static const struct fsmap_t g_nonbdfsmap[] =
 {
@@ -132,7 +131,7 @@ static const struct fsmap_t g_nonbdfsmap[] =
 #ifdef CONFIG_NFS
     { "nfs", &nfs_operations },
 #endif
-#ifdef CONFIG_APPS_BINDIR
+#ifdef CONFIG_FS_BINFS
     { "binfs", &binfs_operations },
 #endif
     { NULL,   NULL },
@@ -222,7 +221,7 @@ int mount(FAR const char *source, FAR const char *target,
   /* Find the specified filesystem.  Try the block driver file systems first */
 
 #ifdef BDFS_SUPPORT
-  if ((mops = mount_findfs(g_bdfsmap, filesystemtype)) != NULL)
+  if (source && (mops = mount_findfs(g_bdfsmap, filesystemtype)) != NULL)
     {
       /* Make sure that a block driver argument was provided */
 

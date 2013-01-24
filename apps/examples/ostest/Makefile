@@ -52,6 +52,10 @@ ifeq ($(CONFIG_ARCH_FPU),y)
 CSRCS		+= fpu.c
 endif
 
+ifeq ($(CONFIG_SCHED_WAITPID),y)
+CSRCS		+= waitpid.c
+endif
+
 ifneq ($(CONFIG_DISABLE_PTHREAD),y)
 CSRCS		+= cancel.c cond.c mutex.c sem.c barrier.c
 ifneq ($(CONFIG_RR_INTERVAL),0)
@@ -82,6 +86,10 @@ endif # CONFIG_DISABLE_MQUEUE
 
 ifneq ($(CONFIG_DISABLE_POSIX_TIMERS),y)
 CSRCS		+= posixtimer.c
+endif
+
+ifeq ($(CONFIG_ARCH_HAVE_VFORK),y)
+CSRCS		+= vfork.c
 endif
 
 ifneq ($(CONFIG_DISABLE_SIGNALS),y)
@@ -127,13 +135,14 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 
-.context:
 ifeq ($(CONFIG_EXAMPLES_OSTEST_BUILTIN),y)
+$(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(DEPCONFIG) Makefile
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	@touch $@
-endif
 
-context: .context
+context: $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat
+else
+context:
+endif
 
 .depend: Makefile $(SRCS)
 	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep

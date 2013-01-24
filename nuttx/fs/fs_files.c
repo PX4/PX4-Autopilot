@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/fs_files.c
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -284,14 +284,6 @@ int files_dup(FAR struct file *filep1, FAR struct file *filep2)
       goto errout;
     }
 
-#ifndef CONFIG_DISABLE_MOUNTPOINT
-  if (INODE_IS_MOUNTPT(filep1->f_inode))
-    {
-      err = ENOSYS; /* Not yet supported */
-      goto errout;
-    }
-#endif
-
   list = sched_getfiles();
   if (!list)
     {
@@ -331,18 +323,16 @@ int files_dup(FAR struct file *filep1, FAR struct file *filep2)
   if (inode->u.i_ops && inode->u.i_ops->open)
     {
 #ifndef CONFIG_DISABLE_MOUNTPOINT
-#if 0 /* Not implemented */
       if (INODE_IS_MOUNTPT(inode))
         {
-         /* Open a file on the mountpoint */
+         /* Dup the open file on the in the new file structure */
 
-          ret = inode->u.i_mops->open(filep2, ?, filep2->f_oflags, ?);
+          ret = inode->u.i_mops->dup(filep1, filep2);
         }
       else
 #endif
-#endif
         {
-          /* Open the pseudo file or device driver */
+          /* (Re-)open the pseudo file or device driver */
 
           ret = inode->u.i_ops->open(filep2);
         }

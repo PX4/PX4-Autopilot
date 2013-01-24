@@ -945,7 +945,7 @@ NSH-Specific Configuration Settings
   the configs/<board-name>/defconfig file:
 
   * CONFIG_NSH_BUILTIN_APPS
-      Support external registered, "named" applications that can be
+      Support external registered, "builtin" applications that can be
       executed from the NSH command line (see apps/README.txt for
       more information).
   

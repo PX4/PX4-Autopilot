@@ -217,11 +217,11 @@ void mq_initialize(void)
 
 void mq_desblockalloc(void)
 {
-  struct mq_des_block_s *mqdesblock;
+  FAR struct mq_des_block_s *mqdesblock;
 
   /* Allocate a block of message descriptors */
 
-  mqdesblock = (struct mq_des_block_s *)kmalloc(sizeof(struct mq_des_block_s));
+  mqdesblock = (FAR struct mq_des_block_s *)kmalloc(sizeof(struct mq_des_block_s));
   if (mqdesblock)
     {
       int i;

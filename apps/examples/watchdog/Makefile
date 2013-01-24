@@ -83,11 +83,14 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 
-.context:
+ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
+$(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(DEPCONFIG) Makefile
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	@touch $@
 
-context: .context
+context: $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat
+else
+context:
+endif
 
 .depend: Makefile $(SRCS)
 	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep

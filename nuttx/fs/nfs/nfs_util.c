@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/nfs/nfs_util.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -213,7 +213,6 @@ int nfs_request(struct nfsmount *nmp, int procnum,
 {
   struct rpcclnt *clnt = nmp->nm_rpcclnt;
   struct nfs_reply_header replyh;
-  int trylater_delay;
   int error;
 
 tryagain:
@@ -250,12 +249,6 @@ tryagain:
       if (error == EAGAIN)
         {
           error = 0;
-          trylater_delay *= NFS_TIMEOUTMUL;
-          if (trylater_delay > NFS_MAXTIMEO)
-            {
-              trylater_delay = NFS_MAXTIMEO;
-            }
-
           goto tryagain;
         }
 

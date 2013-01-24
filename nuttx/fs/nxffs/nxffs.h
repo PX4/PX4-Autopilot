@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/nxffs/nxffs.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: Linux/Documentation/filesystems/romfs.txt
@@ -1044,6 +1044,7 @@ extern int nxffs_pack(FAR struct nxffs_volume_s *volume);
  * - nxffs_read() is defined in nxffs_read.c
  * - nxffs_write() is defined in nxffs_write.c
  * - nxffs_ioctl() is defined in nxffs_ioctl.c
+ * - nxffs_dup() is defined in nxffs_open.c
  * - nxffs_opendir(), nxffs_readdir(), and nxffs_rewindir() are defined in
  *   nxffs_dirent.c
  * - nxffs_bind() and nxffs_unbind() are defined in nxffs_initialize.c
@@ -1058,25 +1059,25 @@ struct fs_dirent_s;
 struct statfs;
 struct stat;
 
-extern int nxffs_open(FAR struct file *filep, FAR const char *relpath,
-                      int oflags, mode_t mode);
-extern int nxffs_close(FAR struct file *filep);
-extern ssize_t nxffs_read(FAR struct file *filep, FAR char *buffer,
-                          size_t buflen);
-extern ssize_t nxffs_write(FAR struct file *filep, FAR const char *buffer,
-                           size_t buflen);
-extern int nxffs_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
-extern int nxffs_opendir(FAR struct inode *mountpt, FAR const char *relpath,
-                         FAR struct fs_dirent_s *dir);
-extern int nxffs_readdir(FAR struct inode *mountpt, FAR struct fs_dirent_s *dir);
-extern int nxffs_rewinddir(FAR struct inode *mountpt, FAR struct fs_dirent_s *dir);
-extern int nxffs_bind(FAR struct inode *blkdriver, FAR const void *data,
-                      FAR void **handle);
-extern int nxffs_unbind(FAR void *handle, FAR struct inode **blkdriver);
-extern int nxffs_statfs(FAR struct inode *mountpt, FAR struct statfs *buf);
-extern int nxffs_stat(FAR struct inode *mountpt, FAR const char *relpath,
-                      FAR struct stat *buf);
-extern int nxffs_unlink(FAR struct inode *mountpt, FAR const char *relpath);
+int nxffs_open(FAR struct file *filep, FAR const char *relpath, int oflags,
+               mode_t mode);
+int nxffs_close(FAR struct file *filep);
+ssize_t nxffs_read(FAR struct file *filep, FAR char *buffer, size_t buflen);
+ssize_t nxffs_write(FAR struct file *filep, FAR const char *buffer,
+                    size_t buflen);
+int nxffs_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+int nxffs_dup(FAR const struct file *oldp, FAR struct file *newp);
+int nxffs_opendir(FAR struct inode *mountpt, FAR const char *relpath,
+                  FAR struct fs_dirent_s *dir);
+int nxffs_readdir(FAR struct inode *mountpt, FAR struct fs_dirent_s *dir);
+int nxffs_rewinddir(FAR struct inode *mountpt, FAR struct fs_dirent_s *dir);
+int nxffs_bind(FAR struct inode *blkdriver, FAR const void *data,
+               FAR void **handle);
+int nxffs_unbind(FAR void *handle, FAR struct inode **blkdriver);
+int nxffs_statfs(FAR struct inode *mountpt, FAR struct statfs *buf);
+int nxffs_stat(FAR struct inode *mountpt, FAR const char *relpath,
+               FAR struct stat *buf);
+int nxffs_unlink(FAR struct inode *mountpt, FAR const char *relpath);
 
 #endif /* __FS_NXFFS_NXFFS_H */
 

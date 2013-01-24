@@ -1,7 +1,7 @@
 ############################################################################
 # sched/Makefile
 #
-#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ MISC_SRCS	= os_start.c os_bringup.c errno_getptr.c errno_get.c errno_set.c \
 
 TSK_SRCS	= prctl.c task_create.c task_init.c task_setup.c task_activate.c \
 		  task_start.c task_delete.c task_deletecurrent.c task_exithook.c \
-		  task_restart.c exit.c getpid.c sched_addreadytorun.c \
+		  task_restart.c task_vfork.c exit.c getpid.c sched_addreadytorun.c \
 		  sched_removereadytorun.c sched_addprioritized.c sched_mergepending.c \
 		  sched_addblocked.c sched_removeblocked.c sched_free.c sched_gettcb.c \
 		  sched_verifytcb.c sched_releasetcb.c
@@ -69,6 +69,9 @@ endif
 
 ifeq ($(CONFIG_SCHED_WAITPID),y)
 SCHED_SRCS	+= sched_waitpid.c
+ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
+SCHED_SRCS	+= sched_waitid.c sched_wait.c
+endif
 endif
 
 ENV_SRCS	= env_getenvironptr.c env_dup.c env_share.c env_release.c \

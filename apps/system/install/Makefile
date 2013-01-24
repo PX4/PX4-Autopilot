@@ -93,11 +93,14 @@ $(COBJS): %$(OBJEXT): %.c
 
 # Register application
 
-.context:
+ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
+$(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(DEPCONFIG) Makefile
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	$(Q) touch $@
 
-context: .context
+context: $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat
+else
+context:
+endif
 
 # Create dependencies
 
@@ -112,7 +115,6 @@ clean:
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE, .context)
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 

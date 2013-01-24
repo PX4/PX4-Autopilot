@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
 #include <stdint.h>
 #include <string.h>
@@ -119,6 +120,10 @@ static void sig_timeout(int argc, uint32_t itcb)
       u.wtcb->sigunbinfo.si_signo           = SIG_WAIT_TIMEOUT;
       u.wtcb->sigunbinfo.si_code            = SI_TIMER;
       u.wtcb->sigunbinfo.si_value.sival_int = 0;
+#ifdef CONFIG_SCHED_HAVE_PARENT
+      u.wtcb->sigunbinfo.si_pid             = 0;  /* Not applicable */
+      u.wtcb->sigunbinfo.si_status          = OK;
+#endif
       up_unblock_task(u.wtcb);
     }
 }
@@ -223,7 +228,7 @@ int sigtimedwait(FAR const sigset_t *set, FAR struct siginfo *info,
 
       /* The return value is the number of the signal that awakened us */
 
-      ret = info->si_signo;
+      ret = sigpend->info.si_signo;
     }
 
   /* We will have to wait for a signal to be posted to this task. */
@@ -238,10 +243,25 @@ int sigtimedwait(FAR const sigset_t *set, FAR struct siginfo *info,
 
       if (timeout)
         {
-          /* Convert the timespec to milliseconds */
+          /* Convert the timespec to system clock ticks, making sure that
+           * the resultint delay is greater than or equal to the requested
+           * time in nanoseconds.
+           */
 
-          waitticks = MSEC2TICK(timeout->tv_sec  * MSEC_PER_SEC
-                                + timeout->tv_nsec / NSEC_PER_MSEC);
+#ifdef CONFIG_HAVE_LONG_LONG
+          uint64_t waitticks64 = ((uint64_t)timeout->tv_sec * NSEC_PER_SEC +
+                                  (uint64_t)timeout->tv_nsec + NSEC_PER_TICK - 1) /
+                                  NSEC_PER_TICK;
+          DEBUGASSERT(waitticks64 <= UINT32_MAX);
+          waitticks = (uint32_t)waitticks64;
+#else
+          uint32_t waitmsec;
+
+          DEBUGASSERT(timeout->tv_sec < UINT32_MAX / MSEC_PER_SEC);
+          waitmsec = timeout->tv_sec * MSEC_PER_SEC +
+                    (timeout->tv_nsec + NSEC_PER_MSEC - 1) / NSEC_PER_MSEC;
+          waitticks = (waitmsec + MSEC_PER_TICK - 1) / MSEC_PER_TICK;
+#endif
 
           /* Create a watchdog */
 
@@ -326,6 +346,7 @@ int sigtimedwait(FAR const sigset_t *set, FAR struct siginfo *info,
         {
           memcpy(info, &rtcb->sigunbinfo, sizeof(struct siginfo));
         }
+
       irqrestore(saved_state);
    }
 
