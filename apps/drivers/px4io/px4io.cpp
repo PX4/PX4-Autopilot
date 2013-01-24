@@ -320,13 +320,13 @@ PX4IO::init()
 	_max_relays    = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RELAY_COUNT);
 	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER);
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
-	if ((_max_actuators < 1) || (_max_actuators == _io_reg_get_error) ||
-	    (_max_relays < 1) || (_max_relays == _io_reg_get_error) ||
-	    (_max_relays < 16) || (_max_relays == _io_reg_get_error) ||
-	    (_max_rc_input < 1) || (_max_rc_input == _io_reg_get_error)) {
+	if ((_max_actuators < 1) || (_max_actuators > 255) ||
+	    (_max_relays < 1)    || (_max_relays > 255)    ||
+	    (_max_relays < 16)   || (_max_relays > 255)    ||
+	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
 		log("failed getting parameters from PX4IO");
-		return ret;
+		return -1;
 	}
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
 		_max_rc_input = RC_INPUT_MAX_CHANNELS;
@@ -640,7 +640,7 @@ PX4IO::io_get_status()
 	int		ret;
 
 	/* get STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT in that order */
-	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, regs, sizeof(regs) / sizeof(regs[0]));
+	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, &regs[0], sizeof(regs) / sizeof(regs[0]));
 	if (ret != OK)
 		return ret;
 
@@ -679,7 +679,7 @@ PX4IO::io_get_status()
 int
 PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 {
-	uint16_t channel_count;
+	uint32_t channel_count;
 	int	ret;
 
 	input_rc.timestamp = hrt_absolute_time();
@@ -701,9 +701,11 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	 * XXX can we do this more cheaply? If we knew we had DMA, it would
 	 *     almost certainly be better to just get all the inputs...
 	 */
-	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &channel_count, 1);
-	if (ret != OK)
+	channel_count =  io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
+	if (channel_count == _io_reg_get_error)
 		return ret;
+	if (channel_count > RC_INPUT_MAX_CHANNELS)
+		channel_count = RC_INPUT_MAX_CHANNELS;
 	input_rc.channel_count = channel_count;
 
 	if (channel_count > 0)
@@ -846,7 +848,10 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 	msgv[1].buffer = (uint8_t *)(values);
 	msgv[1].length = num_values * sizeof(*values);
 
-	return transfer(msgv, 2);
+	int ret = transfer(msgv, 2);
+	if (ret != OK)
+		debug("io_reg_set: %d", ret);
+	return ret;
 }
 
 int
@@ -872,7 +877,10 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 	msgv[1].buffer = (uint8_t *)values;
 	msgv[1].length = num_values * sizeof(*values);
 
-	return transfer(msgv, 2);
+	int ret = transfer(msgv, 2);
+	if (ret != OK)
+		debug("io_reg_get: %d", ret);
+	return ret;
 }
 
 uint32_t
@@ -898,7 +906,7 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 	value &= ~clearbits;
 	value |= setbits;
 
-	return io_reg_set(page, offset, &value, 1);
+	return io_reg_set(page, offset, value);
 }
 
 int
