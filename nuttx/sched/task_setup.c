@@ -150,7 +150,8 @@ static int task_assignpid(FAR _TCB *tcb)
  * Name: task_saveparent
  *
  * Description:
- *   Save the task ID of the parent task in the child task's TCB.
+ *   Save the task ID of the parent task in the child task's TCB and allocate
+ *   a child status structure to catch the child task's exit status.
  *
  * Parameters:
  *   tcb   - The TCB of the new, child task.
@@ -177,11 +178,15 @@ static inline void task_saveparent(FAR _TCB *tcb, uint8_t ttype)
 
   tcb->parent = rtcb->pid;
 
-  /* Exit status only needs to be retained for the case of tasks, however */
-
-  if (ttype == TCB_FLAG_TTYPE_TASK)
-    {
 #ifdef CONFIG_SCHED_CHILD_STATUS
+  /* Exit status only needs to be retained for the case of tasks, however.
+   * Tasks can also suppress retention of their child status by applying
+   * the SA_NOCLDWAIT flag with sigaction()/
+   */
+
+  if (ttype == TCB_FLAG_TTYPE_TASK &&
+      (rtcb->flags && TCB_FLAG_NOCLDWAIT) == 0)
+    {
       FAR struct child_status_s *child;
 
       /* Make sure that there is not already a structure for this PID in the
@@ -212,11 +217,11 @@ static inline void task_saveparent(FAR _TCB *tcb, uint8_t ttype)
 
           task_addchild(rtcb, child);
         }
-#else
-      DEBUGASSERT(rtcb->nchildren < UINT16_MAX);
-      rtcb->nchildren++;
-#endif
     }
+#else
+  DEBUGASSERT(rtcb->nchildren < UINT16_MAX);
+  rtcb->nchildren++;
+#endif
 }
 #else
 #  define task_saveparent(tcb,ttype)
@@ -318,7 +323,9 @@ int task_schedsetup(FAR _TCB *tcb, int priority, start_t start, main_t main,
       tcb->flags         &= ~TCB_FLAG_TTYPE_MASK;
       tcb->flags         |= ttype;
 
-      /* Save the task ID of the parent task in the TCB */
+      /* Save the task ID of the parent task in the TCB and allocate
+       * a child status structure.
+       */
 
       task_saveparent(tcb, ttype);
 

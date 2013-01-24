@@ -7,7 +7,7 @@ standards, things that could be improved, and ideas for enhancements.
 nuttx/
 
  (11)  Task/Scheduler (sched/)
-  (1)  Memory Managment (mm/)
+  (2)  Memory Managment (mm/)
   (3)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
   (2)  C++ Support
@@ -277,6 +277,19 @@ o Memory Managment (mm/)
   Status:      Open.  No changes are planned.
   Priority:    Medium/Low, a good feature to prevent memory leaks but would
                have negative impact on memory usage and code size.
+
+  Title:       CONTAINER ALLOCATOR
+  Description: There are several places where the logic requires allocation of
+               a tiny structure that just contains pointers to other things or
+               small amounts of data that needs to be bundled together.  There
+               are examples net/net_poll.c and numerous other places.
+
+               I am wondering if it would not be good create a pool of generic
+               containers (say void *[4]).  There re-use these when we need
+               small containers.  The code in sched/task_childstatus.c might
+               be generalized for this purpose.
+  Status:      Open
+  Priority:    Very low (I am not even sure that this is a good idea yet).
 
 o Signals (sched/, arch/)
   ^^^^^^^^^^^^^^^^^^^^^^^

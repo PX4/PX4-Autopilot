@@ -298,6 +298,42 @@ FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid)
 }
 
 /*****************************************************************************
+ * Name: task_exitchild
+ *
+ * Description:
+ *   Search for any child that has exitted.
+ *
+ * Parameters:
+ *   tcb - The TCB of the parent task to containing the child status.
+ *
+ * Return Value:
+ *   On success, a non-NULL pointer to a child status structure for the
+ *   exited child.  NULL is returned if not child has exited.
+ *
+ * Assumptions:
+ *   Called during SIGCHLD processing in a safe context.  No special precautions
+ *   are required here.
+ *
+ *****************************************************************************/
+
+FAR struct child_status_s *task_exitchild(FAR _TCB *tcb)
+{
+  FAR struct child_status_s *child;
+
+  /* Find the status structure with the matching PID  */
+
+  for (child = tcb->children; child; child = child->flink)
+    {
+      if ((child->ch_flags & CHILD_FLAG_EXITED) != 0)
+        {
+          return child;
+        }
+    }
+
+  return NULL;
+}
+
+/*****************************************************************************
  * Name: task_removechild
  *
  * Description:

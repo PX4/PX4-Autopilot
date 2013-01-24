@@ -185,7 +185,7 @@
 #ifndef CONFIG_SCHED_HAVE_PARENT
 pid_t waitpid(pid_t pid, int *stat_loc, int options)
 {
-  _TCB *tcb;
+  _TCB *ctcb;
   bool mystat;
   int err;
   int ret;
@@ -208,8 +208,8 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   /* Get the TCB corresponding to this PID */
 
-  tcb = sched_gettcb(pid);
-  if (!tcb)
+  ctcb = sched_gettcb(pid);
+  if (!ctcb)
     {
       err = ECHILD;
       goto errout_with_errno;
@@ -221,15 +221,15 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
    * others?
    */
 
-  if (stat_loc != NULL && tcb->stat_loc == NULL)
+  if (stat_loc != NULL && ctcb->stat_loc == NULL)
     {
-      tcb->stat_loc = stat_loc;
-      mystat        = true;
+      ctcb->stat_loc = stat_loc;
+      mystat         = true;
     }
 
   /* Then wait for the task to exit */
  
-  ret = sem_wait(&tcb->exitsem);
+  ret = sem_wait(&ctcb->exitsem);
   if (ret < 0)
     {
       /* Unlock pre-emption and return the ERROR (sem_wait has already set
@@ -239,7 +239,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
       if (mystat)
         {
-          tcb->stat_loc = NULL;
+          ctcb->stat_loc = NULL;
         }
 
       goto errout;
@@ -274,8 +274,10 @@ errout:
 pid_t waitpid(pid_t pid, int *stat_loc, int options)
 {
   FAR _TCB *rtcb = (FAR _TCB *)g_readytorun.head;
+  FAR _TCB *ctcb;
 #ifdef CONFIG_SCHED_CHILD_STATUS
   FAR struct child_status_s *child;
+  bool retains;
 #endif
   FAR struct siginfo info;
   sigset_t sigset;
@@ -303,26 +305,42 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   sched_lock();
 
-  /* Verify that this task actually has children and that the the request
-   * TCB is actually a child of this task.
+  /* Verify that this task actually has children and that the requested PID
+   * is actually a child of this task.
    */
 
 #ifdef CONFIG_SCHED_CHILD_STATUS
-  if (rtcb->children == NULL)
-    {
-      /* There are no children */
+  /* Does this task retain child status? */
 
+  retains = ((rtcb->flags && TCB_FLAG_NOCLDWAIT) == 0);
+
+  if (rtcb->children == NULL && retains)
+    {
       err = ECHILD;
       goto errout_with_errno;
     }
   else if (pid != (pid_t)-1)
     {
-      /* This specific pid is not a child */
+      /* Get the TCB corresponding to this PID and make sure it is our child. */
 
-      if (task_findchild(rtcb, pid) == NULL)
+      ctcb = sched_gettcb(pid);
+      if (!ctcb || ctcb->parent != rtcb->pid)
         {
           err = ECHILD;
           goto errout_with_errno;
+        }
+
+      /* Does this task retain child status? */
+
+       if (retains)
+        {
+           /* Check if this specific pid has allocated child status? */
+
+           if (task_findchild(rtcb, pid) == NULL)
+            {
+              err = ECHILD;
+              goto errout_with_errno;
+            }
         }
     }
 #else
@@ -337,7 +355,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
     {
      /* Get the TCB corresponding to this PID and make sure it is our child. */
 
-      FAR _TCB *ctcb = sched_gettcb(pid);
+      ctcb = sched_gettcb(pid);
       if (!ctcb || ctcb->parent != rtcb->pid)
         {
           err = ECHILD;
@@ -350,6 +368,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   for (;;)
     {
+#ifdef CONFIG_SCHED_CHILD_STATUS
       /* Check if the task has already died. Signals are not queued in
        * NuttX.  So a possibility is that the child has died and we
        * missed the death of child signal (we got some other signal
@@ -362,39 +381,33 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
            * chilren.
            */
 
-#ifdef CONFIG_SCHED_CHILD_STATUS
-          DEBUGASSERT(rtcb->children);
-          if (rtcb->children == NULL)
-#else
-          if (rtcb->nchildren == 0)
-#endif
+          DEBUGASSERT(!retains || rtcb->children);
+          if (retains && (child = task_exitchild(rtcb)) != NULL)
             {
-              /* There were one or more children when we started so they
-               * must have exit'ed.  There are just no bread crumbs left
-               * behind to tell us the PID(s) of the existed children.
-               * Reporting ECHLD is about all we can do in this case.
+              /* A child has exitted.  Apparently we missed the signal.
+               * Return the saved exit status.
                */
 
-              err = ECHILD;
-              goto errout_with_errno;
+              /* The child has exited. Return the saved exit status */
+
+              *stat_loc = child->ch_status;
+
+              /* Discard the child entry and break out of the loop */
+
+              (void)task_removechild(rtcb, child->ch_pid);
+              task_freechild(child);
+              break;
             }
         }
-      else
+
+      /* We are waiting for a specific PID. Does this task retain child status? */
+
+      else if (retains)
         {
-#ifdef CONFIG_SCHED_CHILD_STATUS
-          /* We are waiting for a specific PID.  Get the current status
-           * of the child task.
-           */
+          /* Get the current status of the child task. */
 
           child = task_findchild(rtcb, pid);
           DEBUGASSERT(child);
-          if (!child)
-            {
-              /* Yikes!  The child status entry just disappeared! */
-
-              err = ECHILD;
-              goto errout_with_errno;
-            }
 
           /* Did the child exit? */
 
@@ -408,27 +421,48 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
               (void)task_removechild(rtcb, pid);
               task_freechild(child);
+              break;
             }
-#else
-          /* We are waiting for a specific PID.  We can use kill() with
-           * signal number 0 to determine if that task is still alive.
+        }
+      else
+        {
+          /* We can use kill() with signal number 0 to determine if that
+           * task is still alive.
            */
 
           ret = kill(pid, 0);
           if (ret < 0)
             {
-              /* It is no longer running.  We know that the child task was
-               * running okay when we started, so we must have lost the
-               * signal.  In this case, we know that the task exit'ed, but
-               * we do not know its exit status.  It would be better to
-               * reported ECHILD that bogus status.
+              /* It is no longer running.  We know that the child task
+               * was running okay when we started, so we must have lost
+               * the signal.  In this case, we know that the task exit'ed,
+               * but we do not know its exit status.  It would be better
+               * to reported ECHILD than bogus status.
                */
 
               err = ECHILD;
               goto errout_with_errno;
             }
-#endif
         }
+#else
+      /* Check if the task has already died. Signals are not queued in
+       * NuttX.  So a possibility is that the child has died and we
+       * missed the death of child signal (we got some other signal
+       * instead).
+       */
+
+      if (rtcb->nchildren == 0 ||
+          (pid != (pid_t)-1 && (ret = kill((pid_t)id, 0)) < 0))
+        {
+          /* We know that the child task was running okay we stared,
+           * so we must have lost the signal.  What can we do?
+           * Let's claim we were interrupted by a signal.
+           */
+
+          err = EINTR;
+          goto errout_with_errno;
+        }
+#endif
 
       /* Wait for any death-of-child signal */
 

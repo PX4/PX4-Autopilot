@@ -169,7 +169,6 @@ int sigaction(int signo, FAR const struct sigaction *act, FAR struct sigaction *
 {
   FAR _TCB      *rtcb = (FAR _TCB*)g_readytorun.head;
   FAR sigactq_t *sigact;
-  int            ret;
 
   /* Since sigactions can only be installed from the running thread of
    * execution, no special precautions should be necessary.
@@ -251,24 +250,31 @@ int sigaction(int signo, FAR const struct sigaction *act, FAR struct sigaction *
 
   if (act->sa_u._sa_handler == SIG_IGN)
     {
-      /* If there is a old sigaction, remove it from sigactionq */
+      /* Do we still have a sigaction container from the previous setting? */
 
-      sq_rem((FAR sq_entry_t*)sigact, &rtcb->sigactionq);
+      if (sigact)
+        {
+          /* Yes.. Remove it from sigactionq */
 
-      /* And deallocate it */
+          sq_rem((FAR sq_entry_t*)sigact, &rtcb->sigactionq);
 
-      sig_releaseaction(sigact);
+          /* And deallocate it */
+
+          sig_releaseaction(sigact);
+        }
     }
 
   /* A sigaction has been supplied */
 
   else
     {
-      /* Check if a sigaction was found */
+      /* Do we still have a sigaction container from the previous setting?
+       * If so, then re-use for the new signal action.
+       */
 
       if (!sigact)
         {
-          /* No sigaction was found, but one is needed.  Allocate one. */
+          /* No.. Then we need to allocate one for the new action. */
 
           sigact = sig_allocateaction();
 
@@ -294,7 +300,7 @@ int sigaction(int signo, FAR const struct sigaction *act, FAR struct sigaction *
       COPY_SIGACTION(&sigact->act, act);
     }
 
-  return ret;
+  return OK;
 }
 
 /****************************************************************************

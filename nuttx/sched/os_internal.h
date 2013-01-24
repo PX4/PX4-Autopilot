@@ -274,6 +274,7 @@ void weak_function task_initialize(void);
 FAR struct child_status_s *task_allocchild(void);
 void task_freechild(FAR struct child_status_s *status);
 void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child);
+FAR struct child_status_s *task_exitchild(FAR _TCB *tcb);
 FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid);
 FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid);
 void task_removechildren(FAR _TCB *tcb);

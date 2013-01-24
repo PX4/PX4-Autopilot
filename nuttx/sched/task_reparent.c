@@ -138,14 +138,32 @@ int task_reparent(pid_t ppid, pid_t chpid)
   child = task_removechild(otcb, chpid);
   if (child)
     {
-      /* Add the child status entry to the new parent TCB */
+      /* Has the new parent supressed child exit status? */
 
-      task_addchild(ptcb, child);
+      if ((ptcb->flags && TCB_FLAG_NOCLDWAIT) == 0)
+        {
+          /* No.. Add the child status entry to the new parent TCB */
+
+          task_addchild(ptcb, child);
+        }
+      else
+        {
+          /* Yes.. Discard the child status entry */
+
+          task_freechild(child);
+        }
+
+      /* Either case is a success */
+
       ret = OK;
     }
   else
     {
-      ret = -ENOENT;
+      /* This would not be an error if the original parent has
+       * suppressed child exit status.
+       */
+
+      ret = ((otcb->flags && TCB_FLAG_NOCLDWAIT) == 0) ? -ENOENT : OK;
     }
 #else
   DEBUGASSERT(otcb->nchildren > 0);

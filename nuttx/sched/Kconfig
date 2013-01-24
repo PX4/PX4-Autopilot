@@ -124,6 +124,13 @@ config PREALLOC_CHILDSTATUS
 			sa.sa_flags = SA_NOCLDWAIT;
 			int ret = sigaction(SIGCHLD, &sa, NULL);
 
+config DEBUG_CHILDSTATUS
+	bool "Enable Child Status Debug Output"
+	default n
+	depends on SCHED_CHILD_STATUS && DEBUG
+	---help---
+		Very detailed... I am sure that you do not want this.
+
 config JULIAN_TIME
 	bool "Enables Julian time conversions"
 	default n

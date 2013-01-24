@@ -367,8 +367,7 @@ int psock_poll(FAR struct socket *psock, FAR struct pollfd *fds, bool setup)
 
   if (psock->s_type != SOCK_STREAM)
     {
-      ret = -ENOSYS;
-      goto errout;
+      return -ENOSYS;
     }
 #endif
 
@@ -387,7 +386,6 @@ int psock_poll(FAR struct socket *psock, FAR struct pollfd *fds, bool setup)
       ret = net_pollteardown(psock, fds);
     }
 
-errout:
   return ret;
 }
 #endif
