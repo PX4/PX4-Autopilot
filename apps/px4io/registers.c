@@ -428,7 +428,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	/*
 	 * Pages that are just a straight read of the register state.
 	 */
-#define COPY_PAGE(_page_name, _page)	case _page_name: SELECT_PAGE(_page); break;
+#define COPY_PAGE(_page_name, _page)	case _page_name: SELECT_PAGE(_page); break
 
 	/* status pages */
 	COPY_PAGE(PX4IO_PAGE_CONFIG,		r_page_config);
