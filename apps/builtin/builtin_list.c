@@ -1,8 +1,10 @@
 /****************************************************************************
- * libc/string/lib_psfa_dump.c
+ * apps/builtin/builtin_list.c
  *
- *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2011 Uros Platise. All rights reserved.
+ *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Authors: Uros Platise <uros.platise@isotel.eu>
+ *            Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,91 +41,39 @@
 
 #include <nuttx/config.h>
 
-#include <spawn.h>
-#include <assert.h>
-#include <debug.h>
-
-#include <nuttx/spawn.h>
-
-#ifdef CONFIG_DEBUG
+#include <nuttx/binfmt/builtin.h>
 
 /****************************************************************************
- * Public Functions
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
+ * Private Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lib_psfa_dump
- *
- * Description:
- *   Show the entryent file actions.
- *
- * Input Parameters:
- *   file_actions - The address of the file_actions to be dumped.
- *
- * Returned Value:
- *   None
- *
+ * Public Data
  ****************************************************************************/
 
-void posix_spawn_file_actions_dump(FAR posix_spawn_file_actions_t *file_actions)
+#include "builtin_proto.h"
+
+const struct builtin_s g_builtins[] =
 {
-  FAR struct spawn_general_file_action_s *entry;
+# include "builtin_list.h"
+  { NULL, 0, 0, 0 }
+};
 
-  DEBUGASSERT(file_actions);
+const int g_builtin_count = sizeof(g_builtins) / sizeof(g_builtins[0]);
 
-  dbg("File Actions[%p->%p]:\n", file_actions, *file_actions);
-  if (!*file_actions)
-    {
-      dbg("  NONE\n");
-      return;
-    }
-  
-  /* Destroy each file action, one at a time */
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
-  for (entry = (FAR struct spawn_general_file_action_s *)*file_actions;
-       entry;
-       entry = entry->flink)
-    {
-      switch (entry->action)
-        {
-        case SPAWN_FILE_ACTION_CLOSE:
-          {
-            FAR struct spawn_close_file_action_s *action =
-              (FAR struct spawn_close_file_action_s *)entry;
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
-            dbg("  CLOSE: fd=%d\n", action->fd);
-          }
-          break;
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
-        case SPAWN_FILE_ACTION_DUP2:
-          {
-            FAR struct spawn_dup2_file_action_s *action =
-              (FAR struct spawn_dup2_file_action_s *)entry;
-
-            dbg("  DUP2: %d->%d\n", action->fd1, action->fd2);
-          }
-          break;
-
-        case SPAWN_FILE_ACTION_OPEN:
-          {
-            FAR struct spawn_open_file_action_s *action =
-              (FAR struct spawn_open_file_action_s *)entry;
-
-            svdbg("  OPEN: path=%s oflags=%04x mode=%04x fd=%d\n",
-                  action->path, action->oflags, action->mode, action->fd);
-          }
-          break;
-
-        case SPAWN_FILE_ACTION_NONE:
-        default:
-          dbg("  ERROR: Unknown action: %d\n", entry->action);
-          break;
-        }
-    }
-}
-
-#endif /* CONFIG_DEBUG */

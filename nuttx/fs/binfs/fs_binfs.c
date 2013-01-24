@@ -222,7 +222,7 @@ static int binfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
       else
         {
-          *ptr = g_builtins[(int)filep->f_priv].name;
+          *ptr = builtin_getname((int)filep->f_priv);
           ret = OK;
         }
     }
@@ -287,13 +287,15 @@ static int binfs_opendir(struct inode *mountpt, const char *relpath,
 
 static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 {
+  FAR const char *name;
   unsigned int index;
   int ret;
 
   /* Have we reached the end of the directory */
 
   index = dir->u.binfs.fb_index;
-  if (g_builtins[index].name == NULL)
+  name = builtin_getname(index);
+  if (name == NULL)
     {
       /* We signal the end of the directory by returning the
        * special error -ENOENT
@@ -306,9 +308,9 @@ static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
     {
       /* Save the filename and file type */
 
-      fvdbg("Entry %d: \"%s\"\n", index, g_builtins[index].name);
+      fvdbg("Entry %d: \"%s\"\n", index, name);
       dir->fd_dir.d_type = DTYPE_FILE;
-      strncpy(dir->fd_dir.d_name, g_builtins[index].name, NAME_MAX+1);
+      strncpy(dir->fd_dir.d_name, name, NAME_MAX+1);
 
       /* The application list is terminated by an entry with a NULL name.
        * Therefore, there is at least one more entry in the list.

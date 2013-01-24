@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv7-m/up_sigdeliver.c
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,7 +102,11 @@ void up_sigdeliver(void)
 
   up_copystate(regs, rtcb->xcp.regs);
   regs[REG_PC]         = rtcb->xcp.saved_pc;
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  regs[REG_BASEPRI]    = rtcb->xcp.saved_basepri;
+#else
   regs[REG_PRIMASK]    = rtcb->xcp.saved_primask;
+#endif
   regs[REG_XPSR]       = rtcb->xcp.saved_xpsr;
 
   /* Get a local copy of the sigdeliver function pointer. We do this so that
@@ -115,7 +119,11 @@ void up_sigdeliver(void)
 
   /* Then restore the task interrupt state */
 
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  irqrestore((uint8_t)regs[REG_BASEPRI]);
+#else
   irqrestore((uint16_t)regs[REG_PRIMASK]);
+#endif
 
   /* Deliver the signals */
 

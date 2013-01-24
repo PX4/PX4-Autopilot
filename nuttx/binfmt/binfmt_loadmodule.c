@@ -84,6 +84,7 @@
 static int load_default_priority(FAR struct binary_s *bin)
 {
   struct sched_param param;
+  int ret;
 
   /* Get the priority of this thread */
 
@@ -97,6 +98,7 @@ static int load_default_priority(FAR struct binary_s *bin)
   /* Save that as the priority of child thread */
 
   bin->priority = param.sched_priority;
+  return ret;
 }
 
 /****************************************************************************
@@ -180,7 +182,7 @@ int load_module(FAR struct binary_s *bin)
     {
       /* Set the default priority of the new program. */
 
-      ret = load_default_priority(bin)
+      ret = load_default_priority(bin);
       if (ret < 0)
         {
           /* The errno is already set in this case */
