@@ -106,7 +106,6 @@ private:
 
 	volatile int		_task;		///< worker task
 	volatile bool		_task_should_exit;
-	volatile bool		_connected;	///< true once we have received a valid frame
 
 	perf_counter_t		_perf_update;
 
@@ -266,7 +265,6 @@ PX4IO::PX4IO() :
 	_update_interval(0),
 	_task(-1),
 	_task_should_exit(false),
-	_connected(false),
 	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
 	_t_actuators(-1),
 	_t_armed(-1),
@@ -322,7 +320,7 @@ PX4IO::init()
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
 	if ((_max_actuators < 1) || (_max_actuators > 255) ||
 	    (_max_relays < 1)    || (_max_relays > 255)    ||
-	    (_max_relays < 16)   || (_max_relays > 255)    ||
+	    (_max_transfer < 16)   || (_max_transfer > 255)    ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
 		log("failed getting parameters from PX4IO");
@@ -352,21 +350,6 @@ PX4IO::init()
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
 		return -errno;
-	}
-
-	/* wait a second for it to detect IO */
-	for (unsigned i = 0; i < 10; i++) {
-		if (_connected) {
-			debug("PX4IO connected");
-			break;
-		}
-		usleep(100000);
-	}
-
-	if (!_connected) {
-		/* error here will result in everything being torn down */
-		log("PX4IO not responding");
-		return -EIO;
 	}
 
 	return OK;
@@ -680,7 +663,7 @@ int
 PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 {
 	uint32_t channel_count;
-	int	ret;
+	int	ret = OK;
 
 	input_rc.timestamp = hrt_absolute_time();
 
@@ -703,7 +686,7 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	 */
 	channel_count =  io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 	if (channel_count == _io_reg_get_error)
-		return ret;
+		return -EIO;
 	if (channel_count > RC_INPUT_MAX_CHANNELS)
 		channel_count = RC_INPUT_MAX_CHANNELS;
 	input_rc.channel_count = channel_count;
@@ -834,23 +817,21 @@ PX4IO::io_publish_pwm_outputs()
 int
 PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
-	i2c_msg_s	msgv[2];
-	uint8_t		hdr[2];
+	uint8_t buf[_max_transfer];
 
-	hdr[0] = page;
-	hdr[1] = offset;
+	if (num_values > ((_max_transfer - 2) / sizeof(*values)))
+		return -EINVAL;
+	unsigned datalen = num_values * sizeof(*values);
 
-	msgv[0].flags = 0;
-	msgv[0].buffer = hdr;
-	msgv[0].length = sizeof(hdr);
+	buf[0] = page;
+	buf[1] = offset;
 
-	msgv[1].flags = 0;
-	msgv[1].buffer = (uint8_t *)(values);
-	msgv[1].length = num_values * sizeof(*values);
+	if (num_values > 0)
+		memcpy(&buf[2], values, datalen);
 
-	int ret = transfer(msgv, 2);
+	int ret = transfer(buf, datalen, nullptr, 0);
 	if (ret != OK)
-		debug("io_reg_set: %d", ret);
+		debug("io_reg_set: error %d", ret);
 	return ret;
 }
 
@@ -863,23 +844,22 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, uint16_t value)
 int
 PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values)
 {
-	i2c_msg_s	msgv[2];
-	uint8_t		hdr[2];
+	uint8_t		addr[2];
+	int		ret;
 
-	hdr[0] = page;
-	hdr[1] = offset;
+	/* send the address */
+	addr[0] = page;
+	addr[1] = offset;
+	ret = transfer(addr, 2, nullptr, 0);
+	if (ret != OK) {
+		debug("io_reg_get: addr error %d", ret);
+		return ret;
+	}
 
-	msgv[0].flags = 0;
-	msgv[0].buffer = hdr;
-	msgv[0].length = sizeof(hdr);
-
-	msgv[1].flags = I2C_M_READ;
-	msgv[1].buffer = (uint8_t *)values;
-	msgv[1].length = num_values * sizeof(*values);
-
-	int ret = transfer(msgv, 2);
+	/* now read the data */
+	ret = transfer(nullptr, 0, (uint8_t *)values, num_values * sizeof(*values));
 	if (ret != OK)
-		debug("io_reg_get: %d", ret);
+		debug("io_reg_get: data error %d", ret);
 	return ret;
 }
 
