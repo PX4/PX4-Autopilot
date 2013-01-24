@@ -1030,9 +1030,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = 0;	/* load always resets */
 		break;
 
-	case MIXERIOCLOADBUF:
-		ret = mixer_send((const char *)arg, strnlen(_mix_buf, 1024));
+	case MIXERIOCLOADBUF: {
+		const char *buf = (const char *)arg;
+		ret = mixer_send(buf, strnlen(buf, 1024));
 		break;
+	}
 
 	case RC_INPUT_GET: {
 		uint16_t status;
