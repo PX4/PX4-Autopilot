@@ -1225,11 +1225,11 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
 
           /* Disable acknowledge when last byte is to be received */
 
+          priv->dcnt--;
           if (priv->dcnt == 1)
             {
               stm32_i2c_modifyreg(priv, STM32_I2C_CR1_OFFSET, I2C_CR1_ACK, 0);  
             }
-          priv->dcnt--;
 
 #ifdef CONFIG_I2C_POLLED
           irqrestore(state);
