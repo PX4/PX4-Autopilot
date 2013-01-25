@@ -70,7 +70,7 @@
 
 /* In any event, we don't need group members if support for pthreads is disabled */
 
-#ifdef CONFIG_PTHREADS_DISABLE
+#ifdef CONFIG_DISABLE_PTHREAD
 #  undef HAVE_GROUP_MEMBERS
 #endif
 

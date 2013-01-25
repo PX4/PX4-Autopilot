@@ -259,7 +259,11 @@ static inline void task_sigchild(FAR _TCB *ptcb, FAR _TCB *ctcb, int status)
        * can provide the correct si_code value with the signal.
        */
 
+#ifdef HAVE_GROUP_MEMBERS
+      (void)group_signal(ptcb, &info);
+#else
       (void)sig_received(ptcb, &info);
+#endif
     }
 }
 #else

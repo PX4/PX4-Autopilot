@@ -87,7 +87,11 @@ SCHED_SRCS += sched_waitid.c sched_wait.c
 endif
 endif
 
-GRP_SRCS = group_create.c group_join.c group_leave.c
+GRP_SRCS  = group_create.c group_join.c group_leave.c
+
+ifneq ($(CONFIG_DISABLE_SIGNALS),y)
+GRP_SRCS += group_signal.c
+endif
 
 ENV_SRCS  = env_getenvironptr.c env_dup.c env_share.c env_release.c
 ENV_SRCS += env_findvar.c env_removevar.c

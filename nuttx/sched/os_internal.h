@@ -275,13 +275,21 @@ int  task_reparent(pid_t ppid, pid_t chpid);
 #ifdef HAVE_TASK_GROUP
 int group_allocate(FAR _TCB *tcb);
 int group_initialize(FAR _TCB *tcb);
+int group_bind(FAR _TCB *tcb);
 int group_join(FAR _TCB *tcb);
 void group_leave(FAR _TCB *tcb);
+#ifndef CONFIG_DISABLE_SIGNALS
+int group_signal(FAR _TCB *tcb, FAR siginfo_t *info);
 #else
-# define group_allocate(tcb)   (0)
-# define group_initialize(tcb) (0)
-# define group_join(tcb)       (0)
+# define group_signal(tcb,info) (0)
+#endif
+#else
+# define group_allocate(tcb)    (0)
+# define group_initialize(tcb)  (0)
+# define group_bind(tcb)        (0)
+# define group_join(tcb)        (0)
 # define group_leave(tcb)
+# define group_signal(tcb,info) (0)
 #endif
 
 #ifdef CONFIG_SCHED_CHILD_STATUS

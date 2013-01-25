@@ -4025,3 +4025,8 @@
 	  poll_interrupt() must cat call net_lostconnection() when a
 	  loss of connection is reported.  Otherwise, the system will
 	  not know that the connection has been lost.
+	* sched/group_create.c, group_join.c, and group_leave.c:  Add
+	  support for task groups.
+	* sched/group_signal.c and task_exithook.c:  Send signal to all
+	  members for the parent task group.
+
