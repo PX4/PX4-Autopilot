@@ -4029,4 +4029,6 @@
 	  support for task groups.
 	* sched/group_signal.c and task_exithook.c:  Send signal to all
 	  members for the parent task group.
+	* include/nuttx/sched.h and sched/env_*.c:  Move environment
+	  variables into task group structure.
 

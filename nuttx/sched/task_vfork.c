@@ -48,7 +48,7 @@
 #include <nuttx/sched.h>
 
 #include "os_internal.h"
-#include "env_internal.h"
+#include "group_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -131,10 +131,6 @@ FAR _TCB *task_vforksetup(start_t retaddr)
       goto errout_with_tcb;
     }
 #endif
-
-  /* Clone the parent's task environment */
-
-  (void)env_dup(child);
 
   /* Get the priority of the parent task */
 

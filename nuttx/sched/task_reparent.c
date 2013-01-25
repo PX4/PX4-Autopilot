@@ -42,6 +42,7 @@
 #include <errno.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 
 #ifdef CONFIG_SCHED_HAVE_PARENT
 

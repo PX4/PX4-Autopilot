@@ -46,6 +46,9 @@
 
 #include <nuttx/kmalloc.h>
 
+#include "group_internal.h"
+#include "env_internal.h"
+
 #ifdef HAVE_TASK_GROUP
 
 /*****************************************************************************
@@ -97,12 +100,29 @@
 
 int group_allocate(FAR _TCB *tcb)
 {
+  int ret;
+
   DEBUGASSERT(tcb && !tcb->group);
 
   /* Allocate the group structure and assign it to the TCB */
 
   tcb->group = (FAR struct task_group_s *)kzalloc(sizeof(struct task_group_s));
-  return tcb->group ? OK : -ENOMEM;
+  if (!tcb->group)
+    {
+      return -ENOMEM;
+    }
+
+  /* Duplicate the parent tasks envionment */
+
+  ret = env_dup(tcb);
+  if (ret < 0)
+    {
+      kfree(tcb->group);
+      tcb->group = NULL;
+      return ret;
+    }
+
+  return OK;
 }
 
 /*****************************************************************************
@@ -128,12 +148,12 @@ int group_allocate(FAR _TCB *tcb)
 
 int group_initialize(FAR _TCB *tcb)
 {
-#ifdef HAVE_GROUP_MEMBERS
   FAR struct task_group_s *group;
 
   DEBUGASSERT(tcb && tcb->group);
   group = tcb->group;
 
+#ifdef HAVE_GROUP_MEMBERS
   /* Allocate space to hold GROUP_INITIAL_MEMBERS members of the group */
 
   group->tg_members = (FAR pid_t *)kmalloc(GROUP_INITIAL_MEMBERS*sizeof(pid_t));

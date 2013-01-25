@@ -93,7 +93,7 @@ ifneq ($(CONFIG_DISABLE_SIGNALS),y)
 GRP_SRCS += group_signal.c
 endif
 
-ENV_SRCS  = env_getenvironptr.c env_dup.c env_share.c env_release.c
+ENV_SRCS  = env_getenvironptr.c env_dup.c env_release.c
 ENV_SRCS += env_findvar.c env_removevar.c
 ENV_SRCS += env_clearenv.c env_getenv.c env_putenv.c env_setenv.c env_unsetenv.c
 

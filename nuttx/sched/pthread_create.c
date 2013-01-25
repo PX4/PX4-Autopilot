@@ -53,8 +53,8 @@
 #include <nuttx/arch.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 #include "clock_internal.h"
-#include "env_internal.h"
 #include "pthread_internal.h"
 
 /****************************************************************************
@@ -304,10 +304,6 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
       errcode = ret;
       goto errout_with_tcb;
     }
-
-  /* Share the parent's envionment */
-
-  (void)env_share(ptcb);
 
   /* Allocate a detachable structure to support pthread_join logic */
 

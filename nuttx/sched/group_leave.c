@@ -44,7 +44,8 @@
 #include <errno.h>
 #include <debug.h>
 
-#include "os_internal.h"
+#include "group_internal.h"
+#include "env_internal.h"
 
 #ifdef HAVE_TASK_GROUP
 
@@ -92,7 +93,6 @@
 void group_leave(FAR _TCB *tcb)
 {
   FAR struct task_group_s *group;
-  int i;
 
   DEBUGASSERT(tcb);
 
@@ -102,6 +102,8 @@ void group_leave(FAR _TCB *tcb)
   if (group)
     {
 #ifdef HAVE_GROUP_MEMBERS
+      int i;
+
       /* Find the member in the array of members and remove it */
 
       for (i = 0; i < group->tg_nmembers; i++)
@@ -142,8 +144,14 @@ void group_leave(FAR _TCB *tcb)
               /* Release all of the resource contained within the group */
               /* Free all un-reaped child exit status */
 
-              task_removechildren(tcb);
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+             task_removechildren(tcb);
+#endif
+              /* Release all shared environment variables */
 
+#ifndef CONFIG_DISABLE_ENVIRON
+              env_release(tcb);
+#endif
               /* Release the group container itself */
 
               sched_free(group);
@@ -166,8 +174,14 @@ void group_leave(FAR _TCB *tcb)
           /* Release all of the resource contained within the group */
           /* Free all un-reaped child exit status */
 
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
           task_removechildren(tcb);
+#endif
+          /* Release all shared environment variables */
 
+#ifndef CONFIG_DISABLE_ENVIRON
+          env_release(tcb);
+#endif
           /* Release the group container itself */
 
           sched_free(group);

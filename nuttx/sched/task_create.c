@@ -48,7 +48,7 @@
 #include <nuttx/kmalloc.h>
 
 #include "os_internal.h"
-#include "env_internal.h"
+#include "group_internal.h"
 
 /****************************************************************************
  * Definitions
@@ -141,10 +141,6 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
       goto errout_with_tcb;
     }
 #endif
-
-  /* Clone the parent's task environment */
-
-  (void)env_dup(tcb);
 
   /* Allocate the stack for the TCB */
 

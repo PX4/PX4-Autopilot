@@ -44,6 +44,8 @@
 #include <signal.h>
 #include <debug.h>
 
+#include "os_internal.h"
+#include "group_internal.h"
 #include "sig_internal.h"
 
 #if defined(HAVE_TASK_GROUP) && !defined(CONFIG_DISABLE_SIGNALS)

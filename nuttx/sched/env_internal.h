@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/env_internal.h
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,9 +50,8 @@
 
 #ifdef CONFIG_DISABLE_ENVIRON
 # define env_dup(ptcb)     (0)
-# define env_share(ptcb)   (0)
 # define env_release(ptcb) (0)
-#endif
+#else
 
 /****************************************************************************
  * Public Type Declarations
@@ -62,34 +61,33 @@
  * Public Variables
  ****************************************************************************/
 
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
 #ifdef __cplusplus
 #define EXTERN extern "C"
-extern "C" {
+extern "C"
+{
 #else
 #define EXTERN extern
 #endif
 
-#ifndef CONFIG_DISABLE_ENVIRON
-/* functions used by the task/pthread creation and destruction logic */
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
-EXTERN int env_dup(FAR _TCB *ptcb);
-EXTERN int env_share(FAR _TCB *ptcb);
-EXTERN int env_release(FAR _TCB *ptcb);
+/* Functions used by the task/pthread creation and destruction logic */
 
-/* functions used internally by the environment handling logic */
+int env_dup(FAR _TCB *ctcb);
+void env_release(FAR _TCB *tcb);
 
-EXTERN FAR char *env_findvar(environ_t *envp, const char *pname);
-EXTERN int env_removevar(environ_t *envp, char *pvar);
-#endif
+/* Functions used internally by the environment handling logic */
+
+FAR char *env_findvar(FAR struct task_group_s *group, FAR const char *pname);
+int env_removevar(FAR struct task_group_s *group, FAR char *pvar);
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
+#endif /* !CONFIG_DISABLE_ENVIRON */
 #endif /* __SCHED_ENV_INTERNAL_H */
 

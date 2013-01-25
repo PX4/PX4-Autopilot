@@ -47,7 +47,7 @@
 #include <nuttx/arch.h>
 
 #include "os_internal.h"
-#include "env_internal.h"
+#include "group_internal.h"
 
 /****************************************************************************
  * Definitions
@@ -145,10 +145,6 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
     }
 #endif
 
-  /* Clone the parent's task environment */
-
-  (void)env_dup(tcb);
-
   /* Configure the user provided stack region */
 
 #ifndef CONFIG_CUSTOM_STACK
@@ -162,7 +158,7 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
   if (ret < OK)
     {
       errcode = -ret;
-      goto errout_with_env;
+      goto errout_with_group;
     }
 
   /* Setup to pass parameters to the new task */
@@ -176,13 +172,10 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
   if (ret < 0)
     {
       errcode = -ret;
-      goto errout_with_env;
+      goto errout_with_group;
     }
 #endif
   return OK;
-
-errout_with_env:
-  env_release(tcb);
 
 errout_with_group:
 #ifdef HAVE_TASK_GROUP

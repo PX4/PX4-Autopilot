@@ -68,7 +68,7 @@
  *   exact duplicate of the parent task's environment.
  *
  * Parameters:
- *   ptcb The tcb to receive the newly allocated copy of the parent
+ *   ctcb The child tcb to receive the newly allocated copy of the parent
  *        TCB's environment structure with reference count equal to one
  *
  * Return Value:
@@ -79,13 +79,14 @@
  *
  ****************************************************************************/
 
-int env_dup(FAR _TCB *ptcb)
+int env_dup(FAR _TCB *ctcb)
 {
-  FAR _TCB  *parent = (FAR _TCB*)g_readytorun.head;
-  environ_t *envp   = NULL;
+  FAR _TCB *ptcb = (FAR _TCB*)g_readytorun.head;
+  FAR char *envp = NULL;
+  size_t envlen;
   int ret = OK;
 
-  DEBUGASSERT(ptcb);
+  DEBUGASSERT(ctcb && ptcb && ctcb->group && ptcb->group);
 
   /* Pre-emption must be disabled throughout the following because the
    * environment may be shared.
@@ -95,27 +96,24 @@ int env_dup(FAR _TCB *ptcb)
 
   /* Does the parent task have an environment? */
 
-  if (parent->envp)
+  if (ptcb->group && ptcb->group->tg_envp)
     {
       /* Yes..The parent task has an environment, duplicate it */
 
-      size_t envlen =  parent->envp->ev_alloc;
-      envp          = (environ_t*)kmalloc(SIZEOF_ENVIRON_T(envlen));
+      envlen = ptcb->group->tg_envsize;
+      envp   = (FAR char *)kmalloc(envlen);
       if (!envp)
         {
           ret = -ENOMEM;
         }
       else
         {
-          envp->ev_crefs = 1;
-          envp->ev_alloc = envlen;
-          memcpy(envp->ev_env, parent->envp->ev_env, envlen);
+          ctcb->group->tg_envsize = envlen;
+          ctcb->group->tg_envp    = envp;
+          memcpy(envp, ptcb->group->tg_envp, envlen);
         }
     }
 
-  /* Save the cloned environment in the new TCB */
-
-  ptcb->envp = envp;
   sched_unlock();
   return ret;
 }

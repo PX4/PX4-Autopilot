@@ -49,6 +49,7 @@
 #include <nuttx/fs/fs.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 #include "sig_internal.h"
 
 /****************************************************************************

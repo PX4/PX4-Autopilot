@@ -46,7 +46,8 @@
 
 #include <nuttx/kmalloc.h>
 
-#include "os_internal.h"
+#include "group_internal.h"
+#include "env_internal.h"
 
 #ifdef HAVE_TASK_GROUP
 
@@ -137,7 +138,6 @@ int group_bind(FAR _TCB *tcb)
 
 int group_join(FAR _TCB *tcb)
 {
-#ifdef HAVE_GROUP_MEMBERS
   FAR struct task_group_s *group;
 
   DEBUGASSERT(tcb && tcb->group &&
@@ -147,6 +147,7 @@ int group_join(FAR _TCB *tcb)
 
   group = tcb->group;
   
+#ifdef HAVE_GROUP_MEMBERS
   /* Will we need to extend the size of the array of groups? */
 
   if (group->tg_nmembers >= group->tg_mxmembers)

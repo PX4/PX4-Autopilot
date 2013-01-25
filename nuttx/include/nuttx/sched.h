@@ -68,6 +68,11 @@
 #  define HAVE_GROUP_MEMBERS 1
 #endif
 
+#if !defined(CONFIG_DISABLE_ENVIRON)
+#  undef  HAVE_TASK_GROUP
+#  define HAVE_TASK_GROUP   1
+#endif
+
 /* In any event, we don't need group members if support for pthreads is disabled */
 
 #ifdef CONFIG_DISABLE_PTHREAD
@@ -178,21 +183,6 @@ typedef CODE void (*onexitfunc_t)(int exitcode, FAR void *arg);
 
 typedef struct msgq_s msgq_t;
 
-/* struct environ_s **************************************************************/
-/* The structure used to maintain environment variables */
-
-#ifndef CONFIG_DISABLE_ENVIRON
-struct environ_s
-{
-  unsigned int ev_crefs;      /* Reference count used when environment
-                               * is shared by threads */
-  size_t       ev_alloc;      /* Number of bytes allocated in environment */
-  char         ev_env[1];     /* Environment strings */
-};
-typedef struct environ_s environ_t;
-# define SIZEOF_ENVIRON_T(alloc) (sizeof(environ_t) + alloc - 1)
-#endif
-
 /* struct child_status_s *********************************************************/
 /* This structure is used to maintin information about child tasks.
  * pthreads work differently, they have join information.  This is 
@@ -263,11 +253,14 @@ struct dspace_s
 #ifdef HAVE_TASK_GROUP
 struct task_group_s
 {
-  uint8_t    tg_flags;                   /* See GROUP_FLAG_* definitions        */
-  uint8_t    tg_nmembers;                /* Number of members in the group      */
+  uint8_t    tg_flags;              /* See GROUP_FLAG_* definitions             */
+
+  /* Group membership ***********************************************************/
+
+  uint8_t    tg_nmembers;           /* Number of members in the group           */
 #ifdef HAVE_GROUP_MEMBERS
-  uint8_t    tg_mxmembers;               /* Number of members in allocation     */
-  FAR pid_t *tg_members;                 /* Members of the group                */
+  uint8_t    tg_mxmembers;          /* Number of members in allocation          */
+  FAR pid_t *tg_members;            /* Members of the group                     */
 #endif
 
   /* Child exit status **********************************************************/
@@ -276,8 +269,12 @@ struct task_group_s
   FAR struct child_status_s *tg_children; /* Head of a list of child status     */
 #endif
 
-  /* Environment varibles *******************************************************/
-  /* Not yet (see type environ_t) */
+  /* Environment variables ******************************************************/
+
+#ifndef CONFIG_DISABLE_ENVIRON
+  size_t     tg_envsize;            /* Size of environment string allocation    */
+  FAR char  *tg_envp;               /* Allocated environment strings            */
+#endif
 
   /* PIC data space and address environments */
   /* Not yet (see struct dspace_s) */
@@ -372,10 +369,6 @@ struct _TCB
 
   uint8_t  init_priority;                /* Initial priority of the task        */
   char    *argv[CONFIG_MAX_TASK_ARGS+1]; /* Name+start-up parameters            */
-
-#ifndef CONFIG_DISABLE_ENVIRON
-  FAR environ_t *envp;                   /* Environment variables               */
-#endif
 
   /* Stack-Related Fields *******************************************************/
 

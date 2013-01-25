@@ -262,47 +262,15 @@ extern const tasklist_t g_tasklisttable[NUM_TASK_STATES];
  ****************************************************************************/
 
 int  os_bringup(void);
+#ifdef CONFIG_SCHED_CHILD_STATUS
+void weak_function task_initialize(void);
+#endif
 void task_start(void);
 int  task_schedsetup(FAR _TCB *tcb, int priority, start_t start,
                      main_t main, uint8_t ttype);
 int  task_argsetup(FAR _TCB *tcb, FAR const char *name, FAR const char *argv[]);
 void task_exithook(FAR _TCB *tcb, int status);
 int  task_deletecurrent(void);
-
-#ifdef CONFIG_SCHED_HAVE_PARENT
-int  task_reparent(pid_t ppid, pid_t chpid);
-
-#ifdef HAVE_TASK_GROUP
-int group_allocate(FAR _TCB *tcb);
-int group_initialize(FAR _TCB *tcb);
-int group_bind(FAR _TCB *tcb);
-int group_join(FAR _TCB *tcb);
-void group_leave(FAR _TCB *tcb);
-#ifndef CONFIG_DISABLE_SIGNALS
-int group_signal(FAR _TCB *tcb, FAR siginfo_t *info);
-#else
-# define group_signal(tcb,info) (0)
-#endif
-#else
-# define group_allocate(tcb)    (0)
-# define group_initialize(tcb)  (0)
-# define group_bind(tcb)        (0)
-# define group_join(tcb)        (0)
-# define group_leave(tcb)
-# define group_signal(tcb,info) (0)
-#endif
-
-#ifdef CONFIG_SCHED_CHILD_STATUS
-void weak_function task_initialize(void);
-FAR struct child_status_s *task_allocchild(void);
-void task_freechild(FAR struct child_status_s *status);
-void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child);
-FAR struct child_status_s *task_exitchild(FAR _TCB *tcb);
-FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid);
-FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid);
-void task_removechildren(FAR _TCB *tcb);
-#endif
-#endif
 
 #ifndef CONFIG_CUSTOM_STACK
 int  kernel_thread(FAR const char *name, int priority, int stack_size,

@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched/env_clearenv.c
+ * sched/env_release.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,65 +58,45 @@
  * Name: env_release
  *
  * Description:
- *   The env_release() function clears the environment of all name-value
- *   pairs and sets the value of the external variable environ to NULL.
+ *   env_release() is called only from group_leave() when the last member of
+ *   a task group exits.  The env_release() function clears the environment
+ *   of all name-value pairs and sets the value of the external variable
+ *   environ to NULL.
  *
  * Parameters:
- *   ptcb Identifies the TCB containing the environment structure
+ *   tcb Identifies the TCB containing the environment structure to be
+ *   released.
  *
  * Return Value:
- *   zero on success
+ *   None
  *
  * Assumptions:
  *   Not called from an interrupt handler
  *
  ****************************************************************************/
 
-int env_release(FAR _TCB *ptcb)
+void env_release(FAR _TCB *tcb)
 {
-  int ret = OK;
+  FAR struct task_group_s *group;
 
-  if (!ptcb)
+  DEBUGASSERT(tcb && tcb->group);
+  group = tcb->group;
+
+  /* Free any allocate environment strings */
+
+  if (group->tg_envp)
     {
-      ret = -EINVAL;
-    }
-  else
-    {
-      FAR environ_t *envp;
+      /* Free the environment */
 
-      /* Examine the environ data in the TCB.  Preemption is disabled because the
-       * the environment could be shared among threads.
-       */
-
-      sched_lock();
-      envp = ptcb->envp;
-      if (ptcb->envp)
-        {
-          /* Check the reference count on the environment structure */
-
-          if (envp->ev_crefs <= 1)
-            {
-              /* Decrementing the reference count will destroy the environment */
-
-              sched_free(envp);
-            }
-          else
-            {
-              /* The environment will persist after decrementing the reference
-               * count */
-
-              envp->ev_crefs--;
-            }
-
-          /* In any case, the environment is no longer accessible on this thread */
-
-          ptcb->envp = NULL;
-        }
-
-      sched_unlock();
+      sched_free(group->tg_envp);
     }
 
-  return ret;
+  /* In any event, make sure that all environment-related varialbles in the
+   * task group structure are reset to initial values.
+   */
+
+  group->tg_envsize = 0;
+  group->tg_envp = NULL;
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */

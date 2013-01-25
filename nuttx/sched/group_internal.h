@@ -1,7 +1,7 @@
 /****************************************************************************
- * eched/env_dupenv.c
+ * sched/group_internal.h
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,80 +33,72 @@
  *
  ****************************************************************************/
 
+#ifndef __SCHED_GROUP_INERNAL_H
+#define __SCHED_GROUP_INERNAL_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#ifndef CONFIG_DISABLE_ENVIRON
-
 #include <sys/types.h>
+#include <stdbool.h>
+#include <queue.h>
 #include <sched.h>
 
 #include <nuttx/kmalloc.h>
 
-#include "os_internal.h"
-
 /****************************************************************************
- * Private Data
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
+ * Public Type Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: dupenv
- *
- * Description:
- *   Copy the internal environment structure of a task.  This is the action
- *   that is performed when a new task is created: The new task has a private,
- *   exact duplicate of the parent task's environment.
- *
- * Parameters:
- *   None
- *
- * Return Value:
- *   A pointer to a newly allocated copy of the specified TCB's environment
- *   structure with reference count equal to one.
- *
- * Assumptions:
- *   Not called from an interrupt handler.
- *
+ * Global Variables
  ****************************************************************************/
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+/* Task group data structure management */
 
-FAR environ_t *dupenv(FAR _TCB *ptcb)
-{
-   environ_t *envp = NULL;
+#ifdef HAVE_TASK_GROUP
+int group_allocate(FAR _TCB *tcb);
+int group_initialize(FAR _TCB *tcb);
+int group_bind(FAR _TCB *tcb);
+int group_join(FAR _TCB *tcb);
+void group_leave(FAR _TCB *tcb);
+#ifndef CONFIG_DISABLE_SIGNALS
+int group_signal(FAR _TCB *tcb, FAR siginfo_t *info);
+#else
+# define group_signal(tcb,info) (0)
+#endif
+#else
+# define group_allocate(tcb)    (0)
+# define group_initialize(tcb)  (0)
+# define group_bind(tcb)        (0)
+# define group_join(tcb)        (0)
+# define group_leave(tcb)
+# define group_signal(tcb,info) (0)
+#endif /* HAVE_TASK_GROUP */
 
-  /* Pre-emption must be disabled throughout the following because the
-   * environment may be shared.
-   */
+/* Parent/child data management */
 
-  sched_lock();
+#ifdef CONFIG_SCHED_HAVE_PARENT
+int task_reparent(pid_t ppid, pid_t chpid);
 
-  /* Does the parent task have an environment? */
+#ifdef CONFIG_SCHED_CHILD_STATUS
+FAR struct child_status_s *task_allocchild(void);
+void task_freechild(FAR struct child_status_s *status);
+void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child);
+FAR struct child_status_s *task_exitchild(FAR _TCB *tcb);
+FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid);
+FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid);
+void task_removechildren(FAR _TCB *tcb);
+#endif
+#endif /* CONFIG_SCHED_HAVE_PARENT */
 
-  if (ptcb->envp)
-    {
-      /* Yes..The parent task has an environment, duplicate it */
-
-      size_t envlen =  ptcb->envp->ev_alloc
-      envp          = (environ_t*)kmalloc(SIZEOF_ENVIRON_T( envlen ));
-      if (envp)
-        {
-          envp->ev_crefs = 1;
-          envp->ev_alloc = envlen;
-          memcmp( envp->ev_env, ptcb->envp->ev_env, envlen );
-        }
-    }
-
-  sched_unlock();
-  return envp;
-}
-
-#endif /* CONFIG_DISABLE_ENVIRON */
-
-
-
+#endif /* __SCHED_GROUP_INERNAL_H */
