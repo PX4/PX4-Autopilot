@@ -384,13 +384,13 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
           DEBUGASSERT(!retains || rtcb->children);
           if (retains && (child = task_exitchild(rtcb)) != NULL)
             {
-              /* A child has exitted.  Apparently we missed the signal.
+              /* A child has exited.  Apparently we missed the signal.
                * Return the saved exit status.
                */
 
               /* The child has exited. Return the saved exit status */
 
-              *stat_loc = child->ch_status;
+              *stat_loc = child->ch_status << 8;
 
               /* Discard the child entry and break out of the loop */
 
@@ -415,7 +415,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
             {
               /* The child has exited. Return the saved exit status */
 
-              *stat_loc = child->ch_status;
+              *stat_loc = child->ch_status << 8;
 
               /* Discard the child entry and break out of the loop */
 
@@ -452,7 +452,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
        */
 
       if (rtcb->nchildren == 0 ||
-          (pid != (pid_t)-1 && (ret = kill((pid_t)id, 0)) < 0))
+          (pid != (pid_t)-1 && (ret = kill(pid, 0)) < 0))
         {
           /* We know that the child task was running okay we stared,
            * so we must have lost the signal.  What can we do?
@@ -481,7 +481,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
         {
           /* Yes... return the status and PID (in the event it was -1) */
 
-          *stat_loc = info.si_status;
+          *stat_loc = info.si_status << 8;
           pid = info.si_pid;
           break;
         }

@@ -123,7 +123,7 @@ int pthread_join(pthread_t thread, FAR pthread_addr_t *pexit_value)
    * This can fail for one of three reasons:  (1) There is no
    * thread associated with 'thread,' (2) the thread is a task
    * and does not have join information, or (3) the thread
-   * was detached and has exitted.
+   * was detached and has exited.
    */
 
   pjoin = pthread_findjoininfo((pid_t)thread);

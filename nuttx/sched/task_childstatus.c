@@ -121,7 +121,7 @@ static void task_dumpchildren(FAR _TCB *tcb, FAR const char *msg)
     }
 }
 #else
-#  task_dumpchildren(t,m)
+#  define task_dumpchildren(t,m)
 #endif
 
 /*****************************************************************************
@@ -320,7 +320,7 @@ FAR struct child_status_s *task_exitchild(FAR _TCB *tcb)
 {
   FAR struct child_status_s *child;
 
-  /* Find the status structure with the matching PID  */
+  /* Find the status structure of any child task that has exitted. */
 
   for (child = tcb->children; child; child = child->flink)
     {

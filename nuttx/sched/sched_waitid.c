@@ -54,16 +54,16 @@
  *****************************************************************************/
 
 /*****************************************************************************
- * Name: exitted_child
+ * Name: exited_child
  *
  * Description:
- *   Handle the case where a child exitted properlay was we (apparently) lost
+ *   Handle the case where a child exited properlay was we (apparently) lost
  *   the detch of child signal.
  *
  *****************************************************************************/
 
 #ifdef CONFIG_SCHED_CHILD_STATUS
-static void exitted_child(FAR _TCB *rtcb, FAR struct child_status_s *child,
+static void exited_child(FAR _TCB *rtcb, FAR struct child_status_s *child,
                           FAR siginfo_t *info)
 {
   /* The child has exited. Return the saved exit status (and some fudged
@@ -271,11 +271,11 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
 
           if (retains && (child = task_exitchild(rtcb)) != NULL)
             {
-              /* A child has exitted.  Apparently we missed the signal.
+              /* A child has exited.  Apparently we missed the signal.
                * Return the exit status and break out of the loop.
                */
 
-              exitted_child(rtcb, child, info);
+              exited_child(rtcb, child, info);
               break;
             }
         }
@@ -297,7 +297,7 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
                * of the loop.
                */
 
-              exitted_child(rtcb, child, info);
+              exited_child(rtcb, child, info);
               break;
             }
         }
