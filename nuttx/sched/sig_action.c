@@ -237,7 +237,7 @@ int sigaction(int signo, FAR const struct sigaction *act, FAR struct sigaction *
 
       /* Mark that status should be not be retained */
 
-      rtcb->flags |= TCB_FLAG_NOCLDWAIT;
+      rtcb->group->tg_flags |= GROUP_FLAG_NOCLDWAIT;
 
       /* Free all pending exit status */
 

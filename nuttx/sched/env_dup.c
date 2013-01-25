@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/env_dup.c
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@
  *   exact duplicate of the parent task's environment.
  *
  * Parameters:
- *   ptcb The tcb to receive the newly allocated copy of the parspecifiedent
+ *   ptcb The tcb to receive the newly allocated copy of the parent
  *        TCB's environment structure with reference count equal to one
  *
  * Return Value:
@@ -81,48 +81,42 @@
 
 int env_dup(FAR _TCB *ptcb)
 {
+  FAR _TCB  *parent = (FAR _TCB*)g_readytorun.head;
+  environ_t *envp   = NULL;
   int ret = OK;
-  if (!ptcb )
+
+  DEBUGASSERT(ptcb);
+
+  /* Pre-emption must be disabled throughout the following because the
+   * environment may be shared.
+   */
+
+  sched_lock();
+
+  /* Does the parent task have an environment? */
+
+  if (parent->envp)
     {
-      ret = -EINVAL;
-    }
-  else
-    {
-      FAR _TCB  *parent = (FAR _TCB*)g_readytorun.head;
-      environ_t *envp   = NULL;
+      /* Yes..The parent task has an environment, duplicate it */
 
-      /* Pre-emption must be disabled throughout the following because the
-       * environment may be shared.
-       */
-
-      sched_lock();
-
-      /* Does the parent task have an environment? */
-
-      if (parent->envp)
+      size_t envlen =  parent->envp->ev_alloc;
+      envp          = (environ_t*)kmalloc(SIZEOF_ENVIRON_T(envlen));
+      if (!envp)
         {
-          /* Yes..The parent task has an environment, duplicate it */
-
-          size_t envlen =  parent->envp->ev_alloc;
-          envp          = (environ_t*)kmalloc(SIZEOF_ENVIRON_T( envlen ));
-          if (!envp)
-            {
-              ret = -ENOMEM;
-            }
-          else
-            {
-              envp->ev_crefs = 1;
-              envp->ev_alloc = envlen;
-              memcpy( envp->ev_env, parent->envp->ev_env, envlen );
-            }
+          ret = -ENOMEM;
         }
+      else
+        {
+          envp->ev_crefs = 1;
+          envp->ev_alloc = envlen;
+          memcpy(envp->ev_env, parent->envp->ev_env, envlen);
+        }
+    }
 
-      /* Save the cloned environment in the new TCB */
+  /* Save the cloned environment in the new TCB */
 
-      ptcb->envp = envp;
-      sched_unlock();
-  }
-
+  ptcb->envp = envp;
+  sched_unlock();
   return ret;
 }
 

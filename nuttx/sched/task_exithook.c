@@ -197,39 +197,28 @@ static inline void task_onexit(FAR _TCB *tcb, int status)
  ****************************************************************************/
 
 #ifdef CONFIG_SCHED_HAVE_PARENT
-static inline void task_sigchild(FAR _TCB *tcb, int status)
+static inline void task_sigchild(FAR _TCB *ptcb, FAR _TCB *ctcb, int status)
 {
-  FAR _TCB *ptcb;
   siginfo_t info;
 
-  /* Only exiting tasks should generate SIGCHLD. pthreads use other
-   * mechansims.
+  /* Only the final exiting thread in a task group should generate SIGCHLD.
+   * If task groups are not supported then we will report SIGCHLD when the
+   * task exits.
    */
 
-  if ((tcb->flags & TCB_FLAG_TTYPE_MASK) == TCB_FLAG_TTYPE_TASK)
-    {
-      /* Keep things stationary through the following */
-
-      sched_lock();
-
-      /* Get the TCB of the receiving task */
-
-      ptcb = sched_gettcb(tcb->parent);
-      if (!ptcb)
-        {
-          /* The parent no longer exists... bail */
-
-          sched_unlock();
-          return;
-        }
-
 #ifdef CONFIG_SCHED_CHILD_STATUS
-      /* Check if the parent task has suppressed retention of child exit
+  if (ctcb->group->tg_crefs == 1)
+#else
+  if ((ctcb->flags & TCB_FLAG_TTYPE_MASK) == TCB_FLAG_TTYPE_TASK)
+#endif
+    {
+#ifdef CONFIG_SCHED_CHILD_STATUS
+      /* Check if the parent task group has suppressed retention of child exit
        * status information.  Only 'tasks' report exit status, not pthreads.
        * pthreads have a different mechanism.
        */
 
-      if ((ptcb->flags & TCB_FLAG_NOCLDWAIT) == 0)
+      if ((ptcb->group->tg_flags & GROUP_FLAG_NOCLDWAIT) == 0)
         {
           FAR struct child_status_s *child;
 
@@ -255,15 +244,6 @@ static inline void task_sigchild(FAR _TCB *tcb, int status)
       ptcb->nchildren--;
 #endif
 
-      /* Set the parent to an impossible PID.  We do this because under
-       * certain conditions, task_exithook() can be called multiple times.
-       * If this function is called again, sched_gettcb() will fail on the
-       * invalid parent PID above, nchildren will be decremented once and
-       * all will be well.
-       */
-
-      tcb->parent = INVALID_PROCESS_ID;
-
       /* Create the siginfo structure.  We don't actually know the cause.
        * That is a bug. Let's just say that the child task just exit-ted
        * for now.
@@ -272,7 +252,7 @@ static inline void task_sigchild(FAR _TCB *tcb, int status)
       info.si_signo           = SIGCHLD;
       info.si_code            = CLD_EXITED;
       info.si_value.sival_ptr = NULL;
-      info.si_pid             = tcb->pid;
+      info.si_pid             = ctcb->pid;
       info.si_status          = status;
 
       /* Send the signal.  We need to use this internal interface so that we
@@ -280,11 +260,59 @@ static inline void task_sigchild(FAR _TCB *tcb, int status)
        */
 
       (void)sig_received(ptcb, &info);
-      sched_unlock();
     }
 }
 #else
-#  define task_sigchild(tcb,status)
+#  define task_sigchild(ptct,ctcb,status)
+#endif
+
+/****************************************************************************
+ * Name: task_leavegroup
+ *
+ * Description:
+ *   Send the SIGCHILD signal to the parent thread
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_HAVE_PARENT
+static inline void task_leavegroup(FAR _TCB *ctcb, int status)
+{
+  FAR _TCB *ptcb;
+
+  /* Keep things stationary throughout the following */
+
+  sched_lock();
+
+  /* Get the TCB of the receiving, parent task.  We do this early to
+   * handle multiple calls to task_leavegroup.  ctcb->parent is set to an
+   * invalid value below and the following call will fail if we are
+   * called again.
+   */
+
+  ptcb = sched_gettcb(ctcb->parent);
+  if (!ptcb)
+    {
+      /* The parent no longer exists... bail */
+
+      sched_unlock();
+      return;
+    }
+
+  /* Send SIGCHLD to all members of the parent's task group */
+
+  task_sigchild(ptcb, ctcb, status);
+
+  /* Set the parent to an impossible PID.  We do this because under certain
+   * conditions, task_exithook() can be called multiple times. If this
+   * function is called again, sched_gettcb() will fail on the invalid
+   * parent PID above and all will be well.
+   */
+
+  ctcb->parent = INVALID_PROCESS_ID;
+  sched_unlock();
+}
+#else
+#  define task_leavegroup(ctcb,status)
 #endif
 
 /****************************************************************************
@@ -363,9 +391,9 @@ void task_exithook(FAR _TCB *tcb, int status)
 
   task_onexit(tcb, status);
 
-  /* Send SIGCHLD to the parent of the exit-ing task */
+  /* Leave the task group */
 
-  task_sigchild(tcb, status);
+  task_leavegroup(tcb, status);
 
   /* Wakeup any tasks waiting for this task to exit */
 
@@ -379,10 +407,12 @@ void task_exithook(FAR _TCB *tcb, int status)
   (void)lib_flushall(tcb->streams);
 #endif
 
-  /* Discard any un-reaped child status (no zombies here!) */
+  /* Leave the task group.  Perhaps discarding any un-reaped child
+   * status (no zombies here!)
+   */
 
-#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
-  task_removechildren(tcb);
+#ifdef HAVE_TASK_GROUP
+  group_leave(tcb);
 #endif
 
   /* Free all file-related resources now.  This gets called again

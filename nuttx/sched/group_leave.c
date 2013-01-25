@@ -1,5 +1,5 @@
 /*****************************************************************************
- * sched/task_reparent.c
+ * sched/group_leave.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,11 +39,26 @@
 
 #include <nuttx/config.h>
 
+#include <sched.h>
+#include <assert.h>
 #include <errno.h>
+#include <debug.h>
 
 #include "os_internal.h"
 
-#ifdef CONFIG_SCHED_HAVE_PARENT
+#ifdef HAVE_TASK_GROUP
+
+/*****************************************************************************
+ * Pre-processor Definitions
+ *****************************************************************************/
+
+/*****************************************************************************
+ * Private Types
+ *****************************************************************************/
+
+/*****************************************************************************
+ * Private Data
+ *****************************************************************************/
 
 /*****************************************************************************
  * Private Functions
@@ -54,128 +69,59 @@
  *****************************************************************************/
 
 /*****************************************************************************
- * Name: task_reparent
+ * Name: group_leave
  *
  * Description:
- *   Change the parent of a task.
+ *   Release a reference on a group.  This function is called when a task or
+ *   thread exits.  It decrements the reference count on the group.  If the
+ *   reference count decrements to zero, then it frees the group and all of
+ *   resources contained in the group.
  *
  * Parameters:
- *   ppid - PID of the new parent task (0 for grandparent, i.e. the parent
- *     of the current parent task)
- *   chpid  - PID of the child to be reparented.
+ *   tcb - The TCB of the task that is exiting.
  *
  * Return Value:
- *   0 (OK) on success; A negated errno value on failure.
+ *   None.
+ *
+ * Assumptions:
+ *   Called during task deletion in a safe context.  No special precautions
+ *   are required here.
  *
  *****************************************************************************/
 
-int task_reparent(pid_t ppid, pid_t chpid)
+void group_leave(FAR _TCB *tcb)
 {
-#ifdef CONFIG_SCHED_CHILD_STATUS
-  FAR struct child_status_s *child;
-#endif
-  _TCB *ptcb;
-  _TCB *chtcb;
-  _TCB *otcb;
-  pid_t opid;
-  irqstate_t flags;
-  int ret;
+  FAR struct task_group_s *group;
 
-  /* Disable interrupts so that nothing can change in the relatinoship of
-   * the three task:  Child, current parent, and new parent.
-   */
+  DEBUGASSERT(tcb);
 
-  flags = irqsave();
+  /* Make sure that we have a group */
 
-  /* Get the child tasks TCB (chtcb) */
-
-  chtcb = sched_gettcb(chpid);
-  if (!chtcb)
+  group = tcb->group;
+  if (group)
     {
-      ret = -ECHILD;
-      goto errout_with_ints;
-    }
+      /* Would the reference count decrement to zero? */
 
-  /* Get the PID of the child task's parent (opid) */
-
-  opid = chtcb->parent;
-
-  /* Get the TCB of the child task's parent (otcb) */
-
-  otcb = sched_gettcb(opid);
-  if (!otcb)
-    {
-      ret = -ESRCH;
-      goto errout_with_ints;
-    }
-
-  /* If new parent task's PID (ppid) is zero, then new parent is the
-   * grandparent will be the new parent, i.e., the parent of the current
-   * parent task.
-   */
-
-  if (ppid == 0)
-    {
-      ppid = otcb->parent;
-    }
-  
-  /* Get the new parent task's TCB (ptcb) */
-
-  ptcb = sched_gettcb(ppid);
-  if (!ptcb)
-    {
-      ret = -ESRCH;
-      goto errout_with_ints;
-    }
-
-  /* Then reparent the child */
-
-  chtcb->parent = ppid;  /* The task specified by ppid is the new parent */
-
-#ifdef CONFIG_SCHED_CHILD_STATUS
-  /* Remove the child status entry from old parent TCB */
-
-  child = task_removechild(otcb, chpid);
-  if (child)
-    {
-      /* Has the new parent's task group supressed child exit status? */
-
-      if ((ptcb->group->tg_flags && GROUP_FLAG_NOCLDWAIT) == 0)
+      if (group->tg_crefs > 1)
         {
-          /* No.. Add the child status entry to the new parent's task group */
+          /* No.. just decrement the reference count and return */
 
-          task_addchild(ptcb, child);
+          group->tg_crefs--;
         }
       else
         {
-          /* Yes.. Discard the child status entry */
+          /* Yes.. Release all of the resource contained within the group */
+          /* Free all un-reaped child exit status */
 
-          task_freechild(child);
+          task_removechildren(tcb);
+
+          /* Release the group container itself */
+
+          sched_free(group);
         }
 
-      /* Either case is a success */
-
-      ret = OK;
+      tcb->group = NULL;
     }
-  else
-    {
-      /* This would not be an error if the original parent's task group has
-       * suppressed child exit status.
-       */
-
-      ret = ((otcb->group->tg_flags && GROUP_FLAG_NOCLDWAIT) == 0) ? -ENOENT : OK;
-    }
-#else
-  DEBUGASSERT(otcb->nchildren > 0);
-
-  otcb->nchildren--;     /* The orignal parent now has one few children */
-  ptcb->nchildren++;     /* The new parent has one additional child */
-  ret = OK;
-#endif
-  
-errout_with_ints:
-  irqrestore(flags);
-  return ret;  
 }
 
-#endif /* CONFIG_SCHED_HAVE_PARENT */
+#endif /* HAVE_TASK_GROUP */

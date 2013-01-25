@@ -197,9 +197,9 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
 #ifdef CONFIG_SCHED_CHILD_STATUS
   /* Does this task retain child status? */
 
-  retains = ((rtcb->flags && TCB_FLAG_NOCLDWAIT) == 0);
+  retains = ((rtcb->group->tg_flags && GROUP_FLAG_NOCLDWAIT) == 0);
 
-  if (rtcb->children == NULL && retains)
+  if (rtcb->group->tg_children == NULL && retains)
     {
       /* There are no children */
 
@@ -264,7 +264,7 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
        * instead).
        */
 
-      DEBUGASSERT(!retains || rtcb->children);
+      DEBUGASSERT(!retains || rtcb->group->tg_children);
       if (idtype == P_ALL)
         {
           /* We are waiting for any child to exit */

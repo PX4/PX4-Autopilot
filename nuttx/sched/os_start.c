@@ -202,6 +202,9 @@ const tasklist_t g_tasklisttable[NUM_TASK_STATES] =
  */
 
 static FAR _TCB g_idletcb;
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+static struct task_group_s g_idlegroup;
+#endif
 
 /* This is the name of the idle task */
 
@@ -280,13 +283,20 @@ void os_start(void)
   g_idletcb.argv[0] = (char*)g_idlename;
 #endif /* CONFIG_TASK_NAME_SIZE */
 
+  /* Join the IDLE group */
+
+#ifdef HAVE_TASK_GROUP
+  g_idlegroup.tg_crefs = 1;
+  g_idlegroup.tg_flags = GROUP_FLAG_NOCLDWAIT;
+  g_idletcb.group      = &g_idlegroup;
+#endif
+
   /* Then add the idle task's TCB to the head of the ready to run list */
 
   dq_addfirst((FAR dq_entry_t*)&g_idletcb, (FAR dq_queue_t*)&g_readytorun);
 
   /* Initialize the processor-specific portion of the TCB */
 
-  g_idletcb.flags = (TCB_FLAG_TTYPE_KERNEL | TCB_FLAG_NOCLDWAIT);
   up_initial_state(&g_idletcb);
 
   /* Initialize the semaphore facility(if in link).  This has to be done

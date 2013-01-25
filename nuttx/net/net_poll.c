@@ -118,11 +118,11 @@ static uint16_t poll_interrupt(FAR struct uip_driver_s *dev, FAR void *conn,
 
   nllvdbg("flags: %04x\n", flags);
 
-  DEBUGASSERT(info && info->psock && info->fds);
+  DEBUGASSERT(!info || (info->psock && info->fds));
 
   /* 'priv' might be null in some race conditions (?) */
 
-  if (info->fds)
+  if (info)
     {
       pollevent_t eventset = 0;
 

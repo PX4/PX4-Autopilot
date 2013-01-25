@@ -87,6 +87,8 @@ SCHED_SRCS += sched_waitid.c sched_wait.c
 endif
 endif
 
+GRP_SRCS = group_create.c group_join.c group_leave.c
+
 ENV_SRCS  = env_getenvironptr.c env_dup.c env_share.c env_release.c
 ENV_SRCS += env_findvar.c env_removevar.c
 ENV_SRCS += env_clearenv.c env_getenv.c env_putenv.c env_setenv.c env_unsetenv.c
@@ -169,8 +171,9 @@ IRQ_SRCS = irq_initialize.c irq_attach.c irq_dispatch.c irq_unexpectedisr.c
 KMM_SRCS = kmm_initialize.c kmm_addregion.c kmm_semaphore.c
 KMM_SRCS = kmm_kmalloc.c kmm_kzalloc.c kmm_krealloc.c kmm_kfree.c
 
-CSRCS = $(MISC_SRCS) $(TSK_SRCS) $(SCHED_SRCS) $(WDOG_SRCS) $(TIME_SRCS) \
-	    $(SEM_SRCS) $(TIMER_SRCS) $(WORK_SRCS) $(PGFILL_SRCS) $(IRQ_SRCS)
+CSRCS  = $(MISC_SRCS) $(TSK_SRCS) $(GRP_SRCS) $(SCHED_SRCS) $(WDOG_SRCS)
+CSRCS += $(TIME_SRCS) $(SEM_SRCS) $(TIMER_SRCS) $(WORK_SRCS) $(PGFILL_SRCS)
+CSRCS += $(IRQ_SRCS)
 
 ifneq ($(CONFIG_DISABLE_CLOCK),y)
 CSRCS += $(CLOCK_SRCS)

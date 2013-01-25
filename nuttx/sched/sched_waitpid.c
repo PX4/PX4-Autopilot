@@ -312,9 +312,9 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 #ifdef CONFIG_SCHED_CHILD_STATUS
   /* Does this task retain child status? */
 
-  retains = ((rtcb->flags && TCB_FLAG_NOCLDWAIT) == 0);
+  retains = ((rtcb->group->tg_flags && GROUP_FLAG_NOCLDWAIT) == 0);
 
-  if (rtcb->children == NULL && retains)
+  if (rtcb->group->tg_children == NULL && retains)
     {
       err = ECHILD;
       goto errout_with_errno;
@@ -381,7 +381,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
            * chilren.
            */
 
-          DEBUGASSERT(!retains || rtcb->children);
+          DEBUGASSERT(!retains || rtcb->group->tg_children);
           if (retains && (child = task_exitchild(rtcb)) != NULL)
             {
               /* A child has exited.  Apparently we missed the signal.

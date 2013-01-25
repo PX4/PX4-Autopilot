@@ -108,6 +108,7 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
 {
   FAR _TCB *tcb;
   pid_t pid;
+  int errcode;
   int ret;
 
   /* Allocate a TCB for the new task. */
@@ -115,8 +116,20 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   tcb = (FAR _TCB*)kzalloc(sizeof(_TCB));
   if (!tcb)
     {
+      errcode = ENOMEM;
       goto errout;
     }
+
+  /* Create a new task group */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_create(tcb);
+  if (ret < 0)
+    {
+      errcode = -ret;
+      goto errout_with_tcb;
+    }
+#endif
 
   /* Associate file descriptors with the new task */
 
@@ -124,6 +137,7 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   ret = sched_setuptaskfiles(tcb);
   if (ret != OK)
     {
+      errcode = -ret;
       goto errout_with_tcb;
     }
 #endif
@@ -138,6 +152,7 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   ret = up_create_stack(tcb, stack_size);
   if (ret != OK)
     {
+      errcode = -ret;
       goto errout_with_tcb;
     }
 #endif
@@ -147,6 +162,7 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   ret = task_schedsetup(tcb, priority, task_start, entry, ttype);
   if (ret != OK)
     {
+      errcode = -ret;
       goto errout_with_tcb;
     }
 
@@ -163,6 +179,8 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   ret = task_activate(tcb);
   if (ret != OK)
     {
+      errcode = get_errno();
+
       /* The TCB was added to the active task list by task_schedsetup() */
 
       dq_rem((FAR dq_entry_t*)tcb, (dq_queue_t*)&g_inactivetasks);
@@ -175,7 +193,7 @@ errout_with_tcb:
   sched_releasetcb(tcb);
 
 errout:
-  errno = ENOMEM;
+  set_errno(errcode);
   return ERROR;
 }
 

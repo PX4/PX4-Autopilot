@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/task_setup.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -179,13 +179,11 @@ static inline void task_saveparent(FAR _TCB *tcb, uint8_t ttype)
   tcb->parent = rtcb->pid;
 
 #ifdef CONFIG_SCHED_CHILD_STATUS
-  /* Exit status only needs to be retained for the case of tasks, however.
-   * Tasks can also suppress retention of their child status by applying
-   * the SA_NOCLDWAIT flag with sigaction()/
+  /* Tasks can also suppress retention of their child status by applying
+   * the SA_NOCLDWAIT flag with sigaction().
    */
 
-  if (ttype == TCB_FLAG_TTYPE_TASK &&
-      (rtcb->flags && TCB_FLAG_NOCLDWAIT) == 0)
+  if ((rtcb->group->tg_flags && GROUP_FLAG_NOCLDWAIT) == 0)
     {
       FAR struct child_status_s *child;
 

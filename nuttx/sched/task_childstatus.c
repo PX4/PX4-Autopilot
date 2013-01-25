@@ -111,10 +111,11 @@ static struct child_pool_s g_child_pool;
 static void task_dumpchildren(FAR _TCB *tcb, FAR const char *msg)
 {
   FAR struct child_status_s *child;
+  FAR struct task_group_s   *group = tcb->group;
   int i;
 
-  dbg("Parent TCB=%p: %s\n", tcb, msg);
-  for (i = 0, child = tcb->children; child; i++, child = child->flink)
+  dbg("Parent TCB=%p group=%p: %s\n", tcb, group, msg);
+  for (i = 0, child = group->tg_children; child; i++, child = child->flink)
     {
       dbg("  %d. ch_flags=%02x ch_pid=%d ch_status=%d\n",
           i, child->ch_flags, child->ch_pid, child->ch_status);
@@ -250,10 +251,12 @@ void task_freechild(FAR struct child_status_s *child)
 
 void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child)
 {
+  FAR struct task_group_s *group = tcb->group;
+
   /* Add the entry into the TCB list of children */
 
-  child->flink  = tcb->children;
-  tcb->children = child;
+  child->flink  = group->tg_children;
+  group->tg_children = child;
 
   task_dumpchildren(tcb, "task_addchild");
 }
@@ -282,11 +285,12 @@ void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child)
 
 FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid)
 {
+  FAR struct task_group_s   *group = tcb->group;
   FAR struct child_status_s *child;
 
   /* Find the status structure with the matching PID  */
 
-  for (child = tcb->children; child; child = child->flink)
+  for (child = group->tg_children; child; child = child->flink)
     {
       if (child->ch_pid == pid)
         {
@@ -318,11 +322,12 @@ FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid)
 
 FAR struct child_status_s *task_exitchild(FAR _TCB *tcb)
 {
+  FAR struct task_group_s   *group = tcb->group;
   FAR struct child_status_s *child;
 
   /* Find the status structure of any child task that has exitted. */
 
-  for (child = tcb->children; child; child = child->flink)
+  for (child = group->tg_children; child; child = child->flink)
     {
       if ((child->ch_flags & CHILD_FLAG_EXITED) != 0)
         {
@@ -357,12 +362,13 @@ FAR struct child_status_s *task_exitchild(FAR _TCB *tcb)
 
 FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid)
 {
+  FAR struct task_group_s   *group = tcb->group;
   FAR struct child_status_s *curr;
   FAR struct child_status_s *prev;
 
   /* Find the status structure with the matching PID  */
 
-  for (prev = NULL, curr = tcb->children;
+  for (prev = NULL, curr = group->tg_children;
        curr;
        prev = curr, curr = curr->flink)
     {
@@ -384,7 +390,7 @@ FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid)
         }
       else
         {
-          tcb->children = curr->flink;
+          group->tg_children = curr->flink;
         }
 
       curr->flink = NULL;
@@ -414,18 +420,19 @@ FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid)
 
 void task_removechildren(FAR _TCB *tcb)
 {
+  FAR struct task_group_s   *group = tcb->group;
   FAR struct child_status_s *curr;
   FAR struct child_status_s *next;
 
   /* Remove all child structures for the TCB and return them to the freelist  */
 
-  for (curr = tcb->children; curr; curr = next)
+  for (curr = group->tg_children; curr; curr = next)
     {
       next = curr->flink;
       task_freechild(curr);
     }
 
-  tcb->children = NULL;
+  group->tg_children = NULL;
   task_dumpchildren(tcb, "task_removechildren");
 }
 

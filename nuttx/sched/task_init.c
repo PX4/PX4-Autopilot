@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/task_init.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <sched.h>
+#include <errno.h>
+
 #include <nuttx/arch.h>
 
 #include "os_internal.h"
@@ -102,10 +104,10 @@
  *                parameters are required, argv may be NULL.
  *
  * Return Value:
- *   OK on success; ERROR on failure.  (See task_schedsetup() for possible
- *   failure conditions).  On failure, the caller is responsible for freeing
- *   the stack memory and for calling  sched_releasetcb() to free the TCB
- *   (which could be in most any state).
+ *   OK on success; ERROR on failure with errno set appropriately.  (See
+ *   task_schedsetup() for possible failure conditions).  On failure, the
+ *   caller is responsible for freeing the stack memory and for calling
+ *   sched_releasetcb() to free the TCB (which could be in most any state).
  *
  ****************************************************************************/
 
@@ -118,14 +120,28 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
               main_t entry, const char *argv[])
 #endif
 {
+  int errcode;
   int ret;
+
+  /* Create a new task group */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_create(tcb);
+  if (ret < 0)
+    {
+      errcode = -ret;
+      goto errout;
+    }
+#endif
 
  /* Associate file descriptors with the new task */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-  if (sched_setuptaskfiles(tcb) != OK)
+  ret = sched_setuptaskfiles(tcb);
+  if (ret < 0)
     {
-      return ERROR;
+      errcode = -ret;
+      goto errout_with_group;
     }
 #endif
 
@@ -143,13 +159,27 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
 
   ret = task_schedsetup(tcb, priority, task_start, entry,
                         TCB_FLAG_TTYPE_TASK);
-  if (ret == OK)
+  if (ret < OK)
     {
-      /* Setup to pass parameters to the new task */
-
-      (void)task_argsetup(tcb, name, argv);
+      errcode = -ret;
+      goto errout_with_env;
     }
 
-  return ret;
+  /* Setup to pass parameters to the new task */
+
+  (void)task_argsetup(tcb, name, argv);
+  return OK;
+
+errout_with_env:
+  env_release(tcb);
+
+errout_with_group:
+#ifdef HAVE_TASK_GROUP
+  group_leave(tcb);
+
+errout:
+#endif
+  set_errno(errcode);
+  return ERROR;
 }
 

@@ -268,7 +268,20 @@ int  task_schedsetup(FAR _TCB *tcb, int priority, start_t start,
 int  task_argsetup(FAR _TCB *tcb, FAR const char *name, FAR const char *argv[]);
 void task_exithook(FAR _TCB *tcb, int status);
 int  task_deletecurrent(void);
+
 #ifdef CONFIG_SCHED_HAVE_PARENT
+int  task_reparent(pid_t ppid, pid_t chpid);
+
+#ifdef HAVE_TASK_GROUP
+int group_create(FAR _TCB *tcb);
+void group_join(FAR _TCB *tcb);
+void group_leave(FAR _TCB *tcb);
+#else
+# define group_create(tcb)
+# define group_join(tcb)
+# define group_leave(tcb)
+#endif
+
 #ifdef CONFIG_SCHED_CHILD_STATUS
 void weak_function task_initialize(void);
 FAR struct child_status_s *task_allocchild(void);
@@ -279,8 +292,8 @@ FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid);
 FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid);
 void task_removechildren(FAR _TCB *tcb);
 #endif
-int  task_reparent(pid_t ppid, pid_t chpid);
 #endif
+
 #ifndef CONFIG_CUSTOM_STACK
 int  kernel_thread(FAR const char *name, int priority, int stack_size,
                    main_t entry, FAR const char *argv[]);
