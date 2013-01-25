@@ -42,12 +42,15 @@
 #include <string.h>
 #include <systemlib/systemlib.h>
 #include <unistd.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 
+static int battery_sub = -1;
 static int sensor_sub = -1;
 
 void messages_init(void)
 {
+	battery_sub = orb_subscribe(ORB_ID(battery_status));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 }
 
@@ -58,6 +61,11 @@ void build_eam_response(uint8_t *buffer, int *size)
 	memset(&raw, 0, sizeof(raw));
 	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
+	/* get a local copy of the battery data */
+	struct battery_status_s battery;
+	memset(&battery, 0, sizeof(battery));
+	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+
 	struct eam_module_msg msg;
 	*size = sizeof(msg);
 	memset(&msg, 0, *size);
@@ -67,7 +75,7 @@ void build_eam_response(uint8_t *buffer, int *size)
 	msg.sensor_id = EAM_SENSOR_ID;
 	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius + 20);
 	msg.temperature2 = TEMP_ZERO_CELSIUS;
-	msg.main_voltage_L = (uint8_t)(raw.battery_voltage_v * 10);
+	msg.main_voltage_L = (uint8_t)(battery.voltage_v * 10);
 
 	uint16_t alt = (uint16_t)(raw.baro_alt_meter + 500);
 	msg.altitude_L = (uint8_t)alt & 0xff;

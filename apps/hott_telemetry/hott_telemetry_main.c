@@ -134,41 +134,8 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 		FATAL_MSG(msg);
 	}
 
-	/* Get the appropriate GPIO pin and control register */
-	uint32_t gpio_uart = GPIO_USART2_TX;;
-	uint32_t uart_cr3 = STM32_USART2_CR3;
-
-	switch (device[strlen(device) - 1]) {
-	case '0':
-		gpio_uart = GPIO_USART1_TX;
-		uart_cr3 = STM32_USART1_CR3;
-		break;
-
-	case '1':
-		gpio_uart = GPIO_USART2_TX;
-		uart_cr3 = STM32_USART2_CR3;
-		break;
-
-	case '3':
-		gpio_uart = GPIO_USART6_TX;
-		uart_cr3 = STM32_USART6_CR3;
-		break;
-
-	default:
-		sprintf(msg, "%s is not supported.\n", device);
-		close(uart);
-		FATAL_MSG(msg);
-		break;
-	}
-
-	/* Change the TX port to be open-drain */
-	stm32_configgpio(gpio_uart | GPIO_OPENDRAIN);
-
-	/* Turn on half-duplex mode */
-	uint32_t cr;
-	cr = getreg32(uart_cr3);
-	cr |= (USART_CR3_HDSEL);
-	putreg32(cr, uart_cr3);
+	/* Activate single wire mode */
+	ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 
 	return uart;
 }
