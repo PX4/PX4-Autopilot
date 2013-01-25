@@ -202,9 +202,6 @@ const tasklist_t g_tasklisttable[NUM_TASK_STATES] =
  */
 
 static FAR _TCB g_idletcb;
-#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
-static struct task_group_s g_idlegroup;
-#endif
 
 /* This is the name of the idle task */
 
@@ -282,14 +279,6 @@ void os_start(void)
 #else
   g_idletcb.argv[0] = (char*)g_idlename;
 #endif /* CONFIG_TASK_NAME_SIZE */
-
-  /* Join the IDLE group */
-
-#ifdef HAVE_TASK_GROUP
-  g_idlegroup.tg_crefs = 1;
-  g_idlegroup.tg_flags = GROUP_FLAG_NOCLDWAIT;
-  g_idletcb.group      = &g_idlegroup;
-#endif
 
   /* Then add the idle task's TCB to the head of the ready to run list */
 
@@ -446,6 +435,14 @@ void os_start(void)
     {
       lib_initialize();
     }
+
+  /* Create the IDLE group and suppress child status */
+
+#ifdef HAVE_TASK_GROUP
+  (void)group_allocate(&g_idletcb);
+  (void)group_initialize(&g_idletcb);
+  g_idletcb.group->tg_flags = GROUP_FLAG_NOCLDWAIT;
+#endif
 
   /* Create stdout, stderr, stdin on the IDLE task.  These will be
    * inherited by all of the threads created by the IDLE task.

@@ -1,5 +1,5 @@
 /*****************************************************************************
- * sched/group_create.c
+ * sched/group_allocate.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -51,6 +51,9 @@
 /*****************************************************************************
  * Pre-processor Definitions
  *****************************************************************************/
+/* Is this worth making a configuration option? */
+
+#define GROUP_INITIAL_MEMBERS 4
 
 /*****************************************************************************
  * Private Types
@@ -69,11 +72,16 @@
  *****************************************************************************/
 
 /*****************************************************************************
- * Name: group_create
+ * Name: group_allocate
  *
  * Description:
- *   Create and initialize a new task group structure for the specified TCB.
- *   This function is called as part of the task creation sequence.
+ *   Create and a new task group structure for the specified TCB. This
+ *   function is called as part of the task creation sequence.  The structure
+ *   allocated and zered, but otherwise uninitialized.  The full creation
+ *   of the group of a two step process:  (1) First, this function allocates
+ *   group structure early in the task creation sequence in order to provide a
+ *   group container, then (2) group_initialize() is called to set up the
+ *   group membership.
  *
  * Parameters:
  *   tcb - The tcb in need of the task group.
@@ -87,24 +95,66 @@
  *
  *****************************************************************************/
 
-int group_create(FAR _TCB *tcb)
+int group_allocate(FAR _TCB *tcb)
 {
-  FAR struct task_group_s *group;
-
   DEBUGASSERT(tcb && !tcb->group);
 
-  /* Allocate the group structure */
+  /* Allocate the group structure and assign it to the TCB */
 
-  group = (FAR struct task_group_s *)kzalloc(sizeof(struct task_group_s));
-  if (!group)
+  tcb->group = (FAR struct task_group_s *)kzalloc(sizeof(struct task_group_s));
+  return tcb->group ? OK : -ENOMEM;
+}
+
+/*****************************************************************************
+ * Name: group_initialize
+ *
+ * Description:
+ *   Add the task as the initial member of the group.  The full creation of
+ *   the group of a two step process:  (1) First, this group structure is
+ *   allocated by group_allocate() early in the task creation sequence, then
+ *   (2) this function  is called to set up the initial group membership.
+ *
+ * Parameters:
+ *   tcb - The tcb in need of the task group.
+ *
+ * Return Value:
+ *   0 (OK) on success; a negated errno value on failure.
+ *
+ * Assumptions:
+ *   Called during task creation in a safe context.  No special precautions
+ *   are required here.
+ *
+ *****************************************************************************/
+
+int group_initialize(FAR _TCB *tcb)
+{
+#ifdef HAVE_GROUP_MEMBERS
+  FAR struct task_group_s *group;
+
+  DEBUGASSERT(tcb && tcb->group);
+  group = tcb->group;
+
+  /* Allocate space to hold GROUP_INITIAL_MEMBERS members of the group */
+
+  group->tg_members = (FAR pid_t *)kmalloc(GROUP_INITIAL_MEMBERS*sizeof(pid_t));
+  if (!group->tg_members)
     {
+      free(group);
       return -ENOMEM;
     }
 
-  /* Initialize the group structure and assign it to the tcb */
+  /* Assign the PID of this new task as a member of the group*/
 
-  group->tg_crefs = 1;
-  tcb->group      = group;
+  group->tg_members[0] = tcb->pid;
+
+  /* Initialize the non-zero elements of group structure and assign it to
+   * the tcb.
+   */
+
+  group->tg_mxmembers  = GROUP_INITIAL_MEMBERS; /* Number of members in allocation */
+#endif
+
+  group->tg_nmembers   = 1;                     /* Number of members in the group */
   return OK;
 }
 

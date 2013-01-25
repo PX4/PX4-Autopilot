@@ -246,13 +246,13 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
 {
   FAR _TCB *ptcb;
   FAR join_t *pjoin;
-  int ret;
   int priority;
 #if CONFIG_RR_INTERVAL > 0
   int policy;
 #endif
   int errcode;
   pid_t pid;
+  int ret;
 
   /* If attributes were not supplied, use the default attributes */
 
@@ -269,10 +269,17 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
       return ENOMEM;
     }
 
-  /* Join the parent's task group */
+  /* Bind the parent's group to the new TCB (we have not yet joined the
+   * group).
+   */
 
 #ifdef HAVE_TASK_GROUP
-  group_join(ptcb);
+  ret = group_bind(ptcb);
+  if (ret < 0)
+    {
+      errcode = ENOMEM;
+      goto errout_with_tcb;
+    }
 #endif
 
   /* Share the address environment of the parent task.  NOTE:  Only tasks
@@ -375,6 +382,17 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
    */
 
   pthread_argsetup(ptcb, arg);
+
+  /* Join the parent's task group */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_join(ptcb);
+  if (ret < 0)
+    {
+      errcode = ENOMEM;
+      goto errout_with_join;
+    }
+#endif
 
   /* Attach the join info to the TCB. */
 

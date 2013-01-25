@@ -92,6 +92,7 @@
 void group_leave(FAR _TCB *tcb)
 {
   FAR struct task_group_s *group;
+  int i;
 
   DEBUGASSERT(tcb);
 
@@ -100,17 +101,69 @@ void group_leave(FAR _TCB *tcb)
   group = tcb->group;
   if (group)
     {
-      /* Would the reference count decrement to zero? */
+#ifdef HAVE_GROUP_MEMBERS
+      /* Find the member in the array of members and remove it */
 
-      if (group->tg_crefs > 1)
+      for (i = 0; i < group->tg_nmembers; i++)
         {
-          /* No.. just decrement the reference count and return */
+          /* Does this member have the matching pid */
 
-          group->tg_crefs--;
+          if (group->tg_members[i] == tcb->pid)
+           {
+              /* Yes.. break out of the loop.  We don't do the actual
+               * removal here, instead we re-test i and do the adjustments
+               * outside of the loop.  We do this because we want the
+               * DEBUGASSERT to work properly.
+               */
+
+              break;
+           }
         }
+
+      /* Now, test if we found the task in the array of members. */
+
+      DEBUGASSERT(i < group->tg_nmembers);
+      if (i < group->tg_nmembers)
+        {
+          /* Yes..Is this the last member of the group? */
+
+          if (group->tg_nmembers > 1)
+            {
+              /* No.. remove the member from the array of members */
+
+              group->tg_members[i] = group->tg_members[group->tg_nmembers - 1];
+              group->tg_nmembers--;
+            }
+
+          /* Yes.. that was the last member remaining in the group */
+
+          else
+            {
+              /* Release all of the resource contained within the group */
+              /* Free all un-reaped child exit status */
+
+              task_removechildren(tcb);
+
+              /* Release the group container itself */
+
+              sched_free(group);
+            }
+        }
+#else
+      /* Yes..Is this the last member of the group? */
+
+      if (group->tg_nmembers > 1)
+        {
+          /* No.. just decrement the number of members in the group */
+
+          group->tg_nmembers--;
+        }
+
+      /* Yes.. that was the last member remaining in the group */
+
       else
         {
-          /* Yes.. Release all of the resource contained within the group */
+          /* Release all of the resource contained within the group */
           /* Free all un-reaped child exit status */
 
           task_removechildren(tcb);
@@ -119,6 +172,11 @@ void group_leave(FAR _TCB *tcb)
 
           sched_free(group);
         }
+#endif
+
+      /* In any event, we can detach the group from the TCB so we won't do
+       * this again.
+       */
 
       tcb->group = NULL;
     }

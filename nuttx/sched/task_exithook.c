@@ -207,7 +207,7 @@ static inline void task_sigchild(FAR _TCB *ptcb, FAR _TCB *ctcb, int status)
    */
 
 #ifdef CONFIG_SCHED_CHILD_STATUS
-  if (ctcb->group->tg_crefs == 1)
+  if (ctcb->group->tg_nmembers == 1)
 #else
   if ((ctcb->flags & TCB_FLAG_TTYPE_MASK) == TCB_FLAG_TTYPE_TASK)
 #endif

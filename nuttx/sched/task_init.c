@@ -126,7 +126,7 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
   /* Create a new task group */
 
 #ifdef HAVE_TASK_GROUP
-  ret = group_create(tcb);
+  ret = group_allocate(tcb);
   if (ret < 0)
     {
       errcode = -ret;
@@ -168,6 +168,17 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
   /* Setup to pass parameters to the new task */
 
   (void)task_argsetup(tcb, name, argv);
+
+  /* Now we have enough in place that we can join the group */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_initialize(tcb);
+  if (ret < 0)
+    {
+      errcode = -ret;
+      goto errout_with_env;
+    }
+#endif
   return OK;
 
 errout_with_env:

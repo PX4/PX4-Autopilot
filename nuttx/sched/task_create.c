@@ -120,10 +120,10 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
       goto errout;
     }
 
-  /* Create a new task group */
+  /* Allocate a new task group */
 
 #ifdef HAVE_TASK_GROUP
-  ret = group_create(tcb);
+  ret = group_allocate(tcb);
   if (ret < 0)
     {
       errcode = -ret;
@@ -160,7 +160,7 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   /* Initialize the task control block */
 
   ret = task_schedsetup(tcb, priority, task_start, entry, ttype);
-  if (ret != OK)
+  if (ret < OK)
     {
       errcode = -ret;
       goto errout_with_tcb;
@@ -169,6 +169,17 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   /* Setup to pass parameters to the new task */
 
   (void)task_argsetup(tcb, name, argv);
+
+  /* Now we have enough in place that we can join the group */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_initialize(tcb);
+  if (ret < 0)
+    {
+      errcode = -ret;
+      goto errout_with_tcb;
+    }
+#endif
 
   /* Get the assigned pid before we start the task */
 

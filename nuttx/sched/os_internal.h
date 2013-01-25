@@ -273,12 +273,14 @@ int  task_deletecurrent(void);
 int  task_reparent(pid_t ppid, pid_t chpid);
 
 #ifdef HAVE_TASK_GROUP
-int group_create(FAR _TCB *tcb);
-void group_join(FAR _TCB *tcb);
+int group_allocate(FAR _TCB *tcb);
+int group_initialize(FAR _TCB *tcb);
+int group_join(FAR _TCB *tcb);
 void group_leave(FAR _TCB *tcb);
 #else
-# define group_create(tcb)
-# define group_join(tcb)
+# define group_allocate(tcb)   (0)
+# define group_initialize(tcb) (0)
+# define group_join(tcb)       (0)
 # define group_leave(tcb)
 #endif
 

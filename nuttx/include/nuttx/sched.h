@@ -60,10 +60,18 @@
 /* Configuration ****************************************************************/
 /* Task groups currently only supported for retention of child status */
 
+#undef HAVE_TASK_GROUP
+#undef HAVE_GROUP_MEMBERS
+
 #if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
-#  define HAVE_TASK_GROUP 1
-#else
-#  undef HAVE_TASK_GROUP
+#  define HAVE_TASK_GROUP   1
+#  define HAVE_GROUP_MEMBERS 1
+#endif
+
+/* In any event, we don't need group members if support for pthreads is disabled */
+
+#ifdef CONFIG_PTHREADS_DISABLE
+#  undef HAVE_GROUP_MEMBERS
 #endif
 
 /* Task Management Definitins ***************************************************/
@@ -255,12 +263,18 @@ struct dspace_s
 #ifdef HAVE_TASK_GROUP
 struct task_group_s
 {
-  uint16_t tg_crefs;                      /* Count of threads sharing this data */
-  uint8_t  tg_flags;                      /* See GROUP_FLAG_* definitions       */
+  uint8_t    tg_flags;                   /* See GROUP_FLAG_* definitions        */
+  uint8_t    tg_nmembers;                /* Number of members in the group      */
+#ifdef HAVE_GROUP_MEMBERS
+  uint8_t    tg_mxmembers;               /* Number of members in allocation     */
+  FAR pid_t *tg_members;                 /* Members of the group                */
+#endif
 
   /* Child exit status **********************************************************/
 
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
   FAR struct child_status_s *tg_children; /* Head of a list of child status     */
+#endif
 
   /* Environment varibles *******************************************************/
   /* Not yet (see type environ_t) */
