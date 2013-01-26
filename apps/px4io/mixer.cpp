@@ -92,7 +92,7 @@ mixer_tick(void)
 
 		/* too long without FMU input, time to go to failsafe */
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
-		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PPM);
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM);
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
 		debug("AP RX timeout");
 	}
@@ -102,7 +102,7 @@ mixer_tick(void)
 	/*
 	 * Decide which set of controls we're using.
 	 */
-	if (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PPM) {
+	if (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) {
 
 		/* don't actually mix anything - we already have raw PWM values */
 		source = MIX_NONE;
@@ -127,7 +127,13 @@ mixer_tick(void)
 	/*
 	 * Run the mixers.
 	 */
-	if (source != MIX_NONE) {
+	if (source == MIX_FAILSAFE) {
+
+		/* copy failsafe values to the servo outputs */
+		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+			r_page_servos[i] = r_page_servo_failsafe[i];
+
+	} else if (source != MIX_NONE) {
 
 		float	outputs[IO_SERVO_COUNT];
 		unsigned mixed;
@@ -225,9 +231,12 @@ mixer_tick(void)
 	 *
 	 * We must be armed, and we must have a PWM source; either raw from
 	 * FMU or from the mixer.
+	 *
+	 * XXX correct behaviour for failsafe may require an additional case
+	 * here.
 	 */
 	bool should_arm = ((r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
-		(r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PPM | PX4IO_P_STATUS_FLAGS_MIXER_OK)));
+		(r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)));
 
 	if (should_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */

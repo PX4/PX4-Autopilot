@@ -100,7 +100,7 @@
 #define PX4IO_P_STATUS_FLAGS_RC_DSM		(1 << 4) /* DSM input is valid */
 #define PX4IO_P_STATUS_FLAGS_RC_SBUS		(1 << 5) /* SBUS input is valid */
 #define PX4IO_P_STATUS_FLAGS_FMU_OK		(1 << 6) /* controls from FMU are valid */
-#define PX4IO_P_STATUS_FLAGS_RAW_PPM		(1 << 7) /* raw PPM from FMU is bypassing the mixer */
+#define PX4IO_P_STATUS_FLAGS_RAW_PWM		(1 << 7) /* raw PWM from FMU is bypassing the mixer */
 #define PX4IO_P_STATUS_FLAGS_MIXER_OK		(1 << 8) /* mixer is OK */
 
 #define PX4IO_P_STATUS_ALARMS			3	/* alarm flags - alarms latch, write 1 to a bit to clear it */
@@ -171,6 +171,9 @@
 
 /* PWM output - overrides mixer */
 #define PX4IO_PAGE_DIRECT_PWM		104		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+
+/* PWM failsafe values - zero disables the output */
+#define PX4IO_PAGE_FAILSAFE_PWM		105		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.

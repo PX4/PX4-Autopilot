@@ -119,6 +119,11 @@ uint16_t 		r_page_actuators[IO_SERVO_COUNT];
 uint16_t		r_page_servos[IO_SERVO_COUNT];
 
 /**
+ * Servo PWM values
+ */
+uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT];
+
+/**
  * Scaled/routed RC input
  */
 uint16_t		r_page_rc_input[] = {
@@ -166,7 +171,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* XXX we should cause a mixer tick ASAP */
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PPM;
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
 		break;
 
 		/* handle raw PWM input */
@@ -183,9 +188,24 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			values++;
 		}
 
-		/* XXX need to force these values to the servos */
+		/* XXX we should cause a mixer tick ASAP */
 		system_state.fmu_data_received_time = hrt_absolute_time();
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PPM;
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM;
+		break;
+
+		/* handle setup for servo failsafe values */
+	case PX4IO_PAGE_FAILSAFE_PWM:
+
+		/* copy channel data */
+		while ((offset < PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
+
+			/* XXX range-check value? */
+			r_page_servo_failsafe[offset] = *values;
+
+			offset++;
+			num_values--;
+			values++;
+		}
 		break;
 
 		/* handle text going to the mixer parser */
@@ -353,7 +373,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 int
 registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_values)
 {
-#define SELECT_PAGE(_page_name)	{ *values = _page_name; *num_values = sizeof(_page_name) / sizeof(_page_name[0]); }
+#define SELECT_PAGE(_page_name)	{ *values = (uint16_t *)_page_name; *num_values = sizeof(_page_name) / sizeof(_page_name[0]); }
 
 	switch (page) {
 
@@ -441,6 +461,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	COPY_PAGE(PX4IO_PAGE_SETUP,		r_page_setup);
 	COPY_PAGE(PX4IO_PAGE_CONTROLS,		r_page_controls);
 	COPY_PAGE(PX4IO_PAGE_RC_CONFIG,		r_page_rc_input_config);
+	COPY_PAGE(PX4IO_PAGE_FAILSAFE_PWM,	r_page_servo_failsafe);
 
 	default:
 		return -1;

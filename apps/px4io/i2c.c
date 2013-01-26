@@ -82,7 +82,7 @@ static unsigned		rx_len;
 
 static const uint8_t	junk_buf[] = { 0xff, 0xff, 0xff, 0xff };
 
-static uint8_t		*tx_buf = junk_buf;
+static const uint8_t	*tx_buf = junk_buf;
 static unsigned		tx_len = sizeof(junk_buf);
 
 static uint8_t		selected_page;

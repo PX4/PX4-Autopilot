@@ -76,6 +76,7 @@ extern uint16_t			r_page_adc[];		/* PX4IO_PAGE_RAW_ADC_INPUT */
 extern volatile uint16_t	r_page_setup[];		/* PX4IO_PAGE_SETUP */
 extern volatile uint16_t	r_page_controls[];	/* PX4IO_PAGE_CONTROLS */
 extern uint16_t			r_page_rc_input_config[]; /* PX4IO_PAGE_RC_INPUT_CONFIG */
+extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
 
 /*
  * Register aliases.
