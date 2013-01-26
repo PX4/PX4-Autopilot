@@ -128,9 +128,6 @@ private:
 	actuator_outputs_s	_outputs;	///< mixed outputs
 	actuator_controls_effective_s _controls_effective; ///< effective controls
 
-	const char *volatile	_mix_buf;	///< mixer text buffer
-	volatile unsigned	_mix_buf_len;	///< size of the mixer text buffer
-
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 
 
