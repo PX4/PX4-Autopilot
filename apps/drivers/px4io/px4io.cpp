@@ -985,7 +985,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			ret = -EINVAL;
 		} else {
 			/* send a direct PWM value */
-			ret = io_reg_set(PX4IO_PAGE_SERVOS, channel, arg);
+			ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
 		}
 
 		break;
@@ -999,7 +999,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			ret = -EINVAL;
 		} else {
 			/* fetch a current PWM value */
-			uint32_t value = io_reg_get(PX4IO_PAGE_DIRECT_PWM, channel);
+			uint32_t value = io_reg_get(PX4IO_PAGE_SERVOS, channel);
 			if (value == _io_reg_get_error) {
 				ret = -EIO;
 			} else {
