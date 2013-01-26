@@ -84,6 +84,7 @@ static const uint8_t	junk_buf[] = { 0xff, 0xff, 0xff, 0xff };
 
 static const uint8_t	*tx_buf = junk_buf;
 static unsigned		tx_len = sizeof(junk_buf);
+unsigned		tx_count;
 
 static uint8_t		selected_page;
 static uint8_t		selected_offset;
@@ -156,24 +157,6 @@ i2c_interrupt(int irq, FAR void *context)
 {
 	uint16_t sr1 = rSR1;
 
-	if (sr1 & I2C_SR1_ADDR) {
-
-		/* clear ADDR to ack our selection and get direction */
-		(void)rSR1;		/* as recommended, re-read SR1 */
-		uint16_t sr2 = rSR2;
-
-		if (sr2 & I2C_SR2_TRA) {
-			/* we are the transmitter */
-
-			direction = DIR_TX;
-
-		} else {
-			/* we are the receiver */
-
-			direction = DIR_RX;
-		}
-	}
-
 	if (sr1 & (I2C_SR1_STOPF | I2C_SR1_AF)) {
 
 		if (sr1 & I2C_SR1_STOPF) {
@@ -195,6 +178,24 @@ i2c_interrupt(int irq, FAR void *context)
 			break;
 		}
 		direction = DIR_NONE;
+	}
+
+	if (sr1 & I2C_SR1_ADDR) {
+
+		/* clear ADDR to ack our selection and get direction */
+		(void)rSR1;		/* as recommended, re-read SR1 */
+		uint16_t sr2 = rSR2;
+
+		if (sr2 & I2C_SR2_TRA) {
+			/* we are the transmitter */
+
+			direction = DIR_TX;
+
+		} else {
+			/* we are the receiver */
+
+			direction = DIR_RX;
+		}
 	}
 
 	/* clear any errors that might need it (this handles AF as well */
@@ -246,7 +247,7 @@ i2c_rx_complete(void)
 			int ret = registers_get(selected_page, selected_offset, &regs, &reg_count);
 			if (ret == 0) {
 				tx_buf = (uint8_t *)regs;
-				tx_len = reg_count *2;
+				tx_len = reg_count * 2;
 			} else {
 				tx_buf = junk_buf;
 				tx_len = sizeof(junk_buf);
@@ -289,10 +290,12 @@ i2c_tx_setup(void)
 static void
 i2c_tx_complete(void)
 {
+	tx_count = tx_len - stm32_dmaresidual(tx_dma);
 	stm32_dmastop(tx_dma);
 
-	tx_buf = junk_buf;
-	tx_len = sizeof(junk_buf);
+	/* for debug purposes, save the length of the last transmit as seen by the DMA */
+
+	/* leave tx_buf/tx_len alone, so that a retry will see the same data */
 
 	/* prepare for the next transaction */
 	i2c_tx_setup();
