@@ -198,8 +198,11 @@ controls_main(void)
 			 * This might happen if a protocol-based receiver returns an update
 			 * that contains no channels that we have mapped.
 			 */
-			if (assigned_channels == 0)
+			if (assigned_channels == 0) {
 				rc_input_lost = true;
+			} else {
+				r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK;
+			}
 
 			/*
 			 * Export the valid channel bitmap
