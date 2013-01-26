@@ -330,6 +330,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			POWER_ACC2(value & (1 << 3) ? 1 : 0);
 			break;
 
+		case PX4IO_P_SETUP_SET_DEBUG:
+			debug_level = value;
+			isr_debug(0, "set debug %u\n", (unsigned)debug_level);
+			break;
+
 		default:
 			return -1;
 		}

@@ -1019,6 +1019,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = _max_actuators;
 		break;
 
+	case PWM_SERVO_SET_DEBUG:
+		/* set the debug level */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG, arg);
+		break;
+
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS): {
 
 		unsigned channel = cmd - PWM_SERVO_SET(0);
@@ -1287,6 +1292,27 @@ px4io_main(int argc, char *argv[])
 			exit(0);
 		}
 
+	if (!strcmp(argv[1], "debug")) {
+		if (argc <= 2) {
+			printf("usage: px4io debug LEVEL\n");
+			exit(1);
+		}
+		if (g_dev == nullptr) {
+			printf("px4io is not started\n");
+			exit(1);
+		}
+		uint8_t level = atoi(argv[2]);
+		// we can cheat and call the driver directly, as it
+		// doesn't reference filp in ioctl()
+		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_DEBUG, level);
+		if (ret != 0) {
+			printf("SET_DEBUG failed - %d\n", ret);
+			exit(1);
+		}
+		printf("SET_DEBUG %u OK\n", (unsigned)level);
+		exit(0);
+	}
+
 	/* note, stop not currently implemented */
 
 	if (!strcmp(argv[1], "update")) {
@@ -1353,5 +1379,5 @@ px4io_main(int argc, char *argv[])
 		monitor();
 
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug' or 'update'");
 }

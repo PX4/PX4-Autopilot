@@ -149,6 +149,7 @@
 #define PX4IO_P_SETUP_VBATT_SCALE		6	/* battery voltage correction factor (float) */
 #define PX4IO_P_SETUP_IBATT_SCALE		7	/* battery current scaling factor (float) */
 #define PX4IO_P_SETUP_IBATT_BIAS		8	/* battery current bias value */
+#define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS		101		/* 0..CONFIG_CONTROL_COUNT */

@@ -106,6 +106,9 @@ ORB_DECLARE(output_pwm);
 /** get the number of servos in *(unsigned *)arg */
 #define PWM_SERVO_GET_COUNT	_IOC(_PWM_SERVO_BASE, 3)
 
+/** set debug level for servo IO */
+#define PWM_SERVO_SET_DEBUG	_IOC(_PWM_SERVO_BASE, 4)
+
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
 
