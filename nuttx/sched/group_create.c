@@ -1,5 +1,5 @@
 /*****************************************************************************
- * sched/group_allocate.c
+ * sched/group_create.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -65,10 +65,86 @@
 /*****************************************************************************
  * Private Data
  *****************************************************************************/
+/* This is counter that is used to generate unique task group IDs */
+
+#ifdef HAVE_GROUP_MEMBERS
+static gid_t g_gidcounter;
+#endif
+
+/*****************************************************************************
+ * Public Data
+ *****************************************************************************/
+/* This is the head of a list of all group members */
+
+#ifdef HAVE_GROUP_MEMBERS
+FAR struct task_group_s *g_grouphead;
+#endif
 
 /*****************************************************************************
  * Private Functions
  *****************************************************************************/
+
+/*****************************************************************************
+ * Name: group_assigngid
+ *
+ * Description:
+ *   Create a unique group ID.
+ *
+ * Parameters:
+ *   tcb - The tcb in need of the task group.
+ *
+ * Return Value:
+ *   None
+ *
+ * Assumptions:
+ *   Called during task creation in a safe context.  No special precautions
+ *   are required here.
+ *
+ *****************************************************************************/
+
+#ifdef HAVE_GROUP_MEMBERS
+void group_assigngid(FAR struct task_group_s *group)
+{
+  irqstate_t flags;
+  gid_t gid;
+
+  /* Pre-emption should already be enabled, but lets be paranoid careful */
+
+  sched_lock();
+
+  /* Loop until we create a unique ID */
+
+  for (;;)
+    {
+      /* Increment the ID counter.  This is global data so be extra paraoid. */
+
+      flags = irqsave();
+      gid = ++g_gidcounter;
+
+      /* Check for overflow */
+
+      if (gid <= 0)
+        {
+          g_gidcounter = 1;
+          irqrestore(flags);
+        }
+      else
+        {
+          /* Does a task group with this ID already exist? */
+
+          irqrestore(flags);
+          if (group_find(gid) == NULL)
+            {
+              /* Now assign this ID to the group and return */
+
+              group->tg_gid = gid;
+              sched_unlock();
+              return;
+            }
+        }
+    }
+}
+#endif /* HAVE_GROUP_MEMBERS */
 
 /*****************************************************************************
  * Public Functions
@@ -112,6 +188,14 @@ int group_allocate(FAR _TCB *tcb)
       return -ENOMEM;
     }
 
+  /* Assign the group a unique ID.  If g_gidcounter were to wrap before we
+   * finish with task creation, that would be a problem.
+   */
+
+#ifdef HAVE_GROUP_MEMBERS
+  group_assigngid(tcb->group);
+#endif
+
   /* Duplicate the parent tasks envionment */
 
   ret = env_dup(tcb);
@@ -149,6 +233,9 @@ int group_allocate(FAR _TCB *tcb)
 int group_initialize(FAR _TCB *tcb)
 {
   FAR struct task_group_s *group;
+#ifdef HAVE_GROUP_MEMBERS
+  irqstate_t flags;
+#endif
 
   DEBUGASSERT(tcb && tcb->group);
   group = tcb->group;
@@ -172,9 +259,17 @@ int group_initialize(FAR _TCB *tcb)
    */
 
   group->tg_mxmembers  = GROUP_INITIAL_MEMBERS; /* Number of members in allocation */
+
+  /* Add the initialized entry to the list of groups */
+
+  flags = irqsave();
+  group->flink = g_grouphead;
+  g_grouphead = group;
+  irqrestore(flags);
+
 #endif
 
-  group->tg_nmembers   = 1;                     /* Number of members in the group */
+  group->tg_nmembers = 1; /* Number of members in the group */
   return OK;
 }
 

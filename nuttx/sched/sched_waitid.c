@@ -79,8 +79,8 @@ static void exited_child(FAR _TCB *rtcb, FAR struct child_status_s *child,
 
   /* Discard the child entry */
 
-  (void)task_removechild(rtcb, child->ch_pid);
-  task_freechild(child);
+  (void)group_removechild(rtcb->group, child->ch_pid);
+  group_freechild(child);
 }
 #endif
 
@@ -212,7 +212,11 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
       /* Get the TCB corresponding to this PID and make sure it is our child. */
 
       ctcb = sched_gettcb((pid_t)id);
-      if (!ctcb || ctcb->parent != rtcb->pid)
+#ifdef HAVE_GROUP_MEMBERS
+      if (!ctcb || ctcb->group->tg_pgid != rtcb->group->tg_gid)
+#else
+      if (!ctcb || ctcb->ppid != rtcb->pid)
+#endif
         {
           err = ECHILD;
           goto errout_with_errno;
@@ -224,7 +228,7 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
         {
            /* Check if this specific pid has allocated child status? */
 
-          if (task_findchild(rtcb, (pid_t)id) == NULL)
+          if (group_findchild(rtcb->group, (pid_t)id) == NULL)
             {
               /* This specific pid is not a child */
 
@@ -246,7 +250,11 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
      /* Get the TCB corresponding to this PID and make sure it is our child. */
 
       ctcb = sched_gettcb((pid_t)id);
-      if (!ctcb || ctcb->parent != rtcb->pid)
+#ifdef HAVE_GROUP_MEMBERS
+      if (!ctcb || ctcb->group->tg_pgid != rtcb->group->tg_gid)
+#else
+      if (!ctcb || ctcb->ppid != rtcb->pid)
+#endif
         {
           err = ECHILD;
           goto errout_with_errno;
@@ -270,7 +278,7 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
         {
           /* We are waiting for any child to exit */
 
-          if (retains && (child = task_exitchild(rtcb)) != NULL)
+          if (retains && (child = group_exitchild(rtcb->group)) != NULL)
             {
               /* A child has exited.  Apparently we missed the signal.
                * Return the exit status and break out of the loop.
@@ -287,7 +295,7 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
         {
           /* Yes ... Get the current status of the child task. */
 
-          child = task_findchild(rtcb, (pid_t)id);
+          child = group_findchild(rtcb->group, (pid_t)id);
           DEBUGASSERT(child);
       
           /* Did the child exit? */

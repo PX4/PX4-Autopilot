@@ -4031,4 +4031,6 @@
 	  members for the parent task group.
 	* include/nuttx/sched.h and sched/env_*.c:  Move environment
 	  variables into task group structure.
-
+	* sched/: Lots of file changed.  Don't keep the parent task's
+	  task ID in the child task's TCB.  Instead, keep the parent
+	  task group IN the child task's task group.

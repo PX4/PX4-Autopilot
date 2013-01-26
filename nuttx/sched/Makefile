@@ -73,13 +73,6 @@ ifeq ($(CONFIG_PRIORITY_INHERITANCE),y)
 SCHED_SRCS += sched_reprioritize.c 
 endif
 
-ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
-SCHED_SRCS += task_reparent.c
-ifeq ($(CONFIG_SCHED_CHILD_STATUS),y)
-SCHED_SRCS += task_childstatus.c 
-endif
-endif
-
 ifeq ($(CONFIG_SCHED_WAITPID),y)
 SCHED_SRCS += sched_waitpid.c
 ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
@@ -87,7 +80,14 @@ SCHED_SRCS += sched_waitid.c sched_wait.c
 endif
 endif
 
-GRP_SRCS  = group_create.c group_join.c group_leave.c
+GRP_SRCS  = group_create.c group_join.c group_leave.c group_find.c
+
+ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
+GRP_SRCS += task_reparent.c
+ifeq ($(CONFIG_SCHED_CHILD_STATUS),y)
+GRP_SRCS += group_childstatus.c 
+endif
+endif
 
 ifneq ($(CONFIG_DISABLE_SIGNALS),y)
 GRP_SRCS += group_signal.c

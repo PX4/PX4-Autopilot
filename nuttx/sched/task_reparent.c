@@ -70,6 +70,141 @@
  *
  *****************************************************************************/
 
+#ifdef HAVE_GROUP_MEMBERS
+int task_reparent(pid_t ppid, pid_t chpid)
+{
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  FAR struct child_status_s *child;
+#endif
+  FAR struct task_group_s *chgrp;
+  FAR struct task_group_s *ogrp;
+  FAR struct task_group_s *pgrp;
+  _TCB *tcb;
+  gid_t ogid;
+  gid_t pgid;
+  irqstate_t flags;
+  int ret;
+
+  /* Disable interrupts so that nothing can change in the relatinoship of
+   * the three task:  Child, current parent, and new parent.
+   */
+
+  flags = irqsave();
+
+  /* Get the child tasks task group */
+
+  tcb = sched_gettcb(chpid);
+  if (!tcb)
+    {
+      ret = -ECHILD;
+      goto errout_with_ints;
+    }
+
+  DEBUGASSERT(tcb->group);
+  chgrp = tcb->group;
+
+  /* Get the GID of the old parent task's task group (ogid) */
+
+  ogid = chgrp->tg_pgid;
+
+  /* Get the old parent task's task group (ogrp) */
+
+  ogrp = group_find(ogid);
+  if (!ogrp)
+    {
+      ret = -ESRCH;
+      goto errout_with_ints;
+    }
+
+  /* If new parent task's PID (ppid) is zero, then new parent is the
+   * grandparent will be the new parent, i.e., the parent of the current
+   * parent task.
+   */
+
+  if (ppid == 0)
+    {
+      /* Get the grandparent task's task group (pgrp) */
+
+      pgid = ogrp->tg_pgid;
+      pgrp = group_find(pgid);
+    }
+  else
+    {
+      /* Get the new parent task's task group (pgrp) */
+
+      tcb = sched_gettcb(ppid);
+      if (!tcb)
+        {
+          ret = -ESRCH;
+          goto errout_with_ints;
+        }
+
+      pgrp = tcb->group;
+      pgid = pgrp->tg_gid;
+    }
+
+  if (!pgrp)
+    {
+      ret = -ESRCH;
+      goto errout_with_ints;
+    }
+
+  /* Then reparent the child.  Notice that we don't actually change the
+   * parent of the task. Rather, we change the parent task group for
+   * all members of the child's task group.
+   */
+
+  chgrp->tg_pgid = pgid;
+
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  /* Remove the child status entry from old parent task group */
+
+  child = group_removechild(ogrp, chpid);
+  if (child)
+    {
+      /* Has the new parent's task group supressed child exit status? */
+
+      if ((pgrp->tg_flags && GROUP_FLAG_NOCLDWAIT) == 0)
+        {
+          /* No.. Add the child status entry to the new parent's task group */
+
+          group_addchild(pgrp, child);
+        }
+      else
+        {
+          /* Yes.. Discard the child status entry */
+
+          group_freechild(child);
+        }
+
+      /* Either case is a success */
+
+      ret = OK;
+    }
+  else
+    {
+      /* This would not be an error if the original parent's task group has
+       * suppressed child exit status.
+       */
+
+      ret = ((ogrp->tg_flags && GROUP_FLAG_NOCLDWAIT) == 0) ? -ENOENT : OK;
+    }
+
+#else /* CONFIG_SCHED_CHILD_STATUS */
+
+  DEBUGASSERT(otcb->nchildren > 0);
+
+  otcb->nchildren--;     /* The orignal parent now has one few children */
+  ptcb->nchildren++;     /* The new parent has one additional child */
+  ret = OK;
+
+#endif /* CONFIG_SCHED_CHILD_STATUS */
+  
+errout_with_ints:
+  irqrestore(flags);
+  return ret;  
+}
+#else
 int task_reparent(pid_t ppid, pid_t chpid)
 {
 #ifdef CONFIG_SCHED_CHILD_STATUS
@@ -99,7 +234,7 @@ int task_reparent(pid_t ppid, pid_t chpid)
 
   /* Get the PID of the child task's parent (opid) */
 
-  opid = chtcb->parent;
+  opid = chtcb->ppid;
 
   /* Get the TCB of the child task's parent (otcb) */
 
@@ -117,7 +252,7 @@ int task_reparent(pid_t ppid, pid_t chpid)
 
   if (ppid == 0)
     {
-      ppid = otcb->parent;
+      ppid = otcb->ppid;
     }
   
   /* Get the new parent task's TCB (ptcb) */
@@ -131,12 +266,12 @@ int task_reparent(pid_t ppid, pid_t chpid)
 
   /* Then reparent the child */
 
-  chtcb->parent = ppid;  /* The task specified by ppid is the new parent */
+  chtcb->ppid = ppid;  /* The task specified by ppid is the new parent */
 
 #ifdef CONFIG_SCHED_CHILD_STATUS
   /* Remove the child status entry from old parent TCB */
 
-  child = task_removechild(otcb, chpid);
+  child = group_removechild(otcb->group, chpid);
   if (child)
     {
       /* Has the new parent's task group supressed child exit status? */
@@ -145,13 +280,13 @@ int task_reparent(pid_t ppid, pid_t chpid)
         {
           /* No.. Add the child status entry to the new parent's task group */
 
-          task_addchild(ptcb, child);
+          group_addchild(ptcb->group, child);
         }
       else
         {
           /* Yes.. Discard the child status entry */
 
-          task_freechild(child);
+          group_freechild(child);
         }
 
       /* Either case is a success */
@@ -166,17 +301,20 @@ int task_reparent(pid_t ppid, pid_t chpid)
 
       ret = ((otcb->group->tg_flags && GROUP_FLAG_NOCLDWAIT) == 0) ? -ENOENT : OK;
     }
-#else
+
+#else /* CONFIG_SCHED_CHILD_STATUS */
+
   DEBUGASSERT(otcb->nchildren > 0);
 
   otcb->nchildren--;     /* The orignal parent now has one few children */
   ptcb->nchildren++;     /* The new parent has one additional child */
   ret = OK;
-#endif
+
+#endif /* CONFIG_SCHED_CHILD_STATUS */
   
 errout_with_ints:
   irqrestore(flags);
   return ret;  
 }
-
+#endif
 #endif /* CONFIG_SCHED_HAVE_PARENT */

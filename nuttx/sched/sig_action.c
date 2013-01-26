@@ -242,7 +242,7 @@ int sigaction(int signo, FAR const struct sigaction *act, FAR struct sigaction *
 
       /* Free all pending exit status */
 
-      task_removechildren(rtcb);
+      group_removechildren(rtcb->group);
       irqrestore(flags);
     }
 #endif

@@ -172,12 +172,36 @@ static inline void task_saveparent(FAR _TCB *tcb, uint8_t ttype)
 {
   FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
 
+#if defined(HAVE_GROUP_MEMBERS) || defined(CONFIG_SCHED_CHILD_STATUS)
+  DEBUGASSERT(tcb && tcb->group && rtcb->group);
+#else
+#endif
+
+#ifdef HAVE_GROUP_MEMBERS
+  /* Save the ID of the parent tasks' task group in the child's task group.
+   * Do nothing for pthreads.  The parent and the child are both members of
+   * the same task group.
+   */
+
+  if ((tcb->flags & TCB_FLAG_TTYPE_MASK) != TCB_FLAG_TTYPE_PTHREAD)
+    {
+      /* This is a new task in a new task group, we have to copy the ID from
+       * the parent's task group structure to child's task group.
+       */
+ 
+      tcb->group->tg_pgid = rtcb->group->tg_gid;
+    }
+
+#else
+  DEBUGASSERT(tcb);
+
   /* Save the parent task's ID in the child task's TCB.  I am not sure if
    * this makes sense for the case of pthreads or not, but I don't think it
    * is harmful in any event.
    */
 
-  tcb->parent = rtcb->pid;
+  tcb->ppid = rtcb->pid;
+#endif
 
 #ifdef CONFIG_SCHED_CHILD_STATUS
   /* Tasks can also suppress retention of their child status by applying
@@ -192,13 +216,13 @@ static inline void task_saveparent(FAR _TCB *tcb, uint8_t ttype)
        * parent TCB.  There should not be.
        */
 
-      child = task_findchild(rtcb, tcb->pid);
+      child = group_findchild(rtcb->group, tcb->pid);
       DEBUGASSERT(!child);
       if (!child)
         {
           /* Allocate a new status structure  */
 
-          child = task_allocchild();
+          child = group_allocchild();
         }
 
       /* Did we successfully find/allocate the child status structure? */
@@ -214,7 +238,7 @@ static inline void task_saveparent(FAR _TCB *tcb, uint8_t ttype)
 
           /* Add the entry into the TCB list of children */
 
-          task_addchild(rtcb, child);
+          group_addchild(rtcb->group, child);
         }
     }
 #else

@@ -172,16 +172,12 @@
  *
  * Assumptions:
  *
+ * Compatibility
+ *   If there is no SIGCHLD signal supported (CONFIG_SCHED_HAVE_PARENT not
+ *   defined), then waitpid() is still available, but does not obey the
+ *   restriction that the pid be a child of the caller.
+ *
  *****************************************************************************/
-
-/***************************************************************************
- * NOTE: This is a partially functional, experimental version of waitpid()
- *
- * If there is no SIGCHLD signal supported (CONFIG_SCHED_HAVE_PARENT not
- * defined), then waitpid() is still available, but does not obey the
- * restriction that the pid be a child of the caller.
- *
- ***************************************************************************/
 
 #ifndef CONFIG_SCHED_HAVE_PARENT
 pid_t waitpid(pid_t pid, int *stat_loc, int options)
@@ -325,7 +321,11 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
       /* Get the TCB corresponding to this PID and make sure it is our child. */
 
       ctcb = sched_gettcb(pid);
-      if (!ctcb || ctcb->parent != rtcb->pid)
+#ifdef HAVE_GROUP_MEMBERS
+      if (!ctcb || ctcb->group->tg_pgid != rtcb->group->tg_gid)
+#else
+      if (!ctcb || ctcb->ppid != rtcb->pid)
+#endif
         {
           err = ECHILD;
           goto errout_with_errno;
@@ -337,7 +337,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
         {
            /* Check if this specific pid has allocated child status? */
 
-           if (task_findchild(rtcb, pid) == NULL)
+           if (group_findchild(rtcb->group, pid) == NULL)
             {
               err = ECHILD;
               goto errout_with_errno;
@@ -357,7 +357,11 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
      /* Get the TCB corresponding to this PID and make sure it is our child. */
 
       ctcb = sched_gettcb(pid);
-      if (!ctcb || ctcb->parent != rtcb->pid)
+#ifdef HAVE_GROUP_MEMBERS
+      if (!ctcb || ctcb->group->tg_pgid != rtcb->group->tg_gid)
+#else
+      if (!ctcb || ctcb->ppid != rtcb->pid)
+#endif
         {
           err = ECHILD;
           goto errout_with_errno;
@@ -383,7 +387,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
            */
 
           DEBUGASSERT(!retains || rtcb->group->tg_children);
-          if (retains && (child = task_exitchild(rtcb)) != NULL)
+          if (retains && (child = group_exitchild(rtcb->group)) != NULL)
             {
               /* A child has exited.  Apparently we missed the signal.
                * Return the saved exit status.
@@ -395,8 +399,8 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
               /* Discard the child entry and break out of the loop */
 
-              (void)task_removechild(rtcb, child->ch_pid);
-              task_freechild(child);
+              (void)group_removechild(rtcb->group, child->ch_pid);
+              group_freechild(child);
               break;
             }
         }
@@ -407,7 +411,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
         {
           /* Get the current status of the child task. */
 
-          child = task_findchild(rtcb, pid);
+          child = group_findchild(rtcb->group, pid);
           DEBUGASSERT(child);
 
           /* Did the child exit? */
@@ -420,8 +424,8 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
               /* Discard the child entry and break out of the loop */
 
-              (void)task_removechild(rtcb, pid);
-              task_freechild(child);
+              (void)group_removechild(rtcb->group, pid);
+              group_freechild(child);
               break;
             }
         }

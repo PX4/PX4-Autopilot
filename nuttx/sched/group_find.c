@@ -1,5 +1,5 @@
 /*****************************************************************************
- * sched/group_signal.c
+ * sched/group_find.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -41,15 +41,15 @@
 
 #include <sched.h>
 #include <assert.h>
-#include <signal.h>
 #include <errno.h>
 #include <debug.h>
 
-#include "os_internal.h"
-#include "group_internal.h"
-#include "sig_internal.h"
+#include <nuttx/kmalloc.h>
 
-#if defined(HAVE_TASK_GROUP) && !defined(CONFIG_DISABLE_SIGNALS)
+#include "group_internal.h"
+#include "env_internal.h"
+
+#ifdef HAVE_TASK_GROUP
 
 /*****************************************************************************
  * Pre-processor Definitions
@@ -64,6 +64,10 @@
  *****************************************************************************/
 
 /*****************************************************************************
+ * Public Data
+ *****************************************************************************/
+
+/*****************************************************************************
  * Private Functions
  *****************************************************************************/
 
@@ -72,92 +76,50 @@
  *****************************************************************************/
 
 /*****************************************************************************
- * Name: group_signal
+ * Name: group_find
  *
  * Description:
- *   Send a signal to every member of the group.
+ *   Given a group ID, find the group task structure with that ID.  IDs are
+ *   used instead of pointers to group structures.  This is done because a 
+ *   group can disappear at any time leaving a stale pointer; an ID is cleaner
+ *   because if the group disappears, this function will fail gracefully.
  *
  * Parameters:
- *   group - The task group that needs to be signalled.
+ *   gid - The group ID to find.
  *
  * Return Value:
- *   0 (OK) on success; a negated errno value on failure.
+ *   On success, a pointer to the group task structure is returned.  This
+ *   function can fail only if there is no group that corresponds to the
+ *   groupd ID.
  *
  * Assumptions:
- *   Called during task terminatino in a safe context.  No special precautions
- *   are required here.
+ *   Called during when signally tasks in a safe context.  No special
+ *   precautions should be required here.  However, extra care is taken when
+ *   accessing the global g_grouphead list.
  *
  *****************************************************************************/
 
-int group_signal(FAR struct task_group_s *group, FAR siginfo_t *info)
-{
 #ifdef HAVE_GROUP_MEMBERS
-  FAR _TCB *gtcb;
-  int i;
+FAR struct task_group_s *group_find(gid_t gid)
+{
+  FAR struct task_group_s *group;
+  irqstate_t flags;
 
-  DEBUGASSERT(group && info);
+  /* Find the status structure with the matching PID  */
 
-  /* Make sure that pre-emption is disabled to that we signal all of teh
-   * members of the group before any of them actually run.
-   */
-
-  sched_lock();
-
-  /* Send the signal to each member of the group */
-
-  for (i = 0; i < group->tg_nmembers; i++)
+  flags = irqsave();
+  for (group = g_grouphead; group; group = group->flink)
     {
-      gtcb = sched_gettcb(group->tg_members[i]);
-      DEBUGASSERT(gtcb);
-      if (gtcb)
+      if (group->tg_gid == gid)
         {
-          /* Use the sig_received interface so that it does not muck with
-           * the siginfo_t.
-           */
-
-#ifdef CONFIG_DEBUG
-          int ret = sig_received(gtcb, info);
-          DEBUGASSERT(ret == 0);
-#else
-          (void)sig_received(gtcb, info);
-#endif
+          irqrestore(flags);
+          return group;
         }
     }
-  
-  /* Re-enable pre-emption an return success */
 
-  sched_unlock();
-  return OK;
-#else
-  return -ENOSYS;
-#endif
+  irqrestore(flags);
+  return NULL;
 }
-
-/*****************************************************************************
- * Name: group_signalmember
- *
- * Description:
- *   Send a signal to every member of the group to which task belongs.
- *
- * Parameters:
- *   tcb - The tcb of one task in the task group that needs to be signalled.
- *
- * Return Value:
- *   0 (OK) on success; a negated errno value on failure.
- *
- * Assumptions:
- *   Called during task terminatino in a safe context.  No special precautions
- *   are required here.
- *
- *****************************************************************************/
-
-int group_signalmember(FAR _TCB *tcb, FAR siginfo_t *info)
-{
-#ifdef HAVE_GROUP_MEMBERS
-  DEBUGASSERT(tcb);
-  return group_signal(tcb->group, info);
-#else
-  return sig_received(tcb, info);
 #endif
-}
-#endif /* HAVE_TASK_GROUP && !CONFIG_DISABLE_SIGNALS */
+
+#endif /* HAVE_TASK_GROUP */

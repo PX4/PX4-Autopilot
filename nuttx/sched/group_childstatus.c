@@ -1,5 +1,5 @@
 /*****************************************************************************
- * sched/task_childstatus.c
+ * sched/group_childstatus.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -92,13 +92,13 @@ static struct child_pool_s g_child_pool;
  *****************************************************************************/
 
 /*****************************************************************************
- * Name: task_dumpchildren
+ * Name: group_dumpchildren
  *
  * Description:
  *   Dump all of the children when the part TCB list is modified.
  *
  * Parameters:
- *   tcb - The parent TCB.
+ *   group - The task group containing the child status.
  *
  * Return Value:
  *   None.
@@ -109,13 +109,13 @@ static struct child_pool_s g_child_pool;
  *****************************************************************************/
 
 #ifdef CONFIG_DEBUG_CHILDSTATUS
-static void task_dumpchildren(FAR _TCB *tcb, FAR const char *msg)
+static void group_dumpchildren(FAR struct task_group_s *group,
+                               FAR const char *msg)
 {
   FAR struct child_status_s *child;
-  FAR struct task_group_s   *group = tcb->group;
   int i;
 
-  dbg("Parent TCB=%p group=%p: %s\n", tcb, group, msg);
+  dbg("Task group=%p: %s\n", group, msg);
   for (i = 0, child = group->tg_children; child; i++, child = child->flink)
     {
       dbg("  %d. ch_flags=%02x ch_pid=%d ch_status=%d\n",
@@ -123,7 +123,7 @@ static void task_dumpchildren(FAR _TCB *tcb, FAR const char *msg)
     }
 }
 #else
-#  define task_dumpchildren(t,m)
+#  define group_dumpchildren(t,m)
 #endif
 
 /*****************************************************************************
@@ -167,7 +167,7 @@ void task_initialize(void)
 }
 
 /*****************************************************************************
- * Name: task_allocchild
+ * Name: group_allocchild
  *
  * Description:
  *   Allocate a child status structure by removing the next entry from a
@@ -186,7 +186,7 @@ void task_initialize(void)
  *
  *****************************************************************************/
 
-FAR struct child_status_s *task_allocchild(void)
+FAR struct child_status_s *group_allocchild(void)
 {
   FAR struct child_status_s *ret;
 
@@ -203,7 +203,7 @@ FAR struct child_status_s *task_allocchild(void)
 }
 
 /*****************************************************************************
- * Name: task_freechild
+ * Name: group_freechild
  *
  * Description:
  *   Release a child status structure by returning it to a free list.
@@ -220,7 +220,7 @@ FAR struct child_status_s *task_allocchild(void)
  *
  *****************************************************************************/
 
-void task_freechild(FAR struct child_status_s *child)
+void group_freechild(FAR struct child_status_s *child)
 {
   /* Return the child status structure to the free list  */
 
@@ -232,13 +232,13 @@ void task_freechild(FAR struct child_status_s *child)
 }
 
 /*****************************************************************************
- * Name: task_addchild
+ * Name: group_addchild
  *
  * Description:
  *   Add a child status structure in the given TCB.
  *
  * Parameters:
- *   tcb    - The TCB of the parent task to containing the child status.
+ *   group  - The task group for the child status.
  *   child  - The structure to be added
  *
  * Return Value:
@@ -250,28 +250,27 @@ void task_freechild(FAR struct child_status_s *child)
  *
  *****************************************************************************/
 
-void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child)
+void group_addchild(FAR struct task_group_s *group,
+                   FAR struct child_status_s *child)
 {
-  FAR struct task_group_s *group = tcb->group;
-
   /* Add the entry into the TCB list of children */
 
   child->flink  = group->tg_children;
   group->tg_children = child;
 
-  task_dumpchildren(tcb, "task_addchild");
+  group_dumpchildren(group, "group_addchild");
 }
 
 /*****************************************************************************
- * Name: task_findchild
+ * Name: group_findchild
  *
  * Description:
- *   Find a child status structure in the given TCB.  A reference to the
- *   child structure is returned, but the child remains the the TCB's list
- *   of children.
+ *   Find a child status structure in the given task group.  A reference to
+ *   the child structure is returned, but the child remains the the group's
+ *   list of children.
  *
  * Parameters:
- *   tcb - The TCB of the parent task to containing the child status.
+ *   group - The ID of the parent task group to containing the child status.
  *   pid - The ID of the child to find.
  *
  * Return Value:
@@ -284,10 +283,12 @@ void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child)
  *
  *****************************************************************************/
 
-FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid)
+FAR struct child_status_s *group_findchild(FAR struct task_group_s *group,
+                                           pid_t pid)
 {
-  FAR struct task_group_s   *group = tcb->group;
   FAR struct child_status_s *child;
+
+  DEBUGASSERT(group);
 
   /* Find the status structure with the matching PID  */
 
@@ -303,7 +304,7 @@ FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid)
 }
 
 /*****************************************************************************
- * Name: task_exitchild
+ * Name: group_exitchild
  *
  * Description:
  *   Search for any child that has exitted.
@@ -321,9 +322,8 @@ FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid)
  *
  *****************************************************************************/
 
-FAR struct child_status_s *task_exitchild(FAR _TCB *tcb)
+FAR struct child_status_s *group_exitchild(FAR struct task_group_s *group)
 {
-  FAR struct task_group_s   *group = tcb->group;
   FAR struct child_status_s *child;
 
   /* Find the status structure of any child task that has exitted. */
@@ -340,15 +340,15 @@ FAR struct child_status_s *task_exitchild(FAR _TCB *tcb)
 }
 
 /*****************************************************************************
- * Name: task_removechild
+ * Name: group_removechild
  *
  * Description:
- *   Remove one child structure from the TCB.  The child is removed, but is
- *   not yet freed.  task_freechild must be called in order to free the child
- *   status structure.
+ *   Remove one child structure from a task group.  The child is removed, but
+ *   is not yet freed.  group_freechild must be called in order to free the
+ *   child status structure.
  *
  * Parameters:
- *   tcb - The TCB of the parent task to containing the child status.
+ *   group - The task group containing the child status.
  *   pid - The ID of the child to find.
  *
  * Return Value:
@@ -361,13 +361,15 @@ FAR struct child_status_s *task_exitchild(FAR _TCB *tcb)
  *
  *****************************************************************************/
 
-FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid)
+FAR struct child_status_s *group_removechild(FAR struct task_group_s *group,
+                                             pid_t pid)
 {
-  FAR struct task_group_s   *group = tcb->group;
   FAR struct child_status_s *curr;
   FAR struct child_status_s *prev;
 
-  /* Find the status structure with the matching PID  */
+  DEBUGASSERT(group);
+
+  /* Find the status structure with the matching PID */
 
   for (prev = NULL, curr = group->tg_children;
        curr;
@@ -379,7 +381,7 @@ FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid)
         }
     }
 
-  /* Did we find it?  If so, remove it from the TCB. */
+  /* Did we find it?  If so, remove it from the group. */
 
   if (curr)
     {
@@ -395,20 +397,20 @@ FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid)
         }
 
       curr->flink = NULL;
-      task_dumpchildren(tcb, "task_removechild");
+      group_dumpchildren(group, "group_removechild");
     }
  
   return curr;
 }
 
 /*****************************************************************************
- * Name: task_removechildren
+ * Name: group_removechildren
  *
  * Description:
- *   Remove and free all child structure from the TCB.
+ *   Remove and free all child structure from the task group.
  *
  * Parameters:
- *   tcb - The TCB of the parent task to containing the child status.
+ *   group - The task group containing the child status.
  *
  * Return Value:
  *   None.
@@ -419,9 +421,8 @@ FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid)
  *
  *****************************************************************************/
 
-void task_removechildren(FAR _TCB *tcb)
+void group_removechildren(FAR struct task_group_s *group)
 {
-  FAR struct task_group_s   *group = tcb->group;
   FAR struct child_status_s *curr;
   FAR struct child_status_s *next;
 
@@ -430,11 +431,11 @@ void task_removechildren(FAR _TCB *tcb)
   for (curr = group->tg_children; curr; curr = next)
     {
       next = curr->flink;
-      task_freechild(curr);
+      group_freechild(curr);
     }
 
   group->tg_children = NULL;
-  task_dumpchildren(tcb, "task_removechildren");
+  group_dumpchildren(group, "group_removechildren");
 }
 
 #endif /* CONFIG_SCHED_HAVE_PARENT && CONFIG_SCHED_CHILD_STATUS */

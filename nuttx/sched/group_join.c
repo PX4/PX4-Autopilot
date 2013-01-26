@@ -139,6 +139,9 @@ int group_bind(FAR _TCB *tcb)
 int group_join(FAR _TCB *tcb)
 {
   FAR struct task_group_s *group;
+#ifdef HAVE_GROUP_MEMBERS
+  int ret;
+#endif
 
   DEBUGASSERT(tcb && tcb->group &&
               tcb->group->tg_nmembers < UINT8_MAX);
@@ -146,8 +149,45 @@ int group_join(FAR _TCB *tcb)
   /* Get the group from the TCB */
 
   group = tcb->group;
-  
+
 #ifdef HAVE_GROUP_MEMBERS
+  /* Add the member to the group */
+
+  ret = group_addmember(group, tcb->pid);
+  if (ret < 0)
+    {
+      return ret;
+    }
+#endif
+
+  group->tg_nmembers++;
+  return OK;
+}
+
+/*****************************************************************************
+ * Name: group_addmember
+ *
+ * Description:
+ *   Add a new member to a group.  
+ *
+ * Parameters:
+ *   group - The task group to add the new member
+ *   pid - The new member
+ *
+ * Return Value:
+ *   0 (OK) on success; a negated errno value on failure.
+ *
+ * Assumptions:
+ *   Called during thread creation and during reparenting in a safe context.
+ *   No special precautions are required here.
+ *
+ *****************************************************************************/
+
+#ifdef HAVE_GROUP_MEMBERS
+int group_addmember(FAR struct task_group_s *group, pid_t pid)
+{
+  DEBUGASSERT(group && group->tg_nmembers < UINT8_MAX);
+
   /* Will we need to extend the size of the array of groups? */
 
   if (group->tg_nmembers >= group->tg_mxmembers)
@@ -179,11 +219,9 @@ int group_join(FAR _TCB *tcb)
 
   /* Assign this new pid to the group. */
 
-  group->tg_members[group->tg_nmembers] = tcb->pid;
-#endif
-
-  group->tg_nmembers++;
+  group->tg_members[group->tg_nmembers] = pid;
   return OK;
 }
+#endif /* HAVE_GROUP_MEMBERS */
 
 #endif /* HAVE_TASK_GROUP */

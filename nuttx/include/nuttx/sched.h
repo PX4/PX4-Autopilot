@@ -95,6 +95,7 @@
 #define TCB_FLAG_NONCANCELABLE     (1 << 2) /* Bit 2: Pthread is non-cancelable */
 #define TCB_FLAG_CANCEL_PENDING    (1 << 3) /* Bit 3: Pthread cancel is pending */
 #define TCB_FLAG_ROUND_ROBIN       (1 << 4) /* Bit 4: Round robin sched enabled */
+#define TCB_FLAG_EXIT_PROCESSING   (1 << 5) /* Bit 5: Exitting */
 
 /* Values for struct task_group tg_flags */
 
@@ -253,6 +254,11 @@ struct dspace_s
 #ifdef HAVE_TASK_GROUP
 struct task_group_s
 {
+#ifdef HAVE_GROUP_MEMBERS
+  struct task_group_s *flink;       /* Supports a singly linked list            */
+  gid_t      tg_gid;                /* The ID of this task group                */
+  gid_t      tg_pgid;               /* The ID of the parent task group          */
+#endif
   uint8_t    tg_flags;              /* See GROUP_FLAG_* definitions             */
 
   /* Group membership ***********************************************************/
@@ -311,12 +317,16 @@ struct _TCB
   /* Task Management Fields *****************************************************/
 
   pid_t    pid;                          /* This is the ID of the thread        */
+
 #ifdef CONFIG_SCHED_HAVE_PARENT          /* Support parent-child relationship   */
-  pid_t    parent;                       /* This is the ID of the parent thread */
+#ifndef HAVE_GROUP_MEMBERS               /* Don't know pids of group members    */
+  pid_t    ppid;                         /* This is the ID of the parent thread */
 #ifndef CONFIG_SCHED_CHILD_STATUS        /* Retain child thread status          */
   uint16_t nchildren;                    /* This is the number active children  */
 #endif
 #endif
+#endif /* CONFIG_SCHED_HAVE_PARENT */
+
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
 

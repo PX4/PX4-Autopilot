@@ -66,6 +66,65 @@
  *****************************************************************************/
 
 /*****************************************************************************
+ * Name: group_remove
+ *
+ * Description:
+ *   Remove a group from the list of groups.
+ *
+ * Parameters:
+ *   group - The group to be removed.
+ *
+ * Return Value:
+ *   None.
+ *
+ * Assumptions:
+ *   Called during task deletion in a safe context.  No special precautions
+ *   are required here.
+ *
+ *****************************************************************************/
+
+#ifdef HAVE_GROUP_MEMBERS
+void group_remove(FAR struct task_group_s *group)
+{
+  FAR struct task_group_s *curr;
+  FAR struct task_group_s *prev;
+  irqstate_t flags;
+
+  /* Let's be especially careful while access the global task group list.
+   * This is probably un-necessary.
+   */
+ 
+  flags = irqsave();
+ 
+  /* Find the task group structure */
+
+  for (prev = NULL, curr = g_grouphead;
+       curr && curr != group;
+       prev = curr, curr = curr->flink);
+
+  /* Did we find it?  If so, remove it from the list. */
+
+  if (curr)
+    {
+      /* Do we remove it from mid-list?  Or from the head of the list? */
+
+      if (prev)
+        {
+          prev->flink = curr->flink;
+        }
+      else
+        {
+          g_grouphead = curr->flink;
+        }
+
+      curr->flink = NULL;
+    }
+
+  irqrestore(flags);
+}
+#endif
+
+/*****************************************************************************
  * Public Functions
  *****************************************************************************/
 
@@ -90,6 +149,8 @@
  *
  *****************************************************************************/
 
+#ifdef HAVE_GROUP_MEMBERS
+
 void group_leave(FAR _TCB *tcb)
 {
   FAR struct task_group_s *group;
@@ -101,64 +162,57 @@ void group_leave(FAR _TCB *tcb)
   group = tcb->group;
   if (group)
     {
-#ifdef HAVE_GROUP_MEMBERS
-      int i;
+      /* Remove the member from group */
 
-      /* Find the member in the array of members and remove it */
+      int ret = group_removemember(group, tcb->pid);
+      DEBUGASSERT(ret >= 0);
 
-      for (i = 0; i < group->tg_nmembers; i++)
+      /* Is the group now empty? */
+
+      if (ret == 0)
         {
-          /* Does this member have the matching pid */
-
-          if (group->tg_members[i] == tcb->pid)
-           {
-              /* Yes.. break out of the loop.  We don't do the actual
-               * removal here, instead we re-test i and do the adjustments
-               * outside of the loop.  We do this because we want the
-               * DEBUGASSERT to work properly.
-               */
-
-              break;
-           }
-        }
-
-      /* Now, test if we found the task in the array of members. */
-
-      DEBUGASSERT(i < group->tg_nmembers);
-      if (i < group->tg_nmembers)
-        {
-          /* Yes..Is this the last member of the group? */
-
-          if (group->tg_nmembers > 1)
-            {
-              /* No.. remove the member from the array of members */
-
-              group->tg_members[i] = group->tg_members[group->tg_nmembers - 1];
-              group->tg_nmembers--;
-            }
-
-          /* Yes.. that was the last member remaining in the group */
-
-          else
-            {
-              /* Release all of the resource contained within the group */
-              /* Free all un-reaped child exit status */
+          /* Release all of the resource contained within the group */
+          /* Free all un-reaped child exit status */
 
 #if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
-             task_removechildren(tcb);
+          group_removechildren(tcb->group);
 #endif
-              /* Release all shared environment variables */
+          /* Release all shared environment variables */
 
 #ifndef CONFIG_DISABLE_ENVIRON
-              env_release(tcb);
+          env_release(tcb);
 #endif
-              /* Release the group container itself */
+          /* Remove the group from the list of groups */
 
-              sched_free(group);
-            }
+          group_remove(group);
+
+          /* Release the group container itself */
+
+          sched_free(group);
         }
-#else
-      /* Yes..Is this the last member of the group? */
+
+      /* In any event, we can detach the group from the TCB so that we won't
+       * do this again.
+       */
+
+      tcb->group = NULL;
+    }
+}
+
+#else /* HAVE_GROUP_MEMBERS */
+
+void group_leave(FAR _TCB *tcb)
+{
+  FAR struct task_group_s *group;
+
+  DEBUGASSERT(tcb);
+
+  /* Make sure that we have a group */
+
+  group = tcb->group;
+  if (group)
+    {
+      /* Yes, we have a group.. Is this the last member of the group? */
 
       if (group->tg_nmembers > 1)
         {
@@ -175,7 +229,7 @@ void group_leave(FAR _TCB *tcb)
           /* Free all un-reaped child exit status */
 
 #if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
-          task_removechildren(tcb);
+          group_removechildren(tcb->group);
 #endif
           /* Release all shared environment variables */
 
@@ -186,7 +240,6 @@ void group_leave(FAR _TCB *tcb)
 
           sched_free(group);
         }
-#endif
 
       /* In any event, we can detach the group from the TCB so we won't do
        * this again.
@@ -195,5 +248,68 @@ void group_leave(FAR _TCB *tcb)
       tcb->group = NULL;
     }
 }
+
+#endif /* HAVE_GROUP_MEMBERS */
+
+/*****************************************************************************
+ * Name: group_removemember
+ *
+ * Description:
+ *   Remove a member from a group.
+ *
+ * Parameters:
+ *   group - The group from which to remove the member.
+ *   pid - The member to be removed.
+ *
+ * Return Value:
+ *   On success, returns the number of members remaining in the group (>=0).
+ *   Can fail only if the member is not found in the group.  On failure,
+ *   returns -ENOENT
+ *
+ * Assumptions:
+ *   Called during task deletion and also from the reparenting logic, both
+ *   in a safe context.  No special precautions are required here.
+ *
+ *****************************************************************************/
+
+#ifdef HAVE_GROUP_MEMBERS
+int group_removemember(FAR struct task_group_s *group, pid_t pid)
+{
+  int i;
+
+  DEBUGASSERT(group);
+
+  /* Find the member in the array of members and remove it */
+
+  for (i = 0; i < group->tg_nmembers; i++)
+    {
+      /* Does this member have the matching pid */
+
+      if (group->tg_members[i] == pid)
+       {
+          /* Yes.. break out of the loop.  We don't do the actual
+           * removal here, instead we re-test i and do the adjustments
+           * outside of the loop.  We do this because we want the
+           * DEBUGASSERT to work properly.
+           */
+
+          break;
+       }
+    }
+
+  /* Now, test if we found the task in the array of members. */
+
+  if (i < group->tg_nmembers)
+    {
+      /* Remove the member from the array of members */
+
+      group->tg_members[i] = group->tg_members[group->tg_nmembers - 1];
+      group->tg_nmembers--;
+      return group->tg_nmembers;
+    }
+
+  return -ENOENT;
+}
+#endif /* HAVE_GROUP_MEMBERS */
 
 #endif /* HAVE_TASK_GROUP */

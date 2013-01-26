@@ -104,10 +104,7 @@ static inline void task_atexit(FAR _TCB *tcb)
 
           (*tcb->atexitfunc[index])();
 
-          /* Nullify the atexit function.  task_exithook may be called more then
-           * once in most task exit scenarios.  Nullifying the atext function
-           * pointer will assure that the callback is performed only once.
-           */
+          /* Nullify the atexit function to prevent its reuse. */
 
           tcb->atexitfunc[index] = NULL;
         }
@@ -120,10 +117,7 @@ static inline void task_atexit(FAR _TCB *tcb)
 
       (*tcb->atexitfunc)();
 
-      /* Nullify the atexit function.  task_exithook may be called more then
-       * once in most task exit scenarios.  Nullifying the atext function
-       * pointer will assure that the callback is performed only once.
-       */
+      /* Nullify the atexit function to prevent its reuse. */
 
       tcb->atexitfunc = NULL;
     }
@@ -161,10 +155,7 @@ static inline void task_onexit(FAR _TCB *tcb, int status)
 
           (*tcb->onexitfunc[index])(status, tcb->onexitarg[index]);
 
-          /* Nullify the on_exit function.  task_exithook may be called more then
-           * once in most task exit scenarios.  Nullifying the atext function
-           * pointer will assure that the callback is performed only once.
-           */
+          /* Nullify the on_exit function to prevent its reuse. */
 
           tcb->onexitfunc[index] = NULL;
         }
@@ -176,10 +167,7 @@ static inline void task_onexit(FAR _TCB *tcb, int status)
 
       (*tcb->onexitfunc)(status, tcb->onexitarg);
 
-      /* Nullify the on_exit function.  task_exithook may be called more then
-       * once in most task exit scenarios.  Nullifying the on_exit function
-       * pointer will assure that the callback is performed only once.
-       */
+      /* Nullify the on_exit function to prevent its reuse. */
 
       tcb->onexitfunc = NULL;
     }
@@ -198,34 +186,51 @@ static inline void task_onexit(FAR _TCB *tcb, int status)
  ****************************************************************************/
 
 #ifdef CONFIG_SCHED_HAVE_PARENT
-static inline void task_sigchild(FAR _TCB *ptcb, FAR _TCB *ctcb, int status)
+#ifdef HAVE_GROUP_MEMBERS
+static inline void task_sigchild(gid_t pgid, FAR _TCB *ctcb, int status)
 {
+  FAR struct task_group_s *chgrp = ctcb->group;
+  FAR struct task_group_s *pgrp;
   siginfo_t info;
 
-  /* Only the final exiting thread in a task group should generate SIGCHLD.
-   * If task groups are not supported then we will report SIGCHLD when the
-   * task exits.
-   */
+  DEBUGASSERT(chgrp);
 
-#ifdef CONFIG_SCHED_CHILD_STATUS
-  if (ctcb->group->tg_nmembers == 1)
-#else
-  if ((ctcb->flags & TCB_FLAG_TTYPE_MASK) == TCB_FLAG_TTYPE_TASK)
-#endif
+  /* Only the final exiting thread in a task group should generate SIGCHLD. */
+
+  if (chgrp->tg_nmembers == 1)
     {
+      /* Get the parent task group */
+
+      pgrp = group_find(chgrp->tg_pgid);
+
+      /* It is possible that all of the members of the parent task group
+       * have exited.  This would not be an error.  In this case, the
+       * child task group has been orphaned.
+       */
+
+      if (!pgrp)
+        {
+          /* Set the task group ID to an invalid group ID.  The dead parent
+           * task group ID could get reused some time in the future.
+           */
+
+          chgrp->tg_pgid = INVALID_GROUP_ID;
+          return;
+        }
+
 #ifdef CONFIG_SCHED_CHILD_STATUS
       /* Check if the parent task group has suppressed retention of child exit
        * status information.  Only 'tasks' report exit status, not pthreads.
        * pthreads have a different mechanism.
        */
 
-      if ((ptcb->group->tg_flags & GROUP_FLAG_NOCLDWAIT) == 0)
+      if ((pgrp->tg_flags & GROUP_FLAG_NOCLDWAIT) == 0)
         {
           FAR struct child_status_s *child;
 
           /* No.. Find the exit status entry for this task in the parent TCB */
 
-          child = task_findchild(ptcb, getpid());
+          child = group_findchild(pgrp, getpid());
           DEBUGASSERT(child);
           if (child)
             {
@@ -238,12 +243,7 @@ static inline void task_sigchild(FAR _TCB *ptcb, FAR _TCB *ctcb, int status)
               child->ch_status = status;
             }
         }
-#else
-      /* Decrement the number of children from this parent */
-
-      DEBUGASSERT(ptcb->nchildren > 0);
-      ptcb->nchildren--;
-#endif
+#endif /* CONFIG_SCHED_CHILD_STATUS */
 
       /* Create the siginfo structure.  We don't actually know the cause.
        * That is a bug. Let's just say that the child task just exit-ted
@@ -260,16 +260,83 @@ static inline void task_sigchild(FAR _TCB *ptcb, FAR _TCB *ctcb, int status)
        * can provide the correct si_code value with the signal.
        */
 
-#ifdef HAVE_GROUP_MEMBERS
-      (void)group_signal(ptcb, &info);
-#else
-      (void)sig_received(ptcb, &info);
-#endif
+      (void)group_signal(pgrp, &info);
     }
 }
-#else
-#  define task_sigchild(ptct,ctcb,status)
-#endif
+
+#else /* HAVE_GROUP_MEMBERS */
+
+static inline void task_sigchild(FAR _TCB *ptcb, FAR _TCB *ctcb, int status)
+{
+  siginfo_t info;
+
+  /* If task groups are not supported then we will report SIGCHLD when the
+   * task exits.  Unfortunately, there could still be threads in the group
+   * that are still running.
+   */
+
+  if ((ctcb->flags & TCB_FLAG_TTYPE_MASK) == TCB_FLAG_TTYPE_TASK)
+    {
+#ifdef CONFIG_SCHED_CHILD_STATUS
+      /* Check if the parent task group has suppressed retention of child exit
+       * status information.  Only 'tasks' report exit status, not pthreads.
+       * pthreads have a different mechanism.
+       */
+
+      if ((ptcb->group->tg_flags & GROUP_FLAG_NOCLDWAIT) == 0)
+        {
+          FAR struct child_status_s *child;
+
+          /* No.. Find the exit status entry for this task in the parent TCB */
+
+          child = group_findchild(ptcb->group, getpid());
+          DEBUGASSERT(child);
+          if (child)
+            {
+              /* Mark that the child has exit'ed */
+
+              child->ch_flags |= CHILD_FLAG_EXITED;
+
+              /* Save the exit status */
+
+              child->ch_status = status;
+            }
+        }
+
+#else /* CONFIG_SCHED_CHILD_STATUS */
+
+      /* Decrement the number of children from this parent */
+
+      DEBUGASSERT(ptcb->nchildren > 0);
+      ptcb->nchildren--;
+
+#endif /* CONFIG_SCHED_CHILD_STATUS */
+
+      /* Create the siginfo structure.  We don't actually know the cause.
+       * That is a bug. Let's just say that the child task just exit-ted
+       * for now.
+       */
+
+      info.si_signo           = SIGCHLD;
+      info.si_code            = CLD_EXITED;
+      info.si_value.sival_ptr = NULL;
+      info.si_pid             = ctcb->pid;
+      info.si_status          = status;
+
+      /* Send the signal.  We need to use this internal interface so that we
+       * can provide the correct si_code value with the signal.
+       */
+
+      (void)sig_received(ptcb, &info);
+    }
+}
+
+#endif /* HAVE_GROUP_MEMBERS */
+#else /* CONFIG_SCHED_HAVE_PARENT */
+
+#  define task_sigchild(x,ctcb,status)
+
+#endif /* CONFIG_SCHED_HAVE_PARENT */
 
 /****************************************************************************
  * Name: task_leavegroup
@@ -282,6 +349,18 @@ static inline void task_sigchild(FAR _TCB *ptcb, FAR _TCB *ctcb, int status)
 #ifdef CONFIG_SCHED_HAVE_PARENT
 static inline void task_leavegroup(FAR _TCB *ctcb, int status)
 {
+#ifdef HAVE_GROUP_MEMBERS
+  DEBUGASSERT(ctcb && ctcb->group);
+
+  /* Keep things stationary throughout the following */
+
+  sched_lock();
+
+  /* Send SIGCHLD to all members of the parent's task group */
+
+  task_sigchild(ctcb->group->tg_pgid, ctcb, status);
+  sched_unlock();
+#else
   FAR _TCB *ptcb;
 
   /* Keep things stationary throughout the following */
@@ -289,12 +368,12 @@ static inline void task_leavegroup(FAR _TCB *ctcb, int status)
   sched_lock();
 
   /* Get the TCB of the receiving, parent task.  We do this early to
-   * handle multiple calls to task_leavegroup.  ctcb->parent is set to an
+   * handle multiple calls to task_leavegroup.  ctcb->ppid is set to an
    * invalid value below and the following call will fail if we are
    * called again.
    */
 
-  ptcb = sched_gettcb(ctcb->parent);
+  ptcb = sched_gettcb(ctcb->ppid);
   if (!ptcb)
     {
       /* The parent no longer exists... bail */
@@ -307,14 +386,11 @@ static inline void task_leavegroup(FAR _TCB *ctcb, int status)
 
   task_sigchild(ptcb, ctcb, status);
 
-  /* Set the parent to an impossible PID.  We do this because under certain
-   * conditions, task_exithook() can be called multiple times. If this
-   * function is called again, sched_gettcb() will fail on the invalid
-   * parent PID above and all will be well.
-   */
+  /* Forget who our parent was */
 
-  ctcb->parent = INVALID_PROCESS_ID;
+  ctcb->ppid = INVALID_PROCESS_ID;
   sched_unlock();
+#endif
 }
 #else
 #  define task_leavegroup(ctcb,status)
@@ -385,6 +461,16 @@ static inline void task_exitwakeup(FAR _TCB *tcb, int status)
 
 void task_exithook(FAR _TCB *tcb, int status)
 {
+  /* Under certain conditions, task_exithook() can be called multiple times.
+   * A bit in the TCB was set the first time this function was called.  If
+   * that bit is set, then just ext doing nothing more..
+   */
+
+  if ((tcb->flags & TCB_FLAG_EXIT_PROCESSING) != 0)
+    {
+      return;
+    }
+
   /* If exit function(s) were registered, call them now before we do any un-
    * initialization.  NOTE:  In the case of task_delete(), the exit function
    * will *not* be called on the thread execution of the task being deleted!
@@ -433,4 +519,11 @@ void task_exithook(FAR _TCB *tcb, int status)
 #ifndef CONFIG_DISABLE_SIGNALS
   sig_cleanup(tcb); /* Deallocate Signal lists */
 #endif
+
+  /* This function can be re-entered in certain cases.  Set a flag
+   * bit in the TCB to not that we have already completed this exit
+   * processing.
+   */
+
+  tcb->flags |= TCB_FLAG_EXIT_PROCESSING;
 }
