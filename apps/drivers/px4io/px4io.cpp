@@ -270,8 +270,6 @@ PX4IO::PX4IO() :
 	_to_actuators_effective(0),
 	_to_outputs(0),
 	_to_battery(0),
-	_mix_buf(nullptr),
-	_mix_buf_len(0),
 	_primary_pwm_device(false)
 {
 	/* we need this potentially before it could be set in task_main */
@@ -315,7 +313,7 @@ PX4IO::init()
 	/* get some parameters */
 	_max_actuators = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT);
 	_max_relays    = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RELAY_COUNT);
-	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER);
+	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER) - 2;
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
 	if ((_max_actuators < 1) || (_max_actuators > 255) ||
 	    (_max_relays < 1)    || (_max_relays > 255)    ||
@@ -816,9 +814,9 @@ PX4IO::io_publish_pwm_outputs()
 int
 PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
-	uint8_t buf[_max_transfer];
+	uint8_t buf[_max_transfer + 2];
 
-	if (num_values > ((_max_transfer - 2) / sizeof(*values)))
+	if (num_values > ((_max_transfer) / sizeof(*values)))
 		return -EINVAL;
 	unsigned datalen = num_values * sizeof(*values);
 
@@ -928,15 +926,21 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 		if (ret) {
 			log("mixer send error %d", ret);
 			return ret;
+		} else {
+			debug("mixer sent %u", total_len);
 		}
 
 		msg->action = F2I_MIXER_ACTION_APPEND;
 
 	} while (buflen > 0);
 
+	debug("mixer upload OK");
+
 	/* check for the mixer-OK flag */
 	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK)
 		return 0;
+
+	debug("mixer rejected");
 
 	/* load must have failed for some reason */
 	return -EINVAL;
