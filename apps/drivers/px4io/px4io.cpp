@@ -742,7 +742,7 @@ PX4IO::io_publish_mixed_controls()
 		return OK;
 
 	/* if not taking raw PPM from us, must be mixing */
-	if (_status & PX4IO_P_STATUS_FLAGS_RAW_PPM)
+	if (_status & PX4IO_P_STATUS_FLAGS_RAW_PWM)
 		return OK;
 
 	/* data we are going to fetch */
@@ -981,7 +981,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			ret = -EINVAL;
 		} else {
 			/* send a direct PWM value */
-			ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
+			ret = io_reg_set(PX4IO_PAGE_SERVOS, channel, arg);
 		}
 
 		break;
