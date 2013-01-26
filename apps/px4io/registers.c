@@ -370,10 +370,17 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 	return 0;
 }
 
+uint8_t last_page;
+uint8_t last_offset;
+
 int
 registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_values)
 {
-#define SELECT_PAGE(_page_name)	{ *values = (uint16_t *)_page_name; *num_values = sizeof(_page_name) / sizeof(_page_name[0]); }
+#define SELECT_PAGE(_page_name)							\
+	do {									\
+		*values = &_page_name[0];					\
+		*num_values = sizeof(_page_name) / sizeof(_page_name[0]);	\
+	} while(0)
 
 	switch (page) {
 
@@ -448,35 +455,58 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	/*
 	 * Pages that are just a straight read of the register state.
 	 */
-#define COPY_PAGE(_page_name, _page)	case _page_name: SELECT_PAGE(_page); break
 
 	/* status pages */
-	COPY_PAGE(PX4IO_PAGE_CONFIG,		r_page_config);
-	COPY_PAGE(PX4IO_PAGE_ACTUATORS,		r_page_actuators);
-	COPY_PAGE(PX4IO_PAGE_SERVOS,		r_page_servos);
-	COPY_PAGE(PX4IO_PAGE_RAW_RC_INPUT,	r_page_raw_rc_input);
-	COPY_PAGE(PX4IO_PAGE_RC_INPUT,		r_page_rc_input);
+	case PX4IO_PAGE_CONFIG:
+		SELECT_PAGE(r_page_config);
+		break;
+	case PX4IO_PAGE_ACTUATORS:
+		SELECT_PAGE(r_page_actuators);
+		break;
+	case PX4IO_PAGE_SERVOS:
+		SELECT_PAGE(r_page_servos);
+		break;
+	case PX4IO_PAGE_RAW_RC_INPUT:
+		SELECT_PAGE(r_page_raw_rc_input);
+		break;
+	case PX4IO_PAGE_RC_INPUT:
+		SELECT_PAGE(r_page_rc_input);
+		break;
 
 	/* readback of input pages */
-	COPY_PAGE(PX4IO_PAGE_SETUP,		r_page_setup);
-	COPY_PAGE(PX4IO_PAGE_CONTROLS,		r_page_controls);
-	COPY_PAGE(PX4IO_PAGE_RC_CONFIG,		r_page_rc_input_config);
-	COPY_PAGE(PX4IO_PAGE_DIRECT_PWM,	r_page_servos);
-	COPY_PAGE(PX4IO_PAGE_FAILSAFE_PWM,	r_page_servo_failsafe);
+	case PX4IO_PAGE_SETUP:
+		SELECT_PAGE(r_page_setup);
+		break;
+	case PX4IO_PAGE_CONTROLS:
+		SELECT_PAGE(r_page_controls);
+		break;
+	case PX4IO_PAGE_RC_CONFIG:
+		SELECT_PAGE(r_page_rc_input_config);
+		break;
+	case PX4IO_PAGE_DIRECT_PWM:
+		SELECT_PAGE(r_page_servos);
+		break;
+	case PX4IO_PAGE_FAILSAFE_PWM:
+		SELECT_PAGE(r_page_servo_failsafe);
+		break;
 
 	default:
 		return -1;
 	}
 
 #undef SELECT_PAGE
+#undef COPY_PAGE
 
-	/* if the offset is beyond the end of the page, we have no data */
-	if (*num_values <= offset)
+last_page = page;
+last_offset = offset;
+
+	/* if the offset is at or beyond the end of the page, we have no data */
+	if (offset >= *num_values)
 		return -1;
 
-	/* adjust value count and pointer for the page offset */
-	*num_values -= offset;
+	/* correct the data pointer and count for the offset */
 	*values += offset;
+	*num_values -= offset;
 
 	return 0;
 }
