@@ -70,7 +70,7 @@ controls_main(void)
 	ASSERT(fds[0].fd >= 0);
 	ASSERT(fds[1].fd >= 0);
 
-	/* default to a 1:1 input map */
+	/* default to a 1:1 input map, all enabled */
 	for (unsigned i = 0; i < MAX_CONTROL_CHANNELS; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
 
@@ -80,6 +80,7 @@ controls_main(void)
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_MAX]        = 2000;
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_DEADZONE]   = 30;
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_ASSIGNMENT] = i;
+		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_OPTIONS]    = PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
 	}
 
 	for (;;) {
@@ -124,7 +125,7 @@ controls_main(void)
 		/*
 		 * If we received a new frame from any of the RC sources, process it.
 		 */
-		if (dsm_updated | sbus_updated | ppm_updated) {
+		if (dsm_updated || sbus_updated || ppm_updated) {
 
 			/* update RC-received timestamp */
 			system_state.rc_channels_timestamp = hrt_absolute_time();
@@ -139,7 +140,7 @@ controls_main(void)
 				/* map the input channel */
 				uint16_t *conf = &r_page_rc_input_config[i * PX4IO_P_RC_CONFIG_STRIDE];
 
-				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] && PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
+				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
 
 					uint16_t raw = r_raw_rc_values[i];
 
@@ -193,6 +194,9 @@ controls_main(void)
 			/*
 			 * If we got an update with zero channels, treat it as 
 			 * a loss of input.
+			 *
+			 * This might happen if a protocol-based receiver returns an update
+			 * that contains no channels that we have mapped.
 			 */
 			if (assigned_channels == 0)
 				rc_input_lost = true;
@@ -209,6 +213,12 @@ controls_main(void)
 		 */
 		if ((hrt_absolute_time() - system_state.rc_channels_timestamp) > 200000) {
 			rc_input_lost = true;
+
+			/* clear the input-kind flags here */
+			r_status_flags &= ~(
+				PX4IO_P_STATUS_FLAGS_RC_PPM |
+				PX4IO_P_STATUS_FLAGS_RC_DSM |
+				PX4IO_P_STATUS_FLAGS_RC_SBUS);
 		}
 
 		/*
@@ -216,13 +226,10 @@ controls_main(void)
 		 */
 		if (rc_input_lost) {
 
-			/* Clear the RC input status flags, clear manual override control */
+			/* Clear the RC input status flag, clear manual override flag */
 			r_status_flags &= ~(
 				PX4IO_P_STATUS_FLAGS_OVERRIDE |
-				PX4IO_P_STATUS_FLAGS_RC_OK |
-				PX4IO_P_STATUS_FLAGS_RC_PPM |
-				PX4IO_P_STATUS_FLAGS_RC_DSM |
-				PX4IO_P_STATUS_FLAGS_RC_SBUS);
+				PX4IO_P_STATUS_FLAGS_RC_OK);
 
 			/* Set the RC_LOST alarm */
 			r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
@@ -247,6 +254,8 @@ controls_main(void)
 			/*
 			 * Check mapped channel 5; if the value is 'high' then the pilot has
 			 * requested override.
+			 *
+			 * XXX This should be configurable.
 			 */
 			if ((r_rc_valid & (1 << 4)) && (r_rc_values[4] > RC_CHANNEL_HIGH_THRESH))
 				override = true;
@@ -283,12 +292,12 @@ ppm_input(uint16_t *values, uint16_t *num_values)
 	irqstate_t state = irqsave();
 
 	/*
-	 * Look for recent PPM input.
+	 * If we have received a new PPM frame within the last 200ms, accept it
+	 * and then invalidate it.
 	 */
 	if ((hrt_absolute_time() - ppm_last_valid_decode) < 200000) {
 
 		/* PPM data exists, copy it */
-		result = true;
 		*num_values = ppm_decoded_channels;
 		if (*num_values > MAX_CONTROL_CHANNELS)
 			*num_values = MAX_CONTROL_CHANNELS;
@@ -298,6 +307,9 @@ ppm_input(uint16_t *values, uint16_t *num_values)
 
 		/* clear validity */
 		ppm_last_valid_decode = 0;
+
+		/* good if we got any channels */
+		result = (*num_values > 0);
 	}
 
 	irqrestore(state);
