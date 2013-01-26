@@ -820,17 +820,24 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 {
 	uint8_t buf[_max_transfer + 2];
 
-	if (num_values > ((_max_transfer) / sizeof(*values)))
+	/* range check the transfer */
+	if (num_values > ((_max_transfer) / sizeof(*values))) {
+		debug("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
-	unsigned datalen = num_values * sizeof(*values);
+	}
 
+	/* set page/offset address */
 	buf[0] = page;
 	buf[1] = offset;
 
-	if (num_values > 0)
+	/* copy data into our local transfer buffer */
+	/* XXX we could use a msgv and two transactions, maybe? */
+	unsigned datalen = num_values * sizeof(*values);
+	if (datalen > 0)
 		memcpy(&buf[2], values, datalen);
 
-	int ret = transfer(buf, datalen, nullptr, 0);
+	/* perform the transfer */
+	int ret = transfer(buf, datalen + 2, nullptr, 0);
 	if (ret != OK)
 		debug("io_reg_set: error %d", ret);
 	return ret;
