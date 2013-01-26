@@ -1112,34 +1112,57 @@ void
 test(void)
 {
 	int	fd;
+	unsigned	servo_count = 0;
+	unsigned	pwm_value = 1000;
+	int		direction = 1;
+	int		ret;
 
-	fd = open(PWM_OUTPUT_DEVICE_PATH, 0);
+	fd = open("/dev/px4io", O_WRONLY);
 
-	if (fd < 0) {
-		puts("open fail");
-		exit(1);
+	if (fd < 0)
+		err(1, "failed to open device");
+
+	if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count))
+		err(1, "failed to get servo count");
+
+	if (ioctl(fd, PWM_SERVO_ARM, 0))
+		err(1, "failed to arm servos");
+
+	for (;;) {
+
+		/* sweep all servos between 1000..2000 */
+		servo_position_t servos[servo_count];
+		for (unsigned i = 0; i < servo_count; i++)
+			servos[i] = pwm_value;
+
+		ret = write(fd, servos, sizeof(servos));
+		if (ret != sizeof(servos))
+			err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
+
+		if (direction > 0) {
+			if (pwm_value < 2000) {
+				pwm_value++;
+			} else {
+				direction = -1;
+			}
+		} else {
+			if (pwm_value > 1000) {
+				pwm_value--;
+			} else {
+				direction = 1;
+			}
+		}
+
+		/* readback servo values */
+		for (unsigned i = 0; i < servo_count; i++) {
+			servo_position_t value;
+
+			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value))
+				err(1, "error reading PWM servo %d", i);
+			if (value != servos[i])
+				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+		}
 	}
-
-	ioctl(fd, PWM_SERVO_ARM, 0);
-	ioctl(fd, PWM_SERVO_SET(0), 1000);
-	ioctl(fd, PWM_SERVO_SET(1), 1100);
-	ioctl(fd, PWM_SERVO_SET(2), 1200);
-	ioctl(fd, PWM_SERVO_SET(3), 1300);
-	ioctl(fd, PWM_SERVO_SET(4), 1400);
-	ioctl(fd, PWM_SERVO_SET(5), 1500);
-	ioctl(fd, PWM_SERVO_SET(6), 1600);
-	ioctl(fd, PWM_SERVO_SET(7), 1700);
-
-	close(fd);
-
-	actuator_armed_s aa;
-
-	aa.armed = true;
-	aa.lockdown = false;
-
-	orb_advertise(ORB_ID(actuator_armed), &aa);
-
-	exit(0);
 }
 
 void
