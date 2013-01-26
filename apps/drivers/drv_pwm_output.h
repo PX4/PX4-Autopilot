@@ -103,6 +103,9 @@ ORB_DECLARE(output_pwm);
 /** set update rate in Hz */
 #define PWM_SERVO_SET_UPDATE_RATE	_IOC(_PWM_SERVO_BASE, 2)
 
+/** get the number of servos in *(unsigned *)arg */
+#define PWM_SERVO_GET_COUNT	_IOC(_PWM_SERVO_BASE, 3)
+
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
 

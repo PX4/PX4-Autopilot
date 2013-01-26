@@ -974,6 +974,10 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 		break;
 
+	case PWM_SERVO_GET_COUNT:
+		*(unsigned *)arg = _max_actuators;
+		break;
+
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS): {
 
 		unsigned channel = cmd - PWM_SERVO_SET(0);
