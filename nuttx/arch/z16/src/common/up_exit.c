@@ -1,7 +1,7 @@
 /****************************************************************************
  * common/up_exit.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -81,17 +81,16 @@ static void _up_dumponexit(FAR _TCB *tcb, FAR void *arg)
   int i;
 #endif
 
-  dbg("  TCB=%p name=%s\n", tcb, tcb->argv[0]);
+  lldbg("  TCB=%p name=%s\n", tcb, tcb->argv[0]);
+  lldbg("    priority=%d state=%d\n", tcb->sched_priority, tcb->task_state);
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
   if (tcb->filelist)
     {
-      lldbg("    filelist refcount=%d\n",
-            tcb->filelist->fl_crefs);
-
+      FAR struct filelist *list = tcb->group->tg_filelist;
       for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
         {
-          struct inode *inode = tcb->filelist->fl_files[i].f_inode;
+          struct inode *inode = list->fl_files[i].f_inode;
           if (inode)
             {
               lldbg("      fd=%d refcount=%d\n",

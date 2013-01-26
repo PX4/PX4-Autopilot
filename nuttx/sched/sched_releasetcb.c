@@ -163,10 +163,6 @@ int sched_releasetcb(FAR _TCB *tcb)
             }
         }
 
-      /* Release any allocated file structures */
-
-      ret = sched_releasefiles(tcb);
-
       /* Release this thread's reference to the address environment */
 
 #ifdef CONFIG_ADDRENV

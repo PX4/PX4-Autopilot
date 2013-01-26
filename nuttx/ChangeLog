@@ -4034,3 +4034,5 @@
 	* sched/: Lots of file changed.  Don't keep the parent task's
 	  task ID in the child task's TCB.  Instead, keep the parent
 	  task group IN the child task's task group.
+	* fs/, sched/, include/nuttx/sched.h, and include/nutts/fs/fs.h:
+	  Move file data from TCB to task group structure.

@@ -79,14 +79,6 @@ int sched_setuppthreadfiles(FAR _TCB *tcb)
 {
   FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  /* The child thread inherits the parent file descriptors */
-
-  tcb->filelist = rtcb->filelist;
-  files_addreflist(tcb->filelist);
-
-#endif /* CONFIG_NFILE_DESCRIPTORS */
-
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
   /* The child thread inherits the parent socket descriptors */
 

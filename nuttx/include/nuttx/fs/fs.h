@@ -240,7 +240,6 @@ struct file
 struct filelist
 {
   sem_t   fl_sem;             /* Manage access to the file list */
-  int16_t fl_crefs;           /* Reference count */
   struct file fl_files[CONFIG_NFILE_DESCRIPTORS];
 };
 #endif
@@ -318,7 +317,8 @@ typedef int (*foreach_mountpoint_t)(FAR const char *mountpoint,
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
-extern "C" {
+extern "C"
+{
 #else
 #define EXTERN extern
 #endif
@@ -333,7 +333,7 @@ extern "C" {
  *
  ****************************************************************************/
 
-EXTERN void weak_function fs_initialize(void);
+void weak_function fs_initialize(void);
 
 /* fs_foreachmountpoint.c ***************************************************/
 /****************************************************************************
@@ -357,7 +357,7 @@ EXTERN void weak_function fs_initialize(void);
  ****************************************************************************/
 
 #ifndef CONFIG_DISABLE_MOUNTPOUNT
-EXTERN int foreach_mountpoint(foreach_mountpoint_t handler, FAR void *arg);
+int foreach_mountpoint(foreach_mountpoint_t handler, FAR void *arg);
 #endif
 
 /* fs_registerdriver.c ******************************************************/
@@ -384,9 +384,8 @@ EXTERN int foreach_mountpoint(foreach_mountpoint_t handler, FAR void *arg);
  *
  ****************************************************************************/
 
-EXTERN int register_driver(const char *path,
-                           const struct file_operations *fops,
-                           mode_t mode, void *priv);
+int register_driver(FAR const char *path, FAR const struct file_operations *fops,
+                    mode_t mode, FAR void *priv);
 
 /* fs_registerblockdriver.c *************************************************/
 /****************************************************************************
@@ -412,9 +411,9 @@ EXTERN int register_driver(const char *path,
  *
  ****************************************************************************/
 
-EXTERN int register_blockdriver(const char *path,
-                                const struct block_operations *bops,
-                                mode_t mode, void *priv);
+int register_blockdriver(FAR const char *path,
+                         FAR const struct block_operations *bops, mode_t mode,
+                         FAR void *priv);
 
 /* fs_unregisterdriver.c ****************************************************/
 /****************************************************************************
@@ -425,7 +424,7 @@ EXTERN int register_blockdriver(const char *path,
  *
  ****************************************************************************/
 
-EXTERN int unregister_driver(const char *path);
+int unregister_driver(const char *path);
 
 /* fs_unregisterblockdriver.c ***********************************************/
 /****************************************************************************
@@ -436,7 +435,7 @@ EXTERN int unregister_driver(const char *path);
  *
  ****************************************************************************/
 
-EXTERN int unregister_blockdriver(const char *path);
+int unregister_blockdriver(const char *path);
 
 /* fs_open.c ****************************************************************/
 /****************************************************************************
@@ -447,30 +446,19 @@ EXTERN int unregister_blockdriver(const char *path);
  *
  ****************************************************************************/
 
-EXTERN int inode_checkflags(FAR struct inode *inode, int oflags);
+int inode_checkflags(FAR struct inode *inode, int oflags);
 
 /* fs_files.c ***************************************************************/
 /****************************************************************************
- * Name: files_alloclist
- *
- * Description: Allocate a list of files for a new task
- *
- ****************************************************************************/
-
-#if CONFIG_NFILE_DESCRIPTORS > 0
-EXTERN FAR struct filelist *files_alloclist(void);
-#endif
-
-/****************************************************************************
- * Name: files_addreflist
+ * Name: files_initlist
  *
  * Description:
- *   Increase the reference count on a file list
+ *   Initializes the list of files for a new task
  *
  ****************************************************************************/
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-EXTERN int files_addreflist(FAR struct filelist *list);
+void files_initlist(FAR struct filelist *list);
 #endif
 
 /****************************************************************************
@@ -482,7 +470,7 @@ EXTERN int files_addreflist(FAR struct filelist *list);
  ****************************************************************************/
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-EXTERN int files_releaselist(FAR struct filelist *list);
+void files_releaselist(FAR struct filelist *list);
 #endif
 
 /****************************************************************************
@@ -495,7 +483,7 @@ EXTERN int files_releaselist(FAR struct filelist *list);
  ****************************************************************************/
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-EXTERN int files_dup(FAR struct file *filep1, FAR struct file *filep2);
+int files_dup(FAR struct file *filep1, FAR struct file *filep2);
 #endif
 
 /* fs_filedup.c *************************************************************/
@@ -515,7 +503,7 @@ EXTERN int files_dup(FAR struct file *filep1, FAR struct file *filep2);
  ****************************************************************************/
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-EXTERN int file_dup(int fd, int minfd);
+int file_dup(int fd, int minfd);
 #endif
 
 /* fs_filedup2.c ************************************************************/
@@ -535,7 +523,7 @@ EXTERN int file_dup(int fd, int minfd);
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
 #if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
-EXTERN int file_dup2(int fd1, int fd2);
+int file_dup2(int fd1, int fd2);
 #else
 #  define file_dup2(fd1, fd2) dup2(fd1, fd2)
 #endif
@@ -566,8 +554,8 @@ EXTERN int file_dup2(int fd1, int fd2);
  ****************************************************************************/
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-EXTERN int open_blockdriver(FAR const char *pathname, int mountflags,
-                            FAR struct inode **ppinode);
+int open_blockdriver(FAR const char *pathname, int mountflags,
+                     FAR struct inode **ppinode);
 #endif
 
 /* fs_closeblockdriver.c ****************************************************/
@@ -589,7 +577,7 @@ EXTERN int open_blockdriver(FAR const char *pathname, int mountflags,
  ****************************************************************************/
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-EXTERN int close_blockdriver(FAR struct inode *inode);
+int close_blockdriver(FAR struct inode *inode);
 #endif
 
 /* fs_fdopen.c **************************************************************/
@@ -609,7 +597,7 @@ typedef struct _TCB _TCB;
 #define __TCB_DEFINED__
 #endif
 
-EXTERN FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb);
+FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb);
 #endif
 
 /* lib/stdio/lib_fflush.c **************************************************/
@@ -623,7 +611,7 @@ EXTERN FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb);
  ****************************************************************************/
 
 #if CONFIG_NFILE_STREAMS > 0
-EXTERN int lib_flushall(FAR struct streamlist *list);
+int lib_flushall(FAR struct streamlist *list);
 #endif
 
 /* drivers/dev_null.c *******************************************************/
@@ -635,7 +623,7 @@ EXTERN int lib_flushall(FAR struct streamlist *list);
  *
  ****************************************************************************/
 
-EXTERN void devnull_register(void);
+void devnull_register(void);
 
 /* drivers/dev_zero.c *******************************************************/
 /****************************************************************************
@@ -646,7 +634,7 @@ EXTERN void devnull_register(void);
  *
  ****************************************************************************/
 
-EXTERN void devzero_register(void);
+void devzero_register(void);
 
 /* drivers/loop.c ***********************************************************/
 /****************************************************************************
@@ -658,8 +646,8 @@ EXTERN void devzero_register(void);
  *
  ****************************************************************************/
 
-EXTERN int losetup(FAR const char *devname, FAR const char *filename,
-                   uint16_t sectsize, off_t offset, bool readonly);
+int losetup(FAR const char *devname, FAR const char *filename,
+            uint16_t sectsize, off_t offset, bool readonly);
 
 /****************************************************************************
  * Name: loteardown
@@ -669,7 +657,7 @@ EXTERN int losetup(FAR const char *devname, FAR const char *filename,
  *
  ****************************************************************************/
 
-EXTERN int loteardown(FAR const char *devname);
+int loteardown(FAR const char *devname);
 
 /* drivers/bch/bchdev_register.c ********************************************/
 /****************************************************************************
@@ -681,8 +669,8 @@ EXTERN int loteardown(FAR const char *devname);
  *
  ****************************************************************************/
 
-EXTERN int bchdev_register(FAR const char *blkdev, FAR const char *chardev,
-                           bool readonly);
+int bchdev_register(FAR const char *blkdev, FAR const char *chardev,
+                    bool readonly);
 
 /* drivers/bch/bchdev_unregister.c ******************************************/
 /****************************************************************************
@@ -694,7 +682,7 @@ EXTERN int bchdev_register(FAR const char *blkdev, FAR const char *chardev,
  *
  ****************************************************************************/
 
-EXTERN int bchdev_unregister(FAR const char *chardev);
+int bchdev_unregister(FAR const char *chardev);
 
 /* Low level, direct access.  NOTE:  low-level access and character driver access
  * are incompatible.  One and only one access method should be implemented.
@@ -710,8 +698,7 @@ EXTERN int bchdev_unregister(FAR const char *chardev);
  *
  ****************************************************************************/
 
-EXTERN int bchlib_setup(FAR const char *blkdev, bool readonly,
-                        FAR void **handle);
+int bchlib_setup(FAR const char *blkdev, bool readonly, FAR void **handle);
 
 /* drivers/bch/bchlib_teardown.c ********************************************/
 /****************************************************************************
@@ -723,7 +710,7 @@ EXTERN int bchlib_setup(FAR const char *blkdev, bool readonly,
  *
  ****************************************************************************/
 
-EXTERN int bchlib_teardown(FAR void *handle);
+int bchlib_teardown(FAR void *handle);
 
 /* drivers/bch/bchlib_read.c ************************************************/
 /****************************************************************************
@@ -735,8 +722,8 @@ EXTERN int bchlib_teardown(FAR void *handle);
  *
  ****************************************************************************/
 
-EXTERN ssize_t bchlib_read(FAR void *handle, FAR char *buffer, size_t offset,
-                           size_t len);
+ssize_t bchlib_read(FAR void *handle, FAR char *buffer, size_t offset,
+                    size_t len);
 
 /* drivers/bch/bchlib_write.c ***********************************************/
 /****************************************************************************
@@ -748,8 +735,8 @@ EXTERN ssize_t bchlib_read(FAR void *handle, FAR char *buffer, size_t offset,
  *
  ****************************************************************************/
 
-EXTERN ssize_t bchlib_write(FAR void *handle, FAR const char *buffer,
-                            size_t offset, size_t len);
+ssize_t bchlib_write(FAR void *handle, FAR const char *buffer, size_t offset,
+                     size_t len);
 
 #undef EXTERN
 #if defined(__cplusplus)

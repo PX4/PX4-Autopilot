@@ -79,18 +79,21 @@
 
 int sched_setupidlefiles(FAR _TCB *tcb)
 {
+#if CONFIG_NFILE_DESCRIPTORS > 0
+  FAR struct task_group_s *group = tcb->group;
+#endif
 #if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
   int fd;
 #endif
 
-  /* Allocate file descriptors for the TCB */
+#if CONFIG_NFILE_DESCRIPTORS > 0
+  DEBUGASSERT(group);
+#endif
+
+  /* Initialize file descriptors for the TCB */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-  tcb->filelist = files_alloclist();
-  if (!tcb->filelist)
-    {
-      return -ENOMEM;
-    }
+  files_initlist(&group->tg_filelist);
 #endif
 
   /* Allocate socket descriptors for the TCB */

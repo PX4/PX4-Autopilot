@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 24, 2013)
+NuttX TODO List (Last updated January 26, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
- (11)  Task/Scheduler (sched/)
+ (10)  Task/Scheduler (sched/)
   (2)  Memory Managment (mm/)
   (3)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
@@ -160,25 +160,6 @@ o Task/Scheduler (sched/)
                function cannot know the ID of the exec'ed task.
   Status:      Open
   Priority:    Medium Low for now
-
-  Title:       IMPROVED TASK CONTROL BLOCK STRUCTURE
-  Description: All task resources that are shared amongst threads have
-               their own "break-away", reference-counted structure. The
-               Task Control Block (TCB) of each thread holds a reference
-               to each breakaway structure (see include/nuttx/sched.h).
-               It would be more efficent to have one reference counted
-               structure that holds all of the shared resources.
-
-               These are the current shared structures:
-               - Environment varaibles (struct environ_s)
-               - PIC data space and address environments (struct dspace_s)
-               - File descriptors (struct filelist)
-               - FILE streams (struct streamlist)
-               - Sockets (struct socketlist)
-  Status:      Open
-  Priority:    Low.  This is an enhancement.  It would slight reduce
-               memory usage but would also increase coupling.  These
-               resources are nicely modular now.
 
   Title:       ISSUES WITH atexit() AND on_exit()
   Description: These functions execute with the following bad properties:

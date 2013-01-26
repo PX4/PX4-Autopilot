@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/sched_setuptaskfiles.c
  *
- *   Copyright (C) 2007-2008, 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -93,34 +93,33 @@ static inline void sched_dupfiles(FAR _TCB *tcb)
   FAR struct file *child;
   int i;
 
+  DEBUGASSERT(tcb && tcb->group && rtcb->group);
+
   /* Duplicate the file descriptors.  This will be either all of the
    * file descriptors or just the first three (stdin, stdout, and stderr)
    * if CONFIG_FDCLONE_STDIO is defined.  NFSDS_TOCLONE is set
    * accordingly above.
    */
 
-  if (rtcb->filelist)
+   /* Get pointers to the parent and child task file lists */
+
+  parent = rtcb->group->tg_filelist.fl_files;
+  child  = tcb->group->tg_filelist.fl_files;
+
+  /* Check each file in the parent file list */
+
+  for (i = 0; i < NFDS_TOCLONE; i++)
     {
-      /* Get pointers to the parent and child task file lists */
+      /* Check if this file is opened by the parent.  We can tell if
+       * if the file is open because it contain a reference to a non-NULL
+       * i-node structure.
+       */
 
-      parent = rtcb->filelist->fl_files;
-      child  = tcb->filelist->fl_files;
-
-      /* Check each file in the parent file list */
-
-      for (i = 0; i < NFDS_TOCLONE; i++)
+      if (parent[i].f_inode)
         {
-          /* Check if this file is opened by the parent.  We can tell if
-           * if the file is open because it contain a reference to a non-NULL
-           * i-node structure.
-           */
+          /* Yes... duplicate it for the child */
 
-          if (parent[i].f_inode)
-            {
-              /* Yes... duplicate it for the child */
-
-              (void)files_dup(&parent[i], &child[i]);
-            }
+          (void)files_dup(&parent[i], &child[i]);
         }
     }
 }
@@ -209,14 +208,14 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
 
 int sched_setuptaskfiles(FAR _TCB *tcb)
 {
-  /* Allocate file descriptors for the TCB */
-
 #if CONFIG_NFILE_DESCRIPTORS > 0
-  tcb->filelist = files_alloclist();
-  if (!tcb->filelist)
-    {
-      return -ENOMEM;
-    }
+  FAR struct task_group_s *group = tcb->group;
+
+  DEBUGASSERT(group);
+
+  /* Initialize file descriptors for the TCB */
+
+  files_initlist(&group->tg_filelist);
 #endif
 
   /* Allocate socket descriptors for the TCB */

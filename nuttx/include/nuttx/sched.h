@@ -52,6 +52,7 @@
 #include <time.h>
 
 #include <nuttx/irq.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
 
 /********************************************************************************
@@ -63,14 +64,24 @@
 #undef HAVE_TASK_GROUP
 #undef HAVE_GROUP_MEMBERS
 
-#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
-#  define HAVE_TASK_GROUP   1
-#  define HAVE_GROUP_MEMBERS 1
-#endif
+/* We need a group an group members if we are supportint the parent/child
+ * relationship.
+ */
 
-#if !defined(CONFIG_DISABLE_ENVIRON)
-#  undef  HAVE_TASK_GROUP
-#  define HAVE_TASK_GROUP   1
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+#  define HAVE_TASK_GROUP     1
+#  define HAVE_GROUP_MEMBERS  1
+
+/* We need a group (but not members) if any other resources are shared within
+ * a task group.
+ */
+
+#else
+#  if !defined(CONFIG_DISABLE_ENVIRON)
+#    define HAVE_TASK_GROUP   1
+#  elif CONFIG_NFILE_DESCRIPTORS > 0
+#    define HAVE_TASK_GROUP   1
+#  endif
 #endif
 
 /* In any event, we don't need group members if support for pthreads is disabled */
@@ -79,7 +90,7 @@
 #  undef HAVE_GROUP_MEMBERS
 #endif
 
-/* Task Management Definitins ***************************************************/
+/* Task Management Definitions **************************************************/
 
 /* This is the maximum number of times that a lock can be set */
 
@@ -282,16 +293,19 @@ struct task_group_s
   FAR char  *tg_envp;               /* Allocated environment strings            */
 #endif
 
-  /* PIC data space and address environments */
+  /* PIC data space and address environments ************************************/
   /* Not yet (see struct dspace_s) */
 
-  /* File descriptors */
-  /* Not yet (see struct filelist) */
+  /* File descriptors ***********************************************************/
 
-  /* FILE streams */
+#if CONFIG_NFILE_DESCRIPTORS > 0
+  struct filelist tg_filelist;      /* Maps file descriptor to file             */
+#endif
+
+  /* FILE streams ***************************************************************/
   /* Not yet (see streamlist) */
 
-  /* Sockets */
+  /* Sockets ********************************************************************/
   /* Not yet (see struct socketlist) */
 };
 #endif
@@ -432,10 +446,6 @@ struct _TCB
   int        pterrno;                    /* Current per-thread errno            */
 
   /* File system support ********************************************************/
-
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  FAR struct filelist *filelist;         /* Maps file descriptor to file        */
-#endif
 
 #if CONFIG_NFILE_STREAMS > 0
   FAR struct streamlist *streams;        /* Holds C buffered I/O info           */

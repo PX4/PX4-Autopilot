@@ -177,6 +177,13 @@ void group_leave(FAR _TCB *tcb)
 #if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
           group_removechildren(tcb->group);
 #endif
+          /* Free all file-related resources now.  We really need to close
+           * files as soon as possible while we still have a functioning task.
+           */
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
+          (void)sched_releasefiles(tcb);
+#endif
           /* Release all shared environment variables */
 
 #ifndef CONFIG_DISABLE_ENVIRON
@@ -231,7 +238,14 @@ void group_leave(FAR _TCB *tcb)
 #if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
           group_removechildren(tcb->group);
 #endif
-          /* Release all shared environment variables */
+          /* Free all file-related resources now.  We really need to close
+           * files as soon as possible while we still have a functioning task.
+           */
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
+          (void)sched_releasefiles(tcb);
+#endif
+           /* Release all shared environment variables */
 
 #ifndef CONFIG_DISABLE_ENVIRON
           env_release(tcb);

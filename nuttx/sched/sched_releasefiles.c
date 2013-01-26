@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/sched_releasefiles.c
  *
- *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2008, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,13 +78,12 @@ int sched_releasefiles(_TCB *tcb)
   if (tcb)
     {
 #if CONFIG_NFILE_DESCRIPTORS > 0
-      /* Free the file descriptor list */
+      FAR struct task_group_s *group = tcb->group;
+      DEBUGASSERT(group);
 
-      if (tcb->filelist)
-        {
-          files_releaselist(tcb->filelist);
-          tcb->filelist = NULL;
-        }
+      /* Free resources used by the file descriptor list */
+
+      files_releaselist(&group->tg_filelist);
 
 #if CONFIG_NFILE_STREAMS > 0
       /* Free the stream list */

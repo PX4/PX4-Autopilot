@@ -70,7 +70,10 @@
 FAR struct filelist *sched_getfiles(void)
 {
   FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
-  return rtcb->filelist;
+  FAR struct task_group_s *group = rtcb->group;
+
+  DEBUGASSERT(group);
+  return &group->tg_filelist;
 }
 
 #endif /* CONFIG_NFILE_DESCRIPTORS */
