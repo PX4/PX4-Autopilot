@@ -461,6 +461,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	COPY_PAGE(PX4IO_PAGE_SETUP,		r_page_setup);
 	COPY_PAGE(PX4IO_PAGE_CONTROLS,		r_page_controls);
 	COPY_PAGE(PX4IO_PAGE_RC_CONFIG,		r_page_rc_input_config);
+	COPY_PAGE(PX4IO_PAGE_DIRECT_PWM,	r_page_servos);
 	COPY_PAGE(PX4IO_PAGE_FAILSAFE_PWM,	r_page_servo_failsafe);
 
 	default:
