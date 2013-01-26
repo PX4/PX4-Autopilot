@@ -221,12 +221,6 @@ mixer_tick(void)
 #endif
 
 	/*
-	 * Update the servo outputs.
-	 */
-	for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
-		up_pwm_servo_set(i, r_page_servos[i]);
-
-	/*
 	 * Decide whether the servos should be armed right now.
 	 *
 	 * We must be armed, and we must have a PWM source; either raw from
@@ -242,6 +236,12 @@ mixer_tick(void)
 		/* need to arm, but not armed */
 		up_pwm_servo_arm(true);
 		mixer_servos_armed = true;
+
+		/*
+		 * Update the servo outputs.
+		 */
+		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+			up_pwm_servo_set(i, r_page_servos[i]);
 
 	} else if (!should_arm && mixer_servos_armed) {
 		/* armed but need to disarm */
