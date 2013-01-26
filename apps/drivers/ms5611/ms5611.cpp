@@ -331,7 +331,7 @@ MS5611::probe()
 
 	if ((OK == probe_address(MS5611_ADDRESS_1)) ||
 	    (OK == probe_address(MS5611_ADDRESS_2))) {
-		_retries = 1;
+		_retries = 2;
 		return OK;
 	}
 
@@ -574,13 +574,15 @@ MS5611::cycle_trampoline(void *arg)
 void
 MS5611::cycle()
 {
+	int ret;
 
 	/* collection phase? */
 	if (_collect_phase) {
 
 		/* perform collection */
-		if (OK != collect()) {
-			log("collection error");
+		ret = collect();
+		if (ret != OK) {
+			log("collection error %d", ret);
 			/* reset the collection state machine and try again */
 			start();
 			return;
@@ -609,8 +611,13 @@ MS5611::cycle()
 	}
 
 	/* measurement phase */
-	if (OK != measure())
-		log("measure error");
+	ret = measure();
+	if (ret != OK) {
+		log("measure error %d", ret);
+		/* reset the collection state machine and try again */
+		start();
+		return;
+	}
 
 	/* next phase is collection */
 	_collect_phase = true;
@@ -647,6 +654,7 @@ MS5611::measure()
 int
 MS5611::collect()
 {
+	int ret;
 	uint8_t cmd;
 	uint8_t data[3];
 	union {
@@ -662,9 +670,10 @@ MS5611::collect()
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	_reports[_next_report].timestamp = hrt_absolute_time();
 
-	if (OK != transfer(&cmd, 1, &data[0], 3)) {
+	ret = transfer(&cmd, 1, &data[0], 3);
+	if (ret != OK) {
 		perf_count(_comms_errors);
-		return -EIO;
+		return ret;
 	}
 
 	/* fetch the raw value */
