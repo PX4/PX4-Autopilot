@@ -293,7 +293,6 @@ struct file_struct
 
 struct streamlist
 {
-  int                 sl_crefs; /* Reference count */
   sem_t               sl_sem;   /* For thread safety */
   struct file_struct sl_streams[CONFIG_NFILE_STREAMS];
 };

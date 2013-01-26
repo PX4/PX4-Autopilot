@@ -86,28 +86,11 @@ void group_leave(FAR _TCB *tcb);
 FAR struct task_group_s *group_find(gid_t gid);
 int group_addmember(FAR struct task_group_s *group, pid_t pid);
 int  group_removemember(FAR struct task_group_s *group, pid_t pid);
-#else
-#  define group_find(gid)               (NULL)
-#  define group_addmember(group,pid)    (0)
-#  define group_removemember(group,pid) (1)
 #endif
 
 #ifndef CONFIG_DISABLE_SIGNALS
 int  group_signal(FAR struct task_group_s *group, FAR siginfo_t *info);
-#else
-#  define group_signal(tcb,info)        (0)
 #endif
-
-#else
-#  define group_allocate(tcb)           (0)
-#  define group_initialize(tcb)         (0)
-#  define group_bind(tcb)               (0)
-#  define group_join(tcb)               (0)
-#  define group_leave(tcb)
-#  define group_find(gid)               (NULL)
-#  define group_addmember(group,pid)    (0)
-#  define group_removemember(group,pid) (1)
-#  define group_signal(tcb,info)        (0)
 #endif /* HAVE_TASK_GROUP */
 
 /* Parent/child data management */
@@ -127,15 +110,13 @@ FAR struct child_status_s *group_removechild(FAR struct task_group_s *group,
                                              pid_t pid);
 void group_removechildren(FAR struct task_group_s *group);
 
+#endif /* CONFIG_SCHED_CHILD_STATUS */
+#endif /* CONFIG_SCHED_HAVE_PARENT */
+
 /* File/network resources */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-int  group_releasefiles(FAR _TCB *tcb);
-#else
-# define group_releasefiles(t)          (OK)
+int group_releasefiles(FAR _TCB *tcb);
 #endif
-
-#endif /* CONFIG_SCHED_CHILD_STATUS */
-#endif /* CONFIG_SCHED_HAVE_PARENT */
 
 #endif /* __SCHED_GROUP_INERNAL_H */

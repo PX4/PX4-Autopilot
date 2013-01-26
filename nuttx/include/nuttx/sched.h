@@ -81,6 +81,8 @@
 #    define HAVE_TASK_GROUP   1
 #  elif CONFIG_NFILE_DESCRIPTORS > 0
 #    define HAVE_TASK_GROUP   1
+#  elif CONFIG_NFILE_STREAMS > 0
+#    define HAVE_TASK_GROUP   1
 #  endif
 #endif
 
@@ -303,7 +305,10 @@ struct task_group_s
 #endif
 
   /* FILE streams ***************************************************************/
-  /* Not yet (see streamlist) */
+
+#if CONFIG_NFILE_STREAMS > 0
+  struct streamlist tg_streamlist;  /* Holds C buffered I/O info                */
+#endif /* CONFIG_NFILE_STREAMS */
 
   /* Sockets ********************************************************************/
   /* Not yet (see struct socketlist) */
@@ -444,12 +449,6 @@ struct _TCB
   /* Library related fields *****************************************************/
 
   int        pterrno;                    /* Current per-thread errno            */
-
-  /* File system support ********************************************************/
-
-#if CONFIG_NFILE_STREAMS > 0
-  FAR struct streamlist *streams;        /* Holds C buffered I/O info           */
-#endif
 
   /* Network socket *************************************************************/
 

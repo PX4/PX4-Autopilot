@@ -165,6 +165,7 @@ static inline void group_release(FAR _TCB *tcb,
   env_release(tcb);
 #endif
 
+#ifdef HAVE_GROUP_MEMBERS
   /* Remove the group from the list of groups */
 
   group_remove(group);
@@ -176,6 +177,7 @@ static inline void group_release(FAR _TCB *tcb,
       sched_free(group->tg_members);
       group->tg_members = NULL;
     }
+#endif
 
   /* Release the group container itself */
 

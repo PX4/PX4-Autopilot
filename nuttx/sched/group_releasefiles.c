@@ -80,7 +80,9 @@ int group_releasefiles(_TCB *tcb)
 #if CONFIG_NFILE_DESCRIPTORS > 0
       FAR struct task_group_s *group = tcb->group;
       DEBUGASSERT(group);
+#endif
 
+#if CONFIG_NFILE_DESCRIPTORS > 0
       /* Free resources used by the file descriptor list */
 
       files_releaselist(&group->tg_filelist);
@@ -88,11 +90,8 @@ int group_releasefiles(_TCB *tcb)
 #if CONFIG_NFILE_STREAMS > 0
       /* Free the stream list */
 
-      if (tcb->streams)
-        {
-          lib_releaselist(tcb->streams);
-          tcb->streams = NULL;
-        }
+      lib_releaselist(&group->tg_streamlist);
+
 #endif /* CONFIG_NFILE_STREAMS */
 #endif /* CONFIG_NFILE_DESCRIPTORS */
 

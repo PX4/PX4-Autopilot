@@ -72,24 +72,23 @@
 
 int sched_setupstreams(FAR _TCB *tcb)
 {
-  /* Allocate file streams for the TCB */
+  DEBUGASSERT(tcb && tcb->group);
 
-  tcb->streams = lib_alloclist();
-  if (tcb->streams)
-    {
-      /* fdopen to get the stdin, stdout and stderr streams.
-       * The following logic depends on the fact that the library
-       * layer will allocate FILEs in order.
-       *
-       * fd = 0 is stdin  (read-only)
-       * fd = 1 is stdout (write-only, append)
-       * fd = 2 is stderr (write-only, append)
-       */
+  /* Initialize file streams for the task group */
 
-      (void)fs_fdopen(0, O_RDONLY,       tcb);
-      (void)fs_fdopen(1, O_WROK|O_CREAT, tcb);
-      (void)fs_fdopen(2, O_WROK|O_CREAT, tcb);
-    }
+  lib_streaminit(&tcb->group->tg_streamlist);
+
+  /* fdopen to get the stdin, stdout and stderr streams. The following logic
+   * depends on the fact that the library layer will allocate FILEs in order.
+   *
+   * fd = 0 is stdin  (read-only)
+   * fd = 1 is stdout (write-only, append)
+   * fd = 2 is stderr (write-only, append)
+   */
+
+  (void)fs_fdopen(0, O_RDONLY,       tcb);
+  (void)fs_fdopen(1, O_WROK|O_CREAT, tcb);
+  (void)fs_fdopen(2, O_WROK|O_CREAT, tcb);
 
   return OK;
 }

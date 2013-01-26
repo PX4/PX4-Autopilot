@@ -543,7 +543,7 @@ void task_exithook(FAR _TCB *tcb, int status)
    */
 
 #if CONFIG_NFILE_STREAMS > 0
-  (void)lib_flushall(tcb->streams);
+  (void)lib_flushall(&tcb->group->tg_streamlist);
 #endif
 
   /* Leave the task group.  Perhaps discarding any un-reaped child

@@ -144,6 +144,7 @@ FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb)
     {
       tcb = sched_self();
     }
+  DEBUGASSERT(tcb && tcb->group);
 
   /* Verify that this is a valid file/socket descriptor and that the
    * requested access can be support.
@@ -191,9 +192,9 @@ FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb)
 
   /* Get the stream list from the TCB */
 
-  slist = tcb->streams;
+  slist = &tcb->group->tg_streamlist;
 
-  /* Find an unallocated FILE structure  in the stream list */
+  /* Find an unallocated FILE structure in the stream list */
 
   ret = sem_wait(&slist->sl_sem);
   if (ret != OK)

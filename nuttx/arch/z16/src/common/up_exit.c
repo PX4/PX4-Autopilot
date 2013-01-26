@@ -77,7 +77,11 @@
 #if defined(CONFIG_DUMP_ON_EXIT) && defined(CONFIG_DEBUG)
 static void _up_dumponexit(FAR _TCB *tcb, FAR void *arg)
 {
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NFILE_STREAMS > 0
+#if CONFIG_NFILE_DESCRIPTORS > 0
+  FAR struct filelist *filelist;
+#if CONFIG_NFILE_STREAMS > 0
+  FAR struct streamlist *streamlist;
+#endif
   int i;
 #endif
 
@@ -85,40 +89,32 @@ static void _up_dumponexit(FAR _TCB *tcb, FAR void *arg)
   lldbg("    priority=%d state=%d\n", tcb->sched_priority, tcb->task_state);
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
-  if (tcb->filelist)
+  filelist = tcb->group->tg_filelist;
+  for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
     {
-      FAR struct filelist *list = tcb->group->tg_filelist;
-      for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
+      struct inode *inode = filelist->fl_files[i].f_inode;
+      if (inode)
         {
-          struct inode *inode = list->fl_files[i].f_inode;
-          if (inode)
-            {
-              lldbg("      fd=%d refcount=%d\n",
-                    i, inode->i_crefs);
-            }
+          lldbg("      fd=%d refcount=%d\n",
+                i, inode->i_crefs);
         }
     }
 #endif
 
 #if CONFIG_NFILE_STREAMS > 0
-  if (tcb->streams)
+  streamlist = tcb->group->tg_streamlist;
+  for (i = 0; i < CONFIG_NFILE_STREAMS; i++)
     {
-      lldbg("    streamlist refcount=%d\n",
-            tcb->streams->sl_crefs);
-
-      for (i = 0; i < CONFIG_NFILE_STREAMS; i++)
+      struct file_struct *filep = &streamlist->sl_streams[i];
+      if (filep->fs_filedes >= 0)
         {
-          struct file_struct *filep = &tcb->streams->sl_streams[i];
-          if (filep->fs_filedes >= 0)
-            {
 #if CONFIG_STDIO_BUFFER_SIZE > 0
-              lldbg("      fd=%d nbytes=%d\n",
-                    filep->fs_filedes,
-                    filep->fs_bufpos - filep->fs_bufstart);
+          lldbg("      fd=%d nbytes=%d\n",
+                filep->fs_filedes,
+                filep->fs_bufpos - filep->fs_bufstart);
 #else
-              lldbg("      fd=%d\n", filep->fs_filedes);
+          lldbg("      fd=%d\n", filep->fs_filedes);
 #endif
-            }
         }
     }
 #endif
