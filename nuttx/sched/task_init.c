@@ -137,7 +137,7 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
  /* Associate file descriptors with the new task */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-  ret = sched_setuptaskfiles(tcb);
+  ret = group_setuptaskfiles(tcb);
   if (ret < 0)
     {
       errcode = -ret;

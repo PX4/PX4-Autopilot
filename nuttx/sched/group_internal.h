@@ -113,10 +113,14 @@ void group_removechildren(FAR struct task_group_s *group);
 #endif /* CONFIG_SCHED_CHILD_STATUS */
 #endif /* CONFIG_SCHED_HAVE_PARENT */
 
-/* File/network resources */
+/* Group data resource configuration */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-int group_releasefiles(FAR _TCB *tcb);
+int  group_setupidlefiles(FAR _TCB *tcb);
+int  group_setuptaskfiles(FAR _TCB *tcb);
+#if CONFIG_NFILE_STREAMS > 0
+int  group_setupstreams(FAR _TCB *tcb);
+#endif
 #endif
 
 #endif /* __SCHED_GROUP_INERNAL_H */

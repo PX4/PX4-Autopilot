@@ -125,7 +125,7 @@ FAR _TCB *task_vforksetup(start_t retaddr)
   /* Associate file descriptors with the new task */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-  ret = sched_setuptaskfiles(child);
+  ret = group_setuptaskfiles(child);
   if (ret != OK)
     {
       goto errout_with_tcb;

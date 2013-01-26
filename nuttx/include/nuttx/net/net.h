@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/net/net.h
  *
- *   Copyright (C) 2007, 2009-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -106,7 +106,6 @@ struct socket
 struct socketlist
 {
   sem_t   sl_sem;            /* Manage access to the socket list */
-  int16_t sl_crefs;          /* Reference count */
   struct socket sl_sockets[CONFIG_NSOCKET_DESCRIPTORS];
 };
 #endif
@@ -145,9 +144,8 @@ int net_checksd(int fd, int oflags);
  */
 
 void weak_function net_initialize(void);
-FAR struct socketlist *net_alloclist(void);
-int net_addreflist(FAR struct socketlist *list);
-int net_releaselist(FAR struct socketlist *list);
+void net_initlist(FAR struct socketlist *list);
+void net_releaselist(FAR struct socketlist *list);
 
 /* Given a socket descriptor, return the underly NuttX-specific socket
  * structure.

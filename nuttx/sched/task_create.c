@@ -134,7 +134,7 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   /* Associate file descriptors with the new task */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-  ret = sched_setuptaskfiles(tcb);
+  ret = group_setuptaskfiles(tcb);
   if (ret != OK)
     {
       errcode = -ret;

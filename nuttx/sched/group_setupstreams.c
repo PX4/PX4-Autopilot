@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched/sched_setupidlefiles.c
+ * group_setupstreams.c
  *
- *   Copyright (C) 2007-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2010-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,19 +39,19 @@
 
 #include <nuttx/config.h>
 
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <sched.h>
-#include <errno.h>
-#include <debug.h>
+#include <fcntl.h>
 
 #include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
+#include <nuttx/lib.h>
 
-#include "os_internal.h"
+/* Make sure that there are file or socket descriptors in the system and
+ * that some number of streams have been configured.
+ */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+#if CONFIG_NFILE_STREAMS > 0
 
 /****************************************************************************
  * Private Functions
@@ -62,90 +62,36 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_setupidlefiles
+ * Name: group_setupstreams
  *
  * Description:
- *   Configure the idle thread's TCB.
- *
- * Parameters:
- *   tcb - tcb of the idle task.
- *
- * Return Value:
- *   None
- *
- * Assumptions:
+ *   Setup streams data structures that may be used for standard C buffered
+ *   I/O with underlying socket or file desciptors
  *
  ****************************************************************************/
 
-int sched_setupidlefiles(FAR _TCB *tcb)
+int group_setupstreams(FAR _TCB *tcb)
 {
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  FAR struct task_group_s *group = tcb->group;
-#endif
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
-  int fd;
-#endif
+  DEBUGASSERT(tcb && tcb->group);
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  DEBUGASSERT(group);
-#endif
+  /* Initialize file streams for the task group */
 
-  /* Initialize file descriptors for the TCB */
+  lib_streaminit(&tcb->group->tg_streamlist);
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  files_initlist(&group->tg_filelist);
-#endif
-
-  /* Allocate socket descriptors for the TCB */
-
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-  tcb->sockets = net_alloclist();
-  if (!tcb->sockets)
-    {
-      return -ENOMEM;
-    }
-#endif
-
-  /* Open stdin, dup to get stdout and stderr. This should always
-   * be the first file opened and, hence, should always get file
-   * descriptor 0.
+  /* fdopen to get the stdin, stdout and stderr streams. The following logic
+   * depends on the fact that the library layer will allocate FILEs in order.
+   *
+   * fd = 0 is stdin  (read-only)
+   * fd = 1 is stdout (write-only, append)
+   * fd = 2 is stderr (write-only, append)
    */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
-  fd = open("/dev/console", O_RDWR);
-  if (fd == 0)
-    {
-      /* Successfully opened /dev/console as stdin (fd == 0) */
+  (void)fs_fdopen(0, O_RDONLY,       tcb);
+  (void)fs_fdopen(1, O_WROK|O_CREAT, tcb);
+  (void)fs_fdopen(2, O_WROK|O_CREAT, tcb);
 
-      (void)file_dup2(0, 1);
-      (void)file_dup2(0, 2);
-    }
-  else
-    {
-      /* We failed to open /dev/console OR for some reason, we opened
-       * it and got some file descriptor other than 0.
-       */
-  
-      if (fd > 0)
-        {
-          slldbg("Open /dev/console fd: %d\n", fd);
-          (void)close(fd);
-        }
-      else
-        {
-          slldbg("Failed to open /dev/console: %d\n", errno);
-        }
-      return -ENFILE;
-    }
-#endif
-
-  /* Allocate file/socket streams for the TCB */
-
-#if CONFIG_NFILE_STREAMS > 0
-  return sched_setupstreams(tcb);
-#else
   return OK;
-#endif
 }
 
-#endif /* CONFIG_NFILE_DESCRIPTORS || CONFIG_NSOCKET_DESCRIPTORS */
+#endif /* CONFIG_NFILE_STREAMS > 0 */
+#endif /* CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0*/

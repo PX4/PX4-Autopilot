@@ -198,7 +198,7 @@ int group_allocate(FAR _TCB *tcb)
 
   /* Duplicate the parent tasks envionment */
 
-  ret = env_dup(tcb);
+  ret = env_dup(tcb->group);
   if (ret < 0)
     {
       kfree(tcb->group);

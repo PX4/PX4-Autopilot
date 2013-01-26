@@ -83,6 +83,8 @@
 #    define HAVE_TASK_GROUP   1
 #  elif CONFIG_NFILE_STREAMS > 0
 #    define HAVE_TASK_GROUP   1
+#  elif CONFIG_NSOCKET_DESCRIPTORS > 0
+#    define HAVE_TASK_GROUP   1
 #  endif
 #endif
 
@@ -311,7 +313,10 @@ struct task_group_s
 #endif /* CONFIG_NFILE_STREAMS */
 
   /* Sockets ********************************************************************/
-  /* Not yet (see struct socketlist) */
+
+#if CONFIG_NSOCKET_DESCRIPTORS > 0
+  struct socketlist tg_socketlist;  /* Maps socket descriptor to socket         */
+#endif
 };
 #endif
 
@@ -449,12 +454,6 @@ struct _TCB
   /* Library related fields *****************************************************/
 
   int        pterrno;                    /* Current per-thread errno            */
-
-  /* Network socket *************************************************************/
-
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-  FAR struct socketlist *sockets;        /* Maps file descriptor to file        */
-#endif
 
   /* State save areas ***********************************************************/
   /* The form and content of these fields are processor-specific.               */

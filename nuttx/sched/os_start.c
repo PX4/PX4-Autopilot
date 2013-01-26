@@ -451,7 +451,7 @@ void os_start(void)
    * inherited by all of the threads created by the IDLE task.
    */
 
-  (void)sched_setupidlefiles(&g_idletcb);
+  (void)group_setupidlefiles(&g_idletcb);
 
   /* Create initial tasks and bring-up the system */
 

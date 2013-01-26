@@ -296,15 +296,6 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
     }
 #endif
 
-  /* Associate file descriptors with the new task */
-
-  ret = sched_setuppthreadfiles(ptcb);
-  if (ret != OK)
-    {
-      errcode = ret;
-      goto errout_with_tcb;
-    }
-
   /* Allocate a detachable structure to support pthread_join logic */
 
   pjoin = (FAR join_t*)kzalloc(sizeof(join_t));

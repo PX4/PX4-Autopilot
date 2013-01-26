@@ -1,5 +1,5 @@
 /****************************************************************************
- * sched/sched_setuptaskfiles.c
+ * sched/group_setuptaskfiles.c
  *
  *   Copyright (C) 2007-2008, 2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -151,32 +151,31 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
   FAR struct socket *child;
   int i;
 
- /* Duplicate the socket descriptors of all sockets opened by the parent
-  * task.
-  */
+  /* Duplicate the socket descriptors of all sockets opened by the parent
+   * task.
+   */
 
-  if (rtcb->sockets)
+  DEBUGASSERT(tcb && tcb->group && rtcb->group);
+
+  /* Get pointers to the parent and child task socket lists */
+
+  parent = rtcb->group->tg_sockets->sl_sockets;
+  child  = tcb->group->tg_sockets->sl_sockets;
+
+  /* Check each socket in the parent socket list */
+
+  for (i = 0; i < CONFIG_NSOCKET_DESCRIPTORS; i++)
     {
-      /* Get pointers to the parent and child task socket lists */
+      /* Check if this parent socket is allocated.  We can tell if the
+       * socket is allocated because it will have a positive, non-zero
+       * reference count.
+       */
 
-      parent = rtcb->sockets->sl_sockets;
-      child  = tcb->sockets->sl_sockets;
-
-      /* Check each socket in the parent socket list */
-
-      for (i = 0; i < CONFIG_NSOCKET_DESCRIPTORS; i++)
+      if (parent[i].s_crefs > 0)
         {
-          /* Check if this parent socket is allocated.  We can tell if the
-           * socket is allocated because it will have a positive, non-zero
-           * reference count.
-           */
+          /* Yes... duplicate it for the child */
 
-          if (parent[i].s_crefs > 0)
-            {
-              /* Yes... duplicate it for the child */
-
-              (void)net_clone(&parent[i], &child[i]);
-            }
+          (void)net_clone(&parent[i], &child[i]);
         }
     }
 }
@@ -189,7 +188,7 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_setuptaskfiles
+ * Name: group_setuptaskfiles
  *
  * Description:
  *   Configure a newly allocated TCB so that it will inherit
@@ -206,26 +205,24 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
  *
  ****************************************************************************/
 
-int sched_setuptaskfiles(FAR _TCB *tcb)
+int group_setuptaskfiles(FAR _TCB *tcb)
 {
-#if CONFIG_NFILE_DESCRIPTORS > 0
+#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
   FAR struct task_group_s *group = tcb->group;
 
   DEBUGASSERT(group);
+#endif
 
+#if CONFIG_NFILE_DESCRIPTORS > 0
   /* Initialize file descriptors for the TCB */
 
   files_initlist(&group->tg_filelist);
 #endif
 
+#if CONFIG_NSOCKET_DESCRIPTORS > 0
   /* Allocate socket descriptors for the TCB */
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-  tcb->sockets = net_alloclist();
-  if (!tcb->sockets)
-    {
-      return -ENOMEM;
-    }
+  net_initlist(&group->tg_socketlist);
 #endif
 
   /* Duplicate the parent task's file descriptors */
@@ -239,7 +236,7 @@ int sched_setuptaskfiles(FAR _TCB *tcb)
   /* Allocate file/socket streams for the new TCB */
 
 #if CONFIG_NFILE_STREAMS > 0
-  return sched_setupstreams(tcb);
+  return group_setupstreams(tcb);
 #else
   return OK;
 #endif

@@ -74,7 +74,10 @@
 
 int clearenv(void)
 {
-  env_release((FAR _TCB*)g_readytorun.head);
+  FAR _TCB *tcb = (FAR _TCB*)g_readytorun.head;
+  DEBUGASSERT(tcb->group);
+
+  env_release(tcb->group);
   return OK;
 }
 

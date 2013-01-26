@@ -49,8 +49,8 @@
  ****************************************************************************/
 
 #ifdef CONFIG_DISABLE_ENVIRON
-# define env_dup(ptcb)     (0)
-# define env_release(ptcb) (0)
+# define env_dup(group)     (0)
+# define env_release(group) (0)
 #else
 
 /****************************************************************************
@@ -75,8 +75,8 @@ extern "C"
 
 /* Functions used by the task/pthread creation and destruction logic */
 
-int env_dup(FAR _TCB *ctcb);
-void env_release(FAR _TCB *tcb);
+int env_dup(FAR struct task_group_s *group);
+void env_release(FAR struct task_group_s *group);
 
 /* Functions used internally by the environment handling logic */
 

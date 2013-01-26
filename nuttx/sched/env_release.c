@@ -64,8 +64,8 @@
  *   environ to NULL.
  *
  * Parameters:
- *   tcb Identifies the TCB containing the environment structure to be
- *   released.
+ *   group Identifies the task group containing the environment structure
+ *     to be released.
  *
  * Return Value:
  *   None
@@ -75,12 +75,9 @@
  *
  ****************************************************************************/
 
-void env_release(FAR _TCB *tcb)
+void env_release(FAR struct task_group_s *group)
 {
-  FAR struct task_group_s *group;
-
-  DEBUGASSERT(tcb && tcb->group);
-  group = tcb->group;
+  DEBUGASSERT(group);
 
   /* Free any allocate environment strings */
 

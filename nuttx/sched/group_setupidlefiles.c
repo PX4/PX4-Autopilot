@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched_setuppthreadfiles.c
+ * sched/group_setupidlefiles.c
  *
- *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,11 +39,15 @@
 
 #include <nuttx/config.h>
 
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sched.h>
+#include <errno.h>
+#include <debug.h>
 
 #include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
-#include <nuttx/lib.h>
 
 #include "os_internal.h"
 
@@ -58,34 +62,86 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_setuppthreadfiles
+ * Name: group_setupidlefiles
  *
  * Description:
- *   Configure a newly allocated TCB so that it will inherit file
- *   descriptors and streams from the parent pthread.
+ *   Configure the idle thread's TCB.
  *
  * Parameters:
- *   tcb - tcb of the new task.
+ *   tcb - tcb of the idle task.
  *
  * Return Value:
- *   OK (if an error were returned, it would need to be a non-negated
- *   errno value).
+ *   None
  *
  * Assumptions:
  *
  ****************************************************************************/
 
-int sched_setuppthreadfiles(FAR _TCB *tcb)
+int group_setupidlefiles(FAR _TCB *tcb)
 {
+#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NFILE_DESCRIPTORS > 0
+  FAR struct task_group_s *group = tcb->group;
+#endif
+#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
+  int fd;
+#endif
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NFILE_DESCRIPTORS > 0
+  DEBUGASSERT(group);
+#endif
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
+  /* Initialize file descriptors for the TCB */
+
+  files_initlist(&group->tg_filelist);
+#endif
+
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-  /* The child thread inherits the parent socket descriptors */
+  /* Allocate socket descriptors for the TCB */
 
-  tcb->sockets = rtcb->sockets;
-  net_addreflist(tcb->sockets);
+  net_initlist(&group->tg_socketlist);
+#endif
 
-#endif /* CONFIG_NSOCKET_DESCRIPTORS */
+  /* Open stdin, dup to get stdout and stderr. This should always
+   * be the first file opened and, hence, should always get file
+   * descriptor 0.
+   */
 
+#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
+  fd = open("/dev/console", O_RDWR);
+  if (fd == 0)
+    {
+      /* Successfully opened /dev/console as stdin (fd == 0) */
+
+      (void)file_dup2(0, 1);
+      (void)file_dup2(0, 2);
+    }
+  else
+    {
+      /* We failed to open /dev/console OR for some reason, we opened
+       * it and got some file descriptor other than 0.
+       */
+  
+      if (fd > 0)
+        {
+          slldbg("Open /dev/console fd: %d\n", fd);
+          (void)close(fd);
+        }
+      else
+        {
+          slldbg("Failed to open /dev/console: %d\n", errno);
+        }
+      return -ENFILE;
+    }
+#endif
+
+  /* Allocate file/socket streams for the TCB */
+
+#if CONFIG_NFILE_STREAMS > 0
+  return group_setupstreams(tcb);
+#else
   return OK;
+#endif
 }
 
 #endif /* CONFIG_NFILE_DESCRIPTORS || CONFIG_NSOCKET_DESCRIPTORS */

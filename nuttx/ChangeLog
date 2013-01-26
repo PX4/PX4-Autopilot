@@ -4035,6 +4035,8 @@
 	  task ID in the child task's TCB.  Instead, keep the parent
 	  task group IN the child task's task group.
 	* fs/, sched/, include/nuttx/sched.h, and include/nutts/fs/fs.h:
-	  Move file data from TCB to task group structure.
+	  Move file data from the TCB to the task group structure.
 	* libc/stdio/, sched/, include/nuttx/lib.h, and include/nutts/fs/fs.h:
-	  Move stream data from TCB to task group structure.
+	  Move stream data from the TCB to the task group structure.
+	* net/, sched/, and include/nuttx/net/net.h:  Move socket data
+	  from the TCB to the task group structure.

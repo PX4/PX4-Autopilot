@@ -68,8 +68,8 @@
  *   exact duplicate of the parent task's environment.
  *
  * Parameters:
- *   ctcb The child tcb to receive the newly allocated copy of the parent
- *        TCB's environment structure with reference count equal to one
+ *   group The child task group to receive the newly allocated copy of the
+ *        parent task groups environment structure.
  *
  * Return Value:
  *   zero on success
@@ -79,14 +79,14 @@
  *
  ****************************************************************************/
 
-int env_dup(FAR _TCB *ctcb)
+int env_dup(FAR struct task_group_s *group)
 {
   FAR _TCB *ptcb = (FAR _TCB*)g_readytorun.head;
   FAR char *envp = NULL;
   size_t envlen;
   int ret = OK;
 
-  DEBUGASSERT(ctcb && ptcb && ctcb->group && ptcb->group);
+  DEBUGASSERT(group && ptcb && ptcb->group);
 
   /* Pre-emption must be disabled throughout the following because the
    * environment may be shared.
@@ -108,8 +108,8 @@ int env_dup(FAR _TCB *ctcb)
         }
       else
         {
-          ctcb->group->tg_envsize = envlen;
-          ctcb->group->tg_envp    = envp;
+          group->tg_envsize = envlen;
+          group->tg_envp    = envp;
           memcpy(envp, ptcb->group->tg_envp, envlen);
         }
     }

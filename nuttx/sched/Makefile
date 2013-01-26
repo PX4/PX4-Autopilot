@@ -39,9 +39,7 @@ ASRCS =
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 
 MISC_SRCS  = os_start.c os_bringup.c errno_getptr.c errno_get.c errno_set.c
-MISC_SRCS += sched_garbage.c sched_setupstreams.c sched_getfiles.c sched_getsockets.c
-MISC_SRCS += sched_getstreams.c sched_setupidlefiles.c sched_setuptaskfiles.c
-MISC_SRCS += sched_setuppthreadfiles.c
+MISC_SRCS += sched_garbage.c sched_getfiles.c sched_getsockets.c sched_getstreams.c
 
 TSK_SRCS = prctl.c task_create.c task_init.c task_setup.c task_activate.c
 TSK_SRCS += task_start.c task_delete.c task_deletecurrent.c task_exithook.c
@@ -81,7 +79,7 @@ endif
 endif
 
 GRP_SRCS  = group_create.c group_join.c group_leave.c group_find.c
-GRP_SRCS += group_releasefiles.c
+GRP_SRCS += group_setupstreams.c group_setupidlefiles.c group_setuptaskfiles.c
 
 ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
 GRP_SRCS += task_reparent.c

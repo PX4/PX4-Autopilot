@@ -44,6 +44,10 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/fs/fs.h>
+#include <nuttx/net/net.h>
+#include <nuttx/lib.h>
+
 #include "group_internal.h"
 #include "env_internal.h"
 
@@ -142,8 +146,7 @@ void group_remove(FAR struct task_group_s *group)
  *
  *****************************************************************************/
 
-static inline void group_release(FAR _TCB *tcb,
-                                 FAR struct task_group_s *group)
+static inline void group_release(FAR struct task_group_s *group)
 {
   /* Free all un-reaped child exit status */
 
@@ -155,14 +158,29 @@ static inline void group_release(FAR _TCB *tcb,
    * soon as possible while we still have a functioning task.
    */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-  (void)group_releasefiles(tcb);
-#endif
+#if CONFIG_NFILE_DESCRIPTORS > 0
+  /* Free resources held by the file descriptor list */
+
+  files_releaselist(&group->tg_filelist);
+
+#if CONFIG_NFILE_STREAMS > 0
+  /* Free resource held by the stream list */
+
+  lib_releaselist(&group->tg_streamlist);
+
+#endif /* CONFIG_NFILE_STREAMS */
+#endif /* CONFIG_NFILE_DESCRIPTORS */
+
+#if CONFIG_NSOCKET_DESCRIPTORS > 0
+  /* Free resource held by the socket list */
+
+  net_releaselist(&group->tg_socketlist);
+#endif /* CONFIG_NSOCKET_DESCRIPTORS */
 
   /* Release all shared environment variables */
 
 #ifndef CONFIG_DISABLE_ENVIRON
-  env_release(tcb);
+  env_release(group);
 #endif
 
 #ifdef HAVE_GROUP_MEMBERS
@@ -232,7 +250,7 @@ void group_leave(FAR _TCB *tcb)
         {
           /* Release all of the resource held by the task group */
 
-          group_release(tcb, group);
+          group_release(group);
         }
 
       /* In any event, we can detach the group from the TCB so that we won't
@@ -271,7 +289,7 @@ void group_leave(FAR _TCB *tcb)
         {
           /* Release all of the resource held by the task group */
 
-          group_release(tcb, group);
+          group_release(group);
         }
 
       /* In any event, we can detach the group from the TCB so we won't do
