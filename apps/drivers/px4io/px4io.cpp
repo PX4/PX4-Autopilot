@@ -411,9 +411,9 @@ PX4IO::task_main()
 			_update_interval = 0;
 		}
 
-		/* sleep waiting for topic updates, but no more than 100ms */
+		/* sleep waiting for topic updates, but no more than 20ms */
 		unlock();
-		int ret = ::poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 100);
+		int ret = ::poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 20);
 		lock();
 
 		/* this would be bad... */
@@ -421,6 +421,9 @@ PX4IO::task_main()
 			log("poll error %d", errno);
 			continue;
 		}
+
+		perf_begin(_perf_update);
+		hrt_abstime now = hrt_absolute_time();
 
 		/* if we have new control data from the ORB, handle it */
 		if (fds[0].revents & POLLIN)
@@ -430,47 +433,47 @@ PX4IO::task_main()
 		if ((fds[1].revents & POLLIN) || (fds[2].revents & POLLIN))
 			io_set_arming_state();
 
-		hrt_abstime now = hrt_absolute_time();
-
 		/*
-		 * If this isn't time for the next tick of the polling state machine,
-		 * go back to sleep.
+		 * If it's time for another tick of the polling status machine,
+		 * try it now.
 		 */
-		if ((now - last_poll_time) < 20000)
-			continue;
+		if ((now - last_poll_time) >= 20000) {
 
-		/*
-		 * Pull status and alarms from IO.
-		 */
-		io_get_status();
+			/*
+			 * Pull status and alarms from IO.
+			 */
+			io_get_status();
 
-		/*
-		 * Get R/C input from IO.
-		 */
-		io_publish_raw_rc();
+			/*
+			 * Get raw R/C input from IO.
+			 */
+			io_publish_raw_rc();
 
-		/*
-		 * Fetch mixed servo controls and PWM outputs from IO.
-		 *
-		 * XXX We could do this at a reduced rate in many/most cases.
-		 */
-		io_publish_mixed_controls();
-		io_publish_pwm_outputs();
+			/*
+			 * Fetch mixed servo controls and PWM outputs from IO.
+			 *
+			 * XXX We could do this at a reduced rate in many/most cases.
+			 */
+			io_publish_mixed_controls();
+			io_publish_pwm_outputs();
 
-		/*
-		 * If parameters have changed, re-send RC mappings to IO
-		 *
-		 * XXX this may be a bit spammy
-		 */
-		if (fds[3].revents & POLLIN) {
-			parameter_update_s pupdate;
+			/*
+			 * If parameters have changed, re-send RC mappings to IO
+			 *
+			 * XXX this may be a bit spammy
+			 */
+			if (fds[3].revents & POLLIN) {
+				parameter_update_s pupdate;
 
-			/* copy to reset the notification */
-			orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
+				/* copy to reset the notification */
+				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
-			/* re-upload RC input config as it may have changed */
-			io_set_rc_config();
+				/* re-upload RC input config as it may have changed */
+				io_set_rc_config();
+			}
 		}
+
+		perf_end(_perf_update);
 	}
 
 	unlock();
@@ -662,8 +665,6 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	uint32_t channel_count;
 	int	ret = OK;
 
-	input_rc.timestamp = hrt_absolute_time();
-
 	/* we don't have the status bits, so input_source has to be set elsewhere */
 	input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
 	
@@ -688,8 +689,11 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 		channel_count = RC_INPUT_MAX_CHANNELS;
 	input_rc.channel_count = channel_count;
 
-	if (channel_count > 0)
+	if (channel_count > 0) {
 		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, input_rc.values, channel_count);
+		if (ret == OK)
+			input_rc.timestamp = hrt_absolute_time();
+	}
 
 	return ret;
 }
@@ -697,7 +701,7 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 int
 PX4IO::io_publish_raw_rc()
 {
-	/* if no RC, just don't publish */
+	/* if no raw RC, just don't publish */
 	if (!(_status & PX4IO_P_STATUS_FLAGS_RC_OK))
 		return OK;
 
