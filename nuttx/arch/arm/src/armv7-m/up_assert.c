@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv7-m/up_assert.c
  *
- *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -147,8 +147,13 @@ static inline void up_registerdump(void)
             current_regs[REG_R10], current_regs[REG_R11],
             current_regs[REG_R12], current_regs[REG_R13],
             current_regs[REG_R14], current_regs[REG_R15]);
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+      lldbg("xPSR: %08x BASEPRI: %08x\n",
+            current_regs[REG_XPSR],  current_regs[REG_BASEPRI]);
+#else
       lldbg("xPSR: %08x PRIMASK: %08x\n",
             current_regs[REG_XPSR],  current_regs[REG_PRIMASK]);
+#endif
     }
 }
 #else

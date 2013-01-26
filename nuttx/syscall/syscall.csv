@@ -43,6 +43,8 @@
 "prctl","sys/prctl.h", "CONFIG_TASK_NAME_SIZE > 0","int","int","..." 
 "clock_systimer","nuttx/clock.h","!defined(CONFIG_DISABLE_CLOCK)","uint32_t"
 "poll","poll.h","!defined(CONFIG_DISABLE_POLL) && (CONFIG_NSOCKET_DESCRIPTORS > 0 || CONFIG_NFILE_DESCRIPTORS > 0)","int","FAR struct pollfd*","nfds_t","int"
+"posix_spawnp", defined(CONFIG_BINFMT_EXEPATH), "int","FAR pid_t *","FAR const char *","FAR const posix_spawn_file_actions_t *","FAR const posix_spawnattr_t *","FAR char *const []","FAR char *const []"
+"posix_spawn", !defined(CONFIG_BINFMT_EXEPATH), "int","FAR pid_t *","FAR const char *","FAR const posix_spawn_file_actions_t *","FAR const posix_spawnattr_t *","FAR char *const []","FAR char *const []"
 "pthread_barrier_destroy","pthread.h","!defined(CONFIG_DISABLE_PTHREAD)","int","FAR pthread_barrier_t*"
 "pthread_barrier_init","pthread.h","!defined(CONFIG_DISABLE_PTHREAD)","int","FAR pthread_barrier_t*","FAR const pthread_barrierattr_t*","unsigned int"
 "pthread_barrier_wait","pthread.h","!defined(CONFIG_DISABLE_PTHREAD)","int","FAR pthread_barrier_t*"

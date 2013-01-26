@@ -55,27 +55,8 @@
  * Public Data
  ****************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-#include "builtin_proto.h"
-
-const struct builtin_s g_builtins[] =
-{
-# include "builtin_list.h"
-  { NULL, 0, 0, 0 }
-};
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
+extern const struct builtin_s g_builtins[];
+extern const int g_builtin_count;
 
 /****************************************************************************
  * Private Data
@@ -89,9 +70,11 @@ const struct builtin_s g_builtins[] =
  * Public Functions
  ****************************************************************************/
 
-int number_builtins(void)
+FAR const struct builtin_s *builtin_for_index(int index)
 {
-  return sizeof(g_builtins)/sizeof(struct builtin_s) - 1;
+  if (index < g_builtin_count)
+    {
+      return &g_builtins[index];
+    }
+  return NULL;
 }
-
-

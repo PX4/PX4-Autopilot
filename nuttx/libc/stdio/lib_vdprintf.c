@@ -1,8 +1,8 @@
 /****************************************************************************
- * libc/string/lib_psfa_dump.c
+ * libc/stdio/lib_vdprintf.c
  *
- *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2007-2009, 2011 Andrew Tridgell. All rights reserved.
+ *   Author: Andrew Tridgell <andrew@tridgell.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,91 +39,43 @@
 
 #include <nuttx/config.h>
 
-#include <spawn.h>
-#include <assert.h>
-#include <debug.h>
+#include <stdio.h>
 
-#include <nuttx/spawn.h>
-
-#ifdef CONFIG_DEBUG
+#include "lib_internal.h"
 
 /****************************************************************************
- * Public Functions
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Type Declarations
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Global Constant Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Global Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Constant Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Variables
  ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: lib_psfa_dump
- *
- * Description:
- *   Show the entryent file actions.
- *
- * Input Parameters:
- *   file_actions - The address of the file_actions to be dumped.
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void posix_spawn_file_actions_dump(FAR posix_spawn_file_actions_t *file_actions)
+int vdprintf(int fd, FAR const char *fmt, va_list ap)
 {
-  FAR struct spawn_general_file_action_s *entry;
-
-  DEBUGASSERT(file_actions);
-
-  dbg("File Actions[%p->%p]:\n", file_actions, *file_actions);
-  if (!*file_actions)
-    {
-      dbg("  NONE\n");
-      return;
-    }
-  
-  /* Destroy each file action, one at a time */
-
-  for (entry = (FAR struct spawn_general_file_action_s *)*file_actions;
-       entry;
-       entry = entry->flink)
-    {
-      switch (entry->action)
-        {
-        case SPAWN_FILE_ACTION_CLOSE:
-          {
-            FAR struct spawn_close_file_action_s *action =
-              (FAR struct spawn_close_file_action_s *)entry;
-
-            dbg("  CLOSE: fd=%d\n", action->fd);
-          }
-          break;
-
-        case SPAWN_FILE_ACTION_DUP2:
-          {
-            FAR struct spawn_dup2_file_action_s *action =
-              (FAR struct spawn_dup2_file_action_s *)entry;
-
-            dbg("  DUP2: %d->%d\n", action->fd1, action->fd2);
-          }
-          break;
-
-        case SPAWN_FILE_ACTION_OPEN:
-          {
-            FAR struct spawn_open_file_action_s *action =
-              (FAR struct spawn_open_file_action_s *)entry;
-
-            svdbg("  OPEN: path=%s oflags=%04x mode=%04x fd=%d\n",
-                  action->path, action->oflags, action->mode, action->fd);
-          }
-          break;
-
-        case SPAWN_FILE_ACTION_NONE:
-        default:
-          dbg("  ERROR: Unknown action: %d\n", entry->action);
-          break;
-        }
-    }
+	return lib_rawvdprintf(fd, fmt, ap);
 }
-
-#endif /* CONFIG_DEBUG */

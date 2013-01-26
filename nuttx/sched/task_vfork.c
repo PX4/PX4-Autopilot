@@ -136,12 +136,6 @@ FAR _TCB *task_vforksetup(start_t retaddr)
 
   (void)env_dup(child);
 
-  /* Mark the type of this thread (this setting will be needed in
-   * task_schedsetup() when up_initial_state() is called.
-   */
-
-  child->flags |= TCB_FLAG_TTYPE_TASK;
-
   /* Get the priority of the parent task */
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
@@ -153,7 +147,8 @@ FAR _TCB *task_vforksetup(start_t retaddr)
   /* Initialize the task control block.  This calls up_initial_state() */
 
   svdbg("Child priority=%d start=%p\n", priority, retaddr);
-  ret = task_schedsetup(child, priority, retaddr, parent->entry.main);
+  ret = task_schedsetup(child, priority, retaddr, parent->entry.main,
+                        TCB_FLAG_TTYPE_TASK);
   if (ret != OK)
     {
       goto errout_with_tcb;

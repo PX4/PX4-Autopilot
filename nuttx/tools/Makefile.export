@@ -37,14 +37,18 @@ include $(TOPDIR)/.config
 include $(EXPORTDIR)/Make.defs
 
 ifdef ARCHSCRIPT
+#
+# ARCHSCRIPT may contain a leading -T; it must not be followed by a space
+# for this to work.
+#
 ifeq ($(WINTOOL),y)
-LDPATH = ${shell cygpath -u $(patsubst -T,,$(ARCHSCRIPT))}
+LDPATH = $(shell cygpath -u $(patsubst -T%,%,$(ARCHSCRIPT)))
 else
-LDPATH = $(patsubst -T,,$(ARCHSCRIPT))
+LDPATH = $(patsubst -T%,%,$(ARCHSCRIPT))
 endif
 
-LDNAME = ${shell basename ${LDPATH}}
-LDDIR = ${shell dirname ${LDPATH}}
+LDNAME = ${notdir ${LDPATH}}
+LDDIR = ${dir ${LDPATH}}
 endif
 
 ARCHSUBDIR = "arch/$(CONFIG_ARCH)/src"

@@ -2,7 +2,7 @@
  * arch/arm/src/stm32/stm32_vectors.S
  * arch/arm/src/chip/stm32_vectors.S
  *
- *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -235,7 +235,11 @@ stm32_common:
 
 	mov		r2, r1					/* R2=Copy of the main/process stack pointer */
 	add		r2, #HW_XCPT_SIZE		/* R2=MSP/PSP before the interrupt was taken */
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+	mrs		r3, basepri				/* R3=Current BASEPRI setting */
+#else
 	mrs		r3, primask				/* R3=Current PRIMASK setting */
+#endif
 
 #ifdef CONFIG_ARCH_FPU
 	/* Skip over the block of memory reserved for floating pointer register save.
@@ -248,8 +252,8 @@ stm32_common:
 #endif
 
 	/* Save the the remaining registers on the stack after the registers pushed
-	 * by the exception handling logic. r2=SP and r3=primask, r4-r11,r14=register
-	 * values.
+	 * by the exception handling logic. r2=SP and r3=primask or basepri, r4-r11,
+	 * r14=register values.
 	 */
 
 #ifdef CONFIG_NUTTX_KERNEL
@@ -349,7 +353,7 @@ stm32_common:
 	 * Here:
 	 *   r1 = Address on the target thread's stack position at the start of
 	 *        the registers saved by hardware
-	 *   r3 = primask
+	 *   r3 = primask or basepri
 	 *   r4-r11 = restored register values
 	 */
 2:
@@ -375,7 +379,12 @@ stm32_common:
 
     /* Restore the interrupt state */
 
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+	msr		basepri, r3				/* Restore interrupts priority masking*/
+	cpsie	i						/* Re-enable interrupts */
+#else
 	msr		primask, r3				/* Restore interrupts */
+#endif
 
 	/* Always return with R14 containing the special value that will: (1)
 	 * return to thread mode, and (2) continue to use the MSP

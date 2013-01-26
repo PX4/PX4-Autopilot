@@ -41,7 +41,7 @@
 
 #include <spawn.h>
 
-#include "spawn/spawn.h"
+#include <nuttx/spawn.h>
 
 /****************************************************************************
  * Global Functions

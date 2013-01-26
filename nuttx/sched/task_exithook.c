@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/task_exithook.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -202,51 +202,86 @@ static inline void task_sigchild(FAR _TCB *tcb, int status)
   FAR _TCB *ptcb;
   siginfo_t info;
 
-  /* Keep things stationary through the following */
+  /* Only exiting tasks should generate SIGCHLD. pthreads use other
+   * mechansims.
+   */
 
-  sched_lock();
-
-  /* Get the TCB of the receiving task */
-
-  ptcb = sched_gettcb(tcb->parent);
-  if (!ptcb)
+  if ((tcb->flags & TCB_FLAG_TTYPE_MASK) == TCB_FLAG_TTYPE_TASK)
     {
-      /* The parent no longer exists... bail */
+      /* Keep things stationary through the following */
 
+      sched_lock();
+
+      /* Get the TCB of the receiving task */
+
+      ptcb = sched_gettcb(tcb->parent);
+      if (!ptcb)
+        {
+          /* The parent no longer exists... bail */
+
+          sched_unlock();
+          return;
+        }
+
+#ifdef CONFIG_SCHED_CHILD_STATUS
+      /* Check if the parent task has suppressed retention of child exit
+       * status information.  Only 'tasks' report exit status, not pthreads.
+       * pthreads have a different mechanism.
+       */
+
+      if ((ptcb->flags & TCB_FLAG_NOCLDWAIT) == 0)
+        {
+          FAR struct child_status_s *child;
+
+          /* No.. Find the exit status entry for this task in the parent TCB */
+
+          child = task_findchild(ptcb, getpid());
+          DEBUGASSERT(child);
+          if (child)
+            {
+              /* Mark that the child has exit'ed */
+
+              child->ch_flags |= CHILD_FLAG_EXITED;
+
+              /* Save the exit status */
+
+              child->ch_status = status;
+            }
+        }
+#else
+      /* Decrement the number of children from this parent */
+
+      DEBUGASSERT(ptcb->nchildren > 0);
+      ptcb->nchildren--;
+#endif
+
+      /* Set the parent to an impossible PID.  We do this because under
+       * certain conditions, task_exithook() can be called multiple times.
+       * If this function is called again, sched_gettcb() will fail on the
+       * invalid parent PID above, nchildren will be decremented once and
+       * all will be well.
+       */
+
+      tcb->parent = INVALID_PROCESS_ID;
+
+      /* Create the siginfo structure.  We don't actually know the cause.
+       * That is a bug. Let's just say that the child task just exit-ted
+       * for now.
+       */
+
+      info.si_signo           = SIGCHLD;
+      info.si_code            = CLD_EXITED;
+      info.si_value.sival_ptr = NULL;
+      info.si_pid             = tcb->pid;
+      info.si_status          = status;
+
+      /* Send the signal.  We need to use this internal interface so that we
+       * can provide the correct si_code value with the signal.
+       */
+
+      (void)sig_received(ptcb, &info);
       sched_unlock();
-      return;
     }
-
-  /* Decrement the number of children from this parent */
-
-  DEBUGASSERT(ptcb->nchildren > 0);
-  ptcb->nchildren--;
-
-  /* Set the parent to an impossible PID.  We do this because under certain
-   * conditions, task_exithook() can be called multiple times.  If this
-   * function is called again, sched_gettcb() will fail on the invalid
-   * parent PID above, nchildren will be decremented once and all will be
-   * well.
-   */
-
-  tcb->parent = INVALID_PROCESS_ID;
-
-  /* Create the siginfo structure.  We don't actually know the cause.  That
-   * is a bug. Let's just say that the child task just exit-ted for now.
-   */
-
-  info.si_signo           = SIGCHLD;
-  info.si_code            = CLD_EXITED;
-  info.si_value.sival_ptr = NULL;
-  info.si_pid             = tcb->pid;
-  info.si_status          = status;
-
-  /* Send the signal.  We need to use this internal interface so that we can
-   * provide the correct si_code value with the signal.
-   */
-
-  (void)sig_received(ptcb, &info);
-  sched_unlock();
 }
 #else
 #  define task_sigchild(tcb,status)
@@ -342,6 +377,12 @@ void task_exithook(FAR _TCB *tcb, int status)
 
 #if CONFIG_NFILE_STREAMS > 0
   (void)lib_flushall(tcb->streams);
+#endif
+
+  /* Discard any un-reaped child status (no zombies here!) */
+
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+  task_removechildren(tcb);
 #endif
 
   /* Free all file-related resources now.  This gets called again

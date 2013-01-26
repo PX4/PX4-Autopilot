@@ -485,3 +485,10 @@
 	  argument is now optional.  Many files systems do not need
 	  a source and it is really stupid to have to enter a bogus
 	  source parameter.
+	* apps/nshlib/nsh_fileapp.c:  Add the ability to execute a file
+	  from a file system using posix_spawn().
+	* apps/builtin/: Extensions from Mike Smith.
+	* apps/examples/ftpd/Makefile: Name ftpd_start is not the name of
+	  the entrypoint.  Should be ftpd_main (from Yan T.)
+	* apps/netutils/telnetd/telnetd_driver: Was stuck in a loop if
+	  recv[from]() ever returned a value <= 0.

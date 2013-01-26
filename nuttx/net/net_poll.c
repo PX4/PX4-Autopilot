@@ -125,15 +125,21 @@ static uint16_t poll_interrupt(struct uip_driver_s *dev, FAR void *conn,
 
       if ((flags & UIP_POLL) != 0)
         {
-          eventset |= POLLOUT & fds->events;
+          eventset |= (POLLOUT & fds->events);
         }
 
-      /* Check for a loss of connection events */
+      /* Check for a loss of connection events.
+       *
+       * REVISIT:  Need to call net_lostconnection() here, but don't have
+       * the psock instance.  What should we do?
+       */
 
       if ((flags & (UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT)) != 0)
         {
-          eventset |= (POLLERR|POLLHUP);
+          eventset |= (POLLERR | POLLHUP);
         }
+
+      /* Awaken the caller of poll() is requested event occurred. */
 
       if (eventset)
         {
@@ -192,9 +198,9 @@ static inline int net_pollsetup(FAR struct socket *psock, struct pollfd *fds)
       goto errout_with_irq;
     }
 
-  /* Initialize the callbcack structure */
+  /* Initialize the callback structure */
 
-  cb->flags    = UIP_NEWDATA|UIP_BACKLOG|UIP_POLL|UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT;
+  cb->flags    = (UIP_NEWDATA|UIP_BACKLOG|UIP_POLL|UIP_CLOSE|UIP_ABORT|UIP_TIMEDOUT);
   cb->priv     = (FAR void *)fds;
   cb->event    = poll_interrupt;
 
@@ -212,13 +218,23 @@ static inline int net_pollsetup(FAR struct socket *psock, struct pollfd *fds)
   if (!sq_empty(&conn->readahead))
 #endif
     {
-      fds->revents = fds->events & POLLIN;
-      if (fds->revents != 0)
-        {
-          /* If data is available now, the signal the poll logic */
+      fds->revents |= (POLLOUT & fds->events);
+    }
 
-          sem_post(fds->sem);
-        }
+  /* Check for a loss of connection events */
+
+  if (!_SS_ISCONNECTED(psock->s_flags))
+    {
+      fds->revents |= (POLLERR | POLLHUP);
+    }
+
+  /* Check if any requested events are already in effect */
+
+  if (fds->revents != 0)
+    {
+      /* Yes.. then signal the poll logic */
+
+      sem_post(fds->sem);
     }
 
   uip_unlock(flags);

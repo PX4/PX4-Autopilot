@@ -119,47 +119,71 @@ that support additional LCDs.  LCD drivers in the configuration directory
 if they support some differ LCD interface (such as a parallel interface)
 that makes then less re-usable:
 
-  configs/compal_e99/src/ssd1783.c
+  SSD1783 Drivers:
 
-    SSD1783
+    configs/compal_e99/src/ssd1783.c
 
-  configs/hymini-stm32v/src/ssd1289.c.  See also drivers/lcd/ssd1298.c
-  above.
+  SSD1289 Drivers:
+
+    configs/hymini-stm32v/src/ssd1289.c.  See also drivers/lcd/ssd1298.c
+      above.
+    configs/stm32f4discovery/src/up_ssd1289.c.  This examples is the
+      bottom half for the SSD1289 driver at drivers/lcd/ssd1289.c
+    configs/hymini-stm32v/src/ssd1289.c.  See also drivers/lcd/ssd1298.c
+      above.
+    configs/shenzhou/src/up_ssd1289.c
+
+  kwikstik-k40:
   
-    SSD1289
+    configs/kwikstik-k40/src/up_lcd.c.  Don't waste your time.  This is
+      just a stub.
 
-  configs/kwikstik-k40/src/up_lcd.c.  Don't waste your time.  This is
-    just a stub.
+  Nokia LCD Drivers:
 
-  configs/olimex-lpc1766stk/src/up_lcd.c.  This examples is the
-    bottom half for the SSD1289 driver at drivers/lcd/nokia6100.c.
-    This was never completedly debugged ... there are probably issues
-    with that nasty 9-bit SPI interfaces.
+    configs/olimex-lpc1766stk/src/up_lcd.c.  This examples is the
+      bottom half for the driver at drivers/lcd/nokia6100.c.
+      This was never completedly debugged ... there are probably issues
+      with that nasty 9-bit SPI interfaces.
 
-  configs/sam3u-ek/src/up_lcd.c
-  
-    The SAM3U-EK developement board features a TFT/Transmissive color
-    LCD module with touch-screen, FTM280C12D, with integrated driver IC
-    HX8346.
+  HX8346:
 
-  configs/skp16c26/src/up_lcd.c.  Untested alphanumeric LCD driver.
+    configs/sam3u-ek/src/up_lcd.c.  The SAM3U-EK developement board features
+      a TFT/Transmissive color LCD module with touch-screen, FTM280C12D,
+      with integrated driver IC HX8346.
 
-  configs/stm3210e-eval/src/up_lcd.c
+  HX8347:
 
-    This driver supports the following LCDs:
+    configs/pic32mx7mmb/src/up_mio283qt2.c.  This driver is for the MI0283QT-2
+      LCD from Multi-Inno Technology Co., Ltd. This LCD is based on the Himax
+      HX8347-D LCD controller.
+ 
+  ILI93xx and Similar:
 
-    1. Ampire AM-240320LTNQW00H
-    2. Orise Tech SPFD5408B
-    3. RenesasSP R61580
+    configs/stm3210e-eval/src/up_lcd.c. This driver supports the following
+      LCDs:
 
-  configs/stm3220g-eval/src/up_lcd.c and configs/stm3240g-eval/src/up_lcd.c.
-    AM-240320L8TNQW00H (LCD_ILI9320 or LCD_ILI9321) and
-    AM-240320D5TOQW01H (LCD_ILI9325)
+      1. Ampire AM-240320LTNQW00H
+      2. Orise Tech SPFD5408B
+      3. RenesasSP R61580
 
-  configs/stm32f4discovery/src/up_ssd1289.c.  This examples is the
-    bottom half for the SSD1289 driver at drivers/lcd/ssd1289.c
+    configs/stm3220g-eval/src/up_lcd.c and configs/stm3240g-eval/src/up_lcd.c.
+      AM-240320L8TNQW00H (LCD_ILI9320 or LCD_ILI9321) and
+      AM-240320D5TOQW01H (LCD_ILI9325)
+    configs/shenzhou/src/up_ili93xx.c. Another ILI93xx driver.
+
+  OLEDs:
+
+    configs/stm32f4discovery/src/up_ug2864ambag01.c
+    configs/stm32f4discovery/src/up_ug2864hsweg01.c
+    configs/zp214xpa/src/up_ug2864ambag01.c
+
+  Alphnumeric LCD Displays:
+
+    configs/skp16c26/src/up_lcd.c.  Untested alphanumeric LCD driver.
+    configs/pcblogic-pic32/src/up_lcd1602.c
 
 graphics/
 =========
 
   See also the usage of the LCD driver in the graphics/ directory.
+
