@@ -158,6 +158,9 @@ i2c_interrupt(int irq, FAR void *context)
 
 	if (sr1 & I2C_SR1_ADDR) {
 
+		stm32_dmastart(tx_dma, NULL, NULL, false);
+		stm32_dmastart(rx_dma, NULL, NULL, false);			
+
 		/* clear ADDR to ack our selection and get direction */
 		(void)rSR1;		/* as recommended, re-read SR1 */
 		uint16_t sr2 = rSR2;
@@ -166,13 +169,11 @@ i2c_interrupt(int irq, FAR void *context)
 			/* we are the transmitter */
 
 			direction = DIR_TX;
-			stm32_dmastart(tx_dma, NULL, NULL, false);
 
 		} else {
 			/* we are the receiver */
 
 			direction = DIR_RX;
-			stm32_dmastart(rx_dma, NULL, NULL, false);			
 		}
 	}
 
