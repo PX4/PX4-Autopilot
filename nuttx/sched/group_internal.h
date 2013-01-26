@@ -127,6 +127,14 @@ FAR struct child_status_s *group_removechild(FAR struct task_group_s *group,
                                              pid_t pid);
 void group_removechildren(FAR struct task_group_s *group);
 
+/* File/network resources */
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+int  group_releasefiles(FAR _TCB *tcb);
+#else
+# define group_releasefiles(t)          (OK)
+#endif
+
 #endif /* CONFIG_SCHED_CHILD_STATUS */
 #endif /* CONFIG_SCHED_HAVE_PARENT */
 

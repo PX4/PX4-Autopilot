@@ -105,7 +105,6 @@ enum os_crash_codes_e
 # define sched_setupidlefiles(t)    (OK)
 # define sched_setuptaskfiles(t)    (OK)
 # define sched_setuppthreadfiles(t) (OK)
-# define sched_releasefiles(t)      (OK)
 #endif
 
 /* One processor family supported by NuttX has a single, fixed hardware stack.
@@ -301,7 +300,6 @@ int  sched_setuppthreadfiles(FAR _TCB *tcb);
 #if CONFIG_NFILE_STREAMS > 0
 int  sched_setupstreams(FAR _TCB *tcb);
 #endif
-int  sched_releasefiles(FAR _TCB *tcb);
 #endif
 
 int  sched_releasetcb(FAR _TCB *tcb);

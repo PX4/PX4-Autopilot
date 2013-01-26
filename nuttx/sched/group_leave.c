@@ -125,6 +125,64 @@ void group_remove(FAR struct task_group_s *group)
 #endif
 
 /*****************************************************************************
+ * Name: group_release
+ *
+ * Description:
+ *   Release group resources after the last member has left the group.
+ *
+ * Parameters:
+ *   group - The group to be removed.
+ *
+ * Return Value:
+ *   None.
+ *
+ * Assumptions:
+ *   Called during task deletion in a safe context.  No special precautions
+ *   are required here.
+ *
+ *****************************************************************************/
+
+static inline void group_release(FAR _TCB *tcb,
+                                 FAR struct task_group_s *group)
+{
+  /* Free all un-reaped child exit status */
+
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+  group_removechildren(group);
+#endif
+
+  /* Free all file-related resources now.  We really need to close files as
+   * soon as possible while we still have a functioning task.
+   */
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+  (void)group_releasefiles(tcb);
+#endif
+
+  /* Release all shared environment variables */
+
+#ifndef CONFIG_DISABLE_ENVIRON
+  env_release(tcb);
+#endif
+
+  /* Remove the group from the list of groups */
+
+  group_remove(group);
+
+  /* Release the members array */
+
+  if (group->tg_members)
+    {
+      sched_free(group->tg_members);
+      group->tg_members = NULL;
+    }
+
+  /* Release the group container itself */
+
+  sched_free(group);
+}
+
+/*****************************************************************************
  * Public Functions
  *****************************************************************************/
 
@@ -150,7 +208,6 @@ void group_remove(FAR struct task_group_s *group)
  *****************************************************************************/
 
 #ifdef HAVE_GROUP_MEMBERS
-
 void group_leave(FAR _TCB *tcb)
 {
   FAR struct task_group_s *group;
@@ -171,31 +228,9 @@ void group_leave(FAR _TCB *tcb)
 
       if (ret == 0)
         {
-          /* Release all of the resource contained within the group */
-          /* Free all un-reaped child exit status */
+          /* Release all of the resource held by the task group */
 
-#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
-          group_removechildren(tcb->group);
-#endif
-          /* Free all file-related resources now.  We really need to close
-           * files as soon as possible while we still have a functioning task.
-           */
-
-#if CONFIG_NFILE_DESCRIPTORS > 0
-          (void)sched_releasefiles(tcb);
-#endif
-          /* Release all shared environment variables */
-
-#ifndef CONFIG_DISABLE_ENVIRON
-          env_release(tcb);
-#endif
-          /* Remove the group from the list of groups */
-
-          group_remove(group);
-
-          /* Release the group container itself */
-
-          sched_free(group);
+          group_release(tcb, group);
         }
 
       /* In any event, we can detach the group from the TCB so that we won't
@@ -232,27 +267,9 @@ void group_leave(FAR _TCB *tcb)
 
       else
         {
-          /* Release all of the resource contained within the group */
-          /* Free all un-reaped child exit status */
+          /* Release all of the resource held by the task group */
 
-#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
-          group_removechildren(tcb->group);
-#endif
-          /* Free all file-related resources now.  We really need to close
-           * files as soon as possible while we still have a functioning task.
-           */
-
-#if CONFIG_NFILE_DESCRIPTORS > 0
-          (void)sched_releasefiles(tcb);
-#endif
-           /* Release all shared environment variables */
-
-#ifndef CONFIG_DISABLE_ENVIRON
-          env_release(tcb);
-#endif
-          /* Release the group container itself */
-
-          sched_free(group);
+          group_release(tcb, group);
         }
 
       /* In any event, we can detach the group from the TCB so we won't do

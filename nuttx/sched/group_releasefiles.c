@@ -1,5 +1,5 @@
 /****************************************************************************
- * sched/sched_releasefiles.c
+ * sched/group_releasefiles.c
  *
  *   Copyright (C) 2007, 2008, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -55,7 +55,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_releasefiles
+ * Name: group_releasefiles
  *
  * Description:
  *   Release file resources attached to a TCB.  This file may be called
@@ -73,7 +73,7 @@
  *
  ****************************************************************************/
 
-int sched_releasefiles(_TCB *tcb)
+int group_releasefiles(_TCB *tcb)
 {
   if (tcb)
     {
