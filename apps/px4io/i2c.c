@@ -158,9 +158,6 @@ i2c_interrupt(int irq, FAR void *context)
 
 	if (sr1 & I2C_SR1_ADDR) {
 
-		stm32_dmastart(tx_dma, NULL, NULL, false);
-		stm32_dmastart(rx_dma, NULL, NULL, false);			
-
 		/* clear ADDR to ack our selection and get direction */
 		(void)rSR1;		/* as recommended, re-read SR1 */
 		uint16_t sr2 = rSR2;
@@ -222,6 +219,8 @@ i2c_rx_setup(void)
 		DMA_CCR_PSIZE_32BITS |
 		DMA_CCR_MSIZE_8BITS |
 		DMA_CCR_PRIMED);
+
+	stm32_dmastart(rx_dma, NULL, NULL, false);			
 }
 
 static void
@@ -283,6 +282,8 @@ i2c_tx_setup(void)
 		DMA_CCR_PSIZE_8BITS |
 		DMA_CCR_MSIZE_8BITS |
 		DMA_CCR_PRIMED);
+
+	stm32_dmastart(tx_dma, NULL, NULL, false);
 }
 
 static void
