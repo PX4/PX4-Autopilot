@@ -1,7 +1,7 @@
 /*****************************************************************************
  * sched/sched_waitpid.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,13 +41,14 @@
 
 #include <sys/wait.h>
 #include <semaphore.h>
+#include <signal.h>
 #include <errno.h>
 
 #include <nuttx/sched.h>
 
 #include "os_internal.h"
 
-#ifdef CONFIG_SCHED_WAITPID /* Experimental */
+#ifdef CONFIG_SCHED_WAITPID
 
 /*****************************************************************************
  * Private Functions
@@ -58,7 +59,7 @@
  *****************************************************************************/
 
 /*****************************************************************************
- * Name: sched_waitpid
+ * Name: waitpid
  *
  * Description:
  *
@@ -172,10 +173,16 @@
  *
  *****************************************************************************/
 
-/***************************************************************************/
-/* NOTE: This is a partially functional, experimental version of waitpid() */
-/***************************************************************************/
+/***************************************************************************
+ * NOTE: This is a partially functional, experimental version of waitpid()
+ *
+ * If there is no SIGCHLD signal supported (CONFIG_SCHED_HAVE_PARENT not
+ * defined), then waitpid() is still available, but does not obey the
+ * restriction that the pid be a child of the caller.
+ *
+ ***************************************************************************/
 
+#ifndef CONFIG_SCHED_HAVE_PARENT
 pid_t waitpid(pid_t pid, int *stat_loc, int options)
 {
   _TCB *tcb;
@@ -183,25 +190,30 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
   int err;
   int ret;
 
-  /* Disable pre-emption so that nothing changes in the following tests */
-
-  sched_lock();
-  tcb = sched_gettcb(pid);
-  if (!tcb)
-    {
-      err = ECHILD;
-      goto errout_with_errno;
-    }
+  DEBUGASSERT(stat_loc);
 
   /* None of the options are supported */
 
 #ifdef CONFIG_DEBUG
   if (options != 0)
     {
-      err = ENOSYS;
-      goto errout_with_errno;
+      set_errno(ENOSYS);
+      return ERROR;
     }
 #endif
+
+  /* Disable pre-emption so that nothing changes in the following tests */
+
+  sched_lock();
+
+  /* Get the TCB corresponding to this PID */
+
+  tcb = sched_gettcb(pid);
+  if (!tcb)
+    {
+      err = ECHILD;
+      goto errout_with_errno;
+    }
 
   /* "If more than one thread is suspended in waitpid() awaiting termination of
    * the same process, exactly one thread will return the process status at the
@@ -244,5 +256,213 @@ errout:
   sched_unlock();
   return ERROR;
 }
+
+/***************************************************************************
+ *
+ * If CONFIG_SCHED_HAVE_PARENT is defined, then waitpid will use the SIGHCLD
+ * signal.  It can also handle the pid == (pid_t)-1 arguement.  This is
+ * slightly more spec-compliant.
+ *
+ * But then I have to be concerned about the fact that NuttX does not queue
+ * signals.  This means that a flurry of signals can cause signals to be
+ * lost (or to have the data in the struct siginfo to be overwritten by
+ * the next signal).
+ *
+ ***************************************************************************/
+
+#else
+pid_t waitpid(pid_t pid, int *stat_loc, int options)
+{
+  FAR _TCB *rtcb = (FAR _TCB *)g_readytorun.head;
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  FAR struct child_status_s *child;
+#endif
+  FAR struct siginfo info;
+  sigset_t sigset;
+  int err;
+  int ret;
+
+  DEBUGASSERT(stat_loc);
+
+  /* None of the options are supported */
+
+#ifdef CONFIG_DEBUG
+  if (options != 0)
+    {
+      set_errno(ENOSYS);
+      return ERROR;
+    }
+#endif
+
+  /* Create a signal set that contains only SIGCHLD */
+
+  (void)sigemptyset(&sigset);
+  (void)sigaddset(&sigset, SIGCHLD);
+
+  /* Disable pre-emption so that nothing changes while the loop executes */
+
+  sched_lock();
+
+  /* Verify that this task actually has children and that the the request
+   * TCB is actually a child of this task.
+   */
+
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  if (rtcb->children == NULL)
+    {
+      /* There are no children */
+
+      err = ECHILD;
+      goto errout_with_errno;
+    }
+  else if (pid != (pid_t)-1)
+    {
+      /* This specific pid is not a child */
+
+      if (task_findchild(rtcb, pid) == NULL)
+        {
+          err = ECHILD;
+          goto errout_with_errno;
+        }
+    }
+#else
+  if (rtcb->nchildren == 0)
+    {
+      /* There are no children */
+
+      err = ECHILD;
+      goto errout_with_errno;
+    }
+  else if (pid != (pid_t)-1)
+    {
+     /* Get the TCB corresponding to this PID and make sure it is our child. */
+
+      FAR _TCB *ctcb = sched_gettcb(pid);
+      if (!ctcb || ctcb->parent != rtcb->pid)
+        {
+          err = ECHILD;
+          goto errout_with_errno;
+        }
+    }
+#endif
+
+  /* Loop until the child that we are waiting for dies */
+
+  for (;;)
+    {
+      /* Check if the task has already died. Signals are not queued in
+       * NuttX.  So a possibility is that the child has died and we
+       * missed the death of child signal (we got some other signal
+       * instead).
+       */
+
+      if (pid == (pid_t)-1)
+        {
+          /* We are waiting for any child, check if there are still
+           * chilren.
+           */
+
+#ifdef CONFIG_SCHED_CHILD_STATUS
+          DEBUGASSERT(rtcb->children);
+          if (rtcb->children == NULL)
+#else
+          if (rtcb->nchildren == 0)
+#endif
+            {
+              /* There were one or more children when we started so they
+               * must have exit'ed.  There are just no bread crumbs left
+               * behind to tell us the PID(s) of the existed children.
+               * Reporting ECHLD is about all we can do in this case.
+               */
+
+              err = ECHILD;
+              goto errout_with_errno;
+            }
+        }
+      else
+        {
+#ifdef CONFIG_SCHED_CHILD_STATUS
+          /* We are waiting for a specific PID.  Get the current status
+           * of the child task.
+           */
+
+          child = task_findchild(rtcb, pid);
+          DEBUGASSERT(child);
+          if (!child)
+            {
+              /* Yikes!  The child status entry just disappeared! */
+
+              err = ECHILD;
+              goto errout_with_errno;
+            }
+
+          /* Did the child exit? */
+
+          if ((child->ch_flags & CHILD_FLAG_EXITED) != 0)
+            {
+              /* The child has exited. Return the saved exit status */
+
+              *stat_loc = child->ch_status;
+
+              /* Discard the child entry and break out of the loop */
+
+              (void)task_removechild(rtcb, pid);
+              task_freechild(child);
+            }
+#else
+          /* We are waiting for a specific PID.  We can use kill() with
+           * signal number 0 to determine if that task is still alive.
+           */
+
+          ret = kill(pid, 0);
+          if (ret < 0)
+            {
+              /* It is no longer running.  We know that the child task was
+               * running okay when we started, so we must have lost the
+               * signal.  In this case, we know that the task exit'ed, but
+               * we do not know its exit status.  It would be better to
+               * reported ECHILD that bogus status.
+               */
+
+              err = ECHILD;
+              goto errout_with_errno;
+            }
+#endif
+        }
+
+      /* Wait for any death-of-child signal */
+
+      ret = sigwaitinfo(&sigset, &info);
+      if (ret < 0)
+        {
+          goto errout_with_lock;
+        }
+
+      /* Was this the death of the thread we were waiting for? In the of
+       * pid == (pid_t)-1, we are waiting for any child thread.
+       */
+
+      if (info.si_signo == SIGCHLD &&
+         (pid == (pid_t)-1 || info.si_pid == pid))
+        {
+          /* Yes... return the status and PID (in the event it was -1) */
+
+          *stat_loc = info.si_status;
+          pid = info.si_pid;
+          break;
+        }
+    }
+
+  sched_unlock();
+  return (int)pid;
+
+errout_with_errno:
+  set_errno(err);
+
+errout_with_lock:
+  sched_unlock();
+  return ERROR;
+}
+#endif /* CONFIG_SCHED_HAVE_PARENT */
 
 #endif /* CONFIG_SCHED_WAITPID */

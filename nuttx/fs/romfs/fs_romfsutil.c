@@ -613,7 +613,7 @@ int romfs_fsconfigure(struct romfs_mountpt_s *rm)
 }
 
 /****************************************************************************
- * Name: romfs_ffileconfigure
+ * Name: romfs_fileconfigure
  *
  * Desciption:
  *   This function is called as part of the ROMFS file open operation   It
@@ -649,6 +649,7 @@ int romfs_fileconfigure(struct romfs_mountpt_s *rm, struct romfs_file_s *rf)
           return -ENOMEM;
         }
     }
+
   return OK;
 }
 
@@ -663,7 +664,6 @@ int romfs_fileconfigure(struct romfs_mountpt_s *rm, struct romfs_file_s *rf)
 
 int romfs_checkmount(struct romfs_mountpt_s *rm)
 {
-  struct romfs_file_s *file;
   struct inode *inode;
   struct geometry geo;
   int ret;
@@ -692,14 +692,8 @@ int romfs_checkmount(struct romfs_mountpt_s *rm)
       /* If we get here, the mount is NOT healthy */
 
       rm->rm_mounted = false;
-
-      /* Make sure that this is flagged in every opened file */
-
-      for (file = rm->rm_head; file; file = file->rf_next)
-        {
-          file->rf_open = false;
-        }
     }
+
   return -ENODEV;
 }
 

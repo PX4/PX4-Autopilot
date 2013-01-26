@@ -1,7 +1,7 @@
 /************************************************************************
  * libc/string//lib_strndup.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,13 +68,9 @@ FAR char *strndup(FAR const char *s, size_t size)
   FAR char *news = NULL;
   if (s)
     {
-      /* Get the size of the new string = MIN(strlen(s), size) */
+      /* Get the size of the new string (limited to size) */
 
-      size_t allocsize = strlen(s);
-      if (allocsize > size)
-        {
-          allocsize = size;
-        }
+      size_t allocsize = strnlen(s, size);
 
       /* Allocate the new string, adding 1 for the NUL terminator */
 
@@ -89,5 +85,6 @@ FAR char *strndup(FAR const char *s, size_t size)
           news[allocsize] = '\0';
         }
     }
+
   return news;
 }

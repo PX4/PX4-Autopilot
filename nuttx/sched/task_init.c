@@ -141,7 +141,8 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
 
   /* Initialize the task control block */
 
-  ret = task_schedsetup(tcb, priority, task_start, entry);
+  ret = task_schedsetup(tcb, priority, task_start, entry,
+                        TCB_FLAG_TTYPE_TASK);
   if (ret == OK)
     {
       /* Setup to pass parameters to the new task */

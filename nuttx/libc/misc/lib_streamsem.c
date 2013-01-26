@@ -86,5 +86,3 @@ void stream_semgive(FAR struct streamlist *list)
 {
   sem_post(&list->sl_sem);
 }
-
-

@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/fs/dirent.h
  *
- *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,7 +102,7 @@ struct fs_romfsdir_s
 };
 #endif /* CONFIG_FS_ROMFS */
 
-#ifdef CONFIG_APPS_BINDIR
+#ifdef CONFIG_FS_BINFS
 /* The apps/ pseudo bin/ directory.  The state value is simply an index */
 
 struct fs_binfsdir_s
@@ -179,7 +179,7 @@ struct fs_dirent_s
 #ifdef CONFIG_FS_ROMFS
       struct fs_romfsdir_s  romfs;
 #endif
-#ifdef CONFIG_APPS_BINDIR
+#ifdef CONFIG_FS_BINFS
       struct fs_binfsdir_s  binfs;
 #endif
 #ifdef CONFIG_FS_NXFFS

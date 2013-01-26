@@ -45,9 +45,12 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <debug.h>
+
+#include <nuttx/fs/nfs.h>
 
 #include "nsh.h"
 #include "nsh_console.h"
@@ -128,9 +131,9 @@ static int mount_handler(FAR const char *mountpoint,
         break;
 #endif
 
-#ifdef CONFIG_APPS_BINDIR
+#ifdef CONFIG_FS_BINFS
       case BINFS_MAGIC:
-        fstype = "bindir";
+        fstype = "binfs";
         break;
 #endif
 
@@ -195,9 +198,11 @@ int cmd_df(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     defined(CONFIG_FS_READABLE) && !defined(CONFIG_NSH_DISABLE_MOUNT)
 int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
-  FAR char *source;
-  FAR char *target;
-  FAR char *filesystem = NULL;
+  FAR const char *source;
+  FAR char *fullsource;
+  FAR const char *target;
+  FAR char *fulltarget;
+  FAR const char *filesystem = NULL;
   bool badarg = false;
   int option;
   int ret;
@@ -245,19 +250,32 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       return ERROR;
     }
 
-  /* There are two required arguments after the options: the source and target
-   * paths.
+  /* There may be one or two required arguments after the options: the source
+   * and target paths.  Some file systems do not require the source parameter
+   * so if there is only one parameter left, it must be the target.
    */
 
-  if (optind + 2 < argc)
-    {
-      nsh_output(vtbl, g_fmttoomanyargs, argv[0]);
-      return ERROR;
-    }
-  else if (optind + 2 > argc)
+  if (optind >= argc)
     {
       nsh_output(vtbl, g_fmtargrequired, argv[0]);
       return ERROR;
+    }
+
+  source = NULL;
+  target = argv[optind];
+  optind++;
+  
+  if (optind < argc)
+    {
+      source = target;
+      target = argv[optind];
+      optind++;
+
+      if (optind < argc)
+        {
+          nsh_output(vtbl, g_fmttoomanyargs, argv[0]);
+          return ERROR;
+        }
     }
 
   /* While the above parsing for the -t argument looks nice, the -t argument
@@ -274,29 +292,44 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
    * working directory.
    */
 
-  source = nsh_getfullpath(vtbl, argv[optind]);
-  if (!source)
+  fullsource = NULL;
+  fulltarget = NULL;
+
+  if (source)
     {
-      return ERROR;
+      fullsource = nsh_getfullpath(vtbl, source);
+      if (!fullsource)
+        {
+          return ERROR;
+        }
     }
 
-  target = nsh_getfullpath(vtbl, argv[optind+1]);
-  if (!target)
+  fulltarget = nsh_getfullpath(vtbl, target);
+  if (!fulltarget)
     {
-      nsh_freefullpath(source);
-      return ERROR;
+      ret = ERROR;
+      goto errout;
     }
 
   /* Perform the mount */
 
-  ret = mount(source, target, filesystem, 0, NULL);
+  ret = mount(fullsource, fulltarget, filesystem, 0, NULL);
   if (ret < 0)
     {
       nsh_output(vtbl, g_fmtcmdfailed, argv[0], "mount", NSH_ERRNO);
     }
 
-  nsh_freefullpath(source);
-  nsh_freefullpath(target);
+errout:
+  if (fullsource)
+    {
+      nsh_freefullpath(fullsource);
+    }
+
+  if (fulltarget)
+    {
+      nsh_freefullpath(fulltarget);
+    }
+
   return ret;
 }
 #endif

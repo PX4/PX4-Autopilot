@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/task_create.c
  *
- *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -81,7 +81,7 @@
  *
  * Input Parameters:
  *   name       - Name of the new task
- *   type       - Type of the new task
+ *   ttype      - Type of the new task
  *   priority   - Priority of the new task
  *   stack_size - size (in bytes) of the stack needed
  *   entry      - Entry point of a new task
@@ -99,10 +99,10 @@
  ****************************************************************************/
 
 #ifndef CONFIG_CUSTOM_STACK
-static int thread_create(const char *name, uint8_t type, int priority,
+static int thread_create(const char *name, uint8_t ttype, int priority,
                          int stack_size, main_t entry, const char **argv)
 #else
-static int thread_create(const char *name, uint8_t type, int priority,
+static int thread_create(const char *name, uint8_t ttype, int priority,
                          main_t entry, const char **argv)
 #endif
 {
@@ -142,15 +142,9 @@ static int thread_create(const char *name, uint8_t type, int priority,
     }
 #endif
 
-  /* Mark the type of this thread (this setting will be needed in
-   * task_schedsetup() when up_initial_state() is called.
-   */
-
-  tcb->flags |= type;
-
   /* Initialize the task control block */
 
-  ret = task_schedsetup(tcb, priority, task_start, entry);
+  ret = task_schedsetup(tcb, priority, task_start, entry, ttype);
   if (ret != OK)
     {
       goto errout_with_tcb;
@@ -169,6 +163,8 @@ static int thread_create(const char *name, uint8_t type, int priority,
   ret = task_activate(tcb);
   if (ret != OK)
     {
+      /* The TCB was added to the active task list by task_schedsetup() */
+
       dq_rem((FAR dq_entry_t*)tcb, (dq_queue_t*)&g_inactivetasks);
       goto errout_with_tcb;
     }

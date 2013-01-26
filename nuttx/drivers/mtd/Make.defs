@@ -37,6 +37,8 @@
 
 # Include MTD drivers
 
+ifeq ($(CONFIG_MTD),y)
+
 CSRCS += at45db.c flash_eraseall.c ftl.c m25px.c rammtd.c ramtron.c
 
 ifeq ($(CONFIG_MTD_AT24XX),y)
@@ -60,3 +62,4 @@ endif
 DEPPATH += --dep-path mtd
 VPATH += :mtd
 
+endif

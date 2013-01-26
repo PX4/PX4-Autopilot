@@ -1,7 +1,7 @@
 /****************************************************************************
- * apps/namedapps/binfs.c
+ * fs/binfs/fs_binfs.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
@@ -53,49 +52,44 @@
 #include <debug.h>
 
 #include <nuttx/fs/fs.h>
+#include <nuttx/fs/binfs.h>
 #include <nuttx/fs/dirent.h>
+#include <nuttx/fs/ioctl.h>
+#include <nuttx/binfmt/builtin.h>
 
-#include "namedapp.h"
-
-#if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_APPS_BINDIR)
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_FS_BINFS)
 
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
-/* This structure represents the overall mountpoint state.  An instance of this
- * structure is retained as inode private data on each mountpoint that is
- * mounted with a fat32 filesystem.
- */
-
-struct binfs_state_s
-{
-  sem_t    bm_sem;                  /* Used to assume thread-safe access */
-};
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-static void    binfs_semtake(struct binfs_state_s *bm);
-static inline void binfs_semgive(struct binfs_state_s *bm);
 static int     binfs_open(FAR struct file *filep, const char *relpath,
-                        int oflags, mode_t mode);
+                          int oflags, mode_t mode);
 static int     binfs_close(FAR struct file *filep);
 static ssize_t binfs_read(FAR struct file *filep, char *buffer, size_t buflen);
 static int     binfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 
+static int     binfs_dup(FAR const struct file *oldp, FAR struct file *newp);
+
 static int     binfs_opendir(struct inode *mountpt, const char *relpath,
                              struct fs_dirent_s *dir);
-static int     binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir);
-static int     binfs_rewinddir(struct inode *mountpt, struct fs_dirent_s *dir);
+static int     binfs_readdir(FAR struct inode *mountpt,
+                             FAR struct fs_dirent_s *dir);
+static int     binfs_rewinddir(FAR struct inode *mountpt,
+                               FAR struct fs_dirent_s *dir);
 
-static int     binfs_bind(FAR struct inode *blkdriver, const void *data,
-                        void **handle);
-static int     binfs_unbind(void *handle, FAR struct inode **blkdriver);
-static int     binfs_statfs(struct inode *mountpt, struct statfs *buf);
+static int     binfs_bind(FAR struct inode *blkdriver, FAR const void *data,
+                          FAR void **handle);
+static int     binfs_unbind(FAR void *handle, FAR struct inode **blkdriver);
+static int     binfs_statfs(FAR struct inode *mountpt,
+                            FAR struct statfs *buf);
 
-static int     binfs_stat(struct inode *mountpt, const char *relpath, struct stat *buf);
+static int     binfs_stat(FAR struct inode *mountpt, FAR const char *relpath,
+                          FAR struct stat *buf);
 
 /****************************************************************************
  * Private Variables
@@ -118,7 +112,9 @@ const struct mountpt_operations binfs_operations =
   NULL,              /* write */
   NULL,              /* seek */
   binfs_ioctl,       /* ioctl */
+
   NULL,              /* sync */
+  binfs_dup,         /* dup */
 
   binfs_opendir,     /* opendir */
   NULL,              /* closedir */
@@ -141,54 +137,15 @@ const struct mountpt_operations binfs_operations =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: binfs_semtake
- ****************************************************************************/
-
-static void binfs_semtake(struct binfs_state_s *bm)
-{
-  /* Take the semaphore (perhaps waiting) */
-
-  while (sem_wait(&bm->bm_sem) != 0)
-    {
-      /* The only case that an error should occur here is if
-       * the wait was awakened by a signal.
-       */
-
-      ASSERT(errno == EINTR);
-    }
-}
-
-/****************************************************************************
- * Name: binfs_semgive
- ****************************************************************************/
-
-static inline void binfs_semgive(struct binfs_state_s *bm)
-{
-   sem_post(&bm->bm_sem);
-}
-
-/****************************************************************************
  * Name: binfs_open
  ****************************************************************************/
 
-static int binfs_open(FAR struct file *filep, const char *relpath,
-                    int oflags, mode_t mode)
+static int binfs_open(FAR struct file *filep, FAR const char *relpath,
+                      int oflags, mode_t mode)
 {
-  struct binfs_state_s *bm;
-  int                   ret = -ENOSYS;
+  int index;
 
   fvdbg("Open '%s'\n", relpath);
-
-  /* Sanity checks */
-
-  DEBUGASSERT(filep->f_priv == NULL && filep->f_inode != NULL);
-
-  /* mountpoint private data from the inode reference from the file
-   * structure
-   */
-
-  bm = (struct binfs_state_s*)filep->f_inode->i_private;
-  DEBUGASSERT(bm != NULL);
 
   /* BINFS is read-only.  Any attempt to open with any kind of write
    * access is not permitted.
@@ -196,15 +153,25 @@ static int binfs_open(FAR struct file *filep, const char *relpath,
 
   if ((oflags & O_WRONLY) != 0 || (oflags & O_RDONLY) == 0)
     {
-      fdbg("Only O_RDONLY supported\n");
-      ret = -EACCES;
+      fdbg("ERROR: Only O_RDONLY supported\n");
+      return -EACCES;
     }
 
-  /* Save open-specific state in filep->f_priv */
+  /* Check if the an entry exists with this name in the root directory.
+   * so the 'relpath' must be the name of the builtin function.
+   */
 
-  /* Opening of elements within the pseudo-file system is not yet supported */
+  index = builtin_isavail(relpath);
+  if (index < 0)
+    {
+      fdbg("ERROR: Builting %s does not exist\n", relpath);
+      return -ENOENT;
+    }
 
-  return ret;
+  /* Save the index as the open-specific state in filep->f_priv */
+
+  filep->f_priv = (FAR void *)index;
+  return OK;
 }
 
 /****************************************************************************
@@ -213,31 +180,8 @@ static int binfs_open(FAR struct file *filep, const char *relpath,
 
 static int binfs_close(FAR struct file *filep)
 {
-  struct binfs_state_s *bm;
-  int                   ret = -ENOSYS;
-
   fvdbg("Closing\n");
-
-  /* Sanity checks */
-
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
-
-  /* Recover the open file state from the struct file instance */
-  /* bf = filep->f_priv; */
-
-  /* Recover the file system state from the inode */
-
-  bm = filep->f_inode->i_private;
-  DEBUGASSERT(bm != NULL);
-
-  /* Free the open file state */
-  /* free(bf); */
-
-  filep->f_priv = NULL;
-
-  /* Since open() is not yet supported, neither is close(). */
-
-  return ret;
+  return OK;
 }
 
 /****************************************************************************
@@ -246,25 +190,10 @@ static int binfs_close(FAR struct file *filep)
 
 static ssize_t binfs_read(FAR struct file *filep, char *buffer, size_t buflen)
 {
-  struct binfs_state_s *bm;
+  /* Reading is not supported.  Just return end-of-file */
 
   fvdbg("Read %d bytes from offset %d\n", buflen, filep->f_pos);
-
-  /* Sanity checks */
-
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
-
-  /* Recover the open file state data from the struct file instance */
-  /* bf = filep->f_priv; */
-
-  /* Recover the file system state from the inode */
-
-  bm = filep->f_inode->i_private;
-  DEBUGASSERT(bm != NULL);
-
-  /* Since open is not yet supported, neither is reading */
-
-  return -ENOSYS;
+  return 0;
 }
 
 /****************************************************************************
@@ -273,25 +202,54 @@ static ssize_t binfs_read(FAR struct file *filep, char *buffer, size_t buflen)
 
 static int binfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
-  struct binfs_state_s *bm;
+  int ret;
 
   fvdbg("cmd: %d arg: %08lx\n", cmd, arg);
 
-  /* Sanity checks */
+  /* Only one IOCTL command is supported */
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  if (cmd == FIOC_FILENAME)
+    {
+      /* IN:  FAR char const ** pointer 
+       * OUT: Pointer to a persistent file name (Guaranteed to persist while
+       *      the file is open).
+       */
 
-  /* Recover the open file state from the struct file instance */
-  /* bf = filep->f_priv; */
+      FAR const char **ptr = (FAR const char **)((uintptr_t)arg);
+      if (ptr == NULL)
+        {
+          ret = -EINVAL;
+        }
+      else
+        {
+          *ptr = builtin_getname((int)filep->f_priv);
+          ret = OK;
+        }
+    }
+  else
+    {
+      ret = -ENOTTY;
+    }
 
-  /* Recover the file system state from the inode */
+  return ret;
+}
 
-  bm = filep->f_inode->i_private;
-  DEBUGASSERT(bm != NULL);
+/****************************************************************************
+ * Name: binfs_dup
+ *
+ * Description:
+ *   Duplicate open file data in the new file structure.
+ *
+ ****************************************************************************/
 
-  /* No ioctl commands yet supported */
+static int binfs_dup(FAR const struct file *oldp, FAR struct file *newp)
+{
+  fvdbg("Dup %p->%p\n", oldp, newp);
 
-  return -ENOTTY;
+  /* Copy the index from the old to the new file structure */
+
+  newp->f_priv = oldp->f_priv;
+  return OK;
 }
 
 /****************************************************************************
@@ -305,36 +263,19 @@ static int binfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 static int binfs_opendir(struct inode *mountpt, const char *relpath,
                          struct fs_dirent_s *dir)
 {
-  struct binfs_state_s   *bm;
-  int                     ret;
-
   fvdbg("relpath: \"%s\"\n", relpath ? relpath : "NULL");
-
-  /* Sanity checks */
-
-  DEBUGASSERT(mountpt != NULL && mountpt->i_private != NULL);
-
-  /* Recover the file system state from the inode instance */
-
-  bm = mountpt->i_private;
-  binfs_semtake(bm);
 
   /* The requested directory must be the volume-relative "root" directory */
 
   if (relpath && relpath[0] != '\0')
     {
-      ret = -ENOENT;
-      goto errout_with_semaphore;
+      return -ENOENT;
     }
 
   /* Set the index to the first entry */
 
   dir->u.binfs.fb_index = 0;
-  ret = OK;
-
-errout_with_semaphore:
-  binfs_semgive(bm);
-  return ret;
+  return OK;
 }
 
 /****************************************************************************
@@ -346,23 +287,15 @@ errout_with_semaphore:
 
 static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 {
-  struct binfs_state_s *bm;
+  FAR const char *name;
   unsigned int index;
   int ret;
-
-  /* Sanity checks */
-
-  DEBUGASSERT(mountpt != NULL && mountpt->i_private != NULL);
-
-  /* Recover the file system state from the inode instance */
-
-  bm = mountpt->i_private;
-  binfs_semtake(bm);
 
   /* Have we reached the end of the directory */
 
   index = dir->u.binfs.fb_index;
-  if (namedapps[index].name == NULL)
+  name = builtin_getname(index);
+  if (name == NULL)
     {
       /* We signal the end of the directory by returning the
        * special error -ENOENT
@@ -375,9 +308,9 @@ static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
     {
       /* Save the filename and file type */
 
-      fvdbg("Entry %d: \"%s\"\n", index, namedapps[index].name);
+      fvdbg("Entry %d: \"%s\"\n", index, name);
       dir->fd_dir.d_type = DTYPE_FILE;
-      strncpy(dir->fd_dir.d_name, namedapps[index].name, NAME_MAX+1);
+      strncpy(dir->fd_dir.d_name, name, NAME_MAX+1);
 
       /* The application list is terminated by an entry with a NULL name.
        * Therefore, there is at least one more entry in the list.
@@ -389,11 +322,10 @@ static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
        * standard f_pos instead of our own private fb_index.
        */
 
-      dir->u.binfs.fb_index      = index;
-      ret                        = OK;
+      dir->u.binfs.fb_index = index;
+      ret = OK;
     }
 
-  binfs_semgive(bm);
   return ret;
 }
 
@@ -406,22 +338,9 @@ static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 
 static int binfs_rewinddir(struct inode *mountpt, struct fs_dirent_s *dir)
 {
-  struct binfs_state_s *bm;
-
   fvdbg("Entry\n");
 
-  /* Sanity checks */
-
-  DEBUGASSERT(mountpt != NULL && mountpt->i_private != NULL);
-
-  /* Recover the file system state from the inode instance */
-
-  bm = mountpt->i_private;
-  binfs_semtake(bm);
-
-  dir->u.binfs.fb_index      = 0;
-
-  binfs_semgive(bm);
+  dir->u.binfs.fb_index = 0;
   return OK;
 }
 
@@ -439,29 +358,7 @@ static int binfs_rewinddir(struct inode *mountpt, struct fs_dirent_s *dir)
 static int binfs_bind(FAR struct inode *blkdriver, const void *data,
                       void **handle)
 {
-  struct binfs_state_s *bm;
-
   fvdbg("Entry\n");
-
-  /* Create an instance of the mountpt state structure */
-
-  bm = (struct binfs_state_s *)zalloc(sizeof(struct binfs_state_s));
-  if (!bm)
-    {
-      fdbg("Failed to allocate mountpoint structure\n");
-      return -ENOMEM;
-    }
-
-  /* Initialize the allocated mountpt state structure.  The filesystem is
-   * responsible for one reference ont the blkdriver inode and does not
-   * have to addref() here (but does have to release in ubind().
-   */
-
-  sem_init(&bm->bm_sem, 0, 1);     /* Initialize the semaphore that controls access */
-
-  /* Mounted! */
-
-  *handle = (void*)bm;
   return OK;
 }
 
@@ -475,22 +372,7 @@ static int binfs_bind(FAR struct inode *blkdriver, const void *data,
 
 static int binfs_unbind(void *handle, FAR struct inode **blkdriver)
 {
-  struct binfs_state_s *bm = (struct binfs_state_s*)handle;
-
   fvdbg("Entry\n");
-
-#ifdef CONFIG_DEBUG
-  if (!bm)
-    {
-      return -EINVAL;
-    }
-#endif
-
-  /* Check if there are sill any files opened on the filesystem. */
-
-  /* Release the mountpoint private data */
-
-  sem_destroy(&bm->bm_sem);
   return OK;
 }
 
@@ -503,18 +385,7 @@ static int binfs_unbind(void *handle, FAR struct inode **blkdriver)
 
 static int binfs_statfs(struct inode *mountpt, struct statfs *buf)
 {
-  struct binfs_state_s *bm;
-
   fvdbg("Entry\n");
-
-  /* Sanity checks */
-
-  DEBUGASSERT(mountpt && mountpt->i_private);
-
-  /* Get the mountpoint private data from the inode structure */
-
-  bm = mountpt->i_private;
-  binfs_semtake(bm);
 
   /* Fill in the statfs info */
 
@@ -525,8 +396,6 @@ static int binfs_statfs(struct inode *mountpt, struct statfs *buf)
   buf->f_bfree   = 0;
   buf->f_bavail  = 0;
   buf->f_namelen = NAME_MAX;
-
-  binfs_semgive(bm);
   return OK;
 }
 
@@ -539,19 +408,7 @@ static int binfs_statfs(struct inode *mountpt, struct statfs *buf)
 
 static int binfs_stat(struct inode *mountpt, const char *relpath, struct stat *buf)
 {
-  struct binfs_state_s *bm;
-  int                   ret;
-
   fvdbg("Entry\n");
-
-  /* Sanity checks */
-
-  DEBUGASSERT(mountpt && mountpt->i_private);
-
-  /* Get the mountpoint private data from the inode structure */
-
-  bm = mountpt->i_private;
-  binfs_semtake(bm);
 
   /* The requested directory must be the volume-relative "root" directory */
 
@@ -559,10 +416,9 @@ static int binfs_stat(struct inode *mountpt, const char *relpath, struct stat *b
     {
       /* Check if there is a file with this name. */
 
-      if (namedapp_isavail(relpath) < 0)
+      if (builtin_isavail(relpath) < 0)
         {
-          ret = -ENOENT;
-          goto errout_with_semaphore;
+          return -ENOENT;
         }
 
       /* It's a execute-only file name */
@@ -578,19 +434,15 @@ static int binfs_stat(struct inode *mountpt, const char *relpath, struct stat *b
 
   /* File/directory size, access block size */
 
-  buf->st_size      = 0;
-  buf->st_blksize   = 0;
-  buf->st_blocks    = 0;
-  ret               = OK;
-
-errout_with_semaphore:
-  binfs_semgive(bm);
-  return ret;
+  buf->st_size    = 0;
+  buf->st_blksize = 0;
+  buf->st_blocks  = 0;
+  return OK;
 }
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#endif /* !CONFIG_DISABLE_MOUNTPOINT && CONFIG_APPS_BINDIR */
+#endif /* !CONFIG_DISABLE_MOUNTPOINT && CONFIG_FS_BINFS */
 

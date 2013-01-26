@@ -1,7 +1,7 @@
 /********************************************************************************************
  * include/nuttx/serial/tioctl.h
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -165,16 +165,23 @@
 #define TIOCSRS485      _TIOC(0x002a)  /* Set RS485 mode, arg: pointer to struct serial_rs485 */
 #define TIOCGRS485      _TIOC(0x002b)  /* Get RS485 mode, arg: pointer to struct serial_rs485 */
 
+/* Definitions for flags used in struct serial_rs485 (Linux compatible) */
+
+#  define SER_RS485_ENABLED        (1 << 0) /* Enable/disble RS-485 support */
+#  define SER_RS485_RTS_ON_SEND    (1 << 1) /* Logic level for RTS pin when sending */
+#  define SER_RS485_RTS_AFTER_SEND (1 << 2) /* Logic level for RTS pin after sent */
+#  define SER_RS485_RX_DURING_TX   (1 << 4)
+
+/* Single-wire UART support */
+
+#define TIOCSSINGLEWIRE _TIOC(0x002c)  /* Set single-wire mode */
+#define TIOCGSINGLEWIRE _TIOC(0x002d)  /* Get single-wire mode */
+
+#  define SER_SINGLEWIRE_ENABLED   (1 << 0) /* Enable/disable single-wire support */
+
 /* Debugging */
 
-#define TIOCSERGSTRUCT  _TIOC(0x002c) /* Get device TTY structure */
-
-/* Definitions used in struct serial_rs485 (Linux compatible) */
-
-#define SER_RS485_ENABLED        (1 << 0) /* Enable/disble RS-485 support */
-#define SER_RS485_RTS_ON_SEND    (1 << 1) /* Logic level for RTS pin when sending */
-#define SER_RS485_RTS_AFTER_SEND (1 << 2) /* Logic level for RTS pin after sent */
-#define SER_RS485_RX_DURING_TX   (1 << 4)
+#define TIOCSERGSTRUCT  _TIOC(0x002e) /* Get device TTY structure */
 
 /********************************************************************************************
  * Public Type Definitions

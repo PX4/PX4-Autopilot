@@ -1,5 +1,6 @@
 /**************************************************************************************
  * include/nuttx/lcd/ug-2864ambag01.h
+ *
  * Driver for Univision UG-2864AMBAG01 OLED display (wih SH1101A controller) in SPI
  * mode
  *
