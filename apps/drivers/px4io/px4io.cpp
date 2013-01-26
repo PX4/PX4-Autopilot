@@ -1085,17 +1085,15 @@ ssize_t
 PX4IO::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	int ret;
 
-	if (count > 0) {
 		if (count > _max_actuators)
 			count = _max_actuators;
-		ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)buffer, count);
-	} else {
-		ret = -EINVAL;
-	}
-
+	if (count > 0) {
+		int ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)buffer, count);
+		if (ret != OK)
 	return ret;
+}
+	return count * 2;
 }
 
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
