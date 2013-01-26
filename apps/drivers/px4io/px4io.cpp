@@ -926,8 +926,6 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 		if (ret) {
 			log("mixer send error %d", ret);
 			return ret;
-		} else {
-			debug("mixer sent %u", total_len);
 		}
 
 		msg->action = F2I_MIXER_ACTION_APPEND;
@@ -940,7 +938,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK)
 		return 0;
 
-	debug("mixer rejected");
+	debug("mixer rejected by IO");
 
 	/* load must have failed for some reason */
 	return -EINVAL;
