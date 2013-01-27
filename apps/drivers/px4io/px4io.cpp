@@ -818,26 +818,28 @@ PX4IO::io_publish_pwm_outputs()
 int
 PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
-	uint8_t buf[_max_transfer + 2];
-
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
 		debug("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
 	}
 
-	/* set page/offset address */
-	buf[0] = page;
-	buf[1] = offset;
+	/* set up the transfer */
+	uint8_t 	addr[2] = {
+		page,
+		offset
+	};
+	i2c_msg_s	msgv[2];
 
-	/* copy data into our local transfer buffer */
-	/* XXX we could use a msgv and two transactions, maybe? */
-	unsigned datalen = num_values * sizeof(*values);
-	if (datalen > 0)
-		memcpy(&buf[2], values, datalen);
+	msgv[0].flags = 0;
+	msgv[0].buffer = addr;
+	msgv[0].length = 2;
+	msgv[1].flags = I2C_M_NORESTART;
+	msgv[1].buffer = (uint8_t *)values;
+	msgv[1].length = num_values * sizeof(*values);
 
 	/* perform the transfer */
-	int ret = transfer(buf, datalen + 2, nullptr, 0);
+	int ret = transfer(msgv, 2);
 	if (ret != OK)
 		debug("io_reg_set: error %d", ret);
 	return ret;
@@ -852,20 +854,22 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, uint16_t value)
 int
 PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values)
 {
-	uint8_t		addr[2];
-	int		ret;
+	/* set up the transfer */
+	uint8_t		addr[2] = {
+		page,
+		offset
+	};
+	i2c_msg_s	msgv[2];
 
-	/* send the address */
-	addr[0] = page;
-	addr[1] = offset;
-	ret = transfer(addr, 2, nullptr, 0);
-	if (ret != OK) {
-		debug("io_reg_get: addr error %d", ret);
-		return ret;
-	}
+	msgv[0].flags = 0;
+	msgv[0].buffer = addr;
+	msgv[0].length = 2;
+	msgv[1].flags = I2C_M_READ;
+	msgv[1].buffer = (uint8_t *)values;
+	msgv[1].length = num_values * sizeof(*values);
 
-	/* now read the data */
-	ret = transfer(nullptr, 0, (uint8_t *)values, num_values * sizeof(*values));
+	/* perform the transfer */
+	int ret = transfer(msgv, 2);
 	if (ret != OK)
 		debug("io_reg_get: data error %d", ret);
 	return ret;
@@ -1093,13 +1097,13 @@ PX4IO::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
 
-		if (count > _max_actuators)
-			count = _max_actuators;
+	if (count > _max_actuators)
+		count = _max_actuators;
 	if (count > 0) {
 		int ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)buffer, count);
 		if (ret != OK)
-	return ret;
-}
+			return ret;
+	}
 	return count * 2;
 }
 
@@ -1111,7 +1115,7 @@ namespace
 void
 test(void)
 {
-	int	fd;
+	int		fd;
 	unsigned	servo_count = 0;
 	unsigned	pwm_value = 1000;
 	int		direction = 1;
