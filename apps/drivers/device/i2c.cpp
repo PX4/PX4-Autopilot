@@ -169,19 +169,31 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 int
 I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
 {
+	int ret;
+
+	/* force the device address into the message vector */
 	for (unsigned i = 0; i < msgs; i++)
 		msgv[i].addr = _address;
 
-	/*
-	 * I2C architecture means there is an unavoidable race here
-	 * if there are any devices on the bus with a different frequency
-	 * preference.  Really, this is pointless.
-	 */
-	I2C_SETFREQUENCY(_dev, _frequency);
-	int ret = I2C_TRANSFER(_dev, msgv, msgs);
+	unsigned tries = 0;
 
-	if (ret != OK)
-		up_i2creset(_dev);
+	do {
+
+		/*
+		 * I2C architecture means there is an unavoidable race here
+		 * if there are any devices on the bus with a different frequency
+		 * preference.  Really, this is pointless.
+		 */
+		I2C_SETFREQUENCY(_dev, _frequency);
+		ret = I2C_TRANSFER(_dev, msgv, msgs);
+
+		if (ret == OK)
+			break;
+
+		if (ret != OK)
+			up_i2creset(_dev);
+
+	} while (tries++ < _retries);
 
 	return ret;
 }
