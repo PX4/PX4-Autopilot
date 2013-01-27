@@ -193,9 +193,11 @@ int user_start(int argc, char *argv[])
 		show_debug_messages();
 		if (counter++ == 200) {
 			counter = 0;
-			isr_debug(1, "tick debug=%u status=0x%x resets=%u", 
+			isr_debug(1, "tick debug=%u status=0x%x arming=0x%x features=0x%x resets=%u", 
 				  (unsigned)debug_level,
 				  (unsigned)r_status_flags,
+				  (unsigned)r_setup_arming,
+				  (unsigned)r_setup_features,
 				  (unsigned)i2c_loop_resets);
 		}
 	}
