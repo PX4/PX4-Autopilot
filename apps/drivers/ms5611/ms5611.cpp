@@ -162,12 +162,12 @@ private:
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void			start();
+	void			start_cycle();
 
 	/**
 	 * Stop the automatic measurement state machine.
 	 */
-	void			stop();
+	void			stop_cycle();
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
@@ -287,7 +287,7 @@ MS5611::MS5611(int bus) :
 MS5611::~MS5611()
 {
 	/* make sure we are truly inactive */
-	stop();
+	stop_cycle();
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -331,7 +331,11 @@ MS5611::probe()
 
 	if ((OK == probe_address(MS5611_ADDRESS_1)) ||
 	    (OK == probe_address(MS5611_ADDRESS_2))) {
-		_retries = 2;
+	    	/*
+	    	 * Disable retries; we may enable them selectively in some cases,
+	    	 * but the device gets confused if we retry some of the commands.
+	    	 */
+		_retries = 0;
 		return OK;
 	}
 
@@ -436,7 +440,7 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
-				stop();
+				stop_cycle();
 				_measure_ticks = 0;
 				return OK;
 
@@ -458,7 +462,7 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
-						start();
+						start_cycle();
 
 					return OK;
 				}
@@ -480,7 +484,7 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
-						start();
+						start_cycle();
 
 					return OK;
 				}
@@ -508,11 +512,11 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -ENOMEM;
 
 			/* reset the measurement state machine with the new buffer, free the old */
-			stop();
+			stop_cycle();
 			delete[] _reports;
 			_num_reports = arg;
 			_reports = buf;
-			start();
+			start_cycle();
 
 			return OK;
 		}
@@ -545,7 +549,7 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 void
-MS5611::start()
+MS5611::start_cycle()
 {
 
 	/* reset the report ring and state machine */
@@ -558,7 +562,7 @@ MS5611::start()
 }
 
 void
-MS5611::stop()
+MS5611::stop_cycle()
 {
 	work_cancel(HPWORK, &_work);
 }
@@ -582,9 +586,17 @@ MS5611::cycle()
 		/* perform collection */
 		ret = collect();
 		if (ret != OK) {
-			log("collection error %d", ret);
+			if (ret == -6) {
+				/*
+				 * The ms5611 seems to regularly fail to respond to
+				 * its address; this happens often enough that we'd rather not
+				 * spam the console with the message.
+				 */
+			} else {
+				log("collection error %d", ret);
+			}
 			/* reset the collection state machine and try again */
-			start();
+			start_cycle();
 			return;
 		}
 
@@ -615,7 +627,7 @@ MS5611::cycle()
 	if (ret != OK) {
 		log("measure error %d", ret);
 		/* reset the collection state machine and try again */
-		start();
+		start_cycle();
 		return;
 	}
 
@@ -642,7 +654,11 @@ MS5611::measure()
 
 	/*
 	 * Send the command to begin measuring.
+	 *
+	 * Disable retries on this command; we can't know whether failure 
+	 * means the device did or did not see the write.
 	 */
+	_retries = 0;
 	ret = transfer(&cmd_data, 1, nullptr, 0);
 
 	if (OK != ret)
@@ -670,6 +686,8 @@ MS5611::collect()
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	_reports[_next_report].timestamp = hrt_absolute_time();
 
+	/* it's OK to retry on collection, as it has no side-effects */
+	_retries = 3;
 	ret = transfer(&cmd, 1, &data[0], 3);
 	if (ret != OK) {
 		perf_count(_comms_errors);
