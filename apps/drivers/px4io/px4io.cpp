@@ -308,6 +308,12 @@ PX4IO::init()
 	if (ret != OK)
 		return ret;
 
+	/*
+	 * Enable a couple of retries for operations to IO.
+	 *
+	 * Register read/write operations are intentionally idempotent
+	 * so this is safe as designed.
+	 */
 	_retries = 2;
 
 	/* get some parameters */
@@ -325,6 +331,12 @@ PX4IO::init()
 	}
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
 		_max_rc_input = RC_INPUT_MAX_CHANNELS;
+
+	/* dis-arm IO before touching anything */
+	io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
+		PX4IO_P_SETUP_ARMING_ARM_OK |
+		PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE |
+		PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK, 0);
 
 	/* publish RC config to IO */
 	ret = io_set_rc_config();
