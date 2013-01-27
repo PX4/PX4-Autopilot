@@ -67,6 +67,7 @@
 #include <systemlib/perf_counter.h>
 
 #include <systemlib/ppm_decode.h>
+#include <systemlib/airspeed.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -75,6 +76,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/differential_pressure.h>
 
 #define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
 #define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
@@ -88,9 +90,10 @@
 #define BARO_HEALTH_COUNTER_LIMIT_OK 5
 #define ADC_HEALTH_COUNTER_LIMIT_OK  5
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL  10
+#define ADC_BATTERY_VOLTAGE_CHANNEL	10
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
 
-#define BAT_VOL_INITIAL 12.f
+#define BAT_VOL_INITIAL 0.f
 #define BAT_VOL_LOWPASS_1 0.99f
 #define BAT_VOL_LOWPASS_2 0.01f
 #define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
@@ -161,11 +164,14 @@ private:
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
 	orb_advert_t	_rc_pub;			/**< raw r/c control topic */
 	orb_advert_t	_battery_pub;			/**< battery status */
+	orb_advert_t	_airspeed_pub;			/**< airspeed */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
 	struct battery_status_s _battery_status;	/**< battery status */
+	struct baro_report _barometer;			/**< barometer data */
+	struct differential_pressure_s _differential_pressure;
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -389,6 +395,7 @@ Sensors::Sensors() :
 	_manual_control_pub(-1),
 	_rc_pub(-1),
 	_battery_pub(-1),
+	_airspeed_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
@@ -861,13 +868,12 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 	orb_check(_baro_sub, &baro_updated);
 
 	if (baro_updated) {
-		struct baro_report	baro_report;
 
-		orb_copy(ORB_ID(sensor_baro), _baro_sub, &baro_report);
+		orb_copy(ORB_ID(sensor_baro), _baro_sub, &_barometer);
 
-		raw.baro_pres_mbar = baro_report.pressure; // Pressure in mbar
-		raw.baro_alt_meter = baro_report.altitude; // Altitude in meters
-		raw.baro_temp_celcius = baro_report.temperature; // Temperature in degrees celcius
+		raw.baro_pres_mbar = _barometer.pressure; // Pressure in mbar
+		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
+		raw.baro_temp_celcius = _barometer.temperature; // Temperature in degrees celcius
 
 		raw.baro_counter++;
 	}
@@ -988,29 +994,72 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
 
-			if (ret >= sizeof(buf_adc[0]) && ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
-				/* Voltage in volts */
-				float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
+			if (ret >= (int)sizeof(buf_adc[0])) {
 
-				if (voltage > VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
+				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+					/* Voltage in volts */
+					float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
 
-					/* one-time initialization of low-pass value to avoid long init delays */
-					if (_battery_status.voltage_v < 3.0f) {
-						_battery_status.voltage_v = voltage;
-					}
+					if (voltage > VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
 
-					_battery_status.timestamp = hrt_absolute_time();
-					_battery_status.voltage_v = (BAT_VOL_LOWPASS_1 * (_battery_status.voltage_v + BAT_VOL_LOWPASS_2 * voltage));;
-					/* current and discharge are unknown */
-					_battery_status.current_a = -1.0f;
-					_battery_status.discharged_mah = -1.0f;
+						/* one-time initialization of low-pass value to avoid long init delays */
+						if (_battery_status.voltage_v < 3.0f) {
+							_battery_status.voltage_v = voltage;
+						}
 
-					/* announce the battery voltage if needed, just publish else */
-					if (_battery_pub > 0) {
-						orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+						_battery_status.timestamp = hrt_absolute_time();
+						_battery_status.voltage_v = (BAT_VOL_LOWPASS_1 * (_battery_status.voltage_v + BAT_VOL_LOWPASS_2 * voltage));;
+						/* current and discharge are unknown */
+						_battery_status.current_a = -1.0f;
+						_battery_status.discharged_mah = -1.0f;
 
-					} else {
-						_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+						/* announce the battery voltage if needed, just publish else */
+						if (_battery_pub > 0) {
+							orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+
+						} else {
+							_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+						}
+					} 
+
+				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+
+					/* calculate airspeed, raw is the difference from */
+
+					float voltage = buf_adc[i].am_data / 4096.0f;
+
+					/**
+					 * The voltage divider pulls the signal down, only act on
+					 * a valid voltage from a connected sensor
+					 */
+					if (voltage > 0.4f) {
+
+						float pres_raw = fabsf(voltage - (3.3f / 2.0f));
+						float pres_mbar = pres_raw * (3.3f / 5.0f) * 10.0f;
+
+						float airspeed_true = calc_true_airspeed(pres_mbar + _barometer.pressure,
+							_barometer.pressure, _barometer.temperature - 5.0f);
+						// XXX HACK - true temperature is much less than indicated temperature in baro,
+						// subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
+
+						float airspeed_indicated = calc_indicated_airspeed(pres_mbar + _barometer.pressure,
+							_barometer.pressure, _barometer.temperature - 5.0f);
+						// XXX HACK
+
+						_differential_pressure.timestamp = hrt_absolute_time();
+						_differential_pressure.static_pressure_mbar = _barometer.pressure;
+						_differential_pressure.differential_pressure_mbar = pres_mbar;
+						_differential_pressure.temperature_celcius = _barometer.temperature;
+						_differential_pressure.indicated_airspeed_m_s = airspeed_indicated;
+						_differential_pressure.true_airspeed_m_s = airspeed_true;
+
+						/* announce the airspeed if needed, just publish else */
+						if (_airspeed_pub > 0) {
+							orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_differential_pressure);
+
+						} else {
+							_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &_differential_pressure);
+						}
 					}
 				}
 
@@ -1114,7 +1163,7 @@ Sensors::ppm_poll()
 			}
 
 			/* reverse channel if required */
-			if (i == _rc.function[THROTTLE]) {
+			if (i == (int)_rc.function[THROTTLE]) {
 				if ((int)_parameters.rev[i] == -1) {
 					_rc.chan[i].scaled = 1.0f + -1.0f * _rc.chan[i].scaled;
 				}
