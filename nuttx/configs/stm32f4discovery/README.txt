@@ -1165,14 +1165,30 @@ Where <subdir> is one of the following:
   nsh:
   ---
     Configures the NuttShell (nsh) located at apps/examples/nsh.  The
-    Configuration enables both the serial and telnet NSH interfaces.
-
-    Default toolchain:
-
-    CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux / Mac OS X
+    Configuration enables the serial interfaces on UART2.  Support for
+    builtin applications is enabled, but in the base configuration no
+    builtin applications are selected (see NOTES below).
 
     NOTES:
-    1. This example supports the PWM test (apps/examples/pwm) but this must
+ 
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
+
+       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
+          and misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. By default, this configuration uses the CodeSourcery toolchain
+       for Windows and builds under Cygwin (or probably MSYS).  That
+       can easily be reconfigured, of course.
+
+       CONFIG_HOST_WINDOWS=y                   : Builds under Windows
+       CONFIG_WINDOWS_CYGWIN=y                 : Using Cygwin
+       CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYW=y : CodeSourcery for Windows
+
+    3. This example supports the PWM test (apps/examples/pwm) but this must
        be manually enabled by selecting:
 
        CONFIG_PWM=y              : Enable the generic PWM infrastructure
@@ -1185,27 +1201,28 @@ Where <subdir> is one of the following:
 
        CONFIG_DEBUG_PWM
 
-    2. This example supports the Quadrature Encode test (apps/examples/qencoder)
+    5. This example supports the Quadrature Encode test (apps/examples/qencoder)
        but this must be manually enabled by selecting:
 
-       CONFIG_QENCODER=y         : Enable the generic Quadrature Encoder infrastructure
-       CONFIG_STM32_TIM8=y       : Enable TIM8
-       CONFIG_STM32_TIM2=n       : (Or optionally TIM2)
-       CONFIG_STM32_TIM8_QE=y    : Use TIM8 as the quadrature encoder
-       CONFIG_STM32_TIM2_QE=y    : (Or optionally TIM2)
+       CONFIG_EXAMPLES_QENCODER=y : Enable the apps/examples/qencoder
+       CONFIG_SENSORS=y           : Enable support for sensors
+       CONFIG_QENCODER=y          : Enable the generic Quadrature Encoder infrastructure
+       CONFIG_STM32_TIM8=y        : Enable TIM8
+       CONFIG_STM32_TIM2=n        : (Or optionally TIM2)
+       CONFIG_STM32_TIM8_QE=y     : Use TIM8 as the quadrature encoder
+       CONFIG_STM32_TIM2_QE=y     : (Or optionally TIM2)
 
-       See also apps/examples/README.txt
-
-       Special PWM-only debug options:
+       See also apps/examples/README.tx. Special PWM-only debug options:
 
        CONFIG_DEBUG_QENCODER
 
-    3. This example supports the watchdog timer test (apps/examples/watchdog)
+    6. This example supports the watchdog timer test (apps/examples/watchdog)
        but this must be manually enabled by selecting:
 
-       CONFIG_WATCHDOG=y         : Enables watchdog timer driver support
-       CONFIG_STM32_WWDG=y       : Enables the WWDG timer facility, OR
-       CONFIG_STM32_IWDG=y       : Enables the IWDG timer facility (but not both)
+       CONFIG_EXAMPLES_WATCHDOG=y : Enable the apps/examples/watchdog
+       CONFIG_WATCHDOG=y          : Enables watchdog timer driver support
+       CONFIG_STM32_WWDG=y        : Enables the WWDG timer facility, OR
+       CONFIG_STM32_IWDG=y        : Enables the IWDG timer facility (but not both)
 
        The WWDG watchdog is driven off the (fast) 42MHz PCLK1 and, as result,
        has a maximum timeout value of 49 milliseconds.  for WWDG watchdog, you
@@ -1216,14 +1233,14 @@ Where <subdir> is one of the following:
 
        The IWDG timer has a range of about 35 seconds and should not be an issue.
 
-     4. USB Support (CDC/ACM device)
+     7. USB Support (CDC/ACM device)
 
         CONFIG_STM32_OTGFS=y      : STM32 OTG FS support
         CONFIG_USBDEV=y           : USB device support must be enabled
         CONFIG_CDCACM=y           : The CDC/ACM driver must be built
         CONFIG_NSH_BUILTIN_APPS=y : NSH built-in application support must be enabled
 
-     5. Using the USB console.
+     8. Using the USB console.
 
         The STM32F4Discovery NSH configuration can be set up to use a USB CDC/ACM
         (or PL2303) USB console.  The normal way that you would configure the
@@ -1268,7 +1285,7 @@ Where <subdir> is one of the following:
         you can still use certain kinds of debug output (see include/debug.h, all
         of the interfaces based on lib_lowprintf will work in this configuration).
 
-    6. USB OTG FS Host Support.  The following changes will enable support for
+    9. USB OTG FS Host Support.  The following changes will enable support for
        a USB host on the STM32F4Discovery, including support for a mass storage
        class driver:
  

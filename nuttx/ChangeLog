@@ -4048,4 +4048,6 @@
 	* sched/os_start.c: Fix ordering of group initialization.
 	* configs/stm32f4discovery/usbnsh:  Add an NSH STM32F4Discovery
 	  configuration that uses USB CDC/ACM for the NSH console.
+	* configs/stm32f4discovery/nsh: Converted to use the kconfig-frontends
+	  tools.
 
