@@ -157,7 +157,7 @@ i2c_interrupt(int irq, FAR void *context)
 {
 	uint16_t sr1 = rSR1;
 
-	if (sr1 & (I2C_SR1_STOPF | I2C_SR1_AF)) {
+	if (sr1 & (I2C_SR1_STOPF | I2C_SR1_AF | I2C_SR1_ADDR)) {
 
 		if (sr1 & I2C_SR1_STOPF) {
 			/* write to CR1 to clear STOPF */
@@ -165,7 +165,7 @@ i2c_interrupt(int irq, FAR void *context)
 			rCR1 |= I2C_CR1_PE;
 		}
 
-		/* it's likely that the DMA hasn't stopped, so we have to do it here */
+		/* DMA never stops, so we should do that now */
 		switch (direction) {
 		case DIR_TX:
 			i2c_tx_complete();
