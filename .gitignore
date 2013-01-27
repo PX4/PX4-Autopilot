@@ -47,6 +47,7 @@ nsh_romfsimg.h
 cscope.out
 .configX-e
 nuttx-export.zip
+.~lock.*
 dot.gdbinit
 mavlink/include/mavlink/v0.9/
 .*.swp
