@@ -94,6 +94,15 @@ void task_start(void)
   FAR _TCB *tcb = (FAR _TCB*)g_readytorun.head;
   int argc;
 
+  /* Execute the start hook if one has been registered */
+
+#ifdef CONFIG_SCHED_STARTHOOK
+  if (tcb->starthook)
+    {
+      tcb->starthook(tcb->starthookarg);
+    }
+#endif
+
   /* Count how many non-null arguments we are passing */
 
   for (argc = 1; argc <= CONFIG_MAX_TASK_ARGS; argc++)

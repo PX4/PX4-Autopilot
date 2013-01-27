@@ -161,7 +161,7 @@ int main(int argc, char **argv)
   /* Send SIGUSR1 to ourselves via kill() */
 
   printf("Kill-ing SIGUSR1 from pid=%d\n", mypid);
-  status = kill(0, SIGUSR1);
+  status = kill(mypid, SIGUSR1);
   if (status != 0)
     {
       fprintf(stderr, "Failed to kill SIGUSR1, errno=%d\n", errno);

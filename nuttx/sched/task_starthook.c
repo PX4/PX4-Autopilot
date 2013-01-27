@@ -1,7 +1,7 @@
 /****************************************************************************
- * group_setupstreams.c
+ * sched/task_start.c
  *
- *   Copyright (C) 2007-2008, 2010-2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,21 +39,29 @@
 
 #include <nuttx/config.h>
 
-#include <sched.h>
-#include <fcntl.h>
+#include <nuttx/sched.h>
 
-#include <nuttx/fs/fs.h>
-#include <nuttx/net/net.h>
-#include <nuttx/lib.h>
+#ifdef CONFIG_SCHED_STARTHOOK
 
-#include "group_internal.h"
+/****************************************************************************
+ * Definitions
+ ****************************************************************************/
 
-/* Make sure that there are file or socket descriptors in the system and
- * that some number of streams have been configured.
- */
+/****************************************************************************
+ * Private Type Declarations
+ ****************************************************************************/
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-#if CONFIG_NFILE_STREAMS > 0
+/****************************************************************************
+ * Global Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
 
 /****************************************************************************
  * Private Functions
@@ -64,36 +72,29 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: group_setupstreams
+ * Name: task_starthook
  *
  * Description:
- *   Setup streams data structures that may be used for standard C buffered
- *   I/O with underlying socket or file desciptors
+ *   Configure a start hook... a function that will be called on the thread
+ *   of the new task before the new task's main entry point is called.
+ *   The start hook is useful, for example, for setting up automatic
+ *   configuration of C++ constructors.
+ *
+ * Inputs:
+ *   tcb - The new, unstarted task task that needs the start hook
+ *   starthook - The pointer to the start hook function
+ *   arg - The argument to pass to the start hook function.
+ *
+ * Return:
+ *   None
  *
  ****************************************************************************/
 
-int group_setupstreams(FAR _TCB *tcb)
+void task_starthook(FAR _TCB *tcb, starthook_t starthook, FAR void *arg)
 {
-  DEBUGASSERT(tcb && tcb->group);
-
-  /* Initialize file streams for the task group */
-
-  lib_streaminit(&tcb->group->tg_streamlist);
-
-  /* fdopen to get the stdin, stdout and stderr streams. The following logic
-   * depends on the fact that the library layer will allocate FILEs in order.
-   *
-   * fd = 0 is stdin  (read-only)
-   * fd = 1 is stdout (write-only, append)
-   * fd = 2 is stderr (write-only, append)
-   */
-
-  (void)fs_fdopen(0, O_RDONLY,       tcb);
-  (void)fs_fdopen(1, O_WROK|O_CREAT, tcb);
-  (void)fs_fdopen(2, O_WROK|O_CREAT, tcb);
-
-  return OK;
+  DEBUGASSERT(tcb);
+  tcb->starthook    = starthook;
+  tcb->starthookarg = arg;
 }
 
-#endif /* CONFIG_NFILE_STREAMS > 0 */
-#endif /* CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0*/
+#endif /* CONFIG_SCHED_STARTHOOK */

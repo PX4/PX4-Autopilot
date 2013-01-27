@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 26, 2013)
+NuttX TODO List (Last updated January 27, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
- (10)  Task/Scheduler (sched/)
+ (11)  Task/Scheduler (sched/)
   (2)  Memory Managment (mm/)
   (3)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
@@ -192,6 +192,16 @@ o Task/Scheduler (sched/)
                an MMU.
   Status:      Open
   Priority:    Low (it might as well be low since it isn't going to be fixed).
+
+  Title:       errno IS NOT SHARED AMONG THREADS
+  Description: In NuttX, the errno value is unique for each thread.  But for
+               bug-for-bug compatibility, the same errno should be shared by
+               the task and each thread that it creates.  It is *very* easy
+               to make this change:  Just move the pterrno field from
+               _TCB to struct task_group_s.   However, I am still not sure
+               if this should be done or not.
+  Status:      Open
+  Priority:    Low
 
 o Memory Managment (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^
@@ -407,6 +417,9 @@ o Binary loaders (binfmt/)
   Description: Not all of the NXFLAT test under apps/examples/nxflat are working.
                Most simply do not compile yet.  tests/mutex runs okay but
                outputs garbage on completion.
+
+               Update: 13-27-1, tests/mutex crashed with a memory corruption
+               problem the last time that I ran it.
   Status:      Open
   Priority:    High
 

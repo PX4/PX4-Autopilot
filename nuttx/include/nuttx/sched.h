@@ -183,7 +183,13 @@ union entry_u
 };
 typedef union entry_u entry_t;
 
-/* These is the types of the functions that are executed with exit() is called
+/* This is the type of the function called at task startup */
+
+#ifdef CONFIG_SCHED_STARTHOOK
+typedef CODE void (*starthook_t)(FAR void *arg);
+#endif
+
+/* These are the types of the functions that are executed with exit() is called
  * (if registered via atexit() on on_exit()).
  */
 
@@ -298,7 +304,10 @@ struct task_group_s
 #endif
 
   /* PIC data space and address environments ************************************/
-  /* Not yet (see struct dspace_s) */
+  /* Logically the PIC data space belongs here (see struct dspace_s).  The
+   * current logic needs review:  There are differences in the away that the
+   * life of the PIC data is managed.
+   */
 
   /* File descriptors ***********************************************************/
 
@@ -353,6 +362,11 @@ struct _TCB
 
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
+
+#ifdef CONFIG_SCHED_STARTHOOK
+  starthook_t starthook;                 /* Task startup function               */
+  FAR void *starthookarg;                /* The argument passed to the function */
+#endif
 
 #if defined(CONFIG_SCHED_ATEXIT) && !defined(CONFIG_SCHED_ONEXIT)
 # if defined(CONFIG_SCHED_ATEXIT_MAX) && CONFIG_SCHED_ATEXIT_MAX > 1
@@ -515,6 +529,12 @@ FAR struct streamlist *sched_getstreams(void);
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
 FAR struct socketlist *sched_getsockets(void);
 #endif /* CONFIG_NSOCKET_DESCRIPTORS */
+
+/* Setup up a start hook */
+
+#ifdef CONFIG_SCHED_STARTHOOK
+void task_starthook(FAR _TCB *tcb, starthook_t starthook, FAR void *arg);
+#endif
 
 /* Internal vfork support.The  overall sequence is:
  *

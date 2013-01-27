@@ -54,6 +54,10 @@ TSK_SRCS += task_posixspawn.c
 endif
 endif
 
+ifeq ($(CONFIG_SCHED_STARTHOOK),y)
+TSK_SRCS += task_starthook.c
+endif
+
 SCHED_SRCS = sched_setparam.c sched_setpriority.c sched_getparam.c
 SCHED_SRCS += sched_setscheduler.c sched_getscheduler.c
 SCHED_SRCS += sched_yield.c sched_rrgetinterval.c sched_foreach.c

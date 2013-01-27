@@ -4040,3 +4040,9 @@
 	  Move stream data from the TCB to the task group structure.
 	* net/, sched/, and include/nuttx/net/net.h:  Move socket data
 	  from the TCB to the task group structure.
+	* sched/task_starthook.c, sched/task_start.c, and include/nuttx/sched.h:
+	  Add a task start hook that will be called before the task main
+	  is started. This can be used to schedule C++ constructors to run
+	  automatically in the context of the new task.
+	* binfmt/binfmt_execmodule: Execute constructors as a start hook.
+

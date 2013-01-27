@@ -50,6 +50,7 @@
 #include <nuttx/net/net.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
 

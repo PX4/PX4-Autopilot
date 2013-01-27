@@ -46,6 +46,7 @@
 #include <nuttx/net/net.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
 
@@ -159,8 +160,8 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
 
   /* Get pointers to the parent and child task socket lists */
 
-  parent = rtcb->group->tg_sockets->sl_sockets;
-  child  = tcb->group->tg_sockets->sl_sockets;
+  parent = rtcb->group->tg_socketlist.sl_sockets;
+  child  = tcb->group->tg_socketlist.sl_sockets;
 
   /* Check each socket in the parent socket list */
 
