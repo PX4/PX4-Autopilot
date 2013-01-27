@@ -65,10 +65,6 @@
 #define rTRISE		REG(STM32_I2C_TRISE_OFFSET)
 
 static int		i2c_interrupt(int irq, void *context);
-#ifdef DEBUG
-static void		i2c_dump(void);
-#endif
-
 static void		i2c_rx_setup(void);
 static void		i2c_tx_setup(void);
 static void		i2c_rx_complete(void);
@@ -150,6 +146,39 @@ i2c_init(void)
 #ifdef DEBUG
 	i2c_dump();
 #endif
+}
+
+
+/*
+  reset the I2C bus
+  used to recover from lockups
+ */
+void i2c_reset(void)
+{
+	rCR1 |= I2C_CR1_SWRST;
+	rCR1 = 0;
+
+	/* set for DMA operation */
+	rCR2 |= I2C_CR2_ITEVFEN |I2C_CR2_ITERREN | I2C_CR2_DMAEN;
+
+	/* set the frequency value in CR2 */
+	rCR2 &= ~I2C_CR2_FREQ_MASK;
+	rCR2 |= STM32_PCLK1_FREQUENCY / 1000000;
+
+	/* set divisor and risetime for fast mode */
+	uint16_t result = STM32_PCLK1_FREQUENCY / (400000 * 25);
+	if (result < 1)
+		result = 1;
+	result = 3;
+	rCCR &= ~I2C_CCR_CCR_MASK;
+	rCCR |= I2C_CCR_DUTY | I2C_CCR_FS | result;
+	rTRISE = (uint16_t)((((STM32_PCLK1_FREQUENCY / 1000000) * 300) / 1000) + 1);
+
+	/* set our device address */
+	rOAR1 = 0x1a << 1;
+
+	/* and enable the I2C port */
+	rCR1 |= I2C_CR1_ACK | I2C_CR1_PE;
 }
 
 static int
@@ -301,8 +330,7 @@ i2c_tx_complete(void)
 	i2c_tx_setup();
 }
 
-#ifdef DEBUG
-static void
+void
 i2c_dump(void)
 {
 	debug("CR1   0x%08x  CR2   0x%08x", rCR1,  rCR2);
@@ -310,4 +338,3 @@ i2c_dump(void)
 	debug("CCR   0x%08x  TRISE 0x%08x", rCCR,  rTRISE);
 	debug("SR1   0x%08x  SR2   0x%08x", rSR1,  rSR2);
 }
-#endif
