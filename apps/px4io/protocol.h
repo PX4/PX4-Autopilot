@@ -109,7 +109,7 @@
 #define PX4IO_P_STATUS_ALARMS_SERVO_CURRENT	(1 << 2) /* servo current limit was exceeded */
 #define PX4IO_P_STATUS_ALARMS_ACC_CURRENT	(1 << 3) /* accessory current limit was exceeded */
 #define PX4IO_P_STATUS_ALARMS_FMU_LOST		(1 << 4) /* timed out waiting for controls from FMU */
-#define PX4IO_P_STATUS_ALARMS_RC_LOST		(1 << 5)
+#define PX4IO_P_STATUS_ALARMS_RC_LOST		(1 << 5) /* timed out waiting for RC input */
 
 #define PX4IO_P_STATUS_VBATT			4	/* battery voltage in mV */
 #define PX4IO_P_STATUS_IBATT			5	/* battery current in cA */

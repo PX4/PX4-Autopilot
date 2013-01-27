@@ -50,6 +50,81 @@
 static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
 
 /**
+ * PAGE 0
+ *
+ * Static configuration parameters.
+ */
+static const uint16_t	r_page_config[] = {
+	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= 1,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= 1,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= 3,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
+	[PX4IO_P_CONFIG_ACTUATOR_COUNT]		= IO_SERVO_COUNT,
+	[PX4IO_P_CONFIG_RC_INPUT_COUNT]		= MAX_CONTROL_CHANNELS,
+	[PX4IO_P_CONFIG_ADC_INPUT_COUNT]	= ADC_CHANNEL_COUNT,
+	[PX4IO_P_CONFIG_RELAY_COUNT]		= PX4IO_RELAY_CHANNELS,
+};
+
+/**
+ * PAGE 1
+ *
+ * Status values.
+ */
+uint16_t		r_page_status[] = {
+	[PX4IO_P_STATUS_FREEMEM]		= 0,
+	[PX4IO_P_STATUS_CPULOAD]		= 0,
+	[PX4IO_P_STATUS_FLAGS]			= 0,
+	[PX4IO_P_STATUS_ALARMS]			= 0,
+	[PX4IO_P_STATUS_VBATT]			= 0,
+	[PX4IO_P_STATUS_IBATT]			= 0
+};
+
+/**
+ * PAGE 2
+ *
+ * Post-mixed actuator values.
+ */
+uint16_t 		r_page_actuators[IO_SERVO_COUNT];
+
+/**
+ * PAGE 3
+ *
+ * Servo PWM values
+ */
+uint16_t		r_page_servos[IO_SERVO_COUNT];
+
+/**
+ * PAGE 4
+ *
+ * Raw RC input
+ */
+uint16_t		r_page_raw_rc_input[] =
+{
+	[PX4IO_P_RAW_RC_COUNT]			= 0,
+	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + MAX_CONTROL_CHANNELS)] = 0
+};
+
+/**
+ * PAGE 5
+ *
+ * Scaled/routed RC input
+ */
+uint16_t		r_page_rc_input[] = {
+	[PX4IO_P_RC_VALID]			= 0,
+	[PX4IO_P_RC_BASE ... (PX4IO_P_RC_BASE + MAX_CONTROL_CHANNELS)] = 0
+};
+
+/**
+ * PAGE 6
+ *
+ * Raw ADC input.
+ */
+uint16_t		r_page_adc[ADC_CHANNEL_COUNT];
+
+/**
+ * PAGE 100
+ *
  * Setup registers
  */
 volatile uint16_t	r_page_setup[] =
@@ -72,85 +147,40 @@ volatile uint16_t	r_page_setup[] =
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
 /**
+ * PAGE 101
+ *
  * Control values from the FMU.
  */
 volatile uint16_t	r_page_controls[PX4IO_CONTROL_CHANNELS];
 
-/**
- * Static configuration parameters.
+/*
+ * PAGE 102 does not have a buffer.
  */
-static const uint16_t	r_page_config[] = {
-	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= 1,	/* XXX hardcoded magic number */
-	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= 1,	/* XXX hardcoded magic number */
-	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= 3,	/* XXX hardcoded magic number */
-	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,	/* XXX hardcoded magic number */
-	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
-	[PX4IO_P_CONFIG_ACTUATOR_COUNT]		= IO_SERVO_COUNT,
-	[PX4IO_P_CONFIG_RC_INPUT_COUNT]		= MAX_CONTROL_CHANNELS,
-	[PX4IO_P_CONFIG_ADC_INPUT_COUNT]	= ADC_CHANNEL_COUNT,
-	[PX4IO_P_CONFIG_RELAY_COUNT]		= PX4IO_RELAY_CHANNELS,
-};
 
 /**
- * Status values.
- */
-uint16_t		r_page_status[] = {
-	[PX4IO_P_STATUS_FREEMEM]		= 0,
-	[PX4IO_P_STATUS_CPULOAD]		= 0,
-	[PX4IO_P_STATUS_FLAGS]			= 0,
-	[PX4IO_P_STATUS_ALARMS]			= 0,
-	[PX4IO_P_STATUS_VBATT]			= 0,
-	[PX4IO_P_STATUS_IBATT]			= 0
-};
-
-/**
- * ADC input buffer.
- */
-uint16_t		r_page_adc[ADC_CHANNEL_COUNT];
-
-/**
- * Post-mixed actuator values.
- */
-uint16_t 		r_page_actuators[IO_SERVO_COUNT];
-
-/**
- * Servo PWM values
- */
-uint16_t		r_page_servos[IO_SERVO_COUNT];
-
-/**
- * Servo PWM values
- */
-uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT];
-
-/**
- * Scaled/routed RC input
- */
-uint16_t		r_page_rc_input[] = {
-	[PX4IO_P_RC_VALID]			= 0,
-	[PX4IO_P_RC_BASE ... (PX4IO_P_RC_BASE + MAX_CONTROL_CHANNELS)] = 0
-};
-
-/**
- * Raw RC input
- */
-uint16_t		r_page_raw_rc_input[] =
-{
-	[PX4IO_P_RAW_RC_COUNT]			= 0,
-	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + MAX_CONTROL_CHANNELS)] = 0
-};
-
-/**
+ * PAGE 103
+ *
  * R/C channel input configuration.
  */
 uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE];
 
+/* valid options excluding ENABLE */
 #define PX4IO_P_RC_CONFIG_OPTIONS_VALID	PX4IO_P_RC_CONFIG_OPTIONS_REVERSE
+
+/*
+ * PAGE 104 uses r_page_servos.
+ */
+
+/**
+ * PAGE 105
+ *
+ * Failsafe servo PWM values
+ */
+uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT];
 
 void
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
-	system_state.fmu_data_received_time = hrt_absolute_time();
 
 	switch (page) {
 
