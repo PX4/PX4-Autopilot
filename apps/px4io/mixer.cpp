@@ -91,10 +91,12 @@ mixer_tick(void)
 	if ((hrt_absolute_time() - system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
 		/* too long without FMU input, time to go to failsafe */
+		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
+			debug("AP RX timeout");
+		}
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM);
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
-		debug("AP RX timeout");
 	}
 
 	source = MIX_FAILSAFE;
@@ -237,16 +239,16 @@ mixer_tick(void)
 		up_pwm_servo_arm(true);
 		mixer_servos_armed = true;
 
-		/*
-		 * Update the servo outputs.
-		 */
-		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
-			up_pwm_servo_set(i, r_page_servos[i]);
-
 	} else if (!should_arm && mixer_servos_armed) {
 		/* armed but need to disarm */
 		up_pwm_servo_arm(false);
 		mixer_servos_armed = false;
+	}
+
+	if (mixer_servos_armed) {
+		/* update the servo outputs. */
+		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+			up_pwm_servo_set(i, r_page_servos[i]);
 	}
 }
 
