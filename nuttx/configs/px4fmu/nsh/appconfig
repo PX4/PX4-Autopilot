@@ -92,6 +92,7 @@ CONFIGURED_APPS += fixedwing_att_control
 CONFIGURED_APPS += fixedwing_pos_control
 CONFIGURED_APPS += position_estimator
 CONFIGURED_APPS += attitude_estimator_ekf
+CONFIGURED_APPS += hott_telemetry
 
 # Hacking tools
 #CONFIGURED_APPS += system/i2c
