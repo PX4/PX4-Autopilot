@@ -100,6 +100,7 @@ const struct {
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"tone",		test_tone,	0},
 	{"sleep",		test_sleep,	OPT_NOJIGTEST},
 	{"time",		test_time,	OPT_NOJIGTEST},
