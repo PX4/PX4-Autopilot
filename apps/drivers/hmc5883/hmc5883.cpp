@@ -465,7 +465,7 @@ HMC5883::probe()
 	    read_reg(ADDR_ID_C, data[2]))
 		debug("read_reg fail");
 
-	_retries = 1;
+	_retries = 2;
 
 	if ((data[0] != ID_A_WHO_AM_I) ||
 	    (data[1] != ID_B_WHO_AM_I) ||
