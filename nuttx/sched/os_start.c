@@ -327,6 +327,12 @@ void os_start(void)
     }
 #endif
 
+  /* Allocate the IDLE group and suppress child status. */
+
+#ifdef HAVE_TASK_GROUP
+  (void)group_allocate(&g_idletcb);
+#endif
+
   /* Initialize the interrupt handling subsystem (if included) */
 
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS
@@ -439,19 +445,20 @@ void os_start(void)
       lib_initialize();
     }
 
-  /* Create the IDLE group and suppress child status */
-
-#ifdef HAVE_TASK_GROUP
-  (void)group_allocate(&g_idletcb);
-  (void)group_initialize(&g_idletcb);
-  g_idletcb.group->tg_flags = GROUP_FLAG_NOCLDWAIT;
-#endif
-
   /* Create stdout, stderr, stdin on the IDLE task.  These will be
    * inherited by all of the threads created by the IDLE task.
    */
 
   (void)group_setupidlefiles(&g_idletcb);
+
+  /* Complete initialization of the IDLE group.  Suppress retention
+   * of child status in the IDLE group.
+   */
+
+#ifdef HAVE_TASK_GROUP
+  (void)group_initialize(&g_idletcb);
+  g_idletcb.group->tg_flags = GROUP_FLAG_NOCLDWAIT;
+#endif
 
   /* Create initial tasks and bring-up the system */
 

@@ -38,8 +38,10 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <stdio.h>
 #include <debug.h>
+
 #include "lib_internal.h"
 
 /* This interface can only be used from within the kernel */

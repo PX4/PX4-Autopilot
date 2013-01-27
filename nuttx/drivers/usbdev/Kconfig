@@ -154,6 +154,14 @@ menuconfig PL2303
 		This logic emulates the Prolific PL2303 serial/USB converter
 
 if PL2303
+
+config PL2303_CONSOLE
+	bool "PL2303 console device"
+	default n
+	---help---
+		Register the USB device as /dev/console so that is will be used
+		as the console device.
+
 config PL2303_EPINTIN
 	int "Logical endpoint numbers"
 	default 1
@@ -218,8 +226,16 @@ menuconfig CDCACM
 		Enables USB Modem (CDC ACM) support
 
 if CDCACM
+
+config CDCACM_CONSOLE
+	bool "CDC/ACM console device"
+	default n
+	---help---
+		Register the USB device as /dev/console so that is will be used
+		as the console device.
+
 config CDCACM_COMPOSITE
-	bool "CDCACM composite support"
+	bool "CDC/ACM composite support"
 	default n
 	depends on USBDEV_COMPOSITE
 	---help---

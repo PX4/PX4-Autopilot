@@ -4045,4 +4045,7 @@
 	  is started. This can be used to schedule C++ constructors to run
 	  automatically in the context of the new task.
 	* binfmt/binfmt_execmodule: Execute constructors as a start hook.
+	* sched/os_start.c: Fix ordering of group initialization.
+	* configs/stm32f4discovery/usbnsh:  Add an NSH STM32F4Discovery
+	  configuration that uses USB CDC/ACM for the NSH console.
 

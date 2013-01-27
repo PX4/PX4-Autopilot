@@ -265,7 +265,7 @@ int syslog_initialize(void)
     {
       /* The inode was not found.  In this case, we will attempt to re-open
        * the device repeatedly.  The assumption is that the device path is
-       * value but that the driver has not yet been registered.
+       * valid but that the driver has not yet been registered.
        */
 
       g_sysdev.sl_state = SYSLOG_REOPEN;

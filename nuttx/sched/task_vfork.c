@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <sys/wait.h>
 #include <stdint.h>
 #include <assert.h>
 #include <queue.h>

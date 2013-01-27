@@ -24,23 +24,26 @@ config SYSLOG
 	---help---
 		Enables generic system logging features.
 
-config SYSLOG_DEVPATH
-	string "System log device"
-	default "/dev/syslog"
-	depends on SYSLOG
-	---help---
-		The full path to the system logging device.  For the RAMLOG SYSLOG device,
-		this is normally "/dev/ramlog".  For character SYSLOG devices, it should be
-		some other existing character device (or file) supported by the configuration
-		(such as "/dev/ttyS1")/
+if SYSLOG
 
 config SYSLOG_CHAR
 	bool "System log character device support"
 	default y
-	depends on SYSLOG
 	---help---
 		Enable the generic character device for the SYSLOG. The full path to the
 		SYSLOG device is provided by SYSLOG_DEVPATH. A valid character device (or
 		file) must exist at this path.  It will by opened by syslog_initialize.
 
 		Do not enable more than one SYSLOG device.
+
+config SYSLOG_DEVPATH
+	string "System log device"
+	default "/dev/syslog"
+	depends on SYSLOG_CHAR
+	---help---
+		The full path to the system logging device.  For the RAMLOG SYSLOG device,
+		this is normally "/dev/ramlog".  For character SYSLOG devices, it should be
+		some other existing character device (or file) supported by the configuration
+		(such as "/dev/ttyS1")/
+
+endif

@@ -1473,6 +1473,56 @@ Where <subdir> is one of the following:
     3. By default, this project assumes that you are *NOT* using the DFU
        bootloader.
  
+  usbnsh:
+  -------
+
+    This is another NSH example.  If differs from other 'nsh' configurations
+    in that this configurations uses a USB serial device for console I/O.
+    Such a configuration is useful on the stm32f4discovery which has no
+    builtin RS-232 drivers.
+
+    NOTES:
+ 
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
+
+       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
+          and misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. By default, this configuration uses the CodeSourcery toolchain
+       for Windows and builds under Cygwin (or probably MSYS).  That
+       can easily be reconfigured, of course.
+
+       CONFIG_HOST_WINDOWS=y                   : Builds under Windows
+       CONFIG_WINDOWS_CYGWIN=y                 : Using Cygwin
+       CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYW=y : CodeSourcery for Windows
+
+    3. This configuration does have UART2 output enabled and set up as
+       the system logging device:
+
+       CONFIG_SYSLOG=y                    : Enable output to syslog, not console
+       CONFIG_SYSLOG_CHAR=y               : Use a character device for system logging
+       CONFIG_SYSLOG_DEVPATH="/dev/ttyS0" : UART2 will be /dev/ttyS0
+
+       Debug, however, is not enable so in the default configuration nothing
+       should appear on UART2 unless you enable some debug output.
+
+    4. By default, this project assumes that you are *NOT* using the DFU
+       bootloader.
+
+    Using the Prolifics PL2303 Emulation
+    ------------------------------------
+    You could also use the non-standard PL2303 serial device instead of
+    the standard CDC/ACM serial device by changing:
+
+      CONFIG_CDCACM=y               : Disable the CDC/ACM serial device class
+      CONFIG_CDCACM_CONSOLE=y       : The CDC/ACM serial device is NOT the console
+      CONFIG_PL2303=y               : The Prolifics PL2303 emulation is enabled
+      CONFIG_PL2303_CONSOLE=y       : The PL2303 serial device is the console
+
   winbuild:
   --------
 
