@@ -332,8 +332,7 @@ MS5611::probe()
 	if ((OK == probe_address(MS5611_ADDRESS_1)) ||
 	    (OK == probe_address(MS5611_ADDRESS_2))) {
 	    	/*
-	    	 * Disable retries; we may enable them selectively in some cases,
-	    	 * but the device gets confused if we retry some of the commands.
+	    	 * Disable retries; the device gets confused if we retry some of the commands.
 	    	 */
 		_retries = 0;
 		return OK;
@@ -654,11 +653,7 @@ MS5611::measure()
 
 	/*
 	 * Send the command to begin measuring.
-	 *
-	 * Disable retries on this command; we can't know whether failure 
-	 * means the device did or did not see the write.
 	 */
-	_retries = 0;
 	ret = transfer(&cmd_data, 1, nullptr, 0);
 
 	if (OK != ret)
@@ -686,8 +681,6 @@ MS5611::collect()
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	_reports[_next_report].timestamp = hrt_absolute_time();
 
-	/* it's OK to retry on collection, as it has no side-effects */
-	_retries = 3;
 	ret = transfer(&cmd, 1, &data[0], 3);
 	if (ret != OK) {
 		perf_count(_comms_errors);
