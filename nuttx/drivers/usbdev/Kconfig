@@ -272,10 +272,10 @@ config CDCACM_EP0MAXPACKET
 
 config CDCACM_EPINTIN
 	int "Hardware endpoint that supports interrupt IN operation"
-	default 2
+	default 1
 	---help---
 		The logical 7-bit address of a hardware endpoint that supports
-		interrupt IN operation.  Default 2.
+		interrupt IN operation.  Default 1.
 
 config CDCACM_EPINTIN_FSSIZE
 	int "Endpoint in full speed size"
@@ -293,10 +293,10 @@ config CDCACM_EPINTIN_HSSIZE
 
 config CDCACM_EPBULKOUT
 	int "Endpoint bulk out"
-	default 0
+	default 3
 	---help---
 		The logical 7-bit address of a hardware endpoint that supports
-		bulk OUT operation
+		bulk OUT operation.  Default: 3
 
 config CDCACM_EPBULKOUT_FSSIZE
 	int "Endpoint bulk out full speed size"
@@ -314,10 +314,10 @@ config CDCACM_EPBULKOUT_HSSIZE
 
 config CDCACM_EPBULKIN
 	int "Endpoint bulk in"
-	default 0
+	default 2
 	---help---
 		The logical 7-bit address of a hardware endpoint that supports
-		bulk IN operation
+		bulk IN operation.  Default: 2
 
 config CDCACM_EPBULKIN_FSSIZE
 	int "Endpoint bulk in full speed size"
@@ -352,7 +352,7 @@ config CDCACM_RXBUFSIZE
 		Size of the serial receive/transmit buffers
 
 config CDCACM_TXBUFSIZE
-	bool "Transmit buffer size"
+	int "Transmit buffer size"
 	default 256
 	---help---
 		Size of the serial receive/transmit buffers

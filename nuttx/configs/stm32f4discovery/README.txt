@@ -1235,10 +1235,11 @@ Where <subdir> is one of the following:
 
      7. USB Support (CDC/ACM device)
 
-        CONFIG_STM32_OTGFS=y      : STM32 OTG FS support
-        CONFIG_USBDEV=y           : USB device support must be enabled
-        CONFIG_CDCACM=y           : The CDC/ACM driver must be built
-        CONFIG_NSH_BUILTIN_APPS=y : NSH built-in application support must be enabled
+        CONFIG_STM32_OTGFS=y          : STM32 OTG FS support
+        CONFIG_USBDEV=y               : USB device support must be enabled
+        CONFIG_CDCACM=y               : The CDC/ACM driver must be built
+        CONFIG_NSH_BUILTIN_APPS=y     : NSH built-in application support must be enabled
+        CONFIG_NSH_ARCHINIT=y         : To perform USB initialization
 
      8. Using the USB console.
 
@@ -1246,11 +1247,12 @@ Where <subdir> is one of the following:
         (or PL2303) USB console.  The normal way that you would configure the
         the USB console would be to change the .config file like this:
 
-        CONFIG_STM32_OTGFS=y      : STM32 OTG FS support
-        CONFIG_DEV_CONSOLE=n      : Inhibit use of /dev/console by other logic
-        CONFIG_USBDEV=y           : USB device support must be enabled
-        CONFIG_CDCACM=y           : The CDC/ACM driver must be built
-        CONFIG_CDCACM_CONSOLE=y   : Enable the CDC/ACM USB console.
+        CONFIG_STM32_OTGFS=y           : STM32 OTG FS support
+        CONFIG_USART2_SERIAL_CONSOLE=n : Disable the USART2 console
+        CONFIG_DEV_CONSOLE=n           : Inhibit use of /dev/console by other logic
+        CONFIG_USBDEV=y                : USB device support must be enabled
+        CONFIG_CDCACM=y                : The CDC/ACM driver must be built
+        CONFIG_CDCACM_CONSOLE=y        : Enable the CDC/ACM USB console.
 
         However, that configuration does not work.  It fails early probably because
         of some dependency on /dev/console before the USB connection is established.
@@ -1260,11 +1262,12 @@ Where <subdir> is one of the following:
         but this version will will use /dev/console.  Instead, it will use the
         normal /dev/ttyACM0 USB serial device for the console:
 
-        CONFIG_STM32_OTGFS=y      : STM32 OTG FS support
-        CONFIG_USBDEV=y           : USB device support must be enabled
-        CONFIG_CDCACM=y           : The CDC/ACM driver must be built
-        CONFIG_CDCACM_CONSOLE=n   : Done use the CDC/ACM USB console.
-        CONFIG_NSH_USBCONSOLE=y   : Instead use some other USB device for the console
+        CONFIG_STM32_OTGFS=y           : STM32 OTG FS support
+        CONFIG_USART2_SERIAL_CONSOLE=n : Disable the USART2 console
+        CONFIG_USBDEV=y                : USB device support must be enabled
+        CONFIG_CDCACM=y                : The CDC/ACM driver must be built
+        CONFIG_CDCACM_CONSOLE=n        : Don't use the CDC/ACM USB console.
+        CONFIG_NSH_USBCONSOLE=y        : Instead use some other USB device for the console
 
         The particular USB device that is used is:
 

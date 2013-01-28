@@ -280,8 +280,14 @@ NuttX Configuration Tool
 
     make menuconfig
 
-  This make target will bring up NuttX configuration menus.  The
-  'menuconfig' target depends on two things:
+  This make target will bring up NuttX configuration menus.
+
+  WARNING:  Never do 'make menuconfig' on a configuration that has
+  not been converted to use the kconfig-frontends tools!  This will
+  damage your configuration (see 
+  http://www.nuttx.org/doku.php?id=wiki:howtos:convertconfig).
+
+  The 'menuconfig' make target depends on two things:
 
   1. The Kconfig configuration data files that appear in almost all
      NuttX directories.  These data files are the part that is still
@@ -318,6 +324,22 @@ NuttX Configuration Tool
 
   This is pretty straight forward for creating new configurations
   but may be less intuitive for modifying existing configurations.
+
+Refreshing Configurations with 'make oldconfig'
+-----------------------------------------------
+
+  Whenever you use a configuration, you really should always do
+  the following *before* you make NuttX:
+
+    make oldconfig
+
+  This will make sure that the configuration is up-to-date in
+  the event that it has lapsed behind the current NuttX development.
+
+  WARNING:  Never do 'make oldconfig' (OR 'make menuconfig') on a
+  configuration that has not been converted to use the kconfig-frontends
+  tools!  This will damage your configuration (see
+  http://www.nuttx.org/doku.php?id=wiki:howtos:convertconfig).
 
 Incompatibilities with Older Configurations
 -------------------------------------------
