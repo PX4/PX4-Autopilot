@@ -4057,4 +4057,13 @@
 	  Serial was driver was not being built if there is no console
 	  device.  Obviously, the serial driver may be needed even in
 	  this case.
-
+	* arch/arm/src/stm32/stm32_serial.c: If there is a serial console,
+	  it would be ttyS0 and the others would be ttyS1-5.  If there
+	  is not serial console, was labeling them ttyS1-6; now labels them
+	  ttyS0-5.
+	* fs/fs_syslog.c: Can't handle SYSLOG output to character device from
+	  the IDLE task (because it can't block). syslog_putc now returns EOF
+	  on failure and sets errno.  Fixed some errors in error handling.
+	* libc/stdio/lib_syslogstream.c:  Checking of return value from
+	  syslog_putc was bogus.  Switching to EOF for all errors solves
+	  this.

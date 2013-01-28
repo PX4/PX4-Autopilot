@@ -1998,7 +1998,8 @@ void up_serialinit(void)
 {
 #ifdef HAVE_UART
   char devname[16];
-  unsigned i, j;
+  unsigned i;
+  unsigned minor = 0;
 #ifdef CONFIG_PM
   int ret;
 #endif
@@ -2015,6 +2016,7 @@ void up_serialinit(void)
 #if CONSOLE_UART > 0
   (void)uart_register("/dev/console", &uart_devs[CONSOLE_UART - 1]->dev);
   (void)uart_register("/dev/ttyS0",   &uart_devs[CONSOLE_UART - 1]->dev);
+  minor = 1;
 
   /* If we need to re-initialise the console to enable DMA do that here. */
 
@@ -2028,19 +2030,19 @@ void up_serialinit(void)
 
   strcpy(devname, "/dev/ttySx");
 
-  for (i = 0, j = 1; i < STM32_NUSART; i++)
+  for (i = 0; i < STM32_NUSART; i++)
     {
 
-      /* don't create a device for the console - we did that above */
+      /* Don't create a device for the console - we did that above */
 
       if ((uart_devs[i] == 0) || (uart_devs[i]->dev.isconsole))
         {
           continue;
         }
 
-      /* register USARTs as devices in increasing order */
+      /* Register USARTs as devices in increasing order */
 
-      devname[9] = '0' + j++;
+      devname[9] = '0' + minor++;
       (void)uart_register(devname, &uart_devs[i]->dev);
     }
 #endif /* HAVE UART */

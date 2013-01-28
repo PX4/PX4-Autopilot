@@ -63,6 +63,7 @@
 
 static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
 {
+  int errcode;
   int ret;
 
   /* Try writing until the write was successful or until an irrecoverable
@@ -71,22 +72,23 @@ static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
 
   do
     {
-      /* Write the character to the supported logging device */
+      /* Write the character to the supported logging device.  On failure,
+       * syslog_putc returns EOF with the errno value set;
+       */
 
       ret = syslog_putc(ch);
-      if (ret == OK)
+      if (ret != EOF)
         {
           this->nput++;
           return;
         }
 
-      /* On failure syslog_putc will return a negated errno value.  The
-       * errno variable will not be set.  The special value -EINTR means that
-       * syslog_putc() was awakened by a signal.  This is not a real error and
-       * must be ignored in this context.
+      /* The special errno value -EINTR means that syslog_putc() was
+       * awakened by a signal.  This is not a real error and must be
+       * ignored in this context.
        */
     }
-  while (ret == -EINTR);
+  while (errno == -EINTR);
 }
 
 /****************************************************************************

@@ -1254,39 +1254,9 @@ Where <subdir> is one of the following:
         CONFIG_CDCACM=y                : The CDC/ACM driver must be built
         CONFIG_CDCACM_CONSOLE=y        : Enable the CDC/ACM USB console.
 
-        However, that configuration does not work.  It fails early probably because
-        of some dependency on /dev/console before the USB connection is established.
-
-        But there is a work around for this that works better (but has some side
-        effects).  The following configuration will also create a NSH USB console
-        but this version will will use /dev/console.  Instead, it will use the
-        normal /dev/ttyACM0 USB serial device for the console:
-
-        CONFIG_STM32_OTGFS=y           : STM32 OTG FS support
-        CONFIG_USART2_SERIAL_CONSOLE=n : Disable the USART2 console
-        CONFIG_USBDEV=y                : USB device support must be enabled
-        CONFIG_CDCACM=y                : The CDC/ACM driver must be built
-        CONFIG_CDCACM_CONSOLE=n        : Don't use the CDC/ACM USB console.
-        CONFIG_NSH_USBCONSOLE=y        : Instead use some other USB device for the console
-
-        The particular USB device that is used is:
-
-        CONFIG_NSH_USBCONDEV="/dev/ttyACM0"
-
-        NOTE 1: When you first start the USB console, you have hit ENTER a few
+        NOTE: When you first start the USB console, you have hit ENTER a few
         times before NSH starts.  The logic does this to prevent sending USB data
         before there is anything on the host side listening for USB serial input.
-
-        Now the side effects:
-
-        NOTE 2. When any other device other than /dev/console is used for a user
-        interface, linefeeds (\n) will not be expanded to carriage return /
-        linefeeds (\r\n).  You will need to set your terminal program to account
-        for this.
-
-        NOTE 3: /dev/console still exists and still refers to the serial port. So
-        you can still use certain kinds of debug output (see include/debug.h, all
-        of the interfaces based on lib_lowprintf will work in this configuration).
 
     9. USB OTG FS Host Support.  The following changes will enable support for
        a USB host on the STM32F4Discovery, including support for a mass storage

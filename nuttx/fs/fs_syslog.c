@@ -42,6 +42,7 @@
 #include <sys/types.h>
 
 #include <stdint.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <semaphore.h>
@@ -282,7 +283,7 @@ int syslog_initialize(void)
   if (!INODE_IS_DRIVER(inode))
 #endif
     {
-      ret = ENXIO;
+      ret = -ENXIO;
       goto errout_with_inode;
     }
 
@@ -290,7 +291,7 @@ int syslog_initialize(void)
 
   if (!inode->u.i_ops || !inode->u.i_ops->write)
     {
-      return -EACCES;
+      ret = -EACCES;
       goto errout_with_inode;
     }
 
@@ -346,8 +347,8 @@ int syslog_initialize(void)
   return OK;
 
  errout_with_inode:
-  g_sysdev.sl_state = SYSLOG_FAILURE;
   inode_release(inode);
+  g_sysdev.sl_state = SYSLOG_FAILURE;
   return ret;
 }
 
@@ -366,6 +367,8 @@ int syslog_initialize(void)
 int syslog_putc(int ch)
 {
   ssize_t nbytes;
+  uint8_t uch;
+  int errcode;
   int ret;
 
   /* Ignore any output:
@@ -382,7 +385,10 @@ int syslog_putc(int ch)
    * (4) Any debug output generated from interrupt handlers.  A disadvantage
    *     of using the generic character device for the SYSLOG is that it
    *     cannot handle debug output generated from interrupt level handlers.
-   * (5) If an irrecoverable failure occurred during initialization.  In
+   * (5) Any debug output generated from the IDLE loop.  The character
+   *     driver interface is blocking and the IDLE thread is not permitted
+   *     to block.
+   * (6) If an irrecoverable failure occurred during initialization.  In
    *     this case, we won't ever bother to try again (ever).
    *
    * NOTE: That the third case is different.  It applies only to the thread
@@ -390,11 +396,12 @@ int syslog_putc(int ch)
    * that is why that case is handled in syslog_semtake().
    */
 
-  /* Case (4) */
+  /* Cases (4) and (5) */
 
-  if (up_interrupt_context())
+  if (up_interrupt_context() || getpid() == 0)
     {
-      return -ENOSYS;  /* Not supported */
+      errcode = ENOSYS;
+      goto errout_with_errcode;
     }
 
   /* We can save checks in the usual case:  That after the SYSLOG device
@@ -408,14 +415,16 @@ int syslog_putc(int ch)
       if (g_sysdev.sl_state == SYSLOG_UNINITIALIZED ||
           g_sysdev.sl_state == SYSLOG_INITIALIZING)
        {
-         return -EAGAIN;  /* Can't access the SYSLOG now... maybe next time? */
+         errcode = EAGAIN; /* Can't access the SYSLOG now... maybe next time? */
+         goto errout_with_errcode;
        }
 
-      /* Case (5) */
+      /* Case (6) */
 
       if (g_sysdev.sl_state == SYSLOG_FAILURE)
         {
-          return -ENXIO;  /* There is no SYSLOG device */
+          errcode = ENXIO;  /* There is no SYSLOG device */
+          goto errout_with_errcode;
         }
 
       /* syslog_initialize() is called as soon as enough of the operating
@@ -443,7 +452,8 @@ int syslog_putc(int ch)
           if (ret < 0)
             {
               sched_unlock();
-              return ret;
+              errcode = -ret;
+              goto errout_with_errcode;
             }
         }
 
@@ -471,7 +481,8 @@ int syslog_putc(int ch)
        * way, we are outta here.
        */
 
-      return ret;
+      errcode = -ret;
+      goto errout_with_errcode;
     }
 
   /* Pre-pend a newline with a carriage return. */
@@ -497,19 +508,27 @@ int syslog_putc(int ch)
     {
       /* Write the non-newline character (and don't flush) */
 
-      nbytes = syslog_write(&ch, 1);
+      uch = (uint8_t)ch;
+      nbytes = syslog_write(&uch, 1);
     }
 
   syslog_givesem();
 
-  /* Check if the write was successful */
+  /* Check if the write was successful.  If not, nbytes will be
+   * a negated errno value.
+   */
 
   if (nbytes < 0)
     {
-      return nbytes;
+      errcode = -ret;
+      goto errout_with_errcode;
     }
 
   return ch;
+
+errout_with_errcode:
+  set_errno(errcode);
+  return EOF;
 }
 
 #endif /* CONFIG_SYSLOG && CONFIG_SYSLOG_CHAR */
