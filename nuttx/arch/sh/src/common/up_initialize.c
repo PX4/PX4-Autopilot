@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/sh/src/common/up_initialize.c
  *
- *   Copyright (C) 2008-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -136,16 +136,20 @@ void up_initialize(void)
   devnull_register();   /* Standard /dev/null */
 #endif
 
-  /* Initialize the console device driver.  NOTE that the naming
-   * implies that the console is a serial driver.  That is usually the case,
-   * however, if no UARTs are enabled, the console could als be provided
-   * through some other device, such as an LCD.  Architecture-specific logic
-   * will have to detect that case.
+  /* Initialize the serial device driver */
+
+#ifdef USE_SERIALDRIVER
+  up_serialinit();
+#endif
+
+  /* Initialize the console device driver (if it is other than the standard
+   * serial driver). NOTE that the naming implies that the console is a serial
+   * driver.  That is usually the case, however, if no UARTs are enabled, the
+   * console could als be provided through some other device, such as an LCD.
+   * Architecture-specific logic will have to detect that case.
    */
 
-#if defined(USE_SERIALDRIVER)
-  up_consoleinit();
-#elif defined(CONFIG_DEV_LOWCONSOLE)
+#if defined(CONFIG_DEV_LOWCONSOLE)
   lowconsole_init();
 #elif defined(CONFIG_RAMLOG_CONSOLE)
   ramlog_consoleinit();

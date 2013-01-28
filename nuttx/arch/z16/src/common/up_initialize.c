@@ -1,7 +1,7 @@
 /****************************************************************************
  * common/up_initialize.c
  *
- *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -168,7 +168,9 @@ void up_initialize(void)
   up_serialinit();
 #endif
 
-  /* Initialize the console device driver */
+  /* Initialize the console device driver (if it is other than the standard
+   * serial driver).
+   */
 
 #if defined(CONFIG_DEV_LOWCONSOLE)
   lowconsole_init();

@@ -140,8 +140,8 @@ void lpc43_ledinit(void)
 
 void lpc43_setled(int led, bool ledon)
 {
-  uint16_t gpiocfg = (led == BOARD_LED1 ? BOARD_LED1 : BOARD_LED2);
-  lpc43_gpio_write(GPIO_LED1, !ledon);
+  uint16_t gpiocfg = (led == BOARD_LED1 ? GPIO_LED1 : GPIO_LED2);
+  lpc43_gpio_write(gpiocfg, !ledon);
 }
 
 /****************************************************************************
@@ -150,8 +150,8 @@ void lpc43_setled(int led, bool ledon)
 
 void lpc43_setleds(uint8_t ledset)
 {
-  lpc43_gpio_write(BOARD_LED1, (ledset & BOARD_LED1_BIT) == 0);
-  lpc43_gpio_write(BOARD_LED2, (ledset & BOARD_LED2_BIT) == 0);
+  lpc43_gpio_write(GPIO_LED1, (ledset & BOARD_LED1_BIT) == 0);
+  lpc43_gpio_write(GPIO_LED2, (ledset & BOARD_LED2_BIT) == 0);
 }
 
 #endif /* !CONFIG_ARCH_LEDS */

@@ -4050,4 +4050,11 @@
 	  configuration that uses USB CDC/ACM for the NSH console.
 	* configs/stm32f4discovery/nsh: Converted to use the kconfig-frontends
 	  tools.
+	* configs/*/src/up_userleds.c: Fix a error that was cloned into
+	  all STM32 user LED code.  The wrong defintions were being used
+	  to set LEDs on or off.
+	* arch/*/common/up_internal.h and arch/*/common/up_initialize.c:
+	  Serial was driver was not being built if there is no console
+	  device.  Obviously, the serial driver may be needed even in
+	  this case.
 

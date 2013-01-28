@@ -66,7 +66,10 @@
  * Definitions
  ****************************************************************************/
 
-/* Determine which (if any) console driver to use */
+/* Determine which (if any) console driver to use.  If a console is enabled
+ * and no other console device is specified, then a serial console is
+ * assumed.
+ */
 
 #if CONFIG_NFILE_DESCRIPTORS == 0 || defined(CONFIG_DEV_LOWCONSOLE)
 #  undef USE_SERIALDRIVER
@@ -75,9 +78,31 @@
 #  else
 #    undef USE_LOWSERIALINIT
 #  endif
-#elif defined(CONFIG_DEV_CONSOLE) && CONFIG_NFILE_DESCRIPTORS > 0
+#elif !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS <= 0
+#  undef  USE_SERIALDRIVER
+#  undef  USE_LOWSERIALINIT
+#  undef  CONFIG_DEV_LOWCONSOLE
+#  undef  CONFIG_RAMLOG_CONSOLE
+#else
+#  undef  USE_LOWSERIALINIT
+#  if defined(CONFIG_RAMLOG_CONSOLE)
+#    undef  USE_SERIALDRIVER
+#    undef  CONFIG_DEV_LOWCONSOLE
+#  elif defined(CONFIG_DEV_LOWCONSOLE)
+#    undef  USE_SERIALDRIVER
+#  else
+#    define USE_SERIALDRIVER 1
+#  endif
+#endif
+
+/* If some other device is used as the console, then the serial driver may
+ * still be needed.  Let's assume that if the upper half serial driver is
+ * built, then the lower half will also be needed.  There is no need for
+ * the early serial initialization in this case.
+ */
+
+#if !defined(USE_SERIALDRIVER) && defined(CONFIG_STANDARD_SERIAL)
 #  define USE_SERIALDRIVER 1
-#  undef USE_LOWSERIALINIT
 #endif
 
 /****************************************************************************

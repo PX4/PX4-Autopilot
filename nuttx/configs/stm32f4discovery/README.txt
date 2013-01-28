@@ -269,7 +269,7 @@ LEDs
 ====
 
 The STM32F4Discovery board has four LEDs; green, organge, red and blue on the
-board.. These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
+board. These LEDs are not used by the board port unless CONFIG_ARCH_LEDS is
 defined.  In that case, the usage by the board port is defined in
 include/board.h and src/up_leds.c. The LEDs are used to encode OS-related
 events as follows:

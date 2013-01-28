@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/sh/src/common/up_internal.h
  *
- *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,6 +67,9 @@
  * however, if no UARTs are enabled, the console could als be provided
  * through some other device, such as an LCD.  Architecture-specific logic
  * will have to detect that case.
+ *
+ * If a console is enabled and no other console device is specified, then
+ * a serial console is assumed.
  */
 
 #if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS <= 0
@@ -86,6 +89,16 @@
 #    define USE_SERIALDRIVER 1
 #    define USE_EARLYSERIALINIT 1
 #  endif
+#endif
+
+/* If some other device is used as the console, then the serial driver may
+ * still be needed.  Let's assume that if the upper half serial driver is
+ * built, then the lower half will also be needed.  There is no need for
+ * the early serial initialization in this case.
+ */
+
+#if !defined(USE_SERIALDRIVER) && defined(CONFIG_STANDARD_SERIAL)
+#  define USE_SERIALDRIVER 1
 #endif
 
 /* Determine which device to use as the system logging device */

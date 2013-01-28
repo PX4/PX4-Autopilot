@@ -122,10 +122,10 @@ void stm32_setled(int led, bool ledon)
 
 void stm32_setleds(uint8_t ledset)
 {
-  stm32_gpiowrite(BOARD_LED1, (ledset & BOARD_LED1_BIT) == 0);
-  stm32_gpiowrite(BOARD_LED2, (ledset & BOARD_LED2_BIT) == 0);
-  stm32_gpiowrite(BOARD_LED3, (ledset & BOARD_LED3_BIT) == 0);
-  stm32_gpiowrite(BOARD_LED4, (ledset & BOARD_LED4_BIT) == 0);
+  stm32_gpiowrite(GPIO_LED1, (ledset & BOARD_LED1_BIT) == 0);
+  stm32_gpiowrite(GPIO_LED2, (ledset & BOARD_LED2_BIT) == 0);
+  stm32_gpiowrite(GPIO_LED3, (ledset & BOARD_LED3_BIT) == 0);
+  stm32_gpiowrite(GPIO_LED4, (ledset & BOARD_LED4_BIT) == 0);
 }
 
 #endif /* !CONFIG_ARCH_LEDS */

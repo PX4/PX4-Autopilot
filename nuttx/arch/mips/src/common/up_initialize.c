@@ -151,11 +151,17 @@ void up_initialize(void)
   devnull_register();   /* Standard /dev/null */
 #endif
 
-  /* Initialize the console device driver */
+  /* Initialize the serial device driver */
 
-#if defined(USE_SERIALDRIVER)
+#ifdef USE_SERIALDRIVER
   up_serialinit();
-#elif defined(CONFIG_DEV_LOWCONSOLE)
+#endif
+
+  /* Initialize the console device driver (if it is other than the standard
+   * serial driver).
+   */
+
+#if defined(CONFIG_DEV_LOWCONSOLE)
   lowconsole_init();
 #elif defined(CONFIG_RAMLOG_CONSOLE)
   ramlog_consoleinit();

@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/z80/src/common/up_initialize.c
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -161,15 +161,15 @@ void up_initialize(void)
 
   /* Initialize the serial device driver */
 
-#ifdef USE_LOWSERIALINIT
-  up_lowserialinit();
+#ifdef USE_SERIALDRIVER
+  up_serialinit();
 #endif
 
-  /* Initialize the console device driver */
+  /* Initialize the console device driver (if it is other than the standard
+   * serial driver).
+   */
 
-#if defined(USE_SERIALDRIVER)
-  up_serialinit();
-#elif defined(CONFIG_DEV_LOWCONSOLE)
+#if defined(CONFIG_DEV_LOWCONSOLE)
   lowconsole_init();
 #elif defined(CONFIG_RAMLOG_CONSOLE)
   ramlog_consoleinit();
