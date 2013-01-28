@@ -495,3 +495,5 @@
 	* apps/examples/nettest and poll:  Complete Kconfig files.
 	* apps/examples/ostest/waitpid.c:  Need to use WEXITSTATUS()
 	  to decode the correct exit status.
+	* system/usbmonitor:  A daemon that can be used to monitor USB
+	  trace outpout.

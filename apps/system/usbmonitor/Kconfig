@@ -1,0 +1,33 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config SYSTEM_USBMONITOR
+	bool "USB Monitor"
+	default n
+	depends on USBDEV && USBDEV_TRACE && SYSLOG
+	---help---
+		If USB device tracing is enabled (USBDEV_TRACE), then this option
+		will select the USB monitor.  The USB monitor is a daemon that will
+		periodically collect the buffered USB trace data and dump it to the
+		SYSLOG device.
+
+if SYSTEM_USBMONITOR
+
+config SYSTEM_USBMONITOR_STACKSIZE
+	int "USB Monitor Stack Size"
+	default 2048
+	depends on NSH_BUILTIN_APPS
+	---help---
+		The stack size to use the the USB monitor daemon.  Default: 2048
+
+config SYSTEM_USBMONITOR_PRIORITY
+	int "USB Monitor Stack Size"
+	default 50
+	depends on NSH_BUILTIN_APPS
+	---help---
+		The priority to use the the USB monitor daemon.  Default: 50
+
+endif
+

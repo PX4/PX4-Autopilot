@@ -58,7 +58,7 @@
                                        /* -0x3fffffff: Reserved */
 #  define LM_PERIPH_BASE    0x40000000 /* -0x4001ffff: FiRM Peripherals */
                                        /* -0x41ffffff: Peripherals */
-#  define LM_APERIPH_BASE   0x42000000 /* -0x43ffffff: Bit-band alise of 40000000- */
+#  define LM_APERIPH_BASE   0x42000000 /* -0x43ffffff: Bit-band alias of 40000000- */
                                        /* -0xdfffffff: Reserved */
 #  define LM_ITM_BASE       0xe0000000 /* -0xe0000fff: Instrumentation Trace Macrocell */
 #  define LM_DWT_BASE       0xe0001000 /* -0xe0001fff: Data Watchpoint and Trace */
@@ -327,19 +327,19 @@
                                                         /* -0x57fff: Reserved */
 #  define LM_GPIOAAHB_BASE  (LM_PERIPH_BASE + 0x58000)  /* -0x58fff: GPIO Port A (AHB aperture) */
 #  define LM_GPIOBAHB_BASE  (LM_PERIPH_BASE + 0x59000)  /* -0x59fff: GPIO Port B (AHB aperture) */
-#  define LM_GPIOCAHB_BASE  (LM_PERIPH_BASE + 0x5A000)  /* -0x5afff: GPIO Port C (AHB aperture) */
-#  define LM_GPIODAHB_BASE  (LM_PERIPH_BASE + 0x5B000)  /* -0x5bfff: GPIO Port D (AHB aperture) */
-#  define LM_GPIOEAHB_BASE  (LM_PERIPH_BASE + 0x5C000)  /* -0x5cfff: GPIO Port E (AHB aperture) */
-#  define LM_GPIOFAHB_BASE  (LM_PERIPH_BASE + 0x5D000)  /* -0x5dfff: GPIO Port F (AHB aperture) */
-#  define LM_GPIOGAHB_BASE  (LM_PERIPH_BASE + 0x5E000)  /* -0x5efff: GPIO Port G (AHB aperture) */
-#  define LM_GPIOHAHB_BASE  (LM_PERIPH_BASE + 0x5F000)  /* -0x5ffff: GPIO Port H (AHB aperture) */
+#  define LM_GPIOCAHB_BASE  (LM_PERIPH_BASE + 0x5a000)  /* -0x5afff: GPIO Port C (AHB aperture) */
+#  define LM_GPIODAHB_BASE  (LM_PERIPH_BASE + 0x5b000)  /* -0x5bfff: GPIO Port D (AHB aperture) */
+#  define LM_GPIOEAHB_BASE  (LM_PERIPH_BASE + 0x5c000)  /* -0x5cfff: GPIO Port E (AHB aperture) */
+#  define LM_GPIOFAHB_BASE  (LM_PERIPH_BASE + 0x5d000)  /* -0x5dfff: GPIO Port F (AHB aperture) */
+#  define LM_GPIOGAHB_BASE  (LM_PERIPH_BASE + 0x5e000)  /* -0x5efff: GPIO Port G (AHB aperture) */
+#  define LM_GPIOHAHB_BASE  (LM_PERIPH_BASE + 0x5f000)  /* -0x5ffff: GPIO Port H (AHB aperture) */
 #  define LM_GPIOJAHB_BASE  (LM_PERIPH_BASE + 0x60000)  /* -0x60fff: GPIO Port J (AHB aperture) */
                                                         /* -0xcffff: Reserved */
-#  define LM_EPI0_BASE      (LM_PERIPH_BASE + 0xD0000)  /* -0xd0fff: EPI 0 */
+#  define LM_EPI0_BASE      (LM_PERIPH_BASE + 0xd0000)  /* -0xd0fff: EPI 0 */
                                                         /* -0xfcfff: Reserved */
 #  define LM_FLASHCON_BASE  (LM_PERIPH_BASE + 0xfd000)  /* -0xfdfff: FLASH Control */
 #  define LM_SYSCON_BASE    (LM_PERIPH_BASE + 0xfe000)  /* -0xfefff: System Control */
-#  define LM_UDMA_BASE      (LM_PERIPH_BASE + 0xff000)  /* -0xfffff: System Control */
+#  define LM_UDMA_BASE      (LM_PERIPH_BASE + 0xff000)  /* -0xfffff: Micro Direct Memory Access */
                                                         /* -0x1ffffff: Reserved */
 #else
 #  error "Peripheral base addresses not specified for this Stellaris chip"

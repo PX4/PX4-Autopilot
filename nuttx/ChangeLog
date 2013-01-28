@@ -4067,3 +4067,6 @@
 	* libc/stdio/lib_syslogstream.c:  Checking of return value from
 	  syslog_putc was bogus.  Switching to EOF for all errors solves
 	  this.
+	* arch/arm/src/lm/chip/lm4f_memorymap.h: More LM4F changes from
+	  Jose Pablo Carballo.
+

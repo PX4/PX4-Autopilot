@@ -1181,17 +1181,9 @@ apps
  |- NxWidgets/
  |   `- README.txt
  |- system/
- |   |- i2c/README.txt
- |   |- free/README.txt
- |   |- install
+ |   |- i2c
  |   |  `- README.txt
- |   |- poweroff
- |   |  `- README.txt
- |   |- ramtron
- |   |  `- README.txt
- |   |- sdcard
- |   |  `- README.txt
- |   `- sysinfo
+ |   `- install
  |      `- README.txt
  `- README.txt
 
