@@ -159,7 +159,7 @@
 #endif
 
 /* I2C event trace logic.  NOTE:  trace uses the internal, non-standard, low-level
- * debug interface lib_rawprintf() but does not require that any other debug
+ * debug interface syslog() but does not require that any other debug
  * is enabled.
  */
 
@@ -899,11 +899,11 @@ static void stm32_i2c_tracedump(FAR struct stm32_i2c_priv_s *priv)
   struct stm32_trace_s *trace;
   int i;
 
-  lib_rawprintf("Elapsed time: %d\n",  clock_systimer() - priv->start_time);
+  syslog("Elapsed time: %d\n",  clock_systimer() - priv->start_time);
   for (i = 0; i <= priv->tndx; i++)
     {
       trace = &priv->trace[i];
-      lib_rawprintf("%2d. STATUS: %08x COUNT: %3d EVENT: %2d PARM: %08x TIME: %d\n",
+      syslog("%2d. STATUS: %08x COUNT: %3d EVENT: %2d PARM: %08x TIME: %d\n",
                     i+1, trace->status, trace->count,  trace->event, trace->parm,
                     trace->time - priv->start_time);
     }

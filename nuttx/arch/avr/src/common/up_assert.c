@@ -61,7 +61,7 @@
  *
  *  CONFIG_TASK_NAME_SIZE > 0 &&     <-- The task has a name
  *  (defined(CONFIG_DEBUG)    ||     <-- And the debug is enabled (lldbg used)
- *   defined(CONFIG_ARCH_STACKDUMP)) <-- Or lib_lowprintf() is used
+ *   defined(CONFIG_ARCH_STACKDUMP)) <-- Or lowsyslog() is used
  */
 
 #undef CONFIG_PRINT_TASKNAME
@@ -75,7 +75,7 @@
 
 #ifdef CONFIG_ARCH_STACKDUMP
 #  undef  lldbg
-#  define lldbg lib_lowprintf
+#  define lldbg lowsyslog
 #endif
 
 /****************************************************************************

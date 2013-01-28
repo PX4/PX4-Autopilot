@@ -71,11 +71,11 @@
 #  define CONFIG_CIMAGETEST_BGCOLOR CONFIG_NXWIDGETS_DEFAULT_BACKGROUNDCOLOR
 #endif
 
-// If debug is enabled, use the debug function, lib_rawprintf() instead
+// If debug is enabled, use the debug function, syslog() instead
 // of printf() so that the output is synchronized.
 
 #ifdef CONFIG_DEBUG
-#  define message lib_lowprintf
+#  define message lowsyslog
 #else
 #  define message printf
 #endif

@@ -106,8 +106,8 @@
 
 /* Debug output is initially disabled */
 
-#ifdef CONFIG_DEBUG_ENABLE
-extern bool g_dbgenable;
+#ifdef CONFIG_SYSLOG_ENABLE
+extern bool g_syslogenable;
 #endif
 
 /****************************************************************************
@@ -136,14 +136,6 @@ int lib_sprintf(FAR struct lib_outstream_s *obj,
 
 int lib_vsprintf(FAR struct lib_outstream_s *obj,
                  FAR const char *src, va_list ap);
-
-/* Defined lib_rawprintf.c */
-
-int lib_rawvprintf(const char *src, va_list ap);
-
-/* Defined lib_lowprintf.c */
-
-int lib_lowvprintf(const char *src, va_list ap);
 
 /* Defined in lib_dtoa.c */
 

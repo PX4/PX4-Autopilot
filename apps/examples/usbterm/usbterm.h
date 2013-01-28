@@ -101,16 +101,16 @@
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
 #  ifdef CONFIG_DEBUG
-#    define message(...) lib_rawprintf(__VA_ARGS__)
-#    define trmessage    lib_rawprintf
+#    define message(...) syslog(__VA_ARGS__)
+#    define trmessage    syslog
 #  else
 #    define message(...) printf(__VA_ARGS__)
 #    define trmessage    printf
 #  endif
 #else
 #  ifdef CONFIG_DEBUG
-#    define message      lib_lowprintf
-#    define trmessage    lib_lowprintf
+#    define message      lowsyslog
+#    define trmessage    lowsyslog
 #  else
 #    define message      printf
 #    define trmessage    printf

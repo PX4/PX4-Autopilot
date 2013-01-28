@@ -357,10 +357,10 @@ int syslog_initialize(void)
  *
  * Description:
  *   This is the low-level system logging interface.  The debugging/syslogging
- *   interfaces are lib_rawprintf() and lib_lowprinf().  The difference is
- *   the lib_rawprintf() writes to fd=1 (stdout) and lib_lowprintf() uses
+ *   interfaces are syslog() and lowsyslog().  The difference is is that
+ *   the syslog() function writes to fd=1 (stdout) whereas lowsyslog() uses
  *   a lower level interface that works from interrupt handlers.  This
- *   function is a a low-level interface used to implement lib_lowprintf().
+ *   function is a a low-level interface used to implement lowsyslog().
  *
  ****************************************************************************/
 

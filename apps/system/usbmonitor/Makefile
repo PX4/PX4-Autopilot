@@ -44,7 +44,6 @@ endif
 # Hello Application
 # TODO: appname can be automatically extracted from the directory name
 
-APPNAME		= usbmon
 PRIORITY	= SCHED_PRIORITY_DEFAULT
 STACKSIZE	= 768
 
@@ -90,7 +89,8 @@ $(COBJS): %$(OBJEXT): %.c
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
 $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(DEPCONFIG) Makefile
-	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
+	$(call REGISTER,"usbmon_start",$(PRIORITY),$(STACKSIZE),usbmonitor_start)
+	$(call REGISTER,"usbmon_stop",$(PRIORITY),$(STACKSIZE),usbmonintor_stop)
 
 context: $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat
 else

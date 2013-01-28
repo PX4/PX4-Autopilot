@@ -69,12 +69,12 @@
 
 #else
 
-   /* Used lib_rawprintf() so that there is not confusion from buffered IO */
+   /* Used syslog() so that there is not confusion from buffered IO */
 
 #  ifdef CONFIG_CPP_HAVE_VARARGS
-#    define message(...) lib_rawprintf(__VA_ARGS__)
+#    define message(...) syslog(__VA_ARGS__)
 #  else
-#    define message lib_rawprintf
+#    define message syslog
 #  endif
 
    /* At present, uIP does only abortive disconnects */

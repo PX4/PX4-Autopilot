@@ -40,7 +40,7 @@ CONFIG_HOST_LINUX=y
 #
 CONFIG_DEBUG=y
 CONFIG_DEBUG_VERBOSE=y
-# CONFIG_DEBUG_ENABLE is not set
+# CONFIG_SYSLOG_ENABLE is not set
 
 #
 # Subsystem Debug Options

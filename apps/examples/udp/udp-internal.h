@@ -63,12 +63,12 @@
 
 #else
 
-   /* If debug is enabled, use the synchronous lib_lowprintf so that the
+   /* If debug is enabled, use the synchronous lowsyslog so that the
     * program output does not get disassociated in the debug output.
     */
 
 #  ifdef CONFIG_DEBUG
-#    define message(...) lib_lowprintf(__VA_ARGS__)
+#    define message(...) lowsyslog(__VA_ARGS__)
 #  else
 #    define message(...) printf(__VA_ARGS__)
 #  endif

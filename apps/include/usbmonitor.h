@@ -1,7 +1,7 @@
 /****************************************************************************
- * common/up_stackdump.c
+ * apps/include/usbmonitor.h
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,76 +33,64 @@
  *
  ****************************************************************************/
 
+#ifndef __APPS_INCLUDE_USBMONITOR_H
+#define __APPS_INCLUDE_USBMONITOR_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <debug.h>
-
-#include "chip/chip.h"
-#include "os_internal.h"
-#include "up_internal.h"
+#ifdef CONFIG_SYSTEM_USBMONITOR
 
 /****************************************************************************
- * Definitions
+ * Pre-Processor Definitions
  ****************************************************************************/
 
-/* Output debug info if stack dump is selected -- even if 
- * debug is not selected.
- */
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
 
-#ifdef CONFIG_ARCH_STACKDUMP
-# undef  lldbg
-# define lldbg lowsyslog
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" 
+{
+#else
+#define EXTERN extern
 #endif
 
 /****************************************************************************
- * Private Data
+ * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Private Functions
- ****************************************************************************/
+ * Name: usbmon_start and usbmon_stop
+ *
+ *   Start and top the USB monitor daemon.  These are normally controlled
+ *   from the USB command line, but the ability to control these
+ *   programmatically is also helpful (for example, so that the daemon is
+ *   running before NSH starts).
+ *
+ * Input Parameters:
+ *   Standard task parameters.  These can be called or spawned.  Since the
+ *   return almost immediately, it is fine to just call the functions.  The
+ *   parameters are not used so you can pass 0 and NULL, respectivley; this
+ *   is done this way so that these functions can be NSH builtin
+ *   applications.
+ *
+ * Returned values:
+ *   Standard task return values (zero meaning success).
+ *
+ **************************************************************************/
 
-/****************************************************************************
- * Name: up_getsp
- ****************************************************************************/
-/* To be provided */
+int usbmonitor_start(int argc, char **argv);
+int usbmonitor_stop(int argc, char **argv);
 
-/****************************************************************************
- * Name: up_stackdump
- ****************************************************************************/
-
-#ifdef CONFIG_ARCH_STACKDUMP
-static void up_stackdump(void)
-{
-  _TCB *rtcb        = (_TCB*)g_readytorun.head;
-  chipreg_t sp         = up_getsp();
-  chipreg_t stack_base = (chipreg_t)rtcb->adj_stack_ptr;
-  chipreg_t stack_size = (chipreg_t)rtcb->adj_stack_size;
-
-  lldbg("stack_base: %08x\n", stack_base);
-  lldbg("stack_size: %08x\n", stack_size);
-  lldbg("sp:         %08x\n", sp);
-
-  if (sp >= stack_base || sp < stack_base - stack_size)
-    {
-      lldbg("ERROR: Stack pointer is not within allocated stack\n");
-      return;
-    }
-  else
-    {
-      chipreg_t stack = sp & ~0x0f;
-
-      for (stack = sp & ~0x0f; stack < stack_base; stack += 8*sizeof(chipreg_t))
-        {
-          chipreg_t *ptr = (chipreg_t*)stack;
-          lldbg("%08x: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-                 stack, ptr[0], ptr[1], ptr[2], ptr[3],
-                 ptr[4], ptr[5], ptr[6], ptr[7]);
-        }
-    }
+#undef EXTERN
+#ifdef __cplusplus
 }
 #endif
+
+#endif /* CONFIG_SYSTEM_USBMONITOR */
+#endif /* __APPS_INCLUDE_USBMONITOR_H */

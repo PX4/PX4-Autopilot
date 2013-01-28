@@ -109,16 +109,16 @@
                                  TRACE_TRANSFER_BITS|TRACE_CONTROLLER_BITS|TRACE_INTERRUPT_BITS)
 #ifdef CONFIG_CPP_HAVE_VARARGS
 #  ifdef CONFIG_DEBUG
-#    define message(...) lib_lowprintf(__VA_ARGS__)
-#    define trmessage    lib_lowprintf
+#    define message(...) lowsyslog(__VA_ARGS__)
+#    define trmessage    lowsyslog
 #  else
 #    define message(...) printf(__VA_ARGS__)
 #    define trmessage    printf
 #  endif
 #else
 #  ifdef CONFIG_DEBUG
-#    define message      lib_lowprintf
-#    define trmessage    lib_lowprintf
+#    define message      lowsyslog
+#    define trmessage    lowsyslog
 #  else
 #    define message      printf
 #    define trmessage    printf

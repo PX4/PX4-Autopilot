@@ -63,7 +63,7 @@
  ****************************************************************************/
 
 #if defined(CONFIG_DEBUG) || defined(CONFIG_NSH_USBCONSOLE)
-#  define trmessage lib_lowprintf
+#  define trmessage lowsyslog
 #else
 #  define trmessage printf
 #endif

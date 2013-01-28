@@ -312,11 +312,12 @@ config DEBUG_VERBOSE
 		often annoying) output will be generated.  This means there are two levels
 		of debug output:  errors-only and everything.
 
-config DEBUG_ENABLE
+config SYSLOG_ENABLE
 	bool "Enable Debug Controls"
 	default n
 	---help---
-		Support an interface to dynamically enable or disable debug output.
+		Support an interface called syslog_enable to dynamically enable or
+		disable debug output.
 
 comment "Subsystem Debug Options"
 

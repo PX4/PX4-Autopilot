@@ -53,9 +53,9 @@
  ***************************************************************************/
 
 #ifdef CONFIG_ARCH_LOWPUTC
-#  define SYSDBG lib_lowprintf
+#  define SYSDBG lowsyslog
 #else
-#  define SYSDBG lib_rawprintf
+#  define SYSDBG syslog
 #endif
 
 /***************************************************************************

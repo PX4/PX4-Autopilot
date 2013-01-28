@@ -85,13 +85,13 @@
 
 void up_initialize(void)
 {
-  /* The real purpose of the following is to make sure that lib_rawprintf
+  /* The real purpose of the following is to make sure that syslog
    * is drawn into the link.  It is needed by up_tapdev which is linked
    * separately.
    */
 
 #ifdef CONFIG_NET
-  lib_rawprintf("SIM: Initializing");
+  syslog("SIM: Initializing");
 #endif
 
   /* Register devices */

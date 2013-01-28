@@ -1,7 +1,7 @@
 /****************************************************************************
- * common/up_stackdump.c
+ * include/syslog.h
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,76 +33,62 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_SYSLOG_H
+#define __INCLUDE_SYSLOG_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <debug.h>
-
-#include "chip/chip.h"
-#include "os_internal.h"
-#include "up_internal.h"
+#include <stdint.h>
+#include <stdarg.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
-/* Output debug info if stack dump is selected -- even if 
- * debug is not selected.
+/****************************************************************************
+ * Public Type Declarations
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
+/* These low-level debug APIs are provided by the NuttX library.  These are
+ * normally accessed via the macros in debug.h.  If the cross-compiler's
+ * C pre-processor supports a variable number of macro arguments, then those
+ * macros below will map all debug statements to one or the other of the
+ * following.
  */
 
-#ifdef CONFIG_ARCH_STACKDUMP
-# undef  lldbg
-# define lldbg lowsyslog
+int syslog(FAR const char *format, ...);
+int vsyslog(const char *src, va_list ap);
+
+#ifdef CONFIG_ARCH_LOWPUTC
+int lowsyslog(FAR const char *format, ...);
+int lowvsyslog(const char *src, va_list ap);
 #endif
 
-/****************************************************************************
- * Private Data
- ****************************************************************************/
+/* Enable or disable syslog output */
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
+#ifdef CONFIG_SYSLOG_ENABLE
+void syslog_enable(bool enable);
+#endif
 
-/****************************************************************************
- * Name: up_getsp
- ****************************************************************************/
-/* To be provided */
-
-/****************************************************************************
- * Name: up_stackdump
- ****************************************************************************/
-
-#ifdef CONFIG_ARCH_STACKDUMP
-static void up_stackdump(void)
-{
-  _TCB *rtcb        = (_TCB*)g_readytorun.head;
-  chipreg_t sp         = up_getsp();
-  chipreg_t stack_base = (chipreg_t)rtcb->adj_stack_ptr;
-  chipreg_t stack_size = (chipreg_t)rtcb->adj_stack_size;
-
-  lldbg("stack_base: %08x\n", stack_base);
-  lldbg("stack_size: %08x\n", stack_size);
-  lldbg("sp:         %08x\n", sp);
-
-  if (sp >= stack_base || sp < stack_base - stack_size)
-    {
-      lldbg("ERROR: Stack pointer is not within allocated stack\n");
-      return;
-    }
-  else
-    {
-      chipreg_t stack = sp & ~0x0f;
-
-      for (stack = sp & ~0x0f; stack < stack_base; stack += 8*sizeof(chipreg_t))
-        {
-          chipreg_t *ptr = (chipreg_t*)stack;
-          lldbg("%08x: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-                 stack, ptr[0], ptr[1], ptr[2], ptr[3],
-                 ptr[4], ptr[5], ptr[6], ptr[7]);
-        }
-    }
+#if defined(__cplusplus)
 }
 #endif
+
+#endif /* __INCLUDE_SYSLOG_H */

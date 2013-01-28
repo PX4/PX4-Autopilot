@@ -120,7 +120,7 @@
 #endif
 
 #if defined(CONFIG_DEBUG) && defined(CONFIG_DEBUG_FS)
-#  define message    lib_rawprintf
+#  define message    syslog
 #  define msgflush()
 #else
 #  define message    printf

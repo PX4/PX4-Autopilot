@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 27, 2013)
+NuttX TODO List (Last updated January 28, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -14,7 +14,7 @@ nuttx/
   (6)  Binary loaders (binfmt/)
  (16)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
- (12)  Libraries (libc/, )
+ (11)  Libraries (libc/, )
   (9)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -811,19 +811,6 @@ o Libraries (libc/)
                http://patrakov.blogspot.com/2009/03/dont-use-old-dtoac.html
   Status:      Open
   Priority:    ??
-
-  Title:       SYSLOG INTEGRATION
-  Description: There are the beginnings of some system logging capabilities (see
-               drivers/syslog, fs/fs_syslog.c, and libc/stdio/lib_librawprintf.c and
-               lib_liblowprintf.c.  For NuttX, SYSLOG is a concept and includes,
-               extends, and replaces the legacy NuttX debug ouput.  Some additional
-               integration is required to formalized this.  For example:
-
-               o lib_rawprintf() shjould be renamed syslog().
-               o debug.h should be renamed syslog.h
-               o And what about lib_lowprintf()? llsyslog?
-  Status:      Open
-  Priority:    Low -- more of a roadmap
 
   Title:       FLOATING POINT FORMATS
   Description: Only the %f floating point format is supported.  Others are accepted

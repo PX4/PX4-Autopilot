@@ -74,7 +74,7 @@
 void up_decodeirq(uint32_t* regs)
 {
 #ifdef CONFIG_SUPPRESS_INTERRUPTS
-  lib_lowprintf("Unexpected IRQ\n");
+  lowsyslog("Unexpected IRQ\n");
   current_regs = regs;
   PANIC(OSERR_ERREXCEPTION);
 #else

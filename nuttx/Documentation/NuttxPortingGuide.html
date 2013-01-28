@@ -4324,17 +4324,17 @@ build
   <li>
     <code>CONFIG_DEBUG</code>: enables built-in debug options.
     This includes more extensive parameter checking, debug assertions, and other debug logic.
-    This option is also necessary (but not sufficient) to enable debug console output;
-    Debug console output must also be enabled on a subsystem-by-subsystem basis as described below.
+    This option is also necessary (but not sufficient) to enable debug syslog output;
+    Debug syslog output must also be enabled on a subsystem-by-subsystem basis as described below.
   </li>
   <li>
-    <code>CONFIG_DEBUG_VERBOSE</code>: If debug console output is enabled, the option enables more verbose debug output.
+    <code>CONFIG_DEBUG_VERBOSE</code>: If debug syslog output is enabled, the option enables more verbose debug output.
     Ignored if <code>CONFIG_DEBUG</code> is not defined.
     If only <code>CONFIG_DEBUG</code> then the only output will be errors, warnings, and critical information.
-    If <code>CONFIG_DEBUG_VERBOSE</code> is defined in addition, then general debug comments will also be included in the console output.
+    If <code>CONFIG_DEBUG_VERBOSE</code> is defined in addition, then general debug comments will also be included in the syslog output.
   </li>
   <li>
-    <code>CONFIG_DEBUG_ENABLE</code>: Support an interface to enable or disable debug output.
+    <code>CONFIG_SYSLOG_ENABLE</code>: Support an interface to enable or disable syslog output.
   </li>
   <li>
     <code>CONFIG_DEBUG_SYMBOLS</code>: build without optimization and with debug symbols (needed for use with a debugger).

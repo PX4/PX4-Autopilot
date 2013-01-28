@@ -91,8 +91,8 @@ int usbmsc_archinitialize(void)
   pbuffer = (uint8_t *) malloc (BUFFER_SIZE);
   if (!pbuffer)
     {
-      lib_lowprintf ("usbmsc_archinitialize: Failed to allocate ramdisk of size %d\n",
-                     BUFFER_SIZE);
+      lowsyslog("usbmsc_archinitialize: Failed to allocate ramdisk of size %d\n",
+                BUFFER_SIZE);
       return -ENOMEM;
     }
 

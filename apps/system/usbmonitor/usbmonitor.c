@@ -40,20 +40,29 @@
 #include <nuttx/config.h>
 #include <nuttx/progmem.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <sys/types.h>
+#include <stdbool.h>
+#include <debug.h>
+
+#include <nuttx/usb/usbdev_trace.h"
+
+#ifdef CONFIG_SYSTEM_USBMONITOR
 
 /****************************************************************************
- * Private Typs
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define USBMON_PREFIX "USB Monitor: "
+
+/****************************************************************************
+ * Private Types
  ****************************************************************************/
 
 struct usbmon_state_s
 {
-#ifdef CONFIG_NSH_BUILTIN_APPS
   volatile bool started;
   volatile bool stop;
   pid_t pid;
-#endif
 };
 
 /****************************************************************************
@@ -66,34 +75,29 @@ static struct usbmon_state_s g_usbmonitor;
  * Private Functions
  ****************************************************************************/
 
+static int usbmonitor_tracecallback(struct usbtrace_s *trace, void *arg)
+{
+  usbtrace_trprintf((trprintf_t)syslog, trace->event, trace->value);
+  return 0;
+}
+
 static int usbmonitor_daemon(int argc, char **argv)
 {
-#ifdef CONFIG_NSH_BUILTIN_APPS
-  print("USB Monitor running: %d\n", g_usbmonitor.pid);
-#endif
+  syslog(USBMON_PREFIX "Running: %d\n", g_usbmonitor.pid);
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
-  /* If we are running as an NSH command, then loop until we detect that
-   * there is a request to stop.
-   */
+  /* Loop until we detect that there is a request to stop. */
 
   while (!g_usbmonitor.stop)
-#else
-  /* If we are running as a standalone program, then loop forever */
-
-  for (;;)
-#endif
     {
-#warning "Missing logic"
+      (void)usbmonitor_enumerate(nsh_tracecallback, NULL);
     }
 
   /* Stopped */
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
   g_usbmonitor.stop    = false;
   g_usbmonitor.started = false;
-  print("USB Monitor stopped: %d\n", g_usbmonitor.pid);
-#endif
+  syslog(USBMON_PREFIX "Stopped: %d\n", g_usbmonitor.pid);
+
   return 0;
 }
 
@@ -101,9 +105,8 @@ static int usbmonitor_daemon(int argc, char **argv)
  * Public Functions
  ****************************************************************************/
 
-int usbmonitor_main(int argc, char **argv)
+int usbmonitor_start(int argc, char **argv)
 {
-#ifdef CONFIG_NSH_BUILTIN_APPS
   /* Has the monitor already started? */
 
   sched_lock();
@@ -122,13 +125,14 @@ int usbmonitor_main(int argc, char **argv)
       if (ret < 0)
         {
           int errcode = errno;
-          fprintf(stderr, "ERROR: Failed to start the USB monitor: %d\n",
-                  errcode);
+          syslog(USBMON_PREFIX
+                 "ERROR: Failed to start the USB monitor: %d\n",
+                 errcode);
         }
       else
         {
           g_usbmonitor.pid = ret;
-          print("USB Monitor started: %d\n", g_usbmonitor.pid);
+          syslog(USBMON_PREFIX "Started: %d\n", g_usbmonitor.pid);
         }
 
       sched_unlock();
@@ -136,27 +140,23 @@ int usbmonitor_main(int argc, char **argv)
     }
 
   sched_unlock();
-  print("USB Monitor running: %d\n", g_usbmonitor.pid);
+  syslog(USBMON_PREFIX "Running: %d\n", g_usbmonitor.pid);
   return 0;
-#else
-  return usbmonitor_daemon(argc, argv);
-#endif
 }
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
 int usbmonitor_stop(int argc, char **argv)
 {
   /* Has the monitor already started? */
 
   if (g_usbmonitor.started)
     {
-      print("USB Monitor stopping: %d\n", g_usbmonitor.pid);
+      syslog(USBMON_PREFIX "Stopping: %d\n", g_usbmonitor.pid);
       g_usbmonitor.stop = true;
       return 0;
     }
 
-  print("USB Monitor stopped: %d\n", g_usbmonitor.pid);
+  syslog(USBMON_PREFIX "Stopped: %d\n", g_usbmonitor.pid);
   return 0;
 }
-#endif
 
+#endif /* CONFIG_SYSTEM_USBMONITOR */

@@ -63,7 +63,7 @@
  */
 
 #undef  lldbg
-#define lldbg lib_lowprintf
+#define lldbg lowsyslog
 
 /****************************************************************************
  * Private Data

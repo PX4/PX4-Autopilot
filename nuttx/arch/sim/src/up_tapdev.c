@@ -61,7 +61,7 @@
 #include <linux/if_tun.h>
 #include <linux/net.h>
 
-extern int lib_rawprintf(const char *format, ...);
+extern int syslog(const char *format, ...);
 extern int uipdriver_setmacaddr(unsigned char *macaddr);
 
 /****************************************************************************
@@ -119,14 +119,14 @@ static int gtapdevfd;
 #ifdef TAPDEV_DEBUG
 static inline void dump_ethhdr(const char *msg, unsigned char *buf, int buflen)
 {
-  lib_rawprintf("TAPDEV: %s %d bytes\n", msg, buflen);
-  lib_rawprintf("        %02x:%02x:%02x:%02x:%02x:%02x %02x:%02x:%02x:%02x:%02x:%02x %02x%02x\n",
-                buf[0], buf[1], buf[2], buf[3], buf[4],  buf[5],
-                buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
+  syslog("TAPDEV: %s %d bytes\n", msg, buflen);
+  syslog("        %02x:%02x:%02x:%02x:%02x:%02x %02x:%02x:%02x:%02x:%02x:%02x %02x%02x\n",
+         buf[0], buf[1], buf[2], buf[3], buf[4],  buf[5],
+         buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
 #ifdef CONFIG_ENDIAN_BIG
-                buf[13], buf[12]);
+         buf[13], buf[12]);
 #else
-                buf[12], buf[13]);
+         buf[12], buf[13]);
 #endif
 }
 #else
@@ -179,7 +179,7 @@ void tapdev_init(void)
   gtapdevfd = open(DEVTAP, O_RDWR, 0644);
   if (gtapdevfd < 0)
     {
-      lib_rawprintf("TAPDEV: open failed: %d\n", -gtapdevfd );
+      syslog("TAPDEV: open failed: %d\n", -gtapdevfd );
       return;
     }
 
@@ -190,7 +190,7 @@ void tapdev_init(void)
   ret = ioctl(gtapdevfd, TUNSETIFF, (unsigned long) &ifr);
   if (ret < 0)
     {
-      lib_rawprintf("TAPDEV: ioctl failed: %d\n", -ret );
+      syslog("TAPDEV: ioctl failed: %d\n", -ret );
       return;
    }
 
@@ -235,7 +235,7 @@ unsigned int tapdev_read(unsigned char *buf, unsigned int buflen)
   ret = read(gtapdevfd, buf, buflen);
   if (ret < 0)
     {
-      lib_rawprintf("TAPDEV: read failed: %d\n", -ret);
+      syslog("TAPDEV: read failed: %d\n", -ret);
       return 0;
     }
 
@@ -247,12 +247,12 @@ void tapdev_send(unsigned char *buf, unsigned int buflen)
 {
   int ret;
 #ifdef TAPDEV_DEBUG
-  lib_rawprintf("tapdev_send: sending %d bytes\n", buflen);
+  syslog("tapdev_send: sending %d bytes\n", buflen);
 
   gdrop++;
   if(gdrop % 8 == 7)
     {
-      lib_rawprintf("Dropped a packet!\n");
+      syslog("Dropped a packet!\n");
       return;
     }
 #endif
@@ -260,7 +260,7 @@ void tapdev_send(unsigned char *buf, unsigned int buflen)
   ret = write(gtapdevfd, buf, buflen);
   if (ret < 0)
     {
-      lib_rawprintf("TAPDEV: write failed: %d", -ret);
+      syslog("TAPDEV: write failed: %d", -ret);
       exit(1);
     }
   dump_ethhdr("write", buf, buflen);

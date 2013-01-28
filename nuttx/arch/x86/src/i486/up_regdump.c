@@ -51,7 +51,7 @@
 /* Output debug info -- even if debug is not selected. */
 
 #undef  lldbg
-#define lldbg lib_lowprintf
+#define lldbg lowsyslog
 
 /****************************************************************************
  * Private Data

@@ -76,7 +76,7 @@ FAR chipreg_t *up_doirq(uint8_t irq, FAR chipreg_t *regs)
 
 #ifdef CONFIG_SUPPRESS_INTERRUPTS
 
-  lib_lowprintf("Unexpected IRQ\n");
+  lowsyslog("Unexpected IRQ\n");
   IRQ_ENTER(regs);
   PANIC(OSERR_ERREXCEPTION);
   return NULL; /* Won't get here */

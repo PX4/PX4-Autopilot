@@ -45,14 +45,14 @@ kconfig-frontends
   To suppress the 'nconf' and the graphical front-ends which are not used by
   NuttX, you can add:
 
-    ./configure --enable-mconfig --disable-nconf --disable-gconf --disable-qconf
+    ./configure --enable-mconf --disable-nconf --disable-gconf --disable-qconf
     make
     make install
 
   To suppress the graphical interfaces, use static libraries, and disable
   creation of other utilities:
 
-    ./configure --disable-shared --enable-static --enable-mconfig --disable-nconf --disable-gconf --disable-qconf --disable-nconf --disable-utils
+    ./configure --disable-shared --enable-static --enable-mconf --disable-nconf --disable-gconf --disable-qconf --disable-nconf --disable-utils
     make
     make install
 

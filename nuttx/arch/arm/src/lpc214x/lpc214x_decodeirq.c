@@ -112,7 +112,7 @@ static void lpc214x_decodeirq( uint32_t *regs)
 #endif
 {
 #ifdef CONFIG_SUPPRESS_INTERRUPTS
-  lib_lowprintf("Unexpected IRQ\n");
+  lowsyslog("Unexpected IRQ\n");
   current_regs = regs;
   PANIC(OSERR_ERREXCEPTION);
 #else

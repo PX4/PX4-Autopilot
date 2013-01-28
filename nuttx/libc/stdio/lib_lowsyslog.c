@@ -1,5 +1,5 @@
 /****************************************************************************
- * libc/stdio/lib_rawprintf.c
+ * libc/stdio/lib_lowsyslog.c
  *
  *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -44,16 +44,13 @@
 
 #include "lib_internal.h"
 
+/* This interface can only be used from within the kernel */
+
+#if !defined(CONFIG_NUTTX_KERNEL) || defined(__KERNEL__)
+
 /****************************************************************************
- * Pre-processor Definitions
+ * Definitions
  ****************************************************************************/
-
-/* Some output destinations are only available from within the kernel */
-
-#if defined(CONFIG_NUTTX_KERNEL) && !defined(__KERNEL__)
-#  undef CONFIG_SYSLOG
-#  undef CONFIG_ARCH_LOWPUTC
-#endif
 
 /****************************************************************************
  * Private Type Declarations
@@ -88,67 +85,46 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lib_rawvprintf
+ * Name: lowvsyslog
  ****************************************************************************/
 
-int lib_rawvprintf(const char *fmt, va_list ap)
+#if defined(CONFIG_ARCH_LOWPUTC) || defined(CONFIG_SYSLOG)
+
+int lowvsyslog(const char *fmt, va_list ap)
 {
-#if defined(CONFIG_SYSLOG)
-
   struct lib_outstream_s stream;
 
-  /* Wrap the low-level output in a stream object and let lib_vsprintf
-   * do the work.
-   */
+  /* Wrap the stdout in a stream object and let lib_vsprintf do the work. */
 
+#ifdef CONFIG_SYSLOG
   lib_syslogstream((FAR struct lib_outstream_s *)&stream);
-  return lib_vsprintf((FAR struct lib_outstream_s *)&stream, fmt, ap);
-
-#elif CONFIG_NFILE_DESCRIPTORS > 0
-
-  struct lib_rawoutstream_s rawoutstream;
-
-  /* Wrap the stdout in a stream object and let lib_vsprintf
-   * do the work.
-   */
-
-  lib_rawoutstream(&rawoutstream, 1);
-  return lib_vsprintf(&rawoutstream.public, fmt, ap);
-
-#elif defined(CONFIG_ARCH_LOWPUTC)
-
-  struct lib_outstream_s stream;
-
-  /* Wrap the low-level output in a stream object and let lib_vsprintf
-   * do the work.
-   */
-
-  lib_lowoutstream((FAR struct lib_outstream_s *)&stream);
-  return lib_vsprintf((FAR struct lib_outstream_s *)&stream, fmt, ap);
-
 #else
-  return 0;
+  lib_lowoutstream((FAR struct lib_outstream_s *)&stream);
 #endif
+  return lib_vsprintf((FAR struct lib_outstream_s *)&stream, fmt, ap);
 }
 
 /****************************************************************************
- * Name: lib_rawprintf
+ * Name: lowsyslog
  ****************************************************************************/
 
-int lib_rawprintf(const char *fmt, ...)
+int lowsyslog(const char *fmt, ...)
 {
   va_list ap;
   int     ret;
 
-#ifdef CONFIG_DEBUG_ENABLE
+#ifdef CONFIG_SYSLOG_ENABLE
   ret = 0;
-  if (g_dbgenable)
+  if (g_syslogenable)
 #endif
     {
       va_start(ap, fmt);
-      ret = lib_rawvprintf(fmt, ap);
+      ret = lowvsyslog(fmt, ap);
       va_end(ap);
     }
 
   return ret;
 }
+
+#endif /* CONFIG_ARCH_LOWPUTC || CONFIG_SYSLOG */
+#endif /* __KERNEL__ */

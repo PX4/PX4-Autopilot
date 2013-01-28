@@ -58,7 +58,7 @@
 
 #ifdef CONFIG_ARCH_STACKDUMP
 # undef  lldbg
-# define lldbg lib_lowprintf
+# define lldbg lowsyslog
 #endif
 
 /****************************************************************************
