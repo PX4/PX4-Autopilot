@@ -201,6 +201,12 @@ CONFIG_STM32_TIM10=y
 CONFIG_STM32_TIM11=y
 
 #
+# Enable single wire support.  If this is not defined, then this mode cannot
+# be enabled.
+#
+CONFIG_STM32_USART_SINGLEWIRE=y
+
+#
 # We want the flash prefetch on for max performance.
 #
 STM32_FLASH_PREFETCH=y
