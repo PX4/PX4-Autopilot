@@ -297,27 +297,21 @@ config DEBUG
 	---help---
 		Enables built-in debug features.  Selecting this option will (1) Enable
 		debug assertions in the code, (2) enable extended parameter testing in
-		many functions, and (3) enable support for debug output.  Note that enabling
-		this option by itself does not produce debug output.  Debug output must
-		also be selected on a subsystem-by-subsystem basis.
+		many functions, and (3) enable support for debug output to the SYSLOG.
+		Note that enabling this option by itself does not produce debug output.
+		Debug output must also be selected on a subsystem-by-subsystem basis.
 
 if DEBUG
 config DEBUG_VERBOSE
 	bool "Enable Debug Verbose Output"
 	default n
 	---help---
-		Enables verbose debug output (assuming debug output is enabled).  As a
-		general rule, when DEBUG is enabled only errors will be reported in the debug
-		output.  But if you also enable DEBUG_VERBOSE, then very chatty (and
-		often annoying) output will be generated.  This means there are two levels
-		of debug output:  errors-only and everything.
-
-config SYSLOG_ENABLE
-	bool "Enable Debug Controls"
-	default n
-	---help---
-		Support an interface called syslog_enable to dynamically enable or
-		disable debug output.
+		Enables verbose debug output (assuming debug featurses are enabled).
+		As a general rule, when DEBUG is enabled only errors will be
+		reported in the debug SYSLOG output.  But if you also enable
+		DEBUG_VERBOSE, then very chatty (and often annoying) output will be
+		generated.  This means there are two levels of debug output:
+		errors-only and everything.
 
 comment "Subsystem Debug Options"
 
@@ -325,58 +319,58 @@ config DEBUG_MM
 	bool "Enable Memory Manager Debug Output"
 	default n
 	---help---
-		Enable memory management debug output (disabled by default)
+		Enable memory management debug SYSLOG output (disabled by default)
 
 config DEBUG_SCHED
 	bool "Enable Scheduler Debug Output"
 	default n
 	---help---
-		Enable OS debug output (disabled by default)
+		Enable OS debug SYSLOG output (disabled by default)
 
 config DEBUG_PAGING
 	bool "Enable Demand Paging Debug Output"
 	default n
 	depends on PAGING
 	---help---
-		Enable demand paging debug output (disabled by default)
+		Enable demand paging debug SYSLOG output (disabled by default)
 
 config DEBUG_NET
 	bool "Enable Network Debug Output"
 	default n
 	depends on NET
 	---help---
-		Enable network debug output (disabled by default)
+		Enable network debug SYSLOG output (disabled by default)
 
 config DEBUG_USB
 	bool "Enable USB Debug Output"
 	default n
 	depends on USBDEV || USBHOST
 	---help---
-		Enable usb debug output (disabled by default)
+		Enable usb debug SYSLOG output (disabled by default)
 
 config DEBUG_FS
 	bool "Enable File System Debug Output"
 	default n
 	---help---
-		Enable file system debug output (disabled by default)
+		Enable file system debug SYSLOG output (disabled by default)
 
 config DEBUG_LIB
 	bool "Enable C Library Debug Output"
 	default n
 	---help---
-		Enable C library debug output (disabled by default)
+		Enable C library debug SYSLOG output (disabled by default)
 
 config DEBUG_BINFMT
 	bool "Enable Binary Loader Debug Output"
 	default n
 	---help---
-		Enable binary loader debug output (disabled by default)
+		Enable binary loader debug SYSLOG output (disabled by default)
 
 config DEBUG_GRAPHICS
 	bool "Enable Graphics Debug Output"
 	default n
 	---help---
-		Enable NX graphics debug output (disabled by default)
+		Enable NX graphics debug SYSLOG output (disabled by default)
 
 comment "Driver Debug Options"
 
@@ -385,21 +379,21 @@ config DEBUG_LCD
 	default n
 	depends on LCD
 	---help---
-		Enable low level debug output from the LCD driver (disabled by default)
+		Enable low level debug SYSLOG output from the LCD driver (disabled by default)
 
 config DEBUG_INPUT
 	bool "Enable Input Device Debug Output"
 	default n
 	depends on INPUT
 	---help---
-		Enable low level debug output from the input device drivers such as
+		Enable low level debug SYSLOG output from the input device drivers such as
  		mice and touchscreens (disabled by default)
 
 config DEBUG_ANALOG
 	bool "Enable Analog Device Debug Output"
 	default n
 	---help---
-		Enable low level debug output from the analog device drivers such as
+		Enable low level debug SYSLOG output from the analog device drivers such as
  		A/D and D/A converters (disabled by default)
 
 config DEBUG_I2C
@@ -407,27 +401,27 @@ config DEBUG_I2C
 	default n
 	depends on I2C
 	---help---
-		Enable I2C driver debug output (disabled by default)
+		Enable I2C driver debug SYSLOG output (disabled by default)
 
 config DEBUG_SPI
 	bool "Enable SPI Debug Output"
 	default n
 	depends on SPI
 	---help---
-		Enable I2C driver debug output (disabled by default)
+		Enable I2C driver debug SYSLOG output (disabled by default)
 
 config DEBUG_DMA
 	bool "Enable DMA Debug Output"
 	default n
 	---help---
-		Enable DMA-releated debug output (disabled by default)
+		Enable DMA-releated debug SYSLOG output (disabled by default)
 
 config DEBUG_WATCHDOG
 	bool "Enable Watchdog Timer Debug Output"
 	default n
 	depends on WATCHDOG
 	---help---
-		Enable watchdog timer debug output (disabled by default)
+		Enable watchdog timer debug SYSLOG output (disabled by default)
 
 endif
 

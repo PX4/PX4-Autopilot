@@ -41,8 +41,7 @@ ifeq ($(WINTOOL),y)
 INCDIROPT	= -w
 endif
 
-# Hello Application
-# TODO: appname can be automatically extracted from the directory name
+# USB Monitor Application
 
 PRIORITY	= SCHED_PRIORITY_DEFAULT
 STACKSIZE	= 768
@@ -88,11 +87,13 @@ $(COBJS): %$(OBJEXT): %.c
 # Register application
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-$(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(DEPCONFIG) Makefile
+$(BUILTIN_REGISTRY)$(DELIM)usbmonitor_start.bdat: $(DEPCONFIG) Makefile
 	$(call REGISTER,"usbmon_start",$(PRIORITY),$(STACKSIZE),usbmonitor_start)
-	$(call REGISTER,"usbmon_stop",$(PRIORITY),$(STACKSIZE),usbmonintor_stop)
 
-context: $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat
+$(BUILTIN_REGISTRY)$(DELIM)usbmonitor_stop.bdat: $(DEPCONFIG) Makefile
+	$(call REGISTER,"usbmon_stop",$(PRIORITY),$(STACKSIZE),usbmonitor_stop)
+
+context: $(BUILTIN_REGISTRY)$(DELIM)usbmonitor_start.bdat $(BUILTIN_REGISTRY)$(DELIM)usbmonitor_stop.bdat
 else
 context:
 endif

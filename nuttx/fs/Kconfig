@@ -18,11 +18,22 @@ source fs/binfs/Kconfig
 
 comment "System Logging"
 
-config SYSLOG
-	bool "System logging"
+config SYSLOG_ENABLE
+	bool "Enable SYSLOG Controls"
 	default n
 	---help---
-		Enables generic system logging features.
+		Support an interface called syslog_enable to dynamically enable or
+		disable SYSLOG output.  Default:  SYSLOG output is always enabled.
+
+config SYSLOG
+	bool "Advanced SYSLOG features"
+	default n
+	---help---
+		Enables generic system logging features.  NOTE: This setting is not
+		required to enable system logging.  If this feature is not enable
+		system logging will still be available and will log to the system
+		console (like printf()).  This setting is required to enable
+		customization of the basic system loggin capability.
 
 if SYSLOG
 

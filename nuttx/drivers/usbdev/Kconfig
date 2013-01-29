@@ -148,7 +148,7 @@ config COMPOSITE_VERSIONNO
 endif
 
 menuconfig PL2303
-	bool "Emulates the Prolific PL2303 serial/USB converter"
+	bool "Prolific PL2303 serial/USB converter emulation"
 	default n
 	---help---
 		This logic emulates the Prolific PL2303 serial/USB converter
@@ -216,7 +216,7 @@ config PL2303_VENDORSTR
 
 config PL2303_PRODUCTSTR
 	string "Product string"
-	default "USBdev Serial"
+	default "PL2303 Emulation"
 endif
 
 menuconfig CDCACM
@@ -380,7 +380,7 @@ config CDCACM_VENDORSTR
 
 config CDCACM_PRODUCTSTR
 	string "Product string"
-	default "USBdev Serial"
+	default "CDC/ACM Serial"
 endif
 
 menuconfig USBMSC
@@ -495,8 +495,8 @@ config USBMSC_PRODUCTID
 	default 0x00
 
 config USBMSC_PRODUCTSTR
-	string "Mass stroage product string"
-	default "Mass stroage"
+	string "Mass storage product string"
+	default "Mass Storage"
 
 config USBMSC_VERSIONNO
 	hex "USB MSC Version Number"

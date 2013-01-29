@@ -1258,7 +1258,36 @@ Where <subdir> is one of the following:
         times before NSH starts.  The logic does this to prevent sending USB data
         before there is anything on the host side listening for USB serial input.
 
-    9. USB OTG FS Host Support.  The following changes will enable support for
+    9.  Here is an alternative USB console configuration.  The following
+        configuration will also create a NSH USB console but this version
+        will use /dev/console.  Instead, it will use the normal /dev/ttyACM0
+        USB serial device for the console:
+
+        CONFIG_STM32_OTGFS=y           : STM32 OTG FS support
+        CONFIG_USART2_SERIAL_CONSOLE=y : Keep the USART2 console
+        CONFIG_DEV_CONSOLE=y           : /dev/console exists (but NSH won't use it)
+        CONFIG_USBDEV=y                : USB device support must be enabled
+        CONFIG_CDCACM=y                : The CDC/ACM driver must be built
+        CONFIG_CDCACM_CONSOLE=n        : Don't use the CDC/ACM USB console.
+        CONFIG_NSH_USBCONSOLE=y        : Instead use some other USB device for the console
+
+        The particular USB device that is used is:
+
+        CONFIG_NSH_USBCONDEV="/dev/ttyACM0"
+
+        The advantage of this configuration is only that it is easier to
+        bet working.  This alternative does has some side effects:
+
+        - When any other device other than /dev/console is used for a user
+          interface, linefeeds (\n) will not be expanded to carriage return /
+          linefeeds (\r\n).  You will need to set your terminal program to account
+          for this.
+
+        - /dev/console still exists and still refers to the serial port. So
+          you can still use certain kinds of debug output (see include/debug.h, all
+          of the interfaces based on lowsyslog will work in this configuration).
+
+   10. USB OTG FS Host Support.  The following changes will enable support for
        a USB host on the STM32F4Discovery, including support for a mass storage
        class driver:
  
@@ -1497,10 +1526,29 @@ Where <subdir> is one of the following:
        CONFIG_SYSLOG_CHAR=y               : Use a character device for system logging
        CONFIG_SYSLOG_DEVPATH="/dev/ttyS0" : UART2 will be /dev/ttyS0
 
-       Debug, however, is not enable so in the default configuration nothing
-       should appear on UART2 unless you enable some debug output.
+       However, there is nothing to generate SYLOG output in the default
+       configuration so nothing should appear on UART2 unless you enable
+       some debug output or enable the USB monitor.
 
-    4. By default, this project assumes that you are *NOT* using the DFU
+    4. Enabling USB monitor SYSLOG output.  If tracing is enabled, the USB
+       device will save encoded trace output in in-memory buffer; if the
+       USB monitor is enabled, that trace buffer will be periodically
+       emptied and dumped to the system loggin device (UART2 in this
+       configuraion):
+
+       CONFIG_USBDEV_TRACE=y                   : Enable USB trace feature
+       CONFIG_USBDEV_TRACE_NRECORDS=128        : Buffer 128 records in memory
+       CONFIG_SYSTEM_USBMONITOR=y              : Start the USB monitor daemon
+       CONFIG_SYSTEM_USBMONITOR_STACKSIZE=2048 : USB monitor daemon stack size
+       CONFIG_SYSTEM_USBMONITOR_PRIORITY=50    : USB monitor daemon priority
+
+       CONFIG_NSH_USBDEV_TRACEINIT=y           : Enable TRACE output
+       CONFIG_NSH_USBDEV_TRACECLASS=y
+       CONFIG_NSH_USBDEV_TRACETRANSFERS=y
+       CONFIG_NSH_USBDEV_TRACECONTROLLER=y
+       CONFIG_NSH_USBDEV_TRACEINTERRUPTS=y
+
+    5. By default, this project assumes that you are *NOT* using the DFU
        bootloader.
 
     Using the Prolifics PL2303 Emulation

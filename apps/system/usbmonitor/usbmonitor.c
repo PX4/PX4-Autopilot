@@ -42,9 +42,12 @@
 
 #include <sys/types.h>
 #include <stdbool.h>
-#include <debug.h>
+#include <unistd.h>
+#include <sched.h>
+#include <syslog.h>
+#include <errno.h>
 
-#include <nuttx/usb/usbdev_trace.h"
+#include <nuttx/usb/usbdev_trace.h>
 
 #ifdef CONFIG_SYSTEM_USBMONITOR
 
@@ -89,7 +92,8 @@ static int usbmonitor_daemon(int argc, char **argv)
 
   while (!g_usbmonitor.stop)
     {
-      (void)usbmonitor_enumerate(nsh_tracecallback, NULL);
+      sleep(2);
+      (void)usbtrace_enumerate(usbmonitor_tracecallback, NULL);
     }
 
   /* Stopped */
