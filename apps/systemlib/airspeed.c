@@ -41,11 +41,13 @@
  */
 
 #include "math.h"
+#include "conversions.h"
+#include "airspeed.h"
 
 
 float calc_indicated_airspeed(float pressure_front, float pressure_ambient, float temperature)
 {
-	return sqrtf((2.0f*(pressure_front - pressure_ambient)) / air_density_sea_level);
+	return sqrtf((2.0f*(pressure_front - pressure_ambient)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 }
  
 /**
@@ -60,7 +62,7 @@ float calc_indicated_airspeed(float pressure_front, float pressure_ambient, floa
  */
 float calc_true_airspeed_from_indicated(float speed, float pressure_ambient, float temperature)
 {
-	return speed * sqrtf(air_density_sea_level / get_air_density(pressure_ambient, temperature));
+	return speed * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient, temperature));
 }
  
 /**

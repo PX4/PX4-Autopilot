@@ -619,7 +619,7 @@
 #define USBHID_KBDUSE_RCTRL               0xe4 /* Keyboard RightControl */
 #define USBHID_KBDUSE_RSHIFT              0xe5 /* Keyboard RightShift */
 #define USBHID_KBDUSE_RALT                0xe6 /* Keyboard RightAlt */
-#define USBHID_KBDUSE_RGUI                0xe7 /* Keyboard Right GUI*/
+#define USBHID_KBDUSE_RGUI                0xe7 /* Keyboard Right GUI */
 
 #define USBHID_KBDUSE_MAX                 0xe7
 

@@ -105,6 +105,11 @@
 #define FIOC_OPTIMIZE   _FIOC(0x0003)     /* IN:  None
                                            * OUT: None
                                            */
+#define FIOC_FILENAME   _FIOC(0x0004)     /* IN:  FAR const char ** pointer 
+                                           * OUT: Pointer to a persistent file name
+                                           *      (Guaranteed to persist while the file
+                                           *      is open).
+                                           */
 
 #define FIONREAD        _FIOC(0x0004)     /* IN:  Location to return value (int *)
                                            * OUT: Bytes readable from this fd

@@ -714,14 +714,17 @@ BMA180::measure()
 	 * perform only the axis assignment here.
 	 * Two non-value bits are discarded directly
 	 */
-	report->y_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB + 1)) << 8) | (read_reg(ADDR_ACC_X_LSB)); // XXX PX4DEV raw_report.x;
-	report->x_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB + 3)) << 8) | (read_reg(ADDR_ACC_X_LSB + 2)); // XXX PX4DEV raw_report.y;
-	report->z_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB + 5)) << 8) | (read_reg(ADDR_ACC_X_LSB + 4)); // XXX PX4DEV raw_report.z;
+	report->y_raw  = read_reg(ADDR_ACC_X_LSB + 0);
+	report->y_raw |= read_reg(ADDR_ACC_X_LSB + 1) << 8;
+	report->x_raw  = read_reg(ADDR_ACC_X_LSB + 2);
+	report->x_raw |= read_reg(ADDR_ACC_X_LSB + 3) << 8;
+	report->z_raw  = read_reg(ADDR_ACC_X_LSB + 4);
+	report->z_raw |= read_reg(ADDR_ACC_X_LSB + 5) << 8;
 
 	/* discard two non-value bits in the 16 bit measurement */
-	report->x_raw = (report->x_raw >> 2);
-	report->y_raw = (report->y_raw >> 2);
-	report->z_raw = (report->z_raw >> 2);
+	report->x_raw = (report->x_raw / 4);
+	report->y_raw = (report->y_raw / 4);
+	report->z_raw = (report->z_raw / 4);
 
 	/* invert y axis, due to 14 bit data no overflow can occur in the negation */
 	report->y_raw = -report->y_raw;

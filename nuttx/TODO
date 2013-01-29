@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated November 25, 2012)
+NuttX TODO List (Last updated January 23, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -6,23 +6,22 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
-  (6)  Task/Scheduler (sched/)
-  (1)  On-demand paging (sched/)
+ (11)  Task/Scheduler (sched/)
   (1)  Memory Managment (mm/)
-  (2)  Signals (sched/, arch/)
+  (3)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
   (2)  C++ Support
   (6)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
- (11)  Libraries (libc/, )
+ (12)  Libraries (libc/, )
   (9)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
   (1)  Documentation (Documentation/)
-  (8)  Build system / Toolchains
+  (7)  Build system / Toolchains
   (5)  Linux/Cywgin simulation (arch/sim)
-  (6)  ARM (arch/arm/)
+  (5)  ARM (arch/arm/)
   (1)  ARM/C5471 (arch/arm/src/c5471/)
   (3)  ARM/DM320 (arch/arm/src/dm320/)
   (2)  ARM/i.MX (arch/arm/src/imx/)
@@ -31,22 +30,22 @@ nuttx/
   (2)  ARM/LPC313x (arch/arm/src/lpc313x/)
   (0)  ARM/LPC43x (arch/arm/src/lpc43xx/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
-  (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
-  (4)  ARM/STM32 (arch/arm/src/stm32/)
+  (3)  ARM/LM3S6918 (arch/arm/src/lm/)
+  (5)  ARM/STM32 (arch/arm/src/stm32/)
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (5)  8051 / MCS51 (arch/8051/)
   (3)  MIPS/PIC32 (arch/mips)
   (1)  Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   (4)  Renesas M16C/26 (arch/sh/src/m16c)
- (10)  z80/z8/ez80 (arch/z80/)
+ (11)  z80/z8/ez80/z180 (arch/z80/)
   (9)  z16 (arch/z16/)
   (1)  mc68hc1x (arch/hc)
 
 apps/
 
   (5)  Network Utilities (apps/netutils/)
-  (4)  NuttShell (NSH) (apps/nshlib)
+  (5)  NuttShell (NSH) (apps/nshlib)
   (1)  System libraries apps/system (apps/system)
   (5)  Other Applications & Tests (apps/examples/)
 
@@ -56,32 +55,8 @@ o Task/Scheduler (sched/)
   Title:       CHILD PTHREAD TERMINATION
   Description: When a tasks exits, shouldn't all of its child pthreads also be
                terminated?
-  Status:      Open
+  Status:      Closed.  No, this behavior will not be implemented.
   Priority:    Medium, required for good emulation of process/pthread model.
-
-  Title:       MMAN.H
-  Description: Implement sys/mman.h and functions
-  Status:      Open
-  Priority:    Low
-
-  Title:       WAIT.H
-  Description: Implement sys/wait.h and functions.  Consider implementing wait,
-               waitpid, waitid.  At present, a parent has no information about
-               child tasks.
-
-               Update: A simple but usable version of waitpid() has been included.
-               This version is not compliant with all specifications and can be
-               enabled with CONFIG_SCHED_WAITPID. 
-  Status:      Open
-  Priority:    Low
-
-  Title:       MISSING ERRNO SETTINGS
-  Description: Several APIs do not set errno.  Need to review all APIs.
-               Update:  These are being fixed as they are encountered.  There is
-               no accounting of how many interfaces have this problem.
-  Status:      Open
-  Priority:    Medium, required for standard compliance (but makes the
-               code bigger)
 
   Title:       TICKLESS OS
   Description: On a side note, I have thought about a tick-less timer for the OS
@@ -107,18 +82,22 @@ o Task/Scheduler (sched/)
 
                3) sched_process_timeslice(). Then there is round-robin time-slicing.
 
-  Status:      Open
+               The primary advantage of a tickless OS is that is would allow for
+               reduce power consumptions.  That is because timer interrupts will
+               usually awaken CPUs from reduced power consumption states.
+  Status:      Open.  There will probably be no tickless OS implementation unless
+               someone gets motivated and drives the change.
   Priority:    Low
 
-  Title:       posix_spawn()
-  Description: This would be a good interface to add to NuttX.  It is really
-               just a re-packaging of the existing, non-standard NuttX exec()
-               function.
-  Status:      Open
-  Priority:    Medium low.
-
-o On-demand paging (sched/)
-  ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Title:       pause() NON-COMPLIANCE
+  Description: In the POSIX description of this function is the pause() function
+               will suspend the calling thread until delivery of a signal whose
+               action is either to execute a signal-catching function or to
+               terminate the process.  The current implementation only waits for
+               any non-blocked signal to be received.  It should only wake up if
+               the signal is delivered to a handler.
+  Status:      Open.
+  Priority:    Medium Low.
 
   Title:       ON-DEMAND PAGE INCOMPLETE
   Description: On-demand paging has recently been incorporated into the RTOS.
@@ -130,11 +109,8 @@ o On-demand paging (sched/)
                configs/ea3131/pgnsh and locked directories).  There are
                some limitations of this testing so I still cannot say that
                the feature is fully functional.
-  Status:      Open
+  Status:      Open.  This has been put on the shelf for some time.
   Priority:    Medium-Low
-
-o Other core OS logic
-  ^^^^^^^^^^^^^^^^^^^
 
   Title:       GET_ENVIRON_PTR()
   Description: get_environ_ptr() (sched/sched_getenvironptr.c) is not implemented.
@@ -142,13 +118,99 @@ o Other core OS logic
                NutX is not compatible with the operation.  Some significant
                re-design would be required to implement this funcion and that
                effort is thought to be not worth the result.
-  Status:      Open
+  Status:      Open.  No change is planned.
   Priority:    Low -- There is no plan to implement this.
 
   Title:       TIMER_GETOVERRUN()
   Description: timer_getoverrun() (sched/timer_getoverrun.c) is not implemented.
   Status:      Open
   Priority:    Low -- There is no plan to implement this.
+
+  Title:       USER-SPACE WORK QUEUES
+  Description: There has been some use of work queues that has crept into some
+               user code.  I am thinking of NxWidgets::CNxTimer.  That timer
+               logic was originally implemented (correctly) using POSIX timers,
+               but was re-implemented using timed work.
+
+               The issue is that NxWidgets::CNxTimer is a user-space application
+               but the work queues are an OS internal feature.  This will be a
+               problem for KERNEL builds.  Hooks and definitions have been added
+               in include/nuttx/wqueue.h to support a user-space work queue, but
+               the corresponding logic has not been implemented.
+
+               The work queue logic will need to be moved from sched/ to libc/wqueue/
+  Status:      Open.  No work will probably be done until a functional KERNEL build
+               that includes NxWisges::CNxTimer is needed.
+  Priority:    Medium Low for now
+
+  Title:       INCOMPATIBILITES WITH execv() AND execl()
+  Description: Simplified 'execl()' and 'execv()' functions are provided by
+               NuttX.  NuttX does not support processes and hence the concept
+               of overlaying a tasks process image with a new process image
+               does not make any sense.  In NuttX, these functions are
+               wrapper functions that:
+
+               1. Call the non-standard binfmt function 'exec', and then
+               2. exit(0).
+
+               As a result, the current implementations of 'execl()' and
+               'execv()' suffer from some incompatibilities, the most
+               serious of these is that the exec'ed task will not have
+               the same task ID as the vfork'ed function.  So the parent
+               function cannot know the ID of the exec'ed task.
+  Status:      Open
+  Priority:    Medium Low for now
+
+  Title:       IMPROVED TASK CONTROL BLOCK STRUCTURE
+  Description: All task resources that are shared amongst threads have
+               their own "break-away", reference-counted structure. The
+               Task Control Block (TCB) of each thread holds a reference
+               to each breakaway structure (see include/nuttx/sched.h).
+               It would be more efficent to have one reference counted
+               structure that holds all of the shared resources.
+
+               These are the current shared structures:
+               - Environment varaibles (struct environ_s)
+               - PIC data space and address environments (struct dspace_s)
+               - File descriptors (struct filelist)
+               - FILE streams (struct streamlist)
+               - Sockets (struct socketlist)
+  Status:      Open
+  Priority:    Low.  This is an enhancement.  It would slight reduce
+               memory usage but would also increase coupling.  These
+               resources are nicely modular now.
+
+  Title:       ISSUES WITH atexit() AND on_exit()
+  Description: These functions execute with the following bad properties:
+  
+               1. They run with interrupts disabled,
+               2. They run in supervisor mode (if applicable), and
+               3. They do not obey any setup of PIC or address
+                  environments. Do they need to?
+
+               The fix for all of these issues it to have the callbacks
+               run on the caller's thread (as with signal handlers).
+  Status:      Open
+  Priority:    Medium Low.  This is an important change to some less
+               important interfaces.  For the average user, these
+               functions are just fine the way they are.
+
+  Title:       execv() AND vfork()
+  Description: There is a problem when vfork() calls execv() (or execl()) to
+               start a new appliction:  When the parent thread calls vfork()
+               it receives and gets the pid of the vforked task, and *not*
+               the pid of the desired execv'ed application.
+
+               The same tasking arrangement is used by the standard function
+               posix_spawn().  However, posix_spawn uses the non-standard, internal
+               NuttX interface task_reparent() to replace the childs parent task
+               with the caller of posix_spawn().  That cannot be done with vfork()
+               because we don't know what vfor() is going to do.
+
+               Any solution to this is either very difficult or impossible with
+               an MMU.
+  Status:      Open
+  Priority:    Low (it might as well be low since it isn't going to be fixed).
 
 o Memory Managment (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^
@@ -212,7 +274,7 @@ o Memory Managment (mm/)
                  be required to keep this memory on the correct list (or on
                  no list at all).
 
-  Status:      Open
+  Status:      Open.  No changes are planned.
   Priority:    Medium/Low, a good feature to prevent memory leaks but would
                have negative impact on memory usage and code size.
 
@@ -221,8 +283,10 @@ o Signals (sched/, arch/)
 
   Title:       STANDARD SIGNALS
   Description: 'Standard' signals and signal actions are not supported.
-               (e.g., SIGINT, SIGCHLD, SIGSEGV, etc).
-  Status:      Open
+               (e.g., SIGINT, SIGSEGV, etc).
+
+               Update:  SIG_CHLD is support if configured.
+  Status:      Open.  No changes are planned.
   Priority:    Low, required by standards but not so critical for an
                embedded system.
 
@@ -234,17 +298,25 @@ o Signals (sched/, arch/)
                are required by the POSIX standard.
   Priority:    Low for now
 
+  Title:       SIGNAL NUMBERING
+  Description: In signal.h, the range of valid signals is listed as 0-31.  However,
+               in many interfaces, 0 is not a valid signal number.  The valid
+               signal number should be 1-32.  The signal set operations would need
+               to map bits appropriately.
+  Status:      Open
+  Priority:    Low. Even if there are only 31 usable signals, that is still a lot.
+
 o pthreads (sched/)
   ^^^^^^^^^^^^^^^^^
 
   Title:       CANCELLATION POINTS
   Description: pthread_cancel():  Should implement cancellation points and
                pthread_testcancel()
-  Status:      Open
+  Status:      Open.  No changes are planned.
   Priority:    Low, probably not that useful
 
   Title:       PTHREAD_PRIO_PROTECT
-  Description:  Extended pthread_mutexattr_setprotocol() suport PTHREAD_PRIO_PROTECT:
+  Description: Extended pthread_mutexattr_setprotocol() suport PTHREAD_PRIO_PROTECT:
                "When a thread owns one or more mutexes initialized with the
                PTHREAD_PRIO_PROTECT protocol, it shall execute at the higher of its
                priority  or  the  highest  of the priority ceilings of all the mutexes
@@ -260,7 +332,7 @@ o pthreads (sched/)
                PTHREAD_PRIO_PROTECT protocol attributes, it shall not be subject to
                being moved to the tail of the scheduling queue at its priority in  the
                event that its original priority is changed."
-  Status:      Open
+  Status:      Open.  No changes planned.
   Priority:    Low -- about zero, probably not that useful. Priority inheritance is
                already supported and is a much better solution.  And it turns out
                that priority protection is just about as complex as priority inheritance.
@@ -442,21 +514,25 @@ o Network (net/, drivers/net)
 
   Title:       SOCK_RAW/SOCK_PACKET
   Description: Should implement SOCK_RAW, SOCK_PACKET
-  Status:      Open
+  Status:      Open.  No changes are planned.
   Priority:    Low
 
-  Tile:        MULTIPLE NETWORK INTERFACE SUPPORT
+  Title:       MULTIPLE NETWORK INTERFACE SUPPORT
   Description: uIP polling issues / Multiple network interface support:
+
                (1) Current logic will not support multiple ethernet drivers.
                   Each driver should poll on TCP connections connect on the
                   network supported by the driver; UDP polling should respond
                   with TX data only if the UDP packet is intended for the
                   the network supported by the driver.
+
                (2) If there were multiple drivers, polling would occur at
                   double the rate.  Fix by using bound IP address in TCP
                   connection (lipaddr) and verifying that it is in the subnet
                   served by the driver.
-  Status:      Open
+
+  Status:      Open.  Nothing will probably be done until I have a platform
+               with two network interfaces that I need to support.
   Priority:    Medium, The feature is not important, but it is important
                for NuttX to resolve the architectural issues.
 
@@ -464,7 +540,7 @@ o Network (net/, drivers/net)
   Description: sendto() and multiple network interface support:
                When polled, would have to assure that the destination IP
                is on the subnet served by the polling driver.
-  Status:      Open
+  Status:      Open.  This is really part of the above issue.
   Priority:    Medium, The feature is not important, but it is important
                for NuttX to resolve the architectural issues.
 
@@ -472,7 +548,8 @@ o Network (net/, drivers/net)
   Description: IPv6 support is incomplete.  Adam Dunkels has recently announced
                IPv6 support for uIP (currently only as part of Contiki).  Those
                changes need to be ported to NuttX.
-  Status:      Open
+  Status:      Open.  No work will probably be done until there is a specific
+               requirement for IPv6.
   Priority:    Medium
 
   Title:       LISTENING FOR UDP BROADCASTS
@@ -488,7 +565,7 @@ o Network (net/, drivers/net)
                driver should be throttled.  Perhaps the driver should disable
                RX interrupts when throttled and re-anable on each poll time.
                recvfrom would, of course, have to un-throttle.
-  Status:      Open
+  Status:      Open.  This is just a thought experiment.  No changes are planned.
   Priority:    Medium
 
   Title:       STANDARDIZE ETHERNET DRIVER STATISTICS
@@ -590,6 +667,21 @@ o Network (net/, drivers/net)
   Status:      Open
   Priority:    Low... fix defconfig files as necessary.
 
+  Title:       net_poll() DOES NOT HANDLE LOSS-OF-CONNECTION CORRECTLY
+  Description: When a loss of connection is detected by any logic waiting on the
+               networking events, the function net_lostconnection() must be called.
+               That function just sets some bits in the socket structure so that
+               it remembers that the connection is lost.
+
+               That is currently done in recvfrom(), send(), and net_monitor.c.  But
+               it is not done in the net_poll() logic; that logic correctly sets
+               the POLLHUP status, but it does not call net_lostconnection().  As a
+               result, if recv() is called after the poll() or select(), the system
+               will hang because the recv() does not know that the connection has
+               been lost.
+  Status:      Open
+  Priority:    High
+
 o USB (drivers/usbdev, drivers/usbhost)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -636,6 +728,15 @@ o USB (drivers/usbdev, drivers/usbhost)
 
 o Libraries (libc/)
   ^^^^^^^^^^^^^^^^^
+
+  Title:       SIGNED time_t
+  Description: The NuttX time_t is type uint32_t. I think this is consistent
+               with all standards and with normal usage of time_t.  However,
+               according to Wikipedia, time_t is usually implemented as a
+               signed 32-bit value.
+  Status:      Open
+  Priority:    Very low unless there is some compelling issue that I do not
+               know about.
 
   Title:       ENVIRON
   Description: The definition of environ in stdlib.h is bogus and will not
@@ -974,13 +1075,13 @@ o Build system
   Priority:    Low -- the kernel build configuration is not fully fielded
                yet.
 
-  Title:       mconf NOT AVAILABLE IN NATIVE WINDOWS BUILD
-  Description: NuttX is migrating to the use of the kconfig-frontends mconf
+  Title:       kconfig-mconf NOT AVAILABLE IN NATIVE WINDOWS BUILD
+  Description: NuttX is migrating to the use of the kconfig-frontends kconfig-mconf
                tool for all configurations.  In NuttX 6.24, support for native
-               Windows builds was added.  However, the mconf tool does not
+               Windows builds was added.  However, thekconfig- mconf tool does not
                build to run natively under Windows.
 
-               Some effort was spent trying to get a clean mconf build under
+               Some effort was spent trying to get a clean kconfig-mconf build under
                Windows.  This is documented in the message thread beginning
                here: http://tech.groups.yahoo.com/group/nuttx/message/2900.
                The build was successfully completed using:  MinGW-GCC, MSYS,
@@ -992,28 +1093,14 @@ o Build system
                was considered a show stopper and the changs were not checked
                in.
 
-               Options:  (1) Use conf (not mconf).  confis the text-only
-               configuration tool, (2) fix mconf, (3) write another variant
+               Options:  (1) Use kconfigs-conf (not kconfig-mconf).  confis the text-only
+               configuration tool, (2) fix kconfig-mconf, (3) write another variant
                of the configuration tool for windows, or (4) do all configuration
                under Cygwin or MSYS.  I am doing (4) now, but this is very
                awkward because I have to set the apps path to ../apps (vs
                ..\apps) and CONFIG_WINDOWS_NATIVE=n for the 'make menuconfig'
                to run error free under windows.  Very awkward!
   Status:      Open, there are some workarounds, but none are good.
-  Priority:    High
-
-  Title:       configure.sh NOT AVAILABLE IN NATIVE WINDOWS BUILD
-  Description: configure.sh is a Bash script and cannot be used from a Windows
-               CMD.exe window.  I started a configure.bat script, but I do
-               not have the batch file programming skills to duplicate some
-               of the more complex operations.
-
-               I also considered adding a configure.c file that could be 
-               compiled and then executed by configure.bat (and configure.sh?).
-               But I have not gone down that path yet.
-
-               The current work-around is to configure under Cygwin.
-  Status:      Open
   Priority:    High
 
 o Linux/Cywgin simulation (arch/sim)
@@ -1087,27 +1174,6 @@ o ARM (arch/arm/)
                context switch, then the static registers need not be restored
                because they will not be modified by the called C code.
                (see arch/sh/src/sh1/sh1_vector.S for example)
-  Status:      Open
-  Priority:    Low
-
-  Title:       SVCALLS AND HARDFAULTS
-  Description: The Cortex-M3 user context switch logic uses SVCall instructions.
-               This user context switching time could be improved by eliminating
-               the SVCalls and developing assembly language implementations
-               of the context save and restore logic.
-               Also, because interrupts are always disabled when the SVCall is
-               executed, the SVC goes to the hard fault handler where it must
-               be handled as a special case.  I recall seeing some controls
-               somewhere that will allow to suppress one hard fault.  I don't 
-               recall the control, but something like this should be used before
-               executing the SVCall so that it vectors directly to the SVC
-               handler.
-               Another, more standard option would be to use interrupt priority
-               levels to control interrupts.  In that case, (1) The SVC would
-               be the highest priority interrupt (0), (2) irqsave() would set
-               the interrupt mask level to just above that, and (2) irqrestore
-               would restore the interrupt level.  This would not be diffult,
-               but does affect a lot of files!
   Status:      Open
   Priority:    Low
 
@@ -1370,7 +1436,7 @@ o ARM/STR71x (arch/arm/src/str71x/)
   Status:      Open
   Priority:    Medium -- Will be very high if you do SPI access from multiple threads.
 
-o ARM/LM3S6918 (arch/arm/src/lm3s/)
+o ARM/LM3S6918 (arch/arm/src/lm/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       I2C DRIVER
@@ -1459,6 +1525,11 @@ o ARM/STM32 (arch/arm/src/stm32/)
                SRAM.
   Status:      Open
   Priority:    Low
+
+  Title:       STM32 F4 USB OTG FS DEVICE-SIDE DRIVER
+  Description: This driver is reported to be buggy and to need some TLC.
+  Status:      Open
+  Priority:    High
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^
@@ -1693,8 +1764,8 @@ o Renesas M16C/26 (arch/sh/src/m16c)
   Status:      Open
   Priority:    Medium
 
-o z80/z8/ez80 (arch/z80)
- ^^^^^^^^^^^^^^^^^^^^^^^
+o z80/z8/ez80/z180 (arch/z80)
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       SDCC INTEGER OVERFLOWS
   Description: The SDCC version the same problems with integer overflow during
@@ -1783,6 +1854,14 @@ o z80/z8/ez80 (arch/z80)
                the board (yet).
   Status:      Open
   Priority:    Med
+
+  Title:       UNFINISHED Z180 LOGIC NEEDED BY THE P112 BOARD
+  Description: 1) Need to revist the start-up logic.  Looking at the P112 Bios
+                  (Bios.mcd), I see that quite of bit of register setup is done
+                  there.
+               2) Finish ESCC driver logic.
+  Status:      Open
+  Priority:    Low (at least until I get P112 hardware)
 
 o z16 (arch/z16)
 ^^^^^^^^^^^^^^^^
@@ -1974,6 +2053,32 @@ o NuttShell (NSH) (apps/nshlib)
   Description: Add an ARP command so that we can see the contents of the ARP table.
   Status:      Open
   Priority:    Low (enhancement)
+
+  Title:       RE-DIRECTION OF BUILTIN APPLICATONS
+  Description: There is a problem with the re-direction of output form built-in
+               applications in NSH.  When output is re-directed, exec_builtin()
+               spawns a tiny trampoline task that re-directs the output as
+               requested, starts the built-in task and then exit.
+
+               The problem is that when exec_builtin() starts the trampoline task,
+               it receives and returns the pid of the trampoline task, and *not*
+               the pid of the desired builtin application.  This bad pid is returned
+               to NSH and when NSH tries to use that pid in the waitpid() call, it
+               fails because the trampoline task no longer exists.
+
+               The same tasking arrangement is used by the standard function
+               posix_spawn().  However, posix_spawn uses the non-standard, internal
+               NuttX interface task_reparent() to replace the childs parent task
+               with the caller of posix_spawn().
+
+               exec_builtin() should not use this internal interface, however,
+               since it resides in the application space.  The suggested solution
+               is (1) move the exec_builtin() logic into nuttx/sched, (2) make it
+               a semi-standard interface renamed to task_spawn() and prototyped
+               in nuttx/include/sched.h, and then (2) use task_reparent to solve
+               the parental problem in the same way that posix_spawn does.
+  Status:      Open
+  Priority:    Medium
 
 o System libraries apps/system (apps/system)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

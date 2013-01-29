@@ -1452,7 +1452,7 @@
 	  complex:  'uname -o 2>/dev/null || echo "Other"'
 	* drivers/usbhost/usbhost_enumerate.c: Add logic to get the VID and PID.  This
 	  is necessary in order to support vendor-specific USB devices.
-	* examplex/wlan, configs/olimex-lpc1766stk/wlan, drivers/usbhost/usbhost_rtl8187.c,
+	* examples/wlan, configs/olimex-lpc1766stk/wlan, drivers/usbhost/usbhost_rtl8187.c,
 	  Add infrastructure to support RTL18187 wireless USB.
 	* configs/nucleus2g: backed out USB host changes... wrong board.
 	* Renamed arc/hc/include/mc9s12ne64 and src/mc9s12ne64 to m9s12.  That name is
@@ -1920,7 +1920,7 @@
 	  CONFIG_FAT_LCNAMES is not selected, all filenames are strictly upper
 	  case.
 	* configs/stm3210e-eval/nsh2:  Console is back on UART1; Added
-	  examplex/nx as an NSH "built-in" command as a demonstration.
+	  examples/nx as an NSH "built-in" command as a demonstration.
 	* fs/fat/fs_fat32dirent.c:  Fix an important bug in the directory
 	  allocation (fat_allocatedirentry()).  I looks like it could be
 	  initializing the wrong sectors! NOTE:  This function was in
@@ -3801,3 +3801,221 @@
 	  to find executables using a relative path.
 
 6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* graphics/: Adds 5x8 monospace font. This tiny font is useful for graph
+	  labels and for small bitmapped display.  Contributed by Petteri
+	  Aimonen.
+	* configs/stm3220g-eval/nxwm:  Converted to use the kconfig-frontends
+	  configuration tool.
+	* configs/sim/nxwm:  Converted to use the kconfig-frontends configuration
+	  tool.
+	* include/pthread.h:  In sys/prctl.h because it is needed by
+	  pthread_[set|get]name_np()
+	* tools/kconfig.bat:  Kludge to run kconfig-frontends from a DOS shell.
+	* sched/sig_timedwait.c:  Should always move the time up to the next
+	  largest number of system ticks.  The logic was rounding.  Noted by
+	  Petteri Aimonen.
+	* arch/arm/src/up_head.S:  Fix backward conditional compilation.  NOTE
+	  there is a issue of ARM9 systems with low vectors and large memories
+	  that will have to be addressed in the future.
+	* libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Add logic to marshal
+	  and serialized "out-of-band" keyboard commands intermixed with normal
+	  ASCII data (not yet hooked into anything).
+	* drivers/usbhost/usbhost_hidkbd.c:  If CONFIG_HIDKBD_ENCODED is
+	  defined, this driver will now use libc/misc/lib_kbdencode.c to
+	  encode special function keys.
+	* configs/olimex-lpc1766stk/hidkbd:  This configuration has been
+	  converted to use the kconfig-frontends configuration tool.
+	* drivers/lcd/ug-2864hsweg01.c and include/nuttx/lcd/ug-2864hsweg01.h:
+	  Driver for UG-2864HSWEG01 OLED contributed by Darcy Gong.
+	* configs/stm32f4discovery/src/up_ug2864hsweg01.c: Support for the
+	  UG-2864HSWEG01 OLED for the STM32F4Discovery board.
+	* drivers/usbhost/usbhost_hidkbd.c:  Correct a logic error in how
+	  tasks waiting for read data are awakened.
+	* libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Now handles keypress
+	  events too.  However, the USB HID keyboard drier has not yet been
+	  updated to detect key release events.  That is kind of tricky in
+	  the USB HID keyboard report data.
+	* configs/mcu123-214x/nsh:  Converted to use the kconfig-frontends
+	  configuration tool.
+	* configs/zp214xpa:  Add basic support for the The0.net ZP213x/4xPA
+	  board (with the LPC2148 and the UG_2864AMBAG01).
+	* configs/sim/nxlines:  Add an nxlines configuration for the
+	  simulator.
+	* configs/zp214xpa/nxlines:  Add an nxlines configuration for the
+	  ZP213x/4xPA (with the LPC2148 and the UG_2864AMBAG01).  Working
+	  as of 2012-12-30.
+	* configs/olimex-lpc1766stk/wlan:  Remove non-functional
+	  configuration.
+	* configs/stm32f4discovery/src and nuttx/drivers/lcd/ug-2864hsweg01.c:
+	  Updates and correctinos for the UG-2864HSWEG01 from Darcy Gong.
+	* configs/lm326965-ek:  All configurations converted to use the
+	  kconfig-frontends configuration tool.
+	* configs/Kconfig: NSH_MMCSDSPIPORTNO should depend on MMCSD_SPI,
+	  not just SPI (from Jose Pablo Carballo).
+	* arch/arm/src/arm/Kconfig and armv7m/Kconfig:  Add an option for
+	  buildroot toolchains:  They may be EABI or OABI.
+	* include/nuttx/progmem and arch/arm/src/stm32/stm32_flash.c:
+	  Fix a counting bug plus change interface to use either relative
+	  or absolut FLASH addressing (from Freddie Chopin).
+	* libc/misc/Make.defs:  Fix error in conditional for KBD CODEC.
+	* libc/Kconfig and configs/*/defconfig (several):  The default
+	  setting should be CONFIG_LIB_KBDCODEC=n
+	* tools/configure.c:  configure.c can be used to build a work-alike
+	  program as a replacement for configure.sh.  This work-alike
+	  program would be used in environments that do not support Bash
+	  scripting (such as the Windows native environment).
+	* tools/configure.bat: configure.bat is a small Windows batch
+	  file that can be used as a replacement for configure.sh in a
+	  Windows native environment.  configure.bat is actually just a
+	  thin layer that execuates configure.exe if it is available. If
+	  configure.exe is not available, then configure.bat will attempt
+	  to build it first.
+	* arch/arm/src/lpc17xx/lpc17_syscon.h:  Correct some typos in bit
+	  definitions (from Rommel Marcelo).
+	* libc/string/lib_strndup.c: strndup() should use strnlen(), not
+	  strlen(), to determine the size of the string.
+	* sched/os_bringup.c:  Remove support for CONFIG_BUILTIN_APP_START.
+	  This is not really a useful feature and creates a violation of the
+	  OS layered architecture.
+	* include/unistd.h, arch/arch/src/*:  Implement a simple vfork().
+	  On initial checkin, this API is available only for ARM platforms.
+	* binfmt/binfmt_exec.c: exec() now sets the priority of the new task
+	  to the same priority as the current task (instead of the arbirtrary
+	  value of 50).
+	* libc/unisted/lib_execv.c and lib_execl.c:  New, somewhat flawed,
+	  implementations of execv() and execl().
+	* tools/cfgdefine.c:  Strips quotes from CONFIG_EXECFUNCS_SYMTAB
+	  value.
+	* arch/arm/include/lm3s/chip.h:  Move chip definitions into
+	  public include area for compatibility with other architectures.
+	* arch/arm/src/lm3s/chip:  Move register definition header files
+	  into a new chip/ sub-directory.
+	* arch/arm/src/lm3s/lm3s_internal.h:  Broke up into several
+	  smaller header files.
+	* arch/arm/src/lm:  Rename the arch/arm/src/lm3s directory to
+	  arch/arm/src/lm so that is can support other members of the
+	  Stellaris family.
+	* libc/spawn:  Add file action interfaces needed by posix_spawn().
+	* sched/clock_time2ticks.c:  Another case where time was being
+	  rounded down instead of up (from Mike Smith).
+	* libc/spawn:  Implementation of posix_spawn() is complete but
+	  untested and undocumented.
+	* drivers/usbdev/pl2303.c:  Fix typols in the PL2303 driver
+	  (from Max Holtzberg).
+	* configs/stm32f4discovery/posix_spawn:  Added a configuration
+	  that can be used for testing posix_spawn().
+	* arch/arm/src/stm32: Bring F1 support for general DMA and serial
+	  DMA in paricular up to parity with F2/F4 (from Mike Smith).
+	* libc/stdio/lib_libfread.c:  Correct some error handling when
+	  lib_fread() was passed a bad stream.  Needed to move the
+	  releasing of a semaphore inside of some conditional logic
+	  (cosmetic).
+	* include/nuttx/sched.h, sched/task_setup.c, and sched/task_exithook.c:
+	  Add support for remembering the parent task and sending
+	  SIGCHLD to the parent when the task exists.
+	* sched/task_exithook.c:  Fixed a *critical* bug.  Here is
+	  the scenario: (1) sched_lock() is called increments the lockcount
+	  on the current TCB (i.e., the one at the head of the ready to run
+	  list), (2) sched_mergepending is called which may change the task
+	  at the head of the readytorun list, then (2) sched_unlock() is called
+	  which decrements the lockcount on the wrong TCB.  The failure case
+	  that I saw was that pre-emption got disabled in the IDLE thread,
+	  locking up the whole system.
+	* sched/sched_waitpid.c:  Use SIGCHLD instead of a semaphore.  This
+	  is a much more spec-compliant implemenation.  However, there are
+	  some issues with overruning signals because NuttX does not support
+	  queueing of signals (POSIX does not require it).  I think it may
+	  need to.
+	* sched/sched_waitid.c and sched_wait.c:  Add support for waitid()
+	  and wait().  See issues with waitpid() above.
+	* include/nuttx/fs/fs.h and fs/fs_files.c:  Add a dup() method to
+	  the struct mountpt_operations.  When dup'ing a file that resides
+	  on a mounted volume, let the file system's dup() method do the
+	  work.
+	* fs/romfs/fs_romfs.c: Implemented the dup() method for the ROMFS
+	  file system.
+	* fs/fat/fs_fat32.c, fs/nxffs/nxffs_initialize, and
+	  fs/nfs/nfs_vfsops.c:  Add hooks for dup() method (not yet
+	  implemented).
+	* fs/romfs:  Remove the rf_open flag.  It looks good, but actually
+	  does nothing.
+	* fs/fat:  Remove the ff_open flag.  Same story as for the ROMFS
+	  rf_open flag.
+	* fs/fat/fs_fat32.c, fs/nxffs/nxffs_initialize, and
+	  fs/nfs/nfs_vfsops.c:  Completed implementation of the dup() methods.
+	  There is still no good test available.
+	* sched/sig_timedwait.c:  sigtimedwait() would return a bad signal
+	  number if the signal was already pending when the function was
+	  called.
+	* configs/ubw32/scripts:  All common linker scripts moved to this
+	  scripts sub-directory
+	* configs/ubw32/ostest:  Configuration configured to use the
+	  kconfig-frontends tools.
+	* arch/mips/src/mips32/up_vfork.c, up_vfork.h, and vfork.S:
+	  Implement vfork() for MIPS32 (no floating point support)
+	* configs/ubw32/ostest: Enable the vfork() test.
+	* fs/binfs:  Move apps/builtin/binfs.c to fs/binfs/fs_binfs.c
+	  CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS
+	* include/nuttx/binfmt/builtin.h:  Some of the content of
+	  apps/include/apps.h moved to include/nuttx/binfmt/builtin.h
+	* binfmt/libbuiltin/libbuiltin_utils.c:  Move utility builtin
+	  utility functions from apps/builtin/exec_builtins.c to
+	  binfmt/libbuiltin/libbuiltin_utils.c
+	* binfmt/builtin.c and binfmt/libbuiltin:  Add a binary "loader"
+	  that can be used to execute builtin programs from the BINFS
+	  file system.
+	* configs/sim/nsh: Convert to use kconfig-frontends configuration
+	  tool.
+	* binfmt/binfmt_schedunload.c:  Add logic based on SIGCHLD to
+	  automatically unload and clean-up after running a task that
+	  was loaded into memory.
+	* binfmt/libbuiltin: Extensions from Mike Smith
+	* sched/task_reparent.c:  Add internal interface to change the
+	  parent task.
+	* sched/task_posixspawn():  Move libc/spawn/lib_ps.c to
+	  sched/task_posixspawn() now it requires internal, reparenting
+	  interfaces
+	* include/nuttx/spawn():  Move libc/spawn.h to include/nuttx/spawn.h
+	* arch/arm/include/lpc17xx/chip.h, irq178x.h:  Integrate Marcelo
+	  Rommel's LPC1788 definitions into the base LPC17xx.
+	* configs/olimex-lpc1766stk/nsh:  Convert configuration to use
+	  the kconfig-frontends tools.
+	* sched/task_reparent.c:  Simplify reparenting interface.
+	* arch/arm/src/[many]: More LPC1788 definitions from Rommel
+	  Marcelo incorporated.
+	* configs/open1788:  Board configuration for the Wave Share
+	  Open1788 board.  Still fragmentary (contribnuted by Rommel
+	  Marcelo, adapted to use kconfig-frontends.
+	* net/send():  Add logic to work around delayed ACKs by splitting
+	  packets (contributed by Yan T.).
+	* net/recvfrom():  Fix a bug.  When the host closes a connection
+	  (gracefully).  recv[from]() returned success and the closure
+	  was never detected.  Hmmm.. I don't know why the network monitor
+	  did not catch this event.  This is an important bug fix.
+	* net/recvfrom():  Fix a introduced with the last bugfix.  If
+	  the peer does an orderly closure of the socket, report 0 not
+	  -ENOTCONN
+	* configs/lm3s6965-ek/README.txt and tools/:  Add an OpenOCD
+	  configuration for the LM3S (from Jose Pablo Carballo).
+	* nuttx/lcd/hd4478ou.h and configs/pcblogic-pic32mx/src/up_lcd1602:
+	  Start of support of LCD1602 alphanumeric LCD.  I need a few
+	  more parts before I can finish integrating this one.
+	* arch/arm/src/*/chip.h and arch/arm/include/*/chip.h:  Move all
+	  priority ranges from the src to the include chip.h header file.
+	* arch/arm/include/armv7-m/irq.h:  Add inline functions to enable
+	  and disable interrupts via the BASEPRI register.
+	* arch/arm/Kconfig:  Add new option CONFIG_ARM7VM_USEBASEI
+	* arch/arm/src/*/*_irq.c:  Set the priority of the SVCALL exception
+	  to the highest possible value.
+	* arch/armv7-m/up_hardfault.c:  Fail if a hardfault occurs
+	  while CONFIG_ARM7VM_USEBASEPRI=y.
+	* arch/arm/src/stm32/stm32_serial.c:  Add support for USART
+	  single wire more (Contributed by the PX4 team).
+	* sched/: Implement support for retaining child task status after
+	  the child task exists.  This is behavior required by POSIX.
+	  But in NuttX is only enabled with CONFIG_SCHED_HAVE_PARENT and
+	  CONFIG_SCHED_CHILD_STATUS
+	* Add support for keyboard encode to the keypad test (from
+	  Denis Carikli).
+

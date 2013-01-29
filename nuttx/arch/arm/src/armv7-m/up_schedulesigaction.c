@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv7-m/up_schedulesigaction.c
  *
- *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -155,7 +155,11 @@ void up_schedule_sigaction(_TCB *tcb, sig_deliver_t sigdeliver)
 
               tcb->xcp.sigdeliver       = sigdeliver;
               tcb->xcp.saved_pc         = current_regs[REG_PC];
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+              tcb->xcp.saved_basepri    = current_regs[REG_BASEPRI];
+#else
               tcb->xcp.saved_primask    = current_regs[REG_PRIMASK];
+#endif
               tcb->xcp.saved_xpsr       = current_regs[REG_XPSR];
 
               /* Then set up to vector to the trampoline with interrupts
@@ -163,7 +167,11 @@ void up_schedule_sigaction(_TCB *tcb, sig_deliver_t sigdeliver)
                */
 
               current_regs[REG_PC]      = (uint32_t)up_sigdeliver;
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+              current_regs[REG_BASEPRI] = NVIC_SYSH_DISABLE_PRIORITY;
+#else
               current_regs[REG_PRIMASK] = 1;
+#endif
               current_regs[REG_XPSR]    = ARMV7M_XPSR_T;
 
               /* And make sure that the saved context in the TCB
@@ -189,7 +197,11 @@ void up_schedule_sigaction(_TCB *tcb, sig_deliver_t sigdeliver)
 
           tcb->xcp.sigdeliver       = sigdeliver;
           tcb->xcp.saved_pc         = tcb->xcp.regs[REG_PC];
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+          tcb->xcp.saved_basepri    = tcb->xcp.regs[REG_BASEPRI];
+#else
           tcb->xcp.saved_primask    = tcb->xcp.regs[REG_PRIMASK];
+#endif
           tcb->xcp.saved_xpsr       = tcb->xcp.regs[REG_XPSR];
 
           /* Then set up to vector to the trampoline with interrupts
@@ -197,7 +209,11 @@ void up_schedule_sigaction(_TCB *tcb, sig_deliver_t sigdeliver)
            */
 
           tcb->xcp.regs[REG_PC]      = (uint32_t)up_sigdeliver;
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+          tcb->xcp.regs[REG_BASEPRI] = NVIC_SYSH_DISABLE_PRIORITY;
+#else
           tcb->xcp.regs[REG_PRIMASK] = 1;
+#endif
           tcb->xcp.regs[REG_XPSR]    = ARMV7M_XPSR_T;
         }
 

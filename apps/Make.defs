@@ -34,8 +34,17 @@
 #
 ############################################################################
 
+BUILTIN_REGISTRY = $(APPDIR)$(DELIM)builtin$(DELIM)registry
+
+ifeq ($(CONFIG_NUTTX_NEWCONFIG),y)
+DEPCONFIG = $(TOPDIR)$(DELIM).config
+else
+DEPCONFIG = $(TOPDIR)$(DELIM).config $(APPDIR)$(DELIM).config
+endif
+
 define REGISTER
-	@echo "Register: $1"
-	@echo "{ \"$1\", $2, $3, $4 }," >> "$(APPDIR)/namedapp/namedapp_list.h"
-	@echo "EXTERN int $4(int argc, char *argv[]);" >> "$(APPDIR)/namedapp/namedapp_proto.h"
+	$(Q) echo "Register: $1"
+	$(Q) echo "{ \"$1\", $2, $3, $4 }," > "$(BUILTIN_REGISTRY)$(DELIM)$4.bdat"
+	$(Q) echo "int $4(int argc, char *argv[]);" > "$(BUILTIN_REGISTRY)$(DELIM)$4.pdat"
+	$(Q) touch "$(BUILTIN_REGISTRY)$(DELIM).updated"
 endef

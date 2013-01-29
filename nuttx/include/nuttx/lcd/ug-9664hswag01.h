@@ -1,5 +1,6 @@
 /****************************************************************************
  * include/nuttx/lcd/ug-9664hswag01.h
+ *
  * Driver for the Univision UG-9664HSWAG01 Display with the Solomon Systech
  * SSD1305 LCD controller.
  *

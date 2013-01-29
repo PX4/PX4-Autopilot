@@ -59,7 +59,7 @@ CSRCS += lib_fopen.c lib_fclose.c lib_fread.c lib_libfread.c lib_fseek.c \
 		 lib_gets.c lib_fwrite.c lib_libfwrite.c lib_fflush.c \
 		 lib_libflushall.c lib_libfflush.c lib_rdflush.c lib_wrflush.c \
 		 lib_fputc.c lib_puts.c lib_fputs.c lib_ungetc.c lib_vprintf.c \
-		 lib_fprintf.c lib_vfprintf.c lib_stdinstream.c lib_stdoutstream.c \
+		 lib_fprintf.c lib_vfprintf.c lib_vdprintf.c lib_stdinstream.c lib_stdoutstream.c \
 		 lib_perror.c lib_feof.c lib_ferror.c lib_clearerr.c
 
 endif

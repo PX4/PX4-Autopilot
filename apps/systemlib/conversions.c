@@ -42,10 +42,6 @@
 
 #include "conversions.h"
 
-#define air_gas_constant 8.31432f
-#define air_density_sea_level 1.225f
-#define absolute_null_kelvin 273.15f
-
 int16_t
 int16_t_from_bytes(uint8_t bytes[])
 {
@@ -154,5 +150,5 @@ void quat2rot(const float Q[4], float R[9])
 
 float get_air_density(float static_pressure, float temperature_celsius)
 {
-	return static_pressure / (air_gas_constant * (temperature_celsius + absolute_null_kelvin));
+	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius + CONSTANTS_ABSOLUTE_NULL_KELVIN));
 }

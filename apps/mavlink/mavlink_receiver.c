@@ -318,9 +318,11 @@ handle_message(mavlink_message_t *msg)
 			static uint16_t hil_frames = 0;
 			static uint64_t old_timestamp = 0;
 
+			/* sensors general */
+			hil_sensors.timestamp = imu.time_usec;
+
 			/* hil gyro */
 			static const float mrad2rad = 1.0e-3f;
-			hil_sensors.timestamp = timestamp;
 			hil_sensors.gyro_counter = hil_counter;
 			hil_sensors.gyro_raw[0] = imu.xgyro;
 			hil_sensors.gyro_raw[1] = imu.ygyro;
@@ -367,8 +369,8 @@ handle_message(mavlink_message_t *msg)
 			hil_frames += 1 ;
 
 			// output
-			if ((timestamp - old_timestamp) > 1000000) {
-				printf("receiving hil imu at %d hz\n", hil_frames);
+			if ((timestamp - old_timestamp) > 10000000) {
+				printf("receiving hil imu at %d hz\n", hil_frames/10);
 				old_timestamp = timestamp;
 				hil_frames = 0;
 			}
@@ -412,8 +414,8 @@ handle_message(mavlink_message_t *msg)
 			hil_frames += 1 ;
 
 			// output
-			if ((timestamp - old_timestamp) > 1000000) {
-				printf("receiving hil gps at %d hz\n", hil_frames);
+			if ((timestamp - old_timestamp) > 10000000) {
+				printf("receiving hil gps at %d hz\n", hil_frames/10);
 				old_timestamp = timestamp;
 				hil_frames = 0;
 			}
@@ -428,6 +430,9 @@ handle_message(mavlink_message_t *msg)
 			static uint16_t hil_counter = 0;
 			static uint16_t hil_frames = 0;
 			static uint64_t old_timestamp = 0;
+
+			/* sensors general */
+			hil_sensors.timestamp = press.time_usec;
 
 			/* baro */
 			/* TODO, set ground_press/ temp during calib */
@@ -454,8 +459,8 @@ handle_message(mavlink_message_t *msg)
 			hil_frames += 1 ;
 
 			// output
-			if ((timestamp - old_timestamp) > 1000000) {
-				printf("receiving hil pressure at %d hz\n", hil_frames);
+			if ((timestamp - old_timestamp) > 10000000) {
+				printf("receiving hil pressure at %d hz\n", hil_frames/10);
 				old_timestamp = timestamp;
 				hil_frames = 0;
 			}

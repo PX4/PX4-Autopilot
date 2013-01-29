@@ -79,7 +79,7 @@
 #endif
 
 /********************************************************************************
- * Global Type Definitions
+ * Public Type Definitions
  ********************************************************************************/
 
 /* This is the POSIX-like scheduling parameter structure */
@@ -90,56 +90,61 @@ struct sched_param
 };
 
 /********************************************************************************
- * Global Function Prototypes
+ * Public Data
  ********************************************************************************/
 
 #ifndef __ASSEMBLY__
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
-extern "C" {
+extern "C"
+{
 #else
 #define EXTERN extern
 #endif
 
+/********************************************************************************
+ * Public Function Prototypes
+ ********************************************************************************/
+
 /* Task Control Interfaces (non-standard) */
 
 #ifndef CONFIG_CUSTOM_STACK
-EXTERN int    task_init(FAR _TCB *tcb, const char *name, int priority,
-                        FAR uint32_t *stack, uint32_t stack_size,
-                        main_t entry, const char *argv[]);
+int    task_init(FAR _TCB *tcb, const char *name, int priority,
+                 FAR uint32_t *stack, uint32_t stack_size, main_t entry,
+                 FAR const char *argv[]);
 #else
-EXTERN int    task_init(FAR _TCB *tcb, const char *name, int priority,
-                        main_t entry, const char *argv[]);
+int    task_init(FAR _TCB *tcb, const char *name, int priority, main_t entry,
+                 FAR const char *argv[]);
 #endif
-EXTERN int    task_activate(FAR _TCB *tcb);
+int    task_activate(FAR _TCB *tcb);
 #ifndef CONFIG_CUSTOM_STACK
-EXTERN int    task_create(const char *name, int priority, int stack_size,
-                          main_t entry, const char *argv[]);
+int    task_create(FAR const char *name, int priority, int stack_size, main_t entry,
+                   FAR const char *argv[]);
 #else
-EXTERN int    task_create(const char *name, int priority,
-                          main_t entry, const char *argv[]);
+int    task_create(FAR const char *name, int priority, main_t entry,
+                   FAR const char *argv[]);
 #endif
-EXTERN int    task_delete(pid_t pid);
-EXTERN int    task_restart(pid_t pid);
+int    task_delete(pid_t pid);
+int    task_restart(pid_t pid);
 
 /* Task Scheduling Interfaces (based on POSIX APIs) */
 
-EXTERN int    sched_setparam(pid_t pid, const struct sched_param *param);
-EXTERN int    sched_getparam(pid_t pid, struct sched_param *param);
-EXTERN int    sched_setscheduler(pid_t pid, int policy,
-                                 const struct sched_param *param);
-EXTERN int    sched_getscheduler(pid_t pid);
-EXTERN int    sched_yield(void);
-EXTERN int    sched_get_priority_max(int policy);
-EXTERN int    sched_get_priority_min(int policy);
-EXTERN int    sched_rr_get_interval(pid_t pid, struct timespec *interval);
+int    sched_setparam(pid_t pid, const struct sched_param *param);
+int    sched_getparam(pid_t pid, struct sched_param *param);
+int    sched_setscheduler(pid_t pid, int policy,
+                          FAR const struct sched_param *param);
+int    sched_getscheduler(pid_t pid);
+int    sched_yield(void);
+int    sched_get_priority_max(int policy);
+int    sched_get_priority_min(int policy);
+int    sched_rr_get_interval(pid_t pid, FAR struct timespec *interval);
 
 /* Task Switching Interfaces (non-standard) */
 
-EXTERN int    sched_lock(void);
-EXTERN int    sched_unlock(void);
-EXTERN int    sched_lockcount(void);
+int    sched_lock(void);
+int    sched_unlock(void);
+int    sched_lockcount(void);
 
 /* If instrumentation of the scheduler is enabled, then some outboard logic
  * must provide the following interfaces.
@@ -147,9 +152,9 @@ EXTERN int    sched_lockcount(void);
 
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 
-EXTERN void   sched_note_start(FAR _TCB *tcb);
-EXTERN void   sched_note_stop(FAR _TCB *tcb);
-EXTERN void   sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb);
+void   sched_note_start(FAR _TCB *tcb);
+void   sched_note_stop(FAR _TCB *tcb);
+void   sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb);
 
 #else
 # define sched_note_start(t)

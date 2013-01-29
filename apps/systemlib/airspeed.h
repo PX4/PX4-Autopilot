@@ -33,12 +33,15 @@
  ****************************************************************************/
 
 /**
- * @file airspeed.c
- * Airspeed estimation
+ * @file airspeed.h
+ * Airspeed estimation declarations
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  *
  */
+
+#ifndef AIRSPEED_H_
+#define AIRSPEED_H_
 
 #include "math.h"
 #include "conversions.h"
@@ -84,3 +87,5 @@ __EXPORT float calc_true_airspeed_from_indicated(float speed, float pressure_amb
 __EXPORT float calc_true_airspeed(float pressure_front, float pressure_ambient, float temperature);
 
 __END_DECLS
+
+#endif

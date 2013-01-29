@@ -1,0 +1,77 @@
+/****************************************************************************
+ *
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file home_position.h
+ * Definition of the GPS home position uORB topic.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ */
+
+#ifndef TOPIC_HOME_POSITION_H_
+#define TOPIC_HOME_POSITION_H_
+
+#include <stdint.h>
+#include "../uORB.h"
+
+/**
+ * @addtogroup topics
+ * @{
+ */
+
+/**
+ * GPS home position in WGS84 coordinates.
+ */
+struct home_position_s
+{
+	uint64_t timestamp;             /**< Timestamp (microseconds since system boot)   */
+	uint64_t time_gps_usec;         /**< Timestamp (microseconds in GPS format), this is the timestamp from the gps module   */
+	
+	int32_t lat;                    /**< Latitude in 1E7 degrees */
+	int32_t lon;                    /**< Longitude in 1E7 degrees */
+	int32_t alt;                    /**< Altitude in 1E3 meters (millimeters) above MSL */
+	uint16_t eph;                   /**< GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535 */
+	uint16_t epv;                   /**< GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535 */
+	float s_variance;               /**< speed accuracy estimate cm/s */
+	float p_variance;               /**< position accuracy estimate cm */
+};
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(home_position);
+
+#endif

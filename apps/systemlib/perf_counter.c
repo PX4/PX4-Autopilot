@@ -219,6 +219,40 @@ perf_end(perf_counter_t handle)
 }
 
 void
+perf_reset(perf_counter_t handle)
+{
+	if (handle == NULL)
+		return;
+
+	switch (handle->type) {
+	case PC_COUNT:
+		((struct perf_ctr_count *)handle)->event_count = 0;
+		break;
+
+	case PC_ELAPSED: {
+		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+		pce->event_count = 0;
+		pce->time_start = 0;
+		pce->time_total = 0;
+		pce->time_least = 0;
+		pce->time_most = 0;
+		break;
+	}
+
+	case PC_INTERVAL: {
+		struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+		pci->event_count = 0;
+		pci->time_event = 0;
+		pci->time_first = 0;
+		pci->time_last = 0;
+		pci->time_least = 0;
+		pci->time_most = 0;
+		break;
+	}
+	}
+}
+
+void
 perf_print_counter(perf_counter_t handle)
 {
 	if (handle == NULL)
@@ -267,6 +301,17 @@ perf_print_all(void)
 
 	while (handle != NULL) {
 		perf_print_counter(handle);
+		handle = (perf_counter_t)sq_next(&handle->link);
+	}
+}
+
+void
+perf_reset_all(void)
+{
+	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
+
+	while (handle != NULL) {
+		perf_reset(handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
 }

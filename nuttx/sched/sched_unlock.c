@@ -126,5 +126,6 @@ int sched_unlock(void)
 
       irqrestore(flags);
     }
+
   return OK;
 }

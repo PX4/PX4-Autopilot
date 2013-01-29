@@ -45,6 +45,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -83,6 +84,7 @@ struct mavlink_subscriptions {
 	int optical_flow;
 	int omnidirectional_flow;
 	int rates_setpoint_sub;
+	int home_sub;
 };
 
 extern struct mavlink_subscriptions mavlink_subs;
