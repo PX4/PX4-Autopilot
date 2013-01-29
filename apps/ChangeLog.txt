@@ -495,5 +495,10 @@
 	* apps/examples/nettest and poll:  Complete Kconfig files.
 	* apps/examples/ostest/waitpid.c:  Need to use WEXITSTATUS()
 	  to decode the correct exit status.
-	* system/usbmonitor:  A daemon that can be used to monitor USB
+	* apps/system/usbmonitor:  A daemon that can be used to monitor USB
 	  trace outpout.
+	* apps/nshlib/nsh_usbdev.c, nsh_consolemain.c, nsh_session.c, nsh_script.c:
+	  Add support for a login script.  The init.d/rcS script will be executed
+	  once when NSH starts; the .nshrc script will be executed for each session:
+	  Once for serial, once for each USB connection, once for each Telnet
+	  session.

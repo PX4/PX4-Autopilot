@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/nshlib/nsh_consolemain.c
+ * apps/nshlib/nsh_script.c
  *
  *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -14,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name Gregory Nutt nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -39,18 +39,13 @@
 
 #include <nuttx/config.h>
 
-#include <stdio.h>
-#include <assert.h>
-
-#include <apps/readline.h>
-
 #include "nsh.h"
 #include "nsh_console.h"
 
-#ifndef HAVE_USB_CONSOLE
+#if  CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0 && !defined(CONFIG_NSH_DISABLESCRIPT)
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Definitions
  ****************************************************************************/
 
 /****************************************************************************
@@ -78,55 +73,123 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_consolemain (Normal character device version)
+ * Name: nsh_script
  *
  * Description:
- *   This interfaces maybe to called or started with task_start to start a
- *   single an NSH instance that operates on stdin and stdout.  This
- *   function does not normally return (see below).
+ *   Execute the NSH script at path.
  *
- *   This version of nsh_consolmain handles generic /dev/console character
- *   devices (see nsh_usbdev.c for another version for special USB console
- *   devices).
-  *
- * Input Parameters:
- *   Standard task start-up arguments.  These are not used.  argc may be
- *   zero and argv may be NULL.
- *
- * Returned Values:
- *   This function does not normally return.  exit() is usually called to
- *   terminate the NSH session.  This function will return in the event of
- *   an error.  In that case, a nonzero value is returned (EXIT_FAILURE=1).
- *  
  ****************************************************************************/
 
-int nsh_consolemain(int argc, char *argv[])
+int nsh_script(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+               FAR const char *path)
 {
-  FAR struct console_stdio_s *pstate = nsh_newconsole();
-  int ret;
+  char *fullpath;
+  FILE *stream;
+  char *buffer;
+  char *pret;
+  int ret = ERROR;
 
-  DEBUGASSERT(pstate);
+  /* The path to the script may be relative to the current working directory */
 
-  /* Execute the start-up script */
+  fullpath = nsh_getfullpath(vtbl, path);
+  if (!fullpath)
+    {
+      return ERROR;
+    }
 
-#ifdef CONFIG_NSH_ROMFSETC
-  (void)nsh_initscript(&pstate->cn_vtbl);
-#endif
+  /* Get a reference to the common input buffer */
 
-  /* Initialize any USB tracing options that were requested */
+  buffer = nsh_linebuffer(vtbl);
+  if (buffer)
+    {
+      /* Open the file containing the script */
 
-#ifdef CONFIG_NSH_USBDEV_TRACE
-  usbtrace_enable(TRACE_BITSET);
-#endif
+      stream = fopen(fullpath, "r");
+      if (!stream)
+        {
+          nsh_output(vtbl, g_fmtcmdfailed, cmd, "fopen", NSH_ERRNO);
+          nsh_freefullpath(fullpath);
+          return ERROR;
+        }
 
-  /* Execute the session */
+      /* Loop, processing each command line in the script file (or
+       * until an error occurs)
+       */
 
-  ret = nsh_session(pstate);
+      do
+        {
+          /* Get the next line of input from the file */
 
-  /* Exit upon return */
+          fflush(stdout);
+          pret = fgets(buffer, CONFIG_NSH_LINELEN, stream);
+          if (pret)
+            {
+              /* Parse process the command.  NOTE:  this is recursive...
+               * we got to cmd_sh via a call to nsh_parse.  So some
+               * considerable amount of stack may be used.
+               */
 
-  nsh_exit(&pstate->cn_vtbl, ret);
+              ret = nsh_parse(vtbl, buffer);
+            }
+        }
+      while (pret && ret == OK);
+      fclose(stream);
+    }
+
+  nsh_freefullpath(fullpath);
   return ret;
 }
 
-#endif /* !HAVE_USB_CONSOLE */
+/****************************************************************************
+ * Name: nsh_initscript
+ *
+ * Description:
+ *   Attempt to execute the configured initialization script.  This script
+ *   should be executed once when NSH starts.  nsh_initscript is idempotent
+ *   and may, however, be called multiple times (the script will be executed
+ *   once.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_ROMFSETC
+int nsh_initscript(FAR struct nsh_vtbl_s *vtbl)
+{
+  static bool initialized;
+  bool already;
+  int ret = OK;
+
+  /* Atomic test and set of the initialized flag */
+
+  sched_lock();
+  already     = initialized;
+  initialized = true;
+  sched_unlock();
+
+  /* If we have not already executed the init script, then do so now */
+
+  if (!already)
+    {
+      ret = nsh_script(vtbl, "init", NSH_INITPATH);
+    }
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: nsh_loginscript
+ *
+ * Description:
+ *   Attempt to execute the configured login script.  This script
+ *   should be executed when each NSH session starts.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_ROMFSRC
+int nsh_loginscript(FAR struct nsh_vtbl_s *vtbl)
+{
+  return nsh_script(vtbl, "login", NSH_RCPATH);
+}
+#endif
+#endif /* CONFIG_NSH_ROMFSETC */
+
+#endif /* CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0 && !CONFIG_NSH_DISABLESCRIPT */

@@ -292,6 +292,19 @@ config NSH_ROMFSETC
 endif
 
 if NSH_ROMFSETC
+
+config NSH_ROMFSRC
+	bool "Support ROMFS login script"
+	default n
+	---help---
+		The ROMFS start-up script will be executed excactly once.  For
+		simple, persistence consoles (like a serial console).  But with
+		other other kinds of consoles, there may be multiple, transient
+		sessions (such as Telnet and USB consoles).  In these cases, you
+		may need another script that is executed at the beginning of each
+		session.  Selecting this option enables support for such a login
+		script
+
 config NSH_ROMFSMOUNTPT
 	string "ROMFS mount point"
 	default "/etc"
@@ -306,6 +319,15 @@ config NSH_INITSCRIPT
 	---help---
 		This is the relative path to the startup script within the mountpoint.
 		The default is init.d/rcS.  This is a relative path and must not
+		start with '/'.
+
+config NSH_RCSCRIPT
+	string "Relative path to login script"
+	default ".nshrc"
+	depends on NSH_ROMFSRC
+	---help---
+		This is the relative path to the login script within the mountpoint.
+		The default is .nshrc.  This is a relative path and must not
 		start with '/'.
 
 config NSH_ROMFSDEVNO

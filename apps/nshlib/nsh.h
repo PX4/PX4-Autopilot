@@ -93,8 +93,8 @@
 #  elif defined(CONFIG_CDCACM) && defined(CONFIG_CDCACM_CONSOLE)
 #    define HAVE_USB_CONSOLE 1
 
-/* Check for other USB console.  USB console device must be provided in
- * CONFIG_NSH_CONDEV.
+/* Check for a generic USB console.  In this case, the USB console device
+ * must be provided in CONFIG_NSH_CONDEV.
  */
 
 #  elif defined(CONFIG_NSH_USBCONSOLE)
@@ -244,40 +244,59 @@
 #    error "Mountpoint support is disabled"
 #    undef CONFIG_NSH_ROMFSETC
 #  endif
+
 #  if CONFIG_NFILE_DESCRIPTORS < 4
 #    error "Not enough file descriptors"
 #    undef CONFIG_NSH_ROMFSETC
 #  endif
+
 #  ifndef CONFIG_FS_ROMFS
 #    error "ROMFS support not enabled"
 #    undef CONFIG_NSH_ROMFSETC
 #  endif
+
 #  ifndef CONFIG_NSH_ROMFSMOUNTPT
 #    define CONFIG_NSH_ROMFSMOUNTPT "/etc"
 #  endif
-#  ifdef CONFIG_NSH_INIT
-#    ifndef CONFIG_NSH_INITSCRIPT
-#      define CONFIG_NSH_INITSCRIPT "init.d/rcS"
-#    endif
+
+#  ifndef CONFIG_NSH_INITSCRIPT
+#    define CONFIG_NSH_INITSCRIPT "init.d/rcS"
 #  endif
+
 #  undef NSH_INITPATH
 #  define NSH_INITPATH CONFIG_NSH_ROMFSMOUNTPT "/" CONFIG_NSH_INITSCRIPT
+
+#  ifdef CONFIG_NSH_ROMFSRC
+#    ifndef CONFIG_NSH_RCSCRIPT
+#      define CONFIG_NSH_RCSCRIPT ".nshrc"
+#    endif
+
+#    undef NSH_RCPATH
+#    define NSH_RCPATH CONFIG_NSH_ROMFSMOUNTPT "/" CONFIG_NSH_RCSCRIPT
+#  endif
+
 #  ifndef CONFIG_NSH_ROMFSDEVNO
 #    define CONFIG_NSH_ROMFSDEVNO 0
 #  endif
+
 #  ifndef CONFIG_NSH_ROMFSSECTSIZE
 #    define CONFIG_NSH_ROMFSSECTSIZE 64
 #  endif
+
 #  define NSECTORS(b)        (((b)+CONFIG_NSH_ROMFSSECTSIZE-1)/CONFIG_NSH_ROMFSSECTSIZE)
 #  define STR_RAMDEVNO(m)    #m
 #  define MKMOUNT_DEVNAME(m) "/dev/ram" STR_RAMDEVNO(m)
 #  define MOUNT_DEVNAME      MKMOUNT_DEVNAME(CONFIG_NSH_ROMFSDEVNO)
+
 #else
+
+#  undef CONFIG_NSH_ROMFSRC
 #  undef CONFIG_NSH_ROMFSMOUNTPT
-#  undef CONFIG_NSH_INIT
 #  undef CONFIG_NSH_INITSCRIPT
+#  undef CONFIG_NSH_RCSCRIPT
 #  undef CONFIG_NSH_ROMFSDEVNO
 #  undef CONFIG_NSH_ROMFSSECTSIZE
+
 #endif
 
 /* This is the maximum number of arguments that will be accepted for a
@@ -486,6 +505,12 @@ int nsh_usbconsole(void);
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0 && !defined(CONFIG_NSH_DISABLESCRIPT)
 int nsh_script(FAR struct nsh_vtbl_s *vtbl, const char *cmd, const char *path);
+#ifdef CONFIG_NSH_ROMFSETC
+int nsh_initscript(FAR struct nsh_vtbl_s *vtbl);
+#ifdef CONFIG_NSH_ROMFSRC
+int nsh_loginscript(FAR struct nsh_vtbl_s *vtbl);
+#endif
+#endif
 #endif
 
 /* Architecture-specific initialization */
@@ -496,8 +521,10 @@ int nsh_archinitialize(void);
 #  define nsh_archinitialize() (-ENOSYS)
 #endif
 
-/* Message handler */
+/* Basic session and message handling */
 
+struct console_stdio_s;
+int nsh_session(FAR struct console_stdio_s *pstate);
 int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline);
 
 /* Application interface */
@@ -527,10 +554,8 @@ void nsh_dumpbuffer(FAR struct nsh_vtbl_s *vtbl, const char *msg,
 
 /* USB debug support */
 
-#if defined(CONFIG_NSH_USBDEV_TRACE) && defined(HAVE_USB_CONSOLE)
+#ifdef CONFIG_NSH_USBDEV_TRACE
 void nsh_usbtrace(void);
-#else
-#  define nsh_usbtrace()
 #endif
 
 /* Shell command handlers */
