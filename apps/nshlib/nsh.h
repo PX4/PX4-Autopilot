@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/nshlib/nsh.h
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -93,7 +93,9 @@
 #  elif defined(CONFIG_CDCACM) && defined(CONFIG_CDCACM_CONSOLE)
 #    define HAVE_USB_CONSOLE 1
 
-/* Check for other USB console.  USB console device must be provided in CONFIG_NSH_CONDEV */
+/* Check for other USB console.  USB console device must be provided in
+ * CONFIG_NSH_CONDEV.
+ */
 
 #  elif defined(CONFIG_NSH_USBCONSOLE)
 #    define HAVE_USB_CONSOLE 1
@@ -106,8 +108,8 @@
 
 /* The default USB console device minor number is 0*/
 
-#  ifndef CONFIG_NSH_UBSDEV_MINOR
-#    define CONFIG_NSH_UBSDEV_MINOR 0
+#  ifndef CONFIG_NSH_USBDEV_MINOR
+#    define CONFIG_NSH_USBDEV_MINOR 0
 #  endif
 
 /* The default console device is always /dev/console */
@@ -118,42 +120,52 @@
 
 /* USB trace settings */
 
-#ifdef CONFIG_NSH_USBDEV_TRACEINIT
-#  define TRACE_INIT_BITS       (TRACE_INIT_BIT)
-#else
-#  define TRACE_INIT_BITS       (0)
-#endif
+#ifndef CONFIG_USBDEV_TRACE
+#  undef CONFIG_NSH_USBDEV_TRACE
+#endif 
 
-#define TRACE_ERROR_BITS        (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
+#ifdef CONFIG_NSH_USBDEV_TRACE
+#  ifdef CONFIG_NSH_USBDEV_TRACEINIT
+#    define TRACE_INIT_BITS       (TRACE_INIT_BIT)
+#  else
+#    define TRACE_INIT_BITS       (0)
+#  endif
 
-#ifdef CONFIG_NSH_USBDEV_TRACECLASS
-#  define TRACE_CLASS_BITS      (TRACE_CLASS_BIT|TRACE_CLASSAPI_BIT|TRACE_CLASSSTATE_BIT)
-#else
-#  define TRACE_CLASS_BITS      (0)
-#endif
+#  define TRACE_ERROR_BITS        (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
 
-#ifdef CONFIG_NSH_USBDEV_TRACETRANSFERS
-#  define TRACE_TRANSFER_BITS   (TRACE_OUTREQQUEUED_BIT|TRACE_INREQQUEUED_BIT|TRACE_READ_BIT|\
-                                 TRACE_WRITE_BIT|TRACE_COMPLETE_BIT)
-#else
-#  define TRACE_TRANSFER_BITS   (0)
-#endif
+#  ifdef CONFIG_NSH_USBDEV_TRACECLASS
+#    define TRACE_CLASS_BITS      (TRACE_CLASS_BIT|TRACE_CLASSAPI_BIT|\
+                                   TRACE_CLASSSTATE_BIT)
+#  else
+#    define TRACE_CLASS_BITS      (0)
+#  endif
 
-#ifdef CONFIG_NSH_USBDEV_TRACECONTROLLER
-#  define TRACE_CONTROLLER_BITS (TRACE_EP_BIT|TRACE_DEV_BIT)
-#else
-#  define TRACE_CONTROLLER_BITS (0)
-#endif
+#  ifdef CONFIG_NSH_USBDEV_TRACETRANSFERS
+#    define TRACE_TRANSFER_BITS   (TRACE_OUTREQQUEUED_BIT|TRACE_INREQQUEUED_BIT|\
+                                   TRACE_READ_BIT|TRACE_WRITE_BIT|\
+                                   TRACE_COMPLETE_BIT)
+#  else
+#    define TRACE_TRANSFER_BITS   (0)
+#  endif
 
-#ifdef CONFIG_NSH_USBDEV_TRACEINTERRUPTS
-#  define TRACE_INTERRUPT_BITS  (TRACE_INTENTRY_BIT|TRACE_INTDECODE_BIT|TRACE_INTEXIT_BIT)
-#else
-#  define TRACE_INTERRUPT_BITS  (0)
-#endif
+#  ifdef CONFIG_NSH_USBDEV_TRACECONTROLLER
+#    define TRACE_CONTROLLER_BITS (TRACE_EP_BIT|TRACE_DEV_BIT)
+#  else
+#    define TRACE_CONTROLLER_BITS (0)
+#  endif
 
-#define TRACE_BITSET            (TRACE_INIT_BITS|TRACE_ERROR_BITS|TRACE_CLASS_BITS|\
-                                 TRACE_TRANSFER_BITS|TRACE_CONTROLLER_BITS|TRACE_INTERRUPT_BITS)
+#  ifdef CONFIG_NSH_USBDEV_TRACEINTERRUPTS
+#    define TRACE_INTERRUPT_BITS  (TRACE_INTENTRY_BIT|TRACE_INTDECODE_BIT|\
+                                   TRACE_INTEXIT_BIT)
+#  else
+#    define TRACE_INTERRUPT_BITS  (0)
+#  endif
 
+#  define TRACE_BITSET            (TRACE_INIT_BITS|TRACE_ERROR_BITS|\
+                                   TRACE_CLASS_BITS|TRACE_TRANSFER_BITS|\
+                                   TRACE_CONTROLLER_BITS|TRACE_INTERRUPT_BITS)
+
+#  endif
 #endif
 
 /* If Telnet is selected for the NSH console, then we must configure
@@ -515,7 +527,7 @@ void nsh_dumpbuffer(FAR struct nsh_vtbl_s *vtbl, const char *msg,
 
 /* USB debug support */
 
-#if defined(CONFIG_USBDEV_TRACE) && defined(HAVE_USB_CONSOLE)
+#if defined(CONFIG_NSH_USBDEV_TRACE) && defined(HAVE_USB_CONSOLE)
 void nsh_usbtrace(void);
 #else
 #  define nsh_usbtrace()

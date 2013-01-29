@@ -168,8 +168,10 @@ static inline int syslog_takesem(void)
 
 static inline void syslog_givesem(void)
 {
+#ifdef CONFIG_DEBUG
   pid_t me = getpid();
   DEBUGASSERT(g_sysdev.sl_holder == me);
+#endif
 
   /* Relinquish the semaphore */
 

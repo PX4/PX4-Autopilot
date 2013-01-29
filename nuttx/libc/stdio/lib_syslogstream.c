@@ -63,7 +63,6 @@
 
 static void syslogstream_putc(FAR struct lib_outstream_s *this, int ch)
 {
-  int errcode;
   int ret;
 
   /* Try writing until the write was successful or until an irrecoverable

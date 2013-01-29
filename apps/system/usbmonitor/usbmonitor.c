@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/system/free/free.c
+ * apps/system/usbmonitor/usbmonitor.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -57,6 +57,60 @@
 
 #define USBMON_PREFIX "USB Monitor: "
 
+/* Configuration ************************************************************/
+
+#ifndef CONFIG_SYSTEM_USBMONITOR_STACKSIZE
+#  define CONFIG_SYSTEM_USBMONITOR_STACKSIZE 2048
+#endif
+
+#ifndef CONFIG_SYSTEM_USBMONITOR_PRIORITY
+#  define CONFIG_SYSTEM_USBMONITOR_PRIORITY 50
+#endif
+
+#ifndef CONFIG_SYSTEM_USBMONITOR_INTERVAL
+#  define CONFIG_SYSTEM_USBMONITOR_INTERVAL 2
+#endif
+
+#ifdef CONFIG_SYSTEM_USBMONITOR_TRACEINIT
+#  define TRACE_INIT_BITS       (TRACE_INIT_BIT)
+#else
+#  define TRACE_INIT_BITS       (0)
+#endif
+
+#define TRACE_ERROR_BITS        (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
+
+#ifdef CONFIG_SYSTEM_USBMONITOR_TRACECLASS
+#  define TRACE_CLASS_BITS      (TRACE_CLASS_BIT|TRACE_CLASSAPI_BIT|\
+                                   TRACE_CLASSSTATE_BIT)
+#else
+#  define TRACE_CLASS_BITS      (0)
+#endif
+
+#ifdef CONFIG_SYSTEM_USBMONITOR_TRACETRANSFERS
+#  define TRACE_TRANSFER_BITS   (TRACE_OUTREQQUEUED_BIT|TRACE_INREQQUEUED_BIT|\
+                                 TRACE_READ_BIT|TRACE_WRITE_BIT|\
+                                 TRACE_COMPLETE_BIT)
+#else
+#  define TRACE_TRANSFER_BITS   (0)
+#endif
+
+#ifdef CONFIG_SYSTEM_USBMONITOR_TRACECONTROLLER
+#  define TRACE_CONTROLLER_BITS (TRACE_EP_BIT|TRACE_DEV_BIT)
+#else
+#  define TRACE_CONTROLLER_BITS (0)
+#endif
+
+#ifdef CONFIG_SYSTEM_USBMONITOR_TRACEINTERRUPTS
+#  define TRACE_INTERRUPT_BITS  (TRACE_INTENTRY_BIT|TRACE_INTDECODE_BIT|\
+                                 TRACE_INTEXIT_BIT)
+#else
+#  define TRACE_INTERRUPT_BITS  (0)
+#endif
+
+#define TRACE_BITSET            (TRACE_INIT_BITS|TRACE_ERROR_BITS|\
+                                 TRACE_CLASS_BITS|TRACE_TRANSFER_BITS|\
+                                 TRACE_CONTROLLER_BITS|TRACE_INTERRUPT_BITS)
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -92,7 +146,7 @@ static int usbmonitor_daemon(int argc, char **argv)
 
   while (!g_usbmonitor.stop)
     {
-      sleep(2);
+      sleep(CONFIG_SYSTEM_USBMONITOR_INTERVAL);
       (void)usbtrace_enumerate(usbmonitor_tracecallback, NULL);
     }
 
@@ -120,6 +174,12 @@ int usbmonitor_start(int argc, char **argv)
 
       /* No.. start it now */
  
+      /* First, initialize any USB tracing options that were requested */
+
+      usbtrace_enable(TRACE_BITSET);
+
+      /* Then start the USB monitoring daemon */
+
       g_usbmonitor.started = true;
       g_usbmonitor.stop    = false;
 
@@ -144,7 +204,8 @@ int usbmonitor_start(int argc, char **argv)
     }
 
   sched_unlock();
-  syslog(USBMON_PREFIX "Running: %d\n", g_usbmonitor.pid);
+  syslog(USBMON_PREFIX "%s: %d\n",
+         g_usbmonitor.stop ? "Stopping" : "Running", g_usbmonitor.pid);
   return 0;
 }
 
@@ -154,9 +215,16 @@ int usbmonitor_stop(int argc, char **argv)
 
   if (g_usbmonitor.started)
     {
+      /* Stop the USB monitor.  The next time the monitor wakes up,
+       * it will see the the stop indication and will exist.
+       */
+
       syslog(USBMON_PREFIX "Stopping: %d\n", g_usbmonitor.pid);
       g_usbmonitor.stop = true;
-      return 0;
+
+      /* We may as well disable tracing since there is no listener */
+
+      usbtrace_enable(0);
     }
 
   syslog(USBMON_PREFIX "Stopped: %d\n", g_usbmonitor.pid);

@@ -406,7 +406,7 @@ config NSH_USBCONDEV
 		readable/write-able USB driver such as:
 		NSH_USBCONDEV="/dev/ttyACM0".
 
-config UBSDEV_MINOR
+config USBDEV_MINOR
 	int "USB console device minor number"
 	default 0
 	depends on NSH_USBCONSOLE
@@ -414,8 +414,22 @@ config UBSDEV_MINOR
 		If there are more than one USB devices, then a USB device
 		minor number may also need to be provided. Default: 0
 
-menu "USB Trace Support"
+comment "USB Trace Support"
+config NSH_USBDEV_TRACE
+	bool "Enable Builtin USB Trace Support"
+	default n
 	depends on USBDEV && (DEBUG || USBDEV_TRACE)
+	---help---
+		Enable builtin USB trace support in NSH.  If selected, buffered USB
+		trace data will be presented each time a command is provided to NSH.
+		The USB trace data will be sent to the console unless DEBUG set or
+		unless you are using a USB console.  In those cases, the trace data
+		will go to the SYSLOG device.
+
+		If not enabled, the USB trace support can be provided by external
+		logic such as apps/system/usbmonitor.
+
+if NSH_USBDEV_TRACE
 
 config NSH_USBDEV_TRACEINIT
 	bool "Show initialization events"
@@ -447,7 +461,7 @@ config NSH_USBDEV_TRACEINTERRUPTS
 	---help---
 		Show interrupt-related events
 
-endmenu
+endif
 
 config NSH_CONDEV
 	bool "Default console device"

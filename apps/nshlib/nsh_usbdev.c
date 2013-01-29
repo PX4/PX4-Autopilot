@@ -61,9 +61,15 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+/* Output USB trace data to the console device using printf() unless (1)
+ * debug is enabled, then we want to keep the trace output in sync with the
+ * debug output by using syslog()we are using a USB console.  In that case,
+ * we don't want the trace output on the USB console; let's try sending it
+ * a SYSLOG device (hopefully one is set up!)
+ */
 
-#if defined(CONFIG_DEBUG) || defined(CONFIG_NSH_USBCONSOLE)
-#  define trmessage lowsyslog
+#if defined(CONFIG_DEBUG) || defined(HAVE_USB_CONSOLE)
+#  define trmessage syslog
 #else
 #  define trmessage printf
 #endif
@@ -92,7 +98,7 @@
  * Name: nsh_tracecallback
  ****************************************************************************/
 
-#ifdef CONFIG_USBDEV_TRACE
+#ifdef CONFIG_NSH_USBDEV_TRACE
 static int nsh_tracecallback(struct usbtrace_s *trace, void *arg)
 {
   usbtrace_trprintf((trprintf_t)trmessage, trace->event, trace->value);
@@ -119,7 +125,7 @@ int nsh_usbconsole(void)
 
   /* Initialize any USB tracing options that were requested */
 
-#ifdef CONFIG_USBDEV_TRACE
+#ifdef CONFIG_NSH_USBDEV_TRACE
   usbtrace_enable(TRACE_BITSET);
 #endif
 
@@ -133,9 +139,9 @@ int nsh_usbconsole(void)
 
 #if defined(CONFIG_PL2303) || defined(CONFIG_CDCACM)
 #ifdef CONFIG_CDCACM
-  ret = cdcacm_initialize(CONFIG_NSH_UBSDEV_MINOR, NULL);
+  ret = cdcacm_initialize(CONFIG_NSH_USBDEV_MINOR, NULL);
 #else
-  ret = usbdev_serialinitialize(CONFIG_NSH_UBSDEV_MINOR);
+  ret = usbdev_serialinitialize(CONFIG_NSH_USBDEV_MINOR);
 #endif
   DEBUGASSERT(ret == OK);
 #endif
@@ -224,6 +230,7 @@ int nsh_usbconsole(void)
   (void)fdopen(0, "r");
   (void)fdopen(1, "a");
   (void)fdopen(2, "a");
+
   return OK;
 }
 
@@ -233,7 +240,7 @@ int nsh_usbconsole(void)
  * Name: nsh_usbtrace
  ****************************************************************************/
 
-#if defined(CONFIG_USBDEV_TRACE) && defined(HAVE_USB_CONSOLE)
+#if defined(CONFIG_NSH_USBDEV_TRACE) && defined(HAVE_USB_CONSOLE)
 void nsh_usbtrace(void)
 {
   (void)usbtrace_enumerate(nsh_tracecallback, NULL);

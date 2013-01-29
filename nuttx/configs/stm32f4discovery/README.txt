@@ -1287,19 +1287,29 @@ Where <subdir> is one of the following:
           you can still use certain kinds of debug output (see include/debug.h, all
           of the interfaces based on lowsyslog will work in this configuration).
 
+        - But don't enable USB debug output!  Since USB is console is used for 
+          USB debug output and you are using a USB console, there will be
+          infinite loops and deadlocks:  Debug output generates USB debug
+          output which generatates USB debug output, etc.  If you want USB
+          debug output, you should consider enabling USB trace
+          (CONFIG_USBDEV_TRACE) and perhaps the USB monitor (CONFIG_SYSTEM_USBMONITOR).
+
+          See the usbnsh configuration below for more information on configuring
+          USB trace output and the USB monitor.
+
    10. USB OTG FS Host Support.  The following changes will enable support for
        a USB host on the STM32F4Discovery, including support for a mass storage
        class driver:
- 
-       CONFIG_USBDEV=n          - Make sure tht USB device support is disabled
-       CONFIG_USBHOST=y         - Enable USB host support
-       CONFIG_STM32_OTGFS=y     - Enable the STM32 USB OTG FS block
-       CONFIG_STM32_SYSCFG=y    - Needed for all USB OTF FS support
-       CONFIG_SCHED_WORKQUEUE=y - Worker thread support is required for the mass
+
+       CONFIG_USBDEV=n          : Make sure tht USB device support is disabled
+       CONFIG_USBHOST=y         : Enable USB host support
+       CONFIG_STM32_OTGFS=y     : Enable the STM32 USB OTG FS block
+       CONFIG_STM32_SYSCFG=y    : Needed for all USB OTF FS support
+       CONFIG_SCHED_WORKQUEUE=y : Worker thread support is required for the mass
                                   storage class driver.
-       CONFIG_NSH_ARCHINIT=y    - Architecture specific USB initialization
+       CONFIG_NSH_ARCHINIT=y    : Architecture specific USB initialization
                                   is needed for NSH
-       CONFIG_FS_FAT=y          - Needed by the USB host mass storage class.
+       CONFIG_FS_FAT=y          : Needed by the USB host mass storage class.
 
        With those changes, you can use NSH with a FLASH pen driver as shown
        belong.  Here NSH is started with nothing in the USB host slot:
@@ -1466,7 +1476,6 @@ Where <subdir> is one of the following:
     STANDBY mode.  This used of the RTC alarm could conflict with other uses of
     the RTC alarm in your application.
 
-
   posix_spawn:
   ------------
     This configuration directory, performs a simple test os the posix_spawn
@@ -1538,15 +1547,18 @@ Where <subdir> is one of the following:
 
        CONFIG_USBDEV_TRACE=y                   : Enable USB trace feature
        CONFIG_USBDEV_TRACE_NRECORDS=128        : Buffer 128 records in memory
-       CONFIG_SYSTEM_USBMONITOR=y              : Start the USB monitor daemon
+       CONFIG_NSH_USBDEV_TRACE=n               : No builtin tracing from NSH
+       CONFIG_NSH_ARCHINIT=y                   : Automatically start the USB monitor
+       CONFIG_SYSTEM_USBMONITOR=y              : Enable the USB monitor daemon
        CONFIG_SYSTEM_USBMONITOR_STACKSIZE=2048 : USB monitor daemon stack size
        CONFIG_SYSTEM_USBMONITOR_PRIORITY=50    : USB monitor daemon priority
+       CONFIG_SYSTEM_USBMONITOR_INTERVAL=2     : Dump trace data every 2 seconds
 
-       CONFIG_NSH_USBDEV_TRACEINIT=y           : Enable TRACE output
-       CONFIG_NSH_USBDEV_TRACECLASS=y
-       CONFIG_NSH_USBDEV_TRACETRANSFERS=y
-       CONFIG_NSH_USBDEV_TRACECONTROLLER=y
-       CONFIG_NSH_USBDEV_TRACEINTERRUPTS=y
+       CONFIG_SYSTEM_USBMONITOR_TRACEINIT=y    : Enable TRACE output
+       CONFIG_SYSTEM_USBMONITOR_TRACECLASS=y
+       CONFIG_SYSTEM_USBMONITOR_TRACETRANSFERS=y
+       CONFIG_SYSTEM_USBMONITOR_TRACECONTROLLER=y
+       CONFIG_SYSTEM_USBMONITOR_TRACEINTERRUPTS=y
 
     5. By default, this project assumes that you are *NOT* using the DFU
        bootloader.
