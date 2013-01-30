@@ -50,6 +50,8 @@
 /* Get customizations for each supported chip (only the LM3S6918 and 65 right now) */
 
 #if defined(CONFIG_ARCH_CHIP_LM3S6918)
+#  define LM3S               1  /* LM3S family */
+#  undef  LM4F                  /* Not LM4F family */
 #  define LM_NTIMERS         4  /* Four general purpose timers */
 #  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
@@ -63,6 +65,8 @@
 #  define LM_NPORTS          8  /* 8 Ports (GPIOA-H) 5-38 GPIOs */
 #  define LM_NCANCONTROLLER  0  /* No CAN controllers */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6432)
+#  define LM3S               1  /* LM3S family */
+#  undef  LM4F                  /* Not LM4F family */
 #  define LM_NTIMERS         3  /* Three general purpose timers */
 #  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
@@ -76,6 +80,8 @@
 #  define LM_NPORTS          7  /* 7 Ports (GPIOA-G), 0-42 GPIOs */
 #  define LM_NCANCONTROLLER  0  /* No CAN controllers */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6965)
+#  define LM3S               1  /* LM3S family */
+#  undef  LM4F                  /* Not LM4F family */
 #  define LM_NTIMERS         4  /* Four general purpose timers */
 #  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
@@ -89,6 +95,8 @@
 #  define LM_NPORTS          7  /* 7 Ports (GPIOA-G), 0-42 GPIOs */
 #  define LM_NCANCONTROLLER  0  /* No CAN controllers */
 #elif defined(CONFIG_ARCH_CHIP_LM3S9B96) 
+#  define LM3S               1  /* LM3S family */
+#  undef  LM4F                  /* Not LM4F family */
 #  define LM_NTIMERS         4  /* Four general purpose timers */
 #  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
@@ -103,6 +111,8 @@
 #  define LM_NPORTS          9  /* 9 Ports (GPIOA-H,J) 0-65 GPIOs */
 #  define LM_NCANCONTROLLER  0  /* No CAN controllers */
 #elif defined(CONFIG_ARCH_CHIP_LM3S8962)
+#  define LM3S               1  /* LM3S family */
+#  undef  LM4F                  /* Not LM4F family */
 #  define LM_NTIMERS         6  /* Four general purpose timers */
 #  define LM_NWIDETIMERS     0  /* No general purpose wide timers */
 #  define LM_NETHCONTROLLERS 1  /* One Ethernet controller */
@@ -115,6 +125,8 @@
 #  define LM_NPORTS          7  /* 7 Ports (GPIOA-G), 5-42 GPIOs */
 #  define LM_NCANCONTROLLER  1  /* One CAN controller */
 #elif defined(CONFIG_ARCH_CHIP_LM4F120)
+#  undef  LM3S                  /* Not LM3S family */
+#  define LM4F               1  /* LM4F family */
 #  define LM_NTIMERS         6  /* Six general purpose timers */
 #  define LM_NWIDETIMERS     6  /* Six general purpose wide timers */
 #  define LM_NETHCONTROLLERS 0  /* No Ethernet controller */
