@@ -110,44 +110,6 @@ const uint32_t g_ioconport[GPIO_NPORTS] =
   LPC17_IOCON_P4,
   LPC17_IOCON_P5
 }
-
-/* Register offsets */
-
-const uint32_t g_ioconpin[32] =
-{
-  LPC17_IOCON_PP0_OFFSET,
-  LPC17_IOCON_PP1_OFFSET,
-  LPC17_IOCON_PP2_OFFSET,
-  LPC17_IOCON_PP3_OFFSET,
-  LPC17_IOCON_PP4_OFFSET,
-  LPC17_IOCON_PP5_OFFSET,
-  LPC17_IOCON_PP6_OFFSET,
-  LPC17_IOCON_PP7_OFFSET,
-  LPC17_IOCON_PP8_OFFSET,
-  LPC17_IOCON_PP9_OFFSET,
-  LPC17_IOCON_PP10_OFFSET,
-  LPC17_IOCON_PP11_OFFSET,
-  LPC17_IOCON_PP12_OFFSET,
-  LPC17_IOCON_PP13_OFFSET,
-  LPC17_IOCON_PP14_OFFSET,
-  LPC17_IOCON_PP15_OFFSET,
-  LPC17_IOCON_PP16_OFFSET,
-  LPC17_IOCON_PP17_OFFSET,
-  LPC17_IOCON_PP18_OFFSET,
-  LPC17_IOCON_PP19_OFFSET,
-  LPC17_IOCON_PP20_OFFSET,
-  LPC17_IOCON_PP21_OFFSET,
-  LPC17_IOCON_PP22_OFFSET,
-  LPC17_IOCON_PP23_OFFSET,
-  LPC17_IOCON_PP24_OFFSET,
-  LPC17_IOCON_PP25_OFFSET,
-  LPC17_IOCON_PP26_OFFSET,
-  LPC17_IOCON_PP27_OFFSET,
-  LPC17_IOCON_PP28_OFFSET,
-  LPC17_IOCON_PP29_OFFSET,
-  LPC17_IOCON_PP30_OFFSET,
-  LPC17_IOCON_PP31_OFFSET
-};
 #endif
 
 /* Port 0 and Port 2 can provide a single interrupt for any combination of
@@ -434,7 +396,7 @@ static int lpc17_configiocon(unsigned int port, unsigned int pin,
   uint32_t regaddr;
   uint32_t regval;
 
-  regaddr = (g_ioconbase[port] + g_ioconpin[pin]);
+  regaddr = (g_ioconbase[port] + LPC17_IOCON_PP_OFFSET(pin));
   regval  = getreg32(regaddr);
   regval &= value;
   putreg32(regval, regaddr);

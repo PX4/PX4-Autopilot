@@ -52,7 +52,7 @@
 
 /* Register offsets *****************************************************************/
 
-#define LPC17_IOCON_PP_OFFSET(p)    ((p) << 2)
+#define LPC17_IOCON_PP_OFFSET(p)    ((unsigned int)(p) << 2)
 #define LPC17_IOCON_PP0_OFFSET      (0x0000) /* IOCON Port(n) register 0  */
 #define LPC17_IOCON_PP1_OFFSET      (0x0004) /* IOCON Port(n) register 1  */
 #define LPC17_IOCON_PP2_OFFSET      (0x0008) /* IOCON Port(n) register 2  */
@@ -88,7 +88,7 @@
 
 /* Register addresses ***************************************************************/
 
-#define LPC17_IOCON_P_BASE(b)       (LPC17_IOCON_BASE + ((b) << 7))
+#define LPC17_IOCON_P_BASE(b)       (LPC17_IOCON_BASE + (unsigned int(b) << 7))
 #define LPC17_IOCON_P0_BASE         (LPC17_IOCON_BASE + 0x0000)
 #define LPC17_IOCON_P1_BASE         (LPC17_IOCON_BASE + 0x0080)
 #define LPC17_IOCON_P2_BASE         (LPC17_IOCON_BASE + 0x0100)

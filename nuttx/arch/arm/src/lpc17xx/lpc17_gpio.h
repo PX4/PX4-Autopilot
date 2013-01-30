@@ -354,7 +354,6 @@ EXTERN const uint32_t g_hipinmode[GPIO_NPORTS];
 EXTERN const uint32_t g_odmode[GPIO_NPORTS];
 #ifdef LPC178x
 EXTERN const uint32_t g_ioconport[GPIO_NPORTS];
-EXTERN const uint32_t g_ioconpin[32];
 #endif
 
 /****************************************************************************
