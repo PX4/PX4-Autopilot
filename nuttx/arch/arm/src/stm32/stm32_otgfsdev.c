@@ -509,7 +509,7 @@ static void        stm32_ep0out_ctrlsetup(FAR struct stm32_usbdev_s *priv);
 static void        stm32_txfifo_write(FAR struct stm32_ep_s *privep,
                      FAR uint8_t *buf, int nbytes);
 static void        stm32_epin_transfer(FAR struct stm32_ep_s *privep,
-                                       FAR uint8_t *buf, int nbytes);
+                     FAR uint8_t *buf, int nbytes);
 static void        stm32_epin_request(FAR struct stm32_usbdev_s *priv,
                      FAR struct stm32_ep_s *privep);
 
@@ -556,7 +556,9 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv);
 
 static inline void stm32_epin_runtestmode(FAR struct stm32_usbdev_s *priv);
 static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno);
+#ifndef ENABLE_DTXFSTS_POLLHACK
 static inline void stm32_epin_txfifoempty(FAR struct stm32_usbdev_s *priv, int epno);
+#endif
 static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv);
 
 /* Other second level interrupt processing */
@@ -963,7 +965,7 @@ static void stm32_txfifo_write(FAR struct stm32_ep_s *privep,
       regval |= ((uint32_t)*buf++) << 16;
       regval |= ((uint32_t)*buf++) << 24;
 
-      /* Then write the packed data to the TxFIFO */
+      /* Then write the packet data to the TxFIFO */
 
       stm32_putreg(regval, regaddr);
     }
@@ -1153,13 +1155,20 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
        privep->zlp = true;
     }
 
-  /* Loop while there are still bytes to be transferred (or a zero-length-
-   * packet, ZLP, to be sent).  The loop will also be terminated if there
-   * is insufficient space remaining in the TxFIFO to send a complete
-   * packet.
+  /* Add one more packet to the TxFIFO.  We will wait for the transfer
+   * complete event before we add the next packet (or part of a packet
+   * to the TxFIFO).
+   * 
+   * The documentation says that we can can multiple packets to the TxFIFO,
+   * but it seems that we need to get the transfer complete event before
+   * we can add the next (or maybe I have got something wrong?)
    */
 
+#if 0
   while (privreq->req.xfrd < privreq->req.len || privep->zlp)
+#else
+  if (privreq->req.xfrd < privreq->req.len || privep->zlp)
+#endif
     {
       /* Get the number of bytes left to be sent in the request */
 
@@ -1240,8 +1249,11 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
        * anyway.
        */
 
+      DEBUGASSERT(avail < nwords);
       if (avail < nwords)
         {
+          /* We will probably not recover from what we are about to do */
+
           usbtrace(TRACE_DEVERROR(STM32_TRACEERR_POLLTIMEOUT), avail);
           return;
         }
@@ -1265,9 +1277,11 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
           empmsk |= OTGFS_DIEPEMPMSK(privep->epphy);
           stm32_putreg(empmsk, STM32_OTGFS_DIEPEMPMSK);
 
-          /* Terminate the transfer loop */
+          /* Terminate the transfer loop.  We will try again when the
+           * TxFIFO empty interrupt is received.
+           */
 
-          break;
+          return;
         }
 #endif
 
@@ -2698,17 +2712,19 @@ static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno)
  *
  ****************************************************************************/
 
+#ifndef ENABLE_DTXFSTS_POLLHACK
 static inline void stm32_epin_txfifoempty(FAR struct stm32_usbdev_s *priv, int epno)
 {
   FAR struct stm32_ep_s *privep = &priv->epin[epno];
 
   /* Continue processing the write request queue.  This may mean sending
-   * more dat from the exisiting request or terminating the current requests
+   * more data from the exisiting request or terminating the current requests
    * and (perhaps) starting the IN transfer from the next write request.
    */
 
   stm32_epin_request(priv, privep);
 }
+#endif
 
 /*******************************************************************************
  * Name: stm32_epin_interrupt
@@ -2754,16 +2770,20 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
 
           mask = stm32_getreg(STM32_OTGFS_DIEPMSK);
 
-          /* Check for FIFO not empty.  Bits n corresponds to endpoint n.
-           * That condition corresponds to bit 7 of the DIEPINT interrupt
-           * status register.
+          /* Check if the TxFIFO not empty interrupt is enabled for this
+           * endpoint in the DIEPMSK register.  Bits n corresponds to
+           * endpoint n in the register. That condition corresponds to
+           * bit 7 of the DIEPINT interrupt status register.  There is
+           * no TXFE bit in the mask register, so we fake one here.
            */
 
+#ifndef ENABLE_DTXFSTS_POLLHACK
           empty = stm32_getreg(STM32_OTGFS_DIEPEMPMSK);
           if ((empty & OTGFS_DIEPEMPMSK(epno)) != 0)
             {
               mask |= OTGFS_DIEPINT_TXFE;
             }
+#endif
 
           /* Now, read the interrupt status and mask out all disabled
            * interrupts.
@@ -2776,15 +2796,19 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
 
           if ((diepint & OTGFS_DIEPINT_XFRC) != 0)
             {
-              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_XFRC), (uint16_t)diepint);
+              usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_XFRC),
+                       (uint16_t)diepint);
 
-              /* It is possible that logic may be waiting for a the TxFIFO to become
-               * empty.  We disable the TxFIFO empty interrupt here; it will be
-               * re-enabled if there is still insufficient space in the TxFIFO.
+#ifndef ENABLE_DTXFSTS_POLLHACK
+              /* It is possible that logic may be waiting for a the
+               * TxFIFO to become empty.  We disable the TxFIFO empty
+               * interrupt here; it will be re-enabled if there is still
+               * insufficient space in the TxFIFO.
                */
                
               empty &= ~OTGFS_DIEPEMPMSK(epno);
               stm32_putreg(empty, STM32_OTGFS_DIEPEMPMSK);
+#endif
               stm32_putreg(OTGFS_DIEPINT_XFRC, STM32_OTGFS_DIEPINT(epno));
 
               /* IN transfer complete */
@@ -2836,12 +2860,13 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
 #endif
           /* Transmit FIFO empty */
 
+#ifndef ENABLE_DTXFSTS_POLLHACK
           if ((diepint & OTGFS_DIEPINT_TXFE) != 0)
             {
               usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_TXFE), (uint16_t)diepint);
 
               /* If we were waiting for TxFIFO to become empty, the we might have both
-               * XFRC and TXFE interrups pending.  Since we do the same thing for both
+               * XFRC and TXFE interrupts pending.  Since we do the same thing for both
                * cases, ignore the TXFE if we have already processed the XFRC.
                */
 
@@ -2863,6 +2888,7 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
 
               stm32_putreg(OTGFS_DIEPINT_TXFE, STM32_OTGFS_DIEPINT(epno));
             }
+#endif
         }
 
       epno++;
@@ -4970,8 +4996,9 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
 
   /* At startup the core is in FS mode. */
 
-  /* Disable the USB global interrupt by clearing GINTMSK in the global OTG
-   * FS AHB configuration register.
+  /* Disable global interrupts by clearing the GINTMASK bit in the GAHBCFG
+   * register; Set the TXFELVL bit in the GAHBCFG register so that TxFIFO
+   * interrupts will occur when the TxFIFO is truly empty (not just half full).
    */
 
   stm32_putreg(OTGFS_GAHBCFG_TXFELVL, STM32_OTGFS_GAHBCFG);
@@ -5087,6 +5114,7 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
 
   stm32_putreg(0, STM32_OTGFS_DIEPMSK);
   stm32_putreg(0, STM32_OTGFS_DOEPMSK);
+  stm32_putreg(0, STM32_OTGFS_DIEPEMPMSK);
   stm32_putreg(0xffffffff, STM32_OTGFS_DAINT);
   stm32_putreg(0, STM32_OTGFS_DAINTMSK);
 
@@ -5168,10 +5196,13 @@ static void stm32_hwinitialize(FAR struct stm32_usbdev_s *priv)
   stm32_putreg(regval, STM32_OTGFS_GINTMSK);
 
   /* Enable the USB global interrupt by setting GINTMSK in the global OTG
-   * FS AHB configuration register.
+   * FS AHB configuration register; Set the TXFELVL bit in the GAHBCFG
+   * register so that TxFIFO interrupts will occur when the TxFIFO is truly
+   * empty (not just half full).
    */
 
-  stm32_putreg(OTGFS_GAHBCFG_GINTMSK | OTGFS_GAHBCFG_TXFELVL, STM32_OTGFS_GAHBCFG);
+  stm32_putreg(OTGFS_GAHBCFG_GINTMSK | OTGFS_GAHBCFG_TXFELVL,
+               STM32_OTGFS_GAHBCFG);
 }
 
 /*******************************************************************************
@@ -5327,6 +5358,7 @@ void up_usbuninitialize(void)
 
   stm32_putreg(0, STM32_OTGFS_DIEPMSK);
   stm32_putreg(0, STM32_OTGFS_DOEPMSK);
+  stm32_putreg(0, STM32_OTGFS_DIEPEMPMSK);
   stm32_putreg(0, STM32_OTGFS_DAINTMSK);
   stm32_putreg(0xffffffff, STM32_OTGFS_DAINT);
 
