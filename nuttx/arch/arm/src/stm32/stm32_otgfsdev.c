@@ -184,8 +184,9 @@
 #define STM32_TRACEERR_NOEP                 0x18
 #define STM32_TRACEERR_NOTCONFIGURED        0x19
 #define STM32_TRACEERR_EPOUTQEMPTY          0x1a
-#define STM32_TRACEERR_EPINQEMPTY           0x1b
+#define STM32_TRACEERR_EPINREQEMPTY         0x1b
 #define STM32_TRACEERR_NOOUTSETUP           0x1c
+#define STM32_TRACEERR_POLLTIMEOUT          0x1d
 
 /* Trace interrupt codes */
 
@@ -1084,6 +1085,7 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
   uint32_t regval;
 #ifdef ENABLE_DTXFSTS_POLLHACK
   int32_t timeout;
+  int avail;
 #endif
   uint8_t *buf;
   int nbytes;
@@ -1113,7 +1115,7 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
   privreq = stm32_rqpeek(privep);
   if (!privreq)
     {
-      usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPINQEMPTY), privep->epphy);
+      usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPINREQEMPTY), privep->epphy);
 
       /* There is no TX transfer in progress and no new pending TX
        * requests to send.  To stop transmitting any data on a particular
@@ -1221,17 +1223,27 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
 
 #ifdef ENABLE_DTXFSTS_POLLHACK
       /* If ENABLE_DTXFSTS_POLLHACK is enabled , then poll DTXFSTS until
-       * space in the TxFIFO is available.  If it doesn't become available,
-       * in a reasonable amount of time, then just pretend that it is.
+       * space in the TxFIFO is available.
        */
        
       for (timeout = 250000; timeout > 0; timeout--)
         {
-          regval  = stm32_getreg(regaddr);
-          if ((regval & OTGFS_DTXFSTS_MASK) >= nwords)
+          avail = stm32_getreg(regaddr) & OTGFS_DTXFSTS_MASK;
+          if (avail >= nwords)
             {
               break;
             }
+        }
+
+      /* If it did not become available in a reasonable amount of time,
+       * then just return.  We should come back through this logic later
+       * anyway.
+       */
+
+      if (avail < nwords)
+        {
+          usbtrace(TRACE_DEVERROR(STM32_TRACEERR_POLLTIMEOUT), avail);
+          return;
         }
 #else
       /* If ENABLE_DTXFSTS_POLLHACK is not enabled, then check once for
@@ -1290,11 +1302,12 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
   if (privreq->req.xfrd >= privreq->req.len && !privep->zlp)
     {
       usbtrace(TRACE_COMPLETE(privep->epphy), privreq->req.xfrd);
+
+      /* We are finished with the request (although the transfer has not
+       * yet completed).
+       */
+
       stm32_req_complete(privep, OK);
-
-      /* The endpoint is no longer transferring data */
-
-      privep->active = false;
     }
 }
 

@@ -146,7 +146,12 @@
                                                         /* -0xaefff: Reserved */
 #  define LM_EEPROM_BASE    (LM_PERIPH_BASE + 0xaf000)  /* -0xaffff: EEPROM and Key Locker */
                                                         /* -0xf8fff: Reserved */
-/* @TODO */
+#  define LM_SYSEXC_BASE    (LM_PERIPH_BASE + 0xf9000)  /* -0xf9fff: System Exception Control */
+                                                        /* -0xfbfff: Reserved */
+#  define LM_HIBERNATE_BASE (LM_PERIPH_BASE + 0xfc000)  /* -0xfcfff: Hibernation Controller */
+#  define LM_FLASHCON_BASE  (LM_PERIPH_BASE + 0xfd000)  /* -0xfdfff: FLASH Control */
+#  define LM_SYSCON_BASE    (LM_PERIPH_BASE + 0xfe000)  /* -0xfefff: System Control */
+#  define LM_UDMA_BASE      (LM_PERIPH_BASE + 0xff000)  /* -0xfffff: Micro Direct Memory Access */
 #else
 #  error "Peripheral base addresses not specified for this Stellaris chip"
 #endif

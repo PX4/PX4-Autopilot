@@ -137,7 +137,7 @@
                                                         /* -0x47fff: Reserved */
 #  define LM_ETHCON_BASE    (LM_PERIPH_BASE + 0x48000)  /* -0x48fff: Ethernet Controller */
                                                         /* -0xfcfff: Reserved */
-#  define LM_HIBERNATE_BASE (LM_PERIPH_BASE + 0xfc000)  /* -0xfcfff: Ethernet Controller */
+#  define LM_HIBERNATE_BASE (LM_PERIPH_BASE + 0xfc000)  /* -0xfcfff: Hibernation Controller */
 #  define LM_FLASHCON_BASE  (LM_PERIPH_BASE + 0xfd000)  /* -0xfdfff: FLASH Control */
 #  define LM_SYSCON_BASE    (LM_PERIPH_BASE + 0xfe000)  /* -0xfefff: System Control */
                                                         /* -0x1ffffff: Reserved */
@@ -176,7 +176,7 @@
                                                         /* -0x47fff: Reserved */
 #  define LM_ETHCON_BASE    (LM_PERIPH_BASE + 0x48000)  /* -0x48fff: Ethernet Controller */
                                                         /* -0xfcfff: Reserved */
-#  define LM_HIBERNATE_BASE (LM_PERIPH_BASE + 0xfc000)  /* -0xfcfff: Ethernet Controller */
+#  define LM_HIBERNATE_BASE (LM_PERIPH_BASE + 0xfc000)  /* -0xfcfff: Hibernation Controller */
 #  define LM_FLASHCON_BASE  (LM_PERIPH_BASE + 0xfd000)  /* -0xfdfff: FLASH Control */
 #  define LM_SYSCON_BASE    (LM_PERIPH_BASE + 0xfe000)  /* -0xfefff: System Control */
                                                         /* -0x1ffffff: Reserved */
@@ -223,7 +223,7 @@
                                                         /* -0x47fff: Reserved */
 #  define LM_ETHCON_BASE    (LM_PERIPH_BASE + 0x48000)  /* -0x48fff: Ethernet Controller */
                                                         /* -0xfcfff: Reserved */
-#  define LM_HIBERNATE_BASE (LM_PERIPH_BASE + 0xfc000)  /* -0xfcfff: Ethernet Controller */
+#  define LM_HIBERNATE_BASE (LM_PERIPH_BASE + 0xfc000)  /* -0xfcfff: Hibernation Controller */
 #  define LM_FLASHCON_BASE  (LM_PERIPH_BASE + 0xfd000)  /* -0xfdfff: FLASH Control */
 #  define LM_SYSCON_BASE    (LM_PERIPH_BASE + 0xfe000)  /* -0xfefff: System Control */
                                                         /* -0x1ffffff: Reserved */
