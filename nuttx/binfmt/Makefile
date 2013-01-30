@@ -1,7 +1,7 @@
 ############################################################################
 # nxflat/Makefile
 #
-#   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007-2009, 2012-2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,10 @@ ifeq ($(CONFIG_BINFMT_EXEPATH),y)
 BINFMT_CSRCS += binfmt_exepath.c
 endif
 
+ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
+BINFMT_CSRCS += binfmt_schedunload.c
+endif
+
 # Symbol table source files
 
 BINFMT_CSRCS += symtab_findbyname.c symtab_findbyvalue.c
@@ -65,6 +69,7 @@ DEPPATH = --dep-path .
 
 include libnxflat$(DELIM)Make.defs
 include libelf$(DELIM)Make.defs
+include libbuiltin$(DELIM)Make.defs
 
 BINFMT_AOBJS = $(BINFMT_ASRCS:.S=$(OBJEXT))
 BINFMT_COBJS = $(BINFMT_CSRCS:.c=$(OBJEXT))

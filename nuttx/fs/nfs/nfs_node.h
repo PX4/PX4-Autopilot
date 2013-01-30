@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/nfs/nfs_node.h
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2012 Jose Pablo Rojas Vargas. All rights reserved.
  *   Author: Jose Pablo Rojas Vargas <jrojas@nx-engineering.com>
  *           Gregory Nutt <gnutt@nuttx.org>
@@ -70,6 +70,7 @@
 struct nfsnode
 {
   struct nfsnode    *n_next;        /* Retained in a singly linked list. */
+  uint8_t            n_crefs;       /* Reference count (for nfs_dup) */
   uint8_t            n_type;        /* File type */
   uint8_t            n_fhsize;      /* Size in bytes of the file handle */
   uint8_t            n_flags;       /* Node flags */

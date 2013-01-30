@@ -286,7 +286,7 @@ void os_start(void)
 
   /* Initialize the processor-specific portion of the TCB */
 
-  g_idletcb.flags = TCB_FLAG_TTYPE_KERNEL;
+  g_idletcb.flags = (TCB_FLAG_TTYPE_KERNEL | TCB_FLAG_NOCLDWAIT);
   up_initial_state(&g_idletcb);
 
   /* Initialize the semaphore facility(if in link).  This has to be done
@@ -312,6 +312,17 @@ void os_start(void)
   }
 #else
   kmm_initialize((void*)CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE);
+#endif
+
+  /* Initialize tasking data structures */
+
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+#ifdef CONFIG_HAVE_WEAKFUNCTIONS
+  if (task_initialize != NULL)
+#endif
+    {
+      task_initialize();
+    }
 #endif
 
   /* Initialize the interrupt handling subsystem (if included) */

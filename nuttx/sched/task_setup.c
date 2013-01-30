@@ -147,6 +147,82 @@ static int task_assignpid(FAR _TCB *tcb)
 }
 
 /****************************************************************************
+ * Name: task_saveparent
+ *
+ * Description:
+ *   Save the task ID of the parent task in the child task's TCB.
+ *
+ * Parameters:
+ *   tcb   - The TCB of the new, child task.
+ *   ttype - Type of the new thread: task, pthread, or kernel thread
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   The parent of the new task is the task at the head of the ready-to-run
+ *   list.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_HAVE_PARENT
+static inline void task_saveparent(FAR _TCB *tcb, uint8_t ttype)
+{
+  FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
+
+  /* Save the parent task's ID in the child task's TCB.  I am not sure if
+   * this makes sense for the case of pthreads or not, but I don't think it
+   * is harmful in any event.
+   */
+
+  tcb->parent = rtcb->pid;
+
+  /* Exit status only needs to be retained for the case of tasks, however */
+
+  if (ttype == TCB_FLAG_TTYPE_TASK)
+    {
+#ifdef CONFIG_SCHED_CHILD_STATUS
+      FAR struct child_status_s *child;
+
+      /* Make sure that there is not already a structure for this PID in the
+       * parent TCB.  There should not be.
+       */
+
+      child = task_findchild(rtcb, tcb->pid);
+      DEBUGASSERT(!child);
+      if (!child)
+        {
+          /* Allocate a new status structure  */
+
+          child = task_allocchild();
+        }
+
+      /* Did we successfully find/allocate the child status structure? */
+
+      DEBUGASSERT(child);
+      if (child)
+        {
+          /* Yes.. Initialize the structure */
+
+          child->ch_flags  = ttype;
+          child->ch_pid    = tcb->pid;
+          child->ch_status = 0;
+
+          /* Add the entry into the TCB list of children */
+
+          task_addchild(rtcb, child);
+        }
+#else
+      DEBUGASSERT(rtcb->nchildren < UINT16_MAX);
+      rtcb->nchildren++;
+#endif
+    }
+}
+#else
+#  define task_saveparent(tcb, type)
+#endif
+
+/****************************************************************************
  * Name: task_dupdspace
  *
  * Description:
@@ -161,6 +237,8 @@ static int task_assignpid(FAR _TCB *tcb)
  *   None
  *
  * Assumptions:
+ *   The parent of the new task is the task at the head of the ready-to-run
+ *   list.
  *
  ****************************************************************************/
 
@@ -202,7 +280,7 @@ static inline void task_dupdspace(FAR _TCB *tcb)
  *   priority   - Priority of the new task
  *   entry      - Entry point of a new task
  *   main       - Application start point of the new task
- *   type       - Type of the new thread: task, pthread, or kernel thread
+ *   ttype      - Type of the new thread: task, pthread, or kernel thread
  *
  * Return Value:
  *   OK on success; ERROR on failure.
@@ -212,7 +290,8 @@ static inline void task_dupdspace(FAR _TCB *tcb)
  *
  ****************************************************************************/
 
-int task_schedsetup(FAR _TCB *tcb, int priority, start_t start, main_t main)
+int task_schedsetup(FAR _TCB *tcb, int priority, start_t start, main_t main,
+                    uint8_t ttype)
 {
   int ret;
 
@@ -231,8 +310,20 @@ int task_schedsetup(FAR _TCB *tcb, int priority, start_t start, main_t main)
       tcb->start          = start;
       tcb->entry.main     = main;
 
-      /* exec() and pthread_create() inherit the signal mask of the
-       * parent thread.  I suppose that task_create() should as well.
+      /* Save the thrad type.  This setting will be needed in
+       * up_initial_state() is called.
+       */
+
+      ttype              &= TCB_FLAG_TTYPE_MASK;
+      tcb->flags         &= ~TCB_FLAG_TTYPE_MASK;
+      tcb->flags         |= ttype;
+
+      /* Save the task ID of the parent task in the TCB */
+
+      task_saveparent(tcb, ttype);
+
+      /* exec(), pthread_create(), task_create(), and vfork() all
+       * inherit the signal mask of the parent thread.
        */
 
 #ifndef CONFIG_DISABLE_SIGNALS
@@ -243,7 +334,7 @@ int task_schedsetup(FAR _TCB *tcb, int priority, start_t start, main_t main)
        * until it is activated.
        */
 
-      tcb->task_state   = TSTATE_TASK_INVALID;
+      tcb->task_state = TSTATE_TASK_INVALID;
 
       /* Clone the parent tasks D-Space (if it was running PIC).  This
        * must be done before calling up_initial_state() so that the

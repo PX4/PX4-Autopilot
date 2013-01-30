@@ -44,7 +44,10 @@
 #include <float.h>
 #include <stdint.h>
 
-#define CONSTANTS_ONE_G		9.80665f
+#define CONSTANTS_ONE_G				9.80665f
+#define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C	1.225f
+#define CONSTANTS_AIR_GAS_CONST 8.31432f
+#define CONSTANTS_ABSOLUTE_NULL_KELVIN 273.15f
 
 __BEGIN_DECLS
 

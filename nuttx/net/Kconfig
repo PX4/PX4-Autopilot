@@ -97,13 +97,13 @@ config NET_TCPURGDATA
 		compiled in. Urgent data (out-of-band data) is a rarely used TCP feature
 		that is very seldom would be required.
 
+menu "TCP/IP Networking"
+
 config NET_TCP
 	bool "TCP/IP Networking"
 	default n
 	---help---
 		TCP support on or off
-
-endif
 
 if NET_TCP
 config NET_TCP_CONNS
@@ -164,7 +164,36 @@ config NET_TCPBACKLOG
 		Incoming connections pend in a backlog until accept() is called.
 		The size of the backlog is selected when listen() is called.
 
+config NET_TCP_SPLIT
+	bool "Enable packet splitting"
+	default n
+	---help---
+		send() will not return until the the transfer has been ACKed by the
+		recipient.  But under RFC 1122, the host need not ACK each packet
+		immediately; the host may wait for 500 MS before ACKing.  This
+		combination can cause very slow performance with small transfers are
+		made to an RFC 1122 client.  However, the RFC 1122 must ACK at least
+		every second (odd) packet.
+
+		This option enables logic to trick the RFC 1122 host be exploiting
+		this last RFC 1122 requirement:  If an odd number of packets were to
+		be sent, then send() will split the last even packet to guarantee
+		that an even number of packets will be sent and the RFC 1122 host
+		will ACK the final packet immediately.
+
+if NET_TCP_SPLIT
+
+config NET_TCP_SPLIT_SIZE
+	int "Split size threshold"
+	default 40
+	---help---
+		Packets of this size or smaller than this will not be split.
+
 endif
+endif
+endmenu
+
+menu "UDP Networking"
 
 config NET_UDP
 	bool "UDP Networking"
@@ -193,6 +222,7 @@ config NET_BROADCAST
 		Incoming UDP broadcast support
 
 endif
+endmenu
 
 config NET_ICMP
 	bool "ICMP networking support"
@@ -320,4 +350,5 @@ config SLIP_DEFPRIO
 	---help---
 		The priority of the SLIP RX and TX tasks. Default: 128
 
+endif
 endif

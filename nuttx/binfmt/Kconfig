@@ -49,6 +49,20 @@ if ELF
 source binfmt/libelf/Kconfig
 endif
 
+config BUILTIN
+	bool "Support Builtin Applications"
+	default n
+	---help---
+		Enable support for builtin applications.  This features assigns a string
+		name to an application and in addition if FS_BINFS is defined, retaining
+		those names in a file system from which they can be executed.  This feature
+		is also the underlying requirement to support built-in applications in the
+		NuttShell (NSH).
+
+if BUILTIN
+source binfmt/libbuiltin/Kconfig
+endif
+
 endif
 
 config PIC

@@ -1,8 +1,15 @@
 /****************************************************************************
- * apps/include/apps.h
+ * apps/include/builtin.h
  *
- *   Copyright(C) 2011 Uros Platise. All rights reserved.
+ * Originally by:
+ *
+ *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
+ *
+ * With subsequent updates, modifications, and general maintenance by:
+ *
+ *   Copyright (C) 2012-2013 Gregory Nutt.  All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,16 +40,18 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_INCLUDE_APPS_H
-#define __APPS_INCLUDE_APPS_H
+#ifndef __APPS_INCLUDE_BUILTIN_H
+#define __APPS_INCLUDE_BUILTIN_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
-#include <stdint.h>
+
+#include <nuttx/binfmt/builtin.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -52,29 +61,8 @@
  * Public Types
  ****************************************************************************/
 
-struct namedapp_s
-{
-  const char *name;         /* Invocation name and as seen under /sbin/ */
-  int         priority;     /* Use: SCHED_PRIORITY_DEFAULT */
-  int         stacksize;    /* Desired stack size */
-  main_t      main;         /* Entry point: main(int argc, char *argv[]) */
-};
-
 /****************************************************************************
  * Public Data
- ****************************************************************************/
-
-/* The "bindir" is file system that supports access to the named applications.
- * It is typically mounted under /bin.
- */
-
-#ifdef CONFIG_APPS_BINDIR
-struct mountpt_operations;
-extern const struct mountpt_operations binfs_operations;
-#endif
-
-/****************************************************************************
- * Public Functions
  ****************************************************************************/
 
 #undef EXTERN
@@ -86,51 +74,24 @@ extern "C" {
 #endif
 
 /****************************************************************************
- * Name: namedapp_isavail
- *
- * Description:
- *   Checks for availabiliy of application registerred during compile time.
- *
- * Input Parameter:
- *   filename - Name of the linked-in binary to be started.
- *
- * Returned Value:
- *   This is an end-user function, so it follows the normal convention:
- *   Returns index of builtin application. If it is not found then it
- *   returns -1 (ERROR) and sets errno appropriately.
- *
+ * Public Functions
  ****************************************************************************/
 
-EXTERN int namedapp_isavail(FAR const char *appname);
-
 /****************************************************************************
- * Name: namedapp_getname
+ * Name: exec_builtin
  *
  * Description:
- *   Returns pointer to a name of built-in application pointed by the
- *   index.
- *
- * Input Parameter:
- *   index, from 0 and on ...
- *
- * Returned Value:
- *   Returns valid pointer pointing to the app name if index is valid.
- *   Otherwise NULL is returned.
- *
- ****************************************************************************/
-
-EXTERN const char *namedapp_getname(int index);
-
-/****************************************************************************
- * Name: exec_namedapp
- *
- * Description:
- *   Executes builtin named application registered during compile time.
+ *   Executes builtin applications registered during 'make context' time.
  *   New application is run in a separate task context (and thread).
  *
  * Input Parameter:
- *   filename - Name of the linked-in binary to be started.
- *   argv     - Argument list
+ *   filename  - Name of the linked-in binary to be started.
+ *   argv      - Argument list
+ *   redirfile - If output if redirected, this parameter will be non-NULL
+ *               and will provide the full path to the file.
+ *   oflags    - If output is redirected, this parameter will provide the
+ *               open flags to use.  This will support file replacement
+ *               of appending to an existing file.
  *
  * Returned Value:
  *   This is an end-user function, so it follows the normal convention:
@@ -139,11 +100,12 @@ EXTERN const char *namedapp_getname(int index);
  *
  ****************************************************************************/
 
-EXTERN int exec_namedapp(FAR const char *appname, FAR const char **argv);
+EXTERN int exec_builtin(FAR const char *appname, FAR const char **argv,
+                        FAR const char *redirfile, int oflags);
 
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
 
-#endif /* __APPS_INCLUDE_APPS_H */
+#endif /* __APPS_INCLUDE_BUILTIN_H */

@@ -1,12 +1,16 @@
 .built
 *.context
+*.bdat
+*.pdat
 .depend
+.updated
 .config
+.config-e
 .version
 .project
 .cproject
-apps/namedapp/namedapp_list.h
-apps/namedapp/namedapp_proto.h
+apps/builtin/builtin_list.h
+apps/builtin/builtin_proto.h
 Make.dep
 *.pyc
 *.o
@@ -43,6 +47,7 @@ nsh_romfsimg.h
 cscope.out
 .configX-e
 nuttx-export.zip
+.~lock.*
 dot.gdbinit
 mavlink/include/mavlink/v0.9/
 .*.swp

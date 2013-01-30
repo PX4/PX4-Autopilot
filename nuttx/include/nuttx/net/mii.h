@@ -112,12 +112,12 @@
 
 /* Luminary LM3S6918 built-in PHY: 0x07-0x0f, 0x14-0x16, 0x19-0x1f reserved */
 
-#define MII_LM3S_VSPECIFIC           0x10      /* Vendor-Specific */
-#define MII_LM3S_INTCS               0x11      /* Interrupt control/status */
-#define MII_LM3S_DIAGNOSTIC          0x12      /* Diagnostic */
-#define MII_LM3S_XCVRCONTROL         0x13      /* Transceiver Control */
-#define MII_LM3S_LEDCONFIG           0x17      /* LED Configuration */
-#define MII_LM3S_MDICONTROL          0x18      /* Ethernet PHY Management MDI/MDIX Control */
+#define MII_LM_VSPECIFIC             0x10      /* Vendor-Specific */
+#define MII_LM_INTCS                 0x11      /* Interrupt control/status */
+#define MII_LM_DIAGNOSTIC            0x12      /* Diagnostic */
+#define MII_LM_XCVRCONTROL           0x13      /* Transceiver Control */
+#define MII_LM_LEDCONFIG             0x17      /* LED Configuration */
+#define MII_LM_MDICONTROL            0x18      /* Ethernet PHY Management MDI/MDIX Control */
 
 /* Micrel KS8721: 0x15, 0x1b, and 0x1f */
 
@@ -323,79 +323,79 @@
 /* LM3S6918-specific register bit settings **********************************/
 /* LM3S6918 Vendor-Specific, address 0x10 */
 
-#define LM3S_VSPECIFIC_RXCC          (1 << 0)  /* Bit 0:  Receive Clock Control*/
-#define LM3S_VSPECIFIC_PCSBP         (1 << 1)  /* Bit 1:  PCS Bypass */
-#define LM3S_VSPECIFIC_RVSPOL        (1 << 4)  /* Bit 4:  Receive Data Polarity */
-#define LM3S_VSPECIFIC_APOL          (1 << 5)  /* Bit 5:  Auto-Polarity Disable */
-#define LM3S_VSPECIFIC_NL10          (1 << 10) /* Bit 10: Natural Loopback Mode */
-#define LM3S_VSPECIFIC_SQEI          (1 << 11) /* Bit 11: SQE Inhibit Testing */
-#define LM3S_VSPECIFIC_TXHIM         (1 << 12) /* Bit 12: Transmit High Impedance Mode */
-#define LM3S_VSPECIFIC_INPOL         (1 << 14) /* Bit 14: Interrupt Polarity Value*/
-#define LM3S_VSPECIFIC_RPTR          (1 << 15) /* Bit 15: Repeater mode*/
+#define LM_VSPECIFIC_RXCC            (1 << 0)  /* Bit 0:  Receive Clock Control*/
+#define LM_VSPECIFIC_PCSBP           (1 << 1)  /* Bit 1:  PCS Bypass */
+#define LM_VSPECIFIC_RVSPOL          (1 << 4)  /* Bit 4:  Receive Data Polarity */
+#define LM_VSPECIFIC_APOL            (1 << 5)  /* Bit 5:  Auto-Polarity Disable */
+#define LM_VSPECIFIC_NL10            (1 << 10) /* Bit 10: Natural Loopback Mode */
+#define LM_VSPECIFIC_SQEI            (1 << 11) /* Bit 11: SQE Inhibit Testing */
+#define LM_VSPECIFIC_TXHIM           (1 << 12) /* Bit 12: Transmit High Impedance Mode */
+#define LM_VSPECIFIC_INPOL           (1 << 14) /* Bit 14: Interrupt Polarity Value*/
+#define LM_VSPECIFIC_RPTR            (1 << 15) /* Bit 15: Repeater mode*/
 
 /* LM3S6918 Interrupt Control/Status, address 0x11 */
 
-#define LM3S_INTCS_ANEGCOMPINT       (1 << 0)  /* Bit 0:  Auto-Negotiation Complete Interrupt */
-#define LM3S_INTCS_RFAULTINT         (1 << 1)  /* Bit 1:  Remote Fault Interrupt */
-#define LM3S_INTCS_LSCHGINT          (1 << 2)  /* Bit 2:  Link Status Change Interrupt */
-#define LM3S_INTCS_LPACKINT          (1 << 3)  /* Bit 3:  LP Acknowledge Interrupt */
-#define LM3S_INTCS_PDFINT            (1 << 4)  /* Bit 4:  Parallel Detection Fault Interrupt */
-#define LM3S_INTCS_PRXINT            (1 << 5)  /* Bit 5:  Page Receive Interrupt */
-#define LM3S_INTCS_RXERINT           (1 << 6)  /* Bit 6:  Receive Error Interrupt */
-#define LM3S_INTCS_JABBERINT         (1 << 7)  /* Bit 7:  Jabber Event Interrupt */
-#define LM3S_INTCS_ANEGCOMPIE        (1 << 8)  /* Bit 8:  Auto-Negotiation Complete Interrupt Enable */
-#define LM3S_INTCS_RFAULTIE          (1 << 9)  /* Bit 9:  Remote Fault Interrupt Enable */
-#define LM3S_INTCS_LSCHGIE           (1 << 10) /* Bit 10: Link Status Change Interrupt Enable */
-#define LM3S_INTCS_LPACKIE           (1 << 11) /* Bit 11: LP Acknowledge Interrupt Enable */
-#define LM3S_INTCS_PDFIE             (1 << 12) /* Bit 12: Parallel Detection Fault Interrupt Enable */
-#define LM3S_INTCS_PRXIE             (1 << 13) /* Bit 13: Page Received Interrupt Enable */
-#define LM3S_INTCS_RXERIE            (1 << 14) /* Bit 14: Receive Error Interrupt Enable */
-#define LM3S_INTCS_JABBERIE          (1 << 15) /* Bit 15: Jabber Interrupt Enable */
+#define LM_INTCS_ANEGCOMPINT         (1 << 0)  /* Bit 0:  Auto-Negotiation Complete Interrupt */
+#define LM_INTCS_RFAULTINT           (1 << 1)  /* Bit 1:  Remote Fault Interrupt */
+#define LM_INTCS_LSCHGINT            (1 << 2)  /* Bit 2:  Link Status Change Interrupt */
+#define LM_INTCS_LPACKINT            (1 << 3)  /* Bit 3:  LP Acknowledge Interrupt */
+#define LM_INTCS_PDFINT              (1 << 4)  /* Bit 4:  Parallel Detection Fault Interrupt */
+#define LM_INTCS_PRXINT              (1 << 5)  /* Bit 5:  Page Receive Interrupt */
+#define LM_INTCS_RXERINT             (1 << 6)  /* Bit 6:  Receive Error Interrupt */
+#define LM_INTCS_JABBERINT           (1 << 7)  /* Bit 7:  Jabber Event Interrupt */
+#define LM_INTCS_ANEGCOMPIE          (1 << 8)  /* Bit 8:  Auto-Negotiation Complete Interrupt Enable */
+#define LM_INTCS_RFAULTIE            (1 << 9)  /* Bit 9:  Remote Fault Interrupt Enable */
+#define LM_INTCS_LSCHGIE             (1 << 10) /* Bit 10: Link Status Change Interrupt Enable */
+#define LM_INTCS_LPACKIE             (1 << 11) /* Bit 11: LP Acknowledge Interrupt Enable */
+#define LM_INTCS_PDFIE               (1 << 12) /* Bit 12: Parallel Detection Fault Interrupt Enable */
+#define LM_INTCS_PRXIE               (1 << 13) /* Bit 13: Page Received Interrupt Enable */
+#define LM_INTCS_RXERIE              (1 << 14) /* Bit 14: Receive Error Interrupt Enable */
+#define LM_INTCS_JABBERIE            (1 << 15) /* Bit 15: Jabber Interrupt Enable */
 
 /* LM3S6918 Diagnostic, address 0x12 */
 
-#define LM3S_DIAGNOSTIC_RX_LOCK      (1 << 8)  /* Bit 8:  Receive PLL Lock */
-#define LM3S_DIAGNOSTIC_RXSD         (1 << 9)  /* Bit 9:  Receive Detection */
-#define LM3S_DIAGNOSTIC_RATE         (1 << 10) /* Bit 10: Rate */
-#define LM3S_DIAGNOSTIC_DPLX         (1 << 11) /* Bit 11: Duplex Mode */
-#define LM3S_DIAGNOSTIC_ANEGF        (1 << 12) /* Bit 12: Auto-Negotiation Failure */
+#define LM_DIAGNOSTIC_RX_LOCK        (1 << 8)  /* Bit 8:  Receive PLL Lock */
+#define LM_DIAGNOSTIC_RXSD           (1 << 9)  /* Bit 9:  Receive Detection */
+#define LM_DIAGNOSTIC_RATE           (1 << 10) /* Bit 10: Rate */
+#define LM_DIAGNOSTIC_DPLX           (1 << 11) /* Bit 11: Duplex Mode */
+#define LM_DIAGNOSTIC_ANEGF          (1 << 12) /* Bit 12: Auto-Negotiation Failure */
 
 /* LM3S6918 Transceiver Control, address 0x13 */
 
-#define LM3S_XCVRCONTROL_TXO_SHIFT   14        /* Bits 15-14: Transmit Amplitude Selection */
-#define LM3S_XCVRCONTROL_TXO_MASK    (3 << LM3S_XCVRCONTROL_TXO_SHIFT)
-#define LM3S_XCVRCONTROL_TXO_00DB    (0 << LM3S_XCVRCONTROL_TXO_SHIFT) /* Gain 0.0dB of insertion loss */
-#define LM3S_XCVRCONTROL_TXO_04DB    (1 << LM3S_XCVRCONTROL_TXO_SHIFT) /* Gain 0.4dB of insertion loss */
-#define LM3S_XCVRCONTROL_TXO_08DB    (2 << LM3S_XCVRCONTROL_TXO_SHIFT) /* Gain 0.8dB of insertion loss */
-#define LM3S_XCVRCONTROL_TXO_12DB    (3 << LM3S_XCVRCONTROL_TXO_SHIFT) /* Gain 1.2dB of insertion loss */
+#define LM_XCVRCONTROL_TXO_SHIFT     14        /* Bits 15-14: Transmit Amplitude Selection */
+#define LM_XCVRCONTROL_TXO_MASK      (3 << LM_XCVRCONTROL_TXO_SHIFT)
+#define LM_XCVRCONTROL_TXO_00DB      (0 << LM_XCVRCONTROL_TXO_SHIFT) /* Gain 0.0dB of insertion loss */
+#define LM_XCVRCONTROL_TXO_04DB      (1 << LM_XCVRCONTROL_TXO_SHIFT) /* Gain 0.4dB of insertion loss */
+#define LM_XCVRCONTROL_TXO_08DB      (2 << LM_XCVRCONTROL_TXO_SHIFT) /* Gain 0.8dB of insertion loss */
+#define LM_XCVRCONTROL_TXO_12DB      (3 << LM_XCVRCONTROL_TXO_SHIFT) /* Gain 1.2dB of insertion loss */
 
 /* LM3S6918 LED Configuration, address 0x17 */
 
-#define LM3S_LEDCONFIG_LED0_SHIFT    (0)       /* Bits 3-0: LED0 Source */
-#define LM3S_LEDCONFIG_LED0_MASK     (0x0f << LM3S_LEDCONFIG_LED0_SHIFT)
-#define LM3S_LEDCONFIG_LED0_LINKOK   (0 << LM3S_LEDCONFIG_LED0_SHIFT)  /* Link OK */
-#define LM3S_LEDCONFIG_LED0_RXTX     (1 << LM3S_LEDCONFIG_LED0_SHIFT)  /* RX or TX activity */
-#define LM3S_LEDCONFIG_LED0_100BASET (5 << LM3S_LEDCONFIG_LED0_SHIFT)  /* 100BASE-TX mode */
-#define LM3S_LEDCONFIG_LED0_10BASET  (6 << LM3S_LEDCONFIG_LED0_SHIFT)  /* 10BASE-T mode */
-#define LM3S_LEDCONFIG_LED0_FDUPLEX  (7 << LM3S_LEDCONFIG_LED0_SHIFT)  /* Full duplex */
-#define LM3S_LEDCONFIG_LED0_OKRXTX   (8 << LM3S_LEDCONFIG_LED0_SHIFT)  /* Full duplex */
-#define LM3S_LEDCONFIG_LED1_SHIFT    (4)        /* Bits 7-4: LED1 Source */
-#define LM3S_LEDCONFIG_LED1_MASK     (0x0f << LM3S_LEDCONFIG_LED1_SHIFT)
-#define LM3S_LEDCONFIG_LED1_LINKOK   (0 << LM3S_LEDCONFIG_LED1_SHIFT)  /* Link OK */
-#define LM3S_LEDCONFIG_LED1_RXTX     (1 << LM3S_LEDCONFIG_LED1_SHIFT)  /* RX or TX activity */
-#define LM3S_LEDCONFIG_LED1_100BASET (5 << LM3S_LEDCONFIG_LED1_SHIFT)  /* 100BASE-TX mode */
-#define LM3S_LEDCONFIG_LED1_10BASET  (6 << LM3S_LEDCONFIG_LED1_SHIFT)  /* 10BASE-T mode */
-#define LM3S_LEDCONFIG_LED1_FDUPLEX  (7 << LM3S_LEDCONFIG_LED1_SHIFT)  /* Full duplex */
-#define LM3S_LEDCONFIG_LED1_OKRXTX   (8 << LM3S_LEDCONFIG_LED1_SHIFT)  /* Full duplex */
+#define LM_LEDCONFIG_LED0_SHIFT      (0)       /* Bits 3-0: LED0 Source */
+#define LM_LEDCONFIG_LED0_MASK       (0x0f << LM_LEDCONFIG_LED0_SHIFT)
+#define LM_LEDCONFIG_LED0_LINKOK     (0 << LM_LEDCONFIG_LED0_SHIFT)  /* Link OK */
+#define LM_LEDCONFIG_LED0_RXTX       (1 << LM_LEDCONFIG_LED0_SHIFT)  /* RX or TX activity */
+#define LM_LEDCONFIG_LED0_100BASET   (5 << LM_LEDCONFIG_LED0_SHIFT)  /* 100BASE-TX mode */
+#define LM_LEDCONFIG_LED0_10BASET    (6 << LM_LEDCONFIG_LED0_SHIFT)  /* 10BASE-T mode */
+#define LM_LEDCONFIG_LED0_FDUPLEX    (7 << LM_LEDCONFIG_LED0_SHIFT)  /* Full duplex */
+#define LM_LEDCONFIG_LED0_OKRXTX     (8 << LM_LEDCONFIG_LED0_SHIFT)  /* Full duplex */
+#define LM_LEDCONFIG_LED1_SHIFT      (4)        /* Bits 7-4: LED1 Source */
+#define LM_LEDCONFIG_LED1_MASK       (0x0f << LM_LEDCONFIG_LED1_SHIFT)
+#define LM_LEDCONFIG_LED1_LINKOK     (0 << LM_LEDCONFIG_LED1_SHIFT)  /* Link OK */
+#define LM_LEDCONFIG_LED1_RXTX       (1 << LM_LEDCONFIG_LED1_SHIFT)  /* RX or TX activity */
+#define LM_LEDCONFIG_LED1_100BASET   (5 << LM_LEDCONFIG_LED1_SHIFT)  /* 100BASE-TX mode */
+#define LM_LEDCONFIG_LED1_10BASET    (6 << LM_LEDCONFIG_LED1_SHIFT)  /* 10BASE-T mode */
+#define LM_LEDCONFIG_LED1_FDUPLEX    (7 << LM_LEDCONFIG_LED1_SHIFT)  /* Full duplex */
+#define LM_LEDCONFIG_LED1_OKRXTX     (8 << LM_LEDCONFIG_LED1_SHIFT)  /* Full duplex */
 
 /* LM3S6918 MDI/MDIX Control, address 0x18 */
 
-#define LM3S_MDICONTROL_MDIXSD_SHIFT (0)        /* Bits 3-0: Auto-Switching Seed */
-#define LM3S_MDICONTROL_MDIXSD_MASK  (0x0f << LM3S_MDICONTROL_MDIXSD_SHIFT)
-#define LM3S_MDICONTROL_MDIXCM       (1 << 4)  /* Bit 4:  Auto-Switching Complete */
-#define LM3S_MDICONTROL_MDIX         (1 << 5)  /* Bit 5:  Auto-Switching Configuration */
-#define LM3S_MDICONTROL_AUTOSW       (1 << 6)  /* Bit 6:  Auto-Switching Enable */
-#define LM3S_MDICONTROL_PDMODE       (1 << 7)  /* Bit 7:  Parallel Detection Mode */
+#define LM_MDICONTROL_MDIXSD_SHIFT   (0)        /* Bits 3-0: Auto-Switching Seed */
+#define LM_MDICONTROL_MDIXSD_MASK    (0x0f << LM_MDICONTROL_MDIXSD_SHIFT)
+#define LM_MDICONTROL_MDIXCM         (1 << 4)  /* Bit 4:  Auto-Switching Complete */
+#define LM_MDICONTROL_MDIX           (1 << 5)  /* Bit 5:  Auto-Switching Configuration */
+#define LM_MDICONTROL_AUTOSW         (1 << 6)  /* Bit 6:  Auto-Switching Enable */
+#define LM_MDICONTROL_PDMODE         (1 << 7)  /* Bit 7:  Parallel Detection Mode */
 
 /* KS8921-specific register bit settings ************************************/
 /* KS8921 MII Control register bit definitions (not in 802.3) */
@@ -430,26 +430,26 @@
 
 /* KS8921 10BASE-TX PHY control register */
 
-#define KS8721_10BTCR_BIT0            (1 << 0)  /* Bit 0:  xxx */
-#define KS8721_10BTCR_BIT1            (1 << 1)  /* Bit 1:  xxx */
-#define KS8721_10BTCR_MODE_SHIFT      (2)       /* Bits 2-4:  Operation Mode Indication */
-#define KS8721_10BTCR_MODE_MASK       (7 << KS8721_10BTCR_MODE_SHIFT)
-#  define KS8721_10BTCR_MODE_ANEG     (0 << KS8721_10BTCR_MODE_SHIFT) /* Still in auto-negotiation */
-#  define KS8721_10BTCR_MODE_10BTHD   (1 << KS8721_10BTCR_MODE_SHIFT) /* 10BASE-T half-duplex */
-#  define KS8721_10BTCR_MODE_100BTHD  (2 << KS8721_10BTCR_MODE_SHIFT) /* 100BASE_t half-duplex */
-#  define KS8721_10BTCR_MODE_DEFAULT  (3 << KS8721_10BTCR_MODE_SHIFT) /* Default */
-#  define KS8721_10BTCR_MODE_10BTFD   (5 << KS8721_10BTCR_MODE_SHIFT) /* 10BASE-T full duplex */
-#  define KS8721_10BTCR_MODE_100BTFD  (6 << KS8721_10BTCR_MODE_SHIFT) /* 100BASE-T full duplex */
-#  define KS8721_10BTCR_MODE_ISOLATE  (7 << KS8721_10BTCR_MODE_SHIFT) /* PHY/MII isolate */
-#define KS8721_10BTCR_ISOLATE         (1 << 5)  /* Bit 5:  PHY isolate */
-#define KS8721_10BTCR_PAUSE           (1 << 6)  /* Bit 6:  Enable pause */
-#define KS8721_10BTCR_ANEGCOMP        (1 << 7)  /* Bit 7:  Auto-negotiation complete */
-#define KS8721_10BTCR_JABBERE         (1 << 8)  /* Bit 8:  Enable Jabber */
-#define KS8721_10BTCR_INTLVL          (1 << 9)  /* Bit 9:  Interrupt level */
-#define KS8721_10BTCR_POWER           (1 << 10) /* Bit 10: Power saving */
-#define KS8721_10BTCR_FORCE           (1 << 11) /* Bit 11: Force link */
-#define KS8721_10BTCR_ENERGY          (1 << 12) /* Bit 12: Energy detect */
-#define KS8721_10BTCR_PAIRSWAPD       (1 << 13) /* Bit 13: Pairswap disable */
+#define KS8721_10BTCR_BIT0           (1 << 0)  /* Bit 0:  xxx */
+#define KS8721_10BTCR_BIT1           (1 << 1)  /* Bit 1:  xxx */
+#define KS8721_10BTCR_MODE_SHIFT     (2)       /* Bits 2-4:  Operation Mode Indication */
+#define KS8721_10BTCR_MODE_MASK      (7 << KS8721_10BTCR_MODE_SHIFT)
+#  define KS8721_10BTCR_MODE_ANEG    (0 << KS8721_10BTCR_MODE_SHIFT) /* Still in auto-negotiation */
+#  define KS8721_10BTCR_MODE_10BTHD  (1 << KS8721_10BTCR_MODE_SHIFT) /* 10BASE-T half-duplex */
+#  define KS8721_10BTCR_MODE_100BTHD (2 << KS8721_10BTCR_MODE_SHIFT) /* 100BASE_t half-duplex */
+#  define KS8721_10BTCR_MODE_DEFAULT (3 << KS8721_10BTCR_MODE_SHIFT) /* Default */
+#  define KS8721_10BTCR_MODE_10BTFD  (5 << KS8721_10BTCR_MODE_SHIFT) /* 10BASE-T full duplex */
+#  define KS8721_10BTCR_MODE_100BTFD (6 << KS8721_10BTCR_MODE_SHIFT) /* 100BASE-T full duplex */
+#  define KS8721_10BTCR_MODE_ISOLATE (7 << KS8721_10BTCR_MODE_SHIFT) /* PHY/MII isolate */
+#define KS8721_10BTCR_ISOLATE        (1 << 5)  /* Bit 5:  PHY isolate */
+#define KS8721_10BTCR_PAUSE          (1 << 6)  /* Bit 6:  Enable pause */
+#define KS8721_10BTCR_ANEGCOMP       (1 << 7)  /* Bit 7:  Auto-negotiation complete */
+#define KS8721_10BTCR_JABBERE        (1 << 8)  /* Bit 8:  Enable Jabber */
+#define KS8721_10BTCR_INTLVL         (1 << 9)  /* Bit 9:  Interrupt level */
+#define KS8721_10BTCR_POWER          (1 << 10) /* Bit 10: Power saving */
+#define KS8721_10BTCR_FORCE          (1 << 11) /* Bit 11: Force link */
+#define KS8721_10BTCR_ENERGY         (1 << 12) /* Bit 12: Energy detect */
+#define KS8721_10BTCR_PAIRSWAPD      (1 << 13) /* Bit 13: Pairswap disable */
 
 /****************************************************************************
  * Type Definitions

@@ -1,13 +1,15 @@
 /****************************************************************************
- * apps/namedaps/exec_namedapp.c
+ * include/nuttx/binfmt/builtin.h
+ *
+ * Originally by:
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
  *
- * With updates, modifications, and general maintenance by:
+ * With subsequent updates, modifications, and general maintenance by:
  *
- *   Copyright (C) 2012 Gregory Nutt.  All rights reserved.
- *   Auther: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012-2013 Gregory Nutt.  All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,150 +40,139 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_NUTTX_BINFMT_BUILTIN_H
+#define __INCLUDE_NUTTX_BINFMT_BUILTIN_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <apps/apps.h>
-#include <sched.h>
-
-#include <string.h>
-#include <errno.h>
-
-#include "namedapp.h"
+#include <sys/types.h>
 
 /****************************************************************************
- * Private Types
+ * Public Types
  ****************************************************************************/
 
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
+struct builtin_s
+{
+  const char *name;         /* Invocation name and as seen under /sbin/ */
+  int         priority;     /* Use: SCHED_PRIORITY_DEFAULT */
+  int         stacksize;    /* Desired stack size */
+  main_t      main;         /* Entry point: main(int argc, char *argv[]) */
+};
 
 /****************************************************************************
- * Private Data
+ * Public Data
  ****************************************************************************/
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: namedapp_getname
+ * Name: builtin_initialize
  *
  * Description:
- *   Return the name of the application at index in the table of named
- *   applications.
- *
- ****************************************************************************/
-
-const char *namedapp_getname(int index)
-{
-  if (index < 0 || index >= number_namedapps())
-   {
-     return NULL;
-   }
-    
-  return namedapps[index].name;
-}
- 
-/****************************************************************************
- * Name: namedapp_isavail
- *
- * Description:
- *   Return the index into the table of applications for the applicaiton with
- *   the name 'appname'.
- *
- ****************************************************************************/
-
-int namedapp_isavail(FAR const char *appname)
-{
-  int i;
-    
-  for (i = 0; namedapps[i].name; i++) 
-    {
-      if (!strcmp(namedapps[i].name, appname))
-        {
-          return i;
-        }
-    }
-
-  set_errno(ENOENT);
-  return ERROR;
-}
- 
-/****************************************************************************
- * Name: namedapp_isavail
- *
- * Description:
- *   Execute the application with name 'appname', providing the arguments
- *   in the argv[] array.
+ *   Builtin support is built unconditionally.  However, it order to
+ *   use this binary format, this function must be called during system
+ *   format in order to register the builtin binary format.
  *
  * Returned Value:
- *   On success, the task ID of the named application is returned.  On
- *   failure, -1 (ERROR) is returned an the errno value is set appropriately.
+ *   This is a NuttX internal function so it follows the convention that
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
  *
  ****************************************************************************/
 
-int exec_namedapp(FAR const char *appname, FAR const char **argv)
-{
-  pid_t pid;
-  int index;
+int builtin_initialize(void);
 
-  /* Verify that an application with this name exists */
+/****************************************************************************
+ * Name: builtin_uninitialize
+ *
+ * Description:
+ *   Unregister the builtin binary loader
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
 
-  index = namedapp_isavail(appname);
-  if (index >= 0)
-    {
-      /* Disable pre-emption.  This means that although we start the named
-       * application here, it will not actually run until pre-emption is
-       * re-enabled below.
-       */
+void builtin_uninitialize(void);
 
-      sched_lock();
+/****************************************************************************
+ * Utility Functions Provided to Applications by binfmt/libbuiltin
+ ****************************************************************************/
+/****************************************************************************
+ * Name: builtin_isavail
+ *
+ * Description:
+ *   Checks for availabiliy of application registerred during compile time.
+ *
+ * Input Parameter:
+ *   filename - Name of the linked-in binary to be started.
+ *
+ * Returned Value:
+ *   This is an end-user function, so it follows the normal convention:
+ *   Returns index of builtin application. If it is not found then it
+ *   returns -1 (ERROR) and sets errno appropriately.
+ *
+ ****************************************************************************/
 
-      /* Start the named application task */
+int builtin_isavail(FAR const char *appname);
 
-      pid = TASK_CREATE(namedapps[index].name, namedapps[index].priority, 
-                        namedapps[index].stacksize, namedapps[index].main, 
-                        (argv) ? &argv[1] : (const char **)NULL);
+/****************************************************************************
+ * Name: builtin_getname
+ *
+ * Description:
+ *   Returns pointer to a name of built-in application pointed by the
+ *   index.
+ *
+ * Input Parameter:
+ *   index, from 0 and on ...
+ *
+ * Returned Value:
+ *   Returns valid pointer pointing to the app name if index is valid.
+ *   Otherwise NULL is returned.
+ *
+ ****************************************************************************/
 
-      /* If robin robin scheduling is enabled, then set the scheduling policy
-       * of the new task to SCHED_RR before it has a chance to run.
-       */
+FAR const char *builtin_getname(int index);
 
-#if CONFIG_RR_INTERVAL > 0
-      if (pid > 0)
-        {
-          struct sched_param param;
+/****************************************************************************
+ * Data Set Access Functions Provided to Applications by binfmt/libbuiltin
+ ****************************************************************************/
+/****************************************************************************
+ * Name: builtin_for_index
+ *
+ * Description:
+ *   Returns the builtin_s structure for the selected builtin.
+ *   If support for builtin functions is enabled in the NuttX configuration,
+ *   then this function must be provided by the application code.
+ *
+ * Input Parameter:
+ *   index, from 0 and on...
+ *
+ * Returned Value:
+ *   Returns valid pointer pointing to the builtin_s structure if index is
+ *   valid.
+ *   Otherwise, NULL is returned.
+ *
+ ****************************************************************************/
 
-          /* Pre-emption is disabled so the task creation and the
-           * following operation will be atomic.  The priority of the
-           * new task cannot yet have changed from its initial value.
-           */
+EXTERN FAR const struct builtin_s *builtin_for_index(int index);
 
-          param.sched_priority = namedapps[index].priority;
-          sched_setscheduler(pid, SCHED_RR, &param);
-        }
-#endif
-      /* Now let the named application run */
-
-      sched_unlock();
-
-      /* Return the task ID of the new task if the task was sucessfully
-       * started.  Otherwise, pid will be ERROR (and the errno value will
-       * be set appropriately).
-       */
-
-      return pid;
-    }
-
-  /* Return ERROR with errno set appropriately */
-
-  return ERROR;
+#undef EXTERN
+#if defined(__cplusplus)
 }
+#endif
+
+#endif /* __INCLUDE_NUTTX_BINFMT_BUILTIN_H */
+
