@@ -146,15 +146,6 @@
 #  error "CONFIG_USBDEV_EP3_TXFIFO_SIZE is out of range"
 #endif
 
-/* REVISIT! This forces a hack that polls DTXFSTS for space in the Tx FIFO.
- * Enabling this option is a BAD thing.  It will cause inline waits inside 
- * of the USB interrupt handler.  The correct way to handle this is to
- * enable the correct TxFIFO interrupt and wait until the Tx FIFO is empty.
- * Unfortunately, the interrupt driven logic is not working... Please fix!
- */
-
-#define ENABLE_DTXFSTS_POLLHACK 1
-
 /* Debug ***********************************************************************/
 /* Trace error codes */
 
@@ -556,9 +547,7 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv);
 
 static inline void stm32_epin_runtestmode(FAR struct stm32_usbdev_s *priv);
 static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno);
-#ifndef ENABLE_DTXFSTS_POLLHACK
 static inline void stm32_epin_txfifoempty(FAR struct stm32_usbdev_s *priv, int epno);
-#endif
 static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv);
 
 /* Other second level interrupt processing */
@@ -1085,10 +1074,8 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
   struct stm32_req_s *privreq;
   uint32_t regaddr;
   uint32_t regval;
-#ifdef ENABLE_DTXFSTS_POLLHACK
   int32_t timeout;
   int avail;
-#endif
   uint8_t *buf;
   int nbytes;
   int nwords;
@@ -1230,38 +1217,9 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
 
       regaddr = STM32_OTGFS_DTXFSTS(privep->epphy);
 
-#ifdef ENABLE_DTXFSTS_POLLHACK
-      /* If ENABLE_DTXFSTS_POLLHACK is enabled , then poll DTXFSTS until
-       * space in the TxFIFO is available.
-       */
-       
-      for (timeout = 250000; timeout > 0; timeout--)
-        {
-          avail = stm32_getreg(regaddr) & OTGFS_DTXFSTS_MASK;
-          if (avail >= nwords)
-            {
-              break;
-            }
-        }
-
-      /* If it did not become available in a reasonable amount of time,
-       * then just return.  We should come back through this logic later
-       * anyway.
-       */
-
-      DEBUGASSERT(avail < nwords);
-      if (avail < nwords)
-        {
-          /* We will probably not recover from what we are about to do */
-
-          usbtrace(TRACE_DEVERROR(STM32_TRACEERR_POLLTIMEOUT), avail);
-          return;
-        }
-#else
-      /* If ENABLE_DTXFSTS_POLLHACK is not enabled, then check once for
-       * space in the TxFIFO.  If space in the TxFIFO is not available,
-       * then set up an interrupt to resume the transfer when the TxFIFO
-       * is empty.
+      /* Check for space in the TxFIFO.  If space in the TxFIFO is not
+       * available, then set up an interrupt to resume the transfer when
+       * the TxFIFO is empty.
        */
 
       regval = stm32_getreg(regaddr);
@@ -1277,13 +1235,12 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
           empmsk |= OTGFS_DIEPEMPMSK(privep->epphy);
           stm32_putreg(empmsk, STM32_OTGFS_DIEPEMPMSK);
 
-          /* Terminate the transfer loop.  We will try again when the
-           * TxFIFO empty interrupt is received.
+          /* Terminate the transfer.  We will try again when the TxFIFO empty
+           * interrupt is received.
            */
 
           return;
         }
-#endif
 
       /* Transfer data to the TxFIFO */
 
@@ -2712,7 +2669,6 @@ static inline void stm32_epin(FAR struct stm32_usbdev_s *priv, uint8_t epno)
  *
  ****************************************************************************/
 
-#ifndef ENABLE_DTXFSTS_POLLHACK
 static inline void stm32_epin_txfifoempty(FAR struct stm32_usbdev_s *priv, int epno)
 {
   FAR struct stm32_ep_s *privep = &priv->epin[epno];
@@ -2724,7 +2680,6 @@ static inline void stm32_epin_txfifoempty(FAR struct stm32_usbdev_s *priv, int e
 
   stm32_epin_request(priv, privep);
 }
-#endif
 
 /*******************************************************************************
  * Name: stm32_epin_interrupt
@@ -2777,13 +2732,11 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
            * no TXFE bit in the mask register, so we fake one here.
            */
 
-#ifndef ENABLE_DTXFSTS_POLLHACK
           empty = stm32_getreg(STM32_OTGFS_DIEPEMPMSK);
           if ((empty & OTGFS_DIEPEMPMSK(epno)) != 0)
             {
               mask |= OTGFS_DIEPINT_TXFE;
             }
-#endif
 
           /* Now, read the interrupt status and mask out all disabled
            * interrupts.
@@ -2799,7 +2752,6 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
               usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_XFRC),
                        (uint16_t)diepint);
 
-#ifndef ENABLE_DTXFSTS_POLLHACK
               /* It is possible that logic may be waiting for a the
                * TxFIFO to become empty.  We disable the TxFIFO empty
                * interrupt here; it will be re-enabled if there is still
@@ -2808,7 +2760,6 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
                
               empty &= ~OTGFS_DIEPEMPMSK(epno);
               stm32_putreg(empty, STM32_OTGFS_DIEPEMPMSK);
-#endif
               stm32_putreg(OTGFS_DIEPINT_XFRC, STM32_OTGFS_DIEPINT(epno));
 
               /* IN transfer complete */
@@ -2860,7 +2811,6 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
 #endif
           /* Transmit FIFO empty */
 
-#ifndef ENABLE_DTXFSTS_POLLHACK
           if ((diepint & OTGFS_DIEPINT_TXFE) != 0)
             {
               usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_EPIN_TXFE), (uint16_t)diepint);
@@ -2888,7 +2838,6 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
 
               stm32_putreg(OTGFS_DIEPINT_TXFE, STM32_OTGFS_DIEPINT(epno));
             }
-#endif
         }
 
       epno++;

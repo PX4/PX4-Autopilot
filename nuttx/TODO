@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 28, 2013)
+NuttX TODO List (Last updated January 30, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -1504,11 +1504,6 @@ o ARM/STM32 (arch/arm/src/stm32/)
                SRAM.
   Status:      Open
   Priority:    Low
-
-  Title:       STM32 F4 USB OTG FS DEVICE-SIDE DRIVER
-  Description: This driver is reported to be buggy and to need some TLC.
-  Status:      Open
-  Priority:    High
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^
