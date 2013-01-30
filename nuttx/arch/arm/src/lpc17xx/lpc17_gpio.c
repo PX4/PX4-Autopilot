@@ -93,37 +93,101 @@ const uint32_t g_fiobase[GPIO_NPORTS] =
   LPC17_FIO2_BASE,
   LPC17_FIO3_BASE,
   LPC17_FIO4_BASE
+#if GPIO_NPORTS > 5
+  , LPC17_FIO5_BASE
+#endif
 };
 
+#ifdef LPC178X
+/* IOCON register base addresses */
+
+const uint32_t g_ioconport[GPIO_NPORTS] =
+{
+  LPC17_IOCON_P0,
+  LPC17_IOCON_P1,
+  LPC17_IOCON_P2,
+  LPC17_IOCON_P3,
+  LPC17_IOCON_P4,
+  LPC17_IOCON_P5
+}
+
+/* Register offsets */
+
+const uint32_t g_ioconpin[32] =
+{
+  LPC17_IOCON_PP0_OFFSET,
+  LPC17_IOCON_PP1_OFFSET,
+  LPC17_IOCON_PP2_OFFSET,
+  LPC17_IOCON_PP3_OFFSET,
+  LPC17_IOCON_PP4_OFFSET,
+  LPC17_IOCON_PP5_OFFSET,
+  LPC17_IOCON_PP6_OFFSET,
+  LPC17_IOCON_PP7_OFFSET,
+  LPC17_IOCON_PP8_OFFSET,
+  LPC17_IOCON_PP9_OFFSET,
+  LPC17_IOCON_PP10_OFFSET,
+  LPC17_IOCON_PP11_OFFSET,
+  LPC17_IOCON_PP12_OFFSET,
+  LPC17_IOCON_PP13_OFFSET,
+  LPC17_IOCON_PP14_OFFSET,
+  LPC17_IOCON_PP15_OFFSET,
+  LPC17_IOCON_PP16_OFFSET,
+  LPC17_IOCON_PP17_OFFSET,
+  LPC17_IOCON_PP18_OFFSET,
+  LPC17_IOCON_PP19_OFFSET,
+  LPC17_IOCON_PP20_OFFSET,
+  LPC17_IOCON_PP21_OFFSET,
+  LPC17_IOCON_PP22_OFFSET,
+  LPC17_IOCON_PP23_OFFSET,
+  LPC17_IOCON_PP24_OFFSET,
+  LPC17_IOCON_PP25_OFFSET,
+  LPC17_IOCON_PP26_OFFSET,
+  LPC17_IOCON_PP27_OFFSET,
+  LPC17_IOCON_PP28_OFFSET,
+  LPC17_IOCON_PP29_OFFSET,
+  LPC17_IOCON_PP30_OFFSET,
+  LPC17_IOCON_PP31_OFFSET
+};
+#endif
+
 /* Port 0 and Port 2 can provide a single interrupt for any combination of
- * port pins 
+ * port pins
  */
 
-const uint32_t g_intbase[GPIO_NPORTS] = 
+const uint32_t g_intbase[GPIO_NPORTS] =
 {
   LPC17_GPIOINT0_BASE,
   0,
   LPC17_GPIOINT2_BASE,
   0,
   0
+#if GPIO_NPORTS > 5
+  , 0
+#endif
 };
 
-const uint32_t g_lopinsel[GPIO_NPORTS] = 
+const uint32_t g_lopinsel[GPIO_NPORTS] =
 {
   LPC17_PINCONN_PINSEL0,
   LPC17_PINCONN_PINSEL2,
   LPC17_PINCONN_PINSEL4,
   0,
   0
+#if GPIO_NPORTS > 5
+  , 0
+#endif
 };
 
-const uint32_t g_hipinsel[GPIO_NPORTS] = 
+const uint32_t g_hipinsel[GPIO_NPORTS] =
 {
   LPC17_PINCONN_PINSEL1,
   LPC17_PINCONN_PINSEL3,
   0,
   LPC17_PINCONN_PINSEL7,
   LPC17_PINCONN_PINSEL9
+#if GPIO_NPORTS > 5
+  , 0
+#endif
 };
 
 const uint32_t g_lopinmode[GPIO_NPORTS] =
@@ -133,6 +197,9 @@ const uint32_t g_lopinmode[GPIO_NPORTS] =
   LPC17_PINCONN_PINMODE4,
   0,
   0
+#if GPIO_NPORTS > 5
+  , 0
+#endif
 };
 
 const uint32_t g_hipinmode[GPIO_NPORTS] =
@@ -142,6 +209,9 @@ const uint32_t g_hipinmode[GPIO_NPORTS] =
   0,
   LPC17_PINCONN_PINMODE7,
   LPC17_PINCONN_PINMODE9
+#if GPIO_NPORTS > 5
+  , 0
+#endif
 };
 
 const uint32_t g_odmode[GPIO_NPORTS] =
@@ -151,6 +221,9 @@ const uint32_t g_odmode[GPIO_NPORTS] =
   LPC17_PINCONN_ODMODE2,
   LPC17_PINCONN_ODMODE3,
   LPC17_PINCONN_ODMODE4
+#if GPIO_NPORTS > 5
+  , 0
+#endif
 };
 
 /****************************************************************************
@@ -348,6 +421,27 @@ static void lpc17_clropendrain(unsigned int port, unsigned int pin)
 }
 
 /****************************************************************************
+ * Name: lpc17_configiocon
+ *
+ * Description:
+ *   Set the LPC178x IOCON register
+ ****************************************************************************/
+
+#ifdef LPC178x
+static int lpc17_configiocon(unsigned int port, unsigned int pin,
+                             unsigned int value)
+{
+  uint32_t regaddr;
+  uint32_t regval;
+
+  regaddr = (g_ioconbase[port] + g_ioconpin[pin]);
+  regval  = getreg32(regaddr);
+  regval &= value;
+  putreg32(regval, regaddr);
+}
+#endif
+
+/****************************************************************************
  * Name: lpc17_configinput
  *
  * Description:
@@ -361,9 +455,9 @@ static inline int lpc17_configinput(lpc17_pinset_t cfgset, unsigned int port, un
   uint32_t fiobase;
   uint32_t intbase;
   uint32_t pinmask = (1 << pin);
- 
+
   /* Set up FIO registers */
-  
+
   fiobase = g_fiobase[port];
 
   /* Set as input */
@@ -378,13 +472,13 @@ static inline int lpc17_configinput(lpc17_pinset_t cfgset, unsigned int port, un
   if (intbase != 0)
     {
       /* Disable any rising edge interrupts */
- 
+
       regval = getreg32(intbase + LPC17_GPIOINT_INTENR_OFFSET);
       regval &= ~pinmask;
       putreg32(regval, intbase + LPC17_GPIOINT_INTENR_OFFSET);
 
       /* Disable any falling edge interrupts */
- 
+
       regval = getreg32(intbase + LPC17_GPIOINT_INTENF_OFFSET);
       regval &= ~pinmask;
       putreg32(regval, intbase + LPC17_GPIOINT_INTENF_OFFSET);
@@ -395,6 +489,8 @@ static inline int lpc17_configinput(lpc17_pinset_t cfgset, unsigned int port, un
       lpc17_setintedge(port, pin, 0);
 #endif
     }
+
+#ifdef defined(LPC176x)
 
   /* Set up PINSEL registers */
   /* Configure as GPIO */
@@ -408,6 +504,40 @@ static inline int lpc17_configinput(lpc17_pinset_t cfgset, unsigned int port, un
   /* Open drain only applies to outputs */
 
   lpc17_clropendrain(port, pin);
+
+#elif defined(LPC178x)
+
+  uint32_t value;
+
+  /* Configure as GPIO */
+
+  if ((cfgset & GPIO_FILTER) != 0)
+    {
+      value = (IOCON_FUNC_GPIO | ~GPIO_IOCON_TYPE_W_MASK);
+    }
+  else
+    {
+      value = (IOCON_FUNC_GPIO | ~GPIO_IOCON_TYPE_D_MASK);
+    }
+
+  /* Set pull-up mode */
+
+  value |= ((cfgset & GPIO_PUMODE_MASK) >> GPIO_PINMODE_SHIFT);
+
+  /* Clear open drain: open drain only applies to outputs */
+
+  value &= ~IOCON_OD_MASK ;
+
+  /* Clear input hysteresis, invertion, slew */
+
+  value &= ~(IOCON_HYS_MASK | IOCON_INV_MASK | IOCON_SLEW_MASK);
+
+  /* Set IOCON register */
+
+  lpc17_configiocon(port, pin, value);
+
+#endif
+
   return OK;
 }
 
@@ -541,7 +671,7 @@ int lpc17_configgpio(lpc17_pinset_t cfgset)
   unsigned int port;
   unsigned int pin;
   int ret = -EINVAL;
- 
+
   /* Verify that this hardware supports the select GPIO port */
 
   port = (cfgset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
@@ -580,6 +710,26 @@ int lpc17_configgpio(lpc17_pinset_t cfgset)
         case GPIO_ALT3:    /* Alternate function 3 */
           ret = lpc17_configalternate(cfgset, port, pin, PINCONN_PINSEL_ALT3);
           break;
+
+#ifdef LPC178x
+
+        case GPIO_ALT4:    /* Alternate function 4 */
+          ret =  ;
+          break;
+
+        case GPIO_ALT5:    /* Alternate function 5 */
+          ret =  ;
+          break;
+
+        case GPIO_ALT6:    /* Alternate function 6 */
+          ret =  ;
+          break;
+
+        case GPIO_ALT7:    /* Alternate function 7 */
+          ret =  ;
+          break;
+
+#endif
 
         default:
           break;
