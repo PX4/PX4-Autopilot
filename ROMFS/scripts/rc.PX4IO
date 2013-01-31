@@ -1,0 +1,73 @@
+#!nsh
+
+set USB no
+
+#
+# Start the object request broker
+#
+uorb start
+
+#
+# Init the EEPROM
+#
+echo "[init] eeprom"
+eeprom start
+if [ -f /eeprom/parameters ]
+then
+	param load
+fi
+
+#
+# Enable / connect to PX4IO
+#
+px4io start
+
+#
+# Load an appropriate mixer. FMU_pass.mix is a passthru mixer
+# which is good for testing. See ROMFS/mixers for a full list of mixers.
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_pass.mix
+
+#
+# Start the sensors.
+#
+sh /etc/init.d/rc.sensors
+
+#
+# Start MAVLink on UART1 (dev/ttyS0) at 57600 baud (CLI is now unusable)
+#
+mavlink start -d /dev/ttyS0 -b 57600
+usleep 5000
+
+#
+# Start the commander.
+#
+commander start
+
+#
+# Start the attitude estimator
+#
+attitude_estimator_ekf start
+
+#
+# Start the attitude and position controller
+#
+fixedwing_att_control start
+fixedwing_pos_control start
+
+#
+# Start GPS capture. Comment this out if you do not have a GPS.
+#
+gps start
+
+#
+# Start logging to microSD if we can
+#	  	
+sh /etc/init.d/rc.logging
+
+#
+# startup is done; we don't want the shell because we
+# use the same UART for telemetry
+#
+echo "[init] startup done"
+exit
