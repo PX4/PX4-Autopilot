@@ -150,6 +150,7 @@ endif
 menuconfig PL2303
 	bool "Prolific PL2303 serial/USB converter emulation"
 	default n
+	select SERIAL_REMOVABLE
 	---help---
 		This logic emulates the Prolific PL2303 serial/USB converter
 
@@ -222,6 +223,7 @@ endif
 menuconfig CDCACM
 	bool "USB Modem (CDC ACM) support"
 	default n
+	select SERIAL_REMOVABLE
 	---help---
 		Enables USB Modem (CDC ACM) support
 

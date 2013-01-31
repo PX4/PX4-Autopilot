@@ -4069,4 +4069,8 @@
 	  this.
 	* arch/arm/src/lm/chip/lm4f_memorymap.h: More LM4F changes from
 	  Jose Pablo Carballo.
-
+	* drivers/serial/serial.c, include/nuttx/serial/serial.h,
+	  drivers/usbdev/cdcacm.c, and drivers/pl2303.c: Add support for
+	  removable serial devices (like USB serial).  This support is enabled
+	  by CONFIG_SERIAL_REMOVABLE and requires VBUS sensing support from
+	  the board-specific logic.

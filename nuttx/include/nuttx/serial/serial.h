@@ -1,7 +1,7 @@
 /************************************************************************************
  * include/nuttx/serial/serial.h
  *
- *   Copyright (C) 2007-2008, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <semaphore.h>
+
 #include <nuttx/fs/fs.h>
 
 /************************************************************************************
@@ -190,20 +191,23 @@ struct uart_ops_s
 
 struct uart_dev_s
 {
-  uint8_t              open_count;  /* Number of times the device has been opened */
-  volatile bool        xmitwaiting; /* true: User waiting for space in xmit.buffer */
-  volatile bool        recvwaiting; /* true: User waiting for data in recv.buffer */
-  bool                 isconsole;   /* true: This is the serial console */
-  sem_t                closesem;    /* Locks out new open while close is in progress */
-  sem_t                xmitsem;     /* Wakeup user waiting for space in xmit.buffer */
-  sem_t                recvsem;     /* Wakeup user waiting for data in recv.buffer */
-#ifndef CONFIG_DISABLE_POLL
-  sem_t                pollsem;     /* Manages exclusive access to fds[] */
+  uint8_t              open_count;   /* Number of times the device has been opened */
+  volatile bool        xmitwaiting;  /* true: User waiting for space in xmit.buffer */
+  volatile bool        recvwaiting;  /* true: User waiting for data in recv.buffer */
+#ifdef CONFIG_SERIAL_REMOVABLE
+  volatile bool        disconnected; /* true: Removable device is not connected */
 #endif
-  struct uart_buffer_s xmit;        /* Describes transmit buffer */
-  struct uart_buffer_s recv;        /* Describes receive buffer */
-  FAR const struct uart_ops_s *ops; /* Arch-specific operations */
-  FAR void            *priv;        /* Used by the arch-specific logic */
+  bool                 isconsole;    /* true: This is the serial console */
+  sem_t                closesem;     /* Locks out new open while close is in progress */
+  sem_t                xmitsem;      /* Wakeup user waiting for space in xmit.buffer */
+  sem_t                recvsem;      /* Wakeup user waiting for data in recv.buffer */
+#ifndef CONFIG_DISABLE_POLL
+  sem_t                pollsem;      /* Manages exclusive access to fds[] */
+#endif
+  struct uart_buffer_s xmit;         /* Describes transmit buffer */
+  struct uart_buffer_s recv;         /* Describes receive buffer */
+  FAR const struct uart_ops_s *ops;  /* Arch-specific operations */
+  FAR void            *priv;         /* Used by the arch-specific logic */
 
   /* The following is a list if poll structures of threads waiting for
    * driver events. The 'struct pollfd' reference for each open is also
@@ -213,25 +217,26 @@ struct uart_dev_s
 #ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_SERIAL_NPOLLWAITERS];
 #endif
-
 };
+
 typedef struct uart_dev_s uart_dev_t;
 
 /************************************************************************************
  * Public Data
  ************************************************************************************/
 
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
-
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
-extern "C" {
+extern "C"
+{
 #else
 #define EXTERN extern
 #endif
+
+/************************************************************************************
+ * Public Functions
+ ************************************************************************************/
 
 /************************************************************************************
  * Name: uart_register
@@ -241,7 +246,7 @@ extern "C" {
  *
  ************************************************************************************/
 
-EXTERN int uart_register(FAR const char *path, FAR uart_dev_t *dev);
+int uart_register(FAR const char *path, FAR uart_dev_t *dev);
 
 /************************************************************************************
  * Name: uart_xmitchars
@@ -254,7 +259,7 @@ EXTERN int uart_register(FAR const char *path, FAR uart_dev_t *dev);
  *
  ************************************************************************************/
 
-EXTERN void uart_xmitchars(FAR uart_dev_t *dev);
+void uart_xmitchars(FAR uart_dev_t *dev);
 
 /************************************************************************************
  * Name: uart_receivechars
@@ -267,7 +272,7 @@ EXTERN void uart_xmitchars(FAR uart_dev_t *dev);
  *
  ************************************************************************************/
 
-EXTERN void uart_recvchars(FAR uart_dev_t *dev);
+void uart_recvchars(FAR uart_dev_t *dev);
 
 /************************************************************************************
  * Name: uart_datareceived
@@ -279,7 +284,7 @@ EXTERN void uart_recvchars(FAR uart_dev_t *dev);
  *
  ************************************************************************************/
 
-EXTERN void uart_datareceived(FAR uart_dev_t *dev);
+void uart_datareceived(FAR uart_dev_t *dev);
 
 /************************************************************************************
  * Name: uart_datasent
@@ -292,7 +297,31 @@ EXTERN void uart_datareceived(FAR uart_dev_t *dev);
  *
  ************************************************************************************/
 
-EXTERN void uart_datasent(FAR uart_dev_t *dev);
+void uart_datasent(FAR uart_dev_t *dev);
+
+/************************************************************************************
+ * Name: uart_connected
+ *
+ * Description:
+ *   Serial devices (like USB serial) can be removed.  In that case, the "upper
+ *   half" serial driver must be informed that there is no longer a valid serial
+ *   channel associated with the driver.
+ *
+ *   In this case, the driver will terminate all pending transfers wint ENOTCONN and
+ *   will refuse all further transactions while the "lower half" is disconnected.
+ *   The driver will continue to be registered, but will be in an unusable state.
+ *
+ *   Conversely, the "upper half" serial driver needs to know when the serial
+ *   device is reconnected so that it can resume normal operations.
+ *
+ * Assumptions/Limitations:
+ *   This function may be called from an interrupt handler.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+void uart_connected(FAR uart_dev_t *dev, bool connected);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

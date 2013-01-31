@@ -570,6 +570,14 @@ static void cdcacm_resetconfig(FAR struct cdcacm_dev_s *priv)
 
       priv->config = CDCACM_CONFIGIDNONE;
 
+      /* Inform the "upper half" driver that there is no (functional) USB
+       * connection.
+       */
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+      uart_connected(&priv->serdev, false);
+#endif
+
       /* Disable endpoints.  This should force completion of all pending
        * transfers.
        */
@@ -731,10 +739,20 @@ static int cdcacm_setconfig(FAR struct cdcacm_dev_s *priv, uint8_t config)
           usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_RDSUBMIT), (uint16_t)-ret);
           goto errout;
         }
+
       priv->nrdq++;
     }
 
+  /* We are successfully configured */
+
   priv->config = config;
+
+  /* Inform the "upper half" driver that we are "open for business" */
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+  uart_connected(&priv->serdev, true);
+#endif
+
   return OK;
 
 errout:
@@ -1575,12 +1593,20 @@ static void cdcacm_disconnect(FAR struct usbdevclass_driver_s *driver,
     }
 #endif
 
-  /* Reset the configuration */
+  /* Inform the "upper half serial driver that we have lost the USB serial
+   * connection.
+   */
 
   flags = irqsave();
+#ifdef CONFIG_SERIAL_REMOVABLE
+  uart_connected(&priv->serdev, false);
+#endif
+
+  /* Reset the configuration */
+
   cdcacm_resetconfig(priv);
 
-  /* Clear out all data in the circular buffer */
+  /* Clear out all outgoing data in the circular buffer */
 
   priv->serdev.xmit.head = 0;
   priv->serdev.xmit.tail = 0;
@@ -2045,12 +2071,17 @@ int cdcacm_classobject(int minor, FAR struct usbdevclass_driver_s **classdev)
 
   /* Initialize the serial driver sub-structure */
 
-  priv->serdev.recv.size   = CONFIG_CDCACM_RXBUFSIZE;
-  priv->serdev.recv.buffer = priv->rxbuffer;
-  priv->serdev.xmit.size   = CONFIG_CDCACM_TXBUFSIZE;
-  priv->serdev.xmit.buffer = priv->txbuffer;
-  priv->serdev.ops         = &g_uartops;
-  priv->serdev.priv        = priv;
+      /* The initial state is disconnected */
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+  priv->serdev.disconnected = true;
+#endif
+  priv->serdev.recv.size    = CONFIG_CDCACM_RXBUFSIZE;
+  priv->serdev.recv.buffer  = priv->rxbuffer;
+  priv->serdev.xmit.size    = CONFIG_CDCACM_TXBUFSIZE;
+  priv->serdev.xmit.buffer  = priv->txbuffer;
+  priv->serdev.ops          = &g_uartops;
+  priv->serdev.priv         = priv;
 
   /* Initialize the USB class driver structure */
 

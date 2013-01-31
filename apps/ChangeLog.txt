@@ -502,3 +502,6 @@
 	  once when NSH starts; the .nshrc script will be executed for each session:
 	  Once for serial, once for each USB connection, once for each Telnet
 	  session.
+	* apps/system/readline: Correct realine return value.  Was not
+	  any returning special values when end-of-file or read errors
+	  occur (it would return an empty string which is not very useful).
