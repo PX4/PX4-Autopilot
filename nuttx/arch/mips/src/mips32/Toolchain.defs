@@ -1,7 +1,7 @@
 ############################################################################
 # arch/mips/src/mips32/Toolchain.defs
 #
-#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -103,7 +103,7 @@ endif
 # including Pinguino mips-elf toolchain
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),GNU_ELF)
-  CROSSDEV = mips-elf-
+  CROSSDEV ?= mips-elf-
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mlong32 -membedded-data -msoft-float -march=24kc -EL
   ARCHPICFLAGS = -fpic -membedded-pic
@@ -114,8 +114,8 @@ endif
 # Microchip C32 toolchain under Linux
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),MICROCHIPL)
-  CROSSDEV = pic32-
-  # CROSSDEV = xc32-
+  CROSSDEV ?= pic32-
+  # CROSSDEV ?= xc32-
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
@@ -126,8 +126,8 @@ endif
 # Microchip C32 toolchain under Windows
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),MICROCHIPW)
-  CROSSDEV = pic32-
-  # CROSSDEV = xc32-
+  CROSSDEV ?= pic32-
+  # CROSSDEV ?= xc32-
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif
@@ -141,8 +141,8 @@ endif
 # Microchip C32 toolchain under Linux
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),MICROCHIPL_LITE)
-  CROSSDEV = pic32-
-  # CROSSDEV = xc32-
+  CROSSDEV ?= pic32-
+  # CROSSDEV ?= xc32-
   # MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
@@ -153,8 +153,8 @@ endif
 # Microchip C32 toolchain under Windows
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),MICROCHIPW_LITE)
-  CROSSDEV = pic32-
-  # CROSSDEV = xc32-
+  CROSSDEV ?= pic32-
+  # CROSSDEV ?= xc32-
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif
@@ -168,7 +168,7 @@ endif
 # microchipOpen toolchain under Linux
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),MICROCHIPOPENL)
-  CROSSDEV = mypic32-
+  CROSSDEV ?= mypic32-
   # MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
@@ -179,7 +179,7 @@ endif
 # Pinguino mips-elf toolchain under Windows
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),PINGUINOW)
-  CROSSDEV = mips-
+  CROSSDEV ?= mips-
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif

@@ -252,7 +252,8 @@ static void up_dumpstate(void)
  * Name: _up_assert
  ****************************************************************************/
 
-static void _up_assert(int errorcode) /* noreturn_function */
+static void _up_assert(int errorcode) noreturn_function;
+static void _up_assert(int errorcode)
 {
   /* Are we in an interrupt handler or the idle task? */
 

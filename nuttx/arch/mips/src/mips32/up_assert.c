@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/mips/src/mips32/up_assert.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,8 @@
  * Name: _up_assert
  ****************************************************************************/
 
-static void _up_assert(int errorcode) /* noreturn_function */
+static void _up_assert(int errorcode) noreturn_function;
+static void _up_assert(int errorcode)
 {
   /* Are we in an interrupt handler or the idle task? */
 

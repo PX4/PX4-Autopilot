@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/assert.h
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -100,23 +100,28 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Global Function Prototypes
+ * Public Data
  ****************************************************************************/
 
 #ifdef __cplusplus
 #define EXTERN extern "C"
-extern "C" {
+extern "C"
+{
 #else
 #define EXTERN extern
 #endif
 
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
 #ifdef CONFIG_HAVE_FILENAME
-EXTERN void   up_assert(FAR const uint8_t *filename, int linenum);
-EXTERN void   up_assert_code(FAR const uint8_t *filename, int linenum,
-                             int errcode);
+void up_assert(FAR const uint8_t *filename, int linenum) noreturn_function;
+void up_assert_code(FAR const uint8_t *filename, int linenum, int errcode)
+       noreturn_function;
 #else
-EXTERN void   up_assert(void);
-EXTERN void   up_assert_code(int errcode);
+void up_assert(void) noreturn_function;
+void up_assert_code(int errcode) noreturn_function;
 #endif
 
 #undef EXTERN

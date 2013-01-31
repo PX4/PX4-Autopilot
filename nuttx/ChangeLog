@@ -4074,3 +4074,8 @@
 	  removable serial devices (like USB serial).  This support is enabled
 	  by CONFIG_SERIAL_REMOVABLE and requires VBUS sensing support from
 	  the board-specific logic.
+	* arch/*/src/*/Toolchain.defs: Change assignment so that we can
+	  override CROSSDEV with a make command line argument.
+	* include/assert.h:  Mark assertion functions as non-returning.
+	* arch/*/src/*/up_assert.h:  Mark _up_assert() as non-returning.
+

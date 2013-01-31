@@ -452,7 +452,7 @@ static inline int lpc17_configinput(lpc17_pinset_t cfgset, unsigned int port, un
 #endif
     }
 
-#ifdef defined(LPC176x)
+#if defined(LPC176x)
 
   /* Set up PINSEL registers */
   /* Configure as GPIO */

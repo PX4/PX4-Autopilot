@@ -151,7 +151,6 @@ static inline int readline_rawgetc(int infd)
 
           int errcode = errno;
           if (errcode != EINTR)
-
             {
               return -errcode;
             }

@@ -1,7 +1,7 @@
 ############################################################################
 # arch/arm/src/armv7-m/Toolchain.defs
 #
-#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -141,8 +141,8 @@ endif
 # Atollic toolchain under Windows
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),ATOLLIC)
-  CROSSDEV = arm-atollic-eabi-
-  ARCROSSDEV = arm-atollic-eabi-
+  CROSSDEV ?= arm-atollic-eabi-
+  ARCROSSDEV ?= arm-atollic-eabi-
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif
@@ -161,12 +161,12 @@ endif
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),BUILDROOT)
 ifeq ($(CONFIG_ARMV7M_OABI_TOOLCHAIN),y)
-  CROSSDEV = arm-nuttx-elf-
-  ARCROSSDEV = arm-nuttx-elf-
+  CROSSDEV ?= arm-nuttx-elf-
+  ARCROSSDEV ?= arm-nuttx-elf-
   ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
 else
-  CROSSDEV = arm-nuttx-eabi-
-  ARCROSSDEV = arm-nuttx-eabi-
+  CROSSDEV ?= arm-nuttx-eabi-
+  ARCROSSDEV ?= arm-nuttx-eabi-
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
 endif
   MAXOPTIMIZATION = -Os
@@ -175,8 +175,8 @@ endif
 # Code Red RedSuite under Linux
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),CODEREDL)
-  CROSSDEV = arm-none-eabi-
-  ARCROSSDEV = arm-none-eabi-
+  CROSSDEV ?= arm-none-eabi-
+  ARCROSSDEV ?= arm-none-eabi-
   ifeq ($(CONFIG_ARCH_CORTEXM4),y)
     ifeq ($(CONFIG_ARCH_FPU),y)
       ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
@@ -191,8 +191,8 @@ endif
 # Code Red RedSuite under Windows
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),CODEREDW)
-  CROSSDEV = arm-none-eabi-
-  ARCROSSDEV = arm-none-eabi-
+  CROSSDEV ?= arm-none-eabi-
+  ARCROSSDEV ?= arm-none-eabi-
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif
@@ -210,8 +210,8 @@ endif
 # CodeSourcery under Linux
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),CODESOURCERYL)
-  CROSSDEV = arm-none-eabi-
-  ARCROSSDEV = arm-none-eabi-
+  CROSSDEV ?= arm-none-eabi-
+  ARCROSSDEV ?= arm-none-eabi-
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
   MAXOPTIMIZATION = -O2
 endif
@@ -219,8 +219,8 @@ endif
 # CodeSourcery under Windows
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),CODESOURCERYW)
-  CROSSDEV = arm-none-eabi-
-  ARCROSSDEV = arm-none-eabi-
+  CROSSDEV ?= arm-none-eabi-
+  ARCROSSDEV ?= arm-none-eabi-
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif
@@ -230,8 +230,8 @@ endif
 # devkitARM under Windows
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),DEVKITARM)
-  CROSSDEV = arm-eabi-
-  ARCROSSDEV = arm-eabi-
+  CROSSDEV ?= arm-eabi-
+  ARCROSSDEV ?= arm-eabi-
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif
@@ -241,8 +241,8 @@ endif
 # Generic GNU EABI toolchain on OS X, Linux or any typical Posix system
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),GNU_EABI)
-  CROSSDEV = arm-none-eabi-
-  ARCROSSDEV = arm-none-eabi-
+  CROSSDEV ?= arm-none-eabi-
+  ARCROSSDEV ?= arm-none-eabi-
   MAXOPTIMIZATION = -O3
   ifeq ($(CONFIG_ARCH_CORTEXM4),y)
     ifeq ($(CONFIG_ARCH_FPU),y)
@@ -258,8 +258,8 @@ endif
 # Raisonance RIDE7 under Windows
 
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),RAISONANCE)
-  CROSSDEV = arm-none-eabi-
-  ARCROSSDEV = arm-none-eabi-
+  CROSSDEV ?= arm-none-eabi-
+  ARCROSSDEV ?= arm-none-eabi-
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif

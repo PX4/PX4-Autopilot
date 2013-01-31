@@ -523,8 +523,15 @@ NuttX Buildroot Toolchain
 
   Disadvantages:  This tool chain is not was well supported as some other
   toolchains.  GNU tools are not my priority and so the buildroot tools
-  often get behind.  For example, the is still no EABI support in the
-  NuttX buildroot toolchain for ARM.
+  often get behind.  For example, until recently there was no EABI support
+  in the NuttX buildroot toolchain for ARM.
+
+  NOTE: For Cortex-M3/4, there are OABI and EABI versions of the buildroot
+  toolchains.  If you are using the older OABI toolchain the prefix for
+  the tools will be arm-nuttx-elf-; for the EABI toolchin the prefix will
+  be arm-nuttx-eabi-.  If you are using the older OABI toolchain with
+  an ARM Cortex-M3/4, you will need to set CONFIG_ARMV7M_OABI_TOOLCHAIN
+  in the .config file in order to pick the right tool prefix.
 
 SHELLS
 ^^^^^^

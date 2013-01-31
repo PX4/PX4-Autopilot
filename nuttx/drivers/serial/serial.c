@@ -1041,8 +1041,11 @@ void uart_datasent(FAR uart_dev_t *dev)
 #ifdef CONFIG_SERIAL_REMOVABLE
 void uart_connected(FAR uart_dev_t *dev, bool connected)
 {
+  irqstate_t flags;
+
   /* Is the device disconnected? */
 
+  flags = irqsave();
   dev->disconnected = !connected;
   if (!connected)
     {
@@ -1070,10 +1073,12 @@ void uart_connected(FAR uart_dev_t *dev, bool connected)
           (void)sem_post(&dev->recvsem);
         }
 
-      /* Notify all poll/select waiters that and hangup/error occurred */
+      /* Notify all poll/select waiters that and hangup occurred */
 
       uart_pollnotify(dev, (POLLERR|POLLHUP));
     }
+
+  irqrestore(flags);
 }
 #endif
 
