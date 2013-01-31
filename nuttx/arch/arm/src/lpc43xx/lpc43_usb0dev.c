@@ -1,7 +1,7 @@
 /*******************************************************************************
  * arch/arm/src/lpc43xx/lpc43_usbdev.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Part of the NuttX OS and based, in part, on the LPC31xx USB driver:
@@ -163,8 +163,9 @@
 #define LPC43_TRACEINTID_IFGETSTATUS        0x0015
 #define LPC43_TRACEINTID_SETCONFIG          0x0016
 #define LPC43_TRACEINTID_SETFEATURE         0x0017
-#define LPC43_TRACEINTID_SUSPENDCHG         0x0018
-#define LPC43_TRACEINTID_SYNCHFRAME         0x0019
+#define LPC43_TRACEINTID_SUSPENDED          0x0018
+#define LPC43_TRACEINTID_RESUMED            0x0019
+#define LPC43_TRACEINTID_SYNCHFRAME         0x001a
 
 /* Hardware interface **********************************************************/
 
@@ -312,6 +313,7 @@ struct lpc43_usbdev_s
   uint8_t                 selfpowered:1; /* 1: Device is self powered */
   uint8_t                 paddrset:1;    /* 1: Peripheral addr has been set */
   uint8_t                 attached:1;    /* 1: Host attached */
+  uint8_t                 suspended:1;   /* 1: Suspended */
   uint32_t                softprio;      /* Bitset of high priority interrupts */
   uint32_t                epavail;       /* Bitset of available endpoints */
 #ifdef CONFIG_LPC43_USBDEV_FRAME_INTERRUPT
@@ -1665,10 +1667,42 @@ static int lpc43_usbinterrupt(int irq, FAR void *context)
       return OK;
     }
   
-  if (disr & USBDEV_USBSTS_SLI)
+  /* When the device controller enters a suspend state from an active state,
+   * the SLI bit will be set to a one.
+   */
+ 
+  if (!priv->suspended && (disr & USBDEV_USBSTS_SLI) != 0)
     {
-      // FIXME: what do we need to do here...
-      usbtrace(TRACE_INTDECODE(LPC43_TRACEINTID_SUSPENDCHG),0);
+      usbtrace(TRACE_INTDECODE(LPC43_TRACEINTID_SUSPENDED),0);
+
+      /* Inform the Class driver of the suspend event */
+
+      priv->suspended = 1;
+      if (priv->driver)
+        {
+          CLASS_SUSPEND(priv->driver, &priv->usbdev);
+        }
+
+      /* TODO: Perform power management operations here. */
+    }
+
+  /* The device controller clears the SLI bit upon exiting from a suspend
+   * state. This bit can also be cleared by software writing a one to it.
+   */
+
+  else if (priv->suspended && (disr & USBDEV_USBSTS_SLI) == 0)
+    {
+      usbtrace(TRACE_INTDECODE(LPC43_TRACEINTID_RESUMED),0);
+
+      /* Inform the Class driver of the resume event */
+
+      priv->suspended = 0;
+      if (priv->driver)
+        {
+          CLASS_RESUME(priv->driver, &priv->usbdev);
+        }
+
+      /* TODO: Perform power management operations here. */
     }
 
   if (disr & USBDEV_USBSTS_PCI)

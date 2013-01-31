@@ -424,7 +424,6 @@ struct stm32_usbdev_s
 
   uint8_t                 stalled:1;     /* 1: Protocol stalled */
   uint8_t                 selfpowered:1; /* 1: Device is self powered */
-  uint8_t                 connected:1;   /* 1: Host connected */
   uint8_t                 addressed:1;   /* 1: Peripheral address has been set */
   uint8_t                 configured:1;  /* 1: Class driver has been configured */
   uint8_t                 wakeup:1;      /* 1: Device remote wake-up */
@@ -1074,8 +1073,6 @@ static void stm32_epin_request(FAR struct stm32_usbdev_s *priv,
   struct stm32_req_s *privreq;
   uint32_t regaddr;
   uint32_t regval;
-  int32_t timeout;
-  int avail;
   uint8_t *buf;
   int nbytes;
   int nwords;
@@ -2874,6 +2871,13 @@ static inline void stm32_resumeinterrupt(FAR struct stm32_usbdev_s *priv)
   /* Restore full power -- whatever that means for this particular board */
 
   stm32_usbsuspend((struct usbdev_s *)priv, true);
+
+  /* Notify the class driver of the resume event */
+
+  if (priv->driver)
+    {
+      CLASS_RESUME(priv->driver, &priv->usbdev);
+    }
 }
 
 /*******************************************************************************
@@ -2888,7 +2892,16 @@ static inline void stm32_suspendinterrupt(FAR struct stm32_usbdev_s *priv)
 {
 #ifdef CONFIG_USBDEV_LOWPOWER
   uint32_t regval;
+#endif
 
+  /* Notify the class driver of the suspend event */
+
+  if (priv->driver)
+    {
+      CLASS_SUSPEND(priv->driver, &priv->usbdev);
+    }
+
+#ifdef CONFIG_USBDEV_LOWPOWER
   /* OTGFS_DSTS_SUSPSTS is set as long as the suspend condition is detected
    * on USB.  Check if we are still have the suspend condition, that we are
    * connected to the host, and that we have been configured.
@@ -2896,9 +2909,7 @@ static inline void stm32_suspendinterrupt(FAR struct stm32_usbdev_s *priv)
 
   regval = stm32_getreg(STM32_OTGFS_DSTS);
 
-  if ((regval & OTGFS_DSTS_SUSPSTS) != 0 &&
-      priv->connected &&
-      devstate == DEVSTATE_CONFIGURED)
+  if ((regval & OTGFS_DSTS_SUSPSTS) != 0 && devstate == DEVSTATE_CONFIGURED)
     {
       /* Switch off OTG FS clocking.  Setting OTGFS_PCGCCTL_STPPCLK stops the
        * PHY clock.

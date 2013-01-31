@@ -2901,6 +2901,13 @@ static void pic32mx_suspend(struct pic32mx_usbdev_s *priv)
 {
   uint16_t regval;
 
+  /* Notify the class driver of the suspend event */
+
+  if (priv->driver)
+    {
+      CLASS_SUSPEND(priv->driver, &priv->usbdev);
+    }
+
   /* Enable the ACTV interrupt.
    *
    * NOTE: Do not clear UIRbits.ACTVIF here! Reason: ACTVIF is only
@@ -2977,8 +2984,16 @@ static void pic32mx_resume(struct pic32mx_usbdev_s *priv)
    * PLL to lock.
    */
 
-   pic32mx_putreg(USB_INT_IDLE, PIC32MX_USBOTG_IR);
-   irqrestore(flags);
+  pic32mx_putreg(USB_INT_IDLE, PIC32MX_USBOTG_IR);
+ 
+  /* Notify the class driver of the resume event */
+
+  if (priv->driver)
+    {
+      CLASS_RESUME(priv->driver, &priv->usbdev);
+    }
+
+  irqrestore(flags);
 }
 
 /****************************************************************************

@@ -1955,6 +1955,15 @@ static inline void avr_gensuspend(void)
 {
   usbtrace(TRACE_INTENTRY(AVR_TRACEINTID_SUSPEND), UDIEN);
 
+  /* Notify the class driver of the suspend event */
+
+  if (g_usbdev.driver)
+    {
+      CLASS_SUSPEND(g_usbdev.driver, &g_usbdev.usbdev);
+    }
+
+  /* Disable suspend event interrupts; enable wakeup event interrupt */
+
   UDIEN &= ~(1 << SUSPE);
   UDIEN |= (1 << WAKEUPE);
 
@@ -1992,6 +2001,13 @@ static void avr_genwakeup(void)
   USBCON &= ~(1 << FRZCLK);
   UDIEN  &= ~(1 << WAKEUPE);
   UDIEN  |=  (1 << SUSPE);
+
+  /* Notify the class driver of the resume event */
+
+  if (g_usbdev.driver)
+    {
+      CLASS_RESUME(g_usbdev.driver, &g_usbdev.usbdev);
+    }
 }
 
 /*******************************************************************************

@@ -2175,6 +2175,22 @@ static int lpc17_usbinterrupt(int irq, FAR void *context)
             {
               usbtrace(TRACE_INTDECODE(LPC17_TRACEINTID_SUSPENDCHG),
                        (uint16_t)g_usbdev.devstatus);
+
+              /* Inform the Class driver of the change */
+
+              if (priv->driver)
+                {
+                  if (DEVSTATUS_SUSPEND(g_usbdev.devstatus))
+                    {
+                      CLASS_SUSPEND(priv->driver, &priv->usbdev);
+                    }
+                  else
+                    {
+                      CLASS_RESUME(priv->driver, &priv->usbdev);
+                    }
+                }
+
+              /* TODO: Perform power management operations here. */
             }
 
           /* Device reset */

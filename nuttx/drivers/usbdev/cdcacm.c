@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/usbdev/cdcacm.c
  *
- *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -188,6 +188,12 @@ static int     cdcacm_setup(FAR struct usbdevclass_driver_s *driver,
                  size_t outlen);
 static void    cdcacm_disconnect(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
+#ifdef CONFIG_SERIAL_REMOVABLE
+static void    cdcacm_suspend(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+static void    cdcacm_resume(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+#endif
 
 /* UART Operations **********************************************************/
 
@@ -211,8 +217,13 @@ static const struct usbdevclass_driverops_s g_driverops =
   cdcacm_unbind,        /* unbind */
   cdcacm_setup,         /* setup */
   cdcacm_disconnect,    /* disconnect */
+#ifdef CONFIG_SERIAL_REMOVABLE
+  cdcacm_suspend,       /* suspend */
+  cdcacm_resume,        /* resume */
+#else
   NULL,                 /* suspend */
   NULL,                 /* resume */
+#endif
 };
 
 /* Serial port **************************************************************/
@@ -841,6 +852,7 @@ static void cdcacm_rdcomplete(FAR struct usbdev_ep_s *ep,
     {
       usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_RDSUBMIT), (uint16_t)-req->result);
     }
+
   irqrestore(flags);
 }
 
@@ -950,6 +962,7 @@ static int cdcacm_bind(FAR struct usbdevclass_driver_s *driver,
       ret = -ENOMEM;
       goto errout;
     }
+
   priv->ctrlreq->callback = cdcacm_ep0incomplete;
 
   /* Pre-allocate all endpoints... the endpoints will not be functional
@@ -1622,6 +1635,79 @@ static void cdcacm_disconnect(FAR struct usbdevclass_driver_s *driver,
 }
 
 /****************************************************************************
+ * Name: cdcacm_suspend
+ *
+ * Description:
+ *   Handle the USB suspend event.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+static void cdcacm_suspend(FAR struct usbdevclass_driver_s *driver,
+                           FAR struct usbdev_s *dev)
+{
+  FAR struct cdcacm_dev_s *priv;
+
+  usbtrace(TRACE_CLASSSUSPEND, 0);
+
+#ifdef CONFIG_DEBUG
+  if (!driver || !dev)
+    {
+      usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
+      return;
+     }
+#endif
+
+  /* Extract reference to private data */
+
+  priv = ((FAR struct cdcacm_driver_s*)driver)->dev;
+
+  /* And let the "upper half" driver now that we are suspended */
+
+  uart_connected(&priv->serdev, false);
+}
+#endif
+
+/****************************************************************************
+ * Name: cdcacm_resume
+ *
+ * Description:
+ *   Handle the USB resume event.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+static void cdcacm_resume(FAR struct usbdevclass_driver_s *driver,
+                          FAR struct usbdev_s *dev)
+{
+  FAR struct cdcacm_dev_s *priv;
+
+  usbtrace(TRACE_CLASSRESUME, 0);
+
+#ifdef CONFIG_DEBUG
+  if (!driver || !dev)
+    {
+      usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
+      return;
+     }
+#endif
+
+  /* Extract reference to private data */
+
+  priv = ((FAR struct cdcacm_driver_s*)driver)->dev;
+
+  /* Are we still configured? */
+
+  if (priv->config != CDCACM_CONFIGIDNONE)
+    {
+      /* Yes.. let the "upper half" know that have resumed */
+
+      uart_connected(&priv->serdev, true);
+    }
+}
+#endif
+
+/****************************************************************************
  * Serial Device Methods
  ****************************************************************************/
 
@@ -2179,7 +2265,7 @@ int cdcacm_initialize(int minor, FAR void **handle)
  *
  * Description:
  *   Un-initialize the USB storage class driver.  This function is used
- *   internally by the USB composite driver to unitialized the CDC/ACM
+ *   internally by the USB composite driver to unitialize the CDC/ACM
  *   driver.  This same interface is available (with an untyped input
  *   parameter) when the CDC/ACM driver is used standalone.
  *

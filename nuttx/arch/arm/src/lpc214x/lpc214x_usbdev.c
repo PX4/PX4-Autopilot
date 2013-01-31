@@ -1,7 +1,7 @@
 /*******************************************************************************
  * arch/arm/src/lpc214x/lpc214x_usbdev.c
  *
- *   Copyright (C) 2008-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -2139,6 +2139,22 @@ static int lpc214x_usbinterrupt(int irq, FAR void *context)
             {
               usbtrace(TRACE_INTDECODE(LPC214X_TRACEINTID_SUSPENDCHG),
                        (uint16_t)g_usbdev.devstatus);
+
+              /* Inform the Class driver of the change */
+
+              if (priv->driver)
+                {
+                  if (DEVSTATUS_SUSPEND(g_usbdev.devstatus))
+                    {
+                      CLASS_SUSPEND(priv->driver, &priv->usbdev);
+                    }
+                  else
+                    {
+                      CLASS_RESUME(priv->driver, &priv->usbdev);
+                    }
+                }
+
+              /* TODO: Perform power management operations here. */
             }
 
           /* Device reset */

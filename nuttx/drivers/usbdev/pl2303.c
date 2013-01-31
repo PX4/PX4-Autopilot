@@ -343,6 +343,12 @@ static int     usbclass_setup(FAR struct usbdevclass_driver_s *driver,
                  size_t outlen);
 static void    usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
                  FAR struct usbdev_s *dev);
+#ifdef CONFIG_SERIAL_REMOVABLE
+static void    usbclass_suspend(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+static void    usbclass_resume(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev);
+#endif
 
 /* Serial port *************************************************************/
 
@@ -366,8 +372,13 @@ static const struct usbdevclass_driverops_s g_driverops =
   usbclass_unbind,      /* unbind */
   usbclass_setup,       /* setup */
   usbclass_disconnect,  /* disconnect */
+#ifdef CONFIG_SERIAL_REMOVABLE
+  usbclass_suspend,     /* suspend */
+  usbclass_resume,      /* resume */
+#else
   NULL,                 /* suspend */
   NULL,                 /* resume */
+#endif
 };
 
 /* Serial port *************************************************************/
@@ -1887,6 +1898,79 @@ static void usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
 
   DEV_CONNECT(dev);
 }
+
+/****************************************************************************
+ * Name: usbclass_suspend
+ *
+ * Description:
+ *   Handle the USB suspend event.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+static void usbclass_suspend(FAR struct usbdevclass_driver_s *driver,
+                 FAR struct usbdev_s *dev)
+{
+  FAR struct cdcacm_dev_s *priv;
+
+  usbtrace(TRACE_CLASSSUSPEND, 0);
+
+#ifdef CONFIG_DEBUG
+  if (!driver || !dev)
+    {
+      usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
+      return;
+     }
+#endif
+
+  /* Extract reference to private data */
+
+  priv = ((FAR struct cdcacm_driver_s*)driver)->dev;
+
+  /* And let the "upper half" driver now that we are suspended */
+
+  uart_connected(&priv->serdev, false);
+}
+#endif
+
+/****************************************************************************
+ * Name: usbclass_resume
+ *
+ * Description:
+ *   Handle the USB resume event.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+static void usbclass_resume(FAR struct usbdevclass_driver_s *driver,
+                       FAR struct usbdev_s *dev)
+{
+  FAR struct cdcacm_dev_s *priv;
+
+  usbtrace(TRACE_CLASSRESUME, 0);
+
+#ifdef CONFIG_DEBUG
+  if (!driver || !dev)
+    {
+      usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_INVALIDARG), 0);
+      return;
+     }
+#endif
+
+  /* Extract reference to private data */
+
+  priv = ((FAR struct cdcacm_driver_s*)driver)->dev;
+
+  /* Are we still configured? */
+
+  if (priv->config != PL2303_CONFIGIDNONE)
+    {
+      /* Yes.. let the "upper half" know that have resumed */
+
+      uart_connected(&priv->serdev, true);
+    }
+}
+#endif
 
 /****************************************************************************
  * Serial Device Methods
