@@ -126,7 +126,7 @@ static const int LED_NOBLINK = 0;
 class BlinkM : public device::I2C
 {
 public:
-	BlinkM(int bus);
+	BlinkM(int bus, int blinkm);
 	~BlinkM();
 
 
@@ -245,8 +245,8 @@ const char *BlinkM::script_names[] = {
 
 extern "C" __EXPORT int blinkm_main(int argc, char *argv[]);
 
-BlinkM::BlinkM(int bus) :
-	I2C("blinkm", BLINKM_DEVICE_PATH, bus, 0x09, 100000),
+BlinkM::BlinkM(int bus, int blinkm) :
+	I2C("blinkm", BLINKM_DEVICE_PATH, bus, blinkm, 100000),
 	led_color_1(LED_OFF),
 	led_color_2(LED_OFF),
 	led_color_3(LED_OFF),
@@ -830,14 +830,42 @@ BlinkM::get_firmware_version(uint8_t version[2])
 	return transfer(&msg, sizeof(msg), version, sizeof(version));
 }
 
+void blinkm_usage(void) {
+	fprintf(stderr, "missing command: try 'start', 'systemstate', 'ledoff', 'list' or a script name {options}\n");
+	fprintf(stderr, "options:\n");
+	fprintf(stderr, "\t-b --bus i2cbus (3)\n");
+	fprintf(stderr, "\t-a --ablinkmaddr blinkmaddr (9)\n");
+}
+
 int
 blinkm_main(int argc, char *argv[])
 {
+
+	int i2cdevice = 3;
+	int blinkmadr = 9;
+
+	int x;
+
+	for (x = 1; x < argc; x++) {
+		if (strcmp(argv[x], "-b") == 0 || strcmp(argv[x], "--bus") == 0) {
+			if (argc > x + 1) {
+				i2cdevice = atoi(argv[x + 1]);
+			}
+		}
+
+		if (strcmp(argv[x], "-a") == 0 || strcmp(argv[x], "--blinkmaddr") == 0) {
+			if (argc > x + 1) {
+				blinkmadr = atoi(argv[x + 1]);
+			}
+		}
+
+	}
+
 	if (!strcmp(argv[1], "start")) {
 		if (g_blinkm != nullptr)
 			errx(1, "already started");
 
-		g_blinkm = new BlinkM(3);
+		g_blinkm = new BlinkM(i2cdevice, blinkmadr);
 
 		if (g_blinkm == nullptr)
 			errx(1, "new failed");
@@ -852,8 +880,11 @@ blinkm_main(int argc, char *argv[])
 	}
 
 
-	if (g_blinkm == nullptr)
-		errx(1, "not started");
+	if (g_blinkm == nullptr) {
+		fprintf(stderr, "not started\n");
+		blinkm_usage();
+		exit(0);
+	}
 
 	if (!strcmp(argv[1], "systemstate")) {
 		g_blinkm->setMode(1);
@@ -882,5 +913,6 @@ blinkm_main(int argc, char *argv[])
 	if (ioctl(fd, BLINKM_PLAY_SCRIPT_NAMED, (unsigned long)argv[1]) == OK)
 		exit(0);
 
-	errx(1, "missing command, try 'start', 'systemstate', 'ledoff', 'list' or a script name.");
+	blinkm_usage();
+	exit(0);
 }
