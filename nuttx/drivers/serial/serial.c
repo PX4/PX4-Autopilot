@@ -292,15 +292,6 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
   ssize_t           nread  = buflen;
   int               ret;
 
-#ifdef CONFIG_SERIAL_REMOVABLE
-  /* If the removable device is no longer connected, refuse to write to the device */
-
-  if (dev->disconnected)
-    {
-      return -ENOTCONN;
-    }
-#endif
-
   /* We may receive console writes through this path from interrupt handlers and
    * from debug output in the IDLE task!  In these cases, we will need to do things
    * a little differently.
@@ -308,6 +299,17 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
 
   if (up_interrupt_context() || getpid() == 0)
     {
+#ifdef CONFIG_SERIAL_REMOVABLE
+      /* If the removable device is no longer connected, refuse to write to
+       * the device.
+       */
+
+      if (dev->disconnected)
+        {
+          return -ENOTCONN;
+        }
+#endif
+
       /* up_putc() will be used to generate the output in a busy-wait loop.
        * up_putc() is only available for the console device.
        */
@@ -337,6 +339,18 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
 
       return ret;
     }
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+  /* If the removable device is no longer connected, refuse to write to the
+   * device.
+   */
+
+  if (dev->disconnected)
+    {
+      uart_givesem(&dev->xmit.sem);
+      return -ENOTCONN;
+    }
+#endif
 
   /* Loop while we still have data to copy to the transmit buffer.
    * we add data to the head of the buffer; uart_xmitchars takes the
@@ -417,15 +431,6 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
   int16_t           tail;
   int               ret;
 
-#ifdef CONFIG_SERIAL_REMOVABLE
-  /* If the removable device is no longer connected, refuse to read from the device */
-
-  if (dev->disconnected)
-    {
-      return -ENOTCONN;
-    }
-#endif
-
   /* Only one user can access dev->recv.tail at a time */
 
   ret = uart_takesem(&dev->recv.sem, true);
@@ -438,6 +443,16 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
 
       return ret;
     }
+
+#ifdef CONFIG_SERIAL_REMOVABLE
+  /* If the removable device is no longer connected, refuse to read from the device */
+
+  if (dev->disconnected)
+    {
+      uart_givesem(&dev->recv.sem);
+      return -ENOTCONN;
+    }
+#endif
 
   /* Loop while we still have data to copy to the receive buffer.
    * we add data to the head of the buffer; uart_xmitchars takes the

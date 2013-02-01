@@ -3450,17 +3450,17 @@ that release consists of two tarballs:  nuttx-6.25.tar.gz and
 apps-6.25.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
 file for build information).
 
-This release corresponds with SVN release number: r5594
+This release corresponds with SVN release number: r5595
 
 Note that all SVN information has been stripped from the tarballs.  If you
 need the SVN configuration information, you should check out directly from
-SVN.  Revision r5594 should equivalent to release 6.25 of NuttX:
+SVN.  Revision r5595 should equivalent to release 6.25 of NuttX:
 
-    svn checkout -r5594 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+    svn checkout -r5595 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 
 Or (HTTP):
 
-    svn checkout -r5594 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+    svn checkout -r5595 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 
 Additional new features and extended functionality:
 

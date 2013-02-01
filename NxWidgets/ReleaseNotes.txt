@@ -150,7 +150,7 @@ NxWidgets-1.5
 
 The 6th release of the NxWidgets package was made on February 1, 2013.  This
 release depends on NuttX-6.25 or above and should not be used with older
-NuttX releases.  This release corresponds to SVN revision r5594.
+NuttX releases.  This release corresponds to SVN revision r5595.
 
 Note: Nearly all of the changes between 1.4 and 1.5 were the result of the
 efforts of Petteri Aimonen.
