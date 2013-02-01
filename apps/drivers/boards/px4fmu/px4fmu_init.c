@@ -79,13 +79,15 @@
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
 #  ifdef CONFIG_DEBUG
-#    define message(...) lib_lowprintf(__VA_ARGS__)
+#    include <debug.h>
+#    define message(...) lowsyslog(__VA_ARGS__)
 #  else
 #    define message(...) printf(__VA_ARGS__)
 #  endif
 #else
 #  ifdef CONFIG_DEBUG
-#    define message lib_lowprintf
+#    include <debug.h>
+#    define message lowsyslog
 #  else
 #    define message printf
 #  endif
@@ -183,7 +185,7 @@ __EXPORT int nsh_archinitialize(void)
 	spi1 = up_spiinitialize(1);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\r\n");
+		message("[boot] FAILED to initialize SPI port 1\n");
 		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
@@ -197,7 +199,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
-	message("[boot] Successfully initialized SPI port 1\r\n");
+	message("[boot] Successfully initialized SPI port 1\n");
 
 	/* Get the SPI port for the microSD slot */
 

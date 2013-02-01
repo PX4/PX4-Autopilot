@@ -82,7 +82,7 @@ int test_adc(int argc, char *argv[])
 		usleep(150000);
 	}
 
-	message("\t ADC test successful.\n");
+	warnx("\t ADC test successful.\n");
 
 errout_with_dev:
 

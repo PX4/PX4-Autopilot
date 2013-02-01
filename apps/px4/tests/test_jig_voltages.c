@@ -142,14 +142,14 @@ int test_jig_voltages(int argc, char *argv[])
 		ret += (expected_min[2] > data[2].am_data || expected_max[2] < data[2].am_data) ? 1 : 0;
 		ret += (expected_min[3] > data[3].am_data || expected_max[3] < data[3].am_data) ? 1 : 0;
 
-		message("Sample:");
-		message("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
+		warnx("Sample:");
+		warnx("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
 			data[0].am_channel, (int)(data[0].am_data), expected_min[0], expected_max[0], check_res[0]);
-		message("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
+		warnx("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
 			data[1].am_channel, (int)(data[1].am_data), expected_min[1], expected_max[1], check_res[1]);
-		message("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
+		warnx("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
 			data[2].am_channel, (int)(data[2].am_data), expected_min[2], expected_max[2], check_res[2]);
-		message("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
+		warnx("channel: %d value: %d (allowed min: %d, allowed max: %d), result: %s\n",
 			data[3].am_channel, (int)(data[3].am_data), expected_min[3], expected_max[3], check_res[3]);
 
 		if (ret != OK) {
