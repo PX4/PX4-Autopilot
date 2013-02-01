@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/task_init.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,10 +42,12 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <sched.h>
+#include <errno.h>
+
 #include <nuttx/arch.h>
 
 #include "os_internal.h"
-#include "env_internal.h"
+#include "group_internal.h"
 
 /****************************************************************************
  * Definitions
@@ -102,10 +104,10 @@
  *                parameters are required, argv may be NULL.
  *
  * Return Value:
- *   OK on success; ERROR on failure.  (See task_schedsetup() for possible
- *   failure conditions).  On failure, the caller is responsible for freeing
- *   the stack memory and for calling  sched_releasetcb() to free the TCB
- *   (which could be in most any state).
+ *   OK on success; ERROR on failure with errno set appropriately.  (See
+ *   task_schedsetup() for possible failure conditions).  On failure, the
+ *   caller is responsible for freeing the stack memory and for calling
+ *   sched_releasetcb() to free the TCB (which could be in most any state).
  *
  ****************************************************************************/
 
@@ -118,20 +120,30 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
               main_t entry, const char *argv[])
 #endif
 {
+  int errcode;
   int ret;
+
+  /* Create a new task group */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_allocate(tcb);
+  if (ret < 0)
+    {
+      errcode = -ret;
+      goto errout;
+    }
+#endif
 
  /* Associate file descriptors with the new task */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-  if (sched_setuptaskfiles(tcb) != OK)
+  ret = group_setuptaskfiles(tcb);
+  if (ret < 0)
     {
-      return ERROR;
+      errcode = -ret;
+      goto errout_with_group;
     }
 #endif
-
-  /* Clone the parent's task environment */
-
-  (void)env_dup(tcb);
 
   /* Configure the user provided stack region */
 
@@ -143,13 +155,35 @@ int task_init(FAR _TCB *tcb, const char *name, int priority,
 
   ret = task_schedsetup(tcb, priority, task_start, entry,
                         TCB_FLAG_TTYPE_TASK);
-  if (ret == OK)
+  if (ret < OK)
     {
-      /* Setup to pass parameters to the new task */
-
-      (void)task_argsetup(tcb, name, argv);
+      errcode = -ret;
+      goto errout_with_group;
     }
 
-  return ret;
+  /* Setup to pass parameters to the new task */
+
+  (void)task_argsetup(tcb, name, argv);
+
+  /* Now we have enough in place that we can join the group */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_initialize(tcb);
+  if (ret < 0)
+    {
+      errcode = -ret;
+      goto errout_with_group;
+    }
+#endif
+  return OK;
+
+errout_with_group:
+#ifdef HAVE_TASK_GROUP
+  group_leave(tcb);
+
+errout:
+#endif
+  set_errno(errcode);
+  return ERROR;
 }
 

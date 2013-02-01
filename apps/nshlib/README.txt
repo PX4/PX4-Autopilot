@@ -1025,12 +1025,16 @@ NSH-Specific Configuration Settings
       If there are more than one USB devices, then a USB device
       minor number may also need to be provided:
 
-      CONFIG_NSH_UBSDEV_MINOR
+      CONFIG_NSH_USBDEV_MINOR
         The minor device number of the USB device.  Default: 0
 
-      If USB tracing is enabled (CONFIG_USBDEV_TRACE), then NSH will
-      initialize USB tracing as requested by the following. Default:
-      Only USB errors are traced.
+      CONFIG_NSH_USBDEV_TRACE
+        If USB tracing is enabled (CONFIG_USBDEV_TRACE), then NSH can
+        be configured to show the buffered USB trace data afer each
+        NSH command:
+
+      If CONFIG_NSH_USBDEV_TRACE is selected, then USB trace data
+      can be filtered as follows. Default: Only USB errors are traced.
 
       CONFIG_NSH_USBDEV_TRACEINIT
         Show initialization events

@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/nshlib/nsh_telnetd.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -198,15 +198,29 @@ int nsh_telnetmain(int argc, char *argv[])
     }
 #endif /* CONFIG_NSH_TELNET_LOGIN */
 
+  /* The following logic mostly the same as the login in nsh_session.c.  It
+   * differs only in that gets() is called to get the command instead of
+   * readline().
+   */
+
   /* Present the NSH greeting */
 
   fputs(g_nshgreeting, pstate->cn_outstream);
   fflush(pstate->cn_outstream);
 
-  /* Execute the startup script */
+  /* Execute the startup script.  If standard console is also defined, then
+   * we will not bother with the initscript here (although it is safe to
+   * call nshinitscript multiple times).
+   */
 
 #if defined(CONFIG_NSH_ROMFSETC) && !defined(CONFIG_NSH_CONSOLE)
-  (void)nsh_script(&pstate->cn_vtbl, "init", NSH_INITPATH);
+  (void)nsh_initscript(&pstate->cn_vtbl);
+#endif
+
+  /* Execute the login script */
+
+#ifdef CONFIG_NSH_ROMFSRC
+  (void)nsh_loginscript(&pstate->cn_vtbl);
 #endif
 
   /* Then enter the command line parsing loop */
@@ -261,8 +275,8 @@ int nsh_telnetmain(int argc, char *argv[])
  *   NuttX configuration setting.
  *
  * Returned Values:
- *   Zero if the Telnet daemon was successfully started.  A negated errno
- *   value will be returned on failure.
+ *   The task ID of the Telnet daemon was successfully started.  A negated
+ *   errno value will be returned on failure.
  *  
  ****************************************************************************/
 
@@ -270,6 +284,15 @@ int nsh_telnetstart(void)
 {
   struct telnetd_config_s config;
   int ret;
+
+  /* Initialize any USB tracing options that were requested.  If standard
+   * console is also defined, then we will defer this step to the standard
+   * console.
+   */
+
+#if defined(CONFIG_NSH_USBDEV_TRACE) && !defined(CONFIG_NSH_CONSOLE)
+  usbtrace_enable(TRACE_BITSET);
+#endif
 
   /* Configure the telnet daemon */
 

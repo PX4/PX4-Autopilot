@@ -4018,4 +4018,64 @@
 	  CONFIG_SCHED_CHILD_STATUS
 	* Add support for keyboard encode to the keypad test (from
 	  Denis Carikli).
+	* configs/olimex-lpc1766stk/nettest:  Configuration converted to
+	  use the kconfig-frontends tools.
+	* net/net_poll.c:  Split net_poll() to create psock_poll() too.
+	* net/net_poll.c:  Fix poll/select issure reported by Qiang:
+	  poll_interrupt() must cat call net_lostconnection() when a
+	  loss of connection is reported.  Otherwise, the system will
+	  not know that the connection has been lost.
+	* sched/group_create.c, group_join.c, and group_leave.c:  Add
+	  support for task groups.
+	* sched/group_signal.c and task_exithook.c:  Send signal to all
+	  members for the parent task group.
+	* include/nuttx/sched.h and sched/env_*.c:  Move environment
+	  variables into task group structure.
+	* sched/: Lots of file changed.  Don't keep the parent task's
+	  task ID in the child task's TCB.  Instead, keep the parent
+	  task group IN the child task's task group.
+	* fs/, sched/, include/nuttx/sched.h, and include/nutts/fs/fs.h:
+	  Move file data from the TCB to the task group structure.
+	* libc/stdio/, sched/, include/nuttx/lib.h, and include/nutts/fs/fs.h:
+	  Move stream data from the TCB to the task group structure.
+	* net/, sched/, and include/nuttx/net/net.h:  Move socket data
+	  from the TCB to the task group structure.
+	* sched/task_starthook.c, sched/task_start.c, and include/nuttx/sched.h:
+	  Add a task start hook that will be called before the task main
+	  is started. This can be used to schedule C++ constructors to run
+	  automatically in the context of the new task.
+	* binfmt/binfmt_execmodule: Execute constructors as a start hook.
+	* sched/os_start.c: Fix ordering of group initialization.
+	* configs/stm32f4discovery/usbnsh:  Add an NSH STM32F4Discovery
+	  configuration that uses USB CDC/ACM for the NSH console.
+	* configs/stm32f4discovery/nsh: Converted to use the kconfig-frontends
+	  tools.
+	* configs/*/src/up_userleds.c: Fix a error that was cloned into
+	  all STM32 user LED code.  The wrong defintions were being used
+	  to set LEDs on or off.
+	* arch/*/common/up_internal.h and arch/*/common/up_initialize.c:
+	  Serial was driver was not being built if there is no console
+	  device.  Obviously, the serial driver may be needed even in
+	  this case.
+	* arch/arm/src/stm32/stm32_serial.c: If there is a serial console,
+	  it would be ttyS0 and the others would be ttyS1-5.  If there
+	  is not serial console, was labeling them ttyS1-6; now labels them
+	  ttyS0-5.
+	* fs/fs_syslog.c: Can't handle SYSLOG output to character device from
+	  the IDLE task (because it can't block). syslog_putc now returns EOF
+	  on failure and sets errno.  Fixed some errors in error handling.
+	* libc/stdio/lib_syslogstream.c:  Checking of return value from
+	  syslog_putc was bogus.  Switching to EOF for all errors solves
+	  this.
+	* arch/arm/src/lm/chip/lm4f_memorymap.h: More LM4F changes from
+	  Jose Pablo Carballo.
+	* drivers/serial/serial.c, include/nuttx/serial/serial.h,
+	  drivers/usbdev/cdcacm.c, and drivers/pl2303.c: Add support for
+	  removable serial devices (like USB serial).  This support is enabled
+	  by CONFIG_SERIAL_REMOVABLE and requires VBUS sensing support from
+	  the board-specific logic.
+	* arch/*/src/*/Toolchain.defs: Change assignment so that we can
+	  override CROSSDEV with a make command line argument.
+	* include/assert.h:  Mark assertion functions as non-returning.
+	* arch/*/src/*/up_assert.h:  Mark _up_assert() as non-returning.
 

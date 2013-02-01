@@ -52,19 +52,55 @@
 #include <time.h>
 
 #include <nuttx/irq.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
 
 /********************************************************************************
  * Pre-processor Definitions
  ********************************************************************************/
+/* Configuration ****************************************************************/
+/* Task groups currently only supported for retention of child status */
 
-/* Task Management Definitins ***************************************************/
+#undef HAVE_TASK_GROUP
+#undef HAVE_GROUP_MEMBERS
+
+/* We need a group an group members if we are supportint the parent/child
+ * relationship.
+ */
+
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+#  define HAVE_TASK_GROUP     1
+#  define HAVE_GROUP_MEMBERS  1
+
+/* We need a group (but not members) if any other resources are shared within
+ * a task group.
+ */
+
+#else
+#  if !defined(CONFIG_DISABLE_ENVIRON)
+#    define HAVE_TASK_GROUP   1
+#  elif CONFIG_NFILE_DESCRIPTORS > 0
+#    define HAVE_TASK_GROUP   1
+#  elif CONFIG_NFILE_STREAMS > 0
+#    define HAVE_TASK_GROUP   1
+#  elif CONFIG_NSOCKET_DESCRIPTORS > 0
+#    define HAVE_TASK_GROUP   1
+#  endif
+#endif
+
+/* In any event, we don't need group members if support for pthreads is disabled */
+
+#ifdef CONFIG_DISABLE_PTHREAD
+#  undef HAVE_GROUP_MEMBERS
+#endif
+
+/* Task Management Definitions **************************************************/
 
 /* This is the maximum number of times that a lock can be set */
 
 #define MAX_LOCK_COUNT             127
 
-/* Values for the _TCB flags flag bits */
+/* Values for the _TCB flags bits */
 
 #define TCB_FLAG_TTYPE_SHIFT       (0)      /* Bits 0-1: thread type */
 #define TCB_FLAG_TTYPE_MASK        (3 << TCB_FLAG_TTYPE_SHIFT)
@@ -74,7 +110,11 @@
 #define TCB_FLAG_NONCANCELABLE     (1 << 2) /* Bit 2: Pthread is non-cancelable */
 #define TCB_FLAG_CANCEL_PENDING    (1 << 3) /* Bit 3: Pthread cancel is pending */
 #define TCB_FLAG_ROUND_ROBIN       (1 << 4) /* Bit 4: Round robin sched enabled */
-#define TCB_FLAG_NOCLDWAIT         (1 << 5) /* Bit 5: Do not retain child exit status */
+#define TCB_FLAG_EXIT_PROCESSING   (1 << 5) /* Bit 5: Exitting */
+
+/* Values for struct task_group tg_flags */
+
+#define GROUP_FLAG_NOCLDWAIT       (1 << 0) /* Bit 0: Do not retain child exit status */
 
 /* Values for struct child_status_s ch_flags */
 
@@ -143,7 +183,13 @@ union entry_u
 };
 typedef union entry_u entry_t;
 
-/* These is the types of the functions that are executed with exit() is called
+/* This is the type of the function called at task startup */
+
+#ifdef CONFIG_SCHED_STARTHOOK
+typedef CODE void (*starthook_t)(FAR void *arg);
+#endif
+
+/* These are the types of the functions that are executed with exit() is called
  * (if registered via atexit() on on_exit()).
  */
 
@@ -159,20 +205,7 @@ typedef CODE void (*onexitfunc_t)(int exitcode, FAR void *arg);
 
 typedef struct msgq_s msgq_t;
 
-/* The structure used to maintain environment variables */
-
-#ifndef CONFIG_DISABLE_ENVIRON
-struct environ_s
-{
-  unsigned int ev_crefs;      /* Reference count used when environment
-                               * is shared by threads */
-  size_t       ev_alloc;      /* Number of bytes allocated in environment */
-  char         ev_env[1];     /* Environment strings */
-};
-typedef struct environ_s environ_t;
-# define SIZEOF_ENVIRON_T(alloc) (sizeof(environ_t) + alloc - 1)
-#endif
-
+/* struct child_status_s *********************************************************/
 /* This structure is used to maintin information about child tasks.
  * pthreads work differently, they have join information.  This is 
  * only for child tasks.
@@ -189,6 +222,7 @@ struct child_status_s
 };
 #endif
 
+/* struct dspace_s ***************************************************************/
 /* This structure describes a reference counted D-Space region.  This must be a
  * separately allocated "break-away" structure that can be owned by a task and
  * any pthreads created by the task.
@@ -214,6 +248,88 @@ struct dspace_s
 };
 #endif
 
+/* struct task_group_s ***********************************************************/
+/* All threads created by pthread_create belong in the same task group (along with
+ * the thread of the original task).  struct task_group_s is a shared, "breakaway"
+ * structure referenced by each TCB.
+ *
+ * This structure should contain *all* resources shared by tasks and threads that
+ * belong to the same task group:
+ *
+ *   Child exit status
+ *   Environment varibles
+ *   PIC data space and address environments
+ *   File descriptors
+ *   FILE streams
+ *   Sockets
+ *
+ * Currenty, however, this implementation only applies to child exit status.
+ *
+ * Each instance of struct task_group_s is reference counted. Each instance is
+ * created with a reference count of one.  The reference incremeneted when each
+ * thread joins the group and decremented when each thread exits, leaving the
+ * group.  When the refernce count decrements to zero, the struc task_group_s
+ * is free.
+ */
+
+#ifdef HAVE_TASK_GROUP
+struct task_group_s
+{
+#ifdef HAVE_GROUP_MEMBERS
+  struct task_group_s *flink;       /* Supports a singly linked list            */
+  gid_t      tg_gid;                /* The ID of this task group                */
+  gid_t      tg_pgid;               /* The ID of the parent task group          */
+#endif
+  uint8_t    tg_flags;              /* See GROUP_FLAG_* definitions             */
+
+  /* Group membership ***********************************************************/
+
+  uint8_t    tg_nmembers;           /* Number of members in the group           */
+#ifdef HAVE_GROUP_MEMBERS
+  uint8_t    tg_mxmembers;          /* Number of members in allocation          */
+  FAR pid_t *tg_members;            /* Members of the group                     */
+#endif
+
+  /* Child exit status **********************************************************/
+
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+  FAR struct child_status_s *tg_children; /* Head of a list of child status     */
+#endif
+
+  /* Environment variables ******************************************************/
+
+#ifndef CONFIG_DISABLE_ENVIRON
+  size_t     tg_envsize;            /* Size of environment string allocation    */
+  FAR char  *tg_envp;               /* Allocated environment strings            */
+#endif
+
+  /* PIC data space and address environments ************************************/
+  /* Logically the PIC data space belongs here (see struct dspace_s).  The
+   * current logic needs review:  There are differences in the away that the
+   * life of the PIC data is managed.
+   */
+
+  /* File descriptors ***********************************************************/
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
+  struct filelist tg_filelist;      /* Maps file descriptor to file             */
+#endif
+
+  /* FILE streams ***************************************************************/
+
+#if CONFIG_NFILE_STREAMS > 0
+  struct streamlist tg_streamlist;  /* Holds C buffered I/O info                */
+#endif /* CONFIG_NFILE_STREAMS */
+
+  /* Sockets ********************************************************************/
+
+#if CONFIG_NSOCKET_DESCRIPTORS > 0
+  struct socketlist tg_socketlist;  /* Maps socket descriptor to socket         */
+#endif
+};
+#endif
+
+/* _TCB **************************************************************************/
 /* This is the task control block (TCB).  Each task or thread is represented by
  * a TCB.  The TCB is the heart of the NuttX task-control logic.
  */
@@ -225,19 +341,32 @@ struct _TCB
   FAR struct _TCB *flink;                /* Doubly linked list                  */
   FAR struct _TCB *blink;
 
+  /* Task Group *****************************************************************/
+
+#ifdef HAVE_TASK_GROUP
+  FAR struct task_group_s *group;        /* Pointer to shared task group data   */
+#endif
+
   /* Task Management Fields *****************************************************/
 
   pid_t    pid;                          /* This is the ID of the thread        */
+
 #ifdef CONFIG_SCHED_HAVE_PARENT          /* Support parent-child relationship   */
-  pid_t    parent;                       /* This is the ID of the parent thread */
-#ifdef CONFIG_SCHED_CHILD_STATUS         /* Retain child thread status          */
-  FAR struct child_status_s *children;   /* Head of a list of child status      */
-#else
+#ifndef HAVE_GROUP_MEMBERS               /* Don't know pids of group members    */
+  pid_t    ppid;                         /* This is the ID of the parent thread */
+#ifndef CONFIG_SCHED_CHILD_STATUS        /* Retain child thread status          */
   uint16_t nchildren;                    /* This is the number active children  */
 #endif
 #endif
+#endif /* CONFIG_SCHED_HAVE_PARENT */
+
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
+
+#ifdef CONFIG_SCHED_STARTHOOK
+  starthook_t starthook;                 /* Task startup function               */
+  FAR void *starthookarg;                /* The argument passed to the function */
+#endif
 
 #if defined(CONFIG_SCHED_ATEXIT) && !defined(CONFIG_SCHED_ONEXIT)
 # if defined(CONFIG_SCHED_ATEXIT_MAX) && CONFIG_SCHED_ATEXIT_MAX > 1
@@ -289,10 +418,6 @@ struct _TCB
   uint8_t  init_priority;                /* Initial priority of the task        */
   char    *argv[CONFIG_MAX_TASK_ARGS+1]; /* Name+start-up parameters            */
 
-#ifndef CONFIG_DISABLE_ENVIRON
-  FAR environ_t *envp;                   /* Environment variables               */
-#endif
-
   /* Stack-Related Fields *******************************************************/
 
 #ifndef CONFIG_CUSTOM_STACK
@@ -343,22 +468,6 @@ struct _TCB
   /* Library related fields *****************************************************/
 
   int        pterrno;                    /* Current per-thread errno            */
-
-  /* File system support ********************************************************/
-
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  FAR struct filelist *filelist;         /* Maps file descriptor to file        */
-#endif
-
-#if CONFIG_NFILE_STREAMS > 0
-  FAR struct streamlist *streams;        /* Holds C buffered I/O info           */
-#endif
-
-  /* Network socket *************************************************************/
-
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-  FAR struct socketlist *sockets;        /* Maps file descriptor to file        */
-#endif
 
   /* State save areas ***********************************************************/
   /* The form and content of these fields are processor-specific.               */
@@ -420,6 +529,12 @@ FAR struct streamlist *sched_getstreams(void);
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
 FAR struct socketlist *sched_getsockets(void);
 #endif /* CONFIG_NSOCKET_DESCRIPTORS */
+
+/* Setup up a start hook */
+
+#ifdef CONFIG_SCHED_STARTHOOK
+void task_starthook(FAR _TCB *tcb, starthook_t starthook, FAR void *arg);
+#endif
 
 /* Internal vfork support.The  overall sequence is:
  *

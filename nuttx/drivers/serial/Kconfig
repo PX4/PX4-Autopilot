@@ -10,6 +10,9 @@ config DEV_LOWCONSOLE
 	---help---
 		Use the simple, low-level, write-only serial console driver (minimal support)
 
+config SERIAL_REMOVABLE
+	bool
+
 config 16550_UART
 	bool "16550 UART Chip support"
 	default n

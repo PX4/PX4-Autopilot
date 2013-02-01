@@ -179,10 +179,10 @@
 /* Debug ********************************************************************/
 
 #ifdef CONFIG_ENC28J60_REGDEBUG
-#  define enc_wrdump(a,v)   lib_lowprintf("ENC28J60: %02x<-%02x\n", a, v);
-#  define enc_rddump(a,v)   lib_lowprintf("ENC28J60: %02x->%02x\n", a, v);
-#  define enc_cmddump(c)    lib_lowprintf("ENC28J60: CMD: %02x\n", c);
-#  define enc_bmdump(c,b,s) lib_lowprintf("ENC28J60: CMD: %02x buffer: %p length: %d\n", c,b,s);
+#  define enc_wrdump(a,v)   lowsyslog("ENC28J60: %02x<-%02x\n", a, v);
+#  define enc_rddump(a,v)   lowsyslog("ENC28J60: %02x->%02x\n", a, v);
+#  define enc_cmddump(c)    lowsyslog("ENC28J60: CMD: %02x\n", c);
+#  define enc_bmdump(c,b,s) lowsyslog("ENC28J60: CMD: %02x buffer: %p length: %d\n", c,b,s);
 #else
 #  define enc_wrdump(a,v)
 #  define enc_rddump(a,v)
@@ -773,56 +773,56 @@ static int enc_waitbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg,
 #if 0 /* Sometimes useful */
 static void enc_rxdump(FAR struct enc_driver_s *priv)
 {
-  lib_lowprintf("Rx Registers:\n");
-  lib_lowprintf("  EIE:      %02x EIR:      %02x\n",
-                enc_rdgreg(priv, ENC_EIE), enc_rdgreg(priv, ENC_EIR));
-  lib_lowprintf("  ESTAT:    %02x ECON1:    %02x ECON2:    %02x\n",
-                enc_rdgreg(priv, ENC_ESTAT), enc_rdgreg(priv, ENC_ECON1),
-                enc_rdgreg(priv, ENC_ECON2));
-  lib_lowprintf("  ERXST:    %02x %02x\n",
-                enc_rdbreg(priv, ENC_ERXSTH), enc_rdbreg(priv, ENC_ERXSTL));
-  lib_lowprintf("  ERXND:    %02x %02x\n",
-                enc_rdbreg(priv, ENC_ERXNDH), enc_rdbreg(priv, ENC_ERXNDL));
-  lib_lowprintf("  ERXRDPT:  %02x %02x\n",
-                enc_rdbreg(priv, ENC_ERXRDPTH), enc_rdbreg(priv, ENC_ERXRDPTL));
-  lib_lowprintf("  ERXFCON:  %02x EPKTCNT:  %02x\n",
-                enc_rdbreg(priv, ENC_ERXFCON), enc_rdbreg(priv, ENC_EPKTCNT));
-  lib_lowprintf("  MACON1:   %02x MACON3:   %02x\n",
-                enc_rdbreg(priv, ENC_MACON1), enc_rdbreg(priv, ENC_MACON3));
-  lib_lowprintf("  MAMXFL:   %02x %02x\n",
-                enc_rdbreg(priv, ENC_MAMXFLH), enc_rdbreg(priv, ENC_MAMXFLL));
-  lib_lowprintf("  MAADR:    %02x:%02x:%02x:%02x:%02x:%02x\n",
-                enc_rdbreg(priv, ENC_MAADR1), enc_rdbreg(priv, ENC_MAADR2),
-                enc_rdbreg(priv, ENC_MAADR3), enc_rdbreg(priv, ENC_MAADR4),
-                enc_rdbreg(priv, ENC_MAADR5), enc_rdbreg(priv, ENC_MAADR6));
+  lowsyslog("Rx Registers:\n");
+  lowsyslog("  EIE:      %02x EIR:      %02x\n",
+            enc_rdgreg(priv, ENC_EIE), enc_rdgreg(priv, ENC_EIR));
+  lowsyslog("  ESTAT:    %02x ECON1:    %02x ECON2:    %02x\n",
+            enc_rdgreg(priv, ENC_ESTAT), enc_rdgreg(priv, ENC_ECON1),
+            enc_rdgreg(priv, ENC_ECON2));
+  lowsyslog("  ERXST:    %02x %02x\n",
+            enc_rdbreg(priv, ENC_ERXSTH), enc_rdbreg(priv, ENC_ERXSTL));
+  lowsyslog("  ERXND:    %02x %02x\n",
+            enc_rdbreg(priv, ENC_ERXNDH), enc_rdbreg(priv, ENC_ERXNDL));
+  lowsyslog("  ERXRDPT:  %02x %02x\n",
+            enc_rdbreg(priv, ENC_ERXRDPTH), enc_rdbreg(priv, ENC_ERXRDPTL));
+  lowsyslog("  ERXFCON:  %02x EPKTCNT:  %02x\n",
+            enc_rdbreg(priv, ENC_ERXFCON), enc_rdbreg(priv, ENC_EPKTCNT));
+  lowsyslog("  MACON1:   %02x MACON3:   %02x\n",
+            enc_rdbreg(priv, ENC_MACON1), enc_rdbreg(priv, ENC_MACON3));
+  lowsyslog("  MAMXFL:   %02x %02x\n",
+            enc_rdbreg(priv, ENC_MAMXFLH), enc_rdbreg(priv, ENC_MAMXFLL));
+  lowsyslog("  MAADR:    %02x:%02x:%02x:%02x:%02x:%02x\n",
+            enc_rdbreg(priv, ENC_MAADR1), enc_rdbreg(priv, ENC_MAADR2),
+            enc_rdbreg(priv, ENC_MAADR3), enc_rdbreg(priv, ENC_MAADR4),
+            enc_rdbreg(priv, ENC_MAADR5), enc_rdbreg(priv, ENC_MAADR6));
 }
 #endif
 
 #if 0 /* Sometimes useful */
 static void enc_txdump(FAR struct enc_driver_s *priv)
 {
-  lib_lowprintf("Tx Registers:\n");
-  lib_lowprintf("  EIE:      %02x EIR:      %02x ESTAT:    %02x\n",
-                enc_rdgreg(priv, ENC_EIE), enc_rdgreg(priv, ENC_EIR),);
-  lib_lowprintf("  ESTAT:    %02x ECON1:    %02x\n",
-                enc_rdgreg(priv, ENC_ESTAT), enc_rdgreg(priv, ENC_ECON1));
-  lib_lowprintf("  ETXST:    %02x %02x\n",
-                enc_rdbreg(priv, ENC_ETXSTH), enc_rdbreg(priv, ENC_ETXSTL));
-  lib_lowprintf("  ETXND:    %02x %02x\n",
-                enc_rdbreg(priv, ENC_ETXNDH), enc_rdbreg(priv, ENC_ETXNDL));
-  lib_lowprintf("  MACON1:   %02x MACON3:   %02x MACON4:   %02x\n",
-                enc_rdbreg(priv, ENC_MACON1), enc_rdbreg(priv, ENC_MACON3),
-                enc_rdbreg(priv, ENC_MACON4));
-  lib_lowprintf("  MACON1:   %02x MACON3:   %02x MACON4:   %02x\n",
-                enc_rdbreg(priv, ENC_MACON1), enc_rdbreg(priv, ENC_MACON3),
-                enc_rdbreg(priv, ENC_MACON4));
-  lib_lowprintf("  MABBIPG:  %02x MAIPG %02x %02x\n",
-                enc_rdbreg(priv, ENC_MABBIPG), enc_rdbreg(priv, ENC_MAIPGH),
-                enc_rdbreg(priv, ENC_MAIPGL));
-  lib_lowprintf("  MACLCON1: %02x MACLCON2:   %02x\n",
-                enc_rdbreg(priv, ENC_MACLCON1), enc_rdbreg(priv, ENC_MACLCON2));
-  lib_lowprintf("  MAMXFL:   %02x %02x\n",
-                enc_rdbreg(priv, ENC_MAMXFLH), enc_rdbreg(priv, ENC_MAMXFLL));
+  lowsyslog("Tx Registers:\n");
+  lowsyslog("  EIE:      %02x EIR:      %02x ESTAT:    %02x\n",
+            enc_rdgreg(priv, ENC_EIE), enc_rdgreg(priv, ENC_EIR),);
+  lowsyslog("  ESTAT:    %02x ECON1:    %02x\n",
+            enc_rdgreg(priv, ENC_ESTAT), enc_rdgreg(priv, ENC_ECON1));
+  lowsyslog("  ETXST:    %02x %02x\n",
+            enc_rdbreg(priv, ENC_ETXSTH), enc_rdbreg(priv, ENC_ETXSTL));
+  lowsyslog("  ETXND:    %02x %02x\n",
+            enc_rdbreg(priv, ENC_ETXNDH), enc_rdbreg(priv, ENC_ETXNDL));
+  lowsyslog("  MACON1:   %02x MACON3:   %02x MACON4:   %02x\n",
+            enc_rdbreg(priv, ENC_MACON1), enc_rdbreg(priv, ENC_MACON3),
+            enc_rdbreg(priv, ENC_MACON4));
+  lowsyslog("  MACON1:   %02x MACON3:   %02x MACON4:   %02x\n",
+            enc_rdbreg(priv, ENC_MACON1), enc_rdbreg(priv, ENC_MACON3),
+            enc_rdbreg(priv, ENC_MACON4));
+  lowsyslog("  MABBIPG:  %02x MAIPG %02x %02x\n",
+            enc_rdbreg(priv, ENC_MABBIPG), enc_rdbreg(priv, ENC_MAIPGH),
+            enc_rdbreg(priv, ENC_MAIPGL));
+  lowsyslog("  MACLCON1: %02x MACLCON2:   %02x\n",
+            enc_rdbreg(priv, ENC_MACLCON1), enc_rdbreg(priv, ENC_MACLCON2));
+  lowsyslog("  MAMXFL:   %02x %02x\n",
+            enc_rdbreg(priv, ENC_MAMXFLH), enc_rdbreg(priv, ENC_MAMXFLL));
 }
 #endif
 
