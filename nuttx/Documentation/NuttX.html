@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: January 4, 2013</p>
+      <p>Last Updated: February 2, 2013</p>
     </td>
   </tr>
 </table>
@@ -460,6 +460,13 @@
   <td><br></td>
   <td>
     <p>
+      <li>BINFS pseudo-filesystem support.</li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
       <li>
         A <a href="NuttXBinfmt.html">binary loader</a> with support for the following formats:
         <ul>
@@ -467,6 +474,9 @@
           <li>
             Separately linked <a href="NuttXNxFlat.html">NXFLAT</a> modules.
             NXFLAT is a binary format that can be XIP from a file system.
+          </li>
+          <li>
+            &quot;Built-In&quot; applications.</li>
           </li>
         </ul>
       </li>
@@ -1054,311 +1064,594 @@
   </tr>
 </table>
 
-<h2>NuttX-6.24 Release Notes</h2>
+<h2>nuttx-6.25 Release Notes</h2>
 <p>
-  The 91<sup>st</sup> release of NuttX, Version 6.24, was made on December 20, 2012, and is available for download from the
+  The 92<sup>nd</sup> release of NuttX, Version 6.25, was made on February 1, 2013, and is available for download from the
   <a href="http://sourceforge.net/projects/nuttx/files/">SourceForge</a> website.
-  Note that the release consists of two tarballs:  <code>nuttx-6.24.tar.gz</code> and <code>apps-6.24.tar.gz</code>.
+  Note that the release consists of two tarballs:  <code>nuttx-6.25.tar.gz</code> and <code>apps-6.25.tar.gz</code>.
   Both may be needed (see the top-level <code>nuttx/README.txt</code> file for build information)
   The change log associated with the release is available <a href="#currentrelease">here</a>.
   Unreleased changes after this release are available in SVN.
   These unreleased changes are also listed <a href="#pendingchanges">here</a>.
 </p>
 <p>
-  This release corresponds with SVN release number: r5447,
+  This release corresponds with SVN release number: r5594,
   Note that all SVN information has been stripped from the tarballs.
   If you need the SVN configuration, you should check out directly from SVN.
-  Revision r5447 should equivalent to release 6.24 of NuttX:
+  Revision r5594 should equivalent to release 6.25 of NuttX:
 </p>
 <ul><pre>
-svn checkout -r5447 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+svn checkout -r5594 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 </pre></ul>
 <p>Or (HTTP):</p>
 <ul><pre>
-svn checkout -r5447 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+svn checkout -r5594 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 </pre></ul>
 
 <p>
   <b>Additional new features and extended functionality</b>
 </p>
-
 <ul>
   <li>
     <p>
-      <b>RTOS</b>:
+      <b>OS Initialization</b>
     </p>
     <ul>
       <li>
-        Implemented the POSIX <code>pause()</code> function (still has some compiance issues).
+        Removed support for <code>CONFIG_BUILTIN_APP_START</code>. 
+        This is not really a useful feature and creates a violation of the OS layered architecture.
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Task Creation</b>
+    </p>
+    <ul>
+      <li>
+        Implement a simple <code>vfork()</code>).
+        In NuttX-6.25, this interface is available only for ARM7/9, ARMv7-M (Cortext-M3/4), and MIPS32 (PIC32MX) platforms.
       </li>
       <li>
-        Tasking logic is extended to support the notion of address environments.
-        An address environment is the key notion underlying &quot;process&quot; vs. tasks.
-        If tasks are created with address environments (by <code>binfmt</code>), the OS will propogate that environment to child threads and will destroy the address environment when all threads in the &quot;process&quot; exists.
+        <code>exec()</code> now sets the priority of the new task to the same priority as the parent task (instead of the arbirtrary value of 50).
       </li>
       <li>
-        If support for the <code>PATH</code> variable is enabled, the OS start up logic will create an initial environment containing the default <code>PATH</code> setting (<code>CONFIG_PATH_INITIAL</code>).
-        This initial <code>PATH</code> will then be inherited by all tasks.
+        New, partially complient implementations of <code>execv()</code> and <code>execl()</code>.
+        These are only partially compliant because they do not overlay any existing &quot;process space&quot; but rather create the new task and <code>exit()</code>.
+      </li>
+      <li>
+        Add a complete implementation of <code>posix_spawn()</code>.
+        This standard interface is a better match for an MMU-less architecture than are <code>vfork()</code>) plus <code>execv()</code> or <code>execl()</code>.
+      </li>
+      <li>
+        Add a task start hook that will be called before the task main executes.
+        This can be used, for example, to schedule C++ static constructors to run automatically in the context of the new task.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b><code>Binfmt</code></b>:
+      <b>Task Parentage</b>
     </p>
     <ul>
       <li>
-        The NuttX binary loaders have been updated to support the <code>PATH</code> environment variable.
-        Now, if the <code>PATH</code> is properly defined, programs can be executed from mass storage using only the file name.
-        This feature is added to support more standard behavior (eventually, NSH will support execution of programs in file systems by just entering the file name, perhaps in 6.25?).
+        Repartitioned tasking data structures.
+        All shared resources are now collected together in a &quot;task group&quot;. 
+        A &quot;task group&quot; includes the resource for the original task that are shared with all of the <code>pthreads</code> created by the task.
       </li>
       <li>
-        The NXFLAT and ELF binary loaders have been extended to create address environments for any new tasks executed from the file system.
-        This feature requires that the architecture support a memory management unit (MMU) and the address environment interfaces declared in <code>include/nuttx/arch.h</code> (currently, this is only supported by the z180).
+        Added support for remember the parent &quot;task group&quot; when a new task is started.
+      </li>
+      <li>
+        Added optional support to record the membership of each thread in the &quot;task group&quot;.
+      </li>
+      <li>
+        Implement support for retaining child task status in the &quot;task group&quot; after the child task exists.
+        This is behavior required by POSIX.
+        But in NuttX is only enabled with <code>CONFIG_SCHED_HAVE_PARENT</code> and <code>CONFIG_SCHED_CHILD_STATUS</code>.
+      </li>
+      <li>
+        Add internal logic to &quot;reparent&quot; a task.
+        This is useful, for example, where the child task is created through a trampoline task that redirects I/O.
+        Reparenting allows the caller of <code>posix_spawn()</code> to be reparented for the eventual child thread.
+      </li>
+      <li>
+        Added support for <code>SIGCHLD</code>.
+        Sent to all members of the parent &quot;task group&quot; when the finall member of the child task group exits.
+      </li>
+      <li>
+        If <code>SIGCHLD</code> and retention of child task exist status are enabled, then a more spec-compliant version of <code>waitpid()</code> is enabled.
+      </li>
+      <li>
+        New interfaces <code>waitid()</code> and <code>wait()</code> are also enabled when <code>SIGCHLD</code> is enabled.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>Drivers</b>:
-      LCD driver for the Univision UG-2864AMBAG01 OLED
-  </li>
-  <li>
-    <p>
-      <b>STM32</b>:
-      Support for STM32F100 high density chips contributed by Freddie Chopin.
-  </li>
-  <li>
-    <p>
-      <b>STM32 Drivers</b>:
-      Added optional RS-485 direction bit control (from Freddie Chopin).
-  </li>
-  <li>
-    <p>
-      <b>STM32 Boards</b>:
+      <b>File System</b>
     </p>
     <ul>
       <li>
-        Support for generic STM32F100RC board contributed by Freddie Chopin.
+        <code>dup()</code> and <code>dup2()</code> can new be used with opened files in a mounted file system.
+        This supports re-direction of output in NSH to files.
       </li>
       <li>
-        <code>stm32f4discovery/nxlines</code>: STM32F4Discovery support for the UG-2864AMBAG01 OLED.
+        The <code>binfs</code> file system was moved from <code>apps/builtin</code> to <code>fs/binfs</code>.
+        The <code>binfs</code> file system was extended to support execution of &quot;builtin applications&quot; using <code>exec()</code>, <code>execv()</code>, <code>execl()</code>, or <code>posix_spawn()</code>.
       </li>
       <li>
-        <code>stm32f4discovery/winbuild</code>:  A version of the NuttX OS test configured to build natively on Windows.
-      </li>
-      <li>
-        <code>stm32f4discovery/elf</code>: Now uses the <code>PATH</code> variable to find ELF executables.
-      </li>
-      <li>
-        <code>configs/cloudctrl</code>: Added for Darcy Gong's <i>CloudController</i> board
+        Added logic based on <code>SIGCHLD</code> to automatically unload and clean-up after running a task that was loaded into memory.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>PIC32 Boards</b>:
-      Update the <i>Mirtoo</i> configuration for Release 2 of the <i>Mirtoo</i> module.
-  </li>
-  <li>
-    <p>
-      <b><i>Calypso</i></b>:
-      Add <i>Calypso</i> keypad driver (from Denis Carilki).
-  </li>
-  <li>
-    <p>
-      <b>ZiLOG</b>:
+      <b>Binary Formats</b>
     </p>
     <ul>
       <li>
-        Add support for the z180 chip family and, specifically, for the P112 retro hardware (see <a href="http://p112.feedle.net/">http://p112.feedle.net/</a>).
+        Much of the logic for &quot;builtin applications&quot; was moved from <code>apps/builtin</code> to <code>nuttx/binfmt/libbuiltin</code>.
+        Includes some extensions contributed by Mike Smith.
       </li>
       <li>
-        All ZiLOG configurations updated to use the current ZDS-II and/or SDCC toolchains.
+        A binary loader was added for builtin applications to support execution of &quot;builtin applications&quot; using <code>exec()</code>, <code>execv()</code>, <code>execl()</code>, or <code>posix_spawn()</code>.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>Graphics</b>:
+      <b>Drivers</b>
     </p>
     <ul>
       <li>
-        Add a semaphore handshake so that operations on buffers from the NXMU client will be blocked until the NX server operates on the buffer data (from Petteri Aimonen).
+        Added logic to marshal and serialized &quot;out-of-band&quot; keyboard commands (such as cursor controls and key release events) intermixed with normal ASCII keypress data.
+        The encoding is partially integrated in the HID keyboard driver and the decoding is fully integrated into the <code>apps/examples</code> <code>hidkbd/</code> and <code>keypadtest/</code> (the latter contributed by Denis Carlikli).
       </li>
       <li>
-        <code>nxtk_subwindowmove()</code> and <code>nxtk_getwindow()</code>: Improvements to clipping logic from Petteri Aimonen.
+        Driver for the UG-2864HSWEG01 OLED contributed by Darcy Gong.
+      </li>
+      <li>
+        Add support for removable serial devices (like USB serial).
+        This support is enabled by <code>CONFIG_SERIAL_REMOVABLE</code>.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>C Library</b>:
-      <code>lib/</code> sub-directory renamed <code>libc/</code> (there is a new <code>lib/</code> sub-directory that is used to hold all archives).
-  </li>
-  <li>
-    <p>
-      <b>C++</b>:
-      Exception stubs from Petteri Aimonen.
-  </li>
-  <li>
-    <p>
-      <b>Applications</b>:
+      <b>ARMv7-M</b>
     </p>
     <ul>
       <li>
-        Add NSH hexdump command to dump the contents of a file (or character device) to the console (contributed by Petteri Aimonen).
-      </li>
-      <li>
-        Extend the NSH <code>ifconfig</code> command plus various DHCPC improvements (from Darcy Gong).
+        Added an option to use the <code>BASEPRI</code> register to disable interrupts (instead of the <code>PRIMASK</code> register).
+        This eliminates some innocuous hardfaults that interfere with some debug tools.
+        You need to switch to the <code>BASEPRI</code> method only if you have such tool interference.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>apps/examples</b>:
+      <b>STM32 Drivers</b>
     </p>
     <ul>
       <li>
-        <code>ostest</code>: Replace large tables with algorithmic prime number generation.
-        This allows the roundrobin test to run on platforms with minimal SRAM (Freddie Chopin).
+        Bring STM32 F1 DMA capabilities up to par with the STM32 F2/F4 (contributed by Mike Smith).
       </li>
       <li>
-        <code>keypadtest</code>:  A new keypad test example contributed by Denis Carikli.
+        Add support for USART single wire mode (Contributed by the PX4 team).
       </li>
       <li>
-        <code>elf</code> and <code>nxflat</code>:  If <code>CONFIG_BINFMT_EXEPATH</code> is defined, these examples will now use a relative path to the program and expect the <code>binfmt/</code> logic to find the absolute path to the program using the <code>PATH</code> variable.
+        Updates to support for SPI DMA on the STM32 F1/F2/F4.
+        From Petteri Aimonen.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>Build system</b>:
+      <b>STM32 Boards</b>
+    </p>
+    <ul>
+      <li>
+        New configuration to support the UG-2864HSWEG01 OLED on the STM32F4Discovery board.
+      </li>
+      <li>
+        Added a <code>posix_spawn()</code> test configuration for the STM32F4Discovery.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>LM3S/LM4F</b>
+    </p>
+    <ul>
+      <li>
+        Files and directories repartitioned to support both LM3S and LM4F using the STM32 organization as a model.
+      </li>
+      <li>
+        Partial definitions for the LM4F contributed by Jose Pablo Carballo (this is still a work in progress).
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>LM3S Boards</b>
+    </p>
+    <ul>
+      <li>
+        Added scripts and documentation to use OpenOCD with the LM3S (from Jose Pablo Carballo).
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>LPC176x/LPC178x</b>
+    </p>
+    <ul>
+      <li>
+        Files and directories repartitioned to support both LPC175x/LPC176x and the LPC177x/LPC178x families using the STM32 organization as a model.
+        The LPC1788 port is a work in progress by Rommel Marcelo.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>LPC176x/LPC178x Boards</b>
+    </p>
+    <ul>
+      <li>
+        Added a configuration to support the Wave Share Open1788 board.
+        This is still a work in progress by Rommel Marcelo.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>LPC2148 Boards</b>
+    </p>
+    <ul>
+      <li>
+        Add basic support for the The0.net ZP213x/4xPA board (with the LPC2148 and the UG_2864AMBAG01 OLED).
+      </li>
+      <li>
+        Add an nxlines configuration for the ZP213x/4xPA (with the LPC2148 and the UG_2864AMBAG01).
+       </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Simulator</b>
+    </p>
+    <ul>
+      <li>
+        Add an nxlines configuration for the simulator.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Networking</b>
+    </p>
+    <ul>
+      <li>
+        Add logic to work around delayed ACKs by splitting packets (contributed by Yan T.).
+      </li>
+      <li>
+        Split <code>net_poll()</code> to create the internal interface <code>psock_poll()</code>.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>LCDs</b>
+    </p>
+    <ul>
+      <li>
+        Added support for LCD1602 alphanumeric LCD (HD4468OU controller).
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Graphics</b>
+    </p>
+    <ul>
+      <li>
+        Added 5x8 monospace font.
+        This tiny font is useful for graph labels and for small bitmapped display.
+        Contributed by Petteri Aimonen.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Build System</b>
+    </p>
+    <ul>
+      <li>
+        Add an options to better manage toolchain prefixes.
+      </li>
+      <li>
+        Redesigned how the context targer works in the <code>apps/</code> directory.
+        The old design caused lots of problems when changing configurations because there is no easy way to get the system to rebuild the context.
+        This change should solve most the problems and eliminate questions like &quot;Why don't I see my builtin application in NSH?&quot;
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Kconfig Files</b>
     </p>
     <ul>
       <li>
         <p>
-          New top-level Makefiles: <code>Makefile.unix</code> and <code>Makefile.win</code> (along with numerous changes to other make-related files).
-          This adds basic support for building NuttX natively under from Windows console (rather than in a POSIX-like environment).
-          This build: (1) Uses all Windows style paths, (2) Uses primarily standard Windows batch commands  with (3) a few additional commands from <i>GNUWin32</i> (such as GNU make).
+          There are several new configurations that use the kconfig-frontends tools and several older configurations that have been converted to use these tools.
+          There is still a long way to go before the conversion is complete:
         </p>
-        <p>
-          This capability should still be considered a work in progress because: (1) It has not been verfied on all targets and tools, and (2) it still lacks some of the creature-comforts of the more mature environments (like a functional <code>configure.sh</code> script and <code>make menuconfig</code> support).
-      </li>
-      <li>
-        Example Windows native builds for STM32F4Discovery, eZ80, z16f, z8, Z80, and Z180.
-      </li>
-      <li>
-        Several configurations have been converted to work the <code>kconfig-frontends</code> <code>mconf</code> configuration tool: <code>stm32f4discovery/nxlines</code>, and all eZ80, z16f, z8, Z80, and Z180 configurations.
-      </li>
-      <li>
-        Architectures now include a common <code>Toolchain.defs</code> file that can be used to manage toolchains in a more configurable way (most of this contributed by Mike Smith).
+        <ul>
+          <li>
+            <code>configs/sim/nxwm</code>
+          </li>
+          <li>
+            <code>configs/sim/nsh</code>
+          </li>
+          <li>
+            <code>configs/stm3220g-eval/nxwm</code>
+          </li>
+          <li>
+            <code>configs/stm32f4discovery/posix_spawn</code>
+          </li>
+          <li>
+            <code>configs/olimex-lpc1766stk/nsh</code>
+          </li>
+          <li>
+            <code>configs/olimex-lpc1766stk/hidkbd</code>
+          </li>
+          <li>
+            <code>configs/olimex-lpc1766stk/nettest</code>
+          </li>
+          <li>
+            <code>configs/open1788/ostest</code>
+          </li>
+          <li>
+            <code>configs/stm32f4discovery/nsh</code>
+          </li>
+          <li>
+            <code>configs/stm32f4discovery/usbnsh</code>
+          </li>
+          <li>
+            <code>configs/lm326965-ek</code> (all configurations)
+          </li>
+          <li>
+            <code>configs/mcu123-214x/nsh</code>
+          </li>
+          <li>
+            <code>configs/ubw32/ostest</code>
+          </li>
+        </ul>
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>Build tools</b>:
+      <b>Tools</b>
     </p>
     <ul>
       <li>
-        Renamed <code>tools/winlink.sh</code> to <code>tools/copydir.sh</code>.
+        <code>tools/kconfig.bat</code>:  Kludge to run kconfig-frontends from a DOS shell.
       </li>
       <li>
-        Several new tools/scripts to support the Windows native build: <code>tools/mkdeps.bat</code>, <code>tools/mkdeps.c</code>, <code>tools/link.bat</code>, <code>tools/unlink.bat</code>, and <code>tools/ copydir.bat</code>.
+        <code>tools/configure.c</code>:  <code>configure.c</code> can be used to build a work-alike program as a replacement for <code>configure.sh</code>.
+        This work-alike program would be used in environments that do not support Bash scripting (such as the Windows native environment).
       </li>
       <li>
-        <code>tools/incdir.sh</code> and <code>tools/incdir.bat</code> now support an <code>-s</code> option to generate system header file paths.
+        <code>tools/configure.bat</code>: <code>configure.bat</code> is a small Windows batch file that can be used as a replacement for <code>configure.sh</code> in a Windows native environment.
+        <code>configure.bat</code> is actually just a thin layer that executes <code>configure.exe</code> if it is available.
+        If <code>configure.exe</code> is not available, then configure.bat will attempt to build it first (assumes the MinGW-GCC is available).
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Applications</b>
+    </p>
+    <ul>
+      <li>
+        New and modified examples:
+        <p>
+          <ul>
+            <li>
+              <code>apps/examples/wlan</code>: Remove non-functional example.
+            </li>
+            <li>
+              <code>apps/examples/ostest</code>: Added a test of <code>vfork()</code>).
+              Extend signal handler test to catch death-of-child signals (<code>SIGCHLD</code>).
+              Add a test for <code>waitpid()</code>, <code>waitid()</code>, and <code>wait()</code>.
+            </li>
+            <li>
+              <code>apps/exampes/posix_spawn</code>: Added a test of <code>posix_spawn()</code>.
+            </li>
+          </ul>
+        <p>
       </li>
       <li>
-        <code>tools/b16.c</code>: Fixed precision math conversion utility.
+        NSH:
+        <p>
+          <ul>
+            <li>
+              NSH now supports re-direction of I/O to files (but still not from).
+            </li>
+            <li>
+              The block driver source argument to the mount command is now optional for file systems that do not require a block driver.
+            </li>
+          </ul>
+        </p>
+      </li>
+      <li>
+        NSH can now execute a program from a file system using <code>posix_spawn()</code>.
+      </li>
+      <li>
+        Added support for a login script.
+        The <code>init.d/rcS</code> script will be executed once when NSH starts;
+        the <code>.nshrc</code> script will be executed for each session:
+        Once for a serial console, once for each USB connection, and once for each Telnet session.
+      </li>
+      <li>
+        Supports a new daemon that can be used to monitor USB trace outpout.
+      </li>
+      <li>
+        Removed non-functional <code>wlan</code> example.
       </li>
     </ul>
   </li>
 </ul>
-
 <p>
   <b>Bugfixes</b> (see the change log for details).
-  Some of these are very important (marked <b><i>critical</i></b>):
+  Some of these are very important:
 </p>
 <ul>
   <li>
     <p>
-      <b>RTOS</b>:
-      Fix some backward conditional compilation in the work queue logic (Freddie Chopin).
-  </li>
-  <li>
-    <p>
-      <b>File System</b>:
-      Uninitialized variable caused assertions (from Lorenz Meier).
-  </li>
-  <li>
-    <p>
-      <b>Drivers</b>:
-      Partial fix for STM32 OTG FS device drivers and fix for short, unaligned writes in the flash translation layer (<code>drivers/mtd/ftl.c</code>), both from Petteri Aimonen.
-  </li>
-  <li>
-    <p>
-      <b>STM32 Drivers</b>:
+      <b>Tasking</b>
     </p>
     <ul>
       <li>
-        Qencoder driver and TIM3 driver fixes from Ryan Sundberg.
-      </li>
-      <li>
-        Fix timeout delay calculation in the STM32 OTG FS host driver.
+        Fixed a *critical* task exit bug.
+        Here is the failure scenario:
+        (1) <code>sched_lock()</code> is called increments the lockcount on the current TCB (i.e., the one at the head of the ready to run list),
+        (2) <code>sched_mergepending()</code> is called which may change the task at the head of the ready-to-run list, then
+        (3) <code>sched_unlock()</code> is called which decrements the lockcount on the wrong TCB.
+        The failure case that I saw was that pre-emption got disabled in the IDLE thread, locking up the whole system.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>LPC17xx Drivers</b>:
-      Resources not being properly released when I2C driver is un-initialized.
-  </li>
-  <li>
-    <p>
-      <b>Graphics</b>:
+      <b>Signals</b>
     </p>
     <ul>
       <li>
-        Fix logic when the mouse drags outside of the window; fix another &quot;blocked message&quot; handling case (both from Petteri Aimonen).
-      </li>
-      <li>
-        <code>nxtk_filltrapwindow()</code>:  Correct an offset problem (also from Peterri Aimonen).
-      </li>
-      <li>
-        <code>nxglib_splitline()</code>:  Correct the &quot;fat flat line&quot; bug.
+        <code>sigtimedwait()</code> would return a bad signal number if the signal was already pending when the function was called.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>C Library</b>:
+      <b>Drivers</b>
     </p>
     <ul>
       <li>
-        <code>nrand()</code> changes to prevent coefficients from becoming zero which would &quot;lock up&quot; the random number generate.
-      </li>
-      <li>
-        Add rounding functions to the math library (contributed by Petteri Aimonen).
+        Some SD cards will appear busy until switched to SPI mode for first time.
+        Having a pull-up resistor on MISO may avoid this problem, but this fix from Petteri Aimonen makes it work also without pull-up.
       </li>
     </ul>
   </li>
   <li>
     <p>
-      <b>Build system</b>:
-      Changes to MIN definitions in all <code>limit.h</code> header files to avoid integer overflows.
-      For example from (-128) to (-127 - 1) (from Petteri Aimonen).
+      <b>STM32 Drivers</b>
+    </p>
+    <ul>
+      <li>
+        STM32 FLASH driver counting error (from Freddie Chopin).
+      </li>
+      <li>
+        STM32 F4 maximum SPI frequency was wrong (corrected by Petteri Aimonen).
+      </li>
+    </ul>
   </li>
   <li>
     <p>
-      <b>Applications</b>:
-      Modbus fixes from Freddie Chopin.
+      <b>STM32 Boards</b>
+    </p>
+    <ul>
+      <li>
+        Due to cloning of untested code, the logic to control on-board LEDs did not work on any STM32 boards.
+      </li>
+      <li>
+        Serial devices number <code>/dev/ttyS0-5</code> is there is a serial console, but <code>/dev/ttyS1-6</code> if there is no serial console.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Binary Formats</b>
+    </p>
+    <ul>
+      <li>
+        C++ static constructors execute now using a start taskhook so that they execute in the context of the child task (instead of in the context of the parent task).
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>File Systems</b>
+    </p>
+    <ul>
+      <li>
+        Several FAT-related bugs fixed by Petteri Aimonen.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Networking</b>
+    </p>
+    <ul>
+      <li>
+        Fix poll/select issure reported by Qiang: <code>poll_interrupt()</code> must call <code>net_lostconnection()</code> when a loss of connection is reported.
+        Otherwise, the system will not remember that the connection has been lost and will hang waiting on a unconnected socket later.
+      </li>
+      <li>
+        Similar issues corrected for <code>recvfrom()</code> and <code>send()</code>.
+      </li>
+      <li>
+        Telnetd would hang in a loop if <code>recv()</code> ever returned a value &lt;= 0.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Libraries</b>
+    </p>
+    <ul>
+      <li>
+        <code>fread()</code> could hang on certain error conditions.
+      </li>
+      <li>
+        Can't handle <code>SYSLOG</code> output to a character device from the IDLE task (because the IDLE task can't block). 
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Build System</b>
+    </p>
+    <ul>
+      <li>
+      Serial was driver was not being built if there is no console device.
+      Obviously, the serial driver may be needed even in this case.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Additional Bugfixes</b>
+    </p>
+    <ul>
+      <li>
+        <code>sig_timedwait()</code> and <code>clock_time2ticks.c</code>:  Timing &quot;rounding&quot; logic
+      </li>
+      <li>
+        ARM9 Compilation issue with low vectors.
+      </li>
+      <li>
+        <code>readline()</code> return value
+      </li>
+      <li>
+        As well as other, less critical bugs as detailed in the ChangeLog: HID keyboard, LPC17xx bit definitions, strndup(), PL2303, SYSLOG error handling, AT25, <code>apps/examples</code>.
+      </li>
+    </ul>
   </li>
 </ul>
-
 <p>
-  As well as other, less critical bugs.
   See the <a href="#currentrelease">ChangeLog</a> for additional, detailed changes.
 </p>
 
@@ -3432,311 +3725,421 @@ Other memory:
 </table>
 
 <ul><pre>
-nuttx-6.24 2012-12-20 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+nuttx-6.25 2013-02-01 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * arch/arm/src/stm32:  Support for STM32F100 high density chips
-      added by Freddie Chopin.
-    * configs/stm32f100_generic:  Support for generic STM32F100RC board
-      contributed by Freddie Chopin.
-    * arch/arm/src/stm32_otgfsdev.c:  Partial fix from Petteri Aimonen.
-    * drivers/lcd/ug-2864ambag01.c and include/nuttx/lcd/ug_2864ambag01.h:
-      LCD driver for the Univision OLED of the same name (untested on
-      initial check-in).
-    * configs/stm32f4discovery/nxlines:  Configure to use mconf/Kconfig
-      tool.
-    * configs/stm32f4discovery/src/up_ug2864ambag01.c:  Board-specific
-      initialization for UG-2864AMBAG01 OLED connecte to STM32F4Disovery.
-    * libxx/libxx_stdthrow.cxx:  Exception stubs from Petteri Aimonen.
-    * configs/stm32f4discovery/src/up_ug2864ambag01.c: Driver has been
-      verified on the STM32F4Discovery platform.  Some tuning of the
-      configuration could improve the presentation.  Lower resolution displays
-      are also more subject to the &quot;fat, flat line bug&quot; that I need to fix
-      someday.  See http://www.nuttx.org/doku.php?id=wiki:graphics:nxgraphics
-      for a description of the fat, flat line bug.
-    * libc:  Renamed nuttx/lib to nuttx/libc to make space for a true lib/
-      directory that will be forthcoming.  Also rename libraries:  liblib.a -&gt; libc.a,
-      libulib.a -&gt; libuc.a, libklib.a -&gt; libkc.a, liblibxx.a -&gt;libcxx.a.
-      (I will probably, eventually rename libxx to libcxx for consistency)
-    * Makefile, lib/: A new, empty directory that will hold generated libraries.
-      This simplifies the library patch calculations and lets me get rid of some
-      bash logic.  The change is functional, but only partially complete;
-      additional logic is needed in the arch/*/src/Makefile's as well.  Right
-      now that logic generate multiple library paths, all pointing to the lib/
-      directory.
-    * arch/*/src/Makefile:  Now uses only the libraries in lib/
-      Replace bash fragments that test for board/Makefile.
-    * Makefile.win:  The beginnings of a Windows-native build.  This is just
-      the beginning and not yet ready for prime time use.
-    * configs/stm32f4discovery/winbuild:  This is a version of the standard
-      NuttX OS test, but configured to build natively on Windows.  Its only
-      real purpose is to very the native Windows build logic.
-    * tools/mkdeps.bat and tools/mkdeps.c:  mkdeps.bat is a failed attempt
-      to leverage mkdeps.sh to CMD.exe.  It fails because the are certain
-      critical CFLAG values that cannot be passed on the CMD.exe command line
-      (like '=').  mkdeps.c is a work in progress that will, hopefully,
-      replace both mkdeps.sh and mkdeps.bat.
-    * tools/Config.mk:  Centralize the definition of the script that will be
-      used to generated header file include paths for the compiler.  This
-      needs to be centralized in order to support the Windows native build.
-    * tools/incdir.bat:  A replacement for tools/incdir.sh for use with the
-      the Windows native build.
-    * Makefile.unix:  The existing top-level Makefile has been renamed
-      Makefile.unix.
-    * Makefile:  This is a new top-level Makefile that just includes
-      either Makefile.unix or Makefile.win
-    * configs/stm3240g-eval/src:  Qencoder fixes from Ryan Sundberg.
-    * arch/arm/src/stm32/stm32_qencoder.c: TIM3 bug fix from Ryan Sundberg.
-    * tools/mkromfsimg.sh: Correct typo in an error message (Ryan Sundberg)
-    * arch/*/src/Makefile:  Remove tftboot install and creation of System.map
-      for Windows native build.  The first is a necessary change, the second
-      just needs re-implemented.
-    * configs/mirtoo: Update Mirtoo pin definitions for Release 2.  Provided
-      by Konstantin Dimitrov.
-    * Fixed an uninitialized variable in the file system that can cause 
-      assertions if DEBUG on (contributed by Lorenz Meier).
-    * Config.mk:  Defined DELIM to be either / or \, depending upon
-      CONFIG_WINDOWS_NATIVE.  This will allow me to eliminate a lot of
-      conditional logic elsewhere.
-    * nuttx/graphics: One a mouse button is pressed, continue to report all
-      mouse button events to the first window that received the the initial
-      button down event, even if the mouse attempts to drag outside the
-      window. From Petteri Aimonen.
-    * nuttx/graphics/nxmu/nx_block.c:  One more fix to the NX block message
-      logic from Petteri Aimonen.
-    * include/nuttx/wqueue.h: Some basic definitions to support a user-
-      space work queue (someday in the future).
-    * graphics/nxmu:  Add semaphores so buffers messages that send buffers
-      will block until the buffer data has been acted upon.
-    * graphics/nxmw:  Extended the blocked messages to cover mouse movement
-      and redraw events.  These will also cause problems if sent to a window
-      while it is closing.
-    * arch/several:  Change UARTs are enabled for i.MX, LM3S, ez80, and M16C to
-      match how they are enabled for other architectures.
-    * configs/ez80f910200kitg:  Convert to use mconf configuration.
-    * sched/pause.c:  Implements the POSIX pause() function.
-    * ez80: Lots of changes to ez80 configurations and build logic as I
-      struggle to get a clean Windows build (still not working).
-    * configs/cloudctrl:   Darcy Gong's CloudController board.  This is a
-      small network relay development board. Based on the Shenzhou IV development
-      board design.  It is based on the STM32F107VC MCU.
-    * arch/arm/src/stm32_serial.c and stm32_lowputc.c:  Added optional RS-485
-      direction bit control. From Freddie Chopin.
-    * Lots of build files:  ARMv7-M and MIPS32 Make.defs now include a common
-      Toolchain.defs file that can be used to manage toolchains in a more
-      configurable way.  Contributed by Mike Smith
-    * configs/stm32f4discovery/winbuild and configs/cloudctrl:  Adapted to use
-      Mike's Toolchain.defs.
-    * tools/configure.sh:  Adapted to handle paths and setenv.bat files correctly
-      for native Windows builds.
-    * More of build files:  AVR and AVR32 Make.defs now include a common
-      Toolchain.defs file that can be used to manage toolchains in a more
-      configurable way.  Contributed by Mike Smith
-    * tools/incdir.sh and incdir.bat: Add -s option to generate system header
-      file paths.
-    * nuttx/arch/arm/src/arm/Toolchain.defs: Add support for more ARM toolchains
-      (from Mike Smith).
-    * arch/arm/src/stm32/stm32f40xxx_rcc.c:  Enabled FLASH prefetch (from Petteri
-      Aimonen).
-    * graphics/nxtk/nxtk_filltrapwindow.c:  Correct an offset problem (from
-      Peterri Aimonen).
-    * graphics/nxglib/nxglib_splitline.c:  Fix error in drawing of near horizontal
-      lines (from Peterri Aimonen).
-    * sched/task_exithook.c:  Missing right bracket with certain conditional
-      compilation (thanks James Goppert).
-    * arch/arm/srch/stm32/stm32_otgfshost.c:  Replace timeout handling; use
-      system tick instead of frame counter.  The frame counter gets reset to
-      zero at 0x3fff making it error prone.
-    * arch/arm/src/stm32/stm32f20xx_rcc.c and stm32f40xx_rcc.c: Added option
-      CONFIG_STM32_FLASH_PREFETCH.  FLASH prefetch will now only be enabled
-      if this option is selected.
-    * confgs/ez80f910200zco/ostest:  Now uses Kconfig/mconf configuration
-      tool. Updated to build in native Windows environment.  Other ez80f910200zco
-      build scripts also updated.
-    * configs/z8f64200100kit/ostest: Update to same level as ez80 configurations.
-    * nuttx/configs/z8f64200100kit/scripts/setenv.bat: Add support for native
-      Windows build.
-    * nuttx/arch/arm/src/lpc17xx/lpc17_i2c.c: Resources not being released when
-      I2C is uninitialized.
-    * cloudctrl/src/up_chipid.c and shenzhou/src/up_chipid.c:  Add functions to
-      get chip ID.  Contributed by Darcy Gong.  These should not be board-dependent,
-      but should be in arch/arm/src/stm32 where they can be used from any board.
-    * sched/work_thread.c: Fix backward conditional compilation.  This might
-      has caused a memory leak.  From Freddie Chopin.
-    * configs/&lt;many&gt;/Make.defs:  Fix typo -wstrict-prototypes should be
-      -Wstrict-prototypes (From Denis Carilki).
-    * arch/arm/src/calapyso/calypso_keypad.c:  Add Calypso keypad driver.  From
-      Denis Carilki.
-    * z8encore000zco/ostest and z8f64200100kit/ostest:  Converted to use Kconfig/
-      mconf configuration tool.
-    * arch/arm/src/armv7-m/up_exception.S: missing curly braces for push/pop
-      From Freddie Chopin.
-    * z8encore000zco/ostest and z8f64200100kit/ostest:  Can now be modified to
-      support the Windows native builds (see corresponding README.txt files).
-    * configs/z16f2800100zcog - All configurations updated to use the ZDS-II
-      5.0.1 toolchain.
-    * configs/z16f2800100zcog - All configurations updated to use Kconfig/mconf
-      configuration tools.
-    * configs/z16f2800100zcog/ostest - Now supports a native Windows build
-      (other ZNEO configs may also support the native build, but this has not
-      been verfiied).
-    * include/nuttx/input/keypad.h, arch/arm/src/calypso/calypso_keypad.c, and
-      configs/compal_e99/nsh_highram: First cut at a standard keypad interface
-      definition.  Contributed by Denis Carikli.
-    * libc/stdlib/lib_rand.c:  Always add one to result congruential generators
-      to avoid the value zero.  Suggested by Freddie Chopin.
-    * tools/b16.c:  Fixed precision math conversion utility.
-    * graphics/nxglib/nxglib_splitline.c:  Fix the &quot;fat, flat line bug&quot;
-    * arch/z80/src/*/Toolchain.defs:  Add dummy Toolchain.defs files for the
-      z80 family.
-    * configs/z80sim/ostest:  Converted to build with the Kconfig/mconf tool.
-      Current configuration failed to build for me (Ubuntu 12.10, SDCC 3.2.0
-      pre-built for Linux) due to a glibc memory corruptionerror in SDCC.
-    * configs/z80sim/ostest: Default is now the Windows native build.  See
-      configs/z80sim/README.txt for instructions to convert back to a Linux or
-      or Cygwin build.
-    * arch/z80/src/Makefile.sdccw:  Renamed makefiles with extensions zdiil,
-      zdiiw, sdccl, and sdccw for the ZDS-II vs SDCC compilers and for the
-      POSIX vs Windows native builds.
-    * nuttx/drivers/mtd/ftl.c:  Fix for the flash translation layer. Short
-      unaligned writes were buggy.  From Petteri Aimonen.
-    * nuttx/libc/math/lib_round*.c:  Add rounding functions to the math
-      library.  Contributed by Petteri Aimonen.
-    * include/cxx/cstdlib:  Add stroul().  From Petteri Aimonen.
-    * arch/*/include/limits.h:  Change signed minimum values from, for example,
-      (-128) to (-127 - 1) to avoid overflows under certain conditions.  From
-      Peterri Aimonen.
-    * graphics/nxtk/nxtk_subwindowmove.c: Previously it was very difficult to
-      do e.g. &quot;scroll by dx, dy&quot;. When given the full window area, nxtk_subwindowmove
-      would clip the offset always to 0,0. It makes more sense for it to clip the
-      source area and not modify the offset.  From Petteri Aimonen.
-    * graphics/nxtk/nxtk_getwindow.c: Clipping would change the offset of returned
-      data, and caller has no way to know what the new offset would be. This messes
-      up font drawing when the text is partially out of window, e.g. when scrolling.
-      Also from Petteri Aimonen.
-    * include/stdbool.h: Can now be disabled for C++ files if CONFIG_C99_BOOL8 is
-      defined.  CONFIG_C99_BOOL8 indicates (1) that the sizeof(_Bool) is one in both
-      C and C++, and (2) the the C compiler is C99 and supports the _Bool intrinsic
-      type. Requested by Freddie Chopin.
-    * include/stdlib/lib_rand.c:  Various additional changes so that the integer
-      value zero can be returned.  Requested by Freddie Chopin.
-    * arch/z80/src/Makefile.sdcc*, z80/up_mem.h:  Redesign Z80 build so that it
-      no longer depends on Bash scripts.
-    * configs/z80sim/nsh and pashello:  Converted to (1) use the kconfig-frontends
-      configuration tool, and (2) to build natively under Windows.  The NSH
-      configuration is verified; the pashello configuration needs a more TLC.
-    * tools/copydir.sh:  Rename tools/winlink.sh to tools/copydir.sh
-    * tools/link.bat, unlink.bat, and copydir.bat:  Add Windows counterparts
-      to the link.sh, unlink.sh, and copydir.sh Bash scripts.
-    * configs/z80sim/pashello:  Now builds correctly.
-    * configs/xtrs/ostest, nsh, and pashello:  Converted to (1) use the kconfig-
-      frontends configuration tool, and (2) to build natively under Windows.
-    * drivers/serial/Kconfig and sched/Kconfig:  Two names for same configuration:
-      CONFIG_LOWLEVEL_CONSOLE is bogus and CONFIG_DEV_LOWCONSOLE is in the wrong
-      Kconfig file.  Moved to drivers/serial/Kconfig replacing CONFIG_LOWLEVEL_CONSOLE.
-    * arch/z80/include/z180:  Add header files for z180 chips.  Initial versions
-      are just clones of z80 header files.
-    * arch/z80/src/z180:  Add source files for z180 chips.  Initial versions
-      are just clones of z80 source files.
-    * include/nuttx/arch.h:  Add address environment control interfaces (for use
-      with CPUs the provide MCUs and support process-like address environments).
-    * arch/z80/src/z180/z180_mmu.*:  Add MMU support for z180 tasks.
-    * configs/p112:  Add very basic board support and an examples/ostest
-      configuration for the venerable P112 board.
-    * sched/os_bringup.c: If CONFIG_PATH_INITIAL is defined, then the initial
-      environment of the task started by os_bringup() will have the PATH
-      environment variable defined to be that string.
-    * binfmt/binfmt_exepath.c:  If CONFIG_BINFMT_EXEPATH is defined, then this
-      file will be built.  It contains logic to search for regular files at
-      the absolutes paths found in the current PATH environment variable
-      setting.  This is untested and not yet hooked into the binfmt exec()
-      logic on initial check-in
-    * binfmt/binfmt_loadmodule.c: load_module() will now traverse the PATH
-      variable to locate files from their relative path.
-    * include/nuttx/arch.h and arch/z80/src/z180/z180_mmu.c:  Restructure the
-      address environment interfaces so that they will better integrate with
-      binfmt/.
-    * binfmt/libelf/*, binfmt/libnxflat/* and other files:  Integrate the
-      address environment interfaces.  If CONFIG_ADDRENV=y, then binfmt/
-      will now create an address environment for new tasks (instead of
-      just malloc'ing the task memory).
-    * configs/stm32f4discovery/elf:  Enable support/test of the PATH
-      to find executables using a relative path.
-
-apps-6.24 2012-12-20 Gregory Nutt &lt;gnutt@nuttx.org&gt;
-
-    * apps/examples/ostest/roundrobin.c:  Replace large tables with
-      algorithmic prime number generation.  This allows the roundrobin
-      test to run on platforms with minimal SRAM (Freddie Chopin).
-    * apps/nshlib/nsh_dbgcmds.c:  Add hexdump command to dump the contents
-      of a file (or character device) to the console  Contributed by Petteri
+    * graphics/: Adds 5x8 monospace font. This tiny font is useful for graph
+      labels and for small bitmapped display.  Contributed by Petteri
       Aimonen.
-    * apps/examples/modbus:  Fixes from Freddie Chopin
-    * apps/examples/modbus/Kconfig: Kconfig logic for FreeModBus contributed
-      by Freddie Chopin.
-    * Makefile, */Makefile:  Various fixes for Windows native build.  Now uses
-      make foreach loops instead of shell loops.
-    * apps/examples/elf/test/*/Makefile: OSX doesn't support install -D, use
-      mkdir -p then install without the -D.  From Mike Smith.
-    * apps/examples/relays/Makefile: Reduced stack requirement (Darcy Gong).
-    * apps/nshlib and apps/netutils/dhcpc:  Extend the NSH ifconfig command plus
-      various DHCPC improvements(Darcy Gong).
-    * apps/nshlib/nsh_apps.c: Fix compilation errors when CONFIG_NSH_DISABLEBG=y.
-      From Freddie Chopin.
-    * Rename CONFIG_PCODE and CONFIG_FICL as CONFIG_INTERPRETERS_PCODE and
-      CONFIG_INTERPRETERS_FICL for consistency with other configuration naming.
-    * apps/examples/keypadtest:  A keypad test example contributed by Denis
-      Carikli.
-    * apps/examples/elf and nxflat:  If CONFIG_BINFMT_EXEPATH is defined, these
-      tests will now use a relative path to the program and expect the binfmt/
-      logic to find the absolute path to the program using the PATH variable.
-
-NxWidgets-1.4 2012-12-20 Gregory Nutt &lt;gnutt@nuttx.org&gt;
-
-    * libnxwidgets/Makefile, NxWidgets/nxwm/Makefile, and
-      NxWidgets/UnitTests/nxwm/Makefile:  Makefile improvements from
-      submitted by Petteri Aimonen.  Other Makefiles in the UnitTests
-      directory probably also need these changes.
-    * libnxwidgets/src/ccallback.cxx: Fix misplaced #endif.  Provided
-      by Petteri Aimonen.
-    * libnxwidgets/src/cnxserver.cxx:  Reduce delay to allow NX server
-      to start.  One second was un-necessarily long.  Reduced to 50 MS.
-      Reduction suggested by Petteri Aimonen.
-    * tools/bitmap_converter.py:  This script converts from any image type
-      supported by Python imaging library to the RLE-encoded format used by
-      NxWidgets.
-    * NxWidgets/nxwm/src/capplicationwindow.cxx: If the &quot;desktop&quot; is empty,
-      users have no need to minimize any windows. If the buttons are small,
-      it's easy to hit minimize button accidentally when trying to close an
-      application.  Contributed by Petteri Aimonen.
-    * NxWidgets/nxwm/src/ctaskbar.cxx:  Add an option to eliminate the
-      background image.  Contributed by Petteri Aimonen.
-    * NxWidgets/nxwm/src/chexcalculator.cxx and NxWidgets/nxwm/src/cstartwindow.cxx:
-      The config settings CONFIG_NXWM_STARTWINDOW_ICON and CONFIG_NXWM_HEXCALCULATOR_ICON
-      allow changing the icons used for these applications. However, to declare symbols
-      for these icons user would need to modify NxWidgets header files.
-      This commit adds a simple forward declaration to the relevant files, based on the
-      configured icon. If the icon does not exist, linker will give an error about it.
-      Contributed by Petteri Aimonen.
-    * NxWidgets::CTaskBar: Highlight the current window in the task bar.
-      Contributed by Petteri Aimonen.
-    * NxWidgets/libnxwidgets/src/glyph_cycle.cxx:  Width of glyph_cycle was wrong;
-      Destructor needs to by public.  From Petteri Aimonen.
-    * NxWidgets::CNumericEdit.  This is basically a label with plus and minus buttons.
-      Contributed by Petteri, Aimonen.
-    * NxWM::CStartWindow:  Fix mq_receive error handling with signal is recieved.
+    * configs/stm3220g-eval/nxwm:  Converted to use the kconfig-frontends
+      configuration tool.
+    * configs/sim/nxwm:  Converted to use the kconfig-frontends configuration
+      tool.
+    * include/pthread.h:  In sys/prctl.h because it is needed by
+      pthread_[set|get]name_np()
+    * tools/kconfig.bat:  Kludge to run kconfig-frontends from a DOS shell.
+    * sched/sig_timedwait.c:  Should always move the time up to the next
+      largest number of system ticks.  The logic was rounding.  Noted by
+      Petteri Aimonen.
+    * arch/arm/src/up_head.S:  Fix backward conditional compilation.  NOTE
+      there is a issue of ARM9 systems with low vectors and large memories
+      that will have to be addressed in the future.
+    * libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Add logic to marshal
+      and serialized &quot;out-of-band&quot; keyboard commands intermixed with normal
+      ASCII data (not yet hooked into anything).
+    * drivers/usbhost/usbhost_hidkbd.c:  If CONFIG_HIDKBD_ENCODED is
+      defined, this driver will now use libc/misc/lib_kbdencode.c to
+      encode special function keys.
+    * configs/olimex-lpc1766stk/hidkbd:  This configuration has been
+      converted to use the kconfig-frontends configuration tool.
+    * drivers/lcd/ug-2864hsweg01.c and include/nuttx/lcd/ug-2864hsweg01.h:
+      Driver for UG-2864HSWEG01 OLED contributed by Darcy Gong.
+    * configs/stm32f4discovery/src/up_ug2864hsweg01.c: Support for the
+      UG-2864HSWEG01 OLED for the STM32F4Discovery board.
+    * drivers/usbhost/usbhost_hidkbd.c:  Correct a logic error in how
+      tasks waiting for read data are awakened.
+    * libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Now handles keypress
+      events too.  However, the USB HID keyboard driver has not yet been
+      updated to detect key release events.  That is kind of tricky in
+      the USB HID keyboard report data.
+    * configs/mcu123-214x/nsh:  Converted to use the kconfig-frontends
+      configuration tool.
+    * configs/zp214xpa:  Add basic support for the The0.net ZP213x/4xPA
+      board (with the LPC2148 and the UG_2864AMBAG01).
+    * configs/sim/nxlines:  Add an nxlines configuration for the
+      simulator.
+    * configs/zp214xpa/nxlines:  Add an nxlines configuration for the
+      ZP213x/4xPA (with the LPC2148 and the UG_2864AMBAG01).  Working
+      as of 2012-12-30.
+    * configs/olimex-lpc1766stk/wlan:  Remove non-functional
+      configuration.
+    * configs/stm32f4discovery/src and nuttx/drivers/lcd/ug-2864hsweg01.c:
+      Updates and correctinos for the UG-2864HSWEG01 from Darcy Gong.
+    * configs/lm326965-ek:  All configurations converted to use the
+      kconfig-frontends configuration tool.
+    * configs/Kconfig: NSH_MMCSDSPIPORTNO should depend on MMCSD_SPI,
+      not just SPI (from Jose Pablo Carballo).
+    * arch/arm/src/arm/Kconfig and armv7m/Kconfig:  Add an option for
+      buildroot toolchains:  They may be EABI or OABI.
+    * include/nuttx/progmem and arch/arm/src/stm32/stm32_flash.c:
+      Fix a counting bug plus change interface to use either relative
+      or absolute FLASH addressing (from Freddie Chopin).
+    * libc/misc/Make.defs:  Fix error in conditional for KBD CODEC.
+    * libc/Kconfig and configs/*/defconfig (several):  The default
+      setting should be CONFIG_LIB_KBDCODEC=n
+    * tools/configure.c:  configure.c can be used to build a work-alike
+      program as a replacement for configure.sh.  This work-alike
+      program would be used in environments that do not support Bash
+      scripting (such as the Windows native environment).
+    * tools/configure.bat: configure.bat is a small Windows batch
+      file that can be used as a replacement for configure.sh in a
+      Windows native environment.  configure.bat is actually just a
+      thin layer that executes configure.exe if it is available. If
+      configure.exe is not available, then configure.bat will attempt
+      to build it first.
+    * arch/arm/src/lpc17xx/lpc17_syscon.h:  Correct some typos in bit
+      definitions (from Rommel Marcelo).
+    * libc/string/lib_strndup.c: strndup() should use strnlen(), not
+      strlen(), to determine the size of the string.
+    * sched/os_bringup.c:  Remove support for CONFIG_BUILTIN_APP_START.
+      This is not really a useful feature and creates a violation of the
+      OS layered architecture.
+    * include/unistd.h, arch/arch/src/*:  Implement a simple vfork().
+      On initial checkin, this API is available only for ARM platforms.
+    * binfmt/binfmt_exec.c: exec() now sets the priority of the new task
+      to the same priority as the current task (instead of the arbirtrary
+      value of 50).
+    * libc/unisted/lib_execv.c and lib_execl.c:  New, somewhat flawed,
+      implementations of execv() and execl().
+    * tools/cfgdefine.c:  Strips quotes from CONFIG_EXECFUNCS_SYMTAB
+      value.
+    * arch/arm/include/lm3s/chip.h:  Move chip definitions into
+      public include area for compatibility with other architectures.
+    * arch/arm/src/lm3s/chip:  Move register definition header files
+      into a new chip/ sub-directory.
+    * arch/arm/src/lm3s/lm3s_internal.h:  Broke up into several
+      smaller header files.
+    * arch/arm/src/lm:  Rename the arch/arm/src/lm3s directory to
+      arch/arm/src/lm so that is can support other members of the
+      Stellaris family.
+    * libc/spawn:  Add file action interfaces needed by posix_spawn().
+    * sched/clock_time2ticks.c:  Another case where time was being
+      rounded down instead of up (from Mike Smith).
+    * libc/spawn:  Implementation of posix_spawn() is complete but
+      untested and undocumented.
+    * drivers/usbdev/pl2303.c:  Fix typols in the PL2303 driver
+      (from Max Holtzberg).
+    * configs/stm32f4discovery/posix_spawn:  Added a configuration
+      that can be used for testing posix_spawn().
+    * arch/arm/src/stm32: Bring F1 support for general DMA and serial
+      DMA in paricular up to parity with F2/F4 (from Mike Smith).
+    * libc/stdio/lib_libfread.c:  Correct some error handling when
+      lib_fread() was passed a bad stream.  Needed to move the
+      releasing of a semaphore inside of some conditional logic
+      (cosmetic).
+    * include/nuttx/sched.h, sched/task_setup.c, and sched/task_exithook.c:
+      Add support for remembering the parent task and sending
+      SIGCHLD to the parent when the task exists.
+    * sched/task_exithook.c:  Fixed a *critical* bug.  Here is
+      the scenario: (1) sched_lock() is called increments the lockcount
+      on the current TCB (i.e., the one at the head of the ready to run
+      list), (2) sched_mergepending is called which may change the task
+      at the head of the ready-to-run list, then (3) sched_unlock() is called
+      which decrements the lockcount on the wrong TCB.  The failure case
+      that I saw was that pre-emption got disabled in the IDLE thread,
+      locking up the whole system.
+    * sched/sched_waitpid.c:  Use SIGCHLD instead of a semaphore.  This
+      is a much more spec-compliant implementation.  However, there are
+      some issues with overruning signals because NuttX does not support
+      queueing of signals (POSIX does not require it).  I think it may
+      need to.
+    * sched/sched_waitid.c and sched_wait.c:  Add support for waitid()
+      and wait().  See issues with waitpid() above.
+    * include/nuttx/fs/fs.h and fs/fs_files.c:  Add a dup() method to
+      the struct mountpt_operations.  When dup'ing a file that resides
+      on a mounted volume, let the file system's dup() method do the
+      work.
+    * fs/romfs/fs_romfs.c: Implemented the dup() method for the ROMFS
+      file system.
+    * fs/fat/fs_fat32.c, fs/nxffs/nxffs_initialize, and
+      fs/nfs/nfs_vfsops.c:  Add hooks for dup() method (not yet
+      implemented).
+    * fs/romfs:  Remove the rf_open flag.  It looks good, but actually
+      does nothing.
+    * fs/fat:  Remove the ff_open flag.  Same story as for the ROMFS
+      rf_open flag.
+    * fs/fat/fs_fat32.c, fs/nxffs/nxffs_initialize, and
+      fs/nfs/nfs_vfsops.c:  Completed implementation of the dup() methods.
+      There is still no good test available.
+    * sched/sig_timedwait.c:  sigtimedwait() would return a bad signal
+      number if the signal was already pending when the function was
+      called.
+    * configs/ubw32/scripts:  All common linker scripts moved to this
+      scripts sub-directory
+    * configs/ubw32/ostest:  Configuration configured to use the
+      kconfig-frontends tools.
+    * arch/mips/src/mips32/up_vfork.c, up_vfork.h, and vfork.S:
+      Implement vfork() for MIPS32 (no floating point support)
+    * configs/ubw32/ostest: Enable the vfork() test.
+    * fs/binfs:  Move apps/builtin/binfs.c to fs/binfs/fs_binfs.c
+      CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS
+    * include/nuttx/binfmt/builtin.h:  Some of the content of
+      apps/include/apps.h moved to include/nuttx/binfmt/builtin.h
+    * binfmt/libbuiltin/libbuiltin_utils.c:  Move builtin
+      utility functions from apps/builtin/exec_builtins.c to
+      binfmt/libbuiltin/libbuiltin_utils.c
+    * binfmt/builtin.c and binfmt/libbuiltin:  Add a binary &quot;loader&quot;
+      that can be used to execute builtin programs from the BINFS
+      file system.
+    * configs/sim/nsh: Convert to use kconfig-frontends configuration
+      tool.
+    * binfmt/binfmt_schedunload.c:  Add logic based on SIGCHLD to
+      automatically unload and clean-up after running a task that
+      was loaded into memory.
+    * binfmt/libbuiltin: Extensions from Mike Smith
+    * sched/task_reparent.c:  Add internal interface to change the
+      parent task.
+    * sched/task_posixspawn():  Move libc/spawn/lib_ps.c to
+      sched/task_posixspawn() now it requires internal, reparenting
+      interfaces
+    * include/nuttx/spawn():  Move libc/spawn.h to include/nuttx/spawn.h
+    * arch/arm/include/lpc17xx/chip.h, irq178x.h:  Integrate Marcelo
+      Rommel's LPC1788 definitions into the base LPC17xx.
+    * configs/olimex-lpc1766stk/nsh:  Convert configuration to use
+      the kconfig-frontends tools.
+    * sched/task_reparent.c:  Simplify reparenting interface.
+    * arch/arm/src/[many]: More LPC1788 definitions from Rommel
+      Marcelo incorporated.
+    * configs/open1788:  Board configuration for the Wave Share
+      Open1788 board.  Still fragmentary (contributed by Rommel
+      Marcelo, adapted to use kconfig-frontends.
+    * net/send():  Add logic to work around delayed ACKs by splitting
+      packets (contributed by Yan T.).
+    * net/recvfrom():  Fix a bug.  When the host closes a connection
+      (gracefully).  recv[from]() returned success and the closure
+      was never detected.  Hmmm.. I don't know why the network monitor
+      did not catch this event.  This is an important bug fix.
+    * net/recvfrom():  Fix a introduced with the last bugfix.  If
+      the peer does an orderly closure of the socket, report 0 not
+      -ENOTCONN
+    * configs/lm3s6965-ek/README.txt and tools/:  Add an OpenOCD
+      configuration for the LM3S (from Jose Pablo Carballo).
+    * nuttx/lcd/hd4478ou.h and configs/pcblogic-pic32mx/src/up_lcd1602:
+      Start of support of LCD1602 alphanumeric LCD.  I need a few
+      more parts before I can finish integrating this one.
+    * arch/arm/src/*/chip.h and arch/arm/include/*/chip.h:  Move all
+      priority ranges from the src to the include chip.h header file.
+    * arch/arm/include/armv7-m/irq.h:  Add inline functions to enable
+      and disable interrupts via the BASEPRI register.
+    * arch/arm/Kconfig:  Add new option CONFIG_ARM7VM_USEBASEI
+    * arch/arm/src/*/*_irq.c:  Set the priority of the SVCALL exception
+      to the highest possible value.
+    * arch/armv7-m/up_hardfault.c:  Fail if a hardfault occurs
+      while CONFIG_ARM7VM_USEBASEPRI=y.
+    * arch/arm/src/stm32/stm32_serial.c:  Add support for USART
+      single wire mode (Contributed by the PX4 team).
+    * sched/: Implement support for retaining child task status after
+      the child task exists.  This is behavior required by POSIX.
+      But in NuttX is only enabled with CONFIG_SCHED_HAVE_PARENT and
+      CONFIG_SCHED_CHILD_STATUS
+    * Add support for keyboard encode to the keypad test (from
+      Denis Carikli).
+    * configs/olimex-lpc1766stk/nettest:  Configuration converted to
+      use the kconfig-frontends tools.
+    * net/net_poll.c:  Split net_poll() to create psock_poll() too.
+    * net/net_poll.c:  Fix poll/select issure reported by Qiang:
+      poll_interrupt() must call net_lostconnection() when a
+      loss of connection is reported.  Otherwise, the system will
+      not know that the connection has been lost.
+    * sched/group_create.c, group_join.c, and group_leave.c:  Add
+      support for task groups.
+    * sched/group_signal.c and task_exithook.c:  Send signal to all
+      members for the parent task group.
+    * include/nuttx/sched.h and sched/env_*.c:  Move environment
+      variables into task group structure.
+    * sched/: Lots of file changed.  Don't keep the parent task's
+      task ID in the child task's TCB.  Instead, keep the parent
+      task group IN the child task's task group.
+    * fs/, sched/, include/nuttx/sched.h, and include/nutts/fs/fs.h:
+      Move file data from the TCB to the task group structure.
+    * libc/stdio/, sched/, include/nuttx/lib.h, and include/nutts/fs/fs.h:
+      Move stream data from the TCB to the task group structure.
+    * net/, sched/, and include/nuttx/net/net.h:  Move socket data
+      from the TCB to the task group structure.
+    * sched/task_starthook.c, sched/task_start.c, and include/nuttx/sched.h:
+      Add a task start hook that will be called before the task main
+      is started. This can be used to schedule C++ constructors to run
+      automatically in the context of the new task.
+    * binfmt/binfmt_execmodule: Execute constructors as a start hook.
+    * sched/os_start.c: Fix ordering of group initialization.
+    * configs/stm32f4discovery/usbnsh:  Add an NSH STM32F4Discovery
+      configuration that uses USB CDC/ACM for the NSH console.
+    * configs/stm32f4discovery/nsh: Converted to use the kconfig-frontends
+      tools.
+    * configs/*/src/up_userleds.c: Fix a error that was cloned into
+      all STM32 user LED code.  The wrong definitions were being used
+      to set LEDs on or off.
+    * arch/*/common/up_internal.h and arch/*/common/up_initialize.c:
+      Serial was driver was not being built if there is no console
+      device.  Obviously, the serial driver may be needed even in
+      this case.
+    * arch/arm/src/stm32/stm32_serial.c: If there is a serial console,
+      it would be ttyS0 and the others would be ttyS1-5.  If there
+      is not serial console, was labeling them ttyS1-6; now labels them
+      ttyS0-5.
+    * fs/fs_syslog.c: Can't handle SYSLOG output to character device from
+      the IDLE task (because it can't block). syslog_putc now returns EOF
+      on failure and sets errno.  Fixed some errors in error handling.
+    * libc/stdio/lib_syslogstream.c:  Checking of return value from
+      syslog_putc was bogus.  Switching to EOF for all errors solves
+      this.
+    * arch/arm/src/lm/chip/lm4f_memorymap.h: More LM4F changes from
+      Jose Pablo Carballo.
+    * drivers/serial/serial.c, include/nuttx/serial/serial.h,
+      drivers/usbdev/cdcacm.c, and drivers/pl2303.c: Add support for
+      removable serial devices (like USB serial).  This support is enabled
+      by CONFIG_SERIAL_REMOVABLE.
+    * arch/*/src/*/Toolchain.defs: Change assignment so that we can
+      override CROSSDEV with a make command line argument.
+    * include/assert.h:  Mark assertion functions as non-returning.
+    * arch/*/src/*/up_assert.h:  Mark _up_assert() as non-returning.
+    * drivers/mtd/at25.c: When the AT25 device was not available the
+      initialization did not fail like it should. From Petteri Aimonen.
+    * fs/fat/fs_configfat.c:  Fix some errors in FAT formatting logic
+      for large devices and for FAT32. From Petteri Aimonen.
+    * fs/fat/fs_fat32util.c:  Fix an initialization error found by
+      Petteri Aimonen.  freecount and next freecount initialization were
+      reversed.
+    * drivers/mmcsd/mmcsd_spi.c: Some SD cards will appear busy until
+      switched to SPI mode for first time.  Having a pull-up resistor on
+      MISO may avoid this problem, but this patch makes it work also
+      without pull-up.  From Petteri Aimonen.
+    * fs/fat/fs_fat32.c: Fix a compilation error when FAT_DMAMEMORY=y. 
       From Petteri Aimonen.
-    * NxWidgets::CNxTimer:  Replace the original (apparently non-functional) signal-
-      based solution with a work queue-based solution.  This raises some isses about
-      using the internal work queues from user space.  I have decided to implemented
-      user-space work queues (someday) in order to accomplish that functionaliy.
-      Submitted by Petteri Aimonen.
-    * NxWidgets:CText and NxWidgets:CNumericEdite:  Fix some memory freeing bugs
+    * arch/arm/src/stm32/chip/stm32_spi.h: STM32F4 max SPI clock freq is
+      37.5 MHz.  Patch from Petteri Aimonen.
+    * arch/arm/src/stm32/stm32_spi.c: Fixes for SPI DMA work on the
+      STM32F4. Includes untested additions for the F1 implementation as
+      well.  From Petteri Aimonen.
+
+apps-6.25 2013-02-01 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+    * Makefiles: Removed dependency of distclean on clean in most top-level
+      files.  It makes sense for 'leaf' Makefiles to have this dependency,
+      but it does not make sense for upper-level Makefiles.
+    * apps/namedapp/: Renamed to builtins in preparation for another change.
+    * .context:  Removed the .context kludge.  This caused lots of problems
+      when changing configurations because there is no easy way to get the
+      system to rebuild the context.  Now, the context will be rebuilt
+      whenever there is a change in either .config or the Makefile.
+    * apps/builtin/registry:  Updated new built-in registration logic to handle
+      cases where (1) old apps/.config is used, and (2) applications ared
+      removed, not just added.
+    * apps/examples/nettest/Makefile:  Fix an error that crept in during
+      some of the recent, massive build system changes.
+    * apps/builtin/Makefile:  Need to have auto-generated header files
+      in place early in the dependency generation phase to avoid warnings.
+      It is not important if they are only stubbed out header files at
+      this build phase.
+    * apps/examples/hidbkd: Now supports decoding of encoded special keys
+      if CONFIG_EXAMPLES_HIDKBD_ENCODED is defined.
+    * apps/examples/hidbkd:  Add support for decoding key release events
+      as well.  However, the USB HID keyboard drier has not yet been
+      updated to detect key release events.  That is kind of tricky in
+      the USB HID keyboard report data.
+    * apps/examples/wlan: Remove non-functional example.
+    * apps/examples/ostest/vfork.c:  Added a test of vfork().
+    * apps/exampes/posix_spawn: Added a test of posix_spawn().
+    * apps/examples/ostest:  Extend signal handler test to catch
+      death-of-child signals (SIGCHLD).
+    * apps/examples/ostest/waitpid.c:  Add a test for waitpid(), waitid(),
+      and wait().
+    * builtin/binfs.c:  Add hooks for dup() method (not implemented).
+    * builtin/exec_builtin.c, nshlib/nsh_parse.c, and nshlib/nsh_builtin.c:
+      NSH now supports re-direction of I/O to files (but still not from).
+    * builtin/binfs.c:  Greatly simplified (it is going to need to be
+      very lightweight).  Now supports open, close, and a new ioctl to recover
+      the builtin filename.  The latter will be needed to support a binfs
+      binfmt.
+    * builtin/binfs.c:  Move apps/builtin/binfs.c to fs/binfs/fs_binfs.c
+      CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS
+    * apps/include/builtin.h:  Some of the content of
+      apps/include/apps.h moved to include/nuttx/binfmt/builtin.h.
+      apps/include/apps.h renamed builtin.h
+    * apps/builtin/exec_builtins.c:  Move builtin
+      utility functions from apps/builtin/exec_builtins.c to
+      binfmt/libbuiltin/libbuiltin_utils.c
+    * apps/nshlib/nsh_mountcmds.c:  The block driver/source
+      argument is now optional.  Many files systems do not need
+      a source and it is really stupid to have to enter a bogus
+      source parameter.
+    * apps/nshlib/nsh_fileapp.c:  Add the ability to execute a file
+      from a file system using posix_spawn().
+    * apps/builtin/: Extensions from Mike Smith.
+    * apps/examples/ftpd/Makefile: Name ftpd_start is not the name of
+      the entrypoint.  Should be ftpd_main (from Yan T.)
+    * apps/netutils/telnetd/telnetd_driver: Was stuck in a loop if
+      recv[from]() ever returned a value &lt;= 0.
+    * apps/examples/nettest and poll:  Complete Kconfig files.
+    * apps/examples/ostest/waitpid.c:  Need to use WEXITSTATUS()
+      to decode the correct exit status.
+    * apps/system/usbmonitor:  A daemon that can be used to monitor USB
+      trace outpout.
+    * apps/nshlib/nsh_usbdev.c, nsh_consolemain.c, nsh_session.c, nsh_script.c:
+      Add support for a login script.  The init.d/rcS script will be executed
+      once when NSH starts; the .nshrc script will be executed for each session:
+      Once for serial, once for each USB connection, once for each Telnet
+      session.
+    * apps/system/readline: Correct readline() return value.  Was not
+      any returning special values when end-of-file or read errors
+      occur (it would return an empty string which is not very useful).
+
+NxWidgets-1.5 2013-02-01 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+
+    * NxWidgets::CGraphicsPort::move():  Fix typo bug in bounding rectangle
+      calculation (from Petteri Aimonen).
+    * NxWM::CScrollingPanel::scrollChildren(): Avoid unnecessary redraws in
+      CScrollingPanel (contributed by Petteri Aimonen).
+    * NxWM::CCycleButton:  Remove the separator from CCycleButton. It draws in
+      wrong place, and doesnt look very good in the correct place either.
       (from Petteri Aimonen).
-    * NxWidgets::CScrollingPanel:  Usability improvements.  It is borderless for now,
-      because there was no easy way to redraw only the required part of the border.
-      Contributed by Petteri Aimonen.
-    * NxWidgets::CNxWidgets and NxWM::CStartWindow: Small changes to make sub-
-      classing easier (from Petteri Aimonen).
+    * NxWidgets::CGraphicsPort: Many times we only want a constant background.
+      In that case the old code fills the background, reads it back, renders
+      the text and then writes it back. When used with LCD's (instead of
+      framebuffers) this causes unnecessary delay and screen flicker.
+      This commit adds a variant of drawText that takes background color,
+      so that the background and text can both be rendered at one go.
+      The old functions still function as before (Petteri Aimonen).
+    * NxWidgets::CLabel: The label was drawn as a single rectangular region,
+      then a text was added to the on top of this.  The result is that the
+      text would flicker when the CLabel was updated. With this change, the
+      two step update is replaced with a five step update:  The background
+      is updated as four rectangulear regions (leaving the previous text in
+      place), then the new text is updated.  This eliminates the flicker
+      (Petteri Aimonen).
+    * Kconfig: Many NxWidgets/NxWM settings do not have meaningful, generic
+      default values.  Colors, for example, depend on pixel depth.  Some
+      geometry settings depending on other geometry settings.  Font IDs are
+      not know-able by the configuration system.  etc.  In these cases, it
+      is best if the settings are just not undefined so that the system can
+      calculate a reasonable default.  however, if no default is provided
+      in the .config file, mconf will complain and generate errors.  So work
+      around this, I added several &quot;enabling&quot; settings to override the
+      default setting.  This is awkward and I preferred the configuration as
+      it was before, but this avoids the mconf errors and warnings.
+    * UnitTests:  Changed occurrences of lib_rawprintf() and lib_lowprintf()
+      to match recent changes to NuttX (will be in NuttX-6.25)
+    * CGraphicsPort::_drawText:  Renamed from CGraphicsPort::drawText in order
+      to eliminate some naming collisions when overloaded in some configurations
+      (i.e., when both bool and nx_pixel_t are uint8_t).  From Petteri Aimonen.
+    * CNxWidgets::drawContents: Change base drawContents from a do-nothing
+      function to a function that fills the widget with the background color.
+      This is useful when using CNxWidgets as a &quot;panel&quot; , i.e. a container
+      for other widgets. Subclasses will override drawContents and decide
+      themselves how to draw the background.
+    * CNxWidgets::CTabPanel:  A new widget contributed by Petteri Aimonen.
+      This widget provides a tab panel, which has a button bar at the top
+      and panels below it. Pressing a button will select the corresponding
+      panel.
 
 uClibc++-1.0 2011-11-05 &lt;gnutt@nuttx.org&gt;
 

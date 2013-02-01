@@ -3440,3 +3440,323 @@ Bugfixes (see the change log for details).  Some of these are very important
     * Applications: Modbus fixes from Freddie Chopin.
 
 As well as other, less critical bugs (see the ChangeLog for details)
+
+NuttX-6.25
+^^^^^^^^^^
+
+The 92nd release of NuttX, Version 6.25, was made on February 1, 2013,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.25.tar.gz and
+apps-6.25.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+This release corresponds with SVN release number: r5594
+
+Note that all SVN information has been stripped from the tarballs.  If you
+need the SVN configuration information, you should check out directly from
+SVN.  Revision r5594 should equivalent to release 6.25 of NuttX:
+
+    svn checkout -r5594 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+
+Or (HTTP):
+
+    svn checkout -r5594 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+
+Additional new features and extended functionality:
+
+    * OS Initialization
+
+      - Removed support for CONFIG_BUILTIN_APP_START.  This is not really a
+        useful feature and creates a violation of the OS layered
+        architecture.
+
+    * Task Creation:
+
+      - Implement a simple vfork().  In NuttX-6.25, this interface is
+        available only for ARM7/9, ARMv7-M (Cortext-M3/4), and MIPS32
+        (PIC32MX) platforms.
+      - exec() now sets the priority of the new task to the same priority as
+        the parent task (instead of the arbirtrary value of 50).
+      - New, partially complient implementations of execv() and execl().
+        These are only partially compliant because they do not overlay any
+        existing "process space" but rather create the new task and exit().
+      - Add a complete implementation of posix_spawn().  This standard
+        interface is a better match for an MMU-less architecture than are
+        vfork() plus execv() or execl().
+      - Add a task start hook that will be called before the task main
+        is started.  This can be used, for example, to schedule C++
+        static constructors to run automatically in the context of the
+        new task.
+
+    * Task Parentage
+
+      - Repartitioned tasking data structures.  All shared resources are now
+        collected together in a "task group".  A task group includes the
+        original task plus all of the pthreads created by the task.
+      - Added support for remember the parent "task group" when a new task is
+        started.
+      - Added optional support to record the membership of each thread in
+        the "task group".
+      - Implement support for retaining child task status in the "task group"
+        after the child task exists.  This is behavior required by POSIX.
+        But in NuttX is only enabled with CONFIG_SCHED_HAVE_PARENT and
+        CONFIG_SCHED_CHILD_STATUS
+      - Add internal logic to "reparent" a task.  This is useful,
+        for example, where the child task is created through a trampoline
+        task that redirects I/O.  Reparenting allows the caller of posix_spawn()
+        to be reparented for the eventual child thread.
+      - Added support for SIGCHLD.  Sent to all members of the parent task
+        group when the file member of the child task group exits.
+      - If SIGCHLD and retention of child task exist status are enabled, then
+        a more spec-compliant version of waitpid() is enabled.
+      - New interfaces waitid() and wait() are also enabled when SIGCHLD
+        is enabled.
+
+    * File System
+ 
+      - dup() and dup2() can new be used with opened files in a mounted file
+        system.  This supports re-direction of output in NSH to files.
+      - The binfs file system was moved from apps/builtin to fs/binfs.  The
+        binfs file system was extended to support execution of "builtin
+        applications" using exec(), execv(), execl(), or posix_spawn().
+      - Added logic based on SIGCHLD to automatically unload and clean-up
+        after running a task that was loaded into memory.
+
+    * Binary Formats
+
+      - Much of the logic for "builtin applications" was moved from
+        apps/builtin to nuttx/binfmt/libbuiltin.  Includes some extensions
+        contributed by Mike Smith.
+      - A binary loader was added for builtin applications to support
+        execution of "builtin applications" using exec(), execv(),
+        execl(), or posix_spawn().
+
+    * Drivers:
+ 
+      - Added logic to marshal and serialized "out-of-band" keyboard
+        commands (such as cursor controls and key release events) intermixed
+        with normal ASCII keypress data.  The encoding is partially integrated
+        in the HID keyboard driver and the decoding full integrated into the
+        apps/examples hidkbd and keypadtest (the latter contributed by Denis
+        Carlikli).
+      - Driver for the UG-2864HSWEG01 OLED contributed by Darcy Gong.
+      - Add support for removable serial devices (like USB serial).  This
+        support is enabled by CONFIG_SERIAL_REMOVABLE.
+
+    * ARMv7-M:
+
+      - Added an option to use the BASEPRI register to disable interrupts
+        (instead of the PRIMASK).  This eliminates some innocuous hardfaults
+        that interfere with some debug tools.  You need to switch to the
+        BASEPRI method only if you have such tool interference.
+
+    * STM32 Drivers
+
+      - Bring STM32 F1 DMA capabilities up to par with the STM32 F2/F4
+        (contributed by Mike Smith).
+      - Add support for USART single wire mode (Contributed by the PX4
+        team).
+      - Updates to support for SPI DMA on the STM32 F1/F2/F4.  From
+        Petteri Aimonen.
+
+    * STM32 Boards:
+
+      - New configuration to support the UG-2864HSWEG01 OLED on the
+        STM32F4Discovery board.
+      - Added a posix_spawn() test configuration for the STM32F4Discovery.
+
+    * LM3S/LM4F
+
+       - Files and directories repartitioned to support both LM3S and LM4F
+         using the STM32 organization as a model.
+       - Partial definitions for the LM4F contributed by Jose Pablo Carballo
+         (this is still a work in progress).
+
+    * LM3S Boards
+ 
+       - Added scripts and documentation to use OpenOCD with the LM3S (from
+         Jose Pablo Carballo).
+
+    * LPC176x/LPC178x
+
+       - Files and directories repartitioned to support both LPC175x/LPC176x
+         and the LPC177x/LPC178x families using the STM32 organization as a
+         model.  The LPC1788 port is a work in progress by Rommel Marcelo.
+
+    * LPC176x/LPC178x Boards:
+
+      - Added a configuration to support the Wave Share Open1788 board.
+        This is still a work in progress by Rommel Marcelo.
+
+    * LPC2148 Boards:
+ 
+      - Add basic support for the The0.net ZP213x/4xPA board (with the LPC2148
+        and the UG_2864AMBAG01 OLED).
+      - Add an nxlines configuration for the ZP213x/4xPA (with the LPC2148
+        and the UG_2864AMBAG01).
+ 
+    * Simulator:
+ 
+      - Add an nxlines configuration for the simulator.
+
+    * Networking:
+
+      - Add logic to work around delayed ACKs by splitting packets
+        (contributed by Yan T.).
+      - Split net_poll() to create the internal interface psock_poll().
+
+    * LCDs:
+
+      - Added support for LCD1602 alphanumeric LCD (HD4468OU controller).
+
+    * Graphics:
+
+      - Added 5x8 monospace font. This tiny font is useful for graph
+        labels and for small bitmapped display.  Contributed by Petteri
+        Aimonen.
+
+    * Build System:
+
+      - Add an options to better manage toolchain prefixes.
+      - Redesigned how the context targer works in the apps/ directory.
+        The old design caused lots of problems when changing configurations
+        because there is no easy way to get the system to rebuild the
+        context.  This change should solve most the problems and eliminate
+        questions like "Why don't I see my builtin application in NSH?"
+
+    * Kconfig Files:
+
+      - There are several new configurations that use the kconfig-frontends
+        tools and several older configurations that have been converted to
+        use these tools.  There is still a long way to go before the conversion
+        is complete:
+
+        configs/sim/nxwm
+        configs/sim/nsh
+        configs/stm3220g-eval/nxwm
+        configs/stm32f4discovery/posix_spawn
+        configs/olimex-lpc1766stk/nsh
+        configs/olimex-lpc1766stk/hidkbd
+        configs/olimex-lpc1766stk/nettest
+        configs/open1788/ostest
+        configs/stm32f4discovery/nsh
+        configs/stm32f4discovery/usbnsh
+        configs/lm326965-ek (all configurations)
+        configs/mcu123-214x/nsh
+        configs/ubw32/ostest
+
+    * Tools:
+
+      - tools/kconfig.bat:  Kludge to run kconfig-frontends from a DOS shell.
+      - tools/configure.c:  configure.c can be used to build a work-alike
+        program as a replacement for configure.sh.  This work-alike
+        program would be used in environments that do not support Bash
+        scripting (such as the Windows native environment).
+      - tools/configure.bat: configure.bat is a small Windows batch
+        file that can be used as a replacement for configure.sh in a
+        Windows native environment.  configure.bat is actually just a
+        thin layer that executes configure.exe if it is available. If
+        configure.exe is not available, then configure.bat will attempt
+        to build it first.
+
+    * Applications:
+
+      - New and modified examples:
+      
+        apps/examples/wlan: Remove non-functional example.
+        apps/examples/ostest: Added a test of vfork(). Extend signal
+          handler test to catch death-of-child signals (SIGCHLD). Add a
+          test for waitpid(), waitid(), and wait().
+        apps/exampes/posix_spawn: Added a test of posix_spawn().
+
+      - NSH:
+
+        NSH now supports re-direction of I/O to files (but still not from).
+        The block driver source argument to the mount command is now
+          optional for file systems that do not require a block driver.
+        NSH can now execute a program from a file system using posix_spawn().
+        Added support for a login script.  The init.d/rcS script will be
+          executed once when NSH starts; the .nshrc script will be executed
+          for each session:  Once for serial, once for each USB connection,
+          once for each Telnet session.
+
+      - Supports a new daemon that can be used to monitor USB trace outpout.
+      - Removed non-functional wlan example.
+
+Bugfixes (see the ChangeLog for details).  Some of these are very important:
+
+    * Tasking:
+
+      - Fixed a *critical* task exit bug.  Here is the failure scenario:
+        (1) sched_lock() is called increments the lockcount on the current
+        TCB (i.e., the one at the head of the ready to run list), (2)
+        sched_mergepending is called which may change the task at the head
+        of the ready-to-run list, then (3) sched_unlock() is called which
+        decrements the lockcount on the wrong TCB.  The failure case that
+        I saw was that pre-emption got disabled in the IDLE thread, locking
+        up the whole system.
+
+    * Signals:
+
+      - sigtimedwait() would return a bad signal number if the signal was
+        already pending when the function was called.
+
+    * Drivers:
+
+      - Some SD cards will appear busy until switched to SPI mode for
+        first time.  Having a pull-up resistor on MISO may avoid this
+        problem, but this fix from Petteri Aimonen makes it work also
+        without pull-up.
+
+    * STM32 Drivers:
+
+      - STM32 FLASH driver counting error (from Freddie Chopin).
+      - STM32 F4 maximum SPI frequency was wrong (corrected by Petteri
+        Aimonen).
+
+    * STM32 Boards
+
+      - Due to cloning of untested code, the logic to control on-board
+        LEDs did not work on any STM32 boards.
+      - Serial devices number /dev/ttyS0-5 is there is a serial console,
+        but /dev/ttyS1-6 if there is no serial console.
+
+    * Binary Formats
+
+      - C++ static constructors execute now using a start taskhook
+        so that they execute in the context of the child task (instead
+        of in the context of the parent task).
+
+    * File Systems:
+
+      - Several FAT-related bugs fixed by Petteri Aimonen.
+
+    * Networking:
+
+      - Fix poll/select issure reported by Qiang: poll_interrupt() must call
+        net_lostconnection() when a loss of connection is reported.  Otherwise,
+        the system will not remember that the connection has been lost and will
+        hang waiting on a unconnected socket later.
+      - Similar issues corrected for recvfrom() and send().
+      - Telnetd would hang in a loop if recv() ever returned a value <= 0.
+
+    * Libraries:
+
+      - fread() could hang on certain error conditions.
+      - Can't handle SYSLOG output to a character device from  the IDLE task
+        (because the IDLE task can't block). 
+
+    * Build System:
+
+      - Serial was driver was not being built if there is no console
+        device.  Obviously, the serial driver may be needed even in
+        this case.
+
+    * Additional Bugfixes:
+
+      - sig_timedwait() and clock_time2ticks.c: Timing "rounding" logic
+      - ARM9 Compilation issue with low vectors.
+      - readline() return value
+      - Others as detailed in the ChangeLog: HID keyboard, LPC17xx bit
+        definitions, strndup(), PL2303, SYSLOG error handling, AT25,
+        apps/examples.

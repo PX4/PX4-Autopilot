@@ -144,3 +144,46 @@ Bugfixes (see the change log for details).  Some of these are very important
 * NxWidgets:CText and NxWidgets:CNumericEdite:  Fix some memory freeing bugs
 * NxWidgets::CScrollingPanel:  It is borderless for now because there was no
   easy way to redraw only the required part of the border.
+
+NxWidgets-1.5
+=============
+
+The 6th release of the NxWidgets package was made on February 1, 2013.  This
+release depends on NuttX-6.25 or above and should not be used with older
+NuttX releases.  This release corresponds to SVN revision r5594.
+
+Note: Nearly all of the changes between 1.4 and 1.5 were the result of the
+efforts of Petteri Aimonen.
+
+Additional new features and extended functionality in Version 1.5:
+
+* CNxWidgets::CTabPanel:  A new widget contributed by Petteri Aimonen.
+  This widget provides a tab panel, which has a button bar at the top
+  and panels below it. Pressing a button will select the corresponding
+  panel.
+* NxWidgets::CGraphicsPort: Many times we only want a constant background.
+  In that case the old code filled the background, read it back, rendered
+  the text and then wrote it back. When used with an LCD this causes
+  some screen flicker. Added a variant of drawText that takes background
+  color, so that the background and text can both be rendered at one go.
+* NxWM::CScrollingPanel::scrollChildren(): Avoid unnecessary redraws in
+  CScrollingPanel
+* Kconfig: Added several "enabling" settings that must be selected to
+  override the default setting. 
+* UnitTests:  Changes for compatibility with NuttX-6.25
+
+Bugfixes:
+
+* NxWidgets::CGraphicsPort::move():  Fix typo bug in bounding rectangle
+  calculation.
+* NxWM::CCycleButton:  Remove the separator from CCycleButton. It draws in
+  wrong place, and doesn't look very good in the correct place either.
+* NxWidgets::CLabel: The label was drawn as a single rectangular region,
+  then a text was added to the on top of this.  The result is that the
+  text would flicker when the CLabel was updated. With this change, the
+  two step update is replaced with a five step update:  The background
+  is updated as four rectangulear regions (leaving the previous text in
+  place), then the new text is updated.  This eliminates the flicker.
+* CGraphicsPort::_drawText:  Renamed from CGraphicsPort::drawText in order
+  to eliminate some naming collisions when overloaded in some configurations
+  (i.e., when both bool and nx_pixel_t are uint8_t).

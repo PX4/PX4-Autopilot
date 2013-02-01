@@ -219,7 +219,7 @@
 * NxWidgets::CNxWidgets and NxWM::CStartWindow: Small changes to make sub-
   classing easier (from Petteri Aimonen).
 
-1.5 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+1.5 2013-02-01 Gregory Nutt <gnutt@nuttx.org>
 
 * NxWidgets::CGraphicsPort::move():  Fix typo bug in bounding rectangle
   calculation (from Petteri Aimonen).
@@ -266,3 +266,5 @@
   This widget provides a tab panel, which has a button bar at the top
   and panels below it. Pressing a button will select the corresponding
   panel.
+
+1.6 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>

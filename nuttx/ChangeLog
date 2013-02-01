@@ -3800,7 +3800,7 @@
 	* configs/stm32f4discovery/elf:  Enable support/test of the PATH
 	  to find executables using a relative path.
 
-6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.25 2013-02-01 Gregory Nutt <gnutt@nuttx.org>
 
 	* graphics/: Adds 5x8 monospace font. This tiny font is useful for graph
 	  labels and for small bitmapped display.  Contributed by Petteri
@@ -3833,7 +3833,7 @@
 	* drivers/usbhost/usbhost_hidkbd.c:  Correct a logic error in how
 	  tasks waiting for read data are awakened.
 	* libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Now handles keypress
-	  events too.  However, the USB HID keyboard drier has not yet been
+	  events too.  However, the USB HID keyboard driver has not yet been
 	  updated to detect key release events.  That is kind of tricky in
 	  the USB HID keyboard report data.
 	* configs/mcu123-214x/nsh:  Converted to use the kconfig-frontends
@@ -3857,7 +3857,7 @@
 	  buildroot toolchains:  They may be EABI or OABI.
 	* include/nuttx/progmem and arch/arm/src/stm32/stm32_flash.c:
 	  Fix a counting bug plus change interface to use either relative
-	  or absolut FLASH addressing (from Freddie Chopin).
+	  or absolute FLASH addressing (from Freddie Chopin).
 	* libc/misc/Make.defs:  Fix error in conditional for KBD CODEC.
 	* libc/Kconfig and configs/*/defconfig (several):  The default
 	  setting should be CONFIG_LIB_KBDCODEC=n
@@ -3868,7 +3868,7 @@
 	* tools/configure.bat: configure.bat is a small Windows batch
 	  file that can be used as a replacement for configure.sh in a
 	  Windows native environment.  configure.bat is actually just a
-	  thin layer that execuates configure.exe if it is available. If
+	  thin layer that executes configure.exe if it is available. If
 	  configure.exe is not available, then configure.bat will attempt
 	  to build it first.
 	* arch/arm/src/lpc17xx/lpc17_syscon.h:  Correct some typos in bit
@@ -3918,12 +3918,12 @@
 	  the scenario: (1) sched_lock() is called increments the lockcount
 	  on the current TCB (i.e., the one at the head of the ready to run
 	  list), (2) sched_mergepending is called which may change the task
-	  at the head of the readytorun list, then (2) sched_unlock() is called
+	  at the head of the ready-to-run list, then (3) sched_unlock() is called
 	  which decrements the lockcount on the wrong TCB.  The failure case
 	  that I saw was that pre-emption got disabled in the IDLE thread,
 	  locking up the whole system.
 	* sched/sched_waitpid.c:  Use SIGCHLD instead of a semaphore.  This
-	  is a much more spec-compliant implemenation.  However, there are
+	  is a much more spec-compliant implementation.  However, there are
 	  some issues with overruning signals because NuttX does not support
 	  queueing of signals (POSIX does not require it).  I think it may
 	  need to.
@@ -3959,7 +3959,7 @@
 	  CONFIG_APPS_BINDIR rename CONFIG_FS_BINFS
 	* include/nuttx/binfmt/builtin.h:  Some of the content of
 	  apps/include/apps.h moved to include/nuttx/binfmt/builtin.h
-	* binfmt/libbuiltin/libbuiltin_utils.c:  Move utility builtin
+	* binfmt/libbuiltin/libbuiltin_utils.c:  Move builtin
 	  utility functions from apps/builtin/exec_builtins.c to
 	  binfmt/libbuiltin/libbuiltin_utils.c
 	* binfmt/builtin.c and binfmt/libbuiltin:  Add a binary "loader"
@@ -3985,7 +3985,7 @@
 	* arch/arm/src/[many]: More LPC1788 definitions from Rommel
 	  Marcelo incorporated.
 	* configs/open1788:  Board configuration for the Wave Share
-	  Open1788 board.  Still fragmentary (contribnuted by Rommel
+	  Open1788 board.  Still fragmentary (contributed by Rommel
 	  Marcelo, adapted to use kconfig-frontends.
 	* net/send():  Add logic to work around delayed ACKs by splitting
 	  packets (contributed by Yan T.).
@@ -4011,7 +4011,7 @@
 	* arch/armv7-m/up_hardfault.c:  Fail if a hardfault occurs
 	  while CONFIG_ARM7VM_USEBASEPRI=y.
 	* arch/arm/src/stm32/stm32_serial.c:  Add support for USART
-	  single wire more (Contributed by the PX4 team).
+	  single wire mode (Contributed by the PX4 team).
 	* sched/: Implement support for retaining child task status after
 	  the child task exists.  This is behavior required by POSIX.
 	  But in NuttX is only enabled with CONFIG_SCHED_HAVE_PARENT and
@@ -4022,7 +4022,7 @@
 	  use the kconfig-frontends tools.
 	* net/net_poll.c:  Split net_poll() to create psock_poll() too.
 	* net/net_poll.c:  Fix poll/select issure reported by Qiang:
-	  poll_interrupt() must cat call net_lostconnection() when a
+	  poll_interrupt() must call net_lostconnection() when a
 	  loss of connection is reported.  Otherwise, the system will
 	  not know that the connection has been lost.
 	* sched/group_create.c, group_join.c, and group_leave.c:  Add
@@ -4051,7 +4051,7 @@
 	* configs/stm32f4discovery/nsh: Converted to use the kconfig-frontends
 	  tools.
 	* configs/*/src/up_userleds.c: Fix a error that was cloned into
-	  all STM32 user LED code.  The wrong defintions were being used
+	  all STM32 user LED code.  The wrong definitions were being used
 	  to set LEDs on or off.
 	* arch/*/common/up_internal.h and arch/*/common/up_initialize.c:
 	  Serial was driver was not being built if there is no console
@@ -4072,8 +4072,7 @@
 	* drivers/serial/serial.c, include/nuttx/serial/serial.h,
 	  drivers/usbdev/cdcacm.c, and drivers/pl2303.c: Add support for
 	  removable serial devices (like USB serial).  This support is enabled
-	  by CONFIG_SERIAL_REMOVABLE and requires VBUS sensing support from
-	  the board-specific logic.
+	  by CONFIG_SERIAL_REMOVABLE.
 	* arch/*/src/*/Toolchain.defs: Change assignment so that we can
 	  override CROSSDEV with a make command line argument.
 	* include/assert.h:  Mark assertion functions as non-returning.
@@ -4096,3 +4095,5 @@
 	* arch/arm/src/stm32/stm32_spi.c: Fixes for SPI DMA work on the
 	  STM32F4. Includes untested additions for the F1 implementation as
 	  well.  From Petteri Aimonen.
+
+6.26 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
