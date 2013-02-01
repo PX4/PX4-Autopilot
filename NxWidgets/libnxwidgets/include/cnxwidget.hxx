@@ -222,7 +222,7 @@ namespace NXWidgets
      * @see redraw().
      */
 
-    virtual inline void drawContents(CGraphicsPort* port) { }
+    virtual void drawContents(CGraphicsPort* port);
 
     /**
      * Draw the area of this widget that falls within the clipping region.

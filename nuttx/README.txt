@@ -533,6 +533,12 @@ NuttX Buildroot Toolchain
   an ARM Cortex-M3/4, you will need to set CONFIG_ARMV7M_OABI_TOOLCHAIN
   in the .config file in order to pick the right tool prefix.
 
+  If the make system ever picks the wrong prefix for your toolchain, you
+  can always specify the prefix on the command to override the default
+  like:
+
+    make CROSSDEV=arm-nuttx-elf
+
 SHELLS
 ^^^^^^
 

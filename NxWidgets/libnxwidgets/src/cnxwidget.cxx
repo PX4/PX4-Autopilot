@@ -1444,6 +1444,20 @@ void CNxWidget::useWidgetStyle(const CWidgetStyle *style)
 }
 
 /**
+ * Draw the area of this widget that falls within the clipping region.
+ * Called by the redraw() function to draw all visible regions.
+ *
+ * @param port The CGraphicsPort to draw to.
+ * @see redraw().
+ */
+
+void CNxWidget::drawContents(CGraphicsPort* port)
+{
+  port->drawFilledRect(getX(), getY(), getWidth(), getHeight(),
+                       getBackgroundColor());
+}
+
+/**
  * Draw all visible regions of this widget's children.
  */
 

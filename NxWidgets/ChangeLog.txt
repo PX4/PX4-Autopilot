@@ -252,3 +252,14 @@
   around this, I added several "enabling" settings to override the
   default setting.  This is awkward and I preferred the configuration as
   it was before, but this avoids the mconf errors and warnings.
+* UnitTests:  Changed occurrences of lib_rawprintf() and lib_lowprintf()
+  to match recent changes to NuttX (will be in NuttX-6.25)
+* CGraphicsPort::_drawText:  Renamed from CGraphicsPort::drawText in order
+  to eliminate some naming collisions when overloaded in some configurations
+  (i.e., when both bool and nx_pixel_t are uint8_t).  From Petteri Aimonen.
+* CNxWidgets::drawContents: Change base drawContents from a do-nothing
+  function to a function that fills the widget with the background color.
+  This is useful when using CNxWidgets as a "panel" , i.e. a container
+  for other widgets. Subclasses will override drawContents and decide
+  themselves how to draw the background.
+* CNxWidgets::CTabPanel:  A new widget contributed by Petteri Aimonen.

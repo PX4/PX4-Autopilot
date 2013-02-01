@@ -123,9 +123,10 @@ namespace NXWidgets
      * @param background Color to use for background if transparent is false.
      * @param transparent Whether to fill the background.
      */
-    void drawText(struct nxgl_point_s *pos, CRect *bound, CNxFont *font,
-                  const CNxString &string, int startIndex, int length,
-                  nxgl_mxpixel_t background, bool transparent);
+
+    void _drawText(struct nxgl_point_s *pos, CRect *bound, CNxFont *font,
+                   const CNxString &string, int startIndex, int length,
+                   nxgl_mxpixel_t background, bool transparent);
 
   public:
     /**

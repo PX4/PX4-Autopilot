@@ -604,7 +604,7 @@ void CGraphicsPort::drawBitmapGreyScale(nxgl_coord_t x, nxgl_coord_t y,
 void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
                              CNxFont *font, const CNxString &string)
 {
-  drawText(pos, bound, font, string, 0, string.getLength());
+  _drawText(pos, bound, font, string, 0, string.getLength(), 0, true);
 }
 
 /**
@@ -632,7 +632,7 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
 
   // Draw the string with this new color
 
-  drawText(pos, bound, font, string, startIndex, length);
+  _drawText(pos, bound, font, string, startIndex, length, 0, true);
 
   // Restore the font color
 
@@ -654,7 +654,7 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
                              CNxFont *font, const CNxString &string,
                              int startIndex, int length)
 {
-  drawText(pos, bound, font, string, startIndex, length, 0, true);
+  _drawText(pos, bound, font, string, startIndex, length, 0, true);
 }
 
 /**
@@ -680,7 +680,7 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
   nxgl_mxpixel_t savedColor = font->getColor();
   font->setColor(color);
   
-  drawText(pos, bound, font, string, startIndex, length, background, false);
+  _drawText(pos, bound, font, string, startIndex, length, background, false);
   
   font->setColor(savedColor);
 }
@@ -697,11 +697,12 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
  * @param background Color to use for background if transparent is false.
  * @param transparent Whether to fill the background.
  */
-void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
-                             CNxFont *font, const CNxString &string,
-                             int startIndex, int length,
-                             nxgl_mxpixel_t background,
-                             bool transparent)
+
+void CGraphicsPort::_drawText(struct nxgl_point_s *pos, CRect *bound,
+                              CNxFont *font, const CNxString &string,
+                              int startIndex, int length,
+                              nxgl_mxpixel_t background,
+                              bool transparent)
 {
   // Verify index and length
 

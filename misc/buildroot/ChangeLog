@@ -128,3 +128,6 @@ buildroot-1.11 2011-11-05 <gnutt@nuttx.org>
 	  logic.  There are lots of issues that I still do not understand here.
 
 buildroot-1.12 2011-xx-xx <gnutt@nuttx.org>
+
+	* Fix typo toolchain/gdb/Config.in that prevented GDB 7.4 from building
+	  (from Ken Bannister).
