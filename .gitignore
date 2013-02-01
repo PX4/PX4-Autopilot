@@ -43,7 +43,6 @@ nuttx/nuttx.hex
 .settings
 Firmware.sublime-workspace
 .DS_Store
-nsh_romfsimg.h
 cscope.out
 .configX-e
 nuttx-export.zip
