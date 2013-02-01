@@ -4078,4 +4078,21 @@
 	  override CROSSDEV with a make command line argument.
 	* include/assert.h:  Mark assertion functions as non-returning.
 	* arch/*/src/*/up_assert.h:  Mark _up_assert() as non-returning.
-
+	* drivers/mtd/at25.c: When the AT25 device was not available the
+	  initialization did not fail like it should. From Petteri Aimonen.
+	* fs/fat/fs_configfat.c:  Fix some errors in FAT formatting logic
+	  for large devices and for FAT32. From Petteri Aimonen.
+	* fs/fat/fs_fat32util.c:  Fix an initialization error found by
+	  Petteri Aimonen.  freecount and next freecount initialization were
+	  reversed.
+	* drivers/mmcsd/mmcsd_spi.c: Some SD cards will appear busy until
+	  switched to SPI mode for first time.  Having a pull-up resistor on
+	  MISO may avoid this problem, but this patch makes it work also
+	  without pull-up.  From Petteri Aimonen.
+	* fs/fat/fs_fat32.c: Fix a compilation error when FAT_DMAMEMORY=y. 
+	  From Petteri Aimonen.
+	* arch/arm/src/stm32/chip/stm32_spi.h: STM32F4 max SPI clock freq is
+	  37.5 MHz.  Patch from Petteri Aimonen.
+	* arch/arm/src/stm32/stm32_spi.c: Fixes for SPI DMA work on the
+	  STM32F4. Includes untested additions for the F1 implementation as
+	  well.  From Petteri Aimonen.

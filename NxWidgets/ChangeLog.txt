@@ -263,3 +263,6 @@
   for other widgets. Subclasses will override drawContents and decide
   themselves how to draw the background.
 * CNxWidgets::CTabPanel:  A new widget contributed by Petteri Aimonen.
+  This widget provides a tab panel, which has a button bar at the top
+  and panels below it. Pressing a button will select the corresponding
+  panel.
