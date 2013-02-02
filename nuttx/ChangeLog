@@ -4097,3 +4097,6 @@
 	  well.  From Petteri Aimonen.
 
 6.26 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* drivers/serial/serial.c:  Correct some race conditions when checking
+	  for disconnection of a removable serial device.
