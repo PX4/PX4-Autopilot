@@ -44,19 +44,34 @@
 /* Extended Kalman Filter covariances */
 
 /* controller parameters */
-PARAM_DEFINE_FLOAT(MC_POS_P, 0.2f);
+PARAM_DEFINE_FLOAT(MFPC_POS_P, 0.08f);
+PARAM_DEFINE_FLOAT(MFPC_POS_D, 0.00f);
+PARAM_DEFINE_FLOAT(MFPC_POS_SP_X, 0.0f);
+PARAM_DEFINE_FLOAT(MFPC_POS_SP_Y, 0.0f);
+PARAM_DEFINE_FLOAT(MFPC_H_P, 0.1f);
+PARAM_DEFINE_FLOAT(MFPC_H_SP, -1.0f);
 
-int parameters_init(struct multirotor_position_control_param_handles *h)
+int parameters_init(struct multirotor_position_control_flow_param_handles *h)
 {
 	/* PID parameters */
-	h->p 	=	param_find("MC_POS_P");
+	h->pos_p	 	=	param_find("MFPC_POS_P");
+	h->pos_d 		=	param_find("MFPC_POS_D");
+	h->pos_sp_x 	=	param_find("MFPC_POS_SP_X");
+	h->pos_sp_y 	=	param_find("MFPC_POS_SP_Y");
+	h->height_p 	=	param_find("MFPC_H_P");
+	h->height_sp 	=	param_find("MFPC_H_SP");
 
 	return OK;
 }
 
-int parameters_update(const struct multirotor_position_control_param_handles *h, struct multirotor_position_control_params *p)
+int parameters_update(const struct multirotor_position_control_flow_param_handles *h, struct multirotor_position_control_flow_params *p)
 {
-	param_get(h->p, &(p->p));
+	param_get(h->pos_p, &(p->pos_p));
+	param_get(h->pos_d, &(p->pos_d));
+	param_get(h->pos_sp_x, &(p->pos_sp_x));
+	param_get(h->pos_sp_y, &(p->pos_sp_y));
+	param_get(h->height_p, &(p->height_p));
+	param_get(h->height_sp, &(p->height_sp));
 
 	return OK;
 }

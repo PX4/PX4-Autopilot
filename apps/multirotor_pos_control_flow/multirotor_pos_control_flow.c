@@ -52,7 +52,7 @@
 #include <sys/prctl.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -61,6 +61,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/perf_counter.h>
 #include <poll.h>
 
 #include "multirotor_pos_control_flow_params.h"
@@ -159,237 +160,142 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	struct manual_control_setpoint_s manual;
 	struct vehicle_local_position_s local_pos;
 
+
+
 	struct vehicle_attitude_setpoint_s att_sp;
 
 	/* subscribe to attitude, motor setpoints and system state */
+	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	int vehicle_local_position_setpoint_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 
+	/* polling */
+	struct pollfd fds[2] = {
+				{ .fd = vehicle_local_position_sub, .events = POLLIN }, // positions from estimator
+				{ .fd = parameter_update_sub,   .events = POLLIN },
+			};
+
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
-	struct multirotor_position_control_params p;
-	struct multirotor_position_control_param_handles h;
-	parameters_init(&h);
-	parameters_update(&h, &p);
+	/* limits */
+	float pitch_limit = 0.33f;
+	float roll_limit = 0.33f;
+	float thrust_limit_upper = 0.5f;
+	float thrust_limit_lower = 0.1f;
+
+	/* register the perf counter */
+	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control_runtime");
+	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "multirotor_att_control_interval");
+	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_att_control_err");
+
+	struct multirotor_position_control_flow_params params;
+	struct multirotor_position_control_flow_param_handles param_handles;
+	parameters_init(&param_handles);
 
 	printf("[multirotor flow position control] initialized\n");
 
 	while (!thread_should_exit) {
 
-		/*This runs at the rate of the flow sensors */
-		struct pollfd fds[1] = { {.fd = vehicle_local_position_sub, .events = POLLIN} };
+		/* wait for a position update, check for exit condition every 500 ms */
+		int ret = poll(fds, 2, 500);
 
-		if (poll(fds, 1, 5000) <= 0) {
+		if (ret < 0) {
+			/* poll error, count it in perf */
+			perf_count(mc_err_perf);
+
+		} else if (ret == 0) {
+			/* no return value, ignore */
 			printf("[multirotor flow position estimator] no local position updates");
 		} else {
 
-			/* get a local copy of the vehicle state */
-			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-			/* get a local copy of manual setpoint */
-			orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
-			/* get a local copy of attitude */
-			orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
-			/* get a local copy of local position */
-			orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
-			/* get a local copy of local position setpoint */
-			orb_copy(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_setpoint_sub, &local_pos_sp);
+			if (fds[1].revents & POLLIN){
+				/* read from param to clear updated flag */
+				struct parameter_update_s update;
+				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
 
-			if (loopcounter == 500) {
-				parameters_update(&h, &p);
-				loopcounter = 0;
+				parameters_update(&param_handles, &params);
+				printf("[multirotor flow position control] parameters updated.");
 			}
 
-			//if (state.state_machine == SYSTEM_STATE_AUTO) {
+			/* only run controller if position changed */
+			if (fds[0].revents & POLLIN) {
+				/* get a local copy of the vehicle state */
+				orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+				/* get a local copy of manual setpoint */
+				orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
+				/* get a local copy of attitude */
+				orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+				/* get a local copy of local position */
+				orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
+				/* get a local copy of local position setpoint */
+				orb_copy(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_setpoint_sub, &local_pos_sp);
 
-				float x_setpoint = 0.0f;
-				float y_setpoint = 0.0f;
+				//if (state.state_machine == SYSTEM_STATE_AUTO) {
 
-				// XXX enable switching between Vicon and local position estimate
-				/* local pos is the Vicon position */
+//					att_sp.pitch_body = (local_pos.x - x_setpoint) * p.p - local_pos.vx * p.d;
+//					att_sp.roll_body = (local_pos.y - y_setpoint) * p.p - local_pos.vy * p.d;
+//					att_sp.pitch_body = local_pos.vx * 1;
+//					att_sp.roll_body =  - local_pos.vy * 1;
+					float pitch_body = (local_pos.x - params.pos_sp_x) * params.pos_p + local_pos.vx * params.pos_d;
+					float roll_body = (local_pos.y - params.pos_sp_y) * params.pos_p - local_pos.vy * params.pos_d;
+					float thrust = (local_pos.z - params.height_sp) * params.height_p;
 
-				// XXX just an example, lacks rotation around world-body transformation
-//				att_sp.pitch_body = (local_pos.x - x_setpoint) * p.p - local_pos.vx * p.d;
-//				att_sp.roll_body = (local_pos.y - y_setpoint) * p.p - local_pos.vy * p.d;
-//				att_sp.pitch_body = local_pos.vx * 1;
-//				att_sp.roll_body =  - local_pos.vy * 1;
-				att_sp.pitch_body = (local_pos.x - x_setpoint) * 10 + local_pos.vx * 20;
-				att_sp.roll_body = (local_pos.y - y_setpoint) * 10 - local_pos.vy * 20;
+					if((roll_body <= roll_limit) && (roll_body >= -roll_limit)){
+						att_sp.roll_body = roll_body;
+					} else {
+						if(roll_body > roll_limit){
+							att_sp.roll_body = roll_limit;
+						}
+						if(roll_body < -roll_limit){
+							att_sp.roll_body = -roll_limit;
+						}
+					}
+					if((pitch_body <= pitch_limit) && (pitch_body >= -pitch_limit)){
+						att_sp.pitch_body = pitch_body;
+					} else {
+						if(pitch_body > pitch_limit){
+							att_sp.pitch_body = pitch_limit;
+						}
+						if(pitch_body < -pitch_limit){
+							att_sp.pitch_body = -pitch_limit;
+						}
+					}
 
-				if(counter % 1 == 0) {
-					printf("pos setpoint: %.3f, %.3f", att_sp.pitch_body, att_sp.roll_body);
-				}
+					float height_ctrl_thrust_feedforward = 0.65f; // FIXME
+					float height_ctrl_thrust = height_ctrl_thrust_feedforward + thrust;
 
-				att_sp.yaw_body = 0.0f;
-				att_sp.thrust = 0.3f;
-				att_sp.timestamp = hrt_absolute_time();
+					/* the throttle stick on the rc control limits the maximum thrust */
+					thrust_limit_upper = manual.throttle;
+					if (height_ctrl_thrust >= thrust_limit_upper){
+						att_sp.thrust = thrust_limit_upper;
+					/* never go too low with the thrust that it becomes uncontrollable */
+					}else if(height_ctrl_thrust < thrust_limit_lower){
+						att_sp.thrust = thrust_limit_lower;
+					}
 
-				/* publish new attitude setpoint */
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+					if(loopcounter % 500 == 0) {
+						printf("pos setpoint: %.3f, %.3f", att_sp.pitch_body, att_sp.roll_body);
+					}
 
-			//}
+					/* do not control yaw */
+					att_sp.yaw_body = 0.0f;
+					att_sp.timestamp = hrt_absolute_time();
 
+					/* publish new attitude setpoint */
+					orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+
+				//}
+			}
 		}
 
 		/* run at approximately 50 Hz */
-		usleep(20000);
+//		usleep(20000);
 		loopcounter++;
 		counter++;
 	}
-
-	printf("[multirotor flow position control] ending now...\n");
-	thread_running = false;
-
-	fflush(stdout);
-	return 0;
-
-
-//	/* welcome user */
-//	printf("[multirotor flow position control] Control started, taking over position control\n");
-//
-//	/* variables */
-//	static const int8_t rotM_flow_sensor[3][3] =   {{ 0,-1, 0 },
-//													{ 1, 0, 0 },
-//													{ 0, 0, 1 }};
-//	static float speed[3] = {0.0f, 0.0f, 0.0f}; // x,y
-//	static float flow_speed[3] = {0.0f, 0.0f, 0.0f};
-//	static uint64_t time_last_flow = 0; // in ms
-//	static float dt = 0; // seconds
-//	static float time_scale = pow(10,-6);
-//
-//	/* structures */
-//	struct vehicle_status_s state;
-//	struct vehicle_attitude_s att;
-//	struct vehicle_local_position_setpoint_s local_pos_sp;
-////	struct vehicle_vicon_position_s local_pos;
-//	struct manual_control_setpoint_s manual;
-//	struct vehicle_attitude_setpoint_s att_sp;
-//	struct optical_flow_s flow;
-//	struct vehicle_local_position_s local_pos = {
-//		.x = 0,
-//		.y = 0,
-//		.z = 0
-//	};
-//
-//	/* subscribe to attitude, motor setpoints and system state */
-//	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-//	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
-//	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-////	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-//	int local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-//	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
-//
-//	/* publish attitude setpoint */
-//	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
-//
-//	thread_running = true;
-//
-//	int loopcounter = 0;
-//	int counter = 0;
-//
-//	struct multirotor_position_control_params p;
-//	struct multirotor_position_control_param_handles h;
-//	parameters_init(&h);
-//	parameters_update(&h, &p);
-//
-//	printf("[multirotor flow position control] initialized\n");
-//
-//	while (!thread_should_exit) {
-//
-//		/* get a local copy of the vehicle state */
-//		orb_copy(ORB_ID(vehicle_status), state_sub, &state);
-//		/* get a local copy of manual setpoint */
-//		orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
-//		/* get a local copy of attitude */
-//		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
-//		/* get a local copy of local position */
-////		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
-//		/* get a local copy of local position setpoint */
-//		orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
-//		/* get a local copy of optical flow */
-//		orb_copy(ORB_ID(vehicle_local_position_setpoint), optical_flow_sub, &flow);
-//
-////		if (loopcounter == 500) {
-////			parameters_update(&h, &p);
-////			loopcounter = 0;
-////		}
-//
-//		/*copy flow */
-//		flow_speed[0] = flow.flow_comp_x_m;
-//		flow_speed[1] = flow.flow_comp_y_m;
-//		flow_speed[2] = 0.0f;
-//
-//		/* ignore first flow msg */
-//		if(time_last_flow == 0)
-//		{
-//			time_last_flow = flow.timestamp;
-//			continue;
-//		}
-//
-//		/* calc dt */
-//		dt = (float)(flow.timestamp - time_last_flow) * time_scale ;
-//		time_last_flow = flow.timestamp;
-//
-//		/* convert to global velocity */
-//		for(uint8_t i = 0; i < 3; i++) {
-//			float sum = 0.0f;
-//			for(uint8_t j = 0; j < 3; j++) {
-//				sum = sum + flow_speed[j] * rotM_flow_sensor[j][i];
-//			}
-//			speed[i] = sum;
-//		}
-//
-//		local_pos.x = local_pos.x + speed[0] * dt;
-//		local_pos.y = local_pos.y + speed[1] * dt;
-//
-//			//if (state.state_machine == SYSTEM_STATE_AUTO) {
-//
-//				// XXX IMPLEMENT POSITION CONTROL HERE
-//
-//				//float dT = 1.0f / 50.0f;
-//
-//				float x_setpoint = 0.0f;
-//				float y_setpoint = 0.0f;
-//
-//				// XXX enable switching between Vicon and local position estimate
-//				/* local pos is the Vicon position */
-//
-//				// XXX just an example, lacks rotation around world-body transformation
-////				att_sp.pitch_body = (local_pos.x - x_setpoint) * p.p - speed[0] * p.d;
-////				att_sp.roll_body = (local_pos.y - y_setpoint) * p.p - speed[1] * p.d;
-//				att_sp.pitch_body = (local_pos.x - x_setpoint) * 1;// - speed[0] * p.d;
-//				att_sp.roll_body = (local_pos.y - y_setpoint) * 1;// - speed[1] * p.d;
-//
-//				if(counter % 10000 == 0) {
-//					printf("pos setpoint: %.3f, %.3f", flow.flow_comp_x_m, flow.flow_comp_y_m);
-//				}
-//
-////				att_sp.yaw_body = 0.0f;
-////				att_sp.thrust = 0.3f;
-////				att_sp.timestamp = hrt_absolute_time();
-//
-//				/* publish new attitude setpoint */
-////				orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-//			// } else if (state.state_machine == SYSTEM_STATE_STABILIZED) {
-//				/* set setpoint to current position */
-//				// XXX select pos reset channel on remote
-//				/* reset setpoint to current position  (position hold) */
-//				// if (1 == 2) {
-//				// 	local_pos_sp.x = local_pos.x;
-//				// 	local_pos_sp.y = local_pos.y;
-//				// 	local_pos_sp.z = local_pos.z;
-//				// 	local_pos_sp.yaw = att.yaw;
-//				// }
-//			//}
-//
-//			/* run at approximately 50 Hz */
-//			usleep(2000000);
-//			loopcounter++;
-//			counter++;
-//
-//	}
 
 	printf("[multirotor flow position control] ending now...\n");
 

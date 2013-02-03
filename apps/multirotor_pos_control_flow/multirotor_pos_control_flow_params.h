@@ -41,26 +41,32 @@
 
 #include <systemlib/param/param.h>
 
-struct multirotor_position_control_params {
-	float p;
-	float i;
-	float d;
+struct multirotor_position_control_flow_params {
+	float pos_p;
+	float pos_d;
+	float pos_sp_x;
+	float pos_sp_y;
+	float height_p;
+	float height_sp;
 };
 
-struct multirotor_position_control_param_handles {
-	param_t p;
-	param_t i;
-	param_t d;
+struct multirotor_position_control_flow_param_handles {
+	float pos_p;
+	float pos_d;
+	float pos_sp_x;
+	float pos_sp_y;
+	float height_p;
+	float height_sp;
 };
 
 /**
  * Initialize all parameter handles and values
  *
  */
-int parameters_init(struct multirotor_position_control_param_handles *h);
+int parameters_init(struct multirotor_position_control_flow_param_handles *h);
 
 /**
  * Update all parameters
  *
  */
-int parameters_update(const struct multirotor_position_control_param_handles *h, struct multirotor_position_control_params *p);
+int parameters_update(const struct multirotor_position_control_flow_param_handles *h, struct multirotor_position_control_flow_params *p);

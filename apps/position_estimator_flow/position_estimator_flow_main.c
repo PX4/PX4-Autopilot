@@ -222,6 +222,7 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 //			local_pos.y = local_pos.y + global_speed[1] * dt;
 			local_pos.x = local_pos.x + speed[0] * dt;
 			local_pos.y = local_pos.y + speed[1] * dt;
+			local_pos.z = - flow.ground_distance_m;
 
 			local_pos.vx = speed[0];
 			local_pos.vy = speed[1];
