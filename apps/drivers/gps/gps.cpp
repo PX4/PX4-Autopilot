@@ -107,30 +107,29 @@ public:
 
 private:
 
-	int					_task_should_exit;
-	int					_serial_fd;		///< serial interface to GPS
+	int				_task_should_exit;
+	int				_serial_fd;					///< serial interface to GPS
 	unsigned			_baudrate;
 	unsigned			_baudrates_to_try[NUMBER_OF_BAUDRATES];
 	uint8_t				_send_buffer[SEND_BUFFER_LENGTH];
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
-	volatile int		_task;		///< worker task
+	perf_counter_t			_sample_perf;
+	perf_counter_t			_comms_errors;
+	perf_counter_t			_buffer_overflows;
+	volatile int			_task;						///< worker task
 
 	bool				_response_received;
 	bool				_config_needed;
 	bool 				_baudrate_changed;
 	bool				_mode_changed;
 	bool				_healthy;
-	gps_driver_mode_t	_mode;
+	gps_driver_mode_t		_mode;
 	unsigned 			_messages_received;
+	float				_rate;						///< position update rate
 
-	GPS_Helper			*_Helper;	///< Class for either UBX, MTK or NMEA helper
+	GPS_Helper			*_Helper;					///< class for either UBX, MTK or NMEA helper
 
-	struct vehicle_gps_position_s _report;
-	orb_advert_t		_report_pub;
-
-	orb_advert_t		_gps_topic;
+	struct vehicle_gps_position_s	_report;					///< the current GPS report
+	orb_advert_t			_report_pub;					///< the publication topic, only valid on first valid GPS module message
 
 	void				recv();
 
@@ -140,16 +139,19 @@ private:
 
 
 	/**
-	 * worker task
+	 * Worker task.
 	 */
-	void			task_main(void);
+	void				task_main(void);
 
-	int			set_baudrate(unsigned baud);
+	/**
+	 * Set the module baud rate
+	 */
+	int				set_baudrate(unsigned baud);
 
 	/**
 	 * Send a reset command to the GPS
 	 */
-	void			cmd_reset();
+	void				cmd_reset();
 
 };
 
@@ -177,13 +179,15 @@ GPS::GPS() :
 	_healthy(false),
 	_mode(GPS_DRIVER_MODE_UBX),
 	_messages_received(0),
-	_Helper(nullptr)
+	_Helper(nullptr),
+	_rate(0.0f),
+	_report_pub(-1)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
+	memset(&_report, 0, sizeof(_report));
 
 	_debug_enabled = true;
-	debug("[gps driver] instantiated");
 }
 
 GPS::~GPS()
@@ -213,15 +217,12 @@ GPS::init()
 		goto out;
 
 	/* start the IO interface task */
-	_task = task_create("gps", SCHED_PRIORITY_SLOW_DRIVER, 4096, (main_t)&GPS::task_main_trampoline, nullptr);
+	_task = task_create("gps", SCHED_PRIORITY_SLOW_DRIVER, 2048, (main_t)&GPS::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
-		debug("task start failed: %d", errno);
+		warnx("task start failed: %d", errno);
 		return -errno;
 	}
-
-//	if (_gps_topic < 0)
-//		debug("failed to create GPS object");
 
 	ret = OK;
 out:
@@ -231,6 +232,8 @@ out:
 int
 GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
+	lock();
+
 	int ret = OK;
 
 	switch (cmd) {
@@ -262,6 +265,8 @@ GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 		cmd_reset();
 		break;
 	}
+
+	unlock();
 
 	return ret;
 }
@@ -298,10 +303,6 @@ GPS::task_main()
 {
 	log("starting");
 
-	_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
-
-	memset(&_report, 0, sizeof(_report));
-
 	/* open the serial port */
 	_serial_fd = ::open("/dev/ttyS3", O_RDWR);
 
@@ -311,7 +312,9 @@ GPS::task_main()
 
 	if (_serial_fd < 0) {
 		log("failed to open serial port: %d", errno);
-		goto out;
+		/* tell the dtor that we are exiting, set error code */
+		_task = -1;
+		_exit(1);
 	}
 
 	/* poll descriptor */
@@ -328,6 +331,9 @@ GPS::task_main()
 	set_baudrate(_baudrate);
 
 	time_before_configuration = hrt_absolute_time();
+
+	uint64_t last_rate_measurement = hrt_absolute_time();
+	unsigned last_rate_count = 0;
 
 	/* loop handling received serial bytes */
 	while (!_task_should_exit) {
@@ -369,9 +375,9 @@ GPS::task_main()
 		if (_config_needed) {
 			poll_timeout = 50;
 		} else {
-			poll_timeout = 250;
+			poll_timeout = 400;
 		}
-		/* sleep waiting for data, but no more than 1000ms */
+		/* sleep waiting for data, but no more than the poll timeout */
 		unlock();
 		int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), poll_timeout);
 		lock();
@@ -386,7 +392,7 @@ GPS::task_main()
 			config();
 			if (_config_needed == false) {
 				_config_needed = true;
-				debug("Lost GPS module");
+				warnx("lost GPS module");
 			}
 		} else if (ret > 0) {
 			/* if we have new data from GPS, go handle it */
@@ -411,8 +417,22 @@ GPS::task_main()
 						debug("Found GPS module");
 					}
 
-					orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+					/* opportunistic publishing - else invalid data would end up on the bus */
+					if (_report_pub > 0) {
+						orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+					} else {
+						_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+					}
+
 					_messages_received = 0;
+					last_rate_count++;
+
+					/* measure update rate every 5 seconds */
+					if (hrt_absolute_time() - last_rate_measurement > 5000000) {
+						_rate = last_rate_count / (float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f;
+						last_rate_measurement = hrt_absolute_time();
+						last_rate_count = 0;
+					}
 				}
 			}
 		}
@@ -484,7 +504,29 @@ GPS::cmd_reset()
 void
 GPS::print_info()
 {
-
+	switch (_mode) {
+		case GPS_DRIVER_MODE_UBX:
+			warnx("protocol: UBX");
+			break;
+		case GPS_DRIVER_MODE_MTK19:
+			warnx("protocol: MTK 1.9");
+			break;
+		case GPS_DRIVER_MODE_MTK16:
+			warnx("protocol: MTK 1.6");
+			break;
+		case GPS_DRIVER_MODE_NMEA:
+			warnx("protocol: NMEA");
+			break;
+		default:
+			break;
+	}
+	warnx("baudrate: %d, status: %s", _baudrate, (_config_needed) ? "NOT OK" : "OK");
+	if (_report.timestamp != 0) {
+		warnx("position lock: %dD, last update %d seconds ago", (int)_report.fix_type,
+			int((hrt_absolute_time() - _report.timestamp) / 1000000));
+		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
+		warnx("update rate: %6.2f Hz", (double)_rate);
+	}
 }
 
 /**

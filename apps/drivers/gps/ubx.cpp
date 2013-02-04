@@ -371,7 +371,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 					}
 					break;
 				default: //should not happen because we set the class
-					printf("UBX Error, we set a class that we don't know\n");
+					warnx("UBX Error, we set a class that we don't know\n");
 					decodeInit();
 					break;
 				}
@@ -410,7 +410,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 									_new_nav_posllh = true;
 
 								} else {
-									printf("[gps] NAV_POSLLH: checksum invalid\n");
+									warnx("NAV_POSLLH: checksum invalid\n");
 								}
 
 								// Reset state machine to decode next packet
@@ -437,7 +437,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 									_new_nav_sol = true;
 
 								} else {
-									printf("[gps] NAV_SOL: checksum invalid\n");
+									warnx("NAV_SOL: checksum invalid\n");
 								}
 
 								// Reset state machine to decode next packet
@@ -463,7 +463,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 									_new_nav_dop = true;
 
 								} else {
-									printf("[gps] NAV_DOP: checksum invalid\n");
+									warnx("NAV_DOP: checksum invalid\n");
 								}
 
 								// Reset state machine to decode next packet
@@ -624,7 +624,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 									_new_nav_velned = true;
 
 								} else {
-									printf("[gps] NAV_VELNED: checksum invalid\n");
+									warnx("NAV_VELNED: checksum invalid\n");
 								}
 
 								// Reset state machine to decode next packet
@@ -651,7 +651,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 //									ret = 1;
 //
 //								} else {
-//									printf("[gps] RXM_SVSI: checksum invalid\n");
+//									warnx("RXM_SVSI: checksum invalid\n");
 //								}
 //
 //								// Reset state machine to decode next packet
@@ -719,7 +719,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 										break;
 								}
 							} else {
-								printf("[gps] ACK_ACK: checksum invalid\n");
+								warnx("ACK_ACK: checksum invalid\n");
 							}
 
 							// Reset state machine to decode next packet
@@ -736,11 +736,11 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 							//Check if checksum is valid
 							if (_rx_ck_a == packet->ck_a && _rx_ck_b == packet->ck_b) {
 
-								printf("[gps] the ubx gps returned: not acknowledged\n");
+								warnx("the ubx gps returned: not acknowledged\n");
 								ret = 1;
 
 							} else {
-								printf("[gps] ACK_NAK: checksum invalid\n");
+								warnx("ACK_NAK: checksum invalid\n");
 							}
 
 							// Reset state machine to decode next packet
@@ -768,16 +768,16 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 			break;
 	}
 
-	/* return 1 when all needed messages have arrived */
+	/* return 1 when position updates and the remaining packets updated at least once */
 	if(_new_nav_posllh &&_new_nav_timeutc && _new_nav_dop && _new_nav_sol && _new_nav_velned) {
 
 		gps_position->timestamp = hrt_absolute_time();
 		ret = 1;
 		_new_nav_posllh = false;
-		_new_nav_timeutc = false;
-		_new_nav_dop = false;
-		_new_nav_sol = false;
-		_new_nav_velned = false;
+		// _new_nav_timeutc = false;
+		// _new_nav_dop = false;
+		// _new_nav_sol = false;
+		// _new_nav_velned = false;
 	}
 
 	return ret;
