@@ -44,11 +44,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
 #include <fcntl.h>
 #include <float.h>
 #include <nuttx/sched.h>
 #include <sys/prctl.h>
+#include <drivers/drv_hrt.h>
 #include <termios.h>
 #include <errno.h>
 #include <limits.h>
@@ -135,9 +137,9 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 	printf("[multirotor flow position estimator] starting\n");
 
 	/* FIXME should be a parameter */
-	static const int8_t rotM_flow_sensor[3][3] =   {{ 0,-1, 0 },
-													{ 1, 0, 0 },
-													{ 0, 0, 1 }};
+	static const int8_t rotM_flow_sensor[3][3] =   {{  0, 1, 0 },
+													{ -1, 0, 0 },
+													{  0, 0, 1 }};
 
 	static float u[2] = {0.0f, 0.0f};
 	static float speed[3] = {0.0f, 0.0f, 0.0f}; // x,y
@@ -163,9 +165,9 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 
 	/* publish global position messages */
 	struct vehicle_local_position_s local_pos = {
-		.x = 0,
-		.y = 0,
-		.z = 0
+		.x = 0.0f,
+		.y = 0.0f,
+		.z = 0.0f
 	};
 	orb_advert_t local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
 
@@ -177,7 +179,7 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 		struct pollfd fds[1] = { {.fd = optical_flow_sub, .events = POLLIN} };
 
 		if (poll(fds, 1, 5000) <= 0) {
-			printf("[multirotor flow position estimator] no flow");
+			printf("[multirotor flow position estimator] no flow\n");
 		} else {
 
 			orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
@@ -226,6 +228,8 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 
 			local_pos.vx = speed[0];
 			local_pos.vy = speed[1];
+
+			local_pos.timestamp = hrt_absolute_time();
 
 			orb_publish(ORB_ID(vehicle_local_position), local_pos_pub, &local_pos);
 
