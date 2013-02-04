@@ -341,7 +341,8 @@ GPS::task_main()
 		if (_mode_changed) {
 			if (_Helper != nullptr) {
 				delete(_Helper);
-				_Helper = nullptr; // XXX is this needed?
+				/* set to zero to ensure parser is not used while not instantiated */
+				_Helper = nullptr;
 			}
 
 			switch (_mode) {
