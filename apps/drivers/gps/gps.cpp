@@ -471,6 +471,8 @@ GPS::set_baudrate(unsigned baud)
 		warnx("ERROR setting baudrate (tcsetattr)\n");
 		return -1;
 	}
+
+	/* XXX if resetting the parser here, ensure it does exist (check for null pointer) */
 }
 
 void
