@@ -430,7 +430,7 @@ GPS::task_main()
 
 					/* measure update rate every 5 seconds */
 					if (hrt_absolute_time() - last_rate_measurement > 5000000) {
-						_rate = last_rate_count / (float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f;
+						_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
 						last_rate_measurement = hrt_absolute_time();
 						last_rate_count = 0;
 					}
@@ -523,8 +523,8 @@ GPS::print_info()
 	}
 	warnx("baudrate: %d, status: %s", _baudrate, (_config_needed) ? "NOT OK" : "OK");
 	if (_report.timestamp != 0) {
-		warnx("position lock: %dD, last update %d seconds ago", (int)_report.fix_type,
-			int((hrt_absolute_time() - _report.timestamp) / 1000000));
+		warnx("position lock: %dD, last update %4.2f seconds ago", (int)_report.fix_type,
+			((float)(hrt_absolute_time() - _report.timestamp) / 1000000.0f));
 		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
 		warnx("update rate: %6.2f Hz", (double)_rate);
 	}

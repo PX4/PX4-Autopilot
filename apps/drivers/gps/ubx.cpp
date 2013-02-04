@@ -429,7 +429,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 
 									gps_position->fix_type = packet->gpsFix;
 
-									gps_position->timestamp = hrt_absolute_time();
 									gps_position->counter++;
 									gps_position->s_variance = packet->sAcc;
 									gps_position->p_variance = packet->pAcc;
@@ -457,7 +456,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 									gps_position->eph =  packet->hDOP;
 									gps_position->epv =  packet->vDOP;
 
-									gps_position->timestamp = hrt_absolute_time();
 									gps_position->counter++;
 
 									_new_nav_dop = true;
@@ -493,7 +491,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 									gps_position->time_gps_usec = (uint64_t)epoch * 1000000; //TODO: test this
 									gps_position->time_gps_usec += (uint64_t)(packet->time_nanoseconds * 1e-3f);
 
-									gps_position->timestamp = hrt_absolute_time();
 									gps_position->counter++;
 
 									_new_nav_timeutc = true;
@@ -587,7 +584,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 									}
 
 									gps_position->satellites_visible = satellites_used++; // visible ~= used but we are interested in the used ones
-									gps_position->timestamp = hrt_absolute_time();
 									gps_position->counter++;
 
 									// as this message arrives only with 1Hz and is not essential, we don't take it into account for the report
@@ -617,7 +613,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 									gps_position->vel_ned_valid = true;
 									gps_position->cog = (uint16_t)((float)(packet->heading) * 1e-3f);
 
-									gps_position->timestamp = hrt_absolute_time();
 									gps_position->counter++;
 
 
@@ -645,7 +640,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s* gps_position)
 //								if (_rx_ck_a == _rx_buffer[_rx_count - 1] && _rx_ck_b == _rx_buffer[_rx_count]) {
 //
 //									gps_position->satellites_visible = packet->numVis;
-//									gps_position->timestamp = hrt_absolute_time();
 //									gps_position->counter++;
 //									_last_message_timestamps[RXM_SVSI - 1] = hrt_absolute_time();
 //									ret = 1;
