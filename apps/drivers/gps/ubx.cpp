@@ -765,11 +765,13 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 		/* Add timestamp to finish the report */
 		gps_position->timestamp = hrt_absolute_time();
 		/* Reset the flags */
+
+		/* update on every position change, accept minor delay on other measurements */
 		_new_nav_posllh = false;
-		_new_nav_timeutc = false;
-		_new_nav_dop = false;
-		_new_nav_sol = false;
-		_new_nav_velned = false;
+		// _new_nav_timeutc = false;
+		// _new_nav_dop = false;
+		// _new_nav_sol = false;
+		// _new_nav_velned = false;
 
 		ret = 1;
 	}
