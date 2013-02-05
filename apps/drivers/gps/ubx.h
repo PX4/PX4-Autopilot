@@ -40,16 +40,17 @@
 
 #include "gps_helper.h"
 
-#define UBX_NO_OF_MESSAGES 7								/**< Read 7 UBX GPS messages */
 
 #define UBX_SYNC1 0xB5
 #define UBX_SYNC2 0x62
 
-//UBX Protocol definitions (this is the subset of the messages that are parsed)
+/* ClassIDs (the ones that are used) */
 #define UBX_CLASS_NAV 0x01
 //#define UBX_CLASS_RXM 0x02
 #define UBX_CLASS_ACK 0x05
 #define UBX_CLASS_CFG 0x06
+
+/* MessageIDs (the ones that are used) */
 #define UBX_MESSAGE_NAV_POSLLH 0x02
 #define UBX_MESSAGE_NAV_SOL 0x06
 #define UBX_MESSAGE_NAV_TIMEUTC 0x21
@@ -65,11 +66,11 @@
 #define UBX_MESSAGE_CFG_RATE 0x08
 
 #define UBX_CFG_PRT_LENGTH 20
-#define UBX_CFG_PRT_PAYLOAD_PORTID 0x01         /**< port 1 */
+#define UBX_CFG_PRT_PAYLOAD_PORTID 0x01         /**< UART1 */
 #define UBX_CFG_PRT_PAYLOAD_MODE 0x000008D0     /**< 0b0000100011010000: 8N1 */
 #define UBX_CFG_PRT_PAYLOAD_BAUDRATE 38400      /**< always choose 38400 as GPS baudrate */
-#define UBX_CFG_PRT_PAYLOAD_INPROTOMASK 0x01    /**< ubx in */
-#define UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK 0x01   /**< ubx out */
+#define UBX_CFG_PRT_PAYLOAD_INPROTOMASK 0x01    /**< UBX in */
+#define UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK 0x01   /**< UBX out */
 
 #define UBX_CFG_RATE_LENGTH 6
 #define UBX_CFG_RATE_PAYLOAD_MEASRATE 200		/**< 200ms for 5Hz */
@@ -83,30 +84,30 @@
 #define UBX_CFG_NAV5_PAYLOAD_FIXMODE 2          /**< 1: 2D only, 2: 3D only, 3: Auto 2D/3D */
 
 #define UBX_CFG_MSG_LENGTH 8
-#define UBX_CFG_MSG_PAYLOAD_RATE1 0x01 			/**< {0x00, 0x01, 0x00, 0x00, 0x00, 0x00} UART1 chosen */
-
+#define UBX_CFG_MSG_PAYLOAD_RATE1_5HZ 0x01 		/**< {0x00, 0x01, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
+#define UBX_CFG_MSG_PAYLOAD_RATE1_1HZ 0x05		/**< {0x00, 0x05, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
 
 // ************
 /** the structures of the binary packets */
 #pragma pack(push, 1)
 
 typedef struct {
-	uint32_t time_milliseconds; // GPS Millisecond Time of Week
-	int32_t lon;  // Longitude * 1e-7, deg
-	int32_t lat; // Latitude * 1e-7, deg
-	int32_t height;  // Height above Ellipsoid, mm
-	int32_t height_msl;  // Height above mean sea level, mm
-	uint32_t hAcc;  // Horizontal Accuracy Estimate, mm
-	uint32_t vAcc;  // Vertical Accuracy Estimate, mm
+	uint32_t time_milliseconds;		/**<  GPS Millisecond Time of Week */
+	int32_t lon;					/**<  Longitude * 1e-7, deg */
+	int32_t lat;					/**<  Latitude * 1e-7, deg */
+	int32_t height;					/**<  Height above Ellipsoid, mm */
+	int32_t height_msl;				/**<  Height above mean sea level, mm */
+	uint32_t hAcc;  				/**< Horizontal Accuracy Estimate, mm */
+	uint32_t vAcc;  				/**< Vertical Accuracy Estimate, mm */
 	uint8_t ck_a;
 	uint8_t ck_b;
 } gps_bin_nav_posllh_packet_t;
 
 typedef struct {
-	uint32_t time_milliseconds; // GPS Millisecond Time of Week
-	int32_t time_nanoseconds; // Fractional Nanoseconds remainder of rounded ms above, range -500000 .. 500000
-	int16_t week; // GPS week (GPS time)
-	uint8_t gpsFix; //GPS Fix: 0 = No fix, 1 = Dead Reckoning only, 2 = 2D fix, 3 = 3d-fix, 4 = GPS + dead reckoning, 5 = time only fix
+	uint32_t time_milliseconds; 	/**< GPS Millisecond Time of Week */
+	int32_t time_nanoseconds;		/**< Fractional Nanoseconds remainder of rounded ms above, range -500000 .. 500000 */
+	int16_t week;					/**< GPS week (GPS time) */
+	uint8_t gpsFix;					/**< GPS Fix: 0 = No fix, 1 = Dead Reckoning only, 2 = 2D fix, 3 = 3d-fix, 4 = GPS + dead reckoning, 5 = time only fix */
 	uint8_t flags;
 	int32_t ecefX;
 	int32_t ecefY;
@@ -125,50 +126,50 @@ typedef struct {
 } gps_bin_nav_sol_packet_t;
 
 typedef struct {
-	uint32_t time_milliseconds; // GPS Millisecond Time of Week
-	uint32_t time_accuracy;  //Time Accuracy Estimate, ns
-	int32_t time_nanoseconds; //Nanoseconds of second, range -1e9 .. 1e9 (UTC)
-	uint16_t year; //Year, range 1999..2099 (UTC)
-	uint8_t month; //Month, range 1..12 (UTC)
-	uint8_t day; //Day of Month, range 1..31 (UTC)
-	uint8_t hour; //Hour of Day, range 0..23 (UTC)
-	uint8_t min; //Minute of Hour, range 0..59 (UTC)
-	uint8_t sec; //Seconds of Minute, range 0..59 (UTC)
-	uint8_t valid_flag; //Validity Flags (see ubx documentation)
+	uint32_t time_milliseconds;		/**< GPS Millisecond Time of Week */
+	uint32_t time_accuracy; 		/**< Time Accuracy Estimate, ns */
+	int32_t time_nanoseconds; 		/**< Nanoseconds of second, range -1e9 .. 1e9 (UTC) */
+	uint16_t year; 					/**< Year, range 1999..2099 (UTC) */
+	uint8_t month; 					/**< Month, range 1..12 (UTC) */
+	uint8_t day; 					/**< Day of Month, range 1..31 (UTC) */
+	uint8_t hour; 					/**< Hour of Day, range 0..23 (UTC) */
+	uint8_t min; 					/**< Minute of Hour, range 0..59 (UTC) */
+	uint8_t sec; 					/**< Seconds of Minute, range 0..59 (UTC) */
+	uint8_t valid_flag; 			/**< Validity Flags (see ubx documentation) */
 	uint8_t ck_a;
 	uint8_t ck_b;
 } gps_bin_nav_timeutc_packet_t;
 
 typedef struct {
-	uint32_t time_milliseconds; // GPS Millisecond Time of Week
-	uint16_t gDOP; //Geometric DOP (scaling 0.01)
-	uint16_t pDOP; //Position DOP (scaling 0.01)
-	uint16_t tDOP; //Time DOP (scaling 0.01)
-	uint16_t vDOP; //Vertical DOP (scaling 0.01)
-	uint16_t hDOP; //Horizontal DOP (scaling 0.01)
-	uint16_t nDOP; //Northing DOP (scaling 0.01)
-	uint16_t eDOP; //Easting DOP (scaling 0.01)
+	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
+	uint16_t gDOP; 					/**< Geometric DOP (scaling 0.01) */
+	uint16_t pDOP; 					/**< Position DOP (scaling 0.01) */
+	uint16_t tDOP; 					/**< Time DOP (scaling 0.01) */
+	uint16_t vDOP; 					/**< Vertical DOP (scaling 0.01) */
+	uint16_t hDOP; 					/**< Horizontal DOP (scaling 0.01) */
+	uint16_t nDOP; 					/**< Northing DOP (scaling 0.01) */
+	uint16_t eDOP; 					/**< Easting DOP (scaling 0.01) */
 	uint8_t ck_a;
 	uint8_t ck_b;
 } gps_bin_nav_dop_packet_t;
 
 typedef struct {
-	uint32_t time_milliseconds; // GPS Millisecond Time of Week
-	uint8_t numCh; //Number of channels
+	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
+	uint8_t numCh; 					/**< Number of channels */
 	uint8_t globalFlags;
 	uint16_t reserved2;
 
 } gps_bin_nav_svinfo_part1_packet_t;
 
 typedef struct {
-	uint8_t chn; //Channel number, 255 for SVs not assigned to a channel
-	uint8_t svid; //Satellite ID
+	uint8_t chn; 					/**< Channel number, 255 for SVs not assigned to a channel */
+	uint8_t svid; 					/**< Satellite ID */
 	uint8_t flags;
 	uint8_t quality;
-	uint8_t cno; //Carrier to Noise Ratio (Signal Strength), dbHz
-	int8_t elev; //Elevation in integer degrees
-	int16_t azim; //Azimuth in integer degrees
-	int32_t prRes; //Pseudo range residual in centimetres
+	uint8_t cno; 					/**< Carrier to Noise Ratio (Signal Strength), dbHz */
+	int8_t elev; 					/**< Elevation in integer degrees */
+	int16_t azim; 					/**< Azimuth in integer degrees */
+	int32_t prRes; 					/**< Pseudo range residual in centimetres */
 
 } gps_bin_nav_svinfo_part2_packet_t;
 
@@ -192,9 +193,9 @@ typedef struct {
 } gps_bin_nav_velned_packet_t;
 
 //typedef struct {
-//	int32_t time_milliseconds; // Measurement integer millisecond GPS time of week
-//	int16_t week; //Measurement GPS week number
-//	uint8_t numVis; //Number of visible satellites
+//	int32_t time_milliseconds; 		/**< Measurement integer millisecond GPS time of week */
+//	int16_t week; 					/**< Measurement GPS week number */
+//	uint8_t numVis;					/**< Number of visible satellites */
 //
 //	//... rest of package is not used in this implementation
 //
@@ -210,7 +211,6 @@ typedef struct {
 typedef struct {
 	uint8_t clsID;
 	uint8_t msgID;
-
 	uint8_t ck_a;
 	uint8_t ck_b;
 } gps_bin_ack_nak_packet_t;
@@ -340,17 +340,27 @@ class UBX : public GPS_Helper
 public:
 	UBX();
 	~UBX();
-
-	void				configure(bool&, bool&, unsigned&, uint8_t*, int&, const unsigned);
+	void				reset(void);
+	void				configure(bool &config_needed, bool &baudrate_changed, unsigned &baudrate, uint8_t *buffer, int &length, const unsigned max_length);
 	int 				parse(uint8_t, struct vehicle_gps_position_s*);
 
 private:
+	/**
+	 * Reset the parse state machine for a fresh start
+	 */
 	void				decodeInit(void);
+
+	/**
+	 * While parsing add every byte (except the sync bytes) to the checksum
+	 */
 	void				addByteToChecksum(uint8_t);
+
+	/**
+	 * Add the two checksum bytes to an outgoing message
+	 */
 	void				addChecksumToMessage(uint8_t*, const unsigned);
-	unsigned			_waited;
-	bool 				_waiting_for_ack;
 	ubx_config_state_t	_config_state;
+	bool 				_waiting_for_ack;
 	ubx_decode_state_t	_decode_state;
 	uint8_t				_rx_buffer[RECV_BUFFER_SIZE];
 	unsigned			_rx_count;

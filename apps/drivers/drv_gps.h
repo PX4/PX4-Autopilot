@@ -54,8 +54,6 @@ typedef enum {
 } gps_driver_mode_t;
 
 
-
-
 /*
  * ObjDev tag for GPS data.
  */
