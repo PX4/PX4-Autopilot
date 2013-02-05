@@ -42,6 +42,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <semaphore.h>
@@ -93,7 +94,7 @@ static const int ERROR = -1;
 class GPS : public device::CDev
 {
 public:
-	GPS();
+	GPS(const char* uart_path);
 	~GPS();
 
 	virtual int			init();
@@ -107,19 +108,20 @@ public:
 
 private:
 
-	bool				_task_should_exit;						///< flag to make the main worker task exit
-	int					_serial_fd;								///< serial interface to GPS
-	unsigned			_baudrate;								///< current baudrate
-	const unsigned		_baudrates_to_try[NUMBER_OF_BAUDRATES]; ///< try different baudrates that GPS could be set to
-	volatile int		_task;									///< worker task
-	bool				_config_needed;							///< flag to signal that configuration of GPS is needed
-	bool 				_baudrate_changed;						///< flag to signal that the baudrate with the GPS has changed
-	bool				_mode_changed;							///< flag that the GPS mode has changed
-	gps_driver_mode_t	_mode;									///< current mode
-	GPS_Helper			*_Helper;								///< Class for a GPS interface
-	struct vehicle_gps_position_s _report;						///< uORB topic for gps position
-	orb_advert_t		_report_pub;							///< uORB pub for gps position
-	float				_rate;									///< position update rate
+	bool				_task_should_exit;				///< flag to make the main worker task exit
+	int				_serial_fd;					///< serial interface to GPS
+	unsigned			_baudrate;					///< current baudrate
+	char				_port[20];					///< device / serial port path
+	const unsigned			_baudrates_to_try[NUMBER_OF_BAUDRATES];		///< try different baudrates that GPS could be set to
+	volatile int			_task;						//< worker task
+	bool				_config_needed;					///< flag to signal that configuration of GPS is needed
+	bool 				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
+	bool				_mode_changed;					///< flag that the GPS mode has changed
+	gps_driver_mode_t		_mode;						///< current mode
+	GPS_Helper			*_Helper;					///< instance of GPS parser
+	struct vehicle_gps_position_s 	_report;					///< uORB topic for gps position
+	orb_advert_t			_report_pub;					///< uORB pub for gps position
+	float				_rate;						///< position update rate
 
 
 	/**
@@ -141,7 +143,7 @@ private:
 	/**
 	 * Set the baudrate of the UART to the GPS
 	 */
-	int					set_baudrate(unsigned baud);
+	int				set_baudrate(unsigned baud);
 
 	/**
 	 * Send a reset command to the GPS
@@ -164,7 +166,7 @@ GPS	*g_dev;
 }
 
 
-GPS::GPS() :
+GPS::GPS(const char* uart_path) :
 	CDev("gps", GPS_DEVICE_PATH),
 	_task_should_exit(false),
 	_baudrates_to_try({9600, 38400, 57600, 115200}),
@@ -176,6 +178,11 @@ GPS::GPS() :
 	_report_pub(-1),
 	_rate(0.0f)
 {
+	/* store port name */
+	strncpy(_port, uart_path, sizeof(_port));
+	/* enforce null termination */
+	_port[sizeof(_port) - 1] = '\0';
+
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
 	memset(&_report, 0, sizeof(_report));
@@ -198,6 +205,7 @@ GPS::~GPS()
 	if (_task != -1)
 		task_delete(_task);
 	g_dev = nullptr;
+
 }
 
 int
@@ -302,13 +310,13 @@ GPS::task_main()
 	log("starting");
 
 	/* open the serial port */
-	_serial_fd = ::open("/dev/ttyS3", O_RDWR); //TODO make the device dynamic depending on startup parameters
+	_serial_fd = ::open(_port, O_RDWR); //TODO make the device dynamic depending on startup parameters
 
 	/* buffer to read from the serial port */
 	uint8_t buf[32];
 
 	if (_serial_fd < 0) {
-		log("failed to open serial port: %d", errno);
+		log("failed to open serial port: %s err: %d", _port, errno);
 		/* tell the dtor that we are exiting, set error code */
 		_task = -1;
 		_exit(1);
@@ -318,7 +326,6 @@ GPS::task_main()
 	pollfd fds[1];
 	fds[0].fd = _serial_fd;
 	fds[0].events = POLLIN;
-	debug("ready");
 
 	/* lock against the ioctl handler */
 	lock();
@@ -418,14 +425,12 @@ GPS::task_main()
 					/* This means something went wrong in the parser, let's reconfigure */
 					if (!_config_needed) {
 						_config_needed = true;
-						debug("Lost GPS module");
 					}
 					config();
 				} else if (ret_parse > 0) {
 					/* Looks like we got a valid position update, stop configuring and publish it */
 					if (_config_needed) {
 						_config_needed = false;
-						debug("Found GPS module");
 					}
 
 					/* opportunistic publishing - else invalid data would end up on the bus */
@@ -530,7 +535,7 @@ GPS::print_info()
 		default:
 			break;
 	}
-	warnx("baudrate: %d, status: %s", _baudrate, (_config_needed) ? "NOT OK" : "OK");
+	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_config_needed) ? "NOT OK" : "OK");
 	if (_report.timestamp != 0) {
 		warnx("position lock: %dD, last update %4.2f seconds ago", (int)_report.fix_type,
 			(double)((float)(hrt_absolute_time() - _report.timestamp) / 1000000.0f));
@@ -549,7 +554,7 @@ namespace gps
 
 GPS	*g_dev;
 
-void	start();
+void	start(const char *uart_path);
 void	stop();
 void	test();
 void	reset();
@@ -559,7 +564,7 @@ void	info();
  * Start the driver.
  */
 void
-start()
+start(const char *uart_path)
 {
 	int fd;
 
@@ -567,7 +572,7 @@ start()
 		errx(1, "already started");
 
 	/* create the driver */
-	g_dev = new GPS;
+	g_dev = new GPS(uart_path);
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -644,7 +649,6 @@ info()
 	if (g_dev == nullptr)
 		errx(1, "driver not running");
 
-	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
 	exit(0);
@@ -656,11 +660,24 @@ info()
 int
 gps_main(int argc, char *argv[])
 {
+
+	/* set to default */
+	char* device_name = "/dev/ttyS3";
+
 	/*
 	 * Start/load the driver.
 	 */
-	if (!strcmp(argv[1], "start"))
-		gps::start();
+	if (!strcmp(argv[1], "start")) {
+		/* work around getopt unreliability */
+		if (argc > 3) {
+			if (!strcmp(argv[2], "-d")) {
+				device_name = argv[3];
+			} else {
+				goto out;
+			}
+		}
+		gps::start(device_name);
+	}
 
 	if (!strcmp(argv[1], "stop"))
 		gps::stop();
@@ -682,5 +699,6 @@ gps_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status"))
 		gps::info();
 
-	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status'");
+out:
+	errx(1, "unrecognized command, try 'start', 'stop', 'test', 'reset' or 'status' [-d /dev/ttyS0-n]");
 }
