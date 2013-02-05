@@ -185,7 +185,8 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	float pitch_limit = 0.33f;
 	float roll_limit = 0.33f;
 	float thrust_limit_upper = 0.5f;
-	float thrust_limit_lower = 0.2f;
+	float thrust_limit_lower = 0.5f;
+	float integrated_h_error = 0.0f;
 
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control_runtime");
@@ -280,7 +281,9 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 					float pitch_body = (local_pos.x - params.pos_sp_x) * params.pos_p + local_pos.vx * params.pos_d;
 					float roll_body = - (local_pos.y - params.pos_sp_y) * params.pos_p - local_pos.vy * params.pos_d;
-					float thrust = (local_pos.z - params.height_sp) * params.height_p;
+					float height_error = (local_pos.z - params.height_sp);
+					integrated_h_error = integrated_h_error + height_error;
+					float thrust = height_error * params.height_p + integrated_h_error * params.height_i;
 
 					if((roll_body <= roll_limit) && (roll_body >= -roll_limit)){
 						att_sp.roll_body = roll_body;
@@ -303,18 +306,24 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 						}
 					}
 
-					float height_ctrl_thrust_feedforward = params.thrust_offset; // FIXME
+					float height_ctrl_thrust_feedforward = params.thrust_feedforward; // FIXME
 					float height_ctrl_thrust = height_ctrl_thrust_feedforward + thrust;
 
 					/* the throttle stick on the rc control limits the maximum thrust */
-					if(!isnan(manual.throttle))
+					if(isfinite(manual.throttle))
 						thrust_limit_upper = manual.throttle;
+
+					/* never go too low with the thrust that it becomes uncontrollable */
+					if(height_ctrl_thrust < thrust_limit_lower){
+						height_ctrl_thrust = thrust_limit_lower;
+					}
+
 					if (height_ctrl_thrust >= thrust_limit_upper){
 						att_sp.thrust = thrust_limit_upper;
-					/* never go too low with the thrust that it becomes uncontrollable */
-					}else if(height_ctrl_thrust < thrust_limit_lower){
-						att_sp.thrust = thrust_limit_lower;
+					} else {
+						att_sp.thrust = height_ctrl_thrust;
 					}
+
 
 					/* do not control yaw */
 					att_sp.yaw_body = 0.0f;
@@ -322,10 +331,10 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 					/* publish new attitude setpoint */
 					if (loopcounter == 200){
-						if(!isnan(att_sp.pitch_body) && !isnan(att_sp.roll_body) && !isnan(att_sp.yaw_body) && !isnan(att_sp.thrust))
+						if(isfinite(att_sp.pitch_body) && isfinite(att_sp.roll_body) && isfinite(att_sp.yaw_body) && isfinite(att_sp.thrust))
 						{
-							printf("pitch:%.3f, roll:%.3f\n", att_sp.pitch_body, att_sp.roll_body);
-							printf("yaw:%.3f, thrust:%.3f\n", att_sp.yaw_body, att_sp.thrust);
+//							printf("pitch:%.3f, roll:%.3f\n", att_sp.pitch_body, att_sp.roll_body);
+//							printf("yaw:%.3f, thrust:%.3f\n", att_sp.yaw_body, att_sp.thrust);
 						} else {
 							if(isnan(att_sp.pitch_body))
 								printf("pitch_body is nan...\n");

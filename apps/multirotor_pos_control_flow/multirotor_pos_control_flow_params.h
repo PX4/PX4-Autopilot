@@ -47,8 +47,9 @@ struct multirotor_position_control_flow_params {
 	float pos_sp_x;
 	float pos_sp_y;
 	float height_p;
+	float height_i;
 	float height_sp;
-	float thrust_offset;
+	float thrust_feedforward;
 };
 
 struct multirotor_position_control_flow_param_handles {
@@ -57,8 +58,9 @@ struct multirotor_position_control_flow_param_handles {
 	float pos_sp_x;
 	float pos_sp_y;
 	float height_p;
+	float height_i;
 	float height_sp;
-	float thrust_offset;
+	float thrust_feedforward;
 };
 
 /**
