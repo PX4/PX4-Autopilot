@@ -110,13 +110,13 @@ private:
 	bool				_task_should_exit;						///< flag to make the main worker task exit
 	int					_serial_fd;								///< serial interface to GPS
 	unsigned			_baudrate;								///< current baudrate
-	unsigned			_baudrates_to_try[NUMBER_OF_BAUDRATES]; ///< try different baudrates that GPS could be set to
+	const unsigned		_baudrates_to_try[NUMBER_OF_BAUDRATES]; ///< try different baudrates that GPS could be set to
 	volatile int		_task;									///< worker task
 	bool				_config_needed;							///< flag to signal that configuration of GPS is needed
 	bool 				_baudrate_changed;						///< flag to signal that the baudrate with the GPS has changed
 	bool				_mode_changed;							///< flag that the GPS mode has changed
 	gps_driver_mode_t	_mode;									///< current mode
-	GPS_Helper			*_Helper;								///< Class for either UBX, MTK or NMEA helper
+	GPS_Helper			*_Helper;								///< Class for a GPS interface
 	struct vehicle_gps_position_s _report;						///< uORB topic for gps position
 	orb_advert_t		_report_pub;							///< uORB pub for gps position
 	float				_rate;									///< position update rate
