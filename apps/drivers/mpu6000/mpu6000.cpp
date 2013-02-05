@@ -418,6 +418,9 @@ MPU6000::init()
 	case MPU6000_REV_D8:
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
+	// default case to cope with new chip revisions, which
+	// presumably won't have the accel scaling bug		
+	default:
 		// Accel scale 8g (4096 LSB/g)
 		write_reg(MPUREG_ACCEL_CONFIG, 2 << 3);
 		break;
