@@ -215,13 +215,14 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 //			for(uint8_t i = 0; i < 3; i++) {
 //				float sum = 0.0f;
 //				for(uint8_t j = 0; j < 3; j++) {
-//					sum = sum + speed[j] * att.R[j][i];
+//					sum = sum + speed[j] * att.R[i][j];
 //				}
 //				global_speed[i] = sum;
 //			}
-
 //			local_pos.x = local_pos.x + global_speed[0] * dt;
 //			local_pos.y = local_pos.y + global_speed[1] * dt;
+
+
 			local_pos.x = local_pos.x + speed[0] * dt;
 			local_pos.y = local_pos.y + speed[1] * dt;
 			local_pos.z = - flow.ground_distance_m;

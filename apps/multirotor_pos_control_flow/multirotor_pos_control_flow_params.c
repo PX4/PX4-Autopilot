@@ -50,6 +50,7 @@ PARAM_DEFINE_FLOAT(MFPC_POS_SP_X, 0.0f);
 PARAM_DEFINE_FLOAT(MFPC_POS_SP_Y, 0.0f);
 PARAM_DEFINE_FLOAT(MFPC_H_P, 0.06f);
 PARAM_DEFINE_FLOAT(MFPC_H_I, 0.00001f);
+PARAM_DEFINE_FLOAT(MFPC_H_D, 0.01f);
 PARAM_DEFINE_FLOAT(MFPC_H_SP, -1.0f);
 PARAM_DEFINE_FLOAT(MFPC_T_FFWD, 0.66f);
 
@@ -62,6 +63,7 @@ int parameters_init(struct multirotor_position_control_flow_param_handles *h)
 	h->pos_sp_y 	=	param_find("MFPC_POS_SP_Y");
 	h->height_p 	=	param_find("MFPC_H_P");
 	h->height_i 	=	param_find("MFPC_H_I");
+	h->height_d 	=	param_find("MFPC_H_D");
 	h->height_sp 	=	param_find("MFPC_H_SP");
 	h->thrust_feedforward=	param_find("MFPC_T_FFWD");
 
@@ -76,6 +78,7 @@ int parameters_update(const struct multirotor_position_control_flow_param_handle
 	param_get(h->pos_sp_y, &(p->pos_sp_y));
 	param_get(h->height_p, &(p->height_p));
 	param_get(h->height_i, &(p->height_i));
+	param_get(h->height_d, &(p->height_d));
 	param_get(h->height_sp, &(p->height_sp));
 	param_get(h->thrust_feedforward, &(p->thrust_feedforward));
 
