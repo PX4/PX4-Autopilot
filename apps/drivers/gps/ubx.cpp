@@ -50,12 +50,7 @@
 
 UBX::UBX() :
 _config_state(UBX_CONFIG_STATE_PRT),
-_waiting_for_ack(false),
-_new_nav_posllh(false),
-_new_nav_timeutc(false),
-//_new_nav_dop(false),
-_new_nav_sol(false),
-_new_nav_velned(false)
+_waiting_for_ack(false)
 {
 	reset();
 }
@@ -413,13 +408,12 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 									gps_position->lon = packet->lon;
 									gps_position->alt = packet->height_msl;
 
-									gps_position->eph_m = (float)packet->hAcc * 1e-2f; // from mm to m
-									gps_position->epv_m = (float)packet->vAcc * 1e-2f; // from mm to m
+									gps_position->eph_m = (float)packet->hAcc * 1e-3f; // from mm to m
+									gps_position->epv_m = (float)packet->vAcc * 1e-3f; // from mm to m
 
 									/* Add timestamp to finish the report */
 									gps_position->timestamp_position = hrt_absolute_time();
 
-									_new_nav_posllh = true;
 									/* set flag to trigger publishing of new position */
 									pos_updated = true;
 
@@ -444,9 +438,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 									gps_position->p_variance_m = packet->pAcc;
 
 									gps_position->timestamp_variance = hrt_absolute_time();
-
-
-									_new_nav_sol = true;
 
 								} else {
 									warnx("NAV_SOL: checksum invalid");
@@ -501,8 +492,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 									gps_position->time_gps_usec += (uint64_t)(packet->time_nanoseconds * 1e-3f);
 
 									gps_position->timestamp_time = hrt_absolute_time();
-
-									_new_nav_timeutc = true;
 
 								} else {
 									warnx("NAV_TIMEUTC: checksum invalid");
@@ -581,19 +570,15 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 										gps_position->satellite_elevation[i] = 0;
 										gps_position->satellite_azimuth[i] = 0;
 									}
+									gps_position->satellites_visible = satellites_used; // visible ~= used but we are interested in the used ones
 
-									/* set flag if any sat info is available */
-									if (!packet_part1->numCh > 0) {
-										gps_position->satellite_info_available = 1;
-
+									/* set timestamp if any sat info is available */
+									if (packet_part1->numCh > 0) {
+										gps_position->satellite_info_available = true;
 									} else {
-										gps_position->satellite_info_available = 0;
+										gps_position->satellite_info_available = false;
 									}
-
-									gps_position->satellites_visible = satellites_used++; // visible ~= used but we are interested in the used ones
 									gps_position->timestamp_satellites = hrt_absolute_time();
-
-									// as this message arrives only with 1Hz and is not essential, we don't take it into account for the report
 
 								} else {
 									warnx("NAV_SVINFO: checksum invalid");
@@ -618,9 +603,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 									gps_position->cog_rad   = (float)packet->heading * M_DEG_TO_RAD_F * 1e-5f;
 									gps_position->vel_ned_valid = true;
 									gps_position->timestamp_velocity = hrt_absolute_time();
-
-									_new_nav_velned = true;
-
 
 								} else {
 									warnx("NAV_VELNED: checksum invalid");
@@ -759,21 +741,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 				break;
 		default:
 			break;
-	}
-
-	/* return 1 when position updates and the remaining packets updated at least once */
-	if(_new_nav_posllh &&_new_nav_timeutc /*&& _new_nav_dop*/ && _new_nav_sol && _new_nav_velned) {
-
-		/* we have received everything, this most probably means that the configuration is fine */
-		config_needed = false;
-
-		/* Reset the flags */
-		_new_nav_posllh = false;
-		_new_nav_timeutc = false;
-//		_new_nav_dop = false;
-		_new_nav_sol = false;
-		_new_nav_velned = false;
-
 	}
 	return;
 }

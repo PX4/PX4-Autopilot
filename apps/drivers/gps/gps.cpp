@@ -591,7 +591,7 @@ start(const char *uart_path)
 	fd = open(GPS_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		printf("Could not open device path: %s\n", GPS_DEVICE_PATH);
+		errx(1, "Could not open device path: %s\n", GPS_DEVICE_PATH);
 		goto fail;
 	}
 	exit(0);

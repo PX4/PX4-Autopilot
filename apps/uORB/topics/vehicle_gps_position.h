@@ -86,7 +86,7 @@ struct vehicle_gps_position_s
 	uint8_t satellite_elevation[20]; 	/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite */
 	uint8_t satellite_azimuth[20];		/**< Direction of satellite, 0: 0 deg, 255: 360 deg. */
 	uint8_t satellite_snr[20];			/**< Signal to noise ratio of satellite   */
-	uint8_t satellite_info_available;	/**< 0 for no info, 1 for info available */
+	bool satellite_info_available;	/**< 0 for no info, 1 for info available */
 };
 
 /**

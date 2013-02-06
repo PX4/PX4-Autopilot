@@ -1683,7 +1683,8 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* check if gps fix is ok */
 			// XXX magic number
-			float dop_threshold_m = 2.0f;
+			float hdop_threshold_m = 4.0f;
+			float vdop_threshold_m = 8.0f;
 
 			/*
 			 * If horizontal dilution of precision (hdop / eph)
@@ -1694,8 +1695,10 @@ int commander_thread_main(int argc, char *argv[])
 			 * the system is currently not armed, set home
 			 * position to the current position.
 			 */
-			if (gps_position.fix_type == GPS_FIX_TYPE_3D && (hdop_m < dop_threshold_m)
-				&& (vdop_m < dop_threshold_m)
+
+			if (gps_position.fix_type == GPS_FIX_TYPE_3D
+				&& (hdop_m < hdop_threshold_m)
+				&& (vdop_m < vdop_threshold_m)
 				&& !home_position_set
 				&& (hrt_absolute_time() - gps_position.timestamp_position < 2000000)
 				&& !current_status.flag_system_armed) {

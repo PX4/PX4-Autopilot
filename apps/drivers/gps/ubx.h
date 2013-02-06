@@ -369,11 +369,6 @@ private:
 	ubx_message_class_t _message_class;
 	ubx_message_id_t	_message_id;
 	unsigned			_payload_size;
-	bool				_new_nav_posllh;
-	bool				_new_nav_timeutc;
-//	bool				_new_nav_dop;
-	bool				_new_nav_sol;
-	bool				_new_nav_velned;
 };
 
 #endif /* UBX_H_ */
