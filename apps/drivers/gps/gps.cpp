@@ -278,7 +278,7 @@ GPS::config()
 	int length = 0;
 	uint8_t	send_buffer[SEND_BUFFER_LENGTH];
 
-	_Helper->configure(_config_needed, _baudrate_changed, _baudrate, send_buffer, length, SEND_BUFFER_LENGTH);
+	_Helper->configure(send_buffer, length, SEND_BUFFER_LENGTH, _baudrate_changed, _baudrate);
 
 	/* The config message is sent sent at the old baudrate */
 	if (length > 0) {
@@ -339,6 +339,9 @@ GPS::task_main()
 	uint64_t last_rate_measurement = hrt_absolute_time();
 	unsigned last_rate_count = 0;
 
+	bool pos_updated;
+	bool config_needed_res;
+
 	/* loop handling received serial bytes and also configuring in between */
 	while (!_task_should_exit) {
 
@@ -391,17 +394,17 @@ GPS::task_main()
 		lock();
 
 
-
-
 		/* this would be bad... */
 		if (ret < 0) {
 			log("poll error %d", errno);
 		} else if (ret == 0) {
-			config();
+			/* no response from the GPS */
 			if (_config_needed == false) {
 				_config_needed = true;
-				warnx("lost GPS module");
+				warnx("GPS module timeout");
+				_Helper->reset();
 			}
+			config();
 		} else if (ret > 0) {
 			/* if we have new data from GPS, go handle it */
 			if (fds[0].revents & POLLIN) {
@@ -416,39 +419,43 @@ GPS::task_main()
 
 				/* pass received bytes to the packet decoder */
 				int j;
-				int ret_parse = 0;
 				for (j = 0; j < count; j++) {
-					ret_parse += _Helper->parse(buf[j], &_report);
-				}
+					pos_updated = false;
+					config_needed_res = _config_needed;
+					_Helper->parse(buf[j], &_report, config_needed_res, pos_updated);
 
-				if (ret_parse < 0) {
-					/* This means something went wrong in the parser, let's reconfigure */
-					if (!_config_needed) {
-						_config_needed = true;
+					if (pos_updated) {
+						/* opportunistic publishing - else invalid data would end up on the bus */
+						if (_report_pub > 0) {
+							orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+						} else {
+							_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+						}
+						last_rate_count++;
+
+						/* measure update rate every 5 seconds */
+						if (hrt_absolute_time() - last_rate_measurement > 5000000) {
+							_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
+							last_rate_measurement = hrt_absolute_time();
+							last_rate_count = 0;
+						}
+
 					}
-					config();
-				} else if (ret_parse > 0) {
-					/* Looks like we got a valid position update, stop configuring and publish it */
-					if (_config_needed) {
+					if (config_needed_res == true && _config_needed == false) {
+						/* the parser told us that an error happened and reconfiguration is needed */
+						_config_needed = true;
+						warnx("GPS module lost");
+						_Helper->reset();
+						config();
+					} else if (config_needed_res == true && _config_needed == true) {
+						/* we are still configuring */
+						config();
+					} else if (config_needed_res == false && _config_needed == true) {
+						/* the parser is happy, stop configuring */
+						warnx("GPS module found");
 						_config_needed = false;
 					}
-
-					/* opportunistic publishing - else invalid data would end up on the bus */
-					if (_report_pub > 0) {
-						orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
-					} else {
-						_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
-					}
-					last_rate_count++;
-
-					/* measure update rate every 5 seconds */
-					if (hrt_absolute_time() - last_rate_measurement > 5000000) {
-						_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
-						last_rate_measurement = hrt_absolute_time();
-						last_rate_count = 0;
-					}
 				}
-				/* else if ret_parse == 0: just keep parsing */
 			}
 		}
 	}
@@ -662,7 +669,7 @@ gps_main(int argc, char *argv[])
 {
 
 	/* set to default */
-	char* device_name = "/dev/ttyS3";
+	char* device_name = GPS_DEFAULT_UART_PORT;
 
 	/*
 	 * Start/load the driver.

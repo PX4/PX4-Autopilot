@@ -341,8 +341,8 @@ public:
 	UBX();
 	~UBX();
 	void				reset(void);
-	void				configure(bool &config_needed, bool &baudrate_changed, unsigned &baudrate, uint8_t *buffer, int &length, const unsigned max_length);
-	int 				parse(uint8_t, struct vehicle_gps_position_s*);
+	void				configure(uint8_t *buffer, int &length, const unsigned max_length, bool &baudrate_changed, unsigned &baudrate);
+	void 				parse(uint8_t, struct vehicle_gps_position_s*, bool &config_needed, bool &pos_updated);
 
 private:
 	/**

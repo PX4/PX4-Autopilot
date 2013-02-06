@@ -40,9 +40,9 @@
 class GPS_Helper
 {
 public:
-	virtual void			reset() = 0;
-	virtual void			configure(bool &config_needed, bool &baudrate_changed, unsigned &baudrate, uint8_t *buffer, int &length, const unsigned max_length) = 0;
-	virtual int 			parse(uint8_t b, struct vehicle_gps_position_s *gps_position) = 0;
+	virtual void			reset(void) = 0;
+	virtual void			configure(uint8_t *buffer, int &length, const unsigned max_length, bool &baudrate_changed, unsigned &baudrate) = 0;
+	virtual void 			parse(uint8_t, struct vehicle_gps_position_s*, bool &config_needed, bool &pos_updated) = 0;
 };
 
 #endif /* GPS_HELPER_H */

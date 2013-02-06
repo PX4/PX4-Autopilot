@@ -72,7 +72,7 @@ UBX::reset()
 }
 
 void
-UBX::configure(bool &config_needed, bool &baudrate_changed, unsigned &baudrate, uint8_t *buffer, int &length, const unsigned max_length)
+UBX::configure(uint8_t *buffer, int &length, const unsigned max_length, bool &baudrate_changed, unsigned &baudrate)
 {
 	/* make sure the buffer, where the message is written to, is long enough */
 	assert(sizeof(type_gps_bin_cfg_prt_packet_t)+2 <= max_length);
@@ -84,9 +84,10 @@ UBX::configure(bool &config_needed, bool &baudrate_changed, unsigned &baudrate, 
 	if (!_waiting_for_ack) {
 		_waiting_for_ack = true;
 		if (_config_state == UBX_CONFIG_STATE_CONFIGURED) {
-			config_needed = false;
-			length = 0;
-			_config_state = UBX_CONFIG_STATE_PRT; /* set the state for next time */
+			/* This should never happen, the parser should set the flag,
+			 * if it should be reconfigured, reset() should be called first.
+			 */
+			warnx("ubx: already configured");
 			_waiting_for_ack = false;
 			return;
 		} else if (_config_state == UBX_CONFIG_STATE_PRT) {
@@ -246,12 +247,9 @@ UBX::configure(bool &config_needed, bool &baudrate_changed, unsigned &baudrate, 
 	}
 }
 
-int
-UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
+void
+UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_needed, bool &pos_updated)
 {
-	/* if no error happens and no new report is ready yet, ret will stay 0 */
-	int ret = 0;
-
 	switch (_decode_state) {
 		/* First, look for sync1 */
 		case UBX_DECODE_UNINIT:
@@ -382,7 +380,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 				default: //should not happen because we set the class
 					warnx("UBX Error, we set a class that we don't know");
 					decodeInit();
-					ret = -1;
+					config_needed = true;
 					break;
 				}
 				break;
@@ -417,7 +415,12 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 									gps_position->counter_pos_valid++;
 									gps_position->counter++;
 
+									/* Add timestamp to finish the report */
+									gps_position->timestamp = hrt_absolute_time();
+
 									_new_nav_posllh = true;
+									/* set flag to trigger publishing of new position */
+									pos_updated = true;
 
 								} else {
 									warnx("NAV_POSLLH: checksum invalid");
@@ -436,10 +439,12 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 								if (_rx_ck_a == packet->ck_a && _rx_ck_b == packet->ck_b) {
 
 									gps_position->fix_type = packet->gpsFix;
-
-									gps_position->counter++;
 									gps_position->s_variance = packet->sAcc;
 									gps_position->p_variance = packet->pAcc;
+
+									gps_position->counter++;
+									gps_position->timestamp = hrt_absolute_time();
+
 
 									_new_nav_sol = true;
 
@@ -463,6 +468,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 									gps_position->epv =  packet->vDOP;
 
 									gps_position->counter++;
+									gps_position->timestamp = hrt_absolute_time();
 
 									_new_nav_dop = true;
 
@@ -496,6 +502,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 									gps_position->time_gps_usec += (uint64_t)(packet->time_nanoseconds * 1e-3f);
 
 									gps_position->counter++;
+									gps_position->timestamp = hrt_absolute_time();
 
 									_new_nav_timeutc = true;
 
@@ -587,6 +594,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 
 									gps_position->satellites_visible = satellites_used++; // visible ~= used but we are interested in the used ones
 									gps_position->counter++;
+									gps_position->timestamp = hrt_absolute_time();
 
 									// as this message arrives only with 1Hz and is not essential, we don't take it into account for the report
 
@@ -614,6 +622,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 									gps_position->cog = (uint16_t)((float)(packet->heading) * 1e-3f);
 
 									gps_position->counter++;
+									gps_position->timestamp = hrt_absolute_time();
 
 									_new_nav_velned = true;
 
@@ -647,8 +656,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 //
 //								// Reset state machine to decode next packet
 //								decodeInit();
-//								return ret;
-//
 //								break;
 //							}
 
@@ -701,6 +708,8 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 									case UBX_CONFIG_STATE_MSG_NAV_VELNED:
 										if (packet->clsID == UBX_CLASS_CFG && packet->msgID == UBX_MESSAGE_CFG_MSG)
 											_config_state = UBX_CONFIG_STATE_CONFIGURED;
+											/* set the flag to tell the driver that configuration was successful */
+											config_needed = false;
 										break;
 //									case UBX_CONFIG_STATE_MSG_RXM_SVSI:
 //										if (packet->clsID == UBX_CLASS_CFG && packet->msgID == UBX_MESSAGE_CFG_MSG)
@@ -715,7 +724,6 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 
 							// Reset state machine to decode next packet
 							decodeInit();
-
 							break;
 						}
 
@@ -727,16 +735,14 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 							if (_rx_ck_a == packet->ck_a && _rx_ck_b == packet->ck_b) {
 
 								warnx("UBX: Received: Not Acknowledged");
-								ret = 1;
-
+								/* configuration obviously not successful */
+								config_needed = true;
 							} else {
 								warnx("ACK_NAK: checksum invalid\n");
 							}
 
 							// Reset state machine to decode next packet
 							decodeInit();
-							return ret;
-
 							break;
 						}
 
@@ -752,7 +758,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 					} else {
 						warnx("buffer full, restarting");
 						decodeInit();
-						ret = -1;
+						config_needed = true;
 					}
 				break;
 		default:
@@ -762,21 +768,18 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position)
 	/* return 1 when position updates and the remaining packets updated at least once */
 	if(_new_nav_posllh &&_new_nav_timeutc && _new_nav_dop && _new_nav_sol && _new_nav_velned) {
 
-		/* Add timestamp to finish the report */
-		gps_position->timestamp = hrt_absolute_time();
+		/* we have received everything, this most probably means that the configuration is fine */
+		config_needed = false;
+
 		/* Reset the flags */
-
-		/* update on every position change, accept minor delay on other measurements */
 		_new_nav_posllh = false;
-		// _new_nav_timeutc = false;
-		// _new_nav_dop = false;
-		// _new_nav_sol = false;
-		// _new_nav_velned = false;
+		_new_nav_timeutc = false;
+		_new_nav_dop = false;
+		_new_nav_sol = false;
+		_new_nav_velned = false;
 
-		ret = 1;
 	}
-
-	return ret;
+	return;
 }
 
 void
