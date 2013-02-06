@@ -37,6 +37,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <math.h>
 #include <string.h>
 #include <assert.h>
 #include <systemlib/err.h>
@@ -52,7 +53,7 @@ _config_state(UBX_CONFIG_STATE_PRT),
 _waiting_for_ack(false),
 _new_nav_posllh(false),
 _new_nav_timeutc(false),
-_new_nav_dop(false),
+//_new_nav_dop(false),
 _new_nav_sol(false),
 _new_nav_velned(false)
 {
@@ -211,10 +212,10 @@ UBX::configure(uint8_t *buffer, int &length, const unsigned max_length, bool &ba
 					cfg_msg_packet.msgClass_payload = UBX_CLASS_NAV;
 					cfg_msg_packet.msgID_payload = UBX_MESSAGE_NAV_TIMEUTC;
 					break;
-				case UBX_CONFIG_STATE_MSG_NAV_DOP:
-					cfg_msg_packet.msgClass_payload = UBX_CLASS_NAV;
-					cfg_msg_packet.msgID_payload = UBX_MESSAGE_NAV_DOP;
-					break;
+//				case UBX_CONFIG_STATE_MSG_NAV_DOP:
+//					cfg_msg_packet.msgClass_payload = UBX_CLASS_NAV;
+//					cfg_msg_packet.msgID_payload = UBX_MESSAGE_NAV_DOP;
+//					break;
 				case UBX_CONFIG_STATE_MSG_NAV_SVINFO:
 					cfg_msg_packet.msgClass_payload = UBX_CLASS_NAV;
 					cfg_msg_packet.msgID_payload = UBX_MESSAGE_NAV_SVINFO;
@@ -316,10 +317,10 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 						_message_id = NAV_TIMEUTC;
 						break;
 
-					case UBX_MESSAGE_NAV_DOP:
-						_decode_state = UBX_DECODE_GOT_MESSAGEID;
-						_message_id = NAV_DOP;
-						break;
+//					case UBX_MESSAGE_NAV_DOP:
+//						_decode_state = UBX_DECODE_GOT_MESSAGEID;
+//						_message_id = NAV_DOP;
+//						break;
 
 					case UBX_MESSAGE_NAV_SVINFO:
 						_decode_state = UBX_DECODE_GOT_MESSAGEID;
@@ -412,11 +413,11 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 									gps_position->lon = packet->lon;
 									gps_position->alt = packet->height_msl;
 
-									gps_position->counter_pos_valid++;
-									gps_position->counter++;
+									gps_position->eph_m = (float)packet->hAcc * 1e-2f; // from mm to m
+									gps_position->epv_m = (float)packet->vAcc * 1e-2f; // from mm to m
 
 									/* Add timestamp to finish the report */
-									gps_position->timestamp = hrt_absolute_time();
+									gps_position->timestamp_position = hrt_absolute_time();
 
 									_new_nav_posllh = true;
 									/* set flag to trigger publishing of new position */
@@ -439,11 +440,10 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 								if (_rx_ck_a == packet->ck_a && _rx_ck_b == packet->ck_b) {
 
 									gps_position->fix_type = packet->gpsFix;
-									gps_position->s_variance = packet->sAcc;
-									gps_position->p_variance = packet->pAcc;
+									gps_position->s_variance_m_s = packet->sAcc;
+									gps_position->p_variance_m = packet->pAcc;
 
-									gps_position->counter++;
-									gps_position->timestamp = hrt_absolute_time();
+									gps_position->timestamp_variance = hrt_absolute_time();
 
 
 									_new_nav_sol = true;
@@ -457,29 +457,28 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 								break;
 							}
 
-							case NAV_DOP: {
-//								printf("GOT NAV_DOP MESSAGE\n");
-								gps_bin_nav_dop_packet_t *packet = (gps_bin_nav_dop_packet_t *) _rx_buffer;
-
-								//Check if checksum is valid and the store the gps information
-								if (_rx_ck_a == packet->ck_a && _rx_ck_b == packet->ck_b) {
-
-									gps_position->eph =  packet->hDOP;
-									gps_position->epv =  packet->vDOP;
-
-									gps_position->counter++;
-									gps_position->timestamp = hrt_absolute_time();
-
-									_new_nav_dop = true;
-
-								} else {
-									warnx("NAV_DOP: checksum invalid");
-								}
-
-								// Reset state machine to decode next packet
-								decodeInit();
-								break;
-							}
+//							case NAV_DOP: {
+////								printf("GOT NAV_DOP MESSAGE\n");
+//								gps_bin_nav_dop_packet_t *packet = (gps_bin_nav_dop_packet_t *) _rx_buffer;
+//
+//								//Check if checksum is valid and the store the gps information
+//								if (_rx_ck_a == packet->ck_a && _rx_ck_b == packet->ck_b) {
+//
+//									gps_position->eph_m =  packet->hDOP;
+//									gps_position->epv =  packet->vDOP;
+//
+//									gps_position->timestamp_posdilution = hrt_absolute_time();
+//
+//									_new_nav_dop = true;
+//
+//								} else {
+//									warnx("NAV_DOP: checksum invalid");
+//								}
+//
+//								// Reset state machine to decode next packet
+//								decodeInit();
+//								break;
+//							}
 
 							case NAV_TIMEUTC: {
 //								printf("GOT NAV_TIMEUTC MESSAGE\n");
@@ -501,8 +500,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 									gps_position->time_gps_usec = (uint64_t)epoch * 1000000; //TODO: test this
 									gps_position->time_gps_usec += (uint64_t)(packet->time_nanoseconds * 1e-3f);
 
-									gps_position->counter++;
-									gps_position->timestamp = hrt_absolute_time();
+									gps_position->timestamp_time = hrt_absolute_time();
 
 									_new_nav_timeutc = true;
 
@@ -593,8 +591,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 									}
 
 									gps_position->satellites_visible = satellites_used++; // visible ~= used but we are interested in the used ones
-									gps_position->counter++;
-									gps_position->timestamp = hrt_absolute_time();
+									gps_position->timestamp_satellites = hrt_absolute_time();
 
 									// as this message arrives only with 1Hz and is not essential, we don't take it into account for the report
 
@@ -614,17 +611,16 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 								//Check if checksum is valid and the store the gps information
 								if (_rx_ck_a == packet->ck_a && _rx_ck_b == packet->ck_b) {
 
-									gps_position->vel = (uint16_t)packet->speed;
-									gps_position->vel_n = packet->velN / 100.0f;
-									gps_position->vel_e = packet->velE / 100.0f;
-									gps_position->vel_d = packet->velD / 100.0f;
+									gps_position->vel_m_s   = (float)packet->speed * 1e-2f;
+									gps_position->vel_n_m_s = (float)packet->velN * 1e-2f;
+									gps_position->vel_e_m_s = (float)packet->velE * 1e-2f;
+									gps_position->vel_d_m_s = (float)packet->velD * 1e-2f;
+									gps_position->cog_rad   = (float)packet->heading * M_DEG_TO_RAD_F * 1e-5f;
 									gps_position->vel_ned_valid = true;
-									gps_position->cog = (uint16_t)((float)(packet->heading) * 1e-3f);
-
-									gps_position->counter++;
-									gps_position->timestamp = hrt_absolute_time();
+									gps_position->timestamp_velocity = hrt_absolute_time();
 
 									_new_nav_velned = true;
+
 
 								} else {
 									warnx("NAV_VELNED: checksum invalid");
@@ -691,12 +687,12 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 										break;
 									case UBX_CONFIG_STATE_MSG_NAV_TIMEUTC:
 										if (packet->clsID == UBX_CLASS_CFG && packet->msgID == UBX_MESSAGE_CFG_MSG)
-											_config_state = UBX_CONFIG_STATE_MSG_NAV_DOP;
-										break;
-									case UBX_CONFIG_STATE_MSG_NAV_DOP:
-										if (packet->clsID == UBX_CLASS_CFG && packet->msgID == UBX_MESSAGE_CFG_MSG)
 											_config_state = UBX_CONFIG_STATE_MSG_NAV_SVINFO;
 										break;
+//									case UBX_CONFIG_STATE_MSG_NAV_DOP:
+//										if (packet->clsID == UBX_CLASS_CFG && packet->msgID == UBX_MESSAGE_CFG_MSG)
+//											_config_state = UBX_CONFIG_STATE_MSG_NAV_SVINFO;
+//										break;
 									case UBX_CONFIG_STATE_MSG_NAV_SVINFO:
 										if (packet->clsID == UBX_CLASS_CFG && packet->msgID == UBX_MESSAGE_CFG_MSG)
 											_config_state = UBX_CONFIG_STATE_MSG_NAV_SOL;
@@ -766,7 +762,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 	}
 
 	/* return 1 when position updates and the remaining packets updated at least once */
-	if(_new_nav_posllh &&_new_nav_timeutc && _new_nav_dop && _new_nav_sol && _new_nav_velned) {
+	if(_new_nav_posllh &&_new_nav_timeutc /*&& _new_nav_dop*/ && _new_nav_sol && _new_nav_velned) {
 
 		/* we have received everything, this most probably means that the configuration is fine */
 		config_needed = false;
@@ -774,7 +770,7 @@ UBX::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 		/* Reset the flags */
 		_new_nav_posllh = false;
 		_new_nav_timeutc = false;
-		_new_nav_dop = false;
+//		_new_nav_dop = false;
 		_new_nav_sol = false;
 		_new_nav_velned = false;
 

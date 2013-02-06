@@ -54,7 +54,7 @@
 #define UBX_MESSAGE_NAV_POSLLH 0x02
 #define UBX_MESSAGE_NAV_SOL 0x06
 #define UBX_MESSAGE_NAV_TIMEUTC 0x21
-#define UBX_MESSAGE_NAV_DOP 0x04
+//#define UBX_MESSAGE_NAV_DOP 0x04
 #define UBX_MESSAGE_NAV_SVINFO 0x30
 #define UBX_MESSAGE_NAV_VELNED 0x12
 //#define UBX_MESSAGE_RXM_SVSI 0x20
@@ -140,18 +140,18 @@ typedef struct {
 	uint8_t ck_b;
 } gps_bin_nav_timeutc_packet_t;
 
-typedef struct {
-	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
-	uint16_t gDOP; 					/**< Geometric DOP (scaling 0.01) */
-	uint16_t pDOP; 					/**< Position DOP (scaling 0.01) */
-	uint16_t tDOP; 					/**< Time DOP (scaling 0.01) */
-	uint16_t vDOP; 					/**< Vertical DOP (scaling 0.01) */
-	uint16_t hDOP; 					/**< Horizontal DOP (scaling 0.01) */
-	uint16_t nDOP; 					/**< Northing DOP (scaling 0.01) */
-	uint16_t eDOP; 					/**< Easting DOP (scaling 0.01) */
-	uint8_t ck_a;
-	uint8_t ck_b;
-} gps_bin_nav_dop_packet_t;
+//typedef struct {
+//	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
+//	uint16_t gDOP; 					/**< Geometric DOP (scaling 0.01) */
+//	uint16_t pDOP; 					/**< Position DOP (scaling 0.01) */
+//	uint16_t tDOP; 					/**< Time DOP (scaling 0.01) */
+//	uint16_t vDOP; 					/**< Vertical DOP (scaling 0.01) */
+//	uint16_t hDOP; 					/**< Horizontal DOP (scaling 0.01) */
+//	uint16_t nDOP; 					/**< Northing DOP (scaling 0.01) */
+//	uint16_t eDOP; 					/**< Easting DOP (scaling 0.01) */
+//	uint8_t ck_a;
+//	uint8_t ck_b;
+//} gps_bin_nav_dop_packet_t;
 
 typedef struct {
 	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
@@ -311,7 +311,7 @@ typedef enum {
 	NAV_POSLLH,
 	NAV_SOL,
 	NAV_TIMEUTC,
-	NAV_DOP,
+//	NAV_DOP,
 	NAV_SVINFO,
 	NAV_VELNED,
 //	RXM_SVSI,
@@ -371,7 +371,7 @@ private:
 	unsigned			_payload_size;
 	bool				_new_nav_posllh;
 	bool				_new_nav_timeutc;
-	bool				_new_nav_dop;
+//	bool				_new_nav_dop;
 	bool				_new_nav_sol;
 	bool				_new_nav_velned;
 };

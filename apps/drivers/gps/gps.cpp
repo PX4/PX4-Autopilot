@@ -543,9 +543,9 @@ GPS::print_info()
 			break;
 	}
 	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_config_needed) ? "NOT OK" : "OK");
-	if (_report.timestamp != 0) {
+	if (_report.timestamp_position != 0) {
 		warnx("position lock: %dD, last update %4.2f seconds ago", (int)_report.fix_type,
-			(double)((float)(hrt_absolute_time() - _report.timestamp) / 1000000.0f));
+			(double)((float)(hrt_absolute_time() - _report.timestamp_position) / 1000000.0f));
 		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
 		warnx("update rate: %6.2f Hz", (double)_rate);
 	}
