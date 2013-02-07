@@ -691,14 +691,16 @@ FAR struct mtd_dev_s *at25_initialize(FAR struct spi_dev_s *dev)
           kfree(priv);
           priv = NULL;
         }
-        
-      /* Unprotect all sectors */
+      else
+        {
+          /* Unprotect all sectors */
 
-      at25_writeenable(priv);
-      SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
-      (void)SPI_SEND(priv->dev, AT25_WRSR);
-      (void)SPI_SEND(priv->dev, AT25_SR_UNPROT);
-      SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+          at25_writeenable(priv);
+          SPI_SELECT(priv->dev, SPIDEV_FLASH, true);
+          (void)SPI_SEND(priv->dev, AT25_WRSR);
+          (void)SPI_SEND(priv->dev, AT25_SR_UNPROT);
+          SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
+        }
     }
 
   /* Return the implementation-specific state structure as the MTD device */

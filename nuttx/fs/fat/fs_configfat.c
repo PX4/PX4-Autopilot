@@ -406,7 +406,7 @@ mkfatfs_clustersearchlimits(FAR struct fat_format_s *fmt, FAR struct fat_var_s *
 }
 
 /****************************************************************************
- * Name:  mkfatfs_try12
+ * Name:  mkfatfs_tryfat12
  *
  * Description:
  *   Try to define a FAT12 filesystem on the device using the candidate
@@ -462,7 +462,7 @@ mkfatfs_tryfat12(FAR struct fat_format_s *fmt, FAR struct fat_var_s *var,
        * FAT12 (remembering that two FAT cluster slots are reserved).
        */
 
-      if (config->fc_nclusters > maxnclusters - 2)
+      if (config->fc_nclusters + 2 > maxnclusters)
         {
           fvdbg("Too many clusters for FAT12\n");
           return -ENFILE;
@@ -472,7 +472,7 @@ mkfatfs_tryfat12(FAR struct fat_format_s *fmt, FAR struct fat_var_s *var,
 }
  
 /****************************************************************************
- * Name:  mkfatfs_try16
+ * Name:  mkfatfs_tryfat16
  *
  * Description:
  *   Try to define a FAT16 filesystem on the device using the candidate
@@ -532,7 +532,7 @@ mkfatfs_tryfat16(FAR struct fat_format_s *fmt, FAR struct fat_var_s *var,
        * be confused as a FAT12 at mount time.
        */
 
-      if ((config->fc_nclusters > maxnclusters - 2) ||
+      if ((config->fc_nclusters + 2 > maxnclusters) ||
           (config->fc_nclusters < FAT_MINCLUST16))
         {
           fvdbg("Too few or too many clusters for FAT16\n");
@@ -543,7 +543,7 @@ mkfatfs_tryfat16(FAR struct fat_format_s *fmt, FAR struct fat_var_s *var,
 }
 
 /****************************************************************************
- * Name:  mkfatfs_try32
+ * Name:  mkfatfs_tryfat32
  *
  * Description:
  *   Try to define a FAT32 filesystem on the device using the candidate
@@ -587,7 +587,7 @@ mkfatfs_tryfat32(FAR struct fat_format_s *fmt, FAR struct fat_var_s *var,
        *   maxnclusters = nfatsects * sectorsize / 4 - 2
        */
 
-      maxnclusters = (config->fc_nfatsects >> (var->fv_sectshift - 2));
+      maxnclusters = (config->fc_nfatsects << (var->fv_sectshift - 2));
       if (maxnclusters > FAT_MAXCLUST32)
         {
           maxnclusters = FAT_MAXCLUST32;
@@ -599,7 +599,7 @@ mkfatfs_tryfat32(FAR struct fat_format_s *fmt, FAR struct fat_var_s *var,
        * FAT32 (remembering that two FAT cluster slots are reserved).
        */
 
-      if ((config->fc_nclusters > maxnclusters - 3) ||
+      if ((config->fc_nclusters + 3 > maxnclusters) ||
           (config->fc_nclusters < FAT_MINCLUST32 && fmt->ff_fattype != 32))
         {
           fvdbg("Too few or too many clusters for FAT32\n");

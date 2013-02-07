@@ -124,6 +124,13 @@ config PREALLOC_CHILDSTATUS
 			sa.sa_flags = SA_NOCLDWAIT;
 			int ret = sigaction(SIGCHLD, &sa, NULL);
 
+config DEBUG_CHILDSTATUS
+	bool "Enable Child Status Debug Output"
+	default n
+	depends on SCHED_CHILD_STATUS && DEBUG
+	---help---
+		Very detailed... I am sure that you do not want this.
+
 config JULIAN_TIME
 	bool "Enables Julian time conversions"
 	default n
@@ -289,6 +296,16 @@ config SCHED_WAITPID
 		compliant) and will enable the waitid() and wait() interfaces as
 		well.
 
+config SCHED_STARTHOOK
+	bool "Enable startup hook"
+	default n
+	---help---
+		Enable a non-standard, internal OS API call task_starthook().
+		task_starthook() registers a function that will be called on task
+		startup before that actual task entry point is called.  The
+		starthook is useful, for example, for setting up automatic
+		configuration of C++ constructors.
+
 config SCHED_ATEXIT
 	bool "Enable atexit() API"
 	default n
@@ -379,18 +396,8 @@ config DISABLE_MQUEUE
 	depends on DISABLE_OS_API
 	default n
 
-config DISABLE_MOUNTPOINT
-	bool "Disable support for mount points"
-	depends on DISABLE_OS_API
-	default n
-
 config DISABLE_ENVIRON
 	bool "Disable environment variable support"
-	depends on DISABLE_OS_API
-	default n
-
-config DISABLE_POLL
-	bool "Disable driver poll interfaces"
 	depends on DISABLE_OS_API
 	default n
 

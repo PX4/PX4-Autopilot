@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched/sched_setuptaskfiles.c
+ * sched/group_setuptaskfiles.c
  *
- *   Copyright (C) 2007-2008, 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@
 #include <nuttx/net/net.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
 
@@ -93,34 +94,33 @@ static inline void sched_dupfiles(FAR _TCB *tcb)
   FAR struct file *child;
   int i;
 
+  DEBUGASSERT(tcb && tcb->group && rtcb->group);
+
   /* Duplicate the file descriptors.  This will be either all of the
    * file descriptors or just the first three (stdin, stdout, and stderr)
    * if CONFIG_FDCLONE_STDIO is defined.  NFSDS_TOCLONE is set
    * accordingly above.
    */
 
-  if (rtcb->filelist)
+   /* Get pointers to the parent and child task file lists */
+
+  parent = rtcb->group->tg_filelist.fl_files;
+  child  = tcb->group->tg_filelist.fl_files;
+
+  /* Check each file in the parent file list */
+
+  for (i = 0; i < NFDS_TOCLONE; i++)
     {
-      /* Get pointers to the parent and child task file lists */
+      /* Check if this file is opened by the parent.  We can tell if
+       * if the file is open because it contain a reference to a non-NULL
+       * i-node structure.
+       */
 
-      parent = rtcb->filelist->fl_files;
-      child  = tcb->filelist->fl_files;
-
-      /* Check each file in the parent file list */
-
-      for (i = 0; i < NFDS_TOCLONE; i++)
+      if (parent[i].f_inode)
         {
-          /* Check if this file is opened by the parent.  We can tell if
-           * if the file is open because it contain a reference to a non-NULL
-           * i-node structure.
-           */
+          /* Yes... duplicate it for the child */
 
-          if (parent[i].f_inode)
-            {
-              /* Yes... duplicate it for the child */
-
-              (void)files_dup(&parent[i], &child[i]);
-            }
+          (void)files_dup(&parent[i], &child[i]);
         }
     }
 }
@@ -152,32 +152,31 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
   FAR struct socket *child;
   int i;
 
- /* Duplicate the socket descriptors of all sockets opened by the parent
-  * task.
-  */
+  /* Duplicate the socket descriptors of all sockets opened by the parent
+   * task.
+   */
 
-  if (rtcb->sockets)
+  DEBUGASSERT(tcb && tcb->group && rtcb->group);
+
+  /* Get pointers to the parent and child task socket lists */
+
+  parent = rtcb->group->tg_socketlist.sl_sockets;
+  child  = tcb->group->tg_socketlist.sl_sockets;
+
+  /* Check each socket in the parent socket list */
+
+  for (i = 0; i < CONFIG_NSOCKET_DESCRIPTORS; i++)
     {
-      /* Get pointers to the parent and child task socket lists */
+      /* Check if this parent socket is allocated.  We can tell if the
+       * socket is allocated because it will have a positive, non-zero
+       * reference count.
+       */
 
-      parent = rtcb->sockets->sl_sockets;
-      child  = tcb->sockets->sl_sockets;
-
-      /* Check each socket in the parent socket list */
-
-      for (i = 0; i < CONFIG_NSOCKET_DESCRIPTORS; i++)
+      if (parent[i].s_crefs > 0)
         {
-          /* Check if this parent socket is allocated.  We can tell if the
-           * socket is allocated because it will have a positive, non-zero
-           * reference count.
-           */
+          /* Yes... duplicate it for the child */
 
-          if (parent[i].s_crefs > 0)
-            {
-              /* Yes... duplicate it for the child */
-
-              (void)net_clone(&parent[i], &child[i]);
-            }
+          (void)net_clone(&parent[i], &child[i]);
         }
     }
 }
@@ -190,7 +189,7 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_setuptaskfiles
+ * Name: group_setuptaskfiles
  *
  * Description:
  *   Configure a newly allocated TCB so that it will inherit
@@ -207,26 +206,24 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
  *
  ****************************************************************************/
 
-int sched_setuptaskfiles(FAR _TCB *tcb)
+int group_setuptaskfiles(FAR _TCB *tcb)
 {
-  /* Allocate file descriptors for the TCB */
+#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+  FAR struct task_group_s *group = tcb->group;
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  tcb->filelist = files_alloclist();
-  if (!tcb->filelist)
-    {
-      return -ENOMEM;
-    }
+  DEBUGASSERT(group);
 #endif
 
-  /* Allocate socket descriptors for the TCB */
+#if CONFIG_NFILE_DESCRIPTORS > 0
+  /* Initialize file descriptors for the TCB */
+
+  files_initlist(&group->tg_filelist);
+#endif
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-  tcb->sockets = net_alloclist();
-  if (!tcb->sockets)
-    {
-      return -ENOMEM;
-    }
+  /* Allocate socket descriptors for the TCB */
+
+  net_initlist(&group->tg_socketlist);
 #endif
 
   /* Duplicate the parent task's file descriptors */
@@ -240,7 +237,7 @@ int sched_setuptaskfiles(FAR _TCB *tcb)
   /* Allocate file/socket streams for the new TCB */
 
 #if CONFIG_NFILE_STREAMS > 0
-  return sched_setupstreams(tcb);
+  return group_setupstreams(tcb);
 #else
   return OK;
 #endif

@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <sys/wait.h>
 #include <stdint.h>
 #include <assert.h>
 #include <queue.h>
@@ -48,7 +49,7 @@
 #include <nuttx/sched.h>
 
 #include "os_internal.h"
-#include "env_internal.h"
+#include "group_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -125,16 +126,12 @@ FAR _TCB *task_vforksetup(start_t retaddr)
   /* Associate file descriptors with the new task */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-  ret = sched_setuptaskfiles(child);
+  ret = group_setuptaskfiles(child);
   if (ret != OK)
     {
       goto errout_with_tcb;
     }
 #endif
-
-  /* Clone the parent's task environment */
-
-  (void)env_dup(child);
 
   /* Get the priority of the parent task */
 

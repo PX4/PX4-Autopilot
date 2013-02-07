@@ -59,7 +59,7 @@
  *   Remove the referenced name=value pair from the environment
  *
  * Parameters:
- *   envp The environment containing the name=value pair
+ *   group The task group with the environment containing the name=value pair
  *   pvar A pointer to the name=value pair in the restroom
  *
  * Return Value:
@@ -72,42 +72,44 @@
  *
  ****************************************************************************/
 
-int env_removevar(environ_t *envp, char *pvar)
+int env_removevar(FAR struct task_group_s *group, FAR char *pvar)
 {
+  FAR char *end;    /* Pointer to the end+1 of the environment */
+  int alloc;        /* Size of the allocated environment */
   int ret = ERROR;
-  if (envp && pvar)
+
+  DEBUGASSERT(group && pvar);
+
+  /* Verify that the pointer lies within the environment region */
+
+  alloc = group->tg_envsize;          /* Size of the allocated environment */
+  end   = &group->tg_envp[alloc];     /* Pointer to the end+1 of the environment */
+
+  if (pvar >= group->tg_envp && pvar < end)
     {
-      /* Verify that the pointer lies within the environment region */
+      /* Set up for the removal */
 
-      int   alloc = envp->ev_alloc;       /* Size of the allocated environment */
-      char *end   = &envp->ev_env[alloc]; /* Pointer to the end+1 of the environment */
+      int   len  = strlen(pvar) + 1;  /* Length of name=value string to remove */
+      char *src  = &pvar[len];        /* Address of name=value string after */
+      char *dest = pvar;              /* Location to move the next string */
+      int   count = end - src;        /* Number of bytes to move (might be zero) */
 
-      if (pvar >= envp->ev_env && pvar < end)
+      /* Move all of the environment strings after the removed one 'down.'
+       * this is inefficient, but robably not high duty.
+       */
+
+      while (count-- > 0)
         {
-          /* Set up for the removal */
-
-          int   len  = strlen(pvar) + 1;  /* Length of name=value string to remove */
-          char *src  = &pvar[len];        /* Address of name=value string after */
-          char *dest = pvar;              /* Location to move the next string */
-          int   count = end - src;         /* Number of bytes to move (might be zero) */
-
-          /* Move all of the environment strings after the removed one 'down.'
-           * this is inefficient, but robably not high duty.
-           */
-
-          while (count-- > 0)
-            {
-              *dest++ = *src++;
-            }
-
-          /* Then set to the new allocation size.  The caller is expected to
-           * call realloc at some point but we don't do that here because the
-           * caller may add more stuff to the environment.
-           */
-
-          envp->ev_alloc -= len;
-          ret = OK;
+          *dest++ = *src++;
         }
+
+      /* Then set to the new allocation size.  The caller is expected to
+       * call realloc at some point but we don't do that here because the
+       * caller may add more stuff to the environment.
+       */
+
+      group->tg_envsize -= len;
+      ret = OK;
     }
 
   return ret;

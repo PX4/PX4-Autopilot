@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched/env_share.c
+ * sched/task_start.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,16 +39,32 @@
 
 #include <nuttx/config.h>
 
-#ifndef CONFIG_DISABLE_ENVIRON
+#include <nuttx/sched.h>
 
-#include <sched.h>
-#include <errno.h>
-
-#include "os_internal.h"
-#include "env_internal.h"
+#ifdef CONFIG_SCHED_STARTHOOK
 
 /****************************************************************************
- * Private Data
+ * Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Type Declarations
+ ****************************************************************************/
+
+/****************************************************************************
+ * Global Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
@@ -56,62 +72,29 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: env_share
+ * Name: task_starthook
  *
  * Description:
- *   Increment the reference count on the internal environment structure of
- *   a task.  This is the action that is performed when a new pthread is
- *   created: The new pthread shares the environment with its parent.
+ *   Configure a start hook... a function that will be called on the thread
+ *   of the new task before the new task's main entry point is called.
+ *   The start hook is useful, for example, for setting up automatic
+ *   configuration of C++ constructors.
  *
- * Parameters:
- *   ptcb The new TCB to receive the shared environment.
+ * Inputs:
+ *   tcb - The new, unstarted task task that needs the start hook
+ *   starthook - The pointer to the start hook function
+ *   arg - The argument to pass to the start hook function.
  *
- * Return Value:
- *   A pointer to a specified TCB's environment structure with an incremented
- *   reference count.
- *
- * Assumptions:
- *   Not called from an interrupt handler.
+ * Return:
+ *   None
  *
  ****************************************************************************/
 
-int env_share(FAR _TCB *ptcb)
+void task_starthook(FAR _TCB *tcb, starthook_t starthook, FAR void *arg)
 {
-  int ret = OK;
-  if (!ptcb)
-    {
-      ret = -EINVAL;
-    }
-  else
-    {
-      FAR _TCB *parent = (FAR _TCB*)g_readytorun.head;
-      environ_t *envp = parent->envp;
-
-      /* Pre-emption must be disabled throughout the following because the
-       * environment is shared.
-       */
-
-      sched_lock();
-
-      /* Does the parent task have an environment? */
-
-      if (envp)
-        {
-          /* Yes.. increment the reference count on the environment */
-
-          envp->ev_crefs++;
-        }
-
-      /* Then share the environment */
-
-      ptcb->envp = envp;
-      sched_unlock();
-    }
-
-  return ret;
+  DEBUGASSERT(tcb);
+  tcb->starthook    = starthook;
+  tcb->starthookarg = arg;
 }
 
-#endif /* CONFIG_DISABLE_ENVIRON */
-
-
-
+#endif /* CONFIG_SCHED_STARTHOOK */

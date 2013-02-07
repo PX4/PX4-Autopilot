@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/sched_getstreams.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2008, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,10 @@
 FAR struct streamlist *sched_getstreams(void)
 {
   FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
-  return rtcb->streams;
+  FAR struct task_group_s *group = rtcb->group;
+
+  DEBUGASSERT(group);
+  return &group->tg_streamlist;
 } 
 
 #endif /* CONFIG_NFILE_DESCRIPTORS && CONFIG_NFILE_STREAMS */

@@ -132,23 +132,33 @@ static inline int readline_rawgetc(int infd)
 
       nread = read(infd, &buffer, 1);
 
-      /* Return EOF if the end of file (0) or error (-1) occurs. */
+      /* Check for end-of-file. */
  
-      if (nread < 1)
+      if (nread == 0)
+        {
+          /* Return zero on end-of-file */
+
+          return 0;
+        }
+
+      /* Check if an error occurred */
+
+      else if (nread < 0)
         {
           /* EINTR is not really an error; it simply means that a signal we
            * received while watiing for intput.
            */
 
-          if (nread == 0 ||  errno != EINTR)
+          int errcode = errno;
+          if (errcode != EINTR)
             {
-              return EOF;
+              return -errcode;
             }
         }
     }
   while (nread < 1);
 
-  /* On success, returnt he character that was read */
+  /* On success, return the character that was read */
 
   return (int)buffer;
 }
@@ -275,9 +285,29 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
 
       int ch = readline_rawgetc(infd);
 
+      /* Check for end-of-file or read error */
+
+      if (ch <= 0)
+        {
+          /* Did we already received some data? */
+
+          if (nch > 0)
+            {
+              /* Yes.. Terminate the line (which might be zero length)
+               * and return the data that was received.  The end-of-file
+               * or error condition will be reported next time.
+               */
+
+              buf[nch] = '\0';
+              return nch;
+            }
+
+          return ch;
+        }
+
       /* Are we processing a VT100 escape sequence */
 
-      if (escape)
+      else if (escape)
         {
           /* Yes, is it an <esc>[, 3 byte sequence */
 
@@ -363,16 +393,6 @@ ssize_t readline(FAR char *buf, int buflen, FILE *instream, FILE *outstream)
 
           readline_consoleputc('\n', outfd);
 #endif
-          return nch;
-        }
-
-      /* Check for end-of-file */
-
-      else if (ch == EOF)
-        {
-          /* Terminate the line (which might be zero length) */
-
-          buf[nch] = '\0';
           return nch;
         }
 

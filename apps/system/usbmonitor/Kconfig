@@ -1,0 +1,67 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config SYSTEM_USBMONITOR
+	bool "USB Monitor"
+	default n
+	depends on USBDEV && USBDEV_TRACE && SYSLOG
+	---help---
+		If USB device tracing is enabled (USBDEV_TRACE), then this option
+		will select the USB monitor.  The USB monitor is a daemon that will
+		periodically collect the buffered USB trace data and dump it to the
+		SYSLOG device.
+
+if SYSTEM_USBMONITOR
+
+config SYSTEM_USBMONITOR_STACKSIZE
+	int "USB Monitor daemon stack size"
+	default 2048
+	---help---
+		The stack size to use the the USB monitor daemon.  Default: 2048
+
+config SYSTEM_USBMONITOR_PRIORITY
+	int "USB Monitor daemon priority"
+	default 50
+	---help---
+		The priority to use the the USB monitor daemon.  Default: 50
+
+config SYSTEM_USBMONITOR_INTERVAL
+	int "USB Monitor dump frequency"
+	default 2
+	---help---
+		The rate in seconds that the USB monitor will wait before dumping
+		the next set of buffered USB trace data.  Default:  2 seconds.
+
+config SYSTEM_USBMONITOR_TRACEINIT
+	bool "Show initialization events"
+	default n
+	---help---
+		Show initialization events
+
+config SYSTEM_USBMONITOR_TRACECLASS
+	bool "Show class driver events"
+	default n
+	---help---
+		Show class driver events
+
+config SYSTEM_USBMONITOR_TRACETRANSFERS
+	bool "Show data transfer events"
+	default n
+	---help---
+		Show data transfer events
+
+config SYSTEM_USBMONITOR_TRACECONTROLLER
+	bool "Show controller events"
+	default n
+	---help---
+		Show controller events
+
+config SYSTEM_USBMONITOR_TRACEINTERRUPTS
+	bool "Show interrupt-related events"
+	default n
+	---help---
+		Show interrupt-related events
+endif
+
