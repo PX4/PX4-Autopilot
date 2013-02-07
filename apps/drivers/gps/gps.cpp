@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 
 #include "ubx.h"
+#include "mtk.h"
 
 #define SEND_BUFFER_LENGTH 100
 #define TIMEOUT 1000000 //1s
@@ -238,30 +239,6 @@ GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 	int ret = OK;
 
 	switch (cmd) {
-	case GPS_CONFIGURE_UBX:
-		if (_mode != GPS_DRIVER_MODE_UBX) {
-			_mode = GPS_DRIVER_MODE_UBX;
-			_mode_changed = true;
-		}
-		break;
-	case GPS_CONFIGURE_MTK19:
-		if (_mode != GPS_DRIVER_MODE_MTK19) {
-			_mode = GPS_DRIVER_MODE_MTK19;
-			_mode_changed = true;
-		}
-		break;
-	case GPS_CONFIGURE_MTK16:
-		if (_mode != GPS_DRIVER_MODE_MTK16) {
-			_mode = GPS_DRIVER_MODE_MTK16;
-			_mode_changed = true;
-		}
-		break;
-	case GPS_CONFIGURE_NMEA:
-		if (_mode != GPS_DRIVER_MODE_NMEA) {
-			_mode = GPS_DRIVER_MODE_NMEA;
-			_mode_changed = true;
-		}
-		break;
 	case SENSORIOCRESET:
 		cmd_reset();
 		break;
@@ -275,19 +252,7 @@ GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 void
 GPS::config()
 {
-	int length = 0;
-	uint8_t	send_buffer[SEND_BUFFER_LENGTH];
-
-	_Helper->configure(send_buffer, length, SEND_BUFFER_LENGTH, _baudrate_changed, _baudrate);
-
-	/* The config message is sent sent at the old baudrate */
-	if (length > 0) {
-
-		if (length != ::write(_serial_fd, send_buffer, length)) {
-			debug("write config failed");
-			return;
-		}
-	}
+	_Helper->configure(_serial_fd, _baudrate_changed, _baudrate);
 
 	/* Sometimes the baudrate needs to be changed, for instance UBX with factory settings are changed
 	 * from 9600 to 38400
@@ -356,11 +321,8 @@ GPS::task_main()
 			case GPS_DRIVER_MODE_UBX:
 				_Helper = new UBX();
 				break;
-			case GPS_DRIVER_MODE_MTK19:
-				//_Helper = new MTK19();
-				break;
-			case GPS_DRIVER_MODE_MTK16:
-				//_Helper = new MTK16();
+			case GPS_DRIVER_MODE_MTK:
+				_Helper = new MTK();
 				break;
 			case GPS_DRIVER_MODE_NMEA:
 				//_Helper = new NMEA();
@@ -530,11 +492,8 @@ GPS::print_info()
 		case GPS_DRIVER_MODE_UBX:
 			warnx("protocol: UBX");
 			break;
-		case GPS_DRIVER_MODE_MTK19:
-			warnx("protocol: MTK 1.9");
-			break;
-		case GPS_DRIVER_MODE_MTK16:
-			warnx("protocol: MTK 1.6");
+		case GPS_DRIVER_MODE_MTK:
+			warnx("protocol: MTK");
 			break;
 		case GPS_DRIVER_MODE_NMEA:
 			warnx("protocol: NMEA");

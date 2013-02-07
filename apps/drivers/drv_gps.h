@@ -50,8 +50,7 @@
 
 typedef enum {
 	GPS_DRIVER_MODE_UBX = 0,
-	GPS_DRIVER_MODE_MTK19,
-	GPS_DRIVER_MODE_MTK16,
+	GPS_DRIVER_MODE_MTK,
 	GPS_DRIVER_MODE_NMEA,
 } gps_driver_mode_t;
 
@@ -66,15 +65,5 @@ ORB_DECLARE(gps);
  */
 #define _GPSIOCBASE			(0x2800)            //TODO: arbitrary choice...
 #define _GPSIOC(_n)		(_IOC(_GPSIOCBASE, _n))
-
-/** configure ubx mode */
-#define GPS_CONFIGURE_UBX	_GPSIOC(0)
-
-/** configure mtk mode */
-#define GPS_CONFIGURE_MTK19	_GPSIOC(1)
-#define GPS_CONFIGURE_MTK16	_GPSIOC(2)
-
-/** configure mtk mode */
-#define GPS_CONFIGURE_NMEA	_GPSIOC(3)
 
 #endif /* _DRV_GPS_H */

@@ -36,12 +36,13 @@
 /* @file U-Blox protocol definitions */
 
 #ifndef GPS_HELPER_H
+#define GPS_HELPER_H
 
 class GPS_Helper
 {
 public:
 	virtual void			reset(void) = 0;
-	virtual void			configure(uint8_t *buffer, int &length, const unsigned max_length, bool &baudrate_changed, unsigned &baudrate) = 0;
+	virtual void			configure(const int &fd, bool &baudrate_changed, unsigned &baudrate) = 0;
 	virtual void 			parse(uint8_t, struct vehicle_gps_position_s*, bool &config_needed, bool &pos_updated) = 0;
 };
 

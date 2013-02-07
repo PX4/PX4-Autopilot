@@ -68,11 +68,8 @@ UBX::reset()
 }
 
 void
-UBX::configure(uint8_t *buffer, int &length, const unsigned max_length, bool &baudrate_changed, unsigned &baudrate)
+UBX::configure(const int &fd, bool &baudrate_changed, unsigned &baudrate)
 {
-	/* make sure the buffer, where the message is written to, is long enough */
-	assert(sizeof(type_gps_bin_cfg_prt_packet_t)+2 <= max_length);
-
 	/* Only send a new config message when we got the ACK of the last one,
 	 * otherwise we might not configure all the messages because the ACK comes from an older/previos CFD command
 	 * reason being that the ACK only includes CFG-MSG but not to which NAV MSG it belongs.
@@ -105,16 +102,7 @@ UBX::configure(uint8_t *buffer, int &length, const unsigned max_length, bool &ba
 			cfg_prt_packet.inProtoMask	= UBX_CFG_PRT_PAYLOAD_INPROTOMASK;
 			cfg_prt_packet.outProtoMask	= UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK;
 
-			/* Calculate the checksum now */
-			addChecksumToMessage((uint8_t*)&cfg_prt_packet, sizeof(cfg_prt_packet));
-
-			/* Start with the two sync bytes */
-			buffer[0] = UBX_SYNC1;
-			buffer[1] = UBX_SYNC2;
-			/* Copy it to the buffer that will be written back in the main gps driver */
-			memcpy(&(buffer[2]), &cfg_prt_packet, sizeof(cfg_prt_packet));
-			/* Set the length of the packet (plus the 2 sync bytes) */
-			length = sizeof(cfg_prt_packet)+2;
+			sendConfigPacket(fd, (uint8_t*)&cfg_prt_packet, sizeof(cfg_prt_packet));
 
 		} else if (_config_state == UBX_CONFIG_STATE_PRT_NEW_BAUDRATE) {
 
@@ -131,12 +119,7 @@ UBX::configure(uint8_t *buffer, int &length, const unsigned max_length, bool &ba
 			cfg_prt_packet.inProtoMask	= UBX_CFG_PRT_PAYLOAD_INPROTOMASK;
 			cfg_prt_packet.outProtoMask	= UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK;
 
-			addChecksumToMessage((uint8_t*)&cfg_prt_packet, sizeof(cfg_prt_packet));
-
-			buffer[0] = UBX_SYNC1;
-			buffer[1] = UBX_SYNC2;
-			memcpy(&(buffer[2]), &cfg_prt_packet, sizeof(cfg_prt_packet));
-			length = sizeof(cfg_prt_packet)+2;
+			sendConfigPacket(fd, (uint8_t*)&cfg_prt_packet, sizeof(cfg_prt_packet));
 
 			/* If the new baudrate will be different from the current one, we should report that back to the driver */
 			if (UBX_CFG_PRT_PAYLOAD_BAUDRATE != baudrate) {
@@ -160,12 +143,7 @@ UBX::configure(uint8_t *buffer, int &length, const unsigned max_length, bool &ba
 			cfg_rate_packet.navRate		= UBX_CFG_RATE_PAYLOAD_NAVRATE;
 			cfg_rate_packet.timeRef		= UBX_CFG_RATE_PAYLOAD_TIMEREF;
 
-			addChecksumToMessage((uint8_t*)&cfg_rate_packet, sizeof(cfg_rate_packet));
-
-			buffer[0] = UBX_SYNC1;
-			buffer[1] = UBX_SYNC2;
-			memcpy(&(buffer[2]), &cfg_rate_packet, sizeof(cfg_rate_packet));
-			length = sizeof(cfg_rate_packet)+2;
+			sendConfigPacket(fd, (uint8_t*)&cfg_rate_packet, sizeof(cfg_rate_packet));
 
 		} else if (_config_state == UBX_CONFIG_STATE_NAV5) {
 			/* send a NAV5 message to set the options for the internal filter */
@@ -179,12 +157,7 @@ UBX::configure(uint8_t *buffer, int &length, const unsigned max_length, bool &ba
 			cfg_nav5_packet.dynModel     = UBX_CFG_NAV5_PAYLOAD_DYNMODEL;
 			cfg_nav5_packet.fixMode      = UBX_CFG_NAV5_PAYLOAD_FIXMODE;
 
-			addChecksumToMessage((uint8_t*)&cfg_nav5_packet, sizeof(cfg_nav5_packet));
-
-			buffer[0] = UBX_SYNC1;
-			buffer[1] = UBX_SYNC2;
-			memcpy(&(buffer[2]), &cfg_nav5_packet, sizeof(cfg_nav5_packet));
-			length = sizeof(cfg_nav5_packet)+2;
+			sendConfigPacket(fd, (uint8_t*)&cfg_nav5_packet, sizeof(cfg_nav5_packet));
 
 		} else {
 			/* Catch the remaining config states here, they all need the same packet type */
@@ -233,12 +206,7 @@ UBX::configure(uint8_t *buffer, int &length, const unsigned max_length, bool &ba
 					break;
 			}
 
-			addChecksumToMessage((uint8_t*)&cfg_msg_packet, sizeof(cfg_msg_packet));
-
-			buffer[0] = UBX_SYNC1;
-			buffer[1] = UBX_SYNC2;
-			memcpy(&(buffer[2]), &cfg_msg_packet, sizeof(cfg_msg_packet));
-			length = sizeof(cfg_msg_packet)+2;
+			sendConfigPacket(fd, (uint8_t*)&cfg_msg_packet, sizeof(cfg_msg_packet));
 		}
 	}
 }
@@ -778,4 +746,22 @@ UBX::addChecksumToMessage(uint8_t* message, const unsigned length)
 	/* The checksum is written to the last to bytes of a message */
 	message[length-2] = ck_a;
 	message[length-1] = ck_b;
+}
+
+void
+UBX::sendConfigPacket(const int &fd, uint8_t *packet, const unsigned length)
+{
+	ssize_t ret = 0;
+
+	/* Calculate the checksum now */
+	addChecksumToMessage(packet, length);
+
+	const uint8_t sync_bytes[] = {UBX_SYNC1, UBX_SYNC2};
+
+	/* Start with the two sync bytes */
+	ret += write(fd, sync_bytes, sizeof(sync_bytes));
+	ret += write(fd, packet, length);
+
+	if (ret != (int)length + (int)sizeof(sync_bytes)) // XXX is there a neater way to get rid of the unsigned signed warning?
+		warnx("ubx: config write fail");
 }

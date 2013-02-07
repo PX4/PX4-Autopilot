@@ -40,7 +40,6 @@
 
 #include "gps_helper.h"
 
-
 #define UBX_SYNC1 0xB5
 #define UBX_SYNC2 0x62
 
@@ -341,7 +340,7 @@ public:
 	UBX();
 	~UBX();
 	void				reset(void);
-	void				configure(uint8_t *buffer, int &length, const unsigned max_length, bool &baudrate_changed, unsigned &baudrate);
+	void				configure(const int &fd, bool &baudrate_changed, unsigned &baudrate);
 	void 				parse(uint8_t, struct vehicle_gps_position_s*, bool &config_needed, bool &pos_updated);
 
 private:
@@ -358,7 +357,13 @@ private:
 	/**
 	 * Add the two checksum bytes to an outgoing message
 	 */
-	void				addChecksumToMessage(uint8_t*, const unsigned);
+	void				addChecksumToMessage(uint8_t* message, const unsigned length);
+
+	/**
+	 * Helper to send a config packet
+	 */
+	void				sendConfigPacket(const int &fd, uint8_t *packet, const unsigned length);
+
 	ubx_config_state_t	_config_state;
 	bool 				_waiting_for_ack;
 	ubx_decode_state_t	_decode_state;
