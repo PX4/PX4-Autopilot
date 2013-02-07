@@ -73,7 +73,7 @@ int user_start(int argc, char *argv[])
 	hrt_init();
 
 	/* print some startup info */
-	lib_lowprintf("\nPX4IO: starting\n");
+	lowsyslog("\nPX4IO: starting\n");
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
@@ -98,7 +98,7 @@ int user_start(int argc, char *argv[])
 
 
 	struct mallinfo minfo = mallinfo();
-	lib_lowprintf("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
+	lowsyslog("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	/* we're done here, go run the communications loop */
 	comms_main();

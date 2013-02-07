@@ -220,7 +220,6 @@ struct uart_dev_s
 #ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_SERIAL_NPOLLWAITERS];
 #endif
-<<<<<<< HEAD
 
   /* Terminal control flags */
 
@@ -230,8 +229,6 @@ struct uart_dev_s
   tcflag_t  tc_lflag;        /* Local modes */
 #endif
 
-=======
->>>>>>> 049c93446561c6ad3e59183c139f3916230ddee5
 };
 
 typedef struct uart_dev_s uart_dev_t;
