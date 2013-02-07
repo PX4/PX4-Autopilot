@@ -77,7 +77,7 @@
 #define SEND_BUFFER_LENGTH 100
 #define TIMEOUT 1000000 //1s
 
-#define NUMBER_OF_BAUDRATES 4
+#define NUMBER_OF_TRIES 5
 #define CONFIG_TIMEOUT 2000000
 
 /* oddly, ERROR is not defined for c++ */
@@ -113,7 +113,8 @@ private:
 	int				_serial_fd;					///< serial interface to GPS
 	unsigned			_baudrate;					///< current baudrate
 	char				_port[20];					///< device / serial port path
-	const unsigned			_baudrates_to_try[NUMBER_OF_BAUDRATES];		///< try different baudrates that GPS could be set to
+	const unsigned			_baudrates_to_try[NUMBER_OF_TRIES];		///< try different baudrates that GPS could be set to
+	const gps_driver_mode_t	_modes_to_try[NUMBER_OF_TRIES];			///< try different modes
 	volatile int			_task;						//< worker task
 	bool				_config_needed;					///< flag to signal that configuration of GPS is needed
 	bool 				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
@@ -170,11 +171,11 @@ GPS	*g_dev;
 GPS::GPS(const char* uart_path) :
 	CDev("gps", GPS_DEVICE_PATH),
 	_task_should_exit(false),
-	_baudrates_to_try({9600, 38400, 57600, 115200}),
+	_baudrates_to_try({9600, 38400, 57600, 115200, 38400}),
+	_modes_to_try({GPS_DRIVER_MODE_UBX, GPS_DRIVER_MODE_UBX, GPS_DRIVER_MODE_UBX, GPS_DRIVER_MODE_UBX, GPS_DRIVER_MODE_MTK}),
 	_config_needed(true),
 	_baudrate_changed(false),
-	_mode_changed(true),
-	_mode(GPS_DRIVER_MODE_UBX),
+	_mode_changed(false),
 	_Helper(nullptr),
 	_report_pub(-1),
 	_rate(0.0f)
@@ -295,8 +296,10 @@ GPS::task_main()
 	/* lock against the ioctl handler */
 	lock();
 
-	unsigned baud_i = 0;
-	_baudrate = _baudrates_to_try[baud_i];
+	unsigned try_i = 0;
+	_baudrate = _baudrates_to_try[try_i];
+	_mode = _modes_to_try[try_i];
+	_mode_changed = true;
 	set_baudrate(_baudrate);
 
 	uint64_t time_before_configuration = hrt_absolute_time();
@@ -309,6 +312,23 @@ GPS::task_main()
 
 	/* loop handling received serial bytes and also configuring in between */
 	while (!_task_should_exit) {
+
+		/* If a configuration does not finish in the config timeout, change the baudrate */
+		if (_config_needed && time_before_configuration + CONFIG_TIMEOUT < hrt_absolute_time()) {
+			/* loop through possible modes/baudrates */
+			try_i = (try_i + 1) % NUMBER_OF_TRIES;
+			_baudrate = _baudrates_to_try[try_i];
+			set_baudrate(_baudrate);
+			if (_mode != _modes_to_try[try_i]) {
+				_mode_changed = true;
+			}
+			_mode = _modes_to_try[try_i];
+
+			if (_Helper != nullptr) {
+				_Helper->reset();
+			}
+			time_before_configuration = hrt_absolute_time();
+		}
 
 		if (_mode_changed) {
 			if (_Helper != nullptr) {
@@ -333,14 +353,7 @@ GPS::task_main()
 			_mode_changed = false;
 		}
 
-		/* If a configuration does not finish in the config timeout, change the baudrate */
-		if (_config_needed && time_before_configuration + CONFIG_TIMEOUT < hrt_absolute_time()) {
-			baud_i = (baud_i+1)%NUMBER_OF_BAUDRATES;
-			_baudrate = _baudrates_to_try[baud_i];
-			set_baudrate(_baudrate);
-			_Helper->reset();
-			time_before_configuration = hrt_absolute_time();
-		}
+
 
 		/* during configuration, the timeout should be small, so that we can send config messages in between parsing,
 		 * but during normal operation, it should never timeout because updates should arrive with 5Hz */
