@@ -48,7 +48,8 @@
 #include "mtk.h"
 
 
-MTK::MTK()
+MTK::MTK() :
+_mtk_revision(0)
 {
 	decodeInit();
 }
@@ -102,13 +103,18 @@ MTK::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 {
 	if (_decode_state == MTK_DECODE_UNINIT) {
 
-		if (b == 0xd0) {
+		if (b == MTK_SYNC1_V16) {
 			_decode_state = MTK_DECODE_GOT_CK_A;
 			config_needed = false;
+			_mtk_revision = 16;
+		} else if (b == MTK_SYNC1_V19) {
+			_decode_state = MTK_DECODE_GOT_CK_A;
+			config_needed = false;
+			_mtk_revision = 19;
 		}
 
 	} else if (_decode_state == MTK_DECODE_GOT_CK_A) {
-		if (b == 0xdd) {
+		if (b == MTK_SYNC2) {
 			_decode_state = MTK_DECODE_GOT_CK_B;
 
 		} else {
@@ -131,11 +137,18 @@ MTK::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 
 			/* Check if checksum is valid */
 			if (_rx_ck_a == packet->ck_a && _rx_ck_b == packet->ck_b) {
-				gps_position->lat = packet->latitude * 10; // from degrees*1e6 to degrees*1e7
-				gps_position->lon = packet->longitude * 10; // from degrees*1e6 to degrees*1e7
+				if (_mtk_revision == 16) {
+					gps_position->lat = packet->latitude * 10; // from degrees*1e6 to degrees*1e7
+					gps_position->lon = packet->longitude * 10; // from degrees*1e6 to degrees*1e7
+				} else if (_mtk_revision == 19) {
+					gps_position->lat = packet->latitude; // both degrees*1e7
+					gps_position->lon = packet->longitude; // both degrees*1e7
+				} else {
+					warnx("mtk: unknown revision");
+				}
 				gps_position->alt = (int32_t)(packet->msl_altitude * 10); // from cm to mm
 				gps_position->fix_type = packet->fix_type;
-				gps_position->eph_m = packet->hdop;
+				gps_position->eph_m = packet->hdop; // XXX: Check this because eph_m is in m and hdop is without unit
 				gps_position->epv_m = 0.0; //unknown in mtk custom mode
 				gps_position->vel_m_s = ((float)packet->ground_speed)*1e-2f; // from cm/s to m/s
 				gps_position->cog_rad = ((float)packet->heading) * M_DEG_TO_RAD_F * 1e-2f; //from deg *100 to rad

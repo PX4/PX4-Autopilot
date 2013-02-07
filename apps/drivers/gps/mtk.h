@@ -40,7 +40,8 @@
 
 #include "gps_helper.h"
 
-#define MTK_SYNC1 0xd0
+#define MTK_SYNC1_V16 0xd0
+#define MTK_SYNC1_V19 0xd1
 #define MTK_SYNC2 0xdd
 
 #define MTK_OUTPUT_5HZ		"$PMTK220,200*2C\r\n"
@@ -99,6 +100,7 @@ private:
 	void				addByteToChecksum(uint8_t);
 
 	mtk_decode_state_t _decode_state;
+	uint8_t				_mtk_revision;
 	uint8_t				_rx_buffer[MTK_RECV_BUFFER_SIZE];
 	unsigned			_rx_count;
 	uint8_t 			_rx_ck_a;
