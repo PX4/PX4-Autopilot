@@ -44,6 +44,7 @@
 #include <errno.h>
 #include <string.h>
 #include <poll.h>
+#include <signal.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
@@ -68,6 +69,9 @@ volatile uint8_t debug_level = 0;
 volatile uint32_t i2c_loop_resets = 0;
 
 struct hrt_call loop_overtime_call;
+
+// this allows wakeup of the main task via a signal
+static pid_t daemon_pid;
 
 
 /*
@@ -130,9 +134,24 @@ static void loop_overtime(void *arg)
 	hrt_call_after(&loop_overtime_call, 50000, (hrt_callout)loop_overtime, NULL);
 }
 
+static void wakeup_handler(int signo, siginfo_t *info, void *ucontext)
+{
+	// nothing to do - we just want poll() to return
+}
+
+
+/*
+  wakeup the main task using a signal
+ */
+void daemon_wakeup(void)
+{
+	kill(daemon_pid, SIGUSR1);
+}
 
 int user_start(int argc, char *argv[])
 {
+	daemon_pid = getpid();
+
 	/* run C++ ctors before we go any further */
 	up_cxxinitialize();
 
@@ -182,6 +201,18 @@ int user_start(int argc, char *argv[])
 
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
+
+	/* 
+	 *  setup a null handler for SIGUSR1 - we will use this for wakeup from poll()
+	 */
+        struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+        sa.sa_sigaction = wakeup_handler;
+	sigfillset(&sa.sa_mask);
+	sigdelset(&sa.sa_mask, SIGUSR1);
+        if (sigaction(SIGUSR1, &sa, NULL) != OK) {
+		debug("Failed to setup SIGUSR1 handler\n");
+	}
 
 	/* run the mixer at ~300Hz (for now...) */
 	/* XXX we should use CONFIG_IDLE_CUSTOM and take over the idle thread instead of running two additional tasks */

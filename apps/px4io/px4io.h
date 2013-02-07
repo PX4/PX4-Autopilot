@@ -143,30 +143,29 @@ extern struct sys_state_s system_state;
 extern void	mixer_tick(void);
 extern void	mixer_handle_text(const void *buffer, size_t length);
 
-/*
+/**
  * Safety switch/LED.
  */
 extern void	safety_init(void);
 
-/*
+/**
  * FMU communications
  */
-extern void	comms_main(void) __attribute__((noreturn));
 extern void	i2c_init(void);
 
-/*
+/**
  * Register space
  */
 extern void	registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
 extern int	registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_values);
 
-/*
+/**
  * Sensors/misc inputs
  */
 extern int	adc_init(void);
 extern uint16_t	adc_measure(unsigned channel);
 
-/*
+/**
  * R/C receiver handling.
  *
  * Input functions return true when they receive an update from the RC controller.
@@ -177,8 +176,13 @@ extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern int	sbus_init(const char *device);
 extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
 
-/* global debug level for isr_debug() */
+/** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;
+
+/**
+ * Wake up mixer.
+ */
+void daemon_wakeup(void);
 
 /* send a debug message to the console */
 extern void isr_debug(uint8_t level, const char *fmt, ...);
