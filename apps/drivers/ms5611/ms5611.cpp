@@ -331,8 +331,9 @@ MS5611::probe()
 
 	if ((OK == probe_address(MS5611_ADDRESS_1)) ||
 	    (OK == probe_address(MS5611_ADDRESS_2))) {
-	    	/*
-	    	 * Disable retries; the device gets confused if we retry some of the commands.
+		/*
+	    	 * Disable retries; we may enable them selectively in some cases,
+		 * but the device gets confused if we retry some of the commands.
 	    	 */
 		_retries = 0;
 		return OK;
@@ -653,7 +654,11 @@ MS5611::measure()
 
 	/*
 	 * Send the command to begin measuring.
+	 *
+	 * Disable retries on this command; we can't know whether failure 
+	 * means the device did or did not see the write.
 	 */
+	_retries = 0;
 	ret = transfer(&cmd_data, 1, nullptr, 0);
 
 	if (OK != ret)
