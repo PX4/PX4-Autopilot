@@ -50,6 +50,9 @@
 #define WAAS_ON				"$PMTK301,2*2E\r\n"
 #define MTK_NAVTHRES_OFF 	"$PMTK397,0*23\r\n"
 
+#define MTK_TIMEOUT_5HZ 400
+#define MTK_BAUDRATE 38400
+
 typedef enum {
 	MTK_DECODE_UNINIT = 0,
 	MTK_DECODE_GOT_CK_A = 1,
@@ -64,16 +67,16 @@ typedef struct {
 	int32_t latitude;  ///< Latitude in degrees * 10^7
 	int32_t longitude; ///< Longitude in degrees * 10^7
 	uint32_t msl_altitude;  ///< MSL altitude in meters * 10^2
-	uint32_t ground_speed; ///< FIXME SPEC UNCLEAR
-	int32_t heading;
-	uint8_t satellites;
-	uint8_t fix_type;
+	uint32_t ground_speed; ///< velocity in m/s
+	int32_t heading; ///< heading in degrees * 10^2
+	uint8_t satellites; ///< number of sattelites used
+	uint8_t fix_type;  ///< fix type: XXX correct for that
 	uint32_t date;
 	uint32_t utc_time;
-	uint16_t hdop;
+	uint16_t hdop; ///< horizontal dilution of position (without unit)
 	uint8_t ck_a;
 	uint8_t ck_b;
-} type_gps_mtk_packet;
+} gps_mtk_packet_t;
 
 #pragma pack(pop)
 
@@ -84,23 +87,31 @@ class MTK : public GPS_Helper
 public:
 	MTK();
 	~MTK();
-	void				reset(void);
-	void				configure(const int &fd, bool &baudrate_changed, unsigned &baudrate);
-	void 				parse(uint8_t, struct vehicle_gps_position_s*, bool &config_needed, bool &pos_updated);
+	int					receive(const int &fd, struct vehicle_gps_position_s &gps_position);
+	int					configure(const int &fd, unsigned &baudrate);
 
 private:
 	/**
+	 * Parse the binary MTK packet
+	 */
+	int					parse_char(uint8_t b, gps_mtk_packet_t &packet);
+
+	/**
+	 * Handle the package once it has arrived
+	 */
+	void				handle_message(gps_mtk_packet_t &packet, struct vehicle_gps_position_s &gps_position);
+
+	/**
 	 * Reset the parse state machine for a fresh start
 	 */
-	void				decodeInit(void);
+	void				decode_init(void);
 
 	/**
 	 * While parsing add every byte (except the sync bytes) to the checksum
 	 */
-	void				addByteToChecksum(uint8_t);
+	void				add_byte_to_checksum(uint8_t);
 
 	mtk_decode_state_t	_decode_state;
-	bool				_config_sent;
 	uint8_t				_mtk_revision;
 	uint8_t				_rx_buffer[MTK_RECV_BUFFER_SIZE];
 	unsigned			_rx_count;

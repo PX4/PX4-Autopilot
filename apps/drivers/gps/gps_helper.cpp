@@ -33,20 +33,58 @@
  *
  ****************************************************************************/
 
-/* @file gps_helper.h */
+#include <termios.h>
+#include <errno.h>
+#include <systemlib/err.h>
+#include "gps_helper.h"
 
-#ifndef GPS_HELPER_H
-#define GPS_HELPER_H
+/* @file gps_helper.cpp */
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
-
-class GPS_Helper
+int
+GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 {
-public:
-	virtual int				configure(const int &fd, unsigned &baud) = 0;
-	virtual int 			receive(const int &fd, struct vehicle_gps_position_s &gps_position) = 0;
-	int 					set_baudrate(const int &fd, unsigned baud);
-};
+	/* process baud rate */
+	int speed;
 
-#endif /* GPS_HELPER_H */
+	switch (baud) {
+	case 9600:   speed = B9600;   break;
+
+	case 19200:  speed = B19200;  break;
+
+	case 38400:  speed = B38400;  break;
+
+	case 57600:  speed = B57600;  break;
+
+	case 115200: speed = B115200; break;
+
+	default:
+		warnx("ERROR: Unsupported baudrate: %d\n", baud);
+		return -EINVAL;
+	}
+	struct termios uart_config;
+	int termios_state;
+
+	/* fill the struct for the new configuration */
+	tcgetattr(fd, &uart_config);
+
+	/* clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+	/* no parity, one stop bit */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+		warnx("ERROR setting config: %d (cfsetispeed)\n", termios_state);
+		return -1;
+	}
+	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+		warnx("ERROR setting config: %d (cfsetospeed)\n", termios_state);
+		return -1;
+	}
+	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
+		warnx("ERROR setting baudrate (tcsetattr)\n");
+		return -1;
+	}
+	/* XXX if resetting the parser here, ensure it does exist (check for null pointer) */
+	return 0;
+}

@@ -37,85 +37,143 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <poll.h>
 #include <math.h>
 #include <string.h>
 #include <assert.h>
 #include <systemlib/err.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <drivers/drv_hrt.h>
 
 #include "mtk.h"
 
 
 MTK::MTK() :
-_config_sent(false),
 _mtk_revision(0)
 {
-	decodeInit();
+	decode_init();
 }
 
 MTK::~MTK()
 {
 }
 
-void
-MTK::reset()
+int
+MTK::configure(const int &fd, unsigned &baudrate)
 {
+	/* set baudrate first */
+	if (GPS_Helper::set_baudrate(fd, MTK_BAUDRATE) != 0)
+		return -1;
 
-}
+	baudrate = MTK_BAUDRATE;
 
-void
-MTK::configure(const int &fd, bool &baudrate_changed, unsigned &baudrate)
-{
-	if (_config_sent == false) {
+	/* Write config messages, don't wait for an answer */
+	if (strlen(MTK_OUTPUT_5HZ) != write(fd, MTK_OUTPUT_5HZ, strlen(MTK_OUTPUT_5HZ))) {
+		warnx("mtk: config write failed");
+		return -1;
+	}
+	usleep(10000);
 
-		if (strlen(MTK_OUTPUT_5HZ) != write(fd, MTK_OUTPUT_5HZ, strlen(MTK_OUTPUT_5HZ)))
-			warnx("mtk: config write failed");
-		usleep(10000);
+	if (strlen(MTK_SET_BINARY) != write(fd, MTK_SET_BINARY, strlen(MTK_SET_BINARY))) {
+		warnx("mtk: config write failed");
+		return -1;
+	}
+	usleep(10000);
 
-		if (strlen(MTK_SET_BINARY) != write(fd, MTK_SET_BINARY, strlen(MTK_SET_BINARY)))
-			warnx("mtk: config write failed");
-		usleep(10000);
+	if (strlen(SBAS_ON) != write(fd, SBAS_ON, strlen(SBAS_ON))) {
+		warnx("mtk: config write failed");
+		return -1;
+	}
+	usleep(10000);
 
-		if (strlen(SBAS_ON) != write(fd, SBAS_ON, strlen(SBAS_ON)))
-			warnx("mtk: config write failed");
-		usleep(10000);
+	if (strlen(WAAS_ON) != write(fd, WAAS_ON, strlen(WAAS_ON))) {
+		warnx("mtk: config write failed");
+		return -1;
+	}
+	usleep(10000);
 
-		if (strlen(WAAS_ON) != write(fd, WAAS_ON, strlen(WAAS_ON)))
-			warnx("mtk: config write failed");
-		usleep(10000);
-
-		if (strlen(MTK_NAVTHRES_OFF) != write(fd, MTK_NAVTHRES_OFF, strlen(MTK_NAVTHRES_OFF)))
-			warnx("mtk: config write failed");
-
-		_config_sent = true;
+	if (strlen(MTK_NAVTHRES_OFF) != write(fd, MTK_NAVTHRES_OFF, strlen(MTK_NAVTHRES_OFF))) {
+		warnx("mtk: config write failed");
+		return -1;
 	}
 
-	return;
+	return 0;
+}
+
+int
+MTK::receive(const int &fd, struct vehicle_gps_position_s &gps_position)
+{
+	/* poll descriptor */
+	pollfd fds[1];
+	fds[0].fd = fd;
+	fds[0].events = POLLIN;
+
+	uint8_t buf[32];
+	gps_mtk_packet_t packet;
+
+	int j = 0;
+	ssize_t count = 0;
+
+	while (true) {
+
+		/* first read whatever is left */
+		if (j < count) {
+			/* pass received bytes to the packet decoder */
+			while (j < count) {
+				if (parse_char(buf[j], packet) > 0) {
+					handle_message(packet, gps_position);
+					return 1;
+				}
+				j++;
+			}
+			/* everything is read */
+			j = count = 0;
+		}
+
+		/* then poll for new data */
+		int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), MTK_TIMEOUT_5HZ);
+
+		if (ret < 0) {
+			/* something went wrong when polling */
+			return -1;
+
+		} else if (ret == 0) {
+			/* Timeout */
+			return -1;
+
+		} else if (ret > 0) {
+			/* if we have new data from GPS, go handle it */
+			if (fds[0].revents & POLLIN) {
+				/*
+				 * We are here because poll says there is some data, so this
+				 * won't block even on a blocking device.  If more bytes are
+				 * available, we'll go back to poll() again...
+				 */
+				count = ::read(fd, buf, sizeof(buf));
+			}
+		}
+	}
 }
 
 void
-MTK::decodeInit(void)
+MTK::decode_init(void)
 {
 	_rx_ck_a = 0;
 	_rx_ck_b = 0;
 	_rx_count = 0;
 	_decode_state = MTK_DECODE_UNINIT;
 }
-
-void
-MTK::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_needed, bool &pos_updated)
+int
+MTK::parse_char(uint8_t b, gps_mtk_packet_t &packet)
 {
+	int ret = 0;
+
 	if (_decode_state == MTK_DECODE_UNINIT) {
 
 		if (b == MTK_SYNC1_V16) {
 			_decode_state = MTK_DECODE_GOT_CK_A;
-			config_needed = false;
 			_mtk_revision = 16;
 		} else if (b == MTK_SYNC1_V19) {
 			_decode_state = MTK_DECODE_GOT_CK_A;
-			config_needed = false;
 			_mtk_revision = 19;
 		}
 
@@ -125,78 +183,82 @@ MTK::parse(uint8_t b, struct vehicle_gps_position_s *gps_position, bool &config_
 
 		} else {
 			// Second start symbol was wrong, reset state machine
-			decodeInit();
+			decode_init();
 		}
 
 	} else if (_decode_state == MTK_DECODE_GOT_CK_B) {
 		// Add to checksum
 		if (_rx_count < 33)
-			addByteToChecksum(b);
+			add_byte_to_checksum(b);
 
 		// Fill packet buffer
-		_rx_buffer[_rx_count] = b;
+		((uint8_t*)(&packet))[_rx_count] = b;
 		_rx_count++;
 
-		/* Packet size minus checksum */
-		if (_rx_count >= 35) {
-			type_gps_mtk_packet *packet = (type_gps_mtk_packet *) _rx_buffer;;
-
-			/* Check if checksum is valid */
-			if (_rx_ck_a == packet->ck_a && _rx_ck_b == packet->ck_b) {
-				if (_mtk_revision == 16) {
-					gps_position->lat = packet->latitude * 10; // from degrees*1e6 to degrees*1e7
-					gps_position->lon = packet->longitude * 10; // from degrees*1e6 to degrees*1e7
-				} else if (_mtk_revision == 19) {
-					gps_position->lat = packet->latitude; // both degrees*1e7
-					gps_position->lon = packet->longitude; // both degrees*1e7
-				} else {
-					warnx("mtk: unknown revision");
-				}
-				gps_position->alt = (int32_t)(packet->msl_altitude * 10); // from cm to mm
-				gps_position->fix_type = packet->fix_type;
-				gps_position->eph_m = packet->hdop; // XXX: Check this because eph_m is in m and hdop is without unit
-				gps_position->epv_m = 0.0; //unknown in mtk custom mode
-				gps_position->vel_m_s = ((float)packet->ground_speed)*1e-2f; // from cm/s to m/s
-				gps_position->cog_rad = ((float)packet->heading) * M_DEG_TO_RAD_F * 1e-2f; //from deg *100 to rad
-				gps_position->satellites_visible = packet->satellites;
-
-				/* convert time and date information to unix timestamp */
-				struct tm timeinfo; //TODO: test this conversion
-				uint32_t timeinfo_conversion_temp;
-
-				timeinfo.tm_mday = packet->date * 1e-4;
-				timeinfo_conversion_temp = packet->date - timeinfo.tm_mday * 1e4;
-				timeinfo.tm_mon = timeinfo_conversion_temp * 1e-2 - 1;
-				timeinfo.tm_year = (timeinfo_conversion_temp - (timeinfo.tm_mon + 1) * 1e2) + 100;
-
-				timeinfo.tm_hour = packet->utc_time * 1e-7;
-				timeinfo_conversion_temp = packet->utc_time - timeinfo.tm_hour * 1e7;
-				timeinfo.tm_min = timeinfo_conversion_temp * 1e-5;
-				timeinfo_conversion_temp -= timeinfo.tm_min * 1e5;
-				timeinfo.tm_sec = timeinfo_conversion_temp * 1e-3;
-				timeinfo_conversion_temp -= timeinfo.tm_sec * 1e3;
-				time_t epoch = mktime(&timeinfo);
-
-				gps_position->time_gps_usec = epoch * 1e6; //TODO: test this
-				gps_position->time_gps_usec += timeinfo_conversion_temp * 1e3;
-				gps_position->timestamp_position = gps_position->timestamp_time = hrt_absolute_time();
-
-				pos_updated = true;
-
-
+		/* Packet size minus checksum, XXX ? */
+		if (_rx_count >= sizeof(packet)) {
+			/* Compare checksum */
+			if (_rx_ck_a == packet.ck_a && _rx_ck_b == packet.ck_b) {
+				ret = 1;
 			} else {
-				warnx("mtk Checksum invalid, 0x%x, 0x%x instead of 0x%x, 0x%x", _rx_ck_a, packet->ck_a, _rx_ck_b, packet->ck_b);
+				warnx("MTK Checksum invalid");
+				ret = -1;
 			}
-
 			// Reset state machine to decode next packet
-			decodeInit();
+			decode_init();
 		}
 	}
+	return ret;
+}
+
+void
+MTK::handle_message(gps_mtk_packet_t &packet, struct vehicle_gps_position_s &gps_position)
+{
+	if (_mtk_revision == 16) {
+		gps_position.lat = packet.latitude * 10; // from degrees*1e6 to degrees*1e7
+		gps_position.lon = packet.longitude * 10; // from degrees*1e6 to degrees*1e7
+	} else if (_mtk_revision == 19) {
+		gps_position.lat = packet.latitude; // both degrees*1e7
+		gps_position.lon = packet.longitude; // both degrees*1e7
+	} else {
+		warnx("mtk: unknown revision");
+		gps_position.lat = 0;
+		gps_position.lon = 0;
+	}
+	gps_position.alt = (int32_t)(packet.msl_altitude * 10); // from cm to mm
+	gps_position.fix_type = packet.fix_type;
+	gps_position.eph_m = packet.hdop; // XXX: Check this because eph_m is in m and hdop is without unit
+	gps_position.epv_m = 0.0; //unknown in mtk custom mode
+	gps_position.vel_m_s = ((float)packet.ground_speed)*1e-2f; // from cm/s to m/s
+	gps_position.cog_rad = ((float)packet.heading) * M_DEG_TO_RAD_F * 1e-2f; //from deg *100 to rad
+	gps_position.satellites_visible = packet.satellites;
+
+	/* convert time and date information to unix timestamp */
+	struct tm timeinfo; //TODO: test this conversion
+	uint32_t timeinfo_conversion_temp;
+
+	timeinfo.tm_mday = packet.date * 1e-4;
+	timeinfo_conversion_temp = packet.date - timeinfo.tm_mday * 1e4;
+	timeinfo.tm_mon = timeinfo_conversion_temp * 1e-2 - 1;
+	timeinfo.tm_year = (timeinfo_conversion_temp - (timeinfo.tm_mon + 1) * 1e2) + 100;
+
+	timeinfo.tm_hour = packet.utc_time * 1e-7;
+	timeinfo_conversion_temp = packet.utc_time - timeinfo.tm_hour * 1e7;
+	timeinfo.tm_min = timeinfo_conversion_temp * 1e-5;
+	timeinfo_conversion_temp -= timeinfo.tm_min * 1e5;
+	timeinfo.tm_sec = timeinfo_conversion_temp * 1e-3;
+	timeinfo_conversion_temp -= timeinfo.tm_sec * 1e3;
+	time_t epoch = mktime(&timeinfo);
+
+	gps_position.time_gps_usec = epoch * 1e6; //TODO: test this
+	gps_position.time_gps_usec += timeinfo_conversion_temp * 1e3;
+	gps_position.timestamp_position = gps_position.timestamp_time = hrt_absolute_time();
+
 	return;
 }
 
 void
-MTK::addByteToChecksum(uint8_t b)
+MTK::add_byte_to_checksum(uint8_t b)
 {
 	_rx_ck_a = _rx_ck_a + b;
 	_rx_ck_b = _rx_ck_b + _rx_ck_a;
