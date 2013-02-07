@@ -49,6 +49,7 @@
 
 
 MTK::MTK() :
+_config_sent(false),
 _mtk_revision(0)
 {
 	decodeInit();
@@ -67,24 +68,29 @@ MTK::reset()
 void
 MTK::configure(const int &fd, bool &baudrate_changed, unsigned &baudrate)
 {
-	if (strlen(MTK_OUTPUT_5HZ) != write(fd, MTK_OUTPUT_5HZ, strlen(MTK_OUTPUT_5HZ)))
-		warnx("mtk: config write failed");
-	usleep(10000);
+	if (_config_sent == false) {
 
-	if (strlen(MTK_SET_BINARY) != write(fd, MTK_SET_BINARY, strlen(MTK_SET_BINARY)))
-		warnx("mtk: config write failed");
-	usleep(10000);
+		if (strlen(MTK_OUTPUT_5HZ) != write(fd, MTK_OUTPUT_5HZ, strlen(MTK_OUTPUT_5HZ)))
+			warnx("mtk: config write failed");
+		usleep(10000);
 
-	if (strlen(SBAS_ON) != write(fd, SBAS_ON, strlen(SBAS_ON)))
-		warnx("mtk: config write failed");
-	usleep(10000);
+		if (strlen(MTK_SET_BINARY) != write(fd, MTK_SET_BINARY, strlen(MTK_SET_BINARY)))
+			warnx("mtk: config write failed");
+		usleep(10000);
 
-	if (strlen(WAAS_ON) != write(fd, WAAS_ON, strlen(WAAS_ON)))
-		warnx("mtk: config write failed");
-	usleep(10000);
+		if (strlen(SBAS_ON) != write(fd, SBAS_ON, strlen(SBAS_ON)))
+			warnx("mtk: config write failed");
+		usleep(10000);
 
-	if (strlen(MTK_NAVTHRES_OFF) != write(fd, MTK_NAVTHRES_OFF, strlen(MTK_NAVTHRES_OFF)))
-		warnx("mtk: config write failed");
+		if (strlen(WAAS_ON) != write(fd, WAAS_ON, strlen(WAAS_ON)))
+			warnx("mtk: config write failed");
+		usleep(10000);
+
+		if (strlen(MTK_NAVTHRES_OFF) != write(fd, MTK_NAVTHRES_OFF, strlen(MTK_NAVTHRES_OFF)))
+			warnx("mtk: config write failed");
+
+		_config_sent = true;
+	}
 
 	return;
 }

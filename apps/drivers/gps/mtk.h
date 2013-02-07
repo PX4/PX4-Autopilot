@@ -99,7 +99,8 @@ private:
 	 */
 	void				addByteToChecksum(uint8_t);
 
-	mtk_decode_state_t _decode_state;
+	mtk_decode_state_t	_decode_state;
+	bool				_config_sent;
 	uint8_t				_mtk_revision;
 	uint8_t				_rx_buffer[MTK_RECV_BUFFER_SIZE];
 	unsigned			_rx_count;
