@@ -58,7 +58,7 @@
 
 #ifdef DEBUG
 # include <debug.h>
-# define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
+# define debug(fmt, args...)	lowsyslog(fmt "\n", ##args)
 #else
 # define debug(fmt, args...)	do {} while(0)
 #endif

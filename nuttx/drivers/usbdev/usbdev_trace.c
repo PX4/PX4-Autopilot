@@ -168,9 +168,9 @@ void usbtrace(uint16_t event, uint16_t value)
             }
         }
 #else
-      /* Just print the data using lib_lowprintf */
+      /* Just print the data using lowsyslog */
 
-      usbtrace_trprintf((trprintf_t)lib_lowprintf, event, value);
+      usbtrace_trprintf((trprintf_t)lowsyslog, event, value);
 #endif
     }
   irqrestore(flags);

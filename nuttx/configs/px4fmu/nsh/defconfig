@@ -207,6 +207,11 @@ CONFIG_STM32_TIM11=y
 CONFIG_STM32_USART_SINGLEWIRE=y
 
 #
+# Ensure that serial config always stays enabled, even if there is no console
+#
+CONFIG_STANDARD_SERIAL=y
+
+#
 # We want the flash prefetch on for max performance.
 #
 STM32_FLASH_PREFETCH=y

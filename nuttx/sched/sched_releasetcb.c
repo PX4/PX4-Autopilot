@@ -1,7 +1,7 @@
 /************************************************************************
  * sched/sched_releasetcb.c
  *
- *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,8 @@
 #include <nuttx/arch.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 #include "timer_internal.h"
-#include "env_internal.h"
 
 /************************************************************************
  * Private Functions
@@ -163,20 +163,17 @@ int sched_releasetcb(FAR _TCB *tcb)
             }
         }
 
-      /* Release any allocated file structures */
-
-      ret = sched_releasefiles(tcb);
-
-      /* Release environment variables */
-
-      (void)env_release(tcb);
-
       /* Release this thread's reference to the address environment */
 
 #ifdef CONFIG_ADDRENV
       ret = up_addrenv_release(tcb);
 #endif
 
+      /* Leave the group (if we did not already leady in task_exithook.c) */
+
+#ifdef HAVE_TASK_GROUP
+      group_leave(tcb);
+#endif
       /* And, finally, release the TCB itself */
 
       sched_free(tcb);

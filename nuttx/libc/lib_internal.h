@@ -106,8 +106,8 @@
 
 /* Debug output is initially disabled */
 
-#ifdef CONFIG_DEBUG_ENABLE
-extern bool g_dbgenable;
+#ifdef CONFIG_SYSLOG_ENABLE
+extern bool g_syslogenable;
 #endif
 
 /****************************************************************************

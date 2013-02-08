@@ -2,7 +2,7 @@
  * include/nuttx/lib.h
  * Non-standard, internal APIs available in lib/.
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,11 +67,10 @@ extern "C" {
 
 /* Functions contained in lib_init.c ****************************************/
 
-EXTERN void weak_function     lib_initialize(void);
+void weak_function lib_initialize(void);
 #if CONFIG_NFILE_STREAMS > 0
-EXTERN FAR struct streamlist *lib_alloclist(void);
-EXTERN void                   lib_addreflist(FAR struct streamlist *list);
-EXTERN void                   lib_releaselist(FAR struct streamlist *list);
+void lib_streaminit(FAR struct streamlist *list);
+void lib_releaselist(FAR struct streamlist *list);
 #endif
 
 #undef EXTERN

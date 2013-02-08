@@ -54,6 +54,7 @@
 #include <nuttx/spawn.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 
 /****************************************************************************
  * Private Types
