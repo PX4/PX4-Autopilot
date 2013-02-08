@@ -47,7 +47,9 @@
 #include "mtk.h"
 
 
-MTK::MTK() :
+MTK::MTK(const int &fd, struct vehicle_gps_position_s *gps_position) :
+_fd(fd),
+_gps_position(gps_position),
 _mtk_revision(0)
 {
 	decode_init();
@@ -58,40 +60,40 @@ MTK::~MTK()
 }
 
 int
-MTK::configure(const int &fd, unsigned &baudrate)
+MTK::configure(unsigned &baudrate)
 {
 	/* set baudrate first */
-	if (GPS_Helper::set_baudrate(fd, MTK_BAUDRATE) != 0)
+	if (GPS_Helper::set_baudrate(_fd, MTK_BAUDRATE) != 0)
 		return -1;
 
 	baudrate = MTK_BAUDRATE;
 
 	/* Write config messages, don't wait for an answer */
-	if (strlen(MTK_OUTPUT_5HZ) != write(fd, MTK_OUTPUT_5HZ, strlen(MTK_OUTPUT_5HZ))) {
+	if (strlen(MTK_OUTPUT_5HZ) != write(_fd, MTK_OUTPUT_5HZ, strlen(MTK_OUTPUT_5HZ))) {
 		warnx("mtk: config write failed");
 		return -1;
 	}
 	usleep(10000);
 
-	if (strlen(MTK_SET_BINARY) != write(fd, MTK_SET_BINARY, strlen(MTK_SET_BINARY))) {
+	if (strlen(MTK_SET_BINARY) != write(_fd, MTK_SET_BINARY, strlen(MTK_SET_BINARY))) {
 		warnx("mtk: config write failed");
 		return -1;
 	}
 	usleep(10000);
 
-	if (strlen(SBAS_ON) != write(fd, SBAS_ON, strlen(SBAS_ON))) {
+	if (strlen(SBAS_ON) != write(_fd, SBAS_ON, strlen(SBAS_ON))) {
 		warnx("mtk: config write failed");
 		return -1;
 	}
 	usleep(10000);
 
-	if (strlen(WAAS_ON) != write(fd, WAAS_ON, strlen(WAAS_ON))) {
+	if (strlen(WAAS_ON) != write(_fd, WAAS_ON, strlen(WAAS_ON))) {
 		warnx("mtk: config write failed");
 		return -1;
 	}
 	usleep(10000);
 
-	if (strlen(MTK_NAVTHRES_OFF) != write(fd, MTK_NAVTHRES_OFF, strlen(MTK_NAVTHRES_OFF))) {
+	if (strlen(MTK_NAVTHRES_OFF) != write(_fd, MTK_NAVTHRES_OFF, strlen(MTK_NAVTHRES_OFF))) {
 		warnx("mtk: config write failed");
 		return -1;
 	}
@@ -100,15 +102,18 @@ MTK::configure(const int &fd, unsigned &baudrate)
 }
 
 int
-MTK::receive(const int &fd, struct vehicle_gps_position_s &gps_position)
+MTK::receive(unsigned timeout)
 {
 	/* poll descriptor */
 	pollfd fds[1];
-	fds[0].fd = fd;
+	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
 
 	uint8_t buf[32];
 	gps_mtk_packet_t packet;
+
+	/* timeout additional to poll */
+	uint64_t time_started = hrt_absolute_time();
 
 	int j = 0;
 	ssize_t count = 0;
@@ -120,8 +125,12 @@ MTK::receive(const int &fd, struct vehicle_gps_position_s &gps_position)
 			/* pass received bytes to the packet decoder */
 			while (j < count) {
 				if (parse_char(buf[j], packet) > 0) {
-					handle_message(packet, gps_position);
+					handle_message(packet);
 					return 1;
+				}
+				/* in case we keep trying but only get crap from GPS */
+				if (time_started + timeout*1000 < hrt_absolute_time() ) {
+					return -1;
 				}
 				j++;
 			}
@@ -130,7 +139,7 @@ MTK::receive(const int &fd, struct vehicle_gps_position_s &gps_position)
 		}
 
 		/* then poll for new data */
-		int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), MTK_TIMEOUT_5HZ);
+		int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), timeout);
 
 		if (ret < 0) {
 			/* something went wrong when polling */
@@ -148,7 +157,7 @@ MTK::receive(const int &fd, struct vehicle_gps_position_s &gps_position)
 				 * won't block even on a blocking device.  If more bytes are
 				 * available, we'll go back to poll() again...
 				 */
-				count = ::read(fd, buf, sizeof(buf));
+				count = ::read(_fd, buf, sizeof(buf));
 			}
 		}
 	}
@@ -212,26 +221,26 @@ MTK::parse_char(uint8_t b, gps_mtk_packet_t &packet)
 }
 
 void
-MTK::handle_message(gps_mtk_packet_t &packet, struct vehicle_gps_position_s &gps_position)
+MTK::handle_message(gps_mtk_packet_t &packet)
 {
 	if (_mtk_revision == 16) {
-		gps_position.lat = packet.latitude * 10; // from degrees*1e6 to degrees*1e7
-		gps_position.lon = packet.longitude * 10; // from degrees*1e6 to degrees*1e7
+		_gps_position->lat = packet.latitude * 10; // from degrees*1e6 to degrees*1e7
+		_gps_position->lon = packet.longitude * 10; // from degrees*1e6 to degrees*1e7
 	} else if (_mtk_revision == 19) {
-		gps_position.lat = packet.latitude; // both degrees*1e7
-		gps_position.lon = packet.longitude; // both degrees*1e7
+		_gps_position->lat = packet.latitude; // both degrees*1e7
+		_gps_position->lon = packet.longitude; // both degrees*1e7
 	} else {
 		warnx("mtk: unknown revision");
-		gps_position.lat = 0;
-		gps_position.lon = 0;
+		_gps_position->lat = 0;
+		_gps_position->lon = 0;
 	}
-	gps_position.alt = (int32_t)(packet.msl_altitude * 10); // from cm to mm
-	gps_position.fix_type = packet.fix_type;
-	gps_position.eph_m = packet.hdop; // XXX: Check this because eph_m is in m and hdop is without unit
-	gps_position.epv_m = 0.0; //unknown in mtk custom mode
-	gps_position.vel_m_s = ((float)packet.ground_speed)*1e-2f; // from cm/s to m/s
-	gps_position.cog_rad = ((float)packet.heading) * M_DEG_TO_RAD_F * 1e-2f; //from deg *100 to rad
-	gps_position.satellites_visible = packet.satellites;
+	_gps_position->alt = (int32_t)(packet.msl_altitude * 10); // from cm to mm
+	_gps_position->fix_type = packet.fix_type;
+	_gps_position->eph_m = packet.hdop; // XXX: Check this because eph_m is in m and hdop is without unit
+	_gps_position->epv_m = 0.0; //unknown in mtk custom mode
+	_gps_position->vel_m_s = ((float)packet.ground_speed)*1e-2f; // from cm/s to m/s
+	_gps_position->cog_rad = ((float)packet.heading) * M_DEG_TO_RAD_F * 1e-2f; //from deg *100 to rad
+	_gps_position->satellites_visible = packet.satellites;
 
 	/* convert time and date information to unix timestamp */
 	struct tm timeinfo; //TODO: test this conversion
@@ -250,9 +259,9 @@ MTK::handle_message(gps_mtk_packet_t &packet, struct vehicle_gps_position_s &gps
 	timeinfo_conversion_temp -= timeinfo.tm_sec * 1e3;
 	time_t epoch = mktime(&timeinfo);
 
-	gps_position.time_gps_usec = epoch * 1e6; //TODO: test this
-	gps_position.time_gps_usec += timeinfo_conversion_temp * 1e3;
-	gps_position.timestamp_position = gps_position.timestamp_time = hrt_absolute_time();
+	_gps_position->time_gps_usec = epoch * 1e6; //TODO: test this
+	_gps_position->time_gps_usec += timeinfo_conversion_temp * 1e3;
+	_gps_position->timestamp_position = _gps_position->timestamp_time = hrt_absolute_time();
 
 	return;
 }

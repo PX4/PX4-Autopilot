@@ -49,7 +49,8 @@
 #define GPS_DEVICE_PATH	"/dev/gps"
 
 typedef enum {
-	GPS_DRIVER_MODE_UBX = 0,
+	GPS_DRIVER_MODE_NONE = 0,
+	GPS_DRIVER_MODE_UBX,
 	GPS_DRIVER_MODE_MTK,
 	GPS_DRIVER_MODE_NMEA,
 } gps_driver_mode_t;

@@ -44,8 +44,8 @@
 class GPS_Helper
 {
 public:
-	virtual int				configure(const int &fd, unsigned &baud) = 0;
-	virtual int 			receive(const int &fd, struct vehicle_gps_position_s &gps_position) = 0;
+	virtual int				configure(unsigned &baud) = 0;
+	virtual int 			receive(unsigned timeout) = 0;
 	int 					set_baudrate(const int &fd, unsigned baud);
 };
 

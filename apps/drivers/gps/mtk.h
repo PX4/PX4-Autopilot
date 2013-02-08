@@ -85,10 +85,10 @@ typedef struct {
 class MTK : public GPS_Helper
 {
 public:
-	MTK();
+	MTK(const int &fd, struct vehicle_gps_position_s *gps_position);
 	~MTK();
-	int					receive(const int &fd, struct vehicle_gps_position_s &gps_position);
-	int					configure(const int &fd, unsigned &baudrate);
+	int					receive(unsigned timeout);
+	int					configure(unsigned &baudrate);
 
 private:
 	/**
@@ -99,7 +99,7 @@ private:
 	/**
 	 * Handle the package once it has arrived
 	 */
-	void				handle_message(gps_mtk_packet_t &packet, struct vehicle_gps_position_s &gps_position);
+	void				handle_message(gps_mtk_packet_t &packet);
 
 	/**
 	 * Reset the parse state machine for a fresh start
@@ -111,6 +111,8 @@ private:
 	 */
 	void				add_byte_to_checksum(uint8_t);
 
+	int					_fd;
+	struct vehicle_gps_position_s *_gps_position;
 	mtk_decode_state_t	_decode_state;
 	uint8_t				_mtk_revision;
 	uint8_t				_rx_buffer[MTK_RECV_BUFFER_SIZE];

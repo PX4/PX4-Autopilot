@@ -86,6 +86,8 @@
 #define UBX_CFG_MSG_PAYLOAD_RATE1_5HZ 0x01 		/**< {0x00, 0x01, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
 #define UBX_CFG_MSG_PAYLOAD_RATE1_1HZ 0x05		/**< {0x00, 0x05, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
 
+#define UBX_MAX_PAYLOAD_LENGTH 500
+
 // ************
 /** the structures of the binary packets */
 #pragma pack(push, 1)
@@ -337,35 +339,49 @@ typedef enum {
 class UBX : public GPS_Helper
 {
 public:
-	UBX();
+	UBX(const int &fd, struct vehicle_gps_position_s *gps_position);
 	~UBX();
-	void				reset(void);
-	void				configure(const int &fd, bool &baudrate_changed, unsigned &baudrate);
-	void 				parse(uint8_t, struct vehicle_gps_position_s*, bool &config_needed, bool &pos_updated);
+	int					receive(unsigned timeout);
+	int					configure(unsigned &baudrate);
 
 private:
+
+	/**
+	 * Parse the binary MTK packet
+	 */
+	int					parse_char(uint8_t b);
+
+	/**
+	 * Handle the package once it has arrived
+	 */
+	int					handle_message(void);
+
 	/**
 	 * Reset the parse state machine for a fresh start
 	 */
-	void				decodeInit(void);
+	void				decode_init(void);
 
 	/**
 	 * While parsing add every byte (except the sync bytes) to the checksum
 	 */
-	void				addByteToChecksum(uint8_t);
+	void				add_byte_to_checksum(uint8_t);
 
 	/**
 	 * Add the two checksum bytes to an outgoing message
 	 */
-	void				addChecksumToMessage(uint8_t* message, const unsigned length);
+	void				add_checksum_to_message(uint8_t* message, const unsigned length);
 
 	/**
 	 * Helper to send a config packet
 	 */
-	void				sendConfigPacket(const int &fd, uint8_t *packet, const unsigned length);
+	void				send_config_packet(const int &fd, uint8_t *packet, const unsigned length);
 
+	int 				_fd;
+	struct vehicle_gps_position_s *_gps_position;
 	ubx_config_state_t	_config_state;
 	bool 				_waiting_for_ack;
+	uint8_t				_clsID_needed;
+	uint8_t				_msgID_needed;
 	ubx_decode_state_t	_decode_state;
 	uint8_t				_rx_buffer[RECV_BUFFER_SIZE];
 	unsigned			_rx_count;

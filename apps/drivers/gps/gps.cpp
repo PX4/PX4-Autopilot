@@ -36,10 +36,7 @@
  * Driver for the GPS on a serial port
  */
 
-#include <nuttx/config.h>
-
-#include <drivers/device/i2c.h>
-
+#include <nuttx/clock.h>
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -54,30 +51,24 @@
 #include <math.h>
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <nuttx/config.h>
 #include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
 #include <arch/board/board.h>
-
 #include <drivers/drv_hrt.h>
-
+#include <drivers/device/i2c.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
-
 #include <drivers/drv_gps.h>
-
+#include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
-//#include "ubx.h"
+#include "ubx.h"
 #include "mtk.h"
 
-#define SEND_BUFFER_LENGTH 100
-#define TIMEOUT 1000000 //1s
 
-#define NUMBER_OF_TRIES 5
-#define CONFIG_TIMEOUT 2000000
+#define TIMEOUT_5HZ 400
+#define RATE_MEASUREMENT_PERIOD 5000000
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -170,7 +161,7 @@ GPS::GPS(const char* uart_path) :
 	_task_should_exit(false),
 	_healthy(false),
 	_mode_changed(false),
-	_mode(GPS_DRIVER_MODE_MTK),
+	_mode(GPS_DRIVER_MODE_UBX),
 	_Helper(nullptr),
 	_report_pub(-1),
 	_rate(0.0f)
@@ -279,12 +270,11 @@ GPS::task_main()
 		}
 
 		switch (_mode) {
-//			case GPS_DRIVER_MODE_UBX:
-//				_Helper = new UBX();
-//				break;
+			case GPS_DRIVER_MODE_UBX:
+				_Helper = new UBX(_serial_fd, &_report);
+				break;
 			case GPS_DRIVER_MODE_MTK:
-				printf("try new mtk\n");
-				_Helper = new MTK();
+				_Helper = new MTK(_serial_fd, &_report);
 				break;
 			case GPS_DRIVER_MODE_NMEA:
 				//_Helper = new NMEA(); //TODO: add NMEA
@@ -292,11 +282,11 @@ GPS::task_main()
 			default:
 				break;
 		}
-		// XXX unlock/lock makes sense?
 		unlock();
-		if (_Helper->configure(_serial_fd, _baudrate) == 0) {
-
-			while (_Helper->receive(_serial_fd, _report) > 0 && !_task_should_exit) {
+		if (_Helper->configure(_baudrate) == 0) {
+			unlock();
+			while (_Helper->receive(TIMEOUT_5HZ) > 0 && !_task_should_exit) {
+//				lock();
 				/* opportunistic publishing - else invalid data would end up on the bus */
 				if (_report_pub > 0) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
@@ -307,7 +297,7 @@ GPS::task_main()
 				last_rate_count++;
 
 				/* measure update rate every 5 seconds */
-				if (hrt_absolute_time() - last_rate_measurement > 5000000) {
+				if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
 					_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
 					last_rate_measurement = hrt_absolute_time();
 					last_rate_count = 0;
@@ -323,8 +313,26 @@ GPS::task_main()
 				_healthy = false;
 				_rate = 0.0f;
 			}
+
+			lock();
 		}
 		lock();
+
+		/* select next mode */
+		switch (_mode) {
+			case GPS_DRIVER_MODE_UBX:
+				_mode = GPS_DRIVER_MODE_MTK;
+				break;
+			case GPS_DRIVER_MODE_MTK:
+				_mode = GPS_DRIVER_MODE_UBX;
+				break;
+		//				case GPS_DRIVER_MODE_NMEA:
+		//					_mode = GPS_DRIVER_MODE_UBX;
+		//					break;
+			default:
+				break;
+		}
+
 	}
 	debug("exiting");
 
