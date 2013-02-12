@@ -370,7 +370,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				/* assert min..center..max ordering */
 				if (conf[PX4IO_P_RC_CONFIG_MIN] < 500)
 					break;
-				if (conf[PX4IO_P_RC_CONFIG_MAX] < 2500)
+				if (conf[PX4IO_P_RC_CONFIG_MAX] > 2500)
 					break;
 				if (conf[PX4IO_P_RC_CONFIG_CENTER] < conf[PX4IO_P_RC_CONFIG_MIN])
 					break;

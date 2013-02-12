@@ -174,7 +174,7 @@ i2c_interrupt(int irq, FAR void *context)
 			i2c_rx_complete();
 			break;
 		default:
-			/* spurious stop, ignore */
+			/* not currently transferring - must be a new txn */
 			break;
 		}
 		direction = DIR_NONE;
