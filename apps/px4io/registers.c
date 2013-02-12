@@ -339,7 +339,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 	case PX4IO_PAGE_RC_CONFIG: {
 		unsigned channel = offset / PX4IO_P_RC_CONFIG_STRIDE;
-		unsigned index = offset % PX4IO_P_RC_CONFIG_STRIDE;
+		unsigned index = offset - channel * PX4IO_P_RC_CONFIG_STRIDE;
 		uint16_t *conf = &r_page_rc_input_config[channel * PX4IO_P_RC_CONFIG_STRIDE];
 
 		if (channel >= MAX_CONTROL_CHANNELS)
@@ -390,8 +390,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				conf[index] |= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
 			}
 			break;
+			/* inner switch: case PX4IO_P_RC_CONFIG_OPTIONS */
 
 		}
+		break;
+		/* case PX4IO_RC_PAGE_CONFIG */
 	}
 
 	default:
