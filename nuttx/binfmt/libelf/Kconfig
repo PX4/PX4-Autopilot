@@ -1,0 +1,40 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config ELF_ALIGN_LOG2
+	int "Log2 Section Alignment"
+	default 2
+	---help---
+		Align all sections to this Log2 value:  0->1, 1->2, 2->4, etc.
+
+config ELF_STACKSIZE
+	int "ELF Stack Size"
+	default 2048
+	---help---
+		This is the default stack size that will will be used when starting ELF binaries.
+
+config ELF_BUFFERSIZE
+	int "ELF I/O Buffer Size"
+	default 128
+	---help---
+		This is an I/O buffer that is used to access the ELF file.  Variable length items
+		will need to be read (such as symbol names).  This is really just this initial
+		size of the buffer; it will be reallocated as necessary to hold large symbol
+		names).  Default: 128
+
+config ELF_BUFFERINCR
+	int "ELF I/O Buffer Realloc Increment"
+	default 32
+	---help---
+		This is an I/O buffer that is used to access the ELF file.  Variable length items
+		will need to be read (such as symbol names).  This value specifies the size
+		increment to use each time the buffer is reallocated.  Default: 32
+
+config ELF_DUMPBUFFER
+	bool "Dump ELF buffers"
+	default n
+	depends on DEBUG && DEBUG_VERBOSE
+	---help---
+		Dump various ELF buffers for debug purposes
