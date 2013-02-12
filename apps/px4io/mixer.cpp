@@ -231,8 +231,9 @@ mixer_tick(void)
 	 * XXX correct behaviour for failsafe may require an additional case
 	 * here.
 	 */
-	bool should_arm = ((r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
-		(r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)));
+	bool should_arm = (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) &&
+	 		   /* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
+	/* there is valid input */ (r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)));
 
 	if (should_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
