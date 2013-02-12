@@ -77,7 +77,7 @@ static void		i2c_tx_complete(void);
 static DMA_HANDLE	rx_dma;
 static DMA_HANDLE	tx_dma;
 
-static uint8_t		rx_buf[64];
+static uint8_t		rx_buf[68];
 static unsigned		rx_len;
 
 static const uint8_t	junk_buf[] = { 0xff, 0xff, 0xff, 0xff };

@@ -181,6 +181,7 @@
  * This message adds text to the mixer text buffer; the text
  * buffer is drained as the definitions are consumed.
  */
+#pragma pack(push, 1)
 struct px4io_mixdata {
 	uint16_t	f2i_mixer_magic;
 #define F2I_MIXER_MAGIC		0x6d74
@@ -191,4 +192,5 @@ struct px4io_mixdata {
 
 	char		text[0];	/* actual text size may vary */
 };
+#pragma pack(pop)
 
