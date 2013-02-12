@@ -594,34 +594,52 @@ PX4IO::io_set_rc_config()
 		char pname[16];
 		float fval;
 
+		/*
+		 * RC params are floats, but do only
+		 * contain integer values. Do not scale
+		 * or cast them, let the auto-typeconversion
+		 * do its job here.
+		 * Channels: 500 - 2500
+		 * Inverted flag: -1 (inverted) or 1 (normal)
+		 */
+
 		sprintf(pname, "RC%d_MIN", i + 1);
 		param_get(param_find(pname), &fval);
-		regs[PX4IO_P_RC_CONFIG_MIN] = FLOAT_TO_REG(fval);
+		regs[PX4IO_P_RC_CONFIG_MIN] = fval;
 
 		sprintf(pname, "RC%d_TRIM", i + 1);
 		param_get(param_find(pname), &fval);
-		regs[PX4IO_P_RC_CONFIG_CENTER] = FLOAT_TO_REG(fval);
+		regs[PX4IO_P_RC_CONFIG_CENTER] = fval;
 
 		sprintf(pname, "RC%d_MAX", i + 1);
 		param_get(param_find(pname), &fval);
-		regs[PX4IO_P_RC_CONFIG_MAX] = FLOAT_TO_REG(fval);
+		regs[PX4IO_P_RC_CONFIG_MAX] = fval;
 
 		sprintf(pname, "RC%d_DZ", i + 1);
 		param_get(param_find(pname), &fval);
-		regs[PX4IO_P_RC_CONFIG_DEADZONE] = FLOAT_TO_REG(fval);
+		regs[PX4IO_P_RC_CONFIG_DEADZONE] = fval;
 
 		regs[PX4IO_P_RC_CONFIG_ASSIGNMENT] = input_map[i];
 
 		regs[PX4IO_P_RC_CONFIG_OPTIONS] = PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
 		sprintf(pname, "RC%d_REV", i + 1);
 		param_get(param_find(pname), &fval);
-		if (fval > 0)
+
+		/*
+		 * This has been taken for the sake of compatibility
+		 * with APM's setup / mission planner: normal: 1,
+		 * inverted: -1
+		 */
+		if (fval < 0) {
 			regs[PX4IO_P_RC_CONFIG_OPTIONS] |= PX4IO_P_RC_CONFIG_OPTIONS_REVERSE;
+		}
 
 		/* send channel config to IO */
 		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
-		if (ret != OK)
+		if (ret != OK) {
+			log("RC config update failed");
 			break;
+		}
 		offset += PX4IO_P_RC_CONFIG_STRIDE;
 	}
 
