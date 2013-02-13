@@ -245,11 +245,12 @@ controls_main(void)
 		/*
 		 * Check for manual override.
 		 *
-		 * The OVERRIDE_OK feature must be set, and we must have R/C input.
+		 * The PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK flag must be set, and we
+		 * must have R/C input.
 		 * Override is enabled if either the hardcoded channel / value combination
 		 * is selected, or the AP has requested it.
 		 */
-		if ((r_setup_features & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK) && 
+		if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) && 
 			(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
 
 			bool override = false;
@@ -260,14 +261,7 @@ controls_main(void)
 			 *
 			 * XXX This should be configurable.
 			 */
-			if ((r_rc_valid & (1 << 4)) && (r_rc_values[4] > RC_CHANNEL_HIGH_THRESH))
-				override = true;
-
-			/*
-			 * Check for an explicit manual override request from the AP.
-			 */
-			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
-				(r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE))
+			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (r_rc_values[4] > RC_CHANNEL_HIGH_THRESH))
 				override = true;
 
 			if (override) {

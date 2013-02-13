@@ -140,9 +140,9 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_IBATT_BIAS]		= 0
 };
 
-#define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK)
+#define PX4IO_P_SETUP_FEATURES_VALID	(0)
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_ARM_OK | \
-					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE)
+					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -283,9 +283,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			value &= PX4IO_P_SETUP_FEATURES_VALID;
 			r_setup_features = value;
 
-			/* update manual override state - disable if no longer OK */
-			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) && !(value & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK))
-				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
+			/* no implemented feature selection at this point */
 
 			break;
 

@@ -335,7 +335,7 @@ PX4IO::init()
 	/* dis-arm IO before touching anything */
 	io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
 		PX4IO_P_SETUP_ARMING_ARM_OK |
-		PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE |
+		PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK |
 		PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK, 0);
 
 	/* publish RC config to IO */
@@ -541,9 +541,9 @@ PX4IO::io_set_arming_state()
 		clear |= PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK;					
 	}
 	if (vstatus.flag_external_manual_override_ok) {
-		set |= PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK;
+		set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
 	} else {
-		clear |= PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK;
+		clear |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
 	}
 
 	return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
