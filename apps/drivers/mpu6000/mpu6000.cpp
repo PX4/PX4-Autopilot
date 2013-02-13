@@ -267,6 +267,11 @@ private:
 	 */
 	 int 			self_test();
 
+	/*
+	  set low pass filter frequency
+	 */
+	void _set_dlpf_filter(uint16_t frequency_hz);
+
 };
 
 /**
@@ -379,7 +384,7 @@ MPU6000::init()
 	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
 	// was 90 Hz, but this ruins quality and does not improve the
 	// system response
-	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_20HZ);
+	_set_dlpf_filter(20);
 	usleep(1000);
 	// Gyro scale 2000 deg/s ()
 	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
@@ -418,6 +423,9 @@ MPU6000::init()
 	case MPU6000_REV_D8:
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
+	// default case to cope with new chip revisions, which
+	// presumably won't have the accel scaling bug		
+	default:
 		// Accel scale 8g (4096 LSB/g)
 		write_reg(MPUREG_ACCEL_CONFIG, 2 << 3);
 		break;
@@ -483,6 +491,37 @@ MPU6000::probe()
 
 	debug("unexpected ID 0x%02x", _product);
 	return -EIO;
+}
+
+/*
+  set the DLPF filter frequency. This affects both accel and gyro.
+ */
+void
+MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
+{
+	uint8_t filter;
+
+	/* 
+	   choose next highest filter frequency available
+	 */
+	if (frequency_hz <= 5) {
+		filter = BITS_DLPF_CFG_5HZ;
+	} else if (frequency_hz <= 10) {
+		filter = BITS_DLPF_CFG_10HZ;
+	} else if (frequency_hz <= 20) {
+		filter = BITS_DLPF_CFG_20HZ;
+	} else if (frequency_hz <= 42) {
+		filter = BITS_DLPF_CFG_42HZ;
+	} else if (frequency_hz <= 98) {
+		filter = BITS_DLPF_CFG_98HZ;
+	} else if (frequency_hz <= 188) {
+		filter = BITS_DLPF_CFG_188HZ;
+	} else if (frequency_hz <= 256) {
+		filter = BITS_DLPF_CFG_256HZ_NOLPF2;
+	} else {
+		filter = BITS_DLPF_CFG_2100HZ_NOLPF;
+	}
+	write_reg(MPUREG_CONFIG, filter);
 }
 
 ssize_t
@@ -610,8 +649,8 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSLOWPASS:
 	case ACCELIOCGLOWPASS:
-		/* XXX not implemented */
-		return -EINVAL;
+		_set_dlpf_filter((uint16_t)arg);
+		return OK;
 
 	case ACCELIOCSSCALE:
 		{
@@ -668,8 +707,8 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSLOWPASS:
 	case GYROIOCGLOWPASS:
-		/* XXX not implemented */
-		return -EINVAL;
+		_set_dlpf_filter((uint16_t)arg);
+		return OK;
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
