@@ -284,7 +284,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			r_setup_features = value;
 
 			/* update manual override state - disable if no longer OK */
-			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) && !(value & PX4IO_P_FEAT_ARMING_MANUAL_OVERRIDE_OK))
+			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) && !(value & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK))
 				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
 
 			break;
