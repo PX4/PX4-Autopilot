@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,45 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file home_position.h
- * Definition of the GPS home position uORB topic.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @file GPS driver interface.
  */
 
-#ifndef TOPIC_HOME_POSITION_H_
-#define TOPIC_HOME_POSITION_H_
+#ifndef _DRV_GPS_H
+#define _DRV_GPS_H
 
 #include <stdint.h>
-#include "../uORB.h"
+#include <sys/ioctl.h>
 
-/**
- * @addtogroup topics
- * @{
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
+
+#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
+
+#define GPS_DEVICE_PATH	"/dev/gps"
+
+typedef enum {
+	GPS_DRIVER_MODE_NONE = 0,
+	GPS_DRIVER_MODE_UBX,
+	GPS_DRIVER_MODE_MTK,
+	GPS_DRIVER_MODE_NMEA,
+} gps_driver_mode_t;
+
+
+/*
+ * ObjDev tag for GPS data.
  */
+ORB_DECLARE(gps);
 
-/**
- * GPS home position in WGS84 coordinates.
+/*
+ * ioctl() definitions
  */
-struct home_position_s
-{
-	uint64_t timestamp;             /**< Timestamp (microseconds since system boot)   */
-	uint64_t time_gps_usec;         /**< Timestamp (microseconds in GPS format), this is the timestamp from the gps module   */
-	
-	int32_t lat;                    /**< Latitude in 1E7 degrees */
-	int32_t lon;                    /**< Longitude in 1E7 degrees */
-	int32_t alt;                    /**< Altitude in 1E3 meters (millimeters) above MSL */
-	float eph_m;                   /**< GPS HDOP horizontal dilution of position in m */
-	float epv_m;                   /**< GPS VDOP horizontal dilution of position in m */
-	float s_variance_m_s;               /**< speed accuracy estimate m/s */
-	float p_variance_m;               /**< position accuracy estimate m */
-};
+#define _GPSIOCBASE			(0x2800)            //TODO: arbitrary choice...
+#define _GPSIOC(_n)		(_IOC(_GPSIOCBASE, _n))
 
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(home_position);
-
-#endif
+#endif /* _DRV_GPS_H */

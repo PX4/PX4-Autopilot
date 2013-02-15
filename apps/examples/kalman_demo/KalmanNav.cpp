@@ -190,11 +190,12 @@ void KalmanNav::update()
 	if (!_positionInitialized &&
 	    _attitudeInitialized && // wait for attitude first
 	    gpsUpdate &&
-	    _gps.fix_type > 2 &&
-	    _gps.counter_pos_valid > 10) {
-		vN = _gps.vel_n;
-		vE = _gps.vel_e;
-		vD = _gps.vel_d;
+	    _gps.fix_type > 2
+	    //&& _gps.counter_pos_valid > 10
+	    ) {
+		vN = _gps.vel_n_m_s;
+		vE = _gps.vel_e_m_s;
+		vD = _gps.vel_d_m_s;
 		setLatDegE7(_gps.lat);
 		setLonDegE7(_gps.lon);
 		setAltE3(_gps.alt);
@@ -259,7 +260,7 @@ void KalmanNav::updatePublications()
 
 	// position publication
 	_pos.timestamp = _pubTimeStamp;
-	_pos.time_gps_usec = _gps.timestamp;
+	_pos.time_gps_usec = _gps.timestamp_position;
 	_pos.valid = true;
 	_pos.lat = getLatDegE7();
 	_pos.lon = getLonDegE7();
@@ -630,8 +631,8 @@ int KalmanNav::correctPos()
 
 	// residual
 	Vector y(5);
-	y(0) = _gps.vel_n - vN;
-	y(1) = _gps.vel_e - vE;
+	y(0) = _gps.vel_n_m_s - vN;
+	y(1) = _gps.vel_e_m_s - vE;
 	y(2) = double(_gps.lat) - lat * 1.0e7 * M_RAD_TO_DEG;
 	y(3) = double(_gps.lon) - lon * 1.0e7 * M_RAD_TO_DEG;
 	y(4) = double(_gps.alt) / 1.0e3 - alt;
@@ -650,9 +651,9 @@ int KalmanNav::correctPos()
 			// abort correction and return
 			printf("[kalman_demo] numerical failure in gps correction\n");
 			// fallback to GPS
-			vN = _gps.vel_n;
-			vE = _gps.vel_e;
-			vD = _gps.vel_d;
+			vN = _gps.vel_n_m_s;
+			vE = _gps.vel_e_m_s;
+			vD = _gps.vel_d_m_s;
 			setLatDegE7(_gps.lat);
 			setLonDegE7(_gps.lon);
 			setAltE3(_gps.alt);

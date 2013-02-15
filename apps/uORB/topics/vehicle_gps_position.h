@@ -55,35 +55,38 @@
  */
 struct vehicle_gps_position_s
 {
-	uint64_t timestamp;			/**< Timestamp (microseconds since system boot)   */
-	uint32_t counter;			/**< Count of GPS messages */
-	uint64_t time_gps_usec;			/**< Timestamp (microseconds in GPS format), this is the timestamp which comes from the gps module   */
+	uint64_t timestamp_position;		/**< Timestamp for position information */
+	int32_t lat;						/**< Latitude in 1E7 degrees */
+	int32_t lon;						/**< Longitude in 1E7 degrees */
+	int32_t alt;						/**< Altitude in 1E3 meters (millimeters) above MSL  */
 	
-	int32_t lat;				/**< Latitude in 1E7 degrees //LOGME   */
-	int32_t lon;				/**< Longitude in 1E7 degrees //LOGME   */
-	int32_t alt;				/**< Altitude in 1E3 meters (millimeters) above MSL //LOGME   */
-	uint16_t counter_pos_valid;		/**< is only increased when new lat/lon/alt information was added   */
-	uint16_t eph;				/**< GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535 //LOGME   */
-	uint16_t epv;				/**< GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535   */
-	float s_variance;			/**< speed accuracy estimate cm/s */
-	float p_variance;			/**< position accuracy estimate cm */
-	uint16_t vel;				/**< GPS ground speed (m/s * 100). If unknown, set to: 65535   */
-	float vel_n;				/**< GPS ground speed in m/s */
-	float vel_e;				/**< GPS ground speed in m/s */
-	float vel_d;				/**< GPS ground speed in m/s */
-	uint16_t cog;				/**< Course over ground (NOT heading, but direction of movement) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: 65535   */
-	uint8_t fix_type; 			/**< 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.   */
-	uint8_t satellites_visible;		/**< Number of satellites visible. If unknown, set to 255   */
+	uint64_t timestamp_variance;
+	float s_variance_m_s;				/**< speed accuracy estimate m/s */
+	float p_variance_m;					/**< position accuracy estimate m */
+	uint8_t fix_type; 					/**< 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.   */
 
-	uint8_t satellite_prn[20]; 		/**< Global satellite ID   */
-	uint8_t satellite_used[20];		/**< 0: Satellite not used, 1: used for localization   */
-	uint8_t satellite_elevation[20]; 	/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite   */
-	uint8_t satellite_azimuth[20];		/**< Direction of satellite, 0: 0 deg, 255: 360 deg.   */
-	uint8_t satellite_snr[20];		/**< Signal to noise ratio of satellite   */
-	uint8_t satellite_info_available;	/**< 0 for no info, 1 for info available   */
+	float eph_m;						/**< GPS HDOP horizontal dilution of position in m */
+	float epv_m;						/**< GPS VDOP horizontal dilution of position in m */
 
-	/* flags */
-	float vel_ned_valid;			/**< Flag to indicate if NED speed is valid */
+	uint64_t timestamp_velocity;		/**< Timestamp for velocity informations */
+	float vel_m_s;						/**< GPS ground speed (m/s) */
+	float vel_n_m_s;					/**< GPS ground speed in m/s */
+	float vel_e_m_s;					/**< GPS ground speed in m/s */
+	float vel_d_m_s;					/**< GPS ground speed in m/s */
+	float cog_rad;						/**< Course over ground (NOT heading, but direction of movement) in rad */
+	bool vel_ned_valid;					/**< Flag to indicate if NED speed is valid */
+
+	uint64_t timestamp_time;			/**< Timestamp for time information */
+	uint64_t time_gps_usec;				/**< Timestamp (microseconds in GPS format), this is the timestamp which comes from the gps module   */
+
+	uint64_t timestamp_satellites;		/**< Timestamp for sattelite information */
+	uint8_t satellites_visible;			/**< Number of satellites visible. If unknown, set to 255 */
+	uint8_t satellite_prn[20]; 			/**< Global satellite ID */
+	uint8_t satellite_used[20];			/**< 0: Satellite not used, 1: used for localization */
+	uint8_t satellite_elevation[20]; 	/**< Elevation (0: right on top of receiver, 90: on the horizon) of satellite */
+	uint8_t satellite_azimuth[20];		/**< Direction of satellite, 0: 0 deg, 255: 360 deg. */
+	uint8_t satellite_snr[20];			/**< Signal to noise ratio of satellite   */
+	bool satellite_info_available;	/**< 0 for no info, 1 for info available */
 };
 
 /**

@@ -1,7 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +33,60 @@
  *
  ****************************************************************************/
 
-/**
- * @file home_position.h
- * Definition of the GPS home position uORB topic.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- */
+#include <termios.h>
+#include <errno.h>
+#include <systemlib/err.h>
+#include "gps_helper.h"
 
-#ifndef TOPIC_HOME_POSITION_H_
-#define TOPIC_HOME_POSITION_H_
+/* @file gps_helper.cpp */
 
-#include <stdint.h>
-#include "../uORB.h"
-
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * GPS home position in WGS84 coordinates.
- */
-struct home_position_s
+int
+GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 {
-	uint64_t timestamp;             /**< Timestamp (microseconds since system boot)   */
-	uint64_t time_gps_usec;         /**< Timestamp (microseconds in GPS format), this is the timestamp from the gps module   */
-	
-	int32_t lat;                    /**< Latitude in 1E7 degrees */
-	int32_t lon;                    /**< Longitude in 1E7 degrees */
-	int32_t alt;                    /**< Altitude in 1E3 meters (millimeters) above MSL */
-	float eph_m;                   /**< GPS HDOP horizontal dilution of position in m */
-	float epv_m;                   /**< GPS VDOP horizontal dilution of position in m */
-	float s_variance_m_s;               /**< speed accuracy estimate m/s */
-	float p_variance_m;               /**< position accuracy estimate m */
-};
+	/* process baud rate */
+	int speed;
 
-/**
- * @}
- */
+	switch (baud) {
+	case 9600:   speed = B9600;   break;
 
-/* register this as object request broker structure */
-ORB_DECLARE(home_position);
+	case 19200:  speed = B19200;  break;
 
-#endif
+	case 38400:  speed = B38400;  break;
+
+	case 57600:  speed = B57600;  break;
+
+	case 115200: speed = B115200; break;
+
+	warnx("try baudrate: %d\n", speed);
+
+	default:
+		warnx("ERROR: Unsupported baudrate: %d\n", baud);
+		return -EINVAL;
+	}
+	struct termios uart_config;
+	int termios_state;
+
+	/* fill the struct for the new configuration */
+	tcgetattr(fd, &uart_config);
+
+	/* clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+	/* no parity, one stop bit */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+		warnx("ERROR setting config: %d (cfsetispeed)\n", termios_state);
+		return -1;
+	}
+	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+		warnx("ERROR setting config: %d (cfsetospeed)\n", termios_state);
+		return -1;
+	}
+	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
+		warnx("ERROR setting baudrate (tcsetattr)\n");
+		return -1;
+	}
+	/* XXX if resetting the parser here, ensure it does exist (check for null pointer) */
+	return 0;
+}
