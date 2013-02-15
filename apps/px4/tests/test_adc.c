@@ -60,8 +60,10 @@ int test_adc(int argc, char *argv[])
 {
 	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0)
-		err(1, "can't open ADC device");
+	if (fd < 0) {
+		warnx("ERROR: can't open ADC device");
+		return 1;
+	}
 
 	for (unsigned i = 0; i < 5; i++) {
 		/* make space for a maximum of eight channels */
@@ -82,7 +84,7 @@ int test_adc(int argc, char *argv[])
 		usleep(150000);
 	}
 
-	message("\t ADC test successful.\n");
+	warnx("\t ADC test successful.\n");
 
 errout_with_dev:
 
