@@ -44,19 +44,19 @@
 /* Extended Kalman Filter covariances */
 
 /* gyro process noise */
-PARAM_DEFINE_FLOAT(EKF_ATT_Q0, 1e1f);
-PARAM_DEFINE_FLOAT(EKF_ATT_Q1, 1e1f);
-PARAM_DEFINE_FLOAT(EKF_ATT_Q2, 1e1f);
+PARAM_DEFINE_FLOAT(EKF_ATT_V2_Q0, 1e-4f);
+PARAM_DEFINE_FLOAT(EKF_ATT_V2_Q1, 0.08f);
+PARAM_DEFINE_FLOAT(EKF_ATT_V2_Q2, 0.009f);
 /* gyro offsets process noise */
-PARAM_DEFINE_FLOAT(EKF_ATT_Q3, 1e-4f);
-PARAM_DEFINE_FLOAT(EKF_ATT_Q4, 1e-4f);
+PARAM_DEFINE_FLOAT(EKF_ATT_V2_Q3, 0.005f);
+PARAM_DEFINE_FLOAT(EKF_ATT_V2_Q4, 0.0f);
 
 /* gyro measurement noise */
-PARAM_DEFINE_FLOAT(EKF_ATT_R0, 0.01f);
-PARAM_DEFINE_FLOAT(EKF_ATT_R1, 0.01f);
-PARAM_DEFINE_FLOAT(EKF_ATT_R2, 0.01f);
+PARAM_DEFINE_FLOAT(EKF_ATT_V2_R0, 0.0008f);
+PARAM_DEFINE_FLOAT(EKF_ATT_V2_R1, 0.8f);
+PARAM_DEFINE_FLOAT(EKF_ATT_V2_R2, 1.0f);
 /* accelerometer measurement noise */
-PARAM_DEFINE_FLOAT(EKF_ATT_R3, 1e2f);
+PARAM_DEFINE_FLOAT(EKF_ATT_V2_R3, 0.0f);
 
 /* offsets in roll, pitch and yaw of sensor plane and body */
 PARAM_DEFINE_FLOAT(ATT_ROLL_OFFS, 0.0f);
@@ -66,16 +66,16 @@ PARAM_DEFINE_FLOAT(ATT_YAW_OFFS, 0.0f);
 int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 {
 	/* PID parameters */
-	h->q0 	=	param_find("EKF_ATT_Q0");
-	h->q1 	=	param_find("EKF_ATT_Q1");
-	h->q2 	=	param_find("EKF_ATT_Q2");
-	h->q3 	=	param_find("EKF_ATT_Q3");
-	h->q4 	=	param_find("EKF_ATT_Q4");
+	h->q0 	=	param_find("EKF_ATT_V2_Q0");
+	h->q1 	=	param_find("EKF_ATT_V2_Q1");
+	h->q2 	=	param_find("EKF_ATT_V2_Q2");
+	h->q3 	=	param_find("EKF_ATT_V2_Q3");
+	h->q4 	=	param_find("EKF_ATT_V2_Q4");
 
-	h->r0 	=	param_find("EKF_ATT_R0");
-	h->r1 	=	param_find("EKF_ATT_R1");
-	h->r2 	=	param_find("EKF_ATT_R2");
-	h->r3 	=	param_find("EKF_ATT_R3");
+	h->r0 	=	param_find("EKF_ATT_V2_R0");
+	h->r1 	=	param_find("EKF_ATT_V2_R1");
+	h->r2 	=	param_find("EKF_ATT_V2_R2");
+	h->r3 	=	param_find("EKF_ATT_V2_R3");
 
 	h->roll_off  =	param_find("ATT_ROLL_OFFS");
 	h->pitch_off =	param_find("ATT_PITCH_OFFS");
