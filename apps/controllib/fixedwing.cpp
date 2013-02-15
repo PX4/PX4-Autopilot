@@ -322,10 +322,23 @@ void BlockMultiModeBacksideAutopilot::update()
 			_att.roll, _att.pitch, _att.yaw,
 			_att.rollspeed, _att.pitchspeed, _att.yawspeed
 		);
-		_actuators.control[CH_AIL] = _backsideAutopilot.getAileron();
-		_actuators.control[CH_ELV] = _backsideAutopilot.getElevator();
+		_actuators.control[CH_AIL] = - _backsideAutopilot.getAileron();
+		_actuators.control[CH_ELV] = - _backsideAutopilot.getElevator();
 		_actuators.control[CH_RDR] = _backsideAutopilot.getRudder();
 		_actuators.control[CH_THR] = _backsideAutopilot.getThrottle();
+
+		// XXX limit throttle to manual setting (safety) for now.
+		// If it turns out to be confusing, it can be removed later once
+		// a first binary release can be targeted.
+		// This is not a hack, but a design choice.
+
+		/* do not limit in HIL */
+		if (!_status.flag_hil_enabled) {
+			/* limit to value of manual throttle */
+			_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
+							_actuators.control[CH_THR] : _manual.throttle;
+		}
+
 
 	} else if (_status.state_machine == SYSTEM_STATE_MANUAL) {
 
@@ -337,11 +350,12 @@ void BlockMultiModeBacksideAutopilot::update()
 			_actuators.control[CH_THR] = _manual.throttle;
 
 		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
-			_stabilization.update(
-			_ratesCmd.roll, _ratesCmd.pitch, _ratesCmd.yaw,
+
+			_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
 			_att.rollspeed, _att.pitchspeed, _att.yawspeed);
+
 			_actuators.control[CH_AIL] = _stabilization.getAileron();
-			_actuators.control[CH_ELV] = _stabilization.getElevator();
+			_actuators.control[CH_ELV] = - _stabilization.getElevator();
 			_actuators.control[CH_RDR] = _stabilization.getRudder();
 			_actuators.control[CH_THR] = _manual.throttle;
 		}
