@@ -231,15 +231,15 @@ l_vehicle_gps_position(struct listener *l)
 
 	/* GPS position */
 	mavlink_msg_gps_raw_int_send(MAVLINK_COMM_0,
-				     gps.timestamp,
+				     gps.timestamp_position,
 				     gps.fix_type,
 				     gps.lat,
 				     gps.lon,
 				     gps.alt,
-				     gps.eph,
-				     gps.epv,
-				     gps.vel,
-				     gps.cog,
+				     (uint16_t)(gps.eph_m * 1e2f), // from m to cm
+				     (uint16_t)(gps.epv_m * 1e2f), // from m to cm
+				     (uint16_t)(gps.vel_m_s * 1e2f), // from m/s to cm/s
+				     (uint16_t)(gps.cog_rad * M_RAD_TO_DEG_F * 1e2f), // from rad to deg * 100
 				     gps.satellites_visible);
 
 	if (gps.satellite_info_available && (gps_counter % 4 == 0)) {
@@ -698,7 +698,7 @@ uorb_receive_start(void)
 
 	/* --- GPS VALUE --- */
 	mavlink_subs.gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	orb_set_interval(mavlink_subs.gps_sub, 1000);	/* 1Hz updates */
+	orb_set_interval(mavlink_subs.gps_sub, 200);	/* 5Hz updates */
 
 	/* --- HOME POSITION --- */
 	mavlink_subs.home_sub = orb_subscribe(ORB_ID(home_position));
