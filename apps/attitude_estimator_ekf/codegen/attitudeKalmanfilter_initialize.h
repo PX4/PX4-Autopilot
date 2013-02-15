@@ -3,7 +3,7 @@
  *
  * Code generation for function 'attitudeKalmanfilter_initialize'
  *
- * C source code generated on: Tue Oct 16 15:27:58 2012
+ * C source code generated on: Sat Jan 19 15:25:29 2013
  *
  */
 
