@@ -57,29 +57,26 @@
  */
 struct vehicle_attitude_s {
 
-	/*
-	 * Actual data, this is specific to the type of data which is stored in this struct
-	 * A line containing L0GME will be added by the Python logging code generator to the
-	 * logged dataset.
-	 */
-	uint64_t timestamp;   /**< in microseconds since system start          */
+	uint64_t timestamp;	/**< in microseconds since system start          */
 
 	/* This is similar to the mavlink message ATTITUDE, but for onboard use */
 
-	/* @warning Roll, pitch and yaw have always to be valid, the rotation matrix and quaternion are optional */
+	/** @warning roll, pitch and yaw have always to be valid, the rotation matrix and quaternion are optional */
 
-	float roll;           /**< Roll angle (rad, Tait-Bryan, NED)             LOGME    */
-	float pitch;          /**< Pitch angle (rad, Tait-Bryan, NED)            LOGME    */
-	float yaw;            /**< Yaw angle (rad, Tait-Bryan, NED)              LOGME    */
-	float rollspeed;      /**< Roll angular speed (rad/s, Tait-Bryan, NED)   LOGME    */
-	float pitchspeed;     /**< Pitch angular speed (rad/s, Tait-Bryan, NED)  LOGME    */
-	float yawspeed;       /**< Yaw angular speed (rad/s, Tait-Bryan, NED)    LOGME    */
-	float rate_offsets[3];/**< Offsets of the body angular rates from zero */
-	float R[3][3];        /**< Rotation matrix body to world, (Tait-Bryan, NED)       */
-	float q[4];           /**< Quaternion (NED) */
-	bool R_valid;         /**< Rotation matrix valid */
-	bool q_valid;         /**< Quaternion valid */
-	uint16_t counter;     /**< Counter of all attitude messages (wraps)    */
+	float roll;		/**< Roll angle (rad, Tait-Bryan, NED)				*/
+	float pitch;		/**< Pitch angle (rad, Tait-Bryan, NED)				*/
+	float yaw;		/**< Yaw angle (rad, Tait-Bryan, NED)				*/
+	float rollspeed;	/**< Roll angular speed (rad/s, Tait-Bryan, NED)		*/
+	float pitchspeed;	/**< Pitch angular speed (rad/s, Tait-Bryan, NED)		*/
+	float yawspeed;		/**< Yaw angular speed (rad/s, Tait-Bryan, NED)			*/
+	float rollacc;		/**< Roll angular accelration (rad/s, Tait-Bryan, NED)		*/
+	float pitchacc;		/**< Pitch angular acceleration (rad/s, Tait-Bryan, NED)	*/
+	float yawacc;		/**< Yaw angular acceleration (rad/s, Tait-Bryan, NED)		*/
+	float rate_offsets[3];	/**< Offsets of the body angular rates from zero		*/
+	float R[3][3];		/**< Rotation matrix body to world, (Tait-Bryan, NED)		*/
+	float q[4];		/**< Quaternion (NED)						*/
+	bool R_valid;		/**< Rotation matrix valid					*/
+	bool q_valid;		/**< Quaternion valid						*/
 
 };
 

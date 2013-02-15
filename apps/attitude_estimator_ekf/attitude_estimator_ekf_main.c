@@ -431,6 +431,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
 					att.yawspeed = x_aposteriori[2];
+					att.rollacc = x_aposteriori[3];
+					att.pitchacc = x_aposteriori[4];
+					att.yawacc = x_aposteriori[5];
+
 					//att.yawspeed =z_k[2] ;
 					/* copy offsets */
 					memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
