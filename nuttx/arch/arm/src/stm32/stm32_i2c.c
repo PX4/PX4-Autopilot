@@ -2013,7 +2013,7 @@ int up_i2creset(FAR struct i2c_dev_s * dev)
 
           /* Give up if we have tried too hard */
 
-          if (clock_count++ > 1000)
+          if (clock_count++ > CONFIG_STM32_I2CTIMEOTICKS)
             { 
               goto out;
             }

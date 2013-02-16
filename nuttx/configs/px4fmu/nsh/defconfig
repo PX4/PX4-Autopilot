@@ -372,7 +372,8 @@ CONFIG_I2C_POLLED=y
 CONFIG_I2C_TRANSFER=y
 CONFIG_I2C_TRACE=n
 CONFIG_I2C_RESET=y
-
+# XXX fixed per-transaction timeout
+CONFIG_STM32_I2CTIMEOMS=10
 
 
 # XXX re-enable after integration testing
