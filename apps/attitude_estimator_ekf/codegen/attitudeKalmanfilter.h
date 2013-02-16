@@ -3,7 +3,7 @@
  *
  * Code generation for function 'attitudeKalmanfilter'
  *
- * C source code generated on: Tue Oct 16 15:27:58 2012
+ * C source code generated on: Sat Jan 19 15:25:29 2013
  *
  */
 
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void attitudeKalmanfilter(const uint8_T updateVect[3], real32_T dt, const real32_T z[9], const real32_T x_aposteriori_k[12], const real32_T P_aposteriori_k[144], const real32_T q[12], const real32_T r[9], real32_T eulerAngles[3], real32_T Rot_matrix[9], real32_T x_aposteriori[12], real32_T P_aposteriori[144]);
+extern void attitudeKalmanfilter(const uint8_T updateVect[3], real32_T dt, const real32_T z[9], const real32_T x_aposteriori_k[12], const real32_T P_aposteriori_k[144], const real32_T q[12], real32_T r[9], real32_T eulerAngles[3], real32_T Rot_matrix[9], real32_T x_aposteriori[12], real32_T P_aposteriori[144]);
 #endif
 /* End of code generation (attitudeKalmanfilter.h) */

@@ -50,8 +50,8 @@ struct attitude_estimator_ekf_params {
 };
 
 struct attitude_estimator_ekf_param_handles {
-	param_t r0, r1, r2, r3, r4, r5, r6, r7, r8;
-	param_t q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11;
+	param_t r0, r1, r2, r3;
+	param_t q0, q1, q2, q3, q4;
 	param_t roll_off, pitch_off, yaw_off;
 };
 

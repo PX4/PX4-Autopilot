@@ -32,63 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file test_adc.c
- * Test for the analog to digital converter.
+ * @file GPS driver interface.
  */
 
-#include <nuttx/config.h>
-#include <nuttx/arch.h>
+#ifndef _DRV_GPS_H
+#define _DRV_GPS_H
 
-#include <sys/types.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <debug.h>
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
 
-#include <nuttx/spi.h>
+#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
 
-#include "tests.h"
+#define GPS_DEVICE_PATH	"/dev/gps"
 
-#include <nuttx/analog/adc.h>
-#include <drivers/drv_adc.h>
-#include <systemlib/err.h>
+typedef enum {
+	GPS_DRIVER_MODE_NONE = 0,
+	GPS_DRIVER_MODE_UBX,
+	GPS_DRIVER_MODE_MTK,
+	GPS_DRIVER_MODE_NMEA,
+} gps_driver_mode_t;
 
-int test_adc(int argc, char *argv[])
-{
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0) {
-		warnx("ERROR: can't open ADC device");
-		return 1;
-	}
+/*
+ * ObjDev tag for GPS data.
+ */
+ORB_DECLARE(gps);
 
-	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum of eight channels */
-		struct adc_msg_s data[8];
-		/* read all channels available */
-		ssize_t count = read(fd, data, sizeof(data));
+/*
+ * ioctl() definitions
+ */
+#define _GPSIOCBASE			(0x2800)            //TODO: arbitrary choice...
+#define _GPSIOC(_n)		(_IOC(_GPSIOCBASE, _n))
 
-		if (count < 0)
-			goto errout_with_dev;
-
-		unsigned channels = count / sizeof(data[0]);
-
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
-
-		printf("\n");
-		usleep(150000);
-	}
-
-	warnx("\t ADC test successful.\n");
-
-errout_with_dev:
-
-	if (fd != 0) close(fd);
-
-	return OK;
-}
+#endif /* _DRV_GPS_H */

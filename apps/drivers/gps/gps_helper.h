@@ -1,6 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,64 +33,20 @@
  *
  ****************************************************************************/
 
-/**
- * @file test_adc.c
- * Test for the analog to digital converter.
- */
+/* @file gps_helper.h */
 
-#include <nuttx/config.h>
-#include <nuttx/arch.h>
+#ifndef GPS_HELPER_H
+#define GPS_HELPER_H
 
-#include <sys/types.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/spi.h>
-
-#include "tests.h"
-
-#include <nuttx/analog/adc.h>
-#include <drivers/drv_adc.h>
-#include <systemlib/err.h>
-
-int test_adc(int argc, char *argv[])
+class GPS_Helper
 {
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+public:
+	virtual int				configure(unsigned &baud) = 0;
+	virtual int 			receive(unsigned timeout) = 0;
+	int 					set_baudrate(const int &fd, unsigned baud);
+};
 
-	if (fd < 0) {
-		warnx("ERROR: can't open ADC device");
-		return 1;
-	}
-
-	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum of eight channels */
-		struct adc_msg_s data[8];
-		/* read all channels available */
-		ssize_t count = read(fd, data, sizeof(data));
-
-		if (count < 0)
-			goto errout_with_dev;
-
-		unsigned channels = count / sizeof(data[0]);
-
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
-
-		printf("\n");
-		usleep(150000);
-	}
-
-	warnx("\t ADC test successful.\n");
-
-errout_with_dev:
-
-	if (fd != 0) close(fd);
-
-	return OK;
-}
+#endif /* GPS_HELPER_H */
