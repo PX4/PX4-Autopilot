@@ -65,10 +65,9 @@ logFormat{17} = struct('name', 'rot_matrix',           'bytes', 4, 'array', 9, '
 logFormat{18} = struct('name', 'vicon_position',       'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{19} = struct('name', 'actuator_control',     'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{20} = struct('name', 'optical_flow',         'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{21} = struct('name', 'omnidirectional_flow', 'bytes', 4, 'array', 22,'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{22} = struct('name', 'diff_pressure',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{23} = struct('name', 'ind_airspeed',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{24} = struct('name', 'true_airspeed',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{21} = struct('name', 'diff_pressure',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{22} = struct('name', 'ind_airspeed',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{23} = struct('name', 'true_airspeed',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
 
 % First get length of one line
 columns = length(logFormat);
