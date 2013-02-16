@@ -195,95 +195,85 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 	/* reset MAVLink mode bitfield */
 	*mavlink_mode = 0;
 
-	/* set mode flags independent of system state */
+	/**
+	 * Set mode flags
+	 **/
 
 	/* HIL */
 	if (v_status.flag_hil_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
 
-	/* manual input */
-	if (v_status.flag_control_manual_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-	}
-
-	/* attitude or rate control */
-	if (v_status.flag_control_attitude_enabled ||
-	    v_status.flag_control_rates_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
-	}
-
-	/* vector control */
-	if (v_status.flag_control_velocity_enabled ||
-	    v_status.flag_control_position_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
-	}
-
 	/* autonomous mode */
-	if (v_status.state_machine == SYSTEM_STATE_AUTO) {
+	if (v_status.navigation_state == NAVIGATION_STATE_MISSION
+	 || v_status.navigation_state == NAVIGATION_STATE_TAKEOFF
+	 || v_status.navigation_state == NAVIGATION_STATE_RTL
+	 || v_status.navigation_state == NAVIGATION_STATE_LAND
+	 || v_status.navigation_state == NAVIGATION_STATE_AUTO_READY) {
 		*mavlink_mode |= MAV_MODE_FLAG_AUTO_ENABLED;
 	}
 
 	/* set arming state */
-	if (armed.armed) {
+	if (v_status.flag_system_armed) {
 		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 
 	} else {
 		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
-	switch (v_status.state_machine) {
-	case SYSTEM_STATE_PREFLIGHT:
-		if (v_status.flag_preflight_gyro_calibration ||
-		    v_status.flag_preflight_mag_calibration ||
-		    v_status.flag_preflight_accel_calibration) {
-			*mavlink_state = MAV_STATE_CALIBRATING;
+	if (v_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
-		} else {
-			*mavlink_state = MAV_STATE_UNINIT;
-		}
+		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+	}
 
-		break;
+	if (v_status.navigation_state == NAVIGATION_STATE_SEATBELT) {
 
-	case SYSTEM_STATE_STANDBY:
+		*mavlink_mode |= MAV_MODE_FLAG_DECODE_POSITION_GUIDED;
+	}
+
+	if (v_status.navigation_state == NAVIGATION_STATE_SEATBELT) {
+
+		*mavlink_mode |= MAV_MODE_FLAG_DECODE_POSITION_GUIDED;
+	}
+
+
+	/**
+	 * Set mavlink state
+	 **/
+
+	/* set calibration state */
+	if (v_status.flag_preflight_gyro_calibration ||
+		v_status.flag_preflight_mag_calibration ||
+		v_status.flag_preflight_accel_calibration) {
+
+		*mavlink_state = MAV_STATE_CALIBRATING;
+
+	} else if (v_status.flag_system_emergency) {
+
+		*mavlink_state = MAV_STATE_EMERGENCY;
+
+	} else if (v_status.navigation_state == NAVIGATION_STATE_MANUAL
+	 || v_status.navigation_state == NAVIGATION_STATE_SEATBELT
+	 || v_status.navigation_state == NAVIGATION_STATE_LOITER
+	 || v_status.navigation_state == NAVIGATION_STATE_MISSION
+	 || v_status.navigation_state == NAVIGATION_STATE_RTL
+	 || v_status.navigation_state == NAVIGATION_STATE_LAND
+	 || v_status.navigation_state == NAVIGATION_STATE_TAKEOFF
+	 || v_status.navigation_state == NAVIGATION_STATE_AUTO_READY) {
+
+		*mavlink_state = MAV_STATE_ACTIVE;
+
+	} else if (v_status.navigation_state == NAVIGATION_STATE_STANDBY) {
+
 		*mavlink_state = MAV_STATE_STANDBY;
-		break;
 
-	case SYSTEM_STATE_GROUND_READY:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
+	} else if (v_status.navigation_state == NAVIGATION_STATE_INIT) {
 
-	case SYSTEM_STATE_MANUAL:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
+		*mavlink_state = MAV_STATE_UNINIT;
+	} else {
 
-	case SYSTEM_STATE_STABILIZED:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_AUTO:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_MISSION_ABORT:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_LANDING:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_CUTOFF:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_GROUND_ERROR:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_REBOOT:
-		*mavlink_state = MAV_STATE_POWEROFF;
-		break;
+		warnx("Unknown mavlink state");
+		*mavlink_state = MAV_STATE_CRITICAL;
 	}
 
 }
@@ -688,7 +678,7 @@ int mavlink_thread_main(int argc, char *argv[])
 			get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
+			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.navigation_state, mavlink_state);
 
 			/* switch HIL mode if required */
 			set_hil_on_off(v_status.flag_hil_enabled);

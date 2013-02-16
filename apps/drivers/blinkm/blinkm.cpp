@@ -554,26 +554,27 @@ BlinkM::led()
 						led_blink = LED_BLINK;
 
 						/* handle 4th led - flightmode indicator */
-						switch((int)vehicle_status_raw.flight_mode) {
-							case VEHICLE_FLIGHT_MODE_MANUAL:
-								led_color_4 = LED_AMBER;
-								break;
-
-							case VEHICLE_FLIGHT_MODE_STAB:
-								led_color_4 = LED_YELLOW;
-								break;
-
-							case VEHICLE_FLIGHT_MODE_HOLD:
-								led_color_4 = LED_BLUE;
-								break;
-
-							case VEHICLE_FLIGHT_MODE_AUTO:
-								led_color_4 = LED_GREEN;
-								break;
-						}
+#warning fix this
+//						switch((int)vehicle_status_raw.flight_mode) {
+//							case VEHICLE_FLIGHT_MODE_MANUAL:
+//								led_color_4 = LED_AMBER;
+//								break;
+//
+//							case VEHICLE_FLIGHT_MODE_STAB:
+//								led_color_4 = LED_YELLOW;
+//								break;
+//
+//							case VEHICLE_FLIGHT_MODE_HOLD:
+//								led_color_4 = LED_BLUE;
+//								break;
+//
+//							case VEHICLE_FLIGHT_MODE_AUTO:
+//								led_color_4 = LED_GREEN;
+//								break;
+//						}
 
 						if(new_data_vehicle_gps_position || no_data_vehicle_gps_position < 3) {
-							/* handling used sat´s */
+							/* handling used satï¿½s */
 							if(num_of_used_sats >= 7) {
 								led_color_1 = LED_OFF;
 								led_color_2 = LED_OFF;

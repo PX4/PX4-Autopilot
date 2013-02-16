@@ -195,13 +195,11 @@ private:
 		int rc_map_yaw;
 		int rc_map_throttle;
 
-		int rc_map_manual_override_sw;
-		int rc_map_auto_mode_sw;
+		int rc_map_mode_sw;
+		int rc_map_return_sw;
+		int rc_map_mission_sw;
 
-		int rc_map_manual_mode_sw;
-		int rc_map_sas_mode_sw;
-		int rc_map_rtl_sw;
-		int rc_map_offboard_ctrl_mode_sw;
+//		int rc_map_offboard_ctrl_mode_sw;
 
 		int rc_map_flaps;
 
@@ -241,13 +239,11 @@ private:
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
 
-		param_t rc_map_manual_override_sw;
-		param_t rc_map_auto_mode_sw;
+		param_t rc_map_mode_sw;
+		param_t rc_map_return_sw;
+		param_t rc_map_mission_sw;
 
-		param_t rc_map_manual_mode_sw;
-		param_t rc_map_sas_mode_sw;
-		param_t rc_map_rtl_sw;
-		param_t rc_map_offboard_ctrl_mode_sw;
+//		param_t rc_map_offboard_ctrl_mode_sw;
 
 		param_t rc_map_flaps;
 
@@ -436,16 +432,15 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 
 	/* mandatory mode switches, mapped to channel 5 and 6 per default */
-	_parameter_handles.rc_map_manual_override_sw = param_find("RC_MAP_OVER_SW");
-	_parameter_handles.rc_map_auto_mode_sw = param_find("RC_MAP_MODE_SW");
+	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_OVER_SW");
+	_parameter_handles.rc_map_return_sw = param_find("RC_MAP_RETURN_SW");
 
 	_parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
 
 	/* optional mode switches, not mapped per default */
-	_parameter_handles.rc_map_manual_mode_sw = param_find("RC_MAP_MAN_SW");
-	_parameter_handles.rc_map_sas_mode_sw = param_find("RC_MAP_SAS_SW");
-	_parameter_handles.rc_map_rtl_sw = param_find("RC_MAP_RTL_SW");
-	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
+	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSION_SW");
+
+//	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
 
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -579,33 +574,25 @@ Sensors::parameters_update()
 		warnx("Failed getting throttle chan index");
 	}
 
-	if (param_get(_parameter_handles.rc_map_manual_override_sw, &(_parameters.rc_map_manual_override_sw)) != OK) {
-		warnx("Failed getting override sw chan index");
+	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
+		warnx("Failed getting mode sw chan index");
 	}
 
-	if (param_get(_parameter_handles.rc_map_auto_mode_sw, &(_parameters.rc_map_auto_mode_sw)) != OK) {
-		warnx("Failed getting auto mode sw chan index");
+	if (param_get(_parameter_handles.rc_map_return_sw, &(_parameters.rc_map_return_sw)) != OK) {
+		warnx("Failed getting return sw chan index");
+	}
+
+	if (param_get(_parameter_handles.rc_map_mission_sw, &(_parameters.rc_map_mission_sw)) != OK) {
+		warnx("Failed getting mission sw chan index");
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
 		warnx("Failed getting flaps chan index");
 	}
 
-	if (param_get(_parameter_handles.rc_map_manual_mode_sw, &(_parameters.rc_map_manual_mode_sw)) != OK) {
-		warnx("Failed getting manual mode sw chan index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_rtl_sw, &(_parameters.rc_map_rtl_sw)) != OK) {
-		warnx("Failed getting rtl sw chan index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_sas_mode_sw, &(_parameters.rc_map_sas_mode_sw)) != OK) {
-		warnx("Failed getting sas mode sw chan index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_offboard_ctrl_mode_sw, &(_parameters.rc_map_offboard_ctrl_mode_sw)) != OK) {
-		warnx("Failed getting offboard control mode sw chan index");
-	}
+//	if (param_get(_parameter_handles.rc_map_offboard_ctrl_mode_sw, &(_parameters.rc_map_offboard_ctrl_mode_sw)) != OK) {
+//		warnx("Failed getting offboard control mode sw chan index");
+//	}
 
 	if (param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1)) != OK) {
 		warnx("Failed getting mode aux 1 index");
@@ -649,15 +636,13 @@ Sensors::parameters_update()
 	_rc.function[PITCH] = _parameters.rc_map_pitch - 1;
 	_rc.function[YAW] = _parameters.rc_map_yaw - 1;
 
-	_rc.function[OVERRIDE] = _parameters.rc_map_manual_override_sw - 1;
-	_rc.function[AUTO_MODE] = _parameters.rc_map_auto_mode_sw - 1;
+	_rc.function[MODE] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
+	_rc.function[MISSION] = _parameters.rc_map_mission_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
 
-	_rc.function[MANUAL_MODE] = _parameters.rc_map_manual_mode_sw - 1;
-	_rc.function[RTL] = _parameters.rc_map_rtl_sw - 1;
-	_rc.function[SAS_MODE] = _parameters.rc_map_sas_mode_sw - 1;
-	_rc.function[OFFBOARD_MODE] = _parameters.rc_map_offboard_ctrl_mode_sw - 1;
+//	_rc.function[OFFBOARD_MODE] = _parameters.rc_map_offboard_ctrl_mode_sw - 1;
 
 	_rc.function[AUX_1] = _parameters.rc_map_aux1 - 1;
 	_rc.function[AUX_2] = _parameters.rc_map_aux2 - 1;
@@ -1122,10 +1107,10 @@ Sensors::ppm_poll()
 		manual_control.yaw = NAN;
 		manual_control.throttle = NAN;
 
-		manual_control.manual_mode_switch = NAN;
-		manual_control.manual_sas_switch = NAN;
-		manual_control.return_to_launch_switch = NAN;
-		manual_control.auto_offboard_input_switch = NAN;
+		manual_control.mode_switch = NAN;
+		manual_control.return_switch = NAN;
+		manual_control.mission_switch = NAN;
+//		manual_control.auto_offboard_input_switch = NAN;
 
 		manual_control.flaps = NAN;
 		manual_control.aux1 = NAN;
@@ -1211,11 +1196,14 @@ Sensors::ppm_poll()
 			manual_control.yaw *= _parameters.rc_scale_yaw;
 		}
 
-		/* override switch input */
-		manual_control.manual_override_switch = limit_minus_one_to_one(_rc.chan[_rc.function[OVERRIDE]].scaled);
-
 		/* mode switch input */
-		manual_control.auto_mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[AUTO_MODE]].scaled);
+		manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
+
+		/* land switch input */
+		manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
+
+		/* land switch input */
+		manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
 
 		/* flaps */
 		if (_rc.function[FLAPS] >= 0) {
@@ -1227,21 +1215,17 @@ Sensors::ppm_poll()
 			}
 		}
 
-		if (_rc.function[MANUAL_MODE] >= 0) {
-			manual_control.manual_mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MANUAL_MODE]].scaled);
+		if (_rc.function[MODE] >= 0) {
+			manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
 		}
 
-		if (_rc.function[SAS_MODE] >= 0) {
-			manual_control.manual_sas_switch = limit_minus_one_to_one(_rc.chan[_rc.function[SAS_MODE]].scaled);
+		if (_rc.function[MISSION] >= 0) {
+			manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
 		}
 
-		if (_rc.function[RTL] >= 0) {
-			manual_control.return_to_launch_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RTL]].scaled);
-		}
-
-		if (_rc.function[OFFBOARD_MODE] >= 0) {
-			manual_control.auto_offboard_input_switch = limit_minus_one_to_one(_rc.chan[_rc.function[OFFBOARD_MODE]].scaled);
-		}
+//		if (_rc.function[OFFBOARD_MODE] >= 0) {
+//			manual_control.auto_offboard_input_switch = limit_minus_one_to_one(_rc.chan[_rc.function[OFFBOARD_MODE]].scaled);
+//		}
 
 		/* aux functions, only assign if valid mapping is present */
 		if (_rc.function[AUX_1] >= 0) {

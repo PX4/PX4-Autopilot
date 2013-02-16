@@ -296,60 +296,60 @@ get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct
 		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
-	switch (v_status->state_machine) {
-	case SYSTEM_STATE_PREFLIGHT:
-		if (v_status->flag_preflight_gyro_calibration ||
-		    v_status->flag_preflight_mag_calibration ||
-		    v_status->flag_preflight_accel_calibration) {
-			*mavlink_state = MAV_STATE_CALIBRATING;
-		} else {
-			*mavlink_state = MAV_STATE_UNINIT;
-		}
-		break;
-
-	case SYSTEM_STATE_STANDBY:
-		*mavlink_state = MAV_STATE_STANDBY;
-		break;
-
-	case SYSTEM_STATE_GROUND_READY:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_MANUAL:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-		break;
-
-	case SYSTEM_STATE_STABILIZED:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
-		break;
-
-	case SYSTEM_STATE_AUTO:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
-		break;
-
-	case SYSTEM_STATE_MISSION_ABORT:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_LANDING:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_CUTOFF:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_GROUND_ERROR:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_REBOOT:
-		*mavlink_state = MAV_STATE_POWEROFF;
-		break;
-	}
+//	switch (v_status->state_machine) {
+//	case SYSTEM_STATE_PREFLIGHT:
+//		if (v_status->flag_preflight_gyro_calibration ||
+//		    v_status->flag_preflight_mag_calibration ||
+//		    v_status->flag_preflight_accel_calibration) {
+//			*mavlink_state = MAV_STATE_CALIBRATING;
+//		} else {
+//			*mavlink_state = MAV_STATE_UNINIT;
+//		}
+//		break;
+//
+//	case SYSTEM_STATE_STANDBY:
+//		*mavlink_state = MAV_STATE_STANDBY;
+//		break;
+//
+//	case SYSTEM_STATE_GROUND_READY:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		break;
+//
+//	case SYSTEM_STATE_MANUAL:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+//		break;
+//
+//	case SYSTEM_STATE_STABILIZED:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+//		break;
+//
+//	case SYSTEM_STATE_AUTO:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+//		break;
+//
+//	case SYSTEM_STATE_MISSION_ABORT:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_EMCY_LANDING:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_EMCY_CUTOFF:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_GROUND_ERROR:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_REBOOT:
+//		*mavlink_state = MAV_STATE_POWEROFF;
+//		break;
+//	}
 
 }
 
@@ -434,7 +434,7 @@ int mavlink_thread_main(int argc, char *argv[])
 			get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
+			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.navigation_state, mavlink_state);
 
 			/* send status (values already copied in the section above) */
 			mavlink_msg_sys_status_send(chan,

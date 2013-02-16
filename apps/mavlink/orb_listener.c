@@ -275,7 +275,7 @@ l_vehicle_status(struct listener *l)
 				   mavlink_system.type,
 				   MAV_AUTOPILOT_PX4,
 				   mavlink_mode,
-				   v_status.state_machine,
+				   v_status.navigation_state,
 				   mavlink_state);
 }
 

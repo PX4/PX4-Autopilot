@@ -59,21 +59,30 @@
  */
 
 /* State Machine */
-typedef enum
-{
-	SYSTEM_STATE_PREFLIGHT = 0,
-	SYSTEM_STATE_STANDBY = 1,
-	SYSTEM_STATE_GROUND_READY = 2,
-	SYSTEM_STATE_MANUAL = 3,
-	SYSTEM_STATE_STABILIZED = 4,
-	SYSTEM_STATE_AUTO = 5,
-	SYSTEM_STATE_MISSION_ABORT = 6,
-	SYSTEM_STATE_EMCY_LANDING = 7,
-	SYSTEM_STATE_EMCY_CUTOFF = 8,
-	SYSTEM_STATE_GROUND_ERROR = 9,
-	SYSTEM_STATE_REBOOT= 10,
+typedef enum {
+	NAVIGATION_STATE_INIT = 0,
+	NAVIGATION_STATE_STANDBY,
+	NAVIGATION_STATE_MANUAL,
+	NAVIGATION_STATE_SEATBELT,
+	NAVIGATION_STATE_LOITER,
+	NAVIGATION_STATE_AUTO_READY,
+	NAVIGATION_STATE_MISSION,
+	NAVIGATION_STATE_RTL,
+	NAVIGATION_STATE_TAKEOFF,
+	NAVIGATION_STATE_LAND,
+	NAVIGATION_STATE_GROUND_ERROR,
+	NAVIGATION_STATE_REBOOT
+} navigation_state_t;
 
-} commander_state_machine_t;
+typedef enum {
+	ARMING_STATE_INIT = 0,
+	ARMING_STATE_STANDBY,
+	ARMING_STATE_ARMED,
+	ARMING_STATE_MISSION_ABORT,
+	ARMING_STATE_ERROR,
+	ARMING_STATE_REBOOT,
+	ARMING_STATE_IN_AIR_RESTORE
+} arming_state_t;
 
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
@@ -86,25 +95,25 @@ enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1
 }; /**< Same as MAV_MODE_FLAG of MAVLink 1.0 protocol */
 
-enum VEHICLE_FLIGHT_MODE {
-	VEHICLE_FLIGHT_MODE_MANUAL = 0,		/**< direct manual control, exact mode determined by VEHICLE_MANUAL_CONTROL_MODE */
-	VEHICLE_FLIGHT_MODE_STAB,		/**< attitude or rate stabilization plus velocity or position stabilization */
-	VEHICLE_FLIGHT_MODE_HOLD,		/**< hold current position (hover or loiter around position when switched) */
-	VEHICLE_FLIGHT_MODE_AUTO		/**< attitude or rate stabilization plus absolute position control and waypoints */
-};
-
-enum VEHICLE_MANUAL_CONTROL_MODE {
-	VEHICLE_MANUAL_CONTROL_MODE_DIRECT = 0,	/**< no attitude control, direct stick input mixing (only fixed wing) */
-	VEHICLE_MANUAL_CONTROL_MODE_RATES,	/**< body rates control mode */
-	VEHICLE_MANUAL_CONTROL_MODE_SAS		/**< stability augmented system (SAS) mode */
-};
-
-enum VEHICLE_MANUAL_SAS_MODE {
-	VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS = 0,	/**< roll, pitch and yaw absolute */
-	VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_RATE,	/**< roll and pitch absolute, yaw rate */
-	VEHICLE_MANUAL_SAS_MODE_SIMPLE,				/**< simple mode (includes altitude hold) */
-	VEHICLE_MANUAL_SAS_MODE_ALTITUDE			/**< altitude hold */
-};
+//enum VEHICLE_FLIGHT_MODE {
+//	VEHICLE_FLIGHT_MODE_MANUAL = 0,		/**< direct manual control, exact mode determined by VEHICLE_MANUAL_CONTROL_MODE */
+//	VEHICLE_FLIGHT_MODE_STAB,		/**< attitude or rate stabilization plus velocity or position stabilization */
+//	VEHICLE_FLIGHT_MODE_HOLD,		/**< hold current position (hover or loiter around position when switched) */
+//	VEHICLE_FLIGHT_MODE_AUTO		/**< attitude or rate stabilization plus absolute position control and waypoints */
+//};
+//
+//enum VEHICLE_MANUAL_CONTROL_MODE {
+//	VEHICLE_MANUAL_CONTROL_MODE_DIRECT = 0,	/**< no attitude control, direct stick input mixing (only fixed wing) */
+//	VEHICLE_MANUAL_CONTROL_MODE_RATES,	/**< body rates control mode */
+//	VEHICLE_MANUAL_CONTROL_MODE_SAS		/**< stability augmented system (SAS) mode */
+//};
+//
+//enum VEHICLE_MANUAL_SAS_MODE {
+//	VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS = 0,	/**< roll, pitch and yaw absolute */
+//	VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_RATE,	/**< roll and pitch absolute, yaw rate */
+//	VEHICLE_MANUAL_SAS_MODE_SIMPLE,				/**< simple mode (includes altitude hold) */
+//	VEHICLE_MANUAL_SAS_MODE_ALTITUDE			/**< altitude hold */
+//};
 
 /**
  * Should match 1:1 MAVLink's MAV_TYPE ENUM
@@ -134,7 +143,7 @@ enum VEHICLE_TYPE {
 enum VEHICLE_BATTERY_WARNING {
     VEHICLE_BATTERY_WARNING_NONE = 0,    /**< no battery low voltage warning active */
     VEHICLE_BATTERY_WARNING_WARNING,        /**< warning of low voltage 1. stage */
-    VEHICLE_BATTERY_WARNING_ALERT            /**< aleting of low voltage 2. stage */
+    VEHICLE_BATTERY_WARNING_ALERT            /**< alerting of low voltage 2. stage */
 };
 
 
@@ -150,17 +159,17 @@ struct vehicle_status_s
 	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 	uint64_t failsave_lowlevel_start_time;		/**< time when the lowlevel failsafe flag was set */
-	//uint64_t failsave_highlevel_begin; TO BE COMPLETED
+//	uint64_t failsave_highlevel_begin; TO BE COMPLETED
 
-	commander_state_machine_t state_machine;	/**< current flight state, main state machine */
-	enum VEHICLE_FLIGHT_MODE flight_mode;		/**< current flight mode, as defined by mode switch */
-	enum VEHICLE_MANUAL_CONTROL_MODE manual_control_mode;	/**< current attitude control mode, as defined by VEHICLE_ATTITUDE_MODE enum */
-	enum VEHICLE_MANUAL_SAS_MODE	manual_sas_mode;	/**< current stabilization mode */
+	navigation_state_t navigation_state;	/**< current navigation state */
+	arming_state_t arming_state;			/**< current arming state */
+
 	int32_t system_type;				/**< system type, inspired by MAVLinks VEHICLE_TYPE enum */
 
 	/* system flags - these represent the state predicates */
 
 	bool flag_system_armed;				/**< true is motors / actuators are armed */
+	bool flag_system_emergency;
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
 	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
 	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */
@@ -169,6 +178,9 @@ struct vehicle_status_s
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
 	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
+
+	bool flag_land_requested;				/**< true if land requested */
+	bool flag_mission_activated;			/**< true if in mission mode */
 
 	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
 	bool flag_preflight_mag_calibration;			/**< true if mag calibration is requested */
@@ -185,7 +197,7 @@ struct vehicle_status_s
 	uint64_t offboard_control_signal_lost_interval;	/**< interval in microseconds without an offboard control message */
 
 	bool failsave_lowlevel;				/**< Set to true if low-level failsafe mode is enabled */
-	//bool failsave_highlevel;
+	bool failsave_highlevel;
 
 	/* see SYS_STATUS mavlink message for the following */
 	uint32_t onboard_control_sensors_present;

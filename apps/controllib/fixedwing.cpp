@@ -39,6 +39,7 @@
 
 #include "fixedwing.hpp"
 
+
 namespace control
 {
 
@@ -294,7 +295,7 @@ void BlockMultiModeBacksideAutopilot::update()
 		_actuators.control[i] = 0.0f;
 
 	// only update guidance in auto mode
-	if (_status.state_machine == SYSTEM_STATE_AUTO) {
+	if (_status.navigation_state == NAVIGATION_STATE_MISSION) {
 		// update guidance
 		_guide.update(_pos, _att, _posCmd, _lastPosCmd);
 	}
@@ -304,8 +305,8 @@ void BlockMultiModeBacksideAutopilot::update()
 	// the setpoint should update to loitering around this position
 
 	// handle autopilot modes
-	if (_status.state_machine == SYSTEM_STATE_AUTO ||
-		_status.state_machine == SYSTEM_STATE_STABILIZED) {
+	if (_status.navigation_state == NAVIGATION_STATE_MISSION ||
+		_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
 		// update guidance
 		_guide.update(_pos, _att, _posCmd, _lastPosCmd);
@@ -340,25 +341,25 @@ void BlockMultiModeBacksideAutopilot::update()
 		}
 
 
-	} else if (_status.state_machine == SYSTEM_STATE_MANUAL) {
+	} else if (_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
-		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
-
+//		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+#warning fix the different manual modes
 			_actuators.control[CH_AIL] = _manual.roll;
 			_actuators.control[CH_ELV] = _manual.pitch;
 			_actuators.control[CH_RDR] = _manual.yaw;
 			_actuators.control[CH_THR] = _manual.throttle;
 
-		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
-
-			_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
-			_att.rollspeed, _att.pitchspeed, _att.yawspeed);
-
-			_actuators.control[CH_AIL] = _stabilization.getAileron();
-			_actuators.control[CH_ELV] = - _stabilization.getElevator();
-			_actuators.control[CH_RDR] = _stabilization.getRudder();
-			_actuators.control[CH_THR] = _manual.throttle;
-		}
+//		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
+//
+//			_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
+//			_att.rollspeed, _att.pitchspeed, _att.yawspeed);
+//
+//			_actuators.control[CH_AIL] = _stabilization.getAileron();
+//			_actuators.control[CH_ELV] = - _stabilization.getElevator();
+//			_actuators.control[CH_RDR] = _stabilization.getRudder();
+//			_actuators.control[CH_THR] = _manual.throttle;
+//		}
 	}
 
 	// update all publications

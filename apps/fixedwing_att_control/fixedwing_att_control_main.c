@@ -185,87 +185,88 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 
 		/* control */
 
-		if (vstatus.state_machine == SYSTEM_STATE_AUTO ||
-		    vstatus.state_machine == SYSTEM_STATE_STABILIZED) {
-			/* attitude control */
-			fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
-
-			/* angular rate control */
-			fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
-
-			/* pass through throttle */
-			actuators.control[3] = att_sp.thrust;
-
-			/* set flaps to zero */
-			actuators.control[4] = 0.0f;
-
-		} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
-			if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
-
-				/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-				if (vstatus.rc_signal_lost) {
-
-					/* put plane into loiter */
-					att_sp.roll_body = 0.3f;
-					att_sp.pitch_body = 0.0f;
-
-					/* limit throttle to 60 % of last value if sane */
-					if (isfinite(manual_sp.throttle) &&
-					    (manual_sp.throttle >= 0.0f) &&
-					    (manual_sp.throttle <= 1.0f)) {
-						att_sp.thrust = 0.6f * manual_sp.throttle;
-
-					} else {
-						att_sp.thrust = 0.0f;
-					}
-
-					att_sp.yaw_body = 0;
-
-					// XXX disable yaw control, loiter
-
-				} else {
-
-					att_sp.roll_body = manual_sp.roll;
-					att_sp.pitch_body = manual_sp.pitch;
-					att_sp.yaw_body = 0;
-					att_sp.thrust = manual_sp.throttle;
-				}
-
-				att_sp.timestamp = hrt_absolute_time();
-
-				/* attitude control */
-				fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
-
-				/* angular rate control */
-				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
-
-				/* pass through throttle */
-				actuators.control[3] = att_sp.thrust;
-
-				/* pass through flaps */
-				if (isfinite(manual_sp.flaps)) {
-					actuators.control[4] = manual_sp.flaps;
-
-				} else {
-					actuators.control[4] = 0.0f;
-				}
-
-			} else if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
-				/* directly pass through values */
-				actuators.control[0] = manual_sp.roll;
-				/* positive pitch means negative actuator -> pull up */
-				actuators.control[1] = manual_sp.pitch;
-				actuators.control[2] = manual_sp.yaw;
-				actuators.control[3] = manual_sp.throttle;
-
-				if (isfinite(manual_sp.flaps)) {
-					actuators.control[4] = manual_sp.flaps;
-
-				} else {
-					actuators.control[4] = 0.0f;
-				}
-			}
-		}
+#warning fix this
+//		if (vstatus.state_machine == SYSTEM_STATE_AUTO ||
+//		    vstatus.state_machine == SYSTEM_STATE_STABILIZED) {
+//			/* attitude control */
+//			fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
+//
+//			/* angular rate control */
+//			fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
+//
+//			/* pass through throttle */
+//			actuators.control[3] = att_sp.thrust;
+//
+//			/* set flaps to zero */
+//			actuators.control[4] = 0.0f;
+//
+//		} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
+//			if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
+//
+//				/* if the RC signal is lost, try to stay level and go slowly back down to ground */
+//				if (vstatus.rc_signal_lost) {
+//
+//					/* put plane into loiter */
+//					att_sp.roll_body = 0.3f;
+//					att_sp.pitch_body = 0.0f;
+//
+//					/* limit throttle to 60 % of last value if sane */
+//					if (isfinite(manual_sp.throttle) &&
+//					    (manual_sp.throttle >= 0.0f) &&
+//					    (manual_sp.throttle <= 1.0f)) {
+//						att_sp.thrust = 0.6f * manual_sp.throttle;
+//
+//					} else {
+//						att_sp.thrust = 0.0f;
+//					}
+//
+//					att_sp.yaw_body = 0;
+//
+//					// XXX disable yaw control, loiter
+//
+//				} else {
+//
+//					att_sp.roll_body = manual_sp.roll;
+//					att_sp.pitch_body = manual_sp.pitch;
+//					att_sp.yaw_body = 0;
+//					att_sp.thrust = manual_sp.throttle;
+//				}
+//
+//				att_sp.timestamp = hrt_absolute_time();
+//
+//				/* attitude control */
+//				fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
+//
+//				/* angular rate control */
+//				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
+//
+//				/* pass through throttle */
+//				actuators.control[3] = att_sp.thrust;
+//
+//				/* pass through flaps */
+//				if (isfinite(manual_sp.flaps)) {
+//					actuators.control[4] = manual_sp.flaps;
+//
+//				} else {
+//					actuators.control[4] = 0.0f;
+//				}
+//
+//			} else if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+//				/* directly pass through values */
+//				actuators.control[0] = manual_sp.roll;
+//				/* positive pitch means negative actuator -> pull up */
+//				actuators.control[1] = manual_sp.pitch;
+//				actuators.control[2] = manual_sp.yaw;
+//				actuators.control[3] = manual_sp.throttle;
+//
+//				if (isfinite(manual_sp.flaps)) {
+//					actuators.control[4] = manual_sp.flaps;
+//
+//				} else {
+//					actuators.control[4] = 0.0f;
+//				}
+//			}
+//		}
 
 		/* publish rates */
 		orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
