@@ -31,26 +31,12 @@
 #
 ############################################################################
 
-APPNAME		 = attitude_estimator_ekf
+#
+# GPS driver
+#
+
+APPNAME		 = gps
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
-
-CSRCS		 = attitude_estimator_ekf_main.c \
-		   attitude_estimator_ekf_params.c \
-		   codegen/eye.c \
-		   codegen/attitudeKalmanfilter.c \
-		   codegen/mrdivide.c \
-		   codegen/rdivide.c \
-		   codegen/attitudeKalmanfilter_initialize.c \
-		   codegen/attitudeKalmanfilter_terminate.c \
-		   codegen/rt_nonfinite.c \
-		   codegen/rtGetInf.c \
-		   codegen/rtGetNaN.c \
-		   codegen/norm.c \
-		   codegen/cross.c 
-
-
-# XXX this is *horribly* broken
-INCLUDES	+= $(TOPDIR)/../mavlink/include/mavlink
 
 include $(APPDIR)/mk/app.mk

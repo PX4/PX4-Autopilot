@@ -1678,12 +1678,13 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
 
 			/* check for first, long-term and valid GPS lock -> set home position */
-			float hdop_m = gps_position.eph / 100.0f;
-			float vdop_m = gps_position.epv / 100.0f;
+			float hdop_m = gps_position.eph_m;
+			float vdop_m = gps_position.epv_m;
 
 			/* check if gps fix is ok */
 			// XXX magic number
-			float dop_threshold_m = 2.0f;
+			float hdop_threshold_m = 4.0f;
+			float vdop_threshold_m = 8.0f;
 
 			/*
 			 * If horizontal dilution of precision (hdop / eph)
@@ -1694,10 +1695,12 @@ int commander_thread_main(int argc, char *argv[])
 			 * the system is currently not armed, set home
 			 * position to the current position.
 			 */
-			if (gps_position.fix_type == GPS_FIX_TYPE_3D && (hdop_m < dop_threshold_m)
-				&& (vdop_m < dop_threshold_m)
+
+			if (gps_position.fix_type == GPS_FIX_TYPE_3D
+				&& (hdop_m < hdop_threshold_m)
+				&& (vdop_m < vdop_threshold_m)
 				&& !home_position_set
-				&& (hrt_absolute_time() - gps_position.timestamp < 2000000)
+				&& (hrt_absolute_time() - gps_position.timestamp_position < 2000000)
 				&& !current_status.flag_system_armed) {
 				warnx("setting home position");
 
@@ -1706,11 +1709,11 @@ int commander_thread_main(int argc, char *argv[])
 				home.lon = gps_position.lon;
 				home.alt = gps_position.alt;
 
-				home.eph = gps_position.eph;
-				home.epv = gps_position.epv;
+				home.eph_m = gps_position.eph_m;
+				home.epv_m = gps_position.epv_m;
 
-				home.s_variance = gps_position.s_variance;
-				home.p_variance = gps_position.p_variance;
+				home.s_variance_m_s = gps_position.s_variance_m_s;
+				home.p_variance_m = gps_position.p_variance_m;
 
 				/* announce new home position */
 				if (home_pub > 0) {

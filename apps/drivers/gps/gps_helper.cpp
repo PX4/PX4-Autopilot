@@ -1,6 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,64 +33,60 @@
  *
  ****************************************************************************/
 
-/**
- * @file test_adc.c
- * Test for the analog to digital converter.
- */
-
-#include <nuttx/config.h>
-#include <nuttx/arch.h>
-
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <termios.h>
 #include <errno.h>
-#include <debug.h>
-
-#include <nuttx/spi.h>
-
-#include "tests.h"
-
-#include <nuttx/analog/adc.h>
-#include <drivers/drv_adc.h>
 #include <systemlib/err.h>
+#include "gps_helper.h"
 
-int test_adc(int argc, char *argv[])
+/* @file gps_helper.cpp */
+
+int
+GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 {
-	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
+	/* process baud rate */
+	int speed;
 
-	if (fd < 0) {
-		warnx("ERROR: can't open ADC device");
-		return 1;
+	switch (baud) {
+	case 9600:   speed = B9600;   break;
+
+	case 19200:  speed = B19200;  break;
+
+	case 38400:  speed = B38400;  break;
+
+	case 57600:  speed = B57600;  break;
+
+	case 115200: speed = B115200; break;
+
+	warnx("try baudrate: %d\n", speed);
+
+	default:
+		warnx("ERROR: Unsupported baudrate: %d\n", baud);
+		return -EINVAL;
 	}
+	struct termios uart_config;
+	int termios_state;
 
-	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum of eight channels */
-		struct adc_msg_s data[8];
-		/* read all channels available */
-		ssize_t count = read(fd, data, sizeof(data));
+	/* fill the struct for the new configuration */
+	tcgetattr(fd, &uart_config);
 
-		if (count < 0)
-			goto errout_with_dev;
+	/* clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+	/* no parity, one stop bit */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
-		unsigned channels = count / sizeof(data[0]);
-
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
-
-		printf("\n");
-		usleep(150000);
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+		warnx("ERROR setting config: %d (cfsetispeed)\n", termios_state);
+		return -1;
 	}
-
-	warnx("\t ADC test successful.\n");
-
-errout_with_dev:
-
-	if (fd != 0) close(fd);
-
-	return OK;
+	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+		warnx("ERROR setting config: %d (cfsetospeed)\n", termios_state);
+		return -1;
+	}
+	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
+		warnx("ERROR setting baudrate (tcsetattr)\n");
+		return -1;
+	}
+	/* XXX if resetting the parser here, ensure it does exist (check for null pointer) */
+	return 0;
 }
