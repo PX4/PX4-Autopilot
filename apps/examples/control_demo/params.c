@@ -52,9 +52,9 @@ PARAM_DEFINE_FLOAT(FWB_XT2YAW_MAX, 1.57f);  // cross-track to yaw angle limit 90
 PARAM_DEFINE_FLOAT(FWB_XT2YAW, 0.005f);     // cross-track to yaw angle gain
 
 // speed command
-PARAM_DEFINE_FLOAT(FWB_V_MIN, 20.0f);       // minimum commanded velocity
-PARAM_DEFINE_FLOAT(FWB_V_CMD, 22.0f);       // commanded velocity
-PARAM_DEFINE_FLOAT(FWB_V_MAX, 24.0f);       // maximum commanded velocity
+PARAM_DEFINE_FLOAT(FWB_V_MIN, 10.0f);       // minimum commanded velocity
+PARAM_DEFINE_FLOAT(FWB_V_CMD, 12.0f);       // commanded velocity
+PARAM_DEFINE_FLOAT(FWB_V_MAX, 16.0f);       // maximum commanded velocity
 
 // trim
 PARAM_DEFINE_FLOAT(FWB_TRIM_AIL, 0.0f);     // trim aileron, normalized (-1,1)
