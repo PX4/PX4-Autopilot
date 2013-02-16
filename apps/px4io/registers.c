@@ -457,7 +457,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			 * Intercept corrected for best results @ 12V.
 			 */
 			unsigned counts = adc_measure(ADC_VBATT);
-			unsigned mV = (4150 + (counts * 46)) / 10;
+			unsigned mV = (4150 + (counts * 46)) / 10 - 200;
 			unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
 
 			r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
