@@ -2346,6 +2346,13 @@ static void stm32_suspend(struct stm32_usbdev_s *priv)
 {
   uint16_t regval;
   
+  /* Notify the class driver of the suspend event */
+
+  if (priv->driver)
+    {
+      CLASS_SUSPEND(priv->driver, &priv->usbdev);
+    }
+
   /* Disable ESOF polling, disable the SUSP interrupt, and enable the WKUP
    * interrupt.  Clear any pending WKUP interrupt.
    */
@@ -2411,6 +2418,13 @@ static void stm32_initresume(struct stm32_usbdev_s *priv)
   /* Reset FSUSP bit and enable normal interrupt handling */
 
   stm32_putreg(STM32_CNTR_SETUP, STM32_USB_CNTR);
+
+  /* Notify the class driver of the resume event */
+
+  if (priv->driver)
+    {
+      CLASS_RESUME(priv->driver, &priv->usbdev);
+    }
 } 
 
 /****************************************************************************

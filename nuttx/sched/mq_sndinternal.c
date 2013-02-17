@@ -124,7 +124,7 @@ int mq_verifysend(mqd_t mqdes, const void *msg, size_t msglen, int prio)
       return ERROR;
     }
 
-  if (msglen < 0 || msglen > (size_t)mqdes->msgq->maxmsgsize)
+  if (msglen > (size_t)mqdes->msgq->maxmsgsize)
     {
       set_errno(EMSGSIZE);
       return ERROR;

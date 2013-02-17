@@ -106,8 +106,8 @@ static int fat_checkfsinfo(struct fat_mountpt_s *fs)
           FSI_GETSTRUCTSIG(fs->fs_buffer) == 0x61417272 &&
           FSI_GETTRAILSIG(fs->fs_buffer) == BOOT_SIGNATURE32)
         {
-          fs->fs_fsinextfree  = FSI_GETFREECOUNT(fs->fs_buffer);
-          fs->fs_fsifreecount = FSI_GETNXTFREE(fs->fs_buffer);
+          fs->fs_fsifreecount = FSI_GETFREECOUNT(fs->fs_buffer);
+          fs->fs_fsinextfree  = FSI_GETNXTFREE(fs->fs_buffer);
           return OK;
         }
     }

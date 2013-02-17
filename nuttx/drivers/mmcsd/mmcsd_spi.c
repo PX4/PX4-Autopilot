@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/mmcsd/mmcsd_spi.c
  *
- *   Copyright (C) 2008-2010, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2010, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -409,10 +409,14 @@ static uint32_t mmcsd_sendcmd(FAR struct mmcsd_slot_s *slot,
   int ret;
   int i;
 
-  /* Wait until the card is not busy */
+  /* Wait until the card is not busy.  Some SD cards will not enter the IDLE
+   * state until CMD0 is sent for the first time, switching the card  to SPI
+   * mode.  Having a pull-up resistor on MISO may avoid this problem, but
+   * this check makes it work also without the pull-up.
+   */
 
   ret = mmcsd_waitready(slot);
-  if (ret != OK)
+  if (ret != OK && cmd != &g_cmd0)
     {
       return ret;
     }

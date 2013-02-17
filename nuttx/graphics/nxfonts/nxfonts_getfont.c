@@ -242,7 +242,7 @@ static FAR const struct nx_fontpackage_s *g_fontpackages[] =
  * Name: nxf_getglyphset
  *
  * Description:
- *   Return information about the font set containtined he selected
+ *   Return information about the font set contained in the selected
  *   character encoding.
  *
  * Input Parameters:

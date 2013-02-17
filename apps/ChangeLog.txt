@@ -434,7 +434,7 @@
 	  tests will now use a relative path to the program and expect the binfmt/
 	  logic to find the absolute path to the program using the PATH variable.
 
-6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.25 2013-02-01 Gregory Nutt <gnutt@nuttx.org>
 
 	* Makefiles: Removed dependency of distclean on clean in most top-level
 	  files.  It makes sense for 'leaf' Makefiles to have this dependency,
@@ -461,7 +461,7 @@
 	  the USB HID keyboard report data.
 	* apps/examples/wlan: Remove non-functional example.
 	* apps/examples/ostest/vfork.c:  Added a test of vfork().
-	* apps/exampes/posix_spawn: Added a test of poxis_spawn().
+	* apps/exampes/posix_spawn: Added a test of posix_spawn().
 	* apps/examples/ostest:  Extend signal handler test to catch
 	  death-of-child signals (SIGCHLD).
 	* apps/examples/ostest/waitpid.c:  Add a test for waitpid(), waitid(),
@@ -478,7 +478,7 @@
 	* apps/include/builtin.h:  Some of the content of
 	  apps/include/apps.h moved to include/nuttx/binfmt/builtin.h.
 	  apps/include/apps.h renamed builtin.h
-	* apps/builtin/exec_builtins.c:  Move utility builtin
+	* apps/builtin/exec_builtins.c:  Move builtin
 	  utility functions from apps/builtin/exec_builtins.c to
 	  binfmt/libbuiltin/libbuiltin_utils.c
 	* apps/nshlib/nsh_mountcmds.c:  The block driver/source
@@ -492,3 +492,18 @@
 	  the entrypoint.  Should be ftpd_main (from Yan T.)
 	* apps/netutils/telnetd/telnetd_driver: Was stuck in a loop if
 	  recv[from]() ever returned a value <= 0.
+	* apps/examples/nettest and poll:  Complete Kconfig files.
+	* apps/examples/ostest/waitpid.c:  Need to use WEXITSTATUS()
+	  to decode the correct exit status.
+	* apps/system/usbmonitor:  A daemon that can be used to monitor USB
+	  trace outpout.
+	* apps/nshlib/nsh_usbdev.c, nsh_consolemain.c, nsh_session.c, nsh_script.c:
+	  Add support for a login script.  The init.d/rcS script will be executed
+	  once when NSH starts; the .nshrc script will be executed for each session:
+	  Once for serial, once for each USB connection, once for each Telnet
+	  session.
+	* apps/system/readline: Correct readline() return value.  Was not
+	  any returning special values when end-of-file or read errors
+	  occur (it would return an empty string which is not very useful).
+
+6.26 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>

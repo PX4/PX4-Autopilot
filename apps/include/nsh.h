@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/include/nsh.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,31 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+/* If a USB device is selected for the NSH console then we need to handle some
+ * special start-up conditions.
+ */
+
+#undef HAVE_USB_CONSOLE
+#if defined(CONFIG_USBDEV)
+
+/* Check for a PL2303 serial console.  Use console device "/dev/console". */
+
+#  if defined(CONFIG_PL2303) && defined(CONFIG_PL2303_CONSOLE)
+#    define HAVE_USB_CONSOLE 1
+
+/* Check for a CDC/ACM serial console.  Use console device "/dev/console". */
+
+#  elif defined(CONFIG_CDCACM) && defined(CONFIG_CDCACM_CONSOLE)
+#    define HAVE_USB_CONSOLE 1
+
+/* Check for a generic USB console.  In this case, the USB console device
+ * must be provided in CONFIG_NSH_CONDEV.
+ */
+
+#  elif defined(CONFIG_NSH_USBCONSOLE)
+#    define HAVE_USB_CONSOLE 1
+#  endif
+#endif
 
 #if CONFIG_RR_INTERVAL > 0
 # define SCHED_NSH SCHED_RR
@@ -58,7 +83,8 @@
 
 #ifdef __cplusplus
 #define EXTERN extern "C"
-extern "C" {
+extern "C" 
+{
 #else
 #define EXTERN extern
 #endif
@@ -83,35 +109,54 @@ extern "C" {
  *
  ****************************************************************************/
 
-EXTERN void nsh_initialize(void);
+void nsh_initialize(void);
 
 /****************************************************************************
  * Name: nsh_consolemain
  *
  * Description:
  *   This interfaces maybe to called or started with task_start to start a
- *   single an NSH instance that operates on stdin and stdout (/dev/console).
- *   This function does not return.
+ *   single an NSH instance that operates on stdin and stdout.  This
+ *   function does not return.
  *
+ *   This function handles generic /dev/console character devices, or 
+ *   special USB console devices.  The USB console requires some special
+ *   operations to handle the cases where the session is lost when the
+ *   USB device is unplugged and restarted when the USB device is plugged
+ *   in again.
+  *
  * Input Parameters:
- *   Standard task start-up arguements.  These are not used.  argc may be
+ *   Standard task start-up arguments.  These are not used.  argc may be
  *   zero and argv may be NULL.
  *
  * Returned Values:
  *   This function does not normally return.  exit() is usually called to
  *   terminate the NSH session.  This function will return in the event of
- *   an error.  In that case, a nonzero value is returned (1).
+ *   an error.  In that case, a nonzero value is returned (EXIT_FAILURE=1).
  *  
  ****************************************************************************/
 
-EXTERN int nsh_consolemain(int argc, char *argv[]);
+int nsh_consolemain(int argc, char *argv[]);
 
-/* nsh_telnetstart() starts a telnet daemon that will allow multiple
- * NSH connections via telnet.  This function returns immediately after
- * the daemon has been started.
- */
+/****************************************************************************
+ * Name: nsh_telnetstart
+ *
+ * Description:
+ *   nsh_telnetstart() starts the Telnet daemon that will allow multiple
+ *   NSH connections via Telnet.  This function returns immediately after
+ *   the daemon has been started.
+ *
+ * Input Parameters:
+ *   None.  All of the properties of the Telnet daemon are controlled by
+ *   NuttX configuration setting.
+ *
+ * Returned Values:
+ *   The task ID of the Telnet daemon was successfully started.  A negated
+ *   errno value will be returned on failure.
+ *  
+ ****************************************************************************/
 
-EXTERN int nsh_telnetstart(void);
+int nsh_telnetstart(void);
 
 #undef EXTERN
 #ifdef __cplusplus

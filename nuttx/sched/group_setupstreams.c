@@ -1,7 +1,7 @@
 /****************************************************************************
- * eched/env_dupenv.c
+ * group_setupstreams.c
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2010-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,17 +39,24 @@
 
 #include <nuttx/config.h>
 
-#ifndef CONFIG_DISABLE_ENVIRON
-
-#include <sys/types.h>
 #include <sched.h>
+#include <fcntl.h>
 
-#include <nuttx/kmalloc.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/net/net.h>
+#include <nuttx/lib.h>
 
-#include "os_internal.h"
+#include "group_internal.h"
+
+/* Make sure that there are file or socket descriptors in the system and
+ * that some number of streams have been configured.
+ */
+
+#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+#if CONFIG_NFILE_STREAMS > 0
 
 /****************************************************************************
- * Private Data
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
@@ -57,56 +64,36 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: dupenv
+ * Name: group_setupstreams
  *
  * Description:
- *   Copy the internal environment structure of a task.  This is the action
- *   that is performed when a new task is created: The new task has a private,
- *   exact duplicate of the parent task's environment.
- *
- * Parameters:
- *   None
- *
- * Return Value:
- *   A pointer to a newly allocated copy of the specified TCB's environment
- *   structure with reference count equal to one.
- *
- * Assumptions:
- *   Not called from an interrupt handler.
+ *   Setup streams data structures that may be used for standard C buffered
+ *   I/O with underlying socket or file desciptors
  *
  ****************************************************************************/
 
-FAR environ_t *dupenv(FAR _TCB *ptcb)
+int group_setupstreams(FAR _TCB *tcb)
 {
-   environ_t *envp = NULL;
+  DEBUGASSERT(tcb && tcb->group);
 
-  /* Pre-emption must be disabled throughout the following because the
-   * environment may be shared.
+  /* Initialize file streams for the task group */
+
+  lib_streaminit(&tcb->group->tg_streamlist);
+
+  /* fdopen to get the stdin, stdout and stderr streams. The following logic
+   * depends on the fact that the library layer will allocate FILEs in order.
+   *
+   * fd = 0 is stdin  (read-only)
+   * fd = 1 is stdout (write-only, append)
+   * fd = 2 is stderr (write-only, append)
    */
 
-  sched_lock();
+  (void)fs_fdopen(0, O_RDONLY,       tcb);
+  (void)fs_fdopen(1, O_WROK|O_CREAT, tcb);
+  (void)fs_fdopen(2, O_WROK|O_CREAT, tcb);
 
-  /* Does the parent task have an environment? */
-
-  if (ptcb->envp)
-    {
-      /* Yes..The parent task has an environment, duplicate it */
-
-      size_t envlen =  ptcb->envp->ev_alloc
-      envp          = (environ_t*)kmalloc(SIZEOF_ENVIRON_T( envlen ));
-      if (envp)
-        {
-          envp->ev_crefs = 1;
-          envp->ev_alloc = envlen;
-          memcmp( envp->ev_env, ptcb->envp->ev_env, envlen );
-        }
-    }
-
-  sched_unlock();
-  return envp;
+  return OK;
 }
 
-#endif /* CONFIG_DISABLE_ENVIRON */
-
-
-
+#endif /* CONFIG_NFILE_STREAMS > 0 */
+#endif /* CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0*/

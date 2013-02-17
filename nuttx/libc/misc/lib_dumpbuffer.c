@@ -51,15 +51,15 @@
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
 #  ifdef CONFIG_ARCH_LOWPUTC
-#    define message(format, arg...) lib_lowprintf(format, ##arg)
+#    define message(format, arg...) lowsyslog(format, ##arg)
 #  else
-#    define message(format, arg...) lib_rawprintf(format, ##arg)
+#    define message(format, arg...) syslog(format, ##arg)
 #  endif
 #else
 #  ifdef CONFIG_ARCH_LOWPUTC
-#    define message lib_lowprintf
+#    define message lowsyslog
 #  else
-#    define message lib_rawprintf
+#    define message syslog
 #  endif
 #endif
 

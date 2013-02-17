@@ -60,7 +60,7 @@
  */
 
 #undef  fdbg
-#define fdbg lib_rawprintf
+#define fdbg syslog
 
 /****************************************************************************
  * Private Types

@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/env_setenv.c
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,12 +83,14 @@
  *
  ****************************************************************************/
 
-int setenv(const char *name, const char *value, int overwrite)
+int setenv(FAR const char *name, FAR const char *value, int overwrite)
 {
-  FAR _TCB      *rtcb;
-  FAR environ_t *envp;
-  FAR char      *pvar;
-  int            varlen;
+  FAR _TCB *rtcb;
+  FAR struct task_group_s *group;
+  FAR char *pvar;
+  FAR char *newenvp;
+  int newsize;
+  int varlen;
   int ret = OK;
 
   /* Verify input parameter */
@@ -122,14 +124,15 @@ int setenv(const char *name, const char *value, int overwrite)
   /* Get a reference to the thread-private environ in the TCB.*/
 
   sched_lock();
-  rtcb = (FAR _TCB*)g_readytorun.head;
-  envp = rtcb->envp;
+  rtcb  = (FAR _TCB*)g_readytorun.head;
+  group = rtcb->group;
+  DEBUGASSERT(group);
 
-  /* Check if the variable alreay exists */
+  /* Check if the variable already exists */
 
-  if ( envp && (pvar = env_findvar(envp, name)) != NULL)
+  if (group->tg_envp && (pvar = env_findvar(group, name)) != NULL)
     {
-      /* It does!  Do we have permission to overwrite the existing value? */
+      /* It does! Do we have permission to overwrite the existing value? */
 
       if (!overwrite)
         {
@@ -144,7 +147,7 @@ int setenv(const char *name, const char *value, int overwrite)
        * the environment buffer; this will happen below.
        */
 
-      (void)env_removevar(envp, pvar);
+      (void)env_removevar(group, pvar);
     }
 
   /* Get the size of the new name=value string.  The +2 is for the '=' and for
@@ -155,43 +158,39 @@ int setenv(const char *name, const char *value, int overwrite)
 
   /* Then allocate or reallocate the environment buffer */
 
-  if (envp)
+  if (group->tg_envp)
     {
-      int        alloc = envp->ev_alloc;
-      environ_t *tmp   = (environ_t*)krealloc(envp, SIZEOF_ENVIRON_T(alloc + varlen));
-      if (!tmp)
+      newsize = group->tg_envsize + varlen;
+      newenvp = (FAR char *)krealloc(group->tg_envp, newsize);
+      if (!newenvp)
         {
           ret = ENOMEM;
           goto errout_with_lock;
         }
 
-      envp           = tmp;
-      envp->ev_alloc = alloc + varlen;
-      pvar           = &envp->ev_env[alloc];
+      pvar = &newenvp[group->tg_envsize];
     }
   else
     {
-      envp = (environ_t*)kmalloc(SIZEOF_ENVIRON_T(varlen));
-      if (!envp)
+      newsize = varlen;
+      newenvp = (FAR char *)kmalloc(varlen);
+      if (!newenvp)
         {
           ret = ENOMEM;
           goto errout_with_lock;
         }
 
-      envp->ev_crefs = 1;
-      envp->ev_alloc = varlen;
-      pvar           = envp->ev_env;
+      pvar = newenvp;
     }
+
+  /* Save the new buffer and size */
+
+  group->tg_envp    = newenvp;
+  group->tg_envsize = newsize;
 
   /* Now, put the new name=value string into the environment buffer */
 
   sprintf(pvar, "%s=%s", name, value);
-
-  /* Save the new environment pointer (it might have changed due to allocation or
-   * reallocation.
-   */
-
-  rtcb->envp = envp;
   sched_unlock();
   return OK;
 

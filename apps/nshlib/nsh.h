@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/nshlib/nsh.h
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -93,7 +93,9 @@
 #  elif defined(CONFIG_CDCACM) && defined(CONFIG_CDCACM_CONSOLE)
 #    define HAVE_USB_CONSOLE 1
 
-/* Check for other USB console.  USB console device must be provided in CONFIG_NSH_CONDEV */
+/* Check for a generic USB console.  In this case, the USB console device
+ * must be provided in CONFIG_NSH_CONDEV.
+ */
 
 #  elif defined(CONFIG_NSH_USBCONSOLE)
 #    define HAVE_USB_CONSOLE 1
@@ -106,8 +108,8 @@
 
 /* The default USB console device minor number is 0*/
 
-#  ifndef CONFIG_NSH_UBSDEV_MINOR
-#    define CONFIG_NSH_UBSDEV_MINOR 0
+#  ifndef CONFIG_NSH_USBDEV_MINOR
+#    define CONFIG_NSH_USBDEV_MINOR 0
 #  endif
 
 /* The default console device is always /dev/console */
@@ -118,43 +120,53 @@
 
 /* USB trace settings */
 
-#ifdef CONFIG_NSH_USBDEV_TRACEINIT
-#  define TRACE_INIT_BITS       (TRACE_INIT_BIT)
-#else
-#  define TRACE_INIT_BITS       (0)
-#endif
+#  ifndef CONFIG_USBDEV_TRACE
+#    undef CONFIG_NSH_USBDEV_TRACE
+#  endif 
 
-#define TRACE_ERROR_BITS        (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
+#  ifdef CONFIG_NSH_USBDEV_TRACE
+#    ifdef CONFIG_NSH_USBDEV_TRACEINIT
+#      define TRACE_INIT_BITS       (TRACE_INIT_BIT)
+#    else
+#      define TRACE_INIT_BITS       (0)
+#    endif
 
-#ifdef CONFIG_NSH_USBDEV_TRACECLASS
-#  define TRACE_CLASS_BITS      (TRACE_CLASS_BIT|TRACE_CLASSAPI_BIT|TRACE_CLASSSTATE_BIT)
-#else
-#  define TRACE_CLASS_BITS      (0)
-#endif
+#    define TRACE_ERROR_BITS        (TRACE_DEVERROR_BIT|TRACE_CLSERROR_BIT)
 
-#ifdef CONFIG_NSH_USBDEV_TRACETRANSFERS
-#  define TRACE_TRANSFER_BITS   (TRACE_OUTREQQUEUED_BIT|TRACE_INREQQUEUED_BIT|TRACE_READ_BIT|\
-                                 TRACE_WRITE_BIT|TRACE_COMPLETE_BIT)
-#else
-#  define TRACE_TRANSFER_BITS   (0)
-#endif
+#    ifdef CONFIG_NSH_USBDEV_TRACECLASS
+#      define TRACE_CLASS_BITS      (TRACE_CLASS_BIT|TRACE_CLASSAPI_BIT|\
+                                     TRACE_CLASSSTATE_BIT)
+#    else
+#      define TRACE_CLASS_BITS      (0)
+#    endif
 
-#ifdef CONFIG_NSH_USBDEV_TRACECONTROLLER
-#  define TRACE_CONTROLLER_BITS (TRACE_EP_BIT|TRACE_DEV_BIT)
-#else
-#  define TRACE_CONTROLLER_BITS (0)
-#endif
+#    ifdef CONFIG_NSH_USBDEV_TRACETRANSFERS
+#      define TRACE_TRANSFER_BITS   (TRACE_OUTREQQUEUED_BIT|TRACE_INREQQUEUED_BIT|\
+                                     TRACE_READ_BIT|TRACE_WRITE_BIT|\
+                                     TRACE_COMPLETE_BIT)
+#    else
+#      define TRACE_TRANSFER_BITS   (0)
+#    endif
 
-#ifdef CONFIG_NSH_USBDEV_TRACEINTERRUPTS
-#  define TRACE_INTERRUPT_BITS  (TRACE_INTENTRY_BIT|TRACE_INTDECODE_BIT|TRACE_INTEXIT_BIT)
-#else
-#  define TRACE_INTERRUPT_BITS  (0)
-#endif
+#    ifdef CONFIG_NSH_USBDEV_TRACECONTROLLER
+#      define TRACE_CONTROLLER_BITS (TRACE_EP_BIT|TRACE_DEV_BIT)
+#    else
+#      define TRACE_CONTROLLER_BITS (0)
+#    endif
 
-#define TRACE_BITSET            (TRACE_INIT_BITS|TRACE_ERROR_BITS|TRACE_CLASS_BITS|\
-                                 TRACE_TRANSFER_BITS|TRACE_CONTROLLER_BITS|TRACE_INTERRUPT_BITS)
+#    ifdef CONFIG_NSH_USBDEV_TRACEINTERRUPTS
+#      define TRACE_INTERRUPT_BITS  (TRACE_INTENTRY_BIT|TRACE_INTDECODE_BIT|\
+                                     TRACE_INTEXIT_BIT)
+#    else
+#      define TRACE_INTERRUPT_BITS  (0)
+#    endif
 
-#endif
+#    define TRACE_BITSET            (TRACE_INIT_BITS|TRACE_ERROR_BITS|\
+                                     TRACE_CLASS_BITS|TRACE_TRANSFER_BITS|\
+                                     TRACE_CONTROLLER_BITS|TRACE_INTERRUPT_BITS)
+
+#  endif /* CONFIG_NSH_USBDEV_TRACE */
+#endif /* HAVE_USB_CONSOLE */
 
 /* If Telnet is selected for the NSH console, then we must configure
  * the resources used by the Telnet daemon and by the Telnet clients.
@@ -232,40 +244,59 @@
 #    error "Mountpoint support is disabled"
 #    undef CONFIG_NSH_ROMFSETC
 #  endif
+
 #  if CONFIG_NFILE_DESCRIPTORS < 4
 #    error "Not enough file descriptors"
 #    undef CONFIG_NSH_ROMFSETC
 #  endif
+
 #  ifndef CONFIG_FS_ROMFS
 #    error "ROMFS support not enabled"
 #    undef CONFIG_NSH_ROMFSETC
 #  endif
+
 #  ifndef CONFIG_NSH_ROMFSMOUNTPT
 #    define CONFIG_NSH_ROMFSMOUNTPT "/etc"
 #  endif
-#  ifdef CONFIG_NSH_INIT
-#    ifndef CONFIG_NSH_INITSCRIPT
-#      define CONFIG_NSH_INITSCRIPT "init.d/rcS"
-#    endif
+
+#  ifndef CONFIG_NSH_INITSCRIPT
+#    define CONFIG_NSH_INITSCRIPT "init.d/rcS"
 #  endif
+
 #  undef NSH_INITPATH
 #  define NSH_INITPATH CONFIG_NSH_ROMFSMOUNTPT "/" CONFIG_NSH_INITSCRIPT
+
+#  ifdef CONFIG_NSH_ROMFSRC
+#    ifndef CONFIG_NSH_RCSCRIPT
+#      define CONFIG_NSH_RCSCRIPT ".nshrc"
+#    endif
+
+#    undef NSH_RCPATH
+#    define NSH_RCPATH CONFIG_NSH_ROMFSMOUNTPT "/" CONFIG_NSH_RCSCRIPT
+#  endif
+
 #  ifndef CONFIG_NSH_ROMFSDEVNO
 #    define CONFIG_NSH_ROMFSDEVNO 0
 #  endif
+
 #  ifndef CONFIG_NSH_ROMFSSECTSIZE
 #    define CONFIG_NSH_ROMFSSECTSIZE 64
 #  endif
+
 #  define NSECTORS(b)        (((b)+CONFIG_NSH_ROMFSSECTSIZE-1)/CONFIG_NSH_ROMFSSECTSIZE)
 #  define STR_RAMDEVNO(m)    #m
 #  define MKMOUNT_DEVNAME(m) "/dev/ram" STR_RAMDEVNO(m)
 #  define MOUNT_DEVNAME      MKMOUNT_DEVNAME(CONFIG_NSH_ROMFSDEVNO)
+
 #else
+
+#  undef CONFIG_NSH_ROMFSRC
 #  undef CONFIG_NSH_ROMFSMOUNTPT
-#  undef CONFIG_NSH_INIT
 #  undef CONFIG_NSH_INITSCRIPT
+#  undef CONFIG_NSH_RCSCRIPT
 #  undef CONFIG_NSH_ROMFSDEVNO
 #  undef CONFIG_NSH_ROMFSSECTSIZE
+
 #endif
 
 /* This is the maximum number of arguments that will be accepted for a
@@ -474,6 +505,12 @@ int nsh_usbconsole(void);
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0 && !defined(CONFIG_NSH_DISABLESCRIPT)
 int nsh_script(FAR struct nsh_vtbl_s *vtbl, const char *cmd, const char *path);
+#ifdef CONFIG_NSH_ROMFSETC
+int nsh_initscript(FAR struct nsh_vtbl_s *vtbl);
+#ifdef CONFIG_NSH_ROMFSRC
+int nsh_loginscript(FAR struct nsh_vtbl_s *vtbl);
+#endif
+#endif
 #endif
 
 /* Architecture-specific initialization */
@@ -484,8 +521,10 @@ int nsh_archinitialize(void);
 #  define nsh_archinitialize() (-ENOSYS)
 #endif
 
-/* Message handler */
+/* Basic session and message handling */
 
+struct console_stdio_s;
+int nsh_session(FAR struct console_stdio_s *pstate);
 int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline);
 
 /* Application interface */
@@ -515,10 +554,8 @@ void nsh_dumpbuffer(FAR struct nsh_vtbl_s *vtbl, const char *msg,
 
 /* USB debug support */
 
-#if defined(CONFIG_USBDEV_TRACE) && defined(HAVE_USB_CONSOLE)
+#ifdef CONFIG_NSH_USBDEV_TRACE
 void nsh_usbtrace(void);
-#else
-#  define nsh_usbtrace()
 #endif
 
 /* Shell command handlers */

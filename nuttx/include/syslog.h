@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched/sched_releasefiles.c
+ * include/syslog.h
  *
- *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,82 +33,62 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_SYSLOG_H
+#define __INCLUDE_SYSLOG_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <sched.h>
-#include <nuttx/fs/fs.h>
-#include <nuttx/net/net.h>
-#include <nuttx/lib.h>
-
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+#include <stdint.h>
+#include <stdarg.h>
 
 /****************************************************************************
- * Private Functions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
+ * Public Type Declarations
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_releasefiles
- *
- * Description:
- *   Release file resources attached to a TCB.  This file may be called
- *   multiple times as a task exists.  It will be called as early as possible
- *   to support proper closing of complex drivers that may need to wait
- *   on external events.
- *
- * Parameters:
- *   tcb - tcb of the new task.
- *
- * Return Value:
- *   None
- *
- * Assumptions:
- *
+ * Public Variables
  ****************************************************************************/
 
-int sched_releasefiles(_TCB *tcb)
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#if defined(__cplusplus)
+extern "C"
 {
-  if (tcb)
-    {
-#if CONFIG_NFILE_DESCRIPTORS > 0
-      /* Free the file descriptor list */
+#endif
 
-      if (tcb->filelist)
-        {
-          files_releaselist(tcb->filelist);
-          tcb->filelist = NULL;
-        }
+/* These low-level debug APIs are provided by the NuttX library.  These are
+ * normally accessed via the macros in debug.h.  If the cross-compiler's
+ * C pre-processor supports a variable number of macro arguments, then those
+ * macros below will map all debug statements to one or the other of the
+ * following.
+ */
 
-#if CONFIG_NFILE_STREAMS > 0
-      /* Free the stream list */
+int syslog(FAR const char *format, ...);
+int vsyslog(const char *src, va_list ap);
 
-      if (tcb->streams)
-        {
-          lib_releaselist(tcb->streams);
-          tcb->streams = NULL;
-        }
-#endif /* CONFIG_NFILE_STREAMS */
-#endif /* CONFIG_NFILE_DESCRIPTORS */
+#ifdef CONFIG_ARCH_LOWPUTC
+int lowsyslog(FAR const char *format, ...);
+int lowvsyslog(const char *src, va_list ap);
+#endif
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-      /* Free the file descriptor list */
+/* Enable or disable syslog output */
 
-      if (tcb->sockets)
-        {
-          net_releaselist(tcb->sockets);
-          tcb->sockets = NULL;
-        }
-#endif /* CONFIG_NSOCKET_DESCRIPTORS */
-    }
+#ifdef CONFIG_SYSLOG_ENABLE
+void syslog_enable(bool enable);
+#endif
 
-  return OK;
+#if defined(__cplusplus)
 }
+#endif
 
-#endif /* CONFIG_NFILE_DESCRIPTORS || CONFIG_NSOCKET_DESCRIPTORS */
+#endif /* __INCLUDE_SYSLOG_H */
