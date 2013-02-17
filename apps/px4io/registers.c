@@ -290,11 +290,20 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_ARMING:
 
 			value &= PX4IO_P_SETUP_ARMING_VALID;
+
+			/*
+			 * Update arming state - disarm if no longer OK.
+			 * This builds on the requirement that the FMU driver
+			 * asks about the FMU arming state on initialization,
+			 * so that an in-air reset of FMU can not lead to a
+			 * lockup of the IO arming state.
+			 */
+			if ((r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) && !(value & PX4IO_P_SETUP_ARMING_ARM_OK)) {
+				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
+			}
+
 			r_setup_arming = value;
 
-			/* update arming state - disarm if no longer OK */
-			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) && !(value & PX4IO_P_SETUP_ARMING_ARM_OK))
-				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
 			break;
 
 		case PX4IO_P_SETUP_PWM_RATES:
