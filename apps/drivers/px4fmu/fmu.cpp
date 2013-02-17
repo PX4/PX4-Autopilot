@@ -83,6 +83,7 @@ public:
 	~PX4FMU();
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
+	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
 
 	virtual int	init();
 
@@ -619,6 +620,30 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	unlock();
 
 	return ret;
+}
+
+/*
+  this implements PWM output via a write() method, for compatibility
+  with px4io
+ */
+ssize_t
+PX4FMU::write(file *filp, const char *buffer, size_t len)
+{
+	unsigned count = len / 2;
+	uint16_t values[4];
+
+	if (count > 4) {
+		// we only have 4 PWM outputs on the FMU
+		count = 4;
+	}
+
+	// allow for misaligned values
+	memcpy(values, buffer, count*2);
+
+	for (uint8_t i=0; i<count; i++) {
+		up_pwm_servo_set(i, values[i]);
+	}
+	return count * 2;
 }
 
 void
