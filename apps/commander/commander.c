@@ -1467,8 +1467,6 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_system_id, &(current_status.system_id));
 				param_get(_param_component_id, &(current_status.component_id));
 
-			} else {
-				warnx("ARMED, rejecting sys type change\n");
 			}
 		}
 
