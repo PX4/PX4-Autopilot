@@ -53,6 +53,28 @@
 #include "state_machine_helper.h"
 
 
+void update_state_machine(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
+{
+	/* check arming first */
+	if (current_status->flag_system_armed && current_status->flag_system_emergency) {
+		do_arming_state_update(status_pub, current_status, mavlink_fd, ARMING_STATE_MISSION_ABORT);
+	} else if(current_status->flag_system_armed && !current_status->flag_system_emergency) {
+		do_arming_state_update(status_pub, current_status, mavlink_fd, ARMING_STATE_ARMED);
+	} else if(!current_status->flag_system_armed && current_status->flag_system_emergency) {
+		do_arming_state_update(status_pub, current_status, mavlink_fd, ARMING_STATE_ERROR);
+	} else if(!current_status->flag_system_armed && !current_status->flag_system_emergency) {
+		do_arming_state_update(status_pub, current_status, mavlink_fd, ARMING_STATE_STANDBY);
+	} else if (current_status->flag_system_sensors_ok) {
+		do_arming_state_update(status_pub, current_status, mavlink_fd, ARMING_STATE_STANDBY);
+	} else if (!current_status->flag_system_sensors_ok && current_status->flag_system_armed) {
+		do_arming_state_update(status_pub, current_status, mavlink_fd, ARMING_STATE_MISSION_ABORT);
+	} else if (!current_status->flag_system_sensors_ok && !current_status->flag_system_armed) {
+		do_arming_state_update(status_pub, current_status, mavlink_fd, ARMING_STATE_ERROR);
+	}
+
+	/* now determine the navigation state */
+}
+
 /**
  * Transition from one navigation state to another
  */

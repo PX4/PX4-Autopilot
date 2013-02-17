@@ -170,6 +170,8 @@ struct vehicle_status_s
 
 	bool flag_system_armed;				/**< true is motors / actuators are armed */
 	bool flag_system_emergency;
+	bool flag_system_sensors_ok;
+
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
 	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
 	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */

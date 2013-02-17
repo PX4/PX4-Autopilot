@@ -438,7 +438,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
 
 	/* optional mode switches, not mapped per default */
-	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSION_SW");
+	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSIO_SW");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
 

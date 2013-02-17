@@ -2054,9 +2054,13 @@ int commander_thread_main(int argc, char *argv[])
 			state_changed = false;
 		}
 
+		/* make changes in state machine if needed */
+		update_state_machine(stat_pub, &current_status, mavlink_fd);
+
+
+
 		/* Store old modes to detect and act on state transitions */
 		voltage_previous = current_status.voltage_battery;
-
 		fflush(stdout);
 		counter++;
 		usleep(COMMANDER_MONITORING_INTERVAL);
