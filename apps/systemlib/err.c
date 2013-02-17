@@ -85,17 +85,17 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 
 	fprintf(stderr, "\n");
 #elif CONFIG_ARCH_LOWPUTC
-	lib_lowprintf("%s: ", getprogname());
-	lib_lowvprintf(fmt, args);
+	lowsyslog("%s: ", getprogname());
+	lowvyslog(fmt, args);
 
 	/* convenience as many parts of NuttX use negative errno */
 	if (errcode < 0)
 		errcode = -errcode;
 
 	if (errcode < NOCODE)
-		lib_lowprintf(": %s", strerror(errcode));
+		lowsyslog(": %s", strerror(errcode));
 
-	lib_lowprintf("\n");
+	lowsyslog("\n");
 #endif
 }
 

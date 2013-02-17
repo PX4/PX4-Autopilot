@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched_setupstreams.c
+ * apps/include/usbmonitor.h
  *
- *   Copyright (C) 2007-2008, 2010-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,66 +33,64 @@
  *
  ****************************************************************************/
 
+#ifndef __APPS_INCLUDE_USBMONITOR_H
+#define __APPS_INCLUDE_USBMONITOR_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <sched.h>
-#include <fcntl.h>
-
-#include <nuttx/fs/fs.h>
-#include <nuttx/net/net.h>
-#include <nuttx/lib.h>
-
-/* Make sure that there are file or socket descriptors in the system and
- * that some number of streams have been configured.
- */
-
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-#if CONFIG_NFILE_STREAMS > 0
+#ifdef CONFIG_SYSTEM_USBMONITOR
 
 /****************************************************************************
- * Private Functions
+ * Pre-Processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
+ * Public Data
  ****************************************************************************/
 
-/****************************************************************************
- * Name: sched_setupstreams
- *
- * Description:
- *   Setup streams data structures that may be used for standard C buffered
- *   I/O with underlying socket or file desciptors
- *
- ****************************************************************************/
-
-int sched_setupstreams(FAR _TCB *tcb)
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C" 
 {
-  /* Allocate file streams for the TCB */
+#else
+#define EXTERN extern
+#endif
 
-  tcb->streams = lib_alloclist();
-  if (tcb->streams)
-    {
-      /* fdopen to get the stdin, stdout and stderr streams.
-       * The following logic depends on the fact that the library
-       * layer will allocate FILEs in order.
-       *
-       * fd = 0 is stdin  (read-only)
-       * fd = 1 is stdout (write-only, append)
-       * fd = 2 is stderr (write-only, append)
-       */
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
-      (void)fs_fdopen(0, O_RDONLY,       tcb);
-      (void)fs_fdopen(1, O_WROK|O_CREAT, tcb);
-      (void)fs_fdopen(2, O_WROK|O_CREAT, tcb);
-    }
+/****************************************************************************
+ * Name: usbmon_start and usbmon_stop
+ *
+ *   Start and top the USB monitor daemon.  These are normally controlled
+ *   from the USB command line, but the ability to control these
+ *   programmatically is also helpful (for example, so that the daemon is
+ *   running before NSH starts).
+ *
+ * Input Parameters:
+ *   Standard task parameters.  These can be called or spawned.  Since the
+ *   return almost immediately, it is fine to just call the functions.  The
+ *   parameters are not used so you can pass 0 and NULL, respectivley; this
+ *   is done this way so that these functions can be NSH builtin
+ *   applications.
+ *
+ * Returned values:
+ *   Standard task return values (zero meaning success).
+ *
+ **************************************************************************/
 
-  return OK;
+int usbmonitor_start(int argc, char **argv);
+int usbmonitor_stop(int argc, char **argv);
+
+#undef EXTERN
+#ifdef __cplusplus
 }
+#endif
 
-#endif /* CONFIG_NFILE_STREAMS > 0 */
-#endif /* CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0*/
+#endif /* CONFIG_SYSTEM_USBMONITOR */
+#endif /* __APPS_INCLUDE_USBMONITOR_H */

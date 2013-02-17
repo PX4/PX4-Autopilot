@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched/sched_setupidlefiles.c
+ * libc/stdio/lib_lowsyslog.c
  *
- *   Copyright (C) 2007-2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,21 +40,44 @@
 #include <nuttx/config.h>
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sched.h>
-#include <errno.h>
 #include <debug.h>
 
-#include <nuttx/fs/fs.h>
-#include <nuttx/net/net.h>
+#include "lib_internal.h"
 
-#include "os_internal.h"
+/* This interface can only be used from within the kernel */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+#if !defined(CONFIG_NUTTX_KERNEL) || defined(__KERNEL__)
 
 /****************************************************************************
- * Private Functions
+ * Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Type Declarations
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Global Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Global Constant Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Global Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Constant Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Variables
  ****************************************************************************/
 
 /****************************************************************************
@@ -62,87 +85,46 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_setupidlefiles
- *
- * Description:
- *   Configure the idle thread's TCB.
- *
- * Parameters:
- *   tcb - tcb of the idle task.
- *
- * Return Value:
- *   None
- *
- * Assumptions:
- *
+ * Name: lowvsyslog
  ****************************************************************************/
 
-int sched_setupidlefiles(FAR _TCB *tcb)
+#if defined(CONFIG_ARCH_LOWPUTC) || defined(CONFIG_SYSLOG)
+
+int lowvsyslog(const char *fmt, va_list ap)
 {
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
-  int fd;
-#endif
+  struct lib_outstream_s stream;
 
-  /* Allocate file descriptors for the TCB */
+  /* Wrap the stdout in a stream object and let lib_vsprintf do the work. */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  tcb->filelist = files_alloclist();
-  if (!tcb->filelist)
-    {
-      return -ENOMEM;
-    }
-#endif
-
-  /* Allocate socket descriptors for the TCB */
-
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
-  tcb->sockets = net_alloclist();
-  if (!tcb->sockets)
-    {
-      return -ENOMEM;
-    }
-#endif
-
-  /* Open stdin, dup to get stdout and stderr. This should always
-   * be the first file opened and, hence, should always get file
-   * descriptor 0.
-   */
-
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
-  fd = open("/dev/console", O_RDWR);
-  if (fd == 0)
-    {
-      /* Successfully opened /dev/console as stdin (fd == 0) */
-
-      (void)file_dup2(0, 1);
-      (void)file_dup2(0, 2);
-    }
-  else
-    {
-      /* We failed to open /dev/console OR for some reason, we opened
-       * it and got some file descriptor other than 0.
-       */
-  
-      if (fd > 0)
-        {
-          slldbg("Open /dev/console fd: %d\n", fd);
-          (void)close(fd);
-        }
-      else
-        {
-          slldbg("Failed to open /dev/console: %d\n", errno);
-        }
-      return -ENFILE;
-    }
-#endif
-
-  /* Allocate file/socket streams for the TCB */
-
-#if CONFIG_NFILE_STREAMS > 0
-  return sched_setupstreams(tcb);
+#ifdef CONFIG_SYSLOG
+  lib_syslogstream((FAR struct lib_outstream_s *)&stream);
 #else
-  return OK;
+  lib_lowoutstream((FAR struct lib_outstream_s *)&stream);
 #endif
+  return lib_vsprintf((FAR struct lib_outstream_s *)&stream, fmt, ap);
 }
 
-#endif /* CONFIG_NFILE_DESCRIPTORS || CONFIG_NSOCKET_DESCRIPTORS */
+/****************************************************************************
+ * Name: lowsyslog
+ ****************************************************************************/
+
+int lowsyslog(const char *fmt, ...)
+{
+  va_list ap;
+  int     ret;
+
+#ifdef CONFIG_SYSLOG_ENABLE
+  ret = 0;
+  if (g_syslogenable)
+#endif
+    {
+      va_start(ap, fmt);
+      ret = lowvsyslog(fmt, ap);
+      va_end(ap);
+    }
+
+  return ret;
+}
+
+#endif /* CONFIG_ARCH_LOWPUTC || CONFIG_SYSLOG */
+#endif /* __KERNEL__ */

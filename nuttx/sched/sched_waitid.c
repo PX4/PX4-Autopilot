@@ -46,12 +46,43 @@
 #include <nuttx/sched.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 
 #if defined(CONFIG_SCHED_WAITPID) && defined(CONFIG_SCHED_HAVE_PARENT)
 
 /*****************************************************************************
  * Private Functions
  *****************************************************************************/
+
+/*****************************************************************************
+ * Name: exited_child
+ *
+ * Description:
+ *   Handle the case where a child exited properlay was we (apparently) lost
+ *   the detch of child signal.
+ *
+ *****************************************************************************/
+
+#ifdef CONFIG_SCHED_CHILD_STATUS
+static void exited_child(FAR _TCB *rtcb, FAR struct child_status_s *child,
+                          FAR siginfo_t *info)
+{
+  /* The child has exited. Return the saved exit status (and some fudged
+   * information.
+   */
+
+  info->si_signo           = SIGCHLD;
+  info->si_code            = CLD_EXITED;
+  info->si_value.sival_ptr = NULL;
+  info->si_pid             = child->ch_pid;
+  info->si_status          = child->ch_status;
+
+  /* Discard the child entry */
+
+  (void)group_removechild(rtcb->group, child->ch_pid);
+  group_freechild(child);
+}
+#endif
 
 /*****************************************************************************
  * Public Functions
@@ -120,9 +151,14 @@
  *
  *****************************************************************************/
 
-int waitid(idtype_t idtype, id_t id, siginfo_t *info, int options)
+int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
 {
   FAR _TCB *rtcb = (FAR _TCB *)g_readytorun.head;
+  FAR _TCB *ctcb;
+#ifdef CONFIG_SCHED_CHILD_STATUS
+  FAR struct child_status_s *child;
+  bool retains;
+#endif
   sigset_t sigset;
   int err;
   int ret;
@@ -160,7 +196,11 @@ int waitid(idtype_t idtype, id_t id, siginfo_t *info, int options)
    */
 
 #ifdef CONFIG_SCHED_CHILD_STATUS
-  if (rtcb->children == NULL)
+  /* Does this task retain child status? */
+
+  retains = ((rtcb->group->tg_flags && GROUP_FLAG_NOCLDWAIT) == 0);
+
+  if (rtcb->group->tg_children == NULL && retains)
     {
       /* There are no children */
 
@@ -169,12 +209,32 @@ int waitid(idtype_t idtype, id_t id, siginfo_t *info, int options)
     }
   else if (idtype == P_PID)
     {
-      if (task_findchild(rtcb, (pid_t)id) == NULL)
-        {
-          /* This specific pid is not a child */
+      /* Get the TCB corresponding to this PID and make sure it is our child. */
 
+      ctcb = sched_gettcb((pid_t)id);
+#ifdef HAVE_GROUP_MEMBERS
+      if (!ctcb || ctcb->group->tg_pgid != rtcb->group->tg_gid)
+#else
+      if (!ctcb || ctcb->ppid != rtcb->pid)
+#endif
+        {
           err = ECHILD;
           goto errout_with_errno;
+        }
+
+      /* Does this task retain child status? */
+
+       if (retains)
+        {
+           /* Check if this specific pid has allocated child status? */
+
+          if (group_findchild(rtcb->group, (pid_t)id) == NULL)
+            {
+              /* This specific pid is not a child */
+
+              err = ECHILD;
+              goto errout_with_errno;
+            }
         }
     }
 #else
@@ -189,8 +249,12 @@ int waitid(idtype_t idtype, id_t id, siginfo_t *info, int options)
     {
      /* Get the TCB corresponding to this PID and make sure it is our child. */
 
-      FAR _TCB *ctcb = sched_gettcb((pid_t)id);
-      if (!ctcb || ctcb->parent != rtcb->pid)
+      ctcb = sched_gettcb((pid_t)id);
+#ifdef HAVE_GROUP_MEMBERS
+      if (!ctcb || ctcb->group->tg_pgid != rtcb->group->tg_gid)
+#else
+      if (!ctcb || ctcb->ppid != rtcb->pid)
+#endif
         {
           err = ECHILD;
           goto errout_with_errno;
@@ -209,48 +273,61 @@ int waitid(idtype_t idtype, id_t id, siginfo_t *info, int options)
        * instead).
        */
 
-      DEBUGASSERT(rtcb->children);
-      if (rtcb->children == NULL)
+      DEBUGASSERT(!retains || rtcb->group->tg_children);
+      if (idtype == P_ALL)
         {
-          /* This should not happen.  I am just wasting your FLASH. */
+          /* We are waiting for any child to exit */
 
-          err = ECHILD;
-          goto errout_with_errno;
-        }
-      else if (idtype == P_PID)
-        {
-          FAR struct child_status_s *child;
-
-          /* We are waiting for a specific PID.  Get the current status
-           * of the child task.
-           */
-
-          child = task_findchild(rtcb, (pid_t)id);
-          DEBUGASSERT(child);
-          if (!child)
+          if (retains && (child = group_exitchild(rtcb->group)) != NULL)
             {
-              /* Yikes!  The child status entry just disappeared! */
+              /* A child has exited.  Apparently we missed the signal.
+               * Return the exit status and break out of the loop.
+               */
 
-              err = ECHILD;
-              goto errout_with_errno;
+              exited_child(rtcb, child, info);
+              break;
             }
+        }
 
+      /* We are waiting for a specific PID.  Does this task retain child status? */
+
+      else if (retains)
+        {
+          /* Yes ... Get the current status of the child task. */
+
+          child = group_findchild(rtcb->group, (pid_t)id);
+          DEBUGASSERT(child);
+      
           /* Did the child exit? */
 
           if ((child->ch_flags & CHILD_FLAG_EXITED) != 0)
             {
-              /* The child has exited. Return the saved exit status */
+              /* The child has exited. Return the exit status and break out
+               * of the loop.
+               */
 
-              info->si_signo           = SIGCHLD;
-              info->si_code            = CLD_EXITED;
-              info->si_value.sival_ptr = NULL;
-              info->si_pid             = (pid_t)id;
-              info->si_status          = child->ch_status;
+              exited_child(rtcb, child, info);
+              break;
+            }
+        }
+      else
+        {
+          /* We can use kill() with signal number 0 to determine if that
+           * task is still alive.
+           */
 
-              /* Discard the child entry and break out of the loop */
+          ret = kill((pid_t)id, 0);
+          if (ret < 0)
+            {
+              /* It is no longer running.  We know that the child task
+               * was running okay when we started, so we must have lost
+               * the signal.  In this case, we know that the task exit'ed,
+               * but we do not know its exit status.  It would be better
+               * to reported ECHILD than bogus status.
+               */
 
-              (void)task_removechild(rtcb, (pid_t)id);
-              task_freechild(child);
+              err = ECHILD;
+              goto errout_with_errno;
             }
         }
 #else

@@ -1,7 +1,7 @@
 /****************************************************************************
- * libc/stdio/lib_rawprintf.c
+ * apps/nshlib/nsh_script.c
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,23 +37,19 @@
  * Included Files
  ****************************************************************************/
 
-#include <stdio.h>
-#include <debug.h>
-#include "lib_internal.h"
+#include <nuttx/config.h>
+
+#include "nsh.h"
+#include "nsh_console.h"
+
+#if  CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0 && !defined(CONFIG_NSH_DISABLESCRIPT)
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Definitions
  ****************************************************************************/
 
-/* Some output destinations are only available from within the kernel */
-
-#if defined(CONFIG_NUTTX_KERNEL) && !defined(__KERNEL__)
-#  undef CONFIG_SYSLOG
-#  undef CONFIG_ARCH_LOWPUTC
-#endif
-
 /****************************************************************************
- * Private Type Declarations
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
@@ -61,23 +57,15 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Global Function Prototypes
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Global Constant Data
+ * Public Data
  ****************************************************************************/
 
 /****************************************************************************
- * Global Variables
- ****************************************************************************/
-
-/****************************************************************************
- * Private Constant Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Variables
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
@@ -85,82 +73,123 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lib_rawvprintf
+ * Name: nsh_script
+ *
+ * Description:
+ *   Execute the NSH script at path.
+ *
  ****************************************************************************/
 
-int lib_rawvprintf(const char *fmt, va_list ap)
+int nsh_script(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
+               FAR const char *path)
 {
-#if defined(CONFIG_SYSLOG)
+  char *fullpath;
+  FILE *stream;
+  char *buffer;
+  char *pret;
+  int ret = ERROR;
 
-  struct lib_outstream_s stream;
+  /* The path to the script may be relative to the current working directory */
 
-  /* Wrap the low-level output in a stream object and let lib_vsprintf
-   * do the work.
-   */
+  fullpath = nsh_getfullpath(vtbl, path);
+  if (!fullpath)
+    {
+      return ERROR;
+    }
 
-  lib_syslogstream((FAR struct lib_outstream_s *)&stream);
-  return lib_vsprintf((FAR struct lib_outstream_s *)&stream, fmt, ap);
+  /* Get a reference to the common input buffer */
 
-#elif CONFIG_NFILE_DESCRIPTORS > 0
+  buffer = nsh_linebuffer(vtbl);
+  if (buffer)
+    {
+      /* Open the file containing the script */
 
-  struct lib_rawoutstream_s rawoutstream;
+      stream = fopen(fullpath, "r");
+      if (!stream)
+        {
+          nsh_output(vtbl, g_fmtcmdfailed, cmd, "fopen", NSH_ERRNO);
+          nsh_freefullpath(fullpath);
+          return ERROR;
+        }
 
-  /* Wrap the stdout in a stream object and let lib_vsprintf
-   * do the work.
-   */
+      /* Loop, processing each command line in the script file (or
+       * until an error occurs)
+       */
 
-  lib_rawoutstream(&rawoutstream, 1);
-  return lib_vsprintf(&rawoutstream.public, fmt, ap);
+      do
+        {
+          /* Get the next line of input from the file */
 
-#elif defined(CONFIG_ARCH_LOWPUTC)
+          fflush(stdout);
+          pret = fgets(buffer, CONFIG_NSH_LINELEN, stream);
+          if (pret)
+            {
+              /* Parse process the command.  NOTE:  this is recursive...
+               * we got to cmd_sh via a call to nsh_parse.  So some
+               * considerable amount of stack may be used.
+               */
 
-  struct lib_outstream_s stream;
+              ret = nsh_parse(vtbl, buffer);
+            }
+        }
+      while (pret && ret == OK);
+      fclose(stream);
+    }
 
-  /* Wrap the low-level output in a stream object and let lib_vsprintf
-   * do the work.
-   */
-
-  lib_lowoutstream((FAR struct lib_outstream_s *)&stream);
-  return lib_vsprintf((FAR struct lib_outstream_s *)&stream, fmt, ap);
-
-#else
-  return 0;
-#endif
+  nsh_freefullpath(fullpath);
+  return ret;
 }
 
 /****************************************************************************
- * Name: lib_rawprintf
+ * Name: nsh_initscript
+ *
+ * Description:
+ *   Attempt to execute the configured initialization script.  This script
+ *   should be executed once when NSH starts.  nsh_initscript is idempotent
+ *   and may, however, be called multiple times (the script will be executed
+ *   once.
+ *
  ****************************************************************************/
 
-int lib_rawprintf(const char *fmt, ...)
+#ifdef CONFIG_NSH_ROMFSETC
+int nsh_initscript(FAR struct nsh_vtbl_s *vtbl)
 {
-  va_list ap;
-  int     ret;
+  static bool initialized;
+  bool already;
+  int ret = OK;
 
-#ifdef CONFIG_DEBUG_ENABLE
-  ret = 0;
-  if (g_dbgenable)
-#endif
+  /* Atomic test and set of the initialized flag */
+
+  sched_lock();
+  already     = initialized;
+  initialized = true;
+  sched_unlock();
+
+  /* If we have not already executed the init script, then do so now */
+
+  if (!already)
     {
-      va_start(ap, fmt);
-      ret = lib_rawvprintf(fmt, ap);
-      va_end(ap);
+      ret = nsh_script(vtbl, "init", NSH_INITPATH);
     }
 
   return ret;
 }
 
-
 /****************************************************************************
- * Name: lib_rawvdprintf
+ * Name: nsh_loginscript
+ *
+ * Description:
+ *   Attempt to execute the configured login script.  This script
+ *   should be executed when each NSH session starts.
+ *
  ****************************************************************************/
 
-int lib_rawvdprintf(int fd, const char *fmt, va_list ap)
+#ifdef CONFIG_NSH_ROMFSRC
+int nsh_loginscript(FAR struct nsh_vtbl_s *vtbl)
 {
-  /* Wrap the fd in a stream object and let lib_vsprintf
-   * do the work.
-   */
-  struct lib_rawoutstream_s rawoutstream;
-  lib_rawoutstream(&rawoutstream, fd);
-  return lib_vsprintf(&rawoutstream.public, fmt, ap);
+  return nsh_script(vtbl, "login", NSH_RCPATH);
 }
+#endif
+#endif /* CONFIG_NSH_ROMFSETC */
+
+#endif /* CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0 && !CONFIG_NSH_DISABLESCRIPT */

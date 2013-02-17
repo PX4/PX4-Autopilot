@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/env_unsetenv.c
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,61 +75,47 @@
  *
  ****************************************************************************/
 
-int unsetenv(const char *name)
+int unsetenv(FAR const char *name)
 {
-  FAR _TCB      *rtcb;
-  FAR environ_t *envp;
-  FAR char      *pvar;
+  FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
+  FAR struct task_group_s *group = rtcb->group;
+  FAR char *pvar;
+  FAR char *newenvp;
+  int newsize;
   int ret = OK;
 
-  /* Verify input parameter */
-
-  if (!name)
-    {
-      ret = EINVAL;
-      goto errout;
-    }
-
-  /* Get a reference to the thread-private environ in the TCB.*/
-
-  sched_lock();
-  rtcb = (FAR _TCB*)g_readytorun.head;
-  envp = rtcb->envp;
+  DEBUGASSERT(name && group);
 
   /* Check if the variable exists */
 
-  if ( envp && (pvar = env_findvar(envp, name)) != NULL)
+  sched_lock();
+  if (group && (pvar = env_findvar(group, name)) != NULL)
     {
-      int        alloc;
-      environ_t *tmp;
-
       /* It does!  Remove the name=value pair from the environment. */
 
-      (void)env_removevar(envp, pvar);
+      (void)env_removevar(group, pvar);
 
       /* Reallocate the new environment buffer */
 
-      alloc = envp->ev_alloc;
-      tmp   = (environ_t*)krealloc(envp, SIZEOF_ENVIRON_T(alloc));
-      if (!tmp)
+      newsize = group->tg_envsize;
+      newenvp = (FAR char *)krealloc(group->tg_envp, newsize);
+      if (!newenvp)
         {
-          ret = ENOMEM;
-          goto errout_with_lock;
+          set_errno(ENOMEM);
+          ret = ERROR;
         }
+      else
+        {
+          /* Save the new environment pointer (it might have changed due to
+           * reallocation.
+           */
 
-      /* Save the new environment pointer (it might have changed due to reallocation. */
-
-      rtcb->envp = tmp;
+          group->tg_envp = newenvp;
+        }
     }
 
   sched_unlock();
-  return OK;
-
-errout_with_lock:
-  sched_unlock();
-errout:
-  errno = ret;
-  return ERROR;
+  return ret;
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */

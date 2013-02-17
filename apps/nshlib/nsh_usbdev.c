@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/nshlib/nsh_usbdev.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,15 +55,20 @@
 #endif
 
 #include "nsh.h"
-
-#ifdef CONFIG_USBDEV
+#include "nsh_console.h"
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
+/* Output USB trace data to the console device using printf() unless (1)
+ * debug is enabled, then we want to keep the trace output in sync with the
+ * debug output by using syslog()we are using a USB console.  In that case,
+ * we don't want the trace output on the USB console; let's try sending it
+ * a SYSLOG device (hopefully one is set up!)
+ */
 
-#if defined(CONFIG_DEBUG) || defined(CONFIG_NSH_USBCONSOLE)
-#  define trmessage lib_lowprintf
+#if defined(CONFIG_DEBUG) || defined(HAVE_USB_CONSOLE)
+#  define trmessage syslog
 #else
 #  define trmessage printf
 #endif
@@ -92,7 +97,15 @@
  * Name: nsh_tracecallback
  ****************************************************************************/
 
-#ifdef CONFIG_USBDEV_TRACE
+/****************************************************************************
+ * Name: nsh_tracecallback
+ *
+ * Description:
+ *   This is part of the USB trace logic
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_USBDEV_TRACE
 static int nsh_tracecallback(struct usbtrace_s *trace, void *arg)
 {
   usbtrace_trprintf((trprintf_t)trmessage, trace->event, trace->value);
@@ -101,44 +114,102 @@ static int nsh_tracecallback(struct usbtrace_s *trace, void *arg)
 #endif
 
 /****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: nsh_usbconsole
+ * Name: nsh_configstdio
+ *
+ * Description:
+ *   Configure standard I/O
+ *
  ****************************************************************************/
 
 #ifdef HAVE_USB_CONSOLE
-int nsh_usbconsole(void)
+static void nsh_configstdio(int fd)
+{
+  /* Make sure the stdin, stdout, and stderr are closed */
+
+  (void)fclose(stdin);
+  (void)fclose(stdout);
+  (void)fclose(stderr);
+
+  /* Dup the fd to create standard fd 0-2 */
+
+  (void)dup2(fd, 0);
+  (void)dup2(fd, 1);
+  (void)dup2(fd, 2);
+
+  /* fdopen to get the stdin, stdout and stderr streams. The following logic depends
+   * on the fact that the library layer will allocate FILEs in order.  And since
+   * we closed stdin, stdout, and stderr above, that is what we should get.
+   *
+   * fd = 0 is stdin  (read-only)
+   * fd = 1 is stdout (write-only, append)
+   * fd = 2 is stderr (write-only, append)
+   */
+
+  (void)fdopen(0, "r");
+  (void)fdopen(1, "a");
+  (void)fdopen(2, "a");
+}
+#endif
+
+/****************************************************************************
+ * Name: nsh_nullstdio
+ *
+ * Description:
+ *   Use /dev/null for standard I/O
+ *
+ ****************************************************************************/
+
+#ifdef HAVE_USB_CONSOLE
+static int nsh_nullstdio(void)
+{
+  int fd;
+
+  /* Open /dev/null for read/write access */
+
+  fd = open("/dev/null", O_RDWR);
+  if (fd >= 0)
+    {
+      /* Configure standard I/O to use /dev/null */
+
+      nsh_configstdio(fd);
+
+      /* We can close the original file descriptor now (unless it was one of
+       * 0-2)
+       */
+
+      if (fd > 2)
+       {
+          close(fd);
+       }
+
+      return OK;
+    }
+
+  return fd;
+}
+#endif
+
+/****************************************************************************
+ * Name: nsh_waitusbready
+ *
+ * Description:
+ *   Wait for the USB console device to be ready
+ *
+ ****************************************************************************/
+
+#ifdef HAVE_USB_CONSOLE
+static int nsh_waitusbready(void)
 {
   char inch;
   ssize_t nbytes;
   int nlc;
   int fd;
-  int ret;
-
-  /* Initialize any USB tracing options that were requested */
-
-#ifdef CONFIG_USBDEV_TRACE
-  usbtrace_enable(TRACE_BITSET);
-#endif
 
   /* Don't start the NSH console until the console device is ready.  Chances
    * are, we get here with no functional console.  The USB console will not
    * be available until the device is connected to the host and until the
    * host-side application opens the connection.
    */
-
-  /* Initialize the USB serial driver */
-
-#if defined(CONFIG_PL2303) || defined(CONFIG_CDCACM)
-#ifdef CONFIG_CDCACM
-  ret = cdcacm_initialize(CONFIG_NSH_UBSDEV_MINOR, NULL);
-#else
-  ret = usbdev_serialinitialize(CONFIG_NSH_UBSDEV_MINOR);
-#endif
-  DEBUGASSERT(ret == OK);
-#endif
 
   /* Open the USB serial device for read/write access */
 
@@ -193,17 +264,9 @@ int nsh_usbconsole(void)
     }
   while (nlc < 3);
 
-  /* Make sure the stdin, stdout, and stderr are closed */
+  /* Configure standard I/O */
 
-  (void)fclose(stdin);
-  (void)fclose(stdout);
-  (void)fclose(stderr);
-
-  /* Dup the fd to create standard fd 0-2 */
-
-  (void)dup2(fd, 0);
-  (void)dup2(fd, 1);
-  (void)dup2(fd, 2);
+  nsh_configstdio(fd);
 
   /* We can close the original file descriptor now (unless it was one of 0-2) */
 
@@ -212,32 +275,117 @@ int nsh_usbconsole(void)
       close(fd);
     }
 
-  /* fdopen to get the stdin, stdout and stderr streams. The following logic depends
-   * on the fact that the library layer will allocate FILEs in order.  And since
-   * we closed stdin, stdout, and stderr above, that is what we should get.
-   *
-   * fd = 0 is stdin  (read-only)
-   * fd = 1 is stdout (write-only, append)
-   * fd = 2 is stderr (write-only, append)
-   */
-
-  (void)fdopen(0, "r");
-  (void)fdopen(1, "a");
-  (void)fdopen(2, "a");
   return OK;
 }
+#endif
 
-#endif /* HAVE_USB_CONSOLE */
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nsh_consolemain (USB console version)
+ *
+ * Description:
+ *   This interfaces maybe to called or started with task_start to start a
+ *   single an NSH instance that operates on stdin and stdout.  This
+ *   function does not return.
+ *
+ *   This function handles generic /dev/console character devices, or 
+ *   special USB console devices.  The USB console requires some special
+ *   operations to handle the cases where the session is lost when the
+ *   USB device is unplugged and restarted when the USB device is plugged
+ *   in again.
+  *
+ * Input Parameters:
+ *   Standard task start-up arguments.  These are not used.  argc may be
+ *   zero and argv may be NULL.
+ *
+ * Returned Values:
+ *   This function does not return nor does it ever exit (unless the user
+ *   executes the NSH exit command).
+ *  
+ ****************************************************************************/
+
+#ifdef HAVE_USB_CONSOLE
+int nsh_consolemain(int argc, char *argv[])
+{
+  FAR struct console_stdio_s *pstate = nsh_newconsole();
+  int ret;
+
+  DEBUGASSERT(pstate);
+
+  /* Initialize any USB tracing options that were requested */
+
+#ifdef CONFIG_NSH_USBDEV_TRACE
+  usbtrace_enable(TRACE_BITSET);
+#endif
+
+  /* Initialize the USB serial driver */
+
+#if defined(CONFIG_PL2303) || defined(CONFIG_CDCACM)
+#ifdef CONFIG_CDCACM
+  ret = cdcacm_initialize(CONFIG_NSH_USBDEV_MINOR, NULL);
+#else
+  ret = usbdev_serialinitialize(CONFIG_NSH_USBDEV_MINOR);
+#endif
+  DEBUGASSERT(ret == OK);
+#endif
+
+  /* Configure to use /dev/null if we do not have a valid console. */
+
+#ifndef CONFIG_DEV_CONSOLE
+  (void)nsh_nullstdio();
+#endif
+
+  /* Execute the one-time start-up script (output may go to /dev/null) */
+
+#ifdef CONFIG_NSH_ROMFSETC
+  (void)nsh_initscript(&pstate->cn_vtbl);
+#endif
+
+  /* Now loop, executing creating a session for each USB connection */
+
+  for (;;)
+    {
+      /* Wait for the USB to be connected to the host and switch
+       * standard I/O to the USB serial device.
+       */
+
+      ret = nsh_waitusbready();
+      DEBUGASSERT(ret == OK);
+
+      /* Execute the session */
+
+      (void)nsh_session(pstate);
+
+      /* Switch to /dev/null because we probably no longer have a
+       * valid console device.
+       */
+
+      (void)nsh_nullstdio();
+    }
+}
+#endif
 
 /****************************************************************************
  * Name: nsh_usbtrace
+ *
+ * Description:
+ *   The function is called from the nsh_session() to dump USB data to the
+ *   SYSLOG device.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Values:
+ *   None
+ *  
  ****************************************************************************/
 
-#if defined(CONFIG_USBDEV_TRACE) && defined(HAVE_USB_CONSOLE)
+#ifdef CONFIG_NSH_USBDEV_TRACE
 void nsh_usbtrace(void)
 {
   (void)usbtrace_enumerate(nsh_tracecallback, NULL);
 }
 #endif
-
-#endif /* CONFIG_USBDEV */

@@ -72,9 +72,10 @@ config PIC
 config BINFMT_CONSTRUCTORS
 	bool "C++ Static Constructor Support"
 	default n
-	depends on HAVE_CXX && ELF # FIX ME: Currently only supported for ELF
+	depends on HAVE_CXX && SCHED_STARTHOOK && ELF
 	---help---
-		Build in support for C++ constructors in loaded modules.
+		Build in support for C++ constructors in loaded modules.  Currently
+		only support for ELF binary formats.
 
 config SYMTAB_ORDEREDBYNAME
 	bool "Symbol Tables Ordered by Name"

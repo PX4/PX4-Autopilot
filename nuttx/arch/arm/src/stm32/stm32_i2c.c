@@ -107,11 +107,11 @@
 
 #if !defined(CONFIG_STM32_I2CTIMEOSEC) && !defined(CONFIG_STM32_I2CTIMEOMS)
 #  define CONFIG_STM32_I2CTIMEOSEC 0
-#  define CONFIG_STM32_I2CTIMEOMS   500   /* Default is 500 milliseconds */
+#  define CONFIG_STM32_I2CTIMEOMS  500   /* Default is 500 milliseconds */
 #elif !defined(CONFIG_STM32_I2CTIMEOSEC)
 #  define CONFIG_STM32_I2CTIMEOSEC 0     /* User provided milliseconds */
 #elif !defined(CONFIG_STM32_I2CTIMEOMS)
-#  define CONFIG_STM32_I2CTIMEOMS   0     /* User provided seconds */
+#  define CONFIG_STM32_I2CTIMEOMS  0     /* User provided seconds */
 #endif
 
 /* Interrupt wait time timeout in system timer ticks */
@@ -141,7 +141,7 @@
 #endif
 
 /* I2C event trace logic.  NOTE:  trace uses the internal, non-standard, low-level
- * debug interface lib_rawprintf() but does not require that any other debug
+ * debug interface syslog() but does not require that any other debug
  * is enabled.
  */
 
@@ -219,31 +219,31 @@ struct stm32_i2c_config_s
 struct stm32_i2c_priv_s
 {
   const struct stm32_i2c_config_s *config; /* Port configuration */
-  int         refs;        /* Referernce count */
-  sem_t       sem_excl;    /* Mutual exclusion semaphore */
+  int refs;                    /* Referernce count */
+  sem_t sem_excl;              /* Mutual exclusion semaphore */
 #ifndef CONFIG_I2C_POLLED
-  sem_t       sem_isr;     /* Interrupt wait semaphore */
+  sem_t sem_isr;               /* Interrupt wait semaphore */
 #endif
-  volatile uint8_t intstate;  /* Interrupt handshake (see enum stm32_intstate_e) */
+  volatile uint8_t intstate;   /* Interrupt handshake (see enum stm32_intstate_e) */
     
-  uint8_t     msgc;        /* Message count */
-  struct i2c_msg_s *msgv;  /* Message list */
-  uint8_t    *ptr;         /* Current message buffer */
-  int         dcnt;        /* Current message length */
-  uint16_t    flags;       /* Current message flags */
+  uint8_t msgc;                /* Message count */
+  struct i2c_msg_s *msgv;      /* Message list */
+  uint8_t *ptr;                /* Current message buffer */
+  int dcnt;                    /* Current message length */
+  uint16_t flags;              /* Current message flags */
 
   /* I2C trace support */
 
 #ifdef CONFIG_I2C_TRACE
-  int         tndx;        /* Trace array index */
-  uint32_t    start_time;  /* Time when the trace was started */
+  int tndx;                    /* Trace array index */
+  uint32_t start_time;         /* Time when the trace was started */
 
   /* The actual trace data */
 
   struct stm32_trace_s trace[CONFIG_I2C_NTRACE];
 #endif
 
-  uint32_t    status;      /* End of transfer SR2|SR1 status */
+  uint32_t status;             /* End of transfer SR2|SR1 status */
 };
 
 /* I2C Device, Instance */
@@ -281,7 +281,7 @@ static void stm32_i2c_tracenew(FAR struct stm32_i2c_priv_s *priv, uint32_t statu
 static void stm32_i2c_traceevent(FAR struct stm32_i2c_priv_s *priv,
                                enum stm32_trace_e event, uint32_t parm);
 static void stm32_i2c_tracedump(FAR struct stm32_i2c_priv_s *priv);
-#endif
+#endif /* CONFIG_I2C_TRACE */
 static void stm32_i2c_setclock(FAR struct stm32_i2c_priv_s *priv,
                                uint32_t frequency);
 static inline void stm32_i2c_sendstart(FAR struct stm32_i2c_priv_s *priv);
@@ -291,7 +291,7 @@ static inline uint32_t stm32_i2c_getstatus(FAR struct stm32_i2c_priv_s *priv);
 #ifdef I2C1_FSMC_CONFLICT
 static inline uint32_t stm32_i2c_disablefsmc(FAR struct stm32_i2c_priv_s *priv);
 static inline void stm32_i2c_enablefsmc(uint32_t ahbenr);
-#endif
+#endif /* I2C1_FSMC_CONFLICT */
 static int stm32_i2c_isr(struct stm32_i2c_priv_s * priv);
 #ifndef CONFIG_I2C_POLLED
 #ifdef CONFIG_STM32_I2C1
@@ -582,15 +582,14 @@ static inline int stm32_i2c_sem_waitdone(FAR struct stm32_i2c_priv_s *priv, int 
           abstime.tv_sec++;
           abstime.tv_nsec -= 1000 * 1000 * 1000;
         }
-#else
-  #if CONFIG_STM32_I2CTIMEOMS > 0
-        abstime.tv_nsec += CONFIG_STM32_I2CTIMEOMS * 1000 * 1000;
-        if (abstime.tv_nsec > 1000 * 1000 * 1000)
-          {
-            abstime.tv_sec++;
-            abstime.tv_nsec -= 1000 * 1000 * 1000;
-          }
-  #endif
+
+#elif CONFIG_STM32_I2CTIMEOMS > 0
+      abstime.tv_nsec += CONFIG_STM32_I2CTIMEOMS * 1000 * 1000;
+      if (abstime.tv_nsec > 1000 * 1000 * 1000)
+        {
+          abstime.tv_sec++;
+          abstime.tv_nsec -= 1000 * 1000 * 1000;
+        }
 #endif
       /* Wait until either the transfer is complete or the timeout expires */
 
@@ -866,11 +865,11 @@ static void stm32_i2c_tracedump(FAR struct stm32_i2c_priv_s *priv)
   struct stm32_trace_s *trace;
   int i;
 
-  lib_rawprintf("Elapsed time: %d\n",  clock_systimer() - priv->start_time);
+  syslog("Elapsed time: %d\n",  clock_systimer() - priv->start_time);
   for (i = 0; i <= priv->tndx; i++)
     {
       trace = &priv->trace[i];
-      lib_rawprintf("%2d. STATUS: %08x COUNT: %3d EVENT: %2d PARM: %08x TIME: %d\n",
+      syslog("%2d. STATUS: %08x COUNT: %3d EVENT: %2d PARM: %08x TIME: %d\n",
                     i+1, trace->status, trace->count,  trace->event, trace->parm,
                     trace->time - priv->start_time);
     }
@@ -932,7 +931,7 @@ static void stm32_i2c_setclock(FAR struct stm32_i2c_priv_s *priv, uint32_t frequ
     {
       /* Fast mode speed calculation with Tlow/Thigh = 16/9 */
 
-#ifdef CONFIG_I2C_DUTY16_9
+#ifdef CONFIG_STM32_I2C_DUTY16_9
       speed = (uint16_t)(STM32_PCLK1_FREQUENCY / (frequency * 25));
 
       /* Set DUTY and fast speed bits */
@@ -1071,7 +1070,7 @@ static inline uint32_t stm32_i2c_disablefsmc(FAR struct stm32_i2c_priv_s *priv)
 
   /* Is this I2C1 */
 
-#ifdef CONFIG_STM32_I2C2
+#if defined(CONFIG_STM32_I2C2) || defined(CONFIG_STM32_I2C3)
   if (priv->config->base == STM32_I2C1_BASE)
 #endif
     {
@@ -1198,26 +1197,29 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
         {
           stm32_i2c_traceevent(priv, I2CEVENT_RCVBYTE, priv->dcnt);
 
+          /* No interrupts or context switches may occur in the following
+           * sequence.  Otherwise, additional bytes may be sent by the
+           * device.
+           */
+
 #ifdef CONFIG_I2C_POLLED
           irqstate_t state = irqsave();
 #endif
-
           /* Receive a byte */
 
           *priv->ptr++ = stm32_i2c_getreg(priv, STM32_I2C_DR_OFFSET);
 
           /* Disable acknowledge when last byte is to be received */
 
+          priv->dcnt--;
           if (priv->dcnt == 1)
             {
               stm32_i2c_modifyreg(priv, STM32_I2C_CR1_OFFSET, I2C_CR1_ACK, 0);  
             }
-          priv->dcnt--;
 
 #ifdef CONFIG_I2C_POLLED
           irqrestore(state);
 #endif
-
         }
     }
     
@@ -1408,7 +1410,6 @@ static int stm32_i2c_init(FAR struct stm32_i2c_priv_s *priv)
   /* Enable power and reset the peripheral */
 
   modifyreg32(STM32_RCC_APB1ENR, 0, priv->config->clk_bit);
-
   modifyreg32(STM32_RCC_APB1RSTR, 0, priv->config->reset_bit);
   modifyreg32(STM32_RCC_APB1RSTR, priv->config->reset_bit, 0);
 
@@ -1428,10 +1429,10 @@ static int stm32_i2c_init(FAR struct stm32_i2c_priv_s *priv)
   /* Attach ISRs */
             
 #ifndef CONFIG_I2C_POLLED
-        irq_attach(priv->config->ev_irq, priv->config->isr);
-        irq_attach(priv->config->er_irq, priv->config->isr);
-        up_enable_irq(priv->config->ev_irq);
-        up_enable_irq(priv->config->er_irq);
+  irq_attach(priv->config->ev_irq, priv->config->isr);
+  irq_attach(priv->config->er_irq, priv->config->isr);
+  up_enable_irq(priv->config->ev_irq);
+  up_enable_irq(priv->config->er_irq);
 #endif
 
   /* Set peripheral frequency, where it must be at least 2 MHz  for 100 kHz
@@ -1461,8 +1462,12 @@ static int stm32_i2c_deinit(FAR struct stm32_i2c_priv_s *priv)
 
   stm32_i2c_putreg(priv, STM32_I2C_CR1_OFFSET, 0);
 
+  /* Unconfigure GPIO pins */
+
   stm32_unconfiggpio(priv->config->scl_pin);
   stm32_unconfiggpio(priv->config->sda_pin);
+
+  /* Disable and detach interrupts */
 
 #ifndef CONFIG_I2C_POLLED
   up_disable_irq(priv->config->ev_irq);
@@ -1470,8 +1475,10 @@ static int stm32_i2c_deinit(FAR struct stm32_i2c_priv_s *priv)
   irq_detach(priv->config->ev_irq);
   irq_detach(priv->config->er_irq);
 #endif
-  modifyreg32(STM32_RCC_APB1ENR, priv->config->clk_bit, 0);
 
+  /* Disable clocking */
+
+  modifyreg32(STM32_RCC_APB1ENR, priv->config->clk_bit, 0);
   return OK;
 }
 
@@ -1623,7 +1630,9 @@ static int stm32_i2c_process(FAR struct i2c_dev_s *dev, FAR struct i2c_msg_s *ms
        */
 
       stm32_i2c_clrstart(priv);
-      // XXX also clear busy flag in case of timeout
+
+      /* Clear busy flag in case of timeout */
+
       status = priv->status & 0xffff;
     }
   else
@@ -2070,4 +2079,4 @@ out:
   return ret;
 }
 
-#endif /* defined(CONFIG_STM32_I2C1) || defined(CONFIG_STM32_I2C2) || defined(CONFIG_STM32_I2C3) */
+#endif /* CONFIG_STM32_I2C1 || CONFIG_STM32_I2C2 || CONFIG_STM32_I2C3 */

@@ -675,8 +675,8 @@ examples/mount
       when CONFIG_EXAMPLES_MOUNT_DEVNAME is not defined.  The
       default is zero (meaning that "/dev/ram0" will be used).
 
-examples/netttest
-^^^^^^^^^^^^^^^^^
+examples/nettest
+^^^^^^^^^^^^^^^^
 
   This is a simple network test for verifying client- and server-
   functionality in a TCP/IP connection.

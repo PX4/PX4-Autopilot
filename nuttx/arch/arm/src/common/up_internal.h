@@ -1,7 +1,7 @@
 /****************************************************************************
  * common/up_internal.h
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,10 @@
 #undef  CONFIG_SUPPRESS_UART_CONFIG   /* DEFINED: Do not reconfig UART */
 #undef  CONFIG_DUMP_ON_EXIT           /* DEFINED: Dump task state on exit */
 
-/* Determine which (if any) console driver to use */
+/* Determine which (if any) console driver to use.  If a console is enabled
+ * and no other console device is specified, then a serial console is
+ * assumed.
+ */
 
 #if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS == 0
 #  undef  USE_SERIALDRIVER
@@ -82,6 +85,16 @@
 #    define USE_SERIALDRIVER 1
 #    define USE_EARLYSERIALINIT 1
 #  endif
+#endif
+
+/* If some other device is used as the console, then the serial driver may
+ * still be needed.  Let's assume that if the upper half serial driver is
+ * built, then the lower half will also be needed.  There is no need for
+ * the early serial initialization in this case.
+ */
+
+#if !defined(USE_SERIALDRIVER) && defined(CONFIG_STANDARD_SERIAL)
+#  define USE_SERIALDRIVER 1
 #endif
 
 /* Determine which device to use as the system logging device */

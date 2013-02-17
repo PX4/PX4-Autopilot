@@ -55,7 +55,7 @@
  ****************************************************************************/
 
 #undef NXFLAT_DUMP_READDATA    /* Define to dump all file data read */
-#define DUMPER lib_rawprintf   /* If NXFLAT_DUMP_READDATA is defined, this
+#define DUMPER syslog          /* If NXFLAT_DUMP_READDATA is defined, this
                                 * is the API used to dump data */
 
 /****************************************************************************

@@ -155,56 +155,19 @@ void files_initialize(void)
 }
 
 /****************************************************************************
- * Name: files_alloclist
+ * Name: files_initlist
  *
- * Description: Allocate a list of files for a new task
- *
- ****************************************************************************/
-
-FAR struct filelist *files_alloclist(void)
-{
-  FAR struct filelist *list;
-  list = (FAR struct filelist*)kzalloc(sizeof(struct filelist));
-  if (list)
-    {
-       /* Start with a reference count of one */
-
-       list->fl_crefs = 1;
-
-       /* Initialize the list access mutex */
-
-      (void)sem_init(&list->fl_sem, 0, 1);
-    }
-
-  return list;
-}
-
-/****************************************************************************
- * Name: files_addreflist
- *
- * Description:
- *   Increase the reference count on a file list
+ * Description: Initializes the list of files for a new task
  *
  ****************************************************************************/
 
-int files_addreflist(FAR struct filelist *list)
+void files_initlist(FAR struct filelist *list)
 {
-  if (list)
-    {
-      /* Increment the reference count on the list.
-       * NOTE: that we disable interrupts to do this
-       * (vs. taking the list semaphore).  We do this
-       * because file cleanup operations often must be
-       * done from the IDLE task which cannot wait
-       * on semaphores.
-       */
+  DEBUGASSERT(list);
 
-      register irqstate_t flags = irqsave();
-      list->fl_crefs++;
-      irqrestore(flags);
-    }
+  /* Initialize the list access mutex */
 
-  return OK;
+  (void)sem_init(&list->fl_sem, 0, 1);
 }
 
 /****************************************************************************
@@ -215,51 +178,25 @@ int files_addreflist(FAR struct filelist *list)
  *
  ****************************************************************************/
 
-int files_releaselist(FAR struct filelist *list)
+void files_releaselist(FAR struct filelist *list)
 {
-  int crefs;
-  if (list)
+  int i;
+
+  DEBUGASSERT(list);
+
+  /* Close each file descriptor .. Normally, you would need take the list
+   * semaphore, but it is safe to ignore the semaphore in this context because
+   * there should not be any references in this context.
+   */
+
+  for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
     {
-      /* Decrement the reference count on the list.
-       * NOTE: that we disable interrupts to do this
-       * (vs. taking the list semaphore).  We do this
-       * because file cleanup operations often must be
-       * done from the IDLE task which cannot wait
-       * on semaphores.
-       */
-
-      register irqstate_t flags = irqsave();
-      crefs = --(list->fl_crefs);
-      irqrestore(flags);
-
-      /* If the count decrements to zero, then there is no reference
-       * to the structure and it should be deallocated.  Since there
-       * are references, it would be an error if any task still held
-       * a reference to the list's semaphore.
-       */
-
-      if (crefs <= 0)
-        {
-          int i;
-
-          /* Close each file descriptor .. Normally, you would need
-           * take the list semaphore, but it is safe to ignore the
-           * semaphore in this context because there are no references
-           */
-
-          for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
-            {
-              (void)_files_close(&list->fl_files[i]);
-            }
-
-          /* Destroy the semaphore and release the filelist */
-
-          (void)sem_destroy(&list->fl_sem);
-          sched_free(list);
-        }
+      (void)_files_close(&list->fl_files[i]);
     }
 
-  return OK;
+  /* Destroy the semaphore */
+
+  (void)sem_destroy(&list->fl_sem);
 }
 
 /****************************************************************************
