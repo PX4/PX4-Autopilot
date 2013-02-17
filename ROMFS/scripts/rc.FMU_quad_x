@@ -1,40 +1,67 @@
+#!nsh
 #
-# Startup for X-quad on FMU1.5/1.6
-# 
-
-echo "[init] uORB"
+# Flight startup script for PX4FMU with PWM outputs.
+#
+ 
+# Disable the USB interface
+set USB no
+ 
+# Disable autostarting other apps
+set MODE custom
+ 
+echo "[init] doing PX4FMU Quad startup..."
+ 
+#
+# Start the ORB
+#
 uorb start
-
-echo "[init] eeprom"
-eeprom start
-if [ -f /eeprom/parameters ]
+ 
+#
+# Load microSD params
+#
+echo "[init] loading microSD params"
+param select /fs/microsd/parameters
+if [ -f /fs/microsd/parameters ]
 then
-	param load
+	param load /fs/microsd/parameters
 fi
-
-echo "[init] sensors"
-#bma180 start
-#l3gd20 start
-mpu6000 start
-hmc5883 start
-ms5611 start
-
-sensors start
-
-echo "[init] mavlink"
+ 
+#
+# Force some key parameters to sane values
+# MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
+#              see https://pixhawk.ethz.ch/mavlink/
+#
+param set MAV_TYPE 2
+ 
+#
+# Start MAVLink
+#
 mavlink start -d /dev/ttyS0 -b 57600
 usleep 5000
-
-echo "[init] commander"
+ 
+#
+# Start the sensors and test them.
+#
+sh /etc/init.d/rc.sensors
+ 
+#
+# Start the commander.
+#
 commander start
-
-echo "[init] attitude control"
+ 
+#
+# Start the attitude estimator
+#
 attitude_estimator_ekf start
-multirotor_att_control start
-
+ 
 echo "[init] starting PWM output"
 fmu mode_pwm
 mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
-
+ 
+#
+# Start attitude control
+#
+multirotor_att_control start
+ 
 echo "[init] startup done, exiting"
 exit

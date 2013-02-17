@@ -17,7 +17,7 @@ echo "[init] doing PX4IOAR startup..."
 uorb start
  
 #
-# Load microSD params
+# Init the parameter storage
 #
 echo "[init] loading microSD params"
 param select /fs/microsd/parameters
@@ -27,15 +27,22 @@ then
 fi
  
 #
+# Force some key parameters to sane values
+# MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
+#              see https://pixhawk.ethz.ch/mavlink/
+#
+param set MAV_TYPE 2
+ 
+#
+# Start the sensors.
+#
+sh /etc/init.d/rc.sensors
+ 
+#
 # Start MAVLink
 #
 mavlink start -d /dev/ttyS0 -b 57600
 usleep 5000
- 
-#
-# Start the sensors and test them.
-#
-sh /etc/init.d/rc.sensors
  
 #
 # Start the commander.
@@ -63,14 +70,25 @@ multirotor_att_control start
 ardrone_interface start -d /dev/ttyS1
  
 #
-# Start logging
-#
-#sdlog start
- 
-#
 # Start GPS capture
 #
 gps start
+
+#
+# Start logging
+#
+sdlog start -s 10
+
+#
+# Start system state
+#
+if blinkm start
+then
+	echo "using BlinkM for state indication"
+	blinkm systemstate
+else
+	echo "no BlinkM found, OK."
+fi
  
 #
 # startup is done; we don't want the shell because we
