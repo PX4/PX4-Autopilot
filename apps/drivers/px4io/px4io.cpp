@@ -76,6 +76,7 @@
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -243,6 +244,24 @@ private:
 	 */
 	int			mixer_send(const char *buf, unsigned buflen);
 
+	/**
+	 * Handle a status update from IO.
+	 *
+	 * Publish IO status information if necessary.
+	 *
+	 * @param status	The status register
+	 */
+	int			io_handle_status(uint16_t status);
+
+	/**
+	 * Handle an alarm update from IO.
+	 *
+	 * Publish IO alarm information if necessary.
+	 *
+	 * @param alarm		The status register
+	 */
+	int			io_handle_alarms(uint16_t alarms);
+
 };
 
 
@@ -332,17 +351,113 @@ PX4IO::init()
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
 		_max_rc_input = RC_INPUT_MAX_CHANNELS;
 
-	/* dis-arm IO before touching anything */
-	io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
-		PX4IO_P_SETUP_ARMING_ARM_OK |
-		PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK |
-		PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK, 0);
+	/*
+	 * Check for IO flight state - if FMU was flagged to be in
+	 * armed state, FMU is recovering from an in-air reset.
+	 * Read back status and request the commander to arm
+	 * in this case.
+	 */
 
-	/* publish RC config to IO */
-	ret = io_set_rc_config();
-	if (ret != OK) {
-		log("failed to update RC input config");
+	uint16_t reg;
+
+	/* get STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT in that order */
+	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, &reg, sizeof(reg));
+	if (ret != OK)
 		return ret;
+
+	if (reg & PX4IO_P_SETUP_ARMING_ARM_OK) {
+
+		/* WARNING: COMMANDER app/vehicle status must be initialized.
+		 * If this fails (or the app is not started), worst-case IO
+		 * remains untouched (so manual override is still available).
+		 */
+
+		int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+		/* fill with initial values, clear updated flag */
+		vehicle_status_s status;
+		uint64_t try_start_time = hrt_absolute_time();
+		bool updated = false;
+		
+		/* keep checking for an update, ensure we got a recent state,
+		   not something that was published a long time ago. */
+		do {
+			orb_check(vstatus_sub, &updated);
+
+			if (updated) {
+				/* got data, copy and exit loop */
+				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &status);
+				break;
+			}
+
+			/* wait 10 ms */
+			usleep(10000);
+
+			/* abort after 10s */
+			if ((hrt_absolute_time() - try_start_time)/1000 > 10000) {
+				log("failed to recover from in-air restart (1), aborting IO driver init.");
+				return 1;
+			}
+
+		} while (true);
+
+		/* send command to arm system via command API */
+		vehicle_command_s cmd;
+		/* request arming */
+		cmd.param1 = 1.0f;
+		cmd.param2 = 0;
+		cmd.param3 = 0;
+		cmd.param4 = 0;
+		cmd.param5 = 0;
+		cmd.param6 = 0;
+		cmd.param7 = 0;
+		cmd.command = VEHICLE_CMD_COMPONENT_ARM_DISARM;
+		cmd.target_system = status.system_id;
+		cmd.target_component = status.component_id;
+		cmd.source_system = status.system_id;
+		cmd.source_component = status.component_id;
+		/* ask to confirm command */
+		cmd.confirmation =  1;
+
+		/* send command once */
+		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+
+		/* spin here until IO's state has propagated into the system */
+		do {
+			orb_check(vstatus_sub, &updated);
+
+			if (updated) {
+				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &status);
+			}
+
+			/* wait 10 ms */
+			usleep(10000);
+
+			/* abort after 10s */
+			if ((hrt_absolute_time() - try_start_time)/1000 > 10000) {
+				log("failed to recover from in-air restart (2), aborting IO driver init.");
+				return 1;
+			}
+
+		/* keep waiting for state change for 10 s */
+		} while (!status.flag_system_armed);
+
+	/* regular boot, no in-air restart, init IO */
+	} else {
+
+
+		/* dis-arm IO before touching anything */
+		io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
+			PX4IO_P_SETUP_ARMING_ARM_OK |
+			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK |
+			PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK, 0);
+
+			/* publish RC config to IO */
+		ret = io_set_rc_config();
+		if (ret != OK) {
+			log("failed to update RC input config");
+			return ret;
+		}
+
 	}
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
@@ -647,6 +762,42 @@ PX4IO::io_set_rc_config()
 }
 
 int
+PX4IO::io_handle_status(uint16_t status)
+{
+	int ret = 1;
+	/**
+	 * WARNING: This section handles in-air resets.
+	 */
+
+	/* check for IO reset - force it back to armed if necessary */
+	if (_status & PX4IO_P_STATUS_FLAGS_ARMED && !(status & PX4IO_P_STATUS_FLAGS_ARMED)) {
+		/* set the arming flag */
+		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_ARMED);
+
+		/* set new status */
+		_status = status;
+		_status &= PX4IO_P_STATUS_FLAGS_ARMED;
+	} else {
+		ret = 0;
+
+		/* set new status */
+		_status = status;
+	}
+	return ret;
+}
+
+int
+PX4IO::io_handle_alarms(uint16_t alarms)
+{
+
+	/* XXX handle alarms */
+
+
+	/* set new alarms state */
+	_alarms = alarms;
+}
+
+int
 PX4IO::io_get_status()
 {
 	uint16_t	regs[4];
@@ -657,12 +808,8 @@ PX4IO::io_get_status()
 	if (ret != OK)
 		return ret;
 
-	_status = regs[0];
-	_alarms = regs[1];
-
-	/* XXX handle status */
-
-	/* XXX handle alarms */
+	io_handle_status(regs[0]);
+	io_handle_alarms(regs[1]);
 
 	/* only publish if battery has a valid minimum voltage */
 	if (regs[2] > 3300) {
