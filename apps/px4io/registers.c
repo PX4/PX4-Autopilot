@@ -270,6 +270,16 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			r_status_alarms &= ~value;
 			break;
 
+		case PX4IO_P_STATUS_FLAGS:
+			/* 
+			 * Allow FMU override of arming state (to allow in-air restores),
+			 * but only if the arming state is not in sync on the IO side.
+			 */
+			if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
+				r_status_flags = value;
+			}
+			break;
+
 		default:
 			/* just ignore writes to other registers in this page */
 			break;

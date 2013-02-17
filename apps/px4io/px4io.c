@@ -84,7 +84,7 @@ static volatile uint8_t msg_next_out, msg_next_in;
  * output.
  */
 #define NUM_MSG 2
-static char msg[NUM_MSG][40];
+static char msg[NUM_MSG][50];
 
 /*
   add a debug message to be printed on the console
@@ -183,23 +183,23 @@ int user_start(int argc, char *argv[])
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
 
-	/* run the mixer at 100Hz (for now...) */
+	/* run the mixer at ~300Hz (for now...) */
 	/* XXX we should use CONFIG_IDLE_CUSTOM and take over the idle thread instead of running two additional tasks */
-	uint8_t counter=0;
+	uint16_t counter=0;
 	for (;;) {
 		/*
-		  if we are not scheduled for 100ms then reset the I2C bus
+		  if we are not scheduled for 10ms then reset the I2C bus
 		 */
-		hrt_call_after(&loop_overtime_call, 100000, (hrt_callout)loop_overtime, NULL);
+		hrt_call_after(&loop_overtime_call, 10000, (hrt_callout)loop_overtime, NULL);
 
-		poll(NULL, 0, 10);
+		poll(NULL, 0, 3);
 		perf_begin(mixer_perf);
 		mixer_tick();
 		perf_end(mixer_perf);
 		show_debug_messages();
-		if (counter++ == 200) {
+		if (counter++ == 800) {
 			counter = 0;
-			isr_debug(1, "tick dbg=%u stat=0x%x arm=0x%x feat=0x%x rst=%u", 
+			isr_debug(1, "d:%u stat=0x%x arm=0x%x feat=0x%x rst=%u", 
 				  (unsigned)debug_level,
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,

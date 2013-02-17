@@ -279,6 +279,8 @@ PX4IO::PX4IO() :
 	_max_relays(0),
 	_max_transfer(16),	/* sensible default */
 	_update_interval(0),
+	_status(0),
+	_alarms(0),
 	_task(-1),
 	_task_should_exit(false),
 	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
@@ -360,8 +362,8 @@ PX4IO::init()
 
 	uint16_t reg;
 
-	/* get STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT in that order */
-	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, &reg, sizeof(reg));
+	/* get IO's last seen FMU state */
+	ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, &reg, sizeof(reg));
 	if (ret != OK)
 		return ret;
 
@@ -392,8 +394,8 @@ PX4IO::init()
 			/* wait 10 ms */
 			usleep(10000);
 
-			/* abort after 10s */
-			if ((hrt_absolute_time() - try_start_time)/1000 > 10000) {
+			/* abort after 5s */
+			if ((hrt_absolute_time() - try_start_time)/1000 > 50000) {
 				log("failed to recover from in-air restart (1), aborting IO driver init.");
 				return 1;
 			}
@@ -432,8 +434,8 @@ PX4IO::init()
 			/* wait 10 ms */
 			usleep(10000);
 
-			/* abort after 10s */
-			if ((hrt_absolute_time() - try_start_time)/1000 > 10000) {
+			/* abort after 5s */
+			if ((hrt_absolute_time() - try_start_time)/1000 > 50000) {
 				log("failed to recover from in-air restart (2), aborting IO driver init.");
 				return 1;
 			}
@@ -770,19 +772,28 @@ PX4IO::io_handle_status(uint16_t status)
 	 */
 
 	/* check for IO reset - force it back to armed if necessary */
-	if (_status & PX4IO_P_STATUS_FLAGS_ARMED && !(status & PX4IO_P_STATUS_FLAGS_ARMED)) {
+	if (_status & PX4IO_P_STATUS_FLAGS_ARMED && !(status & PX4IO_P_STATUS_FLAGS_ARMED)
+		&& !(status & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
 		/* set the arming flag */
-		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_ARMED);
+		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_ARMED | PX4IO_P_STATUS_FLAGS_ARM_SYNC);
 
 		/* set new status */
 		_status = status;
 		_status &= PX4IO_P_STATUS_FLAGS_ARMED;
+	} else if (!(_status & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
+
+		/* set the sync flag */
+		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_ARM_SYNC);
+		/* set new status */
+		_status = status;
+
 	} else {
 		ret = 0;
 
 		/* set new status */
 		_status = status;
 	}
+
 	return ret;
 }
 
