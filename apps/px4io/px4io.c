@@ -77,8 +77,14 @@ struct hrt_call loop_overtime_call;
 static volatile uint32_t msg_counter;
 static volatile uint32_t last_msg_counter;
 static volatile uint8_t msg_next_out, msg_next_in;
-#define NUM_MSG 6
-static char msg[NUM_MSG][60];
+
+/*
+ * WARNING too large buffers here consume the memory required
+ * for mixer handling. Do not allocate more than 80 bytes for
+ * output.
+ */
+#define NUM_MSG 2
+static char msg[NUM_MSG][40];
 
 /*
   add a debug message to be printed on the console
@@ -193,7 +199,7 @@ int user_start(int argc, char *argv[])
 		show_debug_messages();
 		if (counter++ == 200) {
 			counter = 0;
-			isr_debug(1, "tick debug=%u status=0x%x arming=0x%x features=0x%x resets=%u", 
+			isr_debug(1, "tick dbg=%u stat=0x%x arm=0x%x feat=0x%x rst=%u", 
 				  (unsigned)debug_level,
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,
