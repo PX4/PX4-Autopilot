@@ -545,7 +545,7 @@ int cmd_dd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     }
 #endif
 
-  if (dd.skip < 0 || dd.skip > dd.nsectors)
+  if (dd.skip > dd.nsectors)
     {
       nsh_output(vtbl, g_fmtarginvalid, g_dd);
       goto errout_with_paths;

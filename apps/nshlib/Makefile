@@ -1,7 +1,7 @@
 ############################################################################
 # apps/nshlib/Makefile
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,9 +39,10 @@ include $(APPDIR)/Make.defs
 
 # NSH Library
 
-ASRCS =
-CSRCS = nsh_init.c nsh_parse.c nsh_console.c nsh_fscmds.c nsh_ddcmd.c \
-		nsh_proccmds.c nsh_mmcmds.c nsh_envcmds.c nsh_dbgcmds.c
+ASRCS  =
+CSRCS  = nsh_init.c nsh_parse.c nsh_console.c nsh_script.c nsh_session.c
+CSRCS += nsh_fscmds.c nsh_ddcmd.c nsh_proccmds.c nsh_mmcmds.c nsh_envcmds.c
+CSRCS += nsh_dbgcmds.c
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
 CSRCS += nsh_builtin.c

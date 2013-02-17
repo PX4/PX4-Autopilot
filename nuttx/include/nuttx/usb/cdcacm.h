@@ -54,7 +54,7 @@
  *   Endpoint 0 max packet size. Default 64.
  * CONFIG_CDCACM_EPINTIN
  *   The logical 7-bit address of a hardware endpoint that supports
- *   interrupt IN operation.  Default 2.
+ *   interrupt IN operation.  Default 1.
  * CONFIG_CDCACM_EPINTIN_FSSIZE
  *   Max package size for the interrupt IN endpoint if full speed mode.
  *   Default 64.
@@ -63,7 +63,7 @@
  *   Default 64.
  * CONFIG_CDCACM_EPBULKOUT
  *   The logical 7-bit address of a hardware endpoint that supports
- *   bulk OUT operation
+ *   bulk OUT operation.  Default: 3
  * CONFIG_CDCACM_EPBULKOUT_FSSIZE
  *   Max package size for the bulk OUT endpoint if full speed mode.
  *   Default 64.
@@ -72,7 +72,7 @@
  *   Default 512.
  * CONFIG_CDCACM_EPBULKIN
  *   The logical 7-bit address of a hardware endpoint that supports
- *   bulk IN operation
+ *   bulk IN operation.  Default: 2
  * CONFIG_CDCACM_EPBULKIN_FSSIZE
  *   Max package size for the bulk IN endpoint if full speed mode.
  *   Default 64.
@@ -107,7 +107,7 @@
  */
 
 #ifndef CONFIG_CDCACM_EPINTIN
-#  define CONFIG_CDCACM_EPINTIN 2
+#  define CONFIG_CDCACM_EPINTIN 1
 #endif
 
 #ifndef CONFIG_CDCACM_EPINTIN_FSSIZE
@@ -124,7 +124,7 @@
  */
 
 #ifndef CONFIG_CDCACM_EPBULKIN
-#  define CONFIG_CDCACM_EPBULKIN 3
+#  define CONFIG_CDCACM_EPBULKIN 2
 #endif
 
 #ifndef CONFIG_CDCACM_EPBULKIN_FSSIZE
@@ -141,7 +141,7 @@
  */
 
 #ifndef CONFIG_CDCACM_EPBULKOUT
-#  define CONFIG_CDCACM_EPBULKOUT 4
+#  define CONFIG_CDCACM_EPBULKOUT 3
 #endif
 
 #ifndef CONFIG_CDCACM_EPBULKOUT_FSSIZE

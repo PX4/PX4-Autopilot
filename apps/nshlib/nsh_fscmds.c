@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/nshlib/nsh_fscmds.c
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1218,71 +1218,6 @@ int cmd_rmdir(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   return ret;
 }
 #endif
-#endif
-
-/****************************************************************************
- * Name: nsh_script
- ****************************************************************************/
-
-#if  CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_NFILE_STREAMS > 0 && !defined(CONFIG_NSH_DISABLESCRIPT)
-int nsh_script(FAR struct nsh_vtbl_s *vtbl, const char *cmd, const char *path)
-{
-  char *fullpath;
-  FILE *stream;
-  char *buffer;
-  char *pret;
-  int ret = ERROR;
-
-  /* The path to the script may be relative to the current working directory */
-
-  fullpath = nsh_getfullpath(vtbl, path);
-  if (!fullpath)
-    {
-      return ERROR;
-    }
-
-  /* Get a reference to the common input buffer */
-
-  buffer = nsh_linebuffer(vtbl);
-  if (buffer)
-    {
-      /* Open the file containing the script */
-
-      stream = fopen(fullpath, "r");
-      if (!stream)
-        {
-          nsh_output(vtbl, g_fmtcmdfailed, cmd, "fopen", NSH_ERRNO);
-          nsh_freefullpath(fullpath);
-          return ERROR;
-        }
-
-      /* Loop, processing each command line in the script file (or
-       * until an error occurs)
-       */
-
-      do
-        {
-          /* Get the next line of input from the file */
-
-          fflush(stdout);
-          pret = fgets(buffer, CONFIG_NSH_LINELEN, stream);
-          if (pret)
-            {
-              /* Parse process the command.  NOTE:  this is recursive...
-               * we got to cmd_sh via a call to nsh_parse.  So some
-               * considerable amount of stack may be used.
-               */
-
-              ret = nsh_parse(vtbl, buffer);
-            }
-        }
-      while (pret && ret == OK);
-      fclose(stream);
-    }
-
-  nsh_freefullpath(fullpath);
-  return ret;
-}
 #endif
 
 /****************************************************************************

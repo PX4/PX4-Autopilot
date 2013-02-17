@@ -77,7 +77,7 @@
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
 #  ifdef CONFIG_DEBUG
-#    define message(...) lib_rawprintf(__VA_ARGS__)
+#    define message(...) syslog(__VA_ARGS__)
 #    define msgflush()
 #  else
 #    define message(...) printf(__VA_ARGS__)
@@ -85,7 +85,7 @@
 #  endif
 #else
 #  ifdef CONFIG_DEBUG
-#    define message lib_rawprintf
+#    define message syslog
 #    define msgflush()
 #  else
 #    define message printf

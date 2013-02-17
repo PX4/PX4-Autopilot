@@ -143,7 +143,7 @@ int user_start(int argc, char *argv[])
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
 
 	/* print some startup info */
-	debug("\nPX4IO: starting\n");
+	lowsyslog("\nPX4IO: starting\n");
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
@@ -167,7 +167,7 @@ int user_start(int argc, char *argv[])
 		    NULL);
 
 	struct mallinfo minfo = mallinfo();
-	debug("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
+	lowsyslog("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
 
 	debug("debug_level=%u\n", (unsigned)debug_level);
 
@@ -202,3 +202,4 @@ int user_start(int argc, char *argv[])
 		}
 	}
 }
+

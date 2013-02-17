@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/env_dup.c
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,8 +68,8 @@
  *   exact duplicate of the parent task's environment.
  *
  * Parameters:
- *   ptcb The tcb to receive the newly allocated copy of the parspecifiedent
- *        TCB's environment structure with reference count equal to one
+ *   group The child task group to receive the newly allocated copy of the
+ *        parent task groups environment structure.
  *
  * Return Value:
  *   zero on success
@@ -79,50 +79,42 @@
  *
  ****************************************************************************/
 
-int env_dup(FAR _TCB *ptcb)
+int env_dup(FAR struct task_group_s *group)
 {
+  FAR _TCB *ptcb = (FAR _TCB*)g_readytorun.head;
+  FAR char *envp = NULL;
+  size_t envlen;
   int ret = OK;
-  if (!ptcb )
+
+  DEBUGASSERT(group && ptcb && ptcb->group);
+
+  /* Pre-emption must be disabled throughout the following because the
+   * environment may be shared.
+   */
+
+  sched_lock();
+
+  /* Does the parent task have an environment? */
+
+  if (ptcb->group && ptcb->group->tg_envp)
     {
-      ret = -EINVAL;
-    }
-  else
-    {
-      FAR _TCB  *parent = (FAR _TCB*)g_readytorun.head;
-      environ_t *envp   = NULL;
+      /* Yes..The parent task has an environment, duplicate it */
 
-      /* Pre-emption must be disabled throughout the following because the
-       * environment may be shared.
-       */
-
-      sched_lock();
-
-      /* Does the parent task have an environment? */
-
-      if (parent->envp)
+      envlen = ptcb->group->tg_envsize;
+      envp   = (FAR char *)kmalloc(envlen);
+      if (!envp)
         {
-          /* Yes..The parent task has an environment, duplicate it */
-
-          size_t envlen =  parent->envp->ev_alloc;
-          envp          = (environ_t*)kmalloc(SIZEOF_ENVIRON_T( envlen ));
-          if (!envp)
-            {
-              ret = -ENOMEM;
-            }
-          else
-            {
-              envp->ev_crefs = 1;
-              envp->ev_alloc = envlen;
-              memcpy( envp->ev_env, parent->envp->ev_env, envlen );
-            }
+          ret = -ENOMEM;
         }
+      else
+        {
+          group->tg_envsize = envlen;
+          group->tg_envp    = envp;
+          memcpy(envp, ptcb->group->tg_envp, envlen);
+        }
+    }
 
-      /* Save the cloned environment in the new TCB */
-
-      ptcb->envp = envp;
-      sched_unlock();
-  }
-
+  sched_unlock();
   return ret;
 }
 

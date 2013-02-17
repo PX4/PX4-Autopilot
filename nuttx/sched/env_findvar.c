@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/env_findvar.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,7 +85,7 @@ static bool env_cmpname(const char *pszname, const char *peqname)
  *   specified name.
  *
  * Parameters:
- *   envp The environment structre to be searched.
+ *   group The task group containging environment array to be searched.
  *   pname The variable name to find
  *
  * Return Value:
@@ -97,32 +97,25 @@ static bool env_cmpname(const char *pszname, const char *peqname)
  *
  ****************************************************************************/
 
-FAR char *env_findvar(environ_t *envp, const char *pname)
+FAR char *env_findvar(FAR struct task_group_s *group, const char *pname)
 {
-  char *ret = NULL;
+  char *ptr;
+  char *end;
 
   /* Verify input parameters */
 
-  if (envp && pname)
-    {
-      char *ptr;
-      char *end = &envp->ev_env[envp->ev_alloc];
+  DEBUGASSERT(group && pname);
 
-      /* Search for a name=value string with matching name */
+  /* Search for a name=value string with matching name */
 
-      for (ptr = envp->ev_env;
-           ptr < end && !env_cmpname( pname, ptr);
-           ptr += (strlen(ptr) + 1));
+  end = &group->tg_envp[group->tg_envsize];
+  for (ptr = group->tg_envp;
+       ptr < end && !env_cmpname(pname, ptr);
+       ptr += (strlen(ptr) + 1));
 
-      /* Check for success */
+  /* Check for success */
 
-      if (ptr < end)
-        {
-          ret = ptr;
-        }
-    }
-
-  return ret;
+  return (ptr < end) ? ptr : NULL;
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */

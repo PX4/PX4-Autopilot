@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/debug.h
  *
- *   Copyright (C) 2007-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 
-#include <stdint.h>
+#include <syslog.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -104,22 +104,22 @@
 
 #ifdef CONFIG_DEBUG
 # define dbg(format, arg...) \
-  lib_rawprintf(EXTRA_FMT format EXTRA_ARG, ##arg)
+  syslog(EXTRA_FMT format EXTRA_ARG, ##arg)
 
 # ifdef CONFIG_ARCH_LOWPUTC
 #  define lldbg(format, arg...) \
-   lib_lowprintf(EXTRA_FMT format EXTRA_ARG, ##arg)
+   lowsyslog(EXTRA_FMT format EXTRA_ARG, ##arg)
 # else
 #  define lldbg(x...)
 # endif
 
 # ifdef CONFIG_DEBUG_VERBOSE
 #  define vdbg(format, arg...) \
-   lib_rawprintf(EXTRA_FMT format EXTRA_ARG, ##arg)
+   syslog(EXTRA_FMT format EXTRA_ARG, ##arg)
 
 #  ifdef CONFIG_ARCH_LOWPUTC
 #    define llvdbg(format, arg...) \
-     lib_lowprintf(EXTRA_FMT format EXTRA_ARG, ##arg)
+     lowsyslog(EXTRA_FMT format EXTRA_ARG, ##arg)
 #  else
 #    define llvdbg(x...)
 #  endif
@@ -576,29 +576,16 @@ extern "C"
 {
 #endif
 
-/* These low-level debug APIs are provided by the NuttX library.  If the
- * cross-compiler's pre-processor supports a variable number of macro
- * arguments, then the macros below will map all debug statements to one
- * or the other of the following.
- */
-
-int lib_rawprintf(FAR const char *format, ...);
-
-#ifdef CONFIG_ARCH_LOWPUTC
-int lib_lowprintf(FAR const char *format, ...);
-#endif
-
 /* Dump a buffer of data */
 
 void lib_dumpbuffer(FAR const char *msg, FAR const uint8_t *buffer, unsigned int buflen);
 
-/* Enable or disable debug output */
-
-#ifdef CONFIG_DEBUG_ENABLE
-void dbg_enable(bool enable);
-#endif
-
-/* If the cross-compiler's pre-processor does not support variable length
+/* The system logging interfaces are pnormally accessed via the macros
+ * provided above.  If the cross-compiler's C pre-processor supports a
+ * variable number of macro arguments, then those macros below will map all
+ * debug statements to the logging interfaces declared in syslog.h.
+ *
+ * If the cross-compiler's pre-processor does not support variable length
  * arguments, then these additional APIs will be built.
  */
 

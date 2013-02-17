@@ -116,99 +116,37 @@ void net_initialize(void)
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
 
-/* Allocate a list of files for a new task */
+/* Initialize a list of sockets for a new task */
 
-FAR struct socketlist *net_alloclist(void)
+void net_initlist(FAR struct socketlist *list)
 {
-  FAR struct socketlist *list;
-  list = (FAR struct socketlist*)kzalloc(sizeof(struct socketlist));
-  if (list)
-    {
-       /* Start with a reference count of one */
+  /* Initialize the list access mutex */
 
-       list->sl_crefs = 1;
-
-       /* Initialize the list access mutex */
-
-      (void)sem_init(&list->sl_sem, 0, 1);
-    }
-  return list;
+  (void)sem_init(&list->sl_sem, 0, 1);
 }
 
-/* Increase the reference count on a file list */
+/* Release release resources held by the socket list */
 
-int net_addreflist(FAR struct socketlist *list)
+void net_releaselist(FAR struct socketlist *list)
 {
-  if (list)
-    {
-       /* Increment the reference count on the list.
-        * NOTE: that we disable interrupts to do this
-        * (vs. taking the list semaphore).  We do this
-        * because file cleanup operations often must be
-        * done from the IDLE task which cannot wait
-        * on semaphores.
-        */
-
-       register uip_lock_t flags = uip_lock();
-       list->sl_crefs++;
-       uip_unlock(flags);
-    }
-  return OK;
-}
-
-/* Release a reference to the file list */
-
-int net_releaselist(FAR struct socketlist *list)
-{
-  int crefs;
   int ndx;
 
-  if (list)
+  DEBUGASSERT(list);
+
+  /* Close each open socket in the list. */
+
+  for (ndx = 0; ndx < CONFIG_NSOCKET_DESCRIPTORS; ndx++)
     {
-       /* Decrement the reference count on the list.
-        * NOTE: that we disable interrupts to do this
-        * (vs. taking the list semaphore).  We do this
-        * because file cleanup operations often must be
-        * done from the IDLE task which cannot wait
-        * on semaphores.
-        */
-
-       uip_lock_t flags = uip_lock();
-       crefs = --(list->sl_crefs);
-       uip_unlock(flags);
-
-       /* If the count decrements to zero, then there is no reference
-        * to the structure and it should be deallocated.  Since there
-        * are references, it would be an error if any task still held
-        * a reference to the list's semaphore.
-        */
-
-       if (crefs <= 0)
-         {
-           /* Close each open socket in the list
-            * REVISIT:  psock_close() will attempt to use semaphores.
-            * If we actually are in the IDLE thread, then could this cause
-            * problems?  Probably not, if the task has exited and crefs is
-            * zero, then there probably could not be a contender for the
-            * semaphore.
-            */
-
-           for (ndx = 0; ndx < CONFIG_NSOCKET_DESCRIPTORS; ndx++)
-             {
-               FAR struct socket *psock = &list->sl_sockets[ndx];
-               if (psock->s_crefs > 0)
-                 {
-                   (void)psock_close(psock);
-                 }
-             }
-
-             /* Destroy the semaphore and release the filelist */
-
-             (void)sem_destroy(&list->sl_sem);
-             sched_free(list);
-         }
+      FAR struct socket *psock = &list->sl_sockets[ndx];
+      if (psock->s_crefs > 0)
+        {
+          (void)psock_close(psock);
+        }
     }
-  return OK;
+
+  /* Destroy the semaphore */
+
+  (void)sem_destroy(&list->sl_sem);
 }
 
 int sockfd_allocate(int minsd)
