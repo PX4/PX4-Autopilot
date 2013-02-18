@@ -113,14 +113,14 @@ static void waitpid_last(void)
       printf("waitpid_last: ERROR: PID %d waitpid failed: %d\n",
              g_waitpids[NCHILDREN-1], errcode);
     }
-  else if (stat_loc != RETURN_STATUS)
+  else if (WEXITSTATUS(stat_loc) != RETURN_STATUS)
     {
       printf("waitpid_last: ERROR: PID %d return status is %d, expected %d\n",
-             g_waitpids[NCHILDREN-1], stat_loc, RETURN_STATUS);
+             g_waitpids[NCHILDREN-1], WEXITSTATUS(stat_loc), RETURN_STATUS);
     }
   else
     {
-      printf("waitpid_last: PID %d waitpid succeeded with stat_loc=%d\n",
+      printf("waitpid_last: PID %d waitpid succeeded with stat_loc=%04x\n",
              g_waitpids[NCHILDREN-1], stat_loc);
     }
 }
@@ -155,14 +155,14 @@ int waitpid_test(void)
       printf("waitpid_test: ERROR: PID %d wait returned PID %d\n",
              g_waitpids[0], ret);
     }
-  else if (stat_loc != RETURN_STATUS)
+  else if (WEXITSTATUS(stat_loc) != RETURN_STATUS)
     {
       printf("waitpid_test: ERROR: PID %d return status is %d, expected %d\n",
-             g_waitpids[0], stat_loc, RETURN_STATUS);
+             g_waitpids[0], WEXITSTATUS(stat_loc), RETURN_STATUS);
     }
   else
     {
-      printf("waitpid_test: PID %d waitpid succeeded with stat_loc=%d\n",
+      printf("waitpid_test: PID %d waitpid succeeded with stat_loc=%04x\n",
              g_waitpids[0], stat_loc);
     }
 
@@ -246,14 +246,14 @@ int waitpid_test(void)
       int errcode = errno;
       printf("waitpid_test: ERROR: wait failed: %d\n", errcode);
     }
-  else if (stat_loc != RETURN_STATUS)
+  else if (WEXITSTATUS(stat_loc) != RETURN_STATUS)
     {
       printf("waitpid_test: ERROR: PID %d return status is %d, expected %d\n",
-             ret, stat_loc, RETURN_STATUS);
+             ret, WEXITSTATUS(stat_loc), RETURN_STATUS);
     }
   else
     {
-      printf("waitpid_test: PID %d wait succeeded with stat_loc=%d\n",
+      printf("waitpid_test: PID %d wait succeeded with stat_loc=%04x\n",
              ret, stat_loc);
     }
 

@@ -71,7 +71,7 @@
 #  undef HAVE_NETPOLL
 #endif
 
-/* If debug is enabled, then use lib_rawprintf so that OS debug output and
+/* If debug is enabled, then use syslog so that OS debug output and
  * the test output are synchronized.
  *
  * These macros will differ depending upon if the toolchain supports
@@ -80,7 +80,7 @@
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
 # ifdef CONFIG_DEBUG
-#   define message(...) lib_rawprintf(__VA_ARGS__)
+#   define message(...) syslog(__VA_ARGS__)
 #   define msgflush()
 # else
 #   define message(...) printf(__VA_ARGS__)
@@ -88,7 +88,7 @@
 # endif
 #else
 # ifdef CONFIG_DEBUG
-#   define message      lib_rawprintf
+#   define message      syslog
 #   define msgflush()
 # else
 #   define message      printf

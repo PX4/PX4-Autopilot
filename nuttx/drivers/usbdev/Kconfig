@@ -148,12 +148,21 @@ config COMPOSITE_VERSIONNO
 endif
 
 menuconfig PL2303
-	bool "Emulates the Prolific PL2303 serial/USB converter"
+	bool "Prolific PL2303 serial/USB converter emulation"
 	default n
+	select SERIAL_REMOVABLE
 	---help---
 		This logic emulates the Prolific PL2303 serial/USB converter
 
 if PL2303
+
+config PL2303_CONSOLE
+	bool "PL2303 console device"
+	default n
+	---help---
+		Register the USB device as /dev/console so that is will be used
+		as the console device.
+
 config PL2303_EPINTIN
 	int "Logical endpoint numbers"
 	default 1
@@ -208,18 +217,27 @@ config PL2303_VENDORSTR
 
 config PL2303_PRODUCTSTR
 	string "Product string"
-	default "USBdev Serial"
+	default "PL2303 Emulation"
 endif
 
 menuconfig CDCACM
 	bool "USB Modem (CDC ACM) support"
 	default n
+	select SERIAL_REMOVABLE
 	---help---
 		Enables USB Modem (CDC ACM) support
 
 if CDCACM
+
+config CDCACM_CONSOLE
+	bool "CDC/ACM console device"
+	default n
+	---help---
+		Register the USB device as /dev/console so that is will be used
+		as the console device.
+
 config CDCACM_COMPOSITE
-	bool "CDCACM composite support"
+	bool "CDC/ACM composite support"
 	default n
 	depends on USBDEV_COMPOSITE
 	---help---
@@ -256,10 +274,10 @@ config CDCACM_EP0MAXPACKET
 
 config CDCACM_EPINTIN
 	int "Hardware endpoint that supports interrupt IN operation"
-	default 2
+	default 1
 	---help---
 		The logical 7-bit address of a hardware endpoint that supports
-		interrupt IN operation.  Default 2.
+		interrupt IN operation.  Default 1.
 
 config CDCACM_EPINTIN_FSSIZE
 	int "Endpoint in full speed size"
@@ -277,10 +295,10 @@ config CDCACM_EPINTIN_HSSIZE
 
 config CDCACM_EPBULKOUT
 	int "Endpoint bulk out"
-	default 0
+	default 3
 	---help---
 		The logical 7-bit address of a hardware endpoint that supports
-		bulk OUT operation
+		bulk OUT operation.  Default: 3
 
 config CDCACM_EPBULKOUT_FSSIZE
 	int "Endpoint bulk out full speed size"
@@ -298,10 +316,10 @@ config CDCACM_EPBULKOUT_HSSIZE
 
 config CDCACM_EPBULKIN
 	int "Endpoint bulk in"
-	default 0
+	default 2
 	---help---
 		The logical 7-bit address of a hardware endpoint that supports
-		bulk IN operation
+		bulk IN operation.  Default: 2
 
 config CDCACM_EPBULKIN_FSSIZE
 	int "Endpoint bulk in full speed size"
@@ -336,7 +354,7 @@ config CDCACM_RXBUFSIZE
 		Size of the serial receive/transmit buffers
 
 config CDCACM_TXBUFSIZE
-	bool "Transmit buffer size"
+	int "Transmit buffer size"
 	default 256
 	---help---
 		Size of the serial receive/transmit buffers
@@ -364,7 +382,7 @@ config CDCACM_VENDORSTR
 
 config CDCACM_PRODUCTSTR
 	string "Product string"
-	default "USBdev Serial"
+	default "CDC/ACM Serial"
 endif
 
 menuconfig USBMSC
@@ -479,8 +497,8 @@ config USBMSC_PRODUCTID
 	default 0x00
 
 config USBMSC_PRODUCTSTR
-	string "Mass stroage product string"
-	default "Mass stroage"
+	string "Mass storage product string"
+	default "Mass Storage"
 
 config USBMSC_VERSIONNO
 	hex "USB MSC Version Number"

@@ -261,7 +261,7 @@ defconfig -- This is a configuration file similar to the Linux
 
     CONFIG_DEBUG - enables built-in debug options
     CONFIG_DEBUG_VERBOSE - enables verbose debug output
-    CCONFIG_DEBUG_ENABLE - Support an interface to enable or disable debug output.
+    CCONFIG_SYSLOG_ENABLE - Support an interface to enable or disable debug output.
     CONFIG_DEBUG_SYMBOLS - build without optimization and with
       debug symbols (needed for use with a debugger).
     CONFIG_DEBUG_SCHED - enable OS debug output (disabled by

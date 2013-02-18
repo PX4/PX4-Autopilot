@@ -118,24 +118,11 @@ struct stm32_dev_s
   uint32_t freq;      /* The desired frequency of conversions */
 #endif
   uint8_t  chanlist[ADC_MAX_SAMPLES];
-#ifdef CONFIG_ADC_DMA
-  const unsigned int rxdma_channel; /* DMA channel assigned */
-  DMA_HANDLE        rxdma;     /* currently-open receive DMA stream */
-  bool              rxenable;  /* DMA-based reception en/disable */
-  uint32_t          rxdmanext; /* Next byte in the DMA buffer to be read */
-  int32_t       *const rxfifo;    /* Receive DMA buffer */
-#endif
 };
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
-
-# ifdef CONFIG_ADC_DMA
-static int16_t g_adc3dmarxfifo[ADC_MAX_SAMPLES];
-# endif
-
-
 
 /* ADC Register access */
 
@@ -177,15 +164,6 @@ static int  adc_timinit(FAR struct stm32_dev_s *priv);
 
 #if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 static void adc_startconv(FAR struct stm32_dev_s *priv, bool enable);
-#endif
-
-#ifdef CONFIG_ADC_DMA
-static int  up_dma_setup(struct adc_dev_s *dev);
-static void up_dma_shutdown(struct adc_dev_s *dev);
-//static int  up_dma_receive(struct uart_dev_s *dev, uint32_t *status);
-//static void up_dma_rxint(struct uart_dev_s *dev, bool enable);
-//static bool up_dma_rxavailable(struct uart_dev_s *dev);
-static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, FAR struct adc_dev_s *dev);
 #endif
 
 /****************************************************************************
@@ -283,10 +261,6 @@ static struct stm32_dev_s g_adcpriv3 =
   .extsel      = ADC3_EXTSEL_VALUE,
   .pclck       = ADC3_TIMER_PCLK_FREQUENCY,
   .freq        = CONFIG_STM32_ADC3_SAMPLE_FREQUENCY,
-#endif
-#ifdef CONFIG_ADC_DMA
-  .rxdma_channel = DMAMAP_ADC3_2,
-  .rxfifo        = g_adc3dmarxfifo,
 #endif
 };
 
@@ -569,7 +543,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
    * So ( prescaler = pclck / 65535 / freq ) would be optimal.
    */
 
-  prescaler = 128;//(priv->pclck / priv->freq + 65534) / 65535;
+  prescaler = (priv->pclck / priv->freq + 65534) / 65535;
 
   /* We need to decrement the prescaler value by one, but only, the value does
    * not underflow.
@@ -591,7 +565,7 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
 
   timclk = priv->pclck / prescaler;
 
-  reload = priv->freq;//timclk / priv->freq;
+  reload = timclk / priv->freq;
   if (reload < 1)
     {
       adbg("WARNING: Reload value underflowed.\n");
@@ -720,10 +694,10 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
 
       case 4: /* TimerX TRGO event */
         {
-#warning "TRGO support not yet implemented"
-
+          /* TODO: TRGO support not yet implemented */
           /* Set the event TRGO */
 
+          ccenable = 0;
           egr      = GTIM_EGR_TG;
 
           /* Set the duty cycle by writing to the CCR register for this channel */
@@ -936,139 +910,6 @@ static void adc_rccreset(struct stm32_dev_s *priv, bool reset)
   irqrestore(flags);
 }
 
-/****************************************************************************
- * Name: up_dma_setup
- *
- * Description:
- *
- ****************************************************************************/
-
-#ifdef CONFIG_ADC_DMA
-static int up_dma_setup(FAR struct adc_dev_s *dev)
-{
-
-  FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
-  int result;
-  uint32_t regval;
-
-//
-//  result = up_setup(dev);
-//  if (result != OK)
-//    {
-//      return result;
-//    }
-
-  /* Acquire the DMA channel.  This should always succeed. */
-
- priv->rxdma = stm32_dmachannel(priv->rxdma_channel);
-
-  /* Configure for circular DMA reception into the RX fifo */
-
-  stm32_dmasetup(priv->rxdma,
-                 priv->base + STM32_ADC_DR_OFFSET,
-                 (uint32_t)priv->rxfifo,
-                 4,//buffersize
-                 DMA_SCR_DIR_P2M       |
-                 DMA_SCR_CIRC          |
-                 DMA_SCR_MINC          |
-                 DMA_SCR_PSIZE_16BITS   |
-                 DMA_SCR_MSIZE_16BITS   |
-                 DMA_SCR_PBURST_SINGLE |
-                 DMA_SCR_MBURST_SINGLE);
-
-  /* Reset our DMA shadow pointer to match the address just
-   * programmed above.
-   */
-
-  //priv->rxdmanext = 0;
-
-  /* Enable  DMA for the ADC */
-
-  /* Start the DMA channel, and arrange for callbacks at the half and
-   * full points in the FIFO.  This ensures that we have half a FIFO
-   * worth of time to claim bytes before they are overwritten.
-   */
-
-  stm32_dmastart(priv->rxdma, up_dma_rxcallback, (void *)dev, false);
-
-  return OK;
-}
-#endif
-/****************************************************************************
- * Name: up_dma_rxcallback
- *
- * Description:
-
- *
- ****************************************************************************/
-
-#ifdef CONFIG_ADC_DMA
-static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, FAR struct adc_dev_s *dev)
-{
-  //struct up_dev_s *priv = (struct up_dev_s*)arg;
-  //uint32_t regval;
-  FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
-  //struct stm32_dma_s *dmast = (struct stm32_dma_s *)handle;
-
-  //if (priv->rxenable && up_dma_rxavailable(&priv->dev))
-    {
-      /* Give the ADC data to the ADC driver.  adc_receive accepts 3 parameters:
-       *
-       * 1) The first is the ADC device instance for this ADC block.
-       * 2) The second is the channel number for the data, and
-       * 3) The third is the converted data for the channel.
-       */
-
-
-      adc_receive(dev, 10, (int32_t)g_adc3dmarxfifo[1]);
-      adc_receive(dev, 11, (int32_t)g_adc3dmarxfifo[2]);
-      adc_receive(dev, 12, (int32_t)g_adc3dmarxfifo[3]);
-      adc_receive(dev, 13, (int32_t)g_adc3dmarxfifo[0]);
-
-
-      /* Set the channel number of the next channel that will complete conversion */
-
-      priv->current++;
-
-      if (priv->current >= priv->nchannels)
-        {
-          /* Restart the conversion sequence from the beginning */
-
-          priv->current = 0;
-        }
-
-
-    }
-}
-#endif
-
-/****************************************************************************
- * Name: up_dma_shutdown
- *
- * Description:
- *   Disable the DMA
- *
- ****************************************************************************/
-
-#ifdef CONFIG_ADC_DMA
-static void up_dma_shutdown(struct adc_dev_s *dev)
-{
-
-	FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
-
-
-  /* Stop the DMA channel */
-
-  stm32_dmastop(priv->rxdma);
-
-  /* Release the DMA channel */
-
-  stm32_dmafree(priv->rxdma);
-  priv->rxdma = NULL;
-}
-#endif
-
-
 /*******************************************************************************
  * Name: adc_enable
  *
@@ -1089,7 +930,7 @@ static void adc_enable(FAR struct stm32_dev_s *priv, bool enable)
 {
   uint32_t regval;
 
- // avdbg("enable: %d\n", enable);
+  avdbg("enable: %d\n", enable);
 
   regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
   if (enable)
@@ -1123,12 +964,14 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   uint32_t regval;
   int offset;
   int i;
+#ifdef ADC_HAVE_TIMER
   int ret;
+#endif
 
   avdbg("intf: ADC%d\n", priv->intf);
   flags = irqsave();
 
-  /* Enable  ADC reset state */
+  /* Enable ADC reset state */
 
   adc_rccreset(priv, true);
 
@@ -1145,7 +988,6 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* Initialize the watchdog low threshold register */
 
   adc_putreg(priv, STM32_ADC_LTR_OFFSET, 0x00000000);
-
 
   /* Initialize the same sample time for each ADC 55.5 cycles
    *
@@ -1179,7 +1021,15 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   regval |= ADC_CR1_AWDEN;
   regval |= (priv->chanlist[0] << ADC_CR1_AWDCH_SHIFT);
 
+  /* Enable interrupt flags */
+
+  regval |= ADC_CR1_ALLINTS;
+
 #if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+
+  /* Enable or disable Overrun interrupt */
+
+  regval &= ~ADC_CR1_OVRIE;
 
   /* Set the resolution of the conversion */
 
@@ -1229,12 +1079,6 @@ static void adc_reset(FAR struct adc_dev_s *dev)
     {
       regval |= (uint32_t)priv->chanlist[i] << offset;
     }
-  /* Set the number of conversions */
-
-  DEBUGASSERT(priv->nchannels <= ADC_MAX_SAMPLES);
-
-  regval |= (((uint32_t)priv->nchannels-1) << ADC_SQR1_L_SHIFT);
-  adc_putreg(priv, STM32_ADC_SQR1_OFFSET, regval);
 
   /* ADC CCR configuration */
 
@@ -1246,7 +1090,12 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   putreg32(regval, STM32_ADC_CCR);
 #endif
 
+  /* Set the number of conversions */
 
+  DEBUGASSERT(priv->nchannels <= ADC_MAX_SAMPLES);
+
+  regval |= (((uint32_t)priv->nchannels-1) << ADC_SQR1_L_SHIFT);
+  adc_putreg(priv, STM32_ADC_SQR1_OFFSET, regval);
 
   /* Set the channel index of the first conversion */
 
@@ -1270,29 +1119,24 @@ static void adc_reset(FAR struct adc_dev_s *dev)
 
   adc_enable(priv, true);
 #else
-#ifdef CONFIG_ADC_DMA
-  //nothing
-#else
   adc_startconv(priv, true);
-#endif
 #endif /* CONFIG_STM32_STM32F10XX */
 #endif /* ADC_HAVE_TIMER */
 
-
   irqrestore(flags);
 
-//  avdbg("SR:   0x%08x CR1:  0x%08x CR2:  0x%08x\n",
-//        adc_getreg(priv, STM32_ADC_SR_OFFSET),
-//        adc_getreg(priv, STM32_ADC_CR1_OFFSET),
-//        adc_getreg(priv, STM32_ADC_CR2_OFFSET));
-//  avdbg("SQR1: 0x%08x SQR2: 0x%08x SQR3: 0x%08x\n",
-//        adc_getreg(priv, STM32_ADC_SQR1_OFFSET),
-//        adc_getreg(priv, STM32_ADC_SQR2_OFFSET),
-//        adc_getreg(priv, STM32_ADC_SQR3_OFFSET));
-//#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
-//  avdbg("CCR:  0x%08x\n",
-//        getreg32(STM32_ADC_CCR));
-//#endif
+  avdbg("SR:   0x%08x CR1:  0x%08x CR2:  0x%08x\n",
+        adc_getreg(priv, STM32_ADC_SR_OFFSET),
+        adc_getreg(priv, STM32_ADC_CR1_OFFSET),
+        adc_getreg(priv, STM32_ADC_CR2_OFFSET));
+  avdbg("SQR1: 0x%08x SQR2: 0x%08x SQR3: 0x%08x\n",
+        adc_getreg(priv, STM32_ADC_SQR1_OFFSET),
+        adc_getreg(priv, STM32_ADC_SQR2_OFFSET),
+        adc_getreg(priv, STM32_ADC_SQR3_OFFSET));
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+  avdbg("CCR:  0x%08x\n",
+        getreg32(STM32_ADC_CCR));
+#endif
 }
 
 /****************************************************************************
@@ -1314,86 +1158,21 @@ static int adc_setup(FAR struct adc_dev_s *dev)
 {
   FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
   int ret;
-  uint32_t regval;
 
-
-  /* the adc seems to need a full reset to be enabled correctly */
-  adc_reset(dev);
-
-#ifndef CONFIG_ADC_DMA
   /* Attach the ADC interrupt */
 
   ret = irq_attach(priv->irq, priv->isr);
   if (ret == OK)
     {
+      /* Make sure that the ADC device is in the powered up, reset state */
+
+      adc_reset(dev);
+
       /* Enable the ADC interrupt */
 
       avdbg("Enable the ADC interrupt: irq=%d\n", priv->irq);
       up_enable_irq(priv->irq);
     }
-#endif
-
-#ifdef CONFIG_ADC_DMA
-   up_dma_setup(dev);
-
-
-//#ifndef ADC_HAVE_TIMER
-//   /*disable external trigger*/
-//   regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
-//   regval |= ACD_CR2_EXTEN_NONE;
-//   //regval |= ADC_CR1_DISCEN;
-//   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-//#else
-//   /*enable external trigger*/
-//   regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
-//   regval |=ADC_CR2_EXTSEL_T4CC4;
-//   regval |=ACD_CR2_EXTEN_BOTH;
-//   //regval |= ADC_CR2_CONT;
-//   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-//#endif
-
-
-   /*enable scan mode*/
-   regval  = adc_getreg(priv, STM32_ADC_CR1_OFFSET);
-   regval |= ADC_CR1_SCAN;
-   //regval |= ADC_CR1_DISCEN;
-   adc_putreg(priv, STM32_ADC_CR1_OFFSET, regval);
-
-  /* Enable DMA request after last transfer (Single-ADC mode) */
-   //ADC_DMARequestAfterLastTransferCmd(ADC3, ENABLE);
-   regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
-   regval |= ADC_CR2_DDS;
-   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-
-   /* Enable ADC3 DMA */
-  // ADC_DMACmd(ADC3, ENABLE);
-   regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
-   regval |= ADC_CR2_DMA;
-   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-#endif
-
-
-#ifndef ADC_HAVE_TIMER
-   /*set continuous conversion */
-   regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
-   regval |= ADC_CR2_CONT;
-   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-#endif
-
-   /* Enable ADC3 */
-   //ADC_Cmd(ADC3, ENABLE);
-   regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
-   regval |= ADC_CR2_ADON;
-   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-
-////   /*start conversion*/
-//   regval  = adc_getreg(priv, STM32_ADC_CR2_OFFSET);
-//   regval |= ADC_CR2_SWSTART;
-//   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
-
-
-
-
 
   return ret;
 }
@@ -1415,24 +1194,14 @@ static void adc_shutdown(FAR struct adc_dev_s *dev)
 {
   FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
 
-#ifdef CONFIG_ADC_DMA
-  up_dma_shutdown(dev);
-#endif
-
-#ifdef ADC_HAVE_TIMER
-  /* stop adc timer */
-  adc_timstart(priv, false);
-#endif
-
-  /* power down ADC */
-  adc_enable(priv, false);
-
-  adc_rxint(dev, false);
-
   /* Disable ADC interrupts and detach the ADC interrupt handler */
+
   up_disable_irq(priv->irq);
-//  irq_detach(priv->irq);
-  // XXX Why is irq_detach here commented out?
+  irq_detach(priv->irq);
+
+  /* Disable and reset the ADC module */
+
+  adc_rccreset(priv, true);
 }
 
 /****************************************************************************

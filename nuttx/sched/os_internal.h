@@ -99,15 +99,6 @@ enum os_crash_codes_e
 #define MAX_TASKS_MASK      (CONFIG_MAX_TASKS-1)
 #define PIDHASH(pid)        ((pid) & MAX_TASKS_MASK)
 
-/* Stubs used when there are no file descriptors */
-
-#if CONFIG_NFILE_DESCRIPTORS <= 0 && CONFIG_NSOCKET_DESCRIPTORS <= 0
-# define sched_setupidlefiles(t)    (OK)
-# define sched_setuptaskfiles(t)    (OK)
-# define sched_setuppthreadfiles(t) (OK)
-# define sched_releasefiles(t)      (OK)
-#endif
-
 /* One processor family supported by NuttX has a single, fixed hardware stack.
  * That is the 8051 family.  So for that family only, there is a variant form
  * of kernel_thread() that does not take a stack size parameter.  The following
@@ -262,24 +253,16 @@ extern const tasklist_t g_tasklisttable[NUM_TASK_STATES];
  ****************************************************************************/
 
 int  os_bringup(void);
+#ifdef CONFIG_SCHED_CHILD_STATUS
+void weak_function task_initialize(void);
+#endif
 void task_start(void);
 int  task_schedsetup(FAR _TCB *tcb, int priority, start_t start,
                      main_t main, uint8_t ttype);
 int  task_argsetup(FAR _TCB *tcb, FAR const char *name, FAR const char *argv[]);
 void task_exithook(FAR _TCB *tcb, int status);
 int  task_deletecurrent(void);
-#ifdef CONFIG_SCHED_HAVE_PARENT
-#ifdef CONFIG_SCHED_CHILD_STATUS
-void weak_function task_initialize(void);
-FAR struct child_status_s *task_allocchild(void);
-void task_freechild(FAR struct child_status_s *status);
-void task_addchild(FAR _TCB *tcb, FAR struct child_status_s *child);
-FAR struct child_status_s *task_findchild(FAR _TCB *tcb, pid_t pid);
-FAR struct child_status_s *task_removechild(FAR _TCB *tcb, pid_t pid);
-void task_removechildren(FAR _TCB *tcb);
-#endif
-int  task_reparent(pid_t ppid, pid_t chpid);
-#endif
+
 #ifndef CONFIG_CUSTOM_STACK
 int  kernel_thread(FAR const char *name, int priority, int stack_size,
                    main_t entry, FAR const char *argv[]);
@@ -301,16 +284,6 @@ int  sched_reprioritize(FAR _TCB *tcb, int sched_priority);
 #endif
 FAR _TCB *sched_gettcb(pid_t pid);
 bool sched_verifytcb(FAR _TCB *tcb);
-
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-int  sched_setupidlefiles(FAR _TCB *tcb);
-int  sched_setuptaskfiles(FAR _TCB *tcb);
-int  sched_setuppthreadfiles(FAR _TCB *tcb);
-#if CONFIG_NFILE_STREAMS > 0
-int  sched_setupstreams(FAR _TCB *tcb);
-#endif
-int  sched_releasefiles(FAR _TCB *tcb);
-#endif
 
 int  sched_releasetcb(FAR _TCB *tcb);
 void sched_garbagecollection(void);

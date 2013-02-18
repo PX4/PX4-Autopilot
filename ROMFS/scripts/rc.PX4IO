@@ -1,73 +1,80 @@
 #!nsh
-
+ 
+# Disable USB and autostart
 set USB no
-
+set MODE camflyer
+ 
 #
-# Start the object request broker
+# Start the ORB
 #
 uorb start
-
+ 
 #
-# Init the EEPROM
+# Load microSD params
 #
-echo "[init] eeprom"
-eeprom start
-if [ -f /eeprom/parameters ]
+echo "[init] loading microSD params"
+param select /fs/microsd/parameters
+if [ -f /fs/microsd/parameters ]
 then
-	param load
+	param load /fs/microsd/parameters
 fi
-
+ 
 #
-# Enable / connect to PX4IO
+# Force some key parameters to sane values
+# MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
+#              see https://pixhawk.ethz.ch/mavlink/
 #
-px4io start
-
-#
-# Load an appropriate mixer. FMU_pass.mix is a passthru mixer
-# which is good for testing. See ROMFS/mixers for a full list of mixers.
-#
-mixer load /dev/pwm_output /etc/mixers/FMU_pass.mix
-
+param set MAV_TYPE 1
+ 
 #
 # Start the sensors.
 #
 sh /etc/init.d/rc.sensors
-
+ 
 #
-# Start MAVLink on UART1 (dev/ttyS0) at 57600 baud (CLI is now unusable)
+# Start MAVLink
 #
-mavlink start -d /dev/ttyS0 -b 57600
+mavlink start -d /dev/ttyS1 -b 57600
 usleep 5000
-
+ 
 #
 # Start the commander.
 #
 commander start
-
+ 
+#
+# Start GPS interface
+#
+gps start
+ 
 #
 # Start the attitude estimator
 #
-attitude_estimator_ekf start
+kalman_demo start
+ 
+#
+# Start PX4IO interface
+#
+px4io start
+ 
+#
+# Load mixer and start controllers
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_Q.mix
+control_demo start
+ 
+#
+# Start logging
+#
+sdlog start -s 10
 
 #
-# Start the attitude and position controller
+# Start system state
 #
-fixedwing_att_control start
-fixedwing_pos_control start
-
-#
-# Start GPS capture. Comment this out if you do not have a GPS.
-#
-gps start
-
-#
-# Start logging to microSD if we can
-#	  	
-sh /etc/init.d/rc.logging
-
-#
-# startup is done; we don't want the shell because we
-# use the same UART for telemetry
-#
-echo "[init] startup done"
-exit
+if blinkm start
+then
+	echo "using BlinkM for state indication"
+	blinkm systemstate
+else
+	echo "no BlinkM found, OK."
+fi

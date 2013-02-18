@@ -280,8 +280,14 @@ NuttX Configuration Tool
 
     make menuconfig
 
-  This make target will bring up NuttX configuration menus.  The
-  'menuconfig' target depends on two things:
+  This make target will bring up NuttX configuration menus.
+
+  WARNING:  Never do 'make menuconfig' on a configuration that has
+  not been converted to use the kconfig-frontends tools!  This will
+  damage your configuration (see 
+  http://www.nuttx.org/doku.php?id=wiki:howtos:convertconfig).
+
+  The 'menuconfig' make target depends on two things:
 
   1. The Kconfig configuration data files that appear in almost all
      NuttX directories.  These data files are the part that is still
@@ -318,6 +324,22 @@ NuttX Configuration Tool
 
   This is pretty straight forward for creating new configurations
   but may be less intuitive for modifying existing configurations.
+
+Refreshing Configurations with 'make oldconfig'
+-----------------------------------------------
+
+  Whenever you use a configuration, you really should always do
+  the following *before* you make NuttX:
+
+    make oldconfig
+
+  This will make sure that the configuration is up-to-date in
+  the event that it has lapsed behind the current NuttX development.
+
+  WARNING:  Never do 'make oldconfig' (OR 'make menuconfig') on a
+  configuration that has not been converted to use the kconfig-frontends
+  tools!  This will damage your configuration (see
+  http://www.nuttx.org/doku.php?id=wiki:howtos:convertconfig).
 
 Incompatibilities with Older Configurations
 -------------------------------------------
@@ -501,8 +523,21 @@ NuttX Buildroot Toolchain
 
   Disadvantages:  This tool chain is not was well supported as some other
   toolchains.  GNU tools are not my priority and so the buildroot tools
-  often get behind.  For example, the is still no EABI support in the
-  NuttX buildroot toolchain for ARM.
+  often get behind.  For example, until recently there was no EABI support
+  in the NuttX buildroot toolchain for ARM.
+
+  NOTE: For Cortex-M3/4, there are OABI and EABI versions of the buildroot
+  toolchains.  If you are using the older OABI toolchain the prefix for
+  the tools will be arm-nuttx-elf-; for the EABI toolchin the prefix will
+  be arm-nuttx-eabi-.  If you are using the older OABI toolchain with
+  an ARM Cortex-M3/4, you will need to set CONFIG_ARMV7M_OABI_TOOLCHAIN
+  in the .config file in order to pick the right tool prefix.
+
+  If the make system ever picks the wrong prefix for your toolchain, you
+  can always specify the prefix on the command to override the default
+  like:
+
+    make CROSSDEV=arm-nuttx-elf
 
 SHELLS
 ^^^^^^
@@ -1159,17 +1194,9 @@ apps
  |- NxWidgets/
  |   `- README.txt
  |- system/
- |   |- i2c/README.txt
- |   |- free/README.txt
- |   |- install
+ |   |- i2c
  |   |  `- README.txt
- |   |- poweroff
- |   |  `- README.txt
- |   |- ramtron
- |   |  `- README.txt
- |   |- sdcard
- |   |  `- README.txt
- |   `- sysinfo
+ |   `- install
  |      `- README.txt
  `- README.txt
 

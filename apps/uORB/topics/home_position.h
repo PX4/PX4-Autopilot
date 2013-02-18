@@ -61,10 +61,10 @@ struct home_position_s
 	int32_t lat;                    /**< Latitude in 1E7 degrees */
 	int32_t lon;                    /**< Longitude in 1E7 degrees */
 	int32_t alt;                    /**< Altitude in 1E3 meters (millimeters) above MSL */
-	uint16_t eph;                   /**< GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535 */
-	uint16_t epv;                   /**< GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535 */
-	float s_variance;               /**< speed accuracy estimate cm/s */
-	float p_variance;               /**< position accuracy estimate cm */
+	float eph_m;                   /**< GPS HDOP horizontal dilution of position in m */
+	float epv_m;                   /**< GPS VDOP horizontal dilution of position in m */
+	float s_variance_m_s;               /**< speed accuracy estimate m/s */
+	float p_variance_m;               /**< position accuracy estimate m */
 };
 
 /**

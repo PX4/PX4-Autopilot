@@ -34,3 +34,7 @@ endmenu
 menu "Sysinfo"
 source "$APPSDIR/system/sysinfo/Kconfig"
 endmenu
+
+menu "USB Monitor"
+source "$APPSDIR/system/usbmonitor/Kconfig"
+endmenu

@@ -268,7 +268,7 @@ static ssize_t loop_write(FAR struct inode *inode, const unsigned char *buffer,
                         size_t start_sector, unsigned int nsectors)
 {
   FAR struct loop_struct_s *dev;
-  size_t nbyteswritten;
+  ssize_t nbyteswritten;
   off_t offset;
   int ret;
 

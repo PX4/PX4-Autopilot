@@ -1,7 +1,7 @@
 /****************************************************************************
  * env_getenv.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2008, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,10 +77,10 @@
 
 FAR char *getenv(const char *name)
 {
-  FAR _TCB      *rtcb;
-  FAR environ_t *envp;
-  FAR char      *pvar;
-  FAR char      *pvalue = NULL;
+  FAR _TCB *rtcb;
+  FAR struct task_group_s *group;
+  FAR char *pvar;
+  FAR char *pvalue = NULL;
   int ret = OK;
 
   /* Verify that a string was passed */
@@ -95,11 +95,11 @@ FAR char *getenv(const char *name)
 
   sched_lock();
   rtcb = (FAR _TCB*)g_readytorun.head;
-  envp = rtcb->envp;
+  group = rtcb->group;
 
   /* Check if the variable exists */
 
-  if ( !envp || (pvar = env_findvar(envp, name)) == NULL)
+  if ( !group || (pvar = env_findvar(group, name)) == NULL)
     {
       ret = ENOENT;
       goto errout_with_lock;

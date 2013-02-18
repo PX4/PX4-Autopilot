@@ -39,9 +39,7 @@ ASRCS =
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 
 MISC_SRCS  = os_start.c os_bringup.c errno_getptr.c errno_get.c errno_set.c
-MISC_SRCS += sched_garbage.c sched_setupstreams.c sched_getfiles.c sched_getsockets.c
-MISC_SRCS += sched_getstreams.c sched_setupidlefiles.c sched_setuptaskfiles.c
-MISC_SRCS += sched_setuppthreadfiles.c sched_releasefiles.c
+MISC_SRCS += sched_garbage.c sched_getfiles.c sched_getsockets.c sched_getstreams.c
 
 TSK_SRCS = prctl.c task_create.c task_init.c task_setup.c task_activate.c
 TSK_SRCS += task_start.c task_delete.c task_deletecurrent.c task_exithook.c
@@ -54,6 +52,10 @@ ifneq ($(CONFIG_BINFMT_DISABLE),y)
 ifeq ($(CONFIG_LIBC_EXECFUNCS),y)
 TSK_SRCS += task_posixspawn.c
 endif
+endif
+
+ifeq ($(CONFIG_SCHED_STARTHOOK),y)
+TSK_SRCS += task_starthook.c
 endif
 
 SCHED_SRCS = sched_setparam.c sched_setpriority.c sched_getparam.c
@@ -73,13 +75,6 @@ ifeq ($(CONFIG_PRIORITY_INHERITANCE),y)
 SCHED_SRCS += sched_reprioritize.c 
 endif
 
-ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
-SCHED_SRCS += task_reparent.c
-ifeq ($(CONFIG_SCHED_CHILD_STATUS),y)
-SCHED_SRCS += task_childstatus.c 
-endif
-endif
-
 ifeq ($(CONFIG_SCHED_WAITPID),y)
 SCHED_SRCS += sched_waitpid.c
 ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
@@ -87,7 +82,21 @@ SCHED_SRCS += sched_waitid.c sched_wait.c
 endif
 endif
 
-ENV_SRCS  = env_getenvironptr.c env_dup.c env_share.c env_release.c
+GRP_SRCS  = group_create.c group_join.c group_leave.c group_find.c
+GRP_SRCS += group_setupstreams.c group_setupidlefiles.c group_setuptaskfiles.c
+
+ifeq ($(CONFIG_SCHED_HAVE_PARENT),y)
+GRP_SRCS += task_reparent.c
+ifeq ($(CONFIG_SCHED_CHILD_STATUS),y)
+GRP_SRCS += group_childstatus.c 
+endif
+endif
+
+ifneq ($(CONFIG_DISABLE_SIGNALS),y)
+GRP_SRCS += group_signal.c
+endif
+
+ENV_SRCS  = env_getenvironptr.c env_dup.c env_release.c
 ENV_SRCS += env_findvar.c env_removevar.c
 ENV_SRCS += env_clearenv.c env_getenv.c env_putenv.c env_setenv.c env_unsetenv.c
 
@@ -169,8 +178,9 @@ IRQ_SRCS = irq_initialize.c irq_attach.c irq_dispatch.c irq_unexpectedisr.c
 KMM_SRCS = kmm_initialize.c kmm_addregion.c kmm_semaphore.c
 KMM_SRCS = kmm_kmalloc.c kmm_kzalloc.c kmm_krealloc.c kmm_kfree.c
 
-CSRCS = $(MISC_SRCS) $(TSK_SRCS) $(SCHED_SRCS) $(WDOG_SRCS) $(TIME_SRCS) \
-	    $(SEM_SRCS) $(TIMER_SRCS) $(WORK_SRCS) $(PGFILL_SRCS) $(IRQ_SRCS)
+CSRCS  = $(MISC_SRCS) $(TSK_SRCS) $(GRP_SRCS) $(SCHED_SRCS) $(WDOG_SRCS)
+CSRCS += $(TIME_SRCS) $(SEM_SRCS) $(TIMER_SRCS) $(WORK_SRCS) $(PGFILL_SRCS)
+CSRCS += $(IRQ_SRCS)
 
 ifneq ($(CONFIG_DISABLE_CLOCK),y)
 CSRCS += $(CLOCK_SRCS)

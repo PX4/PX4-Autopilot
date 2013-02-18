@@ -93,9 +93,9 @@ int printf(const char *fmt, ...)
 #if CONFIG_NFILE_STREAMS > 0
   ret = vfprintf(stdout, fmt, ap);
 #elif CONFIG_NFILE_DESCRIPTORS > 0
-  ret = lib_rawvprintf(fmt, ap);
+  ret = vsyslog(fmt, ap);
 #elif defined(CONFIG_ARCH_LOWPUTC)
-  ret = lib_lowvprintf(fmt, ap);
+  ret = lowvsyslog(fmt, ap);
 #else
 # ifdef CONFIG_CPP_HAVE_WARNING
 #   warning "printf has no data sink"
