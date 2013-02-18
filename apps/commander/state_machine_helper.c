@@ -119,6 +119,16 @@ int do_navigation_state_update(int status_pub, struct vehicle_status_s *current_
 					valid_path = true;
 				}
 				break;
+			case NAVIGATION_STATE_DESCENT:
+
+				if (current_status->navigation_state == NAVIGATION_STATE_MANUAL
+				 || current_status->navigation_state == NAVIGATION_STATE_SEATBELT) {
+
+					 mavlink_log_critical(mavlink_fd, "Switched to DESCENT state");
+					 valid_transition = true;
+					 valid_path = true;
+				}
+				break;
 
 			case NAVIGATION_STATE_LOITER:
 
@@ -146,25 +156,28 @@ int do_navigation_state_update(int status_pub, struct vehicle_status_s *current_
 				/* coming from STANDBY pos and home lock are needed */
 				if (current_status->navigation_state == NAVIGATION_STATE_STANDBY) {
 
-					if (current_status->flag_global_position_valid && current_status->flag_valid_launch_position) {
-						mavlink_log_critical(mavlink_fd, "Switched to AUTO READY state");
-						valid_transition = true;
+					if (!current_status->flag_system_armed) {
+						mavlink_log_critical(mavlink_fd, "Rejected AUTO READY state: disarmed");
+
 					} else if (!current_status->flag_global_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rejected AUTO READY state: no pos lock");
+
 					} else if (!current_status->flag_valid_launch_position) {
 						mavlink_log_critical(mavlink_fd, "Rejected AUTO READY state: no home lock");
+
 					} else {
-						mavlink_log_critical(mavlink_fd, "Rejected AUTO READY state: no pos and home lock");
+						mavlink_log_critical(mavlink_fd, "Switched to AUTO READY state");
+						valid_transition = true;
 					}
 					valid_path = true;
 				/* coming from LAND home lock is needed */
 				} else if (current_status->navigation_state == NAVIGATION_STATE_LAND) {
 
-					if (current_status->flag_valid_launch_position) {
+					if (!current_status->flag_valid_launch_position) {
+						mavlink_log_critical(mavlink_fd, "Rejected AUTO READY state: no home lock");
+					} else {
 						mavlink_log_critical(mavlink_fd, "Switched to AUTO READY state");
 						valid_transition = true;
-					} else {
-						mavlink_log_critical(mavlink_fd, "Rejected AUTO READY state: no home lock");
 					}
 					valid_path = true;
 				}
@@ -183,15 +196,15 @@ int do_navigation_state_update(int status_pub, struct vehicle_status_s *current_
 				} else if (current_status->navigation_state == NAVIGATION_STATE_MANUAL
 						|| current_status->navigation_state == NAVIGATION_STATE_SEATBELT) {
 
-					if (current_status->flag_global_position_valid && current_status->flag_valid_launch_position) {
-						mavlink_log_critical(mavlink_fd, "Switched to MISSION state");
-						valid_transition = true;
-					} else if (!current_status->flag_global_position_valid) {
+					if (!current_status->flag_global_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rejected MISSION state: no pos lock");
+
 					} else if (!current_status->flag_valid_launch_position) {
 						mavlink_log_critical(mavlink_fd, "Rejected MISSION state: no home lock");
+						mavlink_log_critical(mavlink_fd, "Switched to MISSION state");
+						valid_transition = true;
 					} else {
-						mavlink_log_critical(mavlink_fd, "Rejected MISSION state: no pos and home lock");
+
 					}
 					valid_path = true;
 
@@ -219,15 +232,13 @@ int do_navigation_state_update(int status_pub, struct vehicle_status_s *current_
 				} else if (current_status->navigation_state == NAVIGATION_STATE_MANUAL
 						|| current_status->navigation_state == NAVIGATION_STATE_SEATBELT) {
 
-					if (current_status->flag_global_position_valid && current_status->flag_valid_launch_position) {
-						mavlink_log_critical(mavlink_fd, "Switched to RTL state");
-						valid_transition = true;
-					} else if (!current_status->flag_global_position_valid) {
+					if (!current_status->flag_global_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rejected RTL state: no pos lock");
 					} else if (!current_status->flag_valid_launch_position) {
 						mavlink_log_critical(mavlink_fd, "Rejected RTL state: no home lock");
 					} else {
-						mavlink_log_critical(mavlink_fd, "Rejected RTL state: no pos and home lock");
+						mavlink_log_critical(mavlink_fd, "Switched to RTL state");
+						valid_transition = true;
 					}
 					valid_path = true;
 
@@ -256,7 +267,8 @@ int do_navigation_state_update(int status_pub, struct vehicle_status_s *current_
 
 			case NAVIGATION_STATE_LAND:
 				if (current_status->navigation_state == NAVIGATION_STATE_RTL
-				 || current_status->navigation_state == NAVIGATION_STATE_LOITER) {
+				 || current_status->navigation_state == NAVIGATION_STATE_LOITER
+				 || current_status->navigation_state == NAVIGATION_STATE_MISSION) {
 
 					mavlink_log_critical(mavlink_fd, "Switched to LAND state");
 					valid_transition = true;
@@ -315,6 +327,7 @@ int do_arming_state_update(int status_pub, struct vehicle_status_s *current_stat
 				if (current_status->arming_state == ARMING_STATE_INIT) {
 
 					if (current_status->flag_system_sensors_initialized) {
+						current_status->flag_system_armed = false;
 						mavlink_log_critical(mavlink_fd, "Switched to STANDBY arming state");
 						valid_transition = true;
 					} else {
@@ -327,7 +340,7 @@ int do_arming_state_update(int status_pub, struct vehicle_status_s *current_stat
 
 				if (current_status->arming_state == ARMING_STATE_STANDBY
 				 || current_status->arming_state == ARMING_STATE_IN_AIR_RESTORE) {
-
+					current_status->flag_system_armed = true;
 					mavlink_log_critical(mavlink_fd, "Switched to ARMED arming state");
 					valid_transition = true;
 				}
