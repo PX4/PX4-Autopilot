@@ -214,28 +214,34 @@ int user_start(int argc, char *argv[])
 		debug("Failed to setup SIGUSR1 handler\n");
 	}
 
-	/* run the mixer at ~300Hz (for now...) */
-	/* XXX we should use CONFIG_IDLE_CUSTOM and take over the idle thread instead of running two additional tasks */
-	uint16_t counter=0;
+	/* 
+	   run the mixer at ~50Hz, using signals to run it early if
+	   need be 
+	*/
+	uint64_t last_debug_time = 0;
 	for (;;) {
 		/*
-		  if we are not scheduled for 10ms then reset the I2C bus
+		  if we are not scheduled for 30ms then reset the I2C bus
 		 */
-		hrt_call_after(&loop_overtime_call, 10000, (hrt_callout)loop_overtime, NULL);
+		hrt_call_after(&loop_overtime_call, 30000, (hrt_callout)loop_overtime, NULL);
 
-		poll(NULL, 0, 3);
+		// we use usleep() instead of poll() as poll() is not
+		// interrupted by signals in nuttx, whereas usleep() is
+		usleep(20000);
+
 		perf_begin(mixer_perf);
 		mixer_tick();
 		perf_end(mixer_perf);
+
 		show_debug_messages();
-		if (counter++ == 800) {
-			counter = 0;
-			isr_debug(1, "d:%u stat=0x%x arm=0x%x feat=0x%x rst=%u", 
+		if (hrt_absolute_time() - last_debug_time > 1000000) {
+			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x r=%u", 
 				  (unsigned)debug_level,
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,
 				  (unsigned)r_setup_features,
 				  (unsigned)i2c_loop_resets);
+			last_debug_time = hrt_absolute_time();
 		}
 	}
 }
