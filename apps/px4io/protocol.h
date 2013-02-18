@@ -142,6 +142,7 @@
 #define PX4IO_P_SETUP_ARMING_ARM_OK		(1 << 0) /* OK to arm */
 #define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK	(1 << 2) /* OK to switch to manual override via override RC channel */
 #define PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK	(1 << 3) /* OK to perform position / vector control (= position lock) */
+#define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 4) /* OK to try in-air restart */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_LOWRATE		3	/* 'low' PWM frame output rate in Hz */
