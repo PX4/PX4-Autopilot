@@ -87,6 +87,8 @@ CONFIGURED_APPS += mavlink_onboard
 CONFIGURED_APPS += commander
 CONFIGURED_APPS += sdlog
 CONFIGURED_APPS += sensors
+
+ifneq ($(CONFIG_APM),y)
 CONFIGURED_APPS += ardrone_interface
 CONFIGURED_APPS += multirotor_att_control
 CONFIGURED_APPS += multirotor_pos_control
@@ -96,6 +98,7 @@ CONFIGURED_APPS += fixedwing_pos_control
 CONFIGURED_APPS += position_estimator
 CONFIGURED_APPS += attitude_estimator_ekf
 CONFIGURED_APPS += hott_telemetry
+endif
 
 # Hacking tools
 #CONFIGURED_APPS += system/i2c
