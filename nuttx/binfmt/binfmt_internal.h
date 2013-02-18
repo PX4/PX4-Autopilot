@@ -71,7 +71,7 @@ EXTERN FAR struct binfmt_s *g_binfmts;
  * Public Function Prototypes
  ***********************************************************************/
 
-/* Dump the contents of strtuc binary_s */
+/* Dump the contents of struct binary_s */
 
 #if defined(CONFIG_DEBUG) && defined(CONFIG_DEBUG_BINFMT)
 EXTERN int dump_module(FAR const struct binary_s *bin);

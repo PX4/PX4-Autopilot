@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/nshlib/nsh_consolemain.c
  *
- *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,8 @@
 #include "nsh.h"
 #include "nsh_console.h"
 
+#ifndef HAVE_USB_CONSOLE
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -76,21 +78,25 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_consolemain
+ * Name: nsh_consolemain (Normal character device version)
  *
  * Description:
  *   This interfaces maybe to called or started with task_start to start a
- *   single an NSH instance that operates on stdin and stdout (/dev/console).
- *   This function does not return.
+ *   single an NSH instance that operates on stdin and stdout.  This
+ *   function does not normally return (see below).
  *
+ *   This version of nsh_consolmain handles generic /dev/console character
+ *   devices (see nsh_usbdev.c for another version for special USB console
+ *   devices).
+  *
  * Input Parameters:
- *   Standard task start-up arguements.  These are not used.  argc may be
+ *   Standard task start-up arguments.  These are not used.  argc may be
  *   zero and argv may be NULL.
  *
  * Returned Values:
  *   This function does not normally return.  exit() is usually called to
  *   terminate the NSH session.  This function will return in the event of
- *   an error.  In that case, a nonzero value is returned (1).
+ *   an error.  In that case, a nonzero value is returned (EXIT_FAILURE=1).
  *  
  ****************************************************************************/
 
@@ -101,70 +107,26 @@ int nsh_consolemain(int argc, char *argv[])
 
   DEBUGASSERT(pstate);
 
-  /* If we are using a USB serial console, then we will have to wait for the
-   * USB to be connected to the host.
-   */
-
-#ifdef HAVE_USB_CONSOLE
-  ret = nsh_usbconsole();
-  DEBUGASSERT(ret == OK);
-#endif
-
-  /* Present a greeting */
-
-  fputs(g_nshgreeting, pstate->cn_outstream);
-  fflush(pstate->cn_outstream);
-
-  /* Execute the startup script */
+  /* Execute the start-up script */
 
 #ifdef CONFIG_NSH_ROMFSETC
-  (void)nsh_script(&pstate->cn_vtbl, "init", NSH_INITPATH);
+  (void)nsh_initscript(&pstate->cn_vtbl);
 #endif
 
-  /* Then enter the command line parsing loop */
+  /* Initialize any USB tracing options that were requested */
 
-  for (;;)
-    {
-      /* For the case of debugging the USB console... dump collected USB trace data */
+#ifdef CONFIG_NSH_USBDEV_TRACE
+  usbtrace_enable(TRACE_BITSET);
+#endif
 
-      nsh_usbtrace();
+  /* Execute the session */
 
-      /* Display the prompt string */
+  ret = nsh_session(pstate);
 
-      fputs(g_nshprompt, pstate->cn_outstream);
-      fflush(pstate->cn_outstream);
+  /* Exit upon return */
 
-      /* Get the next line of input */
-
-      ret = readline(pstate->cn_line, CONFIG_NSH_LINELEN,
-                     INSTREAM(pstate), OUTSTREAM(pstate));
-      if (ret > 0)
-        {
-          /* Parse process the command */
-
-          (void)nsh_parse(&pstate->cn_vtbl, pstate->cn_line);
-          fflush(pstate->cn_outstream);
-        }
-
-      /* Readline normally returns the number of characters read,
-       * but will return 0 on end of file or a negative value
-       * if an error occurs.  Either will cause the session to
-       * terminate.
-       */
-
-      else
-        {
-          fprintf(pstate->cn_outstream, g_fmtcmdfailed, "nsh_consolemain", 
-                  "readline", NSH_ERRNO_OF(-ret));
-          nsh_exit(&pstate->cn_vtbl, 1);
-        }
-    }
-
-  /* Clean up.  We do not get here, but this is necessary to keep some
-   * compilers happy.  But others will complain that this code is not
-   * reachable.
-   */
-
-  nsh_exit(&pstate->cn_vtbl, 0);
-  return OK;
+  nsh_exit(&pstate->cn_vtbl, ret);
+  return ret;
 }
+
+#endif /* !HAVE_USB_CONSOLE */

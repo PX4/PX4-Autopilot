@@ -50,8 +50,8 @@
 
 /* Debug output is initially disabled */
 
-#ifdef CONFIG_DEBUG_ENABLE
-bool g_dbgenable;
+#ifdef CONFIG_SYSLOG_ENABLE
+bool g_syslogenable;
 #endif
 
 /****************************************************************************
@@ -59,17 +59,17 @@ bool g_dbgenable;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: dbg_enable
+ * Name: syslog_enable
  *
  * Description:
  *  Enable or disable debug output.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG_ENABLE
-void dbg_enable(bool enable)
+#ifdef CONFIG_SYSLOG_ENABLE
+void syslog_enable(bool enable)
 {
-  g_dbgenable = enable;
+  g_syslogenable = enable;
 }
 #endif
 
@@ -89,13 +89,13 @@ int dbg(const char *format, ...)
   va_list ap;
   int     ret;
 
-#ifdef CONFIG_DEBUG_ENABLE
+#ifdef CONFIG_SYSLOG_ENABLE
   ret = 0;
-  if (g_dbgenable)
+  if (g_syslogenable)
 #endif
     {
       va_start(ap, format);
-      ret = lib_rawvprintf(format, ap);
+      ret = vsyslog(format, ap);
       va_end(ap);
     }
 
@@ -108,13 +108,13 @@ int lldbg(const char *format, ...)
   va_list ap;
   int     ret;
 
-#ifdef CONFIG_DEBUG_ENABLE
+#ifdef CONFIG_SYSLOG_ENABLE
   ret = 0;
-  if (g_dbgenable)
+  if (g_syslogenable)
 #endif
     {
       va_start(ap, format);
-      ret = lib_lowvprintf(format, ap);
+      ret = lowvsyslog(format, ap);
       va_end(ap);
     }
 
@@ -128,13 +128,13 @@ int vdbg(const char *format, ...)
   va_list ap;
   int     ret;
 
-#ifdef CONFIG_DEBUG_ENABLE
+#ifdef CONFIG_SYSLOG_ENABLE
   ret = 0;
-  if (g_dbgenable)
+  if (g_syslogenable)
 #endif
     {
       va_start(ap, format);
-      ret = lib_rawvprintf(format, ap);
+      ret = vsyslog(format, ap);
       va_end(ap);
     }
 
@@ -147,13 +147,13 @@ int llvdbg(const char *format, ...)
   va_list ap;
   int     ret;
 
-#ifdef CONFIG_DEBUG_ENABLE
+#ifdef CONFIG_SYSLOG_ENABLE
   ret = 0;
-  if (g_dbgenable)
+  if (g_syslogenable)
 #endif
     {
       va_start(ap, format);
-      ret = lib_lowvprintf(format, ap);
+      ret = lowvsyslog(format, ap);
       va_end(ap);
     }
 

@@ -137,7 +137,7 @@ void weak_function timer_initialize(void)
  *   resources are referenced.
  *
  * Parameters:
- *   pid - the task ID of the thread that exitted
+ *   pid - the task ID of the thread that exited
  *
  * Return Value:
  *   None

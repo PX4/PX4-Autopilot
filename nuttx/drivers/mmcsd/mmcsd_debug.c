@@ -56,9 +56,9 @@
 /* This needs to match the logic in include/debug.h */
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
-#  define message(format, arg...) lib_rawprintf(format, ##arg)
+#  define message(format, arg...) syslog(format, ##arg)
 #else
-#  define message lib_rawprintf
+#  define message syslog
 #endif
 
 /****************************************************************************

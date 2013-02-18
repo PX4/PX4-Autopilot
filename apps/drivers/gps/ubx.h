@@ -40,7 +40,6 @@
 
 #include "gps_helper.h"
 
-
 #define UBX_SYNC1 0xB5
 #define UBX_SYNC2 0x62
 
@@ -54,7 +53,7 @@
 #define UBX_MESSAGE_NAV_POSLLH 0x02
 #define UBX_MESSAGE_NAV_SOL 0x06
 #define UBX_MESSAGE_NAV_TIMEUTC 0x21
-#define UBX_MESSAGE_NAV_DOP 0x04
+//#define UBX_MESSAGE_NAV_DOP 0x04
 #define UBX_MESSAGE_NAV_SVINFO 0x30
 #define UBX_MESSAGE_NAV_VELNED 0x12
 //#define UBX_MESSAGE_RXM_SVSI 0x20
@@ -86,6 +85,8 @@
 #define UBX_CFG_MSG_LENGTH 8
 #define UBX_CFG_MSG_PAYLOAD_RATE1_5HZ 0x01 		/**< {0x00, 0x01, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
 #define UBX_CFG_MSG_PAYLOAD_RATE1_1HZ 0x05		/**< {0x00, 0x05, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
+
+#define UBX_MAX_PAYLOAD_LENGTH 500
 
 // ************
 /** the structures of the binary packets */
@@ -140,18 +141,18 @@ typedef struct {
 	uint8_t ck_b;
 } gps_bin_nav_timeutc_packet_t;
 
-typedef struct {
-	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
-	uint16_t gDOP; 					/**< Geometric DOP (scaling 0.01) */
-	uint16_t pDOP; 					/**< Position DOP (scaling 0.01) */
-	uint16_t tDOP; 					/**< Time DOP (scaling 0.01) */
-	uint16_t vDOP; 					/**< Vertical DOP (scaling 0.01) */
-	uint16_t hDOP; 					/**< Horizontal DOP (scaling 0.01) */
-	uint16_t nDOP; 					/**< Northing DOP (scaling 0.01) */
-	uint16_t eDOP; 					/**< Easting DOP (scaling 0.01) */
-	uint8_t ck_a;
-	uint8_t ck_b;
-} gps_bin_nav_dop_packet_t;
+//typedef struct {
+//	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
+//	uint16_t gDOP; 					/**< Geometric DOP (scaling 0.01) */
+//	uint16_t pDOP; 					/**< Position DOP (scaling 0.01) */
+//	uint16_t tDOP; 					/**< Time DOP (scaling 0.01) */
+//	uint16_t vDOP; 					/**< Vertical DOP (scaling 0.01) */
+//	uint16_t hDOP; 					/**< Horizontal DOP (scaling 0.01) */
+//	uint16_t nDOP; 					/**< Northing DOP (scaling 0.01) */
+//	uint16_t eDOP; 					/**< Easting DOP (scaling 0.01) */
+//	uint8_t ck_a;
+//	uint8_t ck_b;
+//} gps_bin_nav_dop_packet_t;
 
 typedef struct {
 	uint32_t time_milliseconds; 	/**<  GPS Millisecond Time of Week */
@@ -311,7 +312,7 @@ typedef enum {
 	NAV_POSLLH,
 	NAV_SOL,
 	NAV_TIMEUTC,
-	NAV_DOP,
+//	NAV_DOP,
 	NAV_SVINFO,
 	NAV_VELNED,
 //	RXM_SVSI,
@@ -338,29 +339,49 @@ typedef enum {
 class UBX : public GPS_Helper
 {
 public:
-	UBX();
+	UBX(const int &fd, struct vehicle_gps_position_s *gps_position);
 	~UBX();
-	void				reset(void);
-	void				configure(bool &config_needed, bool &baudrate_changed, unsigned &baudrate, uint8_t *buffer, int &length, const unsigned max_length);
-	int 				parse(uint8_t, struct vehicle_gps_position_s*);
+	int					receive(unsigned timeout);
+	int					configure(unsigned &baudrate);
 
 private:
+
+	/**
+	 * Parse the binary MTK packet
+	 */
+	int					parse_char(uint8_t b);
+
+	/**
+	 * Handle the package once it has arrived
+	 */
+	int					handle_message(void);
+
 	/**
 	 * Reset the parse state machine for a fresh start
 	 */
-	void				decodeInit(void);
+	void				decode_init(void);
 
 	/**
 	 * While parsing add every byte (except the sync bytes) to the checksum
 	 */
-	void				addByteToChecksum(uint8_t);
+	void				add_byte_to_checksum(uint8_t);
 
 	/**
 	 * Add the two checksum bytes to an outgoing message
 	 */
-	void				addChecksumToMessage(uint8_t*, const unsigned);
+	void				add_checksum_to_message(uint8_t* message, const unsigned length);
+
+	/**
+	 * Helper to send a config packet
+	 */
+	void				send_config_packet(const int &fd, uint8_t *packet, const unsigned length);
+
+	int 				_fd;
+	struct vehicle_gps_position_s *_gps_position;
 	ubx_config_state_t	_config_state;
 	bool 				_waiting_for_ack;
+	uint8_t				_clsID_needed;
+	uint8_t				_msgID_needed;
 	ubx_decode_state_t	_decode_state;
 	uint8_t				_rx_buffer[RECV_BUFFER_SIZE];
 	unsigned			_rx_count;
@@ -369,11 +390,6 @@ private:
 	ubx_message_class_t _message_class;
 	ubx_message_id_t	_message_id;
 	unsigned			_payload_size;
-	bool				_new_nav_posllh;
-	bool				_new_nav_timeutc;
-	bool				_new_nav_dop;
-	bool				_new_nav_sol;
-	bool				_new_nav_velned;
 };
 
 #endif /* UBX_H_ */

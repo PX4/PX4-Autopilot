@@ -36,10 +36,7 @@
  * Driver for the GPS on a serial port
  */
 
-#include <nuttx/config.h>
-
-#include <drivers/device/i2c.h>
-
+#include <nuttx/clock.h>
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -53,31 +50,25 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <termios.h>
 #include <fcntl.h>
-
+#include <nuttx/config.h>
 #include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
 #include <arch/board/board.h>
-
 #include <drivers/drv_hrt.h>
-
+#include <drivers/device/i2c.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/scheduling_priorities.h>
 #include <systemlib/err.h>
-
 #include <drivers/drv_gps.h>
-
+#include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
 #include "ubx.h"
+#include "mtk.h"
 
-#define SEND_BUFFER_LENGTH 100
-#define TIMEOUT 1000000 //1s
 
-#define NUMBER_OF_BAUDRATES 4
-#define CONFIG_TIMEOUT 2000000
+#define TIMEOUT_5HZ 400
+#define RATE_MEASUREMENT_PERIOD 5000000
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -112,9 +103,8 @@ private:
 	int				_serial_fd;					///< serial interface to GPS
 	unsigned			_baudrate;					///< current baudrate
 	char				_port[20];					///< device / serial port path
-	const unsigned			_baudrates_to_try[NUMBER_OF_BAUDRATES];		///< try different baudrates that GPS could be set to
 	volatile int			_task;						//< worker task
-	bool				_config_needed;					///< flag to signal that configuration of GPS is needed
+	bool				_healthy;					///< flag to signal if the GPS is ok
 	bool 				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
 	bool				_mode_changed;					///< flag that the GPS mode has changed
 	gps_driver_mode_t		_mode;						///< current mode
@@ -169,10 +159,8 @@ GPS	*g_dev;
 GPS::GPS(const char* uart_path) :
 	CDev("gps", GPS_DEVICE_PATH),
 	_task_should_exit(false),
-	_baudrates_to_try({9600, 38400, 57600, 115200}),
-	_config_needed(true),
-	_baudrate_changed(false),
-	_mode_changed(true),
+	_healthy(false),
+	_mode_changed(false),
 	_mode(GPS_DRIVER_MODE_UBX),
 	_Helper(nullptr),
 	_report_pub(-1),
@@ -238,30 +226,6 @@ GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 	int ret = OK;
 
 	switch (cmd) {
-	case GPS_CONFIGURE_UBX:
-		if (_mode != GPS_DRIVER_MODE_UBX) {
-			_mode = GPS_DRIVER_MODE_UBX;
-			_mode_changed = true;
-		}
-		break;
-	case GPS_CONFIGURE_MTK19:
-		if (_mode != GPS_DRIVER_MODE_MTK19) {
-			_mode = GPS_DRIVER_MODE_MTK19;
-			_mode_changed = true;
-		}
-		break;
-	case GPS_CONFIGURE_MTK16:
-		if (_mode != GPS_DRIVER_MODE_MTK16) {
-			_mode = GPS_DRIVER_MODE_MTK16;
-			_mode_changed = true;
-		}
-		break;
-	case GPS_CONFIGURE_NMEA:
-		if (_mode != GPS_DRIVER_MODE_NMEA) {
-			_mode = GPS_DRIVER_MODE_NMEA;
-			_mode_changed = true;
-		}
-		break;
 	case SENSORIOCRESET:
 		cmd_reset();
 		break;
@@ -270,32 +234,6 @@ GPS::ioctl(struct file *filp, int cmd, unsigned long arg)
 	unlock();
 
 	return ret;
-}
-
-void
-GPS::config()
-{
-	int length = 0;
-	uint8_t	send_buffer[SEND_BUFFER_LENGTH];
-
-	_Helper->configure(_config_needed, _baudrate_changed, _baudrate, send_buffer, length, SEND_BUFFER_LENGTH);
-
-	/* The config message is sent sent at the old baudrate */
-	if (length > 0) {
-
-		if (length != ::write(_serial_fd, send_buffer, length)) {
-			debug("write config failed");
-			return;
-		}
-	}
-
-	/* Sometimes the baudrate needs to be changed, for instance UBX with factory settings are changed
-	 * from 9600 to 38400
-	 */
-	if (_baudrate_changed) {
-		set_baudrate(_baudrate);
-		_baudrate_changed = false;
-	}
 }
 
 void
@@ -310,10 +248,7 @@ GPS::task_main()
 	log("starting");
 
 	/* open the serial port */
-	_serial_fd = ::open(_port, O_RDWR); //TODO make the device dynamic depending on startup parameters
-
-	/* buffer to read from the serial port */
-	uint8_t buf[32];
+	_serial_fd = ::open(_port, O_RDWR);
 
 	if (_serial_fd < 0) {
 		log("failed to open serial port: %s err: %d", _port, errno);
@@ -322,135 +257,82 @@ GPS::task_main()
 		_exit(1);
 	}
 
-	/* poll descriptor */
-	pollfd fds[1];
-	fds[0].fd = _serial_fd;
-	fds[0].events = POLLIN;
-
-	/* lock against the ioctl handler */
-	lock();
-
-	unsigned baud_i = 0;
-	_baudrate = _baudrates_to_try[baud_i];
-	set_baudrate(_baudrate);
-
-	uint64_t time_before_configuration = hrt_absolute_time();
-
 	uint64_t last_rate_measurement = hrt_absolute_time();
 	unsigned last_rate_count = 0;
 
 	/* loop handling received serial bytes and also configuring in between */
 	while (!_task_should_exit) {
 
-		if (_mode_changed) {
-			if (_Helper != nullptr) {
-				delete(_Helper);
-				/* set to zero to ensure parser is not used while not instantiated */
-				_Helper = nullptr;
-			}
+		if (_Helper != nullptr) {
+			delete(_Helper);
+			/* set to zero to ensure parser is not used while not instantiated */
+			_Helper = nullptr;
+		}
 
-			switch (_mode) {
+		switch (_mode) {
 			case GPS_DRIVER_MODE_UBX:
-				_Helper = new UBX();
+				_Helper = new UBX(_serial_fd, &_report);
 				break;
-			case GPS_DRIVER_MODE_MTK19:
-				//_Helper = new MTK19();
-				break;
-			case GPS_DRIVER_MODE_MTK16:
-				//_Helper = new MTK16();
+			case GPS_DRIVER_MODE_MTK:
+				_Helper = new MTK(_serial_fd, &_report);
 				break;
 			case GPS_DRIVER_MODE_NMEA:
-				//_Helper = new NMEA();
+				//_Helper = new NMEA(); //TODO: add NMEA
 				break;
 			default:
 				break;
-			}
-			_mode_changed = false;
 		}
-
-		/* If a configuration does not finish in the config timeout, change the baudrate */
-		if (_config_needed && time_before_configuration + CONFIG_TIMEOUT < hrt_absolute_time()) {
-			baud_i = (baud_i+1)%NUMBER_OF_BAUDRATES;
-			_baudrate = _baudrates_to_try[baud_i];
-			set_baudrate(_baudrate);
-			_Helper->reset();
-			time_before_configuration = hrt_absolute_time();
-		}
-
-		/* during configuration, the timeout should be small, so that we can send config messages in between parsing,
-		 * but during normal operation, it should never timeout because updates should arrive with 5Hz */
-		int poll_timeout;
-		if (_config_needed) {
-			poll_timeout = 50;
-		} else {
-			poll_timeout = 400;
-		}
-		/* sleep waiting for data, but no more than the poll timeout */
 		unlock();
-		int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), poll_timeout);
+		if (_Helper->configure(_baudrate) == 0) {
+			unlock();
+			while (_Helper->receive(TIMEOUT_5HZ) > 0 && !_task_should_exit) {
+//				lock();
+				/* opportunistic publishing - else invalid data would end up on the bus */
+				if (_report_pub > 0) {
+					orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+				} else {
+					_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+				}
+
+				last_rate_count++;
+
+				/* measure update rate every 5 seconds */
+				if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
+					_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
+					last_rate_measurement = hrt_absolute_time();
+					last_rate_count = 0;
+				}
+
+				if (!_healthy) {
+					warnx("module found");
+					_healthy = true;
+				}
+			}
+			if (_healthy) {
+				warnx("module lost");
+				_healthy = false;
+				_rate = 0.0f;
+			}
+
+			lock();
+		}
 		lock();
 
-
-
-
-		/* this would be bad... */
-		if (ret < 0) {
-			log("poll error %d", errno);
-		} else if (ret == 0) {
-			config();
-			if (_config_needed == false) {
-				_config_needed = true;
-				warnx("lost GPS module");
-			}
-		} else if (ret > 0) {
-			/* if we have new data from GPS, go handle it */
-			if (fds[0].revents & POLLIN) {
-				int count;
-
-				/*
-				 * We are here because poll says there is some data, so this
-				 * won't block even on a blocking device.  If more bytes are
-				 * available, we'll go back to poll() again...
-				 */
-				count = ::read(_serial_fd, buf, sizeof(buf));
-
-				/* pass received bytes to the packet decoder */
-				int j;
-				int ret_parse = 0;
-				for (j = 0; j < count; j++) {
-					ret_parse += _Helper->parse(buf[j], &_report);
-				}
-
-				if (ret_parse < 0) {
-					/* This means something went wrong in the parser, let's reconfigure */
-					if (!_config_needed) {
-						_config_needed = true;
-					}
-					config();
-				} else if (ret_parse > 0) {
-					/* Looks like we got a valid position update, stop configuring and publish it */
-					if (_config_needed) {
-						_config_needed = false;
-					}
-
-					/* opportunistic publishing - else invalid data would end up on the bus */
-					if (_report_pub > 0) {
-						orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
-					} else {
-						_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
-					}
-					last_rate_count++;
-
-					/* measure update rate every 5 seconds */
-					if (hrt_absolute_time() - last_rate_measurement > 5000000) {
-						_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
-						last_rate_measurement = hrt_absolute_time();
-						last_rate_count = 0;
-					}
-				}
-				/* else if ret_parse == 0: just keep parsing */
-			}
+		/* select next mode */
+		switch (_mode) {
+			case GPS_DRIVER_MODE_UBX:
+				_mode = GPS_DRIVER_MODE_MTK;
+				break;
+			case GPS_DRIVER_MODE_MTK:
+				_mode = GPS_DRIVER_MODE_UBX;
+				break;
+		//				case GPS_DRIVER_MODE_NMEA:
+		//					_mode = GPS_DRIVER_MODE_UBX;
+		//					break;
+			default:
+				break;
 		}
+
 	}
 	debug("exiting");
 
@@ -461,59 +343,12 @@ GPS::task_main()
 	_exit(0);
 }
 
-int
-GPS::set_baudrate(unsigned baud)
-{
-	/* process baud rate */
-	int speed;
 
-	switch (baud) {
-	case 9600:   speed = B9600;   break;
-
-	case 19200:  speed = B19200;  break;
-
-	case 38400:  speed = B38400;  break;
-
-	case 57600:  speed = B57600;  break;
-
-	case 115200: speed = B115200; break;
-
-	default:
-		warnx("ERROR: Unsupported baudrate: %d\n", baud);
-		return -EINVAL;
-	}
-	struct termios uart_config;
-	int termios_state;
-
-	/* fill the struct for the new configuration */
-	tcgetattr(_serial_fd, &uart_config);
-
-	/* clear ONLCR flag (which appends a CR for every LF) */
-	uart_config.c_oflag &= ~ONLCR;
-	/* no parity, one stop bit */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB);
-
-	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		warnx("ERROR setting config: %d (cfsetispeed)\n", termios_state);
-		return -1;
-	}
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		warnx("ERROR setting config: %d (cfsetospeed)\n", termios_state);
-		return -1;
-	}
-	if ((termios_state = tcsetattr(_serial_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERROR setting baudrate (tcsetattr)\n");
-		return -1;
-	}
-	/* XXX if resetting the parser here, ensure it does exist (check for null pointer) */
-	return 0;
-}
 
 void
 GPS::cmd_reset()
 {
-	_config_needed = true;
+	//XXX add reset?
 }
 
 void
@@ -523,11 +358,8 @@ GPS::print_info()
 		case GPS_DRIVER_MODE_UBX:
 			warnx("protocol: UBX");
 			break;
-		case GPS_DRIVER_MODE_MTK19:
-			warnx("protocol: MTK 1.9");
-			break;
-		case GPS_DRIVER_MODE_MTK16:
-			warnx("protocol: MTK 1.6");
+		case GPS_DRIVER_MODE_MTK:
+			warnx("protocol: MTK");
 			break;
 		case GPS_DRIVER_MODE_NMEA:
 			warnx("protocol: NMEA");
@@ -535,10 +367,10 @@ GPS::print_info()
 		default:
 			break;
 	}
-	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_config_needed) ? "NOT OK" : "OK");
-	if (_report.timestamp != 0) {
+	warnx("port: %s, baudrate: %d, status: %s", _port, _baudrate, (_healthy) ? "OK" : "NOT OK");
+	if (_report.timestamp_position != 0) {
 		warnx("position lock: %dD, last update %4.2f seconds ago", (int)_report.fix_type,
-			(double)((float)(hrt_absolute_time() - _report.timestamp) / 1000000.0f));
+			(double)((float)(hrt_absolute_time() - _report.timestamp_position) / 1000000.0f));
 		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
 		warnx("update rate: %6.2f Hz", (double)_rate);
 	}
@@ -584,7 +416,7 @@ start(const char *uart_path)
 	fd = open(GPS_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		printf("Could not open device path: %s\n", GPS_DEVICE_PATH);
+		errx(1, "Could not open device path: %s\n", GPS_DEVICE_PATH);
 		goto fail;
 	}
 	exit(0);
@@ -662,7 +494,7 @@ gps_main(int argc, char *argv[])
 {
 
 	/* set to default */
-	char* device_name = "/dev/ttyS3";
+	char* device_name = GPS_DEFAULT_UART_PORT;
 
 	/*
 	 * Start/load the driver.

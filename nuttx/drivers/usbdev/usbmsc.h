@@ -199,9 +199,9 @@
 #ifdef CONFIG_CPP_HAVE_VARARGS
 #  ifdef CONFIG_DEBUG
 #    ifdef CONFIG_ARCH_LOWPUTC
-#      define dbgprintf(format, arg...) lib_lowprintf(format, ##arg)
+#      define dbgprintf(format, arg...) lowsyslog(format, ##arg)
 #    else
-#      define dbgprintf(format, arg...) lib_rawprintf(format, ##arg)
+#      define dbgprintf(format, arg...) syslog(format, ##arg)
 #     endif
 #  else
 #      define dbgprintf(x...)
@@ -209,9 +209,9 @@
 #else
 #  ifdef CONFIG_DEBUG
 #    ifdef CONFIG_ARCH_LOWPUTC
-#      define dbgprintf lib_lowprintf
+#      define dbgprintf lowsyslog
 #    else
-#      define dbgprintf lib_rawprintf
+#      define dbgprintf syslog
 #     endif
 #  else
 #      define dbgprintf (void)

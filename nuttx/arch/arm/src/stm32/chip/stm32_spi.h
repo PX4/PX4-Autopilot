@@ -47,7 +47,13 @@
  * Pre-processor Definitions
  ************************************************************************************/
 
-#define STM32_SPI_CLK_MAX     18000000UL  /* Maximum allowed speed as per specifications for all SPIs */
+/* Maximum allowed speed as per specifications for all SPIs */
+
+#if defined(CONFIG_STM32_STM32F40XX)
+#  define STM32_SPI_CLK_MAX     37500000UL
+#else
+#  define STM32_SPI_CLK_MAX     18000000UL
+#endif
 
 /* Register Offsets *****************************************************************/
 
