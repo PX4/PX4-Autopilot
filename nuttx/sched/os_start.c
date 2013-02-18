@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/os_start.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,6 +63,9 @@
 #include  "clock_internal.h"
 #include  "timer_internal.h"
 #include  "irq_internal.h"
+#ifdef HAVE_TASK_GROUP
+#include  "group_internal.h"
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -286,7 +289,6 @@ void os_start(void)
 
   /* Initialize the processor-specific portion of the TCB */
 
-  g_idletcb.flags = (TCB_FLAG_TTYPE_KERNEL | TCB_FLAG_NOCLDWAIT);
   up_initial_state(&g_idletcb);
 
   /* Initialize the semaphore facility(if in link).  This has to be done
@@ -323,6 +325,12 @@ void os_start(void)
     {
       task_initialize();
     }
+#endif
+
+  /* Allocate the IDLE group and suppress child status. */
+
+#ifdef HAVE_TASK_GROUP
+  (void)group_allocate(&g_idletcb);
 #endif
 
   /* Initialize the interrupt handling subsystem (if included) */
@@ -441,7 +449,16 @@ void os_start(void)
    * inherited by all of the threads created by the IDLE task.
    */
 
-  (void)sched_setupidlefiles(&g_idletcb);
+  (void)group_setupidlefiles(&g_idletcb);
+
+  /* Complete initialization of the IDLE group.  Suppress retention
+   * of child status in the IDLE group.
+   */
+
+#ifdef HAVE_TASK_GROUP
+  (void)group_initialize(&g_idletcb);
+  g_idletcb.group->tg_flags = GROUP_FLAG_NOCLDWAIT;
+#endif
 
   /* Create initial tasks and bring-up the system */
 

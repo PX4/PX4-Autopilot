@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 23, 2013)
+NuttX TODO List (Last updated January 30, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -7,14 +7,14 @@ standards, things that could be improved, and ideas for enhancements.
 nuttx/
 
  (11)  Task/Scheduler (sched/)
-  (1)  Memory Managment (mm/)
+  (2)  Memory Managment (mm/)
   (3)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
   (2)  C++ Support
   (6)  Binary loaders (binfmt/)
- (17)  Network (net/, drivers/net)
+ (16)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
- (12)  Libraries (libc/, )
+ (11)  Libraries (libc/, )
   (9)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -161,25 +161,6 @@ o Task/Scheduler (sched/)
   Status:      Open
   Priority:    Medium Low for now
 
-  Title:       IMPROVED TASK CONTROL BLOCK STRUCTURE
-  Description: All task resources that are shared amongst threads have
-               their own "break-away", reference-counted structure. The
-               Task Control Block (TCB) of each thread holds a reference
-               to each breakaway structure (see include/nuttx/sched.h).
-               It would be more efficent to have one reference counted
-               structure that holds all of the shared resources.
-
-               These are the current shared structures:
-               - Environment varaibles (struct environ_s)
-               - PIC data space and address environments (struct dspace_s)
-               - File descriptors (struct filelist)
-               - FILE streams (struct streamlist)
-               - Sockets (struct socketlist)
-  Status:      Open
-  Priority:    Low.  This is an enhancement.  It would slight reduce
-               memory usage but would also increase coupling.  These
-               resources are nicely modular now.
-
   Title:       ISSUES WITH atexit() AND on_exit()
   Description: These functions execute with the following bad properties:
   
@@ -211,6 +192,16 @@ o Task/Scheduler (sched/)
                an MMU.
   Status:      Open
   Priority:    Low (it might as well be low since it isn't going to be fixed).
+
+  Title:       errno IS NOT SHARED AMONG THREADS
+  Description: In NuttX, the errno value is unique for each thread.  But for
+               bug-for-bug compatibility, the same errno should be shared by
+               the task and each thread that it creates.  It is *very* easy
+               to make this change:  Just move the pterrno field from
+               _TCB to struct task_group_s.   However, I am still not sure
+               if this should be done or not.
+  Status:      Open
+  Priority:    Low
 
 o Memory Managment (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^
@@ -277,6 +268,19 @@ o Memory Managment (mm/)
   Status:      Open.  No changes are planned.
   Priority:    Medium/Low, a good feature to prevent memory leaks but would
                have negative impact on memory usage and code size.
+
+  Title:       CONTAINER ALLOCATOR
+  Description: There are several places where the logic requires allocation of
+               a tiny structure that just contains pointers to other things or
+               small amounts of data that needs to be bundled together.  There
+               are examples net/net_poll.c and numerous other places.
+
+               I am wondering if it would not be good create a pool of generic
+               containers (say void *[4]).  There re-use these when we need
+               small containers.  The code in sched/task_childstatus.c might
+               be generalized for this purpose.
+  Status:      Open
+  Priority:    Very low (I am not even sure that this is a good idea yet).
 
 o Signals (sched/, arch/)
   ^^^^^^^^^^^^^^^^^^^^^^^
@@ -413,6 +417,9 @@ o Binary loaders (binfmt/)
   Description: Not all of the NXFLAT test under apps/examples/nxflat are working.
                Most simply do not compile yet.  tests/mutex runs okay but
                outputs garbage on completion.
+
+               Update: 13-27-1, tests/mutex crashed with a memory corruption
+               problem the last time that I ran it.
   Status:      Open
   Priority:    High
 
@@ -667,21 +674,6 @@ o Network (net/, drivers/net)
   Status:      Open
   Priority:    Low... fix defconfig files as necessary.
 
-  Title:       net_poll() DOES NOT HANDLE LOSS-OF-CONNECTION CORRECTLY
-  Description: When a loss of connection is detected by any logic waiting on the
-               networking events, the function net_lostconnection() must be called.
-               That function just sets some bits in the socket structure so that
-               it remembers that the connection is lost.
-
-               That is currently done in recvfrom(), send(), and net_monitor.c.  But
-               it is not done in the net_poll() logic; that logic correctly sets
-               the POLLHUP status, but it does not call net_lostconnection().  As a
-               result, if recv() is called after the poll() or select(), the system
-               will hang because the recv() does not know that the connection has
-               been lost.
-  Status:      Open
-  Priority:    High
-
 o USB (drivers/usbdev, drivers/usbhost)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -819,19 +811,6 @@ o Libraries (libc/)
                http://patrakov.blogspot.com/2009/03/dont-use-old-dtoac.html
   Status:      Open
   Priority:    ??
-
-  Title:       SYSLOG INTEGRATION
-  Description: There are the beginnings of some system logging capabilities (see
-               drivers/syslog, fs/fs_syslog.c, and libc/stdio/lib_librawprintf.c and
-               lib_liblowprintf.c.  For NuttX, SYSLOG is a concept and includes,
-               extends, and replaces the legacy NuttX debug ouput.  Some additional
-               integration is required to formalized this.  For example:
-
-               o lib_rawprintf() shjould be renamed syslog().
-               o debug.h should be renamed syslog.h
-               o And what about lib_lowprintf()? llsyslog?
-  Status:      Open
-  Priority:    Low -- more of a roadmap
 
   Title:       FLOATING POINT FORMATS
   Description: Only the %f floating point format is supported.  Others are accepted
@@ -1525,11 +1504,6 @@ o ARM/STM32 (arch/arm/src/stm32/)
                SRAM.
   Status:      Open
   Priority:    Low
-
-  Title:       STM32 F4 USB OTG FS DEVICE-SIDE DRIVER
-  Description: This driver is reported to be buggy and to need some TLC.
-  Status:      Open
-  Priority:    High
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^

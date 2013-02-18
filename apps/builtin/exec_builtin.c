@@ -309,7 +309,7 @@ static inline int builtin_startproxy(int index, FAR const char **argv,
 {
   struct sched_param param;
   pid_t proxy;
-  int errcode;
+  int errcode = OK;
 #ifdef CONFIG_SCHED_WAITPID
   int status;
 #endif

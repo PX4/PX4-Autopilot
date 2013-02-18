@@ -48,7 +48,7 @@
 #include <nuttx/kmalloc.h>
 
 #include "os_internal.h"
-#include "env_internal.h"
+#include "group_internal.h"
 
 /****************************************************************************
  * Definitions
@@ -108,6 +108,7 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
 {
   FAR _TCB *tcb;
   pid_t pid;
+  int errcode;
   int ret;
 
   /* Allocate a TCB for the new task. */
@@ -115,22 +116,31 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   tcb = (FAR _TCB*)kzalloc(sizeof(_TCB));
   if (!tcb)
     {
+      errcode = ENOMEM;
       goto errout;
     }
 
-  /* Associate file descriptors with the new task */
+  /* Allocate a new task group */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
-  ret = sched_setuptaskfiles(tcb);
-  if (ret != OK)
+#ifdef HAVE_TASK_GROUP
+  ret = group_allocate(tcb);
+  if (ret < 0)
     {
+      errcode = -ret;
       goto errout_with_tcb;
     }
 #endif
 
-  /* Clone the parent's task environment */
+  /* Associate file descriptors with the new task */
 
-  (void)env_dup(tcb);
+#if CONFIG_NFILE_DESCRIPTORS > 0 || CONFIG_NSOCKET_DESCRIPTORS > 0
+  ret = group_setuptaskfiles(tcb);
+  if (ret != OK)
+    {
+      errcode = -ret;
+      goto errout_with_tcb;
+    }
+#endif
 
   /* Allocate the stack for the TCB */
 
@@ -138,6 +148,7 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   ret = up_create_stack(tcb, stack_size);
   if (ret != OK)
     {
+      errcode = -ret;
       goto errout_with_tcb;
     }
 #endif
@@ -145,14 +156,26 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   /* Initialize the task control block */
 
   ret = task_schedsetup(tcb, priority, task_start, entry, ttype);
-  if (ret != OK)
+  if (ret < OK)
     {
+      errcode = -ret;
       goto errout_with_tcb;
     }
 
   /* Setup to pass parameters to the new task */
 
   (void)task_argsetup(tcb, name, argv);
+
+  /* Now we have enough in place that we can join the group */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_initialize(tcb);
+  if (ret < 0)
+    {
+      errcode = -ret;
+      goto errout_with_tcb;
+    }
+#endif
 
   /* Get the assigned pid before we start the task */
 
@@ -163,6 +186,8 @@ static int thread_create(const char *name, uint8_t ttype, int priority,
   ret = task_activate(tcb);
   if (ret != OK)
     {
+      errcode = get_errno();
+
       /* The TCB was added to the active task list by task_schedsetup() */
 
       dq_rem((FAR dq_entry_t*)tcb, (dq_queue_t*)&g_inactivetasks);
@@ -175,7 +200,7 @@ errout_with_tcb:
   sched_releasetcb(tcb);
 
 errout:
-  errno = ENOMEM;
+  set_errno(errcode);
   return ERROR;
 }
 

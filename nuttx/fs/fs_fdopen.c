@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/fs_fdopen.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,9 +68,11 @@ static inline int fs_checkfd(FAR _TCB *tcb, int fd, int oflags)
   FAR struct filelist *flist;
   FAR struct inode    *inode;
 
-  /* Get the file list from the TCB */
+  DEBUGASSERT(tcb && tcb->group);
 
-  flist = tcb->filelist;
+  /* Get the file list from the task group */
+
+  flist = &tcb->group->tg_filelist;
 
   /* Get the inode associated with the file descriptor.  This should
    * normally be the case if fd >= 0.  But not in the case where the
@@ -142,6 +144,7 @@ FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb)
     {
       tcb = sched_self();
     }
+  DEBUGASSERT(tcb && tcb->group);
 
   /* Verify that this is a valid file/socket descriptor and that the
    * requested access can be support.
@@ -189,9 +192,9 @@ FAR struct file_struct *fs_fdopen(int fd, int oflags, FAR _TCB *tcb)
 
   /* Get the stream list from the TCB */
 
-  slist = tcb->streams;
+  slist = &tcb->group->tg_streamlist;
 
-  /* Find an unallocated FILE structure  in the stream list */
+  /* Find an unallocated FILE structure in the stream list */
 
   ret = sem_wait(&slist->sl_sem);
   if (ret != OK)

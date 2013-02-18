@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/env_clearenv.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,7 +74,11 @@
 
 int clearenv(void)
 {
-  return env_release((FAR _TCB*)g_readytorun.head);
+  FAR _TCB *tcb = (FAR _TCB*)g_readytorun.head;
+  DEBUGASSERT(tcb->group);
+
+  env_release(tcb->group);
+  return OK;
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */

@@ -299,11 +299,11 @@ static void show_buttons(uint8_t oldset, uint8_t newset)
               state = "released";            
             }
 
-          /* Use lib_lowprintf() because we make be executing from an
+          /* Use lowsyslog() because we make be executing from an
            * interrupt handler.
            */
 
-          lib_lowprintf("  %s %s\n", g_buttoninfo[BUTTON_INDEX(i)].name, state);
+          lowsyslog("  %s %s\n", g_buttoninfo[BUTTON_INDEX(i)].name, state);
         }
     }
 }
@@ -313,8 +313,8 @@ static void button_handler(int id, int irq)
 {
   uint8_t newset = up_buttons();
 
-  lib_lowprintf("IRQ:%d Button %d:%s SET:%02x:\n",
-                irq, id, g_buttoninfo[BUTTON_INDEX(id)].name, newset);
+  lowsyslog("IRQ:%d Button %d:%s SET:%02x:\n",
+            irq, id, g_buttoninfo[BUTTON_INDEX(id)].name, newset);
   show_buttons(g_oldset, newset);
   g_oldset = newset;
 }
@@ -409,7 +409,7 @@ int buttons_main(int argc, char *argv[])
     {
       maxbuttons = strtol(argv[1], NULL, 10);
     }
-  lib_lowprintf("maxbuttons: %d\n", maxbuttons);
+  lowsyslog("maxbuttons: %d\n", maxbuttons);
 #endif
 
   /* Initialize the button GPIOs */
@@ -423,11 +423,11 @@ int buttons_main(int argc, char *argv[])
     {
       xcpt_t oldhandler = up_irqbutton(i, g_buttoninfo[BUTTON_INDEX(i)].handler);
 
-      /* Use lib_lowprintf() for compatibility with interrrupt handler output. */
+      /* Use lowsyslog() for compatibility with interrrupt handler output. */
 
-      lib_lowprintf("Attached handler at %p to button %d [%s], oldhandler:%p\n",
-                    g_buttoninfo[BUTTON_INDEX(i)].handler, i,
-                    g_buttoninfo[BUTTON_INDEX(i)].name, oldhandler);
+      lowsyslog("Attached handler at %p to button %d [%s], oldhandler:%p\n",
+                g_buttoninfo[BUTTON_INDEX(i)].handler, i,
+                g_buttoninfo[BUTTON_INDEX(i)].name, oldhandler);
 
       /* Some hardware multiplexes different GPIO button sources to the same
        * physical interrupt.  If we register multiple such multiplexed button
@@ -438,9 +438,9 @@ int buttons_main(int argc, char *argv[])
 
       if (oldhandler != NULL)
         {
-          lib_lowprintf("WARNING: oldhandler:%p is not NULL!  "
-                        "Button events may be lost or aliased!\n",
-                        oldhandler);
+          lowsyslog("WARNING: oldhandler:%p is not NULL!  "
+                    "Button events may be lost or aliased!\n",
+                    oldhandler);
         }
     }
 #endif
@@ -468,11 +468,11 @@ int buttons_main(int argc, char *argv[])
 
           flags = irqsave();
 
-          /* Use lib_lowprintf() for compatibility with interrrupt handler
+          /* Use lowsyslog() for compatibility with interrrupt handler
            * output.
            */
 
-          lib_lowprintf("POLL SET:%02x:\n", newset);
+          lowsyslog("POLL SET:%02x:\n", newset);
           show_buttons(g_oldset, newset);
           g_oldset = newset;
           irqrestore(flags);

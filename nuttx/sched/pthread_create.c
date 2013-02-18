@@ -53,8 +53,8 @@
 #include <nuttx/arch.h>
 
 #include "os_internal.h"
+#include "group_internal.h"
 #include "clock_internal.h"
-#include "env_internal.h"
 #include "pthread_internal.h"
 
 /****************************************************************************
@@ -246,12 +246,13 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
 {
   FAR _TCB *ptcb;
   FAR join_t *pjoin;
-  int ret;
   int priority;
 #if CONFIG_RR_INTERVAL > 0
   int policy;
 #endif
+  int errcode;
   pid_t pid;
+  int ret;
 
   /* If attributes were not supplied, use the default attributes */
 
@@ -268,6 +269,19 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
       return ENOMEM;
     }
 
+  /* Bind the parent's group to the new TCB (we have not yet joined the
+   * group).
+   */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_bind(ptcb);
+  if (ret < 0)
+    {
+      errcode = ENOMEM;
+      goto errout_with_tcb;
+    }
+#endif
+
   /* Share the address environment of the parent task.  NOTE:  Only tasks
    * created throught the nuttx/binfmt loaders may have an address
    * environment.
@@ -277,31 +291,18 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
   ret = up_addrenv_share((FAR const _TCB *)g_readytorun.head, ptcb);
   if (ret < 0)
     {
-      sched_releasetcb(ptcb);
-      return -ret;
+      errcode = -ret;
+      goto errout_with_tcb;
     }
 #endif
-
-  /* Associate file descriptors with the new task */
-
-  ret = sched_setuppthreadfiles(ptcb);
-  if (ret != OK)
-    {
-      sched_releasetcb(ptcb);
-      return ret;
-    }
-
-  /* Share the parent's envionment */
-
-  (void)env_share(ptcb);
 
   /* Allocate a detachable structure to support pthread_join logic */
 
   pjoin = (FAR join_t*)kzalloc(sizeof(join_t));
   if (!pjoin)
     {
-      sched_releasetcb(ptcb);
-      return ENOMEM;
+      errcode = ENOMEM;
+      goto errout_with_tcb;
     }
 
   /* Allocate the stack for the TCB */
@@ -309,9 +310,8 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
   ret = up_create_stack(ptcb, attr->stacksize);
   if (ret != OK)
     {
-      sched_releasetcb(ptcb);
-      sched_free(pjoin);
-      return ENOMEM;
+      errcode = ENOMEM;
+      goto errout_with_join;
     }
 
   /* Should we use the priority and scheduler specified in the
@@ -360,9 +360,8 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
                         TCB_FLAG_TTYPE_PTHREAD);
   if (ret != OK)
     {
-      sched_releasetcb(ptcb);
-      sched_free(pjoin);
-      return EBUSY;
+      errcode = EBUSY;
+      goto errout_with_join;
     }
 
   /* Configure the TCB for a pthread receiving on parameter
@@ -370,6 +369,17 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
    */
 
   pthread_argsetup(ptcb, arg);
+
+  /* Join the parent's task group */
+
+#ifdef HAVE_TASK_GROUP
+  ret = group_join(ptcb);
+  if (ret < 0)
+    {
+      errcode = ENOMEM;
+      goto errout_with_join;
+    }
+#endif
 
   /* Attach the join info to the TCB. */
 
@@ -440,10 +450,18 @@ int pthread_create(FAR pthread_t *thread, FAR pthread_attr_t *attr,
       dq_rem((FAR dq_entry_t*)ptcb, (dq_queue_t*)&g_inactivetasks);
       (void)sem_destroy(&pjoin->data_sem);
       (void)sem_destroy(&pjoin->exit_sem);
-      sched_releasetcb(ptcb);
-      sched_free(pjoin);
-      ret = EIO;
+
+      errcode = EIO;
+      goto errout_with_join;
     }
 
   return ret;
+
+errout_with_join:
+  sched_free(pjoin);
+  ptcb->joininfo = NULL;
+
+errout_with_tcb:
+  sched_releasetcb(ptcb);
+  return errcode;
 }

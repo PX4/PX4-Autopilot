@@ -58,6 +58,14 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* If C++ constructors are used, then CONFIG_SCHED_STARTHOOK must also be
+ * selected be the start hook is used to schedule execution of the
+ * constructors.
+ */
+
+#if defined(CONFIG_BINFMT_CONSTRUCTORS) && !defined(CONFIG_SCHED_STARTHOOK)
+#  errror "CONFIG_SCHED_STARTHOOK must be defined to use constructors"
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
@@ -75,7 +83,9 @@
  * Name: exec_ctors
  *
  * Description:
- *   Execute C++ static constructors.
+ *   Execute C++ static constructors.  This function is registered as a
+ *   start hook and runs on the thread of the newly created task before
+ *   the new task's main function is called.
  *
  * Input Parameters:
  *   loadinfo - Load state information
@@ -87,25 +97,11 @@
  ****************************************************************************/
 
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
-static inline int exec_ctors(FAR const struct binary_s *binp)
+static void exec_ctors(FAR void *arg)
 {
+  FAR const struct binary_s *binp = (FAR const struct binary_s *)arg;
   binfmt_ctor_t *ctor = binp->ctors;
-#ifdef CONFIG_ADDRENV
-  hw_addrenv_t oldenv;
-  int ret;
-#endif
   int i;
-
-  /* Instantiate the address enviroment containing the constructors */
-
-#ifdef CONFIG_ADDRENV
-  ret = up_addrenv_select(binp->addrenv, &oldenv);
-  if (ret < 0)
-    {
-      bdbg("up_addrenv_select() failed: %d\n", ret);
-      return ret;
-    }
-#endif
 
   /* Execute each constructor */
 
@@ -116,14 +112,6 @@ static inline int exec_ctors(FAR const struct binary_s *binp)
       (*ctor)();
       ctor++;
     }
-
-  /* Restore the address enviroment */
-
-#ifdef CONFIG_ADDRENV
-  return up_addrenv_restore(oldenv);
-#else
-  return OK;
-#endif
 }
 #endif
 
@@ -139,7 +127,7 @@ static inline int exec_ctors(FAR const struct binary_s *binp)
  *
  * Returned Value:
  *   This is an end-user function, so it follows the normal convention:
- *   Returns the PID of the exec'ed module.  On failure, it.returns
+ *   Returns the PID of the exec'ed module.  On failure, it returns
  *   -1 (ERROR) and sets errno appropriately.
  *
  ****************************************************************************/
@@ -229,21 +217,18 @@ int exec_module(FAR const struct binary_s *binp)
     }
 #endif
 
+  /* Setup a start hook that will execute all of the C++ static constructors
+   * on the newly created thread.  The struct binary_s must persist at least
+   * until the new task has been started.
+   */
+
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+  task_starthook(tcb, exec_ctors, (FAR void *)binp);
+#endif
+
   /* Get the assigned pid before we start the task */
 
   pid = tcb->pid;
-
-  /* Execute all of the C++ static constructors */
-
-#ifdef CONFIG_BINFMT_CONSTRUCTORS
-  ret = exec_ctors(binp);
-  if (ret < 0)
-    {
-      err = -ret;
-      bdbg("exec_ctors() failed: %d\n", ret);
-      goto errout_with_stack;
-    }
-#endif
 
   /* Then activate the task at the provided priority */
 

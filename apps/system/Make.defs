@@ -66,3 +66,6 @@ ifeq ($(CONFIG_SYSTEM_SYSINFO),y)
 CONFIGURED_APPS += system/sysinfo
 endif
 
+ifeq ($(CONFIG_SYSTEM_USBMONITOR),y)
+CONFIGURED_APPS += system/usbmonitor
+endif

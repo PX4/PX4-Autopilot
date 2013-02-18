@@ -1510,9 +1510,6 @@ int commander_thread_main(int argc, char *argv[])
 				} else {
 					current_status.flag_external_manual_override_ok = true;
 				}
-
-			} else {
-				warnx("ARMED, rejecting sys type change\n");
 			}
 		}
 

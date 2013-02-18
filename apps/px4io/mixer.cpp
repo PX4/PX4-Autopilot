@@ -144,7 +144,7 @@ mixer_tick(void)
 				rc_channel_data[THROTTLE] = 1000;
 			}
 			
-			// lib_lowprintf("Tmin: %d Ttrim: %d Tmax: %d T: %d \n",
+			// lowsyslog("Tmin: %d Ttrim: %d Tmax: %d T: %d \n",
 			// 	(int)(system_state.rc_min[THROTTLE]), (int)(system_state.rc_trim[THROTTLE]),
 			// 	(int)(system_state.rc_max[THROTTLE]), (int)(rc_channel_data[THROTTLE]));
 
@@ -156,7 +156,7 @@ mixer_tick(void)
 			// XXX builtin failsafe would activate here
 			control_count = 0;
 		}
-		//lib_lowprintf("R: %d P: %d Y: %d T: %d \n", control_values[0], control_values[1], control_values[2], control_values[3]);
+		//lowsyslog("R: %d P: %d Y: %d T: %d \n", control_values[0], control_values[1], control_values[2], control_values[3]);
 
 	/* this is for multicopters, etc. where manual override does not make sense */
 	} else {

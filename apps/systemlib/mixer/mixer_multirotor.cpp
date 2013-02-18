@@ -57,7 +57,7 @@
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 //#include <debug.h>
-//#define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
+//#define debug(fmt, args...)	lowsyslog(fmt "\n", ##args)
 
 /*
  * Clockwise: 1
@@ -217,11 +217,11 @@ unsigned
 MultirotorMixer::mix(float *outputs, unsigned space)
 {
 	float		roll    = get_control(0, 0) * _roll_scale;
-	//lib_lowprintf("roll: %d, get_control0: %d, %d\n", (int)(roll), (int)(get_control(0, 0)), (int)(_roll_scale));
+	//lowsyslog("roll: %d, get_control0: %d, %d\n", (int)(roll), (int)(get_control(0, 0)), (int)(_roll_scale));
 	float		pitch   = get_control(0, 1) * _pitch_scale;
 	float		yaw     = get_control(0, 2) * _yaw_scale;
 	float		thrust  = get_control(0, 3);
-	//lib_lowprintf("thrust: %d, get_control3: %d\n", (int)(thrust), (int)(get_control(0, 3)));
+	//lowsyslog("thrust: %d, get_control3: %d\n", (int)(thrust), (int)(get_control(0, 3)));
 	float		max     = 0.0f;
 	float		fixup_scale;
 

@@ -43,8 +43,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <string.h>
 #include <sched.h>
+#include <errno.h>
+
 #include <nuttx/init.h>
 
 #include "ostest.h"
@@ -263,6 +266,31 @@ static int user_main(int argc, char *argv[])
         }
     }
   check_test_memory_usage();
+
+  /* If retention of child status is enable, then suppress it for this task.
+   * This task may produce many, many children (especially if
+   * CONFIG_EXAMPLES_OSTEST_LOOPS) and it does not harvest their exit status.
+   * As a result, the test may fail inappropriately unless retention of
+   * child exit status is disabled.
+   *
+   * So basically, this tests that child status can be disabled, but cannot
+   * verify that status is retained correctly.
+   */
+
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+  {
+    struct sigaction sa;
+    int ret;
+
+    sa.sa_handler = SIG_IGN;
+    sa.sa_flags = SA_NOCLDWAIT;
+    ret = sigaction(SIGCHLD, &sa, NULL);
+    if (ret < 0)
+      {
+        printf("user_main: ERROR: sigaction failed: %d\n", errno);
+      }
+  }
+#endif
 
   /* Check environment variables */
 #ifndef CONFIG_DISABLE_ENVIRON

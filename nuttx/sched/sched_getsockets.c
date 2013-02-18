@@ -1,7 +1,7 @@
 /************************************************************************
  * sched/sched_getsockets.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,10 @@
 FAR struct socketlist *sched_getsockets(void)
 {
   FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
-  return rtcb->sockets;
+  FAR struct task_group_s *group = rtcb->group;
+
+  DEBUGASSERT(group);
+  return &group->tg_socketlist;
 }
 
 #endif /* CONFIG_NSOCKET_DESCRIPTORS */
