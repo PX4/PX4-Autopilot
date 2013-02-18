@@ -248,26 +248,19 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 
 		*mavlink_state = MAV_STATE_CALIBRATING;
 
-	} else if (v_status.flag_system_emergency) {
+	} else if (v_status.arming_state == ARMING_STATE_ERROR || v_status.arming_state == ARMING_STATE_ABORT) {
 
 		*mavlink_state = MAV_STATE_EMERGENCY;
 
-	} else if (v_status.navigation_state == NAVIGATION_STATE_MANUAL
-	 || v_status.navigation_state == NAVIGATION_STATE_SEATBELT
-	 || v_status.navigation_state == NAVIGATION_STATE_LOITER
-	 || v_status.navigation_state == NAVIGATION_STATE_MISSION
-	 || v_status.navigation_state == NAVIGATION_STATE_RTL
-	 || v_status.navigation_state == NAVIGATION_STATE_LAND
-	 || v_status.navigation_state == NAVIGATION_STATE_TAKEOFF
-	 || v_status.navigation_state == NAVIGATION_STATE_AUTO_READY) {
+	} else if (v_status.arming_state == ARMING_STATE_ARMED || v_status.arming_state == ARMING_STATE_IN_AIR_RESTORE) {
 
 		*mavlink_state = MAV_STATE_ACTIVE;
 
-	} else if (v_status.navigation_state == NAVIGATION_STATE_STANDBY) {
+	} else if (v_status.arming_state == ARMING_STATE_STANDBY) {
 
 		*mavlink_state = MAV_STATE_STANDBY;
 
-	} else if (v_status.navigation_state == NAVIGATION_STATE_INIT) {
+	} else if (v_status.arming_state == ARMING_STATE_INIT) {
 
 		*mavlink_state = MAV_STATE_UNINIT;
 	} else {

@@ -60,8 +60,7 @@
 
 /* State Machine */
 typedef enum {
-	NAVIGATION_STATE_INIT = 0,
-	NAVIGATION_STATE_STANDBY,
+	NAVIGATION_STATE_STANDBY=0,
 	NAVIGATION_STATE_MANUAL,
 	NAVIGATION_STATE_SEATBELT,
 	NAVIGATION_STATE_LOITER,
@@ -70,15 +69,13 @@ typedef enum {
 	NAVIGATION_STATE_RTL,
 	NAVIGATION_STATE_TAKEOFF,
 	NAVIGATION_STATE_LAND,
-	NAVIGATION_STATE_GROUND_ERROR,
-	NAVIGATION_STATE_REBOOT
 } navigation_state_t;
 
 typedef enum {
 	ARMING_STATE_INIT = 0,
 	ARMING_STATE_STANDBY,
 	ARMING_STATE_ARMED,
-	ARMING_STATE_MISSION_ABORT,
+	ARMING_STATE_ABORT,
 	ARMING_STATE_ERROR,
 	ARMING_STATE_REBOOT,
 	ARMING_STATE_IN_AIR_RESTORE
@@ -94,6 +91,22 @@ enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_TEST_ENABLED = 2,
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1
 }; /**< Same as MAV_MODE_FLAG of MAVLink 1.0 protocol */
+
+typedef enum {
+	MODE_SWITCH_MANUAL = 0,
+	MODE_SWITCH_ASSISTED,
+	MODE_SWITCH_AUTO
+} mode_switch_pos_t;
+
+typedef enum {
+	RETURN_SWITCH_NONE = 0,
+	RETURN_SWITCH_RETURN
+} return_switch_pos_t;
+
+typedef enum {
+	MISSION_SWITCH_NONE = 0,
+	MISSION_SWITCH_MISSION
+} mission_switch_pos_t;
 
 //enum VEHICLE_FLIGHT_MODE {
 //	VEHICLE_FLIGHT_MODE_MANUAL = 0,		/**< direct manual control, exact mode determined by VEHICLE_MANUAL_CONTROL_MODE */
@@ -168,9 +181,18 @@ struct vehicle_status_s
 
 	/* system flags - these represent the state predicates */
 
+	mode_switch_pos_t mode_switch;
+	return_switch_pos_t return_switch;
+	mission_switch_pos_t mission_switch;
+
 	bool flag_system_armed;				/**< true is motors / actuators are armed */
 	bool flag_system_emergency;
-	bool flag_system_sensors_ok;
+	bool flag_system_in_air_restore;	/**< true if we can restore in mid air */
+	bool flag_system_sensors_initialized;
+	bool flag_system_arming_requested;
+	bool flag_system_disarming_requested;
+	bool flag_system_reboot_requested;
+	bool flag_system_on_ground;
 
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
 	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */

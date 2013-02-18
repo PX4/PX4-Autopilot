@@ -817,22 +817,24 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
 			/* request to arm */
 			if ((int)cmd->param1 == 1) {
-				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_ARMED)) {
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else {
-					result = VEHICLE_CMD_RESULT_DENIED;
-				}
+				// XXX add this again
+//				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_ARMED)) {
+//					result = VEHICLE_CMD_RESULT_ACCEPTED;
+//
+//				} else {
+//					result = VEHICLE_CMD_RESULT_DENIED;
+//				}
 
 				/* request to disarm */
 			// XXX this arms it instad of disarming
 			} else if ((int)cmd->param1 == 0) {
-				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_STANDBY)) {
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else {
-					result = VEHICLE_CMD_RESULT_DENIED;
-				}
+				// XXX add this again
+//				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_STANDBY)) {
+//					result = VEHICLE_CMD_RESULT_ACCEPTED;
+//
+//				} else {
+//					result = VEHICLE_CMD_RESULT_DENIED;
+//				}
 			}
 		}
 		break;
@@ -840,7 +842,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		/* request for an autopilot reboot */
 	case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
 			if ((int)cmd->param1 == 1) {
-				if (OK == do_navigation_state_update(status_pub, current_vehicle_status, mavlink_fd, NAVIGATION_STATE_REBOOT)) {
+				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_REBOOT)) {
 					/* SPECIAL CASE: SYSTEM WILL NEVER RETURN HERE */
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -883,25 +885,26 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			if ((int)(cmd->param1) == 1) {
 
 				/* transition to init state */
-				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-
-					mavlink_log_info(mavlink_fd, "starting gyro cal");
-					tune_confirm();
-					do_gyro_calibration(status_pub, &current_status);
-					mavlink_log_info(mavlink_fd, "finished gyro cal");
-					tune_confirm();
-
-					/* back to standby state */
-					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else {
-					mavlink_log_critical(mavlink_fd, "REJECTING gyro cal");
-					result = VEHICLE_CMD_RESULT_DENIED;
-				}
+				// XXX add this again
+//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
+//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
+//
+//					mavlink_log_info(mavlink_fd, "starting gyro cal");
+//					tune_confirm();
+//					do_gyro_calibration(status_pub, &current_status);
+//					mavlink_log_info(mavlink_fd, "finished gyro cal");
+//					tune_confirm();
+//
+//					/* back to standby state */
+//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
+//
+//					result = VEHICLE_CMD_RESULT_ACCEPTED;
+//
+//				} else {
+//					mavlink_log_critical(mavlink_fd, "REJECTING gyro cal");
+//					result = VEHICLE_CMD_RESULT_DENIED;
+//				}
 
 				handled = true;
 			}
@@ -910,24 +913,25 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			if ((int)(cmd->param2) == 1) {
 
 				/* transition to init state */
-				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-					mavlink_log_info(mavlink_fd, "starting mag cal");
-					tune_confirm();
-					do_mag_calibration(status_pub, &current_status);
-					mavlink_log_info(mavlink_fd, "finished mag cal");
-					tune_confirm();
-
-					/* back to standby state */
-					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else {
-					mavlink_log_critical(mavlink_fd, "REJECTING mag cal");
-					result = VEHICLE_CMD_RESULT_DENIED;
-				}
+				// XXX add this again
+//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
+//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
+//					mavlink_log_info(mavlink_fd, "starting mag cal");
+//					tune_confirm();
+//					do_mag_calibration(status_pub, &current_status);
+//					mavlink_log_info(mavlink_fd, "finished mag cal");
+//					tune_confirm();
+//
+//					/* back to standby state */
+//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
+//
+//					result = VEHICLE_CMD_RESULT_ACCEPTED;
+//
+//				} else {
+//					mavlink_log_critical(mavlink_fd, "REJECTING mag cal");
+//					result = VEHICLE_CMD_RESULT_DENIED;
+//				}
 
 				handled = true;
 			}
@@ -935,21 +939,22 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			/* zero-altitude pressure calibration */
 			if ((int)(cmd->param3) == 1) {
 				/* transition to calibration state */
-				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-
-					// XXX implement this
-					mavlink_log_info(mavlink_fd, "zero altitude cal. not implemented");
-					tune_confirm();
-
-					/* back to standby state */
-					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-
-				} else {
-					mavlink_log_critical(mavlink_fd, "REJECTING altitude calibration");
-					result = VEHICLE_CMD_RESULT_DENIED;
-				}
+				// XXX add this again
+//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
+//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
+//
+//					// XXX implement this
+//					mavlink_log_info(mavlink_fd, "zero altitude cal. not implemented");
+//					tune_confirm();
+//
+//					/* back to standby state */
+//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
+//
+//				} else {
+//					mavlink_log_critical(mavlink_fd, "REJECTING altitude calibration");
+//					result = VEHICLE_CMD_RESULT_DENIED;
+//				}
 
 				handled = true;
 			}
@@ -957,49 +962,51 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			/* trim calibration */
 			if ((int)(cmd->param4) == 1) {
 				/* transition to calibration state */
-				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-					mavlink_log_info(mavlink_fd, "starting trim cal");
-					tune_confirm();
-					do_rc_calibration(status_pub, &current_status);
-					mavlink_log_info(mavlink_fd, "finished trim cal");
-					tune_confirm();
-
-					/* back to standby state */
-					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else {
-					mavlink_log_critical(mavlink_fd, "REJECTING trim cal");
-					result = VEHICLE_CMD_RESULT_DENIED;
-				}
+				// XXX add this again
+//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
+//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
+//					mavlink_log_info(mavlink_fd, "starting trim cal");
+//					tune_confirm();
+//					do_rc_calibration(status_pub, &current_status);
+//					mavlink_log_info(mavlink_fd, "finished trim cal");
+//					tune_confirm();
+//
+//					/* back to standby state */
+//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
+//
+//					result = VEHICLE_CMD_RESULT_ACCEPTED;
+//
+//				} else {
+//					mavlink_log_critical(mavlink_fd, "REJECTING trim cal");
+//					result = VEHICLE_CMD_RESULT_DENIED;
+//				}
 
 				handled = true;
 			}
 
 			/* accel calibration */
 			if ((int)(cmd->param5) == 1) {
-				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-
-					mavlink_log_info(mavlink_fd, "CMD starting accel cal");
-					tune_confirm();
-					do_accel_calibration(status_pub, &current_status);
-					tune_confirm();
-					mavlink_log_info(mavlink_fd, "CMD finished accel cal");
-
-					/* back to standby state */
-					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else {
-					mavlink_log_critical(mavlink_fd, "REJECTING accel cal");
-					result = VEHICLE_CMD_RESULT_DENIED;
-				}
+				// XXX add this again
+//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
+//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
+//
+//					mavlink_log_info(mavlink_fd, "CMD starting accel cal");
+//					tune_confirm();
+//					do_accel_calibration(status_pub, &current_status);
+//					tune_confirm();
+//					mavlink_log_info(mavlink_fd, "CMD finished accel cal");
+//
+//					/* back to standby state */
+//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
+//
+//					result = VEHICLE_CMD_RESULT_ACCEPTED;
+//
+//				} else {
+//					mavlink_log_critical(mavlink_fd, "REJECTING accel cal");
+//					result = VEHICLE_CMD_RESULT_DENIED;
+//				}
 
 				handled = true;
 			}
@@ -1315,7 +1322,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* make sure we are in preflight state */
 	memset(&current_status, 0, sizeof(current_status));
-	current_status.navigation_state = NAVIGATION_STATE_INIT;
+	current_status.navigation_state = NAVIGATION_STATE_STANDBY;
 	current_status.arming_state = ARMING_STATE_INIT;
 	current_status.flag_system_armed = false;
 
@@ -1335,6 +1342,9 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* set battery warning flag */
 	current_status.battery_warning = VEHICLE_BATTERY_WARNING_NONE;
+
+	// XXX for now just set sensors as initialized
+	current_status.flag_system_sensors_initialized = true;
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
@@ -1886,8 +1896,8 @@ int commander_thread_main(int argc, char *argv[])
 				    ((sp_man.yaw < -STICK_ON_OFF_LIMIT)) &&
 				    (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						current_status.flag_system_armed = false;
-						stick_on_counter = 0;
+						do_arming_state_update(stat_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+						stick_off_counter = 0;
 
 					} else {
 						stick_off_counter++;
@@ -1898,7 +1908,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* check if left stick is in lower right position --> arm */
 				if (sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.2f) {
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						current_status.flag_system_armed = true;
+						do_arming_state_update(stat_pub, &current_status, mavlink_fd, ARMING_STATE_ARMED);
 						stick_on_counter = 0;
 
 					} else {
@@ -2053,9 +2063,6 @@ int commander_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID(vehicle_status), stat_pub, &current_status);
 			state_changed = false;
 		}
-
-		/* make changes in state machine if needed */
-		update_state_machine(stat_pub, &current_status, mavlink_fd);
 
 
 
