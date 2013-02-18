@@ -32,27 +32,11 @@
 ############################################################################
 
 #
-# Build the px4io application.
+# Build the i2c test tool.
 #
 
-#
-# Note that we pull a couple of specific files from the systemlib, since
-# we can't support it all.
-#
-CSRCS		= adc.c \
-		  controls.c \
-		  dsm.c \
-		  i2c.c \
-		  px4io.c \
-		  registers.c \
-		  safety.c \
-		  sbus.c \
-		  ../systemlib/hx_stream.c \
-		  ../systemlib/perf_counter.c \
-		  ../systemlib/up_cxxinitialize.c
-
-CXXSRCS		= mixer.cpp
-
-INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
+APPNAME		 = i2c
+PRIORITY	 = SCHED_PRIORITY_DEFAULT
+STACKSIZE	 = 4096
 
 include $(APPDIR)/mk/app.mk

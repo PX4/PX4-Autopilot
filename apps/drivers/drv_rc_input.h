@@ -100,4 +100,11 @@ struct rc_input_values {
  */
 ORB_DECLARE(input_rc);
 
+#define _RC_INPUT_BASE		0x2b00
+
+/** Fetch R/C input values into (rc_input_values *)arg */
+
+#define RC_INPUT_GET			_IOC(_RC_INPUT_BASE, 0)
+
+
 #endif /* _DRV_RC_INPUT_H */

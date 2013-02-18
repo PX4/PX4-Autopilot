@@ -120,7 +120,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	struct i2c_msg_s msgv[2];
 	unsigned msgs;
 	int ret;
-	unsigned tries = 0;
+	unsigned retry_count = 0;
 
 	do {
 		//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
@@ -154,16 +154,51 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		I2C_SETFREQUENCY(_dev, _frequency);
 		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
+		/* success */
 		if (ret == OK)
 			break;
 
-		// reset the I2C bus to unwedge on error
-		up_i2creset(_dev);
+		/* if we have already retried once, or we are going to give up, then reset the bus */
+		if ((retry_count >= 1) || (retry_count >= _retries))
+			up_i2creset(_dev);
 
-	} while (tries++ < _retries);
+	} while (retry_count++ < _retries);
 
 	return ret;
 
+}
+
+int
+I2C::transfer(i2c_msg_s *msgv, unsigned msgs)
+{
+	int ret;
+	unsigned retry_count = 0;
+
+	/* force the device address into the message vector */
+	for (unsigned i = 0; i < msgs; i++)
+		msgv[i].addr = _address;
+
+
+	do {
+		/*
+		 * I2C architecture means there is an unavoidable race here
+		 * if there are any devices on the bus with a different frequency
+		 * preference.  Really, this is pointless.
+		 */
+		I2C_SETFREQUENCY(_dev, _frequency);
+		ret = I2C_TRANSFER(_dev, msgv, msgs);
+
+		/* success */
+		if (ret == OK)
+			break;
+
+		/* if we have already retried once, or we are going to give up, then reset the bus */
+		if ((retry_count >= 1) || (retry_count >= _retries))
+			up_i2creset(_dev);
+
+	} while (retry_count++ < _retries);
+
+	return ret;
 }
 
 } // namespace device

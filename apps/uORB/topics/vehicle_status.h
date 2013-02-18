@@ -178,7 +178,9 @@ struct vehicle_status_s
 	navigation_state_t navigation_state;	/**< current navigation state */
 	arming_state_t arming_state;			/**< current arming state */
 
-	int32_t system_type;				/**< system type, inspired by MAVLinks VEHICLE_TYPE enum */
+	int32_t system_type;				/**< system type, inspired by MAVLink's VEHICLE_TYPE enum */
+	int32_t	system_id;				/**< system id, inspired by MAVLink's system ID field */
+	int32_t component_id;				/**< subsystem / component id, inspired by MAVLink's component ID field */
 
 	/* system flags - these represent the state predicates */
 
@@ -208,7 +210,7 @@ struct vehicle_status_s
 	bool flag_mission_activated;			/**< true if in mission mode */
 
 	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
-	bool flag_preflight_mag_calibration;			/**< true if mag calibration is requested */
+	bool flag_preflight_mag_calibration;		/**< true if mag calibration is requested */
 	bool flag_preflight_accel_calibration;
 
 	bool rc_signal_found_once;
@@ -246,6 +248,7 @@ struct vehicle_status_s
 	bool flag_auto_flight_mode_ok;			/**< conditions of vector flight mode apply plus a valid takeoff position lock has been aquired */
 	bool flag_external_manual_override_ok;		/**< external override non-fatal for system. Only true for fixed wing */
 	bool flag_valid_launch_position;		/**< indicates a valid launch position */
+	bool flag_valid_home_position;			/**< indicates a valid home position (a valid home position is not always a valid launch) */
 };
 
 /**

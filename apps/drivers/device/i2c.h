@@ -101,6 +101,16 @@ protected:
 				 uint8_t *recv, unsigned recv_len);
 
 	/**
+	 * Perform a multi-part I2C transaction to the device.
+	 *
+	 * @param msgv		An I2C message vector.
+	 * @param msgs		The number of entries in the message vector.
+	 * @return		OK if the transfer was successful, -errno
+	 *			otherwise.
+	 */
+	int		transfer(i2c_msg_s *msgv, unsigned msgs);
+
+	/**
 	 * Change the bus address.
 	 *
 	 * Most often useful during probe() when the driver is testing
