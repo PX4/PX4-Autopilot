@@ -57,6 +57,7 @@
 #include <math.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -140,6 +141,7 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 	static const int8_t rotM_flow_sensor[3][3] =   {{  0, 1, 0 },
 													{ -1, 0, 0 },
 													{  0, 0, 1 }};
+	const static float const_earth_gravity = 9.81f;
 
 	static float u[2] = {0.0f, 0.0f};
 	static float speed[3] = {0.0f, 0.0f, 0.0f}; // x,y
@@ -150,17 +152,36 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 	static float dt = 0; // seconds
 	static float time_scale = pow(10,-6);
 
-	/* subscribe to vehicle status, attitude*/
+	static int baro_loop_cnt = 0;
+	static int baro_loop_end = 70; /* measurement for 1 second */
+	static float p0_Pa = 0.0f; /* to determin while start up */
+	static float rho0 = 1.293f;
+	static bool baro_initialized = false;
+	static float barometer_height_est = 0.0;
+	static float sonar_last = 0;
+	static bool sonar_valid = false;
+//	static int sonar_unaccepted_count = 0;
+//	static float sonar_barometer_offset = 0.0f;
+
+	static float sonar_lp = 0.0f;
+
+	/* subscribe to vehicle status, attitude, sensors and flow*/
 	struct vehicle_status_s vstatus;
+	memset(&vstatus, 0, sizeof(vstatus));
+	struct sensor_combined_s sensor;
+	memset(&sensor, 0, sizeof(sensor));
 	struct vehicle_attitude_s att;
+	memset(&att, 0, sizeof(att));
 	struct optical_flow_s flow;
+	memset(&flow, 0, sizeof(flow));
 
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	/* subscribe to attitude at 100 Hz */
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
-	/* subscribe to attitude at 100 Hz */
+	/* subscribe to optical flow*/
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 
 	/* publish global position messages */
@@ -186,54 +207,149 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 			/* got flow, updating attitude and status as well */
 			orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-			/*copy flow */
-			flow_speed[0] = flow.flow_comp_x_m;
-			flow_speed[1] = flow.flow_comp_y_m;
-			flow_speed[2] = 0.0f;
+			if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 
-			/* ignore first flow msg */
-			if(time_last_flow == 0)
-			{
-				time_last_flow = flow.timestamp;
-				continue;
-			}
+				/*copy flow */
+				flow_speed[0] = flow.flow_comp_x_m;
+				flow_speed[1] = flow.flow_comp_y_m;
+				flow_speed[2] = 0.0f;
 
-			/* calc dt */
-			dt = (float)(flow.timestamp - time_last_flow) * time_scale ;
-			time_last_flow = flow.timestamp;
+				if (!baro_initialized){
+					// mean calculation over several measurements
+					if(baro_loop_cnt < baro_loop_end) {
+						p0_Pa += (sensor.baro_pres_mbar * 100);
+						baro_loop_cnt++;
+					}else{
+						p0_Pa /= (float)(baro_loop_cnt);
+						baro_initialized = true;
 
-			/* convert to global velocity */
-			for(uint8_t i = 0; i < 3; i++) {
-				float sum = 0.0f;
-				for(uint8_t j = 0; j < 3; j++) {
-					sum = sum + flow_speed[j] * rotM_flow_sensor[j][i];
+						/* send log info */
+//						char *baro_m_start = "barometer initialized with p0 = ";
+//						char p0_char[15];
+//						sprintf(p0_char, "%8.2f", p0_Pa/100);
+//						char *baro_m_end = " mbar";
+//						char str[80];
+//						strcpy(str,baro_m_start);
+//						strcat(str,p0_char);
+//						strcat(str,baro_m_end);
+//						mavlink_log_info(mavlink_fd, str);
+					}
 				}
-				speed[i] = sum;
+
+				if(baro_initialized){
+					barometer_height_est = -p0_Pa*log(p0_Pa/(sensor.baro_pres_mbar*100))/(rho0*const_earth_gravity);
+				}
+
+				/* ignore first flow msg */
+				if(time_last_flow == 0)
+				{
+					time_last_flow = flow.timestamp;
+					continue;
+				}
+
+				/* calc dt */
+				dt = (float)(flow.timestamp - time_last_flow) * time_scale ;
+				time_last_flow = flow.timestamp;
+
+				/* convert to global velocity */
+				for(uint8_t i = 0; i < 3; i++) {
+					float sum = 0.0f;
+					for(uint8_t j = 0; j < 3; j++) {
+						sum = sum + flow_speed[j] * rotM_flow_sensor[j][i];
+					}
+					speed[i] = sum;
+				}
+
+//				for(uint8_t i = 0; i < 3; i++) {
+//					float sum = 0.0f;
+//					for(uint8_t j = 0; j < 3; j++) {
+//						sum = sum + speed[j] * att.R[i][j];
+//					}
+//					global_speed[i] = sum;
+//				}
+//				local_pos.x = local_pos.x + global_speed[0] * dt;
+//				local_pos.y = local_pos.y + global_speed[1] * dt;
+
+
+				local_pos.x = local_pos.x + speed[0] * dt;
+				local_pos.y = local_pos.y + speed[1] * dt;
+
+
+				local_pos.vx = speed[0];
+				local_pos.vy = speed[1];
+
+//				if (counter % 50 = 0)
+//					printf("height_diff:%.3f", height_diff);
+//
+//				 not working/tested with barometer
+//				int sonar_accepted = 0;
+//				float height_diff = sonar - barometer_height_est;
+//
+//				if (fabsf(height_diff) < 0.5) {
+//					sonar_unaccepted_count = 0;
+//					sonar_barometer_offset = 0.0f;
+//				} else {
+//					sonar_unaccepted_count++;
+//
+//					if(sonar_unaccepted_count > 10) {
+//						/* add/sub 1cm to offset */
+//						if (height_diff < 0)
+//							sonar_barometer_offset -= 0.01;
+//						else
+//							sonar_barometer_offset += 0.01;
+//					}
+//
+//					local_pos.z = sonar_last + sonar_barometer_offset;
+//
+//				}
+
+			} else {
+
+				/* reset position */
+				local_pos.x = 0.0f;
+				local_pos.y = 0.0f;
+				/* reset velocity */
+				local_pos.vx = 0.0f;
+				local_pos.vy = 0.0f;
+
 			}
 
-//			for(uint8_t i = 0; i < 3; i++) {
-//				float sum = 0.0f;
-//				for(uint8_t j = 0; j < 3; j++) {
-//					sum = sum + speed[j] * att.R[i][j];
-//				}
-//				global_speed[i] = sum;
-//			}
-//			local_pos.x = local_pos.x + global_speed[0] * dt;
-//			local_pos.y = local_pos.y + global_speed[1] * dt;
+			/* filtering ground distance */
+			float sonar = - flow.ground_distance_m;
+			if (sonar_valid) {
+				/* simple lowpass sonar filtering */
 
+				/* if new value or with sonar update frequency */
+				if (sonar != sonar_last || counter % 10 == 0) {
+					sonar_lp = 0.05 * sonar + 0.95 * sonar_lp;
+					sonar_last = sonar;
+				}
 
-			local_pos.x = local_pos.x + speed[0] * dt;
-			local_pos.y = local_pos.y + speed[1] * dt;
-			local_pos.z = - flow.ground_distance_m;
+				float height_diff = sonar - sonar_lp;
 
-			local_pos.vx = speed[0];
-			local_pos.vy = speed[1];
+				/* if over 1/2m spike follow lowpass */
+				if (height_diff < -0.5 || height_diff > 0.5)
+				{
+					local_pos.z = sonar_lp;
+
+				} else
+				{
+					local_pos.z = sonar;
+				}
+
+			} else {
+				/* first sonar input sanitation */
+				if (sonar < 2.0f) {
+					sonar_valid = true;
+				}
+				local_pos.z = -0.3f;
+
+			}
 
 			local_pos.timestamp = hrt_absolute_time();
-
 			orb_publish(ORB_ID(vehicle_local_position), local_pos_pub, &local_pos);
-
 		}
 
 		counter++;
