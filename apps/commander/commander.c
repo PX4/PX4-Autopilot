@@ -797,302 +797,297 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	/* announce command handling */
 	tune_confirm();
 
-
-	/* supported command handling start */
-
 	/* request to set different system mode */
 	switch (cmd->command) {
-	case VEHICLE_CMD_DO_SET_MODE: {
-		// XXX implement this
+		case VEHICLE_CMD_DO_SET_MODE:
 
-//			if (OK == update_state_machine_mode_request(status_pub, current_vehicle_status, mavlink_fd, (uint8_t)cmd->param1)) {
-//				result = VEHICLE_CMD_RESULT_ACCEPTED;
-//
-//			} else {
-				result = VEHICLE_CMD_RESULT_DENIED;
-//			}
-		}
-		break;
+			/* request to activate HIL */
+			if ((int)cmd->param1 & VEHICLE_MODE_FLAG_HIL_ENABLED) {
 
-	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
-			/* request to arm */
-			if ((int)cmd->param1 == 1) {
-				// XXX add this again
-//				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_ARMED)) {
-//					result = VEHICLE_CMD_RESULT_ACCEPTED;
-//
-//				} else {
-//					result = VEHICLE_CMD_RESULT_DENIED;
-//				}
-
-				/* request to disarm */
-			// XXX this arms it instad of disarming
-			} else if ((int)cmd->param1 == 0) {
-				// XXX add this again
-//				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_STANDBY)) {
-//					result = VEHICLE_CMD_RESULT_ACCEPTED;
-//
-//				} else {
-//					result = VEHICLE_CMD_RESULT_DENIED;
-//				}
-			}
-		}
-		break;
-
-		/* request for an autopilot reboot */
-	case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
-			if ((int)cmd->param1 == 1) {
-				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_REBOOT)) {
-					/* SPECIAL CASE: SYSTEM WILL NEVER RETURN HERE */
+				if (OK == do_hil_state_update(status_pub, current_vehicle_status, mavlink_fd, HIL_STATE_ON)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
 				} else {
-					/* system may return here */
 					result = VEHICLE_CMD_RESULT_DENIED;
 				}
 			}
-		}
-		break;
 
-//		/* request to land */
-//		case VEHICLE_CMD_NAV_LAND:
-//		 {
-//				//TODO: add check if landing possible
-//				//TODO: add landing maneuver
-//
-//				if (0 == update_state_machine_custom_mode_request(status_pub, current_vehicle_status, SYSTEM_STATE_ARMED)) {
-//					result = VEHICLE_CMD_RESULT_ACCEPTED;
-//		}		}
-//		break;
-//
-//		/* request to takeoff */
-//		case VEHICLE_CMD_NAV_TAKEOFF:
-//		{
-//			//TODO: add check if takeoff possible
-//			//TODO: add takeoff maneuver
-//
-//			if (0 == update_state_machine_custom_mode_request(status_pub, current_vehicle_status, SYSTEM_STATE_AUTO)) {
-//				result = VEHICLE_CMD_RESULT_ACCEPTED;
-//			}
-//		}
-//		break;
-//
-		/* preflight calibration */
-	case VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
-			bool handled = false;
-
-			/* gyro calibration */
-			if ((int)(cmd->param1) == 1) {
-
-				/* transition to init state */
-				// XXX add this again
-//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-//
-//					mavlink_log_info(mavlink_fd, "starting gyro cal");
-//					tune_confirm();
-//					do_gyro_calibration(status_pub, &current_status);
-//					mavlink_log_info(mavlink_fd, "finished gyro cal");
-//					tune_confirm();
-//
-//					/* back to standby state */
-//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-//
-//					result = VEHICLE_CMD_RESULT_ACCEPTED;
-//
-//				} else {
-//					mavlink_log_critical(mavlink_fd, "REJECTING gyro cal");
-//					result = VEHICLE_CMD_RESULT_DENIED;
-//				}
-
-				handled = true;
-			}
-
-			/* magnetometer calibration */
-			if ((int)(cmd->param2) == 1) {
-
-				/* transition to init state */
-				// XXX add this again
-//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-//					mavlink_log_info(mavlink_fd, "starting mag cal");
-//					tune_confirm();
-//					do_mag_calibration(status_pub, &current_status);
-//					mavlink_log_info(mavlink_fd, "finished mag cal");
-//					tune_confirm();
-//
-//					/* back to standby state */
-//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-//
-//					result = VEHICLE_CMD_RESULT_ACCEPTED;
-//
-//				} else {
-//					mavlink_log_critical(mavlink_fd, "REJECTING mag cal");
-//					result = VEHICLE_CMD_RESULT_DENIED;
-//				}
-
-				handled = true;
-			}
-
-			/* zero-altitude pressure calibration */
-			if ((int)(cmd->param3) == 1) {
-				/* transition to calibration state */
-				// XXX add this again
-//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-//
-//					// XXX implement this
-//					mavlink_log_info(mavlink_fd, "zero altitude cal. not implemented");
-//					tune_confirm();
-//
-//					/* back to standby state */
-//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-//
-//				} else {
-//					mavlink_log_critical(mavlink_fd, "REJECTING altitude calibration");
-//					result = VEHICLE_CMD_RESULT_DENIED;
-//				}
-
-				handled = true;
-			}
-
-			/* trim calibration */
-			if ((int)(cmd->param4) == 1) {
-				/* transition to calibration state */
-				// XXX add this again
-//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-//					mavlink_log_info(mavlink_fd, "starting trim cal");
-//					tune_confirm();
-//					do_rc_calibration(status_pub, &current_status);
-//					mavlink_log_info(mavlink_fd, "finished trim cal");
-//					tune_confirm();
-//
-//					/* back to standby state */
-//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-//
-//					result = VEHICLE_CMD_RESULT_ACCEPTED;
-//
-//				} else {
-//					mavlink_log_critical(mavlink_fd, "REJECTING trim cal");
-//					result = VEHICLE_CMD_RESULT_DENIED;
-//				}
-
-				handled = true;
-			}
-
-			/* accel calibration */
-			if ((int)(cmd->param5) == 1) {
-				// XXX add this again
-//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-//
-//					mavlink_log_info(mavlink_fd, "CMD starting accel cal");
-//					tune_confirm();
-//					do_accel_calibration(status_pub, &current_status);
-//					tune_confirm();
-//					mavlink_log_info(mavlink_fd, "CMD finished accel cal");
-//
-//					/* back to standby state */
-//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-//
-//					result = VEHICLE_CMD_RESULT_ACCEPTED;
-//
-//				} else {
-//					mavlink_log_critical(mavlink_fd, "REJECTING accel cal");
-//					result = VEHICLE_CMD_RESULT_DENIED;
-//				}
-
-				handled = true;
-			}
-
-			/* none found */
-			if (!handled) {
-				//warnx("refusing unsupported calibration request\n");
-				mavlink_log_critical(mavlink_fd, "CMD refusing unsup. calib. request");
-				result = VEHICLE_CMD_RESULT_UNSUPPORTED;
-			}
-		}
-		break;
-
-	case VEHICLE_CMD_PREFLIGHT_STORAGE: {
-			if (current_status.flag_system_armed &&
-			    ((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
-			     (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
-			     (current_status.system_type == VEHICLE_TYPE_OCTOROTOR))) {
-				/* do not perform expensive memory tasks on multirotors in flight */
-				// XXX this is over-safe, as soon as cmd is in low prio thread this can be allowed
-				mavlink_log_info(mavlink_fd, "REJECTING save cmd while multicopter armed");
-
-			} else {
-
-				// XXX move this to LOW PRIO THREAD of commander app
-				/* Read all parameters from EEPROM to RAM */
-
-				if (((int)(cmd->param1)) == 0)	{
-
-					/* read all parameters from EEPROM to RAM */
-					int read_ret = param_load_default();
-
-					if (read_ret == OK) {
-						//warnx("[mavlink pm] Loaded EEPROM params in RAM\n");
-						mavlink_log_info(mavlink_fd, "OK loading params from");
-						mavlink_log_info(mavlink_fd, param_get_default_file());
-						result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-					} else if (read_ret == 1) {
-						mavlink_log_info(mavlink_fd, "OK no changes in");
-						mavlink_log_info(mavlink_fd, param_get_default_file());
-						result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-					} else {
-						if (read_ret < -1) {
-							mavlink_log_info(mavlink_fd, "ERR loading params from");
-							mavlink_log_info(mavlink_fd, param_get_default_file());
-
-						} else {
-							mavlink_log_info(mavlink_fd, "ERR no param file named");
-							mavlink_log_info(mavlink_fd, param_get_default_file());
-						}
-
-						result = VEHICLE_CMD_RESULT_FAILED;
-					}
-
-				} else if (((int)(cmd->param1)) == 1)	{
-
-					/* write all parameters from RAM to EEPROM */
-					int write_ret = param_save_default();
-
-					if (write_ret == OK) {
-						mavlink_log_info(mavlink_fd, "OK saved param file");
-						mavlink_log_info(mavlink_fd, param_get_default_file());
-						result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-					} else {
-						if (write_ret < -1) {
-							mavlink_log_info(mavlink_fd, "ERR params file does not exit:");
-							mavlink_log_info(mavlink_fd, param_get_default_file());
-
-						} else {
-							mavlink_log_info(mavlink_fd, "ERR writing params to");
-							mavlink_log_info(mavlink_fd, param_get_default_file());
-						}
-
-						result = VEHICLE_CMD_RESULT_FAILED;
-					}
-
+			if ((int)cmd->param1 & VEHICLE_MODE_FLAG_SAFETY_ARMED) {
+				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_ARMED)) {
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
-					mavlink_log_info(mavlink_fd, "[pm] refusing unsupp. STOR request");
+					result = VEHICLE_CMD_RESULT_DENIED;
+				}
+			} else {
+				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_STANDBY)) {
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+				} else {
+					result = VEHICLE_CMD_RESULT_DENIED;
+				}
+			}
+
+			break;
+
+		case VEHICLE_CMD_COMPONENT_ARM_DISARM:
+
+			/* request to arm */
+			if ((int)cmd->param1 == 1) {
+				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_ARMED)) {
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+				} else {
+					result = VEHICLE_CMD_RESULT_DENIED;
+				}
+			/* request to disarm */
+			} else if ((int)cmd->param1 == 0) {
+				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_STANDBY)) {
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+				} else {
+					result = VEHICLE_CMD_RESULT_DENIED;
+				}
+			}
+
+			break;
+
+		case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
+
+			/* request for an autopilot reboot */
+			if ((int)cmd->param1 == 1) {
+					if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_REBOOT)) {
+						/* SPECIAL CASE: SYSTEM WILL NEVER RETURN HERE */
+						result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+					} else {
+						/* system may return here */
+						result = VEHICLE_CMD_RESULT_DENIED;
+					}
+				}
+			}
+			break;
+
+	//		/* request to land */
+	//		case VEHICLE_CMD_NAV_LAND:
+	//		 {
+	//				//TODO: add check if landing possible
+	//				//TODO: add landing maneuver
+	//
+	//				if (0 == update_state_machine_custom_mode_request(status_pub, current_vehicle_status, SYSTEM_STATE_ARMED)) {
+	//					result = VEHICLE_CMD_RESULT_ACCEPTED;
+	//		}		}
+	//		break;
+	//
+	//		/* request to takeoff */
+	//		case VEHICLE_CMD_NAV_TAKEOFF:
+	//		{
+	//			//TODO: add check if takeoff possible
+	//			//TODO: add takeoff maneuver
+	//
+	//			if (0 == update_state_machine_custom_mode_request(status_pub, current_vehicle_status, SYSTEM_STATE_AUTO)) {
+	//				result = VEHICLE_CMD_RESULT_ACCEPTED;
+	//			}
+	//		}
+	//		break;
+	//
+			/* preflight calibration */
+		case VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
+				bool handled = false;
+
+				/* gyro calibration */
+				if ((int)(cmd->param1) == 1) {
+
+					if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_INIT)) {
+
+						result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+						mavlink_log_info(mavlink_fd, "starting gyro cal");
+						tune_confirm();
+						do_gyro_calibration(status_pub, &current_status);
+						mavlink_log_info(mavlink_fd, "finished gyro cal");
+						tune_confirm();
+
+						do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+
+					} else {
+						result = VEHICLE_CMD_RESULT_DENIED;
+					}
+
+					handled = true;
+				}
+
+				/* magnetometer calibration */
+				if ((int)(cmd->param2) == 1) {
+
+					if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_INIT)) {
+
+						result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+						mavlink_log_info(mavlink_fd, "starting mag cal");
+						tune_confirm();
+						do_mag_calibration(status_pub, &current_status);
+						mavlink_log_info(mavlink_fd, "finished mag cal");
+						tune_confirm();
+
+						do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+
+					} else {
+						result = VEHICLE_CMD_RESULT_DENIED;
+					}
+
+					handled = true;
+				}
+
+				/* zero-altitude pressure calibration */
+				if ((int)(cmd->param3) == 1) {
+					/* transition to calibration state */
+					// XXX add this again
+	//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
+	//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
+	//
+	//					// XXX implement this
+	//					mavlink_log_info(mavlink_fd, "zero altitude cal. not implemented");
+	//					tune_confirm();
+	//
+	//					/* back to standby state */
+	//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+	//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
+	//
+	//				} else {
+	//					mavlink_log_critical(mavlink_fd, "REJECTING altitude calibration");
+	//					result = VEHICLE_CMD_RESULT_DENIED;
+	//				}
+
+					handled = true;
+				}
+
+				/* trim calibration */
+				if ((int)(cmd->param4) == 1) {
+					/* transition to calibration state */
+					// XXX add this again
+	//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
+	//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
+	//					mavlink_log_info(mavlink_fd, "starting trim cal");
+	//					tune_confirm();
+	//					do_rc_calibration(status_pub, &current_status);
+	//					mavlink_log_info(mavlink_fd, "finished trim cal");
+	//					tune_confirm();
+	//
+	//					/* back to standby state */
+	//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+	//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
+	//
+	//					result = VEHICLE_CMD_RESULT_ACCEPTED;
+	//
+	//				} else {
+	//					mavlink_log_critical(mavlink_fd, "REJECTING trim cal");
+	//					result = VEHICLE_CMD_RESULT_DENIED;
+	//				}
+
+					handled = true;
+				}
+
+				/* accel calibration */
+				if ((int)(cmd->param5) == 1) {
+
+					if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_INIT)) {
+
+						result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+						mavlink_log_info(mavlink_fd, "starting acc cal");
+						tune_confirm();
+						do_accel_calibration(status_pub, &current_status);
+						mavlink_log_info(mavlink_fd, "finished acc cal");
+						tune_confirm();
+
+						do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+
+					} else {
+						result = VEHICLE_CMD_RESULT_DENIED;
+					}
+
+
+					handled = true;
+				}
+
+				/* none found */
+				if (!handled) {
+					//warnx("refusing unsupported calibration request\n");
+					mavlink_log_critical(mavlink_fd, "CMD refusing unsup. calib. request");
 					result = VEHICLE_CMD_RESULT_UNSUPPORTED;
 				}
 			}
-		}
-		break;
+			break;
+
+		case VEHICLE_CMD_PREFLIGHT_STORAGE: {
+				if (current_status.flag_system_armed &&
+					((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
+					 (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
+					 (current_status.system_type == VEHICLE_TYPE_OCTOROTOR))) {
+					/* do not perform expensive memory tasks on multirotors in flight */
+					// XXX this is over-safe, as soon as cmd is in low prio thread this can be allowed
+					mavlink_log_info(mavlink_fd, "REJECTING save cmd while multicopter armed");
+
+				} else {
+
+					// XXX move this to LOW PRIO THREAD of commander app
+					/* Read all parameters from EEPROM to RAM */
+
+					if (((int)(cmd->param1)) == 0)	{
+
+						/* read all parameters from EEPROM to RAM */
+						int read_ret = param_load_default();
+
+						if (read_ret == OK) {
+							//warnx("[mavlink pm] Loaded EEPROM params in RAM\n");
+							mavlink_log_info(mavlink_fd, "OK loading params from");
+							mavlink_log_info(mavlink_fd, param_get_default_file());
+							result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+						} else if (read_ret == 1) {
+							mavlink_log_info(mavlink_fd, "OK no changes in");
+							mavlink_log_info(mavlink_fd, param_get_default_file());
+							result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+						} else {
+							if (read_ret < -1) {
+								mavlink_log_info(mavlink_fd, "ERR loading params from");
+								mavlink_log_info(mavlink_fd, param_get_default_file());
+
+							} else {
+								mavlink_log_info(mavlink_fd, "ERR no param file named");
+								mavlink_log_info(mavlink_fd, param_get_default_file());
+							}
+
+							result = VEHICLE_CMD_RESULT_FAILED;
+						}
+
+					} else if (((int)(cmd->param1)) == 1)	{
+
+						/* write all parameters from RAM to EEPROM */
+						int write_ret = param_save_default();
+
+						if (write_ret == OK) {
+							mavlink_log_info(mavlink_fd, "OK saved param file");
+							mavlink_log_info(mavlink_fd, param_get_default_file());
+							result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+						} else {
+							if (write_ret < -1) {
+								mavlink_log_info(mavlink_fd, "ERR params file does not exit:");
+								mavlink_log_info(mavlink_fd, param_get_default_file());
+
+							} else {
+								mavlink_log_info(mavlink_fd, "ERR writing params to");
+								mavlink_log_info(mavlink_fd, param_get_default_file());
+							}
+
+							result = VEHICLE_CMD_RESULT_FAILED;
+						}
+
+					} else {
+						mavlink_log_info(mavlink_fd, "[pm] refusing unsupp. STOR request");
+						result = VEHICLE_CMD_RESULT_UNSUPPORTED;
+					}
+				}
+			}
+			break;
 
 	default: {
 			mavlink_log_critical(mavlink_fd, "[cmd] refusing unsupported command");
@@ -1326,6 +1321,7 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&current_status, 0, sizeof(current_status));
 	current_status.navigation_state = NAVIGATION_STATE_STANDBY;
 	current_status.arming_state = ARMING_STATE_INIT;
+	current_status.hil_state = HIL_STATE_OFF;
 	current_status.flag_system_armed = false;
 
 	/* neither manual nor offboard control commands have been received */

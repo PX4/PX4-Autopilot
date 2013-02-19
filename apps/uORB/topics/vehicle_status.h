@@ -82,6 +82,11 @@ typedef enum {
 	ARMING_STATE_IN_AIR_RESTORE
 } arming_state_t;
 
+typedef enum {
+	HIL_STATE_OFF = 0,
+	HIL_STATE_ON
+} hil_state_t;
+
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
 	VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED = 64,
@@ -177,6 +182,7 @@ struct vehicle_status_s
 
 	navigation_state_t navigation_state;	/**< current navigation state */
 	arming_state_t arming_state;			/**< current arming state */
+	hil_state_t hil_state;					/**< current hil state */
 
 	int32_t system_type;				/**< system type, inspired by MAVLink's VEHICLE_TYPE enum */
 	int32_t	system_id;				/**< system id, inspired by MAVLink's system ID field */

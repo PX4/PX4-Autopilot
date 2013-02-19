@@ -413,6 +413,63 @@ int do_arming_state_update(int status_pub, struct vehicle_status_s *current_stat
 	return ret;
 }
 
+/**
+ * Transition from one hil state to another
+ */
+int do_hil_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, hil_state_t new_state)
+{
+	bool valid_transition = false;
+	int ret = ERROR;
+
+	warnx("Current state: %d, requested state: %d", current_status->hil_state, new_state);
+
+	if (current_status->hil_state == new_state) {
+		warnx("Hil state not changed");
+		valid_transition = true;
+
+	} else {
+
+		switch (new_state) {
+
+			case HIL_STATE_OFF:
+
+				if (current_status->arming_state == ARMING_STATE_INIT
+				 || current_status->arming_state == ARMING_STATE_STANDBY) {
+
+					current_status->flag_hil_enabled = false;
+					mavlink_log_critical(mavlink_fd, "Switched to OFF hil state");
+					valid_transition = true;
+				}
+				break;
+
+			case HIL_STATE_ON:
+
+				if (current_status->arming_state == ARMING_STATE_INIT
+				 || current_status->arming_state == ARMING_STATE_STANDBY) {
+
+					current_status->flag_hil_enabled = true;
+					mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
+					valid_transition = true;
+				}
+				break;
+
+			default:
+				warnx("Unknown hil state");
+				break;
+		}
+	}
+
+	if (valid_transition) {
+		current_status->hil_state = new_state;
+		state_machine_publish(status_pub, current_status, mavlink_fd);
+		ret = OK;
+	} else {
+		mavlink_log_critical(mavlink_fd, "REJECTING invalid hil state transition");
+	}
+
+	return ret;
+}
+
 
 
 void state_machine_publish(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
@@ -684,7 +741,78 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 // }
 
 
-/* END SUBSYSTEM/EMERGENCY FUNCTIONS*/
+///* END SUBSYSTEM/EMERGENCY FUNCTIONS*/
+//
+//int update_state_machine_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t mode)
+//{
+//	int ret = 1;
+//
+////	/* Switch on HIL if in standby and not already in HIL mode */
+////	if ((mode & VEHICLE_MODE_FLAG_HIL_ENABLED)
+////	    && !current_status->flag_hil_enabled) {
+////		if ((current_status->state_machine == SYSTEM_STATE_STANDBY)) {
+////			/* Enable HIL on request */
+////			current_status->flag_hil_enabled = true;
+////			ret = OK;
+////			state_machine_publish(status_pub, current_status, mavlink_fd);
+////			publish_armed_status(current_status);
+////			printf("[cmd] Enabling HIL, locking down all actuators for safety.\n\t(Arming the system will not activate them while in HIL mode)\n");
+////
+////		} else if (current_status->state_machine != SYSTEM_STATE_STANDBY &&
+////			   current_status->flag_system_armed) {
+////
+////			mavlink_log_critical(mavlink_fd, "REJECTING HIL, disarm first!")
+////
+////		} else {
+////
+////			mavlink_log_critical(mavlink_fd, "REJECTING HIL, not in standby.")
+////		}
+////	}
+//
+//	/* switch manual / auto */
+//	if (mode & VEHICLE_MODE_FLAG_AUTO_ENABLED) {
+//		update_state_machine_mode_auto(status_pub, current_status, mavlink_fd);
+//
+//	} else if (mode & VEHICLE_MODE_FLAG_STABILIZED_ENABLED) {
+//		update_state_machine_mode_stabilized(status_pub, current_status, mavlink_fd);
+//
+//	} else if (mode & VEHICLE_MODE_FLAG_GUIDED_ENABLED) {
+//		update_state_machine_mode_guided(status_pub, current_status, mavlink_fd);
+//
+//	} else if (mode & VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED) {
+//		update_state_machine_mode_manual(status_pub, current_status, mavlink_fd);
+//	}
+//
+//	/* vehicle is disarmed, mode requests arming */
+//	if (!(current_status->flag_system_armed) && (mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+//		/* only arm in standby state */
+//		// XXX REMOVE
+//		if (current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
+//			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
+//			ret = OK;
+//			printf("[cmd] arming due to command request\n");
+//		}
+//	}
+//
+//	/* vehicle is armed, mode requests disarming */
+//	if (current_status->flag_system_armed && !(mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+//		/* only disarm in ground ready */
+//		if (current_status->state_machine == SYSTEM_STATE_GROUND_READY) {
+//			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
+//			ret = OK;
+//			printf("[cmd] disarming due to command request\n");
+//		}
+//	}
+//
+//	/* NEVER actually switch off HIL without reboot */
+//	if (current_status->flag_hil_enabled && !(mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
+//		warnx("DENYING request to switch off HIL. Please power cycle (safety reasons)\n");
+//		mavlink_log_critical(mavlink_fd, "Power-cycle to exit HIL");
+//		ret = ERROR;
+//	}
+//
+//	return ret;
+//}
 
 #if 0
 
@@ -821,76 +949,7 @@ void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *cur
 }
 
 
-uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t mode)
-{
-	uint8_t ret = 1;
 
-	/* Switch on HIL if in standby and not already in HIL mode */
-	if ((mode & VEHICLE_MODE_FLAG_HIL_ENABLED)
-	    && !current_status->flag_hil_enabled) {
-		if ((current_status->state_machine == SYSTEM_STATE_STANDBY)) {
-			/* Enable HIL on request */
-			current_status->flag_hil_enabled = true;
-			ret = OK;
-			state_machine_publish(status_pub, current_status, mavlink_fd);
-			publish_armed_status(current_status);
-			printf("[cmd] Enabling HIL, locking down all actuators for safety.\n\t(Arming the system will not activate them while in HIL mode)\n");
-
-		} else if (current_status->state_machine != SYSTEM_STATE_STANDBY &&
-			   current_status->flag_system_armed) {
-
-			mavlink_log_critical(mavlink_fd, "REJECTING HIL, disarm first!")
-
-		} else {
-
-			mavlink_log_critical(mavlink_fd, "REJECTING HIL, not in standby.")
-		}
-	}
-
-	/* switch manual / auto */
-	if (mode & VEHICLE_MODE_FLAG_AUTO_ENABLED) {
-		update_state_machine_mode_auto(status_pub, current_status, mavlink_fd);
-
-	} else if (mode & VEHICLE_MODE_FLAG_STABILIZED_ENABLED) {
-		update_state_machine_mode_stabilized(status_pub, current_status, mavlink_fd);
-
-	} else if (mode & VEHICLE_MODE_FLAG_GUIDED_ENABLED) {
-		update_state_machine_mode_guided(status_pub, current_status, mavlink_fd);
-
-	} else if (mode & VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED) {
-		update_state_machine_mode_manual(status_pub, current_status, mavlink_fd);
-	}
-
-	/* vehicle is disarmed, mode requests arming */
-	if (!(current_status->flag_system_armed) && (mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
-		/* only arm in standby state */
-		// XXX REMOVE
-		if (current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
-			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
-			ret = OK;
-			printf("[cmd] arming due to command request\n");
-		}
-	}
-
-	/* vehicle is armed, mode requests disarming */
-	if (current_status->flag_system_armed && !(mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
-		/* only disarm in ground ready */
-		if (current_status->state_machine == SYSTEM_STATE_GROUND_READY) {
-			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
-			ret = OK;
-			printf("[cmd] disarming due to command request\n");
-		}
-	}
-
-	/* NEVER actually switch off HIL without reboot */
-	if (current_status->flag_hil_enabled && !(mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
-		warnx("DENYING request to switch off HIL. Please power cycle (safety reasons)\n");
-		mavlink_log_critical(mavlink_fd, "Power-cycle to exit HIL");
-		ret = ERROR;
-	}
-
-	return ret;
-}
 
 uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t custom_mode) //TODO: add more checks to avoid state switching in critical situations
 {
