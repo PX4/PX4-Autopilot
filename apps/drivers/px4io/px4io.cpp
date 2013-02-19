@@ -96,6 +96,22 @@ public:
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
 
+		/**
+	 * Set the PWM pulse rate in Hz
+	 *
+	 * @param rate		The rate in Hz the PWM pulse is repeated.
+	 *			Min 10 Hz, max 400 Hz
+	 */
+	int			io_set_pwm_rate(int rate);
+
+	/**
+	 * Set the update rate for actuator outputs from FMU to IO.
+	 *
+	 * @param rate		The rate in Hz actuator outpus are sent to IO.
+	 *			Min 10 Hz, max 400 Hz
+	 */
+	int			set_update_rate(int rate);
+
 private:
 	// XXX
 	unsigned		_max_actuators;
@@ -156,6 +172,11 @@ private:
 	 * Push RC channel configuration to IO.
 	 */
 	int			io_set_rc_config();
+
+	/**
+	 * Push PWM update rates to IO.
+	 */
+	int			io_set_pwm_rates(uint16_t high, uint16_t low);
 
 	/**
 	 * Fetch status and alarms from IO
@@ -261,7 +282,6 @@ private:
 	 * @param alarm		The status register
 	 */
 	int			io_handle_alarms(uint16_t alarms);
-
 };
 
 
@@ -279,9 +299,9 @@ PX4IO::PX4IO() :
 	_max_relays(0),
 	_max_transfer(16),	/* sensible default */
 	_update_interval(0),
+	_task(-1),
 	_status(0),
 	_alarms(0),
-	_task(-1),
 	_task_should_exit(false),
 	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
 	_t_actuators(-1),
@@ -527,6 +547,9 @@ PX4IO::task_main()
 	/* lock against the ioctl handler */
 	lock();
 
+	/* force a PWM rate output adjustment */
+	_update_interval = 20; /* 20 ms/50 Hz */
+
 	/* loop talking to IO */
 	while (!_task_should_exit) {
 
@@ -537,7 +560,6 @@ PX4IO::task_main()
 			if (_update_interval > 100)
 				_update_interval = 100;
 			orb_set_interval(_t_actuators, _update_interval);
-			_update_interval = 0;
 		}
 
 		/* sleep waiting for topic updates, but no more than 20ms */
@@ -553,6 +575,19 @@ PX4IO::task_main()
 
 		perf_begin(_perf_update);
 		hrt_abstime now = hrt_absolute_time();
+
+		/* if we need update the PWM output rate, handle it */
+		if (_update_interval != 0) {
+			/*
+			 * IO supports a highspeed and low-speed PWM block,
+			 * update only the high-speed block if its too
+			 * fast for servos.
+			 */
+			int high = 1000 / _update_interval;
+			int low = (high < 50) ? high : 50;
+			io_set_pwm_rates(high, low);
+			_update_interval = 0;
+		}
 
 		/* if we have new control data from the ORB, handle it */
 		if (fds[0].revents & POLLIN)
@@ -764,6 +799,17 @@ PX4IO::io_set_rc_config()
 }
 
 int
+PX4IO::io_set_pwm_rates(uint16_t high, uint16_t low)
+{
+	int ret;
+	ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_LOWRATE, 0, low);
+	if (ret != 0)
+		return ret;
+	ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_HIGHRATE, 0, high);
+	return ret;
+}
+
+int
 PX4IO::io_handle_status(uint16_t status)
 {
 	int ret = 1;
@@ -806,6 +852,9 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 
 	/* set new alarms state */
 	_alarms = alarms;
+
+	/* XXX do not report success yet */
+	return 1;
 }
 
 int
@@ -1300,6 +1349,42 @@ PX4IO::write(file *filp, const char *buffer, size_t len)
 	return count * 2;
 }
 
+int
+PX4IO::io_set_pwm_rate(int rate) {
+	int interval_ms = 1000 / rate;
+
+	if (interval_ms < 5) {
+		interval_ms = 5;
+		warnx("pwm output rate too high, limiting interval to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
+	}
+
+	if (interval_ms > 100) {
+		interval_ms = 100;
+		warnx("pwm output rate too low, limiting to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
+	}
+
+	io_set_pwm_rates(rate, 50);
+	return 0;
+}
+
+int
+PX4IO::set_update_rate(int rate) {
+	int interval_ms = 1000 / rate;
+
+	if (interval_ms < 5) {
+		interval_ms = 5;
+		warnx("update rate too high, limiting interval to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
+	}
+
+	if (interval_ms > 100) {
+		interval_ms = 100;
+		warnx("update rate too low, limiting to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
+	}
+
+	_update_interval = interval_ms;
+	return 0;
+}
+
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
 
 namespace
@@ -1415,12 +1500,22 @@ px4io_main(int argc, char *argv[])
 			errx(1, "driver init failed");
 		}
 
-		/* look for the optional pwm update rate for the supported modes */
-		if (strcmp(argv[2], "-u") == 0 || strcmp(argv[2], "--update-rate") == 0) {
+		/* look for the optional update rate for the supported modes */
+		if (!strcmp(argv[2], "-u")) {
 			if (argc > 2 + 1) {
-#warning implement this 
+				g_dev->set_update_rate(atoi(argv[2 + 1]));
 			} else {
-				fprintf(stderr, "missing argument for pwm update rate (-u)\n");
+				fprintf(stderr, "missing argument for actuator update rate (-u)\n");
+				return 1;
+			}
+		}
+
+		/* look for the optional pwm update rate for the supported modes */
+		if (!strcmp(argv[3], "-p")) {
+			if (argc > 3 + 1) {
+				g_dev->io_set_pwm_rate(atoi(argv[3 + 1]));
+			} else {
+				fprintf(stderr, "missing argument for pwm update rate (-p)\n");
 				return 1;
 			}
 		}
