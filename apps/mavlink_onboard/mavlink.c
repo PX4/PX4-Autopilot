@@ -290,7 +290,7 @@ get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct
 	}
 
 	/* set arming state */
-	if (armed->armed) {
+	if (v_status->flag_system_armed) {
 		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	} else {
 		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;

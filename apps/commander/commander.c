@@ -1649,6 +1649,13 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* End battery voltage check */
 
+		/* If in INIT state, try to proceed to STANDBY state */
+		if (current_status.arming_state == ARMING_STATE_INIT) {
+			do_arming_state_update(stat_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+		} else {
+			// XXX: Add emergency stuff if sensors are lost
+		}
+
 
 		/*
 		 * Check for valid position information.
@@ -1894,12 +1901,11 @@ int commander_thread_main(int argc, char *argv[])
 				 * Check if left stick is in lower left position --> switch to standby state.
 				 * Do this only for multirotors, not for fixed wing aircraft.
 				 */
-				if (((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
-				     (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
-				     (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
-				    ) &&
-				    ((sp_man.yaw < -STICK_ON_OFF_LIMIT)) &&
-				    (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
+//				if (((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
+//				     (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
+//				     (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
+//				    ) &&
+				if ((sp_man.yaw < -STICK_ON_OFF_LIMIT) && (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						do_arming_state_update(stat_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
 						stick_off_counter = 0;

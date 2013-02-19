@@ -304,8 +304,11 @@ int do_arming_state_update(int status_pub, struct vehicle_status_s *current_stat
 	bool valid_transition = false;
 	int ret = ERROR;
 
+	warnx("Current state: %d, requested state: %d", current_status->arming_state, new_state);
+
 	if (current_status->arming_state == new_state) {
 		warnx("Arming state not changed");
+		valid_transition = true;
 
 	} else {
 
@@ -333,6 +336,12 @@ int do_arming_state_update(int status_pub, struct vehicle_status_s *current_stat
 					} else {
 						mavlink_log_critical(mavlink_fd, "REJ. STANDBY arming state, sensors not init.");
 					}
+
+				} else if (current_status->arming_state == ARMING_STATE_ARMED) {
+
+					current_status->flag_system_armed = false;
+					mavlink_log_critical(mavlink_fd, "Switched to STANDBY arming state");
+					valid_transition = true;
 				}
 				break;
 
