@@ -1785,103 +1785,90 @@ int commander_thread_main(int argc, char *argv[])
 
 			if ((hrt_absolute_time() - sp_man.timestamp) < 100000) {
 
-				 /*
-				  * Check if manual control modes have to be switched
-				  */
-				 if (!isfinite(sp_man.mode_switch)) {
-				 	warnx("mode sw not finite");
+				/*
+				* Check if manual control modes have to be switched
+				*/
+				if (!isfinite(sp_man.mode_switch)) {
+				warnx("mode sw not finite");
 
-				 	/* this switch is not properly mapped, set attitude stabilized */
-				 	if ((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
-				 		(current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
-				 		(current_status.system_type == VEHICLE_TYPE_OCTOROTOR)) {
+					/* no valid stick position, go to default */
 
-				 		current_status.flag_control_attitude_enabled = true;
-				 		current_status.flag_control_rates_enabled = true;
-				 	} else {
 
-				 		/* assuming a fixed wing, fall back to direct pass-through */
-				 		current_status.flag_control_attitude_enabled = false;
-				 		current_status.flag_control_rates_enabled = false;
-				 	}
+				} else if (sp_man.mode_switch < -STICK_ON_OFF_LIMIT) {
 
-				 } else if (sp_man.mode_switch < -STICK_ON_OFF_LIMIT) {
+					/* bottom stick position, go to manual mode */
+					current_status.mode_switch = MODE_SWITCH_MANUAL;
 
-					 /* this switch is not properly mapped, set attitude stabilized */
-				 	if ((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
-				 		(current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
-				 		(current_status.system_type == VEHICLE_TYPE_OCTOROTOR)) {
+				} else if (sp_man.mode_switch > STICK_ON_OFF_LIMIT) {
 
-				 		/* assuming a rotary wing, fall back to m */
-				 		current_status.flag_control_attitude_enabled = true;
-				 		current_status.flag_control_rates_enabled = true;
-				 	} else {
+					/* top stick position, set auto/mission for all vehicle types */
+					current_status.mode_switch = MODE_SWITCH_AUTO;
 
-				 		/* assuming a fixed wing, set to direct pass-through as requested */
-				 		current_status.flag_control_attitude_enabled = false;
-				 		current_status.flag_control_rates_enabled = false;
-				 	}
-
-				 } else if (sp_man.mode_switch > STICK_ON_OFF_LIMIT) {
-
-				 	/* top stick position, set auto/mission for all vehicle types */
-					current_status.flag_control_position_enabled = true;
-					current_status.flag_control_velocity_enabled = true;
-				 	current_status.flag_control_attitude_enabled = true;
-				 	current_status.flag_control_rates_enabled = true;
-
-				 } else {
-				 	/* center stick position, set seatbelt/simple control */
-					current_status.flag_control_velocity_enabled = true;
-				 	current_status.flag_control_attitude_enabled = true;
-				 	current_status.flag_control_rates_enabled = true;
-				 }
+				} else {
+					/* center stick position, set seatbelt/simple control */
+					current_status.mode_switch = MODE_SWITCH_SEATBELT;
+				}
 
 				// warnx("man ctrl mode: %d\n", (int)current_status.manual_control_mode);
 
 				/*
-				 * Check if land/RTL is requested
-				 */
+				* Check if land/RTL is requested
+				*/
 				if (!isfinite(sp_man.return_switch)) {
 
 					/* this switch is not properly mapped, set default */
-					current_status.flag_land_requested = false; // XXX default?
+					current_status.return_switch = RETURN_SWITCH_NONE;
 
 				} else if (sp_man.return_switch < -STICK_ON_OFF_LIMIT) {
 
 					/* bottom stick position, set altitude hold */
-					current_status.flag_land_requested = false;
+					current_status.return_switch = RETURN_SWITCH_NONE;
 
 				} else if (sp_man.return_switch > STICK_ON_OFF_LIMIT) {
 
 					/* top stick position */
-					current_status.flag_land_requested = true;
+					current_status.return_switch = RETURN_SWITCH_RETURN;
 
 				} else {
 					/* center stick position, set default */
-					current_status.flag_land_requested = false; // XXX default?
+					current_status.return_switch = RETURN_SWITCH_NONE;
 				}
 
 				/* check mission switch  */
 				if (!isfinite(sp_man.mission_switch)) {
 
 					/* this switch is not properly mapped, set default */
-					current_status.flag_mission_activated = false;
+					current_status.mission_switch = MISSION_SWITCH_NONE;
 
 				} else if (sp_man.mission_switch > STICK_ON_OFF_LIMIT) {
 
 					/* top switch position */
-					current_status.flag_mission_activated = true;
+					current_status.mission_switch = MISSION_SWITCH_MISSION;
 
 				} else if (sp_man.mission_switch < -STICK_ON_OFF_LIMIT) {
 
 					/* bottom switch position */
-					current_status.flag_mission_activated = false;
+					current_status.mission_switch = MISSION_SWITCH_NONE;
 
 				} else {
 
 					/* center switch position, set default */
-					current_status.flag_mission_activated = false; // XXX default?
+					current_status.mission_switch = MISSION_SWITCH_NONE; // XXX default?
+				}
+
+				/* Now it's time to handle the stick inputs */
+
+				if (current_status.arming_state == ARMING_STATE_ARMED) {
+
+					if (current_status.mode_switch == MODE_SWITCH_MANUAL) {
+						do_navigation_state_update(stat_pub, &current_status, mavlink_fd, NAVIGATION_STATE_MANUAL );
+					} else if (current_status.mode_switch == MODE_SWITCH_SEATBELT) {
+						do_navigation_state_update(stat_pub, &current_status, mavlink_fd, NAVIGATION_STATE_SEATBELT );
+					} else if (current_status.mode_switch == MODE_SWITCH_AUTO) {
+						if (current_status.navigation_state == NAVIGATION_STATE_MANUAL) {
+							do_navigation_state_update(stat_pub, &current_status, mavlink_fd, NAVIGATION_STATE_MISSION );
+						}
+					}
 				}
 
 				/* handle the case where RC signal was regained */
@@ -1890,17 +1877,19 @@ int commander_thread_main(int argc, char *argv[])
 					mavlink_log_critical(mavlink_fd, "DETECTED RC SIGNAL FIRST TIME.");
 
 				} else {
-					if (current_status.rc_signal_lost) mavlink_log_critical(mavlink_fd, "[cmd] RECOVERY - RC SIGNAL GAINED!");
+					if (current_status.rc_signal_lost) {
+						mavlink_log_critical(mavlink_fd, "[cmd] RECOVERY - RC SIGNAL GAINED!");
+					}
 				}
 
 				/*
-				 * Check if left stick is in lower left position --> switch to standby state.
-				 * Do this only for multirotors, not for fixed wing aircraft.
-				 */
-//				if (((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
-//				     (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
-//				     (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
-//				    ) &&
+				* Check if left stick is in lower left position --> switch to standby state.
+				* Do this only for multirotors, not for fixed wing aircraft.
+				*/
+				//				if (((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
+				//				     (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
+				//				     (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
+				//				    ) &&
 				if ((sp_man.yaw < -STICK_ON_OFF_LIMIT) && (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						do_arming_state_update(stat_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
@@ -1969,8 +1958,8 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* decide about attitude control flag, enable in att/pos/vel */
 				bool attitude_ctrl_enabled = (sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE ||
-							      sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY ||
-							      sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION);
+								  sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY ||
+								  sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION);
 
 				/* decide about rate control flag, enable it always XXX (for now) */
 				bool rates_ctrl_enabled = true;

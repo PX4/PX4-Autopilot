@@ -60,27 +60,48 @@
 
 /* State Machine */
 typedef enum {
-	NAVIGATION_STATE_STANDBY=0,
-	NAVIGATION_STATE_MANUAL,
-	NAVIGATION_STATE_SEATBELT,
-	NAVIGATION_STATE_DESCENT,
-	NAVIGATION_STATE_LOITER,
-	NAVIGATION_STATE_AUTO_READY,
-	NAVIGATION_STATE_MISSION,
-	NAVIGATION_STATE_RTL,
-	NAVIGATION_STATE_LAND,
-	NAVIGATION_STATE_TAKEOFF
-} navigation_state_t;
+	SYSTEM_STATE_INIT=0,
+	SYSTEM_STATE_MANUAL,
+	SYSTEM_STATE_SEATBELT,
+	SYSTEM_STATE_AUTO,
+	SYSTEM_STATE_REBOOT,
+	SYSTEM_STATE_IN_AIR_RESTORE
+} system_state_t;
 
 typedef enum {
-	ARMING_STATE_INIT = 0,
-	ARMING_STATE_STANDBY,
-	ARMING_STATE_ARMED,
-	ARMING_STATE_ABORT,
-	ARMING_STATE_ERROR,
-	ARMING_STATE_REBOOT,
-	ARMING_STATE_IN_AIR_RESTORE
-} arming_state_t;
+	MANUAL_STANDBY = 0,
+	MANUAL_READY,
+	MANUAL_IN_AIR
+} manual_state_t;
+
+typedef enum {
+	SEATBELT_STANDBY,
+	SEATBELT_READY,
+	SEATBELT,
+	SEATBELT_ASCENT,
+	SEATBELT_DESCENT,
+} seatbelt_state_t;
+
+typedef enum {
+	AUTO_STANDBY,
+	AUTO_READY,
+	AUTO_LOITER,
+	AUTO_MISSION,
+	AUTO_RTL,
+	AUTO_TAKEOFF,
+	AUTO_LAND,
+} auto_state_t;
+
+//typedef enum {
+//	ARMING_STATE_INIT = 0,
+//	ARMING_STATE_STANDBY,
+//	ARMING_STATE_ARMED_GROUND,
+//	ARMING_STATE_ARMED_AIRBORNE,
+//	ARMING_STATE_ERROR_GROUND,
+//	ARMING_STATE_ERROR_AIRBORNE,
+//	ARMING_STATE_REBOOT,
+//	ARMING_STATE_IN_AIR_RESTORE
+//} arming_state_t;
 
 typedef enum {
 	HIL_STATE_OFF = 0,
@@ -100,7 +121,7 @@ enum VEHICLE_MODE_FLAG {
 
 typedef enum {
 	MODE_SWITCH_MANUAL = 0,
-	MODE_SWITCH_ASSISTED,
+	MODE_SWITCH_SEATBELT,
 	MODE_SWITCH_AUTO
 } mode_switch_pos_t;
 
@@ -113,26 +134,6 @@ typedef enum {
 	MISSION_SWITCH_NONE = 0,
 	MISSION_SWITCH_MISSION
 } mission_switch_pos_t;
-
-//enum VEHICLE_FLIGHT_MODE {
-//	VEHICLE_FLIGHT_MODE_MANUAL = 0,		/**< direct manual control, exact mode determined by VEHICLE_MANUAL_CONTROL_MODE */
-//	VEHICLE_FLIGHT_MODE_STAB,		/**< attitude or rate stabilization plus velocity or position stabilization */
-//	VEHICLE_FLIGHT_MODE_HOLD,		/**< hold current position (hover or loiter around position when switched) */
-//	VEHICLE_FLIGHT_MODE_AUTO		/**< attitude or rate stabilization plus absolute position control and waypoints */
-//};
-//
-//enum VEHICLE_MANUAL_CONTROL_MODE {
-//	VEHICLE_MANUAL_CONTROL_MODE_DIRECT = 0,	/**< no attitude control, direct stick input mixing (only fixed wing) */
-//	VEHICLE_MANUAL_CONTROL_MODE_RATES,	/**< body rates control mode */
-//	VEHICLE_MANUAL_CONTROL_MODE_SAS		/**< stability augmented system (SAS) mode */
-//};
-//
-//enum VEHICLE_MANUAL_SAS_MODE {
-//	VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS = 0,	/**< roll, pitch and yaw absolute */
-//	VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_RATE,	/**< roll and pitch absolute, yaw rate */
-//	VEHICLE_MANUAL_SAS_MODE_SIMPLE,				/**< simple mode (includes altitude hold) */
-//	VEHICLE_MANUAL_SAS_MODE_ALTITUDE			/**< altitude hold */
-//};
 
 /**
  * Should match 1:1 MAVLink's MAV_TYPE ENUM
@@ -180,8 +181,8 @@ struct vehicle_status_s
 	uint64_t failsave_lowlevel_start_time;		/**< time when the lowlevel failsafe flag was set */
 //	uint64_t failsave_highlevel_begin; TO BE COMPLETED
 
-	navigation_state_t navigation_state;	/**< current navigation state */
-	arming_state_t arming_state;			/**< current arming state */
+	system_state_t system_state;	/**< current system state */
+//	arming_state_t arming_state;			/**< current arming state */
 	hil_state_t hil_state;					/**< current hil state */
 
 	int32_t system_type;				/**< system type, inspired by MAVLink's VEHICLE_TYPE enum */
@@ -193,6 +194,7 @@ struct vehicle_status_s
 	mode_switch_pos_t mode_switch;
 	return_switch_pos_t return_switch;
 	mission_switch_pos_t mission_switch;
+
 
 	bool flag_system_armed;				/**< true is motors / actuators are armed */
 	bool flag_system_emergency;
@@ -211,9 +213,6 @@ struct vehicle_status_s
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
 	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
-
-	bool flag_land_requested;				/**< true if land requested */
-	bool flag_mission_activated;			/**< true if in mission mode */
 
 	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
 	bool flag_preflight_mag_calibration;		/**< true if mag calibration is requested */
