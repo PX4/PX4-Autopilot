@@ -34,47 +34,31 @@
  ****************************************************************************/
 
 /*
- * @file multirotor_pos_control_flow_params.c
+ * @file flow_navigation_params.h
  * 
- * Parameters for EKF filter
+ * Parameters for position controller
  */
 
-#include "multirotor_pos_control_flow_params.h"
+#include <systemlib/param/param.h>
 
-/* Extended Kalman Filter covariances */
+struct flow_navigation_params {
+	float pos_sp_x;
+	float pos_sp_y;
+};
 
-/* controller parameters */
-PARAM_DEFINE_FLOAT(MFPC_POS_P, 0.1f);
-PARAM_DEFINE_FLOAT(MFPC_POS_D, 0.05f);
-PARAM_DEFINE_FLOAT(MFPC_H_P, 0.06f);
-PARAM_DEFINE_FLOAT(MFPC_H_I, 0.00001f);
-PARAM_DEFINE_FLOAT(MFPC_H_D, 0.01f);
-PARAM_DEFINE_FLOAT(MFPC_H_SP, -1.0f);
-PARAM_DEFINE_FLOAT(MFPC_T_FFWD, 0.66f);
+struct flow_navigation_param_handles {
+	float pos_sp_x;
+	float pos_sp_y;
+};
 
-int parameters_init(struct multirotor_position_control_flow_param_handles *h)
-{
-	/* PID parameters */
-	h->pos_p	 	=	param_find("MFPC_POS_P");
-	h->pos_d 		=	param_find("MFPC_POS_D");
-	h->height_p 	=	param_find("MFPC_H_P");
-	h->height_i 	=	param_find("MFPC_H_I");
-	h->height_d 	=	param_find("MFPC_H_D");
-	h->height_sp 	=	param_find("MFPC_H_SP");
-	h->thrust_feedforward=	param_find("MFPC_T_FFWD");
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+int parameters_init(struct flow_navigation_param_handles *h);
 
-	return OK;
-}
-
-int parameters_update(const struct multirotor_position_control_flow_param_handles *h, struct multirotor_position_control_flow_params *p)
-{
-	param_get(h->pos_p, &(p->pos_p));
-	param_get(h->pos_d, &(p->pos_d));
-	param_get(h->height_p, &(p->height_p));
-	param_get(h->height_i, &(p->height_i));
-	param_get(h->height_d, &(p->height_d));
-	param_get(h->height_sp, &(p->height_sp));
-	param_get(h->thrust_feedforward, &(p->thrust_feedforward));
-
-	return OK;
-}
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct flow_navigation_param_handles *h, struct flow_navigation_params *p);

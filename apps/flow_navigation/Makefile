@@ -39,6 +39,4 @@ APPNAME		 = flow_navigation
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
 
-CSRCS		 = flow_navigation.c
-
 include $(APPDIR)/mk/app.mk

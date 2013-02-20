@@ -41,10 +41,22 @@
 #include <stdio.h>
 #include <errno.h>
 #include <poll.h>
+#include <systemlib/systemlib.h>
+#include <systemlib/perf_counter.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/omnidirectional_flow.h>
+
+#include "flow_navigation_params.h"
 
 static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
@@ -128,68 +140,133 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	printf("[flow_navigation] starting\n");
 	thread_running = true;
 
-	/* subscribe to sensor_combined topic */
-	int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
-	orb_set_interval(sensor_sub_fd, 1000);
+	uint32_t counter = 0;
 
-	/* advertise attitude topic */
+	/* structures */
+	struct vehicle_status_s vstatus;
+	memset(&vstatus, 0, sizeof(vstatus));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
-	int att_pub_fd = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	struct manual_control_setpoint_s manual;
+	memset(&manual, 0, sizeof(manual));
+	struct optical_flow_s optical_flow;
+	memset(&optical_flow, 0, sizeof(optical_flow));
+	struct omnidirectional_flow_s omni_flow;
+	memset(&omni_flow, 0, sizeof(omni_flow));
+	struct vehicle_local_position_s local_pos;
+	memset(&local_pos, 0, sizeof(local_pos));
 
-	/* one could wait for multiple topics with this technique, just using one here */
-	struct pollfd fds[] = {
-		{ .fd = sensor_sub_fd,   .events = POLLIN },
-		/* there could be more file descriptors here, in the form like:
-		 * { .fd = other_sub_fd,   .events = POLLIN },
-		 */
-	};
+	struct vehicle_local_position_setpoint_s local_pos_sp;
+	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
 
-	int error_counter = 0;
+	/* subscribe to attitude, motor setpoints and system state */
+	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
+	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
+	int omnidirectional_flow_sub = orb_subscribe(ORB_ID(omnidirectional_flow));
+	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+
+	/* polling */
+	struct pollfd fds[2] = {
+				{ .fd = omnidirectional_flow_sub, .events = POLLIN },
+				{ .fd = parameter_update_sub,   .events = POLLIN },
+			};
+
+	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
+
+	/* parameters init*/
+	struct flow_navigation_params params;
+	struct flow_navigation_param_handles param_handles;
+	parameters_init(&param_handles);
+	parameters_update(&param_handles, &params);
+
+	/* limits */
+
+	/* register the perf counter */
+	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control_runtime");
+	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "multirotor_att_control_interval");
+	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_att_control_err");
+
+	printf("[multirotor flow position control] initialized\n");
 
 	while (!thread_should_exit) {
-		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-		int poll_ret = poll(fds, 1, 1000);
 
-		/* handle the poll result */
-		if (poll_ret == 0) {
-			/* this means none of our providers is giving us data */
-			printf("[px4_simple_app] Got no data within a second\n");
-		} else if (poll_ret < 0) {
-			/* this is seriously bad - should be an emergency */
-			if (error_counter < 10 || error_counter % 50 == 0) {
-				/* use a counter to prevent flooding (and slowing us down) */
-				printf("[px4_simple_app] ERROR return value from poll(): %d\n"
-					, poll_ret);
-			}
-			error_counter++;
+		/* wait for a flow msg, check for exit condition every 500 ms */
+		int ret = poll(fds, 2, 500);
+
+		if (ret < 0) {
+			/* poll error, count it in perf */
+			perf_count(mc_err_perf);
+
+		} else if (ret == 0) {
+			/* no return value, ignore */
+			printf("[multirotor flow position estimator] no omnidirectional flow msgs.\n");
 		} else {
 
-			if (fds[0].revents & POLLIN) {
-				/* obtained data for the first file descriptor */
-				struct sensor_combined_s raw;
-				/* copy sensors raw data into local buffer */
-				orb_copy(ORB_ID(sensor_combined), sensor_sub_fd, &raw);
-				printf("[px4_simple_app] Accelerometer:\t%8.4f\t%8.4f\t%8.4f\n",
-					(double)raw.accelerometer_m_s2[0],
-					(double)raw.accelerometer_m_s2[1],
-					(double)raw.accelerometer_m_s2[2]);
+			if (fds[1].revents & POLLIN){
+				/* read from param to clear updated flag */
+				struct parameter_update_s update;
+				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
 
-				/* set att and publish this information for other apps */
-				att.roll = raw.accelerometer_m_s2[0];
-				att.pitch = raw.accelerometer_m_s2[1];
-				att.yaw = raw.accelerometer_m_s2[2];
-				orb_publish(ORB_ID(vehicle_attitude), att_pub_fd, &att);
+				parameters_update(&param_handles, &params);
+				printf("[multirotor flow position control] parameters updated.\n");
 			}
-			/* there could be more file descriptors here, in the form like:
-			 * if (fds[1..n].revents & POLLIN) {}
-			 */
+
+			/* only run controller if position changed */
+			if (fds[0].revents & POLLIN) {
+
+				perf_begin(mc_loop_perf);
+
+				/* get a local copy of the vehicle state */
+				orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+				/* get a local copy of manual setpoint */
+				orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
+				/* get a local copy of attitude */
+				orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+				/* get a local copy of local position */
+				orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
+				/* get a local copy of optical flow */
+				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &optical_flow);
+				/* get a local copy of omnidirectional flow */
+				orb_copy(ORB_ID(omnidirectional_flow), omnidirectional_flow_sub, &omni_flow);
+
+				if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
+
+				} else
+				{
+
+				}
+
+				/* measure in what intervals the controller runs */
+				perf_count(mc_interval_perf);
+				perf_end(mc_loop_perf);
+			}
 		}
+
+		/* run at approximately 50 Hz */
+		//usleep(20000);
+
+		counter++;
+
 	}
 
-	printf("[flow_navigation] exiting.\n");
+	printf("[multirotor flow position control] ending now...\n");
 
 	thread_running = false;
 
+	close(parameter_update_sub);
+	close(vehicle_attitude_sub);
+	close(vehicle_local_position_sub);
+	close(vehicle_status_sub);
+	close(manual_control_setpoint_sub);
+	close(optical_flow_sub);
+	close(omnidirectional_flow_sub);
+
+	perf_print_counter(mc_loop_perf);
+	perf_free(mc_loop_perf);
+
+	fflush(stdout);
 	return 0;
 }

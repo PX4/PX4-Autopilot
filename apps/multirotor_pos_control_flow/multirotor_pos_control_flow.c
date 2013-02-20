@@ -196,9 +196,12 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	float integrated_h_error = 0.0f;
 	float last_height = 0.0f;
 	float last_thrust = 0.0f;
-	float setpoint_x = params.pos_sp_x;
-	float setpoint_y = params.pos_sp_y;
-	float setpoint_update_step = 0.0f;
+	float setpoint_x = 0.0f;
+	float setpoint_y = 0.0f;
+	float setpoint_update_step = 0.005f;
+	float initial_yaw = 0.0f;
+	float yaw_sum = 0.0f;
+	int yaw_init_counter = 0;
 
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control_runtime");
@@ -248,6 +251,13 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 				if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 
+					if (yaw_init_counter < 10) {
+						yaw_sum += att.yaw;
+						yaw_init_counter++;
+					} else if (yaw_init_counter == 10){
+						initial_yaw = yaw_sum / 10.0f;
+					}
+
 					/*
 					 * attitude setpoint is to be set as "how to change attitude"
 					 *
@@ -255,21 +265,20 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 					 */
 
 					/* update position setpoint? */
-					if(manual.pitch < -0.2) {
+					if(manual.pitch < -0.2f) {
 						setpoint_x += setpoint_update_step;
-					} else if (manual.pitch > 0.2) {
+					} else if (manual.pitch > 0.2f) {
 						setpoint_x -= setpoint_update_step;
 					}
-					if(manual.roll < -0.2) {
+					if(manual.roll < -0.2f) {
 						setpoint_y -= setpoint_update_step;
-					} else if (manual.roll > 0.2) {
+					} else if (manual.roll > 0.2f) {
 						setpoint_y += setpoint_update_step;
 					}
 
-
 					/* calc new roll/pitch */
-					float pitch_body = (local_pos.x - params.pos_sp_x) * params.pos_p + local_pos.vx * params.pos_d;
-					float roll_body = - (local_pos.y - params.pos_sp_y) * params.pos_p - local_pos.vy * params.pos_d;
+					float pitch_body = (local_pos.x - setpoint_x) * params.pos_p + local_pos.vx * params.pos_d;
+					float roll_body = - (local_pos.y - setpoint_y) * params.pos_p - local_pos.vy * params.pos_d;
 
 					/* limit roll and pitch corrections */
 					if((roll_body <= roll_limit) && (roll_body >= -roll_limit)){
@@ -329,7 +338,11 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 
 					/* do not control yaw */
-					att_sp.yaw_body = 0.0f;
+					if(yaw_init_counter < 10)
+						att_sp.yaw_body = att.yaw;
+					else
+						att_sp.yaw_body = initial_yaw;
+
 					att_sp.timestamp = hrt_absolute_time();
 
 					/* publish new attitude setpoint */
@@ -355,6 +368,12 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
 					loopcounter++;
+				} else
+				{
+					setpoint_x = 0.0f;
+					setpoint_y = 0.0f;
+					initial_yaw = 0.0f;
+					yaw_init_counter = 0;
 				}
 
 				/* measure in what intervals the controller runs */
