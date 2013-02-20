@@ -1227,8 +1227,8 @@ int commander_main(int argc, char *argv[])
 		thread_should_exit = false;
 		daemon_task = task_spawn("commander",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 50,
-					 4000,
+					 SCHED_PRIORITY_MAX - 40,
+					 3000,
 					 commander_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
