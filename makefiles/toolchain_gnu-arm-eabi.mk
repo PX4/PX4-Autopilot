@@ -96,7 +96,8 @@ CFLAGS			 = $(ARCHCFLAGS) \
 			   $(INSTRUMENTATIONDEFINES) \
 			   $(ARCHDEFINES) \
 			   $(EXTRADEFINES) \
-			   -fno-common
+			   -fno-common \
+			   $(addprefix -I,$(INCLUDE_DIRS))
 
 CXXFLAGS		 = $(ARCHCXXFLAGS) \
 			   $(ARCHWARNINGSXX) \
@@ -105,12 +106,14 @@ CXXFLAGS		 = $(ARCHCXXFLAGS) \
 			   $(ARCHXXINCLUDES) \
 			   $(INSTRUMENTATIONDEFINES) \
 			   $(ARCHDEFINES) \
-			   $(EXTRADEFINES)
+			   $(EXTRADEFINES) \
+			   $(addprefix -I,$(INCLUDE_DIRS))
 
 CPPFLAGS		 = $(ARCHINCLUDES) \
 			   $(INSTRUMENTATIONDEFINES) \
 			   $(ARCHDEFINES) \
-			   $(EXTRADEFINES)
+			   $(EXTRADEFINES) \
+			   $(addprefix -I,$(INCLUDE_DIRS))
 
 AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__
 

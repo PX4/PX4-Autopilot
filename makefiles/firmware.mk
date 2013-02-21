@@ -7,7 +7,8 @@
 # Requires:
 #
 # PLATFORM
-#	Must be set to a platform name known to the PX4 distribution.
+#	Must be set to a platform name known to the PX4 distribution (as
+#	we need a corresponding NuttX export archive to link with).
 #
 # Optional:
 #
@@ -43,8 +44,13 @@
 export PX4_MK_INCLUDE	?= $(dir $(lastword $(MAKEFILE_LIST)))
 ifeq ($(PX4_BASE),)
 export PX4_BASE		:= $(abspath $(PX4_MK_INCLUDE)/..)
+$(info %% set PX4_BASE to $(PX4_BASE))
 endif
-$(info %% PX4_BASE $(PX4_BASE))
+
+#
+# Get path and tool config
+#
+include $(PX4_MK_INCLUDE)/setup.mk
 
 #
 # If WORK_DIR is not set, create a 'build' directory next to the
@@ -55,28 +61,6 @@ ifeq ($(WORK_DIR),)
 export WORK_DIR		:= $(dir $(PARENT_MAKEFILE))/build
 endif
 $(info %% WORK_DIR $(WORK_DIR))
-
-#
-# Paths
-#
-export NUTTX_SRC	 = $(PX4_BASE)/nuttx
-export NUTTX_APPS	 = $(PX4_BASE)/apps
-export MAVLINK_SRC	 = $(PX4_BASE)/mavlink
-export ROMFS_SRC	 = $(PX4_BASE)/ROMFS
-export IMAGE_DIR	 = $(PX4_BASE)/Images
-export BUILD_DIR	 = $(PX4_BASE)/Build
-export ARCHIVE_DIR	 = $(PX4_BASE)/Archives
-
-#
-# Extra tools.
-#
-# XXX should be in a common toolchain config somewhere.
-#
-MKFW			 = $(PX4_BASE)/Tools/px_mkfw.py
-COPY			 = cp
-REMOVE			 = rm -f
-RMDIR			 = rm -rf
-GENROMFS		 = genromfs
 
 #
 # Sanity-check the PLATFORM variable and then get the platform config.
@@ -93,19 +77,9 @@ endif
 include $(PX4_MK_INCLUDE)/platform_$(PLATFORM).mk
 
 #
-# Makefile debugging.
+# Things that, if they change, might affect everything
 #
-Q			:= $(if $(V),,@)
-
-#
-# Host-specific paths, hacks and fixups
-#
-SYSTYPE			:= $(shell uname -s)
-
-ifeq ($(SYSTYPE),Darwin)
-# Eclipse may not have the toolchain on its path.
-export PATH		:= $(PATH):/usr/local/bin
-endif
+GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 
 ################################################################################
 # NuttX libraries and paths
@@ -126,6 +100,7 @@ endif
 #
 NUTTX_EXPORT_DIR	 = $(WORK_DIR)/nuttx-export
 NUTTX_CONFIG_HEADER	 = $(NUTTX_EXPORT_DIR)/include/nuttx/config.h
+GLOBAL_DEPS		+= $(NUTTX_CONFIG_HEADER)
 
 #
 # Use the linker script from the NuttX export
@@ -139,6 +114,11 @@ INCLUDE_DIRS		+= $(NUTTX_EXPORT_DIR)/include
 LIB_DIRS		+= $(NUTTX_EXPORT_DIR)/libs
 LIBS			+= -lapps -lnuttx
 LINK_DEPS		+= $(wildcard $(addsuffix /*.a,$(LIB_DIRS)))
+
+$(NUTTX_CONFIG_HEADER):	$(NUTTX_ARCHIVE)
+	@echo %% Unpacking $(NUTTX_ARCHIVE)
+	$(Q) unzip -q -o -d $(WORK_DIR) $(NUTTX_ARCHIVE)
+	$(Q) touch $@
 
 ################################################################################
 # ROMFS generation
@@ -161,16 +141,69 @@ ROMFS_CSRC		 = $(ROMFS_IMG:.img=.c)
 ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
 LIBS			+= $(ROMFS_OBJ)
 LINK_DEPS		+= $(ROMFS_OBJ)
+
+$(ROMFS_OBJ): $(ROMFS_CSRC)
+	$(Q) $(call COMPILE,$<,$@)
+
+$(ROMFS_CSRC): $(ROMFS_IMG)
+	@echo %% generating $@
+	$(Q) (cd $(dir $<) && xxd -i $(notdir $<)) > $@
+
+$(ROMFS_IMG): $(ROMFS_DEPS)
+	@echo %% generating $@
+	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_ROOT) -V "NSHInitVol"
+
+endif
+
+################################################################################
+# Builtin command list generation
+################################################################################
+
+#
+# Note that we can't just put builtin_commands.c in SRCS, as it's depended on by the
+# NuttX export library. Instead, we have to treat it like a library.
+#
+# XXX need to fix stack size numbers here so that apps can set them.
+#
+BUILTIN_CSRC		 = $(WORK_DIR)/builtin_commands.c
+
+$(BUILTIN_CSRC):	$(MAKEFILE_LIST)
+	@echo %% generating $@
+	$(Q) echo '/* builtin command list - automatically generated, do not edit */' > $@
+	$(Q) echo '#include <nuttx/config.h>' >> $@
+	$(Q) echo '#include <nuttx/binfmt/builtin.h>' >> $@
+	$(Q) $(foreach app,$(APPS),echo 'extern int $(app)_main(int argc, char *argv[]);' >> $@;)
+	$(Q) echo 'const struct builtin_s g_builtins[] = {' >> $@
+	$(Q) $(foreach app,$(APPS),echo '    {"$(app)", SCHED_PRIORITY_DEFAULT, CONFIG_PTHREAD_STACK_DEFAULT, $(app)_main},' >> $@;)
+	$(Q) echo '};' >> $@
+	$(Q) echo 'const int g_builtin_count = sizeof(g_builtins) / sizeof(g_builtins[0]);' >> $@
+
+BUILTIN_OBJ		 = $(BUILTIN_CSRC:.c=.o)
+LIBS			+= $(BUILTIN_OBJ)
+LINK_DEPS		+= $(BUILTIN_OBJ)
+
+$(BUILTIN_OBJ): $(BUILTIN_CSRC) $(GLOBAL_DEPS)
+	$(Q) $(call COMPILE,$<,$@)
+
+################################################################################
+# Default SRCS generation
+################################################################################
+
+#
+# If there are no SRCS, the build will fail; in that case, generate an empty
+# source file.
+#
+ifeq ($(SRCS),)
+EMPTY_SRC		 = $(WORK_DIR)/empty.c
+$(EMPTY_SRC):
+	$(Q) echo '/* this is an empty file */' > $@
+
+SRCS			+= $(EMPTY_SRC)
 endif
 
 ################################################################################
 # Build rules
 ################################################################################
-
-#
-# Things that, if they change, might affect everything
-#
-GLOBAL_DEPS		+= $(MAKEFILE_LIST) $(NUTTX_CONFIG_HEADER)
 
 #
 # What we're going to build.
@@ -180,18 +213,20 @@ PRODUCT_BIN		 = $(WORK_DIR)/firmware.bin
 PRODUCT_SYM		 = $(WORK_DIR)/firmware.sym
 
 .PHONY:			all
-all:			$(PRODUCT_BUNDLE)
+firmware:		$(PRODUCT_BUNDLE)
 
 #
 # Object files we will generate from sources
 #
-OBJS			 = $(foreach src,$(SRCS),$(WORK_DIR)/$(src).o)
+OBJS			:= $(foreach src,$(SRCS),$(WORK_DIR)/$(src).o)
 
 #
 # SRCS -> OBJS rules
 #
 
-$(filter %.c.o,$(OBJS)): $(WORK_DIR)/%.c.o: %.c $(GLOBAL_DEPS)
+$(OBJS):		$(GLOBAL_DEPS)
+
+$(filter %.c.o,$(OBJS)): $(WORK_DIR)/%.c.o: %.c
 	@mkdir -p $(dir $@)
 	$(call COMPILE,$<,$@)
 
@@ -202,15 +237,6 @@ $(filter %.cpp.o,$(OBJS)): $(WORK_DIR)/%.cpp.o: %.cpp $(GLOBAL_DEPS)
 $(filter %.S.o,$(OBJS)): $(WORK_DIR)/%.S.o: %.S $(GLOBAL_DEPS)
 	@mkdir -p $(dir $@)
 	$(call ASSEMBLE,$<,$@)
-
-#
-# Build directory setup rules
-#
-
-$(NUTTX_CONFIG_HEADER):	$(NUTTX_ARCHIVE)
-	@echo %% Unpacking $(NUTTX_ARCHIVE)
-	$(Q) unzip -q -o -d $(WORK_DIR) $(NUTTX_ARCHIVE)
-	$(Q) touch $@
 
 #
 # Built product rules
@@ -227,21 +253,6 @@ $(PRODUCT_BIN):		$(PRODUCT_SYM)
 
 $(PRODUCT_SYM):		$(OBJS) $(GLOBAL_DEPS) $(LINK_DEPS)
 	$(call LINK,$@,$(OBJS))
-
-#
-# ROMFS rules
-#
-
-$(ROMFS_OBJ): $(ROMFS_CSRC)
-	$(call COMPILE,$<,$@)
-
-$(ROMFS_CSRC): $(ROMFS_IMG)
-	@echo %% generating $@
-	$(Q) (cd $(dir $<) && xxd -i $(notdir $<)) > $@
-
-$(ROMFS_IMG): $(ROMFS_DEPS)
-	@echo %% generating $@
-	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_ROOT) -V "NSHInitVol"
 
 #
 # Utility rules

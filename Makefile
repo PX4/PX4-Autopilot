@@ -2,27 +2,11 @@
 # Top-level Makefile for building PX4 firmware images.
 #
 
-
 #
-# Some useful paths.
+# Get path and tool configuration
 #
-export PX4_BASE		 = $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-export NUTTX_SRC	 = $(PX4_BASE)/nuttx
-export NUTTX_APPS	 = $(PX4_BASE)/apps
-export MAVLINK_SRC	 = $(PX4_BASE)/mavlink
-export ROMFS_SRC	 = $(PX4_BASE)/ROMFS
-export IMAGE_DIR	 = $(PX4_BASE)/Images
-export BUILD_DIR	 = $(PX4_BASE)/Build
-export ARCHIVE_DIR	 = $(PX4_BASE)/Archives
-
-#
-# Tools
-#
-MKFW			 = $(PX4_BASE)/Tools/px_mkfw.py
-UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py
-COPY			 = cp
-REMOVE			 = rm -f
-RMDIR			 = rm -rf
+export PX4_BASE		 := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
+include $(PX4_BASE)/makefiles/setup.mk
 
 #
 # Canned firmware configurations that we build.
@@ -55,7 +39,6 @@ FIRMWARES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build/firmware.
 #
 MQUIET			 = --no-print-directory
 #MQUIET			 = --print-directory
-Q			:= $(if $(V),,@)
 
 all:			$(STAGED_FIRMWARES)
 
@@ -77,7 +60,8 @@ $(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
 	$(Q) mkdir -p $(work_dir)
 	$(Q) make -C $(work_dir) \
 		-f $(PX4_BASE)/makefiles/config_$(config).mk \
-		WORK_DIR=$(work_dir)
+		WORK_DIR=$(work_dir) \
+		firmware
 
 #
 # Build the NuttX export archives.
@@ -117,11 +101,9 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)/%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 clean:
 	$(Q) $(RMDIR) $(BUILD_DIR)/*.build
 	$(Q) $(REMOVE) -f $(IMAGE_DIR)/*.px4
-	$(Q) make -C $(ROMFS_SRC) -r $(MQUIET) clean
 
 .PHONY:	distclean
 distclean: clean
 	$(Q) $(REMOVE) -f $(ARCHIVE_DIR)/*.export
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) make -C $(ROMFS_SRC) -r $(MQUIET) distclean
 
