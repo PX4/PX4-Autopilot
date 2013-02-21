@@ -60,13 +60,20 @@
 
 /* State Machine */
 typedef enum {
-	SYSTEM_STATE_INIT=0,
-	SYSTEM_STATE_MANUAL,
-	SYSTEM_STATE_SEATBELT,
-	SYSTEM_STATE_AUTO,
-	SYSTEM_STATE_REBOOT,
-	SYSTEM_STATE_IN_AIR_RESTORE
-} system_state_t;
+	NAVIGATION_STATE_INIT=0,
+	NAVIGATION_STATE_MANUAL_STANDBY,
+	NAVIGATION_STATE_MANUAL,
+	NAVIGATION_STATE_SEATBELT_STANDBY,
+	NAVIGATION_STATE_SEATBELT,
+	NAVIGATION_STATE_SEATBELT_DESCENT,
+	NAVIGATION_STATE_AUTO_STANDBY,
+	NAVIGATION_STATE_AUTO_READY,
+	NAVIGATION_STATE_AUTO_TAKEOFF,
+	NAVIGATION_STATE_AUTO_LOITER,
+	NAVIGATION_STATE_AUTO_MISSION,
+	NAVIGATION_STATE_AUTO_RTL,
+	NAVIGATION_STATE_AUTO_LAND
+} navigation_state_t;
 
 typedef enum {
 	MANUAL_STANDBY = 0,
@@ -75,49 +82,19 @@ typedef enum {
 } manual_state_t;
 
 typedef enum {
-	SEATBELT_STANDBY,
-	SEATBELT_READY,
-	SEATBELT,
-	SEATBELT_ASCENT,
-	SEATBELT_DESCENT,
-} seatbelt_state_t;
-
-typedef enum {
-	AUTO_STANDBY,
-	AUTO_READY,
-	AUTO_LOITER,
-	AUTO_MISSION,
-	AUTO_RTL,
-	AUTO_TAKEOFF,
-	AUTO_LAND,
-} auto_state_t;
-
-//typedef enum {
-//	ARMING_STATE_INIT = 0,
-//	ARMING_STATE_STANDBY,
-//	ARMING_STATE_ARMED_GROUND,
-//	ARMING_STATE_ARMED_AIRBORNE,
-//	ARMING_STATE_ERROR_GROUND,
-//	ARMING_STATE_ERROR_AIRBORNE,
-//	ARMING_STATE_REBOOT,
-//	ARMING_STATE_IN_AIR_RESTORE
-//} arming_state_t;
+	ARMING_STATE_INIT = 0,
+	ARMING_STATE_STANDBY,
+	ARMING_STATE_ARMED,
+	ARMING_STATE_ARMED_ERROR,
+	ARMING_STATE_STANDBY_ERROR,
+	ARMING_STATE_REBOOT,
+	ARMING_STATE_IN_AIR_RESTORE
+} arming_state_t;
 
 typedef enum {
 	HIL_STATE_OFF = 0,
 	HIL_STATE_ON
 } hil_state_t;
-
-enum VEHICLE_MODE_FLAG {
-	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
-	VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED = 64,
-	VEHICLE_MODE_FLAG_HIL_ENABLED = 32,
-	VEHICLE_MODE_FLAG_STABILIZED_ENABLED = 16,
-	VEHICLE_MODE_FLAG_GUIDED_ENABLED = 8,
-	VEHICLE_MODE_FLAG_AUTO_ENABLED = 4,
-	VEHICLE_MODE_FLAG_TEST_ENABLED = 2,
-	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1
-}; /**< Same as MAV_MODE_FLAG of MAVLink 1.0 protocol */
 
 typedef enum {
 	MODE_SWITCH_MANUAL = 0,
@@ -134,6 +111,17 @@ typedef enum {
 	MISSION_SWITCH_NONE = 0,
 	MISSION_SWITCH_MISSION
 } mission_switch_pos_t;
+
+enum VEHICLE_MODE_FLAG {
+	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
+	VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED = 64,
+	VEHICLE_MODE_FLAG_HIL_ENABLED = 32,
+	VEHICLE_MODE_FLAG_STABILIZED_ENABLED = 16,
+	VEHICLE_MODE_FLAG_GUIDED_ENABLED = 8,
+	VEHICLE_MODE_FLAG_AUTO_ENABLED = 4,
+	VEHICLE_MODE_FLAG_TEST_ENABLED = 2,
+	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1
+}; /**< Same as MAV_MODE_FLAG of MAVLink 1.0 protocol */
 
 /**
  * Should match 1:1 MAVLink's MAV_TYPE ENUM
@@ -181,8 +169,8 @@ struct vehicle_status_s
 	uint64_t failsave_lowlevel_start_time;		/**< time when the lowlevel failsafe flag was set */
 //	uint64_t failsave_highlevel_begin; TO BE COMPLETED
 
-	system_state_t system_state;	/**< current system state */
-//	arming_state_t arming_state;			/**< current arming state */
+	navigation_state_t navigation_state;	/**< current system state */
+	arming_state_t arming_state;			/**< current arming state */
 	hil_state_t hil_state;					/**< current hil state */
 
 	int32_t system_type;				/**< system type, inspired by MAVLink's VEHICLE_TYPE enum */
@@ -203,7 +191,9 @@ struct vehicle_status_s
 	bool flag_system_arming_requested;
 	bool flag_system_disarming_requested;
 	bool flag_system_reboot_requested;
-	bool flag_system_on_ground;
+	bool flag_system_returned_to_home;
+
+	bool flag_auto_enabled;
 
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
 	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */

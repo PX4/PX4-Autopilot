@@ -1319,7 +1319,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* make sure we are in preflight state */
 	memset(&current_status, 0, sizeof(current_status));
-	current_status.navigation_state = NAVIGATION_STATE_STANDBY;
+	current_status.navigation_state = NAVIGATION_STATE_INIT;
 	current_status.arming_state = ARMING_STATE_INIT;
 	current_status.hil_state = HIL_STATE_OFF;
 	current_status.flag_system_armed = false;
@@ -1857,19 +1857,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* Now it's time to handle the stick inputs */
-
-				if (current_status.arming_state == ARMING_STATE_ARMED) {
-
-					if (current_status.mode_switch == MODE_SWITCH_MANUAL) {
-						do_navigation_state_update(stat_pub, &current_status, mavlink_fd, NAVIGATION_STATE_MANUAL );
-					} else if (current_status.mode_switch == MODE_SWITCH_SEATBELT) {
-						do_navigation_state_update(stat_pub, &current_status, mavlink_fd, NAVIGATION_STATE_SEATBELT );
-					} else if (current_status.mode_switch == MODE_SWITCH_AUTO) {
-						if (current_status.navigation_state == NAVIGATION_STATE_MANUAL) {
-							do_navigation_state_update(stat_pub, &current_status, mavlink_fd, NAVIGATION_STATE_MISSION );
-						}
-					}
-				}
+				navigation_state_update(stat_pub, &current_status, mavlink_fd);
 
 				/* handle the case where RC signal was regained */
 				if (!current_status.rc_signal_found_once) {

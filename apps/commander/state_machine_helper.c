@@ -56,60 +56,195 @@
 /**
  * Transition from one sytem state to another
  */
-void state_machine_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
+void navigation_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	int ret = ERROR;
-	system_state_t new_system_state;
+	navigation_state_t new_navigation_state;
 
+	/* do the navigation state update depending on the arming state */
+	switch (current_status->arming_state) {
 
-	/*
-	 * Firstly evaluate mode switch position
-	 * */
+		/* evaluate the navigation state when disarmed */
+		case ARMING_STATE_STANDBY:
 
-	/* Always accept manual mode */
-	if (current_status->mode_switch == MODE_SWITCH_MANUAL) {
-		new_system_state = SYSTEM_STATE_MANUAL;
+			/* Always accept manual mode */
+			if (current_status->mode_switch == MODE_SWITCH_MANUAL) {
+				new_navigation_state = NAVIGATION_STATE_MANUAL_STANDBY;
 
-	/* Accept SEATBELT if there is a local position estimate */
-	} else if (current_status->mode_switch == MODE_SWITCH_SEATBELT) {
+			/* Accept SEATBELT if there is a local position estimate */
+			} else if (current_status->mode_switch == MODE_SWITCH_SEATBELT) {
 
-		if (current_status->flag_local_position_valid) {
-			new_system_state = SYSTEM_STATE_SEATBELT;
-		} else {
-			/* or just fall back to manual */
-			mavlink_log_critical(mavlink_fd, "REJ SEATBELT: no local position");
-			new_system_state = SYSTEM_STATE_MANUAL);
-		}
+				if (current_status->flag_local_position_valid) {
+					new_navigation_state = NAVIGATION_STATE_SEATBELT_STANDBY;
+				} else {
+					/* or just fall back to manual */
+					mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
+					new_navigation_state = NAVIGATION_STATE_MANUAL_STANDBY;
+				}
 
-	/* Accept AUTO if there is a global position estimate */
-	} else if (current_status->mode_switch == MODE_SWITCH_AUTO) {
-		if (current_status->flag_local_position_valid) {
-			new_system_state = SYSTEM_STATE_SEATBELT);
-		} else {
-			mavlink_log_critical(mavlink_fd, "REJ AUTO: no global position");
+			/* Accept AUTO if there is a global position estimate */
+			} else if (current_status->mode_switch == MODE_SWITCH_AUTO) {
+				if (current_status->flag_local_position_valid) {
+					new_navigation_state = NAVIGATION_STATE_SEATBELT_STANDBY;
+				} else {
+					mavlink_log_critical(mavlink_fd, "Rej. AUTO: no global position");
 
-			/* otherwise fallback to seatbelt or even manual */
-			if (current_status->flag_local_position_valid) {
-				new_system_state = SYSTEM_STATE_SEATBELT;
-			} else {
-				mavlink_log_critical(mavlink_fd, "REJ SEATBELT: no local position");
-				new_system_state = SYSTEM_STATE_MANUAL;
+					/* otherwise fallback to seatbelt or even manual */
+					if (current_status->flag_local_position_valid) {
+						new_navigation_state = NAVIGATION_STATE_SEATBELT_STANDBY;
+					} else {
+						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
+						new_navigation_state = NAVIGATION_STATE_MANUAL_STANDBY;
+					}
+				}
 			}
-		}
-	}
 
-	/*
-	 * Next up, check for
-	 */
+			break;
+
+		/* evaluate the navigation state when armed */
+		case ARMING_STATE_ARMED:
+
+			/* Always accept manual mode */
+			if (current_status->mode_switch == MODE_SWITCH_MANUAL) {
+				new_navigation_state = NAVIGATION_STATE_MANUAL;
+
+			/* Accept SEATBELT if there is a local position estimate */
+			} else if (current_status->mode_switch == MODE_SWITCH_SEATBELT
+					&& current_status->return_switch == RETURN_SWITCH_NONE) {
+
+				if (current_status->flag_local_position_valid) {
+					new_navigation_state = NAVIGATION_STATE_SEATBELT;
+				} else {
+					/* or just fall back to manual */
+					mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
+					new_navigation_state = NAVIGATION_STATE_MANUAL;
+				}
+
+			/* Accept SEATBELT_DESCENT if there is a local position estimate and the return switch is on */
+			} else if (current_status->mode_switch == MODE_SWITCH_SEATBELT
+					&& current_status->return_switch == RETURN_SWITCH_RETURN) {
+
+				if (current_status->flag_local_position_valid) {
+					new_navigation_state = NAVIGATION_STATE_SEATBELT_DESCENT;
+				} else {
+					/* descent not possible without baro information, fall back to manual */
+					mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_DESCENT: no local position");
+					new_navigation_state = NAVIGATION_STATE_MANUAL;
+				}
+
+			/* Accept LOITER if there is a global position estimate */
+			} else if (current_status->mode_switch == MODE_SWITCH_AUTO
+					&& current_status->return_switch == RETURN_SWITCH_NONE
+					&& current_status->mission_switch == MISSION_SWITCH_NONE) {
+
+				if (current_status->flag_global_position_valid) {
+					new_navigation_state = NAVIGATION_STATE_AUTO_LOITER;
+				} else {
+					mavlink_log_critical(mavlink_fd, "Rej. LOITER: no global position");
+
+					/* otherwise fallback to SEATBELT or even manual */
+					if (current_status->flag_local_position_valid) {
+						new_navigation_state = NAVIGATION_STATE_SEATBELT;
+					} else {
+						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
+						new_navigation_state = NAVIGATION_STATE_MANUAL;
+					}
+				}
+
+			/* Accept MISSION if there is a global position estimate and home position */
+			} else if (current_status->mode_switch == MODE_SWITCH_AUTO
+					&& current_status->return_switch == RETURN_SWITCH_NONE
+					&& current_status->mission_switch == MISSION_SWITCH_MISSION) {
+
+				if (current_status->flag_global_position_valid && current_status->flag_valid_home_position) {
+					new_navigation_state = NAVIGATION_STATE_AUTO_MISSION;
+				} else {
+
+					/* spit out what exactly is unavailable */
+					if (current_status->flag_global_position_valid) {
+						mavlink_log_critical(mavlink_fd, "Rej. MISSION: no home position");
+					} else if (current_status->flag_valid_home_position) {
+						mavlink_log_critical(mavlink_fd, "Rej. MISSION: no global position");
+					} else {
+						mavlink_log_critical(mavlink_fd, "Rej. MISSION: no global position and no home position");
+					}
+
+					/* otherwise fallback to SEATBELT or even manual */
+					if (current_status->flag_local_position_valid) {
+						new_navigation_state = NAVIGATION_STATE_SEATBELT;
+					} else {
+						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
+						new_navigation_state = NAVIGATION_STATE_MANUAL;
+					}
+				}
+
+			/* Go to RTL or land if global position estimate and home position is available */
+			} else if (current_status->mode_switch == MODE_SWITCH_AUTO
+					&& current_status->return_switch == RETURN_SWITCH_RETURN
+					&& (current_status->mission_switch == MISSION_SWITCH_NONE || current_status->mission_switch == MISSION_SWITCH_MISSION)) {
+
+				if (current_status->flag_global_position_valid && current_status->flag_valid_home_position) {
+
+					/* after RTL go to LAND */
+					if (current_status->flag_system_returned_to_home) {
+						new_navigation_state = NAVIGATION_STATE_AUTO_LAND;
+					} else {
+						new_navigation_state = NAVIGATION_STATE_AUTO_RTL;
+					}
+
+				} else {
+
+					/* spit out what exactly is unavailable */
+					if (current_status->flag_global_position_valid) {
+						mavlink_log_critical(mavlink_fd, "Rej. RTL/LAND: no home position");
+					} else if (current_status->flag_valid_home_position) {
+						mavlink_log_critical(mavlink_fd, "Rej. RTL/LAND: no global position");
+					} else {
+						mavlink_log_critical(mavlink_fd, "Rej. RTL/LAND: no global position and no home position");
+					}
+
+					/* otherwise fallback to SEATBELT_DESCENT or even MANUAL */
+					if (current_status->flag_local_position_valid) {
+						new_navigation_state = NAVIGATION_STATE_SEATBELT_DESCENT;
+					} else {
+						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
+						new_navigation_state = NAVIGATION_STATE_MANUAL;
+					}
+				}
+			}
+			break;
+
+		case ARMING_STATE_ARMED_ERROR:
+
+			// TODO work out fail-safe scenarios
+			break;
+
+		case ARMING_STATE_STANDBY_ERROR:
+
+			// TODO work out fail-safe scenarios
+			break;
+
+		case ARMING_STATE_REBOOT:
+
+			// XXX I don't think we should end up here
+			break;
+
+		case ARMING_STATE_IN_AIR_RESTORE:
+
+			// XXX not sure what to do here
+			break;
+		default:
+			break;
+	}
 
 
 
 	/* Update the system state in case it has changed */
-	if (current_status->system_state != new_system_state) {
+	if (current_status->navigation_state != new_navigation_state) {
 
 		/* Check if the transition is valid */
-		if (system_state_update(current_status->system_state, new_system_state) == OK) {
-			current_status->system_state = new_system_state;
+		if (check_navigation_state_transition(current_status->navigation_state, new_navigation_state) == OK) {
+			current_status->navigation_state = new_navigation_state;
 			state_machine_publish(status_pub, current_status, mavlink_fd);
 		} else {
 			mavlink_log_critical(mavlink_fd, "System state transition not valid");
@@ -123,74 +258,164 @@ void state_machine_update(int status_pub, struct vehicle_status_s *current_statu
  * This functions does not evaluate any input flags but only checks if the transitions
  * are valid.
  */
-int system_state_update(system_state_t current_system_state, system_state_t new_system_state) {
+int check_navigation_state_transition(navigation_state_t current_navigation_state, navigation_state_t new_navigation_state) {
 
 	int ret = ERROR;
 
 	/* only check transition if the new state is actually different from the current one */
-	if (new_system_state != current_system_state) {
+	if (new_navigation_state != current_navigation_state) {
 
-		switch (new_system_state) {
-			case SYSTEM_STATE_INIT:
+		switch (new_navigation_state) {
+			case NAVIGATION_STATE_INIT:
 
 				/* transitions back to INIT are possible for calibration */
-				if (current_system_state == SYSTEM_STATE_MANUAL
-				 || current_system_state == SYSTEM_STATE_SEATBELT
-				 || current_system_state == SYSTEM_STATE_AUTO) {
-
-					ret = OK;
-				}
-
-				break;
-
-			case SYSTEM_STATE_MANUAL:
-
-				/* transitions from INIT or from other modes */
-				if (current_system_state == SYSTEM_STATE_INIT
-				 || current_system_state == SYSTEM_STATE_SEATBELT
-				 || current_system_state == SYSTEM_STATE_AUTO) {
-
-					ret = OK;
-				}
-
-				break;
-
-			case SYSTEM_STATE_SEATBELT:
-
-				/* transitions from INIT or from other modes */
-				if (current_system_state == SYSTEM_STATE_INIT
-				 || current_system_state == SYSTEM_STATE_MANUAL
-				 || current_system_state == SYSTEM_STATE_AUTO) {
-
-					ret = OK;
-				}
-
-				break;
-
-			case SYSTEM_STATE_AUTO:
-
-				/* transitions from INIT or from other modes */
-				if (current_system_state == SYSTEM_STATE_INIT
-				 || current_system_state == SYSTEM_STATE_MANUAL
-				 || current_system_state == SYSTEM_STATE_SEATBELT) {
+				if (current_navigation_state == NAVIGATION_STATE_MANUAL_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_STANDBY) {
 
 					ret = OK;
 				}
 				break;
 
-			case SYSTEM_STATE_REBOOT:
+			case NAVIGATION_STATE_MANUAL_STANDBY:
 
-				/* from INIT you can go straight to REBOOT */
-				if (current_system_state == SYSTEM_STATE_INIT) {
+				/* transitions from INIT and other STANDBY states as well as MANUAL are possible */
+				if (current_navigation_state == NAVIGATION_STATE_INIT
+				 || current_navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_MANUAL) {
 
 					ret = OK;
 				}
 				break;
 
-			case SYSTEM_STATE_IN_AIR_RESTORE:
+			case NAVIGATION_STATE_MANUAL:
 
-				/* from INIT you can go straight to an IN AIR RESTORE */
-				if (current_system_state == SYSTEM_STATE_INIT) {
+				/* all transitions possible */
+				ret = OK;
+				break;
+
+			case NAVIGATION_STATE_SEATBELT_STANDBY:
+
+				/* transitions from INIT and other STANDBY states as well as SEATBELT and SEATBELT_DESCENT are possible */
+				if (current_navigation_state == NAVIGATION_STATE_INIT
+				 || current_navigation_state == NAVIGATION_STATE_MANUAL_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_SEATBELT
+				 || current_navigation_state == NAVIGATION_STATE_SEATBELT_DESCENT) {
+
+					ret = OK;
+				}
+				break;
+
+			case NAVIGATION_STATE_SEATBELT:
+
+				/* transitions from all AUTO modes except AUTO_STANDBY and except MANUAL_STANDBY and INIT*/
+				if (current_navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_SEATBELT_DESCENT
+				 || current_navigation_state == NAVIGATION_STATE_MANUAL
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_LAND
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_LOITER
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_MISSION
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_READY
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_RTL
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
+
+					ret = OK;
+				}
+				break;
+
+			case NAVIGATION_STATE_SEATBELT_DESCENT:
+
+				/* transitions from all AUTO modes except AUTO_STANDBY and except MANUAL_STANDBY and INIT and SEATBELT_STANDBY */
+				if (current_navigation_state == NAVIGATION_STATE_SEATBELT
+				 || current_navigation_state == NAVIGATION_STATE_MANUAL
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_LAND
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_LOITER
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_MISSION
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_READY
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_RTL
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
+
+					ret = OK;
+				}
+				break;
+
+			case NAVIGATION_STATE_AUTO_STANDBY:
+
+				/* transitions from INIT or from other STANDBY modes or from AUTO READY */
+				if (current_navigation_state == NAVIGATION_STATE_INIT
+				 || current_navigation_state == NAVIGATION_STATE_MANUAL_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_READY) {
+
+					ret = OK;
+				}
+				break;
+
+			case NAVIGATION_STATE_AUTO_READY:
+
+				/* transitions from AUTO_STANDBY or AUTO_LAND */
+				if (current_navigation_state == NAVIGATION_STATE_AUTO_STANDBY
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_LAND) {
+
+					ret = OK;
+				}
+				break;
+
+			case NAVIGATION_STATE_AUTO_TAKEOFF:
+
+				/* only transitions from AUTO_READY */
+				if (current_navigation_state == NAVIGATION_STATE_AUTO_READY) {
+
+					ret = OK;
+				}
+				break;
+
+			case NAVIGATION_STATE_AUTO_LOITER:
+
+				/* from everywhere flying except AUTO_LAND and SEATBELT_DESCENT */
+				if (current_navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_MISSION
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_RTL
+				 || current_navigation_state == NAVIGATION_STATE_SEATBELT
+				 || current_navigation_state == NAVIGATION_STATE_MANUAL) {
+
+					ret = OK;
+				}
+				break;
+
+			case NAVIGATION_STATE_AUTO_MISSION:
+
+				/* from everywhere flying except AUTO_LAND and SEATBELT_DESCENT */
+				if (current_navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_LOITER
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_RTL
+				 || current_navigation_state == NAVIGATION_STATE_SEATBELT
+				 || current_navigation_state == NAVIGATION_STATE_MANUAL) {
+
+					ret = OK;
+				}
+				break;
+
+			case NAVIGATION_STATE_AUTO_RTL:
+
+				/* from everywhere flying except AUTO_LAND and SEATBELT_DESCENT */
+				if (current_navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_MISSION
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_LOITER
+				 || current_navigation_state == NAVIGATION_STATE_SEATBELT
+				 || current_navigation_state == NAVIGATION_STATE_MANUAL) {
+
+					ret = OK;
+				}
+				break;
+
+			case NAVIGATION_STATE_AUTO_LAND:
+				/* after AUTO_RTL or when in AUTO_LOITER or AUTO_MISSION */
+				if (current_navigation_state == NAVIGATION_STATE_AUTO_RTL
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_MISSION
+				 || current_navigation_state == NAVIGATION_STATE_AUTO_LOITER) {
 
 					ret = OK;
 				}

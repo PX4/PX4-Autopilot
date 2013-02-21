@@ -47,10 +47,11 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 
-int navigation_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, navigation_state_t new_state);
+void navigation_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 //int do_arming_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, arming_state_t new_state);
 
 void state_machine_publish(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
+int check_navigation_state_transition(navigation_state_t current_navigation_state, navigation_state_t new_navigation_state);
 #endif /* STATE_MACHINE_HELPER_H_ */

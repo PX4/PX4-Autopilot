@@ -294,8 +294,9 @@ void BlockMultiModeBacksideAutopilot::update()
 	for (unsigned i = 4; i < NUM_ACTUATOR_CONTROLS; i++)
 		_actuators.control[i] = 0.0f;
 
+#warning this if is incomplete, should be based on flags
 	// only update guidance in auto mode
-	if (_status.navigation_state == NAVIGATION_STATE_MISSION) {
+	if (_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION) {
 		// update guidance
 		_guide.update(_pos, _att, _posCmd, _lastPosCmd);
 	}
@@ -304,8 +305,9 @@ void BlockMultiModeBacksideAutopilot::update()
 	// once the system switches from manual or auto to stabilized
 	// the setpoint should update to loitering around this position
 
+#warning should be base on flags
 	// handle autopilot modes
-	if (_status.navigation_state == NAVIGATION_STATE_MISSION ||
+	if (_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
 		_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
 		// update guidance
@@ -340,7 +342,7 @@ void BlockMultiModeBacksideAutopilot::update()
 							_actuators.control[CH_THR] : _manual.throttle;
 		}
 
-
+#warning should be base on flags
 	} else if (_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
 //		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
