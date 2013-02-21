@@ -7,6 +7,7 @@
 #
 export PX4_APP_SRC	 = $(PX4_BASE)/src/apps
 export PX4_LIB_SRC	 = $(PX4_BASE)/src/libs
+export PX4_MK_DIR	 = $(PX4_BASE)/makefiles
 export NUTTX_SRC	 = $(PX4_BASE)/nuttx
 export NUTTX_APP_SRC	 = $(PX4_BASE)/apps
 export MAVLINK_SRC	 = $(PX4_BASE)/mavlink

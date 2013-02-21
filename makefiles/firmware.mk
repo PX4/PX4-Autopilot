@@ -6,8 +6,8 @@
 #
 # Requires:
 #
-# PLATFORM
-#	Must be set to a platform name known to the PX4 distribution (as
+# BOARD
+#	Must be set to a board name known to the PX4 distribution (as
 #	we need a corresponding NuttX export archive to link with).
 #
 # Optional:
@@ -41,16 +41,16 @@
 # If PX4_BASE wasn't set previously, work out what it should be
 # and set it here now.
 #
-export PX4_MK_INCLUDE	?= $(dir $(lastword $(MAKEFILE_LIST)))
+export MK_DIR	?= $(dir $(lastword $(MAKEFILE_LIST)))
 ifeq ($(PX4_BASE),)
-export PX4_BASE		:= $(abspath $(PX4_MK_INCLUDE)/..)
+export PX4_BASE		:= $(abspath $(MK_DIR)/..)
 $(info %% set PX4_BASE to $(PX4_BASE))
 endif
 
 #
 # Get path and tool config
 #
-include $(PX4_MK_INCLUDE)/setup.mk
+include $(MK_DIR)/setup.mk
 
 #
 # If WORK_DIR is not set, create a 'build' directory next to the
@@ -63,18 +63,18 @@ endif
 $(info %% WORK_DIR $(WORK_DIR))
 
 #
-# Sanity-check the PLATFORM variable and then get the platform config.
-# If PLATFORM is not set, but CONFIG is, use that.
+# Sanity-check the BOARD variable and then get the board config.
+# If BOARD is not set, but CONFIG is, use that.
 #
-# The platform config in turn will fetch the toolchain configuration.
+# The board config in turn will fetch the toolchain configuration.
 #
-ifeq ($(PLATFORM),)
+ifeq ($(BOARD),)
 ifeq ($(CONFIG),)
-$(error At least one of the PLATFORM or CONFIG variables must be set before including firmware.mk)
+$(error At least one of the BOARD or CONFIG variables must be set before including firmware.mk)
 endif
-PLATFORM		:= $(firstword $(subst _, ,$(CONFIG)))
+BOARD		:= $(firstword $(subst _, ,$(CONFIG)))
 endif
-include $(PX4_MK_INCLUDE)/platform_$(PLATFORM).mk
+include $(PX4_MK_DIR)/board_$(BOARD).mk
 
 #
 # Things that, if they change, might affect everything
@@ -86,11 +86,11 @@ GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 ################################################################################
 
 #
-# Check that the NuttX archive for the selected platform is available.
+# Check that the NuttX archive for the selected board is available.
 #
-NUTTX_ARCHIVE		:= $(wildcard $(ARCHIVE_DIR)/$(PLATFORM).export)
+NUTTX_ARCHIVE		:= $(wildcard $(ARCHIVE_DIR)/$(BOARD).export)
 ifeq ($(NUTTX_ARCHIVE),)
-$(error The NuttX export archive for $(PLATFORM) is missing from $(ARCHIVE_DIR) - try 'make archives' in $(PX4_BASE))
+$(error The NuttX export archive for $(BOARD) is missing from $(ARCHIVE_DIR) - try 'make archives' in $(PX4_BASE))
 endif
 
 #
@@ -244,7 +244,7 @@ $(filter %.S.o,$(OBJS)): $(WORK_DIR)/%.S.o: %.S $(GLOBAL_DEPS)
 
 $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 	@echo %% Generating $@
-	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(PLATFORM).prototype \
+	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
 		--git_identity $(PX4_BASE) \
 		--image $< > $@
 

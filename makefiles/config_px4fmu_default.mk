@@ -6,4 +6,4 @@ CONFIG		 = px4fmu_default
 SRCS		 = $(PX4_BASE)/platforms/empty.c
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/$(CONFIG)
 
-include $(PX4_BASE)/makefiles/firmware.mk
+include $(PX4_MK_DIR)/firmware.mk

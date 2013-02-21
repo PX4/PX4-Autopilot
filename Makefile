@@ -14,12 +14,22 @@ include $(PX4_BASE)/makefiles/setup.mk
 CONFIGS			?= px4fmu_default px4io_default
 
 #
-# Platforms (boards) that we build NuttX export kits for.
+# Boards that we build NuttX export kits for.
 #
-PLATFORMS		 = px4fmu px4io
+BOARDS			 = px4fmu px4io
 
 #
-# If the user has listed a config as a target, strip it out and override CONFIGS
+# Debugging
+#
+MQUIET			 = --no-print-directory
+#MQUIET			 = --print-directory
+
+################################################################################
+# No user-serviceable parts below
+################################################################################
+
+#
+# If the user has listed a config as a target, strip it out and override CONFIGS.
 #
 EXPLICIT_CONFIGS	:= $(filter $(CONFIGS),$(MAKECMDGOALS))
 ifneq ($(EXPLICIT_CONFIGS),)
@@ -33,12 +43,6 @@ endif
 #
 STAGED_FIRMWARES	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)/$(config).px4)
 FIRMWARES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build/firmware.px4)
-
-#
-# Debugging
-#
-MQUIET			 = --no-print-directory
-#MQUIET			 = --print-directory
 
 all:			$(STAGED_FIRMWARES)
 
@@ -76,18 +80,18 @@ $(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
 #
 # XXX PX4IO configuration name is bad - NuttX configs should probably all be "px4"
 #
-NUTTX_ARCHIVES		 = $(foreach platform,$(PLATFORMS),$(ARCHIVE_DIR)/$(platform).export)
+NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)/$(board).export)
 .PHONY:			archives
 archives:		$(NUTTX_ARCHIVES)
 
-$(ARCHIVE_DIR)/%.export:	platform = $(notdir $(basename $@))
-$(ARCHIVE_DIR)/%.export:	configuration = $(if $(filter $(platform),px4io),io,nsh)
+$(ARCHIVE_DIR)/%.export:	board = $(notdir $(basename $@))
+$(ARCHIVE_DIR)/%.export:	configuration = $(if $(filter $(board),px4io),io,nsh)
 $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)/%.export: $(NUTTX_SRC) $(NUTTX_APPS)
-	@echo %% Configuring NuttX for $(platform)
+	@echo %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/tools && ./configure.sh $(platform)/$(configuration))
-	@echo %% Exporting NuttX for $(platform)
+	$(Q) (cd $(NUTTX_SRC)/tools && ./configure.sh $(board)/$(configuration))
+	@echo %% Exporting NuttX for $(board)
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) export
 	$(Q) mkdir -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)/nuttx-export.zip $@
