@@ -64,12 +64,14 @@
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
 #include <drivers/drv_mixer.h>
+#include <drivers/drv_rc_input.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
 
 #include <systemlib/err.h>
+#include <systemlib/ppm_decode.h>
 
 class PX4FMU : public device::CDev
 {
@@ -83,6 +85,7 @@ public:
 	~PX4FMU();
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
+	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
 
 	virtual int	init();
 
@@ -338,6 +341,13 @@ PX4FMU::task_main()
 
 	unsigned num_outputs = (_mode == MODE_2PWM) ? 2 : 4;
 
+	// rc input, published to ORB
+	struct rc_input_values rc_in;
+	orb_advert_t to_input_rc = 0;
+
+	memset(&rc_in, 0, sizeof(rc_in));
+	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
+
 	log("starting");
 
 	/* loop until killed */
@@ -363,8 +373,9 @@ PX4FMU::task_main()
 			_current_update_rate = _update_rate;
 		}
 
-		/* sleep waiting for data, but no more than a second */
-		int ret = ::poll(&fds[0], 2, 1000);
+		/* sleep waiting for data, stopping to check for PPM
+		 * input at 100Hz */
+		int ret = ::poll(&fds[0], 2, 10);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -428,6 +439,26 @@ PX4FMU::task_main()
 
 			/* update PWM servo armed status if armed and not locked down */
 			up_pwm_servo_arm(aa.armed && !aa.lockdown);
+		}
+
+		// see if we have new PPM input data
+		if (ppm_last_valid_decode != rc_in.timestamp) {
+			// we have a new PPM frame. Publish it.
+			rc_in.channel_count = ppm_decoded_channels;
+			if (rc_in.channel_count > RC_INPUT_MAX_CHANNELS) {
+				rc_in.channel_count = RC_INPUT_MAX_CHANNELS;
+			}
+			for (uint8_t i=0; i<rc_in.channel_count; i++) {
+				rc_in.values[i] = ppm_buffer[i];
+			}
+			rc_in.timestamp = ppm_last_valid_decode;
+
+			/* lazily advertise on first publication */
+			if (to_input_rc == 0) {
+				to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_in);
+			} else { 
+				orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
+			}
 		}
 	}
 
@@ -619,6 +650,30 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	unlock();
 
 	return ret;
+}
+
+/*
+  this implements PWM output via a write() method, for compatibility
+  with px4io
+ */
+ssize_t
+PX4FMU::write(file *filp, const char *buffer, size_t len)
+{
+	unsigned count = len / 2;
+	uint16_t values[4];
+
+	if (count > 4) {
+		// we only have 4 PWM outputs on the FMU
+		count = 4;
+	}
+
+	// allow for misaligned values
+	memcpy(values, buffer, count*2);
+
+	for (uint8_t i=0; i<count; i++) {
+		up_pwm_servo_set(i, values[i]);
+	}
+	return count * 2;
 }
 
 void

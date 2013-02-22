@@ -367,7 +367,12 @@ PX4IO::init()
 	if (ret != OK)
 		return ret;
 
-	if (reg & PX4IO_P_SETUP_ARMING_ARM_OK) {
+	/*
+	 * in-air restart is only tried if the IO board reports it is
+	 * already armed, and has been configured for in-air restart
+	 */
+	if ((reg & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK) &&
+	    (reg & PX4IO_P_SETUP_ARMING_ARM_OK)) {
 
 		/* WARNING: COMMANDER app/vehicle status must be initialized.
 		 * If this fails (or the app is not started), worst-case IO
@@ -450,6 +455,7 @@ PX4IO::init()
 		/* dis-arm IO before touching anything */
 		io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
 			PX4IO_P_SETUP_ARMING_ARM_OK |
+			PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK |
 			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK |
 			PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK, 0);
 
@@ -1162,6 +1168,16 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	case PWM_SERVO_DISARM:
 		/* clear the 'armed' bit */
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_ARM_OK, 0);
+		break;
+
+	case PWM_SERVO_INAIR_RESTART_ENABLE:
+		/* set the 'in-air restart' bit */
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK);
+		break;
+
+	case PWM_SERVO_INAIR_RESTART_DISABLE:
+		/* unset the 'in-air restart' bit */
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK, 0);
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:

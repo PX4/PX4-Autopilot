@@ -175,6 +175,9 @@ static const struct cmdmap_s g_cmdmap[] =
 # ifndef CONFIG_NSH_DISABLE_CP
   { "cp",       cmd_cp,       3, 3, "<source-path> <dest-path>" },
 # endif
+# ifndef CONFIG_NSH_DISABLE_CMP
+  { "cmp",      cmd_cmp,      3, 3, "<path1> <path2>" },
+# endif
 #endif
 
 #if defined (CONFIG_RTC) && !defined(CONFIG_DISABLE_CLOCK) && !defined(CONFIG_NSH_DISABLE_DATE)

@@ -429,7 +429,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		// 	mavlink_log_info(mavlink_fd, buf);
 		// }
 
-		if (poll(fds, 1, 1000)) {
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
 			orb_copy(ORB_ID(sensor_mag), sub_mag, &mag);
 
 			x[calibration_counter] = mag.x;
@@ -461,9 +463,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 
 			calibration_counter++;
 
-		} else {
+		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "mag cal canceled");
+			mavlink_log_info(mavlink_fd, "mag cal canceled (timed out)");
 			break;
 		}
 	}
@@ -553,7 +555,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		/* third beep by cal end routine */
 
 	} else {
-		mavlink_log_info(mavlink_fd, "mag calibration FAILED (NaN)");
+		mavlink_log_info(mavlink_fd, "mag calibration FAILED (NaN in sphere fit)");
 	}
 
 	/* disable calibration mode */
@@ -598,14 +600,16 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 		/* wait blocking for new data */
 		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
 
-		if (poll(fds, 1, 1000)) {
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
 			gyro_offset[0] += raw.gyro_rad_s[0];
 			gyro_offset[1] += raw.gyro_rad_s[1];
 			gyro_offset[2] += raw.gyro_rad_s[2];
 			calibration_counter++;
 
-		} else {
+		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
 			mavlink_log_info(mavlink_fd, "gyro calibration aborted, retry");
 			return;
@@ -706,14 +710,16 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 		/* wait blocking for new data */
 		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
 
-		if (poll(fds, 1, 1000)) {
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
 			accel_offset[0] += raw.accelerometer_m_s2[0];
 			accel_offset[1] += raw.accelerometer_m_s2[1];
 			accel_offset[2] += raw.accelerometer_m_s2[2];
 			calibration_counter++;
 
-		} else {
+		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
 			mavlink_log_info(mavlink_fd, "acceleration calibration aborted");
 			return;
@@ -1253,11 +1259,10 @@ int commander_main(int argc, char *argv[])
 		thread_should_exit = false;
 		daemon_task = task_spawn("commander",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 50,
-					 4000,
+					 SCHED_PRIORITY_MAX - 40,
+					 3000,
 					 commander_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		thread_running = true;
 		exit(0);
 	}
 
@@ -1355,7 +1360,8 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&home, 0, sizeof(home));
 
 	if (stat_pub < 0) {
-		warnx("ERROR: orb_advertise for topic vehicle_status failed.\n");
+		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
+		warnx("exiting.");
 		exit(ERROR);
 	}
 
@@ -1445,13 +1451,13 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* now initialized */
 	commander_initialized = true;
+	thread_running = true;
 
 	uint64_t start_time = hrt_absolute_time();
 	uint64_t failsave_ll_start_time = 0;
 
 	bool state_changed = true;
 	bool param_init_forced = true;
-
 
 	while (!thread_should_exit) {
 
