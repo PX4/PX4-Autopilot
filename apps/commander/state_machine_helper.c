@@ -254,49 +254,60 @@ void navigation_state_update(int status_pub, struct vehicle_status_s *current_st
 	return;
 }
 
-int check_arming_state_transition(arming_state_t current_arming_state, arming_state_t new_arming_state) {
+int check_arming_state_transition(struct vehicle_status_s *current_state, arming_state_t new_arming_state, const int mavlink_fd) {
 
 	int ret = ERROR;
 
 	/* only check transition if the new state is actually different from the current one */
-	if (new_arming_state != current_arming_state) {
+	if (new_arming_state != current_state->arming_state) {
 
 		switch (new_arming_state) {
 			case ARMING_STATE_INIT:
 
 				/* allow going back from INIT for calibration */
-				if (current_arming_state == ARMING_STATE_STANDBY) {
+				if (current_state->arming_state == ARMING_STATE_STANDBY) {
 					ret = OK;
 				}
 				break;
 			case ARMING_STATE_STANDBY:
 
 				/* allow coming from INIT and disarming from ARMED */
-				if (current_arming_state == ARMING_STATE_INIT
-				 || current_arming_state == ARMING_STATE_ARMED) {
-					ret = OK;
+				if (current_state->arming_state == ARMING_STATE_INIT
+				 || current_state->arming_state == ARMING_STATE_ARMED) {
+
+					/* sensors need to be initialized for STANDBY state */
+					if (current_state->flag_system_sensors_initialized) {
+						ret = OK;
+					} else {
+						mavlink_log_critical(mavlink_fd, "Rej. STANDBY state, sensors not initialized");
+					}
+
 				}
 				break;
 			case ARMING_STATE_ARMED:
 
 				/* allow arming from STANDBY and IN-AIR-RESTORE */
-				if (current_arming_state == ARMING_STATE_STANDBY
-				 || current_arming_state == ARMING_STATE_IN_AIR_RESTORE) {
+				if (current_state->arming_state == ARMING_STATE_STANDBY
+				 || current_state->arming_state == ARMING_STATE_IN_AIR_RESTORE) {
+
+					/* XXX conditions for arming? */
 					ret = OK;
 				}
 				break;
 			case ARMING_STATE_ARMED_ERROR:
 
 				/* an armed error happens when ARMED obviously */
-				if (current_arming_state == ARMING_STATE_ARMED) {
+				if (current_state->arming_state == ARMING_STATE_ARMED) {
 					ret = OK;
+
+					/* XXX conditions for an error state? */
 				}
 				break;
 			case ARMING_STATE_STANDBY_ERROR:
 				/* a disarmed error happens when in STANDBY or in INIT or after ARMED_ERROR */
-				if (current_arming_state == ARMING_STATE_STANDBY
-				 || current_arming_state == ARMING_STATE_INIT
-				 || current_arming_state == ARMING_STATE_ARMED_ERROR) {
+				if (current_state->arming_state == ARMING_STATE_STANDBY
+				 || current_state->arming_state == ARMING_STATE_INIT
+				 || current_state->arming_state == ARMING_STATE_ARMED_ERROR) {
 					ret = OK;
 				}
 				break;
