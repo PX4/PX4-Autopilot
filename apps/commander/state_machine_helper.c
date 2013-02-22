@@ -255,10 +255,13 @@
 //}
 
 int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, const int mavlink_fd) {
+	
 	int ret = ERROR;
 
 	/* only check transition if the new state is actually different from the current one */
-	if (new_arming_state != current_state->arming_state) {
+	if (new_arming_state == current_state->arming_state) {
+		ret = OK;
+	} else {
 
 		switch (new_arming_state) {
 			case ARMING_STATE_INIT:
@@ -313,7 +316,13 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 			default:
 				break;
 		}
+
+		if (ret == OK) {
+			current_state->arming_state = new_arming_state;
+			state_machine_publish(status_pub, current_state, mavlink_fd);
+		}
 	}
+
 	return ret;
 }
 
@@ -328,7 +337,9 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 	int ret = ERROR;
 
 	/* only check transition if the new state is actually different from the current one */
-	if (new_navigation_state != current_state->navigation_state) {
+	if (new_navigation_state == current_state->navigation_state) {
+		ret = OK;
+	} else {
 
 		switch (new_navigation_state) {
 			case NAVIGATION_STATE_INIT:
@@ -561,12 +572,14 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 			default:
 				break;
 		}
+
+		if (ret == OK) {
+			current_state->navigation_state = new_navigation_state;
+			state_machine_publish(status_pub, current_state, mavlink_fd);
+		}
 	}
 
-	if (ret == OK) {
-		current_state->navigation_state = new_navigation_state;
-		state_machine_publish(status_pub, current_state, mavlink_fd);
-	}
+	
 
 	return ret;
 }

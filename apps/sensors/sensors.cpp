@@ -432,7 +432,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 
 	/* mandatory mode switches, mapped to channel 5 and 6 per default */
-	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_OVER_SW");
+	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
 	_parameter_handles.rc_map_return_sw = param_find("RC_MAP_RETURN_SW");
 
 	_parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
