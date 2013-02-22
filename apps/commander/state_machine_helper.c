@@ -254,6 +254,61 @@ void navigation_state_update(int status_pub, struct vehicle_status_s *current_st
 	return;
 }
 
+int check_arming_state_transition(arming_state_t current_arming_state, arming_state_t new_arming_state) {
+
+	int ret = ERROR;
+
+	/* only check transition if the new state is actually different from the current one */
+	if (new_arming_state != current_arming_state) {
+
+		switch (new_arming_state) {
+			case ARMING_STATE_INIT:
+
+				/* allow going back from INIT for calibration */
+				if (current_arming_state == ARMING_STATE_STANDBY) {
+					ret = OK;
+				}
+				break;
+			case ARMING_STATE_STANDBY:
+
+				/* allow coming from INIT and disarming from ARMED */
+				if (current_arming_state == ARMING_STATE_INIT
+				 || current_arming_state == ARMING_STATE_ARMED) {
+					ret = OK;
+				}
+				break;
+			case ARMING_STATE_ARMED:
+
+				/* allow arming from STANDBY and IN-AIR-RESTORE */
+				if (current_arming_state == ARMING_STATE_STANDBY
+				 || current_arming_state == ARMING_STATE_IN_AIR_RESTORE) {
+					ret = OK;
+				}
+				break;
+			case ARMING_STATE_ARMED_ERROR:
+
+				/* an armed error happens when ARMED obviously */
+				if (current_arming_state == ARMING_STATE_ARMED) {
+					ret = OK;
+				}
+				break;
+			case ARMING_STATE_STANDBY_ERROR:
+				/* a disarmed error happens when in STANDBY or in INIT or after ARMED_ERROR */
+				if (current_arming_state == ARMING_STATE_STANDBY
+				 || current_arming_state == ARMING_STATE_INIT
+				 || current_arming_state == ARMING_STATE_ARMED_ERROR) {
+					ret = OK;
+				}
+				break;
+			default:
+				break;
+		}
+	}
+	return ret;
+}
+
+
+
 /*
  * This functions does not evaluate any input flags but only checks if the transitions
  * are valid.
