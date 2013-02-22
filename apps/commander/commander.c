@@ -804,7 +804,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			/* request to activate HIL */
 			if ((int)cmd->param1 & VEHICLE_MODE_FLAG_HIL_ENABLED) {
 
-				if (OK == do_hil_state_update(status_pub, current_vehicle_status, mavlink_fd, HIL_STATE_ON)) {
+				if (OK == hil_state_transition(status_pub, current_vehicle_status, mavlink_fd, HIL_STATE_ON)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
@@ -812,13 +812,13 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			}
 
 			if ((int)cmd->param1 & VEHICLE_MODE_FLAG_SAFETY_ARMED) {
-				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_ARMED)) {
+				if (OK == arming_state_transition(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_ARMED)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
 				}
 			} else {
-				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_STANDBY)) {
+				if (OK == arming_state_transition(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_STANDBY)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
@@ -831,14 +831,14 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 			/* request to arm */
 			if ((int)cmd->param1 == 1) {
-				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_ARMED)) {
+				if (OK == arming_state_transition(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_ARMED)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
 				}
 			/* request to disarm */
 			} else if ((int)cmd->param1 == 0) {
-				if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_STANDBY)) {
+				if (OK == arming_state_transition(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_STANDBY)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
@@ -851,7 +851,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 			/* request for an autopilot reboot */
 			if ((int)cmd->param1 == 1) {
-					if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_REBOOT)) {
+					if (OK == arming_state_transition(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_REBOOT)) {
 						/* SPECIAL CASE: SYSTEM WILL NEVER RETURN HERE */
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -893,7 +893,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				/* gyro calibration */
 				if ((int)(cmd->param1) == 1) {
 
-					if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_INIT)) {
+					if (OK == arming_state_transition(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_INIT)) {
 
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -902,8 +902,8 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 						do_gyro_calibration(status_pub, &current_status);
 						mavlink_log_info(mavlink_fd, "finished gyro cal");
 						tune_confirm();
-
-						do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+						// XXX if this fails, go to ERROR
+						arming_state_transition(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
 
 					} else {
 						result = VEHICLE_CMD_RESULT_DENIED;
@@ -915,7 +915,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				/* magnetometer calibration */
 				if ((int)(cmd->param2) == 1) {
 
-					if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_INIT)) {
+					if (OK == arming_state_transition(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_INIT)) {
 
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -924,8 +924,8 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 						do_mag_calibration(status_pub, &current_status);
 						mavlink_log_info(mavlink_fd, "finished mag cal");
 						tune_confirm();
-
-						do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+						// XXX if this fails, go to ERROR
+						arming_state_transition(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
 
 					} else {
 						result = VEHICLE_CMD_RESULT_DENIED;
@@ -986,7 +986,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				/* accel calibration */
 				if ((int)(cmd->param5) == 1) {
 
-					if (OK == do_arming_state_update(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_INIT)) {
+					if (OK == arming_state_transition(status_pub, current_vehicle_status, mavlink_fd, ARMING_STATE_INIT)) {
 
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -995,8 +995,8 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 						do_accel_calibration(status_pub, &current_status);
 						mavlink_log_info(mavlink_fd, "finished acc cal");
 						tune_confirm();
-
-						do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+						// XXX what if this fails
+						arming_state_transition(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
 
 					} else {
 						result = VEHICLE_CMD_RESULT_DENIED;
@@ -1647,7 +1647,8 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (current_status.arming_state == ARMING_STATE_INIT) {
-			do_arming_state_update(stat_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+			//XXX what if this fails
+			arming_state_transition(stat_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
 		} else {
 			// XXX: Add emergency stuff if sensors are lost
 		}
@@ -1857,7 +1858,8 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* Now it's time to handle the stick inputs */
-				navigation_state_update(stat_pub, &current_status, mavlink_fd);
+				#warning do that
+				// navigation_state_update(stat_pub, &current_status, mavlink_fd);
 
 				/* handle the case where RC signal was regained */
 				if (!current_status.rc_signal_found_once) {
@@ -1880,7 +1882,7 @@ int commander_thread_main(int argc, char *argv[])
 				//				    ) &&
 				if ((sp_man.yaw < -STICK_ON_OFF_LIMIT) && (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						do_arming_state_update(stat_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
+						arming_state_transition(stat_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
 						stick_off_counter = 0;
 
 					} else {
@@ -1892,7 +1894,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* check if left stick is in lower right position --> arm */
 				if (sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.2f) {
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						do_arming_state_update(stat_pub, &current_status, mavlink_fd, ARMING_STATE_ARMED);
+						arming_state_transition(stat_pub, &current_status, mavlink_fd, ARMING_STATE_ARMED);
 						stick_on_counter = 0;
 
 					} else {

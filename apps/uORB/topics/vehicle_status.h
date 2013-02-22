@@ -193,6 +193,7 @@ struct vehicle_status_s
 	bool flag_system_reboot_requested;
 	bool flag_system_returned_to_home;
 
+	bool flag_auto_mission_available;
 	bool flag_auto_enabled;
 
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
