@@ -39,5 +39,5 @@ endif
 #
 # Makefile debugging.
 #
-Q			:= $(if $(V),,@)
+export Q		:= $(if $(V),,@)
 

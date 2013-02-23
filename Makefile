@@ -60,10 +60,13 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)/%.px4: $(BUILD_DIR)/%.build/firmware.px4
 $(BUILD_DIR)/%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)/%.build/firmware.px4,%,$@)
 $(BUILD_DIR)/%.build/firmware.px4: work_dir = $(BUILD_DIR)/$(config).build
 $(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
+	@echo %%%%
 	@echo %%%% Building $(config) in $(work_dir)
+	@echo %%%%
 	$(Q) mkdir -p $(work_dir)
 	$(Q) make -C $(work_dir) \
-		-f $(PX4_BASE)/makefiles/config_$(config).mk \
+		-f $(PX4_MK_DIR)/firmware.mk \
+		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \
 		firmware
 

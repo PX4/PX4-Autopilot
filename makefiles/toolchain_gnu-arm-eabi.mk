@@ -2,7 +2,7 @@
 # Definitions for a generic GNU ARM-EABI toolchain
 #
 
-$(info %% Toolchain: gnu-arm-eabi)
+$(info %% TOOLCHAIN  gnu-arm-eabi)
 
 CROSSDEV		 = arm-none-eabi-
 
@@ -131,16 +131,11 @@ LINK_DEPS		+= $(LDSCRIPT)
 # files to include to get automated dependencies
 DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 
-ifeq ($(V),)
-Q			 = @
-else
-Q			 =
-endif
-
 # compile C source $1 to object $2
 # as a side-effect, generate a dependency file
 define COMPILE
 	@echo "CC: $1"
+	@mkdir -p $(dir $2)
 	$(Q) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 endef
 
@@ -148,35 +143,41 @@ endef
 # as a side-effect, generate a dependency file
 define COMPILEXX
 	@echo "CXX: $1"
+	@mkdir -p $(dir $2)
 	$(Q) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 
 # assemble $1 into $2
 define ASSEMBLE
 	@echo "AS: $1"
+	@mkdir -p $(dir $2)
 	$(Q) $(CC) -c $(AFLAGS) $(abspath $1) -o $2
 endef
 
 # produce partially-linked $1 from files in $2
 define PRELINK
 	@echo "PRELINK: $1"
+	@mkdir -p $(dir $1)
 	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 endef
 
 # update the archive $1 with the files in $2
 define ARCHIVE
 	@echo "AR: $2"
+	@mkdir -p $(dir $1)
 	$(Q) $(AR) $1 $2
 endef
 
 # Link the objects in $2 into the binary $1
 define LINK
 	@echo "LINK: $1"
-	$(Q) $(LD) $(LDFLAGS) -o $1 --start-group $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+	@mkdir -p $(dir $1)
+	$(Q) $(LD) $(LDFLAGS) -o $1 $2 --start-group $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
 endef
 
 # convert $1 from a linked object to a raw binary
 define SYM_TO_BIN
 	@echo "BIN: $2"
+	@mkdir -p $(dir $2)
 	$(Q) $(OBJCOPY) -O binary $1 $2
 endef
