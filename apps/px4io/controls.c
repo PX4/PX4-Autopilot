@@ -45,7 +45,6 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/ppm_decode.h>
 
-//#define DEBUG
 #include "px4io.h"
 
 #define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */

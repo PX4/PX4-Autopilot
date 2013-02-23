@@ -248,18 +248,18 @@ dsm_guess_format(bool reset)
 
 	if ((votes11 == 1) && (votes10 == 0)) {
 		channel_shift = 11;
-		debug("DSM: detected 11-bit format");
+		debug("DSM: 11-bit format");
 		return;
 	}
 
 	if ((votes10 == 1) && (votes11 == 0)) {
 		channel_shift = 10;
-		debug("DSM: detected 10-bit format");
+		debug("DSM: 10-bit format");
 		return;
 	}
 
 	/* call ourselves to reset our state ... we have to try again */
-	debug("DSM: format detector failed, 10: 0x%08x %d 11: 0x%08x %d", cs10, votes10, cs11, votes11);
+	debug("DSM: format detect fail, 10: 0x%08x %d 11: 0x%08x %d", cs10, votes10, cs11, votes11);
 	dsm_guess_format(true);
 }
 

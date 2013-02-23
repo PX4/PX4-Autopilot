@@ -83,12 +83,12 @@ static volatile uint32_t last_msg_counter;
 static volatile uint8_t msg_next_out, msg_next_in;
 
 /*
- * WARNING too large buffers here consume the memory required
+ * WARNING: too large buffers here consume the memory required
  * for mixer handling. Do not allocate more than 80 bytes for
  * output.
  */
 #define NUM_MSG 2
-static char msg[NUM_MSG][50];
+static char msg[NUM_MSG][40];
 
 /*
   add a debug message to be printed on the console
@@ -127,7 +127,7 @@ static void show_debug_messages(void)
  */
 static void loop_overtime(void *arg)
 {
-	debug("RESETTING\n");
+	lowsyslog("I2C RESET\n");
 	i2c_loop_resets++;
 	i2c_dump();
 	i2c_reset();
@@ -136,7 +136,7 @@ static void loop_overtime(void *arg)
 
 static void wakeup_handler(int signo, siginfo_t *info, void *ucontext)
 {
-	// nothing to do - we just want poll() to return
+	/* nothing to do - we just want poll() to return */
 }
 
 
@@ -185,16 +185,31 @@ int user_start(int argc, char *argv[])
 	up_pwm_servo_init(0xff);
 
 	/* start the flight control signal handler */
-	task_create("FCon",
+	int ret = task_create("FCon",
 		    SCHED_PRIORITY_DEFAULT,
 		    1024,
 		    (main_t)controls_main,
 		    NULL);
 
 	struct mallinfo minfo = mallinfo();
-	lowsyslog("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
+	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
-	debug("debug_level=%u\n", (unsigned)debug_level);
+	/* not enough memory, lock down */
+	if (ret != OK || minfo.mxordblk < 500) {
+		lowsyslog("ERR: not enough MEM");
+		bool phase = false;
+
+		if (phase) {
+			LED_AMBER(true);
+			LED_BLUE(false);
+		} else {
+			LED_AMBER(false);
+			LED_BLUE(true);
+		}
+
+		phase = !phase;
+		usleep(300000);
+	}
 
 	/* start the i2c handler */
 	i2c_init();
@@ -211,7 +226,7 @@ int user_start(int argc, char *argv[])
 	sigfillset(&sa.sa_mask);
 	sigdelset(&sa.sa_mask, SIGUSR1);
         if (sigaction(SIGUSR1, &sa, NULL) != OK) {
-		debug("Failed to setup SIGUSR1 handler\n");
+		lowsyslog("SIGUSR1 init fail\n");
 	}
 
 	/* 
