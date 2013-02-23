@@ -183,31 +183,35 @@ struct vehicle_status_s
 	return_switch_pos_t return_switch;
 	mission_switch_pos_t mission_switch;
 
+	
+	bool condition_system_emergency;
+	bool condition_system_in_air_restore;	/**< true if we can restore in mid air */
+	bool condition_system_sensors_initialized;
+	bool condition_system_returned_to_home;
+	bool condition_auto_mission_available;
+	bool condition_global_position_valid;		/**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
+	bool condition_launch_position_valid;		/**< indicates a valid launch position */
+	bool condition_home_position_valid;			/**< indicates a valid home position (a valid home position is not always a valid launch) */
+	bool condition_local_position_valid;
 
-	bool flag_system_armed;				/**< true is motors / actuators are armed */
+	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */
+	bool flag_fmu_armed;				/**< true is motors / actuators of FMU are armed  */
+	bool flag_io_armed;					/**< true is motors / actuators of IO are armed */
 	bool flag_system_emergency;
-	bool flag_system_in_air_restore;	/**< true if we can restore in mid air */
-	bool flag_system_sensors_initialized;
-	bool flag_system_arming_requested;
-	bool flag_system_disarming_requested;
-	bool flag_system_reboot_requested;
-	bool flag_system_returned_to_home;
-
-	bool flag_auto_mission_available;
-	bool flag_auto_enabled;
+	bool flag_preflight_calibration;
 
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
 	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
-	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */
-
+	bool flag_auto_enabled;
 	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
 	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 
-	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
-	bool flag_preflight_mag_calibration;		/**< true if mag calibration is requested */
-	bool flag_preflight_accel_calibration;
+
+	// bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
+	// bool flag_preflight_mag_calibration;		/**< true if mag calibration is requested */
+	// bool flag_preflight_accel_calibration;
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception is terminally lost */
@@ -238,13 +242,10 @@ struct vehicle_status_s
 	uint16_t errors_count3;
 	uint16_t errors_count4;
 
-	bool flag_global_position_valid;		/**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
-	bool flag_local_position_valid;
-	bool flag_vector_flight_mode_ok;		/**< position estimation, battery voltage and other critical subsystems are good for autonomous flight */
-	bool flag_auto_flight_mode_ok;			/**< conditions of vector flight mode apply plus a valid takeoff position lock has been aquired */
+	// bool flag_vector_flight_mode_ok;		/**< position estimation, battery voltage and other critical subsystems are good for autonomous flight */
+	// bool flag_auto_flight_mode_ok;			/**< conditions of vector flight mode apply plus a valid takeoff position lock has been aquired */
 	bool flag_external_manual_override_ok;		/**< external override non-fatal for system. Only true for fixed wing */
-	bool flag_valid_launch_position;		/**< indicates a valid launch position */
-	bool flag_valid_home_position;			/**< indicates a valid home position (a valid home position is not always a valid launch) */
+	
 };
 
 /**

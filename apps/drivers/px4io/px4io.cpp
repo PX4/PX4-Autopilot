@@ -446,7 +446,7 @@ PX4IO::init()
 			}
 
 		/* keep waiting for state change for 10 s */
-		} while (!status.flag_system_armed);
+		} while (!status.flag_fmu_armed);
 
 	/* regular boot, no in-air restart, init IO */
 	} else {
@@ -658,11 +658,12 @@ PX4IO::io_set_arming_state()
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_ARM_OK;
 	}
-	if (vstatus.flag_vector_flight_mode_ok) {
-		set |= PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK;
-	} else {
-		clear |= PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK;					
-	}
+	// TODO fix this
+	// if (vstatus.flag_vector_flight_mode_ok) {
+	// 	set |= PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK;
+	// } else {
+	// 	clear |= PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK;					
+	// }
 	if (vstatus.flag_external_manual_override_ok) {
 		set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
 	} else {

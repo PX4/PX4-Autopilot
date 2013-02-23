@@ -529,7 +529,7 @@ BlinkM::led()
 				} else {
 					/* no battery warnings here */
 
-					if(vehicle_status_raw.flag_system_armed == false) {
+					if(vehicle_status_raw.flag_fmu_armed == false) {
 						/* system not armed */
 						led_color_1 = LED_RED;
 						led_color_2 = LED_RED;

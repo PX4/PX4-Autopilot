@@ -246,9 +246,7 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 	 **/
 
 	/* set calibration state */
-	if (v_status.flag_preflight_gyro_calibration ||
-		v_status.flag_preflight_mag_calibration ||
-		v_status.flag_preflight_accel_calibration) {
+	if (v_status.flag_preflight_calibration) {
 
 		*mavlink_state = MAV_STATE_CALIBRATING;
 

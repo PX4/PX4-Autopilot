@@ -247,7 +247,7 @@ mc_thread_main(int argc, char *argv[])
 						/* initialize to current yaw if switching to manual or att control */
 						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
 						    state.flag_control_manual_enabled != flag_control_manual_enabled ||
-						    state.flag_system_armed != flag_system_armed) {
+						    state.flag_fmu_armed != flag_system_armed) {
 							att_sp.yaw_body = att.yaw;
 						}
 
@@ -291,7 +291,7 @@ mc_thread_main(int argc, char *argv[])
 							att_sp.pitch_body = manual.pitch;
 
 							/* set attitude if arming */
-							if (!flag_control_attitude_enabled && state.flag_system_armed) {
+							if (!flag_control_attitude_enabled && state.flag_fmu_armed) {
 								att_sp.yaw_body = att.yaw;
 							}
 
@@ -395,7 +395,8 @@ mc_thread_main(int argc, char *argv[])
 				/* update state */
 				flag_control_attitude_enabled = state.flag_control_attitude_enabled;
 				flag_control_manual_enabled = state.flag_control_manual_enabled;
-				flag_system_armed = state.flag_system_armed;
+				flag_system_armed = state.flag_fmu_armed;
+				// XXX add some logic to this
 
 				perf_end(mc_loop_perf);
 			} /* end of poll call for attitude updates */
