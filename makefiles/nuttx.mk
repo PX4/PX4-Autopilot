@@ -27,7 +27,7 @@ GLOBAL_DEPS		+= $(NUTTX_CONFIG_HEADER)
 #
 # Use the linker script from the NuttX export
 #
-LDSCRIPT		 = $(NUTTX_EXPORT_DIR)build/ld.script
+LDSCRIPT		+= $(NUTTX_EXPORT_DIR)build/ld.script
 
 #
 # Add directories from the NuttX export to the relevant search paths
@@ -39,6 +39,6 @@ LINK_DEPS		+= $(NUTTX_EXPORT_DIR)libs/libapps.a \
 			   $(NUTTX_EXPORT_DIR)libs/libnuttx.a
 
 $(NUTTX_CONFIG_HEADER):	$(NUTTX_ARCHIVE)
-	@echo %% Unpacking $(NUTTX_ARCHIVE)
-	$(Q) unzip -q -o -d $(WORK_DIR) $(NUTTX_ARCHIVE)
-	$(Q) touch $@
+	@$(ECHO) %% Unpacking $(NUTTX_ARCHIVE)
+	$(Q) $(UNZIP) -q -o -d $(WORK_DIR) $(NUTTX_ARCHIVE)
+	$(Q) $(TOUCH) $@

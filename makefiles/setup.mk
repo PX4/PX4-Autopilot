@@ -29,6 +29,10 @@ COPY			 = cp
 REMOVE			 = rm -f
 RMDIR			 = rm -rf
 GENROMFS		 = genromfs
+TOUCH			 = touch
+MKDIR			 = mkdir
+ECHO			 = echo
+UNZIP			 = unzip
 
 #
 # Host-specific paths, hacks and fixups

@@ -172,10 +172,10 @@ MODULE_OBJS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)module
 $(MODULE_OBJS):		relpath = $(patsubst $(WORK_DIR)%,%,$@)
 $(MODULE_OBJS):		mkfile = $(patsubst %module.pre.o,%module.mk,$(relpath))
 $(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
-	@echo %%
-	@echo %% Building module using $(mkfile)
-	@echo %%
-	$(Q) make -f $(PX4_MK_DIR)module.mk \
+	@$(ECHO) %%
+	@$(ECHO) %% Building module using $(mkfile)
+	@$(ECHO) %%
+	$(Q) $(MAKE) -f $(PX4_MK_DIR)module.mk \
 		MODULE_WORK_DIR=$(dir $@) \
 		MODULE_OBJ=$@ \
 		MODULE_MK=$(mkfile) \
@@ -189,8 +189,8 @@ MODULE_CLEANS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)/cle
 $(MODULE_CLEANS):	relpath = $(patsubst $(WORK_DIR)%,%,$@)
 $(MODULE_CLEANS):	mkfile = $(patsubst %clean,%module.mk,$(relpath))
 $(MODULE_CLEANS):
-	@echo %% cleaning using $(mkfile)
-	$(Q) make -f $(PX4_MK_DIR)module.mk \
+	@$(ECHO) %% cleaning using $(mkfile)
+	$(Q) $(MAKE) -f $(PX4_MK_DIR)module.mk \
 	MODULE_WORK_DIR=$(dir $@) \
 	MODULE_MK=$(mkfile) \
 	clean
@@ -210,6 +210,8 @@ include $(PX4_MK_DIR)/nuttx.mk
 # NuttX export library. Instead, we have to treat it like a library.
 #
 ifneq ($(ROMFS_ROOT),)
+
+# Add dependencies on anything in the ROMFS root
 ROMFS_DEPS		+= $(wildcard \
 			     (ROMFS_ROOT)/* \
 			     (ROMFS_ROOT)/*/* \
@@ -223,15 +225,13 @@ ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
 LIBS			+= $(ROMFS_OBJ)
 LINK_DEPS		+= $(ROMFS_OBJ)
 
-$(ROMFS_OBJ): $(ROMFS_CSRC)
-	$(Q) $(call COMPILE,$<,$@)
+# Turn the ROMFS image into an object file
+$(ROMFS_OBJ): $(ROMFS_IMG) $(GLOBAL_DEPS)
+	$(call BIN_TO_OBJ,$<,$@,romfs_img)
 
-$(ROMFS_CSRC): $(ROMFS_IMG)
-	@echo %% generating $@
-	$(Q) (cd $(dir $<) && xxd -i $(notdir $<)) > $@
-
+# Generate the ROMFS image from the root
 $(ROMFS_IMG): $(ROMFS_DEPS) $(GLOBAL_DEPS)
-	@echo %% generating $@
+	@$(ECHO) %% generating $@
 	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_ROOT) -V "NSHInitVol"
 
 endif
@@ -264,25 +264,25 @@ BUILTIN_COMMANDS	+= $(subst COMMAND.,,$(notdir $(wildcard $(WORK_DIR)builtin_com
 
 # (BUILTIN_PROTO,<cmdspec>,<outputfile>)
 define BUILTIN_PROTO
-	echo 'extern int $(word 4,$1)(int argc, char *argv[]);' >> $2;
+	$(ECHO) 'extern int $(word 4,$1)(int argc, char *argv[]);' >> $2;
 endef
 
 # (BUILTIN_DEF,<cmdspec>,<outputfile>)
 define BUILTIN_DEF
-	echo '    {"$(word 1,$1)", $(word 2,$1), $(word 3,$1), $(word 4,$1)},' >> $2;
+	$(ECHO) '    {"$(word 1,$1)", $(word 2,$1), $(word 3,$1), $(word 4,$1)},' >> $2;
 endef
 
 $(BUILTIN_CSRC):	$(GLOBAL_DEPS)
-	@echo %% generating $@
-	$(Q) echo '/* builtin command list - automatically generated, do not edit */' > $@
-	$(Q) echo '#include <nuttx/config.h>' >> $@
-	$(Q) echo '#include <nuttx/binfmt/builtin.h>' >> $@
+	@$(ECHO) %% generating $@
+	$(Q) $(ECHO) '/* builtin command list - automatically generated, do not edit */' > $@
+	$(Q) $(ECHO) '#include <nuttx/config.h>' >> $@
+	$(Q) $(ECHO) '#include <nuttx/binfmt/builtin.h>' >> $@
 	$(Q) $(foreach spec,$(BUILTIN_COMMANDS),$(call BUILTIN_PROTO,$(subst ., ,$(spec)),$@))
-	$(Q) echo 'const struct builtin_s g_builtins[] = {' >> $@
+	$(Q) $(ECHO) 'const struct builtin_s g_builtins[] = {' >> $@
 	$(Q) $(foreach spec,$(BUILTIN_COMMANDS),$(call BUILTIN_DEF,$(subst ., ,$(spec)),$@))
-	$(Q) echo '    {NULL, 0, 0, NULL}' >> $@
-	$(Q) echo '};' >> $@
-	$(Q) echo 'const int g_builtin_count = $(words $(BUILTIN_COMMANDS));' >> $@
+	$(Q) $(ECHO) '    {NULL, 0, 0, NULL}' >> $@
+	$(Q) $(ECHO) '};' >> $@
+	$(Q) $(ECHO) 'const int g_builtin_count = $(words $(BUILTIN_COMMANDS));' >> $@
 
 BUILTIN_OBJ		 = $(BUILTIN_CSRC:.c=.o)
 LIBS			+= $(BUILTIN_OBJ)
@@ -302,7 +302,7 @@ $(BUILTIN_OBJ): $(BUILTIN_CSRC)
 ifeq ($(SRCS),)
 EMPTY_SRC		 = $(WORK_DIR)empty.c
 $(EMPTY_SRC):
-	$(Q) echo '/* this is an empty file */' > $@
+	$(Q) $(ECHO) '/* this is an empty file */' > $@
 
 SRCS			+= $(EMPTY_SRC)
 endif
@@ -346,7 +346,7 @@ $(filter %.S.o,$(OBJS)): $(WORK_DIR)%.S.o: %.S $(GLOBAL_DEPS)
 #
 
 $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
-	@echo %% Generating $@
+	@$(ECHO) %% Generating $@
 	$(Q) $(MKFW) --prototype $(IMAGE_DIR)/$(BOARD).prototype \
 		--git_identity $(PX4_BASE) \
 		--image $< > $@
@@ -363,7 +363,7 @@ $(PRODUCT_SYM):		$(OBJS) $(MODULE_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKF
 
 .PHONY: upload
 upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
-	$(Q) make -f $(PX4_MK_DIR)/upload.mk \
+	$(Q) $(MAKE) -f $(PX4_MK_DIR)/upload.mk \
 		METHOD=serial \
 		PRODUCT=$(PRODUCT) \
 		BUNDLE=$(PRODUCT_BUNDLE) \
@@ -371,7 +371,7 @@ upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
 
 .PHONY: clean
 clean:			$(MODULE_CLEANS)
-	@echo %% cleaning
+	@$(ECHO) %% cleaning
 	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_SYM)
 	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES)
 	$(Q) $(RMDIR) $(NUTTX_EXPORT_DIR)

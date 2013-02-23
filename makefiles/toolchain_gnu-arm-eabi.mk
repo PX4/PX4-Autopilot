@@ -119,7 +119,7 @@ AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__
 
 LDFLAGS			+= --warn-common \
 			   --gc-sections \
-			   -T $(LDSCRIPT) \
+			   $(addprefix -T,$(LDSCRIPT)) \
 			   $(addprefix -L,$(LIB_DIRS))
 
 LIBGCC			:= $(shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name)
@@ -134,51 +134,76 @@ DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 # compile C source $1 to object $2
 # as a side-effect, generate a dependency file
 define COMPILE
-	@echo "CC <- $1"
-	@echo "CC   -> $2"
-	@mkdir -p $(dir $2)
+	@$(ECHO) "CC <- $1"
+	@$(ECHO) "CC   -> $2"
+	@$(MKDIR) -p $(dir $2)
 	$(Q) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 endef
 
 # compile C++ source $1 to $2
 # as a side-effect, generate a dependency file
 define COMPILEXX
-	@echo "CXX: $1"
-	@mkdir -p $(dir $2)
+	@$(ECHO) "CXX: $1"
+	@$(MKDIR) -p $(dir $2)
 	$(Q) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 
 # assemble $1 into $2
 define ASSEMBLE
-	@echo "AS: $1"
-	@mkdir -p $(dir $2)
+	@$(ECHO) "AS: $1"
+	@$(MKDIR) -p $(dir $2)
 	$(Q) $(CC) -c $(AFLAGS) $(abspath $1) -o $2
 endef
 
 # produce partially-linked $1 from files in $2
 define PRELINK
-	@echo "PRELINK: $1"
-	@mkdir -p $(dir $1)
+	@$(ECHO) "PRELINK: $1"
+	@$(MKDIR) -p $(dir $1)
 	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 endef
 
 # update the archive $1 with the files in $2
 define ARCHIVE
-	@echo "AR: $2"
-	@mkdir -p $(dir $1)
+	@$(ECHO) "AR: $2"
+	@$(MKDIR) -p $(dir $1)
 	$(Q) $(AR) $1 $2
 endef
 
-# Link the objects in $2 into the binary $1
+# link the objects in $2 into the binary $1
 define LINK
-	@echo "LINK: $1"
-	@mkdir -p $(dir $1)
+	@$(ECHO) "LINK: $1"
+	@$(MKDIR) -p $(dir $1)
 	$(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
 endef
 
-# convert $1 from a linked object to a raw binary
+# convert $1 from a linked object to a raw binary in $2
 define SYM_TO_BIN
-	@echo "BIN: $2"
-	@mkdir -p $(dir $2)
+	@$(ECHO) "BIN: $2"
+	@$(MKDIR) -p $(dir $2)
 	$(Q) $(OBJCOPY) -O binary $1 $2
 endef
+
+# Take the raw binary $1 and make it into an object file $2. 
+# The symbol $3 points to the beginning of the file, and $3_len
+# gives its length.
+#
+# - compile an empty file to generate a suitable object file
+# - relink the object and insert the binary file
+# - edit symbol names to suit
+#
+define BIN_SYM_PREFIX
+	_binary_$(subst /,_,$(subst .,_,$1))
+endef
+define BIN_TO_OBJ
+	@$(ECHO) "WRAP: $2"
+	@$(MKDIR) -p $(dir $2)
+	$(Q) $(ECHO) > $2.c
+	$(call COMPILE,$2.c,$2.c.o)
+	$(LD) -r -o $2 $2.c.o -b binary $1
+	$(OBJCOPY) $2 \
+		--redefine-sym $(call BIN_SYM_PREFIX,$1)_start=$3 \
+		--redefine-sym $(call BIN_SYM_PREFIX,$1)_size=$3_len \
+		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end
+endef
+
+#	$(Q) $(OBJCOPY) --add-section .rodata.$3=$1 $2

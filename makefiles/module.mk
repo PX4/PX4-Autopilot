@@ -100,9 +100,9 @@ MODULE_COMMAND_FILES	:= $(addprefix $(WORK_DIR)/builtin_commands/COMMAND.,$(MODU
 
 .PHONY: $(MODULE_COMMAND_FILES)
 $(MODULE_COMMAND_FILES): $(GLOBAL_DEPS)
-	@echo COMMAND    $(word 2,$(subst ., ,$(notdir $(@))))
-	@mkdir -p $@
-	$(Q) touch $@
+	@$(ECHO) COMMAND    $(word 2,$(subst ., ,$(notdir $(@))))
+	@$(MKDIR) -p $(dir $@)
+	$(Q) $(TOUCH) $@
 endif
 
 ################################################################################
