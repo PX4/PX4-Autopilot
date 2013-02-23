@@ -59,7 +59,7 @@
 ifeq ($(MODULE_MK),)
 $(error No module makefile specified)
 endif
-$(info MODULE_MK           $(MODULE_MK))
+$(info %  MODULE_MK           = $(MODULE_MK))
 
 #
 # Get path and tool config
@@ -76,8 +76,9 @@ include $(PX4_MK_DIR)/board_$(BOARD).mk
 #
 include $(MODULE_MK)
 MODULE_SRC		:= $(dir $(MODULE_MK))
-$(info MODULE_SRC          $(MODULE_SRC))
-$(info MODULE_WORK_DIR     $(MODULE_WORK_DIR))
+$(info %  MODULE_SRC          = $(MODULE_SRC))
+$(info %  MODULE_OBJ          = $(MODULE_OBJ))
+$(info %  MODULE_WORK_DIR     = $(MODULE_WORK_DIR))
 
 #
 # Things that, if they change, might affect everything
@@ -98,9 +99,15 @@ endif
 ifneq ($(MODULE_COMMANDS),)
 MODULE_COMMAND_FILES	:= $(addprefix $(WORK_DIR)/builtin_commands/COMMAND.,$(MODULE_COMMANDS))
 
+# Create the command files
+# Ensure that there is only one entry for each command
+#
 .PHONY: $(MODULE_COMMAND_FILES)
+$(MODULE_COMMAND_FILES): command = $(word 2,$(subst ., ,$(notdir $(@))))
+$(MODULE_COMMAND_FILES): exclude = $(dir $@)COMMAND.$(command).*
 $(MODULE_COMMAND_FILES): $(GLOBAL_DEPS)
-	@$(ECHO) COMMAND    $(word 2,$(subst ., ,$(notdir $(@))))
+	@$(ECHO) COMMAND:    $(command)
+	@$(REMOVE) -f $(exclude)
 	@$(MKDIR) -p $(dir $@)
 	$(Q) $(TOUCH) $@
 endif

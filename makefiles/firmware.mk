@@ -65,7 +65,7 @@ MK_DIR	?= $(dir $(lastword $(MAKEFILE_LIST)))
 ifeq ($(PX4_BASE),)
 export PX4_BASE		:= $(abspath $(MK_DIR)/..)
 endif
-$(info PX4_BASE            $(PX4_BASE))
+$(info %  PX4_BASE            = $(PX4_BASE))
 
 #
 # Set a default target so that included makefiles or errors here don't 
@@ -93,7 +93,7 @@ $(error Can't find a config file called $(CONFIG) or $(PX4_MK_DIR)/config_$(CONF
 endif
 export CONFIG
 include $(CONFIG_FILE)
-$(info CONFIG              $(CONFIG))
+$(info %  CONFIG              = $(CONFIG))
 
 #
 # Sanity-check the BOARD variable and then get the board config.
@@ -110,7 +110,7 @@ $(error Config $(CONFIG) references board $(BOARD), but no board definition file
 endif
 export BOARD
 include $(BOARD_FILE)
-$(info BOARD               $(BOARD))
+$(info %  BOARD               = $(BOARD))
 
 #
 # If WORK_DIR is not set, create a 'build' directory next to the
@@ -120,7 +120,7 @@ PARENT_MAKEFILE		:= $(lastword $(filter-out $(lastword $(MAKEFILE_LIST)),$(MAKEF
 ifeq ($(WORK_DIR),)
 export WORK_DIR		:= $(dir $(PARENT_MAKEFILE))build/
 endif
-$(info WORK_DIR            $(WORK_DIR))
+$(info %  WORK_DIR            = $(WORK_DIR))
 
 #
 # Things that, if they change, might affect everything
@@ -164,7 +164,10 @@ ifneq ($(MISSING_MODULES),)
 $(error Can't find module(s): $(MISSING_MODULES))
 endif
 
-# make a list of the object files we expect to build from modules
+# Make a list of the object files we expect to build from modules
+# Note that this path will typically contain a double-slash at the WORK_DIR boundary; this must be
+# preserved as it is used below to get the absolute path for the module.mk file correct.
+#
 MODULE_OBJS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)module.pre.o)
 
 # rules to build module objects
@@ -252,7 +255,8 @@ endif
 BUILTIN_CSRC		 = $(WORK_DIR)builtin_commands.c
 
 # add command definitions from modules
-BUILTIN_COMMANDS	+= $(subst COMMAND.,,$(notdir $(wildcard $(WORK_DIR)builtin_commands/COMMAND.*)))
+BUILTIN_COMMAND_FILES	:= $(wildcard $(WORK_DIR)builtin_commands/COMMAND.*)
+BUILTIN_COMMANDS	+= $(subst COMMAND.,,$(notdir $(BUILTIN_COMMAND_FILES)))
 
 ifneq ($(BUILTIN_COMMANDS),)
 
@@ -266,7 +270,8 @@ define BUILTIN_DEF
 	$(ECHO) '    {"$(word 1,$1)", $(word 2,$1), $(word 3,$1), $(word 4,$1)},' >> $2;
 endef
 
-$(BUILTIN_CSRC):	$(GLOBAL_DEPS)
+# Don't generate until modules have updated their command files
+$(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(BUILTIN_COMMAND_FILES)
 	@$(ECHO) %% generating $@
 	$(Q) $(ECHO) '/* builtin command list - automatically generated, do not edit */' > $@
 	$(Q) $(ECHO) '#include <nuttx/config.h>' >> $@
