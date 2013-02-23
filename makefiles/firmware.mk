@@ -9,37 +9,23 @@
 #
 # Optional:
 #
-# APPS
-#	Contains a list of application paths or path fragments used
-#	to find applications. The names listed here are searched in
+# MODULES
+#	Contains a list of module paths or path fragments used
+#	to find modules. The names listed here are searched in
 #	the following directories:
 #		<absolute path>
-#		$(APP_SEARCH_DIRS)
+#		$(MODULE_SEARCH_DIRS)
 #		WORK_DIR
-#		APP_SRC
-#		PX4_APP_SRC
+#		MODULE_SRC
+#		PX4_MODULE_SRC
 #
-#	Application directories are expected to contain an 'app.mk'
-#	file which provides build configuration for the app. See
-#	application.mk for more details.
-#
-# LIBS
-#	Contains a list of library paths or path fragments used
-#	to find libraries. The names listed here are searched in the
-#	following directories:
-#		<absolute path>
-#		$(LIB_SEARCH_DIRS)
-#		WORK_DIR
-#		LIB_SRC
-#		PX4_LIB_SRC
-#
-#	Library directories are expected to contain a 'lib.mk'
-#	file which provides build configuration for the library. See
-#	library.mk for more details.
+#	Application directories are expected to contain a module.mk
+#	file which provides build configuration for the module. See
+#	makefiles/module.mk for more details.
 #
 # BUILTIN_COMMANDS
 #	Contains a list of built-in commands not explicitly provided
-#	by applications / libraries. Each entry in this list is formatted
+#	by modules / libraries. Each entry in this list is formatted
 #	as <command>.<priority>.<stacksize>.<entrypoint>
 #
 # PX4_BASE:
@@ -59,12 +45,8 @@
 #	containing the files under the directory and linked into the final
 #	image.
 #
-# APP_SEARCH_DIRS:
-#	Extra directories to search first for APPS before looking in the
-#	usual places.
-#
-# LIB_SEARCH_DIRS:
-#	Extra directories to search first for LIBS before looking in the
+# MODULE_SEARCH_DIRS:
+#	Extra directories to search first for MODULES before looking in the
 #	usual places.
 #
 
@@ -82,8 +64,8 @@
 MK_DIR	?= $(dir $(lastword $(MAKEFILE_LIST)))
 ifeq ($(PX4_BASE),)
 export PX4_BASE		:= $(abspath $(MK_DIR)/..)
-$(info %% set PX4_BASE to $(PX4_BASE))
 endif
+$(info PX4_BASE            $(PX4_BASE))
 
 #
 # Set a default target so that included makefiles or errors here don't 
@@ -111,7 +93,7 @@ $(error Can't find a config file called $(CONFIG) or $(PX4_MK_DIR)/config_$(CONF
 endif
 export CONFIG
 include $(CONFIG_FILE)
-$(info %% CONFIG     $(CONFIG))
+$(info CONFIG              $(CONFIG))
 
 #
 # Sanity-check the BOARD variable and then get the board config.
@@ -128,7 +110,7 @@ $(error Config $(CONFIG) references board $(BOARD), but no board definition file
 endif
 export BOARD
 include $(BOARD_FILE)
-$(info %% BOARD      $(BOARD))
+$(info BOARD               $(BOARD))
 
 #
 # If WORK_DIR is not set, create a 'build' directory next to the
@@ -136,9 +118,9 @@ $(info %% BOARD      $(BOARD))
 #
 PARENT_MAKEFILE		:= $(lastword $(filter-out $(lastword $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
 ifeq ($(WORK_DIR),)
-export WORK_DIR		:= $(dir $(PARENT_MAKEFILE))/build
+export WORK_DIR		:= $(dir $(PARENT_MAKEFILE))build/
 endif
-$(info %% WORK_DIR   $(WORK_DIR))
+$(info WORK_DIR            $(WORK_DIR))
 
 #
 # Things that, if they change, might affect everything
@@ -146,53 +128,71 @@ $(info %% WORK_DIR   $(WORK_DIR))
 GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 
 ################################################################################
-# Applications
+# Modules
 ################################################################################
 
-# where to look for applications
-APP_SEARCH_DIRS		 += $(WORK_DIR) $(APP_SRC) $(PX4_APP_SRC)
+#
+# We don't actually know what a moldule is called; all we have is a path fragment
+# that we can search for, and where we expect to find a module.mk file.
+#
+# As such, we replicate the successfully-found path inside WORK_DIR for the
+# module's build products in order to keep modules separated from each other.
+#
+# XXX If this becomes unwieldy or breaks for other reasons, we will need to 
+#     move to allocating directory names and keeping tabs on makefiles via
+#     the directory name. That will involve arithmetic (it'd probably be time
+#     for GMSL).
 
-# sort and unique the apps list
-APPS			:= $(sort $(APPS))
+# where to look for modules
+MODULE_SEARCH_DIRS	 += $(WORK_DIR) $(MODULE_SRC) $(PX4_MODULE_SRC)
 
-# locate the first instance of an app by full path or by looking on the
-# application search path
-define APP_SEARCH
-	$(firstword $(wildcard $(1)/app.mk) \
-		$(foreach search_dir,$(APP_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/app.mk)) \
-		MISSING_$1)
+# sort and unique the modules list
+MODULES			:= $(sort $(MODULES))
+
+# locate the first instance of a module by full path or by looking on the
+# module search path
+define MODULE_SEARCH
+	$(abspath $(firstword $(wildcard $(1)/module.mk) \
+		$(foreach search_dir,$(MODULE_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/module.mk)) \
+		MISSING_$1))
 endef
 
-APP_MKFILES		:= $(foreach app,$(APPS),$(call APP_SEARCH,$(app)))
-MISSING_APPS		:= $(subst MISSING_,,$(filter MISSING_%,$(APP_MKFILES)))
-ifneq ($(MISSING_APPS),)
-$(error Can't find application(s): $(MISSING_APPS))
+# make a list of module makefiles and check that we found them all
+MODULE_MKFILES		:= $(foreach module,$(MODULES),$(call MODULE_SEARCH,$(module)))
+MISSING_MODULES		:= $(subst MISSING_,,$(filter MISSING_%,$(MODULE_MKFILES)))
+ifneq ($(MISSING_MODULES),)
+$(error Can't find module(s): $(MISSING_MODULES))
 endif
 
-APP_OBJS		:= $(foreach path,$(dir $(APP_MKFILES)),$(WORK_DIR)/$(path)/app.pre.o)
+# make a list of the object files we expect to build from modules
+MODULE_OBJS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)module.pre.o)
 
-$(APP_OBJS):		relpath = $(patsubst $(WORK_DIR)/%,%,$@)
-$(APP_OBJS):		mkfile = $(patsubst %/app.pre.o,%/app.mk,$(relpath))
-$(APP_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
+# rules to build module objects
+.PHONY: $(MODULE_OBJS)
+$(MODULE_OBJS):		relpath = $(patsubst $(WORK_DIR)%,%,$@)
+$(MODULE_OBJS):		mkfile = $(patsubst %module.pre.o,%module.mk,$(relpath))
+$(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
 	@echo %%
-	@echo %% Building app in $(relpath) using $(mkfile)
+	@echo %% Building module using $(mkfile)
 	@echo %%
-	$(Q) make -f $(PX4_MK_DIR)/application.mk \
-		APP_WORK_DIR=$(dir $@) \
-		APP_OBJ=$@ \
-		APP_MK=$(mkfile) \
-		app
+	$(Q) make -f $(PX4_MK_DIR)module.mk \
+		MODULE_WORK_DIR=$(dir $@) \
+		MODULE_OBJ=$@ \
+		MODULE_MK=$(mkfile) \
+		module
 
-APP_CLEANS		:= $(foreach path,$(dir $(APP_MKFILES)),$(WORK_DIR)/$(path)/clean)
+# make a list of phony clean targets for modules
+MODULE_CLEANS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)/clean)
 
-.PHONY: $(APP_CLEANS)
-$(APP_CLEANS):		relpath = $(patsubst $(WORK_DIR)/%,%,$@)
-$(APP_CLEANS):		mkfile = $(patsubst %/clean,%/app.mk,$(relpath))
-$(APP_CLEANS):
+# rules to clean modules
+.PHONY: $(MODULE_CLEANS)
+$(MODULE_CLEANS):	relpath = $(patsubst $(WORK_DIR)%,%,$@)
+$(MODULE_CLEANS):	mkfile = $(patsubst %clean,%module.mk,$(relpath))
+$(MODULE_CLEANS):
 	@echo %% cleaning using $(mkfile)
-	$(Q) make -f $(PX4_MK_DIR)/application.mk \
-	APP_WORK_DIR=$(dir $@) \
-	APP_MK=$(mkfile) \
+	$(Q) make -f $(PX4_MK_DIR)module.mk \
+	MODULE_WORK_DIR=$(dir $@) \
+	MODULE_MK=$(mkfile) \
 	clean
 
 ################################################################################
@@ -217,7 +217,7 @@ ROMFS_DEPS		+= $(wildcard \
 			     (ROMFS_ROOT)/*/*/*/* \
 			     (ROMFS_ROOT)/*/*/*/*/* \
 			     (ROMFS_ROOT)/*/*/*/*/*/*)
-ROMFS_IMG		 = $(WORK_DIR)/romfs.img
+ROMFS_IMG		 = $(WORK_DIR)romfs.img
 ROMFS_CSRC		 = $(ROMFS_IMG:.img=.c)
 ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
 LIBS			+= $(ROMFS_OBJ)
@@ -245,7 +245,7 @@ endif
 # NuttX export library. Instead, we have to treat it like a library.
 #
 # Builtin commands can be generated by the configuration, in which case they
-# must refer to commands that already exist, or indirectly generated by applications
+# must refer to commands that already exist, or indirectly generated by modules
 # when they are built.
 #
 # The configuration supplies builtin command information in the BUILTIN_COMMANDS
@@ -257,10 +257,10 @@ endif
 # and the name of the function to call when starting the thread.
 #
 #
-BUILTIN_CSRC		 = $(WORK_DIR)/builtin_commands.c
+BUILTIN_CSRC		 = $(WORK_DIR)builtin_commands.c
 
-# add command definitions from apps
-BUILTIN_COMMANDS	+= $(subst COMMAND.,,$(notdir $(wildcard $(WORK_DIR)/builtin_commands/COMMAND.*)))
+# add command definitions from modules
+BUILTIN_COMMANDS	+= $(subst COMMAND.,,$(notdir $(wildcard $(WORK_DIR)builtin_commands/COMMAND.*)))
 
 # (BUILTIN_PROTO,<cmdspec>,<outputfile>)
 define BUILTIN_PROTO
@@ -300,7 +300,7 @@ $(BUILTIN_OBJ): $(BUILTIN_CSRC)
 # source file.
 #
 ifeq ($(SRCS),)
-EMPTY_SRC		 = $(WORK_DIR)/empty.c
+EMPTY_SRC		 = $(WORK_DIR)empty.c
 $(EMPTY_SRC):
 	$(Q) echo '/* this is an empty file */' > $@
 
@@ -314,9 +314,9 @@ endif
 #
 # What we're going to build.
 #
-PRODUCT_BUNDLE		 = $(WORK_DIR)/firmware.px4
-PRODUCT_BIN		 = $(WORK_DIR)/firmware.bin
-PRODUCT_SYM		 = $(WORK_DIR)/firmware.sym
+PRODUCT_BUNDLE		 = $(WORK_DIR)firmware.px4
+PRODUCT_BIN		 = $(WORK_DIR)firmware.bin
+PRODUCT_SYM		 = $(WORK_DIR)firmware.sym
 
 .PHONY:			firmware
 firmware:		$(PRODUCT_BUNDLE)
@@ -324,7 +324,7 @@ firmware:		$(PRODUCT_BUNDLE)
 #
 # Object files we will generate from sources
 #
-OBJS			:= $(foreach src,$(SRCS),$(WORK_DIR)/$(src).o)
+OBJS			:= $(foreach src,$(SRCS),$(WORK_DIR)$(src).o)
 
 #
 # SRCS -> OBJS rules
@@ -332,13 +332,13 @@ OBJS			:= $(foreach src,$(SRCS),$(WORK_DIR)/$(src).o)
 
 $(OBJS):		$(GLOBAL_DEPS)
 
-$(filter %.c.o,$(OBJS)): $(WORK_DIR)/%.c.o: %.c
+$(filter %.c.o,$(OBJS)): $(WORK_DIR)%.c.o: %.c $(GLOBAL_DEPS)
 	$(call COMPILE,$<,$@)
 
-$(filter %.cpp.o,$(OBJS)): $(WORK_DIR)/%.cpp.o: %.cpp $(GLOBAL_DEPS)
+$(filter %.cpp.o,$(OBJS)): $(WORK_DIR)%.cpp.o: %.cpp $(GLOBAL_DEPS)
 	$(call COMPILEXX,$<,$@)
 
-$(filter %.S.o,$(OBJS)): $(WORK_DIR)/%.S.o: %.S $(GLOBAL_DEPS)
+$(filter %.S.o,$(OBJS)): $(WORK_DIR)%.S.o: %.S $(GLOBAL_DEPS)
 	$(call ASSEMBLE,$<,$@)
 
 #
@@ -354,8 +354,8 @@ $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 $(PRODUCT_BIN):		$(PRODUCT_SYM)
 	$(call SYM_TO_BIN,$<,$@)
 
-$(PRODUCT_SYM):		$(OBJS) $(APP_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(APP_MKFILES)
-	$(call LINK,$@,$(OBJS) $(APP_OBJS))
+$(PRODUCT_SYM):		$(OBJS) $(MODULE_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
+	$(call LINK,$@,$(OBJS) $(MODULE_OBJS))
 
 #
 # Utility rules
@@ -370,7 +370,7 @@ upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
 		BIN=$(PRODUCT_BIN)
 
 .PHONY: clean
-clean:			$(APP_CLEANS)
+clean:			$(MODULE_CLEANS)
 	@echo %% cleaning
 	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_SYM)
 	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES)

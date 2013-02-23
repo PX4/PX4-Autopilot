@@ -2,7 +2,7 @@
 # Definitions for a generic GNU ARM-EABI toolchain
 #
 
-$(info %% TOOLCHAIN  gnu-arm-eabi)
+#$(info TOOLCHAIN  gnu-arm-eabi)
 
 CROSSDEV		 = arm-none-eabi-
 
@@ -134,7 +134,8 @@ DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 # compile C source $1 to object $2
 # as a side-effect, generate a dependency file
 define COMPILE
-	@echo "CC: $1"
+	@echo "CC <- $1"
+	@echo "CC   -> $2"
 	@mkdir -p $(dir $2)
 	$(Q) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 endef
@@ -172,7 +173,7 @@ endef
 define LINK
 	@echo "LINK: $1"
 	@mkdir -p $(dir $1)
-	$(Q) $(LD) $(LDFLAGS) -o $1 $2 --start-group $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+	$(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
 endef
 
 # convert $1 from a linked object to a raw binary

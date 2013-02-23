@@ -5,16 +5,20 @@
 #
 # Some useful paths.
 #
-export PX4_APP_SRC	 = $(PX4_BASE)/src/apps
-export PX4_LIB_SRC	 = $(PX4_BASE)/src/libs
-export PX4_MK_DIR	 = $(PX4_BASE)/makefiles
-export NUTTX_SRC	 = $(PX4_BASE)/nuttx
-export NUTTX_APP_SRC	 = $(PX4_BASE)/apps
-export MAVLINK_SRC	 = $(PX4_BASE)/mavlink
-export ROMFS_SRC	 = $(PX4_BASE)/ROMFS
-export IMAGE_DIR	 = $(PX4_BASE)/Images
-export BUILD_DIR	 = $(PX4_BASE)/Build
-export ARCHIVE_DIR	 = $(PX4_BASE)/Archives
+# Note that in general we always keep directory paths with the separator
+# at the end, and join paths without explicit separators. This reduces 
+# the number of duplicate slashes we have lying around in paths,
+# and is consistent with joining the results of $(dir) and $(notdir).
+#
+export PX4_MODULE_SRC	 = $(abspath $(PX4_BASE)/src/modules)/
+export PX4_MK_DIR	 = $(abspath $(PX4_BASE)/makefiles)/
+export NUTTX_SRC	 = $(abspath $(PX4_BASE)/nuttx)/
+export NUTTX_APP_SRC	 = $(abspath $(PX4_BASE)/apps)/
+export MAVLINK_SRC	 = $(abspath $(PX4_BASE)/mavlink)/
+export ROMFS_SRC	 = $(abspath $(PX4_BASE)/ROMFS)/
+export IMAGE_DIR	 = $(abspath $(PX4_BASE)/Images)/
+export BUILD_DIR	 = $(abspath $(PX4_BASE)/Build)/
+export ARCHIVE_DIR	 = $(abspath $(PX4_BASE)/Archives)/
 
 #
 # Tools

@@ -15,6 +15,6 @@ ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/$(CONFIG)
 BUILTIN_COMMANDS = perf.SCHED_PRIORITY_DEFAULT.CONFIG_PTHREAD_STACK_DEFAULT.perf_main
 
 #
-# Build the test app
+# Build the test module
 #
-APPS		 = test
+MODULES		 = test

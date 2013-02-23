@@ -5,8 +5,8 @@
 #
 # Get path and tool configuration
 #
-export PX4_BASE		 := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-include $(PX4_BASE)/makefiles/setup.mk
+export PX4_BASE		 := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))/
+include $(PX4_BASE)makefiles/setup.mk
 
 #
 # Canned firmware configurations that we build.
@@ -41,15 +41,15 @@ endif
 #
 # Built products
 #
-STAGED_FIRMWARES	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)/$(config).px4)
-FIRMWARES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)/$(config).build/firmware.px4)
+STAGED_FIRMWARES	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
+FIRMWARES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
 
 all:			$(STAGED_FIRMWARES)
 
 #
 # Copy FIRMWARES into the image directory.
 #
-$(STAGED_FIRMWARES): $(IMAGE_DIR)/%.px4: $(BUILD_DIR)/%.build/firmware.px4
+$(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
 	@echo %% Copying $@
 	$(Q) $(COPY) $< $@
 
@@ -57,15 +57,15 @@ $(STAGED_FIRMWARES): $(IMAGE_DIR)/%.px4: $(BUILD_DIR)/%.build/firmware.px4
 # Generate FIRMWARES.
 #
 .PHONY: $(FIRMWARES)
-$(BUILD_DIR)/%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)/%.build/firmware.px4,%,$@)
-$(BUILD_DIR)/%.build/firmware.px4: work_dir = $(BUILD_DIR)/$(config).build
-$(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
+$(BUILD_DIR)%.build/firmware.px4: config   = $(patsubst $(BUILD_DIR)%.build/firmware.px4,%,$@)
+$(BUILD_DIR)%.build/firmware.px4: work_dir = $(BUILD_DIR)$(config).build/
+$(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
 	@echo %%%%
 	@echo %%%% Building $(config) in $(work_dir)
 	@echo %%%%
 	$(Q) mkdir -p $(work_dir)
 	$(Q) make -C $(work_dir) \
-		-f $(PX4_MK_DIR)/firmware.mk \
+		-f $(PX4_MK_DIR)firmware.mk \
 		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \
 		firmware
@@ -83,21 +83,21 @@ $(FIRMWARES): $(BUILD_DIR)/%.build/firmware.px4:
 #
 # XXX PX4IO configuration name is bad - NuttX configs should probably all be "px4"
 #
-NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)/$(board).export)
+NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
 .PHONY:			archives
 archives:		$(NUTTX_ARCHIVES)
 
-$(ARCHIVE_DIR)/%.export:	board = $(notdir $(basename $@))
-$(ARCHIVE_DIR)/%.export:	configuration = $(if $(filter $(board),px4io),io,nsh)
-$(NUTTX_ARCHIVES): $(ARCHIVE_DIR)/%.export: $(NUTTX_SRC) $(NUTTX_APPS)
+$(ARCHIVE_DIR)%.export:	board = $(notdir $(basename $@))
+$(ARCHIVE_DIR)%.export:	configuration = $(if $(filter $(board),px4io),io,nsh)
+$(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 	@echo %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/tools && ./configure.sh $(board)/$(configuration))
+	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
 	@echo %% Exporting NuttX for $(board)
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) export
 	$(Q) mkdir -p $(dir $@)
-	$(Q) $(COPY) $(NUTTX_SRC)/nuttx-export.zip $@
+	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
 
 #
 # Cleanup targets.  'clean' should remove all built products and force
@@ -106,11 +106,11 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)/%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 #
 .PHONY:	clean
 clean:
-	$(Q) $(RMDIR) $(BUILD_DIR)/*.build
-	$(Q) $(REMOVE) -f $(IMAGE_DIR)/*.px4
+	$(Q) $(RMDIR) $(BUILD_DIR)*.build
+	$(Q) $(REMOVE) -f $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
 distclean: clean
-	$(Q) $(REMOVE) -f $(ARCHIVE_DIR)/*.export
+	$(Q) $(REMOVE) -f $(ARCHIVE_DIR)*.export
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
 
