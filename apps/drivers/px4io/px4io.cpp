@@ -281,14 +281,15 @@ PX4IO::PX4IO() :
 	_max_relays(0),
 	_max_transfer(16),	/* sensible default */
 	_update_interval(0),
-	_status(0),
-	_alarms(0),
 	_task(-1),
 	_task_should_exit(false),
 	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
+	_status(0),
+	_alarms(0),
 	_t_actuators(-1),
 	_t_armed(-1),
 	_t_vstatus(-1),
+	_t_param(-1),
 	_to_input_rc(0),
 	_to_actuators_effective(0),
 	_to_outputs(0),
@@ -814,6 +815,8 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 
 	/* set new alarms state */
 	_alarms = alarms;
+
+	return 0;
 }
 
 int
@@ -1158,13 +1161,95 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 void
 PX4IO::print_status()
 {
-	printf("\tRC status:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_RC_OK) ? "OK" : "FAIL");
-	if (_status & PX4IO_P_STATUS_FLAGS_RC_OK) {
-		printf("\tRC type:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) ? "S.BUS" : ((_status & PX4IO_P_STATUS_FLAGS_RC_DSM) ? "DSM" : "PPM"));
-		// printf("\tRC chans:\t%d\n", xxx);
+	/* basic configuration */
+	printf("protocol %u software %u bootloader %u buffer %uB\n",
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION),
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_SOFTWARE_VERSION),
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_BOOTLOADER_VERSION),
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER));
+	printf("%u controls %u actuators %u R/C inputs %u analog inputs %u relays\n",
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT),
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT),
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT),
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ADC_INPUT_COUNT),
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RELAY_COUNT));
+
+	/* status */
+	printf("%u bytes free\n",
+		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
+	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
+	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s\n",
+		flags,
+		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " ARMED" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
+		((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_RC_DSM)   ? " DSM" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)  ? " SBUS" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
+		((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PPM" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) ? " MIXER_OK" : " MIXER_FAIL"),
+		((flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC) ? " ARM_SYNC" : " ARM_NO_SYNC"));
+	uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
+	printf("alarms 0x%04x%s%s%s%s%s%s\n",
+		alarms,
+		((alarms & PX4IO_P_STATUS_ALARMS_VBATT_LOW)     ? " VBATT_LOW" : ""),
+		((alarms & PX4IO_P_STATUS_ALARMS_TEMPERATURE)   ? " TEMPERATURE" : ""),
+		((alarms & PX4IO_P_STATUS_ALARMS_SERVO_CURRENT) ? " SERVO_CURRENT" : ""),
+		((alarms & PX4IO_P_STATUS_ALARMS_ACC_CURRENT)   ? " ACC_CURRENT" : ""),
+		((alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST)      ? " FMU_LOST" : ""),
+		((alarms & PX4IO_P_STATUS_ALARMS_RC_LOST)       ? " RC_LOST" : ""));
+	printf("vbatt %u ibatt %u\n",
+		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
+		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT));
+	printf("actuators");
+	for (unsigned i = 0; i < _max_actuators; i++)
+		printf(" %u", io_reg_get(PX4IO_PAGE_ACTUATORS, i));
+	printf("\n");
+	printf("servos");
+	for (unsigned i = 0; i < _max_actuators; i++)
+		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));
+	printf("\n");
+	uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
+	printf("%d R/C inputs", raw_inputs);
+	for (unsigned i = 0; i < raw_inputs; i++)
+		printf(" %u", io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + i));
+	printf("\n");
+	uint16_t valid_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RC_VALID);
+	printf("valid R/C inputs 0x%04x", valid_inputs);
+	for (unsigned i = 0; i < _max_rc_input; i++) {
+		if (valid_inputs && (1 << i))
+			printf(" %u:%u", i, io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_BASE + i));
 	}
-	//printf("\tRC Config:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_RC_CONFIG_OK) ? "OK" : "FAIL");
-	printf("\tFMU link:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_FMU_OK) ? "OK" : "FAIL");
+	printf("\n");
+	uint16_t adc_inputs = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ADC_INPUT_COUNT);
+	printf("ADC inputs");
+	for (unsigned i = 0; i < adc_inputs; i++)
+		printf(" %u", io_reg_get(PX4IO_PAGE_RAW_ADC_INPUT, i));
+	printf("\n");
+
+	/* setup */
+	printf("features 0x%04x\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES));
+	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
+	printf("arming 0x%04x%s%s%s\n",
+		((arming & PX4IO_P_SETUP_ARMING_ARM_OK)             ? "ARM_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? "MANUAL_OVERRIDE_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK)   ? "VECTOR_FLIGHT_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? "INAIR_RESTART_OK" : ""));
+	printf("rates 0x%04x lowrate %u highrate %u relays 0x%04x\n",
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_LOWRATE),
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_HIGHRATE),
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS));
+	printf("vbatt scale %u ibatt scale %u ibatt bias %u\n",
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE),
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_IBATT_SCALE),
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_IBATT_BIAS));
+	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
+	printf("failsafe");
+	for (unsigned i = 0; i < _max_actuators; i++)
+		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
+	printf("\n");
 }
 
 int
