@@ -1218,7 +1218,7 @@ PX4IO::print_status()
 	uint16_t mapped_inputs = io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_VALID);
 	printf("mapped R/C inputs 0x%04x", mapped_inputs);
 	for (unsigned i = 0; i < _max_rc_input; i++) {
-		if (mapped_inputs && (1 << i))
+		if (mapped_inputs & (1 << i))
 			printf(" %u:%u", i, io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_BASE + i));
 	}
 	printf("\n");
