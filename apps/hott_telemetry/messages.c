@@ -54,7 +54,7 @@ void messages_init(void)
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 }
 
-void build_eam_response(uint8_t *buffer, int *size)
+void build_eam_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the current sensor values */
 	struct sensor_combined_s raw = { 0 };

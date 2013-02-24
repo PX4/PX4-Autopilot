@@ -44,9 +44,11 @@
  *
  */
 
+#include <assert.h>
 #include <fcntl.h>
 #include <nuttx/config.h>
 #include <poll.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -63,12 +65,16 @@
 #include "chip.h"
 #include "stm32_internal.h"
 
-static int thread_should_exit = false;		/**< Deamon exit flag */
-static int thread_running = false;		/**< Deamon status flag */
-static int deamon_task;				/**< Handle of deamon task / thread */
-static char *daemon_name = "hott_telemetry";
-static char *commandline_usage = "usage: hott_telemetry start|status|stop [-d <device>]";
+static volatile bool thread_should_exit = false;        /**< Deamon exit flag */
+static volatile bool thread_running = false;            /**< Deamon status flag */
+static int daemon_task;                                 /**< Handle of deamon task / thread */
+static const char daemon_name[] = "hott_telemetry";
+static const char commandline_usage[] = "usage: hott_telemetry start|status|stop [-d <device>]";
 
+#define STATIC_ASSERT_EXPR(c) (sizeof(struct { int:-!(c); }))
+/* &a[0] degrades to a pointer: a different type from an array */
+#define ASSERT_ARRAY_EXPR(a) STATIC_ASSERT_EXPR(!__builtin_types_compatible_p(typeof(a), typeof(&(a)[0])))
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]) + ASSERT_ARRAY_EXPR(a))
 
 /* A little console messaging experiment - console helper macro */
 #define FATAL_MSG(_msg)		fprintf(stderr, "[%s] %s\n", daemon_name, _msg); exit(1);
@@ -84,17 +90,16 @@ __EXPORT int hott_telemetry_main(int argc, char *argv[]);
  */
 int hott_telemetry_thread_main(int argc, char *argv[]);
 
-static int read_data(int uart, int *id);
-static int send_data(int uart, uint8_t *buffer, int size);
+static int recv_request_id(int uart, uint8_t *id);
+static int send_data(int uart, uint8_t const *buffer, size_t size);
 
 static int open_uart(const char *device, struct termios *uart_config_original)
 {
 	/* baud rate */
-	int speed = B19200;
-	int uart;
+	static const speed_t speed = B19200;
 
 	/* open uart */
-	uart = open(device, O_RDWR | O_NOCTTY);
+	const int uart = open(device, O_RDWR | O_NOCTTY);
 
 	if (uart < 0) {
 		char msg[80];
@@ -103,7 +108,6 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 	}
 
 	/* Try to set baud rate */
-	struct termios uart_config;
 	int termios_state;
 
 	/* Back up the original uart configuration to restore it after exit */
@@ -116,7 +120,7 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 	}
 
 	/* Fill the struct for the new configuration */
-	tcgetattr(uart, &uart_config);
+	struct termios uart_config = *uart_config_original;
 
 	/* Clear ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag &= ~ONLCR;
@@ -141,24 +145,22 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 	return uart;
 }
 
-int read_data(int uart, int *id)
+int recv_request_id(int uart, uint8_t *id)
 {
-	const int timeout = 1000;
+	static const int timeout = 1000 /* ms */;
 	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
 
-	char mode;
-
-	if (poll(fds, 1, timeout) > 0) {
+	if (poll(fds, ARRAY_SIZE(fds), timeout) > 0) {
 		/* Get the mode: binary or text  */
-		read(uart, &mode, 1);
+		uint8_t mode;
+		read(uart, &mode, sizeof(mode));
 		/* Read the device ID being polled */
-		read(uart, id, 1);
+		read(uart, id, sizeof(*id));
 
 		/* if we have a binary mode request */
 		if (mode != BINARY_MODE_REQUEST_ID) {
 			return ERROR;
 		}
-
 	} else {
 		ERROR_MSG("UART timeout on TX/RX port");
 		return ERROR;
@@ -167,26 +169,24 @@ int read_data(int uart, int *id)
 	return OK;
 }
 
-int send_data(int uart, uint8_t *buffer, int size)
+int send_data(int uart, uint8_t const *buffer, size_t size)
 {
 	usleep(POST_READ_DELAY_IN_USECS);
 
-	uint16_t checksum = 0;
+	uint8_t checksum = 0;
+	assert(size >= 1 && "checksum placeholder byte required as last place in buffer");
 
-	for (int i = 0; i < size; i++) {
-		if (i == size - 1) {
-			/* Set the checksum: the first uint8_t is taken as the checksum. */
-			buffer[i] = checksum & 0xff;
-
-		} else {
-			checksum += buffer[i];
-		}
-
-		write(uart, &buffer[i], 1);
+	/* Skipping the last octect, as we're assuming it's a placeholder for the checksum. */
+	for (size_t i = 0; i < (size - 1); ++i) {
+		write(uart, &buffer[i], sizeof(buffer[i]));
+		checksum += buffer[i];
 
 		/* Sleep before sending the next byte. */
 		usleep(POST_WRITE_DELAY_IN_USECS);
 	}
+
+	/* Write the checksum: the last uint8_t in the stream is taken as the checksum. */
+	write(uart, &checksum, sizeof(checksum));
 
 	/* A hack the reads out what was written so the next read from the receiver doesn't get it. */
 	/* TODO: Fix this!! */
@@ -202,7 +202,7 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	char *device = "/dev/ttyS1";		/**< Default telemetry port: USART2 */
+	const char* device = "/dev/ttyS1";		/**< Default telemetry port: USART2 */
 
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
@@ -221,7 +221,7 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	struct termios uart_config_original;
-	int uart = open_uart(device, &uart_config_original);
+	const int uart = open_uart(device, &uart_config_original);
 
 	if (uart < 0) {
 		ERROR_MSG("Failed opening HoTT UART, exiting.");
@@ -231,12 +231,12 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 
 	messages_init();
 
-	uint8_t buffer[MESSAGE_BUFFER_SIZE];
-	int size = 0;
-	int id = 0;
-
 	while (!thread_should_exit) {
-		if (read_data(uart, &id) == OK) {
+		uint8_t id = 0;
+		if (recv_request_id(uart, &id) == OK) {
+			uint8_t buffer[MESSAGE_BUFFER_SIZE];
+			size_t size = sizeof(buffer);
+
 			switch (id) {
 			case ELECTRIC_AIR_MODULE:
 				build_eam_response(buffer, &size);
@@ -278,7 +278,7 @@ int hott_telemetry_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("hott_telemetry",
+		daemon_task = task_spawn("hott_telemetry",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 2048,
