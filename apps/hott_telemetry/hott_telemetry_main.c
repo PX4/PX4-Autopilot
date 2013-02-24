@@ -47,7 +47,9 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -65,9 +67,7 @@
 #include "chip.h"
 #include "stm32_internal.h"
 
-static volatile bool thread_should_exit = false;        /**< Deamon exit flag */
-static volatile bool thread_running = false;            /**< Deamon status flag */
-static int daemon_task;                                 /**< Handle of deamon task / thread */
+static volatile pid_t daemon_task;                      /**< Handle of daemon task */
 static const char daemon_name[] = "hott_telemetry";
 static const char commandline_usage[] = "usage: hott_telemetry start|status|stop [-d <device>]";
 
@@ -75,6 +75,14 @@ static const char commandline_usage[] = "usage: hott_telemetry start|status|stop
 /* &a[0] degrades to a pointer: a different type from an array */
 #define ASSERT_ARRAY_EXPR(a) STATIC_ASSERT_EXPR(!__builtin_types_compatible_p(typeof(a), typeof(&(a)[0])))
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]) + ASSERT_ARRAY_EXPR(a))
+
+#ifndef SIGKILL
+# define        SIGKILL         9       /* Kill, unblockable (POSIX).  */
+#endif
+
+#ifndef SIGTERM
+# define        SIGTERM         15      /* Termination (ANSI).  */
+#endif
 
 /* A little console messaging experiment - console helper macro */
 #define FATAL_MSG(_msg)		fprintf(stderr, "[%s] %s\n", daemon_name, _msg); exit(1);
@@ -88,10 +96,13 @@ __EXPORT int hott_telemetry_main(int argc, char *argv[]);
 /**
  * Mainloop of deamon.
  */
-int hott_telemetry_thread_main(int argc, char *argv[]);
+int hott_telemetry_thread_main(int argc, char *argv[]) noreturn_function;
 
 static int recv_request_id(int uart, uint8_t *id);
 static int send_data(int uart, uint8_t const *buffer, size_t size);
+static bool daemon_running(void);
+static void terminate_task(int status) noreturn_function;
+static void terminate_on_signal(int signum) noreturn_function;
 
 static int open_uart(const char *device, struct termios *uart_config_original)
 {
@@ -196,11 +207,49 @@ int send_data(int uart, uint8_t const *buffer, size_t size)
 	return OK;
 }
 
+/**
+ * Determines whether the HoTT task has been started and is currently still running.
+ */
+static bool daemon_running()
+{
+	const pid_t pid = daemon_task;
+
+	if (pid <= 0)
+		return false;
+
+	/* sending a zero signal performs all checks but doesn't really send a signal. */
+	if (kill(pid, 0) == 0)
+		return true;
+
+	/* not running, clear our PID field. */
+	__sync_bool_compare_and_swap(&daemon_task, pid, 0);
+	return false;
+}
+
+static void terminate_task(int status)
+{
+	__sync_val_compare_and_swap(&daemon_task, getpid(), 0);
+	exit(status);
+}
+
+static void terminate_on_signal(int signum)
+{
+	INFO_MSG("exiting");
+	terminate_task(128 + signum);
+}
+
 int hott_telemetry_thread_main(int argc, char *argv[])
 {
-	INFO_MSG("starting");
+	/* Run until we receive a terminate signal. */
+	static const struct sigaction term_on_sig = {
+		.sa_handler = terminate_on_signal,
+	};
+	/** terminate upon reception of TERM as well as KILL signal. TERM signal is used by software for termination,
+	 *  KILL because that's what users are used to being able to send. */
+	sigaction(SIGTERM, &term_on_sig, NULL);
+	sigaction(SIGKILL, &term_on_sig, NULL);
 
-	thread_running = true;
+	INFO_MSG("starting");
 
 	const char* device = "/dev/ttyS1";		/**< Default telemetry port: USART2 */
 
@@ -211,10 +260,9 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 				device = argv[i + 1];
 
 			} else {
-				thread_running = false;
 				ERROR_MSG("missing parameter to -d");
 				ERROR_MSG(commandline_usage);
-				exit(1);
+				terminate_task(1);
 			}
 		}
 	}
@@ -225,13 +273,12 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 
 	if (uart < 0) {
 		ERROR_MSG("Failed opening HoTT UART, exiting.");
-		thread_running = false;
-		exit(ERROR);
+		terminate_task(ERROR);
 	}
 
 	messages_init();
 
-	while (!thread_should_exit) {
+	for (;;) {
 		uint8_t id = 0;
 		if (recv_request_id(uart, &id) == OK) {
 			uint8_t buffer[MESSAGE_BUFFER_SIZE];
@@ -249,14 +296,6 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 			send_data(uart, buffer, size);
 		}
 	}
-
-	INFO_MSG("exiting");
-
-	close(uart);
-
-	thread_running = false;
-
-	return 0;
 }
 
 /**
@@ -272,28 +311,40 @@ int hott_telemetry_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (thread_running) {
+		if (daemon_running()) {
 			INFO_MSG("deamon already running");
 			exit(0);
 		}
 
-		thread_should_exit = false;
-		daemon_task = task_spawn("hott_telemetry",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 40,
-					 2048,
-					 hott_telemetry_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		const pid_t pid = task_spawn("hott_telemetry",
+				SCHED_DEFAULT,
+				SCHED_PRIORITY_MAX - 40,
+				2048,
+				hott_telemetry_thread_main,
+				(argv) ? (const char **)&argv[2] : (const char **)NULL);
+
+		if (pid == 0 || pid == ERROR) {
+			ERROR_MSG("Failed to start HoTT telemetry transmission daemon");
+			exit(1);
+		}
+
+		/* Clean up our daemon if a race condition caused another to be started just before ours. */
+		if (!__sync_bool_compare_and_swap(&daemon_task, pid, 0))
+			kill(pid, SIGTERM);
+
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
+		if (daemon_task > 0)
+			/* Killing PIDs <= 0 has special meanings. I.e. PID 0 means *all* processes owned by the samer
+			 * user, on NuttX that'd be all processes. */
+			kill(daemon_task, SIGTERM);
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
+		if (daemon_running()) {
 			INFO_MSG("daemon is running");
 
 		} else {
@@ -307,6 +358,3 @@ int hott_telemetry_main(int argc, char *argv[])
 	ERROR_MSG(commandline_usage);
 	exit(1);
 }
-
-
-
