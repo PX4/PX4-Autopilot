@@ -49,7 +49,7 @@
  */
 
 /**
- * Battery voltages and status
+ * Differential pressure and airspeed
  */
 struct differential_pressure_s {
 	uint64_t	timestamp;			/**< microseconds since system boot, needed to integrate */

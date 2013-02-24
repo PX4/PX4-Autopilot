@@ -993,7 +993,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* look for battery channel */
 
 		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
-
+			
 			if (ret >= (int)sizeof(buf_adc[0])) {
 
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
@@ -1025,8 +1025,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
-
-					float voltage = buf_adc[i].am_data / 4096.0f;
+					float voltage = (float)(buf_adc[i].am_data ) * 3.3f / 4096.0f * 2.0f; //V_ref/4096 * (voltage divider factor)
 
 					/**
 					 * The voltage divider pulls the signal down, only act on
@@ -1034,21 +1033,23 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 */
 					if (voltage > 0.4f) {
 
-						float pres_raw = fabsf(voltage - (3.3f / 2.0f));
-						float pres_mbar = pres_raw * (3.3f / 5.0f) * 10.0f;
+//						float pres_raw = fabsf(voltage - (3.3f / 2.0f));
+//						float pres_mbar = pres_raw * (3.3f / 5.0f) * 10.0f;
+						//XXX depends on sensor used..., where are the above numbers from?
+						float diff_pres_pa = fabsf(voltage - 2.5f) * 1000.0f; //for MPXV7002DP //xxx: need an offset calibration
 
-						float airspeed_true = calc_true_airspeed(pres_mbar + _barometer.pressure,
-							_barometer.pressure, _barometer.temperature - 5.0f);
+						float airspeed_true = calc_true_airspeed(diff_pres_pa + _barometer.pressure*1e2f,
+							_barometer.pressure*1e2f, _barometer.temperature - 5.0f); //factor 1e2 for conversion from mBar to Pa
 						// XXX HACK - true temperature is much less than indicated temperature in baro,
 						// subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
 
-						float airspeed_indicated = calc_indicated_airspeed(pres_mbar + _barometer.pressure,
-							_barometer.pressure, _barometer.temperature - 5.0f);
-						// XXX HACK
+						float airspeed_indicated = calc_indicated_airspeed(diff_pres_pa);
+
+						//printf("voltage: %.4f, diff_pres_pa %.4f, v_ind %.4f, v_true %.4f\n", (double)voltage, (double)diff_pres_pa, (double)airspeed_indicated, (double)airspeed_true);
 
 						_differential_pressure.timestamp = hrt_absolute_time();
 						_differential_pressure.static_pressure_mbar = _barometer.pressure;
-						_differential_pressure.differential_pressure_mbar = pres_mbar;
+						_differential_pressure.differential_pressure_mbar = diff_pres_pa*1e-2f;
 						_differential_pressure.temperature_celcius = _barometer.temperature;
 						_differential_pressure.indicated_airspeed_m_s = airspeed_indicated;
 						_differential_pressure.true_airspeed_m_s = airspeed_true;
@@ -1064,7 +1065,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 
 				_last_adc = hrt_absolute_time();
-				break;
+				//break;
 			}
 		}
 	}
