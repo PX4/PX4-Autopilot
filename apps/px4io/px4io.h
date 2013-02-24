@@ -170,7 +170,8 @@ extern uint16_t	adc_measure(unsigned channel);
  *
  * Input functions return true when they receive an update from the RC controller.
  */
-extern void	controls_main(void);
+extern void	controls_init(void);
+extern void	controls_tick(void);
 extern int	dsm_init(const char *device);
 extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern int	sbus_init(const char *device);
@@ -178,11 +179,6 @@ extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;
-
-/**
- * Wake up mixer.
- */
-void daemon_wakeup(void);
 
 /* send a debug message to the console */
 extern void isr_debug(uint8_t level, const char *fmt, ...);

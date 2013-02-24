@@ -203,8 +203,6 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
 		
-		// wake up daemon to trigger mixer
-		daemon_wakeup();
 		break;
 
 		/* handle raw PWM input */
@@ -224,8 +222,6 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM;
 
-		// wake up the main thread to trigger mixer
-		daemon_wakeup();
 		break;
 
 		/* handle setup for servo failsafe values */
