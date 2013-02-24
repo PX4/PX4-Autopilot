@@ -1158,11 +1158,13 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 void
 PX4IO::print_status()
 {
-	printf("\tRC status:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_RC_OK) ? "OK" : "LOST");
+	printf("\tRC status:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_RC_OK) ? "OK" : "FAIL");
 	if (_status & PX4IO_P_STATUS_FLAGS_RC_OK) {
 		printf("\tRC type:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) ? "S.BUS" : ((_status & PX4IO_P_STATUS_FLAGS_RC_DSM) ? "DSM" : "PPM"));
 		// printf("\tRC chans:\t%d\n", xxx);
 	}
+	//printf("\tRC Config:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_RC_CONFIG_OK) ? "OK" : "FAIL");
+	printf("\tFMU link:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_FMU_OK) ? "OK" : "FAIL");
 }
 
 int
