@@ -173,6 +173,7 @@ struct vehicle_status_s
 	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
 	bool flag_preflight_mag_calibration;			/**< true if mag calibration is requested */
 	bool flag_preflight_accel_calibration;
+	bool flag_preflight_airspeed_calibration;
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception is terminally lost */

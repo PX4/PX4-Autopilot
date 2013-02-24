@@ -80,6 +80,7 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/differential_pressure.h>
 #include <mavlink/mavlink_log.h>
 
 #include <systemlib/param/param.h>
@@ -785,6 +786,79 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	close(sub_sensor_combined);
 }
 
+void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
+{
+	/* announce change */
+
+	mavlink_log_info(mavlink_fd, "keep it still");
+	/* set to accel calibration mode */
+	status->flag_preflight_airspeed_calibration = true;
+	state_machine_publish(status_pub, status, mavlink_fd);
+
+	const int calibration_count = 2500;
+
+	int sub_differential_pressure = orb_subscribe(ORB_ID(differential_pressure));
+	struct differential_pressure_s differential_pressure;
+
+	int calibration_counter = 0;
+	float airspeed_offset = 0.0f;
+
+	while (calibration_counter < calibration_count) {
+
+		/* wait blocking for new data */
+		struct pollfd fds[1] = { { .fd = sub_differential_pressure, .events = POLLIN } };
+
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
+			orb_copy(ORB_ID(differential_pressure), sub_differential_pressure, &differential_pressure);
+			airspeed_offset += differential_pressure.voltage;
+			calibration_counter++;
+
+		} else if (poll_ret == 0) {
+			/* any poll failure for 1s is a reason to abort */
+			mavlink_log_info(mavlink_fd, "airspeed calibration aborted");
+			return;
+		}
+	}
+
+	airspeed_offset = airspeed_offset / calibration_count;
+
+	if (isfinite(airspeed_offset)) {
+
+		if (param_set(param_find("SENS_VAIR_OFF"), &(airspeed_offset))) {
+			mavlink_log_critical(mavlink_fd, "Setting offs failed!");
+		}
+
+		/* auto-save to EEPROM */
+		int save_ret = param_save_default();
+
+		if (save_ret != 0) {
+			warn("WARNING: auto-save of params to storage failed");
+		}
+
+		//char buf[50];
+		//sprintf(buf, "[cmd] accel cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0], (double)accel_offset[1], (double)accel_offset[2]);
+		//mavlink_log_info(mavlink_fd, buf);
+		mavlink_log_info(mavlink_fd, "airspeed calibration done");
+
+		tune_confirm();
+		sleep(2);
+		tune_confirm();
+		sleep(2);
+		/* third beep by cal end routine */
+
+	} else {
+		mavlink_log_info(mavlink_fd, "airspeed calibration FAILED (NaN)");
+	}
+
+	/* exit airspeed calibration mode */
+	status->flag_preflight_airspeed_calibration = false;
+	state_machine_publish(status_pub, status, mavlink_fd);
+
+	close(sub_differential_pressure);
+}
+
 
 
 void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_status, struct vehicle_command_s *cmd)
@@ -974,6 +1048,28 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				} else {
 					mavlink_log_critical(mavlink_fd, "REJECTING accel cal");
+					result = VEHICLE_CMD_RESULT_DENIED;
+				}
+
+				handled = true;
+			}
+
+			/* airspeed calibration */
+			if ((int)(cmd->param6) == 1) { //xxx: this is not defined by the mavlink protocol
+				/* transition to calibration state */
+				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
+
+				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
+					mavlink_log_info(mavlink_fd, "CMD starting airspeed cal");
+					tune_confirm();
+					do_airspeed_calibration(status_pub, &current_status);
+					tune_confirm();
+					mavlink_log_info(mavlink_fd, "CMD finished airspeed cal");
+					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					mavlink_log_critical(mavlink_fd, "REJECTING airspeed cal");
 					result = VEHICLE_CMD_RESULT_DENIED;
 				}
 
