@@ -1228,7 +1228,7 @@ PX4IO::print_status()
 		printf(" %u", io_reg_get(PX4IO_PAGE_RAW_ADC_INPUT, i));
 	printf("\n");
 
-	/* setup */
+	/* setup and state */
 	printf("features 0x%04x\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES));
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
 	printf("arming 0x%04x%s%s%s%s\n",
@@ -1251,6 +1251,20 @@ PX4IO::print_status()
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
 	printf("\n");
+	for (unsigned i = 0; i < _max_rc_input; i++) {
+		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
+		uint16_t options = io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_OPTIONS);
+		printf("input %u min %u center %u max %u deadzone %u assigned %u options 0x%04x%s%s\n",
+			i,
+			io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_MIN),
+			io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_CENTER),
+			io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_MAX),
+			io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_DEADZONE),
+			io_reg_get(PX4IO_PAGE_RC_CONFIG, base + PX4IO_P_RC_CONFIG_ASSIGNMENT),
+			options,
+			((options & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) ? " ENABLED" : ""),
+			((options & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE) ? " REVERSED" : ""));
+	}
 }
 
 int
