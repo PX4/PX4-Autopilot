@@ -42,4 +42,7 @@ APPNAME		 = hott_telemetry
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
 
+# Suppress warnings for specified behaviour (in C standard) that we're using
+EXTRADEFINES    += -Wno-missing-field-initializers
+
 include $(APPDIR)/mk/app.mk

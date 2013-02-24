@@ -57,18 +57,15 @@ void messages_init(void)
 void build_eam_response(uint8_t *buffer, int *size)
 {
 	/* get a local copy of the current sensor values */
-	struct sensor_combined_s raw;
-	memset(&raw, 0, sizeof(raw));
+	struct sensor_combined_s raw = { 0 };
 	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
 	/* get a local copy of the battery data */
-	struct battery_status_s battery;
-	memset(&battery, 0, sizeof(battery));
+	struct battery_status_s battery = { 0 };
 	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 
-	struct eam_module_msg msg;
+	struct eam_module_msg msg = { 0 };
 	*size = sizeof(msg);
-	memset(&msg, 0, *size);
 
 	msg.start = START_BYTE;
 	msg.eam_sensor_id = ELECTRIC_AIR_MODULE;
