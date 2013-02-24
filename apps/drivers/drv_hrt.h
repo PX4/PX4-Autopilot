@@ -105,7 +105,7 @@ __EXPORT extern hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then);
  *
  * This function ensures that the timestamp cannot be seen half-written by an interrupt handler.
  */
-__EXPORT extern hrt_abstime_time hrt_store_absolute_time(volatile hrt_abstime *now);
+__EXPORT extern hrt_abstime hrt_store_absolute_time(volatile hrt_abstime *now);
 
 /*
  * Call callout(arg) after delay has elapsed.
