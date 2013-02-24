@@ -1211,14 +1211,14 @@ PX4IO::print_status()
 		printf(" %u", io_reg_get(PX4IO_PAGE_SERVOS, i));
 	printf("\n");
 	uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
-	printf("%d R/C inputs", raw_inputs);
+	printf("%d raw R/C inputs", raw_inputs);
 	for (unsigned i = 0; i < raw_inputs; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + i));
 	printf("\n");
-	uint16_t valid_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RC_VALID);
-	printf("valid R/C inputs 0x%04x", valid_inputs);
+	uint16_t mapped_inputs = io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_VALID);
+	printf("mapped R/C inputs 0x%04x", mapped_inputs);
 	for (unsigned i = 0; i < _max_rc_input; i++) {
-		if (valid_inputs && (1 << i))
+		if (mapped_inputs && (1 << i))
 			printf(" %u:%u", i, io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_BASE + i));
 	}
 	printf("\n");
@@ -1231,11 +1231,12 @@ PX4IO::print_status()
 	/* setup */
 	printf("features 0x%04x\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES));
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04x%s%s%s\n",
-		((arming & PX4IO_P_SETUP_ARMING_ARM_OK)             ? "ARM_OK" : ""),
-		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? "MANUAL_OVERRIDE_OK" : ""),
-		((arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK)   ? "VECTOR_FLIGHT_OK" : ""),
-		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? "INAIR_RESTART_OK" : ""));
+	printf("arming 0x%04x%s%s%s%s\n",
+		arming,
+		((arming & PX4IO_P_SETUP_ARMING_ARM_OK)             ? " ARM_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? " MANUAL_OVERRIDE_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK)   ? " VECTOR_FLIGHT_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""));
 	printf("rates 0x%04x lowrate %u highrate %u relays 0x%04x\n",
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_LOWRATE),
