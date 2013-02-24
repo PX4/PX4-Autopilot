@@ -105,12 +105,12 @@ extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
  */
 struct sys_state_s {
 
-	uint64_t	rc_channels_timestamp;
+	volatile uint64_t	rc_channels_timestamp;
 
 	/**
 	 * Last FMU receive time, in microseconds since system boot
 	 */
-	uint64_t	fmu_data_received_time;
+	volatile uint64_t	fmu_data_received_time;
 
 };
 

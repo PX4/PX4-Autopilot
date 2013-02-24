@@ -218,7 +218,7 @@ controls_tick() {
 	 * If we haven't seen any new control data in 200ms, assume we
 	 * have lost input.
 	 */
-	if ((hrt_absolute_time() - system_state.rc_channels_timestamp) > 200000) {
+	if (hrt_elapsed_time(&system_state.rc_channels_timestamp) > 200000) {
 		rc_input_lost = true;
 
 		/* clear the input-kind flags here */
@@ -294,7 +294,7 @@ ppm_input(uint16_t *values, uint16_t *num_values)
 	 * If we have received a new PPM frame within the last 200ms, accept it
 	 * and then invalidate it.
 	 */
-	if ((hrt_absolute_time() - ppm_last_valid_decode) < 200000) {
+	if (hrt_elapsed_time(&ppm_last_valid_decode) < 200000) {
 
 		/* PPM data exists, copy it */
 		*num_values = ppm_decoded_channels;
