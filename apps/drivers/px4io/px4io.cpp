@@ -101,6 +101,7 @@ public:
 private:
 	// XXX
 	unsigned		_max_actuators;
+	unsigned		_max_controls;
 	unsigned		_max_rc_input;
 	unsigned		_max_relays;
 	unsigned		_max_transfer;
@@ -277,6 +278,7 @@ PX4IO	*g_dev;
 PX4IO::PX4IO() :
 	I2C("px4io", "/dev/px4io", PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO, 320000),
 	_max_actuators(0),
+	_max_controls(0),
 	_max_rc_input(0),
 	_max_relays(0),
 	_max_transfer(16),	/* sensible default */
@@ -342,6 +344,7 @@ PX4IO::init()
 
 	/* get some parameters */
 	_max_actuators = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT);
+	_max_controls = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT);
 	_max_relays    = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RELAY_COUNT);
 	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER) - 2;
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
@@ -637,11 +640,11 @@ PX4IO::io_set_control_state()
 	orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
 	     ORB_ID(actuator_controls_1), _t_actuators, &controls);
 
-	for (unsigned i = 0; i < _max_actuators; i++)
+	for (unsigned i = 0; i < _max_controls; i++)
 		regs[i] = FLOAT_TO_REG(controls.control[i]);
 
 	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_CONTROLS, 0, regs, _max_actuators);
+	return io_reg_set(PX4IO_PAGE_CONTROLS, 0, regs, _max_controls);
 }
 
 int
@@ -1247,9 +1250,9 @@ PX4IO::print_status()
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_IBATT_SCALE),
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_IBATT_BIAS));
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
-	printf("failsafe");
-	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
+	printf("controls");
+	for (unsigned i = 0; i < _max_controls; i++)
+		printf(" %u", io_reg_get(PX4IO_PAGE_CONTROLS, i));
 	printf("\n");
 	for (unsigned i = 0; i < _max_rc_input; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
@@ -1265,6 +1268,10 @@ PX4IO::print_status()
 			((options & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) ? " ENABLED" : ""),
 			((options & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE) ? " REVERSED" : ""));
 	}
+	printf("failsafe");
+	for (unsigned i = 0; i < _max_actuators; i++)
+		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
+	printf("\n");
 }
 
 int
