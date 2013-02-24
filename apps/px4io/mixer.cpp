@@ -94,9 +94,13 @@ mixer_tick(void)
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
 			debug("AP RX timeout");
 		}
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM);
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
+
+		/* XXX this is questionable - vehicle may not make sense for direct control */
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
+	} else {
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 	}
 
 	source = MIX_FAILSAFE;
