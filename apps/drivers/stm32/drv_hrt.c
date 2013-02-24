@@ -663,7 +663,7 @@ hrt_elapsed_time(const volatile hrt_abstime *then)
 /*
  * Store the absolute time in an interrupt-safe fashion
  */
-hrt_absolute_time
+hrt_abstime
 hrt_store_absolute_time(volatile hrt_abstime *now)
 {
 	irqstate_t flags = irqsave();
