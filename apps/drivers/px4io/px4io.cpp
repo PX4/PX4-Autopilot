@@ -1222,7 +1222,7 @@ PX4IO::print_status()
 	printf("mapped R/C inputs 0x%04x", mapped_inputs);
 	for (unsigned i = 0; i < _max_rc_input; i++) {
 		if (mapped_inputs & (1 << i))
-			printf(" %u:%u", i, io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_BASE + i));
+			printf(" %u:%d", i, REG_TO_SIGNED(io_reg_get(PX4IO_PAGE_RC_INPUT, PX4IO_P_RC_BASE + i)));
 	}
 	printf("\n");
 	uint16_t adc_inputs = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ADC_INPUT_COUNT);
