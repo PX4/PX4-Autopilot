@@ -96,6 +96,8 @@ public:
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
 
+	void			print_status();
+
 private:
 	// XXX
 	unsigned		_max_actuators;
@@ -459,7 +461,7 @@ PX4IO::init()
 			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK |
 			PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK, 0);
 
-			/* publish RC config to IO */
+		/* publish RC config to IO */
 		ret = io_set_rc_config();
 		if (ret != OK) {
 			log("failed to update RC input config");
@@ -1141,16 +1143,26 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 
 	} while (buflen > 0);
 
-	debug("mixer upload OK");
-
 	/* check for the mixer-OK flag */
-	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK)
+	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK) {
+		debug("mixer upload OK");
 		return 0;
-
-	debug("mixer rejected by IO");
+	} else {
+		debug("mixer rejected by IO");
+	}
 
 	/* load must have failed for some reason */
 	return -EINVAL;
+}
+
+void
+PX4IO::print_status()
+{
+	printf("\tRC status:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_RC_OK) ? "OK" : "LOST");
+	if (_status & PX4IO_P_STATUS_FLAGS_RC_OK) {
+		printf("\tRC type:\t%s\n", (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) ? "S.BUS" : ((_status & PX4IO_P_STATUS_FLAGS_RC_DSM) ? "DSM" : "PPM"));
+		// printf("\tRC chans:\t%d\n", xxx);
+	}
 }
 
 int
@@ -1294,7 +1306,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	}
 
 	default:
-		/* not a recognised value */
+		/* not a recognized value */
 		ret = -ENOTTY;
 	}
 
@@ -1458,10 +1470,12 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 
-			if (g_dev != nullptr)
+			if (g_dev != nullptr) {
 				printf("[px4io] loaded\n");
-			else
+				g_dev->print_status();
+			} else {
 				printf("[px4io] not loaded\n");
+			}
 
 			exit(0);
 		}
