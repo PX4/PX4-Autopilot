@@ -53,207 +53,6 @@
 #include "state_machine_helper.h"
 
 
-/**
- * Transition from one sytem state to another
- */
-//void navigation_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-//{
-//	int ret = ERROR;
-//	navigation_state_t new_navigation_state;
-//
-//	/* do the navigation state update depending on the arming state */
-//	switch (current_status->arming_state) {
-//
-//		/* evaluate the navigation state when disarmed */
-//		case ARMING_STATE_STANDBY:
-//
-//			/* Always accept manual mode */
-//			if (current_status->mode_switch == MODE_SWITCH_MANUAL) {
-//				new_navigation_state = NAVIGATION_STATE_MANUAL_STANDBY;
-//
-//			/* Accept SEATBELT if there is a local position estimate */
-//			} else if (current_status->mode_switch == MODE_SWITCH_SEATBELT) {
-//
-//				if (current_status->flag_local_position_valid) {
-//					new_navigation_state = NAVIGATION_STATE_SEATBELT_STANDBY;
-//				} else {
-//					/* or just fall back to manual */
-//					mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
-//					new_navigation_state = NAVIGATION_STATE_MANUAL_STANDBY;
-//				}
-//
-//			/* Accept AUTO if there is a global position estimate */
-//			} else if (current_status->mode_switch == MODE_SWITCH_AUTO) {
-//				if (current_status->flag_local_position_valid) {
-//					new_navigation_state = NAVIGATION_STATE_SEATBELT_STANDBY;
-//				} else {
-//					mavlink_log_critical(mavlink_fd, "Rej. AUTO: no global position");
-//
-//					/* otherwise fallback to seatbelt or even manual */
-//					if (current_status->flag_local_position_valid) {
-//						new_navigation_state = NAVIGATION_STATE_SEATBELT_STANDBY;
-//					} else {
-//						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
-//						new_navigation_state = NAVIGATION_STATE_MANUAL_STANDBY;
-//					}
-//				}
-//			}
-//
-//			break;
-//
-//		/* evaluate the navigation state when armed */
-//		case ARMING_STATE_ARMED:
-//
-//			/* Always accept manual mode */
-//			if (current_status->mode_switch == MODE_SWITCH_MANUAL) {
-//				new_navigation_state = NAVIGATION_STATE_MANUAL;
-//
-//			/* Accept SEATBELT if there is a local position estimate */
-//			} else if (current_status->mode_switch == MODE_SWITCH_SEATBELT
-//					&& current_status->return_switch == RETURN_SWITCH_NONE) {
-//
-//				if (current_status->flag_local_position_valid) {
-//					new_navigation_state = NAVIGATION_STATE_SEATBELT;
-//				} else {
-//					/* or just fall back to manual */
-//					mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
-//					new_navigation_state = NAVIGATION_STATE_MANUAL;
-//				}
-//
-//			/* Accept SEATBELT_DESCENT if there is a local position estimate and the return switch is on */
-//			} else if (current_status->mode_switch == MODE_SWITCH_SEATBELT
-//					&& current_status->return_switch == RETURN_SWITCH_RETURN) {
-//
-//				if (current_status->flag_local_position_valid) {
-//					new_navigation_state = NAVIGATION_STATE_SEATBELT_DESCENT;
-//				} else {
-//					/* descent not possible without baro information, fall back to manual */
-//					mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_DESCENT: no local position");
-//					new_navigation_state = NAVIGATION_STATE_MANUAL;
-//				}
-//
-//			/* Accept LOITER if there is a global position estimate */
-//			} else if (current_status->mode_switch == MODE_SWITCH_AUTO
-//					&& current_status->return_switch == RETURN_SWITCH_NONE
-//					&& current_status->mission_switch == MISSION_SWITCH_NONE) {
-//
-//				if (current_status->flag_global_position_valid) {
-//					new_navigation_state = NAVIGATION_STATE_AUTO_LOITER;
-//				} else {
-//					mavlink_log_critical(mavlink_fd, "Rej. LOITER: no global position");
-//
-//					/* otherwise fallback to SEATBELT or even manual */
-//					if (current_status->flag_local_position_valid) {
-//						new_navigation_state = NAVIGATION_STATE_SEATBELT;
-//					} else {
-//						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
-//						new_navigation_state = NAVIGATION_STATE_MANUAL;
-//					}
-//				}
-//
-//			/* Accept MISSION if there is a global position estimate and home position */
-//			} else if (current_status->mode_switch == MODE_SWITCH_AUTO
-//					&& current_status->return_switch == RETURN_SWITCH_NONE
-//					&& current_status->mission_switch == MISSION_SWITCH_MISSION) {
-//
-//				if (current_status->flag_global_position_valid && current_status->flag_valid_home_position) {
-//					new_navigation_state = NAVIGATION_STATE_AUTO_MISSION;
-//				} else {
-//
-//					/* spit out what exactly is unavailable */
-//					if (current_status->flag_global_position_valid) {
-//						mavlink_log_critical(mavlink_fd, "Rej. MISSION: no home position");
-//					} else if (current_status->flag_valid_home_position) {
-//						mavlink_log_critical(mavlink_fd, "Rej. MISSION: no global position");
-//					} else {
-//						mavlink_log_critical(mavlink_fd, "Rej. MISSION: no global position and no home position");
-//					}
-//
-//					/* otherwise fallback to SEATBELT or even manual */
-//					if (current_status->flag_local_position_valid) {
-//						new_navigation_state = NAVIGATION_STATE_SEATBELT;
-//					} else {
-//						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
-//						new_navigation_state = NAVIGATION_STATE_MANUAL;
-//					}
-//				}
-//
-//			/* Go to RTL or land if global position estimate and home position is available */
-//			} else if (current_status->mode_switch == MODE_SWITCH_AUTO
-//					&& current_status->return_switch == RETURN_SWITCH_RETURN
-//					&& (current_status->mission_switch == MISSION_SWITCH_NONE || current_status->mission_switch == MISSION_SWITCH_MISSION)) {
-//
-//				if (current_status->flag_global_position_valid && current_status->flag_valid_home_position) {
-//
-//					/* after RTL go to LAND */
-//					if (current_status->flag_system_returned_to_home) {
-//						new_navigation_state = NAVIGATION_STATE_AUTO_LAND;
-//					} else {
-//						new_navigation_state = NAVIGATION_STATE_AUTO_RTL;
-//					}
-//
-//				} else {
-//
-//					/* spit out what exactly is unavailable */
-//					if (current_status->flag_global_position_valid) {
-//						mavlink_log_critical(mavlink_fd, "Rej. RTL/LAND: no home position");
-//					} else if (current_status->flag_valid_home_position) {
-//						mavlink_log_critical(mavlink_fd, "Rej. RTL/LAND: no global position");
-//					} else {
-//						mavlink_log_critical(mavlink_fd, "Rej. RTL/LAND: no global position and no home position");
-//					}
-//
-//					/* otherwise fallback to SEATBELT_DESCENT or even MANUAL */
-//					if (current_status->flag_local_position_valid) {
-//						new_navigation_state = NAVIGATION_STATE_SEATBELT_DESCENT;
-//					} else {
-//						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no local position");
-//						new_navigation_state = NAVIGATION_STATE_MANUAL;
-//					}
-//				}
-//			}
-//			break;
-//
-//		case ARMING_STATE_ARMED_ERROR:
-//
-//			// TODO work out fail-safe scenarios
-//			break;
-//
-//		case ARMING_STATE_STANDBY_ERROR:
-//
-//			// TODO work out fail-safe scenarios
-//			break;
-//
-//		case ARMING_STATE_REBOOT:
-//
-//			// XXX I don't think we should end up here
-//			break;
-//
-//		case ARMING_STATE_IN_AIR_RESTORE:
-//
-//			// XXX not sure what to do here
-//			break;
-//		default:
-//			break;
-//	}
-//
-//
-//
-//	/* Update the system state in case it has changed */
-//	if (current_status->navigation_state != new_navigation_state) {
-//
-//		/* Check if the transition is valid */
-//		if (check_navigation_state_transition(current_status->navigation_state, new_navigation_state) == OK) {
-//			current_status->navigation_state = new_navigation_state;
-//			state_machine_publish(status_pub, current_status, mavlink_fd);
-//		} else {
-//			mavlink_log_critical(mavlink_fd, "System state transition not valid");
-//		}
-//	}
-//
-//	return;
-//}
-
 int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, const int mavlink_fd) {
 	
 	int ret = ERROR;
@@ -269,6 +68,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				/* allow going back from INIT for calibration */
 				if (current_state->arming_state == ARMING_STATE_STANDBY) {
 					ret = OK;
+					current_state->flag_system_armed = false;
 				}
 				break;
 			case ARMING_STATE_STANDBY:
@@ -280,10 +80,10 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 					/* sensors need to be initialized for STANDBY state */
 					if (current_state->condition_system_sensors_initialized) {
 						ret = OK;
+						current_state->flag_system_armed = false;
 					} else {
 						mavlink_log_critical(mavlink_fd, "Rej. STANDBY state, sensors not initialized");
 					}
-
 				}
 				break;
 			case ARMING_STATE_ARMED:
@@ -294,15 +94,17 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 
 					/* XXX conditions for arming? */
 					ret = OK;
+					current_state->flag_system_armed = true;
 				}
 				break;
 			case ARMING_STATE_ARMED_ERROR:
 
 				/* an armed error happens when ARMED obviously */
 				if (current_state->arming_state == ARMING_STATE_ARMED) {
-					ret = OK;
-
+					
 					/* XXX conditions for an error state? */
+					ret = OK;
+					current_state->flag_system_armed = true;
 				}
 				break;
 			case ARMING_STATE_STANDBY_ERROR:
@@ -311,6 +113,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				 || current_state->arming_state == ARMING_STATE_INIT
 				 || current_state->arming_state == ARMING_STATE_ARMED_ERROR) {
 					ret = OK;
+					current_state->flag_system_armed = false;
 				}
 				break;
 			default:
@@ -350,6 +153,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_STANDBY) {
 
 					ret = OK;
+					current_state->flag_control_rates_enabled = false;
+					current_state->flag_control_attitude_enabled = false;
+					current_state->flag_control_velocity_enabled = false;
+					current_state->flag_control_position_enabled = false;
 				}
 				break;
 
@@ -366,6 +173,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. MANUAL_STANDBY: not disarmed");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = false;
+						current_state->flag_control_position_enabled = false;
 					}
 				}
 				break;
@@ -377,6 +188,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					mavlink_log_critical(mavlink_fd, "Rej. MANUAL: not armed");
 				} else {
 					ret = OK;
+					current_state->flag_control_rates_enabled = true;
+					current_state->flag_control_attitude_enabled = true;
+					current_state->flag_control_velocity_enabled = false;
+					current_state->flag_control_position_enabled = false;
 				}
 				break;
 
@@ -396,6 +211,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_STANDBY: no position estimate");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = true;
+						current_state->flag_control_position_enabled = false;
 					}
 				}
 				break;
@@ -420,6 +239,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no pos estimate");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = true;
+						current_state->flag_control_position_enabled = false;
 					}
 				}
 				break;
@@ -443,6 +266,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_DESCENT: no pos estimate");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = true;
+						current_state->flag_control_position_enabled = false;
 					}
 				}
 				break;
@@ -464,6 +291,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_STANDBY: no home pos");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = true;
+						current_state->flag_control_position_enabled = true;
 					}
 				}
 				break;
@@ -481,6 +312,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_READY: not armed");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = true;
+						current_state->flag_control_position_enabled = true;
 					}
 				}
 				break;
@@ -491,6 +326,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_READY) {
 
 					ret = OK;
+					current_state->flag_control_rates_enabled = true;
+					current_state->flag_control_attitude_enabled = true;
+					current_state->flag_control_velocity_enabled = true;
+					current_state->flag_control_position_enabled = true;
 				}
 				break;
 
@@ -510,6 +349,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LOITER: no home pos");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = true;
+						current_state->flag_control_position_enabled = true;
 					}
 				}
 				break;
@@ -528,6 +371,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_MISSION: no mission available");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = true;
+						current_state->flag_control_position_enabled = true;
 					}
 				}
 				break;
@@ -548,6 +395,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_RTL: no home pos");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = true;
+						current_state->flag_control_position_enabled = true;
 					}
 				}
 				break;
@@ -565,6 +416,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LAND: no home pos");
 					} else {
 						ret = OK;
+						current_state->flag_control_rates_enabled = true;
+						current_state->flag_control_attitude_enabled = true;
+						current_state->flag_control_velocity_enabled = true;
+						current_state->flag_control_position_enabled = true;
 					}
 				}
 				break;
@@ -683,38 +538,6 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 //}
 
 
-/*
- * Private functions, update the state machine
- */
-//void state_machine_emergency_always_critical(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-//{
-//	warnx("EMERGENCY HANDLER\n");
-//	/* Depending on the current state go to one of the error states */
-//
-//	if (current_status->state_machine == SYSTEM_STATE_PREFLIGHT || current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_GROUND_READY) {
-//		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_ERROR);
-//
-//	} else if (current_status->state_machine == SYSTEM_STATE_AUTO || current_status->state_machine == SYSTEM_STATE_MANUAL) {
-//
-//		// DO NOT abort mission
-//		//do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
-//
-//	} else {
-//		warnx("Unknown system state: #%d\n", current_status->state_machine);
-//	}
-//}
-
-//void state_machine_emergency(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd) //do not call state_machine_emergency_always_critical if we are in manual mode for these errors
-//{
-//	if (current_status->state_machine != SYSTEM_STATE_MANUAL) { //if we are in manual: user can react to errors themself
-//		state_machine_emergency_always_critical(status_pub, current_status, mavlink_fd);
-//
-//	} else {
-//		//global_data_send_mavlink_statustext_message_out("[cmd] ERROR: take action immediately! (did not switch to error state because the system is in manual mode)", MAV_SEVERITY_CRITICAL);
-//	}
-//
-//}
-
 
 
 // /*
@@ -827,91 +650,6 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 // }
 
 
-// void update_state_machine_subsystem_healthy(int status_pub, struct vehicle_status_s *current_status, subsystem_type_t *subsystem_type)
-// {
-// 	current_status->onboard_control_sensors_health |= 1 << *subsystem_type;
-// 	current_status->counter++;
-// 	current_status->timestamp = hrt_absolute_time();
-// 	orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
-
-// 	switch (*subsystem_type) {
-// 	case SUBSYSTEM_TYPE_GYRO:
-// 		//TODO state machine change (recovering)
-// 		break;
-
-// 	case SUBSYSTEM_TYPE_ACC:
-// 		//TODO state machine change
-// 		break;
-
-// 	case SUBSYSTEM_TYPE_MAG:
-// 		//TODO state machine change
-// 		break;
-
-// 	case SUBSYSTEM_TYPE_GPS:
-// 		//TODO state machine change
-// 		break;
-
-// 	default:
-// 		break;
-// 	}
-
-
-// }
-
-
-// void update_state_machine_subsystem_unhealthy(int status_pub, struct vehicle_status_s *current_status, subsystem_type_t *subsystem_type)
-// {
-// 	bool previosly_healthy = (bool)(current_status->onboard_control_sensors_health & 1 << *subsystem_type);
-// 	current_status->onboard_control_sensors_health &= ~(1 << *subsystem_type);
-// 	current_status->counter++;
-// 	current_status->timestamp = hrt_absolute_time();
-// 	orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
-
-// 	/* if we received unhealthy message more than *_HEALTH_COUNTER_LIMIT, switch to error state */
-
-// 	switch (*subsystem_type) {
-// 	case SUBSYSTEM_TYPE_GYRO:
-// 		//global_data_send_mavlink_statustext_message_out("Commander: gyro unhealthy", MAV_SEVERITY_CRITICAL);
-
-// 		if (previosly_healthy) 	//only throw emergency if previously healthy
-// 			state_machine_emergency_always_critical(status_pub, current_status);
-
-// 		break;
-
-// 	case SUBSYSTEM_TYPE_ACC:
-// 		//global_data_send_mavlink_statustext_message_out("Commander: accelerometer unhealthy", MAV_SEVERITY_CRITICAL);
-
-// 		if (previosly_healthy) 	//only throw emergency if previously healthy
-// 			state_machine_emergency_always_critical(status_pub, current_status);
-
-// 		break;
-
-// 	case SUBSYSTEM_TYPE_MAG:
-// 		//global_data_send_mavlink_statustext_message_out("Commander: magnetometer unhealthy", MAV_SEVERITY_CRITICAL);
-
-// 		if (previosly_healthy) 	//only throw emergency if previously healthy
-// 			state_machine_emergency_always_critical(status_pub, current_status);
-
-// 		break;
-
-// 	case SUBSYSTEM_TYPE_GPS:
-// //			//TODO: remove this block
-// //			break;
-// //			///////////////////
-// 		//global_data_send_mavlink_statustext_message_out("Commander: GPS unhealthy", MAV_SEVERITY_CRITICAL);
-
-// //				printf("previosly_healthy = %u\n", previosly_healthy);
-// 		if (previosly_healthy) 	//only throw emergency if previously healthy
-// 			state_machine_emergency(status_pub, current_status);
-
-// 		break;
-
-// 	default:
-// 		break;
-// 	}
-
-// }
-
 
 ///* END SUBSYSTEM/EMERGENCY FUNCTIONS*/
 //
@@ -985,199 +723,3 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 //
 //	return ret;
 //}
-
-#if 0
-
-void update_state_machine_got_position_fix(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	/* Depending on the current state switch state */
-	if (current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
-	}
-}
-
-void update_state_machine_no_position_fix(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	/* Depending on the current state switch state */
-	if (current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_AUTO) {
-		state_machine_emergency(status_pub, current_status, mavlink_fd);
-	}
-}
-
-void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	if (current_status->state_machine == SYSTEM_STATE_STANDBY) {
-		printf("[cmd] arming\n");
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
-	}
-}
-
-void update_state_machine_disarm(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
-		printf("[cmd] going standby\n");
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
-
-	} else if (current_status->state_machine == SYSTEM_STATE_STABILIZED || current_status->state_machine == SYSTEM_STATE_AUTO) {
-		printf("[cmd] MISSION ABORT!\n");
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STANDBY);
-	}
-}
-
-void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	int old_mode = current_status->flight_mode;
-	current_status->flight_mode = VEHICLE_FLIGHT_MODE_MANUAL;
-
-	current_status->flag_control_manual_enabled = true;
-
-	/* set behaviour based on airframe */
-	if ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_OCTOROTOR)) {
-
-		/* assuming a rotary wing, set to SAS */
-		current_status->manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
-		current_status->flag_control_attitude_enabled = true;
-		current_status->flag_control_rates_enabled = true;
-
-	} else {
-
-		/* assuming a fixed wing, set to direct pass-through */
-		current_status->manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
-		current_status->flag_control_attitude_enabled = false;
-		current_status->flag_control_rates_enabled = false;
-	}
-
-	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
-
-	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_STABILIZED || current_status->state_machine == SYSTEM_STATE_AUTO) {
-		printf("[cmd] manual mode\n");
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
-	}
-}
-
-void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_STABILIZED || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_AUTO) {
-		int old_mode = current_status->flight_mode;
-		int old_manual_control_mode = current_status->manual_control_mode;
-		current_status->flight_mode = VEHICLE_FLIGHT_MODE_MANUAL;
-		current_status->manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
-		current_status->flag_control_attitude_enabled = true;
-		current_status->flag_control_rates_enabled = true;
-		current_status->flag_control_manual_enabled = true;
-
-		if (old_mode != current_status->flight_mode ||
-		    old_manual_control_mode != current_status->manual_control_mode) {
-			printf("[cmd] att stabilized mode\n");
-			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
-			state_machine_publish(status_pub, current_status, mavlink_fd);
-		}
-
-	}
-}
-
-void update_state_machine_mode_guided(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	if (!current_status->flag_vector_flight_mode_ok) {
-		mavlink_log_critical(mavlink_fd, "NO POS LOCK, REJ. GUIDED MODE");
-		tune_error();
-		return;
-	}
-
-	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_AUTO) {
-		printf("[cmd] position guided mode\n");
-		int old_mode = current_status->flight_mode;
-		current_status->flight_mode = VEHICLE_FLIGHT_MODE_STAB;
-		current_status->flag_control_manual_enabled = false;
-		current_status->flag_control_attitude_enabled = true;
-		current_status->flag_control_rates_enabled = true;
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STABILIZED);
-
-		if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
-
-	}
-}
-
-void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	if (!current_status->flag_vector_flight_mode_ok) {
-		mavlink_log_critical(mavlink_fd, "NO POS LOCK, REJ. AUTO MODE");
-		return;
-	}
-
-	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_STABILIZED) {
-		printf("[cmd] auto mode\n");
-		int old_mode = current_status->flight_mode;
-		current_status->flight_mode = VEHICLE_FLIGHT_MODE_AUTO;
-		current_status->flag_control_manual_enabled = false;
-		current_status->flag_control_attitude_enabled = true;
-		current_status->flag_control_rates_enabled = true;
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_AUTO);
-
-		if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
-	}
-}
-
-
-
-
-uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t custom_mode) //TODO: add more checks to avoid state switching in critical situations
-{
-	commander_state_machine_t current_system_state = current_status->state_machine;
-
-	uint8_t ret = 1;
-
-	switch (custom_mode) {
-	case SYSTEM_STATE_GROUND_READY:
-		break;
-
-	case SYSTEM_STATE_STANDBY:
-		break;
-
-	case SYSTEM_STATE_REBOOT:
-		printf("try to reboot\n");
-
-		if (current_system_state == SYSTEM_STATE_STANDBY
-				|| current_system_state == SYSTEM_STATE_PREFLIGHT
-				|| current_status->flag_hil_enabled) {
-			printf("system will reboot\n");
-			mavlink_log_critical(mavlink_fd, "Rebooting..");
-			usleep(200000);
-			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_REBOOT);
-			ret = 0;
-		}
-
-		break;
-
-	case SYSTEM_STATE_AUTO:
-		printf("try to switch to auto/takeoff\n");
-
-		if (current_system_state == SYSTEM_STATE_GROUND_READY || current_system_state == SYSTEM_STATE_MANUAL) {
-			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_AUTO);
-			printf("state: auto\n");
-			ret = 0;
-		}
-
-		break;
-
-	case SYSTEM_STATE_MANUAL:
-		printf("try to switch to manual\n");
-
-		if (current_system_state == SYSTEM_STATE_GROUND_READY || current_system_state == SYSTEM_STATE_AUTO) {
-			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
-			printf("state: manual\n");
-			ret = 0;
-		}
-
-		break;
-
-	default:
-		break;
-	}
-
-	return ret;
-}
-
-#endif
