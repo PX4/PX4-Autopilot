@@ -1475,6 +1475,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct sensor_combined_s sensors;
 	memset(&sensors, 0, sizeof(sensors));
 
+	int differential_pressure_sub = orb_subscribe(ORB_ID(differential_pressure));
+	struct differential_pressure_s differential_pressure;
+	memset(&differential_pressure, 0, sizeof(differential_pressure));
+	uint64_t last_differential_pressure_time = 0;
+
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	struct vehicle_command_s cmd;
@@ -1526,6 +1531,13 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (new_data) {
 			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
+		}
+
+		orb_check(differential_pressure_sub, &new_data);
+
+		if (new_data) {
+			orb_copy(ORB_ID(differential_pressure), differential_pressure_sub, &differential_pressure);
+			last_differential_pressure_time = differential_pressure.timestamp;
 		}
 
 		orb_check(cmd_sub, &new_data);
@@ -1714,6 +1726,7 @@ int commander_thread_main(int argc, char *argv[])
 		bool vector_flight_mode_ok = current_status.flag_vector_flight_mode_ok;
 		bool global_pos_valid = current_status.flag_global_position_valid;
 		bool local_pos_valid = current_status.flag_local_position_valid;
+		bool airspeed_valid = current_status.flag_airspeed_valid;
 
 		/* check for global or local position updates, set a timeout of 2s */
 		if (hrt_absolute_time() - last_global_position_time < 2000000) {
@@ -1732,6 +1745,14 @@ int commander_thread_main(int argc, char *argv[])
 			current_status.flag_local_position_valid = false;
 		}
 
+		/* Check for valid airspeed/differential pressure measurements */
+		if (hrt_absolute_time() - last_differential_pressure_time < 2000000) {
+			current_status.flag_airspeed_valid = true;
+
+		} else {
+			current_status.flag_airspeed_valid = false;
+		}
+
 		/*
 		 * Consolidate global position and local position valid flags
 		 * for vector flight mode.
@@ -1747,7 +1768,8 @@ int commander_thread_main(int argc, char *argv[])
 		/* consolidate state change, flag as changed if required */
 		if (vector_flight_mode_ok != current_status.flag_vector_flight_mode_ok ||
 		    global_pos_valid != current_status.flag_global_position_valid ||
-		    local_pos_valid != current_status.flag_local_position_valid) {
+		    local_pos_valid != current_status.flag_local_position_valid ||
+		    airspeed_valid != current_status.flag_airspeed_valid) {
 			state_changed = true;
 		}
 

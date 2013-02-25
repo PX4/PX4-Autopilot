@@ -210,6 +210,7 @@ struct vehicle_status_s
 	bool flag_auto_flight_mode_ok;			/**< conditions of vector flight mode apply plus a valid takeoff position lock has been aquired */
 	bool flag_external_manual_override_ok;		/**< external override non-fatal for system. Only true for fixed wing */
 	bool flag_valid_launch_position;		/**< indicates a valid launch position */
+	bool flag_airspeed_valid;				/**< set to true by the commander app if there is a valid airspeed measurement available */
 };
 
 /**
