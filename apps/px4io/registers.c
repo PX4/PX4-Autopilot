@@ -165,8 +165,8 @@ volatile uint16_t	r_page_controls[PX4IO_CONTROL_CHANNELS];
  */
 uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE];
 
-/* valid options excluding ENABLE */
-#define PX4IO_P_RC_CONFIG_OPTIONS_VALID	PX4IO_P_RC_CONFIG_OPTIONS_REVERSE
+/* valid options */
+#define PX4IO_P_RC_CONFIG_OPTIONS_VALID	(PX4IO_P_RC_CONFIG_OPTIONS_REVERSE | PX4IO_P_RC_CONFIG_OPTIONS_ENABLED)
 
 /*
  * PAGE 104 uses r_page_servos.

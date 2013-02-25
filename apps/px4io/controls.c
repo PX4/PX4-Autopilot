@@ -119,7 +119,6 @@ controls_tick() {
 
 	ASSERT(r_raw_rc_count <= MAX_CONTROL_CHANNELS);
 
-
 	/*
 	 * In some cases we may have received a frame, but input has still
 	 * been lost.
@@ -168,8 +167,8 @@ controls_tick() {
 
 				int16_t scaled = raw;
 
-				/* adjust to zero-relative (-500..500) */
-				scaled -= 1500;
+				/* adjust to zero-relative around center (nominal -500..500) */
+				scaled -= conf[PX4IO_P_RC_CONFIG_CENTER];
 
 				/* scale to fixed-point representation (-10000..10000) */
 				scaled *= 20;
