@@ -694,21 +694,26 @@ PX4IO::io_set_rc_config()
 	for (unsigned i = 0; i < _max_rc_input; i++)
 		input_map[i] = -1;
 
+	/*
+	 * NOTE: The indices for mapped channels are 1-based
+	 *       for compatibility reasons with existing
+	 *       autopilots / GCS'.
+	 */
 	param_get(param_find("RC_MAP_ROLL"), &ichan);
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan] = 0;
+		input_map[ichan - 1] = 0;
 
 	param_get(param_find("RC_MAP_PITCH"), &ichan);
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan] = 1;
+		input_map[ichan - 1] = 1;
 
 	param_get(param_find("RC_MAP_YAW"), &ichan);
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan] = 2;
+		input_map[ichan - 1] = 2;
 
 	param_get(param_find("RC_MAP_THROTTLE"), &ichan);
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
-		input_map[ichan] = 3;
+		input_map[ichan - 1] = 3;
 
 	ichan = 4;
 	for (unsigned i = 0; i < _max_rc_input; i++)
