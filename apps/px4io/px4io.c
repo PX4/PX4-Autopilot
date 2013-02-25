@@ -68,14 +68,8 @@ static struct hrt_call serial_dma_call;
 volatile uint8_t debug_level = 0;
 volatile uint32_t i2c_loop_resets = 0;
 
-struct hrt_call loop_overtime_call;
-
-// this allows wakeup of the main task via a signal
-static pid_t daemon_pid;
-
-
 /*
-  a set of debug buffers to allow us to send debug information from ISRs
+ * a set of debug buffers to allow us to send debug information from ISRs
  */
 
 static volatile uint32_t msg_counter;
@@ -83,17 +77,18 @@ static volatile uint32_t last_msg_counter;
 static volatile uint8_t msg_next_out, msg_next_in;
 
 /*
- * WARNING too large buffers here consume the memory required
+ * WARNING: too large buffers here consume the memory required
  * for mixer handling. Do not allocate more than 80 bytes for
  * output.
  */
 #define NUM_MSG 2
-static char msg[NUM_MSG][50];
+static char msg[NUM_MSG][40];
 
 /*
-  add a debug message to be printed on the console
+ * add a debug message to be printed on the console
  */
-void isr_debug(uint8_t level, const char *fmt, ...)
+void
+isr_debug(uint8_t level, const char *fmt, ...)
 {
 	if (level > debug_level) {
 		return;
@@ -107,9 +102,10 @@ void isr_debug(uint8_t level, const char *fmt, ...)
 }
 
 /*
-  show all pending debug messages
+ * show all pending debug messages
  */
-static void show_debug_messages(void)
+static void
+show_debug_messages(void)
 {
 	if (msg_counter != last_msg_counter) {
 		uint32_t n = msg_counter - last_msg_counter;
@@ -122,36 +118,9 @@ static void show_debug_messages(void)
 	}
 }
 
-/*
-  catch I2C lockups
- */
-static void loop_overtime(void *arg)
+int
+user_start(int argc, char *argv[])
 {
-	debug("RESETTING\n");
-	i2c_loop_resets++;
-	i2c_dump();
-	i2c_reset();
-	hrt_call_after(&loop_overtime_call, 50000, (hrt_callout)loop_overtime, NULL);
-}
-
-static void wakeup_handler(int signo, siginfo_t *info, void *ucontext)
-{
-	// nothing to do - we just want poll() to return
-}
-
-
-/*
-  wakeup the main task using a signal
- */
-void daemon_wakeup(void)
-{
-	kill(daemon_pid, SIGUSR1);
-}
-
-int user_start(int argc, char *argv[])
-{
-	daemon_pid = getpid();
-
 	/* run C++ ctors before we go any further */
 	up_cxxinitialize();
 
@@ -184,17 +153,8 @@ int user_start(int argc, char *argv[])
 	/* configure the first 8 PWM outputs (i.e. all of them) */
 	up_pwm_servo_init(0xff);
 
-	/* start the flight control signal handler */
-	task_create("FCon",
-		    SCHED_PRIORITY_DEFAULT,
-		    1024,
-		    (main_t)controls_main,
-		    NULL);
-
-	struct mallinfo minfo = mallinfo();
-	lowsyslog("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
-
-	debug("debug_level=%u\n", (unsigned)debug_level);
+	/* initialise the control inputs */
+	controls_init();
 
 	/* start the i2c handler */
 	i2c_init();
@@ -202,40 +162,66 @@ int user_start(int argc, char *argv[])
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
 
-	/* 
-	 *  setup a null handler for SIGUSR1 - we will use this for wakeup from poll()
-	 */
-        struct sigaction sa;
-	memset(&sa, 0, sizeof(sa));
-        sa.sa_sigaction = wakeup_handler;
-	sigfillset(&sa.sa_mask);
-	sigdelset(&sa.sa_mask, SIGUSR1);
-        if (sigaction(SIGUSR1, &sa, NULL) != OK) {
-		debug("Failed to setup SIGUSR1 handler\n");
+	/* add a performance counter for controls */
+	perf_counter_t controls_perf = perf_alloc(PC_ELAPSED, "controls");
+
+	/* and one for measuring the loop rate */
+	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
+
+	struct mallinfo minfo = mallinfo();
+	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+
+#if 0
+	/* not enough memory, lock down */
+	if (minfo.mxordblk < 500) {
+		lowsyslog("ERR: not enough MEM");
+		bool phase = false;
+
+		if (phase) {
+			LED_AMBER(true);
+			LED_BLUE(false);
+		} else {
+			LED_AMBER(false);
+			LED_BLUE(true);
+		}
+
+		phase = !phase;
+		usleep(300000);
 	}
+#endif
 
-	/* run the mixer at ~300Hz (for now...) */
-	/* XXX we should use CONFIG_IDLE_CUSTOM and take over the idle thread instead of running two additional tasks */
-	uint16_t counter=0;
+	/*
+	 * Run everything in a tight loop.
+	 */
+
+	uint64_t last_debug_time = 0;
 	for (;;) {
-		/*
-		  if we are not scheduled for 10ms then reset the I2C bus
-		 */
-		hrt_call_after(&loop_overtime_call, 10000, (hrt_callout)loop_overtime, NULL);
 
-		poll(NULL, 0, 3);
+		/* track the rate at which the loop is running */
+		perf_count(loop_perf);
+
+		/* kick the mixer */
 		perf_begin(mixer_perf);
 		mixer_tick();
 		perf_end(mixer_perf);
+
+		/* kick the control inputs */
+		perf_begin(controls_perf);
+		controls_tick();
+		perf_end(controls_perf);
+
+		/* check for debug activity */
 		show_debug_messages();
-		if (counter++ == 800) {
-			counter = 0;
-			isr_debug(1, "d:%u stat=0x%x arm=0x%x feat=0x%x rst=%u", 
+
+		/* post debug state at ~1Hz */
+		if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
+			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x r=%u", 
 				  (unsigned)debug_level,
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,
 				  (unsigned)r_setup_features,
 				  (unsigned)i2c_loop_resets);
+			last_debug_time = hrt_absolute_time();
 		}
 	}
 }

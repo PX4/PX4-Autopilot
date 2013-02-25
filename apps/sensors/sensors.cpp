@@ -1074,36 +1074,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 void
 Sensors::ppm_poll()
 {
-	/* fake low-level driver, directly pulling from driver variables */
-	static orb_advert_t rc_input_pub = -1;
-	struct rc_input_values raw;
-
-	raw.timestamp = ppm_last_valid_decode;
-	/* we are accepting this message */
-	_ppm_last_valid = ppm_last_valid_decode;
-
-	/*
-	 * relying on two decoded channels is very noise-prone,
-	 * in particular if nothing is connected to the pins.
-	 * requiring a minimum of four channels
-	 */
-	if (ppm_decoded_channels > 4 && hrt_absolute_time() - _ppm_last_valid < PPM_INPUT_TIMEOUT_INTERVAL) {
-
-		for (unsigned i = 0; i < ppm_decoded_channels; i++) {
-			raw.values[i] = ppm_buffer[i];
-		}
-
-		raw.channel_count = ppm_decoded_channels;
-
-		/* publish to object request broker */
-		if (rc_input_pub <= 0) {
-			rc_input_pub = orb_advertise(ORB_ID(input_rc), &raw);
-
-		} else {
-			orb_publish(ORB_ID(input_rc), rc_input_pub, &raw);
-		}
-	}
-
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 	bool rc_updated;
