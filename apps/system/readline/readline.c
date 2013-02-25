@@ -126,7 +126,7 @@ static inline int readline_rawgetc(int infd)
    * error occurs).
    */
 
-  do
+  for (;;)
     {
       /* Read one character from the incoming stream */
 
@@ -154,13 +154,21 @@ static inline int readline_rawgetc(int infd)
             {
               return -errcode;
             }
+
+          continue;
         }
+
+      else if (buffer == '\0')
+        { 
+          /* Ignore NUL characters, since they look like EOF to our caller */
+
+          continue;
+        }
+
+      /* Success, return the character that was read */
+
+      return (int)buffer;
     }
-  while (nread < 1);
-
-  /* On success, return the character that was read */
-
-  return (int)buffer;
 }
 
 /****************************************************************************
