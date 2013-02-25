@@ -154,7 +154,7 @@ adc_measure(unsigned channel)
 	while (!(rSR & ADC_SR_EOC)) {
 
 		/* never spin forever - this will give a bogus result though */
-		if ((hrt_absolute_time() - now) > 1000) {
+		if (hrt_elapsed_time(&now) > 1000) {
 			debug("adc timeout");
 			break;
 		}

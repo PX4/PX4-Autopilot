@@ -53,7 +53,7 @@
 #include "debug.h"
 
 #define SBUS_FRAME_SIZE		25
-#define SBUS_INPUT_CHANNELS	18
+#define SBUS_INPUT_CHANNELS	16
 
 static int sbus_fd = -1;
 
@@ -239,7 +239,9 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 	}
 
 	/* decode switch channels if data fields are wide enough */
-	if (chancount > 17) {
+	if (PX4IO_INPUT_CHANNELS > 17 && chancount > 15) {
+		chancount = 18;
+
 		/* channel 17 (index 16) */
 		values[16] = (frame[23] & (1 << 0)) * 1000 + 998;
 		/* channel 18 (index 17) */

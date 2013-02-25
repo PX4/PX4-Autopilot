@@ -165,8 +165,8 @@ volatile uint16_t	r_page_controls[PX4IO_CONTROL_CHANNELS];
  */
 uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE];
 
-/* valid options excluding ENABLE */
-#define PX4IO_P_RC_CONFIG_OPTIONS_VALID	PX4IO_P_RC_CONFIG_OPTIONS_REVERSE
+/* valid options */
+#define PX4IO_P_RC_CONFIG_OPTIONS_VALID	(PX4IO_P_RC_CONFIG_OPTIONS_REVERSE | PX4IO_P_RC_CONFIG_OPTIONS_ENABLED)
 
 /*
  * PAGE 104 uses r_page_servos.
@@ -203,8 +203,6 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
 		
-		// wake up daemon to trigger mixer
-		daemon_wakeup();
 		break;
 
 		/* handle raw PWM input */
@@ -224,8 +222,6 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM;
 
-		// wake up the main thread to trigger mixer
-		daemon_wakeup();
 		break;
 
 		/* handle setup for servo failsafe values */
