@@ -78,7 +78,7 @@
   *
   * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
   *
-  * @param total_pressure pressure inside the pitot/prandl tube
+  * @param total_pressure pressure inside the pitot/prandtl tube
   * @param static_pressure pressure at the side of the tube/airplane
   * @param temperature_celsius air temperature in degrees celcius
   * @return true airspeed in m/s
