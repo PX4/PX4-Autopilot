@@ -167,7 +167,7 @@ controls_tick() {
 
 				int16_t scaled = raw;
 
-				/* adjust to zero-relative around center */
+				/* adjust to zero-relative around center (nominal -500..500) */
 				scaled -= conf[PX4IO_P_RC_CONFIG_CENTER];
 
 				/* scale to fixed-point representation (-10000..10000) */
