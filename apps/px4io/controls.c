@@ -173,9 +173,6 @@ controls_tick() {
 				/* scale to fixed-point representation (-10000..10000) */
 				scaled *= 20;
 
-				ASSERT(scaled >= -50000);
-				ASSERT(scaled <= 50000);
-
 				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE)
 					scaled = -scaled;
 
