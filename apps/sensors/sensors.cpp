@@ -1064,7 +1064,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 
 				_last_adc = hrt_absolute_time();
-				break;
 			}
 		}
 	}
