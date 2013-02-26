@@ -299,8 +299,12 @@ up_pwm_servo_arm(bool armed)
 				rCR1(i) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
 
 			} else {
-				/* on disarm, just stop auto-reload so we don't generate runts */
-				rCR1(i) &= ~GTIM_CR1_ARPE;
+				// XXX This leads to FMU PWM being still active
+				// but uncontrollable. Just disable the timer
+				// and risk a runt.
+				///* on disarm, just stop auto-reload so we don't generate runts */
+				//rCR1(i) &= ~GTIM_CR1_ARPE;
+				rCR1(i) = 0;
 			}
 		}
 	}
