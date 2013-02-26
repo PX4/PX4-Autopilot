@@ -1041,10 +1041,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 */
 					if (voltage > 0.4f) {
 
-//						float pres_raw = fabsf(voltage - (3.3f / 2.0f));
-//						float pres_mbar = pres_raw * (3.3f / 5.0f) * 10.0f;
-						//XXX depends on sensor used..., where are the above numbers from?
-						float diff_pres_pa = (voltage - _parameters.airspeed_offset) * 1000.0f; //for MPXV7002DP
+						float diff_pres_pa = (voltage - _parameters.airspeed_offset) * 1000.0f; //for MPXV7002DP sensor
 
 						float airspeed_true = calc_true_airspeed(diff_pres_pa + _barometer.pressure*1e2f,
 							_barometer.pressure*1e2f, _barometer.temperature - 5.0f); //factor 1e2 for conversion from mBar to Pa
@@ -1074,7 +1071,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 
 				_last_adc = hrt_absolute_time();
-				//break;
 			}
 		}
 	}
