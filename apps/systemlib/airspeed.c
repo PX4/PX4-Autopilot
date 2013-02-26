@@ -40,14 +40,31 @@
  *
  */
 
-#include "math.h"
+#include <stdio.h>
+#include <math.h>
 #include "conversions.h"
 #include "airspeed.h"
 
 
-float calc_indicated_airspeed(float pressure_front, float pressure_ambient, float temperature)
+/**
+ * Calculate indicated airspeed.
+ *
+ * Note that the indicated airspeed is not the true airspeed because it
+ * lacks the air density compensation. Use the calc_true_airspeed functions to get
+ * the true airspeed.
+ *
+ * @param differential_pressure total_ pressure - static pressure
+ * @return indicated airspeed in m/s
+ */
+float calc_indicated_airspeed(float differential_pressure)
 {
-	return sqrtf((2.0f*(pressure_front - pressure_ambient)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+
+	if (differential_pressure > 0) {
+		return sqrtf((2.0f*differential_pressure) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+	} else {
+		return -sqrtf((2.0f*fabs(differential_pressure)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+	}
+
 }
  
 /**
@@ -55,14 +72,14 @@ float calc_indicated_airspeed(float pressure_front, float pressure_ambient, floa
  *
  * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
  *
- * @param speed current indicated airspeed
+ * @param speed_indicated current indicated airspeed
  * @param pressure_ambient pressure at the side of the tube/airplane
- * @param temperature air temperature in degrees celcius
+ * @param temperature_celsius air temperature in degrees celcius
  * @return true airspeed in m/s
  */
-float calc_true_airspeed_from_indicated(float speed, float pressure_ambient, float temperature)
+float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_ambient, float temperature_celsius)
 {
-	return speed * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient, temperature));
+	return speed_indicated * sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / get_air_density(pressure_ambient, temperature_celsius));
 }
  
 /**
@@ -70,12 +87,25 @@ float calc_true_airspeed_from_indicated(float speed, float pressure_ambient, flo
  *
  * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
  *
- * @param pressure_front pressure inside the pitot/prandl tube
- * @param pressure_ambient pressure at the side of the tube/airplane
- * @param temperature air temperature in degrees celcius
+ * @param total_pressure pressure inside the pitot/prandtl tube
+ * @param static_pressure pressure at the side of the tube/airplane
+ * @param temperature_celsius air temperature in degrees celcius
  * @return true airspeed in m/s
  */
-float calc_true_airspeed(float pressure_front, float pressure_ambient, float temperature)
+float calc_true_airspeed(float total_pressure, float static_pressure, float temperature_celsius)
 {
-	return sqrtf((2.0f*(pressure_front - pressure_ambient)) / get_air_density(pressure_ambient, temperature));
+	float density = get_air_density(static_pressure, temperature_celsius);
+	if (density < 0.0001f || !isfinite(density)) {
+	 density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
+	 printf("[airspeed] Invalid air density, using density at sea level\n");
+	}
+
+	float pressure_difference = total_pressure - static_pressure;
+
+	if(pressure_difference > 0) {
+		return sqrtf((2.0f*(pressure_difference)) / density);
+	} else
+	{
+		return -sqrtf((2.0f*fabs(pressure_difference)) / density);
+	}
 }
