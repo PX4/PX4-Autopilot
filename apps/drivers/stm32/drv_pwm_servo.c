@@ -300,7 +300,7 @@ up_pwm_servo_arm(bool armed)
 
 			} else {
 				/* on disarm, just stop auto-reload so we don't generate runts */
-				rCR1(i) &= ~GTIM_CR1_ARPE;
+				rCR1(i) = 0;
 			}
 		}
 	}
