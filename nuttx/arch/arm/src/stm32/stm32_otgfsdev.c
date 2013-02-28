@@ -1,7 +1,7 @@
 /*******************************************************************************
  * arch/arm/src/stm32/stm32_usbdev.c
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -168,16 +168,18 @@
 #define STM32_TRACEERR_EP0NOSETUP           0x11
 #define STM32_TRACEERR_EP0SETUPSTALLED      0x12
 #define STM32_TRACEERR_EPINNULLPACKET       0x13
-#define STM32_TRACEERR_EPOUTNULLPACKET      0x14
-#define STM32_TRACEERR_INVALIDCTRLREQ       0x15
-#define STM32_TRACEERR_INVALIDPARMS         0x16
-#define STM32_TRACEERR_IRQREGISTRATION      0x17
-#define STM32_TRACEERR_NOEP                 0x18
-#define STM32_TRACEERR_NOTCONFIGURED        0x19
-#define STM32_TRACEERR_EPOUTQEMPTY          0x1a
-#define STM32_TRACEERR_EPINREQEMPTY         0x1b
-#define STM32_TRACEERR_NOOUTSETUP           0x1c
-#define STM32_TRACEERR_POLLTIMEOUT          0x1d
+#define STM32_TRACEERR_EPINUNEXPECTED       0x14
+#define STM32_TRACEERR_EPOUTNULLPACKET      0x15
+#define STM32_TRACEERR_EPOUTUNEXPECTED      0x16
+#define STM32_TRACEERR_INVALIDCTRLREQ       0x17
+#define STM32_TRACEERR_INVALIDPARMS         0x18
+#define STM32_TRACEERR_IRQREGISTRATION      0x19
+#define STM32_TRACEERR_NOEP                 0x1a
+#define STM32_TRACEERR_NOTCONFIGURED        0x1b
+#define STM32_TRACEERR_EPOUTQEMPTY          0x1c
+#define STM32_TRACEERR_EPINREQEMPTY         0x1d
+#define STM32_TRACEERR_NOOUTSETUP           0x1e
+#define STM32_TRACEERR_POLLTIMEOUT          0x1f
 
 /* Trace interrupt codes */
 
@@ -704,7 +706,9 @@ const struct trace_msg_t g_usb_trace_strings_deverror[] =
   TRACE_STR(STM32_TRACEERR_EP0NOSETUP      ),
   TRACE_STR(STM32_TRACEERR_EP0SETUPSTALLED ),
   TRACE_STR(STM32_TRACEERR_EPINNULLPACKET  ),
+  TRACE_STR(STM32_TRACEERR_EPINUNEXPECTED  ),
   TRACE_STR(STM32_TRACEERR_EPOUTNULLPACKET ),
+  TRACE_STR(STM32_TRACEERR_EPOUTUNEXPECTED ),
   TRACE_STR(STM32_TRACEERR_INVALIDCTRLREQ  ),
   TRACE_STR(STM32_TRACEERR_INVALIDPARMS    ),
   TRACE_STR(STM32_TRACEERR_IRQREGISTRATION ),
@@ -2595,6 +2599,41 @@ static inline void stm32_epout_interrupt(FAR struct stm32_usbdev_s *priv)
   regval &= stm32_getreg(STM32_OTGFS_DAINTMSK);
   daint   = (regval & OTGFS_DAINT_OEP_MASK) >> OTGFS_DAINT_OEP_SHIFT;
 
+  if (daint == 0)
+    {
+      /* We got an interrupt, but there is no unmasked endpoint that caused
+       * it ?!  When this happens, the interrupt flag never gets cleared and
+       * we are stuck in infinite interrupt loop.
+       *
+       * This shouldn't happen if we are diligent about handling timing
+       * issues when masking endpoint interrupts. However, this workaround
+       * avoids infinite loop and allows operation to continue normally.  It
+       * works by clearing each endpoint flags, masked or not.
+       */
+
+      regval  = stm32_getreg(STM32_OTGFS_DAINT);
+      daint   = (regval & OTGFS_DAINT_OEP_MASK) >> OTGFS_DAINT_OEP_SHIFT;
+
+      usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPOUTUNEXPECTED),
+               (uint16_t)regval);
+
+      epno = 0;
+      while (daint)
+        {
+          if ((daint & 1) != 0)
+            {
+              regval = stm32_getreg(STM32_OTGFS_DOEPINT(epno));
+              ulldbg("DOEPINT(%d) = %08x\n", epno, regval);
+              stm32_putreg(0xFF, STM32_OTGFS_DOEPINT(epno));
+            }
+
+          epno++;
+          daint >>= 1;
+        }
+
+      return;
+    }
+
   /* Process each pending IN endpoint interrupt */
 
   epno = 0;
@@ -2790,6 +2829,41 @@ static inline void stm32_epin_interrupt(FAR struct stm32_usbdev_s *priv)
   daint  = stm32_getreg(STM32_OTGFS_DAINT);
   daint &= stm32_getreg(STM32_OTGFS_DAINTMSK);
   daint &= OTGFS_DAINT_IEP_MASK;
+
+  if (daint == 0)
+    {
+      /* We got an interrupt, but there is no unmasked endpoint that caused
+       * it ?!  When this happens, the interrupt flag never gets cleared and
+       * we are stuck in infinite interrupt loop.
+       *
+       * This shouldn't happen if we are diligent about handling timing
+       * issues when masking endpoint interrupts. However, this workaround
+       * avoids infinite loop and allows operation to continue normally.  It
+       * works by clearing each endpoint flags, masked or not.
+       */
+
+      daint  = stm32_getreg(STM32_OTGFS_DAINT);
+      usbtrace(TRACE_DEVERROR(STM32_TRACEERR_EPINUNEXPECTED),
+               (uint16_t)daint);
+
+      daint &= OTGFS_DAINT_IEP_MASK;
+      epno = 0;
+
+      while (daint)
+        {
+          if ((daint & 1) != 0)
+            {
+              ulldbg("DIEPINT(%d) = %08x\n",
+                     epno, stm32_getreg(STM32_OTGFS_DIEPINT(epno)));
+              stm32_putreg(0xFF, STM32_OTGFS_DIEPINT(epno));
+            }
+
+          epno++;
+          daint >>= 1;
+        }
+
+      return;
+    }
 
   /* Process each pending IN endpoint interrupt */
 
@@ -3976,6 +4050,10 @@ static void stm32_epout_disable(FAR struct stm32_ep_s *privep)
   up_mdelay(50);
 #endif
 
+  /* Clear the EPDISD interrupt */
+
+  stm32_putreg(OTGFS_DOEPINT_EPDISD, STM32_OTGFS_DOEPINT(privep->epphy));
+
   /* Then disble the Global OUT NAK mode to continue receiving data
    * from other non-disabled OUT endpoints.
    */
@@ -4022,6 +4100,12 @@ static void stm32_epin_disable(FAR struct stm32_ep_s *privep)
       return;
     }
 
+  /* This INEPNE wait logic is suggested by reference manual, but seems
+   * to get stuck to infinite loop.
+   */
+
+#if 0
+
   /* Make sure that there is no pending IPEPNE interrupt (because we are
    * to poll this bit below).
    */
@@ -4042,7 +4126,9 @@ static void stm32_epin_disable(FAR struct stm32_ep_s *privep)
   while ((stm32_getreg(regaddr) & OTGFS_DIEPINT_INEPNE) == 0);
   stm32_putreg(OTGFS_DIEPINT_INEPNE, regaddr);
 
-  /* Deactivate and disable the endpoint by setting the EPIS and SNAK bits
+#endif
+
+  /* Deactivate and disable the endpoint by setting the EPDIS and SNAK bits
    * the DIEPCTLx register.
    */
 
@@ -4059,6 +4145,10 @@ static void stm32_epin_disable(FAR struct stm32_ep_s *privep)
 
   regaddr = STM32_OTGFS_DIEPINT(privep->epphy);
   while ((stm32_getreg(regaddr) & OTGFS_DIEPINT_EPDISD) == 0);
+
+  /* Clear the EPDISD interrupt */
+
+  stm32_putreg(OTGFS_DIEPINT_EPDISD, stm32_getreg(regaddr));
 
   /* Flush any data remaining in the TxFIFO */
 
