@@ -174,11 +174,15 @@ end
 define showtaskstack
 	set $task = (struct _TCB *)$arg0
 
-	set $stack_free = 0
-	while ($stack_free < $task->adj_stack_size) && *(uint8_t *)($task->stack_alloc_ptr + $stack_free)
-		set $stack_free = $stack_free + 1
+	if $task == &g_idletcb
+		printf "can't measure idle stack\n"
+	else
+		set $stack_free = 0
+		while ($stack_free < $task->adj_stack_size) && *(uint8_t *)($task->stack_alloc_ptr + $stack_free)
+			set $stack_free = $stack_free + 1
+		end
+		printf"    stack 0x%08x-0x%08x (%d) %d free\n", $task->stack_alloc_ptr, $task->adj_stack_ptr, $task->adj_stack_size, $stack_free
 	end
-	printf"    stack 0x%08x-0x%08x (%d) %d free\n", $task->stack_alloc_ptr, $task->adj_stack_ptr, $task->adj_stack_size, $stack_free
 end
 
 #

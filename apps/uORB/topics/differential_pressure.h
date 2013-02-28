@@ -49,15 +49,16 @@
  */
 
 /**
- * Battery voltages and status
+ * Differential pressure and airspeed
  */
 struct differential_pressure_s {
-	uint64_t	timestamp;			/**< microseconds since system boot, needed to integrate */
+	uint64_t	timestamp;					/**< microseconds since system boot, needed to integrate */
 	float   	static_pressure_mbar;		/**< Static / environment pressure */
 	float		differential_pressure_mbar;	/**< Differential pressure reading */
 	float		temperature_celcius;		/**< ambient temperature in celcius, -1 if unknown */
 	float		indicated_airspeed_m_s;		/**< indicated airspeed in meters per second, -1 if unknown	 */
-	float		true_airspeed_m_s;		/**< true airspeed in meters per second, -1 if unknown */
+	float		true_airspeed_m_s;			/**< true airspeed in meters per second, -1 if unknown */
+	float		voltage;					/**< Voltage from the airspeed sensor (voltage divider already compensated) */
 };
 
 /**
