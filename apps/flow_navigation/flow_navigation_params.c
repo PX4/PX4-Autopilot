@@ -46,12 +46,20 @@
 /* controller parameters */
 PARAM_DEFINE_FLOAT(FN_POS_SP_X, 0.0f);
 PARAM_DEFINE_FLOAT(FN_POS_SP_Y, 0.0f);
+PARAM_DEFINE_FLOAT(FN_BEEP_F, 0.0f);
+PARAM_DEFINE_FLOAT(FN_BEEP_B, 0.0f);
+PARAM_DEFINE_FLOAT(FN_KAL_K1, 0.0235f);
+PARAM_DEFINE_FLOAT(FN_KAL_K2, 0.0140f);
 
 int parameters_init(struct flow_navigation_param_handles *h)
 {
 	/* PID parameters */
-	h->pos_sp_x	 	=	param_find("FN_POS_SP_X");
-	h->pos_sp_y		=	param_find("FN_POS_SP_Y");
+	h->pos_sp_x	 			=	param_find("FN_POS_SP_X");
+	h->pos_sp_y				=	param_find("FN_POS_SP_Y");
+	h->beep_front_sonar		=	param_find("FN_BEEP_F");
+	h->beep_bottom_sonar	=	param_find("FN_BEEP_B");
+	h->kalman_k1	 		=	param_find("FN_KAL_K1");
+	h->kalman_k2			=	param_find("FN_KAL_K2");
 
 	return OK;
 }
@@ -60,6 +68,10 @@ int parameters_update(const struct flow_navigation_param_handles *h, struct flow
 {
 	param_get(h->pos_sp_x, &(p->pos_sp_x));
 	param_get(h->pos_sp_y, &(p->pos_sp_y));
+	param_get(h->beep_front_sonar, &(p->beep_front_sonar));
+	param_get(h->beep_bottom_sonar, &(p->beep_bottom_sonar));
+	param_get(h->kalman_k1, &(p->kalman_k1));
+	param_get(h->kalman_k2, &(p->kalman_k2));
 
 	return OK;
 }

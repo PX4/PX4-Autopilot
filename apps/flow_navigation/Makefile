@@ -39,4 +39,17 @@ APPNAME		 = flow_navigation
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
 
+CSRCS		 = flow_navigation.c \
+		   flow_navigation_params.c \
+		   sounds.c \
+		   codegen/flowNavigation.c \
+		   codegen/flowNavigation_initialize.c \
+		   codegen/flowNavigation_terminate.c \
+		   codegen/frontFlowKalmanFilter.c \
+		   codegen/mldivide.c \
+		   codegen/rt_nonfinite.c \
+		   codegen/rtGetInf.c \
+		   codegen/rtGetNaN.c \
+		   codegen/wallEstimator.c
+
 include $(APPDIR)/mk/app.mk

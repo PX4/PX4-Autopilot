@@ -57,6 +57,10 @@
 #include <uORB/topics/omnidirectional_flow.h>
 
 #include "flow_navigation_params.h"
+#include "sounds.h"
+#include "codegen/flowNavigation.h";
+#include "codegen/frontFlowKalmanFilter.h"
+#include "codegen/wallEstimator.h"
 
 static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
@@ -168,13 +172,7 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	int omnidirectional_flow_sub = orb_subscribe(ORB_ID(omnidirectional_flow));
 	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 
-	/* polling */
-	struct pollfd fds[2] = {
-				{ .fd = omnidirectional_flow_sub, .events = POLLIN },
-				{ .fd = parameter_update_sub,   .events = POLLIN },
-			};
-
-	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
+	orb_advert_t vehicle_local_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
 
 	/* parameters init*/
 	struct flow_navigation_params params;
@@ -185,13 +183,38 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	/* limits */
 
 	/* register the perf counter */
-	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control_runtime");
-	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "multirotor_att_control_interval");
-	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_att_control_err");
+	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "flow_navigation_runtime");
+	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "flow_navigation_interval");
+	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "flow_navigation_err");
 
-	printf("[multirotor flow position control] initialized\n");
+	sounds_init();
+
+	printf("[flow_navigation] initialized\n");
+
+	int tone_frequence = 100;
+	int tone_counter = 0;
+	uint64_t time_last_flow = 0;
+	static float flow_aposteriori_k[40] = { 0.0f };
+	static float speed_aposteriori_k[4] = { 0.0f };
+	static float flow_aposteriori[40] = { 0.0f };
+	static float speed_aposteriori[4] = { 0.0f };
+	static float omni_left_filtered[10] = { 0.0f };
+	static float omni_right_filtered[10] = { 0.0f };
+	static float speed[2] = { 0.0f };
+	static float speed_filtered[2] = { 0.0f };
+	static float thresholds[3] = { 0.05f, 0.05f, 2.0f };
+	static float distance_left = 0.0f;
+	static float distance_right = 0.0f;
+	int left_counter;
+	int right_counter;
 
 	while (!thread_should_exit) {
+
+		/* polling */
+		struct pollfd fds[2] = {
+			{ .fd = omnidirectional_flow_sub, .events = POLLIN },
+			{ .fd = parameter_update_sub,   .events = POLLIN },
+		};
 
 		/* wait for a flow msg, check for exit condition every 500 ms */
 		int ret = poll(fds, 2, 500);
@@ -202,7 +225,7 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 		} else if (ret == 0) {
 			/* no return value, ignore */
-			printf("[multirotor flow position estimator] no omnidirectional flow msgs.\n");
+			printf("[flow_navigation] no omnidirectional flow msgs.\n");
 		} else {
 
 			if (fds[1].revents & POLLIN){
@@ -211,7 +234,7 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
 
 				parameters_update(&param_handles, &params);
-				printf("[multirotor flow position control] parameters updated.\n");
+				printf("[flow_navigation] parameters updated.\n");
 			}
 
 			/* only run controller if position changed */
@@ -237,22 +260,111 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 				} else
 				{
 
+
 				}
+
+				if (time_last_flow == 0){
+					time_last_flow = omni_flow.timestamp;
+					continue;
+				}
+
+				float dt = ((float)(omni_flow.timestamp - time_last_flow)) / 1000000.0f; // seconds
+				time_last_flow = omni_flow.timestamp;
+				speed[0] = - optical_flow.flow_comp_y_m; // XXX change with rot matrix...
+				speed[1] = optical_flow.flow_comp_x_m;
+				frontFlowKalmanFilter(dt, params.kalman_k1, params.kalman_k2, flow_aposteriori_k, speed_aposteriori_k, omni_flow.left, omni_flow.right, speed, 1, flow_aposteriori, speed_aposteriori);
+				memcpy(flow_aposteriori_k, flow_aposteriori, sizeof(flow_aposteriori));
+				memcpy(speed_aposteriori_k, speed_aposteriori, sizeof(speed_aposteriori));
+
+				/* sensor is 180 degree inverted*/
+				for (int i = 0; i<10; i++){
+					omni_left_filtered[i] = -flow_aposteriori[20 + 18 - i*2];
+					omni_right_filtered[i] = -flow_aposteriori[18 - i*2];
+				}
+				speed_filtered[0] = speed_aposteriori[0];
+				speed_filtered[1] = speed_aposteriori[2];
+
+				/* debug */
+				local_pos_sp.x = speed_filtered[0];
+				local_pos_sp.y = speed_filtered[1];
+
+//				wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, 0.5, 0, &distance_left, &distance_right);
+				wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, thresholds, &distance_left, &distance_right);
+
+				if (distance_left < 10.0f) {
+					left_counter++;
+
+					if (left_counter > (distance_left * 100)){
+						if (params.beep_front_sonar)
+						{
+							tune_sonar();
+						}
+						left_counter = 0;
+					}
+
+				}
+
+
+
+				if (distance_right < 10.0f) {
+					right_counter++;
+
+					if (right_counter > (distance_right * 100)){
+						if (params.beep_front_sonar)
+						{
+							tune_sonar();
+						}
+						right_counter = 0;
+					}
+
+				}
+
+				/* debug */
+				local_pos_sp.z = distance_left;
+				local_pos_sp.yaw = distance_right;
+				orb_publish(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_sp_pub, &local_pos_sp);
+
+//				if(params.pos_sp_x)
+//				{
+//					if (!played)
+//					{
+//						tune_tetris();
+//						played = true;
+//						printf("tetris tuned...\n");
+//					}
+//				} else {
+//					played = false;
+//				}
 
 				/* measure in what intervals the controller runs */
 				perf_count(mc_interval_perf);
 				perf_end(mc_loop_perf);
 			}
+
+
+		}
+
+
+
+		tone_frequence =  (int)(-local_pos.z * 100);
+		if(tone_counter > tone_frequence)
+		{
+			if (params.beep_bottom_sonar)
+			{
+				tune_sonar();
+			}
+			tone_counter = 0;
 		}
 
 		/* run at approximately 50 Hz */
 		//usleep(20000);
 
+		tone_counter++;
 		counter++;
 
 	}
 
-	printf("[multirotor flow position control] ending now...\n");
+	printf("[flow_navigation] ending now...\n");
 
 	thread_running = false;
 

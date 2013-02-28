@@ -202,7 +202,7 @@ public:
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
 
 private:
-	static const unsigned	_max_pattern = 6;
+	static const unsigned	_max_pattern = 8;
 	static const unsigned	_pattern_none = _max_pattern + 1;
 	static const unsigned	_pattern_user = 0;
 	static const unsigned	_max_pattern_len = 40;
@@ -283,7 +283,9 @@ const tone_note ToneAlarm::_patterns[_max_pattern][_max_pattern_len] = {
 		{TONE_NOTE_G5S, 40},
 		{TONE_NOTE_F5, 40},
 		{TONE_NOTE_F5, 60},
-	}
+	},
+	{{TONE_NOTE_C8, 4}},
+	{{TONE_NOTE_D8, 4}}
 };
 
 const uint16_t ToneAlarm::_notes[_note_max] = {

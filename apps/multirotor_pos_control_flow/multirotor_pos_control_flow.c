@@ -55,6 +55,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -156,6 +157,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 	/* structures */
 	struct vehicle_status_s vstatus;
+	struct sensor_combined_s sensor;
 	struct vehicle_attitude_s att;
 	struct vehicle_local_position_setpoint_s local_pos_sp;
 	struct manual_control_setpoint_s manual;
@@ -169,6 +171,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	int vehicle_local_position_setpoint_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
@@ -221,7 +224,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 		} else if (ret == 0) {
 			/* no return value, ignore */
-			printf("[multirotor flow position estimator] no local position updates\n");
+			printf("[multirotor flow position control] no local position updates\n"); // XXX wrong place
 		} else {
 
 			if (fds[1].revents & POLLIN){
@@ -232,6 +235,26 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 				parameters_update(&param_handles, &params);
 				printf("[multirotor flow position control] parameters updated.\n");
 			}
+
+//			if (fds[0].revents & POLLIN){
+//
+//				/* get a local copy of the sensor data */
+//				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
+//
+//				acc_lp = acc_lp * 0.9f + 0.1f * (sensor.accelerometer_m_s2[2] + 9.81f);
+//				if (acc_counter != sensor.accelerometer_counter)
+//				{
+//					if (last_sensor_timestamp != 0)
+//					{
+//						float acc_time = (float)(sensor.timestamp - last_sensor_timestamp) / 1000000.0f;
+//						acc_speed_z = acc_speed_z + (sensor.accelerometer_m_s2[2] + const_earth_gravity) * acc_time;
+//					}
+//
+//					last_sensor_timestamp = sensor.timestamp;
+//				}
+//
+//				acc_counter = sensor.accelerometer_counter;
+//			}
 
 			/* only run controller if position changed */
 			if (fds[0].revents & POLLIN) {
@@ -380,6 +403,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 				perf_count(mc_interval_perf);
 				perf_end(mc_loop_perf);
 			}
+
 		}
 
 		/* run at approximately 50 Hz */
