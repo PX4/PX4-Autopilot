@@ -471,8 +471,8 @@ MB12XX::measure()
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	uint8_t cmd[] = {MB12XX_TAKE_RANGE_REG, 1};
-	ret = transfer(&cmd[0], 2, nullptr, 0);
+	uint8_t cmd[] = {MB12XX_TAKE_RANGE_REG};
+	ret = I2C::write(&cmd[0], 1);
 
 	if (OK != ret)
 	{
@@ -491,12 +491,11 @@ MB12XX::collect()
 	int	ret = -EIO;
 	
 	/* read from the sensor */
-	uint8_t reg = MB12XX_TAKE_RANGE_REG;
 	uint8_t val[2] = {0, 0};
 	
 	perf_begin(_sample_perf);
 	
-	ret = transfer(&reg, 1, &val[0], 2);
+	ret = I2C::read(&val[0], 2);
 	
 	if (ret < 0)
 	{
