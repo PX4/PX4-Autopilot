@@ -157,7 +157,7 @@ private:
 	
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be bought in at all, otherwise it will use the defaults MB12XX_MIN_DISTANCE
+	* range to be brought in at all, otherwise it will use the defaults MB12XX_MIN_DISTANCE
 	* and MB12XX_MAX_DISTANCE
 	*/
 	void				set_minimum_distance(float min);
@@ -388,13 +388,13 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 	
 	case RANGEFINDERIOCSETMINIUMDISTANCE:
 	{
-		set_minimum_distance((float)arg);
+		set_minimum_distance(*(float *)arg);
 		return 0;
 	}
 	break;
 	case RANGEFINDERIOCSETMAXIUMDISTANCE:
 	{
-		set_maximum_distance((float)arg);
+		set_maximum_distance(*(float *)arg);
 		return 0;
 	}
 	break;
@@ -471,8 +471,8 @@ MB12XX::measure()
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	uint8_t cmd[] = {MB12XX_TAKE_RANGE_REG};
-	ret = I2C::write(&cmd[0], 1);
+	uint8_t cmd = MB12XX_TAKE_RANGE_REG;
+	ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret)
 	{
@@ -495,7 +495,7 @@ MB12XX::collect()
 	
 	perf_begin(_sample_perf);
 	
-	ret = I2C::read(&val[0], 2);
+	ret = transfer(nullptr, 0, &val[0], 2);
 	
 	if (ret < 0)
 	{

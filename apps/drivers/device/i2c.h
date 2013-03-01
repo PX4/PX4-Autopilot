@@ -84,26 +84,6 @@ protected:
 	 * Check for the presence of the device on the bus.
 	 */
 	virtual int	probe();
-
-	/**
-	 * Perform an I2C write to the device.
-	 *
-	 * @param send		Pointer to bytes to send.
-	 * @param send_len	Number of bytes to send.
-	 * @return		OK if the transfer was successful, -errno
-	 *			otherwise.
-	 */
-	int		write(const uint8_t *send, unsigned send_len);
-	
-	/**
-	 * Perform an I2C read from the device.
-	 *
-	 * @param send		Pointer to bytes to send.
-	 * @param send_len	Number of bytes to send.
-	 * @return		OK if the transfer was successful, -errno
-	 *			otherwise.
-	 */
-	int		read(uint8_t *recv, unsigned recv_len);
 	
 	/**
 	 * Perform an I2C transaction to the device.

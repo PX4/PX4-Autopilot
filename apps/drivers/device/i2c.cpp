@@ -115,30 +115,6 @@ I2C::probe()
 }
 
 int
-I2C::write(const uint8_t *send, unsigned send_len)
-{
-	int ret = OK;
-	
-	I2C_SETFREQUENCY(_dev, _frequency);
-	I2C_SETADDRESS(_dev, _address, 7);
-	ret = I2C_WRITE(_dev, send, send_len);
-	
-	return ret;
-}
-
-int
-I2C::read(uint8_t *recv, unsigned recv_len)
-{
-	int ret = OK;
-	
-	I2C_SETFREQUENCY(_dev, _frequency);
-	I2C_SETADDRESS(_dev, _address, 7);
-	ret = I2C_READ(_dev, recv, recv_len);
-	
-	return ret;
-}
-
-int
 I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
 	struct i2c_msg_s msgv[2];

@@ -57,14 +57,14 @@ struct range_finder_report {
 };
 
 /*
- * ObjDev tag for raw accelerometer data.
+ * ObjDev tag for raw range finder data.
  */
 ORB_DECLARE(sensor_range_finder);
 
 /*
  * ioctl() definitions
  *
- * Accelerometer drivers also implement the generic sensor driver
+ * Rangefinder drivers also implement the generic sensor driver
  * interfaces from drv_sensor.h
  */
 
