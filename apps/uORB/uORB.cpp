@@ -429,6 +429,10 @@ ORBDevNode::appears_updated(SubscriberData *sd)
 	/* avoid racing between interrupt and non-interrupt context calls */
 	irqstate_t state = irqsave();
 
+	/* check if this topic has been published yet, if not bail out */
+	if (_data == nullptr)
+		ret = false;
+
 	/*
 	 * If the subscriber's generation count matches the update generation
 	 * count, there has been no update from their perspective; if they
