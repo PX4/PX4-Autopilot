@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,45 +33,37 @@
  ****************************************************************************/
 
 /**
- * @file drv_blinkm.h
- *
- * BlinkM driver API
- *
- * This could probably become a more generalised API for multi-colour LED
- * driver systems, or be merged with the generic LED driver.
+ * @file discrete_radar.h
+ * Definition of the discrete radar uORB topic.
  */
 
-#pragma once
+#ifndef TOPIC_DISCRETE_RADAR_H_
+#define TOPIC_DISCRETE_RADAR_H_
 
 #include <stdint.h>
-#include <sys/ioctl.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
-#define BLINKM_DEVICE_PATH	"/dev/blinkm"
-
-/*
- * ioctl() definitions
+/**
+ * @addtogroup topics
  */
 
-#define _BLINKMIOCBASE		(0x2900)
-#define _BLINKMIOC(_n)		(_IOC(_BLINKMIOCBASE, _n))
-
-/** play the named script in *(char *)arg, repeating forever */
-#define BLINKM_PLAY_SCRIPT_NAMED	_BLINKMIOC(1)
-
-/** play the numbered script in (arg), repeating forever */
-#define BLINKM_PLAY_SCRIPT		_BLINKMIOC(2)
-
-/** 
- * Set the user script; (arg) is a pointer to an array of script lines,
- * where each line is an array of four bytes giving <duration>, <command>, arg[0-2]
- *
- * The script is terminated by a zero command.
+/**
+ * Discrete 360 degree distance information in mm.
  */
-#define BLINKM_SET_USER_SCRIPT		_BLINKMIOC(3)
+struct discrete_radar_s {
 
-enum runModes {
-	OFF_MODE = 0,
-	SYSTEMSTATE_MODE,
-	COLLITIONSTATE_MODE,
-	NOT_USED
+	uint64_t timestamp;		/**< in microseconds since system start          */
+
+	int16_t distances[32];		/**< Left flow, in decipixels */
+
 };
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(discrete_radar);
+
+#endif

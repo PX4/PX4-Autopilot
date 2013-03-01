@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/omnidirectional_flow.h>
+#include <uORB/topics/wall_estimation.h>
 
 #include "flow_navigation_params.h"
 #include "sounds.h"
@@ -162,6 +163,8 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 	struct vehicle_local_position_setpoint_s local_pos_sp;
 	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
+	struct wall_estimation_s wall_estimation;
+	memset(&wall_estimation, 0, sizeof(wall_estimation));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -173,6 +176,7 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 
 	orb_advert_t vehicle_local_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
+	orb_advert_t wall_estimation_pub = orb_advertise(ORB_ID(wall_estimation), &wall_estimation);
 
 	/* parameters init*/
 	struct flow_navigation_params params;
@@ -322,7 +326,11 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 				/* debug */
 				local_pos_sp.z = distance_left;
 				local_pos_sp.yaw = distance_right;
+
+				wall_estimation.left[0] = distance_left;
+				wall_estimation.right[0] = distance_right;
 				orb_publish(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_sp_pub, &local_pos_sp);
+				orb_publish(ORB_ID(wall_estimation), wall_estimation_pub, &wall_estimation);
 
 //				if(params.pos_sp_x)
 //				{

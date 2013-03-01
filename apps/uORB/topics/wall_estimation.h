@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,45 +33,38 @@
  ****************************************************************************/
 
 /**
- * @file drv_blinkm.h
- *
- * BlinkM driver API
- *
- * This could probably become a more generalised API for multi-colour LED
- * driver systems, or be merged with the generic LED driver.
+ * @file wall_estimation.h
+ * Definition of the wall estimation uORB topic.
  */
 
-#pragma once
+#ifndef TOPIC_WALL_ESTIMATION_H_
+#define TOPIC_WALL_ESTIMATION_H_
 
 #include <stdint.h>
-#include <sys/ioctl.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
-#define BLINKM_DEVICE_PATH	"/dev/blinkm"
-
-/*
- * ioctl() definitions
+/**
+ * @addtogroup topics
  */
 
-#define _BLINKMIOCBASE		(0x2900)
-#define _BLINKMIOC(_n)		(_IOC(_BLINKMIOCBASE, _n))
-
-/** play the named script in *(char *)arg, repeating forever */
-#define BLINKM_PLAY_SCRIPT_NAMED	_BLINKMIOC(1)
-
-/** play the numbered script in (arg), repeating forever */
-#define BLINKM_PLAY_SCRIPT		_BLINKMIOC(2)
-
-/** 
- * Set the user script; (arg) is a pointer to an array of script lines,
- * where each line is an array of four bytes giving <duration>, <command>, arg[0-2]
- *
- * The script is terminated by a zero command.
+/**
+ * Left and right wall estimation as two lines (y intercept and slope) and front distance in meter
  */
-#define BLINKM_SET_USER_SCRIPT		_BLINKMIOC(3)
+struct wall_estimation_s {
 
-enum runModes {
-	OFF_MODE = 0,
-	SYSTEMSTATE_MODE,
-	COLLITIONSTATE_MODE,
-	NOT_USED
+	uint64_t timestamp;		/**< in microseconds since system start          */
+
+	float right[2];		/**< y-intercept and slope in meter*/
+	float left[2];		/**< y-intercept and slope in meter*/
+	float front_distance;	/**< front distance in meter*/
 };
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(wall_estimation);
+
+#endif
