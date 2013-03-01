@@ -84,7 +84,7 @@ protected:
 	 * Check for the presence of the device on the bus.
 	 */
 	virtual int	probe();
-	
+
 	/**
 	 * Perform an I2C transaction to the device.
 	 *
