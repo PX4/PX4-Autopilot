@@ -47,7 +47,7 @@
 #define RANGE_FINDER_DEVICE_PATH	"/dev/range_finder"
 
 /**
- * accel report structure.  Reads from the device must be in multiples of this
+ * range finder report structure.  Reads from the device must be in multiples of this
  * structure.
  */
 struct range_finder_report {
