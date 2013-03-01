@@ -430,8 +430,10 @@ ORBDevNode::appears_updated(SubscriberData *sd)
 	irqstate_t state = irqsave();
 
 	/* check if this topic has been published yet, if not bail out */
-	if (_data == nullptr)
+	if (_data == nullptr) {
 		ret = false;
+		goto out;
+	}
 
 	/*
 	 * If the subscriber's generation count matches the update generation
@@ -489,6 +491,7 @@ ORBDevNode::appears_updated(SubscriberData *sd)
 		break;
 	}
 
+out:
 	irqrestore(state);
 
 	/* consider it updated */
