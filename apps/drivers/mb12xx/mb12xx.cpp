@@ -504,7 +504,6 @@ MB12XX::collect()
 	}
 	
 	uint16_t distance = val[0] << 8 | val[1];
-	log("raw distance: %d cm", distance);
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	_reports[_next_report].timestamp = hrt_absolute_time();
 	_reports[_next_report].distance = distance / 100.0f; /* cm to m */
