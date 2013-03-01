@@ -81,8 +81,8 @@
 #define MB12XX_SET_ADDRESS_2	0xA5		/* Change address 2 Register */
 
 /* Device limits */
-#define MB12XX_MIN_DISTANCE 20
-#define MB12XX_MAX_DISTANCE 765
+#define MB12XX_MIN_DISTANCE (0.20f)
+#define MB12XX_MAX_DISTANCE (7.65f)
 	 
 #define MB12XX_CONVERSION_INTERVAL 60000 /* 60ms */
 
@@ -116,8 +116,8 @@ protected:
 	virtual int			probe();
 
 private:
-	uint16_t			_min_distance;
-	uint16_t			_max_distance;
+	float				_min_distance;
+	float				_max_distance;
 	work_s				_work;
 	unsigned			_num_reports;
 	volatile unsigned	_next_report;
@@ -160,10 +160,10 @@ private:
 	* range to be bought in at all, otherwise it will use the defaults MB12XX_MIN_DISTANCE
 	* and MB12XX_MAX_DISTANCE
 	*/
-	void				set_minimum_distance(uint16_t min);
-	void				set_maximum_distance(uint16_t max);
-	uint16_t			get_minimum_distance();
-	uint16_t			get_maximum_distance();
+	void				set_minimum_distance(float min);
+	void				set_maximum_distance(float max);
+	float				get_minimum_distance();
+	float				get_maximum_distance();
 	
 	/**
 	* Perform a poll cycle; collect from the previous measurement
@@ -265,24 +265,24 @@ MB12XX::probe()
 }
 
 void
-MB12XX::set_minimum_distance(uint16_t min)
+MB12XX::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }	
 
 void
-MB12XX::set_maximum_distance(uint16_t max)
+MB12XX::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }	
 
-uint16_t
+float
 MB12XX::get_minimum_distance()
 {
 	return _min_distance;
 }
 
-uint16_t
+float
 MB12XX::get_maximum_distance()
 {
 	return _max_distance;
@@ -388,13 +388,13 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 	
 	case RANGEFINDERIOCSETMINIUMDISTANCE:
 	{
-		set_minimum_distance((uint16_t)arg);
+		set_minimum_distance((float)arg);
 		return 0;
 	}
 	break;
 	case RANGEFINDERIOCSETMAXIUMDISTANCE:
 	{
-		set_maximum_distance((uint16_t)arg);
+		set_maximum_distance((float)arg);
 		return 0;
 	}
 	break;
@@ -504,10 +504,11 @@ MB12XX::collect()
 	}
 	
 	uint16_t distance = val[0] << 8 | val[1];
+	float si_units = (distance * 1.0f)/ 100.0f; /* cm to m */
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].distance = distance / 100.0f; /* cm to m */
-	_reports[_next_report].valid = distance > get_minimum_distance() && distance < get_maximum_distance() ? 1 : 0;
+	_reports[_next_report].distance = si_units;
+	_reports[_next_report].valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
 	
 	/* publish it */
 	orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &_reports[_next_report]);
