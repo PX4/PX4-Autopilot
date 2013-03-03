@@ -1004,6 +1004,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 			
 			if (ret >= (int)sizeof(buf_adc[0])) {
 
+				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
+					 raw.adc_voltage_v[i] = buf_adc[i].am_data;
+				}
+
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 					/* Voltage in volts */
 					float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
