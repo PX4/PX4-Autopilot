@@ -998,16 +998,16 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* read all channels available */
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
-		/* look for battery channel */
-
 		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
 			
 			if (ret >= (int)sizeof(buf_adc[0])) {
 
+				/* Save raw voltage values */
 				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
-					 raw.adc_voltage_v[i] = buf_adc[i].am_data;
+					 raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
 				}
 
+				/* look for specific channels and process the raw voltage to measurement data */
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 					/* Voltage in volts */
 					float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
