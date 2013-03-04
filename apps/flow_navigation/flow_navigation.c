@@ -209,8 +209,8 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	static float thresholds[3] = { 0.05f, 0.05f, 2.0f };
 	static float distance_left = 0.0f;
 	static float distance_right = 0.0f;
-	int left_counter;
-	int right_counter;
+	int sonar_counter = 0;
+	int sonar_gradient = 0;
 
 	while (!thread_should_exit) {
 
@@ -295,32 +295,36 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 //				wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, 0.5, 0, &distance_left, &distance_right);
 				wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, thresholds, &distance_left, &distance_right);
 
-				if (distance_left < 10.0f) {
-					left_counter++;
+				int gradient_left = 0;
+				int gradient_right = 0;
 
-					if (left_counter > (distance_left * 100)){
-						if (params.beep_front_sonar)
-						{
-							tune_sonar();
-						}
-						left_counter = 0;
+				if (distance_left < 10.0f || distance_left > 0.0f) {
+
+					if (distance_left < 2.0f) {
+						gradient_left = (int)(100.0f - (100.0f * distance_left) / 2.0f);
 					}
-
 				}
 
+				if (distance_right < 10.0f || distance_right > 0.0f) {
 
-
-				if (distance_right < 10.0f) {
-					right_counter++;
-
-					if (right_counter > (distance_right * 100)){
-						if (params.beep_front_sonar)
-						{
-							tune_sonar();
-						}
-						right_counter = 0;
+					if (distance_right < 2.0f) {
+						gradient_right = (int)(100.0f - (100.0f * distance_right) / 2.0f);
 					}
+				}
 
+				if (gradient_left > gradient_right) {
+					sonar_gradient = gradient_left;
+				} else {
+					sonar_gradient = gradient_right;
+				}
+
+				sonar_counter++;
+				if (sonar_counter > (220 - 2 * sonar_gradient)){
+					if (params.beep_front_sonar)
+					{
+						tune_sonar();
+					}
+					sonar_counter = 0;
 				}
 
 				/* debug */

@@ -103,6 +103,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <math.h>
 
 #include <drivers/drv_blinkm.h>
 
@@ -683,15 +684,6 @@ BlinkM::led()
 
 		orb_check(vehicle_status_sub_fd, &new_data_wall_estimation);
 
-//		if (new_data_vehicle_status) {
-//			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub_fd, &vehicle_status_raw);
-//			no_data_vehicle_status = 0;
-//		} else {
-//			no_data_vehicle_status++;
-//			if(no_data_vehicle_status >= 3)
-//				no_data_vehicle_status = 3;
-//		}
-
 		orb_check(wall_estimation_sub_fd, &new_data_wall_estimation);
 
 		if (wall_estimation_sub_fd) {
@@ -704,31 +696,29 @@ BlinkM::led()
 		}
 
 		if(new_data_wall_estimation || no_data_wall_estimation < 3){
-			float dist_left = abs(wall_estimation_raw.left[0]);
-			float dist_right = abs(wall_estimation_raw.right[0]);
-			int gradient = 0;
+			float dist_left = fabs(wall_estimation_raw.left[0]);
+			float dist_right = fabs(wall_estimation_raw.right[0]);
+			int gradient_left = 0;
+			int gradient_right = 0;
 
-			float dist = 0.0f;
+			if (dist_left < 10.0f || dist_left > 0.0f) {
 
-			if (dist_left != 0.0f && dist_right != 0.0f) {
-
-				if (dist_left < dist_right) {
-					dist = dist_left;
+				if (dist_left < 1.0f) {
+					gradient_left = (int)(100.0f - (100.0f * dist_left));
 				}
-
-			} else if (dist_left != 0.0f) {
-				dist = dist_left;
-			} else if (dist_right != 0.0f) {
-				dist = dist_right;
 			}
 
-			if (dist != 0.0f) {
-				if (dist < 2.0) {
-					gradient = (int)(100.0f - (100.0f * dist / 2.0f));
+			if (dist_right < 10.0f || dist_right > 0.0f) {
+
+				if (dist_right < 1.0f) {
+					gradient_right = (int)(100.0f - (100.0f * dist_right));
 				}
-				setLEDGradient(gradient);
+			}
+
+			if (gradient_left > gradient_right) {
+				setLEDGradient(gradient_left);
 			} else {
-				setLEDColor(LED_WHITE);
+				setLEDGradient(gradient_right);
 			}
 
 		} else {
