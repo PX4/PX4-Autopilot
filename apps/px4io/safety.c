@@ -176,12 +176,17 @@ heartbeat_blink(void *arg)
 static void
 failsafe_blink(void *arg)
 {
+	/* indicate that a serious initialisation error occured */
+	if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
+		LED_AMBER(true);
+	    return;
+    }
+
 	static bool failsafe = false;
 
 	/* blink the failsafe LED if we don't have FMU input */
 	if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
 		failsafe = !failsafe;
-
 	} else {
 		failsafe = false;
 	}
