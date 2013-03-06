@@ -83,6 +83,7 @@
 
 #include <px4io/protocol.h>
 #include "uploader.h"
+#include <debug.h>
 
 
 class PX4IO : public device::I2C
@@ -771,9 +772,17 @@ PX4IO::io_set_rc_config()
 		/* send channel config to IO */
 		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
 		if (ret != OK) {
-			log("RC config update failed");
+			log("rc config upload failed");
 			break;
 		}
+
+		/* check the IO initialisation flag */
+		ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_INIT_OK;
+		if (ret != OK) {
+			log("config for RC%d rejected by IO", i + 1);
+			break;
+		}
+
 		offset += PX4IO_P_RC_CONFIG_STRIDE;
 	}
 
