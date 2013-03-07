@@ -383,6 +383,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		case PX4IO_P_RC_CONFIG_OPTIONS:
 			value &= PX4IO_P_RC_CONFIG_OPTIONS_VALID;
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
 
 			/* set all options except the enabled option */
 			conf[index] = value & ~PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
@@ -390,27 +391,44 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			/* should the channel be enabled? */
 			/* this option is normally set last */
 			if (value & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
+				uint8_t count = 0;
+
 				/* assert min..center..max ordering */
-				if (conf[PX4IO_P_RC_CONFIG_MIN] < 500)
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_MAX] > 2500)
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_CENTER] < conf[PX4IO_P_RC_CONFIG_MIN])
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_CENTER] > conf[PX4IO_P_RC_CONFIG_MAX])
-					break;
+				if (conf[PX4IO_P_RC_CONFIG_MIN] < 500) {
+					count++;
+				}
+				if (conf[PX4IO_P_RC_CONFIG_MAX] > 2500) {
+					count++;
+				}
+				if (conf[PX4IO_P_RC_CONFIG_CENTER] < conf[PX4IO_P_RC_CONFIG_MIN]) {
+					count++;
+				}
+				if (conf[PX4IO_P_RC_CONFIG_CENTER] > conf[PX4IO_P_RC_CONFIG_MAX]) {
+					count++;
+				}
+
 				/* assert deadzone is sane */
-				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500)
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_MIN] > (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]))
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_MAX] < (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]))
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS)
-					break;
+				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500) {
+					count++;
+				}
+				// The following check isn't needed as constraint checks in controls.c will catch this.
+				//if (conf[PX4IO_P_RC_CONFIG_MIN] > (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+				//	count++;
+				//}
+				//if (conf[PX4IO_P_RC_CONFIG_MAX] < (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+				//	count++;
+				//}
+				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS) {
+					count++;
+				}
 
 				/* sanity checks pass, enable channel */
-				conf[index] |= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+				if (count) {
+					isr_debug(0, "ERROR: %d config error(s) for RC%d.\n", count, (channel + 1));
+					r_status_flags &= ~PX4IO_P_STATUS_FLAGS_INIT_OK;
+				} else {
+					conf[index] |= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+				}
 			}
 			break;
 			/* inner switch: case PX4IO_P_RC_CONFIG_OPTIONS */

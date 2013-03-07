@@ -1125,31 +1125,45 @@ Sensors::ppm_poll()
 		/* Read out values from raw message */
 		for (unsigned int i = 0; i < channel_limit; i++) {
 
-			/* scale around the mid point differently for lower and upper range */
+			/*
+			 * 1) Constrain to min/max values, as later processing depends on bounds.
+			 */
+			if (rc_input.values[i] < _parameters.min[i])
+				rc_input.values[i] = _parameters.min[i];
+			if (rc_input.values[i] > _parameters.max[i])
+				rc_input.values[i] = _parameters.max[i];
+
+			/*
+			 * 2) Scale around the mid point differently for lower and upper range.
+			 *
+			 * This is necessary as they don't share the same endpoints and slope.
+			 *
+			 * First normalize to 0..1 range with correct sign (below or above center),
+			 * the total range is 2 (-1..1).
+			 * If center (trim) == min, scale to 0..1, if center (trim) == max,
+			 * scale to -1..0.
+			 *
+			 * As the min and max bounds were enforced in step 1), division by zero
+			 * cannot occur, as for the case of center == min or center == max the if
+			 * statement is mutually exclusive with the arithmetic NaN case.
+			 *
+			 * DO NOT REMOVE OR ALTER STEP 1!
+			 */
 			if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
+				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
 
 			} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-				/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
-				_rc.chan[i].scaled = -((_parameters.trim[i] - rc_input.values[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
 
 			} else {
 				/* in the configured dead zone, output zero */
 				_rc.chan[i].scaled = 0.0f;
 			}
 
-			/* reverse channel if required */
-			if (i == (int)_rc.function[THROTTLE]) {
-				if ((int)_parameters.rev[i] == -1) {
-					_rc.chan[i].scaled = 1.0f + -1.0f * _rc.chan[i].scaled;
-				}
-
-			} else {
-				_rc.chan[i].scaled *= _parameters.rev[i];
-			}
+			_rc.chan[i].scaled *= _parameters.rev[i];
 
 			/* handle any parameter-induced blowups */
-			if (isnan(_rc.chan[i].scaled) || isinf(_rc.chan[i].scaled))
+			if (!isfinite(_rc.chan[i].scaled))
 				_rc.chan[i].scaled = 0.0f;
 		}
 
