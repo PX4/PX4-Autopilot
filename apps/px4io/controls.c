@@ -268,10 +268,11 @@ controls_tick() {
 		bool override = false;
 
 		/*
-		 * Check mapped channel 5; if the value is 'high' then the pilot has
+		 * Check mapped channel 5 (can be any remote channel,
+		 * depends on RC_MAP_OVER parameter);
+		 * If the value is 'high' then the pilot has
 		 * requested override.
 		 *
-		 * XXX This should be configurable.
 		 */
 		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (r_rc_values[4] > RC_CHANNEL_HIGH_THRESH))
 			override = true;
