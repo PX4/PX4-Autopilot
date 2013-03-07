@@ -150,5 +150,5 @@ void quat2rot(const float Q[4], float R[9])
 
 float get_air_density(float static_pressure, float temperature_celsius)
 {
-	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius + CONSTANTS_ABSOLUTE_NULL_KELVIN));
+	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
 }

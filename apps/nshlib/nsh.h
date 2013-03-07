@@ -603,6 +603,9 @@ void nsh_usbtrace(void);
 #  ifndef CONFIG_NSH_DISABLE_CP
       int cmd_cp(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif
+#  ifndef CONFIG_NSH_DISABLE_CMP
+      int cmd_cmp(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
 #  ifndef CONFIG_NSH_DISABLE_DD
       int cmd_dd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif

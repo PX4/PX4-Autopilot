@@ -80,6 +80,7 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/differential_pressure.h>
 #include <mavlink/mavlink_log.h>
 
 #include <systemlib/param/param.h>
@@ -421,7 +422,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		// 	mavlink_log_info(mavlink_fd, buf);
 		// }
 
-		if (poll(fds, 1, 1000)) {
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
 			orb_copy(ORB_ID(sensor_mag), sub_mag, &mag);
 
 			x[calibration_counter] = mag.x;
@@ -453,9 +456,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 
 			calibration_counter++;
 
-		} else {
+		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "mag cal canceled");
+			mavlink_log_info(mavlink_fd, "mag cal canceled (timed out)");
 			break;
 		}
 	}
@@ -545,7 +548,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		/* third beep by cal end routine */
 
 	} else {
-		mavlink_log_info(mavlink_fd, "mag calibration FAILED (NaN)");
+		mavlink_log_info(mavlink_fd, "mag calibration FAILED (NaN in sphere fit)");
 	}
 
 	/* disable calibration mode */
@@ -590,14 +593,16 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 		/* wait blocking for new data */
 		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
 
-		if (poll(fds, 1, 1000)) {
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
 			gyro_offset[0] += raw.gyro_rad_s[0];
 			gyro_offset[1] += raw.gyro_rad_s[1];
 			gyro_offset[2] += raw.gyro_rad_s[2];
 			calibration_counter++;
 
-		} else {
+		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
 			mavlink_log_info(mavlink_fd, "gyro calibration aborted, retry");
 			return;
@@ -698,14 +703,16 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 		/* wait blocking for new data */
 		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
 
-		if (poll(fds, 1, 1000)) {
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
 			accel_offset[0] += raw.accelerometer_m_s2[0];
 			accel_offset[1] += raw.accelerometer_m_s2[1];
 			accel_offset[2] += raw.accelerometer_m_s2[2];
 			calibration_counter++;
 
-		} else {
+		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
 			mavlink_log_info(mavlink_fd, "acceleration calibration aborted");
 			return;
@@ -777,6 +784,79 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	state_machine_publish(status_pub, status, mavlink_fd);
 
 	close(sub_sensor_combined);
+}
+
+void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
+{
+	/* announce change */
+
+	mavlink_log_info(mavlink_fd, "keep it still");
+	/* set to accel calibration mode */
+	status->flag_preflight_airspeed_calibration = true;
+	state_machine_publish(status_pub, status, mavlink_fd);
+
+	const int calibration_count = 2500;
+
+	int sub_differential_pressure = orb_subscribe(ORB_ID(differential_pressure));
+	struct differential_pressure_s differential_pressure;
+
+	int calibration_counter = 0;
+	float airspeed_offset = 0.0f;
+
+	while (calibration_counter < calibration_count) {
+
+		/* wait blocking for new data */
+		struct pollfd fds[1] = { { .fd = sub_differential_pressure, .events = POLLIN } };
+
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
+			orb_copy(ORB_ID(differential_pressure), sub_differential_pressure, &differential_pressure);
+			airspeed_offset += differential_pressure.voltage;
+			calibration_counter++;
+
+		} else if (poll_ret == 0) {
+			/* any poll failure for 1s is a reason to abort */
+			mavlink_log_info(mavlink_fd, "airspeed calibration aborted");
+			return;
+		}
+	}
+
+	airspeed_offset = airspeed_offset / calibration_count;
+
+	if (isfinite(airspeed_offset)) {
+
+		if (param_set(param_find("SENS_VAIR_OFF"), &(airspeed_offset))) {
+			mavlink_log_critical(mavlink_fd, "Setting offs failed!");
+		}
+
+		/* auto-save to EEPROM */
+		int save_ret = param_save_default();
+
+		if (save_ret != 0) {
+			warn("WARNING: auto-save of params to storage failed");
+		}
+
+		//char buf[50];
+		//sprintf(buf, "[cmd] accel cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0], (double)accel_offset[1], (double)accel_offset[2]);
+		//mavlink_log_info(mavlink_fd, buf);
+		mavlink_log_info(mavlink_fd, "airspeed calibration done");
+
+		tune_confirm();
+		sleep(2);
+		tune_confirm();
+		sleep(2);
+		/* third beep by cal end routine */
+
+	} else {
+		mavlink_log_info(mavlink_fd, "airspeed calibration FAILED (NaN)");
+	}
+
+	/* exit airspeed calibration mode */
+	status->flag_preflight_airspeed_calibration = false;
+	state_machine_publish(status_pub, status, mavlink_fd);
+
+	close(sub_differential_pressure);
 }
 
 
@@ -968,6 +1048,28 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				} else {
 					mavlink_log_critical(mavlink_fd, "REJECTING accel cal");
+					result = VEHICLE_CMD_RESULT_DENIED;
+				}
+
+				handled = true;
+			}
+
+			/* airspeed calibration */
+			if ((int)(cmd->param6) == 1) { //xxx: this is not defined by the mavlink protocol
+				/* transition to calibration state */
+				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
+
+				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
+					mavlink_log_info(mavlink_fd, "CMD starting airspeed cal");
+					tune_confirm();
+					do_airspeed_calibration(status_pub, &current_status);
+					tune_confirm();
+					mavlink_log_info(mavlink_fd, "CMD finished airspeed cal");
+					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					mavlink_log_critical(mavlink_fd, "REJECTING airspeed cal");
 					result = VEHICLE_CMD_RESULT_DENIED;
 				}
 
@@ -1221,11 +1323,10 @@ int commander_main(int argc, char *argv[])
 		thread_should_exit = false;
 		daemon_task = task_spawn("commander",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 50,
-					 4000,
+					 SCHED_PRIORITY_MAX - 40,
+					 3000,
 					 commander_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		thread_running = true;
 		exit(0);
 	}
 
@@ -1313,7 +1414,8 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&home, 0, sizeof(home));
 
 	if (stat_pub < 0) {
-		warnx("ERROR: orb_advertise for topic vehicle_status failed.\n");
+		warnx("ERROR: orb_advertise for topic vehicle_status failed (uorb app running?).\n");
+		warnx("exiting.");
 		exit(ERROR);
 	}
 
@@ -1375,6 +1477,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct sensor_combined_s sensors;
 	memset(&sensors, 0, sizeof(sensors));
 
+	int differential_pressure_sub = orb_subscribe(ORB_ID(differential_pressure));
+	struct differential_pressure_s differential_pressure;
+	memset(&differential_pressure, 0, sizeof(differential_pressure));
+	uint64_t last_differential_pressure_time = 0;
+
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	struct vehicle_command_s cmd;
@@ -1398,13 +1505,13 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* now initialized */
 	commander_initialized = true;
+	thread_running = true;
 
 	uint64_t start_time = hrt_absolute_time();
 	uint64_t failsave_ll_start_time = 0;
 
 	bool state_changed = true;
 	bool param_init_forced = true;
-
 
 	while (!thread_should_exit) {
 
@@ -1426,6 +1533,13 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (new_data) {
 			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
+		}
+
+		orb_check(differential_pressure_sub, &new_data);
+
+		if (new_data) {
+			orb_copy(ORB_ID(differential_pressure), differential_pressure_sub, &differential_pressure);
+			last_differential_pressure_time = differential_pressure.timestamp;
 		}
 
 		orb_check(cmd_sub, &new_data);
@@ -1620,6 +1734,7 @@ int commander_thread_main(int argc, char *argv[])
 		bool vector_flight_mode_ok = current_status.flag_vector_flight_mode_ok;
 		bool global_pos_valid = current_status.flag_global_position_valid;
 		bool local_pos_valid = current_status.flag_local_position_valid;
+		bool airspeed_valid = current_status.flag_airspeed_valid;
 
 		/* check for global or local position updates, set a timeout of 2s */
 		if (hrt_absolute_time() - last_global_position_time < 2000000) {
@@ -1638,6 +1753,14 @@ int commander_thread_main(int argc, char *argv[])
 			current_status.flag_local_position_valid = false;
 		}
 
+		/* Check for valid airspeed/differential pressure measurements */
+		if (hrt_absolute_time() - last_differential_pressure_time < 2000000) {
+			current_status.flag_airspeed_valid = true;
+
+		} else {
+			current_status.flag_airspeed_valid = false;
+		}
+
 		/*
 		 * Consolidate global position and local position valid flags
 		 * for vector flight mode.
@@ -1653,7 +1776,8 @@ int commander_thread_main(int argc, char *argv[])
 		/* consolidate state change, flag as changed if required */
 		if (vector_flight_mode_ok != current_status.flag_vector_flight_mode_ok ||
 		    global_pos_valid != current_status.flag_global_position_valid ||
-		    local_pos_valid != current_status.flag_local_position_valid) {
+		    local_pos_valid != current_status.flag_local_position_valid ||
+		    airspeed_valid != current_status.flag_airspeed_valid) {
 			state_changed = true;
 		}
 

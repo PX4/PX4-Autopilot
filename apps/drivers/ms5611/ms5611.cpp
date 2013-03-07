@@ -144,6 +144,7 @@ private:
 	orb_advert_t		_baro_topic;
 
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
 
@@ -274,6 +275,7 @@ MS5611::MS5611(int bus) :
 	_msl_pressure(101325),
 	_baro_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
+	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "ms5611_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buffer_overflows"))
 {
@@ -647,6 +649,8 @@ MS5611::measure()
 {
 	int ret;
 
+	perf_begin(_measure_perf);
+
 	/*
 	 * In phase zero, request temperature; in other phases, request pressure.
 	 */
@@ -663,6 +667,8 @@ MS5611::measure()
 
 	if (OK != ret)
 		perf_count(_comms_errors);
+
+	perf_end(_measure_perf);
 
 	return ret;
 }
@@ -689,6 +695,7 @@ MS5611::collect()
 	ret = transfer(&cmd, 1, &data[0], 3);
 	if (ret != OK) {
 		perf_count(_comms_errors);
+		perf_end(_sample_perf);
 		return ret;
 	}
 

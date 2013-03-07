@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Example User <mail@example.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,62 +33,42 @@
  ****************************************************************************/
 
 /**
- * @file conversions.h
- * Definition of commonly used conversions.
- *
- * Includes bit / byte / geo representation and unit conversions.
+ * @file px4_mavlink_debug.c
+ * Debug application example for PX4 autopilot
  */
 
-#ifndef CONVERSIONS_H_
-#define CONVERSIONS_H_
-#include <float.h>
-#include <stdint.h>
+#include <nuttx/config.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <poll.h>
 
-#define CONSTANTS_ONE_G						9.80665f		// m/s^2
-#define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C	1.225f			// kg/m^3
-#define CONSTANTS_AIR_GAS_CONST				287.1f 			// J/(kg * K)
-#define CONSTANTS_ABSOLUTE_NULL_CELSIUS		-273.15f		// °C
+#include <systemlib/err.h>
 
-__BEGIN_DECLS
+#include <uORB/uORB.h>
+#include <uORB/topics/debug_key_value.h>
 
-/**
- * Converts a signed 16 bit integer from big endian to little endian.
- *
- * This function is for commonly used 16 bit big endian sensor data,
- * delivered by driver routines as two 8 bit numbers in big endian order.
- * Common vendors with big endian representation are Invense, Bosch and
- * Honeywell. ST micro devices tend to use a little endian representation.
- */
-__EXPORT int16_t int16_t_from_bytes(uint8_t bytes[]);
+__EXPORT int px4_mavlink_debug_main(int argc, char *argv[]);
 
-/**
- * Converts a 3 x 3 rotation matrix to an unit quaternion.
- *
- * All orientations are expressed in NED frame.
- *
- * @param R rotation matrix to convert
- * @param Q quaternion to write back to
- */
-__EXPORT void rot2quat(const float R[9], float Q[4]);
+int px4_mavlink_debug_main(int argc, char *argv[])
+{
+	printf("Hello Debug!\n");
 
-/**
- * Converts an unit quaternion to a 3 x 3 rotation matrix.
- *
- * All orientations are expressed in NED frame.
- *
- * @param Q quaternion to convert
- * @param R rotation matrix to write back to
- */
-__EXPORT void quat2rot(const float Q[4], float R[9]);
+	/* advertise debug value */
+	struct debug_key_value_s dbg = { .key = "velx", .value = 0.0f };
+	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
 
-/**
- * Calculates air density.
- *
- * @param static_pressure ambient pressure in millibar
- * @param temperature_celcius air / ambient temperature in celcius
- */
-__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
+	int value_counter = 0;
 
-__END_DECLS
+	while (value_counter < 100) {
+		/* send one value */
+		dbg.value = value_counter;
+		orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
 
-#endif /* CONVERSIONS_H_ */
+		warnx("sent one more value..");
+
+		value_counter++;
+		usleep(500000);
+	}
+
+	return 0;
+}

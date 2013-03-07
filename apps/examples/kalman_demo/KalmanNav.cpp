@@ -247,8 +247,8 @@ void KalmanNav::update()
 	// output
 	if (newTimeStamp - _outTimeStamp > 10e6) { // 0.1 Hz
 		_outTimeStamp = newTimeStamp;
-		printf("nav: %4d Hz, miss #: %4d\n",
-		       _navFrames / 10, _miss / 10);
+		//printf("nav: %4d Hz, miss #: %4d\n",
+		//       _navFrames / 10, _miss / 10);
 		_navFrames = 0;
 		_miss = 0;
 	}

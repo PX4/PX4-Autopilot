@@ -142,7 +142,8 @@ volatile uint16_t	r_page_setup[] =
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(0)
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_ARM_OK | \
-					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK)
+					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
+					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -164,8 +165,8 @@ volatile uint16_t	r_page_controls[PX4IO_CONTROL_CHANNELS];
  */
 uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE];
 
-/* valid options excluding ENABLE */
-#define PX4IO_P_RC_CONFIG_OPTIONS_VALID	PX4IO_P_RC_CONFIG_OPTIONS_REVERSE
+/* valid options */
+#define PX4IO_P_RC_CONFIG_OPTIONS_VALID	(PX4IO_P_RC_CONFIG_OPTIONS_REVERSE | PX4IO_P_RC_CONFIG_OPTIONS_ENABLED)
 
 /*
  * PAGE 104 uses r_page_servos.
@@ -202,8 +203,6 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
 		
-		// wake up daemon to trigger mixer
-		daemon_wakeup();
 		break;
 
 		/* handle raw PWM input */
@@ -223,8 +222,6 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM;
 
-		// wake up the main thread to trigger mixer
-		daemon_wakeup();
 		break;
 
 		/* handle setup for servo failsafe values */
@@ -366,6 +363,13 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		break;
 
 	case PX4IO_PAGE_RC_CONFIG: {
+
+		/* do not allow a RC config change while fully armed */
+		if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) &&
+		    /* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
+			break;
+		}
+
 		unsigned channel = offset / PX4IO_P_RC_CONFIG_STRIDE;
 		unsigned index = offset - channel * PX4IO_P_RC_CONFIG_STRIDE;
 		uint16_t *conf = &r_page_rc_input_config[channel * PX4IO_P_RC_CONFIG_STRIDE];
@@ -388,6 +392,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		case PX4IO_P_RC_CONFIG_OPTIONS:
 			value &= PX4IO_P_RC_CONFIG_OPTIONS_VALID;
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
 
 			/* set all options except the enabled option */
 			conf[index] = value & ~PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
@@ -395,27 +400,44 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			/* should the channel be enabled? */
 			/* this option is normally set last */
 			if (value & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
+				uint8_t count = 0;
+
 				/* assert min..center..max ordering */
-				if (conf[PX4IO_P_RC_CONFIG_MIN] < 500)
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_MAX] > 2500)
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_CENTER] < conf[PX4IO_P_RC_CONFIG_MIN])
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_CENTER] > conf[PX4IO_P_RC_CONFIG_MAX])
-					break;
+				if (conf[PX4IO_P_RC_CONFIG_MIN] < 500) {
+					count++;
+				}
+				if (conf[PX4IO_P_RC_CONFIG_MAX] > 2500) {
+					count++;
+				}
+				if (conf[PX4IO_P_RC_CONFIG_CENTER] < conf[PX4IO_P_RC_CONFIG_MIN]) {
+					count++;
+				}
+				if (conf[PX4IO_P_RC_CONFIG_CENTER] > conf[PX4IO_P_RC_CONFIG_MAX]) {
+					count++;
+				}
+
 				/* assert deadzone is sane */
-				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500)
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_MIN] > (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]))
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_MAX] < (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE]))
-					break;
-				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS)
-					break;
+				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500) {
+					count++;
+				}
+				// The following check isn't needed as constraint checks in controls.c will catch this.
+				//if (conf[PX4IO_P_RC_CONFIG_MIN] > (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+				//	count++;
+				//}
+				//if (conf[PX4IO_P_RC_CONFIG_MAX] < (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+				//	count++;
+				//}
+				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS) {
+					count++;
+				}
 
 				/* sanity checks pass, enable channel */
-				conf[index] |= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+				if (count) {
+					isr_debug(0, "ERROR: %d config error(s) for RC%d.\n", count, (channel + 1));
+					r_status_flags &= ~PX4IO_P_STATUS_FLAGS_INIT_OK;
+				} else {
+					conf[index] |= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
+				}
 			}
 			break;
 			/* inner switch: case PX4IO_P_RC_CONFIG_OPTIONS */

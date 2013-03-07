@@ -109,6 +109,12 @@ ORB_DECLARE(output_pwm);
 /** set debug level for servo IO */
 #define PWM_SERVO_SET_DEBUG	_IOC(_PWM_SERVO_BASE, 4)
 
+/** enable in-air restart */
+#define PWM_SERVO_INAIR_RESTART_ENABLE	_IOC(_PWM_SERVO_BASE, 5)
+
+/** disable in-air restart */
+#define PWM_SERVO_INAIR_RESTART_DISABLE	_IOC(_PWM_SERVO_BASE, 6)
+
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
 

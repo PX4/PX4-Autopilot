@@ -187,6 +187,7 @@ private:
 		float mag_scale[3];
 		float accel_offset[3];
 		float accel_scale[3];
+		float airspeed_offset;
 
 		int rc_type;
 
@@ -235,6 +236,7 @@ private:
 		param_t accel_scale[3];
 		param_t mag_offset[3];
 		param_t mag_scale[3];
+		param_t airspeed_offset;
 
 		param_t rc_map_roll;
 		param_t rc_map_pitch;
@@ -480,6 +482,9 @@ Sensors::Sensors() :
 	_parameter_handles.mag_scale[1] = param_find("SENS_MAG_YSCALE");
 	_parameter_handles.mag_scale[2] = param_find("SENS_MAG_ZSCALE");
 
+	/*Airspeed offset */
+	_parameter_handles.airspeed_offset = param_find("SENS_VAIR_OFF");
+
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
 	/* fetch initial parameter values */
@@ -686,6 +691,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.mag_scale[0], &(_parameters.mag_scale[0]));
 	param_get(_parameter_handles.mag_scale[1], &(_parameters.mag_scale[1]));
 	param_get(_parameter_handles.mag_scale[2], &(_parameters.mag_scale[2]));
+
+	/* Airspeed offset */
+	param_get(_parameter_handles.airspeed_offset, &(_parameters.airspeed_offset));
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
@@ -993,7 +1001,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* look for battery channel */
 
 		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
-
+			
 			if (ret >= (int)sizeof(buf_adc[0])) {
 
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
@@ -1025,8 +1033,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
-
-					float voltage = buf_adc[i].am_data / 4096.0f;
+					float voltage = (float)(buf_adc[i].am_data ) * 3.3f / 4096.0f * 2.0f; //V_ref/4096 * (voltage divider factor)
 
 					/**
 					 * The voltage divider pulls the signal down, only act on
@@ -1034,24 +1041,24 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 */
 					if (voltage > 0.4f) {
 
-						float pres_raw = fabsf(voltage - (3.3f / 2.0f));
-						float pres_mbar = pres_raw * (3.3f / 5.0f) * 10.0f;
+						float diff_pres_pa = (voltage - _parameters.airspeed_offset) * 1000.0f; //for MPXV7002DP sensor
 
-						float airspeed_true = calc_true_airspeed(pres_mbar + _barometer.pressure,
-							_barometer.pressure, _barometer.temperature - 5.0f);
+						float airspeed_true = calc_true_airspeed(diff_pres_pa + _barometer.pressure*1e2f,
+							_barometer.pressure*1e2f, _barometer.temperature - 5.0f); //factor 1e2 for conversion from mBar to Pa
 						// XXX HACK - true temperature is much less than indicated temperature in baro,
 						// subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
 
-						float airspeed_indicated = calc_indicated_airspeed(pres_mbar + _barometer.pressure,
-							_barometer.pressure, _barometer.temperature - 5.0f);
-						// XXX HACK
+						float airspeed_indicated = calc_indicated_airspeed(diff_pres_pa);
+
+						//printf("voltage: %.4f, diff_pres_pa %.4f, baro press %.4f Pa, v_ind %.4f, v_true %.4f\n", (double)voltage, (double)diff_pres_pa, (double)_barometer.pressure*1e2f, (double)airspeed_indicated, (double)airspeed_true);
 
 						_differential_pressure.timestamp = hrt_absolute_time();
 						_differential_pressure.static_pressure_mbar = _barometer.pressure;
-						_differential_pressure.differential_pressure_mbar = pres_mbar;
+						_differential_pressure.differential_pressure_mbar = diff_pres_pa*1e-2f;
 						_differential_pressure.temperature_celcius = _barometer.temperature;
 						_differential_pressure.indicated_airspeed_m_s = airspeed_indicated;
 						_differential_pressure.true_airspeed_m_s = airspeed_true;
+						_differential_pressure.voltage = voltage;
 
 						/* announce the airspeed if needed, just publish else */
 						if (_airspeed_pub > 0) {
@@ -1064,7 +1071,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 
 				_last_adc = hrt_absolute_time();
-				break;
 			}
 		}
 	}
@@ -1074,36 +1080,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 void
 Sensors::ppm_poll()
 {
-	/* fake low-level driver, directly pulling from driver variables */
-	static orb_advert_t rc_input_pub = -1;
-	struct rc_input_values raw;
-
-	raw.timestamp = ppm_last_valid_decode;
-	/* we are accepting this message */
-	_ppm_last_valid = ppm_last_valid_decode;
-
-	/*
-	 * relying on two decoded channels is very noise-prone,
-	 * in particular if nothing is connected to the pins.
-	 * requiring a minimum of four channels
-	 */
-	if (ppm_decoded_channels > 4 && hrt_absolute_time() - _ppm_last_valid < PPM_INPUT_TIMEOUT_INTERVAL) {
-
-		for (unsigned i = 0; i < ppm_decoded_channels; i++) {
-			raw.values[i] = ppm_buffer[i];
-		}
-
-		raw.channel_count = ppm_decoded_channels;
-
-		/* publish to object request broker */
-		if (rc_input_pub <= 0) {
-			rc_input_pub = orb_advertise(ORB_ID(input_rc), &raw);
-
-		} else {
-			orb_publish(ORB_ID(input_rc), rc_input_pub, &raw);
-		}
-	}
-
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 	bool rc_updated;
@@ -1149,31 +1125,45 @@ Sensors::ppm_poll()
 		/* Read out values from raw message */
 		for (unsigned int i = 0; i < channel_limit; i++) {
 
-			/* scale around the mid point differently for lower and upper range */
+			/*
+			 * 1) Constrain to min/max values, as later processing depends on bounds.
+			 */
+			if (rc_input.values[i] < _parameters.min[i])
+				rc_input.values[i] = _parameters.min[i];
+			if (rc_input.values[i] > _parameters.max[i])
+				rc_input.values[i] = _parameters.max[i];
+
+			/*
+			 * 2) Scale around the mid point differently for lower and upper range.
+			 *
+			 * This is necessary as they don't share the same endpoints and slope.
+			 *
+			 * First normalize to 0..1 range with correct sign (below or above center),
+			 * the total range is 2 (-1..1).
+			 * If center (trim) == min, scale to 0..1, if center (trim) == max,
+			 * scale to -1..0.
+			 *
+			 * As the min and max bounds were enforced in step 1), division by zero
+			 * cannot occur, as for the case of center == min or center == max the if
+			 * statement is mutually exclusive with the arithmetic NaN case.
+			 *
+			 * DO NOT REMOVE OR ALTER STEP 1!
+			 */
 			if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
+				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
 
 			} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-				/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
-				_rc.chan[i].scaled = -((_parameters.trim[i] - rc_input.values[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
 
 			} else {
 				/* in the configured dead zone, output zero */
 				_rc.chan[i].scaled = 0.0f;
 			}
 
-			/* reverse channel if required */
-			if (i == (int)_rc.function[THROTTLE]) {
-				if ((int)_parameters.rev[i] == -1) {
-					_rc.chan[i].scaled = 1.0f + -1.0f * _rc.chan[i].scaled;
-				}
-
-			} else {
-				_rc.chan[i].scaled *= _parameters.rev[i];
-			}
+			_rc.chan[i].scaled *= _parameters.rev[i];
 
 			/* handle any parameter-induced blowups */
-			if (isnan(_rc.chan[i].scaled) || isinf(_rc.chan[i].scaled))
+			if (!isfinite(_rc.chan[i].scaled))
 				_rc.chan[i].scaled = 0.0f;
 		}
 
