@@ -98,8 +98,7 @@ public:
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
 
-<<<<<<< HEAD
-		/**
+	/**
 	 * Set the PWM pulse rate in Hz
 	 *
 	 * @param rate		The rate in Hz the PWM pulse is repeated.
@@ -114,9 +113,11 @@ public:
 	 *			Min 10 Hz, max 400 Hz
 	 */
 	int			set_update_rate(int rate);
-=======
+
+	/**
+	 * Print the current status of IO
+	 */
 	void			print_status();
->>>>>>> e8e52afcc426491f5959e6f879f26c9211a88d4c
 
 private:
 	// XXX
@@ -310,11 +311,6 @@ PX4IO::PX4IO() :
 	_max_transfer(16),	/* sensible default */
 	_update_interval(0),
 	_task(-1),
-<<<<<<< HEAD
-	_status(0),
-	_alarms(0),
-=======
->>>>>>> e8e52afcc426491f5959e6f879f26c9211a88d4c
 	_task_should_exit(false),
 	_mavlink_fd(-1),
 	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
@@ -898,12 +894,7 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 	/* set new alarms state */
 	_alarms = alarms;
 
-<<<<<<< HEAD
-	/* XXX do not report success yet */
-	return 1;
-=======
 	return 0;
->>>>>>> e8e52afcc426491f5959e6f879f26c9211a88d4c
 }
 
 int
