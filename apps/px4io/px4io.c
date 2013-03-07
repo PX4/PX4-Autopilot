@@ -215,12 +215,16 @@ user_start(int argc, char *argv[])
 
 		/* post debug state at ~1Hz */
 		if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
-			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x r=%u", 
+
+			struct mallinfo minfo = mallinfo();
+
+			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x r=%u m=%u", 
 				  (unsigned)debug_level,
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,
 				  (unsigned)r_setup_features,
-				  (unsigned)i2c_loop_resets);
+				  (unsigned)i2c_loop_resets,
+				  (unsigned)minfo.mxordblk);
 			last_debug_time = hrt_absolute_time();
 		}
 	}

@@ -82,6 +82,7 @@
 #include <uORB/topics/parameter_update.h>
 
 #include <px4io/protocol.h>
+#include <mavlink/mavlink_log.h>
 #include "uploader.h"
 #include <debug.h>
 
@@ -111,6 +112,8 @@ private:
 
 	volatile int		_task;		///< worker task
 	volatile bool		_task_should_exit;
+
+	int			_mavlink_fd;
 
 	perf_counter_t		_perf_update;
 
@@ -286,6 +289,7 @@ PX4IO::PX4IO() :
 	_update_interval(0),
 	_task(-1),
 	_task_should_exit(false),
+	_mavlink_fd(-1),
 	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
 	_status(0),
 	_alarms(0),
@@ -301,6 +305,9 @@ PX4IO::PX4IO() :
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
+
+	/* open MAVLink text channel */
+	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	_debug_enabled = true;
 }
@@ -355,6 +362,7 @@ PX4IO::init()
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
 		log("failed getting parameters from PX4IO");
+		mavlink_log_emergency(_mavlink_fd, "[IO] param read fail, abort.");
 		return -1;
 	}
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
@@ -380,6 +388,8 @@ PX4IO::init()
 	 */
 	if ((reg & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK) &&
 	    (reg & PX4IO_P_SETUP_ARMING_ARM_OK)) {
+
+	    	mavlink_log_emergency(_mavlink_fd, "[IO] RECOVERING FROM FMU IN-AIR RESTART");
 
 		/* WARNING: COMMANDER app/vehicle status must be initialized.
 		 * If this fails (or the app is not started), worst-case IO
@@ -470,6 +480,7 @@ PX4IO::init()
 		ret = io_set_rc_config();
 		if (ret != OK) {
 			log("failed to update RC input config");
+			mavlink_log_info(_mavlink_fd, "[IO] RC config upload fail");
 			return ret;
 		}
 
@@ -490,6 +501,8 @@ PX4IO::init()
 		debug("task start failed: %d", errno);
 		return -errno;
 	}
+
+	mavlink_log_info(_mavlink_fd, "[IO] init ok");
 
 	return OK;
 }
@@ -1165,9 +1178,11 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 	/* check for the mixer-OK flag */
 	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK) {
 		debug("mixer upload OK");
+		mavlink_log_info(_mavlink_fd, "[IO] mixer upload ok");
 		return 0;
 	} else {
 		debug("mixer rejected by IO");
+		mavlink_log_info(_mavlink_fd, "[IO] mixer upload fail");
 	}
 
 	/* load must have failed for some reason */
@@ -1484,7 +1499,7 @@ test(void)
 			servos[i] = pwm_value;
 
 		ret = write(fd, servos, sizeof(servos));
-		if (ret != sizeof(servos))
+		if (ret != (int)sizeof(servos))
 			err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
 
 		if (direction > 0) {
@@ -1567,7 +1582,7 @@ px4io_main(int argc, char *argv[])
 		}
 
 		/* look for the optional pwm update rate for the supported modes */
-		if (argc > 2 && strcmp(argv[2], "-u") == 0 || strcmp(argv[2], "--update-rate") == 0) {
+		if ((argc > 2) && (strcmp(argv[2], "-u") == 0 || strcmp(argv[2], "--update-rate") == 0)) {
 			if (argc > 2 + 1) {
 #warning implement this 
 			} else {
