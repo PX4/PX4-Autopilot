@@ -180,12 +180,6 @@ uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE
 uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT];
 
 void
-registers_init(void)
-{
-	r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
-}
-
-void
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
 
@@ -389,6 +383,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		case PX4IO_P_RC_CONFIG_OPTIONS:
 			value &= PX4IO_P_RC_CONFIG_OPTIONS_VALID;
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
 
 			/* set all options except the enabled option */
 			conf[index] = value & ~PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
