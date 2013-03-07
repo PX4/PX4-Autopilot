@@ -83,6 +83,7 @@
 
 #include <px4io/protocol.h>
 #include "uploader.h"
+#include <debug.h>
 
 
 class PX4IO : public device::I2C
@@ -771,9 +772,16 @@ PX4IO::io_set_rc_config()
 		/* send channel config to IO */
 		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
 		if (ret != OK) {
-			log("RC config update failed");
+			log("rc config upload failed");
 			break;
 		}
+
+		/* check the IO initialisation flag */
+		if (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
+			log("config for RC%d rejected by IO", i + 1);
+			break;
+		}
+
 		offset += PX4IO_P_RC_CONFIG_STRIDE;
 	}
 
@@ -1186,7 +1194,7 @@ PX4IO::print_status()
 	printf("%u bytes free\n",
 		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
-	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s\n",
+	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s\n",
 		flags,
 		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " ARMED" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
@@ -1197,7 +1205,8 @@ PX4IO::print_status()
 		((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PPM" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) ? " MIXER_OK" : " MIXER_FAIL"),
-		((flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC) ? " ARM_SYNC" : " ARM_NO_SYNC"));
+		((flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC) ? " ARM_SYNC" : " ARM_NO_SYNC"),
+		((flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  ? " INIT_OK" : " INIT_FAIL"));
 	uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
 	printf("alarms 0x%04x%s%s%s%s%s%s\n",
 		alarms,
