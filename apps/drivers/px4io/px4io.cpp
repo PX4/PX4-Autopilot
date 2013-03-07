@@ -1556,7 +1556,7 @@ px4io_main(int argc, char *argv[])
 			errx(1, "already loaded");
 
 		/* create the driver - it will set g_dev */
-		(void)new PX4IO;
+		(void)new PX4IO();
 
 		if (g_dev == nullptr)
 			errx(1, "driver alloc failed");
@@ -1567,7 +1567,7 @@ px4io_main(int argc, char *argv[])
 		}
 
 		/* look for the optional pwm update rate for the supported modes */
-		if (strcmp(argv[2], "-u") == 0 || strcmp(argv[2], "--update-rate") == 0) {
+		if (argc > 2 && strcmp(argv[2], "-u") == 0 || strcmp(argv[2], "--update-rate") == 0) {
 			if (argc > 2 + 1) {
 #warning implement this 
 			} else {
@@ -1579,16 +1579,31 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "recovery")) {
+
+		if (g_dev != nullptr) {
+			/*
+			 * Enable in-air restart support.
+			 * We can cheat and call the driver directly, as it
+		 	 * doesn't reference filp in ioctl()
+			 */
+			g_dev->ioctl(NULL, PWM_SERVO_INAIR_RESTART_ENABLE, 0);
+		} else {
+			errx(1, "not loaded");
+		}
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "stop")) {
 
-			if (g_dev != nullptr) {
-				/* stop the driver */
-				delete g_dev;
-			} else {
-				errx(1, "not loaded");
-			}
-			exit(0);
+		if (g_dev != nullptr) {
+			/* stop the driver */
+			delete g_dev;
+		} else {
+			errx(1, "not loaded");
 		}
+		exit(0);
+	}
 
 
 	if (!strcmp(argv[1], "status")) {
@@ -1613,8 +1628,9 @@ px4io_main(int argc, char *argv[])
 			exit(1);
 		}
 		uint8_t level = atoi(argv[2]);
-		// we can cheat and call the driver directly, as it
-		// doesn't reference filp in ioctl()
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
 		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_DEBUG, level);
 		if (ret != 0) {
 			printf("SET_DEBUG failed - %d\n", ret);
