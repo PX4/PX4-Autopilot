@@ -164,7 +164,8 @@ controls_tick() {
 				 *
 				 * First normalize to 0..1 range with correct sign (below or above center),
 				 * then scale to 20000 range (if center is an actual center, -10000..10000,
-				 * if center is min 0..20000, if center is max -20000..0).
+				 * if parameters only support half range, scale to 10000 range, e.g. if
+				 * center == min 0..10000, if center == max -10000..0).
 				 *
 				 * As the min and max bounds were enforced in step 1), division by zero
 				 * cannot occur, as for the case of center == min or center == max the if
@@ -173,10 +174,10 @@ controls_tick() {
 				 * DO NOT REMOVE OR ALTER STEP 1!
 				 */
 				if (raw > (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-					scaled = 20000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
 
 				} else if (raw < (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-					scaled = 20000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
 
 				} else {
 					/* in the configured dead zone, output zero */
