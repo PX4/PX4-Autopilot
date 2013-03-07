@@ -3,7 +3,7 @@
  *
  * Code generation for function 'flowNavigation'
  *
- * C source code generated on: Thu Feb 28 10:58:05 2013
+ * C source code generated on: Thu Mar  7 14:09:14 2013
  *
  */
 
@@ -11,6 +11,18 @@
 #define __FLOWNAVIGATION_TYPES_H__
 
 /* Type Definitions */
+#ifndef struct_emxArray_int32_T_1x32
+#define struct_emxArray_int32_T_1x32
+struct emxArray_int32_T_1x32
+{
+    int32_T data[32];
+    int32_T size[2];
+};
+#endif /*struct_emxArray_int32_T_1x32*/
+#ifndef typedef_emxArray_int32_T_1x32
+#define typedef_emxArray_int32_T_1x32
+typedef struct emxArray_int32_T_1x32 emxArray_int32_T_1x32;
+#endif /*typedef_emxArray_int32_T_1x32*/
 
 #endif
 /* End of code generation (flowNavigation_types.h) */

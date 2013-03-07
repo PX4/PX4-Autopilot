@@ -3,7 +3,7 @@
  *
  * Code generation for function 'flowNavigation_initialize'
  *
- * C source code generated on: Thu Feb 28 10:58:05 2013
+ * C source code generated on: Thu Mar  7 14:09:14 2013
  *
  */
 
@@ -11,6 +11,7 @@
 #include "rt_nonfinite.h"
 #include "flowNavigation.h"
 #include "frontFlowKalmanFilter.h"
+#include "wallEstimationFilter.h"
 #include "wallEstimator.h"
 #include "flowNavigation_initialize.h"
 

@@ -3,7 +3,7 @@
  *
  * Code generation for function 'wallEstimator'
  *
- * C source code generated on: Thu Feb 28 10:58:05 2013
+ * C source code generated on: Thu Mar  7 14:09:14 2013
  *
  */
 
@@ -11,6 +11,7 @@
 #include "rt_nonfinite.h"
 #include "flowNavigation.h"
 #include "frontFlowKalmanFilter.h"
+#include "wallEstimationFilter.h"
 #include "wallEstimator.h"
 #include "mldivide.h"
 
@@ -34,13 +35,13 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
   int32_T i;
   real_T vectors[20];
   real32_T flow;
-  static const real_T dv0[20] = { -0.86602540378443871, -0.7880107536067219,
+  static const real_T dv1[20] = { -0.86602540378443871, -0.7880107536067219,
     -0.69465837045899725, -0.58778525229247314, -0.46947156278589081, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.46947156278589081,
     0.58778525229247314, 0.69465837045899725, 0.7880107536067219,
     0.86602540378443871 };
 
-  int32_T i2;
+  int32_T i3;
   static const real_T unit_vectors[40] = { 0.49999999999999994,
     0.61566147532565829, 0.71933980033865119, 0.80901699437494745,
     0.882947592858927, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
@@ -77,10 +78,10 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
     for (i = 0; i < 10; i++) {
       flow = flow_left[i] / 1000.0F;
       if ((real32_T)fabs(flow) > thresholds[1]) {
-        flow = speed[0] / flow * (real32_T)dv0[i];
+        flow = speed[0] / flow * (real32_T)dv1[i];
         if (flow > 0.0F) {
-          for (i2 = 0; i2 < 2; i2++) {
-            vectors[i + 10 * i2] = (real32_T)unit_vectors[i + 20 * i2] * flow;
+          for (i3 = 0; i3 < 2; i3++) {
+            vectors[i + 10 * i3] = (real32_T)unit_vectors[i + 20 * i3] * flow;
           }
         } else {
           invalid_flow_filter[i] = 0;
@@ -97,10 +98,10 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
     }
 
     if (y > (real_T)thresholds[2]) {
-      for (i2 = 0; i2 < 10; i2++) {
-        b_vectors[i2] = vectors[i2] * (real_T)invalid_flow_filter[i2];
-        b_vectors[10 + i2] = (real_T)invalid_flow_filter[i2];
-        c_vectors[i2] = vectors[10 + i2] * (real_T)invalid_flow_filter[i2];
+      for (i3 = 0; i3 < 10; i3++) {
+        b_vectors[i3] = vectors[i3] * (real_T)invalid_flow_filter[i3];
+        b_vectors[10 + i3] = (real_T)invalid_flow_filter[i3];
+        c_vectors[i3] = vectors[10 + i3] * (real_T)invalid_flow_filter[i3];
       }
 
       mldivide(b_vectors, c_vectors, wall);
@@ -119,10 +120,10 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
     for (i = 0; i < 10; i++) {
       flow = flow_right[i] / 1000.0F;
       if ((real32_T)fabs(flow) > thresholds[1]) {
-        flow = speed[0] / flow * (real32_T)dv0[10 + i];
+        flow = speed[0] / flow * (real32_T)dv1[10 + i];
         if (flow > 0.0F) {
-          for (i2 = 0; i2 < 2; i2++) {
-            vectors[i + 10 * i2] = (real32_T)unit_vectors[(i + 20 * i2) + 10] *
+          for (i3 = 0; i3 < 2; i3++) {
+            vectors[i + 10 * i3] = (real32_T)unit_vectors[(i + 20 * i3) + 10] *
               flow;
           }
         } else {
@@ -140,10 +141,10 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
     }
 
     if (y > (real_T)thresholds[2]) {
-      for (i2 = 0; i2 < 10; i2++) {
-        b_vectors[i2] = vectors[i2] * (real_T)invalid_flow_filter[i2];
-        b_vectors[10 + i2] = (real_T)invalid_flow_filter[i2];
-        c_vectors[i2] = vectors[10 + i2] * (real_T)invalid_flow_filter[i2];
+      for (i3 = 0; i3 < 10; i3++) {
+        b_vectors[i3] = vectors[i3] * (real_T)invalid_flow_filter[i3];
+        b_vectors[10 + i3] = (real_T)invalid_flow_filter[i3];
+        c_vectors[i3] = vectors[10 + i3] * (real_T)invalid_flow_filter[i3];
       }
 
       mldivide(b_vectors, c_vectors, wall);

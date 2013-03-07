@@ -236,6 +236,14 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
+				/* sanitize flow data */
+//				if (fabs(flow.flow_comp_x_m) > 5.0f || fabs(flow.flow_comp_y_m) > 5.0f ||
+//						flow.ground_distance_m > 5.0f || flow.ground_distance_m < 0.0f ||
+//						flow.quality <= 0)
+//				{
+//					continue;
+//				}
+
 				if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 
 					/*copy flow */

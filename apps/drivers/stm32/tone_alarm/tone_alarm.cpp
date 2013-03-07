@@ -285,7 +285,7 @@ const tone_note ToneAlarm::_patterns[_max_pattern][_max_pattern_len] = {
 		{TONE_NOTE_F5, 60},
 	},
 	{{TONE_NOTE_C8, 4}},
-	{{TONE_NOTE_D8, 4}}
+	{{TONE_NOTE_B6, 4},{TONE_NOTE_E7, 11}} // coin
 };
 
 const uint16_t ToneAlarm::_notes[_note_max] = {

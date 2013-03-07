@@ -3,7 +3,7 @@
  *
  * Code generation for function 'mldivide'
  *
- * C source code generated on: Thu Feb 28 10:58:05 2013
+ * C source code generated on: Thu Mar  7 14:09:14 2013
  *
  */
 
@@ -11,6 +11,7 @@
 #include "rt_nonfinite.h"
 #include "flowNavigation.h"
 #include "frontFlowKalmanFilter.h"
+#include "wallEstimationFilter.h"
 #include "wallEstimator.h"
 #include "mldivide.h"
 
@@ -24,9 +25,7 @@
 
 /* Function Declarations */
 static real_T b_eml_xnrm2(int32_T n, const real_T x[20], int32_T ix0);
-static real_T eml_matlab_zlarfg(int32_T n, real_T *alpha1, real_T x[20], int32_T
-  ix0);
-static real_T eml_xnrm2(const real_T x[20], int32_T ix0);
+static real_T eml_xnrm2(int32_T n, const real_T x[20], int32_T ix0);
 static real_T rt_hypotd_snf(real_T u0, real_T u1);
 
 /* Function Definitions */
@@ -63,93 +62,37 @@ static real_T b_eml_xnrm2(int32_T n, const real_T x[20], int32_T ix0)
   return y;
 }
 
-static real_T eml_matlab_zlarfg(int32_T n, real_T *alpha1, real_T x[20], int32_T
-  ix0)
-{
-  real_T tau;
-  real_T xnorm;
-  int32_T knt;
-  int32_T i3;
-  int32_T k;
-  tau = 0.0;
-  if (n <= 0) {
-  } else {
-    xnorm = b_eml_xnrm2(n - 1, x, ix0);
-    if (xnorm != 0.0) {
-      xnorm = rt_hypotd_snf(fabs(*alpha1), fabs(xnorm));
-      if (*alpha1 >= 0.0) {
-        xnorm = -xnorm;
-      }
-
-      if (fabs(xnorm) < 1.0020841800044864E-292) {
-        knt = 0;
-        do {
-          knt++;
-          i3 = (ix0 + n) - 2;
-          for (k = ix0; k <= i3; k++) {
-            x[k - 1] *= 9.9792015476736E+291;
-          }
-
-          xnorm *= 9.9792015476736E+291;
-          *alpha1 *= 9.9792015476736E+291;
-        } while (!(fabs(xnorm) >= 1.0020841800044864E-292));
-
-        xnorm = b_eml_xnrm2(n - 1, x, ix0);
-        xnorm = rt_hypotd_snf(fabs(*alpha1), fabs(xnorm));
-        if (*alpha1 >= 0.0) {
-          xnorm = -xnorm;
-        }
-
-        tau = (xnorm - *alpha1) / xnorm;
-        *alpha1 = 1.0 / (*alpha1 - xnorm);
-        i3 = (ix0 + n) - 2;
-        for (k = ix0; k <= i3; k++) {
-          x[k - 1] *= *alpha1;
-        }
-
-        for (k = 1; k <= knt; k++) {
-          xnorm *= 1.0020841800044864E-292;
-        }
-
-        *alpha1 = xnorm;
-      } else {
-        tau = (xnorm - *alpha1) / xnorm;
-        *alpha1 = 1.0 / (*alpha1 - xnorm);
-        i3 = (ix0 + n) - 2;
-        for (k = ix0; k <= i3; k++) {
-          x[k - 1] *= *alpha1;
-        }
-
-        *alpha1 = xnorm;
-      }
-    }
-  }
-
-  return tau;
-}
-
-static real_T eml_xnrm2(const real_T x[20], int32_T ix0)
+static real_T eml_xnrm2(int32_T n, const real_T x[20], int32_T ix0)
 {
   real_T y;
   real_T scale;
+  int32_T kend;
   int32_T k;
   real_T absxk;
   real_T t;
   y = 0.0;
-  scale = 2.2250738585072014E-308;
-  for (k = ix0; k <= ix0 + 9; k++) {
-    absxk = fabs(x[k - 1]);
-    if (absxk > scale) {
-      t = scale / absxk;
-      y = 1.0 + y * t * t;
-      scale = absxk;
-    } else {
-      t = absxk / scale;
-      y += t * t;
+  if (n < 1) {
+  } else if (n == 1) {
+    y = fabs(x[ix0 - 1]);
+  } else {
+    scale = 2.2250738585072014E-308;
+    kend = (ix0 + n) - 1;
+    for (k = ix0; k <= kend; k++) {
+      absxk = fabs(x[k - 1]);
+      if (absxk > scale) {
+        t = scale / absxk;
+        y = 1.0 + y * t * t;
+        scale = absxk;
+      } else {
+        t = absxk / scale;
+        y += t * t;
+      }
     }
+
+    y = scale * sqrt(y);
   }
 
-  return scale * sqrt(y);
+  return y;
 }
 
 static real_T rt_hypotd_snf(real_T u0, real_T u1)
@@ -179,35 +122,52 @@ void mldivide(const real_T A[20], const real_T B[10], real_T Y[2])
   real_T b_B[10];
   real_T b_A[20];
   real_T tau[2];
-  real_T vn1[2];
-  int32_T k;
   int8_T jpvt[2];
   real_T work[2];
-  real_T vn2[2];
   int32_T pvt;
+  real_T vn1[2];
+  real_T vn2[2];
+  int32_T k;
+  real_T y;
   real_T wj;
-  int32_T i;
-  int32_T i_i;
   int32_T iy;
   real_T rankR;
+  real_T t;
+  int32_T i;
+  int32_T i_i;
   int32_T ix;
   int32_T lastv;
   int32_T lastc;
   boolean_T exitg2;
   int32_T exitg1;
   int32_T jy;
-  real_T y;
-  real_T t;
   memcpy(&b_B[0], &B[0], 10U * sizeof(real_T));
   memcpy(&b_A[0], &A[0], 20U * sizeof(real_T));
-  k = 1;
   for (pvt = 0; pvt < 2; pvt++) {
     jpvt[pvt] = (int8_T)(1 + pvt);
     work[pvt] = 0.0;
-    wj = eml_xnrm2(A, k);
-    vn2[pvt] = wj;
+  }
+
+  k = 1;
+  for (pvt = 0; pvt < 2; pvt++) {
+    y = 0.0;
+    wj = 2.2250738585072014E-308;
+    for (iy = k; iy <= k + 9; iy++) {
+      rankR = fabs(A[iy - 1]);
+      if (rankR > wj) {
+        t = wj / rankR;
+        y = 1.0 + y * t * t;
+        wj = rankR;
+      } else {
+        t = rankR / wj;
+        y += t * t;
+      }
+    }
+
+    y = wj * sqrt(y);
+    vn1[pvt] = y;
+    vn2[pvt] = vn1[pvt];
     k += 10;
-    vn1[pvt] = wj;
   }
 
   for (i = 0; i < 2; i++) {
@@ -246,11 +206,61 @@ void mldivide(const real_T A[20], const real_T B[10], real_T Y[2])
       vn2[pvt] = vn2[i];
     }
 
-    rankR = b_A[i_i];
-    tau[i] = eml_matlab_zlarfg(10 - i, &rankR, b_A, i_i + 2);
-    b_A[i_i] = rankR;
+    t = b_A[i_i];
+    rankR = 0.0;
+    wj = eml_xnrm2(9 - i, b_A, i_i + 2);
+    if (wj != 0.0) {
+      wj = rt_hypotd_snf(fabs(b_A[i_i]), wj);
+      if (b_A[i_i] >= 0.0) {
+        wj = -wj;
+      }
+
+      if (fabs(wj) < 1.0020841800044864E-292) {
+        iy = 0;
+        do {
+          iy++;
+          pvt = (i_i - i) + 10;
+          for (k = i_i + 1; k + 1 <= pvt; k++) {
+            b_A[k] *= 9.9792015476736E+291;
+          }
+
+          wj *= 9.9792015476736E+291;
+          t *= 9.9792015476736E+291;
+        } while (!(fabs(wj) >= 1.0020841800044864E-292));
+
+        wj = rt_hypotd_snf(fabs(t), eml_xnrm2(9 - i, b_A, i_i + 2));
+        if (t >= 0.0) {
+          wj = -wj;
+        }
+
+        rankR = (wj - t) / wj;
+        t = 1.0 / (t - wj);
+        pvt = (i_i - i) + 10;
+        for (k = i_i + 1; k + 1 <= pvt; k++) {
+          b_A[k] *= t;
+        }
+
+        for (k = 1; k <= iy; k++) {
+          wj *= 1.0020841800044864E-292;
+        }
+
+        t = wj;
+      } else {
+        rankR = (wj - b_A[i_i]) / wj;
+        t = 1.0 / (b_A[i_i] - wj);
+        pvt = (i_i - i) + 10;
+        for (k = i_i + 1; k + 1 <= pvt; k++) {
+          b_A[k] *= t;
+        }
+
+        t = wj;
+      }
+    }
+
+    tau[i] = rankR;
+    b_A[i_i] = t;
     if (i + 1 < 2) {
-      rankR = b_A[i_i];
+      t = b_A[i_i];
       b_A[i_i] = 1.0;
       if (tau[0] != 0.0) {
         lastv = 10;
@@ -323,7 +333,7 @@ void mldivide(const real_T A[20], const real_T B[10], real_T Y[2])
         }
       }
 
-      b_A[i_i] = rankR;
+      b_A[i_i] = t;
     }
 
     pvt = i + 2;
@@ -338,23 +348,8 @@ void mldivide(const real_T A[20], const real_T B[10], real_T Y[2])
 
         wj = vn1[1] / vn2[1];
         if (rankR * (wj * wj) <= 1.4901161193847656E-8) {
-          y = 0.0;
-          wj = 2.2250738585072014E-308;
-          for (k = i; k + 12 < 21; k++) {
-            rankR = fabs(b_A[k + 11]);
-            if (rankR > wj) {
-              t = wj / rankR;
-              y = 1.0 + y * t * t;
-              wj = rankR;
-            } else {
-              t = rankR / wj;
-              y += t * t;
-            }
-          }
-
-          y = wj * sqrt(y);
-          vn1[1] = y;
-          vn2[1] = y;
+          vn1[1] = b_eml_xnrm2(9 - i, b_A, i + 12);
+          vn2[1] = vn1[1];
         } else {
           vn1[1] *= sqrt(rankR);
         }

@@ -55,17 +55,20 @@
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/omnidirectional_flow.h>
-#include <uORB/topics/wall_estimation.h>
+#include <uORB/topics/discrete_radar.h>
 
 #include "flow_navigation_params.h"
 #include "sounds.h"
 #include "codegen/flowNavigation.h";
 #include "codegen/frontFlowKalmanFilter.h"
+#include "codegen/wallEstimationFilter.h"
 #include "codegen/wallEstimator.h"
 
 static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
 static int daemon_task;				/**< Handle of daemon task / thread */
+
+static const int radar_resolution = 32;
 
 /**
  * Daemon management function.
@@ -116,7 +119,7 @@ int flow_navigation_main(int argc, char *argv[])
 		daemon_task = task_spawn("flow_navigation",
 					 SCHED_RR,
 					 SCHED_PRIORITY_DEFAULT,
-					 4096,
+					 8162,
 					 flow_navigation_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
@@ -163,8 +166,8 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 	struct vehicle_local_position_setpoint_s local_pos_sp;
 	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
-	struct wall_estimation_s wall_estimation;
-	memset(&wall_estimation, 0, sizeof(wall_estimation));
+	struct discrete_radar_s discrete_radar;
+	memset(&discrete_radar, 0, sizeof(discrete_radar));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -176,7 +179,7 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 
 	orb_advert_t vehicle_local_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
-	orb_advert_t wall_estimation_pub = orb_advertise(ORB_ID(wall_estimation), &wall_estimation);
+	orb_advert_t discrete_radar_pub = orb_advertise(ORB_ID(discrete_radar), &discrete_radar);
 
 	/* parameters init*/
 	struct flow_navigation_params params;
@@ -198,6 +201,8 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	int tone_frequence = 100;
 	int tone_counter = 0;
 	uint64_t time_last_flow = 0;
+
+	/* flow filter parameters */
 	static float flow_aposteriori_k[40] = { 0.0f };
 	static float speed_aposteriori_k[4] = { 0.0f };
 	static float flow_aposteriori[40] = { 0.0f };
@@ -206,7 +211,15 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	static float omni_right_filtered[10] = { 0.0f };
 	static float speed[2] = { 0.0f };
 	static float speed_filtered[2] = { 0.0f };
+
+	/* wall estimation parameters */
 	static float thresholds[3] = { 0.05f, 0.05f, 2.0f };
+
+	static float radar[32] = { 0.0f };
+	static float radar_filtered[32] = { 0.0f };
+	static float radar_weights[32] = { 0.0f };
+	static float radar_filtered_k[32] = { 0.0f };
+	static float radar_weights_k[32] = { 0.0f };
 	static float distance_left = 0.0f;
 	static float distance_right = 0.0f;
 	int sonar_counter = 0;
@@ -293,7 +306,17 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 				local_pos_sp.y = speed_filtered[1];
 
 //				wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, 0.5, 0, &distance_left, &distance_right);
-				wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, thresholds, &distance_left, &distance_right);
+//				wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, thresholds, &distance_left, &distance_right);
+				wallEstimationFilter(radar_filtered_k, radar_weights_k, omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, thresholds, radar, radar_filtered, radar_weights);
+				memcpy(radar_filtered_k, radar_filtered, sizeof(radar_filtered));
+				memcpy(radar_weights_k, radar_weights, sizeof(radar_weights));
+
+				for (int i = 0; i<32; i++) {
+					discrete_radar.distances[i] = (int16_t)(radar[i] * 1000);
+				}
+				distance_left = radar_filtered[8];
+				distance_right = radar_filtered[24];
+
 
 				int gradient_left = 0;
 				int gradient_right = 0;
@@ -331,10 +354,9 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 				local_pos_sp.z = distance_left;
 				local_pos_sp.yaw = distance_right;
 
-				wall_estimation.left[0] = distance_left;
-				wall_estimation.right[0] = distance_right;
+				discrete_radar.timestamp = hrt_absolute_time();
 				orb_publish(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_sp_pub, &local_pos_sp);
-				orb_publish(ORB_ID(wall_estimation), wall_estimation_pub, &wall_estimation);
+				orb_publish(ORB_ID(discrete_radar), discrete_radar_pub, &discrete_radar);
 
 //				if(params.pos_sp_x)
 //				{

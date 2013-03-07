@@ -114,6 +114,7 @@ static void	l_vehicle_attitude_controls(struct listener *l);
 static void	l_debug_key_value(struct listener *l);
 static void	l_optical_flow(struct listener *l);
 static void	l_omnidirectional_flow(struct listener *l);
+static void	l_discrete_radar(struct listener *l);
 static void	l_vehicle_rates_setpoint(struct listener *l);
 static void	l_home(struct listener *l);
 
@@ -139,6 +140,7 @@ struct listener listeners[] = {
 	{l_debug_key_value,		&mavlink_subs.debug_key_value,	0},
 	{l_optical_flow,		&mavlink_subs.optical_flow,	0},
 	{l_omnidirectional_flow,		&mavlink_subs.omnidirectional_flow,	0},
+	{l_discrete_radar,		&mavlink_subs.discrete_radar,	0},
 	{l_vehicle_rates_setpoint,	&mavlink_subs.rates_setpoint_sub,	0},
 	{l_home,			&mavlink_subs.home_sub,		0},
 };
@@ -637,6 +639,40 @@ l_omnidirectional_flow(struct listener *l)
 }
 
 void
+l_discrete_radar(struct listener *l)
+{
+	struct discrete_radar_s discrete_radar;
+
+	orb_copy(ORB_ID(discrete_radar), mavlink_subs.discrete_radar, &discrete_radar);
+
+	int16_t left[10] = { 	discrete_radar.distances[4],
+							discrete_radar.distances[5],
+							discrete_radar.distances[6],
+							discrete_radar.distances[7],
+							discrete_radar.distances[8],
+							discrete_radar.distances[9],
+							discrete_radar.distances[10],
+							discrete_radar.distances[11],
+							discrete_radar.distances[12],
+							discrete_radar.distances[13]
+	};
+	int16_t right[10] = { 	discrete_radar.distances[19],
+							discrete_radar.distances[20],
+							discrete_radar.distances[21],
+							discrete_radar.distances[22],
+							discrete_radar.distances[23],
+							discrete_radar.distances[24],
+							discrete_radar.distances[25],
+							discrete_radar.distances[26],
+							discrete_radar.distances[27],
+							discrete_radar.distances[28]
+	};
+
+	mavlink_msg_omnidirectional_flow_send(MAVLINK_COMM_0, discrete_radar.timestamp, 5,
+			left, right, 1, 1);
+}
+
+void
 l_home(struct listener *l)
 {
 	struct home_position_s home;
@@ -787,7 +823,11 @@ uorb_receive_start(void)
 
 	/* --- OMNIDIRECTIONAL FLOW SENSOR --- */
 	mavlink_subs.omnidirectional_flow = orb_subscribe(ORB_ID(omnidirectional_flow));
-	orb_set_interval(mavlink_subs.omnidirectional_flow, 200); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.omnidirectional_flow, 2000); 	/* 5Hz updates */
+
+	/* --- DISCRETE RADAR ESTIMATIONS --- */
+	mavlink_subs.discrete_radar = orb_subscribe(ORB_ID(discrete_radar));
+	orb_set_interval(mavlink_subs.discrete_radar, 100); 	/* 5Hz updates */
 
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;

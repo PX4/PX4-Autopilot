@@ -117,7 +117,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/wall_estimation.h>
+#include <uORB/topics/discrete_radar.h>
 
 static const float MAX_CELL_VOLTAGE	= 4.3f;
 static const int LED_ONTIME = 120;
@@ -383,7 +383,7 @@ BlinkM::led()
 
 	static int vehicle_status_sub_fd;
 	static int vehicle_gps_position_sub_fd;
-	static int wall_estimation_sub_fd;
+	static int discrete_radar_sub_fd;
 
 	static int num_of_cells = 0;
 	static int detected_cells_runcount = 0;
@@ -395,7 +395,7 @@ BlinkM::led()
 
 	static int no_data_vehicle_status = 0;
 	static int no_data_vehicle_gps_position = 0;
-	static int no_data_wall_estimation = 0;
+	static int no_data_discrete_radar = 0;
 
 	static bool topic_initialized = false;
 	static bool detected_cells_blinked = false;
@@ -668,8 +668,8 @@ BlinkM::led()
 	case COLLITIONSTATE_MODE:
 
 		if(!topic_initialized) {
-			wall_estimation_sub_fd = orb_subscribe(ORB_ID(wall_estimation));
-			orb_set_interval(wall_estimation_sub_fd, 1000);
+			discrete_radar_sub_fd = orb_subscribe(ORB_ID(discrete_radar));
+			orb_set_interval(discrete_radar_sub_fd, 1000);
 
 			set_fade_speed(150);
 			led_interval = 50;
@@ -677,27 +677,27 @@ BlinkM::led()
 			topic_initialized = true;
 		}
 
-		struct wall_estimation_s wall_estimation_raw;
-		memset(&wall_estimation_raw, 0, sizeof(wall_estimation_raw));
+		struct discrete_radar_s discrete_radar_raw;
+		memset(&discrete_radar_raw, 0, sizeof(discrete_radar_raw));
 
-		bool new_data_wall_estimation;
+		bool new_data_discrete_radar;
 
-		orb_check(vehicle_status_sub_fd, &new_data_wall_estimation);
+		orb_check(vehicle_status_sub_fd, &new_data_discrete_radar);
 
-		orb_check(wall_estimation_sub_fd, &new_data_wall_estimation);
+		orb_check(discrete_radar_sub_fd, &new_data_discrete_radar);
 
-		if (wall_estimation_sub_fd) {
-			orb_copy(ORB_ID(wall_estimation), wall_estimation_sub_fd, &wall_estimation_raw);
-			no_data_wall_estimation = 0;
+		if (discrete_radar_sub_fd) {
+			orb_copy(ORB_ID(discrete_radar), discrete_radar_sub_fd, &discrete_radar_raw);
+			no_data_discrete_radar = 0;
 		} else {
-			no_data_wall_estimation++;
-			if(no_data_wall_estimation >= 3)
-				no_data_wall_estimation = 3;
+			no_data_discrete_radar++;
+			if(no_data_discrete_radar >= 3)
+				no_data_discrete_radar = 3;
 		}
 
-		if(new_data_wall_estimation || no_data_wall_estimation < 3){
-			float dist_left = fabs(wall_estimation_raw.left[0]);
-			float dist_right = fabs(wall_estimation_raw.right[0]);
+		if(new_data_discrete_radar || no_data_discrete_radar < 3){
+			float dist_left = fabs((float)discrete_radar_raw.distances[10] / 1000.0f);
+			float dist_right = fabs((float)discrete_radar_raw.distances[22] / 1000.0f);
 			int gradient_left = 0;
 			int gradient_right = 0;
 
@@ -746,7 +746,7 @@ BlinkM::led()
 
 		no_data_vehicle_status = 0;
 		no_data_vehicle_gps_position = 0;
-		no_data_wall_estimation = 0;
+		no_data_discrete_radar = 0;
 
 		topic_initialized = false;
 		detected_cells_blinked = false;

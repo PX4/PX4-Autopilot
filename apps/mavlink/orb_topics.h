@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/omnidirectional_flow.h>
+#include <uORB/topics/discrete_radar.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_controls.h>
@@ -83,6 +84,7 @@ struct mavlink_subscriptions {
 	int input_rc_sub;
 	int optical_flow;
 	int omnidirectional_flow;
+	int discrete_radar;
 	int rates_setpoint_sub;
 	int home_sub;
 };

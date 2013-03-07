@@ -50,6 +50,7 @@ CSRCS		 = flow_navigation.c \
 		   codegen/rt_nonfinite.c \
 		   codegen/rtGetInf.c \
 		   codegen/rtGetNaN.c \
+		   codegen/wallEstimationFilter.c \
 		   codegen/wallEstimator.c
 
 include $(APPDIR)/mk/app.mk

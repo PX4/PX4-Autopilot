@@ -119,9 +119,6 @@ ORB_DEFINE(optical_flow, struct optical_flow_s);
 #include "topics/omnidirectional_flow.h"
 ORB_DEFINE(omnidirectional_flow, struct omnidirectional_flow_s);
 
-#include "topics/wall_estimation.h"
-ORB_DEFINE(wall_estimation, struct wall_estimation_s);
-
 #include "topics/discrete_radar.h"
 ORB_DEFINE(discrete_radar, struct discrete_radar_s);
 
