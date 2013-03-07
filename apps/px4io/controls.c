@@ -147,32 +147,43 @@ controls_tick() {
 
 				uint16_t raw = r_raw_rc_values[i];
 
-				/* implement the deadzone */
-				if (raw < conf[PX4IO_P_RC_CONFIG_CENTER]) {
-					raw += conf[PX4IO_P_RC_CONFIG_DEADZONE];
-					if (raw > conf[PX4IO_P_RC_CONFIG_CENTER])
-						raw = conf[PX4IO_P_RC_CONFIG_CENTER];
-				}
-				if (raw > conf[PX4IO_P_RC_CONFIG_CENTER]) {
-					raw -= conf[PX4IO_P_RC_CONFIG_DEADZONE];
-					if (raw < conf[PX4IO_P_RC_CONFIG_CENTER])
-						raw = conf[PX4IO_P_RC_CONFIG_CENTER];
-				}
+				int16_t scaled;
 
-				/* constrain to min/max values */
+				/*
+				 * 1) Constrain to min/max values, as later processing depends on bounds.
+				 */
 				if (raw < conf[PX4IO_P_RC_CONFIG_MIN])
 					raw = conf[PX4IO_P_RC_CONFIG_MIN];
 				if (raw > conf[PX4IO_P_RC_CONFIG_MAX])
 					raw = conf[PX4IO_P_RC_CONFIG_MAX];
 
-				int16_t scaled = raw;
+				/*
+				 * 2) Scale around the mid point differently for lower and upper range.
+				 *
+				 * This is necessary as they don't share the same endpoints and slope.
+				 *
+				 * First normalize to 0..1 range with correct sign (below or above center),
+				 * then scale to 20000 range (if center is an actual center, -10000..10000,
+				 * if center is min 0..20000, if center is max -20000..0).
+				 *
+				 * As the min and max bounds were enforced in step 1), division by zero
+				 * cannot occur, as for the case of center == min or center == max the if
+				 * statement is mutually exclusive with the arithmetic NaN case.
+				 *
+				 * DO NOT REMOVE OR ALTER STEP 1!
+				 */
+				if (raw > (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+					scaled = 20.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
 
-				/* adjust to zero-relative around center (nominal -500..500) */
-				scaled -= conf[PX4IO_P_RC_CONFIG_CENTER];
+				} else if (raw < (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+					scaled = 20.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
 
-				/* scale to fixed-point representation (-10000..10000) */
-				scaled *= 20;
+				} else {
+					/* in the configured dead zone, output zero */
+					scaled = 0;
+				}
 
+				/* invert channel if requested */
 				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE)
 					scaled = -scaled;
 
