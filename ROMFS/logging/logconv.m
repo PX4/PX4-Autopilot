@@ -33,7 +33,7 @@ end
 % float vbat; //battery voltage in [volt]
 % float bat_current - current drawn from battery at this time instant
 % float bat_discharged - discharged energy in mAh
-% float adc[3]; //remaining auxiliary ADC ports [volt]
+% float adc[4]; //ADC ports [volt]
 % float local_position[3]; //tangent plane mapping into x,y,z [m]
 % int32_t gps_raw_position[3]; //latitude [degrees] north, longitude [degrees] east, altitude above MSL [millimeter]
 % float attitude[3]; //pitch, roll, yaw [rad]
@@ -57,7 +57,7 @@ logFormat{9} = struct('name', 'actuators',             'bytes', 4, 'array', 8, '
 logFormat{10} = struct('name', 'vbat',                 'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{11} = struct('name', 'bat_current',          'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{12} = struct('name', 'bat_discharged',       'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-logFormat{13} = struct('name', 'adc',                  'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
+logFormat{13} = struct('name', 'adc',                  'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{14} = struct('name', 'local_position',       'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
 logFormat{15} = struct('name', 'gps_raw_position',     'bytes', 4, 'array', 3, 'precision', 'uint32',  'machineformat', 'ieee-le');
 logFormat{16} = struct('name', 'attitude',             'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
