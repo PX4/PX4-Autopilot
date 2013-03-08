@@ -3,7 +3,7 @@
  *
  * Code generation for function 'flowNavigation'
  *
- * C source code generated on: Thu Mar  7 14:09:14 2013
+ * C source code generated on: Fri Mar  8 13:08:40 2013
  *
  */
 
@@ -24,7 +24,7 @@
  * Target hardware information
  *   Device type: Generic->MATLAB Host Computer
  *   Number of bits:     char:   8    short:   16    int:  32
- *                       long:  32      native word size:  32
+ *                       long:  64      native word size:  64
  *   Byte ordering: LittleEndian
  *   Signed integer division rounds to: Zero
  *   Shift right on a signed integer as arithmetic shift: on
@@ -43,6 +43,8 @@ typedef short int16_T;
 typedef unsigned short uint16_T;
 typedef int int32_T;
 typedef unsigned int uint32_T;
+typedef long int64_T;
+typedef unsigned long uint64_T;
 typedef float real32_T;
 typedef double real64_T;
 
@@ -55,7 +57,7 @@ typedef double real_T;
 typedef double time_T;
 typedef unsigned char boolean_T;
 typedef int int_T;
-typedef unsigned int uint_T;
+typedef unsigned uint_T;
 typedef unsigned long ulong_T;
 typedef char char_T;
 typedef char_T byte_T;
@@ -109,6 +111,16 @@ typedef char_T byte_T;
      uint32_T im;  
    } cuint32_T;  
 
+   typedef struct {  
+     int64_T re;  
+     int64_T im;  
+   } cint64_T;  
+
+   typedef struct {  
+     uint64_T re;  
+     uint64_T im;  
+   } cuint64_T;  
+
 
 /*=======================================================================* 
  * Min and Max:                                                          * 
@@ -128,6 +140,10 @@ typedef char_T byte_T;
 #define MIN_int32_T 	((int32_T)(-2147483647-1))
 #define MAX_uint32_T	((uint32_T)(0xFFFFFFFFU))
 #define MIN_uint32_T	((uint32_T)(0))
+#define MAX_int64_T	((int64_T)(9223372036854775807L))
+#define MIN_int64_T	((int64_T)(-9223372036854775807L-1L))
+#define MAX_uint64_T	((uint64_T)(0xFFFFFFFFFFFFFFFFUL))
+#define MIN_uint64_T	((uint64_T)(0UL))
 
 /* Logical type definitions */
 #if !defined(__cplusplus) && !defined(__true_false_are_keywords)

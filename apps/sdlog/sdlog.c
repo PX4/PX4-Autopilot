@@ -70,6 +70,7 @@
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/omnidirectional_flow.h>
+#include <uORB/topics/discrete_radar.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 
@@ -444,6 +445,7 @@ int sdlog_thread_main(int argc, char *argv[])
 		struct vehicle_vicon_position_s vicon_pos;
 		struct optical_flow_s optical_flow;
 		struct omnidirectional_flow_s omnidirectional_flow;
+		struct discrete_radar_s discrete_radar;
 		struct battery_status_s batt;
 		struct differential_pressure_s diff_pressure;
 	} buf;
@@ -463,6 +465,7 @@ int sdlog_thread_main(int argc, char *argv[])
 		int vicon_pos_sub;
 		int optical_flow_sub;
 		int omnidirectional_flow_sub;
+		int discrete_radar_sub;
 		int batt_sub;
 		int diff_pressure_sub;
 	} subs;
@@ -556,6 +559,13 @@ int sdlog_thread_main(int argc, char *argv[])
 	/* subscribe to ORB for omnidirectional flow measurements */
 	subs.omnidirectional_flow_sub = orb_subscribe(ORB_ID(omnidirectional_flow));
 	fds[fdsc_count].fd = subs.omnidirectional_flow_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- DISCRETE RADAR --- */
+	/* subscribe to ORB for discrete radar */
+	subs.discrete_radar_sub = orb_subscribe(ORB_ID(discrete_radar));
+	fds[fdsc_count].fd = subs.discrete_radar_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -665,6 +675,7 @@ int sdlog_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
 				orb_copy(ORB_ID(optical_flow), subs.optical_flow_sub, &buf.optical_flow);
 				orb_copy(ORB_ID(omnidirectional_flow), subs.omnidirectional_flow_sub, &buf.omnidirectional_flow);
+				orb_copy(ORB_ID(discrete_radar), subs.discrete_radar_sub, &buf.discrete_radar);
 				orb_copy(ORB_ID(differential_pressure), subs.diff_pressure_sub, &buf.diff_pressure);
 				orb_copy(ORB_ID(battery_status), subs.batt_sub, &buf.batt);
 
@@ -709,7 +720,17 @@ int sdlog_thread_main(int argc, char *argv[])
 						buf.omnidirectional_flow.right[2], buf.omnidirectional_flow.right[3], buf.omnidirectional_flow.right[4], buf.omnidirectional_flow.right[5],
 						buf.omnidirectional_flow.right[6], buf.omnidirectional_flow.right[7], buf.omnidirectional_flow.right[8], buf.omnidirectional_flow.right[9],
 						buf.omnidirectional_flow.front_distance_m, buf.omnidirectional_flow.quality
-				},
+					},
+					.discrete_radar = {
+						buf.discrete_radar.distances[0], buf.discrete_radar.distances[1], buf.discrete_radar.distances[2], buf.discrete_radar.distances[3],
+						buf.discrete_radar.distances[4], buf.discrete_radar.distances[5], buf.discrete_radar.distances[6], buf.discrete_radar.distances[7],
+						buf.discrete_radar.distances[8], buf.discrete_radar.distances[9], buf.discrete_radar.distances[10], buf.discrete_radar.distances[11],
+						buf.discrete_radar.distances[12], buf.discrete_radar.distances[13], buf.discrete_radar.distances[14], buf.discrete_radar.distances[15],
+						buf.discrete_radar.distances[16], buf.discrete_radar.distances[17], buf.discrete_radar.distances[18], buf.discrete_radar.distances[19],
+						buf.discrete_radar.distances[20], buf.discrete_radar.distances[21], buf.discrete_radar.distances[22], buf.discrete_radar.distances[23],
+						buf.discrete_radar.distances[24], buf.discrete_radar.distances[25], buf.discrete_radar.distances[26], buf.discrete_radar.distances[27],
+						buf.discrete_radar.distances[28], buf.discrete_radar.distances[29], buf.discrete_radar.distances[30], buf.discrete_radar.distances[31]
+					},
 					.diff_pressure = buf.diff_pressure.differential_pressure_mbar,
 					.ind_airspeed = buf.diff_pressure.indicated_airspeed_m_s,
 					.true_airspeed = buf.diff_pressure.true_airspeed_m_s

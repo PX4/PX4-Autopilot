@@ -823,7 +823,7 @@ uorb_receive_start(void)
 
 	/* --- OMNIDIRECTIONAL FLOW SENSOR --- */
 	mavlink_subs.omnidirectional_flow = orb_subscribe(ORB_ID(omnidirectional_flow));
-	orb_set_interval(mavlink_subs.omnidirectional_flow, 2000); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.omnidirectional_flow, 100000); 	/* 5Hz updates */
 
 	/* --- DISCRETE RADAR ESTIMATIONS --- */
 	mavlink_subs.discrete_radar = orb_subscribe(ORB_ID(discrete_radar));

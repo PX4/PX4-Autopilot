@@ -65,6 +65,7 @@ struct sdlog_sysvector {
 	float control_effective[4]; 	/**< roll, pitch, yaw [-1..1], thrust [0..1] */
 	float optical_flow[6];			/**< flow raw x, y, flow metric x, y, flow ground dist, flow quality */
 	float omnidirectional_flow[22];	/**< flow left 1-10, flow right 1-10, flow front dist, flow quality */
+	float discrete_radar[32];	/**< flow left 1-10, flow right 1-10, flow front dist, flow quality */
 	float diff_pressure;	/**< differential pressure */
 	float ind_airspeed;		/**< indicated airspeed */
 	float true_airspeed;	/**< true airspeed */

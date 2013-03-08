@@ -244,7 +244,7 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 //					continue;
 //				}
 
-				if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
+				if (vstatus.state_machine == SYSTEM_STATE_AUTO || vstatus.state_machine == SYSTEM_STATE_STANDBY) {
 
 					/*copy flow */
 					flow_speed[0] = flow.flow_comp_x_m;

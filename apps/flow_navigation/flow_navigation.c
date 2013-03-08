@@ -214,7 +214,10 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 	/* wall estimation parameters */
 	static float thresholds[3] = { 0.05f, 0.05f, 2.0f };
-
+	static float position_last[2] = { 0.0f };
+	static float position_update[2] = { 0.0f };
+	static float yaw_last = 0.0f;
+	static float yaw_update = 0.0f;
 	static float radar[32] = { 0.0f };
 	static float radar_filtered[32] = { 0.0f };
 	static float radar_weights[32] = { 0.0f };
@@ -301,13 +304,23 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 				speed_filtered[0] = speed_aposteriori[0];
 				speed_filtered[1] = speed_aposteriori[2];
 
+				if (position_last[0] != 0.0f && position_last[0] != 0.0f && yaw_last != 0.0f) {
+					position_update[0] = local_pos.x - position_last[0];
+					position_update[1] = local_pos.y - position_last[1];
+					yaw_update = att.yaw - yaw_last;
+				}
+
+				position_last[0] = local_pos.x;
+				position_last[1] = local_pos.y;
+				yaw_last = att.yaw;
+
 				/* debug */
 				local_pos_sp.x = speed_filtered[0];
 				local_pos_sp.y = speed_filtered[1];
 
 //				wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, 0.5, 0, &distance_left, &distance_right);
 //				wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, thresholds, &distance_left, &distance_right);
-				wallEstimationFilter(radar_filtered_k, radar_weights_k, omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, thresholds, radar, radar_filtered, radar_weights);
+				wallEstimationFilter(radar_filtered_k, radar_weights_k, omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, position_update, yaw_update, thresholds, radar, radar_filtered, radar_weights);
 				memcpy(radar_filtered_k, radar_filtered, sizeof(radar_filtered));
 				memcpy(radar_weights_k, radar_weights, sizeof(radar_weights));
 
@@ -369,6 +382,11 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 //				} else {
 //					played = false;
 //				}
+
+				/* reset parameters */
+				position_update[0] = 0.0f;
+				position_update[1] = 0.0f;
+				yaw_update = 0.0f;
 
 				/* measure in what intervals the controller runs */
 				perf_count(mc_interval_perf);

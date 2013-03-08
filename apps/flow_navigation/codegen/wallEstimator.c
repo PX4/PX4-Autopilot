@@ -3,7 +3,7 @@
  *
  * Code generation for function 'wallEstimator'
  *
- * C source code generated on: Thu Mar  7 14:09:14 2013
+ * C source code generated on: Fri Mar  8 13:08:40 2013
  *
  */
 
@@ -35,7 +35,7 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
   int32_T i;
   real_T vectors[20];
   real32_T flow;
-  static const real_T dv1[20] = { -0.86602540378443871, -0.7880107536067219,
+  static const real_T dv0[20] = { -0.86602540378443871, -0.7880107536067219,
     -0.69465837045899725, -0.58778525229247314, -0.46947156278589081, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.46947156278589081,
     0.58778525229247314, 0.69465837045899725, 0.7880107536067219,
@@ -78,7 +78,7 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
     for (i = 0; i < 10; i++) {
       flow = flow_left[i] / 1000.0F;
       if ((real32_T)fabs(flow) > thresholds[1]) {
-        flow = speed[0] / flow * (real32_T)dv1[i];
+        flow = speed[0] / flow * (real32_T)dv0[i];
         if (flow > 0.0F) {
           for (i3 = 0; i3 < 2; i3++) {
             vectors[i + 10 * i3] = (real32_T)unit_vectors[i + 20 * i3] * flow;
@@ -104,7 +104,7 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
         c_vectors[i3] = vectors[10 + i3] * (real_T)invalid_flow_filter[i3];
       }
 
-      mldivide(b_vectors, c_vectors, wall);
+      b_mldivide(b_vectors, c_vectors, wall);
       if (wall[1] < 0.0) {
         /* && wall(2) > -10 % left wall can only be in negative y range... else invalid data (max 10m) */
         *dist_left = (real32_T)-wall[1];
@@ -120,7 +120,7 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
     for (i = 0; i < 10; i++) {
       flow = flow_right[i] / 1000.0F;
       if ((real32_T)fabs(flow) > thresholds[1]) {
-        flow = speed[0] / flow * (real32_T)dv1[10 + i];
+        flow = speed[0] / flow * (real32_T)dv0[10 + i];
         if (flow > 0.0F) {
           for (i3 = 0; i3 < 2; i3++) {
             vectors[i + 10 * i3] = (real32_T)unit_vectors[(i + 20 * i3) + 10] *
@@ -147,7 +147,7 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
         c_vectors[i3] = vectors[10 + i3] * (real_T)invalid_flow_filter[i3];
       }
 
-      mldivide(b_vectors, c_vectors, wall);
+      b_mldivide(b_vectors, c_vectors, wall);
       if (wall[1] > 0.0) {
         /* && wall(2) < 10 % right wall can only be in positiv y range... else invalid data (max 10m) */
         *dist_right = (real32_T)wall[1];
