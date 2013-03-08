@@ -125,6 +125,7 @@ CONFIGURED_APPS += drivers/stm32/adc
 CONFIGURED_APPS += drivers/px4fmu
 CONFIGURED_APPS += drivers/hil
 CONFIGURED_APPS += drivers/gps
+CONFIGURED_APPS += drivers/mb12xx
 
 # Testing stuff
 CONFIGURED_APPS += px4/sensors_bringup
