@@ -100,7 +100,7 @@ class MB12XX : public device::I2C
 {
 public:
 	MB12XX(int bus = MB12XX_BUS, int address = MB12XX_BASEADDR);
-	~MB12XX();
+	virtual ~MB12XX();
 	
 	virtual int 		init();
 	

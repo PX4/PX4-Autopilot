@@ -104,7 +104,7 @@ class MS5611 : public device::I2C
 {
 public:
 	MS5611(int bus);
-	~MS5611();
+	virtual ~MS5611();
 
 	virtual int		init();
 

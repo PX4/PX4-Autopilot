@@ -91,7 +91,7 @@ class PX4IO : public device::I2C
 {
 public:
 	PX4IO();
-	~PX4IO();
+	virtual ~PX4IO();
 
 	virtual int		init();
 

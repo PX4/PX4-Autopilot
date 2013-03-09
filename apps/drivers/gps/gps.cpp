@@ -86,7 +86,7 @@ class GPS : public device::CDev
 {
 public:
 	GPS(const char* uart_path);
-	~GPS();
+	virtual ~GPS();
 
 	virtual int			init();
 

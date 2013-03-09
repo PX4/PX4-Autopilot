@@ -127,7 +127,7 @@ class BlinkM : public device::I2C
 {
 public:
 	BlinkM(int bus, int blinkm);
-	~BlinkM();
+	virtual ~BlinkM();
 
 
 	virtual int		init();
