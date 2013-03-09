@@ -36,15 +36,8 @@
  */
 
 #include <nuttx/config.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <debug.h>
-#include <stdlib.h>
-#include <errno.h>
 
-#include <nuttx/clock.h>
+#include <stdbool.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -116,30 +109,28 @@ safety_check_button(void *arg)
 	 * state machine, keep ARM_COUNTER_THRESHOLD the same
 	 * length in all cases of the if/else struct below.
 	 */
-	if (safety_button_pressed && !system_state.armed) {
+	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
 
 		if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
-			/* change to armed state and notify the FMU */
-			system_state.armed = true;
+			/* switch to armed state */
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_ARMED;
 			counter++;
-			system_state.fmu_report_due = true;
 		}
 
 		/* Disarm quickly */
 
-	} else if (safety_button_pressed && system_state.armed) {
+	} else if (safety_button_pressed && (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
 
 		if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* change to disarmed state and notify the FMU */
-			system_state.armed = false;
+			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
 			counter++;
-			system_state.fmu_report_due = true;
 		}
 
 	} else {
@@ -149,18 +140,18 @@ safety_check_button(void *arg)
 	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
 	uint16_t pattern = LED_PATTERN_SAFE;
 
-	if (system_state.armed) {
-		if (system_state.arm_ok) {
+	if (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) {
+		if (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) {
 			pattern = LED_PATTERN_IO_FMU_ARMED;
 
 		} else {
 			pattern = LED_PATTERN_IO_ARMED;
 		}
 
-	} else if (system_state.arm_ok) {
+	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) {
 		pattern = LED_PATTERN_FMU_ARMED;
 
-	} else if (system_state.vector_flight_mode_ok) {
+	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK) {
 		pattern = LED_PATTERN_VECTOR_FLIGHT_MODE_OK;
 	}
 
@@ -185,12 +176,17 @@ heartbeat_blink(void *arg)
 static void
 failsafe_blink(void *arg)
 {
+	/* indicate that a serious initialisation error occured */
+	if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
+		LED_AMBER(true);
+	    return;
+    }
+
 	static bool failsafe = false;
 
 	/* blink the failsafe LED if we don't have FMU input */
-	if (!system_state.mixer_fmu_available) {
+	if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
 		failsafe = !failsafe;
-
 	} else {
 		failsafe = false;
 	}

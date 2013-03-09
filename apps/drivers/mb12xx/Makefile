@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,27 +32,11 @@
 ############################################################################
 
 #
-# Build the px4io application.
+# Makefile to build the Maxbotix Sonar driver.
 #
 
-#
-# Note that we pull a couple of specific files from the systemlib, since
-# we can't support it all.
-#
-CSRCS		= adc.c \
-		  controls.c \
-		  dsm.c \
-		  i2c.c \
-		  px4io.c \
-		  registers.c \
-		  safety.c \
-		  sbus.c \
-		  ../systemlib/hx_stream.c \
-		  ../systemlib/perf_counter.c \
-		  ../systemlib/up_cxxinitialize.c
-
-CXXSRCS		= mixer.cpp
-
-INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
+APPNAME		= mb12xx
+PRIORITY	= SCHED_PRIORITY_DEFAULT
+STACKSIZE	= 2048
 
 include $(APPDIR)/mk/app.mk

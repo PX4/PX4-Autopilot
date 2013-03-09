@@ -91,7 +91,7 @@ public:
 		MODE_NONE
 	};
 	HIL();
-	~HIL();
+	virtual ~HIL();
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
