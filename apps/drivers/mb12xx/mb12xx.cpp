@@ -259,9 +259,7 @@ out:
 int
 MB12XX::probe()
 {
-	// TODO: take a range reading and see if it is between the min and max
-
-	return OK;
+	return measure();
 }
 
 void
