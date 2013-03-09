@@ -92,7 +92,7 @@ mixer_tick(void)
 
 		/* too long without FMU input, time to go to failsafe */
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
-			debug("AP RX timeout");
+			lowsyslog("AP RX timeout");
 		}
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM);
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
@@ -101,6 +101,7 @@ mixer_tick(void)
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
 	} else {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
+		r_status_alarms &= ~PX4IO_P_STATUS_ALARMS_FMU_LOST;
 	}
 
 	source = MIX_FAILSAFE;
@@ -125,7 +126,8 @@ mixer_tick(void)
 		}
 
 		if ( (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
-		     (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK)) {
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 
 		 	/* if allowed, mix from RC inputs directly */
 			source = MIX_OVERRIDE;

@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,63 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file subsystem_info.h
- * Definition of the subsystem info topic.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
+ * @file Rangefinder driver interface.
  */
 
-#ifndef TOPIC_SUBSYSTEM_INFO_H_
-#define TOPIC_SUBSYSTEM_INFO_H_
+#ifndef _DRV_RANGEFINDER_H
+#define _DRV_RANGEFINDER_H
 
 #include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+#include <sys/ioctl.h>
+
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
+
+#define RANGE_FINDER_DEVICE_PATH	"/dev/range_finder"
 
 /**
- * @addtogroup topics
+ * range finder report structure.  Reads from the device must be in multiples of this
+ * structure.
  */
-
-enum SUBSYSTEM_TYPE
-{
-	SUBSYSTEM_TYPE_GYRO = 1,
-	SUBSYSTEM_TYPE_ACC = 2,
-	SUBSYSTEM_TYPE_MAG = 4,
-	SUBSYSTEM_TYPE_ABSPRESSURE = 8,
-	SUBSYSTEM_TYPE_DIFFPRESSURE = 16,
-	SUBSYSTEM_TYPE_GPS = 32,
-	SUBSYSTEM_TYPE_OPTICALFLOW = 64,
-	SUBSYSTEM_TYPE_CVPOSITION = 128,
-	SUBSYSTEM_TYPE_LASERPOSITION = 256,
-	SUBSYSTEM_TYPE_EXTERNALGROUNDTRUTH = 512,
-	SUBSYSTEM_TYPE_ANGULARRATECONTROL = 1024,
-	SUBSYSTEM_TYPE_ATTITUDESTABILIZATION = 2048,
-	SUBSYSTEM_TYPE_YAWPOSITION = 4096,
-	SUBSYSTEM_TYPE_ALTITUDECONTROL = 16384,
-	SUBSYSTEM_TYPE_POSITIONCONTROL = 32768,
-	SUBSYSTEM_TYPE_MOTORCONTROL = 65536,
-	SUBSYSTEM_TYPE_RANGEFINDER = 131072
+struct range_finder_report {
+	uint64_t timestamp;
+	float distance; 			/** in meters */
+	uint8_t valid;				/** 1 == within sensor range, 0 = outside sensor range */
 };
 
-/**
- * State of individual sub systems
+/*
+ * ObjDev tag for raw range finder data.
  */
-struct subsystem_info_s {
-	bool present;
-	bool enabled;
-	bool ok;
+ORB_DECLARE(sensor_range_finder);
 
-	enum SUBSYSTEM_TYPE subsystem_type;
-};
-
-/**
- * @}
+/*
+ * ioctl() definitions
+ *
+ * Rangefinder drivers also implement the generic sensor driver
+ * interfaces from drv_sensor.h
  */
 
-/* register this as object request broker structure */
-ORB_DECLARE(subsystem_info);
+#define _RANGEFINDERIOCBASE			(0x7900)
+#define __RANGEFINDERIOC(_n)		(_IOC(_RANGEFINDERIOCBASE, _n))
 
-#endif /* TOPIC_SUBSYSTEM_INFO_H_ */
+/** set the minimum effective distance of the device */
+#define RANGEFINDERIOCSETMINIUMDISTANCE	__RANGEFINDERIOC(1)
 
+/** set the maximum effective distance of the device */
+#define RANGEFINDERIOCSETMAXIUMDISTANCE	__RANGEFINDERIOC(2)
+
+
+#endif /* _DRV_RANGEFINDER_H */
