@@ -609,8 +609,20 @@ MS5611::cycle()
 	}
 
 	/* measurement phase */
-	if (OK != measure())
+	if (OK != measure()) {
+		/* 
+		 * We failed to send the I2C command to start the next
+		 * reading. Hopefully this is a transient bus
+		 * error. Schedule a fresh cycle call to try the
+		 * command again in one tick
+		 */		
 		log("measure error");
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&MS5611::cycle_trampoline,
+			   this, 1);
+		return;
+	}
 
 	/* next phase is collection */
 	_collect_phase = true;
