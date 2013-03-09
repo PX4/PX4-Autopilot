@@ -331,7 +331,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			if (value > 400)
 				value = 400;
 			r_setup_pwm_lowrate = value;
-			/* XXX re-configure timers */
+			/* XXX support low / high rate mask */
+			up_pwm_servo_set_rate(value);
 			break;
 
 		case PX4IO_P_SETUP_PWM_HIGHRATE:
@@ -340,7 +341,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			if (value > 400)
 				value = 400;
 			r_setup_pwm_highrate = value;
-			/* XXX re-configure timers */
+			/* XXX support low / high rate mask */
+			up_pwm_servo_set_rate(value);
 			break;
 
 		case PX4IO_P_SETUP_RELAYS:
