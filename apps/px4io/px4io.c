@@ -64,8 +64,7 @@ struct sys_state_s 	system_state;
 
 static struct hrt_call serial_dma_call;
 
-/* global debug level for isr_debug() */
-volatile uint8_t debug_level = 0;
+/* store i2c reset count XXX this should be a register, together with other error counters */
 volatile uint32_t i2c_loop_resets = 0;
 
 /*
@@ -90,7 +89,7 @@ static char msg[NUM_MSG][40];
 void
 isr_debug(uint8_t level, const char *fmt, ...)
 {
-	if (level > debug_level) {
+	if (level > r_page_setup[PX4IO_P_SETUP_SET_DEBUG]) {
 		return;
 	}
 	va_list ap;
@@ -219,7 +218,7 @@ user_start(int argc, char *argv[])
 			struct mallinfo minfo = mallinfo();
 
 			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x r=%u m=%u", 
-				  (unsigned)debug_level,
+				  (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG],
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,
 				  (unsigned)r_setup_features,

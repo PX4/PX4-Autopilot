@@ -213,7 +213,9 @@ controls_tick() {
 		if (assigned_channels == 0) {
 			rc_input_lost = true;
 		} else {
+			/* set RC OK flag and clear RC lost alarm */
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK;
+			r_status_alarms &= ~PX4IO_P_STATUS_ALARMS_RC_LOST;
 		}
 
 		/*
@@ -274,7 +276,7 @@ controls_tick() {
 		 * requested override.
 		 *
 		 */
-		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (r_rc_values[4] > RC_CHANNEL_HIGH_THRESH))
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(r_rc_values[4]) > RC_CHANNEL_HIGH_THRESH))
 			override = true;
 
 		if (override) {

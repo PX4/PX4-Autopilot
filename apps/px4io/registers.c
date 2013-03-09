@@ -137,7 +137,8 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_RELAYS]			= 0,
 	[PX4IO_P_SETUP_VBATT_SCALE]		= 10000,
 	[PX4IO_P_SETUP_IBATT_SCALE]		= 0,
-	[PX4IO_P_SETUP_IBATT_BIAS]		= 0
+	[PX4IO_P_SETUP_IBATT_BIAS]		= 0,
+	[PX4IO_P_SETUP_SET_DEBUG]		= 0,
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(0)
@@ -201,6 +202,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
+        	r_status_alarms &= ~PX4IO_P_STATUS_ALARMS_FMU_LOST;
 		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
 		
 		break;
@@ -351,8 +353,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_SET_DEBUG:
-			debug_level = value;
-			isr_debug(0, "set debug %u\n", (unsigned)debug_level);
+			r_page_setup[PX4IO_P_SETUP_SET_DEBUG] = value;
+			isr_debug(0, "set debug %u\n", (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG]);
 			break;
 
 		default:
