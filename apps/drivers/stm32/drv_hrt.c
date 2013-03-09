@@ -646,6 +646,36 @@ abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 }
 
 /*
+ * Compare a time value with the current time.
+ */
+hrt_abstime
+hrt_elapsed_time(const volatile hrt_abstime *then)
+{
+	irqstate_t flags = irqsave();
+
+	hrt_abstime delta = hrt_absolute_time() - *then;
+
+	irqrestore(flags);
+
+	return delta;
+}
+
+/*
+ * Store the absolute time in an interrupt-safe fashion
+ */
+hrt_abstime
+hrt_store_absolute_time(volatile hrt_abstime *now)
+{
+	irqstate_t flags = irqsave();
+
+	hrt_abstime ts = hrt_absolute_time();
+
+	irqrestore(flags);
+
+	return ts;
+}
+
+/*
  * Initalise the high-resolution timing module.
  */
 void

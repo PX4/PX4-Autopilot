@@ -53,7 +53,7 @@ class LED : device::CDev
 {
 public:
 	LED();
-	~LED();
+	virtual ~LED();
 
 	virtual int		init();
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);

@@ -46,14 +46,18 @@ CONFIGURED_APPS += systemlib
 CONFIGURED_APPS += systemlib/mixer
 
 # Math library
+ifneq ($(CONFIG_APM),y)
 CONFIGURED_APPS += mathlib
 CONFIGURED_APPS += mathlib/CMSIS
 CONFIGURED_APPS += examples/math_demo
+endif
 
 # Control library
+ifneq ($(CONFIG_APM),y)
 CONFIGURED_APPS	+= controllib
 CONFIGURED_APPS += examples/control_demo
 CONFIGURED_APPS += examples/kalman_demo
+endif
 
 # System utility commands
 CONFIGURED_APPS += systemcmds/reboot
@@ -77,7 +81,7 @@ CONFIGURED_APPS += systemcmds/delay_test
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/debug_values
-CONFIGURED_APPS += examples/px4_mavlink_debug
+# CONFIGURED_APPS += examples/px4_mavlink_debug
 
 # Shared object broker; required by many parts of the system.
 CONFIGURED_APPS += uORB
@@ -87,6 +91,8 @@ CONFIGURED_APPS += mavlink_onboard
 CONFIGURED_APPS += commander
 CONFIGURED_APPS += sdlog
 CONFIGURED_APPS += sensors
+
+ifneq ($(CONFIG_APM),y)
 CONFIGURED_APPS += ardrone_interface
 CONFIGURED_APPS += multirotor_att_control
 CONFIGURED_APPS += multirotor_pos_control
@@ -96,10 +102,11 @@ CONFIGURED_APPS += fixedwing_pos_control
 CONFIGURED_APPS += position_estimator
 CONFIGURED_APPS += attitude_estimator_ekf
 CONFIGURED_APPS += hott_telemetry
+endif
 
 # Hacking tools
 #CONFIGURED_APPS += system/i2c
-#CONFIGURED_APPS += tools/i2c_dev
+CONFIGURED_APPS += systemcmds/i2c
 
 # Communication and Drivers
 CONFIGURED_APPS += drivers/boards/px4fmu
@@ -118,6 +125,7 @@ CONFIGURED_APPS += drivers/stm32/adc
 CONFIGURED_APPS += drivers/px4fmu
 CONFIGURED_APPS += drivers/hil
 CONFIGURED_APPS += drivers/gps
+CONFIGURED_APPS += drivers/mb12xx
 
 # Testing stuff
 CONFIGURED_APPS += px4/sensors_bringup

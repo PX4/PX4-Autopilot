@@ -498,7 +498,7 @@ int mavlink_onboard_main(int argc, char *argv[])
 		mavlink_task = task_spawn("mavlink_onboard",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
-					  6000 /* XXX probably excessive */,
+					  2048,
 					  mavlink_thread_main,
 					  (const char**)argv);
 		exit(0);

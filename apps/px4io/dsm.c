@@ -43,17 +43,13 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <string.h>
 #include <termios.h>
-
-#include <systemlib/ppm_decode.h>
 
 #include <drivers/drv_hrt.h>
 
 #define DEBUG
 
 #include "px4io.h"
-#include "protocol.h"
 
 #define DSM_FRAME_SIZE		16
 #define DSM_FRAME_CHANNELS	7
@@ -72,13 +68,13 @@ unsigned dsm_frame_drops;
 
 static bool dsm_decode_channel(uint16_t raw, unsigned shift, unsigned *channel, unsigned *value);
 static void dsm_guess_format(bool reset);
-static void dsm_decode(hrt_abstime now);
+static bool dsm_decode(hrt_abstime now, uint16_t *values, uint16_t *num_values);
 
 int
 dsm_init(const char *device)
 {
 	if (dsm_fd < 0)
-		dsm_fd = open(device, O_RDONLY);
+		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
 
 	if (dsm_fd >= 0) {
 		struct termios t;
@@ -106,7 +102,7 @@ dsm_init(const char *device)
 }
 
 bool
-dsm_input(void)
+dsm_input(uint16_t *values, uint16_t *num_values)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
@@ -143,7 +139,7 @@ dsm_input(void)
 
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1)
-		goto out;
+		return false;
 
 	last_rx_time = now;
 
@@ -156,20 +152,14 @@ dsm_input(void)
 	 * If we don't have a full frame, return
 	 */
 	if (partial_frame_count < DSM_FRAME_SIZE)
-		goto out;
+		return false;
 
 	/*
 	 * Great, it looks like we might have a frame.  Go ahead and
 	 * decode it.
 	 */
-	dsm_decode(now);
 	partial_frame_count = 0;
-
-out:
-	/*
-	 * If we have seen a frame in the last 200ms, we consider ourselves 'locked'
-	 */
-	return (now - last_frame_time) < 200000;
+	return dsm_decode(now, values, num_values);
 }
 
 static bool
@@ -259,23 +249,23 @@ dsm_guess_format(bool reset)
 
 	if ((votes11 == 1) && (votes10 == 0)) {
 		channel_shift = 11;
-		debug("DSM: detected 11-bit format");
+		debug("DSM: 11-bit format");
 		return;
 	}
 
 	if ((votes10 == 1) && (votes11 == 0)) {
 		channel_shift = 10;
-		debug("DSM: detected 10-bit format");
+		debug("DSM: 10-bit format");
 		return;
 	}
 
 	/* call ourselves to reset our state ... we have to try again */
-	debug("DSM: format detector failed, 10: 0x%08x %d 11: 0x%08x %d", cs10, votes10, cs11, votes11);
+	debug("DSM: format detect fail, 10: 0x%08x %d 11: 0x%08x %d", cs10, votes10, cs11, votes11);
 	dsm_guess_format(true);
 }
 
-static void
-dsm_decode(hrt_abstime frame_time)
+static bool
+dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 {
 
 	/*
@@ -296,7 +286,7 @@ dsm_decode(hrt_abstime frame_time)
 	/* if we don't know the frame format, update the guessing state machine */
 	if (channel_shift == 0) {
 		dsm_guess_format(false);
-		return;
+		return false;
 	}
 
 	/*
@@ -324,8 +314,8 @@ dsm_decode(hrt_abstime frame_time)
 			continue;
 
 		/* update the decoded channel count */
-		if (channel >= system_state.rc_channels)
-			system_state.rc_channels = channel + 1;
+		if (channel >= *num_values)
+			*num_values = channel + 1;
 
 		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
 		if (channel_shift == 11)
@@ -356,13 +346,11 @@ dsm_decode(hrt_abstime frame_time)
 			break;
 		}
 
-		system_state.rc_channel_data[channel] = value;
+		values[channel] = value;
 	}
 
-	/* and note that we have received data from the R/C controller */
-	/* XXX failsafe will cause problems here - need a strategy for detecting it */
-	system_state.rc_channels_timestamp = frame_time;
-
-	/* trigger an immediate report to the FMU */
-	system_state.fmu_report_due = true;
+	/*
+	 * XXX Note that we may be in failsafe here; we need to work out how to detect that.
+	 */
+	return true;
 }

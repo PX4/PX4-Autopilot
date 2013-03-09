@@ -92,6 +92,22 @@ __EXPORT extern hrt_abstime ts_to_abstime(struct timespec *ts);
 __EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
 
 /*
+ * Compute the delta between a timestamp taken in the past
+ * and now.
+ *
+ * This function is safe to use even if the timestamp is updated
+ * by an interrupt during execution.
+ */
+__EXPORT extern hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then);
+
+/*
+ * Store the absolute time in an interrupt-safe fashion.
+ *
+ * This function ensures that the timestamp cannot be seen half-written by an interrupt handler.
+ */
+__EXPORT extern hrt_abstime hrt_store_absolute_time(volatile hrt_abstime *now);
+
+/*
  * Call callout(arg) after delay has elapsed.
  *
  * If callout is NULL, this can be used to implement a timeout by testing the call
