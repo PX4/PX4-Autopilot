@@ -147,32 +147,44 @@ controls_tick() {
 
 				uint16_t raw = r_raw_rc_values[i];
 
-				/* implement the deadzone */
-				if (raw < conf[PX4IO_P_RC_CONFIG_CENTER]) {
-					raw += conf[PX4IO_P_RC_CONFIG_DEADZONE];
-					if (raw > conf[PX4IO_P_RC_CONFIG_CENTER])
-						raw = conf[PX4IO_P_RC_CONFIG_CENTER];
-				}
-				if (raw > conf[PX4IO_P_RC_CONFIG_CENTER]) {
-					raw -= conf[PX4IO_P_RC_CONFIG_DEADZONE];
-					if (raw < conf[PX4IO_P_RC_CONFIG_CENTER])
-						raw = conf[PX4IO_P_RC_CONFIG_CENTER];
-				}
+				int16_t scaled;
 
-				/* constrain to min/max values */
+				/*
+				 * 1) Constrain to min/max values, as later processing depends on bounds.
+				 */
 				if (raw < conf[PX4IO_P_RC_CONFIG_MIN])
 					raw = conf[PX4IO_P_RC_CONFIG_MIN];
 				if (raw > conf[PX4IO_P_RC_CONFIG_MAX])
 					raw = conf[PX4IO_P_RC_CONFIG_MAX];
 
-				int16_t scaled = raw;
+				/*
+				 * 2) Scale around the mid point differently for lower and upper range.
+				 *
+				 * This is necessary as they don't share the same endpoints and slope.
+				 *
+				 * First normalize to 0..1 range with correct sign (below or above center),
+				 * then scale to 20000 range (if center is an actual center, -10000..10000,
+				 * if parameters only support half range, scale to 10000 range, e.g. if
+				 * center == min 0..10000, if center == max -10000..0).
+				 *
+				 * As the min and max bounds were enforced in step 1), division by zero
+				 * cannot occur, as for the case of center == min or center == max the if
+				 * statement is mutually exclusive with the arithmetic NaN case.
+				 *
+				 * DO NOT REMOVE OR ALTER STEP 1!
+				 */
+				if (raw > (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_MAX] - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]));
 
-				/* adjust to zero-relative around center (nominal -500..500) */
-				scaled -= conf[PX4IO_P_RC_CONFIG_CENTER];
+				} else if (raw < (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
+					scaled = 10000.0f * ((raw - conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE]) / (float)(conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE] - conf[PX4IO_P_RC_CONFIG_MIN]));
 
-				/* scale to fixed-point representation (-10000..10000) */
-				scaled *= 20;
+				} else {
+					/* in the configured dead zone, output zero */
+					scaled = 0;
+				}
 
+				/* invert channel if requested */
 				if (conf[PX4IO_P_RC_CONFIG_OPTIONS] & PX4IO_P_RC_CONFIG_OPTIONS_REVERSE)
 					scaled = -scaled;
 
@@ -256,10 +268,11 @@ controls_tick() {
 		bool override = false;
 
 		/*
-		 * Check mapped channel 5; if the value is 'high' then the pilot has
+		 * Check mapped channel 5 (can be any remote channel,
+		 * depends on RC_MAP_OVER parameter);
+		 * If the value is 'high' then the pilot has
 		 * requested override.
 		 *
-		 * XXX This should be configurable.
 		 */
 		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (r_rc_values[4] > RC_CHANNEL_HIGH_THRESH))
 			override = true;

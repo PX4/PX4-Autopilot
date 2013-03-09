@@ -109,9 +109,11 @@ mixer_tick(void)
 	/*
 	 * Decide which set of controls we're using.
 	 */
-	if (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) {
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) ||
+		!(r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 
-		/* don't actually mix anything - we already have raw PWM values */
+		/* don't actually mix anything - we already have raw PWM values or
+		 not a valid mixer. */
 		source = MIX_NONE;
 
 	} else {
@@ -172,9 +174,11 @@ mixer_tick(void)
 	 * XXX correct behaviour for failsafe may require an additional case
 	 * here.
 	 */
-	bool should_arm = (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) &&
-	 		   /* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
-	/* there is valid input */ (r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)));
+	bool should_arm = (
+	    /* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) &&
+	 	/* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
+		/* there is valid input */ (r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)) &&
+		/* IO initialised without error */  (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK));
 
 	if (should_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
@@ -239,6 +243,11 @@ static unsigned mixer_text_length = 0;
 void
 mixer_handle_text(const void *buffer, size_t length)
 {
+	/* do not allow a mixer change while fully armed */
+	if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) &&
+	    /* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
+		return;
+	}
 
 	px4io_mixdata	*msg = (px4io_mixdata *)buffer;
 
@@ -252,9 +261,12 @@ mixer_handle_text(const void *buffer, size_t length)
 	switch (msg->action) {
 	case F2I_MIXER_ACTION_RESET:
 		isr_debug(2, "reset");
+
+		/* FIRST mark the mixer as invalid */
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
+		/* THEN actually delete it */
 		mixer_group.reset();
 		mixer_text_length = 0;
-		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
 
 		/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:

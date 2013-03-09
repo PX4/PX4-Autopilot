@@ -82,7 +82,9 @@
 #include <uORB/topics/parameter_update.h>
 
 #include <px4io/protocol.h>
+#include <mavlink/mavlink_log.h>
 #include "uploader.h"
+#include <debug.h>
 
 
 class PX4IO : public device::I2C
@@ -110,6 +112,8 @@ private:
 
 	volatile int		_task;		///< worker task
 	volatile bool		_task_should_exit;
+
+	int			_mavlink_fd;
 
 	perf_counter_t		_perf_update;
 
@@ -285,6 +289,7 @@ PX4IO::PX4IO() :
 	_update_interval(0),
 	_task(-1),
 	_task_should_exit(false),
+	_mavlink_fd(-1),
 	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
 	_status(0),
 	_alarms(0),
@@ -300,6 +305,9 @@ PX4IO::PX4IO() :
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
+
+	/* open MAVLink text channel */
+	_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	_debug_enabled = true;
 }
@@ -354,6 +362,7 @@ PX4IO::init()
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
 		log("failed getting parameters from PX4IO");
+		mavlink_log_emergency(_mavlink_fd, "[IO] param read fail, abort.");
 		return -1;
 	}
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
@@ -379,6 +388,8 @@ PX4IO::init()
 	 */
 	if ((reg & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK) &&
 	    (reg & PX4IO_P_SETUP_ARMING_ARM_OK)) {
+
+	    	mavlink_log_emergency(_mavlink_fd, "[IO] RECOVERING FROM FMU IN-AIR RESTART");
 
 		/* WARNING: COMMANDER app/vehicle status must be initialized.
 		 * If this fails (or the app is not started), worst-case IO
@@ -469,6 +480,7 @@ PX4IO::init()
 		ret = io_set_rc_config();
 		if (ret != OK) {
 			log("failed to update RC input config");
+			mavlink_log_info(_mavlink_fd, "[IO] RC config upload fail");
 			return ret;
 		}
 
@@ -489,6 +501,8 @@ PX4IO::init()
 		debug("task start failed: %d", errno);
 		return -errno;
 	}
+
+	mavlink_log_info(_mavlink_fd, "[IO] init ok");
 
 	return OK;
 }
@@ -771,9 +785,16 @@ PX4IO::io_set_rc_config()
 		/* send channel config to IO */
 		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
 		if (ret != OK) {
-			log("RC config update failed");
+			log("rc config upload failed");
 			break;
 		}
+
+		/* check the IO initialisation flag */
+		if (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_INIT_OK)) {
+			log("config for RC%d rejected by IO", i + 1);
+			break;
+		}
+
 		offset += PX4IO_P_RC_CONFIG_STRIDE;
 	}
 
@@ -1157,9 +1178,11 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 	/* check for the mixer-OK flag */
 	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK) {
 		debug("mixer upload OK");
+		mavlink_log_info(_mavlink_fd, "[IO] mixer upload ok");
 		return 0;
 	} else {
 		debug("mixer rejected by IO");
+		mavlink_log_info(_mavlink_fd, "[IO] mixer upload fail");
 	}
 
 	/* load must have failed for some reason */
@@ -1186,7 +1209,7 @@ PX4IO::print_status()
 	printf("%u bytes free\n",
 		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
-	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s\n",
+	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s\n",
 		flags,
 		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " ARMED" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
@@ -1197,7 +1220,8 @@ PX4IO::print_status()
 		((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PPM" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) ? " MIXER_OK" : " MIXER_FAIL"),
-		((flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC) ? " ARM_SYNC" : " ARM_NO_SYNC"));
+		((flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC) ? " ARM_SYNC" : " ARM_NO_SYNC"),
+		((flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  ? " INIT_OK" : " INIT_FAIL"));
 	uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
 	printf("alarms 0x%04x%s%s%s%s%s%s\n",
 		alarms,
@@ -1475,7 +1499,7 @@ test(void)
 			servos[i] = pwm_value;
 
 		ret = write(fd, servos, sizeof(servos));
-		if (ret != sizeof(servos))
+		if (ret != (int)sizeof(servos))
 			err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
 
 		if (direction > 0) {
@@ -1547,7 +1571,7 @@ px4io_main(int argc, char *argv[])
 			errx(1, "already loaded");
 
 		/* create the driver - it will set g_dev */
-		(void)new PX4IO;
+		(void)new PX4IO();
 
 		if (g_dev == nullptr)
 			errx(1, "driver alloc failed");
@@ -1558,7 +1582,7 @@ px4io_main(int argc, char *argv[])
 		}
 
 		/* look for the optional pwm update rate for the supported modes */
-		if (strcmp(argv[2], "-u") == 0 || strcmp(argv[2], "--update-rate") == 0) {
+		if ((argc > 2) && (strcmp(argv[2], "-u") == 0 || strcmp(argv[2], "--update-rate") == 0)) {
 			if (argc > 2 + 1) {
 #warning implement this 
 			} else {
@@ -1570,16 +1594,31 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "recovery")) {
+
+		if (g_dev != nullptr) {
+			/*
+			 * Enable in-air restart support.
+			 * We can cheat and call the driver directly, as it
+		 	 * doesn't reference filp in ioctl()
+			 */
+			g_dev->ioctl(NULL, PWM_SERVO_INAIR_RESTART_ENABLE, 0);
+		} else {
+			errx(1, "not loaded");
+		}
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "stop")) {
 
-			if (g_dev != nullptr) {
-				/* stop the driver */
-				delete g_dev;
-			} else {
-				errx(1, "not loaded");
-			}
-			exit(0);
+		if (g_dev != nullptr) {
+			/* stop the driver */
+			delete g_dev;
+		} else {
+			errx(1, "not loaded");
 		}
+		exit(0);
+	}
 
 
 	if (!strcmp(argv[1], "status")) {
@@ -1604,8 +1643,9 @@ px4io_main(int argc, char *argv[])
 			exit(1);
 		}
 		uint8_t level = atoi(argv[2]);
-		// we can cheat and call the driver directly, as it
-		// doesn't reference filp in ioctl()
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
 		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_DEBUG, level);
 		if (ret != 0) {
 			printf("SET_DEBUG failed - %d\n", ret);
