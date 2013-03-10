@@ -237,7 +237,7 @@ public:
 
 private:
 	static const unsigned	_tune_max = 1024; // be reasonable about user tunes
-	static const char	*_default_tunes[];
+	static const char	* const _default_tunes[];
 	static const unsigned	_default_ntunes;
 	static const uint8_t	_note_tab[];
 
@@ -307,7 +307,7 @@ private:
 };
 
 // predefined tune array
-const char *ToneAlarm::_default_tunes[] = {
+const char * const ToneAlarm::_default_tunes[] = {
 	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",		// startup tune
 	"MBMLA",						// continuous A
 	"MFO4TML60c",						// 1second c4 (placeholder)
