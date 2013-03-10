@@ -122,7 +122,7 @@ private:
 	uint16_t		_alarms;
 
 	/* subscribed topics */
-	int			_t_actuators;	///< actuator output topic
+	int			_t_actuators;	///< actuator controls topic
 	int			_t_armed;	///< system armed control topic
 	int 			_t_vstatus;	///< system / vehicle status
 	int			_t_param;	///< parameter update topic
