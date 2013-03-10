@@ -81,7 +81,7 @@ all:		$(ROMFS_HEADER)
 
 $(ROMFS_HEADER): $(ROMFS_IMG) $(dir $(ROMFS_HEADER))
 	@echo Generating the ROMFS header...
-	@(cd $(dir $(ROMFS_IMG)) && xxd -i $(notdir $(ROMFS_IMG))) > $@
+	@(cd $(dir $(ROMFS_IMG)) && xxd -i $(notdir $(ROMFS_IMG))) | sed -e 's/char/const char/' > $@
 
 $(ROMFS_IMG):	$(ROMFS_WORKDIR)
 	@echo Generating the ROMFS image...
