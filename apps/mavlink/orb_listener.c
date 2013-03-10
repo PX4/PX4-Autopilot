@@ -511,28 +511,12 @@ l_actuator_outputs(struct listener *l)
 							      0);
 
 			} else {
-
-				/*
-				 * Catch the case where no rudder is in use and throttle is not
-				 * on output four
-				 */
-				float rudder, throttle;
-
-				if (act_outputs.noutputs < 4) {
-					rudder = 0.0f;
-					throttle = (act_outputs.output[2] - 900.0f) / 1200.0f;
-
-				} else {
-					rudder = (act_outputs.output[2] - 1500.0f) / 600.0f;
-					throttle = (act_outputs.output[3] - 900.0f) / 1200.0f;
-				}
-
 				mavlink_msg_hil_controls_send(chan,
 							      hrt_absolute_time(),
 							      (act_outputs.output[0] - 1500.0f) / 600.0f,
 							      (act_outputs.output[1] - 1500.0f) / 600.0f,
-							      rudder,
-							      throttle,
+							      (act_outputs.output[2] - 1500.0f) / 600.0f,
+							      (act_outputs.output[3] - 900.0f) / 1200.0f,
 							      (act_outputs.output[4] - 1500.0f) / 600.0f,
 							      (act_outputs.output[5] - 1500.0f) / 600.0f,
 							      (act_outputs.output[6] - 1500.0f) / 600.0f,
