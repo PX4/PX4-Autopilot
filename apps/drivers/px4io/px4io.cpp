@@ -86,6 +86,8 @@
 #include "uploader.h"
 #include <debug.h>
 
+#define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
+#define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
 
 class PX4IO : public device::I2C
 {
@@ -1223,14 +1225,15 @@ PX4IO::print_status()
 		((flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC) ? " ARM_SYNC" : " ARM_NO_SYNC"),
 		((flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  ? " INIT_OK" : " INIT_FAIL"));
 	uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
-	printf("alarms 0x%04x%s%s%s%s%s%s\n",
+	printf("alarms 0x%04x%s%s%s%s%s%s%s\n",
 		alarms,
 		((alarms & PX4IO_P_STATUS_ALARMS_VBATT_LOW)     ? " VBATT_LOW" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_TEMPERATURE)   ? " TEMPERATURE" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_SERVO_CURRENT) ? " SERVO_CURRENT" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_ACC_CURRENT)   ? " ACC_CURRENT" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST)      ? " FMU_LOST" : ""),
-		((alarms & PX4IO_P_STATUS_ALARMS_RC_LOST)       ? " RC_LOST" : ""));
+		((alarms & PX4IO_P_STATUS_ALARMS_RC_LOST)       ? " RC_LOST" : ""),
+		((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""));
 	printf("vbatt %u ibatt %u\n",
 		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
 		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT));
@@ -1269,10 +1272,10 @@ PX4IO::print_status()
 		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? " MANUAL_OVERRIDE_OK" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK)   ? " VECTOR_FLIGHT_OK" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""));
-	printf("rates 0x%04x lowrate %u highrate %u relays 0x%04x\n",
+	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
-		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_LOWRATE),
-		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_HIGHRATE),
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE),
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS));
 	printf("vbatt scale %u ibatt scale %u ibatt bias %u\n",
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE),
@@ -1320,36 +1323,39 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_ARM_OK, 0);
 		break;
 
-	case PWM_SERVO_INAIR_RESTART_ENABLE:
-		/* set the 'in-air restart' bit */
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK);
-		break;
-
-	case PWM_SERVO_INAIR_RESTART_DISABLE:
-		/* unset the 'in-air restart' bit */
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK, 0);
-		break;
-
 	case PWM_SERVO_SET_UPDATE_RATE:
-		/* set the requested rate */
-		if ((arg >= 50) && (arg <= 400)) {
-			ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_HIGHRATE, arg);
+		/* set the requested alternate rate */
+		if ((arg >= 50) && (arg <= 400)) {	/* TODO: we could go higher for e.g. TurboPWM */
+			ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE, arg);
 		} else {
 			ret = -EINVAL;
 		}
 		break;
 
+	case PWM_SERVO_SELECT_UPDATE_RATE: {
+
+		/* blindly clear the PWM update alarm - might be set for some other reason */
+		io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, PX4IO_P_STATUS_ALARMS_PWM_ERROR);
+
+		/* attempt to set the rate map */
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES, arg);
+
+		/* check that the changes took */
+		uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
+		if (alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR) {
+			ret = -EINVAL;
+			io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, PX4IO_P_STATUS_ALARMS_PWM_ERROR);
+		}
+		break;
+	}
+
 	case PWM_SERVO_GET_COUNT:
 		*(unsigned *)arg = _max_actuators;
 		break;
 
-	case PWM_SERVO_SET_DEBUG:
-		/* set the debug level */
-		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG, arg);
-		break;
+	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS - 1): {
 
-	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS): {
-
+		/* TODO: we could go lower for e.g. TurboPWM */
 		unsigned channel = cmd - PWM_SERVO_SET(0);
 		if ((channel >= _max_actuators) || (arg < 900) || (arg > 2100)) {
 			ret = -EINVAL;
@@ -1361,7 +1367,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 	}
 
-	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(PWM_OUTPUT_MAX_CHANNELS): {
+	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(PWM_OUTPUT_MAX_CHANNELS - 1): {
 
 		unsigned channel = cmd - PWM_SERVO_GET(0);
 
@@ -1376,6 +1382,16 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				*(servo_position_t *)arg = value;
 			}
 		}
+		break;
+	}
+
+	case PWM_SERVO_GET_RATEGROUP(0) ... PWM_SERVO_GET_RATEGROUP(PWM_OUTPUT_MAX_CHANNELS - 1): {
+
+		unsigned channel = cmd - PWM_SERVO_GET_RATEGROUP(0);
+
+		uint32_t value = io_reg_get(PX4IO_PAGE_PWM_INFO, PX4IO_RATE_MAP_BASE + channel);
+
+		*(uint32_t *)arg = value;
 		break;
 	}
 
@@ -1442,6 +1458,20 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, &(rc_val->values[0]), _max_rc_input);
 		break;
 	}
+
+	case PX4IO_SET_DEBUG:
+		/* set the debug level */
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG, arg);
+		break;
+
+	case PX4IO_INAIR_RESTART_ENABLE:
+		/* set/clear the 'in-air restart' bit */
+		if (arg) {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK);
+		} else {
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK, 0);
+		}
+		break;
 
 	default:
 		/* not a recognized value */
@@ -1602,7 +1632,7 @@ px4io_main(int argc, char *argv[])
 			 * We can cheat and call the driver directly, as it
 		 	 * doesn't reference filp in ioctl()
 			 */
-			g_dev->ioctl(NULL, PWM_SERVO_INAIR_RESTART_ENABLE, 0);
+			g_dev->ioctl(NULL, PX4IO_INAIR_RESTART_ENABLE, 1);
 		} else {
 			errx(1, "not loaded");
 		}
@@ -1623,15 +1653,15 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 
-			if (g_dev != nullptr) {
-				printf("[px4io] loaded\n");
-				g_dev->print_status();
-			} else {
-				printf("[px4io] not loaded\n");
-			}
-
-			exit(0);
+		if (g_dev != nullptr) {
+			printf("[px4io] loaded\n");
+			g_dev->print_status();
+		} else {
+			printf("[px4io] not loaded\n");
 		}
+
+		exit(0);
+	}
 
 	if (!strcmp(argv[1], "debug")) {
 		if (argc <= 2) {
@@ -1646,7 +1676,7 @@ px4io_main(int argc, char *argv[])
 		/* we can cheat and call the driver directly, as it
 		 * doesn't reference filp in ioctl()
 		 */
-		int ret = g_dev->ioctl(NULL, PWM_SERVO_SET_DEBUG, level);
+		int ret = g_dev->ioctl(NULL, PX4IO_SET_DEBUG, level);
 		if (ret != 0) {
 			printf("SET_DEBUG failed - %d\n", ret);
 			exit(1);
