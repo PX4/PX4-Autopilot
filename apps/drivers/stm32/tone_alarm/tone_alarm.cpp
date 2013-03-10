@@ -307,11 +307,11 @@ private:
 
 // predefined tune array
 const char *ToneAlarm::_default_tunes[] = {
-	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",			// startup tune
-	"MBMLA",						// continuous 440Hz A
-	"MFO4T32c1c1c1c1c1c1c1c1",				// 1second c4
-	"MFO4T32d1d1d1d1d1d1d1d1",				// 1second d4
-	"MFO4T32e1e1e1e1e1e1e1e1",				// 1second e4
+	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",		// startup tune
+	"MBMLA",						// continuous A
+	"MFO4TML60c",						// 1second c4 (placeholder)
+	"MFO4TML60d",						// 1second d4 (placeholder)
+	"MFO4TML60e",						// 1second e4 (placeholder)
 	"MFT90O3C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C4", // charge!
 	"MFT60O3C32O2A32F16F16F32G32A32A+32O3C16C16C16O2A16",	// dixie
 	"MFT90O2C16C16C16F8.A8C16C16C16F8.A4P16P8",		// cucuracha
@@ -402,6 +402,8 @@ ToneAlarm::note_duration(unsigned &silence, unsigned note_length, unsigned dots)
 {
 	unsigned whole_note_period = (60 * 1000000 * 4) / _tempo;
 
+	if (note_length == 0)
+		note_length = 1;
 	unsigned note_period = whole_note_period / note_length;
 
 	switch (_note_mode) {
@@ -794,10 +796,29 @@ play_tune(unsigned tune)
 		err(1, "/dev/tone_alarm");
 
 	ret = ioctl(fd, TONE_SET_ALARM, tune);
+	close(fd);
 
 	if (ret != 0)
 		err(1, "TONE_SET_ALARM");
 
+	exit(0);
+}
+
+int
+play_string(const char *str)
+{
+	int	fd, ret;
+
+	fd = open("/dev/tone_alarm", O_WRONLY);
+
+	if (fd < 0)
+		err(1, "/dev/tone_alarm");
+
+	ret = write(fd, str, strlen(str) + 1);
+	close(fd);
+
+	if (ret < 0)
+		err(1, "play tune");
 	exit(0);
 }
 
@@ -829,6 +850,14 @@ tone_alarm_main(int argc, char *argv[])
 
 	if ((tune = strtol(argv[1], nullptr, 10)) != 0)
 		play_tune(tune);
+
+	/* if it looks like a PLAY string... */
+	if (strlen(argv[1]) > 2) {
+		const char *str = argv[1];
+		if ((str[0] == 'M') && (str[1] == 'F')) {
+			play_string(str);
+		}
+	}
 
 	errx(1, "unrecognised command, try 'start', 'stop' or an alarm number");
 }
