@@ -87,6 +87,7 @@
  */
 
 #include <nuttx/config.h>
+#include <debug.h>
 
 #include <drivers/device/device.h>
 #include <drivers/drv_tone_alarm.h>
@@ -315,6 +316,7 @@ const char *ToneAlarm::_default_tunes[] = {
 	"MFT90O3C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C4", // charge!
 	"MFT60O3C32O2A32F16F16F32G32A32A+32O3C16C16C16O2A16",	// dixie
 	"MFT90O2C16C16C16F8.A8C16C16C16F8.A4P16P8",		// cucuracha
+	"MNT150L8O2GGABGBADGGABL4GL8F+",			// yankee
 	"MFT200O3C4.O2A4.G4.F4.D8E8F8D4F8C2.O2G4.O3C4.O2A4.F4.D8E8F8G4A8G2P8" // daisy
 };
 
@@ -336,7 +338,7 @@ ToneAlarm::ToneAlarm() :
 	_next(nullptr)
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	//_debug_enabled = true;
 }
 
 ToneAlarm::~ToneAlarm()
@@ -498,7 +500,7 @@ ToneAlarm::start_tune(const char *tune)
 	_note_mode = MODE_NORMAL;
 	_octave = 4;
 	_silence_length = 0;
-	_repeat = true;		// are we sure we want this?
+	_repeat = false;		// otherwise command-line tunes repeat forever...
 
 	// schedule a callback to start playing
 	hrt_call_after(&_note_call, 0, (hrt_callout)next_trampoline, this);
@@ -537,7 +539,7 @@ ToneAlarm::next_note()
 		case 'L':	// select note length
 			_note_length = next_number();
 			if (_note_length < 1)
-				_note_length = 1;
+				goto tune_error;
 			break;
 
 		case 'O':	// select octave
@@ -559,7 +561,7 @@ ToneAlarm::next_note()
 		case 'M':	// select inter-note gap
 			c = next_char();
 			if (c == 0)
-				goto tune_end;
+				goto tune_error;
 			_next++;
 			switch (c) {
 			case 'N':
@@ -578,8 +580,7 @@ ToneAlarm::next_note()
 				_repeat = true;
 				break;
 			default:
-				// ignored
-				break;
+				goto tune_error;
 			}
 			break;
 
@@ -588,20 +589,31 @@ ToneAlarm::next_note()
 				(hrt_abstime)rest_duration(next_number(), next_dots()),
 				(hrt_callout)next_trampoline, 
 				this);
-			break;
+			return;
 
 		case 'T': {	// change tempo
 			unsigned nt = next_number();
 
-			if ((nt >= 32) && (nt <= 255))
+			if ((nt >= 32) && (nt <= 255)) {
 				_tempo = nt;
+			} else {
+				goto tune_error;
+			}
 			break;
 		}
 
 		case 'N':	// play an arbitrary note
 			note = next_number();
 			if (note > 84)
-				note = 84;
+				goto tune_error;
+			if (note == 0) {
+				// this is a rest - pause for the current note length
+				hrt_call_after(&_note_call,
+					(hrt_abstime)rest_duration(_note_length, next_dots()),
+					(hrt_callout)next_trampoline, 
+					this);
+				return;				
+			}
 			break;
 
 		case 'A'...'G':	// play a note in the current octave
@@ -630,8 +642,7 @@ ToneAlarm::next_note()
 			break;
 
 		default:
-			debug("unexpected '%c' in tune", c);
-			break;
+			goto tune_error;
 		}
 	}
 
@@ -644,6 +655,11 @@ ToneAlarm::next_note()
 	// and arrange a callback when the note should stop
 	hrt_call_after(&_note_call, (hrt_abstime)duration, (hrt_callout)next_trampoline, this);
 	return;
+
+	// tune looks bad (unexpected EOF, bad character, etc.)
+tune_error:
+	lowsyslog("tune error\n");
+	_repeat = false;		// don't loop on error
 
 	// stop (and potentially restart) the tune
 tune_end:
@@ -854,7 +870,7 @@ tone_alarm_main(int argc, char *argv[])
 	/* if it looks like a PLAY string... */
 	if (strlen(argv[1]) > 2) {
 		const char *str = argv[1];
-		if ((str[0] == 'M') && (str[1] == 'F')) {
+		if (str[0] == 'M') {
 			play_string(str);
 		}
 	}
