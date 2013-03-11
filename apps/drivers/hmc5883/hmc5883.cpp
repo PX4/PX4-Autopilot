@@ -130,7 +130,7 @@ class HMC5883 : public device::I2C
 {
 public:
 	HMC5883(int bus);
-	~HMC5883();
+	virtual ~HMC5883();
 
 	virtual int		init();
 

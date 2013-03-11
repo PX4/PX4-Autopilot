@@ -152,7 +152,7 @@ class L3GD20 : public device::SPI
 {
 public:
 	L3GD20(int bus, const char* path, spi_dev_e device);
-	~L3GD20();
+	virtual ~L3GD20();
 
 	virtual int		init();
 

@@ -191,12 +191,16 @@ struct vehicle_status_s
 	bool condition_auto_mission_available;
 	bool condition_global_position_valid;		/**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
 	bool condition_launch_position_valid;		/**< indicates a valid launch position */
-	bool condition_home_position_valid;			/**< indicates a valid home position (a valid home position is not always a valid launch) */
+	bool condition_home_position_valid;		/**< indicates a valid home position (a valid home position is not always a valid launch) */
 	bool condition_local_position_valid;
+	bool condition_airspeed_valid;			/**< set to true by the commander app if there is a valid airspeed measurement available */
+
+	// bool condition_auto_flight_mode_ok;		/**< conditions of auto flight mode apply plus a valid takeoff position lock has been aquired */
+	bool flag_external_manual_override_ok;	/**< external override non-fatal for system. Only true for fixed wing */
 
 	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */
 	bool flag_fmu_armed;				/**< true is motors / actuators of FMU are armed  */
-	bool flag_io_armed;					/**< true is motors / actuators of IO are armed */
+	bool flag_io_armed;				/**< true is motors / actuators of IO are armed */
 	bool flag_system_emergency;
 	bool flag_preflight_calibration;
 
@@ -208,10 +212,10 @@ struct vehicle_status_s
 	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 
-
 	// bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
 	// bool flag_preflight_mag_calibration;		/**< true if mag calibration is requested */
 	// bool flag_preflight_accel_calibration;
+	// bool flag_preflight_airspeed_calibration;
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception is terminally lost */
@@ -242,10 +246,6 @@ struct vehicle_status_s
 	uint16_t errors_count3;
 	uint16_t errors_count4;
 
-	// bool flag_vector_flight_mode_ok;		/**< position estimation, battery voltage and other critical subsystems are good for autonomous flight */
-	// bool flag_auto_flight_mode_ok;			/**< conditions of vector flight mode apply plus a valid takeoff position lock has been aquired */
-	bool flag_external_manual_override_ok;		/**< external override non-fatal for system. Only true for fixed wing */
-	
 };
 
 /**

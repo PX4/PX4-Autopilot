@@ -54,6 +54,7 @@
 #include "mixer.h"
 
 Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
+	_next(nullptr),
 	_control_cb(control_cb),
 	_cb_handle(cb_handle)
 {

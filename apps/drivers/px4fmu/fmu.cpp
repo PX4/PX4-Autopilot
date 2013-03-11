@@ -82,7 +82,7 @@ public:
 		MODE_NONE
 	};
 	PX4FMU();
-	~PX4FMU();
+	virtual ~PX4FMU();
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
