@@ -172,6 +172,9 @@ static void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 static void do_mag_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_rc_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_accel_calibration(int status_pub, struct vehicle_status_s *status);
+static void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status);
+
+
 static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
 
 int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
@@ -801,7 +804,7 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	close(sub_sensor_combined);
 }
 
-void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
+static void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 {
 	/* announce change */
 
