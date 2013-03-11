@@ -40,18 +40,19 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
-
 
 int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, const int mavlink_fd) {
 	
@@ -68,7 +69,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				/* allow going back from INIT for calibration */
 				if (current_state->arming_state == ARMING_STATE_STANDBY) {
 					ret = OK;
-					current_state->flag_system_armed = false;
+					current_state->flag_fmu_armed = false;
 				}
 				break;
 			case ARMING_STATE_STANDBY:
@@ -80,7 +81,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 					/* sensors need to be initialized for STANDBY state */
 					if (current_state->condition_system_sensors_initialized) {
 						ret = OK;
-						current_state->flag_system_armed = false;
+						current_state->flag_fmu_armed = false;
 					} else {
 						mavlink_log_critical(mavlink_fd, "Rej. STANDBY state, sensors not initialized");
 					}
@@ -94,7 +95,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 
 					/* XXX conditions for arming? */
 					ret = OK;
-					current_state->flag_system_armed = true;
+					current_state->flag_fmu_armed = true;
 				}
 				break;
 			case ARMING_STATE_ARMED_ERROR:
@@ -104,7 +105,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 					
 					/* XXX conditions for an error state? */
 					ret = OK;
-					current_state->flag_system_armed = true;
+					current_state->flag_fmu_armed = true;
 				}
 				break;
 			case ARMING_STATE_STANDBY_ERROR:
@@ -113,7 +114,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				 || current_state->arming_state == ARMING_STATE_INIT
 				 || current_state->arming_state == ARMING_STATE_ARMED_ERROR) {
 					ret = OK;
-					current_state->flag_system_armed = false;
+					current_state->flag_fmu_armed = false;
 				}
 				break;
 			default:
@@ -157,6 +158,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					current_state->flag_control_attitude_enabled = false;
 					current_state->flag_control_velocity_enabled = false;
 					current_state->flag_control_position_enabled = false;
+					current_state->flag_control_manual_enabled = false;
 				}
 				break;
 
@@ -177,6 +179,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = false;
 						current_state->flag_control_position_enabled = false;
+						current_state->flag_control_manual_enabled = true;
 					}
 				}
 				break;
@@ -192,6 +195,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					current_state->flag_control_attitude_enabled = true;
 					current_state->flag_control_velocity_enabled = false;
 					current_state->flag_control_position_enabled = false;
+					current_state->flag_control_manual_enabled = true;
 				}
 				break;
 
@@ -215,6 +219,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = true;
 						current_state->flag_control_position_enabled = false;
+						current_state->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -243,6 +248,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = true;
 						current_state->flag_control_position_enabled = false;
+						current_state->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -270,6 +276,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = true;
 						current_state->flag_control_position_enabled = false;
+						current_state->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -295,6 +302,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = true;
 						current_state->flag_control_position_enabled = true;
+						current_state->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -316,6 +324,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = true;
 						current_state->flag_control_position_enabled = true;
+						current_state->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -330,6 +339,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					current_state->flag_control_attitude_enabled = true;
 					current_state->flag_control_velocity_enabled = true;
 					current_state->flag_control_position_enabled = true;
+					current_state->flag_control_manual_enabled = false;
 				}
 				break;
 
@@ -353,6 +363,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = true;
 						current_state->flag_control_position_enabled = true;
+						current_state->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -375,6 +386,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = true;
 						current_state->flag_control_position_enabled = true;
+						current_state->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -399,6 +411,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = true;
 						current_state->flag_control_position_enabled = true;
+						current_state->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -420,6 +433,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						current_state->flag_control_attitude_enabled = true;
 						current_state->flag_control_velocity_enabled = true;
 						current_state->flag_control_position_enabled = true;
+						current_state->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -530,7 +544,7 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 //void publish_armed_status(const struct vehicle_status_s *current_status)
 //{
 //	struct actuator_armed_s armed;
-//	armed.armed = current_status->flag_system_armed;
+//	armed.armed = current_status->flag_fmu_armed;
 //	/* lock down actuators if required, only in HIL */
 //	armed.lockdown = (current_status->flag_hil_enabled) ? true : false;
 //	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
@@ -669,7 +683,7 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 ////			printf("[cmd] Enabling HIL, locking down all actuators for safety.\n\t(Arming the system will not activate them while in HIL mode)\n");
 ////
 ////		} else if (current_status->state_machine != SYSTEM_STATE_STANDBY &&
-////			   current_status->flag_system_armed) {
+////			   current_status->flag_fmu_armed) {
 ////
 ////			mavlink_log_critical(mavlink_fd, "REJECTING HIL, disarm first!")
 ////
@@ -694,7 +708,7 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 //	}
 //
 //	/* vehicle is disarmed, mode requests arming */
-//	if (!(current_status->flag_system_armed) && (mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+//	if (!(current_status->flag_fmu_armed) && (mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
 //		/* only arm in standby state */
 //		// XXX REMOVE
 //		if (current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
@@ -705,7 +719,7 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 //	}
 //
 //	/* vehicle is armed, mode requests disarming */
-//	if (current_status->flag_system_armed && !(mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
+//	if (current_status->flag_fmu_armed && !(mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
 //		/* only disarm in ground ready */
 //		if (current_status->state_machine == SYSTEM_STATE_GROUND_READY) {
 //			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STANDBY);

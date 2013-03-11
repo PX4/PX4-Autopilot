@@ -230,10 +230,12 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 	}
 
-//	if (v_status.system_state == NAVIGATION_STATE_SEATBELT) {
-//
-//		*mavlink_mode |= MAV_MODE_FLAG_DECODE_POSITION_GUIDED;
-//	}
+	if (v_status.navigation_state == NAVIGATION_STATE_SEATBELT
+		|| v_status.navigation_state == NAVIGATION_STATE_SEATBELT_DESCENT
+		|| v_status.navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY) {
+
+		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+	}
 //
 //	if (v_status.system_state == NAVIGATION_STATE_SEATBELT) {
 //

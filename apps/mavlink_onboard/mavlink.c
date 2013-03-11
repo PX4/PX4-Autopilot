@@ -296,6 +296,12 @@ get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct
 		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
+	if (v_status->flag_control_velocity_enabled) {
+		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+	} else {
+		*mavlink_mode &= ~MAV_MODE_FLAG_GUIDED_ENABLED;
+	}
+
 //	switch (v_status->state_machine) {
 //	case SYSTEM_STATE_PREFLIGHT:
 //		if (v_status->flag_preflight_gyro_calibration ||

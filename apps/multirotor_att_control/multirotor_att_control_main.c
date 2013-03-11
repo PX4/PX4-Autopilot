@@ -150,7 +150,9 @@ mc_thread_main(int argc, char *argv[])
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
 	bool flag_control_attitude_enabled = false;
-	bool flag_system_armed = false;
+	bool flag_fmu_armed = false;
+	bool flag_control_position_enabled = false;
+	bool flag_control_velocity_enabled = false;
 
 	/* store if yaw position or yaw speed has been changed */
 	bool control_yaw_position = true;
@@ -161,7 +163,6 @@ mc_thread_main(int argc, char *argv[])
 	/* prepare the handle for the failsafe throttle */
 	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
-
 
 	while (!thread_should_exit) {
 
@@ -247,7 +248,7 @@ mc_thread_main(int argc, char *argv[])
 						/* initialize to current yaw if switching to manual or att control */
 						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
 						    state.flag_control_manual_enabled != flag_control_manual_enabled ||
-						    state.flag_fmu_armed != flag_system_armed) {
+						    state.flag_fmu_armed != flag_fmu_armed) {
 							att_sp.yaw_body = att.yaw;
 						}
 
@@ -313,20 +314,20 @@ mc_thread_main(int argc, char *argv[])
 //									 * settings as well.
 //									 */
 //
-//									/* only move setpoint if manual input is != 0 */
-//									if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
-//										rates_sp.yaw = manual.yaw;
-//										control_yaw_position = false;
-//										first_time_after_yaw_speed_control = true;
-//
-//									} else {
-//										if (first_time_after_yaw_speed_control) {
-//											att_sp.yaw_body = att.yaw;
-//											first_time_after_yaw_speed_control = false;
-//										}
-//
-//										control_yaw_position = true;
-//									}
+									/* only move setpoint if manual input is != 0 */
+									if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
+										rates_sp.yaw = manual.yaw;
+										control_yaw_position = false;
+										first_time_after_yaw_speed_control = true;
+
+									} else {
+										if (first_time_after_yaw_speed_control) {
+											att_sp.yaw_body = att.yaw;
+											first_time_after_yaw_speed_control = false;
+										}
+
+										control_yaw_position = true;
+									}
 //								}
 //							}
 
@@ -336,6 +337,7 @@ mc_thread_main(int argc, char *argv[])
 
 						/* STEP 2: publish the controller output */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+
 
 						if (motor_test_mode) {
 							printf("testmode");
@@ -395,8 +397,9 @@ mc_thread_main(int argc, char *argv[])
 				/* update state */
 				flag_control_attitude_enabled = state.flag_control_attitude_enabled;
 				flag_control_manual_enabled = state.flag_control_manual_enabled;
-				flag_system_armed = state.flag_fmu_armed;
-				// XXX add some logic to this
+				flag_control_position_enabled = state.flag_control_position_enabled;
+				flag_control_velocity_enabled = state.flag_control_velocity_enabled;
+				flag_fmu_armed = state.flag_fmu_armed;
 
 				perf_end(mc_loop_perf);
 			} /* end of poll call for attitude updates */

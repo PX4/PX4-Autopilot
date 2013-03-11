@@ -60,13 +60,9 @@
 #include <debug.h>
 #include <sys/prctl.h>
 #include <string.h>
-#include <drivers/drv_led.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_tone_alarm.h>
-#include "state_machine_helper.h"
-#include "systemlib/systemlib.h"
 #include <math.h>
 #include <poll.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/battery_status.h>
@@ -80,11 +76,19 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
-#include <mavlink/mavlink_log.h>
 
+#include <drivers/drv_led.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_tone_alarm.h>
+
+#include <mavlink/mavlink_log.h>
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
+#include <systemlib/cpuload.h>
+
+#include "state_machine_helper.h"
+
 
 /* XXX MOVE CALIBRATION TO SENSORS APP THREAD */
 #include <drivers/drv_accel.h>
@@ -101,7 +105,7 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
-#include <systemlib/cpuload.h>
+
 extern struct system_load_s system_load;
 
 /* Decouple update interval and hysteris counters, all depends on intervals */
@@ -119,6 +123,8 @@ extern struct system_load_s system_load;
 #define GPS_FIX_TYPE_3D 3
 #define GPS_QUALITY_GOOD_HYSTERIS_TIME_MS 5000
 #define GPS_QUALITY_GOOD_COUNTER_LIMIT (GPS_QUALITY_GOOD_HYSTERIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
+
+#define LOCAL_POSITION_TIMEOUT 1000000 /**< consider the local position estimate invalid after 1s */
 
 /* File descriptors */
 static int leds;
@@ -1324,9 +1330,12 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* make sure we are in preflight state */
 	memset(&current_status, 0, sizeof(current_status));
+
+
 	current_status.navigation_state = NAVIGATION_STATE_INIT;
 	current_status.arming_state = ARMING_STATE_INIT;
 	current_status.hil_state = HIL_STATE_OFF;
+	current_status.flag_hil_enabled = false;
 	current_status.flag_fmu_armed = false;
 	current_status.flag_io_armed = false; // XXX read this from somewhere
 
@@ -1542,6 +1551,13 @@ int commander_thread_main(int argc, char *argv[])
 			last_local_position_time = local_position.timestamp;
 		}
 
+		/* set the condition to valid if there has recently been a local position estimate */
+		if (hrt_absolute_time() - last_local_position_time < LOCAL_POSITION_TIMEOUT) {
+			current_status.condition_local_position_valid = true;
+		} else {
+			current_status.condition_local_position_valid = false;
+		}
+
 		/* update battery status */
 		orb_check(battery_sub, &new_data);
 		if (new_data) {
@@ -1565,7 +1581,7 @@ int commander_thread_main(int argc, char *argv[])
 //			     current_status.state_machine == SYSTEM_STATE_AUTO  ||
 //			     current_status.state_machine == SYSTEM_STATE_MANUAL)) {
 //				/* armed */
-//				led_toggle(LED_BLUE);
+			led_toggle(LED_BLUE);
 
 		} else if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
 			/* not armed */
