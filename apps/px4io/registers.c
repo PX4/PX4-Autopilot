@@ -616,19 +616,19 @@ pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate)
 			if (mask == 0)
 				continue;
 
-			/* all channels in the group must be either high or low-rate */
-			uint32_t high = map & mask;
+			/* all channels in the group must be either default or alt-rate */
+			uint32_t alt = map & mask;
 
 			if (pass == 0) {
 				/* preflight */
-				if ((high != 0) && (high != mask)) {
+				if ((alt != 0) && (alt != mask)) {
 					/* not a legal map, bail with an alarm */
 					r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
 					return;
 				}
 			} else {
 				/* set it - errors here are unexpected */
-				if (high != 0) {
+				if (alt != 0) {
 					if (up_pwm_servo_set_rate_group_update(group, r_setup_pwm_altrate) != OK)
 						r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
 				} else {
