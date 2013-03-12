@@ -51,13 +51,14 @@ __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
 	pid->intmax = intmax;
 	pid->limit = limit;
 	pid->mode = mode;
-	pid->count = 0;
-	pid->saturated = 0;
-	pid->last_output = 0;
+	pid->count = 0.0f;
+	pid->saturated = 0.0f;
+	pid->last_output = 0.0f;
 
-	pid->sp = 0;
-	pid->error_previous = 0;
-	pid->integral = 0;
+	pid->sp = 0.0f;
+	pid->error_previous_filtered = 0.0f;
+	pid->control_previous = 0.0f;
+	pid->integral = 0.0f;
 }
 __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit)
 {
@@ -136,15 +137,15 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	// Calculated current error value
 	float error = pid->sp - val;
 
-	if (isfinite(error)) {				// Why is this necessary?  DEW
-		pid->error_previous = error;
-	}
+	float error_filtered = 0.2f*error + 0.8f*pid->error_previous_filtered;
 
 	// Calculate or measured current error derivative
 
 	if (pid->mode == PID_MODE_DERIVATIV_CALC) {
-		d = (error - pid->error_previous) / dt;
 
+//		d = (error_filtered - pid->error_previous_filtered) / dt;
+		d = pid->error_previous_filtered - error_filtered;
+		pid->error_previous_filtered = error_filtered;
 	} else if (pid->mode == PID_MODE_DERIVATIV_SET) {
 		d = -val_dot;
 
@@ -180,6 +181,11 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		pid->last_output = output;
 	}
 
+	pid->control_previous = pid->last_output;
+
+	// if (isfinite(error)) {				// Why is this necessary?  DEW
+	// 	pid->error_previous = error;
+	// }
 
 	return pid->last_output;
 }

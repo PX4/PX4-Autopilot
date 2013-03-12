@@ -59,7 +59,8 @@ typedef struct {
 	float intmax;
 	float sp;
 	float integral;
-	float error_previous;
+	float error_previous_filtered;
+	float control_previous;
 	float last_output;
 	float limit;
 	uint8_t mode;
