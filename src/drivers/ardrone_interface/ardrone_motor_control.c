@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <math.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
@@ -369,11 +370,9 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	float yaw_control = actuators->control[2];
 	float motor_thrust = actuators->control[3];
 
-	//printf("AMO: Roll: %4.4f, Pitch: %4.4f, Yaw: %4.4f, Thrust: %4.4f\n",roll_control, pitch_control, yaw_control, motor_thrust);
-
 	const float min_thrust = 0.02f;			/**< 2% minimum thrust */
 	const float max_thrust = 1.0f;			/**< 100% max thrust */
-	const float scaling = 500.0f;			/**< 100% thrust equals a value of 500 which works, 512 leads to cutoff */
+	const float scaling = 510.0f;			/**< 100% thrust equals a value of 510 which works, 512 leads to cutoff */
 	const float min_gas = min_thrust * scaling;	/**< value range sent to motors, minimum */
 	const float max_gas = max_thrust * scaling;	/**< value range sent to motors, maximum */
 
@@ -382,71 +381,56 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	float motor_calc[4] = {0};
 
 	float output_band = 0.0f;
-	float band_factor = 0.75f;
 	const float startpoint_full_control = 0.25f;	/**< start full control at 25% thrust */
-	float yaw_factor = 1.0f;
 
 	static bool initialized = false;
 	/* publish effective outputs */
 	static struct actuator_controls_effective_s actuator_controls_effective;
 	static orb_advert_t actuator_controls_effective_pub;
 
-	if (motor_thrust <= min_thrust) {
-		motor_thrust = min_thrust;
-		output_band = 0.0f;
-	} else if (motor_thrust < startpoint_full_control && motor_thrust > min_thrust) {
-		output_band = band_factor * (motor_thrust - min_thrust);
-	} else if (motor_thrust >= startpoint_full_control && motor_thrust < max_thrust - band_factor * startpoint_full_control) {
-		output_band = band_factor * startpoint_full_control;
-	} else if (motor_thrust >= max_thrust - band_factor * startpoint_full_control) {
-		output_band = band_factor * (max_thrust - motor_thrust);
+	/* linearly scale the control inputs from 0 to startpoint_full_control */
+	if (motor_thrust < startpoint_full_control) {
+		output_band = motor_thrust/startpoint_full_control; // linear from 0 to 1
+	} else {
+		output_band = 1.0f;
 	}
+
+	roll_control *= output_band;
+	pitch_control *= output_band;
+	yaw_control *= output_band;
+
 
 	//add the yaw, nick and roll components to the basic thrust //TODO:this should be done by the mixer
 
 	// FRONT (MOTOR 1)
 	motor_calc[0] = motor_thrust + (roll_control / 2 + pitch_control / 2 - yaw_control);
-
 	// RIGHT (MOTOR 2)
 	motor_calc[1] = motor_thrust + (-roll_control / 2 + pitch_control / 2 + yaw_control);
-
 	// BACK (MOTOR 3)
 	motor_calc[2] = motor_thrust + (-roll_control / 2 - pitch_control / 2 - yaw_control);
-
 	// LEFT (MOTOR 4)
 	motor_calc[3] = motor_thrust + (roll_control / 2 - pitch_control / 2 + yaw_control);
 
-	// if we are not in the output band
-	if (!(motor_calc[0] < motor_thrust + output_band && motor_calc[0] > motor_thrust - output_band
-	      && motor_calc[1] < motor_thrust + output_band && motor_calc[1] > motor_thrust - output_band
-	      && motor_calc[2] < motor_thrust + output_band && motor_calc[2] > motor_thrust - output_band
-	      && motor_calc[3] < motor_thrust + output_band && motor_calc[3] > motor_thrust - output_band)) {
+	/* if one motor is saturated, reduce throttle */
+	float saturation = fmaxf(fmaxf(motor_calc[0], motor_calc[1]),fmaxf(motor_calc[2], motor_calc[3])) - max_thrust;
 
-		yaw_factor = 0.5f;
-		yaw_control *= yaw_factor;
+
+	if (saturation > 0.0f) {
+
+		/* reduce the motor thrust according to the saturation */
+		motor_thrust = motor_thrust - saturation;
+
 		// FRONT (MOTOR 1)
 		motor_calc[0] = motor_thrust + (roll_control / 2 + pitch_control / 2 - yaw_control);
-
 		// RIGHT (MOTOR 2)
 		motor_calc[1] = motor_thrust + (-roll_control / 2 + pitch_control / 2 + yaw_control);
-
 		// BACK (MOTOR 3)
 		motor_calc[2] = motor_thrust + (-roll_control / 2 - pitch_control / 2 - yaw_control);
-
 		// LEFT (MOTOR 4)
 		motor_calc[3] = motor_thrust + (roll_control / 2 - pitch_control / 2 + yaw_control);
 	}
 
-	for (int i = 0; i < 4; i++) {
-		//check for limits
-		if (motor_calc[i] < motor_thrust - output_band) {
-			motor_calc[i] = motor_thrust - output_band;
-		}
 
-		if (motor_calc[i] > motor_thrust + output_band) {
-			motor_calc[i] = motor_thrust + output_band;
-		}
-	}
 
 	/* publish effective outputs */
 	actuator_controls_effective.control_effective[0] = roll_control;
@@ -467,25 +451,29 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 
 	/* set the motor values */
 
-	/* scale up from 0..1 to 10..512) */
+	/* scale up from 0..1 to 10..500) */
 	motor_pwm[0] = (uint16_t) (motor_calc[0] * ((float)max_gas - min_gas) + min_gas);
 	motor_pwm[1] = (uint16_t) (motor_calc[1] * ((float)max_gas - min_gas) + min_gas);
 	motor_pwm[2] = (uint16_t) (motor_calc[2] * ((float)max_gas - min_gas) + min_gas);
 	motor_pwm[3] = (uint16_t) (motor_calc[3] * ((float)max_gas - min_gas) + min_gas);
 
-	/* Keep motors spinning while armed and prevent overflows */
+	/* scale up from 0..1 to 10..500) */
+	motor_pwm[0] = (uint16_t) (motor_calc[0] * (float)((max_gas - min_gas) + min_gas));
+	motor_pwm[1] = (uint16_t) (motor_calc[1] * (float)((max_gas - min_gas) + min_gas));
+	motor_pwm[2] = (uint16_t) (motor_calc[2] * (float)((max_gas - min_gas) + min_gas));
+	motor_pwm[3] = (uint16_t) (motor_calc[3] * (float)((max_gas - min_gas) + min_gas));
 
-	/* Failsafe logic - should never be necessary */
-	motor_pwm[0] = (motor_pwm[0] > 0) ? motor_pwm[0] : 10;
-	motor_pwm[1] = (motor_pwm[1] > 0) ? motor_pwm[1] : 10;
-	motor_pwm[2] = (motor_pwm[2] > 0) ? motor_pwm[2] : 10;
-	motor_pwm[3] = (motor_pwm[3] > 0) ? motor_pwm[3] : 10;
+	/* Failsafe logic for min values - should never be necessary */
+	motor_pwm[0] = (motor_pwm[0] > 0) ? motor_pwm[0] : min_gas;
+	motor_pwm[1] = (motor_pwm[1] > 0) ? motor_pwm[1] : min_gas;
+	motor_pwm[2] = (motor_pwm[2] > 0) ? motor_pwm[2] : min_gas;
+	motor_pwm[3] = (motor_pwm[3] > 0) ? motor_pwm[3] : min_gas;
 
-	/* Failsafe logic - should never be necessary */
-	motor_pwm[0] = (motor_pwm[0] <= 511) ? motor_pwm[0] : 511;
-	motor_pwm[1] = (motor_pwm[1] <= 511) ? motor_pwm[1] : 511;
-	motor_pwm[2] = (motor_pwm[2] <= 511) ? motor_pwm[2] : 511;
-	motor_pwm[3] = (motor_pwm[3] <= 511) ? motor_pwm[3] : 511;
+	/* Failsafe logic for max values - should never be necessary */
+	motor_pwm[0] = (motor_pwm[0] <= max_gas) ? motor_pwm[0] : max_gas;
+	motor_pwm[1] = (motor_pwm[1] <= max_gas) ? motor_pwm[1] : max_gas;
+	motor_pwm[2] = (motor_pwm[2] <= max_gas) ? motor_pwm[2] : max_gas;
+	motor_pwm[3] = (motor_pwm[3] <= max_gas) ? motor_pwm[3] : max_gas;
 
 	/* send motors via UART */
 	ardrone_write_motor_commands(ardrone_write, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
