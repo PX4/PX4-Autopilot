@@ -309,6 +309,8 @@ PX4FMU::set_mode(Mode mode)
 int
 PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
+	debug("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
+
 	for (unsigned pass = 0; pass < 2; pass++) {
 		for (unsigned group = 0; group < _max_actuators; group++) {
 
@@ -323,17 +325,22 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			if (pass == 0) {
 				// preflight
 				if ((alt != 0) && (alt != mask)) {
+					warn("rate group %u mask %x bad overlap %x", group, mask, alt);
 					// not a legal map, bail
 					return -EINVAL;
 				}
 			} else {
 				// set it - errors here are unexpected
 				if (alt != 0) {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_alt_rate) != OK)
+					if (up_pwm_servo_set_rate_group_update(group, _pwm_alt_rate) != OK) {
+						warn("rate group set alt failed");
 						return -EINVAL;
+					}
 				} else {
-					if (up_pwm_servo_set_rate_group_update(group, _pwm_default_rate) != OK)
+					if (up_pwm_servo_set_rate_group_update(group, _pwm_default_rate) != OK) {
+						warn("rate group set default failed");
 						return -EINVAL;
+					}
 				}
 			}
 		}
@@ -428,6 +435,7 @@ PX4FMU::task_main()
 				_current_update_rate = 50;
 			}
 
+			debug("adjusted actuator update interval to %ums", update_rate_in_ms);
 			orb_set_interval(_t_actuators, update_rate_in_ms);
 		}
 
@@ -643,6 +651,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		*(uint32_t *)arg = up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
 		break;
 
+	case PWM_SERVO_GET_COUNT:	
 	case MIXERIOCGETOUTPUTCOUNT:
 		if (_mode == MODE_4PWM) {
 			*(unsigned *)arg = 4;
@@ -1023,9 +1032,6 @@ int
 fmu_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
-	unsigned pwm_rate = 0;
-	uint32_t alt_channels = 0;
-	bool alt_channels_set = false;
 	const char *verb = argv[1];
 
 	if (fmu_start() != OK)
@@ -1041,29 +1047,6 @@ fmu_main(int argc, char *argv[])
 		new_mode = PORT_FULL_SERIAL;
 
 	} else if (!strcmp(verb, "mode_pwm")) {
-		int ch;
-		char *ap;
-
-		while ((ch = getopt(argc - 1, argv + 1, "c:u:")) != EOF) {
-			switch (ch) {
-			case 'u':
-				pwm_rate = strtol(optarg, nullptr, 0);
-				break;
-
-			case 'c':
-				alt_channels = strtol(optarg, &ap, 0);
-				if (*ap == '\0')
-					alt_channels_set = true;
-				break;
-
-			case ':':
-				errx(1, "missing parameter");
-
-			default:
-				errx(1, "unrecognised option");
-			}
-		}
-
 		new_mode = PORT_FULL_PWM;
 
 	} else if (!strcmp(verb, "mode_gpio_serial")) {
@@ -1084,19 +1067,8 @@ fmu_main(int argc, char *argv[])
 			return OK;
 
 		/* switch modes */
-		return fmu_new_mode(new_mode);
-
-		/* if new modes are PWM modes, respect the -u and -c options */
-		if ((new_mode == PORT_FULL_PWM) || (new_mode == PORT_PWM_AND_GPIO)) {
-			if (pwm_rate != 0) {
-				if (g_fmu->set_pwm_alt_rate(pwm_rate) != OK)
-					errx(1, "error setting alternate PWM rate");
-			}
-			if (alt_channels_set) {
-				if (g_fmu->set_pwm_alt_channels(alt_channels))
-					errx(1, "serror setting alternate PWM rate channels");
-			}
-		}
+		int ret = fmu_new_mode(new_mode);
+		exit(ret == OK ? 0 : 1);
 	}
 
 	if (!strcmp(verb, "test"))
@@ -1106,6 +1078,6 @@ fmu_main(int argc, char *argv[])
 		fake(argc - 1, argv + 1);
 
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
-	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm [-u pwm_alt_rate_in_hz] [-c pwm_alt_rate_channel_mask], mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
+	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
 	exit(1);
 }

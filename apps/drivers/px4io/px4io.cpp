@@ -1502,6 +1502,26 @@ namespace
 {
 
 void
+start(int argc, char *argv[])
+{
+	if (g_dev != nullptr)
+		errx(1, "already loaded");
+
+	/* create the driver - it will set g_dev */
+	(void)new PX4IO();
+
+	if (g_dev == nullptr)
+		errx(1, "driver alloc failed");
+
+	if (OK != g_dev->init()) {
+		delete g_dev;
+		errx(1, "driver init failed");
+	}
+
+	exit(0);
+}
+
+void
 test(void)
 {
 	int		fd;
@@ -1595,34 +1615,8 @@ px4io_main(int argc, char *argv[])
 	if (argc < 2)
 		goto out;
 
-	if (!strcmp(argv[1], "start")) {
-
-		if (g_dev != nullptr)
-			errx(1, "already loaded");
-
-		/* create the driver - it will set g_dev */
-		(void)new PX4IO();
-
-		if (g_dev == nullptr)
-			errx(1, "driver alloc failed");
-
-		if (OK != g_dev->init()) {
-			delete g_dev;
-			errx(1, "driver init failed");
-		}
-
-		/* look for the optional pwm update rate for the supported modes */
-		if ((argc > 2) && (strcmp(argv[2], "-u") == 0 || strcmp(argv[2], "--update-rate") == 0)) {
-			if (argc > 2 + 1) {
-#warning implement this 
-			} else {
-				fprintf(stderr, "missing argument for pwm update rate (-u)\n");
-				return 1;
-			}
-		}
-
-		exit(0);
-	}
+	if (!strcmp(argv[1], "start"))
+		start(argc - 1, argv + 1);
 
 	if (!strcmp(argv[1], "recovery")) {
 

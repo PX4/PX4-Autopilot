@@ -655,7 +655,7 @@ enum PortMode {
 PortMode g_port_mode;
 
 int
-hil_new_mode(PortMode new_mode, int update_rate)
+hil_new_mode(PortMode new_mode)
 {
 	// uint32_t gpio_bits;
 	
@@ -713,8 +713,6 @@ hil_new_mode(PortMode new_mode, int update_rate)
 
 	/* (re)set the PWM output mode */
 	g_hil->set_mode(servo_mode);
-	if ((servo_mode != HIL::MODE_NONE) && (update_rate != 0))
-		g_hil->set_pwm_rate(update_rate);
 
 	return OK;
 }
@@ -800,7 +798,6 @@ int
 hil_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNDEFINED;
-	unsigned pwm_rate = 0;	
 	const char *verb = argv[1];
 
 	if (hil_start() != OK)
@@ -812,22 +809,6 @@ hil_main(int argc, char *argv[])
 
  	// this was all cut-and-pasted from the FMU driver; it's junk
 	if (!strcmp(verb, "mode_pwm")) {
-		int ch;
-
-		while ((ch = getopt(argc - 1, argv + 1, "u:")) != EOF) {
-			switch (ch) {
-			case 'u':
-				pwm_rate = strtol(optarg, nullptr, 0);
-				break;
-
-			case ':':
-				errx(1, "missing parameter");
-
-			default:
-				errx(1, "unrecognised option");
-			}
-		}
-
 		new_mode = PORT1_FULL_PWM;
 
 	} else if (!strcmp(verb, "mode_pwm_serial")) {
@@ -854,7 +835,7 @@ hil_main(int argc, char *argv[])
 			return OK;
 
 		/* switch modes */
-		return hil_new_mode(new_mode, pwm_rate);
+		return hil_new_mode(new_mode);
 	}
 
 	if (!strcmp(verb, "test"))
@@ -865,6 +846,6 @@ hil_main(int argc, char *argv[])
 
 
 	fprintf(stderr, "HIL: unrecognized command, try:\n");
-	fprintf(stderr, "  mode_pwm [-u pwm_update_rate_in_hz], mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16\n");
+	fprintf(stderr, "  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16\n");
 	return -EINVAL;
 }
