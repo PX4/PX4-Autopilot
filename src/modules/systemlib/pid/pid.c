@@ -43,7 +43,7 @@
 #include <math.h>
 
 __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
-		       float limit, uint8_t mode)
+		       float limit, float diff_filter_factor, uint8_t mode)
 {
 	pid->kp = kp;
 	pid->ki = ki;
@@ -51,6 +51,7 @@ __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
 	pid->intmax = intmax;
 	pid->limit = limit;
 	pid->mode = mode;
+	pid->diff_filter_factor = diff_filter_factor;
 	pid->count = 0.0f;
 	pid->saturated = 0.0f;
 	pid->last_output = 0.0f;
@@ -60,7 +61,7 @@ __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
 	pid->control_previous = 0.0f;
 	pid->integral = 0.0f;
 }
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit)
+__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor)
 {
 	int ret = 0;
 
@@ -94,6 +95,13 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 
 	if (isfinite(limit)) {
 		pid->limit = limit;
+
+	}  else {
+		ret = 1;
+	}
+
+	if (isfinite(diff_filter_factor)) {
+		pid->limit = diff_filter_factor;
 
 	}  else {
 		ret = 1;
@@ -137,7 +145,7 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	// Calculated current error value
 	float error = pid->sp - val;
 
-	float error_filtered = 0.2f*error + 0.8f*pid->error_previous_filtered;
+	float error_filtered = pid->diff_filter_factor*error + (1.0f-pid->diff_filter_factor)*pid->error_previous_filtered;
 
 	// Calculate or measured current error derivative
 

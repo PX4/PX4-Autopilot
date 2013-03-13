@@ -64,12 +64,13 @@ typedef struct {
 	float last_output;
 	float limit;
 	uint8_t mode;
+	float diff_filter_factor;
 	uint8_t count;
 	uint8_t saturated;
 } PID_t;
 
-__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, uint8_t mode);
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit);
+__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor, uint8_t mode);
+__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor);
 //void pid_set(PID_t *pid, float sp);
 __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
 
