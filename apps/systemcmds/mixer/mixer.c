@@ -117,7 +117,23 @@ load(const char *devname, const char *fname)
 		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':'))
 			continue;
 
-		/* XXX an optimisation here would be to strip extra whitespace */
+		/* compact whitespace in the buffer */
+		char *t, *f;
+		for (f = buf; *f != '\0'; f++) {
+			/* scan for space characters */
+			if (*f == ' ') {
+				/* look for additional spaces */
+				t = f + 1;
+				while (*t == ' ')
+					t++;
+				if (*t == '\0') {
+					/* strip trailing whitespace */
+					*f = '\0';
+				} else if (t > (f + 1)) {
+					memmove(f + 1, t, strlen(t) + 1);
+				}
+			}
+		}
 
 		/* if the line is too long to fit in the buffer, bail */
 		if ((strlen(line) + strlen(buf) + 1) >= sizeof(buf))

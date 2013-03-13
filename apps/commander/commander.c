@@ -1361,6 +1361,8 @@ int commander_thread_main(int argc, char *argv[])
 	param_get(param_find("SYS_FAILSAVE_LL"), &failsafe_lowlevel_timeout_ms);
 
 	param_t _param_sys_type = param_find("MAV_TYPE");
+	param_t _param_system_id = param_find("MAV_SYS_ID");
+	param_t _param_component_id = param_find("MAV_COMP_ID");
 
 	/* welcome user */
 	warnx("I am in command now!\n");
@@ -1558,6 +1560,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* parameters changed */
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
 
+
 			/* update parameters */
 			if (!current_status.flag_system_armed) {
 				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
@@ -1573,6 +1576,11 @@ int commander_thread_main(int argc, char *argv[])
 				} else {
 					current_status.flag_external_manual_override_ok = true;
 				}
+
+				/* check and update system / component ID */
+				param_get(_param_system_id, &(current_status.system_id));
+				param_get(_param_component_id, &(current_status.component_id));
+
 			}
 		}
 

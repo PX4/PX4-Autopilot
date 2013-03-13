@@ -126,7 +126,7 @@ class BMA180 : public device::SPI
 {
 public:
 	BMA180(int bus, spi_dev_e device);
-	~BMA180();
+	virtual ~BMA180();
 
 	virtual int		init();
 

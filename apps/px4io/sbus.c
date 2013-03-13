@@ -53,7 +53,7 @@
 #include "debug.h"
 
 #define SBUS_FRAME_SIZE		25
-#define SBUS_INPUT_CHANNELS	18
+#define SBUS_INPUT_CHANNELS	16
 
 static int sbus_fd = -1;
 
@@ -66,13 +66,13 @@ static unsigned partial_frame_count;
 
 unsigned sbus_frame_drops;
 
-static void sbus_decode(hrt_abstime frame_time);
+static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values);
 
 int
 sbus_init(const char *device)
 {
 	if (sbus_fd < 0)
-		sbus_fd = open(device, O_RDONLY);
+		sbus_fd = open(device, O_RDONLY | O_NONBLOCK);
 
 	if (sbus_fd >= 0) {
 		struct termios t;
@@ -97,7 +97,7 @@ sbus_init(const char *device)
 }
 
 bool
-sbus_input(void)
+sbus_input(uint16_t *values, uint16_t *num_values)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
@@ -134,7 +134,7 @@ sbus_input(void)
 
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1)
-		goto out;
+		return false;
 
 	last_rx_time = now;
 
@@ -147,20 +147,14 @@ sbus_input(void)
 	 * If we don't have a full frame, return
 	 */
 	if (partial_frame_count < SBUS_FRAME_SIZE)
-		goto out;
+		return false;
 
 	/*
 	 * Great, it looks like we might have a frame.  Go ahead and
 	 * decode it.
 	 */
-	sbus_decode(now);
 	partial_frame_count = 0;
-
-out:
-	/*
-	 * If we have seen a frame in the last 200ms, we consider ourselves 'locked'
-	 */
-	return (now - last_frame_time) < 200000;
+	return sbus_decode(now, values, num_values);
 }
 
 /*
@@ -199,13 +193,13 @@ static const struct sbus_bit_pick sbus_decoder[SBUS_INPUT_CHANNELS][3] = {
 	/* 15 */ { {20, 5, 0x07, 0}, {21, 0, 0xff, 3}, { 0, 0, 0x00,  0} }
 };
 
-static void
-sbus_decode(hrt_abstime frame_time)
+static bool
+sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 {
 	/* check frame boundary markers to avoid out-of-sync cases */
 	if ((frame[0] != 0x0f) || (frame[24] != 0x00)) {
 		sbus_frame_drops++;
-		return;
+		return false;
 	}
 
 	/* if the failsafe or connection lost bit is set, we consider the frame invalid */
@@ -213,8 +207,8 @@ sbus_decode(hrt_abstime frame_time)
 	    (frame[23] & (1 << 3))) { /* failsafe */
 
 		/* actively announce signal loss */
-		system_state.rc_channels = 0;
-		return 1;
+		*values = 0;
+		return false;
 	}
 
 	/* we have received something we think is a frame */
@@ -241,23 +235,21 @@ sbus_decode(hrt_abstime frame_time)
 		}
 
 		/* convert 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
-		system_state.rc_channel_data[channel] = (value / 2) + 998;
+		values[channel] = (value / 2) + 998;
 	}
 
 	/* decode switch channels if data fields are wide enough */
-	if (chancount > 17) {
+	if (PX4IO_INPUT_CHANNELS > 17 && chancount > 15) {
+		chancount = 18;
+
 		/* channel 17 (index 16) */
-		system_state.rc_channel_data[16] = (frame[23] & (1 << 0)) * 1000 + 998;
+		values[16] = (frame[23] & (1 << 0)) * 1000 + 998;
 		/* channel 18 (index 17) */
-		system_state.rc_channel_data[17] = (frame[23] & (1 << 1)) * 1000 + 998;
+		values[17] = (frame[23] & (1 << 1)) * 1000 + 998;
 	}
 
 	/* note the number of channels decoded */
-	system_state.rc_channels = chancount;
+	*num_values = chancount;
 
-	/* and note that we have received data from the R/C controller */
-	system_state.rc_channels_timestamp = frame_time;
-
-	/* trigger an immediate report to the FMU */
-	system_state.fmu_report_due = true;
+	return true;
 }

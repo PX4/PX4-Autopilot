@@ -998,12 +998,16 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* read all channels available */
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
-		/* look for battery channel */
-
 		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
 			
 			if (ret >= (int)sizeof(buf_adc[0])) {
 
+				/* Save raw voltage values */
+				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
+					 raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
+				}
+
+				/* look for specific channels and process the raw voltage to measurement data */
 				if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 					/* Voltage in volts */
 					float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
@@ -1080,36 +1084,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 void
 Sensors::ppm_poll()
 {
-	/* fake low-level driver, directly pulling from driver variables */
-	static orb_advert_t rc_input_pub = -1;
-	struct rc_input_values raw;
-
-	raw.timestamp = ppm_last_valid_decode;
-	/* we are accepting this message */
-	_ppm_last_valid = ppm_last_valid_decode;
-
-	/*
-	 * relying on two decoded channels is very noise-prone,
-	 * in particular if nothing is connected to the pins.
-	 * requiring a minimum of four channels
-	 */
-	if (ppm_decoded_channels > 4 && hrt_absolute_time() - _ppm_last_valid < PPM_INPUT_TIMEOUT_INTERVAL) {
-
-		for (unsigned i = 0; i < ppm_decoded_channels; i++) {
-			raw.values[i] = ppm_buffer[i];
-		}
-
-		raw.channel_count = ppm_decoded_channels;
-
-		/* publish to object request broker */
-		if (rc_input_pub <= 0) {
-			rc_input_pub = orb_advertise(ORB_ID(input_rc), &raw);
-
-		} else {
-			orb_publish(ORB_ID(input_rc), rc_input_pub, &raw);
-		}
-	}
-
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 	bool rc_updated;
@@ -1155,31 +1129,45 @@ Sensors::ppm_poll()
 		/* Read out values from raw message */
 		for (unsigned int i = 0; i < channel_limit; i++) {
 
-			/* scale around the mid point differently for lower and upper range */
+			/*
+			 * 1) Constrain to min/max values, as later processing depends on bounds.
+			 */
+			if (rc_input.values[i] < _parameters.min[i])
+				rc_input.values[i] = _parameters.min[i];
+			if (rc_input.values[i] > _parameters.max[i])
+				rc_input.values[i] = _parameters.max[i];
+
+			/*
+			 * 2) Scale around the mid point differently for lower and upper range.
+			 *
+			 * This is necessary as they don't share the same endpoints and slope.
+			 *
+			 * First normalize to 0..1 range with correct sign (below or above center),
+			 * the total range is 2 (-1..1).
+			 * If center (trim) == min, scale to 0..1, if center (trim) == max,
+			 * scale to -1..0.
+			 *
+			 * As the min and max bounds were enforced in step 1), division by zero
+			 * cannot occur, as for the case of center == min or center == max the if
+			 * statement is mutually exclusive with the arithmetic NaN case.
+			 *
+			 * DO NOT REMOVE OR ALTER STEP 1!
+			 */
 			if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
+				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
 
 			} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-				/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
-				_rc.chan[i].scaled = -((_parameters.trim[i] - rc_input.values[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(_parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
 
 			} else {
 				/* in the configured dead zone, output zero */
 				_rc.chan[i].scaled = 0.0f;
 			}
 
-			/* reverse channel if required */
-			if (i == (int)_rc.function[THROTTLE]) {
-				if ((int)_parameters.rev[i] == -1) {
-					_rc.chan[i].scaled = 1.0f + -1.0f * _rc.chan[i].scaled;
-				}
-
-			} else {
-				_rc.chan[i].scaled *= _parameters.rev[i];
-			}
+			_rc.chan[i].scaled *= _parameters.rev[i];
 
 			/* handle any parameter-induced blowups */
-			if (isnan(_rc.chan[i].scaled) || isinf(_rc.chan[i].scaled))
+			if (!isfinite(_rc.chan[i].scaled))
 				_rc.chan[i].scaled = 0.0f;
 		}
 

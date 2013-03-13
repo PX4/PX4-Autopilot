@@ -93,6 +93,7 @@ MixerGroup::reset()
 		mixer = _first;
 		_first = mixer->_next;
 		delete mixer;
+		mixer = nullptr;
 	}
 }
 

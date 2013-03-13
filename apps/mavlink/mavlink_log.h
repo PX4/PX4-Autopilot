@@ -63,7 +63,11 @@
  * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
  * @param _text		The text to log;
  */
+#ifdef __cplusplus
+#define mavlink_log_emergency(_fd, _text)	::ioctl(_fd, MAVLINK_IOC_SEND_TEXT_EMERGENCY, (unsigned long)_text);
+#else
 #define mavlink_log_emergency(_fd, _text)	ioctl(_fd, MAVLINK_IOC_SEND_TEXT_EMERGENCY, (unsigned long)_text);
+#endif
 
 /**
  * Send a mavlink critical message.
@@ -71,7 +75,11 @@
  * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
  * @param _text		The text to log;
  */
+#ifdef __cplusplus
+#define mavlink_log_critical(_fd, _text)	::ioctl(_fd, MAVLINK_IOC_SEND_TEXT_CRITICAL, (unsigned long)_text);
+#else
 #define mavlink_log_critical(_fd, _text)	ioctl(_fd, MAVLINK_IOC_SEND_TEXT_CRITICAL, (unsigned long)_text);
+#endif
 
 /**
  * Send a mavlink info message.
@@ -79,7 +87,11 @@
  * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
  * @param _text		The text to log;
  */
+#ifdef __cplusplus
+#define mavlink_log_info(_fd, _text)		::ioctl(_fd, MAVLINK_IOC_SEND_TEXT_INFO, (unsigned long)_text);
+#else
 #define mavlink_log_info(_fd, _text)		ioctl(_fd, MAVLINK_IOC_SEND_TEXT_INFO, (unsigned long)_text);
+#endif
 
 struct mavlink_logmessage {
 	char text[51];

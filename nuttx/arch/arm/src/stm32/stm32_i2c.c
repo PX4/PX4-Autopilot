@@ -185,6 +185,22 @@ enum stm32_trace_e
   I2CEVENT_ERROR          /* Error occurred, param = 0 */
 };
 
+#ifdef CONFIG_I2C_TRACE
+static const char *stm32_trace_names[] = {
+  "NONE      ",
+  "SENDADDR  ",
+  "SENDBYTE  ",
+  "ITBUFEN   ",
+  "RCVBYTE   ",
+  "REITBUFEN ",
+  "DISITBUFEN",
+  "BTFNOSTART",
+  "BTFRESTART",
+  "BTFSTOP   ",
+  "ERROR     "
+};
+#endif
+
 /* Trace data */
 
 struct stm32_trace_s
@@ -846,6 +862,7 @@ static void stm32_i2c_traceevent(FAR struct stm32_i2c_priv_s *priv,
 
       trace->event  = event;
       trace->parm   = parm;
+      trace->time   = clock_systimer();
 
       /* Bump up the trace index (unless we are out of trace entries) */
 
@@ -869,8 +886,8 @@ static void stm32_i2c_tracedump(FAR struct stm32_i2c_priv_s *priv)
   for (i = 0; i <= priv->tndx; i++)
     {
       trace = &priv->trace[i];
-      syslog("%2d. STATUS: %08x COUNT: %3d EVENT: %2d PARM: %08x TIME: %d\n",
-                    i+1, trace->status, trace->count,  trace->event, trace->parm,
+      syslog("%2d. STATUS: %08x COUNT: %3d EVENT: %s PARM: %08x TIME: %d\n",
+                    i+1, trace->status, trace->count, stm32_trace_names[trace->event], trace->parm,
                     trace->time - priv->start_time);
     }
 }
@@ -1620,8 +1637,8 @@ static int stm32_i2c_process(FAR struct i2c_dev_s *dev, FAR struct i2c_msg_s *ms
       status = stm32_i2c_getstatus(priv);
       errval = ETIMEDOUT;
 
-      i2cdbg("Timed out: CR1: %04x status: %08x\n",
-             stm32_i2c_getreg(priv, STM32_I2C_CR1_OFFSET), status);
+      i2cdbg("Timed out: CR1: %04x status: %08x after %d\n",
+             stm32_i2c_getreg(priv, STM32_I2C_CR1_OFFSET), status, timeout_us);
 
       /* "Note: When the STOP, START or PEC bit is set, the software must
        *  not perform any write access to I2C_CR1 before this bit is
@@ -2005,7 +2022,7 @@ int up_i2creset(FAR struct i2c_dev_s * dev)
 
           /* Give up if we have tried too hard */
 
-          if (clock_count++ > 1000)
+          if (clock_count++ > CONFIG_STM32_I2CTIMEOTICKS)
             { 
               goto out;
             }

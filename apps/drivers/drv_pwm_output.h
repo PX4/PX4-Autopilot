@@ -77,9 +77,6 @@ typedef uint16_t	servo_position_t;
  * device.
  */
 struct pwm_output_values {
-	/** desired servo update rate in Hz */
-	uint32_t		update_rate;
-
 	/** desired pulse widths for each of the supported channels */
 	servo_position_t	values[PWM_OUTPUT_MAX_CHANNELS];
 };
@@ -105,6 +102,18 @@ ORB_DECLARE(output_pwm);
 
 /** set update rate in Hz */
 #define PWM_SERVO_SET_UPDATE_RATE	_IOC(_PWM_SERVO_BASE, 2)
+
+/** get the number of servos in *(unsigned *)arg */
+#define PWM_SERVO_GET_COUNT	_IOC(_PWM_SERVO_BASE, 3)
+
+/** set debug level for servo IO */
+#define PWM_SERVO_SET_DEBUG	_IOC(_PWM_SERVO_BASE, 4)
+
+/** enable in-air restart */
+#define PWM_SERVO_INAIR_RESTART_ENABLE	_IOC(_PWM_SERVO_BASE, 5)
+
+/** disable in-air restart */
+#define PWM_SERVO_INAIR_RESTART_DISABLE	_IOC(_PWM_SERVO_BASE, 6)
 
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
