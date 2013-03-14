@@ -197,7 +197,7 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
   noassign = false;
   lflag    = false;
 
-  while (*fmt && *buf)
+  while ((*fmt && *buf) || (*fmt == '%' || *fmt == 'n' || isspace(*fmt)))
     {
       /* Skip over white space */
 
