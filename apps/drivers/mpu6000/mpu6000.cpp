@@ -151,7 +151,7 @@ class MPU6000 : public device::SPI
 {
 public:
 	MPU6000(int bus, spi_dev_e device);
-	~MPU6000();
+	virtual ~MPU6000();
 
 	virtual int		init();
 

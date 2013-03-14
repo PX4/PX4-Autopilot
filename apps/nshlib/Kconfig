@@ -55,6 +55,10 @@ config NSH_DISABLE_CP
 	bool "Disable cp"
 	default n
 
+config NSH_DISABLE_CMP
+	bool "Disable cmp"
+	default n
+
 config NSH_DISABLE_DD
 	bool "Disable dd"
 	default n

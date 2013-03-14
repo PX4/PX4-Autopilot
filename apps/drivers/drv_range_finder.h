@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,39 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file actuator_controls_effective.h
- *
- * Actuator control topics - mixer inputs.
- *
- * Values published to these topics are the outputs of the vehicle control
- * system and mixing process; they are the control-scale values that are
- * then fed to the actual actuator driver.
- *
- * Each topic can be published by a single controller
+ * @file Rangefinder driver interface.
  */
 
-#ifndef TOPIC_ACTUATOR_CONTROLS_EFFECTIVE_H
-#define TOPIC_ACTUATOR_CONTROLS_EFFECTIVE_H
+#ifndef _DRV_RANGEFINDER_H
+#define _DRV_RANGEFINDER_H
 
 #include <stdint.h>
-#include "../uORB.h"
-#include "actuator_controls.h"
+#include <sys/ioctl.h>
 
-#define NUM_ACTUATOR_CONTROLS_EFFECTIVE		NUM_ACTUATOR_CONTROLS
-#define NUM_ACTUATOR_CONTROL_GROUPS_EFFECTIVE	NUM_ACTUATOR_CONTROL_GROUPS	/**< for sanity checking */
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
 
-struct actuator_controls_effective_s {
+#define RANGE_FINDER_DEVICE_PATH	"/dev/range_finder"
+
+/**
+ * range finder report structure.  Reads from the device must be in multiples of this
+ * structure.
+ */
+struct range_finder_report {
 	uint64_t timestamp;
-	float	control_effective[NUM_ACTUATOR_CONTROLS_EFFECTIVE];
+	float distance; 			/** in meters */
+	uint8_t valid;				/** 1 == within sensor range, 0 = outside sensor range */
 };
 
-/* actuator control sets; this list can be expanded as more controllers emerge */
-ORB_DECLARE(actuator_controls_effective_0);
-ORB_DECLARE(actuator_controls_effective_1);
-ORB_DECLARE(actuator_controls_effective_2);
-ORB_DECLARE(actuator_controls_effective_3);
+/*
+ * ObjDev tag for raw range finder data.
+ */
+ORB_DECLARE(sensor_range_finder);
 
-/* control sets with pre-defined applications */
-#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE	ORB_ID(actuator_controls_effective_0)
+/*
+ * ioctl() definitions
+ *
+ * Rangefinder drivers also implement the generic sensor driver
+ * interfaces from drv_sensor.h
+ */
 
-#endif /* TOPIC_ACTUATOR_CONTROLS_EFFECTIVE_H */
+#define _RANGEFINDERIOCBASE			(0x7900)
+#define __RANGEFINDERIOC(_n)		(_IOC(_RANGEFINDERIOCBASE, _n))
+
+/** set the minimum effective distance of the device */
+#define RANGEFINDERIOCSETMINIUMDISTANCE	__RANGEFINDERIOC(1)
+
+/** set the maximum effective distance of the device */
+#define RANGEFINDERIOCSETMAXIUMDISTANCE	__RANGEFINDERIOC(2)
+
+
+#endif /* _DRV_RANGEFINDER_H */

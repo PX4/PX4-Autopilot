@@ -160,7 +160,7 @@ public:
 	 * @param control_cb		Callback invoked when reading controls.
 	 */
 	Mixer(ControlCallback control_cb, uintptr_t cb_handle);
-	~Mixer() {};
+	virtual ~Mixer() {};
 
 	/**
 	 * Perform the mixing function.

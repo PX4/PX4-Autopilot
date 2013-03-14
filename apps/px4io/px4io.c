@@ -37,20 +37,23 @@
  */
 
 #include <nuttx/config.h>
-#include <stdio.h>
+
+#include <stdio.h>	// required for task_create
 #include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <debug.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-
-#include <nuttx/clock.h>
+#include <poll.h>
+#include <signal.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
+#include <systemlib/perf_counter.h>
+
+#include <stm32_uart.h>
+
+#define DEBUG
 #include "px4io.h"
 
 __EXPORT int user_start(int argc, char *argv[]);
@@ -59,18 +62,78 @@ extern void up_cxxinitialize(void);
 
 struct sys_state_s 	system_state;
 
-int user_start(int argc, char *argv[])
+static struct hrt_call serial_dma_call;
+
+/* store i2c reset count XXX this should be a register, together with other error counters */
+volatile uint32_t i2c_loop_resets = 0;
+
+/*
+ * a set of debug buffers to allow us to send debug information from ISRs
+ */
+
+static volatile uint32_t msg_counter;
+static volatile uint32_t last_msg_counter;
+static volatile uint8_t msg_next_out, msg_next_in;
+
+/*
+ * WARNING: too large buffers here consume the memory required
+ * for mixer handling. Do not allocate more than 80 bytes for
+ * output.
+ */
+#define NUM_MSG 2
+static char msg[NUM_MSG][40];
+
+/*
+ * add a debug message to be printed on the console
+ */
+void
+isr_debug(uint8_t level, const char *fmt, ...)
+{
+	if (level > r_page_setup[PX4IO_P_SETUP_SET_DEBUG]) {
+		return;
+	}
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf(msg[msg_next_in], sizeof(msg[0]), fmt, ap);
+	va_end(ap);
+	msg_next_in = (msg_next_in+1) % NUM_MSG;
+	msg_counter++;
+}
+
+/*
+ * show all pending debug messages
+ */
+static void
+show_debug_messages(void)
+{
+	if (msg_counter != last_msg_counter) {
+		uint32_t n = msg_counter - last_msg_counter;
+		if (n > NUM_MSG) n = NUM_MSG;
+		last_msg_counter = msg_counter;
+		while (n--) {
+			debug("%s", msg[msg_next_out]);
+			msg_next_out = (msg_next_out+1) % NUM_MSG;
+		}
+	}
+}
+
+int
+user_start(int argc, char *argv[])
 {
 	/* run C++ ctors before we go any further */
 	up_cxxinitialize();
 
 	/* reset all to zero */
 	memset(&system_state, 0, sizeof(system_state));
-	/* default to 50 Hz PWM outputs */
-	system_state.servo_rate = 50;
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
+
+	/*
+	 * Poll at 1ms intervals for received bytes that have not triggered
+	 * a DMA event.
+	 */
+	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
 
 	/* print some startup info */
 	lowsyslog("\nPX4IO: starting\n");
@@ -89,17 +152,80 @@ int user_start(int argc, char *argv[])
 	/* configure the first 8 PWM outputs (i.e. all of them) */
 	up_pwm_servo_init(0xff);
 
-	/* start the flight control signal handler */
-	task_create("FCon",
-		    SCHED_PRIORITY_DEFAULT,
-		    1024,
-		    (main_t)controls_main,
-		    NULL);
+	/* initialise the control inputs */
+	controls_init();
 
+	/* start the i2c handler */
+	i2c_init();
+
+	/* add a performance counter for mixing */
+	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
+
+	/* add a performance counter for controls */
+	perf_counter_t controls_perf = perf_alloc(PC_ELAPSED, "controls");
+
+	/* and one for measuring the loop rate */
+	perf_counter_t loop_perf = perf_alloc(PC_INTERVAL, "loop");
 
 	struct mallinfo minfo = mallinfo();
-	lowsyslog("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
+	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
 
-	/* we're done here, go run the communications loop */
-	comms_main();
+#if 0
+	/* not enough memory, lock down */
+	if (minfo.mxordblk < 500) {
+		lowsyslog("ERR: not enough MEM");
+		bool phase = false;
+
+		if (phase) {
+			LED_AMBER(true);
+			LED_BLUE(false);
+		} else {
+			LED_AMBER(false);
+			LED_BLUE(true);
+		}
+
+		phase = !phase;
+		usleep(300000);
+	}
+#endif
+
+	/*
+	 * Run everything in a tight loop.
+	 */
+
+	uint64_t last_debug_time = 0;
+	for (;;) {
+
+		/* track the rate at which the loop is running */
+		perf_count(loop_perf);
+
+		/* kick the mixer */
+		perf_begin(mixer_perf);
+		mixer_tick();
+		perf_end(mixer_perf);
+
+		/* kick the control inputs */
+		perf_begin(controls_perf);
+		controls_tick();
+		perf_end(controls_perf);
+
+		/* check for debug activity */
+		show_debug_messages();
+
+		/* post debug state at ~1Hz */
+		if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
+
+			struct mallinfo minfo = mallinfo();
+
+			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x r=%u m=%u", 
+				  (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG],
+				  (unsigned)r_status_flags,
+				  (unsigned)r_setup_arming,
+				  (unsigned)r_setup_features,
+				  (unsigned)i2c_loop_resets,
+				  (unsigned)minfo.mxordblk);
+			last_debug_time = hrt_absolute_time();
+		}
+	}
 }
+
