@@ -182,11 +182,11 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	/* control pitch (forward) output */
 	rates_sp->pitch = pid_calculate(&pitch_controller, att_sp->pitch_body ,
-					att->pitch, att->pitchspeed, deltaT);
+					att->pitch, att->pitchspeed, deltaT, NULL, NULL, NULL);
 
 	/* control roll (left/right) output */
 	rates_sp->roll = pid_calculate(&roll_controller, att_sp->roll_body ,
-				       att->roll, att->rollspeed, deltaT);
+				       att->roll, att->rollspeed, deltaT, NULL, NULL, NULL);
 
 	// printf("rates_sp: %4.4f, att setpoint: %4.4f\n, pitch: %4.4f, pitchspeed: %4.4f, dT: %4.4f", rates_sp->pitch, att_sp->pitch_body, att->pitch, att->pitchspeed, deltaT);
 

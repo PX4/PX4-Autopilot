@@ -72,7 +72,7 @@ typedef struct {
 __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor, uint8_t mode);
 __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor);
 //void pid_set(PID_t *pid, float sp);
-__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
+__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt, float *ctrl_p, float *ctrl_i, float *ctrl_d);
 
 __EXPORT void pid_reset_integral(PID_t *pid);
 
