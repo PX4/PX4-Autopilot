@@ -197,11 +197,11 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	/* control pitch (forward) output */
 	float pitch_control = pid_calculate(&pitch_rate_controller, rate_sp->pitch ,
-			rates[1], 0.0f, deltaT);
+			rates[1], 0.0f, deltaT, NULL, NULL, NULL);
 
 	/* control roll (left/right) output */
 	float roll_control = pid_calculate(&roll_rate_controller, rate_sp->roll ,
-			rates[0], 0.0f, deltaT);
+			rates[0], 0.0f, deltaT, NULL, NULL, NULL);
 
 	/* increase resilience to faulty control inputs */
 	if (isfinite(pitch_control)) {

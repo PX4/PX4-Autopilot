@@ -124,7 +124,7 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
  * @param dt
  * @return
  */
-__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt)
+__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt, float *ctrl_p, float *ctrl_i, float *ctrl_d)
 {
 	/*  error = setpoint - actual_position
 	 integral = integral + (error*dt)
@@ -152,7 +152,7 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	if (pid->mode == PID_MODE_DERIVATIV_CALC) {
 
 //		d = (error_filtered - pid->error_previous_filtered) / dt;
-		d = pid->error_previous_filtered - error_filtered;
+		d = error_filtered - pid->error_previous_filtered ;
 		pid->error_previous_filtered = error_filtered;
 	} else if (pid->mode == PID_MODE_DERIVATIV_SET) {
 		d = -val_dot;
@@ -193,6 +193,10 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	// if (isfinite(error)) {				// Why is this necessary?  DEW
 	// 	pid->error_previous = error;
 	// }
+
+	*ctrl_p = (error * pid->kp);
+	*ctrl_i = (i * pid->ki);
+	*ctrl_d = (d * pid->kd);
 
 	return pid->last_output;
 }

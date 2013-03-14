@@ -319,7 +319,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 					// XXX what is xtrack_err.past_end?
 					if (distance_res == OK /*&& !xtrack_err.past_end*/) {
 
-						float delta_psi_c = pid_calculate(&offtrack_controller, 0, xtrack_err.distance, 0.0f, 0.0f); //p.xtrack_p * xtrack_err.distance
+						float delta_psi_c = pid_calculate(&offtrack_controller, 0, xtrack_err.distance, 0.0f, 0.0f, NULL, NULL, NULL); //p.xtrack_p * xtrack_err.distance
 
 						float psi_c = psi_track + delta_psi_c;
 						float psi_e = psi_c - att.yaw;
@@ -336,7 +336,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 						}
 
 						/* calculate roll setpoint, do this artificially around zero */
-						float delta_psi_rate_c = pid_calculate(&heading_controller, psi_e, 0.0f, 0.0f, 0.0f);
+						float delta_psi_rate_c = pid_calculate(&heading_controller, psi_e, 0.0f, 0.0f, 0.0f, NULL, NULL, NULL);
 						float psi_rate_track = 0; //=V_gr/r_track , this will be needed for implementation of arc following
 						float psi_rate_c = delta_psi_rate_c + psi_rate_track;
 
@@ -359,7 +359,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 						float psi_rate_e_scaled = psi_rate_e * ground_speed / 9.81f; //* V_gr / g
 
-						attitude_setpoint.roll_body = pid_calculate(&heading_rate_controller, psi_rate_e_scaled, 0.0f, 0.0f, deltaT);
+						attitude_setpoint.roll_body = pid_calculate(&heading_rate_controller, psi_rate_e_scaled, 0.0f, 0.0f, deltaT, NULL, NULL, NULL);
 
 						if (verbose) {
 							printf("psi_rate_c %.4f ", (double)psi_rate_c);
@@ -379,7 +379,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 					if (pos_updated) {
 
 						//TODO: take care of relative vs. ab. altitude
-						attitude_setpoint.pitch_body = pid_calculate(&altitude_controller, global_setpoint.altitude, global_pos.alt, 0.0f, 0.0f);
+						attitude_setpoint.pitch_body = pid_calculate(&altitude_controller, global_setpoint.altitude, global_pos.alt, 0.0f, 0.0f, NULL, NULL, NULL);
 
 					}
 
