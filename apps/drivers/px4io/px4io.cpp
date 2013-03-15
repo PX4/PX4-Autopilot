@@ -100,6 +100,17 @@ public:
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
 
+	/**
+	* Set the update rate for actuator outputs from FMU to IO.
+	*
+	* @param rate    The rate in Hz actuator outpus are sent to IO.
+	*      Min 10 Hz, max 400 Hz
+	*/
+	int      set_update_rate(int rate);
+
+	/**
+	* Print the current status of IO
+	*/
 	void			print_status();
 
 private:
@@ -1496,6 +1507,25 @@ PX4IO::write(file *filp, const char *buffer, size_t len)
 	return count * 2;
 }
 
+int
+PX4IO::set_update_rate(int rate)
+{
+	int interval_ms = 1000 / rate;
+	if (interval_ms < 5) {
+		interval_ms = 5;
+		warnx("update rate too high, limiting interval to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
+	}
+
+	if (interval_ms > 100) {
+		interval_ms = 100;
+		warnx("update rate too low, limiting to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
+	}
+
+	_update_interval = interval_ms;
+	return 0;
+}
+
+
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
 
 namespace
@@ -1617,6 +1647,20 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start"))
 		start(argc - 1, argv + 1);
+
+	if (!strcmp(argv[1], "limit")) {
+
+		if (g_dev != nullptr) {
+
+			if ((argc > 2)) {
+				g_dev->set_update_rate(atoi(argv[2 + 1]));
+			} else {
+				errx(1, "missing argument (50 - 200 Hz)");
+				return 1;
+			}
+		}
+		exit(0);
+	}
 
 	if (!strcmp(argv[1], "recovery")) {
 
@@ -1745,5 +1789,5 @@ px4io_main(int argc, char *argv[])
 		monitor();
 
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit' or 'update'");
 }
