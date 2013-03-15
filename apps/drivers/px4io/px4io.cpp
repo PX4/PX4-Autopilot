@@ -1653,7 +1653,7 @@ px4io_main(int argc, char *argv[])
 		if (g_dev != nullptr) {
 
 			if ((argc > 2)) {
-				g_dev->set_update_rate(atoi(argv[2 + 1]));
+				g_dev->set_update_rate(atoi(argv[2]));
 			} else {
 				errx(1, "missing argument (50 - 200 Hz)");
 				return 1;
