@@ -87,7 +87,7 @@ struct param_wbuf_s {
 UT_array	*param_values;
 
 /** array info for the modified parameters array */
-UT_icd		param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
+const UT_icd	param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 
 /** parameter update topic */
 ORB_DEFINE(parameter_update, struct parameter_update_s);

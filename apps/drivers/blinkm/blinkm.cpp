@@ -135,7 +135,7 @@ public:
 	virtual int		setMode(int mode);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	static const char	*script_names[];
+	static const char	*const script_names[];
 
 private:
 	enum ScriptID {
@@ -219,7 +219,7 @@ namespace
 }
 
 /* list of script names, must match script ID numbers */
-const char *BlinkM::script_names[] = {
+const char *const BlinkM::script_names[] = {
 	"USER",
 	"RGB",
 	"WHITE_FLASH",
@@ -499,7 +499,7 @@ BlinkM::led()
 				for(num_of_cells = 2; num_of_cells < 7; num_of_cells++) {
 					if(vehicle_status_raw.voltage_battery < num_of_cells * MAX_CELL_VOLTAGE) break;
 				}
-				printf("<blinkm> cells found:%u\n", num_of_cells);
+				printf("<blinkm> cells found:%d\n", num_of_cells);
 
 			} else {
 				if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
@@ -827,7 +827,7 @@ BlinkM::get_firmware_version(uint8_t version[2])
 {
 	const uint8_t msg = 'Z';
 
-	return transfer(&msg, sizeof(msg), version, sizeof(version));
+	return transfer(&msg, sizeof(msg), version, 2);
 }
 
 void blinkm_usage() {
