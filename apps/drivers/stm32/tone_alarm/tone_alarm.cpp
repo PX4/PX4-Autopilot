@@ -35,27 +35,59 @@
  * Driver for the PX4 audio alarm port, /dev/tone_alarm.
  *
  * The tone_alarm driver supports a set of predefined "alarm"
- * patterns and one user-supplied pattern.  Patterns are ordered by
- * priority, with a higher-priority pattern interrupting any
- * lower-priority pattern that might be playing.
+ * tunes and one user-supplied tune.
  *
  * The TONE_SET_ALARM ioctl can be used to select a predefined
- * alarm pattern, from 1 - <TBD>.  Selecting pattern zero silences
+ * alarm tune, from 1 - <TBD>.  Selecting tune zero silences
  * the alarm.
  *
- * To supply a custom pattern, write an array of 1 - <TBD> tone_note
- * structures to /dev/tone_alarm.  The custom pattern has a priority
- * of zero.
+ * Tunes follow the syntax of the Microsoft GWBasic/QBasic PLAY
+ * statement, with some exceptions and extensions.
  *
- * Patterns will normally play once and then silence (if a pattern
- * was overridden it will not resume).  A pattern may be made to
- * repeat by inserting a note with the duration set to
- * DURATION_REPEAT.  This pattern will loop until either a
- * higher-priority pattern is started or pattern zero is requested
- * via the ioctl.
+ * From Wikibooks:
+ *
+ * PLAY "[string expression]"
+ * 
+ * Used to play notes and a score ... The tones are indicated by letters A through G.
+ * Accidentals are indicated with a "+" or "#" (for sharp) or "-" (for flat) 
+ * immediately after the note letter. See this example:
+ * 
+ *   PLAY "C C# C C#"
+ *
+ * Whitespaces are ignored inside the string expression. There are also codes that
+ * set the duration, octave and tempo. They are all case-insensitive. PLAY executes 
+ * the commands or notes the order in which they appear in the string. Any indicators 
+ * that change the properties are effective for the notes following that indicator.
+ *
+ * Ln     Sets the duration (length) of the notes. The variable n does not indicate an actual duration
+ *        amount but rather a note type; L1 - whole note, L2 - half note, L4 - quarter note, etc.
+ *        (L8, L16, L32, L64, ...). By default, n = 4.
+ *        For triplets and quintets, use L3, L6, L12, ... and L5, L10, L20, ... series respectively.
+ *        The shorthand notation of length is also provided for a note. For example, "L4 CDE L8 FG L4 AB"
+ *        can be shortened to "L4 CDE F8G8 AB". F and G play as eighth notes while others play as quarter notes.
+ * On     Sets the current octave. Valid values for n are 0 through 6. An octave begins with C and ends with B.
+ *        Remember that C- is equivalent to B. 
+ * < >    Changes the current octave respectively down or up one level.
+ * Nn     Plays a specified note in the seven-octave range. Valid values are from 0 to 84. (0 is a pause.)
+ *        Cannot use with sharp and flat. Cannot use with the shorthand notation neither.
+ * MN     Stand for Music Normal. Note duration is 7/8ths of the length indicated by Ln. It is the default mode.
+ * ML     Stand for Music Legato. Note duration is full length of that indicated by Ln.
+ * MS     Stand for Music Staccato. Note duration is 3/4ths of the length indicated by Ln.
+ * Pn     Causes a silence (pause) for the length of note indicated (same as Ln). 
+ * Tn     Sets the number of "L4"s per minute (tempo). Valid values are from 32 to 255. The default value is T120. 
+ * .      When placed after a note, it causes the duration of the note to be 3/2 of the set duration.
+ *        This is how to get "dotted" notes. "L4 C#." would play C sharp as a dotted quarter note.
+ *        It can be used for a pause as well.
+ *
+ * Extensions/variations:
+ *
+ * MB MF  The MF command causes the tune to play once and then stop. The MB command causes the
+ *        tune to repeat when it ends.
+ *
  */
 
 #include <nuttx/config.h>
+#include <debug.h>
 
 #include <drivers/device/device.h>
 #include <drivers/drv_tone_alarm.h>
@@ -69,6 +101,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <math.h>
+#include <ctype.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
@@ -202,140 +236,232 @@ public:
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
 
 private:
-	static const unsigned	_max_pattern = 6;
-	static const unsigned	_pattern_none = _max_pattern + 1;
-	static const unsigned	_pattern_user = 0;
-	static const unsigned	_max_pattern_len = 40;
-	static const unsigned	_note_max = TONE_NOTE_MAX;
+	static const unsigned	_tune_max = 1024; // be reasonable about user tunes
+	static const char	* const _default_tunes[];
+	static const unsigned	_default_ntunes;
+	static const uint8_t	_note_tab[];
 
-	static const tone_note	_patterns[_max_pattern][_max_pattern_len];
-	static const uint16_t	_notes[_note_max];
+	const char		*_user_tune;
 
-	unsigned		_current_pattern;
-	unsigned		_next_note;
+	const char		*_tune;		// current tune string
+	const char		*_next;		// next note in the string
 
-	hrt_call		_note_end;
-	tone_note		_user_pattern[_max_pattern_len];
+	unsigned		_tempo;
+	unsigned		_note_length;
+	enum { MODE_NORMAL, MODE_LEGATO, MODE_STACCATO} _note_mode;
+	unsigned		_octave;
+	unsigned		_silence_length; // if nonzero, silence before next note
+	bool			_repeat;	// if true, tune restarts at end
 
+	hrt_call		_note_call;	// HRT callout for note completion
+
+	// Convert a note value in the range C1 to B7 into a divisor for
+	// the configured timer's clock.
+	//
+	unsigned		note_to_divisor(unsigned note);
+
+	// Calculate the duration in microseconds of play and silence for a 
+	// note given the current tempo, length and mode and the number of 
+	// dots following in the play string.
+	//
+	unsigned		note_duration(unsigned &silence, unsigned note_length, unsigned dots);
+
+	// Calculate the duration in microseconds of a rest corresponding to
+	// a given note length.
+	//
+	unsigned		rest_duration(unsigned rest_length, unsigned dots);
+
+	// Start playing the note
+	//
+	void			start_note(unsigned note);
+
+	// Stop playing the current note and make the player 'safe'
+	//
+	void			stop_note();
+
+	// Start playing the tune
+	//
+	void			start_tune(const char *tune);
+
+	// Parse the next note out of the string and play it
+	//
+	void			next_note();
+
+	// Find the next character in the string, discard any whitespace and
+	// return the canonical (uppercase) version.
+	//
+	int			next_char();
+
+	// Extract a number from the string, consuming all the digit characters.
+	//
+	unsigned		next_number();
+
+	// Consume dot characters from the string, returning the number consumed.
+	//
+	unsigned		next_dots();
+
+	// hrt_call trampoline for next_note
+	//
 	static void		next_trampoline(void *arg);
-	void			next();
-	bool			check(tone_note *pattern);
-	void			stop();
+
 };
 
-
-/* predefined patterns for alarms 1-_max_pattern */
-const tone_note ToneAlarm::_patterns[_max_pattern][_max_pattern_len] = {
-	{
-		{TONE_NOTE_A7, 12},
-		{TONE_NOTE_D8, 12},
-		{TONE_NOTE_C8, 12},
-		{TONE_NOTE_A7, 12},
-		{TONE_NOTE_D8, 12},
-		{TONE_NOTE_C8, 12},
-		{TONE_NOTE_D8, 4},
-		{TONE_NOTE_C8, 4},
-		{TONE_NOTE_D8, 4},
-		{TONE_NOTE_C8, 4},
-		{TONE_NOTE_D8, 4},
-		{TONE_NOTE_C8, 4},
-	},
-	{{TONE_NOTE_B6, 100}, {TONE_NOTE_B6, DURATION_REPEAT}},
-	{{TONE_NOTE_C7, 100}},
-	{{TONE_NOTE_D7, 100}},
-	{{TONE_NOTE_E7, 100}},
-	{
-		//This is tetris ;)
-		{TONE_NOTE_C6, 40},
-		{TONE_NOTE_G5, 20},
-		{TONE_NOTE_G5S, 20},
-		{TONE_NOTE_A5S, 40},
-		{TONE_NOTE_G5S, 20},
-		{TONE_NOTE_G5, 20},
-		{TONE_NOTE_F5, 40},
-		{TONE_NOTE_F5, 20},
-		{TONE_NOTE_G5S, 20},
-		{TONE_NOTE_C6, 40},
-		{TONE_NOTE_A5S, 20},
-		{TONE_NOTE_G5S, 20},
-		{TONE_NOTE_G5, 60},
-		{TONE_NOTE_G5S, 20},
-		{TONE_NOTE_A5S, 40},
-		{TONE_NOTE_C6, 40},
-		{TONE_NOTE_G5S, 40},
-		{TONE_NOTE_F5, 40},
-		{TONE_NOTE_F5, 60},
-		{TONE_NOTE_A5S, 40},
-		{TONE_NOTE_C6S, 20},
-		{TONE_NOTE_F6, 40},
-		{TONE_NOTE_D6S, 20},
-		{TONE_NOTE_C6S, 20},
-		{TONE_NOTE_C6, 60},
-		{TONE_NOTE_G5S, 20},
-		{TONE_NOTE_C6, 40},
-		{TONE_NOTE_A5S, 20},
-		{TONE_NOTE_G5S, 20},
-		{TONE_NOTE_G5, 40},
-		{TONE_NOTE_G5, 20},
-		{TONE_NOTE_G5S, 20},
-		{TONE_NOTE_A5S, 40},
-		{TONE_NOTE_C6, 40},
-		{TONE_NOTE_G5S, 40},
-		{TONE_NOTE_F5, 40},
-		{TONE_NOTE_F5, 60},
-	}
+// predefined tune array
+const char * const ToneAlarm::_default_tunes[] = {
+	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",		// startup tune
+	"MBT200a8a8a8PaaaP",					// ERROR tone
+	"MFT200e8a8a",						// NotifyPositive tone
+	"MFT200e8e",						// NotifyNeutral tone
+	"MFT200e8c8e8c8e8c8",					// NotifyNegative tone
+	"MFT90O3C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C4", // charge!
+	"MFT60O3C32O2A32F16F16F32G32A32A+32O3C16C16C16O2A16",	// dixie
+	"MFT90O2C16C16C16F8.A8C16C16C16F8.A4P16P8",		// cucuracha
+	"MNT150L8O2GGABGBADGGABL4GL8F+",			// yankee
+	"MFT200O3C4.O2A4.G4.F4.D8E8F8D4F8C2.O2G4.O3C4.O2A4.F4.D8E8F8G4A8G2P8", // daisy
+	"T200O2B4P8B16B16B4P8B16B16B8G+8E8G+8B8G+8B8O3E8"	// william tell
+	"O2B8G+8E8G+8B8G+8B8O3E8O2B4P8B16B16B4P8B16"
+	"O2B16B4P8B16B16B4P8B16B16B8B16B16B8B8B8B16"
+	"O2B16B8B8B8B16B16B8B8B8B16B16B8B8B2B2B8P8"
+	"P4P4P8O1B16B16B8B16B16B8B16B16O2E8F+8G+8"
+	"O1B16B16B8B16B16O2E8G+16G+16F+8D+8O1B8B16"
+	"O1B16B8B16B16B8B16B16O2E8F+8G+8E16G+16B4"
+	"O2B16A16G+16F+16E8G+8E8O3B16B16B8B16B16B8"
+	"O3B16B16O4E8F+8G+8O3B16B16B8B16B16O4E8G+16"
+	"O4G+16F+8D+8O3B8B16B16B8B16B16B8B16B16O4E8"
+	"O4F+8G+8E16G+16B4B16A16G+16F+16E8G+8E8O3G+16"
+	"O3G+16G+8G+16G+16G+8G+16G+16G+8O4C+8O3G+8"
+	"O4C+8O3G+8O4C+8O3G+8F+8E8D+8C+8G+16G+16G+8"
+	"O3G+16G+16G+8G+16G+16G+8O4C+8O3G+8O4C+8O3G+8"
+	"O4C+8O3B8A+8B8A+8B8G+16G+16G+8G+16G+16G+8"
+	"O3G+16G+16G+8O4C+8O3G+8O4C+8O3G+8O4C+8O3G+8"
+	"O3F+8E8D+8C+8G+16G+16G+8G+16G+16G+8G+16G+16"
+	"O3G+8O4C+8O3G+8O4C+8O3G+8O4C+8O3B8A+8B8O2B16"
+	"O2B16B8F+16F+16F+8F+16F+16F+8G+8A8F+4A8G+8"
+	"O2E4G+8F+8F+8F+8O3F+16F+16F+8F+16F+16F+8"
+	"O3G+8A8F+4A8G+8E4G+8F+8O2B16B16B8O1B16B16"
+	"O1B8B16B16B8B16B16O2E8F+8G+8O1B16B16B8B16"
+	"O1B16O2E8G+16G+16F+8D+8O1B8B16B16B8B16B16"
+	"O1B8B16B16O2E8F+8G+8E16G+16B4B16A16G+16F+16"
+	"O2E8G+8E8O3B16B16B8B16B16B8B16B16O4E8F+8"
+	"O4G+8O3B16B16B8B16B16O4E8G+16G+16F+8D+8O3B8"
+	"O3B16B16B8B16B16B8B16B16O4E8F+8G+8E16G+16"
+	"O4B4B16A16G+16F+16E8G+8E8O3E64F64G64A64B64"
+	"O4C64D64E8E16E16E8E8G+4.F+8E8D+8E8C+8O3B16"
+	"O4C+16O3B16O4C+16O3B16O4C+16D+16E16O3A16"
+	"O3B16A16B16A16B16O4C+16D+16O3G+16A16G+16"
+	"O3A16G+16A16B16O4C+16O3F+16G+16F+16G+16F+16"
+	"O3G+16F+16G+16F+16G+16F+16D+16O2B16O3B16"
+	"O4C+16D+16E8D+8E8C+8O3B16O4C+16O3B16O4C+16"
+	"O3B16O4C+16D+16E16O3A16B16A16B16A16B16O4C+16"
+	"O4D+16O3G+16A16G+16A16G+16A16B16O4C+16O3F+16"
+	"O3G+16F+16G+16F+16A16F+16E16E8P8C+4C+16O2C16"
+	"O3C+16O2C16O3D+16C+16O2B16A16A16G+16E16C+16"
+	"O2C+16C+16C+16C+16E16D+16O1C16G+16G+16G+16"
+	"O1G+16G+16G+16O2C+16E16G+16O3C+16C+16C+16"
+	"O3C+16C+16O2C16O3C+16O2C16O3D+16C+16O2B16"
+	"O2A16A16G+16E16C+16C+16C+16C+16C+16E16D+16"
+	"O1C16G+16G+16G+16G+16G+16G+16O2C+16E16G+16"
+	"O3C+16E16D+16C+16D+16O2C16G+16G+16G+16O3G+16"
+	"O3E16C+16D+16O2C16G+16G+16G+16O3G+16E16C+16"
+	"O3D+16O2B16G+16G+16A+16G16D+16D+16G+16G16"
+	"O2G+16G16G+16A16G+16F+16E16O1B16A+16B16O2E16"
+	"O1B16O2F+16O1B16O2G+16E16D+16E16G+16E16A16"
+	"O2F+16B16O3G+16F+16E16D+16F+16E16C+16O2B16"
+	"O3C+16O2B16O3C+16D+16E16F+16G+16O2A16B16"
+	"O2A16B16O3C+16D+16E16F+16O2G+16A16G+16A16"
+	"O2C16O3C+16D+16E16O2F+16G+16F+16G+16F+16"
+	"O2G+16F+16G+16F+16G+16F+16D+16O1B16C16O2C+16"
+	"O2D+16E16O1B16A+16B16O2E16O1B16O2F+16O1B16"
+	"O2G+16E16D+16E16G+16E16A16F+16B16O3G+16F+16"
+	"O3E16D+16F+16E16C+16O2B16O3C+16O2B16O3C+16"
+	"O3D+16E16F+16G+16O2A16B16A16B16O3C+16D+16"
+	"O3E16F+16O2G+16A16G+16A16B16O3C+16D+16E16"
+	"O2F+16O3C+16O2C16O3C+16D+16C+16O2A16F+16"
+	"O2E16O3E16F+16G+16A16B16O4C+16D+16E8E16E16"
+	"O4E8E8G+4.F8E8D+8E8C+8O3B16O4C+16O3B16O4C+16"
+	"O3B16O4C+16D+16E16O3A16B16A16B16A16B16O4C+16"
+	"O4D+16O3G+16A16G+16A16G+16A16B16O4C+16O3F+16"
+	"O3G+16F+16G+16F+16G+16F+16G+16F+16G+16F+16"
+	"O3D+16O2B16O3B16O4C+16D+16E8E16E16E8E8G+4."
+	"O4F+8E8D+8E8C+8O3B16O4C+16O3B16O4C+16O3B16"
+	"O4C+16D+16E16O3A16B16A16B16A16B16O4C+16D+16"
+	"O3G+16A16G+16A16G+16A16B16O4C+16O3F+16G+16"
+	"O3F+16G+16F+16A16G+16F+16E8O2B8O3E8G+16G+16"
+	"O3G+8G+16G+16G+8G+16G+16G+8O4C+8O3G+8O4C+8"
+	"O3G+8O4C+8O3G+8F+8E8D+8C+8G+16G+16G+8G+16"
+	"O3G+16G+8G+16G+16G+8O4C+8O3G+8O4C+8O3G+8"
+	"O4C+8O3B8A+8B8A+8B8G+16G+16G+8G+16G+16G+8"
+	"O3G+16G+16G+8O4C+8O3G+8O4C+8O3G+8O4C+8O3G+8"
+	"O3F+8E8D+8C+8G+16G+16G+8G+16G+16G+8G+16G+16"
+	"O3G+8O4C+8O3G+8O4C+8O3G+8O4C+8O3B8A+8B8A+8"
+	"O3B8O2F+16F+16F+8F+16F+16F+8G+8A8F+4A8G+8"
+	"O2E4G+8F+8B8O1B8O2F+16F+16F+8F+16F+16F+8"
+	"O2G+8A8F+4A8G+8E4G+8F+8B16B16B8O1B16B16B8"
+	"O1B16B16B8B16B16O2E8F+8G+8O1B16B16B8B16B16"
+	"O2E8G+16G+16F+8D+8O1B8B16B16B8B16B16B8B16"
+	"O1B16O2E8F+8G+8E16G+16B4B16A16G+16F+16E8"
+	"O1B8O2E8O3B16B16B8B16B16B8B16B16O4E8F+8G+8"
+	"O3B16B16B8B16B16O4E8G+16G+16F+8D+8O3B8B16"
+	"O3B16B8B16B16B8B16B16O4E8F+8G+8O3E16G+16"
+	"O3B4B16A16G+16F+16E16F+16G+16A16G+16A16B16"
+	"O4C+16O3B16O4C+16D+16E16D+16E16F+16G+16A16"
+	"O3B16O4A16O3B16O4A16O3B16O4A16O3B16O4A16"
+	"O3B16O4A16O3B16O4A16O3B16O4A16O3B16E16F+16"
+	"O3G+16A16G+16A16B16O4C+16O3B16O4C+16D+16"
+	"O4E16D+16E16F+16G+16A16O3B16O4A16O3B16O4A16"
+	"O3B16O4A16O3B16O4A16O3B16O4A16O3B16O4A16"
+	"O3B16O4A16O3B16P16G+16O4G+16O3G+16P16D+16"
+	"O4D+16O3D+16P16E16O4E16O3E16P16A16O4A16O3A16"
+	"P16O3G+16O4G+16O3G+16P16D+16O4D+16O3D+16"
+	"P16O3E16O4E16O3E16P16A16O4A16O3A16O4G16O3G16"
+	"O4G16O3G16O4G16O3G16O4G16O3G16O4G8E8C8E8"
+	"O4G+16O3G+16O4G+16O3G+16O4G+16O3G+16O4G+16"
+	"O3G+16O4G+8E8O3B8O4E8G+16O3G+16O4G+16O3G+16"
+	"O4G+16O3G+16O4G+16O3G+16O4G+8F8C+8F8A+16"
+	"O3A+16O4A+16O3A+16O4A+16O3A+16O4A+16O3A+16"
+	"O4A+8G8E8G8B8P16A+16P16A16P16G+16P16F+16"
+	"P16O4E16P16D+16P16C+16P16O3B16P16A+16P16"
+	"O3A16P16G+16P16F+16P16E16P16D+16P16F+16E16"
+	"O3F+16G+16A16G+16A16B16O4C+16O3B16O4C+16"
+	"O4D+16E16D+16E16F+16G+16A16O3B16O4A16O3B16"
+	"O4A16O3B16O4A16O3B16O4A16O3B16O4A16O3B16"
+	"O4A16O3B16O4A16O3B16E16F+16G+16A16G+16A16"
+	"O3B16O4C+16O3B16O4C+16D+16E16D+16E16F+16"
+	"O4G+16A16O3B16O4A16O3B16O4A16O3B16O4A16O3B16"
+	"O4A16O3B16O4A16O3B16O4A16O3B16O4A16O3B16"
+	"P16O3G+16O4G+16O3G+16P16D+16O4D+16O3D+16"
+	"P16O3E16O4E16O3E16P16A16O4A16O3A16P16G+16"
+	"O4G+16O3G+16P16D+16O4D+16O3D+16P16E16O4E16"
+	"O3E16P16A16O4A16O3A16O4G16O3G16O4G16O3G16"
+	"O4G16O3G16O4G16O3G16O4G8E8C8E8G+16O3G+16"
+	"O4G+16O3G+16O4G+16O3G+16O4G+16O3G+16O4G+8"
+	"O4E8O3B8O4E8G+16O3G+16O4G+16O3G+16O4G+16"
+	"O3G+16O4G+16O3G+16O4G+8F8C+8F8A+16O3A+16"
+	"O4A+16O3A+16O4A+16O3A+16O4A+16O3A+16O4A+8"
+	"O4G8E8G8B8P16A+16P16A16P16G+16P16F+16P16"
+	"O4E16P16D+16P16C+16P16O3B16P16A+16P16A16"
+	"P16O3G+16P16F+16P16E16P16D+16P16F16E16D+16"
+	"O3E16D+16E8B16B16B8B16B16B8B16B16O4E8F+8"
+	"O4G+8O3B16B16B8B16B16B8B16B16O4G+8A8B8P8"
+	"O4E8F+8G+8P8O3G+8A8B8P8P2O2B16C16O3C+16D16"
+	"O3D+16E16F16F+16G16G+16A16A+16B16C16O4C+16"
+	"O4D+16E16D+16F+16D+16E16D+16F+16D+16E16D+16"
+	"O4F+16D+16E16D+16F+16D+16E16D+16F+16D+16"
+	"O4E16D+16F+16D+16E16D+16F+16D+16E16D+16F+16"
+	"O4D+16E8E16O3E16O4E16O3E16O4E16O3E16O4E8"
+	"O3B16O2B16O3B16O2B16O3B16O2B16O3B8G+16O2G+16"
+	"O3G+16O2G+16O3G+16O2G+16O3G8E16O2E16O3E16"
+	"O2E16O3E16O2E16O3E8E16E16E8E8E8O2B16B16B8"
+	"O2B8B8G+16G+16G+8G+8G+8E16E16E8E8E8O1B8O2E8"
+	"O1B8O2G+8E8B8G+8O3E8O2B8O3E8O2B8O3G+8E8B8"
+	"O3G+8O4E4P8E16E16E8E8E8E8E4P8E16E4P8O2E16"
+	"O2E2P64",
 };
 
-const uint16_t ToneAlarm::_notes[_note_max] = {
-	63707, /* E4 */
-	60132, /* F4 */
-	56758, /* F#4/Gb4 */
-	53571, /* G4 */
-	50565, /* G#4/Ab4 */
-	47727, /* A4 */
-	45048, /* A#4/Bb4 */
-	42520, /* B4 */
-	40133, /* C5 */
-	37880, /* C#5/Db5 */
-	35755, /* D5 */
-	33748, /* D#5/Eb5 */
-	31853, /* E5 */
-	30066, /* F5 */
-	28378, /* F#5/Gb5 */
-	26786, /* G5 */
-	25282, /* G#5/Ab5 */
-	23863, /* A5 */
-	22524, /* A#5/Bb5 */
-	21260, /* B5 */
-	20066, /* C6 */
-	18940, /* C#6/Db6 */
-	17877, /* D6 */
-	16874, /* D#6/Eb6 */
-	15927, /* E6 */
-	15033, /* F6 */
-	14189, /* F#6/Gb6 */
-	13393, /* G6 */
-	12641, /* G#6/Ab6 */
-	11931, /* A6 */
-	11262, /* A#6/Bb6 */
-	10630, /* B6 */
-	10033, /* C7 */
-	9470, /* C#7/Db7 */
-	8938, /* D7 */
-	8437, /* D#7/Eb7 */
-	7963, /* E7 */
-	7516, /* F7 */
-	7094, /* F#7/Gb7 */
-	6696, /* G7 */
-	6320, /* G#7/Ab7 */
-	5965, /* A7 */
-	5631, /* A#7/Bb7 */
-	5315, /* B7 */
-	5016, /* C8 */
-	4735, /* C#8/Db8 */
-	4469, /* D8 */
-	4218  /* D#8/Eb8 */
-};
+const unsigned ToneAlarm::_default_ntunes = sizeof(_default_tunes) / sizeof(_default_tunes[0]);
+
+// semitone offsets from C for the characters 'A'-'G'
+const uint8_t ToneAlarm::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
 
 /*
  * Driver 'main' command.
@@ -345,8 +471,9 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 ToneAlarm::ToneAlarm() :
 	CDev("tone_alarm", "/dev/tone_alarm"),
-	_current_pattern(_pattern_none),
-	_next_note(0)
+	_user_tune(nullptr),
+	_tune(nullptr),
+	_next(nullptr)
 {
 	// enable debug() calls
 	//_debug_enabled = true;
@@ -386,13 +513,8 @@ ToneAlarm::init()
 	/* toggle the CC output each time the count passes 1 */
 	TONE_rCCR = 1;
 
-	/*
-	 * Configure the timebase to free-run at half max frequency.
-	 * XXX this should be more flexible in order to get a better
-	 * frequency range, but for the F4 with the APB1 timers based
-	 * at 42MHz, this gets us down to ~320Hz or so.
-	 */
-	rPSC = 1;
+	/* default the timer to a prescale value of 1; playing notes will change this */
+	rPSC = 0;
 
 	/* make sure the timer is running */
 	rCR1 = GTIM_CR1_CEN;
@@ -401,13 +523,342 @@ ToneAlarm::init()
 	return OK;
 }
 
+unsigned
+ToneAlarm::note_to_divisor(unsigned note)
+{
+	// compute the frequency first (Hz)
+	float freq = 880.0f * expf(logf(2.0f) * ((int)note - 46) / 12.0f);
+
+	float period = 0.5f / freq;
+
+	// and the divisor, rounded to the nearest integer
+	unsigned divisor = (period * TONE_ALARM_CLOCK) + 0.5f;
+
+	return divisor;
+}
+
+unsigned
+ToneAlarm::note_duration(unsigned &silence, unsigned note_length, unsigned dots)
+{
+	unsigned whole_note_period = (60 * 1000000 * 4) / _tempo;
+
+	if (note_length == 0)
+		note_length = 1;
+	unsigned note_period = whole_note_period / note_length;
+
+	switch (_note_mode) {
+	case MODE_NORMAL:
+		silence = note_period / 8;
+		break;
+	case MODE_STACCATO:
+		silence = note_period / 4;
+		break;
+	default:
+	case MODE_LEGATO:
+		silence = 0;
+		break;
+	}
+	note_period -= silence;
+
+	unsigned dot_extension = note_period / 2;
+	while (dots--) {
+		note_period += dot_extension;
+		dot_extension /= 2;
+	}
+
+	return note_period;
+}
+
+unsigned
+ToneAlarm::rest_duration(unsigned rest_length, unsigned dots)
+{
+	unsigned whole_note_period = (60 * 1000000 * 4) / _tempo;
+
+	if (rest_length == 0)
+		rest_length = 1;
+
+	unsigned rest_period = whole_note_period / rest_length;
+
+	unsigned dot_extension = rest_period / 2;
+	while (dots--) {
+		rest_period += dot_extension;
+		dot_extension /= 2;
+	}
+
+	return rest_period;
+}
+
+void
+ToneAlarm::start_note(unsigned note)
+{
+	// compute the divisor
+	unsigned divisor = note_to_divisor(note);
+
+	// pick the lowest prescaler value that we can use
+	// (note that the effective prescale value is 1 greater)
+	unsigned prescale = divisor / 65536;
+
+	// calculate the timer period for the selected prescaler value
+	unsigned period = (divisor / (prescale + 1)) - 1;
+
+	rPSC = prescale;	// load new prescaler
+	rARR = period;		// load new toggle period
+	rEGR = GTIM_EGR_UG;	// force a reload of the period
+	rCCER |= TONE_CCER;	// enable the output
+
+}
+
+void
+ToneAlarm::stop_note()
+{
+	/* stop the current note */
+	rCCER &= ~TONE_CCER;
+
+	/*
+	 * Make sure the GPIO is not driving the speaker.
+	 *
+	 * XXX this presumes PX4FMU and the onboard speaker driver FET.
+	 */
+	stm32_gpiowrite(GPIO_TONE_ALARM, 0);
+}
+
+void
+ToneAlarm::start_tune(const char *tune)
+{
+	// kill any current playback
+	hrt_cancel(&_note_call);
+
+	// record the tune
+	_tune = tune;
+	_next = tune;
+
+	// initialise player state
+	_tempo = 120;
+	_note_length = 4;
+	_note_mode = MODE_NORMAL;
+	_octave = 4;
+	_silence_length = 0;
+	_repeat = false;		// otherwise command-line tunes repeat forever...
+
+	// schedule a callback to start playing
+	hrt_call_after(&_note_call, 0, (hrt_callout)next_trampoline, this);
+}
+
+void
+ToneAlarm::next_note()
+{
+	// do we have an inter-note gap to wait for?
+	if (_silence_length > 0) {
+		stop_note();
+		hrt_call_after(&_note_call, (hrt_abstime)_silence_length, (hrt_callout)next_trampoline, this);
+		_silence_length = 0;
+		return;
+	}
+
+	// make sure we still have a tune - may be removed by the write / ioctl handler
+	if ((_next == nullptr) || (_tune == nullptr)) {
+		stop_note();
+		return;
+	}
+
+	// parse characters out of the string until we have resolved a note
+	unsigned note = 0;
+	unsigned note_length = _note_length;
+	unsigned duration;
+
+	while (note == 0) {
+		// we always need at least one character from the string
+		int c = next_char();
+		if (c == 0)
+			goto tune_end;
+		_next++;
+
+		switch (c) {
+		case 'L':	// select note length
+			_note_length = next_number();
+			if (_note_length < 1)
+				goto tune_error;
+			break;
+
+		case 'O':	// select octave
+			_octave = next_number();
+			if (_octave > 6)
+				_octave = 6;
+			break;
+
+		case '<':	// decrease octave
+			if (_octave > 0)
+				_octave--;
+			break;
+
+		case '>':	// increase octave
+			if (_octave < 6)
+				_octave++;
+			break;
+
+		case 'M':	// select inter-note gap
+			c = next_char();
+			if (c == 0)
+				goto tune_error;
+			_next++;
+			switch (c) {
+			case 'N':
+				_note_mode = MODE_NORMAL;
+				break;
+			case 'L':
+				_note_mode = MODE_LEGATO;
+				break;
+			case 'S':
+				_note_mode = MODE_STACCATO;
+				break;
+			case 'F':
+				_repeat = false;
+				break;
+			case 'B':
+				_repeat = true;
+				break;
+			default:
+				goto tune_error;
+			}
+			break;
+
+		case 'P':	// pause for a note length
+			stop_note();
+			hrt_call_after(&_note_call, 
+				(hrt_abstime)rest_duration(next_number(), next_dots()),
+				(hrt_callout)next_trampoline, 
+				this);
+			return;
+
+		case 'T': {	// change tempo
+			unsigned nt = next_number();
+
+			if ((nt >= 32) && (nt <= 255)) {
+				_tempo = nt;
+			} else {
+				goto tune_error;
+			}
+			break;
+		}
+
+		case 'N':	// play an arbitrary note
+			note = next_number();
+			if (note > 84)
+				goto tune_error;
+			if (note == 0) {
+				// this is a rest - pause for the current note length
+				hrt_call_after(&_note_call,
+					(hrt_abstime)rest_duration(_note_length, next_dots()),
+					(hrt_callout)next_trampoline, 
+					this);
+				return;				
+			}
+			break;
+
+		case 'A'...'G':	// play a note in the current octave
+			note = _note_tab[c - 'A'] + (_octave * 12) + 1;
+			c = next_char();
+			switch (c) {
+			case '#':	// up a semitone
+			case '+':
+				if (note < 84)
+					note++;
+				_next++;
+				break;
+			case '-':	// down a semitone
+				if (note > 1)
+					note--;
+				_next++;
+				break;
+			default:
+				// 0 / no next char here is OK
+				break;
+			}
+			// shorthand length notation
+			note_length = next_number();
+			if (note_length == 0)
+				note_length = _note_length;
+			break;
+
+		default:
+			goto tune_error;
+		}
+	}
+
+	// compute the duration of the note and the following silence (if any)
+	duration = note_duration(_silence_length, note_length, next_dots());
+
+	// start playing the note
+	start_note(note);
+
+	// and arrange a callback when the note should stop
+	hrt_call_after(&_note_call, (hrt_abstime)duration, (hrt_callout)next_trampoline, this);
+	return;
+
+	// tune looks bad (unexpected EOF, bad character, etc.)
+tune_error:
+	lowsyslog("tune error\n");
+	_repeat = false;		// don't loop on error
+
+	// stop (and potentially restart) the tune
+tune_end:
+	stop_note();
+	if (_repeat)
+		start_tune(_tune);
+	return;
+}
+
+int
+ToneAlarm::next_char()
+{
+	while (isspace(*_next)) {
+		_next++;
+	}
+	return toupper(*_next);
+}
+
+unsigned
+ToneAlarm::next_number()
+{
+	unsigned number = 0;
+	int c;
+
+	for (;;) {
+		c = next_char();
+		if (!isdigit(c))
+			return number;
+		_next++;
+		number = (number * 10) + (c - '0');
+	}
+}
+
+unsigned
+ToneAlarm::next_dots()
+{
+	unsigned dots = 0;
+
+	while (next_char() == '.') {
+		_next++;
+		dots++;
+	}
+	return dots;
+}
+
+void
+ToneAlarm::next_trampoline(void *arg)
+{
+	ToneAlarm *ta = (ToneAlarm *)arg;
+
+	ta->next_note();
+}
+
+
 int
 ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 {
-	int result = 0;
-	unsigned new_pattern = arg;
+	int result = OK;
 
-	debug("ioctl %i %u", cmd, new_pattern);
+	debug("ioctl %i %u", cmd, arg);
 
 //	irqstate_t flags = irqsave();
 
@@ -416,27 +867,17 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 	case TONE_SET_ALARM:
 		debug("TONE_SET_ALARM %u", arg);
 
-		if (new_pattern == 0) {
-			/* cancel any current alarm */
-			_current_pattern = _pattern_none;
-			next();
-
-		} else if (new_pattern > _max_pattern) {
-
-			/* not a legal alarm value */
-			result = -ERANGE;
-
-		} else if ((_current_pattern == _pattern_none) || (new_pattern > _current_pattern)) {
-
-			/* higher priority than the current alarm */
-			_current_pattern = new_pattern;
-			_next_note = 0;
-
-			/* and start playing it */
-			next();
-
+		if (arg <= _default_ntunes) {
+			if (arg == 0) {
+				// stop the tune
+				_tune = nullptr;
+				_next = nullptr;
+			} else {
+				// play the selected tune
+				start_tune(_default_tunes[arg - 1]);
+			}
 		} else {
-			/* current pattern is higher priority than the new pattern, ignore */
+			result = -EINVAL;
 		}
 
 		break;
@@ -458,139 +899,37 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 int
 ToneAlarm::write(file *filp, const char *buffer, size_t len)
 {
-	irqstate_t flags;
-
-	/* sanity-check the size of the write */
-	if (len > (_max_pattern_len * sizeof(tone_note)))
+	// sanity-check the buffer for length and nul-termination
+	if (len > _tune_max)
 		return -EFBIG;
 
-	if ((len % sizeof(tone_note)) || (len == 0))
-		return -EIO;
+	// if we have an existing user tune, free it
+	if (_user_tune != nullptr) {
 
-	if (!check((tone_note *)buffer))
-		return -EIO;
+		// if we are playing the user tune, stop
+		if (_tune == _user_tune) {
+			_tune = nullptr;
+			_next = nullptr;
+		}
 
-	flags = irqsave();
-
-	/* if we aren't playing an alarm tone */
-	if (_current_pattern <= _pattern_user) {
-
-		/* reset the tone state to play the new user pattern */
-		_current_pattern = _pattern_user;
-		_next_note = 0;
-
-		/* copy in the new pattern */
-		memset(_user_pattern, 0, sizeof(_user_pattern));
-		memcpy(_user_pattern, buffer, len);
-
-		/* and start it */
-		debug("starting user pattern");
-		next();
+		// free the old user tune
+		free((void *)_user_tune);
+		_user_tune = nullptr;
 	}
 
-	irqrestore(flags);
+	// if the new tune is empty, we're done
+	if (buffer[0] == '\0')
+		return OK;
+
+	// allocate a copy of the new tune
+	_user_tune = strndup(buffer, len);
+	if (_user_tune == nullptr)
+		return -ENOMEM;
+
+	// and play it
+	start_tune(_user_tune);
 
 	return len;
-}
-
-void
-ToneAlarm::next_trampoline(void *arg)
-{
-	ToneAlarm *ta = (ToneAlarm *)arg;
-
-	ta->next();
-}
-
-void
-ToneAlarm::next(void)
-{
-	const tone_note *np;
-
-	/* stop the current note */
-	rCCER &= ~TONE_CCER;
-
-	/* if we are no longer playing a pattern, we have nothing else to do here */
-	if (_current_pattern == _pattern_none) {
-		stop();
-		return;
-	}
-
-	ASSERT(_next_note < _note_max);
-
-	/* find the note to play */
-	if (_current_pattern == _pattern_user) {
-		np = &_user_pattern[_next_note];
-
-	} else {
-		np = &_patterns[_current_pattern - 1][_next_note];
-	}
-
-	/* work out which note is next */
-	_next_note++;
-
-	if (_next_note >= _note_max) {
-		/* hit the end of the pattern, stop */
-		_current_pattern = _pattern_none;
-
-	} else if (np[1].duration == DURATION_END) {
-		/* hit the end of the pattern, stop */
-		_current_pattern = _pattern_none;
-
-	} else if (np[1].duration == DURATION_REPEAT) {
-		/* next note is a repeat, rewind in preparation */
-		_next_note = 0;
-	}
-
-	/* set the timer to play the note, if required */
-	if (np->pitch <= TONE_NOTE_SILENCE) {
-
-		/* set reload based on the pitch */
-		rARR = _notes[np->pitch];
-
-		/* force an update, reloads the counter and all registers */
-		rEGR = GTIM_EGR_UG;
-
-		/* enable the output */
-		rCCER |= TONE_CCER;
-	}
-
-	/* arrange a callback when the note/rest is done */
-	hrt_call_after(&_note_end, (hrt_abstime)10000 * np->duration, (hrt_callout)next_trampoline, this);
-}
-
-bool
-ToneAlarm::check(tone_note *pattern)
-{
-	for (unsigned i = 0; i < _note_max; i++) {
-
-		/* first note must not be repeat or end */
-		if ((i == 0) &&
-		    ((pattern[i].duration == DURATION_END) || (pattern[i].duration == DURATION_REPEAT)))
-			return false;
-
-		if (pattern[i].duration == DURATION_END)
-			break;
-
-		/* pitch must be legal */
-		if (pattern[i].pitch >= _note_max)
-			return false;
-	}
-
-	return true;
-}
-
-void
-ToneAlarm::stop()
-{
-	/* stop the current note */
-	rCCER &= ~TONE_CCER;
-
-	/*
-	 * Make sure the GPIO is not driving the speaker.
-	 *
-	 * XXX this presumes PX4FMU and the onboard speaker driver FET.
-	 */
-	stm32_gpiowrite(GPIO_TONE_ALARM, 0);
 }
 
 /**
@@ -602,7 +941,7 @@ namespace
 ToneAlarm	*g_dev;
 
 int
-play_pattern(unsigned pattern)
+play_tune(unsigned tune)
 {
 	int	fd, ret;
 
@@ -611,11 +950,30 @@ play_pattern(unsigned pattern)
 	if (fd < 0)
 		err(1, "/dev/tone_alarm");
 
-	ret = ioctl(fd, TONE_SET_ALARM, pattern);
+	ret = ioctl(fd, TONE_SET_ALARM, tune);
+	close(fd);
 
 	if (ret != 0)
 		err(1, "TONE_SET_ALARM");
 
+	exit(0);
+}
+
+int
+play_string(const char *str)
+{
+	int	fd, ret;
+
+	fd = open("/dev/tone_alarm", O_WRONLY);
+
+	if (fd < 0)
+		err(1, "/dev/tone_alarm");
+
+	ret = write(fd, str, strlen(str) + 1);
+	close(fd);
+
+	if (ret < 0)
+		err(1, "play tune");
 	exit(0);
 }
 
@@ -624,7 +982,7 @@ play_pattern(unsigned pattern)
 int
 tone_alarm_main(int argc, char *argv[])
 {
-	unsigned pattern;
+	unsigned tune;
 
 	/* start the driver lazily */
 	if (g_dev == nullptr) {
@@ -640,13 +998,21 @@ tone_alarm_main(int argc, char *argv[])
 	}
 
 	if ((argc > 1) && !strcmp(argv[1], "start"))
-		play_pattern(1);
+		play_tune(1);
 
 	if ((argc > 1) && !strcmp(argv[1], "stop"))
-		play_pattern(0);
+		play_tune(0);
 
-	if ((pattern = strtol(argv[1], nullptr, 10)) != 0)
-		play_pattern(pattern);
+	if ((tune = strtol(argv[1], nullptr, 10)) != 0)
+		play_tune(tune);
+
+	/* if it looks like a PLAY string... */
+	if (strlen(argv[1]) > 2) {
+		const char *str = argv[1];
+		if (str[0] == 'M') {
+			play_string(str);
+		}
+	}
 
 	errx(1, "unrecognised command, try 'start', 'stop' or an alarm number");
 }
