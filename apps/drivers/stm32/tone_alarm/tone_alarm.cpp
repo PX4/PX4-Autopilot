@@ -310,9 +310,9 @@ private:
 const char * const ToneAlarm::_default_tunes[] = {
 	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",		// startup tune
 	"MBMLA",						// continuous A
-	"MFO4TML60c",						// 1second c4 (placeholder)
-	"MFO4TML60d",						// 1second d4 (placeholder)
-	"MFO4TML60e",						// 1second e4 (placeholder)
+	"MFO4MLT60c",						// 1second c4 (placeholder)
+	"MFO4MLT60d",						// 1second d4 (placeholder)
+	"MFO4MLT60e",						// 1second e4 (placeholder)
 	"MFT90O3C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C4", // charge!
 	"MFT60O3C32O2A32F16F16F32G32A32A+32O3C16C16C16O2A16",	// dixie
 	"MFT90O2C16C16C16F8.A8C16C16C16F8.A4P16P8",		// cucuracha
