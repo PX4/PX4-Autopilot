@@ -53,7 +53,12 @@ namespace control
 class __EXPORT BlockParamBase : public ListNode<BlockParamBase *>
 {
 public:
-	BlockParamBase(Block *parent, const char *name);
+	/**
+	 * Instantiate a block param base.
+	 *
+	 * @param parent_prefix Set to true to include the parent name in the parameter name
+	 */
+	BlockParamBase(Block *parent, const char *name, bool parent_prefix=true);
 	virtual ~BlockParamBase() {};
 	virtual void update() = 0;
 	const char *getName() { return param_name(_handle); }
@@ -68,8 +73,8 @@ template<class T>
 class __EXPORT BlockParam : public BlockParamBase
 {
 public:
-	BlockParam(Block *block, const char *name) :
-		BlockParamBase(block, name),
+	BlockParam(Block *block, const char *name, bool parent_prefix=true) :
+		BlockParamBase(block, name, parent_prefix),
 		_val() {
 		update();
 	}
