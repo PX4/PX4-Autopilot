@@ -76,7 +76,7 @@
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
 
 /* static configuration page */
-#define PX4IO_PAGE_CONFIG			0
+#define PX4IO_PAGE_CONFIG		0
 #define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
@@ -88,7 +88,7 @@
 #define PX4IO_P_CONFIG_RELAY_COUNT		8	/* harcoded # of relay outputs */
 
 /* dynamic status page */
-#define PX4IO_PAGE_STATUS			1
+#define PX4IO_PAGE_STATUS		1
 #define PX4IO_P_STATUS_FREEMEM			0
 #define PX4IO_P_STATUS_CPULOAD			1
 
@@ -112,28 +112,33 @@
 #define PX4IO_P_STATUS_ALARMS_ACC_CURRENT	(1 << 3) /* accessory current limit was exceeded */
 #define PX4IO_P_STATUS_ALARMS_FMU_LOST		(1 << 4) /* timed out waiting for controls from FMU */
 #define PX4IO_P_STATUS_ALARMS_RC_LOST		(1 << 5) /* timed out waiting for RC input */
+#define PX4IO_P_STATUS_ALARMS_PWM_ERROR		(1 << 6) /* PWM configuration or output was bad */
 
 #define PX4IO_P_STATUS_VBATT			4	/* battery voltage in mV */
 #define PX4IO_P_STATUS_IBATT			5	/* battery current in cA */
 
 /* array of post-mix actuator outputs, -10000..10000 */
-#define PX4IO_PAGE_ACTUATORS			2	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* array of PWM servo output values, microseconds */
-#define PX4IO_PAGE_SERVOS			3	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_SERVOS		3		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* array of raw RC input values, microseconds */
-#define PX4IO_PAGE_RAW_RC_INPUT			4
+#define PX4IO_PAGE_RAW_RC_INPUT		4
 #define PX4IO_P_RAW_RC_COUNT			0	/* number of valid channels */
 #define PX4IO_P_RAW_RC_BASE			1	/* CONFIG_RC_INPUT_COUNT channels from here */
 
 /* array of scaled RC input values, -10000..10000 */
-#define PX4IO_PAGE_RC_INPUT			5
+#define PX4IO_PAGE_RC_INPUT		5
 #define PX4IO_P_RC_VALID			0	/* bitmask of valid controls */
 #define PX4IO_P_RC_BASE				1	/* CONFIG_RC_INPUT_COUNT controls from here */
 
 /* array of raw ADC values */
-#define PX4IO_PAGE_RAW_ADC_INPUT		6	/* 0..CONFIG_ADC_INPUT_COUNT-1 */
+#define PX4IO_PAGE_RAW_ADC_INPUT	6		/* 0..CONFIG_ADC_INPUT_COUNT-1 */
+
+/* PWM servo information */
+#define PX4IO_PAGE_PWM_INFO		7
+#define PX4IO_RATE_MAP_BASE			0	/* 0..CONFIG_ACTUATOR_COUNT bitmaps of PWM rate groups */
 
 /* setup page */
 #define PX4IO_PAGE_SETUP			100
@@ -146,8 +151,8 @@
 #define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 4) /* OK to try in-air restart */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
-#define PX4IO_P_SETUP_PWM_LOWRATE		3	/* 'low' PWM frame output rate in Hz */
-#define PX4IO_P_SETUP_PWM_HIGHRATE		4	/* 'high' PWM frame output rate in Hz */
+#define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
+#define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
 #define PX4IO_P_SETUP_VBATT_SCALE		6	/* battery voltage correction factor (float) */
 #define PX4IO_P_SETUP_IBATT_SCALE		7	/* battery current scaling factor (float) */

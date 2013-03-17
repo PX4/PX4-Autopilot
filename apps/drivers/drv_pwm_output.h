@@ -36,7 +36,7 @@
  *
  * Servo values can be set with the PWM_SERVO_SET ioctl, by writing a
  * pwm_output_values structure to the device, or by publishing to the
- * output_pwm ObjDev.
+ * output_pwm ORB topic.
  * Writing a value of 0 to a channel suppresses any output for that
  * channel.
  */
@@ -60,7 +60,7 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_DEVICE_PATH	"/dev/pwm_output"
 
 /**
- * Maximum number of PWM output channels in the system.
+ * Maximum number of PWM output channels supported by the device.
  */
 #define PWM_OUTPUT_MAX_CHANNELS	16
 
@@ -82,14 +82,14 @@ struct pwm_output_values {
 };
 
 /*
- * ObjDev tag for PWM outputs.
+ * ORB tag for PWM outputs.
  */
 ORB_DECLARE(output_pwm);
 
 /*
  * ioctl() definitions
  *
- * Note that ioctls and ObjDev updates should not be mixed, as the
+ * Note that ioctls and ORB updates should not be mixed, as the
  * behaviour of the system in this case is not defined.
  */
 #define _PWM_SERVO_BASE		0x2a00
@@ -100,20 +100,14 @@ ORB_DECLARE(output_pwm);
 /** disarm all servo outputs (stop generating pulses) */
 #define PWM_SERVO_DISARM	_IOC(_PWM_SERVO_BASE, 1)
 
-/** set update rate in Hz */
-#define PWM_SERVO_SET_UPDATE_RATE	_IOC(_PWM_SERVO_BASE, 2)
+/** set alternate servo update rate */
+#define PWM_SERVO_SET_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 2)
 
 /** get the number of servos in *(unsigned *)arg */
 #define PWM_SERVO_GET_COUNT	_IOC(_PWM_SERVO_BASE, 3)
 
-/** set debug level for servo IO */
-#define PWM_SERVO_SET_DEBUG	_IOC(_PWM_SERVO_BASE, 4)
-
-/** enable in-air restart */
-#define PWM_SERVO_INAIR_RESTART_ENABLE	_IOC(_PWM_SERVO_BASE, 5)
-
-/** disable in-air restart */
-#define PWM_SERVO_INAIR_RESTART_DISABLE	_IOC(_PWM_SERVO_BASE, 6)
+/** selects servo update rates, one bit per servo. 0 = default (50Hz), 1 = alternate */
+#define PWM_SERVO_SELECT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 4)
 
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
@@ -121,6 +115,10 @@ ORB_DECLARE(output_pwm);
 /** get a single specific servo value */
 #define PWM_SERVO_GET(_servo)	_IOC(_PWM_SERVO_BASE, 0x40 + _servo)
 
+/** get the _n'th rate group's channels; *(uint32_t *)arg returns a bitmap of channels
+ *  whose update rates must be the same.
+ */
+#define PWM_SERVO_GET_RATEGROUP(_n) _IOC(_PWM_SERVO_BASE, 0x60 + _n)
 
 /*
  * Low-level PWM output interface.
@@ -157,12 +155,31 @@ __EXPORT extern void	up_pwm_servo_deinit(void);
 __EXPORT extern void	up_pwm_servo_arm(bool armed);
 
 /**
- * Set the servo update rate
+ * Set the servo update rate for all rate groups.
  *
  * @param rate		The update rate in Hz to set.
  * @return		OK on success, -ERANGE if an unsupported update rate is set.
  */
 __EXPORT extern int	up_pwm_servo_set_rate(unsigned rate);
+
+/**
+ * Get a bitmap of output channels assigned to a given rate group.
+ *
+ * @param group		The rate group to query. Rate groups are assigned contiguously
+ *			starting from zero.
+ * @return		A bitmap of channels assigned to the rate group, or zero if
+ *			the group number has no channels.
+ */
+__EXPORT extern uint32_t up_pwm_servo_get_rate_group(unsigned group);
+
+/**
+ * Set the update rate for a given rate group.
+ *
+ * @param group		The rate group whose update rate will be changed.
+ * @param rate		The update rate in Hz.
+ * @return		OK if the group was adjusted, -ERANGE if an unsupported update rate is set.
+ */
+__EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate);
 
 /**
  * Set the current output value for a channel.
