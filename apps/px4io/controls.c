@@ -192,6 +192,10 @@ controls_tick() {
 				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
 				ASSERT(mapped < MAX_CONTROL_CHANNELS);
 
+				/* invert channel if pitch - pulling the lever down means pitching up by convention */
+				if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
+					scaled = -scaled;
+
 				r_rc_values[mapped] = SIGNED_TO_REG(scaled);
 				assigned_channels |= (1 << mapped);
 			}
