@@ -427,16 +427,17 @@ PX4FMU::task_main()
 			/* reject faster than 500 Hz updates */
 			if (update_rate_in_ms < 2) {
 				update_rate_in_ms = 2;
-				_current_update_rate = 500;
 			}
-			/* reject slower than 50 Hz updates */
-			if (update_rate_in_ms > 20) {
-				update_rate_in_ms = 20;
-				_current_update_rate = 50;
+			/* reject slower than 10 Hz updates */
+			if (update_rate_in_ms > 100) {
+				update_rate_in_ms = 100;
 			}
 
 			debug("adjusted actuator update interval to %ums", update_rate_in_ms);
 			orb_set_interval(_t_actuators, update_rate_in_ms);
+
+			// set to current max rate, even if we are actually checking slower/faster
+			_current_update_rate = max_rate;
 		}
 
 		/* sleep waiting for data, stopping to check for PPM
