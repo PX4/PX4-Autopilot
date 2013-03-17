@@ -595,7 +595,7 @@ MS5611::cycle()
 				 * spam the console with the message.
 				 */
 			} else {
-				log("collection error %d", ret);
+				//log("collection error %d", ret);
 			}
 			/* reset the collection state machine and try again */
 			start_cycle();
@@ -627,7 +627,7 @@ MS5611::cycle()
 	/* measurement phase */
 	ret = measure();
 	if (ret != OK) {
-		log("measure error %d", ret);
+		//log("measure error %d", ret);
 		/* reset the collection state machine and try again */
 		start_cycle();
 		return;
