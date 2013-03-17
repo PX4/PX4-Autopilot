@@ -158,6 +158,7 @@ HIL::HIL() :
 	CDev("hilservo", PWM_OUTPUT_DEVICE_PATH/*"/dev/hil" XXXL*/),
 	_mode(MODE_NONE),
 	_update_rate(50),
+	_current_update_rate(0),
 	_task(-1),
 	_t_actuators(-1),
 	_t_armed(-1),
@@ -511,7 +512,12 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
+		// HIL always outputs at the alternate (usually faster) rate 
 		g_hil->set_pwm_rate(arg);
+		break;
+
+	case PWM_SERVO_SELECT_UPDATE_RATE:
+		// HIL always outputs at the alternate (usually faster) rate 
 		break;
 
 	case PWM_SERVO_SET(2):
@@ -548,6 +554,14 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			// *(servo_position_t *)arg = up_pwm_servo_get(channel);
 			break;
 		}
+
+	case PWM_SERVO_GET_RATEGROUP(0) ... PWM_SERVO_GET_RATEGROUP(PWM_OUTPUT_MAX_CHANNELS - 1): {
+		// no restrictions on output grouping
+		unsigned channel = cmd - PWM_SERVO_GET_RATEGROUP(0);
+
+		*(uint32_t *)arg = (1 << channel);
+		break;
+	}
 
 	case MIXERIOCGETOUTPUTCOUNT:
 		if (_mode == MODE_4PWM) {
@@ -641,7 +655,7 @@ enum PortMode {
 PortMode g_port_mode;
 
 int
-hil_new_mode(PortMode new_mode, int update_rate)
+hil_new_mode(PortMode new_mode)
 {
 	// uint32_t gpio_bits;
 	
@@ -699,8 +713,6 @@ hil_new_mode(PortMode new_mode, int update_rate)
 
 	/* (re)set the PWM output mode */
 	g_hil->set_mode(servo_mode);
-	if ((servo_mode != HIL::MODE_NONE) && (update_rate != 0))
-		g_hil->set_pwm_rate(update_rate);
 
 	return OK;
 }
@@ -786,59 +798,34 @@ int
 hil_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNDEFINED;
-	int pwm_update_rate_in_hz = 0;
-
-	if (!strcmp(argv[1], "test"))
-		test();
-
-	if (!strcmp(argv[1], "fake"))
-		fake(argc - 1, argv + 1);
+	const char *verb = argv[1];
 
 	if (hil_start() != OK)
-		errx(1, "failed to start the FMU driver");
+		errx(1, "failed to start the HIL driver");
 
 	/*
 	 * Mode switches.
-	 *
-	 * XXX use getopt?
 	 */
-	for (int i = 1; i < argc; i++) {   /* argv[0] is "fmu" */
 
-		if (!strcmp(argv[i], "mode_pwm")) {
-			new_mode = PORT1_FULL_PWM;
+ 	// this was all cut-and-pasted from the FMU driver; it's junk
+	if (!strcmp(verb, "mode_pwm")) {
+		new_mode = PORT1_FULL_PWM;
 
-		} else if (!strcmp(argv[i], "mode_pwm_serial")) {
-			new_mode = PORT1_PWM_AND_SERIAL;
+	} else if (!strcmp(verb, "mode_pwm_serial")) {
+		new_mode = PORT1_PWM_AND_SERIAL;
 
-		} else if (!strcmp(argv[i], "mode_pwm_gpio")) {
-			new_mode = PORT1_PWM_AND_GPIO;
-    
-		} else if (!strcmp(argv[i], "mode_port2_pwm8")) {
-			new_mode = PORT2_8PWM;
+	} else if (!strcmp(verb, "mode_pwm_gpio")) {
+		new_mode = PORT1_PWM_AND_GPIO;
 
-		} else if (!strcmp(argv[i], "mode_port2_pwm12")) {
-			new_mode = PORT2_8PWM;
+	} else if (!strcmp(verb, "mode_port2_pwm8")) {
+		new_mode = PORT2_8PWM;
 
-		} else if (!strcmp(argv[i], "mode_port2_pwm16")) {
-			new_mode = PORT2_8PWM;
-		}
+	} else if (!strcmp(verb, "mode_port2_pwm12")) {
+		new_mode = PORT2_8PWM;
 
-		/* look for the optional pwm update rate for the supported modes */
-		if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--update-rate") == 0) {
-			// if (new_mode == PORT1_FULL_PWM || new_mode == PORT1_PWM_AND_GPIO) {
-			// XXX all modes have PWM settings
-			if (argc > i + 1) {
-				pwm_update_rate_in_hz = atoi(argv[i + 1]);
-				printf("pwm update rate: %d Hz\n", pwm_update_rate_in_hz);
-			} else {
-				fprintf(stderr, "missing argument for pwm update rate (-u)\n");
-				return 1;
-			}
-			// } else {
-			// 	fprintf(stderr, "pwm update rate currently only supported for mode_pwm, mode_pwm_gpio\n");
-			// }
-		}
-        }
+	} else if (!strcmp(verb, "mode_port2_pwm16")) {
+		new_mode = PORT2_8PWM;
+	}
 
 	/* was a new mode set? */
 	if (new_mode != PORT_MODE_UNDEFINED) {
@@ -848,12 +835,17 @@ hil_main(int argc, char *argv[])
 			return OK;
 
 		/* switch modes */
-		return hil_new_mode(new_mode, pwm_update_rate_in_hz);
+		return hil_new_mode(new_mode);
 	}
 
-	/* test, etc. here */
+	if (!strcmp(verb, "test"))
+		test();
+
+	if (!strcmp(verb, "fake"))
+		fake(argc - 1, argv + 1);
+
 
 	fprintf(stderr, "HIL: unrecognized command, try:\n");
-	fprintf(stderr, "  mode_pwm [-u pwm_update_rate_in_hz], mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16\n");
+	fprintf(stderr, "  mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, mode_port2_pwm8, mode_port2_pwm12, mode_port2_pwm16\n");
 	return -EINVAL;
 }

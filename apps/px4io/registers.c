@@ -48,6 +48,7 @@
 #include "protocol.h"
 
 static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
+static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate);
 
 /**
  * PAGE 0
@@ -116,11 +117,12 @@ uint16_t		r_page_rc_input[] = {
 };
 
 /**
- * PAGE 6
+ * Scratch page; used for registers that are constructed as-read.
  *
- * Raw ADC input.
+ * PAGE 6 Raw ADC input.
+ * PAGE 7 PWM rate maps.
  */
-uint16_t		r_page_adc[ADC_CHANNEL_COUNT];
+uint16_t		r_page_scratch[32];
 
 /**
  * PAGE 100
@@ -132,8 +134,8 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_FEATURES]		= 0,
 	[PX4IO_P_SETUP_ARMING]			= 0,
 	[PX4IO_P_SETUP_PWM_RATES]		= 0,
-	[PX4IO_P_SETUP_PWM_LOWRATE]		= 50,
-	[PX4IO_P_SETUP_PWM_HIGHRATE]		= 200,
+	[PX4IO_P_SETUP_PWM_DEFAULTRATE]		= 50,
+	[PX4IO_P_SETUP_PWM_ALTRATE]		= 200,
 	[PX4IO_P_SETUP_RELAYS]			= 0,
 	[PX4IO_P_SETUP_VBATT_SCALE]		= 10000,
 	[PX4IO_P_SETUP_IBATT_SCALE]		= 0,
@@ -321,26 +323,23 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 		case PX4IO_P_SETUP_PWM_RATES:
 			value &= PX4IO_P_SETUP_RATES_VALID;
-			r_setup_pwm_rates = value;
-			/* XXX re-configure timers */
+			pwm_configure_rates(value, r_setup_pwm_defaultrate, r_setup_pwm_altrate);
 			break;
 
-		case PX4IO_P_SETUP_PWM_LOWRATE:
+		case PX4IO_P_SETUP_PWM_DEFAULTRATE:
 			if (value < 50)
 				value = 50;
 			if (value > 400)
 				value = 400;
-			r_setup_pwm_lowrate = value;
-			/* XXX re-configure timers */
+			pwm_configure_rates(r_setup_pwm_rates, value, r_setup_pwm_altrate);
 			break;
 
-		case PX4IO_P_SETUP_PWM_HIGHRATE:
+		case PX4IO_P_SETUP_PWM_ALTRATE:
 			if (value < 50)
 				value = 50;
 			if (value > 400)
 				value = 400;
-			r_setup_pwm_highrate = value;
-			/* XXX re-configure timers */
+			pwm_configure_rates(r_setup_pwm_rates, r_setup_pwm_defaultrate, value);
 			break;
 
 		case PX4IO_P_SETUP_RELAYS:
@@ -529,10 +528,19 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 		break;
 
 	case PX4IO_PAGE_RAW_ADC_INPUT:
-		r_page_adc[0] = adc_measure(ADC_VBATT);
-		r_page_adc[1] = adc_measure(ADC_IN5);
+		memset(r_page_scratch, 0, sizeof(r_page_scratch));
+		r_page_scratch[0] = adc_measure(ADC_VBATT);
+		r_page_scratch[1] = adc_measure(ADC_IN5);
 
-		SELECT_PAGE(r_page_adc);
+		SELECT_PAGE(r_page_scratch);
+		break;
+
+	case PX4IO_PAGE_PWM_INFO:
+		memset(r_page_scratch, 0, sizeof(r_page_scratch));
+		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+			r_page_scratch[PX4IO_RATE_MAP_BASE + i] = up_pwm_servo_get_rate_group(i);
+
+		SELECT_PAGE(r_page_scratch);
 		break;
 
 	/*
@@ -592,4 +600,45 @@ last_offset = offset;
 	*num_values -= offset;
 
 	return 0;
+}
+
+/*
+ * Helper function to handle changes to the PWM rate control registers.
+ */
+static void
+pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate)
+{
+	for (unsigned pass = 0; pass < 2; pass++) {
+		for (unsigned group = 0; group < IO_SERVO_COUNT; group++) {
+
+			/* get the channel mask for this rate group */
+			uint32_t mask = up_pwm_servo_get_rate_group(group);
+			if (mask == 0)
+				continue;
+
+			/* all channels in the group must be either default or alt-rate */
+			uint32_t alt = map & mask;
+
+			if (pass == 0) {
+				/* preflight */
+				if ((alt != 0) && (alt != mask)) {
+					/* not a legal map, bail with an alarm */
+					r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
+					return;
+				}
+			} else {
+				/* set it - errors here are unexpected */
+				if (alt != 0) {
+					if (up_pwm_servo_set_rate_group_update(group, r_setup_pwm_altrate) != OK)
+						r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
+				} else {
+					if (up_pwm_servo_set_rate_group_update(group, r_setup_pwm_defaultrate) != OK)
+						r_status_alarms |= PX4IO_P_STATUS_ALARMS_PWM_ERROR;
+				}
+			}
+		}
+	}
+	r_setup_pwm_rates = map;
+	r_setup_pwm_defaultrate = defaultrate;
+	r_setup_pwm_altrate = altrate;
 }
