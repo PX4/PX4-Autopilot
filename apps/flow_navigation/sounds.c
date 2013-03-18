@@ -36,5 +36,10 @@ void tune_tetris(void)
 
 void tune_sonar(void)
 {
+	ioctl(buzzer, TONE_SET_ALARM, 7);
+}
+
+void tune_ready(void)
+{
 	ioctl(buzzer, TONE_SET_ALARM, 8);
 }

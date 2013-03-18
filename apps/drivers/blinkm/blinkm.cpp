@@ -696,30 +696,25 @@ BlinkM::led()
 		}
 
 		if(new_data_discrete_radar || no_data_discrete_radar < 3){
-			float dist_left = fabs((float)discrete_radar_raw.distances[10] / 1000.0f);
-			float dist_right = fabs((float)discrete_radar_raw.distances[22] / 1000.0f);
-			int gradient_left = 0;
-			int gradient_right = 0;
-
-			if (dist_left < 10.0f || dist_left > 0.0f) {
-
-				if (dist_left < 1.0f) {
-					gradient_left = (int)(100.0f - (100.0f * dist_left));
+			float minimum_radar_distance = 5000.0f; //mm
+			for(int i = 0; i<32; i++){
+				if (discrete_radar_raw.distances[i] < minimum_radar_distance) {
+					minimum_radar_distance = discrete_radar_raw.distances[i];
 				}
 			}
 
-			if (dist_right < 10.0f || dist_right > 0.0f) {
+			float dist = (float) minimum_radar_distance / 1000.0f;
+			int gradient = 0;
 
-				if (dist_right < 1.0f) {
-					gradient_right = (int)(100.0f - (100.0f * dist_right));
+			if (dist < 5.0f || dist > 0.0f) {
+
+				/* smaller than 1m */
+				if (dist < 1.0f) {
+					gradient = (int)(100.0f - (100.0f * dist));
 				}
 			}
 
-			if (gradient_left > gradient_right) {
-				setLEDGradient(gradient_left);
-			} else {
-				setLEDGradient(gradient_right);
-			}
+			setLEDGradient(gradient);
 
 		} else {
 			setLEDColor(LED_WHITE);

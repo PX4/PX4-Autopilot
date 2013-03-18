@@ -1,14 +1,14 @@
 /*
- * flowNavigation.h
+ * any.h
  *
- * Code generation for function 'flowNavigation'
+ * Code generation for function 'any'
  *
  * C source code generated on: Thu Mar 14 15:02:19 2013
  *
  */
 
-#ifndef __FLOWNAVIGATION_H__
-#define __FLOWNAVIGATION_H__
+#ifndef __ANY_H__
+#define __ANY_H__
 /* Include files */
 #include <float.h>
 #include <math.h>
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void flowNavigation(const real32_T left[10], const real32_T right[10], real32_T front_distance, int16_T quality, real32_T speed_x, real32_T speed_y, real32_T *y_setpoint, real32_T *x_setpoint);
+extern boolean_T any(const real32_T x[32]);
 #endif
-/* End of code generation (flowNavigation.h) */
+/* End of code generation (any.h) */

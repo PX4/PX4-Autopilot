@@ -1,7 +1,7 @@
 /*
- * flowNavigation_terminate.c
+ * mean.c
  *
- * Code generation for function 'flowNavigation_terminate'
+ * Code generation for function 'mean'
  *
  * C source code generated on: Thu Mar 14 15:02:19 2013
  *
@@ -13,7 +13,7 @@
 #include "frontFlowKalmanFilter.h"
 #include "wallEstimationFilter.h"
 #include "wallEstimator.h"
-#include "flowNavigation_terminate.h"
+#include "mean.h"
 
 /* Type Definitions */
 
@@ -26,9 +26,21 @@
 /* Function Declarations */
 
 /* Function Definitions */
-void flowNavigation_terminate(void)
+real32_T mean(const real32_T x_data[10], const int32_T x_size[1])
 {
-  /* (no terminate code required) */
+  real32_T y;
+  int32_T k;
+  if (x_size[0] == 0) {
+    y = 0.0F;
+  } else {
+    y = x_data[0];
+    for (k = 2; k <= x_size[0]; k++) {
+      y += x_data[k - 1];
+    }
+  }
+
+  y /= (real32_T)x_size[0];
+  return y;
 }
 
-/* End of code generation (flowNavigation_terminate.c) */
+/* End of code generation (mean.c) */

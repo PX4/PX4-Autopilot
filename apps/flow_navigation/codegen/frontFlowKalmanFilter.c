@@ -3,7 +3,7 @@
  *
  * Code generation for function 'frontFlowKalmanFilter'
  *
- * C source code generated on: Fri Mar  8 13:08:40 2013
+ * C source code generated on: Thu Mar 14 15:02:19 2013
  *
  */
 
@@ -35,6 +35,7 @@ void frontFlowKalmanFilter(real32_T dt, real32_T k1, real32_T k2, const real32_T
   int32_T i0;
   real32_T K[2];
   int16_T flow[20];
+  int16_T flow_updated[20];
   real32_T speed[2];
   int32_T i;
   real32_T y;
@@ -60,6 +61,7 @@ void frontFlowKalmanFilter(real32_T dt, real32_T k1, real32_T k2, const real32_T
 
   for (i0 = 0; i0 < 20; i0++) {
     flow[i0] = 0;
+    flow_updated[i0] = 0;
   }
 
   for (i0 = 0; i0 < 2; i0++) {
@@ -67,12 +69,25 @@ void frontFlowKalmanFilter(real32_T dt, real32_T k1, real32_T k2, const real32_T
   }
 
   if (updated != 0) {
-    for (i0 = 0; i0 < 10; i0++) {
+    for (i0 = 0; i0 < 5; i0++) {
       flow[i0] = flow_left_new[i0];
     }
 
     for (i0 = 0; i0 < 10; i0++) {
-      flow[i0 + 10] = flow_right_new[i0];
+      flow[i0 + 5] = 0;
+    }
+
+    for (i0 = 0; i0 < 5; i0++) {
+      flow[i0 + 15] = flow_right_new[5 + i0];
+      flow_updated[i0] = flow_left_new[5 + i0];
+    }
+
+    for (i0 = 0; i0 < 10; i0++) {
+      flow_updated[i0 + 5] = 0;
+    }
+
+    for (i0 = 0; i0 < 5; i0++) {
+      flow_updated[i0 + 15] = flow_right_new[i0];
     }
 
     for (i0 = 0; i0 < 2; i0++) {
@@ -81,7 +96,7 @@ void frontFlowKalmanFilter(real32_T dt, real32_T k1, real32_T k2, const real32_T
   }
 
   for (i = 0; i < 20; i++) {
-    if (updated != 0) {
+    if (flow_updated[i] != 0) {
       y = 0.0F;
       for (i0 = 0; i0 < 2; i0++) {
         b_y[i0] = 0.0F;

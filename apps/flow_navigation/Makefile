@@ -45,11 +45,15 @@ CSRCS		 = flow_navigation.c \
 		   codegen/flowNavigation.c \
 		   codegen/flowNavigation_initialize.c \
 		   codegen/flowNavigation_terminate.c \
+		   codegen/any.c \
 		   codegen/frontFlowKalmanFilter.c \
+		   codegen/mean.c \
 		   codegen/mldivide.c \
+		   codegen/power.c \
 		   codegen/rt_nonfinite.c \
 		   codegen/rtGetInf.c \
 		   codegen/rtGetNaN.c \
+		   codegen/sum.c \
 		   codegen/wallEstimationFilter.c \
 		   codegen/wallEstimator.c
 

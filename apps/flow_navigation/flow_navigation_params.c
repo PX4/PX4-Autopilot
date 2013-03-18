@@ -50,6 +50,16 @@ PARAM_DEFINE_FLOAT(FN_BEEP_F, 0.0f);
 PARAM_DEFINE_FLOAT(FN_BEEP_B, 0.0f);
 PARAM_DEFINE_FLOAT(FN_KAL_K1, 0.0235f);
 PARAM_DEFINE_FLOAT(FN_KAL_K2, 0.0140f);
+PARAM_DEFINE_FLOAT(FN_FRONT_A, 0.1f);
+PARAM_DEFINE_FLOAT(FN_S0, 0.05f);
+PARAM_DEFINE_FLOAT(FN_S1, 0.05f);
+PARAM_DEFINE_FLOAT(FN_S2, 2.0f);
+PARAM_DEFINE_FLOAT(FN_S3, 0.05f);
+PARAM_DEFINE_FLOAT(FN_S4, 0.3f);
+PARAM_DEFINE_FLOAT(FN_S5, 0.3f);
+PARAM_DEFINE_FLOAT(FN_S6, 0.01f);
+PARAM_DEFINE_INT32(FN_DEBUG, 0);
+
 
 int parameters_init(struct flow_navigation_param_handles *h)
 {
@@ -60,6 +70,15 @@ int parameters_init(struct flow_navigation_param_handles *h)
 	h->beep_bottom_sonar	=	param_find("FN_BEEP_B");
 	h->kalman_k1	 		=	param_find("FN_KAL_K1");
 	h->kalman_k2			=	param_find("FN_KAL_K2");
+	h->front_lp_alpha		=	param_find("FN_FRONT_A");
+	h->s0					=	param_find("FN_S0");
+	h->s1					=	param_find("FN_S1");
+	h->s2					=	param_find("FN_S2");
+	h->s3					=	param_find("FN_S3");
+	h->s4					=	param_find("FN_S4");
+	h->s5					=	param_find("FN_S5");
+	h->s6					=	param_find("FN_S6");
+	h->debug				=	param_find("FN_DEBUG");
 
 	return OK;
 }
@@ -72,6 +91,15 @@ int parameters_update(const struct flow_navigation_param_handles *h, struct flow
 	param_get(h->beep_bottom_sonar, &(p->beep_bottom_sonar));
 	param_get(h->kalman_k1, &(p->kalman_k1));
 	param_get(h->kalman_k2, &(p->kalman_k2));
+	param_get(h->front_lp_alpha, &(p->front_lp_alpha));
+	param_get(h->s0, &(p->s0));
+	param_get(h->s1, &(p->s1));
+	param_get(h->s2, &(p->s2));
+	param_get(h->s3, &(p->s3));
+	param_get(h->s4, &(p->s4));
+	param_get(h->s5, &(p->s5));
+	param_get(h->s6, &(p->s6));
+	param_get(h->debug, &(p->debug));
 
 	return OK;
 }

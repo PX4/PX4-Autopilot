@@ -48,6 +48,15 @@ struct flow_navigation_params {
 	int beep_front_sonar;
 	float kalman_k1;
 	float kalman_k2;
+	float front_lp_alpha;
+	float s0;
+	float s1;
+	float s2;
+	float s3;
+	float s4;
+	float s5;
+	float s6;
+	int debug;
 };
 
 struct flow_navigation_param_handles {
@@ -57,6 +66,15 @@ struct flow_navigation_param_handles {
 	param_t beep_front_sonar;
 	param_t kalman_k1;
 	param_t kalman_k2;
+	param_t front_lp_alpha;
+	param_t s0;
+	param_t s1;
+	param_t s2;
+	param_t s3;
+	param_t s4;
+	param_t s5;
+	param_t s6;
+	param_t debug;
 };
 
 /**

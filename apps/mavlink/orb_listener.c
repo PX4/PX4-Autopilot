@@ -629,31 +629,31 @@ l_discrete_radar(struct listener *l)
 
 	orb_copy(ORB_ID(discrete_radar), mavlink_subs.discrete_radar, &discrete_radar);
 
-	int16_t left[10] = { 	discrete_radar.distances[4],
-							discrete_radar.distances[5],
-							discrete_radar.distances[6],
+	int16_t left[10] = { 	discrete_radar.distances[6],
 							discrete_radar.distances[7],
 							discrete_radar.distances[8],
 							discrete_radar.distances[9],
 							discrete_radar.distances[10],
 							discrete_radar.distances[11],
 							discrete_radar.distances[12],
-							discrete_radar.distances[13]
+							discrete_radar.distances[13],
+							discrete_radar.distances[14],
+							discrete_radar.distances[15]
 	};
-	int16_t right[10] = { 	discrete_radar.distances[19],
+	int16_t right[10] = { 	discrete_radar.distances[17],
+							discrete_radar.distances[18],
+							discrete_radar.distances[19],
 							discrete_radar.distances[20],
 							discrete_radar.distances[21],
 							discrete_radar.distances[22],
 							discrete_radar.distances[23],
 							discrete_radar.distances[24],
 							discrete_radar.distances[25],
-							discrete_radar.distances[26],
-							discrete_radar.distances[27],
-							discrete_radar.distances[28]
+							discrete_radar.distances[26]
 	};
 
 	mavlink_msg_omnidirectional_flow_send(MAVLINK_COMM_0, discrete_radar.timestamp, 5,
-			left, right, 1, 1);
+			left, right, 1, ((float) discrete_radar.distances[16]) / 1000.0f);
 }
 
 void
@@ -811,7 +811,7 @@ uorb_receive_start(void)
 
 	/* --- DISCRETE RADAR ESTIMATIONS --- */
 	mavlink_subs.discrete_radar = orb_subscribe(ORB_ID(discrete_radar));
-	orb_set_interval(mavlink_subs.discrete_radar, 100); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.discrete_radar, 10); 	/* 5Hz updates */
 
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;

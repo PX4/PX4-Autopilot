@@ -1,7 +1,7 @@
 /*
- * flowNavigation_terminate.c
+ * any.c
  *
- * Code generation for function 'flowNavigation_terminate'
+ * Code generation for function 'any'
  *
  * C source code generated on: Thu Mar 14 15:02:19 2013
  *
@@ -13,7 +13,7 @@
 #include "frontFlowKalmanFilter.h"
 #include "wallEstimationFilter.h"
 #include "wallEstimator.h"
-#include "flowNavigation_terminate.h"
+#include "any.h"
 
 /* Type Definitions */
 
@@ -26,9 +26,24 @@
 /* Function Declarations */
 
 /* Function Definitions */
-void flowNavigation_terminate(void)
+boolean_T any(const real32_T x[32])
 {
-  /* (no terminate code required) */
+  boolean_T y;
+  int32_T k;
+  boolean_T exitg1;
+  y = FALSE;
+  k = 0;
+  exitg1 = FALSE;
+  while ((exitg1 == FALSE) && (k < 32)) {
+    if (!(x[k] == 0.0F)) {
+      y = TRUE;
+      exitg1 = TRUE;
+    } else {
+      k++;
+    }
+  }
+
+  return y;
 }
 
-/* End of code generation (flowNavigation_terminate.c) */
+/* End of code generation (any.c) */

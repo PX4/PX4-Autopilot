@@ -3,7 +3,7 @@
  *
  * Code generation for function 'wallEstimator'
  *
- * C source code generated on: Fri Mar  8 13:08:40 2013
+ * C source code generated on: Thu Mar 14 15:02:19 2013
  *
  */
 
@@ -33,29 +33,24 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
 {
   int8_T invalid_flow_filter[10];
   int32_T i;
-  real_T vectors[20];
+  real32_T vectors[20];
   real32_T flow;
-  static const real_T dv0[20] = { -0.86602540378443871, -0.7880107536067219,
-    -0.69465837045899725, -0.58778525229247314, -0.46947156278589081, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.46947156278589081,
-    0.58778525229247314, 0.69465837045899725, 0.7880107536067219,
-    0.86602540378443871 };
+  static const real32_T fv4[20] = { -0.866025388F, -0.788010776F, -0.694658399F,
+    -0.587785244F, -0.469471574F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+    0.0F, 0.0F, 0.469471574F, 0.587785244F, 0.694658399F, 0.788010776F,
+    0.866025388F };
 
   int32_T i3;
-  static const real_T unit_vectors[40] = { 0.49999999999999994,
-    0.61566147532565829, 0.71933980033865119, 0.80901699437494745,
-    0.882947592858927, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-    0.882947592858927, 0.80901699437494745, 0.71933980033865119,
-    0.61566147532565829, 0.49999999999999994, -0.86602540378443871,
-    -0.7880107536067219, -0.69465837045899725, -0.58778525229247314,
-    -0.46947156278589081, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.46947156278589081, 0.58778525229247314, 0.69465837045899725,
-    0.7880107536067219, 0.86602540378443871 };
+  static const real32_T unit_vectors[40] = { 0.5F, 0.615661502F, 0.719339788F,
+    0.809017F, 0.882947564F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F,
+    1.0F, 1.0F, 0.882947564F, 0.809017F, 0.719339788F, 0.615661502F, 0.5F,
+    -0.866025388F, -0.788010776F, -0.694658399F, -0.587785244F, -0.469471574F,
+    0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.469471574F,
+    0.587785244F, 0.694658399F, 0.788010776F, 0.866025388F };
 
-  real_T y;
-  real_T b_vectors[20];
-  real_T c_vectors[10];
-  real_T wall[2];
+  real32_T b_vectors[20];
+  real32_T c_vectors[10];
+  real32_T wall[2];
 
   /* WALL_ESTIMATION Summary of this function goes here */
   /*    Detailed explanation goes here */
@@ -74,14 +69,14 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
       invalid_flow_filter[i] = 1;
     }
 
-    memset(&vectors[0], 0, 20U * sizeof(real_T));
+    memset(&vectors[0], 0, 20U * sizeof(real32_T));
     for (i = 0; i < 10; i++) {
       flow = flow_left[i] / 1000.0F;
       if ((real32_T)fabs(flow) > thresholds[1]) {
-        flow = speed[0] / flow * (real32_T)dv0[i];
+        flow = speed[0] / flow * fv4[i];
         if (flow > 0.0F) {
           for (i3 = 0; i3 < 2; i3++) {
-            vectors[i + 10 * i3] = (real32_T)unit_vectors[i + 20 * i3] * flow;
+            vectors[i + 10 * i3] = unit_vectors[i + 20 * i3] * flow;
           }
         } else {
           invalid_flow_filter[i] = 0;
@@ -92,22 +87,22 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
     }
 
     /*  calc left wall with linear regresstion */
-    y = (real_T)invalid_flow_filter[0];
+    flow = (real32_T)invalid_flow_filter[0];
     for (i = 0; i < 9; i++) {
-      y += (real_T)invalid_flow_filter[i + 1];
+      flow += (real32_T)invalid_flow_filter[i + 1];
     }
 
-    if (y > (real_T)thresholds[2]) {
+    if (flow > thresholds[2]) {
       for (i3 = 0; i3 < 10; i3++) {
-        b_vectors[i3] = vectors[i3] * (real_T)invalid_flow_filter[i3];
-        b_vectors[10 + i3] = (real_T)invalid_flow_filter[i3];
-        c_vectors[i3] = vectors[10 + i3] * (real_T)invalid_flow_filter[i3];
+        b_vectors[i3] = vectors[i3] * (real32_T)invalid_flow_filter[i3];
+        b_vectors[10 + i3] = (real32_T)invalid_flow_filter[i3];
+        c_vectors[i3] = vectors[10 + i3] * (real32_T)invalid_flow_filter[i3];
       }
 
-      b_mldivide(b_vectors, c_vectors, wall);
-      if (wall[1] < 0.0) {
+      mldivide(b_vectors, c_vectors, wall);
+      if (wall[1] < 0.0F) {
         /* && wall(2) > -10 % left wall can only be in negative y range... else invalid data (max 10m) */
-        *dist_left = (real32_T)-wall[1];
+        *dist_left = -wall[1];
       }
     }
 
@@ -116,15 +111,14 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
       invalid_flow_filter[i] = 1;
     }
 
-    memset(&vectors[0], 0, 20U * sizeof(real_T));
+    memset(&vectors[0], 0, 20U * sizeof(real32_T));
     for (i = 0; i < 10; i++) {
       flow = flow_right[i] / 1000.0F;
       if ((real32_T)fabs(flow) > thresholds[1]) {
-        flow = speed[0] / flow * (real32_T)dv0[10 + i];
+        flow = speed[0] / flow * fv4[10 + i];
         if (flow > 0.0F) {
           for (i3 = 0; i3 < 2; i3++) {
-            vectors[i + 10 * i3] = (real32_T)unit_vectors[(i + 20 * i3) + 10] *
-              flow;
+            vectors[i + 10 * i3] = unit_vectors[(i + 20 * i3) + 10] * flow;
           }
         } else {
           invalid_flow_filter[i] = 0;
@@ -135,22 +129,22 @@ void wallEstimator(const real32_T flow_left[10], const real32_T flow_right[10],
     }
 
     /*  calc right wall with linear regresstion */
-    y = (real_T)invalid_flow_filter[0];
+    flow = (real32_T)invalid_flow_filter[0];
     for (i = 0; i < 9; i++) {
-      y += (real_T)invalid_flow_filter[i + 1];
+      flow += (real32_T)invalid_flow_filter[i + 1];
     }
 
-    if (y > (real_T)thresholds[2]) {
+    if (flow > thresholds[2]) {
       for (i3 = 0; i3 < 10; i3++) {
-        b_vectors[i3] = vectors[i3] * (real_T)invalid_flow_filter[i3];
-        b_vectors[10 + i3] = (real_T)invalid_flow_filter[i3];
-        c_vectors[i3] = vectors[10 + i3] * (real_T)invalid_flow_filter[i3];
+        b_vectors[i3] = vectors[i3] * (real32_T)invalid_flow_filter[i3];
+        b_vectors[10 + i3] = (real32_T)invalid_flow_filter[i3];
+        c_vectors[i3] = vectors[10 + i3] * (real32_T)invalid_flow_filter[i3];
       }
 
-      b_mldivide(b_vectors, c_vectors, wall);
-      if (wall[1] > 0.0) {
+      mldivide(b_vectors, c_vectors, wall);
+      if (wall[1] > 0.0F) {
         /* && wall(2) < 10 % right wall can only be in positiv y range... else invalid data (max 10m) */
-        *dist_right = (real32_T)wall[1];
+        *dist_right = wall[1];
       }
     }
   }
