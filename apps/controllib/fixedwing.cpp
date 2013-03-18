@@ -158,7 +158,7 @@ BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *par
 
 	// altitude/roc hold
 	_h2Thr(this, "H2THR"),
-	_roc2Thr(this, "H2THR"),
+	_roc2Thr(this, "ROC2THR"),
 
 	// guidance block
 	_guide(this, ""),
