@@ -62,7 +62,7 @@ PARAM_DEFINE_FLOAT(FWB_V_MAX, 16.0f);       // maximum commanded velocity
 PARAM_DEFINE_FLOAT(FWB_ROC_MAX, 1.0f);
 
 //  rate of climb -> thr
-PARAM_DEFINE_FLOAT(FWB_ROC2THR_P, 0.01f);     // altitude to throttle PID
+PARAM_DEFINE_FLOAT(FWB_ROC2THR_P, 0.01f);   // rate of climb to throttle PID
 PARAM_DEFINE_FLOAT(FWB_ROC2THR_I, 0.0f);
 PARAM_DEFINE_FLOAT(FWB_ROC2THR_D, 0.0f);
 PARAM_DEFINE_FLOAT(FWB_ROC2THR_D_LP, 0.0f);
