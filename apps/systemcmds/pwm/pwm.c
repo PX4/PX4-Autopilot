@@ -71,13 +71,17 @@ usage(const char *reason)
 		warnx("%s", reason);
 	errx(1, 
 		"usage:\n"
-		"pwm [-v] [-d <device>] [-u <alt_rate>] [-c <alt_channel_mask>] [arm|disarm] [<channel_value> ...]\n"
+		"pwm [-v] [-d <device>] [-u <alt_rate>] [-c <channel group>] [arm|disarm] [<channel_value> ...]\n"
 		"  -v                 Print information about the PWM device\n"
 		"  <device>           PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
 		"  <alt_rate>         PWM update rate for channels in <alt_channel_mask>\n"
-		"  <alt_channel_mask> Bitmask of channels to update at the alternate rate\n"
+		"  <channel_group>    Channel group that should update at the alternate rate (may be specified more than once)\n"
 		"  arm | disarm       Arm or disarm the ouptut\n"
-		"  <channel_value>... PWM output values in microseconds to assign to the PWM outputs\n");
+		"  <channel_value>... PWM output values in microseconds to assign to the PWM outputs\n"
+		"\n"
+		"When -c is specified, any channel groups not listed with -c will update at the default rate.\n"
+		);
+
 }
 
 int
@@ -85,19 +89,24 @@ pwm_main(int argc, char *argv[])
 {
 	const char *dev = PWM_OUTPUT_DEVICE_PATH;
 	unsigned alt_rate = 0;
-	uint32_t alt_channels;
+	uint32_t alt_channel_groups = 0;
 	bool alt_channels_set = false;
 	bool print_info = false;
 	int ch;
 	int ret;
 	char *ep;
+	unsigned group;
+
+	if (argc < 2)
+		usage(NULL);
 
 	while ((ch = getopt(argc, argv, "c:d:u:v")) != EOF) {
 		switch (ch) {
 		case 'c':
-			alt_channels = strtol(optarg, &ep, 0);
-			if (*ep != '\0')
-				usage("bad alt_channel_mask value");
+			group = strtoul(optarg, &ep, 0);
+			if ((*ep != '\0') || (group >= 32))
+				usage("bad channel_group value");
+			alt_channel_groups |= (1 << group);
 			alt_channels_set = true;
 			break;
 
@@ -109,6 +118,7 @@ pwm_main(int argc, char *argv[])
 			alt_rate = strtol(optarg, &ep, 0);
 			if (*ep != '\0')
 				usage("bad alt_rate value");
+			break;
 
 		case 'v':
 			print_info = true;
@@ -133,11 +143,25 @@ pwm_main(int argc, char *argv[])
 			err(1, "PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
 	}
 
-	/* assign alternate rate to channels */
+	/* assign alternate rate to channel groups */
 	if (alt_channels_set) {
-		ret = ioctl(fd, PWM_SERVO_SELECT_UPDATE_RATE, alt_channels);
+		uint32_t mask = 0;
+
+		for (unsigned group = 0; group < 32; group++) {
+			if ((1 << group) & alt_channel_groups) {
+				uint32_t group_mask;
+
+				ret = ioctl(fd, PWM_SERVO_GET_RATEGROUP(group), (unsigned long)&group_mask);
+				if (ret != OK)
+					err(1, "PWM_SERVO_GET_RATEGROUP(%u)", group);
+
+				mask |= group_mask;
+			}
+		}
+
+		ret = ioctl(fd, PWM_SERVO_SELECT_UPDATE_RATE, mask);
 		if (ret != OK)
-			err(1, "PWM_SERVO_SELECT_UPDATE_RATE (check mask vs. device capabilities)");
+			err(1, "PWM_SERVO_SELECT_UPDATE_RATE");
 	}
 
 	/* iterate remaining arguments */
@@ -177,30 +201,32 @@ pwm_main(int argc, char *argv[])
 			err(1, "PWM_SERVO_GET_COUNT");
 
 		/* print current servo values */
-		printf("PWM output values:\n");
 		for (unsigned i = 0; i < count; i++) {
 			servo_position_t spos;
 
 			ret = ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&spos);
 			if (ret == OK) {
-				printf("%u: %uus\n", i, spos);
+				printf("channel %u: %uus\n", i, spos);
 			} else {
 				printf("%u: ERROR\n", i);
 			}
 		}
 
 		/* print rate groups */
-		printf("Available alt_channel_mask groups:\n");
 		for (unsigned i = 0; i < count; i++) {
 			uint32_t group_mask;
 
 			ret = ioctl(fd, PWM_SERVO_GET_RATEGROUP(i), (unsigned long)&group_mask);
 			if (ret != OK)
 				break;
-			if (group_mask != 0)
-				printf(" 0x%x", group_mask);
+			if (group_mask != 0) {
+				printf("channel group %u: channels", i);
+				for (unsigned j = 0; j < 32; j++)
+					if (group_mask & (1 << j))
+						printf(" %u", j);
+				printf("\n");
+			}
 		}
-		printf("\n");
 		fflush(stdout);
 	}
 	exit(0);
