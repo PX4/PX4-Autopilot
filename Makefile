@@ -120,7 +120,7 @@ SERIAL_PORTS		 = "\\\\.\\COM32,\\\\.\\COM31,\\\\.\\COM30,\\\\.\\COM29,\\\\.\\COM
 endif
 
 upload:		$(FIRMWARE_BUNDLE) $(UPLOADER)
-	@python -u $(UPLOADER) --port $(SERIAL_PORTS) $(FIRMWARE_BUNDLE)
+	$(UPLOADER) --port $(SERIAL_PORTS) $(FIRMWARE_BUNDLE)
 
 #
 # JTAG firmware uploading with OpenOCD
