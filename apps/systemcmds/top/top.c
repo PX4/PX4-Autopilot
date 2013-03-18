@@ -49,19 +49,46 @@
 #include <systemlib/cpuload.h>
 #include <drivers/drv_hrt.h>
 
+#define CL "\033[K" // clear line
+
 /**
  * Start the top application.
  */
-__EXPORT int top_main(int argc, char *argv[]);
+__EXPORT int top_main(void);
 
 extern struct system_load_s system_load;
 
-bool top_sigusr1_rcvd = false;
-
-int top_main(int argc, char *argv[])
+static const char *
+tstate_name(const tstate_t s)
 {
-	int t;
+	switch (s) {
+	case TSTATE_TASK_INVALID:    return "init";
 
+	case TSTATE_TASK_PENDING:    return "PEND";
+	case TSTATE_TASK_READYTORUN: return "READY";
+	case TSTATE_TASK_RUNNING:    return "RUN";
+
+	case TSTATE_TASK_INACTIVE:   return "inact";
+	case TSTATE_WAIT_SEM:        return "w:sem";
+#ifndef CONFIG_DISABLE_SIGNALS
+	case TSTATE_WAIT_SIG:        return "w:sig";
+#endif
+#ifndef CONFIG_DISABLE_MQUEUE
+	case TSTATE_WAIT_MQNOTEMPTY: return "w:mqe";
+	case TSTATE_WAIT_MQNOTFULL:  return "w:mqf";
+#endif
+#ifdef CONFIG_PAGING
+	case TSTATE_WAIT_PAGEFILL:   return "w:pgf";
+#endif
+
+	default:
+		return "ERROR";
+	}
+}
+
+int
+top_main(void)
+{
 	uint64_t total_user_time = 0;
 
 	int running_count = 0;
@@ -73,7 +100,7 @@ int top_main(int argc, char *argv[])
 	uint64_t last_times[CONFIG_MAX_TASKS];
 	float curr_loads[CONFIG_MAX_TASKS];
 
-	for (t = 0; t < CONFIG_MAX_TASKS; t++)
+	for (int t = 0; t < CONFIG_MAX_TASKS; t++)
 		last_times[t] = 0;
 
 	float interval_time_ms_inv = 0.f;
@@ -81,16 +108,16 @@ int top_main(int argc, char *argv[])
 	/* Open console directly to grab CTRL-C signal */
 	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
 
-	while (true)
-//	for (t = 0; t < 10; t++)
-	{
-		int i;
+	/* clear screen */
+	printf("\033[2J");
 
-		uint64_t curr_time_ms = (hrt_absolute_time() / 1000LLU);
-		unsigned int curr_time_s = curr_time_ms / 1000LLU;
+	for (;;) {
+		int   i;
+		uint64_t curr_time_us;
+		uint64_t idle_time_us;
 
-		uint64_t idle_time_total_ms = (system_load.tasks[0].total_runtime / 1000LLU);
-		unsigned int idle_time_total_s = idle_time_total_ms / 1000LLU;
+		curr_time_us = hrt_absolute_time();
+		idle_time_us = system_load.tasks[0].total_runtime;
 
 		if (new_time > interval_start_time)
 			interval_time_ms_inv = 1.f / ((float)((new_time - interval_start_time) / 1000));
@@ -100,7 +127,38 @@ int top_main(int argc, char *argv[])
 		total_user_time = 0;
 
 		for (i = 0; i < CONFIG_MAX_TASKS; i++) {
-			uint64_t interval_runtime = (system_load.tasks[i].valid && last_times[i] > 0 && system_load.tasks[i].total_runtime > last_times[i]) ? (system_load.tasks[i].total_runtime - last_times[i]) / 1000 : 0;
+			uint64_t interval_runtime;
+
+			if (system_load.tasks[i].valid) {
+				switch (system_load.tasks[i].tcb->task_state) {
+				case TSTATE_TASK_PENDING:
+				case TSTATE_TASK_READYTORUN:
+				case TSTATE_TASK_RUNNING:
+					running_count++;
+					break;
+
+				case TSTATE_TASK_INVALID:
+				case TSTATE_TASK_INACTIVE:
+				case TSTATE_WAIT_SEM:
+#ifndef CONFIG_DISABLE_SIGNALS
+				case TSTATE_WAIT_SIG:
+#endif
+#ifndef CONFIG_DISABLE_MQUEUE
+				case TSTATE_WAIT_MQNOTEMPTY:
+				case TSTATE_WAIT_MQNOTFULL:
+#endif
+#ifdef CONFIG_PAGING
+				case TSTATE_WAIT_PAGEFILL:
+#endif
+					blocked_count++;
+					break;
+				}
+			}
+
+			interval_runtime = (system_load.tasks[i].valid && last_times[i] > 0 &&
+								system_load.tasks[i].total_runtime > last_times[i])
+				? (system_load.tasks[i].total_runtime - last_times[i]) / 1000
+				: 0;
 
 			last_times[i] = system_load.tasks[i].total_runtime;
 
@@ -109,7 +167,6 @@ int top_main(int argc, char *argv[])
 
 				if (i > 0)
 					total_user_time += interval_runtime;
-
 			} else
 				curr_loads[i] = 0;
 		}
@@ -117,127 +174,99 @@ int top_main(int argc, char *argv[])
 		for (i = 0; i < CONFIG_MAX_TASKS; i++) {
 			if (system_load.tasks[i].valid && (new_time > interval_start_time)) {
 				if (system_load.tasks[i].tcb->pid == 0) {
-					float idle = curr_loads[0];
-					float task_load = (float)(total_user_time) * interval_time_ms_inv;
+					float idle;
+					float task_load;
+					float sched_load;
 
-					if (task_load > (1.f - idle)) task_load = (1.f - idle);	/* this can happen if one tasks total runtime was not computed correctly by the scheduler instrumentation TODO */
+					idle = curr_loads[0];
+					task_load = (float)(total_user_time) * interval_time_ms_inv;
 
-					float sched_load = 1.f - idle - task_load;
+					/* this can happen if one tasks total runtime was not computed
+					   correctly by the scheduler instrumentation TODO */
+					if (task_load > (1.f - idle))
+						task_load = (1.f - idle);
+
+					sched_load = 1.f - idle - task_load;
 
 					/* print system information */
-					printf("\033[H"); /* cursor home */
-					printf("\033[KProcesses: %d total, %d running, %d sleeping\n", system_load.total_count, running_count, blocked_count);
-					printf("\033[KCPU usage: %d.%02d%% tasks, %d.%02d%% sched, %d.%02d%% idle\n", (int)(task_load * 100), (int)((task_load * 10000.0f) - (int)(task_load * 100.0f) * 100), (int)(sched_load * 100), (int)((sched_load * 10000.0f) - (int)(sched_load * 100.0f) * 100), (int)(idle * 100), (int)((idle * 10000.0f) - ((int)(idle * 100)) * 100));
-					printf("\033[KUptime: %u.%03u s total, %d.%03d s idle\n\033[K\n", curr_time_s, (unsigned int)(curr_time_ms - curr_time_s * 1000LLU), idle_time_total_s, (int)(idle_time_total_ms - idle_time_total_s * 1000));
+					printf("\033[H"); /* move cursor home and clear screen */
+					printf(CL "Processes: %d total, %d running, %d sleeping\n",
+						   system_load.total_count,
+						   running_count,
+						   blocked_count);
+					printf(CL "CPU usage: %.2f%% tasks, %.2f%% sched, %.2f%% idle\n",
+						   (double)(task_load * 100.f),
+						   (double)(sched_load * 100.f),
+						   (double)(idle * 100.f));
+					printf(CL "Uptime: %.3fs total, %.3fs idle\n\n",
+						   (double)curr_time_us / 1000000.d,
+						   (double)idle_time_us / 1000000.d);
 
-					/* 34 chars command name length (32 chars plus two spaces) */
-					char header_spaces[CONFIG_TASK_NAME_SIZE + 1];
-					memset(header_spaces, ' ', CONFIG_TASK_NAME_SIZE);
-					header_spaces[CONFIG_TASK_NAME_SIZE] = '\0';
+					/* header for task list */
+					printf(CL "%4s %*-s %8s %6s %11s %10s %-6s\n",
+						   "PID",
+						   CONFIG_TASK_NAME_SIZE, "COMMAND",
+						   "CPU(ms)",
+						   "CPU(%)",
+						   "USED/STACK",
+						   "PRIO(BASE)",
 #if CONFIG_RR_INTERVAL > 0
-					printf("\033[KPID\tCOMMAND%s CPU TOTAL \t%%CPU CURR \tSTACK USE\tCURR (BASE) PRIO\tRR SLICE\n", header_spaces);
+						   "TSLICE"
 #else
-					printf("\033[KPID\tCOMMAND%s CPU TOTAL \t%%CPU CURR \tSTACK USE\tCURR (BASE) PRIO\n", header_spaces);
+						   "STATE"
 #endif
-
-				} else {
-					enum tstate_e task_state = (enum tstate_e)system_load.tasks[i].tcb->task_state;
-
-					if (task_state == TSTATE_TASK_PENDING ||
-					    task_state == TSTATE_TASK_READYTORUN ||
-					    task_state == TSTATE_TASK_RUNNING) {
-						running_count++;
-					}
-
-					if (task_state == TSTATE_TASK_INACTIVE ||      /* BLOCKED      - Initialized but not yet activated */
-					    task_state == TSTATE_WAIT_SEM           /* BLOCKED      - Waiting for a semaphore */
-#ifndef CONFIG_DISABLE_SIGNALS
-					    || task_state == TSTATE_WAIT_SIG           /* BLOCKED      - Waiting for a signal */
-#endif
-#ifndef CONFIG_DISABLE_MQUEUE
-					    || task_state == TSTATE_WAIT_MQNOTEMPTY     /* BLOCKED      - Waiting for a MQ to become not empty. */
-					    || task_state == TSTATE_WAIT_MQNOTFULL      /* BLOCKED      - Waiting for a MQ to become not full. */
-#endif
-#ifdef CONFIG_PAGING
-					    || task_state == TSTATE_WAIT_PAGEFILL       /* BLOCKED      - Waiting for page fill */
-#endif
-					   ) {
-						blocked_count++;
-					}
-
-					char spaces[CONFIG_TASK_NAME_SIZE + 2];
-
-					/* count name len */
-					int namelen = 0;
-
-					while (namelen < CONFIG_TASK_NAME_SIZE) {
-						if (system_load.tasks[i].tcb->name[namelen] == '\0') break;
-
-						namelen++;
-					}
-
-					int s = 0;
-
-					for (s = 0; s < CONFIG_TASK_NAME_SIZE + 2 - namelen; s++) {
-						spaces[s] = ' ';
-					}
-
-					spaces[s] = '\0';
-
-					char *runtime_spaces = "  ";
-
-					if ((system_load.tasks[i].total_runtime / 1000) < 99) {
-						runtime_spaces = "";
-					}
-
-					unsigned stack_size = (uintptr_t)system_load.tasks[i].tcb->adj_stack_ptr -
-							      (uintptr_t)system_load.tasks[i].tcb->stack_alloc_ptr;
-					unsigned stack_free = 0;
-					uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[i].tcb->stack_alloc_ptr;
-
-					while (stack_free < stack_size) {
-						if (*stack_sweeper++ != 0xff)
-							break;
-
-						stack_free++;
-					}
-
-					printf("\033[K % 2d\t%s%s % 8lld ms%s  \t % 2d.%03d \t % 4u / % 4u",
-					       (int)system_load.tasks[i].tcb->pid,
-					       system_load.tasks[i].tcb->name,
-					       spaces,
-					       (system_load.tasks[i].total_runtime / 1000),
-					       runtime_spaces,
-					       (int)(curr_loads[i] * 100),
-					       (int)(curr_loads[i] * 100000.0f - (int)(curr_loads[i] * 1000.0f) * 100),
-					       stack_size - stack_free,
-					       stack_size);
-					/* Print scheduling info with RR time slice */
-#if CONFIG_RR_INTERVAL > 0
-					printf("\t%d\t(%d)\t\t%d\n", (int)system_load.tasks[i].tcb->sched_priority, (int)system_load.tasks[i].tcb->base_priority, (int)system_load.tasks[i].tcb->timeslice);
-#else
-					/* Print scheduling info without time slice*/
-					printf("\t%d (%d)\n", (int)system_load.tasks[i].tcb->sched_priority, (int)system_load.tasks[i].tcb->base_priority);
-#endif
+						   );
 				}
+
+				unsigned stack_size = (uintptr_t)system_load.tasks[i].tcb->adj_stack_ptr -
+					(uintptr_t)system_load.tasks[i].tcb->stack_alloc_ptr;
+				unsigned stack_free = 0;
+				uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[i].tcb->stack_alloc_ptr;
+
+				while (stack_free < stack_size) {
+					if (*stack_sweeper++ != 0xff)
+						break;
+
+					stack_free++;
+				}
+
+				printf(CL "%4d %*-s %8lld %2d.%03d %5u/%5u %3u (%3u) ",
+					   system_load.tasks[i].tcb->pid,
+					   CONFIG_TASK_NAME_SIZE, system_load.tasks[i].tcb->name,
+					   (system_load.tasks[i].total_runtime / 1000),
+					   (int)(curr_loads[i] * 100),
+					   (int)(curr_loads[i] * 100000.0f - (int)(curr_loads[i] * 1000.0f) * 100),
+					   stack_size - stack_free,
+					   stack_size,
+					   system_load.tasks[i].tcb->sched_priority,
+					   system_load.tasks[i].tcb->base_priority);
+
+#if CONFIG_RR_INTERVAL > 0
+				/* print scheduling info with RR time slice */
+				printf(" %6d\n", system_load.tasks[i].tcb->timeslice);
+#else
+				// print task state instead
+				printf(" %-6s\n", tstate_name(system_load.tasks[i].tcb->task_state));
+#endif
 			}
 		}
 
-		printf("\033[K[ Hit Ctrl-C to quit. ]\n\033[J");
-		fflush(stdout);
-
 		interval_start_time = new_time;
 
-		char c;
-
-		/* Sleep 200 ms waiting for user input four times */
+		/* Sleep 200 ms waiting for user input five times ~ 1s */
 		/* XXX use poll ... */
-		for (int k = 0; k < 4; k++) {
+		for (int k = 0; k < 5; k++) {
+			char c;
+
 			if (read(console, &c, 1) == 1) {
-				if (c == 0x03 || c == 0x63) {
-					printf("Abort\n");
+				switch (c) {
+				case 0x03: // ctrl-c
+				case 0x1b: // esc
+				case 'c':
+				case 'q':
 					close(console);
 					return OK;
+					/* not reached */
 				}
 			}
 
