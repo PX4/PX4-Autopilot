@@ -56,4 +56,9 @@ PARAM_DEFINE_FLOAT(FWB_V_MIN, 10.0f);       // minimum commanded velocity
 PARAM_DEFINE_FLOAT(FWB_V_CMD, 12.0f);       // commanded velocity
 PARAM_DEFINE_FLOAT(FWB_V_MAX, 16.0f);       // maximum commanded velocity
 
+// rate of climb
+// this is what rate of climb is commanded (in m/s) 
+// when the throttle stick is fully defelcted in simple mode
+PARAM_DEFINE_FLOAT(FWB_ROC_MAX, 1.0f);
+
 PARAM_DEFINE_FLOAT(FWB_TRIM_THR, 0.8f);     // trim throttle (0,1)
