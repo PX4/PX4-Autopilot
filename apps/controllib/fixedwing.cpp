@@ -282,19 +282,19 @@ void BlockMultiModeBacksideAutopilot::update()
 			// calculate velocity, XXX should be airspeed, but using ground speed for now
 			float v = sqrtf(_pos.vx * _pos.vx + _pos.vy * _pos.vy + _pos.vz * _pos.vz);
 
-			// throttle channel -> rate of climb
+			// pitch channel -> rate of climb
 			// TODO, might want to put a gain on this, otherwise commanding
 			// from +1 -> -1 m/s for rate of climb
 			//float dThrottle = _roc2Thr.update(
-			//_rocMax.get()*_manual.throttle - _pos.vz);
+			//_rocMax.get()*_manual.pitch - _pos.vz);
 
 			// roll channel -> bank angle
 			float phiCmd = _phiLimit.update(_manual.roll * _phiLimit.getMax());
 			float pCmd = _phi2P.update(phiCmd - _att.roll);
 
-			// pitch channel -> velocity
+			// throttle channel -> velocity
 			// negative sign because nose over to increase speed
-			float vCmd = _manual.pitch * (_vLimit.getMax() - _vLimit.getMin()) + _vLimit.getMin();
+			float vCmd = _manual.throttle * (_vLimit.getMax() - _vLimit.getMin()) + _vLimit.getMin();
 			float thetaCmd = _theLimit.update(-_v2Theta.update(_vLimit.update(vCmd) - v));
 			float qCmd = _theta2Q.update(thetaCmd - _att.pitch);
 
