@@ -176,11 +176,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	int vehicle_local_position_setpoint_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 
-	/* polling */
-	struct pollfd fds[2] = {
-				{ .fd = vehicle_local_position_sub, .events = POLLIN }, // positions from estimator
-				{ .fd = parameter_update_sub,   .events = POLLIN },
-			};
+
 
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
@@ -211,205 +207,242 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "multirotor_att_control_interval");
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_att_control_err");
 
-	printf("[multirotor flow position control] initialized\n");
+	static bool sensors_ready = false;
 
 	while (!thread_should_exit) {
 
-		/* wait for a position update, check for exit condition every 500 ms */
-		int ret = poll(fds, 2, 500);
+		/* wait for first attitude msg to be sure all data are available */
+		if (sensors_ready) {
 
-		if (ret < 0) {
-			/* poll error, count it in perf */
-			perf_count(mc_err_perf);
+			/* polling */
+			struct pollfd fds[2] = {
+				{ .fd = vehicle_local_position_sub, .events = POLLIN }, // positions from estimator
+				{ .fd = parameter_update_sub,   .events = POLLIN },
+			};
 
-		} else if (ret == 0) {
-			/* no return value, ignore */
-			printf("[multirotor flow position control] no local position updates\n"); // XXX wrong place
-		} else {
+			/* wait for a position update, check for exit condition every 500 ms */
+			int ret = poll(fds, 2, 500);
 
-			if (fds[1].revents & POLLIN){
-				/* read from param to clear updated flag */
-				struct parameter_update_s update;
-				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
+			if (ret < 0) {
+				/* poll error, count it in perf */
+				perf_count(mc_err_perf);
 
-				parameters_update(&param_handles, &params);
-				printf("[multirotor flow position control] parameters updated.\n");
-			}
+			} else if (ret == 0) {
+				/* no return value, ignore */
+				printf("[multirotor flow position control] no local position updates\n"); // XXX wrong place
+			} else {
 
-//			if (fds[0].revents & POLLIN){
-//
-//				/* get a local copy of the sensor data */
-//				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
-//
-//				acc_lp = acc_lp * 0.9f + 0.1f * (sensor.accelerometer_m_s2[2] + 9.81f);
-//				if (acc_counter != sensor.accelerometer_counter)
-//				{
-//					if (last_sensor_timestamp != 0)
-//					{
-//						float acc_time = (float)(sensor.timestamp - last_sensor_timestamp) / 1000000.0f;
-//						acc_speed_z = acc_speed_z + (sensor.accelerometer_m_s2[2] + const_earth_gravity) * acc_time;
-//					}
-//
-//					last_sensor_timestamp = sensor.timestamp;
-//				}
-//
-//				acc_counter = sensor.accelerometer_counter;
-//			}
+				if (fds[1].revents & POLLIN){
+					/* read from param to clear updated flag */
+					struct parameter_update_s update;
+					orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
 
-			/* only run controller if position changed */
-			if (fds[0].revents & POLLIN) {
-
-				perf_begin(mc_loop_perf);
-
-				/* get a local copy of the vehicle state */
-				orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-				/* get a local copy of manual setpoint */
-				orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
-				/* get a local copy of attitude */
-				orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
-				/* get a local copy of local position */
-				orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
-				/* get a local copy of local position setpoint */
-				orb_copy(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_setpoint_sub, &local_pos_sp);
-
-				if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
-
-					if (yaw_init_counter < 10) {
-						yaw_sum += att.yaw;
-						yaw_init_counter++;
-					} else if (yaw_init_counter == 10){
-						initial_yaw = yaw_sum / 10.0f;
-					}
-
-					/*
-					 * attitude setpoint is to be set as "how to change attitude"
-					 *
-					 *
-					 */
-
-					/* update position setpoint? */
-					if(manual.pitch < -0.2f) {
-						setpoint_x += setpoint_update_step;
-					} else if (manual.pitch > 0.2f) {
-						setpoint_x -= setpoint_update_step;
-					}
-					if(manual.roll < -0.2f) {
-						setpoint_y -= setpoint_update_step;
-					} else if (manual.roll > 0.2f) {
-						setpoint_y += setpoint_update_step;
-					}
-
-					/* calc new roll/pitch */
-					float pitch_body = (local_pos.x - setpoint_x) * params.pos_p + local_pos.vx * params.pos_d;
-					float roll_body = - (local_pos.y - setpoint_y) * params.pos_p - local_pos.vy * params.pos_d;
-
-					/* limit roll and pitch corrections */
-					if((roll_body <= roll_limit) && (roll_body >= -roll_limit)){
-						att_sp.roll_body = roll_body;
-					} else {
-						if(roll_body > roll_limit){
-							att_sp.roll_body = roll_limit;
-						}
-						if(roll_body < -roll_limit){
-							att_sp.roll_body = -roll_limit;
-						}
-					}
-					if((pitch_body <= pitch_limit) && (pitch_body >= -pitch_limit)){
-						att_sp.pitch_body = pitch_body;
-					} else {
-						if(pitch_body > pitch_limit){
-							att_sp.pitch_body = pitch_limit;
-						}
-						if(pitch_body < -pitch_limit){
-							att_sp.pitch_body = -pitch_limit;
-						}
-					}
-
-					/* calc new thrust */
-					float height_error = (local_pos.z - params.height_sp);
-					integrated_h_error = integrated_h_error + height_error;
-					float integrated_thrust_addition = integrated_h_error * params.height_i;
-					if(integrated_thrust_addition > thrust_limit_integrated){
-						integrated_thrust_addition = thrust_limit_integrated;
-					}
-					if(integrated_thrust_addition < -thrust_limit_integrated){
-						integrated_thrust_addition = -thrust_limit_integrated;
-					}
-
-					float height_speed = last_height - local_pos.z;
-					last_height = local_pos.z;
-					float thrust_diff = height_error * params.height_p - height_speed * params.height_d; // just PD controller
-					float thrust = thrust_diff + integrated_thrust_addition;
-
-					float height_ctrl_thrust = params.thrust_feedforward + thrust;
-
-					/* the throttle stick on the rc control limits the maximum thrust */
-					if(isfinite(manual.throttle))
-						thrust_limit_upper = manual.throttle;
-
-					/* never go too low with the thrust that it becomes uncontrollable */
-					if(height_ctrl_thrust < thrust_limit_lower){
-						height_ctrl_thrust = thrust_limit_lower;
-					}
-
-					if (height_ctrl_thrust >= thrust_limit_upper){
-						att_sp.thrust = thrust_limit_upper;
-					} else {
-						att_sp.thrust = height_ctrl_thrust;
-					}
-					last_thrust = att_sp.thrust;
-
-
-					/* do not control yaw */
-					if(yaw_init_counter < 10)
-						att_sp.yaw_body = att.yaw;
-					else
-						att_sp.yaw_body = initial_yaw;
-
-					att_sp.timestamp = hrt_absolute_time();
-
-					/* publish new attitude setpoint */
-					if (loopcounter == 200){
-						if(isfinite(att_sp.pitch_body) && isfinite(att_sp.roll_body) && isfinite(att_sp.yaw_body) && isfinite(att_sp.thrust))
-						{
-//							printf("pitch:%.3f, roll:%.3f\n", att_sp.pitch_body, att_sp.roll_body);
-//							printf("yaw:%.3f, thrust:%.3f\n", att_sp.yaw_body, att_sp.thrust);
-						} else {
-							if(isnan(att_sp.pitch_body))
-								printf("pitch_body is nan...\n");
-							if(isnan(att_sp.roll_body))
-								printf("roll_body is nan...\n");
-							if(isnan(att_sp.yaw_body))
-								printf("pitch is nan...\n");
-							if(isnan(att_sp.thrust))
-								printf("pitch is nan...\n");
-						}
-
-						loopcounter = 0;
-					}
-
-					orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-
-					loopcounter++;
-				} else
-				{
-					setpoint_x = 0.0f;
-					setpoint_y = 0.0f;
-					initial_yaw = 0.0f;
-					yaw_init_counter = 0;
+					parameters_update(&param_handles, &params);
+					printf("[multirotor flow position control] parameters updated.\n");
 				}
 
-				/* measure in what intervals the controller runs */
-				perf_count(mc_interval_perf);
-				perf_end(mc_loop_perf);
+	//			if (fds[0].revents & POLLIN){
+	//
+	//				/* get a local copy of the sensor data */
+	//				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
+	//
+	//				acc_lp = acc_lp * 0.9f + 0.1f * (sensor.accelerometer_m_s2[2] + 9.81f);
+	//				if (acc_counter != sensor.accelerometer_counter)
+	//				{
+	//					if (last_sensor_timestamp != 0)
+	//					{
+	//						float acc_time = (float)(sensor.timestamp - last_sensor_timestamp) / 1000000.0f;
+	//						acc_speed_z = acc_speed_z + (sensor.accelerometer_m_s2[2] + const_earth_gravity) * acc_time;
+	//					}
+	//
+	//					last_sensor_timestamp = sensor.timestamp;
+	//				}
+	//
+	//				acc_counter = sensor.accelerometer_counter;
+	//			}
+
+				/* only run controller if position changed */
+				if (fds[0].revents & POLLIN) {
+
+					perf_begin(mc_loop_perf);
+
+					/* get a local copy of the vehicle state */
+					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+					/* get a local copy of manual setpoint */
+					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
+					/* get a local copy of attitude */
+					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+					/* get a local copy of local position */
+					orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
+					/* get a local copy of local position setpoint */
+					orb_copy(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_setpoint_sub, &local_pos_sp);
+
+					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
+
+						if (yaw_init_counter < 10) {
+							yaw_sum += att.yaw;
+							yaw_init_counter++;
+						} else if (yaw_init_counter == 10){
+							initial_yaw = yaw_sum / 10.0f;
+						}
+
+						/*
+						 * attitude setpoint is to be set as "how to change attitude"
+						 *
+						 *
+						 */
+
+						/* update position setpoint? */
+						if(manual.pitch < -0.2f) {
+							setpoint_x += setpoint_update_step;
+						} else if (manual.pitch > 0.2f) {
+							setpoint_x -= setpoint_update_step;
+						}
+						if(manual.roll < -0.2f) {
+							setpoint_y -= setpoint_update_step;
+						} else if (manual.roll > 0.2f) {
+							setpoint_y += setpoint_update_step;
+						}
+
+						/* calc new roll/pitch */
+						float pitch_body = (local_pos.x - setpoint_x) * params.pos_p + local_pos.vx * params.pos_d;
+						float roll_body = - (local_pos.y - setpoint_y) * params.pos_p - local_pos.vy * params.pos_d;
+
+						/* limit roll and pitch corrections */
+						if((roll_body <= roll_limit) && (roll_body >= -roll_limit)){
+							att_sp.roll_body = roll_body;
+						} else {
+							if(roll_body > roll_limit){
+								att_sp.roll_body = roll_limit;
+							}
+							if(roll_body < -roll_limit){
+								att_sp.roll_body = -roll_limit;
+							}
+						}
+						if((pitch_body <= pitch_limit) && (pitch_body >= -pitch_limit)){
+							att_sp.pitch_body = pitch_body;
+						} else {
+							if(pitch_body > pitch_limit){
+								att_sp.pitch_body = pitch_limit;
+							}
+							if(pitch_body < -pitch_limit){
+								att_sp.pitch_body = -pitch_limit;
+							}
+						}
+
+						/* calc new thrust */
+						float height_error = (local_pos.z - params.height_sp);
+						integrated_h_error = integrated_h_error + height_error;
+						float integrated_thrust_addition = integrated_h_error * params.height_i;
+						if(integrated_thrust_addition > thrust_limit_integrated){
+							integrated_thrust_addition = thrust_limit_integrated;
+						}
+						if(integrated_thrust_addition < -thrust_limit_integrated){
+							integrated_thrust_addition = -thrust_limit_integrated;
+						}
+
+						float height_speed = last_height - local_pos.z;
+						last_height = local_pos.z;
+						float thrust_diff = height_error * params.height_p - height_speed * params.height_d; // just PD controller
+						float thrust = thrust_diff + integrated_thrust_addition;
+
+						float height_ctrl_thrust = params.thrust_feedforward + thrust;
+
+						/* the throttle stick on the rc control limits the maximum thrust */
+						if(isfinite(manual.throttle))
+							thrust_limit_upper = manual.throttle;
+
+						/* never go too low with the thrust that it becomes uncontrollable */
+						if(height_ctrl_thrust < thrust_limit_lower){
+							height_ctrl_thrust = thrust_limit_lower;
+						}
+
+						if (height_ctrl_thrust >= thrust_limit_upper){
+							att_sp.thrust = thrust_limit_upper;
+						} else {
+							att_sp.thrust = height_ctrl_thrust;
+						}
+						last_thrust = att_sp.thrust;
+
+
+						/* do not control yaw */
+						if(yaw_init_counter < 10)
+							att_sp.yaw_body = att.yaw;
+						else
+							att_sp.yaw_body = initial_yaw;
+
+						att_sp.timestamp = hrt_absolute_time();
+
+						/* publish new attitude setpoint */
+						if (loopcounter == 200){
+							if(isfinite(att_sp.pitch_body) && isfinite(att_sp.roll_body) && isfinite(att_sp.yaw_body) && isfinite(att_sp.thrust))
+							{
+	//							printf("pitch:%.3f, roll:%.3f\n", att_sp.pitch_body, att_sp.roll_body);
+	//							printf("yaw:%.3f, thrust:%.3f\n", att_sp.yaw_body, att_sp.thrust);
+							} else {
+								if(isnan(att_sp.pitch_body))
+									printf("pitch_body is nan...\n");
+								if(isnan(att_sp.roll_body))
+									printf("roll_body is nan...\n");
+								if(isnan(att_sp.yaw_body))
+									printf("pitch is nan...\n");
+								if(isnan(att_sp.thrust))
+									printf("pitch is nan...\n");
+							}
+
+							loopcounter = 0;
+						}
+
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+
+						loopcounter++;
+					} else
+					{
+						setpoint_x = 0.0f;
+						setpoint_y = 0.0f;
+						initial_yaw = 0.0f;
+						yaw_init_counter = 0;
+					}
+
+					/* measure in what intervals the controller runs */
+					perf_count(mc_interval_perf);
+					perf_end(mc_loop_perf);
+				}
+
 			}
 
+			/* run at approximately 50 Hz */
+			//usleep(20000);
+
+			counter++;
+
+
+		} else {
+			/* sensors not ready waiting for first attitude msg */
+
+			/* polling */
+			struct pollfd fds[1] = {
+				{ .fd = vehicle_attitude_sub, .events = POLLIN },
+			};
+
+			/* wait for a flow msg, check for exit condition every 5 s */
+			int ret = poll(fds, 1, 5000);
+
+			if (ret < 0) {
+				/* poll error, count it in perf */
+				perf_count(mc_err_perf);
+
+			} else if (ret == 0) {
+				/* no return value, ignore */
+				printf("[multirotor flow position control] no attitude received.\n");
+			} else {
+
+				if (fds[0].revents & POLLIN){
+					sensors_ready = true;
+					printf("[multirotor flow position control] initialized.\n");
+				}
+			}
 		}
-
-		/* run at approximately 50 Hz */
-		//usleep(20000);
-
-		counter++;
 
 	}
 

@@ -811,7 +811,7 @@ uorb_receive_start(void)
 
 	/* --- DISCRETE RADAR ESTIMATIONS --- */
 	mavlink_subs.discrete_radar = orb_subscribe(ORB_ID(discrete_radar));
-	orb_set_interval(mavlink_subs.discrete_radar, 10); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.discrete_radar, 200); 	/* 5Hz updates */
 
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;
