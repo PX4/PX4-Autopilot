@@ -54,6 +54,8 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_baro.h>
 
+#include <mavlink/mavlink_log.h>
+
 __EXPORT int preflight_check_main(int argc, char *argv[]);
 static int led_toggle(int leds, int led);
 static int led_on(int leds, int led);
@@ -75,6 +77,8 @@ int preflight_check_main(int argc, char *argv[])
 	bool system_ok = true;
 
 	int fd;
+	/* open text message output path */
+	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	int ret;
 
 	/* give the system some time to sample the sensors in the background */
@@ -86,6 +90,7 @@ int preflight_check_main(int argc, char *argv[])
 	fd = open(MAG_DEVICE_PATH, 0);
 	if (fd < 0) {
 		warn("failed to open magnetometer - start with 'hmc5883 start' or 'lsm303d start'");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: NO MAG");
 		system_ok = false;
 		goto system_eval;
 	}
@@ -93,6 +98,7 @@ int preflight_check_main(int argc, char *argv[])
 	
 	if (ret != OK) {
 		warnx("magnetometer calibration missing or bad - calibrate magnetometer first");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: MAG CALIBRATION");
 		system_ok = false;
 		goto system_eval;
 	}
@@ -105,6 +111,7 @@ int preflight_check_main(int argc, char *argv[])
 	
 	if (ret != OK) {
 		warnx("accel self test failed");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACCEL CHECK");
 		system_ok = false;
 		goto system_eval;
 	}
@@ -117,6 +124,7 @@ int preflight_check_main(int argc, char *argv[])
 	
 	if (ret != OK) {
 		warnx("gyro self test failed");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: GYRO CHECK");
 		system_ok = false;
 		goto system_eval;
 	}
