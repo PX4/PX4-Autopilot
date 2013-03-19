@@ -93,13 +93,11 @@ mixer_tick(void)
 
 		/* too long without FMU input, time to go to failsafe */
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
-			lowsyslog("AP RX timeout");
+			isr_debug(1, "AP RX timeout");
 		}
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM);
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
 
-		/* XXX this is questionable - vehicle may not make sense for direct control */
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
 	} else {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 		r_status_alarms &= ~PX4IO_P_STATUS_ALARMS_FMU_LOST;
@@ -179,7 +177,10 @@ mixer_tick(void)
 	    /* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) &&
 	 	/* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
 		/* there is valid input */ (r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)) &&
-		/* IO initialised without error */  (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK));
+		/* IO initialised without error */  (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK) &&
+		/* FMU is available or FMU is not available but override is an option */
+		((r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) || (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) && (r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ))
+	);
 
 	if (should_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */

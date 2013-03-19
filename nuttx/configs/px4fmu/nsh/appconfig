@@ -67,6 +67,7 @@ CONFIGURED_APPS += systemcmds/boardinfo
 CONFIGURED_APPS += systemcmds/mixer
 CONFIGURED_APPS += systemcmds/eeprom
 CONFIGURED_APPS += systemcmds/param
+CONFIGURED_APPS += systemcmds/pwm
 CONFIGURED_APPS += systemcmds/bl_update
 CONFIGURED_APPS += systemcmds/preflight_check
 CONFIGURED_APPS += systemcmds/delay_test

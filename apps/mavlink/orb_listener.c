@@ -91,34 +91,34 @@ static uint64_t last_sensor_timestamp;
 static void	*uorb_receive_thread(void *arg);
 
 struct listener {
-	void	(*callback)(struct listener *l);
+	void	(*callback)(const struct listener *l);
 	int		*subp;
 	uintptr_t	arg;
 };
 
-static void	l_sensor_combined(struct listener *l);
-static void	l_vehicle_attitude(struct listener *l);
-static void	l_vehicle_gps_position(struct listener *l);
-static void	l_vehicle_status(struct listener *l);
-static void	l_rc_channels(struct listener *l);
-static void	l_input_rc(struct listener *l);
-static void	l_global_position(struct listener *l);
-static void	l_local_position(struct listener *l);
-static void	l_global_position_setpoint(struct listener *l);
-static void	l_local_position_setpoint(struct listener *l);
-static void	l_attitude_setpoint(struct listener *l);
-static void	l_actuator_outputs(struct listener *l);
-static void	l_actuator_armed(struct listener *l);
-static void	l_manual_control_setpoint(struct listener *l);
-static void	l_vehicle_attitude_controls(struct listener *l);
-static void	l_debug_key_value(struct listener *l);
-static void	l_optical_flow(struct listener *l);
-static void	l_omnidirectional_flow(struct listener *l);
-static void	l_discrete_radar(struct listener *l);
-static void	l_vehicle_rates_setpoint(struct listener *l);
-static void	l_home(struct listener *l);
+static void	l_sensor_combined(const struct listener *l);
+static void	l_vehicle_attitude(const struct listener *l);
+static void	l_vehicle_gps_position(const struct listener *l);
+static void	l_vehicle_status(const struct listener *l);
+static void	l_rc_channels(const struct listener *l);
+static void	l_input_rc(const struct listener *l);
+static void	l_global_position(const struct listener *l);
+static void	l_local_position(const struct listener *l);
+static void	l_global_position_setpoint(const struct listener *l);
+static void	l_local_position_setpoint(const struct listener *l);
+static void	l_attitude_setpoint(const struct listener *l);
+static void	l_actuator_outputs(const struct listener *l);
+static void	l_actuator_armed(const struct listener *l);
+static void	l_manual_control_setpoint(const struct listener *l);
+static void	l_vehicle_attitude_controls(const struct listener *l);
+static void	l_debug_key_value(const struct listener *l);
+static void	l_optical_flow(const struct listener *l);
+static void	l_omnidirectional_flow(const struct listener *l);
+static void	l_discrete_radar(const struct listener *l);
+static void	l_vehicle_rates_setpoint(const struct listener *l);
+static void	l_home(const struct listener *l);
 
-struct listener listeners[] = {
+static const struct listener listeners[] = {
 	{l_sensor_combined,		&mavlink_subs.sensor_sub,	0},
 	{l_vehicle_attitude,		&mavlink_subs.att_sub,		0},
 	{l_vehicle_gps_position,	&mavlink_subs.gps_sub,		0},
@@ -148,7 +148,7 @@ struct listener listeners[] = {
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
 
 void
-l_sensor_combined(struct listener *l)
+l_sensor_combined(const struct listener *l)
 {
 	struct sensor_combined_s raw;
 
@@ -203,7 +203,7 @@ l_sensor_combined(struct listener *l)
 }
 
 void
-l_vehicle_attitude(struct listener *l)
+l_vehicle_attitude(const struct listener *l)
 {
 	struct vehicle_attitude_s att;
 
@@ -226,7 +226,7 @@ l_vehicle_attitude(struct listener *l)
 }
 
 void
-l_vehicle_gps_position(struct listener *l)
+l_vehicle_gps_position(const struct listener *l)
 {
 	struct vehicle_gps_position_s gps;
 
@@ -260,7 +260,7 @@ l_vehicle_gps_position(struct listener *l)
 }
 
 void
-l_vehicle_status(struct listener *l)
+l_vehicle_status(const struct listener *l)
 {
 	/* immediately communicate state changes back to user */
 	orb_copy(ORB_ID(vehicle_status), status_sub, &v_status);
@@ -284,7 +284,7 @@ l_vehicle_status(struct listener *l)
 }
 
 void
-l_rc_channels(struct listener *l)
+l_rc_channels(const struct listener *l)
 {
 	/* copy rc channels into local buffer */
 	orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
@@ -292,7 +292,7 @@ l_rc_channels(struct listener *l)
 }
 
 void
-l_input_rc(struct listener *l)
+l_input_rc(const struct listener *l)
 {
 	/* copy rc channels into local buffer */
 	orb_copy(ORB_ID(input_rc), mavlink_subs.input_rc_sub, &rc_raw);
@@ -314,7 +314,7 @@ l_input_rc(struct listener *l)
 }
 
 void
-l_global_position(struct listener *l)
+l_global_position(const struct listener *l)
 {
 	/* copy global position data into local buffer */
 	orb_copy(ORB_ID(vehicle_global_position), mavlink_subs.global_pos_sub, &global_pos);
@@ -344,7 +344,7 @@ l_global_position(struct listener *l)
 }
 
 void
-l_local_position(struct listener *l)
+l_local_position(const struct listener *l)
 {
 	/* copy local position data into local buffer */
 	orb_copy(ORB_ID(vehicle_local_position), mavlink_subs.local_pos_sub, &local_pos);
@@ -361,7 +361,7 @@ l_local_position(struct listener *l)
 }
 
 void
-l_global_position_setpoint(struct listener *l)
+l_global_position_setpoint(const struct listener *l)
 {
 	struct vehicle_global_position_setpoint_s global_sp;
 
@@ -383,7 +383,7 @@ l_global_position_setpoint(struct listener *l)
 }
 
 void
-l_local_position_setpoint(struct listener *l)
+l_local_position_setpoint(const struct listener *l)
 {
 	struct vehicle_local_position_setpoint_s local_sp;
 
@@ -400,7 +400,7 @@ l_local_position_setpoint(struct listener *l)
 }
 
 void
-l_attitude_setpoint(struct listener *l)
+l_attitude_setpoint(const struct listener *l)
 {
 	struct vehicle_attitude_setpoint_s att_sp;
 
@@ -417,7 +417,7 @@ l_attitude_setpoint(struct listener *l)
 }
 
 void
-l_vehicle_rates_setpoint(struct listener *l)
+l_vehicle_rates_setpoint(const struct listener *l)
 {
 	struct vehicle_rates_setpoint_s rates_sp;
 
@@ -434,7 +434,7 @@ l_vehicle_rates_setpoint(struct listener *l)
 }
 
 void
-l_actuator_outputs(struct listener *l)
+l_actuator_outputs(const struct listener *l)
 {
 	struct actuator_outputs_s act_outputs;
 
@@ -533,13 +533,13 @@ l_actuator_outputs(struct listener *l)
 }
 
 void
-l_actuator_armed(struct listener *l)
+l_actuator_armed(const struct listener *l)
 {
 	orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
 }
 
 void
-l_manual_control_setpoint(struct listener *l)
+l_manual_control_setpoint(const struct listener *l)
 {
 	struct manual_control_setpoint_s man_control;
 
@@ -557,7 +557,7 @@ l_manual_control_setpoint(struct listener *l)
 }
 
 void
-l_vehicle_attitude_controls(struct listener *l)
+l_vehicle_attitude_controls(const struct listener *l)
 {
 	struct actuator_controls_effective_s actuators;
 
@@ -585,7 +585,7 @@ l_vehicle_attitude_controls(struct listener *l)
 }
 
 void
-l_debug_key_value(struct listener *l)
+l_debug_key_value(const struct listener *l)
 {
 	struct debug_key_value_s debug;
 
@@ -601,7 +601,7 @@ l_debug_key_value(struct listener *l)
 }
 
 void
-l_optical_flow(struct listener *l)
+l_optical_flow(const struct listener *l)
 {
 	struct optical_flow_s optical_flow;
 
@@ -612,7 +612,7 @@ l_optical_flow(struct listener *l)
 }
 
 void
-l_omnidirectional_flow(struct listener *l)
+l_omnidirectional_flow(const struct listener *l)
 {
 	struct omnidirectional_flow_s omnidirectional_flow;
 
@@ -623,7 +623,7 @@ l_omnidirectional_flow(struct listener *l)
 }
 
 void
-l_discrete_radar(struct listener *l)
+l_discrete_radar(const struct listener *l)
 {
 	struct discrete_radar_s discrete_radar;
 
@@ -657,7 +657,7 @@ l_discrete_radar(struct listener *l)
 }
 
 void
-l_home(struct listener *l)
+l_home(const struct listener *l)
 {
 	struct home_position_s home;
 
@@ -807,11 +807,11 @@ uorb_receive_start(void)
 
 	/* --- OMNIDIRECTIONAL FLOW SENSOR --- */
 	mavlink_subs.omnidirectional_flow = orb_subscribe(ORB_ID(omnidirectional_flow));
-	orb_set_interval(mavlink_subs.omnidirectional_flow, 100000); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.omnidirectional_flow, 10); 	/* 5Hz updates */
 
 	/* --- DISCRETE RADAR ESTIMATIONS --- */
 	mavlink_subs.discrete_radar = orb_subscribe(ORB_ID(discrete_radar));
-	orb_set_interval(mavlink_subs.discrete_radar, 200); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.discrete_radar, 200000); 	/* 5Hz updates */
 
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;

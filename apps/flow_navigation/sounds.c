@@ -31,15 +31,15 @@ void sounds_deinit(void)
 
 void tune_tetris(void)
 {
-	ioctl(buzzer, TONE_SET_ALARM, 6);
+	ioctl(buzzer, TONE_SET_ALARM, 5);
 }
 
 void tune_sonar(void)
 {
-	ioctl(buzzer, TONE_SET_ALARM, 7);
+	ioctl(buzzer, TONE_SET_ALARM, 4);
 }
 
 void tune_ready(void)
 {
-	ioctl(buzzer, TONE_SET_ALARM, 8);
+	ioctl(buzzer, TONE_SET_ALARM, 3);
 }

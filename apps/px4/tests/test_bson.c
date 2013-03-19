@@ -51,7 +51,7 @@ static const int32_t sample_small_int = 123;
 static const int64_t sample_big_int = (int64_t)INT_MAX + 123LL;
 static const double sample_double = 2.5f;
 static const char *sample_string = "this is a test";
-static const uint8_t sample_data[256];
+static const uint8_t sample_data[256] = {0};
 //static const char *sample_filename = "/fs/microsd/bson.test";
 
 static int

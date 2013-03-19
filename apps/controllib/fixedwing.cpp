@@ -171,10 +171,10 @@ BlockBacksideAutopilot::BlockBacksideAutopilot(SuperBlock *parent,
 	_headingHold(this, ""),
 	_velocityHold(this, ""),
 	_altitudeHold(this, ""),
-	_trimAil(this, "TRIM_AIL"),
-	_trimElv(this, "TRIM_ELV"),
-	_trimRdr(this, "TRIM_RDR"),
-	_trimThr(this, "TRIM_THR")
+	_trimAil(this, "TRIM_ROLL", false), /* general roll trim (full name: TRIM_ROLL) */
+	_trimElv(this, "TRIM_PITCH", false), /* general pitch trim */
+	_trimRdr(this, "TRIM_YAW", false), /* general yaw trim */
+	_trimThr(this, "TRIM_THR", true) /* FWB_ specific throttle trim (full name: FWB_TRIM_THR) */
 {
 }
 
@@ -323,7 +323,7 @@ void BlockMultiModeBacksideAutopilot::update()
 			_att.rollspeed, _att.pitchspeed, _att.yawspeed
 		);
 		_actuators.control[CH_AIL] = _backsideAutopilot.getAileron();
-		_actuators.control[CH_ELV] = - _backsideAutopilot.getElevator();
+		_actuators.control[CH_ELV] = _backsideAutopilot.getElevator();
 		_actuators.control[CH_RDR] = _backsideAutopilot.getRudder();
 		_actuators.control[CH_THR] = _backsideAutopilot.getThrottle();
 
@@ -355,7 +355,7 @@ void BlockMultiModeBacksideAutopilot::update()
 			_att.rollspeed, _att.pitchspeed, _att.yawspeed);
 
 			_actuators.control[CH_AIL] = _stabilization.getAileron();
-			_actuators.control[CH_ELV] = - _stabilization.getElevator();
+			_actuators.control[CH_ELV] = _stabilization.getElevator();
 			_actuators.control[CH_RDR] = _stabilization.getRudder();
 			_actuators.control[CH_THR] = _manual.throttle;
 		}
