@@ -138,6 +138,8 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 	thread_running = true;
 	printf("[flow position estimator] starting\n");
 
+
+
 	/* FIXME should be a parameter */
 	static const int8_t rotM_flow_sensor[3][3] =   {{  0, 1, 0 },
 													{ -1, 0, 0 },
@@ -151,36 +153,23 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 	static uint32_t counter = 0;
 	static uint64_t time_last_flow = 0; // in ms
 	static float dt = 0; // seconds
-	static float time_scale = pow(10,-6);
-
-	static int baro_loop_cnt = 0;
-	static int baro_loop_end = 70; /* measurement for 1 second */
-	static float p0_Pa = 0.0f; /* to determin while start up */
-	static float rho0 = 1.293f;
-	static bool baro_initialized = false;
-	static float barometer_height_est = 0.0;
 	static float sonar_last = 0;
 	static bool sonar_valid = false;
-//	static int sonar_unaccepted_count = 0;
-//	static float sonar_barometer_offset = 0.0f;
-
 	static float sonar_lp = 0.0f;
 
 	/* subscribe to vehicle status, attitude, sensors and flow*/
 	struct vehicle_status_s vstatus;
 	memset(&vstatus, 0, sizeof(vstatus));
-	struct sensor_combined_s sensor;
-	memset(&sensor, 0, sizeof(sensor));
-	struct vehicle_attitude_s att;
-	memset(&att, 0, sizeof(att));
+	//struct vehicle_attitude_s att;
+	//memset(&att, 0, sizeof(att));
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
 
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	/* subscribe to vehicle status */
+	//int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	/* subscribe to attitude */
-	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	//int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 	/* subscribe to optical flow*/
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
@@ -214,15 +203,9 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 			perf_count(mc_err_perf);
 
 		} else if (ret == 0) {
-			/* check if we're in HIL - not getting sensor data is fine then */
-			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-
-			if (!vstatus.flag_hil_enabled) {
-				fprintf(stderr,
-					"[att ekf] WARNING: Not getting sensors - sensor app running?\n");
-			}
 			/* no return value, ignore */
-			//printf("[flow position estimator] no flow \n"); // XXX wrong position
+			printf("[flow position estimator] no bottom flow.\n");
+
 		} else {
 
 			/* only if flow data changed */
@@ -232,50 +215,15 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 				/* got flow, updating attitude and status as well */
-				orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
-				orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
+				//orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+				//orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
 
-				/* sanitize flow data */
-//				if (fabs(flow.flow_comp_x_m) > 5.0f || fabs(flow.flow_comp_y_m) > 5.0f ||
-//						flow.ground_distance_m > 5.0f || flow.ground_distance_m < 0.0f ||
-//						flow.quality <= 0)
-//				{
-//					continue;
-//				}
-
-				if (vstatus.state_machine == SYSTEM_STATE_AUTO || vstatus.state_machine == SYSTEM_STATE_STANDBY) {
+//				if (vstatus.state_machine == SYSTEM_STATE_AUTO || vstatus.state_machine == SYSTEM_STATE_STANDBY) {
 
 					/*copy flow */
 					flow_speed[0] = flow.flow_comp_x_m;
 					flow_speed[1] = flow.flow_comp_y_m;
 					flow_speed[2] = 0.0f;
-
-					if (!baro_initialized){
-						// mean calculation over several measurements
-						if(baro_loop_cnt < baro_loop_end) {
-							p0_Pa += (sensor.baro_pres_mbar * 100);
-							baro_loop_cnt++;
-						}else{
-							p0_Pa /= (float)(baro_loop_cnt);
-							baro_initialized = true;
-
-							/* send log info */
-//							char *baro_m_start = "barometer initialized with p0 = ";
-//							char p0_char[15];
-//							sprintf(p0_char, "%8.2f", p0_Pa/100);
-//							char *baro_m_end = " mbar";
-//							char str[80];
-//							strcpy(str,baro_m_start);
-//							strcat(str,p0_char);
-//							strcat(str,baro_m_end);
-//							mavlink_log_info(mavlink_fd, str);
-						}
-					}
-
-					if(baro_initialized){
-						barometer_height_est = -p0_Pa*log(p0_Pa/(sensor.baro_pres_mbar*100))/(rho0*const_earth_gravity);
-					}
 
 					/* ignore first flow msg */
 					if(time_last_flow == 0)
@@ -285,10 +233,11 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 					}
 
 					/* calc dt */
+					const static float time_scale = pow(10,-6);
 					dt = (float)(flow.timestamp - time_last_flow) * time_scale ;
 					time_last_flow = flow.timestamp;
 
-					/* convert to global velocity */
+					/* convert to bodyframe velocity */
 					for(uint8_t i = 0; i < 3; i++) {
 						float sum = 0.0f;
 						for(uint8_t j = 0; j < 3; j++) {
@@ -297,6 +246,7 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 						speed[i] = sum;
 					}
 
+					/* convert to globalframe velocity -> not used (probably with gps)
 //					for(uint8_t i = 0; i < 3; i++) {
 //						float sum = 0.0f;
 //						for(uint8_t j = 0; j < 3; j++) {
@@ -307,49 +257,22 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 //					local_pos.x = local_pos.x + global_speed[0] * dt;
 //					local_pos.y = local_pos.y + global_speed[1] * dt;
 
-
+					/* update local position */
 					local_pos.x = local_pos.x + speed[0] * dt;
 					local_pos.y = local_pos.y + speed[1] * dt;
-
-
 					local_pos.vx = speed[0];
 					local_pos.vy = speed[1];
 
-//					if (counter % 50 = 0)
-//						printf("height_diff:%.3f", height_diff);
+//				} else {
 //
-//					 not working/tested with barometer
-//					int sonar_accepted = 0;
-//					float height_diff = sonar - barometer_height_est;
+//					/* reset position */
+//					local_pos.x = 0.0f;
+//					local_pos.y = 0.0f;
+//					/* reset velocity */
+////					local_pos.vx = 0.0f;
+////					local_pos.vy = 0.0f;
 //
-//					if (fabsf(height_diff) < 0.5) {
-//						sonar_unaccepted_count = 0;
-//						sonar_barometer_offset = 0.0f;
-//					} else {
-//						sonar_unaccepted_count++;
-//
-//						if(sonar_unaccepted_count > 10) {
-//							/* add/sub 1cm to offset */
-//							if (height_diff < 0)
-//								sonar_barometer_offset -= 0.01;
-//							else
-//								sonar_barometer_offset += 0.01;
-//						}
-//
-//						local_pos.z = sonar_last + sonar_barometer_offset;
-//
-//					}
-
-				} else {
-
-					/* reset position */
-					local_pos.x = 0.0f;
-					local_pos.y = 0.0f;
-					/* reset velocity */
-//					local_pos.vx = 0.0f;
-//					local_pos.vy = 0.0f;
-
-				}
+//				}
 
 				/* filtering ground distance */
 				float sonar = - flow.ground_distance_m;
@@ -384,7 +307,12 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 				}
 
 				local_pos.timestamp = hrt_absolute_time();
-				orb_publish(ORB_ID(vehicle_local_position), local_pos_pub, &local_pos);
+
+				if(isfinite(local_pos.x) && isfinite(local_pos.y) && isfinite(local_pos.z)
+						&& isfinite(local_pos.vx) && isfinite(local_pos.vy))
+				{
+					orb_publish(ORB_ID(vehicle_local_position), local_pos_pub, &local_pos);
+				}
 
 
 				/* measure in what intervals the position estimator runs */
@@ -400,8 +328,8 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 	printf("[flow position estimator] exiting.\n");
 	thread_running = false;
 
-	close(vehicle_attitude_sub);
-	close(vehicle_status_sub);
+	//close(vehicle_attitude_sub);
+	//close(vehicle_status_sub);
 	close(optical_flow_sub);
 
 	perf_print_counter(mc_loop_perf);

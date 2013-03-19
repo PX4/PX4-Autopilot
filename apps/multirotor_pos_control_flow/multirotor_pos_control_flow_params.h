@@ -49,16 +49,24 @@ struct multirotor_position_control_flow_params {
 	float height_d;
 	float height_sp;
 	float thrust_feedforward;
+	float limit_pitch;
+	float limit_roll;
+	float limit_thrust_int;
+	float limit_thrust_lower;
 };
 
 struct multirotor_position_control_flow_param_handles {
-	float pos_p;
-	float pos_d;
-	float height_p;
-	float height_i;
-	float height_d;
-	float height_sp;
-	float thrust_feedforward;
+	param_t pos_p;
+	param_t pos_d;
+	param_t height_p;
+	param_t height_i;
+	param_t height_d;
+	param_t height_sp;
+	param_t thrust_feedforward;
+	param_t limit_pitch;
+	param_t limit_roll;
+	param_t limit_thrust_int;
+	param_t limit_thrust_lower;
 };
 
 /**

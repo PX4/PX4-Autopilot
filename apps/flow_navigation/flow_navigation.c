@@ -231,6 +231,13 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	static int sonar_counter = 0;
 	static int sonar_gradient = 0;
 
+	/* navigation parameters */
+	float setpoint_x = 0.0f;
+	float setpoint_y = 0.0f;
+	float setpoint_yaw = 0.0f;
+	float setpoint_update_step = 0.005f;
+	float setpoint_update_step_yaw = 0.05f;
+
 	static bool sensors_ready = false;
 
 	filter_settings[0] = params.s0;
@@ -247,13 +254,14 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 		if (sensors_ready) {
 
 			/* polling */
-			struct pollfd fds[2] = {
+			struct pollfd fds[3] = {
 				{ .fd = omnidirectional_flow_sub, .events = POLLIN },
+				{ .fd = manual_control_setpoint_sub, .events = POLLIN },
 				{ .fd = parameter_update_sub,   .events = POLLIN },
 			};
 
 			/* wait for a flow msg, check for exit condition every 500 ms */
-			int ret = poll(fds, 2, 500);
+			int ret = poll(fds, 3, 500);
 
 			if (ret < 0) {
 				/* poll error, count it in perf */
@@ -264,7 +272,7 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 				printf("[flow_navigation] no omnidirectional flow msgs.\n");
 			} else {
 
-				if (fds[1].revents & POLLIN){
+				if (fds[2].revents & POLLIN){
 					/* read from param to clear updated flag */
 					struct parameter_update_s update;
 					orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
@@ -282,6 +290,56 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					printf("[flow_navigation] parameters updated.\n");
 				}
 
+				if (fds[1].revents & POLLIN){
+
+					/* get a local copy of manual setpoint */
+					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
+					/* get a local copy of local position */
+					orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
+					/* get a local copy of attitude */
+					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+					/* get a local copy of the vehicle state */
+					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+
+					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
+						/* update position setpoint? */
+
+						if(manual.pitch < -0.2f) {
+							setpoint_x += setpoint_update_step;
+						} else if (manual.pitch > 0.2f) {
+							setpoint_x -= setpoint_update_step;
+						}
+
+						if(manual.roll < -0.2f) {
+							setpoint_y -= setpoint_update_step;
+						} else if (manual.roll > 0.2f) {
+							setpoint_y += setpoint_update_step;
+						}
+
+						if(manual.yaw < -1.0f) { // bigger threshold because of rc calibration for manual flight
+							setpoint_yaw -= setpoint_update_step_yaw;
+						} else if (manual.yaw > 1.0f) {
+							setpoint_yaw += setpoint_update_step_yaw;
+						}
+
+					} else
+					{
+						/* reset setpoint to current position */
+						setpoint_x = local_pos.x;
+						setpoint_y = local_pos.y;
+						setpoint_yaw = att.yaw;
+					}
+
+					local_pos_sp.x = setpoint_x;
+					local_pos_sp.y = setpoint_y;
+					local_pos_sp.yaw = setpoint_yaw;
+
+					if(isfinite(local_pos_sp.x) && isfinite(local_pos_sp.y) && isfinite(local_pos_sp.yaw))
+					{
+						orb_publish(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_sp_pub, &local_pos_sp);
+					}
+				}
+
 				/* only run controller if position changed */
 				if (fds[0].revents & POLLIN) {
 
@@ -289,8 +347,6 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 					/* get a local copy of the vehicle state */
 					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-					/* get a local copy of manual setpoint */
-					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
 					/* get a local copy of attitude */
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					/* get a local copy of local position */
@@ -300,13 +356,32 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					/* get a local copy of omnidirectional flow */
 					orb_copy(ORB_ID(omnidirectional_flow), omnidirectional_flow_sub, &omni_flow);
 
-					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
-
-					} else
-					{
-
-
-					}
+//					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
+//						/* update position setpoint? */
+//
+//						if(manual.pitch < -0.2f) {
+//							setpoint_x += setpoint_update_step;
+//						} else if (manual.pitch > 0.2f) {
+//							setpoint_x -= setpoint_update_step;
+//						}
+////						if(manual.roll < -0.2f) {
+////							setpoint_y -= setpoint_update_step;
+////						} else if (manual.roll > 0.2f) {
+////							setpoint_y += setpoint_update_step;
+////						}
+//						if(manual.roll < -0.2f) {
+//							setpoint_yaw -= setpoint_update_step;
+//						} else if (manual.roll > 0.2f) {
+//							setpoint_yaw += setpoint_update_step;
+//						}
+//
+//					} else
+//					{
+//						/* reset setpoint to current position */
+//						setpoint_x = local_pos.x;
+//						setpoint_y = local_pos.y;
+//						setpoint_yaw = att.yaw;
+//					}
 
 					if (time_last_flow == 0){
 						time_last_flow = omni_flow.timestamp;
@@ -397,10 +472,6 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					position_last[1] = local_pos.y;
 					yaw_last = att.yaw;
 
-					/* debug */
-					local_pos_sp.x = speed_filtered[0];
-					local_pos_sp.y = speed_filtered[1];
-
 //					wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, 0.5, 0, &distance_left, &distance_right);
 //					wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, thresholds, &distance_left, &distance_right);
 
@@ -461,12 +532,7 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 						sonar_counter = 0;
 					}
 
-					/* debug */
-					local_pos_sp.z = distance_left;
-					local_pos_sp.yaw = distance_right;
-
 					discrete_radar.timestamp = hrt_absolute_time();
-					orb_publish(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_sp_pub, &local_pos_sp);
 					orb_publish(ORB_ID(discrete_radar), discrete_radar_pub, &discrete_radar);
 
 //					if(params.pos_sp_x)
