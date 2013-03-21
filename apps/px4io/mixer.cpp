@@ -100,7 +100,6 @@ mixer_tick(void)
 
 	} else {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
-		r_status_alarms &= ~PX4IO_P_STATUS_ALARMS_FMU_LOST;
 	}
 
 	source = MIX_FAILSAFE;
@@ -266,6 +265,7 @@ mixer_handle_text(const void *buffer, size_t length)
 
 		/* FIRST mark the mixer as invalid */
 		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
+
 		/* THEN actually delete it */
 		mixer_group.reset();
 		mixer_text_length = 0;
@@ -294,8 +294,13 @@ mixer_handle_text(const void *buffer, size_t length)
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
 
-			/* ideally, this should test resid == 0 ? */
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_MIXER_OK;
+			/* only set mixer ok if no residual is left over */
+			if (resid == 0) {
+				r_status_flags |= PX4IO_P_STATUS_FLAGS_MIXER_OK;
+			} else {
+				/* not yet reached the end of the mixer, set as not ok */
+				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
+			}
 
 			isr_debug(2, "used %u", mixer_text_length - resid);
 
