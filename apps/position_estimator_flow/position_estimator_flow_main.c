@@ -57,11 +57,9 @@
 #include <math.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_bodyframe_position.h>
 #include <uORB/topics/optical_flow.h>
 #include <systemlib/perf_counter.h>
 #include <poll.h>
@@ -145,7 +143,7 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 													{ -1, 0, 0 },
 													{  0, 0, 1 }};
 	const static float const_earth_gravity = 9.81f;
-
+	static float time_scale = pow(10,-6);
 	static float u[2] = {0.0f, 0.0f};
 	static float speed[3] = {0.0f, 0.0f, 0.0f}; // x,y
 	static float flow_speed[3] = {0.0f, 0.0f, 0.0f};
@@ -160,8 +158,8 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 	/* subscribe to vehicle status, attitude, sensors and flow*/
 	struct vehicle_status_s vstatus;
 	memset(&vstatus, 0, sizeof(vstatus));
-	//struct vehicle_attitude_s att;
-	//memset(&att, 0, sizeof(att));
+	struct vehicle_attitude_s att;
+	memset(&att, 0, sizeof(att));
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
 
@@ -169,7 +167,7 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 	//int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	/* subscribe to attitude */
-	//int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 	/* subscribe to optical flow*/
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
@@ -183,7 +181,17 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 		.vy = 0.0f,
 		.vz = 0.0f
 	};
+	struct vehicle_bodyframe_position_s bodyframe_pos = {
+			.x = 0.0f,
+			.y = 0.0f,
+			.z = 0.0f,
+			.vx = 0.0f,
+			.vy = 0.0f,
+			.vz = 0.0f
+	};
+
 	orb_advert_t local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
+	orb_advert_t bodyframe_pos_pub = orb_advertise(ORB_ID(vehicle_bodyframe_position), &bodyframe_pos);
 
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "position_estimator_flow_runtime");
 	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "position_estimator_flow_interval");
@@ -215,7 +223,7 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 				/* got flow, updating attitude and status as well */
-				//orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+				orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 				//orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
 
 //				if (vstatus.state_machine == SYSTEM_STATE_AUTO || vstatus.state_machine == SYSTEM_STATE_STANDBY) {
@@ -233,7 +241,6 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 					}
 
 					/* calc dt */
-					const static float time_scale = pow(10,-6);
 					dt = (float)(flow.timestamp - time_last_flow) * time_scale ;
 					time_last_flow = flow.timestamp;
 
@@ -246,22 +253,26 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 						speed[i] = sum;
 					}
 
-					/* convert to globalframe velocity -> not used (probably with gps)
-//					for(uint8_t i = 0; i < 3; i++) {
-//						float sum = 0.0f;
-//						for(uint8_t j = 0; j < 3; j++) {
-//							sum = sum + speed[j] * att.R[i][j];
-//						}
-//						global_speed[i] = sum;
-//					}
-//					local_pos.x = local_pos.x + global_speed[0] * dt;
-//					local_pos.y = local_pos.y + global_speed[1] * dt;
+					/* update bodyframe position */
+					bodyframe_pos.x = bodyframe_pos.x + speed[0] * dt;
+					bodyframe_pos.y = bodyframe_pos.y + speed[1] * dt;
+					bodyframe_pos.vx = speed[0];
+					bodyframe_pos.vy = speed[1];
 
-					/* update local position */
-					local_pos.x = local_pos.x + speed[0] * dt;
-					local_pos.y = local_pos.y + speed[1] * dt;
-					local_pos.vx = speed[0];
-					local_pos.vy = speed[1];
+					// TODO add yaw rotation correction (distance to vehicle zero)
+
+					/* convert to globalframe velocity -> not used for position control */
+					for(uint8_t i = 0; i < 3; i++) {
+						float sum = 0.0f;
+						for(uint8_t j = 0; j < 3; j++) {
+							sum = sum + speed[j] * att.R[i][j];
+						}
+						global_speed[i] = sum;
+					}
+					local_pos.x = local_pos.x + global_speed[0] * dt;
+					local_pos.y = local_pos.y + global_speed[1] * dt;
+					local_pos.vx = global_speed[0];
+					local_pos.vy = global_speed[1];
 
 //				} else {
 //
@@ -290,10 +301,12 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 					/* if over 1/2m spike follow lowpass */
 					if (height_diff < -0.5 || height_diff > 0.5)
 					{
+						bodyframe_pos.z = sonar_lp;
 						local_pos.z = sonar_lp;
 
 					} else
 					{
+						bodyframe_pos.z = sonar;
 						local_pos.z = sonar;
 					}
 
@@ -302,11 +315,14 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 					if (sonar < 2.0f) {
 						sonar_valid = true;
 					}
+					bodyframe_pos.z = -0.3f;
 					local_pos.z = -0.3f;
 
 				}
 
+				bodyframe_pos.timestamp = hrt_absolute_time();
 				local_pos.timestamp = hrt_absolute_time();
+
 
 				if(isfinite(local_pos.x) && isfinite(local_pos.y) && isfinite(local_pos.z)
 						&& isfinite(local_pos.vx) && isfinite(local_pos.vy))
@@ -314,6 +330,11 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 					orb_publish(ORB_ID(vehicle_local_position), local_pos_pub, &local_pos);
 				}
 
+				if(isfinite(bodyframe_pos.x) && isfinite(bodyframe_pos.y) && isfinite(bodyframe_pos.z)
+										&& isfinite(bodyframe_pos.vx) && isfinite(bodyframe_pos.vy))
+				{
+					orb_publish(ORB_ID(vehicle_bodyframe_position), bodyframe_pos_pub, &bodyframe_pos);
+				}
 
 				/* measure in what intervals the position estimator runs */
 				perf_count(mc_interval_perf);

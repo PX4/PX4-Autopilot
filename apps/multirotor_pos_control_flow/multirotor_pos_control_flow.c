@@ -59,8 +59,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_bodyframe_position.h>
+#include <uORB/topics/vehicle_bodyframe_position_setpoint.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
@@ -156,9 +156,9 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	/* structures */
 	struct vehicle_status_s vstatus;
 	struct vehicle_attitude_s att;
-	struct vehicle_local_position_setpoint_s local_pos_sp;
 	struct manual_control_setpoint_s manual;
-	struct vehicle_local_position_s local_pos;
+	struct vehicle_bodyframe_position_s bodyframe_pos;
+	struct vehicle_bodyframe_position_setpoint_s bodyframe_pos_sp;
 
 	struct vehicle_attitude_setpoint_s att_sp;
 
@@ -167,8 +167,8 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	int vehicle_local_position_setpoint_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	int vehicle_bodyframe_position_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_position));
+	int vehicle_bodyframe_position_setpoint_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_position_setpoint));
 
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
@@ -200,8 +200,8 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 			/* polling */
 			struct pollfd fds[3] = {
-				{ .fd = vehicle_local_position_sub, .events = POLLIN }, // positions from estimator
-				{ .fd = vehicle_local_position_setpoint_sub, .events = POLLIN }, // setpoint from flow navigation
+				{ .fd = vehicle_bodyframe_position_sub, .events = POLLIN }, // positions from estimator
+				{ .fd = vehicle_bodyframe_position_setpoint_sub, .events = POLLIN }, // setpoint from flow navigation
 				{ .fd = parameter_update_sub,   .events = POLLIN }
 
 			};
@@ -215,7 +215,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 			} else if (ret == 0) {
 				/* no return value, ignore */
-				printf("[multirotor flow position control] no local position updates\n"); // XXX wrong place
+				printf("[multirotor flow position control] no bodyframe position updates\n"); // XXX wrong place
 			} else {
 
 				/* parameter update available? */
@@ -231,11 +231,11 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 				/* new setpoint */
 				if (fds[1].revents & POLLIN){
 
-					/* get a local copy of local position setpoint */
-					orb_copy(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_setpoint_sub, &local_pos_sp);
-					setpoint_x = local_pos_sp.x;
-					setpoint_y = local_pos_sp.y;
-					setpoint_yaw = local_pos_sp.yaw;
+					/* get a local copy of bodyframe position setpoint */
+					orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
+					setpoint_x = bodyframe_pos_sp.x;
+					setpoint_y = bodyframe_pos_sp.y;
+					setpoint_yaw = bodyframe_pos_sp.yaw;
 
 				}
 
@@ -250,14 +250,14 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
 					/* get a local copy of attitude */
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
-					/* get a local copy of local position */
-					orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
+					/* get a local copy of bodyframe position */
+					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
 
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 
 						/* calc new roll/pitch */
-						float pitch_body = (local_pos.x - setpoint_x) * params.pos_p + local_pos.vx * params.pos_d;
-						float roll_body = - (local_pos.y - setpoint_y) * params.pos_p - local_pos.vy * params.pos_d;
+						float pitch_body = (bodyframe_pos.x - setpoint_x) * params.pos_p + bodyframe_pos.vx * params.pos_d;
+						float roll_body = - (bodyframe_pos.y - setpoint_y) * params.pos_p - bodyframe_pos.vy * params.pos_d;
 
 
 						/* limit roll and pitch corrections */
@@ -288,7 +288,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 
 						/* calc new thrust */
-						float height_error = (local_pos.z - params.height_sp);
+						float height_error = (bodyframe_pos.z - params.height_sp);
 						integrated_h_error = integrated_h_error + height_error;
 						float integrated_thrust_addition = integrated_h_error * params.height_i;
 
@@ -299,8 +299,8 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 							integrated_thrust_addition = -params.limit_thrust_int;
 						}
 
-						float height_speed = last_height - local_pos.z;
-						last_height = local_pos.z;
+						float height_speed = last_height - bodyframe_pos.z;
+						last_height = bodyframe_pos.z;
 						float thrust_diff = height_error * params.height_p - height_speed * params.height_d; // just PD controller
 						float thrust = thrust_diff + integrated_thrust_addition;
 
@@ -377,8 +377,8 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 
 	close(parameter_update_sub);
 	close(vehicle_attitude_sub);
-	close(vehicle_local_position_setpoint_sub);
-	close(vehicle_local_position_sub);
+	close(vehicle_bodyframe_position_setpoint_sub);
+	close(vehicle_bodyframe_position_sub);
 	close(vehicle_status_sub);
 	close(manual_control_setpoint_sub);
 	close(att_sp_pub);
