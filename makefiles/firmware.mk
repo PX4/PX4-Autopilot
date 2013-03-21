@@ -218,6 +218,7 @@ $(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
 		MODULE_WORK_DIR=$(dir $@) \
 		MODULE_OBJ=$@ \
 		MODULE_MK=$(mkfile) \
+		MODULE_NAME=$(lastword $(subst /, ,$(@D))) \
 		module
 
 # make a list of phony clean targets for modules

@@ -45,20 +45,22 @@
 #
 #
 # SRCS			(required)
+#
 #	Lists the .c, cpp and .S files that should be compiled/assembled to
 #	produce the module.
 #
-# MODULE_NAME		(optional)
-# MODULE_ENTRYPOINT	(optional if MODULE_NAME is set)
-# MODULE_STACKSIZE	(optional if MODULE_NAME is set)
-# MODULE_PRIORITY	(optional if MODULE_NAME is set)
+# MODULE_COMMAND	(optional)
+# MODULE_ENTRYPOINT	(optional if MODULE_COMMAND is set)
+# MODULE_STACKSIZE	(optional if MODULE_COMMAND is set)
+# MODULE_PRIORITY	(optional if MODULE_COMMAND is set)
+#
 #	Defines a single builtin command exported by the module.
-#	MODULE_NAME must be unique for any configuration, but need not be the 
+#	MODULE_COMMAND must be unique for any configuration, but need not be the 
 #	same as the module directory name.
 #	
 #	If MODULE_ENTRYPOINT is set, it names the function (which must be exported)
 #	that will be the entrypoint for the builtin command. It defaults to
-#	$(MODULE_NAME)_main.
+#	$(MODULE_COMMAND)_main.
 #
 #	If MODULE_STACKSIZE is set, it is the size in bytes of the stack to be
 #	allocated for the builtin command. If it is not set, it defaults
@@ -67,10 +69,12 @@
 #	If MODULE_PRIORITY is set, it is the thread priority for the builtin
 #	command. If it is not set, it defaults to SCHED_PRIORITY_DEFAULT.
 #
-# MODULE_COMMANDS		(optional)
+# MODULE_COMMANDS	(optional if MODULE_COMMAND is not set)
+#
 #	Defines builtin commands exported by the module. Each word in
 #	the list should be formatted as: 
 #		<command>.<priority>.<stacksize>.<entrypoint>
+#
 #
 
 #
@@ -79,6 +83,8 @@
 # CONFIG
 # BOARD
 # MODULE_WORK_DIR
+# MODULE_OBJ
+# MODULE_MK
 # Anything set in setup.mk, board_$(BOARD).mk and the toolchain file.
 # Anything exported from config_$(CONFIG).mk
 #
@@ -107,6 +113,7 @@ include $(PX4_MK_DIR)/board_$(BOARD).mk
 #
 include $(MODULE_MK)
 MODULE_SRC		:= $(dir $(MODULE_MK))
+$(info %  MODULE_NAME         = $(MODULE_NAME))
 $(info %  MODULE_SRC          = $(MODULE_SRC))
 $(info %  MODULE_OBJ          = $(MODULE_OBJ))
 $(info %  MODULE_WORK_DIR     = $(MODULE_WORK_DIR))
@@ -120,11 +127,11 @@ GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 # Builtin command definitions
 ################################################################################
 
-ifneq ($(MODULE_NAME),)
-MODULE_ENTRYPOINT	?= $(MODULE_NAME)_main
+ifneq ($(MODULE_COMMAND),)
+MODULE_ENTRYPOINT	?= $(MODULE_COMMAND)_main
 MODULE_STACKSIZE	?= CONFIG_PTHREAD_STACK_DEFAULT
 MODULE_PRIORITY		?= SCHED_PRIORITY_DEFAULT
-MODULE_COMMANDS		+= $(MODULE_NAME).$(MODULE_PRIORITY).$(MODULE_STACKSIZE).$(MODULE_ENTRYPOINT)
+MODULE_COMMANDS		+= $(MODULE_COMMAND).$(MODULE_PRIORITY).$(MODULE_STACKSIZE).$(MODULE_ENTRYPOINT)
 endif
 
 ifneq ($(MODULE_COMMANDS),)
