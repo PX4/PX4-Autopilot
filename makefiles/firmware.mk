@@ -158,12 +158,17 @@ $(info %  WORK_DIR            = $(WORK_DIR))
 #
 GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 
+#
+# Extra things we should clean
+#
+EXTRA_CLEANS		 = 
+
 ################################################################################
 # Modules
 ################################################################################
 
 #
-# We don't actually know what a moldule is called; all we have is a path fragment
+# We don't actually know what a module is called; all we have is a path fragment
 # that we can search for, and where we expect to find a module.mk file.
 #
 # As such, we replicate the successfully-found path inside WORK_DIR for the
@@ -269,6 +274,8 @@ $(ROMFS_IMG): $(ROMFS_DEPS) $(GLOBAL_DEPS)
 	@$(ECHO) %% generating $@
 	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_ROOT) -V "NSHInitVol"
 
+EXTRA_CLEANS		+= $(ROMGS_OBJ) $(ROMFS_IMG)
+
 endif
 
 ################################################################################
@@ -320,6 +327,8 @@ $(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(BUILTIN_COMMAND_FILES)
 	$(Q) $(ECHO) 'const int g_builtin_count = $(words $(BUILTIN_COMMANDS));' >> $@
 
 SRCS			+= $(BUILTIN_CSRC)
+
+EXTRA_CLEANS		+= $(BUILTIN_CSRC)
 
 endif
 
@@ -405,7 +414,7 @@ upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
 clean:			$(MODULE_CLEANS)
 	@$(ECHO) %% cleaning
 	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_SYM)
-	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES)
+	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)
 	$(Q) $(RMDIR) $(NUTTX_EXPORT_DIR)
 
 #
