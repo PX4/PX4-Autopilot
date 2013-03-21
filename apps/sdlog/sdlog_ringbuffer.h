@@ -56,7 +56,7 @@ struct sdlog_sysvector {
 	float vbat;			/**< battery voltage in [volt] */
 	float bat_current;		/**< battery discharge current */
 	float bat_discharged;		/**< discharged energy in mAh */
-	float adc[3];			/**< remaining auxiliary ADC ports [volt] */
+	float adc[4];			/**< ADC ports [volt] */
 	float local_position[3];	/**< tangent plane mapping into x,y,z [m] */
 	int32_t gps_raw_position[3];	/**< latitude [degrees] north, longitude [degrees] east, altitude above MSL [millimeter] */
 	float attitude[3];		/**< roll, pitch, yaw [rad] */

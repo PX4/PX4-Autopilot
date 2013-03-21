@@ -241,6 +241,11 @@ include $(PX4_MK_DIR)/nuttx.mk
 
 ifneq ($(ROMFS_ROOT),)
 
+#
+# Note that there is no support for more than one root directory or constructing
+# a root from several templates. That would be a nice feature.
+#
+
 # Add dependencies on anything in the ROMFS root
 ROMFS_DEPS		+= $(wildcard \
 			     (ROMFS_ROOT)/* \

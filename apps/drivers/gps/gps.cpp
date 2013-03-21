@@ -67,7 +67,7 @@
 #include "mtk.h"
 
 
-#define TIMEOUT_5HZ 400
+#define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
 
 /* oddly, ERROR is not defined for c++ */
@@ -86,7 +86,7 @@ class GPS : public device::CDev
 {
 public:
 	GPS(const char* uart_path);
-	~GPS();
+	virtual ~GPS();
 
 	virtual int			init();
 

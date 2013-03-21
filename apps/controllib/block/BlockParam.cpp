@@ -46,7 +46,7 @@
 namespace control
 {
 
-BlockParamBase::BlockParamBase(Block *parent, const char *name) :
+BlockParamBase::BlockParamBase(Block *parent, const char *name, bool parent_prefix) :
 	_handle(PARAM_INVALID)
 {
 	char fullname[blockNameLengthMax];
@@ -61,8 +61,10 @@ BlockParamBase::BlockParamBase(Block *parent, const char *name) :
 		if (!strcmp(name, "")) {
 			strncpy(fullname, parentName, blockNameLengthMax);
 
-		} else {
+		} else if (parent_prefix) {
 			snprintf(fullname, blockNameLengthMax, "%s_%s", parentName, name);
+		} else {
+			strncpy(fullname, name, blockNameLengthMax);
 		}
 
 		parent->getParams().add(this);

@@ -2,6 +2,7 @@
 # Various PX4-specific macros
 #
 source Debug/NuttX
+source Debug/ARMv7M
 
 echo Loading PX4 GDB macros.  Use 'help px4' for more information.\n
 
@@ -21,7 +22,7 @@ end
 
 define _perf_print
 	set $hdr = (struct perf_ctr_header *)$arg0
-	printf "%p\n", $hdr
+	#printf "%p\n", $hdr
 	printf "%s: ", $hdr->name
 	# PC_COUNT
 	if $hdr->type == 0

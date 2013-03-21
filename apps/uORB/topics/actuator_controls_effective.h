@@ -37,8 +37,8 @@
  * Actuator control topics - mixer inputs.
  *
  * Values published to these topics are the outputs of the vehicle control
- * system, and are expected to be mixed and used to drive the actuators
- * (servos, speed controls, etc.) that operate the vehicle.
+ * system and mixing process; they are the control-scale values that are
+ * then fed to the actual actuator driver.
  *
  * Each topic can be published by a single controller
  */

@@ -262,8 +262,8 @@ class uploader(object):
 		self.port.flush()
 		programmed = self.__recv(len(data))
 		if programmed != data:
-			print("got    " + binascii.hexlify(programmed))
-			print("expect " + binascii.hexlify(data))
+			print(("got    " + binascii.hexlify(programmed)))
+			print(("expect " + binascii.hexlify(data)))
 			return False
 		self.__getSync()
 		return True
@@ -307,8 +307,8 @@ class uploader(object):
 		report_crc = self.__recv_int()
 		self.__getSync()
 		if report_crc != expect_crc:
-			print("Expected 0x%x" % expect_crc)
-			print("Got      0x%x" % report_crc)
+			print(("Expected 0x%x" % expect_crc))
+			print(("Got      0x%x" % report_crc))
 			raise RuntimeError("Program CRC failed")
 
 	# get basic data about the board
@@ -319,7 +319,7 @@ class uploader(object):
 		# get the bootloader protocol ID first
 		self.bl_rev = self.__getInfo(uploader.INFO_BL_REV)
 		if (self.bl_rev < uploader.BL_REV_MIN) or (self.bl_rev > uploader.BL_REV_MAX):
-			print("Unsupported bootloader protocol %d" % uploader.INFO_BL_REV)
+			print(("Unsupported bootloader protocol %d" % uploader.INFO_BL_REV))
 			raise RuntimeError("Bootloader protocol mismatch")
 
 		self.board_type = self.__getInfo(uploader.INFO_BOARD_ID)
@@ -360,7 +360,7 @@ args = parser.parse_args()
 
 # Load the firmware file
 fw = firmware(args.firmware)
-print("Loaded firmware for %x,%x, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision')))
+print(("Loaded firmware for %x,%x, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'))))
 
 # Spin waiting for a device to show up
 while True:
@@ -393,7 +393,7 @@ while True:
 		try:
 			# identify the bootloader
 			up.identify()
-			print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
+			print(("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port)))
 
 		except:
 			# most probably a timeout talking to the port, no bootloader
@@ -406,7 +406,7 @@ while True:
 		except RuntimeError as ex:
 
 			# print the error
-			print("ERROR: %s" % ex.args)
+			print(("ERROR: %s" % ex.args))
 
 		finally:
 			# always close the port
