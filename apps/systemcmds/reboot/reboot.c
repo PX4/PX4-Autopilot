@@ -47,6 +47,9 @@ __EXPORT int reboot_main(int argc, char *argv[]);
 
 int reboot_main(int argc, char *argv[])
 {
+	printf("Rebooting now...\n");
+	fflush(stdout);
+	usleep(5000);
 	up_systemreset();
 }
 
