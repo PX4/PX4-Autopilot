@@ -345,23 +345,21 @@ void BlockMultiModeBacksideAutopilot::update()
 #warning should be base on flags
 	} else if (_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
-//		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
 #warning fix the different manual modes
-			_actuators.control[CH_AIL] = _manual.roll;
-			_actuators.control[CH_ELV] = _manual.pitch;
-			_actuators.control[CH_RDR] = _manual.yaw;
-			_actuators.control[CH_THR] = _manual.throttle;
-#warning please check whether this flag makes sense
-		} else if (_status.flag_control_attitude_enabled) {
+		_actuators.control[CH_AIL] = _manual.roll;
+		_actuators.control[CH_ELV] = _manual.pitch;
+		_actuators.control[CH_RDR] = _manual.yaw;
+		_actuators.control[CH_THR] = _manual.throttle;
+#warning should be based on flags
+	} else if (_status.navigation_state == NAVIGATION_STATE_SEATBELT) {
 
-			_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
-			_att.rollspeed, _att.pitchspeed, _att.yawspeed);
+		_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
+		_att.rollspeed, _att.pitchspeed, _att.yawspeed);
 
-			_actuators.control[CH_AIL] = _stabilization.getAileron();
-			_actuators.control[CH_ELV] = _stabilization.getElevator();
-			_actuators.control[CH_RDR] = _stabilization.getRudder();
-			_actuators.control[CH_THR] = _manual.throttle;
-		}
+		_actuators.control[CH_AIL] = _stabilization.getAileron();
+		_actuators.control[CH_ELV] = _stabilization.getElevator();
+		_actuators.control[CH_RDR] = _stabilization.getRudder();
+		_actuators.control[CH_THR] = _manual.throttle;
 	}
 
 	// update all publications
