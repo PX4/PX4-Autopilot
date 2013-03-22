@@ -72,38 +72,6 @@
 
 __EXPORT int attitude_estimator_ekf_main(int argc, char *argv[]);
 
-static unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
-
-static float dt = 0.005f;
-/* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
-static float z_k[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 9.81f, 0.2f, -0.2f, 0.2f};					/**< Measurement vector */
-static float x_aposteriori_k[12];		/**< states */
-static float P_aposteriori_k[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				     0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				     0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				     0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
-				     0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
-				     0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
-				     0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
-				     0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
-				     0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
-				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
-				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
-				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
-				    }; /**< init: diagonal matrix with big values */
-
-static float x_aposteriori[12];
-static float P_aposteriori[144];
-
-/* output euler angles */
-static float euler[3] = {0.0f, 0.0f, 0.0f};
-
-static float Rot_matrix[9] = {1.f,  0,  0,
-			      0,  1.f,  0,
-			      0,  0,  1.f
-			     };		/**< init: identity matrix */
-
-
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
 static int attitude_estimator_ekf_task;				/**< Handle of deamon task / thread */
@@ -153,7 +121,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		attitude_estimator_ekf_task = task_spawn("attitude_estimator_ekf",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
-					      12000,
+					      12400,
 					      attitude_estimator_ekf_thread_main,
 					      (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
@@ -193,6 +161,38 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
  */
 int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 {
+
+const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
+
+	float dt = 0.005f;
+/* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
+	float z_k[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 9.81f, 0.2f, -0.2f, 0.2f};					/**< Measurement vector */
+	float x_aposteriori_k[12];		/**< states */
+	float P_aposteriori_k[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				     0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				     0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				     0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
+				     0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
+				     0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
+				     0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
+				     0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
+				     0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
+				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
+				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
+				     0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
+				    }; /**< init: diagonal matrix with big values */
+
+	float x_aposteriori[12];
+	float P_aposteriori[144];
+
+	/* output euler angles */
+	float euler[3] = {0.0f, 0.0f, 0.0f};
+
+	float Rot_matrix[9] = {1.f,  0,  0,
+			      0,  1.f,  0,
+			      0,  0,  1.f
+			     };		/**< init: identity matrix */
+
 	// print text
 	printf("Extended Kalman Filter Attitude Estimator initialized..\n\n");
 	fflush(stdout);

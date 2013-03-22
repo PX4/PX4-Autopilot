@@ -107,4 +107,4 @@ if args.image != None:
 	desc['image_size'] = len(bytes)
 	desc['image'] = base64.b64encode(zlib.compress(bytes,9))
 
-print json.dumps(desc, indent=4)
+print(json.dumps(desc, indent=4))

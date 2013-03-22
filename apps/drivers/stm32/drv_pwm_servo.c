@@ -68,10 +68,6 @@
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
-
-/* default rate (in Hz) of PWM updates */
-static uint32_t	pwm_update_rate = 50;
-
 #define REG(_tmr, _reg)	(*(volatile uint32_t *)(pwm_timers[_tmr].base + _reg))
 
 #define rCR1(_tmr)    	REG(_tmr, STM32_GTIM_CR1_OFFSET)
@@ -93,6 +89,10 @@ static uint32_t	pwm_update_rate = 50;
 #define rDCR(_tmr)    	REG(_tmr, STM32_GTIM_DCR_OFFSET)
 #define rDMAR(_tmr)   	REG(_tmr, STM32_GTIM_DMAR_OFFSET)
 
+static void		pwm_timer_init(unsigned timer);
+static void		pwm_timer_set_rate(unsigned timer, unsigned rate);
+static void		pwm_channel_init(unsigned channel);
+
 static void
 pwm_timer_init(unsigned timer)
 {
@@ -113,11 +113,8 @@ pwm_timer_init(unsigned timer)
 	/* configure the timer to free-run at 1MHz */
 	rPSC(timer) = (pwm_timers[timer].clock_freq / 1000000) - 1;
 
-	/* and update at the desired rate */
-	rARR(timer) = (1000000 / pwm_update_rate) - 1;
-
-	/* generate an update event; reloads the counter and all registers */
-	rEGR(timer) = GTIM_EGR_UG;
+	/* default to updating at 50Hz */
+	pwm_timer_set_rate(timer, 50);
 
 	/* note that the timer is left disabled - arming is performed separately */
 }
@@ -272,17 +269,39 @@ up_pwm_servo_deinit(void)
 }
 
 int
-up_pwm_servo_set_rate(unsigned rate)
+up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
-	if ((rate < 50) || (rate > 400))
+	/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
+	if (rate < 1)
+		return -ERANGE;
+	if (rate > 10000)
 		return -ERANGE;
 
-	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++) {
-		if (pwm_timers[i].base != 0)
-			pwm_timer_set_rate(i, rate);
-	}
+	if ((group >= PWM_SERVO_MAX_TIMERS) || (pwm_timers[group].base == 0))
+		return ERROR;
+
+	pwm_timer_set_rate(group, rate);
 
 	return OK;
+}
+
+int
+up_pwm_servo_set_rate(unsigned rate)
+{
+	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++)
+		up_pwm_servo_set_rate_group_update(i, rate);
+}
+
+uint32_t
+up_pwm_servo_get_rate_group(unsigned group)
+{
+	unsigned channels = 0;
+
+	for (unsigned i = 0; i < PWM_SERVO_MAX_CHANNELS; i++) {
+		if ((pwm_channels[i].gpio != 0) && (pwm_channels[i].timer_index == group))
+			channels |= (1 << i);
+	}
+	return channels;
 }
 
 void

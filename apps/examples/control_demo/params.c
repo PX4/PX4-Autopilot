@@ -56,8 +56,4 @@ PARAM_DEFINE_FLOAT(FWB_V_MIN, 10.0f);       // minimum commanded velocity
 PARAM_DEFINE_FLOAT(FWB_V_CMD, 12.0f);       // commanded velocity
 PARAM_DEFINE_FLOAT(FWB_V_MAX, 16.0f);       // maximum commanded velocity
 
-// trim
-PARAM_DEFINE_FLOAT(FWB_TRIM_AIL, 0.0f);     // trim aileron, normalized (-1,1)
-PARAM_DEFINE_FLOAT(FWB_TRIM_ELV, 0.005f);   // trim elevator (-1,1)
-PARAM_DEFINE_FLOAT(FWB_TRIM_RDR, 0.0f);     // trim rudder (-1,1)
 PARAM_DEFINE_FLOAT(FWB_TRIM_THR, 0.8f);     // trim throttle (0,1)

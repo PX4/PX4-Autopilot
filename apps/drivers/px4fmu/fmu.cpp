@@ -90,14 +90,18 @@ public:
 	virtual int	init();
 
 	int		set_mode(Mode mode);
-	int		set_pwm_rate(unsigned rate);
+
+	int		set_pwm_alt_rate(unsigned rate);
+	int		set_pwm_alt_channels(uint32_t channels);
 
 private:
 	static const unsigned _max_actuators = 4;
 
 	Mode		_mode;
-	int 		_update_rate;
-	int 		_current_update_rate;
+	unsigned	_pwm_default_rate;
+	unsigned	_pwm_alt_rate;
+	uint32_t	_pwm_alt_rate_channels;
+	unsigned	_current_update_rate;
 	int		_task;
 	int		_t_actuators;
 	int		_t_armed;
@@ -121,6 +125,7 @@ private:
 					 uint8_t control_index,
 					 float &input);
 
+	int		set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 
 	struct GPIOConfig {
@@ -163,7 +168,10 @@ PX4FMU	*g_fmu;
 PX4FMU::PX4FMU() :
 	CDev("fmuservo", "/dev/px4fmu"),
 	_mode(MODE_NONE),
-	_update_rate(50),
+	_pwm_default_rate(50),
+	_pwm_alt_rate(50),
+	_pwm_alt_rate_channels(0),
+	_current_update_rate(0),
 	_task(-1),
 	_t_actuators(-1),
 	_t_armed(-1),
@@ -263,27 +271,31 @@ PX4FMU::set_mode(Mode mode)
 	 * are presented on the output pins.
 	 */
 	switch (mode) {
-	case MODE_2PWM:
-		debug("MODE_2PWM");
-		/* multi-port with flow control lines as PWM */
-		/* XXX magic numbers */
-		up_pwm_servo_init(0x3);
-		_update_rate = 50;	/* default output rate */
-		break;
+	case MODE_2PWM:	// multi-port with flow control lines as PWM
+	case MODE_4PWM: // multi-port as 4 PWM outs
+		debug("MODE_%dPWM", (mode == MODE_2PWM) ? 2 : 4);
+		
+		/* default output rates */
+		_pwm_default_rate = 50;
+		_pwm_alt_rate = 50;
+		_pwm_alt_rate_channels = 0;
 
-	case MODE_4PWM:
-		debug("MODE_4PWM");
-		/* multi-port as 4 PWM outs */
 		/* XXX magic numbers */
-		up_pwm_servo_init(0xf);
-		_update_rate = 50;	/* default output rate */
+		up_pwm_servo_init((mode == MODE_2PWM) ? 0x3 : 0xf);
+		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+
 		break;
 
 	case MODE_NONE:
 		debug("MODE_NONE");
-		/* disable servo outputs and set a very low update rate */
+
+		_pwm_default_rate = 10;	/* artificially reduced output rate */
+		_pwm_alt_rate = 10;
+		_pwm_alt_rate_channels = 0;
+
+		/* disable servo outputs - no need to set rates */
 		up_pwm_servo_deinit();
-		_update_rate = 10;
+
 		break;
 
 	default:
@@ -295,13 +307,61 @@ PX4FMU::set_mode(Mode mode)
 }
 
 int
-PX4FMU::set_pwm_rate(unsigned rate)
+PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
-	if ((rate > 500) || (rate < 10))
-		return -EINVAL;
+	debug("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
 
-	_update_rate = rate;
+	for (unsigned pass = 0; pass < 2; pass++) {
+		for (unsigned group = 0; group < _max_actuators; group++) {
+
+			// get the channel mask for this rate group
+			uint32_t mask = up_pwm_servo_get_rate_group(group);
+			if (mask == 0)
+				continue;
+
+			// all channels in the group must be either default or alt-rate
+			uint32_t alt = rate_map & mask;
+
+			if (pass == 0) {
+				// preflight
+				if ((alt != 0) && (alt != mask)) {
+					warn("rate group %u mask %x bad overlap %x", group, mask, alt);
+					// not a legal map, bail
+					return -EINVAL;
+				}
+			} else {
+				// set it - errors here are unexpected
+				if (alt != 0) {
+					if (up_pwm_servo_set_rate_group_update(group, _pwm_alt_rate) != OK) {
+						warn("rate group set alt failed");
+						return -EINVAL;
+					}
+				} else {
+					if (up_pwm_servo_set_rate_group_update(group, _pwm_default_rate) != OK) {
+						warn("rate group set default failed");
+						return -EINVAL;
+					}
+				}
+			}
+		}
+	}
+	_pwm_alt_rate_channels = rate_map;
+	_pwm_default_rate = default_rate;
+	_pwm_alt_rate = alt_rate;
+
 	return OK;
+}
+
+int
+PX4FMU::set_pwm_alt_rate(unsigned rate)
+{
+	return set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, rate);
+}
+
+int
+PX4FMU::set_pwm_alt_channels(uint32_t channels)
+{
+	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
 }
 
 void
@@ -353,24 +413,31 @@ PX4FMU::task_main()
 	/* loop until killed */
 	while (!_task_should_exit) {
 
-		/* handle update rate changes */
-		if (_current_update_rate != _update_rate) {
-			int update_rate_in_ms = int(1000 / _update_rate);
+		/*
+		 * Adjust actuator topic update rate to keep up with
+		 * the highest servo update rate configured.
+		 *
+		 * We always mix at max rate; some channels may update slower.
+		 */
+		unsigned max_rate = (_pwm_default_rate > _pwm_alt_rate) ? _pwm_default_rate : _pwm_alt_rate;
+		if (_current_update_rate != max_rate) {
+			_current_update_rate = max_rate;
+			int update_rate_in_ms = int(1000 / _current_update_rate);
 
 			/* reject faster than 500 Hz updates */
 			if (update_rate_in_ms < 2) {
 				update_rate_in_ms = 2;
-				_update_rate = 500;
 			}
-			/* reject slower than 50 Hz updates */
-			if (update_rate_in_ms > 20) {
-				update_rate_in_ms = 20;
-				_update_rate = 50;
+			/* reject slower than 10 Hz updates */
+			if (update_rate_in_ms > 100) {
+				update_rate_in_ms = 100;
 			}
 
+			debug("adjusted actuator update interval to %ums", update_rate_in_ms);
 			orb_set_interval(_t_actuators, update_rate_in_ms);
-			up_pwm_servo_set_rate(_update_rate);
-			_current_update_rate = _update_rate;
+
+			// set to current max rate, even if we are actually checking slower/faster
+			_current_update_rate = max_rate;
 		}
 
 		/* sleep waiting for data, stopping to check for PPM
@@ -527,7 +594,6 @@ int
 PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
-	int channel;
 
 	lock();
 
@@ -541,7 +607,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
-		set_pwm_rate(arg);
+		ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
+		break;
+
+	case PWM_SERVO_SELECT_UPDATE_RATE:
+		ret = set_pwm_rate(arg, _pwm_default_rate, _pwm_alt_rate);
 		break;
 
 	case PWM_SERVO_SET(2):
@@ -555,9 +625,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(0):
 	case PWM_SERVO_SET(1):
 		if (arg < 2100) {
-			channel = cmd - PWM_SERVO_SET(0);
-			up_pwm_servo_set(channel, arg);
-
+			up_pwm_servo_set(cmd - PWM_SERVO_SET(0), arg);
 		} else {
 			ret = -EINVAL;
 		}
@@ -573,12 +641,18 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		/* FALLTHROUGH */
 	case PWM_SERVO_GET(0):
-	case PWM_SERVO_GET(1): {
-			channel = cmd - PWM_SERVO_GET(0);
-			*(servo_position_t *)arg = up_pwm_servo_get(channel);
-			break;
-		}
+	case PWM_SERVO_GET(1):
+		*(servo_position_t *)arg = up_pwm_servo_get(cmd - PWM_SERVO_GET(0));
+		break;
 
+	case PWM_SERVO_GET_RATEGROUP(0):
+	case PWM_SERVO_GET_RATEGROUP(1):
+	case PWM_SERVO_GET_RATEGROUP(2):
+	case PWM_SERVO_GET_RATEGROUP(3):
+		*(uint32_t *)arg = up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
+		break;
+
+	case PWM_SERVO_GET_COUNT:	
 	case MIXERIOCGETOUTPUTCOUNT:
 		if (_mode == MODE_4PWM) {
 			*(unsigned *)arg = 4;
@@ -812,7 +886,7 @@ enum PortMode {
 PortMode g_port_mode;
 
 int
-fmu_new_mode(PortMode new_mode, int update_rate)
+fmu_new_mode(PortMode new_mode)
 {
 	uint32_t gpio_bits;
 	PX4FMU::Mode servo_mode;
@@ -863,9 +937,6 @@ fmu_new_mode(PortMode new_mode, int update_rate)
 
 	/* (re)set the PWM output mode */
 	g_fmu->set_mode(servo_mode);
-
-	if ((servo_mode != PX4FMU::MODE_NONE) && (update_rate != 0))
-		g_fmu->set_pwm_rate(update_rate);
 
 	return OK;
 }
@@ -962,57 +1033,31 @@ int
 fmu_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
-	int pwm_update_rate_in_hz = 0;
-
-	if (!strcmp(argv[1], "test"))
-		test();
-
-	if (!strcmp(argv[1], "fake"))
-		fake(argc - 1, argv + 1);
+	const char *verb = argv[1];
 
 	if (fmu_start() != OK)
 		errx(1, "failed to start the FMU driver");
 
 	/*
 	 * Mode switches.
-	 *
-	 * XXX use getopt?
 	 */
-	for (int i = 1; i < argc; i++) {   /* argv[0] is "fmu" */
-		if (!strcmp(argv[i], "mode_gpio")) {
-			new_mode = PORT_FULL_GPIO;
+	if (!strcmp(verb, "mode_gpio")) {
+		new_mode = PORT_FULL_GPIO;
 
-		} else if (!strcmp(argv[i], "mode_serial")) {
-			new_mode = PORT_FULL_SERIAL;
+	} else if (!strcmp(verb, "mode_serial")) {
+		new_mode = PORT_FULL_SERIAL;
 
-		} else if (!strcmp(argv[i], "mode_pwm")) {
-			new_mode = PORT_FULL_PWM;
+	} else if (!strcmp(verb, "mode_pwm")) {
+		new_mode = PORT_FULL_PWM;
 
-		} else if (!strcmp(argv[i], "mode_gpio_serial")) {
-			new_mode = PORT_GPIO_AND_SERIAL;
+	} else if (!strcmp(verb, "mode_gpio_serial")) {
+		new_mode = PORT_GPIO_AND_SERIAL;
 
-		} else if (!strcmp(argv[i], "mode_pwm_serial")) {
-			new_mode = PORT_PWM_AND_SERIAL;
+	} else if (!strcmp(verb, "mode_pwm_serial")) {
+		new_mode = PORT_PWM_AND_SERIAL;
 
-		} else if (!strcmp(argv[i], "mode_pwm_gpio")) {
-			new_mode = PORT_PWM_AND_GPIO;
-		}
-
-		/* look for the optional pwm update rate for the supported modes */
-		if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--update-rate") == 0) {
-			if (new_mode == PORT_FULL_PWM || new_mode == PORT_PWM_AND_GPIO) {
-				if (argc > i + 1) {
-					pwm_update_rate_in_hz = atoi(argv[i + 1]);
-
-				} else {
-					errx(1, "missing argument for pwm update rate (-u)");
-					return 1;
-				}
-
-			} else {
-				errx(1, "pwm update rate currently only supported for mode_pwm, mode_pwm_gpio");
-			}
-		}
+	} else if (!strcmp(verb, "mode_pwm_gpio")) {
+		new_mode = PORT_PWM_AND_GPIO;
 	}
 
 	/* was a new mode set? */
@@ -1023,12 +1068,17 @@ fmu_main(int argc, char *argv[])
 			return OK;
 
 		/* switch modes */
-		return fmu_new_mode(new_mode, pwm_update_rate_in_hz);
+		int ret = fmu_new_mode(new_mode);
+		exit(ret == OK ? 0 : 1);
 	}
 
-	/* test, etc. here */
+	if (!strcmp(verb, "test"))
+		test();
+
+	if (!strcmp(verb, "fake"))
+		fake(argc - 1, argv + 1);
 
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
-	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm [-u pwm_update_rate_in_hz], mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
+	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
 	exit(1);
 }

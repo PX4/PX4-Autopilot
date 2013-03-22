@@ -94,8 +94,8 @@ extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
 #define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
 #define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
 #define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
-#define r_setup_pwm_lowrate	r_page_setup[PX4IO_P_SETUP_PWM_LOWRATE]
-#define r_setup_pwm_highrate	r_page_setup[PX4IO_P_SETUP_PWM_HIGHRATE]
+#define r_setup_pwm_defaultrate	r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
+#define r_setup_pwm_altrate	r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
 #define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
 
 #define r_control_values	(&r_page_controls[0])
