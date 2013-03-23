@@ -233,26 +233,6 @@ public:
 };
 
 /**
- * Heading hold autopilot block.
- * Aircraft Control and Simulation, Stevens and Lewis
- * Heading hold, pg. 348
- */
-class __EXPORT BlockHeadingHold : public SuperBlock
-{
-private:
-	BlockP _psi2Phi;
-	BlockP _phi2P;
-	BlockLimitSym _phiLimit;
-public:
-	BlockHeadingHold(SuperBlock *parent, const char *name);
-	virtual ~BlockHeadingHold();
-	/**
-	 * returns pCmd
-	 */
-	float update(float psiCmd, float phi, float psi, float p);
-};
-
-/**
  * Frontside/ Backside Control Systems
  *
  * Frontside :
@@ -268,106 +248,6 @@ public:
  * required curve/ landing etc. Less performance
  * than frontside at high speeds.
  */
-
-/**
- * Backside velocity hold autopilot block.
- * v -> theta -> q -> elevator
- */
-class __EXPORT BlockVelocityHoldBackside : public SuperBlock
-{
-private:
-	BlockPID _v2Theta;
-	BlockPID _theta2Q;
-	BlockLimit _theLimit;
-	BlockLimit _vLimit;
-public:
-	BlockVelocityHoldBackside(SuperBlock *parent, const char *name);
-	virtual ~BlockVelocityHoldBackside();
-	/**
-	 * returns qCmd
-	 */
-	float update(float vCmd, float v, float theta, float q);
-};
-
-/**
- * Frontside velocity hold autopilot block.
- * v -> throttle
- */
-class __EXPORT BlockVelocityHoldFrontside : public SuperBlock
-{
-private:
-	BlockPID _v2Thr;
-public:
-	BlockVelocityHoldFrontside(SuperBlock *parent, const char *name);
-	virtual ~BlockVelocityHoldFrontside();
-	/**
-	 * returns throttle
-	 */
-	float update(float vCmd, float v);
-};
-
-/**
- * Backside altitude hold autopilot block.
- * h -> throttle
- */
-class __EXPORT BlockAltitudeHoldBackside : public SuperBlock
-{
-private:
-	BlockPID _h2Thr;
-	float _throttle;
-public:
-	BlockAltitudeHoldBackside(SuperBlock *parent, const char *name);
-	virtual ~BlockAltitudeHoldBackside();
-	void update(float hCmd, float h);
-	float getThrottle() { return _throttle; }
-};
-
-/**
- * Frontside altitude hold autopilot block.
- * h -> theta > q -> elevator
- */
-class __EXPORT BlockAltitudeHoldFrontside : public SuperBlock
-{
-private:
-	BlockPID _h2Theta;
-	BlockPID _theta2Q;
-public:
-	BlockAltitudeHoldFrontside(SuperBlock *parent, const char *name);
-	virtual ~BlockAltitudeHoldFrontside();
-	/**
-	 * return qCmd
-	 */
-	float update(float hCmd, float h, float theta, float q);
-};
-
-/**
- * Backside autopilot
- */
-class __EXPORT BlockBacksideAutopilot : public SuperBlock
-{
-private:
-	BlockStabilization *_stabilization;
-	BlockHeadingHold _headingHold;
-	BlockVelocityHoldBackside _velocityHold;
-	BlockAltitudeHoldBackside _altitudeHold;
-	BlockParam<float> _trimAil;
-	BlockParam<float> _trimElv;
-	BlockParam<float> _trimRdr;
-	BlockParam<float> _trimThr;
-public:
-	BlockBacksideAutopilot(SuperBlock *parent,
-			       const char *name,
-			       BlockStabilization *stabilization);
-	virtual ~BlockBacksideAutopilot();
-	void update(float hCmd, float vCmd, float rCmd, float psiCmd,
-		    float h, float v,
-		    float phi, float theta, float psi,
-		    float p, float q, float r);
-	float getRudder() { return _stabilization->getRudder() + _trimRdr.get(); }
-	float getAileron() { return _stabilization->getAileron() + _trimAil.get(); }
-	float getElevator() { return _stabilization->getElevator() + _trimElv.get(); }
-	float getThrottle() { return _altitudeHold.getThrottle() + _trimThr.get(); }
-};
 
 /**
  * Waypoint Guidance block
@@ -416,10 +296,34 @@ public:
 class __EXPORT BlockMultiModeBacksideAutopilot : public BlockUorbEnabledAutopilot
 {
 private:
+	// stabilization
 	BlockStabilization _stabilization;
-	BlockBacksideAutopilot _backsideAutopilot;
+
+	// heading hold
+	BlockP _psi2Phi;
+	BlockP _phi2P;
+	BlockLimitSym _phiLimit;
+
+	// velocity hold
+	BlockPID _v2Theta;
+	BlockPID _theta2Q;
+	BlockLimit _theLimit;
+	BlockLimit _vLimit;
+
+	// altitude/ roc hold
+	BlockPID _h2Thr;
+	BlockPID _roc2Thr;
+
+	// guidance
 	BlockWaypointGuidance _guide;
+
+	// block params
+	BlockParam<float> _trimAil;
+	BlockParam<float> _trimElv;
+	BlockParam<float> _trimRdr;
+	BlockParam<float> _trimThr;
 	BlockParam<float> _vCmd;
+	BlockParam<float> _rocMax;
 
 	struct pollfd _attPoll;
 	vehicle_global_position_setpoint_s _lastPosCmd;
