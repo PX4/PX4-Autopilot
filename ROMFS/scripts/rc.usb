@@ -3,12 +3,12 @@
 # USB MAVLink start
 #
 
-echo "[testing] doing production test.."
+echo "Starting MAVLink on this USB console"
 
 # Tell MAVLink that this link is "fast"
 mavlink start -b 230400 -d /dev/console
 
-# Exit shell to make it available to MAVLink
-exit 
+echo "MAVLink started, exiting shell.."
 
-echo "[testing] testing done"
+# Exit shell to make it available to MAVLink
+exit
