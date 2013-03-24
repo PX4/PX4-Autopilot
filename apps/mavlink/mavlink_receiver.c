@@ -376,6 +376,74 @@ handle_message(mavlink_message_t *msg)
 			}
 		}
 
+		if (msg->msgid == MAVLINK_MSG_ID_HIGHRES_IMU) {
+
+			mavlink_highres_imu_t imu;
+			mavlink_msg_highres_imu_decode(msg, &imu);
+
+			/* packet counter */
+			static uint16_t hil_counter = 0;
+			static uint16_t hil_frames = 0;
+			static uint64_t old_timestamp = 0;
+
+			/* sensors general */
+			hil_sensors.timestamp = imu.time_usec;
+
+			/* hil gyro */
+			static const float mrad2rad = 1.0e-3f;
+			hil_sensors.gyro_counter = hil_counter;
+			hil_sensors.gyro_raw[0] = imu.xgyro / mrad2rad;
+			hil_sensors.gyro_raw[1] = imu.ygyro / mrad2rad;
+			hil_sensors.gyro_raw[2] = imu.zgyro / mrad2rad;
+			hil_sensors.gyro_rad_s[0] = imu.xgyro;
+			hil_sensors.gyro_rad_s[1] = imu.ygyro;
+			hil_sensors.gyro_rad_s[2] = imu.zgyro;
+
+			/* accelerometer */
+			hil_sensors.accelerometer_counter = hil_counter;
+			static const float mg2ms2 = 9.8f / 1000.0f;
+			hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
+			hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
+			hil_sensors.accelerometer_raw[2] = imu.zacc / mg2ms2;
+			hil_sensors.accelerometer_m_s2[0] = imu.xacc;
+			hil_sensors.accelerometer_m_s2[1] = imu.yacc;
+			hil_sensors.accelerometer_m_s2[2] = imu.zacc;
+			hil_sensors.accelerometer_mode = 0; // TODO what is this?
+			hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
+
+			/* adc */
+			hil_sensors.adc_voltage_v[0] = 0;
+			hil_sensors.adc_voltage_v[1] = 0;
+			hil_sensors.adc_voltage_v[2] = 0;
+
+			/* magnetometer */
+			float mga2ga = 1.0e-3f;
+			hil_sensors.magnetometer_counter = hil_counter;
+			hil_sensors.magnetometer_raw[0] = imu.xmag / mga2ga;
+			hil_sensors.magnetometer_raw[1] = imu.ymag / mga2ga;
+			hil_sensors.magnetometer_raw[2] = imu.zmag / mga2ga;
+			hil_sensors.magnetometer_ga[0] = imu.xmag;
+			hil_sensors.magnetometer_ga[1] = imu.ymag;
+			hil_sensors.magnetometer_ga[2] = imu.zmag;
+			hil_sensors.magnetometer_range_ga = 32.7f; // int16
+			hil_sensors.magnetometer_mode = 0; // TODO what is this
+			hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
+
+			/* publish */
+			orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
+
+			// increment counters
+			hil_counter += 1 ;
+			hil_frames += 1 ;
+
+			// output
+			if ((timestamp - old_timestamp) > 10000000) {
+				printf("receiving hil imu at %d hz\n", hil_frames/10);
+				old_timestamp = timestamp;
+				hil_frames = 0;
+			}
+		}
+
 		if (msg->msgid == MAVLINK_MSG_ID_GPS_RAW_INT) {
 
 			mavlink_gps_raw_int_t gps;

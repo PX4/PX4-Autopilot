@@ -36,6 +36,17 @@ param set MAV_TYPE 1
 commander start
 
 #
+# Check if we got an IO
+#
+if [ px4io start ]
+then
+	echo "IO started"
+else
+	fmu mode_serial
+	echo "FMU started"
+end
+
+#
 # Start the sensors (depends on orb, px4io)
 #
 sh /etc/init.d/rc.sensors
