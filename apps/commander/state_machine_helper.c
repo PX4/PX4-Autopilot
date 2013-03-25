@@ -117,6 +117,22 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 					current_state->flag_fmu_armed = false;
 				}
 				break;
+			case ARMING_STATE_REBOOT:
+
+				/* an armed error happens when ARMED obviously */
+				if (current_state->arming_state == ARMING_STATE_INIT
+				 || current_state->arming_state == ARMING_STATE_STANDBY
+				 || current_state->arming_state == ARMING_STATE_STANDBY_ERROR) {
+
+					ret = OK;
+					current_state->flag_fmu_armed = false;
+
+				}
+				break;
+			case ARMING_STATE_IN_AIR_RESTORE:
+
+				/* XXX implement */
+				break;
 			default:
 				break;
 		}

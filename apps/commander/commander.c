@@ -143,16 +143,26 @@ static int daemon_task;				/**< Handle of daemon task / thread */
 static struct vehicle_status_s current_status;
 static orb_advert_t stat_pub;
 
-/* XXX ? */
-// static uint16_t nofix_counter = 0;
-// static uint16_t gotfix_counter = 0;
-
-/* XXX ? */
+/* timout until lowlevel failsafe */
 static unsigned int failsafe_lowlevel_timeout_ms;
+
+/* tasks waiting for low prio thread */
+enum {
+	LOW_PRIO_TASK_NONE = 0,
+	LOW_PRIO_TASK_PARAM_SAVE,
+	LOW_PRIO_TASK_PARAM_LOAD,
+	LOW_PRIO_TASK_GYRO_CALIBRATION,
+	LOW_PRIO_TASK_MAG_CALIBRATION,
+	LOW_PRIO_TASK_ALTITUDE_CALIBRATION,
+	LOW_PRIO_TASK_RC_CALIBRATION,
+	LOW_PRIO_TASK_ACCEL_CALIBRATION,
+	LOW_PRIO_TASK_AIRSPEED_CALIBRATION
+} low_prio_task;
 
 
 /* pthread loops */
 static void *orb_receive_loop(void *arg);
+static void *commander_low_prio_loop(void *arg);
 
 __EXPORT int commander_main(int argc, char *argv[]);
 
@@ -161,18 +171,23 @@ __EXPORT int commander_main(int argc, char *argv[]);
  */
 int commander_thread_main(int argc, char *argv[]);
 
-static int buzzer_init(void);
-static void buzzer_deinit(void);
-static int led_init(void);
-static void led_deinit(void);
-static int led_toggle(int led);
-static int led_on(int led);
-static int led_off(int led);
-static void do_gyro_calibration(int status_pub, struct vehicle_status_s *status);
-static void do_mag_calibration(int status_pub, struct vehicle_status_s *status);
-static void do_rc_calibration(int status_pub, struct vehicle_status_s *status);
-static void do_accel_calibration(int status_pub, struct vehicle_status_s *status);
-static void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status);
+int buzzer_init(void);
+void buzzer_deinit(void);
+int led_init(void);
+void led_deinit(void);
+int led_toggle(int led);
+int led_on(int led);
+int led_off(int led);
+void tune_error(void);
+void tune_positive(void);
+void tune_neutral(void);
+void tune_negative(void);
+void do_reboot(void);
+void do_gyro_calibration(void);
+void do_mag_calibration(void);
+void do_rc_calibration(void);
+void do_accel_calibration(void);
+void do_airspeed_calibration(void);
 
 
 static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
@@ -184,7 +199,7 @@ int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, u
 /**
  * Print the correct usage.
  */
-static void usage(const char *reason);
+void usage(const char *reason);
 
 /**
  * Sort calibration values.
@@ -196,7 +211,7 @@ static void usage(const char *reason);
  */
 // static void cal_bsort(float a[], int n);
 
-static int buzzer_init()
+int buzzer_init()
 {
 	buzzer = open("/dev/tone_alarm", O_WRONLY);
 
@@ -208,13 +223,13 @@ static int buzzer_init()
 	return 0;
 }
 
-static void buzzer_deinit()
+void buzzer_deinit()
 {
 	close(buzzer);
 }
 
 
-static int led_init()
+int led_init()
 {
 	leds = open(LED_DEVICE_PATH, 0);
 
@@ -231,12 +246,12 @@ static int led_init()
 	return 0;
 }
 
-static void led_deinit()
+void led_deinit()
 {
 	close(leds);
 }
 
-static int led_toggle(int led)
+int led_toggle(int led)
 {
 	static int last_blue = LED_ON;
 	static int last_amber = LED_ON;
@@ -248,59 +263,50 @@ static int led_toggle(int led)
 	return ioctl(leds, ((led == LED_BLUE) ? last_blue : last_amber), led);
 }
 
-static int led_on(int led)
+int led_on(int led)
 {
 	return ioctl(leds, LED_ON, led);
 }
 
-static int led_off(int led)
+int led_off(int led)
 {
 	return ioctl(leds, LED_OFF, led);
 }
 
-enum AUDIO_PATTERN {
-	AUDIO_PATTERN_ERROR = 2,
-	AUDIO_PATTERN_NOTIFY_POSITIVE = 3,
-	AUDIO_PATTERN_NOTIFY_NEUTRAL = 4,
-	AUDIO_PATTERN_NOTIFY_NEGATIVE = 5,
-	AUDIO_PATTERN_NOTIFY_CHARGE = 6
-};
 
-int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state)
+void tune_error()
 {
-
-#warning add alarms for state transitions
-	/* Trigger alarm if going into any error state */
-//	if (((new_state == SYSTEM_STATE_GROUND_ERROR) && (old_state != SYSTEM_STATE_GROUND_ERROR)) ||
-//	    ((new_state == SYSTEM_STATE_MISSION_ABORT) && (old_state != SYSTEM_STATE_MISSION_ABORT))) {
-//		ioctl(buzzer, TONE_SET_ALARM, 0);
-//		ioctl(buzzer, TONE_SET_ALARM, AUDIO_PATTERN_ERROR);
-//	}
-
-	/* Trigger neutral on arming / disarming */
-//	if (((new_state == SYSTEM_STATE_GROUND_READY) && (old_state != SYSTEM_STATE_GROUND_READY))) {
-//		ioctl(buzzer, TONE_SET_ALARM, 0);
-//		ioctl(buzzer, TONE_SET_ALARM, AUDIO_PATTERN_NOTIFY_NEUTRAL);
-//	}
-
-	/* Trigger Tetris on being bored */
-
-	return 0;
+	ioctl(buzzer, TONE_SET_ALARM, 2);
 }
 
-void tune_confirm(void)
+void tune_positive()
 {
 	ioctl(buzzer, TONE_SET_ALARM, 3);
 }
 
-void tune_error(void)
+void tune_neutral()
 {
-	/* XXX change alarm to 2 tones*/
 	ioctl(buzzer, TONE_SET_ALARM, 4);
 }
 
-void do_rc_calibration(int status_pub, struct vehicle_status_s *status)
+void tune_negative()
 {
+	ioctl(buzzer, TONE_SET_ALARM, 5);
+}
+
+void do_reboot()
+{
+	mavlink_log_critical(mavlink_fd, "REBOOTING SYSTEM");
+	usleep(500000);
+	up_systemreset();
+	/* SPECIAL CASE: NEVER RETURNS FROM THIS FUNCTION CALL */
+}
+
+
+void do_rc_calibration()
+{
+	mavlink_log_info(mavlink_fd, "trim calibration starting");
+
 	if (current_status.offboard_control_signal_lost) {
 		mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
 		return;
@@ -311,7 +317,6 @@ void do_rc_calibration(int status_pub, struct vehicle_status_s *status)
 	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
 
 	/* set parameters */
-
 	float p = sp.roll;
 	param_set(param_find("TRIM_ROLL"), &p);
 	p = sp.pitch;
@@ -320,22 +325,21 @@ void do_rc_calibration(int status_pub, struct vehicle_status_s *status)
 	param_set(param_find("TRIM_YAW"), &p);
 
 	/* store to permanent storage */
-	/* auto-save to EEPROM */
+	/* auto-save */
 	int save_ret = param_save_default();
 
 	if (save_ret != 0) {
 		mavlink_log_critical(mavlink_fd, "TRIM CAL: WARN: auto-save of params failed");
 	}
 
+	tune_positive();
+
 	mavlink_log_info(mavlink_fd, "trim calibration done");
 }
 
-void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
+void do_mag_calibration()
 {
-
-	/* set to mag calibration mode */
-	// status->flag_preflight_mag_calibration = true;
-	// state_machine_publish(status_pub, status, mavlink_fd);
+	mavlink_log_info(mavlink_fd, "mag calibration starting, hold still");
 
 	int sub_mag = orb_subscribe(ORB_ID(sensor_mag));
 	struct mag_report mag;
@@ -349,15 +353,6 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 
 	/* limit update rate to get equally spaced measurements over time (in ms) */
 	orb_set_interval(sub_mag, (calibration_interval / 1000) / calibration_maxcount);
-
-	// XXX old cal
-	//  * FLT_MIN is not the most negative float number,
-	//  * but the smallest number by magnitude float can
-	//  * represent. Use -FLT_MAX to initialize the most
-	//  * negative number
-
-	// float mag_max[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
-	// float mag_min[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
 
 	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
 
@@ -404,10 +399,6 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		return;
 	}
 
-	tune_confirm();
-	sleep(2);
-	tune_confirm();
-
 	while (hrt_absolute_time() < calibration_deadline &&
 	       calibration_counter < calibration_maxcount) {
 
@@ -421,9 +412,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			axis_index++;
 
 			char buf[50];
-			sprintf(buf, "Please rotate around %c", axislabels[axis_index]);
+			sprintf(buf, "please rotate around %c", axislabels[axis_index]);
 			mavlink_log_info(mavlink_fd, buf);
-			tune_confirm();
+			tune_neutral();
 
 			axis_deadline += calibration_interval / 3;
 		}
@@ -559,28 +550,19 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 
 		mavlink_log_info(mavlink_fd, "mag calibration done");
 
-		tune_confirm();
-		sleep(2);
-		tune_confirm();
-		sleep(2);
+		tune_positive();
 		/* third beep by cal end routine */
 
 	} else {
 		mavlink_log_info(mavlink_fd, "mag calibration FAILED (NaN in sphere fit)");
 	}
 
-	/* disable calibration mode */
-	// status->flag_preflight_mag_calibration = false;
-	// state_machine_publish(status_pub, status, mavlink_fd);
-
 	close(sub_mag);
 }
 
-void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
+void do_gyro_calibration()
 {
-	/* set to gyro calibration mode */
-	// status->flag_preflight_gyro_calibration = true;
-	// state_machine_publish(status_pub, status, mavlink_fd);
+	mavlink_log_info(mavlink_fd, "gyro calibration starting, hold still");
 
 	const int calibration_count = 5000;
 
@@ -631,10 +613,6 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	gyro_offset[1] = gyro_offset[1] / calibration_count;
 	gyro_offset[2] = gyro_offset[2] / calibration_count;
 
-	/* exit gyro calibration mode */
-	// status->flag_preflight_gyro_calibration = false;
-	// state_machine_publish(status_pub, status, mavlink_fd);
-
 	if (isfinite(gyro_offset[0]) && isfinite(gyro_offset[1]) && isfinite(gyro_offset[2])) {
 
 		if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_offset[0]))
@@ -671,10 +649,7 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 		// mavlink_log_info(mavlink_fd, buf);
 		mavlink_log_info(mavlink_fd, "gyro calibration done");
 
-		tune_confirm();
-		sleep(2);
-		tune_confirm();
-		sleep(2);
+		tune_positive();
 		/* third beep by cal end routine */
 
 	} else {
@@ -684,14 +659,10 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	close(sub_sensor_combined);
 }
 
-void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
+void do_accel_calibration()
 {
-	/* announce change */
-
-	mavlink_log_info(mavlink_fd, "keep it level and still");
-	/* set to accel calibration mode */
-	// status->flag_preflight_accel_calibration = true;
-	// state_machine_publish(status_pub, status, mavlink_fd);
+	/* give directions */
+	mavlink_log_info(mavlink_fd, "accel calibration starting, keep it level");
 
 	const int calibration_count = 2500;
 
@@ -787,28 +758,19 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 		//mavlink_log_info(mavlink_fd, buf);
 		mavlink_log_info(mavlink_fd, "accel calibration done");
 
-		tune_confirm();
-		sleep(2);
-		tune_confirm();
-		sleep(2);
-		/* third beep by cal end routine */
+		tune_positive();
 
 	} else {
 		mavlink_log_info(mavlink_fd, "accel calibration FAILED (NaN)");
 	}
 
-	/* exit accel calibration mode */
-	// status->flag_preflight_accel_calibration = false;
-	// state_machine_publish(status_pub, status, mavlink_fd);
-
 	close(sub_sensor_combined);
 }
 
-static void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
+void do_airspeed_calibration()
 {
-	/* announce change */
-
-	mavlink_log_info(mavlink_fd, "keep it still");
+	/* give directions */
+	mavlink_log_info(mavlink_fd, "airspeed calibration starting, keep it still");
 
 	const int calibration_count = 2500;
 
@@ -857,11 +819,7 @@ static void do_airspeed_calibration(int status_pub, struct vehicle_status_s *sta
 		//mavlink_log_info(mavlink_fd, buf);
 		mavlink_log_info(mavlink_fd, "airspeed calibration done");
 
-		tune_confirm();
-		sleep(2);
-		tune_confirm();
-		sleep(2);
-		/* third beep by cal end routine */
+		tune_positive();
 
 	} else {
 		mavlink_log_info(mavlink_fd, "airspeed calibration FAILED (NaN)");
@@ -870,15 +828,10 @@ static void do_airspeed_calibration(int status_pub, struct vehicle_status_s *sta
 	close(sub_differential_pressure);
 }
 
-
-
 void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_status, struct vehicle_command_s *cmd)
 {
 	/* result of the command */
 	uint8_t result = VEHICLE_CMD_RESULT_UNSUPPORTED;
-
-	/* announce command handling */
-	tune_confirm();
 
 	/* request to set different system mode */
 	switch (cmd->command) {
@@ -935,12 +888,16 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			/* request for an autopilot reboot */
 			if ((int)cmd->param1 == 1) {
 					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_REBOOT, mavlink_fd)) {
-						/* SPECIAL CASE: SYSTEM WILL NEVER RETURN HERE */
+						/* reboot is executed later, after positive tune is sent */
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
+						tune_positive();
+						/* SPECIAL CASE: SYSTEM WILL NEVER RETURN HERE */
+						do_reboot();
 
 					} else {
 						/* system may return here */
 						result = VEHICLE_CMD_RESULT_DENIED;
+						tune_negative();
 					}
 				}
 			}
@@ -971,234 +928,155 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	//
 			/* preflight calibration */
 		case VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
-				bool handled = false;
 
 				/* gyro calibration */
 				if ((int)(cmd->param1) == 1) {
 
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+					/* check if no other task is scheduled */
+					if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
-						result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-						mavlink_log_info(mavlink_fd, "starting gyro cal");
-						tune_confirm();
-						do_gyro_calibration(status_pub, &current_status);
-						mavlink_log_info(mavlink_fd, "finished gyro cal");
-						tune_confirm();
-						// XXX if this fails, go to ERROR
-						arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, mavlink_fd);
-
+						/* try to go to INIT/PREFLIGHT arming state */
+						if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+							result = VEHICLE_CMD_RESULT_ACCEPTED;
+							/* now set the task for the low prio thread */
+							low_prio_task = LOW_PRIO_TASK_GYRO_CALIBRATION;
+						} else {
+							result = VEHICLE_CMD_RESULT_DENIED;
+						}
 					} else {
-						result = VEHICLE_CMD_RESULT_DENIED;
+						result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
-
-					handled = true;
 				}
 
 				/* magnetometer calibration */
 				if ((int)(cmd->param2) == 1) {
 
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+					/* check if no other task is scheduled */
+					if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
-						result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-						mavlink_log_info(mavlink_fd, "starting mag cal");
-						tune_confirm();
-						do_mag_calibration(status_pub, &current_status);
-						mavlink_log_info(mavlink_fd, "finished mag cal");
-						tune_confirm();
-						// XXX if this fails, go to ERROR
-						arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, mavlink_fd);
-
+						/* try to go to INIT/PREFLIGHT arming state */
+						if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+							result = VEHICLE_CMD_RESULT_ACCEPTED;
+							/* now set the task for the low prio thread */
+							low_prio_task = LOW_PRIO_TASK_MAG_CALIBRATION;
+						} else {
+							result = VEHICLE_CMD_RESULT_DENIED;
+						}
 					} else {
-						result = VEHICLE_CMD_RESULT_DENIED;
+						result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
-
-					handled = true;
 				}
 
+#if 0
 				/* zero-altitude pressure calibration */
 				if ((int)(cmd->param3) == 1) {
-					/* transition to calibration state */
-					// XXX add this again
-	//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-	//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-	//
-	//					// XXX implement this
-	//					mavlink_log_info(mavlink_fd, "zero altitude cal. not implemented");
-	//					tune_confirm();
-	//
-	//					/* back to standby state */
-	//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-	//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-	//
-	//				} else {
-	//					mavlink_log_critical(mavlink_fd, "REJECTING altitude calibration");
-	//					result = VEHICLE_CMD_RESULT_DENIED;
-	//				}
 
-					handled = true;
+					/* check if no other task is scheduled */
+					if(low_prio_task == LOW_PRIO_TASK_NONE) {
+
+						/* try to go to INIT/PREFLIGHT arming state */
+						if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+							result = VEHICLE_CMD_RESULT_ACCEPTED;
+							/* now set the task for the low prio thread */
+							low_prio_task = LOW_PRIO_TASK_ALTITUDE_CALIBRATION;
+						} else {
+							result = VEHICLE_CMD_RESULT_DENIED;
+						}
+					} else {
+						result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					}
 				}
+#endif
 
+#if 0
 				/* trim calibration */
 				if ((int)(cmd->param4) == 1) {
-					/* transition to calibration state */
-					// XXX add this again
-	//				if (OK == do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_INIT)
-	//				 && OK == do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_INIT)) {
-	//					mavlink_log_info(mavlink_fd, "starting trim cal");
-	//					tune_confirm();
-	//					do_rc_calibration(status_pub, &current_status);
-	//					mavlink_log_info(mavlink_fd, "finished trim cal");
-	//					tune_confirm();
-	//
-	//					/* back to standby state */
-	//					do_arming_state_update(status_pub, &current_status, mavlink_fd, ARMING_STATE_STANDBY);
-	//					do_navigation_state_update(status_pub, &current_status, mavlink_fd, NAVIGATION_STATE_STANDBY);
-	//
-	//					result = VEHICLE_CMD_RESULT_ACCEPTED;
-	//
-	//				} else {
-	//					mavlink_log_critical(mavlink_fd, "REJECTING trim cal");
-	//					result = VEHICLE_CMD_RESULT_DENIED;
-	//				}
 
-					handled = true;
+					/* check if no other task is scheduled */
+					if(low_prio_task == LOW_PRIO_TASK_NONE) {
+
+						/* try to go to INIT/PREFLIGHT arming state */
+						if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+							result = VEHICLE_CMD_RESULT_ACCEPTED;
+							/* now set the task for the low prio thread */
+							low_prio_task = LOW_PRIO_TASK_RC_CALIBRATION;
+						} else {
+							result = VEHICLE_CMD_RESULT_DENIED;
+						}
+					} else {
+						result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					}
 				}
+#endif
 
 				/* accel calibration */
 				if ((int)(cmd->param5) == 1) {
 
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+					/* check if no other task is scheduled */
+					if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
-						result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-						mavlink_log_info(mavlink_fd, "starting acc cal");
-						tune_confirm();
-						do_accel_calibration(status_pub, &current_status);
-						mavlink_log_info(mavlink_fd, "finished acc cal");
-						tune_confirm();
-						// XXX what if this fails
-						arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, mavlink_fd);
-
+						/* try to go to INIT/PREFLIGHT arming state */
+						if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+							result = VEHICLE_CMD_RESULT_ACCEPTED;
+							/* now set the task for the low prio thread */
+							low_prio_task = LOW_PRIO_TASK_ACCEL_CALIBRATION;
+						} else {
+							result = VEHICLE_CMD_RESULT_DENIED;
+						}
 					} else {
-						result = VEHICLE_CMD_RESULT_DENIED;
+						result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
-
-
-					handled = true;
 				}
 
 				/* airspeed calibration */
 				if ((int)(cmd->param6) == 1) {
 
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+					/* check if no other task is scheduled */
+					if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
-						result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-						mavlink_log_info(mavlink_fd, "starting airspeed cal");
-						tune_confirm();
-						do_airspeed_calibration(status_pub, &current_status);
-						mavlink_log_info(mavlink_fd, "finished airspeed cal");
-						tune_confirm();
-						// XXX if this fails, go to ERROR
-						arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, mavlink_fd);
-
+						/* try to go to INIT/PREFLIGHT arming state */
+						if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, mavlink_fd)) {
+							result = VEHICLE_CMD_RESULT_ACCEPTED;
+							/* now set the task for the low prio thread */
+							low_prio_task = LOW_PRIO_TASK_AIRSPEED_CALIBRATION;
+						} else {
+							result = VEHICLE_CMD_RESULT_DENIED;
+						}
 					} else {
-						result = VEHICLE_CMD_RESULT_DENIED;
+						result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
-
-					handled = true;
-				}
-
-				/* none found */
-				if (!handled) {
-					//warnx("refusing unsupported calibration request\n");
-					mavlink_log_critical(mavlink_fd, "CMD refusing unsup. calib. request");
-					result = VEHICLE_CMD_RESULT_UNSUPPORTED;
 				}
 			}
 			break;
 
 		case VEHICLE_CMD_PREFLIGHT_STORAGE: {
-				if (current_status.flag_fmu_armed &&
-					((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
-					 (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
-					 (current_status.system_type == VEHICLE_TYPE_OCTOROTOR))) {
-					/* do not perform expensive memory tasks on multirotors in flight */
-					// XXX this is over-safe, as soon as cmd is in low prio thread this can be allowed
-					mavlink_log_info(mavlink_fd, "REJECTING save cmd while multicopter armed");
 
+			if (((int)(cmd->param1)) == 0) {
+
+				/* check if no other task is scheduled */
+				if(low_prio_task == LOW_PRIO_TASK_NONE) {
+					low_prio_task = LOW_PRIO_TASK_PARAM_LOAD;
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
+					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				}
 
-					// XXX move this to LOW PRIO THREAD of commander app
-					/* Read all parameters from EEPROM to RAM */
 
-					if (((int)(cmd->param1)) == 0)	{
+			} else if (((int)(cmd->param1)) == 1) {
 
-						/* read all parameters from EEPROM to RAM */
-						int read_ret = param_load_default();
-
-						if (read_ret == OK) {
-							//warnx("[mavlink pm] Loaded EEPROM params in RAM\n");
-							mavlink_log_info(mavlink_fd, "OK loading params from");
-							mavlink_log_info(mavlink_fd, param_get_default_file());
-							result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-						} else if (read_ret == 1) {
-							mavlink_log_info(mavlink_fd, "OK no changes in");
-							mavlink_log_info(mavlink_fd, param_get_default_file());
-							result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-						} else {
-							if (read_ret < -1) {
-								mavlink_log_info(mavlink_fd, "ERR loading params from");
-								mavlink_log_info(mavlink_fd, param_get_default_file());
-
-							} else {
-								mavlink_log_info(mavlink_fd, "ERR no param file named");
-								mavlink_log_info(mavlink_fd, param_get_default_file());
-							}
-
-							result = VEHICLE_CMD_RESULT_FAILED;
-						}
-
-					} else if (((int)(cmd->param1)) == 1)	{
-
-						/* write all parameters from RAM to EEPROM */
-						int write_ret = param_save_default();
-
-						if (write_ret == OK) {
-							mavlink_log_info(mavlink_fd, "OK saved param file");
-							mavlink_log_info(mavlink_fd, param_get_default_file());
-							result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-						} else {
-							if (write_ret < -1) {
-								mavlink_log_info(mavlink_fd, "ERR params file does not exit:");
-								mavlink_log_info(mavlink_fd, param_get_default_file());
-
-							} else {
-								mavlink_log_info(mavlink_fd, "ERR writing params to");
-								mavlink_log_info(mavlink_fd, param_get_default_file());
-							}
-
-							result = VEHICLE_CMD_RESULT_FAILED;
-						}
-
-					} else {
-						mavlink_log_info(mavlink_fd, "[pm] refusing unsupp. STOR request");
-						result = VEHICLE_CMD_RESULT_UNSUPPORTED;
-					}
+				/* check if no other task is scheduled */
+				if(low_prio_task == LOW_PRIO_TASK_NONE) {
+					low_prio_task = LOW_PRIO_TASK_PARAM_LOAD;
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+				} else {
+					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 			}
-			break;
+		} break;
 
 	default: {
 			mavlink_log_critical(mavlink_fd, "[cmd] refusing unsupported command");
 			result = VEHICLE_CMD_RESULT_UNSUPPORTED;
-			/* announce command rejection */
-			ioctl(buzzer, TONE_SET_ALARM, 4);
 		}
 		break;
 	}
@@ -1207,10 +1085,12 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	if (result == VEHICLE_CMD_RESULT_FAILED ||
 	    result == VEHICLE_CMD_RESULT_DENIED ||
 	    result == VEHICLE_CMD_RESULT_UNSUPPORTED) {
-		ioctl(buzzer, TONE_SET_ALARM, 5);
+
+		tune_negative();
 
 	} else if (result == VEHICLE_CMD_RESULT_ACCEPTED) {
-		tune_confirm();
+
+		tune_positive();
 	}
 
 	/* send any requested ACKs */
@@ -1324,8 +1204,7 @@ float battery_remaining_estimate_voltage(float voltage)
 	return ret;
 }
 
-static void
-usage(const char *reason)
+void usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
@@ -1405,6 +1284,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* pthreads for command and subsystem info handling */
 	// pthread_t command_handling_thread;
 	pthread_t subsystem_info_thread;
+	pthread_t commander_low_prio_thread;
 
 	/* initialize */
 	if (led_init() != 0) {
@@ -1477,6 +1357,16 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_attr_setstacksize(&subsystem_info_attr, 2048);
 	pthread_create(&subsystem_info_thread, &subsystem_info_attr, orb_receive_loop, &current_status);
 
+	pthread_attr_t commander_low_prio_attr;
+	pthread_attr_init(&commander_low_prio_attr);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 2048);
+
+	struct sched_param param;
+	/* low priority */
+	param.sched_priority = SCHED_PRIORITY_DEFAULT - 50;
+	(void)pthread_attr_setschedparam(&commander_low_prio_attr, &param);
+	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, NULL);
+
 	/* Start monitoring loop */
 	uint16_t counter = 0;
 
@@ -1487,11 +1377,13 @@ int commander_thread_main(int argc, char *argv[])
 	bool critical_battery_voltage_actions_done = false;
 	uint8_t low_voltage_counter = 0;
 	uint16_t critical_voltage_counter = 0;
-	int16_t mode_switch_rc_value;
 	float bat_remain = 1.0f;
 
 	uint16_t stick_off_counter = 0;
 	uint16_t stick_on_counter = 0;
+
+	/* XXX what exactly is this for? */
+	uint64_t last_print_time = 0;
 
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -1562,7 +1454,9 @@ int commander_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	uint64_t start_time = hrt_absolute_time();
-	uint64_t failsave_ll_start_time = 0;
+
+	/* XXX use this! */
+	//uint64_t failsave_ll_start_time = 0;
 
 	bool state_changed = true;
 	bool param_init_forced = true;
@@ -1727,7 +1621,7 @@ int commander_thread_main(int argc, char *argv[])
 		} else if (bat_remain < 0.2f && battery_voltage_valid && (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 2) == 0)) {
 			/* For less than 20%, start be slightly annoying at 1 Hz */
 			ioctl(buzzer, TONE_SET_ALARM, 0);
-			tune_confirm();
+			tune_positive();
 
 		} else if (bat_remain < 0.2f && battery_voltage_valid && (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 2) == 2)) {
 			ioctl(buzzer, TONE_SET_ALARM, 0);
@@ -1916,7 +1810,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* mark home position as set */
 				home_position_set = true;
-				tune_confirm();
+				tune_positive();
 			}
 		}
 
@@ -2206,13 +2100,19 @@ int commander_thread_main(int argc, char *argv[])
 				current_status.rc_signal_lost_interval = 0;
 
 			} else {
-				static uint64_t last_print_time = 0;
 
 				/* print error message for first RC glitch and then every 5 s / 5000 ms) */
 				if (!current_status.rc_signal_cutting_off || ((hrt_absolute_time() - last_print_time) > 5000000)) {
 					/* only complain if the offboard control is NOT active */
 					current_status.rc_signal_cutting_off = true;
 					mavlink_log_critical(mavlink_fd, "CRITICAL - NO REMOTE SIGNAL!");
+
+					if (!current_status.rc_signal_cutting_off) {
+						printf("Reason: not rc_signal_cutting_off\n");
+					} else {
+						printf("last print time: %llu\n", last_print_time);
+					}
+
 					last_print_time = hrt_absolute_time();
 				}
 
@@ -2270,7 +2170,7 @@ int commander_thread_main(int argc, char *argv[])
 					current_status.flag_control_manual_enabled = false;
 					current_status.flag_control_offboard_enabled = true;
 					state_changed = true;
-					tune_confirm();
+					tune_positive();
 
 					mavlink_log_critical(mavlink_fd, "DETECTED OFFBOARD SIGNAL FIRST");
 
@@ -2278,7 +2178,7 @@ int commander_thread_main(int argc, char *argv[])
 					if (current_status.offboard_control_signal_lost) {
 						mavlink_log_critical(mavlink_fd, "RECOVERY OFFBOARD CONTROL");
 						state_changed = true;
-						tune_confirm();
+						tune_positive();
 					}
 				}
 
@@ -2298,7 +2198,6 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 			} else {
-				static uint64_t last_print_time = 0;
 
 				/* print error message for first RC glitch and then every 5 s / 5000 ms) */
 				if (!current_status.offboard_control_signal_weak || ((hrt_absolute_time() - last_print_time) > 5000000)) {
@@ -2314,7 +2213,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (current_status.offboard_control_signal_lost_interval > 100000) {
 					current_status.offboard_control_signal_lost = true;
 					current_status.failsave_lowlevel_start_time = hrt_absolute_time();
-					tune_confirm();
+					tune_positive();
 
 					/* kill motors after timeout */
 					if (hrt_absolute_time() - current_status.failsave_lowlevel_start_time > failsafe_lowlevel_timeout_ms * 1000) {
@@ -2352,6 +2251,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Store old modes to detect and act on state transitions */
 		voltage_previous = current_status.voltage_battery;
+		/* XXX use this voltage_previous */
 		fflush(stdout);
 		counter++;
 		usleep(COMMANDER_MONITORING_INTERVAL);
@@ -2360,6 +2260,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* wait for threads to complete */
 	// pthread_join(command_handling_thread, NULL);
 	pthread_join(subsystem_info_thread, NULL);
+	pthread_join(commander_low_prio_thread, NULL);
 
 	/* close fds */
 	led_deinit();
@@ -2374,6 +2275,89 @@ int commander_thread_main(int argc, char *argv[])
 	fflush(stdout);
 
 	thread_running = false;
+
+	return 0;
+}
+
+
+static void *commander_low_prio_loop(void *arg)
+{
+	/* Set thread name */
+	prctl(PR_SET_NAME, "commander low prio", getpid());
+
+	while (!thread_should_exit) {
+
+		switch (low_prio_task) {
+
+			case LOW_PRIO_TASK_PARAM_LOAD:
+
+				if (0 == param_load_default()) {
+					mavlink_log_info(mavlink_fd, "Param load success");
+				} else {
+					mavlink_log_critical(mavlink_fd, "Param load ERROR");
+					tune_error();
+				}
+				low_prio_task = LOW_PRIO_TASK_NONE;
+				break;
+
+			case LOW_PRIO_TASK_PARAM_SAVE:
+
+				if (0 == param_save_default()) {
+					mavlink_log_info(mavlink_fd, "Param save success");
+				} else {
+					mavlink_log_critical(mavlink_fd, "Param save ERROR");
+					tune_error();
+				}
+				low_prio_task = LOW_PRIO_TASK_NONE;
+				break;
+
+			case LOW_PRIO_TASK_GYRO_CALIBRATION:
+
+				do_gyro_calibration();
+
+				low_prio_task = LOW_PRIO_TASK_NONE;
+				break;
+
+			case LOW_PRIO_TASK_MAG_CALIBRATION:
+
+				do_mag_calibration();
+
+				low_prio_task = LOW_PRIO_TASK_NONE;
+				break;
+
+			case LOW_PRIO_TASK_ALTITUDE_CALIBRATION:
+
+//				do_baro_calibration();
+
+			case LOW_PRIO_TASK_RC_CALIBRATION:
+
+//				do_rc_calibration();
+
+				low_prio_task = LOW_PRIO_TASK_NONE;
+				break;
+
+			case LOW_PRIO_TASK_ACCEL_CALIBRATION:
+
+				do_accel_calibration();
+
+				low_prio_task = LOW_PRIO_TASK_NONE;
+				break;
+
+			case LOW_PRIO_TASK_AIRSPEED_CALIBRATION:
+
+				do_airspeed_calibration();
+
+				low_prio_task = LOW_PRIO_TASK_NONE;
+				break;
+
+			case LOW_PRIO_TASK_NONE:
+			default:
+				/* slow down to 10Hz */
+				usleep(100000);
+				break;
+		}
+
+	}
 
 	return 0;
 }
