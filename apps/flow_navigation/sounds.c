@@ -29,11 +29,6 @@ void sounds_deinit(void)
 	close(buzzer);
 }
 
-void tune_tetris(void)
-{
-	ioctl(buzzer, TONE_SET_ALARM, 5);
-}
-
 void tune_sonar(void)
 {
 	ioctl(buzzer, TONE_SET_ALARM, 4);
@@ -42,4 +37,19 @@ void tune_sonar(void)
 void tune_ready(void)
 {
 	ioctl(buzzer, TONE_SET_ALARM, 3);
+}
+
+void tune_mission_started(void)
+{
+	ioctl(buzzer, TONE_SET_ALARM, 3);
+}
+
+void tune_mission_aborded(void)
+{
+	ioctl(buzzer, TONE_SET_ALARM, 5);
+}
+
+void tune_mission_accomplished(void)
+{
+	ioctl(buzzer, TONE_SET_ALARM, 8);
 }

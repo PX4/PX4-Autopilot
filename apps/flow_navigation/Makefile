@@ -41,6 +41,7 @@ STACKSIZE	 = 2048
 
 CSRCS		 = flow_navigation.c \
 		   flow_navigation_params.c \
+		   setpoint_planner.c \
 		   sounds.c \
 		   codegen/flowNavigation.c \
 		   codegen/flowNavigation_initialize.c \

@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 #include <stdio.h>
+#include <math.h>
 #include <errno.h>
 #include <poll.h>
 #include <systemlib/systemlib.h>
@@ -59,13 +60,18 @@
 #include <uORB/topics/omnidirectional_flow.h>
 #include <uORB/topics/discrete_radar.h>
 
+#include <uORB/topics/vehicle_global_position.h>
+
 #include "flow_navigation_params.h"
+#include "setpoint_planner.h"
 #include "sounds.h"
 #include "codegen/flowNavigation.h"
 #include "codegen/frontFlowKalmanFilter.h"
 #include "codegen/wallEstimationFilter.h"
 #include "codegen/wallEstimator.h"
 
+
+#define MISSION_POSITION_UPDATE_STEP 	0.005f
 static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
 static int daemon_task;				/**< Handle of daemon task / thread */
@@ -84,6 +90,31 @@ int flow_navigation_thread_main(int argc, char *argv[]);
  * Print the correct usage.
  */
 static void usage(const char *reason);
+
+/**
+ * Navigation helpfunctions.
+ */
+int get_next_bodyframe_setpoint(
+		struct discrete_radar_s *radar,
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_bodyframe_position_setpoint_s *current_waypoint,
+		struct flow_navigation_params *params,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
+		);
+void convert_setpoint_bodyframe2local(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_attitude_s *att,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp,
+		struct vehicle_local_position_setpoint_s *local_pos_sp
+		);
+void convert_setpoint_local2bodyframe(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_attitude_s *att,
+		struct vehicle_local_position_setpoint_s *local_pos_sp,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
+		);
 
 static void
 usage(const char *reason)
@@ -143,6 +174,113 @@ int flow_navigation_main(int argc, char *argv[])
 	exit(1);
 }
 
+/* returns bodyframe setpoint and estimated number of setpoints to final destination
+ * 0 -> destination reached...
+ */
+
+int get_next_bodyframe_setpoint(
+		struct discrete_radar_s *radar, // current radar situation
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_bodyframe_position_setpoint_s *current_waypoint, // final destination
+		struct flow_navigation_params *params, // actual parameters
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp // result
+		)
+{
+	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
+
+	wp_bodyframe_offset[0] = current_waypoint->x - bodyframe_pos->x;
+	wp_bodyframe_offset[1] = current_waypoint->y - bodyframe_pos->y;
+
+	/* x */
+	int x_steps = (int) (wp_bodyframe_offset[0] / MISSION_POSITION_UPDATE_STEP);
+
+	if (x_steps > 0) {
+		bodyframe_pos_sp->x = bodyframe_pos->x + MISSION_POSITION_UPDATE_STEP;
+	} else if(x_steps < 0) {
+		bodyframe_pos_sp->x = bodyframe_pos->x - MISSION_POSITION_UPDATE_STEP;
+	} else {
+		bodyframe_pos_sp->x = bodyframe_pos->x;
+	}
+
+	/* y */
+	int y_steps = wp_bodyframe_offset[1] / MISSION_POSITION_UPDATE_STEP;
+
+	if (y_steps > 0) {
+		bodyframe_pos_sp->y = bodyframe_pos->y + MISSION_POSITION_UPDATE_STEP;
+	} else if(y_steps < 0) {
+		bodyframe_pos_sp->y = bodyframe_pos->y - MISSION_POSITION_UPDATE_STEP;
+	} else {
+		bodyframe_pos_sp->y = bodyframe_pos->y;
+	}
+
+	bodyframe_pos_sp->yaw = current_waypoint->yaw;
+
+	if (abs(x_steps) > abs(y_steps))
+		return x_steps;
+	else
+		return y_steps;
+}
+
+void convert_setpoint_bodyframe2local(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_attitude_s *att,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp,
+		struct vehicle_local_position_setpoint_s *local_pos_sp
+		)
+{
+	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
+	static float wp_local_offset[3] = {0.0f, 0.0f, 0.0f};
+
+	wp_bodyframe_offset[0] = bodyframe_pos_sp->x - bodyframe_pos->x;
+	wp_bodyframe_offset[1] = bodyframe_pos_sp->y - bodyframe_pos->y;
+	wp_bodyframe_offset[2] = bodyframe_pos_sp->z - bodyframe_pos->z;
+
+	/* calc current waypoint cooridnates in local */
+	for(uint8_t i = 0; i < 3; i++) {
+		float sum = 0.0f;
+		for(uint8_t j = 0; j < 3; j++) {
+			sum = sum + wp_bodyframe_offset[j] * att->R[i][j];
+		}
+		wp_local_offset[i] = sum;
+	}
+
+	local_pos_sp->x = local_pos->x + wp_local_offset[0];
+	local_pos_sp->y = local_pos->y + wp_local_offset[1];
+	local_pos_sp->z = bodyframe_pos_sp->z; // let z as it is...
+}
+
+void convert_setpoint_local2bodyframe(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_attitude_s *att,
+		struct vehicle_local_position_setpoint_s *local_pos_sp,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
+		)
+{
+	static float wp_local_offset[3] = {0.0f, 0.0f, 0.0f}; // x,y
+	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
+
+	wp_local_offset[0] = local_pos_sp->x - local_pos->x;
+	wp_local_offset[1] = local_pos_sp->y - local_pos->y;
+	wp_local_offset[2] = local_pos_sp->z - local_pos->z;
+
+	/* calc current waypoint cooridnates in bodyframe */
+	for(uint8_t i = 0; i < 3; i++) {
+		float sum = 0.0f;
+		for(uint8_t j = 0; j < 3; j++) {
+			sum = sum + wp_local_offset[j] * att->R[j][i];
+		}
+		wp_bodyframe_offset[i] = sum;
+	}
+
+	bodyframe_pos_sp->x = bodyframe_pos->x + wp_bodyframe_offset[0];
+	bodyframe_pos_sp->y = bodyframe_pos->y + wp_bodyframe_offset[1];
+	bodyframe_pos_sp->z = local_pos_sp->z; // let z as it is...
+
+}
+
+
 int flow_navigation_thread_main(int argc, char *argv[]) {
 
 	printf("[flow_navigation] starting\n");
@@ -166,6 +304,13 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	struct vehicle_bodyframe_position_s bodyframe_pos;
 	memset(&bodyframe_pos, 0, sizeof(bodyframe_pos));
 
+	/* mission parameters */
+	struct vehicle_local_position_setpoint_s final_dest_local;
+	memset(&final_dest_local, 0, sizeof(final_dest_local));
+	struct vehicle_bodyframe_position_setpoint_s final_dest_bodyframe;
+	memset(&final_dest_bodyframe, 0, sizeof(final_dest_bodyframe));
+
+	/* publishing parameters */
 	struct vehicle_local_position_setpoint_s local_pos_sp;
 	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
 	struct vehicle_bodyframe_position_setpoint_s bodyframe_pos_sp;
@@ -186,6 +331,11 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	orb_advert_t vehicle_local_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
 	orb_advert_t vehicle_bodyframe_position_sp_pub = orb_advertise(ORB_ID(vehicle_bodyframe_position_setpoint), &bodyframe_pos_sp);
 	orb_advert_t discrete_radar_pub = orb_advertise(ORB_ID(discrete_radar), &discrete_radar);
+
+	/* for debugging */
+	struct vehicle_global_position_s debug_pos;
+	memset(&debug_pos, 0, sizeof(debug_pos));
+	orb_advert_t vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &debug_pos);
 
 	/* parameters init*/
 	struct flow_navigation_params params;
@@ -239,14 +389,13 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	static int sonar_gradient = 0;
 
 	/* navigation parameters */
-	static float setpoint_x = 0.0f;
-	static float setpoint_y = 0.0f;
-	static float setpoint_yaw = 0.0f;
 	static float setpoint_update_step = 0.01f;
 	static float setpoint_update_step_yaw = 0.05f;
 
 	/* mission */
 	static bool mission_started = false;
+	static bool mission_initialized = false;
+	static bool mission_accomplished = false;
 	static bool mission_aborded = false;
 
 	static bool sensors_ready = false;
@@ -318,55 +467,97 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
 
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
-						/* update position setpoint? */
-						if(manual.pitch < -0.2f) {
-							setpoint_x += setpoint_update_step;
-						} else if (manual.pitch > 0.2f) {
-							setpoint_x -= setpoint_update_step;
-						}
-
-						if(manual.roll < -0.2f) {
-							setpoint_y -= setpoint_update_step;
-						} else if (manual.roll > 0.2f) {
-							setpoint_y += setpoint_update_step;
-						}
-
-						if(manual.yaw < -1.0f) { // bigger threshold because of rc calibration for manual flight
-							setpoint_yaw -= setpoint_update_step_yaw;
-						} else if (manual.yaw > 1.0f) {
-							setpoint_yaw += setpoint_update_step_yaw;
-						}
-
-						// TODO add modulo for rotation -pi +pi
-
 						/* update mission flags */
 						if (!mission_started) {
 							if (manual.aux2 < 0) {
 								mission_started = true;
+								tune_mission_started();
 							}
 						} else {
-							if (manual.aux2 > 0) {
+							if (manual.aux2 > 0 && !mission_aborded) {
 								mission_aborded = true;
+								tune_mission_aborded();
 							}
 						}
+
+						/* calc new mission setpoint */
+						if (mission_started) {
+							if (!mission_initialized) {
+								/* only one mission... 2m forward */
+								final_dest_bodyframe.x = bodyframe_pos.x + 1;
+								final_dest_bodyframe.y = bodyframe_pos.y;
+								final_dest_bodyframe.yaw = att.yaw;
+								convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&final_dest_bodyframe,&final_dest_local);
+								mission_initialized = true;
+							}
+
+							if (!mission_aborded && !mission_accomplished) {
+								/* calc final destination in bodyframe */
+								convert_setpoint_local2bodyframe(&local_pos,&bodyframe_pos,&att,&final_dest_local,&final_dest_bodyframe);
+
+								int remaining_sp = get_next_bodyframe_setpoint(&discrete_radar,&bodyframe_pos,&final_dest_bodyframe,&params,&bodyframe_pos_sp);
+
+								if (!remaining_sp) {
+									mission_accomplished = true;
+									tune_mission_accomplished();
+								}
+							}
+						}
+
+						/* manualy update position setpoint? */
+						if(manual.pitch < -0.2f) {
+							bodyframe_pos_sp.x += setpoint_update_step;
+						} else if (manual.pitch > 0.2f) {
+							bodyframe_pos_sp.x -= setpoint_update_step;
+						}
+
+						if(manual.roll < -0.2f) {
+							bodyframe_pos_sp.y -= setpoint_update_step;
+						} else if (manual.roll > 0.2f) {
+							bodyframe_pos_sp.y += setpoint_update_step;
+						}
+
+						if(manual.yaw < -1.0f) { // bigger threshold because of rc calibration for manual flight
+							bodyframe_pos_sp.yaw -= setpoint_update_step_yaw;
+						} else if (manual.yaw > 1.0f) {
+							bodyframe_pos_sp.yaw += setpoint_update_step_yaw;
+						}
+
+						// TODO add modulo for rotation -pi +pi
+						if(bodyframe_pos_sp.yaw < -M_PI_F) {
+							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + M_TWOPI_F;
+						} else if(bodyframe_pos_sp.yaw > M_PI_F) {
+							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - M_TWOPI_F;
+						}
+
 
 					} else
 					{
 						/* reset setpoint to current position */
-						setpoint_x = bodyframe_pos.x;
-						setpoint_y = bodyframe_pos.y;
-						setpoint_yaw = att.yaw;
-						mission_aborded = false;
+						bodyframe_pos_sp.x = bodyframe_pos.x;
+						bodyframe_pos_sp.y = bodyframe_pos.y;
+						bodyframe_pos_sp.yaw = att.yaw;
+						mission_started = false;
+						mission_initialized = false;
+						mission_accomplished = false;
 						mission_aborded = false;
 					}
 
-					bodyframe_pos_sp.x = setpoint_x;
-					bodyframe_pos_sp.y = setpoint_y;
-					bodyframe_pos_sp.yaw = setpoint_yaw;
+					convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&bodyframe_pos_sp,&local_pos_sp);
+//					local_pos_sp.x = bodyframe_pos_sp.x;
+//					local_pos_sp.y = bodyframe_pos_sp.y;
+//					local_pos_sp.yaw = bodyframe_pos_sp.yaw;
 
 					if(isfinite(bodyframe_pos_sp.x) && isfinite(bodyframe_pos_sp.y) && isfinite(bodyframe_pos_sp.yaw))
 					{
 						orb_publish(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_sp_pub, &bodyframe_pos_sp);
+						debug_pos.lon = final_dest_local.x * 100;
+						debug_pos.lat = final_dest_local.y * 100;
+						debug_pos.alt = final_dest_local.yaw * 100;
+					}
+					if(isfinite(local_pos_sp.x) && isfinite(local_pos_sp.y) && isfinite(local_pos_sp.yaw))
+					{
+						orb_publish(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_sp_pub, &local_pos_sp);
 					}
 				}
 
@@ -565,6 +756,15 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 					discrete_radar.timestamp = hrt_absolute_time();
 					orb_publish(ORB_ID(discrete_radar), discrete_radar_pub, &discrete_radar);
+
+
+					/* FIXME TODO DEBUG */
+					if(isfinite(debug_pos.lon) && isfinite(debug_pos.lat) && isfinite(debug_pos.alt))
+					{
+						orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &debug_pos);
+					}
+
+
 
 //					if(params.pos_sp_x)
 //					{

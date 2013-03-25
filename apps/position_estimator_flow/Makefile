@@ -39,6 +39,4 @@ APPNAME		 = position_estimator_flow
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 4096
 
-CSRCS		 = position_estimator_flow_main.c
-
 include $(APPDIR)/mk/app.mk
