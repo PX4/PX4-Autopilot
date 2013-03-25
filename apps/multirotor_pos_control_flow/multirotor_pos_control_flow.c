@@ -286,6 +286,9 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 						/* set yaw setpoint unlimited*/
 						att_sp.yaw_body = setpoint_yaw;
 
+						/* add trim from parameters */
+						att_sp.roll_body = att_sp.roll_body + params.trim_roll;
+						att_sp.pitch_body = att_sp.pitch_body + params.trim_pitch;
 
 						/* calc new thrust */
 						float height_error = (bodyframe_pos.z - params.height_sp);

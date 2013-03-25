@@ -763,7 +763,7 @@ uorb_receive_start(void)
 
 	/* --- LOCAL SETPOINT VALUE --- */
 	mavlink_subs.spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	orb_set_interval(mavlink_subs.spl_sub, 2000);	/* 0.5 Hz updates */
+	orb_set_interval(mavlink_subs.spl_sub, 200);	/* 0.5 Hz updates */
 
 	/* --- ATTITUDE SETPOINT VALUE --- */
 	mavlink_subs.spa_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
@@ -803,7 +803,7 @@ uorb_receive_start(void)
 
 	/* --- OPTICAL FLOW SENSOR --- */
 	mavlink_subs.optical_flow = orb_subscribe(ORB_ID(optical_flow));
-	orb_set_interval(mavlink_subs.optical_flow, 10); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.optical_flow, 200000); 	/* 5Hz updates */
 
 	/* --- OMNIDIRECTIONAL FLOW SENSOR --- */
 	mavlink_subs.omnidirectional_flow = orb_subscribe(ORB_ID(omnidirectional_flow));

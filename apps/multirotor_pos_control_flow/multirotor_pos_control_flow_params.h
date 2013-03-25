@@ -53,6 +53,8 @@ struct multirotor_position_control_flow_params {
 	float limit_roll;
 	float limit_thrust_int;
 	float limit_thrust_lower;
+	float trim_roll;
+	float trim_pitch;
 };
 
 struct multirotor_position_control_flow_param_handles {
@@ -67,6 +69,8 @@ struct multirotor_position_control_flow_param_handles {
 	param_t limit_roll;
 	param_t limit_thrust_int;
 	param_t limit_thrust_lower;
+	param_t trim_roll;
+	param_t trim_pitch;
 };
 
 /**

@@ -56,6 +56,10 @@ struct flow_navigation_params {
 	float s4;
 	float s5;
 	float s6;
+	float mission_x_offset;
+	float mission_y_offset;
+	float mission_update_step;
+	float mission_wp_radius;
 	int debug;
 };
 
@@ -74,6 +78,10 @@ struct flow_navigation_param_handles {
 	param_t s4;
 	param_t s5;
 	param_t s6;
+	param_t mission_x_offset;
+	param_t mission_y_offset;
+	param_t mission_update_step;
+	param_t mission_wp_radius;
 	param_t debug;
 };
 

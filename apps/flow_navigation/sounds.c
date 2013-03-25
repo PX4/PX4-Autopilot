@@ -51,5 +51,5 @@ void tune_mission_aborded(void)
 
 void tune_mission_accomplished(void)
 {
-	ioctl(buzzer, TONE_SET_ALARM, 8);
+	ioctl(buzzer, TONE_SET_ALARM, 5);
 }

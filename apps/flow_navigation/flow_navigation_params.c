@@ -58,6 +58,10 @@ PARAM_DEFINE_FLOAT(FN_S3, 0.05f);
 PARAM_DEFINE_FLOAT(FN_S4, 0.3f);
 PARAM_DEFINE_FLOAT(FN_S5, 0.3f);
 PARAM_DEFINE_FLOAT(FN_S6, 0.01f);
+PARAM_DEFINE_FLOAT(FN_MISS_XOFF, 2.0f);
+PARAM_DEFINE_FLOAT(FN_MISS_YOFF, 0.0f);
+PARAM_DEFINE_FLOAT(FN_MISS_STEP, 0.01f);
+PARAM_DEFINE_FLOAT(FN_MISS_WP_R, 0.4f);
 PARAM_DEFINE_INT32(FN_DEBUG, 0);
 
 
@@ -78,6 +82,10 @@ int parameters_init(struct flow_navigation_param_handles *h)
 	h->s4					=	param_find("FN_S4");
 	h->s5					=	param_find("FN_S5");
 	h->s6					=	param_find("FN_S6");
+	h->mission_x_offset		=	param_find("FN_MISS_XOFF");
+	h->mission_y_offset		=	param_find("FN_MISS_YOFF");
+	h->mission_update_step	=	param_find("FN_MISS_STEP");
+	h->mission_wp_radius	=	param_find("FN_MISS_WP_R");
 	h->debug				=	param_find("FN_DEBUG");
 
 	return OK;
@@ -99,6 +107,10 @@ int parameters_update(const struct flow_navigation_param_handles *h, struct flow
 	param_get(h->s4, &(p->s4));
 	param_get(h->s5, &(p->s5));
 	param_get(h->s6, &(p->s6));
+	param_get(h->mission_x_offset, &(p->mission_x_offset));
+	param_get(h->mission_y_offset, &(p->mission_y_offset));
+	param_get(h->mission_update_step, &(p->mission_update_step));
+	param_get(h->mission_wp_radius, &(p->mission_wp_radius));
 	param_get(h->debug, &(p->debug));
 
 	return OK;

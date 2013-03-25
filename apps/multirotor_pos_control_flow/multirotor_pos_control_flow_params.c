@@ -70,6 +70,8 @@ int parameters_init(struct multirotor_position_control_flow_param_handles *h)
 	h->limit_roll 			=	param_find("MFPC_L_ROLL");
 	h->limit_thrust_int 	=	param_find("MFPC_L_TH_I");
 	h->limit_thrust_lower 	=	param_find("MFPC_L_TH_L");
+	h->trim_roll 			=	param_find("TRIM_ROLL");
+	h->trim_pitch 			=	param_find("TRIM_PITCH");
 
 	return OK;
 }
@@ -87,6 +89,8 @@ int parameters_update(const struct multirotor_position_control_flow_param_handle
 	param_get(h->limit_roll, &(p->limit_roll));
 	param_get(h->limit_thrust_int, &(p->limit_thrust_int));
 	param_get(h->limit_thrust_lower, &(p->limit_thrust_lower));
+	param_get(h->trim_roll, &(p->trim_roll));
+	param_get(h->trim_pitch, &(p->trim_pitch));
 
 	return OK;
 }

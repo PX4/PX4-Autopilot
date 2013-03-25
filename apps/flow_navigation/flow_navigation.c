@@ -70,11 +70,17 @@
 #include "codegen/wallEstimationFilter.h"
 #include "codegen/wallEstimator.h"
 
-
-#define MISSION_POSITION_UPDATE_STEP 	0.005f
 static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
 static int daemon_task;				/**< Handle of daemon task / thread */
+
+/* mission */
+static bool final_sequence = false;
+
+float debug_value1;
+float debug_value2;
+int debug_value3;
+int debug_value4;
 
 /**
  * Daemon management function.
@@ -96,8 +102,11 @@ static void usage(const char *reason);
  */
 int get_next_bodyframe_setpoint(
 		struct discrete_radar_s *radar,
+		struct vehicle_attitude_s *att,
+		struct vehicle_local_position_s *local_pos,
 		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_bodyframe_position_setpoint_s *current_waypoint,
+		struct vehicle_local_position_s *local_waypoint,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_waypoint,
 		struct flow_navigation_params *params,
 		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
 		);
@@ -180,40 +189,60 @@ int flow_navigation_main(int argc, char *argv[])
 
 int get_next_bodyframe_setpoint(
 		struct discrete_radar_s *radar, // current radar situation
+		struct vehicle_attitude_s *att,
+		struct vehicle_local_position_s *local_pos,
 		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_bodyframe_position_setpoint_s *current_waypoint, // final destination
+		struct vehicle_local_position_s *local_waypoint,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_waypoint, // final destination
 		struct flow_navigation_params *params, // actual parameters
 		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp // result
 		)
 {
-	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
+	float update_step = params->mission_update_step;
+	float waypoint_radius = params->mission_wp_radius;
 
-	wp_bodyframe_offset[0] = current_waypoint->x - bodyframe_pos->x;
-	wp_bodyframe_offset[1] = current_waypoint->y - bodyframe_pos->y;
+	if(!final_sequence){
+		/* calc final destination in bodyframe */
+		convert_setpoint_local2bodyframe(local_pos,bodyframe_pos,att,local_waypoint,bodyframe_waypoint);
+	}
+
+	float wp_bodyframe_offset_x = bodyframe_waypoint->x - bodyframe_pos_sp->x;
+	float wp_bodyframe_offset_y = bodyframe_waypoint->y - bodyframe_pos_sp->y;
+
+	/* final mission sequence? -> make lookup table */
+	if(!final_sequence){
+		if (fabsf(wp_bodyframe_offset_x) < waypoint_radius && fabsf(wp_bodyframe_offset_y) < waypoint_radius) {
+			final_sequence = true;
+		}
+	}
 
 	/* x */
-	int x_steps = (int) (wp_bodyframe_offset[0] / MISSION_POSITION_UPDATE_STEP);
+	int x_steps = (int)(wp_bodyframe_offset_x / update_step);
+	/* y */
+	int y_steps = (int)(wp_bodyframe_offset_y / update_step);
+
+	debug_value1 = wp_bodyframe_offset_x;
+	debug_value2 = wp_bodyframe_offset_y;
+	debug_value3 = x_steps;
+	debug_value4 = y_steps;
 
 	if (x_steps > 0) {
-		bodyframe_pos_sp->x = bodyframe_pos->x + MISSION_POSITION_UPDATE_STEP;
+		bodyframe_pos_sp->x = bodyframe_pos_sp->x + update_step;
 	} else if(x_steps < 0) {
-		bodyframe_pos_sp->x = bodyframe_pos->x - MISSION_POSITION_UPDATE_STEP;
+		bodyframe_pos_sp->x = bodyframe_pos_sp->x - update_step;
 	} else {
-		bodyframe_pos_sp->x = bodyframe_pos->x;
+		bodyframe_pos_sp->x = bodyframe_waypoint->x;
 	}
-
-	/* y */
-	int y_steps = wp_bodyframe_offset[1] / MISSION_POSITION_UPDATE_STEP;
 
 	if (y_steps > 0) {
-		bodyframe_pos_sp->y = bodyframe_pos->y + MISSION_POSITION_UPDATE_STEP;
+		bodyframe_pos_sp->y = bodyframe_pos_sp->y + update_step;
 	} else if(y_steps < 0) {
-		bodyframe_pos_sp->y = bodyframe_pos->y - MISSION_POSITION_UPDATE_STEP;
+		bodyframe_pos_sp->y = bodyframe_pos_sp->y - update_step;
 	} else {
-		bodyframe_pos_sp->y = bodyframe_pos->y;
+		bodyframe_pos_sp->y = bodyframe_waypoint->y;
 	}
 
-	bodyframe_pos_sp->yaw = current_waypoint->yaw;
+	bodyframe_pos_sp->yaw = bodyframe_waypoint->yaw;
 
 	if (abs(x_steps) > abs(y_steps))
 		return x_steps;
@@ -234,7 +263,7 @@ void convert_setpoint_bodyframe2local(
 
 	wp_bodyframe_offset[0] = bodyframe_pos_sp->x - bodyframe_pos->x;
 	wp_bodyframe_offset[1] = bodyframe_pos_sp->y - bodyframe_pos->y;
-	wp_bodyframe_offset[2] = bodyframe_pos_sp->z - bodyframe_pos->z;
+	wp_bodyframe_offset[2] = 0; // no influence of z...
 
 	/* calc current waypoint cooridnates in local */
 	for(uint8_t i = 0; i < 3; i++) {
@@ -263,7 +292,7 @@ void convert_setpoint_local2bodyframe(
 
 	wp_local_offset[0] = local_pos_sp->x - local_pos->x;
 	wp_local_offset[1] = local_pos_sp->y - local_pos->y;
-	wp_local_offset[2] = local_pos_sp->z - local_pos->z;
+	wp_local_offset[2] = 0; // no influence of z...
 
 	/* calc current waypoint cooridnates in bodyframe */
 	for(uint8_t i = 0; i < 3; i++) {
@@ -394,9 +423,8 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 	/* mission */
 	static bool mission_started = false;
-	static bool mission_initialized = false;
 	static bool mission_accomplished = false;
-	static bool mission_aborded = false;
+	static bool mission_initialized = false;
 
 	static bool sensors_ready = false;
 
@@ -466,17 +494,33 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					/* get a local copy of the vehicle state */
 					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
 
+					int remaining_sp = 0;
+
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 						/* update mission flags */
-						if (!mission_started) {
+						if (!mission_started && !mission_accomplished) {
 							if (manual.aux2 < 0) {
+								/* start mission planner */
 								mission_started = true;
+
 								tune_mission_started();
 							}
 						} else {
-							if (manual.aux2 > 0 && !mission_aborded) {
-								mission_aborded = true;
-								tune_mission_aborded();
+							if (manual.aux2 > 0) {
+
+								if (mission_started){
+									/* set current position as setpoint */
+									bodyframe_pos_sp.x = bodyframe_pos.x;
+									bodyframe_pos_sp.y = bodyframe_pos.y;
+									bodyframe_pos_sp.yaw = att.yaw;
+
+									tune_mission_aborded();
+								}
+
+								/* reset mission planner */
+								mission_started = false;
+								mission_accomplished = false;
+								mission_initialized = false;
 							}
 						}
 
@@ -484,24 +528,26 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 						if (mission_started) {
 							if (!mission_initialized) {
 								/* only one mission... 2m forward */
-								final_dest_bodyframe.x = bodyframe_pos.x + 1;
-								final_dest_bodyframe.y = bodyframe_pos.y;
+								/* TODO do it with current setpoint??? DONE*/
+								final_dest_bodyframe.x = bodyframe_pos_sp.x + params.mission_x_offset;
+								final_dest_bodyframe.y = bodyframe_pos_sp.y + params.mission_y_offset;
 								final_dest_bodyframe.yaw = att.yaw;
 								convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&final_dest_bodyframe,&final_dest_local);
 								mission_initialized = true;
 							}
 
-							if (!mission_aborded && !mission_accomplished) {
-								/* calc final destination in bodyframe */
-								convert_setpoint_local2bodyframe(&local_pos,&bodyframe_pos,&att,&final_dest_local,&final_dest_bodyframe);
+							remaining_sp = get_next_bodyframe_setpoint(&discrete_radar, &att, &local_pos,
+									&bodyframe_pos, &final_dest_local, &final_dest_bodyframe, &params, &bodyframe_pos_sp);
 
-								int remaining_sp = get_next_bodyframe_setpoint(&discrete_radar,&bodyframe_pos,&final_dest_bodyframe,&params,&bodyframe_pos_sp);
+							if (remaining_sp == 0) {
+								mission_started = false;
+								mission_accomplished = true;
+								mission_initialized = false;
+								final_sequence = false;
 
-								if (!remaining_sp) {
-									mission_accomplished = true;
-									tune_mission_accomplished();
-								}
+								tune_mission_accomplished();
 							}
+
 						}
 
 						/* manualy update position setpoint? */
@@ -523,7 +569,7 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 							bodyframe_pos_sp.yaw += setpoint_update_step_yaw;
 						}
 
-						// TODO add modulo for rotation -pi +pi
+						/* modulo for rotation -pi +pi */
 						if(bodyframe_pos_sp.yaw < -M_PI_F) {
 							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + M_TWOPI_F;
 						} else if(bodyframe_pos_sp.yaw > M_PI_F) {
@@ -538,9 +584,8 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 						bodyframe_pos_sp.y = bodyframe_pos.y;
 						bodyframe_pos_sp.yaw = att.yaw;
 						mission_started = false;
-						mission_initialized = false;
 						mission_accomplished = false;
-						mission_aborded = false;
+						mission_initialized = false;
 					}
 
 					convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&bodyframe_pos_sp,&local_pos_sp);
@@ -551,9 +596,10 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					if(isfinite(bodyframe_pos_sp.x) && isfinite(bodyframe_pos_sp.y) && isfinite(bodyframe_pos_sp.yaw))
 					{
 						orb_publish(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_sp_pub, &bodyframe_pos_sp);
-						debug_pos.lon = final_dest_local.x * 100;
-						debug_pos.lat = final_dest_local.y * 100;
-						debug_pos.alt = final_dest_local.yaw * 100;
+						debug_pos.lon = (int)(debug_value1 * 100.0f);
+						debug_pos.lat = (int)(debug_value2 * 100.0f);
+						debug_pos.alt = debug_value3;
+						debug_pos.relative_alt = debug_value4;
 					}
 					if(isfinite(local_pos_sp.x) && isfinite(local_pos_sp.y) && isfinite(local_pos_sp.yaw))
 					{
