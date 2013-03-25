@@ -159,6 +159,7 @@ protected:
 	control::BlockParam<float> _rGpsVel;    /**< gps velocity measurement noise */
 	control::BlockParam<float> _rGpsPos;    /**< gps position measurement noise */
 	control::BlockParam<float> _rGpsAlt;    /**< gps altitude measurement noise */
+	control::BlockParam<float> _rPressAlt;  /**< press altitude measurement noise */
 	control::BlockParam<float> _rAccel;     /**< accelerometer measurement noise */
 	control::BlockParam<float> _magDip;     /**< magnetic inclination with level */
 	control::BlockParam<float> _magDec;     /**< magnetic declination, clockwise rotation */

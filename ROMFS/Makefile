@@ -22,6 +22,8 @@ ROMFS_FSSPEC	:= $(SRCROOT)/scripts/rcS~init.d/rcS \
 		   $(SRCROOT)/scripts/rc.PX4IO~init.d/rc.PX4IO \
 		   $(SRCROOT)/scripts/rc.PX4IOAR~init.d/rc.PX4IOAR \
 		   $(SRCROOT)/scripts/rc.FMU_quad_x~init.d/rc.FMU_quad_x \
+		   $(SRCROOT)/scripts/rc.usb~init.d/rc.usb \
+		   $(SRCROOT)/scripts/rc.hil~init.d/rc.hil \
 		   $(SRCROOT)/mixers/FMU_pass.mix~mixers/FMU_pass.mix \
 		   $(SRCROOT)/mixers/FMU_Q.mix~mixers/FMU_Q.mix \
 		   $(SRCROOT)/mixers/FMU_X5.mix~mixers/FMU_X5.mix \

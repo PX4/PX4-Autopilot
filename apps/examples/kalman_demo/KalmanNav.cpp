@@ -61,8 +61,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	HAtt(6, 9),
 	RAtt(6, 6),
 	// position measurement ekf matrices
-	HPos(5, 9),
-	RPos(5, 5),
+	HPos(6, 9),
+	RPos(6, 6),
 	// attitude representations
 	C_nb(),
 	q(),
@@ -95,6 +95,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_rGpsVel(this, "R_GPS_VEL"),
 	_rGpsPos(this, "R_GPS_POS"),
 	_rGpsAlt(this, "R_GPS_ALT"),
+	_rPressAlt(this, "R_PRESS_ALT"),
 	_rAccel(this, "R_ACCEL"),
 	_magDip(this, "ENV_MAG_DIP"),
 	_magDec(this, "ENV_MAG_DEC"),
@@ -134,6 +135,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	HPos(2, 6) = 1.0e7f * M_RAD_TO_DEG_F;
 	HPos(3, 7) = 1.0e7f * M_RAD_TO_DEG_F;
 	HPos(4, 8) = 1.0f;
+	HPos(5, 8) = 1.0f;
 
 	// initialize all parameters
 	updateParams();
@@ -192,7 +194,7 @@ void KalmanNav::update()
 	    gpsUpdate &&
 	    _gps.fix_type > 2
 	    //&& _gps.counter_pos_valid > 10
-	    ) {
+	   ) {
 		vN = _gps.vel_n_m_s;
 		vE = _gps.vel_e_m_s;
 		vD = _gps.vel_d_m_s;
@@ -630,12 +632,13 @@ int KalmanNav::correctPos()
 	using namespace math;
 
 	// residual
-	Vector y(5);
+	Vector y(6);
 	y(0) = _gps.vel_n_m_s - vN;
 	y(1) = _gps.vel_e_m_s - vE;
 	y(2) = double(_gps.lat) - lat * 1.0e7 * M_RAD_TO_DEG;
 	y(3) = double(_gps.lon) - lon * 1.0e7 * M_RAD_TO_DEG;
 	y(4) = double(_gps.alt) / 1.0e3 - alt;
+	y(5) = double(_sensors.baro_alt_meter) - alt;
 
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
@@ -685,7 +688,8 @@ int KalmanNav::correctPos()
 		       double(y(1) / sqrtf(RPos(1, 1))),
 		       double(y(2) / sqrtf(RPos(2, 2))),
 		       double(y(3) / sqrtf(RPos(3, 3))),
-		       double(y(4) / sqrtf(RPos(4, 4))));
+		       double(y(4) / sqrtf(RPos(4, 4))),
+		       double(y(5) / sqrtf(RPos(5, 5))));
 	}
 
 	return ret_ok;
@@ -740,7 +744,8 @@ void KalmanNav::updateParams()
 	float noiseVel = _rGpsVel.get();
 	float noiseLatDegE7 = 1.0e7f * M_RAD_TO_DEG_F * _rGpsPos.get() / R;
 	float noiseLonDegE7 = noiseLatDegE7 / cosLSing;
-	float noiseAlt = _rGpsAlt.get();
+	float noiseGpsAlt = _rGpsAlt.get();
+	float noisePressAlt = _rPressAlt.get();
 
 	// bound noise to prevent singularities
 	if (noiseVel < noiseMin) noiseVel = noiseMin;
@@ -749,13 +754,16 @@ void KalmanNav::updateParams()
 
 	if (noiseLonDegE7 < noiseMin) noiseLonDegE7 = noiseMin;
 
-	if (noiseAlt < noiseMin) noiseAlt = noiseMin;
+	if (noiseGpsAlt < noiseMin) noiseGpsAlt = noiseMin;
+
+	if (noisePressAlt < noiseMin) noisePressAlt = noiseMin;
 
 	RPos(0, 0) = noiseVel * noiseVel; // vn
 	RPos(1, 1) = noiseVel * noiseVel; // ve
 	RPos(2, 2) = noiseLatDegE7 * noiseLatDegE7; // lat
 	RPos(3, 3) = noiseLonDegE7 * noiseLonDegE7; // lon
-	RPos(4, 4) = noiseAlt * noiseAlt; // h
+	RPos(4, 4) = noiseGpsAlt * noiseGpsAlt; // h
+	RPos(5, 5) = noisePressAlt * noisePressAlt; // h
 	// XXX, note that RPos depends on lat, so updateParams should
 	// be called if lat changes significantly
 }
