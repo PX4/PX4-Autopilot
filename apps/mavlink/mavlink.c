@@ -236,11 +236,6 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 
 		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
 	}
-//
-//	if (v_status.system_state == NAVIGATION_STATE_SEATBELT) {
-//
-//		*mavlink_mode |= MAV_MODE_FLAG_DECODE_POSITION_GUIDED;
-//	}
 
 
 	/**
@@ -577,6 +572,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		default:
 			usage();
+			break;
 		}
 	}
 

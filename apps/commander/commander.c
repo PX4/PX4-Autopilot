@@ -1082,7 +1082,8 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	/* supported command handling stop */
 	if (result == VEHICLE_CMD_RESULT_FAILED ||
 	    result == VEHICLE_CMD_RESULT_DENIED ||
-	    result == VEHICLE_CMD_RESULT_UNSUPPORTED) {
+	    result == VEHICLE_CMD_RESULT_UNSUPPORTED ||
+	    result == VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED) {
 
 		tune_negative();
 
@@ -1828,16 +1829,19 @@ int commander_thread_main(int argc, char *argv[])
 
 					/* bottom stick position, go to manual mode */
 					current_status.mode_switch = MODE_SWITCH_MANUAL;
+					printf("mode switch: manual\n");
 
 				} else if (sp_man.mode_switch > STICK_ON_OFF_LIMIT) {
 
 					/* top stick position, set auto/mission for all vehicle types */
 					current_status.mode_switch = MODE_SWITCH_AUTO;
+					printf("mode switch: auto\n");
 
 				} else {
 
 					/* center stick position, set seatbelt/simple control */
 					current_status.mode_switch = MODE_SWITCH_SEATBELT;
+					printf("mode switch: seatbelt\n");
 				}
 
 				// warnx("man ctrl mode: %d\n", (int)current_status.manual_control_mode);
