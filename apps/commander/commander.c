@@ -91,8 +91,6 @@
 
 #include "state_machine_helper.h"
 
-
-/* XXX MOVE CALIBRATION TO SENSORS APP THREAD */
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
@@ -161,8 +159,8 @@ enum {
 
 
 /* pthread loops */
-static void *orb_receive_loop(void *arg);
-static void *commander_low_prio_loop(void *arg);
+void *orb_receive_loop(void *arg);
+void *commander_low_prio_loop(void *arg);
 
 __EXPORT int commander_main(int argc, char *argv[]);
 
@@ -190,7 +188,7 @@ void do_accel_calibration(void);
 void do_airspeed_calibration(void);
 
 
-static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
+void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
 
 int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
 
@@ -1101,7 +1099,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 }
 
-static void *orb_receive_loop(void *arg)  //handles status information coming from subsystems (present, enabled, health), these values do not indicate the quality (variance) of the signal
+void *orb_receive_loop(void *arg)  //handles status information coming from subsystems (present, enabled, health), these values do not indicate the quality (variance) of the signal
 {
 	/* Set thread name */
 	prctl(PR_SET_NAME, "commander orb rcv", getpid());
@@ -1669,8 +1667,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (current_status.arming_state == ARMING_STATE_INIT) {
-			// XXX fix for now
-			current_status.condition_system_sensors_initialized = true;
+			// XXX check for sensors
 			arming_state_transition(stat_pub, &current_status, ARMING_STATE_STANDBY, mavlink_fd);
 		} else {
 			// XXX: Add emergency stuff if sensors are lost
@@ -1730,7 +1727,6 @@ int commander_thread_main(int argc, char *argv[])
 		// 	current_status.flag_vector_flight_mode_ok = false;
 		// }
 
-		// XXX why is this needed?
 		/* consolidate state change, flag as changed if required */
 		if (global_pos_valid != current_status.condition_global_position_valid ||
 		    local_pos_valid != current_status.condition_local_position_valid ||
@@ -2030,12 +2026,12 @@ int commander_thread_main(int argc, char *argv[])
 			
 					case ARMING_STATE_ARMED_ERROR:
 			
-						// TODO work out fail-safe scenarios
+						// XXX work out fail-safe scenarios
 						break;
 			
 					case ARMING_STATE_STANDBY_ERROR:
 			
-						// TODO work out fail-safe scenarios
+						// XXX work out fail-safe scenarios
 						break;
 			
 					case ARMING_STATE_REBOOT:
@@ -2050,9 +2046,6 @@ int commander_thread_main(int argc, char *argv[])
 					default:
 						break;
 				}
-
-				// navigation_state_update(stat_pub, &current_status, mavlink_fd);
-
 				/* handle the case where RC signal was regained */
 				if (!current_status.rc_signal_found_once) {
 					current_status.rc_signal_found_once = true;
@@ -2068,11 +2061,11 @@ int commander_thread_main(int argc, char *argv[])
 				* Check if left stick is in lower left position --> switch to standby state.
 				* Do this only for multirotors, not for fixed wing aircraft.
 				*/
-				//				if (((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
-				//				     (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
-				//				     (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
-				//				    ) &&
-				if ((sp_man.yaw < -STICK_ON_OFF_LIMIT) && (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
+				if (((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
+					 (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
+					 (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
+					) &&
+					(sp_man.yaw < -STICK_ON_OFF_LIMIT) && (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						arming_state_transition(stat_pub, &current_status, ARMING_STATE_STANDBY, mavlink_fd);
 						stick_off_counter = 0;
@@ -2186,15 +2179,15 @@ int commander_thread_main(int argc, char *argv[])
 				current_status.offboard_control_signal_lost = false;
 				current_status.offboard_control_signal_lost_interval = 0;
 
+				// XXX check if this is correct
 				/* arm / disarm on request */
 				if (sp_offboard.armed && !current_status.flag_fmu_armed) {
-#warning fix this
-//					update_state_machine_arm(stat_pub, &current_status, mavlink_fd);
-					/* switch to stabilized mode = takeoff */
-//					update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
+
+					arming_state_transition(stat_pub, &current_status, ARMING_STATE_ARMED, mavlink_fd);
 
 				} else if (!sp_offboard.armed && current_status.flag_fmu_armed) {
-//					update_state_machine_disarm(stat_pub, &current_status, mavlink_fd);
+
+					arming_state_transition(stat_pub, &current_status, ARMING_STATE_STANDBY, mavlink_fd);
 				}
 
 			} else {
@@ -2229,7 +2222,7 @@ int commander_thread_main(int argc, char *argv[])
 		current_status.timestamp = hrt_absolute_time();
 
 
-		// XXX what is this?
+		// XXX this is missing
 		/* If full run came back clean, transition to standby */
 //		if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT &&
 //		    current_status.flag_preflight_gyro_calibration == false &&
@@ -2241,8 +2234,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* publish at least with 1 Hz */
 		if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0 || state_changed) {
-#warning fix this
-//			publish_armed_status(&current_status);
+
 			orb_publish(ORB_ID(vehicle_status), stat_pub, &current_status);
 			state_changed = false;
 		}
@@ -2280,7 +2272,7 @@ int commander_thread_main(int argc, char *argv[])
 }
 
 
-static void *commander_low_prio_loop(void *arg)
+void *commander_low_prio_loop(void *arg)
 {
 	/* Set thread name */
 	prctl(PR_SET_NAME, "commander low prio", getpid());
