@@ -87,113 +87,6 @@ void BlockStabilization::update(float pCmd, float qCmd, float rCmd,
 	_yawDamper.update(rCmd, r);
 }
 
-BlockHeadingHold::BlockHeadingHold(SuperBlock *parent, const char *name) :
-	SuperBlock(parent, name),
-	_psi2Phi(this, "PSI2PHI"),
-	_phi2P(this, "PHI2P"),
-	_phiLimit(this, "PHI_LIM")
-{
-}
-
-BlockHeadingHold::~BlockHeadingHold() {};
-
-float BlockHeadingHold::update(float psiCmd, float phi, float psi, float p)
-{
-	float psiError = _wrap_pi(psiCmd - psi);
-	float phiCmd = _phiLimit.update(_psi2Phi.update(psiError));
-	return _phi2P.update(phiCmd - phi);
-}
-
-BlockVelocityHoldBackside::BlockVelocityHoldBackside(SuperBlock *parent, const char *name) :
-	SuperBlock(parent, name),
-	_v2Theta(this, "V2THE"),
-	_theta2Q(this, "THE2Q"),
-	_theLimit(this, "THE"),
-	_vLimit(this, "V")
-{
-}
-
-BlockVelocityHoldBackside::~BlockVelocityHoldBackside() {};
-
-float BlockVelocityHoldBackside::update(float vCmd, float v, float theta, float q)
-{
-	// negative sign because nose over to increase speed
-	float thetaCmd = _theLimit.update(-_v2Theta.update(_vLimit.update(vCmd) - v));
-	return _theta2Q.update(thetaCmd - theta);
-}
-
-BlockVelocityHoldFrontside::BlockVelocityHoldFrontside(SuperBlock *parent, const char *name) :
-	SuperBlock(parent, name),
-	_v2Thr(this, "V2THR")
-{
-}
-
-BlockVelocityHoldFrontside::~BlockVelocityHoldFrontside() {};
-
-float BlockVelocityHoldFrontside::update(float vCmd, float v)
-{
-	return _v2Thr.update(vCmd - v);
-}
-
-BlockAltitudeHoldBackside::BlockAltitudeHoldBackside(SuperBlock *parent, const char *name) :
-	SuperBlock(parent, name),
-	_h2Thr(this, "H2THR"),
-	_throttle(0)
-{
-}
-
-BlockAltitudeHoldBackside::~BlockAltitudeHoldBackside() {};
-
-void BlockAltitudeHoldBackside::update(float hCmd, float h)
-{
-	_throttle = _h2Thr.update(hCmd - h);
-}
-
-BlockAltitudeHoldFrontside::BlockAltitudeHoldFrontside(SuperBlock *parent, const char *name) :
-	SuperBlock(parent, name),
-	_h2Theta(this, "H2THE"),
-	_theta2Q(this, "THE2Q")
-{
-}
-
-BlockAltitudeHoldFrontside::~BlockAltitudeHoldFrontside() {};
-
-float BlockAltitudeHoldFrontside::update(float hCmd, float h, float theta, float q)
-{
-	float thetaCmd = _h2Theta.update(hCmd - h);
-	return _theta2Q.update(thetaCmd - theta);
-}
-
-BlockBacksideAutopilot::BlockBacksideAutopilot(SuperBlock *parent,
-		const char *name,
-		BlockStabilization *stabilization) :
-	SuperBlock(parent, name),
-	_stabilization(stabilization),
-	_headingHold(this, ""),
-	_velocityHold(this, ""),
-	_altitudeHold(this, ""),
-	_trimAil(this, "TRIM_ROLL", false), /* general roll trim (full name: TRIM_ROLL) */
-	_trimElv(this, "TRIM_PITCH", false), /* general pitch trim */
-	_trimRdr(this, "TRIM_YAW", false), /* general yaw trim */
-	_trimThr(this, "TRIM_THR", true) /* FWB_ specific throttle trim (full name: FWB_TRIM_THR) */
-{
-}
-
-BlockBacksideAutopilot::~BlockBacksideAutopilot() {};
-
-void BlockBacksideAutopilot::update(float hCmd, float vCmd, float rCmd, float psiCmd,
-				    float h, float v,
-				    float phi, float theta, float psi,
-				    float p, float q, float r)
-{
-	_altitudeHold.update(hCmd, h);
-	_stabilization->update(
-		_headingHold.update(psiCmd, phi, psi, p),
-		_velocityHold.update(vCmd, v, theta, q),
-		rCmd,
-		p, q, r);
-}
-
 BlockWaypointGuidance::BlockWaypointGuidance(SuperBlock *parent, const char *name) :
 	SuperBlock(parent, name),
 	_xtYawLimit(this, "XT2YAW"),
@@ -252,9 +145,33 @@ BlockUorbEnabledAutopilot::~BlockUorbEnabledAutopilot() {};
 BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *parent, const char *name) :
 	BlockUorbEnabledAutopilot(parent, name),
 	_stabilization(this, ""), // no name needed, already unique
-	_backsideAutopilot(this, "", &_stabilization),
+
+	// heading hold
+	_psi2Phi(this, "PSI2PHI"),
+	_phi2P(this, "PHI2P"),
+	_phiLimit(this, "PHI_LIM"),
+
+	// velocity hold
+	_v2Theta(this, "V2THE"),
+	_theta2Q(this, "THE2Q"),
+	_theLimit(this, "THE"),
+	_vLimit(this, "V"),
+
+	// altitude/roc hold
+	_h2Thr(this, "H2THR"),
+	_roc2Thr(this, "ROC2THR"),
+
+	// guidance block
 	_guide(this, ""),
+
+	// block params
+	_trimAil(this, "TRIM_ROLL", false), /* general roll trim (full name: TRIM_ROLL) */
+	_trimElv(this, "TRIM_PITCH", false), /* general pitch trim */
+	_trimRdr(this, "TRIM_YAW", false), /* general yaw trim */
+	_trimThr(this, "TRIM_THR", true), /* FWB_ specific throttle trim (full name: FWB_TRIM_THR) */
+
 	_vCmd(this, "V_CMD"),
+	_rocMax(this, "ROC_MAX"),
 	_attPoll(),
 	_lastPosCmd(),
 	_timeStamp(0)
@@ -308,7 +225,7 @@ void BlockMultiModeBacksideAutopilot::update()
 #warning should be base on flags
 	// handle autopilot modes
 	if (_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
-		_status.navigation_state == NAVIGATION_STATE_MANUAL) {
+		_status.navigation_state == NAVIGATION_STATE_SEATBELT) {
 
 		// update guidance
 		_guide.update(_pos, _att, _posCmd, _lastPosCmd);
@@ -316,19 +233,32 @@ void BlockMultiModeBacksideAutopilot::update()
 		// calculate velocity, XXX should be airspeed, but using ground speed for now
 		float v = sqrtf(_pos.vx * _pos.vx + _pos.vy * _pos.vy + _pos.vz * _pos.vz);
 
-		// commands
+		// altitude hold
+		float dThrottle = _h2Thr.update(_posCmd.altitude - _pos.alt);
+
+		// heading hold
+		float psiError = _wrap_pi(_guide.getPsiCmd() - _att.yaw);
+		float phiCmd = _phiLimit.update(_psi2Phi.update(psiError));
+		float pCmd = _phi2P.update(phiCmd - _att.roll);
+
+		// velocity hold
+		// negative sign because nose over to increase speed
+		float thetaCmd = _theLimit.update(-_v2Theta.update(
+				_vLimit.update(_vCmd.get()) - v));
+		float qCmd = _theta2Q.update(thetaCmd - _att.pitch);
+
+		// yaw rate cmd
 		float rCmd = 0;
 
-		_backsideAutopilot.update(
-			_posCmd.altitude, _vCmd.get(), rCmd, _guide.getPsiCmd(),
-			_pos.alt, v,
-			_att.roll, _att.pitch, _att.yaw,
-			_att.rollspeed, _att.pitchspeed, _att.yawspeed
-		);
-		_actuators.control[CH_AIL] = _backsideAutopilot.getAileron();
-		_actuators.control[CH_ELV] = _backsideAutopilot.getElevator();
-		_actuators.control[CH_RDR] = _backsideAutopilot.getRudder();
-		_actuators.control[CH_THR] = _backsideAutopilot.getThrottle();
+		// stabilization
+		_stabilization.update(pCmd, qCmd, rCmd,
+				      _att.rollspeed, _att.pitchspeed, _att.yawspeed);
+
+		// output
+		_actuators.control[CH_AIL] = _stabilization.getAileron() + _trimAil.get();
+		_actuators.control[CH_ELV] = _stabilization.getElevator() + _trimElv.get();
+		_actuators.control[CH_RDR] = _stabilization.getRudder() + _trimRdr.get();
+		_actuators.control[CH_THR] = dThrottle + _trimThr.get();
 
 		// XXX limit throttle to manual setting (safety) for now.
 		// If it turns out to be confusing, it can be removed later once
@@ -339,27 +269,81 @@ void BlockMultiModeBacksideAutopilot::update()
 		if (!_status.flag_hil_enabled) {
 			/* limit to value of manual throttle */
 			_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
-							_actuators.control[CH_THR] : _manual.throttle;
+						     _actuators.control[CH_THR] : _manual.throttle;
 		}
 
-#warning should be base on flags
 	} else if (_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
-#warning fix the different manual modes
-		_actuators.control[CH_AIL] = _manual.roll;
-		_actuators.control[CH_ELV] = _manual.pitch;
-		_actuators.control[CH_RDR] = _manual.yaw;
-		_actuators.control[CH_THR] = _manual.throttle;
-#warning should be based on flags
-	} else if (_status.navigation_state == NAVIGATION_STATE_SEATBELT) {
+#warning fix here too
+//		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+//			_actuators.control[CH_AIL] = _manual.roll;
+//			_actuators.control[CH_ELV] = _manual.pitch;
+//			_actuators.control[CH_RDR] = _manual.yaw;
+//			_actuators.control[CH_THR] = _manual.throttle;
+//
+//		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
-		_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
-		_att.rollspeed, _att.pitchspeed, _att.yawspeed);
+			// calculate velocity, XXX should be airspeed, but using ground speed for now
+			float v = sqrtf(_pos.vx * _pos.vx + _pos.vy * _pos.vy + _pos.vz * _pos.vz);
 
-		_actuators.control[CH_AIL] = _stabilization.getAileron();
-		_actuators.control[CH_ELV] = _stabilization.getElevator();
-		_actuators.control[CH_RDR] = _stabilization.getRudder();
-		_actuators.control[CH_THR] = _manual.throttle;
+			// pitch channel -> rate of climb
+			// TODO, might want to put a gain on this, otherwise commanding
+			// from +1 -> -1 m/s for rate of climb
+			//float dThrottle = _roc2Thr.update(
+			//_rocMax.get()*_manual.pitch - _pos.vz);
+
+			// roll channel -> bank angle
+			float phiCmd = _phiLimit.update(_manual.roll * _phiLimit.getMax());
+			float pCmd = _phi2P.update(phiCmd - _att.roll);
+
+			// throttle channel -> velocity
+			// negative sign because nose over to increase speed
+			float vCmd = _manual.throttle * (_vLimit.getMax() - _vLimit.getMin()) + _vLimit.getMin();
+			float thetaCmd = _theLimit.update(-_v2Theta.update(_vLimit.update(vCmd) - v));
+			float qCmd = _theta2Q.update(thetaCmd - _att.pitch);
+
+			// yaw rate cmd
+			float rCmd = 0;
+
+			// stabilization
+			_stabilization.update(pCmd, qCmd, rCmd,
+					      _att.rollspeed, _att.pitchspeed, _att.yawspeed);
+
+			// output
+			_actuators.control[CH_AIL] = _stabilization.getAileron() + _trimAil.get();
+			_actuators.control[CH_ELV] = _stabilization.getElevator() + _trimElv.get();
+			_actuators.control[CH_RDR] = _stabilization.getRudder() + _trimRdr.get();
+
+			// currenlty using manual throttle
+			// XXX if you enable this watch out, vz might be very noisy
+			//_actuators.control[CH_THR] = dThrottle + _trimThr.get();
+			_actuators.control[CH_THR] = _manual.throttle;
+
+			// XXX limit throttle to manual setting (safety) for now.
+			// If it turns out to be confusing, it can be removed later once
+			// a first binary release can be targeted.
+			// This is not a hack, but a design choice.
+
+			/* do not limit in HIL */
+			if (!_status.flag_hil_enabled) {
+				/* limit to value of manual throttle */
+				_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
+							     _actuators.control[CH_THR] : _manual.throttle;
+			}
+#warning fix this
+//		}
+
+		// body rates controller, disabled for now
+		else if (0 /*_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS*/) {
+
+			_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
+					      _att.rollspeed, _att.pitchspeed, _att.yawspeed);
+
+			_actuators.control[CH_AIL] = _stabilization.getAileron();
+			_actuators.control[CH_ELV] = _stabilization.getElevator();
+			_actuators.control[CH_RDR] = _stabilization.getRudder();
+			_actuators.control[CH_THR] = _manual.throttle;
+		}
 	}
 
 	// update all publications
