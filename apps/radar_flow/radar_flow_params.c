@@ -1,8 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Samuel Zihlmann <samuezih@ee.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,64 +33,51 @@
  ****************************************************************************/
 
 /*
- * @file flow_navigation_params.c
- * 
- * Parameters for EKF filter
+ * @file radar_flow_params.c
  */
 
-#include "flow_navigation_params.h"
+#include "radar_flow_params.h"
 
-/* Extended Kalman Filter covariances */
-
-/* controller parameters */
-PARAM_DEFINE_FLOAT(FN_POS_SP_X, 0.0f);
-PARAM_DEFINE_FLOAT(FN_POS_SP_Y, 0.0f);
-PARAM_DEFINE_FLOAT(FN_BEEP_F, 0.0f);
-PARAM_DEFINE_FLOAT(FN_BEEP_B, 0.0f);
-PARAM_DEFINE_FLOAT(FN_KAL_K1, 0.0235f);
-PARAM_DEFINE_FLOAT(FN_KAL_K2, 0.0140f);
-PARAM_DEFINE_FLOAT(FN_FRONT_A, 0.1f);
-PARAM_DEFINE_FLOAT(FN_S0, 0.05f);
-PARAM_DEFINE_FLOAT(FN_S1, 0.05f);
-PARAM_DEFINE_FLOAT(FN_S2, 2.0f);
-PARAM_DEFINE_FLOAT(FN_S3, 0.05f);
-PARAM_DEFINE_FLOAT(FN_S4, 0.3f);
-PARAM_DEFINE_FLOAT(FN_S5, 0.3f);
-PARAM_DEFINE_FLOAT(FN_S6, 0.01f);
-PARAM_DEFINE_FLOAT(FN_MISS_XOFF, 2.0f);
-PARAM_DEFINE_FLOAT(FN_MISS_YOFF, 0.0f);
-PARAM_DEFINE_FLOAT(FN_MISS_STEP, 0.01f);
-PARAM_DEFINE_FLOAT(FN_MISS_WP_R, 0.4f);
-PARAM_DEFINE_INT32(FN_DEBUG, 0);
+/* radar parameters */
+PARAM_DEFINE_FLOAT(RF_POS_SP_X, 0.0f);
+PARAM_DEFINE_FLOAT(RF_POS_SP_Y, 0.0f);
+PARAM_DEFINE_FLOAT(RF_BEEP_F, 0.0f);
+PARAM_DEFINE_FLOAT(RF_BEEP_B, 0.0f);
+PARAM_DEFINE_FLOAT(RF_KAL_K1, 0.0235f);
+PARAM_DEFINE_FLOAT(RF_KAL_K2, 0.0140f);
+PARAM_DEFINE_FLOAT(RF_FRONT_A, 0.1f);
+PARAM_DEFINE_FLOAT(RF_S0, 0.05f);
+PARAM_DEFINE_FLOAT(RF_S1, 0.05f);
+PARAM_DEFINE_FLOAT(RF_S2, 2.0f);
+PARAM_DEFINE_FLOAT(RF_S3, 0.05f);
+PARAM_DEFINE_FLOAT(RF_S4, 0.3f);
+PARAM_DEFINE_FLOAT(RF_S5, 0.3f);
+PARAM_DEFINE_FLOAT(RF_S6, 0.01f);
+PARAM_DEFINE_INT32(RF_DEBUG, 0);
 
 
-int parameters_init(struct flow_navigation_param_handles *h)
+int parameters_init(struct radar_flow_param_handles *h)
 {
-	/* PID parameters */
-	h->pos_sp_x	 			=	param_find("FN_POS_SP_X");
-	h->pos_sp_y				=	param_find("FN_POS_SP_Y");
-	h->beep_front_sonar		=	param_find("FN_BEEP_F");
-	h->beep_bottom_sonar	=	param_find("FN_BEEP_B");
-	h->kalman_k1	 		=	param_find("FN_KAL_K1");
-	h->kalman_k2			=	param_find("FN_KAL_K2");
-	h->front_lp_alpha		=	param_find("FN_FRONT_A");
-	h->s0					=	param_find("FN_S0");
-	h->s1					=	param_find("FN_S1");
-	h->s2					=	param_find("FN_S2");
-	h->s3					=	param_find("FN_S3");
-	h->s4					=	param_find("FN_S4");
-	h->s5					=	param_find("FN_S5");
-	h->s6					=	param_find("FN_S6");
-	h->mission_x_offset		=	param_find("FN_MISS_XOFF");
-	h->mission_y_offset		=	param_find("FN_MISS_YOFF");
-	h->mission_update_step	=	param_find("FN_MISS_STEP");
-	h->mission_wp_radius	=	param_find("FN_MISS_WP_R");
-	h->debug				=	param_find("FN_DEBUG");
+	h->pos_sp_x	 			=	param_find("RF_POS_SP_X");
+	h->pos_sp_y				=	param_find("RF_POS_SP_Y");
+	h->beep_front_sonar		=	param_find("RF_BEEP_F");
+	h->beep_bottom_sonar	=	param_find("RF_BEEP_B");
+	h->kalman_k1	 		=	param_find("RF_KAL_K1");
+	h->kalman_k2			=	param_find("RF_KAL_K2");
+	h->front_lp_alpha		=	param_find("RF_FRONT_A");
+	h->s0					=	param_find("RF_S0");
+	h->s1					=	param_find("RF_S1");
+	h->s2					=	param_find("RF_S2");
+	h->s3					=	param_find("RF_S3");
+	h->s4					=	param_find("RF_S4");
+	h->s5					=	param_find("RF_S5");
+	h->s6					=	param_find("RF_S6");
+	h->debug				=	param_find("RF_DEBUG");
 
 	return OK;
 }
 
-int parameters_update(const struct flow_navigation_param_handles *h, struct flow_navigation_params *p)
+int parameters_update(const struct radar_flow_param_handles *h, struct radar_flow_params *p)
 {
 	param_get(h->pos_sp_x, &(p->pos_sp_x));
 	param_get(h->pos_sp_y, &(p->pos_sp_y));
@@ -107,10 +93,6 @@ int parameters_update(const struct flow_navigation_param_handles *h, struct flow
 	param_get(h->s4, &(p->s4));
 	param_get(h->s5, &(p->s5));
 	param_get(h->s6, &(p->s6));
-	param_get(h->mission_x_offset, &(p->mission_x_offset));
-	param_get(h->mission_y_offset, &(p->mission_y_offset));
-	param_get(h->mission_update_step, &(p->mission_update_step));
-	param_get(h->mission_wp_radius, &(p->mission_wp_radius));
 	param_get(h->debug, &(p->debug));
 
 	return OK;

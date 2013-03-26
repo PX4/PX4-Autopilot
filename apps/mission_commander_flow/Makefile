@@ -32,30 +32,11 @@
 ############################################################################
 
 #
-# Makefile to build the flow navigation application
+# Makefile to build the mission commander
 #
 
-APPNAME		 = flow_navigation
+APPNAME		 = mission_commander_flow
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 2048
-
-CSRCS		 = flow_navigation.c \
-		   flow_navigation_params.c \
-		   setpoint_planner.c \
-		   sounds.c \
-		   codegen/flowNavigation.c \
-		   codegen/flowNavigation_initialize.c \
-		   codegen/flowNavigation_terminate.c \
-		   codegen/any.c \
-		   codegen/frontFlowKalmanFilter.c \
-		   codegen/mean.c \
-		   codegen/mldivide.c \
-		   codegen/power.c \
-		   codegen/rt_nonfinite.c \
-		   codegen/rtGetInf.c \
-		   codegen/rtGetNaN.c \
-		   codegen/sum.c \
-		   codegen/wallEstimationFilter.c \
-		   codegen/wallEstimator.c
+STACKSIZE	 = 4096
 
 include $(APPDIR)/mk/app.mk

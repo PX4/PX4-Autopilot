@@ -34,65 +34,46 @@
  ****************************************************************************/
 
 /*
- * @file flow_navigation_params.h
+ * @file mission_commander_flow_params.c
  * 
- * Parameters for position controller
+ * Parameters for mission commander
  */
 
-#include <systemlib/param/param.h>
+#include "mission_commander_flow_params.h"
 
-struct flow_navigation_params {
-	float pos_sp_x;
-	float pos_sp_y;
-	int beep_bottom_sonar;
-	int beep_front_sonar;
-	float kalman_k1;
-	float kalman_k2;
-	float front_lp_alpha;
-	float s0;
-	float s1;
-	float s2;
-	float s3;
-	float s4;
-	float s5;
-	float s6;
-	float mission_x_offset;
-	float mission_y_offset;
-	float mission_update_step;
-	float mission_wp_radius;
-	int debug;
-};
+/* commander parameters */
+PARAM_DEFINE_FLOAT(MCF_MISS_XOFF, 2.0f);
+PARAM_DEFINE_FLOAT(MCF_MISS_YOFF, 0.0f);
+PARAM_DEFINE_FLOAT(MCF_MISS_STEP, 0.01f);
+PARAM_DEFINE_FLOAT(MCF_MISS_WP_R, 0.4f);
+PARAM_DEFINE_FLOAT(MCF_DIST_MIN, 1.0f);
+PARAM_DEFINE_FLOAT(MCF_DIST_REAC, 1.5f);
+PARAM_DEFINE_FLOAT(MCF_DEBUG, 0);
 
-struct flow_navigation_param_handles {
-	param_t pos_sp_x;
-	param_t pos_sp_y;
-	param_t beep_bottom_sonar;
-	param_t beep_front_sonar;
-	param_t kalman_k1;
-	param_t kalman_k2;
-	param_t front_lp_alpha;
-	param_t s0;
-	param_t s1;
-	param_t s2;
-	param_t s3;
-	param_t s4;
-	param_t s5;
-	param_t s6;
-	param_t mission_x_offset;
-	param_t mission_y_offset;
-	param_t mission_update_step;
-	param_t mission_wp_radius;
-	param_t debug;
-};
 
-/**
- * Initialize all parameter handles and values
- *
- */
-int parameters_init(struct flow_navigation_param_handles *h);
+int parameters_init(struct mission_commander_flow_param_handles *h)
+{
+	/* PID parameters */
+	h->mission_x_offset		=	param_find("MCF_MISS_XOFF");
+	h->mission_y_offset		=	param_find("MCF_MISS_YOFF");
+	h->mission_update_step	=	param_find("MCF_MISS_STEP");
+	h->mission_wp_radius	=	param_find("MCF_MISS_WP_R");
+	h->mission_min_dist		=	param_find("MCF_DIST_MIN");
+	h->mission_reac_dist	=	param_find("MCF_DIST_REAC");
+	h->debug					=	param_find("MCF_DEBUG");
 
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct flow_navigation_param_handles *h, struct flow_navigation_params *p);
+	return OK;
+}
+
+int parameters_update(const struct mission_commander_flow_param_handles *h, struct mission_commander_flow_params *p)
+{
+	param_get(h->mission_x_offset, &(p->mission_x_offset));
+	param_get(h->mission_y_offset, &(p->mission_y_offset));
+	param_get(h->mission_update_step, &(p->mission_update_step));
+	param_get(h->mission_wp_radius, &(p->mission_wp_radius));
+	param_get(h->mission_min_dist, &(p->mission_min_dist));
+	param_get(h->mission_reac_dist, &(p->mission_reac_dist));
+	param_get(h->debug, &(p->debug));
+
+	return OK;
+}

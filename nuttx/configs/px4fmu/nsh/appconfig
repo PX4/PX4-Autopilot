@@ -105,7 +105,8 @@ CONFIGURED_APPS += fixedwing_pos_control
 CONFIGURED_APPS += position_estimator
 CONFIGURED_APPS += position_estimator_flow
 CONFIGURED_APPS += attitude_estimator_ekf
-CONFIGURED_APPS += flow_navigation
+CONFIGURED_APPS += radar_flow
+CONFIGURED_APPS += mission_commander_flow
 CONFIGURED_APPS += hott_telemetry
 endif
 

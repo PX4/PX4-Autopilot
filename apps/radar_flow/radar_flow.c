@@ -33,8 +33,8 @@
  ****************************************************************************/
 
 /**
- * @file flow_navigation.c
- * Handling flow msg and provide navigation commands
+ * @file radar_flow.c
+ * Handling omnidirectional flow msg and provide radar information
  */
 
 #include <nuttx/config.h>
@@ -50,20 +50,11 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_bodyframe_position.h>
-#include <uORB/topics/vehicle_bodyframe_position_setpoint.h>
-#include <uORB/topics/optical_flow.h>
 #include <uORB/topics/omnidirectional_flow.h>
 #include <uORB/topics/discrete_radar.h>
 
-#include <uORB/topics/vehicle_global_position.h>
-
-#include "flow_navigation_params.h"
-#include "setpoint_planner.h"
+#include "radar_flow_params.h"
 #include "sounds.h"
 #include "codegen/flowNavigation.h"
 #include "codegen/frontFlowKalmanFilter.h"
@@ -74,56 +65,20 @@ static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
 static int daemon_task;				/**< Handle of daemon task / thread */
 
-/* mission */
-static bool final_sequence = false;
-
-float debug_value1;
-float debug_value2;
-int debug_value3;
-int debug_value4;
-
 /**
  * Daemon management function.
  */
-__EXPORT int flow_navigation_main(int argc, char *argv[]);
+__EXPORT int radar_flow_main(int argc, char *argv[]);
 
 /**
  * Mainloop of daemon.
  */
-int flow_navigation_thread_main(int argc, char *argv[]);
+int radar_flow_thread_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.
  */
 static void usage(const char *reason);
-
-/**
- * Navigation helpfunctions.
- */
-int get_next_bodyframe_setpoint(
-		struct discrete_radar_s *radar,
-		struct vehicle_attitude_s *att,
-		struct vehicle_local_position_s *local_pos,
-		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_local_position_s *local_waypoint,
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_waypoint,
-		struct flow_navigation_params *params,
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
-		);
-void convert_setpoint_bodyframe2local(
-		struct vehicle_local_position_s *local_pos,
-		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_attitude_s *att,
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp,
-		struct vehicle_local_position_setpoint_s *local_pos_sp
-		);
-void convert_setpoint_local2bodyframe(
-		struct vehicle_local_position_s *local_pos,
-		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_attitude_s *att,
-		struct vehicle_local_position_setpoint_s *local_pos_sp,
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
-		);
 
 static void
 usage(const char *reason)
@@ -142,7 +97,7 @@ usage(const char *reason)
  * The actual stack size should be set in the call
  * to task_create().
  */
-int flow_navigation_main(int argc, char *argv[])
+int radar_flow_main(int argc, char *argv[])
 {
 	if (argc < 1)
 		usage("missing command");
@@ -150,17 +105,17 @@ int flow_navigation_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("flow_navigation already running\n");
+			printf("radar already running\n");
 			/* this is not an error */
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		daemon_task = task_spawn("flow_navigation",
+		daemon_task = task_spawn("radar_flow",
 					 SCHED_RR,
 					 SCHED_PRIORITY_DEFAULT,
 					 8162,
-					 flow_navigation_thread_main,
+					 radar_flow_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
@@ -172,9 +127,9 @@ int flow_navigation_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tflow_navigation is running\n");
+			printf("\tradar is running\n");
 		} else {
-			printf("\tflow_navigation not started\n");
+			printf("\tradar not started\n");
 		}
 		exit(0);
 	}
@@ -183,136 +138,10 @@ int flow_navigation_main(int argc, char *argv[])
 	exit(1);
 }
 
-/* returns bodyframe setpoint and estimated number of setpoints to final destination
- * 0 -> destination reached...
- */
 
-int get_next_bodyframe_setpoint(
-		struct discrete_radar_s *radar, // current radar situation
-		struct vehicle_attitude_s *att,
-		struct vehicle_local_position_s *local_pos,
-		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_local_position_s *local_waypoint,
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_waypoint, // final destination
-		struct flow_navigation_params *params, // actual parameters
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp // result
-		)
-{
-	float update_step = params->mission_update_step;
-	float waypoint_radius = params->mission_wp_radius;
+int radar_flow_thread_main(int argc, char *argv[]) {
 
-	if(!final_sequence){
-		/* calc final destination in bodyframe */
-		convert_setpoint_local2bodyframe(local_pos,bodyframe_pos,att,local_waypoint,bodyframe_waypoint);
-	}
-
-	float wp_bodyframe_offset_x = bodyframe_waypoint->x - bodyframe_pos_sp->x;
-	float wp_bodyframe_offset_y = bodyframe_waypoint->y - bodyframe_pos_sp->y;
-
-	/* final mission sequence? -> make lookup table */
-	if(!final_sequence){
-		if (fabsf(wp_bodyframe_offset_x) < waypoint_radius && fabsf(wp_bodyframe_offset_y) < waypoint_radius) {
-			final_sequence = true;
-		}
-	}
-
-	/* x */
-	int x_steps = (int)(wp_bodyframe_offset_x / update_step);
-	/* y */
-	int y_steps = (int)(wp_bodyframe_offset_y / update_step);
-
-	debug_value1 = wp_bodyframe_offset_x;
-	debug_value2 = wp_bodyframe_offset_y;
-	debug_value3 = x_steps;
-	debug_value4 = y_steps;
-
-	if (x_steps > 0) {
-		bodyframe_pos_sp->x = bodyframe_pos_sp->x + update_step;
-	} else if(x_steps < 0) {
-		bodyframe_pos_sp->x = bodyframe_pos_sp->x - update_step;
-	} else {
-		bodyframe_pos_sp->x = bodyframe_waypoint->x;
-	}
-
-	if (y_steps > 0) {
-		bodyframe_pos_sp->y = bodyframe_pos_sp->y + update_step;
-	} else if(y_steps < 0) {
-		bodyframe_pos_sp->y = bodyframe_pos_sp->y - update_step;
-	} else {
-		bodyframe_pos_sp->y = bodyframe_waypoint->y;
-	}
-
-	bodyframe_pos_sp->yaw = bodyframe_waypoint->yaw;
-
-	if (abs(x_steps) > abs(y_steps))
-		return x_steps;
-	else
-		return y_steps;
-}
-
-void convert_setpoint_bodyframe2local(
-		struct vehicle_local_position_s *local_pos,
-		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_attitude_s *att,
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp,
-		struct vehicle_local_position_setpoint_s *local_pos_sp
-		)
-{
-	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
-	static float wp_local_offset[3] = {0.0f, 0.0f, 0.0f};
-
-	wp_bodyframe_offset[0] = bodyframe_pos_sp->x - bodyframe_pos->x;
-	wp_bodyframe_offset[1] = bodyframe_pos_sp->y - bodyframe_pos->y;
-	wp_bodyframe_offset[2] = 0; // no influence of z...
-
-	/* calc current waypoint cooridnates in local */
-	for(uint8_t i = 0; i < 3; i++) {
-		float sum = 0.0f;
-		for(uint8_t j = 0; j < 3; j++) {
-			sum = sum + wp_bodyframe_offset[j] * att->R[i][j];
-		}
-		wp_local_offset[i] = sum;
-	}
-
-	local_pos_sp->x = local_pos->x + wp_local_offset[0];
-	local_pos_sp->y = local_pos->y + wp_local_offset[1];
-	local_pos_sp->z = bodyframe_pos_sp->z; // let z as it is...
-}
-
-void convert_setpoint_local2bodyframe(
-		struct vehicle_local_position_s *local_pos,
-		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_attitude_s *att,
-		struct vehicle_local_position_setpoint_s *local_pos_sp,
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
-		)
-{
-	static float wp_local_offset[3] = {0.0f, 0.0f, 0.0f}; // x,y
-	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
-
-	wp_local_offset[0] = local_pos_sp->x - local_pos->x;
-	wp_local_offset[1] = local_pos_sp->y - local_pos->y;
-	wp_local_offset[2] = 0; // no influence of z...
-
-	/* calc current waypoint cooridnates in bodyframe */
-	for(uint8_t i = 0; i < 3; i++) {
-		float sum = 0.0f;
-		for(uint8_t j = 0; j < 3; j++) {
-			sum = sum + wp_local_offset[j] * att->R[j][i];
-		}
-		wp_bodyframe_offset[i] = sum;
-	}
-
-	bodyframe_pos_sp->x = bodyframe_pos->x + wp_bodyframe_offset[0];
-	bodyframe_pos_sp->y = bodyframe_pos->y + wp_bodyframe_offset[1];
-	bodyframe_pos_sp->z = local_pos_sp->z; // let z as it is...
-
-}
-
-
-int flow_navigation_thread_main(int argc, char *argv[]) {
-
-	printf("[flow_navigation] starting\n");
+	printf("[radar] starting\n");
 	thread_running = true;
 
 	uint32_t counter = 0;
@@ -322,28 +151,12 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	memset(&vstatus, 0, sizeof(vstatus));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
-	struct manual_control_setpoint_s manual;
-	memset(&manual, 0, sizeof(manual));
-	struct optical_flow_s optical_flow;
-	memset(&optical_flow, 0, sizeof(optical_flow));
 	struct omnidirectional_flow_s omni_flow;
 	memset(&omni_flow, 0, sizeof(omni_flow));
-	struct vehicle_local_position_s local_pos;
-	memset(&local_pos, 0, sizeof(local_pos));
 	struct vehicle_bodyframe_position_s bodyframe_pos;
 	memset(&bodyframe_pos, 0, sizeof(bodyframe_pos));
 
-	/* mission parameters */
-	struct vehicle_local_position_setpoint_s final_dest_local;
-	memset(&final_dest_local, 0, sizeof(final_dest_local));
-	struct vehicle_bodyframe_position_setpoint_s final_dest_bodyframe;
-	memset(&final_dest_bodyframe, 0, sizeof(final_dest_bodyframe));
-
 	/* publishing parameters */
-	struct vehicle_local_position_setpoint_s local_pos_sp;
-	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
-	struct vehicle_bodyframe_position_setpoint_s bodyframe_pos_sp;
-	memset(&bodyframe_pos_sp, 0, sizeof(bodyframe_pos_sp));
 	struct discrete_radar_s discrete_radar;
 	memset(&discrete_radar, 0, sizeof(discrete_radar));
 
@@ -351,37 +164,25 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int omnidirectional_flow_sub = orb_subscribe(ORB_ID(omnidirectional_flow));
-	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	int vehicle_bodyframe_position_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_position));
 
-	orb_advert_t vehicle_local_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
-	orb_advert_t vehicle_bodyframe_position_sp_pub = orb_advertise(ORB_ID(vehicle_bodyframe_position_setpoint), &bodyframe_pos_sp);
 	orb_advert_t discrete_radar_pub = orb_advertise(ORB_ID(discrete_radar), &discrete_radar);
 
-	/* for debugging */
-	struct vehicle_global_position_s debug_pos;
-	memset(&debug_pos, 0, sizeof(debug_pos));
-	orb_advert_t vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &debug_pos);
-
 	/* parameters init*/
-	struct flow_navigation_params params;
-	struct flow_navigation_param_handles param_handles;
+	struct radar_flow_params params;
+	struct radar_flow_param_handles param_handles;
 	parameters_init(&param_handles);
 	parameters_update(&param_handles, &params);
 
-	/* limits */
-
 	/* register the perf counter */
-	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "flow_navigation_runtime");
-	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "flow_navigation_interval");
-	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "flow_navigation_err");
+	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "radar_flow_runtime");
+	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "radar_flow_interval");
+	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "radar_flow_err");
 
 	sounds_init();
 
-	printf("[flow_navigation] initialized\n");
+	printf("[radar] initialized\n");
 
 	int tone_frequence = 100;
 	int tone_counter = 0;
@@ -417,15 +218,6 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 	static int sonar_counter = 0;
 	static int sonar_gradient = 0;
 
-	/* navigation parameters */
-	static float setpoint_update_step = 0.01f;
-	static float setpoint_update_step_yaw = 0.05f;
-
-	/* mission */
-	static bool mission_started = false;
-	static bool mission_accomplished = false;
-	static bool mission_initialized = false;
-
 	static bool sensors_ready = false;
 
 	filter_settings[0] = params.s0;
@@ -442,14 +234,13 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 		if (sensors_ready) {
 
 			/* polling */
-			struct pollfd fds[3] = {
+			struct pollfd fds[2] = {
 				{ .fd = omnidirectional_flow_sub, .events = POLLIN },
-				{ .fd = manual_control_setpoint_sub, .events = POLLIN },
 				{ .fd = parameter_update_sub,   .events = POLLIN },
 			};
 
 			/* wait for a flow msg, check for exit condition every 500 ms */
-			int ret = poll(fds, 3, 500);
+			int ret = poll(fds, 2, 500);
 
 			if (ret < 0) {
 				/* poll error, count it in perf */
@@ -457,10 +248,10 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 			} else if (ret == 0) {
 				/* no return value, ignore */
-				printf("[flow_navigation] no omnidirectional flow msgs.\n");
+				printf("[radar] no omnidirectional flow msgs.\n");
 			} else {
 
-				if (fds[2].revents & POLLIN){
+				if (fds[1].revents & POLLIN){
 					/* NEW PARAMETERS ----------------------------------------------------------*/
 
 					/* read from param to clear updated flag */
@@ -477,136 +268,8 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					filter_settings[5] = params.s5;
 					filter_settings[6] = params.s6;
 
-					printf("[flow_navigation] parameters updated.\n");
+					printf("[radar] parameters updated.\n");
 				}
-
-				if (fds[1].revents & POLLIN){
-					/* NEW MANUAL CONTROLS------------------------------------------------------*/
-
-					/* get a local copy of manual setpoint */
-					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
-					/* get a local copy of local position */
-					orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
-					/* get a local copy of bodyframe position */
-					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
-					/* get a local copy of attitude */
-					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
-					/* get a local copy of the vehicle state */
-					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-
-					int remaining_sp = 0;
-
-					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
-						/* update mission flags */
-						if (!mission_started && !mission_accomplished) {
-							if (manual.aux2 < 0) {
-								/* start mission planner */
-								mission_started = true;
-
-								tune_mission_started();
-							}
-						} else {
-							if (manual.aux2 > 0) {
-
-								if (mission_started){
-									/* set current position as setpoint */
-									bodyframe_pos_sp.x = bodyframe_pos.x;
-									bodyframe_pos_sp.y = bodyframe_pos.y;
-									bodyframe_pos_sp.yaw = att.yaw;
-
-									tune_mission_aborded();
-								}
-
-								/* reset mission planner */
-								mission_started = false;
-								mission_accomplished = false;
-								mission_initialized = false;
-							}
-						}
-
-						/* calc new mission setpoint */
-						if (mission_started) {
-							if (!mission_initialized) {
-								/* only one mission... 2m forward */
-								/* TODO do it with current setpoint??? DONE*/
-								final_dest_bodyframe.x = bodyframe_pos_sp.x + params.mission_x_offset;
-								final_dest_bodyframe.y = bodyframe_pos_sp.y + params.mission_y_offset;
-								final_dest_bodyframe.yaw = att.yaw;
-								convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&final_dest_bodyframe,&final_dest_local);
-								mission_initialized = true;
-							}
-
-							remaining_sp = get_next_bodyframe_setpoint(&discrete_radar, &att, &local_pos,
-									&bodyframe_pos, &final_dest_local, &final_dest_bodyframe, &params, &bodyframe_pos_sp);
-
-							if (remaining_sp == 0) {
-								mission_started = false;
-								mission_accomplished = true;
-								mission_initialized = false;
-								final_sequence = false;
-
-								tune_mission_accomplished();
-							}
-
-						}
-
-						/* manualy update position setpoint? */
-						if(manual.pitch < -0.2f) {
-							bodyframe_pos_sp.x += setpoint_update_step;
-						} else if (manual.pitch > 0.2f) {
-							bodyframe_pos_sp.x -= setpoint_update_step;
-						}
-
-						if(manual.roll < -0.2f) {
-							bodyframe_pos_sp.y -= setpoint_update_step;
-						} else if (manual.roll > 0.2f) {
-							bodyframe_pos_sp.y += setpoint_update_step;
-						}
-
-						if(manual.yaw < -1.0f) { // bigger threshold because of rc calibration for manual flight
-							bodyframe_pos_sp.yaw -= setpoint_update_step_yaw;
-						} else if (manual.yaw > 1.0f) {
-							bodyframe_pos_sp.yaw += setpoint_update_step_yaw;
-						}
-
-						/* modulo for rotation -pi +pi */
-						if(bodyframe_pos_sp.yaw < -M_PI_F) {
-							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + M_TWOPI_F;
-						} else if(bodyframe_pos_sp.yaw > M_PI_F) {
-							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - M_TWOPI_F;
-						}
-
-
-					} else
-					{
-						/* reset setpoint to current position */
-						bodyframe_pos_sp.x = bodyframe_pos.x;
-						bodyframe_pos_sp.y = bodyframe_pos.y;
-						bodyframe_pos_sp.yaw = att.yaw;
-						mission_started = false;
-						mission_accomplished = false;
-						mission_initialized = false;
-					}
-
-					convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&bodyframe_pos_sp,&local_pos_sp);
-//					local_pos_sp.x = bodyframe_pos_sp.x;
-//					local_pos_sp.y = bodyframe_pos_sp.y;
-//					local_pos_sp.yaw = bodyframe_pos_sp.yaw;
-
-					if(isfinite(bodyframe_pos_sp.x) && isfinite(bodyframe_pos_sp.y) && isfinite(bodyframe_pos_sp.yaw))
-					{
-						orb_publish(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_sp_pub, &bodyframe_pos_sp);
-						debug_pos.lon = (int)(debug_value1 * 100.0f);
-						debug_pos.lat = (int)(debug_value2 * 100.0f);
-						debug_pos.alt = debug_value3;
-						debug_pos.relative_alt = debug_value4;
-					}
-					if(isfinite(local_pos_sp.x) && isfinite(local_pos_sp.y) && isfinite(local_pos_sp.yaw))
-					{
-						orb_publish(ORB_ID(vehicle_local_position_setpoint), vehicle_local_position_sp_pub, &local_pos_sp);
-					}
-				}
-
 
 				if (fds[0].revents & POLLIN) {
 					/* NEW OMNIDIRECTIONAL FLOW VALUES-------------------------------------------*/
@@ -619,37 +282,8 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					/* get a local copy of bodyframe position */
 					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
-					/* get a local copy of optical flow */
-					orb_copy(ORB_ID(optical_flow), optical_flow_sub, &optical_flow);
 					/* get a local copy of omnidirectional flow */
 					orb_copy(ORB_ID(omnidirectional_flow), omnidirectional_flow_sub, &omni_flow);
-
-//					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
-//						/* update position setpoint? */
-//
-//						if(manual.pitch < -0.2f) {
-//							setpoint_x += setpoint_update_step;
-//						} else if (manual.pitch > 0.2f) {
-//							setpoint_x -= setpoint_update_step;
-//						}
-////						if(manual.roll < -0.2f) {
-////							setpoint_y -= setpoint_update_step;
-////						} else if (manual.roll > 0.2f) {
-////							setpoint_y += setpoint_update_step;
-////						}
-//						if(manual.roll < -0.2f) {
-//							setpoint_yaw -= setpoint_update_step;
-//						} else if (manual.roll > 0.2f) {
-//							setpoint_yaw += setpoint_update_step;
-//						}
-//
-//					} else
-//					{
-//						/* reset setpoint to current position */
-//						setpoint_x = local_pos.x;
-//						setpoint_y = local_pos.y;
-//						setpoint_yaw = att.yaw;
-//					}
 
 					if (time_last_flow == 0){
 						time_last_flow = omni_flow.timestamp;
@@ -684,8 +318,8 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					front_distance_filtered = (1 - params.front_lp_alpha) * front_distance_filtered + params.front_lp_alpha * omni_flow.front_distance_m;
 					float dt = ((float)(omni_flow.timestamp - time_last_flow)) / 1000000.0f; // seconds
 					time_last_flow = omni_flow.timestamp;
-					speed[0] = - optical_flow.flow_comp_y_m; // XXX change with rot matrix...
-					speed[1] = optical_flow.flow_comp_x_m;
+					speed[0] = bodyframe_pos.vx;
+					speed[1] = bodyframe_pos.vy;
 					frontFlowKalmanFilter(dt, params.kalman_k1, params.kalman_k2, flow_aposteriori_k, speed_aposteriori_k, omni_flow.left, omni_flow.right, speed, 1, flow_aposteriori, speed_aposteriori);
 					memcpy(flow_aposteriori_k, flow_aposteriori, sizeof(flow_aposteriori));
 					memcpy(speed_aposteriori_k, speed_aposteriori, sizeof(speed_aposteriori));
@@ -803,15 +437,6 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 					discrete_radar.timestamp = hrt_absolute_time();
 					orb_publish(ORB_ID(discrete_radar), discrete_radar_pub, &discrete_radar);
 
-
-					/* FIXME TODO DEBUG */
-					if(isfinite(debug_pos.lon) && isfinite(debug_pos.lat) && isfinite(debug_pos.alt))
-					{
-						orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &debug_pos);
-					}
-
-
-
 //					if(params.pos_sp_x)
 //					{
 //						if (!played)
@@ -837,8 +462,6 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 			}
 
-
-
 			tone_frequence =  (int)(-bodyframe_pos.z * 100);
 			if(tone_counter > tone_frequence)
 			{
@@ -848,9 +471,6 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 				}
 				tone_counter = 0;
 			}
-
-			/* run at approximately 50 Hz */
-			//usleep(20000);
 
 			tone_counter++;
 			counter++;
@@ -874,7 +494,7 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 
 			} else if (ret == 0) {
 				/* no return value, ignore */
-				printf("[flow_navigation] no attitude received.\n");
+				printf("[radar] no attitude received.\n");
 			} else {
 
 				if (fds[0].revents & POLLIN){
@@ -885,18 +505,17 @@ int flow_navigation_thread_main(int argc, char *argv[]) {
 		}
 	}
 
-	printf("[flow_navigation] ending now...\n");
+	printf("[radar] ending now...\n");
 
 	thread_running = false;
 
 	close(parameter_update_sub);
 	close(vehicle_attitude_sub);
-	close(vehicle_local_position_sub);
 	close(vehicle_bodyframe_position_sub);
 	close(vehicle_status_sub);
-	close(manual_control_setpoint_sub);
-	close(optical_flow_sub);
 	close(omnidirectional_flow_sub);
+
+	sounds_deinit();
 
 	perf_print_counter(mc_loop_perf);
 	perf_free(mc_loop_perf);
