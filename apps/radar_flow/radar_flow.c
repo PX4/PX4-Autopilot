@@ -55,7 +55,7 @@
 #include <uORB/topics/discrete_radar.h>
 
 #include "radar_flow_params.h"
-#include "sounds.h"
+#include "radar_sounds.h"
 #include "codegen/flowNavigation.h"
 #include "codegen/frontFlowKalmanFilter.h"
 #include "codegen/wallEstimationFilter.h"
@@ -113,7 +113,7 @@ int radar_flow_main(int argc, char *argv[])
 		thread_should_exit = false;
 		daemon_task = task_spawn("radar_flow",
 					 SCHED_RR,
-					 SCHED_PRIORITY_DEFAULT,
+					 SCHED_PRIORITY_MAX - 50,
 					 8162,
 					 radar_flow_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
@@ -180,7 +180,7 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "radar_flow_interval");
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "radar_flow_err");
 
-	sounds_init();
+	radar_sounds_init();
 
 	printf("[radar] initialized\n");
 
@@ -515,7 +515,7 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 	close(vehicle_status_sub);
 	close(omnidirectional_flow_sub);
 
-	sounds_deinit();
+	radar_sounds_deinit();
 
 	perf_print_counter(mc_loop_perf);
 	perf_free(mc_loop_perf);

@@ -41,24 +41,37 @@
 #include <systemlib/param/param.h>
 
 struct mission_commander_flow_params {
-	float mission_x_offset;
-	float mission_y_offset;
-	float mission_update_step;
-	float mission_wp_radius;
-	float mission_min_dist;
-	float mission_reac_dist;
-	int debug;
+	float mission_x_offset; // in m
+	float mission_y_offset; // in m
+	float mission_update_step; // in m
+	float mission_update_step_yaw; // in rad
+	float mission_yaw_thld; // in rad
+	float mission_wp_radius; // in m
+	int mission_min_dist; // in mm
+	int mission_reac_dist; // in mm
+	int debug; // boolean
 };
 
 struct mission_commander_flow_param_handles {
 	param_t mission_x_offset;
 	param_t mission_y_offset;
 	param_t mission_update_step;
+	param_t mission_update_step_yaw;
+	param_t mission_yaw_thld;
 	param_t mission_wp_radius;
 	param_t mission_min_dist;
 	param_t mission_reac_dist;
 	param_t debug;
 };
+
+typedef enum mission_reaction_state {
+	MISSION_CLEAR,
+	MISSION_REACT_LEFT,
+	MISSION_REACT_RIGHT,
+	MISSION_FOLLOW_WALL_R,
+	MISSION_FOLLOW_WALL_L,
+	MISSION_FOLLOW_CORRIDOR
+} mission_reaction_state_t;
 
 /**
  * Initialize all parameter handles and values

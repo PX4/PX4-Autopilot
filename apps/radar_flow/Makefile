@@ -41,7 +41,7 @@ STACKSIZE	 = 2048
 
 CSRCS		 = radar_flow.c \
 		   radar_flow_params.c \
-		   sounds.c \
+		   radar_sounds.c \
 		   codegen/flowNavigation.c \
 		   codegen/flowNavigation_initialize.c \
 		   codegen/flowNavigation_terminate.c \

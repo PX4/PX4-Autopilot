@@ -34,7 +34,7 @@ void tune_mission_started(void)
 	ioctl(buzzer, TONE_SET_ALARM, 3);
 }
 
-void tune_mission_aborded(void)
+void tune_mission_aborted(void)
 {
 	ioctl(buzzer, TONE_SET_ALARM, 5);
 }

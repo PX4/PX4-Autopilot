@@ -12,7 +12,7 @@
 
 static int buzzer;
 
-int sounds_init(void)
+int radar_sounds_init(void)
 {
 	buzzer = open("/dev/tone_alarm", O_WRONLY);
 
@@ -24,14 +24,9 @@ int sounds_init(void)
 	return 0;
 }
 
-void sounds_deinit(void)
+void radar_sounds_deinit(void)
 {
 	close(buzzer);
-}
-
-void tune_sonar(void)
-{
-	ioctl(buzzer, TONE_SET_ALARM, 4);
 }
 
 void tune_ready(void)
@@ -39,17 +34,7 @@ void tune_ready(void)
 	ioctl(buzzer, TONE_SET_ALARM, 3);
 }
 
-void tune_mission_started(void)
+void tune_sonar(void)
 {
-	ioctl(buzzer, TONE_SET_ALARM, 3);
-}
-
-void tune_mission_aborded(void)
-{
-	ioctl(buzzer, TONE_SET_ALARM, 5);
-}
-
-void tune_mission_accomplished(void)
-{
-	ioctl(buzzer, TONE_SET_ALARM, 5);
+	ioctl(buzzer, TONE_SET_ALARM, 4);
 }

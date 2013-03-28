@@ -5,13 +5,13 @@
  *      Author: samuezih
  */
 
-#ifndef SOUNDS_H_
-#define SOUNDS_H_
+#ifndef MISSION_SOUNDS_H_
+#define MISSION_SOUNDS_H_
 
 int mission_sounds_init(void);
 void mission_sounds_deinit(void);
 void tune_mission_started(void);
-void tune_mission_aborded(void);
+void tune_mission_aborted(void);
 void tune_mission_accomplished(void);
 
-#endif /* SOUNDS_H_ */
+#endif /* MISSION_SOUNDS_H_ */

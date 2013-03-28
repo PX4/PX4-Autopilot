@@ -118,8 +118,7 @@ int multirotor_pos_control_flow_main(int argc, char *argv[])
 		thread_should_exit = false;
 		deamon_task = task_spawn("multirotor_pos_control_flow",
 					 SCHED_DEFAULT,
-//					 SCHED_PRIORITY_MAX,
-					 SCHED_PRIORITY_MAX - 60,
+					 SCHED_PRIORITY_MAX - 6,
 					 4096,
 					 multirotor_pos_control_flow_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
@@ -182,9 +181,6 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	float integrated_h_error = 0.0f;
 	float last_height = 0.0f;
 	float thrust_limit_upper = params.limit_thrust_lower; // it will be updated with manual input
-	float setpoint_x = 0.0f;
-	float setpoint_y = 0.0f;
-	float setpoint_yaw = 0.0f;
 
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control_runtime");
@@ -199,15 +195,14 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 		if (sensors_ready) {
 
 			/* polling */
-			struct pollfd fds[3] = {
+			struct pollfd fds[2] = {
 				{ .fd = vehicle_bodyframe_position_sub, .events = POLLIN }, // positions from estimator
-				{ .fd = vehicle_bodyframe_position_setpoint_sub, .events = POLLIN }, // setpoint from flow navigation
 				{ .fd = parameter_update_sub,   .events = POLLIN }
 
 			};
 
 			/* wait for a position update, check for exit condition every 500 ms */
-			int ret = poll(fds, 3, 500);
+			int ret = poll(fds, 2, 500);
 
 			if (ret < 0) {
 				/* poll error, count it in perf */
@@ -219,24 +214,13 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 			} else {
 
 				/* parameter update available? */
-				if (fds[2].revents & POLLIN){
+				if (fds[1].revents & POLLIN){
 					/* read from param to clear updated flag */
 					struct parameter_update_s update;
 					orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
 
 					parameters_update(&param_handles, &params);
 					printf("[multirotor flow position control] parameters updated.\n");
-				}
-
-				/* new setpoint */
-				if (fds[1].revents & POLLIN){
-
-					/* get a local copy of bodyframe position setpoint */
-					orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
-					setpoint_x = bodyframe_pos_sp.x;
-					setpoint_y = bodyframe_pos_sp.y;
-					setpoint_yaw = bodyframe_pos_sp.yaw;
-
 				}
 
 				/* only run controller if position/speed changed */
@@ -252,12 +236,16 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					/* get a local copy of bodyframe position */
 					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
+					/* get a local copy of bodyframe position setpoint */
+					orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
 
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 
 						/* calc new roll/pitch */
-						float pitch_body = (bodyframe_pos.x - setpoint_x) * params.pos_p + bodyframe_pos.vx * params.pos_d;
-						float roll_body = - (bodyframe_pos.y - setpoint_y) * params.pos_p - bodyframe_pos.vy * params.pos_d;
+//						float pitch_body = (bodyframe_pos.x - setpoint_x) * params.pos_p + bodyframe_pos.vx * params.pos_d;
+//						float roll_body = - (bodyframe_pos.y - setpoint_y) * params.pos_p - bodyframe_pos.vy * params.pos_d;
+						float pitch_body = (bodyframe_pos.x - bodyframe_pos_sp.x) * params.pos_p + bodyframe_pos.vx * params.pos_d;
+						float roll_body = - (bodyframe_pos.y - bodyframe_pos_sp.y) * params.pos_p - bodyframe_pos.vy * params.pos_d;
 
 
 						/* limit roll and pitch corrections */
@@ -284,7 +272,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 						}
 
 						/* set yaw setpoint unlimited*/
-						att_sp.yaw_body = setpoint_yaw;
+						att_sp.yaw_body = bodyframe_pos_sp.yaw;
 
 						/* add trim from parameters */
 						att_sp.roll_body = att_sp.roll_body + params.trim_roll;
@@ -333,6 +321,11 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 							orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 						}
 
+					} else {
+						/* in manual or stabilized state just reset attitude setpoint */
+						att_sp.roll_body = 0.0f;
+						att_sp.pitch_body = 0.0f;
+						att_sp.yaw_body = att.yaw;
 					}
 
 					/* measure in what intervals the controller runs */
