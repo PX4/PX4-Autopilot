@@ -87,18 +87,19 @@ static void usage(const char *reason);
 static void usage(const char *reason) {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-		fprintf(stderr,"usage: position_estimator_inav {start|stop|status} [-p <additional params>]\n\n");
+	fprintf(stderr,
+			"usage: position_estimator_inav {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
 }
 
-		/**
-		 * The position_estimator_inav_thread only briefly exists to start
-		 * the background job. The stack size assigned in the
-		 * Makefile does only apply to this management task.
-		 *
-		 * The actual stack size should be set in the call
-		 * to task_create().
-		 */
+/**
+ * The position_estimator_inav_thread only briefly exists to start
+ * the background job. The stack size assigned in the
+ * Makefile does only apply to this management task.
+ *
+ * The actual stack size should be set in the call
+ * to task_create().
+ */
 int position_estimator_inav_main(int argc, char *argv[]) {
 	if (argc < 1)
 		usage("missing command");
@@ -147,7 +148,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	mavlink_log_info(mavlink_fd, "[position_estimator_inav] started");
 
 	/* initialize values */
-	static float k[3][2] = { { 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f } };
+	static float k[3][2] = { { 0.002f, 0.0f }, { 0.001f, 0.00002f }, { 0.0f,
+			0.99f } };
 	static float x_est[3] = { 0.0f, 0.0f, 0.0f };
 	static float y_est[3] = { 0.0f, 0.0f, 0.0f };
 	static float z_est[3] = { 0.0f, 0.0f, 0.0f };
@@ -167,7 +169,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 
 	/* declare and safely initialize all structs */
 	struct vehicle_status_s vehicle_status;
-	memset(&vehicle_status, 0, sizeof(vehicle_status)); /* make sure that baroINITdone = false */
+	memset(&vehicle_status, 0, sizeof(vehicle_status));
+	/* make sure that baroINITdone = false */
 	struct sensor_combined_s sensor;
 	memset(&sensor, 0, sizeof(sensor));
 	struct vehicle_gps_position_s gps;
@@ -239,19 +242,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	}
 	printf("[pos_est1D] initialized projection with: lat: %.10f,  lon:%.10f\n",
 			lat_current, lon_current);
-	uint64_t last_time = 0;
+	hrt_abstime last_time = 0;
 	thread_running = true;
 
 	/** main loop */
-	struct pollfd fds[5] = { { .fd = parameter_update_sub, .events = POLLIN }, {
-			.fd = vehicle_status_sub, .events = POLLIN }, { .fd =
-			vehicle_attitude_sub, .events = POLLIN }, { .fd =
-			sensor_combined_sub, .events = POLLIN }, { .fd =
-			vehicle_gps_position_sub, .events = POLLIN }, };
+	struct pollfd fds[3] = { { .fd = parameter_update_sub, .events = POLLIN }, { .fd = vehicle_status_sub, .events = POLLIN }, { .fd = sensor_combined_sub, .events = POLLIN } };
 	printf("[position_estimator_inav] main loop started\n");
 	static int printatt_counter = 0;
 	while (!thread_should_exit) {
-		int ret = poll(fds, 5, 20); //wait maximal this 20 ms = 50 Hz minimum rate
+		int ret = poll(fds, 3, 20); //wait maximal this 20 ms = 50 Hz minimum rate
 		if (ret < 0) {
 			/* poll error */
 		} else {
@@ -271,16 +270,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 						&vehicle_status);
 			}
 			/* vehicle attitude */
-			if (fds[2].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
-			}
+			//if (fds[2].revents & POLLIN) {
+			orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+			//}
 			/* sensor combined */
-			if (fds[3].revents & POLLIN) {
+			if (fds[2].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 			}
 			if (use_gps) {
 				/* vehicle GPS position */
-				if (fds[4].revents & POLLIN) {
+				//if (fds[4].revents & POLLIN) {
 					/* new GPS value */
 					orb_copy(ORB_ID(vehicle_gps_position),
 							vehicle_gps_position_sub, &gps);
@@ -290,7 +289,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 							((double) (gps.lon)) * 1e-7, &(local_pos_gps[0]),
 							&(local_pos_gps[1]));
 					local_pos_gps[2] = (float) (gps.alt * 1e-3);
-				}
+				//}
 			}
 			// barometric pressure estimation at start up
 			if (!local_flag_baroINITdone) {
@@ -312,16 +311,25 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 					mavlink_log_info(mavlink_fd, str);
 				}
 			}
-			/* TODO convert accelerations from UAV frame to NED frame */
-			float accel_NED[3];
-			accel_NED[2] = sensor.accelerometer_m_s2[2] + const_earth_gravity;
+
+			hrt_abstime t = hrt_absolute_time();
+			float dt = (t - last_time) / 1000000.0;
+			last_time = t;
+			/* convert accelerations from UAV frame to NED frame */
+			float accel_NED[3] = { 0.0f, 0.0f, 0.0f };
+			for (int i = 0; i < 3; i++) {
+				for (int j = 0; j < 3; j++) {
+					accel_NED[i] += att.R[i][j] * sensor.accelerometer_m_s2[j];
+				}
+			}
+			accel_NED[2] += const_earth_gravity;
 			/* prediction */
-			kalman_filter_inertial_predict(dT_const_120, z_est);
+			kalman_filter_inertial_predict(dt, z_est);
 			/* prepare vectors for kalman filter correction */
 			float z_meas[2];	// pos, accel
 			bool use_z[2] = { false, true };
 			if (local_flag_baroINITdone) {
-				z_meas[0] = sensor.baro_alt_meter - baro_alt0;
+				z_meas[0] = baro_alt0 - sensor.baro_alt_meter;	// Z = -alt
 				use_z[0] = true;
 			}
 			z_meas[1] = accel_NED[2];
@@ -329,14 +337,23 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 			kalman_filter_inertial_update(z_est, z_meas, k, use_z);
 			if (printatt_counter == 100) {
 				printatt_counter = 0;
+				printf("[pos_est_inav] dt = %.6f\n", dt);
 				printf("[pos_est_inav] pitch = %.3f, roll = %.3f, yaw = %.3f\n",
 						att.pitch, att.roll, att.yaw);
+				printf("[pos_est_inav] accel_UAV = %.3f, %.3f, %.3f\n",
+						sensor.accelerometer_m_s2[0],
+						sensor.accelerometer_m_s2[1],
+						sensor.accelerometer_m_s2[2]);
+				printf("[pos_est_inav] accel_NED = %.3f, %.3f, %.3f\n",
+						accel_NED[0], accel_NED[1], accel_NED[2]);
+				/*
 				printf("[pos_est_inav] Rot_matrix: %.3f  %.3f  %.3f\n",
 						att.R[0][0], att.R[0][1], att.R[0][2]);
 				printf("[pos_est_inav] Rot_matrix: %.3f  %.3f  %.3f\n",
 						att.R[1][0], att.R[1][1], att.R[1][2]);
 				printf("[pos_est_inav] Rot_matrix: %.3f  %.3f  %.3f\n",
 						att.R[2][0], att.R[2][1], att.R[2][2]);
+				*/
 				printf("[pos_est_inav] z = %.2f, vz = %.2f, az = %.2f\n",
 						z_est[0], z_est[1], z_est[2]);
 			}
