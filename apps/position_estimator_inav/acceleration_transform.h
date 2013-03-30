@@ -1,8 +1,8 @@
 /*
  * acceleration_transform.h
  *
- *  Created on: 30.03.2013
- *      Author: ton
+ *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
+ *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  */
 
 #ifndef ACCELERATION_TRANSFORM_H_

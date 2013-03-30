@@ -1,9 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: 	Damian Aregger <daregger@student.ethz.ch>
- *   			Tobias Naegeli <naegelit@student.ethz.ch>
- *				Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
+ *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,11 +41,32 @@
 #include <systemlib/param/param.h>
 
 struct position_estimator_inav_params {
-	float r;
+	float k[3][2];
+	int16_t acc_offs[3];
+	float acc_T[3][3];
 };
 
 struct position_estimator_inav_param_handles {
-	param_t r;
+	param_t k_alt_00;
+	param_t k_alt_01;
+	param_t k_alt_10;
+	param_t k_alt_11;
+	param_t k_alt_20;
+	param_t k_alt_21;
+
+	param_t acc_offs_0;
+	param_t acc_offs_1;
+	param_t acc_offs_2;
+
+	param_t acc_t_00;
+	param_t acc_t_01;
+	param_t acc_t_02;
+	param_t acc_t_10;
+	param_t acc_t_11;
+	param_t acc_t_12;
+	param_t acc_t_20;
+	param_t acc_t_21;
+	param_t acc_t_22;
 };
 
 /**

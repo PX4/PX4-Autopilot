@@ -1,8 +1,8 @@
 /*
  * acceleration_transform.c
  *
- *  Created on: 30.03.2013
- *      Author: Anton Babushkin
+ *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
+ *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  *
  * Transform acceleration vector to true orientation and scale
  *

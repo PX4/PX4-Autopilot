@@ -1,3 +1,10 @@
+/*
+ * kalman_filter_inertial.c
+ *
+ *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
+ *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
+ */
+
 #include "kalman_filter_inertial.h"
 
 void kalman_filter_inertial_predict(float dt, float x[3]) {
@@ -7,10 +14,9 @@ void kalman_filter_inertial_predict(float dt, float x[3]) {
 
 void kalman_filter_inertial_update(float x[3], float z[2], float k[3][2], bool use[2]) {
 	float y[2];
-	// y = z - x
-	for (int i = 0; i < 2; i++) {
-		y[i] = z[i] - x[i];
-	}
+	// y = z - H x
+	y[0] = z[0] - x[0];
+	y[1] = z[1] - x[2];
 	// x = x + K * y
 	for (int i = 0; i < 3; i++) {		// Row
 		for (int j = 0; j < 2; j++) {	// Column

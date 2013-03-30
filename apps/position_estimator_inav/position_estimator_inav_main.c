@@ -1,9 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: 	Damian Aregger	<daregger@student.ethz.ch>
- *   			Tobias Naegeli <naegelit@student.ethz.ch>
- * 				Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
+ *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,15 +65,13 @@
 #include <drivers/drv_hrt.h>
 
 #include "position_estimator_inav_params.h"
-//#include <uORB/topics/debug_key_value.h>
-#include "sounds.h"
-#include <drivers/drv_tone_alarm.h>
 #include "kalman_filter_inertial.h"
 #include "acceleration_transform.h"
 
 static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
+static bool verbose_mode = false;
 
 __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
@@ -89,7 +85,7 @@ static void usage(const char *reason) {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 	fprintf(stderr,
-			"usage: position_estimator_inav {start|stop|status} [-p <additional params>]\n\n");
+			"usage: position_estimator_inav {start|stop|status} [-v]\n\n");
 	exit(1);
 }
 
@@ -106,12 +102,14 @@ int position_estimator_inav_main(int argc, char *argv[]) {
 		usage("missing command");
 
 	if (!strcmp(argv[1], "start")) {
-
 		if (thread_running) {
 			printf("position_estimator_inav already running\n");
 			/* this is not an error */
 			exit(0);
 		}
+		if (argc > 1)
+			if (!strcmp(argv[2], "-v"))
+				verbose_mode = true;
 
 		thread_should_exit = false;
 		position_estimator_inav_task = task_spawn("position_estimator_inav",
@@ -148,17 +146,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	mavlink_log_info(mavlink_fd, "[position_estimator_inav] started");
 
-	/* kalman filter K for simulation parameters:
-	 * rate_accel = 200 Hz
-	 * rate_baro = 100 Hz
-	 * err_accel = 1.0 m/s^2
-	 * err_baro = 0.2 m
-	 */
-	static float k[3][2] = {
-			{ 0.0262f, 0.00001f },
-			{ 0.0349f, 0.00191f },
-			{ 0.000259f, 0.618f }
-	};
 	/* initialize values */
 	static float x_est[3] = { 0.0f, 0.0f, 0.0f };
 	static float y_est[3] = { 0.0f, 0.0f, 0.0f };
@@ -213,14 +200,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	parameters_update(&pos_inav_param_handles, &pos_inav_params);
 	/* END FIRST PARAMETER UPDATE */
 
-	// TODO implement calibration procedure, now put dummy values
-	int16_t accel_offs[3] = { 0, 0, 0 };
-	float accel_T[3][3] = {
-			{ 1.0f, 0.0f, 0.0f },
-			{ 0.0f, 1.0f, 0.0f },
-			{ 0.0f, 0.0f, 1.0f }
-	};
-
 	/* wait until gps signal turns valid, only then can we initialize the projection */
 	if (use_gps) {
 		struct pollfd fds_init[1] = { { .fd = vehicle_gps_position_sub,
@@ -270,11 +249,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	uint16_t baro_updates = 0;
 	hrt_abstime updates_counter_start = hrt_absolute_time();
 	uint32_t updates_counter_len = 1000000;
-	hrt_abstime pub_last = 0;
+	hrt_abstime pub_last = hrt_absolute_time();
 	uint32_t pub_interval = 5000;	// limit publish rate to 200 Hz
 
 	/* main loop */
-	struct pollfd fds[3] = {
+	struct pollfd fds[5] = {
 			{ .fd = parameter_update_sub, .events = POLLIN },
 			{ .fd = vehicle_status_sub, .events = POLLIN },
 			{ .fd = vehicle_attitude_sub, .events = POLLIN },
@@ -288,7 +267,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		int ret = poll(fds, 5, 10); // wait maximal this 10 ms = 100 Hz minimum rate
 		if (ret < 0) {
 			/* poll error */
-			printf("[position_estimator_inav] subscriptions poll error\n", ret);
+			if (verbose_mode)
+				printf("[position_estimator_inav] subscriptions poll error\n");
 		} else if (ret > 0) {
 			/* parameter update */
 			if (fds[0].revents & POLLIN) {
@@ -359,7 +339,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		last_time = t;
 		/* calculate corrected acceleration vector in UAV frame */
 		float accel_corr[3];
-		acceleration_correct(accel_corr, sensor.accelerometer_raw, accel_T, accel_offs);
+		acceleration_correct(accel_corr, sensor.accelerometer_raw, pos_inav_params.acc_T, pos_inav_params.acc_offs);
 		/* transform acceleration vector from UAV frame to NED frame */
 		float accel_NED[3];
 		for (int i = 0; i < 3; i++) {
@@ -384,34 +364,24 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		}
 		if (use_z[0] || use_z[1]) {
 			/* correction */
-			kalman_filter_inertial_update(z_est, z_meas, k, use_z);
+			kalman_filter_inertial_update(z_est, z_meas, pos_inav_params.k, use_z);
 		}
-		if (t - updates_counter_start > updates_counter_len) {
-			float updates_dt = (t - updates_counter_start) * 0.000001f;
-			printf("[position_estimator_inav] accelerometer_updates_rate = %.1/s, baro_updates_rate = %.1f/s\n", accelerometer_updates / updates_dt, baro_updates / updates_dt);
-			updates_counter_start = t;
+		if (verbose_mode) {
+			/* print updates rate */
+			if (t - updates_counter_start > updates_counter_len) {
+				float updates_dt = (t - updates_counter_start) * 0.000001f;
+				printf("[position_estimator_inav] accelerometer_updates_rate = %.1/s, baro_updates_rate = %.1f/s\n", accelerometer_updates / updates_dt, baro_updates / updates_dt);
+				updates_counter_start = t;
+				accelerometer_updates = 0;
+				baro_updates = 0;
+			}
 		}
-		if (printatt_counter == 100) {
-			printatt_counter = 0;
-			printf("[position_estimator_inav] dt = %.6f\n", dt);
-			printf("[position_estimator_inav] pitch = %.3f, roll = %.3f, yaw = %.3f\n",
-					att.pitch, att.roll, att.yaw);
-			printf("[position_estimator_inav] accel_UAV = %.3f, %.3f, %.3f\n",
-					sensor.accelerometer_m_s2[0],
-					sensor.accelerometer_m_s2[1],
-					sensor.accelerometer_m_s2[2]);
-			printf("[position_estimator_inav] accel_NED = %.3f, %.3f, %.3f\n",
-					accel_NED[0], accel_NED[1], accel_NED[2]);
-			printf("[position_estimator_inav] z = %.2f, vz = %.2f, az = %.2f\n",
-					z_est[0], z_est[1], z_est[2]);
-		}
-		printatt_counter++;
 		if (t - pub_last > pub_interval) {
 			pub_last = t;
-			local_pos_est.x = 0.0;
-			local_pos_est.vx = 0.0;
-			local_pos_est.y = 0.0;
-			local_pos_est.vy = 0.0;
+			local_pos_est.x = 0.0f;
+			local_pos_est.vx = 0.0f;
+			local_pos_est.y = 0.0f;
+			local_pos_est.vy = 0.0f;
 			local_pos_est.z = z_est[0];
 			local_pos_est.vz = z_est[1];
 			local_pos_est.timestamp = hrt_absolute_time();
