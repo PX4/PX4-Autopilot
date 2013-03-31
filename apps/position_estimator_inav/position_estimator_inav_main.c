@@ -72,6 +72,7 @@ static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool verbose_mode = false;
+const static float const_earth_gravity = 9.81f;
 
 __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
@@ -84,19 +85,19 @@ static void usage(const char *reason);
 static void usage(const char *reason) {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr,
-			"usage: position_estimator_inav {start|stop|status} [-v]\n\n");
-	exit(1);
-}
+		fprintf(stderr,
+				"usage: position_estimator_inav {start|stop|status|calibrate} [-v]\n\n");
+		exit(1);
+	}
 
-/**
- * The position_estimator_inav_thread only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- *
- * The actual stack size should be set in the call
- * to task_create().
- */
+		/**
+		 * The position_estimator_inav_thread only briefly exists to start
+		 * the background job. The stack size assigned in the
+		 * Makefile does only apply to this management task.
+		 *
+		 * The actual stack size should be set in the call
+		 * to task_create().
+		 */
 int position_estimator_inav_main(int argc, char *argv[]) {
 	if (argc < 1)
 		usage("missing command");
@@ -132,8 +133,110 @@ int position_estimator_inav_main(int argc, char *argv[]) {
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "calibrate")) {
+		do_accelerometer_calibration();
+		exit(0);
+	}
+
 	usage("unrecognized command");
 	exit(1);
+}
+
+void wait_for_input() {
+	printf(
+			"press any key to continue, 'Q' to abort\n");
+	while (true ) {
+		int c = getchar();
+		if (c == 'q' || c == 'Q') {
+			exit(0);
+		} else {
+			return;
+		}
+	}
+}
+
+void read_accelerometer_raw_avg(int sensor_combined_sub, int16_t accel_avg[3],
+		int samples) {
+	printf("[position_estimator_inav] measuring...\n");
+	struct pollfd fds[1] = { { .fd = sensor_combined_sub, .events = POLLIN } };
+	int count = 0;
+	int32_t accel_sum[3] = { 0, 0, 0 };
+	while (count < samples) {
+		int poll_ret = poll(fds, 1, 1000);
+		if (poll_ret == 1) {
+			struct sensor_combined_s sensor;
+			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
+			accel_sum[0] += sensor.accelerometer_raw[0];
+			accel_sum[1] += sensor.accelerometer_raw[1];
+			accel_sum[2] += sensor.accelerometer_raw[2];
+			count++;
+		} else if (poll_ret == 0) {
+			/* any poll failure for 1s is a reason to abort */
+			printf("[position_estimator_inav] no accelerometer data for 1s\n");
+			exit(1);
+		} else {
+			printf("[position_estimator_inav] poll error\n");
+			exit(1);
+		}
+	}
+	for (int i = 0; i < 3; i++)
+		accel_avg[i] = (accel_sum[i] + count / 2) / count;
+	printf("[position_estimator_inav] raw data: [ %i  %i  %i ]\n", accel_avg[0], accel_avg[1], accel_avg[2]);
+}
+
+void do_accelerometer_calibration() {
+	printf("[position_estimator_inav] calibration started\n");
+	const int calibration_samples = 1000;
+	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	int16_t accel_raw_ref[6][3];	// Reference measurements
+	printf("[position_estimator_inav] place vehicle level, ");
+	wait_for_input();
+	read_accelerometer_raw_avg(sensor_combined_sub, &(accel_raw_ref[4][0]),
+			calibration_samples);
+	printf("[position_estimator_inav] place vehicle on it's back, ");
+	wait_for_input();
+	read_accelerometer_raw_avg(sensor_combined_sub, &(accel_raw_ref[5][0]),
+			calibration_samples);
+	printf("[position_estimator_inav] place vehicle on right side, ");
+	wait_for_input();
+	read_accelerometer_raw_avg(sensor_combined_sub, &(accel_raw_ref[2][0]),
+			calibration_samples);
+	printf("[position_estimator_inav] place vehicle on left side, ");
+	wait_for_input();
+	read_accelerometer_raw_avg(sensor_combined_sub, &(accel_raw_ref[3][0]),
+			calibration_samples);
+	printf("[position_estimator_inav] place vehicle nose down, ");
+	wait_for_input();
+	read_accelerometer_raw_avg(sensor_combined_sub, &(accel_raw_ref[0][0]),
+			calibration_samples);
+	printf("[position_estimator_inav] place vehicle nose up, ");
+	wait_for_input();
+	read_accelerometer_raw_avg(sensor_combined_sub, &(accel_raw_ref[1][0]),
+			calibration_samples);
+	close(sensor_combined_sub);
+	printf("[position_estimator_inav] reference data collection done\n");
+
+	int16_t accel_offs[3];
+	float accel_T[3][3];
+	calculate_calibration_values(accel_raw_ref, accel_T, accel_offs,
+			const_earth_gravity);
+	printf("[position_estimator_inav] accelerometers raw offsets: [ %i  %i  %i ]\n",
+			accel_offs[0], accel_offs[1], accel_offs[2]);
+	int32_t accel_offs_int32[3] = { accel_offs[0], accel_offs[1], accel_offs[2] };
+
+	if (param_set(param_find("INAV_ACC_OFFS_0"), &(accel_offs_int32[0]))
+			|| param_set(param_find("INAV_ACC_OFFS_1"), &(accel_offs_int32[1]))
+			|| param_set(param_find("INAV_ACC_OFFS_2"), &(accel_offs_int32[2]))) {
+		printf("[position_estimator_inav] setting parameters failed\n");
+		exit(1);
+	}
+	/* auto-save to EEPROM */
+	int save_ret = param_save_default();
+	if (save_ret != 0) {
+		printf("[position_estimator_inav] auto-save of parameters to storage failed\n");
+		exit(1);
+	}
+	printf("[position_estimator_inav] calibration done\n");
 }
 
 /****************************************************************************
@@ -157,7 +260,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	int baro_loop_cnt = 0;
 	int baro_loop_end = 70; /* measurement for 1 second */
 	float baro_alt0 = 0.0f; /* to determin while start up */
-	const static float const_earth_gravity = 9.81f;
 
 	static double lat_current = 0.0d; //[°]] --> 47.0
 	static double lon_current = 0.0d; //[°]] -->8.5
@@ -237,7 +339,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		map_projection_init(lat_current, lon_current);
 		/* publish global position messages only after first GPS message */
 	}
-	printf("[position_estimator_inav] initialized projection with: lat: %.10f,  lon:%.10f\n",
+	printf(
+			"[position_estimator_inav] initialized projection with: lat: %.10f,  lon:%.10f\n",
 			lat_current, lon_current);
 
 	hrt_abstime last_time = 0;
@@ -253,13 +356,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	uint32_t pub_interval = 5000;	// limit publish rate to 200 Hz
 
 	/* main loop */
-	struct pollfd fds[5] = {
-			{ .fd = parameter_update_sub, .events = POLLIN },
-			{ .fd = vehicle_status_sub, .events = POLLIN },
-			{ .fd = vehicle_attitude_sub, .events = POLLIN },
-			{ .fd = sensor_combined_sub, .events = POLLIN },
-			{ .fd = vehicle_gps_position_sub, .events = POLLIN }
-	};
+	struct pollfd fds[5] = { { .fd = parameter_update_sub, .events = POLLIN }, {
+			.fd = vehicle_status_sub, .events = POLLIN }, { .fd =
+			vehicle_attitude_sub, .events = POLLIN }, { .fd =
+			sensor_combined_sub, .events = POLLIN }, { .fd =
+			vehicle_gps_position_sub, .events = POLLIN } };
 	printf("[position_estimator_inav] main loop started\n");
 	while (!thread_should_exit) {
 		bool accelerometer_updated = false;
@@ -311,7 +412,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 						baro_alt0 /= (float) (baro_loop_cnt);
 						local_flag_baroINITdone = true;
 						char str[80];
-						sprintf(str, "[position_estimator_inav] barometer initialized with alt0 = %.2f", baro_alt0);
+						sprintf(str,
+								"[position_estimator_inav] baro_alt0 = %.2f",
+								baro_alt0);
 						printf("%s\n", str);
 						mavlink_log_info(mavlink_fd, str);
 					}
@@ -339,7 +442,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		last_time = t;
 		/* calculate corrected acceleration vector in UAV frame */
 		float accel_corr[3];
-		acceleration_correct(accel_corr, sensor.accelerometer_raw, pos_inav_params.acc_T, pos_inav_params.acc_offs);
+		acceleration_correct(accel_corr, sensor.accelerometer_raw,
+				pos_inav_params.acc_T, pos_inav_params.acc_offs);
 		/* transform acceleration vector from UAV frame to NED frame */
 		float accel_NED[3];
 		for (int i = 0; i < 3; i++) {
@@ -364,13 +468,17 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		}
 		if (use_z[0] || use_z[1]) {
 			/* correction */
-			kalman_filter_inertial_update(z_est, z_meas, pos_inav_params.k, use_z);
+			kalman_filter_inertial_update(z_est, z_meas, pos_inav_params.k,
+					use_z);
 		}
 		if (verbose_mode) {
 			/* print updates rate */
 			if (t - updates_counter_start > updates_counter_len) {
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
-				printf("[position_estimator_inav] accelerometer_updates_rate = %.1/s, baro_updates_rate = %.1f/s\n", accelerometer_updates / updates_dt, baro_updates / updates_dt);
+				printf(
+						"[position_estimator_inav] accelerometer_updates_rate = %.1/s, baro_updates_rate = %.1f/s\n",
+						accelerometer_updates / updates_dt,
+						baro_updates / updates_dt);
 				updates_counter_start = t;
 				accelerometer_updates = 0;
 				baro_updates = 0;
