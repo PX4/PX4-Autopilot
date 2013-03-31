@@ -145,3 +145,42 @@ distclean: clean
 	$(Q) $(REMOVE) -f $(ARCHIVE_DIR)*.export
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
 
+#
+# Print some help text
+#
+.PHONY: help
+help:
+	@echo ""
+	@echo " PX4 firmware builder"
+	@echo " ===================="
+	@echo ""
+	@echo "  Available targets:"
+	@echo "  ------------------"
+	@echo ""
+	@echo "  archives"
+	@echo "    Build the NuttX RTOS archives that are used by the firmware build."
+	@echo ""
+	@echo "  all"
+	@echo "    Build all firmware configs: $(CONFIGS)"
+	@echo "    A limited set of configs can be built with:"
+	@echo ""
+	@echo "      CONFIGS=<list-of-configs>"
+	@echo ""
+	@for config in $(CONFIGS); do \
+		echo "  $$config"; \
+		echo "    Build just the $$config firmware configuration."; \
+		echo ""; \
+	done
+	@echo "  clean"
+	@echo "    Remove all firmware build pieces."
+	@echo ""
+	@echo "  distclean"
+	@echo "    Remove all compilation products, including NuttX RTOS archives."
+	@echo ""
+	@echo "  Common options:"
+	@echo "  ---------------"
+	@echo ""
+	@echo "  V=1"
+	@echo "    If V is set, more verbose output is printed during the build. This can"
+	@echo "    help when diagnosing issues with the build or toolchain."
+	@echo ""
