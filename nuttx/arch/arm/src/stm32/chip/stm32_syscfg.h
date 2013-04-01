@@ -89,11 +89,11 @@
 /* SYSCFG peripheral mode configuration register */
 
 #define SYSCFG_PMC_MII_RMII_SEL       (1 << 23) /* Bit 23: Ethernet PHY interface selection */
-+#ifdef CONFIG_STM32_STM32F427
-+#  define SYSCFG_PMC_ADC3DC2          (1 << 18) /* Bit 18: See AN4073 */
-+#  define SYSCFG_PMC_ADC2DC2          (1 << 17) /* Bit 17: See AN4073 */
-+#  define SYSCFG_PMC_ADC1DC2          (1 << 16) /* Bit 16: See AN4073 */
-+#endif
+#ifdef CONFIG_STM32_STM32F427
+#  define SYSCFG_PMC_ADC3DC2          (1 << 18) /* Bit 18: See AN4073 */
+#  define SYSCFG_PMC_ADC2DC2          (1 << 17) /* Bit 17: See AN4073 */
+#  define SYSCFG_PMC_ADC1DC2          (1 << 16) /* Bit 16: See AN4073 */
+#endif
 
 /* SYSCFG external interrupt configuration register 1-4 */
 

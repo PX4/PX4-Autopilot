@@ -1,0 +1,143 @@
+############################################################################
+# configs/px4fmu/nsh/appconfig
+#
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+# Path to example in apps/examples containing the user_start entry point
+
+CONFIGURED_APPS	+= examples/nsh
+
+# The NSH application library
+CONFIGURED_APPS += nshlib
+CONFIGURED_APPS += system/readline
+
+# System library - utility functions
+CONFIGURED_APPS += systemlib
+CONFIGURED_APPS += systemlib/mixer
+
+# Math library
+ifneq ($(CONFIG_APM),y)
+CONFIGURED_APPS += mathlib
+CONFIGURED_APPS += mathlib/CMSIS
+CONFIGURED_APPS += examples/math_demo
+endif
+
+# Control library
+ifneq ($(CONFIG_APM),y)
+CONFIGURED_APPS	+= controllib
+CONFIGURED_APPS += examples/control_demo
+CONFIGURED_APPS += examples/kalman_demo
+endif
+
+# System utility commands
+CONFIGURED_APPS += systemcmds/reboot
+CONFIGURED_APPS += systemcmds/perf
+CONFIGURED_APPS += systemcmds/top
+CONFIGURED_APPS += systemcmds/boardinfo
+CONFIGURED_APPS += systemcmds/mixer
+# No I2C EEPROM - need new param interface
+#CONFIGURED_APPS += systemcmds/eeprom
+#CONFIGURED_APPS += systemcmds/param
+CONFIGURED_APPS += systemcmds/pwm
+CONFIGURED_APPS += systemcmds/bl_update
+CONFIGURED_APPS += systemcmds/preflight_check
+CONFIGURED_APPS += systemcmds/delay_test
+
+# Tutorial code from
+# https://pixhawk.ethz.ch/px4/dev/hello_sky
+# CONFIGURED_APPS += examples/px4_simple_app
+
+# Tutorial code from
+# https://pixhawk.ethz.ch/px4/dev/deamon
+# CONFIGURED_APPS += examples/px4_deamon_app
+
+# Tutorial code from
+# https://pixhawk.ethz.ch/px4/dev/debug_values
+# CONFIGURED_APPS += examples/px4_mavlink_debug
+
+# Shared object broker; required by many parts of the system.
+CONFIGURED_APPS += uORB
+
+CONFIGURED_APPS += mavlink
+CONFIGURED_APPS += mavlink_onboard
+CONFIGURED_APPS += commander
+CONFIGURED_APPS += sdlog
+CONFIGURED_APPS += sensors
+
+ifneq ($(CONFIG_APM),y)
+#CONFIGURED_APPS += ardrone_interface
+CONFIGURED_APPS += multirotor_att_control
+CONFIGURED_APPS += multirotor_pos_control
+#CONFIGURED_APPS += fixedwing_control
+CONFIGURED_APPS += fixedwing_att_control
+CONFIGURED_APPS += fixedwing_pos_control
+CONFIGURED_APPS += position_estimator
+CONFIGURED_APPS += attitude_estimator_ekf
+CONFIGURED_APPS += hott_telemetry
+endif
+
+# Hacking tools
+# XXX needs updating for new i2c config
+#CONFIGURED_APPS += systemcmds/i2c
+
+# Communication and Drivers
+CONFIGURED_APPS += drivers/boards/px4fmuv2
+CONFIGURED_APPS	+= drivers/device
+# XXX needs conversion to SPI
+#CONFIGURED_APPS += drivers/ms5611
+CONFIGURED_APPS += drivers/l3gd20
+# XXX needs conversion to serial
+#CONFIGURED_APPS	+= drivers/px4io
+CONFIGURED_APPS += drivers/stm32
+#CONFIGURED_APPS += drivers/led
+CONFIGURED_APPS += drivers/blinkm
+CONFIGURED_APPS += drivers/stm32/tone_alarm
+CONFIGURED_APPS += drivers/stm32/adc
+#CONFIGURED_APPS += drivers/px4fmu
+CONFIGURED_APPS += drivers/hil
+CONFIGURED_APPS += drivers/gps
+CONFIGURED_APPS += drivers/mb12xx
+
+# Testing stuff
+CONFIGURED_APPS += px4/sensors_bringup
+CONFIGURED_APPS += px4/tests
+
+ifeq ($(CONFIG_CAN),y)
+#CONFIGURED_APPS += examples/can
+endif
+
+#ifeq ($(CONFIG_USBDEV),y)
+#ifeq ($(CONFIG_CDCACM),y)
+CONFIGURED_APPS += examples/cdcacm
+#endif
+#endif

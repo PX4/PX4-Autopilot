@@ -42,6 +42,11 @@
 
 #include <sys/ioctl.h>
 
+#ifdef CONFIG_ARCH_BOARD_PX4FMUV2
+#warning No GPIOs on this board.
+#define GPIO_DEVICE_PATH	"/dev/null"
+#endif
+
 #ifdef CONFIG_ARCH_BOARD_PX4FMU
 /*
  * PX4FMU GPIO numbers.
