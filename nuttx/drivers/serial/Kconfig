@@ -292,6 +292,10 @@ config ARCH_HAVE_UART5
        bool
 config ARCH_HAVE_UART6
        bool
+config ARCH_HAVE_UART7
+       bool
+config ARCH_HAVE_UART8
+       bool
 
 config ARCH_HAVE_USART0
        bool
@@ -306,6 +310,10 @@ config ARCH_HAVE_USART4
 config ARCH_HAVE_USART5
        bool
 config ARCH_HAVE_USART6
+       bool
+config ARCH_HAVE_USART7
+       bool
+config ARCH_HAVE_USART8
        bool
 
 config MCU_SERIAL
@@ -402,6 +410,22 @@ config UART6_SERIAL_CONSOLE
 config USART6_SERIAL_CONSOLE
 	bool "USART6"
 	depends on ARCH_HAVE_USART6
+
+config UART7_SERIAL_CONSOLE
+	bool "UART7"
+	depends on ARCH_HAVE_UART7
+
+config USART7_SERIAL_CONSOLE
+	bool "USART7"
+	depends on ARCH_HAVE_USART7
+
+config UART8_SERIAL_CONSOLE
+	bool "UART8"
+	depends on ARCH_HAVE_UART8
+
+config USART8_SERIAL_CONSOLE
+	bool "USART8"
+	depends on ARCH_HAVE_USART8
 
 config NO_SERIAL_CONSOLE
 	bool "No serial console"
@@ -1047,6 +1071,176 @@ config UART6_PARITY
 
 config UART6_2STOP
 	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART7 Configuration"
+	depends on ARCH_HAVE_USART7
+
+config USART7_RXBUFSIZE
+	int "Receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART7_TXBUFSIZE
+	int "Transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART7_BAUD
+	int "BAUD rate"
+	default 115200
+	help
+	  The configured BAUD of the USART.
+
+config USART7_BITS
+	int "Character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART7_PARITY
+	int "Parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART7_2STOP
+	int "Uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "UART7 Configuration"
+	depends on ARCH_HAVE_UART7
+
+config UART7_RXBUFSIZE
+	int "Receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART7_TXBUFSIZE
+	int "Transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART7_BAUD
+	int "BAUD rate"
+	default 115200
+	help
+	  The configured BAUD of the UART.
+
+config UART7_BITS
+	int "Character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART7_PARITY
+	int "Parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART7_2STOP
+	int "Uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+menu "USART8 Configuration"
+	depends on ARCH_HAVE_USART8
+
+config USART8_RXBUFSIZE
+	int "Receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART8_TXBUFSIZE
+	int "Transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART8_BAUD
+	int "BAUD rate"
+	default 115200
+	help
+	  The configured BAUD of the USART.
+
+config USART8_BITS
+	int "Character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART8_PARITY
+	int "Parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART8_2STOP
+	int "Uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "UART8 Configuration"
+	depends on ARCH_HAVE_UART8
+
+config UART8_RXBUFSIZE
+	int "Receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART8_TXBUFSIZE
+	int "Transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART8_BAUD
+	int "BAUD rate"
+	default 115200
+	help
+	  The configured BAUD of the UART.
+
+config UART8_BITS
+	int "Character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART8_PARITY
+	int "Parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART8_2STOP
+	int "Uses 2 stop bits"
 	default 0
 	help
 	  1=Two stop bits

@@ -153,7 +153,16 @@
 #define STM32_IRQ_RNG         (STM32_IRQ_INTERRUPTS+80) /* 80: Hash and Rng global interrupt */
 #define STM32_IRQ_FPU         (STM32_IRQ_INTERRUPTS+81) /* 81: FPU global interrupt */
 
-#define NR_IRQS               (STM32_IRQ_INTERRUPTS+82)
+#ifndef CONFIG_STM32_STM32F427
+#  define NR_IRQS               (STM32_IRQ_INTERRUPTS+87)
+#else
+#  define STM32_IRQ_UART7       (STM32_IRQ_INTERRUPTS+82) /* 82: UART7 interrupt */
+#  define STM32_IRQ_UART8       (STM32_IRQ_INTERRUPTS+83) /* 83: UART8 interrupt */
+#  define STM32_IRQ_SPI4        (STM32_IRQ_INTERRUPTS+84) /* 84: SPI4 interrupt */
+#  define STM32_IRQ_SPI5        (STM32_IRQ_INTERRUPTS+85) /* 85: SPI5 interrupt */
+#  define STM32_IRQ_SPI6        (STM32_IRQ_INTERRUPTS+86) /* 86: SPI6 interrupt */
+#  define NR_IRQS               (STM32_IRQ_INTERRUPTS+87)
+#endif
 
 /****************************************************************************************************
  * Public Types

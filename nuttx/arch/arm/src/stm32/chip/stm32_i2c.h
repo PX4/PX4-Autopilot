@@ -51,6 +51,9 @@
 #define STM32_I2C_SR2_OFFSET    0x0018  /* Status register 2 (16-bit) */
 #define STM32_I2C_CCR_OFFSET    0x001c  /* Clock control register (16-bit) */
 #define STM32_I2C_TRISE_OFFSET  0x0020  /* TRISE Register (16-bit) */
+#ifdef CONFIG_STM32_STM32F427
+#  define STM32_I2C_FLTR_OFFSET   0x0024  /* FLTR Register (16-bit) */
+#endif
 
 /* Register Addresses ***************************************************************/
 
@@ -64,6 +67,9 @@
 #  define STM32_I2C1_SR2        (STM32_I2C1_BASE+STM32_I2C_SR2_OFFSET)
 #  define STM32_I2C1_CCR        (STM32_I2C1_BASE+STM32_I2C_CCR_OFFSET)
 #  define STM32_I2C1_TRISE      (STM32_I2C1_BASE+STM32_I2C_TRISE_OFFSET)
+#  ifdef STM32_I2C_FLTR_OFFSET
+#    define STM32_I2C1_FLTR       (STM32_I2C1_BASE+STM32_I2C_FLTR_OFFSET)
+#  endif
 #endif
 
 #if STM32_NI2C > 1
@@ -76,6 +82,9 @@
 #  define STM32_I2C2_SR2        (STM32_I2C2_BASE+STM32_I2C_SR2_OFFSET)
 #  define STM32_I2C2_CCR        (STM32_I2C2_BASE+STM32_I2C_CCR_OFFSET)
 #  define STM32_I2C2_TRISE      (STM32_I2C2_BASE+STM32_I2C_TRISE_OFFSET)
+#  ifdef STM32_I2C_FLTR_OFFSET
+#    define STM32_I2C2_FLTR       (STM32_I2C2_BASE+STM32_I2C_FLTR_OFFSET)
+#  endif
 #endif
 
 #if STM32_NI2C > 2
@@ -88,6 +97,9 @@
 #  define STM32_I2C3_SR2        (STM32_I2C3_BASE+STM32_I2C_SR2_OFFSET)
 #  define STM32_I2C3_CCR        (STM32_I2C3_BASE+STM32_I2C_CCR_OFFSET)
 #  define STM32_I2C3_TRISE      (STM32_I2C3_BASE+STM32_I2C_TRISE_OFFSET)
+#  ifdef STM32_I2C_FLTR_OFFSET
+#    define STM32_I2C3_FLTR       (STM32_I2C3_BASE+STM32_I2C_FLTR_OFFSET)
+#  endif
 #endif
 
 /* Register Bitfield Definitions ****************************************************/
@@ -187,6 +199,14 @@
 
 #define I2C_TRISE_SHIFT         (0) /* Bits 5-0: Maximum Rise Time in Fast/Standard mode (Master mode) */
 #define I2C_TRISE_MASK          (0x3f << I2C_TRISE_SHIFT)
+
+/* FLTR Register */
+
+#ifdef STM32_I2C_FLTR_OFFSET
+#  define I2C_FLTR_ANOFF	(1 << 4)  /* Bit 4: Analog noise filter disable */
+#  define I2C_FLTR_DNF_SHIFT	0         /* Bits 0-3: Digital noise filter */
+#  define I2C_FLTR_DNF_MASK	(0xf << I2C_FLTR_DNF_SHIFT)
+#endif
 
 #endif /* __ARCH_ARM_SRC_STM32_CHIP_STM32_I2C_H */
 

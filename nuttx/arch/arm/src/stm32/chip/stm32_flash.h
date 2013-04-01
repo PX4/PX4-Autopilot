@@ -55,6 +55,7 @@
 #elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define STM32_FLASH_NPAGES        8
 #  define STM32_FLASH_PAGESIZE      (128*1024)
+ /* XXX this is wrong for 427, and not really right for 40x due to mixed page sizes */
 #endif
 
 #define STM32_FLASH_SIZE            (STM32_FLASH_NPAGES * STM32_FLASH_PAGESIZE)
@@ -74,6 +75,9 @@
 #elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define STM32_FLASH_OPTCR_OFFSET 0x0014
 #endif
+#if defined(CONFIG_STM32_STM32F427)
+#  define STM32_FLASH_OPTCR1_OFFSET 0x0018
+#endif
 
 /* Register Addresses ***************************************************************/
 
@@ -88,7 +92,10 @@
 #  define STM32_FLASH_OBR          (STM32_FLASHIF_BASE+STM32_FLASH_OBR_OFFSET)
 #  define STM32_FLASH_WRPR         (STM32_FLASHIF_BASE+STM32_FLASH_WRPR_OFFSET)
 #elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
-# define STM32_FLASH_OPTCR         (STM32_FLASHIF_BASE+STM32_FLASH_OPTCR_OFFSET)
+#  define STM32_FLASH_OPTCR        (STM32_FLASHIF_BASE+STM32_FLASH_OPTCR_OFFSET)
+#endif
+#if defined(CONFIG_STM32_STM32F427)
+#  define STM32_FLASH_OPTCR1       (STM32_FLASHIF_BASE+STM32_FLASH_OPTCR1_OFFSET)
 #endif
 
 /* Register Bitfield Definitions ****************************************************/
@@ -150,10 +157,14 @@
 #elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define FLASH_CR_PG               (1 << 0)                /* Bit 0: Programming */
 #  define FLASH_CR_SER              (1 << 1)                /* Bit 1: Sector Erase */
-#  define FLASH_CR_MER              (1 << 2)                /* Bit 2: Mass Erase */
+#  define FLASH_CR_MER              (1 << 2)                /* Bit 2: Mass Erase sectors 0..11 */
 #  define FLASH_CR_SNB_SHIFT        (3)                     /* Bits 3-6: Sector number */
 #  define FLASH_CR_SNB_MASK         (15 << FLASH_CR_SNB_SHIFT)
+#if defined(CONFIG_STM32_STM32F427)
+#    define FLASH_CR_SNB(n)         (((n % 12) << FLASH_CR_SNB_SHIFT) | ((n / 12) << 7)) /* Sector n, n=0..23 */
+#else
 #    define FLASH_CR_SNB(n)         ((n) << FLASH_CR_SNB_SHIFT) /* Sector n, n=0..11 */
+#endif
 #  define FLASH_CR_PSIZE_SHIFT      (8)                     /* Bits 8-9: Program size */
 #  define FLASH_CR_PSIZE_MASK       (3 << FLASH_CR_PSIZE_SHIFT)
 #    define FLASH_CR_PSIZE_X8       (0 << FLASH_CR_PSIZE_SHIFT) /* 00 program x8 */
@@ -163,6 +174,9 @@
 #  define FLASH_CR_EOPIE            (1 << 24)               /* Bit 24: End of operation interrupt enable */
 #  define FLASH_CR_ERRIE            (1 << 25)               /* Bit 25: Error interrupt enable */
 #  define FLASH_CR_LOCK             (1 << 31)               /* Bit 31: Lock */
+#endif
+#if defined(CONFIG_STM32_STM32F427)
+#  define FLASH_CR_MER1             (1 << 15)               /* Bit 15: Mass Erase sectors 12..23 */
 #endif
 
 /* Flash Option Control Register (OPTCR) */
@@ -185,6 +199,13 @@
 #  define FLASH_OPTCR_RDP_MASK      (0xff << FLASH_OPTCR_RDP_SHIFT)
 #  define FLASH_OPTCR_NWRP_SHIFT    (16)                   /* Bits 16-27: Not write protect */
 #  define FLASH_OPTCR_NWRP_MASK     (0xfff << FLASH_OPTCR_NWRP_SHIFT)
+#endif
+
+/* Flash Option Control Register (OPTCR1) */
+
+#if defined(CONFIG_STM32_STM32F427)
+#  define FLASH_OPTCR1_NWRP_SHIFT    (16)                   /* Bits 16-27: Not write protect (high bank) */
+#  define FLASH_OPTCR1_NWRP_MASK     (0xfff << FLASH_OPTCR_NWRP_SHIFT)
 #endif
 
 #endif /* __ARCH_ARM_SRC_STM32_CHIP_STM32_FLASH_H */

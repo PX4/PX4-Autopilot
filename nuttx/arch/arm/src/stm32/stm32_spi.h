@@ -71,11 +71,11 @@ enum    spi_dev_e;
  ************************************************************************************/
 
 /************************************************************************************
- * Name:  stm32_spi1/2/3select and stm32_spi1/2/3status
+ * Name:  stm32_spi1/2/...select and stm32_spi1/2/...status
  *
  * Description:
- *   The external functions, stm32_spi1/2/3select, stm32_spi1/2/3status, and
- *   stm32_spi1/2/3cmddata must be provided by board-specific logic.  These are
+ *   The external functions, stm32_spi1/2/...select, stm32_spi1/2/...status, and
+ *   stm32_spi1/2/...cmddata must be provided by board-specific logic.  These are
  *   implementations of the select, status, and cmddata methods of the SPI interface
  *   defined by struct spi_ops_s (see include/nuttx/spi.h). All other methods
  *   (including up_spiinitialize()) are provided by common STM32 logic.  To use this
@@ -83,11 +83,11 @@ enum    spi_dev_e;
  *
  *   1. Provide logic in stm32_boardinitialize() to configure SPI chip select
  *      pins.
- *   2. Provide stm32_spi1/2/3select() and stm32_spi1/2/3status() functions in your
+ *   2. Provide stm32_spi1/2/...select() and stm32_spi1/2/...status() functions in your
  *      board-specific logic.  These functions will perform chip selection and
  *      status operations using GPIOs in the way your board is configured.
  *   3. If CONFIG_SPI_CMDDATA is defined in your NuttX configuration file, then
- *      provide stm32_spi1/2/3cmddata() functions in your board-specific logic. 
+ *      provide stm32_spi1/2/...cmddata() functions in your board-specific logic. 
  *      These functions will perform cmd/data selection operations using GPIOs in the
  *      way your board is configured.
  *   4. Add a calls to up_spiinitialize() in your low level application
@@ -110,6 +110,18 @@ EXTERN int stm32_spi2cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bo
 EXTERN void  stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
 EXTERN uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
 EXTERN int stm32_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+
+EXTERN void  stm32_spi4select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+EXTERN uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
+EXTERN int stm32_spi4cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+
+EXTERN void  stm32_spi5select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+EXTERN uint8_t stm32_spi5status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
+EXTERN int stm32_spi5cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+
+EXTERN void  stm32_spi6select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+EXTERN uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
+EXTERN int stm32_spi6cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
 
 #undef EXTERN
 #if defined(__cplusplus)

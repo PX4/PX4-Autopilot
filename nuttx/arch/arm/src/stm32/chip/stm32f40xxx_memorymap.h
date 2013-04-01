@@ -140,6 +140,8 @@
 #define STM32_CAN2_BASE      0x40006800     /* 0x40006800-0x40006bff: bxCAN2 */
 #define STM32_PWR_BASE       0x40007000     /* 0x40007000-0x400073ff: Power control PWR */
 #define STM32_DAC_BASE       0x40007400     /* 0x40007400-0x400077ff: DAC */
+#define STM32_UART7_BASE     0x40007800     /* 0x40007800-0x40007bff: UART7 */
+#define STM32_UART8_BASE     0x40007c00     /* 0x40007c00-0x40007fff: UART8 */
 
 /* APB2 Base Addresses **************************************************************/
 
@@ -154,11 +156,14 @@
 #  define STM32_ADCCMN_BASE  0x40012300     /*                        Common */
 #define STM32_SDIO_BASE      0x40012c00     /* 0x40012c00-0x40012fff: SDIO  */
 #define STM32_SPI1_BASE      0x40013000     /* 0x40013000-0x400133ff: SPI1 */
+#define STM32_SPI4_BASE      0x40013400     /* 0x40013000-0x400137ff: SPI4 */
 #define STM32_SYSCFG_BASE    0x40013800     /* 0x40013800-0x40013bff: SYSCFG */
 #define STM32_EXTI_BASE      0x40013c00     /* 0x40013c00-0x40013fff: EXTI */
 #define STM32_TIM9_BASE      0x40014000     /* 0x40014000-0x400143ff: TIM9 timer */
 #define STM32_TIM10_BASE     0x40014400     /* 0x40014400-0x400147ff: TIM10 timer */
 #define STM32_TIM11_BASE     0x40014800     /* 0x40014800-0x40014bff: TIM11 timer */
+#define STM32_SPI5_BASE      0x40015000     /* 0x40015000-0x400153ff: SPI5 */
+#define STM32_SPI6_BASE      0x40015400     /* 0x40015400-0x400157ff: SPI6 */
 
 /* AHB1 Base Addresses **************************************************************/
 

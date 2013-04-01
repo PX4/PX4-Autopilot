@@ -40,7 +40,7 @@
 /* This file is included by stm32_vectors.S.  It provides the macro VECTOR that
  * supplies ach STM32F40xxx vector in terms of a (lower-case) ISR label and an
  * (upper-case) IRQ number as defined in arch/arm/include/stm32/stm32f40xxx_irq.h.
- * stm32_vectors.S will defined the VECTOR in different ways in order to generate
+ * stm32_vectors.S will define the VECTOR macro in different ways in order to generate
  * the interrupt vectors and handlers in their final form.
  */
 
@@ -50,9 +50,13 @@
 
 #ifdef CONFIG_ARMV7M_CMNVECTOR
 
-/* Reserve 82 interrupt table entries for I/O interrupts. */
+/* Reserve interrupt table entries for I/O interrupts. */
 
-#  define ARMV7M_PERIPHERAL_INTERRUPTS 82
+#  ifdef CONFIG_STM32_STM32F427
+#    define ARMV7M_PERIPHERAL_INTERRUPTS 87
+#  else
+#    define ARMV7M_PERIPHERAL_INTERRUPTS 82
+#  endif
 
 #else
 
@@ -133,10 +137,18 @@ VECTOR(stm32_i2c3er, STM32_IRQ_I2C3ER)           /* Vector 16+73: I2C3 error int
 VECTOR(stm32_otghsep1out, STM32_IRQ_OTGHSEP1OUT) /* Vector 16+74: USB On The Go HS End Point 1 Out global interrupt */
 VECTOR(stm32_otghsep1in, STM32_IRQ_OTGHSEP1IN)   /* Vector 16+75: USB On The Go HS End Point 1 In global interrupt */
 VECTOR(stm32_otghswkup, STM32_IRQ_OTGHSWKUP)     /* Vector 16+76: USB On The Go HS Wakeup through EXTI interrupt */
-VECTOR(stm32_otghs, STM32_IRQ_OTGHS	)            /* Vector 16+77: USB On The Go HS global interrupt */
+VECTOR(stm32_otghs, STM32_IRQ_OTGHS)             /* Vector 16+77: USB On The Go HS global interrupt */
 VECTOR(stm32_dcmi, STM32_IRQ_DCMI)               /* Vector 16+78: DCMI global interrupt */
 VECTOR(stm32_cryp, STM32_IRQ_CRYP)               /* Vector 16+79: CRYP crypto global interrupt */
 VECTOR(stm32_hash, STM32_IRQ_HASH)               /* Vector 16+80: Hash and Rng global interrupt */
 VECTOR(stm32_fpu, STM32_IRQ_FPU)                 /* Vector 16+81: FPU global interrupt */
+
+#ifdef CONFIG_STM32_STM32F427
+VECTOR(stm32_uart7, STM32_IRQ_UART7)             /* Vector 16+82: UART7 interrupt */
+VECTOR(stm32_uart8, STM32_IRQ_UART8)             /* Vector 16+83: UART8 interrupt */
+VECTOR(stm32_spi4, STM32_IRQ_SPI4)               /* Vector 16+84: SPI4 interrupt */
+VECTOR(stm32_spi5, STM32_IRQ_SPI5)               /* Vector 16+85: SPI5 interrupt */
+VECTOR(stm32_spi6, STM32_IRQ_SPI6)               /* Vector 16+86: SPI6 interrupt */
+#endif
 
 #endif /* CONFIG_ARMV7M_CMNVECTOR */

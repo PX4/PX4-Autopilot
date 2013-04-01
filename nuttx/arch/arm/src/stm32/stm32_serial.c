@@ -90,9 +90,10 @@
 #    endif
 
 #    if defined(CONFIG_USART2_RXDMA) || defined(CONFIG_USART3_RXDMA) || \
-      defined(CONFIG_UART4_RXDMA) || defined(CONFIG_UART5_RXDMA)
+      defined(CONFIG_UART4_RXDMA) || defined(CONFIG_UART5_RXDMA) || \
+      defined(CONFIG_UART7_RXDMA) || defined(CONFIG_UART8_RXDMA)
 #      ifndef CONFIG_STM32_DMA1
-#        error STM32 USART2/3/4/5 receive DMA requires CONFIG_STM32_DMA1
+#        error STM32 USART2/3/4/5/7/8 receive DMA requires CONFIG_STM32_DMA1
 #      endif
 #    endif
 
@@ -105,7 +106,9 @@
       (defined(CONFIG_USART3_RXDMA) && defined(CONFIG_USART3_RS485)) || \
       (defined(CONFIG_UART4_RXDMA) && defined(CONFIG_UART4_RS485)) || \
       (defined(CONFIG_UART5_RXDMA) && defined(CONFIG_UART5_RS485)) || \
-      (defined(CONFIG_USART6_RXDMA) && defined(CONFIG_USART6_RS485))
+      (defined(CONFIG_USART6_RXDMA) && defined(CONFIG_USART6_RS485)) || \
+      (defined(CONFIG_UART7_RXDMA) && defined(CONFIG_UART7_RS485)) || \
+      (defined(CONFIG_UART8_RXDMA) && defined(CONFIG_UART8_RS485))
 #    error "RXDMA and RS-485 cannot be enabled at the same time for the same U[S]ART"
 #  endif
 
@@ -136,6 +139,14 @@
 
 #    if defined(CONFIG_USART6_RXDMA) && !defined(DMAMAP_USART6_RX)
 #      error "USART6 DMA channel not defined (DMAMAP_USART6_RX)"
+#    endif
+
+#    if defined(CONFIG_UART7_RXDMA) && !defined(DMAMAP_UART7_RX)
+#      error "UART7 DMA channel not defined (DMAMAP_UART7_RX)"
+#    endif
+
+#    if defined(CONFIG_UART8_RXDMA) && !defined(DMAMAP_UART8_RX)
+#      error "UART8 DMA channel not defined (DMAMAP_UART8_RX)"
 #    endif
 
 #  elif defined(CONFIG_STM32_STM32F10XX)
@@ -337,6 +348,12 @@ static int up_interrupt_uart5(int irq, void *context);
 #ifdef CONFIG_STM32_USART6
 static int up_interrupt_usart6(int irq, void *context);
 #endif
+#ifdef CONFIG_STM32_UART7
+static int up_interrupt_uart7(int irq, void *context);
+#endif
+#ifdef CONFIG_STM32_UART8
+static int up_interrupt_uart8(int irq, void *context);
+#endif
 
 /****************************************************************************
  * Private Variables
@@ -425,6 +442,22 @@ static char g_usart6rxbuffer[CONFIG_USART6_RXBUFSIZE];
 static char g_usart6txbuffer[CONFIG_USART6_TXBUFSIZE];
 # ifdef CONFIG_USART6_RXDMA
 static char g_usart6rxfifo[RXDMA_BUFFER_SIZE];
+# endif
+#endif
+
+#ifdef CONFIG_STM32_UART7
+static char g_uart7rxbuffer[CONFIG_UART7_RXBUFSIZE];
+static char g_uart7txbuffer[CONFIG_UART7_TXBUFSIZE];
+# ifdef CONFIG_UART7_RXDMA
+static char g_uart7rxfifo[RXDMA_BUFFER_SIZE];
+# endif
+#endif
+
+#ifdef CONFIG_STM32_UART8
+static char g_uart8rxbuffer[CONFIG_UART8_RXBUFSIZE];
+static char g_uart8txbuffer[CONFIG_UART8_TXBUFSIZE];
+# ifdef CONFIG_UART8_RXDMA
+static char g_uart8rxfifo[RXDMA_BUFFER_SIZE];
 # endif
 #endif
 
@@ -792,6 +825,126 @@ static struct up_dev_s g_usart6priv =
 };
 #endif
 
+/* This describes the state of the STM32 UART7 port. */
+
+#ifdef CONFIG_STM32_UART7
+static struct up_dev_s g_uart7priv =
+{
+  .dev =
+    {
+#if CONSOLE_UART == 7
+      .isconsole = true,
+#endif
+      .recv     =
+      {
+        .size   = CONFIG_UART7_RXBUFSIZE,
+        .buffer = g_uart7rxbuffer,
+      },
+      .xmit     =
+      {
+        .size   = CONFIG_UART7_TXBUFSIZE,
+        .buffer = g_uart7txbuffer,
+      },
+#ifdef CONFIG_UART7_RXDMA
+      .ops      = &g_uart_dma_ops,
+#else
+      .ops      = &g_uart_ops,
+#endif
+      .priv     = &g_uart7priv,
+    },
+
+  .irq            = STM32_IRQ_UART7,
+  .parity         = CONFIG_UART7_PARITY,
+  .bits           = CONFIG_UART7_BITS,
+  .stopbits2      = CONFIG_UART7_2STOP,
+  .baud           = CONFIG_UART7_BAUD,
+  .apbclock       = STM32_PCLK1_FREQUENCY,
+  .usartbase      = STM32_UART7_BASE,
+  .tx_gpio        = GPIO_UART7_TX,
+  .rx_gpio        = GPIO_UART7_RX,
+#ifdef GPIO_UART7_CTS
+  .cts_gpio       = GPIO_UART7_CTS,
+#endif
+#ifdef GPIO_UART7_RTS
+  .rts_gpio       = GPIO_UART7_RTS,
+#endif
+#ifdef CONFIG_UART7_RXDMA
+  .rxdma_channel = DMAMAP_UART7_RX,
+  .rxfifo        = g_uart7rxfifo,
+#endif
+  .vector         = up_interrupt_uart7,
+
+#ifdef CONFIG_UART7_RS485
+  .rs485_dir_gpio = GPIO_UART7_RS485_DIR,
+#  if (CONFIG_UART7_RS485_DIR_POLARITY == 0)
+  .rs485_dir_polarity = false,
+#  else
+  .rs485_dir_polarity = true,
+#  endif
+#endif
+};
+#endif
+
+/* This describes the state of the STM32 UART8 port. */
+
+#ifdef CONFIG_STM32_UART8
+static struct up_dev_s g_uart8priv =
+{
+  .dev =
+    {
+#if CONSOLE_UART == 8
+      .isconsole = true,
+#endif
+      .recv     =
+      {
+        .size   = CONFIG_UART8_RXBUFSIZE,
+        .buffer = g_uart8rxbuffer,
+      },
+      .xmit     =
+      {
+        .size   = CONFIG_UART8_TXBUFSIZE,
+        .buffer = g_uart8txbuffer,
+      },
+#ifdef CONFIG_UART8_RXDMA
+      .ops      = &g_uart_dma_ops,
+#else
+      .ops      = &g_uart_ops,
+#endif
+      .priv     = &g_uart8priv,
+    },
+
+  .irq            = STM32_IRQ_UART8,
+  .parity         = CONFIG_UART8_PARITY,
+  .bits           = CONFIG_UART8_BITS,
+  .stopbits2      = CONFIG_UART8_2STOP,
+  .baud           = CONFIG_UART8_BAUD,
+  .apbclock       = STM32_PCLK1_FREQUENCY,
+  .usartbase      = STM32_UART8_BASE,
+  .tx_gpio        = GPIO_UART8_TX,
+  .rx_gpio        = GPIO_UART8_RX,
+#ifdef GPIO_UART8_CTS
+  .cts_gpio       = GPIO_UART8_CTS,
+#endif
+#ifdef GPIO_UART8_RTS
+  .rts_gpio       = GPIO_UART8_RTS,
+#endif
+#ifdef CONFIG_UART8_RXDMA
+  .rxdma_channel = DMAMAP_UART8_RX,
+  .rxfifo        = g_uart8rxfifo,
+#endif
+  .vector         = up_interrupt_uart8,
+
+#ifdef CONFIG_UART8_RS485
+  .rs485_dir_gpio = GPIO_UART8_RS485_DIR,
+#  if (CONFIG_UART8_RS485_DIR_POLARITY == 0)
+  .rs485_dir_polarity = false,
+#  else
+  .rs485_dir_polarity = true,
+#  endif
+#endif
+};
+#endif
+
 /* This table lets us iterate over the configured USARTs */
 
 static struct up_dev_s *uart_devs[STM32_NUSART] =
@@ -813,6 +966,12 @@ static struct up_dev_s *uart_devs[STM32_NUSART] =
 #endif
 #ifdef CONFIG_STM32_USART6
   [5] = &g_usart6priv,
+#endif
+#ifdef CONFIG_STM32_UART7
+  [6] = &g_uart7priv,
+#endif
+#ifdef CONFIG_STM32_UART8
+  [7] = &g_uart8priv,
 #endif
 };
 
@@ -1899,6 +2058,20 @@ static int up_interrupt_usart6(int irq, void *context)
 }
 #endif
 
+#ifdef CONFIG_STM32_UART7
+static int up_interrupt_uart7(int irq, void *context)
+{
+  return up_interrupt_common(&g_uart7priv);
+}
+#endif
+
+#ifdef CONFIG_STM32_UART8
+static int up_interrupt_uart8(int irq, void *context)
+{
+  return up_interrupt_common(&g_uart8priv);
+}
+#endif
+
 /****************************************************************************
  * Name: up_dma_rxcallback
  *
@@ -2184,6 +2357,20 @@ void stm32_serial_dma_poll(void)
   if (g_usart6priv.rxdma != NULL)
     {
       up_dma_rxcallback(g_usart6priv.rxdma, 0, &g_usart6priv);
+    }
+#endif
+
+#ifdef CONFIG_UART7_RXDMA
+  if (g_uart7priv.rxdma != NULL)
+    {
+      up_dma_rxcallback(g_uart7priv.rxdma, 0, &g_uart7priv);
+    }
+#endif
+
+#ifdef CONFIG_UART8_RXDMA
+  if (g_uart8priv.rxdma != NULL)
+    {
+      up_dma_rxcallback(g_uart8priv.rxdma, 0, &g_uart8priv);
     }
 #endif
 

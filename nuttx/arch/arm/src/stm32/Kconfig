@@ -173,6 +173,24 @@ config ARCH_CHIP_STM32F407IG
 	select ARCH_CORTEXM4
 	select STM32_STM32F40XX
 
+config ARCH_CHIP_STM32F427V
+	bool "STM32F427V"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
+	select STM32_STM32F427
+
+config ARCH_CHIP_STM32F427Z
+	bool "STM32F427Z"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
+	select STM32_STM32F427
+
+config ARCH_CHIP_STM32F427I
+	bool "STM32F427I"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
+	select STM32_STM32F427
+
 endchoice
 
 config STM32_STM32F10XX
@@ -191,6 +209,10 @@ config STM32_STM32F20XX
 	bool
 
 config STM32_STM32F40XX
+	bool
+
+# This is really 427/437, but we treat the two the same.
+config STM32_STM32F427
 	bool
 
 config STM32_DFU
@@ -370,6 +392,27 @@ config STM32_SPI3
 	select SPI
 	select STM32_SPI
 
+config STM32_SPI4
+	bool "SPI4"
+	default n
+	depends on STM32_STM32F427
+	select SPI
+	select STM32_SPI
+
+config STM32_SPI5
+	bool "SPI5"
+	default n
+	depends on STM32_STM32F427
+	select SPI
+	select STM32_SPI
+
+config STM32_SPI6
+	bool "SPI6"
+	default n
+	depends on STM32_STM32F427
+	select SPI
+	select STM32_SPI
+
 config STM32_SYSCFG
 	bool "SYSCFG"
 	default y
@@ -488,6 +531,20 @@ config STM32_USART6
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
 	select ARCH_HAVE_USART6
+	select STM32_USART
+
+config STM32_UART7
+	bool "UART7"
+	default n
+	depends on STM32_STM32F427
+	select ARCH_HAVE_UART7
+	select STM32_USART
+
+config STM32_UART8
+	bool "UART8"
+	default n
+	depends on STM32_STM32F427
+	select ARCH_HAVE_UART8
 	select STM32_USART
 
 config STM32_USB
@@ -698,6 +755,7 @@ endmenu
 config STM32_FLASH_PREFETCH
 	bool "Enable FLASH Pre-fetch"
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	default y if STM32_STM32F427
 	default n
 	---help---
 	Enable FLASH prefetch and F2 and F4 parts (FLASH pre-fetch is always enabled
@@ -1966,9 +2024,59 @@ config USART6_RXDMA
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
+config USART7_RS485
+	bool "RS-485 on USART7"
+	default n
+	depends on STM32_USART7
+	---help---
+		Enable RS-485 interface on USART7. Your board config will have to
+		provide GPIO_USART7_RS485_DIR pin definition. Currently it cannot be
+		used with USART7_RXDMA.
+
+config USART7_RS485_DIR_POLARITY
+	int "USART7 RS-485 DIR pin polarity"
+	default 1
+	range 0 1
+	depends on USART7_RS485
+	---help---
+		Polarity of DIR pin for RS-485 on USART7. Set to state on DIR pin which
+		enables TX (0 - low / nTXEN, 1 - high / TXEN).
+
+config USART7_RXDMA
+	bool "USART7 Rx DMA"
+	default n
+	depends on STM32_STM32F40XX && STM32_DMA2
+	---help---
+		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
+config USART8_RS485
+	bool "RS-485 on USART8"
+	default n
+	depends on STM32_USART8
+	---help---
+		Enable RS-485 interface on USART8. Your board config will have to
+		provide GPIO_USART8_RS485_DIR pin definition. Currently it cannot be
+		used with USART8_RXDMA.
+
+config USART8_RS485_DIR_POLARITY
+	int "USART8 RS-485 DIR pin polarity"
+	default 1
+	range 0 1
+	depends on USART8_RS485
+	---help---
+		Polarity of DIR pin for RS-485 on USART8. Set to state on DIR pin which
+		enables TX (0 - low / nTXEN, 1 - high / TXEN).
+
+config USART8_RXDMA
+	bool "USART8 Rx DMA"
+	default n
+	depends on STM32_STM32F40XX && STM32_DMA2
+	---help---
+		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
 config SERIAL_TERMIOS
 	bool "Serial driver TERMIOS supported"
-	depends on STM32_USART1 || STM32_USART2 || STM32_USART3 || STM32_UART4 || STM32_UART5 || STM32_USART6
+	depends on STM32_USART1 || STM32_USART2 || STM32_USART3 || STM32_UART4 || STM32_UART5 || STM32_USART6 || STM32_USART7 || STM32_USART8
 	default n
 	---help---
 		Serial driver supports termios.h interfaces (tcsetattr, tcflush, etc.).

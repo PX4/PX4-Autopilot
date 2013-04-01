@@ -82,7 +82,8 @@
 #include "stm32_dma.h"
 #include "stm32_spi.h"
 
-#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || defined(CONFIG_STM32_SPI3)
+#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || defined(CONFIG_STM32_SPI3) || \
+    defined(CONFIG_STM32_SPI4) || defined(CONFIG_STM32_SPI5) || defined(CONFIG_STM32_SPI6)
 
 /************************************************************************************
  * Definitions
@@ -373,6 +374,123 @@ static struct stm32_spidev_s g_spi3dev =
 #ifdef CONFIG_STM32_SPI_DMA
   .rxch     = DMACHAN_SPI3_RX,
   .txch     = DMACHAN_SPI3_TX,
+#endif
+};
+#endif
+
+#ifdef CONFIG_STM32_SPI4
+static const struct spi_ops_s g_sp4iops =
+{
+#ifndef CONFIG_SPI_OWNBUS
+  .lock              = spi_lock,
+#endif
+  .select            = stm32_spi4select,
+  .setfrequency      = spi_setfrequency,
+  .setmode           = spi_setmode,
+  .setbits           = spi_setbits,
+  .status            = stm32_spi4status,
+#ifdef CONFIG_SPI_CMDDATA
+  .cmddata           = stm32_spi4cmddata,
+#endif
+  .send              = spi_send,
+#ifdef CONFIG_SPI_EXCHANGE
+  .exchange          = spi_exchange,
+#else
+  .sndblock          = spi_sndblock,
+  .recvblock         = spi_recvblock,
+#endif
+  .registercallback  = 0,
+};
+
+static struct stm32_spidev_s g_spi4dev =
+{
+  .spidev   = { &g_sp4iops },
+  .spibase  = STM32_SPI4_BASE,
+  .spiclock = STM32_PCLK1_FREQUENCY,
+#ifdef CONFIG_STM32_SPI_INTERRUPTS
+  .spiirq   = STM32_IRQ_SPI4,
+#endif
+#ifdef CONFIG_STM32_SPI_DMA
+  .rxch     = DMACHAN_SPI4_RX,
+  .txch     = DMACHAN_SPI4_TX,
+#endif
+};
+#endif
+
+#ifdef CONFIG_STM32_SPI5
+static const struct spi_ops_s g_sp5iops =
+{
+#ifndef CONFIG_SPI_OWNBUS
+  .lock              = spi_lock,
+#endif
+  .select            = stm32_spi5select,
+  .setfrequency      = spi_setfrequency,
+  .setmode           = spi_setmode,
+  .setbits           = spi_setbits,
+  .status            = stm32_spi5status,
+#ifdef CONFIG_SPI_CMDDATA
+  .cmddata           = stm32_spi5cmddata,
+#endif
+  .send              = spi_send,
+#ifdef CONFIG_SPI_EXCHANGE
+  .exchange          = spi_exchange,
+#else
+  .sndblock          = spi_sndblock,
+  .recvblock         = spi_recvblock,
+#endif
+  .registercallback  = 0,
+};
+
+static struct stm32_spidev_s g_spi5dev =
+{
+  .spidev   = { &g_sp5iops },
+  .spibase  = STM32_SPI5_BASE,
+  .spiclock = STM32_PCLK1_FREQUENCY,
+#ifdef CONFIG_STM32_SPI_INTERRUPTS
+  .spiirq   = STM32_IRQ_SPI5,
+#endif
+#ifdef CONFIG_STM32_SPI_DMA
+  .rxch     = DMACHAN_SPI5_RX,
+  .txch     = DMACHAN_SPI5_TX,
+#endif
+};
+#endif
+
+#ifdef CONFIG_STM32_SPI6
+static const struct spi_ops_s g_sp6iops =
+{
+#ifndef CONFIG_SPI_OWNBUS
+  .lock              = spi_lock,
+#endif
+  .select            = stm32_spi6select,
+  .setfrequency      = spi_setfrequency,
+  .setmode           = spi_setmode,
+  .setbits           = spi_setbits,
+  .status            = stm32_spi6status,
+#ifdef CONFIG_SPI_CMDDATA
+  .cmddata           = stm32_spi3cmddata,
+#endif
+  .send              = spi_send,
+#ifdef CONFIG_SPI_EXCHANGE
+  .exchange          = spi_exchange,
+#else
+  .sndblock          = spi_sndblock,
+  .recvblock         = spi_recvblock,
+#endif
+  .registercallback  = 0,
+};
+
+static struct stm32_spidev_s g_spi6dev =
+{
+  .spidev   = { &g_sp6iops },
+  .spibase  = STM32_SPI6_BASE,
+  .spiclock = STM32_PCLK1_FREQUENCY,
+#ifdef CONFIG_STM32_SPI_INTERRUPTS
+  .spiirq   = STM32_IRQ_SPI6,
+#endif
+#ifdef CONFIG_STM32_SPI_DMA
+  .rxch     = DMACHAN_SPI6_RX,
+  .txch     = DMACHAN_SPI6_TX,
 #endif
 };
 #endif
@@ -1464,6 +1582,78 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
     }
   else
 #endif
+#ifdef CONFIG_STM32_SPI4
+  if (port == 4)
+    {
+      /* Select SPI4 */
+
+      priv = &g_spi4dev;
+
+      /* Only configure if the port is not already configured */
+
+      if ((spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE) == 0)
+        {
+          /* Configure SPI4 pins: SCK, MISO, and MOSI */
+
+          stm32_configgpio(GPIO_SPI4_SCK);
+          stm32_configgpio(GPIO_SPI4_MISO);
+          stm32_configgpio(GPIO_SPI4_MOSI);
+
+          /* Set up default configuration: Master, 8-bit, etc. */
+
+          spi_portinitialize(priv);
+        }
+    }
+  else
+#endif
+#ifdef CONFIG_STM32_SPI5
+  if (port == 5)
+    {
+      /* Select SPI5 */
+
+      priv = &g_spi5dev;
+
+      /* Only configure if the port is not already configured */
+
+      if ((spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE) == 0)
+        {
+          /* Configure SPI5 pins: SCK, MISO, and MOSI */
+
+          stm32_configgpio(GPIO_SPI5_SCK);
+          stm32_configgpio(GPIO_SPI5_MISO);
+          stm32_configgpio(GPIO_SPI5_MOSI);
+
+          /* Set up default configuration: Master, 8-bit, etc. */
+
+          spi_portinitialize(priv);
+        }
+    }
+  else
+#endif
+#ifdef CONFIG_STM32_SPI6
+  if (port == 6)
+    {
+      /* Select SPI6 */
+
+      priv = &g_spi6dev;
+
+      /* Only configure if the port is not already configured */
+
+      if ((spi_getreg(priv, STM32_SPI_CR1_OFFSET) & SPI_CR1_SPE) == 0)
+        {
+          /* Configure SPI6 pins: SCK, MISO, and MOSI */
+
+          stm32_configgpio(GPIO_SPI6_SCK);
+          stm32_configgpio(GPIO_SPI6_MISO);
+          stm32_configgpio(GPIO_SPI6_MOSI);
+
+          /* Set up default configuration: Master, 8-bit, etc. */
+
+          spi_portinitialize(priv);
+        }
+    }
+  else
+#endif
     {
       spidbg("ERROR: Unsupported SPI port: %d\n", port);
       return NULL;
@@ -1473,4 +1663,4 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
   return (FAR struct spi_dev_s *)priv;
 }
 
-#endif /* CONFIG_STM32_SPI1 || CONFIG_STM32_SPI2 || CONFIG_STM32_SPI3 */
+#endif /* CONFIG_STM32_SPI1 || CONFIG_STM32_SPI2 || CONFIG_STM32_SPI3 || CONFIG_STM32_SPI4 || CONFIG_STM32_SPI5 || CONFIG_STM32_SPI6 */

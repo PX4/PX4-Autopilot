@@ -80,7 +80,16 @@
 
 #if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  define PWR_CR_FPDS          (1 << 9)  /* Bit 9: Flash power down in Stop mode */
-#  define PWR_CR_VOS           (1 << 14) /* Bit 14: Regulator voltage scaling output selection */
+#  if  defined(CONFIG_STM32_STM32F427)
+#    define PWR_CR_ADCDC1      (1 << 13) /* Bit 13: see AN4073 for details */
+#    define PWR_CR_VOS_SCALE_1 (3 << 14) /* Fmax = 168MHz */
+#    define PWR_CR_VOS_SCALE_2 (2 << 14) /* Fmax = 144MHz */
+#    define PWR_CR_VOS_SCALE_3 (1 << 14) /* Fmax = 120MHz */
+#    define PWR_CR_VOS_MASK    (3 << 14) /* Bits 14-15: Regulator voltage scaling output selection */
+#  else
+#    define PWR_CR_VOS         (1 << 14) /* Bit 14: Regulator voltage scaling output selection */
+                                         /* 0: Fmax = 144MHz  1: Fmax = 168MHz */
+#  endif
 #endif
 
 /* Power control/status register */

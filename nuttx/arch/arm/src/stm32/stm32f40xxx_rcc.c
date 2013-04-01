@@ -437,6 +437,19 @@ static inline void rcc_enableapb1(void)
   regval |= RCC_APB1ENR_DACEN;
 #endif
 
+#ifdef CONFIG_STM32_UART7
+  /* UART7 clock enable */
+
+  regval |= RCC_APB1ENR_UART7EN;
+#endif
+
+#ifdef CONFIG_STM32_UART8
+  /* UART8 clock enable */
+
+  regval |= RCC_APB1ENR_UART8EN;
+#endif
+
+
   putreg32(regval, STM32_RCC_APB1ENR);   /* Enable peripherals */
 }
 
@@ -512,6 +525,12 @@ static inline void rcc_enableapb2(void)
   regval |= RCC_APB2ENR_SPI1EN;
 #endif
 
+#ifdef CONFIG_STM32_SPI4
+  /* SPI4 clock enable */
+
+  regval |= RCC_APB2ENR_SPI4EN;
+#endif
+
 #ifdef CONFIG_STM32_SYSCFG
   /* System configuration controller clock enable */
 
@@ -534,6 +553,18 @@ static inline void rcc_enableapb2(void)
   /* TIM11 clock enable */
 
   regval |= RCC_APB2ENR_TIM11EN;
+#endif
+
+#ifdef CONFIG_STM32_SPI5
+  /* SPI5 clock enable */
+
+  regval |= RCC_APB2ENR_SPI5EN;
+#endif
+
+#ifdef CONFIG_STM32_SPI6
+  /* SPI6 clock enable */
+
+  regval |= RCC_APB2ENR_SPI6EN;
 #endif
 
   putreg32(regval, STM32_RCC_APB2ENR);   /* Enable peripherals */
@@ -591,7 +622,12 @@ static void stm32_stdclockconfig(void)
       putreg32(regval, STM32_RCC_APB1ENR);
 
       regval  = getreg32(STM32_PWR_CR);
+#if defined(CONFIG_STM32_STM32F427)
+      regval &= ~PWR_CR_VOS_MASK;
+      regval |= PWR_CR_VOS_SCALE_1;
+#else
       regval |= PWR_CR_VOS;
+#endif
       putreg32(regval, STM32_PWR_CR);
 
       /* Set the HCLK source/divider */
