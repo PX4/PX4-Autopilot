@@ -11,4 +11,4 @@ mavlink start -b 230400 -d /dev/console
 echo "MAVLink started, exiting shell.."
 
 # Exit shell to make it available to MAVLink
-exit 
+exit
