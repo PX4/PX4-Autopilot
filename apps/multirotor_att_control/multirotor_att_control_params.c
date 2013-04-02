@@ -50,6 +50,8 @@ PARAM_DEFINE_FLOAT(MC_YAWPOS_D, 0.0f);
 //PARAM_DEFINE_FLOAT(MC_YAWPOS_AWU, 1.0f);
 //PARAM_DEFINE_FLOAT(MC_YAWPOS_LIM, 3.0f);
 
+PARAM_DEFINE_FLOAT(MC_YAWPOS_I_MAX, 1000.0f);
+
 PARAM_DEFINE_FLOAT(MC_ATT_P, 0.2f);
 PARAM_DEFINE_FLOAT(MC_ATT_I, 0.0f);
 PARAM_DEFINE_FLOAT(MC_ATT_D, 0.05f);
@@ -84,6 +86,8 @@ int parameters_init(struct multirotor_att_control_param_handles *h)
 	h->yaw_d 				=	param_find("MC_YAWPOS_D");
 //	h->yaw_awu 				=	param_find("MC_YAWPOS_AWU");
 //	h->yaw_lim 				=	param_find("MC_YAWPOS_LIM");
+
+	h->yaw_intmax 			=	param_find("MC_YAWPOS_I_MAX");
 
 	h->att_p 				= 	param_find("MC_ATT_P");
 	h->att_i 				= 	param_find("MC_ATT_I");
@@ -121,6 +125,8 @@ int parameters_update(const struct multirotor_att_control_param_handles *h, stru
 	param_get(h->yaw_d, &(p->yaw_d));
 //	param_get(h->yaw_awu, &(p->yaw_awu));
 //	param_get(h->yaw_lim, &(p->yaw_lim));
+
+	param_get(h->yaw_intmax, &(p->yaw_intmax));
 
 	param_get(h->att_p, &(p->att_p));
 	param_get(h->att_i, &(p->att_i));

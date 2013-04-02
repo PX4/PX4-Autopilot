@@ -77,6 +77,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	static PID_t pitch_controller;
 	static PID_t roll_controller;
+	static PID_t yaw_controller;
 
 	static bool initialized = false;
 
@@ -86,9 +87,11 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	if (initialized == false) {
 
 		pid_init(&pitch_controller, params->att_p, params->att_i, params->att_d, 1000.0f,
-			 1000.0f, PID_MODE_DERIVATIV_SET);
+				1000.0f, PID_MODE_DERIVATIV_SET);
 		pid_init(&roll_controller, params->att_p, params->att_i, params->att_d, 1000.0f,
-			 1000.0f, PID_MODE_DERIVATIV_SET);
+				1000.0f, PID_MODE_DERIVATIV_SET);
+		pid_init(&yaw_controller, params->yaw_p, params->yaw_i, params->yaw_d, params->yaw_intmax,
+				1000.0f, PID_MODE_DERIVATIV_SET);
 
 		initialized = true;
 	}
@@ -98,14 +101,15 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		/* apply parameters */
 		pid_set_parameters(&pitch_controller, params->att_p, params->att_i, params->att_d, 1000.0f, 1000.0f);
 		pid_set_parameters(&roll_controller, params->att_p, params->att_i, params->att_d, 1000.0f, 1000.0f);
+		pid_set_parameters(&yaw_controller, params->yaw_p, params->yaw_i, params->yaw_d, params->yaw_intmax, 1000.0f);
 	}
 
 	/* reset integral if on ground */
 	if (att_sp->thrust < 0.1f) {
 		pid_reset_integral(&pitch_controller);
 		pid_reset_integral(&roll_controller);
+		pid_reset_integral(&yaw_controller);
 	}
-
 
 	/* calculate current control outputs */
 
@@ -120,10 +124,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	if (control_yaw_position) {
 		/* control yaw rate */
 
-		/* positive error: rotate to right, negative error, rotate to left (NED frame) */
-		// yaw_error = _wrap_pi(att_sp->yaw_body - att->yaw);
-
-		yaw_error = att_sp->yaw_body - att->yaw;
+		yaw_error = att->yaw - att_sp->yaw_body;
 
 		if (yaw_error > M_PI_F) {
 			yaw_error -= M_TWOPI_F;
@@ -132,7 +133,8 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 			yaw_error += M_TWOPI_F;
 		}
 
-		rates_sp->yaw = params->yaw_p * (yaw_error) - (params->yaw_d * att->yawspeed);
+		rates_sp->yaw = pid_calculate(&yaw_controller, 0.0f, yaw_error, att->yawspeed, deltaT);
+
 	}
 
 	rates_sp->thrust = att_sp->thrust;

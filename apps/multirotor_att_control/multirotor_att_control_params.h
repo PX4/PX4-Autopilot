@@ -54,6 +54,8 @@ struct multirotor_att_control_params {
 //	float yaw_awu;
 //	float yaw_lim;
 
+	float yaw_intmax;
+
 	float att_p;
 	float att_i;
 	float att_d;
@@ -89,6 +91,8 @@ struct multirotor_att_control_param_handles {
 	param_t yaw_d;
 //	param_t yaw_awu;
 //	param_t yaw_lim;
+
+	param_t yaw_intmax;
 
 	param_t att_p;
 	param_t att_i;
