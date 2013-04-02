@@ -73,8 +73,7 @@
 
 #include "multirotor_attitude_control.h"
 #include "multirotor_rate_control.h"
-
-PARAM_DEFINE_FLOAT(MC_RCLOSS_THR, 0.0f); // This defines the throttle when the RC signal is lost.
+#include "multirotor_att_control_params.h"
 
 __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 
@@ -115,6 +114,13 @@ mc_thread_main(int argc, char *argv[])
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+
+	/* parameters init*/
+	struct multirotor_att_control_params params;
+	struct multirotor_att_control_param_handles param_handles;
+	parameters_init(&param_handles);
+	parameters_update(&param_handles, &params);
+	bool params_updated = true;
 
 	/*
 	 * Do not rate-limit the loop to prevent aliasing
@@ -158,10 +164,6 @@ mc_thread_main(int argc, char *argv[])
 	/* store if we stopped a yaw movement */
 	bool first_time_after_yaw_speed_control = true;
 
-	/* prepare the handle for the failsafe throttle */
-	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
-	float failsafe_throttle = 0.0f;
-
 
 	while (!thread_should_exit) {
 
@@ -182,8 +184,9 @@ mc_thread_main(int argc, char *argv[])
 				struct parameter_update_s update;
 				orb_copy(ORB_ID(parameter_update), param_sub, &update);
 
-				/* update parameters */
-				// XXX no params here yet
+				parameters_update(&param_handles, &params);
+				params_updated = true;
+				printf("[multirotor_att_control] parameters updated.\n");
 			}
 
 			/* only run controller if attitude changed */
@@ -255,8 +258,7 @@ mc_thread_main(int argc, char *argv[])
 
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
 						if (state.rc_signal_lost) {
-							/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
-							param_get(failsafe_throttle_handle, &failsafe_throttle);
+
 							att_sp.roll_body = 0.0f;
 							att_sp.pitch_body = 0.0f;
 
@@ -269,7 +271,7 @@ mc_thread_main(int argc, char *argv[])
 							 * if shutting down his remote.
 							 */
 							if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
-								att_sp.thrust = failsafe_throttle;
+								att_sp.thrust = params.failsafe_throttle;
 
 							} else {
 								att_sp.thrust = 0.0f;
@@ -364,7 +366,7 @@ mc_thread_main(int argc, char *argv[])
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 				if (state.flag_control_attitude_enabled) {
-					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
+					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position, &params, params_updated);
 
 					orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 				}
@@ -387,7 +389,7 @@ mc_thread_main(int argc, char *argv[])
 				gyro[1] = att.pitchspeed;
 				gyro[2] = att.yawspeed;
 
-				multirotor_control_rates(&rates_sp, gyro, &actuators);
+				multirotor_control_rates(&rates_sp, gyro, &actuators, &params, params_updated);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 				/* update state */
@@ -395,6 +397,7 @@ mc_thread_main(int argc, char *argv[])
 				flag_control_manual_enabled = state.flag_control_manual_enabled;
 				flag_system_armed = state.flag_system_armed;
 
+				params_updated = false;
 				perf_end(mc_loop_perf);
 			} /* end of poll call for attitude updates */
 		} /* end of poll return value check */

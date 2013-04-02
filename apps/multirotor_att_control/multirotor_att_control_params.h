@@ -1,12 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
+ *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,21 +34,95 @@
  ****************************************************************************/
 
 /*
- * @file multirotor_attitude_control.h
- * Attitude control for multi rotors.
+ * @file multirotor_att_control_params.h
+ * 
+ * Parameters for attitude control
  */
 
-#ifndef MULTIROTOR_RATE_CONTROL_H_
-#define MULTIROTOR_RATE_CONTROL_H_
+#ifndef MULTIROTOR_ATT_CONTROL_PARAMS_H_
+#define MULTIROTOR_ATT_CONTROL_PARAMS_H_
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-#include "multirotor_att_control_params.h"
+#include <systemlib/param/param.h>
 
-void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-			      const float rates[], struct actuator_controls_s *actuators,
-			      struct multirotor_att_control_params *params, bool params_updated);
+struct multirotor_att_control_params {
+	float failsafe_throttle;
 
-#endif /* MULTIROTOR_RATE_CONTROL_H_ */
+	/* attitude control */
+	float yaw_p;
+	float yaw_i;
+	float yaw_d;
+//	float yaw_awu;
+//	float yaw_lim;
+
+	float att_p;
+	float att_i;
+	float att_d;
+//	float att_awu;
+//	float att_lim;
+
+//	float att_xoff;
+//	float att_yoff;
+
+
+	/* rate control */
+	float yawrate_p;
+	float yawrate_d;
+	float yawrate_i;
+//	float yawrate_awu;
+//	float yawrate_lim;
+
+	float attrate_p;
+	float attrate_d;
+	float attrate_i;
+//	float attrate_awu;
+//	float attrate_lim;
+
+//	float rate_lim;
+};
+
+struct multirotor_att_control_param_handles {
+	param_t failsafe_throttle;
+
+	/* attitude control */
+	param_t yaw_p;
+	param_t yaw_i;
+	param_t yaw_d;
+//	param_t yaw_awu;
+//	param_t yaw_lim;
+
+	param_t att_p;
+	param_t att_i;
+	param_t att_d;
+//	param_t att_awu;
+//	param_t att_lim;
+
+//	param_t att_xoff;
+//	param_t att_yoff;
+
+	/* rate control */
+	param_t yawrate_p;
+	param_t yawrate_i;
+	param_t yawrate_d;
+//	param_t yawrate_awu;
+//	param_t yawrate_lim;
+
+	param_t attrate_p;
+	param_t attrate_i;
+	param_t attrate_d;
+//	param_t attrate_awu;
+//	param_t attrate_lim;
+};
+
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+int parameters_init(struct multirotor_att_control_param_handles *h);
+
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct multirotor_att_control_param_handles *h, struct multirotor_att_control_params *p);
+
+#endif /* MULTIROTOR_ATT_CONTROL_PARAMS_H_ */
