@@ -195,9 +195,9 @@ PX4IO_Uploader::upload(const char *filenames[])
 			continue;
 		}
 
-		if (bl_rev <= 2)
+		if (bl_rev <= 2) {
 			ret = verify_rev2(fw_size);
-		else if(bl_rev == 3) {
+		} else {
 			ret = verify_rev3(fw_size);
 		}
 
