@@ -181,6 +181,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 	float integrated_h_error = 0.0f;
 	float last_height = 0.0f;
 	float thrust_limit_upper = params.limit_thrust_lower; // it will be updated with manual input
+	bool bodyframe_setpoint_valid = false;
 
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control_runtime");
@@ -236,10 +237,20 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					/* get a local copy of bodyframe position */
 					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
+
+					/* be sure that we have a valid setpoint to the current position */
+					if(!bodyframe_setpoint_valid) {
+						/* if setpoint is invalid, wait until setpoint changes... */
+						bool new_setpoint =  false;
+						orb_check(vehicle_bodyframe_position_setpoint_sub, &new_setpoint);
+						if (new_setpoint) {
+							bodyframe_setpoint_valid = true;
+						}
+					}
 					/* get a local copy of bodyframe position setpoint */
 					orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
 
-					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
+					if (vstatus.state_machine == SYSTEM_STATE_AUTO && bodyframe_setpoint_valid) {
 
 						/* calc new roll/pitch */
 //						float pitch_body = (bodyframe_pos.x - setpoint_x) * params.pos_p + bodyframe_pos.vx * params.pos_d;
@@ -326,6 +337,7 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 						att_sp.roll_body = 0.0f;
 						att_sp.pitch_body = 0.0f;
 						att_sp.yaw_body = att.yaw;
+						bodyframe_setpoint_valid = false;
 					}
 
 					/* measure in what intervals the controller runs */

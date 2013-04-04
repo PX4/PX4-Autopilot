@@ -292,25 +292,23 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 						}
 					}
 
-//					if (vstatus.state_machine == SYSTEM_STATE_AUTO || vstatus.state_machine == SYSTEM_STATE_STANDBY) {
+					/* calc dt between flow timestamps */
+					/* ignore first flow msg */
+					if(time_last_flow == 0)
+					{
+						time_last_flow = flow.timestamp;
+						continue;
+					}
+					dt = (float)(flow.timestamp - time_last_flow) * time_scale ;
+					time_last_flow = flow.timestamp;
 
+					/* only make position update if vehicle is lift off */
 					if (vehicle_liftoff || params.debug) {
 
 						/*copy flow */
 						flow_speed[0] = flow.flow_comp_x_m;
 						flow_speed[1] = flow.flow_comp_y_m;
 						flow_speed[2] = 0.0f;
-
-						/* ignore first flow msg */
-						if(time_last_flow == 0)
-						{
-							time_last_flow = flow.timestamp;
-							continue;
-						}
-
-						/* calc dt */
-						dt = (float)(flow.timestamp - time_last_flow) * time_scale ;
-						time_last_flow = flow.timestamp;
 
 						/* convert to bodyframe velocity */
 						for(uint8_t i = 0; i < 3; i++) {
@@ -349,18 +347,8 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 						bodyframe_pos.vy = 0;
 						local_pos.vx = 0;
 						local_pos.vy = 0;
-					}
 
-//					} else {
-//
-//						/* reset position */
-//						local_pos.x = 0.0f;
-//						local_pos.y = 0.0f;
-//						/* reset velocity */
-//	//					local_pos.vx = 0.0f;
-//	//					local_pos.vy = 0.0f;
-//
-//					}
+					}
 
 					/* filtering ground distance */
 					if (!vehicle_liftoff || sonar > 2.0f) {
@@ -404,16 +392,18 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 					bodyframe_pos.timestamp = hrt_absolute_time();
 					local_pos.timestamp = hrt_absolute_time();
 
-					if(isfinite(local_pos.x) && isfinite(local_pos.y) && isfinite(local_pos.z)
-							&& isfinite(local_pos.vx) && isfinite(local_pos.vy))
-					{
-						orb_publish(ORB_ID(vehicle_local_position), local_pos_pub, &local_pos);
-					}
-
+					/* publish bodyframe position */
 					if(isfinite(bodyframe_pos.x) && isfinite(bodyframe_pos.y) && isfinite(bodyframe_pos.z)
 											&& isfinite(bodyframe_pos.vx) && isfinite(bodyframe_pos.vy))
 					{
 						orb_publish(ORB_ID(vehicle_bodyframe_position), bodyframe_pos_pub, &bodyframe_pos);
+					}
+
+					/* publish local position */
+					if(isfinite(local_pos.x) && isfinite(local_pos.y) && isfinite(local_pos.z)
+							&& isfinite(local_pos.vx) && isfinite(local_pos.vy))
+					{
+						orb_publish(ORB_ID(vehicle_local_position), local_pos_pub, &local_pos);
 					}
 
 					/* measure in what intervals the position estimator runs */
