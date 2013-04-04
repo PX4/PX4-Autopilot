@@ -49,6 +49,8 @@ struct mission_commander_flow_params {
 	float mission_wp_radius; // in m
 	int mission_min_dist; // in mm
 	int mission_reac_dist; // in mm
+	int mission_min_reaction_steps;
+	int mission_min_free_steps;
 	int debug; // boolean
 };
 
@@ -61,6 +63,8 @@ struct mission_commander_flow_param_handles {
 	param_t mission_wp_radius;
 	param_t mission_min_dist;
 	param_t mission_reac_dist;
+	param_t mission_min_reaction_steps;
+	param_t  mission_min_free_steps;
 	param_t debug;
 };
 

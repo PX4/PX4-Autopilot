@@ -707,9 +707,9 @@ BlinkM::led()
 
 			if (dist < 5.0f || dist > 0.0f) {
 
-				/* smaller than 1m */
-				if (dist < 1.0f) {
-					gradient = (int)(100.0f - (100.0f * dist));
+				/* smaller than 2m */
+				if (dist < 2.0f) {
+					gradient = (int)(100.0f - (100.0f * dist / 2.0f));
 				}
 			}
 
