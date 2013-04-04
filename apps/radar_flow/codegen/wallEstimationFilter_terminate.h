@@ -1,14 +1,14 @@
 /*
- * mldivide.h
+ * wallEstimationFilter_terminate.h
  *
- * Code generation for function 'mldivide'
+ * Code generation for function 'wallEstimationFilter_terminate'
  *
  * C source code generated on: Wed Apr  3 11:26:47 2013
  *
  */
 
-#ifndef __MLDIVIDE_H__
-#define __MLDIVIDE_H__
+#ifndef __WALLESTIMATIONFILTER_TERMINATE_H__
+#define __WALLESTIMATIONFILTER_TERMINATE_H__
 /* Include files */
 #include <float.h>
 #include <math.h>
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2]);
+extern void wallEstimationFilter_terminate(void);
 #endif
-/* End of code generation (mldivide.h) */
+/* End of code generation (wallEstimationFilter_terminate.h) */

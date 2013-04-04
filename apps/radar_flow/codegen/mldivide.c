@@ -3,16 +3,14 @@
  *
  * Code generation for function 'mldivide'
  *
- * C source code generated on: Thu Mar 14 15:02:19 2013
+ * C source code generated on: Wed Apr  3 11:26:47 2013
  *
  */
 
 /* Include files */
 #include "rt_nonfinite.h"
-#include "flowNavigation.h"
 #include "frontFlowKalmanFilter.h"
 #include "wallEstimationFilter.h"
-#include "wallEstimator.h"
 #include "mldivide.h"
 
 /* Type Definitions */
@@ -37,28 +35,21 @@ static real32_T eml_xnrm2(int32_T n, const real32_T x[20], int32_T ix0)
   real32_T absxk;
   real32_T t;
   y = 0.0F;
-  if (n < 1) {
-  } else if (n == 1) {
-    y = (real32_T)fabs(x[ix0 - 1]);
-  } else {
-    scale = 1.17549435E-38F;
-    kend = (ix0 + n) - 1;
-    for (k = ix0; k <= kend; k++) {
-      absxk = (real32_T)fabs(x[k - 1]);
-      if (absxk > scale) {
-        t = scale / absxk;
-        y = 1.0F + y * t * t;
-        scale = absxk;
-      } else {
-        t = absxk / scale;
-        y += t * t;
-      }
+  scale = 1.17549435E-38F;
+  kend = (ix0 + n) - 1;
+  for (k = ix0; k <= kend; k++) {
+    absxk = (real32_T)fabs(x[k - 1]);
+    if (absxk > scale) {
+      t = scale / absxk;
+      y = 1.0F + y * t * t;
+      scale = absxk;
+    } else {
+      t = absxk / scale;
+      y += t * t;
     }
-
-    y = scale * (real32_T)sqrt(y);
   }
 
-  return y;
+  return scale * (real32_T)sqrt(y);
 }
 
 static real32_T rt_hypotf_snf(real32_T u0, real32_T u1)
@@ -144,18 +135,8 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
   for (i = 0; i < 2; i++) {
     i_i = i + i * 10;
     iy = 0;
-    if (2 - i > 1) {
-      wj = (real32_T)fabs(vn1[i]);
-      k = 2;
-      while (k <= 2 - i) {
-        temp1 = (real32_T)fabs(vn1[1]);
-        if (temp1 > wj) {
-          iy = 1;
-          wj = temp1;
-        }
-
-        k = 3;
-      }
+    if ((2 - i > 1) && ((real32_T)fabs(vn1[1]) > (real32_T)fabs(vn1[i]))) {
+      iy = 1;
     }
 
     pvt = i + iy;
@@ -190,8 +171,8 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
         iy = 0;
         do {
           iy++;
-          pvt = (i_i - i) + 10;
-          for (k = i_i + 1; k + 1 <= pvt; k++) {
+          pvt = i_i - i;
+          for (k = i_i + 1; k + 1 <= pvt + 10; k++) {
             b_A[k] *= 1.01412048E+31F;
           }
 
@@ -206,8 +187,8 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
 
         temp1 = (wj - t) / wj;
         t = 1.0F / (t - wj);
-        pvt = (i_i - i) + 10;
-        for (k = i_i + 1; k + 1 <= pvt; k++) {
+        pvt = i_i - i;
+        for (k = i_i + 1; k + 1 <= pvt + 10; k++) {
           b_A[k] *= t;
         }
 
@@ -219,8 +200,8 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
       } else {
         temp1 = (wj - b_A[i_i]) / wj;
         t = 1.0F / (b_A[i_i] - wj);
-        pvt = (i_i - i) + 10;
-        for (k = i_i + 1; k + 1 <= pvt; k++) {
+        pvt = i_i - i;
+        for (k = i_i + 1; k + 1 <= pvt + 10; k++) {
           b_A[k] *= t;
         }
 
@@ -234,9 +215,9 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
       t = b_A[i_i];
       b_A[i_i] = 1.0F;
       if (tau[0] != 0.0F) {
-        lastv = 10;
-        iy = i_i + 9;
-        while ((lastv > 0) && (b_A[iy] == 0.0F)) {
+        lastv = 20;
+        iy = i_i;
+        while ((lastv - 10 > 0) && (b_A[iy + 9] == 0.0F)) {
           lastv--;
           iy--;
         }
@@ -247,7 +228,7 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
           iy = 11;
           do {
             exitg1 = 0;
-            if (iy <= 10 + lastv) {
+            if (iy <= lastv) {
               if (b_A[iy - 1] != 0.0F) {
                 exitg1 = 1;
               } else {
@@ -264,16 +245,16 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
           }
         }
       } else {
-        lastv = 0;
+        lastv = 10;
         lastc = 0;
       }
 
-      if (lastv > 0) {
+      if (lastv - 10 > 0) {
         if (lastc == 0) {
         } else {
           ix = i_i;
           wj = 0.0F;
-          for (iy = 11; iy <= lastv + 10; iy++) {
+          for (iy = 11; iy <= lastv; iy++) {
             wj += b_A[iy - 1] * b_A[ix];
             ix++;
           }
@@ -283,7 +264,7 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
 
         if (-tau[0] == 0.0F) {
         } else {
-          k = 10;
+          k = 0;
           jy = 0;
           pvt = 1;
           while (pvt <= lastc) {
@@ -291,7 +272,7 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
               wj = work[jy] * -tau[0];
               ix = i_i;
               pvt = lastv + k;
-              for (iy = k; iy + 1 <= pvt; iy++) {
+              for (iy = k + 10; iy + 1 <= pvt; iy++) {
                 b_A[iy] += b_A[ix] * wj;
                 ix++;
               }
@@ -321,8 +302,8 @@ void mldivide(const real32_T A[20], const real32_T B[10], real32_T Y[2])
         if (temp1 * (wj * wj) <= 0.000345266977F) {
           y = 0.0F;
           wj = 1.17549435E-38F;
-          for (k = i; k + 12 < 21; k++) {
-            temp1 = (real32_T)fabs(b_A[k + 11]);
+          for (k = i + 11; k + 1 < 21; k++) {
+            temp1 = (real32_T)fabs(b_A[k]);
             if (temp1 > wj) {
               t = wj / temp1;
               y = 1.0F + y * t * t;

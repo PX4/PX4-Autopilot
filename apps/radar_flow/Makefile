@@ -42,9 +42,6 @@ STACKSIZE	 = 2048
 CSRCS		 = radar_flow.c \
 		   radar_flow_params.c \
 		   radar_sounds.c \
-		   codegen/flowNavigation.c \
-		   codegen/flowNavigation_initialize.c \
-		   codegen/flowNavigation_terminate.c \
 		   codegen/any.c \
 		   codegen/frontFlowKalmanFilter.c \
 		   codegen/mean.c \
@@ -54,7 +51,8 @@ CSRCS		 = radar_flow.c \
 		   codegen/rtGetInf.c \
 		   codegen/rtGetNaN.c \
 		   codegen/sum.c \
-		   codegen/wallEstimationFilter.c \
-		   codegen/wallEstimator.c
+		   codegen/wallEstimationFilter_initialize.c \
+		   codegen/wallEstimationFilter_terminate.c \
+		   codegen/wallEstimationFilter.c
 
 include $(APPDIR)/mk/app.mk

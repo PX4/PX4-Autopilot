@@ -55,6 +55,7 @@ struct radar_flow_params {
 	float s4;
 	float s5;
 	float s6;
+	float s7;
 	int debug;
 };
 
@@ -73,6 +74,7 @@ struct radar_flow_param_handles {
 	param_t s4;
 	param_t s5;
 	param_t s6;
+	param_t s7;
 	param_t debug;
 };
 

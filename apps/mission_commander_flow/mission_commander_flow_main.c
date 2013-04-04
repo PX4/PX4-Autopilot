@@ -540,115 +540,115 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 									break;
 								}
 
-//								/* ------------------------------------------------------------------------- *
-//								 *  NEED FOR REACTION														 *
-//								 * ------------------------------------------------------------------------- */
-//								if (react_state != MISSION_CLEAR)
-//								{
-//
-//									/* do a reaction */
-//									if (left < params.mission_reac_dist) {
-//										wall_left = true;
-//									} else {
-//										wall_left = false;
-//									}
-//									if (right < params.mission_reac_dist) {
-//										wall_right = true;
-//									} else {
-//										wall_right = false;
-//									}
-//
-//									bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
-//
-//									if (react_state == MISSION_REACT_LEFT && !wall_left) {
-//										bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
-//
-//									} else if (react_state == MISSION_REACT_RIGHT && !wall_right) {
-//										bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
-//
-//									} else if (react_state == MISSION_FOLLOW_WALL_L) {
-//										if (discrete_radar.distances[9] < params.mission_min_dist) {
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-//										}
-//
-//									} else if (react_state == MISSION_FOLLOW_WALL_R) {
-//										if (discrete_radar.distances[23] < params.mission_min_dist) {
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//										}
-//
-//									} else if (react_state == MISSION_FOLLOW_CORRIDOR) {
-//										/* TODO try also to get yaw in direction of corridor */
-//										if (discrete_radar.distances[9] < discrete_radar.distances[23]) {
-//											/* correct to right */
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-//										} else {
-//											/* correct to left */
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//										}
-//									}
-//
-//									/* do we need a state change */
-//									int front_dist = (discrete_radar.distances[15] + discrete_radar.distances[16] + discrete_radar.distances[17]) / 3;
-//
-//									if (react_state == MISSION_FOLLOW_WALL_L || react_state == MISSION_FOLLOW_WALL_R) {
-//										if (wall_left && wall_right) {
-//											react_state = MISSION_FOLLOW_CORRIDOR;
-//										}
-//									} if (react_state == MISSION_FOLLOW_CORRIDOR) {
-//										if (wall_left && !wall_right) {
-//											react_state = MISSION_FOLLOW_WALL_L;
-//										} else if (!wall_left && !wall_right) {
-//											react_state = MISSION_FOLLOW_WALL_R;
-//										}
-//									}
-//
-//									if (react_state == MISSION_REACT_LEFT || react_state == MISSION_REACT_RIGHT) {
-//
-//										if (front_dist > params.mission_reac_dist) {
-//											if (react_state == MISSION_REACT_LEFT) {
-//												react_state = MISSION_FOLLOW_WALL_R;
-//											} else {
-//												react_state = MISSION_FOLLOW_WALL_L;
-//											}
-//										}
-//
-//									} else if (react_state == MISSION_FOLLOW_WALL_L || react_state == MISSION_FOLLOW_WALL_R) {
-//
-//										if (front_dist < params.mission_reac_dist) {
-//
-//											if (react_state == MISSION_FOLLOW_WALL_L) {
-//												react_state = MISSION_REACT_RIGHT;
-//											} else {
-//												react_state = MISSION_REACT_LEFT;
-//											}
-//										}
-//
-//									} else if (react_state == MISSION_FOLLOW_CORRIDOR) {
-//										if (front_dist < params.mission_reac_dist) {
-//											abort_mission = true;
-//										}
-//									}
-//
-//									/* if way is free change mission state */
-//									bool free_radar = true;
-//									for(int i = 0; i<32; i++)
-//									{
-//										if(discrete_radar.distances[i] < params.mission_reac_dist) {
-//											free_radar = false;
-//										}
-//									}
-//									if (free_radar) {
-//										react_state = MISSION_CLEAR;
-//										/* recalculate direction to the final destination */
-//										bodyframe_pos_sp.yaw = get_yaw(&local_pos, &final_dest_local);
-//									}
-//
-//								/* ------------------------------------------------------------------------- *
-//								 *  CLEAR TO GO																 *
-//								 * ------------------------------------------------------------------------- */
-//								} else
+								/* ------------------------------------------------------------------------- *
+								 *  NEED FOR REACTION														 *
+								 * ------------------------------------------------------------------------- */
+								if (react_state != MISSION_CLEAR)
+								{
+
+									/* do a reaction */
+									if (left < params.mission_reac_dist) {
+										wall_left = true;
+									} else {
+										wall_left = false;
+									}
+									if (right < params.mission_reac_dist) {
+										wall_right = true;
+									} else {
+										wall_right = false;
+									}
+
+									bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
+
+									if (react_state == MISSION_REACT_LEFT && !wall_left) {
+										bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
+
+									} else if (react_state == MISSION_REACT_RIGHT && !wall_right) {
+										bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
+
+									} else if (react_state == MISSION_FOLLOW_WALL_L) {
+										if (discrete_radar.distances[9] < params.mission_min_dist) {
+											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
+										}
+
+									} else if (react_state == MISSION_FOLLOW_WALL_R) {
+										if (discrete_radar.distances[23] < params.mission_min_dist) {
+											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
+										}
+
+									} else if (react_state == MISSION_FOLLOW_CORRIDOR) {
+										/* TODO try also to get yaw in direction of corridor */
+										if (discrete_radar.distances[9] < discrete_radar.distances[23]) {
+											/* correct to right */
+											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
+										} else {
+											/* correct to left */
+											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
+										}
+									}
+
+									/* do we need a state change */
+									int front_dist = (discrete_radar.distances[15] + discrete_radar.distances[16] + discrete_radar.distances[17]) / 3;
+
+									if (react_state == MISSION_FOLLOW_WALL_L || react_state == MISSION_FOLLOW_WALL_R) {
+										if (wall_left && wall_right) {
+											react_state = MISSION_FOLLOW_CORRIDOR;
+										}
+									} if (react_state == MISSION_FOLLOW_CORRIDOR) {
+										if (wall_left && !wall_right) {
+											react_state = MISSION_FOLLOW_WALL_L;
+										} else if (!wall_left && !wall_right) {
+											react_state = MISSION_FOLLOW_WALL_R;
+										}
+									}
+
+									if (react_state == MISSION_REACT_LEFT || react_state == MISSION_REACT_RIGHT) {
+
+										if (front_dist > params.mission_reac_dist) {
+											if (react_state == MISSION_REACT_LEFT) {
+												react_state = MISSION_FOLLOW_WALL_R;
+											} else {
+												react_state = MISSION_FOLLOW_WALL_L;
+											}
+										}
+
+									} else if (react_state == MISSION_FOLLOW_WALL_L || react_state == MISSION_FOLLOW_WALL_R) {
+
+										if (front_dist < params.mission_reac_dist) {
+
+											if (react_state == MISSION_FOLLOW_WALL_L) {
+												react_state = MISSION_REACT_RIGHT;
+											} else {
+												react_state = MISSION_REACT_LEFT;
+											}
+										}
+
+									} else if (react_state == MISSION_FOLLOW_CORRIDOR) {
+										if (front_dist < params.mission_reac_dist) {
+											abort_mission = true;
+										}
+									}
+
+									/* if way is free change mission state */
+									bool free_radar = true;
+									for(int i = 0; i<32; i++)
+									{
+										if(discrete_radar.distances[i] < params.mission_reac_dist) {
+											free_radar = false;
+										}
+									}
+									if (free_radar) {
+										react_state = MISSION_CLEAR;
+										/* recalculate direction to the final destination */
+										bodyframe_pos_sp.yaw = get_yaw(&local_pos, &final_dest_local);
+									}
+
+								/* ------------------------------------------------------------------------- *
+								 *  CLEAR TO GO																 *
+								 * ------------------------------------------------------------------------- */
+								} else
 								{
 
 									/* wait until yaw is approximately correct */

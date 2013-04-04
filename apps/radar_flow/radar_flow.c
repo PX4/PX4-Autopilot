@@ -56,10 +56,8 @@
 
 #include "radar_flow_params.h"
 #include "radar_sounds.h"
-#include "codegen/flowNavigation.h"
 #include "codegen/frontFlowKalmanFilter.h"
 #include "codegen/wallEstimationFilter.h"
-#include "codegen/wallEstimator.h"
 
 static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
@@ -202,7 +200,7 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 	static float front_distance_filtered = 5.0f;
 
 	/* wall estimation parameters */
-	static float filter_settings[7] = { 0.0f };
+	static float filter_settings[8] = { 0.0f };
 	static float position_last[2] = { 0.0f };
 	static float position_update[2] = { 0.0f };
 	static float yaw_last = 0.0f;
@@ -219,6 +217,7 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 	static int sonar_gradient = 0;
 
 	static bool sensors_ready = false;
+	static bool update_initialized = false;
 
 	filter_settings[0] = params.s0;
 	filter_settings[1] = params.s1;
@@ -227,6 +226,7 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 	filter_settings[4] = params.s4;
 	filter_settings[5] = params.s5;
 	filter_settings[6] = params.s6;
+	filter_settings[7] = params.s7;
 
 	while (!thread_should_exit) {
 
@@ -267,6 +267,7 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 					filter_settings[4] = params.s4;
 					filter_settings[5] = params.s5;
 					filter_settings[6] = params.s6;
+					filter_settings[7] = params.s7;
 
 					printf("[radar] parameters updated.\n");
 				}
@@ -364,18 +365,18 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 					speed_filtered[0] = speed_aposteriori[0];
 					speed_filtered[1] = speed_aposteriori[2];
 
-					if (position_last[0] != 0.0f && position_last[0] != 0.0f && yaw_last != 0.0f) {
+					if (update_initialized) {
 						position_update[0] = bodyframe_pos.x - position_last[0];
 						position_update[1] = bodyframe_pos.y - position_last[1];
 						yaw_update = att.yaw - yaw_last;
+					} else {
+						/* at first round */
+						update_initialized = true;
 					}
 
 					position_last[0] = bodyframe_pos.x;
 					position_last[1] = bodyframe_pos.y;
 					yaw_last = att.yaw;
-
-//					wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, 0.5, 0, &distance_left, &distance_right);
-//					wallEstimator(omni_left_filtered, omni_right_filtered, 1.0f, 1, speed_filtered, thresholds, &distance_left, &distance_right);
 
 					wallEstimationFilter(radar_filtered_k, radar_weights_k, omni_left_filtered, omni_right_filtered, front_distance_filtered, 1, speed_filtered, position_update, yaw_update, filter_settings, radar, radar_filtered, radar_weights);
 					memcpy(radar_filtered_k, radar_filtered, sizeof(radar_filtered));

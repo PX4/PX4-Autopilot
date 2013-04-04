@@ -1,9 +1,9 @@
 /*
  * rtwtypes.h
  *
- * Code generation for function 'flowNavigation'
+ * Code generation for function 'frontFlowKalmanFilter'
  *
- * C source code generated on: Thu Mar 14 15:02:19 2013
+ * C source code generated on: Wed Apr  3 11:26:47 2013
  *
  */
 

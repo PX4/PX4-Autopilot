@@ -743,7 +743,7 @@ uorb_receive_start(void)
 
 	/* --- RC CHANNELS VALUE --- */
 	rc_sub = orb_subscribe(ORB_ID(rc_channels));
-	orb_set_interval(rc_sub, 100);			/* 10Hz updates */
+	orb_set_interval(rc_sub, 1000);			/* 10Hz updates */
 
 	/* --- RC RAW VALUE --- */
 	mavlink_subs.input_rc_sub = orb_subscribe(ORB_ID(input_rc));
@@ -755,7 +755,7 @@ uorb_receive_start(void)
 
 	/* --- LOCAL POS VALUE --- */
 	mavlink_subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	orb_set_interval(mavlink_subs.local_pos_sub, 100);	/* 1Hz active updates */
+	orb_set_interval(mavlink_subs.local_pos_sub, 1000);	/* 1Hz active updates */
 
 	/* --- GLOBAL SETPOINT VALUE --- */
 	mavlink_subs.spg_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
@@ -763,7 +763,7 @@ uorb_receive_start(void)
 
 	/* --- LOCAL SETPOINT VALUE --- */
 	mavlink_subs.spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	orb_set_interval(mavlink_subs.spl_sub, 200);	/* 0.5 Hz updates */
+	orb_set_interval(mavlink_subs.spl_sub, 2000);	/* 0.5 Hz updates */
 
 	/* --- ATTITUDE SETPOINT VALUE --- */
 	mavlink_subs.spa_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
@@ -811,7 +811,7 @@ uorb_receive_start(void)
 
 	/* --- DISCRETE RADAR ESTIMATIONS --- */
 	mavlink_subs.discrete_radar = orb_subscribe(ORB_ID(discrete_radar));
-	orb_set_interval(mavlink_subs.discrete_radar, 200000); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.discrete_radar, 100); 	/* 5Hz updates */
 
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;

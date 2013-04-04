@@ -49,10 +49,11 @@ PARAM_DEFINE_FLOAT(RF_FRONT_A, 0.1f);
 PARAM_DEFINE_FLOAT(RF_S0, 0.05f);
 PARAM_DEFINE_FLOAT(RF_S1, 0.05f);
 PARAM_DEFINE_FLOAT(RF_S2, 2.0f);
-PARAM_DEFINE_FLOAT(RF_S3, 0.05f);
+PARAM_DEFINE_FLOAT(RF_S3, 0.01f);
 PARAM_DEFINE_FLOAT(RF_S4, 0.3f);
-PARAM_DEFINE_FLOAT(RF_S5, 0.3f);
+PARAM_DEFINE_FLOAT(RF_S5, 0.05f);
 PARAM_DEFINE_FLOAT(RF_S6, 0.01f);
+PARAM_DEFINE_FLOAT(RF_S7, 0.001f);
 PARAM_DEFINE_INT32(RF_DEBUG, 0);
 
 
@@ -72,6 +73,7 @@ int parameters_init(struct radar_flow_param_handles *h)
 	h->s4					=	param_find("RF_S4");
 	h->s5					=	param_find("RF_S5");
 	h->s6					=	param_find("RF_S6");
+	h->s7					=	param_find("RF_S7");
 	h->debug				=	param_find("RF_DEBUG");
 
 	return OK;
@@ -93,6 +95,7 @@ int parameters_update(const struct radar_flow_param_handles *h, struct radar_flo
 	param_get(h->s4, &(p->s4));
 	param_get(h->s5, &(p->s5));
 	param_get(h->s6, &(p->s6));
+	param_get(h->s7, &(p->s7));
 	param_get(h->debug, &(p->debug));
 
 	return OK;
