@@ -123,12 +123,12 @@ private:
 	unsigned		_num_reports;
 	volatile unsigned	_next_report;
 	volatile unsigned	_oldest_report;
-	struct gyro_report	*_reports;
+	struct accel_report	*_reports;
 
-	struct gyro_scale	_gyro_scale;
-	float			_gyro_range_scale;
-	float			_gyro_range_rad_s;
-	orb_advert_t		_gyro_topic;
+	struct accel_scale	_accel_scale;
+	float			_accel_range_scale;
+	float			_accel_range_m_s2;
+	orb_advert_t		_accel_topic;
 
 	unsigned		_current_rate;
 	unsigned		_current_range;
@@ -220,9 +220,9 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_next_report(0),
 	_oldest_report(0),
 	_reports(nullptr),
-	_gyro_range_scale(0.0f),
-	_gyro_range_rad_s(0.0f),
-	_gyro_topic(-1),
+	_accel_range_scale(0.0f),
+	_accel_range_m_s2(0.0f),
+	_accel_topic(-1),
 	_current_rate(0),
 	_current_range(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_read"))
@@ -231,12 +231,12 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_debug_enabled = true;
 
 	// default scale factors
-	_gyro_scale.x_offset = 0;
-	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
-	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
-	_gyro_scale.z_scale  = 1.0f;
+	_accel_scale.x_offset = 0;
+	_accel_scale.x_scale  = 1.0f;
+	_accel_scale.y_offset = 0;
+	_accel_scale.y_scale  = 1.0f;
+	_accel_scale.z_offset = 0;
+	_accel_scale.z_scale  = 1.0f;
 }
 
 LSM303D::~LSM303D()
@@ -307,7 +307,7 @@ LSM303D::probe()
 ssize_t
 LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct gyro_report);
+	unsigned count = buflen / sizeof(struct accel_report);
 	int ret = 0;
 
 //	/* buffer must be large enough */
@@ -412,7 +412,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 //				return -EINVAL;
 //
 //			/* allocate new buffer */
-//			struct gyro_report *buf = new struct gyro_report[arg];
+//			struct accel_report *buf = new struct accel_report[arg];
 //
 //			if (nullptr == buf)
 //				return -ENOMEM;
@@ -447,12 +447,12 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 //
 //	case GYROIOCSSCALE:
 //		/* copy scale in */
-//		memcpy(&_gyro_scale, (struct gyro_scale *) arg, sizeof(_gyro_scale));
+//		memcpy(&_accel_scale, (struct accel_scale *) arg, sizeof(_accel_scale));
 //		return OK;
 //
 //	case GYROIOCGSCALE:
 //		/* copy scale out */
-//		memcpy((struct gyro_scale *) arg, &_gyro_scale, sizeof(_gyro_scale));
+//		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
 //		return OK;
 //
 //	case GYROIOCSRANGE:
@@ -608,7 +608,7 @@ LSM303D::measure()
 //	} raw_report;
 //#pragma pack(pop)
 //
-//	gyro_report		*report = &_reports[_next_report];
+//	accel_report		*report = &_reports[_next_report];
 //
 //	/* start the performance counter */
 //	perf_begin(_sample_perf);
@@ -637,9 +637,9 @@ LSM303D::measure()
 //	report->y_raw = raw_report.y;
 //	report->z_raw = raw_report.z;
 //
-//	report->x = ((report->x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-//	report->y = ((report->y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-//	report->z = ((report->z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+//	report->x = ((report->x_raw * _gyro_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+//	report->y = ((report->y_raw * _gyro_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+//	report->z = ((report->z_raw * _gyro_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 //	report->scaling = _gyro_range_scale;
 //	report->range_rad_s = _gyro_range_rad_s;
 //
@@ -693,7 +693,7 @@ start()
 		errx(1, "already started");
 
 	/* create the driver */
-	g_dev = new LSM303D(1 /* XXX magic number */, ACCEL_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_ACCEL);
+	g_dev = new LSM303D(1 /* XXX magic number */, ACCEL_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -809,7 +809,7 @@ lsm303d_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(argv[1], "start"))
-		LSM303D::start();
+		lsm303d::start();
 
 	/*
 	 * Test the driver/device.
