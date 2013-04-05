@@ -55,7 +55,9 @@ struct discrete_radar_s {
 
 	uint64_t timestamp;		/**< in microseconds since system start          */
 
-	int16_t distances[32];		/**< Left flow, in decipixels */
+	int16_t distances[32];	/**< 360 degree (in 32 sectors) distances in mm*/
+
+	uint8_t quality;		/**< Radar quality / confidence. 0: bad, 255: maximum quality */
 
 };
 
