@@ -1,5 +1,5 @@
 #
-# Board-specific definitions for the PX4FMU
+# Board-specific definitions for the PX4FMUv2
 #
 
 #

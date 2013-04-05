@@ -42,7 +42,8 @@ include $(PX4_BASE)makefiles/setup.mk
 #
 # Canned firmware configurations that we build.
 #
-CONFIGS			?= px4fmu_default px4io_default
+CONFIGS			?= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
+#CONFIGS			?= px4fmu_default px4io_default
 
 #
 # Boards that we build NuttX export kits for.
@@ -162,9 +163,7 @@ help:
 	@echo ""
 	@echo "  all"
 	@echo "    Build all firmware configs: $(CONFIGS)"
-	@echo "    A limited set of configs can be built with:"
-	@echo ""
-	@echo "      CONFIGS=<list-of-configs>"
+	@echo "    A limited set of configs can be built with CONFIGS=<list-of-configs>"
 	@echo ""
 	@for config in $(CONFIGS); do \
 		echo "  $$config"; \
