@@ -98,16 +98,29 @@ static const int ERROR = -1;
 #define ADDR_OUT_Z_H_A			0x2D
 
 #define ADDR_CTRL_REG1			0x20
+#define ADDR_CTRL_REG5			0x24
+#define ADDR_CTRL_REG7			0x26
 
 #define REG1_RATE_50HZ_A				((0<<7) | (1<<6) | (0<<5) | (1<<4))
 #define REG1_RATE_100HZ_A				((0<<7) | (1<<6) | (1<<5) | (0<<4))
 #define REG1_RATE_200HZ_A				((0<<7) | (1<<6) | (1<<5) | (1<<4))
 #define REG1_RATE_400HZ_A				((1<<7) | (0<<6) | (0<<5) | (0<<4))
+#define REG1_RATE_800HZ_A				((1<<7) | (0<<6) | (0<<5) | (1<<4))
+#define REG1_RATE_1600HZ_A				((1<<7) | (0<<6) | (1<<5) | (0<<4))
 
 #define REG1_CONT_UPDATE_A		(0<<3)
 #define REG1_Z_ENABLE_A			(1<<2)
 #define REG1_Y_ENABLE_A			(1<<1)
 #define REG1_X_ENABLE_A			(1<<0)
+
+#define REG5_TEMP_ENABLE		(1<<7)
+#define REG5_M_RES_HIGH			((1<<6) | (1<<5))
+
+#define REG5_RATE_50HZ_M		((1<<4) | (0<<3) | (0<<2))
+#define REG5_RATE_100HZ_M		((1<<4) | (0<<3) | (1<<2))
+
+
+#define REG7_CONTINUOUS_MODE_M	((0<<1) | (0<<0))
 
 #define ADDR_WHO_AM_I			0x0F
 #define WHO_I_AM				0x49
@@ -116,6 +129,8 @@ static const int ERROR = -1;
 #define INT_SRC_M               0x13
 
 extern "C" { __EXPORT int lsm303d_main(int argc, char *argv[]); }
+
+class LSM303D_mag;
 
 class LSM303D : public device::SPI
 {
@@ -136,25 +151,49 @@ public:
 protected:
 	virtual int		probe();
 
+	friend class LSM303D_mag;
+
+	virtual ssize_t		mag_read(struct file *filp, char *buffer, size_t buflen);
+	virtual int		mag_ioctl(struct file *filp, int cmd, unsigned long arg);
+
 private:
 
-	struct hrt_call		_call;
-	unsigned		_call_interval;
+	LSM303D_mag		*_mag;
 
-	unsigned		_num_reports;
-	volatile unsigned	_next_report;
-	volatile unsigned	_oldest_report;
-	struct accel_report	*_reports;
+	struct hrt_call		_accel_call;
+	struct hrt_call		_mag_call;
+
+	unsigned		_call_accel_interval;
+	unsigned		_call_mag_interval;
+
+	unsigned		_num_accel_reports;
+	volatile unsigned	_next_accel_report;
+	volatile unsigned	_oldest_accel_report;
+	struct accel_report	*_accel_reports;
 
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
 
-	unsigned		_current_rate;
-	unsigned		_current_range;
+	unsigned		_num_mag_reports;
+	volatile unsigned	_next_mag_report;
+	volatile unsigned	_oldest_mag_report;
+	struct mag_report	*_mag_reports;
 
-	perf_counter_t		_sample_perf;
+	struct mag_scale	_mag_scale;
+	float			_mag_range_scale;
+	float			_mag_range_ga;
+	orb_advert_t		_mag_topic;
+
+	unsigned		_current_accel_rate;
+	unsigned		_current_accel_range;
+
+	unsigned		_current_mag_rate;
+	unsigned		_current_mag_range;
+
+	perf_counter_t		_accel_sample_perf;
+	perf_counter_t		_mag_sample_perf;
 
 	/**
 	 * Start automatic measurement.
@@ -177,10 +216,14 @@ private:
 	 */
 	static void		measure_trampoline(void *arg);
 
+	static void		mag_measure_trampoline(void *arg);
+
 	/**
 	 * Fetch measurements from the sensor and update the report ring.
 	 */
 	void			measure();
+
+	void			mag_measure();
 
 	/**
 	 * Read a register from the LSM303D
@@ -230,26 +273,65 @@ private:
 	int			set_samplerate(unsigned frequency);
 };
 
+/**
+ * Helper class implementing the mag driver node.
+ */
+class LSM303D_mag : public device::CDev
+{
+public:
+	LSM303D_mag(LSM303D *parent);
+	~LSM303D_mag();
+
+	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
+	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+
+protected:
+	friend class LSM303D;
+
+	void			parent_poll_notify();
+private:
+	LSM303D			*_parent;
+
+	void			measure();
+
+	void			measure_trampoline(void *arg);
+};
+
+
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
 
 
 LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 8000000),
-	_call_interval(0),
-	_num_reports(0),
-	_next_report(0),
-	_oldest_report(0),
-	_reports(nullptr),
+	_mag(new LSM303D_mag(this)),
+	_call_accel_interval(0),
+	_call_mag_interval(0),
+	_num_accel_reports(0),
+	_next_accel_report(0),
+	_oldest_accel_report(0),
+	_accel_reports(nullptr),
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
 	_accel_topic(-1),
-	_current_rate(0),
-	_current_range(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_read"))
+	_num_mag_reports(0),
+	_next_mag_report(0),
+	_oldest_mag_report(0),
+	_mag_reports(nullptr),
+	_mag_range_scale(0.0f),
+	_mag_range_ga(0.0f),
+	_current_accel_rate(0),
+	_current_accel_range(0),
+	_current_mag_rate(0),
+	_current_mag_range(0),
+	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
+	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
+
+	_accel_range_scale = 1.0f;
+	_mag_range_scale = 1.0f;
 
 	// default scale factors
 	_accel_scale.x_offset = 0;
@@ -258,6 +340,13 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_accel_scale.y_scale  = 1.0f;
 	_accel_scale.z_offset = 0;
 	_accel_scale.z_scale  = 1.0f;
+
+	_mag_scale.x_offset = 0;
+	_mag_scale.x_scale = 1.0f;
+	_mag_scale.y_offset = 0;
+	_mag_scale.y_scale = 1.0f;
+	_mag_scale.z_offset = 0;
+	_mag_scale.z_scale = 1.0f;
 }
 
 LSM303D::~LSM303D()
@@ -266,36 +355,57 @@ LSM303D::~LSM303D()
 	stop();
 
 	/* free any existing reports */
-	if (_reports != nullptr)
-		delete[] _reports;
+	if (_accel_reports != nullptr)
+		delete[] _accel_reports;
+	if (_mag_reports != nullptr)
+		delete[] _mag_reports;
+
+	delete _mag;
 
 	/* delete the perf counter */
-	perf_free(_sample_perf);
+	perf_free(_accel_sample_perf);
+	perf_free(_mag_sample_perf);
 }
 
 int
 LSM303D::init()
 {
 	int ret = ERROR;
+	int mag_ret;
+	int fd_mag;
 
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK)
 		goto out;
 
 	/* allocate basic report buffers */
-	_num_reports = 2;
-	_oldest_report = _next_report = 0;
-	_reports = new struct accel_report[_num_reports];
+	_num_accel_reports = 2;
+	_oldest_accel_report = _next_accel_report = 0;
+	_accel_reports = new struct accel_report[_num_accel_reports];
 
-	if (_reports == nullptr)
+	if (_accel_reports == nullptr)
 		goto out;
 
-	/* advertise sensor topic */
-	memset(&_reports[0], 0, sizeof(_reports[0]));
-	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &_reports[0]);
+	/* advertise accel topic */
+	memset(&_accel_reports[0], 0, sizeof(_accel_reports[0]));
+	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &_accel_reports[0]);
 
-//	/* set default configuration */
-	write_reg(ADDR_CTRL_REG1, REG1_RATE_100HZ_A | REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A);
+	_num_mag_reports = 2;
+	_oldest_mag_report = _next_mag_report = 0;
+	_mag_reports = new struct mag_report[_num_mag_reports];
+
+	if (_mag_reports == nullptr)
+		goto out;
+
+	/* advertise mag topic */
+	memset(&_mag_reports[0], 0, sizeof(_mag_reports[0]));
+	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &_mag_reports[0]);
+
+	/* set default configuration */
+	write_reg(ADDR_CTRL_REG1, REG1_RATE_400HZ_A | REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A);
+	write_reg(ADDR_CTRL_REG7, REG7_CONTINUOUS_MODE_M);
+	write_reg(ADDR_CTRL_REG5, REG5_TEMP_ENABLE | REG5_RATE_50HZ_M | REG5_M_RES_HIGH);
+
 //	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
 //	write_reg(ADDR_CTRL_REG3, 0);		/* no interrupts - we don't use them */
 //	write_reg(ADDR_CTRL_REG4, REG4_BDU);
@@ -306,6 +416,15 @@ LSM303D::init()
 
 	set_range(500);				/* default to 500dps */
 	set_samplerate(0);			/* max sample rate */
+
+//	_current_accel_rate = 100;
+
+	/* do CDev init for the gyro device node, keep it optional */
+	mag_ret = _mag->init();
+
+	if (mag_ret != OK) {
+		_mag_topic = -1;
+	}
 
 	ret = OK;
 out:
@@ -336,7 +455,7 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 		return -ENOSPC;
 
 	/* if automatic measurement is enabled */
-	if (_call_interval > 0) {
+	if (_call_accel_interval > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -344,10 +463,10 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with it.
 		 */
 		while (count--) {
-			if (_oldest_report != _next_report) {
-				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
-				ret += sizeof(_reports[0]);
-				INCREMENT(_oldest_report, _num_reports);
+			if (_oldest_accel_report != _next_accel_report) {
+				memcpy(buffer, _accel_reports + _oldest_accel_report, sizeof(*_accel_reports));
+				ret += sizeof(_accel_reports[0]);
+				INCREMENT(_oldest_accel_report, _num_accel_reports);
 			}
 		}
 
@@ -356,12 +475,53 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement */
-	_oldest_report = _next_report = 0;
+	_oldest_accel_report = _next_accel_report = 0;
 	measure();
 
 	/* measurement will have generated a report, copy it out */
-	memcpy(buffer, _reports, sizeof(*_reports));
-	ret = sizeof(*_reports);
+	memcpy(buffer, _accel_reports, sizeof(*_accel_reports));
+	ret = sizeof(*_accel_reports);
+
+	return ret;
+}
+
+ssize_t
+LSM303D::mag_read(struct file *filp, char *buffer, size_t buflen)
+{
+	unsigned count = buflen / sizeof(struct mag_report);
+	int ret = 0;
+
+	/* buffer must be large enough */
+	if (count < 1)
+		return -ENOSPC;
+
+	/* if automatic measurement is enabled */
+	if (_call_mag_interval > 0) {
+
+		/*
+		 * While there is space in the caller's buffer, and reports, copy them.
+		 * Note that we may be pre-empted by the measurement code while we are doing this;
+		 * we are careful to avoid racing with it.
+		 */
+		while (count--) {
+			if (_oldest_mag_report != _next_mag_report) {
+				memcpy(buffer, _mag_reports + _oldest_mag_report, sizeof(*_mag_reports));
+				ret += sizeof(_mag_reports[0]);
+				INCREMENT(_oldest_mag_report, _num_mag_reports);
+			}
+		}
+
+		/* if there was no data, warn the caller */
+		return ret ? ret : -EAGAIN;
+	}
+
+	/* manual measurement */
+	_oldest_mag_report = _next_mag_report = 0;
+	measure();
+
+	/* measurement will have generated a report, copy it out */
+	memcpy(buffer, _mag_reports, sizeof(*_mag_reports));
+	ret = sizeof(*_mag_reports);
 
 	return ret;
 }
@@ -377,7 +537,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 				/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
 				stop();
-				_call_interval = 0;
+				_call_accel_interval = 0;
 				return OK;
 
 				/* external signalling not supported */
@@ -396,7 +556,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 				/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
+					bool want_start = (_call_accel_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
 					unsigned ticks = 1000000 / arg;
@@ -407,7 +567,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval = ticks;
+					_accel_call.period = _call_accel_interval = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -419,10 +579,10 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0)
+		if (_call_accel_interval == 0)
 			return SENSOR_POLLRATE_MANUAL;
 
-		return 1000000 / _call_interval;
+		return 1000000 / _call_accel_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* account for sentinel in the ring */
@@ -440,19 +600,123 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			/* reset the measurement state machine with the new buffer, free the old */
 			stop();
-			delete[] _reports;
-			_num_reports = arg;
-			_reports = buf;
+			delete[] _accel_reports;
+			_num_accel_reports = arg;
+			_accel_reports = buf;
 			start();
 
 			return OK;
 		}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports - 1;
+		return _num_accel_reports - 1;
 
 	case SENSORIOCRESET:
 		/* XXX implement */
+		return -EINVAL;
+
+	default:
+		/* give it to the superclass */
+		return SPI::ioctl(filp, cmd, arg);
+	}
+}
+
+int
+LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
+{
+	switch (cmd) {
+
+	case SENSORIOCSPOLLRATE: {
+		switch (arg) {
+
+			/* switching to manual polling */
+			case SENSOR_POLLRATE_MANUAL:
+				stop();
+				_call_mag_interval = 0;
+				return OK;
+
+			/* external signalling not supported */
+			case SENSOR_POLLRATE_EXTERNAL:
+
+			/* zero would be bad */
+			case 0:
+				return -EINVAL;
+
+			/* set default/max polling rate */
+			case SENSOR_POLLRATE_MAX:
+			case SENSOR_POLLRATE_DEFAULT:
+				/* 50 Hz is max for mag */
+				return mag_ioctl(filp, SENSORIOCSPOLLRATE, 50);
+
+			/* adjust to a legal polling interval in Hz */
+			default: {
+					/* do we need to start internal polling? */
+					bool want_start = (_call_mag_interval == 0);
+
+					/* convert hz to hrt interval via microseconds */
+					unsigned ticks = 1000000 / arg;
+
+					/* check against maximum sane rate */
+					if (ticks < 1000)
+						return -EINVAL;
+
+					/* update interval for next measurement */
+					/* XXX this is a bit shady, but no other way to adjust... */
+					_mag_call.period = _call_mag_interval = ticks;
+
+
+
+					/* if we need to start the poll state machine, do it */
+					if (want_start)
+						start();
+
+					return OK;
+				}
+			}
+		}
+
+	case SENSORIOCGPOLLRATE:
+		if (_call_mag_interval == 0)
+			return SENSOR_POLLRATE_MANUAL;
+
+		return 1000000 / _call_mag_interval;
+	case SENSORIOCSQUEUEDEPTH:
+	case SENSORIOCGQUEUEDEPTH:
+	case SENSORIOCRESET:
+		return ioctl(filp, cmd, arg);
+
+	case MAGIOCSSAMPLERATE:
+//	case MAGIOCGSAMPLERATE:
+		/* XXX not implemented */
+		return -EINVAL;
+
+	case MAGIOCSLOWPASS:
+//	case MAGIOCGLOWPASS:
+		/* XXX not implemented */
+//		_set_dlpf_filter((uint16_t)arg);
+		return -EINVAL;
+
+	case MAGIOCSSCALE:
+		/* copy scale in */
+		memcpy(&_mag_scale, (struct mag_scale *) arg, sizeof(_mag_scale));
+		return OK;
+
+	case MAGIOCGSCALE:
+		/* copy scale out */
+		memcpy((struct mag_scale *) arg, &_mag_scale, sizeof(_mag_scale));
+		return OK;
+
+	case MAGIOCSRANGE:
+//	case MAGIOCGRANGE:
+		/* XXX not implemented */
+		// XXX change these two values on set:
+		// _mag_range_scale = xx
+		// _mag_range_ga = xx
+		return -EINVAL;
+
+	case MAGIOCSELFTEST:
+		/* XXX not implemented */
+//		return self_test();
 		return -EINVAL;
 
 	default:
@@ -529,6 +793,8 @@ LSM303D::set_range(unsigned max_dps)
 int
 LSM303D::set_samplerate(unsigned frequency)
 {
+	_current_accel_rate = 100;
+
 //	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
 //
 //	if (frequency == 0)
@@ -566,16 +832,19 @@ LSM303D::start()
 	stop();
 
 	/* reset the report ring */
-	_oldest_report = _next_report = 0;
+	_oldest_accel_report = _next_accel_report = 0;
+	_oldest_mag_report = _next_mag_report = 0;
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&LSM303D::measure_trampoline, this);
+	hrt_call_every(&_accel_call, 1000, _call_accel_interval, (hrt_callout)&LSM303D::measure_trampoline, this);
+	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&LSM303D::mag_measure_trampoline, this);
 }
 
 void
 LSM303D::stop()
 {
-	hrt_cancel(&_call);
+	hrt_cancel(&_accel_call);
+	hrt_cancel(&_mag_call);
 }
 
 void
@@ -585,6 +854,15 @@ LSM303D::measure_trampoline(void *arg)
 
 	/* make another measurement */
 	dev->measure();
+}
+
+void
+LSM303D::mag_measure_trampoline(void *arg)
+{
+	LSM303D *dev = (LSM303D *)arg;
+
+	/* make another measurement */
+	dev->mag_measure();
 }
 
 void
@@ -609,17 +887,17 @@ LSM303D::measure()
 		int16_t		x;
 		int16_t		y;
 		int16_t		z;
-	} raw_report_accel;
+	} raw_accel_report;
 #pragma pack(pop)
 
-	accel_report		*report = &_reports[_next_report];
+	accel_report		*accel_report = &_accel_reports[_next_accel_report];
 
 	/* start the performance counter */
-	perf_begin(_sample_perf);
+	perf_begin(_accel_sample_perf);
 
 	/* fetch data from the sensor */
-	raw_report_accel.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
-	transfer((uint8_t *)&raw_report_accel, (uint8_t *)&raw_report_accel, sizeof(raw_report_accel));
+	raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
+	transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -637,42 +915,151 @@ LSM303D::measure()
 	 */
 
 
-	report->timestamp = hrt_absolute_time();
+	accel_report->timestamp = hrt_absolute_time();
 	/* XXX adjust for sensor alignment to board here */
-	report->x_raw = raw_report_accel.x;
-	report->y_raw = raw_report_accel.y;
-	report->z_raw = raw_report_accel.z;
+	accel_report->x_raw = raw_accel_report.x;
+	accel_report->y_raw = raw_accel_report.y;
+	accel_report->z_raw = raw_accel_report.z;
 
-
-//	report->x = ((report->x_raw * _gyro_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-//	report->y = ((report->y_raw * _gyro_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-//	report->z = ((report->z_raw * _gyro_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	accel_report->x = ((accel_report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	accel_report->y = ((accel_report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	accel_report->z = ((accel_report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 //	report->scaling = _gyro_range_scale;
 //	report->range_rad_s = _gyro_range_rad_s;
 
 	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_report, _num_reports);
+	INCREMENT(_next_accel_report, _num_accel_reports);
 
 	/* if we are running up against the oldest report, fix it */
-	if (_next_report == _oldest_report)
-		INCREMENT(_oldest_report, _num_reports);
+	if (_next_accel_report == _oldest_accel_report)
+		INCREMENT(_oldest_accel_report, _num_accel_reports);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_accel), _accel_topic, report);
+	orb_publish(ORB_ID(sensor_accel), _accel_topic, accel_report);
 
 	/* stop the perf counter */
-	perf_end(_sample_perf);
+	perf_end(_accel_sample_perf);
+}
+
+void
+LSM303D::mag_measure()
+{
+	/* status register and data as read back from the device */
+#pragma pack(push, 1)
+	struct {
+		uint8_t		cmd;
+		uint8_t		status;
+		int16_t		x;
+		int16_t		y;
+		int16_t		z;
+	} raw_mag_report;
+#pragma pack(pop)
+
+	mag_report		*mag_report = &_mag_reports[_next_mag_report];
+
+	/* start the performance counter */
+	perf_begin(_mag_sample_perf);
+
+	/* fetch data from the sensor */
+	raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
+	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
+
+	/*
+	 * 1) Scale raw value to SI units using scaling from datasheet.
+	 * 2) Subtract static offset (in SI units)
+	 * 3) Scale the statically calibrated values with a linear
+	 *    dynamically obtained factor
+	 *
+	 * Note: the static sensor offset is the number the sensor outputs
+	 * 	 at a nominally 'zero' input. Therefore the offset has to
+	 * 	 be subtracted.
+	 *
+	 *	 Example: A gyro outputs a value of 74 at zero angular rate
+	 *	 	  the offset is 74 from the origin and subtracting
+	 *		  74 from all measurements centers them around zero.
+	 */
+
+
+	mag_report->timestamp = hrt_absolute_time();
+	/* XXX adjust for sensor alignment to board here */
+	mag_report->x_raw = raw_mag_report.x;
+	mag_report->y_raw = raw_mag_report.y;
+	mag_report->z_raw = raw_mag_report.z;
+	mag_report->x = ((mag_report->x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	mag_report->y = ((mag_report->y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	mag_report->z = ((mag_report->z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+//	report->scaling = _gyro_range_scale;
+//	report->range_rad_s = _gyro_range_rad_s;
+
+	/* post a report to the ring - note, not locked */
+	INCREMENT(_next_mag_report, _num_mag_reports);
+
+	/* if we are running up against the oldest report, fix it */
+	if (_next_mag_report == _oldest_mag_report)
+		INCREMENT(_oldest_mag_report, _num_mag_reports);
+
+	/* notify anyone waiting for data */
+	poll_notify(POLLIN);
+
+	/* publish for subscribers */
+	orb_publish(ORB_ID(sensor_mag), _mag_topic, mag_report);
+
+	/* stop the perf counter */
+	perf_end(_mag_sample_perf);
 }
 
 void
 LSM303D::print_info()
 {
-	perf_print_counter(_sample_perf);
+	perf_print_counter(_accel_sample_perf);
 	printf("report queue:   %u (%u/%u @ %p)\n",
-	       _num_reports, _oldest_report, _next_report, _reports);
+	       _num_accel_reports, _oldest_accel_report, _next_accel_report, _accel_reports);
+	perf_print_counter(_mag_sample_perf);
+		printf("report queue:   %u (%u/%u @ %p)\n",
+		   _num_mag_reports, _oldest_mag_report, _next_mag_report, _mag_reports);
+}
+
+LSM303D_mag::LSM303D_mag(LSM303D *parent) :
+	CDev("LSM303D_mag", MAG_DEVICE_PATH),
+	_parent(parent)
+{
+}
+
+LSM303D_mag::~LSM303D_mag()
+{
+}
+
+void
+LSM303D_mag::parent_poll_notify()
+{
+	poll_notify(POLLIN);
+}
+
+ssize_t
+LSM303D_mag::read(struct file *filp, char *buffer, size_t buflen)
+{
+	return _parent->mag_read(filp, buffer, buflen);
+}
+
+int
+LSM303D_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
+{
+	return _parent->mag_ioctl(filp, cmd, arg);
+}
+
+void
+LSM303D_mag::measure()
+{
+	_parent->mag_measure();
+}
+
+void
+LSM303D_mag::measure_trampoline(void *arg)
+{
+	_parent->mag_measure_trampoline(arg);
 }
 
 /**
@@ -694,7 +1081,7 @@ void	info();
 void
 start()
 {
-	int fd;
+	int fd, fd_mag;
 
 	if (g_dev != nullptr)
 		errx(1, "already started");
@@ -716,6 +1103,16 @@ start()
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
+
+	fd_mag = open(MAG_DEVICE_PATH, O_RDONLY);
+
+	/* don't fail if open cannot be opened */
+	if (0 <= fd_mag) {
+		if (ioctl(fd_mag, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+			goto fail;
+		}
+	}
+
 
 	exit(0);
 fail:
@@ -746,10 +1143,6 @@ test()
 	if (fd_accel < 0)
 		err(1, "%s open failed", ACCEL_DEVICE_PATH);
 
-	/* reset to manual polling */
-//	if (ioctl(fd_accel, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
-//		err(1, "reset to manual polling");
-
 	/* do a simple demand read */
 	sz = read(fd_accel, &a_report, sizeof(a_report));
 
@@ -764,9 +1157,30 @@ test()
 	warnx("accel z: \t%d\traw", (int)a_report.z_raw);
 //	warnx("accel range: %8.4f m/s^2", (double)a_report.range_m_s2);
 
+
+
+	int fd_mag = -1;
+	struct mag_report m_report;
+
+	/* get the driver */
+	fd_mag = open(MAG_DEVICE_PATH, O_RDONLY);
+
+	if (fd_mag < 0)
+		err(1, "%s open failed", MAG_DEVICE_PATH);
+
+	/* do a simple demand read */
+	sz = read(fd_mag, &m_report, sizeof(m_report));
+
+	if (sz != sizeof(m_report))
+		err(1, "immediate read failed");
+
+	warnx("mag x: \t%d\traw", (int)m_report.x_raw);
+	warnx("mag y: \t%d\traw", (int)m_report.y_raw);
+	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
+
 	/* XXX add poll-rate tests here too */
 
-	reset();
+//	reset();
 	errx(0, "PASS");
 }
 
