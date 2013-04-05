@@ -83,10 +83,31 @@ static const int ERROR = -1;
 #define ADDR_STATUS_M           0x07
 #define ADDR_OUT_X_L_M          0x08
 #define ADDR_OUT_X_H_M          0x09
-#define ADDR_OUT_Y_L_M          0x08
-#define ADDR_OUT_Y_H_M          0x09
-#define ADDR_OUT_Z_L_M          0x0A
-#define ADDR_OUT_Z_H_M          0x0B
+#define ADDR_OUT_Y_L_M          0x0A
+#define ADDR_OUT_Y_H_M          0x0B
+#define ADDR_OUT_Z_L_M          0x0C
+#define ADDR_OUT_Z_H_M          0x0D
+
+#define ADDR_OUT_TEMP_A			0x26
+#define ADDR_STATUS_A			0x27
+#define ADDR_OUT_X_L_A			0x28
+#define ADDR_OUT_X_H_A			0x29
+#define ADDR_OUT_Y_L_A			0x2A
+#define ADDR_OUT_Y_H_A			0x2B
+#define ADDR_OUT_Z_L_A			0x2C
+#define ADDR_OUT_Z_H_A			0x2D
+
+#define ADDR_CTRL_REG1			0x20
+
+#define REG1_RATE_50HZ_A				((0<<7) | (1<<6) | (0<<5) | (1<<4))
+#define REG1_RATE_100HZ_A				((0<<7) | (1<<6) | (1<<5) | (0<<4))
+#define REG1_RATE_200HZ_A				((0<<7) | (1<<6) | (1<<5) | (1<<4))
+#define REG1_RATE_400HZ_A				((1<<7) | (0<<6) | (0<<5) | (0<<4))
+
+#define REG1_CONT_UPDATE_A		(0<<3)
+#define REG1_Z_ENABLE_A			(1<<2)
+#define REG1_Y_ENABLE_A			(1<<1)
+#define REG1_X_ENABLE_A			(1<<0)
 
 #define ADDR_WHO_AM_I			0x0F
 #define WHO_I_AM				0x49
@@ -274,7 +295,7 @@ LSM303D::init()
 	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &_reports[0]);
 
 //	/* set default configuration */
-//	write_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
+	write_reg(ADDR_CTRL_REG1, REG1_RATE_100HZ_A | REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A);
 //	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
 //	write_reg(ADDR_CTRL_REG3, 0);		/* no interrupts - we don't use them */
 //	write_reg(ADDR_CTRL_REG4, REG4_BDU);
@@ -310,37 +331,37 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 	unsigned count = buflen / sizeof(struct accel_report);
 	int ret = 0;
 
-//	/* buffer must be large enough */
-//	if (count < 1)
-//		return -ENOSPC;
-//
-//	/* if automatic measurement is enabled */
-//	if (_call_interval > 0) {
-//
-//		/*
-//		 * While there is space in the caller's buffer, and reports, copy them.
-//		 * Note that we may be pre-empted by the measurement code while we are doing this;
-//		 * we are careful to avoid racing with it.
-//		 */
-//		while (count--) {
-//			if (_oldest_report != _next_report) {
-//				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
-//				ret += sizeof(_reports[0]);
-//				INCREMENT(_oldest_report, _num_reports);
-//			}
-//		}
-//
-//		/* if there was no data, warn the caller */
-//		return ret ? ret : -EAGAIN;
-//	}
-//
-//	/* manual measurement */
-//	_oldest_report = _next_report = 0;
-//	measure();
-//
-//	/* measurement will have generated a report, copy it out */
-//	memcpy(buffer, _reports, sizeof(*_reports));
-//	ret = sizeof(*_reports);
+	/* buffer must be large enough */
+	if (count < 1)
+		return -ENOSPC;
+
+	/* if automatic measurement is enabled */
+	if (_call_interval > 0) {
+
+		/*
+		 * While there is space in the caller's buffer, and reports, copy them.
+		 * Note that we may be pre-empted by the measurement code while we are doing this;
+		 * we are careful to avoid racing with it.
+		 */
+		while (count--) {
+			if (_oldest_report != _next_report) {
+				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
+				ret += sizeof(_reports[0]);
+				INCREMENT(_oldest_report, _num_reports);
+			}
+		}
+
+		/* if there was no data, warn the caller */
+		return ret ? ret : -EAGAIN;
+	}
+
+	/* manual measurement */
+	_oldest_report = _next_report = 0;
+	measure();
+
+	/* measurement will have generated a report, copy it out */
+	memcpy(buffer, _reports, sizeof(*_reports));
+	ret = sizeof(*_reports);
 
 	return ret;
 }
@@ -350,116 +371,89 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-//	case SENSORIOCSPOLLRATE: {
-//			switch (arg) {
-//
-//				/* switching to manual polling */
-//			case SENSOR_POLLRATE_MANUAL:
-//				stop();
-//				_call_interval = 0;
-//				return OK;
-//
-//				/* external signalling not supported */
-//			case SENSOR_POLLRATE_EXTERNAL:
-//
-//				/* zero would be bad */
-//			case 0:
-//				return -EINVAL;
-//
-//				/* set default/max polling rate */
-//			case SENSOR_POLLRATE_MAX:
-//			case SENSOR_POLLRATE_DEFAULT:
-//				/* With internal low pass filters enabled, 250 Hz is sufficient */
-//				return ioctl(filp, SENSORIOCSPOLLRATE, 250);
-//
-//				/* adjust to a legal polling interval in Hz */
-//			default: {
-//					/* do we need to start internal polling? */
-//					bool want_start = (_call_interval == 0);
-//
-//					/* convert hz to hrt interval via microseconds */
-//					unsigned ticks = 1000000 / arg;
-//
-//					/* check against maximum sane rate */
-//					if (ticks < 1000)
-//						return -EINVAL;
-//
-//					/* update interval for next measurement */
-//					/* XXX this is a bit shady, but no other way to adjust... */
-//					_call.period = _call_interval = ticks;
-//
-//					/* if we need to start the poll state machine, do it */
-//					if (want_start)
-//						start();
-//
-//					return OK;
-//				}
-//			}
-//		}
-//
-//	case SENSORIOCGPOLLRATE:
-//		if (_call_interval == 0)
-//			return SENSOR_POLLRATE_MANUAL;
-//
-//		return 1000000 / _call_interval;
-//
-//	case SENSORIOCSQUEUEDEPTH: {
-//			/* account for sentinel in the ring */
-//			arg++;
-//
-//			/* lower bound is mandatory, upper bound is a sanity check */
-//			if ((arg < 2) || (arg > 100))
-//				return -EINVAL;
-//
-//			/* allocate new buffer */
-//			struct accel_report *buf = new struct accel_report[arg];
-//
-//			if (nullptr == buf)
-//				return -ENOMEM;
-//
-//			/* reset the measurement state machine with the new buffer, free the old */
-//			stop();
-//			delete[] _reports;
-//			_num_reports = arg;
-//			_reports = buf;
-//			start();
-//
-//			return OK;
-//		}
-//
-//	case SENSORIOCGQUEUEDEPTH:
-//		return _num_reports - 1;
-//
-//	case SENSORIOCRESET:
-//		/* XXX implement */
-//		return -EINVAL;
-//
-//	case GYROIOCSSAMPLERATE:
-//		return set_samplerate(arg);
-//
-//	case GYROIOCGSAMPLERATE:
-//		return _current_rate;
-//
-//	case GYROIOCSLOWPASS:
-//	case GYROIOCGLOWPASS:
-//		/* XXX not implemented due to wacky interaction with samplerate */
-//		return -EINVAL;
-//
-//	case GYROIOCSSCALE:
-//		/* copy scale in */
-//		memcpy(&_accel_scale, (struct accel_scale *) arg, sizeof(_accel_scale));
-//		return OK;
-//
-//	case GYROIOCGSCALE:
-//		/* copy scale out */
-//		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
-//		return OK;
-//
-//	case GYROIOCSRANGE:
-//		return set_range(arg);
-//
-//	case GYROIOCGRANGE:
-//		return _current_range;
+	case SENSORIOCSPOLLRATE: {
+			switch (arg) {
+
+				/* switching to manual polling */
+			case SENSOR_POLLRATE_MANUAL:
+				stop();
+				_call_interval = 0;
+				return OK;
+
+				/* external signalling not supported */
+			case SENSOR_POLLRATE_EXTERNAL:
+
+				/* zero would be bad */
+			case 0:
+				return -EINVAL;
+
+				/* set default/max polling rate */
+			case SENSOR_POLLRATE_MAX:
+			case SENSOR_POLLRATE_DEFAULT:
+				/* With internal low pass filters enabled, 250 Hz is sufficient */
+				return ioctl(filp, SENSORIOCSPOLLRATE, 250);
+
+				/* adjust to a legal polling interval in Hz */
+			default: {
+					/* do we need to start internal polling? */
+					bool want_start = (_call_interval == 0);
+
+					/* convert hz to hrt interval via microseconds */
+					unsigned ticks = 1000000 / arg;
+
+					/* check against maximum sane rate */
+					if (ticks < 1000)
+						return -EINVAL;
+
+					/* update interval for next measurement */
+					/* XXX this is a bit shady, but no other way to adjust... */
+					_call.period = _call_interval = ticks;
+
+					/* if we need to start the poll state machine, do it */
+					if (want_start)
+						start();
+
+					return OK;
+				}
+			}
+		}
+
+	case SENSORIOCGPOLLRATE:
+		if (_call_interval == 0)
+			return SENSOR_POLLRATE_MANUAL;
+
+		return 1000000 / _call_interval;
+
+	case SENSORIOCSQUEUEDEPTH: {
+			/* account for sentinel in the ring */
+			arg++;
+
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 2) || (arg > 100))
+				return -EINVAL;
+
+			/* allocate new buffer */
+			struct accel_report *buf = new struct accel_report[arg];
+
+			if (nullptr == buf)
+				return -ENOMEM;
+
+			/* reset the measurement state machine with the new buffer, free the old */
+			stop();
+			delete[] _reports;
+			_num_reports = arg;
+			_reports = buf;
+			start();
+
+			return OK;
+		}
+
+	case SENSORIOCGQUEUEDEPTH:
+		return _num_reports - 1;
+
+	case SENSORIOCRESET:
+		/* XXX implement */
+		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -596,65 +590,78 @@ LSM303D::measure_trampoline(void *arg)
 void
 LSM303D::measure()
 {
-//	/* status register and data as read back from the device */
+	/* status register and data as read back from the device */
 //#pragma pack(push, 1)
 //	struct {
 //		uint8_t		cmd;
-//		uint8_t		temp;
+//		uint16_t	temp;
 //		uint8_t		status;
 //		int16_t		x;
 //		int16_t		y;
 //		int16_t		z;
-//	} raw_report;
+//	} raw_report_mag;
 //#pragma pack(pop)
-//
-//	accel_report		*report = &_reports[_next_report];
-//
-//	/* start the performance counter */
-//	perf_begin(_sample_perf);
-//
-//	/* fetch data from the sensor */
-//	raw_report.cmd = ADDR_OUT_TEMP | DIR_READ | ADDR_INCREMENT;
-//	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
-//
-//	/*
-//	 * 1) Scale raw value to SI units using scaling from datasheet.
-//	 * 2) Subtract static offset (in SI units)
-//	 * 3) Scale the statically calibrated values with a linear
-//	 *    dynamically obtained factor
-//	 *
-//	 * Note: the static sensor offset is the number the sensor outputs
-//	 * 	 at a nominally 'zero' input. Therefore the offset has to
-//	 * 	 be subtracted.
-//	 *
-//	 *	 Example: A gyro outputs a value of 74 at zero angular rate
-//	 *	 	  the offset is 74 from the origin and subtracting
-//	 *		  74 from all measurements centers them around zero.
-//	 */
-//	report->timestamp = hrt_absolute_time();
-//	/* XXX adjust for sensor alignment to board here */
-//	report->x_raw = raw_report.x;
-//	report->y_raw = raw_report.y;
-//	report->z_raw = raw_report.z;
-//
+
+#pragma pack(push, 1)
+	struct {
+		uint8_t		cmd;
+		uint8_t		status;
+		int16_t		x;
+		int16_t		y;
+		int16_t		z;
+	} raw_report_accel;
+#pragma pack(pop)
+
+	accel_report		*report = &_reports[_next_report];
+
+	/* start the performance counter */
+	perf_begin(_sample_perf);
+
+	/* fetch data from the sensor */
+	raw_report_accel.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
+	transfer((uint8_t *)&raw_report_accel, (uint8_t *)&raw_report_accel, sizeof(raw_report_accel));
+
+	/*
+	 * 1) Scale raw value to SI units using scaling from datasheet.
+	 * 2) Subtract static offset (in SI units)
+	 * 3) Scale the statically calibrated values with a linear
+	 *    dynamically obtained factor
+	 *
+	 * Note: the static sensor offset is the number the sensor outputs
+	 * 	 at a nominally 'zero' input. Therefore the offset has to
+	 * 	 be subtracted.
+	 *
+	 *	 Example: A gyro outputs a value of 74 at zero angular rate
+	 *	 	  the offset is 74 from the origin and subtracting
+	 *		  74 from all measurements centers them around zero.
+	 */
+
+
+	report->timestamp = hrt_absolute_time();
+	/* XXX adjust for sensor alignment to board here */
+	report->x_raw = raw_report_accel.x;
+	report->y_raw = raw_report_accel.y;
+	report->z_raw = raw_report_accel.z;
+
+
 //	report->x = ((report->x_raw * _gyro_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 //	report->y = ((report->y_raw * _gyro_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 //	report->z = ((report->z_raw * _gyro_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 //	report->scaling = _gyro_range_scale;
 //	report->range_rad_s = _gyro_range_rad_s;
-//
-//	/* post a report to the ring - note, not locked */
-//	INCREMENT(_next_report, _num_reports);
-//
-//	/* if we are running up against the oldest report, fix it */
-//	if (_next_report == _oldest_report)
-//		INCREMENT(_oldest_report, _num_reports);
-//
-//	/* notify anyone waiting for data */
-//	poll_notify(POLLIN);
-//
-//	/* publish for subscribers */
-//	orb_publish(ORB_ID(sensor_gyro), _gyro_topic, report);
+
+	/* post a report to the ring - note, not locked */
+	INCREMENT(_next_report, _num_reports);
+
+	/* if we are running up against the oldest report, fix it */
+	if (_next_report == _oldest_report)
+		INCREMENT(_oldest_report, _num_reports);
+
+	/* notify anyone waiting for data */
+	poll_notify(POLLIN);
+
+	/* publish for subscribers */
+	orb_publish(ORB_ID(sensor_accel), _accel_topic, report);
 
 	/* stop the perf counter */
 	perf_end(_sample_perf);
@@ -740,22 +747,22 @@ test()
 		err(1, "%s open failed", ACCEL_DEVICE_PATH);
 
 	/* reset to manual polling */
-	if (ioctl(fd_accel, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
-		err(1, "reset to manual polling");
+//	if (ioctl(fd_accel, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
+//		err(1, "reset to manual polling");
 
 	/* do a simple demand read */
 	sz = read(fd_accel, &a_report, sizeof(a_report));
 
 	if (sz != sizeof(a_report))
-		err(1, "immediate gyro read failed");
+		err(1, "immediate read failed");
 
-	warnx("accel x: \t% 9.5f\tm/s^2", (double)a_report.x);
-	warnx("accel y: \t% 9.5f\tm/s^2", (double)a_report.y);
-	warnx("accel z: \t% 9.5f\tm/s^2", (double)a_report.z);
+//	warnx("accel x: \t% 9.5f\tm/s^2", (double)a_report.x);
+//	warnx("accel y: \t% 9.5f\tm/s^2", (double)a_report.y);
+//	warnx("accel z: \t% 9.5f\tm/s^2", (double)a_report.z);
 	warnx("accel x: \t%d\traw", (int)a_report.x_raw);
 	warnx("accel y: \t%d\traw", (int)a_report.y_raw);
 	warnx("accel z: \t%d\traw", (int)a_report.z_raw);
-	warnx("accel range: %8.4f m/s^2", (double)a_report.range_m_s2);
+//	warnx("accel range: %8.4f m/s^2", (double)a_report.range_m_s2);
 
 	/* XXX add poll-rate tests here too */
 
