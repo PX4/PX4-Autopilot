@@ -8,6 +8,11 @@
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/$(CONFIG)
 
 #
+# Board support modules
+#
+MODULES		 += device/rgbled
+
+#
 # Transitional support - add commands from the NuttX export archive.
 #
 # In general, these should move to modules over time.

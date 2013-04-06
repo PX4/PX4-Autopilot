@@ -42,7 +42,7 @@
 # and is consistent with joining the results of $(dir) and $(notdir).
 #
 export PX4_INCLUDE_DIR	 = $(abspath $(PX4_BASE)/src/include)/
-export PX4_MODULE_SRC	 = $(abspath $(PX4_BASE)/src/modules)/
+export PX4_MODULE_SRC	 = $(abspath $(PX4_BASE)/src)/
 export PX4_MK_DIR	 = $(abspath $(PX4_BASE)/makefiles)/
 export NUTTX_SRC	 = $(abspath $(PX4_BASE)/nuttx)/
 export NUTTX_APP_SRC	 = $(abspath $(PX4_BASE)/apps)/
