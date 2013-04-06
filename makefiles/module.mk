@@ -145,7 +145,6 @@ MODULE_COMMAND_FILES	:= $(addprefix $(WORK_DIR)/builtin_commands/COMMAND.,$(MODU
 $(MODULE_COMMAND_FILES): command = $(word 2,$(subst ., ,$(notdir $(@))))
 $(MODULE_COMMAND_FILES): exclude = $(dir $@)COMMAND.$(command).*
 $(MODULE_COMMAND_FILES): $(GLOBAL_DEPS)
-	@$(ECHO) COMMAND:    $(command)
 	@$(REMOVE) -f $(exclude)
 	@$(MKDIR) -p $(dir $@)
 	$(Q) $(TOUCH) $@

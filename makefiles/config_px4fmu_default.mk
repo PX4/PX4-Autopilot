@@ -5,7 +5,7 @@
 #
 # Use the configuration's ROMFS.
 #
-ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/$(CONFIG)
+ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 
 #
 # Transitional support - add commands from the NuttX export archive.

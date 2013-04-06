@@ -246,6 +246,9 @@ include $(PX4_MK_DIR)/nuttx.mk
 ################################################################################
 
 ifneq ($(ROMFS_ROOT),)
+ifeq ($(wildcard $(ROMFS_ROOT)),)
+$(error ROMFS_ROOT specifies a directory that does not exist)
+endif
 
 #
 # Note that there is no support for more than one root directory or constructing
@@ -272,7 +275,7 @@ $(ROMFS_OBJ): $(ROMFS_IMG) $(GLOBAL_DEPS)
 
 # Generate the ROMFS image from the root
 $(ROMFS_IMG): $(ROMFS_DEPS) $(GLOBAL_DEPS)
-	@$(ECHO) %% generating $@
+	@$(ECHO) "ROMFS:   $@"
 	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_ROOT) -V "NSHInitVol"
 
 EXTRA_CLEANS		+= $(ROMGS_OBJ) $(ROMFS_IMG)
@@ -318,7 +321,7 @@ endef
 
 # Don't generate until modules have updated their command files
 $(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(MODULE_OBJS) $(BUILTIN_COMMAND_FILES)
-	@$(ECHO) %% generating $@
+	@$(ECHO) "CMDS:    $@"
 	$(Q) $(ECHO) '/* builtin command list - automatically generated, do not edit */' > $@
 	$(Q) $(ECHO) '#include <nuttx/config.h>' >> $@
 	$(Q) $(ECHO) '#include <nuttx/binfmt/builtin.h>' >> $@
