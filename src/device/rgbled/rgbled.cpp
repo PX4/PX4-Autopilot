@@ -60,10 +60,10 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 
+#include "device/rgbled.h"
+
 #define LED_ONTIME 120
 #define LED_OFFTIME 120
-
-#define RGBLED_DEVICE_PATH "/dev/rgbled"
 
 #define ADDR			0x55	/**< I2C adress of TCA62724FMG */
 #define SUB_ADDR_START		0x01	/**< write everything (with auto-increment) */
