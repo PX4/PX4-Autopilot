@@ -33,7 +33,7 @@
 
 /**
  * @file lsm303d.cpp
- * Driver for the ST LSM303D MEMS accel / mag connected via SPI.
+ * Driver for the ST LSM303D MEMS accelerometer / magnetometer connected via SPI.
  */
 
 #include <nuttx/config.h>
@@ -75,11 +75,16 @@ static const int ERROR = -1;
 /* SPI protocol address bits */
 #define DIR_READ				(1<<7)
 #define DIR_WRITE				(0<<7)
-#define ADDR_INCREMENT				(1<<6)
+#define ADDR_INCREMENT			(1<<6)
 
-/* register addresses */
-#define ADDR_TEMP_OUT_L         0x05
-#define ADDR_TEMP_OUT_H         0x06
+
+
+/* register addresses: A: accel, M: mag, T: temp */
+#define ADDR_WHO_AM_I			0x0F
+#define WHO_I_AM				0x49
+
+#define ADDR_OUT_L_T         	0x05
+#define ADDR_OUT_H_T        	0x06
 #define ADDR_STATUS_M           0x07
 #define ADDR_OUT_X_L_M          0x08
 #define ADDR_OUT_X_H_M          0x09
@@ -97,38 +102,69 @@ static const int ERROR = -1;
 #define ADDR_OUT_Z_L_A			0x2C
 #define ADDR_OUT_Z_H_A			0x2D
 
+#define ADDR_CTRL_REG0			0x1F
 #define ADDR_CTRL_REG1			0x20
+#define ADDR_CTRL_REG2			0x21
+#define ADDR_CTRL_REG3			0x22
+#define ADDR_CTRL_REG4			0x23
 #define ADDR_CTRL_REG5			0x24
 #define ADDR_CTRL_REG7			0x26
 
-#define REG1_RATE_50HZ_A				((0<<7) | (1<<6) | (0<<5) | (1<<4))
-#define REG1_RATE_100HZ_A				((0<<7) | (1<<6) | (1<<5) | (0<<4))
-#define REG1_RATE_200HZ_A				((0<<7) | (1<<6) | (1<<5) | (1<<4))
-#define REG1_RATE_400HZ_A				((1<<7) | (0<<6) | (0<<5) | (0<<4))
-#define REG1_RATE_800HZ_A				((1<<7) | (0<<6) | (0<<5) | (1<<4))
-#define REG1_RATE_1600HZ_A				((1<<7) | (0<<6) | (1<<5) | (0<<4))
+#define REG1_POWERDOWN_A		((0<<7) | (0<<6) | (0<<5) | (0<<4))
+#define REG1_RATE_3_125HZ_A		((0<<7) | (0<<6) | (0<<5) | (1<<4))
+#define REG1_RATE_6_25HZ_A		((0<<7) | (0<<6) | (1<<5) | (0<<4))
+#define REG1_RATE_12_5HZ_A		((0<<7) | (0<<6) | (1<<5) | (1<<4))
+#define REG1_RATE_25HZ_A		((0<<7) | (1<<6) | (0<<5) | (0<<4))
+#define REG1_RATE_50HZ_A		((0<<7) | (1<<6) | (0<<5) | (1<<4))
+#define REG1_RATE_100HZ_A		((0<<7) | (1<<6) | (1<<5) | (0<<4))
+#define REG1_RATE_200HZ_A		((0<<7) | (1<<6) | (1<<5) | (1<<4))
+#define REG1_RATE_400HZ_A		((1<<7) | (0<<6) | (0<<5) | (0<<4))
+#define REG1_RATE_800HZ_A		((1<<7) | (0<<6) | (0<<5) | (1<<4))
+#define REG1_RATE_1600HZ_A		((1<<7) | (0<<6) | (1<<5) | (0<<4))
 
 #define REG1_CONT_UPDATE_A		(0<<3)
 #define REG1_Z_ENABLE_A			(1<<2)
 #define REG1_Y_ENABLE_A			(1<<1)
 #define REG1_X_ENABLE_A			(1<<0)
 
-#define REG5_TEMP_ENABLE		(1<<7)
-#define REG5_M_RES_HIGH			((1<<6) | (1<<5))
+#define REG2_AA_FILTER_BW_773HZ_A		((0<<7) | (0<<6))
+#define REG2_AA_FILTER_BW_194HZ_A		((0<<7) | (1<<6))
+#define REG2_AA_FILTER_BW_362HZ_A		((1<<7) | (0<<6))
+#define REG2_AA_FILTER_BW_50HZ_A		((1<<7) | (1<<6))
 
+#define REG2_FULL_SCALE_2G_A	((0<<5) | (0<<4) | (0<<3))
+#define REG2_FULL_SCALE_4G_A	((0<<5) | (0<<4) | (1<<3))
+#define REG2_FULL_SCALE_6G_A	((0<<5) | (1<<4) | (0<<3))
+#define REG2_FULL_SCALE_8G_A	((0<<5) | (1<<4) | (1<<3))
+#define REG2_FULL_SCALE_16G_A	((1<<5) | (0<<4) | (0<<3))
+
+#define REG5_ENABLE_T			(1<<7)
+
+#define REG5_RES_HIGH_M			((1<<6) | (1<<5))
+#define REG5_RES_LOW_M			((0<<6) | (0<<5))
+
+#define REG5_RATE_3_125HZ_M		((0<<4) | (0<<3) | (0<<2))
+#define REG5_RATE_6_25HZ_M		((0<<4) | (0<<3) | (1<<2))
+#define REG5_RATE_12_5HZ_M		((0<<4) | (1<<3) | (0<<2))
+#define REG5_RATE_25HZ_M		((0<<4) | (1<<3) | (1<<2))
 #define REG5_RATE_50HZ_M		((1<<4) | (0<<3) | (0<<2))
 #define REG5_RATE_100HZ_M		((1<<4) | (0<<3) | (1<<2))
+#define REG5_RATE_DO_NOT_USE_M	((1<<4) | (1<<3) | (0<<2))
 
+#define REG6_FULL_SCALE_2GA_M	((0<<7) | (0<<6))
+#define REG6_FULL_SCALE_4GA_M	((0<<7) | (1<<6))
+#define REG6_FULL_SCALE_8GA_M	((1<<7) | (0<<6))
+#define REG6_FULL_SCALE_12GA_M	((1<<7) | (1<<6))
 
-#define REG7_CONTINUOUS_MODE_M	((0<<1) | (0<<0))
+#define REG7_CONT_MODE_M		((0<<1) | (0<<0))
 
-#define ADDR_WHO_AM_I			0x0F
-#define WHO_I_AM				0x49
 
 #define INT_CTRL_M              0x12
 #define INT_SRC_M               0x13
 
+
 extern "C" { __EXPORT int lsm303d_main(int argc, char *argv[]); }
+
 
 class LSM303D_mag;
 
@@ -216,13 +252,21 @@ private:
 	 */
 	static void		measure_trampoline(void *arg);
 
+	/**
+	 * Static trampoline for the mag because it runs at a lower rate
+	 *
+	 * @param arg		Instance pointer for the driver that is polling.
+	 */
 	static void		mag_measure_trampoline(void *arg);
 
 	/**
-	 * Fetch measurements from the sensor and update the report ring.
+	 * Fetch accel measurements from the sensor and update the report ring.
 	 */
 	void			measure();
 
+	/**
+	 * Fetch mag measurements from the sensor and update the report ring.
+	 */
 	void			mag_measure();
 
 	/**
@@ -330,6 +374,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	// enable debug() calls
 	_debug_enabled = true;
 
+	/* XXX fix this default values */
 	_accel_range_scale = 1.0f;
 	_mag_range_scale = 1.0f;
 
@@ -401,25 +446,21 @@ LSM303D::init()
 	memset(&_mag_reports[0], 0, sizeof(_mag_reports[0]));
 	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &_mag_reports[0]);
 
+	/* XXX do this with ioctls */
 	/* set default configuration */
 	write_reg(ADDR_CTRL_REG1, REG1_RATE_400HZ_A | REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A);
-	write_reg(ADDR_CTRL_REG7, REG7_CONTINUOUS_MODE_M);
-	write_reg(ADDR_CTRL_REG5, REG5_TEMP_ENABLE | REG5_RATE_50HZ_M | REG5_M_RES_HIGH);
+	write_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
+	write_reg(ADDR_CTRL_REG5, REG5_RATE_100HZ_M | REG5_RES_HIGH_M);
 
-//	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
-//	write_reg(ADDR_CTRL_REG3, 0);		/* no interrupts - we don't use them */
-//	write_reg(ADDR_CTRL_REG4, REG4_BDU);
-//	write_reg(ADDR_CTRL_REG5, 0);
-//
-//	write_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);	  /* disable wake-on-interrupt */
-//	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_STREAM_MODE); /* Enable FIFO, old data is overwritten */
+	/* XXX should we enable FIFO */
 
 	set_range(500);				/* default to 500dps */
 	set_samplerate(0);			/* max sample rate */
 
 //	_current_accel_rate = 100;
 
-	/* do CDev init for the gyro device node, keep it optional */
+	/* XXX test this when another mag is used */
+	/* do CDev init for the mag device node, keep it optional */
 	mag_ret = _mag->init();
 
 	if (mag_ret != OK) {
@@ -762,6 +803,7 @@ LSM303D::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 int
 LSM303D::set_range(unsigned max_dps)
 {
+	/* XXX implement this */
 //	uint8_t bits = REG4_BDU;
 //
 //	if (max_dps == 0)
@@ -793,8 +835,7 @@ LSM303D::set_range(unsigned max_dps)
 int
 LSM303D::set_samplerate(unsigned frequency)
 {
-	_current_accel_rate = 100;
-
+	/* XXX implement this */
 //	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
 //
 //	if (frequency == 0)
@@ -869,16 +910,6 @@ void
 LSM303D::measure()
 {
 	/* status register and data as read back from the device */
-//#pragma pack(push, 1)
-//	struct {
-//		uint8_t		cmd;
-//		uint16_t	temp;
-//		uint8_t		status;
-//		int16_t		x;
-//		int16_t		y;
-//		int16_t		z;
-//	} raw_report_mag;
-//#pragma pack(pop)
 
 #pragma pack(push, 1)
 	struct {
@@ -899,6 +930,7 @@ LSM303D::measure()
 	raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
 
+	/* XXX adapt the comment to specs */
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
 	 * 2) Subtract static offset (in SI units)
@@ -967,6 +999,7 @@ LSM303D::mag_measure()
 	raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
 
+	/* XXX adapt the comment to specs */
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
 	 * 2) Subtract static offset (in SI units)
@@ -1001,6 +1034,7 @@ LSM303D::mag_measure()
 	if (_next_mag_report == _oldest_mag_report)
 		INCREMENT(_oldest_mag_report, _num_mag_reports);
 
+	/* XXX please check this poll_notify, is it the right one? */
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
@@ -1149,6 +1183,7 @@ test()
 	if (sz != sizeof(a_report))
 		err(1, "immediate read failed");
 
+	/* XXX fix the test output */
 //	warnx("accel x: \t% 9.5f\tm/s^2", (double)a_report.x);
 //	warnx("accel y: \t% 9.5f\tm/s^2", (double)a_report.y);
 //	warnx("accel z: \t% 9.5f\tm/s^2", (double)a_report.z);
@@ -1174,6 +1209,7 @@ test()
 	if (sz != sizeof(m_report))
 		err(1, "immediate read failed");
 
+	/* XXX fix the test output */
 	warnx("mag x: \t%d\traw", (int)m_report.x_raw);
 	warnx("mag y: \t%d\traw", (int)m_report.y_raw);
 	warnx("mag z: \t%d\traw", (int)m_report.z_raw);
