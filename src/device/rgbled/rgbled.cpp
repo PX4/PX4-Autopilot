@@ -219,9 +219,13 @@ RGBLED::info()
 
 	ret = get(on, not_powersave, r, g, b);
 
-	/* we don't care about power-save mode */
-	log("State: %s", on ? "ON" : "OFF");
-	log("Red: %d, Green: %d, Blue: %d", r, g, b);
+	if (ret == OK) {
+		/* we don't care about power-save mode */
+		log("state: %s", on ? "ON" : "OFF");
+		log("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
+	} else {
+		warnx("failed to read led");
+	}
 
 	return ret;
 }
@@ -394,6 +398,7 @@ RGBLED::get(bool &on, bool &not_powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 	if (ret == OK) {
 		on = result[0] & SETTING_ENABLE;
 		not_powersave = result[0] & SETTING_NOT_POWERSAVE;
+		/* XXX check, looks wrong */
 		r = (result[0] & 0x0f)*255/15;
 		g = (result[1] & 0xf0)*255/15;
 		b = (result[1] & 0x0f)*255/15;
@@ -402,12 +407,14 @@ RGBLED::get(bool &on, bool &not_powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 	return ret;
 }
 
+void rgbled_usage();
+
 
 void rgbled_usage() {
-	fprintf(stderr, "missing command: try 'start', 'systemstate', 'test', 'info', 'off'\n");
-	fprintf(stderr, "options:\n");
-	fprintf(stderr, "\t-b --bus i2cbus (3)\n");
-	fprintf(stderr, "\t-a --ddr addr (9)\n");
+	warnx("missing command: try 'start', 'systemstate', 'test', 'info', 'off'");
+	warnx("options:");
+	warnx("\t-b --bus i2cbus (3)");
+	warnx("\t-a --ddr addr (9)");
 }
 
 int
