@@ -118,19 +118,23 @@
 #  undef CONFIG_STM32_CCMEXCLUDE
 #  define CONFIG_STM32_CCMEXCLUDE 1
 
-/* All members of the STM32F20xxx and STM32F40xxx families have 192Kb in three banks:
+/* All members of the STM32F20xxx and STM32F40xxx families have 192KiB in three banks:
  *
- * 1) 112Kb of System SRAM beginning at address 0x2000:0000
- * 2)  16Kb of System SRAM beginning at address 0x2001:c000
- * 3)  64Kb of CCM SRAM beginning at address 0x1000:0000
+ * 1) 112KiB of System SRAM beginning at address 0x2000:0000
+ * 2)  16KiB of System SRAM beginning at address 0x2001:c000
+ * 3)  64KiB of CCM SRAM beginning at address 0x1000:0000
  *
- * As determined by ld.script, g_heapbase lies in the 112Kb memory
+ * The STM32F427/437 have an additional 64KiB of System SRAM beginning at
+ * address 0x2002:0000 for a total of 256KiB.
+ *
+ * As determined by ld.script, g_heapbase lies in the 112KiB memory
  * region and that extends to 0x2001:0000.  But the  first and second memory
  * regions are contiguous and treated as one in this logic that extends to
- * 0x2002:0000.
+ * 0x2002:0000 (or 0x2003:0000 for the F427/F437).
  *
- * As a complication, it appears that CCM SRAM cannot be used for DMA.  So, if
- * STM32 DMA is enabled, CCM SRAM should probably be excluded from the heap.
+ * As a complication, CCM SRAM cannot be used for DMA.  So, if STM32 DMA is enabled, 
+ * CCM SRAM should probably be excluded from the heap or the application must take
+ * extra care to ensure that DMA buffers are not allocated in CCM SRAM.
  *
  * In addition, external FSMC SRAM may be available.
  */
@@ -147,7 +151,11 @@
 
    /* Set the end of system SRAM */
 
-#  define SRAM1_END   0x20020000
+#  if defined(CONFIG_STM32_STM32F427)
+#    define SRAM1_END   0x20030000
+#  else
+#    define SRAM1_END   0x20020000
+#  endif
 
    /* Set the range of CCM SRAM as well (although we may not use it) */
 
