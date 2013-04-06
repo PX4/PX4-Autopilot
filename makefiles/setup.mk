@@ -41,6 +41,7 @@
 # the number of duplicate slashes we have lying around in paths,
 # and is consistent with joining the results of $(dir) and $(notdir).
 #
+export PX4_INCLUDE_DIR	 = $(abspath $(PX4_BASE)/src/include)/
 export PX4_MODULE_SRC	 = $(abspath $(PX4_BASE)/src/modules)/
 export PX4_MK_DIR	 = $(abspath $(PX4_BASE)/makefiles)/
 export NUTTX_SRC	 = $(abspath $(PX4_BASE)/nuttx)/
@@ -52,23 +53,32 @@ export BUILD_DIR	 = $(abspath $(PX4_BASE)/Build)/
 export ARCHIVE_DIR	 = $(abspath $(PX4_BASE)/Archives)/
 
 #
+# Default include paths
+#
+export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
+			   $(PX4_INCLUDE_DIR)
+
+# Include from legacy app/library path
+export INCLUDE_DIRS	+= $(NUTTX_APP_SRC)
+
+#
 # Tools
 #
-MKFW			 = $(PX4_BASE)/Tools/px_mkfw.py
-UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py
-COPY			 = cp
-REMOVE			 = rm -f
-RMDIR			 = rm -rf
-GENROMFS		 = genromfs
-TOUCH			 = touch
-MKDIR			 = mkdir
-ECHO			 = echo
-UNZIP			 = unzip
+export MKFW		 = $(PX4_BASE)/Tools/px_mkfw.py
+export UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py
+export COPY		 = cp
+export REMOVE		 = rm -f
+export RMDIR		 = rm -rf
+export GENROMFS		 = genromfs
+export TOUCH		 = touch
+export MKDIR		 = mkdir
+export ECHO		 = echo
+export UNZIP_CMD	 = unzip
 
 #
 # Host-specific paths, hacks and fixups
 #
-SYSTYPE			:= $(shell uname -s)
+export SYSTYPE		:= $(shell uname -s)
 
 ifeq ($(SYSTYPE),Darwin)
 # Eclipse may not have the toolchain on its path.

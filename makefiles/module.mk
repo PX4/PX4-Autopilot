@@ -75,6 +75,12 @@
 #	the list should be formatted as: 
 #		<command>.<priority>.<stacksize>.<entrypoint>
 #
+# DEFAULT_VISIBILITY	(optional)
+#
+#	If not set, global symbols defined in a module will not be visible 
+#	outside the module. Symbols that should be globally visible must be
+#	marked __EXPORT.
+#	If set, global symbols defined in a module will be globally visible.
 #
 
 #
@@ -97,11 +103,6 @@ ifeq ($(MODULE_MK),)
 $(error No module makefile specified)
 endif
 $(info %  MODULE_MK           = $(MODULE_MK))
-
-#
-# Get path and tool config
-#
-include $(PX4_BASE)/makefiles/setup.mk
 
 #
 # Get the board/toolchain config
@@ -149,6 +150,19 @@ $(MODULE_COMMAND_FILES): $(GLOBAL_DEPS)
 	@$(MKDIR) -p $(dir $@)
 	$(Q) $(TOUCH) $@
 endif
+
+################################################################################
+# Adjust compilation flags to implement EXPORT
+################################################################################
+
+ifeq ($(DEFAULT_VISIBILITY),)
+DEFAULT_VISIBILITY = hidden
+else
+DEFAULT_VISIBILITY = default
+endif
+
+CFLAGS		+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(PX4_INCLUDE_DIR)visibility.h
+CXXFLAGS	+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(PX4_INCLUDE_DIR)visibility.h
 
 ################################################################################
 # Build rules

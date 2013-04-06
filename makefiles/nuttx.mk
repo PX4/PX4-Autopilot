@@ -71,5 +71,5 @@ LINK_DEPS		+= $(NUTTX_EXPORT_DIR)libs/libapps.a \
 
 $(NUTTX_CONFIG_HEADER):	$(NUTTX_ARCHIVE)
 	@$(ECHO) %% Unpacking $(NUTTX_ARCHIVE)
-	$(Q) $(UNZIP) -q -o -d $(WORK_DIR) $(NUTTX_ARCHIVE)
+	$(Q) $(UNZIP_CMD) -q -o -d $(WORK_DIR) $(NUTTX_ARCHIVE)
 	$(Q) $(TOUCH) $@
