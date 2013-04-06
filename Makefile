@@ -48,7 +48,7 @@ CONFIGS			?= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config
 #
 # Boards that we build NuttX export kits for.
 #
-BOARDS			 = px4fmu px4io
+BOARDS			:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
 
 #
 # Debugging
