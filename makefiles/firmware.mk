@@ -298,10 +298,12 @@ endif
 #
 BUILTIN_CSRC		 = $(WORK_DIR)builtin_commands.c
 
-# add command definitions from modules
-BUILTIN_COMMAND_FILES	:= $(wildcard $(WORK_DIR)builtin_commands/COMMAND.*)
-BUILTIN_COMMANDS	+= $(subst COMMAND.,,$(notdir $(BUILTIN_COMMAND_FILES)))
+# command definitions from modules (may be empty at Makefile parsing time...)
+MODULE_COMMANDS		 = $(subst COMMAND.,,$(notdir $(wildcard $(WORK_DIR)builtin_commands/COMMAND.*)))
 
+# We must have at least one pre-defined builtin command in order to generate
+# any of this.
+#
 ifneq ($(BUILTIN_COMMANDS),)
 
 # (BUILTIN_PROTO,<cmdspec>,<outputfile>)
@@ -315,17 +317,19 @@ define BUILTIN_DEF
 endef
 
 # Don't generate until modules have updated their command files
-$(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(BUILTIN_COMMAND_FILES)
+$(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(MODULE_OBJS) $(BUILTIN_COMMAND_FILES)
 	@$(ECHO) %% generating $@
 	$(Q) $(ECHO) '/* builtin command list - automatically generated, do not edit */' > $@
 	$(Q) $(ECHO) '#include <nuttx/config.h>' >> $@
 	$(Q) $(ECHO) '#include <nuttx/binfmt/builtin.h>' >> $@
 	$(Q) $(foreach spec,$(BUILTIN_COMMANDS),$(call BUILTIN_PROTO,$(subst ., ,$(spec)),$@))
+	$(Q) $(foreach spec,$(MODULE_COMMANDS),$(call BUILTIN_PROTO,$(subst ., ,$(spec)),$@))
 	$(Q) $(ECHO) 'const struct builtin_s g_builtins[] = {' >> $@
 	$(Q) $(foreach spec,$(BUILTIN_COMMANDS),$(call BUILTIN_DEF,$(subst ., ,$(spec)),$@))
+	$(Q) $(foreach spec,$(MODULE_COMMANDS),$(call BUILTIN_DEF,$(subst ., ,$(spec)),$@))
 	$(Q) $(ECHO) '    {NULL, 0, 0, NULL}' >> $@
 	$(Q) $(ECHO) '};' >> $@
-	$(Q) $(ECHO) 'const int g_builtin_count = $(words $(BUILTIN_COMMANDS));' >> $@
+	$(Q) $(ECHO) 'const int g_builtin_count = $(words $(BUILTIN_COMMANDS) $(MODULE_COMMANDS));' >> $@
 
 SRCS			+= $(BUILTIN_CSRC)
 
