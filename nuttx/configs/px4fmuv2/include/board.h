@@ -309,9 +309,9 @@
 /*
  * Tone alarm output
  */
-#define TONE_ALARM_TIMER	2	/* timer 3 */
-#define TONE_ALARM_CHANNEL	1	/* channel 3 */
-#define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_FLOAT|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN15)
+#define TONE_ALARM_TIMER	2	/* timer 2 */
+#define TONE_ALARM_CHANNEL	1	/* channel 1 */
+#define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_PULLUP|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN15)
 
 /************************************************************************************
  * Public Data
