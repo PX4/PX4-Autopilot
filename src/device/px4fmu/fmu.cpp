@@ -34,7 +34,7 @@
 /**
  * @file fmu.cpp
  *
- * Driver/configurator for the PX4 FMU multi-purpose port.
+ * Driver/configurator for the PX4 FMU multi-purpose port on v1 and v2 boards.
  */
 
 #include <nuttx/config.h>
@@ -57,8 +57,17 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
-#include <drivers/boards/px4fmu/px4fmu_internal.h>
 #include <drivers/drv_hrt.h>
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+# include <drivers/boards/px4fmu/px4fmu_internal.h>
+# define FMU_HAVE_PPM
+#elif defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+# include <drivers/boards/px4fmuv2/px4fmu_internal.h>
+# undef FMU_HAVE_PPM
+#else
+# error Unrecognised FMU board.
+#endif
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -71,15 +80,18 @@
 #include <uORB/topics/actuator_outputs.h>
 
 #include <systemlib/err.h>
-#include <systemlib/ppm_decode.h>
+#ifdef FMU_HAVE_PPM
+# include <systemlib/ppm_decode.h>
+#endif
 
 class PX4FMU : public device::CDev
 {
 public:
 	enum Mode {
+		MODE_NONE,
 		MODE_2PWM,
 		MODE_4PWM,
-		MODE_NONE
+		MODE_6PWM,
 	};
 	PX4FMU();
 	virtual ~PX4FMU();
@@ -146,6 +158,7 @@ private:
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
+#if defined(CONFIG_ARCH_BOARD_PX4FMU)
 	{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0},
 	{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0},
 	{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, GPIO_USART2_CTS_1},
@@ -154,6 +167,15 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 	{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, GPIO_USART2_RX_1},
 	{GPIO_GPIO6_INPUT, GPIO_GPIO6_OUTPUT, GPIO_CAN2_TX_2},
 	{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2},
+#endif
+#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+	{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0},
+	{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0},
+	{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, 0},
+	{GPIO_GPIO3_INPUT, GPIO_GPIO3_OUTPUT, 0},
+	{GPIO_GPIO4_INPUT, GPIO_GPIO4_OUTPUT, 0},
+	{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, 0},
+#endif
 };
 
 const unsigned PX4FMU::_ngpio = sizeof(PX4FMU::_gpio_tab) / sizeof(PX4FMU::_gpio_tab[0]);
@@ -271,9 +293,8 @@ PX4FMU::set_mode(Mode mode)
 	 * are presented on the output pins.
 	 */
 	switch (mode) {
-	case MODE_2PWM:	// multi-port with flow control lines as PWM
-	case MODE_4PWM: // multi-port as 4 PWM outs
-		debug("MODE_%dPWM", (mode == MODE_2PWM) ? 2 : 4);
+	case MODE_2PWM:	// v1 multi-port with flow control lines as PWM
+		debug("MODE_2PWM");
 		
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -281,7 +302,35 @@ PX4FMU::set_mode(Mode mode)
 		_pwm_alt_rate_channels = 0;
 
 		/* XXX magic numbers */
-		up_pwm_servo_init((mode == MODE_2PWM) ? 0x3 : 0xf);
+		up_pwm_servo_init(0x3);
+		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+
+		break;
+
+	case MODE_4PWM: // v1 multi-port as 4 PWM outs
+		debug("MODE_4PWM");
+		
+		/* default output rates */
+		_pwm_default_rate = 50;
+		_pwm_alt_rate = 50;
+		_pwm_alt_rate_channels = 0;
+
+		/* XXX magic numbers */
+		up_pwm_servo_init(0xf);
+		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+
+		break;
+
+	case MODE_6PWM: // v2 PWMs as 6 PWM outs
+		debug("MODE_6PWM");
+		
+		/* default output rates */
+		_pwm_default_rate = 50;
+		_pwm_alt_rate = 50;
+		_pwm_alt_rate_channels = 0;
+
+		/* XXX magic numbers */
+		up_pwm_servo_init(0x3f);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 
 		break;
@@ -399,14 +448,14 @@ PX4FMU::task_main()
 	fds[1].fd = _t_armed;
 	fds[1].events = POLLIN;
 
-	unsigned num_outputs = (_mode == MODE_2PWM) ? 2 : 4;
-
+#ifdef FMU_HAVE_PPM
 	// rc input, published to ORB
 	struct rc_input_values rc_in;
 	orb_advert_t to_input_rc = 0;
 
 	memset(&rc_in, 0, sizeof(rc_in));
 	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
+#endif
 
 	log("starting");
 
@@ -460,6 +509,23 @@ PX4FMU::task_main()
 			/* can we mix? */
 			if (_mixers != nullptr) {
 
+				unsigned num_outputs;
+
+				switch (_mode) {
+				case MODE_2PWM:
+					num_outputs = 2;
+					break;
+				case MODE_4PWM:
+					num_outputs = 4;
+					break;
+				case MODE_6PWM:
+					num_outputs = 6;
+					break;
+				default:
+					num_outputs = 0;
+					break;
+				}
+
 				/* do mixing */
 				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
 				outputs.timestamp = hrt_absolute_time();
@@ -508,6 +574,7 @@ PX4FMU::task_main()
 			up_pwm_servo_arm(aa.armed && !aa.lockdown);
 		}
 
+#ifdef FMU_HAVE_PPM
 		// see if we have new PPM input data
 		if (ppm_last_valid_decode != rc_in.timestamp) {
 			// we have a new PPM frame. Publish it.
@@ -527,6 +594,8 @@ PX4FMU::task_main()
 				orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
 			}
 		}
+#endif
+
 	}
 
 	::close(_t_actuators);
@@ -575,6 +644,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 	switch (_mode) {
 	case MODE_2PWM:
 	case MODE_4PWM:
+	case MODE_6PWM:
 		ret = pwm_ioctl(filp, cmd, arg);
 		break;
 
@@ -614,16 +684,24 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		ret = set_pwm_rate(arg, _pwm_default_rate, _pwm_alt_rate);
 		break;
 
-	case PWM_SERVO_SET(2):
-	case PWM_SERVO_SET(3):
-		if (_mode != MODE_4PWM) {
+	case PWM_SERVO_SET(5):
+	case PWM_SERVO_SET(4):
+		if (_mode < MODE_6PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
 		/* FALLTHROUGH */
-	case PWM_SERVO_SET(0):
+	case PWM_SERVO_SET(3):
+	case PWM_SERVO_SET(2):
+		if (_mode < MODE_4PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+		/* FALLTHROUGH */
 	case PWM_SERVO_SET(1):
+	case PWM_SERVO_SET(0):
 		if (arg < 2100) {
 			up_pwm_servo_set(cmd - PWM_SERVO_SET(0), arg);
 		} else {
@@ -632,16 +710,24 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		break;
 
-	case PWM_SERVO_GET(2):
-	case PWM_SERVO_GET(3):
-		if (_mode != MODE_4PWM) {
+	case PWM_SERVO_GET(5):
+	case PWM_SERVO_GET(4):
+		if (_mode < MODE_6PWM) {
 			ret = -EINVAL;
 			break;
 		}
 
 		/* FALLTHROUGH */
-	case PWM_SERVO_GET(0):
+	case PWM_SERVO_GET(3):
+	case PWM_SERVO_GET(2):
+		if (_mode < MODE_4PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+		/* FALLTHROUGH */
 	case PWM_SERVO_GET(1):
+	case PWM_SERVO_GET(0):
 		*(servo_position_t *)arg = up_pwm_servo_get(cmd - PWM_SERVO_GET(0));
 		break;
 
@@ -649,16 +735,26 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(1):
 	case PWM_SERVO_GET_RATEGROUP(2):
 	case PWM_SERVO_GET_RATEGROUP(3):
+	case PWM_SERVO_GET_RATEGROUP(4):
+	case PWM_SERVO_GET_RATEGROUP(5):
 		*(uint32_t *)arg = up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
 		break;
 
 	case PWM_SERVO_GET_COUNT:	
 	case MIXERIOCGETOUTPUTCOUNT:
-		if (_mode == MODE_4PWM) {
+		switch (_mode) {
+		case MODE_6PWM:
+			*(unsigned *)arg = 6;
+			break;
+		case MODE_4PWM:
 			*(unsigned *)arg = 4;
-
-		} else {
+			break;
+		case MODE_2PWM:
 			*(unsigned *)arg = 2;
+			break;
+		default:
+			ret = -EINVAL;
+			break;
 		}
 
 		break;
@@ -734,17 +830,17 @@ ssize_t
 PX4FMU::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	uint16_t values[4];
+	uint16_t values[6];
 
-	if (count > 4) {
-		// we only have 4 PWM outputs on the FMU
-		count = 4;
+	if (count > 6) {
+		// we have at most 6 outputs
+		count = 6;
 	}
 
 	// allow for misaligned values
-	memcpy(values, buffer, count*2);
+	memcpy(values, buffer, count * 2);
 
-	for (uint8_t i=0; i<count; i++) {
+	for (uint8_t i = 0; i < count; i++) {
 		up_pwm_servo_set(i, values[i]);
 	}
 	return count * 2;
@@ -754,19 +850,22 @@ void
 PX4FMU::gpio_reset(void)
 {
 	/*
-	 * Setup default GPIO config - all pins as GPIOs, GPIO driver chip
-	 * to input mode.
+	 * Setup default GPIO config - all pins as GPIOs.
 	 */
 	for (unsigned i = 0; i < _ngpio; i++)
 		stm32_configgpio(_gpio_tab[i].input);
 
+#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+	/* if we have a GPIO direction control, set it to zero (input) */
 	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
 	stm32_configgpio(GPIO_GPIO_DIR);
+#endif
 }
 
 void
 PX4FMU::gpio_set_function(uint32_t gpios, int function)
 {
+#if defined(CONFIG_ARCH_BOARD_PX4FMU)
 	/*
 	 * GPIOs 0 and 1 must have the same direction as they are buffered
 	 * by a shared 2-port driver.  Any attempt to set either sets both.
@@ -778,6 +877,7 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		if (GPIO_SET_OUTPUT == function)
 			stm32_gpiowrite(GPIO_GPIO_DIR, 1);
 	}
+#endif
 
 	/* configure selected GPIOs as required */
 	for (unsigned i = 0; i < _ngpio; i++) {
@@ -800,9 +900,11 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		}
 	}
 
+#if defined(CONFIG_ARCH_BOARD_PX4FMU)
 	/* flip buffer to input mode if required */
 	if ((GPIO_SET_INPUT == function) && (gpios & 3))
 		stm32_gpiowrite(GPIO_GPIO_DIR, 0);
+#endif
 }
 
 void
@@ -903,14 +1005,21 @@ fmu_new_mode(PortMode new_mode)
 		/* nothing more to do here */
 		break;
 
+	case PORT_FULL_PWM:
+#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+		/* select 4-pin PWM mode */
+		servo_mode = PX4FMU::MODE_4PWM;
+#endif
+#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+		servo_mode = PX4FMU::MODE_6PWM;
+#endif
+		break;
+
+	/* mixed modes supported on v1 board only */
+#if defined(CONFIG_ARCH_BOARD_PX4FMU)
 	case PORT_FULL_SERIAL:
 		/* set all multi-GPIOs to serial mode */
 		gpio_bits = GPIO_MULTI_1 | GPIO_MULTI_2 | GPIO_MULTI_3 | GPIO_MULTI_4;
-		break;
-
-	case PORT_FULL_PWM:
-		/* select 4-pin PWM mode */
-		servo_mode = PX4FMU::MODE_4PWM;
 		break;
 
 	case PORT_GPIO_AND_SERIAL:
@@ -929,6 +1038,9 @@ fmu_new_mode(PortMode new_mode)
 		/* select 2-pin PWM mode */
 		servo_mode = PX4FMU::MODE_2PWM;
 		break;
+#endif
+	default:
+		return -1;
 	}
 
 	/* adjust GPIO config for serial mode(s) */
@@ -985,6 +1097,12 @@ test(void)
 	if (ioctl(fd, PWM_SERVO_SET(2), 1400) < 0) err(1, "servo 3 set failed");
 
 	if (ioctl(fd, PWM_SERVO_SET(3), 1600) < 0) err(1, "servo 4 set failed");
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+	if (ioctl(fd, PWM_SERVO_SET(4), 1800) < 0) err(1, "servo 5 set failed");
+
+	if (ioctl(fd, PWM_SERVO_SET(5), 2000) < 0) err(1, "servo 6 set failed");
+#endif
 
 	close(fd);
 
@@ -1044,11 +1162,12 @@ fmu_main(int argc, char *argv[])
 	if (!strcmp(verb, "mode_gpio")) {
 		new_mode = PORT_FULL_GPIO;
 
-	} else if (!strcmp(verb, "mode_serial")) {
-		new_mode = PORT_FULL_SERIAL;
-
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+	} else if (!strcmp(verb, "mode_serial")) {
+		new_mode = PORT_FULL_SERIAL;
 
 	} else if (!strcmp(verb, "mode_gpio_serial")) {
 		new_mode = PORT_GPIO_AND_SERIAL;
@@ -1058,6 +1177,7 @@ fmu_main(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "mode_pwm_gpio")) {
 		new_mode = PORT_PWM_AND_GPIO;
+#endif
 	}
 
 	/* was a new mode set? */
@@ -1079,6 +1199,10 @@ fmu_main(int argc, char *argv[])
 		fake(argc - 1, argv + 1);
 
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
+#if defined(CONFIG_ARCH_BOARD_PX4FMU)
 	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
+#elif defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+	fprintf(stderr, "  mode_gpio, mode_pwm\n");
+#endif
 	exit(1);
 }

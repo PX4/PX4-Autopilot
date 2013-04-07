@@ -42,11 +42,6 @@
 
 #include <sys/ioctl.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMUV2
-#warning No GPIOs on this board.
-#define GPIO_DEVICE_PATH	"/dev/null"
-#endif
-
 #ifdef CONFIG_ARCH_BOARD_PX4FMU
 /*
  * PX4FMU GPIO numbers.
@@ -62,6 +57,28 @@
 # define GPIO_MULTI_4		(1<<5)		/**< USART2 RX */
 # define GPIO_CAN_TX		(1<<6)		/**< CAN2 TX */
 # define GPIO_CAN_RX		(1<<7)		/**< CAN2 RX */
+
+/**
+ * Default GPIO device - other devices may also support this protocol if
+ * they also export GPIO-like things.  This is always the GPIOs on the
+ * main board.
+ */
+# define GPIO_DEVICE_PATH	"/dev/px4fmu"
+
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMUV2
+/*
+ * PX4FMUv2 GPIO numbers.
+ *
+ * There are no alternate functions on this board.
+ */
+# define GPIO_SERVO_1		(1<<0)		/**< servo 1 output */
+# define GPIO_SERVO_2		(1<<1)		/**< servo 2 output */
+# define GPIO_SERVO_3		(1<<2)		/**< servo 3 output */
+# define GPIO_SERVO_4		(1<<3)		/**< servo 4 output */
+# define GPIO_SERVO_5		(1<<4)		/**< servo 5 output */
+# define GPIO_SERVO_6		(1<<5)		/**< servo 6 output */
 
 /**
  * Default GPIO device - other devices may also support this protocol if
