@@ -123,7 +123,6 @@ CONFIGURED_APPS += drivers/led
 CONFIGURED_APPS += drivers/blinkm
 CONFIGURED_APPS += drivers/stm32/tone_alarm
 CONFIGURED_APPS += drivers/stm32/adc
-CONFIGURED_APPS += drivers/px4fmu
 CONFIGURED_APPS += drivers/hil
 CONFIGURED_APPS += drivers/gps
 CONFIGURED_APPS += drivers/mb12xx

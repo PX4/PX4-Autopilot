@@ -8,6 +8,11 @@
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 
 #
+# Board support modules
+#
+MODULES		+= device/px4fmu
+
+#
 # Transitional support - add commands from the NuttX export archive.
 #
 # In general, these should move to modules over time.
@@ -34,7 +39,6 @@ BUILTIN_COMMANDS := \
 	$(call _B, eeprom,                 ,                          4096,  eeprom_main                ) \
 	$(call _B, fixedwing_att_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_att_control_main ) \
 	$(call _B, fixedwing_pos_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_pos_control_main ) \
-	$(call _B, fmu,                    ,                          2048,  fmu_main                   ) \
 	$(call _B, gps,                    ,                          2048,  gps_main                   ) \
 	$(call _B, hil,                    ,                          2048,  hil_main                   ) \
 	$(call _B, hmc5883,                ,                          4096,  hmc5883_main               ) \
