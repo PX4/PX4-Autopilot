@@ -10,7 +10,7 @@ ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 #
 # Board support modules
 #
-MODULES		+= device/px4fmu
+MODULES		+= drivers/px4fmu
 
 #
 # Transitional support - add commands from the NuttX export archive.

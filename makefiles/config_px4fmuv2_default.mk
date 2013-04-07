@@ -10,9 +10,10 @@ ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 #
 # Board support modules
 #
-MODULES		+= device/lsm303d
-MODULES		+= device/px4fmu
-MODULES		+= device/rgbled
+MODULES		+= drivers/boards/px4fmuv2
+MODULES		+= drivers/lsm303d
+MODULES		+= drivers/px4fmu
+MODULES		+= drivers/rgbled
 
 #
 # Transitional support - add commands from the NuttX export archive.
