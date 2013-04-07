@@ -283,7 +283,7 @@
  *
  * Note that these are unshifted addresses.
  */
-#define PX4_I2C_OBDEV_LED	0x5a
+#define PX4_I2C_OBDEV_LED	0x55
 
 /*
  * SPI
