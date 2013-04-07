@@ -308,6 +308,14 @@ handle_message(mavlink_message_t *msg)
 
 		uint64_t timestamp = hrt_absolute_time();
 
+		/* TODO, set ground_press/ temp during calib */
+		static const float ground_press = 1013.25f; // mbar
+		static const float ground_tempC = 21.0f;
+		static const float ground_alt = 0.0f;
+		static const float T0 = 273.15;
+		static const float R = 287.05f;
+		static const float g = 9.806f;
+
 		if (msg->msgid == MAVLINK_MSG_ID_RAW_IMU) {
 
 			mavlink_raw_imu_t imu;
@@ -429,6 +437,15 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.magnetometer_mode = 0; // TODO what is this
 			hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
 
+			hil_sensors.baro_pres_mbar = imu.abs_pressure;
+
+			float tempC =  imu.temperature;
+			float tempAvgK = T0 + (tempC + ground_tempC) / 2.0f;
+			float h =  ground_alt + (R / g) * tempAvgK * logf(ground_press / imu.abs_pressure);
+
+			hil_sensors.baro_alt_meter = h;
+			hil_sensors.baro_temp_celcius = imu.temperature;
+
 			/* publish */
 			orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
 
@@ -503,13 +520,6 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.timestamp = press.time_usec;
 
 			/* baro */
-			/* TODO, set ground_press/ temp during calib */
-			static const float ground_press = 1013.25f; // mbar
-			static const float ground_tempC = 21.0f;
-			static const float ground_alt = 0.0f;
-			static const float T0 = 273.15;
-			static const float R = 287.05f;
-			static const float g = 9.806f;
 
 			float tempC =  press.temperature / 100.0f;
 			float tempAvgK = T0 + (tempC + ground_tempC) / 2.0f;
