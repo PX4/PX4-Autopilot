@@ -145,7 +145,17 @@ __EXPORT int matherr(struct exception *e)
 
 __EXPORT int nsh_archinitialize(void)
 {
-	int result;
+
+	/* configure ADC pins */
+	stm32_configgpio(GPIO_ADC1_IN10);
+	stm32_configgpio(GPIO_ADC1_IN11);
+	stm32_configgpio(GPIO_ADC1_IN12);
+
+	/* configure power supply control pins */
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
+	stm32_configgpio(GPIO_VDD_2V8_SENSORS_EN);
+	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
+	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -201,7 +211,7 @@ __EXPORT int nsh_archinitialize(void)
 	/* Get the SPI port for the FRAM */
 
 	message("[boot] Initializing SPI port 2\n");
-	spi2 = up_spiinitialize(3);
+	spi2 = up_spiinitialize(2);
 
 	if (!spi2) {
 		message("[boot] FAILED to initialize SPI port 2\n");
@@ -214,11 +224,6 @@ __EXPORT int nsh_archinitialize(void)
 	/* XXX need a driver to bind the FRAM to */
 
 	//message("[boot] Successfully bound SPI port 2 to the FRAM driver\n");
-
-	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN10);
-	stm32_configgpio(GPIO_ADC1_IN11);
-	stm32_configgpio(GPIO_ADC1_IN12);
 
 	return OK;
 }

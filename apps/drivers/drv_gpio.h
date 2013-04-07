@@ -80,6 +80,10 @@
 # define GPIO_SERVO_5		(1<<4)		/**< servo 5 output */
 # define GPIO_SERVO_6		(1<<5)		/**< servo 6 output */
 
+# define GPIO_5V_PERIPH_EN	(1<<6)		/**< PA8 - VDD_5V_PERIPH_EN */
+# define GPIO_5V_HIPOWER_OC	(1<<7)		/**< PE10 - !VDD_5V_HIPOWER_OC */
+# define GPIO_5V_PERIPH_OC	(1<<8)		/**< PE15 - !VDD_5V_PERIPH_OC */
+
 /**
  * Default GPIO device - other devices may also support this protocol if
  * they also export GPIO-like things.  This is always the GPIOs on the

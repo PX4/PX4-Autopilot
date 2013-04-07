@@ -175,6 +175,9 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 	{GPIO_GPIO3_INPUT, GPIO_GPIO3_OUTPUT, 0},
 	{GPIO_GPIO4_INPUT, GPIO_GPIO4_OUTPUT, 0},
 	{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, 0},
+	{0, GPIO_VDD_5V_PERIPH_EN, 0},
+	{GPIO_5V_HIPOWER_OC, 0, 0},
+	{GPIO_5V_PERIPH_OC, 0, 0},
 #endif
 };
 
@@ -850,10 +853,16 @@ void
 PX4FMU::gpio_reset(void)
 {
 	/*
-	 * Setup default GPIO config - all pins as GPIOs.
+	 * Setup default GPIO config - all pins as GPIOs, input if
+	 * possible otherwise output if possible.
 	 */
-	for (unsigned i = 0; i < _ngpio; i++)
-		stm32_configgpio(_gpio_tab[i].input);
+	for (unsigned i = 0; i < _ngpio; i++) {
+		if (_gpio_tab[i].input != 0) {
+			stm32_configgpio(_gpio_tab[i].input);
+		} else if (_gpio_tab[i].output != 0) {
+			stm32_configgpio(_gpio_tab[i].output);
+		}
+	}
 
 #if defined(CONFIG_ARCH_BOARD_PX4FMU)
 	/* if we have a GPIO direction control, set it to zero (input) */
