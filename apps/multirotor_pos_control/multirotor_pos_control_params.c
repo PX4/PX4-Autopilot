@@ -34,29 +34,40 @@
  ****************************************************************************/
 
 /*
- * @file multirotor_position_control_params.c
+ * @file multirotor_pos_control_params.c
  * 
- * Parameters for EKF filter
+ * Parameters for multirotor_pos_control
  */
 
 #include "multirotor_pos_control_params.h"
 
-/* Extended Kalman Filter covariances */
-
 /* controller parameters */
-PARAM_DEFINE_FLOAT(MC_POS_P, 0.2f);
+PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.3f);
+PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.7f);
+PARAM_DEFINE_FLOAT(MPC_ALT_P, 0.1f);
+PARAM_DEFINE_FLOAT(MPC_ALT_I, 0.01f);
+PARAM_DEFINE_FLOAT(MPC_ALT_D, 0.2f);
+PARAM_DEFINE_FLOAT(MPC_ALT_RATE_MAX, 3.0f);
 
 int parameters_init(struct multirotor_position_control_param_handles *h)
 {
+	h->thr_min 	=	param_find("MPC_THR_MIN");
+	h->thr_max 	=	param_find("MPC_THR_MAX");
 	/* PID parameters */
-	h->p 	=	param_find("MC_POS_P");
-
+	h->alt_p 	=	param_find("MPC_ALT_P");
+	h->alt_i 	=	param_find("MPC_ALT_I");
+	h->alt_d 	=	param_find("MPC_ALT_D");
+	h->alt_rate_max 	=	param_find("MPC_ALT_RATE_MAX");
 	return OK;
 }
 
 int parameters_update(const struct multirotor_position_control_param_handles *h, struct multirotor_position_control_params *p)
 {
-	param_get(h->p, &(p->p));
-
+	param_get(h->thr_min, &(p->thr_min));
+	param_get(h->thr_max, &(p->thr_max));
+	param_get(h->alt_p, &(p->alt_p));
+	param_get(h->alt_i, &(p->alt_i));
+	param_get(h->alt_d, &(p->alt_d));
+	param_get(h->alt_rate_max, &(p->alt_rate_max));
 	return OK;
 }

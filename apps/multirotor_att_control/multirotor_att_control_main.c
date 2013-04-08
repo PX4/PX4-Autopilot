@@ -242,124 +242,124 @@ mc_thread_main(int argc, char *argv[])
 
 				} else if (state.flag_control_manual_enabled) {
 
-					if (state.flag_control_attitude_enabled) {
+					if (state.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS) {
+						/* direct manual input */
+						if (state.flag_control_attitude_enabled) {
 
-						/* initialize to current yaw if switching to manual or att control */
-						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-						    state.flag_control_manual_enabled != flag_control_manual_enabled ||
-						    state.flag_system_armed != flag_system_armed) {
-							att_sp.yaw_body = att.yaw;
-						}
-
-						static bool rc_loss_first_time = true;
-
-						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-						if (state.rc_signal_lost) {
-							/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
-							param_get(failsafe_throttle_handle, &failsafe_throttle);
-							att_sp.roll_body = 0.0f;
-							att_sp.pitch_body = 0.0f;
-
-							/*
-							 * Only go to failsafe throttle if last known throttle was
-							 * high enough to create some lift to make hovering state likely.
-							 *
-							 * This is to prevent that someone landing, but not disarming his
-							 * multicopter (throttle = 0) does not make it jump up in the air
-							 * if shutting down his remote.
-							 */
-							if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
-								att_sp.thrust = failsafe_throttle;
-
-							} else {
-								att_sp.thrust = 0.0f;
-							}
-
-							/* keep current yaw, do not attempt to go to north orientation,
-							 * since if the pilot regains RC control, he will be lost regarding
-							 * the current orientation.
-							 */
-							if (rc_loss_first_time)
-								att_sp.yaw_body = att.yaw;
-
-							rc_loss_first_time = false;
-
-						} else {
-							rc_loss_first_time = true;
-
-							att_sp.roll_body = manual.roll;
-							att_sp.pitch_body = manual.pitch;
-
-							/* set attitude if arming */
-							if (!flag_control_attitude_enabled && state.flag_system_armed) {
+							/* initialize to current yaw if switching to manual or att control */
+							if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
+								state.flag_control_manual_enabled != flag_control_manual_enabled ||
+								state.flag_system_armed != flag_system_armed) {
 								att_sp.yaw_body = att.yaw;
 							}
 
-							/* act if stabilization is active or if the (nonsense) direct pass through mode is set */
-							if (state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS ||
-							    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+							static bool rc_loss_first_time = true;
 
-								if (state.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_RATE) {
-									rates_sp.yaw = manual.yaw;
-									control_yaw_position = false;
+							/* if the RC signal is lost, try to stay level and go slowly back down to ground */
+							if (state.rc_signal_lost) {
+								/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
+								param_get(failsafe_throttle_handle, &failsafe_throttle);
+								att_sp.roll_body = 0.0f;
+								att_sp.pitch_body = 0.0f;
+
+								/*
+								 * Only go to failsafe throttle if last known throttle was
+								 * high enough to create some lift to make hovering state likely.
+								 *
+								 * This is to prevent that someone landing, but not disarming his
+								 * multicopter (throttle = 0) does not make it jump up in the air
+								 * if shutting down his remote.
+								 */
+								if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
+									att_sp.thrust = failsafe_throttle;
 
 								} else {
-									/*
-									 * This mode SHOULD be the default mode, which is:
-									 * VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS
-									 *
-									 * However, we fall back to this setting for all other (nonsense)
-									 * settings as well.
-									 */
+									att_sp.thrust = 0.0f;
+								}
 
-									/* only move setpoint if manual input is != 0 */
-									if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
+								/* keep current yaw, do not attempt to go to north orientation,
+								 * since if the pilot regains RC control, he will be lost regarding
+								 * the current orientation.
+								 */
+								if (rc_loss_first_time)
+									att_sp.yaw_body = att.yaw;
+
+								rc_loss_first_time = false;
+
+							} else {
+								rc_loss_first_time = true;
+
+								att_sp.roll_body = manual.roll;
+								att_sp.pitch_body = manual.pitch;
+
+								/* set attitude if arming */
+								if (!flag_control_attitude_enabled && state.flag_system_armed) {
+									att_sp.yaw_body = att.yaw;
+								}
+
+								/* act if stabilization is active or if the (nonsense) direct pass through mode is set */
+								if (state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS ||
+									state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+
+									if (state.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_RATE) {
 										rates_sp.yaw = manual.yaw;
 										control_yaw_position = false;
-										first_time_after_yaw_speed_control = true;
 
 									} else {
-										if (first_time_after_yaw_speed_control) {
-											att_sp.yaw_body = att.yaw;
-											first_time_after_yaw_speed_control = false;
-										}
+										/*
+										 * This mode SHOULD be the default mode, which is:
+										 * VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS
+										 *
+										 * However, we fall back to this setting for all other (nonsense)
+										 * settings as well.
+										 */
 
-										control_yaw_position = true;
+										/* only move setpoint if manual input is != 0 */
+										if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
+											rates_sp.yaw = manual.yaw;
+											control_yaw_position = false;
+											first_time_after_yaw_speed_control = true;
+
+										} else {
+											if (first_time_after_yaw_speed_control) {
+												att_sp.yaw_body = att.yaw;
+												first_time_after_yaw_speed_control = false;
+											}
+
+											control_yaw_position = true;
+										}
 									}
 								}
+
+								att_sp.thrust = manual.throttle;
+								att_sp.timestamp = hrt_absolute_time();
 							}
 
-							att_sp.thrust = manual.throttle;
-							att_sp.timestamp = hrt_absolute_time();
-						}
+							if (motor_test_mode) {
+								printf("testmode");
+								att_sp.roll_body = 0.0f;
+								att_sp.pitch_body = 0.0f;
+								att_sp.yaw_body = 0.0f;
+								att_sp.thrust = 0.1f;
+								att_sp.timestamp = hrt_absolute_time();
+							}
 
-						/* STEP 2: publish the controller output */
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-
-						if (motor_test_mode) {
-							printf("testmode");
-							att_sp.roll_body = 0.0f;
-							att_sp.pitch_body = 0.0f;
-							att_sp.yaw_body = 0.0f;
-							att_sp.thrust = 0.1f;
-							att_sp.timestamp = hrt_absolute_time();
-							/* STEP 2: publish the result to the vehicle actuators */
+							/* STEP 2: publish the controller output */
 							orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-						}
 
-					} else {
-						/* manual rate inputs, from RC control or joystick */
-						if (state.flag_control_rates_enabled &&
-						    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_RATES) {
-							rates_sp.roll = manual.roll;
+						} else {
+							/* manual rate inputs, from RC control or joystick */
+							if (state.flag_control_rates_enabled &&
+								state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_RATES) {
+								rates_sp.roll = manual.roll;
 
-							rates_sp.pitch = manual.pitch;
-							rates_sp.yaw = manual.yaw;
-							rates_sp.thrust = manual.throttle;
-							rates_sp.timestamp = hrt_absolute_time();
+								rates_sp.pitch = manual.pitch;
+								rates_sp.yaw = manual.yaw;
+								rates_sp.thrust = manual.throttle;
+								rates_sp.timestamp = hrt_absolute_time();
+							}
 						}
 					}
-
 				}
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */

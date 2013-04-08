@@ -42,15 +42,21 @@
 #include <systemlib/param/param.h>
 
 struct multirotor_position_control_params {
-	float p;
-	float i;
-	float d;
+	float thr_min;
+	float thr_max;
+	float alt_p;
+	float alt_i;
+	float alt_d;
+	float alt_rate_max;
 };
 
 struct multirotor_position_control_param_handles {
-	param_t p;
-	param_t i;
-	param_t d;
+	param_t thr_min;
+	param_t thr_max;
+	param_t alt_p;
+	param_t alt_i;
+	param_t alt_d;
+	param_t alt_rate_max;
 };
 
 /**

@@ -35,7 +35,7 @@
 /**
  * @file multirotor_pos_control.c
  *
- * Skeleton for multirotor position controller
+ * Multirotor position controller
  */
 
 #include <nuttx/config.h>
@@ -52,13 +52,16 @@
 #include <sys/prctl.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <systemlib/systemlib.h>
+#include <mavlink/mavlink_log.h>
 
 #include "multirotor_pos_control_params.h"
 
@@ -79,9 +82,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]);
  */
 static void usage(const char *reason);
 
-static void
-usage(const char *reason)
-{
+static void usage(const char *reason) {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
@@ -96,21 +97,20 @@ usage(const char *reason)
  * The actual stack size should be set in the call
  * to task_spawn().
  */
-int multirotor_pos_control_main(int argc, char *argv[])
-{
+int multirotor_pos_control_main(int argc, char *argv[]) {
 	if (argc < 1)
 		usage("missing command");
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("multirotor pos control already running\n");
+			printf("multirotor_pos_control already running\n");
 			/* this is not an error */
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("multirotor pos control",
+		deamon_task = task_spawn("multirotor_pos_control",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 60,
 					 4096,
@@ -126,9 +126,9 @@ int multirotor_pos_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tmultirotor pos control app is running\n");
+			printf("\tmultirotor_pos_control app is running\n");
 		} else {
-			printf("\tmultirotor pos control app not started\n");
+			printf("\tmultirotor_pos_control app not started\n");
 		}
 		exit(0);
 	}
@@ -137,98 +137,165 @@ int multirotor_pos_control_main(int argc, char *argv[])
 	exit(1);
 }
 
-static int
-multirotor_pos_control_thread_main(int argc, char *argv[])
-{
+static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	/* welcome user */
-	printf("[multirotor pos control] Control started, taking over position control\n");
+	printf("[multirotor_pos_control] started\n");
+	static int mavlink_fd;
+	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	mavlink_log_info(mavlink_fd, "[multirotor_pos_control] started");
 
 	/* structures */
-	struct vehicle_status_s state;
+	struct vehicle_status_s status;
+	memset(&status, 0, sizeof(status));
 	struct vehicle_attitude_s att;
-	//struct vehicle_global_position_setpoint_s global_pos_sp;
-	struct vehicle_local_position_setpoint_s local_pos_sp;
-	struct vehicle_vicon_position_s local_pos;
-	struct manual_control_setpoint_s manual;
+	memset(&att, 0, sizeof(att));
 	struct vehicle_attitude_setpoint_s att_sp;
+	memset(&att_sp, 0, sizeof(att_sp));
+	struct manual_control_setpoint_s manual;
+	memset(&manual, 0, sizeof(manual));
+	struct vehicle_local_position_s local_pos;
+	memset(&local_pos, 0, sizeof(local_pos));
+	struct vehicle_local_position_setpoint_s local_pos_sp;
+	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
 
 	/* subscribe to attitude, motor setpoints and system state */
-	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	int param_sub = orb_subscribe(ORB_ID(parameter_update));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
-	//int global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
 	int local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 
-	/* publish attitude setpoint */
+	/* publish setpoint */
+	orb_advert_t local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+
+	bool reset_sp_alt = true;
+	bool reset_sp_pos = true;
+	hrt_abstime t_prev = 0;
+	float alt_integral = 0.0f;
+	float alt_ctl_dz = 0.2f;
 
 	thread_running = true;
 
-	int loopcounter = 0;
+	struct multirotor_position_control_params params;
+	struct multirotor_position_control_param_handles params_h;
+	parameters_init(&params_h);
+	parameters_update(&params_h, &params);
 
-	struct multirotor_position_control_params p;
-	struct multirotor_position_control_param_handles h;
-	parameters_init(&h);
-	parameters_update(&h, &p);
+	int paramcheck_counter = 0;
 
-
-	while (1) {
+	while (!thread_should_exit) {
 		/* get a local copy of the vehicle state */
-		orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+		orb_copy(ORB_ID(vehicle_status), state_sub, &status);
 		/* get a local copy of manual setpoint */
 		orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 		/* get a local copy of attitude */
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 		/* get a local copy of local position */
-		orb_copy(ORB_ID(vehicle_vicon_position), local_pos_sub, &local_pos);
-		/* get a local copy of local position setpoint */
-		orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
-
-		if (loopcounter == 500) {
-			parameters_update(&h, &p);
-			loopcounter = 0;
+		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
+		if (status.state_machine == SYSTEM_STATE_AUTO) {
+			/* get a local copy of local position setpoint */
+			orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
 		}
 
-		// if (state.state_machine == SYSTEM_STATE_AUTO) {
-			
-			// XXX IMPLEMENT POSITION CONTROL HERE
+		/* check parameters at 1 Hz*/
+		paramcheck_counter++;
+		if (paramcheck_counter == 50) {
+			bool param_updated;
+			orb_check(param_sub, &param_updated);
+			if (param_updated) {
+				parameters_update(&params_h, &params);
+			}
+			paramcheck_counter = 0;
+		}
 
-			float dT = 1.0f / 50.0f;
+		if (status.state_machine == SYSTEM_STATE_MANUAL) {
+			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ALTITUDE || status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE) {
+				hrt_abstime t = hrt_absolute_time();
+				if (reset_sp_alt) {
+					reset_sp_alt = false;
+					local_pos_sp.z = local_pos.z;
+					alt_integral = manual.throttle;
+					char str[80];
+					sprintf(str, "reset alt setpoint: z = %.2f, throttle = %.2f", local_pos_sp.z, manual.throttle);
+					mavlink_log_info(mavlink_fd, str);
+				}
 
-			float x_setpoint = 0.0f;
+				float dt;
+				if (t_prev != 0) {
+					dt = (t - t_prev) * 0.000001f;
+				} else {
+					dt = 0.0f;
+				}
+				float err_linear_limit = params.alt_d / params.alt_p * params.alt_rate_max;
+				/* move altitude setpoint by manual controls */
+				float alt_ctl = manual.throttle - 0.5f;
+				if (fabs(alt_ctl) < alt_ctl_dz) {
+					alt_ctl = 0.0f;
+				} else {
+					if (alt_ctl > 0.0f)
+						alt_ctl = (alt_ctl - alt_ctl_dz) / (0.5f - alt_ctl_dz);
+					else
+						alt_ctl = (alt_ctl + alt_ctl_dz) / (0.5f - alt_ctl_dz);
+					local_pos_sp.z -= alt_ctl * params.alt_rate_max * dt;
+					if (local_pos_sp.z > local_pos.z + err_linear_limit)
+						local_pos_sp.z = local_pos.z + err_linear_limit;
+					else if (local_pos_sp.z < local_pos.z - err_linear_limit)
+						local_pos_sp.z = local_pos.z - err_linear_limit;
+				}
 
-			// XXX enable switching between Vicon and local position estimate
-			/* local pos is the Vicon position */
-
-			// XXX just an example, lacks rotation around world-body transformation
-			att_sp.pitch_body = (local_pos.x - x_setpoint) * p.p;
-			att_sp.roll_body = 0.0f;
-			att_sp.yaw_body = 0.0f;
-			att_sp.thrust = 0.3f;
-			att_sp.timestamp = hrt_absolute_time();
-
-			/* publish new attitude setpoint */
-			orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-		// } else if (state.state_machine == SYSTEM_STATE_STABILIZED) {
-			/* set setpoint to current position */
-			// XXX select pos reset channel on remote
-			/* reset setpoint to current position  (position hold) */
-			// if (1 == 2) {
-			// 	local_pos_sp.x = local_pos.x;
-			// 	local_pos_sp.y = local_pos.y;
-			// 	local_pos_sp.z = local_pos.z;
-			// 	local_pos_sp.yaw = att.yaw;
-			// }
-		// }
+				/* PID for altitude */
+				float alt_err = local_pos.z - local_pos_sp.z;
+				/* don't accelerate more than ALT_RATE_MAX, limit error to corresponding value */
+				if (alt_err > err_linear_limit) {
+					alt_err = err_linear_limit;
+				} else if (alt_err < -err_linear_limit) {
+					alt_err = -err_linear_limit;
+				}
+				/* PID for altitude rate */
+				float thrust_ctl_pd = alt_err * params.alt_p + local_pos.vz * params.alt_d;
+				float thrust_ctl = thrust_ctl_pd + alt_integral;
+				if (thrust_ctl < params.thr_min) {
+					thrust_ctl = params.thr_min;
+				} else if (thrust_ctl > params.thr_max) {
+					thrust_ctl = params.thr_max;
+				} else {
+					/* integrate only in linear area (with 20% gap) and not on min/max throttle */
+					if (fabs(thrust_ctl_pd) < err_linear_limit * params.alt_p * 0.8f)
+						alt_integral += thrust_ctl_pd / params.alt_p * params.alt_i * dt;
+				}
+				if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE) {
+					// TODO add position controller
+					att_sp.pitch_body = manual.pitch;
+					att_sp.roll_body = manual.roll;
+					att_sp.yaw_body = manual.yaw;
+				} else {
+					att_sp.pitch_body = manual.pitch;
+					att_sp.roll_body = manual.roll;
+					att_sp.yaw_body = manual.yaw;
+				}
+				att_sp.thrust = thrust_ctl;
+				att_sp.timestamp = hrt_absolute_time();
+				/* publish local position setpoint */
+				orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+				/* publish new attitude setpoint */
+				orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+				t_prev = t;
+			} else {
+				reset_sp_alt = true;
+			}
+		} else {
+			reset_sp_alt = true;
+		}
 
 		/* run at approximately 50 Hz */
 		usleep(20000);
-		loopcounter++;
 
 	}
 
-	printf("[multirotor pos control] ending now...\n");
+	printf("[multirotor_pos_control] exiting\n");
+	mavlink_log_info(mavlink_fd, "[multirotor_pos_control] exiting");
 
 	thread_running = false;
 
