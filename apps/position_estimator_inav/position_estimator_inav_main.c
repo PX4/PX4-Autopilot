@@ -281,7 +281,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	static float y_est[3] = { 0.0f, 0.0f, 0.0f };
 	static float z_est[3] = { 0.0f, 0.0f, 0.0f };
 
-	bool use_gps = false;
 	int baro_loop_cnt = 0;
 	int baro_loop_end = 70; /* measurement for 1 second */
 	float baro_alt0 = 0.0f; /* to determin while start up */
@@ -300,8 +299,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	memset(&gps, 0, sizeof(gps));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
-	struct vehicle_local_position_s local_pos_est;
-	memset(&local_pos_est, 0, sizeof(local_pos_est));
+	struct vehicle_local_position_s pos;
+	memset(&pos, 0, sizeof(pos));
 
 	/* subscribe */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -311,10 +310,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 
 	/* advertise */
-	orb_advert_t local_pos_est_pub = orb_advertise(
-			ORB_ID(vehicle_local_position), &local_pos_est);
+	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &pos);
 
-	struct position_estimator_inav_params pos_inav_params;
+	struct position_estimator_inav_params params;
 	struct position_estimator_inav_param_handles pos_inav_param_handles;
 	/* initialize parameter handles */
 	parameters_init(&pos_inav_param_handles);
@@ -324,21 +322,21 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	struct parameter_update_s param_update;
 	orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_update); /* read from param to clear updated flag */
 	/* FIRST PARAMETER UPDATE */
-	parameters_update(&pos_inav_param_handles, &pos_inav_params);
+	parameters_update(&pos_inav_param_handles, &params);
 	/* END FIRST PARAMETER UPDATE */
 
 	/* wait until gps signal turns valid, only then can we initialize the projection */
-	if (use_gps) {
-		struct pollfd fds_init[1] = { { .fd = vehicle_gps_position_sub,
-				.events = POLLIN } };
+	if (params.use_gps) {
+		struct pollfd fds_init[1] = {
+				{ .fd = vehicle_gps_position_sub, .events = POLLIN }
+		};
 
 		while (gps.fix_type < 3) {
 			if (poll(fds_init, 1, 5000)) { /* poll only two first subscriptions */
 				if (fds_init[0].revents & POLLIN) {
 					/* Wait for the GPS update to propagate (we have some time) */
 					usleep(5000);
-					orb_copy(ORB_ID(vehicle_gps_position),
-							vehicle_gps_position_sub, &gps);
+					orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 				}
 			}
 			static int printcounter = 0;
@@ -354,6 +352,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		lat_current = ((double) (gps.lat)) * 1e-7;
 		lon_current = ((double) (gps.lon)) * 1e-7;
 		alt_current = gps.alt * 1e-3;
+
+		pos.home_lat = lat_current * 1e7;
+		pos.home_lon = lon_current * 1e7;
+		pos.home_timestamp = hrt_absolute_time();
+
 		/* initialize coordinates */
 		map_projection_init(lat_current, lon_current);
 		/* publish global position messages only after first GPS message */
@@ -376,16 +379,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	uint32_t pub_interval = 4000;	// limit publish rate to 250 Hz
 
 	/* main loop */
-	struct pollfd fds[5] = { { .fd = parameter_update_sub, .events = POLLIN }, {
-			.fd = vehicle_status_sub, .events = POLLIN }, { .fd =
-			vehicle_attitude_sub, .events = POLLIN }, { .fd =
-			sensor_combined_sub, .events = POLLIN }, { .fd =
-			vehicle_gps_position_sub, .events = POLLIN } };
+	struct pollfd fds[5] = {
+			{ .fd = parameter_update_sub, .events = POLLIN },
+			{ .fd = vehicle_status_sub, .events = POLLIN },
+			{ .fd = vehicle_attitude_sub, .events = POLLIN },
+			{ .fd = sensor_combined_sub, .events = POLLIN },
+			{ .fd = vehicle_gps_position_sub, .events = POLLIN }
+	};
 	printf("[position_estimator_inav] main loop started\n");
 	while (!thread_should_exit) {
 		bool accelerometer_updated = false;
 		bool baro_updated = false;
-		int ret = poll(fds, 5, 10); // wait maximal this 10 ms = 100 Hz minimum rate
+		int ret = poll(fds, params.use_gps ? 5 : 4, 10); // wait maximal this 10 ms = 100 Hz minimum rate
 		if (ret < 0) {
 			/* poll error */
 			printf("[position_estimator_inav] subscriptions poll error\n");
@@ -399,7 +404,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 				orb_copy(ORB_ID(parameter_update), parameter_update_sub,
 						&update);
 				/* update parameters */
-				parameters_update(&pos_inav_param_handles, &pos_inav_params);
+				parameters_update(&pos_inav_param_handles, &params);
 			}
 			/* vehicle status */
 			if (fds[1].revents & POLLIN) {
@@ -442,7 +447,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 					}
 				}
 			}
-			if (use_gps) {
+			if (params.use_gps) {
 				/* vehicle GPS position */
 				if (fds[4].revents & POLLIN) {
 					/* new GPS value */
@@ -454,8 +459,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 							((double) (gps.lon)) * 1e-7, &(local_pos_gps[0]),
 							&(local_pos_gps[1]));
 					local_pos_gps[2] = (float) (gps.alt * 1e-3);
+					pos.valid = gps.fix_type >= 3;
 					gps_updates++;
 				}
+			} else {
+				pos.valid = true;
 			}
 
 		} /* end of poll return value check */
@@ -466,7 +474,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		/* calculate corrected acceleration vector in UAV frame */
 		float accel_corr[3];
 		acceleration_correct(accel_corr, sensor.accelerometer_raw,
-				pos_inav_params.acc_T, pos_inav_params.acc_offs);
+				params.acc_T, params.acc_offs);
 		/* transform acceleration vector from UAV frame to NED frame */
 		float accel_NED[3];
 		for (int i = 0; i < 3; i++) {
@@ -491,7 +499,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		}
 		if (use_z[0] || use_z[1]) {
 			/* correction */
-			kalman_filter_inertial_update(z_est, z_meas, pos_inav_params.k,
+			kalman_filter_inertial_update(z_est, z_meas, params.k,
 					use_z);
 		}
 		if (verbose_mode) {
@@ -513,21 +521,21 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		}
 		if (t - pub_last > pub_interval) {
 			pub_last = t;
-			local_pos_est.x = 0.0f;
-			local_pos_est.vx = 0.0f;
-			local_pos_est.y = 0.0f;
-			local_pos_est.vy = 0.0f;
-			local_pos_est.z = z_est[0];
-			local_pos_est.vz = z_est[1];
-			local_pos_est.timestamp = hrt_absolute_time();
-			if ((isfinite(local_pos_est.x)) && (isfinite(local_pos_est.vx))
-					&& (isfinite(local_pos_est.y))
-					&& (isfinite(local_pos_est.vy))
-					&& (isfinite(local_pos_est.z))
-					&& (isfinite(local_pos_est.vz))) {
+			pos.x = 0.0f;
+			pos.vx = 0.0f;
+			pos.y = 0.0f;
+			pos.vy = 0.0f;
+			pos.z = z_est[0];
+			pos.vz = z_est[1];
+			pos.timestamp = hrt_absolute_time();
+			if ((isfinite(pos.x)) && (isfinite(pos.vx))
+					&& (isfinite(pos.y))
+					&& (isfinite(pos.vy))
+					&& (isfinite(pos.z))
+					&& (isfinite(pos.vz))) {
 				orb_publish(ORB_ID(
-						vehicle_local_position), local_pos_est_pub,
-						&local_pos_est);
+						vehicle_local_position), vehicle_local_position_pub,
+						&pos);
 			}
 		}
 	}

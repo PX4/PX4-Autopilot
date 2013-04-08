@@ -41,12 +41,15 @@
 #include <systemlib/param/param.h>
 
 struct position_estimator_inav_params {
+	int use_gps;
 	float k[3][2];
 	int16_t acc_offs[3];
 	float acc_T[3][3];
 };
 
 struct position_estimator_inav_param_handles {
+	param_t use_gps;
+
 	param_t k_alt_00;
 	param_t k_alt_01;
 	param_t k_alt_10;
