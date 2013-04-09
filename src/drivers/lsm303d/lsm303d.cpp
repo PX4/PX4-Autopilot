@@ -1067,7 +1067,6 @@ LSM303D::measure()
 	raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
 
-	/* XXX adapt the comment to specs */
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
 	 * 2) Subtract static offset (in SI units)
@@ -1085,7 +1084,7 @@ LSM303D::measure()
 
 
 	accel_report->timestamp = hrt_absolute_time();
-	/* XXX adjust for sensor alignment to board here */
+
 	accel_report->x_raw = raw_accel_report.x;
 	accel_report->y_raw = raw_accel_report.y;
 	accel_report->z_raw = raw_accel_report.z;
@@ -1136,7 +1135,6 @@ LSM303D::mag_measure()
 	raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
 
-	/* XXX adapt the comment to specs */
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
 	 * 2) Subtract static offset (in SI units)
@@ -1154,15 +1152,15 @@ LSM303D::mag_measure()
 
 
 	mag_report->timestamp = hrt_absolute_time();
-	/* XXX adjust for sensor alignment to board here */
+
 	mag_report->x_raw = raw_mag_report.x;
 	mag_report->y_raw = raw_mag_report.y;
 	mag_report->z_raw = raw_mag_report.z;
 	mag_report->x = ((mag_report->x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
 	mag_report->y = ((mag_report->y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
 	mag_report->z = ((mag_report->z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
-//	report->scaling = _gyro_range_scale;
-//	report->range_rad_s = _gyro_range_rad_s;
+	mag_report->scaling = _mag_range_scale;
+	mag_report->range_ga = _mag_range_ga;
 
 	/* post a report to the ring - note, not locked */
 	INCREMENT(_next_mag_report, _num_mag_reports);
