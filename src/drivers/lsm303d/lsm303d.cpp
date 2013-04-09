@@ -718,7 +718,7 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT:
 				/* 50 Hz is max for mag */
-				return mag_ioctl(filp, SENSORIOCSPOLLRATE, 50);
+				return mag_ioctl(filp, SENSORIOCSPOLLRATE, 100);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
@@ -732,11 +732,12 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 					if (ticks < 1000)
 						return -EINVAL;
 
+					/* adjust sample rate of sensor */
+					mag_set_samplerate(arg);
+
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
 					_mag_call.period = _call_mag_interval = ticks;
-
-
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
