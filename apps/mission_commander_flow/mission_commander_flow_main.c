@@ -61,6 +61,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_waypoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_bodyframe_position.h>
 #include <uORB/topics/vehicle_bodyframe_position_setpoint.h>
@@ -70,6 +71,7 @@
 
 #include <uORB/topics/vehicle_global_position.h>
 #include <poll.h>
+#include <mavlink/mavlink_log.h>
 
 #include "mission_commander_flow_params.h"
 #include "mission_sounds.h"
@@ -80,6 +82,7 @@ __EXPORT int mission_commander_flow_main(int argc, char *argv[]);
 static bool thread_should_exit = false;		/**< Daemon exit flag */
 static bool thread_running = false;		/**< Daemon status flag */
 static int daemon_task;				/**< Handle of daemon task / thread */
+static int mavlink_fd;
 
 int mission_commander_flow_thread_main(int argc, char *argv[]);
 static void usage(const char *reason);
@@ -274,6 +277,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 	struct discrete_radar_s discrete_radar;
 	memset(&discrete_radar, 0, sizeof(discrete_radar));
 
+
 	/* subscribe to attitude, motor setpoints and system state */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -283,8 +287,10 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	int vehicle_bodyframe_position_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_position));
 	int discrete_radar_sub = orb_subscribe(ORB_ID(discrete_radar));
+	int vehicle_local_waypoint_sub = orb_subscribe(ORB_ID(vehicle_local_waypoint));
 
 	/* advert local/bodyframe position setpoint */
+	/* TODO fix advert bug */
 	orb_advert_t vehicle_local_position_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
 	orb_advert_t vehicle_bodyframe_position_sp_pub = orb_advertise(ORB_ID(vehicle_bodyframe_position_setpoint), &bodyframe_pos_sp);
 
@@ -295,6 +301,12 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 	mission_sounds_init();
 	bool sensors_ready = false;
+
+	/* log init */
+	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	if (mavlink_fd < 0) {
+		warnx("ERROR: Failed to open MAVLink log stream, start mavlink app first.\n");
+	}
 
 	/* mission states*/
 	static bool mission_started = false;
@@ -312,6 +324,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 	/* mission */
 	static bool final_sequence = false;
+	static bool new_waypoint = false;
 
 	/* debug */
 	float debug_value1 = 0.0f;
@@ -337,14 +350,15 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 		if (sensors_ready) {
 			/*This runs at the rate of the sensors */
-			struct pollfd fds[3] = {
+			struct pollfd fds[4] = {
 					{ .fd = discrete_radar_sub,   			.events = POLLIN },
+					{ .fd = vehicle_local_waypoint_sub,		.events = POLLIN },
 					{ .fd = manual_control_setpoint_sub, 	.events = POLLIN },
 					{ .fd = parameter_update_sub,   		.events = POLLIN }
 			};
 
 			/* wait for a sensor update, check for exit condition every 500 ms */
-			int ret = poll(fds, 3, 500);
+			int ret = poll(fds, 4, 500);
 
 			if (ret < 0) {
 				/* poll error, count it in perf */
@@ -357,7 +371,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 			} else {
 
 				/* parameter update available? */
-				if (fds[2].revents & POLLIN){
+				if (fds[3].revents & POLLIN){
 					/* read from param to clear updated flag */
 					struct parameter_update_s update;
 					orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
@@ -367,7 +381,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 				}
 
 				/* new mission commands -> later from qgroundcontroll */
-				if (fds[1].revents & POLLIN){
+				if (fds[2].revents & POLLIN){
 					/* NEW MANUAL CONTROLS------------------------------------------------------*/
 					/* get a local copy of manual setpoint */
 					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
@@ -404,6 +418,23 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 					}
 				}
 
+				/* new waypoint available? */
+				if (fds[1].revents & POLLIN){
+
+					struct vehicle_local_waypoint_s local_wp;
+					orb_copy(ORB_ID(vehicle_local_waypoint), vehicle_local_waypoint_sub, &local_wp);
+
+					final_dest_local.x = local_wp.x;
+					final_dest_local.y = local_wp.y;
+					final_dest_local.z = local_wp.z;
+					final_dest_local.yaw = local_wp.yaw;
+
+					new_waypoint = true;
+
+					mavlink_log_info(mavlink_fd, "[mission commander] got new local waypoint.");
+					printf("[mission commander] got new local waypoint.\n");
+				}
+
 				/* only if flow data changed */
 				if (fds[0].revents & POLLIN) {
 
@@ -424,6 +455,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 					/* do mission flag commands */
 					if (start_mission) {
+
 						/* only one mission... 2m forward */
 						/* TODO do it with current setpoint??? DONE*/
 						final_dest_bodyframe.x = bodyframe_pos_sp.x + params.mission_x_offset;
@@ -438,13 +470,37 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						react_state = MISSION_CLEAR;
 						react_counter = 0;
 
-//						bodyframe_pos_sp.x = bodyframe_pos.x;
-//						bodyframe_pos_sp.y = bodyframe_pos.y;
-//						bodyframe_pos_sp.yaw = att.yaw;
-
 						printf("[mission commander] mission started.\n");
+
+						mavlink_log_info(mavlink_fd, "[mission commander] mission started");
+						char buf[50] = {0};
+						sprintf(buf, "[mission commander] WP x: % 3.2f/y: % 3.2f/yaw %3.2f",
+								(double)final_dest_bodyframe.x, (double)final_dest_bodyframe.y, (double)final_dest_bodyframe.yaw);
+						mavlink_log_info(mavlink_fd, buf);
 						tune_mission_started();
 						start_mission = false;
+
+//						/* if we got a new waypoint */
+//						if(new_waypoint) {
+//
+//							convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&final_dest_bodyframe,&final_dest_local);
+//							final_dest_bodyframe.yaw = get_yaw(&local_pos, &final_dest_local); // changeable later
+//
+//							mission_started = true;
+//							mission_accomplished = false;
+//							mission_aborted = false;
+//							mission_reseted = false;
+//							react_state = MISSION_CLEAR;
+//							react_counter = 0;
+//
+//							printf("[mission commander] mission started.\n");
+//							mavlink_log_info(mavlink_fd, "[mission commander] mission started.");
+//							tune_mission_started();
+//							start_mission = false;
+//
+//							new_waypoint = false;
+//						}
+
 					}
 
 					if (finish_mission) {
@@ -459,6 +515,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						final_sequence = false;
 
 						printf("[mission commander] mission accomplished.\n");
+						mavlink_log_info(mavlink_fd, "[mission commander] mission accomplished.");
 						tune_mission_accomplished();
 						finish_mission = false;
 					}
@@ -481,6 +538,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						bodyframe_pos_sp.yaw = att.yaw;
 
 						printf("[mission commander] mission aborted.\n");
+						mavlink_log_info(mavlink_fd, "[mission commander] mission aborted.");
 						tune_mission_aborted();
 						abort_mission = false;
 					}
@@ -497,6 +555,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						final_sequence = false;
 
 						printf("[mission commander] mission reseted.\n");
+						mavlink_log_info(mavlink_fd, "[mission commander] mission reseted.");
 						reset_mission = false;
 					}
 
@@ -537,15 +596,19 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 										/* obstacle is detected */
 										if (left > right) {
 											react_state = MISSION_REACT_LEFT;
+											mavlink_log_info(mavlink_fd, "[mission commander] react left");
 											react_counter = 0;
 										} else {
 											react_state = MISSION_REACT_RIGHT;
+											mavlink_log_info(mavlink_fd, "[mission commander] react right");
 											react_counter = 0;
 										}
 									} else if (left < params.mission_reac_dist) {
 										react_state = MISSION_FOLLOW_WALL_L;
+										mavlink_log_info(mavlink_fd, "[mission commander] follow left wall");
 									} else if (right < params.mission_reac_dist) {
 										react_state = MISSION_FOLLOW_WALL_R;
+										mavlink_log_info(mavlink_fd, "[mission commander] follow right wall");
 									}
 
 								}
@@ -613,12 +676,15 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 									if (react_state == MISSION_FOLLOW_WALL_L || react_state == MISSION_FOLLOW_WALL_R) {
 										if (wall_left && wall_right) {
 											react_state = MISSION_FOLLOW_CORRIDOR;
+											mavlink_log_info(mavlink_fd, "[mission commander] follow corridor");
 										}
 									} if (react_state == MISSION_FOLLOW_CORRIDOR) {
 										if (wall_left && !wall_right) {
 											react_state = MISSION_FOLLOW_WALL_L;
+											mavlink_log_info(mavlink_fd, "[mission commander] follow left wall");
 										} else if (!wall_left && !wall_right) {
 											react_state = MISSION_FOLLOW_WALL_R;
+											mavlink_log_info(mavlink_fd, "[mission commander] follow right wall");
 										}
 									}
 
@@ -627,8 +693,10 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 										if (front_dist > params.mission_reac_dist && react_counter > params.mission_min_reaction_steps) {
 											if (react_state == MISSION_REACT_LEFT) {
 												react_state = MISSION_FOLLOW_WALL_R;
+												mavlink_log_info(mavlink_fd, "[mission commander] follow right wall");
 											} else {
 												react_state = MISSION_FOLLOW_WALL_L;
+												mavlink_log_info(mavlink_fd, "[mission commander] follow left wall");
 											}
 											react_counter = 0;
 										}
@@ -639,14 +707,17 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 											if (react_state == MISSION_FOLLOW_WALL_L) {
 												react_state = MISSION_REACT_RIGHT;
+												mavlink_log_info(mavlink_fd, "[mission commander] react right");
 											} else {
 												react_state = MISSION_REACT_LEFT;
+												mavlink_log_info(mavlink_fd, "[mission commander] react left");
 											}
 										}
 
 									} else if (react_state == MISSION_FOLLOW_CORRIDOR) {
 										if (front_dist < params.mission_reac_dist) {
 											abort_mission = true;
+											mavlink_log_info(mavlink_fd, "[mission commander] too near... stop mission");
 										}
 									}
 
@@ -662,6 +733,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 									{
 										react_state = MISSION_CLEAR;
 										react_counter = 0;
+										mavlink_log_info(mavlink_fd, "[mission commander] clear");
 									}
 
 									react_counter++;
