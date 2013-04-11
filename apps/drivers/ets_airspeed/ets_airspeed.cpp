@@ -65,20 +65,22 @@
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_airspeed.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
 
 
 /* Configuration Constants */
-#define ETS_BUS 		PX4_I2C_BUS_EXPANSION
-#define ETS_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xEA */
+#define ETS_AIRSPEED_BUS 		PX4_I2C_BUS_ESC
+#define ETS_AIRSPEED_ADDRESS 	0x75
 
-/* ETS Registers addresses */
+/* ETS_AIRSPEED Registers addresses */
 
-#define ETS_READ_CMD	0x07		/* Read the data */
+#define ETS_AIRSPEED_READ_CMD	0x07		/* Read the data */
 	 
-#define ETS_CONVERSION_INTERVAL 60000 /* 60ms */
+/* Max measurement rate is 100Hz */
+#define ETS_AIRSPEED_CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -90,11 +92,11 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class ETS : public device::I2C
+class ETS_AIRSPEED : public device::I2C
 {
 public:
-	ETS(int bus = ETS_BUS, int address = ETS_BASEADDR);
-	virtual ~ETS();
+	ETS_AIRSPEED(int bus = ETS_AIRSPEED_BUS, int address = ETS_AIRSPEED_ADDRESS);
+	virtual ~ETS_AIRSPEED();
 	
 	virtual int 		init();
 	
@@ -114,7 +116,7 @@ private:
 	unsigned			_num_reports;
 	volatile unsigned	_next_report;
 	volatile unsigned	_oldest_report;
-	range_finder_report	*_reports;
+	airspeed_report		*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
@@ -171,10 +173,10 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int ETS_main(int argc, char *argv[]);
+extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[]);
 
-ETS::ETS(int bus, int address) :
-	I2C("ETS", AIRSPEED_SENSOR_DEVICE_PATH, bus, address, 100000),
+ETS_AIRSPEED::ETS_AIRSPEED(int bus, int address) :
+	I2C("ETS_AIRSPEED", AIRSPEED_DEVICE_PATH, bus, address, 100000),
 	_num_reports(0),
 	_next_report(0),
 	_oldest_report(0),
@@ -183,9 +185,9 @@ ETS::ETS(int bus, int address) :
 	_measure_ticks(0),
 	_collect_phase(false),
 	_differential_pressure_topic(-1),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ETS_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "ETS_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ETS_buffer_overflows"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "ETS_AIRSPEED_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "ETS_AIRSPEED_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "ETS_AIRSPEED_buffer_overflows"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -194,7 +196,7 @@ ETS::ETS(int bus, int address) :
 	memset(&_work, 0, sizeof(_work));
 }
 
-ETS::~ETS()
+ETS_AIRSPEED::~ETS_AIRSPEED()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -205,7 +207,7 @@ ETS::~ETS()
 }
 
 int
-ETS::init()
+ETS_AIRSPEED::init()
 {
 	int ret = ERROR;
 
@@ -215,7 +217,7 @@ ETS::init()
 
 	/* allocate basic report buffers */
 	_num_reports = 2;
-	_reports = new struct range_finder_report[_num_reports];
+	_reports = new struct airspeed_report[_num_reports];
 
 	if (_reports == nullptr)
 		goto out;
@@ -224,7 +226,7 @@ ETS::init()
 
 	/* get a publish handle on the airspeed topic */
 	memset(&_reports[0], 0, sizeof(_reports[0]));
-	_differential_pressure_topic = orb_advertise(ORB_ID(_differential_pressure), &_reports[0]);
+	_differential_pressure_topic = orb_advertise(ORB_ID(sensor_differential_pressure), &_reports[0]);
 
 	if (_differential_pressure_topic < 0)
 		debug("failed to create airspeed sensor object. Did you start uOrb?");
@@ -237,13 +239,13 @@ out:
 }
 
 int
-ETS::probe()
+ETS_AIRSPEED::probe()
 {
 	return measure();
 }
 
 int
-ETS::ioctl(struct file *filp, int cmd, unsigned long arg)
+ETS_AIRSPEED::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -270,7 +272,7 @@ ETS::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(ETS_CONVERSION_INTERVAL);
+					_measure_ticks = USEC2TICK(ETS_AIRSPEED_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -288,7 +290,7 @@ ETS::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(ETS_CONVERSION_INTERVAL))
+					if (ticks < USEC2TICK(ETS_AIRSPEED_CONVERSION_INTERVAL))
 						return -EINVAL;
 
 					/* update interval for next measurement */
@@ -318,7 +320,7 @@ ETS::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 
 			/* allocate new buffer */
-			struct range_finder_report *buf = new struct range_finder_report[arg];
+			struct airspeed_report *buf = new struct airspeed_report[arg];
 
 			if (nullptr == buf)
 				return -ENOMEM;
@@ -347,9 +349,9 @@ ETS::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-ETS::read(struct file *filp, char *buffer, size_t buflen)
+ETS_AIRSPEED::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct range_finder_report);
+	unsigned count = buflen / sizeof(struct airspeed_report);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -388,7 +390,7 @@ ETS::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(ETS_CONVERSION_INTERVAL);
+		usleep(ETS_AIRSPEED_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -406,14 +408,14 @@ ETS::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-ETS::measure()
+ETS_AIRSPEED::measure()
 {
 	int ret;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	uint8_t cmd = ETS_READ_CMD;
+	uint8_t cmd = ETS_AIRSPEED_READ_CMD;
 	ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret)
@@ -428,7 +430,7 @@ ETS::measure()
 }
 
 int
-ETS::collect()
+ETS_AIRSPEED::collect()
 {
 	int	ret = -EIO;
 	
@@ -449,11 +451,10 @@ ETS::collect()
 	float si_units = (distance * 1.0f)/ 100.0f; /* cm to m */
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].distance = si_units;
-	_reports[_next_report].valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
+	_reports[_next_report].speed = si_units;
 	
 	/* publish it */
-	orb_publish(ORB_ID(_differential_pressure), _differential_pressure_topic, &_reports[_next_report]);
+	orb_publish(ORB_ID(sensor_differential_pressure), _differential_pressure_topic, &_reports[_next_report]);
 
 	/* post a report to the ring - note, not locked */
 	INCREMENT(_next_report, _num_reports);
@@ -477,14 +478,14 @@ out:
 }
 
 void
-ETS::start()
+ETS_AIRSPEED::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_oldest_report = _next_report = 0;
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&ETS::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&ETS_AIRSPEED::cycle_trampoline, this, 1);
 	
 	/* notify about state change */
 	struct subsystem_info_s info = {
@@ -502,21 +503,21 @@ ETS::start()
 }
 
 void
-ETS::stop()
+ETS_AIRSPEED::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-ETS::cycle_trampoline(void *arg)
+ETS_AIRSPEED::cycle_trampoline(void *arg)
 {
-	ETS *dev = (ETS *)arg;
+	ETS_AIRSPEED *dev = (ETS_AIRSPEED *)arg;
 
 	dev->cycle();
 }
 
 void
-ETS::cycle()
+ETS_AIRSPEED::cycle()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -535,14 +536,14 @@ ETS::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(ETS_CONVERSION_INTERVAL)) {
+		if (_measure_ticks > USEC2TICK(ETS_AIRSPEED_CONVERSION_INTERVAL)) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
-				   (worker_t)&ETS::cycle_trampoline,
+				   (worker_t)&ETS_AIRSPEED::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(ETS_CONVERSION_INTERVAL));
+				   _measure_ticks - USEC2TICK(ETS_AIRSPEED_CONVERSION_INTERVAL));
 
 			return;
 		}
@@ -558,13 +559,13 @@ ETS::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&ETS::cycle_trampoline,
+		   (worker_t)&ETS_AIRSPEED::cycle_trampoline,
 		   this,
-		   USEC2TICK(ETS_CONVERSION_INTERVAL));
+		   USEC2TICK(ETS_AIRSPEED_CONVERSION_INTERVAL));
 }
 
 void
-ETS::print_info()
+ETS_AIRSPEED::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -577,7 +578,7 @@ ETS::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace ETS
+namespace ets_airspeed
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -586,7 +587,7 @@ namespace ETS
 #endif
 const int ERROR = -1;
 
-ETS	*g_dev;
+ETS_AIRSPEED	*g_dev;
 
 void	start();
 void	stop();
@@ -606,7 +607,7 @@ start()
 		errx(1, "already started");
 
 	/* create the driver */
-	g_dev = new ETS(ETS_BUS);
+	g_dev = new ETS_AIRSPEED(ETS_AIRSPEED_BUS);
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -615,7 +616,7 @@ start()
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(AIRSPEED_SENSOR_DEVICE_PATH, O_RDONLY);
+	fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		goto fail;
@@ -661,14 +662,14 @@ void stop()
 void
 test()
 {
-	struct range_finder_report report;
+	struct airspeed_report report;
 	ssize_t sz;
 	int ret;
 
-	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'ETS start' if the driver is not running", RANGE_FINDER_DEVICE_PATH);
+		err(1, "%s open failed (try 'ets_airspeed start' if the driver is not running", AIRSPEED_DEVICE_PATH);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
@@ -677,7 +678,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("measurement: %0.2f m", (double)report.distance);
+	warnx("measurement: %0.2f m", (double)report.speed);
 	warnx("time:        %lld", report.timestamp);
 
 	/* start the sensor polling at 2Hz */
@@ -703,7 +704,7 @@ test()
 			err(1, "periodic read failed");
 
 		warnx("periodic read %u", i);
-		warnx("measurement: %0.3f", (double)report.distance);
+		warnx("measurement: %0.3f", (double)report.speed);
 		warnx("time:        %lld", report.timestamp);
 	}
 
@@ -716,7 +717,7 @@ test()
 void
 reset()
 {
-	int fd = open(RANGE_FINDER_DEVICE_PATH, O_RDONLY);
+	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");
@@ -748,37 +749,37 @@ info()
 } // namespace
 
 int
-ETS_main(int argc, char *argv[])
+ets_airspeed_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start"))
-		ETS::start();
+		ets_airspeed::start();
 	
 	 /*
 	  * Stop the driver
 	  */
 	 if (!strcmp(argv[1], "stop"))
-		 ETS::stop();
+		 ets_airspeed::stop();
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test"))
-		ETS::test();
+		ets_airspeed::test();
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset"))
-		ETS::reset();
+		ets_airspeed::reset();
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status"))
-		ETS::info();
+		ets_airspeed::info();
 
 	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
 }

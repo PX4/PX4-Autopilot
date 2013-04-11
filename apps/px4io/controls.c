@@ -70,7 +70,7 @@ controls_init(void)
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
 
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_OPTIONS]    = 0;
-		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_MIN]        = 1000;
+		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_MIN]        = 950;
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_CENTER]     = 1500;
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_MAX]        = 2000;
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_DEADZONE]   = 30;
