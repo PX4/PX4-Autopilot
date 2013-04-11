@@ -3,7 +3,7 @@
  *
  * Code generation for function 'wallEstimationFilter'
  *
- * C source code generated on: Wed Apr  3 11:26:47 2013
+ * C source code generated on: Tue Apr  9 09:52:43 2013
  *
  */
 
@@ -174,7 +174,7 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
 
   for (i = 0; i < 32; i++) {
     y_transition_add[i] = x_transition_add[(i - ((int32_T)(real32_T)floor
-      ((((1.0F + (real32_T)i) + 8.0F) - 1.0F) / 32.0F) << 5)) + 8];
+      ((((1.0F + (real32_T)i) - 8.0F) - 1.0F) / 32.0F) << 5)) - 8];
 
     /*  default values */
     radar[i] = 5.0F;
