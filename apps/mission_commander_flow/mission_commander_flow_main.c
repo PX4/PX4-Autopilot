@@ -75,6 +75,7 @@
 
 #include "mission_commander_flow_params.h"
 #include "mission_sounds.h"
+#include "mission_helper.h"
 
 #define sign(x) (( x > 0 ) - ( x < 0 ))
 
@@ -309,21 +310,10 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 	}
 
 	/* mission states*/
-	static bool mission_started = false;
-	static bool mission_accomplished = false;
-	static bool mission_aborted = false;
-	static bool mission_reseted = true;
-	mission_reaction_state_t react_state;
-	int react_counter = 0;
-
-	/* mission flags */
-	static bool start_mission = false;
-	static bool abort_mission = false;
-	static bool reset_mission = false;
-	static bool finish_mission = false;
+	struct mission_state_s mission_state;
+	init_state(&mission_state);
 
 	/* mission */
-	static bool final_sequence = false;
 	static bool new_waypoint = false;
 
 	/* debug */
@@ -331,10 +321,6 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 	float debug_value2 = 0.0f;
 	int debug_value3 = 0;
 	int debug_value4 = 0;
-
-	/* manual control overwrite parameters */
-	static float setpoint_update_step = 0.01f;
-	static float setpoint_update_step_yaw = 0.05f;
 
 	/* parameters init*/
 	struct mission_commander_flow_params params;
@@ -350,7 +336,8 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 		if (sensors_ready) {
 			/*This runs at the rate of the sensors */
-			struct pollfd fds[4] = {
+			struct pollfd fds[5] = {
+					{ .fd = vehicle_local_position_sub,		.events = POLLIN },
 					{ .fd = discrete_radar_sub,   			.events = POLLIN },
 					{ .fd = vehicle_local_waypoint_sub,		.events = POLLIN },
 					{ .fd = manual_control_setpoint_sub, 	.events = POLLIN },
@@ -358,7 +345,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 			};
 
 			/* wait for a sensor update, check for exit condition every 500 ms */
-			int ret = poll(fds, 4, 500);
+			int ret = poll(fds, 5, 500);
 
 			if (ret < 0) {
 				/* poll error, count it in perf */
@@ -366,12 +353,12 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 			} else if (ret == 0) {
 				/* no return value, ignore */
-				printf("[mission commander] no radar updates.\n");
+				printf("[mission commander] no updates.\n");
 
 			} else {
 
 				/* parameter update available? */
-				if (fds[3].revents & POLLIN){
+				if (fds[4].revents & POLLIN){
 					/* read from param to clear updated flag */
 					struct parameter_update_s update;
 					orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
@@ -381,7 +368,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 				}
 
 				/* new mission commands -> later from qgroundcontroll */
-				if (fds[2].revents & POLLIN){
+				if (fds[3].revents & POLLIN){
 					/* NEW MANUAL CONTROLS------------------------------------------------------*/
 					/* get a local copy of manual setpoint */
 					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
@@ -390,36 +377,44 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 						/* update mission flags */
-						if (!mission_started && !mission_accomplished && !mission_aborted) {
+
+						if (mission_state.state == MISSION_RESETED) {
+
 							if (manual.aux2 < 0) {
 								/* start mission planner */
-								start_mission = true;
+								do_state_update(&mission_state, mavlink_fd, MISSION_READY);
 							}
+
 						} else {
-							if (manual.aux2 > 0)
-							{
-								if (mission_started)
-								{
+							if (manual.aux2 > 0) {
+
+								if (mission_state.state == MISSION_STARTED) {
 									/* abort current mission */
-									abort_mission = true;
-								} else if (!mission_reseted)
-								{
-									/* after abording comes reset */
-									reset_mission = true;
+									do_state_update(&mission_state, mavlink_fd, MISSION_ABORTED);
+									/* set position setpoint to current position*/
+									/* TODO do we need that? */
+									bodyframe_pos_sp.x = bodyframe_pos.x;
+									bodyframe_pos_sp.y = bodyframe_pos.y;
+									bodyframe_pos_sp.yaw = att.yaw;
+
+								} else {
+									/* reset mission */
+									do_state_update(&mission_state, mavlink_fd, MISSION_RESETED);
+
 								}
 							}
 						}
 					} else {
 
-						if (!mission_reseted) {
-							reset_mission = true;
+						if (mission_state.state != MISSION_RESETED) {
+							do_state_update(&mission_state, mavlink_fd, MISSION_RESETED);
 						}
 
 					}
 				}
 
 				/* new waypoint available? */
-				if (fds[1].revents & POLLIN){
+				if (fds[2].revents & POLLIN){
 
 					struct vehicle_local_waypoint_s local_wp;
 					orb_copy(ORB_ID(vehicle_local_waypoint), vehicle_local_waypoint_sub, &local_wp);
@@ -432,10 +427,25 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 					new_waypoint = true;
 
 					mavlink_log_info(mavlink_fd, "[mission commander] got new local waypoint.");
+					char buf[50] = {0};
+					sprintf(buf, "[mission commander] WP x: %6.1f/y: %6.1f/yaw %6.1f",
+							(double)final_dest_local.x, (double)final_dest_local.y, (double)final_dest_local.yaw);
+					mavlink_log_info(mavlink_fd, buf);
 					printf("[mission commander] got new local waypoint.\n");
 				}
 
-				/* only if flow data changed */
+
+				/* only if radar changed */
+				if (fds[1].revents & POLLIN){
+					/* get a local copy of discrete radar */
+					orb_copy(ORB_ID(discrete_radar), discrete_radar_sub, &discrete_radar);
+
+					if (mission_state.state == MISSION_STARTED) {
+						do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar);
+					}
+				}
+
+				/* only if local position changed */
 				if (fds[0].revents & POLLIN) {
 
 					perf_begin(mc_loop_perf);
@@ -450,364 +460,187 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					/* get a local copy of the vehicle state */
 					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-					/* get a local copy of discrete radar */
-					orb_copy(ORB_ID(discrete_radar), discrete_radar_sub, &discrete_radar);
-
-					/* do mission flag commands */
-					if (start_mission) {
-
-						/* only one mission... 2m forward */
-						/* TODO do it with current setpoint??? DONE*/
-						final_dest_bodyframe.x = bodyframe_pos_sp.x + params.mission_x_offset;
-						final_dest_bodyframe.y = bodyframe_pos_sp.y + params.mission_y_offset;
-						convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&final_dest_bodyframe,&final_dest_local);
-						final_dest_bodyframe.yaw = get_yaw(&local_pos, &final_dest_local); // changeable later
-
-						mission_started = true;
-						mission_accomplished = false;
-						mission_aborted = false;
-						mission_reseted = false;
-						react_state = MISSION_CLEAR;
-						react_counter = 0;
-
-						printf("[mission commander] mission started.\n");
-
-						mavlink_log_info(mavlink_fd, "[mission commander] mission started");
-						char buf[50] = {0};
-						sprintf(buf, "[mission commander] WP x: % 3.2f/y: % 3.2f/yaw %3.2f",
-								(double)final_dest_bodyframe.x, (double)final_dest_bodyframe.y, (double)final_dest_bodyframe.yaw);
-						mavlink_log_info(mavlink_fd, buf);
-						tune_mission_started();
-						start_mission = false;
-
-//						/* if we got a new waypoint */
-//						if(new_waypoint) {
-//
-//							convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&final_dest_bodyframe,&final_dest_local);
-//							final_dest_bodyframe.yaw = get_yaw(&local_pos, &final_dest_local); // changeable later
-//
-//							mission_started = true;
-//							mission_accomplished = false;
-//							mission_aborted = false;
-//							mission_reseted = false;
-//							react_state = MISSION_CLEAR;
-//							react_counter = 0;
-//
-//							printf("[mission commander] mission started.\n");
-//							mavlink_log_info(mavlink_fd, "[mission commander] mission started.");
-//							tune_mission_started();
-//							start_mission = false;
-//
-//							new_waypoint = false;
-//						}
-
-					}
-
-					if (finish_mission) {
-						/* finish mission planner */
-						mission_started = false;
-						mission_aborted = false;
-						mission_accomplished = true;
-						mission_reseted = false;
-						react_state = MISSION_CLEAR;
-						react_counter = 0;
-
-						final_sequence = false;
-
-						printf("[mission commander] mission accomplished.\n");
-						mavlink_log_info(mavlink_fd, "[mission commander] mission accomplished.");
-						tune_mission_accomplished();
-						finish_mission = false;
-					}
-
-					if (abort_mission) {
-						/* abort mission planner */
-						mission_started = false;
-						mission_aborted = true;
-						mission_accomplished = false;
-						mission_reseted = false;
-						react_state = MISSION_CLEAR;
-						react_counter = 0;
-
-						final_sequence = false;
-
-						/* set position setpoint to current position*/
-						/* TODO do we need that? */
-						bodyframe_pos_sp.x = bodyframe_pos.x;
-						bodyframe_pos_sp.y = bodyframe_pos.y;
-						bodyframe_pos_sp.yaw = att.yaw;
-
-						printf("[mission commander] mission aborted.\n");
-						mavlink_log_info(mavlink_fd, "[mission commander] mission aborted.");
-						tune_mission_aborted();
-						abort_mission = false;
-					}
-
-					if (reset_mission) {
-						/* reset mission planner */
-						mission_started = false;
-						mission_aborted = false;
-						mission_accomplished = false;
-						mission_reseted = true;
-						react_state = MISSION_CLEAR;
-						react_counter = 0;
-
-						final_sequence = false;
-
-						printf("[mission commander] mission reseted.\n");
-						mavlink_log_info(mavlink_fd, "[mission commander] mission reseted.");
-						reset_mission = false;
-					}
 
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 
 						/* calc new mission setpoint */
-						if (mission_started) {
+						if (mission_state.state == MISSION_READY) {
 
-							do {
-								/* no yaw correction in final sequence -> no need for waypoint update */
-								if(!final_sequence){
-									/* calc final destination in bodyframe */
-									convert_setpoint_local2bodyframe(&local_pos,&bodyframe_pos,&att,&final_dest_local,&final_dest_bodyframe);
-								}
+							/* do we have a destination ??? -> start mission */
+							final_dest_bodyframe.x = bodyframe_pos_sp.x + params.mission_x_offset;
+							final_dest_bodyframe.y = bodyframe_pos_sp.y + params.mission_y_offset;
+							convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&final_dest_bodyframe,&final_dest_local);
+							final_dest_bodyframe.yaw = get_yaw(&local_pos, &final_dest_local); // changeable later
+							do_state_update(&mission_state, mavlink_fd, MISSION_STARTED);
 
-								/* looking for lokal situation */
-								bool front_free = true;
-								bool front_react = false;
-								bool wall_left = false;
-								bool wall_right = false;
+						} else if (mission_state.state == MISSION_STARTED) {
 
-								for(int i = 14; i<19; i++)
-								{
-									if (discrete_radar.distances[i] < params.mission_min_dist) {
-										front_free = false;
-									} else if(discrete_radar.distances[i] < params.mission_reac_dist) {
-										front_react = true;
-									}
-								}
+							/* no yaw correction in final sequence -> no need for waypoint update */
+							if(!mission_state.final_sequence){
+								/* calc final destination in bodyframe */
+								convert_setpoint_local2bodyframe(&local_pos,&bodyframe_pos,&att,&final_dest_local,&final_dest_bodyframe);
+							}
 
-								/* calc side-freeness simple */
-								int left = (discrete_radar.distances[9] + discrete_radar.distances[10] + discrete_radar.distances[11]) / 3;
-								int right = (discrete_radar.distances[21] + discrete_radar.distances[22] + discrete_radar.distances[23]) / 3;
+							/* ------------------------------------------------------------------------- *
+							 *  NEED FOR REACTION														 *
+							 * ------------------------------------------------------------------------- */
+							if (mission_state.radar_current == RADAR_REACT_LEFT || mission_state.radar_current == RADAR_REACT_RIGHT) {
 
-								if(react_state == MISSION_CLEAR) {
-									/* TODO what if a wall appears? */
-									if(!front_free || front_react ) {
-										/* obstacle is detected */
-										if (left > right) {
-											react_state = MISSION_REACT_LEFT;
-											mavlink_log_info(mavlink_fd, "[mission commander] react left");
-											react_counter = 0;
-										} else {
-											react_state = MISSION_REACT_RIGHT;
-											mavlink_log_info(mavlink_fd, "[mission commander] react right");
-											react_counter = 0;
+								/* react left */
+								if (mission_state.radar_current == RADAR_REACT_LEFT) {
+
+									if (mission_state.react == REACT_TURN) {
+										if (!mission_state.wall_left) {
+											/* do this update only if no wall on the left side */
+											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
 										}
-									} else if (left < params.mission_reac_dist) {
-										react_state = MISSION_FOLLOW_WALL_L;
-										mavlink_log_info(mavlink_fd, "[mission commander] follow left wall");
-									} else if (right < params.mission_reac_dist) {
-										react_state = MISSION_FOLLOW_WALL_R;
-										mavlink_log_info(mavlink_fd, "[mission commander] follow right wall");
-									}
-
-								}
-
-								if(!front_free) {
-									/* stand still and make nothing waiting for better weather */
-									/* TODO add problem solving */
-									printf("[mission commander] %i too close to wall.\n", params.mission_min_dist);
-									abort_mission = true;
-									break;
-								}
-
-								/* ------------------------------------------------------------------------- *
-								 *  NEED FOR REACTION														 *
-								 * ------------------------------------------------------------------------- */
-								if (react_state != MISSION_CLEAR)
-								{
-
-									/* do a reaction */
-									if (left < params.mission_reac_dist) {
-										wall_left = true;
-									} else {
-										wall_left = false;
-									}
-									if (right < params.mission_reac_dist) {
-										wall_right = true;
-									} else {
-										wall_right = false;
-									}
-
-									bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
-
-									if (react_state == MISSION_REACT_LEFT && !wall_left) {
-										bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
 										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
 
-									} else if (react_state == MISSION_REACT_RIGHT && !wall_right) {
-										bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
+									} else if (mission_state.react == REACT_PASS_OBJECT) {
+										/* go straight only if too near correct to left */
+										if (discrete_radar.distances[23] < params.mission_min_side_dist) {
+											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
+										}
+
+									} else if (mission_state.react == REACT_TEST) {
+
+
+									}
+
+								/* react right */
+								} else if (mission_state.radar_current == RADAR_REACT_RIGHT) {
+
+									if (mission_state.react == REACT_TURN) {
+										if (!mission_state.wall_right) {
+											/* do this update only if no wall on the right side */
+											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
+										}
 										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
 
-									} else if (react_state == MISSION_FOLLOW_WALL_L) {
-										if (discrete_radar.distances[9] < params.mission_min_dist) {
-											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-										}
-
-									} else if (react_state == MISSION_FOLLOW_WALL_R) {
-										if (discrete_radar.distances[23] < params.mission_min_dist) {
+									} else if (mission_state.react == REACT_PASS_OBJECT) {
+										/* go straight only if too near correct to right */
+										if (discrete_radar.distances[23] < params.mission_min_side_dist) {
 											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
 										}
 
-									} else if (react_state == MISSION_FOLLOW_CORRIDOR) {
-										/* TODO try also to get yaw in direction of corridor */
-										if (discrete_radar.distances[9] < discrete_radar.distances[23]) {
-											/* correct to right */
-											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-										} else {
-											/* correct to left */
-											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-										}
-									}
+									} else if (mission_state.react == REACT_TEST) {
 
-									/* do we need a state change */
-									int front_dist = (discrete_radar.distances[15] + discrete_radar.distances[16] + discrete_radar.distances[17]) / 3;
-
-									if (react_state == MISSION_FOLLOW_WALL_L || react_state == MISSION_FOLLOW_WALL_R) {
-										if (wall_left && wall_right) {
-											react_state = MISSION_FOLLOW_CORRIDOR;
-											mavlink_log_info(mavlink_fd, "[mission commander] follow corridor");
-										}
-									} if (react_state == MISSION_FOLLOW_CORRIDOR) {
-										if (wall_left && !wall_right) {
-											react_state = MISSION_FOLLOW_WALL_L;
-											mavlink_log_info(mavlink_fd, "[mission commander] follow left wall");
-										} else if (!wall_left && !wall_right) {
-											react_state = MISSION_FOLLOW_WALL_R;
-											mavlink_log_info(mavlink_fd, "[mission commander] follow right wall");
-										}
-									}
-
-									if (react_state == MISSION_REACT_LEFT || react_state == MISSION_REACT_RIGHT) {
-
-										if (front_dist > params.mission_reac_dist && react_counter > params.mission_min_reaction_steps) {
-											if (react_state == MISSION_REACT_LEFT) {
-												react_state = MISSION_FOLLOW_WALL_R;
-												mavlink_log_info(mavlink_fd, "[mission commander] follow right wall");
-											} else {
-												react_state = MISSION_FOLLOW_WALL_L;
-												mavlink_log_info(mavlink_fd, "[mission commander] follow left wall");
-											}
-											react_counter = 0;
-										}
-
-									} else if (react_state == MISSION_FOLLOW_WALL_L || react_state == MISSION_FOLLOW_WALL_R) {
-
-										if (front_dist < params.mission_reac_dist) {
-
-											if (react_state == MISSION_FOLLOW_WALL_L) {
-												react_state = MISSION_REACT_RIGHT;
-												mavlink_log_info(mavlink_fd, "[mission commander] react right");
-											} else {
-												react_state = MISSION_REACT_LEFT;
-												mavlink_log_info(mavlink_fd, "[mission commander] react left");
-											}
-										}
-
-									} else if (react_state == MISSION_FOLLOW_CORRIDOR) {
-										if (front_dist < params.mission_reac_dist) {
-											abort_mission = true;
-											mavlink_log_info(mavlink_fd, "[mission commander] too near... stop mission");
-										}
-									}
-
-									/* if way is free change mission state */
-									bool free_radar = true;
-									for(int i = 0; i<32; i++)
-									{
-										if(discrete_radar.distances[i] < params.mission_reac_dist) {
-											free_radar = false;
-										}
-									}
-									if (free_radar && react_counter > params.mission_min_free_steps)
-									{
-										react_state = MISSION_CLEAR;
-										react_counter = 0;
-										mavlink_log_info(mavlink_fd, "[mission commander] clear");
-									}
-
-									react_counter++;
-
-								/* ------------------------------------------------------------------------- *
-								 *  CLEAR TO GO																 *
-								 * ------------------------------------------------------------------------- */
-								} else
-								{
-									float yaw_final = get_yaw(&local_pos, &final_dest_local);
-
-									float yaw_error = yaw_final - att.yaw;
-
-									if (yaw_error > M_PI_F) {
-										yaw_error -= M_TWOPI_F;
-
-									} else if (yaw_error < -M_PI_F) {
-										yaw_error += M_TWOPI_F;
-									}
-
-									/* wait until yaw is approximately correct except if we are in final sequence */
-									if (fabsf(yaw_error) < params.mission_yaw_thld || final_sequence)
-									{
-										/* calc offsets */
-										float wp_bodyframe_offset_x = final_dest_bodyframe.x - bodyframe_pos_sp.x;
-										float wp_bodyframe_offset_y = final_dest_bodyframe.y - bodyframe_pos_sp.y;
-
-										/* final mission sequence? */
-										if(!final_sequence){
-											if (fabsf(wp_bodyframe_offset_x) < params.mission_wp_radius) {
-												final_sequence = true;
-											}
-
-										} else {
-											if (fabsf(wp_bodyframe_offset_x) > params.mission_wp_radius) {
-												final_sequence = false;
-											}
-										}
-
-										/* x */
-										int x_steps = (int)(wp_bodyframe_offset_x / params.mission_update_step);
-
-
-										if (x_steps == 0) {
-
-											finish_mission = true;
-											bodyframe_pos_sp.x = bodyframe_pos_sp.x + wp_bodyframe_offset_x;
-											bodyframe_pos_sp.y = bodyframe_pos_sp.y + wp_bodyframe_offset_y;
-
-										} else {
-
-											bodyframe_pos_sp.x = bodyframe_pos_sp.x + sign(x_steps) * params.mission_update_step;
-											float update_step_y = wp_bodyframe_offset_y / fabsf((float) x_steps);
-											bodyframe_pos_sp.y = bodyframe_pos_sp.y + update_step_y;
-
-											/* debug */
-											debug_value1 = wp_bodyframe_offset_x;
-											debug_value2 = wp_bodyframe_offset_y;
-											debug_value3 = x_steps;
-
-										}
-
-									} else {
-
-										/* turn to correct yaw position before starting to move */
-										if (yaw_error > 0) {
-											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + 2.0f * params.mission_update_step_yaw;
-										} else {
-											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - 2.0f * params.mission_update_step_yaw;
-										}
 									}
 								}
 
-							} while (false); // just to use break
+								bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
+								mission_state.reaction_counter++;
+
+
+
+							/* ------------------------------------------------------------------------- *
+							 *  GO CAREFULLY													`		 *
+							 * ------------------------------------------------------------------------- */
+							} else {
+
+								/* ideal if we are parallel to wall... */
+
+								float yaw_final = get_yaw(&local_pos, &final_dest_local);
+
+								float yaw_error = yaw_final - att.yaw;
+
+								if (yaw_error > M_PI_F) {
+									yaw_error -= M_TWOPI_F;
+
+								} else if (yaw_error < -M_PI_F) {
+									yaw_error += M_TWOPI_F;
+								}
+
+								/* wait until yaw is approximately correct except if we are in final sequence */
+								if (fabsf(yaw_error) < params.mission_yaw_thld || mission_state.final_sequence)
+								{
+									/* calc offsets */
+									float wp_bodyframe_offset_x = final_dest_bodyframe.x - bodyframe_pos_sp.x;
+									float wp_bodyframe_offset_y = final_dest_bodyframe.y - bodyframe_pos_sp.y;
+
+									/* final mission sequence? */
+									if(!mission_state.final_sequence){
+										if (fabsf(wp_bodyframe_offset_x) < params.mission_wp_radius) {
+											mission_state.final_sequence = true;
+										}
+
+									} else {
+										if (fabsf(wp_bodyframe_offset_x) > params.mission_wp_radius) {
+											mission_state.final_sequence = false;
+										}
+									}
+
+									/* x */
+									int x_steps = (int)(wp_bodyframe_offset_x / params.mission_update_step);
+
+
+									if (x_steps == 0) {
+
+										/* mission accomplished */
+										do_state_update(&mission_state, mavlink_fd, MISSION_ACCOMPLISHED);
+
+										bodyframe_pos_sp.x = bodyframe_pos_sp.x + wp_bodyframe_offset_x;
+										bodyframe_pos_sp.y = bodyframe_pos_sp.y + wp_bodyframe_offset_y;
+
+									} else {
+
+										/* x and y update steps */
+										bodyframe_pos_sp.x = bodyframe_pos_sp.x + sign(x_steps) * params.mission_update_step;
+										float update_step_y = wp_bodyframe_offset_y / fabsf((float) x_steps);
+										bodyframe_pos_sp.y = bodyframe_pos_sp.y + update_step_y;
+
+										/* yaw set final only if not final sequence */
+										if (!mission_state.final_sequence) {
+											/* FIXME this makes problem */
+											//bodyframe_pos_sp.yaw = yaw_final;
+										}
+
+										/* debug */
+										debug_value1 = wp_bodyframe_offset_x;
+										debug_value2 = wp_bodyframe_offset_y;
+										debug_value3 = x_steps;
+
+									}
+
+									/* follow wall corrections if too near */
+									if (!mission_state.final_sequence) {
+
+										if (mission_state.radar_current == RADAR_FOLLOW_WALL_L) {
+											/* go straight only if too near correct to right */
+											if (discrete_radar.distances[9] < params.mission_min_side_dist) {
+												bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
+											}
+
+										} else if (mission_state.radar_current == RADAR_FOLLOW_WALL_R) {
+											/* go straight only if too near correct to right */
+											if (discrete_radar.distances[23] < params.mission_min_side_dist) {
+												bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
+											}
+
+										} else if (mission_state.radar_current == RADAR_FOLLOW_CORRIDOR) {
+											/* TODO try also to get yaw in direction of corridor */
+											if (discrete_radar.distances[9] < discrete_radar.distances[23]) {
+												/* correct to right */
+												bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
+											} else {
+												/* correct to left */
+												bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
+											}
+										}
+
+									}
+
+								} else {
+
+									/* turn to correct yaw position before starting to move */
+									if (yaw_error > 0) {
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + 2.0f * params.mission_update_step_yaw;
+									} else {
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - 2.0f * params.mission_update_step_yaw;
+									}
+								}
+							}
+
 						}
 
 						/*
@@ -815,21 +648,21 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						 * from mission commander if something goes wrong
 						 */
 						if(manual.pitch < -0.2f) {
-							bodyframe_pos_sp.x += setpoint_update_step;
+							bodyframe_pos_sp.x += 3.0f * params.mission_update_step;
 						} else if (manual.pitch > 0.2f) {
-							bodyframe_pos_sp.x -= setpoint_update_step;
+							bodyframe_pos_sp.x -= 3.0f * params.mission_update_step;
 						}
 
 						if(manual.roll < -0.2f) {
-							bodyframe_pos_sp.y -= setpoint_update_step;
+							bodyframe_pos_sp.y -= 3.0f * params.mission_update_step;
 						} else if (manual.roll > 0.2f) {
-							bodyframe_pos_sp.y += setpoint_update_step;
+							bodyframe_pos_sp.y += 3.0f * params.mission_update_step;
 						}
 
 						if(manual.yaw < -1.0f) { // bigger threshold because of rc calibration for manual flight
-							bodyframe_pos_sp.yaw -= setpoint_update_step_yaw;
+							bodyframe_pos_sp.yaw -= 3.0f * params.mission_update_step_yaw;
 						} else if (manual.yaw > 1.0f) {
-							bodyframe_pos_sp.yaw += setpoint_update_step_yaw;
+							bodyframe_pos_sp.yaw += 3.0f * params.mission_update_step_yaw;
 						}
 
 						/* modulo for rotation -pi +pi */
@@ -838,162 +671,6 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						} else if(bodyframe_pos_sp.yaw > M_PI_F) {
 							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - M_TWOPI_F;
 						}
-
-//						/* DUBUG VERSION */
-//
-//						/* calc new mission setpoint */
-//						if (mission_started) {
-//
-//							do {
-//								/* no yaw correction in final sequence -> no need for waypoint update */
-//								if(!final_sequence){
-//									/* calc final destination in bodyframe */
-//									convert_setpoint_local2bodyframe(&local_pos,&bodyframe_pos,&att,&final_dest_local,&final_dest_bodyframe);
-//								}
-//
-//								/* looking for local situation */
-//								bool front_free = true;
-//								bool front_react = false;
-//								bool wall_left = false;
-//								bool wall_right = false;
-//
-//								if(manual.roll < -0.2f) {
-//									if(manual.pitch < -0.2f) {
-//										react_state = MISSION_REACT_LEFT;
-//									} else {
-//										react_state = MISSION_FOLLOW_WALL_R;
-//									}
-//								} else if (manual.roll > 0.2f) {
-//									if(manual.pitch < -0.2f) {
-//										react_state = MISSION_REACT_RIGHT;
-//									} else {
-//										react_state = MISSION_FOLLOW_WALL_L;
-//									}
-//								} else {
-//									react_state = MISSION_CLEAR;
-//								}
-//
-//								if(!front_free) {
-//									/* stand still and make nothing waiting for better weather */
-//									/* TODO add problem solving */
-//									printf("[mission commander] %i too close to wall.\n", params.mission_min_dist);
-//									abort_mission = true;
-//									break;
-//								}
-//
-//								/* ------------------------------------------------------------------------- *
-//								 *  NEED FOR REACTION														 *
-//								 * ------------------------------------------------------------------------- */
-//								if (react_state != MISSION_CLEAR)
-//								{
-//
-//									bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
-//
-//									if (react_state == MISSION_REACT_LEFT && !wall_left) {
-//										bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
-//
-//									} else if (react_state == MISSION_REACT_RIGHT && !wall_right) {
-//										bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
-//
-//									} else if (react_state == MISSION_FOLLOW_WALL_L) {
-//										if (discrete_radar.distances[9] < params.mission_min_dist) {
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-//										}
-//
-//									} else if (react_state == MISSION_FOLLOW_WALL_R) {
-//										if (discrete_radar.distances[23] < params.mission_min_dist) {
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//										}
-//
-//									} else if (react_state == MISSION_FOLLOW_CORRIDOR) {
-//										/* TODO try also to get yaw in direction of corridor */
-//										if (discrete_radar.distances[9] < discrete_radar.distances[23]) {
-//											/* correct to right */
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-//										} else {
-//											/* correct to left */
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//										}
-//									}
-//
-//								/* ------------------------------------------------------------------------- *
-//								 *  CLEAR TO GO																 *
-//								 * ------------------------------------------------------------------------- */
-//								} else
-//								{
-//									float yaw_final = get_yaw(&local_pos, &final_dest_local);
-//									float yaw_error = yaw_final - att.yaw;
-//
-//									if (yaw_error > M_PI_F) {
-//										yaw_error -= M_TWOPI_F;
-//
-//									} else if (yaw_error < -M_PI_F) {
-//										yaw_error += M_TWOPI_F;
-//									}
-//
-//									/* wait until yaw is approximately correct */
-//									if (fabsf(yaw_error) < params.mission_yaw_thld)
-//									{
-//										/* calc offsets */
-//										float wp_bodyframe_offset_x = final_dest_bodyframe.x - bodyframe_pos_sp.x;
-//										float wp_bodyframe_offset_y = final_dest_bodyframe.y - bodyframe_pos_sp.y;
-//
-//										/* final mission sequence? */
-//										if(!final_sequence){
-//											if (fabsf(wp_bodyframe_offset_x) < params.mission_wp_radius) {
-//												final_sequence = true;
-//											}
-//
-//										} else {
-//											if (fabsf(wp_bodyframe_offset_x) > params.mission_wp_radius) {
-//												final_sequence = false;
-//											}
-//										}
-//
-//										/* x */
-//										int x_steps = (int)(wp_bodyframe_offset_x / params.mission_update_step);
-//
-//										bodyframe_pos_sp.x = bodyframe_pos_sp.x + sign(x_steps) * params.mission_update_step;
-//										float update_step_y = wp_bodyframe_offset_y / fabsf((float) x_steps);
-//										bodyframe_pos_sp.y = bodyframe_pos_sp.y + update_step_y;
-//
-//										debug_value1 = wp_bodyframe_offset_x;
-//										debug_value2 = wp_bodyframe_offset_y;
-//										debug_value3 = x_steps;
-//
-//										if (x_steps == 0) {
-//											finish_mission = true;
-//										}
-//
-//									} else {
-//
-//										/* turn to correct yaw position before starting to move */
-//										if (yaw_error > 0) {
-//											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + 2.0f * params.mission_update_step_yaw;
-//										} else {
-//											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - 2.0f * params.mission_update_step_yaw;
-//										}
-//
-//									}
-//								}
-//
-//							} while (false); // just to use break
-//						}
-//
-//						if(manual.yaw < -1.0f) { // bigger threshold because of rc calibration for manual flight
-//							bodyframe_pos_sp.yaw -= setpoint_update_step_yaw;
-//						} else if (manual.yaw > 1.0f) {
-//							bodyframe_pos_sp.yaw += setpoint_update_step_yaw;
-//						}
-//
-//						/* modulo for rotation -pi +pi */
-//						if(bodyframe_pos_sp.yaw < -M_PI_F) {
-//							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + M_TWOPI_F;
-//						} else if(bodyframe_pos_sp.yaw > M_PI_F) {
-//							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - M_TWOPI_F;
-//						}
 
 					} else
 					{
@@ -1034,6 +711,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 					perf_end(mc_loop_perf);
 
 				}
+
 			}
 
 		} else {

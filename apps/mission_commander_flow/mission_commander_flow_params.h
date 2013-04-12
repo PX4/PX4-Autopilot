@@ -38,6 +38,9 @@
  * Parameters for mission commander
  */
 
+#ifndef MISSION_COMMANDER_FLOW_PARAMS_H_
+#define MISSION_COMMANDER_FLOW_PARAMS_H_
+
 #include <systemlib/param/param.h>
 
 struct mission_commander_flow_params {
@@ -47,8 +50,10 @@ struct mission_commander_flow_params {
 	float mission_update_step_yaw; // in rad
 	float mission_yaw_thld; // in rad
 	float mission_wp_radius; // in m
-	int mission_min_dist; // in mm
-	int mission_reac_dist; // in mm
+	int mission_min_front_dist; // in mm
+	int mission_min_side_dist; // in mm
+	int mission_react_front_dist; // in mm
+	int mission_react_side_dist; // in mm
 	int mission_min_reaction_steps;
 	int mission_min_free_steps;
 	int debug; // boolean
@@ -61,21 +66,14 @@ struct mission_commander_flow_param_handles {
 	param_t mission_update_step_yaw;
 	param_t mission_yaw_thld;
 	param_t mission_wp_radius;
-	param_t mission_min_dist;
-	param_t mission_reac_dist;
+	param_t mission_min_front_dist;
+	param_t mission_min_side_dist;
+	param_t mission_react_front_dist;
+	param_t mission_react_side_dist;
 	param_t mission_min_reaction_steps;
 	param_t  mission_min_free_steps;
 	param_t debug;
 };
-
-typedef enum mission_reaction_state {
-	MISSION_CLEAR,
-	MISSION_REACT_LEFT,
-	MISSION_REACT_RIGHT,
-	MISSION_FOLLOW_WALL_R,
-	MISSION_FOLLOW_WALL_L,
-	MISSION_FOLLOW_CORRIDOR
-} mission_reaction_state_t;
 
 /**
  * Initialize all parameter handles and values
@@ -88,3 +86,5 @@ int parameters_init(struct mission_commander_flow_param_handles *h);
  *
  */
 int parameters_update(const struct mission_commander_flow_param_handles *h, struct mission_commander_flow_params *p);
+
+#endif /* MISSION_COMMANDER_FLOW_PARAMS_H_ */
