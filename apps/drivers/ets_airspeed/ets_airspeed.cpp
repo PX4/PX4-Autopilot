@@ -477,7 +477,6 @@ ETS_AIRSPEED::collect()
 		orb_copy(ORB_ID(sensor_combined), _sensor_sub, &raw);
 		printf("baro temp %3.6f\n", raw.baro_pres_mbar);
 	}
-		unlock();
 	//if (raw.baro_temp_celcius > 0) 
 	//	log("baro temp %3.3f\n", (uint8_t) raw.baro_temp_celcius);
 
