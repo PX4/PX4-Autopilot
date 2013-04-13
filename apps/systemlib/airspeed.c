@@ -97,7 +97,7 @@ float calc_true_airspeed(float total_pressure, float static_pressure, float temp
 	float density = get_air_density(static_pressure, temperature_celsius);
 	if (density < 0.0001f || !isfinite(density)) {
 	 density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
-	 printf("[airspeed] Invalid air density, using density at sea level\n");
+//	 printf("[airspeed] Invalid air density, using density at sea level\n");
 	}
 
 	float pressure_difference = total_pressure - static_pressure;

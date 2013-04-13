@@ -47,18 +47,18 @@
 #define AIRSPEED_DEVICE_PATH	"/dev/airspeed"
 
 /**
- * Airspeed report structure.  Reads from the device must be in multiples of this
+ * Airspeed report structure. Reads from the device must be in multiples of this
  * structure.
  */
-struct airspeed_report {
-	uint64_t timestamp;
-	uint8_t speed; 			/** in meters/sec */
-};
+//struct airspeed_report {
+//	uint64_t timestamp;
+//	uint8_t diff_pressure;		/** differential pressure in Pa */
+//};
 
 /*
  * ObjDev tag for raw range finder data.
  */
-ORB_DECLARE(sensor_differential_pressure);
+//ORB_DECLARE(sensor_differential_pressure);
 
 /*
  * ioctl() definitions
@@ -67,7 +67,7 @@ ORB_DECLARE(sensor_differential_pressure);
  * interfaces from drv_sensor.h
  */
 
-#define _AIRSPEEDIOCBASE			(0x7700)
+#define _AIRSPEEDIOCBASE		(0x7700)
 #define __AIRSPEEDIOC(_n)		(_IOC(_AIRSPEEDIOCBASE, _n))
 
 

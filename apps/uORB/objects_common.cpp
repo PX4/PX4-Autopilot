@@ -56,9 +56,6 @@ ORB_DEFINE(sensor_baro, struct baro_report);
 #include <drivers/drv_range_finder.h>
 ORB_DEFINE(sensor_range_finder, struct range_finder_report);
 
-#include <drivers/drv_airspeed.h>
-ORB_DEFINE(sensor_differential_pressure, struct airspeed_report);
-
 #include <drivers/drv_pwm_output.h>
 ORB_DEFINE(output_pwm, struct pwm_output_values);
 
