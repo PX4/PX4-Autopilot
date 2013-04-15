@@ -310,9 +310,9 @@ private:
 	BlockLimit _theLimit;
 	BlockLimit _vLimit;
 
-	// altitude/ roc hold
+	// altitude/ climb rate hold
 	BlockPID _h2Thr;
-	BlockPID _roc2Thr;
+	BlockPID _cr2Thr;
 
 	// guidance
 	BlockWaypointGuidance _guide;
@@ -323,7 +323,7 @@ private:
 	BlockParam<float> _trimRdr;
 	BlockParam<float> _trimThr;
 	BlockParam<float> _vCmd;
-	BlockParam<float> _rocMax;
+	BlockParam<float> _crMax;
 
 	struct pollfd _attPoll;
 	vehicle_global_position_setpoint_s _lastPosCmd;
