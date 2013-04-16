@@ -52,8 +52,10 @@ PARAM_DEFINE_INT32(MCF_MIN_FDIST, 1000);
 PARAM_DEFINE_INT32(MCF_MIN_SDIST, 500);
 PARAM_DEFINE_INT32(MCF_REAC_FDIST, 2000);
 PARAM_DEFINE_INT32(MCF_REAC_SDIST, 1000);
-PARAM_DEFINE_INT32(MCF_MIN_REAC, 20);
-PARAM_DEFINE_INT32(MCF_MIN_FREE, 10);
+PARAM_DEFINE_FLOAT(MCF_REAC_ANG, 0.26f);
+PARAM_DEFINE_FLOAT(MCF_REAC_O_ANG, 0.09f);
+PARAM_DEFINE_FLOAT(MCF_REAC_PASS, 1.0f);
+PARAM_DEFINE_FLOAT(MCF_REAC_FREE, 0.5f);
 PARAM_DEFINE_INT32(MCF_DEBUG, 0);
 
 
@@ -70,8 +72,10 @@ int parameters_init(struct mission_commander_flow_param_handles *h)
 	h->mission_min_side_dist		=	param_find("MCF_MIN_SDIST");
 	h->mission_react_front_dist		=	param_find("MCF_REAC_FDIST");
 	h->mission_react_side_dist		=	param_find("MCF_REAC_SDIST");
-	h->mission_min_reaction_steps	=	param_find("MCF_MIN_REAC");
-	h->mission_min_free_steps		=	param_find("MCF_MIN_FREE");
+	h->reaction_min_react_angle		=	param_find("MCF_REAC_ANG");
+	h->reaction_min_overreact_angle =	param_find("MCF_REAC_O_ANG");
+	h->reaction_min_pass_distance	=	param_find("MCF_REAC_PASS");
+	h->reaction_min_free_distance	=	param_find("MCF_REAC_FREE");
 	h->debug						=	param_find("MCF_DEBUG");
 
 	return OK;
@@ -89,9 +93,17 @@ int parameters_update(const struct mission_commander_flow_param_handles *h, stru
 	param_get(h->mission_min_side_dist, &(p->mission_min_side_dist));
 	param_get(h->mission_react_front_dist, &(p->mission_react_front_dist));
 	param_get(h->mission_react_side_dist, &(p->mission_react_side_dist));
-	param_get(h->mission_min_reaction_steps, &(p->mission_min_reaction_steps));
-	param_get(h->mission_min_free_steps, &(p->mission_min_free_steps));
+	param_get(h->reaction_min_react_angle, &(p->reaction_min_react_angle));
+	param_get(h->reaction_min_overreact_angle, &(p->reaction_min_overreact_angle));
+	param_get(h->reaction_min_pass_distance, &(p->reaction_min_pass_distance));
+	param_get(h->reaction_min_free_distance, &(p->reaction_min_free_distance));
 	param_get(h->debug, &(p->debug));
+
+	/* calc counters from other parameters */
+	p->counter_react_angle = (int)(p->reaction_min_react_angle / p->mission_update_step_yaw);
+	p->counter_overreact_angle = (int)(p->reaction_min_overreact_angle / p->mission_update_step_yaw);
+	p->counter_pass_distance = (int)(p->reaction_min_pass_distance / p->mission_update_step);
+	p->counter_free_distance = (int)(p->reaction_min_free_distance / p->mission_update_step);
 
 	return OK;
 }

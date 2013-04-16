@@ -16,15 +16,14 @@ void init_state(struct mission_state_s *state) {
 	state->state_counter = 0;
 	state->final_sequence = false;
 
-	state->radar_previous = RADAR_CLEAR;
+	state->radar_previous = RADAR_NO_STATE;
 	state->radar_current = RADAR_CLEAR;
-	state->radar_next = RADAR_CLEAR;
-	state->front_free = true;
-	state->front_react = false;
+	state->radar_next = RADAR_NO_STATE;
 	state->wall_left = false;
 	state->wall_left = false;
 
-	state->react = REACT_TEST;
+	state->react_current = REACT_TEST;
+	state->react_next = REACT_NO_STATE;
 	state->reaction_counter = 0;
 
 }
@@ -58,7 +57,7 @@ void do_state_update(struct mission_state_s *current_state, int mavlink_fd, miss
 		mavlink_log_info(mavlink_fd, "[mission commander] mission aborted.");
 		tune_mission_aborted();
 
-	} else if (new_state == MISSION_ABORTED) {
+	} else if (new_state == MISSION_RESETED) {
 
 		printf("[mission commander] mission reseted.\n");
 		mavlink_log_info(mavlink_fd, "[mission commander] mission reseted.");
@@ -68,22 +67,33 @@ void do_state_update(struct mission_state_s *current_state, int mavlink_fd, miss
 
 void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params, int mavlink_fd, struct discrete_radar_s *new_radar) {
 
+	/* if the next reaction state is overdue -> set it as current*/
+	if (current_state->react_next != REACT_NO_STATE) {
+		if (current_state->reaction_counter == 0) {
+			current_state->react_current = current_state->react_next;
+			current_state->react_next = REACT_NO_STATE;
+		}
+	}
+
+	bool front_free = true;
+	bool front_react = false;
+
 	/* check new front condition */
 	for(int i = 14; i<19; i++)
 	{
 		if (new_radar->distances[i] < params->mission_min_front_dist) {
-			current_state->front_free = false;
+			front_free = false;
 		} else if(new_radar->distances[i] < params->mission_react_front_dist) {
-			current_state->front_react = true;
+			front_react = true;
 		}
 	}
 
-	if(!current_state->front_free) {
+	if(!front_free) {
 		/* stand still and make nothing waiting for better weather */
 		/* TODO add problem solving */
 		printf("[mission commander] too close to wall.\n");
-		do_state_update(&current_state, mavlink_fd, MISSION_ABORTED);
-		return -1;
+		do_state_update(current_state, mavlink_fd, MISSION_ABORTED);
+		return;
 	}
 
 	/* check new side-freeness */
@@ -103,18 +113,18 @@ void do_radar_update(struct mission_state_s *current_state, struct mission_comma
 
 	if(current_state->radar_current == RADAR_CLEAR) {
 		/* TODO what if a wall appears? */
-		if(current_state->front_react) {
+		if(front_react) {
 			/* obstacle is detected */
 			if (left > right) {
 				current_state->radar_current = RADAR_REACT_LEFT;
-				current_state->react = REACT_TURN;
+				current_state->react_current = REACT_TURN;
 				mavlink_log_info(mavlink_fd, "[mission commander] react left");
-				current_state->reaction_counter = 0;
+				current_state->reaction_counter = params->counter_react_angle;
 			} else {
 				current_state->radar_current = RADAR_REACT_RIGHT;
-				current_state->react = REACT_TURN;
+				current_state->react_current = REACT_TURN;
 				mavlink_log_info(mavlink_fd, "[mission commander] react right");
-				current_state->reaction_counter = 0;
+				current_state->reaction_counter = params->counter_react_angle;
 			}
 		} else if (left < params->mission_react_side_dist) {
 			current_state->radar_current = RADAR_FOLLOW_WALL_L;
@@ -126,12 +136,12 @@ void do_radar_update(struct mission_state_s *current_state, struct mission_comma
 
 	} else if (current_state->radar_current == RADAR_FOLLOW_WALL_L ) {
 		/* TODO what if a wall appears? */
-		if(current_state->front_react) {
+		if(front_react) {
 			/* obstacle is detected */
 			current_state->radar_current = RADAR_REACT_RIGHT;
-			current_state->react = REACT_TURN;
+			current_state->react_current = REACT_TURN;
 			mavlink_log_info(mavlink_fd, "[mission commander] react right");
-			current_state->reaction_counter = 0;
+			current_state->reaction_counter = params->counter_react_angle;
 
 		} else if (left > params->mission_react_side_dist) {
 			current_state->radar_current = RADAR_CLEAR;
@@ -141,12 +151,12 @@ void do_radar_update(struct mission_state_s *current_state, struct mission_comma
 
 	} else if (current_state->radar_current == RADAR_FOLLOW_WALL_R) {
 		/* TODO what if a wall appears? */
-		if(current_state->front_react) {
+		if(front_react) {
 			/* obstacle is detected */
 			current_state->radar_current = RADAR_REACT_LEFT;
-			current_state->react = REACT_TURN;
+			current_state->react_current = REACT_TURN;
 			mavlink_log_info(mavlink_fd, "[mission commander] react left");
-			current_state->reaction_counter = 0;
+			current_state->reaction_counter = params->counter_react_angle;
 
 		} else if (right > params->mission_react_side_dist) {
 			current_state->radar_current = RADAR_CLEAR;
@@ -170,56 +180,81 @@ void do_radar_update(struct mission_state_s *current_state, struct mission_comma
 
 		if (current_state->wall_left && current_state->wall_right) {
 			/* continue until both walls are too near */
-			if (	(current_state->react == RADAR_REACT_LEFT && left < params->mission_min_side_dist) ||
+			if (	(current_state->radar_current == RADAR_REACT_LEFT && left < params->mission_min_side_dist) ||
 					(current_state->radar_current == RADAR_REACT_RIGHT && right < params->mission_min_side_dist)
 				) {
 				/* stand still and make nothing waiting for better weather */
 				/* TODO add problem solving */
 				printf("[mission commander] too close to side walls.\n");
-				do_state_update(&current_state, mavlink_fd, MISSION_ABORTED);
-				return -1;
+				do_state_update(current_state, mavlink_fd, MISSION_ABORTED);
+				return;
 			}
 
 		}
 
-		if (current_state->react == REACT_TURN) {
+		if (current_state->react_current == REACT_TURN) {
 
-			if (front_dist > params->mission_react_front_dist && current_state->reaction_counter > params->mission_min_reaction_steps) {
-				current_state->react = REACT_PASS_OBJECT;
+			/* if front is free again plan next reaction */
+			if (front_dist > params->mission_react_front_dist) {
+				if (current_state->react_next == REACT_NO_STATE) {
+					// set next state
+					current_state->react_next = REACT_PASS_OBJECT;
+					current_state->reaction_counter = current_state->reaction_counter + params->counter_overreact_angle;
 
-				if (current_state->radar_current == RADAR_REACT_LEFT) {
-					mavlink_log_info(mavlink_fd, "[mission commander] pass right");
+					if (current_state->radar_current == RADAR_REACT_LEFT) {
+						// TODO add counter value
+						mavlink_log_info(mavlink_fd, "[mission commander] pass right");
 
-				} else {
-					mavlink_log_info(mavlink_fd, "[mission commander] pass left");
-				}
-				/* reset counter to use it for pass counter */
-				current_state->reaction_counter;
-			}
-
-		} else if (current_state->react == REACT_PASS_OBJECT) {
-
-			if (current_state->reaction_counter > params->mission_min_free_steps) {
-				/* if way is free change mission state */
-				bool free_radar = true;
-				for(int i = 0; i<32; i++) {
-
-					if(new_radar->distances[i] < params->mission_react_side_dist) {
-						free_radar = false;
+					} else {
+						mavlink_log_info(mavlink_fd, "[mission commander] pass left");
 					}
 				}
-				if (free_radar) {
-					current_state->react = REACT_TEST;
-					current_state->reaction_counter = 0;
-					mavlink_log_info(mavlink_fd, "[mission commander] clear");
+			}
+
+		} else if (current_state->react_current == REACT_PASS_OBJECT) {
+
+
+			if (front_dist > params->mission_react_front_dist) {
+
+				if (	(current_state->radar_current == RADAR_REACT_LEFT && !current_state->wall_right) ||
+						(current_state->radar_current == RADAR_REACT_RIGHT && !current_state->wall_left)) {
+					/* if there is no object on the side plan next reaction */
+					if (current_state->react_next == REACT_NO_STATE) {
+						current_state->react_next = REACT_TEST;
+						current_state->reaction_counter = current_state->reaction_counter + params->counter_free_distance;
+					}
+
+				} else if (	(current_state->radar_current == RADAR_REACT_LEFT && current_state->wall_right) ||
+							(current_state->radar_current == RADAR_REACT_RIGHT && current_state->wall_left)) {
+
+					/* there is a wall reset next reaction if already planed */
+					if (current_state->react_next != REACT_NO_STATE) {
+						current_state->react_next = REACT_NO_STATE;
+					}
 				}
+			} else {
 
+				/* we again need a turn -> go one step back? */
+				current_state->react_current = REACT_TURN;
+				current_state->reaction_counter = params->counter_react_angle;
 			}
-		} else if (current_state->react == REACT_PASS_OBJECT) {
 
-			if (current_state->reaction_counter > params->mission_min_free_steps) {
+		} else if (current_state->react_current == REACT_TEST) {
+
+			if (	(current_state->radar_current == RADAR_REACT_LEFT && !current_state->wall_right) ||
+					(current_state->radar_current == RADAR_REACT_RIGHT && !current_state->wall_left)) {
+
+				current_state->radar_previous = current_state->radar_current;
 				current_state->radar_current = RADAR_CLEAR;
+				mavlink_log_info(mavlink_fd, "[mission commander] clear");
+
+			} else {
+
+				/* we need to go back */
+				current_state->react_current = REACT_PASS_OBJECT;
+
 			}
+
 		}
 
 	}

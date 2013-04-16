@@ -54,8 +54,14 @@ struct mission_commander_flow_params {
 	int mission_min_side_dist; // in mm
 	int mission_react_front_dist; // in mm
 	int mission_react_side_dist; // in mm
-	int mission_min_reaction_steps;
-	int mission_min_free_steps;
+	float reaction_min_react_angle;
+	float reaction_min_overreact_angle;
+	float reaction_min_pass_distance;
+	float reaction_min_free_distance;
+	int counter_react_angle;
+	int counter_overreact_angle;
+	int counter_pass_distance;
+	int counter_free_distance;
 	int debug; // boolean if mission planning manually
 };
 
@@ -70,8 +76,10 @@ struct mission_commander_flow_param_handles {
 	param_t mission_min_side_dist;
 	param_t mission_react_front_dist;
 	param_t mission_react_side_dist;
-	param_t mission_min_reaction_steps;
-	param_t  mission_min_free_steps;
+	param_t reaction_min_react_angle;
+	param_t reaction_min_overreact_angle;
+	param_t reaction_min_pass_distance;
+	param_t reaction_min_free_distance;
 	param_t debug;
 };
 

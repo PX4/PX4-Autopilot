@@ -22,15 +22,18 @@ typedef enum mission_states {
 } mission_state_t;
 
 typedef enum radar_states {
+	RADAR_NO_STATE,
 	RADAR_CLEAR,
 	RADAR_REACT_LEFT,
 	RADAR_REACT_RIGHT,
 	RADAR_FOLLOW_WALL_R,
 	RADAR_FOLLOW_WALL_L,
-	RADAR_FOLLOW_CORRIDOR
+	RADAR_FOLLOW_CORRIDOR,
+	RADAR_STOP
 } radar_state_t;
 
 typedef enum reaction_states {
+	REACT_NO_STATE,
 	REACT_TURN,
 	REACT_PASS_OBJECT,
 	REACT_TEST
@@ -44,16 +47,15 @@ struct mission_state_s {
 	radar_state_t radar_previous;
 	radar_state_t radar_current;
 	radar_state_t radar_next;
-	bool front_free;
-	bool front_react;
 	bool wall_left;
 	bool wall_right;
 
-	reaction_state_t react;
+	reaction_state_t react_current;
+	reaction_state_t react_next;
 	int reaction_counter;
 };
 
-void do_init_state(struct mission_state_s *state);
+void init_state(struct mission_state_s *state);
 void do_state_update(struct mission_state_s *current_state, int mavlink_fd, mission_state_t new_state);
 void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params, int mavlink_fd, struct discrete_radar_s *new_radar);
 

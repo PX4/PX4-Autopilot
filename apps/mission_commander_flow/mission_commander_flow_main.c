@@ -408,37 +408,52 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						/* DEBUG FIXME manual mission planner */
 						if (mission_state.state == MISSION_STARTED) {
 							if (params.debug) {
+								reaction_state_t previous_react_state = mission_state.react_current;
 								if (manual.roll > 0.2f) {
-									if (mission_state.radar_current != RADAR_REACT_RIGHT) {
-										mavlink_log_info(mavlink_fd, "[mission commander] react right.");
-									}
+									mission_state.radar_current = RADAR_REACT_RIGHT;
 									if(manual.pitch > 0.2f) {
-										mission_state.radar_current = RADAR_REACT_RIGHT;
-										mission_state.react = REACT_TEST;
-									} if(manual.pitch < -0.2f) {
-										mission_state.radar_current = RADAR_REACT_RIGHT;
-										mission_state.react = REACT_TURN;
+										mission_state.react_current = REACT_TEST;
+									} else if(manual.pitch < -0.2f) {
+										mission_state.react_current = REACT_TURN;
 									} else {
-										mission_state.radar_current = RADAR_REACT_RIGHT;
-										mission_state.react = REACT_PASS_OBJECT;
+										mission_state.react_current = REACT_PASS_OBJECT;
 									}
 								} else if(manual.roll < -0.2f) {
-									if (mission_state.radar_current != RADAR_REACT_LEFT) {
-										mavlink_log_info(mavlink_fd, "[mission commander] react left.");
-									}
+									mission_state.radar_current = RADAR_REACT_LEFT;
 									if(manual.pitch > 0.2f) {
-										mission_state.radar_current = RADAR_REACT_LEFT;
-										mission_state.react = REACT_TEST;
-									} if(manual.pitch < -0.2f) {
-										mission_state.radar_current = RADAR_REACT_LEFT;
-										mission_state.react = REACT_TURN;
+										mission_state.react_current = REACT_TEST;
+									} else if(manual.pitch < -0.2f) {
+										mission_state.react_current = REACT_TURN;
 									} else {
-										mission_state.radar_current = RADAR_REACT_LEFT;
-										mission_state.react = REACT_PASS_OBJECT;
+										mission_state.react_current = REACT_PASS_OBJECT;
 									}
 								} else {
+									if (mission_state.radar_previous == RADAR_NO_STATE) {
+										mission_state.radar_previous = mission_state.radar_current;
+									}
 									mission_state.radar_current = RADAR_CLEAR;
-									mission_state.react = REACT_TEST;
+									mission_state.react_current = REACT_NO_STATE;
+									mission_state.react_next = REACT_NO_STATE;
+								}
+								if (previous_react_state != mission_state.react_current){
+									/* log debug actions */
+									if (mission_state.radar_current == RADAR_REACT_LEFT) {
+										if (mission_state.react_current == REACT_TURN) {
+											mavlink_log_info(mavlink_fd, "[mcf] debug left turn.");
+										} else if (mission_state.react_current == REACT_PASS_OBJECT) {
+											mavlink_log_info(mavlink_fd, "[mcf] debug left pass."); //-------------
+										} else if (mission_state.react_current == REACT_TEST) {
+											mavlink_log_info(mavlink_fd, "[mcf] debug left test.");
+										}
+									} else if (mission_state.radar_current == RADAR_REACT_RIGHT) {
+										if (mission_state.react_current == REACT_TURN) {
+											mavlink_log_info(mavlink_fd, "[mcf] debug right turn.");
+										} else if (mission_state.react_current == REACT_PASS_OBJECT) {
+											mavlink_log_info(mavlink_fd, "[mcf] debug right pass.");
+										} else if (mission_state.react_current == REACT_TEST) {
+											mavlink_log_info(mavlink_fd, "[mcf] debug right test."); // --------------
+										}
+									}
 								}
 							}
 						}
@@ -526,57 +541,76 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 							 * ------------------------------------------------------------------------- */
 							if (mission_state.radar_current == RADAR_REACT_LEFT || mission_state.radar_current == RADAR_REACT_RIGHT) {
 
+								reaction_state_t reaction_state = mission_state.react_current;
+								if (mission_state.react_next != REACT_NO_STATE) {
+									if (mission_state.reaction_counter == 0) {
+										reaction_state = mission_state.react_next;
+									}
+								}
+
 								/* react left */
 								if (mission_state.radar_current == RADAR_REACT_LEFT) {
 
-									if (mission_state.react == REACT_TURN) {
-										if (!mission_state.wall_left) {
-											/* do this update only if no wall on the left side */
-											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-										}
+									if (reaction_state == REACT_TURN) {
+//										if (!mission_state.wall_left) {
+//											/* do this update only if no wall on the left side */
+//											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
+//										}
 										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
 
-									} else if (mission_state.react == REACT_PASS_OBJECT) {
+									} else if (reaction_state == REACT_PASS_OBJECT) {
 										/* go straight only if too near correct to left */
 										if (discrete_radar.distances[23] < params.mission_min_side_dist) {
 											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
 										}
 
-									} else if (mission_state.react == REACT_TEST) {
+									} else if (reaction_state == REACT_TEST) {
 
-
+										/* turn back */
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
 									}
 
 								/* react right */
 								} else if (mission_state.radar_current == RADAR_REACT_RIGHT) {
 
-									if (mission_state.react == REACT_TURN) {
-										if (!mission_state.wall_right) {
-											/* do this update only if no wall on the right side */
-											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-										}
+									if (reaction_state == REACT_TURN) {
+//										if (!mission_state.wall_right) {
+//											/* do this update only if no wall on the right side */
+//											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
+//										}
 										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
 
-									} else if (mission_state.react == REACT_PASS_OBJECT) {
+									} else if (reaction_state == REACT_PASS_OBJECT) {
 										/* go straight only if too near correct to right */
 										if (discrete_radar.distances[23] < params.mission_min_side_dist) {
 											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
 										}
 
-									} else if (mission_state.react == REACT_TEST) {
+									} else if (reaction_state == REACT_TEST) {
 
+										/* turn back */
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
 									}
 								}
 
 								bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
-								mission_state.reaction_counter++;
 
+								// decrease reaction counter if not already zero
+								if (mission_state.reaction_counter > 0) {
+									mission_state.reaction_counter--;
+								}
 
 
 							/* ------------------------------------------------------------------------- *
 							 *  GO CAREFULLY													`		 *
 							 * ------------------------------------------------------------------------- */
 							} else {
+
+								/* reset previous radar state if set */
+								if (mission_state.radar_previous != RADAR_NO_STATE) {
+									mission_state.radar_previous = RADAR_NO_STATE;
+								}
+
 
 								/* ideal if we are parallel to wall... */
 
@@ -672,11 +706,28 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 								} else {
 
-									/* turn to correct yaw position before starting to move */
-									if (yaw_error > 0) {
-										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + 2.0f * params.mission_update_step_yaw;
+									if (mission_state.radar_previous == RADAR_REACT_LEFT) {
+
+										bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
+
+									} else if (mission_state.radar_previous == RADAR_REACT_RIGHT) {
+
+										bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
+
 									} else {
-										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - 2.0f * params.mission_update_step_yaw;
+
+										if (fabs(yaw_error) < M_PI_2_F) {
+											bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
+										}
+
+										/* turn to correct yaw position before starting to move */
+										if (yaw_error > 0) {
+											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
+										} else {
+											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
+										}
 									}
 								}
 							}
@@ -688,8 +739,9 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						/*
 						 * manually update position setpoint -> e.g. overwrite commands
 						 * from mission commander if something goes wrong
+						 * in DEBUG state pitch and roll are for a different purpose
 						 */
-						if (!params.debug) {
+						if (mission_state.state != MISSION_STARTED || !params.debug) {
 							if(manual.pitch < -0.2f) {
 								bodyframe_pos_sp.x += 2.0f * params.mission_update_step;
 							} else if (manual.pitch > 0.2f) {
