@@ -404,6 +404,44 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 								}
 							}
 						}
+
+						/* DEBUG FIXME manual mission planner */
+						if (mission_state.state == MISSION_STARTED) {
+							if (params.debug) {
+								if (manual.roll > 0.2f) {
+									if (mission_state.radar_current != RADAR_REACT_RIGHT) {
+										mavlink_log_info(mavlink_fd, "[mission commander] react right.");
+									}
+									if(manual.pitch > 0.2f) {
+										mission_state.radar_current = RADAR_REACT_RIGHT;
+										mission_state.react = REACT_TEST;
+									} if(manual.pitch < -0.2f) {
+										mission_state.radar_current = RADAR_REACT_RIGHT;
+										mission_state.react = REACT_TURN;
+									} else {
+										mission_state.radar_current = RADAR_REACT_RIGHT;
+										mission_state.react = REACT_PASS_OBJECT;
+									}
+								} else if(manual.roll < -0.2f) {
+									if (mission_state.radar_current != RADAR_REACT_LEFT) {
+										mavlink_log_info(mavlink_fd, "[mission commander] react left.");
+									}
+									if(manual.pitch > 0.2f) {
+										mission_state.radar_current = RADAR_REACT_LEFT;
+										mission_state.react = REACT_TEST;
+									} if(manual.pitch < -0.2f) {
+										mission_state.radar_current = RADAR_REACT_LEFT;
+										mission_state.react = REACT_TURN;
+									} else {
+										mission_state.radar_current = RADAR_REACT_LEFT;
+										mission_state.react = REACT_PASS_OBJECT;
+									}
+								} else {
+									mission_state.radar_current = RADAR_CLEAR;
+									mission_state.react = REACT_TEST;
+								}
+							}
+						}
 					} else {
 
 						if (mission_state.state != MISSION_RESETED) {
@@ -441,7 +479,9 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(discrete_radar), discrete_radar_sub, &discrete_radar);
 
 					if (mission_state.state == MISSION_STARTED) {
-						do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar);
+						if (!params.debug) {
+							do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar);
+						}
 					}
 				}
 
@@ -641,28 +681,32 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 								}
 							}
 
+							mission_state.state_counter++;
+
 						}
 
 						/*
 						 * manually update position setpoint -> e.g. overwrite commands
 						 * from mission commander if something goes wrong
 						 */
-						if(manual.pitch < -0.2f) {
-							bodyframe_pos_sp.x += 3.0f * params.mission_update_step;
-						} else if (manual.pitch > 0.2f) {
-							bodyframe_pos_sp.x -= 3.0f * params.mission_update_step;
-						}
+						if (!params.debug) {
+							if(manual.pitch < -0.2f) {
+								bodyframe_pos_sp.x += 2.0f * params.mission_update_step;
+							} else if (manual.pitch > 0.2f) {
+								bodyframe_pos_sp.x -= 2.0f * params.mission_update_step;
+							}
 
-						if(manual.roll < -0.2f) {
-							bodyframe_pos_sp.y -= 3.0f * params.mission_update_step;
-						} else if (manual.roll > 0.2f) {
-							bodyframe_pos_sp.y += 3.0f * params.mission_update_step;
+							if(manual.roll < -0.2f) {
+								bodyframe_pos_sp.y -= 2.0f * params.mission_update_step;
+							} else if (manual.roll > 0.2f) {
+								bodyframe_pos_sp.y += 2.0f * params.mission_update_step;
+							}
 						}
 
 						if(manual.yaw < -1.0f) { // bigger threshold because of rc calibration for manual flight
-							bodyframe_pos_sp.yaw -= 3.0f * params.mission_update_step_yaw;
+							bodyframe_pos_sp.yaw -= 2.0f * params.mission_update_step_yaw;
 						} else if (manual.yaw > 1.0f) {
-							bodyframe_pos_sp.yaw += 3.0f * params.mission_update_step_yaw;
+							bodyframe_pos_sp.yaw += 2.0f * params.mission_update_step_yaw;
 						}
 
 						/* modulo for rotation -pi +pi */

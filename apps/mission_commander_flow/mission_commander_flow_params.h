@@ -56,7 +56,7 @@ struct mission_commander_flow_params {
 	int mission_react_side_dist; // in mm
 	int mission_min_reaction_steps;
 	int mission_min_free_steps;
-	int debug; // boolean
+	int debug; // boolean if mission planning manually
 };
 
 struct mission_commander_flow_param_handles {
