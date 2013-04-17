@@ -43,6 +43,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#include <math.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -104,6 +105,13 @@ static void zeroes(FAR struct lib_outstream_s *obj, int nzeroes)
  * Private Functions
  ****************************************************************************/
 
+static void lib_dtoa_string(FAR struct lib_outstream_s *obj, const char *str)
+{
+	while (*str) {
+		obj->put(obj, *str++);
+	}
+}
+
 /****************************************************************************
  * Name: lib_dtoa
  *
@@ -138,8 +146,21 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
   int  dsgn;            /* Unused sign indicator */
   int  i;
 
-  /* Non-zero... positive or negative */
+  /* special handling for NaN and Infinity */
+  if (isnan(value)) {
+	  lib_dtoa_string(obj, "NaN");
+	  return;
+  }
+  if (isinf(value)) {
+	  if (value < 0.0d) {
+		  obj->put(obj, '-');
+	  }
+	  lib_dtoa_string(obj, "Infinity");
+	  return;	  
+  }
 
+  /* Non-zero... positive or negative */
+  
   if (value < 0)
     {
       value = -value;
