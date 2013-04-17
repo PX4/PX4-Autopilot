@@ -684,9 +684,10 @@ L3GD20::measure()
 	 *		  74 from all measurements centers them around zero.
 	 */
 	report->timestamp = hrt_absolute_time();
-	/* XXX adjust for sensor alignment to board here */
-	report->x_raw = raw_report.x;
-	report->y_raw = raw_report.y;
+	
+	/* swap x and y and negate y */
+	report->x_raw = raw_report.y;
+	report->y_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
 	report->z_raw = raw_report.z;
 
 	report->x = ((report->x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
