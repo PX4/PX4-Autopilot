@@ -12,6 +12,7 @@ ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 #
 MODULES		+= drivers/boards/px4fmuv2
 MODULES		+= drivers/lsm303d
+MODULES		+= drivers/l3gd20
 MODULES		+= drivers/px4fmu
 MODULES		+= drivers/rgbled
 
@@ -43,7 +44,6 @@ BUILTIN_COMMANDS := \
 	$(call _B, hil,                    ,                          2048,  hil_main                   ) \
 	$(call _B, hott_telemetry,         ,                          2048,  hott_telemetry_main        ) \
 	$(call _B, kalman_demo,            SCHED_PRIORITY_MAX-30,     2048,  kalman_demo_main           ) \
-	$(call _B, l3gd20,                 ,                          2048,  l3gd20_main                ) \
 	$(call _B, math_demo,              ,                          8192,  math_demo_main             ) \
 	$(call _B, mavlink,                ,                          2048,  mavlink_main               ) \
 	$(call _B, mavlink_onboard,        ,                          2048,  mavlink_onboard_main       ) \
