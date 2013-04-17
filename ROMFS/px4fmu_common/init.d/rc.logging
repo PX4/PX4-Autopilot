@@ -1,0 +1,9 @@
+#!nsh
+#
+# Initialise logging services.
+#
+
+if [ -d /fs/microsd ]
+then
+	sdlog start
+fi

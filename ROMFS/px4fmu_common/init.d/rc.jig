@@ -1,0 +1,10 @@
+#!nsh
+#
+# Test jig startup script
+#
+
+echo "[testing] doing production test.."
+
+tests jig
+
+echo "[testing] testing done"

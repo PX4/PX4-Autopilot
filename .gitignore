@@ -56,3 +56,6 @@ core
 mkdeps
 Archives
 Build
+!ROMFS/*/*.d
+!ROMFS/*/*/*.d
+!ROMFS/*/*/*/*.d
