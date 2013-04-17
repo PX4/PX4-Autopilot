@@ -321,7 +321,15 @@ private:
 	 * 			Zero selects the highest bandwidth
 	 * @return		OK if the value can be supported, -ERANGE otherwise.
 	 */
-	int					set_antialias_filter_bandwidth(unsigned max_g);
+	int					set_antialias_filter_bandwidth(unsigned bandwith);
+
+	/**
+	 * Get the LSM303D accel anti-alias filter.
+	 *
+	 * @param bandwidth The anti-alias filter bandwidth in Hz
+	 * @return		OK if the value was read and supported, ERROR otherwise.
+	 */
+	int					get_antialias_filter_bandwidth(unsigned &bandwidth);
 
 	/**
 	 * Set the LSM303D internal accel sampling frequency.
@@ -477,10 +485,10 @@ LSM303D::init()
 	/* XXX should we enable FIFO? */
 
 	set_range(8); /* XXX 16G mode seems wrong (shows 6 instead of 9.8m/s^2, therefore use 8G for now */
-	set_antialias_filter_bandwidth(194); /* XXX: choose bandwidth: 50, 194, 362 or 773 Hz */
+	set_antialias_filter_bandwidth(50); /* available bandwidths: 50, 194, 362 or 773 Hz */
 	set_samplerate(400); /* max sample rate */
 
-	mag_set_range(12); /* XXX: take highest sensor range of 12GA? */
+	mag_set_range(4); /* XXX: take highest sensor range of 12GA? */
 	mag_set_samplerate(100);
 
 	/* XXX test this when another mag is used */
@@ -686,6 +694,17 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		/* XXX implement */
 		return -EINVAL;
+
+//	case ACCELIOCSLOWPASS:
+	case ACCELIOCGLOWPASS:
+
+		unsigned bandwidth;
+
+		if (OK == get_antialias_filter_bandwidth(bandwidth))
+			return bandwidth;
+		else
+			return -EINVAL;
+
 
 	default:
 		/* give it to the superclass */
@@ -938,6 +957,25 @@ LSM303D::set_antialias_filter_bandwidth(unsigned bandwidth)
 	}
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
+
+	return OK;
+}
+
+int
+LSM303D::get_antialias_filter_bandwidth(unsigned &bandwidth)
+{
+	uint8_t readbits = read_reg(ADDR_CTRL_REG2);
+
+	if ((readbits & REG2_ANTIALIAS_FILTER_BW_BITS_A) == REG2_AA_FILTER_BW_50HZ_A)
+		bandwidth = 50;
+	else if ((readbits & REG2_ANTIALIAS_FILTER_BW_BITS_A) == REG2_AA_FILTER_BW_194HZ_A)
+		bandwidth = 194;
+	else if ((readbits & REG2_ANTIALIAS_FILTER_BW_BITS_A) == REG2_AA_FILTER_BW_362HZ_A)
+		bandwidth = 362;
+	else if ((readbits & REG2_ANTIALIAS_FILTER_BW_BITS_A) == REG2_AA_FILTER_BW_773HZ_A)
+		bandwidth = 773;
+	else
+		return ERROR;
 
 	return OK;
 }
@@ -1305,6 +1343,7 @@ test()
 	int fd_accel = -1;
 	struct accel_report a_report;
 	ssize_t sz;
+	int filter_bandwidth;
 
 	/* get the driver */
 	fd_accel = open(ACCEL_DEVICE_PATH, O_RDONLY);
@@ -1318,14 +1357,19 @@ test()
 	if (sz != sizeof(a_report))
 		err(1, "immediate read failed");
 
+
 	warnx("accel x: \t% 9.5f\tm/s^2", (double)a_report.x);
 	warnx("accel y: \t% 9.5f\tm/s^2", (double)a_report.y);
 	warnx("accel z: \t% 9.5f\tm/s^2", (double)a_report.z);
 	warnx("accel x: \t%d\traw", (int)a_report.x_raw);
 	warnx("accel y: \t%d\traw", (int)a_report.y_raw);
 	warnx("accel z: \t%d\traw", (int)a_report.z_raw);
-	warnx("accel range: %8.4f m/s^2", (double)a_report.range_m_s2);
 
+	warnx("accel range: %8.4f m/s^2", (double)a_report.range_m_s2);
+	if (ERROR == (filter_bandwidth = ioctl(fd_accel, ACCELIOCGLOWPASS, 0)))
+		warnx("accel antialias filter bandwidth: fail");
+	else
+		warnx("accel antialias filter bandwidth: %d Hz", filter_bandwidth);
 
 	int fd_mag = -1;
 	struct mag_report m_report;
