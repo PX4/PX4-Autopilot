@@ -66,6 +66,12 @@
 # CONFIG:
 #	Used to set the output filename; defaults to 'firmware'.
 #
+# CONFIG_FILE:
+#	If set, overrides the configuration file search logic. Sets
+#	CONFIG to the name of the configuration file, strips any
+#	leading config_ prefix and any suffix. e.g. config_board_foo.mk
+#	results in CONFIG being set to 'board_foo'.
+#
 # WORK_DIR:
 #	Sets the directory in which the firmware will be built. Defaults
 #	to the directory 'build' under the directory containing the
@@ -115,12 +121,13 @@ include $(MK_DIR)/setup.mk
 #
 # Locate the configuration file
 #
+ifneq ($(CONFIG_FILE),)
+CONFIG			:= $(subst config_,,$(basename $(notdir $(CONFIG_FILE))))
+else
+CONFIG_FILE		:= $(wildcard $(PX4_MK_DIR)/config_$(CONFIG).mk)
+endif
 ifeq ($(CONFIG),)
 $(error Missing configuration name or file (specify with CONFIG=<config>))
-endif
-CONFIG_FILE		:= $(firstword $(wildcard $(CONFIG)) $(wildcard $(PX4_MK_DIR)/config_$(CONFIG).mk))
-ifeq ($(CONFIG_FILE),)
-$(error Can't find a config file called $(CONFIG) or $(PX4_MK_DIR)/config_$(CONFIG).mk)
 endif
 export CONFIG
 include $(CONFIG_FILE)
