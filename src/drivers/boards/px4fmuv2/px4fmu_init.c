@@ -55,6 +55,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/spi.h>
 #include <nuttx/i2c.h>
+#include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 
@@ -128,6 +129,7 @@ __EXPORT void stm32_boardinitialize(void)
 
 static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
+static struct sdio_dev_s *sdio;
 
 #include <math.h>
 
@@ -224,6 +226,29 @@ __EXPORT int nsh_archinitialize(void)
 	/* XXX need a driver to bind the FRAM to */
 
 	//message("[boot] Successfully bound SPI port 2 to the FRAM driver\n");
+
+	#ifdef CONFIG_MMCSD
+	/* First, get an instance of the SDIO interface */
+
+	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+	if (!sdio) {
+		message("nsh_archinitialize: Failed to initialize SDIO slot %d\n",
+			CONFIG_NSH_MMCSDSLOTNO);
+		return -ENODEV;
+	}
+
+	/* Now bind the SDIO interface to the MMC/SD driver */
+	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
+	if (ret != OK) {
+		message("nsh_archinitialize: Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		return ret;
+	}
+
+	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */
+	sdio_mediachange(sdio, true);
+
+	message("[boot] Initialized SDIO\n");
+	#endif
 
 	return OK;
 }
