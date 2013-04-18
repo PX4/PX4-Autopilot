@@ -192,12 +192,12 @@ __EXPORT int nsh_archinitialize(void)
 	spi1 = up_spiinitialize(1);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\r\n");
+		message("[boot] FAILED to initialize SPI port 1\n");
 		up_ledon(LED_AMBER);
 		return -ENODEV;
 	}
 
-	// Default SPI1 to 1MHz and de-assert the known chip selects.
+	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
@@ -206,11 +206,10 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
 	up_udelay(20);
 
-	message("[boot] Successfully initialized SPI port 1\r\n");
+	message("[boot] Successfully initialized SPI port 1\n");
 
 	/* Get the SPI port for the FRAM */
 
-	message("[boot] Initializing SPI port 2\n");
 	spi2 = up_spiinitialize(2);
 
 	if (!spi2) {
@@ -219,11 +218,13 @@ __EXPORT int nsh_archinitialize(void)
 		return -ENODEV;
 	}
 
+	/* Default SPI2 to 37.5 MHz (F4 max) and de-assert the known chip selects. */
+	SPI_SETFREQUENCY(spi2, 375000000);
+	SPI_SETBITS(spi2, 8);
+	SPI_SETMODE(spi2, SPIDEV_MODE3);
+	SPI_SELECT(spi2, SPIDEV_FLASH, false);
+
 	message("[boot] Successfully initialized SPI port 2\n");
-
-	/* XXX need a driver to bind the FRAM to */
-
-	//message("[boot] Successfully bound SPI port 2 to the FRAM driver\n");
 
 	return OK;
 }

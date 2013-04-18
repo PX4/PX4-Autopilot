@@ -365,6 +365,10 @@ CONFIG_I2C_RESET=y
 # XXX fixed per-transaction timeout
 CONFIG_STM32_I2CTIMEOMS=10
 
+#
+# MTD support
+#
+CONFIG_MTD=y
 
 # XXX re-enable after integration testing
 
