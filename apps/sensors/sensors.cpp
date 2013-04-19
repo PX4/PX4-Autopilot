@@ -77,6 +77,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/airspeed.h>
 
 #define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
 #define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
@@ -156,6 +157,8 @@ private:
 	int		_mag_sub;			/**< raw mag data subscription */
 	int 		_rc_sub;			/**< raw rc channels data subscription */
 	int		_baro_sub;			/**< raw baro data subscription */
+	int     _airspeed_sub;		/**< airspeed subscription */
+	int		_differential_pressure_sub; /**< raw differential pressure subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;			/**< notification of manual control updates */
@@ -165,6 +168,7 @@ private:
 	orb_advert_t	_rc_pub;			/**< raw r/c control topic */
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
+	orb_advert_t	_differential_pressure_pub;			/**< differential_pressure */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -172,6 +176,7 @@ private:
 	struct battery_status_s _battery_status;	/**< battery status */
 	struct baro_report _barometer;			/**< barometer data */
 	struct differential_pressure_s _differential_pressure;
+	struct airspeed_s _airspeed;
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -331,6 +336,14 @@ private:
 	void		baro_poll(struct sensor_combined_s &raw);
 
 	/**
+	 * Poll the differential pressure sensor for updated data.
+	 *
+	 * @param raw			Combined sensor data structure into which
+	 *				data should be returned.
+	 */
+	void		differential_pressure_poll(struct sensor_combined_s &raw);
+
+	/**
 	 * Check for changes in vehicle status.
 	 */
 	void		vehicle_status_poll();
@@ -398,6 +411,7 @@ Sensors::Sensors() :
 	_rc_pub(-1),
 	_battery_pub(-1),
 	_airspeed_pub(-1),
+	_differential_pressure_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
@@ -888,6 +902,27 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 }
 
 void
+Sensors::differential_pressure_poll(struct sensor_combined_s &raw)
+{
+	bool updated;
+	orb_check(_differential_pressure_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(differential_pressure), _differential_pressure_sub, &_differential_pressure);
+
+		float airspeed_true = calc_true_airspeed(_differential_pressure.differential_pressure_pa + raw.baro_pres_mbar*1e2f, 
+											 	 raw.baro_pres_mbar*1e2f, raw.baro_temp_celcius - 5.0f); //factor 1e2 for conversion from mBar to Pa
+		// XXX HACK - true temperature is much less than indicated temperature in baro,
+		// subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
+
+		float airspeed_indicated = calc_indicated_airspeed(_differential_pressure.differential_pressure_pa);
+		
+		raw.differential_pressure_pa = _differential_pressure.differential_pressure_pa;
+		raw.differential_pressure_counter++;
+	}
+}
+
+void
 Sensors::vehicle_status_poll()
 {
 	struct vehicle_status_s vstatus;
@@ -1045,31 +1080,18 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 */
 					if (voltage > 0.4f) {
 
-						float diff_pres_pa = (voltage - _parameters.airspeed_offset) * 1000.0f; //for MPXV7002DP sensor
-
-						float airspeed_true = calc_true_airspeed(diff_pres_pa + _barometer.pressure*1e2f,
-							_barometer.pressure*1e2f, _barometer.temperature - 5.0f); //factor 1e2 for conversion from mBar to Pa
-						// XXX HACK - true temperature is much less than indicated temperature in baro,
-						// subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
-
-						float airspeed_indicated = calc_indicated_airspeed(diff_pres_pa);
-
-						//printf("voltage: %.4f, diff_pres_pa %.4f, baro press %.4f Pa, v_ind %.4f, v_true %.4f\n", (double)voltage, (double)diff_pres_pa, (double)_barometer.pressure*1e2f, (double)airspeed_indicated, (double)airspeed_true);
+						float diff_pres_pa = voltage * 1000.0f - _parameters.airspeed_offset; //for MPXV7002DP sensor
 
 						_differential_pressure.timestamp = hrt_absolute_time();
-						_differential_pressure.static_pressure_mbar = _barometer.pressure;
-						_differential_pressure.differential_pressure_mbar = diff_pres_pa*1e-2f;
-						_differential_pressure.temperature_celcius = _barometer.temperature;
-						_differential_pressure.indicated_airspeed_m_s = airspeed_indicated;
-						_differential_pressure.true_airspeed_m_s = airspeed_true;
+						_differential_pressure.differential_pressure_pa = diff_pres_pa;
 						_differential_pressure.voltage = voltage;
 
 						/* announce the airspeed if needed, just publish else */
-						if (_airspeed_pub > 0) {
-							orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_differential_pressure);
+						if (_differential_pressure_pub > 0) {
+							orb_publish(ORB_ID(differential_pressure), _differential_pressure_pub, &_differential_pressure);
 
 						} else {
-							_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &_differential_pressure);
+							_differential_pressure_pub = orb_advertise(ORB_ID(differential_pressure), &_differential_pressure);
 						}
 					}
 				}
@@ -1334,6 +1356,7 @@ Sensors::task_main()
 	gyro_poll(raw);
 	mag_poll(raw);
 	baro_poll(raw);
+	differential_pressure_poll(raw);
 
 	parameter_update_poll(true /* forced */);
 

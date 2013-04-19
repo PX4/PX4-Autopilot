@@ -122,6 +122,9 @@ ORB_DEFINE(optical_flow, struct optical_flow_s);
 #include "topics/omnidirectional_flow.h"
 ORB_DEFINE(omnidirectional_flow, struct omnidirectional_flow_s);
 
+#include "topics/airspeed.h"
+ORB_DEFINE(airspeed, struct airspeed_s);
+
 #include "topics/differential_pressure.h"
 ORB_DEFINE(differential_pressure, struct differential_pressure_s);
 

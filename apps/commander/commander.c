@@ -801,7 +801,7 @@ void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 	struct differential_pressure_s differential_pressure;
 
 	int calibration_counter = 0;
-	float airspeed_offset = 0.0f;
+	float diff_pres_offset = 0.0f;
 
 	while (calibration_counter < calibration_count) {
 
@@ -812,7 +812,7 @@ void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 
 		if (poll_ret) {
 			orb_copy(ORB_ID(differential_pressure), sub_differential_pressure, &differential_pressure);
-			airspeed_offset += differential_pressure.voltage;
+			diff_pres_offset += differential_pressure.differential_pressure_pa;
 			calibration_counter++;
 
 		} else if (poll_ret == 0) {
@@ -822,11 +822,11 @@ void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 		}
 	}
 
-	airspeed_offset = airspeed_offset / calibration_count;
+	diff_pres_offset = diff_pres_offset / calibration_count;
 
-	if (isfinite(airspeed_offset)) {
+	if (isfinite(diff_pres_offset)) {
 
-		if (param_set(param_find("SENS_VAIR_OFF"), &(airspeed_offset))) {
+		if (param_set(param_find("SENS_VAIR_OFF"), &(diff_pres_offset))) {
 			mavlink_log_critical(mavlink_fd, "Setting offs failed!");
 		}
 

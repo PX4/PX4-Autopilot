@@ -61,16 +61,16 @@
 
 #include <arch/board/board.h>
 
-#include <systemlib/perf_counter.h>
-#include <systemlib/err.h>
 #include <systemlib/airspeed.h>
+#include <systemlib/err.h>
+#include <systemlib/param/param.h>
+#include <systemlib/perf_counter.h>
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/sensor_combined.h>		/* for baro readings */
 #include <uORB/topics/subsystem_info.h>
 
 /* Configuration Constants */
@@ -83,9 +83,6 @@
 /* Max measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 10)	/* microseconds */
 
-#define DIFF_PRESSURE_SCALE   1.0
-#define DIFF_PRESSURE_OFFSET  1673
-
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
@@ -95,9 +92,6 @@ static const int ERROR = -1;
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
-
-static int _sensor_sub = -1;
-
 
 class ETS_AIRSPEED : public device::I2C
 {
@@ -127,6 +121,7 @@ private:
 	bool						_sensor_ok;
 	int							_measure_ticks;
 	bool						_collect_phase;
+	int 						_differential_pressure_offset;
 	
 	orb_advert_t				_airspeed_pub;
 
@@ -195,7 +190,8 @@ ETS_AIRSPEED::ETS_AIRSPEED(int bus, int address) :
 	_airspeed_pub(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ETS_AIRSPEED_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ETS_AIRSPEED_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ETS_AIRSPEED_buffer_overflows"))
+	_buffer_overflows(perf_alloc(PC_COUNT, "ETS_AIRSPEED_buffer_overflows")),
+	_differential_pressure_offset(0)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -239,12 +235,7 @@ ETS_AIRSPEED::init()
 	if (_airspeed_pub < 0)
 		debug("failed to create airspeed sensor object. Did you start uOrb?");
 
-	_sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	
-	if (_sensor_sub < 0) {
-		debug("failed to subscribe to sensor_combined object.");
-		return ret;
-	}
+	param_get(param_find("SENS_VAIR_OFF"), &_differential_pressure_offset);
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -462,38 +453,13 @@ ETS_AIRSPEED::collect()
 	}
 	
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
-	//log("val: %0.3f", (float)(diff_pressure));
 
 	/* adjust if necessary */
-	diff_pres_pa = DIFF_PRESSURE_SCALE * (diff_pres_pa - DIFF_PRESSURE_OFFSET);
+	diff_pres_pa -= _differential_pressure_offset;
 	//log("measurement: %0.2f m/s", calc_indicated_airspeed((float)_reports[_next_report].diff_pressure));
-
-	struct sensor_combined_s raw;
-	memset(&raw, 0, sizeof(raw));
-
-	bool updated;
-	orb_check(_sensor_sub, &updated);
-	if (updated) {		
-		orb_copy(ORB_ID(sensor_combined), _sensor_sub, &raw);
-		printf("baro temp %3.6f\n", raw.baro_pres_mbar);
-	}
-	//if (raw.baro_temp_celcius > 0) 
-	//	log("baro temp %3.3f\n", (uint8_t) raw.baro_temp_celcius);
-
-	float airspeed_true = calc_true_airspeed(diff_pres_pa + raw.baro_pres_mbar*1e2f, 
-											 raw.baro_pres_mbar*1e2f, raw.baro_temp_celcius - 5.0f); //factor 1e2 for conversion from mBar to Pa
-	// XXX HACK - true temperature is much less than indicated temperature in baro,
-	// subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
-
-	float airspeed_indicated = calc_indicated_airspeed(diff_pres_pa);
 	
 	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].static_pressure_mbar = raw.baro_pres_mbar;
-	_reports[_next_report].differential_pressure_mbar = diff_pres_pa * 1e-2f;
-	_reports[_next_report].temperature_celcius = raw.baro_temp_celcius;
-	_reports[_next_report].indicated_airspeed_m_s = airspeed_indicated;
-	_reports[_next_report].true_airspeed_m_s = airspeed_true;
-	_reports[_next_report].voltage = 0;
+	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
 
 	/* announce the airspeed if needed, just publish else */
 	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_reports[_next_report]);
@@ -512,7 +478,6 @@ ETS_AIRSPEED::collect()
 
 	ret = OK;
 
-out:
 	perf_end(_sample_perf);
 	
 	return ret;
@@ -719,19 +684,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("diff pressure: %0.3f mbar", report.differential_pressure_mbar);
-	warnx("indicated airspeed: %0.1f m/s", report.indicated_airspeed_m_s);
-	warnx("true airspeed: %0.1f m/s", report.true_airspeed_m_s);
-
-	struct sensor_combined_s raw;
-	memset(&raw, 0, sizeof(raw));
-	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
-
-	//if (raw.baro_temp_celcius > 0) 
-	//	log("baro temp %3.3f\n", (uint8_t) raw.baro_temp_celcius);
-	warnx("temp: %3.5f", raw.baro_temp_celcius);
-	warnx("time:        %lld", report.timestamp);
+	warnx("diff pressure: %0.3f pa", (double) report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
@@ -756,9 +709,7 @@ test()
 			err(1, "periodic read failed");
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %0.3f mbar", report.differential_pressure_mbar);
-		warnx("indicated airspeed: %0.1f m/s", report.indicated_airspeed_m_s);
-		warnx("true airspeed: %0.1f m/s", report.true_airspeed_m_s);		warnx("time:        %lld", report.timestamp);
+		warnx("diff pressure: %0.3f pa", (double) report.differential_pressure_pa);
 	}
 
 	errx(0, "PASS");

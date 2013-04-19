@@ -71,6 +71,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/airspeed.h>
 
 #include <systemlib/systemlib.h>
 
@@ -444,6 +445,7 @@ int sdlog_thread_main(int argc, char *argv[])
 		struct optical_flow_s flow;
 		struct battery_status_s batt;
 		struct differential_pressure_s diff_pressure;
+		struct airspeed_s airspeed;
 	} buf;
 	memset(&buf, 0, sizeof(buf));
 
@@ -462,6 +464,7 @@ int sdlog_thread_main(int argc, char *argv[])
 		int flow_sub;
 		int batt_sub;
 		int diff_pressure_sub;
+		int airspeed_sub;
 	} subs;
 
 	/* --- MANAGEMENT - LOGGING COMMAND --- */
@@ -563,6 +566,13 @@ int sdlog_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
+	/* --- AIRSPEED --- */
+	/* subscribe to ORB for airspeed */
+	subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	fds[fdsc_count].fd = subs.airspeed_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;	
+
 	/* WARNING: If you get the error message below,
 	 * then the number of registered messages (fdsc)
 	 * differs from the number of messages in the above list.
@@ -655,6 +665,7 @@ int sdlog_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
 				orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
 				orb_copy(ORB_ID(differential_pressure), subs.diff_pressure_sub, &buf.diff_pressure);
+				orb_copy(ORB_ID(airspeed), subs.airspeed_sub, &buf.airspeed);
 				orb_copy(ORB_ID(battery_status), subs.batt_sub, &buf.batt);
 
 				/* if skipping is on or logging is disabled, ignore */
@@ -691,9 +702,9 @@ int sdlog_thread_main(int argc, char *argv[])
 					.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
 					.control_effective = {buf.act_controls_effective.control_effective[0], buf.act_controls_effective.control_effective[1], buf.act_controls_effective.control_effective[2], buf.act_controls_effective.control_effective[3]},
 					.flow = {buf.flow.flow_raw_x, buf.flow.flow_raw_y, buf.flow.flow_comp_x_m, buf.flow.flow_comp_y_m, buf.flow.ground_distance_m, buf.flow.quality},
-					.diff_pressure = buf.diff_pressure.differential_pressure_mbar,
-					.ind_airspeed = buf.diff_pressure.indicated_airspeed_m_s,
-					.true_airspeed = buf.diff_pressure.true_airspeed_m_s
+					.diff_pressure = buf.diff_pressure.differential_pressure_pa,
+					.ind_airspeed = buf.airspeed.indicated_airspeed_m_s,
+					.true_airspeed = buf.airspeed.true_airspeed_m_s
 				};
 
 				/* put into buffer for later IO */
