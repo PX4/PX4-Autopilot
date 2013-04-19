@@ -121,7 +121,7 @@ private:
 	bool						_sensor_ok;
 	int							_measure_ticks;
 	bool						_collect_phase;
-	int 						_differential_pressure_offset;
+	int 						_diff_pres_offset;
 	
 	orb_advert_t				_airspeed_pub;
 
@@ -191,7 +191,7 @@ ETS_AIRSPEED::ETS_AIRSPEED(int bus, int address) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "ETS_AIRSPEED_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ETS_AIRSPEED_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ETS_AIRSPEED_buffer_overflows")),
-	_differential_pressure_offset(0)
+	_diff_pres_offset(0)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -235,7 +235,7 @@ ETS_AIRSPEED::init()
 	if (_airspeed_pub < 0)
 		debug("failed to create airspeed sensor object. Did you start uOrb?");
 
-	param_get(param_find("SENS_VAIR_OFF"), &_differential_pressure_offset);
+	param_get(param_find("SENS_DPRES_OFF"), &_diff_pres_offset);
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -455,7 +455,7 @@ ETS_AIRSPEED::collect()
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
 
 	/* adjust if necessary */
-	diff_pres_pa -= _differential_pressure_offset;
+	diff_pres_pa -= _diff_pres_offset;
 	//log("measurement: %0.2f m/s", calc_indicated_airspeed((float)_reports[_next_report].diff_pressure));
 	
 	_reports[_next_report].timestamp = hrt_absolute_time();

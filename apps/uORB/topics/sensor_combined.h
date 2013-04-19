@@ -103,7 +103,7 @@ struct sensor_combined_s {
 	float mcu_temp_celcius;			/**< Internal temperature measurement of MCU */
 	uint32_t baro_counter;			/**< Number of raw baro measurements taken        */
 
-	float differential_pressure_pa;			/**< Airspeed sensor differential pressure                  */ 
+	float differential_pressure_pa;				/**< Airspeed sensor differential pressure                  */ 
 	uint32_t differential_pressure_counter;		/**< Number of raw differential pressure measurements taken */
 };
 
