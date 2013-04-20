@@ -63,11 +63,26 @@ MQUIET			 = --no-print-directory
 #
 # If the user has listed a config as a target, strip it out and override CONFIGS.
 #
+FIRMWARE_GOAL		 = firmware
 EXPLICIT_CONFIGS	:= $(filter $(CONFIGS),$(MAKECMDGOALS))
 ifneq ($(EXPLICIT_CONFIGS),)
 CONFIGS			:= $(EXPLICIT_CONFIGS)
 .PHONY:			$(EXPLICIT_CONFIGS)
 $(EXPLICIT_CONFIGS):	all
+
+#
+# If the user has asked to upload, they must have also specified exactly one
+# config.
+#
+ifneq ($(filter upload,$(MAKECMDGOALS)),)
+ifneq ($(words $(EXPLICIT_CONFIGS)),1)
+$(error In order to upload, exactly one board config must be specified)
+endif
+FIRMWARE_GOAL		 = upload
+.PHONY: upload
+upload:
+	@:
+endif
 endif
 
 #
@@ -100,7 +115,7 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
 		-f $(PX4_MK_DIR)firmware.mk \
 		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \
-		firmware
+		$(FIRMWARE_GOAL)
 
 #
 # Build the NuttX export archives.

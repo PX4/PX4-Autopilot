@@ -424,7 +424,8 @@ $(PRODUCT_ELF):		$(OBJS) $(MODULE_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKF
 upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
 	$(Q) $(MAKE) -f $(PX4_MK_DIR)/upload.mk \
 		METHOD=serial \
-		PRODUCT=$(PRODUCT) \
+		CONFIG=$(CONFIG) \
+		BOARD=$(BOARD) \
 		BUNDLE=$(PRODUCT_BUNDLE) \
 		BIN=$(PRODUCT_BIN)
 
@@ -434,6 +435,7 @@ clean:			$(MODULE_CLEANS)
 	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_ELF)
 	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)
 	$(Q) $(RMDIR) $(NUTTX_EXPORT_DIR)
+
 
 #
 # DEP_INCLUDES is defined by the toolchain include in terms of $(OBJS)

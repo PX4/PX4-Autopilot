@@ -102,7 +102,7 @@
 ifeq ($(MODULE_MK),)
 $(error No module makefile specified)
 endif
-$(info %  MODULE_MK           = $(MODULE_MK))
+$(info %% MODULE_MK           = $(MODULE_MK))
 
 #
 # Get the board/toolchain config
@@ -147,6 +147,7 @@ $(MODULE_COMMAND_FILES): exclude = $(dir $@)COMMAND.$(command).*
 $(MODULE_COMMAND_FILES): $(GLOBAL_DEPS)
 	@$(REMOVE) -f $(exclude)
 	@$(MKDIR) -p $(dir $@)
+	@echo "CMD:     $(command)"
 	$(Q) $(TOUCH) $@
 endif
 
