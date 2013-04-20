@@ -162,6 +162,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	int param_sub = orb_subscribe(ORB_ID(parameter_update));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -186,18 +187,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	int paramcheck_counter = 0;
 
 	while (!thread_should_exit) {
-		/* get a local copy of the vehicle state */
 		orb_copy(ORB_ID(vehicle_status), state_sub, &status);
-		/* get a local copy of manual setpoint */
-		orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
-		/* get a local copy of attitude */
-		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
-		/* get a local copy of local position */
-		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
-		if (status.state_machine == SYSTEM_STATE_AUTO) {
-			/* get a local copy of local position setpoint */
-			orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
-		}
 
 		/* check parameters at 1 Hz*/
 		paramcheck_counter++;
@@ -210,26 +200,58 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 			paramcheck_counter = 0;
 		}
 
-		if (status.state_machine == SYSTEM_STATE_MANUAL) {
-			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ALTITUDE || status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE) {
-				hrt_abstime t = hrt_absolute_time();
-				if (reset_sp_alt) {
-					reset_sp_alt = false;
-					local_pos_sp.z = local_pos.z;
-					alt_integral = manual.throttle;
-					char str[80];
-					sprintf(str, "reset alt setpoint: z = %.2f, throttle = %.2f", local_pos_sp.z, manual.throttle);
-					mavlink_log_info(mavlink_fd, str);
-				}
+		/* Check if controller should act */
+		bool act = status.flag_system_armed && (
+		   		       /* SAS modes */
+				   	   (
+				   		   status.flag_control_manual_enabled &&
+						   status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS && (
+								   status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ALTITUDE ||
+								   status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE
+						   )
+				   	   ) ||
+				   	   /* AUTO mode */
+				   	   status.state_machine == SYSTEM_STATE_AUTO
+				   );
 
-				float dt;
-				if (t_prev != 0) {
-					dt = (t - t_prev) * 0.000001f;
-				} else {
-					dt = 0.0f;
-				}
-				float err_linear_limit = params.alt_d / params.alt_p * params.alt_rate_max;
-				/* move altitude setpoint by manual controls */
+		if (act) {
+			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
+			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
+			orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
+			if (status.state_machine == SYSTEM_STATE_AUTO) {
+				orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
+			}
+
+			hrt_abstime t = hrt_absolute_time();
+			if (reset_sp_alt) {
+				reset_sp_alt = false;
+				local_pos_sp.z = local_pos.z;
+				alt_integral = manual.throttle;
+				char str[80];
+				sprintf(str, "reset alt setpoint: z = %.2f, throttle = %.2f", local_pos_sp.z, manual.throttle);
+				mavlink_log_info(mavlink_fd, str);
+			}
+
+			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE && reset_sp_pos) {
+				reset_sp_pos = false;
+				local_pos_sp.x = local_pos.x;
+				local_pos_sp.y = local_pos.y;
+				char str[80];
+				sprintf(str, "reset pos setpoint: x = %.2f, y = %.2f", local_pos_sp.x, local_pos_sp.y);
+				mavlink_log_info(mavlink_fd, str);
+			}
+
+			float dt;
+			if (t_prev != 0) {
+				dt = (t - t_prev) * 0.000001f;
+			} else {
+				dt = 0.0f;
+			}
+			float err_linear_limit = params.alt_d / params.alt_p * params.alt_rate_max;
+
+			if (status.flag_control_manual_enabled) {
+				/* move altitude setpoint with manual controls */
 				float alt_ctl = manual.throttle - 0.5f;
 				if (fabs(alt_ctl) < alt_ctl_dz) {
 					alt_ctl = 0.0f;
@@ -245,48 +267,46 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 						local_pos_sp.z = local_pos.z - err_linear_limit;
 				}
 
-				/* PID for altitude */
-				float alt_err = local_pos.z - local_pos_sp.z;
-				/* don't accelerate more than ALT_RATE_MAX, limit error to corresponding value */
-				if (alt_err > err_linear_limit) {
-					alt_err = err_linear_limit;
-				} else if (alt_err < -err_linear_limit) {
-					alt_err = -err_linear_limit;
-				}
-				/* PID for altitude rate */
-				float thrust_ctl_pd = alt_err * params.alt_p + local_pos.vz * params.alt_d;
-				float thrust_ctl = thrust_ctl_pd + alt_integral;
-				if (thrust_ctl < params.thr_min) {
-					thrust_ctl = params.thr_min;
-				} else if (thrust_ctl > params.thr_max) {
-					thrust_ctl = params.thr_max;
-				} else {
-					/* integrate only in linear area (with 20% gap) and not on min/max throttle */
-					if (fabs(thrust_ctl_pd) < err_linear_limit * params.alt_p * 0.8f)
-						alt_integral += thrust_ctl_pd / params.alt_p * params.alt_i * dt;
-				}
 				if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE) {
-					// TODO add position controller
-					att_sp.pitch_body = manual.pitch;
-					att_sp.roll_body = manual.roll;
-					att_sp.yaw_body = manual.yaw;
-				} else {
-					att_sp.pitch_body = manual.pitch;
-					att_sp.roll_body = manual.roll;
-					att_sp.yaw_body = manual.yaw;
+					// TODO move position setpoint with manual controls
 				}
-				att_sp.thrust = thrust_ctl;
-				att_sp.timestamp = hrt_absolute_time();
-				/* publish local position setpoint */
-				orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
-				/* publish new attitude setpoint */
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-				t_prev = t;
-			} else {
-				reset_sp_alt = true;
 			}
+
+			/* PID for altitude */
+			float alt_err = local_pos.z - local_pos_sp.z;
+			/* don't accelerate more than ALT_RATE_MAX, limit error to corresponding value */
+			if (alt_err > err_linear_limit) {
+				alt_err = err_linear_limit;
+			} else if (alt_err < -err_linear_limit) {
+				alt_err = -err_linear_limit;
+			}
+			/* P and D components */
+			float thrust_ctl_pd = alt_err * params.alt_p + local_pos.vz * params.alt_d;
+			/* add I component */
+			float thrust_ctl = thrust_ctl_pd + alt_integral;
+			alt_integral += thrust_ctl_pd / params.alt_p * params.alt_i * dt;
+			if (thrust_ctl < params.thr_min) {
+				thrust_ctl = params.thr_min;
+			} else if (thrust_ctl > params.thr_max) {
+				thrust_ctl = params.thr_max;
+			}
+			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE || status.state_machine == SYSTEM_STATE_AUTO) {
+				// TODO add position controller
+			} else {
+				reset_sp_pos = true;
+			}
+			att_sp.thrust = thrust_ctl;
+			att_sp.timestamp = hrt_absolute_time();
+			if (status.flag_control_manual_enabled) {
+				/* publish local position setpoint in manual mode */
+				orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+			}
+			/* publish new attitude setpoint */
+			orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+			t_prev = t;
 		} else {
 			reset_sp_alt = true;
+			reset_sp_pos = true;
 		}
 
 		/* run at approximately 50 Hz */
