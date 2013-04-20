@@ -214,6 +214,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 				   	   status.state_machine == SYSTEM_STATE_AUTO
 				   );
 
+		hrt_abstime t = hrt_absolute_time();
+		float dt;
+		if (t_prev != 0) {
+			dt = (t - t_prev) * 0.000001f;
+		} else {
+			dt = 0.0f;
+		}
+		t_prev = t;
 		if (act) {
 			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
@@ -223,7 +231,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 				orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
 			}
 
-			hrt_abstime t = hrt_absolute_time();
 			if (reset_sp_alt) {
 				reset_sp_alt = false;
 				local_pos_sp.z = local_pos.z;
@@ -242,12 +249,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 				mavlink_log_info(mavlink_fd, str);
 			}
 
-			float dt;
-			if (t_prev != 0) {
-				dt = (t - t_prev) * 0.000001f;
-			} else {
-				dt = 0.0f;
-			}
 			float err_linear_limit = params.alt_d / params.alt_p * params.alt_rate_max;
 
 			if (status.flag_control_manual_enabled) {
@@ -303,7 +304,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 			}
 			/* publish new attitude setpoint */
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-			t_prev = t;
 		} else {
 			reset_sp_alt = true;
 			reset_sp_pos = true;
