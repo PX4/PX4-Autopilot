@@ -1510,6 +1510,7 @@ int commander_thread_main(int argc, char *argv[])
 	uint64_t start_time = hrt_absolute_time();
 	uint64_t failsave_ll_start_time = 0;
 
+	enum VEHICLE_MANUAL_SAS_MODE	manual_sas_mode;
 	bool state_changed = true;
 	bool param_init_forced = true;
 
@@ -1931,8 +1932,9 @@ int commander_thread_main(int argc, char *argv[])
 
 				} else if (sp_man.manual_sas_switch < -STICK_ON_OFF_LIMIT) {
 
-					/* bottom stick position, set altitude hold */
-					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ALTITUDE;
+					/* bottom stick position, set default */
+					/* this MUST be mapped to extremal position to switch easy in case of emergency */
+					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS;
 
 				} else if (sp_man.manual_sas_switch > STICK_ON_OFF_LIMIT) {
 
@@ -1940,8 +1942,14 @@ int commander_thread_main(int argc, char *argv[])
 					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_SIMPLE;
 
 				} else {
-					/* center stick position, set default */
-					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS;
+					/* center stick position, set altitude hold */
+					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ALTITUDE;
+				}
+
+				if (current_status.manual_sas_mode != manual_sas_mode) {
+					/* publish SAS mode changes immediately */
+					manual_sas_mode = current_status.manual_sas_mode;
+					state_changed = true;
 				}
 
 				/*
