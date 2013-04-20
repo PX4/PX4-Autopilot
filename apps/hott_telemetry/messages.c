@@ -42,9 +42,11 @@
 #include <string.h>
 #include <systemlib/systemlib.h>
 #include <unistd.h>
+#include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 
+static int airspeed_sub = -1;
 static int battery_sub = -1;
 static int sensor_sub = -1;
 
@@ -52,6 +54,7 @@ void messages_init(void)
 {
 	battery_sub = orb_subscribe(ORB_ID(battery_status));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 }
 
 void build_eam_response(uint8_t *buffer, int *size)
@@ -80,6 +83,15 @@ void build_eam_response(uint8_t *buffer, int *size)
 	uint16_t alt = (uint16_t)(raw.baro_alt_meter + 500);
 	msg.altitude_L = (uint8_t)alt & 0xff;
 	msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
+
+	/* get a local copy of the current sensor values */
+	struct airspeed_s airspeed;
+	memset(&airspeed, 0, sizeof(airspeed));
+	orb_copy(ORB_ID(airspeed), airspeed_sub, &airspeed);
+
+	uint16_t speed = (uint16_t)(airspeed.indicated_airspeed_m_s * 3.6);
+	msg.speed_L = (uint8_t)speed & 0xff;
+	msg.speed_H = (uint8_t)(speed >> 8) & 0xff;
 
 	msg.stop = STOP_BYTE;
 

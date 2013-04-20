@@ -81,7 +81,11 @@
 #define READ_CMD	0x07		/* Read the data */
 	 
 /* Max measurement rate is 100Hz */
-#define CONVERSION_INTERVAL	(1000000 / 10)	/* microseconds */
+#define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
+
+/* The Eagle Tree Airspeed V3 can only provide accurate readings
+   for speeds from 15km/h upwards. */
+#define MIN_ACCURATE_DIFF_PRES_PA 12
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -222,6 +226,8 @@ ETS_AIRSPEED::init()
 	/* allocate basic report buffers */
 	_num_reports = 2;
 	_reports = new struct differential_pressure_s[_num_reports];
+	for (int i = 0; i < _num_reports; i++)
+		_reports[i].max_differential_pressure_pa = 0;
 
 	if (_reports == nullptr)
 		goto out;
@@ -234,8 +240,6 @@ ETS_AIRSPEED::init()
 
 	if (_airspeed_pub < 0)
 		debug("failed to create airspeed sensor object. Did you start uOrb?");
-
-	param_get(param_find("SENS_DPRES_OFF"), &_diff_pres_offset);
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -454,12 +458,23 @@ ETS_AIRSPEED::collect()
 	
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
 
-	/* adjust if necessary */
-	diff_pres_pa -= _diff_pres_offset;
-	//log("measurement: %0.2f m/s", calc_indicated_airspeed((float)_reports[_next_report].diff_pressure));
+	param_get(param_find("SENS_DPRES_OFF"), &_diff_pres_offset);
 	
+	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) { 
+		diff_pres_pa = 0;
+	} else {
+		diff_pres_pa -= _diff_pres_offset;	
+	}
+
+    // XXX we may want to smooth out the readings to remove noise.
+
 	_reports[_next_report].timestamp = hrt_absolute_time();
 	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
+
+	// Track maximum differential pressure measured (so we can work out top speed).
+	if (diff_pres_pa > _reports[_next_report].max_differential_pressure_pa) {
+		_reports[_next_report].max_differential_pressure_pa = diff_pres_pa;
+	}
 
 	/* announce the airspeed if needed, just publish else */
 	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_reports[_next_report]);
@@ -684,7 +699,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("diff pressure: %0.3f pa", (double) report.differential_pressure_pa);
+	warnx("diff pressure: %d pa", report.differential_pressure_pa);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
@@ -709,7 +724,7 @@ test()
 			err(1, "periodic read failed");
 
 		warnx("periodic read %u", i);
-		warnx("diff pressure: %0.3f pa", (double) report.differential_pressure_pa);
+		warnx("diff pressure: %d pa", report.differential_pressure_pa);
 	}
 
 	errx(0, "PASS");
