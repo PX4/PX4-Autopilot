@@ -11,6 +11,7 @@ ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 # Board support modules
 #
 MODULES		+= drivers/px4fmu
+MODULES		+= systemcmds/eeprom
 
 #
 # Transitional support - add commands from the NuttX export archive.
@@ -36,7 +37,6 @@ BUILTIN_COMMANDS := \
 	$(call _B, commander,              SCHED_PRIORITY_MAX-30,     2048,  commander_main             ) \
 	$(call _B, control_demo,           ,                          2048,  control_demo_main          ) \
 	$(call _B, delay_test,             ,                          2048,  delay_test_main            ) \
-	$(call _B, eeprom,                 ,                          4096,  eeprom_main                ) \
 	$(call _B, fixedwing_att_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_att_control_main ) \
 	$(call _B, fixedwing_pos_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_pos_control_main ) \
 	$(call _B, gps,                    ,                          2048,  gps_main                   ) \
@@ -66,4 +66,5 @@ BUILTIN_COMMANDS := \
 	$(call _B, tests,                  ,                          12000, tests_main                 ) \
 	$(call _B, tone_alarm,             ,                          2048,  tone_alarm_main            ) \
 	$(call _B, top,                    SCHED_PRIORITY_DEFAULT-10, 3000,  top_main                   ) \
+	$(call _B, param,                  SCHED_PRIORITY_DEFAULT-10, 2048,  param_main                 ) \
 	$(call _B, uorb,                   ,                          4096,  uorb_main                  )
