@@ -64,7 +64,10 @@
 #	path to this file.
 #
 # CONFIG:
-#	Used to set the output filename; defaults to 'firmware'.
+#	Used when searching for the configuration file, and available
+#	to module Makefiles to select optional features.
+#	If not set, CONFIG_FILE must be set and CONFIG will be derived
+#	automatically from it.
 #
 # CONFIG_FILE:
 #	If set, overrides the configuration file search logic. Sets
@@ -98,11 +101,14 @@
 # If PX4_BASE wasn't set previously, work out what it should be
 # and set it here now.
 #
-MK_DIR	?= $(dir $(lastword $(MAKEFILE_LIST)))
+MK_DIR			?= $(dir $(lastword $(MAKEFILE_LIST)))
 ifeq ($(PX4_BASE),)
 export PX4_BASE		:= $(abspath $(MK_DIR)/..)
 endif
 $(info %  PX4_BASE            = $(PX4_BASE))
+ifneq ($(words $(PX4_BASE)),1)
+$(error Cannot build when the PX4_BASE path contains one or more space characters.)
+endif
 
 #
 # Set a default target so that included makefiles or errors here don't 
@@ -218,10 +224,7 @@ MODULE_OBJS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)module
 $(MODULE_OBJS):		relpath = $(patsubst $(WORK_DIR)%,%,$@)
 $(MODULE_OBJS):		mkfile = $(patsubst %module.pre.o,%module.mk,$(relpath))
 $(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
-	@$(ECHO) %%
-	@$(ECHO) %% Building module using $(mkfile)
-	@$(ECHO) %%
-	$(Q) $(MAKE) -f $(PX4_MK_DIR)module.mk \
+	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
 		MODULE_WORK_DIR=$(dir $@) \
 		MODULE_OBJ=$@ \
 		MODULE_MK=$(mkfile) \
@@ -237,7 +240,7 @@ $(MODULE_CLEANS):	relpath = $(patsubst $(WORK_DIR)%,%,$@)
 $(MODULE_CLEANS):	mkfile = $(patsubst %clean,%module.mk,$(relpath))
 $(MODULE_CLEANS):
 	@$(ECHO) %% cleaning using $(mkfile)
-	$(Q) $(MAKE) -f $(PX4_MK_DIR)module.mk \
+	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
 	MODULE_WORK_DIR=$(dir $@) \
 	MODULE_MK=$(mkfile) \
 	clean
@@ -372,7 +375,7 @@ endif
 #
 PRODUCT_BUNDLE		 = $(WORK_DIR)firmware.px4
 PRODUCT_BIN		 = $(WORK_DIR)firmware.bin
-PRODUCT_SYM		 = $(WORK_DIR)firmware.sym
+PRODUCT_ELF		 = $(WORK_DIR)firmware.elf
 
 .PHONY:			firmware
 firmware:		$(PRODUCT_BUNDLE)
@@ -407,10 +410,10 @@ $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 		--git_identity $(PX4_BASE) \
 		--image $< > $@
 
-$(PRODUCT_BIN):		$(PRODUCT_SYM)
+$(PRODUCT_BIN):		$(PRODUCT_ELF)
 	$(call SYM_TO_BIN,$<,$@)
 
-$(PRODUCT_SYM):		$(OBJS) $(MODULE_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
+$(PRODUCT_ELF):		$(OBJS) $(MODULE_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
 	$(call LINK,$@,$(OBJS) $(MODULE_OBJS))
 
 #
@@ -428,7 +431,7 @@ upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
 .PHONY: clean
 clean:			$(MODULE_CLEANS)
 	@$(ECHO) %% cleaning
-	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_SYM)
+	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_ELF)
 	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)
 	$(Q) $(RMDIR) $(NUTTX_EXPORT_DIR)
 
