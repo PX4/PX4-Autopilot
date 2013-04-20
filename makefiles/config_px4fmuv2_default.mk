@@ -14,6 +14,7 @@ MODULES		+= drivers/boards/px4fmuv2
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/px4fmu
 MODULES		+= drivers/rgbled
+MODULES		+= systemcmds/ramtron
 
 #
 # Transitional support - add commands from the NuttX export archive.
@@ -61,4 +62,5 @@ BUILTIN_COMMANDS := \
 	$(call _B, tests,                  ,                          12000, tests_main                 ) \
 	$(call _B, tone_alarm,             ,                          2048,  tone_alarm_main            ) \
 	$(call _B, top,                    SCHED_PRIORITY_DEFAULT-10, 3000,  top_main                   ) \
+	$(call _B, param,                  SCHED_PRIORITY_DEFAULT-10, 2048,  param_main                 ) \
 	$(call _B, uorb,                   ,                          4096,  uorb_main                  )
