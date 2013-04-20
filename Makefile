@@ -96,7 +96,7 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
 	@echo %%%% Building $(config) in $(work_dir)
 	@echo %%%%
 	$(Q) mkdir -p $(work_dir)
-	$(Q) make -C $(work_dir) \
+	$(Q) make -r -C $(work_dir) \
 		-f $(PX4_MK_DIR)firmware.mk \
 		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \
@@ -119,15 +119,21 @@ NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
 .PHONY:			archives
 archives:		$(NUTTX_ARCHIVES)
 
+# We cannot build these parallel; note that we also force -j1 for the
+# sub-make invocations.
+ifneq ($(filter archives,$(MAKECMDGOALS)),)
+.NOTPARALLEL:
+endif
+
 $(ARCHIVE_DIR)%.export:	board = $(notdir $(basename $@))
 $(ARCHIVE_DIR)%.export:	configuration = $(if $(filter $(board),px4io),io,nsh)
 $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 	@echo %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
-	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
 	@echo %% Exporting NuttX for $(board)
-	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) export
+	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) export
 	$(Q) mkdir -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
 
