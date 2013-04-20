@@ -21,9 +21,9 @@ set MODE autostart
 set USB autoconnect
 
 #
-# Start playing the startup tune
+
 #
-tone_alarm start
+
 
 #
 # Try to mount the microSD card.
@@ -32,8 +32,12 @@ echo "[init] looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
 	echo "[init] card mounted at /fs/microsd"
+	# Start playing the startup tune
+	tone_alarm start
 else
 	echo "[init] no microSD card found"
+	# Play SOS
+	tone_alarm 2
 fi
 
 #
