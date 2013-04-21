@@ -137,6 +137,21 @@ private:
 	static const GPIOConfig	_gpio_tab[];
 	static const unsigned	_ngpio;
 
+	unsigned _gpio_mask_input;
+	unsigned _gpio_mask_output;
+
+	/**
+	 * Reset the multifunction port mode.
+	 * 
+	 * All pins GPIOs, all inputs
+	 */
+	void		mode_reset(void);
+
+	/**
+	 * Reset the pins with GPIO function assignment.
+	 *
+	 * All pins configured as GPIOs are set to inputs
+	 */
 	void		gpio_reset(void);
 	void		gpio_set_function(uint32_t gpios, int function);
 	void		gpio_write(uint32_t gpios, int function);
@@ -181,7 +196,9 @@ PX4FMU::PX4FMU() :
 	_primary_pwm_device(false),
 	_task_should_exit(false),
 	_armed(false),
-	_mixers(nullptr)
+	_mixers(nullptr),
+	_gpio_mask_input(0),
+	_gpio_mask_output(0)
 {
 	_debug_enabled = true;
 }
@@ -236,7 +253,7 @@ PX4FMU::init()
 	}
 
 	/* reset GPIOs */
-	gpio_reset();
+	mode_reset();
 
 	/* start the IO interface task */
 	_task = task_spawn("fmuservo",
@@ -473,7 +490,7 @@ PX4FMU::task_main()
 				for (unsigned i = 0; i < num_outputs; i++) {
 
 					/* last resort: catch NaN, INF and out-of-band errors */
-					if (i < outputs.noutputs &&
+					if ((int)i < outputs.noutputs &&
 						isfinite(outputs.output[i]) &&
 						outputs.output[i] >= -1.0f &&
 						outputs.output[i] <= 1.0f) {
@@ -751,14 +768,29 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 }
 
 void
-PX4FMU::gpio_reset(void)
+PX4FMU::mode_reset(void)
 {
 	/*
-	 * Setup default GPIO config - all pins as GPIOs, GPIO driver chip
+	 * Setup default multifunction port config - all pins as GPIOs, GPIO driver chip
 	 * to input mode.
 	 */
 	for (unsigned i = 0; i < _ngpio; i++)
 		stm32_configgpio(_gpio_tab[i].input);
+
+	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
+	stm32_configgpio(GPIO_GPIO_DIR);
+}
+
+void
+PX4FMU::gpio_reset(void)
+{
+	/*
+	 * Setup default GPIO config - all pins as inputs, GPIO driver chip
+	 * to input mode.
+	 */
+	for (unsigned i = 0; i < _ngpio; i++)
+		if ((_gpio_mask_input | _gpio_mask_output) & (1 << i))
+			stm32_configgpio(_gpio_tab[i].input);
 
 	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
 	stm32_configgpio(GPIO_GPIO_DIR);
@@ -785,15 +817,22 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 			switch (function) {
 			case GPIO_SET_INPUT:
 				stm32_configgpio(_gpio_tab[i].input);
+				_gpio_mask_input |= (1 << i);
+				_gpio_mask_output &= ~(1 << i);
 				break;
 
 			case GPIO_SET_OUTPUT:
 				stm32_configgpio(_gpio_tab[i].output);
+				_gpio_mask_output |= (1 << i);
+				_gpio_mask_input &= ~(1 << i);
 				break;
 
 			case GPIO_SET_ALT_1:
-				if (_gpio_tab[i].alt != 0)
+				if (_gpio_tab[i].alt != 0) {
 					stm32_configgpio(_gpio_tab[i].alt);
+					_gpio_mask_input &= ~(1 << i);
+					_gpio_mask_output &= ~(1 << i);
+				}
 
 				break;
 			}
@@ -811,7 +850,8 @@ PX4FMU::gpio_write(uint32_t gpios, int function)
 	int value = (function == GPIO_SET) ? 1 : 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
-		if (gpios & (1 << i))
+		/* only write pins configured as output */
+		if ((gpios & (1 << i)) && (_gpio_mask_output & (1 << i)))
 			stm32_gpiowrite(_gpio_tab[i].output, value);
 }
 
@@ -821,8 +861,13 @@ PX4FMU::gpio_read(void)
 	uint32_t bits = 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
-		if (stm32_gpioread(_gpio_tab[i].input))
-			bits |= (1 << i);
+		/* only read pins configured as input */
+		if (_gpio_mask_input & (1 << i)) {
+			if (stm32_gpioread(_gpio_tab[i].input))
+				bits |= (1 << i);
+		}
+
+	/* mask outputs */
 
 	return bits;
 }
@@ -835,6 +880,10 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 	lock();
 
 	switch (cmd) {
+
+	case GPIO_MODE_RESET:
+		mode_reset();
+		break;
 
 	case GPIO_RESET:
 		gpio_reset();
@@ -888,13 +937,13 @@ PortMode g_port_mode;
 int
 fmu_new_mode(PortMode new_mode)
 {
-	uint32_t gpio_bits;
+	uint32_t serial_func_bits;
 	PX4FMU::Mode servo_mode;
 
-	/* reset to all-inputs */
-	g_fmu->ioctl(0, GPIO_RESET, 0);
+	/* reset ALL pins (including UART) to GPIOs and all-inputs */
+	g_fmu->ioctl(0, GPIO_MODE_RESET, 0);
 
-	gpio_bits = 0;
+	serial_func_bits = 0;
 	servo_mode = PX4FMU::MODE_NONE;
 
 	switch (new_mode) {
@@ -905,7 +954,7 @@ fmu_new_mode(PortMode new_mode)
 
 	case PORT_FULL_SERIAL:
 		/* set all multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_1 | GPIO_MULTI_2 | GPIO_MULTI_3 | GPIO_MULTI_4;
+		serial_func_bits = GPIO_MULTI_1 | GPIO_MULTI_2 | GPIO_MULTI_3 | GPIO_MULTI_4;
 		break;
 
 	case PORT_FULL_PWM:
@@ -915,14 +964,14 @@ fmu_new_mode(PortMode new_mode)
 
 	case PORT_GPIO_AND_SERIAL:
 		/* set RX/TX multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
+		serial_func_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
 		break;
 
 	case PORT_PWM_AND_SERIAL:
 		/* select 2-pin PWM mode */
 		servo_mode = PX4FMU::MODE_2PWM;
 		/* set RX/TX multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
+		serial_func_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
 		break;
 
 	case PORT_PWM_AND_GPIO:
@@ -932,8 +981,8 @@ fmu_new_mode(PortMode new_mode)
 	}
 
 	/* adjust GPIO config for serial mode(s) */
-	if (gpio_bits != 0)
-		g_fmu->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
+	if (serial_func_bits != 0)
+		g_fmu->ioctl(0, GPIO_SET_ALT_1, serial_func_bits);
 
 	/* (re)set the PWM output mode */
 	g_fmu->set_mode(servo_mode);

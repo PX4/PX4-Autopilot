@@ -116,25 +116,28 @@
 #define GPIOC(_x)	_IOC(_GPIOCBASE, _x)
 
 /** reset all board GPIOs to their default state */
-#define GPIO_RESET	GPIOC(0)
+#define GPIO_MODE_RESET	GPIOC(0)
+
+/** reset all board GPIOs to their default state */
+#define GPIO_RESET	GPIOC(1)
 
 /** configure the board GPIOs in (arg) as outputs */
-#define GPIO_SET_OUTPUT	GPIOC(1)
+#define GPIO_SET_OUTPUT	GPIOC(2)
 
 /** configure the board GPIOs in (arg) as inputs */
-#define GPIO_SET_INPUT	GPIOC(2)
+#define GPIO_SET_INPUT	GPIOC(3)
 
 /** configure the board GPIOs in (arg) for the first alternate function (if supported) */
-#define GPIO_SET_ALT_1	GPIOC(3)
+#define GPIO_SET_ALT_1	GPIOC(4)
 
 /** configure the board GPIO (arg) for the second alternate function (if supported) */
-#define GPIO_SET_ALT_2	GPIOC(4)
+#define GPIO_SET_ALT_2	GPIOC(5)
 
 /** configure the board GPIO (arg) for the third alternate function (if supported) */
-#define GPIO_SET_ALT_3	GPIOC(5)
+#define GPIO_SET_ALT_3	GPIOC(6)
 
 /** configure the board GPIO (arg) for the fourth alternate function (if supported) */
-#define GPIO_SET_ALT_4	GPIOC(6)
+#define GPIO_SET_ALT_4	GPIOC(7)
 
 /** set the GPIOs in (arg) */
 #define GPIO_SET	GPIOC(10)
