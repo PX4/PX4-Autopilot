@@ -395,7 +395,7 @@ handle_message(mavlink_message_t *msg)
 			static uint64_t old_timestamp = 0;
 
 			/* sensors general */
-			hil_sensors.timestamp = imu.time_usec;
+			hil_sensors.timestamp = hrt_absolute_time();
 
 			/* hil gyro */
 			static const float mrad2rad = 1.0e-3f;
@@ -446,12 +446,16 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.baro_alt_meter = h;
 			hil_sensors.baro_temp_celcius = imu.temperature;
 
+			hil_sensors.gyro_counter = hil_counter;
+			hil_sensors.magnetometer_counter = hil_counter;
+			hil_sensors.accelerometer_counter = hil_counter;
+
 			/* publish */
 			orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
 
 			// increment counters
-			hil_counter += 1 ;
-			hil_frames += 1 ;
+			hil_counter++;
+			hil_frames++;
 
 			// output
 			if ((timestamp - old_timestamp) > 10000000) {
