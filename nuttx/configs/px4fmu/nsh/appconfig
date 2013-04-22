@@ -109,16 +109,15 @@ endif
 CONFIGURED_APPS += systemcmds/i2c
 
 # Communication and Drivers
-CONFIGURED_APPS += drivers/boards/px4fmu
+#CONFIGURED_APPS += drivers/boards/px4fmu
 CONFIGURED_APPS	+= drivers/device
 CONFIGURED_APPS += drivers/ms5611
 CONFIGURED_APPS += drivers/hmc5883
 CONFIGURED_APPS += drivers/mpu6000
 CONFIGURED_APPS += drivers/bma180
-CONFIGURED_APPS += drivers/l3gd20
 CONFIGURED_APPS	+= drivers/px4io
 CONFIGURED_APPS += drivers/stm32
-CONFIGURED_APPS += drivers/led
+#CONFIGURED_APPS += drivers/led
 CONFIGURED_APPS += drivers/blinkm
 CONFIGURED_APPS += drivers/stm32/tone_alarm
 CONFIGURED_APPS += drivers/stm32/adc
