@@ -495,7 +495,7 @@ handle_message(mavlink_message_t *msg)
 			hil_gps.vel_e_m_s = (float)gps.vel * 1e-2f * sinf(heading_rad);
 			hil_gps.vel_d_m_s = 0.0f;
 			/* COG (course over ground) is speced as 0..360 degrees (compass) */
-			hil_gps.cog_rad = cog_rad + M_PI_F; // from deg*100 to rad
+			hil_gps.cog_rad = heading_rad + M_PI_F; // from deg*100 to rad
 			hil_gps.fix_type = gps.fix_type;
 			hil_gps.satellites_visible = gps.satellites_visible;
 
