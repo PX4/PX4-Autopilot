@@ -113,12 +113,14 @@ UBX::configure(unsigned &baudrate)
 		cfg_prt_packet.outProtoMask	= UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK;
 
 		send_config_packet(_fd, (uint8_t*)&cfg_prt_packet, sizeof(cfg_prt_packet));
+		
+		/* no ACK is expected here, but read the buffer anyway in case we actually get an ACK */
+		receive(UBX_CONFIG_TIMEOUT);
+		
 		if (UBX_CFG_PRT_PAYLOAD_BAUDRATE != baudrate) {
 			set_baudrate(_fd, UBX_CFG_PRT_PAYLOAD_BAUDRATE);
 			baudrate = UBX_CFG_PRT_PAYLOAD_BAUDRATE;
 		}
-
-		/* no ack is ecpected here, keep going configuring */
 
 		/* send a CFT-RATE message to define update rate */
 		type_gps_bin_cfg_rate_packet_t cfg_rate_packet;
