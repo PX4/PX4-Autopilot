@@ -99,6 +99,12 @@
 #define BAT_VOL_LOWPASS_2 0.01f
 #define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
 
+/**
+ * HACK - true temperature is much less than indicated temperature in baro,
+ * subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
+ */
+#define PCB_TEMP_ESTIMATE_DEG 5.0f
+
 #define PPM_INPUT_TIMEOUT_INTERVAL	50000 /**< 50 ms timeout / 20 Hz */
 
 #define limit_minus_one_to_one(arg) (arg < -1.0f) ? -1.0f : ((arg > 1.0f) ? 1.0f : arg)
@@ -913,15 +919,9 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
 		raw.differential_pressure_counter++;
 
-		float airspeed_true = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar*1e2f, 
-											 	 raw.baro_pres_mbar*1e2f, raw.baro_temp_celcius - 5.0f); //factor 1e2 for conversion from mBar to Pa
-		// XXX HACK - true temperature is much less than indicated temperature in baro,
-		// subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
-
-		float airspeed_indicated = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
-
-		_airspeed.indicated_airspeed_m_s = airspeed_indicated;
-		_airspeed.true_airspeed_m_s = airspeed_true;
+		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
+		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar*1e2f, 
+											 			 raw.baro_pres_mbar*1e2f, raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		/* announce the airspeed if needed, just publish else */
 		if (_airspeed_pub > 0) {

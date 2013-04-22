@@ -74,20 +74,22 @@
 #include <uORB/topics/subsystem_info.h>
 
 /* Configuration Constants */
-#define I2C_BUS 		PX4_I2C_BUS_ESC
+#define I2C_BUS 		PX4_I2C_BUS_ESC   // XXX Replace with PX4_I2C_BUS_EXPANSION before submitting.
 #define I2C_ADDRESS 	0x75
 
 /* ETS_AIRSPEED Registers addresses */
 #define READ_CMD	0x07		/* Read the data */
 	 
-/* Max measurement rate is 100Hz */
+/* Measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
-/* The Eagle Tree Airspeed V3 can only provide accurate readings
-   for speeds from 15km/h upwards. */
+/**
+ * The Eagle Tree Airspeed V3 can only provide accurate readings
+ * for speeds from 15km/h upwards. 
+ */
 #define MIN_ACCURATE_DIFF_PRES_PA 12
 
-/* oddly, ERROR is not defined for c++ */
+/* Oddly, ERROR is not defined for C++ */
 #ifdef ERROR
 # undef ERROR
 #endif
@@ -109,8 +111,8 @@ public:
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 	
 	/**
-	* Diagnostics - print some basic information about the driver.
-	*/
+	 * Diagnostics - print some basic information about the driver.
+	 */
 	void				print_info();
 	
 protected:
@@ -163,6 +165,7 @@ private:
 	void				cycle();
 	int					measure();
 	int					collect();
+
 	/**
 	* Static trampoline from the workq context; because we don't have a
 	* generic workq wrapper yet.

@@ -46,20 +46,6 @@
 
 #define AIRSPEED_DEVICE_PATH	"/dev/airspeed"
 
-/**
- * Airspeed report structure. Reads from the device must be in multiples of this
- * structure.
- */
-//struct airspeed_report {
-//	uint64_t timestamp;
-//	uint8_t diff_pressure;		/** differential pressure in Pa */
-//};
-
-/*
- * ObjDev tag for raw range finder data.
- */
-//ORB_DECLARE(sensor_differential_pressure);
-
 /*
  * ioctl() definitions
  *
