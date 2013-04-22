@@ -73,21 +73,22 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
 
-/* Configuration Constants */
-#define I2C_BUS 		PX4_I2C_BUS_ESC   // XXX Replace with PX4_I2C_BUS_EXPANSION before submitting.
-#define I2C_ADDRESS 	0x75
+/* Default I2C bus */
+#define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
 
-/* ETS_AIRSPEED Registers addresses */
-#define READ_CMD	0x07		/* Read the data */
+/* I2C bus address */
+#define I2C_ADDRESS		0x75	/* 7-bit address. 8-bit address is 0xEA */
+
+/* Register address */
+#define READ_CMD		0x07		/* Read the data */
 	 
-/* Measurement rate is 100Hz */
-#define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
-
 /**
- * The Eagle Tree Airspeed V3 can only provide accurate readings
- * for speeds from 15km/h upwards. 
+ * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h. 
  */
 #define MIN_ACCURATE_DIFF_PRES_PA 12
+
+/* Measurement rate is 100Hz */
+#define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
 /* Oddly, ERROR is not defined for C++ */
 #ifdef ERROR
@@ -102,7 +103,7 @@ static const int ERROR = -1;
 class ETS_AIRSPEED : public device::I2C
 {
 public:
-	ETS_AIRSPEED(int bus = I2C_BUS, int address = I2C_ADDRESS);
+	ETS_AIRSPEED(int bus, int address = I2C_ADDRESS);
 	virtual ~ETS_AIRSPEED();
 	
 	virtual int 		init();
@@ -194,11 +195,11 @@ ETS_AIRSPEED::ETS_AIRSPEED(int bus, int address) :
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
+	_diff_pres_offset(0),
 	_airspeed_pub(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ETS_AIRSPEED_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ETS_AIRSPEED_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ETS_AIRSPEED_buffer_overflows")),
-	_diff_pres_offset(0)
+	_buffer_overflows(perf_alloc(PC_COUNT, "ETS_AIRSPEED_buffer_overflows"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -229,7 +230,7 @@ ETS_AIRSPEED::init()
 	/* allocate basic report buffers */
 	_num_reports = 2;
 	_reports = new struct differential_pressure_s[_num_reports];
-	for (int i = 0; i < _num_reports; i++)
+	for (unsigned i = 0; i < _num_reports; i++)
 		_reports[i].max_differential_pressure_pa = 0;
 
 	if (_reports == nullptr)
@@ -613,7 +614,7 @@ const int ERROR = -1;
 
 ETS_AIRSPEED	*g_dev;
 
-void	start();
+void	start(int i2c_bus);
 void	stop();
 void	test();
 void	reset();
@@ -623,7 +624,7 @@ void	info();
  * Start the driver.
  */
 void
-start()
+start(int i2c_bus)
 {
 	int fd;
 
@@ -631,7 +632,7 @@ start()
 		errx(1, "already started");
 
 	/* create the driver */
-	g_dev = new ETS_AIRSPEED(I2C_BUS);
+	g_dev = new ETS_AIRSPEED(i2c_bus);
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -664,7 +665,8 @@ fail:
 /**
  * Stop the driver
  */
-void stop()
+void
+stop()
 {
 	if (g_dev != nullptr)
 	{
@@ -770,14 +772,36 @@ info()
 
 } // namespace
 
+
+static void 
+ets_airspeed_usage() 
+{
+	fprintf(stderr, "usage: ets_airspeed [options] command\n");
+	fprintf(stderr, "options:\n");
+	fprintf(stderr, "\t-b --bus i2cbus (%d)\n", PX4_I2C_BUS_DEFAULT);
+	fprintf(stderr, "command:\n");
+	fprintf(stderr, "\tstart|stop|reset|test|info\n");
+}
+
 int
 ets_airspeed_main(int argc, char *argv[])
 {
+	int i2c_bus = PX4_I2C_BUS_DEFAULT;
+
+	int i;
+	for (i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--bus") == 0) {
+			if (argc > i + 1) {
+				i2c_bus = atoi(argv[i + 1]);
+			}
+		}
+	}
+
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start"))
-		ets_airspeed::start();
+		ets_airspeed::start(i2c_bus);
 	
 	 /*
 	  * Stop the driver
@@ -803,5 +827,6 @@ ets_airspeed_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status"))
 		ets_airspeed::info();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	ets_airspeed_usage();
+	exit(0);
 }
