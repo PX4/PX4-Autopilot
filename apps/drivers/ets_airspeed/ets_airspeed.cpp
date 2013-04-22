@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file airspeed.cpp
+ * @file ets_airspeed.cpp
  * @author Simon Wilks
  *
  * Driver for the Eagle Tree Airspeed V3 connected via I2C.
@@ -197,9 +197,9 @@ ETS_AIRSPEED::ETS_AIRSPEED(int bus, int address) :
 	_collect_phase(false),
 	_diff_pres_offset(0),
 	_airspeed_pub(-1),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ETS_AIRSPEED_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "ETS_AIRSPEED_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "ETS_AIRSPEED_buffer_overflows"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "ets_airspeed_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "ets_airspeed_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "ets_airspeed_buffer_overflows"))
 {
 	// enable debug() calls
 	_debug_enabled = true;

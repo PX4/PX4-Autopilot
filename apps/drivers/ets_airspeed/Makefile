@@ -37,6 +37,6 @@
 
 APPNAME		= ets_airspeed
 PRIORITY	= SCHED_PRIORITY_DEFAULT
-STACKSIZE	= 2048
+STACKSIZE	= 1024
 
 include $(APPDIR)/mk/app.mk

@@ -33,6 +33,7 @@
 
 /**
  * @file Airspeed driver interface.
+ * @author Simon Wilks
  */
 
 #ifndef _DRV_AIRSPEED_H
