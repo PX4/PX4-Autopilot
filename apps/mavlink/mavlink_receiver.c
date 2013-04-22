@@ -395,7 +395,7 @@ handle_message(mavlink_message_t *msg)
 			static uint64_t old_timestamp = 0;
 
 			/* sensors general */
-			hil_sensors.timestamp = imu.time_usec;
+			hil_sensors.timestamp = hrt_absolute_time();
 
 			/* hil gyro */
 			static const float mrad2rad = 1.0e-3f;
@@ -446,12 +446,16 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.baro_alt_meter = h;
 			hil_sensors.baro_temp_celcius = imu.temperature;
 
+			hil_sensors.gyro_counter = hil_counter;
+			hil_sensors.magnetometer_counter = hil_counter;
+			hil_sensors.accelerometer_counter = hil_counter;
+
 			/* publish */
 			orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
 
 			// increment counters
-			hil_counter += 1 ;
-			hil_frames += 1 ;
+			hil_counter++;
+			hil_frames++;
 
 			// output
 			if ((timestamp - old_timestamp) > 10000000) {
@@ -481,13 +485,17 @@ handle_message(mavlink_message_t *msg)
 //			hil_gps.counter_pos_valid = hil_counter++;
 			hil_gps.eph_m = (float)gps.eph * 1e-2f; // from cm to m
 			hil_gps.epv_m = (float)gps.epv * 1e-2f; // from cm to m
-			hil_gps.s_variance_m_s = 100; // XXX 100 m/s variance?
-			hil_gps.p_variance_m = 100; // XXX 100 m variance?
+			hil_gps.s_variance_m_s = 5.0f;
+			hil_gps.p_variance_m = hil_gps.eph_m * hil_gps.eph_m;
 			hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
-			hil_gps.vel_n_m_s = (float)gps.vel * 1e-2f * cosf(gps.cog * M_DEG_TO_RAD_F * 1e-2f);
-			hil_gps.vel_e_m_s = (float)gps.vel * 1e-2f * sinf(gps.cog * M_DEG_TO_RAD_F * 1e-2f);
+
+			/* gps.cog is in degrees 0..360 * 100, heading is -PI..PI */
+			float heading_rad = gps.cog * M_DEG_TO_RAD_F * 1e-2f - M_PI_F;
+			hil_gps.vel_n_m_s = (float)gps.vel * 1e-2f * cosf(heading_rad);
+			hil_gps.vel_e_m_s = (float)gps.vel * 1e-2f * sinf(heading_rad);
 			hil_gps.vel_d_m_s = 0.0f;
-			hil_gps.cog_rad = gps.cog * M_DEG_TO_RAD_F * 1e-2f; // from deg*100 to rad
+			/* COG (course over ground) is speced as 0..360 degrees (compass) */
+			hil_gps.cog_rad = cog_rad + M_PI_F; // from deg*100 to rad
 			hil_gps.fix_type = gps.fix_type;
 			hil_gps.satellites_visible = gps.satellites_visible;
 
