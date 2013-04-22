@@ -442,7 +442,8 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	int termios_state;
 	*is_usb = false;
 
-	if (strcmp(uart_name, "/dev/ttyACM0") != OK) {
+	/* make some wild guesses including that USB serial is indicated by either /dev/ttyACM0 or /dev/console */
+	if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/console") != OK) {
 		/* Back up the original uart configuration to restore it after exit */
 		if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
 			fprintf(stderr, "[mavlink] ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);

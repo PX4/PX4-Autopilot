@@ -1,0 +1,68 @@
+#!nsh
+#
+# USB HIL start
+#
+
+echo "[HIL] starting.."
+
+uorb start
+
+# Tell MAVLink that this link is "fast"
+mavlink start -b 230400 -d /dev/console
+
+# Create a fake HIL /dev/pwm_output interface
+hil mode_pwm
+
+#
+# Load microSD params
+#
+echo "[init] loading microSD params"
+param select /fs/microsd/parameters
+if [ -f /fs/microsd/parameters ]
+then
+	param load /fs/microsd/parameters
+fi
+
+#
+# Force some key parameters to sane values
+# MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
+#              see https://pixhawk.ethz.ch/mavlink/
+#
+param set MAV_TYPE 1
+
+#
+# Start the commander (depends on orb, mavlink)
+#
+commander start
+
+#
+# Check if we got an IO
+#
+if [ px4io start ]
+then
+	echo "IO started"
+else
+	fmu mode_serial
+	echo "FMU started"
+end
+
+#
+# Start the sensors (depends on orb, px4io)
+#
+sh /etc/init.d/rc.sensors
+
+#
+# Start the attitude estimator (depends on orb)
+#
+kalman_demo start
+ 
+#
+# Load mixer and start controllers (depends on px4io)
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_AET.mix
+control_demo start
+
+echo "[HIL] setup done, running"
+
+# Exit shell to make it available to MAVLink
+exit 
