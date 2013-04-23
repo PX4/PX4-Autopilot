@@ -100,11 +100,11 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class ETS_AIRSPEED : public device::I2C
+class ETSAirspeed : public device::I2C
 {
 public:
-	ETS_AIRSPEED(int bus, int address = I2C_ADDRESS);
-	virtual ~ETS_AIRSPEED();
+	ETSAirspeed(int bus, int address = I2C_ADDRESS);
+	virtual ~ETSAirspeed();
 	
 	virtual int 		init();
 	
@@ -186,8 +186,8 @@ private:
  */
 extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[]);
 
-ETS_AIRSPEED::ETS_AIRSPEED(int bus, int address) :
-	I2C("ETS_AIRSPEED", AIRSPEED_DEVICE_PATH, bus, address, 100000),
+ETSAirspeed::ETSAirspeed(int bus, int address) :
+	I2C("ETSAirspeed", AIRSPEED_DEVICE_PATH, bus, address, 100000),
 	_num_reports(0),
 	_next_report(0),
 	_oldest_report(0),
@@ -208,7 +208,7 @@ ETS_AIRSPEED::ETS_AIRSPEED(int bus, int address) :
 	memset(&_work, 0, sizeof(_work));
 }
 
-ETS_AIRSPEED::~ETS_AIRSPEED()
+ETSAirspeed::~ETSAirspeed()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -219,7 +219,7 @@ ETS_AIRSPEED::~ETS_AIRSPEED()
 }
 
 int
-ETS_AIRSPEED::init()
+ETSAirspeed::init()
 {
 	int ret = ERROR;
 
@@ -253,13 +253,13 @@ out:
 }
 
 int
-ETS_AIRSPEED::probe()
+ETSAirspeed::probe()
 {
 	return measure();
 }
 
 int
-ETS_AIRSPEED::ioctl(struct file *filp, int cmd, unsigned long arg)
+ETSAirspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -363,7 +363,7 @@ ETS_AIRSPEED::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 ssize_t
-ETS_AIRSPEED::read(struct file *filp, char *buffer, size_t buflen)
+ETSAirspeed::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct differential_pressure_s);
 	int ret = 0;
@@ -422,7 +422,7 @@ ETS_AIRSPEED::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-ETS_AIRSPEED::measure()
+ETSAirspeed::measure()
 {
 	int ret;
 
@@ -444,7 +444,7 @@ ETS_AIRSPEED::measure()
 }
 
 int
-ETS_AIRSPEED::collect()
+ETSAirspeed::collect()
 {
 	int	ret = -EIO;
 	
@@ -503,14 +503,14 @@ ETS_AIRSPEED::collect()
 }
 
 void
-ETS_AIRSPEED::start()
+ETSAirspeed::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_oldest_report = _next_report = 0;
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&ETS_AIRSPEED::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&ETSAirspeed::cycle_trampoline, this, 1);
 	
 	/* notify about state change */
 	struct subsystem_info_s info = {
@@ -528,21 +528,21 @@ ETS_AIRSPEED::start()
 }
 
 void
-ETS_AIRSPEED::stop()
+ETSAirspeed::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-ETS_AIRSPEED::cycle_trampoline(void *arg)
+ETSAirspeed::cycle_trampoline(void *arg)
 {
-	ETS_AIRSPEED *dev = (ETS_AIRSPEED *)arg;
+	ETSAirspeed *dev = (ETSAirspeed *)arg;
 
 	dev->cycle();
 }
 
 void
-ETS_AIRSPEED::cycle()
+ETSAirspeed::cycle()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -566,7 +566,7 @@ ETS_AIRSPEED::cycle()
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(HPWORK,
 				   &_work,
-				   (worker_t)&ETS_AIRSPEED::cycle_trampoline,
+				   (worker_t)&ETSAirspeed::cycle_trampoline,
 				   this,
 				   _measure_ticks - USEC2TICK(CONVERSION_INTERVAL));
 
@@ -584,13 +584,13 @@ ETS_AIRSPEED::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
 		   &_work,
-		   (worker_t)&ETS_AIRSPEED::cycle_trampoline,
+		   (worker_t)&ETSAirspeed::cycle_trampoline,
 		   this,
 		   USEC2TICK(CONVERSION_INTERVAL));
 }
 
 void
-ETS_AIRSPEED::print_info()
+ETSAirspeed::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -612,7 +612,7 @@ namespace ets_airspeed
 #endif
 const int ERROR = -1;
 
-ETS_AIRSPEED	*g_dev;
+ETSAirspeed	*g_dev;
 
 void	start(int i2c_bus);
 void	stop();
@@ -632,7 +632,7 @@ start(int i2c_bus)
 		errx(1, "already started");
 
 	/* create the driver */
-	g_dev = new ETS_AIRSPEED(i2c_bus);
+	g_dev = new ETSAirspeed(i2c_bus);
 
 	if (g_dev == nullptr)
 		goto fail;
