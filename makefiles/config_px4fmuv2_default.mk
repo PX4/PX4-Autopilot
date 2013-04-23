@@ -18,6 +18,11 @@ MODULES		+= drivers/rgbled
 MODULES		+= systemcmds/ramtron
 
 #
+# Estimation modules (EKF / other filters)
+#
+MODULES		+= modules/attitude_estimator_ekf
+
+#
 # Transitional support - add commands from the NuttX export archive.
 #
 # In general, these should move to modules over time.
@@ -32,7 +37,6 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, adc,                    ,                          2048,  adc_main                   ) \
-	$(call _B, attitude_estimator_ekf, ,                          2048,  attitude_estimator_ekf_main) \
 	$(call _B, bl_update,              ,                          4096,  bl_update_main             ) \
 	$(call _B, blinkm,                 ,                          2048,  blinkm_main                ) \
 	$(call _B, boardinfo,              ,                          2048,  boardinfo_main             ) \
