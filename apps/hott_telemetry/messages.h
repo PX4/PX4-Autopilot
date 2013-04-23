@@ -43,11 +43,6 @@
 
 #include <stdlib.h>
 
-/* The buffer size used to store messages. This must be at least as big as the number of
- * fields in the largest message struct.
- */
-#define MESSAGE_BUFFER_SIZE 50
-
 /* The HoTT receiver demands a minimum 5ms period of silence after delivering its request.
  * Note that the value specified here is lower than 5000 (5ms) as time is lost constucting
  * the message after the read which takes some milliseconds.
@@ -71,12 +66,12 @@
 /* The Electric Air Module message. */
 struct eam_module_msg {
 	uint8_t start;			/**< Start byte   				*/
-	uint8_t eam_sensor_id;		/**< EAM sensor ID 				*/
+	uint8_t eam_sensor_id;	/**< EAM sensor					*/
 	uint8_t warning;
-	uint8_t sensor_id;		/**< Sensor ID, why different? 			*/
+	uint8_t sensor_id;		/**< Sensor ID, why different?	*/
 	uint8_t alarm_inverse1;
 	uint8_t alarm_inverse2;
-	uint8_t cell1_L;		/**< Lipo cell voltages. Not supported. 	*/
+	uint8_t cell1_L;		/**< Lipo cell voltages. Not supported.	*/
 	uint8_t cell2_L;
 	uint8_t cell3_L;
 	uint8_t cell4_L;
@@ -117,7 +112,14 @@ struct eam_module_msg {
 	uint8_t checksum;		/**< Lower 8-bits of all bytes summed. 			*/
 };
 
+/** 
+ * The maximum buffer size required to store a HoTT message.
+ */
+#define MESSAGE_BUFFER_SIZE sizeof(union { 	\
+    struct eam_module_msg eam; 				\
+})
+
 void messages_init(void);
-void build_eam_response(uint8_t *buffer, int *size);
+void build_eam_response(uint8_t *buffer, size_t *size);
 
 #endif /* MESSAGES_H_ */
