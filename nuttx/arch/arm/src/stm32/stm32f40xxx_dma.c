@@ -130,7 +130,7 @@ static struct stm32_dma_s g_dma[DMA_NSTREAMS] =
     .stream   = 3,
     .irq      = STM32_IRQ_DMA1S3,
     .shift    = DMA_INT_STREAM3_SHIFT,
-    .base     = STM32_DMA1_BASE + STM32_DMA_OFFSET(4),
+    .base     = STM32_DMA1_BASE + STM32_DMA_OFFSET(3),
   },
   {
     .stream   = 4,
