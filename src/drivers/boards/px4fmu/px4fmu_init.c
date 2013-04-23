@@ -148,16 +148,10 @@ __EXPORT int nsh_archinitialize(void)
 {
 	int result;
 
-//	/* configure ADC pins */
-//	stm32_configgpio(GPIO_ADC1_IN10);
-//	stm32_configgpio(GPIO_ADC1_IN11);
-//	stm32_configgpio(GPIO_ADC1_IN12);
-
-//	/* configure power supply control pins */
-//	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-//	stm32_configgpio(GPIO_VDD_2V8_SENSORS_EN);
-//	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
-//	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+	/* configure always-on ADC pins */
+	stm32_configgpio(GPIO_ADC1_IN10);
+	stm32_configgpio(GPIO_ADC1_IN11);
+	/* IN12 and IN13 further below */
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -200,38 +194,38 @@ __EXPORT int nsh_archinitialize(void)
 		return -ENODEV;
 	}
 
-	// Default SPI1 to 1MHz and de-assert the known chip selects.
+	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
 	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
-	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL_MAG, false);
-//	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL, false);
-//	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
 	message("[boot] Successfully initialized SPI port 1\r\n");
 
-
+	/*
+	 * If SPI2 is enabled in the defconfig, we loose some ADC pins as chip selects.
+	 * Keep the SPI2 init optional and conditionally initialize the ADC pins
+	 */
 	spi2 = up_spiinitialize(2);
 
 	if (!spi2) {
-		message("[boot] FAILED to initialize SPI port 2\r\n");
-		up_ledon(LED_AMBER);
-		return -ENODEV;
+		message("[boot] Enabling IN12/13 instead of SPI2\n");
+		/* no SPI2, use pins for ADC */
+		stm32_configgpio(GPIO_ADC1_IN12);
+		stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
+	} else {
+		/* Default SPI2 to 1MHz and de-assert the known chip selects. */
+		SPI_SETFREQUENCY(spi2, 10000000);
+		SPI_SETBITS(spi2, 8);
+		SPI_SETMODE(spi2, SPIDEV_MODE3);
+		SPI_SELECT(spi2, PX4_SPIDEV_GYRO, false);
+		SPI_SELECT(spi2, PX4_SPIDEV_ACCEL_MAG, false);
+
+		message("[boot] Initialized SPI port2 (ADC IN12/13 blocked)\n");
 	}
-
-	// Default SPI1 to 1MHz and de-assert the known chip selects.
-	SPI_SETFREQUENCY(spi2, 10000000);
-	SPI_SETBITS(spi2, 8);
-	SPI_SETMODE(spi2, SPIDEV_MODE3);
-	SPI_SELECT(spi2, PX4_SPIDEV_GYRO, false);
-	SPI_SELECT(spi2, PX4_SPIDEV_ACCEL_MAG, false);
-//	SPI_SELECT(spi2, PX4_SPIDEV_ACCEL, false);
-//	SPI_SELECT(spi2, PX4_SPIDEV_MPU, false);
-	up_udelay(20);
-
-	message("[boot] Successfully initialized SPI port2\r\n");
 
 	/* Get the SPI port for the microSD slot */
 
@@ -256,11 +250,6 @@ __EXPORT int nsh_archinitialize(void)
 	}
 
 	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
-
-	stm32_configgpio(GPIO_ADC1_IN10);
-	stm32_configgpio(GPIO_ADC1_IN11);
-//	stm32_configgpio(GPIO_ADC1_IN12);
-//	stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
 
 	return OK;
 }
