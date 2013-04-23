@@ -43,11 +43,6 @@
 
 #include <stdlib.h>
 
-/* The buffer size used to store messages. This must be at least as big as the number of
- * fields in the largest message struct.
- */
-#define MESSAGE_BUFFER_SIZE 50
-
 /* The HoTT receiver demands a minimum 5ms period of silence after delivering its request.
  * Note that the value specified here is lower than 5000 (5ms) as time is lost constucting
  * the message after the read which takes some milliseconds.
@@ -117,7 +112,13 @@ struct eam_module_msg {
 	uint8_t checksum;		/**< Lower 8-bits of all bytes summed. 			*/
 };
 
+/** The maximum buffer size required to store any HoTT message.
+ */
+#define MESSAGE_BUFFER_SIZE sizeof(union { \
+		struct eam_module_msg eam; \
+	})
+
 void messages_init(void);
-void build_eam_response(uint8_t *buffer, int *size);
+void build_eam_response(uint8_t *buffer, size_t *size);
 
 #endif /* MESSAGES_H_ */
