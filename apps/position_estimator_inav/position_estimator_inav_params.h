@@ -43,6 +43,7 @@
 struct position_estimator_inav_params {
 	int use_gps;
 	float k[3][2];
+	float acc_offs_w;
 	int16_t acc_offs[3];
 	float acc_T[3][3];
 };
@@ -56,6 +57,8 @@ struct position_estimator_inav_param_handles {
 	param_t k_alt_11;
 	param_t k_alt_20;
 	param_t k_alt_21;
+
+	param_t acc_offs_w;
 
 	param_t acc_offs_0;
 	param_t acc_offs_1;

@@ -39,6 +39,7 @@
  */
 
 #include "position_estimator_inav_params.h"
+#include "acceleration_transform.h"
 
 /* Kalman Filter covariances */
 /* gps measurement noise standard deviation */
@@ -50,6 +51,8 @@ PARAM_DEFINE_FLOAT(INAV_K_ALT_10, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_K_ALT_11, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_K_ALT_20, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_K_ALT_21, 0.0f);
+
+PARAM_DEFINE_FLOAT(INAV_ACC_OFFS_W, 0.0f);
 
 PARAM_DEFINE_INT32(INAV_ACC_OFFS_0, 0);
 PARAM_DEFINE_INT32(INAV_ACC_OFFS_1, 0);
@@ -74,6 +77,8 @@ int parameters_init(struct position_estimator_inav_param_handles *h) {
 	h->k_alt_11 = param_find("INAV_K_ALT_11");
 	h->k_alt_20 = param_find("INAV_K_ALT_20");
 	h->k_alt_21 = param_find("INAV_K_ALT_21");
+
+	h->acc_offs_w = param_find("INAV_ACC_OFFS_W");
 
 	h->acc_offs_0 = param_find("INAV_ACC_OFFS_0");
 	h->acc_offs_1 = param_find("INAV_ACC_OFFS_1");
@@ -101,6 +106,8 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 	param_get(h->k_alt_20, &(p->k[2][0]));
 	param_get(h->k_alt_21, &(p->k[2][1]));
 
+	param_get(h->acc_offs_w, &(p->acc_offs_w));
+
 	/* read int32 and cast to int16 */
 	int32_t t;
 	param_get(h->acc_offs_0, &t);
@@ -119,5 +126,6 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 	param_get(h->acc_t_20, &(p->acc_T[2][0]));
 	param_get(h->acc_t_21, &(p->acc_T[2][1]));
 	param_get(h->acc_t_22, &(p->acc_T[2][2]));
+
 	return OK;
 }

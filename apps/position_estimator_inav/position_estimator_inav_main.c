@@ -280,6 +280,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	static float x_est[3] = { 0.0f, 0.0f, 0.0f };
 	static float y_est[3] = { 0.0f, 0.0f, 0.0f };
 	static float z_est[3] = { 0.0f, 0.0f, 0.0f };
+	float accel_offs_est[3] = { 0.0f, 0.0f, 0.0f };
 
 	int baro_loop_cnt = 0;
 	int baro_loop_end = 70; /* measurement for 1 second */
@@ -471,36 +472,45 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		hrt_abstime t = hrt_absolute_time();
 		float dt = (t - last_time) / 1000000.0;
 		last_time = t;
-		/* calculate corrected acceleration vector in UAV frame */
-		float accel_corr[3];
-		acceleration_correct(accel_corr, sensor.accelerometer_raw,
-				params.acc_T, params.acc_offs);
-		/* transform acceleration vector from UAV frame to NED frame */
-		float accel_NED[3];
-		for (int i = 0; i < 3; i++) {
-			accel_NED[i] = 0.0f;
-			for (int j = 0; j < 3; j++) {
-				accel_NED[i] += att.R[i][j] * accel_corr[j];
+		if (att.R_valid) {
+			/* calculate corrected acceleration vector in UAV frame */
+			float accel_corr[3];
+			acceleration_correct(accel_corr, sensor.accelerometer_raw,
+					params.acc_T, params.acc_offs);
+			/* transform acceleration vector from UAV frame to NED frame */
+			float accel_NED[3];
+			for (int i = 0; i < 3; i++) {
+				accel_NED[i] = 0.0f;
+				for (int j = 0; j < 3; j++) {
+					accel_NED[i] += att.R[i][j] * (accel_corr[j] - accel_offs_est[j]);
+				}
 			}
-		}
-		accel_NED[2] += const_earth_gravity;
-		/* kalman filter prediction */
-		kalman_filter_inertial_predict(dt, z_est);
-		/* prepare vectors for kalman filter correction */
-		float z_meas[2];	// position, acceleration
-		bool use_z[2] = { false, false };
-		if (local_flag_baroINITdone && baro_updated) {
-			z_meas[0] = baro_alt0 - sensor.baro_alt_meter;	// Z = -alt
-			use_z[0] = true;
-		}
-		if (accelerometer_updated) {
-			z_meas[1] = accel_NED[2];
-			use_z[1] = true;
-		}
-		if (use_z[0] || use_z[1]) {
-			/* correction */
-			kalman_filter_inertial_update(z_est, z_meas, params.k,
-					use_z);
+			accel_NED[2] += const_earth_gravity;
+			/* accelerometers offset drift correction: rotate acceleration error back to UAV frame and integrate */
+			for (int i = 0; i < 3; i++) {
+				for (int j = 0; j < 3; j++) {
+					/* the inverse of a rotation matrix is its transpose, just swap i and j */
+					accel_offs_est[i] += att.R[j][i] * accel_NED[j] * params.acc_offs_w * dt;
+				}
+			}
+			/* kalman filter prediction */
+			kalman_filter_inertial_predict(dt, z_est);
+			/* prepare vectors for kalman filter correction */
+			float z_meas[2];	// position, acceleration
+			bool use_z[2] = { false, false };
+			if (local_flag_baroINITdone && baro_updated) {
+				z_meas[0] = baro_alt0 - sensor.baro_alt_meter;	// Z = -alt
+				use_z[0] = true;
+			}
+			if (accelerometer_updated) {
+				z_meas[1] = accel_NED[2];
+				use_z[1] = true;
+			}
+			if (use_z[0] || use_z[1]) {
+				/* correction */
+				kalman_filter_inertial_update(z_est, z_meas, params.k,
+						use_z);
+			}
 		}
 		if (verbose_mode) {
 			/* print updates rate */
@@ -521,9 +531,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		}
 		if (t - pub_last > pub_interval) {
 			pub_last = t;
-			pos.x = 0.0f;
-			pos.vx = 0.0f;
-			pos.y = 0.0f;
+			pos.x = accel_offs_est[0];
+			pos.vx = accel_offs_est[1];
+			pos.y = accel_offs_est[2];
 			pos.vy = 0.0f;
 			pos.z = z_est[0];
 			pos.vz = z_est[1];
