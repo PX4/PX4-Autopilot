@@ -210,9 +210,10 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 	static float radar_weights[32] = { 0.0f };
 	static float radar_filtered_k[32] = { 0.0f };
 	static float radar_weights_k[32] = { 0.0f };
-	static float distance_left = 5.0f;
-	static float distance_right = 5.0f;
-	static float distance_front = 5.0f;
+	static const float distance_max = 5.0f;
+	static float distance_left = distance_max;
+	static float distance_right = distance_max;
+	static float distance_front = distance_max;
 	static int sonar_counter = 0;
 	static int sonar_gradient = 0;
 
@@ -227,6 +228,16 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 	filter_settings[5] = params.s5;
 	filter_settings[6] = params.s6;
 	filter_settings[7] = params.s7;
+
+	/* initialize radar */
+	for (int i = 0; i<32; i++) {
+		radar[i] = distance_max;
+		radar_filtered[i] = distance_max;
+		radar_filtered_k[i] = distance_max;
+		radar_weights[i] = 1.0f;
+		radar_weights_k[i] = 1.0f;
+	}
+
 
 	while (!thread_should_exit) {
 
@@ -378,7 +389,9 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 					position_last[1] = bodyframe_pos.y;
 					yaw_last = att.yaw;
 
-					wallEstimationFilter(radar_filtered_k, radar_weights_k, omni_left_filtered, omni_right_filtered, front_distance_filtered, 1, speed_filtered, position_update, yaw_update, filter_settings, radar, radar_filtered, radar_weights);
+					wallEstimationFilter(radar_filtered_k, radar_weights_k, omni_left_filtered, omni_right_filtered,
+							front_distance_filtered, speed_filtered, position_update, yaw_update, filter_settings,
+							((bool) params.with_sonar), radar, radar_filtered, radar_weights);
 					memcpy(radar_filtered_k, radar_filtered, sizeof(radar_filtered));
 					memcpy(radar_weights_k, radar_weights, sizeof(radar_weights));
 
@@ -386,6 +399,8 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 						discrete_radar.distances[i] = (int16_t)(radar_filtered[i] * 1000);
 //						discrete_radar.distances[i] = (int16_t)(radar_weights[i] * 1000);
 					}
+					discrete_radar.sonar = (int16_t)(front_distance_filtered * 1000);
+
 					distance_left = radar_filtered[8];
 					distance_right = radar_filtered[24];
 					distance_front = front_distance_filtered;

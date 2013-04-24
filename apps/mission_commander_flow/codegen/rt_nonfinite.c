@@ -1,9 +1,9 @@
 /*
  * rt_nonfinite.c
  *
- * Code generation for function 'frontFlowKalmanFilter'
+ * Code generation for function 'radarControl'
  *
- * C source code generated on: Wed Apr 24 14:59:21 2013
+ * C source code generated on: Wed Apr 24 15:06:04 2013
  *
  */
 

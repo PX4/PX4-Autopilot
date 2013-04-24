@@ -39,4 +39,15 @@ APPNAME		 = mission_commander_flow
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 4096
 
+CSRCS		 = mission_commander_flow_main.c \
+		   mission_commander_flow_params.c \
+		   mission_helper.c \
+		   mission_sounds.c \
+		   codegen/rt_nonfinite.c \
+		   codegen/rtGetInf.c \
+		   codegen/rtGetNaN.c \
+		   codegen/radarControl_initialize.c \
+		   codegen/radarControl_terminate.c \
+		   codegen/radarControl.c
+
 include $(APPDIR)/mk/app.mk

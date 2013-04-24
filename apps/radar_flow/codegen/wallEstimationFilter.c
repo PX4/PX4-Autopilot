@@ -3,7 +3,7 @@
  *
  * Code generation for function 'wallEstimationFilter'
  *
- * C source code generated on: Tue Apr  9 09:52:43 2013
+ * C source code generated on: Wed Apr 24 14:59:21 2013
  *
  */
 
@@ -79,9 +79,9 @@ static void eml_li_find(const boolean_T x[10], int32_T y_data[10], int32_T
 
 void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
   radar_weights_k[32], const real32_T flow_left[10], const real32_T flow_right
-  [10], real32_T front_distance, uint16_T quality, const real32_T speed[2],
-  const real32_T position_update[2], real32_T attitude_update, const real32_T
-  settings[8], real32_T radar[32], real32_T radar_filtered[32], real32_T
+  [10], real32_T front_distance, const real32_T speed[2], const real32_T
+  position_update[2], real32_T attitude_update, const real32_T settings[8],
+  boolean_T use_sonar, real32_T radar[32], real32_T radar_filtered[32], real32_T
   radar_weights[32])
 {
   real32_T x_transition_add[32];
@@ -494,7 +494,7 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
 
   /*  --------------------------------------------------------------------- */
   /*  FRONT DISTANCE */
-  /*  --------------------------------------------------------------------- */
+  /*  ---------------------------------------------------------------------     */
   if (front_distance < 5.0F) {
     for (i2 = 0; i2 < 5; i2++) {
       radar_distance_update_front[14 + i2] = front_distance;
@@ -570,8 +570,13 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
 
         radar[i] = ss_tot;
       } else {
-        /*  front distance available */
-        if (distance_filtering_front[i] != 0.0F) {
+        /*  use sonar only if there is something that flow does not detect... */
+        /*  so only if sonar is smaller than flow wall estimation take sonar... */
+        /*  and only if boolean use_sonar */
+        if ((distance_filtering_front[i] != 0.0F) &&
+            (radar_distance_update_front[i] < radar_distance_update_left[i]) &&
+            (radar_distance_update_front[i] < radar_distance_update_right[i]) &&
+            use_sonar) {
           i_top = settings[4];
           radar[i] = radar_distance_update_front[i];
           gamma_rear = 1.0F;
@@ -579,7 +584,8 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
           /*  right and left available */
         } else if ((x_transition_add[i] != 0.0F) && (y_transition_add[i] != 0.0F))
         {
-          if (1 + i < 17) {
+          if ((1 + i < 17) || ((1 + i == 17) && (radar_distance_update_left[16] <
+                radar_distance_update_right[16]))) {
             /*  believe left */
             i_top = settings[5] + (settings[4] - settings[5]) * det_coef_left;
             radar[i] = radar_distance_update_left[i];
@@ -593,15 +599,25 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
 
           /*  only left available */
         } else if (x_transition_add[i] != 0.0F) {
-          i_top = settings[5] + (settings[4] - settings[5]) * det_coef_left;
           radar[i] = radar_distance_update_left[i];
-          gamma_rear = 0.2F + 0.8F * det_coef_left;
+          if (1 + i < 18) {
+            /*  only believe on the left side */
+            i_top = settings[5] + (settings[4] - settings[5]) * det_coef_left;
+            gamma_rear = 0.2F + 0.8F * det_coef_left;
+          } else {
+            i_top = settings[3];
+          }
 
           /*  only right available */
         } else if (y_transition_add[i] != 0.0F) {
-          i_top = settings[5] + (settings[4] - settings[5]) * det_coef_right;
           radar[i] = radar_distance_update_right[i];
-          gamma_rear = 0.2F + 0.8F * det_coef_right;
+          if (1 + i > 16) {
+            /*  only believe on the right side */
+            i_top = settings[5] + (settings[4] - settings[5]) * det_coef_right;
+            gamma_rear = 0.2F + 0.8F * det_coef_right;
+          } else {
+            i_top = settings[3];
+          }
 
           /*  no distance update available */
         } else {

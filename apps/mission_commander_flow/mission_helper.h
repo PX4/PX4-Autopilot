@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/discrete_radar.h>
+#include <uORB/topics/omnidirectional_flow.h>
 #include "mission_commander_flow_params.h"
 
 typedef enum mission_states {
@@ -39,8 +40,15 @@ typedef enum reaction_states {
 	REACT_TEST
 } reaction_state_t;
 
+struct mission_step_s {
+	float x;
+	float y;
+	float yaw;
+};
+
 struct mission_state_s {
 	mission_state_t state;
+	struct mission_step_s step;
 	int state_counter;
 	bool final_sequence;
 
@@ -53,11 +61,19 @@ struct mission_state_s {
 	reaction_state_t react_current;
 	reaction_state_t react_next;
 	int reaction_counter;
+
+	float debug_value1;
+	float debug_value2;
+	int debug_value3;
+	int debug_value4;
 };
 
 void init_state(struct mission_state_s *state);
 void do_state_update(struct mission_state_s *current_state, int mavlink_fd, mission_state_t new_state);
-void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params, int mavlink_fd, struct discrete_radar_s *new_radar);
+void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params, int mavlink_fd,
+		struct discrete_radar_s *new_radar, struct omnidirectional_flow_s *omni_flow);
+void do_radar_update2(struct mission_state_s *current_state,struct mission_commander_flow_params *params, int mavlink_fd,
+		struct discrete_radar_s *new_radar, struct omnidirectional_flow_s *omni_flow);
 
 
 #endif /* MISSION_HELPER_H_ */

@@ -46,13 +46,16 @@
 struct mission_commander_flow_params {
 	float mission_x_offset; // in m
 	float mission_y_offset; // in m
-	float mission_update_step; // in m
+	float mission_update_step_x; // in m
+	float mission_update_step_y; // in m
 	float mission_update_step_yaw; // in rad
 	float mission_yaw_thld; // in rad
 	float mission_wp_radius; // in m
 	int mission_min_front_dist; // in mm
+	int mission_min_front_side_dist; // in mm
 	int mission_min_side_dist; // in mm
 	int mission_react_front_dist; // in mm
+	int mission_react_front_side_dist; // in mm
 	int mission_react_side_dist; // in mm
 	float reaction_min_react_angle;
 	float reaction_min_overreact_angle;
@@ -62,19 +65,23 @@ struct mission_commander_flow_params {
 	int counter_overreact_angle;
 	int counter_pass_distance;
 	int counter_free_distance;
+	float radarControlSettings[9];
 	int debug; // boolean if mission planning manually
 };
 
 struct mission_commander_flow_param_handles {
 	param_t mission_x_offset;
 	param_t mission_y_offset;
-	param_t mission_update_step;
+	param_t mission_update_step_x;
+	param_t mission_update_step_y;
 	param_t mission_update_step_yaw;
 	param_t mission_yaw_thld;
 	param_t mission_wp_radius;
 	param_t mission_min_front_dist;
+	param_t mission_min_front_side_dist;
 	param_t mission_min_side_dist;
 	param_t mission_react_front_dist;
+	param_t mission_react_front_side_dist;
 	param_t mission_react_side_dist;
 	param_t reaction_min_react_angle;
 	param_t reaction_min_overreact_angle;
