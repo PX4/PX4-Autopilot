@@ -46,6 +46,7 @@
 #include <drivers/drv_gpio.h>
 #include <nuttx/config.h>
 #include <sys/types.h>
+#include <systemlib/err.h>
 
 #include <debug.h>
 #include <errno.h>

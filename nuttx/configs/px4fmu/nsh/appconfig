@@ -97,7 +97,7 @@ ifneq ($(CONFIG_APM),y)
 CONFIGURED_APPS += ardrone_interface
 CONFIGURED_APPS += multirotor_att_control
 CONFIGURED_APPS += multirotor_pos_control
-#CONFIGURED_APPS += fixedwing_control
+CONFIGURED_APPS += position_estimator_mc
 CONFIGURED_APPS += fixedwing_att_control
 CONFIGURED_APPS += fixedwing_pos_control
 CONFIGURED_APPS += position_estimator
