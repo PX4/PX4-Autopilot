@@ -145,6 +145,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
   int  nchars;          /* Number of characters to print */
   int  dsgn;            /* Unused sign indicator */
   int  i;
+  bool done_decimal_point = false;
 
   /* special handling for NaN and Infinity */
   if (isnan(value)) {
@@ -199,6 +200,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
       if (prec > 0 || IS_ALTFORM(flags))
         {
           obj->put(obj, '.');
+	  done_decimal_point = true;
 
           /* Always print at least one digit to the right of the decimal point. */
 
@@ -224,6 +226,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
           /* Print the decimal point */
 
           obj->put(obj, '.');
+	  done_decimal_point = true;
 
           /* Print any leading zeros to the right of the decimal point */
 
@@ -270,6 +273,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
               /* Print the decimal point */
 
               obj->put(obj, '.');
+	      done_decimal_point = true;
 
               /* Always print at least one digit to the right of the decimal
                * point.
@@ -306,8 +310,9 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
     }
 
   /* Finally, print any trailing zeroes */
-
-  zeroes(obj, prec);
+  if (done_decimal_point) {
+      zeroes(obj, prec);
+  }
 
   /* Is this memory supposed to be freed or not? */
 
