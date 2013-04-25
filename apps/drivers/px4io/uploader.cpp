@@ -126,6 +126,8 @@ PX4IO_Uploader::upload(const char *filenames[])
 	if (ret != OK) {
 		/* this is immediately fatal */
 		log("bootloader not responding");
+		close(_io_fd);
+		_io_fd = -1;
 		return -EIO;
 	}
 
@@ -144,18 +146,25 @@ PX4IO_Uploader::upload(const char *filenames[])
 
 	if (filename == NULL) {
 		log("no firmware found");
+		close(_io_fd);
+		_io_fd = -1;
 		return -ENOENT;
 	}
 
 	struct stat st;
 	if (stat(filename, &st) != 0) {
 		log("Failed to stat %s - %d\n", filename, (int)errno);
+		close(_io_fd);
+		_io_fd = -1;
 		return -errno;
 	}
 	fw_size = st.st_size;
 
-	if (_fw_fd == -1)
+	if (_fw_fd == -1) {
+		close(_io_fd);
+		_io_fd = -1;
 		return -ENOENT;
+	}
 
 	/* do the usual program thing - allow for failure */
 	for (unsigned retries = 0; retries < 1; retries++) {
@@ -166,6 +175,8 @@ PX4IO_Uploader::upload(const char *filenames[])
 			if (ret != OK) {
 				/* this is immediately fatal */
 				log("bootloader not responding");
+				close(_io_fd);
+				_io_fd = -1;
 				return -EIO;
 			}
 		}
@@ -177,6 +188,8 @@ PX4IO_Uploader::upload(const char *filenames[])
 				log("found bootloader revision: %d", bl_rev);
 			} else {
 				log("found unsupported bootloader revision %d, exiting", bl_rev);
+				close(_io_fd);
+				_io_fd = -1;
 				return OK;
 			}
 		}
@@ -220,6 +233,8 @@ PX4IO_Uploader::upload(const char *filenames[])
 	}
 
 	close(_fw_fd);
+	close(_io_fd);
+	_io_fd = -1;
 	return ret;
 }
 
