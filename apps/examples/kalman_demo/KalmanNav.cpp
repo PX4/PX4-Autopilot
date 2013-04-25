@@ -355,6 +355,8 @@ int KalmanNav::predictState(float dt)
 		float LDot = vN / R;
 		float lDot = vE / (cosLSing * R);
 		float rotRate = 2 * omega + lDot;
+
+		// XXX position prediction using speed
 		float vNDot = fN - vE * rotRate * sinL +
 			      vD * LDot;
 		float vDDot = fD - vE * rotRate * cosL -
