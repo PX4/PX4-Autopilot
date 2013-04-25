@@ -71,13 +71,14 @@ usage(const char *reason)
 		warnx("%s", reason);
 	errx(1, 
 		"usage:\n"
-		"pwm [-v] [-d <device>] [-u <alt_rate>] [-c <channel group>] [arm|disarm] [<channel_value> ...]\n"
+		"pwm [-v] [-d <device>] [-u <alt_rate>] [-c <channel group>] [-m chanmask ] [arm|disarm] [<channel_value> ...]\n"
 		"  -v                 Print information about the PWM device\n"
 		"  <device>           PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
 		"  <alt_rate>         PWM update rate for channels in <alt_channel_mask>\n"
 		"  <channel_group>    Channel group that should update at the alternate rate (may be specified more than once)\n"
 		"  arm | disarm       Arm or disarm the ouptut\n"
 		"  <channel_value>... PWM output values in microseconds to assign to the PWM outputs\n"
+	        "  <chanmask>         Directly supply alt rate channel mask\n"
 		"\n"
 		"When -c is specified, any channel groups not listed with -c will update at the default rate.\n"
 		);
@@ -96,11 +97,12 @@ pwm_main(int argc, char *argv[])
 	int ret;
 	char *ep;
 	unsigned group;
+	int32_t set_mask = -1;
 
 	if (argc < 2)
 		usage(NULL);
 
-	while ((ch = getopt(argc, argv, "c:d:u:v")) != EOF) {
+	while ((ch = getopt(argc, argv, "c:d:u:vm:")) != EOF) {
 		switch (ch) {
 		case 'c':
 			group = strtoul(optarg, &ep, 0);
@@ -118,6 +120,12 @@ pwm_main(int argc, char *argv[])
 			alt_rate = strtol(optarg, &ep, 0);
 			if (*ep != '\0')
 				usage("bad alt_rate value");
+			break;
+
+		case 'm':
+			set_mask = strtol(optarg, &ep, 0);
+			if (*ep != '\0')
+				usage("bad set_mask value");
 			break;
 
 		case 'v':
@@ -141,6 +149,13 @@ pwm_main(int argc, char *argv[])
 		ret = ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
 		if (ret != OK)
 			err(1, "PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
+	}
+
+	/* directly supplied channel mask */
+	if (set_mask != -1) {
+		ret = ioctl(fd, PWM_SERVO_SELECT_UPDATE_RATE, set_mask);
+		if (ret != OK)
+			err(1, "PWM_SERVO_SELECT_UPDATE_RATE");
 	}
 
 	/* assign alternate rate to channel groups */
