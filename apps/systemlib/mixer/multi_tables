@@ -20,6 +20,13 @@ set quad_plus {
 	 180 CW
 }
 
+set quad_v {
+	  62 CCW
+	-133 CCW
+	 -62 CW
+	 133 CW
+}
+
 set hex_x {
 	  90 CW
 	 -90 CCW
@@ -60,7 +67,7 @@ set octa_plus {
 	  90 CW
 }
 
-set tables {quad_x quad_plus hex_x hex_plus octa_x octa_plus}
+set tables {quad_x quad_plus quad_v hex_x hex_plus octa_x octa_plus}
 
 proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %5.2f }," [rcos [expr $a + 90]] [rcos $a] [expr -$d]]}
 
