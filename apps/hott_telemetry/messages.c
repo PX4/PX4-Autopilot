@@ -45,6 +45,9 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
 
+/* The board is very roughly 5 deg warmer than the surrounding air */
+#define BOARD_TEMP_OFFSET_DEG 5
+
 static int battery_sub = -1;
 static int sensor_sub = -1;
 
@@ -72,13 +75,19 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	msg.start = START_BYTE;
 	msg.eam_sensor_id = ELECTRIC_AIR_MODULE;
 	msg.sensor_id = EAM_SENSOR_ID;
+	
 	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius + 20);
-	msg.temperature2 = TEMP_ZERO_CELSIUS;
+	msg.temperature2 = msg.temperature1 - BOARD_TEMP_OFFSET_DEG;
+
 	msg.main_voltage_L = (uint8_t)(battery.voltage_v * 10);
 
 	uint16_t alt = (uint16_t)(raw.baro_alt_meter + 500);
 	msg.altitude_L = (uint8_t)alt & 0xff;
 	msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
+
+	// TODO: flight time
+	// TODO: climb rate
+	
 
 	msg.stop = STOP_BYTE;
 
