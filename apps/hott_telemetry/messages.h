@@ -60,8 +60,8 @@
 #define TEMP_ZERO_CELSIUS	0x14
 
 /* Electric Air Module (EAM) constants. */
-#define ELECTRIC_AIR_MODULE	0x8e
-#define EAM_SENSOR_ID		0xe0
+#define EAM_SENSOR_ID			0x8e
+#define EAM_SENSOR_TEXT_ID		0xe0
 
 /* The Electric Air Module message. */
 struct eam_module_msg {

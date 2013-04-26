@@ -73,8 +73,8 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	*size = sizeof(msg);
 
 	msg.start = START_BYTE;
-	msg.eam_sensor_id = ELECTRIC_AIR_MODULE;
-	msg.sensor_id = EAM_SENSOR_ID;
+	msg.eam_sensor_id = EAM_SENSOR_ID;
+	msg.sensor_id = EAM_SENSOR_TEXT_ID;
 	
 	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius + 20);
 	msg.temperature2 = msg.temperature1 - BOARD_TEMP_OFFSET_DEG;
@@ -88,6 +88,28 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	// TODO: flight time
 	// TODO: climb rate
 	
+
+	msg.stop = STOP_BYTE;
+
+	memcpy(buffer, &msg, *size);
+}
+
+void 
+build_gps_response(uint8_t *buffer, size_t *size)
+{
+	/* get a local copy of the current sensor values */
+	struct sensor_combined_s raw = { 0 };
+	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+
+
+	struct gps_module_msg msg = { 0 };
+	*size = sizeof(msg);
+
+	msg.start = START_BYTE;
+	msg.eam_sensor_id = GPS_SENSOR_ID;
+	msg.sensor_id = GPS_SENSOR_TEXT_ID;
+	
+	// TODO(sjwilks): Complete.
 
 	msg.stop = STOP_BYTE;
 
