@@ -14,6 +14,7 @@ MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmu
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
+MODULES		+= drivers/ardrone_interface
 MODULES		+= systemcmds/eeprom
 
 #
@@ -36,7 +37,6 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, adc,                    ,                          2048,  adc_main                   ) \
-	$(call _B, ardrone_interface,      SCHED_PRIORITY_MAX-15,     2048,  ardrone_interface_main     ) \
 	$(call _B, bl_update,              ,                          4096,  bl_update_main             ) \
 	$(call _B, blinkm,                 ,                          2048,  blinkm_main                ) \
 	$(call _B, bma180,                 ,                          2048,  bma180_main                ) \
