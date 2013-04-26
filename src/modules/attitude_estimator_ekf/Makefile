@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,13 @@
 #
 ############################################################################
 
-#
-# Attitude estimator (Extended Kalman Filter)
-#
+APPNAME		 = attitude_estimator_ekf
+PRIORITY	 = SCHED_PRIORITY_DEFAULT
+STACKSIZE	 = 2048
 
-MODULE_NAME	 = attitude_estimator_ekf
 CXXSRCS		 = attitude_estimator_ekf_main.cpp
 
-SRCS		 = attitude_estimator_ekf_params.c \
+CSRCS		 = attitude_estimator_ekf_params.c \
 		   codegen/eye.c \
 		   codegen/attitudeKalmanfilter.c \
 		   codegen/mrdivide.c \
@@ -51,3 +50,8 @@ SRCS		 = attitude_estimator_ekf_params.c \
 		   codegen/norm.c \
 		   codegen/cross.c 
 
+
+# XXX this is *horribly* broken
+INCLUDES	+= $(TOPDIR)/../mavlink/include/mavlink
+
+include $(APPDIR)/mk/app.mk
