@@ -229,6 +229,13 @@ l_vehicle_gps_position(const struct listener *l)
 	/* copy gps data into local buffer */
 	orb_copy(ORB_ID(vehicle_gps_position), mavlink_subs.gps_sub, &gps);
 
+	/* GPS COG is 0..2PI in degrees * 1e2 */
+	float cog_deg = gps.cog_rad;
+	if (cog_deg > M_PI_F)
+		cog_deg -= 2.0f * M_PI_F;
+	cog_deg *= M_RAD_TO_DEG_F;
+
+
 	/* GPS position */
 	mavlink_msg_gps_raw_int_send(MAVLINK_COMM_0,
 				     gps.timestamp_position,
@@ -236,13 +243,14 @@ l_vehicle_gps_position(const struct listener *l)
 				     gps.lat,
 				     gps.lon,
 				     gps.alt,
-				     (uint16_t)(gps.eph_m * 1e2f), // from m to cm
-				     (uint16_t)(gps.epv_m * 1e2f), // from m to cm
-				     (uint16_t)(gps.vel_m_s * 1e2f), // from m/s to cm/s
-				     (uint16_t)(gps.cog_rad * M_RAD_TO_DEG_F * 1e2f), // from rad to deg * 100
+				     gps.eph_m * 1e2f, // from m to cm
+				     gps.epv_m * 1e2f, // from m to cm
+				     gps.vel_m_s * 1e2f, // from m/s to cm/s
+				     cog_deg * 1e2f, // from rad to deg * 100
 				     gps.satellites_visible);
 
-	if (gps.satellite_info_available && (gps_counter % 4 == 0)) {
+	/* update SAT info every 10 seconds */
+	if (gps.satellite_info_available && (gps_counter % 50 == 0)) {
 		mavlink_msg_gps_status_send(MAVLINK_COMM_0,
 					    gps.satellites_visible,
 					    gps.satellite_prn,
