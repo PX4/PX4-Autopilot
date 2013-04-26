@@ -75,6 +75,12 @@
 #	the list should be formatted as: 
 #		<command>.<priority>.<stacksize>.<entrypoint>
 #
+# INCLUDE_DIRS		(optional, must be appended)
+#
+#	The list of directories searched for include files. If non-standard
+#	includes (e.g. those from another module) are required, paths to search
+#	can be added here.
+#
 # DEFAULT_VISIBILITY	(optional)
 #
 #	If not set, global symbols defined in a module will not be visible 
