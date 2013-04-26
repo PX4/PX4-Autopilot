@@ -274,7 +274,9 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 						break;
 					}
 				}
-			} else {
+			} else if ( accel_disp[0] > still_thr_raw2 * 2.0f ||
+					    accel_disp[1] > still_thr_raw2 * 2.0f ||
+					    accel_disp[2] > still_thr_raw2 * 2.0f) {
 				/* not still, reset still start time */
 				if (t_still != 0) {
 					mavlink_log_info(mavlink_fd, "moving");
