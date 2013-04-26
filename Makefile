@@ -42,12 +42,12 @@ include $(PX4_BASE)makefiles/setup.mk
 #
 # Canned firmware configurations that we build.
 #
-CONFIGS			?= px4fmu_default px4io_default
+CONFIGS			?= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
 
 #
 # Boards that we build NuttX export kits for.
 #
-BOARDS			 = px4fmu px4io
+BOARDS			:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
 
 #
 # Debugging
@@ -62,11 +62,26 @@ MQUIET			 = --no-print-directory
 #
 # If the user has listed a config as a target, strip it out and override CONFIGS.
 #
+FIRMWARE_GOAL		 = firmware
 EXPLICIT_CONFIGS	:= $(filter $(CONFIGS),$(MAKECMDGOALS))
 ifneq ($(EXPLICIT_CONFIGS),)
 CONFIGS			:= $(EXPLICIT_CONFIGS)
 .PHONY:			$(EXPLICIT_CONFIGS)
 $(EXPLICIT_CONFIGS):	all
+
+#
+# If the user has asked to upload, they must have also specified exactly one
+# config.
+#
+ifneq ($(filter upload,$(MAKECMDGOALS)),)
+ifneq ($(words $(EXPLICIT_CONFIGS)),1)
+$(error In order to upload, exactly one board config must be specified)
+endif
+FIRMWARE_GOAL		 = upload
+.PHONY: upload
+upload:
+	@:
+endif
 endif
 
 #
@@ -95,11 +110,11 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
 	@echo %%%% Building $(config) in $(work_dir)
 	@echo %%%%
 	$(Q) mkdir -p $(work_dir)
-	$(Q) make -C $(work_dir) \
+	$(Q) make -r -C $(work_dir) \
 		-f $(PX4_MK_DIR)firmware.mk \
 		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \
-		firmware
+		$(FIRMWARE_GOAL)
 
 #
 # Build the NuttX export archives.
@@ -118,15 +133,21 @@ NUTTX_ARCHIVES		 = $(foreach board,$(BOARDS),$(ARCHIVE_DIR)$(board).export)
 .PHONY:			archives
 archives:		$(NUTTX_ARCHIVES)
 
+# We cannot build these parallel; note that we also force -j1 for the
+# sub-make invocations.
+ifneq ($(filter archives,$(MAKECMDGOALS)),)
+.NOTPARALLEL:
+endif
+
 $(ARCHIVE_DIR)%.export:	board = $(notdir $(basename $@))
 $(ARCHIVE_DIR)%.export:	configuration = $(if $(filter $(board),px4io),io,nsh)
 $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 	@echo %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
-	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
 	@echo %% Exporting NuttX for $(board)
-	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) export
+	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) export
 	$(Q) mkdir -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
 
@@ -162,9 +183,7 @@ help:
 	@echo ""
 	@echo "  all"
 	@echo "    Build all firmware configs: $(CONFIGS)"
-	@echo "    A limited set of configs can be built with:"
-	@echo ""
-	@echo "      CONFIGS=<list-of-configs>"
+	@echo "    A limited set of configs can be built with CONFIGS=<list-of-configs>"
 	@echo ""
 	@for config in $(CONFIGS); do \
 		echo "  $$config"; \

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,10 @@
 ############################################################################
 
 #
-# Build the eeprom tool.
+# Main system state machine
 #
 
-APPNAME		 = eeprom
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 4096
-MAXOPTIMIZATION	 = -Os
-
-include $(APPDIR)/mk/app.mk
-
-MAXOPTIMIZATION	 = -Os
+MODULE_COMMAND	 = commander
+SRCS		 = commander.c \
+			   state_machine_helper.c \
+			   calibration_routines.c

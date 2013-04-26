@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,27 +31,10 @@
 #
 ############################################################################
 
-APPNAME		 = attitude_estimator_ekf
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 2048
+#
+# AR.Drone motor driver
+#
 
-CXXSRCS		 = attitude_estimator_ekf_main.cpp
-
-CSRCS		 = attitude_estimator_ekf_params.c \
-		   codegen/eye.c \
-		   codegen/attitudeKalmanfilter.c \
-		   codegen/mrdivide.c \
-		   codegen/rdivide.c \
-		   codegen/attitudeKalmanfilter_initialize.c \
-		   codegen/attitudeKalmanfilter_terminate.c \
-		   codegen/rt_nonfinite.c \
-		   codegen/rtGetInf.c \
-		   codegen/rtGetNaN.c \
-		   codegen/norm.c \
-		   codegen/cross.c 
-
-
-# XXX this is *horribly* broken
-INCLUDES	+= $(TOPDIR)/../mavlink/include/mavlink
-
-include $(APPDIR)/mk/app.mk
+MODULE_COMMAND	 = ardrone_interface
+SRCS		 = ardrone_interface.c \
+			   ardrone_motor_control.c

@@ -157,6 +157,7 @@ CXXFLAGS		 = $(ARCHCXXFLAGS) \
 			   $(INSTRUMENTATIONDEFINES) \
 			   $(ARCHDEFINES) \
 			   $(EXTRADEFINES) \
+			   -DCONFIG_WCHAR_BUILTIN \
 			   $(addprefix -I,$(INCLUDE_DIRS))
 
 # Flags we pass to the assembler

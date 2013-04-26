@@ -75,6 +75,18 @@
 #	the list should be formatted as: 
 #		<command>.<priority>.<stacksize>.<entrypoint>
 #
+# INCLUDE_DIRS		(optional, must be appended)
+#
+#	The list of directories searched for include files. If non-standard
+#	includes (e.g. those from another module) are required, paths to search
+#	can be added here.
+#
+# DEFAULT_VISIBILITY	(optional)
+#
+#	If not set, global symbols defined in a module will not be visible 
+#	outside the module. Symbols that should be globally visible must be
+#	marked __EXPORT.
+#	If set, global symbols defined in a module will be globally visible.
 #
 
 #
@@ -96,12 +108,7 @@
 ifeq ($(MODULE_MK),)
 $(error No module makefile specified)
 endif
-$(info %  MODULE_MK           = $(MODULE_MK))
-
-#
-# Get path and tool config
-#
-include $(PX4_BASE)/makefiles/setup.mk
+$(info %% MODULE_MK           = $(MODULE_MK))
 
 #
 # Get the board/toolchain config
@@ -144,11 +151,24 @@ MODULE_COMMAND_FILES	:= $(addprefix $(WORK_DIR)/builtin_commands/COMMAND.,$(MODU
 $(MODULE_COMMAND_FILES): command = $(word 2,$(subst ., ,$(notdir $(@))))
 $(MODULE_COMMAND_FILES): exclude = $(dir $@)COMMAND.$(command).*
 $(MODULE_COMMAND_FILES): $(GLOBAL_DEPS)
-	@$(ECHO) COMMAND:    $(command)
 	@$(REMOVE) -f $(exclude)
 	@$(MKDIR) -p $(dir $@)
+	@echo "CMD:     $(command)"
 	$(Q) $(TOUCH) $@
 endif
+
+################################################################################
+# Adjust compilation flags to implement EXPORT
+################################################################################
+
+ifeq ($(DEFAULT_VISIBILITY),)
+DEFAULT_VISIBILITY = hidden
+else
+DEFAULT_VISIBILITY = default
+endif
+
+CFLAGS		+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(PX4_INCLUDE_DIR)visibility.h
+CXXFLAGS	+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(PX4_INCLUDE_DIR)visibility.h
 
 ################################################################################
 # Build rules

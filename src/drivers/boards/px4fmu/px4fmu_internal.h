@@ -58,9 +58,9 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
-#ifdef CONFIG_STM32_SPI2
-#  error "SPI2 is not supported on this board"
-#endif
+//#ifdef CONFIG_STM32_SPI2
+//#  error "SPI2 is not supported on this board"
+//#endif
 
 #if defined(CONFIG_STM32_CAN1)
 #  warning "CAN1 is not supported on this board"
@@ -77,6 +77,7 @@ __BEGIN_DECLS
 // XXX MPU6000 DRDY?
 
 /* SPI chip selects */
+
 #define GPIO_SPI_CS_GYRO	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN14)
 #define GPIO_SPI_CS_ACCEL	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
 #define GPIO_SPI_CS_MPU		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN0)

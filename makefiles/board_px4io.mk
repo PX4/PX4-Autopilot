@@ -1,5 +1,5 @@
 #
-# Platform-specific definitions for the PX4IO
+# Board-specific definitions for the PX4IO
 #
 
 #

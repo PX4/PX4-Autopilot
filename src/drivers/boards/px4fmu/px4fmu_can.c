@@ -37,7 +37,6 @@
  * Board-specific CAN functions.
  */
 
-
 /************************************************************************************
  * Included Files
  ************************************************************************************/
@@ -56,6 +55,8 @@
 #include "stm32.h"
 #include "stm32_can.h"
 #include "px4fmu_internal.h"
+
+#ifdef CONFIG_CAN
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -139,3 +140,5 @@ int can_devinit(void)
 
 	return OK;
 }
+
+#endif

@@ -64,7 +64,16 @@
 #	path to this file.
 #
 # CONFIG:
-#	Used to set the output filename; defaults to 'firmware'.
+#	Used when searching for the configuration file, and available
+#	to module Makefiles to select optional features.
+#	If not set, CONFIG_FILE must be set and CONFIG will be derived
+#	automatically from it.
+#
+# CONFIG_FILE:
+#	If set, overrides the configuration file search logic. Sets
+#	CONFIG to the name of the configuration file, strips any
+#	leading config_ prefix and any suffix. e.g. config_board_foo.mk
+#	results in CONFIG being set to 'board_foo'.
 #
 # WORK_DIR:
 #	Sets the directory in which the firmware will be built. Defaults
@@ -92,11 +101,14 @@
 # If PX4_BASE wasn't set previously, work out what it should be
 # and set it here now.
 #
-MK_DIR	?= $(dir $(lastword $(MAKEFILE_LIST)))
+MK_DIR			?= $(dir $(lastword $(MAKEFILE_LIST)))
 ifeq ($(PX4_BASE),)
 export PX4_BASE		:= $(abspath $(MK_DIR)/..)
 endif
 $(info %  PX4_BASE            = $(PX4_BASE))
+ifneq ($(words $(PX4_BASE)),1)
+$(error Cannot build when the PX4_BASE path contains one or more space characters.)
+endif
 
 #
 # Set a default target so that included makefiles or errors here don't 
@@ -115,12 +127,13 @@ include $(MK_DIR)/setup.mk
 #
 # Locate the configuration file
 #
+ifneq ($(CONFIG_FILE),)
+CONFIG			:= $(subst config_,,$(basename $(notdir $(CONFIG_FILE))))
+else
+CONFIG_FILE		:= $(wildcard $(PX4_MK_DIR)/config_$(CONFIG).mk)
+endif
 ifeq ($(CONFIG),)
 $(error Missing configuration name or file (specify with CONFIG=<config>))
-endif
-CONFIG_FILE		:= $(firstword $(wildcard $(CONFIG)) $(wildcard $(PX4_MK_DIR)/config_$(CONFIG).mk))
-ifeq ($(CONFIG_FILE),)
-$(error Can't find a config file called $(CONFIG) or $(PX4_MK_DIR)/config_$(CONFIG).mk)
 endif
 export CONFIG
 include $(CONFIG_FILE)
@@ -211,10 +224,7 @@ MODULE_OBJS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)module
 $(MODULE_OBJS):		relpath = $(patsubst $(WORK_DIR)%,%,$@)
 $(MODULE_OBJS):		mkfile = $(patsubst %module.pre.o,%module.mk,$(relpath))
 $(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
-	@$(ECHO) %%
-	@$(ECHO) %% Building module using $(mkfile)
-	@$(ECHO) %%
-	$(Q) $(MAKE) -f $(PX4_MK_DIR)module.mk \
+	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
 		MODULE_WORK_DIR=$(dir $@) \
 		MODULE_OBJ=$@ \
 		MODULE_MK=$(mkfile) \
@@ -230,7 +240,7 @@ $(MODULE_CLEANS):	relpath = $(patsubst $(WORK_DIR)%,%,$@)
 $(MODULE_CLEANS):	mkfile = $(patsubst %clean,%module.mk,$(relpath))
 $(MODULE_CLEANS):
 	@$(ECHO) %% cleaning using $(mkfile)
-	$(Q) $(MAKE) -f $(PX4_MK_DIR)module.mk \
+	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
 	MODULE_WORK_DIR=$(dir $@) \
 	MODULE_MK=$(mkfile) \
 	clean
@@ -246,6 +256,9 @@ include $(PX4_MK_DIR)/nuttx.mk
 ################################################################################
 
 ifneq ($(ROMFS_ROOT),)
+ifeq ($(wildcard $(ROMFS_ROOT)),)
+$(error ROMFS_ROOT specifies a directory that does not exist)
+endif
 
 #
 # Note that there is no support for more than one root directory or constructing
@@ -272,7 +285,7 @@ $(ROMFS_OBJ): $(ROMFS_IMG) $(GLOBAL_DEPS)
 
 # Generate the ROMFS image from the root
 $(ROMFS_IMG): $(ROMFS_DEPS) $(GLOBAL_DEPS)
-	@$(ECHO) %% generating $@
+	@$(ECHO) "ROMFS:   $@"
 	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_ROOT) -V "NSHInitVol"
 
 EXTRA_CLEANS		+= $(ROMGS_OBJ) $(ROMFS_IMG)
@@ -298,10 +311,12 @@ endif
 #
 BUILTIN_CSRC		 = $(WORK_DIR)builtin_commands.c
 
-# add command definitions from modules
-BUILTIN_COMMAND_FILES	:= $(wildcard $(WORK_DIR)builtin_commands/COMMAND.*)
-BUILTIN_COMMANDS	+= $(subst COMMAND.,,$(notdir $(BUILTIN_COMMAND_FILES)))
+# command definitions from modules (may be empty at Makefile parsing time...)
+MODULE_COMMANDS		 = $(subst COMMAND.,,$(notdir $(wildcard $(WORK_DIR)builtin_commands/COMMAND.*)))
 
+# We must have at least one pre-defined builtin command in order to generate
+# any of this.
+#
 ifneq ($(BUILTIN_COMMANDS),)
 
 # (BUILTIN_PROTO,<cmdspec>,<outputfile>)
@@ -315,17 +330,19 @@ define BUILTIN_DEF
 endef
 
 # Don't generate until modules have updated their command files
-$(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(BUILTIN_COMMAND_FILES)
-	@$(ECHO) %% generating $@
+$(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(MODULE_OBJS) $(BUILTIN_COMMAND_FILES)
+	@$(ECHO) "CMDS:    $@"
 	$(Q) $(ECHO) '/* builtin command list - automatically generated, do not edit */' > $@
 	$(Q) $(ECHO) '#include <nuttx/config.h>' >> $@
 	$(Q) $(ECHO) '#include <nuttx/binfmt/builtin.h>' >> $@
 	$(Q) $(foreach spec,$(BUILTIN_COMMANDS),$(call BUILTIN_PROTO,$(subst ., ,$(spec)),$@))
+	$(Q) $(foreach spec,$(MODULE_COMMANDS),$(call BUILTIN_PROTO,$(subst ., ,$(spec)),$@))
 	$(Q) $(ECHO) 'const struct builtin_s g_builtins[] = {' >> $@
 	$(Q) $(foreach spec,$(BUILTIN_COMMANDS),$(call BUILTIN_DEF,$(subst ., ,$(spec)),$@))
+	$(Q) $(foreach spec,$(MODULE_COMMANDS),$(call BUILTIN_DEF,$(subst ., ,$(spec)),$@))
 	$(Q) $(ECHO) '    {NULL, 0, 0, NULL}' >> $@
 	$(Q) $(ECHO) '};' >> $@
-	$(Q) $(ECHO) 'const int g_builtin_count = $(words $(BUILTIN_COMMANDS));' >> $@
+	$(Q) $(ECHO) 'const int g_builtin_count = $(words $(BUILTIN_COMMANDS) $(MODULE_COMMANDS));' >> $@
 
 SRCS			+= $(BUILTIN_CSRC)
 
@@ -358,7 +375,7 @@ endif
 #
 PRODUCT_BUNDLE		 = $(WORK_DIR)firmware.px4
 PRODUCT_BIN		 = $(WORK_DIR)firmware.bin
-PRODUCT_SYM		 = $(WORK_DIR)firmware.sym
+PRODUCT_ELF		 = $(WORK_DIR)firmware.elf
 
 .PHONY:			firmware
 firmware:		$(PRODUCT_BUNDLE)
@@ -393,10 +410,10 @@ $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 		--git_identity $(PX4_BASE) \
 		--image $< > $@
 
-$(PRODUCT_BIN):		$(PRODUCT_SYM)
+$(PRODUCT_BIN):		$(PRODUCT_ELF)
 	$(call SYM_TO_BIN,$<,$@)
 
-$(PRODUCT_SYM):		$(OBJS) $(MODULE_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
+$(PRODUCT_ELF):		$(OBJS) $(MODULE_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
 	$(call LINK,$@,$(OBJS) $(MODULE_OBJS))
 
 #
@@ -407,16 +424,18 @@ $(PRODUCT_SYM):		$(OBJS) $(MODULE_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKF
 upload:	$(PRODUCT_BUNDLE) $(PRODUCT_BIN)
 	$(Q) $(MAKE) -f $(PX4_MK_DIR)/upload.mk \
 		METHOD=serial \
-		PRODUCT=$(PRODUCT) \
+		CONFIG=$(CONFIG) \
+		BOARD=$(BOARD) \
 		BUNDLE=$(PRODUCT_BUNDLE) \
 		BIN=$(PRODUCT_BIN)
 
 .PHONY: clean
 clean:			$(MODULE_CLEANS)
 	@$(ECHO) %% cleaning
-	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_SYM)
+	$(Q) $(REMOVE) $(PRODUCT_BUNDLE) $(PRODUCT_BIN) $(PRODUCT_ELF)
 	$(Q) $(REMOVE) $(OBJS) $(DEP_INCLUDES) $(EXTRA_CLEANS)
 	$(Q) $(RMDIR) $(NUTTX_EXPORT_DIR)
+
 
 #
 # DEP_INCLUDES is defined by the toolchain include in terms of $(OBJS)

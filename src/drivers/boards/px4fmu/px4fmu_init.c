@@ -127,6 +127,7 @@ __EXPORT void stm32_boardinitialize(void)
  ****************************************************************************/
 
 static struct spi_dev_s *spi1;
+static struct spi_dev_s *spi2;
 static struct spi_dev_s *spi3;
 
 #include <math.h>
@@ -146,6 +147,11 @@ __EXPORT int matherr(struct exception *e)
 __EXPORT int nsh_archinitialize(void)
 {
 	int result;
+
+	/* configure always-on ADC pins */
+	stm32_configgpio(GPIO_ADC1_IN10);
+	stm32_configgpio(GPIO_ADC1_IN11);
+	/* IN12 and IN13 further below */
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
@@ -173,7 +179,7 @@ __EXPORT int nsh_archinitialize(void)
 		       NULL);
 
 	// initial LED state
-	drv_led_start();
+//	drv_led_start();
 	up_ledoff(LED_BLUE);
 	up_ledoff(LED_AMBER);
 	up_ledon(LED_BLUE);
@@ -188,7 +194,7 @@ __EXPORT int nsh_archinitialize(void)
 		return -ENODEV;
 	}
 
-	// Default SPI1 to 1MHz and de-assert the known chip selects.
+	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
 	SPI_SETFREQUENCY(spi1, 10000000);
 	SPI_SETBITS(spi1, 8);
 	SPI_SETMODE(spi1, SPIDEV_MODE3);
@@ -198,6 +204,28 @@ __EXPORT int nsh_archinitialize(void)
 	up_udelay(20);
 
 	message("[boot] Successfully initialized SPI port 1\r\n");
+
+	/*
+	 * If SPI2 is enabled in the defconfig, we loose some ADC pins as chip selects.
+	 * Keep the SPI2 init optional and conditionally initialize the ADC pins
+	 */
+	spi2 = up_spiinitialize(2);
+
+	if (!spi2) {
+		message("[boot] Enabling IN12/13 instead of SPI2\n");
+		/* no SPI2, use pins for ADC */
+		stm32_configgpio(GPIO_ADC1_IN12);
+		stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
+	} else {
+		/* Default SPI2 to 1MHz and de-assert the known chip selects. */
+		SPI_SETFREQUENCY(spi2, 10000000);
+		SPI_SETBITS(spi2, 8);
+		SPI_SETMODE(spi2, SPIDEV_MODE3);
+		SPI_SELECT(spi2, PX4_SPIDEV_GYRO, false);
+		SPI_SELECT(spi2, PX4_SPIDEV_ACCEL_MAG, false);
+
+		message("[boot] Initialized SPI port2 (ADC IN12/13 blocked)\n");
+	}
 
 	/* Get the SPI port for the microSD slot */
 
@@ -222,11 +250,6 @@ __EXPORT int nsh_archinitialize(void)
 	}
 
 	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
-
-	stm32_configgpio(GPIO_ADC1_IN10);
-	stm32_configgpio(GPIO_ADC1_IN11);
-	stm32_configgpio(GPIO_ADC1_IN12);
-	stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
 
 	return OK;
 }

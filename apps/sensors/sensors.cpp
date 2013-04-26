@@ -372,7 +372,9 @@ Sensors	*g_sensors;
 }
 
 Sensors::Sensors() :
+#ifdef CONFIG_HRT_PPM
 	_ppm_last_valid(0),
+#endif
 
 	_fd_adc(-1),
 	_last_adc(0),
