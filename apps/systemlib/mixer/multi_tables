@@ -21,10 +21,10 @@ set quad_plus {
 }
 
 set quad_v {
-	  62 CCW
-	-133 CCW
-	 -62 CW
-	 133 CW
+	  68 CCW
+	-136 CCW
+	 -68 CW
+	 136 CW
 }
 
 set hex_x {
