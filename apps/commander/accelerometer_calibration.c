@@ -80,7 +80,7 @@
 
 void do_accel_calibration(int status_pub, struct vehicle_status_s *status, int mavlink_fd) {
 	/* announce change */
-	mavlink_log_info(mavlink_fd, "accelerometer calibration started");
+	mavlink_log_info(mavlink_fd, "accel calibration started");
 	/* set to accel calibration mode */
 	status->flag_preflight_accel_calibration = true;
 	state_machine_publish(status_pub, status, mavlink_fd);
@@ -96,7 +96,7 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status, int m
 			|| param_set(param_find("SENS_ACC_XSCALE"), &(accel_scale[0]))
 			|| param_set(param_find("SENS_ACC_YSCALE"), &(accel_scale[1]))
 			|| param_set(param_find("SENS_ACC_ZSCALE"), &(accel_scale[2]))) {
-			mavlink_log_critical(mavlink_fd, "Setting offs or scale failed!");
+			mavlink_log_critical(mavlink_fd, "ERROR: setting offs or scale failed");
 		}
 
 		int fd = open(ACCEL_DEVICE_PATH, 0);
@@ -122,7 +122,6 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status, int m
 		}
 
 		mavlink_log_info(mavlink_fd, "accel calibration done");
-
 		tune_confirm();
 		sleep(2);
 		tune_confirm();
@@ -142,12 +141,11 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status, int m
 
 int do_accel_calibration_mesurements(int mavlink_fd, float accel_offs_scaled[3], float accel_scale[3]) {
 	const int samples_num = 2500;
-
-	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
-
 	int16_t accel_raw_ref[6][3];
 	bool data_collected[6] = { false, false, false, false, false, false };
 	const char *orientation_strs[6] = { "x+", "x-", "y+", "y-", "z+", "z-" };
+
+	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	while (true) {
 		bool done = true;
 		char str[80];
@@ -159,25 +157,21 @@ int do_accel_calibration_mesurements(int mavlink_fd, float accel_offs_scaled[3],
 				done = false;
 			}
 		}
-		if (done) {
-			mavlink_log_info(mavlink_fd, "all accel measurements complete");
+		if (done)
 			break;
-		} else {
-			mavlink_log_info(mavlink_fd, str);
-			int orient = detect_orientation(mavlink_fd, sensor_combined_sub);
-			if (orient < 0) {
-				sprintf(str, "orientation detection error: %i", orient);
-				mavlink_log_info(mavlink_fd, str);
-				return ERROR;
-			}
-			mavlink_log_info(mavlink_fd, "accel measurement started");
-			read_accelerometer_raw_avg(sensor_combined_sub, &(accel_raw_ref[orient][0]), samples_num);
-			//mavlink_log_info(mavlink_fd, "accel measurement complete");
-			str_ptr = sprintf(str, "complete: %i [ %i %i %i ]", orient, accel_raw_ref[orient][0], accel_raw_ref[orient][1], accel_raw_ref[orient][2]);
-			mavlink_log_info(mavlink_fd, str);
-			data_collected[orient] = true;
-			tune_confirm();
-		}
+		mavlink_log_info(mavlink_fd, str);
+
+		int orient = detect_orientation(mavlink_fd, sensor_combined_sub);
+		if (orient < 0)
+			return ERROR;
+
+		sprintf(str, "meas started: %s", orientation_strs[orient]);
+		mavlink_log_info(mavlink_fd, str);
+		read_accelerometer_raw_avg(sensor_combined_sub, &(accel_raw_ref[orient][0]), samples_num);
+		str_ptr = sprintf(str, "meas result for %s: [ %i %i %i ]", orientation_strs[orient], accel_raw_ref[orient][0], accel_raw_ref[orient][1], accel_raw_ref[orient][2]);
+		mavlink_log_info(mavlink_fd, str);
+		data_collected[orient] = true;
+		tune_confirm();
 	}
 	close(sensor_combined_sub);
 
@@ -186,17 +180,8 @@ int do_accel_calibration_mesurements(int mavlink_fd, float accel_offs_scaled[3],
 	float accel_T[3][3];
 	int res = calculate_calibration_values(accel_raw_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
 	if (res != 0) {
-		mavlink_log_info(mavlink_fd, "calibration values calculation error");
+		mavlink_log_info(mavlink_fd, "ERROR: calibration values calc error");
 		return ERROR;
-	}
-
-	char str[80];
-	sprintf(str, "accel offsets: [ %i  %i  %i ]", accel_offs[0], accel_offs[1], accel_offs[2]);
-	mavlink_log_info(mavlink_fd, str);
-	//mavlink_log_info(mavlink_fd, "accel transform matrix:");
-	for (int i = 0; i < 3; i++) {
-		//sprintf(str, "\t[ %0.6f  %0.6f  %0.6f ]", accel_T[i][0], accel_T[i][1], accel_T[i][2]);
-		//mavlink_log_info(mavlink_fd, str);
 	}
 
 	/* convert raw accel offset to scaled and transform matrix to scales
@@ -205,7 +190,6 @@ int do_accel_calibration_mesurements(int mavlink_fd, float accel_offs_scaled[3],
 		accel_offs_scaled[i] = accel_offs[i] * accel_T[i][i];
 		accel_scale[i] = accel_T[i][i];
 	}
-
 	return OK;
 }
 
@@ -226,8 +210,8 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 	float ema_len = 0.2f;
 	/* set "still" threshold to 0.005 m/s^2 */
 	float still_thr2 = pow(0.05f / CONSTANTS_ONE_G, 2);
-	/* set accel error threshold to 20% of accel vector length */
-	float accel_err_thr = 0.2f;
+	/* set accel error threshold to 30% of accel vector length */
+	float accel_err_thr = 0.3f;
 	/* still time required in us */
 	int64_t still_time = 2000000;
 	struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
@@ -264,7 +248,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 				/* is still now */
 				if (t_still == 0) {
 					/* first time */
-					mavlink_log_info(mavlink_fd, "still");
+					mavlink_log_info(mavlink_fd, "still...");
 					t_still = t;
 					t_timeout = t + timeout;
 				} else {
@@ -279,7 +263,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 					    accel_disp[2] > still_thr_raw2 * 2.0f) {
 				/* not still, reset still start time */
 				if (t_still != 0) {
-					mavlink_log_info(mavlink_fd, "moving");
+					mavlink_log_info(mavlink_fd, "moving...");
 					t_still = 0;
 				}
 			}
@@ -289,17 +273,11 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 			return -3;
 		}
 		if (t > t_timeout) {
-			mavlink_log_info(mavlink_fd, "ERROR: timeout");
 			return -1;
 		}
 	}
 	float accel_len = sqrt(accel_len2);
 	float accel_err_thr_raw = accel_len * accel_err_thr;
-	char str[80];
-	sprintf(str, "ema: [ %.1f  %.1f  %.1f ]", accel_ema[0], accel_ema[1], accel_ema[2]);
-	mavlink_log_info(mavlink_fd, str);
-	sprintf(str, "disp: [ %.1f  %.1f  %.1f ]", accel_disp[0], accel_disp[1], accel_disp[2]);
-	mavlink_log_info(mavlink_fd, str);
 	if (  fabs(accel_ema[0] - accel_len) < accel_err_thr_raw &&
 		  fabs(accel_ema[1]) < accel_err_thr_raw &&
 		  fabs(accel_ema[2]) < accel_err_thr_raw  )
@@ -316,13 +294,13 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 		  fabs(accel_ema[1] + accel_len) < accel_err_thr_raw &&
 		  fabs(accel_ema[2]) < accel_err_thr_raw  )
 		return 3;	// [ 0, -g, 0 ]
-	if (  abs(accel_ema[0]) < accel_err_thr_raw &&
-		  abs(accel_ema[1]) < accel_err_thr_raw &&
-		  abs(accel_ema[2] - accel_len) < accel_err_thr_raw  )
+	if (  fabs(accel_ema[0]) < accel_err_thr_raw &&
+		  fabs(accel_ema[1]) < accel_err_thr_raw &&
+		  fabs(accel_ema[2] - accel_len) < accel_err_thr_raw  )
 		return 4;	// [ 0, 0, g ]
-	if (  abs(accel_ema[0]) < accel_err_thr_raw &&
-		  abs(accel_ema[1]) < accel_err_thr_raw &&
-		  abs(accel_ema[2] + accel_len) < accel_err_thr_raw  )
+	if (  fabs(accel_ema[0]) < accel_err_thr_raw &&
+		  fabs(accel_ema[1]) < accel_err_thr_raw &&
+		  fabs(accel_ema[2] + accel_len) < accel_err_thr_raw  )
 		return 5;	// [ 0, 0, -g ]
 	mavlink_log_info(mavlink_fd, "ERROR: invalid orientation");
 	return -2;	// Can't detect orientation
