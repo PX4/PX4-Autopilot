@@ -21,6 +21,8 @@ MODULES		+= systemcmds/ramtron
 # General system control
 #
 MODULES		+= modules/commander
+MODULES		+= modules/mavlink
+MODULES		+= modules/mavlink_onboard
 
 #
 # Estimation modules (EKF / other filters)
@@ -55,8 +57,6 @@ BUILTIN_COMMANDS := \
 	$(call _B, hott_telemetry,         ,                          2048,  hott_telemetry_main        ) \
 	$(call _B, kalman_demo,            SCHED_PRIORITY_MAX-30,     2048,  kalman_demo_main           ) \
 	$(call _B, math_demo,              ,                          8192,  math_demo_main             ) \
-	$(call _B, mavlink,                ,                          2048,  mavlink_main               ) \
-	$(call _B, mavlink_onboard,        ,                          2048,  mavlink_onboard_main       ) \
 	$(call _B, mixer,                  ,                          4096,  mixer_main                 ) \
 	$(call _B, multirotor_att_control, SCHED_PRIORITY_MAX-15,     2048,  multirotor_att_control_main) \
 	$(call _B, multirotor_pos_control, SCHED_PRIORITY_MAX-25,     2048,  multirotor_pos_control_main) \

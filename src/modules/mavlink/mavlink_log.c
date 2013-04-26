@@ -42,7 +42,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "mavlink_log.h"
+#include <mavlink/mavlink_log.h>
 
 void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size)
 {

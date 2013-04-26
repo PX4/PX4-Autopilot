@@ -64,9 +64,9 @@
 
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
+#include <mavlink/mavlink_log.h>
 
 #include "waypoints.h"
-#include "mavlink_log.h"
 #include "orb_topics.h"
 #include "missionlib.h"
 #include "mavlink_hil.h"
@@ -312,7 +312,7 @@ handle_message(mavlink_message_t *msg)
 		static const float ground_press = 1013.25f; // mbar
 		static const float ground_tempC = 21.0f;
 		static const float ground_alt = 0.0f;
-		static const float T0 = 273.15;
+		static const float T0 = 273.15f;
 		static const float R = 287.05f;
 		static const float g = 9.806f;
 
