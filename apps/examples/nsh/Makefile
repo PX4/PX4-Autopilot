@@ -64,6 +64,8 @@ ROOTDEPPATH	= --dep-path .
 
 VPATH		= 
 
+MAXOPTIMIZATION = -Os
+
 all: .built
 .PHONY: clean depend distclean
 
