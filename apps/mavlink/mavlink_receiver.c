@@ -308,6 +308,14 @@ handle_message(mavlink_message_t *msg)
 
 		uint64_t timestamp = hrt_absolute_time();
 
+		/* TODO, set ground_press/ temp during calib */
+		static const float ground_press = 1013.25f; // mbar
+		static const float ground_tempC = 21.0f;
+		static const float ground_alt = 0.0f;
+		static const float T0 = 273.15;
+		static const float R = 287.05f;
+		static const float g = 9.806f;
+
 		if (msg->msgid == MAVLINK_MSG_ID_RAW_IMU) {
 
 			mavlink_raw_imu_t imu;
@@ -376,6 +384,87 @@ handle_message(mavlink_message_t *msg)
 			}
 		}
 
+		if (msg->msgid == MAVLINK_MSG_ID_HIGHRES_IMU) {
+
+			mavlink_highres_imu_t imu;
+			mavlink_msg_highres_imu_decode(msg, &imu);
+
+			/* packet counter */
+			static uint16_t hil_counter = 0;
+			static uint16_t hil_frames = 0;
+			static uint64_t old_timestamp = 0;
+
+			/* sensors general */
+			hil_sensors.timestamp = hrt_absolute_time();
+
+			/* hil gyro */
+			static const float mrad2rad = 1.0e-3f;
+			hil_sensors.gyro_counter = hil_counter;
+			hil_sensors.gyro_raw[0] = imu.xgyro / mrad2rad;
+			hil_sensors.gyro_raw[1] = imu.ygyro / mrad2rad;
+			hil_sensors.gyro_raw[2] = imu.zgyro / mrad2rad;
+			hil_sensors.gyro_rad_s[0] = imu.xgyro;
+			hil_sensors.gyro_rad_s[1] = imu.ygyro;
+			hil_sensors.gyro_rad_s[2] = imu.zgyro;
+
+			/* accelerometer */
+			hil_sensors.accelerometer_counter = hil_counter;
+			static const float mg2ms2 = 9.8f / 1000.0f;
+			hil_sensors.accelerometer_raw[0] = imu.xacc / mg2ms2;
+			hil_sensors.accelerometer_raw[1] = imu.yacc / mg2ms2;
+			hil_sensors.accelerometer_raw[2] = imu.zacc / mg2ms2;
+			hil_sensors.accelerometer_m_s2[0] = imu.xacc;
+			hil_sensors.accelerometer_m_s2[1] = imu.yacc;
+			hil_sensors.accelerometer_m_s2[2] = imu.zacc;
+			hil_sensors.accelerometer_mode = 0; // TODO what is this?
+			hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
+
+			/* adc */
+			hil_sensors.adc_voltage_v[0] = 0;
+			hil_sensors.adc_voltage_v[1] = 0;
+			hil_sensors.adc_voltage_v[2] = 0;
+
+			/* magnetometer */
+			float mga2ga = 1.0e-3f;
+			hil_sensors.magnetometer_counter = hil_counter;
+			hil_sensors.magnetometer_raw[0] = imu.xmag / mga2ga;
+			hil_sensors.magnetometer_raw[1] = imu.ymag / mga2ga;
+			hil_sensors.magnetometer_raw[2] = imu.zmag / mga2ga;
+			hil_sensors.magnetometer_ga[0] = imu.xmag;
+			hil_sensors.magnetometer_ga[1] = imu.ymag;
+			hil_sensors.magnetometer_ga[2] = imu.zmag;
+			hil_sensors.magnetometer_range_ga = 32.7f; // int16
+			hil_sensors.magnetometer_mode = 0; // TODO what is this
+			hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
+
+			hil_sensors.baro_pres_mbar = imu.abs_pressure;
+
+			float tempC =  imu.temperature;
+			float tempAvgK = T0 + (tempC + ground_tempC) / 2.0f;
+			float h =  ground_alt + (R / g) * tempAvgK * logf(ground_press / imu.abs_pressure);
+
+			hil_sensors.baro_alt_meter = h;
+			hil_sensors.baro_temp_celcius = imu.temperature;
+
+			hil_sensors.gyro_counter = hil_counter;
+			hil_sensors.magnetometer_counter = hil_counter;
+			hil_sensors.accelerometer_counter = hil_counter;
+
+			/* publish */
+			orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
+
+			// increment counters
+			hil_counter++;
+			hil_frames++;
+
+			// output
+			if ((timestamp - old_timestamp) > 10000000) {
+				printf("receiving hil imu at %d hz\n", hil_frames/10);
+				old_timestamp = timestamp;
+				hil_frames = 0;
+			}
+		}
+
 		if (msg->msgid == MAVLINK_MSG_ID_GPS_RAW_INT) {
 
 			mavlink_gps_raw_int_t gps;
@@ -388,21 +477,27 @@ handle_message(mavlink_message_t *msg)
 
 			/* gps */
 			hil_gps.timestamp_position = gps.time_usec;
-//			hil_gps.counter = hil_counter++;
 			hil_gps.time_gps_usec = gps.time_usec;
 			hil_gps.lat = gps.lat;
 			hil_gps.lon = gps.lon;
 			hil_gps.alt = gps.alt;
-//			hil_gps.counter_pos_valid = hil_counter++;
 			hil_gps.eph_m = (float)gps.eph * 1e-2f; // from cm to m
 			hil_gps.epv_m = (float)gps.epv * 1e-2f; // from cm to m
-			hil_gps.s_variance_m_s = 100; // XXX 100 m/s variance?
-			hil_gps.p_variance_m = 100; // XXX 100 m variance?
+			hil_gps.s_variance_m_s = 5.0f;
+			hil_gps.p_variance_m = hil_gps.eph_m * hil_gps.eph_m;
 			hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
-			hil_gps.vel_n_m_s = (float)gps.vel * 1e-2f * cosf(gps.cog * M_DEG_TO_RAD_F * 1e-2f);
-			hil_gps.vel_e_m_s = (float)gps.vel * 1e-2f * sinf(gps.cog * M_DEG_TO_RAD_F * 1e-2f);
+
+			/* gps.cog is in degrees 0..360 * 100, heading is -PI..+PI */
+			float heading_rad = gps.cog * M_DEG_TO_RAD_F * 1e-2f;
+			/* go back to -PI..PI */
+			if (heading_rad > M_PI_F)
+				heading_rad -= 2.0f * M_PI_F;
+			hil_gps.vel_n_m_s = (float)gps.vel * 1e-2f * cosf(heading_rad);
+			hil_gps.vel_e_m_s = (float)gps.vel * 1e-2f * sinf(heading_rad);
 			hil_gps.vel_d_m_s = 0.0f;
-			hil_gps.cog_rad = gps.cog * M_DEG_TO_RAD_F * 1e-2f; // from deg*100 to rad
+			hil_gps.vel_ned_valid = true;
+			/* COG (course over ground) is speced as -PI..+PI */
+			hil_gps.cog_rad = heading_rad;
 			hil_gps.fix_type = gps.fix_type;
 			hil_gps.satellites_visible = gps.satellites_visible;
 
@@ -435,13 +530,6 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.timestamp = press.time_usec;
 
 			/* baro */
-			/* TODO, set ground_press/ temp during calib */
-			static const float ground_press = 1013.25f; // mbar
-			static const float ground_tempC = 21.0f;
-			static const float ground_alt = 0.0f;
-			static const float T0 = 273.15;
-			static const float R = 287.05f;
-			static const float g = 9.806f;
 
 			float tempC =  press.temperature / 100.0f;
 			float tempAvgK = T0 + (tempC + ground_tempC) / 2.0f;

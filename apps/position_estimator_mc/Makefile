@@ -31,27 +31,34 @@
 #
 ############################################################################
 
-APPNAME		 = attitude_estimator_ekf
+#
+# Makefile to build the position estimator
+#
+
+APPNAME		 = position_estimator_mc
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 2048
+STACKSIZE	 = 4096
 
-CXXSRCS		 = attitude_estimator_ekf_main.cpp
-
-CSRCS		 = attitude_estimator_ekf_params.c \
-		   codegen/eye.c \
-		   codegen/attitudeKalmanfilter.c \
-		   codegen/mrdivide.c \
-		   codegen/rdivide.c \
-		   codegen/attitudeKalmanfilter_initialize.c \
-		   codegen/attitudeKalmanfilter_terminate.c \
-		   codegen/rt_nonfinite.c \
-		   codegen/rtGetInf.c \
-		   codegen/rtGetNaN.c \
-		   codegen/norm.c \
-		   codegen/cross.c 
-
-
-# XXX this is *horribly* broken
-INCLUDES	+= $(TOPDIR)/../mavlink/include/mavlink
-
+CSRCS		 = position_estimator_mc_main.c \
+			   position_estimator_mc_params.c \
+			   codegen/positionKalmanFilter1D_initialize.c \
+			   codegen/positionKalmanFilter1D_terminate.c \
+			   codegen/positionKalmanFilter1D.c \
+			   codegen/rt_nonfinite.c \
+			   codegen/rtGetInf.c \
+			   codegen/rtGetNaN.c \
+			   codegen/positionKalmanFilter1D_dT_initialize.c \
+			   codegen/positionKalmanFilter1D_dT_terminate.c \
+			   codegen/kalman_dlqe1.c \
+			   codegen/kalman_dlqe1_initialize.c \
+			   codegen/kalman_dlqe1_terminate.c \
+			   codegen/kalman_dlqe2.c \
+			   codegen/kalman_dlqe2_initialize.c \
+			   codegen/kalman_dlqe2_terminate.c \
+			   codegen/kalman_dlqe3.c \
+			   codegen/kalman_dlqe3_initialize.c \
+			   codegen/kalman_dlqe3_terminate.c \
+			   codegen/kalman_dlqe3_data.c \
+			   codegen/randn.c
+			   
 include $(APPDIR)/mk/app.mk
