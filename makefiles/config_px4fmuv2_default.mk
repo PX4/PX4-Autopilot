@@ -18,6 +18,11 @@ MODULES		+= drivers/rgbled
 MODULES		+= systemcmds/ramtron
 
 #
+# General system control
+#
+MODULES		+= modules/commander
+
+#
 # Estimation modules (EKF / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf

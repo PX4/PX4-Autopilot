@@ -18,6 +18,11 @@ MODULES		+= drivers/ardrone_interface
 MODULES		+= systemcmds/eeprom
 
 #
+# General system control
+#
+MODULES		+= modules/commander
+
+#
 # Estimation modules (EKF / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
@@ -41,7 +46,6 @@ BUILTIN_COMMANDS := \
 	$(call _B, blinkm,                 ,                          2048,  blinkm_main                ) \
 	$(call _B, bma180,                 ,                          2048,  bma180_main                ) \
 	$(call _B, boardinfo,              ,                          2048,  boardinfo_main             ) \
-	$(call _B, commander,              SCHED_PRIORITY_MAX-30,     2048,  commander_main             ) \
 	$(call _B, control_demo,           ,                          2048,  control_demo_main          ) \
 	$(call _B, delay_test,             ,                          2048,  delay_test_main            ) \
 	$(call _B, fixedwing_att_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_att_control_main ) \

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,10 @@
 ############################################################################
 
 #
-# Commander application
+# Main system state machine
 #
 
-APPNAME		 = commander
-PRIORITY	 = SCHED_PRIORITY_MAX - 30
-STACKSIZE	 = 2048
-
-INCLUDES	= $(TOPDIR)/../mavlink/include/mavlink
-
-include $(APPDIR)/mk/app.mk
-
+MODULE_COMMAND	 = commander
+SRCS		 = commander.c \
+			   state_machine_helper.c \
+			   calibration_routines.c
