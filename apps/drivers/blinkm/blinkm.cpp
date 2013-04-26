@@ -92,6 +92,7 @@
 
 #include <nuttx/config.h>
 
+#include <arch/board/board.h>
 #include <drivers/device/i2c.h>
 
 #include <sys/types.h>
@@ -841,7 +842,7 @@ int
 blinkm_main(int argc, char *argv[])
 {
 
-	int i2cdevice = 3;
+	int i2cdevice = PX4_I2C_BUS_EXPANSION;
 	int blinkmadr = 9;
 
 	int x;
