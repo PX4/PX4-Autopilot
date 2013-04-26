@@ -62,9 +62,9 @@
 
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
+#include <mavlink/mavlink_log.h>
 
 #include "waypoints.h"
-#include "mavlink_log.h"
 #include "orb_topics.h"
 #include "missionlib.h"
 #include "mavlink_hil.h"

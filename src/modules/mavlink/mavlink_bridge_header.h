@@ -51,7 +51,7 @@
 #define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
 #define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
 
-#include "v1.0/mavlink_types.h"
+#include <v1.0/mavlink_types.h>
 #include <unistd.h>
 
 
