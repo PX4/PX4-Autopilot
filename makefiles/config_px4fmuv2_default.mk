@@ -15,6 +15,14 @@ MODULES		+= drivers/boards/px4fmuv2
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
+MODULES		+= drivers/mpu6000
+MODULES		+= drivers/hmc5883
+MODULES		+= drivers/ms5611
+MODULES		+= drivers/mb12xx
+MODULES		+= drivers/gps
+MODULES		+= drivers/hil
+MODULES		+= drivers/hott_telemetry
+MODULES		+= drivers/blinkm
 MODULES		+= modules/sensors
 
 #
@@ -44,6 +52,17 @@ MODULES		+= modules/mavlink_onboard
 #
 MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/position_estimator_mc
+MODULES		+= modules/position_estimator
+MODULES		+= modules/att_pos_estimator_ekf
+
+#
+# Vehicle Control
+#
+MODULES		+= modules/fixedwing_backside
+MODULES		+= modules/fixedwing_att_control
+MODULES		+= modules/fixedwing_pos_control
+MODULES		+= modules/multirotor_att_control
+MODULES		+= modules/multirotor_pos_control
 
 #
 # Logging
