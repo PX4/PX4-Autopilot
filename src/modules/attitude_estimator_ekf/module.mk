@@ -14,3 +14,4 @@ SRCS		 = attitude_estimator_ekf_main.cpp \
 			   codegen/rtGetInf.c \
 			   codegen/rtGetNaN.c
 
+INCLUDE_DIRS	+= $(PX4_BASE)/mavlink/include/mavlink
