@@ -2,10 +2,10 @@
 #
 # Flight startup script for PX4FMU on PX4IOAR carrier board.
 #
- 
+
 # Disable the USB interface
 set USB no
- 
+
 # Disable autostarting other apps
 set MODE ardrone
  
@@ -25,13 +25,18 @@ if [ -f /fs/microsd/parameters ]
 then
 	param load /fs/microsd/parameters
 fi
- 
+
 #
 # Force some key parameters to sane values
 # MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
 #              see https://pixhawk.ethz.ch/mavlink/
 #
 param set MAV_TYPE 2
+
+#
+# Configure PX4FMU for operation with PX4IOAR
+#
+fmu mode_gpio_serial
  
 #
 # Start the sensors.
@@ -55,11 +60,6 @@ commander start
 attitude_estimator_ekf start
  
 #
-# Configure PX4FMU for operation with PX4IOAR
-#
-fmu mode_gpio_serial
- 
-#
 # Fire up the multi rotor attitude controller
 #
 multirotor_att_control start
@@ -68,16 +68,16 @@ multirotor_att_control start
 # Fire up the AR.Drone interface.
 #
 ardrone_interface start -d /dev/ttyS1
- 
-#
-# Start GPS capture
-#
-gps start
 
 #
 # Start logging
 #
 sdlog start -s 10
+
+#
+# Start GPS capture
+#
+gps start
 
 #
 # Start system state
@@ -95,4 +95,5 @@ fi
 # use the same UART for telemetry
 #
 echo "[init] startup done"
+
 exit

@@ -418,6 +418,7 @@ public:
 	enum Geometry {
 		QUAD_X = 0,	/**< quad in X configuration */
 		QUAD_PLUS,	/**< quad in + configuration */
+		QUAD_V,		/**< quad in V configuration */
 		HEX_X,		/**< hex in X configuration */
 		HEX_PLUS,	/**< hex in + configuration */
 		OCTA_X,

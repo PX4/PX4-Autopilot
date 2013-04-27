@@ -1,6 +1,6 @@
 
 MODULE_NAME	 = attitude_estimator_ekf
-SRCS		 = attitude_estimator_ekf_main.c \
+SRCS		 = attitude_estimator_ekf_main.cpp \
 			   attitude_estimator_ekf_params.c \
 			   codegen/attitudeKalmanfilter_initialize.c \
 			   codegen/attitudeKalmanfilter_terminate.c \
