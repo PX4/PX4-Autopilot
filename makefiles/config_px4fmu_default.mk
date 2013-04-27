@@ -14,7 +14,12 @@ MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmu
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/ardrone_interface
+
+#
+# System utilities
+#
 MODULES		+= systemcmds/eeprom
+MODULES		+= systemcmds/tests
 
 #
 # General system control
@@ -72,7 +77,6 @@ BUILTIN_COMMANDS := \
 	$(call _B, sensors,                SCHED_PRIORITY_MAX-5,      4096,  sensors_main               ) \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
 	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
-	$(call _B, tests,                  ,                          12000, tests_main                 ) \
 	$(call _B, tone_alarm,             ,                          2048,  tone_alarm_main            ) \
 	$(call _B, top,                    SCHED_PRIORITY_DEFAULT-10, 3000,  top_main                   ) \
 	$(call _B, param,                  SCHED_PRIORITY_DEFAULT-10, 2048,  param_main                 ) \
