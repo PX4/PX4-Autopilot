@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,11 +35,9 @@
 # Makefile to build the position estimator
 #
 
-APPNAME		 = position_estimator_mc
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 4096
+MODULE_COMMAND	 = position_estimator_mc
 
-CSRCS		 = position_estimator_mc_main.c \
+SRCS		 = position_estimator_mc_main.c \
 			   position_estimator_mc_params.c \
 			   codegen/positionKalmanFilter1D_initialize.c \
 			   codegen/positionKalmanFilter1D_terminate.c \
@@ -60,5 +58,3 @@ CSRCS		 = position_estimator_mc_main.c \
 			   codegen/kalman_dlqe3_terminate.c \
 			   codegen/kalman_dlqe3_data.c \
 			   codegen/randn.c
-			   
-include $(APPDIR)/mk/app.mk

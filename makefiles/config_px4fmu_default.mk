@@ -14,6 +14,9 @@ MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmu
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/ardrone_interface
+MODULES		+= drivers/px4io
+# sensors app is WIP
+#MODULES		+= modules/sensors
 
 #
 # System commands
@@ -41,7 +44,13 @@ MODULES		+= modules/mavlink_onboard
 #
 # Estimation modules (EKF / other filters)
 #
-#MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/position_estimator_mc
+
+#
+# Logging
+#
+MODULES		+= modules/sdlog
 
 #
 # Transitional support - add commands from the NuttX export archive.
@@ -73,10 +82,6 @@ BUILTIN_COMMANDS := \
 	$(call _B, ms5611,                 ,                          2048,  ms5611_main                ) \
 	$(call _B, multirotor_att_control, SCHED_PRIORITY_MAX-15,     2048,  multirotor_att_control_main) \
 	$(call _B, multirotor_pos_control, SCHED_PRIORITY_MAX-25,     2048,  multirotor_pos_control_main) \
-	$(call _B, position_estimator,     ,                          4096,  position_estimator_main    ) \
-	$(call _B, px4io,                  ,                          2048,  px4io_main                 ) \
-	$(call _B, sdlog,                  SCHED_PRIORITY_MAX-30,     2048,  sdlog_main                 ) \
-	$(call _B, sensors,                SCHED_PRIORITY_MAX-5,      4096,  sensors_main               ) \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
 	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
 	$(call _B, tone_alarm,             ,                          2048,  tone_alarm_main            ) \

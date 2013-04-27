@@ -46,7 +46,6 @@
 #include <stdbool.h>
 #include <poll.h>
 #include <fcntl.h>
-#include <v1.0/common/mavlink.h>
 #include <float.h>
 #include <nuttx/sched.h>
 #include <sys/prctl.h>

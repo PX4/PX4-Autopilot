@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,12 @@
 ############################################################################
 
 #
-# Interface driver for the PX4IO board.
+# sdlog Application
 #
 
-APPNAME		 = px4io
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 2048
+MODULE_COMMAND	 = sdlog
+# The main thread only buffers to RAM, needs a high priority
+MODULE_PRIORITY	 = "SCHED_PRIORITY_MAX-30"
 
-include $(APPDIR)/mk/app.mk
+SRCS		 = sdlog.c \
+		   sdlog_ringbuffer.c
