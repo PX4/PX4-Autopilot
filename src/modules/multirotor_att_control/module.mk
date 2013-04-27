@@ -32,7 +32,7 @@
 ############################################################################
 
 #
-# Makefile to build the multirotor attitude controller
+# Build multirotor attitude controller
 #
 
 MODULE_COMMAND	= multirotor_att_control

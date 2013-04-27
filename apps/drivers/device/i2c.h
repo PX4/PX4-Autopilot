@@ -61,6 +61,11 @@ protected:
 	unsigned		_retries;
 
 	/**
+	 * The I2C bus number the device is attached to.
+	 */
+	int			_bus;
+
+	/**
 	 * @ Constructor
 	 *
 	 * @param name		Driver name
@@ -123,7 +128,6 @@ protected:
 	}
 
 private:
-	int			_bus;
 	uint16_t		_address;
 	uint32_t		_frequency;
 	struct i2c_dev_s	*_dev;
