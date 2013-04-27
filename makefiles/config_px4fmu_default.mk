@@ -15,8 +15,7 @@ MODULES		+= drivers/boards/px4fmu
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/ardrone_interface
 MODULES		+= drivers/px4io
-# sensors app is WIP
-#MODULES		+= modules/sensors
+MODULES		+= modules/sensors
 
 #
 # System commands
