@@ -62,9 +62,9 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
-
 #include <drivers/boards/px4fmu/px4fmu_internal.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_rc_input.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -76,6 +76,7 @@
 #include <uORB/topics/actuator_outputs.h>
 
 #include <systemlib/err.h>
+#include <systemlib/ppm_decode.h>
 
 #define I2C_BUS_SPEED					400000
 #define UPDATE_RATE						400
@@ -83,7 +84,7 @@
 #define BLCTRL_BASE_ADDR 				0x29
 #define BLCTRL_OLD 						0
 #define BLCTRL_NEW 						1
-#define BLCTRL_MIN_VALUE				-0.984F
+#define BLCTRL_MIN_VALUE				-0.920F
 #define MOTOR_STATE_PRESENT_MASK		0x80
 #define MOTOR_STATE_ERROR_MASK		0x7F
 #define MOTOR_SPINUP_COUNTER			2500
@@ -494,6 +495,14 @@ MK::task_main()
 	fds[0].events = POLLIN;
 	fds[1].fd = _t_armed;
 	fds[1].events = POLLIN;
+
+	// rc input, published to ORB
+	struct rc_input_values rc_in;
+	orb_advert_t to_input_rc = 0;
+
+	memset(&rc_in, 0, sizeof(rc_in));
+	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
+
 	
 	log("starting");
 	long update_rate_in_us = 0;
@@ -608,6 +617,27 @@ MK::task_main()
 			////up_pwm_servo_arm(aa.armed && !aa.lockdown);
 			mk_servo_arm(aa.armed && !aa.lockdown);
 		}
+
+		// see if we have new PPM input data
+		if (ppm_last_valid_decode != rc_in.timestamp) {
+			// we have a new PPM frame. Publish it.
+			rc_in.channel_count = ppm_decoded_channels;
+			if (rc_in.channel_count > RC_INPUT_MAX_CHANNELS) {
+				rc_in.channel_count = RC_INPUT_MAX_CHANNELS;
+			}
+			for (uint8_t i=0; i<rc_in.channel_count; i++) {
+				rc_in.values[i] = ppm_buffer[i];
+			}
+			rc_in.timestamp = ppm_last_valid_decode;
+
+			/* lazily advertise on first publication */
+			if (to_input_rc == 0) {
+				to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_in);
+			} else {
+				orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
+			}
+		}
+
 	}
 
 	::close(_t_actuators);
@@ -1352,7 +1382,7 @@ mkblctrl_main(int argc, char *argv[])
 					if(strcmp(argv[i + 1], "+") == 0) {
 						frametype = FRAME_PLUS;
 					} else {
-						frametype = FRAME_PLUS;
+						frametype = FRAME_X;
 					}
 				} else {
 					errx(1, "only + or x for frametype supported !");
