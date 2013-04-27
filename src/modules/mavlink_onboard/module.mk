@@ -37,6 +37,6 @@
 
 MODULE_COMMAND	 = mavlink_onboard
 SRCS		 = mavlink.c \
-			   mavlink_receiver.c
+		   mavlink_receiver.c
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink

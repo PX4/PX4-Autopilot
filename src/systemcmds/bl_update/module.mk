@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,13 +32,12 @@
 ############################################################################
 
 #
-# realtime system performance display
+# Bootloader updater (flashes the FMU USB bootloader software)
 #
 
-APPNAME		 = top
-PRIORITY	 = SCHED_PRIORITY_DEFAULT - 10
-STACKSIZE	 = 3000
+MODULE_COMMAND	 = bl_update
+SRCS		 = bl_update.c
 
-include $(APPDIR)/mk/app.mk
+MODULE_STACKSIZE = 4096
 
 MAXOPTIMIZATION	 = -Os

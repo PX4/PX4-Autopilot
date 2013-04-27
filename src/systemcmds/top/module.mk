@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,13 +32,13 @@
 ############################################################################
 
 #
-# Makefile to build the calibration tool
+# Build top memory / cpu status tool.
 #
 
-APPNAME		 = calibration
-PRIORITY	 = SCHED_PRIORITY_MAX - 1
-STACKSIZE	 = 4096
+MODULE_COMMAND	 = top
+SRCS		 = top.c
 
-include $(APPDIR)/mk/app.mk
+MODULE_STACKSIZE = 3000
 
 MAXOPTIMIZATION	 = -Os
+

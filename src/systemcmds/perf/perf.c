@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,51 @@
  *
  ****************************************************************************/
 
-#ifndef _CALIBRATION_H
-#define _CALIBRATION_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+
+
+#include <nuttx/config.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "systemlib/perf_counter.h"
+
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Functions
  ****************************************************************************/
+
+__EXPORT int perf_main(int argc, char *argv[]);
 
 /****************************************************************************
- * Public Function Prototypes
+ * user_start
  ****************************************************************************/
 
-extern int range_cal(int argc, char *argv[]);
-extern int servo_cal(int argc, char *argv[]);
+int perf_main(int argc, char *argv[])
+{
+	if (argc > 1) {
+		if (strcmp(argv[1], "reset") == 0) {
+			perf_reset_all();
+			return 0;
+		}
+		printf("Usage: perf <reset>\n");
+		return -1;
+	}
 
-#endif
+	perf_print_all();
+	fflush(stdout);
+	return 0;
+}
+
+

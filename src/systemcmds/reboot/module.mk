@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,10 @@
 ############################################################################
 
 #
-# Build the i2c test tool.
+# reboot command.
 #
 
-APPNAME		 = i2c
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 4096
+MODULE_COMMAND	 = reboot
+SRCS		 = reboot.c
 
-include $(APPDIR)/mk/app.mk
+MAXOPTIMIZATION	 = -Os

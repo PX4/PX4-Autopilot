@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,13 +32,10 @@
 ############################################################################
 
 #
-# Build the eeprom tool.
+# Build the i2c test tool.
 #
 
-APPNAME		 = bl_update
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 4096
-
-include $(APPDIR)/mk/app.mk
+MODULE_COMMAND	 = i2c
+SRCS		 = i2c.c
 
 MAXOPTIMIZATION	 = -Os
