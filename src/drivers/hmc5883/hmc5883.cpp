@@ -841,6 +841,7 @@ HMC5883::collect()
 	 *		  74 from all measurements centers them around zero.
 	 */
 
+#ifdef PX4_I2C_BUS_ONBOARD
 	if (_bus == PX4_I2C_BUS_ONBOARD) {
 		/* to align the sensor axes with the board, x and y need to be flipped */
 		_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
@@ -849,13 +850,16 @@ HMC5883::collect()
 		/* z remains z */
 		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 	} else {
+#endif
 		/* XXX axis assignment of external sensor is yet unknown */
 		_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
 		/* flip axes and negate value for y */
 		_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
 		/* z remains z */
 		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+#ifdef PX4_I2C_BUS_ONBOARD
 	}
+#endif
 
 	/* publish it */
 	orb_publish(ORB_ID(sensor_mag), _mag_topic, &_reports[_next_report]);
