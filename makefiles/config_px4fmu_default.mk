@@ -54,6 +54,7 @@ MODULES		+= modules/mavlink_onboard
 #
 MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/position_estimator_mc
+MODULES		+= modules/position_estimator
 MODULES		+= modules/att_pos_estimator_ekf
 
 #
@@ -62,6 +63,8 @@ MODULES		+= modules/att_pos_estimator_ekf
 MODULES		+= modules/fixedwing_backside
 MODULES		+= modules/fixedwing_att_control
 MODULES		+= modules/fixedwing_pos_control
+MODULES		+= modules/multirotor_att_control
+MODULES		+= modules/multirotor_pos_control
 
 #
 # Logging
@@ -83,12 +86,7 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, adc,                    ,                          2048,  adc_main                   ) \
-	$(call _B, control_demo,           ,                          2048,  control_demo_main          ) \
-	$(call _B, fixedwing_att_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_att_control_main ) \
-	$(call _B, fixedwing_pos_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_pos_control_main ) \
 	$(call _B, math_demo,              ,                          8192,  math_demo_main             ) \
-	$(call _B, multirotor_att_control, SCHED_PRIORITY_MAX-15,     2048,  multirotor_att_control_main) \
-	$(call _B, multirotor_pos_control, SCHED_PRIORITY_MAX-25,     2048,  multirotor_pos_control_main) \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
 	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
 	$(call _B, tone_alarm,             ,                          2048,  tone_alarm_main            ) \

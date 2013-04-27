@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,10 @@
 ############################################################################
 
 #
-# Makefile to build multirotor position control
+# Build multirotor position control
 #
 
-APPNAME		 = multirotor_pos_control
-PRIORITY	 = SCHED_PRIORITY_MAX - 25
-STACKSIZE	 = 2048
+MODULE_COMMAND	= multirotor_pos_control
 
-include $(APPDIR)/mk/app.mk
+SRCS		= multirotor_pos_control.c \
+		  multirotor_pos_control_params.c

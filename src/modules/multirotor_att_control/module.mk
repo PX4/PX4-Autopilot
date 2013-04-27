@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,11 @@
 ############################################################################
 
 #
-# Makefile to build uORB
+# Makefile to build the multirotor attitude controller
 #
 
-APPNAME		 = multirotor_att_control
-PRIORITY	 = SCHED_PRIORITY_MAX - 15
-STACKSIZE	 = 2048
+MODULE_COMMAND	= multirotor_att_control
 
-include $(APPDIR)/mk/app.mk
+SRCS		= multirotor_att_control_main.c \
+		  multirotor_attitude_control.c \
+		  multirotor_rate_control.c
