@@ -30,6 +30,7 @@ MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
+MODULES		+= systemcmds/tests
 
 #
 # General system control
@@ -79,6 +80,5 @@ BUILTIN_COMMANDS := \
 	$(call _B, sensors,                SCHED_PRIORITY_MAX-5,      4096,  sensors_main               ) \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
 	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
-	$(call _B, tests,                  ,                          12000, tests_main                 ) \
 	$(call _B, tone_alarm,             ,                          2048,  tone_alarm_main            ) \
 	$(call _B, uorb,                   ,                          4096,  uorb_main                  )

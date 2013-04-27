@@ -1,4 +1,5 @@
 .built
+.context
 *.context
 *.bdat
 *.pdat

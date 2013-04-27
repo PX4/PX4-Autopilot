@@ -127,7 +127,6 @@ CONFIGURED_APPS += drivers/mb12xx
 
 # Testing stuff
 CONFIGURED_APPS += px4/sensors_bringup
-CONFIGURED_APPS += px4/tests
 
 ifeq ($(CONFIG_CAN),y)
 #CONFIGURED_APPS += examples/can

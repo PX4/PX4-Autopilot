@@ -50,4 +50,3 @@ SRCS		 = attitude_estimator_ekf_params.c \
 		   codegen/rtGetNaN.c \
 		   codegen/norm.c \
 		   codegen/cross.c 
-
