@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Example User <mail@example.com>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: James Goppert
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,10 @@
  ****************************************************************************/
 
 /**
- * @file control_demo.cpp
- * Demonstration of control library
+ * @file fixedwing_backside_main.cpp
+ * @author James Goppert
+ *
+ * Fixedwing backside controller using control library
  */
 
 #include <nuttx/config.h>
@@ -55,7 +57,7 @@ static int deamon_task;             /**< Handle of deamon task / thread */
 /**
  * Deamon management function.
  */
-extern "C" __EXPORT int control_demo_main(int argc, char *argv[]);
+extern "C" __EXPORT int fixedwing_backside_main(int argc, char *argv[]);
 
 /**
  * Mainloop of deamon.
@@ -90,7 +92,7 @@ usage(const char *reason)
  * The actual stack size should be set in the call
  * to task_create().
  */
-int control_demo_main(int argc, char *argv[])
+int fixedwing_backside_main(int argc, char *argv[])
 {
 
 	if (argc < 1)

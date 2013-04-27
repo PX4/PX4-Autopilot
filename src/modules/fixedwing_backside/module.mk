@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,9 @@
 ############################################################################
 
 #
-# Fixedwing Control application
+# Fixedwing backside controller
 #
 
-APPNAME		 = fixedwing_att_control
-PRIORITY	 = SCHED_PRIORITY_MAX - 30
-STACKSIZE	 = 2048
+MODULE_COMMAND	= fixedwing_backside
 
-INCLUDES	= $(TOPDIR)/../mavlink/include/mavlink
-
-include $(APPDIR)/mk/app.mk
-
+SRCS		= fixedwing_backside_main.cpp

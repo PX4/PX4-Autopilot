@@ -65,8 +65,9 @@
 #include <systemlib/geo/geo.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
-#include <fixedwing_att_control_rate.h>
-#include <fixedwing_att_control_att.h>
+
+#include "fixedwing_att_control_rate.h"
+#include "fixedwing_att_control_att.h"
 
 /* Prototypes */
 /**

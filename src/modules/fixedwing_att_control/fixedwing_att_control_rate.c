@@ -33,11 +33,11 @@
  ****************************************************************************/
 /**
  * @file fixedwing_att_control_rate.c
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *
  * Implementation of a fixed wing attitude controller.
  *
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  */
-#include <fixedwing_att_control_rate.h>
 
 #include <nuttx/config.h>
 #include <stdio.h>
@@ -60,6 +60,8 @@
 #include <systemlib/pid/pid.h>
 #include <systemlib/geo/geo.h>
 #include <systemlib/systemlib.h>
+
+#include "fixedwing_att_control_rate.h"
 
 /*
  * Controller parameters, accessible via MAVLink

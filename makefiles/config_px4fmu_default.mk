@@ -57,6 +57,13 @@ MODULES		+= modules/position_estimator_mc
 MODULES		+= modules/att_pos_estimator_ekf
 
 #
+# Vehicle Control
+#
+MODULES		+= modules/fixedwing_backside
+MODULES		+= modules/fixedwing_att_control
+MODULES		+= modules/fixedwing_pos_control
+
+#
 # Logging
 #
 MODULES		+= modules/sdlog

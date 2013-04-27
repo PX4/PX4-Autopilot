@@ -35,7 +35,6 @@
  * @file fixedwing_att_control_rate.c
  * Implementation of a fixed wing attitude controller.
  */
-#include <fixedwing_att_control_att.h>
 
 #include <nuttx/config.h>
 #include <stdio.h>
@@ -59,7 +58,7 @@
 #include <systemlib/geo/geo.h>
 #include <systemlib/systemlib.h>
 
-
+#include "fixedwing_att_control_att.h"
 
 
 struct fw_att_control_params {
