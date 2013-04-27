@@ -10,11 +10,12 @@ ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 #
 # Board support modules
 #
+MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmuv2
+MODULES		+= drivers/rgbled
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
-MODULES		+= drivers/px4fmu
-MODULES		+= drivers/rgbled
+MODULES		+= modules/sensors
 
 #
 # System commands
@@ -29,6 +30,7 @@ MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
+MODULES		+= systemcmds/tests
 
 #
 # General system control
@@ -41,6 +43,12 @@ MODULES		+= modules/mavlink_onboard
 # Estimation modules (EKF / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/position_estimator_mc
+
+#
+# Logging
+#
+MODULES		+= modules/sdlog
 
 #
 # Transitional support - add commands from the NuttX export archive.
@@ -69,10 +77,7 @@ BUILTIN_COMMANDS := \
 	$(call _B, multirotor_att_control, SCHED_PRIORITY_MAX-15,     2048,  multirotor_att_control_main) \
 	$(call _B, multirotor_pos_control, SCHED_PRIORITY_MAX-25,     2048,  multirotor_pos_control_main) \
 	$(call _B, position_estimator,     ,                          4096,  position_estimator_main    ) \
-	$(call _B, sdlog,                  SCHED_PRIORITY_MAX-30,     2048,  sdlog_main                 ) \
-	$(call _B, sensors,                SCHED_PRIORITY_MAX-5,      4096,  sensors_main               ) \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
 	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
-	$(call _B, tests,                  ,                          12000, tests_main                 ) \
 	$(call _B, tone_alarm,             ,                          2048,  tone_alarm_main            ) \
 	$(call _B, uorb,                   ,                          4096,  uorb_main                  )
