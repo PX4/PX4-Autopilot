@@ -15,9 +15,9 @@ MODULES		+= drivers/boards/px4fmuv2
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
-MODULES		+= drivers/mpu6000
+#MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
-MODULES		+= drivers/ms5611
+#MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
@@ -84,18 +84,7 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, adc,                    ,                          2048,  adc_main                   ) \
-	$(call _B, blinkm,                 ,                          2048,  blinkm_main                ) \
-	$(call _B, control_demo,           ,                          2048,  control_demo_main          ) \
-	$(call _B, fixedwing_att_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_att_control_main ) \
-	$(call _B, fixedwing_pos_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_pos_control_main ) \
-	$(call _B, gps,                    ,                          2048,  gps_main                   ) \
-	$(call _B, hil,                    ,                          2048,  hil_main                   ) \
-	$(call _B, hott_telemetry,         ,                          2048,  hott_telemetry_main        ) \
-	$(call _B, kalman_demo,            SCHED_PRIORITY_MAX-30,     2048,  kalman_demo_main           ) \
 	$(call _B, math_demo,              ,                          8192,  math_demo_main             ) \
-	$(call _B, multirotor_att_control, SCHED_PRIORITY_MAX-15,     2048,  multirotor_att_control_main) \
-	$(call _B, multirotor_pos_control, SCHED_PRIORITY_MAX-25,     2048,  multirotor_pos_control_main) \
-	$(call _B, position_estimator,     ,                          4096,  position_estimator_main    ) \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
 	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
 	$(call _B, tone_alarm,             ,                          2048,  tone_alarm_main            ) \
