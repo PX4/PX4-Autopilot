@@ -10,6 +10,9 @@ ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 #
 # Board support modules
 #
+MODULES		+= drivers/stm32
+MODULES		+= drivers/stm32/adc
+MODULES		+= drivers/stm32/tone_alarm
 MODULES		+= drivers/px4io
 MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmu
@@ -85,9 +88,7 @@ endef
 
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
-	$(call _B, adc,                    ,                          2048,  adc_main                   ) \
 	$(call _B, math_demo,              ,                          8192,  math_demo_main             ) \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
 	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
-	$(call _B, tone_alarm,             ,                          2048,  tone_alarm_main            ) \
 	$(call _B, uorb,                   ,                          4096,  uorb_main                  )
