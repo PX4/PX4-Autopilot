@@ -35,8 +35,11 @@
 # Basic example application
 #
 
-APPNAME		 = kalman_demo
-PRIORITY	 = SCHED_PRIORITY_MAX - 30
-STACKSIZE	 = 2048
+MODULE_COMMAND	= att_pos_estimator_ekf
 
-include $(APPDIR)/mk/app.mk
+# XXX this might be intended for the spawned deamon, validate
+MODULE_PRIORITY	 = "SCHED_PRIORITY_MAX-30"
+
+SRCS		= kalman_main.cpp \
+		  KalmanNav.cpp \
+		  params.c

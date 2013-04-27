@@ -55,7 +55,7 @@ static int deamon_task;             /**< Handle of deamon task / thread */
 /**
  * Deamon management function.
  */
-extern "C" __EXPORT int kalman_demo_main(int argc, char *argv[]);
+extern "C" __EXPORT int att_pos_estimator_ekf_main(int argc, char *argv[]);
 
 /**
  * Mainloop of deamon.
@@ -85,7 +85,7 @@ usage(const char *reason)
  * The actual stack size should be set in the call
  * to task_create().
  */
-int kalman_demo_main(int argc, char *argv[])
+int att_pos_estimator_ekf_main(int argc, char *argv[])
 {
 
 	if (argc < 1)
