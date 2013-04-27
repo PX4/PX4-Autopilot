@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Simon Wilks <sjwilks@gmail.com>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: Simon Wilks <sjwilks@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@
 
 /**
  * @file hott_telemetry_main.c
+ * @author Simon Wilks <sjwilks@gmail.com>
  *
  * Graupner HoTT Telemetry implementation.
  *
@@ -41,7 +42,6 @@
  * a data packet can be returned if necessary.
  *
  * TODO: Add support for at least the vario and GPS sensor data.
- *
  */
 
 #include <fcntl.h>
@@ -56,12 +56,6 @@
 #include <systemlib/systemlib.h>
 
 #include "messages.h"
-
-/* The following are equired for UART direct manipulation. */
-#include <arch/board/board.h>
-#include "up_arch.h"
-#include "chip.h"
-#include "stm32_internal.h"
 
 static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */

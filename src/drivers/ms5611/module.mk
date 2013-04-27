@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,9 @@
 ############################################################################
 
 #
-# Makefile to build the BMA180 driver.
+# MS5611 driver
 #
 
-APPNAME		 = mpu6000
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 4096
+MODULE_COMMAND	= ms5611
 
-include $(APPDIR)/mk/app.mk
+SRCS		= ms5611.cpp

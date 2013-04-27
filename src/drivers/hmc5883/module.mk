@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,12 @@
 ############################################################################
 
 #
-# Makefile to build the Maxbotix Sonar driver.
+# HMC5883 driver
 #
 
-APPNAME		= mb12xx
-PRIORITY	= SCHED_PRIORITY_DEFAULT
-STACKSIZE	= 2048
+MODULE_COMMAND	= hmc5883
 
-include $(APPDIR)/mk/app.mk
+# XXX seems excessive, check if 2048 is sufficient
+MODULE_STACKSIZE	= 4096
+
+SRCS		= hmc5883.cpp

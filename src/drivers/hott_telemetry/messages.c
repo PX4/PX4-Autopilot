@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Simon Wilks <sjwilks@gmail.com>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: Simon Wilks <sjwilks@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 
 /**
  * @file messages.c
- *
+ * @author Simon Wilks <sjwilks@gmail.com>
  */
 
 #include "messages.h"

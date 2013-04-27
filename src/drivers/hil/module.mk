@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,9 @@
 ############################################################################
 
 #
-# MS5611 driver
+# Hardware in the Loop (HIL) simulation actuator output bank
 #
 
-APPNAME		 = ms5611
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 2048
+MODULE_COMMAND	= hil
 
-include $(APPDIR)/mk/app.mk
+SRCS		= hil.cpp

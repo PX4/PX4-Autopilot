@@ -15,6 +15,15 @@ MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmu
 MODULES		+= drivers/ardrone_interface
 MODULES		+= drivers/l3gd20
+MODULES		+= drivers/bma180
+MODULES		+= drivers/mpu6000
+MODULES		+= drivers/hmc5883
+MODULES		+= drivers/ms5611
+MODULES		+= drivers/mb12xx
+MODULES		+= drivers/gps
+MODULES		+= drivers/hil
+MODULES		+= drivers/hott_telemetry
+MODULES		+= drivers/blinkm
 MODULES		+= modules/sensors
 
 #
@@ -66,19 +75,11 @@ endef
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
 	$(call _B, adc,                    ,                          2048,  adc_main                   ) \
-	$(call _B, blinkm,                 ,                          2048,  blinkm_main                ) \
-	$(call _B, bma180,                 ,                          2048,  bma180_main                ) \
 	$(call _B, control_demo,           ,                          2048,  control_demo_main          ) \
 	$(call _B, fixedwing_att_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_att_control_main ) \
 	$(call _B, fixedwing_pos_control,  SCHED_PRIORITY_MAX-30,     2048,  fixedwing_pos_control_main ) \
-	$(call _B, gps,                    ,                          2048,  gps_main                   ) \
-	$(call _B, hil,                    ,                          2048,  hil_main                   ) \
-	$(call _B, hmc5883,                ,                          4096,  hmc5883_main               ) \
-	$(call _B, hott_telemetry,         ,                          2048,  hott_telemetry_main        ) \
 	$(call _B, kalman_demo,            SCHED_PRIORITY_MAX-30,     2048,  kalman_demo_main           ) \
 	$(call _B, math_demo,              ,                          8192,  math_demo_main             ) \
-	$(call _B, mpu6000,                ,                          4096,  mpu6000_main               ) \
-	$(call _B, ms5611,                 ,                          2048,  ms5611_main                ) \
 	$(call _B, multirotor_att_control, SCHED_PRIORITY_MAX-15,     2048,  multirotor_att_control_main) \
 	$(call _B, multirotor_pos_control, SCHED_PRIORITY_MAX-25,     2048,  multirotor_pos_control_main) \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \

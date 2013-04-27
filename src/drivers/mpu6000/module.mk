@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,12 @@
 ############################################################################
 
 #
-# Graupner HoTT Telemetry application.
+# Makefile to build the MPU6000 driver.
 #
 
-# The following line is required for accessing UARTs directly.
-INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
+MODULE_COMMAND	= mpu6000
 
-APPNAME		 = hott_telemetry
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 2048
+# XXX seems excessive, check if 2048 is not sufficient
+MODULE_STACKSIZE	 = 4096
 
-include $(APPDIR)/mk/app.mk
+SRCS		= mpu6000.cpp
