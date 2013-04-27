@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,11 @@
 ############################################################################
 
 #
-# Interface driver for the PX4IO board.
+# Makefile to build the sensor data collector
 #
 
-APPNAME		 = px4io
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 2048
+MODULE_COMMAND	= sensors
+MODULE_PRIORITY	= "SCHED_PRIORITY_MAX-5"
 
-include $(APPDIR)/mk/app.mk
+SRCS		= sensors.cpp \
+		  sensor_params.c

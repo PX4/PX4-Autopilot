@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,33 +32,12 @@
 ############################################################################
 
 #
-# Makefile to build the position estimator
+# sdlog Application
 #
 
-APPNAME		 = position_estimator_mc
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 4096
+MODULE_COMMAND	 = sdlog
+# The main thread only buffers to RAM, needs a high priority
+MODULE_PRIORITY	 = "SCHED_PRIORITY_MAX-30"
 
-CSRCS		 = position_estimator_mc_main.c \
-			   position_estimator_mc_params.c \
-			   codegen/positionKalmanFilter1D_initialize.c \
-			   codegen/positionKalmanFilter1D_terminate.c \
-			   codegen/positionKalmanFilter1D.c \
-			   codegen/rt_nonfinite.c \
-			   codegen/rtGetInf.c \
-			   codegen/rtGetNaN.c \
-			   codegen/positionKalmanFilter1D_dT_initialize.c \
-			   codegen/positionKalmanFilter1D_dT_terminate.c \
-			   codegen/kalman_dlqe1.c \
-			   codegen/kalman_dlqe1_initialize.c \
-			   codegen/kalman_dlqe1_terminate.c \
-			   codegen/kalman_dlqe2.c \
-			   codegen/kalman_dlqe2_initialize.c \
-			   codegen/kalman_dlqe2_terminate.c \
-			   codegen/kalman_dlqe3.c \
-			   codegen/kalman_dlqe3_initialize.c \
-			   codegen/kalman_dlqe3_terminate.c \
-			   codegen/kalman_dlqe3_data.c \
-			   codegen/randn.c
-			   
-include $(APPDIR)/mk/app.mk
+SRCS		 = sdlog.c \
+		   sdlog_ringbuffer.c

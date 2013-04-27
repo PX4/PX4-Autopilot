@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,29 @@
 ############################################################################
 
 #
-# Makefile to build the sensor data collector
+# Makefile to build the position estimator
 #
 
-APPNAME		= sensors
-PRIORITY	= SCHED_PRIORITY_MAX-5
-STACKSIZE	= 4096
+MODULE_COMMAND	 = position_estimator_mc
 
-CXXSRCS		= sensors.cpp
-CSRCS		= sensor_params.c
-
-include $(APPDIR)/mk/app.mk
+SRCS		 = position_estimator_mc_main.c \
+			   position_estimator_mc_params.c \
+			   codegen/positionKalmanFilter1D_initialize.c \
+			   codegen/positionKalmanFilter1D_terminate.c \
+			   codegen/positionKalmanFilter1D.c \
+			   codegen/rt_nonfinite.c \
+			   codegen/rtGetInf.c \
+			   codegen/rtGetNaN.c \
+			   codegen/positionKalmanFilter1D_dT_initialize.c \
+			   codegen/positionKalmanFilter1D_dT_terminate.c \
+			   codegen/kalman_dlqe1.c \
+			   codegen/kalman_dlqe1_initialize.c \
+			   codegen/kalman_dlqe1_terminate.c \
+			   codegen/kalman_dlqe2.c \
+			   codegen/kalman_dlqe2_initialize.c \
+			   codegen/kalman_dlqe2_terminate.c \
+			   codegen/kalman_dlqe3.c \
+			   codegen/kalman_dlqe3_initialize.c \
+			   codegen/kalman_dlqe3_terminate.c \
+			   codegen/kalman_dlqe3_data.c \
+			   codegen/randn.c
