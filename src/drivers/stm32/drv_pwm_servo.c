@@ -290,6 +290,8 @@ up_pwm_servo_set_rate(unsigned rate)
 {
 	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++)
 		up_pwm_servo_set_rate_group_update(i, rate);
+
+	return 0;
 }
 
 uint32_t

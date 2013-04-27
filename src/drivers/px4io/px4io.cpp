@@ -80,11 +80,11 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <debug.h>
 
-#include <px4io/protocol.h>
 #include <mavlink/mavlink_log.h>
 #include "uploader.h"
-#include <debug.h>
+#include <modules/px4iofirmware/protocol.h>
 
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
