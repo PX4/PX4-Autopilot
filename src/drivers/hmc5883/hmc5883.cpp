@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,7 +75,6 @@
  * HMC5883 internal constants and data structures.
  */
 
-#define HMC5883L_BUS			PX4_I2C_BUS_ONBOARD
 #define HMC5883L_ADDRESS		PX4_I2C_OBDEV_HMC5883
 
 /* Max measurement rate is 160Hz */
@@ -842,12 +841,21 @@ HMC5883::collect()
 	 *		  74 from all measurements centers them around zero.
 	 */
 
-	/* to align the sensor axes with the board, x and y need to be flipped */
-	_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
-	/* flip axes and negate value for y */
-	_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
-	/* z remains z */
-	_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+	if (_bus == PX4_I2C_BUS_ONBOARD) {
+		/* to align the sensor axes with the board, x and y need to be flipped */
+		_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+		/* flip axes and negate value for y */
+		_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
+		/* z remains z */
+		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+	} else {
+		/* XXX axis assignment of external sensor is yet unknown */
+		_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+		/* flip axes and negate value for y */
+		_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
+		/* z remains z */
+		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+	}
 
 	/* publish it */
 	orb_publish(ORB_ID(sensor_mag), _mag_topic, &_reports[_next_report]);
@@ -1211,8 +1219,14 @@ start()
 	if (g_dev != nullptr)
 		errx(1, "already started");
 
-	/* create the driver */
-	g_dev = new HMC5883(HMC5883L_BUS);
+	/* create the driver, attempt expansion bus first */
+	g_dev = new HMC5883(PX4_I2C_BUS_EXPANSION);
+
+#ifdef PX4_I2C_BUS_ONBOARD
+	/* if this failed, attempt onboard sensor */
+	if (g_dev == nullptr)
+		g_dev = new HMC5883(PX4_I2C_BUS_ONBOARD);
+#endif
 
 	if (g_dev == nullptr)
 		goto fail;
