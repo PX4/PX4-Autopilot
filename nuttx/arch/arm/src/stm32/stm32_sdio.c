@@ -2797,13 +2797,14 @@ void sdio_mediachange(FAR struct sdio_dev_s *dev, bool cardinslot)
     }
   fvdbg("cdstatus OLD: %02x NEW: %02x\n", cdstatus, priv->cdstatus);
 
+  irqrestore(flags);
+
   /* Perform any requested callback if the status has changed */
 
   if (cdstatus != priv->cdstatus)
     {
       stm32_callback(priv);
     }
-  irqrestore(flags);
 }
 
 /****************************************************************************
