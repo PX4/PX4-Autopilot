@@ -288,8 +288,8 @@ controls_tick() {
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
 
 			/* mix new RC input control values to servos */
-			if (dsm_updated || sbus_updated || ppm_updated)
-				mixer_tick();
+			//if (dsm_updated || sbus_updated || ppm_updated)
+			//	mixer_tick();
 
 		} else {
 			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;

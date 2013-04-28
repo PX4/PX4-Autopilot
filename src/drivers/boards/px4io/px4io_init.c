@@ -86,9 +86,17 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_SERVO_PWR_EN);
 	stm32_configgpio(GPIO_RELAY1_EN);
 	stm32_configgpio(GPIO_RELAY2_EN);
+
+    	/* turn off - all leds are active low */
+	stm32_gpiowrite(GPIO_LED1, true);
+	stm32_gpiowrite(GPIO_LED2, true);
+	stm32_gpiowrite(GPIO_LED3, true);
+
+	/* LED config */
 	stm32_configgpio(GPIO_LED1);
 	stm32_configgpio(GPIO_LED2);
 	stm32_configgpio(GPIO_LED3);
+
 	stm32_configgpio(GPIO_ACC_OC_DETECT);
 	stm32_configgpio(GPIO_SERVO_OC_DETECT);
 	stm32_configgpio(GPIO_BTN_SAFETY);
