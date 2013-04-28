@@ -25,7 +25,10 @@ endif
 all:	upload-$(METHOD)-$(BOARD)
 
 upload-serial-px4fmu:	$(BUNDLE) $(UPLOADER)
-	@python -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
+	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
+
+upload-serial-px4fmuv2:	$(BUNDLE) $(UPLOADER)
+	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
 #
 # JTAG firmware uploading with OpenOCD
@@ -33,9 +36,9 @@ upload-serial-px4fmu:	$(BUNDLE) $(UPLOADER)
 JTAGCONFIG		?= interface/olimex-jtag-tiny.cfg
 
 upload-jtag-px4fmu: all
-	@echo Attempting to flash PX4FMU board via JTAG
-	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
+	@$(ECHO) Attempting to flash PX4FMU board via JTAG
+	$(Q) $(OPENOCD) -f $(JTAGCONFIG) -f ../Bootloader/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
 
 upload-jtag-px4io: all
-	@echo Attempting to flash PX4IO board via JTAG
-	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f1x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4io_bl.elf" -c "reset run" -c shutdown
+	@$(ECHO) Attempting to flash PX4IO board via JTAG
+	$(Q) $(OPENOCD) -f $(JTAGCONFIG) -f ../Bootloader/stm32f1x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4io_bl.elf" -c "reset run" -c shutdown

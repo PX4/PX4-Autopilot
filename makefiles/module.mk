@@ -153,7 +153,7 @@ $(MODULE_COMMAND_FILES): exclude = $(dir $@)COMMAND.$(command).*
 $(MODULE_COMMAND_FILES): $(GLOBAL_DEPS)
 	@$(REMOVE) -f $(exclude)
 	@$(MKDIR) -p $(dir $@)
-	@echo "CMD:     $(command)"
+	@$(ECHO) "CMD:     $(command)"
 	$(Q) $(TOUCH) $@
 endif
 

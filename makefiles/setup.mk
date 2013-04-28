@@ -72,6 +72,8 @@ export TOUCH		 = touch
 export MKDIR		 = mkdir
 export ECHO		 = echo
 export UNZIP_CMD	 = unzip
+export PYTHON		 = python
+export OPENOCD		 = openocd
 
 #
 # Host-specific paths, hacks and fixups
