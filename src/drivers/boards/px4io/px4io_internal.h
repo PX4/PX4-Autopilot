@@ -32,7 +32,9 @@
  ****************************************************************************/
  
 /**
- * @file PX4IO hardware definitions.
+ * @file px4io_internal.h
+ * 
+ * PX4IO hardware definitions.
  */
 
 #pragma once

@@ -116,7 +116,5 @@ endef
 
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
-	$(call _B, math_demo,              ,                          8192,  math_demo_main             ) \
 	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                ) \
-	$(call _B, uorb,                   ,                          4096,  uorb_main                  )
+	$(call _B, serdis,                 ,                          2048,  serdis_main                )

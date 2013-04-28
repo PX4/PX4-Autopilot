@@ -59,9 +59,6 @@ export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
 			   $(PX4_MODULE_SRC)/modules/ \
 			   $(PX4_INCLUDE_DIR)
 
-# Include from legacy app/library path
-export INCLUDE_DIRS	+= $(NUTTX_APP_SRC)
-
 #
 # Tools
 #

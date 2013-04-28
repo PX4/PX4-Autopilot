@@ -64,8 +64,10 @@ struct sys_state_s 	system_state;
 
 static struct hrt_call serial_dma_call;
 
+#ifdef CONFIG_STM32_I2C1
 /* store i2c reset count XXX this should be a register, together with other error counters */
 volatile uint32_t i2c_loop_resets = 0;
+#endif
 
 /*
  * a set of debug buffers to allow us to send debug information from ISRs
@@ -133,7 +135,9 @@ user_start(int argc, char *argv[])
 	 * Poll at 1ms intervals for received bytes that have not triggered
 	 * a DMA event.
 	 */
+#ifdef CONFIG_ARCH_DMA
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
+#endif
 
 	/* print some startup info */
 	lowsyslog("\nPX4IO: starting\n");
@@ -155,8 +159,10 @@ user_start(int argc, char *argv[])
 	/* initialise the control inputs */
 	controls_init();
 
+#ifdef CONFIG_STM32_I2C1
 	/* start the i2c handler */
 	i2c_init();
+#endif
 
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
@@ -201,7 +207,7 @@ user_start(int argc, char *argv[])
 
 		/* kick the mixer */
 		perf_begin(mixer_perf);
-		mixer_tick();
+		// mixer_tick();
 		perf_end(mixer_perf);
 
 		/* kick the control inputs */

@@ -124,10 +124,18 @@ extern struct sys_state_s system_state;
 #define LED_SAFETY(_s)		stm32_gpiowrite(GPIO_LED3, !(_s))
 
 #define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
-#define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
-#define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
-#define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
-#define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
+#ifdef GPIO_ACC1_PWR_EN
+    #define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
+#endif
+#ifdef GPIO_ACC2_PWR_EN
+    #define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
+#endif
+#ifdef GPIO_RELAY1_EN
+    #define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
+#endif
+#ifdef GPIO_RELAY2_EN
+    #define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
+#endif
 
 #define OVERCURRENT_ACC		(!stm32_gpioread(GPIO_ACC_OC_DETECT))
 #define OVERCURRENT_SERVO	(!stm32_gpioread(GPIO_SERVO_OC_DETECT))
@@ -140,18 +148,20 @@ extern struct sys_state_s system_state;
 /*
  * Mixer
  */
-extern void	mixer_tick(void);
-extern void	mixer_handle_text(const void *buffer, size_t length);
+//extern void	mixer_tick(void);
+//extern void	mixer_handle_text(const void *buffer, size_t length);
 
 /**
  * Safety switch/LED.
  */
 extern void	safety_init(void);
 
+#ifdef CONFIG_STM32_I2C1
 /**
  * FMU communications
  */
 extern void	i2c_init(void);
+#endif
 
 /**
  * Register space
@@ -183,6 +193,7 @@ extern volatile uint8_t debug_level;
 /* send a debug message to the console */
 extern void isr_debug(uint8_t level, const char *fmt, ...);
 
+#ifdef CONFIG_STM32_I2C1
 void i2c_dump(void);
 void i2c_reset(void);
-
+#endif
