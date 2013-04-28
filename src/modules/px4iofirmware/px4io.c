@@ -207,7 +207,7 @@ user_start(int argc, char *argv[])
 
 		/* kick the mixer */
 		perf_begin(mixer_perf);
-		// mixer_tick();
+		mixer_tick();
 		perf_end(mixer_perf);
 
 		/* kick the control inputs */
