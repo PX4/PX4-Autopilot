@@ -1,8 +1,6 @@
 ############################################################################
-# configs/px4fmu/nsh/appconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -14,7 +12,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name NuttX nor the names of its contributors may be
+# 3. Neither the name PX4 nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -33,20 +31,29 @@
 #
 ############################################################################
 
-# Path to example in apps/examples containing the user_start entry point
+#
+# ARM CMSIS DSP library
+#
 
-CONFIGURED_APPS	+= examples/nsh
+#
+# Find sources
+#
+DSPLIB_SRCDIR		:= $(PX4_MODULE_SRC)/modules/mathlib/CMSIS
+ABS_SRCS		:= $(wildcard $(DSPLIB_SRCDIR)/DSP_Lib/Source/*/*.c)
 
-# The NSH application library
-CONFIGURED_APPS += nshlib
-CONFIGURED_APPS += system/readline
+INCLUDE_DIRS		+= $(DSPLIB_SRCDIR)/Include \
+			   $(DSPLIB_SRCDIR)/Device/ARM/ARMCM4/Include \
+			   $(DSPLIB_SRCDIR)/Device/ARM/ARMCM3/Include
 
-ifeq ($(CONFIG_CAN),y)
-#CONFIGURED_APPS += examples/can
-endif
+# Suppress some warnings that ARM should fix, but haven't.
+EXTRADEFINES		+= -Wno-unsuffixed-float-constants \
+			   -Wno-sign-compare \
+			   -Wno-shadow \
+			   -Wno-float-equal \
+			   -Wno-unused-variable
 
-#ifeq ($(CONFIG_USBDEV),y)
-#ifeq ($(CONFIG_CDCACM),y)
-CONFIGURED_APPS += examples/cdcacm
-#endif
-#endif
+#
+# Override the default visibility for symbols, since the CMSIS DSPLib doesn't
+# have anything we can use to mark exported symbols.
+#
+DEFAULT_VISIBILITY	 = YES

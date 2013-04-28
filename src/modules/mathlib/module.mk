@@ -1,8 +1,6 @@
 ############################################################################
-# configs/px4fmu/nsh/appconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -14,7 +12,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name NuttX nor the names of its contributors may be
+# 3. Neither the name PX4 nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -33,20 +31,30 @@
 #
 ############################################################################
 
-# Path to example in apps/examples containing the user_start entry point
+#
+# Math library
+#
+SRCS		 = math/test/test.cpp \
+		   math/Vector.cpp \
+		   math/Vector3.cpp \
+		   math/EulerAngles.cpp \
+		   math/Quaternion.cpp \
+		   math/Dcm.cpp \
+		   math/Matrix.cpp
 
-CONFIGURED_APPS	+= examples/nsh
+#
+# In order to include .config we first have to save off the
+# current makefile name, since app.mk needs it.
+#
+APP_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
+-include $(TOPDIR)/.config
 
-# The NSH application library
-CONFIGURED_APPS += nshlib
-CONFIGURED_APPS += system/readline
-
-ifeq ($(CONFIG_CAN),y)
-#CONFIGURED_APPS += examples/can
+ifeq ($(CONFIG_ARCH_CORTEXM4)$(CONFIG_ARCH_FPU),yy)
+INCLUDE_DIRS	+= math/arm
+SRCS		+= math/arm/Vector.cpp \
+		   math/arm/Matrix.cpp
+else
+#INCLUDE_DIRS	+= math/generic
+#SRCS		+= math/generic/Vector.cpp \
+#		   math/generic/Matrix.cpp
 endif
-
-#ifeq ($(CONFIG_USBDEV),y)
-#ifeq ($(CONFIG_CDCACM),y)
-CONFIGURED_APPS += examples/cdcacm
-#endif
-#endif

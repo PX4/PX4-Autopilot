@@ -56,6 +56,7 @@ export ARCHIVE_DIR	 = $(abspath $(PX4_BASE)/Archives)/
 # Default include paths
 #
 export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
+			   $(PX4_MODULE_SRC)/modules/ \
 			   $(PX4_INCLUDE_DIR)
 
 # Include from legacy app/library path
