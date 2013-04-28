@@ -186,7 +186,7 @@ define SRC_SEARCH
 	$(abspath $(firstword $(wildcard $(MODULE_SRC)/$1) MISSING_$1))
 endef
 
-ABS_SRCS		:= $(foreach src,$(SRCS),$(call SRC_SEARCH,$(src)))
+ABS_SRCS		?= $(foreach src,$(SRCS),$(call SRC_SEARCH,$(src)))
 MISSING_SRCS		:= $(subst MISSING_,,$(filter MISSING_%,$(ABS_SRCS)))
 ifneq ($(MISSING_SRCS),)
 $(error $(MODULE_MK): missing in SRCS: $(MISSING_SRCS))

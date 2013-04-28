@@ -10,6 +10,7 @@ ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
 #
 # Board support modules
 #
+MODULES		+= drivers/device
 MODULES		+= drivers/stm32
 MODULES		+= drivers/stm32/adc
 MODULES		+= drivers/stm32/tone_alarm
@@ -73,6 +74,21 @@ MODULES		+= modules/multirotor_pos_control
 # Logging
 #
 MODULES		+= modules/sdlog
+
+#
+# Libraries
+#
+MODULES		+= modules/systemlib
+MODULES		+= modules/systemlib/mixer
+MODULES		+= modules/mathlib
+MODULES		+= modules/mathlib/CMSIS
+MODULES		+= modules/controllib
+MODULES		+= modules/uORB
+
+#
+# Demo apps
+#
+MODULES		+= examples/math_demo
 
 #
 # Transitional support - add commands from the NuttX export archive.
