@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,9 @@
 ############################################################################
 
 #
-# Basic example application
+# Daemon application
 #
 
-APPNAME		 = px4_mavlink_debug
-PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 2048
+MODULE_COMMAND		= px4_daemon_app
 
-include $(APPDIR)/mk/app.mk
+SRCS				= px4_daemon_app.c
