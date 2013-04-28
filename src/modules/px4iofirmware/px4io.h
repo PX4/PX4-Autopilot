@@ -148,8 +148,8 @@ extern struct sys_state_s system_state;
 /*
  * Mixer
  */
-//extern void	mixer_tick(void);
-//extern void	mixer_handle_text(const void *buffer, size_t length);
+extern void	mixer_tick(void);
+extern void	mixer_handle_text(const void *buffer, size_t length);
 
 /**
  * Safety switch/LED.
