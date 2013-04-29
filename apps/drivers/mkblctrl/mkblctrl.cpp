@@ -121,6 +121,7 @@ public:
 	int		set_motor_test(bool motortest);
 	int		set_px4mode(int px4mode);
 	int		set_frametype(int frametype);
+	unsigned int		mk_check_for_blctrl(unsigned int count, unsigned int showOutput);
 
 private:
 	static const unsigned _max_actuators = MAX_MOTORS;
@@ -176,7 +177,6 @@ private:
 	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
 	int			mk_servo_arm(bool status);
 
-	int			mk_check_for_blctrl(unsigned int count);
 	int 		mk_servo_set(unsigned int chan, float val);
 	int 		mk_servo_set_test(unsigned int chan, float val);
 	int 		mk_servo_test(unsigned int chan);
@@ -350,11 +350,11 @@ MK::set_mode(Mode mode)
 	switch (mode) {
 	case MODE_2PWM:
 		if(_num_outputs == 4) {
-			debug("MODE_QUAD");
+			//debug("MODE_QUAD");
 		} else if(_num_outputs == 6) {
-			debug("MODE_HEXA");
+			//debug("MODE_HEXA");
 		} else if(_num_outputs == 8) {
-			debug("MODE_OCTO");
+			//debug("MODE_OCTO");
 		}
 		//up_pwm_servo_init(0x3);
 		up_pwm_servo_deinit();
@@ -363,11 +363,11 @@ MK::set_mode(Mode mode)
 
 	case MODE_4PWM:
 		if(_num_outputs == 4) {
-			debug("MODE_QUADRO");
+			//debug("MODE_QUADRO");
 		} else if(_num_outputs == 6) {
-			debug("MODE_HEXA");
+			//debug("MODE_HEXA");
 		} else if(_num_outputs == 8) {
-			debug("MODE_OCTO");
+			//debug("MODE_OCTO");
 		}
 		//up_pwm_servo_init(0xf);
 		up_pwm_servo_deinit();
@@ -447,8 +447,13 @@ MK::set_motor_count(unsigned count)
 		memcpy(&addrTranslator, &blctrlAddr_px4, sizeof(blctrlAddr_px4));
 	}
 
-	/* check for connected blctrls */
-	mk_check_for_blctrl(_num_outputs);
+	if(_num_outputs == 4) {
+		fprintf(stderr, "[mkblctrl] Quadrocopter Mode (4)\n");
+	} else 	if(_num_outputs == 6) {
+		fprintf(stderr, "[mkblctrl] Hexacopter Mode (6)\n");
+	} else 	if(_num_outputs == 8) {
+		fprintf(stderr, "[mkblctrl] Octocopter Mode (8)\n");
+	}
 
 	return OK;
 }
@@ -502,7 +507,6 @@ MK::task_main()
 
 	memset(&rc_in, 0, sizeof(rc_in));
 	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
-
 	
 	log("starting");
 	long update_rate_in_us = 0;
@@ -666,10 +670,10 @@ MK::mk_servo_arm(bool status)
 }
 
 
-int
-MK::mk_check_for_blctrl(unsigned int count)
+unsigned int
+MK::mk_check_for_blctrl(unsigned int count, unsigned int showOutput)
 {
-	_retries = 10;
+	_retries = 50;
 	uint8_t foundMotorCount = 0;
 
 	for(unsigned i=0; i<MAX_MOTORS; i++) {
@@ -708,16 +712,21 @@ MK::mk_check_for_blctrl(unsigned int count)
 		}
 	}
 
-	fprintf(stderr, "[mkblctrl] MotorsRequiered: %i\tMotorsFound: %i\n", count,foundMotorCount);
-	for(unsigned i=0; i< count; i++) {
-		fprintf(stderr, "[mkblctrl] blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i\n", i,Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
+	if(showOutput == 1) {
+		fprintf(stderr, "[mkblctrl] MotorsFound: %i\n",foundMotorCount);
+		for(unsigned i=0; i< count; i++) {
+			fprintf(stderr, "[mkblctrl] blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i\n", i,Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
+		}
 	}
 
+	return foundMotorCount;
+	/*
 	if(foundMotorCount == count) {
 		return true;
 	} else {
 		return false;
 	}
+	*/
 }
 
 
@@ -1230,6 +1239,7 @@ int
 mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, int px4mode, int frametype)
 {
 	uint32_t gpio_bits;
+	int shouldStop = 0;
 	MK::Mode servo_mode;
 
 	/* reset to all-inputs */
@@ -1282,14 +1292,28 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 	/* set frametype (geometry) */
 	g_mk->set_frametype(frametype);
 
+	/* motortest if enabled */
+	g_mk->set_motor_test(motortest);
+
+
 	/* (re)set count of used motors */
-	g_mk->set_motor_count(motorcount);
+	////g_mk->set_motor_count(motorcount);
+	/* count used motors */
+
+	do {
+		if(g_mk->mk_check_for_blctrl(8, 0) != 0) {
+			shouldStop = 3;
+		} else {
+			shouldStop++;
+		}
+		sleep(1);
+	} while ( shouldStop != 3);
+
+	g_mk->set_motor_count(g_mk->mk_check_for_blctrl(8, 1));
 
 	/* (re)set the PWM output mode */
 	g_mk->set_mode(servo_mode);
 
-	/* motortest if enabled */
-	g_mk->set_motor_test(motortest);
 
 	if ((servo_mode != MK::MODE_NONE) && (update_rate != 0))
 		g_mk->set_pwm_rate(update_rate);
@@ -1335,8 +1359,11 @@ mkblctrl_main(int argc, char *argv[])
 	int motorcount = 0;
 	int bus = 1;
 	bool motortest = false;
-	int px4mode = MAPPING_MK;
+	int px4mode = MAPPING_PX4;
 	int frametype = FRAME_PLUS;	// + plus is default
+
+	new_mode = PORT_FULL_PWM;
+	motorcount = 8;
 
 	/*
 	 * Mode switches.
@@ -1344,6 +1371,7 @@ mkblctrl_main(int argc, char *argv[])
 	 * XXX use getopt?
 	 */
 	for (int i = 1; i < argc; i++) {   /* argv[0] is "mk" */
+		/*
 		if (!strcmp(argv[i], "mode_quad")) {
 			new_mode = PORT_FULL_PWM;
 			motorcount = 4;
@@ -1354,8 +1382,10 @@ mkblctrl_main(int argc, char *argv[])
 			new_mode = PORT_FULL_PWM;
 			motorcount = 8;
 		} 
+		*/
 
 		/* look for the optional update rate for the supported modes */
+		/*
 		if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--update-rate") == 0) {
 			if (argc > i + 1) {
 				pwm_update_rate_in_hz = atoi(argv[i + 1]);
@@ -1365,6 +1395,7 @@ mkblctrl_main(int argc, char *argv[])
 			}
 		}
 
+		*/
 		/* look for the optional i2c bus parameter */
 		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--bus") == 0) {
 			if (argc > i + 1) {
@@ -1376,9 +1407,10 @@ mkblctrl_main(int argc, char *argv[])
 		}
 
 		/* look for the optional frame parameter */
-		if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--frame") == 0) {
+		if (strcmp(argv[i], "-mkmode") == 0 || strcmp(argv[i], "--mkmode") == 0) {
 			if (argc > i + 1) {
 				if(strcmp(argv[i + 1], "+") == 0 || strcmp(argv[i + 1], "x") == 0 || strcmp(argv[i + 1], "X") == 0) {
+					px4mode = MAPPING_MK;
 					if(strcmp(argv[i + 1], "+") == 0) {
 						frametype = FRAME_PLUS;
 					} else {
@@ -1388,14 +1420,9 @@ mkblctrl_main(int argc, char *argv[])
 					errx(1, "only + or x for frametype supported !");
 				}
 			} else {
-				errx(1, "missing argument for frametype (-f)");
+				errx(1, "missing argument for mkmode (-mkmode)");
 				return 1;
 			}
-		}
-
-		/* look for the optional geometry parameter */
-		if (strcmp(argv[i], "-px4mode") == 0) {
-			px4mode = MAPPING_PX4;
 		}
 
 		/* look for the optional test parameter */
@@ -1407,7 +1434,7 @@ mkblctrl_main(int argc, char *argv[])
 
 	if(new_mode == PORT_MODE_UNSET) {
 		fprintf(stderr, "mkblctrl: unrecognised command, try:\n");
-		fprintf(stderr, "  mode_quad, mode_hexa, mode_octo [-b i2c_bus_number] [-u update_rate_in_hz] [-t motortest] [-px4mode] [-f frame{+/x}]\n");
+		fprintf(stderr, "  [-mkmode frame{+/x}] [-b i2c_bus_number] [-t motortest]\n");
 		exit(1);
 	}
 
