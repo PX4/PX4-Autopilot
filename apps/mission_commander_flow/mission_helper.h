@@ -12,6 +12,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/discrete_radar.h>
 #include <uORB/topics/omnidirectional_flow.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include "mission_commander_flow_params.h"
 
 typedef enum mission_states {
@@ -22,23 +23,12 @@ typedef enum mission_states {
 	MISSION_RESETED
 } mission_state_t;
 
-typedef enum radar_states {
-	RADAR_NO_STATE,
-	RADAR_CLEAR,
-	RADAR_REACT_LEFT,
-	RADAR_REACT_RIGHT,
-	RADAR_FOLLOW_WALL_R,
-	RADAR_FOLLOW_WALL_L,
-	RADAR_FOLLOW_CORRIDOR,
-	RADAR_STOP
-} radar_state_t;
-
-typedef enum reaction_states {
-	REACT_NO_STATE,
-	REACT_TURN,
-	REACT_PASS_OBJECT,
-	REACT_TEST
-} reaction_state_t;
+typedef enum sonar_states {
+	SONAR_NO_STATE,
+	SONAR_CLEAR,
+	SONAR_REACT,
+	SONAR_STOP
+} sonar_state_t;
 
 struct mission_step_s {
 	float x;
@@ -47,20 +37,20 @@ struct mission_step_s {
 };
 
 struct mission_state_s {
+	/* mission states */
 	mission_state_t state;
 	struct mission_step_s step;
-	int state_counter;
 	bool final_sequence;
 
-	radar_state_t radar_previous;
-	radar_state_t radar_current;
-	radar_state_t radar_next;
+	/* sonar states */
+	sonar_state_t sonar;
+	int16_t front_situation[17];
 	bool wall_left;
 	bool wall_right;
 
-	reaction_state_t react_current;
-	reaction_state_t react_next;
-	int reaction_counter;
+	/* path states */
+	struct vehicle_local_position_setpoint_s next_waypoint;
+	bool waypoint_set;
 
 	float debug_value1;
 	float debug_value2;
@@ -72,8 +62,5 @@ void init_state(struct mission_state_s *state);
 void do_state_update(struct mission_state_s *current_state, int mavlink_fd, mission_state_t new_state);
 void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params, int mavlink_fd,
 		struct discrete_radar_s *new_radar, struct omnidirectional_flow_s *omni_flow);
-void do_radar_update2(struct mission_state_s *current_state,struct mission_commander_flow_params *params, int mavlink_fd,
-		struct discrete_radar_s *new_radar, struct omnidirectional_flow_s *omni_flow);
-
 
 #endif /* MISSION_HELPER_H_ */

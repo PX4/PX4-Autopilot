@@ -399,58 +399,6 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 							}
 						}
 
-						/* DEBUG FIXME manual mission planner */
-						if (mission_state.state == MISSION_STARTED) {
-							if (params.debug) {
-								reaction_state_t previous_react_state = mission_state.react_current;
-								if (manual.roll > 0.2f) {
-									mission_state.radar_current = RADAR_REACT_RIGHT;
-									if(manual.pitch > 0.2f) {
-										mission_state.react_current = REACT_TEST;
-									} else if(manual.pitch < -0.2f) {
-										mission_state.react_current = REACT_TURN;
-									} else {
-										mission_state.react_current = REACT_PASS_OBJECT;
-									}
-								} else if(manual.roll < -0.2f) {
-									mission_state.radar_current = RADAR_REACT_LEFT;
-									if(manual.pitch > 0.2f) {
-										mission_state.react_current = REACT_TEST;
-									} else if(manual.pitch < -0.2f) {
-										mission_state.react_current = REACT_TURN;
-									} else {
-										mission_state.react_current = REACT_PASS_OBJECT;
-									}
-								} else {
-									if (mission_state.radar_previous == RADAR_NO_STATE) {
-										mission_state.radar_previous = mission_state.radar_current;
-									}
-									mission_state.radar_current = RADAR_CLEAR;
-									mission_state.react_current = REACT_NO_STATE;
-									mission_state.react_next = REACT_NO_STATE;
-								}
-								if (previous_react_state != mission_state.react_current){
-									/* log debug actions */
-									if (mission_state.radar_current == RADAR_REACT_LEFT) {
-										if (mission_state.react_current == REACT_TURN) {
-											mavlink_log_info(mavlink_fd, "[mcf] debug left turn.");
-										} else if (mission_state.react_current == REACT_PASS_OBJECT) {
-											mavlink_log_info(mavlink_fd, "[mcf] debug left pass."); //-------------
-										} else if (mission_state.react_current == REACT_TEST) {
-											mavlink_log_info(mavlink_fd, "[mcf] debug left test.");
-										}
-									} else if (mission_state.radar_current == RADAR_REACT_RIGHT) {
-										if (mission_state.react_current == REACT_TURN) {
-											mavlink_log_info(mavlink_fd, "[mcf] debug right turn.");
-										} else if (mission_state.react_current == REACT_PASS_OBJECT) {
-											mavlink_log_info(mavlink_fd, "[mcf] debug right pass.");
-										} else if (mission_state.react_current == REACT_TEST) {
-											mavlink_log_info(mavlink_fd, "[mcf] debug right test."); // --------------
-										}
-									}
-								}
-							}
-						}
 					} else {
 
 						if (mission_state.state != MISSION_RESETED) {
@@ -490,8 +438,7 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 					if (mission_state.state == MISSION_STARTED) {
 						if (!params.debug) {
-//							do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar, &omni_flow);
-							do_radar_update2(&mission_state, &params, mavlink_fd, &discrete_radar, &omni_flow);
+							do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar, &omni_flow);
 						}
 					}
 				}
@@ -722,10 +669,12 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 //									}
 //								}
 //							}
+
 							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + mission_state.step.yaw;
 							bodyframe_pos_sp.x = bodyframe_pos_sp.x + mission_state.step.x;
+							bodyframe_pos_sp.y = bodyframe_pos_sp.y + mission_state.step.y;
 //							bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step;
-							mission_state.state_counter++;
+//							mission_state.state_counter++;
 
 						}
 
