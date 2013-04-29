@@ -311,9 +311,6 @@ MK::init(unsigned motors)
 	/* reset GPIOs */
 	gpio_reset();
 
-	/* check for connected blctrls */
-	//mk_check_for_blctrl(_num_outputs);
-
 	/* start the IO interface task */
 	_task = task_spawn("mkblctrl",
 			   SCHED_DEFAULT,
@@ -717,16 +714,13 @@ MK::mk_check_for_blctrl(unsigned int count, unsigned int showOutput)
 		for(unsigned i=0; i< count; i++) {
 			fprintf(stderr, "[mkblctrl] blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i\n", i,Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
 		}
+
+		if(foundMotorCount == 0) {
+			_task_should_exit = true;
+		}
 	}
 
 	return foundMotorCount;
-	/*
-	if(foundMotorCount == count) {
-		return true;
-	} else {
-		return false;
-	}
-	*/
 }
 
 
@@ -1302,12 +1296,12 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 
 	do {
 		if(g_mk->mk_check_for_blctrl(8, 0) != 0) {
-			shouldStop = 3;
+			shouldStop = 4;
 		} else {
 			shouldStop++;
 		}
 		sleep(1);
-	} while ( shouldStop != 3);
+	} while ( shouldStop < 3);
 
 	g_mk->set_motor_count(g_mk->mk_check_for_blctrl(8, 1));
 
@@ -1371,31 +1365,7 @@ mkblctrl_main(int argc, char *argv[])
 	 * XXX use getopt?
 	 */
 	for (int i = 1; i < argc; i++) {   /* argv[0] is "mk" */
-		/*
-		if (!strcmp(argv[i], "mode_quad")) {
-			new_mode = PORT_FULL_PWM;
-			motorcount = 4;
-		} else if (!strcmp(argv[i], "mode_hexa")) {
-			new_mode = PORT_FULL_PWM;
-			motorcount = 6;
-		} else if (!strcmp(argv[i], "mode_octo")) {
-			new_mode = PORT_FULL_PWM;
-			motorcount = 8;
-		} 
-		*/
 
-		/* look for the optional update rate for the supported modes */
-		/*
-		if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--update-rate") == 0) {
-			if (argc > i + 1) {
-				pwm_update_rate_in_hz = atoi(argv[i + 1]);
-				} else {
-				errx(1, "missing argument for update rate (-u)");
-				return 1;
-			}
-		}
-
-		*/
 		/* look for the optional i2c bus parameter */
 		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--bus") == 0) {
 			if (argc > i + 1) {
