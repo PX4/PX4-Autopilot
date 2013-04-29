@@ -1336,11 +1336,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_UPDATE_RATE:
 		/* set the requested alternate rate */
-		if ((arg >= 50) && (arg <= 400)) {	/* TODO: we could go higher for e.g. TurboPWM */
-			ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE, arg);
-		} else {
-			ret = -EINVAL;
-		}
+		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE, arg);
 		break;
 
 	case PWM_SERVO_SELECT_UPDATE_RATE: {

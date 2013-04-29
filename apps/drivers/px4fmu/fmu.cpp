@@ -433,7 +433,9 @@ PX4FMU::task_main()
 				update_rate_in_ms = 100;
 			}
 
-			debug("adjusted actuator update interval to %ums", update_rate_in_ms);
+			if (_mode != MODE_NONE) {
+				debug("adjusted actuator update interval to %ums max_rate=%u _pwm_default_rate=%u _pwm_alt_rate=%u", update_rate_in_ms, max_rate, _pwm_default_rate, _pwm_alt_rate);
+			}
 			orb_set_interval(_t_actuators, update_rate_in_ms);
 
 			// set to current max rate, even if we are actually checking slower/faster
