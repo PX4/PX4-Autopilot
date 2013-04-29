@@ -76,6 +76,7 @@ struct hx_stream {
 static void	hx_tx_raw(hx_stream_t stream, uint8_t c);
 static void	hx_tx_raw(hx_stream_t stream, uint8_t c);
 static int	hx_rx_frame(hx_stream_t stream);
+static bool	hx_rx_char(hx_stream_t stream, uint8_t c);
 
 static void
 hx_tx_raw(hx_stream_t stream, uint8_t c)
@@ -224,13 +225,13 @@ hx_stream_send(hx_stream_t stream,
 	return 0;
 }
 
-void
-hx_stream_rx(hx_stream_t stream, uint8_t c)
+static bool
+hx_rx_char(hx_stream_t stream, uint8_t c)
 {
 	/* frame end? */
 	if (c == FBO) {
 		hx_rx_frame(stream);
-		return;
+		return true;
 	}
 
 	/* escaped? */
@@ -241,10 +242,43 @@ hx_stream_rx(hx_stream_t stream, uint8_t c)
 	} else if (c == CEO) {
 		/* now escaped, ignore the byte */
 		stream->escaped = true;
-		return;
+		return false;
 	}
 
 	/* save for later */
 	if (stream->frame_bytes < sizeof(stream->buf))
 		stream->buf[stream->frame_bytes++] = c;
+
+	return false;
+}
+
+void
+hx_stream_rx_char(hx_stream_t stream, uint8_t c)
+{
+	hx_rx_char(stream, c);
+}
+
+int
+hx_stream_rx(hx_stream_t stream)
+{
+	uint16_t	buf[16];
+	ssize_t		len;
+
+	/* read bytes */
+	len = read(stream->fd, buf, sizeof(buf));
+	if (len <= 0) {
+
+		/* nonblocking stream and no data */
+		if (errno == EWOULDBLOCK)
+			return 0;
+
+		/* error or EOF */
+		return -errno;
+	}
+
+	/* process received characters */
+	for (int i = 0; i < len; i++)
+		hx_rx_char(stream, buf[i]);
+
+	return 0;
 }

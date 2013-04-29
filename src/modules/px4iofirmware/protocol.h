@@ -36,7 +36,7 @@
 /**
  * @file protocol.h
  *
- * PX4IO I2C interface protocol.
+ * PX4IO interface protocol.
  *
  * Communication is performed via writes to and reads from 16-bit virtual
  * registers organised into pages of 255 registers each.
@@ -62,6 +62,27 @@
  * Note that the implementation of readable pages prefers registers within
  * readable pages to be densely packed. Page numbers do not need to be
  * packed.
+ *
+ * PX4IO I2C interface notes:
+ *
+ * Register read/write operations are mapped directly to PX4IO register
+ * read/write operations.
+ *
+ * PX4IO Serial interface notes:
+ *
+ * The MSB of the page number is used to distinguish between read and
+ * write operations. If set, the operation is a write and additional 
+ * data is expected to follow in the packet as for I2C writes.
+ *
+ * If clear, the packet is expected to contain a single byte giving the
+ * number of bytes to be read. PX4IO will respond with a packet containing
+ * the same header (page, offset) and the requested data.
+ *
+ * If a read is requested when PX4IO does not have buffer space to store
+ * the reply, the request will be dropped. PX4IO is always configured with
+ * enough space to receive one full-sized write and one read request, and
+ * to send one full-sized read response.
+ *
  */
 
 #define PX4IO_CONTROL_CHANNELS			8
@@ -75,12 +96,14 @@
 #define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
 
+#define PX4IO_PAGE_WRITE		(1<<7)
+
 /* static configuration page */
 #define PX4IO_PAGE_CONFIG		0
 #define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
-#define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum I2C transfer size */
+#define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum packet transfer size */
 #define PX4IO_P_CONFIG_CONTROL_COUNT		4	/* hardcoded max control count supported */
 #define PX4IO_P_CONFIG_ACTUATOR_COUNT		5	/* hardcoded max actuator output count */
 #define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
@@ -141,7 +164,7 @@
 #define PX4IO_RATE_MAP_BASE			0	/* 0..CONFIG_ACTUATOR_COUNT bitmaps of PWM rate groups */
 
 /* setup page */
-#define PX4IO_PAGE_SETUP			100
+#define PX4IO_PAGE_SETUP		64
 #define PX4IO_P_SETUP_FEATURES			0
 
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
@@ -160,13 +183,13 @@
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
 /* autopilot control values, -10000..10000 */
-#define PX4IO_PAGE_CONTROLS			101	/* 0..CONFIG_CONTROL_COUNT */
+#define PX4IO_PAGE_CONTROLS		65		/* 0..CONFIG_CONTROL_COUNT */
 
 /* raw text load to the mixer parser - ignores offset */
-#define PX4IO_PAGE_MIXERLOAD			102
+#define PX4IO_PAGE_MIXERLOAD		66		/* see px4io_mixdata structure below */
 
 /* R/C channel config */
-#define PX4IO_PAGE_RC_CONFIG			103	/* R/C input configuration */
+#define PX4IO_PAGE_RC_CONFIG		67		/* R/C input configuration */
 #define PX4IO_P_RC_CONFIG_MIN			0	/* lowest input value */
 #define PX4IO_P_RC_CONFIG_CENTER		1	/* center input value */
 #define PX4IO_P_RC_CONFIG_MAX			2	/* highest input value */
@@ -178,10 +201,10 @@
 #define PX4IO_P_RC_CONFIG_STRIDE		6	/* spacing between channel config data */
 
 /* PWM output - overrides mixer */
-#define PX4IO_PAGE_DIRECT_PWM			104	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_DIRECT_PWM		68		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* PWM failsafe values - zero disables the output */
-#define PX4IO_PAGE_FAILSAFE_PWM			105	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_FAILSAFE_PWM		69		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.

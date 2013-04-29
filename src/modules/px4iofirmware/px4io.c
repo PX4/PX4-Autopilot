@@ -142,7 +142,7 @@ user_start(int argc, char *argv[])
 	LED_BLUE(false);
 	LED_SAFETY(false);
 
-	/* turn on servo power */
+	/* turn on servo power (if supported) */
 	POWER_SERVO(true);
 
 	/* start the safety switch handler */
@@ -154,13 +154,11 @@ user_start(int argc, char *argv[])
 	/* initialise the control inputs */
 	controls_init();
 
-#ifdef INTERFACE_I2C
-	/* start the i2c handler */
-	i2c_init();
-#endif
-#ifdef INTERFACE_SERIAL
-	/* start the serial interface */
-#endif
+	/* start the FMU interface */
+	interface_init();
+
+	/* add a performance counter for the interface */
+	perf_counter_t interface_perf = perf_alloc(PC_ELAPSED, "interface");
 
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
@@ -202,6 +200,11 @@ user_start(int argc, char *argv[])
 
 		/* track the rate at which the loop is running */
 		perf_count(loop_perf);
+
+		/* kick the interface */
+		perf_begin(interface_perf);
+		interface_tick();
+		perf_end(interface_perf);
 
 		/* kick the mixer */
 		perf_begin(mixer_perf);

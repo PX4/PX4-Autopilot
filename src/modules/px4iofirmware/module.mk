@@ -8,7 +8,6 @@ SRCS		= adc.c \
 		  safety.c \
 		  sbus.c \
 		  ../systemlib/up_cxxinitialize.c \
-		  ../systemlib/hx_stream.c \
 		  ../systemlib/perf_counter.c \
 		  mixer.cpp \
 		  ../systemlib/mixer/mixer.cpp \
@@ -16,11 +15,10 @@ SRCS		= adc.c \
 		  ../systemlib/mixer/mixer_multirotor.cpp \
 		  ../systemlib/mixer/mixer_simple.cpp \
 
-ifneq ($(CONFIG_ARCH_BOARD_PX4IO),)
+ifeq ($(BOARD),px4io)
 SRCS		+= i2c.c
-EXTRADEFINES	+= -DINTERFACE_I2C
 endif
-ifneq ($(CONFIG_ARCH_BOARD_PX4IOV2),)
-#SRCS		+= serial.c
-EXTRADEFINES	+= -DINTERFACE_SERIAL
+ifeq ($(BOARD),px4iov2)
+SRCS		+= serial.c \
+		   ../systemlib/hx_stream.c
 endif

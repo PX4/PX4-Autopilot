@@ -125,16 +125,16 @@ extern struct sys_state_s system_state;
 
 #define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
 #ifdef GPIO_ACC1_PWR_EN
-    #define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
+# define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
 #endif
 #ifdef GPIO_ACC2_PWR_EN
-    #define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
+# define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
 #endif
 #ifdef GPIO_RELAY1_EN
-    #define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
+# define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
 #endif
 #ifdef GPIO_RELAY2_EN
-    #define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
+# define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
 #endif
 
 #define OVERCURRENT_ACC		(!stm32_gpioread(GPIO_ACC_OC_DETECT))
@@ -156,12 +156,11 @@ extern void	mixer_handle_text(const void *buffer, size_t length);
  */
 extern void	safety_init(void);
 
-#ifdef CONFIG_STM32_I2C1
 /**
  * FMU communications
  */
-extern void	i2c_init(void);
-#endif
+extern void	interface_init(void);
+extern void	interface_tick(void);
 
 /**
  * Register space
@@ -190,10 +189,5 @@ extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;
 
-/* send a debug message to the console */
-extern void isr_debug(uint8_t level, const char *fmt, ...);
-
-#ifdef CONFIG_STM32_I2C1
-void i2c_dump(void);
-void i2c_reset(void);
-#endif
+/** send a debug message to the console */
+extern void	isr_debug(uint8_t level, const char *fmt, ...);

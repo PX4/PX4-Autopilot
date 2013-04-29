@@ -114,8 +114,24 @@ __EXPORT extern int		hx_stream_send(hx_stream_t stream,
  * @param stream	A handle returned from hx_stream_init.
  * @param c		The character to process.
  */
-__EXPORT extern void		hx_stream_rx(hx_stream_t stream,
+__EXPORT extern void		hx_stream_rx_char(hx_stream_t stream,
 		uint8_t c);
+
+/**
+ * Handle received bytes from the stream.
+ *
+ * Note that this interface should only be used with blocking streams
+ * when it is OK for the call to block until a frame is received.
+ *
+ * When used with a non-blocking stream, it will typically return
+ * immediately, or after handling a received frame.
+ *
+ * @param stream	A handle returned from hx_stream_init.
+ * @return		-errno on error, nonzero if a frame
+ *			has been received, or if not enough
+ *			bytes are available to complete a frame.
+ */
+__EXPORT extern int		hx_stream_rx(hx_stream_t stream);
 
 __END_DECLS
 
