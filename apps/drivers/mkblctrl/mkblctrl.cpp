@@ -121,7 +121,7 @@ public:
 	int		set_motor_test(bool motortest);
 	int		set_px4mode(int px4mode);
 	int		set_frametype(int frametype);
-	unsigned int		mk_check_for_blctrl(unsigned int count, unsigned int showOutput);
+	unsigned int		mk_check_for_blctrl(unsigned int count, bool showOutput);
 
 private:
 	static const unsigned _max_actuators = MAX_MOTORS;
@@ -412,47 +412,54 @@ MK::set_frametype(int frametype)
 int
 MK::set_motor_count(unsigned count)
 {
-	_num_outputs = count;
+	if(count > 0) {
 
-	if(_px4mode == MAPPING_MK) {
-		if(_frametype == FRAME_PLUS) {
-			fprintf(stderr, "[mkblctrl] addresstanslator for Mikrokopter addressing used. Frametype: +\n");
-		} else if(_frametype == FRAME_X) {
-			fprintf(stderr, "[mkblctrl] addresstanslator for Mikrokopter addressing used. Frametype: X\n");
+		_num_outputs = count;
+
+		if(_px4mode == MAPPING_MK) {
+			if(_frametype == FRAME_PLUS) {
+				fprintf(stderr, "[mkblctrl] addresstanslator for Mikrokopter addressing used. Frametype: +\n");
+			} else if(_frametype == FRAME_X) {
+				fprintf(stderr, "[mkblctrl] addresstanslator for Mikrokopter addressing used. Frametype: X\n");
+			}
+			if(_num_outputs == 4) {
+				if(_frametype == FRAME_PLUS) {
+					memcpy(&addrTranslator, &blctrlAddr_quad_plus, sizeof(blctrlAddr_quad_plus));
+				} else if(_frametype == FRAME_X) {
+					memcpy(&addrTranslator, &blctrlAddr_quad_x, sizeof(blctrlAddr_quad_x));
+				}
+			} else if(_num_outputs == 6) {
+				if(_frametype == FRAME_PLUS) {
+					memcpy(&addrTranslator, &blctrlAddr_hexa_plus, sizeof(blctrlAddr_hexa_plus));
+				} else if(_frametype == FRAME_X) {
+					memcpy(&addrTranslator, &blctrlAddr_hexa_x, sizeof(blctrlAddr_hexa_x));
+				}
+			} else if(_num_outputs == 8) {
+				if(_frametype == FRAME_PLUS) {
+					memcpy(&addrTranslator, &blctrlAddr_octo_plus, sizeof(blctrlAddr_octo_plus));
+				} else if(_frametype == FRAME_X) {
+					memcpy(&addrTranslator, &blctrlAddr_octo_x, sizeof(blctrlAddr_octo_x));
+				}
+			}
+		} else {
+			fprintf(stderr, "[mkblctrl] PX4 native addressing used.\n");
+			memcpy(&addrTranslator, &blctrlAddr_px4, sizeof(blctrlAddr_px4));
 		}
+
 		if(_num_outputs == 4) {
-			if(_frametype == FRAME_PLUS) {
-				memcpy(&addrTranslator, &blctrlAddr_quad_plus, sizeof(blctrlAddr_quad_plus));
-			} else if(_frametype == FRAME_X) {
-				memcpy(&addrTranslator, &blctrlAddr_quad_x, sizeof(blctrlAddr_quad_x));
-			}
-		} else if(_num_outputs == 6) {
-			if(_frametype == FRAME_PLUS) {
-				memcpy(&addrTranslator, &blctrlAddr_hexa_plus, sizeof(blctrlAddr_hexa_plus));
-			} else if(_frametype == FRAME_X) {
-				memcpy(&addrTranslator, &blctrlAddr_hexa_x, sizeof(blctrlAddr_hexa_x));
-			}
-		} else if(_num_outputs == 8) {
-			if(_frametype == FRAME_PLUS) {
-				memcpy(&addrTranslator, &blctrlAddr_octo_plus, sizeof(blctrlAddr_octo_plus));
-			} else if(_frametype == FRAME_X) {
-				memcpy(&addrTranslator, &blctrlAddr_octo_x, sizeof(blctrlAddr_octo_x));
-			}
+			fprintf(stderr, "[mkblctrl] Quadrocopter Mode (4)\n");
+		} else 	if(_num_outputs == 6) {
+			fprintf(stderr, "[mkblctrl] Hexacopter Mode (6)\n");
+		} else 	if(_num_outputs == 8) {
+			fprintf(stderr, "[mkblctrl] Octocopter Mode (8)\n");
 		}
+
+		return OK;
+
 	} else {
-		fprintf(stderr, "[mkblctrl] PX4 native addressing used.\n");
-		memcpy(&addrTranslator, &blctrlAddr_px4, sizeof(blctrlAddr_px4));
+		return -1;
 	}
 
-	if(_num_outputs == 4) {
-		fprintf(stderr, "[mkblctrl] Quadrocopter Mode (4)\n");
-	} else 	if(_num_outputs == 6) {
-		fprintf(stderr, "[mkblctrl] Hexacopter Mode (6)\n");
-	} else 	if(_num_outputs == 8) {
-		fprintf(stderr, "[mkblctrl] Octocopter Mode (8)\n");
-	}
-
-	return OK;
 }
 
 int
@@ -668,7 +675,7 @@ MK::mk_servo_arm(bool status)
 
 
 unsigned int
-MK::mk_check_for_blctrl(unsigned int count, unsigned int showOutput)
+MK::mk_check_for_blctrl(unsigned int count, bool showOutput)
 {
 	_retries = 50;
 	uint8_t foundMotorCount = 0;
@@ -709,13 +716,13 @@ MK::mk_check_for_blctrl(unsigned int count, unsigned int showOutput)
 		}
 	}
 
-	if(showOutput == 1) {
+	if(showOutput) {
 		fprintf(stderr, "[mkblctrl] MotorsFound: %i\n",foundMotorCount);
-		for(unsigned i=0; i< count; i++) {
+		for(unsigned i=0; i< foundMotorCount; i++) {
 			fprintf(stderr, "[mkblctrl] blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i\n", i,Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
 		}
 
-		if(foundMotorCount == 0) {
+		if(foundMotorCount != 4 && foundMotorCount != 6 && foundMotorCount != 8) {
 			_task_should_exit = true;
 		}
 	}
@@ -1295,7 +1302,7 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 	/* count used motors */
 
 	do {
-		if(g_mk->mk_check_for_blctrl(8, 0) != 0) {
+		if(g_mk->mk_check_for_blctrl(8, false) != 0) {
 			shouldStop = 4;
 		} else {
 			shouldStop++;
@@ -1303,7 +1310,7 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 		sleep(1);
 	} while ( shouldStop < 3);
 
-	g_mk->set_motor_count(g_mk->mk_check_for_blctrl(8, 1));
+	g_mk->set_motor_count(g_mk->mk_check_for_blctrl(8, true));
 
 	/* (re)set the PWM output mode */
 	g_mk->set_mode(servo_mode);
