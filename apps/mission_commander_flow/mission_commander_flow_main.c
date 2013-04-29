@@ -473,212 +473,104 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 						} else if (mission_state.state == MISSION_STARTED) {
 
-//							/* no yaw correction in final sequence -> no need for waypoint update */
-//							if(!mission_state.final_sequence){
-//								/* calc final destination in bodyframe */
-//								convert_setpoint_local2bodyframe(&local_pos,&bodyframe_pos,&att,&final_dest_local,&final_dest_bodyframe);
-//							}
-//
-//							/* ------------------------------------------------------------------------- *
-//							 *  NEED FOR REACTION														 *
-//							 * ------------------------------------------------------------------------- */
-//							if (mission_state.radar_current == RADAR_REACT_LEFT || mission_state.radar_current == RADAR_REACT_RIGHT) {
-//
-//								reaction_state_t reaction_state = mission_state.react_current;
-//								if (mission_state.react_next != REACT_NO_STATE) {
-//									if (mission_state.reaction_counter == 0) {
-//										reaction_state = mission_state.react_next;
-//									}
-//								}
-//
-//								/* react left */
-//								if (mission_state.radar_current == RADAR_REACT_LEFT) {
-//
-//									if (reaction_state == REACT_TURN) {
-////										if (!mission_state.wall_left) {
-////											/* do this update only if no wall on the left side */
-////											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-////										}
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
-//
-//									} else if (reaction_state == REACT_PASS_OBJECT) {
-//										/* go straight only if too near correct to left */
-//										if (discrete_radar.distances[23] < params.mission_min_side_dist) {
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//										}
-//
-//									} else if (reaction_state == REACT_TEST) {
-//
-//										/* turn back */
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
-//									}
-//
-//								/* react right */
-//								} else if (mission_state.radar_current == RADAR_REACT_RIGHT) {
-//
-//									if (reaction_state == REACT_TURN) {
-////										if (!mission_state.wall_right) {
-////											/* do this update only if no wall on the right side */
-////											bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-////										}
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
-//
-//									} else if (reaction_state == REACT_PASS_OBJECT) {
-//										/* go straight only if too near correct to right */
-//										if (discrete_radar.distances[23] < params.mission_min_side_dist) {
-//											bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//										}
-//
-//									} else if (reaction_state == REACT_TEST) {
-//
-//										/* turn back */
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
-//									}
-//								}
-//
-//								bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
-//
-//								// decrease reaction counter if not already zero
-//								if (mission_state.reaction_counter > 0) {
-//									mission_state.reaction_counter--;
-//								}
-//
-//
-//							/* ------------------------------------------------------------------------- *
-//							 *  GO CAREFULLY													`		 *
-//							 * ------------------------------------------------------------------------- */
-//							} else {
-//
-//								/* reset previous radar state if set */
-//								if (mission_state.radar_previous != RADAR_NO_STATE) {
-//									mission_state.radar_previous = RADAR_NO_STATE;
-//								}
-//
-//
-//								/* ideal if we are parallel to wall... */
-//
-//								float yaw_final = get_yaw(&local_pos, &final_dest_local);
-//
-//								float yaw_error = yaw_final - att.yaw;
-//
-//								if (yaw_error > M_PI_F) {
-//									yaw_error -= M_TWOPI_F;
-//
-//								} else if (yaw_error < -M_PI_F) {
-//									yaw_error += M_TWOPI_F;
-//								}
-//
-//								/* wait until yaw is approximately correct except if we are in final sequence */
-//								if (fabsf(yaw_error) < params.mission_yaw_thld || mission_state.final_sequence)
-//								{
-//									/* calc offsets */
-//									float wp_bodyframe_offset_x = final_dest_bodyframe.x - bodyframe_pos_sp.x;
-//									float wp_bodyframe_offset_y = final_dest_bodyframe.y - bodyframe_pos_sp.y;
-//
-//									/* final mission sequence? */
-//									if(!mission_state.final_sequence){
-//										if (fabsf(wp_bodyframe_offset_x) < params.mission_wp_radius) {
-//											mission_state.final_sequence = true;
-//										}
-//
-//									} else {
-//										if (fabsf(wp_bodyframe_offset_x) > params.mission_wp_radius) {
-//											mission_state.final_sequence = false;
-//										}
-//									}
-//
-//									/* x */
-//									int x_steps = (int)(wp_bodyframe_offset_x / params.mission_update_step);
-//
-//
-//									if (x_steps == 0) {
-//
-//										/* mission accomplished */
-//										do_state_update(&mission_state, mavlink_fd, MISSION_ACCOMPLISHED);
-//
-//										bodyframe_pos_sp.x = bodyframe_pos_sp.x + wp_bodyframe_offset_x;
-//										bodyframe_pos_sp.y = bodyframe_pos_sp.y + wp_bodyframe_offset_y;
-//
-//									} else {
-//
-//										/* x and y update steps */
-//										bodyframe_pos_sp.x = bodyframe_pos_sp.x + sign(x_steps) * params.mission_update_step;
-//										float update_step_y = wp_bodyframe_offset_y / fabsf((float) x_steps);
-//										bodyframe_pos_sp.y = bodyframe_pos_sp.y + update_step_y;
-//
-//										/* yaw set final only if not final sequence */
-//										if (!mission_state.final_sequence) {
-//											/* FIXME this makes problem */
-//											//bodyframe_pos_sp.yaw = yaw_final;
-//										}
-//
-//									}
-//
-//									/* follow wall corrections if too near */
-//									if (!mission_state.final_sequence) {
-//
-//										if (mission_state.radar_current == RADAR_FOLLOW_WALL_L) {
-//											/* go straight only if too near correct to right */
-//											if (discrete_radar.distances[9] < params.mission_min_side_dist) {
-//												bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-//											}
-//
-//										} else if (mission_state.radar_current == RADAR_FOLLOW_WALL_R) {
-//											/* go straight only if too near correct to right */
-//											if (discrete_radar.distances[23] < params.mission_min_side_dist) {
-//												bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//											}
-//
-//										} else if (mission_state.radar_current == RADAR_FOLLOW_CORRIDOR) {
-//											/* TODO try also to get yaw in direction of corridor */
-//											if (discrete_radar.distances[9] < discrete_radar.distances[23]) {
-//												/* correct to right */
-//												bodyframe_pos_sp.y = bodyframe_pos_sp.y + params.mission_update_step;
-//											} else {
-//												/* correct to left */
-//												bodyframe_pos_sp.y = bodyframe_pos_sp.y - params.mission_update_step;
-//											}
-//										}
-//
-//									}
-//
-//								} else {
-//
-//									if (mission_state.radar_previous == RADAR_REACT_LEFT) {
-//
-//										bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
-//
-//									} else if (mission_state.radar_previous == RADAR_REACT_RIGHT) {
-//
-//										bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
-//										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
-//
-//									} else {
-//
-//										if (fabs(yaw_error) < M_PI_2_F) {
-//											bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step; // we need flow... one step
-//										}
-//
-//										/* turn to correct yaw position before starting to move */
-//										if (yaw_error > 0) {
-//											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
-//										} else {
-//											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
-//										}
-//									}
-//								}
-//							}
+							/* no yaw correction in final sequence -> no need for waypoint update */
+							if(!mission_state.final_sequence){
+								/* calc final destination in bodyframe */
+								convert_setpoint_local2bodyframe(&local_pos,&bodyframe_pos,&att,&final_dest_local,&final_dest_bodyframe);
+							}
 
-							bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + mission_state.step.yaw;
-							bodyframe_pos_sp.x = bodyframe_pos_sp.x + mission_state.step.x;
-							bodyframe_pos_sp.y = bodyframe_pos_sp.y + mission_state.step.y;
-//							bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step;
-//							mission_state.state_counter++;
+							/* calc yaw to final destination */
+							float yaw_final = get_yaw(&local_pos, &final_dest_local);
+
+							float yaw_error = yaw_final - att.yaw;
+
+							if (yaw_error > M_PI_F) {
+								yaw_error -= M_TWOPI_F;
+
+							} else if (yaw_error < -M_PI_F) {
+								yaw_error += M_TWOPI_F;
+							}
+
+							if (!mission_state.initialized) {
+								/* correct yaw first */
+
+								if (yaw_error > 0) {
+									bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
+								} else {
+									bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
+								}
+
+								if (fabsf(yaw_error) < params.mission_yaw_thld) {
+									mission_state.initialized = true;
+								}
+
+							} else {
+
+								if (mission_state.free_to_go) {
+									/* there are no obstacles */
+
+									/* correct yaw if needed */
+									if (fabsf(yaw_error) > params.mission_yaw_thld && !mission_state.final_sequence) {
+
+										/* we need flow... step by step */
+										bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step_x;
+
+										if (yaw_error > 0) {
+											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
+										} else {
+											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
+										}
+
+									} else {
+
+										/* calc offsets to final destination*/
+										float wp_bodyframe_offset_x = final_dest_bodyframe.x - bodyframe_pos_sp.x;
+										float wp_bodyframe_offset_y = final_dest_bodyframe.y - bodyframe_pos_sp.y;
+
+										/* final mission sequence? */
+										if(!mission_state.final_sequence){
+											if (fabsf(wp_bodyframe_offset_x) < params.mission_wp_radius) {
+												mission_state.final_sequence = true;
+											}
+
+										} else {
+											if (fabsf(wp_bodyframe_offset_x) > params.mission_wp_radius) {
+												mission_state.final_sequence = false;
+											}
+										}
+
+										/* x */
+										int x_steps = (int)(wp_bodyframe_offset_x / params.mission_update_step_x);
+
+										if (x_steps == 0) {
+
+											/* mission accomplished */
+											do_state_update(&mission_state, mavlink_fd, MISSION_ACCOMPLISHED);
+
+											bodyframe_pos_sp.x = bodyframe_pos_sp.x + wp_bodyframe_offset_x;
+											bodyframe_pos_sp.y = bodyframe_pos_sp.y + wp_bodyframe_offset_y;
+
+										} else {
+
+											/* x and y update steps */
+											bodyframe_pos_sp.x = bodyframe_pos_sp.x + sign(x_steps) * params.mission_update_step_x;
+											float update_step_y = wp_bodyframe_offset_y / fabsf((float) x_steps);
+											bodyframe_pos_sp.y = bodyframe_pos_sp.y + update_step_y;
+
+										}
+									}
+
+								} else {
+
+									/* let radar controller do his job */
+									bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + mission_state.step.yaw;
+									bodyframe_pos_sp.x = bodyframe_pos_sp.x + mission_state.step.x;
+									bodyframe_pos_sp.y = bodyframe_pos_sp.y + mission_state.step.y;
+								}
+
+							}
 
 						}
-
-
 
 						/*
 						 * manually update position setpoint -> e.g. overwrite commands

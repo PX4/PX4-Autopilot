@@ -40,13 +40,13 @@ struct mission_state_s {
 	/* mission states */
 	mission_state_t state;
 	struct mission_step_s step;
+	bool initialized;
 	bool final_sequence;
 
 	/* sonar states */
 	sonar_state_t sonar;
 	int16_t front_situation[17];
-	bool wall_left;
-	bool wall_right;
+	bool free_to_go;
 
 	/* path states */
 	struct vehicle_local_position_setpoint_s next_waypoint;
