@@ -66,11 +66,17 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "codegen/attitudeKalmanfilter_initialize.h"
 #include "codegen/attitudeKalmanfilter.h"
 #include "attitude_estimator_ekf_params.h"
+#ifdef __cplusplus
+}
+#endif
 
-__EXPORT int attitude_estimator_ekf_main(int argc, char *argv[]);
+extern "C" __EXPORT int attitude_estimator_ekf_main(int argc, char *argv[]);
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
@@ -265,10 +271,11 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	/* Main loop*/
 	while (!thread_should_exit) {
 
-		struct pollfd fds[2] = {
-			{ .fd = sub_raw,   .events = POLLIN },
-			{ .fd = sub_params, .events = POLLIN }
-		};
+		struct pollfd fds[2];
+		fds[0].fd = sub_raw;
+		fds[0].events = POLLIN;
+		fds[1].fd = sub_params;
+		fds[1].events = POLLIN;
 		int ret = poll(fds, 2, 1000);
 
 		if (ret < 0) {

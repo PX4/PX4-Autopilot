@@ -94,7 +94,7 @@
 #include <drivers/drv_baro.h>
 
 #include "calibration_routines.h"
-
+#include "accelerometer_calibration.h"
 
 PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
 //PARAM_DEFINE_INT32(SYS_FAILSAVE_HL, 0);	/**< Go into high-level failsafe after 0 ms */
@@ -158,7 +158,6 @@ static int led_off(int led);
 static void do_gyro_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_mag_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_rc_calibration(int status_pub, struct vehicle_status_s *status);
-static void do_accel_calibration(int status_pub, struct vehicle_status_s *status);
 static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
 
 int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
@@ -666,126 +665,6 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	close(sub_sensor_combined);
 }
 
-void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
-{
-	/* announce change */
-
-	mavlink_log_info(mavlink_fd, "keep it level and still");
-	/* set to accel calibration mode */
-	status->flag_preflight_accel_calibration = true;
-	state_machine_publish(status_pub, status, mavlink_fd);
-
-	const int calibration_count = 2500;
-
-	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
-	struct sensor_combined_s raw;
-
-	int calibration_counter = 0;
-	float accel_offset[3] = {0.0f, 0.0f, 0.0f};
-
-	int fd = open(ACCEL_DEVICE_PATH, 0);
-	struct accel_scale ascale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
-
-	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale_null))
-		warn("WARNING: failed to set scale / offsets for accel");
-
-	close(fd);
-
-	while (calibration_counter < calibration_count) {
-
-		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
-
-		int poll_ret = poll(fds, 1, 1000);
-
-		if (poll_ret) {
-			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
-			accel_offset[0] += raw.accelerometer_m_s2[0];
-			accel_offset[1] += raw.accelerometer_m_s2[1];
-			accel_offset[2] += raw.accelerometer_m_s2[2];
-			calibration_counter++;
-
-		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "acceleration calibration aborted");
-			return;
-		}
-	}
-
-	accel_offset[0] = accel_offset[0] / calibration_count;
-	accel_offset[1] = accel_offset[1] / calibration_count;
-	accel_offset[2] = accel_offset[2] / calibration_count;
-
-	if (isfinite(accel_offset[0]) && isfinite(accel_offset[1]) && isfinite(accel_offset[2])) {
-
-		/* add the removed length from x / y to z, since we induce a scaling issue else */
-		float total_len = sqrtf(accel_offset[0] * accel_offset[0] + accel_offset[1] * accel_offset[1] + accel_offset[2] * accel_offset[2]);
-
-		/* if length is correct, zero results here */
-		accel_offset[2] = accel_offset[2] + total_len;
-
-		float scale = 9.80665f / total_len;
-
-		if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offset[0]))
-			|| param_set(param_find("SENS_ACC_YOFF"), &(accel_offset[1]))
-			|| param_set(param_find("SENS_ACC_ZOFF"), &(accel_offset[2]))
-			|| param_set(param_find("SENS_ACC_XSCALE"), &(scale))
-			|| param_set(param_find("SENS_ACC_YSCALE"), &(scale))
-			|| param_set(param_find("SENS_ACC_ZSCALE"), &(scale))) {
-			mavlink_log_critical(mavlink_fd, "Setting offs or scale failed!");
-		}
-
-		fd = open(ACCEL_DEVICE_PATH, 0);
-		struct accel_scale ascale = {
-			accel_offset[0],
-			scale,
-			accel_offset[1],
-			scale,
-			accel_offset[2],
-			scale,
-		};
-
-		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
-			warn("WARNING: failed to set scale / offsets for accel");
-
-		close(fd);
-
-		/* auto-save to EEPROM */
-		int save_ret = param_save_default();
-
-		if (save_ret != 0) {
-			warn("WARNING: auto-save of params to storage failed");
-		}
-
-		//char buf[50];
-		//sprintf(buf, "[cmd] accel cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0], (double)accel_offset[1], (double)accel_offset[2]);
-		//mavlink_log_info(mavlink_fd, buf);
-		mavlink_log_info(mavlink_fd, "accel calibration done");
-
-		tune_confirm();
-		sleep(2);
-		tune_confirm();
-		sleep(2);
-		/* third beep by cal end routine */
-
-	} else {
-		mavlink_log_info(mavlink_fd, "accel calibration FAILED (NaN)");
-	}
-
-	/* exit accel calibration mode */
-	status->flag_preflight_accel_calibration = false;
-	state_machine_publish(status_pub, status, mavlink_fd);
-
-	close(sub_sensor_combined);
-}
-
 void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 {
 	/* announce change */
@@ -1040,7 +919,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "CMD starting accel cal");
 					tune_confirm();
-					do_accel_calibration(status_pub, &current_status);
+					do_accel_calibration(status_pub, &current_status, mavlink_fd);
 					tune_confirm();
 					mavlink_log_info(mavlink_fd, "CMD finished accel cal");
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
