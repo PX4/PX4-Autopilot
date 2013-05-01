@@ -123,13 +123,15 @@ struct eam_module_msg {
 #define GPS_SENSOR_ID		0x8A
 #define GPS_SENSOR_TEXT_ID	0xA0
 
-/* The GPS sensor message */
-/* Struct based on: https://code.google.com/p/diy-hott-gps/downloads */
-struct gps_module_msg = { 
+/** 
+ * The GPS sensor message
+ * Struct based on: https://code.google.com/p/diy-hott-gps/downloads 
+ */
+struct gps_module_msg { 
 	uint8_t start;				/**< Start byte */
-	uint8_t gps_sensor_id;		/**< EAM sensor */
+	uint8_t sensor_id;			/**< GPS sensor ID*/
 	uint8_t warning;			/**< Byte 3: 0…= warning beeps */
-	uint8_t sensor_id;			/**< Sensor ID, why different?	*/
+	uint8_t sensor_text_id;		/**< GPS Sensor text mode ID */
 	uint8_t alarm_inverse1;		/**< Byte 5: 01 inverse status */
 	uint8_t alarm_inverse2;		/**< Byte 6: 00 inverse status status 1 = no GPS Signal */
 	uint8_t flight_direction;	/**< Byte 7: 119 = Flightdir./dir. 1 = 2°; 0° (North), 9 0° (East), 180° (South), 270° (West) */
@@ -143,16 +145,16 @@ struct gps_module_msg = {
 	uint8_t latitude_sec_H;		/**< Byte 14: 016 3 = 0x03 */
 	 
 	uint8_t longitude_ew;		/**< Byte 15: 000  = E= 9° 25’9360 */
-	uint8_t longitude_in_L;		/**< Byte 16: 150 157 = 0x9D = 0x039D = 0925 */
+	uint8_t longitude_min_L;		/**< Byte 16: 150 157 = 0x9D = 0x039D = 0925 */
 	uint8_t longitude_min_H;	/**< Byte 17: 003 3 = 0x03 */
-	uint8_t longitude_sec_L		/**< Byte 18: 056 144 = 0x90 0x2490 = 9360*/
+	uint8_t longitude_sec_L;	/**< Byte 18: 056 144 = 0x90 0x2490 = 9360*/
 	uint8_t longitude_sec_H;	/**< Byte 19: 004 36 = 0x24 */
 	  
-	uint8_t distance_L			/**< Byte 20: 027 123 = /distance low byte 6 = 6 m */
+	uint8_t distance_L;			/**< Byte 20: 027 123 = /distance low byte 6 = 6 m */
 	uint8_t distance_H;			/**< Byte 21: 036 35 = /distance high byte */
-	uint8_t altitude_L			/**< Byte 22: 243 244 = /Altitude low byte 500 = 0m */
+	uint8_t altitude_L;			/**< Byte 22: 243 244 = /Altitude low byte 500 = 0m */
 	uint8_t altitude_H;			/**< Byte 23: 001 1 = /Altitude high byte */
-	uint8_t resolution_L		/**< Byte 24: 48 = Low Byte m/s resolution 0.01m 48 = 30000 = 0.00m/s (1=0.01m/s) */
+	uint8_t resolution_L;		/**< Byte 24: 48 = Low Byte m/s resolution 0.01m 48 = 30000 = 0.00m/s (1=0.01m/s) */
 	uint8_t resolution_H;		/**< Byte 25: 117 = High Byte m/s resolution 0.01m */
 	uint8_t unknown1;			/**< Byte 26: 120 = 0m/3s */
 	uint8_t gps_num_sat;		/**< Byte 27: GPS.Satellites (number of satelites) (1 byte) */
@@ -161,11 +163,11 @@ struct gps_module_msg = {
 	uint8_t angle_x_direction;	/**< Byte 30: angle x-direction (1 byte) */
 	uint8_t angle_y_direction;	/**< Byte 31: angle y-direction (1 byte) */
 	uint8_t angle_z_direction;	/**< Byte 32: angle z-direction (1 byte) */
-	uint8_t gyro_x_L			/**< Byte 33: gyro x low byte (2 bytes) */
+	uint8_t gyro_x_L;			/**< Byte 33: gyro x low byte (2 bytes) */
 	uint8_t gyro_x_H;			/**< Byte 34: gyro x high byte */
-	uint8_t gyro_y_L			/**< Byte 35: gyro y low byte (2 bytes) */
+	uint8_t gyro_y_L;			/**< Byte 35: gyro y low byte (2 bytes) */
 	uint8_t gyro_y_H;			/**< Byte 36: gyro y high byte */
-	uint8_t gyro_z_L			/**< Byte 37: gyro z low byte (2 bytes) */
+	uint8_t gyro_z_L;			/**< Byte 37: gyro z low byte (2 bytes) */
 	uint8_t gyro_z_H;			/**< Byte 38: gyro z high byte */
 	uint8_t vibration;			/**< Byte 39: vibration (1 bytes) */
 	uint8_t ascii4;				/**< Byte 40: 00 ASCII Free Character [4] */

@@ -225,7 +225,11 @@ hott_telemetry_thread_main(int argc, char *argv[])
 	while (!thread_should_exit) {
 		if (recv_req_id(uart, &id) == OK) {
 			switch (id) {
-			case ELECTRIC_AIR_MODULE:
+			case EAM_SENSOR_ID:
+				build_eam_response(buffer, &size);
+				break;
+
+			case GPS_SENSOR_ID:
 				build_eam_response(buffer, &size);
 				break;
 

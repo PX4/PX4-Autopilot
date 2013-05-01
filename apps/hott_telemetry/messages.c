@@ -44,17 +44,20 @@
 #include <unistd.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 /* The board is very roughly 5 deg warmer than the surrounding air */
 #define BOARD_TEMP_OFFSET_DEG 5
 
 static int battery_sub = -1;
+static int gps_sub = -1;
 static int sensor_sub = -1;
 
 void 
 messages_init(void)
 {
 	battery_sub = orb_subscribe(ORB_ID(battery_status));
+	gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 }
 
@@ -101,14 +104,30 @@ build_gps_response(uint8_t *buffer, size_t *size)
 	struct sensor_combined_s raw = { 0 };
 	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
+ 	/* get a local copy of the battery data */
+	struct vehicle_gps_position_s gps = { 0 };
+	orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
 
 	struct gps_module_msg msg = { 0 };
 	*size = sizeof(msg);
 
 	msg.start = START_BYTE;
-	msg.eam_sensor_id = GPS_SENSOR_ID;
-	msg.sensor_id = GPS_SENSOR_TEXT_ID;
+	msg.sensor_id = GPS_SENSOR_ID;
+	msg.sensor_text_id = GPS_SENSOR_TEXT_ID;
+
+	uint16_t speed = (uint16_t)(gps.vel_m_s * 3.6);
+	msg.gps_speed_L = (uint8_t)speed & 0xff;
+	msg.gps_speed_H = (uint8_t)(speed >> 8) & 0xff;
 	
+	uint16_t alt = (uint16_t)(gps.alt);
+	msg.altitude_L = (uint8_t)alt & 0xff;
+	msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
+
+	msg.gps_num_sat = gps.satellites_visible;
+
+	/* Display the fix type: 0 = none, 2 = 2D, 3 = 3D */
+	msg.gps_fix = (uint8_t)(gps.fix_type + 48);
+
 	// TODO(sjwilks): Complete.
 
 	msg.stop = STOP_BYTE;
