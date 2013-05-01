@@ -10,6 +10,77 @@
 #include "codegen/radarControl.h"
 #include <mavlink/mavlink_log.h>
 
+void convert_setpoint_bodyframe2local(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_attitude_s *att,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp,
+		struct vehicle_local_position_setpoint_s *local_pos_sp
+		)
+{
+	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
+	static float wp_local_offset[3] = {0.0f, 0.0f, 0.0f};
+
+	wp_bodyframe_offset[0] = bodyframe_pos_sp->x - bodyframe_pos->x;
+	wp_bodyframe_offset[1] = bodyframe_pos_sp->y - bodyframe_pos->y;
+	wp_bodyframe_offset[2] = 0; // no influence of z...
+
+	/* calc current waypoint cooridnates in local */
+	for(uint8_t i = 0; i < 3; i++) {
+		float sum = 0.0f;
+		for(uint8_t j = 0; j < 3; j++) {
+			sum = sum + wp_bodyframe_offset[j] * att->R[i][j];
+		}
+		wp_local_offset[i] = sum;
+	}
+
+	local_pos_sp->x = local_pos->x + wp_local_offset[0];
+	local_pos_sp->y = local_pos->y + wp_local_offset[1];
+	local_pos_sp->z = bodyframe_pos_sp->z; // let z as it is...
+	local_pos_sp->yaw = bodyframe_pos_sp->yaw;
+}
+
+void convert_setpoint_local2bodyframe(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_attitude_s *att,
+		struct vehicle_local_position_setpoint_s *local_pos_sp,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
+		)
+{
+	static float wp_local_offset[3] = {0.0f, 0.0f, 0.0f}; // x,y
+	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
+
+	wp_local_offset[0] = local_pos_sp->x - local_pos->x;
+	wp_local_offset[1] = local_pos_sp->y - local_pos->y;
+	wp_local_offset[2] = 0; // no influence of z...
+
+	/* calc current waypoint cooridnates in bodyframe */
+	for(uint8_t i = 0; i < 3; i++) {
+		float sum = 0.0f;
+		for(uint8_t j = 0; j < 3; j++) {
+			sum = sum + wp_local_offset[j] * att->R[j][i];
+		}
+		wp_bodyframe_offset[i] = sum;
+	}
+
+	bodyframe_pos_sp->x = bodyframe_pos->x + wp_bodyframe_offset[0];
+	bodyframe_pos_sp->y = bodyframe_pos->y + wp_bodyframe_offset[1];
+	bodyframe_pos_sp->z = local_pos_sp->z; // let z as it is...
+	bodyframe_pos_sp->yaw = local_pos_sp->yaw;
+
+}
+
+float get_yaw(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_local_position_setpoint_s *local_pos_sp
+		)
+{
+	float dx = local_pos_sp->x - local_pos->x;
+	float dy = local_pos_sp->y - local_pos->y;
+
+	return atan2f(dy,dx);
+}
 
 void init_state(struct mission_state_s *state) {
 	/* reset all state variables */
@@ -19,9 +90,8 @@ void init_state(struct mission_state_s *state) {
 
 	/* reset front situation */
 	state->sonar = SONAR_NO_STATE;
-	for (int i = 0; i < 4; i++) {
-		state->front_situation[i] = 0;
-	}
+	state->sonar_obstacle.valid = false;
+	state->sonar_obstacle.updated = false;
 	state->free_to_go = false;
 	state->waypoint_set = false;
 
@@ -75,8 +145,8 @@ void do_state_update(struct mission_state_s *current_state, int mavlink_fd, miss
 	}
 }
 
-void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params, int mavlink_fd,
-		struct discrete_radar_s *new_radar, float x_update, float y_update, float yaw_update) {
+void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params,
+		int mavlink_fd, struct discrete_radar_s *new_radar) {
 
 	/* test if enough space */
 	if ((new_radar->sonar * 1000.0f) < params->mission_min_front_dist) {
@@ -85,18 +155,38 @@ void do_radar_update(struct mission_state_s *current_state, struct mission_comma
 		return;
 	}
 
+	/* fill polar obstacle */
+	float sonar_obstacle_polar[3];
+	sonar_obstacle_polar[0] = current_state->sonar_obstacle.sonar_obst_polar_r;
+	sonar_obstacle_polar[1] = current_state->sonar_obstacle.sonar_obst_polar_alpha;
+	sonar_obstacle_polar[2] = current_state->sonar_obstacle.sonar_obst_pitch;
+
+	/* fill sonar flags */
+	bool sonar_flags[2];
+	sonar_flags[0] = current_state->sonar_obstacle.valid;
+	sonar_flags[1] = false;
+
 	/* load current control values */
 	float yaw_control = current_state->step.yaw;
 	float x_control = current_state->step.x;
 	float y_control = current_state->step.y;
 	bool free_environment = true;
 
-	free_environment = radarControl(new_radar->distances, new_radar->sonar, current_state->front_situation,
-			params->radarControlSettings, x_update, y_update, yaw_update, &x_control, &y_control, &yaw_control);
+	free_environment = radarControl(new_radar->distances, new_radar->sonar, sonar_obstacle_polar, sonar_flags,
+			params->radarControlSettings, &x_control, &y_control, &yaw_control);
 
 	current_state->step.x = x_control;
 	current_state->step.y = y_control;
 	current_state->step.yaw = yaw_control;
+
+	current_state->sonar_obstacle.sonar_obst_pitch = sonar_obstacle_polar[2];
+	current_state->sonar_obstacle.valid  = sonar_flags[0];
+	current_state->sonar_obstacle.updated  = sonar_flags[1];
+
+	if (current_state->sonar_obstacle.updated) {
+		current_state->sonar_obstacle.sonar_obstacle_bodyframe.x = sonar_obstacle_polar[0];
+		current_state->sonar_obstacle.sonar_obstacle_bodyframe.y = sonar_obstacle_polar[1];
+	}
 
 	/* log state changes */
 	if (current_state->free_to_go) {

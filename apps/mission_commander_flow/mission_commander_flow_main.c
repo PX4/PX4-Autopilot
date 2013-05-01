@@ -168,80 +168,6 @@ int mission_commander_flow_main(int argc, char *argv[])
 	exit(1);
 }
 
-
-void convert_setpoint_bodyframe2local(
-		struct vehicle_local_position_s *local_pos,
-		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_attitude_s *att,
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp,
-		struct vehicle_local_position_setpoint_s *local_pos_sp
-		)
-{
-	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
-	static float wp_local_offset[3] = {0.0f, 0.0f, 0.0f};
-
-	wp_bodyframe_offset[0] = bodyframe_pos_sp->x - bodyframe_pos->x;
-	wp_bodyframe_offset[1] = bodyframe_pos_sp->y - bodyframe_pos->y;
-	wp_bodyframe_offset[2] = 0; // no influence of z...
-
-	/* calc current waypoint cooridnates in local */
-	for(uint8_t i = 0; i < 3; i++) {
-		float sum = 0.0f;
-		for(uint8_t j = 0; j < 3; j++) {
-			sum = sum + wp_bodyframe_offset[j] * att->R[i][j];
-		}
-		wp_local_offset[i] = sum;
-	}
-
-	local_pos_sp->x = local_pos->x + wp_local_offset[0];
-	local_pos_sp->y = local_pos->y + wp_local_offset[1];
-	local_pos_sp->z = bodyframe_pos_sp->z; // let z as it is...
-	local_pos_sp->yaw = bodyframe_pos_sp->yaw;
-}
-
-void convert_setpoint_local2bodyframe(
-		struct vehicle_local_position_s *local_pos,
-		struct vehicle_bodyframe_position_s *bodyframe_pos,
-		struct vehicle_attitude_s *att,
-		struct vehicle_local_position_setpoint_s *local_pos_sp,
-		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
-		)
-{
-	static float wp_local_offset[3] = {0.0f, 0.0f, 0.0f}; // x,y
-	static float wp_bodyframe_offset[3] = {0.0f, 0.0f, 0.0f};
-
-	wp_local_offset[0] = local_pos_sp->x - local_pos->x;
-	wp_local_offset[1] = local_pos_sp->y - local_pos->y;
-	wp_local_offset[2] = 0; // no influence of z...
-
-	/* calc current waypoint cooridnates in bodyframe */
-	for(uint8_t i = 0; i < 3; i++) {
-		float sum = 0.0f;
-		for(uint8_t j = 0; j < 3; j++) {
-			sum = sum + wp_local_offset[j] * att->R[j][i];
-		}
-		wp_bodyframe_offset[i] = sum;
-	}
-
-	bodyframe_pos_sp->x = bodyframe_pos->x + wp_bodyframe_offset[0];
-	bodyframe_pos_sp->y = bodyframe_pos->y + wp_bodyframe_offset[1];
-	bodyframe_pos_sp->z = local_pos_sp->z; // let z as it is...
-	bodyframe_pos_sp->yaw = local_pos_sp->yaw;
-
-}
-
-float get_yaw(
-		struct vehicle_local_position_s *local_pos,
-		struct vehicle_local_position_setpoint_s *local_pos_sp
-		)
-{
-	float dx = local_pos_sp->x - local_pos->x;
-	float dy = local_pos_sp->y - local_pos->y;
-
-	return atan2f(dy,dx);
-}
-
-
 int mission_commander_flow_thread_main(int argc, char *argv[])
 {
 
@@ -441,31 +367,62 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 				if (fds[1].revents & POLLIN){
 					/* get a local copy of discrete radar */
 					orb_copy(ORB_ID(discrete_radar), discrete_radar_sub, &discrete_radar);
+					/* get a local copy of attitude */
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+					/* get a local copy of local position */
+					orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
+					/* get a local copy of bodyframe position */
+					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
 
-					if (update_initialized) {
-						position_update[0] = bodyframe_pos.x - position_last[0];
-						position_update[1] = bodyframe_pos.y - position_last[1];
-						yaw_update = att.yaw - yaw_last;
-					} else {
-						/* at first round */
-						update_initialized = true;
+					/* update front situation if valid */
+					if (mission_state.sonar_obstacle.valid) {
+						convert_setpoint_local2bodyframe(&local_pos, &bodyframe_pos, &att,
+								&mission_state.sonar_obstacle.sonar_obstacle_local,
+								&mission_state.sonar_obstacle.sonar_obstacle_bodyframe);
+
+						if (mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x > 0.0f) {
+							/* convert to polar */
+							mission_state.sonar_obstacle.sonar_obst_polar_r =
+									sqrtf(	mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x *
+											mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x +
+											mission_state.sonar_obstacle.sonar_obstacle_bodyframe.y *
+											mission_state.sonar_obstacle.sonar_obstacle_bodyframe.y);
+							mission_state.sonar_obstacle.sonar_obst_polar_alpha =
+									atanf(	mission_state.sonar_obstacle.sonar_obstacle_bodyframe.y /
+											mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x);
+						} else {
+							mission_state.sonar_obstacle.valid = false;
+						}
 					}
 
-					position_last[0] = bodyframe_pos.x;
-					position_last[1] = bodyframe_pos.y;
-					yaw_last = att.yaw;
-
-					mission_state.debug_value1 = yaw_update;
-					mission_state.debug_value2 = position_update[0];
-					mission_state.debug_value3++;
+//					if (update_initialized) {
+//						position_update[0] = bodyframe_pos.x - position_last[0];
+//						position_update[1] = bodyframe_pos.y - position_last[1];
+//						yaw_update = att.yaw - yaw_last;
+//					} else {
+//						/* at first round */
+//						update_initialized = true;
+//					}
+//
+//					position_last[0] = bodyframe_pos.x;
+//					position_last[1] = bodyframe_pos.y;
+//					yaw_last = att.yaw;
 
 					if (mission_state.state == MISSION_STARTED) {
 						if (!params.debug) {
-							do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar,
-									position_update[0], position_update[1], yaw_update);
+							do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar);
+
+							if(mission_state.sonar_obstacle.valid && mission_state.sonar_obstacle.updated) {
+								convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos, &att,
+										&mission_state.sonar_obstacle.sonar_obstacle_bodyframe,
+										&mission_state.sonar_obstacle.sonar_obstacle_local);
+							}
 						}
 					}
+
+					mission_state.debug_value1 = mission_state.sonar_obstacle.sonar_obst_polar_alpha;
+					mission_state.debug_value2 = mission_state.sonar_obstacle.sonar_obst_polar_r;
+					mission_state.debug_value3++;
 				}
 
 				/* only if local position changed */
