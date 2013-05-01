@@ -3,7 +3,7 @@
  *
  * Code generation for function 'radarControl'
  *
- * C source code generated on: Mon Apr 29 11:05:59 2013
+ * C source code generated on: Tue Apr 30 22:00:18 2013
  *
  */
 
@@ -27,6 +27,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern boolean_T radarControl(int16_T radar[32], int16_T front_distance, int16_T front_situation[17], const real32_T settings[9], real32_T *yaw_control, real32_T *x_control, real32_T *y_control);
+extern boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T front_situation[4], const real32_T settings[9], real32_T x_update, real32_T y_update, real32_T yaw_update, real32_T *x_control, real32_T *y_control, real32_T *yaw_control);
 #endif
 /* End of code generation (radarControl.h) */

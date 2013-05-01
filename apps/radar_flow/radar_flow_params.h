@@ -49,6 +49,7 @@ struct radar_flow_params {
 	float kalman_k2;
 	float front_lp_alpha;
 	int with_sonar;
+	int with_pos_update;
 	float s0;
 	float s1;
 	float s2;
@@ -69,6 +70,7 @@ struct radar_flow_param_handles {
 	param_t kalman_k2;
 	param_t front_lp_alpha;
 	param_t with_sonar;
+	param_t with_pos_update;
 	param_t s0;
 	param_t s1;
 	param_t s2;

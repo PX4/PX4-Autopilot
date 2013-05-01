@@ -3,7 +3,7 @@
  *
  * Code generation for function 'wallEstimationFilter'
  *
- * C source code generated on: Wed Apr 24 14:59:21 2013
+ * C source code generated on: Tue Apr 30 10:03:54 2013
  *
  */
 
@@ -81,8 +81,8 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
   radar_weights_k[32], const real32_T flow_left[10], const real32_T flow_right
   [10], real32_T front_distance, const real32_T speed[2], const real32_T
   position_update[2], real32_T attitude_update, const real32_T settings[8],
-  boolean_T use_sonar, real32_T radar[32], real32_T radar_filtered[32], real32_T
-  radar_weights[32])
+  boolean_T use_sonar, boolean_T use_position, real32_T radar[32], real32_T
+  radar_filtered[32], real32_T radar_weights[32])
 {
   real32_T x_transition_add[32];
   int32_T i;
@@ -198,65 +198,73 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
   /*  --------------------------------------------------------------------- */
   /*  ATTITUDE / POSITION UPDATE CALCULATION (flow) */
   /*  --------------------------------------------------------------------- */
-  /*  rotation */
-  if (attitude_update != 0.0F) {
-    steps = attitude_update / 0.196349546F;
-    i_top = (real32_T)ceil(steps);
-    i_down = (real32_T)floor(steps);
-    steps = i_top - steps;
+  if (use_position) {
+    /*  rotation */
+    if (attitude_update != 0.0F) {
+      steps = attitude_update / 0.196349546F;
+      i_top = (real32_T)ceil(steps);
+      i_down = (real32_T)floor(steps);
+      steps = i_top - steps;
+      for (i = 0; i < 32; i++) {
+        ss_tot = ((1.0F + (real32_T)i) + i_top) - 1.0F;
+        gamma_rear = ss_tot - (real32_T)floor(ss_tot / 32.0F) * 32.0F;
+        ss_tot = ((1.0F + (real32_T)i) + i_down) - 1.0F;
+        ss_tot -= (real32_T)floor(ss_tot / 32.0F) * 32.0F;
+        radar_filtered[i] = radar_filtered_k[(int32_T)(gamma_rear + 1.0F) - 1] *
+          (1.0F - steps) + radar_filtered_k[(int32_T)(ss_tot + 1.0F) - 1] *
+          steps;
+        radar_weights[i] = radar_weights_k[(int32_T)(gamma_rear + 1.0F) - 1] *
+          (1.0F - steps) + radar_weights_k[(int32_T)(ss_tot + 1.0F) - 1] * steps;
+      }
+    } else {
+      for (i2 = 0; i2 < 32; i2++) {
+        radar_filtered[i2] = radar_filtered_k[i2];
+        radar_weights[i2] = radar_weights_k[i2];
+      }
+    }
+
+    /*  transitions */
+    if (position_update[0] != 0.0F) {
+      for (i2 = 0; i2 < 32; i2++) {
+        radar_filtered[i2] += position_update[0] * x_transition_add[i2];
+      }
+
+      /*  TODO these updates are totaly wrong!!! */
+      /*              radar_weights = radar_weights + (position_update(1) * x_transition_add); */
+    }
+
+    if (position_update[1] != 0.0F) {
+      for (i2 = 0; i2 < 32; i2++) {
+        radar_filtered[i2] += position_update[1] * y_transition_add[i2];
+      }
+
+      /*  TODO these updates are totaly wrong!!! */
+      /*              radar_weights = radar_weights + (position_update(2) * y_transition_add); */
+    }
+
     for (i = 0; i < 32; i++) {
-      ss_tot = ((1.0F + (real32_T)i) + i_top) - 1.0F;
-      gamma_rear = ss_tot - (real32_T)floor(ss_tot / 32.0F) * 32.0F;
-      ss_tot = ((1.0F + (real32_T)i) + i_down) - 1.0F;
-      ss_tot -= (real32_T)floor(ss_tot / 32.0F) * 32.0F;
-      radar_filtered[i] = radar_filtered_k[(int32_T)(gamma_rear + 1.0F) - 1] *
-        (1.0F - steps) + radar_filtered_k[(int32_T)(ss_tot + 1.0F) - 1] * steps;
-      radar_weights[i] = radar_weights_k[(int32_T)(gamma_rear + 1.0F) - 1] *
-        (1.0F - steps) + radar_weights_k[(int32_T)(ss_tot + 1.0F) - 1] * steps;
+      steps = radar_filtered[i];
+      if (radar_filtered[i] > 5.0F) {
+        steps = 5.0F;
+      } else {
+        if (radar_filtered[i] < 0.1F) {
+          steps = 0.1F;
+        }
+      }
+
+      /*  TODO these updates are totaly wrong!!! */
+      /*              if radar_weights(i) > maximal_weight_threshold */
+      /*                  radar_weights(i) = maximal_weight_threshold; */
+      /*              elseif radar_weights(i) < minimal_weight_threshold */
+      /*                  radar_weights(i) = minimal_weight_threshold; */
+      /*              end */
+      radar_filtered[i] = steps;
     }
   } else {
     for (i2 = 0; i2 < 32; i2++) {
       radar_filtered[i2] = radar_filtered_k[i2];
       radar_weights[i2] = radar_weights_k[i2];
     }
-  }
-
-  /*  transitions */
-  if (position_update[0] != 0.0F) {
-    for (i2 = 0; i2 < 32; i2++) {
-      radar_filtered[i2] += position_update[0] * x_transition_add[i2];
-    }
-
-    /*  TODO these updates are totaly wrong!!! */
-    /*          radar_weights = radar_weights + (position_update(1) * x_transition_add); */
-  }
-
-  if (position_update[1] != 0.0F) {
-    for (i2 = 0; i2 < 32; i2++) {
-      radar_filtered[i2] += position_update[1] * y_transition_add[i2];
-    }
-
-    /*  TODO these updates are totaly wrong!!! */
-    /*          radar_weights = radar_weights + (position_update(2) * y_transition_add); */
-  }
-
-  for (i = 0; i < 32; i++) {
-    steps = radar_filtered[i];
-    if (radar_filtered[i] > 5.0F) {
-      steps = 5.0F;
-    } else {
-      if (radar_filtered[i] < 0.1F) {
-        steps = 0.1F;
-      }
-    }
-
-    /*  TODO these updates are totaly wrong!!! */
-    /*          if radar_weights(i) > maximal_weight_threshold */
-    /*              radar_weights(i) = maximal_weight_threshold; */
-    /*          elseif radar_weights(i) < minimal_weight_threshold */
-    /*              radar_weights(i) = minimal_weight_threshold; */
-    /*          end */
-    radar_filtered[i] = steps;
   }
 
   /*  --------------------------------------------------------------------- */

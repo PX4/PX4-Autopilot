@@ -391,7 +391,7 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 
 					wallEstimationFilter(radar_filtered_k, radar_weights_k, omni_left_filtered, omni_right_filtered,
 							front_distance_filtered, speed_filtered, position_update, yaw_update, filter_settings,
-							((bool) params.with_sonar), radar, radar_filtered, radar_weights);
+							((bool) params.with_sonar), ((bool) params.with_pos_update), radar, radar_filtered, radar_weights);
 					memcpy(radar_filtered_k, radar_filtered, sizeof(radar_filtered));
 					memcpy(radar_weights_k, radar_weights, sizeof(radar_weights));
 
@@ -399,7 +399,7 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 						discrete_radar.distances[i] = (int16_t)(radar_filtered[i] * 1000);
 //						discrete_radar.distances[i] = (int16_t)(radar_weights[i] * 1000);
 					}
-					discrete_radar.sonar = (int16_t)(front_distance_filtered * 1000);
+					discrete_radar.sonar = front_distance_filtered;
 
 					distance_left = radar_filtered[8];
 					distance_right = radar_filtered[24];

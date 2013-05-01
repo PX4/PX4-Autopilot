@@ -144,7 +144,7 @@ int mission_commander_flow_main(int argc, char *argv[])
 		daemon_task = task_spawn("mission_commander_flow",
 					 SCHED_RR,
 					 SCHED_PRIORITY_MAX - 60,
-					 4096,
+					 8192,
 					 mission_commander_flow_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
@@ -322,6 +322,13 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 	parameters_init(&param_handles);
 	parameters_update(&param_handles, &params);
 
+	/* radar front situation update*/
+	static float position_last[2] = { 0.0f };
+	static float position_update[2] = { 0.0f };
+	static float yaw_last = 0.0f;
+	static float yaw_update = 0.0f;
+	static bool update_initialized = false;
+
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "mission_commander_flow_runtime");
 	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "mission_commander_flow_interval");
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "mission_commander_flow_err");
@@ -434,11 +441,29 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 				if (fds[1].revents & POLLIN){
 					/* get a local copy of discrete radar */
 					orb_copy(ORB_ID(discrete_radar), discrete_radar_sub, &discrete_radar);
-					orb_copy(ORB_ID(omnidirectional_flow), omnidirectional_flow_sub, &omni_flow);
+					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+
+					if (update_initialized) {
+						position_update[0] = bodyframe_pos.x - position_last[0];
+						position_update[1] = bodyframe_pos.y - position_last[1];
+						yaw_update = att.yaw - yaw_last;
+					} else {
+						/* at first round */
+						update_initialized = true;
+					}
+
+					position_last[0] = bodyframe_pos.x;
+					position_last[1] = bodyframe_pos.y;
+					yaw_last = att.yaw;
+
+					mission_state.debug_value1 = yaw_update;
+					mission_state.debug_value2 = position_update[0];
+					mission_state.debug_value3++;
 
 					if (mission_state.state == MISSION_STARTED) {
 						if (!params.debug) {
-							do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar, &omni_flow);
+							do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar,
+									position_update[0], position_update[1], yaw_update);
 						}
 					}
 				}

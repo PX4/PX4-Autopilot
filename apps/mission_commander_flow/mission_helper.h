@@ -45,7 +45,7 @@ struct mission_state_s {
 
 	/* sonar states */
 	sonar_state_t sonar;
-	int16_t front_situation[17];
+	float front_situation[4];
 	bool free_to_go;
 
 	/* path states */
@@ -61,6 +61,6 @@ struct mission_state_s {
 void init_state(struct mission_state_s *state);
 void do_state_update(struct mission_state_s *current_state, int mavlink_fd, mission_state_t new_state);
 void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params, int mavlink_fd,
-		struct discrete_radar_s *new_radar, struct omnidirectional_flow_s *omni_flow);
+		struct discrete_radar_s *new_radar, float x_update, float y_update, float yaw_update);
 
 #endif /* MISSION_HELPER_H_ */

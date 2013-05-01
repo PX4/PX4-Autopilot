@@ -349,7 +349,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					/* update magnetometer measurements */
 					if (sensor_last_count[2] != raw.magnetometer_counter) {
-						update_vect[2] = 1;
+						update_vect[2] = 0;
+//						update_vect[2] = 1;
 						sensor_last_count[2] = raw.magnetometer_counter;
 						sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
 						sensor_last_timestamp[2] = raw.timestamp;

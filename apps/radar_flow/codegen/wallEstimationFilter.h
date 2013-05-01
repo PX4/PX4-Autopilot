@@ -3,7 +3,7 @@
  *
  * Code generation for function 'wallEstimationFilter'
  *
- * C source code generated on: Wed Apr 24 14:59:21 2013
+ * C source code generated on: Tue Apr 30 10:03:54 2013
  *
  */
 
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T radar_weights_k[32], const real32_T flow_left[10], const real32_T flow_right[10], real32_T front_distance, const real32_T speed[2], const real32_T position_update[2], real32_T attitude_update, const real32_T settings[8], boolean_T use_sonar, real32_T radar[32], real32_T radar_filtered[32], real32_T radar_weights[32]);
+extern void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T radar_weights_k[32], const real32_T flow_left[10], const real32_T flow_right[10], real32_T front_distance, const real32_T speed[2], const real32_T position_update[2], real32_T attitude_update, const real32_T settings[8], boolean_T use_sonar, boolean_T use_position, real32_T radar[32], real32_T radar_filtered[32], real32_T radar_weights[32]);
 #endif
 /* End of code generation (wallEstimationFilter.h) */

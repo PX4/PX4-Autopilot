@@ -57,7 +57,7 @@ struct discrete_radar_s {
 
 	int16_t distances[32];	/**< 360 degree (in 32 sectors) distances in mm */
 
-	int16_t sonar;			/**< frontal sonar output (filtered) */
+	float sonar;			/**< frontal sonar output (filtered) */
 
 	uint8_t quality;		/**< Radar quality / confidence. 0: bad, 255: maximum quality */
 

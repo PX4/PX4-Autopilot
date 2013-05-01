@@ -47,6 +47,7 @@ PARAM_DEFINE_FLOAT(RF_KAL_K1, 0.0235f);
 PARAM_DEFINE_FLOAT(RF_KAL_K2, 0.0140f);
 PARAM_DEFINE_FLOAT(RF_FRONT_A, 0.1f);
 PARAM_DEFINE_INT32(RF_SONAR, 0);
+PARAM_DEFINE_INT32(RF_POS_UPDATE, 0);
 PARAM_DEFINE_FLOAT(RF_S0, 0.05f);
 PARAM_DEFINE_FLOAT(RF_S1, 0.05f);
 PARAM_DEFINE_FLOAT(RF_S2, 2.0f);
@@ -68,6 +69,7 @@ int parameters_init(struct radar_flow_param_handles *h)
 	h->kalman_k2			=	param_find("RF_KAL_K2");
 	h->front_lp_alpha		=	param_find("RF_FRONT_A");
 	h->with_sonar			=	param_find("RF_SONAR");
+	h->with_pos_update		=	param_find("RF_POS_UPDATE");
 	h->s0					=	param_find("RF_S0");
 	h->s1					=	param_find("RF_S1");
 	h->s2					=	param_find("RF_S2");
@@ -91,6 +93,7 @@ int parameters_update(const struct radar_flow_param_handles *h, struct radar_flo
 	param_get(h->kalman_k2, &(p->kalman_k2));
 	param_get(h->front_lp_alpha, &(p->front_lp_alpha));
 	param_get(h->with_sonar, &(p->with_sonar));
+	param_get(h->with_pos_update, &(p->with_pos_update));
 	param_get(h->s0, &(p->s0));
 	param_get(h->s1, &(p->s1));
 	param_get(h->s2, &(p->s2));

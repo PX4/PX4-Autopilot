@@ -19,8 +19,8 @@ void init_state(struct mission_state_s *state) {
 
 	/* reset front situation */
 	state->sonar = SONAR_NO_STATE;
-	for (int i = 0; i < 17; i++) {
-		state->front_situation[i] = 5000;
+	for (int i = 0; i < 4; i++) {
+		state->front_situation[i] = 0;
 	}
 	state->free_to_go = false;
 	state->waypoint_set = false;
@@ -76,10 +76,10 @@ void do_state_update(struct mission_state_s *current_state, int mavlink_fd, miss
 }
 
 void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params, int mavlink_fd,
-		struct discrete_radar_s *new_radar, struct omnidirectional_flow_s *omni_flow) {
+		struct discrete_radar_s *new_radar, float x_update, float y_update, float yaw_update) {
 
 	/* test if enough space */
-	if (new_radar->sonar < params->mission_min_front_dist) {
+	if ((new_radar->sonar * 1000.0f) < params->mission_min_front_dist) {
 		/* abord mission */
 		do_state_update(current_state, mavlink_fd, MISSION_ABORTED);
 		return;
@@ -92,14 +92,21 @@ void do_radar_update(struct mission_state_s *current_state, struct mission_comma
 	bool free_environment = true;
 
 	free_environment = radarControl(new_radar->distances, new_radar->sonar, current_state->front_situation,
-			params->radarControlSettings, &yaw_control, &x_control, &y_control);
+			params->radarControlSettings, x_update, y_update, yaw_update, &x_control, &y_control, &yaw_control);
 
-	if (free_environment) {
-		current_state->step.x = params->mission_update_step_x;
+	current_state->step.x = x_control;
+	current_state->step.y = y_control;
+	current_state->step.yaw = yaw_control;
+
+	/* log state changes */
+	if (current_state->free_to_go) {
+		if (!free_environment) {
+			mavlink_log_info(mavlink_fd, "[mission commander] radar controlled...");
+		}
 	} else {
-		current_state->step.x = x_control;
-		current_state->step.y = y_control;
-		current_state->step.yaw = yaw_control;
+		if (free_environment) {
+			mavlink_log_info(mavlink_fd, "[mission commander] free to go...");
+		}
 	}
 
 	current_state->free_to_go = free_environment;
