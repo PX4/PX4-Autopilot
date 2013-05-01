@@ -138,8 +138,6 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_PWM_ALTRATE]		= 200,
 	[PX4IO_P_SETUP_RELAYS]			= 0,
 	[PX4IO_P_SETUP_VBATT_SCALE]		= 10000,
-	[PX4IO_P_SETUP_IBATT_SCALE]		= 0,
-	[PX4IO_P_SETUP_IBATT_BIAS]		= 0,
 	[PX4IO_P_SETUP_SET_DEBUG]		= 0,
 };
 
@@ -516,12 +514,14 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 
 		/* PX4IO_P_STATUS_IBATT */
 		{
-			unsigned counts = adc_measure(ADC_VBATT);
-			unsigned scaled = (counts * r_page_setup[PX4IO_P_SETUP_IBATT_SCALE]) / 10000;
-			int corrected = scaled + REG_TO_SIGNED(r_page_setup[PX4IO_P_SETUP_IBATT_BIAS]);
-			if (corrected < 0)
-				corrected = 0;
-			r_page_status[PX4IO_P_STATUS_IBATT] = corrected;
+			/*
+			  note that we have no idea what sort of
+			  current sensor is attached, so we just
+			  return the raw 12 bit ADC value and let the
+			  FMU sort it out, with user selectable
+			  configuration for their sensor
+			 */
+			r_page_status[PX4IO_P_STATUS_IBATT] = adc_measure(ADC_IN5);
 		}
 
 		SELECT_PAGE(r_page_status);
