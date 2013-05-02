@@ -135,6 +135,9 @@ adc_init(void)
 	return 0;
 }
 
+/*
+  return one measurement, or 0xffff on error
+ */
 uint16_t
 adc_measure(unsigned channel)
 {
@@ -154,9 +157,10 @@ adc_measure(unsigned channel)
 	while (!(rSR & ADC_SR_EOC)) {
 
 		/* never spin forever - this will give a bogus result though */
-		if (hrt_elapsed_time(&now) > 1000) {
+		if (hrt_elapsed_time(&now) > 100) {
 			debug("adc timeout");
-			break;
+			perf_end(adc_perf);
+			return 0xffff;
 		}
 	}
 
