@@ -39,9 +39,4 @@ APPNAME		 = position_estimator_inav
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 4096
 
-CSRCS		 = position_estimator_inav_main.c \
-			   position_estimator_inav_params.c \
-			   kalman_filter_inertial.c \
-			   acceleration_transform.c
-
 include $(APPDIR)/mk/app.mk

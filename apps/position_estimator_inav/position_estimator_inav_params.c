@@ -39,7 +39,6 @@
  */
 
 #include "position_estimator_inav_params.h"
-#include "acceleration_transform.h"
 
 /* Kalman Filter covariances */
 /* gps measurement noise standard deviation */
@@ -52,22 +51,6 @@ PARAM_DEFINE_FLOAT(INAV_K_ALT_11, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_K_ALT_20, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_K_ALT_21, 0.0f);
 
-PARAM_DEFINE_FLOAT(INAV_ACC_OFFS_W, 0.0f);
-
-PARAM_DEFINE_INT32(INAV_ACC_OFFS_0, 0);
-PARAM_DEFINE_INT32(INAV_ACC_OFFS_1, 0);
-PARAM_DEFINE_INT32(INAV_ACC_OFFS_2, 0);
-
-PARAM_DEFINE_FLOAT(INAV_ACC_T_00, 0.0021f);
-PARAM_DEFINE_FLOAT(INAV_ACC_T_01, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_ACC_T_02, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_ACC_T_10, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_ACC_T_11, 0.0021f);
-PARAM_DEFINE_FLOAT(INAV_ACC_T_12, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_ACC_T_20, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_ACC_T_21, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_ACC_T_22, 0.0021f);
-
 int parameters_init(struct position_estimator_inav_param_handles *h) {
 	h->use_gps = param_find("INAV_USE_GPS");
 
@@ -78,21 +61,6 @@ int parameters_init(struct position_estimator_inav_param_handles *h) {
 	h->k_alt_20 = param_find("INAV_K_ALT_20");
 	h->k_alt_21 = param_find("INAV_K_ALT_21");
 
-	h->acc_offs_w = param_find("INAV_ACC_OFFS_W");
-
-	h->acc_offs_0 = param_find("INAV_ACC_OFFS_0");
-	h->acc_offs_1 = param_find("INAV_ACC_OFFS_1");
-	h->acc_offs_2 = param_find("INAV_ACC_OFFS_2");
-
-	h->acc_t_00 = param_find("INAV_ACC_T_00");
-	h->acc_t_01 = param_find("INAV_ACC_T_01");
-	h->acc_t_02 = param_find("INAV_ACC_T_02");
-	h->acc_t_10 = param_find("INAV_ACC_T_10");
-	h->acc_t_11 = param_find("INAV_ACC_T_11");
-	h->acc_t_12 = param_find("INAV_ACC_T_12");
-	h->acc_t_20 = param_find("INAV_ACC_T_20");
-	h->acc_t_21 = param_find("INAV_ACC_T_21");
-	h->acc_t_22 = param_find("INAV_ACC_T_22");
 	return OK;
 }
 
@@ -105,27 +73,6 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 	param_get(h->k_alt_11, &(p->k[1][1]));
 	param_get(h->k_alt_20, &(p->k[2][0]));
 	param_get(h->k_alt_21, &(p->k[2][1]));
-
-	param_get(h->acc_offs_w, &(p->acc_offs_w));
-
-	/* read int32 and cast to int16 */
-	int32_t t;
-	param_get(h->acc_offs_0, &t);
-	p->acc_offs[0] = t;
-	param_get(h->acc_offs_1, &t);
-	p->acc_offs[1] = t;
-	param_get(h->acc_offs_2, &t);
-	p->acc_offs[2] = t;
-
-	param_get(h->acc_t_00, &(p->acc_T[0][0]));
-	param_get(h->acc_t_01, &(p->acc_T[0][1]));
-	param_get(h->acc_t_02, &(p->acc_T[0][2]));
-	param_get(h->acc_t_10, &(p->acc_T[1][0]));
-	param_get(h->acc_t_11, &(p->acc_T[1][1]));
-	param_get(h->acc_t_12, &(p->acc_T[1][2]));
-	param_get(h->acc_t_20, &(p->acc_T[2][0]));
-	param_get(h->acc_t_21, &(p->acc_T[2][1]));
-	param_get(h->acc_t_22, &(p->acc_T[2][2]));
 
 	return OK;
 }
