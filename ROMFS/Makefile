@@ -32,7 +32,8 @@ ROMFS_FSSPEC	:= $(SRCROOT)/scripts/rcS~init.d/rcS \
 		   $(SRCROOT)/mixers/FMU_RET.mix~mixers/FMU_ERT.mix \
 		   $(SRCROOT)/mixers/FMU_quad_x.mix~mixers/FMU_quad_x.mix \
 		   $(SRCROOT)/mixers/FMU_quad_+.mix~mixers/FMU_quad_+.mix \
-                   $(SRCROOT)/mixers/FMU_quad_v.mix~mixers/FMU_quad_v.mix \
+		   $(SRCROOT)/mixers/FMU_quad_v.mix~mixers/FMU_quad_v.mix \
+		   $(SRCROOT)/mixers/FMU_quad_v.mix~mixers/FMU_quad_w.mix \
 		   $(SRCROOT)/mixers/FMU_hex_x.mix~mixers/FMU_hex_x.mix \
 		   $(SRCROOT)/mixers/FMU_hex_+.mix~mixers/FMU_hex_+.mix \
 		   $(SRCROOT)/mixers/FMU_octo_x.mix~mixers/FMU_octo_x.mix \
