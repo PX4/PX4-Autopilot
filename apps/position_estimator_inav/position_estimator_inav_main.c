@@ -261,6 +261,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 	while (!thread_should_exit) {
 		bool accelerometer_updated = false;
 		bool baro_updated = false;
+		bool gps_updated = false;
+		float local_pos_gps[3] = { 0.0f, 0.0f, 0.0f };
+
 		int ret = poll(fds, params.use_gps ? 5 : 4, 10); // wait maximal this 10 ms = 100 Hz minimum rate
 		if (ret < 0) {
 			/* poll error */
@@ -322,14 +325,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 				/* vehicle GPS position */
 				if (fds[4].revents & POLLIN) {
 					/* new GPS value */
-					orb_copy(ORB_ID(vehicle_gps_position),
-							vehicle_gps_position_sub, &gps);
-					static float local_pos_gps[3] = { 0.0f, 0.0f, 0.0f }; /* output variables from tangent plane mapping */
+					orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 					/* Project gps lat lon (Geographic coordinate system) to plane */
 					map_projection_project(((double) (gps.lat)) * 1e-7,
 							((double) (gps.lon)) * 1e-7, &(local_pos_gps[0]),
 							&(local_pos_gps[1]));
 					local_pos_gps[2] = (float) (gps.alt * 1e-3);
+					gps_updated = true;
 					pos.valid = gps.fix_type >= 3;
 					gps_updates++;
 				}
@@ -352,7 +354,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 				}
 			}
 			accel_NED[2] += CONSTANTS_ONE_G;
-			/* kalman filter prediction */
+
+			/* kalman filter for altitude */
 			kalman_filter_inertial_predict(dt, z_est);
 			/* prepare vectors for kalman filter correction */
 			float z_meas[2];	// position, acceleration
@@ -367,8 +370,32 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 			}
 			if (use_z[0] || use_z[1]) {
 				/* correction */
-				kalman_filter_inertial_update(z_est, z_meas, params.k,
-						use_z);
+				kalman_filter_inertial_update(z_est, z_meas, params.k_alt, use_z);
+			}
+
+			if (params.use_gps) {
+				/* kalman filter for position */
+				kalman_filter_inertial_predict(dt, x_est);
+				kalman_filter_inertial_predict(dt, y_est);
+				/* prepare vectors for kalman filter correction */
+				float x_meas[2];	// position, acceleration
+				float y_meas[2];	// position, acceleration
+				bool use_xy[2] = { false, false };
+				if (gps_updated) {
+					x_meas[0] = local_pos_gps[0];
+					y_meas[0] = local_pos_gps[1];
+					use_xy[0] = true;
+				}
+				if (accelerometer_updated) {
+					x_meas[1] = accel_NED[0];
+					y_meas[1] = accel_NED[1];
+					use_xy[1] = true;
+				}
+				if (use_xy[0] || use_xy[1]) {
+					/* correction */
+					kalman_filter_inertial_update(x_est, x_meas, params.k_pos, use_xy);
+					kalman_filter_inertial_update(y_est, y_meas, params.k_pos, use_xy);
+				}
 			}
 		}
 		if (verbose_mode) {
@@ -390,10 +417,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 		}
 		if (t - pub_last > pub_interval) {
 			pub_last = t;
-			pos.x = 0.0f;
-			pos.vx = 0.0f;
-			pos.y = 0.0f;
-			pos.vy = 0.0f;
+			pos.x = x_est[0];
+			pos.vx = x_est[1];
+			pos.y = y_est[0];
+			pos.vy = y_est[1];
 			pos.z = z_est[0];
 			pos.vz = z_est[1];
 			pos.timestamp = hrt_absolute_time();
@@ -402,9 +429,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 					&& (isfinite(pos.vy))
 					&& (isfinite(pos.z))
 					&& (isfinite(pos.vz))) {
-				orb_publish(ORB_ID(
-						vehicle_local_position), vehicle_local_position_pub,
-						&pos);
+				orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &pos);
 			}
 		}
 	}
