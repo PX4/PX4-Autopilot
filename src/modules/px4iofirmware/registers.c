@@ -506,10 +506,12 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			 * Intercept corrected for best results @ 12V.
 			 */
 			unsigned counts = adc_measure(ADC_VBATT);
-			unsigned mV = (4150 + (counts * 46)) / 10 - 200;
-			unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
+			if (counts != 0xffff) {
+				unsigned mV = (4150 + (counts * 46)) / 10 - 200;
+				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
 
-			r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
+				r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
+			}
 		}
 
 		/* PX4IO_P_STATUS_IBATT */
@@ -521,7 +523,10 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			  FMU sort it out, with user selectable
 			  configuration for their sensor
 			 */
-			r_page_status[PX4IO_P_STATUS_IBATT] = adc_measure(ADC_IN5);
+			unsigned counts = adc_measure(ADC_IN5);
+			if (counts != 0xffff) {
+				r_page_status[PX4IO_P_STATUS_IBATT] = counts;
+			}
 		}
 
 		SELECT_PAGE(r_page_status);
