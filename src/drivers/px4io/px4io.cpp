@@ -109,6 +109,14 @@ public:
 	int      set_update_rate(int rate);
 
 	/**
+	* Set the battery current scaling and bias
+	*
+	* @param amp_per_volt
+	* @param amp_bias
+	*/
+	void      set_battery_current_scaling(float amp_per_volt, float amp_bias);
+
+	/**
 	* Print the current status of IO
 	*/
 	void			print_status();
@@ -151,6 +159,10 @@ private:
 
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 
+	float			_battery_amp_per_volt;
+	float			_battery_amp_bias;
+	float			_battery_mamphour_total;
+	uint64_t		_battery_last_timestamp;
 
 	/**
 	 * Trampoline to the worker task
@@ -314,6 +326,10 @@ PX4IO::PX4IO() :
 	_to_actuators_effective(0),
 	_to_outputs(0),
 	_to_battery(0),
+	_battery_amp_per_volt(90.0f/5.0f), // this matches the 3DR current sensor
+	_battery_amp_bias(0),
+	_battery_mamphour_total(0),
+	_battery_last_timestamp(0),
 	_primary_pwm_device(false)
 {
 	/* we need this potentially before it could be set in task_main */
@@ -884,11 +900,22 @@ PX4IO::io_get_status()
 		/* voltage is scaled to mV */
 		battery_status.voltage_v = regs[2] / 1000.0f;
 
-		/* current scaling should be to cA in order to avoid limiting at 65A */
-		battery_status.current_a = regs[3] / 100.f;
+		/*
+		  regs[3] contains the raw ADC count, as 12 bit ADC
+		  value, with full range being 3.3v
+		 */
+		battery_status.current_a = regs[3] * (3.3f/4096.0f) * _battery_amp_per_volt;
+		battery_status.current_a += _battery_amp_bias;
 
-		/* this requires integration over time - not currently implemented */
-		battery_status.discharged_mah = -1.0f;
+		/*
+		  integrate battery over time to get total mAh used
+		 */
+		if (_battery_last_timestamp != 0) {
+			_battery_mamphour_total += battery_status.current_a * 
+				(battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
+		}
+		battery_status.discharged_mah = _battery_mamphour_total;
+		_battery_last_timestamp = battery_status.timestamp;
 
 		/* lazily publish the battery voltage */
 		if (_to_battery > 0) {
@@ -1245,9 +1272,14 @@ PX4IO::print_status()
 		((alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST)      ? " FMU_LOST" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_RC_LOST)       ? " RC_LOST" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""));
-	printf("vbatt %u ibatt %u\n",
-		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
-		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT));
+	printf("vbatt %u ibatt %u vbatt scale %u\n",
+	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
+	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),
+	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
+	printf("amp_per_volt %.3f amp_offset %.3f mAhDischarged %.3f\n",
+	       _battery_amp_per_volt,
+	       _battery_amp_bias,
+	       _battery_mamphour_total);
 	printf("actuators");
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_ACTUATORS, i));
@@ -1288,10 +1320,6 @@ PX4IO::print_status()
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE),
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS));
-	printf("vbatt scale %u ibatt scale %u ibatt bias %u\n",
-		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE),
-		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_IBATT_SCALE),
-		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_IBATT_BIAS));
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
 	printf("controls");
 	for (unsigned i = 0; i < _max_controls; i++)
@@ -1521,6 +1549,12 @@ PX4IO::set_update_rate(int rate)
 	return 0;
 }
 
+void
+PX4IO::set_battery_current_scaling(float amp_per_volt, float amp_bias)
+{
+	_battery_amp_per_volt = amp_per_volt;
+	_battery_amp_bias = amp_bias;
+}
 
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
 
@@ -1658,6 +1692,18 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "current")) {
+		if (g_dev != nullptr) {
+			if ((argc > 3)) {
+				g_dev->set_battery_current_scaling(atof(argv[2]), atof(argv[3]));
+			} else {
+				errx(1, "missing argument (apm_per_volt, amp_offset)");
+				return 1;
+			}
+		}
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "recovery")) {
 
 		if (g_dev != nullptr) {
@@ -1785,5 +1831,5 @@ px4io_main(int argc, char *argv[])
 		monitor();
 
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current' or 'update'");
 }
