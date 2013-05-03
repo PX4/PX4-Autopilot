@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,38 +32,30 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
- *
- * Definition of differential pressure topic
+ * @file Airspeed driver interface.
+ * @author Simon Wilks
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#ifndef _DRV_AIRSPEED_H
+#define _DRV_AIRSPEED_H
 
-#include "../uORB.h"
 #include <stdint.h>
+#include <sys/ioctl.h>
 
-/**
- * @addtogroup topics
- * @{
+#include "drv_sensor.h"
+#include "drv_orb_dev.h"
+
+#define AIRSPEED_DEVICE_PATH	"/dev/airspeed"
+
+/*
+ * ioctl() definitions
+ *
+ * Airspeed drivers also implement the generic sensor driver
+ * interfaces from drv_sensor.h
  */
 
-/**
- * Differential pressure.
- */
-struct differential_pressure_s {
-	uint64_t	timestamp;						/**< microseconds since system boot, needed to integrate */
-	uint16_t	differential_pressure_pa;		/**< Differential pressure reading */
-	uint16_t	max_differential_pressure_pa;	/**< Maximum differential pressure reading */
-	float		voltage;						/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
+#define _AIRSPEEDIOCBASE		(0x7700)
+#define __AIRSPEEDIOC(_n)		(_IOC(_AIRSPEEDIOCBASE, _n))
 
-};
 
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
-
-#endif
+#endif /* _DRV_AIRSPEED_H */

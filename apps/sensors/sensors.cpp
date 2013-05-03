@@ -77,6 +77,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/airspeed.h>
 
 #define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
 #define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
@@ -97,6 +98,12 @@
 #define BAT_VOL_LOWPASS_1 0.99f
 #define BAT_VOL_LOWPASS_2 0.01f
 #define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
+
+/**
+ * HACK - true temperature is much less than indicated temperature in baro,
+ * subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
+ */
+#define PCB_TEMP_ESTIMATE_DEG 5.0f
 
 #define PPM_INPUT_TIMEOUT_INTERVAL	50000 /**< 50 ms timeout / 20 Hz */
 
@@ -156,6 +163,8 @@ private:
 	int		_mag_sub;			/**< raw mag data subscription */
 	int 		_rc_sub;			/**< raw rc channels data subscription */
 	int		_baro_sub;			/**< raw baro data subscription */
+	int     _airspeed_sub;		/**< airspeed subscription */
+	int		_diff_pres_sub;		/**< raw differential pressure subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;			/**< notification of manual control updates */
@@ -165,13 +174,15 @@ private:
 	orb_advert_t	_rc_pub;			/**< raw r/c control topic */
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
+	orb_advert_t	_diff_pres_pub;			/**< differential_pressure */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
 	struct battery_status_s _battery_status;	/**< battery status */
 	struct baro_report _barometer;			/**< barometer data */
-	struct differential_pressure_s _differential_pressure;
+	struct differential_pressure_s _diff_pres;
+	struct airspeed_s _airspeed;
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -187,7 +198,7 @@ private:
 		float mag_scale[3];
 		float accel_offset[3];
 		float accel_scale[3];
-		float airspeed_offset;
+		int diff_pres_offset_pa;
 
 		int rc_type;
 
@@ -236,7 +247,7 @@ private:
 		param_t accel_scale[3];
 		param_t mag_offset[3];
 		param_t mag_scale[3];
-		param_t airspeed_offset;
+		param_t diff_pres_offset_pa;
 
 		param_t rc_map_roll;
 		param_t rc_map_pitch;
@@ -331,6 +342,14 @@ private:
 	void		baro_poll(struct sensor_combined_s &raw);
 
 	/**
+	 * Poll the differential pressure sensor for updated data.
+	 *
+	 * @param raw			Combined sensor data structure into which
+	 *				data should be returned.
+	 */
+	void		diff_pres_poll(struct sensor_combined_s &raw);
+
+	/**
 	 * Check for changes in vehicle status.
 	 */
 	void		vehicle_status_poll();
@@ -398,6 +417,7 @@ Sensors::Sensors() :
 	_rc_pub(-1),
 	_battery_pub(-1),
 	_airspeed_pub(-1),
+	_diff_pres_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
@@ -482,8 +502,8 @@ Sensors::Sensors() :
 	_parameter_handles.mag_scale[1] = param_find("SENS_MAG_YSCALE");
 	_parameter_handles.mag_scale[2] = param_find("SENS_MAG_ZSCALE");
 
-	/*Airspeed offset */
-	_parameter_handles.airspeed_offset = param_find("SENS_VAIR_OFF");
+	/* Differential pressure offset */
+	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
@@ -693,7 +713,7 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.mag_scale[2], &(_parameters.mag_scale[2]));
 
 	/* Airspeed offset */
-	param_get(_parameter_handles.airspeed_offset, &(_parameters.airspeed_offset));
+	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
@@ -888,6 +908,32 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 }
 
 void
+Sensors::diff_pres_poll(struct sensor_combined_s &raw)
+{
+	bool updated;
+	orb_check(_diff_pres_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
+
+		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
+		raw.differential_pressure_counter++;
+
+		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
+		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar*1e2f, 
+											 			 raw.baro_pres_mbar*1e2f, raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+
+		/* announce the airspeed if needed, just publish else */
+		if (_airspeed_pub > 0) {
+			orb_publish(ORB_ID(airspeed), _airspeed_pub, &_airspeed);
+
+		} else {
+			_airspeed_pub = orb_advertise(ORB_ID(airspeed), &_airspeed);
+		}
+	}
+}
+
+void
 Sensors::vehicle_status_poll()
 {
 	struct vehicle_status_s vstatus;
@@ -1045,31 +1091,18 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 */
 					if (voltage > 0.4f) {
 
-						float diff_pres_pa = (voltage - _parameters.airspeed_offset) * 1000.0f; //for MPXV7002DP sensor
+						float diff_pres_pa = voltage * 1000.0f - _parameters.diff_pres_offset_pa; //for MPXV7002DP sensor
 
-						float airspeed_true = calc_true_airspeed(diff_pres_pa + _barometer.pressure*1e2f,
-							_barometer.pressure*1e2f, _barometer.temperature - 5.0f); //factor 1e2 for conversion from mBar to Pa
-						// XXX HACK - true temperature is much less than indicated temperature in baro,
-						// subtract 5 degrees in an attempt to account for the electrical upheating of the PCB
-
-						float airspeed_indicated = calc_indicated_airspeed(diff_pres_pa);
-
-						//printf("voltage: %.4f, diff_pres_pa %.4f, baro press %.4f Pa, v_ind %.4f, v_true %.4f\n", (double)voltage, (double)diff_pres_pa, (double)_barometer.pressure*1e2f, (double)airspeed_indicated, (double)airspeed_true);
-
-						_differential_pressure.timestamp = hrt_absolute_time();
-						_differential_pressure.static_pressure_mbar = _barometer.pressure;
-						_differential_pressure.differential_pressure_mbar = diff_pres_pa*1e-2f;
-						_differential_pressure.temperature_celcius = _barometer.temperature;
-						_differential_pressure.indicated_airspeed_m_s = airspeed_indicated;
-						_differential_pressure.true_airspeed_m_s = airspeed_true;
-						_differential_pressure.voltage = voltage;
+						_diff_pres.timestamp = hrt_absolute_time();
+						_diff_pres.differential_pressure_pa = diff_pres_pa;
+						_diff_pres.voltage = voltage;
 
 						/* announce the airspeed if needed, just publish else */
-						if (_airspeed_pub > 0) {
-							orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_differential_pressure);
+						if (_diff_pres_pub > 0) {
+							orb_publish(ORB_ID(differential_pressure), _diff_pres_pub, &_diff_pres);
 
 						} else {
-							_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &_differential_pressure);
+							_diff_pres_pub = orb_advertise(ORB_ID(differential_pressure), &_diff_pres);
 						}
 					}
 				}
@@ -1308,6 +1341,7 @@ Sensors::task_main()
 	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -1334,6 +1368,7 @@ Sensors::task_main()
 	gyro_poll(raw);
 	mag_poll(raw);
 	baro_poll(raw);
+	diff_pres_poll(raw);
 
 	parameter_update_poll(true /* forced */);
 
@@ -1381,6 +1416,8 @@ Sensors::task_main()
 
 		/* check battery voltage */
 		adc_poll(raw);
+
+		diff_pres_poll(raw);
 
 		/* Inform other processes that new data is available to copy */
 		if (_publishing)

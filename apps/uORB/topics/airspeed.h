@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
+ * @file airspeed.h
  *
- * Definition of differential pressure topic
+ * Definition of airspeed topic
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#ifndef TOPIC_AIRSPEED_H_
+#define TOPIC_AIRSPEED_H_
 
 #include "../uORB.h"
 #include <stdint.h>
@@ -49,14 +49,12 @@
  */
 
 /**
- * Differential pressure.
+ * Airspeed
  */
-struct differential_pressure_s {
-	uint64_t	timestamp;						/**< microseconds since system boot, needed to integrate */
-	uint16_t	differential_pressure_pa;		/**< Differential pressure reading */
-	uint16_t	max_differential_pressure_pa;	/**< Maximum differential pressure reading */
-	float		voltage;						/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
-
+struct airspeed_s {
+	uint64_t	timestamp;					/**< microseconds since system boot, needed to integrate */
+	float		indicated_airspeed_m_s;		/**< indicated airspeed in meters per second, -1 if unknown	 */
+	float		true_airspeed_m_s;			/**< true airspeed in meters per second, -1 if unknown */
 };
 
 /**
@@ -64,6 +62,6 @@ struct differential_pressure_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
+ORB_DECLARE(airspeed);
 
 #endif

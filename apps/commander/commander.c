@@ -797,22 +797,22 @@ void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 
 	const int calibration_count = 2500;
 
-	int sub_differential_pressure = orb_subscribe(ORB_ID(differential_pressure));
-	struct differential_pressure_s differential_pressure;
+	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
+	struct differential_pressure_s diff_pres;
 
 	int calibration_counter = 0;
-	float airspeed_offset = 0.0f;
+	float diff_pres_offset = 0.0f;
 
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = sub_differential_pressure, .events = POLLIN } };
+		struct pollfd fds[1] = { { .fd = diff_pres_sub, .events = POLLIN } };
 
 		int poll_ret = poll(fds, 1, 1000);
 
 		if (poll_ret) {
-			orb_copy(ORB_ID(differential_pressure), sub_differential_pressure, &differential_pressure);
-			airspeed_offset += differential_pressure.voltage;
+			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+			diff_pres_offset += diff_pres.differential_pressure_pa;
 			calibration_counter++;
 
 		} else if (poll_ret == 0) {
@@ -822,11 +822,11 @@ void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 		}
 	}
 
-	airspeed_offset = airspeed_offset / calibration_count;
+	diff_pres_offset = diff_pres_offset / calibration_count;
 
-	if (isfinite(airspeed_offset)) {
+	if (isfinite(diff_pres_offset)) {
 
-		if (param_set(param_find("SENS_VAIR_OFF"), &(airspeed_offset))) {
+		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 			mavlink_log_critical(mavlink_fd, "Setting offs failed!");
 		}
 
@@ -856,7 +856,7 @@ void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 	status->flag_preflight_airspeed_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
 
-	close(sub_differential_pressure);
+	close(diff_pres_sub);
 }
 
 
@@ -1477,10 +1477,10 @@ int commander_thread_main(int argc, char *argv[])
 	struct sensor_combined_s sensors;
 	memset(&sensors, 0, sizeof(sensors));
 
-	int differential_pressure_sub = orb_subscribe(ORB_ID(differential_pressure));
-	struct differential_pressure_s differential_pressure;
-	memset(&differential_pressure, 0, sizeof(differential_pressure));
-	uint64_t last_differential_pressure_time = 0;
+	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
+	struct differential_pressure_s diff_pres;
+	memset(&diff_pres, 0, sizeof(diff_pres));
+	uint64_t last_diff_pres_time = 0;
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1535,11 +1535,11 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
 		}
 
-		orb_check(differential_pressure_sub, &new_data);
+		orb_check(diff_pres_sub, &new_data);
 
 		if (new_data) {
-			orb_copy(ORB_ID(differential_pressure), differential_pressure_sub, &differential_pressure);
-			last_differential_pressure_time = differential_pressure.timestamp;
+			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+			last_diff_pres_time = diff_pres.timestamp;
 		}
 
 		orb_check(cmd_sub, &new_data);
@@ -1754,7 +1754,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* Check for valid airspeed/differential pressure measurements */
-		if (hrt_absolute_time() - last_differential_pressure_time < 2000000) {
+		if (hrt_absolute_time() - last_diff_pres_time < 2000000) {
 			current_status.flag_airspeed_valid = true;
 
 		} else {

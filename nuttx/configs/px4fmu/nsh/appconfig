@@ -128,6 +128,7 @@ CONFIGURED_APPS += drivers/mkblctrl
 CONFIGURED_APPS += drivers/hil
 CONFIGURED_APPS += drivers/gps
 CONFIGURED_APPS += drivers/mb12xx
+CONFIGURED_APPS += drivers/ets_airspeed
 
 # Testing stuff
 CONFIGURED_APPS += px4/sensors_bringup
