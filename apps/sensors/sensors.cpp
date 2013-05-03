@@ -744,6 +744,9 @@ Sensors::gyro_init()
 		/* set the driver to poll at 500Hz */
 		ioctl(fd, SENSORIOCSPOLLRATE, 500);
 
+		/* set the gyro to 500 deg/s range */
+		ioctl(fd, GYROIOCSRANGE, 500);
+
 		warnx("using system gyro");
 		close(fd);
 	}
