@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -219,7 +219,7 @@ struct MotorData_t
   // the following bytes must be exactly in that order!
   unsigned int Current;                        // in 0.1 A steps, read back from BL
   unsigned int MaxPWM;                         // read back from BL is less than 255 if BL is in current limit
-  unsigned int Temperature;            // old BL-Ctrl will return a 255 here, the new version the temp. in °C
+  unsigned int Temperature;            // old BL-Ctrl will return a 255 here, the new version the temp. in
   unsigned int RoundCount;
 };
 
@@ -1355,28 +1355,26 @@ extern "C" __EXPORT int mkblctrl_main(int argc, char *argv[]);
 int
 mkblctrl_main(int argc, char *argv[])
 {
-	PortMode new_mode = PORT_MODE_UNSET;
+	PortMode port_mode = PORT_FULL_PWM;
 	int pwm_update_rate_in_hz = UPDATE_RATE;
-	int motorcount = 0;
+	int motorcount = 8;
 	int bus = 1;
-	bool motortest = false;
 	int px4mode = MAPPING_PX4;
 	int frametype = FRAME_PLUS;	// + plus is default
-
-	new_mode = PORT_FULL_PWM;
-	motorcount = 8;
+	bool motortest = false;
+	bool showHelp = false;
+	bool newMode = false;
 
 	/*
-	 * Mode switches.
-	 *
-	 * XXX use getopt?
+	 * optional parameters
 	 */
-	for (int i = 1; i < argc; i++) {   /* argv[0] is "mk" */
+	for (int i = 1; i < argc; i++) {
 
 		/* look for the optional i2c bus parameter */
 		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--bus") == 0) {
 			if (argc > i + 1) {
 				bus = atoi(argv[i + 1]);
+				newMode = true;
 				} else {
 				errx(1, "missing argument for i2c bus (-b)");
 				return 1;
@@ -1388,6 +1386,7 @@ mkblctrl_main(int argc, char *argv[])
 			if (argc > i + 1) {
 				if(strcmp(argv[i + 1], "+") == 0 || strcmp(argv[i + 1], "x") == 0 || strcmp(argv[i + 1], "X") == 0) {
 					px4mode = MAPPING_MK;
+					newMode = true;
 					if(strcmp(argv[i + 1], "+") == 0) {
 						frametype = FRAME_PLUS;
 					} else {
@@ -1405,30 +1404,36 @@ mkblctrl_main(int argc, char *argv[])
 		/* look for the optional test parameter */
 		if (strcmp(argv[i], "-t") == 0) {
 			motortest = true;
+			newMode = true;
+		}
+
+		/* look for the optional -h --help parameter */
+		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+			showHelp == true;
 		}
 
 	}
 
-	if(new_mode == PORT_MODE_UNSET) {
-		fprintf(stderr, "mkblctrl: unrecognised command, try:\n");
-		fprintf(stderr, "  [-mkmode frame{+/x}] [-b i2c_bus_number] [-t motortest]\n");
+	if(showHelp) {
+		fprintf(stderr, "mkblctrl: help:\n");
+		fprintf(stderr, "  [-mkmode frame{+/x}] [-b i2c_bus_number] [-t motortest] [-h / --help]\n");
 		exit(1);
 	}
 
-	if (mk_start(bus, motorcount) != OK)
-		errx(1, "failed to start the MK-BLCtrl driver");
+
+	if (g_mk == nullptr) {
+		if (mk_start(bus, motorcount) != OK) {
+			errx(1, "failed to start the MK-BLCtrl driver");
+		} else {
+			newMode = true;
+		}
+	}
 
 
-	/* was a new mode set? */
-	if (new_mode != PORT_MODE_UNSET) {
-
-		/* yes but it's the same mode */
-		//if (new_mode == g_port_mode)
-			//return OK;
-
-		/* switch modes */
-		fprintf(stderr, "[mkblctrl] %iHz Update Rate\n",pwm_update_rate_in_hz);
-		return mk_new_mode(new_mode, pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype);
+	/* parameter set ? */
+	if (newMode) {
+		/* switch parameter */
+		return mk_new_mode(port_mode, pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype);
 	}
 
 	/* test, etc. here g*/
