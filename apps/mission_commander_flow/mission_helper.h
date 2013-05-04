@@ -27,13 +27,6 @@ typedef enum mission_states {
 	MISSION_RESETED
 } mission_state_t;
 
-typedef enum sonar_states {
-	SONAR_NO_STATE,
-	SONAR_CLEAR,
-	SONAR_REACT,
-	SONAR_STOP
-} sonar_state_t;
-
 struct mission_step_s {
 	float x;
 	float y;
@@ -63,15 +56,9 @@ struct mission_state_s {
 	bool initialized;
 	bool final_sequence;
 
-	/* sonar states */
-	sonar_state_t sonar;
-
+	/* sonar situation */
 	struct sonar_obstacle_s sonar_obstacle;
 	bool free_to_go;
-
-	/* path states */
-	struct vehicle_local_position_setpoint_s next_waypoint;
-	bool waypoint_set;
 
 	float debug_value1;
 	float debug_value2;

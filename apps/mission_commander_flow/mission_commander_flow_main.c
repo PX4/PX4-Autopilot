@@ -344,22 +344,23 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 				/* new waypoint available? */
 				if (fds[2].revents & POLLIN){
 
-					struct vehicle_local_waypoint_s local_wp;
-					orb_copy(ORB_ID(vehicle_local_waypoint), vehicle_local_waypoint_sub, &local_wp);
+//					struct vehicle_local_waypoint_s local_wp;
+//					orb_copy(ORB_ID(vehicle_local_waypoint), vehicle_local_waypoint_sub, &local_wp);
+//
+//					final_dest_local.x = local_wp.x;
+//					final_dest_local.y = local_wp.y;
+//					final_dest_local.z = local_wp.z;
+//					final_dest_local.yaw = local_wp.yaw;
+//
+//					new_waypoint = true;
+//
+//					mavlink_log_info(mavlink_fd, "[mission commander] got new local waypoint.");
+//					char buf[50] = {0};
+//					sprintf(buf, "[mission commander] WP x: %6.1f/y: %6.1f/yaw %6.1f",
+//							(double)final_dest_local.x, (double)final_dest_local.y, (double)final_dest_local.yaw);
+//					mavlink_log_info(mavlink_fd, buf);
+//					printf("[mission commander] got new local waypoint.\n");
 
-					final_dest_local.x = local_wp.x;
-					final_dest_local.y = local_wp.y;
-					final_dest_local.z = local_wp.z;
-					final_dest_local.yaw = local_wp.yaw;
-
-					new_waypoint = true;
-
-					mavlink_log_info(mavlink_fd, "[mission commander] got new local waypoint.");
-					char buf[50] = {0};
-					sprintf(buf, "[mission commander] WP x: %6.1f/y: %6.1f/yaw %6.1f",
-							(double)final_dest_local.x, (double)final_dest_local.y, (double)final_dest_local.yaw);
-					mavlink_log_info(mavlink_fd, buf);
-					printf("[mission commander] got new local waypoint.\n");
 				}
 
 
@@ -374,42 +375,31 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 					/* get a local copy of bodyframe position */
 					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
 
-					/* update front situation if valid */
-					if (mission_state.sonar_obstacle.valid) {
-						convert_setpoint_local2bodyframe(&local_pos, &bodyframe_pos, &att,
-								&mission_state.sonar_obstacle.sonar_obstacle_local,
-								&mission_state.sonar_obstacle.sonar_obstacle_bodyframe);
-
-						if (mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x > 0.0f) {
-							/* convert to polar */
-							mission_state.sonar_obstacle.sonar_obst_polar_r =
-									sqrtf(	mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x *
-											mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x +
-											mission_state.sonar_obstacle.sonar_obstacle_bodyframe.y *
-											mission_state.sonar_obstacle.sonar_obstacle_bodyframe.y);
-							mission_state.sonar_obstacle.sonar_obst_polar_alpha =
-									atanf(	mission_state.sonar_obstacle.sonar_obstacle_bodyframe.y /
-											mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x);
-						} else {
-							mission_state.sonar_obstacle.valid = false;
-						}
-					}
-
-//					if (update_initialized) {
-//						position_update[0] = bodyframe_pos.x - position_last[0];
-//						position_update[1] = bodyframe_pos.y - position_last[1];
-//						yaw_update = att.yaw - yaw_last;
-//					} else {
-//						/* at first round */
-//						update_initialized = true;
-//					}
-//
-//					position_last[0] = bodyframe_pos.x;
-//					position_last[1] = bodyframe_pos.y;
-//					yaw_last = att.yaw;
-
 					if (mission_state.state == MISSION_STARTED) {
-						if (!params.debug) {
+						/* test if enough space */
+						if ((discrete_radar.sonar * 1000.0f) > params.mission_min_front_dist) {
+
+							/* update front situation if valid */
+							if (mission_state.sonar_obstacle.valid) {
+								convert_setpoint_local2bodyframe(&local_pos, &bodyframe_pos, &att,
+										&mission_state.sonar_obstacle.sonar_obstacle_local,
+										&mission_state.sonar_obstacle.sonar_obstacle_bodyframe);
+
+								if (mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x > 0.0f) {
+									/* convert to polar */
+									mission_state.sonar_obstacle.sonar_obst_polar_r =
+											sqrtf(	mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x *
+													mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x +
+													mission_state.sonar_obstacle.sonar_obstacle_bodyframe.y *
+													mission_state.sonar_obstacle.sonar_obstacle_bodyframe.y);
+									mission_state.sonar_obstacle.sonar_obst_polar_alpha =
+											atanf(	mission_state.sonar_obstacle.sonar_obstacle_bodyframe.y /
+													mission_state.sonar_obstacle.sonar_obstacle_bodyframe.x);
+								} else {
+									mission_state.sonar_obstacle.valid = false;
+								}
+							}
+
 							do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar);
 
 							if(mission_state.sonar_obstacle.valid && mission_state.sonar_obstacle.updated) {
@@ -417,12 +407,19 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 										&mission_state.sonar_obstacle.sonar_obstacle_bodyframe,
 										&mission_state.sonar_obstacle.sonar_obstacle_local);
 							}
+
+
+							mission_state.debug_value1 = mission_state.sonar_obstacle.sonar_obst_polar_alpha;
+							mission_state.debug_value2 = mission_state.sonar_obstacle.sonar_obst_polar_r;
+							mission_state.debug_value3++;
+
+						} else {
+
+							/* abord mission */
+							do_state_update(&mission_state, mavlink_fd, MISSION_ABORTED);
+
 						}
 					}
-
-					mission_state.debug_value1 = mission_state.sonar_obstacle.sonar_obst_polar_alpha;
-					mission_state.debug_value2 = mission_state.sonar_obstacle.sonar_obst_polar_r;
-					mission_state.debug_value3++;
 				}
 
 				/* only if local position changed */
@@ -449,7 +446,8 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 							/* do we have a destination ??? -> start mission */
 							final_dest_bodyframe.x = bodyframe_pos_sp.x + params.mission_x_offset;
 							final_dest_bodyframe.y = bodyframe_pos_sp.y + params.mission_y_offset;
-							convert_setpoint_bodyframe2local(&local_pos,&bodyframe_pos,&att,&final_dest_bodyframe,&final_dest_local);
+							convert_setpoint_bodyframe2local(&local_pos, &bodyframe_pos,&att,
+									&final_dest_bodyframe, &final_dest_local);
 							final_dest_bodyframe.yaw = get_yaw(&local_pos, &final_dest_local); // changeable later
 							do_state_update(&mission_state, mavlink_fd, MISSION_STARTED);
 
@@ -458,7 +456,8 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 							/* no yaw correction in final sequence -> no need for waypoint update */
 							if(!mission_state.final_sequence){
 								/* calc final destination in bodyframe */
-								convert_setpoint_local2bodyframe(&local_pos,&bodyframe_pos,&att,&final_dest_local,&final_dest_bodyframe);
+								convert_setpoint_local2bodyframe(&local_pos, &bodyframe_pos, &att,
+										&final_dest_local, &final_dest_bodyframe);
 							}
 
 							/* calc yaw to final destination */
@@ -557,20 +556,17 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						/*
 						 * manually update position setpoint -> e.g. overwrite commands
 						 * from mission commander if something goes wrong
-						 * in DEBUG state pitch and roll are for a different purpose
 						 */
-						if (mission_state.state != MISSION_STARTED || !params.debug) {
-							if(manual.pitch < -0.2f) {
-								bodyframe_pos_sp.x += 2.0f * params.mission_update_step_x;
-							} else if (manual.pitch > 0.2f) {
-								bodyframe_pos_sp.x -= 2.0f * params.mission_update_step_x;
-							}
+						if(manual.pitch < -0.2f) {
+							bodyframe_pos_sp.x += 2.0f * params.mission_update_step_x;
+						} else if (manual.pitch > 0.2f) {
+							bodyframe_pos_sp.x -= 2.0f * params.mission_update_step_x;
+						}
 
-							if(manual.roll < -0.2f) {
-								bodyframe_pos_sp.y -= 2.0f * params.mission_update_step_x;
-							} else if (manual.roll > 0.2f) {
-								bodyframe_pos_sp.y += 2.0f * params.mission_update_step_x;
-							}
+						if(manual.roll < -0.2f) {
+							bodyframe_pos_sp.y -= 2.0f * params.mission_update_step_x;
+						} else if (manual.roll > 0.2f) {
+							bodyframe_pos_sp.y += 2.0f * params.mission_update_step_x;
 						}
 
 						if(manual.yaw < -1.0f) { // bigger threshold because of rc calibration for manual flight

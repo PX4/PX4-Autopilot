@@ -89,11 +89,9 @@ void init_state(struct mission_state_s *state) {
 	state->initialized = false;
 
 	/* reset front situation */
-	state->sonar = SONAR_NO_STATE;
 	state->sonar_obstacle.valid = false;
 	state->sonar_obstacle.updated = false;
 	state->free_to_go = false;
-	state->waypoint_set = false;
 
 	/*DEBUG*/
 	state->debug_value1 = 0.0f;
@@ -148,13 +146,6 @@ void do_state_update(struct mission_state_s *current_state, int mavlink_fd, miss
 void do_radar_update(struct mission_state_s *current_state, struct mission_commander_flow_params *params,
 		int mavlink_fd, struct discrete_radar_s *new_radar) {
 
-	/* test if enough space */
-	if ((new_radar->sonar * 1000.0f) < params->mission_min_front_dist) {
-		/* abord mission */
-		do_state_update(current_state, mavlink_fd, MISSION_ABORTED);
-		return;
-	}
-
 	/* fill polar obstacle */
 	float sonar_obstacle_polar[3];
 	sonar_obstacle_polar[0] = current_state->sonar_obstacle.sonar_obst_polar_r;
@@ -175,31 +166,40 @@ void do_radar_update(struct mission_state_s *current_state, struct mission_comma
 	free_environment = radarControl(new_radar->distances, new_radar->sonar, sonar_obstacle_polar, sonar_flags,
 			params->radarControlSettings, &x_control, &y_control, &yaw_control);
 
-	current_state->step.x = x_control;
-	current_state->step.y = y_control;
-	current_state->step.yaw = yaw_control;
+	if(isfinite(x_control) && isfinite(y_control) && isfinite(yaw_control)) {
+		current_state->step.x = x_control;
+		current_state->step.y = y_control;
+		current_state->step.yaw = yaw_control;
 
-	current_state->sonar_obstacle.sonar_obst_pitch = sonar_obstacle_polar[2];
-	current_state->sonar_obstacle.valid  = sonar_flags[0];
-	current_state->sonar_obstacle.updated  = sonar_flags[1];
+		current_state->sonar_obstacle.sonar_obst_pitch = sonar_obstacle_polar[2];
+		current_state->sonar_obstacle.valid  = sonar_flags[0];
+		current_state->sonar_obstacle.updated  = sonar_flags[1];
 
-	if (current_state->sonar_obstacle.updated) {
-		current_state->sonar_obstacle.sonar_obstacle_bodyframe.x = sonar_obstacle_polar[0];
-		current_state->sonar_obstacle.sonar_obstacle_bodyframe.y = sonar_obstacle_polar[1];
-	}
-
-	/* log state changes */
-	if (current_state->free_to_go) {
-		if (!free_environment) {
-			mavlink_log_info(mavlink_fd, "[mission commander] radar controlled...");
+		if (current_state->sonar_obstacle.updated) {
+			current_state->sonar_obstacle.sonar_obstacle_bodyframe.x = sonar_obstacle_polar[0];
+			current_state->sonar_obstacle.sonar_obstacle_bodyframe.y = sonar_obstacle_polar[1];
 		}
+
+		/* log state changes */
+		if (current_state->free_to_go) {
+			if (!free_environment) {
+				mavlink_log_info(mavlink_fd, "[mission commander] radar controlled...");
+			}
+		} else {
+			if (free_environment) {
+				mavlink_log_info(mavlink_fd, "[mission commander] free to go...");
+			}
+		}
+
+		current_state->free_to_go = free_environment;
+
 	} else {
-		if (free_environment) {
-			mavlink_log_info(mavlink_fd, "[mission commander] free to go...");
-		}
+		mavlink_log_critical(mavlink_fd, "[mission commander] NAN...");
+		current_state->step.x = 0.0f;
+		current_state->step.y = 0.0f;
+		current_state->step.yaw = 0.0f;
 	}
 
-	current_state->free_to_go = free_environment;
 }
 
 
