@@ -183,7 +183,7 @@ module:			$(MODULE_OBJ) $(MODULE_COMMAND_FILES)
 # Locate sources (allows relative source paths in module.mk)
 #
 define SRC_SEARCH
-	$(abspath $(firstword $(wildcard $(MODULE_SRC)/$1) MISSING_$1))
+	$(abspath $(firstword $(wildcard $1) $(wildcard $(MODULE_SRC)/$1) MISSING_$1))
 endef
 
 ABS_SRCS		?= $(foreach src,$(SRCS),$(call SRC_SEARCH,$(src)))
