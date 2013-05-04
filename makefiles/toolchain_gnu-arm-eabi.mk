@@ -189,7 +189,7 @@ DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 define COMPILE
 	@$(ECHO) "CC:      $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
+	$(Q) $(CC) -MD -c $(CFLAGS) $(EXTRAFLAGS) $(abspath $1) -o $2
 endef
 
 # Compile C++ source $1 to $2
@@ -198,7 +198,7 @@ endef
 define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
+	$(Q) $(CXX) -MD -c $(CXXFLAGS) $(EXTRAFLAGS) $(abspath $1) -o $2
 endef
 
 # Assemble $1 into $2
@@ -206,7 +206,7 @@ endef
 define ASSEMBLE
 	@$(ECHO) "AS:      $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CC) -c $(AFLAGS) $(abspath $1) -o $2
+	$(Q) $(CC) -c $(AFLAGS) $(EXTRAFLAGS) $(abspath $1) -o $2
 endef
 
 # Produce partially-linked $1 from files in $2
