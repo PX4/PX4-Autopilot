@@ -24,6 +24,7 @@ ROMFS_FSSPEC	:= $(SRCROOT)/scripts/rcS~init.d/rcS \
 		   $(SRCROOT)/scripts/rc.FMU_quad_x~init.d/rc.FMU_quad_x \
 		   $(SRCROOT)/scripts/rc.usb~init.d/rc.usb \
 		   $(SRCROOT)/scripts/rc.hil~init.d/rc.hil \
+		   $(SRCROOT)/scripts/rc.IO_QUAD~scripts/rc.IO_QUAD \
 		   $(SRCROOT)/mixers/FMU_pass.mix~mixers/FMU_pass.mix \
 		   $(SRCROOT)/mixers/FMU_Q.mix~mixers/FMU_Q.mix \
 		   $(SRCROOT)/mixers/FMU_X5.mix~mixers/FMU_X5.mix \
@@ -32,7 +33,7 @@ ROMFS_FSSPEC	:= $(SRCROOT)/scripts/rcS~init.d/rcS \
 		   $(SRCROOT)/mixers/FMU_RET.mix~mixers/FMU_ERT.mix \
 		   $(SRCROOT)/mixers/FMU_quad_x.mix~mixers/FMU_quad_x.mix \
 		   $(SRCROOT)/mixers/FMU_quad_+.mix~mixers/FMU_quad_+.mix \
-                   $(SRCROOT)/mixers/FMU_quad_v.mix~mixers/FMU_quad_v.mix \
+		   $(SRCROOT)/mixers/FMU_quad_v.mix~mixers/FMU_quad_v.mix \
 		   $(SRCROOT)/mixers/FMU_hex_x.mix~mixers/FMU_hex_x.mix \
 		   $(SRCROOT)/mixers/FMU_hex_+.mix~mixers/FMU_hex_+.mix \
 		   $(SRCROOT)/mixers/FMU_octo_x.mix~mixers/FMU_octo_x.mix \
