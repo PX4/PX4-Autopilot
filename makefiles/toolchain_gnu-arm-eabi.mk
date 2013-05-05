@@ -98,6 +98,14 @@ INSTRUMENTATIONDEFINES	 = -finstrument-functions \
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x
 
+# Compatibility 
+# XXX remove this once downstream users are fixed
+#
+ifneq ($(EXTRAFLAGS),)
+$(warning EXTRAFLAGS is deprecated, use EXTRADEFINES for common pre-processor definitions. See also EXTRACFLAGS, EXTRACXXFLAGS and EXTRALDFLAGS.)
+EXTRADEFINES		+= $(EXTRAFLAGS)
+endif
+
 # Generic warnings
 #
 ARCHWARNINGS		 = -Wall \
@@ -144,6 +152,7 @@ CFLAGS			 = $(ARCHCFLAGS) \
 			   $(INSTRUMENTATIONDEFINES) \
 			   $(ARCHDEFINES) \
 			   $(EXTRADEFINES) \
+			   $(EXTRACFLAGS) \
 			   -fno-common \
 			   $(addprefix -I,$(INCLUDE_DIRS))
 
@@ -156,18 +165,22 @@ CXXFLAGS		 = $(ARCHCXXFLAGS) \
 			   $(ARCHXXINCLUDES) \
 			   $(INSTRUMENTATIONDEFINES) \
 			   $(ARCHDEFINES) \
-			   $(EXTRADEFINES) \
 			   -DCONFIG_WCHAR_BUILTIN \
+			   $(EXTRADEFINES) \
+			   $(EXTRACXXFLAGS) \
 			   $(addprefix -I,$(INCLUDE_DIRS))
 
 # Flags we pass to the assembler
 #
-AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__
+AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
+			   $(EXTRADEFINES) \
+			   $(EXTRAAFLAGS)
 
 # Flags we pass to the linker
 #
 LDFLAGS			+= --warn-common \
 			   --gc-sections \
+			   $(EXTRALDFLAGS) \
 			   $(addprefix -T,$(LDSCRIPT)) \
 			   $(addprefix -L,$(LIB_DIRS))
 
@@ -189,7 +202,7 @@ DEP_INCLUDES		 = $(subst .o,.d,$(OBJS))
 define COMPILE
 	@$(ECHO) "CC:      $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CC) -MD -c $(CFLAGS) $(EXTRAFLAGS) $(abspath $1) -o $2
+	$(Q) $(CC) -MD -c $(CFLAGS) $(abspath $1) -o $2
 endef
 
 # Compile C++ source $1 to $2
@@ -198,7 +211,7 @@ endef
 define COMPILEXX
 	@$(ECHO) "CXX:     $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CXX) -MD -c $(CXXFLAGS) $(EXTRAFLAGS) $(abspath $1) -o $2
+	$(Q) $(CXX) -MD -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 
 # Assemble $1 into $2
@@ -206,7 +219,7 @@ endef
 define ASSEMBLE
 	@$(ECHO) "AS:      $1"
 	@$(MKDIR) -p $(dir $2)
-	$(Q) $(CC) -c $(AFLAGS) $(EXTRAFLAGS) $(abspath $1) -o $2
+	$(Q) $(CC) -c $(AFLAGS) $(abspath $1) -o $2
 endef
 
 # Produce partially-linked $1 from files in $2
