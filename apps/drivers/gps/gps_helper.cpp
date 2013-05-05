@@ -46,13 +46,13 @@
 float
 GPS_Helper::get_position_update_rate()
 {
-	_rate_count_lat_lon / (((float)(hrt_absolute_time() - _interval_rate_start)) / 1000000.0f);
+	return _rate_count_lat_lon / (((float)(hrt_absolute_time() - _interval_rate_start)) / 1000000.0f);
 }
 
 float
 GPS_Helper::get_velocity_update_rate()
 {
-	_rate_count_vel / (((float)(hrt_absolute_time() - _interval_rate_start)) / 1000000.0f);
+	return _rate_count_vel / (((float)(hrt_absolute_time() - _interval_rate_start)) / 1000000.0f);
 }
 
 float

@@ -72,7 +72,7 @@
 #define UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK 0x01		/**< UBX out */
 
 #define UBX_CFG_RATE_LENGTH 6
-#define UBX_CFG_RATE_PAYLOAD_MEASRATE 200		/**< 200ms for 5Hz */
+#define UBX_CFG_RATE_PAYLOAD_MEASINTERVAL 200		/**< 200ms for 5Hz */
 #define UBX_CFG_RATE_PAYLOAD_NAVRATE 1			/**< cannot be changed */
 #define UBX_CFG_RATE_PAYLOAD_TIMEREF 0			/**< 0: UTC, 1: GPS time */
 

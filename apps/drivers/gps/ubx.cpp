@@ -140,7 +140,7 @@ UBX::configure(unsigned &baudrate)
 		cfg_rate_packet.clsID		= UBX_CLASS_CFG;
 		cfg_rate_packet.msgID		= UBX_MESSAGE_CFG_RATE;
 		cfg_rate_packet.length		= UBX_CFG_RATE_LENGTH;
-		cfg_rate_packet.measRate	= UBX_CFG_RATE_PAYLOAD_MEASRATE;
+		cfg_rate_packet.measRate	= UBX_CFG_RATE_PAYLOAD_MEASINTERVAL;
 		cfg_rate_packet.navRate		= UBX_CFG_RATE_PAYLOAD_NAVRATE;
 		cfg_rate_packet.timeRef		= UBX_CFG_RATE_PAYLOAD_TIMEREF;
 
@@ -176,17 +176,17 @@ UBX::configure(unsigned &baudrate)
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC,
-			UBX_CFG_MSG_PAYLOAD_RATE1_05HZ);
+			1);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SOL,
-			UBX_CFG_MSG_PAYLOAD_RATE1_05HZ);
+			1);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_VELNED,
-			UBX_CFG_MSG_PAYLOAD_RATE1_5HZ);
+			1);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
@@ -739,7 +739,7 @@ UBX::configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate)
     msg.msg_class	= msg_class;
     msg.msg_id		= msg_id;
     msg.rate		= rate;
-    send_message(CFG, UBX_CONFIG_STATE_RATE, &msg, sizeof(msg));
+    send_message(CFG, UBX_MESSAGE_CFG_MSG, &msg, sizeof(msg));
 }
 
 void
