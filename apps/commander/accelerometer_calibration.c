@@ -224,7 +224,7 @@ int do_accel_calibration_mesurements(int mavlink_fd, float accel_offs[3], float 
  * Wait for vehicle become still and detect it's orientation.
  *
  * @return 0..5 according to orientation when vehicle is still and ready for measurements,
- * ERROR if vehicle is not still after 10s or orientation error is more than 20%
+ * ERROR if vehicle is not still after 30s or orientation error is more than 5m/s^2
  */
 int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 	struct sensor_combined_s sensor;
@@ -235,17 +235,17 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 	float accel_len2 = 0.0f;
 	/* EMA time constant in seconds*/
 	float ema_len = 0.2f;
-	/* set "still" threshold to 0.005 m/s^2 */
-	float still_thr2 = pow(0.05f / CONSTANTS_ONE_G, 2);
-	/* set accel error threshold to 30% of accel vector length */
-	float accel_err_thr = 0.3f;
+	/* set "still" threshold to 0.1 m/s^2 */
+	float still_thr2 = pow(0.1f, 2);
+	/* set accel error threshold to 5m/s^2 */
+	float accel_err_thr = 5.0f;
 	/* still time required in us */
 	int64_t still_time = 2000000;
 	struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
 
 	hrt_abstime t_start = hrt_absolute_time();
-	/* set deadline to 20s */
-	hrt_abstime timeout = 20000000;
+	/* set timeout to 30s */
+	hrt_abstime timeout = 30000000;
 	hrt_abstime t_timeout = t_start + timeout;
 	hrt_abstime t = t_start;
 	hrt_abstime t_prev = t_start;
@@ -267,11 +267,10 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 				if (d > accel_disp[i])
 					accel_disp[i] = d;
 			}
-			accel_len2 = accel_ema[0] * accel_ema[0] + accel_ema[1] * accel_ema[1] + accel_ema[2] * accel_ema[2];
-			float still_thr_raw2 = still_thr2 * accel_len2;
-			if (  accel_disp[0] < still_thr_raw2 &&
-				  accel_disp[1] < still_thr_raw2 &&
-				  accel_disp[2] < still_thr_raw2 ) {
+			/* still detector with hysteresis */
+			if (  accel_disp[0] < still_thr2 &&
+				  accel_disp[1] < still_thr2 &&
+				  accel_disp[2] < still_thr2 ) {
 				/* is still now */
 				if (t_still == 0) {
 					/* first time */
@@ -285,9 +284,9 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 						break;
 					}
 				}
-			} else if ( accel_disp[0] > still_thr_raw2 * 2.0f ||
-					    accel_disp[1] > still_thr_raw2 * 2.0f ||
-					    accel_disp[2] > still_thr_raw2 * 2.0f) {
+			} else if ( accel_disp[0] > still_thr2 * 2.0f ||
+					    accel_disp[1] > still_thr2 * 2.0f ||
+					    accel_disp[2] > still_thr2 * 2.0f) {
 				/* not still, reset still start time */
 				if (t_still != 0) {
 					mavlink_log_info(mavlink_fd, "moving...");
@@ -306,30 +305,29 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 	}
 
 	float accel_len = sqrt(accel_len2);
-	float accel_err_thr_raw = accel_len * accel_err_thr;
-	if (  fabs(accel_ema[0] - accel_len) < accel_err_thr_raw &&
-		  fabs(accel_ema[1]) < accel_err_thr_raw &&
-		  fabs(accel_ema[2]) < accel_err_thr_raw  )
+	if (  fabs(accel_ema[0] - accel_len) < accel_err_thr &&
+		  fabs(accel_ema[1]) < accel_err_thr &&
+		  fabs(accel_ema[2]) < accel_err_thr  )
 		return 0;	// [ g, 0, 0 ]
-	if (  fabs(accel_ema[0] + accel_len) < accel_err_thr_raw &&
-		  fabs(accel_ema[1]) < accel_err_thr_raw &&
-		  fabs(accel_ema[2]) < accel_err_thr_raw  )
+	if (  fabs(accel_ema[0] + accel_len) < accel_err_thr &&
+		  fabs(accel_ema[1]) < accel_err_thr &&
+		  fabs(accel_ema[2]) < accel_err_thr  )
 		return 1;	// [ -g, 0, 0 ]
-	if (  fabs(accel_ema[0]) < accel_err_thr_raw &&
-		  fabs(accel_ema[1] - accel_len) < accel_err_thr_raw &&
-		  fabs(accel_ema[2]) < accel_err_thr_raw  )
+	if (  fabs(accel_ema[0]) < accel_err_thr &&
+		  fabs(accel_ema[1] - accel_len) < accel_err_thr &&
+		  fabs(accel_ema[2]) < accel_err_thr  )
 		return 2;	// [ 0, g, 0 ]
-	if (  fabs(accel_ema[0]) < accel_err_thr_raw &&
-		  fabs(accel_ema[1] + accel_len) < accel_err_thr_raw &&
-		  fabs(accel_ema[2]) < accel_err_thr_raw  )
+	if (  fabs(accel_ema[0]) < accel_err_thr &&
+		  fabs(accel_ema[1] + accel_len) < accel_err_thr &&
+		  fabs(accel_ema[2]) < accel_err_thr  )
 		return 3;	// [ 0, -g, 0 ]
-	if (  fabs(accel_ema[0]) < accel_err_thr_raw &&
-		  fabs(accel_ema[1]) < accel_err_thr_raw &&
-		  fabs(accel_ema[2] - accel_len) < accel_err_thr_raw  )
+	if (  fabs(accel_ema[0]) < accel_err_thr &&
+		  fabs(accel_ema[1]) < accel_err_thr &&
+		  fabs(accel_ema[2] - accel_len) < accel_err_thr  )
 		return 4;	// [ 0, 0, g ]
-	if (  fabs(accel_ema[0]) < accel_err_thr_raw &&
-		  fabs(accel_ema[1]) < accel_err_thr_raw &&
-		  fabs(accel_ema[2] + accel_len) < accel_err_thr_raw  )
+	if (  fabs(accel_ema[0]) < accel_err_thr &&
+		  fabs(accel_ema[1]) < accel_err_thr &&
+		  fabs(accel_ema[2] + accel_len) < accel_err_thr  )
 		return 5;	// [ 0, 0, -g ]
 
 	mavlink_log_info(mavlink_fd, "ERROR: invalid orientation");
