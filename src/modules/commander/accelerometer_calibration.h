@@ -1,8 +1,8 @@
 /*
  * accelerometer_calibration.h
  *
- *  Created on: 25.04.2013
- *      Author: ton
+ *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
+ *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  */
 
 #ifndef ACCELEROMETER_CALIBRATION_H_
