@@ -33,7 +33,14 @@
  *
  ****************************************************************************/
 
-/* @file U-Blox protocol implementation */
+/**
+ * @file ubx.cpp
+ *
+ * U-Blox protocol implementation. Following u-blox 6/7 Receiver Description
+ * including Prototol Specification.
+ *
+ * @see http://www.u-blox.com/images/downloads/Product_Docs/u-blox6_ReceiverDescriptionProtocolSpec_%28GPS.G6-SW-10018%29.pdf
+ */
 
 #include <unistd.h>
 #include <stdio.h>
@@ -633,16 +640,17 @@ UBX::handle_message()
 		}
 
 		case NAV_VELNED: {
-//			printf("GOT NAV_VELNED MESSAGE\n");
 
 			if (!_waiting_for_ack) {
+				/* 35.15 NAV-VELNED (0x01 0x12) message (page 181 / 210 of reference manual */
 				gps_bin_nav_velned_packet_t *packet = (gps_bin_nav_velned_packet_t *) _rx_buffer;
 
 				_gps_position->vel_m_s   = (float)packet->speed * 1e-2f;
-				_gps_position->vel_n_m_s = (float)packet->velN * 1e-2f;
-				_gps_position->vel_e_m_s = (float)packet->velE * 1e-2f;
-				_gps_position->vel_d_m_s = (float)packet->velD * 1e-2f;
+				_gps_position->vel_n_m_s = (float)packet->velN * 1e-2f; /* NED NORTH velocity */
+				_gps_position->vel_e_m_s = (float)packet->velE * 1e-2f; /* NED EAST velocity */
+				_gps_position->vel_d_m_s = (float)packet->velD * 1e-2f; /* NED DOWN velocity */
 				_gps_position->cog_rad   = (float)packet->heading * M_DEG_TO_RAD_F * 1e-5f;
+				_gps_position->c_variance_rad = (float)packet->cAcc * M_DEG_TO_RAD_F * 1e-5f;
 				_gps_position->vel_ned_valid = true;
 				_gps_position->timestamp_velocity = hrt_absolute_time();
 			}

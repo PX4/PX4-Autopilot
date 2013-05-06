@@ -32,13 +32,13 @@
 ############################################################################
 
 #
-# Reboot command.
+# Interface driver for the Mikrokopter BLCtrl
 #
 
-APPNAME		 = reboot
+APPNAME		 = mkblctrl
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
 
-include $(APPDIR)/mk/app.mk
+INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
 
-MAXOPTIMIZATION	 = -Os
+include $(APPDIR)/mk/app.mk

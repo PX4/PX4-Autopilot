@@ -494,7 +494,7 @@ ToneAlarm::init()
 		return ret;
 
 	/* configure the GPIO to the idle state */
-	stm32_configgpio(GPIO_TONE_ALARM);
+	stm32_configgpio(GPIO_TONE_ALARM_IDLE);
 
 	/* clock/power on our timer */
 	modifyreg32(STM32_RCC_APB1ENR, 0, TONE_ALARM_CLOCK_ENABLE);
@@ -606,6 +606,8 @@ ToneAlarm::start_note(unsigned note)
 	rEGR = GTIM_EGR_UG;	// force a reload of the period
 	rCCER |= TONE_CCER;	// enable the output
 
+	// configure the GPIO to enable timer output
+	stm32_configgpio(GPIO_TONE_ALARM);
 }
 
 void
@@ -616,10 +618,8 @@ ToneAlarm::stop_note()
 
 	/*
 	 * Make sure the GPIO is not driving the speaker.
-	 *
-	 * XXX this presumes PX4FMU and the onboard speaker driver FET.
 	 */
-	stm32_gpiowrite(GPIO_TONE_ALARM, 0);
+	stm32_configgpio(GPIO_TONE_ALARM_IDLE);
 }
 
 void

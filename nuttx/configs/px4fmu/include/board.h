@@ -326,6 +326,7 @@
  */
 #define TONE_ALARM_TIMER	3	/* timer 3 */
 #define TONE_ALARM_CHANNEL	3	/* channel 3 */
+#define GPIO_TONE_ALARM_IDLE	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN8)
 #define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_FLOAT|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN8)
 
 /************************************************************************************
