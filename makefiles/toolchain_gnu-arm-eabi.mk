@@ -98,14 +98,6 @@ INSTRUMENTATIONDEFINES	 = -finstrument-functions \
 ARCHCFLAGS		 = -std=gnu99
 ARCHCXXFLAGS		 = -fno-exceptions -fno-rtti -std=gnu++0x
 
-# Compatibility 
-# XXX remove this once downstream users are fixed
-#
-ifneq ($(EXTRAFLAGS),)
-$(warning EXTRAFLAGS is deprecated, use EXTRADEFINES for common pre-processor definitions. See also EXTRACFLAGS, EXTRACXXFLAGS and EXTRALDFLAGS.)
-EXTRADEFINES		+= $(EXTRAFLAGS)
-endif
-
 # Generic warnings
 #
 ARCHWARNINGS		 = -Wall \
