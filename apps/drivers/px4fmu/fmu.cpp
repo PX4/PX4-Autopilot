@@ -505,7 +505,11 @@ PX4FMU::task_main()
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
 
 			/* update PWM servo armed status if armed and not locked down */
-			up_pwm_servo_arm(aa.armed && !aa.lockdown);
+			bool set_armed = aa.armed && !aa.lockdown;
+			if (set_armed != _armed) {
+				_armed = set_armed;
+				up_pwm_servo_arm(set_armed);
+			}
 		}
 
 		// see if we have new PPM input data
