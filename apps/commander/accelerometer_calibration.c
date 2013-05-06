@@ -232,7 +232,6 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 	float accel_ema[3] = { 0.0f, 0.0f, 0.0f };
 	/* max-hold dispersion of accel */
 	float accel_disp[3] = { 0.0f, 0.0f, 0.0f };
-	float accel_len2 = 0.0f;
 	/* EMA time constant in seconds*/
 	float ema_len = 0.2f;
 	/* set "still" threshold to 0.1 m/s^2 */
@@ -304,30 +303,29 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 		}
 	}
 
-	float accel_len = sqrt(accel_len2);
-	if (  fabs(accel_ema[0] - accel_len) < accel_err_thr &&
+	if (  fabs(accel_ema[0] - CONSTANTS_ONE_G) < accel_err_thr &&
 		  fabs(accel_ema[1]) < accel_err_thr &&
 		  fabs(accel_ema[2]) < accel_err_thr  )
 		return 0;	// [ g, 0, 0 ]
-	if (  fabs(accel_ema[0] + accel_len) < accel_err_thr &&
+	if (  fabs(accel_ema[0] + CONSTANTS_ONE_G) < accel_err_thr &&
 		  fabs(accel_ema[1]) < accel_err_thr &&
 		  fabs(accel_ema[2]) < accel_err_thr  )
 		return 1;	// [ -g, 0, 0 ]
 	if (  fabs(accel_ema[0]) < accel_err_thr &&
-		  fabs(accel_ema[1] - accel_len) < accel_err_thr &&
+		  fabs(accel_ema[1] - CONSTANTS_ONE_G) < accel_err_thr &&
 		  fabs(accel_ema[2]) < accel_err_thr  )
 		return 2;	// [ 0, g, 0 ]
 	if (  fabs(accel_ema[0]) < accel_err_thr &&
-		  fabs(accel_ema[1] + accel_len) < accel_err_thr &&
+		  fabs(accel_ema[1] + CONSTANTS_ONE_G) < accel_err_thr &&
 		  fabs(accel_ema[2]) < accel_err_thr  )
 		return 3;	// [ 0, -g, 0 ]
 	if (  fabs(accel_ema[0]) < accel_err_thr &&
 		  fabs(accel_ema[1]) < accel_err_thr &&
-		  fabs(accel_ema[2] - accel_len) < accel_err_thr  )
+		  fabs(accel_ema[2] - CONSTANTS_ONE_G) < accel_err_thr  )
 		return 4;	// [ 0, 0, g ]
 	if (  fabs(accel_ema[0]) < accel_err_thr &&
 		  fabs(accel_ema[1]) < accel_err_thr &&
-		  fabs(accel_ema[2] + accel_len) < accel_err_thr  )
+		  fabs(accel_ema[2] + CONSTANTS_ONE_G) < accel_err_thr  )
 		return 5;	// [ 0, 0, -g ]
 
 	mavlink_log_info(mavlink_fd, "ERROR: invalid orientation");
