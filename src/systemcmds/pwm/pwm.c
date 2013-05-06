@@ -78,7 +78,7 @@ usage(const char *reason)
 		"  <channel_group>    Channel group that should update at the alternate rate (may be specified more than once)\n"
 		"  arm | disarm       Arm or disarm the ouptut\n"
 		"  <channel_value>... PWM output values in microseconds to assign to the PWM outputs\n"
-	        "  <chanmask>         Directly supply alt rate channel mask\n"
+		"  <chanmask>         Directly supply alt rate channel mask (debug use only)\n"
 		"\n"
 		"When -c is specified, any channel groups not listed with -c will update at the default rate.\n"
 		);
