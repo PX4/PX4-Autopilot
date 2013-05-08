@@ -64,6 +64,7 @@
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/err.h>
 #include <poll.h>
 
 #include "multirotor_pos_control_flow_params.h"
@@ -238,101 +239,116 @@ multirotor_pos_control_flow_thread_main(int argc, char *argv[])
 					/* get a local copy of bodyframe position */
 					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
 
-					/* be sure that we have a valid setpoint to the current position */
-					if(!bodyframe_setpoint_valid) {
-						/* if setpoint is invalid, wait until setpoint changes... */
-						bool new_setpoint =  false;
-						orb_check(vehicle_bodyframe_position_setpoint_sub, &new_setpoint);
-						if (new_setpoint) {
-							bodyframe_setpoint_valid = true;
-						}
-					}
-					/* get a local copy of bodyframe position setpoint */
-					orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
+					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 
-					if (vstatus.state_machine == SYSTEM_STATE_AUTO && bodyframe_setpoint_valid) {
-
-						/* calc new roll/pitch */
-//						float pitch_body = (bodyframe_pos.x - setpoint_x) * params.pos_p + bodyframe_pos.vx * params.pos_d;
-//						float roll_body = - (bodyframe_pos.y - setpoint_y) * params.pos_p - bodyframe_pos.vy * params.pos_d;
-						float pitch_body = (bodyframe_pos.x - bodyframe_pos_sp.x) * params.pos_p + bodyframe_pos.vx * params.pos_d;
-						float roll_body = - (bodyframe_pos.y - bodyframe_pos_sp.y) * params.pos_p - bodyframe_pos.vy * params.pos_d;
-
-
-						/* limit roll and pitch corrections */
-						if((pitch_body <= params.limit_pitch) && (pitch_body >= -params.limit_pitch)){
-							att_sp.pitch_body = pitch_body;
-						} else {
-							if(pitch_body > params.limit_pitch){
-								att_sp.pitch_body = params.limit_pitch;
-							}
-							if(pitch_body < -params.limit_pitch){
-								att_sp.pitch_body = -params.limit_pitch;
+						/* be sure that we have a valid setpoint to the current position
+						 * can be a setpoint referring to the old position (wait one update)
+						 * */
+						if(!bodyframe_setpoint_valid) {
+							/* if setpoint is invalid, wait until setpoint changes... */
+							bool new_setpoint =  false;
+							orb_check(vehicle_bodyframe_position_setpoint_sub, &new_setpoint);
+							if (new_setpoint) {
+								bodyframe_setpoint_valid = true;
 							}
 						}
 
-						if((roll_body <= params.limit_roll) && (roll_body >= -params.limit_roll)){
-							att_sp.roll_body = roll_body;
-						} else {
-							if(roll_body > params.limit_roll){
-								att_sp.roll_body = params.limit_roll;
+						if (bodyframe_setpoint_valid) {
+							/* get a local copy of bodyframe position setpoint */
+							orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
+
+							/* calc new roll/pitch */
+							float pitch_body = (bodyframe_pos.x - bodyframe_pos_sp.x) * params.pos_p + bodyframe_pos.vx * params.pos_d;
+							float roll_body = - (bodyframe_pos.y - bodyframe_pos_sp.y) * params.pos_p - bodyframe_pos.vy * params.pos_d;
+
+
+							/* limit roll and pitch corrections */
+							if((pitch_body <= params.limit_pitch) && (pitch_body >= -params.limit_pitch)){
+								att_sp.pitch_body = pitch_body;
+							} else {
+								if(pitch_body > params.limit_pitch){
+									att_sp.pitch_body = params.limit_pitch;
+								}
+								if(pitch_body < -params.limit_pitch){
+									att_sp.pitch_body = -params.limit_pitch;
+								}
 							}
-							if(roll_body < -params.limit_roll){
-								att_sp.roll_body = -params.limit_roll;
+
+							if((roll_body <= params.limit_roll) && (roll_body >= -params.limit_roll)){
+								att_sp.roll_body = roll_body;
+							} else {
+								if(roll_body > params.limit_roll){
+									att_sp.roll_body = params.limit_roll;
+								}
+								if(roll_body < -params.limit_roll){
+									att_sp.roll_body = -params.limit_roll;
+								}
 							}
-						}
 
-						/* set yaw setpoint unlimited*/
-						att_sp.yaw_body = bodyframe_pos_sp.yaw;
+							/* set yaw setpoint unlimited*/
+							att_sp.yaw_body = bodyframe_pos_sp.yaw;
 
-						/* add trim from parameters */
-						att_sp.roll_body = att_sp.roll_body + params.trim_roll;
-						att_sp.pitch_body = att_sp.pitch_body + params.trim_pitch;
+							/* add trim from parameters */
+							att_sp.roll_body = att_sp.roll_body + params.trim_roll;
+							att_sp.pitch_body = att_sp.pitch_body + params.trim_pitch;
 
-						/* calc new thrust */
-						float height_error = (bodyframe_pos.z - params.height_sp);
-						integrated_h_error = integrated_h_error + height_error;
-						float integrated_thrust_addition = integrated_h_error * params.height_i;
+							/* calc new thrust */
+							float height_error = (bodyframe_pos.z - params.height_sp);
+							integrated_h_error = integrated_h_error + height_error;
+							float integrated_thrust_addition = integrated_h_error * params.height_i;
 
-						if(integrated_thrust_addition > params.limit_thrust_int){
-							integrated_thrust_addition = params.limit_thrust_int;
-						}
-						if(integrated_thrust_addition < -params.limit_thrust_int){
-							integrated_thrust_addition = -params.limit_thrust_int;
-						}
+							if(integrated_thrust_addition > params.limit_thrust_int){
+								integrated_thrust_addition = params.limit_thrust_int;
+							}
+							if(integrated_thrust_addition < -params.limit_thrust_int){
+								integrated_thrust_addition = -params.limit_thrust_int;
+							}
 
-						float height_speed = last_height - bodyframe_pos.z;
-						last_height = bodyframe_pos.z;
-						float thrust_diff = height_error * params.height_p - height_speed * params.height_d; // just PD controller
-						float thrust = thrust_diff + integrated_thrust_addition;
+							float height_speed = last_height - bodyframe_pos.z;
+							last_height = bodyframe_pos.z;
+							float thrust_diff = height_error * params.height_p - height_speed * params.height_d; // just PD controller
+							float thrust = thrust_diff + integrated_thrust_addition;
 
-						float height_ctrl_thrust = params.thrust_feedforward + thrust;
+							float height_ctrl_thrust = params.thrust_feedforward + thrust;
 
-						/* the throttle stick on the rc control limits the maximum thrust */
-						if(isfinite(manual.throttle))
-							thrust_limit_upper = manual.throttle;
+							/* the throttle stick on the rc control limits the maximum thrust */
+							if(isfinite(manual.throttle)) {
+								thrust_limit_upper = manual.throttle;
+							}
 
-						/* never go too low with the thrust that it becomes uncontrollable */
-						if(height_ctrl_thrust < params.limit_thrust_lower){
-							height_ctrl_thrust = params.limit_thrust_lower;
-						}
+							/* reset integral if on ground */
+							/* TODO change to parameter */
+							if (thrust_limit_upper < 0.2f) {
+								integrated_h_error = 0.0f;
+							}
 
-						if (height_ctrl_thrust > thrust_limit_upper){
-							att_sp.thrust = thrust_limit_upper;
-						} else {
-							att_sp.thrust = height_ctrl_thrust;
-						}
+							/* never go too low with the thrust that it becomes uncontrollable */
+							if(height_ctrl_thrust < params.limit_thrust_lower){
+								height_ctrl_thrust = params.limit_thrust_lower;
+							}
 
-						att_sp.timestamp = hrt_absolute_time();
+							if (height_ctrl_thrust > thrust_limit_upper){
+								att_sp.thrust = thrust_limit_upper;
+							} else {
+								att_sp.thrust = height_ctrl_thrust;
+							}
+
+							att_sp.timestamp = hrt_absolute_time();
 
 
-						/* publish new attitude setpoint */
-						if(isfinite(att_sp.pitch_body) && isfinite(att_sp.roll_body) && isfinite(att_sp.yaw_body) && isfinite(att_sp.thrust))
-						{
-							orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+							/* publish new attitude setpoint */
+							if(isfinite(att_sp.pitch_body) && isfinite(att_sp.roll_body) && isfinite(att_sp.yaw_body) && isfinite(att_sp.thrust))
+							{
+								orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+							} else {
+								warnx("NaN in position controller!");
+							}
 						}
 
 					} else {
+						/* call orb copy for setpoint to recognize new one if mode changes */
+						orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
+
 						/* in manual or stabilized state just reset attitude setpoint */
 						att_sp.roll_body = 0.0f;
 						att_sp.pitch_body = 0.0f;

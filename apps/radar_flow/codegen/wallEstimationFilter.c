@@ -3,7 +3,7 @@
  *
  * Code generation for function 'wallEstimationFilter'
  *
- * C source code generated on: Tue Apr 30 10:03:54 2013
+ * C source code generated on: Wed May  8 17:06:46 2013
  *
  */
 
@@ -102,17 +102,16 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
   real32_T gamma_rear;
   real32_T invalid_flow_filter[10];
   real32_T vectors[20];
-  static const real32_T fv0[20] = { -0.866025388F, -0.788010776F, -0.694658399F,
-    -0.587785244F, -0.469471574F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
-    0.0F, 0.0F, 0.469471574F, 0.587785244F, 0.694658399F, 0.788010776F,
-    0.866025388F };
+  static const real32_T fv0[20] = { -0.939692616F, -0.866025388F, -0.766044438F,
+    -0.642787635F, -0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+    0.0F, 0.5F, 0.642787635F, 0.766044438F, 0.866025388F, 0.939692616F };
 
-  static const real32_T unit_vectors[40] = { 0.5F, 0.615661502F, 0.719339788F,
-    0.809017F, 0.882947564F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F,
-    1.0F, 1.0F, 0.882947564F, 0.809017F, 0.719339788F, 0.615661502F, 0.5F,
-    -0.866025388F, -0.788010776F, -0.694658399F, -0.587785244F, -0.469471574F,
-    0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.469471574F,
-    0.587785244F, 0.694658399F, 0.788010776F, 0.866025388F };
+  static const real32_T unit_vectors[40] = { 0.342020154F, 0.5F, 0.642787635F,
+    0.766044438F, 0.866025388F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F,
+    1.0F, 1.0F, 0.866025388F, 0.766044438F, 0.642787635F, 0.5F, 0.342020154F,
+    -0.939692616F, -0.866025388F, -0.766044438F, -0.642787635F, -0.5F, 0.0F,
+    0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.5F, 0.642787635F,
+    0.766044438F, 0.866025388F, 0.939692616F };
 
   real32_T y[10];
   real32_T A[20];
@@ -145,6 +144,34 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
 
   /* WALL_ESTIMATION Summary of this function goes here */
   /*    Detailed explanation goes here */
+  /*      angles_sin = single([sind(-60),sind(-52),sind(-44),sind(-36),sind(-28),... */
+  /*             0,0,0,0,0,0,0,0,0,0,sind(28),sind(36),sind(44),sind(52),sind(60)]); */
+  /*      angles_sin = single([sind(-70),sind(-62),sind(-54),sind(-46),sind(-38),... */
+  /*             0,0,0,0,0,0,0,0,0,0,sind(38),sind(46),sind(54),sind(62),sind(70)]); */
+  /*      unit_vectors = single([ sind(30),-cosd(30); */
+  /*                              sind(38),-cosd(38); */
+  /*                              sind(46),-cosd(46); */
+  /*                              sind(54),-cosd(54); */
+  /*                              sind(62),-cosd(62); */
+  /*                              1,0;1,0;1,0;1,0;1,0; */
+  /*                              1,0;1,0;1,0;1,0;1,0; */
+  /*                              sind(118),-cosd(118); */
+  /*                              sind(126),-cosd(126); */
+  /*                              sind(134),-cosd(134); */
+  /*                              sind(142),-cosd(142); */
+  /*                              sind(150),-cosd(150)]); */
+  /*      unit_vectors = single([ sind(20),-cosd(20); */
+  /*                              sind(28),-cosd(28); */
+  /*                              sind(36),-cosd(36); */
+  /*                              sind(44),-cosd(44); */
+  /*                              sind(52),-cosd(52); */
+  /*                              1,0;1,0;1,0;1,0;1,0; */
+  /*                              1,0;1,0;1,0;1,0;1,0; */
+  /*                              sind(128),-cosd(128); */
+  /*                              sind(136),-cosd(136); */
+  /*                              sind(144),-cosd(144); */
+  /*                              sind(152),-cosd(152); */
+  /*                              sind(160),-cosd(160)]); */
   /*  const settings */
   /*  only fix resolution is efficient */
   /*  calc from settings */
@@ -521,6 +548,7 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
       0.1F) * (real32_T)(radar_distance_update_front[i2] < 5.0F);
   }
 
+  /*  */
   if (any(x_transition_add) || any(y_transition_add) || any
       (distance_filtering_front)) {
     /*  with updates */
@@ -564,7 +592,7 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
     memset(&lp_alpha[0], 0, sizeof(real32_T) << 5);
     for (i = 0; i < 32; i++) {
       gamma_rear = 0.0F;
-      if ((1 + i < 8) || (1 + i > 24)) {
+      if ((1 + i < 8) || (1 + i > 26)) {
         /*  no real measurements possible */
         i_top = settings[3];
 
@@ -627,7 +655,19 @@ void wallEstimationFilter(const real32_T radar_filtered_k[32], const real32_T
             i_top = settings[3];
           }
 
-          /*  no distance update available */
+          /*  no distance in sensor direction */
+        } else if ((1 + i > 8) && (1 + i < 26)) {
+          /*  both become minimal if there is no wall detected */
+          if ((1 + i < 17) || ((1 + i == 17) && (det_coef_left > det_coef_right)))
+          {
+            i_top = settings[5] + (settings[4] - settings[5]) * det_coef_left;
+            gamma_rear = 0.2F + 0.8F * det_coef_left;
+          } else {
+            i_top = settings[5] + (settings[4] - settings[5]) * det_coef_right;
+            gamma_rear = 0.2F + 0.8F * det_coef_right;
+          }
+
+          /*  no distance update available     */
         } else {
           i_top = settings[5];
           gamma_rear = 0.2F;

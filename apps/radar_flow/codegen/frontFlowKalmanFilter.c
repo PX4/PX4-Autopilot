@@ -3,7 +3,7 @@
  *
  * Code generation for function 'frontFlowKalmanFilter'
  *
- * C source code generated on: Tue Apr 30 10:03:54 2013
+ * C source code generated on: Wed May  8 17:06:46 2013
  *
  */
 
@@ -30,6 +30,7 @@ void frontFlowKalmanFilter(real32_T dt, real32_T k1, real32_T k2, const real32_T
   speed_aposteriori[4])
 {
   real32_T A[4];
+  real32_T A_no_update[4];
   int32_T i0;
   real32_T K[2];
   int16_T flow[20];
@@ -45,8 +46,13 @@ void frontFlowKalmanFilter(real32_T dt, real32_T k1, real32_T k2, const real32_T
   /*  frequence front flow. */
   A[0] = 1.0F;
   A[2] = dt;
+
+  /*  this is not the best way to do this */
+  A_no_update[0] = 0.95F;
+  A_no_update[2] = dt;
   for (i0 = 0; i0 < 2; i0++) {
     A[1 + (i0 << 1)] = (real32_T)i0;
+    A_no_update[1 + (i0 << 1)] = 0.95F * (real32_T)i0;
   }
 
   /*  we got only new value */
@@ -118,7 +124,7 @@ void frontFlowKalmanFilter(real32_T dt, real32_T k1, real32_T k2, const real32_T
       for (i0 = 0; i0 < 2; i0++) {
         flow_aposteriori[i0 + (i << 1)] = 0.0F;
         for (i1 = 0; i1 < 2; i1++) {
-          flow_aposteriori[i0 + (i << 1)] += A[i0 + (i1 << 1)] *
+          flow_aposteriori[i0 + (i << 1)] += A_no_update[i0 + (i1 << 1)] *
             flow_aposteriori_k[i1 + (i << 1)];
         }
       }
@@ -150,7 +156,7 @@ void frontFlowKalmanFilter(real32_T dt, real32_T k1, real32_T k2, const real32_T
       for (i0 = 0; i0 < 2; i0++) {
         speed_aposteriori[i0 + (i << 1)] = 0.0F;
         for (i1 = 0; i1 < 2; i1++) {
-          speed_aposteriori[i0 + (i << 1)] += A[i0 + (i1 << 1)] *
+          speed_aposteriori[i0 + (i << 1)] += A_no_update[i0 + (i1 << 1)] *
             speed_aposteriori_k[i1 + (i << 1)];
         }
       }

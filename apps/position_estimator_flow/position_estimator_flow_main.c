@@ -141,7 +141,7 @@ int position_estimator_flow_thread_main(int argc, char *argv[])
 	thread_running = true;
 	printf("[flow position estimator] starting\n");
 
-	/* FIXME should be a parameter */
+	/* TODO should be a parameter */
 	static const int8_t rotM_flow_sensor[3][3] =   {{  0, 1, 0 },
 													{ -1, 0, 0 },
 													{  0, 0, 1 }};

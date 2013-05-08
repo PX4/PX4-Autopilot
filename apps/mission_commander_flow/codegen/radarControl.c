@@ -3,7 +3,7 @@
  *
  * Code generation for function 'radarControl'
  *
- * C source code generated on: Wed May  1 11:47:44 2013
+ * C source code generated on: Wed May  8 08:43:06 2013
  *
  */
 
@@ -109,6 +109,7 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
   boolean_T exitg2;
   boolean_T exitg1;
   real32_T free_sectors_diff;
+  real32_T yaw_scale;
   int32_T yaw_direction;
   static const real32_T fv0[32] = { 3.14159274F, 2.94524312F, 2.74889374F,
     2.55254412F, 2.3561945F, 2.15984488F, 1.96349549F, 1.76714587F, 1.57079637F,
@@ -621,6 +622,8 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
 
     /*  which side is near */
     /*  scaling and direction */
+    yaw_scale = 0.0F;
+
     /*  0 to 1 scaling */
     /*  left or right */
     if ((free_sectors_diff == 0.0F) && ((front_threshold == 0.0F) ||
@@ -666,7 +669,7 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
 
       /*  only distance to wall defines scaling */
       if (dist_edge_left <= 0) {
-        front_threshold = 1.0F;
+        yaw_scale = 1.0F;
       } else {
         /*  0..1 */
         i = front_side_range - dist_edge_left;
@@ -674,8 +677,7 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
           i = -32768;
         }
 
-        front_threshold = rt_powf_snf((real32_T)i / (real32_T)front_side_range,
-          2.0F);
+        yaw_scale = rt_powf_snf((real32_T)i / (real32_T)front_side_range, 2.0F);
       }
     } else if ((front_threshold < 4.0F) && (free_sectors_right < 4.0F)) {
       /*  calc perfect yaw */
@@ -685,25 +687,30 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
       if (front_threshold > 0.0F) {
         /*  turn left */
         yaw_direction = -1;
-      } else {
+      } else if (front_threshold < 0.0F) {
         /*  turn right */
         yaw_direction = 1;
-      }
-
-      /*  calc circle sector length (perimeter) */
-      /*  calc scale */
-      i = front_left + dist_edge_left;
-      if (i > 32767) {
-        i = 32767;
       } else {
-        if (i < -32768) {
-          i = -32768;
-        }
+        /*  straight */
+        yaw_direction = 0;
       }
 
-      front_threshold = (real32_T)fabs(front_threshold) / ((real32_T)i / 2.0F /
-        (real32_T)sin((real32_T)fabs(front_threshold)) * (real32_T)fabs
-        (front_threshold) / settings[0]) / settings[2];
+      if (yaw_direction != 0) {
+        /*  calc circle sector length (perimeter) */
+        /*  calc scale */
+        i = front_left + dist_edge_left;
+        if (i > 32767) {
+          i = 32767;
+        } else {
+          if (i < -32768) {
+            i = -32768;
+          }
+        }
+
+        yaw_scale = (real32_T)fabs(front_threshold) / ((real32_T)i / 2.0F /
+          (real32_T)sin((real32_T)fabs(front_threshold)) * (real32_T)fabs
+          (front_threshold) / settings[0]) / settings[2];
+      }
     } else {
       /*  full reaction is possible but not always needed */
       if (free_sectors_diff > 0.0F) {
@@ -735,7 +742,7 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
       }
 
       if (dist_edge_left <= 0) {
-        front_threshold = free_sectors_diff / 4.0F;
+        yaw_scale = free_sectors_diff / 4.0F;
       } else {
         /*  0..1 */
         i = front_side_range - dist_edge_left;
@@ -743,13 +750,13 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
           i = -32768;
         }
 
-        front_threshold = rt_powf_snf((real32_T)i / (real32_T)front_side_range,
-          2.0F) * (free_sectors_diff / 4.0F);
+        yaw_scale = rt_powf_snf((real32_T)i / (real32_T)front_side_range, 2.0F) *
+          (free_sectors_diff / 4.0F);
       }
     }
 
     free_environment = FALSE;
-    *yaw_control = (real32_T)yaw_direction * (settings[2] * front_threshold);
+    *yaw_control = (real32_T)yaw_direction * (settings[2] * yaw_scale);
   } else {
     *yaw_control = 0.0F;
   }

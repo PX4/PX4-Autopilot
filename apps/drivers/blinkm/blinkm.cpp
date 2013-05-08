@@ -702,7 +702,11 @@ BlinkM::led()
 				}
 			}
 
-			float dist = (float) minimum_radar_distance / 1000.0f;
+			float dist = (float) minimum_radar_distance / 1000.0f; // m
+			if(discrete_radar_raw.sonar < dist) {
+				dist = discrete_radar_raw.sonar;
+			}
+
 			int gradient = 0;
 
 			if (dist < 5.0f || dist > 0.0f) {
