@@ -56,9 +56,9 @@ BlockYawDamper::BlockYawDamper(SuperBlock *parent, const char *name) :
 
 BlockYawDamper::~BlockYawDamper() {};
 
-void BlockYawDamper::update(float rCmd, float r)
+void BlockYawDamper::update(float rCmd, float r, float outputScale)
 {
-	_rudder = _r2Rdr.update(rCmd -
+	_rudder = outputScale*_r2Rdr.update(rCmd -
 				_rWashout.update(_rLowPass.update(r)));
 }
 
@@ -77,13 +77,13 @@ BlockStabilization::BlockStabilization(SuperBlock *parent, const char *name) :
 BlockStabilization::~BlockStabilization() {};
 
 void BlockStabilization::update(float pCmd, float qCmd, float rCmd,
-				float p, float q, float r)
+				float p, float q, float r, float outputScale)
 {
-	_aileron = _p2Ail.update(
+	_aileron = outputScale*_p2Ail.update(
 			   pCmd - _pLowPass.update(p));
-	_elevator = _q2Elv.update(
+	_elevator = outputScale*_q2Elv.update(
 			    qCmd - _qLowPass.update(q));
-	_yawDamper.update(rCmd, r);
+	_yawDamper.update(rCmd, r, outputScale);
 }
 
 BlockWaypointGuidance::BlockWaypointGuidance(SuperBlock *parent, const char *name) :
@@ -163,11 +163,11 @@ BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *par
 	// guidance block
 	_guide(this, ""),
 
-	// block params
-	_trimAil(this, "TRIM_ROLL", false), /* general roll trim (full name: TRIM_ROLL) */
-	_trimElv(this, "TRIM_PITCH", false), /* general pitch trim */
-	_trimRdr(this, "TRIM_YAW", false), /* general yaw trim */
-	_trimThr(this, "TRIM_THR", true), /* FWB_ specific throttle trim (full name: FWB_TRIM_THR) */
+	_trimAil(this, "TRIM_ROLL", false), 	/* general roll trim (full name: TRIM_ROLL) */
+	_trimElv(this, "TRIM_PITCH", false), 	/* general pitch trim */
+	_trimRdr(this, "TRIM_YAW", false), 	/* general yaw trim */
+	_trimThr(this, "TRIM_THR"), 	/* FWB_ specific throttle trim (full name: FWB_TRIM_THR) */
+	_trimV(this, "TRIM_V"), 	/* FWB_ specific trim velocity (full name : FWB_TRIM_V) */
 
 	_vCmd(this, "V_CMD"),
 	_rocMax(this, "ROC_MAX"),
@@ -228,7 +228,15 @@ void BlockMultiModeBacksideAutopilot::update()
 		_guide.update(_pos, _att, _posCmd, _lastPosCmd);
 
 		// calculate velocity, XXX should be airspeed, but using ground speed for now
-		float v = sqrtf(_pos.vx * _pos.vx + _pos.vy * _pos.vy + _pos.vz * _pos.vz);
+		// for the purpose of control we will limit the velocity feedback between
+		// the min/max velocity
+		float v = _vLimit.update(sqrtf(
+					_pos.vx * _pos.vx +
+					_pos.vy * _pos.vy +
+					_pos.vz * _pos.vz));
+
+		// limit velocity command between min/max velocity
+		float vCmd = _vLimit.update(_vCmd.get());
 
 		// altitude hold
 		float dThrottle = _h2Thr.update(_posCmd.altitude - _pos.alt);
@@ -240,16 +248,19 @@ void BlockMultiModeBacksideAutopilot::update()
 
 		// velocity hold
 		// negative sign because nose over to increase speed
-		float thetaCmd = _theLimit.update(-_v2Theta.update(
-				_vLimit.update(_vCmd.get()) - v));
+		float thetaCmd = _theLimit.update(-_v2Theta.update(vCmd - v));
 		float qCmd = _theta2Q.update(thetaCmd - _att.pitch);
 
 		// yaw rate cmd
 		float rCmd = 0;
 
 		// stabilization
+		float velocityRatio = _trimV.get()/v;
+		float outputScale = velocityRatio*velocityRatio;
+		// this term scales the output based on the dynamic pressure change from trim
 		_stabilization.update(pCmd, qCmd, rCmd,
-				      _att.rollspeed, _att.pitchspeed, _att.yawspeed);
+				      _att.rollspeed, _att.pitchspeed, _att.yawspeed,
+				      outputScale);
 
 		// output
 		_actuators.control[CH_AIL] = _stabilization.getAileron() + _trimAil.get();
@@ -280,7 +291,12 @@ void BlockMultiModeBacksideAutopilot::update()
 		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
 			// calculate velocity, XXX should be airspeed, but using ground speed for now
-			float v = sqrtf(_pos.vx * _pos.vx + _pos.vy * _pos.vy + _pos.vz * _pos.vz);
+			// for the purpose of control we will limit the velocity feedback between
+			// the min/max velocity
+			float v = _vLimit.update(sqrtf(
+						_pos.vx * _pos.vx +
+						_pos.vy * _pos.vy +
+						_pos.vz * _pos.vz));
 
 			// pitch channel -> rate of climb
 			// TODO, might want to put a gain on this, otherwise commanding
@@ -294,8 +310,10 @@ void BlockMultiModeBacksideAutopilot::update()
 
 			// throttle channel -> velocity
 			// negative sign because nose over to increase speed
-			float vCmd = _manual.throttle * (_vLimit.getMax() - _vLimit.getMin()) + _vLimit.getMin();
-			float thetaCmd = _theLimit.update(-_v2Theta.update(_vLimit.update(vCmd) - v));
+			float vCmd = _vLimit.update(_manual.throttle *
+					(_vLimit.getMax() - _vLimit.getMin()) +
+					_vLimit.getMin());
+			float thetaCmd = _theLimit.update(-_v2Theta.update(vCmd - v));
 			float qCmd = _theta2Q.update(thetaCmd - _att.pitch);
 
 			// yaw rate cmd
