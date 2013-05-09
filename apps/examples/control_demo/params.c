@@ -59,14 +59,14 @@ PARAM_DEFINE_FLOAT(FWB_V_MAX, 16.0f);       // maximum commanded velocity
 // rate of climb
 // this is what rate of climb is commanded (in m/s) 
 // when the pitch stick is fully defelcted in simple mode
-PARAM_DEFINE_FLOAT(FWB_ROC_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(FWB_CR_MAX, 1.0f);
 
-//  rate of climb -> thr
-PARAM_DEFINE_FLOAT(FWB_ROC2THR_P, 0.01f);   // rate of climb to throttle PID
-PARAM_DEFINE_FLOAT(FWB_ROC2THR_I, 0.0f);
-PARAM_DEFINE_FLOAT(FWB_ROC2THR_D, 0.0f);
-PARAM_DEFINE_FLOAT(FWB_ROC2THR_D_LP, 0.0f);
-PARAM_DEFINE_FLOAT(FWB_ROC2THR_I_MAX, 0.0f);
+//  climb rate -> thr
+PARAM_DEFINE_FLOAT(FWB_CR2THR_P, 0.01f);   // rate of climb to throttle PID
+PARAM_DEFINE_FLOAT(FWB_CR2THR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FWB_CR2THR_D, 0.0f);
+PARAM_DEFINE_FLOAT(FWB_CR2THR_D_LP, 0.0f);
+PARAM_DEFINE_FLOAT(FWB_CR2THR_I_MAX, 0.0f);
 
 PARAM_DEFINE_FLOAT(FWB_TRIM_THR, 0.8f);    // trim throttle (0,1)
 PARAM_DEFINE_FLOAT(FWB_TRIM_V, 12.0f);     // trim velocity, m/s
