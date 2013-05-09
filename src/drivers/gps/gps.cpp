@@ -285,6 +285,11 @@ GPS::task_main()
 		unlock();
 		if (_Helper->configure(_baudrate) == 0) {
 			unlock();
+
+			// GPS is obviously detected successfully, reset statistics
+			_Helper->reset_update_rates();
+			warnx("module configuration successful");
+
 			while (_Helper->receive(TIMEOUT_5HZ) > 0 && !_task_should_exit) {
 //				lock();
 				/* opportunistic publishing - else invalid data would end up on the bus */
@@ -372,7 +377,11 @@ GPS::print_info()
 		warnx("position lock: %dD, last update %4.2f seconds ago", (int)_report.fix_type,
 			(double)((float)(hrt_absolute_time() - _report.timestamp_position) / 1000000.0f));
 		warnx("lat: %d, lon: %d, alt: %d", _report.lat, _report.lon, _report.alt);
-		warnx("update rate: %6.2f Hz", (double)_rate);
+		warnx("rate position: \t%6.2f Hz", (double)_Helper->get_position_update_rate());
+		warnx("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
+		warnx("rate publication:\t%6.2f Hz", (double)_rate);
+
+		_Helper->reset_update_rates();
 	}
 
 	usleep(100000);

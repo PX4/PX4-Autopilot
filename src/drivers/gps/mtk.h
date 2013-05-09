@@ -87,14 +87,14 @@ class MTK : public GPS_Helper
 public:
 	MTK(const int &fd, struct vehicle_gps_position_s *gps_position);
 	~MTK();
-	int					receive(unsigned timeout);
-	int					configure(unsigned &baudrate);
+	int				receive(unsigned timeout);
+	int				configure(unsigned &baudrate);
 
 private:
 	/**
 	 * Parse the binary MTK packet
 	 */
-	int					parse_char(uint8_t b, gps_mtk_packet_t &packet);
+	int				parse_char(uint8_t b, gps_mtk_packet_t &packet);
 
 	/**
 	 * Handle the package once it has arrived
