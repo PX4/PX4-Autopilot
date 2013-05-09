@@ -53,6 +53,15 @@ namespace device __EXPORT
 class __EXPORT I2C : public CDev
 {
 
+public:
+
+    /**
+     * Get the address
+     */
+    uint16_t get_address() {
+      return _address;
+    }
+
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
