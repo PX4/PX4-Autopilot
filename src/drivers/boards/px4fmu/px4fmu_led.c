@@ -39,19 +39,27 @@
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
 #include <stdbool.h>
-#include <debug.h>
 
-#include <arch/board/board.h>
-
-#include "chip.h"
-#include "up_arch.h"
-#include "up_internal.h"
 #include "stm32_internal.h"
 #include "px4fmu_internal.h"
 
-__EXPORT void up_ledinit()
+#include <arch/board/board.h>
+
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init();
+extern void led_on(int led);
+extern void led_off(int led);
+__END_DECLS
+
+__EXPORT void led_init()
 {
 	/* Configure LED1-2 GPIOs for output */
 
@@ -59,7 +67,7 @@ __EXPORT void up_ledinit()
 	stm32_configgpio(GPIO_LED2);
 }
 
-__EXPORT void up_ledon(int led)
+__EXPORT void led_on(int led)
 {
 	if (led == 0)
 	{
@@ -73,7 +81,7 @@ __EXPORT void up_ledon(int led)
 	}
 }
 
-__EXPORT void up_ledoff(int led)
+__EXPORT void led_off(int led)
 {
 	if (led == 0)
 	{
