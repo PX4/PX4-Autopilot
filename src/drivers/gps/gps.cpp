@@ -288,7 +288,6 @@ GPS::task_main()
 
 			// GPS is obviously detected successfully, reset statistics
 			_Helper->reset_update_rates();
-			warnx("module configuration successful");
 
 			while (_Helper->receive(TIMEOUT_5HZ) > 0 && !_task_should_exit) {
 //				lock();
@@ -306,6 +305,8 @@ GPS::task_main()
 					_rate = last_rate_count / ((float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f);
 					last_rate_measurement = hrt_absolute_time();
 					last_rate_count = 0;
+					_Helper->store_update_rates();
+					_Helper->reset_update_rates();
 				}
 
 				if (!_healthy) {
@@ -381,7 +382,6 @@ GPS::print_info()
 		warnx("rate velocity: \t%6.2f Hz", (double)_Helper->get_velocity_update_rate());
 		warnx("rate publication:\t%6.2f Hz", (double)_rate);
 
-		_Helper->reset_update_rates();
 	}
 
 	usleep(100000);

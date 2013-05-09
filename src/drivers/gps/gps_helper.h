@@ -52,10 +52,14 @@ public:
 	float				get_position_update_rate();
 	float				get_velocity_update_rate();
 	float				reset_update_rates();
+	float				store_update_rates();
 
 protected:
 	uint8_t _rate_count_lat_lon;
 	uint8_t _rate_count_vel;
+
+	float _rate_lat_lon;
+	float _rate_vel;
 
 	uint64_t _interval_rate_start;
 };
