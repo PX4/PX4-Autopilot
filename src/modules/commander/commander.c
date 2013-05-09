@@ -1503,22 +1503,40 @@ int commander_thread_main(int argc, char *argv[])
 			if ((current_status.state_machine == SYSTEM_STATE_GROUND_READY ||
 			     current_status.state_machine == SYSTEM_STATE_AUTO  ||
 			     current_status.state_machine == SYSTEM_STATE_MANUAL)) {
-				/* armed */
-				led_toggle(LED_BLUE);
+				/* armed, solid */
+				led_on(LED_AMBER);
 
 			} else if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
 				/* not armed */
-				led_toggle(LED_BLUE);
+				led_toggle(LED_AMBER);
 			}
 
-			/* toggle error led at 5 Hz in HIL mode */
+			if (hrt_absolute_time() - gps_position.timestamp_position < 2000000) {
+
+				/* toggle GPS (blue) led at 1 Hz if GPS present but no lock, make is solid once locked */
+				if ((hrt_absolute_time() - gps_position.timestamp_position < 2000000)
+					&& (gps_position.fix_type == GPS_FIX_TYPE_3D)) {
+					/* GPS lock */
+					led_on(LED_BLUE);
+
+				} else if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+					/* no GPS lock, but GPS module is aquiring lock */
+					led_toggle(LED_BLUE);
+				}
+
+			} else {
+				/* no GPS info, don't light the blue led */
+				led_off(LED_BLUE);
+			}
+
+			/* toggle GPS led at 5 Hz in HIL mode */
 			if (current_status.flag_hil_enabled) {
 				/* hil enabled */
-				led_toggle(LED_AMBER);
+				led_toggle(LED_BLUE);
 
 			} else if (bat_remain < 0.3f && (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT)) {
 				/* toggle error (red) at 5 Hz on low battery or error */
-				led_toggle(LED_AMBER);
+				led_toggle(LED_BLUE);
 
 			} else {
 				// /* Constant error indication in standby mode without GPS */
