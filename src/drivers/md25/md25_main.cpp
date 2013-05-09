@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,7 +55,7 @@
 #include <systemlib/param/param.h>
 
 #include <arch/board/board.h>
-#include "MD25.hpp"
+#include "md25.hpp"
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
