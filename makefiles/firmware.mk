@@ -193,7 +193,7 @@ EXTRA_CLEANS		 =
 #     for GMSL).
 
 # where to look for modules
-MODULE_SEARCH_DIRS	 += $(WORK_DIR) $(MODULE_SRC) $(PX4_MODULE_SRC)
+MODULE_SEARCH_DIRS	+= $(WORK_DIR) $(MODULE_SRC) $(PX4_MODULE_SRC)
 
 # sort and unique the modules list
 MODULES			:= $(sort $(MODULES))
