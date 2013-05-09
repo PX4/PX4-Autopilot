@@ -45,140 +45,116 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdbool.h>
-#include <nuttx/sched.h>
+#include <nuttx/wqueue.h>
+#include <nuttx/clock.h>
 #include <systemlib/systemlib.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 
-static bool thread_should_exit = false;
-static bool thread_running = false;
+
+struct gpio_led_s
+{
+	struct work_s work;
+	int gpio_fd;
+	struct vehicle_status_s status;
+	int vehicle_status_sub;
+	bool led_state;
+	int counter;
+};
+
+static struct gpio_led_s gpio_led;
 
 __EXPORT int gpio_led_main(int argc, char *argv[]);
 
-static int gpio_led_thread_main(int argc, char *argv[]);
+void gpio_led_start(FAR void *arg);
 
-static void usage(const char *reason);
-
-static void
-usage(const char *reason)
-{
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: gpio_led {start|stop|status}\n\n");
-	exit(1);
-}
+void gpio_led_cycle(FAR void *arg);
 
 int gpio_led_main(int argc, char *argv[])
 {
-	if (argc < 1)
-		usage("missing command");
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			printf("gpio_led already running\n");
-			/* this is not an error */
-			exit(0);
-		}
-
-		thread_should_exit = false;
-		task_spawn("gpio_led",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MIN,
-					 2048,
-					 gpio_led_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		exit(0);
+	memset(&gpio_led, 0, sizeof(gpio_led));
+	int ret = work_queue(LPWORK, &gpio_led.work, gpio_led_start, &gpio_led, 0);
+	if (ret != 0) {
+		printf("[gpio_led] Failed to queue work: %d\n", ret);
+		exit(1);
 	}
-
-	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			printf("\tgpio_led is running\n");
-		} else {
-			printf("\tgpio_led not started\n");
-		}
-		exit(0);
-	}
-
-	usage("unrecognized command");
-	exit(1);
+	exit(0);
 }
 
-int gpio_led_thread_main(int argc, char *argv[])
+void gpio_led_start(FAR void *arg)
 {
-	/* welcome user */
-	printf("[gpio_led] started\n");
+	FAR struct gpio_led_s *priv = (FAR struct gpio_led_s *)arg;
 
-	int fd = open(GPIO_DEVICE_PATH, 0);
-	if (fd < 0) {
+	/* open GPIO device */
+	priv->gpio_fd = open(GPIO_DEVICE_PATH, 0);
+	if (priv->gpio_fd < 0) {
 		printf("[gpio_led] GPIO: open fail\n");
-		return ERROR;
+		return;
 	}
 
-	/* set GPIO EXT 1 as output */
-	ioctl(fd, GPIO_SET_OUTPUT, GPIO_EXT_1);
-
-	ioctl(fd, GPIO_CLEAR, GPIO_EXT_1);
-
-	/* initialize values */
-	bool led_state = false;
-	int counter = 0;
+	/* configure GPIO pin */
+	ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, GPIO_EXT_1);
 
 	/* subscribe to vehicle status topic */
-	struct vehicle_status_s status;
-	memset(&status, 0, sizeof(status));
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	memset(&priv->status, 0, sizeof(priv->status));
+	priv->vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
-	while (!thread_should_exit) {
-		bool status_updated;
-		orb_check((vehicle_status_sub), &status_updated);
-		if (status_updated)
-			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &status);
-
-		int pattern = 0;
-		if (status.flag_system_armed) {
-			if (status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
-				pattern = 0x3f;	// ****** solid (armed)
-			} else {
-				pattern = 0x2A;	// *_*_*_ fast blink (armed, battery warning)
-			}
-		} else {
-			if (status.state_machine == SYSTEM_STATE_PREFLIGHT) {
-				pattern = 0x00;	// ______ off (disarmed, preflight check)
-			} else if (status.state_machine == SYSTEM_STATE_STANDBY && status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
-				pattern = 0x38;	// ***___ slow blink (disarmed, ready)
-			} else {
-				pattern = 0x28;	// *_*___ slow double blink (disarmed, not good to arm)
-			}
-		}
-
-		bool led_state_new = (pattern & (1 << counter)) != 0;
-		if (led_state_new != led_state) {
-			led_state = led_state_new;
-			if (led_state) {
-				ioctl(fd, GPIO_SET, GPIO_EXT_1);
-			} else {
-				ioctl(fd, GPIO_CLEAR, GPIO_EXT_1);
-			}
-		}
-
-		counter++;
-		if (counter > 5)
-			counter = 0;
-
-		usleep(333333);	// sleep ~1/3s
+	/* add worker to queue */
+	int ret = work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, 0);
+	if (ret != 0) {
+		printf("[gpio_led] Failed to queue work: %d\n", ret);
+		return;
 	}
 
-	ioctl(fd, GPIO_CLEAR, GPIO_EXT_1);
+	printf("[gpio_led] Started\n");
+}
 
-	printf("[gpio_led] exiting\n");
+void gpio_led_cycle(FAR void *arg)
+{
+	FAR struct gpio_led_s *priv = (FAR struct gpio_led_s *)arg;
 
-	return 0;
+	/* check for status updates*/
+	bool status_updated;
+	orb_check(priv->vehicle_status_sub, &status_updated);
+	if (status_updated)
+		orb_copy(ORB_ID(vehicle_status), priv->vehicle_status_sub, &priv->status);
+
+	/* select pattern for current status */
+	int pattern = 0;
+	if (priv->status.flag_system_armed) {
+		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
+			pattern = 0x3f;	// ****** solid (armed)
+		} else {
+			pattern = 0x2A;	// *_*_*_ fast blink (armed, battery warning)
+		}
+	} else {
+		if (priv->status.state_machine == SYSTEM_STATE_PREFLIGHT) {
+			pattern = 0x00;	// ______ off (disarmed, preflight check)
+		} else if (priv->status.state_machine == SYSTEM_STATE_STANDBY &&
+				   priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
+			pattern = 0x38;	// ***___ slow blink (disarmed, ready)
+		} else {
+			pattern = 0x28;	// *_*___ slow double blink (disarmed, not good to arm)
+		}
+	}
+
+	/* blink pattern */
+	bool led_state_new = (pattern & (1 << priv->counter)) != 0;
+	if (led_state_new != priv->led_state) {
+		priv->led_state = led_state_new;
+		if (led_state_new) {
+			ioctl(priv->gpio_fd, GPIO_SET, GPIO_EXT_1);
+		} else {
+			ioctl(priv->gpio_fd, GPIO_CLEAR, GPIO_EXT_1);
+		}
+	}
+
+	priv->counter++;
+	if (priv->counter > 5)
+		priv->counter = 0;
+
+	/* repeat cycle at 5 Hz*/
+	work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, USEC2TICK(200000));
 }
