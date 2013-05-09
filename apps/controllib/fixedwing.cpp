@@ -156,9 +156,9 @@ BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *par
 	_theLimit(this, "THE"),
 	_vLimit(this, "V"),
 
-	// altitude/roc hold
+	// altitude/climb rate hold
 	_h2Thr(this, "H2THR"),
-	_roc2Thr(this, "ROC2THR"),
+	_cr2Thr(this, "CR2THR"),
 
 	// guidance block
 	_guide(this, ""),
@@ -170,7 +170,7 @@ BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *par
 	_trimV(this, "TRIM_V"), 	/* FWB_ specific trim velocity (full name : FWB_TRIM_V) */
 
 	_vCmd(this, "V_CMD"),
-	_rocMax(this, "ROC_MAX"),
+	_crMax(this, "CR_MAX"),
 	_attPoll(),
 	_lastPosCmd(),
 	_timeStamp(0)
@@ -301,8 +301,8 @@ void BlockMultiModeBacksideAutopilot::update()
 			// pitch channel -> rate of climb
 			// TODO, might want to put a gain on this, otherwise commanding
 			// from +1 -> -1 m/s for rate of climb
-			//float dThrottle = _roc2Thr.update(
-			//_rocMax.get()*_manual.pitch - _pos.vz);
+			//float dThrottle = _cr2Thr.update(
+			//_crMax.get()*_manual.pitch - _pos.vz);
 
 			// roll channel -> bank angle
 			float phiCmd = _phiLimit.update(_manual.roll * _phiLimit.getMax());
