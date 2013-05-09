@@ -55,7 +55,7 @@
 #include <systemlib/param/param.h>
 
 #include <arch/board/board.h>
-#include "MD25.hpp"
+#include "md25.hpp"
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
