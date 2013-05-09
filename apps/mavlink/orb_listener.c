@@ -630,7 +630,7 @@ l_discrete_radar(const struct listener *l)
 	orb_copy(ORB_ID(discrete_radar), mavlink_subs.discrete_radar, &discrete_radar);
 
 	mavlink_msg_discrete_radar_send(MAVLINK_COMM_0, discrete_radar.timestamp, 5,
-			discrete_radar.distances, 1);
+			discrete_radar.distances, discrete_radar.sonar, 1);
 }
 
 void

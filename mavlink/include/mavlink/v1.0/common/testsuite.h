@@ -3946,13 +3946,15 @@ static void mavlink_test_discrete_radar(uint8_t system_id, uint8_t component_id,
         uint16_t i;
 	mavlink_discrete_radar_t packet_in = {
 		93372036854775807ULL,
-	{ 17651, 17652, 17653, 17654, 17655, 17656, 17657, 17658, 17659, 17660, 17661, 17662, 17663, 17664, 17665, 17666, 17667, 17668, 17669, 17670, 17671, 17672, 17673, 17674, 17675, 17676, 17677, 17678, 17679, 17680, 17681, 17682 },
-	221,
-	32,
+	73.0,
+	{ 17859, 17860, 17861, 17862, 17863, 17864, 17865, 17866, 17867, 17868, 17869, 17870, 17871, 17872, 17873, 17874, 17875, 17876, 17877, 17878, 17879, 17880, 17881, 17882, 17883, 17884, 17885, 17886, 17887, 17888, 17889, 17890 },
+	233,
+	44,
 	};
 	mavlink_discrete_radar_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
         	packet1.time_usec = packet_in.time_usec;
+        	packet1.sonar = packet_in.sonar;
         	packet1.sensor_id = packet_in.sensor_id;
         	packet1.quality = packet_in.quality;
         
@@ -3965,12 +3967,12 @@ static void mavlink_test_discrete_radar(uint8_t system_id, uint8_t component_id,
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_discrete_radar_pack(system_id, component_id, &msg , packet1.time_usec , packet1.sensor_id , packet1.distances , packet1.quality );
+	mavlink_msg_discrete_radar_pack(system_id, component_id, &msg , packet1.time_usec , packet1.sensor_id , packet1.distances , packet1.sonar , packet1.quality );
 	mavlink_msg_discrete_radar_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_discrete_radar_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.time_usec , packet1.sensor_id , packet1.distances , packet1.quality );
+	mavlink_msg_discrete_radar_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.time_usec , packet1.sensor_id , packet1.distances , packet1.sonar , packet1.quality );
 	mavlink_msg_discrete_radar_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
@@ -3983,7 +3985,7 @@ static void mavlink_test_discrete_radar(uint8_t system_id, uint8_t component_id,
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
         
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_discrete_radar_send(MAVLINK_COMM_1 , packet1.time_usec , packet1.sensor_id , packet1.distances , packet1.quality );
+	mavlink_msg_discrete_radar_send(MAVLINK_COMM_1 , packet1.time_usec , packet1.sensor_id , packet1.distances , packet1.sonar , packet1.quality );
 	mavlink_msg_discrete_radar_decode(last_msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }
