@@ -502,8 +502,7 @@ PX4IO::init()
 		io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
 			PX4IO_P_SETUP_ARMING_ARM_OK |
 			PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK |
-			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK |
-			PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK, 0);
+			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK, 0);
 
 		/* publish RC config to IO */
 		ret = io_set_rc_config();
@@ -706,11 +705,6 @@ PX4IO::io_set_arming_state()
 		set |= PX4IO_P_SETUP_ARMING_ARM_OK;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_ARM_OK;
-	}
-	if (vstatus.flag_vector_flight_mode_ok) {
-		set |= PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK;
-	} else {
-		clear |= PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK;					
 	}
 	if (vstatus.flag_external_manual_override_ok) {
 		set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
@@ -1309,11 +1303,10 @@ PX4IO::print_status()
 	/* setup and state */
 	printf("features 0x%04x\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES));
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04x%s%s%s%s\n",
+	printf("arming 0x%04x%s%s%s\n",
 		arming,
 		((arming & PX4IO_P_SETUP_ARMING_ARM_OK)             ? " ARM_OK" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? " MANUAL_OVERRIDE_OK" : ""),
-		((arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK)   ? " VECTOR_FLIGHT_OK" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""));
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),

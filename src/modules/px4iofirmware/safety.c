@@ -56,11 +56,10 @@ static unsigned counter = 0;
 /*
  * Define the various LED flash sequences for each system state.
  */
-#define LED_PATTERN_SAFE 			0xffff		/**< always on 				*/
-#define LED_PATTERN_VECTOR_FLIGHT_MODE_OK 	0xFFFE		/**< always on with short break 	*/
-#define LED_PATTERN_FMU_ARMED 			0x4444		/**< slow blinking			*/
+#define LED_PATTERN_SAFE 			0x000f		/**< always on 				*/
+#define LED_PATTERN_FMU_ARMED 			0x5555		/**< slow blinking			*/
 #define LED_PATTERN_IO_ARMED 			0x5555		/**< fast blinking 			*/
-#define LED_PATTERN_IO_FMU_ARMED 		0x5050		/**< long off then double blink 	*/
+#define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< long off then double blink 	*/
 
 static unsigned blink_counter = 0;
 
@@ -151,8 +150,6 @@ safety_check_button(void *arg)
 	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) {
 		pattern = LED_PATTERN_FMU_ARMED;
 
-	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK) {
-		pattern = LED_PATTERN_VECTOR_FLIGHT_MODE_OK;
 	}
 
 	/* Turn the LED on if we have a 1 at the current bit position */
