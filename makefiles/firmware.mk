@@ -223,12 +223,15 @@ MODULE_OBJS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)module
 .PHONY: $(MODULE_OBJS)
 $(MODULE_OBJS):		relpath = $(patsubst $(WORK_DIR)%,%,$@)
 $(MODULE_OBJS):		mkfile = $(patsubst %module.pre.o,%module.mk,$(relpath))
+$(MODULE_OBJS):		workdir = $(@D)
 $(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
+	$(Q) $(MKDIR) -p $(workdir)
 	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
-		MODULE_WORK_DIR=$(dir $@) \
+		-C $(workdir) \
+		MODULE_WORK_DIR=$(workdir) \
 		MODULE_OBJ=$@ \
 		MODULE_MK=$(mkfile) \
-		MODULE_NAME=$(lastword $(subst /, ,$(@D))) \
+		MODULE_NAME=$(lastword $(subst /, ,$(workdir))) \
 		module
 
 # make a list of phony clean targets for modules
