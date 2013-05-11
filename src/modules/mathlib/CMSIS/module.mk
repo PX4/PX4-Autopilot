@@ -40,7 +40,7 @@
 #
 DSPLIB_SRCDIR		:= $(dir $(lastword $(MAKEFILE_LIST)))
 SRCLIST			:= $(wildcard $(DSPLIB_SRCDIR)DSP_Lib/Source/*/*.c)
-SRCS			:= $(patsubst $(DSPLIB_SRCDIR)%,%,$(SRCLIST)) zork.c
+SRCS			:= $(patsubst $(DSPLIB_SRCDIR)%,%,$(SRCLIST))
 
 INCLUDE_DIRS		+= $(DSPLIB_SRCDIR)/Include \
 			   $(DSPLIB_SRCDIR)/Device/ARM/ARMCM4/Include \
