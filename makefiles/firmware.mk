@@ -280,7 +280,7 @@ ifeq ($(ROMFS_FILES),)
 $(error ROMFS_ROOT $(ROMFS_ROOT) specifies a directory containing no files)
 endif
 ROMFS_DEPS		+= $(ROMFS_FILES)
-ROMFS_IMG		 = $(WORK_DIR)romfs.img
+ROMFS_IMG		 = romfs.img
 ROMFS_CSRC		 = $(ROMFS_IMG:.img=.c)
 ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
 LIBS			+= $(ROMFS_OBJ)
