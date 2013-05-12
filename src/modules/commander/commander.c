@@ -1519,7 +1519,7 @@ int commander_thread_main(int argc, char *argv[])
 					/* GPS lock */
 					led_on(LED_BLUE);
 
-				} else if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+				} else if ((counter + 4) % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
 					/* no GPS lock, but GPS module is aquiring lock */
 					led_toggle(LED_BLUE);
 				}
@@ -1535,8 +1535,8 @@ int commander_thread_main(int argc, char *argv[])
 				led_toggle(LED_BLUE);
 
 			} else if (bat_remain < 0.3f && (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT)) {
-				/* toggle error (red) at 5 Hz on low battery or error */
-				led_toggle(LED_BLUE);
+				/* toggle arming (red) at 5 Hz on low battery or error */
+				led_toggle(LED_AMBER);
 
 			} else {
 				// /* Constant error indication in standby mode without GPS */
