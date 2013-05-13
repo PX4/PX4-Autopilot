@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file Safety button logic.
+ * @file safety.c
+ * Safety button logic.
  */
 
 #include <nuttx/config.h>
@@ -56,11 +57,11 @@ static unsigned counter = 0;
 /*
  * Define the various LED flash sequences for each system state.
  */
-#define LED_PATTERN_SAFE 			0xffff		/**< always on 				*/
-#define LED_PATTERN_VECTOR_FLIGHT_MODE_OK 	0xFFFE		/**< always on with short break 	*/
-#define LED_PATTERN_FMU_ARMED 			0x4444		/**< slow blinking			*/
-#define LED_PATTERN_IO_ARMED 			0x5555		/**< fast blinking 			*/
-#define LED_PATTERN_IO_FMU_ARMED 		0x5050		/**< long off then double blink 	*/
+#define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
+#define LED_PATTERN_FMU_REFUSE_TO_ARM 		0x5555		/**< fast blinking			*/
+#define LED_PATTERN_IO_ARMED 			0x5050		/**< long off, then double blink 	*/
+#define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
+#define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
 
 static unsigned blink_counter = 0;
 
@@ -109,7 +110,8 @@ safety_check_button(void *arg)
 	 * state machine, keep ARM_COUNTER_THRESHOLD the same
 	 * length in all cases of the if/else struct below.
 	 */
-	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
+	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
+		(r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)) {
 
 		if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
@@ -119,8 +121,6 @@ safety_check_button(void *arg)
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_ARMED;
 			counter++;
 		}
-
-		/* Disarm quickly */
 
 	} else if (safety_button_pressed && (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
 
@@ -138,21 +138,21 @@ safety_check_button(void *arg)
 	}
 
 	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
-	uint16_t pattern = LED_PATTERN_SAFE;
+	uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
 
 	if (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) {
-		if (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) {
+		if (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) {
 			pattern = LED_PATTERN_IO_FMU_ARMED;
 
 		} else {
 			pattern = LED_PATTERN_IO_ARMED;
 		}
 
-	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) {
+	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) {
 		pattern = LED_PATTERN_FMU_ARMED;
+	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK) {
+		pattern = LED_PATTERN_FMU_OK_TO_ARM;
 
-	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK) {
-		pattern = LED_PATTERN_VECTOR_FLIGHT_MODE_OK;
 	}
 
 	/* Turn the LED on if we have a 1 at the current bit position */
