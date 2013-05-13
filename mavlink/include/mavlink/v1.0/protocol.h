@@ -169,6 +169,22 @@ static void mav_array_memcpy(void *dest, const void *src, size_t n)
 	}
 }
 
+static int mav_string_copy(void *dest, const void *src, size_t max_n)
+{
+	int i = 0;
+
+	/* copy single chars while not hitting size limit or NUL termination */
+	while (*((char*)src) != 0 && i < (int)max_n) {
+		*((char*)dest) = *((char*)src);
+		i++;
+	}
+
+	/* fill rest with zeros, as strncpy does */
+	memset(((char*)dest) + i, 0, max_n - i);
+
+	return i;
+}
+
 /*
  * Place a char array into a buffer
  */
