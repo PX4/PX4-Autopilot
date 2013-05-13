@@ -416,7 +416,7 @@ PX4IO::init()
 	 * already armed, and has been configured for in-air restart
 	 */
 	if ((reg & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK) &&
-	    (reg & PX4IO_P_SETUP_ARMING_ARM_OK)) {
+	    (reg & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 
 	    	mavlink_log_emergency(_mavlink_fd, "[IO] RECOVERING FROM FMU IN-AIR RESTART");
 
@@ -500,10 +500,9 @@ PX4IO::init()
 
 		/* dis-arm IO before touching anything */
 		io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
-			PX4IO_P_SETUP_ARMING_ARM_OK |
+			PX4IO_P_SETUP_ARMING_FMU_ARMED |
 			PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK |
-			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK |
-			PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK, 0);
+			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK, 0);
 
 		/* publish RC config to IO */
 		ret = io_set_rc_config();
@@ -702,16 +701,18 @@ PX4IO::io_set_arming_state()
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-	if (armed.armed) {
-		set |= PX4IO_P_SETUP_ARMING_ARM_OK;
+	if (armed.armed && !armed.lockdown) {
+		set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 	} else {
-		clear |= PX4IO_P_SETUP_ARMING_ARM_OK;
+		clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 	}
-	if (vstatus.flag_vector_flight_mode_ok) {
-		set |= PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK;
+
+	if (armed.ready_to_arm) {
+		set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 	} else {
-		clear |= PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK;					
+		clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 	}
+
 	if (vstatus.flag_external_manual_override_ok) {
 		set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
 	} else {
@@ -1277,9 +1278,9 @@ PX4IO::print_status()
 	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
 	printf("amp_per_volt %.3f amp_offset %.3f mAhDischarged %.3f\n",
-	       _battery_amp_per_volt,
-	       _battery_amp_bias,
-	       _battery_mamphour_total);
+	       (double)_battery_amp_per_volt,
+	       (double)_battery_amp_bias,
+	       (double)_battery_mamphour_total);
 	printf("actuators");
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_ACTUATORS, i));
@@ -1311,9 +1312,9 @@ PX4IO::print_status()
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
 	printf("arming 0x%04x%s%s%s%s\n",
 		arming,
-		((arming & PX4IO_P_SETUP_ARMING_ARM_OK)             ? " ARM_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)          ? " FMU_ARMED" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)	    ? " IO_ARM_OK" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? " MANUAL_OVERRIDE_OK" : ""),
-		((arming & PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK)   ? " VECTOR_FLIGHT_OK" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""));
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
@@ -1354,12 +1355,12 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	switch (cmd) {
 	case PWM_SERVO_ARM:
 		/* set the 'armed' bit */
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_ARM_OK);
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_FMU_ARMED);
 		break;
 
 	case PWM_SERVO_DISARM:
 		/* clear the 'armed' bit */
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_ARM_OK, 0);
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED, 0);
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
