@@ -7,6 +7,14 @@
 # Start sensor drivers here.
 #
 
+#
+# Check for UORB
+#
+if uorb start
+then
+	echo "uORB started"
+fi
+
 ms5611 start
 adc start
 
