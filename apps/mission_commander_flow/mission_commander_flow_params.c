@@ -55,6 +55,7 @@ PARAM_DEFINE_INT32(MCF_MIN_SDIST, 1000);
 PARAM_DEFINE_INT32(MCF_REAC_FDIST, 2000);
 PARAM_DEFINE_INT32(MCF_REAC_FSDIST, 2000);
 PARAM_DEFINE_INT32(MCF_REAC_SDIST, 1000);
+PARAM_DEFINE_INT32(MCF_USE_SONAR, 1);
 PARAM_DEFINE_FLOAT(MCF_REAC_ANG, 0.26f);
 PARAM_DEFINE_FLOAT(MCF_REAC_O_ANG, 0.09f);
 PARAM_DEFINE_FLOAT(MCF_REAC_PASS, 1.0f);
@@ -78,6 +79,7 @@ int parameters_init(struct mission_commander_flow_param_handles *h)
 	h->mission_react_front_dist			=	param_find("MCF_REAC_FDIST");
 	h->mission_react_front_side_dist	=	param_find("MCF_REAC_FSDIST");
 	h->mission_react_side_dist			=	param_find("MCF_REAC_SDIST");
+	h->mission_use_sonar				=	param_find("MCF_USE_SONAR");
 	h->reaction_min_react_angle			=	param_find("MCF_REAC_ANG");
 	h->reaction_min_overreact_angle 	=	param_find("MCF_REAC_O_ANG");
 	h->reaction_min_pass_distance		=	param_find("MCF_REAC_PASS");
@@ -102,6 +104,7 @@ int parameters_update(const struct mission_commander_flow_param_handles *h, stru
 	param_get(h->mission_react_front_dist, &(p->mission_react_front_dist));
 	param_get(h->mission_react_front_side_dist, &(p->mission_react_front_side_dist));
 	param_get(h->mission_react_side_dist, &(p->mission_react_side_dist));
+	param_get(h->mission_use_sonar, &(p->mission_use_sonar));
 	param_get(h->reaction_min_react_angle, &(p->reaction_min_react_angle));
 	param_get(h->reaction_min_overreact_angle, &(p->reaction_min_overreact_angle));
 	param_get(h->reaction_min_pass_distance, &(p->reaction_min_pass_distance));
@@ -124,6 +127,7 @@ int parameters_update(const struct mission_commander_flow_param_handles *h, stru
 	p->radarControlSettings[6] = (float) p->mission_min_side_dist; // min side distance
 	p->radarControlSettings[7] = (float) p->mission_min_front_side_dist; // min front side distance
 	p->radarControlSettings[8] = (float) p->mission_min_front_dist; // min front distance
+	p->radarControlSettings[9] = (float) p->mission_use_sonar; // boolean
 
 	return OK;
 }

@@ -3,7 +3,7 @@
  *
  * Code generation for function 'radarControl'
  *
- * C source code generated on: Wed May  8 08:43:06 2013
+ * C source code generated on: Mon May 13 22:05:47 2013
  *
  */
 
@@ -89,7 +89,7 @@ static real32_T rt_roundf_snf(real32_T u)
 }
 
 boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
-  sonar_obstacle[3], boolean_T sonar_flags[2], const real32_T settings[9],
+  sonar_obstacle[3], boolean_T sonar_flags[2], const real32_T settings[10],
   real32_T *x_control, real32_T *y_control, real32_T *yaw_control)
 {
   boolean_T free_environment;
@@ -105,10 +105,10 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
   real_T free_sectors_left;
   real_T b_free_sectors_right;
   int16_T sonar_pitch;
-  int16_T front_left;
   boolean_T exitg2;
   boolean_T exitg1;
   real32_T free_sectors_diff;
+  int16_T front_left;
   real32_T yaw_scale;
   int32_T yaw_direction;
   static const real32_T fv0[32] = { 3.14159274F, 2.94524312F, 2.74889374F,
@@ -186,6 +186,7 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
 
   /* 1500; */
   /* 1000; */
+  /* 1000; */
   /*  ranges */
   free_sectors_right = rt_roundf_snf(settings[8]);
   if (free_sectors_right < 32768.0F) {
@@ -224,127 +225,72 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
   /*  --------------------------------------------------------------------- */
   /*  calculate front situation */
   /*  --------------------------------------------------------------------- */
-  if ((front_distance < front_threshold) && (front_distance < (real32_T)radar[16]
-       / 1000.0F)) {
-    /*  only create new front situation if wall detection has not */
-    /*  recognized the obstacle */
+  if (settings[9] != 0.0F) {
+    if ((front_distance < front_threshold) && (front_distance < (real32_T)radar
+         [16] / 1000.0F)) {
+      /*  only create new front situation if wall detection has not */
+      /*  recognized the obstacle */
+      if (sonar_flags[0]) {
+        /*  take same situation */
+        front_threshold = sonar_obstacle[2];
+      } else {
+        /*  check new situation */
+        /*  right or left? */
+        /*  TODO not ideal... */
+        if (*yaw_control != 0.0F) {
+          if (*yaw_control < 0.0F) {
+            /*  left */
+            front_threshold = -1.0F;
+          } else {
+            /*  right */
+            front_threshold = 1.0F;
+          }
+        } else {
+          /*  situation check with right and left free sectors */
+          free_sectors_left = 0.0;
+          b_free_sectors_right = 0.0;
+
+          /*  begin to show from middle */
+          i = 0;
+          while ((i < 8) && (radar[15 - i] > front_side_threshold)) {
+            free_sectors_left++;
+            i++;
+          }
+
+          i = 0;
+          while ((i < 8) && (radar[i + 17] > front_side_threshold)) {
+            b_free_sectors_right++;
+            i++;
+          }
+
+          if (free_sectors_left > b_free_sectors_right) {
+            /*  left */
+            front_threshold = -1.0F;
+          } else {
+            /*  right */
+            front_threshold = 1.0F;
+          }
+        }
+      }
+
+      sonar_obstacle[0] = front_distance;
+      sonar_obstacle[1] = 0.0F;
+      sonar_obstacle[2] = front_threshold;
+      sonar_flags[0] = TRUE;
+      sonar_flags[1] = TRUE;
+    } else {
+      if (sonar_flags[0] && (((real32_T)fabs(sonar_obstacle[1]) > 1.04719758F) ||
+           (sonar_obstacle[0] < 0.5F) || (sonar_obstacle[0] > front_threshold)))
+      {
+        /*  update sonar obstacle valididy */
+        sonar_flags[0] = FALSE;
+      }
+    }
+
+    /*  calc front sonar sector and merge it */
     if (sonar_flags[0]) {
-      /*  take same situation */
-      front_threshold = sonar_obstacle[2];
-    } else {
-      /*  check new situation */
-      /*  right or left? */
-      /*  TODO not ideal... */
-      if (*yaw_control != 0.0F) {
-        if (*yaw_control < 0.0F) {
-          /*  left */
-          front_threshold = -1.0F;
-        } else {
-          /*  right */
-          front_threshold = 1.0F;
-        }
-      } else {
-        /*  situation check with right and left free sectors */
-        free_sectors_left = 0.0;
-        b_free_sectors_right = 0.0;
-
-        /*  begin to show from middle */
-        i = 0;
-        while ((i < 8) && (radar[15 - i] > front_side_threshold)) {
-          free_sectors_left++;
-          i++;
-        }
-
-        i = 0;
-        while ((i < 8) && (radar[i + 17] > front_side_threshold)) {
-          b_free_sectors_right++;
-          i++;
-        }
-
-        if (free_sectors_left > b_free_sectors_right) {
-          /*  left */
-          front_threshold = -1.0F;
-        } else {
-          /*  right */
-          front_threshold = 1.0F;
-        }
-      }
-    }
-
-    sonar_obstacle[0] = front_distance;
-    sonar_obstacle[1] = 0.0F;
-    sonar_obstacle[2] = front_threshold;
-    sonar_flags[0] = TRUE;
-    sonar_flags[1] = TRUE;
-  } else {
-    if (sonar_flags[0] && (((real32_T)fabs(sonar_obstacle[1]) > 1.04719758F) ||
-                           (sonar_obstacle[0] < 0.5F) || (sonar_obstacle[0] >
-          front_threshold))) {
-      /*  update sonar obstacle valididy */
-      sonar_flags[0] = FALSE;
-    }
-  }
-
-  /*  calc front sonar sector and merge it */
-  if (sonar_flags[0]) {
-    front_threshold = rt_roundf_snf(sonar_obstacle[1] / 0.196349546F);
-    free_sectors_right = rt_roundf_snf(sonar_obstacle[2]);
-    if (free_sectors_right < 32768.0F) {
-      if (free_sectors_right >= -32768.0F) {
-        dist_edge_left = (int16_T)free_sectors_right;
-      } else {
-        dist_edge_left = MIN_int16_T;
-      }
-    } else if (free_sectors_right >= 32768.0F) {
-      dist_edge_left = MAX_int16_T;
-    } else {
-      dist_edge_left = 0;
-    }
-
-    i = dist_edge_left * 100;
-    if (i > 32767) {
-      i = 32767;
-    } else {
-      if (i < -32768) {
-        i = -32768;
-      }
-    }
-
-    sonar_pitch = (int16_T)i;
-
-    /*  merge sonar update with radar */
-    free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
-    if (free_sectors_right < 32768.0F) {
-      if (free_sectors_right >= -32768.0F) {
-        dist_edge_left = (int16_T)free_sectors_right;
-      } else {
-        dist_edge_left = MIN_int16_T;
-      }
-    } else if (free_sectors_right >= 32768.0F) {
-      dist_edge_left = MAX_int16_T;
-    } else {
-      dist_edge_left = 0;
-    }
-
-    if (sonar_pitch > 16383) {
-      front_left = MAX_int16_T;
-    } else if (sonar_pitch <= -16384) {
-      front_left = MIN_int16_T;
-    } else {
-      front_left = (int16_T)(sonar_pitch << 1);
-    }
-
-    i = dist_edge_left - front_left;
-    if (i > 32767) {
-      i = 32767;
-    } else {
-      if (i < -32768) {
-        i = -32768;
-      }
-    }
-
-    if (radar[(int32_T)((17.0F + front_threshold) - 1.0F) - 1] > i) {
-      free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
+      front_threshold = rt_roundf_snf(sonar_obstacle[1] / 0.196349546F);
+      free_sectors_right = rt_roundf_snf(sonar_obstacle[2]);
       if (free_sectors_right < 32768.0F) {
         if (free_sectors_right >= -32768.0F) {
           dist_edge_left = (int16_T)free_sectors_right;
@@ -357,15 +303,7 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
         dist_edge_left = 0;
       }
 
-      if (sonar_pitch > 16383) {
-        front_left = MAX_int16_T;
-      } else if (sonar_pitch <= -16384) {
-        front_left = MIN_int16_T;
-      } else {
-        front_left = (int16_T)(sonar_pitch << 1);
-      }
-
-      i = dist_edge_left - front_left;
+      i = dist_edge_left * 100;
       if (i > 32767) {
         i = 32767;
       } else {
@@ -374,32 +312,9 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
         }
       }
 
-      radar[(int32_T)((17.0F + front_threshold) - 1.0F) - 1] = (int16_T)i;
-    }
+      sonar_pitch = (int16_T)i;
 
-    free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
-    if (free_sectors_right < 32768.0F) {
-      if (free_sectors_right >= -32768.0F) {
-        dist_edge_left = (int16_T)free_sectors_right;
-      } else {
-        dist_edge_left = MIN_int16_T;
-      }
-    } else if (free_sectors_right >= 32768.0F) {
-      dist_edge_left = MAX_int16_T;
-    } else {
-      dist_edge_left = 0;
-    }
-
-    i = dist_edge_left - sonar_pitch;
-    if (i > 32767) {
-      i = 32767;
-    } else {
-      if (i < -32768) {
-        i = -32768;
-      }
-    }
-
-    if (radar[(int32_T)((17.0F + front_threshold) - 1.0F) - 1] > i) {
+      /*  merge sonar update with radar */
       free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
       if (free_sectors_right < 32768.0F) {
         if (free_sectors_right >= -32768.0F) {
@@ -422,23 +337,32 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
         }
       }
 
-      radar[(int32_T)((17.0F + front_threshold) - 1.0F) - 1] = (int16_T)i;
-    }
+      if (radar[(int32_T)((17.0F + front_threshold) - 1.0F) - 1] > i) {
+        free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
+        if (free_sectors_right < 32768.0F) {
+          if (free_sectors_right >= -32768.0F) {
+            dist_edge_left = (int16_T)free_sectors_right;
+          } else {
+            dist_edge_left = MIN_int16_T;
+          }
+        } else if (free_sectors_right >= 32768.0F) {
+          dist_edge_left = MAX_int16_T;
+        } else {
+          dist_edge_left = 0;
+        }
 
-    free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
-    if (free_sectors_right < 32768.0F) {
-      if (free_sectors_right >= -32768.0F) {
-        dist_edge_left = (int16_T)free_sectors_right;
-      } else {
-        dist_edge_left = MIN_int16_T;
+        i = dist_edge_left - sonar_pitch;
+        if (i > 32767) {
+          i = 32767;
+        } else {
+          if (i < -32768) {
+            i = -32768;
+          }
+        }
+
+        radar[(int32_T)((17.0F + front_threshold) - 1.0F) - 1] = (int16_T)i;
       }
-    } else if (free_sectors_right >= 32768.0F) {
-      dist_edge_left = MAX_int16_T;
-    } else {
-      dist_edge_left = 0;
-    }
 
-    if (radar[(int32_T)(17.0F + front_threshold) - 1] > dist_edge_left) {
       free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
       if (free_sectors_right < 32768.0F) {
         if (free_sectors_right >= -32768.0F) {
@@ -452,32 +376,23 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
         dist_edge_left = 0;
       }
 
-      radar[(int32_T)(17.0F + front_threshold) - 1] = dist_edge_left;
-    }
+      if (radar[(int32_T)(17.0F + front_threshold) - 1] > dist_edge_left) {
+        free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
+        if (free_sectors_right < 32768.0F) {
+          if (free_sectors_right >= -32768.0F) {
+            dist_edge_left = (int16_T)free_sectors_right;
+          } else {
+            dist_edge_left = MIN_int16_T;
+          }
+        } else if (free_sectors_right >= 32768.0F) {
+          dist_edge_left = MAX_int16_T;
+        } else {
+          dist_edge_left = 0;
+        }
 
-    free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
-    if (free_sectors_right < 32768.0F) {
-      if (free_sectors_right >= -32768.0F) {
-        dist_edge_left = (int16_T)free_sectors_right;
-      } else {
-        dist_edge_left = MIN_int16_T;
+        radar[(int32_T)(17.0F + front_threshold) - 1] = dist_edge_left;
       }
-    } else if (free_sectors_right >= 32768.0F) {
-      dist_edge_left = MAX_int16_T;
-    } else {
-      dist_edge_left = 0;
-    }
 
-    i = dist_edge_left + sonar_pitch;
-    if (i > 32767) {
-      i = 32767;
-    } else {
-      if (i < -32768) {
-        i = -32768;
-      }
-    }
-
-    if (radar[(int32_T)((17.0F + front_threshold) + 1.0F) - 1] > i) {
       free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
       if (free_sectors_right < 32768.0F) {
         if (free_sectors_right >= -32768.0F) {
@@ -500,74 +415,34 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
         }
       }
 
-      radar[(int32_T)((17.0F + front_threshold) + 1.0F) - 1] = (int16_T)i;
-    }
-
-    free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
-    if (free_sectors_right < 32768.0F) {
-      if (free_sectors_right >= -32768.0F) {
-        dist_edge_left = (int16_T)free_sectors_right;
-      } else {
-        dist_edge_left = MIN_int16_T;
-      }
-    } else if (free_sectors_right >= 32768.0F) {
-      dist_edge_left = MAX_int16_T;
-    } else {
-      dist_edge_left = 0;
-    }
-
-    if (sonar_pitch > 16383) {
-      front_left = MAX_int16_T;
-    } else if (sonar_pitch <= -16384) {
-      front_left = MIN_int16_T;
-    } else {
-      front_left = (int16_T)(sonar_pitch << 1);
-    }
-
-    i = dist_edge_left + front_left;
-    if (i > 32767) {
-      i = 32767;
-    } else {
-      if (i < -32768) {
-        i = -32768;
-      }
-    }
-
-    if (radar[(int32_T)((17.0F + front_threshold) + 2.0F) - 1] > i) {
-      free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
-      if (free_sectors_right < 32768.0F) {
-        if (free_sectors_right >= -32768.0F) {
-          dist_edge_left = (int16_T)free_sectors_right;
+      if (radar[(int32_T)((17.0F + front_threshold) + 1.0F) - 1] > i) {
+        free_sectors_right = rt_roundf_snf(front_distance * 1000.0F);
+        if (free_sectors_right < 32768.0F) {
+          if (free_sectors_right >= -32768.0F) {
+            dist_edge_left = (int16_T)free_sectors_right;
+          } else {
+            dist_edge_left = MIN_int16_T;
+          }
+        } else if (free_sectors_right >= 32768.0F) {
+          dist_edge_left = MAX_int16_T;
         } else {
-          dist_edge_left = MIN_int16_T;
+          dist_edge_left = 0;
         }
-      } else if (free_sectors_right >= 32768.0F) {
-        dist_edge_left = MAX_int16_T;
-      } else {
-        dist_edge_left = 0;
-      }
 
-      if (sonar_pitch > 16383) {
-        front_left = MAX_int16_T;
-      } else if (sonar_pitch <= -16384) {
-        front_left = MIN_int16_T;
-      } else {
-        front_left = (int16_T)(sonar_pitch << 1);
-      }
-
-      i = dist_edge_left + front_left;
-      if (i > 32767) {
-        i = 32767;
-      } else {
-        if (i < -32768) {
-          i = -32768;
+        i = dist_edge_left + sonar_pitch;
+        if (i > 32767) {
+          i = 32767;
+        } else {
+          if (i < -32768) {
+            i = -32768;
+          }
         }
+
+        radar[(int32_T)((17.0F + front_threshold) + 1.0F) - 1] = (int16_T)i;
       }
 
-      radar[(int32_T)((17.0F + front_threshold) + 2.0F) - 1] = (int16_T)i;
+      free_environment = FALSE;
     }
-
-    free_environment = FALSE;
   }
 
   /*  --------------------------------------------------------------------- */
@@ -742,7 +617,7 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
       }
 
       if (dist_edge_left <= 0) {
-        yaw_scale = free_sectors_diff / 4.0F;
+        yaw_scale = (real32_T)fabs(free_sectors_diff) / 4.0F;
       } else {
         /*  0..1 */
         i = front_side_range - dist_edge_left;
@@ -751,7 +626,7 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
         }
 
         yaw_scale = rt_powf_snf((real32_T)i / (real32_T)front_side_range, 2.0F) *
-          (free_sectors_diff / 4.0F);
+          ((real32_T)fabs(free_sectors_diff) / 4.0F);
       }
     }
 

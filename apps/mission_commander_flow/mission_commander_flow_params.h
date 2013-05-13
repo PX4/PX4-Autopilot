@@ -57,6 +57,7 @@ struct mission_commander_flow_params {
 	int mission_react_front_dist; // in mm
 	int mission_react_front_side_dist; // in mm
 	int mission_react_side_dist; // in mm
+	int mission_use_sonar; // bool
 	float reaction_min_react_angle;
 	float reaction_min_overreact_angle;
 	float reaction_min_pass_distance;
@@ -65,7 +66,7 @@ struct mission_commander_flow_params {
 	int counter_overreact_angle;
 	int counter_pass_distance;
 	int counter_free_distance;
-	float radarControlSettings[9];
+	float radarControlSettings[10];
 	int debug; // boolean if mission planning manually
 };
 
@@ -83,6 +84,7 @@ struct mission_commander_flow_param_handles {
 	param_t mission_react_front_dist;
 	param_t mission_react_front_side_dist;
 	param_t mission_react_side_dist;
+	param_t mission_use_sonar;
 	param_t reaction_min_react_angle;
 	param_t reaction_min_overreact_angle;
 	param_t reaction_min_pass_distance;

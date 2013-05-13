@@ -399,7 +399,8 @@ int radar_flow_thread_main(int argc, char *argv[]) {
 						discrete_radar.distances[i] = (int16_t)(radar_filtered[i] * 1000);
 //						discrete_radar.distances[i] = (int16_t)(radar_weights[i] * 1000);
 					}
-					discrete_radar.sonar = front_distance_filtered;
+//					discrete_radar.sonar = front_distance_filtered;
+					discrete_radar.sonar = omni_flow.front_distance_m;
 
 					distance_left = radar_filtered[8];
 					distance_right = radar_filtered[24];

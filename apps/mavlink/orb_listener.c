@@ -708,7 +708,7 @@ uorb_receive_start(void)
 
 	/* --- GPS VALUE --- */
 	mavlink_subs.gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	orb_set_interval(mavlink_subs.gps_sub, 500);	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.gps_sub, 200);	/* 5Hz updates */
 
 	/* --- HOME POSITION --- */
 	mavlink_subs.home_sub = orb_subscribe(ORB_ID(home_position));
@@ -788,7 +788,7 @@ uorb_receive_start(void)
 
 	/* --- DISCRETE RADAR ESTIMATIONS --- */
 	mavlink_subs.discrete_radar = orb_subscribe(ORB_ID(discrete_radar));
-	orb_set_interval(mavlink_subs.discrete_radar, 100); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.discrete_radar, 200); 	/* 5Hz updates */
 
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;

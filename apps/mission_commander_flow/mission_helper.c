@@ -10,6 +10,29 @@
 #include "codegen/radarControl.h"
 #include <mavlink/mavlink_log.h>
 
+/**
+ * Navigation helpfunctions.
+ */
+void convert_setpoint_bodyframe2local(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_attitude_s *att,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp,
+		struct vehicle_local_position_setpoint_s *local_pos_sp
+		);
+void convert_setpoint_local2bodyframe(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_bodyframe_position_s *bodyframe_pos,
+		struct vehicle_attitude_s *att,
+		struct vehicle_local_position_setpoint_s *local_pos_sp,
+		struct vehicle_bodyframe_position_setpoint_s *bodyframe_pos_sp
+		);
+
+float get_yaw(
+		struct vehicle_local_position_s *local_pos,
+		struct vehicle_local_position_setpoint_s *local_pos_sp
+		);
+
 void convert_setpoint_bodyframe2local(
 		struct vehicle_local_position_s *local_pos,
 		struct vehicle_bodyframe_position_s *bodyframe_pos,
@@ -166,19 +189,17 @@ void do_radar_update(struct mission_state_s *current_state, struct mission_comma
 	free_environment = radarControl(new_radar->distances, new_radar->sonar, sonar_obstacle_polar, sonar_flags,
 			params->radarControlSettings, &x_control, &y_control, &yaw_control);
 
+	current_state->sonar_obstacle.sonar_obst_polar_r = sonar_obstacle_polar[0];
+	current_state->sonar_obstacle.sonar_obst_polar_alpha = sonar_obstacle_polar[1];
+	current_state->sonar_obstacle.sonar_obst_pitch = sonar_obstacle_polar[2];
+
+	current_state->sonar_obstacle.valid  = sonar_flags[0];
+	current_state->sonar_obstacle.updated  = sonar_flags[1];
+
 	if(isfinite(x_control) && isfinite(y_control) && isfinite(yaw_control)) {
 		current_state->step.x = x_control;
 		current_state->step.y = y_control;
 		current_state->step.yaw = yaw_control;
-
-		current_state->sonar_obstacle.sonar_obst_pitch = sonar_obstacle_polar[2];
-		current_state->sonar_obstacle.valid  = sonar_flags[0];
-		current_state->sonar_obstacle.updated  = sonar_flags[1];
-
-		if (current_state->sonar_obstacle.updated) {
-			current_state->sonar_obstacle.sonar_obstacle_bodyframe.x = sonar_obstacle_polar[0];
-			current_state->sonar_obstacle.sonar_obstacle_bodyframe.y = sonar_obstacle_polar[1];
-		}
 
 		/* log state changes */
 		if (current_state->free_to_go) {
