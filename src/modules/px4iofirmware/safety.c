@@ -60,6 +60,7 @@ static unsigned counter = 0;
 #define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
 #define LED_PATTERN_FMU_REFUSE_TO_ARM 		0x5555		/**< fast blinking			*/
 #define LED_PATTERN_IO_ARMED 			0x5050		/**< long off, then double blink 	*/
+#define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
 #define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
 
 static unsigned blink_counter = 0;
@@ -147,6 +148,8 @@ safety_check_button(void *arg)
 			pattern = LED_PATTERN_IO_ARMED;
 		}
 
+	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) {
+		pattern = LED_PATTERN_FMU_ARMED;
 	} else if (r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK) {
 		pattern = LED_PATTERN_FMU_OK_TO_ARM;
 
