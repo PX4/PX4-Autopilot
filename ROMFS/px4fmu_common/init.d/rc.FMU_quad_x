@@ -20,10 +20,10 @@ uorb start
 # Load microSD params
 #
 echo "[init] loading microSD params"
-param select /fs/microsd/parameters
-if [ -f /fs/microsd/parameters ]
+param select /fs/microsd/params
+if [ -f /fs/microsd/params ]
 then
-	param load /fs/microsd/parameters
+	param load /fs/microsd/params
 fi
  
 #
