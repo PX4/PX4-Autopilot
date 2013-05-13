@@ -159,11 +159,11 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 .PHONY:	clean
 clean:
 	$(Q) $(RMDIR) $(BUILD_DIR)*.build
-	$(Q) $(REMOVE) -f $(IMAGE_DIR)*.px4
+	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
 distclean: clean
-	$(Q) $(REMOVE) -f $(ARCHIVE_DIR)*.export
+	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
 
 #
@@ -195,6 +195,11 @@ help:
 	@echo ""
 	@echo "  distclean"
 	@echo "    Remove all compilation products, including NuttX RTOS archives."
+	@echo ""
+	@echo "  upload"
+	@echo "    When exactly one config is being built, add this target to upload the"
+	@echo "    firmware to the board when the build is complete. Not supported for"
+	@echo "    all configurations."
 	@echo ""
 	@echo "  Common options:"
 	@echo "  ---------------"

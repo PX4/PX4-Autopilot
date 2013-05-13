@@ -32,9 +32,10 @@
 ############################################################################
 
 #
-# Basic example application
+# Fixedwing Attitude Control Demo / Example Application
 #
 
-MODULE_COMMAND		= px4_simple_app
+MODULE_COMMAND	= ex_fixedwing_control
 
-SRCS			= px4_simple_app.c
+SRCS		= main.c \
+		  params.c
