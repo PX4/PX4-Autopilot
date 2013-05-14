@@ -201,9 +201,9 @@ MODULES			:= $(sort $(MODULES))
 # locate the first instance of a module by full path or by looking on the
 # module search path
 define MODULE_SEARCH
-	$(abspath $(firstword $(wildcard $(1)/module.mk) \
-		$(foreach search_dir,$(MODULE_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/module.mk)) \
-		MISSING_$1))
+	$(firstword $(abspath $(wildcard $(1)/module.mk)) \
+		$(abspath $(foreach search_dir,$(MODULE_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/module.mk))) \
+		MISSING_$1)
 endef
 
 # make a list of module makefiles and check that we found them all
