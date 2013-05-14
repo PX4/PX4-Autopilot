@@ -230,7 +230,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 				break;
 
 			case GPS_SENSOR_ID:
-				build_eam_response(buffer, &size);
+				build_gps_response(buffer, &size);
 				break;
 
 			default:

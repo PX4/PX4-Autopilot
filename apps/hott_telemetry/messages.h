@@ -145,7 +145,7 @@ struct gps_module_msg {
 	uint8_t latitude_sec_H;		/**< Byte 14: 016 3 = 0x03 */
 	 
 	uint8_t longitude_ew;		/**< Byte 15: 000  = E= 9° 25’9360 */
-	uint8_t longitude_min_L;		/**< Byte 16: 150 157 = 0x9D = 0x039D = 0925 */
+	uint8_t longitude_min_L;	/**< Byte 16: 150 157 = 0x9D = 0x039D = 0925 */
 	uint8_t longitude_min_H;	/**< Byte 17: 003 3 = 0x03 */
 	uint8_t longitude_sec_L;	/**< Byte 18: 056 144 = 0x90 0x2490 = 9360*/
 	uint8_t longitude_sec_H;	/**< Byte 19: 004 36 = 0x24 */
@@ -188,5 +188,7 @@ struct gps_module_msg {
 void messages_init(void);
 void build_eam_response(uint8_t *buffer, size_t *size);
 void build_gps_response(uint8_t *buffer, size_t *size);
+void convert_to_degrees_minutes_seconds(double lat, int *deg, int *min, int *sec);
+
 
 #endif /* MESSAGES_H_ */
