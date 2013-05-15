@@ -1215,7 +1215,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
       fmt   = FMT_RJUST;
       width = 0;
 #ifdef CONFIG_LIBC_FLOATINGPOINT
-      trunc = 0;
+      trunc = 6;
 #endif
 #endif
 
@@ -1245,6 +1245,11 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
             {
 #ifndef CONFIG_NOPRINTF_FIELDWIDTH
               fmt = FMT_RJUST0;
+#ifdef CONFIG_LIBC_FLOATINGPOINT
+	      if (IS_HASDOT(flags)) {
+		  trunc = 0;
+	      }
+#endif
 #endif
             }
 #if 0

@@ -1512,7 +1512,6 @@ static inline void stm32_ep0out_receive(FAR struct stm32_ep_s *privep, int bcnt)
 
   DEBUGASSERT(privep && privep->ep.priv);
   priv = (FAR struct stm32_usbdev_s *)privep->ep.priv;
-  DEBUGASSERT(priv->ep0state == EP0STATE_SETUP_OUT);
 
   ullvdbg("EP0: bcnt=%d\n", bcnt);
   usbtrace(TRACE_READ(EP0), bcnt);
