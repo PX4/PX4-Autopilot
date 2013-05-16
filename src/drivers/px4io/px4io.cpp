@@ -1358,6 +1358,16 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_FMU_ARMED);
 		break;
 
+	case PWM_SERVO_SET_ARM_OK:
+		/* set the 'OK to arm' bit */
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_IO_ARM_OK);
+		break;
+
+	case PWM_SERVO_CLEAR_ARM_OK:
+		/* clear the 'OK to arm' bit */
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_IO_ARM_OK, 0);
+		break;
+
 	case PWM_SERVO_DISARM:
 		/* clear the 'armed' bit */
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED, 0);
