@@ -112,7 +112,6 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 
 ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
 ARCHOPTIMIZATION	+= -g
-ARCHSCRIPT		+= -g
 endif
 
 ARCHCFLAGS		 = -std=gnu99
@@ -145,7 +144,7 @@ ARCHDEFINES		 =
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
 
 # this seems to be the only way to add linker flags
-ARCHSCRIPT		+= --warn-common \
+EXTRA_LIBS		+= --warn-common \
 			   --gc-sections
 
 CFLAGS			 = $(ARCHCFLAGS) $(ARCHCWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(INSTRUMENTATIONDEFINES) $(ARCHDEFINES) $(EXTRADEFINES) -pipe -fno-common

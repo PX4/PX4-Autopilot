@@ -308,6 +308,10 @@
 #define GPIO_SPI1_MOSI	GPIO_SPI1_MOSI_1
 #define GPIO_SPI1_SCK	GPIO_SPI1_SCK_1
 
+#define GPIO_SPI2_MISO	GPIO_SPI2_MISO_2
+#define GPIO_SPI2_MOSI	GPIO_SPI2_MOSI_2
+#define GPIO_SPI2_SCK	GPIO_SPI2_SCK_2
+
 #define GPIO_SPI3_MISO	GPIO_SPI3_MISO_2
 #define GPIO_SPI3_MOSI	GPIO_SPI3_MOSI_1
 #define GPIO_SPI3_SCK	GPIO_SPI3_SCK_2
@@ -321,11 +325,14 @@
 #define PX4_SPIDEV_ACCEL	2
 #define PX4_SPIDEV_MPU		3
 
+#define PX4_SPIDEV_ACCEL_MAG 2 // external for anti vibration test
+
 /*
  * Tone alarm output
  */
 #define TONE_ALARM_TIMER	3	/* timer 3 */
 #define TONE_ALARM_CHANNEL	3	/* channel 3 */
+#define GPIO_TONE_ALARM_IDLE	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN8)
 #define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_FLOAT|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN8)
 
 /************************************************************************************

@@ -1,4 +1,5 @@
 .built
+.context
 *.context
 *.bdat
 *.pdat
@@ -43,7 +44,6 @@ nuttx/nuttx.hex
 .settings
 Firmware.sublime-workspace
 .DS_Store
-nsh_romfsimg.h
 cscope.out
 .configX-e
 nuttx-export.zip
@@ -55,3 +55,8 @@ mavlink/include/mavlink/v0.9/
 core
 .gdbinit
 mkdeps
+Archives
+Build
+!ROMFS/*/*.d
+!ROMFS/*/*/*.d
+!ROMFS/*/*/*/*.d
