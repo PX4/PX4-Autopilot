@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +32,46 @@
  *
  ****************************************************************************/
 
-/**
- * @file actuator_controls.h
- *
- * Actuator control topics - mixer inputs.
- *
- * Values published to these topics are the outputs of the vehicle control
- * system, and are expected to be mixed and used to drive the actuators
- * (servos, speed controls, etc.) that operate the vehicle.
- *
- * Each topic can be published by a single controller
+/*
+ * @file params.c
+ * 
+ * Parameters for fixedwing demo
  */
 
-#ifndef TOPIC_ACTUATOR_CONTROLS_H
-#define TOPIC_ACTUATOR_CONTROLS_H
+#include "params.h"
 
-#include <stdint.h>
-#include "../uORB.h"
+/* controller parameters, use max. 15 characters for param name! */
 
-#define NUM_ACTUATOR_CONTROLS		8
-#define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
+/**
+ *
+ */
+PARAM_DEFINE_FLOAT(EXFW_HDNG_P, 0.2f);
 
-struct actuator_controls_s {
-	uint64_t timestamp;
-	float	control[NUM_ACTUATOR_CONTROLS];
-};
+/**
+ *
+ */
+PARAM_DEFINE_FLOAT(EXFW_ROLL_P, 0.2f);
 
-/* actuator control sets; this list can be expanded as more controllers emerge */
-ORB_DECLARE(actuator_controls_0);
-ORB_DECLARE(actuator_controls_1);
-ORB_DECLARE(actuator_controls_2);
-ORB_DECLARE(actuator_controls_3);
+/**
+ *
+ */
+PARAM_DEFINE_FLOAT(EXFW_PITCH_P, 0.2f);
 
-/* control sets with pre-defined applications */
-#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
+int parameters_init(struct param_handles *h)
+{
+	/* PID parameters */
+	h->hdng_p 	=	param_find("EXFW_HDNG_P");
+	h->roll_p 	=	param_find("EXFW_ROLL_P");
+	h->pitch_p 	=	param_find("EXFW_PITCH_P");
 
-/** global 'actuator output is live' control. */
-struct actuator_armed_s {
-	bool	armed;		/**< Set to true if system is armed */
-	bool	ready_to_arm;	/**< Set to true if system is ready to be armed */
-	bool	lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
-};
+	return OK;
+}
 
-ORB_DECLARE(actuator_armed);
+int parameters_update(const struct param_handles *h, struct params *p)
+{
+	param_get(h->hdng_p, &(p->hdng_p));
+	param_get(h->roll_p, &(p->roll_p));
+	param_get(h->pitch_p, &(p->pitch_p));
 
-#endif
+	return OK;
+}

@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +32,34 @@
  *
  ****************************************************************************/
 
-/**
- * @file actuator_controls.h
- *
- * Actuator control topics - mixer inputs.
- *
- * Values published to these topics are the outputs of the vehicle control
- * system, and are expected to be mixed and used to drive the actuators
- * (servos, speed controls, etc.) that operate the vehicle.
- *
- * Each topic can be published by a single controller
+/*
+ * @file params.h
+ * 
+ * Definition of parameters for fixedwing example
  */
 
-#ifndef TOPIC_ACTUATOR_CONTROLS_H
-#define TOPIC_ACTUATOR_CONTROLS_H
+#include <systemlib/param/param.h>
 
-#include <stdint.h>
-#include "../uORB.h"
-
-#define NUM_ACTUATOR_CONTROLS		8
-#define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
-
-struct actuator_controls_s {
-	uint64_t timestamp;
-	float	control[NUM_ACTUATOR_CONTROLS];
+struct params {
+	float hdng_p;
+	float roll_p;
+	float pitch_p;
 };
 
-/* actuator control sets; this list can be expanded as more controllers emerge */
-ORB_DECLARE(actuator_controls_0);
-ORB_DECLARE(actuator_controls_1);
-ORB_DECLARE(actuator_controls_2);
-ORB_DECLARE(actuator_controls_3);
-
-/* control sets with pre-defined applications */
-#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
-
-/** global 'actuator output is live' control. */
-struct actuator_armed_s {
-	bool	armed;		/**< Set to true if system is armed */
-	bool	ready_to_arm;	/**< Set to true if system is ready to be armed */
-	bool	lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
+struct param_handles {
+	param_t hdng_p;
+	param_t roll_p;
+	param_t pitch_p;
 };
 
-ORB_DECLARE(actuator_armed);
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+int parameters_init(struct param_handles *h);
 
-#endif
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct param_handles *h, struct params *p);
