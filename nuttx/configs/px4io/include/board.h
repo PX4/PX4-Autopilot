@@ -100,12 +100,19 @@
  * Some of the USART pins are not available; override the GPIO
  * definitions with an invalid pin configuration.
  */
+#undef GPIO_USART2_CTS
 #define GPIO_USART2_CTS	0xffffffff
+#undef GPIO_USART2_RTS
 #define GPIO_USART2_RTS	0xffffffff
+#undef GPIO_USART2_CK
 #define GPIO_USART2_CK 	0xffffffff
+#undef GPIO_USART3_TX
 #define GPIO_USART3_TX 	0xffffffff
+#undef GPIO_USART3_CK
 #define GPIO_USART3_CK 	0xffffffff
+#undef GPIO_USART3_CTS
 #define GPIO_USART3_CTS	0xffffffff
+#undef GPIO_USART3_RTS
 #define GPIO_USART3_RTS	0xffffffff
 
 /* 
@@ -156,6 +163,10 @@ extern "C" {
  ************************************************************************************/
 
 EXTERN void stm32_boardinitialize(void);
+    
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* __ASSEMBLY__ */
 #endif  /* __ARCH_BOARD_BOARD_H */
