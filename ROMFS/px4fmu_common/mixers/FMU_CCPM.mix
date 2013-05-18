@@ -46,8 +46,8 @@ S: 0 2  10000  10000      0 -10000  10000
 
 Output 4 - Motor speed mixer
 -----------------
-This would be the governor output - not sure what group id to use here?
+This would be the motor speed control output from governor power demand- not sure what index to use here?
 
 M: 1
 O:      10000  10000      0 -10000  10000
-S: 0 5      0  20000 -10000 -10000  10000
+S: 0 4      0  20000 -10000 -10000  10000
