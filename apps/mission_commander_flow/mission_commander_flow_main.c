@@ -200,12 +200,15 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 	orb_advert_t vehicle_bodyframe_position_sp_pub = orb_advertise(ORB_ID(vehicle_bodyframe_position_setpoint), &bodyframe_pos_sp);
 
 	/* for debugging */
-	struct vehicle_global_position_s debug_pos;
+//	struct vehicle_global_position_s debug_pos;
+//	memset(&debug_pos, 0, sizeof(debug_pos));
+//	orb_advert_t debug_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &debug_pos);
+//	struct vehicle_vicon_position_s vicon_pos;
+//	memset(&vicon_pos, 0, sizeof(vicon_pos));
+//	int vehicle_vicon_bos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
+	struct vehicle_gps_position_s debug_pos;
 	memset(&debug_pos, 0, sizeof(debug_pos));
-	orb_advert_t debug_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &debug_pos);
-	struct vehicle_vicon_position_s sonar_obstacle_pos;
-	memset(&sonar_obstacle_pos, 0, sizeof(sonar_obstacle_pos));
-	orb_advert_t sonar_obstacle_pos_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &sonar_obstacle_pos);
+	orb_advert_t debug_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &debug_pos);
 
 	mission_sounds_init();
 	bool sensors_ready = false;
@@ -381,21 +384,19 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 								}
 							}
 
-							/* DEBUG: LOG AS GPS */
-							if(mission_state.sonar_obstacle.valid) {
-
-								sonar_obstacle_pos.x = mission_state.sonar_obstacle.sonar_obst_polar_alpha;
-								sonar_obstacle_pos.y = mission_state.sonar_obstacle.sonar_obst_polar_r;
-								sonar_obstacle_pos.z = mission_state.sonar_obstacle.sonar_obst_pitch;
-
-							} else {
-								sonar_obstacle_pos.x = 0.0f;
-								sonar_obstacle_pos.y = 0.0f;
-								sonar_obstacle_pos.z = 0.0f;
-
-							}
-
-							orb_publish(ORB_ID(vehicle_vicon_position), sonar_obstacle_pos_pub, &sonar_obstacle_pos);
+//							/* DEBUG: LOG AS GPS */
+//							if(mission_state.sonar_obstacle.valid) {
+//
+//								mission_state.debug_value1 = mission_state.sonar_obstacle.sonar_obst_polar_alpha;
+//								mission_state.debug_value2 = mission_state.sonar_obstacle.sonar_obst_polar_r;
+//								mission_state.debug_value3 = mission_state.sonar_obstacle.sonar_obst_pitch;
+//
+//							} else {
+//								mission_state.debug_value1 = 0.0f;
+//								mission_state.debug_value2 = 0.0f;
+//								mission_state.debug_value3 = 0.0f;
+//
+//							}
 
 							do_radar_update(&mission_state, &params, mavlink_fd, &discrete_radar);
 
@@ -409,10 +410,6 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 										&mission_state.sonar_obstacle.sonar_obstacle_bodyframe,
 										&mission_state.sonar_obstacle.sonar_obstacle_local);
 							}
-
-							mission_state.debug_value1 = mission_state.sonar_obstacle.sonar_obst_polar_alpha;
-							mission_state.debug_value2 = mission_state.sonar_obstacle.sonar_obst_polar_r;
-							mission_state.debug_value3++;
 
 						} else {
 
@@ -467,44 +464,67 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 							/* calc yaw to final destination */
 							float yaw_final = get_yaw(&local_pos, &final_dest_local);
 
-							float yaw_error = yaw_final - att.yaw;
+//							float yaw_error = yaw_final - att.yaw;
+//
+//							if (yaw_error > M_PI_F) {
+//								yaw_error -= M_TWOPI_F;
+//
+//							} else if (yaw_error < -M_PI_F) {
+//								yaw_error += M_TWOPI_F;
+//							}
 
-							if (yaw_error > M_PI_F) {
-								yaw_error -= M_TWOPI_F;
+							float yaw_sp_error = yaw_final - bodyframe_pos_sp.yaw;
 
-							} else if (yaw_error < -M_PI_F) {
-								yaw_error += M_TWOPI_F;
+							if (yaw_sp_error > M_PI_F) {
+								yaw_sp_error -= M_TWOPI_F;
+
+							} else if (yaw_sp_error < -M_PI_F) {
+								yaw_sp_error += M_TWOPI_F;
 							}
 
 							if (!mission_state.initialized) {
 								/* correct yaw first */
 
-								if (yaw_error > 0) {
-									bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
-								} else {
-									bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
-								}
-
-								if (fabsf(yaw_error) < params.mission_yaw_thld) {
+								if (fabsf(yaw_sp_error) < params.mission_update_step_yaw) {
 									mission_state.initialized = true;
+									bodyframe_pos_sp.yaw = yaw_final;
+								} else {
+									if (yaw_sp_error > 0) {
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
+									} else {
+										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
+									}
 								}
 
 							} else {
 
-								if (mission_state.free_to_go) {
+								if (mission_state.free_to_go || mission_state.final_sequence) {
 									/* there are no obstacles */
 
 									/* correct yaw if needed */
-									if (fabsf(yaw_error) > params.mission_yaw_thld && !mission_state.final_sequence) {
-
-										/* we need flow... step by step */
-										bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step_x;
-
-										if (yaw_error > 0) {
+									if (fabsf(yaw_sp_error) > params.mission_update_step_yaw && !mission_state.final_sequence) {
+										if (yaw_sp_error > 0) {
 											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
 										} else {
 											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
 										}
+
+										/* we need flow... step by step */
+										bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step_x;
+
+//									if (fabsf(yaw_sp_error) > params.mission_yaw_thld && !mission_state.final_sequence) {
+//
+//										/* we need flow... step by step */
+//										bodyframe_pos_sp.x = bodyframe_pos_sp.x + params.mission_update_step_x;
+//
+//										/* is setpoint already correct */
+//
+//
+//										if (yaw_sp_error > 0 &&  ) {
+//											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
+//										} else {
+//											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
+//										}
 
 									} else {
 
@@ -514,11 +534,14 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 										/* final mission sequence? */
 										if(!mission_state.final_sequence){
+											bodyframe_pos_sp.yaw = yaw_final;
+
 											if (fabsf(wp_bodyframe_offset_x) < params.mission_wp_radius) {
 												mission_state.final_sequence = true;
 											}
 
 										} else {
+
 											if (fabsf(wp_bodyframe_offset_x) > params.mission_wp_radius) {
 												mission_state.final_sequence = false;
 											}
@@ -562,15 +585,15 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 						 * from mission commander if something goes wrong
 						 */
 						if(manual.pitch < -0.2f) {
-							bodyframe_pos_sp.x += 2.0f * params.mission_update_step_x;
+							bodyframe_pos_sp.x += params.mission_update_step_x;
 						} else if (manual.pitch > 0.2f) {
-							bodyframe_pos_sp.x -= 2.0f * params.mission_update_step_x;
+							bodyframe_pos_sp.x -= params.mission_update_step_x;
 						}
 
 						if(manual.roll < -0.2f) {
-							bodyframe_pos_sp.y -= 2.0f * params.mission_update_step_x;
+							bodyframe_pos_sp.y -= params.mission_update_step_x;
 						} else if (manual.roll > 0.2f) {
-							bodyframe_pos_sp.y += 2.0f * params.mission_update_step_x;
+							bodyframe_pos_sp.y += params.mission_update_step_x;
 						}
 
 						if(manual.yaw < -1.0f) { // bigger threshold because of rc calibration for manual flight
@@ -614,18 +637,20 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 					}
 
 
+					/* DEBUG: LOG AS GPS */
 
 					/* TODO remove DEBUG */
 //					debug_pos.alt = mission_state.debug_value1;
 //					debug_pos.relative_alt = mission_state.debug_value2;
 //					debug_pos.lon = mission_state.debug_value3;
 //					debug_pos.lat = mission_state.debug_value4;
-//					debug_pos.alt = mission_state.step.yaw;
-//					debug_pos.relative_alt = mission_state.step.x;
-//					debug_pos.lon = (int) mission_state.step.x;
-//					debug_pos.lat = (int) mission_state.step.y;
-//
+
+					debug_pos.lat = (int32_t) mission_state.state;
+					debug_pos.lon = (int32_t) mission_state.sonar_obstacle.valid;
+					debug_pos.alt = (int32_t) mission_state.free_to_go;
+
 //					orb_publish(ORB_ID(vehicle_global_position), debug_pos_pub, &debug_pos);
+					orb_publish(ORB_ID(vehicle_gps_position), debug_pos_pub, &debug_pos);
 
 					/* measure in what intervals the mission commander runs */
 					perf_count(mc_interval_perf);
