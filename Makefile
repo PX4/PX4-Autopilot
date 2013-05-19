@@ -95,9 +95,14 @@ all:			$(STAGED_FIRMWARES)
 #
 # Copy FIRMWARES into the image directory.
 #
+# XXX copying the .bin files is a hack to work around the PX4IO uploader 
+#     not supporting .px4 files, and it should be deprecated onced that 
+#     is taken care of.
+#
 $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
 	@echo %% Copying $@
 	$(Q) $(COPY) $< $@
+	$(Q) $(COPY) $(patsubst %.px4,%.bin,$<) $(patsubst %.px4,%.bin,$@)
 
 #
 # Generate FIRMWARES.
