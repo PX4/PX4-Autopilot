@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@
 
 /**
  * @file param.c
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Parameter tool.
  */
@@ -262,7 +263,7 @@ do_set(const char* name, const char* val)
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &i)) {
-			printf("old: %d", i);
+			printf("curr: %d", i);
 
 			/* convert string */
 			char* end;
@@ -276,14 +277,13 @@ do_set(const char* name, const char* val)
 
 	case PARAM_TYPE_FLOAT:
 		if (!param_get(param, &f)) {
-			printf("float values are not yet supported.");
-			// printf("old: %4.4f", (double)f);
+			printf("curr: %4.4f", (double)f);
 
-			// /* convert string */
-			// char* end;
-			// f = strtof(val,&end);
-			// param_set(param, &f);
-			// printf(" -> new: %4.4f\n", f);
+			/* convert string */
+			char* end;
+			f = strtod(val,&end);
+			param_set(param, &f);
+			printf(" -> new: %f\n", f);
 
 		}
 

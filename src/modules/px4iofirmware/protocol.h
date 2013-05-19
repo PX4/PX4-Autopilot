@@ -115,7 +115,7 @@
 #define PX4IO_P_STATUS_ALARMS_PWM_ERROR		(1 << 6) /* PWM configuration or output was bad */
 
 #define PX4IO_P_STATUS_VBATT			4	/* battery voltage in mV */
-#define PX4IO_P_STATUS_IBATT			5	/* battery current in cA */
+#define PX4IO_P_STATUS_IBATT			5	/* battery current (raw ADC) */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -145,9 +145,9 @@
 #define PX4IO_P_SETUP_FEATURES			0
 
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
-#define PX4IO_P_SETUP_ARMING_ARM_OK		(1 << 0) /* OK to arm */
+#define PX4IO_P_SETUP_ARMING_IO_ARM_OK		(1 << 0) /* OK to arm the IO side */
+#define PX4IO_P_SETUP_ARMING_FMU_ARMED		(1 << 1) /* FMU is already armed */
 #define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK	(1 << 2) /* OK to switch to manual override via override RC channel */
-#define PX4IO_P_SETUP_ARMING_VECTOR_FLIGHT_OK	(1 << 3) /* OK to perform position / vector control (= position lock) */
 #define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 4) /* OK to try in-air restart */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
@@ -155,8 +155,6 @@
 #define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
 #define PX4IO_P_SETUP_VBATT_SCALE		6	/* battery voltage correction factor (float) */
-#define PX4IO_P_SETUP_IBATT_SCALE		7	/* battery current scaling factor (float) */
-#define PX4IO_P_SETUP_IBATT_BIAS		8	/* battery current bias value */
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
 /* autopilot control values, -10000..10000 */

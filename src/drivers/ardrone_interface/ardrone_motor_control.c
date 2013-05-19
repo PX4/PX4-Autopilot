@@ -482,10 +482,10 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	motor_pwm[3] = (motor_pwm[3] > 0) ? motor_pwm[3] : 10;
 
 	/* Failsafe logic - should never be necessary */
-	motor_pwm[0] = (motor_pwm[0] <= 512) ? motor_pwm[0] : 512;
-	motor_pwm[1] = (motor_pwm[1] <= 512) ? motor_pwm[1] : 512;
-	motor_pwm[2] = (motor_pwm[2] <= 512) ? motor_pwm[2] : 512;
-	motor_pwm[3] = (motor_pwm[3] <= 512) ? motor_pwm[3] : 512;
+	motor_pwm[0] = (motor_pwm[0] <= 511) ? motor_pwm[0] : 511;
+	motor_pwm[1] = (motor_pwm[1] <= 511) ? motor_pwm[1] : 511;
+	motor_pwm[2] = (motor_pwm[2] <= 511) ? motor_pwm[2] : 511;
+	motor_pwm[3] = (motor_pwm[3] <= 511) ? motor_pwm[3] : 511;
 
 	/* send motors via UART */
 	ardrone_write_motor_commands(ardrone_write, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);

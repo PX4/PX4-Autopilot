@@ -14,6 +14,7 @@ MODULES		+= drivers/device
 MODULES		+= drivers/stm32
 MODULES		+= drivers/stm32/adc
 MODULES		+= drivers/stm32/tone_alarm
+MODULES		+= drivers/led
 MODULES		+= drivers/px4io
 MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmu
@@ -29,6 +30,9 @@ MODULES		+= drivers/gps
 MODULES		+= drivers/hil
 MODULES		+= drivers/hott_telemetry
 MODULES		+= drivers/blinkm
+MODULES		+= drivers/mkblctrl
+MODULES		+= drivers/md25
+MODULES		+= drivers/ets_airspeed
 MODULES		+= modules/sensors
 
 #
@@ -101,6 +105,10 @@ MODULES		+= modules/uORB
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/debug_values
 #MODULES		+= examples/px4_mavlink_debug
+
+# Tutorial code from
+# https://pixhawk.ethz.ch/px4/dev/example_fixedwing_control
+MODULES			+= examples/fixedwing_control
 
 #
 # Transitional support - add commands from the NuttX export archive.

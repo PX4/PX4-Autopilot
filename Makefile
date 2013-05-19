@@ -1,5 +1,5 @@
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -95,9 +95,14 @@ all:			$(STAGED_FIRMWARES)
 #
 # Copy FIRMWARES into the image directory.
 #
+# XXX copying the .bin files is a hack to work around the PX4IO uploader 
+#     not supporting .px4 files, and it should be deprecated onced that 
+#     is taken care of.
+#
 $(STAGED_FIRMWARES): $(IMAGE_DIR)%.px4: $(BUILD_DIR)%.build/firmware.px4
 	@echo %% Copying $@
 	$(Q) $(COPY) $< $@
+	$(Q) $(COPY) $(patsubst %.px4,%.bin,$<) $(patsubst %.px4,%.bin,$@)
 
 #
 # Generate FIRMWARES.
@@ -159,11 +164,11 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC) $(NUTTX_APPS)
 .PHONY:	clean
 clean:
 	$(Q) $(RMDIR) $(BUILD_DIR)*.build
-	$(Q) $(REMOVE) -f $(IMAGE_DIR)*.px4
+	$(Q) $(REMOVE) $(IMAGE_DIR)*.px4
 
 .PHONY:	distclean
 distclean: clean
-	$(Q) $(REMOVE) -f $(ARCHIVE_DIR)*.export
+	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
 
 #
@@ -195,6 +200,11 @@ help:
 	@echo ""
 	@echo "  distclean"
 	@echo "    Remove all compilation products, including NuttX RTOS archives."
+	@echo ""
+	@echo "  upload"
+	@echo "    When exactly one config is being built, add this target to upload the"
+	@echo "    firmware to the board when the build is complete. Not supported for"
+	@echo "    all configurations."
 	@echo ""
 	@echo "  Common options:"
 	@echo "  ---------------"

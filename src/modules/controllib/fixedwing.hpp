@@ -193,7 +193,7 @@ public:
 	 * good idea to declare a member to store the temporary
 	 * variable.
 	 */
-	void update(float rCmd, float r);
+	void update(float rCmd, float r, float outputScale = 1.0);
 
 	/**
 	 * Rudder output value accessor
@@ -226,7 +226,8 @@ public:
 	BlockStabilization(SuperBlock *parent, const char *name);
 	virtual ~BlockStabilization();
 	void update(float pCmd, float qCmd, float rCmd,
-		    float p, float q, float r);
+		    float p, float q, float r,
+		    float outputScale = 1.0);
 	float getAileron() { return _aileron; }
 	float getElevator() { return _elevator; }
 	float getRudder() { return _yawDamper.getRudder(); }
@@ -310,9 +311,9 @@ private:
 	BlockLimit _theLimit;
 	BlockLimit _vLimit;
 
-	// altitude/ roc hold
+	// altitude/ climb rate hold
 	BlockPID _h2Thr;
-	BlockPID _roc2Thr;
+	BlockPID _cr2Thr;
 
 	// guidance
 	BlockWaypointGuidance _guide;
@@ -322,8 +323,9 @@ private:
 	BlockParam<float> _trimElv;
 	BlockParam<float> _trimRdr;
 	BlockParam<float> _trimThr;
+	BlockParam<float> _trimV;
 	BlockParam<float> _vCmd;
-	BlockParam<float> _rocMax;
+	BlockParam<float> _crMax;
 
 	struct pollfd _attPoll;
 	vehicle_global_position_setpoint_s _lastPosCmd;

@@ -43,6 +43,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#include <math.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -104,6 +105,13 @@ static void zeroes(FAR struct lib_outstream_s *obj, int nzeroes)
  * Private Functions
  ****************************************************************************/
 
+static void lib_dtoa_string(FAR struct lib_outstream_s *obj, const char *str)
+{
+	while (*str) {
+		obj->put(obj, *str++);
+	}
+}
+
 /****************************************************************************
  * Name: lib_dtoa
  *
@@ -137,9 +145,23 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
   int  nchars;          /* Number of characters to print */
   int  dsgn;            /* Unused sign indicator */
   int  i;
+  bool done_decimal_point = false;
+
+  /* special handling for NaN and Infinity */
+  if (isnan(value)) {
+	  lib_dtoa_string(obj, "NaN");
+	  return;
+  }
+  if (isinf(value)) {
+	  if (value < 0.0d) {
+		  obj->put(obj, '-');
+	  }
+	  lib_dtoa_string(obj, "Infinity");
+	  return;	  
+  }
 
   /* Non-zero... positive or negative */
-
+  
   if (value < 0)
     {
       value = -value;
@@ -178,6 +200,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
       if (prec > 0 || IS_ALTFORM(flags))
         {
           obj->put(obj, '.');
+	  done_decimal_point = true;
 
           /* Always print at least one digit to the right of the decimal point. */
 
@@ -203,6 +226,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
           /* Print the decimal point */
 
           obj->put(obj, '.');
+	  done_decimal_point = true;
 
           /* Print any leading zeros to the right of the decimal point */
 
@@ -249,6 +273,7 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
               /* Print the decimal point */
 
               obj->put(obj, '.');
+	      done_decimal_point = true;
 
               /* Always print at least one digit to the right of the decimal
                * point.
@@ -285,8 +310,9 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
     }
 
   /* Finally, print any trailing zeroes */
-
-  zeroes(obj, prec);
+  if (done_decimal_point) {
+      zeroes(obj, prec);
+  }
 
   /* Is this memory supposed to be freed or not? */
 

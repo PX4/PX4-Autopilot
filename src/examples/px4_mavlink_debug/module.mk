@@ -37,4 +37,4 @@
 
 MODULE_COMMAND		= px4_mavlink_debug
 
-SRCS				= px4_mavlink_debug.c
+SRCS			= px4_mavlink_debug.c

@@ -193,7 +193,7 @@ EXTRA_CLEANS		 =
 #     for GMSL).
 
 # where to look for modules
-MODULE_SEARCH_DIRS	 += $(WORK_DIR) $(MODULE_SRC) $(PX4_MODULE_SRC)
+MODULE_SEARCH_DIRS	+= $(WORK_DIR) $(MODULE_SRC) $(PX4_MODULE_SRC)
 
 # sort and unique the modules list
 MODULES			:= $(sort $(MODULES))
@@ -201,9 +201,9 @@ MODULES			:= $(sort $(MODULES))
 # locate the first instance of a module by full path or by looking on the
 # module search path
 define MODULE_SEARCH
-	$(abspath $(firstword $(wildcard $(1)/module.mk) \
-		$(foreach search_dir,$(MODULE_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/module.mk)) \
-		MISSING_$1))
+	$(firstword $(abspath $(wildcard $(1)/module.mk)) \
+		$(abspath $(foreach search_dir,$(MODULE_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/module.mk))) \
+		MISSING_$1)
 endef
 
 # make a list of module makefiles and check that we found them all
@@ -223,12 +223,15 @@ MODULE_OBJS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)module
 .PHONY: $(MODULE_OBJS)
 $(MODULE_OBJS):		relpath = $(patsubst $(WORK_DIR)%,%,$@)
 $(MODULE_OBJS):		mkfile = $(patsubst %module.pre.o,%module.mk,$(relpath))
+$(MODULE_OBJS):		workdir = $(@D)
 $(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
+	$(Q) $(MKDIR) -p $(workdir)
 	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
-		MODULE_WORK_DIR=$(dir $@) \
+		-C $(workdir) \
+		MODULE_WORK_DIR=$(workdir) \
 		MODULE_OBJ=$@ \
 		MODULE_MK=$(mkfile) \
-		MODULE_NAME=$(lastword $(subst /, ,$(@D))) \
+		MODULE_NAME=$(lastword $(subst /, ,$(workdir))) \
 		module
 
 # make a list of phony clean targets for modules
@@ -266,14 +269,18 @@ endif
 #
 
 # Add dependencies on anything in the ROMFS root
-ROMFS_DEPS		+= $(wildcard \
-			     (ROMFS_ROOT)/* \
-			     (ROMFS_ROOT)/*/* \
-			     (ROMFS_ROOT)/*/*/* \
-			     (ROMFS_ROOT)/*/*/*/* \
-			     (ROMFS_ROOT)/*/*/*/*/* \
-			     (ROMFS_ROOT)/*/*/*/*/*/*)
-ROMFS_IMG		 = $(WORK_DIR)romfs.img
+ROMFS_FILES		+= $(wildcard \
+			     $(ROMFS_ROOT)/* \
+			     $(ROMFS_ROOT)/*/* \
+			     $(ROMFS_ROOT)/*/*/* \
+			     $(ROMFS_ROOT)/*/*/*/* \
+			     $(ROMFS_ROOT)/*/*/*/*/* \
+			     $(ROMFS_ROOT)/*/*/*/*/*/*)
+ifeq ($(ROMFS_FILES),)
+$(error ROMFS_ROOT $(ROMFS_ROOT) specifies a directory containing no files)
+endif
+ROMFS_DEPS		+= $(ROMFS_FILES)
+ROMFS_IMG		 = romfs.img
 ROMFS_CSRC		 = $(ROMFS_IMG:.img=.c)
 ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
 LIBS			+= $(ROMFS_OBJ)

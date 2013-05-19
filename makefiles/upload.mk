@@ -30,9 +30,6 @@ upload-serial-px4fmu:	$(BUNDLE) $(UPLOADER)
 upload-serial-px4fmuv2:	$(BUNDLE) $(UPLOADER)
 	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
-upload-serial-px4fmuv2:	$(BUNDLE) $(UPLOADER)
-	@python -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
-
 #
 # JTAG firmware uploading with OpenOCD
 #

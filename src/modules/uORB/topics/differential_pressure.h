@@ -49,16 +49,14 @@
  */
 
 /**
- * Differential pressure and airspeed
+ * Differential pressure.
  */
 struct differential_pressure_s {
-	uint64_t	timestamp;					/**< microseconds since system boot, needed to integrate */
-	float   	static_pressure_mbar;		/**< Static / environment pressure */
-	float		differential_pressure_mbar;	/**< Differential pressure reading */
-	float		temperature_celcius;		/**< ambient temperature in celcius, -1 if unknown */
-	float		indicated_airspeed_m_s;		/**< indicated airspeed in meters per second, -1 if unknown	 */
-	float		true_airspeed_m_s;			/**< true airspeed in meters per second, -1 if unknown */
-	float		voltage;					/**< Voltage from the airspeed sensor (voltage divider already compensated) */
+	uint64_t	timestamp;						/**< microseconds since system boot, needed to integrate */
+	uint16_t	differential_pressure_pa;		/**< Differential pressure reading */
+	uint16_t	max_differential_pressure_pa;	/**< Maximum differential pressure reading */
+	float		voltage;						/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
+
 };
 
 /**

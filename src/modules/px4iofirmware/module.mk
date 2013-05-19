@@ -10,10 +10,10 @@ SRCS		= adc.c \
 		  sbus.c \
 		  ../systemlib/up_cxxinitialize.c \
 		  ../systemlib/hx_stream.c \
-		  ../systemlib/perf_counter.c
-
-#		  mixer.cpp \
-#		  ../systemlib/mixer/mixer.cpp \
-#		  ../systemlib/mixer/mixer_group.cpp \
-#		  ../systemlib/mixer/mixer_multirotor.cpp \
-#		  ../systemlib/mixer/mixer_simple.cpp \
+		  ../systemlib/perf_counter.c \
+		  mixer.cpp \
+		  ../systemlib/mixer/mixer.cpp \
+		  ../systemlib/mixer/mixer_group.cpp \
+		  ../systemlib/mixer/mixer_multirotor.cpp \
+		  ../systemlib/mixer/mixer_simple.cpp \
+		  

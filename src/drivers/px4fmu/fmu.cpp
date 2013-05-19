@@ -574,7 +574,11 @@ PX4FMU::task_main()
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
 
 			/* update PWM servo armed status if armed and not locked down */
-			up_pwm_servo_arm(aa.armed && !aa.lockdown);
+			bool set_armed = aa.armed && !aa.lockdown;
+			if (set_armed != _armed) {
+				_armed = set_armed;
+				up_pwm_servo_arm(set_armed);
+			}
 		}
 
 #ifdef FMU_HAVE_PPM
@@ -673,6 +677,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 	case PWM_SERVO_ARM:
 		up_pwm_servo_arm(true);
+		break;
+
+	case PWM_SERVO_SET_ARM_OK:
+	case PWM_SERVO_CLEAR_ARM_OK:
+		// these are no-ops, as no safety switch
 		break;
 
 	case PWM_SERVO_DISARM:

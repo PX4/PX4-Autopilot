@@ -94,7 +94,7 @@
 #include <drivers/drv_baro.h>
 
 #include "calibration_routines.h"
-
+#include "accelerometer_calibration.h"
 
 PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
 //PARAM_DEFINE_INT32(SYS_FAILSAVE_HL, 0);	/**< Go into high-level failsafe after 0 ms */
@@ -158,7 +158,6 @@ static int led_off(int led);
 static void do_gyro_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_mag_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_rc_calibration(int status_pub, struct vehicle_status_s *status);
-static void do_accel_calibration(int status_pub, struct vehicle_status_s *status);
 static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
 
 int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
@@ -666,126 +665,6 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	close(sub_sensor_combined);
 }
 
-void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
-{
-	/* announce change */
-
-	mavlink_log_info(mavlink_fd, "keep it level and still");
-	/* set to accel calibration mode */
-	status->flag_preflight_accel_calibration = true;
-	state_machine_publish(status_pub, status, mavlink_fd);
-
-	const int calibration_count = 2500;
-
-	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
-	struct sensor_combined_s raw;
-
-	int calibration_counter = 0;
-	float accel_offset[3] = {0.0f, 0.0f, 0.0f};
-
-	int fd = open(ACCEL_DEVICE_PATH, 0);
-	struct accel_scale ascale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
-
-	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale_null))
-		warn("WARNING: failed to set scale / offsets for accel");
-
-	close(fd);
-
-	while (calibration_counter < calibration_count) {
-
-		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
-
-		int poll_ret = poll(fds, 1, 1000);
-
-		if (poll_ret) {
-			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
-			accel_offset[0] += raw.accelerometer_m_s2[0];
-			accel_offset[1] += raw.accelerometer_m_s2[1];
-			accel_offset[2] += raw.accelerometer_m_s2[2];
-			calibration_counter++;
-
-		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "acceleration calibration aborted");
-			return;
-		}
-	}
-
-	accel_offset[0] = accel_offset[0] / calibration_count;
-	accel_offset[1] = accel_offset[1] / calibration_count;
-	accel_offset[2] = accel_offset[2] / calibration_count;
-
-	if (isfinite(accel_offset[0]) && isfinite(accel_offset[1]) && isfinite(accel_offset[2])) {
-
-		/* add the removed length from x / y to z, since we induce a scaling issue else */
-		float total_len = sqrtf(accel_offset[0] * accel_offset[0] + accel_offset[1] * accel_offset[1] + accel_offset[2] * accel_offset[2]);
-
-		/* if length is correct, zero results here */
-		accel_offset[2] = accel_offset[2] + total_len;
-
-		float scale = 9.80665f / total_len;
-
-		if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offset[0]))
-			|| param_set(param_find("SENS_ACC_YOFF"), &(accel_offset[1]))
-			|| param_set(param_find("SENS_ACC_ZOFF"), &(accel_offset[2]))
-			|| param_set(param_find("SENS_ACC_XSCALE"), &(scale))
-			|| param_set(param_find("SENS_ACC_YSCALE"), &(scale))
-			|| param_set(param_find("SENS_ACC_ZSCALE"), &(scale))) {
-			mavlink_log_critical(mavlink_fd, "Setting offs or scale failed!");
-		}
-
-		fd = open(ACCEL_DEVICE_PATH, 0);
-		struct accel_scale ascale = {
-			accel_offset[0],
-			scale,
-			accel_offset[1],
-			scale,
-			accel_offset[2],
-			scale,
-		};
-
-		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
-			warn("WARNING: failed to set scale / offsets for accel");
-
-		close(fd);
-
-		/* auto-save to EEPROM */
-		int save_ret = param_save_default();
-
-		if (save_ret != 0) {
-			warn("WARNING: auto-save of params to storage failed");
-		}
-
-		//char buf[50];
-		//sprintf(buf, "[cmd] accel cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0], (double)accel_offset[1], (double)accel_offset[2]);
-		//mavlink_log_info(mavlink_fd, buf);
-		mavlink_log_info(mavlink_fd, "accel calibration done");
-
-		tune_confirm();
-		sleep(2);
-		tune_confirm();
-		sleep(2);
-		/* third beep by cal end routine */
-
-	} else {
-		mavlink_log_info(mavlink_fd, "accel calibration FAILED (NaN)");
-	}
-
-	/* exit accel calibration mode */
-	status->flag_preflight_accel_calibration = false;
-	state_machine_publish(status_pub, status, mavlink_fd);
-
-	close(sub_sensor_combined);
-}
-
 void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 {
 	/* announce change */
@@ -797,22 +676,22 @@ void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 
 	const int calibration_count = 2500;
 
-	int sub_differential_pressure = orb_subscribe(ORB_ID(differential_pressure));
-	struct differential_pressure_s differential_pressure;
+	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
+	struct differential_pressure_s diff_pres;
 
 	int calibration_counter = 0;
-	float airspeed_offset = 0.0f;
+	float diff_pres_offset = 0.0f;
 
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = sub_differential_pressure, .events = POLLIN } };
+		struct pollfd fds[1] = { { .fd = diff_pres_sub, .events = POLLIN } };
 
 		int poll_ret = poll(fds, 1, 1000);
 
 		if (poll_ret) {
-			orb_copy(ORB_ID(differential_pressure), sub_differential_pressure, &differential_pressure);
-			airspeed_offset += differential_pressure.voltage;
+			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+			diff_pres_offset += diff_pres.differential_pressure_pa;
 			calibration_counter++;
 
 		} else if (poll_ret == 0) {
@@ -822,11 +701,11 @@ void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 		}
 	}
 
-	airspeed_offset = airspeed_offset / calibration_count;
+	diff_pres_offset = diff_pres_offset / calibration_count;
 
-	if (isfinite(airspeed_offset)) {
+	if (isfinite(diff_pres_offset)) {
 
-		if (param_set(param_find("SENS_VAIR_OFF"), &(airspeed_offset))) {
+		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 			mavlink_log_critical(mavlink_fd, "Setting offs failed!");
 		}
 
@@ -856,7 +735,7 @@ void do_airspeed_calibration(int status_pub, struct vehicle_status_s *status)
 	status->flag_preflight_airspeed_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
 
-	close(sub_differential_pressure);
+	close(diff_pres_sub);
 }
 
 
@@ -1040,7 +919,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "CMD starting accel cal");
 					tune_confirm();
-					do_accel_calibration(status_pub, &current_status);
+					do_accel_calibration(status_pub, &current_status, mavlink_fd);
 					tune_confirm();
 					mavlink_log_info(mavlink_fd, "CMD finished accel cal");
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
@@ -1477,10 +1356,10 @@ int commander_thread_main(int argc, char *argv[])
 	struct sensor_combined_s sensors;
 	memset(&sensors, 0, sizeof(sensors));
 
-	int differential_pressure_sub = orb_subscribe(ORB_ID(differential_pressure));
-	struct differential_pressure_s differential_pressure;
-	memset(&differential_pressure, 0, sizeof(differential_pressure));
-	uint64_t last_differential_pressure_time = 0;
+	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
+	struct differential_pressure_s diff_pres;
+	memset(&diff_pres, 0, sizeof(diff_pres));
+	uint64_t last_diff_pres_time = 0;
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1535,11 +1414,11 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
 		}
 
-		orb_check(differential_pressure_sub, &new_data);
+		orb_check(diff_pres_sub, &new_data);
 
 		if (new_data) {
-			orb_copy(ORB_ID(differential_pressure), differential_pressure_sub, &differential_pressure);
-			last_differential_pressure_time = differential_pressure.timestamp;
+			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
+			last_diff_pres_time = diff_pres.timestamp;
 		}
 
 		orb_check(cmd_sub, &new_data);
@@ -1624,21 +1503,39 @@ int commander_thread_main(int argc, char *argv[])
 			if ((current_status.state_machine == SYSTEM_STATE_GROUND_READY ||
 			     current_status.state_machine == SYSTEM_STATE_AUTO  ||
 			     current_status.state_machine == SYSTEM_STATE_MANUAL)) {
-				/* armed */
-				led_toggle(LED_BLUE);
+				/* armed, solid */
+				led_on(LED_AMBER);
 
 			} else if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
 				/* not armed */
-				led_toggle(LED_BLUE);
+				led_toggle(LED_AMBER);
 			}
 
-			/* toggle error led at 5 Hz in HIL mode */
+			if (hrt_absolute_time() - gps_position.timestamp_position < 2000000) {
+
+				/* toggle GPS (blue) led at 1 Hz if GPS present but no lock, make is solid once locked */
+				if ((hrt_absolute_time() - gps_position.timestamp_position < 2000000)
+					&& (gps_position.fix_type == GPS_FIX_TYPE_3D)) {
+					/* GPS lock */
+					led_on(LED_BLUE);
+
+				} else if ((counter + 4) % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+					/* no GPS lock, but GPS module is aquiring lock */
+					led_toggle(LED_BLUE);
+				}
+
+			} else {
+				/* no GPS info, don't light the blue led */
+				led_off(LED_BLUE);
+			}
+
+			/* toggle GPS led at 5 Hz in HIL mode */
 			if (current_status.flag_hil_enabled) {
 				/* hil enabled */
-				led_toggle(LED_AMBER);
+				led_toggle(LED_BLUE);
 
 			} else if (bat_remain < 0.3f && (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT)) {
-				/* toggle error (red) at 5 Hz on low battery or error */
+				/* toggle arming (red) at 5 Hz on low battery or error */
 				led_toggle(LED_AMBER);
 
 			} else {
@@ -1754,7 +1651,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* Check for valid airspeed/differential pressure measurements */
-		if (hrt_absolute_time() - last_differential_pressure_time < 2000000) {
+		if (hrt_absolute_time() - last_diff_pres_time < 2000000) {
 			current_status.flag_airspeed_valid = true;
 
 		} else {
