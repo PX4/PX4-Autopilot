@@ -35,7 +35,7 @@
 # This makefile is invoked by firmware.mk to build each of the modules
 # that will subsequently be linked into the firmware image.
 #
-# Applications are built as prelinked objects with a limited set of exported
+# Modules are built as prelinked objects with a limited set of exported
 # symbols, as the global namespace is shared between all modules. Normally an 
 # module will just export one or more <command>_main functions.
 #
@@ -184,29 +184,9 @@ CXXFLAGS	+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(PX4_INCLUDE_DIR)visibi
 module:			$(MODULE_OBJ) $(MODULE_COMMAND_FILES)
 
 ##
-## Locate sources (allows relative source paths in module.mk)
-##
-#define SRC_SEARCH
-#	$(abspath $(firstword $(wildcard $1) $(wildcard $(MODULE_SRC)/$1) MISSING_$1))
-#endef
-#
-#ABS_SRCS		?= $(foreach src,$(SRCS),$(call SRC_SEARCH,$(src)))
-#MISSING_SRCS		:= $(subst MISSING_,,$(filter MISSING_%,$(ABS_SRCS)))
-#ifneq ($(MISSING_SRCS),)
-#$(error $(MODULE_MK): missing in SRCS: $(MISSING_SRCS))
-#endif
-#ifeq ($(ABS_SRCS),)
-#$(error $(MODULE_MK): nothing to compile in SRCS)
-#endif
-#
-##
 ## Object files we will generate from sources
 ##
-#OBJS			:= $(foreach src,$(ABS_SRCS),$(MODULE_WORK_DIR)$(src).o)
-
-OBJS		 = $(addsuffix .o,$(SRCS))
-$(info SRCS $(SRCS))
-$(info OBJS $(OBJS))
+OBJS			 = $(addsuffix .o,$(SRCS))
 
 #
 # SRCS -> OBJS rules
