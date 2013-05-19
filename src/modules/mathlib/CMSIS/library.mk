@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,26 +35,12 @@
 # ARM CMSIS DSP library
 #
 
-#
-# Find sources
-#
-DSPLIB_SRCDIR		:= $(dir $(lastword $(MAKEFILE_LIST)))
-SRCLIST			:= $(wildcard $(DSPLIB_SRCDIR)DSP_Lib/Source/*/*.c)
-SRCS			:= $(patsubst $(DSPLIB_SRCDIR)%,%,$(SRCLIST))
-
-INCLUDE_DIRS		+= $(DSPLIB_SRCDIR)/Include \
-			   $(DSPLIB_SRCDIR)/Device/ARM/ARMCM4/Include \
-			   $(DSPLIB_SRCDIR)/Device/ARM/ARMCM3/Include
-
-# Suppress some warnings that ARM should fix, but haven't.
-EXTRADEFINES		+= -Wno-unsuffixed-float-constants \
-			   -Wno-sign-compare \
-			   -Wno-shadow \
-			   -Wno-float-equal \
-			   -Wno-unused-variable
-
-#
-# Override the default visibility for symbols, since the CMSIS DSPLib doesn't
-# have anything we can use to mark exported symbols.
-#
-DEFAULT_VISIBILITY	 = YES
+ifeq ($(CONFIG_ARCH),CORTEXM4F)
+PREBUILT_LIB		:= libarm_cortexM4lf_math.a
+else ifeq ($(CONFIG_ARCH),CORTEXM4)
+PREBUILT_LIB		:= libarm_cortexM4l_math.a
+else ifeq ($(CONFIG_ARCH),CORTEXM3)
+PREBUILT_LIB		:= libarm_cortexM3l_math.a
+else
+$(error CONFIG_ARCH value '$(CONFIG_ARCH)' not supported by the DSP library)
+endif
