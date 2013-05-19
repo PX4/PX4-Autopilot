@@ -48,6 +48,7 @@ CSRCS		 = mission_commander_flow_main.c \
 		   codegen/rtGetNaN.c \
 		   codegen/radarControl_initialize.c \
 		   codegen/radarControl_terminate.c \
-		   codegen/radarControl.c
+		   codegen/radarControl.c \
+		   codegen/sum.c
 
 include $(APPDIR)/mk/app.mk

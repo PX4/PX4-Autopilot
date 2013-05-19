@@ -3,13 +3,14 @@
  *
  * Code generation for function 'radarControl'
  *
- * C source code generated on: Mon May 13 22:05:47 2013
+ * C source code generated on: Sun May 19 21:16:10 2013
  *
  */
 
 /* Include files */
 #include "rt_nonfinite.h"
 #include "radarControl.h"
+#include "sum.h"
 
 /* Type Definitions */
 
@@ -104,6 +105,7 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
   int16_T front_side_range;
   real_T free_sectors_left;
   real_T b_free_sectors_right;
+  int16_T b_radar[3];
   int16_T sonar_pitch;
   boolean_T exitg2;
   boolean_T exitg1;
@@ -263,12 +265,29 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
             i++;
           }
 
-          if (free_sectors_left > b_free_sectors_right) {
-            /*  left */
-            front_threshold = -1.0F;
+          if (free_sectors_left == b_free_sectors_right) {
+            /*  front is free, side samples decides */
+            front_threshold = (real32_T)sum(*(int16_T (*)[3])&radar[8]);
+            for (i = 0; i < 3; i++) {
+              b_radar[i] = radar[24 - i];
+            }
+
+            if (front_threshold / 3.0F > (real32_T)sum(b_radar) / 3.0F) {
+              /*  left */
+              front_threshold = -1.0F;
+            } else {
+              /*  right */
+              front_threshold = 1.0F;
+            }
           } else {
-            /*  right */
-            front_threshold = 1.0F;
+            /*  sectors decides */
+            if (free_sectors_left > b_free_sectors_right) {
+              /*  left */
+              front_threshold = -1.0F;
+            } else {
+              /*  right */
+              front_threshold = 1.0F;
+            }
           }
         }
       }
@@ -553,6 +572,8 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
         }
 
         yaw_scale = rt_powf_snf((real32_T)i / (real32_T)front_side_range, 2.0F);
+
+        /*                  yaw_scale = (single(front_side_range - dist_front_side) / single(front_side_range)); */
       }
     } else if ((front_threshold < 4.0F) && (free_sectors_right < 4.0F)) {
       /*  calc perfect yaw */
@@ -586,6 +607,8 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
           (real32_T)sin((real32_T)fabs(front_threshold)) * (real32_T)fabs
           (front_threshold) / settings[0]) / settings[2];
       }
+
+      /*  for x throttle */
     } else {
       /*  full reaction is possible but not always needed */
       if (free_sectors_diff > 0.0F) {
@@ -620,6 +643,8 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
         yaw_scale = (real32_T)fabs(free_sectors_diff) / 4.0F;
       } else {
         /*  0..1 */
+        /*                 yaw_scale = (single(front_side_range - dist_front_side) / single(front_side_range)) * ... */
+        /*                     (abs(free_sectors_diff) / front_side_sectors); */
         i = front_side_range - dist_edge_left;
         if (i < -32768) {
           i = -32768;
@@ -690,12 +715,25 @@ boolean_T radarControl(int16_T radar[32], real32_T front_distance, real32_T
     front_threshold = 0.0F;
   }
 
+  /*  only change y set if no yaw controll */
+  /*      if yaw_control == 0 */
+  /*          y_control = single(max_y_control * y_scale); */
+  /*      end */
   *y_control = settings[1] * front_threshold;
 
   /*  --------------------------------------------------------------------- */
   /*  calculate x control */
   /*  --------------------------------------------------------------------- */
   /*  adjust x control (TODO half it if a obstacle is there...) */
+  /*      if free_sectors_left == 0 || free_sectors_right == 0 */
+  /*          if dist_front_side < x_throttle_range */
+  /*              if dist_front_side <= 0 */
+  /*                  x_control_scale = x_control_scale - 0.5; */
+  /*              else  */
+  /*                  x_control_scale = x_control_scale - (single(x_throttle_range - dist_front_side) / single(x_throttle_range)) * 0.5; */
+  /*              end */
+  /*          end */
+  /*      end */
   *x_control = settings[0];
   return free_environment;
 }

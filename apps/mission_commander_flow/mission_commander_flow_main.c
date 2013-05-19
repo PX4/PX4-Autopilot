@@ -504,9 +504,9 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 									/* correct yaw if needed */
 									if (fabsf(yaw_sp_error) > params.mission_update_step_yaw && !mission_state.final_sequence) {
 										if (yaw_sp_error > 0) {
-											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw;
+											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + params.mission_update_step_yaw / 2.0f;
 										} else {
-											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw;
+											bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - params.mission_update_step_yaw / 2.0f;
 										}
 
 										/* we need flow... step by step */
@@ -534,6 +534,8 @@ int mission_commander_flow_thread_main(int argc, char *argv[])
 
 										/* final mission sequence? */
 										if(!mission_state.final_sequence){
+
+											// TODO this could be a bug !!!
 											bodyframe_pos_sp.yaw = yaw_final;
 
 											if (fabsf(wp_bodyframe_offset_x) < params.mission_wp_radius) {

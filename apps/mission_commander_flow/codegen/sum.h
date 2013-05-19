@@ -1,14 +1,14 @@
 /*
- * radarControl_initialize.h
+ * sum.h
  *
- * Code generation for function 'radarControl_initialize'
+ * Code generation for function 'sum'
  *
  * C source code generated on: Sun May 19 21:16:10 2013
  *
  */
 
-#ifndef __RADARCONTROL_INITIALIZE_H__
-#define __RADARCONTROL_INITIALIZE_H__
+#ifndef __SUM_H__
+#define __SUM_H__
 /* Include files */
 #include <math.h>
 #include <stddef.h>
@@ -27,6 +27,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void radarControl_initialize(void);
+extern real_T sum(const int16_T x[3]);
 #endif
-/* End of code generation (radarControl_initialize.h) */
+/* End of code generation (sum.h) */
