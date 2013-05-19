@@ -114,6 +114,7 @@ public:
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 	virtual int	init(unsigned motors);
+	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
 
 	int		set_mode(Mode mode);
 	int		set_pwm_rate(unsigned rate);
@@ -177,9 +178,10 @@ private:
 	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
 	int			mk_servo_arm(bool status);
 
-	int 		mk_servo_set(unsigned int chan, float val);
-	int 		mk_servo_set_test(unsigned int chan, float val);
+	int 		mk_servo_set(unsigned int chan, short val);
+	int 		mk_servo_set_value(unsigned int chan, short val);
 	int 		mk_servo_test(unsigned int chan);
+	short		scaling(float val, float inMin, float inMax, float outMin, float outMax);
 
 
 };
@@ -212,15 +214,16 @@ int addrTranslator[] = {0,0,0,0,0,0,0,0};
 struct MotorData_t
 {
 	unsigned int Version;                        // the version of the BL (0 = old)
-  unsigned int SetPoint;                       // written by attitude controller
-  unsigned int SetPointLowerBits;      // for higher Resolution of new BLs
-  unsigned int State;                          // 7 bit for I2C error counter, highest bit indicates if motor is present
-  unsigned int ReadMode;                       // select data to read
-  // the following bytes must be exactly in that order!
-  unsigned int Current;                        // in 0.1 A steps, read back from BL
-  unsigned int MaxPWM;                         // read back from BL is less than 255 if BL is in current limit
-  unsigned int Temperature;            // old BL-Ctrl will return a 255 here, the new version the temp. in
-  unsigned int RoundCount;
+	unsigned int SetPoint;                       // written by attitude controller
+	unsigned int SetPointLowerBits;      // for higher Resolution of new BLs
+	unsigned int State;                          // 7 bit for I2C error counter, highest bit indicates if motor is present
+	unsigned int ReadMode;                       // select data to read
+	unsigned short RawPwmValue;							// length of PWM pulse
+	// the following bytes must be exactly in that order!
+	unsigned int Current;                        // in 0.1 A steps, read back from BL
+	unsigned int MaxPWM;                         // read back from BL is less than 255 if BL is in current limit
+	unsigned int Temperature;            // old BL-Ctrl will return a 255 here, the new version the temp. in
+	unsigned int RoundCount;
 };
 
 MotorData_t Motor[MAX_MOTORS];
@@ -234,7 +237,7 @@ MK	*g_mk;
 } // namespace
 
 MK::MK(int bus) :
-	I2C("mkblctrl", "/dev/mkblctrl", bus, 0, I2C_BUS_SPEED),
+	I2C("fmuservo", "/dev/px4fmu", bus, 0, I2C_BUS_SPEED),
 	_mode(MODE_NONE),
 	_update_rate(50),
 	_task(-1),
@@ -469,10 +472,28 @@ MK::set_motor_test(bool motortest)
 	return OK;
 }
 
+short
+MK::scaling(float val, float inMin, float inMax, float outMin, float outMax)
+{
+	short retVal = 0;
+
+	retVal = (val - inMin) / (inMax - inMin) * (outMax - outMin) + outMin;
+
+	if(retVal < outMin) {
+		retVal = outMin;
+	} else if(retVal > outMax) {
+		retVal = outMax;
+	}
+
+	return retVal;
+}
 
 void
 MK::task_main()
 {
+	long update_rate_in_us = 0;
+	float tmpVal = 0;
+
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
@@ -513,7 +534,6 @@ MK::task_main()
 	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
 	
 	log("starting");
-	long update_rate_in_us = 0;
 
 	/* loop until killed */
 	while (!_task_should_exit) {
@@ -539,8 +559,9 @@ MK::task_main()
 			_current_update_rate = _update_rate;
 		}
 
-		/* sleep waiting for data, but no more than a second */
-		int ret = ::poll(&fds[0], 2, 1000);
+		/* sleep waiting for data, stopping to check for PPM
+		 * input at 100Hz */
+		int ret = ::poll(&fds[0], 2, 10);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -576,8 +597,7 @@ MK::task_main()
 						outputs.output[i] >= -1.0f &&
 						outputs.output[i] <= 1.0f) {
 						/* scale for PWM output 900 - 2100us */
-						//outputs.output[i] = 1500 + (600 * outputs.output[i]);
-						//outputs.output[i] = 127 + (127 * outputs.output[i]);
+						/* nothing to do here */
 					} else {
 						/*
 						 * Value is NaN, INF or out of band - set to the minimum value.
@@ -602,10 +622,10 @@ MK::task_main()
 					if(_motortest == true) {
 						mk_servo_test(i);
 					} else {
-						//mk_servo_set(i, outputs.output[i]);
-						mk_servo_set_test(i, outputs.output[i]);	// 8Bit
+						//tmpVal = (511 + (511 * outputs.output[i]));
+						//mk_servo_set_value(i, tmpVal);
+						mk_servo_set_value(i, scaling(outputs.output[i], -1.0f, 1.0f, 0, 1024));	// scale the output to 0 - 1024 and sent to output routine
 					}
-
 
 				}
 
@@ -686,6 +706,7 @@ MK::mk_check_for_blctrl(unsigned int count, bool showOutput)
 		Motor[i].SetPointLowerBits = 0;
 		Motor[i].State = 0;
 		Motor[i].ReadMode = 0;
+		Motor[i].RawPwmValue = 0;
 		Motor[i].Current = 0;
 		Motor[i].MaxPWM = 0;
 		Motor[i].Temperature = 0;
@@ -734,26 +755,26 @@ MK::mk_check_for_blctrl(unsigned int count, bool showOutput)
 
 
 int
-MK::mk_servo_set(unsigned int chan, float val)
+MK::mk_servo_set(unsigned int chan, short val)
 {
-	float tmpVal = 0;
+	short tmpVal = 0;
 	_retries = 0;
 	uint8_t result[3] = { 0,0,0 };
 	uint8_t msg[2] = { 0,0 };
 	uint8_t rod=0;
 	uint8_t bytesToSendBL2 = 2;
 
+	tmpVal = val;
 
-	tmpVal = (1023 + (1023 * val));
-	if(tmpVal > 2047) {
-		tmpVal = 2047;
+	if(tmpVal > 1024) {
+		tmpVal = 1024;
+	} else if(tmpVal < 0) {
+		tmpVal = 0;
 	}
 
+	Motor[chan].SetPoint = (uint8_t) (tmpVal / 4);
+	//Motor[chan].SetPointLowerBits = (uint8_t) tmpVal % 4;
 
-	Motor[chan].SetPoint = (uint8_t) tmpVal / 3;	// divide 8
-	Motor[chan].SetPointLowerBits = (uint8_t) tmpVal % 8;	// rest of divide 8
-	//rod = (uint8_t) tmpVal % 8;
-	//Motor[chan].SetPointLowerBits = rod<<1;	// rest of divide 8
 	Motor[chan].SetPointLowerBits = 0;
 
 	if(_armed == false) {
@@ -833,21 +854,21 @@ MK::mk_servo_set(unsigned int chan, float val)
 }
 
 int
-MK::mk_servo_set_test(unsigned int chan, float val)
+MK::mk_servo_set_value(unsigned int chan, short val)
 {
 	_retries = 0;
 	int ret;
-
-	float tmpVal = 0;
-
+	short tmpVal = 0;
 	uint8_t msg[2] = { 0,0 };
 
-	tmpVal = (1023 + (1023 * val));
-	if(tmpVal > 2048) {
-		tmpVal = 2048;
-	}
+	tmpVal = val;
 
-	Motor[chan].SetPoint = (uint8_t) (tmpVal / 8);
+	if(tmpVal > 1024) {
+		tmpVal = 1024;
+	} else if(tmpVal < 0) {
+		tmpVal = 0;
+	}
+	Motor[chan].SetPoint = (uint8_t) (tmpVal / 4);
 
 	if(_armed == false) {
 		Motor[chan].SetPoint = 0;
@@ -860,7 +881,6 @@ MK::mk_servo_set_test(unsigned int chan, float val)
 	ret = transfer(&msg[0], 1, nullptr, 0);
 
 	ret = OK;
-
 	return ret;
 }
 
@@ -886,8 +906,8 @@ MK::mk_servo_test(unsigned int chan)
 			_motor = -1;
 			_motortest = false;
 		}
-
 	}
+
 	debugCounter++;
 
 	if(_motor == chan) {
@@ -896,15 +916,13 @@ MK::mk_servo_test(unsigned int chan)
 		val = -1;
 	}
 
-	tmpVal = (1023 + (1023 * val));
-	if(tmpVal > 2048) {
-		tmpVal = 2048;
+	tmpVal = (511 + (511 * val));
+	if(tmpVal > 1024) {
+		tmpVal = 1024;
 	}
 
-	//Motor[chan].SetPoint = (uint8_t) (tmpVal / 8);
-	//Motor[chan].SetPointLowerBits = (uint8_t) (tmpVal % 8) & 0x07;
-	Motor[chan].SetPoint = (uint8_t) tmpVal>>3;
-	Motor[chan].SetPointLowerBits = (uint8_t) tmpVal & 0x07;
+	Motor[chan].SetPoint = (uint8_t) (tmpVal / 4);
+	//Motor[chan].SetPointLowerBits = (uint8_t) (tmpVal % 4);
 
 	if(_motor != chan) {
 		Motor[chan].SetPoint = 0;
@@ -978,54 +996,57 @@ int
 MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
-	int channel;
 
 	lock();
 
 	switch (cmd) {
 	case PWM_SERVO_ARM:
-		////up_pwm_servo_arm(true);
 		mk_servo_arm(true);
 		break;
 
+	case PWM_SERVO_SET_ARM_OK:
+	case PWM_SERVO_CLEAR_ARM_OK:
+		// these are no-ops, as no safety switch
+		break;
+
 	case PWM_SERVO_DISARM:
-		////up_pwm_servo_arm(false);
 		mk_servo_arm(false);
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
-		set_pwm_rate(arg);
+		ret = OK;
+		break;
+
+	case PWM_SERVO_SELECT_UPDATE_RATE:
+		ret = OK;
 		break;
 
 
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_actuators - 1):
-
-		/* fake an update to the selected 'servo' channel */
-		if ((arg >= 0) && (arg <= 255)) {
-			channel = cmd - PWM_SERVO_SET(0);
-			//mk_servo_set(channel, arg);
+		if (arg < 2150) {
+			Motor[cmd - PWM_SERVO_SET(0)].RawPwmValue = (unsigned short)arg;
+			mk_servo_set_value(cmd - PWM_SERVO_SET(0), scaling(arg, 1010, 2100, 0, 1024));
 		} else {
 			ret = -EINVAL;
 		}
-
 		break;
 
 	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(_max_actuators - 1):
 		/* copy the current output value from the channel */
-		*(servo_position_t *)arg = cmd - PWM_SERVO_GET(0);
+		*(servo_position_t *)arg = Motor[cmd - PWM_SERVO_SET(0)].RawPwmValue;
+
 		break;
 
+	case PWM_SERVO_GET_RATEGROUP(0):
+	case PWM_SERVO_GET_RATEGROUP(1):
+	case PWM_SERVO_GET_RATEGROUP(2):
+	case PWM_SERVO_GET_RATEGROUP(3):
+		//*(uint32_t *)arg = up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
+		break;
+
+	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
-		/*
-		if (_mode == MODE_4PWM) {
-			*(unsigned *)arg = 4;
-		} else {
-			*(unsigned *)arg = 2;
-		}
-		 */
-
 		*(unsigned *)arg = _num_outputs;
-
 		break;
 
 	case MIXERIOCRESET:
@@ -1033,7 +1054,6 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			delete _mixers;
 			_mixers = nullptr;
 		}
-
 		break;
 
 	case MIXERIOCADDSIMPLE: {
@@ -1089,6 +1109,31 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	unlock();
 
 	return ret;
+}
+
+/*
+  this implements PWM output via a write() method, for compatibility
+  with px4io
+ */
+ssize_t
+MK::write(file *filp, const char *buffer, size_t len)
+{
+	unsigned count = len / 2;
+	uint16_t values[4];
+
+	if (count > 4) {
+		// we only have 4 PWM outputs on the FMU
+		count = 4;
+	}
+
+	// allow for misaligned values
+	memcpy(values, buffer, count*2);
+
+	for (uint8_t i=0; i<count; i++) {
+		Motor[i].RawPwmValue = (unsigned short)values[i];
+		mk_servo_set_value(i, scaling(values[i], 1010, 2100, 0, 1024));
+	}
+	return count * 2;
 }
 
 void
@@ -1409,7 +1454,7 @@ mkblctrl_main(int argc, char *argv[])
 
 		/* look for the optional -h --help parameter */
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
-			showHelp == true;
+			showHelp = true;
 		}
 
 	}
