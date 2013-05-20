@@ -5,8 +5,8 @@
 typedef struct __mavlink_statustext_t
 {
  uint8_t severity; ///< Severity of status. Relies on the definitions within RFC-5424. See enum MAV_SEVERITY.
- uint8_t _field_len_text; ///< Length of status text message
  char text[49]; ///< Status text message, without null termination character
+ uint8_t _field_len_text; ///< Length of status text message
 } mavlink_statustext_t;
 
 #define MAVLINK_MSG_ID_STATUSTEXT_LEN 51
@@ -18,8 +18,8 @@ typedef struct __mavlink_statustext_t
 	"STATUSTEXT", \
 	3, \
 	{  { "severity", NULL, MAVLINK_TYPE_UINT8_T, 0, 0, offsetof(mavlink_statustext_t, severity) }, \
-	   { "_field_len_text", NULL, MAVLINK_TYPE_UINT8_T, 0, 1, offsetof(mavlink_statustext_t, _field_len_text) }, \
-         { "text", NULL, MAVLINK_TYPE_CHAR, 49, 2, offsetof(mavlink_statustext_t, text) }, \
+         { "text", NULL, MAVLINK_TYPE_CHAR, 49, 1, offsetof(mavlink_statustext_t, text) }, \
+         { "_field_len_text", NULL, MAVLINK_TYPE_UINT8_T, 0, 50, offsetof(mavlink_statustext_t, _field_len_text) } \
          } \
 }
 
@@ -41,7 +41,7 @@ static inline uint16_t mavlink_msg_statustext_pack(uint8_t system_id, uint8_t co
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[51];
 	_mav_put_uint8_t(buf, 0, severity);
-	buf[1] = _field_len_text = mav_string_copy(&buf[2], text, sizeof(char)*49);
+	buf[50] = _field_len_text = mav_string_copy(&buf[1], text, sizeof(char)*49);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 51);
 #else
 	mavlink_statustext_t packet;
@@ -72,7 +72,7 @@ static inline uint16_t mavlink_msg_statustext_pack_chan(uint8_t system_id, uint8
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[51];
 	_mav_put_uint8_t(buf, 0, severity);
-	buf[1] = _field_len_text = mav_string_copy(&buf[2], text, sizeof(char)*49);
+	buf[50] = _field_len_text = mav_string_copy(&buf[1], text, sizeof(char)*49);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 51);
 #else
 	mavlink_statustext_t packet;
@@ -112,7 +112,7 @@ static inline void mavlink_msg_statustext_send(mavlink_channel_t chan, uint8_t s
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[51];
 	_mav_put_uint8_t(buf, 0, severity);
-	buf[1] = mav_string_copy(&buf[2], text, sizeof(char)*49);
+	buf[50] = mav_string_copy(&buf[1], text, sizeof(char)*49);
 	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_STATUSTEXT, buf, 50, 83);
 #else
 	mavlink_statustext_t packet;
@@ -146,7 +146,7 @@ static inline uint8_t mavlink_msg_statustext_get_severity(const mavlink_message_
  */
 static inline uint16_t mavlink_msg_statustext_get_text(const mavlink_message_t* msg, char *text)
 {
-	return _MAV_RETURN_char_array(msg, text, 49,  2);
+	return _MAV_RETURN_char_array(msg, text, 49,  1);
 }
 
 /**
@@ -164,6 +164,6 @@ static inline void mavlink_msg_statustext_decode(const mavlink_message_t* msg, m
 	statustext->_field_len_text = _MAV_RETURN_uint8_t(msg,  1);
 	statustext->severity = mavlink_msg_statustext_get_severity(msg);
 	/* copy the string, but at maximum to the full field length or the announced string length, depending on which is shorter */
-	strncpy(statustext->text, _MAV_PAYLOAD(msg+2), (statustext->_field_len_text < 49) ? statustext->_field_len_text : 49);
+	strncpy(statustext->text, _MAV_PAYLOAD(msg+1), (statustext->_field_len_text < 49) ? statustext->_field_len_text : 49);
 #endif
 }
