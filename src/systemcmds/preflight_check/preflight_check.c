@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -143,6 +144,7 @@ int preflight_check_main(int argc, char *argv[])
 	float param_min, param_max, param_trim, param_rev, param_dz;
 
 	bool rc_ok = true;
+	char nbuf[20];
 
 	for (int i = 0; i < 12; i++) {
 		/* should the channel be enabled? */
@@ -217,7 +219,7 @@ int preflight_check_main(int argc, char *argv[])
 
 		/* sanity checks pass, enable channel */
 		if (count) {
-			mavlink_log_critical("ERROR: %d config error(s) for RC channel %d.", count, (channel + 1));
+			mavlink_log_critical(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
 			usleep(100000);
 			rc_ok = false;
 		}
