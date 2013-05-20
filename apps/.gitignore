@@ -1,0 +1,10 @@
+*.a
+*.bdat
+*.pdat
+.built
+.config
+.depend
+.updated
+builtin/builtin_list.h
+builtin/builtin_proto.h
+Make.dep
