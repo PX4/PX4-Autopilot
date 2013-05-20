@@ -43,7 +43,7 @@
 struct position_estimator_inav_params {
 	int use_gps;
 	float k_alt[3][2];
-	float k_pos[3][2];
+	float k_pos[3][3];
 };
 
 struct position_estimator_inav_param_handles {
@@ -58,10 +58,13 @@ struct position_estimator_inav_param_handles {
 
 	param_t k_pos_00;
 	param_t k_pos_01;
+	param_t k_pos_02;
 	param_t k_pos_10;
 	param_t k_pos_11;
+	param_t k_pos_12;
 	param_t k_pos_20;
 	param_t k_pos_21;
+	param_t k_pos_22;
 };
 
 /**

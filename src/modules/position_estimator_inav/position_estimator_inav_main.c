@@ -370,7 +370,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 			}
 			if (use_z[0] || use_z[1]) {
 				/* correction */
-				kalman_filter_inertial_update(z_est, z_meas, params.k_alt, use_z);
+				kalman_filter_inertial2_update(z_est, z_meas, params.k_alt, use_z);
 			}
 
 			if (params.use_gps) {
@@ -378,23 +378,26 @@ int position_estimator_inav_thread_main(int argc, char *argv[]) {
 				kalman_filter_inertial_predict(dt, x_est);
 				kalman_filter_inertial_predict(dt, y_est);
 				/* prepare vectors for kalman filter correction */
-				float x_meas[2];	// position, acceleration
-				float y_meas[2];	// position, acceleration
-				bool use_xy[2] = { false, false };
+				float x_meas[3];	// position, velocity, acceleration
+				float y_meas[3];	// position, velocity, acceleration
+				bool use_xy[3] = { false, false, false };
 				if (gps_updated) {
 					x_meas[0] = local_pos_gps[0];
 					y_meas[0] = local_pos_gps[1];
+					x_meas[1] = gps.vel_n_m_s;
+					y_meas[1] = gps.vel_e_m_s;
 					use_xy[0] = true;
-				}
-				if (accelerometer_updated) {
-					x_meas[1] = accel_NED[0];
-					y_meas[1] = accel_NED[1];
 					use_xy[1] = true;
 				}
-				if (use_xy[0] || use_xy[1]) {
+				if (accelerometer_updated) {
+					x_meas[2] = accel_NED[0];
+					y_meas[2] = accel_NED[1];
+					use_xy[2] = true;
+				}
+				if (use_xy[0] || use_xy[2]) {
 					/* correction */
-					kalman_filter_inertial_update(x_est, x_meas, params.k_pos, use_xy);
-					kalman_filter_inertial_update(y_est, y_meas, params.k_pos, use_xy);
+					kalman_filter_inertial3_update(x_est, x_meas, params.k_pos, use_xy);
+					kalman_filter_inertial3_update(y_est, y_meas, params.k_pos, use_xy);
 				}
 			}
 		}
