@@ -1273,6 +1273,9 @@ PX4IO::print_status()
 		((alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST)      ? " FMU_LOST" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_RC_LOST)       ? " RC_LOST" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""));
+	/* now clear alarms */
+	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0xFFFF);
+
 	printf("vbatt %u ibatt %u vbatt scale %u\n",
 	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
 	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),

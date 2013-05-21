@@ -217,9 +217,8 @@ controls_tick() {
 		if (assigned_channels == 0) {
 			rc_input_lost = true;
 		} else {
-			/* set RC OK flag and clear RC lost alarm */
+			/* set RC OK flag */
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK;
-			r_status_alarms &= ~PX4IO_P_STATUS_ALARMS_RC_LOST;
 		}
 
 		/*

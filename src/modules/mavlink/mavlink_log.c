@@ -41,6 +41,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include <mavlink/mavlink_log.h>
 
@@ -86,4 +87,32 @@ int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessa
 	} else {
 		return 1;
 	}
+}
+
+void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int severity, const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	int end = (lb->start + lb->count) % lb->size;
+	lb->elems[end].severity = severity;
+	vsnprintf(lb->elems[end].text, sizeof(lb->elems[0].text), fmt, ap);
+	va_end(ap);
+
+	/* increase count */
+	if (mavlink_logbuffer_is_full(lb)) {
+		lb->start = (lb->start + 1) % lb->size; /* full, overwrite */
+
+	} else {
+		++lb->count;
+	}
+}
+
+__EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	char text[MAVLINK_LOG_MAXLEN + 1];
+	vsnprintf(text, sizeof(text), fmt, ap);
+	va_end(ap);
+	ioctl(_fd, severity, (unsigned long)&text[0]);
 }

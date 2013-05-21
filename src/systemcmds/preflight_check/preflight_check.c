@@ -41,10 +41,12 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <fcntl.h>
 #include <errno.h>
 
 #include <systemlib/err.h>
+#include <systemlib/param/param.h>
 
 #include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
@@ -98,7 +100,7 @@ int preflight_check_main(int argc, char *argv[])
 	
 	if (ret != OK) {
 		warnx("magnetometer calibration missing or bad - calibrate magnetometer first");
-		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: MAG CALIBRATION");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: MAG CHECK/CAL");
 		system_ok = false;
 		goto system_eval;
 	}
@@ -111,7 +113,7 @@ int preflight_check_main(int argc, char *argv[])
 	
 	if (ret != OK) {
 		warnx("accel self test failed");
-		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACCEL CHECK");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACCEL CHECK/CAL");
 		system_ok = false;
 		goto system_eval;
 	}
@@ -124,7 +126,7 @@ int preflight_check_main(int argc, char *argv[])
 	
 	if (ret != OK) {
 		warnx("gyro self test failed");
-		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: GYRO CHECK");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: GYRO CHECK/CAL");
 		system_ok = false;
 		goto system_eval;
 	}
@@ -133,6 +135,99 @@ int preflight_check_main(int argc, char *argv[])
 
 	close(fd);
 	fd = open(BARO_DEVICE_PATH, 0);
+
+	/* ---- RC CALIBRATION ---- */
+
+	param_t _parameter_handles_min, _parameter_handles_trim, _parameter_handles_max,
+	_parameter_handles_rev, _parameter_handles_dz;
+
+	float param_min, param_max, param_trim, param_rev, param_dz;
+
+	bool rc_ok = true;
+	char nbuf[20];
+
+	for (int i = 0; i < 12; i++) {
+		/* should the channel be enabled? */
+		uint8_t count = 0;
+
+		/* min values */
+		sprintf(nbuf, "RC%d_MIN", i + 1);
+		_parameter_handles_min = param_find(nbuf);
+		param_get(_parameter_handles_min, &param_min);
+
+		/* trim values */
+		sprintf(nbuf, "RC%d_TRIM", i + 1);
+		_parameter_handles_trim = param_find(nbuf);
+		param_get(_parameter_handles_trim, &param_trim);
+
+		/* max values */
+		sprintf(nbuf, "RC%d_MAX", i + 1);
+		_parameter_handles_max = param_find(nbuf);
+		param_get(_parameter_handles_max, &param_max);
+
+		/* channel reverse */
+		sprintf(nbuf, "RC%d_REV", i + 1);
+		_parameter_handles_rev = param_find(nbuf);
+		param_get(_parameter_handles_rev, &param_rev);
+
+		/* channel deadzone */
+		sprintf(nbuf, "RC%d_DZ", i + 1);
+		_parameter_handles_dz = param_find(nbuf);
+		param_get(_parameter_handles_dz, &param_dz);
+
+		/* assert min..center..max ordering */
+		if (param_min < 500) {
+			count++;
+			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MIN < 500", i+1);
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+		}
+		if (param_max > 2500) {
+			count++;
+			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MAX > 2500", i+1);
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+		}
+		if (param_trim < param_min) {
+			count++;
+			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM < MIN", i+1);
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+		}
+		if (param_trim > param_max) {
+			count++;
+			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM > MAX", i+1);
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+		}
+
+		/* assert deadzone is sane */
+		if (param_dz > 500) {
+			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_DZ > 500", i+1);
+			/* give system time to flush error message in case there are more */
+			usleep(100000);
+			count++;
+		}
+
+		/* XXX needs inspection of all the _MAP params */
+		// if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS) {
+		// 	mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MAP >= # CHANS", i+1);
+		// 	/* give system time to flush error message in case there are more */
+		// 	usleep(100000);
+		// 	count++;
+		// }
+
+		/* sanity checks pass, enable channel */
+		if (count) {
+			mavlink_log_critical(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
+			usleep(100000);
+			rc_ok = false;
+		}
+	}
+
+	/* require RC ok to keep system_ok */
+	system_ok &= rc_ok;
+
 
 		
 
