@@ -103,13 +103,12 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	struct mavlink_logmessage msg;
-	msg.severity = severity;
-	vsnprintf(msg.text, sizeof(msg.text), fmt, ap);
+	char text[MAVLINK_LOG_MAXLEN + 1];
+	vsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
 	#ifdef __cplusplus
-	::ioctl(_fd, msg.severity, (unsigned long)msg.text);
+	::ioctl(_fd, severity, (unsigned long)&text[0]);
 	#else
-	ioctl(_fd, msg.severity, (unsigned long)msg.text);
+	ioctl(_fd, severity, (unsigned long)&text[0]);
 	#endif
 }
