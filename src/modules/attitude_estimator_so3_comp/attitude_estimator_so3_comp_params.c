@@ -7,7 +7,7 @@
 #include "attitude_estimator_so3_comp_params.h"
 
 /* This is filter gain for nonlinear SO3 complementary filter */
-PARAM_DEFINE_FLOAT(SO3_COMP_KP, 1.0f);
+PARAM_DEFINE_FLOAT(SO3_COMP_KP, 0.5f);
 PARAM_DEFINE_FLOAT(SO3_COMP_KI, 0.0f);
 
 /* offsets in roll, pitch and yaw of sensor plane and body */
