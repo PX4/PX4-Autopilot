@@ -15,7 +15,7 @@ PARAM_DEFINE_FLOAT(ATT_ROLL_OFFS, 0.0f);
 PARAM_DEFINE_FLOAT(ATT_PITCH_OFFS, 0.0f);
 PARAM_DEFINE_FLOAT(ATT_YAW_OFFS, 0.0f);
 
-int parameters_init(struct attitude_estimator_ekf_param_handles *h)
+int parameters_init(struct attitude_estimator_so3_comp_param_handles *h)
 {
 	/* Filter gain parameters */
 	h->Kp = 	param_find("SO3_COMP_KP");
@@ -29,7 +29,7 @@ int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 	return OK;
 }
 
-int parameters_update(const struct attitude_estimator_ekf_param_handles *h, struct attitude_estimator_ekf_params *p)
+int parameters_update(const struct attitude_estimator_so3_comp_param_handles *h, struct attitude_estimator_so3_comp_params *p)
 {
 	/* Update filter gain */
 	param_get(h->Kp, &(p->Kp));

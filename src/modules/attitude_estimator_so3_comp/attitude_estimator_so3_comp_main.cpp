@@ -7,6 +7,7 @@
 #include <nuttx/config.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <poll.h>
@@ -44,6 +45,7 @@ static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
 static int attitude_estimator_so3_comp_task;				/**< Handle of deamon task / thread */
 volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;					// quaternion of sensor frame relative to auxiliary frame
+volatile float integralFBx = 0.0f,  integralFBy = 0.0f, integralFBz = 0.0f;	// integral error terms scaled by Ki
 
 /**
  * Mainloop of attitude_estimator_so3_comp.
@@ -525,6 +527,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					float bSq = q1*q1;
 					float cSq = q2*q2;
 					float dSq = q3*q3;
+					float a = q0;
+					float b = q1;
+					float c = q2;
+					float d = q3;
 
 					Rot_matrix[0] = aSq + bSq - cSq - dSq;
         				Rot_matrix[1] = 2.0 * (b * c - a * d);
