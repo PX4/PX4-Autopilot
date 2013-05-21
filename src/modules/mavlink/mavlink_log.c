@@ -114,9 +114,5 @@ __EXPORT void mavlink_vasprintf(int _fd, int severity, const char *fmt, ...)
 	char text[MAVLINK_LOG_MAXLEN + 1];
 	vsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
-	#ifdef __cplusplus
-	::ioctl(_fd, severity, (unsigned long)&text[0]);
-	#else
 	ioctl(_fd, severity, (unsigned long)&text[0]);
-	#endif
 }
