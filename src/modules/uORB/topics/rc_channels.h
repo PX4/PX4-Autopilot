@@ -64,9 +64,9 @@
  */
 enum RC_CHANNELS_FUNCTION
 {
-  THROTTLE = 2,
-  ROLL     = 0,
-  PITCH    = 1,
+  THROTTLE = 0,
+  ROLL     = 1,
+  PITCH    = 2,
   YAW      = 3,
   OVERRIDE = 4,
   AUTO_MODE = 5,
