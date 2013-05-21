@@ -61,6 +61,7 @@ MODULES		+= modules/mavlink_onboard
 # Estimation modules (EKF / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/attitude_estimator_so3_comp
 MODULES		+= modules/position_estimator_mc
 MODULES		+= modules/position_estimator
 MODULES		+= modules/att_pos_estimator_ekf
