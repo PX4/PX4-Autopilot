@@ -412,18 +412,10 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				if (conf[PX4IO_P_RC_CONFIG_CENTER] > conf[PX4IO_P_RC_CONFIG_MAX]) {
 					count++;
 				}
-
 				/* assert deadzone is sane */
 				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500) {
 					count++;
 				}
-				// The following check isn't needed as constraint checks in controls.c will catch this.
-				//if (conf[PX4IO_P_RC_CONFIG_MIN] > (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-				//	count++;
-				//}
-				//if (conf[PX4IO_P_RC_CONFIG_MAX] < (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-				//	count++;
-				//}
 				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS) {
 					count++;
 				}

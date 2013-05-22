@@ -80,14 +80,18 @@ MODULES		+= modules/multirotor_pos_control
 MODULES		+= modules/sdlog
 
 #
-# Libraries
+# Library modules
 #
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/mathlib
-MODULES		+= modules/mathlib/CMSIS
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
+
+#
+# Libraries
+#
+LIBRARIES	+= modules/mathlib/CMSIS
 
 #
 # Demo apps

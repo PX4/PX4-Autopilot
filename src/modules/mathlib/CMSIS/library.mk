@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,10 +32,15 @@
 ############################################################################
 
 #
-# Fixedwing backside controller
+# ARM CMSIS DSP library
 #
 
-MODULE_COMMAND	= fixedwing_backside
-
-SRCS		= fixedwing_backside_main.cpp \
-		  params.c
+ifeq ($(CONFIG_ARCH),CORTEXM4F)
+PREBUILT_LIB		:= libarm_cortexM4lf_math.a
+else ifeq ($(CONFIG_ARCH),CORTEXM4)
+PREBUILT_LIB		:= libarm_cortexM4l_math.a
+else ifeq ($(CONFIG_ARCH),CORTEXM3)
+PREBUILT_LIB		:= libarm_cortexM3l_math.a
+else
+$(error CONFIG_ARCH value '$(CONFIG_ARCH)' not supported by the DSP library)
+endif
