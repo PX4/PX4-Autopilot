@@ -47,6 +47,10 @@ static int attitude_estimator_so3_comp_task;				/**< Handle of deamon task / thr
 static float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;					// quaternion of sensor frame relative to auxiliary frame
 static float integralFBx = 0.0f,  integralFBy = 0.0f, integralFBz = 0.0f;	// integral error terms scaled by Ki
 
+//! Serial packet related
+static int uart;
+static int baudrate;
+
 /**
  * Mainloop of attitude_estimator_so3_comp.
  */
@@ -63,7 +67,9 @@ usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	fprintf(stderr, "usage: attitude_estimator_so3_comp {start|stop|status} [-p <additional params>]\n\n");
+	fprintf(stderr, "usage: attitude_estimator_so3_comp {start|stop|status} [-d <devicename>] [-b <baud rate>]\n"
+		"-d and -b options are for separate visualization with raw data (quaternion packet) transfer\n"
+		"ex) attitude_estimator_so3_comp start -d /dev/ttyS1 -b 115200\n");
 	exit(1);
 }
 
@@ -80,6 +86,8 @@ int attitude_estimator_so3_comp_main(int argc, char *argv[])
 	if (argc < 1)
 		usage("missing command");
 
+	
+
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
@@ -94,12 +102,18 @@ int attitude_estimator_so3_comp_main(int argc, char *argv[])
 					      SCHED_PRIORITY_MAX - 5,
 					      12400,
 					      attitude_estimator_so3_comp_thread_main,
-					      (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					      (const char **)argv);
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		thread_should_exit = true;
+
+		while(thread_running){
+			usleep(200000);
+			printf(".");
+		}
+		printf("terminated.");
 		exit(0);
 	}
 
@@ -121,76 +135,18 @@ int attitude_estimator_so3_comp_main(int argc, char *argv[])
 //---------------------------------------------------------------------------------------------------
 // Fast inverse square-root
 // See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
-float invSqrt(float x) {
-	float halfx = 0.5f * x;
-	float y = x;
-	long i = *(long*)&y;
-	i = 0x5f3759df - (i>>1);
-	y = *(float*)&i;
-	y = y * (1.5f - (halfx * y * y));
-	return y;
-}
+float invSqrt(float number) {
+    volatile long i;
+    volatile float x, y;
+    volatile const float f = 1.5F;
 
-void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az, float twoKp, float twoKi, float dt) {
-	float recipNorm;
-	float halfvx, halfvy, halfvz;
-	float halfex, halfey, halfez;
-
-	// Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
-	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
-
-	// Normalise accelerometer measurement
-	recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-	ax *= recipNorm;
-	ay *= recipNorm;
-	az *= recipNorm;        
-
-	// Estimated direction of gravity and vector perpendicular to magnetic flux
-	halfvx = q1 * q3 - q0 * q2;
-	halfvy = q0 * q1 + q2 * q3;
-	halfvz = q0 * q0 - 0.5f + q3 * q3;
-	
-	// Error is sum of cross product between estimated and measured direction of gravity
-	halfex = (ay * halfvz - az * halfvy);
-	halfey = (az * halfvx - ax * halfvz);
-	halfez = (ax * halfvy - ay * halfvx);
-
-	// Compute and apply integral feedback if enabled
-	if(twoKi > 0.0f) {
-		integralFBx += twoKi * halfex * dt;	// integral error scaled by Ki
-		integralFBy += twoKi * halfey * dt;
-		integralFBz += twoKi * halfez * dt;
-		gx += integralFBx;	// apply integral feedback
-		gy += integralFBy;
-		gz += integralFBz;
-	}
-	else {
-		integralFBx = 0.0f;	// prevent integral windup
-		integralFBy = 0.0f;
-		integralFBz = 0.0f;
-	}
-
-	// Apply proportional feedback
-	gx += twoKp * halfex;
-	gy += twoKp * halfey;
-	gz += twoKp * halfez;
-	}
-	
-	// Integrate rate of change of quaternion
-	gx *= (0.5f * dt);		// pre-multiply common factors
-	gy *= (0.5f * dt);
-	gz *= (0.5f * dt);
-	q0 +=(-q1 * gx - q2 * gy - q3 * gz);
-	q1 += (q0 * gx + q2 * gz - q3 * gy);
-	q2 += (q0 * gy - q1 * gz + q3 * gx);
-	q3 += (q0 * gz + q1 * gy - q2 * gx); 
-
-	// Normalise quaternion
-	recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-	q0 *= recipNorm;
-	q1 *= recipNorm;
-	q2 *= recipNorm;
-	q3 *= recipNorm;
+    x = number * 0.5F;
+    y = number;
+    i = * (( long * ) &y);
+    i = 0x5f375a86 - ( i >> 1 );
+    y = * (( float * ) &i);
+    y = y * ( f - ( x * y * y ) );
+    return y;
 }
 
 void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float twoKp, float twoKi, float dt) {
@@ -202,7 +158,7 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
 
 	// Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
 	if((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
-		MahonyAHRSupdateIMU(gx, gy, gz, ax, ay, az, twoKp, twoKi, dt);
+		//MahonyAHRSupdateIMU(gx, gy, gz, ax, ay, az, twoKp, twoKi, dt);
 		return;
 	}
 
@@ -290,6 +246,117 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
 	q3 *= recipNorm;
 }
 
+void send_uart_byte(char c)
+{
+	write(uart,&c,1);
+}
+
+void send_uart_bytes(uint8_t *data, int length)
+{
+	write(uart,data,(size_t)(sizeof(uint8_t)*length));
+}
+
+void send_uart_float(float f) {
+  uint8_t * b = (uint8_t *) &f;
+
+  //! Assume float is 4-bytes
+  for(int i=0; i<4; i++) {
+    
+    uint8_t b1 = (b[i] >> 4) & 0x0f;
+    uint8_t b2 = (b[i] & 0x0f);
+    
+    uint8_t c1 = (b1 < 10) ? ('0' + b1) : 'A' + b1 - 10;
+    uint8_t c2 = (b2 < 10) ? ('0' + b2) : 'A' + b2 - 10;
+    
+    send_uart_bytes(&c1,1);
+    send_uart_bytes(&c2,1);
+  }
+}
+
+void send_uart_float_arr(float *arr, int length)
+{
+	for(int i=0;i<length;++i)
+	{
+		send_uart_float(arr[i]);
+		send_uart_byte(',');
+	}
+}
+
+int open_uart(int baud, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
+{
+	int speed;
+	
+	switch (baud) {
+        case 0:      speed = B0;      break;
+        case 50:     speed = B50;     break;
+        case 75:     speed = B75;     break;
+        case 110:    speed = B110;    break;
+        case 134:    speed = B134;    break;
+        case 150:    speed = B150;    break;
+        case 200:    speed = B200;    break;
+        case 300:    speed = B300;    break;
+        case 600:    speed = B600;    break;
+        case 1200:   speed = B1200;   break;
+        case 1800:   speed = B1800;   break;
+        case 2400:   speed = B2400;   break;
+        case 4800:   speed = B4800;   break;
+        case 9600:   speed = B9600;   break;
+        case 19200:  speed = B19200;  break;
+        case 38400:  speed = B38400;  break;
+        case 57600:  speed = B57600;  break;
+        case 115200: speed = B115200; break;
+        case 230400: speed = B230400; break;
+        case 460800: speed = B460800; break;
+        case 921600: speed = B921600; break;
+        default:
+                fprintf(stderr, "ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baud);
+                return -EINVAL;
+        }
+
+	printf("[mavlink] UART is %s, baudrate is %d\n", uart_name, baud);
+        uart = open(uart_name, O_RDWR | O_NOCTTY);
+
+	/* Try to set baud rate */
+        struct termios uart_config;
+        int termios_state;
+        *is_usb = false;
+
+	       /* make some wild guesses including that USB serial is indicated by either /dev/ttyACM0 or /dev/console */
+        if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/console") != OK) {
+                /* Back up the original uart configuration to restore it after exit */
+                if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
+                        fprintf(stderr, "ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
+                        close(uart);
+                        return -1;
+                }
+
+                /* Fill the struct for the new configuration */
+                tcgetattr(uart, &uart_config);
+
+                /* Clear ONLCR flag (which appends a CR for every LF) */
+                uart_config.c_oflag &= ~ONLCR;
+
+                /* Set baud rate */
+                if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+                        fprintf(stderr, "ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+                        close(uart);
+                        return -1;
+                }
+
+
+                if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+                        fprintf(stderr, "ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+                        close(uart);
+                        return -1;
+                }
+
+        } else {
+                *is_usb = true;
+        }
+
+        return uart;
+}
+
 /*
  * [Rot_matrix,x_aposteriori,P_aposteriori] = attitudeKalmanfilter(dt,z_k,x_aposteriori_k,P_aposteriori_k,knownConst)
  */
@@ -307,6 +374,15 @@ int attitude_estimator_so3_comp_thread_main(int argc, char *argv[])
 
 const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
+	//! Serial debug related
+	int ch;
+	struct termios uart_config_original;
+	bool usb_uart;
+	bool debug_mode = false;
+	char *device_name = "/dev/ttyS2";
+	baudrate = 115200;
+
+	//! Time constant
 	float dt = 0.005f;
 	
 	/* output euler angles */
@@ -320,6 +396,34 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	float acc[3] = {0.0f, 0.0f, 0.0f};
 	float gyro[3] = {0.0f, 0.0f, 0.0f};
 	float mag[3] = {0.0f, 0.0f, 0.0f};
+
+	/* work around some stupidity in task_create's argv handling */
+	argc -= 2;
+	argv += 2;
+
+	//! -d <device_name>, default : /dev/ttyS2
+	//! -b <baud_rate>,   default : 115200
+	while ((ch = getopt(argc,argv,"d:b:")) != EOF){
+		switch(ch){
+			case 'b':
+				baudrate = strtoul(optarg, NULL, 10);
+				if(baudrate == 0)
+					printf("invalid baud rate '%s'",optarg);
+				break;
+			case 'd':
+				device_name = optarg;
+				debug_mode = true;
+				break;
+			default:
+				usage("invalid argument");
+		}
+	}
+
+	if(debug_mode){
+		uart = open_uart(baudrate, device_name, &uart_config_original, &usb_uart);
+		if (uart < 0)
+                	printf("could not open %s", device_name);
+	}
 
 	// print text
 	printf("Nonlinear SO3 Attitude Estimator initialized..\n\n");
@@ -554,9 +658,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					}
 					*/
 
-					euler[0] = atan2f(2*(q0*q1+q2*q3),1-2*(q1*q1+q2*q2));
-					euler[1] = asinf(2*(q0*q2-q3*q1));
-					euler[2] = atan2f(2*(q0*q3+q1*q2),1-2*(q2*q2+q3*q3));
+					euler[2] = atan2f(2*(q1*q2-q0*q3),2*(q0*q0+q1*q1)-1);
+					euler[1]= -asinf(2*(q1*q3+q0*q2));
+					euler[0] = atan2f(2*(q2*q3-q0*q1),2*(q0*q0+q3*q3)-1);
 					
 
 					/* swap values for next iteration, check for fatal inputs */
@@ -607,7 +711,18 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					}
 
 					perf_end(so3_comp_loop_perf);
-				}
+
+					if(debug_mode)
+					{
+						float quat[4];
+						quat[0] = q0;
+						quat[1] = q1;
+						quat[2] = q2;
+						quat[3] = q3;
+						send_uart_float_arr(quat,4);
+						send_uart_byte('\n');
+					}
+				}// else
 			}
 		}
 
@@ -615,6 +730,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	}
 
 	thread_running = false;
+
+	/* Reset the UART flags to original state */
+        if (!usb_uart)
+                tcsetattr(uart, TCSANOW, &uart_config_original);
 
 	return 0;
 }
