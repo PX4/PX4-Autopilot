@@ -429,11 +429,11 @@ handle_message(mavlink_message_t *msg)
 			hil_frames += 1 ;
 
 			// output
-			if ((timestamp - old_timestamp) > 10000000) {
-				printf("receiving hil gps at %d hz\n", hil_frames/10);
-				old_timestamp = timestamp;
-				hil_frames = 0;
-			}
+			// if ((timestamp - old_timestamp) > 10000000) {
+			// 	printf("receiving hil gps at %d hz\n", hil_frames/10);
+			// 	old_timestamp = timestamp;
+			// 	hil_frames = 0;
+			// }
 		}
 
 		if (msg->msgid == MAVLINK_MSG_ID_HIL_STATE) {
