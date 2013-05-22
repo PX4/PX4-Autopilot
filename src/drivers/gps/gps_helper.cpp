@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
  *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
  *           Julian Oes <joes@student.ethz.ch>
  *
@@ -36,9 +36,39 @@
 #include <termios.h>
 #include <errno.h>
 #include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 #include "gps_helper.h"
 
-/* @file gps_helper.cpp */
+/**
+ * @file gps_helper.cpp
+ */
+
+float
+GPS_Helper::get_position_update_rate()
+{
+	return _rate_lat_lon;
+}
+
+float
+GPS_Helper::get_velocity_update_rate()
+{
+	return _rate_vel;
+}
+
+float
+GPS_Helper::reset_update_rates()
+{
+	_rate_count_vel = 0;
+	_rate_count_lat_lon = 0;
+	_interval_rate_start = hrt_absolute_time();
+}
+
+float
+GPS_Helper::store_update_rates()
+{
+	_rate_vel = _rate_count_vel / (((float)(hrt_absolute_time() - _interval_rate_start)) / 1000000.0f);
+	_rate_lat_lon = _rate_count_lat_lon / (((float)(hrt_absolute_time() - _interval_rate_start)) / 1000000.0f);
+}
 
 int
 GPS_Helper::set_baudrate(const int &fd, unsigned baud)

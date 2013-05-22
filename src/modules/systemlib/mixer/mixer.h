@@ -419,6 +419,7 @@ public:
 		QUAD_X = 0,	/**< quad in X configuration */
 		QUAD_PLUS,	/**< quad in + configuration */
 		QUAD_V,		/**< quad in V configuration */
+		QUAD_WIDE,	/**< quad in wide configuration */
 		HEX_X,		/**< hex in X configuration */
 		HEX_PLUS,	/**< hex in + configuration */
 		OCTA_X,

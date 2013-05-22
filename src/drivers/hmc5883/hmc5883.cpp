@@ -1225,17 +1225,23 @@ start()
 
 	/* create the driver, attempt expansion bus first */
 	g_dev = new HMC5883(PX4_I2C_BUS_EXPANSION);
+	if (g_dev != nullptr && OK != g_dev->init()) {
+		delete g_dev;
+		g_dev = nullptr;
+	}
+			
 
 #ifdef PX4_I2C_BUS_ONBOARD
 	/* if this failed, attempt onboard sensor */
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
 		g_dev = new HMC5883(PX4_I2C_BUS_ONBOARD);
+		if (g_dev != nullptr && OK != g_dev->init()) {
+			goto fail;
+		}
+	}
 #endif
 
 	if (g_dev == nullptr)
-		goto fail;
-
-	if (OK != g_dev->init())
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */

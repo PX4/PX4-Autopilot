@@ -263,6 +263,10 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	_gps_position->time_gps_usec += timeinfo_conversion_temp * 1e3;
 	_gps_position->timestamp_position = _gps_position->timestamp_time = hrt_absolute_time();
 
+	// Position and velocity update always at the same time
+	_rate_count_vel++;
+	_rate_count_lat_lon++;
+
 	return;
 }
 

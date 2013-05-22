@@ -88,6 +88,12 @@ const MultirotorMixer::Rotor _config_quad_v[] = {
 	{  0.927184,  0.374607, -1.00 },
 	{ -0.694658, -0.719340, -1.00 },
 };
+const MultirotorMixer::Rotor _config_quad_wide[] = {
+	{ -0.927184,  0.374607,  1.00 },
+	{  0.777146, -0.629320,  1.00 },
+	{  0.927184,  0.374607, -1.00 },
+	{ -0.777146, -0.629320, -1.00 },
+};
 const MultirotorMixer::Rotor _config_hex_x[] = {
 	{ -1.000000,  0.000000, -1.00 },
 	{  1.000000,  0.000000,  1.00 },
@@ -128,6 +134,7 @@ const MultirotorMixer::Rotor *_config_index[MultirotorMixer::Geometry::MAX_GEOME
 	&_config_quad_x[0],
 	&_config_quad_plus[0],
 	&_config_quad_v[0],
+	&_config_quad_wide[0],
 	&_config_hex_x[0],
 	&_config_hex_plus[0],
 	&_config_octa_x[0],
@@ -137,6 +144,7 @@ const unsigned _config_rotor_count[MultirotorMixer::Geometry::MAX_GEOMETRY] = {
 	4, /* quad_x */
 	4, /* quad_plus */
 	4, /* quad_v */
+	4, /* quad_wide */
 	6, /* hex_x */
 	6, /* hex_plus */
 	8, /* octa_x */
@@ -194,6 +202,9 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 
 	} else if (!strcmp(geomname, "4v")) {
 		geometry = MultirotorMixer::QUAD_V;
+
+	} else if (!strcmp(geomname, "4w")) {
+		geometry = MultirotorMixer::QUAD_WIDE;
 
 	} else if (!strcmp(geomname, "6+")) {
 		geometry = MultirotorMixer::HEX_PLUS;

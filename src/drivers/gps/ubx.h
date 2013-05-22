@@ -65,32 +65,41 @@
 #define UBX_MESSAGE_CFG_RATE 0x08
 
 #define UBX_CFG_PRT_LENGTH 20
-#define UBX_CFG_PRT_PAYLOAD_PORTID 0x01         /**< UART1 */
-#define UBX_CFG_PRT_PAYLOAD_MODE 0x000008D0     /**< 0b0000100011010000: 8N1 */
-#define UBX_CFG_PRT_PAYLOAD_BAUDRATE 38400      /**< always choose 38400 as GPS baudrate */
-#define UBX_CFG_PRT_PAYLOAD_INPROTOMASK 0x01    /**< UBX in */
-#define UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK 0x01   /**< UBX out */
+#define UBX_CFG_PRT_PAYLOAD_PORTID 0x01			/**< UART1 */
+#define UBX_CFG_PRT_PAYLOAD_MODE 0x000008D0		/**< 0b0000100011010000: 8N1 */
+#define UBX_CFG_PRT_PAYLOAD_BAUDRATE 38400		/**< always choose 38400 as GPS baudrate */
+#define UBX_CFG_PRT_PAYLOAD_INPROTOMASK 0x01		/**< UBX in */
+#define UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK 0x01		/**< UBX out */
 
 #define UBX_CFG_RATE_LENGTH 6
-#define UBX_CFG_RATE_PAYLOAD_MEASRATE 200		/**< 200ms for 5Hz */
+#define UBX_CFG_RATE_PAYLOAD_MEASINTERVAL 200		/**< 200ms for 5Hz */
 #define UBX_CFG_RATE_PAYLOAD_NAVRATE 1			/**< cannot be changed */
 #define UBX_CFG_RATE_PAYLOAD_TIMEREF 0			/**< 0: UTC, 1: GPS time */
 
 
 #define UBX_CFG_NAV5_LENGTH 36
-#define UBX_CFG_NAV5_PAYLOAD_MASK 0x0001		/**< only update dynamic model and fix mode */
+#define UBX_CFG_NAV5_PAYLOAD_MASK 0x0005		/**< XXX only update dynamic model and fix mode */
 #define UBX_CFG_NAV5_PAYLOAD_DYNMODEL 7			/**< 0: portable, 2: stationary, 3: pedestrian, 4: automotive, 5: sea, 6: airborne <1g, 7: airborne <2g, 8: airborne <4g */
-#define UBX_CFG_NAV5_PAYLOAD_FIXMODE 2          /**< 1: 2D only, 2: 3D only, 3: Auto 2D/3D */
+#define UBX_CFG_NAV5_PAYLOAD_FIXMODE 2			/**< 1: 2D only, 2: 3D only, 3: Auto 2D/3D */
 
 #define UBX_CFG_MSG_LENGTH 8
 #define UBX_CFG_MSG_PAYLOAD_RATE1_5HZ 0x01 		/**< {0x00, 0x01, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
 #define UBX_CFG_MSG_PAYLOAD_RATE1_1HZ 0x05		/**< {0x00, 0x05, 0x00, 0x00, 0x00, 0x00} the second entry is for UART1 */
+#define UBX_CFG_MSG_PAYLOAD_RATE1_05HZ 10
 
 #define UBX_MAX_PAYLOAD_LENGTH 500
 
 // ************
 /** the structures of the binary packets */
 #pragma pack(push, 1)
+
+struct ubx_header {
+	uint8_t sync1;
+	uint8_t sync2;
+	uint8_t msg_class;
+	uint8_t msg_id;
+	uint16_t length;
+};
 
 typedef struct {
 	uint32_t time_milliseconds;		/**<  GPS Millisecond Time of Week */
@@ -274,10 +283,16 @@ typedef struct {
 	uint16_t length;
 	uint8_t msgClass_payload;
 	uint8_t msgID_payload;
-	uint8_t rate[6];
+	uint8_t rate;
 	uint8_t ck_a;
 	uint8_t ck_b;
 } type_gps_bin_cfg_msg_packet_t;
+
+struct ubx_cfg_msg_rate {
+	uint8_t msg_class;
+	uint8_t msg_id;
+	uint8_t rate;
+};
 
 
 // END the structures of the binary packets
@@ -341,55 +356,64 @@ class UBX : public GPS_Helper
 public:
 	UBX(const int &fd, struct vehicle_gps_position_s *gps_position);
 	~UBX();
-	int					receive(unsigned timeout);
-	int					configure(unsigned &baudrate);
+	int			receive(unsigned timeout);
+	int			configure(unsigned &baudrate);
 
 private:
 
 	/**
 	 * Parse the binary MTK packet
 	 */
-	int					parse_char(uint8_t b);
+	int			parse_char(uint8_t b);
 
 	/**
 	 * Handle the package once it has arrived
 	 */
-	int					handle_message(void);
+	int			handle_message(void);
 
 	/**
 	 * Reset the parse state machine for a fresh start
 	 */
-	void				decode_init(void);
+	void			decode_init(void);
 
 	/**
 	 * While parsing add every byte (except the sync bytes) to the checksum
 	 */
-	void				add_byte_to_checksum(uint8_t);
+	void			add_byte_to_checksum(uint8_t);
 
 	/**
 	 * Add the two checksum bytes to an outgoing message
 	 */
-	void				add_checksum_to_message(uint8_t* message, const unsigned length);
+	void			add_checksum_to_message(uint8_t* message, const unsigned length);
 
 	/**
 	 * Helper to send a config packet
 	 */
-	void				send_config_packet(const int &fd, uint8_t *packet, const unsigned length);
+	void			send_config_packet(const int &fd, uint8_t *packet, const unsigned length);
 
-	int 				_fd;
+	void			configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
+
+	void			send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint8_t size);
+
+	void			add_checksum(uint8_t* message, const unsigned length, uint8_t &ck_a, uint8_t &ck_b);
+
+	int			wait_for_ack(unsigned timeout);
+
+	int			_fd;
 	struct vehicle_gps_position_s *_gps_position;
 	ubx_config_state_t	_config_state;
-	bool 				_waiting_for_ack;
-	uint8_t				_clsID_needed;
-	uint8_t				_msgID_needed;
+	bool			_waiting_for_ack;
+	uint8_t			_clsID_needed;
+	uint8_t			_msgID_needed;
 	ubx_decode_state_t	_decode_state;
-	uint8_t				_rx_buffer[RECV_BUFFER_SIZE];
-	unsigned			_rx_count;
-	uint8_t 			_rx_ck_a;
-	uint8_t				_rx_ck_b;
-	ubx_message_class_t _message_class;
+	uint8_t			_rx_buffer[RECV_BUFFER_SIZE];
+	unsigned		_rx_count;
+	uint8_t			_rx_ck_a;
+	uint8_t			_rx_ck_b;
+	ubx_message_class_t	_message_class;
 	ubx_message_id_t	_message_id;
-	unsigned			_payload_size;
+	unsigned		_payload_size;
+	uint8_t			_disable_cmd_counter;
 };
 
 #endif /* UBX_H_ */

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -91,6 +91,19 @@
 #  endif
 #endif
 
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init();
+extern void led_on(int led);
+extern void led_off(int led);
+__END_DECLS
+
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
@@ -114,7 +127,7 @@ __EXPORT void stm32_boardinitialize(void)
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
-	/* configure LEDs */
+	/* configure LEDs (empty call to NuttX' ledinit) */
 	up_ledinit();
 }
 
@@ -178,11 +191,11 @@ __EXPORT int nsh_archinitialize(void)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
-	// initial LED state
-//	drv_led_start();
-	up_ledoff(LED_BLUE);
-	up_ledoff(LED_AMBER);
-	up_ledon(LED_BLUE);
+	/* initial LED state */
+	drv_led_start();
+	led_off(LED_AMBER);
+	led_on(LED_BLUE);
+
 
 	/* Configure SPI-based devices */
 

@@ -37,4 +37,4 @@
 
 MODULE_COMMAND		= px4_daemon_app
 
-SRCS				= px4_daemon_app.c
+SRCS			= px4_daemon_app.c

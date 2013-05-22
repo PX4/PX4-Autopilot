@@ -35,7 +35,9 @@
 # Main system state machine
 #
 
-MODULE_COMMAND	 = commander
-SRCS		 = commander.c \
-			   state_machine_helper.c \
-			   calibration_routines.c
+MODULE_COMMAND	 	= commander
+SRCS		 	= commander.c \
+			state_machine_helper.c \
+			calibration_routines.c \
+			accelerometer_calibration.c
+

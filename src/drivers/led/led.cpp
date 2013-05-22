@@ -41,12 +41,17 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_led.h>
 
-/* Ideally we'd be able to get these from up_internal.h */
-//#include <up_internal.h>
+/*
+ * Ideally we'd be able to get these from up_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
 __BEGIN_DECLS
-extern void up_ledinit();
-extern void up_ledon(int led);
-extern void up_ledoff(int led);
+extern void led_init();
+extern void led_on(int led);
+extern void led_off(int led);
 __END_DECLS
 
 class LED : device::CDev
@@ -74,7 +79,7 @@ int
 LED::init()
 {
 	CDev::init();
-	up_ledinit();
+	led_init();
 
 	return 0;
 }
@@ -86,11 +91,11 @@ LED::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case LED_ON:
-		up_ledon(arg);
+		led_on(arg);
 		break;
 
 	case LED_OFF:
-		up_ledoff(arg);
+		led_off(arg);
 		break;
 
 	default:

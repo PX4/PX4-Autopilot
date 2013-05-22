@@ -144,6 +144,7 @@ CFLAGS			 = $(ARCHCFLAGS) \
 			   $(INSTRUMENTATIONDEFINES) \
 			   $(ARCHDEFINES) \
 			   $(EXTRADEFINES) \
+			   $(EXTRACFLAGS) \
 			   -fno-common \
 			   $(addprefix -I,$(INCLUDE_DIRS))
 
@@ -156,18 +157,22 @@ CXXFLAGS		 = $(ARCHCXXFLAGS) \
 			   $(ARCHXXINCLUDES) \
 			   $(INSTRUMENTATIONDEFINES) \
 			   $(ARCHDEFINES) \
-			   $(EXTRADEFINES) \
 			   -DCONFIG_WCHAR_BUILTIN \
+			   $(EXTRADEFINES) \
+			   $(EXTRACXXFLAGS) \
 			   $(addprefix -I,$(INCLUDE_DIRS))
 
 # Flags we pass to the assembler
 #
-AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__
+AFLAGS			 = $(CFLAGS) -D__ASSEMBLY__ \
+			   $(EXTRADEFINES) \
+			   $(EXTRAAFLAGS)
 
 # Flags we pass to the linker
 #
 LDFLAGS			+= --warn-common \
 			   --gc-sections \
+			   $(EXTRALDFLAGS) \
 			   $(addprefix -T,$(LDSCRIPT)) \
 			   $(addprefix -L,$(LIB_DIRS))
 
@@ -249,6 +254,20 @@ endef
 # - relink the object and insert the binary file
 # - edit symbol names to suit
 #
+# NOTE: exercise caution using this with absolute pathnames; it looks
+#       like the MinGW tools insert an extra _ in the binary symbol name; e.g.
+#	the path:
+#
+#	/d/px4/firmware/Build/px4fmu_default.build/romfs.img
+#
+#	is assigned symbols like:
+#
+#	_binary_d__px4_firmware_Build_px4fmu_default_build_romfs_img_size
+#
+#	when we would expect
+#
+#	_binary__d_px4_firmware_Build_px4fmu_default_build_romfs_img_size
+#
 define BIN_SYM_PREFIX
 	_binary_$(subst /,_,$(subst .,_,$1))
 endef
@@ -262,4 +281,5 @@ define BIN_TO_OBJ
 		--redefine-sym $(call BIN_SYM_PREFIX,$1)_start=$3 \
 		--redefine-sym $(call BIN_SYM_PREFIX,$1)_size=$3_len \
 		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end
+	$(Q) $(REMOVE) $2.c $2.c.o
 endef

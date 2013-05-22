@@ -180,20 +180,8 @@ EXTRA_CLEANS		 =
 # Modules
 ################################################################################
 
-#
-# We don't actually know what a module is called; all we have is a path fragment
-# that we can search for, and where we expect to find a module.mk file.
-#
-# As such, we replicate the successfully-found path inside WORK_DIR for the
-# module's build products in order to keep modules separated from each other.
-#
-# XXX If this becomes unwieldy or breaks for other reasons, we will need to 
-#     move to allocating directory names and keeping tabs on makefiles via
-#     the directory name. That will involve arithmetic (it'd probably be time
-#     for GMSL).
-
 # where to look for modules
-MODULE_SEARCH_DIRS	 += $(WORK_DIR) $(MODULE_SRC) $(PX4_MODULE_SRC)
+MODULE_SEARCH_DIRS	+= $(WORK_DIR) $(MODULE_SRC) $(PX4_MODULE_SRC)
 
 # sort and unique the modules list
 MODULES			:= $(sort $(MODULES))
@@ -201,9 +189,9 @@ MODULES			:= $(sort $(MODULES))
 # locate the first instance of a module by full path or by looking on the
 # module search path
 define MODULE_SEARCH
-	$(abspath $(firstword $(wildcard $(1)/module.mk) \
-		$(foreach search_dir,$(MODULE_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/module.mk)) \
-		MISSING_$1))
+	$(firstword $(abspath $(wildcard $(1)/module.mk)) \
+		$(abspath $(foreach search_dir,$(MODULE_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/module.mk))) \
+		MISSING_$1)
 endef
 
 # make a list of module makefiles and check that we found them all
@@ -223,12 +211,15 @@ MODULE_OBJS		:= $(foreach path,$(dir $(MODULE_MKFILES)),$(WORK_DIR)$(path)module
 .PHONY: $(MODULE_OBJS)
 $(MODULE_OBJS):		relpath = $(patsubst $(WORK_DIR)%,%,$@)
 $(MODULE_OBJS):		mkfile = $(patsubst %module.pre.o,%module.mk,$(relpath))
+$(MODULE_OBJS):		workdir = $(@D)
 $(MODULE_OBJS):		$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
+	$(Q) $(MKDIR) -p $(workdir)
 	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
-		MODULE_WORK_DIR=$(dir $@) \
+		-C $(workdir) \
+		MODULE_WORK_DIR=$(workdir) \
 		MODULE_OBJ=$@ \
 		MODULE_MK=$(mkfile) \
-		MODULE_NAME=$(lastword $(subst /, ,$(@D))) \
+		MODULE_NAME=$(lastword $(subst /, ,$(workdir))) \
 		module
 
 # make a list of phony clean targets for modules
@@ -243,6 +234,66 @@ $(MODULE_CLEANS):
 	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)module.mk \
 	MODULE_WORK_DIR=$(dir $@) \
 	MODULE_MK=$(mkfile) \
+	clean
+
+################################################################################
+# Libraries
+################################################################################
+
+# where to look for libraries
+LIBRARY_SEARCH_DIRS	+= $(WORK_DIR) $(MODULE_SRC) $(PX4_MODULE_SRC)
+
+# sort and unique the library list
+LIBRARIES		:= $(sort $(LIBRARIES))
+
+# locate the first instance of a library by full path or by looking on the
+# library search path
+define LIBRARY_SEARCH
+	$(firstword $(abspath $(wildcard $(1)/library.mk)) \
+		$(abspath $(foreach search_dir,$(LIBRARY_SEARCH_DIRS),$(wildcard $(search_dir)/$(1)/library.mk))) \
+		MISSING_$1)
+endef
+
+# make a list of library makefiles and check that we found them all
+LIBRARY_MKFILES		:= $(foreach library,$(LIBRARIES),$(call LIBRARY_SEARCH,$(library)))
+MISSING_LIBRARIES	:= $(subst MISSING_,,$(filter MISSING_%,$(LIBRARY_MKFILES)))
+ifneq ($(MISSING_LIBRARIES),)
+$(error Can't find library(s): $(MISSING_LIBRARIES))
+endif
+
+# Make a list of the archive files we expect to build from libraries
+# Note that this path will typically contain a double-slash at the WORK_DIR boundary; this must be
+# preserved as it is used below to get the absolute path for the library.mk file correct.
+#
+LIBRARY_LIBS		:= $(foreach path,$(dir $(LIBRARY_MKFILES)),$(WORK_DIR)$(path)library.a)
+
+# rules to build module objects
+.PHONY: $(LIBRARY_LIBS)
+$(LIBRARY_LIBS):	relpath = $(patsubst $(WORK_DIR)%,%,$@)
+$(LIBRARY_LIBS):	mkfile = $(patsubst %library.a,%library.mk,$(relpath))
+$(LIBRARY_LIBS):	workdir = $(@D)
+$(LIBRARY_LIBS):	$(GLOBAL_DEPS) $(NUTTX_CONFIG_HEADER)
+	$(Q) $(MKDIR) -p $(workdir)
+	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)library.mk \
+		-C $(workdir) \
+		LIBRARY_WORK_DIR=$(workdir) \
+		LIBRARY_LIB=$@ \
+		LIBRARY_MK=$(mkfile) \
+		LIBRARY_NAME=$(lastword $(subst /, ,$(workdir))) \
+		library
+
+# make a list of phony clean targets for modules
+LIBRARY_CLEANS		:= $(foreach path,$(dir $(LIBRARY_MKFILES)),$(WORK_DIR)$(path)/clean)
+
+# rules to clean modules
+.PHONY: $(LIBRARY_CLEANS)
+$(LIBRARY_CLEANS):	relpath = $(patsubst $(WORK_DIR)%,%,$@)
+$(LIBRARY_CLEANS):	mkfile = $(patsubst %clean,%library.mk,$(relpath))
+$(LIBRARY_CLEANS):
+	@$(ECHO) %% cleaning using $(mkfile)
+	$(Q) $(MAKE) -r -f $(PX4_MK_DIR)library.mk \
+	LIBRARY_WORK_DIR=$(dir $@) \
+	LIBRARY_MK=$(mkfile) \
 	clean
 
 ################################################################################
@@ -266,14 +317,18 @@ endif
 #
 
 # Add dependencies on anything in the ROMFS root
-ROMFS_DEPS		+= $(wildcard \
-			     (ROMFS_ROOT)/* \
-			     (ROMFS_ROOT)/*/* \
-			     (ROMFS_ROOT)/*/*/* \
-			     (ROMFS_ROOT)/*/*/*/* \
-			     (ROMFS_ROOT)/*/*/*/*/* \
-			     (ROMFS_ROOT)/*/*/*/*/*/*)
-ROMFS_IMG		 = $(WORK_DIR)romfs.img
+ROMFS_FILES		+= $(wildcard \
+			     $(ROMFS_ROOT)/* \
+			     $(ROMFS_ROOT)/*/* \
+			     $(ROMFS_ROOT)/*/*/* \
+			     $(ROMFS_ROOT)/*/*/*/* \
+			     $(ROMFS_ROOT)/*/*/*/*/* \
+			     $(ROMFS_ROOT)/*/*/*/*/*/*)
+ifeq ($(ROMFS_FILES),)
+$(error ROMFS_ROOT $(ROMFS_ROOT) specifies a directory containing no files)
+endif
+ROMFS_DEPS		+= $(ROMFS_FILES)
+ROMFS_IMG		 = romfs.img
 ROMFS_CSRC		 = $(ROMFS_IMG:.img=.c)
 ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
 LIBS			+= $(ROMFS_OBJ)
@@ -413,8 +468,8 @@ $(PRODUCT_BUNDLE):	$(PRODUCT_BIN)
 $(PRODUCT_BIN):		$(PRODUCT_ELF)
 	$(call SYM_TO_BIN,$<,$@)
 
-$(PRODUCT_ELF):		$(OBJS) $(MODULE_OBJS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
-	$(call LINK,$@,$(OBJS) $(MODULE_OBJS))
+$(PRODUCT_ELF):		$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS) $(GLOBAL_DEPS) $(LINK_DEPS) $(MODULE_MKFILES)
+	$(call LINK,$@,$(OBJS) $(MODULE_OBJS) $(LIBRARY_LIBS))
 
 #
 # Utility rules

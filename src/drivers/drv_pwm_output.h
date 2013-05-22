@@ -109,6 +109,12 @@ ORB_DECLARE(output_pwm);
 /** selects servo update rates, one bit per servo. 0 = default (50Hz), 1 = alternate */
 #define PWM_SERVO_SELECT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 4)
 
+/** set the 'ARM ok' bit, which activates the safety switch */
+#define PWM_SERVO_SET_ARM_OK	_IOC(_PWM_SERVO_BASE, 5)
+
+/** clear the 'ARM ok' bit, which deactivates the safety switch */
+#define PWM_SERVO_CLEAR_ARM_OK	_IOC(_PWM_SERVO_BASE, 6)
+
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
 

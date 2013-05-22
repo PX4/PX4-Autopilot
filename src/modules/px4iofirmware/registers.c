@@ -138,15 +138,14 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_PWM_ALTRATE]		= 200,
 	[PX4IO_P_SETUP_RELAYS]			= 0,
 	[PX4IO_P_SETUP_VBATT_SCALE]		= 10000,
-	[PX4IO_P_SETUP_IBATT_SCALE]		= 0,
-	[PX4IO_P_SETUP_IBATT_BIAS]		= 0,
 	[PX4IO_P_SETUP_SET_DEBUG]		= 0,
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(0)
-#define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_ARM_OK | \
+#define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
 					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
-					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)
+					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
+					 PX4IO_P_SETUP_ARMING_IO_ARM_OK)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -204,7 +203,6 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 		system_state.fmu_data_received_time = hrt_absolute_time();
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
-        	r_status_alarms &= ~PX4IO_P_STATUS_ALARMS_FMU_LOST;
 		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
 		
 		break;
@@ -313,7 +311,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			 * so that an in-air reset of FMU can not lead to a
 			 * lockup of the IO arming state.
 			 */
-			if ((r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) && !(value & PX4IO_P_SETUP_ARMING_ARM_OK)) {
+			if ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) && !(value & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
 			}
 
@@ -364,7 +362,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 	case PX4IO_PAGE_RC_CONFIG: {
 
 		/* do not allow a RC config change while fully armed */
-		if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_ARM_OK) &&
+		if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) &&
 		    /* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
 			break;
 		}
@@ -414,18 +412,10 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				if (conf[PX4IO_P_RC_CONFIG_CENTER] > conf[PX4IO_P_RC_CONFIG_MAX]) {
 					count++;
 				}
-
 				/* assert deadzone is sane */
 				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500) {
 					count++;
 				}
-				// The following check isn't needed as constraint checks in controls.c will catch this.
-				//if (conf[PX4IO_P_RC_CONFIG_MIN] > (conf[PX4IO_P_RC_CONFIG_CENTER] - conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-				//	count++;
-				//}
-				//if (conf[PX4IO_P_RC_CONFIG_MAX] < (conf[PX4IO_P_RC_CONFIG_CENTER] + conf[PX4IO_P_RC_CONFIG_DEADZONE])) {
-				//	count++;
-				//}
 				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS) {
 					count++;
 				}
@@ -508,20 +498,27 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			 * Intercept corrected for best results @ 12V.
 			 */
 			unsigned counts = adc_measure(ADC_VBATT);
-			unsigned mV = (4150 + (counts * 46)) / 10 - 200;
-			unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
+			if (counts != 0xffff) {
+				unsigned mV = (4150 + (counts * 46)) / 10 - 200;
+				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
 
-			r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
+				r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
+			}
 		}
 
 		/* PX4IO_P_STATUS_IBATT */
 		{
-			unsigned counts = adc_measure(ADC_VBATT);
-			unsigned scaled = (counts * r_page_setup[PX4IO_P_SETUP_IBATT_SCALE]) / 10000;
-			int corrected = scaled + REG_TO_SIGNED(r_page_setup[PX4IO_P_SETUP_IBATT_BIAS]);
-			if (corrected < 0)
-				corrected = 0;
-			r_page_status[PX4IO_P_STATUS_IBATT] = corrected;
+			/*
+			  note that we have no idea what sort of
+			  current sensor is attached, so we just
+			  return the raw 12 bit ADC value and let the
+			  FMU sort it out, with user selectable
+			  configuration for their sensor
+			 */
+			unsigned counts = adc_measure(ADC_IN5);
+			if (counts != 0xffff) {
+				r_page_status[PX4IO_P_STATUS_IBATT] = counts;
+			}
 		}
 
 		SELECT_PAGE(r_page_status);
