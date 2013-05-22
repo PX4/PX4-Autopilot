@@ -236,7 +236,7 @@ MK	*g_mk;
 } // namespace
 
 MK::MK(int bus) :
-	I2C("fmuservo", "/dev/px4fmu", bus, 0, I2C_BUS_SPEED),
+	I2C("mkblctrl", "/dev/mkblctrl", bus, 0, I2C_BUS_SPEED),
 	_mode(MODE_NONE),
 	_update_rate(50),
 	_task(-1),
@@ -649,6 +649,32 @@ MK::task_main()
 				/* and publish for anyone that cares to see */
 				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
 			}
+
+			// see if we have new PPM input data
+//			if (ppm_last_valid_decode != rc_in.timestamp) {
+//				// we have a new PPM frame. Publish it.
+			//				rc_in.channel_count = ppm_decoded_channels;
+			//
+			//				if (rc_in.channel_count > RC_INPUT_MAX_CHANNELS) {
+			//					rc_in.channel_count = RC_INPUT_MAX_CHANNELS;
+			//				}
+
+			//				for (uint8_t i = 0; i < rc_in.channel_count; i++) {
+			//					rc_in.values[i] = ppm_buffer[i];
+			//				}
+
+			//				rc_in.timestamp = ppm_last_valid_decode;
+
+				/* lazily advertise on first publication */
+			//				if (to_input_rc == 0) {
+			//					to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_in);
+
+			//				} else {
+			//					orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
+			//				}
+			//			}
+
+
 		}
 
 		/* how about an arming update? */
@@ -663,29 +689,6 @@ MK::task_main()
 			mk_servo_arm(aa.armed && !aa.lockdown);
 		}
 
-		// see if we have new PPM input data
-		if (ppm_last_valid_decode != rc_in.timestamp) {
-			// we have a new PPM frame. Publish it.
-			rc_in.channel_count = ppm_decoded_channels;
-
-			if (rc_in.channel_count > RC_INPUT_MAX_CHANNELS) {
-				rc_in.channel_count = RC_INPUT_MAX_CHANNELS;
-			}
-
-			for (uint8_t i = 0; i < rc_in.channel_count; i++) {
-				rc_in.values[i] = ppm_buffer[i];
-			}
-
-			rc_in.timestamp = ppm_last_valid_decode;
-
-			/* lazily advertise on first publication */
-			if (to_input_rc == 0) {
-				to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_in);
-
-			} else {
-				orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
-			}
-		}
 
 	}
 
