@@ -53,8 +53,7 @@
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 
-struct gpio_led_s
-{
+struct gpio_led_s {
 	struct work_s work;
 	int gpio_fd;
 	int pin;
@@ -75,12 +74,15 @@ void gpio_led_cycle(FAR void *arg);
 int gpio_led_main(int argc, char *argv[])
 {
 	int pin = GPIO_EXT_1;
+
 	if (argc > 1) {
 		if (!strcmp(argv[1], "-p")) {
 			if (!strcmp(argv[2], "1")) {
 				pin = GPIO_EXT_1;
+
 			} else if (!strcmp(argv[2], "2")) {
 				pin = GPIO_EXT_2;
+
 			} else {
 				printf("[gpio_led] Unsupported pin: %s\n", argv[2]);
 				exit(1);
@@ -91,10 +93,12 @@ int gpio_led_main(int argc, char *argv[])
 	memset(&gpio_led_data, 0, sizeof(gpio_led_data));
 	gpio_led_data.pin = pin;
 	int ret = work_queue(LPWORK, &gpio_led_data.work, gpio_led_start, &gpio_led_data, 0);
+
 	if (ret != 0) {
 		printf("[gpio_led] Failed to queue work: %d\n", ret);
 		exit(1);
 	}
+
 	exit(0);
 }
 
@@ -104,6 +108,7 @@ void gpio_led_start(FAR void *arg)
 
 	/* open GPIO device */
 	priv->gpio_fd = open(GPIO_DEVICE_PATH, 0);
+
 	if (priv->gpio_fd < 0) {
 		printf("[gpio_led] GPIO: open fail\n");
 		return;
@@ -118,6 +123,7 @@ void gpio_led_start(FAR void *arg)
 
 	/* add worker to queue */
 	int ret = work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, 0);
+
 	if (ret != 0) {
 		printf("[gpio_led] Failed to queue work: %d\n", ret);
 		return;
@@ -133,23 +139,29 @@ void gpio_led_cycle(FAR void *arg)
 	/* check for status updates*/
 	bool status_updated;
 	orb_check(priv->vehicle_status_sub, &status_updated);
+
 	if (status_updated)
 		orb_copy(ORB_ID(vehicle_status), priv->vehicle_status_sub, &priv->status);
 
 	/* select pattern for current status */
 	int pattern = 0;
+
 	if (priv->status.flag_system_armed) {
 		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
 			pattern = 0x3f;	// ****** solid (armed)
+
 		} else {
 			pattern = 0x2A;	// *_*_*_ fast blink (armed, battery warning)
 		}
+
 	} else {
 		if (priv->status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 			pattern = 0x00;	// ______ off (disarmed, preflight check)
+
 		} else if (priv->status.state_machine == SYSTEM_STATE_STANDBY &&
-				   priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
+			   priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
 			pattern = 0x38;	// ***___ slow blink (disarmed, ready)
+
 		} else {
 			pattern = 0x28;	// *_*___ slow double blink (disarmed, not good to arm)
 		}
@@ -157,16 +169,20 @@ void gpio_led_cycle(FAR void *arg)
 
 	/* blink pattern */
 	bool led_state_new = (pattern & (1 << priv->counter)) != 0;
+
 	if (led_state_new != priv->led_state) {
 		priv->led_state = led_state_new;
+
 		if (led_state_new) {
 			ioctl(priv->gpio_fd, GPIO_SET, priv->pin);
+
 		} else {
 			ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin);
 		}
 	}
 
 	priv->counter++;
+
 	if (priv->counter > 5)
 		priv->counter = 0;
 
