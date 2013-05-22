@@ -38,7 +38,10 @@
 #
 # http://libtom.org/?page=download&newsitems=5&whatfile=crypt
 #
-# Selectively compiling only the parts we actually use.
+# Selectively compiling only the parts we actually use. Right now this includes:
+#
+# - PKCS #1
+# - RSA
 #
 
 SRCS		=	pk/pkcs1/pkcs_1_i2osp.c \
