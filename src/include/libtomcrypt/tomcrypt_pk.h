@@ -507,7 +507,8 @@ int der_printable_value_decode(int v);
 #if (defined(SIZE_MAX) || __STDC_VERSION__ >= 199901L || defined(WCHAR_MAX) || defined(_WCHAR_T) || defined(_WCHAR_T_DEFINED) || defined (__WCHAR_TYPE__)) && !defined(LTC_NO_WCHAR) 
 #include <wchar.h>
 #else
-typedef ulong32 wchar_t;
+/* cowardly stop wchar_t from interfering, this means ASN1 is broken, but we don't use it */
+/*typedef ulong32 wchar_t;*/
 #endif
 
 int der_encode_utf8_string(const wchar_t *in,  unsigned long inlen,
