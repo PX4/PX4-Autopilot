@@ -238,7 +238,7 @@ int auth_main(int argc, char *argv[])
 
 	/* ID string */
 	otp_mem.id[3] = '\0';
-	warnx("ID String: %s", (otp_mem.id) ? otp_mem.id : "[not written]");
+	warnx("ID String: %s", (otp_mem.id != 0xFF) ? otp_mem.id : "[not written]");
 
 	/* get OTP lock */
 	struct otp_lock otp_lock_mem;

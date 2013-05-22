@@ -87,6 +87,7 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/mathlib
 MODULES		+= modules/controllib
+MODULES		+= modules/libtomcrypt
 MODULES		+= modules/uORB
 
 #
