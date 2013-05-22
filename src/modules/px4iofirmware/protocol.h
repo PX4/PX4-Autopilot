@@ -36,7 +36,8 @@
 /**
  * @file protocol.h
  *
- * PX4IO interface protocol.
+ * PX4IO interface protocol
+ * ========================
  *
  * Communication is performed via writes to and reads from 16-bit virtual
  * registers organised into pages of 255 registers each.
@@ -63,19 +64,21 @@
  * readable pages to be densely packed. Page numbers do not need to be
  * packed.
  *
- * PX4IO I2C interface notes:
+ * PX4IO I2C interface notes
+ * -------------------------
  *
  * Register read/write operations are mapped directly to PX4IO register
  * read/write operations.
  *
- * PX4IO Serial interface notes:
+ * PX4IO Serial interface notes
+ * ----------------------------
  *
  * The MSB of the page number is used to distinguish between read and
  * write operations. If set, the operation is a write and additional 
  * data is expected to follow in the packet as for I2C writes.
  *
  * If clear, the packet is expected to contain a single byte giving the
- * number of bytes to be read. PX4IO will respond with a packet containing
+ * number of registers to be read. PX4IO will respond with a packet containing
  * the same header (page, offset) and the requested data.
  *
  * If a read is requested when PX4IO does not have buffer space to store

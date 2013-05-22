@@ -107,7 +107,9 @@ serial_callback(void *arg, const void *data, unsigned length)
 		return;
 	}
 
-	/* it's a read */
+	/* it's a read - must contain length byte */
+	if (length != 3)
+		return;
 	uint16_t *registers;
 	unsigned count;
 
@@ -118,10 +120,12 @@ serial_callback(void *arg, const void *data, unsigned length)
 	if (registers_get(message[0], message[1], &registers, &count) < 0)
 		count = 0;
 
-	/* fill buffer with message */
+	/* fill buffer with message, limited by length */
 #define TX_MAX		((sizeof(tx_buf) - 2) / 2)
 	if (count > TX_MAX)
 		count = TX_MAX;
+	if (count > message[2])
+		count = message[2];
 	memcpy(&tx_buf[2], registers, count * 2);
 
 	/* try to send the message */
