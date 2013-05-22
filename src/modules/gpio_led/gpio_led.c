@@ -57,13 +57,14 @@ struct gpio_led_s
 {
 	struct work_s work;
 	int gpio_fd;
+	int pin;
 	struct vehicle_status_s status;
 	int vehicle_status_sub;
 	bool led_state;
 	int counter;
 };
 
-static struct gpio_led_s gpio_led;
+static struct gpio_led_s gpio_led_data;
 
 __EXPORT int gpio_led_main(int argc, char *argv[]);
 
@@ -73,8 +74,23 @@ void gpio_led_cycle(FAR void *arg);
 
 int gpio_led_main(int argc, char *argv[])
 {
-	memset(&gpio_led, 0, sizeof(gpio_led));
-	int ret = work_queue(LPWORK, &gpio_led.work, gpio_led_start, &gpio_led, 0);
+	int pin = GPIO_EXT_1;
+	if (argc > 1) {
+		if (!strcmp(argv[1], "-p")) {
+			if (!strcmp(argv[2], "1")) {
+				pin = GPIO_EXT_1;
+			} else if (!strcmp(argv[2], "2")) {
+				pin = GPIO_EXT_2;
+			} else {
+				printf("[gpio_led] Unsupported pin: %s\n", argv[2]);
+				exit(1);
+			}
+		}
+	}
+
+	memset(&gpio_led_data, 0, sizeof(gpio_led_data));
+	gpio_led_data.pin = pin;
+	int ret = work_queue(LPWORK, &gpio_led_data.work, gpio_led_start, &gpio_led_data, 0);
 	if (ret != 0) {
 		printf("[gpio_led] Failed to queue work: %d\n", ret);
 		exit(1);
@@ -94,7 +110,7 @@ void gpio_led_start(FAR void *arg)
 	}
 
 	/* configure GPIO pin */
-	ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, GPIO_EXT_1);
+	ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, priv->pin);
 
 	/* subscribe to vehicle status topic */
 	memset(&priv->status, 0, sizeof(priv->status));
@@ -107,7 +123,7 @@ void gpio_led_start(FAR void *arg)
 		return;
 	}
 
-	printf("[gpio_led] Started\n");
+	printf("[gpio_led] Started, using pin GPIO_EXT%i\n", priv->pin);
 }
 
 void gpio_led_cycle(FAR void *arg)
@@ -144,9 +160,9 @@ void gpio_led_cycle(FAR void *arg)
 	if (led_state_new != priv->led_state) {
 		priv->led_state = led_state_new;
 		if (led_state_new) {
-			ioctl(priv->gpio_fd, GPIO_SET, GPIO_EXT_1);
+			ioctl(priv->gpio_fd, GPIO_SET, priv->pin);
 		} else {
-			ioctl(priv->gpio_fd, GPIO_CLEAR, GPIO_EXT_1);
+			ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin);
 		}
 	}
 
