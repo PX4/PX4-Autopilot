@@ -280,6 +280,7 @@ define BIN_TO_OBJ
 	$(Q) $(OBJCOPY) $2 \
 		--redefine-sym $(call BIN_SYM_PREFIX,$1)_start=$3 \
 		--redefine-sym $(call BIN_SYM_PREFIX,$1)_size=$3_len \
-		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end
+		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end \
+		--rename-section .data=.rodata
 	$(Q) $(REMOVE) $2.c $2.c.o
 endef
