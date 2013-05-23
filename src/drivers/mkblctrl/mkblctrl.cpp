@@ -510,9 +510,9 @@ MK::task_main()
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
-	//_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-	//			     ORB_ID(actuator_controls_1));
-	_t_actuators = orb_subscribe(ORB_ID(actuator_controls_0));
+	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+				     ORB_ID(actuator_controls_0));
+	//_t_actuators = orb_subscribe(ORB_ID(actuator_controls_0));
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
@@ -581,8 +581,8 @@ MK::task_main()
 		if (fds[0].revents & POLLIN) {
 
 			/* get controls - must always do this to avoid spinning */
-			//orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_1), _t_actuators, &_controls);
-			orb_copy(ORB_ID(actuator_controls_0), _t_actuators, &_controls);
+			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_0), _t_actuators, &_controls);
+			//orb_copy(ORB_ID(actuator_controls_0), _t_actuators, &_controls);
 
 			/* can we mix? */
 			if (_mixers != nullptr) {
