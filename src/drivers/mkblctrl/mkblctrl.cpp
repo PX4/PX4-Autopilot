@@ -114,6 +114,7 @@ public:
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 	virtual int	init(unsigned motors);
+	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
 
 	int		set_mode(Mode mode);
 	int		set_pwm_rate(unsigned rate);
@@ -177,9 +178,10 @@ private:
 	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
 	int			mk_servo_arm(bool status);
 
-	int 		mk_servo_set(unsigned int chan, float val);
-	int 		mk_servo_set_test(unsigned int chan, float val);
+	int 		mk_servo_set(unsigned int chan, short val);
+	int 		mk_servo_set_value(unsigned int chan, short val);
 	int 		mk_servo_test(unsigned int chan);
+	short		scaling(float val, float inMin, float inMax, float outMin, float outMax);
 
 
 };
@@ -207,20 +209,20 @@ const int blctrlAddr_octo_x[] = { 1, 4, 0, 1, -4, 1, 1, -4 };	// Addresstranslat
 
 const int blctrlAddr_px4[]  = { 0, 0, 0, 0, 0, 0, 0, 0};
 
-int addrTranslator[] = {0,0,0,0,0,0,0,0};
+int addrTranslator[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-struct MotorData_t
-{
+struct MotorData_t {
 	unsigned int Version;                        // the version of the BL (0 = old)
-  unsigned int SetPoint;                       // written by attitude controller
-  unsigned int SetPointLowerBits;      // for higher Resolution of new BLs
-  unsigned int State;                          // 7 bit for I2C error counter, highest bit indicates if motor is present
-  unsigned int ReadMode;                       // select data to read
-  // the following bytes must be exactly in that order!
-  unsigned int Current;                        // in 0.1 A steps, read back from BL
-  unsigned int MaxPWM;                         // read back from BL is less than 255 if BL is in current limit
-  unsigned int Temperature;            // old BL-Ctrl will return a 255 here, the new version the temp. in
-  unsigned int RoundCount;
+	unsigned int SetPoint;                       // written by attitude controller
+	unsigned int SetPointLowerBits;      // for higher Resolution of new BLs
+	unsigned int State;                          // 7 bit for I2C error counter, highest bit indicates if motor is present
+	unsigned int ReadMode;                       // select data to read
+	unsigned short RawPwmValue;							// length of PWM pulse
+	// the following bytes must be exactly in that order!
+	unsigned int Current;                        // in 0.1 A steps, read back from BL
+	unsigned int MaxPWM;                         // read back from BL is less than 255 if BL is in current limit
+	unsigned int Temperature;            // old BL-Ctrl will return a 255 here, the new version the temp. in
+	unsigned int RoundCount;
 };
 
 MotorData_t Motor[MAX_MOTORS];
@@ -314,7 +316,7 @@ MK::init(unsigned motors)
 	/* start the IO interface task */
 	_task = task_spawn("mkblctrl",
 			   SCHED_DEFAULT,
-			   SCHED_PRIORITY_MAX -20,
+			   SCHED_PRIORITY_MAX - 20,
 			   2048,
 			   (main_t)&MK::task_main_trampoline,
 			   nullptr);
@@ -346,26 +348,28 @@ MK::set_mode(Mode mode)
 	 */
 	switch (mode) {
 	case MODE_2PWM:
-		if(_num_outputs == 4) {
+		if (_num_outputs == 4) {
 			//debug("MODE_QUAD");
-		} else if(_num_outputs == 6) {
+		} else if (_num_outputs == 6) {
 			//debug("MODE_HEXA");
-		} else if(_num_outputs == 8) {
+		} else if (_num_outputs == 8) {
 			//debug("MODE_OCTO");
 		}
+
 		//up_pwm_servo_init(0x3);
 		up_pwm_servo_deinit();
 		_update_rate = UPDATE_RATE;	/* default output rate */
 		break;
 
 	case MODE_4PWM:
-		if(_num_outputs == 4) {
+		if (_num_outputs == 4) {
 			//debug("MODE_QUADRO");
-		} else if(_num_outputs == 6) {
+		} else if (_num_outputs == 6) {
 			//debug("MODE_HEXA");
-		} else if(_num_outputs == 8) {
+		} else if (_num_outputs == 8) {
 			//debug("MODE_OCTO");
 		}
+
 		//up_pwm_servo_init(0xf);
 		up_pwm_servo_deinit();
 		_update_rate = UPDATE_RATE;	/* default output rate */
@@ -412,45 +416,55 @@ MK::set_frametype(int frametype)
 int
 MK::set_motor_count(unsigned count)
 {
-	if(count > 0) {
+	if (count > 0) {
 
 		_num_outputs = count;
 
-		if(_px4mode == MAPPING_MK) {
-			if(_frametype == FRAME_PLUS) {
+		if (_px4mode == MAPPING_MK) {
+			if (_frametype == FRAME_PLUS) {
 				fprintf(stderr, "[mkblctrl] addresstanslator for Mikrokopter addressing used. Frametype: +\n");
-			} else if(_frametype == FRAME_X) {
+
+			} else if (_frametype == FRAME_X) {
 				fprintf(stderr, "[mkblctrl] addresstanslator for Mikrokopter addressing used. Frametype: X\n");
 			}
-			if(_num_outputs == 4) {
-				if(_frametype == FRAME_PLUS) {
+
+			if (_num_outputs == 4) {
+				if (_frametype == FRAME_PLUS) {
 					memcpy(&addrTranslator, &blctrlAddr_quad_plus, sizeof(blctrlAddr_quad_plus));
-				} else if(_frametype == FRAME_X) {
+
+				} else if (_frametype == FRAME_X) {
 					memcpy(&addrTranslator, &blctrlAddr_quad_x, sizeof(blctrlAddr_quad_x));
 				}
-			} else if(_num_outputs == 6) {
-				if(_frametype == FRAME_PLUS) {
+
+			} else if (_num_outputs == 6) {
+				if (_frametype == FRAME_PLUS) {
 					memcpy(&addrTranslator, &blctrlAddr_hexa_plus, sizeof(blctrlAddr_hexa_plus));
-				} else if(_frametype == FRAME_X) {
+
+				} else if (_frametype == FRAME_X) {
 					memcpy(&addrTranslator, &blctrlAddr_hexa_x, sizeof(blctrlAddr_hexa_x));
 				}
-			} else if(_num_outputs == 8) {
-				if(_frametype == FRAME_PLUS) {
+
+			} else if (_num_outputs == 8) {
+				if (_frametype == FRAME_PLUS) {
 					memcpy(&addrTranslator, &blctrlAddr_octo_plus, sizeof(blctrlAddr_octo_plus));
-				} else if(_frametype == FRAME_X) {
+
+				} else if (_frametype == FRAME_X) {
 					memcpy(&addrTranslator, &blctrlAddr_octo_x, sizeof(blctrlAddr_octo_x));
 				}
 			}
+
 		} else {
 			fprintf(stderr, "[mkblctrl] PX4 native addressing used.\n");
 			memcpy(&addrTranslator, &blctrlAddr_px4, sizeof(blctrlAddr_px4));
 		}
 
-		if(_num_outputs == 4) {
+		if (_num_outputs == 4) {
 			fprintf(stderr, "[mkblctrl] Quadrocopter Mode (4)\n");
-		} else 	if(_num_outputs == 6) {
+
+		} else 	if (_num_outputs == 6) {
 			fprintf(stderr, "[mkblctrl] Hexacopter Mode (6)\n");
-		} else 	if(_num_outputs == 8) {
+
+		} else 	if (_num_outputs == 8) {
 			fprintf(stderr, "[mkblctrl] Octocopter Mode (8)\n");
 		}
 
@@ -469,16 +483,36 @@ MK::set_motor_test(bool motortest)
 	return OK;
 }
 
+short
+MK::scaling(float val, float inMin, float inMax, float outMin, float outMax)
+{
+	short retVal = 0;
+
+	retVal = (val - inMin) / (inMax - inMin) * (outMax - outMin) + outMin;
+
+	if (retVal < outMin) {
+		retVal = outMin;
+
+	} else if (retVal > outMax) {
+		retVal = outMax;
+	}
+
+	return retVal;
+}
 
 void
 MK::task_main()
 {
+	long update_rate_in_us = 0;
+	float tmpVal = 0;
+
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
 	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-				     ORB_ID(actuator_controls_1));
+				     ORB_ID(actuator_controls_0));
+	//_t_actuators = orb_subscribe(ORB_ID(actuator_controls_0));
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
@@ -489,15 +523,15 @@ MK::task_main()
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 	/* advertise the mixed control outputs */
-	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
-				   &outputs);
+	// -- loeschen _t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
+	// -- loeschen 			   &outputs);
 
 	/* advertise the effective control inputs */
 	actuator_controls_effective_s controls_effective;
 	memset(&controls_effective, 0, sizeof(controls_effective));
 	/* advertise the effective control inputs */
-	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
-				   &controls_effective);
+	// -- loeschen _t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
+	// -- loeschen 				       &controls_effective);
 
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
@@ -505,15 +539,7 @@ MK::task_main()
 	fds[1].fd = _t_armed;
 	fds[1].events = POLLIN;
 
-	// rc input, published to ORB
-	struct rc_input_values rc_in;
-	orb_advert_t to_input_rc = 0;
-
-	memset(&rc_in, 0, sizeof(rc_in));
-	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
-	
 	log("starting");
-	long update_rate_in_us = 0;
 
 	/* loop until killed */
 	while (!_task_should_exit) {
@@ -528,6 +554,7 @@ MK::task_main()
 				update_rate_in_ms = 2;
 				_update_rate = 500;
 			}
+
 			/* reject slower than 50 Hz updates */
 			if (update_rate_in_ms > 20) {
 				update_rate_in_ms = 20;
@@ -539,8 +566,9 @@ MK::task_main()
 			_current_update_rate = _update_rate;
 		}
 
-		/* sleep waiting for data, but no more than a second */
-		int ret = ::poll(&fds[0], 2, 1000);
+		/* sleep waiting for data, stopping to check for PPM
+		 * input at 100Hz */
+		int ret = ::poll(&fds[0], 2, 100);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -553,7 +581,8 @@ MK::task_main()
 		if (fds[0].revents & POLLIN) {
 
 			/* get controls - must always do this to avoid spinning */
-			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_1), _t_actuators, &_controls);
+			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_0), _t_actuators, &_controls);
+			//orb_copy(ORB_ID(actuator_controls_0), _t_actuators, &_controls);
 
 			/* can we mix? */
 			if (_mixers != nullptr) {
@@ -565,53 +594,59 @@ MK::task_main()
 				// XXX output actual limited values
 				memcpy(&controls_effective, &_controls, sizeof(controls_effective));
 
-				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
+				// -- loeschen orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
 
 				/* iterate actuators */
 				for (unsigned int i = 0; i < _num_outputs; i++) {
 
 					/* last resort: catch NaN, INF and out-of-band errors */
 					if (i < outputs.noutputs &&
-						isfinite(outputs.output[i]) &&
-						outputs.output[i] >= -1.0f &&
-						outputs.output[i] <= 1.0f) {
+					    isfinite(outputs.output[i]) &&
+					    outputs.output[i] >= -1.0f &&
+					    outputs.output[i] <= 1.0f) {
 						/* scale for PWM output 900 - 2100us */
-						//outputs.output[i] = 1500 + (600 * outputs.output[i]);
-						//outputs.output[i] = 127 + (127 * outputs.output[i]);
+						/* nothing to do here */
 					} else {
 						/*
 						 * Value is NaN, INF or out of band - set to the minimum value.
 						 * This will be clearly visible on the servo status and will limit the risk of accidentally
 						 * spinning motors. It would be deadly in flight.
 						 */
-						if(outputs.output[i] < -1.0f) {
+						if (outputs.output[i] < -1.0f) {
 							outputs.output[i] = -1.0f;
-						} else if(outputs.output[i] > 1.0f) {
+
+						} else if (outputs.output[i] > 1.0f) {
 							outputs.output[i] = 1.0f;
+
 						} else {
 							outputs.output[i] = -1.0f;
 						}
 					}
 
 					/* don't go under BLCTRL_MIN_VALUE */
-					if(outputs.output[i] < BLCTRL_MIN_VALUE) {
+					if (outputs.output[i] < BLCTRL_MIN_VALUE) {
 						outputs.output[i] = BLCTRL_MIN_VALUE;
 					}
+
 					//_motortest = true;
 					/* output to BLCtrl's */
-					if(_motortest == true) {
+					if (_motortest == true) {
 						mk_servo_test(i);
-					} else {
-						//mk_servo_set(i, outputs.output[i]);
-						mk_servo_set_test(i, outputs.output[i]);	// 8Bit
-					}
 
+					} else {
+						//tmpVal = (511 + (511 * outputs.output[i]));
+						//mk_servo_set_value(i, tmpVal);
+						mk_servo_set_value(i, scaling(outputs.output[i], -1.0f, 1.0f, 0, 1024));	// scale the output to 0 - 1024 and sent to output routine
+					}
 
 				}
 
 				/* and publish for anyone that cares to see */
-				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
+				// -- loeschen orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
 			}
+
+
+
 		}
 
 		/* how about an arming update? */
@@ -626,25 +661,6 @@ MK::task_main()
 			mk_servo_arm(aa.armed && !aa.lockdown);
 		}
 
-		// see if we have new PPM input data
-		if (ppm_last_valid_decode != rc_in.timestamp) {
-			// we have a new PPM frame. Publish it.
-			rc_in.channel_count = ppm_decoded_channels;
-			if (rc_in.channel_count > RC_INPUT_MAX_CHANNELS) {
-				rc_in.channel_count = RC_INPUT_MAX_CHANNELS;
-			}
-			for (uint8_t i=0; i<rc_in.channel_count; i++) {
-				rc_in.values[i] = ppm_buffer[i];
-			}
-			rc_in.timestamp = ppm_last_valid_decode;
-
-			/* lazily advertise on first publication */
-			if (to_input_rc == 0) {
-				to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_in);
-			} else {
-				orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
-			}
-		}
 
 	}
 
@@ -666,7 +682,7 @@ MK::task_main()
 }
 
 
-int 
+int
 MK::mk_servo_arm(bool status)
 {
 	_armed = status;
@@ -680,12 +696,13 @@ MK::mk_check_for_blctrl(unsigned int count, bool showOutput)
 	_retries = 50;
 	uint8_t foundMotorCount = 0;
 
-	for(unsigned i=0; i<MAX_MOTORS; i++) {
+	for (unsigned i = 0; i < MAX_MOTORS; i++) {
 		Motor[i].Version = 0;
 		Motor[i].SetPoint = 0;
 		Motor[i].SetPointLowerBits = 0;
 		Motor[i].State = 0;
 		Motor[i].ReadMode = 0;
+		Motor[i].RawPwmValue = 0;
 		Motor[i].Current = 0;
 		Motor[i].MaxPWM = 0;
 		Motor[i].Temperature = 0;
@@ -695,34 +712,37 @@ MK::mk_check_for_blctrl(unsigned int count, bool showOutput)
 	uint8_t msg = 0;
 	uint8_t result[3];
 
-	for(unsigned i=0; i< count; i++) {
+	for (unsigned i = 0; i < count; i++) {
 		result[0] = 0;
 		result[1] = 0;
 		result[2] = 0;
-			
-		set_address( BLCTRL_BASE_ADDR + i );
-		
+
+		set_address(BLCTRL_BASE_ADDR + i);
+
 		if (OK == transfer(&msg, 1, &result[0], 3)) {
 			Motor[i].Current = result[0];
 			Motor[i].MaxPWM = result[1];
 			Motor[i].Temperature = result[2];
 			Motor[i].State |= MOTOR_STATE_PRESENT_MASK; // set present bit;
 			foundMotorCount++;
-			if(Motor[i].MaxPWM == 250) {
+
+			if (Motor[i].MaxPWM == 250) {
 				Motor[i].Version = BLCTRL_NEW;
+
 			} else {
 				Motor[i].Version = BLCTRL_OLD;
 			}
 		}
 	}
 
-	if(showOutput) {
-		fprintf(stderr, "[mkblctrl] MotorsFound: %i\n",foundMotorCount);
-		for(unsigned i=0; i< foundMotorCount; i++) {
-			fprintf(stderr, "[mkblctrl] blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i\n", i,Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
+	if (showOutput) {
+		fprintf(stderr, "[mkblctrl] MotorsFound: %i\n", foundMotorCount);
+
+		for (unsigned i = 0; i < foundMotorCount; i++) {
+			fprintf(stderr, "[mkblctrl] blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i\n", i, Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
 		}
 
-		if(foundMotorCount != 4 && foundMotorCount != 6 && foundMotorCount != 8) {
+		if (foundMotorCount != 4 && foundMotorCount != 6 && foundMotorCount != 8) {
 			_task_should_exit = true;
 		}
 	}
@@ -734,122 +754,136 @@ MK::mk_check_for_blctrl(unsigned int count, bool showOutput)
 
 
 int
-MK::mk_servo_set(unsigned int chan, float val)
+MK::mk_servo_set(unsigned int chan, short val)
 {
-	float tmpVal = 0;
+	short tmpVal = 0;
 	_retries = 0;
-	uint8_t result[3] = { 0,0,0 };
-	uint8_t msg[2] = { 0,0 };
-	uint8_t rod=0;
+	uint8_t result[3] = { 0, 0, 0 };
+	uint8_t msg[2] = { 0, 0 };
+	uint8_t rod = 0;
 	uint8_t bytesToSendBL2 = 2;
 
+	tmpVal = val;
 
-	tmpVal = (1023 + (1023 * val));
-	if(tmpVal > 2047) {
-		tmpVal = 2047;
+	if (tmpVal > 1024) {
+		tmpVal = 1024;
+
+	} else if (tmpVal < 0) {
+		tmpVal = 0;
 	}
 
+	Motor[chan].SetPoint = (uint8_t)(tmpVal / 4);
+	//Motor[chan].SetPointLowerBits = (uint8_t) tmpVal % 4;
 
-	Motor[chan].SetPoint = (uint8_t) tmpVal / 3;	// divide 8
-	Motor[chan].SetPointLowerBits = (uint8_t) tmpVal % 8;	// rest of divide 8
-	//rod = (uint8_t) tmpVal % 8;
-	//Motor[chan].SetPointLowerBits = rod<<1;	// rest of divide 8
 	Motor[chan].SetPointLowerBits = 0;
 
-	if(_armed == false) {
+	if (_armed == false) {
 		Motor[chan].SetPoint = 0;
 		Motor[chan].SetPointLowerBits = 0;
 	}
 
 	//if(Motor[chan].State & MOTOR_STATE_PRESENT_MASK) {
-		set_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
+	set_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
 
-		if(Motor[chan].Version == BLCTRL_OLD) {
-			/*
-			*	Old BL-Ctrl 8Bit served. Version < 2.0
-			*/
-			msg[0] = Motor[chan].SetPoint;
-			if(Motor[chan].RoundCount >= 16) {
-				// on each 16th cyle we read out the status messages from the blctrl
-				if (OK == transfer(&msg[0], 1, &result[0], 2)) {
-					Motor[chan].Current = result[0];
-					Motor[chan].MaxPWM = result[1];
-					Motor[chan].Temperature = 255;;
-				} else {
-					if((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) Motor[chan].State++;	// error
-				}
-				Motor[chan].RoundCount = 0;
+	if (Motor[chan].Version == BLCTRL_OLD) {
+		/*
+		*	Old BL-Ctrl 8Bit served. Version < 2.0
+		*/
+		msg[0] = Motor[chan].SetPoint;
+
+		if (Motor[chan].RoundCount >= 16) {
+			// on each 16th cyle we read out the status messages from the blctrl
+			if (OK == transfer(&msg[0], 1, &result[0], 2)) {
+				Motor[chan].Current = result[0];
+				Motor[chan].MaxPWM = result[1];
+				Motor[chan].Temperature = 255;;
+
 			} else {
-				if (OK != transfer(&msg[0], 1, nullptr, 0)) {
-					if((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) Motor[chan].State++;	// error
-				}
+				if ((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) Motor[chan].State++;	// error
 			}
+
+			Motor[chan].RoundCount = 0;
 
 		} else {
-			/*
-			*	New BL-Ctrl 11Bit served. Version >= 2.0
-			*/
-			msg[0] = Motor[chan].SetPoint;
-			msg[1] = Motor[chan].SetPointLowerBits;
-
-			if(Motor[chan].SetPointLowerBits == 0) {
-				bytesToSendBL2 = 1;	// if setpoint lower bits are zero, we send only the higher bits - this saves time
+			if (OK != transfer(&msg[0], 1, nullptr, 0)) {
+				if ((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) Motor[chan].State++;	// error
 			}
-
-			if(Motor[chan].RoundCount >= 16) {
-				// on each 16th cyle we read out the status messages from the blctrl
-				if (OK == transfer(&msg[0], bytesToSendBL2, &result[0], 3)) {
-					Motor[chan].Current = result[0];
-					Motor[chan].MaxPWM = result[1];
-					Motor[chan].Temperature = result[2];
-				} else {
-					if((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) Motor[chan].State++;	// error
-				}
-				Motor[chan].RoundCount = 0;
-			} else {
-				if (OK != transfer(&msg[0], bytesToSendBL2, nullptr, 0)) {
-					if((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) Motor[chan].State++;	// error
-				}
-			}
-
 		}
 
-		Motor[chan].RoundCount++;
+	} else {
+		/*
+		*	New BL-Ctrl 11Bit served. Version >= 2.0
+		*/
+		msg[0] = Motor[chan].SetPoint;
+		msg[1] = Motor[chan].SetPointLowerBits;
+
+		if (Motor[chan].SetPointLowerBits == 0) {
+			bytesToSendBL2 = 1;	// if setpoint lower bits are zero, we send only the higher bits - this saves time
+		}
+
+		if (Motor[chan].RoundCount >= 16) {
+			// on each 16th cyle we read out the status messages from the blctrl
+			if (OK == transfer(&msg[0], bytesToSendBL2, &result[0], 3)) {
+				Motor[chan].Current = result[0];
+				Motor[chan].MaxPWM = result[1];
+				Motor[chan].Temperature = result[2];
+
+			} else {
+				if ((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) Motor[chan].State++;	// error
+			}
+
+			Motor[chan].RoundCount = 0;
+
+		} else {
+			if (OK != transfer(&msg[0], bytesToSendBL2, nullptr, 0)) {
+				if ((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) Motor[chan].State++;	// error
+			}
+		}
+
+	}
+
+	Motor[chan].RoundCount++;
 	//}
 
-	if(showDebug == true) {
+	if (showDebug == true) {
 		debugCounter++;
-		if(debugCounter == 2000) {
+
+		if (debugCounter == 2000) {
 			debugCounter = 0;
-			for(int i=0; i<_num_outputs; i++){
-				if(Motor[i].State & MOTOR_STATE_PRESENT_MASK) {
+
+			for (int i = 0; i < _num_outputs; i++) {
+				if (Motor[i].State & MOTOR_STATE_PRESENT_MASK) {
 					fprintf(stderr, "[mkblctrl] #%i:\tVer: %i\tVal: %i\tCurr: %i\tMaxPWM: %i\tTemp: %i\tState: %i\n", i, Motor[i].Version, Motor[i].SetPoint, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature, Motor[i].State);
 				}
 			}
+
 			fprintf(stderr, "\n");
 		}
 	}
+
 	return 0;
 }
 
 int
-MK::mk_servo_set_test(unsigned int chan, float val)
+MK::mk_servo_set_value(unsigned int chan, short val)
 {
 	_retries = 0;
 	int ret;
+	short tmpVal = 0;
+	uint8_t msg[2] = { 0, 0 };
 
-	float tmpVal = 0;
+	tmpVal = val;
 
-	uint8_t msg[2] = { 0,0 };
+	if (tmpVal > 1024) {
+		tmpVal = 1024;
 
-	tmpVal = (1023 + (1023 * val));
-	if(tmpVal > 2048) {
-		tmpVal = 2048;
+	} else if (tmpVal < 0) {
+		tmpVal = 0;
 	}
 
-	Motor[chan].SetPoint = (uint8_t) (tmpVal / 8);
+	Motor[chan].SetPoint = (uint8_t)(tmpVal / 4);
 
-	if(_armed == false) {
+	if (_armed == false) {
 		Motor[chan].SetPoint = 0;
 		Motor[chan].SetPointLowerBits = 0;
 	}
@@ -860,7 +894,6 @@ MK::mk_servo_set_test(unsigned int chan, float val)
 	ret = transfer(&msg[0], 1, nullptr, 0);
 
 	ret = OK;
-
 	return ret;
 }
 
@@ -868,59 +901,62 @@ MK::mk_servo_set_test(unsigned int chan, float val)
 int
 MK::mk_servo_test(unsigned int chan)
 {
-	int ret=0;
+	int ret = 0;
 	float tmpVal = 0;
 	float val = -1;
 	_retries = 0;
-	uint8_t msg[2] = { 0,0 };
+	uint8_t msg[2] = { 0, 0 };
 
-	if(debugCounter >= MOTOR_SPINUP_COUNTER) {
+	if (debugCounter >= MOTOR_SPINUP_COUNTER) {
 		debugCounter = 0;
 		_motor++;
 
-		if(_motor < _num_outputs) {
+		if (_motor < _num_outputs) {
 			fprintf(stderr, "[mkblctrl] Motortest - #%i:\tspinup\n", _motor);
 		}
 
-		if(_motor >= _num_outputs) {
+		if (_motor >= _num_outputs) {
 			_motor = -1;
 			_motortest = false;
 		}
-
 	}
+
 	debugCounter++;
 
-	if(_motor == chan) {
+	if (_motor == chan) {
 		val = BLCTRL_MIN_VALUE;
+
 	} else {
 		val = -1;
 	}
 
-	tmpVal = (1023 + (1023 * val));
-	if(tmpVal > 2048) {
-		tmpVal = 2048;
+	tmpVal = (511 + (511 * val));
+
+	if (tmpVal > 1024) {
+		tmpVal = 1024;
 	}
 
-	//Motor[chan].SetPoint = (uint8_t) (tmpVal / 8);
-	//Motor[chan].SetPointLowerBits = (uint8_t) (tmpVal % 8) & 0x07;
-	Motor[chan].SetPoint = (uint8_t) tmpVal>>3;
-	Motor[chan].SetPointLowerBits = (uint8_t) tmpVal & 0x07;
+	Motor[chan].SetPoint = (uint8_t)(tmpVal / 4);
+	//Motor[chan].SetPointLowerBits = (uint8_t) (tmpVal % 4);
 
-	if(_motor != chan) {
+	if (_motor != chan) {
 		Motor[chan].SetPoint = 0;
 		Motor[chan].SetPointLowerBits = 0;
 	}
 
-	if(Motor[chan].Version == BLCTRL_OLD) {
+	if (Motor[chan].Version == BLCTRL_OLD) {
 		msg[0] = Motor[chan].SetPoint;
+
 	} else {
 		msg[0] = Motor[chan].SetPoint;
 		msg[1] = Motor[chan].SetPointLowerBits;
 	}
 
 	set_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
-	if(Motor[chan].Version == BLCTRL_OLD) {
+
+	if (Motor[chan].Version == BLCTRL_OLD) {
 		ret = transfer(&msg[0], 1, nullptr, 0);
+
 	} else {
 		ret = transfer(&msg[0], 2, nullptr, 0);
 	}
@@ -931,9 +967,9 @@ MK::mk_servo_test(unsigned int chan)
 
 int
 MK::control_callback(uintptr_t handle,
-			 uint8_t control_group,
-			 uint8_t control_index,
-			 float &input)
+		     uint8_t control_group,
+		     uint8_t control_index,
+		     float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
@@ -978,32 +1014,37 @@ int
 MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
-	int channel;
 
 	lock();
 
 	switch (cmd) {
 	case PWM_SERVO_ARM:
-		////up_pwm_servo_arm(true);
 		mk_servo_arm(true);
 		break;
 
+	case PWM_SERVO_SET_ARM_OK:
+	case PWM_SERVO_CLEAR_ARM_OK:
+		// these are no-ops, as no safety switch
+		break;
+
 	case PWM_SERVO_DISARM:
-		////up_pwm_servo_arm(false);
 		mk_servo_arm(false);
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
-		set_pwm_rate(arg);
+		ret = OK;
+		break;
+
+	case PWM_SERVO_SELECT_UPDATE_RATE:
+		ret = OK;
 		break;
 
 
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_actuators - 1):
+		if (arg < 2150) {
+			Motor[cmd - PWM_SERVO_SET(0)].RawPwmValue = (unsigned short)arg;
+			mk_servo_set_value(cmd - PWM_SERVO_SET(0), scaling(arg, 1010, 2100, 0, 1024));
 
-		/* fake an update to the selected 'servo' channel */
-		if ((arg >= 0) && (arg <= 255)) {
-			channel = cmd - PWM_SERVO_SET(0);
-			//mk_servo_set(channel, arg);
 		} else {
 			ret = -EINVAL;
 		}
@@ -1012,20 +1053,20 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(_max_actuators - 1):
 		/* copy the current output value from the channel */
-		*(servo_position_t *)arg = cmd - PWM_SERVO_GET(0);
+		*(servo_position_t *)arg = Motor[cmd - PWM_SERVO_SET(0)].RawPwmValue;
+
 		break;
 
+	case PWM_SERVO_GET_RATEGROUP(0):
+	case PWM_SERVO_GET_RATEGROUP(1):
+	case PWM_SERVO_GET_RATEGROUP(2):
+	case PWM_SERVO_GET_RATEGROUP(3):
+		//*(uint32_t *)arg = up_pwm_servo_get_rate_group(cmd - PWM_SERVO_GET_RATEGROUP(0));
+		break;
+
+	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
-		/*
-		if (_mode == MODE_4PWM) {
-			*(unsigned *)arg = 4;
-		} else {
-			*(unsigned *)arg = 2;
-		}
-		 */
-
 		*(unsigned *)arg = _num_outputs;
-
 		break;
 
 	case MIXERIOCRESET:
@@ -1078,6 +1119,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 					ret = -EINVAL;
 				}
 			}
+
 			break;
 		}
 
@@ -1089,6 +1131,32 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	unlock();
 
 	return ret;
+}
+
+/*
+  this implements PWM output via a write() method, for compatibility
+  with px4io
+ */
+ssize_t
+MK::write(file *filp, const char *buffer, size_t len)
+{
+	unsigned count = len / 2;
+	uint16_t values[4];
+
+	if (count > 4) {
+		// we only have 4 PWM outputs on the FMU
+		count = 4;
+	}
+
+	// allow for misaligned values
+	memcpy(values, buffer, count * 2);
+
+	for (uint8_t i = 0; i < count; i++) {
+		Motor[i].RawPwmValue = (unsigned short)values[i];
+		mk_servo_set_value(i, scaling(values[i], 1010, 2100, 0, 1024));
+	}
+
+	return count * 2;
 }
 
 void
@@ -1229,10 +1297,10 @@ enum MappingMode {
 	MAPPING_PX4,
 };
 
-	enum FrameType {
-		FRAME_PLUS = 0,
-		FRAME_X,
-	};
+enum FrameType {
+	FRAME_PLUS = 0,
+	FRAME_X,
+};
 
 PortMode g_port_mode;
 
@@ -1302,13 +1370,15 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 	/* count used motors */
 
 	do {
-		if(g_mk->mk_check_for_blctrl(8, false) != 0) {
+		if (g_mk->mk_check_for_blctrl(8, false) != 0) {
 			shouldStop = 4;
+
 		} else {
 			shouldStop++;
 		}
+
 		sleep(1);
-	} while ( shouldStop < 3);
+	} while (shouldStop < 3);
 
 	g_mk->set_motor_count(g_mk->mk_check_for_blctrl(8, true));
 
@@ -1375,7 +1445,8 @@ mkblctrl_main(int argc, char *argv[])
 			if (argc > i + 1) {
 				bus = atoi(argv[i + 1]);
 				newMode = true;
-				} else {
+
+			} else {
 				errx(1, "missing argument for i2c bus (-b)");
 				return 1;
 			}
@@ -1384,17 +1455,21 @@ mkblctrl_main(int argc, char *argv[])
 		/* look for the optional frame parameter */
 		if (strcmp(argv[i], "-mkmode") == 0 || strcmp(argv[i], "--mkmode") == 0) {
 			if (argc > i + 1) {
-				if(strcmp(argv[i + 1], "+") == 0 || strcmp(argv[i + 1], "x") == 0 || strcmp(argv[i + 1], "X") == 0) {
+				if (strcmp(argv[i + 1], "+") == 0 || strcmp(argv[i + 1], "x") == 0 || strcmp(argv[i + 1], "X") == 0) {
 					px4mode = MAPPING_MK;
 					newMode = true;
-					if(strcmp(argv[i + 1], "+") == 0) {
+
+					if (strcmp(argv[i + 1], "+") == 0) {
 						frametype = FRAME_PLUS;
+
 					} else {
 						frametype = FRAME_X;
 					}
+
 				} else {
 					errx(1, "only + or x for frametype supported !");
 				}
+
 			} else {
 				errx(1, "missing argument for mkmode (-mkmode)");
 				return 1;
@@ -1409,12 +1484,12 @@ mkblctrl_main(int argc, char *argv[])
 
 		/* look for the optional -h --help parameter */
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
-			showHelp == true;
+			showHelp = true;
 		}
 
 	}
 
-	if(showHelp) {
+	if (showHelp) {
 		fprintf(stderr, "mkblctrl: help:\n");
 		fprintf(stderr, "  [-mkmode frame{+/x}] [-b i2c_bus_number] [-t motortest] [-h / --help]\n");
 		exit(1);
@@ -1424,6 +1499,7 @@ mkblctrl_main(int argc, char *argv[])
 	if (g_mk == nullptr) {
 		if (mk_start(bus, motorcount) != OK) {
 			errx(1, "failed to start the MK-BLCtrl driver");
+
 		} else {
 			newMode = true;
 		}
