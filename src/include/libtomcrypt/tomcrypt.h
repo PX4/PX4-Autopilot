@@ -27,9 +27,6 @@ extern "C" {
 /* descriptor table size */
 #define TAB_SIZE      32
 
-/* disable wchar support */
-#define LTC_NO_WCHAR
-
 /* error codes [will be expanded in future releases] */
 enum {
    CRYPT_OK=0,             /* Result OK */
