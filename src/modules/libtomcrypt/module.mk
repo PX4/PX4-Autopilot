@@ -61,6 +61,20 @@ SRCS		=	pk/pkcs1/pkcs_1_i2osp.c \
 			pk/rsa/rsa_import.c \
 			pk/rsa/rsa_make_key.c \
 			pk/rsa/rsa_sign_hash.c \
-			pk/rsa/rsa_verify_hash.c
+			pk/rsa/rsa_verify_hash.c \
+			prngs/sprng.c \
+			prngs/rng_get_bytes.c \
+			prngs/rng_make_prng.c \
+			misc/crypt/crypt_find_prng.c \
+			misc/crypt/crypt_register_prng.c \
+			misc/crypt/crypt_unregister_prng.c \
+			misc/crypt/crypt_argchk.c \
+			misc/crypt/crypt_prng_descriptor.c \
+			misc/error_to_string.c
 
 INCLUDE_DIRS	+= $(PX4_INCLUDE_DIR)/libtomcrypt
+
+#
+# Make all symbols of this library visible globally
+#
+DEFAULT_VISIBILITY	= y

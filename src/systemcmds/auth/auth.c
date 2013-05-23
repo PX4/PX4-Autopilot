@@ -44,6 +44,7 @@
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
+#include <libtomcrypt/tomcrypt.h>
 
 /* RM page 75 OTP. Size is 528 bytes total (512 bytes data and 16 bytes locking) */
 #define ADDR_OTP_START			0x1FFF7800
@@ -116,7 +117,7 @@ int flash_lock(void)
 	*cr = 0x80000000;
 }
 
-int val_copy(void* dest, const void* src, int bytes)
+int val_read(void* dest, volatile const void* src, int bytes)
 {
 	
 	int i;
@@ -126,7 +127,7 @@ int val_copy(void* dest, const void* src, int bytes)
 	return i*4;
 }
 
-int val_write(void* dest, const void* src, int bytes)
+int val_write(volatile void* dest, const void* src, int bytes)
 {
 	flash_unlock();
 
@@ -193,6 +194,28 @@ int lock_otp()
 
 int auth_main(int argc, char *argv[])
 {
+
+
+	/*
+	 * PKCS#1 BASED CHIP ID SIGNING PREPARATION
+	 */
+
+	/* XXX this is testing code, the key has to be read from STDINPUT later */
+	rsa_key key;
+	int     err;
+	/* register the system RNG */
+	register_prng(&sprng_desc);
+	/* make a 1024-bit RSA key with the system RNG */
+	if ((err = rsa_make_key(NULL, find_prng("sprng"), 1024/8, 65537, &key))
+		!= CRYPT_OK) {
+		printf("make_key error: %s\n", error_to_string(err));
+		return 1;
+	}
+
+	/*
+	 * ONE-TIME-PROGRAMMABLE (OTP) MEMORY HANDLING SECTION
+	 */
+
 	/* disable scheduling, leave interrupt processing untouched */
 	sched_lock();
 
@@ -221,9 +244,7 @@ int auth_main(int argc, char *argv[])
 	/* read out unique chip ID */
 	const volatile uint32_t* udid_ptr = (const uint32_t*)UDID_START;
 	struct udid id;
-	id.serial[0] = *(udid_ptr + 0);
-	id.serial[1] = *(udid_ptr + 1);
-	id.serial[2] = *(udid_ptr + 2);
+	val_read(&id, udid_ptr, sizeof(id));
 
 	warnx("Unique serial # [%0X%0X%0X]", id.serial[0], id.serial[1], id.serial[2]);
 
@@ -234,7 +255,7 @@ int auth_main(int argc, char *argv[])
 	/* get OTP memory */
 	struct otp otp_mem;
 	const volatile uint32_t* otp_ptr = ADDR_OTP_START;
-	val_copy(&otp_mem, otp_ptr, sizeof(struct otp));
+	val_read(&otp_mem, otp_ptr, sizeof(struct otp));
 
 	/* ID string */
 	otp_mem.id[3] = '\0';
@@ -243,7 +264,7 @@ int auth_main(int argc, char *argv[])
 	/* get OTP lock */
 	struct otp_lock otp_lock_mem;
 	const volatile uint32_t* otp_lock_ptr = ADDR_OTP_LOCK_START;
-	val_copy(&otp_lock_mem, otp_lock_ptr, sizeof(struct otp_lock));
+	val_read(&otp_lock_mem, otp_lock_ptr, sizeof(struct otp_lock));
 
 	printf("OTP LOCK STATUS: ");
 	for (int i = 0; i < sizeof(otp_lock_mem) / sizeof(otp_lock_mem.lock_bytes[0]); i++)

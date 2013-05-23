@@ -277,9 +277,9 @@
 #define LTC_SOBER128
 
 /* the *nix style /dev/random device */
-#define LTC_DEVRANDOM
+/* #define LTC_DEVRANDOM */
 /* try /dev/urandom before trying /dev/random */
-#define TRY_URANDOM_FIRST
+/* #define TRY_URANDOM_FIRST */
 
 #endif /* LTC_NO_PRNGS */
 
