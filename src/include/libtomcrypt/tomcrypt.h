@@ -27,21 +27,6 @@ extern "C" {
 /* descriptor table size */
 #define TAB_SIZE      32
 
-/* disable wchar definition from LTC */
-#define LTC_NO_WCHAR
-
-/* enable PKCS#1 */
-#define LTC_PKCS_1
-
-/* enable RSA */
-#define LTC_MRSA
-
-/* check only for fatal arguments */
-#define ARGTYPE 1
-
-/* configure NuttX clock name */
-#define XCLOCK clock
-
 /* error codes [will be expanded in future releases] */
 enum {
    CRYPT_OK=0,             /* Result OK */

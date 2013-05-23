@@ -44,7 +44,30 @@
 # - RSA
 #
 
-SRCS		=	pk/pkcs1/pkcs_1_i2osp.c \
+SRCS		=	pk/ecc/ecc_ansi_x963_export.c \
+			pk/ecc/ecc_ansi_x963_import.c \
+			pk/ecc/ecc_decrypt_key.c \
+			pk/ecc/ecc_encrypt_key.c \
+			pk/ecc/ecc_export.c \
+			pk/ecc/ecc_free.c \
+			pk/ecc/ecc_get_size.c \
+			pk/ecc/ecc_import.c \
+			pk/ecc/ecc_make_key.c \
+			pk/ecc/ecc_shared_secret.c \
+			pk/ecc/ecc_sign_hash.c \
+			pk/ecc/ecc_sizes.c \
+			pk/ecc/ecc_test.c \
+			pk/ecc/ecc_verify_hash.c \
+			pk/ecc/ecc.c \
+			pk/ecc/ltc_ecc_is_valid_idx.c \
+			pk/ecc/ltc_ecc_map.c \
+			pk/ecc/ltc_ecc_mul2add.c \
+			pk/ecc/ltc_ecc_mulmod_timing.c \
+			pk/ecc/ltc_ecc_mulmod.c \
+			pk/ecc/ltc_ecc_points.c \
+			pk/ecc/ltc_ecc_projective_add_point.c \
+			pk/ecc/ltc_ecc_projective_dbl_point.c \
+			pk/pkcs1/pkcs_1_i2osp.c \
 			pk/pkcs1/pkcs_1_mgf1.c \
 			pk/pkcs1/pkcs_1_oaep_decode.c \
 			pk/pkcs1/pkcs_1_oaep_encode.c \
@@ -62,17 +85,54 @@ SRCS		=	pk/pkcs1/pkcs_1_i2osp.c \
 			pk/rsa/rsa_make_key.c \
 			pk/rsa/rsa_sign_hash.c \
 			pk/rsa/rsa_verify_hash.c \
-			prngs/sprng.c \
+			ciphers/aes/aes_tab.c \
+			ciphers/aes/aes.c \
+			hashes/sha2/sha256.c \
+			prngs/yarrow.c \
 			prngs/rng_get_bytes.c \
 			prngs/rng_make_prng.c \
-			misc/crypt/crypt_find_prng.c \
-			misc/crypt/crypt_register_prng.c \
-			misc/crypt/crypt_unregister_prng.c \
 			misc/crypt/crypt_argchk.c \
+			misc/crypt/crypt_cipher_descriptor.c \
+			misc/crypt/crypt_cipher_is_valid.c \
+			misc/crypt/crypt_find_cipher_any.c \
+			misc/crypt/crypt_find_cipher_id.c \
+			misc/crypt/crypt_find_cipher.c \
+			misc/crypt/crypt_find_hash_any.c \
+			misc/crypt/crypt_find_hash_id.c \
+			misc/crypt/crypt_find_hash_oid.c \
+			misc/crypt/crypt_find_hash.c \
+			misc/crypt/crypt_find_prng.c \
+			misc/crypt/crypt_fsa.c \
+			misc/crypt/crypt_hash_descriptor.c \
+			misc/crypt/crypt_hash_is_valid.c \
+			misc/crypt/crypt_ltc_mp_descriptor.c \
 			misc/crypt/crypt_prng_descriptor.c \
-			misc/error_to_string.c
+			misc/crypt/crypt_prng_is_valid.c \
+			misc/crypt/crypt_register_cipher.c \
+			misc/crypt/crypt_register_hash.c \
+			misc/crypt/crypt_register_prng.c \
+			misc/crypt/crypt_unregister_cipher.c \
+			misc/crypt/crypt_unregister_hash.c \
+			misc/crypt/crypt_unregister_prng.c \
+			misc/crypt/crypt.c \
+			misc/error_to_string.c \
+			misc/zeromem.c \
+			math/fp/ltc_ecc_fp_mulmod.c \
+			math/gmp_desc.c \
+			math/ltm_desc.c \
+			math/multi.c \
+			math/rand_prime.c \
+			math/tfm_desc.c \
+			modes/ctr/ctr_decrypt.c \
+			modes/ctr/ctr_done.c \
+			modes/ctr/ctr_encrypt.c \
+			modes/ctr/ctr_getiv.c \
+			modes/ctr/ctr_setiv.c \
+			modes/ctr/ctr_start.c \
+			modes/ctr/ctr_test.c
 
-INCLUDE_DIRS	+= $(PX4_INCLUDE_DIR)/libtomcrypt
+INCLUDE_DIRS	+=	$(PX4_INCLUDE_DIR)/libtomcrypt \
+			$(PX4_INCLUDE_DIR)/libtomfastmath
 
 #
 # Make all symbols of this library visible globally

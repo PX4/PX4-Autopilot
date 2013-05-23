@@ -202,13 +202,47 @@ int auth_main(int argc, char *argv[])
 
 	/* XXX this is testing code, the key has to be read from STDINPUT later */
 	rsa_key key;
-	int     err;
-	/* register the system RNG */
-	register_prng(&sprng_desc);
+	int err;
+
+	/* register a math library (in this case TomFastMath) */
+	ltc_mp = tfm_desc;
+
+	prng_state prng;
+	unsigned char buf[10];
+
+	warnx("Starting YARROW");
+	fflush(stdout);
+	usleep(100000);
+
+	/* start */
+	if ((err = yarrow_start(&prng)) != CRYPT_OK) {
+		warnx("Start error: %s\n", error_to_string(err));
+	}
+
+	warnx("Adding entropy");
+	fflush(stdout);
+
+	/* add entropy */
+	/* XXX use sensor values for this purpose */
+	if ((err = yarrow_add_entropy("hello world", 11, &prng)) != CRYPT_OK) {
+		warnx("Add_entropy error: %s\n", error_to_string(err));
+	}
+	/* ready and read */
+	if ((err = yarrow_ready(&prng)) != CRYPT_OK) {
+		warnx("Ready error: %s\n", error_to_string(err));
+	}
+
+	warnx("Creating 1024 bit RSA key, this may take a while");
+	fflush(stdout);
+	usleep(100000);
+
+	/* register the yarrow RNG */
+	register_prng(&yarrow_desc);
+
 	/* make a 1024-bit RSA key with the system RNG */
-	if ((err = rsa_make_key(NULL, find_prng("sprng"), 1024/8, 65537, &key))
+	if ((err = rsa_make_key(&prng, find_prng("yarrow"), 1024/8, 65537, &key))
 		!= CRYPT_OK) {
-		printf("make_key error: %s\n", error_to_string(err));
+		warnx("make_key error: %s\n", error_to_string(err));
 		return 1;
 	}
 

@@ -15,12 +15,9 @@ MODULES		+= drivers/stm32
 MODULES		+= drivers/stm32/adc
 MODULES		+= drivers/stm32/tone_alarm
 MODULES		+= drivers/led
-MODULES		+= drivers/px4io
 MODULES		+= drivers/px4fmu
 MODULES		+= drivers/boards/px4fmu
 MODULES		+= drivers/ardrone_interface
-MODULES		+= drivers/l3gd20
-MODULES		+= drivers/bma180
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
@@ -28,28 +25,13 @@ MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
 MODULES		+= drivers/hott_telemetry
-MODULES		+= drivers/blinkm
-MODULES		+= drivers/mkblctrl
-MODULES		+= drivers/md25
-MODULES		+= drivers/ets_airspeed
 MODULES		+= modules/sensors
 
 #
 # System commands
 #
-MODULES		+= systemcmds/eeprom
-MODULES		+= systemcmds/bl_update
-MODULES		+= systemcmds/boardinfo
-MODULES		+= systemcmds/i2c
-MODULES		+= systemcmds/mixer
-MODULES		+= systemcmds/param
-MODULES		+= systemcmds/perf
-MODULES		+= systemcmds/preflight_check
-MODULES		+= systemcmds/pwm
-MODULES		+= systemcmds/reboot
-MODULES		+= systemcmds/top
-MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/auth
+MODULES		+= systemcmds/reboot
 
 #
 # General system control
@@ -57,23 +39,6 @@ MODULES		+= systemcmds/auth
 MODULES		+= modules/commander
 MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
-
-#
-# Estimation modules (EKF / other filters)
-#
-MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/position_estimator_mc
-MODULES		+= modules/position_estimator
-MODULES		+= modules/att_pos_estimator_ekf
-
-#
-# Vehicle Control
-#
-MODULES		+= modules/fixedwing_backside
-MODULES		+= modules/fixedwing_att_control
-MODULES		+= modules/fixedwing_pos_control
-MODULES		+= modules/multirotor_att_control
-MODULES		+= modules/multirotor_pos_control
 
 #
 # Logging
