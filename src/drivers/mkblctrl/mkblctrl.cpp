@@ -510,8 +510,9 @@ MK::task_main()
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
-	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-				     ORB_ID(actuator_controls_1));
+	//_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+	//			     ORB_ID(actuator_controls_1));
+	_t_actuators = orb_subscribe(ORB_ID(actuator_controls_0));
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
@@ -522,28 +523,21 @@ MK::task_main()
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 	/* advertise the mixed control outputs */
-	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
-				   &outputs);
+	// -- loeschen _t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
+	// -- loeschen 			   &outputs);
 
 	/* advertise the effective control inputs */
 	actuator_controls_effective_s controls_effective;
 	memset(&controls_effective, 0, sizeof(controls_effective));
 	/* advertise the effective control inputs */
-	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
-					       &controls_effective);
+	// -- loeschen _t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
+	// -- loeschen 				       &controls_effective);
 
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
 	fds[1].fd = _t_armed;
 	fds[1].events = POLLIN;
-
-	// rc input, published to ORB
-	struct rc_input_values rc_in;
-	orb_advert_t to_input_rc = 0;
-
-	memset(&rc_in, 0, sizeof(rc_in));
-	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
 
 	log("starting");
 
@@ -574,7 +568,7 @@ MK::task_main()
 
 		/* sleep waiting for data, stopping to check for PPM
 		 * input at 100Hz */
-		int ret = ::poll(&fds[0], 2, 10);
+		int ret = ::poll(&fds[0], 2, 100);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -587,7 +581,8 @@ MK::task_main()
 		if (fds[0].revents & POLLIN) {
 
 			/* get controls - must always do this to avoid spinning */
-			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_1), _t_actuators, &_controls);
+			//orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_1), _t_actuators, &_controls);
+			orb_copy(ORB_ID(actuator_controls_0), _t_actuators, &_controls);
 
 			/* can we mix? */
 			if (_mixers != nullptr) {
@@ -599,7 +594,7 @@ MK::task_main()
 				// XXX output actual limited values
 				memcpy(&controls_effective, &_controls, sizeof(controls_effective));
 
-				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
+				// -- loeschen orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
 
 				/* iterate actuators */
 				for (unsigned int i = 0; i < _num_outputs; i++) {
@@ -647,32 +642,9 @@ MK::task_main()
 				}
 
 				/* and publish for anyone that cares to see */
-				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
+				// -- loeschen orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
 			}
 
-			// see if we have new PPM input data
-//			if (ppm_last_valid_decode != rc_in.timestamp) {
-//				// we have a new PPM frame. Publish it.
-			//				rc_in.channel_count = ppm_decoded_channels;
-			//
-			//				if (rc_in.channel_count > RC_INPUT_MAX_CHANNELS) {
-			//					rc_in.channel_count = RC_INPUT_MAX_CHANNELS;
-			//				}
-
-			//				for (uint8_t i = 0; i < rc_in.channel_count; i++) {
-			//					rc_in.values[i] = ppm_buffer[i];
-			//				}
-
-			//				rc_in.timestamp = ppm_last_valid_decode;
-
-				/* lazily advertise on first publication */
-			//				if (to_input_rc == 0) {
-			//					to_input_rc = orb_advertise(ORB_ID(input_rc), &rc_in);
-
-			//				} else {
-			//					orb_publish(ORB_ID(input_rc), to_input_rc, &rc_in);
-			//				}
-			//			}
 
 
 		}
