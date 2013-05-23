@@ -183,10 +183,15 @@ CXXFLAGS	+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(PX4_INCLUDE_DIR)visibi
 #
 module:			$(MODULE_OBJ) $(MODULE_COMMAND_FILES)
 
-##
-## Object files we will generate from sources
-##
+#
+# Object files we will generate from sources
+#
 OBJS			 = $(addsuffix .o,$(SRCS))
+
+#
+# Dependency files that will be auto-generated
+#
+DEPS			 = $(addsuffix .d,$(SRCS))
 
 #
 # SRCS -> OBJS rules
@@ -219,3 +224,5 @@ $(MODULE_OBJ):		$(OBJS) $(GLOBAL_DEPS)
 
 clean:
 	$(Q) $(REMOVE) $(MODULE_PRELINK) $(OBJS)
+
+-include $(DEPS)
