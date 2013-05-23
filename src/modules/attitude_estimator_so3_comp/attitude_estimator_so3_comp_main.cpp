@@ -44,8 +44,9 @@ extern "C" __EXPORT int attitude_estimator_so3_comp_main(int argc, char *argv[])
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
 static int attitude_estimator_so3_comp_task;				/**< Handle of deamon task / thread */
-static float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;					// quaternion of sensor frame relative to auxiliary frame
-static float integralFBx = 0.0f,  integralFBy = 0.0f, integralFBz = 0.0f;	// integral error terms scaled by Ki
+static float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;	/** quaternion of sensor frame relative to auxiliary frame */
+static float gyro_bias[3] = {0.0f, 0.0f, 0.0f}; /** bias estimation */
+static float gravity_vector[3] = {0.0f,0.0f,0.0f};	/** estimated gravity vector */
 
 //! Serial packet related
 static int uart;
@@ -151,82 +152,91 @@ float invSqrt(float number) {
 
 void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float twoKp, float twoKi, float dt) {
 	float recipNorm;
-	float q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;  
-	float hx, hy, bx, bz;
-	float halfvx, halfvy, halfvz, halfwx, halfwy, halfwz;
-	float halfex, halfey, halfez;
+	float q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
+	float halfex = 0.0f, halfey = 0.0f, halfez = 0.0f;
+        	
+	// Auxiliary variables to avoid repeated arithmetic
+        q0q0 = q0 * q0;
+       	q0q1 = q0 * q1;
+       	q0q2 = q0 * q2;
+       	q0q3 = q0 * q3;
+       	q1q1 = q1 * q1;
+       	q1q2 = q1 * q2;
+   	q1q3 = q1 * q3;
+       	q2q2 = q2 * q2;
+       	q2q3 = q2 * q3;
+       	q3q3 = q3 * q3;   
 
-	// Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
+	//! If magnetometer measurement is available, use it.
 	if((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
-		//MahonyAHRSupdateIMU(gx, gy, gz, ax, ay, az, twoKp, twoKi, dt);
-		return;
+		float hx, hy, bx, bz;
+		float halfwx, halfwy, halfwz;
+	
+		// Normalise magnetometer measurement
+    		recipNorm = invSqrt(mx * mx + my * my + mz * mz);
+    		mx *= recipNorm;
+    		my *= recipNorm;
+    		mz *= recipNorm;
+    
+    		// Reference direction of Earth's magnetic field
+    		hx = 2.0f * (mx * (0.5f - q2q2 - q3q3) + my * (q1q2 - q0q3) + mz * (q1q3 + q0q2));
+    		hy = 2.0f * (mx * (q1q2 + q0q3) + my * (0.5f - q1q1 - q3q3) + mz * (q2q3 - q0q1));
+    		bx = sqrt(hx * hx + hy * hy);
+    		bz = 2.0f * (mx * (q1q3 - q0q2) + my * (q2q3 + q0q1) + mz * (0.5f - q1q1 - q2q2));
+    
+    		// Estimated direction of magnetic field
+    		halfwx = bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2);
+    		halfwy = bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3);
+    		halfwz = bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2);
+    
+    		// Error is sum of cross product between estimated direction and measured direction of field vectors
+    		halfex += (my * halfwz - mz * halfwy);
+    		halfey += (mz * halfwx - mx * halfwz);
+    		halfez += (mx * halfwy - my * halfwx);
 	}
 
 	// Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
 	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
-
-	// Normalise accelerometer measurement
-	recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-	ax *= recipNorm;
-	ay *= recipNorm;
-	az *= recipNorm;     
-
-	// Normalise magnetometer measurement
-	recipNorm = invSqrt(mx * mx + my * my + mz * mz);
-	mx *= recipNorm;
-	my *= recipNorm;
-	mz *= recipNorm;   
-
-        // Auxiliary variables to avoid repeated arithmetic
-        q0q0 = q0 * q0;
-        q0q1 = q0 * q1;
-        q0q2 = q0 * q2;
-        q0q3 = q0 * q3;
-        q1q1 = q1 * q1;
-        q1q2 = q1 * q2;
-        q1q3 = q1 * q3;
-        q2q2 = q2 * q2;
-        q2q3 = q2 * q3;
-        q3q3 = q3 * q3;   
-
-        // Reference direction of Earth's magnetic field
-        hx = 2.0f * (mx * (0.5f - q2q2 - q3q3) + my * (q1q2 - q0q3) + mz * (q1q3 + q0q2));
-        hy = 2.0f * (mx * (q1q2 + q0q3) + my * (0.5f - q1q1 - q3q3) + mz * (q2q3 - q0q1));
-        bx = sqrt(hx * hx + hy * hy);
-        bz = 2.0f * (mx * (q1q3 - q0q2) + my * (q2q3 + q0q1) + mz * (0.5f - q1q1 - q2q2));
-
-	// Estimated direction of gravity and magnetic field
-	halfvx = q1q3 - q0q2;
-	halfvy = q0q1 + q2q3;
-	halfvz = q0q0 - 0.5f + q3q3;
-        halfwx = bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2);
-        halfwy = bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3);
-        halfwz = bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2);  
+		float halfvx, halfvy, halfvz;
 	
-	// Error is sum of cross product between estimated direction and measured direction of field vectors
-	halfex = (ay * halfvz - az * halfvy) + (my * halfwz - mz * halfwy);
-	halfey = (az * halfvx - ax * halfvz) + (mz * halfwx - mx * halfwz);
-	halfez = (ax * halfvy - ay * halfvx) + (mx * halfwy - my * halfwx);
+		// Normalise accelerometer measurement
+		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
+		ax *= recipNorm;
+		ay *= recipNorm;
+		az *= recipNorm;     
 
-	// Compute and apply integral feedback if enabled
-	if(twoKi > 0.0f) {
-		integralFBx += twoKi * halfex * dt;	// integral error scaled by Ki
-		integralFBy += twoKi * halfey * dt;
-		integralFBz += twoKi * halfez * dt;
-		gx += integralFBx;	// apply integral feedback
-		gy += integralFBy;
-		gz += integralFBz;
-	}
-	else {
-		integralFBx = 0.0f;	// prevent integral windup
-		integralFBy = 0.0f;
-		integralFBz = 0.0f;
+		// Estimated direction of gravity and magnetic field
+		halfvx = q1q3 - q0q2;
+		halfvy = q0q1 + q2q3;
+		halfvz = q0q0 - 0.5f + q3q3;
+	
+		// Error is sum of cross product between estimated direction and measured direction of field vectors
+		halfex += ay * halfvz - az * halfvy;
+		halfey += az * halfvx - ax * halfvz;
+		halfez += ax * halfvy - ay * halfvx;
 	}
 
-	// Apply proportional feedback
-	gx += twoKp * halfex;
-	gy += twoKp * halfey;
-	gz += twoKp * halfez;
+	// Apply feedback only when valid data has been gathered from the accelerometer or magnetometer
+	if(halfex != 0.0f && halfey != 0.0f && halfez != 0.0f) {
+		// Compute and apply integral feedback if enabled
+		if(twoKi > 0.0f) {
+			gyro_bias[0] += twoKi * halfex * dt;	// integral error scaled by Ki
+			gyro_bias[1] += twoKi * halfey * dt;
+			gyro_bias[2] += twoKi * halfez * dt;
+			gx += gyro_bias[0];	// apply integral feedback
+			gy += gyro_bias[1];
+			gz += gyro_bias[2];
+		}
+		else {
+			gyro_bias[0] = 0.0f;	// prevent integral windup
+			gyro_bias[1] = 0.0f;
+			gyro_bias[2] = 0.0f;
+		}
+
+		// Apply proportional feedback
+		gx += twoKp * halfex;
+		gy += twoKp * halfey;
+		gz += twoKp * halfez;
 	}
 	
 	// Integrate rate of change of quaternion
@@ -309,11 +319,11 @@ int open_uart(int baud, const char *uart_name, struct termios *uart_config_origi
         case 460800: speed = B460800; break;
         case 921600: speed = B921600; break;
         default:
-                fprintf(stderr, "ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baud);
+                printf("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baud);
                 return -EINVAL;
         }
 
-	printf("[mavlink] UART is %s, baudrate is %d\n", uart_name, baud);
+	printf("[so3_comp_filt] UART is %s, baudrate is %d\n", uart_name, baud);
         uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
@@ -321,11 +331,11 @@ int open_uart(int baud, const char *uart_name, struct termios *uart_config_origi
         int termios_state;
         *is_usb = false;
 
-	       /* make some wild guesses including that USB serial is indicated by either /dev/ttyACM0 or /dev/console */
+	/* make some wild guesses including that USB serial is indicated by either /dev/ttyACM0 or /dev/console */
         if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/console") != OK) {
                 /* Back up the original uart configuration to restore it after exit */
                 if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-                        fprintf(stderr, "ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
+                        printf("ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
                         close(uart);
                         return -1;
                 }
@@ -338,14 +348,14 @@ int open_uart(int baud, const char *uart_name, struct termios *uart_config_origi
 
                 /* Set baud rate */
                 if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-                        fprintf(stderr, "ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+                        printf("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
                         close(uart);
                         return -1;
                 }
 
 
                 if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-                        fprintf(stderr, "ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+                        printf("ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
                         close(uart);
                         return -1;
                 }
@@ -420,9 +430,12 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	}
 
 	if(debug_mode){
+		printf("Opening debugging port for 3D visualization\n");
 		uart = open_uart(baudrate, device_name, &uart_config_original, &usb_uart);
 		if (uart < 0)
                 	printf("could not open %s", device_name);
+		else
+			printf("Open port success\n");
 	}
 
 	// print text
@@ -638,30 +651,22 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
         				Rot_matrix[7] = 2.0 * (c * d - a * b);	// 32
         				Rot_matrix[8] = 2*aSq - 1 + 2*dSq;	// 33
 
+					gravity_vector[0] = 2*(q1*q3-q0*q2);
+					gravity_vector[1] = 2*(q0*q1+q2*q3);
+					gravity_vector[2] = aSq - bSq - cSq + dSq;
+
 					//euler[0] = atan2f(Rot_matrix[7], Rot_matrix[8]);
-					//euler[1] = asinf(-Rot_matrix[6]);
+					//euler[1] = -asinf(Rot_matrix[6]);
 					//euler[2] = atan2f(Rot_matrix[3],Rot_matrix[0]);
 
-					/* FIXME : Work around this later...
-					float theta = asinf(-Rot_matrix[6]);	// -r_{31}
-					euler[1] = theta;			// pitch angle
-
-					if(fabsf(theta - M_PI_2_F) < 1.0e-3f){
-						euler[0] = 0.0f;
-						euler[2] = atan2f(Rot_matrix[5] - Rot_matrix[1], Rot_matrix[2] + Rot_matrix[4] - euler[0]);
-					} else if (fabsf(theta + M_PI_2_F) < 1.0e-3f) {
-						euler[0] = 0.0f;
-						euler[2] = atan2f(Rot_matrix[5] - Rot_matrix[1], Rot_matrix[2] + Rot_matrix[4] - euler[0]);
-					} else {
-						euler[0] = atan2f(Rot_matrix[7], Rot_matrix[8]);
-						euler[2] = atan2f(Rot_matrix[3], Rot_matrix[0]);
-					}
-					*/
-
-					euler[2] = atan2f(2*(q1*q2-q0*q3),2*(q0*q0+q1*q1)-1);
-					euler[1]= -asinf(2*(q1*q3+q0*q2));
-					euler[0] = atan2f(2*(q2*q3-q0*q1),2*(q0*q0+q3*q3)-1);
-					
+					// Euler angle directly from quaternion.
+					euler[0] = -atan2f(gravity_vector[1], sqrtf(gravity_vector[0]*gravity_vector[0] + gravity_vector[2]*gravity_vector[2]));	// roll
+					euler[1] = atan2f(gravity_vector[0], sqrtf(gravity_vector[1]*gravity_vector[1] + gravity_vector[2]*gravity_vector[2]));	// pitch
+					euler[2] = -atan2f(2*(q1*q2-q0*q3),2*(q0*q0+q1*q1)-1);	// yaw
+				
+					//euler[2] = atan2(2 * q1*q2 - 2 * q0*q3, 2 * q0*q0 + 2 * q1*q1 - 1); // psi
+  					//euler[1] = -asin(2 * q1*q3 + 2 * q0*q2); // theta
+					//euler[0] = atan2(2 * q2*q3 - 2 * q0*q1, 2 * q0*q0 + 2 * q3*q3 - 1); // phi	
 
 					/* swap values for next iteration, check for fatal inputs */
 					if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {
@@ -684,19 +689,15 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					att.yaw = euler[2] - so3_comp_params.yaw_off;
 
 					/* FIXME : This can be a problem for rate controller. Rate in body or inertial? */
-					att.rollspeed = q1;
-					att.pitchspeed = q2;
-					att.yawspeed = q3;
+					att.rollspeed = gyro[0];
+					att.pitchspeed = gyro[1];
+					att.yawspeed = gyro[2];
+					att.rollacc = 0;
+					att.pitchacc = 0;
+					att.yawacc = 0;
 
-					/*
-					att.rollacc = x_aposteriori[3];
-					att.pitchacc = x_aposteriori[4];
-					att.yawacc = x_aposteriori[5];
-					*/
-
-					//att.yawspeed =z_k[2] ;
-					/* copy offsets */
-					//memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
+					/* TODO: Bias estimation required */
+					memcpy(&att.rate_offsets, &(gyro_bias), sizeof(att.rate_offsets));
 
 					/* copy rotation matrix */
 					memcpy(&att.R, Rot_matrix, sizeof(Rot_matrix));
@@ -712,6 +713,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					perf_end(so3_comp_loop_perf);
 
+					//! This will print out debug packet to visualization software
 					if(debug_mode)
 					{
 						float quat[4];
@@ -722,12 +724,12 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						send_uart_float_arr(quat,4);
 						send_uart_byte('\n');
 					}
-				}// else
+				}
 			}
 		}
 
 		loopcounter++;
-	}
+	}// while
 
 	thread_running = false;
 
