@@ -35,7 +35,9 @@
 # Authentication command.
 #
 
-MODULE_COMMAND	 = auth
-SRCS		 = auth.c
+MODULE_COMMAND		= auth
+SRCS			= auth.c
 
-MAXOPTIMIZATION	 = -Os
+MODULE_STACKSIZE	= 16000
+
+MAXOPTIMIZATION		= -Os

@@ -66,40 +66,58 @@
 #define XQSORT qsort
 #endif
 
-/* Easy button? */
-#ifdef LTC_EASY
-   #define LTC_NO_CIPHERS
-   #define LTC_RIJNDAEL
-   #define LTC_BLOWFISH
-   #define LTC_DES
-   #define LTC_CAST5
-   
-   #define LTC_NO_MODES
-   #define LTC_ECB_MODE
-   #define LTC_CBC_MODE
-   #define LTC_CTR_MODE
-   
-   #define LTC_NO_HASHES
-   #define LTC_SHA1
-   #define LTC_SHA512
-   #define LTC_SHA384
-   #define LTC_SHA256
-   #define LTC_SHA224
-   
-   #define LTC_NO_MACS
-   #define LTC_HMAC
-   #define LTC_OMAC
-   #define LTC_CCM_MODE
+/* disable wchar definition from LTC */
+#define LTC_NO_WCHAR
 
-   #define LTC_NO_PRNGS
-   #define LTC_SPRNG
-   #define LTC_YARROW
-   #define LTC_DEVRANDOM
-   #define TRY_URANDOM_FIRST
-      
-   #define LTC_NO_PK
-   #define LTC_MRSA
-   #define LTC_MECC
+/* enable PKCS#1 */
+#define LTC_PKCS_1
+
+/* enable RSA */
+#define LTC_MRSA
+
+/* check only for fatal arguments */
+#define ARGTYPE 1
+
+#define TFM_LTC_DESC
+#define TFM_DESC
+#define LTC_SOURCE
+#include <libtomfastmath/tfm.h>
+
+/* Easy button? */
+#define LTC_EASY
+#ifdef LTC_EASY
+#define LTC_NO_CIPHERS
+#define LTC_RIJNDAEL
+#define LTC_BLOWFISH
+#define LTC_DES
+#define LTC_CAST5
+
+#define LTC_NO_MODES
+#define LTC_ECB_MODE
+#define LTC_CBC_MODE
+#define LTC_CTR_MODE
+
+#define LTC_NO_HASHES
+#define LTC_SHA1
+#define LTC_SHA512
+#define LTC_SHA384
+#define LTC_SHA256
+#define LTC_SHA224
+
+#define LTC_NO_MACS
+#define LTC_HMAC
+#define LTC_OMAC
+#define LTC_CCM_MODE
+
+#define LTC_NO_PRNGS
+#define LTC_YARROW
+/* which descriptor of AES to use?  */
+/* 0 = rijndael_enc 1 = aes_enc, 2 = rijndael [full], 3 = aes [full] */
+#define LTC_YARROW_AES 2
+   
+#define LTC_NO_PK
+#define LTC_MRSA
+#define LTC_MECC
 #endif   
 
 /* Use small code where possible */
@@ -254,14 +272,14 @@
 #define LTC_YARROW
 /* which descriptor of AES to use?  */
 /* 0 = rijndael_enc 1 = aes_enc, 2 = rijndael [full], 3 = aes [full] */
-#define LTC_YARROW_AES 0
+#define LTC_YARROW_AES 2
 
 #if defined(LTC_YARROW) && !defined(LTC_CTR_MODE)
    #error LTC_YARROW requires LTC_CTR_MODE chaining mode to be defined!
 #endif
 
 /* a PRNG that simply reads from an available system source */
-#define LTC_SPRNG
+/* #define LTC_SPRNG */
 
 /* The LTC_RC4 stream cipher */
 #define LTC_RC4
@@ -277,9 +295,9 @@
 #define LTC_SOBER128
 
 /* the *nix style /dev/random device */
-#define LTC_DEVRANDOM
+/* #define LTC_DEVRANDOM */
 /* try /dev/urandom before trying /dev/random */
-#define TRY_URANDOM_FIRST
+/* #define TRY_URANDOM_FIRST */
 
 #endif /* LTC_NO_PRNGS */
 
@@ -290,7 +308,8 @@
 /* #define LTM_LTC_DESC */
 
 /* TomsFastMath */
-/* #define TFM_LTC_DESC */
+#define TFM_LTC_DESC
+#define TFM_DESC
 
 #endif /* LTC_NO_MATH */
 

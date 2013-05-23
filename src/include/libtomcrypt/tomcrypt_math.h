@@ -431,7 +431,6 @@ extern const ltc_math_descriptor gmp_desc;
 #endif
 
 #if !defined(DESC_DEF_ONLY) && defined(LTC_SOURCE)
-
 #define MP_DIGIT_BIT                 ltc_mp.bits_per_digit
 
 /* some handy macros */
