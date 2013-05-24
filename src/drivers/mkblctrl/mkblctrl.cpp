@@ -491,8 +491,10 @@ MK::task_main()
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
-	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-				     ORB_ID(actuator_controls_0));
+	// loeschen _t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+	// loeschen			     ORB_ID(actuator_controls_0));
+	_t_actuators = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
@@ -502,11 +504,19 @@ MK::task_main()
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
+	/* advertise the mixed control outputs */
+	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
+				   &outputs);
+
+
 
 	/* advertise the effective control inputs */
 	actuator_controls_effective_s controls_effective;
 	memset(&controls_effective, 0, sizeof(controls_effective));
 	/* advertise the effective control inputs */
+	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
+				   &controls_effective);
+
 
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
@@ -556,7 +566,8 @@ MK::task_main()
 		if (fds[0].revents & POLLIN) {
 
 			/* get controls - must always do this to avoid spinning */
-			orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_0), _t_actuators, &_controls);
+			// loeschen orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_0), _t_actuators, &_controls);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
 
 			/* can we mix? */
 			if (_mixers != nullptr) {
@@ -1105,12 +1116,18 @@ ssize_t
 MK::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	uint16_t values[4];
+	// loeschen uint16_t values[4];
+	uint16_t values[8];
 
-	if (count > 4) {
-		// we only have 4 PWM outputs on the FMU
-		count = 4;
+	// loeschen if (count > 4) {
+	// loeschen 	// we only have 4 PWM outputs on the FMU
+	// loeschen	count = 4;
+	// loeschen }
+	if (count > _num_outputs) {
+		// we only have 8 I2C outputs in the driver
+		count = _num_outputs;
 	}
+
 
 	// allow for misaligned values
 	memcpy(values, buffer, count * 2);
