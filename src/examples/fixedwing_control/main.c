@@ -154,7 +154,14 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct v
 	/* calculate heading error */
 	float yaw_err = att->yaw - bearing;
 	/* apply control gain */
-	att_sp->roll_body = yaw_err * p.hdng_p;
+	float roll_command = yaw_err * p.hdng_p;
+
+	/* limit output, this commonly is a tuning parameter, too */
+	if (att_sp->roll_body < -0.5f) {
+		att_sp->roll_body = -0.5f;
+	} else if (att_sp->roll_body > 0.5f) {
+		att_sp->roll_body = 0.5f;
+	}
 }
 
 /* Main Thread */

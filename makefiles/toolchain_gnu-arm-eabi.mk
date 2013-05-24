@@ -235,7 +235,7 @@ endef
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+	$(Q) $(LD) $(LDFLAGS) -Map $1.map -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
 endef
 
 # Convert $1 from a linked object to a raw binary in $2
@@ -280,6 +280,7 @@ define BIN_TO_OBJ
 	$(Q) $(OBJCOPY) $2 \
 		--redefine-sym $(call BIN_SYM_PREFIX,$1)_start=$3 \
 		--redefine-sym $(call BIN_SYM_PREFIX,$1)_size=$3_len \
-		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end
+		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end \
+		--rename-section .data=.rodata
 	$(Q) $(REMOVE) $2.c $2.c.o
 endef
