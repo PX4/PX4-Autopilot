@@ -73,8 +73,15 @@
 #include "params.h"
 
 /* Prototypes */
+
 /**
  * Daemon management function.
+ *
+ * This function allows to start / stop the background task (daemon).
+ * The purpose of it is to be able to start the controller on the
+ * command line, query its status and stop it, without giving up
+ * the command line to one particular process or the need for bg/fg
+ * ^Z support by the shell.
  */
 __EXPORT int ex_fixedwing_control_main(int argc, char *argv[]);
 
@@ -88,10 +95,34 @@ int fixedwing_control_thread_main(int argc, char *argv[]);
  */
 static void usage(const char *reason);
 
+/**
+ * Control roll and pitch angle.
+ *
+ * This very simple roll and pitch controller takes the current roll angle
+ * of the system and compares it to a reference. Pitch is controlled to zero and yaw remains
+ * uncontrolled (tutorial code, not intended for flight).
+ *
+ * @param att_sp The current attitude setpoint - the values the system would like to reach.
+ * @param att The current attitude. The controller should make the attitude match the setpoint
+ * @param speed_body The velocity of the system. Currently unused.
+ * @param rates_sp The angular rate setpoint. This is the output of the controller.
+ */
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-	float speed_body[], float gyro[], struct vehicle_rates_setpoint_s *rates_sp, 
+	float speed_body[], struct vehicle_rates_setpoint_s *rates_sp, 
 	struct actuator_controls_s *actuators);
 
+/**
+ * Control heading.
+ *
+ * This very simple heading to roll angle controller outputs the desired roll angle based on
+ * the current position of the system, the desired position (the setpoint) and the current
+ * heading.
+ *
+ * @param pos The current position of the system
+ * @param sp The current position setpoint
+ * @param att The current attitude
+ * @param att_sp The attitude setpoint. This is the output of the controller
+ */
 void control_heading(const struct vehicle_global_position_s *pos, const struct vehicle_global_position_setpoint_s *sp,
 	const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp);
 
@@ -103,7 +134,7 @@ static struct params p;
 static struct param_handles ph;
 
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-	float speed_body[], float gyro[], struct vehicle_rates_setpoint_s *rates_sp, 
+	float speed_body[], struct vehicle_rates_setpoint_s *rates_sp, 
 	struct actuator_controls_s *actuators)
 {
 
@@ -148,7 +179,10 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct v
 	 * Calculate heading error of current position to desired position
 	 */
 
-	/* PX4 uses 1e7 scaled integers to represent global coordinates for max resolution */
+	/* 
+	 * PX4 uses 1e7 scaled integers to represent global coordinates for max resolution,
+	 * so they need to be scaled by 1e7 and converted to IEEE double precision floating point.
+	 */
 	float bearing = get_bearing_to_next_waypoint(pos->lat/1e7d, pos->lon/1e7d, sp->lat/1e7d, sp->lon/1e7d);
 
 	/* calculate heading error */
@@ -157,10 +191,10 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct v
 	float roll_command = yaw_err * p.hdng_p;
 
 	/* limit output, this commonly is a tuning parameter, too */
-	if (att_sp->roll_body < -0.5f) {
-		att_sp->roll_body = -0.5f;
-	} else if (att_sp->roll_body > 0.5f) {
-		att_sp->roll_body = 0.5f;
+	if (att_sp->roll_body < -0.6f) {
+		att_sp->roll_body = -0.6f;
+	} else if (att_sp->roll_body > 0.6f) {
+		att_sp->roll_body = 0.6f;
 	}
 }
 
@@ -183,7 +217,32 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	parameters_init(&ph);
 	parameters_update(&ph, &p);
 
-	/* declare and safely initialize all structs to zero */
+
+	/*
+	 * PX4 uses a publish/subscribe design pattern to enable
+	 * multi-threaded communication.
+	 *
+	 * The most elegant aspect of this is that controllers and
+	 * other processes can either 'react' to new data, or run
+	 * at their own pace.
+	 *
+	 * PX4 developer guide:
+	 * https://pixhawk.ethz.ch/px4/dev/shared_object_communication
+	 *
+	 * Wikipedia description:
+	 * http://en.wikipedia.org/wiki/Publish–subscribe_pattern
+	 * 
+	 */
+
+
+
+
+	/*
+	 * Declare and safely initialize all structs to zero.
+	 * 
+	 * These structs contain the system state and things
+	 * like attitude, position, the current waypoint, etc.
+	 */
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_attitude_setpoint_s att_sp;
@@ -199,20 +258,24 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	struct vehicle_global_position_setpoint_s global_sp;
 	memset(&global_sp, 0, sizeof(global_sp));
 
-	/* output structs */
+	/* output structs - this is what is sent to the mixer */
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
 
 
-	/* publish actuator controls */
+	/* publish actuator controls with zero values */
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
 		actuators.control[i] = 0.0f;
 	}
 
+	/*
+	 * Advertise that this controller will publish actuator
+	 * control values and the rate setpoint
+	 */
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 	orb_advert_t rates_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
 
-	/* subscribe */
+	/* subscribe to topics. */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -222,7 +285,6 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	int param_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* Setup of loop */
-	float gyro[3] = {0.0f, 0.0f, 0.0f};
 	float speed_body[3] = {0.0f, 0.0f, 0.0f};
 	struct pollfd fds[2] = {{ .fd = param_sub, .events = POLLIN },
 				{ .fd = att_sub, .events = POLLIN }};
@@ -275,6 +337,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				if (global_sp_updated)
 					orb_copy(ORB_ID(vehicle_global_position_setpoint), global_sp_sub, &global_sp);
 
+				/* currently speed in body frame is not used, but here for reference */
 				if (pos_updated) {
 					orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
 
@@ -292,12 +355,10 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					}
 				}
 
+				/* get the RC (or otherwise user based) input */ 
 				orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
+				/* get the system status and the flight mode we're in */
 				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
-
-				gyro[0] = att.rollspeed;
-				gyro[1] = att.pitchspeed;
-				gyro[2] = att.yawspeed;
 
 				/* control */
 
@@ -312,7 +373,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				    	actuators.control[2] = 0.0f;
 					
 					/* simple attitude control */
-					control_attitude(&att_sp, &att, speed_body, gyro, &rates_sp, &actuators);
+					control_attitude(&att_sp, &att, speed_body, &rates_sp, &actuators);
 
 					/* pass through throttle */
 					actuators.control[3] = att_sp.thrust;
@@ -355,7 +416,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 						att_sp.timestamp = hrt_absolute_time();
 
 						/* attitude control */
-						control_attitude(&att_sp, &att, speed_body, gyro, &rates_sp, &actuators);
+						control_attitude(&att_sp, &att, speed_body, &rates_sp, &actuators);
 
 						/* pass through throttle */
 						actuators.control[3] = att_sp.thrust;
