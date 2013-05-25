@@ -492,6 +492,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	} subs;
 
 	/* log message buffer: header + body */
+	#pragma pack(push, 1)
 	struct {
 		LOG_PACKET_HEADER;
 		union {
@@ -502,6 +503,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
 	};
+	#pragma pack(pop)
 	memset(&log_msg.body, 0, sizeof(log_msg.body));
 
 	/* --- MANAGEMENT - LOGGING COMMAND --- */

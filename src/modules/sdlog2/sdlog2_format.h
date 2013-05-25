@@ -77,7 +77,7 @@ Format characters in the format string for binary log messages
 
 struct log_format_s {
 	uint8_t type;
-	uint8_t length;
+	uint8_t length;		// full packet length including header
 	char name[4];
 	char format[16];
 	char labels[64];
@@ -85,13 +85,13 @@ struct log_format_s {
 
 #define LOG_FORMAT(_name, _format, _labels) { \
 		.type = LOG_##_name##_MSG, \
-			.length = sizeof(struct log_##_name##_s) + 8, \
-				  .name = #_name, \
-					  .format = _format, \
-						    .labels = _labels \
+		.length = sizeof(struct log_##_name##_s) + LOG_PACKET_HEADER_LEN, \
+		.name = #_name, \
+		.format = _format, \
+		.labels = _labels \
 	}
 
-#define LOG_FORMAT_MSG	  128
+#define LOG_FORMAT_MSG	  0x80
 
 #define LOG_PACKET_SIZE(_name)	LOG_PACKET_HEADER_LEN + sizeof(log_msg.body.log_##_name)
 
