@@ -33,10 +33,13 @@
  ****************************************************************************/
 /**
  * @file main.c
- * Implementation of a fixed wing attitude controller. This file is a complete
- * fixed wing controller flying manual attitude control or auto waypoint control.
+ *
+ * Example implementation of a fixed wing attitude controller. This file is a complete
+ * fixed wing controller for manual attitude control or auto waypoint control.
  * There is no need to touch any other system components to extend / modify the
  * complete control architecture.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -60,7 +63,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
@@ -306,7 +308,10 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 		int ret = poll(fds, 2, 500);
 
 		if (ret < 0) {
-			/* poll error, this will not really happen in practice */
+			/*
+			 * Poll error, this will not really happen in practice,
+			 * but its good design practice to make output an error message. 
+			 */
 			warnx("poll error");
 
 		} else if (ret == 0) {
@@ -332,6 +337,8 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				orb_check(global_pos_sub, &pos_updated);
 				bool global_sp_updated;
 				orb_check(global_sp_sub, &global_sp_updated);
+				bool manual_sp_updated;
+				orb_check(manual_sp_sub, &manual_sp_updated);
 
 				/* get a local copy of attitude */
 				orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
@@ -357,10 +364,11 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					}
 				}
 
-				/* get the RC (or otherwise user based) input */ 
-				orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
+				if (manual_sp_updated)
+					/* get the RC (or otherwise user based) input */ 
+					orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
 
-				/* check if the throttle was ever more than 50% - go only to failsafe if yes */
+				/* check if the throttle was ever more than 50% - go later only to failsafe if yes */
 				if (isfinite(manual_sp.throttle) &&
 							    (manual_sp.throttle >= 0.6f) &&
 							    (manual_sp.throttle <= 1.0f)) {
@@ -372,6 +380,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 				/* control */
 
+				/* if in auto mode, fly global position setpoint */
 				if (vstatus.state_machine == SYSTEM_STATE_AUTO ||
 				    vstatus.state_machine == SYSTEM_STATE_STABILIZED) {
 
@@ -391,6 +400,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					/* set flaps to zero */
 					actuators.control[4] = 0.0f;
 
+				/* if in manual mode, decide between attitude stabilization (SAS) and full manual pass-through */
 				} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
 					if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
