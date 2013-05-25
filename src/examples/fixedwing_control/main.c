@@ -286,6 +286,8 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 	/* Setup of loop */
 	float speed_body[3] = {0.0f, 0.0f, 0.0f};
+	/* RC failsafe check */
+	bool throttle_half_once = false;
 	struct pollfd fds[2] = {{ .fd = param_sub, .events = POLLIN },
 				{ .fd = att_sub, .events = POLLIN }};
 
@@ -357,6 +359,14 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 				/* get the RC (or otherwise user based) input */ 
 				orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
+
+				/* check if the throttle was ever more than 50% - go only to failsafe if yes */
+				if (isfinite(manual_sp.throttle) &&
+							    (manual_sp.throttle >= 0.6f) &&
+							    (manual_sp.throttle <= 1.0f)) {
+					throttle_half_once = true;
+				}
+
 				/* get the system status and the flight mode we're in */
 				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
 
@@ -385,7 +395,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-						if (vstatus.rc_signal_lost) {
+						if (vstatus.rc_signal_lost && throttle_half_once) {
 
 							/* put plane into loiter */
 							att_sp.roll_body = 0.3f;
