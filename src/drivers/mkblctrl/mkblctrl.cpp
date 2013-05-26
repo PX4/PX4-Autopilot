@@ -491,8 +491,6 @@ MK::task_main()
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
-	// loeschen _t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-	// loeschen			     ORB_ID(actuator_controls_0));
 	_t_actuators = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 
 	/* force a reset of the update rate */
@@ -551,8 +549,7 @@ MK::task_main()
 			_current_update_rate = _update_rate;
 		}
 
-		/* sleep waiting for data, stopping to check for PPM
-		 * input at 100Hz */
+		/* sleep waiting for data max 100ms */
 		int ret = ::poll(&fds[0], 2, 100);
 
 		/* this would be bad... */
@@ -566,7 +563,6 @@ MK::task_main()
 		if (fds[0].revents & POLLIN) {
 
 			/* get controls - must always do this to avoid spinning */
-			// loeschen orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_0), _t_actuators, &_controls);
 			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
 
 			/* can we mix? */
