@@ -5,7 +5,7 @@
     Usage: python sdlog2_dump.py <log.bin>"""
 
 __author__  = "Anton Babushkin"
-__version__ = "0.1"
+__version__ = "0.2"
 
 import struct, sys
 
@@ -18,13 +18,34 @@ class SDLog2Parser:
     MSG_HEAD1 = 0xA3
     MSG_HEAD2 = 0x95
     MSG_FORMAT_PACKET_LEN = 89
+    MSG_FORMAT_STRUCT = "BB4s16s64s"
     MSG_TYPE_FORMAT = 0x80
+    FORMAT_TO_STRUCT = {
+        "b": ("b", None),
+        "B": ("B", None),
+        "h": ("h", None),
+        "H": ("H", None),
+        "i": ("i", None),
+        "I": ("I", None),
+        "f": ("f", None),
+        "n": ("4s", None),
+        "N": ("16s", None),
+        "Z": ("64s", None),
+        "c": ("h", 0.01),
+        "C": ("H", 0.01),
+        "e": ("i", 0.01),
+        "E": ("I", 0.01),
+        "L": ("i", 0.0000001),
+        "M": ("b", None),
+        "q": ("q", None),
+        "Q": ("Q", None),
+    }
     
     def __init__(self):
         return
 
     def reset(self):
-        self.msg_formats = {}
+        self.msg_descrs = {}
         self.buffer = ""
         self.ptr = 0
     
@@ -44,39 +65,59 @@ class SDLog2Parser:
                     raise Exception("Invalid header: %02X %02X, must be %02X %02X" % (head1, head2, self.MSG_HEAD1, self.MSG_HEAD2))
                 msg_type = ord(self.buffer[self.ptr+2])
                 if msg_type == self.MSG_TYPE_FORMAT:
-                    self._parse_msg_format()
+                    self._parse_msg_descr()
                 else:
-                    msg_format = self.msg_formats[msg_type]
-                    if msg_format == None:
+                    msg_descr = self.msg_descrs[msg_type]
+                    if msg_descr == None:
                         raise Exception("Unknown msg type: %i" % msg_type)
-                    msg_length = msg_format[0]
+                    msg_length = msg_descr[0]
                     if self._bytes_left() < msg_length:
                         break
-                    self._parse_msg(msg_format)
+                    self._parse_msg(msg_descr)
         f.close()
 
     def _bytes_left(self):
         return len(self.buffer) - self.ptr
 
-    def _parse_msg_format(self):
+    def _parse_msg_descr(self):
         if self._bytes_left() < self.MSG_FORMAT_PACKET_LEN:
             raise BufferUnderflow("Data is too short: %i bytes, need %i" % (self._bytes_left(), self.MSG_FORMAT_PACKET_LEN))
-        msg_type = ord(self.buffer[self.ptr+3])
-        msg_length = ord(self.buffer[self.ptr+4])
-        msg_name = self.buffer[self.ptr+5:self.ptr+9].strip('\0')
-        msg_struct = self.buffer[self.ptr+9:self.ptr+25].strip('\0')
-        msg_labels = self.buffer[self.ptr+25:self.ptr+89].strip('\0').split(",")
-        print "MSG FORMAT: type = %i, length = %i, name = %s, format = %s, labels = %s" % (msg_type, msg_length, msg_name, msg_struct, str(msg_labels))
-        self.msg_formats[msg_type] = (msg_length, msg_name, msg_struct, msg_labels)
+        data = struct.unpack(self.MSG_FORMAT_STRUCT, self.buffer[self.ptr + 3 : self.ptr + self.MSG_FORMAT_PACKET_LEN])
+        msg_type = data[0]
+        msg_length = data[1]
+        msg_name = data[2].strip('\0')
+        msg_format = data[3].strip('\0')
+        msg_labels = data[4].strip('\0').split(",")
+        # Convert msg_format to struct.unpack format string
+        msg_struct = ""
+        msg_mults = []
+        for c in msg_format:
+            try:
+                f = self.FORMAT_TO_STRUCT[c]
+                msg_struct += f[0]
+                msg_mults.append(f[1])
+            except KeyError as e:
+                raise Exception("Unsupported format char: %s in message %s (0x%02X)" % (c, msg_name, msg_type))
+        msg_struct = "<" + msg_struct
+        print msg_format, msg_struct
+        print "MSG FORMAT: type = %i, length = %i, name = %s, format = %s, labels = %s, struct = %s, mults = %s" % (msg_type, msg_length, msg_name, msg_format, str(msg_labels), msg_struct, msg_mults)
+        self.msg_descrs[msg_type] = (msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults)
         self.ptr += self.MSG_FORMAT_PACKET_LEN
 
-    def _parse_msg(self, msg_format):
-        msg_length = msg_format[0]
-        msg_name = msg_format[1]
-        msg_struct = "<" + msg_format[2]
-        data = struct.unpack(msg_struct, self.buffer[self.ptr+self.MSG_HEADER_LEN:self.ptr+msg_length])
-        print "MSG %s: %s" % (msg_name, str(data))
-        self.ptr += msg_format[0]
+    def _parse_msg(self, msg_descr):
+        msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults = msg_descr
+        data = list(struct.unpack(msg_struct, self.buffer[self.ptr+self.MSG_HEADER_LEN:self.ptr+msg_length]))
+        s = []
+        for i in xrange(len(data)):
+            if type(data[i]) is str:
+                data[i] = data[i].strip('\0')
+            m = msg_mults[i]
+            if m != None:
+                data[i] = data[i] * m
+            s.append(msg_labels[i] + "=" + str(data[i]))
+        
+        print "MSG %s: %s" % (msg_name, ", ".join(s))
+        self.ptr += msg_length
     
 def _main():
     if len(sys.argv) < 2:
