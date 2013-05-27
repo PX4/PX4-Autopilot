@@ -19,9 +19,6 @@ __version__ = "1.1"
 
 import struct, sys
 
-class BufferUnderflow(Exception):
-    pass
-
 class SDLog2Parser:
     BLOCK_SIZE = 8192
     MSG_HEADER_LEN = 3
@@ -102,6 +99,8 @@ class SDLog2Parser:
                 msg_type = ord(self.__buffer[self.__ptr+2])
                 if msg_type == self.MSG_TYPE_FORMAT:
                     # parse FORMAT message
+                    if self.__bytesLeft() < self.MSG_FORMAT_PACKET_LEN:
+                        break
                     self.__parseMsgDescr()
                 else:
                     # parse data message
@@ -143,8 +142,6 @@ class SDLog2Parser:
         print self.__csv_delim.join(self.__csv_columns)
     
     def __parseMsgDescr(self):
-        if self.__bytesLeft() < self.MSG_FORMAT_PACKET_LEN:
-            raise BufferUnderflow("Data is too short: %i bytes, need %i" % (self.__bytesLeft(), self.MSG_FORMAT_PACKET_LEN))
         data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN])
         msg_type = data[0]
         if msg_type != self.MSG_TYPE_FORMAT:
