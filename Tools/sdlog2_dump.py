@@ -15,7 +15,7 @@ Usage: python sdlog2_dump.py <log.bin> [-v] [-d delimiter] [-n null] [-m MSG[.fi
         Multiple -m options allowed."""
 
 __author__  = "Anton Babushkin"
-__version__ = "1.0"
+__version__ = "1.1"
 
 import struct, sys
 
@@ -52,18 +52,21 @@ class SDLog2Parser:
     }
     __csv_delim = ","
     __csv_null = ""
-    __msg_filter = {}
+    __msg_filter = []
     __debug_out = False
     
     def __init__(self):
         return
-
+    
     def reset(self):
-        self.__msg_descrs = {}
-        self.__buffer = ""
-        self.__ptr = 0
-        self.__csv_columns = []
-        self.__csv_data = {}
+        self.__msg_descrs = {}      # message descriptions by message type map
+        self.__msg_labels = {}      # message labels by message name map
+        self.__msg_names = []       # message names in the same order as FORMAT messages
+        self.__buffer = ""          # buffer for input binary data
+        self.__ptr = 0              # read pointer in buffer
+        self.__csv_columns = []     # CSV file columns in correct order in format "MSG.label"
+        self.__csv_data = {}        # current values for all columns
+        self.__msg_filter_map = {}  # filter in form of map, with '*" expanded to full list of fields
     
     def setCSVDelimiter(self, csv_delim):
         self.__csv_delim = csv_delim
@@ -79,6 +82,10 @@ class SDLog2Parser:
     
     def process(self, fn):
         self.reset()
+        if self.__debug_out:
+            # init __msg_filter_map
+            for msg_name, show_fields in self.__msg_filter:
+                self.__msg_filter_map[msg_name] = show_fields
         first_data_msg = True
         f = open(fn, "r")
         while True:
@@ -94,8 +101,10 @@ class SDLog2Parser:
                     raise Exception("Invalid header: %02X %02X, must be %02X %02X" % (head1, head2, self.MSG_HEAD1, self.MSG_HEAD2))
                 msg_type = ord(self.__buffer[self.__ptr+2])
                 if msg_type == self.MSG_TYPE_FORMAT:
+                    # parse FORMAT message
                     self.__parseMsgDescr()
                 else:
+                    # parse data message
                     msg_descr = self.__msg_descrs[msg_type]
                     if msg_descr == None:
                         raise Exception("Unknown msg type: %i" % msg_type)
@@ -103,61 +112,66 @@ class SDLog2Parser:
                     if self.__bytesLeft() < msg_length:
                         break
                     if first_data_msg:
-                        print self.__csv_delim.join(self.__csv_columns)
+                        # build CSV columns and init data map
+                        self.__initCSV()
                         first_data_msg = False
                     self.__parseMsg(msg_descr)
-    
+        
         f.close()
-
+    
     def __bytesLeft(self):
         return len(self.__buffer) - self.__ptr
-
+    
     def __filterMsg(self, msg_name):
         show_fields = "*"
-        if len(self.__msg_filter) > 0:
-            show_fields = self.__msg_filter.get(msg_name)
+        if len(self.__msg_filter_map) > 0:
+            show_fields = self.__msg_filter_map.get(msg_name)
         return show_fields
-
+    
+    def __initCSV(self):
+        if len(self.__msg_filter) == 0:
+            for msg_name in self.__msg_names:
+                self.__msg_filter.append((msg_name, "*"))
+        for msg_name, show_fields in self.__msg_filter:
+            if show_fields == "*":
+                show_fields = self.__msg_labels.get(msg_name, [])
+            self.__msg_filter_map[msg_name] = show_fields
+            for field in show_fields:
+                full_label = msg_name + "." + field
+                self.__csv_columns.append(full_label)
+                self.__csv_data[full_label] = None
+        print self.__csv_delim.join(self.__csv_columns)
+    
     def __parseMsgDescr(self):
         if self.__bytesLeft() < self.MSG_FORMAT_PACKET_LEN:
             raise BufferUnderflow("Data is too short: %i bytes, need %i" % (self.__bytesLeft(), self.MSG_FORMAT_PACKET_LEN))
         data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN])
         msg_type = data[0]
-        msg_length = data[1]
-        msg_name = data[2].strip("\0")
-        msg_format = data[3].strip("\0")
-        msg_labels = data[4].strip("\0").split(",")
-        # Convert msg_format to struct.unpack format string
-        msg_struct = ""
-        msg_mults = []
-        for c in msg_format:
-            try:
-                f = self.FORMAT_TO_STRUCT[c]
-                msg_struct += f[0]
-                msg_mults.append(f[1])
-            except KeyError as e:
-                raise Exception("Unsupported format char: %s in message %s (%i)" % (c, msg_name, msg_type))
-        msg_struct = "<" + msg_struct   # force little-endian
-        self.__msg_descrs[msg_type] = (msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults)
-        show_fields = self.__filterMsg(msg_name)
-        if show_fields != None:
+        if msg_type != self.MSG_TYPE_FORMAT:
+            msg_length = data[1]
+            msg_name = data[2].strip("\0")
+            msg_format = data[3].strip("\0")
+            msg_labels = data[4].strip("\0").split(",")
+            # Convert msg_format to struct.unpack format string
+            msg_struct = ""
+            msg_mults = []
+            for c in msg_format:
+                try:
+                    f = self.FORMAT_TO_STRUCT[c]
+                    msg_struct += f[0]
+                    msg_mults.append(f[1])
+                except KeyError as e:
+                    raise Exception("Unsupported format char: %s in message %s (%i)" % (c, msg_name, msg_type))
+            msg_struct = "<" + msg_struct   # force little-endian
+            self.__msg_descrs[msg_type] = (msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults)
+            self.__msg_labels[msg_name] = msg_labels
+            self.__msg_names.append(msg_name)
             if self.__debug_out:
-                print "MSG FORMAT: type = %i, length = %i, name = %s, format = %s, labels = %s, struct = %s, mults = %s" % (
-                            msg_type, msg_length, msg_name, msg_format, str(msg_labels), msg_struct, msg_mults)
-            else:
-                if show_fields == "*":
-                    fields = msg_labels
-                else:
-                    fields = []
-                    for field in show_fields:
-                        if field in msg_labels:
-                            fields.append(field)
-                for field in fields:
-                    msg_field = msg_name + "." + field
-                    self.__csv_columns.append(msg_field)
-                    self.__csv_data[msg_field] = None
+                if self.__filterMsg(msg_name) != None:
+                    print "MSG FORMAT: type = %i, length = %i, name = %s, format = %s, labels = %s, struct = %s, mults = %s" % (
+                                msg_type, msg_length, msg_name, msg_format, str(msg_labels), msg_struct, msg_mults)
         self.__ptr += self.MSG_FORMAT_PACKET_LEN
-
+    
     def __parseMsg(self, msg_descr):
         msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults = msg_descr
         show_fields = self.__filterMsg(msg_name)
@@ -180,12 +194,12 @@ class SDLog2Parser:
                 # update CSV data buffer
                 for i in xrange(len(data)):
                     label = msg_labels[i]
-                    if show_fields == "*" or label in show_fields:
+                    if label in show_fields:
                         self.__csv_data[msg_name + "." + label] = data[i]
                 # format and print CSV row
                 s = []
-                for field in self.__csv_columns:
-                    v = self.__csv_data[field]
+                for full_label in self.__csv_columns:
+                    v = self.__csv_data[full_label]
                     if v == None:
                         v = self.__csv_null
                     else:
@@ -204,7 +218,7 @@ def _main():
         return
     fn = sys.argv[1]
     debug_out = False
-    msg_filter = {}
+    msg_filter = []
     csv_null = ""
     csv_delim = ","
     opt = None
@@ -218,8 +232,8 @@ def _main():
                 show_fields = "*"
                 a = arg.split(".")
                 if len(a) > 1:
-                    show_fields = set(a[1].split(","))
-                msg_filter[a[0]] = show_fields
+                    show_fields = a[1].split(",")
+                msg_filter.append((a[0], show_fields))
             opt = None
         else:
             if arg == "-v":
@@ -230,7 +244,7 @@ def _main():
                 opt = "n"
             elif arg == "-m":
                 opt = "m"
-
+    
     if csv_delim == "\\t":
         csv_delim = "\t"
     parser = SDLog2Parser()
