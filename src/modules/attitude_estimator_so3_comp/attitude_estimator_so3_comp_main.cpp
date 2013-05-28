@@ -1,7 +1,19 @@
 /*
+ * Author: Hyon Lim <limhyon@gmail.com, hyonlim@snu.ac.kr>
+ *
  * @file attitude_estimator_so3_comp_main.c
  *
- * Nonlinear SO3 filter for Attitude Estimation.
+ * Implementation of nonlinear complementary filters on the SO(3).
+ * This code performs attitude estimation by using accelerometer, gyroscopes and magnetometer.
+ * Result is provided as quaternion, 1-2-3 Euler angle and rotation matrix.
+ * 
+ * Theory of nonlinear complementary filters on the SO(3) is based on [1].
+ * Quaternion realization of [1] is based on [2].
+ * Optmized quaternion update code is based on Sebastian Madgwick's implementation.
+ * 
+ * References
+ *  [1] Mahony, R.; Hamel, T.; Pflimlin, Jean-Michel, "Nonlinear Complementary Filters on the Special Orthogonal Group," Automatic Control, IEEE Transactions on , vol.53, no.5, pp.1203,1218, June 2008
+ *  [2] Euston, M.; Coote, P.; Mahony, R.; Jonghyuk Kim; Hamel, T., "A complementary filter for attitude estimation of a fixed-wing UAV," Intelligent Robots and Systems, 2008. IROS 2008. IEEE/RSJ International Conference on , vol., no., pp.340,345, 22-26 Sept. 2008
  */
 
 #include <nuttx/config.h>
@@ -46,7 +58,13 @@ static bool thread_running = false;		/**< Deamon status flag */
 static int attitude_estimator_so3_comp_task;				/**< Handle of deamon task / thread */
 static float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;	/** quaternion of sensor frame relative to auxiliary frame */
 static float gyro_bias[3] = {0.0f, 0.0f, 0.0f}; /** bias estimation */
-static float gravity_vector[3] = {0.0f,0.0f,0.0f};	/** estimated gravity vector */
+static bool bFilterInit = false;
+
+//! Auxiliary variables to reduce number of repeated operations
+static float q0q0, q0q1, q0q2, q0q3;
+static float q1q1, q1q2, q1q3;
+static float q2q2, q2q3;
+static float q3q3;
 
 //! Serial packet related
 static int uart;
@@ -150,29 +168,77 @@ float invSqrt(float number) {
     return y;
 }
 
+//! Using accelerometer, sense the gravity vector.
+//! Using magnetometer, sense yaw.
+void MahonyAHRSinit(float ax, float ay, float az, float mx, float my, float mz)
+{
+    float initialRoll, initialPitch;
+    float cosRoll, sinRoll, cosPitch, sinPitch;
+    float magX, magY;
+    float initialHdg, cosHeading, sinHeading;
+
+    initialRoll = atan2(-ay, -az);
+    initialPitch = atan2(ax, -az);
+
+    cosRoll = cosf(initialRoll);
+    sinRoll = sinf(initialRoll);
+    cosPitch = cosf(initialPitch);
+    sinPitch = sinf(initialPitch);
+
+    magX = mx * cosPitch + my * sinRoll * sinPitch + mz * cosRoll * sinPitch;
+
+    magY = my * cosRoll - mz * sinRoll;
+
+    initialHdg = atan2f(-magY, magX);
+
+    cosRoll = cosf(initialRoll * 0.5f);
+    sinRoll = sinf(initialRoll * 0.5f);
+
+    cosPitch = cosf(initialPitch * 0.5f);
+    sinPitch = sinf(initialPitch * 0.5f);
+
+    cosHeading = cosf(initialHdg * 0.5f);
+    sinHeading = sinf(initialHdg * 0.5f);
+
+    q0 = cosRoll * cosPitch * cosHeading + sinRoll * sinPitch * sinHeading;
+    q1 = sinRoll * cosPitch * cosHeading - cosRoll * sinPitch * sinHeading;
+    q2 = cosRoll * sinPitch * cosHeading + sinRoll * cosPitch * sinHeading;
+    q3 = cosRoll * cosPitch * sinHeading - sinRoll * sinPitch * cosHeading;
+
+    // auxillary variables to reduce number of repeated operations, for 1st pass
+    q0q0 = q0 * q0;
+    q0q1 = q0 * q1;
+    q0q2 = q0 * q2;
+    q0q3 = q0 * q3;
+    q1q1 = q1 * q1;
+    q1q2 = q1 * q2;
+    q1q3 = q1 * q3;
+    q2q2 = q2 * q2;
+    q2q3 = q2 * q3;
+    q3q3 = q3 * q3;
+}
+
 void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float twoKp, float twoKi, float dt) {
 	float recipNorm;
-	float q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
 	float halfex = 0.0f, halfey = 0.0f, halfez = 0.0f;
-        	
-	// Auxiliary variables to avoid repeated arithmetic
-        q0q0 = q0 * q0;
-       	q0q1 = q0 * q1;
-       	q0q2 = q0 * q2;
-       	q0q3 = q0 * q3;
-       	q1q1 = q1 * q1;
-       	q1q2 = q1 * q2;
-   	q1q3 = q1 * q3;
-       	q2q2 = q2 * q2;
-       	q2q3 = q2 * q3;
-       	q3q3 = q3 * q3;   
 
+	//! Make filter converge to initial solution faster
+	//! This function assumes you are in static position.
+	//! WARNING : in case air reboot, this can cause problem. But this is very
+	//!	      unlikely happen.
+	if(bFilterInit == false)
+	{
+		MahonyAHRSinit(ax,ay,az,mx,my,mz);
+		bFilterInit = true;
+	}
+        	
 	//! If magnetometer measurement is available, use it.
 	if((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
-		float hx, hy, bx, bz;
+		float hx, hy, hz, bx, bz;
 		float halfwx, halfwy, halfwz;
 	
 		// Normalise magnetometer measurement
+		// Will sqrt work better? PX4 system is powerful enough?
     		recipNorm = invSqrt(mx * mx + my * my + mz * mz);
     		mx *= recipNorm;
     		my *= recipNorm;
@@ -181,8 +247,9 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
     		// Reference direction of Earth's magnetic field
     		hx = 2.0f * (mx * (0.5f - q2q2 - q3q3) + my * (q1q2 - q0q3) + mz * (q1q3 + q0q2));
     		hy = 2.0f * (mx * (q1q2 + q0q3) + my * (0.5f - q1q1 - q3q3) + mz * (q2q3 - q0q1));
+		hz = 2 * mx * (q1q3 - q0q2) + 2 * my * (q2q3 + q0q1) + 2 * mz * (0.5 - q1q1 - q2q2);
     		bx = sqrt(hx * hx + hy * hy);
-    		bz = 2.0f * (mx * (q1q3 - q0q2) + my * (q2q3 + q0q1) + mz * (0.5f - q1q1 - q2q2));
+    		bz = hz;
     
     		// Estimated direction of magnetic field
     		halfwx = bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2);
@@ -203,7 +270,7 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
 		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
 		ax *= recipNorm;
 		ay *= recipNorm;
-		az *= recipNorm;     
+		az *= recipNorm;
 
 		// Estimated direction of gravity and magnetic field
 		halfvx = q1q3 - q0q2;
@@ -254,6 +321,18 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
 	q1 *= recipNorm;
 	q2 *= recipNorm;
 	q3 *= recipNorm;
+
+	// Auxiliary variables to avoid repeated arithmetic
+        q0q0 = q0 * q0;
+       	q0q1 = q0 * q1;
+       	q0q2 = q0 * q2;
+       	q0q3 = q0 * q3;
+       	q1q1 = q1 * q1;
+       	q1q2 = q1 * q2;
+   	q1q3 = q1 * q3;
+       	q2q2 = q2 * q2;
+       	q2q3 = q2 * q3;
+       	q3q3 = q3 * q3;   
 }
 
 void send_uart_byte(char c)
@@ -630,44 +709,29 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					uint64_t timing_start = hrt_absolute_time();
 
-					MahonyAHRSupdate(gyro[0],gyro[1],gyro[2],acc[0],acc[1],acc[2],mag[0],mag[1],mag[2],so3_comp_params.Kp,so3_comp_params.Ki, dt);
+					// NOTE : Accelerometer is reversed.
+					// Because proper mount of PX4 will give you a reversed accelerometer readings.
+					MahonyAHRSupdate(gyro[0],gyro[1],gyro[2],-acc[0],-acc[1],-acc[2],mag[0],mag[1],mag[2],so3_comp_params.Kp,so3_comp_params.Ki, dt);
 
-					float aSq = q0*q0; // 1
-					float bSq = q1*q1; // 2
-					float cSq = q2*q2; // 3
-					float dSq = q3*q3; // 4
-					float a = q0;
-					float b = q1;
-					float c = q2;
-					float d = q3;
+					// Convert q->R.
+					Rot_matrix[0] = q0q0 + q1q1 - q2q2 - q3q3;// 11
+        				Rot_matrix[1] = 2.0 * (q1*q2 + q0*q3);	// 12
+        				Rot_matrix[2] = 2.0 * (q1*q3 - q0*q2);	// 13
+        				Rot_matrix[3] = 2.0 * (q1*q2 - q0*q3);	// 21
+        				Rot_matrix[4] = q0q0 - q1q1 + q2q2 - q3q3;// 22
+        				Rot_matrix[5] = 2.0 * (q2*q3 + q0*q1);	// 23
+        				Rot_matrix[6] = 2.0 * (q1*q3 + q0*q2);	// 31
+        				Rot_matrix[7] = 2.0 * (q2*q3 - q0*q1);	// 32
+        				Rot_matrix[8] = q0q0 - q1q1 - q2q2 + q3q3;// 33
 
-					Rot_matrix[0] = 2*aSq - 1 + 2*bSq;	// 11
-        				//Rot_matrix[1] = 2.0 * (b * c - a * d);	// 12
-        				//Rot_matrix[2] = 2.0 * (a * c + b * d);	// 13
-        				Rot_matrix[3] = 2.0 * (b * c - a * d);	// 21
-        				//Rot_matrix[4] = aSq - bSq + cSq - dSq;	// 22
-        				//Rot_matrix[5] = 2.0 * (c * d - a * b);	// 23
-        				Rot_matrix[6] = 2.0 * (b * d + a * c);	// 31
-        				Rot_matrix[7] = 2.0 * (c * d - a * b);	// 32
-        				Rot_matrix[8] = 2*aSq - 1 + 2*dSq;	// 33
-
-					gravity_vector[0] = 2*(q1*q3-q0*q2);
-					gravity_vector[1] = 2*(q0*q1+q2*q3);
-					gravity_vector[2] = aSq - bSq - cSq + dSq;
-
-					//euler[0] = atan2f(Rot_matrix[7], Rot_matrix[8]);
-					//euler[1] = -asinf(Rot_matrix[6]);
-					//euler[2] = atan2f(Rot_matrix[3],Rot_matrix[0]);
-
-					// Euler angle directly from quaternion.
-					euler[0] = -atan2f(gravity_vector[1], sqrtf(gravity_vector[0]*gravity_vector[0] + gravity_vector[2]*gravity_vector[2]));	// roll
-					euler[1] = atan2f(gravity_vector[0], sqrtf(gravity_vector[1]*gravity_vector[1] + gravity_vector[2]*gravity_vector[2]));	// pitch
-					euler[2] = -atan2f(2*(q1*q2-q0*q3),2*(q0*q0+q1*q1)-1);	// yaw
-				
-					//euler[2] = atan2(2 * q1*q2 - 2 * q0*q3, 2 * q0*q0 + 2 * q1*q1 - 1); // psi
-  					//euler[1] = -asin(2 * q1*q3 + 2 * q0*q2); // theta
-					//euler[0] = atan2(2 * q2*q3 - 2 * q0*q1, 2 * q0*q0 + 2 * q3*q3 - 1); // phi	
-
+					//1-2-3 Representation.
+					//Equation (290) 
+					//Representing Attitude: Euler Angles, Unit Quaternions, and Rotation Vectors, James Diebel.
+					// Existing PX4 EKF code was generated by MATLAB which uses coloum major order matrix.
+					euler[0] = atan2f(Rot_matrix[5], Rot_matrix[8]);	//! Roll
+					euler[1] = -asinf(Rot_matrix[2]);	//! Pitch
+					euler[2] = atan2f(Rot_matrix[1],Rot_matrix[0]);		//! Yaw
+					
 					/* swap values for next iteration, check for fatal inputs */
 					if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {
 						/* Do something */
