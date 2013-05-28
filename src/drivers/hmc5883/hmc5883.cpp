@@ -1224,10 +1224,12 @@ start()
 		errx(1, "already started");
 
 	/* create the driver, attempt expansion bus first */
+	warnx("probing for external sensor..");
 	g_dev = new HMC5883(PX4_I2C_BUS_EXPANSION);
 	if (g_dev != nullptr && OK != g_dev->init()) {
 		delete g_dev;
 		g_dev = nullptr;
+		warnx("no external sensor, using internal..");
 	}
 			
 

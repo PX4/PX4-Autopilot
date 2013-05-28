@@ -56,6 +56,7 @@ MODULES		+= systemcmds/tests
 MODULES		+= modules/commander
 MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
+MODULES		+= modules/gpio_led
 
 #
 # Estimation modules (EKF / other filters)

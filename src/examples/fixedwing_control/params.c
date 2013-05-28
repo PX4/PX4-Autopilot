@@ -45,7 +45,7 @@
 /**
  *
  */
-PARAM_DEFINE_FLOAT(EXFW_HDNG_P, 0.2f);
+PARAM_DEFINE_FLOAT(EXFW_HDNG_P, 0.1f);
 
 /**
  *
