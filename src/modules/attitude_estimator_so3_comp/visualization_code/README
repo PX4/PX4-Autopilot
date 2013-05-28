@@ -1,0 +1,9 @@
+If you run the attitude estimator by following command, the software will write packets
+over /dev/ttyS1 which is used for 3D visualization.
+
+ nsh> attitude_estimator_so3_comp start -d /dev/ttyS1 -b 115200
+
+This visualization code can be executed by Processing.
+ Download : http://www.processing.org/download/
+
+The visualization code works with Processing version 1.5.1.
