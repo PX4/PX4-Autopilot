@@ -102,13 +102,16 @@ mixer_tick(void)
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_FMU_OK;
 	}
 
+	/* default to failsafe mixing */
 	source = MIX_FAILSAFE;
 
 	/*
 	 * Decide which set of controls we're using.
 	 */
-	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) ||
-		!(r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+
+	/* do not mix if mixer is invalid or if RAW_PWM mode is on and FMU is good */
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) &&
+	        !(r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 
 		/* don't actually mix anything - we already have raw PWM values or
 		 not a valid mixer. */
@@ -117,6 +120,7 @@ mixer_tick(void)
 	} else {
 
 		if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) &&
 		     (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 
 			/* mix from FMU controls */
@@ -133,13 +137,27 @@ mixer_tick(void)
 	}
 
 	/*
+	 * Set failsafe status flag depending on mixing source
+	 */
+	if (source == MIX_FAILSAFE) {
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_FAILSAFE;
+	} else {
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FAILSAFE);
+	}
+
+	/*
 	 * Run the mixers.
 	 */
 	if (source == MIX_FAILSAFE) {
 
 		/* copy failsafe values to the servo outputs */
-		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+		for (unsigned i = 0; i < IO_SERVO_COUNT; i++) {
 			r_page_servos[i] = r_page_servo_failsafe[i];
+
+			/* safe actuators for FMU feedback */
+			r_page_actuators[i] = (r_page_servos[i] - 1500) / 600.0f;
+		}
+
 
 	} else if (source != MIX_NONE) {
 
@@ -156,7 +174,7 @@ mixer_tick(void)
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 
 			/* scale to servo output */
-			r_page_servos[i] = (outputs[i] * 500.0f) + 1500;
+			r_page_servos[i] = (outputs[i] * 600.0f) + 1500;
 
 		}
 		for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
@@ -175,7 +193,7 @@ mixer_tick(void)
 	bool should_arm = (
 	    /* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) &&
 	 	/* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
-		/* there is valid input */ (r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)) &&
+		/* there is valid input via direct PWM or mixer */ (r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)) &&
 		/* IO initialised without error */  (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK) &&
 		/* FMU is available or FMU is not available but override is an option */
 		((r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) || (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) && (r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ))
@@ -225,7 +243,6 @@ mixer_callback(uintptr_t handle,
 
 	case MIX_FAILSAFE:
 	case MIX_NONE:
-		/* XXX we could allow for configuration of per-output failsafe values */
 		return -1;
 	}
 
