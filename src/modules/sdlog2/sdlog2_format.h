@@ -93,6 +93,6 @@ struct log_format_s {
 
 #define LOG_FORMAT_MSG	  0x80
 
-#define LOG_PACKET_SIZE(_name)	LOG_PACKET_HEADER_LEN + sizeof(log_msg.body.log_##_name)
+#define LOG_PACKET_SIZE(_name)	LOG_PACKET_HEADER_LEN + sizeof(struct log_##_name##_s)
 
 #endif /* SDLOG2_FORMAT_H_ */

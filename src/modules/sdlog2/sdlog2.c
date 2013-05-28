@@ -81,6 +81,7 @@
 #include <mavlink/mavlink_log.h>
 
 #include "sdlog2_ringbuffer.h"
+#include "sdlog2_format.h"
 #include "sdlog2_messages.h"
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
@@ -447,7 +448,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 25;
+	const ssize_t fdsc = 13;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -455,7 +456,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
-		struct sensor_combined_s raw;
+		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
 		struct actuator_outputs_s act_outputs;
@@ -478,9 +479,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int sensor_sub;
 		int att_sub;
 		int att_sp_sub;
-		int act_0_sub;
-		int controls_0_sub;
-		int controls_effective_0_sub;
+		int act_outputs_sub;
+		int act_controls_sub;
+		int act_controls_effective_sub;
 		int local_pos_sub;
 		int global_pos_sub;
 		int gps_pos_sub;
@@ -496,9 +497,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 	struct {
 		LOG_PACKET_HEADER;
 		union {
-			struct log_TS_s log_TS;
+			struct log_TIME_s log_TIME;
 			struct log_ATT_s log_ATT;
-			struct log_RAW_s log_RAW;
+			struct log_ATSP_s log_ATSP;
+			struct log_IMU_s log_IMU;
+			struct log_SENS_s log_SENS;
+			struct log_LPOS_s log_LPOS;
+			struct log_LPSP_s log_LPSP;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -514,14 +519,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fdsc_count++;
 
 	/* --- GPS POSITION --- */
-	/* subscribe to ORB for global position */
 	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	fds[fdsc_count].fd = subs.gps_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- SENSORS RAW VALUE --- */
-	/* subscribe to ORB for sensors raw */
 	subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	fds[fdsc_count].fd = subs.sensor_sub;
 	/* do not rate limit, instead use skip counter (aliasing on rate limit) */
@@ -529,86 +532,62 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fdsc_count++;
 
 	/* --- ATTITUDE VALUE --- */
-	/* subscribe to ORB for attitude */
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	fds[fdsc_count].fd = subs.att_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- ATTITUDE SETPOINT VALUE --- */
-	/* subscribe to ORB for attitude setpoint */
-	/* struct already allocated */
 	subs.att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	fds[fdsc_count].fd = subs.att_sp_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/** --- ACTUATOR OUTPUTS --- */
-	subs.act_0_sub = orb_subscribe(ORB_ID(actuator_outputs_0));
-	fds[fdsc_count].fd = subs.act_0_sub;
+	/* --- ACTUATOR OUTPUTS --- */
+	subs.act_outputs_sub = orb_subscribe(ORB_ID(actuator_outputs_0));
+	fds[fdsc_count].fd = subs.act_outputs_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- ACTUATOR CONTROL VALUE --- */
-	/* subscribe to ORB for actuator control */
-	subs.controls_0_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	fds[fdsc_count].fd = subs.controls_0_sub;
+	subs.act_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	fds[fdsc_count].fd = subs.act_controls_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- ACTUATOR CONTROL EFFECTIVE VALUE --- */
-	/* subscribe to ORB for actuator control */
-	subs.controls_effective_0_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
-	fds[fdsc_count].fd = subs.controls_effective_0_sub;
+	subs.act_controls_effective_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
+	fds[fdsc_count].fd = subs.act_controls_effective_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- LOCAL POSITION --- */
-	/* subscribe to ORB for local position */
 	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	fds[fdsc_count].fd = subs.local_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- GLOBAL POSITION --- */
-	/* subscribe to ORB for global position */
 	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	fds[fdsc_count].fd = subs.global_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- VICON POSITION --- */
-	/* subscribe to ORB for vicon position */
 	subs.vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
 	fds[fdsc_count].fd = subs.vicon_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- FLOW measurements --- */
-	/* subscribe to ORB for flow measurements */
 	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	fds[fdsc_count].fd = subs.flow_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- BATTERY STATUS --- */
-	/* subscribe to ORB for flow measurements */
 	subs.batt_sub = orb_subscribe(ORB_ID(battery_status));
 	fds[fdsc_count].fd = subs.batt_sub;
-	fds[fdsc_count].events = POLLIN;
-	fdsc_count++;
-
-	/* --- DIFFERENTIAL PRESSURE --- */
-	/* subscribe to ORB for flow measurements */
-	subs.diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
-	fds[fdsc_count].fd = subs.diff_pres_sub;
-	fds[fdsc_count].events = POLLIN;
-	fdsc_count++;
-
-	/* --- AIRSPEED --- */
-	/* subscribe to ORB for airspeed */
-	subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	fds[fdsc_count].fd = subs.airspeed_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -625,7 +604,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	 * set up poll to block for new data,
 	 * wait for a maximum of 1000 ms (1 second)
 	 */
-	// const int timeout = 1000;
+	const int poll_timeout = 1000;
 
 	thread_running = true;
 
@@ -641,13 +620,17 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	starttime = hrt_absolute_time();
 
-	/* track skipping */
-	int skip_count = 0;
+	/* track changes in sensor_combined topic */
+	uint16_t gyro_counter = 0;
+	uint16_t accelerometer_counter = 0;
+	uint16_t magnetometer_counter = 0;
+	uint16_t baro_counter = 0;
+	uint16_t differential_pressure_counter = 0;
 
 	while (!thread_should_exit) {
 
 		/* poll all topics */
-		int poll_ret = poll(fds, 4, 1000);
+		int poll_ret = poll(fds, fdsc, poll_timeout);
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
@@ -666,11 +649,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			pthread_mutex_lock(&logbuffer_mutex);
 
 			/* write time stamp message */
-			log_msg.msg_type = LOG_TS_MSG;
-			log_msg.body.log_TS.t = hrt_absolute_time();
-			sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(TS));
+			log_msg.msg_type = LOG_TIME_MSG;
+			log_msg.body.log_TIME.t = hrt_absolute_time();
+			sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(TIME));
 
-			/* --- VEHICLE COMMAND VALUE --- */
+			/* --- VEHICLE COMMAND --- */
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy command into local buffer */
 				orb_copy(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd);
@@ -680,19 +663,58 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- GPS POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				// TODO not implemented yet
 			}
 
-			/* --- SENSORS RAW VALUE --- */
+			/* --- SENSOR COMBINED --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
-				log_msg.msg_type = LOG_RAW_MSG;
-				log_msg.body.log_RAW.accX = buf.raw.accelerometer_m_s2[0];
-				log_msg.body.log_RAW.accY = buf.raw.accelerometer_m_s2[1];
-				log_msg.body.log_RAW.accZ = buf.raw.accelerometer_m_s2[2];
-				sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(RAW));
+				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
+				bool write_IMU = false;
+				bool write_SENS = false;
+				if (buf.sensor.gyro_counter != gyro_counter) {
+					gyro_counter = buf.sensor.gyro_counter;
+					write_IMU = true;
+				}
+				if (buf.sensor.accelerometer_counter != accelerometer_counter) {
+					accelerometer_counter = buf.sensor.accelerometer_counter;
+					write_IMU = true;
+				}
+				if (buf.sensor.magnetometer_counter != magnetometer_counter) {
+					magnetometer_counter = buf.sensor.magnetometer_counter;
+					write_IMU = true;
+				}
+				if (buf.sensor.baro_counter != baro_counter) {
+					baro_counter = buf.sensor.baro_counter;
+					write_SENS = true;
+				}
+				if (buf.sensor.differential_pressure_counter != differential_pressure_counter) {
+					differential_pressure_counter = buf.sensor.differential_pressure_counter;
+					write_SENS = true;
+				}
+				if (write_IMU) {
+					log_msg.msg_type = LOG_IMU_MSG;
+					log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_rad_s[0];
+					log_msg.body.log_IMU.gyro_y = buf.sensor.gyro_rad_s[1];
+					log_msg.body.log_IMU.gyro_z = buf.sensor.gyro_rad_s[2];
+					log_msg.body.log_IMU.acc_x = buf.sensor.accelerometer_m_s2[0];
+					log_msg.body.log_IMU.acc_y = buf.sensor.accelerometer_m_s2[1];
+					log_msg.body.log_IMU.acc_z = buf.sensor.accelerometer_m_s2[2];
+					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
+					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
+					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
+					sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(IMU));
+				}
+				if (write_SENS) {
+					log_msg.msg_type = LOG_SENS_MSG;
+					log_msg.body.log_SENS.baro_pres = buf.sensor.baro_pres_mbar;
+					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
+					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
+					log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure_pa;
+					sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(SENS));
+				}
 			}
 
-			/* --- ATTITUDE VALUE --- */
+			/* --- ATTITUDE --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
 				log_msg.msg_type = LOG_ATT_MSG;
@@ -702,69 +724,72 @@ int sdlog2_thread_main(int argc, char *argv[])
 				sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(ATT));
 			}
 
-			/* --- ATTITUDE SETPOINT VALUE --- */
+			/* --- ATTITUDE SETPOINT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.att_sp_sub, &buf.att_sp);
-				// TODO not implemented yet
+				log_msg.msg_type = LOG_ATSP_MSG;
+				log_msg.body.log_ATSP.roll_sp = buf.att_sp.roll_body;
+				log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
+				log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
+				sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(ATSP));
 			}
 
 			/* --- ACTUATOR OUTPUTS --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				orb_copy(ORB_ID(actuator_outputs_0), subs.act_outputs_sub, &buf.act_outputs);
 				// TODO not implemented yet
 			}
 
-			/* --- ACTUATOR CONTROL VALUE --- */
+			/* --- ACTUATOR CONTROL --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.act_controls_sub, &buf.act_controls);
 				// TODO not implemented yet
 			}
 
-			/* --- ACTUATOR CONTROL EFFECTIVE VALUE --- */
+			/* --- ACTUATOR CONTROL EFFECTIVE --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.act_controls_effective_sub, &buf.act_controls_effective);
 				// TODO not implemented yet
 			}
 
 			/* --- LOCAL POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
-				// TODO not implemented yet
+				orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
+				log_msg.msg_type = LOG_LPOS_MSG;
+				log_msg.body.log_LPOS.x = buf.local_pos.x;
+				log_msg.body.log_LPOS.y = buf.local_pos.y;
+				log_msg.body.log_LPOS.z = buf.local_pos.z;
+				log_msg.body.log_LPOS.vx = buf.local_pos.vx;
+				log_msg.body.log_LPOS.vy = buf.local_pos.vy;
+				log_msg.body.log_LPOS.vz = buf.local_pos.vz;
+				log_msg.body.log_LPOS.hdg = buf.local_pos.hdg;
+				log_msg.body.log_LPOS.home_lat = buf.local_pos.home_lat;
+				log_msg.body.log_LPOS.home_lon = buf.local_pos.home_lon;
+				log_msg.body.log_LPOS.home_alt = buf.local_pos.home_alt;
+				sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(LPOS));
 			}
 
 			/* --- GLOBAL POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
 				// TODO not implemented yet
 			}
 
 			/* --- VICON POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
 				// TODO not implemented yet
 			}
 
-			/* --- FLOW measurements --- */
+			/* --- FLOW --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
 				// TODO not implemented yet
 			}
 
 			/* --- BATTERY STATUS --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
-				// TODO not implemented yet
-			}
-
-			/* --- DIFFERENTIAL PRESSURE --- */
-			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
-				// TODO not implemented yet
-			}
-
-			/* --- AIRSPEED --- */
-			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+				orb_copy(ORB_ID(battery_status), subs.batt_sub, &buf.batt);
 				// TODO not implemented yet
 			}
 
