@@ -231,10 +231,13 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 	case PX4IO_PAGE_FAILSAFE_PWM:
 
 		/* copy channel data */
-		while ((offset < PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
+		while ((offset < IO_SERVO_COUNT) && (num_values > 0)) {
 
 			/* XXX range-check value? */
 			r_page_servo_failsafe[offset] = *values;
+
+			/* flag the failsafe values as custom */
+			r_setup_arming |= PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
 
 			offset++;
 			num_values--;

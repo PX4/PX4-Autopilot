@@ -85,6 +85,9 @@ static int	mixer_callback(uintptr_t handle,
 
 static MixerGroup mixer_group(mixer_callback, 0);
 
+/* Set the failsafe values of all mixed channels (based on zero throttle, controls centered) */
+static void mixer_set_failsafe();
+
 void
 mixer_tick(void)
 {
@@ -243,6 +246,7 @@ mixer_callback(uintptr_t handle,
 
 	case MIX_FAILSAFE:
 	case MIX_NONE:
+		control = 0.0f;
 		return -1;
 	}
 
@@ -320,8 +324,41 @@ mixer_handle_text(const void *buffer, size_t length)
 				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
 
 			mixer_text_length = resid;
+
+			/* update failsafe values */
+			mixer_set_failsafe();
 		}
 
 		break;
 	}
+}
+
+static void
+mixer_set_failsafe()
+{
+	/* 
+	 * Check if a custom failsafe value has been written,
+	 * else use the opportunity to set decent defaults.
+	 */
+	if (r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)
+		return;
+
+	float	outputs[IO_SERVO_COUNT];
+	unsigned mixed;
+
+	/* mix */
+	mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
+
+	/* scale to PWM and update the servo outputs as required */
+	for (unsigned i = 0; i < mixed; i++) {
+
+		/* scale to servo output */
+		r_page_servo_failsafe[i] = (outputs[i] * 600.0f) + 1500;
+
+	}
+
+	/* disable the rest of the outputs */
+	for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
+		r_page_servo_failsafe[i] = 0;
+
 }

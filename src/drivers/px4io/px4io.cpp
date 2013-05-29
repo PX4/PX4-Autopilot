@@ -704,12 +704,8 @@ PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
 
 	unsigned max = (len < _max_actuators) ? len : _max_actuators;
 
-	/* set failsafe values */
-	for (unsigned i = 0; i < max; i++)
-		regs[i] = FLOAT_TO_REG(vals[i]);
-
 	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, regs, max);
+	return io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, vals, max);
 }
 
 int
@@ -1744,11 +1740,28 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "failsafe")) {
 
-		/* XXX parse arguments here */
+		if (argc < 3) {
+			errx(1, "failsafe command needs at least one channel value (ppm)");
+		}
 
 		if (g_dev != nullptr) {
-			/* XXX testing values */
-			uint16_t failsafe[4] = {1500, 1500, 1200, 1200};
+
+			/* set values for first 8 channels, fill unassigned channels with 1500. */
+			uint16_t failsafe[8];
+
+			for (int i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++)
+			{
+				/* set channel to commanline argument or to 900 for non-provided channels */
+				if (argc > i + 2) {
+					failsafe[i] = atoi(argv[i+2]);
+					if (failsafe[i] < 800 || failsafe[i] > 2200) {
+						errx(1, "value out of range of 800 < value < 2200. Aborting.");
+					}
+				} else {
+					failsafe[i] = 1500;
+				}
+			}
+
 			g_dev->set_failsafe_values(failsafe, sizeof(failsafe) / sizeof(failsafe[0]));
 		} else {
 			errx(1, "not loaded");
