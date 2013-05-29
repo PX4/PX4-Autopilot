@@ -1758,7 +1758,8 @@ px4io_main(int argc, char *argv[])
 						errx(1, "value out of range of 800 < value < 2200. Aborting.");
 					}
 				} else {
-					failsafe[i] = 1500;
+					/* a zero value will result in stopping to output any pulse */
+					failsafe[i] = 0;
 				}
 			}
 
