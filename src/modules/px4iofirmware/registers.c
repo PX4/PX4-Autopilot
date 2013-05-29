@@ -179,8 +179,10 @@ uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE
  * PAGE 105
  *
  * Failsafe servo PWM values
+ * 
+ * Disable pulses as default.
  */
-uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT] = { 900, 900, 900, 900, 900, 900, 900, 900 };
+uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT] = { 0 };
 
 void
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
