@@ -107,7 +107,7 @@ struct log_LPOS_s {
 	float home_alt;
 };
 
-/* --- LPOS - LOCAL POSITION SETPOINT --- */
+/* --- LPSP - LOCAL POSITION SETPOINT --- */
 #define LOG_LPSP_MSG 7
 struct log_LPSP_s {
 	float x;
@@ -116,16 +116,33 @@ struct log_LPSP_s {
 	float yaw;
 };
 
+/* --- GPS - GPS POSITION --- */
+#define LOG_GPS_MSG 8
+struct log_GPS_s {
+	uint64_t gps_time;
+	uint8_t fix_type;
+	uint8_t satellites_visible;
+	int32_t lat;
+	int32_t lon;
+	float alt;
+	float vel_n;
+	float vel_e;
+	float vel_d;
+	float cog;
+	uint8_t vel_valid;
+};
+
 /* construct list of all message formats */
 
 static const struct log_format_s log_formats[] = {
-	LOG_FORMAT(TIME, "Q", "t"),
+	LOG_FORMAT(TIME, "Q", "StartTime"),
 	LOG_FORMAT(ATT, "fff", "Roll,Pitch,Yaw"),
 	LOG_FORMAT(ATSP, "fff", "RollSP,PitchSP,YawSP"),
 	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),
 	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,Heading,HomeLat,HomeLon,HomeAlt"),
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
+	LOG_FORMAT(GPS, "QBBLLfffffB", "GPSTime,FixType,Sats,Lat,Lon,Alt,VelN,VelE,VelD,Cog,VelValid"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);

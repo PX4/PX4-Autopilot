@@ -504,6 +504,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_SENS_s log_SENS;
 			struct log_LPOS_s log_LPOS;
 			struct log_LPSP_s log_LPSP;
+			struct log_GPS_s log_GPS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -663,7 +664,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- GPS POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
-				// TODO not implemented yet
+				log_msg.msg_type = LOG_GPS_MSG;
+				log_msg.body.log_GPS.gps_time = buf.gps_pos.time_gps_usec;
+				log_msg.body.log_GPS.fix_type = buf.gps_pos.fix_type;
+				log_msg.body.log_GPS.satellites_visible = buf.gps_pos.satellites_visible;
+				log_msg.body.log_GPS.lat = buf.gps_pos.lat;
+				log_msg.body.log_GPS.lon = buf.gps_pos.lon;
+				log_msg.body.log_GPS.alt = buf.gps_pos.alt;
+				log_msg.body.log_GPS.vel_n = buf.gps_pos.vel_n_m_s;
+				log_msg.body.log_GPS.vel_e = buf.gps_pos.vel_e_m_s;
+				log_msg.body.log_GPS.vel_d = buf.gps_pos.vel_d_m_s;
+				log_msg.body.log_GPS.cog = buf.gps_pos.cog_rad;
+				log_msg.body.log_GPS.vel_valid = (uint8_t) buf.gps_pos.vel_ned_valid;
+				sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(GPS));
 			}
 
 			/* --- SENSOR COMBINED --- */
