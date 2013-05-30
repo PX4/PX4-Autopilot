@@ -50,6 +50,7 @@ class SDLog2Parser:
     __csv_delim = ","
     __csv_null = ""
     __msg_filter = []
+    __time_msg = None
     __debug_out = False
     
     def __init__(self):
@@ -63,6 +64,7 @@ class SDLog2Parser:
         self.__ptr = 0              # read pointer in buffer
         self.__csv_columns = []     # CSV file columns in correct order in format "MSG.label"
         self.__csv_data = {}        # current values for all columns
+        self.__csv_updated = False
         self.__msg_filter_map = {}  # filter in form of map, with '*" expanded to full list of fields
     
     def setCSVDelimiter(self, csv_delim):
@@ -73,6 +75,9 @@ class SDLog2Parser:
     
     def setMsgFilter(self, msg_filter):
         self.__msg_filter = msg_filter
+    
+    def setTimeMsg(self, time_msg):
+        self.__time_msg = time_msg
     
     def setDebugOut(self, debug_out):
         self.__debug_out = debug_out
@@ -115,7 +120,8 @@ class SDLog2Parser:
                         self.__initCSV()
                         first_data_msg = False
                     self.__parseMsg(msg_descr)
-        
+        if not self.__debug_out and self.__time_msg != None and self.__csv_updated:
+            self.__printCSVRow()
         f.close()
     
     def __bytesLeft(self):
@@ -140,7 +146,18 @@ class SDLog2Parser:
                 self.__csv_columns.append(full_label)
                 self.__csv_data[full_label] = None
         print self.__csv_delim.join(self.__csv_columns)
-    
+
+    def __printCSVRow(self):
+        s = []
+        for full_label in self.__csv_columns:
+            v = self.__csv_data[full_label]
+            if v == None:
+                v = self.__csv_null
+            else:
+                v = str(v)
+            s.append(v)
+        print self.__csv_delim.join(s)
+
     def __parseMsgDescr(self):
         data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN])
         msg_type = data[0]
@@ -171,6 +188,9 @@ class SDLog2Parser:
     
     def __parseMsg(self, msg_descr):
         msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults = msg_descr
+        if not self.__debug_out and self.__time_msg != None and msg_name == self.__time_msg and self.__csv_updated:
+            self.__printCSVRow()
+            self.__csv_updated = False
         show_fields = self.__filterMsg(msg_name)
         if (show_fields != None):
             data = list(struct.unpack(msg_struct, self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length]))
@@ -193,31 +213,27 @@ class SDLog2Parser:
                     label = msg_labels[i]
                     if label in show_fields:
                         self.__csv_data[msg_name + "." + label] = data[i]
-                # format and print CSV row
-                s = []
-                for full_label in self.__csv_columns:
-                    v = self.__csv_data[full_label]
-                    if v == None:
-                        v = self.__csv_null
-                    else:
-                        v = str(v)
-                    s.append(v)
-                print self.__csv_delim.join(s)
+                        if self.__time_msg != None and msg_name != self.__time_msg:
+                            self.__csv_updated = True
+                if self.__time_msg == None:
+                    self.__printCSVRow()
         self.__ptr += msg_length
 
 def _main():
     if len(sys.argv) < 2:
-        print "Usage: python sdlog2_dump.py <log.bin> [-v] [-d delimiter] [-n null] [-m MSG[.field1,field2,...]]\n"
+        print "Usage: python sdlog2_dump.py <log.bin> [-v] [-d delimiter] [-n null] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n"
         print "\t-v\tUse plain debug output instead of CSV.\n"
         print "\t-d\tUse \"delimiter\" in CSV. Default is \",\".\n"
         print "\t-n\tUse \"null\" as placeholder for empty values in CSV. Default is empty.\n"
         print "\t-m MSG[.field1,field2,...]\n\t\tDump only messages of specified type, and only specified fields.\n\t\tMultiple -m options allowed."
+        print "\t-t\tSpecify TIME message name to group data messages by time and significantly reduce duplicate output.\n"
         return
     fn = sys.argv[1]
     debug_out = False
     msg_filter = []
     csv_null = ""
     csv_delim = ","
+    time_msg = None
     opt = None
     for arg in sys.argv[2:]:
         if opt != None:
@@ -225,7 +241,9 @@ def _main():
                 csv_delim = arg
             elif opt == "n":
                 csv_null = arg
-            if opt == "m":
+            elif opt == "t":
+                time_msg = arg
+            elif opt == "m":
                 show_fields = "*"
                 a = arg.split(".")
                 if len(a) > 1:
@@ -241,13 +259,16 @@ def _main():
                 opt = "n"
             elif arg == "-m":
                 opt = "m"
-    
+            elif arg == "-t":
+                opt = "t"
+
     if csv_delim == "\\t":
         csv_delim = "\t"
     parser = SDLog2Parser()
     parser.setCSVDelimiter(csv_delim)
     parser.setCSVNull(csv_null)
     parser.setMsgFilter(msg_filter)
+    parser.setTimeMsg(time_msg)
     parser.setDebugOut(debug_out)
     parser.process(fn)
 

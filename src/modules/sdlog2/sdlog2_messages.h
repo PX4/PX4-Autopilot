@@ -47,6 +47,7 @@
 
 /* define message formats */
 
+#pragma pack(push, 1)
 /* --- TIME - TIME STAMP --- */
 #define LOG_TIME_MSG 1
 struct log_TIME_s {
@@ -131,6 +132,7 @@ struct log_GPS_s {
 	float cog;
 	uint8_t vel_valid;
 };
+#pragma pack(pop)
 
 /* construct list of all message formats */
 
