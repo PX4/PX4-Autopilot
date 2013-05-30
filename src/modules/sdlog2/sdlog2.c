@@ -152,14 +152,19 @@ usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	errx(1, "usage: sdlog2 {start|stop|status} [-s <number of skipped lines>]\n\n");
+	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] -e -a\n"
+	     "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
+	     "\t-e\tEnable logging by default (if not, can be started by command)\n"
+	     "\t-a\tLog only when armed (can be still overriden by command)\n\n");
 }
 
 unsigned long log_bytes_written = 0;
-uint64_t starttime = 0;
+uint64_t start_time = 0;
 
 /* logging on or off, default to true */
-bool logging_enabled = true;
+bool logging_enabled = false;
+bool log_when_armed = false;
+useconds_t poll_delay = 0;
 
 /**
  * The sd log deamon app only briefly exists to start
@@ -384,24 +389,26 @@ int sdlog2_thread_main(int argc, char *argv[])
 	argv += 2;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "s:r")) != EOF) {
+	while ((ch = getopt(argc, argv, "r:ea")) != EOF) {
 		switch (ch) {
-		case 's': {
-				/* log only every n'th (gyro clocked) value */
-				unsigned s = strtoul(optarg, NULL, 10);
+		case 'r': {
+				unsigned r = strtoul(optarg, NULL, 10);
 
-				if (s < 1 || s > 250) {
-					errx(1, "Wrong skip value of %d, out of range (1..250)\n", s);
+				if (r == 0) {
+					poll_delay = 0;
 
 				} else {
-					skip_value = s;
+					poll_delay = 1000000 / r;
 				}
 			}
 			break;
 
-		case 'r':
-			/* log only on request, disable logging per default */
-			logging_enabled = false;
+		case 'e':
+			logging_enabled = true;
+			break;
+
+		case 'a':
+			log_when_armed = true;
 			break;
 
 		case '?':
@@ -493,7 +500,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	} subs;
 
 	/* log message buffer: header + body */
-	#pragma pack(push, 1)
+#pragma pack(push, 1)
 	struct {
 		LOG_PACKET_HEADER;
 		union {
@@ -509,7 +516,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
 	};
-	#pragma pack(pop)
+#pragma pack(pop)
 	memset(&log_msg.body, 0, sizeof(log_msg.body));
 
 	/* --- MANAGEMENT - LOGGING COMMAND --- */
@@ -619,7 +626,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* start logbuffer emptying thread */
 	pthread_t logwriter_pthread = sdlog2_logwriter_start(&lb);
 
-	starttime = hrt_absolute_time();
+	/* initialize statistics counter */
+	log_bytes_written = 0;
+	start_time = hrt_absolute_time();
 
 	/* track changes in sensor_combined topic */
 	uint16_t gyro_counter = 0;
@@ -629,23 +638,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 	uint16_t differential_pressure_counter = 0;
 
 	while (!thread_should_exit) {
+		if (!logging_enabled) {
+			usleep(100000);
+			continue;
+		}
 
 		/* poll all topics */
-		int poll_ret = poll(fds, fdsc, poll_timeout);
+		int poll_ret = poll(fds, fdsc, poll_delay == 0 ? poll_timeout : 0);
 
 		/* handle the poll result */
-		if (poll_ret == 0) {
-			/* XXX this means none of our providers is giving us data - might be an error? */
-		} else if (poll_ret < 0) {
-			/* XXX this is seriously bad - should be an emergency */
-		} else {
+		if (poll_ret < 0) {
+			printf("ERROR: Poll error, stop logging\n");
+			thread_should_exit = false;
+
+		} else if (poll_ret > 0) {
 
 			int ifds = 0;
-
-			if (!logging_enabled) {
-				usleep(100000);
-				continue;
-			}
 
 			pthread_mutex_lock(&logbuffer_mutex);
 
@@ -684,26 +692,32 @@ int sdlog2_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.sensor);
 				bool write_IMU = false;
 				bool write_SENS = false;
+
 				if (buf.sensor.gyro_counter != gyro_counter) {
 					gyro_counter = buf.sensor.gyro_counter;
 					write_IMU = true;
 				}
+
 				if (buf.sensor.accelerometer_counter != accelerometer_counter) {
 					accelerometer_counter = buf.sensor.accelerometer_counter;
 					write_IMU = true;
 				}
+
 				if (buf.sensor.magnetometer_counter != magnetometer_counter) {
 					magnetometer_counter = buf.sensor.magnetometer_counter;
 					write_IMU = true;
 				}
+
 				if (buf.sensor.baro_counter != baro_counter) {
 					baro_counter = buf.sensor.baro_counter;
 					write_SENS = true;
 				}
+
 				if (buf.sensor.differential_pressure_counter != differential_pressure_counter) {
 					differential_pressure_counter = buf.sensor.differential_pressure_counter;
 					write_SENS = true;
 				}
+
 				if (write_IMU) {
 					log_msg.msg_type = LOG_IMU_MSG;
 					log_msg.body.log_IMU.gyro_x = buf.sensor.gyro_rad_s[0];
@@ -717,6 +731,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
 					sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(IMU));
 				}
+
 				if (write_SENS) {
 					log_msg.msg_type = LOG_SENS_MSG;
 					log_msg.body.log_SENS.baro_pres = buf.sensor.baro_pres_mbar;
@@ -815,6 +830,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* unlock, now the writer thread may run */
 			pthread_mutex_unlock(&logbuffer_mutex);
 		}
+
+		if (poll_delay > 0) {
+			usleep(poll_delay);
+		}
 	}
 
 	print_sdlog2_status();
@@ -841,7 +860,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 void print_sdlog2_status()
 {
 	float mebibytes = log_bytes_written / 1024.0f / 1024.0f;
-	float seconds = ((float)(hrt_absolute_time() - starttime)) / 1000000.0f;
+	float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
 	warnx("wrote %4.2f MiB (average %5.3f MiB/s).\n", (double)mebibytes, (double)(mebibytes / seconds));
 }
