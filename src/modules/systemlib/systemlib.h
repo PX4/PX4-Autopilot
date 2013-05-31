@@ -42,10 +42,10 @@
 #include <float.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
 /** Reboots the board */
 extern void up_systemreset(void) noreturn_function;
+
+__BEGIN_DECLS
 
 /** Sends SIGUSR1 to all processes */
 __EXPORT void killall(void);
