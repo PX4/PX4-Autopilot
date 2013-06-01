@@ -348,7 +348,7 @@ int open_logfile()
 		}
 
 		warnx("logging to: %s", path_buf);
-		mavlink_log_info(mavlink_fd, "[sdlog2] logging to: %s", path_buf);
+		mavlink_log_info(mavlink_fd, "[sdlog2] log: %s", path_buf);
 
 		return fd;
 	}
