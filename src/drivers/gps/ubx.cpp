@@ -739,7 +739,7 @@ UBX::configure_message_rate(uint8_t msg_class, uint8_t msg_id, uint8_t rate)
     msg.msg_class	= msg_class;
     msg.msg_id		= msg_id;
     msg.rate		= rate;
-    send_message(CFG, UBX_MESSAGE_CFG_MSG, &msg, sizeof(msg));
+    send_message(UBX_CLASS_CFG, UBX_MESSAGE_CFG_MSG, &msg, sizeof(msg));
 }
 
 void
