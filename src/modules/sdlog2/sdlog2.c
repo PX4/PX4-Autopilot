@@ -834,15 +834,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.msg_type = LOG_GPS_MSG;
 				log_msg.body.log_GPS.gps_time = buf.gps_pos.time_gps_usec;
 				log_msg.body.log_GPS.fix_type = buf.gps_pos.fix_type;
-				log_msg.body.log_GPS.satellites_visible = buf.gps_pos.satellites_visible;
+				log_msg.body.log_GPS.eph = buf.gps_pos.eph_m;
+				log_msg.body.log_GPS.epv = buf.gps_pos.epv_m;
 				log_msg.body.log_GPS.lat = buf.gps_pos.lat;
 				log_msg.body.log_GPS.lon = buf.gps_pos.lon;
-				log_msg.body.log_GPS.alt = buf.gps_pos.alt;
+				log_msg.body.log_GPS.alt = buf.gps_pos.alt * 0.001;
 				log_msg.body.log_GPS.vel_n = buf.gps_pos.vel_n_m_s;
 				log_msg.body.log_GPS.vel_e = buf.gps_pos.vel_e_m_s;
 				log_msg.body.log_GPS.vel_d = buf.gps_pos.vel_d_m_s;
 				log_msg.body.log_GPS.cog = buf.gps_pos.cog_rad;
-				log_msg.body.log_GPS.vel_valid = (uint8_t) buf.gps_pos.vel_ned_valid;
 				LOGBUFFER_WRITE_AND_COUNT(GPS);
 			}
 

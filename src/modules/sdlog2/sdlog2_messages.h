@@ -122,7 +122,8 @@ struct log_LPSP_s {
 struct log_GPS_s {
 	uint64_t gps_time;
 	uint8_t fix_type;
-	uint8_t satellites_visible;
+	float eph;
+	float epv;
 	int32_t lat;
 	int32_t lon;
 	float alt;
@@ -130,7 +131,6 @@ struct log_GPS_s {
 	float vel_e;
 	float vel_d;
 	float cog;
-	uint8_t vel_valid;
 };
 #pragma pack(pop)
 
@@ -144,7 +144,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),
 	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,Heading,HomeLat,HomeLon,HomeAlt"),
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
-	LOG_FORMAT(GPS, "QBBLLfffffB", "GPSTime,FixType,Sats,Lat,Lon,Alt,VelN,VelE,VelD,Cog,VelValid"),
+	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
