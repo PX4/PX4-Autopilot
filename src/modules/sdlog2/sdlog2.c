@@ -60,6 +60,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -68,6 +69,7 @@
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
@@ -80,40 +82,64 @@
 
 #include <mavlink/mavlink_log.h>
 
-#include "sdlog2_ringbuffer.h"
+#include "logbuffer.h"
 #include "sdlog2_format.h"
 #include "sdlog2_messages.h"
 
+#define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
+		log_msgs_written++; \
+	} else { \
+		log_msgs_skipped++; \
+		/*printf("skip\n");*/ \
+	}
+
+//#define SDLOG2_DEBUG
+
 static bool thread_should_exit = false;		/**< Deamon exit flag */
-static bool thread_running = false;		/**< Deamon status flag */
-static int deamon_task;				/**< Handle of deamon task / thread */
+static bool thread_running = false;			/**< Deamon status flag */
+static int deamon_task;						/**< Handle of deamon task / thread */
+static bool logwriter_should_exit = false;	/**< Logwriter thread exit flag */
 static const int MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log folders */
-static const int LOG_BUFFER_SIZE = 2048;
-static const int MAX_WRITE_CHUNK = 1024;
+static const int MAX_NO_LOGFILE = 999;		/**< Maximum number of log files */
+static const int LOG_BUFFER_SIZE = 8192;
+static const int MAX_WRITE_CHUNK = 512;
+static const int MIN_BYTES_TO_WRITE = 512;
 
 static const char *mountpoint = "/fs/microsd";
 int log_file = -1;
 int mavlink_fd = -1;
-struct sdlog2_logbuffer lb;
+struct logbuffer_s lb;
 
 /* mutex / condition to synchronize threads */
 pthread_mutex_t logbuffer_mutex;
 pthread_cond_t logbuffer_cond;
 
-/**
- * System state vector log buffer writing
- */
-static void *sdlog2_logbuffer_write_thread(void *arg);
+char folder_path[64];
+
+/* statistics counters */
+unsigned long log_bytes_written = 0;
+uint64_t start_time = 0;
+unsigned long log_msgs_written = 0;
+unsigned long log_msgs_skipped = 0;
+
+/* current state of logging */
+bool logging_enabled = false;
+/* enable logging on start (-e option) */
+bool log_on_start = false;
+/* enable logging when armed (-a option) */
+bool log_when_armed = false;
+/* delay = 1 / rate (rate defined by -r option) */
+useconds_t poll_delay = 0;
+
+/* helper flag to track system state changes */
+bool flag_system_armed = false;
+
+pthread_t logwriter_pthread = 0;
 
 /**
- * Create the thread to write the system vector
+ * Log buffer writing thread. Open and close file here.
  */
-pthread_t sdlog2_logwriter_start(struct sdlog2_logbuffer *logbuf);
-
-/**
- * Write a header to log file: list of message formats
- */
-void sdlog2_write_formats(int fd);
+static void *logwriter_thread(void *arg);
 
 /**
  * SD log management function.
@@ -128,26 +154,49 @@ int sdlog2_thread_main(int argc, char *argv[]);
 /**
  * Print the correct usage.
  */
-static void usage(const char *reason);
+static void sdlog2_usage(const char *reason);
 
-static int file_exist(const char *filename);
+/**
+ * Print the current status.
+ */
+static void sdlog2_status(void);
+
+/**
+ * Start logging: create new file and start log writer thread.
+ */
+void sdlog2_start_log();
+
+/**
+ * Stop logging: stop log writer thread and close log file.
+ */
+void sdlog2_stop_log();
+
+/**
+ * Write a header to log file: list of message formats.
+ */
+void write_formats(int fd);
+
+
+static bool file_exist(const char *filename);
 
 static int file_copy(const char *file_old, const char *file_new);
 
 static void handle_command(struct vehicle_command_s *cmd);
 
-/**
- * Print the current status.
- */
-static void print_sdlog2_status(void);
+static void handle_status(struct vehicle_status_s *cmd);
 
 /**
- * Create folder for current logging session.
+ * Create folder for current logging session. Store folder name in 'log_folder'.
  */
-static int create_logfolder(char *folder_path);
+static int create_logfolder();
+
+/**
+ * Select first free log file name and open it.
+ */
+static int open_logfile();
 
 static void
-usage(const char *reason)
+sdlog2_usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
@@ -158,16 +207,8 @@ usage(const char *reason)
 	     "\t-a\tLog only when armed (can be still overriden by command)\n\n");
 }
 
-unsigned long log_bytes_written = 0;
-uint64_t start_time = 0;
-
-/* logging on or off, default to true */
-bool logging_enabled = false;
-bool log_when_armed = false;
-useconds_t poll_delay = 0;
-
 /**
- * The sd log deamon app only briefly exists to start
+ * The logger deamon app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
  *
@@ -177,7 +218,7 @@ useconds_t poll_delay = 0;
 int sdlog2_main(int argc, char *argv[])
 {
 	if (argc < 1)
-		usage("missing command");
+		sdlog2_usage("missing command");
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -191,7 +232,7 @@ int sdlog2_main(int argc, char *argv[])
 		deamon_task = task_spawn("sdlog2",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT - 30,
-					 4096,
+					 2048,
 					 sdlog2_thread_main,
 					 (const char **)argv);
 		exit(0);
@@ -208,7 +249,7 @@ int sdlog2_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			print_sdlog2_status();
+			sdlog2_status();
 
 		} else {
 			printf("\tsdlog2 not started\n");
@@ -217,20 +258,20 @@ int sdlog2_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	usage("unrecognized command");
+	sdlog2_usage("unrecognized command");
 	exit(1);
 }
 
-int create_logfolder(char *folder_path)
+int create_logfolder()
 {
 	/* make folder on sdcard */
-	uint16_t foldernumber = 1; // start with folder 0001
+	uint16_t folder_number = 1; // start with folder sess001
 	int mkdir_ret;
 
 	/* look for the next folder that does not exist */
-	while (foldernumber < MAX_NO_LOGFOLDER) {
-		/* set up file path: e.g. /mnt/sdcard/sensorfile0001.txt */
-		sprintf(folder_path, "%s/session%04u", mountpoint, foldernumber);
+	while (folder_number <= MAX_NO_LOGFOLDER) {
+		/* set up folder path: e.g. /fs/microsd/sess001 */
+		sprintf(folder_path, "%s/sess%03u", mountpoint, folder_number);
 		mkdir_ret = mkdir(folder_path, S_IRWXU | S_IRWXG | S_IRWXO);
 		/* the result is -1 if the folder exists */
 
@@ -256,7 +297,7 @@ int create_logfolder(char *folder_path)
 
 		} else if (mkdir_ret == -1) {
 			/* folder exists already */
-			foldernumber++;
+			folder_number++;
 			continue;
 
 		} else {
@@ -265,63 +306,126 @@ int create_logfolder(char *folder_path)
 		}
 	}
 
-	if (foldernumber >= MAX_NO_LOGFOLDER) {
+	if (folder_number >= MAX_NO_LOGFOLDER) {
 		/* we should not end up here, either we have more than MAX_NO_LOGFOLDER on the SD card, or another problem */
-		warn("all %d possible folders exist already", MAX_NO_LOGFOLDER);
+		warnx("all %d possible folders exist already.\n", MAX_NO_LOGFOLDER);
 		return -1;
 	}
 
 	return 0;
 }
 
-static void *
-sdlog2_logbuffer_write_thread(void *arg)
+int open_logfile()
+{
+	/* make folder on sdcard */
+	uint16_t file_number = 1; // start with file log001
+
+	/* string to hold the path to the log */
+	char path_buf[64] = "";
+
+	int fd = 0;
+
+	/* look for the next file that does not exist */
+	while (file_number <= MAX_NO_LOGFILE) {
+		/* set up file path: e.g. /fs/microsd/sess001/log001.bin */
+		sprintf(path_buf, "%s/log%03u.bin", folder_path, file_number);
+
+		if (file_exist(path_buf)) {
+			file_number++;
+			continue;
+		}
+
+		fd = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC);
+
+		if (fd == 0) {
+			errx(1, "opening %s failed.\n", path_buf);
+		}
+
+		warnx("logging to: %s\n", path_buf);
+
+		return fd;
+	}
+
+	if (file_number > MAX_NO_LOGFILE) {
+		/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
+		warn("all %d possible files exist already\n", MAX_NO_LOGFILE);
+		return -1;
+	}
+
+	return 0;
+}
+
+static void *logwriter_thread(void *arg)
 {
 	/* set name */
-	prctl(PR_SET_NAME, "sdlog2 microSD I/O", 0);
+	prctl(PR_SET_NAME, "sdlog2_writer", 0);
 
-	struct sdlog2_logbuffer *logbuf = (struct sdlog2_logbuffer *)arg;
+	struct logbuffer_s *logbuf = (struct logbuffer_s *)arg;
+
+	int log_file = open_logfile();
+
+	/* write log messages formats */
+	write_formats(log_file);
 
 	int poll_count = 0;
 
 	void *read_ptr;
 	int n = 0;
+	bool should_wait = false;
+	bool is_part = false;
 
-	while (!thread_should_exit) {
+	while (!thread_should_exit && !logwriter_should_exit) {
 
 		/* make sure threads are synchronized */
 		pthread_mutex_lock(&logbuffer_mutex);
 
 		/* update read pointer if needed */
 		if (n > 0) {
-			sdlog2_logbuffer_mark_read(&lb, n);
+			logbuffer_mark_read(&lb, n);
 		}
 
 		/* only wait if no data is available to process */
-		if (sdlog2_logbuffer_is_empty(logbuf)) {
+		if (should_wait) {
 			/* blocking wait for new data at this line */
 			pthread_cond_wait(&logbuffer_cond, &logbuffer_mutex);
 		}
 
 		/* only get pointer to thread-safe data, do heavy I/O a few lines down */
-		n = sdlog2_logbuffer_get_ptr(logbuf, &read_ptr);
+		int available = logbuffer_get_ptr(logbuf, &read_ptr, &is_part);
 
 		/* continue */
 		pthread_mutex_unlock(&logbuffer_mutex);
 
-		if (n > 0) {
+		if (available > 0) {
 			/* do heavy IO here */
-			if (n > MAX_WRITE_CHUNK)
+			if (available > MAX_WRITE_CHUNK) {
 				n = MAX_WRITE_CHUNK;
 
+			} else {
+				n = available;
+			}
+
 			n = write(log_file, read_ptr, n);
+
+			should_wait = (n == available) && !is_part;
+#ifdef SDLOG2_DEBUG
+			printf("%i wrote: %i of %i, is_part=%i, should_wait=%i\n", poll_count, n, available, (int)is_part, (int)should_wait);
+#endif
+
+			if (n < 0) {
+				thread_should_exit = true;
+				err(1, "error writing log file");
+			}
 
 			if (n > 0) {
 				log_bytes_written += n;
 			}
+
+		} else {
+			should_wait = true;
 		}
 
-		if (poll_count % 100 == 0) {
+		if (poll_count % 10 == 0) {
 			fsync(log_file);
 		}
 
@@ -329,12 +433,22 @@ sdlog2_logbuffer_write_thread(void *arg)
 	}
 
 	fsync(log_file);
+	close(log_file);
 
 	return OK;
 }
 
-pthread_t sdlog2_logwriter_start(struct sdlog2_logbuffer *logbuf)
+void sdlog2_start_log()
 {
+	warnx("start logging.\n");
+
+	/* initialize statistics counter */
+	log_bytes_written = 0;
+	start_time = hrt_absolute_time();
+	log_msgs_written = 0;
+	log_msgs_skipped = 0;
+
+	/* initialize log buffer emptying thread */
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 
@@ -345,14 +459,39 @@ pthread_t sdlog2_logwriter_start(struct sdlog2_logbuffer *logbuf)
 
 	pthread_attr_setstacksize(&receiveloop_attr, 2048);
 
+	logwriter_should_exit = false;
 	pthread_t thread;
-	pthread_create(&thread, &receiveloop_attr, sdlog2_logbuffer_write_thread, logbuf);
-	return thread;
 
+	/* start log buffer emptying thread */
+	if (0 != pthread_create(&thread, &receiveloop_attr, logwriter_thread, &lb)) {
+		errx(1, "error creating logwriter thread\n");
+	}
+
+	logging_enabled = true;
 	// XXX we have to destroy the attr at some point
 }
 
-void sdlog2_write_formats(int fd)
+void sdlog2_stop_log()
+{
+	warnx("stop logging.\n");
+
+	logging_enabled = true;
+	logwriter_should_exit = true;
+
+	/* wake up write thread one last time */
+	pthread_mutex_lock(&logbuffer_mutex);
+	pthread_cond_signal(&logbuffer_cond);
+	/* unlock, now the writer thread may return */
+	pthread_mutex_unlock(&logbuffer_mutex);
+
+	/* wait for write thread to return */
+	(void)pthread_join(logwriter_pthread, NULL);
+
+	sdlog2_status();
+}
+
+
+void write_formats(int fd)
 {
 	/* construct message format packet */
 	struct {
@@ -378,7 +517,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 	if (mavlink_fd < 0) {
-		warnx("ERROR: Failed to open MAVLink log stream, start mavlink app first.\n");
+		warnx("failed to open MAVLink log stream, start mavlink app first.\n");
 	}
 
 	/* log every n'th value (skip three per default) */
@@ -404,7 +543,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			break;
 
 		case 'e':
-			logging_enabled = true;
+			log_on_start = true;
 			break;
 
 		case 'a':
@@ -423,39 +562,48 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 
 		default:
-			usage("unrecognized flag");
-			errx(1, "exiting.");
+			sdlog2_usage("unrecognized flag");
+			errx(1, "exiting\n");
 		}
 	}
 
-	if (file_exist(mountpoint) != OK) {
-		errx(1, "logging mount point %s not present, exiting.", mountpoint);
+	if (!file_exist(mountpoint)) {
+		errx(1, "logging mount point %s not present, exiting.\n", mountpoint);
 	}
 
-	char folder_path[64];
-
-	if (create_logfolder(folder_path))
-		errx(1, "unable to create logging folder, exiting.");
-
-	/* string to hold the path to the sensorfile */
-	char path_buf[64] = "";
+	if (create_logfolder())
+		errx(1, "unable to create logging folder, exiting.\n");
 
 	/* only print logging path, important to find log file later */
-	warnx("logging to directory %s\n", folder_path);
+	warnx("logging to directory %s.\n", folder_path);
 
-	/* set up file path: e.g. /mnt/sdcard/session0001/actuator_controls0.bin */
-	sprintf(path_buf, "%s/%s.bin", folder_path, "log");
+	/* logging control buffers and subscriptions */
+	struct {
+		struct vehicle_command_s cmd;
+		struct vehicle_status_s status;
+	} buf_control;
+	memset(&buf_control, 0, sizeof(buf_control));
 
-	if (0 == (log_file = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
-		errx(1, "opening %s failed.\n", path_buf);
-	}
+	struct {
+		int cmd_sub;
+		int status_sub;
+	} subs_control;
 
-	/* write log messages formats */
-	sdlog2_write_formats(log_file);
+	/* file descriptors to wait for */
+	struct pollfd fds_control[2];
+	/* --- VEHICLE COMMAND --- */
+	subs_control.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
+	fds_control[0].fd = subs_control.cmd_sub;
+	fds_control[0].events = POLLIN;
+
+	/* --- VEHICLE STATUS --- */
+	subs_control.status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	fds_control[1].fd = subs_control.status_sub;
+	fds_control[1].events = POLLIN;
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 13;
+	const ssize_t fdsc = 12;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -469,8 +617,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct actuator_outputs_s act_outputs;
 		struct actuator_controls_s act_controls;
 		struct actuator_controls_effective_s act_controls_effective;
-		struct vehicle_command_s cmd;
 		struct vehicle_local_position_s local_pos;
+		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
@@ -482,7 +630,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	memset(&buf, 0, sizeof(buf));
 
 	struct {
-		int cmd_sub;
 		int sensor_sub;
 		int att_sub;
 		int att_sp_sub;
@@ -490,6 +637,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int act_controls_sub;
 		int act_controls_effective_sub;
 		int local_pos_sub;
+		int local_pos_sp_sub;
 		int global_pos_sub;
 		int gps_pos_sub;
 		int vicon_pos_sub;
@@ -519,33 +667,25 @@ int sdlog2_thread_main(int argc, char *argv[])
 #pragma pack(pop)
 	memset(&log_msg.body, 0, sizeof(log_msg.body));
 
-	/* --- MANAGEMENT - LOGGING COMMAND --- */
-	/* subscribe to ORB for vehicle command */
-	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
-	fds[fdsc_count].fd = subs.cmd_sub;
-	fds[fdsc_count].events = POLLIN;
-	fdsc_count++;
-
 	/* --- GPS POSITION --- */
 	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	fds[fdsc_count].fd = subs.gps_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- SENSORS RAW VALUE --- */
+	/* --- SENSORS COMBINED --- */
 	subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	fds[fdsc_count].fd = subs.sensor_sub;
-	/* do not rate limit, instead use skip counter (aliasing on rate limit) */
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- ATTITUDE VALUE --- */
+	/* --- ATTITUDE --- */
 	subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	fds[fdsc_count].fd = subs.att_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- ATTITUDE SETPOINT VALUE --- */
+	/* --- ATTITUDE SETPOINT --- */
 	subs.att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	fds[fdsc_count].fd = subs.att_sp_sub;
 	fds[fdsc_count].events = POLLIN;
@@ -557,13 +697,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- ACTUATOR CONTROL VALUE --- */
+	/* --- ACTUATOR CONTROL --- */
 	subs.act_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	fds[fdsc_count].fd = subs.act_controls_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- ACTUATOR CONTROL EFFECTIVE VALUE --- */
+	/* --- ACTUATOR CONTROL EFFECTIVE --- */
 	subs.act_controls_effective_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
 	fds[fdsc_count].fd = subs.act_controls_effective_sub;
 	fds[fdsc_count].events = POLLIN;
@@ -572,6 +712,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- LOCAL POSITION --- */
 	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	fds[fdsc_count].fd = subs.local_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- LOCAL POSITION SETPOINT --- */
+	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	fds[fdsc_count].fd = subs.local_pos_sp_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -587,7 +733,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- FLOW measurements --- */
+	/* --- OPTICAL FLOW --- */
 	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	fds[fdsc_count].fd = subs.flow_sub;
 	fds[fdsc_count].events = POLLIN;
@@ -610,25 +756,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/*
 	 * set up poll to block for new data,
-	 * wait for a maximum of 1000 ms (1 second)
+	 * wait for a maximum of 1000 ms
 	 */
 	const int poll_timeout = 1000;
 
 	thread_running = true;
 
 	/* initialize log buffer with specified size */
-	sdlog2_logbuffer_init(&lb, LOG_BUFFER_SIZE);
+	logbuffer_init(&lb, LOG_BUFFER_SIZE);
 
 	/* initialize thread synchronization */
 	pthread_mutex_init(&logbuffer_mutex, NULL);
 	pthread_cond_init(&logbuffer_cond, NULL);
-
-	/* start logbuffer emptying thread */
-	pthread_t logwriter_pthread = sdlog2_logwriter_start(&lb);
-
-	/* initialize statistics counter */
-	log_bytes_written = 0;
-	start_time = hrt_absolute_time();
 
 	/* track changes in sensor_combined topic */
 	uint16_t gyro_counter = 0;
@@ -637,19 +776,44 @@ int sdlog2_thread_main(int argc, char *argv[])
 	uint16_t baro_counter = 0;
 	uint16_t differential_pressure_counter = 0;
 
+	/* enable logging on start if needed */
+	if (log_on_start)
+		sdlog2_start_log();
+
 	while (!thread_should_exit) {
-		if (!logging_enabled) {
-			usleep(100000);
+		/* poll control topics */
+		int poll_control_ret = poll(fds_control, sizeof(fds_control) / sizeof(fds_control[0]), logging_enabled ? 0 : 500);
+
+		/* handle the poll result */
+		if (poll_control_ret < 0) {
+			warnx("ERROR: poll control topics error, stop logging.\n");
+			thread_should_exit = true;
 			continue;
+
+		} else if (poll_control_ret > 0) {
+			/* --- VEHICLE COMMAND --- */
+			if (fds[0].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_command), subs_control.cmd_sub, &buf_control.cmd);
+				handle_command(&buf_control.cmd);
+			}
+
+			/* --- VEHICLE STATUS --- */
+			if (fds[1].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_status), subs_control.status_sub, &buf_control.status);
+				handle_status(&buf_control.status);
+			}
 		}
 
-		/* poll all topics */
+		if (!logging_enabled)
+			continue;
+
+		/* poll data topics */
 		int poll_ret = poll(fds, fdsc, poll_delay == 0 ? poll_timeout : 0);
 
 		/* handle the poll result */
 		if (poll_ret < 0) {
-			printf("ERROR: Poll error, stop logging\n");
-			thread_should_exit = false;
+			warnx("ERROR: poll error, stop logging.\n");
+			thread_should_exit = true;
 
 		} else if (poll_ret > 0) {
 
@@ -660,14 +824,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* write time stamp message */
 			log_msg.msg_type = LOG_TIME_MSG;
 			log_msg.body.log_TIME.t = hrt_absolute_time();
-			sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(TIME));
-
-			/* --- VEHICLE COMMAND --- */
-			if (fds[ifds++].revents & POLLIN) {
-				/* copy command into local buffer */
-				orb_copy(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd);
-				handle_command(&buf.cmd);
-			}
+			LOGBUFFER_WRITE_AND_COUNT(TIME);
 
 			/* --- GPS POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
@@ -684,7 +841,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GPS.vel_d = buf.gps_pos.vel_d_m_s;
 				log_msg.body.log_GPS.cog = buf.gps_pos.cog_rad;
 				log_msg.body.log_GPS.vel_valid = (uint8_t) buf.gps_pos.vel_ned_valid;
-				sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(GPS));
+				LOGBUFFER_WRITE_AND_COUNT(GPS);
 			}
 
 			/* --- SENSOR COMBINED --- */
@@ -729,7 +886,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_IMU.mag_x = buf.sensor.magnetometer_ga[0];
 					log_msg.body.log_IMU.mag_y = buf.sensor.magnetometer_ga[1];
 					log_msg.body.log_IMU.mag_z = buf.sensor.magnetometer_ga[2];
-					sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(IMU));
+					LOGBUFFER_WRITE_AND_COUNT(IMU);
 				}
 
 				if (write_SENS) {
@@ -738,7 +895,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_SENS.baro_alt = buf.sensor.baro_alt_meter;
 					log_msg.body.log_SENS.baro_temp = buf.sensor.baro_temp_celcius;
 					log_msg.body.log_SENS.diff_pres = buf.sensor.differential_pressure_pa;
-					sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(SENS));
+					LOGBUFFER_WRITE_AND_COUNT(SENS);
 				}
 			}
 
@@ -749,7 +906,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_ATT.roll = buf.att.roll;
 				log_msg.body.log_ATT.pitch = buf.att.pitch;
 				log_msg.body.log_ATT.yaw = buf.att.yaw;
-				sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(ATT));
+				LOGBUFFER_WRITE_AND_COUNT(ATT);
 			}
 
 			/* --- ATTITUDE SETPOINT --- */
@@ -759,7 +916,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_ATSP.roll_sp = buf.att_sp.roll_body;
 				log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
 				log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
-				sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(ATSP));
+				LOGBUFFER_WRITE_AND_COUNT(ATSP);
 			}
 
 			/* --- ACTUATOR OUTPUTS --- */
@@ -794,7 +951,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_LPOS.home_lat = buf.local_pos.home_lat;
 				log_msg.body.log_LPOS.home_lon = buf.local_pos.home_lon;
 				log_msg.body.log_LPOS.home_alt = buf.local_pos.home_alt;
-				sdlog2_logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(LPOS));
+				LOGBUFFER_WRITE_AND_COUNT(LPOS);
+			}
+
+			/* --- LOCAL POSITION SETPOINT --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_local_position_setpoint), subs.local_pos_sp_sub, &buf.local_pos_sp);
+				log_msg.msg_type = LOG_LPSP_MSG;
+				log_msg.body.log_LPSP.x = buf.local_pos_sp.x;
+				log_msg.body.log_LPSP.y = buf.local_pos_sp.y;
+				log_msg.body.log_LPSP.z = buf.local_pos_sp.z;
+				log_msg.body.log_LPSP.yaw = buf.local_pos_sp.yaw;
+				LOGBUFFER_WRITE_AND_COUNT(LPSP);
 			}
 
 			/* --- GLOBAL POSITION --- */
@@ -822,7 +990,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 
 			/* signal the other thread new data, but not yet unlock */
-			if (sdlog2_logbuffer_count(&lb) > (lb.size / 2)) {
+			if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {
+#ifdef SDLOG2_DEBUG
+				printf("signal %i\n", logbuffer_count(&lb));
+#endif
 				/* only request write if several packets can be written at once */
 				pthread_cond_signal(&logbuffer_cond);
 			}
@@ -836,42 +1007,34 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 	}
 
-	print_sdlog2_status();
-
-	/* wake up write thread one last time */
-	pthread_mutex_lock(&logbuffer_mutex);
-	pthread_cond_signal(&logbuffer_cond);
-	/* unlock, now the writer thread may return */
-	pthread_mutex_unlock(&logbuffer_mutex);
-
-	/* wait for write thread to return */
-	(void)pthread_join(logwriter_pthread, NULL);
+	if (logging_enabled)
+		sdlog2_stop_log();
 
 	pthread_mutex_destroy(&logbuffer_mutex);
 	pthread_cond_destroy(&logbuffer_cond);
 
-	warnx("exiting.\n\n");
+	warnx("exiting.\n");
 
 	thread_running = false;
 
 	return 0;
 }
 
-void print_sdlog2_status()
+void sdlog2_status()
 {
 	float mebibytes = log_bytes_written / 1024.0f / 1024.0f;
 	float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
-	warnx("wrote %4.2f MiB (average %5.3f MiB/s).\n", (double)mebibytes, (double)(mebibytes / seconds));
+	warnx("wrote %lu msgs, %4.2f MiB (average %5.3f MiB/s), skipped %lu msgs.\n", log_msgs_written, (double)mebibytes, (double)(mebibytes / seconds), log_msgs_skipped);
 }
 
 /**
  * @return 0 if file exists
  */
-int file_exist(const char *filename)
+bool file_exist(const char *filename)
 {
 	struct stat buffer;
-	return stat(filename, &buffer);
+	return stat(filename, &buffer) == 0;
 }
 
 int file_copy(const char *file_old, const char *file_new)
@@ -881,7 +1044,7 @@ int file_copy(const char *file_old, const char *file_new)
 	int ret = 0;
 
 	if (source == NULL) {
-		warnx("failed opening input file to copy");
+		warnx("failed opening input file to copy.\n");
 		return 1;
 	}
 
@@ -889,7 +1052,7 @@ int file_copy(const char *file_old, const char *file_new)
 
 	if (target == NULL) {
 		fclose(source);
-		warnx("failed to open output file to copy");
+		warnx("failed to open output file to copy.\n");
 		return 1;
 	}
 
@@ -900,7 +1063,7 @@ int file_copy(const char *file_old, const char *file_new)
 		ret = fwrite(buf, 1, nread, target);
 
 		if (ret <= 0) {
-			warnx("error writing file");
+			warnx("error writing file.\n");
 			ret = 1;
 			break;
 		}
@@ -918,25 +1081,19 @@ void handle_command(struct vehicle_command_s *cmd)
 {
 	/* result of the command */
 	uint8_t result = VEHICLE_CMD_RESULT_UNSUPPORTED;
+	int param;
 
 	/* request to set different system mode */
 	switch (cmd->command) {
 
 	case VEHICLE_CMD_PREFLIGHT_STORAGE:
+		param = (int)(cmd->param3);
 
-		if (((int)(cmd->param3)) == 1)	{
+		if (param == 1)	{
+			sdlog2_start_log();
 
-			/* enable logging */
-			mavlink_log_info(mavlink_fd, "[log] file:");
-			mavlink_log_info(mavlink_fd, "logdir");
-			logging_enabled = true;
-		}
-
-		if (((int)(cmd->param3)) == 0)	{
-
-			/* disable logging */
-			mavlink_log_info(mavlink_fd, "[log] stopped.");
-			logging_enabled = false;
+		} else if (param == 0)	{
+			sdlog2_stop_log();
 		}
 
 		break;
@@ -945,5 +1102,18 @@ void handle_command(struct vehicle_command_s *cmd)
 		/* silently ignore */
 		break;
 	}
+}
 
+void handle_status(struct vehicle_status_s *status)
+{
+	if (log_when_armed && (status->flag_system_armed != flag_system_armed)) {
+		flag_system_armed = status->flag_system_armed;
+
+		if (flag_system_armed) {
+			sdlog2_start_log();
+
+		} else {
+			sdlog2_stop_log();
+		}
+	}
 }

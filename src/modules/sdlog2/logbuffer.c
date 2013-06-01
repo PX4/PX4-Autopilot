@@ -33,9 +33,9 @@
  ****************************************************************************/
 
 /**
- * @file sdlog2_ringbuffer.c
+ * @file logbuffer.c
  *
- * Ring FIFO buffer for binary data.
+ * Ring FIFO buffer for binary log data.
  *
  * @author Anton Babushkin <rk3dov@gmail.com>
  */
@@ -43,9 +43,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "sdlog2_ringbuffer.h"
+#include "logbuffer.h"
 
-void sdlog2_logbuffer_init(struct sdlog2_logbuffer *lb, int size)
+void logbuffer_init(struct logbuffer_s *lb, int size)
 {
 	lb->size  = size;
 	lb->write_ptr = 0;
@@ -53,7 +53,7 @@ void sdlog2_logbuffer_init(struct sdlog2_logbuffer *lb, int size)
 	lb->data = malloc(lb->size);
 }
 
-int sdlog2_logbuffer_free(struct sdlog2_logbuffer *lb)
+int logbuffer_free(struct logbuffer_s *lb)
 {
 	int n = lb->read_ptr - lb->write_ptr - 1;
 
@@ -64,7 +64,7 @@ int sdlog2_logbuffer_free(struct sdlog2_logbuffer *lb)
 	return n;
 }
 
-int sdlog2_logbuffer_count(struct sdlog2_logbuffer *lb)
+int logbuffer_count(struct logbuffer_s *lb)
 {
 	int n = lb->write_ptr - lb->read_ptr;
 
@@ -75,12 +75,12 @@ int sdlog2_logbuffer_count(struct sdlog2_logbuffer *lb)
 	return n;
 }
 
-int sdlog2_logbuffer_is_empty(struct sdlog2_logbuffer *lb)
+int logbuffer_is_empty(struct logbuffer_s *lb)
 {
 	return lb->read_ptr == lb->write_ptr;
 }
 
-void sdlog2_logbuffer_write(struct sdlog2_logbuffer *lb, void *ptr, int size)
+bool logbuffer_write(struct logbuffer_s *lb, void *ptr, int size)
 {
 	// bytes available to write
 	int available = lb->read_ptr - lb->write_ptr - 1;
@@ -90,7 +90,7 @@ void sdlog2_logbuffer_write(struct sdlog2_logbuffer *lb, void *ptr, int size)
 
 	if (size > available) {
 		// buffer overflow
-		return;
+		return false;
 	}
 
 	char *c = (char *) ptr;
@@ -109,9 +109,10 @@ void sdlog2_logbuffer_write(struct sdlog2_logbuffer *lb, void *ptr, int size)
 	int p = size - n;	// number of bytes to write
 	memcpy(&(lb->data[lb->write_ptr]), &(c[n]), p);
 	lb->write_ptr = (lb->write_ptr + p) % lb->size;
+	return true;
 }
 
-int sdlog2_logbuffer_get_ptr(struct sdlog2_logbuffer *lb, void **ptr)
+int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part)
 {
 	// bytes available to read
 	int available = lb->write_ptr - lb->read_ptr;
@@ -125,17 +126,19 @@ int sdlog2_logbuffer_get_ptr(struct sdlog2_logbuffer *lb, void **ptr)
 	if (available > 0) {
 		// read pointer is before write pointer, write all available bytes
 		n = available;
+		*is_part = false;
 
 	} else {
 		// read pointer is after write pointer, write bytes from read_ptr to end
 		n = lb->size - lb->read_ptr;
+		*is_part = true;
 	}
 
 	*ptr = &(lb->data[lb->read_ptr]);
 	return n;
 }
 
-void sdlog2_logbuffer_mark_read(struct sdlog2_logbuffer *lb, int n)
+void logbuffer_mark_read(struct logbuffer_s *lb, int n)
 {
 	lb->read_ptr = (lb->read_ptr + n) % lb->size;
 }

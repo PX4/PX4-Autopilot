@@ -33,9 +33,9 @@
  ****************************************************************************/
 
 /**
- * @file sdlog2_ringbuffer.h
+ * @file logbuffer.h
  *
- * Ring FIFO buffer for binary data.
+ * Ring FIFO buffer for binary log data.
  *
  * @author Anton Babushkin <rk3dov@gmail.com>
  */
@@ -43,7 +43,9 @@
 #ifndef SDLOG2_RINGBUFFER_H_
 #define SDLOG2_RINGBUFFER_H_
 
-struct sdlog2_logbuffer {
+#include <stdbool.h>
+
+struct logbuffer_s {
 	// all pointers are in bytes
 	int write_ptr;
 	int read_ptr;
@@ -51,18 +53,18 @@ struct sdlog2_logbuffer {
 	char *data;
 };
 
-void sdlog2_logbuffer_init(struct sdlog2_logbuffer *lb, int size);
+void logbuffer_init(struct logbuffer_s *lb, int size);
 
-int sdlog2_logbuffer_free(struct sdlog2_logbuffer *lb);
+int logbuffer_free(struct logbuffer_s *lb);
 
-int sdlog2_logbuffer_count(struct sdlog2_logbuffer *lb);
+int logbuffer_count(struct logbuffer_s *lb);
 
-int sdlog2_logbuffer_is_empty(struct sdlog2_logbuffer *lb);
+int logbuffer_is_empty(struct logbuffer_s *lb);
 
-void sdlog2_logbuffer_write(struct sdlog2_logbuffer *lb, void *ptr, int size);
+bool logbuffer_write(struct logbuffer_s *lb, void *ptr, int size);
 
-int sdlog2_logbuffer_get_ptr(struct sdlog2_logbuffer *lb, void **ptr);
+int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part);
 
-void sdlog2_logbuffer_mark_read(struct sdlog2_logbuffer *lb, int n);
+void logbuffer_mark_read(struct logbuffer_s *lb, int n);
 
 #endif
