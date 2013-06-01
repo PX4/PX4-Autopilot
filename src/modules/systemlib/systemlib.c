@@ -50,7 +50,7 @@
 
 #include "systemlib.h"
 
-static void kill_task(FAR _TCB *tcb, FAR void *arg);
+static void kill_task(FAR struct tcb_s *tcb, FAR void *arg);
 
 void killall()
 {
@@ -60,7 +60,7 @@ void killall()
 	sched_foreach(kill_task, NULL);
 }
 
-static void kill_task(FAR _TCB *tcb, FAR void *arg)
+static void kill_task(FAR struct tcb_s *tcb, FAR void *arg)
 {
 	kill(tcb->pid, SIGUSR1);
 }
