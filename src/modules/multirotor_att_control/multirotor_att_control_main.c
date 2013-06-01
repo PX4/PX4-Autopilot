@@ -466,7 +466,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 	if (!strcmp(argv[1 + optioncount], "start")) {
 
 		thread_should_exit = false;
-		mc_task = task_spawn("multirotor_att_control",
+		mc_task = task_spawn_cmd("multirotor_att_control",
 				     SCHED_DEFAULT,
 				     SCHED_PRIORITY_MAX - 15,
 				     2048,

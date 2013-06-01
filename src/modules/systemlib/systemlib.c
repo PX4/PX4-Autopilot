@@ -65,7 +65,7 @@ static void kill_task(FAR struct tcb_s *tcb, FAR void *arg)
 	kill(tcb->pid, SIGUSR1);
 }
 
-int task_spawn(const char *name, int scheduler, int priority, int stack_size, main_t entry, const char *argv[])
+int task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, const char *argv[])
 {
 	int pid;
 

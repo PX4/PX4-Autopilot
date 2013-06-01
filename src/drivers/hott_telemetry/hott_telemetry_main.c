@@ -272,7 +272,7 @@ int hott_telemetry_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("hott_telemetry",
+		deamon_task = task_spawn_cmd("hott_telemetry",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 2048,
