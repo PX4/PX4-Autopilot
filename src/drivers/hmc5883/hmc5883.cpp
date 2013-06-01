@@ -329,7 +329,7 @@ HMC5883::HMC5883(int bus) :
 	_calibrated(false)
 {
 	// enable debug() calls
-	_debug_enabled = true;
+	_debug_enabled = false;
 
 	// default scaling
 	_scale.x_offset = 0;
