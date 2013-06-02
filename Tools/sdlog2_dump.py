@@ -52,6 +52,7 @@ class SDLog2Parser:
     __msg_filter = []
     __time_msg = None
     __debug_out = False
+    __correct_errors = False
     
     def __init__(self):
         return
@@ -81,6 +82,9 @@ class SDLog2Parser:
     
     def setDebugOut(self, debug_out):
         self.__debug_out = debug_out
+
+    def setCorrectErrors(self, correct_errors):
+        self.__correct_errors = correct_errors
     
     def process(self, fn):
         self.reset()
@@ -90,6 +94,7 @@ class SDLog2Parser:
                 self.__msg_filter_map[msg_name] = show_fields
         first_data_msg = True
         f = open(fn, "r")
+        bytes_read = 0
         while True:
             chunk = f.read(self.BLOCK_SIZE)
             if len(chunk) == 0:
@@ -100,7 +105,11 @@ class SDLog2Parser:
                 head1 = ord(self.__buffer[self.__ptr])
                 head2 = ord(self.__buffer[self.__ptr+1])
                 if (head1 != self.MSG_HEAD1 or head2 != self.MSG_HEAD2):
-                    raise Exception("Invalid header: %02X %02X, must be %02X %02X" % (head1, head2, self.MSG_HEAD1, self.MSG_HEAD2))
+                    if self.__correct_errors:
+                        self.__ptr += 1
+                        continue
+                    else:
+                        raise Exception("Invalid header at %i (0x%X): %02X %02X, must be %02X %02X" % (bytes_read + self.__ptr, bytes_read + self.__ptr, head1, head2, self.MSG_HEAD1, self.MSG_HEAD2))
                 msg_type = ord(self.__buffer[self.__ptr+2])
                 if msg_type == self.MSG_TYPE_FORMAT:
                     # parse FORMAT message
@@ -120,6 +129,7 @@ class SDLog2Parser:
                         self.__initCSV()
                         first_data_msg = False
                     self.__parseMsg(msg_descr)
+            bytes_read += self.__ptr
         if not self.__debug_out and self.__time_msg != None and self.__csv_updated:
             self.__printCSVRow()
         f.close()
@@ -221,8 +231,9 @@ class SDLog2Parser:
 
 def _main():
     if len(sys.argv) < 2:
-        print "Usage: python sdlog2_dump.py <log.bin> [-v] [-d delimiter] [-n null] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n"
+        print "Usage: python sdlog2_dump.py <log.bin> [-v] [-e] [-d delimiter] [-n null] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n"
         print "\t-v\tUse plain debug output instead of CSV.\n"
+        print "\t-e\tRecover from errors.\n"
         print "\t-d\tUse \"delimiter\" in CSV. Default is \",\".\n"
         print "\t-n\tUse \"null\" as placeholder for empty values in CSV. Default is empty.\n"
         print "\t-m MSG[.field1,field2,...]\n\t\tDump only messages of specified type, and only specified fields.\n\t\tMultiple -m options allowed."
@@ -230,6 +241,7 @@ def _main():
         return
     fn = sys.argv[1]
     debug_out = False
+    correct_errors = False
     msg_filter = []
     csv_null = ""
     csv_delim = ","
@@ -253,6 +265,8 @@ def _main():
         else:
             if arg == "-v":
                 debug_out = True
+            elif arg == "-e":
+                correct_errors = True
             elif arg == "-d":
                 opt = "d"
             elif arg == "-n":
@@ -270,6 +284,7 @@ def _main():
     parser.setMsgFilter(msg_filter)
     parser.setTimeMsg(time_msg)
     parser.setDebugOut(debug_out)
+    parser.setCorrectErrors(correct_errors)
     parser.process(fn)
 
 if __name__ == "__main__":
