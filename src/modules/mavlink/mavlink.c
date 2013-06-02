@@ -787,7 +787,7 @@ int mavlink_main(int argc, char *argv[])
 			errx(0, "mavlink already running\n");
 
 		thread_should_exit = false;
-		mavlink_task = task_spawn("mavlink",
+		mavlink_task = task_spawn_cmd("mavlink",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
 					  2048,

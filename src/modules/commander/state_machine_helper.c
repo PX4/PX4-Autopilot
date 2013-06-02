@@ -249,6 +249,11 @@ void publish_armed_status(const struct vehicle_status_s *current_status)
 {
 	struct actuator_armed_s armed;
 	armed.armed = current_status->flag_system_armed;
+
+	/* XXX allow arming by external components on multicopters only if not yet armed by RC */
+	/* XXX allow arming only if core sensors are ok */
+	armed.ready_to_arm = true;
+
 	/* lock down actuators if required, only in HIL */
 	armed.lockdown = (current_status->flag_hil_enabled) ? true : false;
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);

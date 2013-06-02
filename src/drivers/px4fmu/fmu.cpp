@@ -239,7 +239,7 @@ PX4FMU::init()
 	gpio_reset();
 
 	/* start the IO interface task */
-	_task = task_spawn("fmuservo",
+	_task = task_spawn_cmd("fmuservo",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
 			   2048,
@@ -604,6 +604,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 	case PWM_SERVO_ARM:
 		up_pwm_servo_arm(true);
+		break;
+
+	case PWM_SERVO_SET_ARM_OK:
+	case PWM_SERVO_CLEAR_ARM_OK:
+		// these are no-ops, as no safety switch
 		break;
 
 	case PWM_SERVO_DISARM:

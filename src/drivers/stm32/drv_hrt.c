@@ -66,7 +66,7 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
-#include "stm32_internal.h"
+#include "stm32.h"
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
 
@@ -330,7 +330,7 @@ static void		hrt_call_invoke(void);
 /*
  * PPM decoder tuning parameters
  */
-# define PPM_MAX_PULSE_WIDTH	500		/* maximum width of a pulse */
+# define PPM_MAX_PULSE_WIDTH	550		/* maximum width of a valid pulse */
 # define PPM_MIN_CHANNEL_VALUE	800		/* shortest valid channel signal */
 # define PPM_MAX_CHANNEL_VALUE	2200		/* longest valid channel signal */
 # define PPM_MIN_START		2500		/* shortest valid start gap */
