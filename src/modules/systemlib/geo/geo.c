@@ -46,7 +46,7 @@
 
 #include <systemlib/geo/geo.h>
 #include <nuttx/config.h>
-//#include <unistd.h>
+#include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <math.h>
@@ -189,7 +189,6 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
 	double c = 2.0d * atan2(sqrt(a), sqrt(1.0d - a));
 
 	const double radius_earth = 6371000.0d;
-	printf("DIST: %.4f\n", radius_earth * c);
 	return radius_earth * c; 
 }
 
