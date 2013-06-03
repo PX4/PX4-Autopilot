@@ -52,8 +52,6 @@
 /* The board is very roughly 5 deg warmer than the surrounding air */
 #define BOARD_TEMP_OFFSET_DEG 5
 
-#define ALT_OFFSET 500.0f
-
 static int battery_sub = -1;
 static int gps_sub = -1;
 static int home_sub = -1;
@@ -146,7 +144,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		/* Get latitude in degrees, minutes and seconds */
 		double lat = ((double)(gps.lat))*1e-7d;
 
-		/* Prepend N or S specifier */		
+		/* Set the N or S specifier */		
 		msg.latitude_ns = 0;
 		if (lat < 0) {
 			msg.latitude_ns = 1;
@@ -168,7 +166,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		/* Get longitude in degrees, minutes and seconds */
 		double lon = ((double)(gps.lon))*1e-7d;
 
-		/* Prepend E or W specifier */
+		/* Set the E or W specifier */
 		msg.longitude_ew = 0;
 		if (lon < 0) {
 			msg.longitude_ew = 1;
@@ -185,7 +183,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		msg.longitude_sec_H = (uint8_t)(lon_sec >> 8) & 0xff;
 		
 		/* Altitude */
-		uint16_t alt = (uint16_t)(gps.alt*1e-3 + ALT_OFFSET	);
+		uint16_t alt = (uint16_t)(gps.alt*1e-3 + 500.0f);
 		msg.altitude_L = (uint8_t)alt & 0xff;
 		msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
 
