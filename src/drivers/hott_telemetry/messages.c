@@ -193,7 +193,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		bool updated;
 		orb_check(home_sub, &updated);
 		if (updated) {
-		    /* get a local copy of the home position data */
+			/* get a local copy of the home position data */
 			struct home_position_s home;
 			memset(&home, 0, sizeof(home));
 			orb_copy(ORB_ID(home_position), home_sub, &home);
@@ -205,7 +205,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 
 		/* Distance from home */
 		if (home_position_set) {
-		    uint16_t dist = (uint16_t)get_distance_to_next_waypoint(home_lat, home_lon, lat, lon);
+			uint16_t dist = (uint16_t)get_distance_to_next_waypoint(home_lat, home_lon, lat, lon);
 
 			msg.distance_L = (uint8_t)dist & 0xff;
 			msg.distance_H = (uint8_t)(dist >> 8) & 0xff;
@@ -213,7 +213,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 			/* Direction back to home */
 			uint16_t bearing = (uint16_t)(get_bearing_to_next_waypoint(home_lat, home_lon, lat, lon) * M_RAD_TO_DEG_F);
 			msg.home_direction = (uint8_t)bearing >> 1;
-	    }
+		}
 	}
 
 	msg.stop = STOP_BYTE;
@@ -223,11 +223,11 @@ build_gps_response(uint8_t *buffer, size_t *size)
 void
 convert_to_degrees_minutes_seconds(double val, int *deg, int *min, int *sec)
 {
-    *deg = (int)val;
+	*deg = (int)val;
 
-    double delta = val - *deg;
-    const double min_d = delta * 60.0d;
-    *min = (int)min_d;
-    delta = min_d - *min;
-    *sec = (int)(delta * 10000.0d);
+	double delta = val - *deg;
+	const double min_d = delta * 60.0d;
+	*min = (int)min_d;
+	delta = min_d - *min;
+	*sec = (int)(delta * 10000.0d);
 }
