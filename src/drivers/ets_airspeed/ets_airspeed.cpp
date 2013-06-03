@@ -454,8 +454,10 @@ ETSAirspeed::collect()
 	}
 
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
-
-	// XXX we may want to smooth out the readings to remove noise.
+        if (diff_pres_pa == 0) {
+            // not a valid reading
+            return ret;
+        }
 
 	_reports[_next_report].timestamp = hrt_absolute_time();
 	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
