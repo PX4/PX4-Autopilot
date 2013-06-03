@@ -108,6 +108,7 @@
 #define LTC_HMAC
 #define LTC_OMAC
 #define LTC_CCM_MODE
+#define LTC_GCM_MODE
 
 #define LTC_NO_PRNGS
 #define LTC_YARROW
