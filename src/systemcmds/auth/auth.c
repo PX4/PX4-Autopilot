@@ -264,7 +264,7 @@ int test(unsigned char *pt, unsigned long ptlen, unsigned char *iv,
 	else {
 		printf("\nTest OK!\n");
 	}
-
+ 
 	return CRYPT_OK;
 }
 
@@ -275,7 +275,7 @@ int auth_main(int argc, char *argv[])
 
 	unsigned char key[KEY_LEN] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2,
 			0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
-	unsigned char IV[IV_LEN];
+	unsigned char IV[IV_LEN] = {0};
 
 	unsigned char pt[PACKET_SIZE] = { 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
 	int err, x;
