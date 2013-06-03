@@ -63,7 +63,6 @@
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 
 #include <drivers/drv_airspeed.h>
@@ -80,14 +79,8 @@
 #define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */
 
 /* Register address */
-#define READ_CMD	0x07	/* Read the data */
-
-/**
- * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h.
- * You can set this value to 12 if you want a zero reading below 15km/h.
- */
-#define MIN_ACCURATE_DIFF_PRES_PA 0
-
+#define READ_CMD		0x07		/* Read the data */
+	 
 /* Measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
@@ -129,7 +122,6 @@ private:
 	bool			_sensor_ok;
 	int			_measure_ticks;
 	bool			_collect_phase;
-	int			_diff_pres_offset;
 
 	orb_advert_t		_airspeed_pub;
 
@@ -196,7 +188,6 @@ ETSAirspeed::ETSAirspeed(int bus, int address) :
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
-	_diff_pres_offset(0),
 	_airspeed_pub(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ets_airspeed_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ets_airspeed_comms_errors")),
@@ -463,15 +454,6 @@ ETSAirspeed::collect()
 	}
 
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
-
-	// XXX move the parameter read out of the driver.
-	param_get(param_find("SENS_DPRES_OFF"), &_diff_pres_offset);
-	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
-		diff_pres_pa = 0;
-
-	} else {
-		diff_pres_pa -= _diff_pres_offset;
-	}
 
 	// XXX we may want to smooth out the readings to remove noise.
 
