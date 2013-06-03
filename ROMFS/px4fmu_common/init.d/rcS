@@ -69,7 +69,12 @@ else
 	then
 		echo "[init] USB interface connected"
 	else
-		echo "[init] No USB connected"
+		if [ -f /dev/ttyACM0 ]
+			echo "[init] NSH via USB"
+		then
+		else
+			echo "[init] No USB connected"
+		fi
 	fi
 fi
 
