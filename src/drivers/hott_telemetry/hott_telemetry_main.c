@@ -138,6 +138,7 @@ recv_req_id(int uart, uint8_t *id)
 
 		/* if we have a binary mode request */
 		if (mode != BINARY_MODE_REQUEST_ID) {
+			warnx("Non binary request ID detected: %d", mode);
 			return ERROR;
 		}
 
@@ -232,6 +233,8 @@ hott_telemetry_thread_main(int argc, char *argv[])
 			}
 
 			send_data(uart, buffer, size);
+		} else {
+			warnx("NOK");
 		}
 	}
 

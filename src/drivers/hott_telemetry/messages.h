@@ -189,6 +189,7 @@ struct gps_module_msg {
 void messages_init(void);
 void build_eam_response(uint8_t *buffer, size_t *size);
 void build_gps_response(uint8_t *buffer, size_t *size);
+float _get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 void convert_to_degrees_minutes_seconds(double lat, int *deg, int *min, int *sec);
 
 
