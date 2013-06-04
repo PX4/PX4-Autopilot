@@ -702,10 +702,12 @@ PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
 {
 	uint16_t 		regs[_max_actuators];
 
-	unsigned max = (len < _max_actuators) ? len : _max_actuators;
+	if (len > _max_actuators)
+		/* fail with error */
+		return E2BIG;
 
 	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, vals, max);
+	return io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, vals, len);
 }
 
 int
@@ -1763,7 +1765,10 @@ px4io_main(int argc, char *argv[])
 				}
 			}
 
-			g_dev->set_failsafe_values(failsafe, sizeof(failsafe) / sizeof(failsafe[0]));
+			int ret = g_dev->set_failsafe_values(failsafe, sizeof(failsafe) / sizeof(failsafe[0]));
+
+			if (ret != OK)
+				errx(ret, "failed setting failsafe values");
 		} else {
 			errx(1, "not loaded");
 		}
