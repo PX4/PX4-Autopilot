@@ -185,12 +185,11 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
 	double d_lat = lat_next_rad - lat_now_rad;
 	double d_lon = lon_next_rad - lon_now_rad;
 
-	double a = sin(d_lat / 2.0d) * sin(d_lat / 2.0) + sin(d_lon / 2.0d) * sin(d_lon / 2.0d) * cos(lat_now_rad) * cos(lat_next_rad);
+	double a = sin(d_lat / 2.0d) * sin(d_lat / 2.0d) + sin(d_lon / 2.0d) * sin(d_lon / 2.0d) * cos(lat_now_rad) * cos(lat_next_rad);
 	double c = 2.0d * atan2(sqrt(a), sqrt(1.0d - a));
 
 	const double radius_earth = 6371000.0d;
-
-	return radius_earth * c;
+	return radius_earth * c; 
 }
 
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)

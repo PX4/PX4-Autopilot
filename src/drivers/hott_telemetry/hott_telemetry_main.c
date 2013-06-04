@@ -53,6 +53,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 
 #include "messages.h"
@@ -60,56 +61,44 @@
 static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
-static char *daemon_name = "hott_telemetry";
-static char *commandline_usage = "usage: hott_telemetry start|status|stop [-d <device>]";
+static const char daemon_name[] = "hott_telemetry";
+static const char commandline_usage[] = "usage: hott_telemetry start|status|stop [-d <device>]";
 
-
-/* A little console messaging experiment - console helper macro */
-#define FATAL_MSG(_msg)		fprintf(stderr, "[%s] %s\n", daemon_name, _msg); exit(1);
-#define ERROR_MSG(_msg)		fprintf(stderr, "[%s] %s\n", daemon_name, _msg);
-#define INFO_MSG(_msg)		printf("[%s] %s\n", daemon_name, _msg);
 /**
  * Deamon management function.
  */
 __EXPORT int hott_telemetry_main(int argc, char *argv[]);
 
 /**
- * Mainloop of deamon.
+ * Mainloop of daemon.
  */
 int hott_telemetry_thread_main(int argc, char *argv[]);
 
-static int read_data(int uart, int *id);
-static int send_data(int uart, uint8_t *buffer, int size);
+static int recv_req_id(int uart, uint8_t *id);
+static int send_data(int uart, uint8_t *buffer, size_t size);
 
-static int open_uart(const char *device, struct termios *uart_config_original)
+static int
+open_uart(const char *device, struct termios *uart_config_original)
 {
 	/* baud rate */
-	int speed = B19200;
-	int uart;
+	static const speed_t speed = B19200;
 
 	/* open uart */
-	uart = open(device, O_RDWR | O_NOCTTY);
+	const int uart = open(device, O_RDWR | O_NOCTTY);
 
 	if (uart < 0) {
-		char msg[80];
-		sprintf(msg, "Error opening port: %s\n", device);
-		FATAL_MSG(msg);
+		err(1, "Error opening port: %s", device);
 	}
-
-	/* Try to set baud rate */
-	struct termios uart_config;
+	
+	/* Back up the original uart configuration to restore it after exit */	
 	int termios_state;
-
-	/* Back up the original uart configuration to restore it after exit */
-	char msg[80];
-
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		sprintf(msg, "Error getting baudrate / termios config for %s: %d\n", device, termios_state);
 		close(uart);
-		FATAL_MSG(msg);
+		err(1, "Error getting baudrate / termios config for %s: %d", device, termios_state);
 	}
 
 	/* Fill the struct for the new configuration */
+	struct termios uart_config;
 	tcgetattr(uart, &uart_config);
 
 	/* Clear ONLCR flag (which appends a CR for every LF) */
@@ -117,16 +106,14 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		sprintf(msg, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n",
-			device, termios_state);
 		close(uart);
-		FATAL_MSG(msg);
+		err(1, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)",
+			 device, termios_state);
 	}
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-		sprintf(msg, "Error setting baudrate / termios config for %s (tcsetattr)\n", device);
 		close(uart);
-		FATAL_MSG(msg);
+		err(1, "Error setting baudrate / termios config for %s (tcsetattr)", device);
 	}
 
 	/* Activate single wire mode */
@@ -135,39 +122,42 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 	return uart;
 }
 
-int read_data(int uart, int *id)
+int
+recv_req_id(int uart, uint8_t *id)
 {
-	const int timeout = 1000;
+	static const int timeout_ms = 1000;  // TODO make it a define
 	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
 
-	char mode;
+	uint8_t mode;
 
-	if (poll(fds, 1, timeout) > 0) {
+	if (poll(fds, 1, timeout_ms) > 0) {
 		/* Get the mode: binary or text  */
-		read(uart, &mode, 1);
+		read(uart, &mode, sizeof(mode));
 		/* Read the device ID being polled */
-		read(uart, id, 1);
+		read(uart, id, sizeof(*id));
 
 		/* if we have a binary mode request */
 		if (mode != BINARY_MODE_REQUEST_ID) {
+			warnx("Non binary request ID detected: %d", mode);
 			return ERROR;
 		}
 
 	} else {
-		ERROR_MSG("UART timeout on TX/RX port");
+		warnx("UART timeout on TX/RX port");
 		return ERROR;
 	}
 
 	return OK;
 }
 
-int send_data(int uart, uint8_t *buffer, int size)
+int
+send_data(int uart, uint8_t *buffer, size_t size)
 {
 	usleep(POST_READ_DELAY_IN_USECS);
 
 	uint16_t checksum = 0;
 
-	for (int i = 0; i < size; i++) {
+	for (size_t i = 0; i < size; i++) {
 		if (i == size - 1) {
 			/* Set the checksum: the first uint8_t is taken as the checksum. */
 			buffer[i] = checksum & 0xff;
@@ -176,7 +166,7 @@ int send_data(int uart, uint8_t *buffer, int size)
 			checksum += buffer[i];
 		}
 
-		write(uart, &buffer[i], 1);
+		write(uart, &buffer[i], sizeof(buffer[i]));
 
 		/* Sleep before sending the next byte. */
 		usleep(POST_WRITE_DELAY_IN_USECS);
@@ -190,13 +180,14 @@ int send_data(int uart, uint8_t *buffer, int size)
 	return OK;
 }
 
-int hott_telemetry_thread_main(int argc, char *argv[])
+int
+hott_telemetry_thread_main(int argc, char *argv[])
 {
-	INFO_MSG("starting");
+	warnx("starting");
 
 	thread_running = true;
 
-	char *device = "/dev/ttyS1";		/**< Default telemetry port: USART2 */
+	const char *device = "/dev/ttyS1";		/**< Default telemetry port: USART2 */
 
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
@@ -206,34 +197,35 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 
 			} else {
 				thread_running = false;
-				ERROR_MSG("missing parameter to -d");
-				ERROR_MSG(commandline_usage);
-				exit(1);
+				errx(1, "missing parameter to -d\n%s", commandline_usage);
 			}
 		}
 	}
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	struct termios uart_config_original;
-	int uart = open_uart(device, &uart_config_original);
+	const int uart = open_uart(device, &uart_config_original);
 
 	if (uart < 0) {
-		ERROR_MSG("Failed opening HoTT UART, exiting.");
+		errx(1, "Failed opening HoTT UART, exiting.");
 		thread_running = false;
-		exit(ERROR);
 	}
 
 	messages_init();
 
 	uint8_t buffer[MESSAGE_BUFFER_SIZE];
-	int size = 0;
-	int id = 0;
+	size_t size = 0;
+	uint8_t id = 0;
 
 	while (!thread_should_exit) {
-		if (read_data(uart, &id) == OK) {
+		if (recv_req_id(uart, &id) == OK) {
 			switch (id) {
-			case ELECTRIC_AIR_MODULE:
+			case EAM_SENSOR_ID:
 				build_eam_response(buffer, &size);
+				break;
+
+			case GPS_SENSOR_ID:
+				build_gps_response(buffer, &size);
 				break;
 
 			default:
@@ -241,10 +233,12 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 			}
 
 			send_data(uart, buffer, size);
+		} else {
+			warnx("NOK");
 		}
 	}
 
-	INFO_MSG("exiting");
+	warnx("exiting");
 
 	close(uart);
 
@@ -256,23 +250,22 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 /**
  * Process command line arguments and tart the daemon.
  */
-int hott_telemetry_main(int argc, char *argv[])
+int
+hott_telemetry_main(int argc, char *argv[])
 {
 	if (argc < 1) {
-		ERROR_MSG("missing command");
-		ERROR_MSG(commandline_usage);
-		exit(1);
+		errx(1, "missing command\n%s", commandline_usage);
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			INFO_MSG("deamon already running");
+			warnx("deamon already running");
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("hott_telemetry",
+		deamon_task = task_spawn(daemon_name,
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 2048,
@@ -288,19 +281,14 @@ int hott_telemetry_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			INFO_MSG("daemon is running");
+			warnx("daemon is running");
 
 		} else {
-			INFO_MSG("daemon not started");
+			warnx("daemon not started");
 		}
 
 		exit(0);
 	}
 
-	ERROR_MSG("unrecognized command");
-	ERROR_MSG(commandline_usage);
-	exit(1);
+	errx(1, "unrecognized command\n%s", commandline_usage);
 }
-
-
-

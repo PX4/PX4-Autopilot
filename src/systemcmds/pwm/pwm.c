@@ -185,12 +185,18 @@ pwm_main(int argc, char *argv[])
 		const char *arg = argv[0];
 		argv++;
 		if (!strcmp(arg, "arm")) {
+			/* tell IO that its ok to disable its safety with the switch */
+			ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
+			if (ret != OK)
+				err(1, "PWM_SERVO_SET_ARM_OK");
+			/* tell IO that the system is armed (it will output values if safety is off) */
 			ret = ioctl(fd, PWM_SERVO_ARM, 0);
 			if (ret != OK)
 				err(1, "PWM_SERVO_ARM");
 			continue;
 		}
 		if (!strcmp(arg, "disarm")) {
+			/* disarm, but do not revoke the SET_ARM_OK flag */
 			ret = ioctl(fd, PWM_SERVO_DISARM, 0);
 			if (ret != OK)
 				err(1, "PWM_SERVO_DISARM");
