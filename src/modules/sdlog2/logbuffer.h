@@ -55,8 +55,6 @@ struct logbuffer_s {
 
 void logbuffer_init(struct logbuffer_s *lb, int size);
 
-int logbuffer_free(struct logbuffer_s *lb);
-
 int logbuffer_count(struct logbuffer_s *lb);
 
 int logbuffer_is_empty(struct logbuffer_s *lb);

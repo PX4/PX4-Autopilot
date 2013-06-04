@@ -53,17 +53,6 @@ void logbuffer_init(struct logbuffer_s *lb, int size)
 	lb->data = malloc(lb->size);
 }
 
-int logbuffer_free(struct logbuffer_s *lb)
-{
-	int n = lb->read_ptr - lb->write_ptr - 1;
-
-	if (n < 0) {
-		n += lb->size;
-	}
-
-	return n;
-}
-
 int logbuffer_count(struct logbuffer_s *lb)
 {
 	int n = lb->write_ptr - lb->read_ptr;
@@ -124,12 +113,12 @@ int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part)
 	int n = 0;
 
 	if (available > 0) {
-		// read pointer is before write pointer, write all available bytes
+		// read pointer is before write pointer, all available bytes can be read
 		n = available;
 		*is_part = false;
 
 	} else {
-		// read pointer is after write pointer, write bytes from read_ptr to end
+		// read pointer is after write pointer, read bytes from read_ptr to end of the buffer
 		n = lb->size - lb->read_ptr;
 		*is_part = true;
 	}
