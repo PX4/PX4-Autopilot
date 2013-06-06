@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 
 static bool thread_should_exit = false;		/**< daemon exit flag */
