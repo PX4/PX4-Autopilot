@@ -57,6 +57,7 @@ static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
 static int attitude_estimator_so3_comp_task;				/**< Handle of deamon task / thread */
 static float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;	/** quaternion of sensor frame relative to auxiliary frame */
+static float dq0 = 0.0f, dq1 = 0.0f, dq2 = 0.0f, dq3 = 0.0f;	/** quaternion of sensor frame relative to auxiliary frame */
 static float gyro_bias[3] = {0.0f, 0.0f, 0.0f}; /** bias estimation */
 static bool bFilterInit = false;
 
@@ -170,7 +171,7 @@ float invSqrt(float number) {
 
 //! Using accelerometer, sense the gravity vector.
 //! Using magnetometer, sense yaw.
-void MahonyAHRSinit(float ax, float ay, float az, float mx, float my, float mz)
+void NonlinearSO3AHRSinit(float ax, float ay, float az, float mx, float my, float mz)
 {
     float initialRoll, initialPitch;
     float cosRoll, sinRoll, cosPitch, sinPitch;
@@ -218,7 +219,7 @@ void MahonyAHRSinit(float ax, float ay, float az, float mx, float my, float mz)
     q3q3 = q3 * q3;
 }
 
-void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float twoKp, float twoKi, float dt) {
+void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float twoKp, float twoKi, float dt) {
 	float recipNorm;
 	float halfex = 0.0f, halfey = 0.0f, halfez = 0.0f;
 
@@ -228,7 +229,7 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
 	//!	      unlikely happen.
 	if(bFilterInit == false)
 	{
-		MahonyAHRSinit(ax,ay,az,mx,my,mz);
+		NonlinearSO3AHRSinit(ax,ay,az,mx,my,mz);
 		bFilterInit = true;
 	}
         	
@@ -306,14 +307,25 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
 		gz += twoKp * halfez;
 	}
 	
-	// Integrate rate of change of quaternion
+	//! Integrate rate of change of quaternion
+#if 0
 	gx *= (0.5f * dt);		// pre-multiply common factors
 	gy *= (0.5f * dt);
 	gz *= (0.5f * dt);
-	q0 +=(-q1 * gx - q2 * gy - q3 * gz);
-	q1 += (q0 * gx + q2 * gz - q3 * gy);
-	q2 += (q0 * gy - q1 * gz + q3 * gx);
-	q3 += (q0 * gz + q1 * gy - q2 * gx); 
+#endif 
+
+	// Time derivative of quaternion. q_dot = 0.5*q\otimes omega.
+	//! q_k = q_{k-1} + dt*\dot{q}
+	//! \dot{q} = 0.5*q \otimes P(\omega)
+	dq0 = 0.5f*(-q1 * gx - q2 * gy - q3 * gz);
+	dq1 = 0.5f*(q0 * gx + q2 * gz - q3 * gy);
+	dq2 = 0.5f*(q0 * gy - q1 * gz + q3 * gx);
+	dq3 = 0.5f*(q0 * gz + q1 * gy - q2 * gx); 
+
+	q0 += dt*dq0;
+	q1 += dt*dq1;
+	q2 += dt*dq2;
+	q3 += dt*dq3;
 	
 	// Normalise quaternion
 	recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
@@ -528,8 +540,11 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
+
+	//! Initialize attitude vehicle uORB message.
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
+
 	struct vehicle_status_s state;
 	memset(&state, 0, sizeof(state));
 
@@ -711,7 +726,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					// NOTE : Accelerometer is reversed.
 					// Because proper mount of PX4 will give you a reversed accelerometer readings.
-					MahonyAHRSupdate(gyro[0],gyro[1],gyro[2],-acc[0],-acc[1],-acc[2],mag[0],mag[1],mag[2],so3_comp_params.Kp,so3_comp_params.Ki, dt);
+					NonlinearSO3AHRSupdate(gyro[0],gyro[1],gyro[2],-acc[0],-acc[1],-acc[2],mag[0],mag[1],mag[2],so3_comp_params.Kp,so3_comp_params.Ki, dt);
 
 					// Convert q->R.
 					Rot_matrix[0] = q0q0 + q1q1 - q2q2 - q3q3;// 11
@@ -752,13 +767,26 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					att.pitch = euler[1] - so3_comp_params.pitch_off;
 					att.yaw = euler[2] - so3_comp_params.yaw_off;
 
-					/* FIXME : This can be a problem for rate controller. Rate in body or inertial? */
+					//! Euler angle rate. But it needs to be investigated again.
+					/*
+					att.rollspeed = 2.0f*(-q1*dq0 + q0*dq1 - q3*dq2 + q2*dq3);
+					att.pitchspeed = 2.0f*(-q2*dq0 + q3*dq1 + q0*dq2 - q1*dq3);
+					att.yawspeed = 2.0f*(-q3*dq0 -q2*dq1 + q1*dq2 + q0*dq3);
+					*/
 					att.rollspeed = gyro[0];
 					att.pitchspeed = gyro[1];
 					att.yawspeed = gyro[2];
+
 					att.rollacc = 0;
 					att.pitchacc = 0;
 					att.yawacc = 0;
+
+					//! Quaternion
+					att.q[0] = q0;
+					att.q[1] = q1;
+					att.q[2] = q2;
+					att.q[3] = q3;
+					att.q_valid = true;
 
 					/* TODO: Bias estimation required */
 					memcpy(&att.rate_offsets, &(gyro_bias), sizeof(att.rate_offsets));

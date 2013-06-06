@@ -19,8 +19,15 @@
 #include "attitude_estimator_so3_comp_params.h"
 
 /* This is filter gain for nonlinear SO3 complementary filter */
-PARAM_DEFINE_FLOAT(SO3_COMP_KP, 0.5f);
-PARAM_DEFINE_FLOAT(SO3_COMP_KI, 0.0f);
+/* NOTE : How to tune the gain? First of all, stick with this default gain. And let the quad in stable place.
+   Log the steady state reponse of filter. If it is too slow, increase SO3_COMP_KP.
+   If you are flying from ground to high altitude in short amount of time, please increase SO3_COMP_KI which
+   will compensate gyro bias which depends on temperature and vibration of your vehicle */
+PARAM_DEFINE_FLOAT(SO3_COMP_KP, 1.0f); //! This parameter will give you about 15 seconds convergence time.
+                                       //! You can set this gain higher if you want more fast response.
+                                       //! But note that higher gain will give you also higher overshoot.
+PARAM_DEFINE_FLOAT(SO3_COMP_KI, 0.05f); //! This gain will incorporate slow time-varying bias (e.g., temperature change)
+					//! This gain is depend on your vehicle status.
 
 /* offsets in roll, pitch and yaw of sensor plane and body */
 PARAM_DEFINE_FLOAT(ATT_ROLL_OFFS, 0.0f);
