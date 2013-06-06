@@ -79,6 +79,7 @@ MODULES		+= modules/multirotor_pos_control
 # Logging
 #
 MODULES		+= modules/sdlog
+MODULES		+= modules/sdlog2
 
 #
 # Library modules
