@@ -110,9 +110,9 @@ int px4_daemon_app_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tdaemon app is running\n");
+			warnx("\trunning\n");
 		} else {
-			printf("\tdaemon app not started\n");
+			warnx("\tnot started\n");
 		}
 		exit(0);
 	}
@@ -123,16 +123,16 @@ int px4_daemon_app_main(int argc, char *argv[])
 
 int px4_daemon_thread_main(int argc, char *argv[]) {
 
-	printf("[daemon] starting\n");
+	warnx("[daemon] starting\n");
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
-		printf("Hello daemon!\n");
+		warnx("Hello daemon!\n");
 		sleep(10);
 	}
 
-	printf("[daemon] exiting.\n");
+	warnx("[daemon] exiting.\n");
 
 	thread_running = false;
 
