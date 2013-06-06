@@ -1,0 +1,42 @@
+#!nsh
+#
+# Standard startup script for PX4FMU onboard sensor drivers.
+#
+
+#
+# Start sensor drivers here.
+#
+
+#
+# Check for UORB
+#
+if uorb start
+then
+	echo "uORB started"
+fi
+
+ms5611 start
+adc start
+
+if mpu6000 start
+then
+	echo "using MPU6000 and HMC5883L"
+	hmc5883 start
+else
+	echo "using L3GD20 and LSM303D"
+	l3gd20 start
+	lsm303 start
+fi
+
+#
+# Start the sensor collection task.
+# IMPORTANT: this also loads param offsets
+# ALWAYS start this task before the
+# preflight_check.
+#
+sensors start
+
+#
+# Check sensors - run AFTER 'sensors start'
+#
+preflight_check

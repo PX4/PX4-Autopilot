@@ -30,11 +30,3 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-CONFIGURED_APPS += drivers/boards/px4io
-CONFIGURED_APPS += drivers/stm32
-
-CONFIGURED_APPS += px4io
-
-# Mixer library from systemlib
-CONFIGURED_APPS += systemlib/mixer

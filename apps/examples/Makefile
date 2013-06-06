@@ -38,7 +38,6 @@
 # Sub-directories
 
 SUBDIRS  = adc can cdcacm nsh
-SUBDIRS += math_demo control_demo kalman_demo px4_deamon_app 
 
 #SUBDIRS  = adc buttons can cdcacm composite cxxtest dhcpd discover elf ftpc
 #SUBDIRS += ftpd hello helloxx hidkbd igmp json keypadtest lcdrw mm modbus mount
