@@ -652,6 +652,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_LPOS_s log_LPOS;
 			struct log_LPSP_s log_LPSP;
 			struct log_GPS_s log_GPS;
+			struct log_ATTC_s log_ATTC;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -930,7 +931,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- ACTUATOR CONTROL --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.act_controls_sub, &buf.act_controls);
-				// TODO not implemented yet
+				log_msg.msg_type = LOG_ATTC_MSG;
+				log_msg.body.log_ATTC.roll = buf.act_controls.control[0];
+				log_msg.body.log_ATTC.pitch = buf.act_controls.control[1];
+				log_msg.body.log_ATTC.yaw = buf.act_controls.control[2];
+				log_msg.body.log_ATTC.thrust = buf.act_controls.control[3];
+				LOGBUFFER_WRITE_AND_COUNT(ATTC);
 			}
 
 			/* --- ACTUATOR CONTROL EFFECTIVE --- */

@@ -132,6 +132,15 @@ struct log_GPS_s {
 	float vel_d;
 	float cog;
 };
+
+/* --- ATTC - ATTITUDE CONTROLS --- */
+#define LOG_ATTC_MSG 9
+struct log_ATTC_s {
+	float roll;
+	float pitch;
+	float yaw;
+	float thrust;
+};
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -145,6 +154,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,Heading,HomeLat,HomeLon,HomeAlt"),
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
+	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
