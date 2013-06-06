@@ -235,7 +235,7 @@ int sdlog2_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("sdlog2",
+		deamon_task = task_spawn_cmd("sdlog2",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT - 30,
 					 2048,
