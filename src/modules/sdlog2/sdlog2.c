@@ -484,7 +484,7 @@ void sdlog2_stop_log()
 	warnx("stop logging.");
 	mavlink_log_info(mavlink_fd, "[sdlog2] stop logging");
 
-	logging_enabled = true;
+	logging_enabled = false;
 	logwriter_should_exit = true;
 
 	/* wake up write thread one last time */
@@ -827,6 +827,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (!logging_enabled || !check_data || handled_topics >= poll_ret) {
 				continue;
 			}
+
+			ifds = 1;	// Begin from fds[1] again
 
 			pthread_mutex_lock(&logbuffer_mutex);
 
