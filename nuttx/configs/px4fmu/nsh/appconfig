@@ -41,11 +41,6 @@ CONFIGURED_APPS	+= examples/nsh
 CONFIGURED_APPS += nshlib
 CONFIGURED_APPS += system/readline
 
-CONFIGURED_APPS += mavlink_onboard2
-CONFIGURED_APPS += multirotor_pos_control_flow
-CONFIGURED_APPS += position_estimator_flow
-CONFIGURED_APPS += radar_flow
-CONFIGURED_APPS += mission_commander_flow
 ifeq ($(CONFIG_CAN),y)
 #CONFIGURED_APPS += examples/can
 endif

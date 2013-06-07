@@ -363,9 +363,9 @@ function DrawRawData()
     title(h.axes(9),'Airspeed [m/s]');
     legend(h.axes(9),'Indicated Airspeed (IAS)','True Airspeed (TAS)','GPS Airspeed');
     %calculate time differences and plot them
-    intervals = zeros(0,imaxtime - imintime);
+    intervals = zeros(1,imaxtime - imintime);
     for k = imintime+1:imaxtime
-        intervals(k) = time(k) - time(k-1);
+        intervals(k-imintime+1) = time(k) - time(k-1);
     end
     plot(h.axes(10), time(imintime:imaxtime), intervals);
 
