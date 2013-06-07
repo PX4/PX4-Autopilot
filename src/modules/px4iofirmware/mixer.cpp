@@ -98,7 +98,7 @@ mixer_tick(void)
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
 			isr_debug(1, "AP RX timeout");
 		}
-		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK | PX4IO_P_STATUS_FLAGS_RAW_PWM);
+		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_FMU_OK);
 		r_status_alarms |= PX4IO_P_STATUS_ALARMS_FMU_LOST;
 
 	} else {
@@ -112,12 +112,11 @@ mixer_tick(void)
 	 * Decide which set of controls we're using.
 	 */
 
-	/* do not mix if mixer is invalid or if RAW_PWM mode is on and FMU is good */
+	/* do not mix if RAW_PWM mode is on and FMU is good */
 	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM) &&
-	        !(r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+	        (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
 
-		/* don't actually mix anything - we already have raw PWM values or
-		 not a valid mixer. */
+		/* don't actually mix anything - we already have raw PWM values */
 		source = MIX_NONE;
 
 	} else {
@@ -196,10 +195,9 @@ mixer_tick(void)
 	bool should_arm = (
 	    /* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) &&
 	 	/* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
-		/* there is valid input via direct PWM or mixer */ (r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)) &&
-		/* IO initialised without error */  (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK) &&
-		/* FMU is available or FMU is not available but override is an option */
-		((r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) || (!(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) && (r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ))
+		/* there is valid input via direct PWM or mixer */ ((r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)) ||
+		/* or failsafe was set manually */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)) && 
+		/* IO initialised without error */  (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
 	);
 
 	if (should_arm && !mixer_servos_armed) {
