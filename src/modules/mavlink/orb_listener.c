@@ -708,16 +708,16 @@ uorb_receive_start(void)
 	/* --- SENSORS RAW VALUE --- */
 	mavlink_subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	/* rate limit set externally based on interface speed, set a basic default here */
-	orb_set_interval(mavlink_subs.sensor_sub, 2000);	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.sensor_sub, 200);	/* 5Hz updates */
 
 	/* --- ATTITUDE VALUE --- */
 	mavlink_subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	/* rate limit set externally based on interface speed, set a basic default here */
-	orb_set_interval(mavlink_subs.att_sub, 2000);	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.att_sub, 200);	/* 5Hz updates */
 
 	/* --- GPS VALUE --- */
 	mavlink_subs.gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	orb_set_interval(mavlink_subs.gps_sub, 2000);	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.gps_sub, 200);	/* 5Hz updates */
 
 	/* --- HOME POSITION --- */
 	mavlink_subs.home_sub = orb_subscribe(ORB_ID(home_position));
@@ -729,19 +729,19 @@ uorb_receive_start(void)
 
 	/* --- RC CHANNELS VALUE --- */
 	rc_sub = orb_subscribe(ORB_ID(rc_channels));
-	orb_set_interval(rc_sub, 1000);			/* 10Hz updates */
+	orb_set_interval(rc_sub, 100);			/* 10Hz updates */
 
 	/* --- RC RAW VALUE --- */
 	mavlink_subs.input_rc_sub = orb_subscribe(ORB_ID(input_rc));
-	orb_set_interval(mavlink_subs.input_rc_sub, 5000);
+	orb_set_interval(mavlink_subs.input_rc_sub, 100);
 
 	/* --- GLOBAL POS VALUE --- */
 	mavlink_subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	orb_set_interval(mavlink_subs.global_pos_sub, 1000);	/* 10 Hz active updates */
+	orb_set_interval(mavlink_subs.global_pos_sub, 100);	/* 10 Hz active updates */
 
 	/* --- LOCAL POS VALUE --- */
 	mavlink_subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	orb_set_interval(mavlink_subs.local_pos_sub, 2000);	/* 1Hz active updates */
+	orb_set_interval(mavlink_subs.local_pos_sub, 1000);	/* 1Hz active updates */
 
 	/* --- GLOBAL SETPOINT VALUE --- */
 	mavlink_subs.spg_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
@@ -749,11 +749,11 @@ uorb_receive_start(void)
 
 	/* --- LOCAL SETPOINT VALUE --- */
 	mavlink_subs.spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	orb_set_interval(mavlink_subs.spl_sub, 1000);	/* 0.5 Hz updates */
+	orb_set_interval(mavlink_subs.spl_sub, 200);	/* 0.5 Hz updates */
 
 	/* --- ATTITUDE SETPOINT VALUE --- */
 	mavlink_subs.spa_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	orb_set_interval(mavlink_subs.spa_sub, 1000);	/* 0.5 Hz updates */
+	orb_set_interval(mavlink_subs.spa_sub, 2000);	/* 0.5 Hz updates */
 
 	/* --- RATES SETPOINT VALUE --- */
 	mavlink_subs.rates_setpoint_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
@@ -765,31 +765,31 @@ uorb_receive_start(void)
 	mavlink_subs.act_2_sub = orb_subscribe(ORB_ID(actuator_outputs_2));
 	mavlink_subs.act_3_sub = orb_subscribe(ORB_ID(actuator_outputs_3));
 	/* rate limits set externally based on interface speed, set a basic default here */
-	orb_set_interval(mavlink_subs.act_0_sub, 2000);	/* 10Hz updates */
-	orb_set_interval(mavlink_subs.act_1_sub, 2000);	/* 10Hz updates */
-	orb_set_interval(mavlink_subs.act_2_sub, 2000);	/* 10Hz updates */
-	orb_set_interval(mavlink_subs.act_3_sub, 2000);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.act_0_sub, 100);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.act_1_sub, 100);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.act_2_sub, 100);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.act_3_sub, 100);	/* 10Hz updates */
 
 	/* --- ACTUATOR ARMED VALUE --- */
 	mavlink_subs.armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(mavlink_subs.armed_sub, 2000);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.armed_sub, 100);	/* 10Hz updates */
 
 	/* --- MAPPED MANUAL CONTROL INPUTS --- */
 	mavlink_subs.man_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	/* rate limits set externally based on interface speed, set a basic default here */
-	orb_set_interval(mavlink_subs.man_control_sp_sub, 2000);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.man_control_sp_sub, 100);	/* 10Hz updates */
 
 	/* --- ACTUATOR CONTROL VALUE --- */
 	mavlink_subs.actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
-	orb_set_interval(mavlink_subs.actuators_sub, 2000);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.actuators_sub, 100);	/* 10Hz updates */
 
 	/* --- DEBUG VALUE OUTPUT --- */
 	mavlink_subs.debug_key_value = orb_subscribe(ORB_ID(debug_key_value));
-	orb_set_interval(mavlink_subs.debug_key_value, 2000);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.debug_key_value, 100);	/* 10Hz updates */
 
 	/* --- OPTICAL FLOW SENSOR --- */
 	mavlink_subs.optical_flow = orb_subscribe(ORB_ID(optical_flow));
-	orb_set_interval(mavlink_subs.optical_flow, 200000); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.optical_flow, 200); 	/* 5Hz updates */
 
 	/* --- OMNIDIRECTIONAL FLOW SENSOR --- */
 	mavlink_subs.omnidirectional_flow = orb_subscribe(ORB_ID(omnidirectional_flow));

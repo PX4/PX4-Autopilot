@@ -79,6 +79,8 @@ MODULES		+= modules/fixedwing_pos_control
 MODULES		+= modules/multirotor_att_control
 MODULES		+= modules/multirotor_pos_control
 MODULES		+= modules/multirotor_pos_control_flow
+MODULES		+= modules/flow_position_control
+MODULES		+= modules/flow_speed_control
 MODULES		+= modules/mission_commander_flow
 
 #
