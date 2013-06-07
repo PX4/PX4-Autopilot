@@ -46,14 +46,14 @@
 #include <stdbool.h>
 
 struct logbuffer_s {
-	// all pointers are in bytes
+	// pointers and size are in bytes
 	int write_ptr;
 	int read_ptr;
 	int size;
 	char *data;
 };
 
-void logbuffer_init(struct logbuffer_s *lb, int size);
+int logbuffer_init(struct logbuffer_s *lb, int size);
 
 int logbuffer_count(struct logbuffer_s *lb);
 
