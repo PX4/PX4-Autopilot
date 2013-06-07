@@ -47,6 +47,7 @@
 #include <systemlib/systemlib.h>
 #include <controllib/fixedwing.hpp>
 #include <systemlib/param/param.h>
+#include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
 
@@ -80,7 +81,7 @@ usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	fprintf(stderr, "usage: control_demo {start|stop|status} [-p <additional params>]\n\n");
+	fprintf(stderr, "usage: fixedwing_backside {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
 }
 
@@ -101,13 +102,13 @@ int fixedwing_backside_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("control_demo already running\n");
+			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("control_demo",
+		deamon_task = task_spawn("fixedwing_backside",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 10,
 					 5120,
@@ -128,10 +129,10 @@ int fixedwing_backside_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tcontrol_demo app is running\n");
+			warnx("is running");
 
 		} else {
-			printf("\tcontrol_demo app not started\n");
+			warnx("not started");
 		}
 
 		exit(0);
@@ -144,7 +145,7 @@ int fixedwing_backside_main(int argc, char *argv[])
 int control_demo_thread_main(int argc, char *argv[])
 {
 
-	printf("[control_Demo] starting\n");
+	warnx("starting");
 
 	using namespace control;
 
@@ -156,7 +157,7 @@ int control_demo_thread_main(int argc, char *argv[])
 		autopilot.update();
 	}
 
-	printf("[control_demo] exiting.\n");
+	warnx("exiting.");
 
 	thread_running = false;
 
@@ -165,6 +166,6 @@ int control_demo_thread_main(int argc, char *argv[])
 
 void test()
 {
-	printf("beginning control lib test\n");
+	warnx("beginning control lib test");
 	control::basicBlocksTest();
 }
