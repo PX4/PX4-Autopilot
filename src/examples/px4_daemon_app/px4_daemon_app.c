@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Example User <mail@example.com>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,27 +32,33 @@
  ****************************************************************************/
 
 /**
- * @file px4_deamon_app.c
- * Deamon application example for PX4 autopilot
+ * @file px4_daemon_app.c
+ * daemon application example for PX4 autopilot
+ * 
+ * @author Example User <mail@example.com>
  */
 
 #include <nuttx/config.h>
+#include <nuttx/sched.h>
 #include <unistd.h>
 #include <stdio.h>
 
-static bool thread_should_exit = false;		/**< Deamon exit flag */
-static bool thread_running = false;		/**< Deamon status flag */
-static int deamon_task;				/**< Handle of deamon task / thread */
+#include <systemlib/systemlib.h>
+#include <systemlib/err.h>
+
+static bool thread_should_exit = false;		/**< daemon exit flag */
+static bool thread_running = false;		/**< daemon status flag */
+static int daemon_task;				/**< Handle of daemon task / thread */
 
 /**
- * Deamon management function.
+ * daemon management function.
  */
-__EXPORT int px4_deamon_app_main(int argc, char *argv[]);
+__EXPORT int px4_daemon_app_main(int argc, char *argv[]);
 
 /**
- * Mainloop of deamon.
+ * Mainloop of daemon.
  */
-int px4_deamon_thread_main(int argc, char *argv[]);
+int px4_daemon_thread_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.
@@ -64,20 +69,19 @@ static void
 usage(const char *reason)
 {
 	if (reason)
-		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
-	exit(1);
+		warnx("%s\n", reason);
+	errx(1, "usage: daemon {start|stop|status} [-p <additional params>]\n\n");
 }
 
 /**
- * The deamon app only briefly exists to start
+ * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
  * 
  * The actual stack size should be set in the call
  * to task_create().
  */
-int px4_deamon_app_main(int argc, char *argv[])
+int px4_daemon_app_main(int argc, char *argv[])
 {
 	if (argc < 1)
 		usage("missing command");
@@ -85,17 +89,17 @@ int px4_deamon_app_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("deamon already running\n");
+			warnx("daemon already running\n");
 			/* this is not an error */
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("deamon",
+		daemon_task = task_spawn("daemon",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT,
 					 4096,
-					 px4_deamon_thread_main,
+					 px4_daemon_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
@@ -107,9 +111,9 @@ int px4_deamon_app_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tdeamon app is running\n");
+			warnx("\trunning\n");
 		} else {
-			printf("\tdeamon app not started\n");
+			warnx("\tnot started\n");
 		}
 		exit(0);
 	}
@@ -118,18 +122,18 @@ int px4_deamon_app_main(int argc, char *argv[])
 	exit(1);
 }
 
-int px4_deamon_thread_main(int argc, char *argv[]) {
+int px4_daemon_thread_main(int argc, char *argv[]) {
 
-	printf("[deamon] starting\n");
+	warnx("[daemon] starting\n");
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
-		printf("Hello Deamon!\n");
+		warnx("Hello daemon!\n");
 		sleep(10);
 	}
 
-	printf("[deamon] exiting.\n");
+	warnx("[daemon] exiting.\n");
 
 	thread_running = false;
 

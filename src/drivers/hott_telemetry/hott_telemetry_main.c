@@ -133,15 +133,14 @@ recv_req_id(int uart, uint8_t *id)
 	if (poll(fds, 1, timeout_ms) > 0) {
 		/* Get the mode: binary or text  */
 		read(uart, &mode, sizeof(mode));
-		/* Read the device ID being polled */
-		read(uart, id, sizeof(*id));
 
 		/* if we have a binary mode request */
 		if (mode != BINARY_MODE_REQUEST_ID) {
-			warnx("Non binary request ID detected: %d", mode);
 			return ERROR;
 		}
 
+		/* Read the device ID being polled */
+		read(uart, id, sizeof(*id));
 	} else {
 		warnx("UART timeout on TX/RX port");
 		return ERROR;
@@ -216,9 +215,15 @@ hott_telemetry_thread_main(int argc, char *argv[])
 	uint8_t buffer[MESSAGE_BUFFER_SIZE];
 	size_t size = 0;
 	uint8_t id = 0;
+	bool connected = true;
 
 	while (!thread_should_exit) {
 		if (recv_req_id(uart, &id) == OK) {
+			if (!connected) {
+				connected = true;
+				warnx("OK");
+			}
+
 			switch (id) {
 			case EAM_SENSOR_ID:
 				build_eam_response(buffer, &size);
@@ -234,7 +239,8 @@ hott_telemetry_thread_main(int argc, char *argv[])
 
 			send_data(uart, buffer, size);
 		} else {
-			warnx("NOK");
+			connected = false;
+			warnx("syncing");
 		}
 	}
 

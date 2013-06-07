@@ -1302,7 +1302,7 @@ PX4IO::print_status()
 	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
 	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
-	printf("amp_per_volt %.3f amp_offset %.3f mAhDischarged %.3f\n",
+	printf("amp_per_volt %.3f amp_offset %.3f mAh discharged %.3f\n",
 	       (double)_battery_amp_per_volt,
 	       (double)_battery_amp_bias,
 	       (double)_battery_mamphour_total);
@@ -1496,7 +1496,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case MIXERIOCLOADBUF: {
 		const char *buf = (const char *)arg;
-		ret = mixer_send(buf, strnlen(buf, 1024));
+		ret = mixer_send(buf, strnlen(buf, 2048));
 		break;
 	}
 
@@ -1637,6 +1637,13 @@ test(void)
 	if (ioctl(fd, PWM_SERVO_ARM, 0))
 		err(1, "failed to arm servos");
 
+	/* Open console directly to grab CTRL-C signal */
+	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
+	if (!console)
+		err(1, "failed opening console");
+
+	warnx("Press CTRL-C or 'c' to abort.");
+
 	for (;;) {
 
 		/* sweep all servos between 1000..2000 */
@@ -1670,6 +1677,16 @@ test(void)
 				err(1, "error reading PWM servo %d", i);
 			if (value != servos[i])
 				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+		}
+
+		/* Check if user wants to quit */
+		char c;
+		if (read(console, &c, 1) == 1) {
+			if (c == 0x03 || c == 0x63) {
+				warnx("User abort\n");
+				close(console);
+				exit(0);
+			}
 		}
 	}
 }

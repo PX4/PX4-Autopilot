@@ -48,6 +48,7 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <poll.h>
@@ -64,6 +65,7 @@ struct gpio_led_s {
 };
 
 static struct gpio_led_s gpio_led_data;
+static bool gpio_led_started = false;
 
 __EXPORT int gpio_led_main(int argc, char *argv[]);
 
@@ -75,31 +77,54 @@ int gpio_led_main(int argc, char *argv[])
 {
 	int pin = GPIO_EXT_1;
 
-	if (argc > 1) {
-		if (!strcmp(argv[1], "-p")) {
-			if (!strcmp(argv[2], "1")) {
-				pin = GPIO_EXT_1;
+	if (argc < 2) {
+		errx(1, "no argument provided. Try 'start' or 'stop' [-p 1/2]");
 
-			} else if (!strcmp(argv[2], "2")) {
-				pin = GPIO_EXT_2;
+	} else {
+
+		/* START COMMAND HANDLING */
+		if (!strcmp(argv[1], "start")) {
+
+			if (argc > 2) {
+				if (!strcmp(argv[1], "-p")) {
+					if (!strcmp(argv[2], "1")) {
+						pin = GPIO_EXT_1;
+
+					} else if (!strcmp(argv[2], "2")) {
+						pin = GPIO_EXT_2;
+
+					} else {
+						warnx("[gpio_led] Unsupported pin: %s\n", argv[2]);
+						exit(1);
+					}
+				}
+			}
+
+			memset(&gpio_led_data, 0, sizeof(gpio_led_data));
+			gpio_led_data.pin = pin;
+			int ret = work_queue(LPWORK, &gpio_led_data.work, gpio_led_start, &gpio_led_data, 0);
+
+			if (ret != 0) {
+				warnx("[gpio_led] Failed to queue work: %d\n", ret);
+				exit(1);
 
 			} else {
-				printf("[gpio_led] Unsupported pin: %s\n", argv[2]);
-				exit(1);
+				gpio_led_started = true;
 			}
+
+			exit(0);
+
+			/* STOP COMMAND HANDLING */
+
+		} else if (!strcmp(argv[1], "stop")) {
+			gpio_led_started = false;
+
+			/* INVALID COMMAND */
+
+		} else {
+			errx(1, "unrecognized command '%s', only supporting 'start' or 'stop'", argv[1]);
 		}
 	}
-
-	memset(&gpio_led_data, 0, sizeof(gpio_led_data));
-	gpio_led_data.pin = pin;
-	int ret = work_queue(LPWORK, &gpio_led_data.work, gpio_led_start, &gpio_led_data, 0);
-
-	if (ret != 0) {
-		printf("[gpio_led] Failed to queue work: %d\n", ret);
-		exit(1);
-	}
-
-	exit(0);
 }
 
 void gpio_led_start(FAR void *arg)
@@ -110,7 +135,7 @@ void gpio_led_start(FAR void *arg)
 	priv->gpio_fd = open(GPIO_DEVICE_PATH, 0);
 
 	if (priv->gpio_fd < 0) {
-		printf("[gpio_led] GPIO: open fail\n");
+		warnx("[gpio_led] GPIO: open fail\n");
 		return;
 	}
 
@@ -125,11 +150,11 @@ void gpio_led_start(FAR void *arg)
 	int ret = work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, 0);
 
 	if (ret != 0) {
-		printf("[gpio_led] Failed to queue work: %d\n", ret);
+		warnx("[gpio_led] Failed to queue work: %d\n", ret);
 		return;
 	}
 
-	printf("[gpio_led] Started, using pin GPIO_EXT%i\n", priv->pin);
+	warnx("[gpio_led] Started, using pin GPIO_EXT%i\n", priv->pin);
 }
 
 void gpio_led_cycle(FAR void *arg)
@@ -187,5 +212,6 @@ void gpio_led_cycle(FAR void *arg)
 		priv->counter = 0;
 
 	/* repeat cycle at 5 Hz*/
-	work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, USEC2TICK(200000));
+	if (gpio_led_started)
+		work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, USEC2TICK(200000));
 }
