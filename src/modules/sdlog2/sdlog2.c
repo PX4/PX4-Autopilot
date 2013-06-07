@@ -94,9 +94,9 @@
 	}
 
 #define LOG_ORB_SUBSCRIBE(_var, _topic) subs.##_var##_sub = orb_subscribe(ORB_ID(##_topic##)); \
-		fds[fdsc_count].fd = subs.##_var##_sub; \
-		fds[fdsc_count].events = POLLIN; \
-		fdsc_count++;
+	fds[fdsc_count].fd = subs.##_var##_sub; \
+	fds[fdsc_count].events = POLLIN; \
+	fdsc_count++;
 
 
 //#define SDLOG2_DEBUG
@@ -107,7 +107,7 @@ static int deamon_task;						/**< Handle of deamon task / thread */
 static bool logwriter_should_exit = false;	/**< Logwriter thread exit flag */
 static const int MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log folders */
 static const int MAX_NO_LOGFILE = 999;		/**< Maximum number of log files */
-static const int LOG_BUFFER_SIZE = 8192;
+static const int LOG_BUFFER_SIZE_DEFAULT = 8192;
 static const int MAX_WRITE_CHUNK = 512;
 static const int MIN_BYTES_TO_WRITE = 512;
 
@@ -207,8 +207,9 @@ sdlog2_usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] -e -a\n"
+	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a\n"
 	     "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
+	     "\t-r\tLog buffer size in KBytes, default is 8\n"
 	     "\t-e\tEnable logging by default (if not, can be started by command)\n"
 	     "\t-a\tLog only when armed (can be still overriden by command)\n");
 }
@@ -529,18 +530,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 		warnx("failed to open MAVLink log stream, start mavlink app first.");
 	}
 
-	/* log every n'th value (skip three per default) */
-	int skip_value = 3;
+	/* log buffer size */
+	int log_buffer_size = LOG_BUFFER_SIZE_DEFAULT;
 
 	/* work around some stupidity in task_create's argv handling */
 	argc -= 2;
 	argv += 2;
 	int ch;
 
-	while ((ch = getopt(argc, argv, "r:ea")) != EOF) {
+	while ((ch = getopt(argc, argv, "r:b:ea")) != EOF) {
 		switch (ch) {
 		case 'r': {
-				unsigned r = strtoul(optarg, NULL, 10);
+				unsigned long r = strtoul(optarg, NULL, 10);
 
 				if (r == 0) {
 					sleep_delay = 0;
@@ -548,6 +549,20 @@ int sdlog2_thread_main(int argc, char *argv[])
 				} else {
 					sleep_delay = 1000000 / r;
 				}
+			}
+			break;
+
+		case 'b': {
+				unsigned long s = strtoul(optarg, NULL, 10);
+
+				if (s < 1) {
+					s = 1;
+
+				} else if (s > 640) {
+					s = 640;
+				}
+
+				log_buffer_size = 1024 * s;
 			}
 			break;
 
@@ -572,7 +587,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		default:
 			sdlog2_usage("unrecognized flag");
-			errx(1, "exiting");
+			errx(1, "exiting.");
 		}
 	}
 
@@ -580,11 +595,19 @@ int sdlog2_thread_main(int argc, char *argv[])
 		errx(1, "logging mount point %s not present, exiting.", mountpoint);
 	}
 
-	if (create_logfolder())
+	if (create_logfolder()) {
 		errx(1, "unable to create logging folder, exiting.");
+	}
 
 	/* only print logging path, important to find log file later */
 	warnx("logging to directory: %s", folder_path);
+
+	/* initialize log buffer with specified size */
+	warnx("log buffer size: %i bytes.", log_buffer_size);
+
+	if (OK != logbuffer_init(&lb, log_buffer_size)) {
+		errx(1, "can't allocate log buffer, exiting.");
+	}
 
 	/* file descriptors to wait for */
 	struct pollfd fds_control[2];
@@ -770,9 +793,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	/* initialize log buffer with specified size */
-	logbuffer_init(&lb, LOG_BUFFER_SIZE);
-
 	/* initialize thread synchronization */
 	pthread_mutex_init(&logbuffer_mutex, NULL);
 	pthread_cond_init(&logbuffer_cond, NULL);
@@ -818,9 +838,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_status), subs.status_sub, &buf_status);
+
 				if (log_when_armed) {
 					handle_status(&buf_status);
 				}
+
 				handled_topics++;
 			}
 
