@@ -241,8 +241,8 @@ flow_speed_control_thread_main(int argc, char *argv[])
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 
 						/* calc new roll/pitch */
-						float pitch_body = (bodyframe_pos.vx - speed_sp.vx) * params.speed_p;
-						float roll_body = - (bodyframe_pos.vy - speed_sp.vy) * params.speed_p;
+						float pitch_body = -(speed_sp.vx - bodyframe_pos.vx) * params.speed_p;
+						float roll_body  =  (speed_sp.vy - bodyframe_pos.vy) * params.speed_p;
 
 						/* limit roll and pitch corrections */
 						if((pitch_body <= params.limit_pitch) && (pitch_body >= -params.limit_pitch)){
@@ -271,8 +271,8 @@ flow_speed_control_thread_main(int argc, char *argv[])
 						att_sp.yaw_body = speed_sp.yaw_sp;
 
 						/* add trim from parameters */
-//						att_sp.roll_body = att_sp.roll_body + params.trim_roll;
-//						att_sp.pitch_body = att_sp.pitch_body + params.trim_pitch;
+						att_sp.roll_body = att_sp.roll_body + params.trim_roll;
+						att_sp.pitch_body = att_sp.pitch_body + params.trim_pitch;
 
 						/* the throttle stick on the rc control limits the maximum thrust */
 						if(isfinite(manual.throttle)) {
