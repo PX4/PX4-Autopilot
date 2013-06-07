@@ -88,8 +88,8 @@ load(const char *devname, const char *fname)
 {
 	int		dev;
 	FILE		*fp;
-	char		line[80];
-	char		buf[512];
+	char		line[120];
+	char		buf[2048];
 
 	/* open the device */
 	if ((dev = open(devname, 0)) < 0)
