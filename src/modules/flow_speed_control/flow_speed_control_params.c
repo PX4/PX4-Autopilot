@@ -44,7 +44,7 @@
 PARAM_DEFINE_FLOAT(FSC_S_P, 0.1f);
 PARAM_DEFINE_FLOAT(FSC_L_PITCH, 0.2f);
 PARAM_DEFINE_FLOAT(FSC_L_ROLL, 0.2f);
-PARAM_DEFINE_FLOAT(FPC_L_TH_L, 0.6f);
+PARAM_DEFINE_FLOAT(FSC_L_TH_L, 0.6f);
 
 int parameters_init(struct flow_speed_control_param_handles *h)
 {
@@ -52,7 +52,7 @@ int parameters_init(struct flow_speed_control_param_handles *h)
 	h->speed_p	 			=	param_find("FSC_S_P");
 	h->limit_pitch 			=	param_find("FSC_L_PITCH");
 	h->limit_roll 			=	param_find("FSC_L_ROLL");
-	h->limit_thrust_lower 	=	param_find("FPC_L_TH_L");
+	h->limit_thrust_lower 	=	param_find("FSC_L_TH_L");
 	h->trim_roll 			=	param_find("TRIM_ROLL");
 	h->trim_pitch 			=	param_find("TRIM_PITCH");
 

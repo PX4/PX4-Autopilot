@@ -170,7 +170,8 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	int vehicle_bodyframe_position_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_position));
 	int vehicle_bodyframe_speed_setpoint_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_speed_setpoint));
 
-	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+	orb_advert_t att_sp_pub;
+	bool attitude_setpoint_adverted = false;
 
 	/* parameters init*/
 	struct flow_speed_control_params params;
@@ -179,10 +180,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	parameters_update(&param_handles, &params);
 
 	/* states */
-	float integrated_h_error = 0.0f;
-	float last_height = 0.0f;
-	float thrust_limit_upper = params.limit_thrust_lower; // it will be updated with manual input
-	bool bodyframe_setpoint_valid = false;
+	float thrust_limit_upper = 0.0f; // it will be updated with RC input
 
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "flow_speed_control_runtime");
@@ -198,13 +196,12 @@ flow_speed_control_thread_main(int argc, char *argv[])
 
 			/* polling */
 			struct pollfd fds[2] = {
-				{ .fd = vehicle_bodyframe_position_sub, .events = POLLIN }, // positions from estimator
+				{ .fd = vehicle_bodyframe_speed_setpoint_sub, .events = POLLIN }, // speed setpoint from pos controller
 				{ .fd = parameter_update_sub,   .events = POLLIN }
-
 			};
 
-			/* wait for a position update, check for exit condition every 500 ms */
-			int ret = poll(fds, 2, 500);
+			/* wait for a position update, check for exit condition every 5000 ms */
+			int ret = poll(fds, 2, 5000);
 
 			if (ret < 0) {
 				/* poll error, count it in perf */
@@ -212,7 +209,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 
 			} else if (ret == 0) {
 				/* no return value, ignore */
-				printf("[flow speed control] no bodyframe position updates\n"); // XXX wrong place
+				printf("[flow speed control] no bodyframe speed setpoints updates\n"); // XXX wrong place
 			} else {
 
 				/* parameter update available? */
@@ -238,112 +235,73 @@ flow_speed_control_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					/* get a local copy of bodyframe position */
 					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
+					/* get a local copy of bodyframe speed setpoint */
+					orb_copy(ORB_ID(vehicle_bodyframe_speed_setpoint), vehicle_bodyframe_speed_setpoint_sub, &speed_sp);
 
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 
-//						/* be sure that we have a valid setpoint to the current position
-//						 * can be a setpoint referring to the old position (wait one update)
-//						 * */
-//						if(!bodyframe_setpoint_valid) {
-//							/* if setpoint is invalid, wait until setpoint changes... */
-//							bool new_setpoint =  false;
-//							orb_check(vehicle_bodyframe_position_setpoint_sub, &new_setpoint);
-//							if (new_setpoint) {
-//								bodyframe_setpoint_valid = true;
-//							}
-//						}
-//
-//						if (bodyframe_setpoint_valid) {
-							/* get a local copy of bodyframe position setpoint */
-							orb_copy(ORB_ID(vehicle_bodyframe_speed_setpoint), vehicle_bodyframe_speed_setpoint_sub, &speed_sp);
+						/* calc new roll/pitch */
+						float pitch_body = (bodyframe_pos.vx - speed_sp.vx) * params.speed_p;
+						float roll_body = - (bodyframe_pos.vy - speed_sp.vy) * params.speed_p;
 
-							/* calc new roll/pitch */
-							float pitch_body = (bodyframe_pos.vx - speed_sp.vx) * params.speed_p;
-							float roll_body = - (bodyframe_pos.vy - speed_sp.vy) * params.speed_p;
-
-
-							/* limit roll and pitch corrections */
-							if((pitch_body <= params.limit_pitch) && (pitch_body >= -params.limit_pitch)){
-								att_sp.pitch_body = pitch_body;
-							} else {
-								if(pitch_body > params.limit_pitch){
-									att_sp.pitch_body = params.limit_pitch;
-								}
-								if(pitch_body < -params.limit_pitch){
-									att_sp.pitch_body = -params.limit_pitch;
-								}
+						/* limit roll and pitch corrections */
+						if((pitch_body <= params.limit_pitch) && (pitch_body >= -params.limit_pitch)){
+							att_sp.pitch_body = pitch_body;
+						} else {
+							if(pitch_body > params.limit_pitch){
+								att_sp.pitch_body = params.limit_pitch;
 							}
-
-							if((roll_body <= params.limit_roll) && (roll_body >= -params.limit_roll)){
-								att_sp.roll_body = roll_body;
-							} else {
-								if(roll_body > params.limit_roll){
-									att_sp.roll_body = params.limit_roll;
-								}
-								if(roll_body < -params.limit_roll){
-									att_sp.roll_body = -params.limit_roll;
-								}
+							if(pitch_body < -params.limit_pitch){
+								att_sp.pitch_body = -params.limit_pitch;
 							}
+						}
 
-							/* set yaw setpoint unlimited*/
-							att_sp.yaw_body = speed_sp.yaw_sp;
-
-							/* add trim from parameters */
-							att_sp.roll_body = att_sp.roll_body + params.trim_roll;
-							att_sp.pitch_body = att_sp.pitch_body + params.trim_pitch;
-
-//							/* calc new thrust */
-//							float height_error = (bodyframe_pos.z - params.height_sp);
-//							integrated_h_error = integrated_h_error + height_error;
-//							float integrated_thrust_addition = integrated_h_error * params.height_i;
-//
-//							if(integrated_thrust_addition > params.limit_thrust_int){
-//								integrated_thrust_addition = params.limit_thrust_int;
-//							}
-//							if(integrated_thrust_addition < -params.limit_thrust_int){
-//								integrated_thrust_addition = -params.limit_thrust_int;
-//							}
-//
-//							float height_speed = last_height - bodyframe_pos.z;
-//							last_height = bodyframe_pos.z;
-//							float thrust_diff = height_error * params.height_p - height_speed * params.height_d; // just PD controller
-//							float thrust = thrust_diff + integrated_thrust_addition;
-//
-//							float height_ctrl_thrust = params.thrust_feedforward + thrust;
-//
-							/* the throttle stick on the rc control limits the maximum thrust */
-							if(isfinite(manual.throttle)) {
-								thrust_limit_upper = manual.throttle;
+						if((roll_body <= params.limit_roll) && (roll_body >= -params.limit_roll)){
+							att_sp.roll_body = roll_body;
+						} else {
+							if(roll_body > params.limit_roll){
+								att_sp.roll_body = params.limit_roll;
 							}
-//
-//							/* reset integral if on ground */
-//							/* TODO change to parameter */
-//							if (thrust_limit_upper < 0.2f) {
-//								integrated_h_error = 0.0f;
-//							}
-//
-//							/* never go too low with the thrust that it becomes uncontrollable */
-//							if(height_ctrl_thrust < params.limit_thrust_lower){
-//								height_ctrl_thrust = params.limit_thrust_lower;
-//							}
-
-							if (speed_sp.thrust_sp > thrust_limit_upper){
-								att_sp.thrust = thrust_limit_upper;
-							} else {
-								att_sp.thrust = speed_sp.thrust_sp;
+							if(roll_body < -params.limit_roll){
+								att_sp.roll_body = -params.limit_roll;
 							}
+						}
 
-							att_sp.timestamp = hrt_absolute_time();
+						/* set yaw setpoint forward*/
+						att_sp.yaw_body = speed_sp.yaw_sp;
 
+						/* add trim from parameters */
+//						att_sp.roll_body = att_sp.roll_body + params.trim_roll;
+//						att_sp.pitch_body = att_sp.pitch_body + params.trim_pitch;
 
-							/* publish new attitude setpoint */
-							if(isfinite(att_sp.pitch_body) && isfinite(att_sp.roll_body) && isfinite(att_sp.yaw_body) && isfinite(att_sp.thrust))
+						/* the throttle stick on the rc control limits the maximum thrust */
+						if(isfinite(manual.throttle)) {
+							thrust_limit_upper = manual.throttle;
+						}
+
+						if (speed_sp.thrust_sp > thrust_limit_upper)
+							att_sp.thrust = thrust_limit_upper;
+						else
+							att_sp.thrust = speed_sp.thrust_sp;
+
+						att_sp.timestamp = hrt_absolute_time();
+
+						/* publish new attitude setpoint */
+						if(isfinite(att_sp.pitch_body) && isfinite(att_sp.roll_body) && isfinite(att_sp.yaw_body) && isfinite(att_sp.thrust))
+						{
+							if (attitude_setpoint_adverted)
 							{
 								orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-							} else {
-								warnx("NaN in flow speed controller!");
 							}
-//						}
+							else
+							{
+								att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+								attitude_setpoint_adverted = true;
+							}
+
+						} else {
+							warnx("NaN in flow speed controller!");
+						}
 
 					} else {
 						/* call orb copy for setpoint to recognize new one if mode changes */
@@ -352,8 +310,10 @@ flow_speed_control_thread_main(int argc, char *argv[])
 						/* in manual or stabilized state just reset attitude setpoint */
 						att_sp.roll_body = 0.0f;
 						att_sp.pitch_body = 0.0f;
-						att_sp.yaw_body = att.yaw;
-						att_sp.thrust = manual.throttle;
+						if(isfinite(att.yaw))
+							att_sp.yaw_body = att.yaw;
+						if(isfinite(manual.throttle))
+							att_sp.thrust = manual.throttle;
 //						bodyframe_setpoint_valid = false;
 					}
 

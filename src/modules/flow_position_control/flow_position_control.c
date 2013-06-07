@@ -173,8 +173,9 @@ flow_position_control_thread_main(int argc, char *argv[])
 	int vehicle_bodyframe_position_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_position));
 	int vehicle_bodyframe_position_setpoint_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_position_setpoint));
 
-	orb_advert_t speed_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &speed_sp);
-	orb_advert_t debug_speed_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &debug_speed_sp);
+	orb_advert_t speed_sp_pub;
+	orb_advert_t debug_speed_sp_pub;
+	bool speed_setpoint_adverted = false;
 
 	/* parameters init*/
 	struct flow_position_control_params params;
@@ -222,6 +223,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 			} else if (ret == 0) {
 				/* no return value, ignore */
 				printf("[flow position control] no bodyframe position updates\n"); // XXX wrong place
+
 			} else {
 
 				/* parameter update available? */
@@ -318,45 +320,47 @@ flow_position_control_thread_main(int argc, char *argv[])
 
 							float height_ctrl_thrust = params.thrust_feedforward + thrust;
 
-							/* the throttle stick on the rc control limits the maximum thrust */
+							/* reset integral if on ground */
 							// TODO
 							if(isfinite(manual.throttle)) {
 								thrust_limit_upper = manual.throttle;
 							}
 
-							/* reset integral if on ground */
-							/* TODO change to parameter */
 							if (thrust_limit_upper < 0.2f) {
 								integrated_h_error = 0.0f;
 							}
 
 							/* set thrust within controllable limits */
 							if(height_ctrl_thrust < params.limit_thrust_lower)
-							{
-								speed_sp.thrust_sp = params.limit_thrust_lower;
-							}
-							else if (height_ctrl_thrust > params.limit_thrust_upper)
-							{
-								speed_sp.thrust_sp = params.limit_thrust_upper;
-							}
-							else
-							{
-								speed_sp.thrust_sp = height_ctrl_thrust;
-							}
+								height_ctrl_thrust = params.limit_thrust_lower;
+							if(height_ctrl_thrust > params.limit_thrust_upper)
+								height_ctrl_thrust = params.limit_thrust_upper;
 
+							speed_sp.thrust_sp = height_ctrl_thrust;
 							speed_sp.timestamp = hrt_absolute_time();
 
 							/* publish new attitude setpoint */
 							if(isfinite(speed_sp.vx) && isfinite(speed_sp.vy) && isfinite(speed_sp.yaw_sp) && isfinite(speed_sp.thrust_sp))
 							{
-								orb_publish(ORB_ID(vehicle_bodyframe_speed_setpoint), speed_sp_pub, &speed_sp);
-
 								debug_speed_sp.x = speed_sp.vx;
 								debug_speed_sp.y = speed_sp.vy;
 								debug_speed_sp.yaw = speed_sp.yaw_sp;
 								debug_speed_sp.z = speed_sp.thrust_sp;
-								orb_publish(ORB_ID(vehicle_local_position_setpoint), debug_speed_sp_pub, &debug_speed_sp);
-							} else {
+
+								if(speed_setpoint_adverted)
+								{
+//									orb_publish(ORB_ID(vehicle_local_position_setpoint), debug_speed_sp_pub, &debug_speed_sp);
+									orb_publish(ORB_ID(vehicle_bodyframe_speed_setpoint), speed_sp_pub, &speed_sp);
+								}
+								else
+								{
+									debug_speed_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &debug_speed_sp);
+									speed_sp_pub = orb_advertise(ORB_ID(vehicle_bodyframe_speed_setpoint), &speed_sp);
+									speed_setpoint_adverted = true;
+								}
+							}
+							else
+							{
 								warnx("NaN in flow position controller!");
 							}
 //						}
