@@ -136,6 +136,24 @@ int md25_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "sine")) {
+
+		if (argc < 4) {
+			printf("usage: md25 sine bus address\n");
+			exit(0);
+		}
+
+		const char *deviceName = "/dev/md25";
+
+		uint8_t bus = strtoul(argv[2], nullptr, 0);
+
+		uint8_t address = strtoul(argv[3], nullptr, 0);
+
+		md25Sine(deviceName, bus, address);
+
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "probe")) {
 		if (argc < 4) {
 			printf("usage: md25 probe bus address\n");

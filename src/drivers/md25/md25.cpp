@@ -45,6 +45,7 @@
 #include "md25.hpp"
 #include <poll.h>
 #include <stdio.h>
+#include <math.h>
 
 #include <systemlib/err.h>
 #include <arch/board/board.h>
@@ -547,6 +548,43 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 	md25.resetEncoders();
 
 	printf("Test complete\n");
+	return 0;
+}
+
+int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
+{
+	printf("md25 sine: starting\n");
+
+	// setup
+	MD25 md25("/dev/md25", bus, address);
+
+	// print status
+	char buf[200];
+	md25.status(buf, sizeof(buf));
+	printf("%s\n", buf);
+
+	// setup for test
+	md25.setSpeedRegulation(true);
+	md25.setTimeout(true);
+	float dt = 0.1;
+	float amplitude = 0.2;
+	float t = 0;
+	float omega = 0.1;
+
+	// sine wave for motor 1
+	md25.resetEncoders();
+	while (true) {
+		float prev_revolution = md25.getRevolutions1();
+		md25.setMotor1Speed(amplitude*sinf(omega*t));
+		usleep(1000000 * dt);
+		t += dt;
+		float speed_rpm = 60*(md25.getRevolutions1() - prev_revolution)/dt;
+		md25.readData();
+		if (t > 2.0f) break;
+	}
+	md25.setMotor1Speed(0);
+
+	printf("md25 sine complete\n");
 	return 0;
 }
 
