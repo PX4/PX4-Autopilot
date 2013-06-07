@@ -44,6 +44,7 @@
 #include <string.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
+#include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
 #include "KalmanNav.hpp"
@@ -73,7 +74,7 @@ usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	fprintf(stderr, "usage: kalman_demo {start|stop|status} [-p <additional params>]\n\n");
+	warnx("usage: att_pos_estimator_ekf {start|stop|status} [-p <additional params>]");
 	exit(1);
 }
 
@@ -94,13 +95,14 @@ int att_pos_estimator_ekf_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("kalman_demo already running\n");
+			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn_cmd("kalman_demo",
+
+		deamon_task = task_spawn_cmd("att_pos_estimator_ekf",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 5,
 					 4096,
@@ -116,10 +118,10 @@ int att_pos_estimator_ekf_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tkalman_demo app is running\n");
+			warnx("is running\n");
 
 		} else {
-			printf("\tkalman_demo app not started\n");
+			warnx("not started\n");
 		}
 
 		exit(0);
@@ -132,7 +134,7 @@ int att_pos_estimator_ekf_main(int argc, char *argv[])
 int kalman_demo_thread_main(int argc, char *argv[])
 {
 
-	printf("[kalman_demo] starting\n");
+	warnx("starting\n");
 
 	using namespace math;
 
@@ -144,7 +146,7 @@ int kalman_demo_thread_main(int argc, char *argv[])
 		nav.update();
 	}
 
-	printf("[kalman_demo] exiting.\n");
+	printf("exiting.\n");
 
 	thread_running = false;
 
