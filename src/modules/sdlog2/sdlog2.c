@@ -557,9 +557,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 				if (s < 1) {
 					s = 1;
-
-				} else if (s > 640) {
-					s = 640;
 				}
 
 				log_buffer_size = 1024 * s;
