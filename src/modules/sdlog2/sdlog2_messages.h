@@ -141,6 +141,20 @@ struct log_ATTC_s {
 	float yaw;
 	float thrust;
 };
+
+/* --- STAT - VEHICLE STATE --- */
+#define LOG_STAT_MSG 10
+struct log_STAT_s {
+	unsigned char state;
+	unsigned char flight_mode;
+	unsigned char manual_control_mode;
+	unsigned char manual_sas_mode;
+	unsigned char armed;
+	float battery_voltage;
+	float battery_current;
+	float battery_remaining;
+	unsigned char battery_warning;
+};
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -155,6 +169,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
+	LOG_FORMAT(STAT, "BBBBBfffB", "State,FlightMode,CtlMode,SASMode,Armed,BatV,BatC,BatRem,BatWarn"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);

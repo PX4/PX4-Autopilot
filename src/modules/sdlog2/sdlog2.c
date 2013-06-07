@@ -597,10 +597,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* file descriptors to wait for */
 	struct pollfd fds[fdsc];
 
+	struct vehicle_status_s buf_status;
+	memset(&buf_status, 0, sizeof(buf_status));
+
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
 		struct vehicle_command_s cmd;
-		struct vehicle_status_s status;
 		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
@@ -653,6 +655,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_LPSP_s log_LPSP;
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
+			struct log_STAT_s log_STAT;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -803,22 +806,25 @@ int sdlog2_thread_main(int argc, char *argv[])
 			 * logging_enabled can be changed while checking vehicle_command and vehicle_status */
 			bool check_data = logging_enabled;
 			int ifds = 0;
+			int handled_topics = 0;
 
-			/* --- VEHICLE COMMAND --- */
+			/* --- VEHICLE COMMAND - LOG MANAGEMENT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd);
 				handle_command(&buf.cmd);
+				handled_topics++;
 			}
 
-			/* --- VEHICLE STATUS --- */
+			/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_status), subs.status_sub, &buf.status);
+				orb_copy(ORB_ID(vehicle_status), subs.status_sub, &buf_status);
 				if (log_when_armed) {
-					handle_status(&buf.status);
+					handle_status(&buf_status);
 				}
+				handled_topics++;
 			}
 
-			if (!logging_enabled || !check_data) {
+			if (!logging_enabled || !check_data || handled_topics >= poll_ret) {
 				continue;
 			}
 
@@ -828,6 +834,22 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.msg_type = LOG_TIME_MSG;
 			log_msg.body.log_TIME.t = hrt_absolute_time();
 			LOGBUFFER_WRITE_AND_COUNT(TIME);
+
+			/* --- VEHICLE STATUS --- */
+			if (fds[ifds++].revents & POLLIN) {
+				// Don't orb_copy, it's already done few lines above
+				log_msg.msg_type = LOG_STAT_MSG;
+				log_msg.body.log_STAT.state = (unsigned char) buf_status.state_machine;
+				log_msg.body.log_STAT.flight_mode = (unsigned char) buf_status.flight_mode;
+				log_msg.body.log_STAT.manual_control_mode = (unsigned char) buf_status.manual_control_mode;
+				log_msg.body.log_STAT.manual_sas_mode = (unsigned char) buf_status.manual_sas_mode;
+				log_msg.body.log_STAT.armed = (unsigned char) buf_status.flag_system_armed;
+				log_msg.body.log_STAT.battery_voltage = buf_status.voltage_battery;
+				log_msg.body.log_STAT.battery_current = buf_status.current_battery;
+				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
+				log_msg.body.log_STAT.battery_warning = (unsigned char) buf_status.battery_warning;
+				LOGBUFFER_WRITE_AND_COUNT(STAT);
+			}
 
 			/* --- GPS POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
