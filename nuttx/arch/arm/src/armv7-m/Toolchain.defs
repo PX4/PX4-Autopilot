@@ -243,7 +243,7 @@ endif
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),GNU_EABI)
   CROSSDEV ?= arm-none-eabi-
   ARCROSSDEV ?= arm-none-eabi-
-  MAXOPTIMIZATION = -O3
+  MAXOPTIMIZATION ?= -O3
   ifeq ($(CONFIG_ARCH_CORTEXM4),y)
     ifeq ($(CONFIG_ARCH_FPU),y)
       ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
