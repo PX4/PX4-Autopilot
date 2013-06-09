@@ -274,7 +274,7 @@ pwm_main(int argc, char *argv[])
 			/* abort on user request */
 			char c;
 			if (read(console, &c, 1) == 1) {
-				if (c == 0x03 || c == 0x63) {
+				if (c == 0x03 || c == 0x63 || c == 'q') {
 					warnx("User abort\n");
 					close(console);
 					exit(0);
