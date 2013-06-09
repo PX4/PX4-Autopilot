@@ -205,11 +205,11 @@ pwm_main(int argc, char *argv[])
 		}
 		unsigned pwm_value = strtol(arg, &ep, 0);
 		if (*ep == '\0') {
+			if (nchannels > sizeof(channel) / sizeof(channel[0]))
+				err(1, "too many pwm values (max %d)", sizeof(channel) / sizeof(channel[0]));
+
 			channel[nchannels] = pwm_value;
 			nchannels++;
-
-			if (nchannels >= sizeof(channel) / sizeof(channel[0]))
-				err(1, "too many pwm values (max %d)", sizeof(channel) / sizeof(channel[0]));
 
 			continue;
 		}
