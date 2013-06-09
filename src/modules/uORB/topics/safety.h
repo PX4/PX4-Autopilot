@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,48 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file actuator_controls.h
+ * @file safety.h
  *
- * Actuator control topics - mixer inputs.
- *
- * Values published to these topics are the outputs of the vehicle control
- * system, and are expected to be mixed and used to drive the actuators
- * (servos, speed controls, etc.) that operate the vehicle.
- *
- * Each topic can be published by a single controller
+ * Status of an attached safety device
  */
 
-#ifndef TOPIC_ACTUATOR_CONTROLS_H
-#define TOPIC_ACTUATOR_CONTROLS_H
+#ifndef TOPIC_SAFETY_H
+#define TOPIC_SAFETY_H
 
 #include <stdint.h>
 #include "../uORB.h"
 
-#define NUM_ACTUATOR_CONTROLS		8
-#define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
-
-struct actuator_controls_s {
-	uint64_t timestamp;
-	float	control[NUM_ACTUATOR_CONTROLS];
+enum SAFETY_STATUS {
+	SAFETY_STATUS_NOT_PRESENT,
+	SAFETY_STATUS_SAFE,
+	SAFETY_STATUS_UNLOCKED
 };
 
-/* actuator control sets; this list can be expanded as more controllers emerge */
-ORB_DECLARE(actuator_controls_0);
-ORB_DECLARE(actuator_controls_1);
-ORB_DECLARE(actuator_controls_2);
-ORB_DECLARE(actuator_controls_3);
-
-/* control sets with pre-defined applications */
-#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
-
-/** global 'actuator output is live' control. */
-struct actuator_armed_s {
-	bool	armed;			/**< Set to true if system is armed */
-	bool	ready_to_arm;		/**< Set to true if system is ready to be armed */
-	bool	throttle_locked;	/**< Set to true if the trottle is locked to zero */
-	bool	lockdown;		/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
+struct safety_s {
+	uint64_t timestamp;			/**< output timestamp in us since system boot */
+	enum SAFETY_STATUS status;
 };
 
-ORB_DECLARE(actuator_armed);
+/* actuator output sets; this list can be expanded as more drivers emerge */
+ORB_DECLARE(safety);
 
-#endif
+#endif /* TOPIC_SAFETY_H */

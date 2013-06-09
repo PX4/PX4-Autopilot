@@ -214,6 +214,8 @@ struct vehicle_status_s
 	bool flag_valid_launch_position;		/**< indicates a valid launch position */
 	bool flag_valid_home_position;			/**< indicates a valid home position (a valid home position is not always a valid launch) */
 	bool flag_airspeed_valid;			/**< set to true by the commander app if there is a valid airspeed measurement available */
+	bool flag_safety_present;			/**< indicates that a safety switch is present */
+	bool flag_safety_safe;				/**< safety switch is in safe position */
 };
 
 /**

@@ -80,6 +80,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/safety.h>
 #include <debug.h>
 
 #include <mavlink/mavlink_log.h>
@@ -161,6 +162,7 @@ private:
 	orb_advert_t 		_to_actuators_effective; ///< effective actuator controls topic
 	orb_advert_t		_to_outputs;	///< mixed servo outputs topic
 	orb_advert_t		_to_battery;	///< battery status / voltage
+	orb_advert_t		_to_safety;	///< status of safety
 
 	actuator_outputs_s	_outputs;	///< mixed outputs
 	actuator_controls_effective_s _controls_effective; ///< effective controls
@@ -883,6 +885,25 @@ PX4IO::io_handle_status(uint16_t status)
 		_status = status;
 	}
 
+	/**
+	 * Get and handle the safety status
+	 */
+	struct safety_s safety;
+	safety.timestamp = hrt_absolute_time();
+
+	if (status & PX4IO_P_STATUS_FLAGS_ARMED) {
+		safety.status = SAFETY_STATUS_UNLOCKED;
+	} else {
+		safety.status = SAFETY_STATUS_SAFE;
+	}
+
+	/* lazily publish the safety status */
+	if (_to_safety > 0) {
+		orb_publish(ORB_ID(safety), _to_safety, &safety);
+	} else {
+		_to_safety = orb_advertise(ORB_ID(safety), &safety);
+	}
+
 	return ret;
 }
 
@@ -912,7 +933,7 @@ PX4IO::io_get_status()
 
 	io_handle_status(regs[0]);
 	io_handle_alarms(regs[1]);
-
+	
 	/* only publish if battery has a valid minimum voltage */
 	if (regs[2] > 3300) {
 		battery_status_s	battery_status;
@@ -946,6 +967,7 @@ PX4IO::io_get_status()
 			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
 		}
 	}
+
 	return ret;
 }
 
@@ -1273,7 +1295,7 @@ PX4IO::print_status()
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
 	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		flags,
-		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " ARMED" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " SAFETY_UNLOCKED" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
@@ -1634,6 +1656,11 @@ test(void)
 	if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count))
 		err(1, "failed to get servo count");
 
+	/* tell IO that its ok to disable its safety with the switch */
+	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
+	if (ret != OK)
+		err(1, "PWM_SERVO_SET_ARM_OK");
+
 	if (ioctl(fd, PWM_SERVO_ARM, 0))
 		err(1, "failed to arm servos");
 
@@ -1682,7 +1709,7 @@ test(void)
 		/* Check if user wants to quit */
 		char c;
 		if (read(console, &c, 1) == 1) {
-			if (c == 0x03 || c == 0x63) {
+			if (c == 0x03 || c == 0x63 || c == 'q') {
 				warnx("User abort\n");
 				close(console);
 				exit(0);

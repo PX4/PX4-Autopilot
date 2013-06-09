@@ -47,6 +47,10 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 
+bool is_multirotor(const struct vehicle_status_s *current_status);
+
+bool is_rotary_wing(const struct vehicle_status_s *current_status);
+
 /**
  * Switch to new state with no checking.
  *
