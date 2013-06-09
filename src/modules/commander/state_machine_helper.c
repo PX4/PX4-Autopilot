@@ -49,6 +49,7 @@
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
+#include "commander.h"
 
 static const char *system_state_txt[] = {
 	"SYSTEM_STATE_PREFLIGHT",
@@ -539,6 +540,9 @@ void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_s
 				/* safety is in safe position, disallow arming */
 				if (current_status->flag_safety_safe) {
 					mavlink_log_critical(mavlink_fd, "DISENGAGE SAFETY BEFORE ARMING!");
+
+					/* play warning tune */
+					tune_error();
 				}
 
 			}
