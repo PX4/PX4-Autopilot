@@ -114,6 +114,8 @@ static void	l_manual_control_setpoint(const struct listener *l);
 static void	l_vehicle_attitude_controls(const struct listener *l);
 static void	l_debug_key_value(const struct listener *l);
 static void	l_optical_flow(const struct listener *l);
+static void	l_omnidirectional_flow(const struct listener *l);
+static void	l_discrete_radar(const struct listener *l);
 static void	l_vehicle_rates_setpoint(const struct listener *l);
 static void	l_home(const struct listener *l);
 
@@ -138,6 +140,8 @@ static const struct listener listeners[] = {
 	{l_vehicle_attitude_controls,	&mavlink_subs.actuators_sub,	0},
 	{l_debug_key_value,		&mavlink_subs.debug_key_value,	0},
 	{l_optical_flow,		&mavlink_subs.optical_flow,	0},
+	{l_omnidirectional_flow,		&mavlink_subs.omnidirectional_flow,	0},
+	{l_discrete_radar,		&mavlink_subs.discrete_radar,	0},
 	{l_vehicle_rates_setpoint,	&mavlink_subs.rates_setpoint_sub,	0},
 	{l_home,			&mavlink_subs.home_sub,		0},
 };
@@ -608,12 +612,34 @@ l_debug_key_value(const struct listener *l)
 void
 l_optical_flow(const struct listener *l)
 {
-	struct optical_flow_s flow;
+	struct optical_flow_s optical_flow;
 
-	orb_copy(ORB_ID(optical_flow), mavlink_subs.optical_flow, &flow);
+	orb_copy(ORB_ID(optical_flow), mavlink_subs.optical_flow, &optical_flow);
 
-	mavlink_msg_optical_flow_send(MAVLINK_COMM_0, flow.timestamp, flow.sensor_id, flow.flow_raw_x, flow.flow_raw_y,
-				      flow.flow_comp_x_m, flow.flow_comp_y_m, flow.quality, flow.ground_distance_m);
+	mavlink_msg_optical_flow_send(MAVLINK_COMM_0, optical_flow.timestamp, optical_flow.sensor_id, optical_flow.flow_raw_x, optical_flow.flow_raw_y,
+				      optical_flow.flow_comp_x_m, optical_flow.flow_comp_y_m, optical_flow.quality, optical_flow.ground_distance_m);
+}
+
+void
+l_omnidirectional_flow(const struct listener *l)
+{
+	struct omnidirectional_flow_s omnidirectional_flow;
+
+	orb_copy(ORB_ID(omnidirectional_flow), mavlink_subs.omnidirectional_flow, &omnidirectional_flow);
+
+	mavlink_msg_omnidirectional_flow_send(MAVLINK_COMM_0, omnidirectional_flow.timestamp, omnidirectional_flow.sensor_id,
+			omnidirectional_flow.left, omnidirectional_flow.right, omnidirectional_flow.quality, omnidirectional_flow.front_distance_m);
+}
+
+void
+l_discrete_radar(const struct listener *l)
+{
+	struct discrete_radar_s discrete_radar;
+
+	orb_copy(ORB_ID(discrete_radar), mavlink_subs.discrete_radar, &discrete_radar);
+
+	mavlink_msg_discrete_radar_send(MAVLINK_COMM_0, discrete_radar.timestamp, 5,
+			discrete_radar.distances, discrete_radar.sonar, 1);
 }
 
 void
@@ -723,7 +749,7 @@ uorb_receive_start(void)
 
 	/* --- LOCAL SETPOINT VALUE --- */
 	mavlink_subs.spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	orb_set_interval(mavlink_subs.spl_sub, 2000);	/* 0.5 Hz updates */
+	orb_set_interval(mavlink_subs.spl_sub, 1000);	/* 0.5 Hz updates */
 
 	/* --- ATTITUDE SETPOINT VALUE --- */
 	mavlink_subs.spa_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
@@ -761,9 +787,17 @@ uorb_receive_start(void)
 	mavlink_subs.debug_key_value = orb_subscribe(ORB_ID(debug_key_value));
 	orb_set_interval(mavlink_subs.debug_key_value, 100);	/* 10Hz updates */
 
-	/* --- FLOW SENSOR --- */
+	/* --- OPTICAL FLOW SENSOR --- */
 	mavlink_subs.optical_flow = orb_subscribe(ORB_ID(optical_flow));
-	orb_set_interval(mavlink_subs.optical_flow, 200); 	/* 5Hz updates */
+	orb_set_interval(mavlink_subs.optical_flow, 2000); 	/* 5Hz updates */
+
+	/* --- OMNIDIRECTIONAL FLOW SENSOR --- */
+	mavlink_subs.omnidirectional_flow = orb_subscribe(ORB_ID(omnidirectional_flow));
+	orb_set_interval(mavlink_subs.omnidirectional_flow, 200000); 	/* 5Hz updates */
+
+	/* --- DISCRETE RADAR ESTIMATIONS --- */
+	mavlink_subs.discrete_radar = orb_subscribe(ORB_ID(discrete_radar));
+	orb_set_interval(mavlink_subs.discrete_radar, 200000); 	/* 5Hz updates */
 
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;

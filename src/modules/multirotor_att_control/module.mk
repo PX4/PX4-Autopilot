@@ -39,4 +39,5 @@ MODULE_COMMAND	= multirotor_att_control
 
 SRCS		= multirotor_att_control_main.c \
 		  multirotor_attitude_control.c \
-		  multirotor_rate_control.c
+		  multirotor_rate_control.c \
+		  multirotor_att_control_params.c

@@ -132,63 +132,63 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		float param2, float param3, float param4, float param5_lat_x,
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command)
 {
-	static orb_advert_t global_position_setpoint_pub = -1;
-	static orb_advert_t local_position_setpoint_pub = -1;
+	static orb_advert_t global_waypoint_pub = -1;
+	static orb_advert_t local_waypoint_pub = -1;
 	char buf[50] = {0};
 
 	/* Update controller setpoints */
 	if (frame == (int)MAV_FRAME_GLOBAL) {
 		/* global, absolute waypoint */
-		struct vehicle_global_position_setpoint_s sp;
-		sp.lat = param5_lat_x * 1e7f;
-		sp.lon = param6_lon_y * 1e7f;
-		sp.altitude = param7_alt_z;
-		sp.altitude_is_relative = false;
-		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		struct vehicle_global_waypoint_s wp;
+		wp.lat = param5_lat_x * 1e7f;
+		wp.lon = param6_lon_y * 1e7f;
+		wp.altitude = param7_alt_z;
+		wp.altitude_is_relative = false;
+		wp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
 
 		/* Initialize publication if necessary */
-		if (global_position_setpoint_pub < 0) {
-			global_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &sp);
+		if (global_waypoint_pub < 0) {
+			global_waypoint_pub = orb_advertise(ORB_ID(vehicle_global_waypoint), &wp);
 
 		} else {
-			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+			orb_publish(ORB_ID(vehicle_global_waypoint), global_waypoint_pub, &wp);
 		}
 
 		sprintf(buf, "[mp] WP#%i lat: % 3.6f/lon % 3.6f/alt % 4.6f/hdg %3.4f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
 	} else if (frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 		/* global, relative alt (in relation to HOME) waypoint */
-		struct vehicle_global_position_setpoint_s sp;
-		sp.lat = param5_lat_x * 1e7f;
-		sp.lon = param6_lon_y * 1e7f;
-		sp.altitude = param7_alt_z;
-		sp.altitude_is_relative = true;
-		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		struct vehicle_global_waypoint_s wp;
+		wp.lat = param5_lat_x * 1e7f;
+		wp.lon = param6_lon_y * 1e7f;
+		wp.altitude = param7_alt_z;
+		wp.altitude_is_relative = true;
+		wp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
 
 		/* Initialize publication if necessary */
-		if (global_position_setpoint_pub < 0) {
-			global_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &sp);
+		if (global_waypoint_pub < 0) {
+			global_waypoint_pub = orb_advertise(ORB_ID(vehicle_global_waypoint), &wp);
 
 		} else {
-			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
+			orb_publish(ORB_ID(vehicle_global_waypoint), global_waypoint_pub, &wp);
 		}
 
 		sprintf(buf, "[mp] WP#%i (lat: %f/lon %f/rel alt %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
 	} else if (frame == (int)MAV_FRAME_LOCAL_ENU || frame == (int)MAV_FRAME_LOCAL_NED) {
 		/* local, absolute waypoint */
-		struct vehicle_local_position_setpoint_s sp;
-		sp.x = param5_lat_x;
-		sp.y = param6_lon_y;
-		sp.z = param7_alt_z;
-		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		struct vehicle_local_waypoint_s wp;
+		wp.x = param5_lat_x;
+		wp.y = param6_lon_y;
+		wp.z = param7_alt_z;
+		wp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
 
 		/* Initialize publication if necessary */
-		if (local_position_setpoint_pub < 0) {
-			local_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &sp);
+		if (local_waypoint_pub < 0) {
+			local_waypoint_pub = orb_advertise(ORB_ID(vehicle_local_waypoint), &wp);
 
 		} else {
-			orb_publish(ORB_ID(vehicle_local_position_setpoint), local_position_setpoint_pub, &sp);
+			orb_publish(ORB_ID(vehicle_local_waypoint), local_waypoint_pub, &wp);
 		}
 
 		sprintf(buf, "[mp] WP#%i (x: %f/y %f/z %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);

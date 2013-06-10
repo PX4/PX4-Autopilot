@@ -132,10 +132,12 @@ function ImportPX4LogData()
     logFormat{17} = struct('name', 'rot_matrix',           'bytes', 4, 'array', 9, 'precision', 'float',   'machineformat', 'ieee-le');
     logFormat{18} = struct('name', 'vicon_position',       'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
     logFormat{19} = struct('name', 'actuator_control',     'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{20} = struct('name', 'optical_flow',         'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{21} = struct('name', 'diff_pressure',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{22} = struct('name', 'ind_airspeed',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{23} = struct('name', 'true_airspeed',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+	logFormat{20} = struct('name', 'optical_flow',         'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
+	logFormat{21} = struct('name', 'omnidirectional_flow', 'bytes', 4, 'array', 22,'precision', 'float',   'machineformat', 'ieee-le');
+	logFormat{22} = struct('name', 'discrete_radar',       'bytes', 4, 'array', 32,'precision', 'float',   'machineformat', 'ieee-le');
+	logFormat{23} = struct('name', 'diff_pressure',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+	logFormat{24} = struct('name', 'ind_airspeed',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
+	logFormat{25} = struct('name', 'true_airspeed',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
 
     % First get length of one line
     columns = length(logFormat);
@@ -319,7 +321,7 @@ function DrawRawData()
     title(h.axes(2),'Magnetometers [Gauss]');
     legend(h.axes(2),'x','y','z');
     plot(h.axes(3),time(imintime:imaxtime),sysvector.accel(imintime:imaxtime,:));
-    title(h.axes(3),'Accelerometers [m/s²]');
+    title(h.axes(3),'Accelerometers [m/sï¿½]');
     legend(h.axes(3),'x','y','z');
     plot(h.axes(4),time(imintime:imaxtime),sysvector.gyro(imintime:imaxtime,:));
     title(h.axes(4),'Gyroscopes [rad/s]');
@@ -349,7 +351,7 @@ function DrawRawData()
     legend(h.axes(7),'0','1','2','3');
     %Actuator Controls
     plot(h.axes(8),time(imintime:imaxtime), sysvector.actuators(imintime:imaxtime,1:8));
-    title(h.axes(8),'Actuator PWM (raw-)outputs [µs]');
+    title(h.axes(8),'Actuator PWM (raw-)outputs [ï¿½s]');
     legend(h.axes(8),'CH1','CH2','CH3','CH4','CH5','CH6','CH7','CH8');
     set(h.axes(8), 'YLim',[800 2200]);
     %Airspeeds
@@ -361,9 +363,9 @@ function DrawRawData()
     title(h.axes(9),'Airspeed [m/s]');
     legend(h.axes(9),'Indicated Airspeed (IAS)','True Airspeed (TAS)','GPS Airspeed');
     %calculate time differences and plot them
-    intervals = zeros(0,imaxtime - imintime);
+    intervals = zeros(1,imaxtime - imintime);
     for k = imintime+1:imaxtime
-        intervals(k) = time(k) - time(k-1);
+        intervals(k-imintime+1) = time(k) - time(k-1);
     end
     plot(h.axes(10), time(imintime:imaxtime), intervals);
 
@@ -385,13 +387,13 @@ function DrawCurrentAircraftState()
     %**********************************************************************
     % Current aircraft state label update
     %**********************************************************************
-    acstate{1,:}=[sprintf('%s \t\t','GPS Pos:'),'[lat=',num2str(double(sysvector.gps_raw_position(i,1))*fconv_gpslatlong),'°, ',...
-                        'lon=',num2str(double(sysvector.gps_raw_position(i,2))*fconv_gpslatlong),'°, ',...
+    acstate{1,:}=[sprintf('%s \t\t','GPS Pos:'),'[lat=',num2str(double(sysvector.gps_raw_position(i,1))*fconv_gpslatlong),'ï¿½, ',...
+                        'lon=',num2str(double(sysvector.gps_raw_position(i,2))*fconv_gpslatlong),'ï¿½, ',...
                         'alt=',num2str(double(sysvector.gps_raw_position(i,3))*fconv_gpsalt),'m]'];
     acstate{2,:}=[sprintf('%s \t\t','Mags[gauss]'),'[x=',num2str(sysvector.mag(i,1)),...
                                ', y=',num2str(sysvector.mag(i,2)),...
                                ', z=',num2str(sysvector.mag(i,3)),']'];
-    acstate{3,:}=[sprintf('%s \t\t','Accels[m/s²]'),'[x=',num2str(sysvector.accel(i,1)),...
+    acstate{3,:}=[sprintf('%s \t\t','Accels[m/sï¿½]'),'[x=',num2str(sysvector.accel(i,1)),...
                                ', y=',num2str(sysvector.accel(i,2)),...
                                ', z=',num2str(sysvector.accel(i,3)),']'];
     acstate{4,:}=[sprintf('%s \t\t','Gyros[rad/s]'),'[x=',num2str(sysvector.gyro(i,1)),...
@@ -406,7 +408,7 @@ function DrawCurrentAircraftState()
         acstate{7,:}=[acstate{7,:},num2str(sysvector.actuator_control(i,j)),','];
     end
     acstate{7,:}=[acstate{7,:},']'];
-    acstate{8,:}=sprintf('%s \t[','Actuator Outputs [PWM/µs]:');
+    acstate{8,:}=sprintf('%s \t[','Actuator Outputs [PWM/ï¿½s]:');
     for j=1:8
         acstate{8,:}=[acstate{8,:},num2str(sysvector.actuators(i,j)),','];
     end

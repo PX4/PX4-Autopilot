@@ -67,3 +67,10 @@
  * The script is terminated by a zero command.
  */
 #define BLINKM_SET_USER_SCRIPT		_BLINKMIOC(3)
+
+enum runModes {
+	OFF_MODE = 0,
+	SYSTEMSTATE_MODE,
+	COLLITIONSTATE_MODE,
+	NOT_USED
+};

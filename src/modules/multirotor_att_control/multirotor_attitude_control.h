@@ -50,8 +50,10 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
+#include "multirotor_att_control_params.h"
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-				 const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position);
+		const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp,
+		bool control_yaw_position, struct multirotor_att_control_params *params, bool params_updated);
 
 #endif /* MULTIROTOR_ATTITUDE_CONTROL_H_ */

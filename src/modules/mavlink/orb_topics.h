@@ -50,11 +50,15 @@
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_local_waypoint.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
+#include <uORB/topics/vehicle_global_waypoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/omnidirectional_flow.h>
+#include <uORB/topics/discrete_radar.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_controls.h>
@@ -81,6 +85,8 @@ struct mavlink_subscriptions {
 	int debug_key_value;
 	int input_rc_sub;
 	int optical_flow;
+	int omnidirectional_flow;
+	int discrete_radar;
 	int rates_setpoint_sub;
 	int home_sub;
 };

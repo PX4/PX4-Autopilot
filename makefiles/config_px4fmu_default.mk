@@ -56,6 +56,7 @@ MODULES		+= systemcmds/tests
 MODULES		+= modules/commander
 MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
+MODULES		+= modules/mavlink_onboard2
 MODULES		+= modules/gpio_led
 
 #
@@ -65,7 +66,10 @@ MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/attitude_estimator_so3_comp
 #MODULES		+= modules/position_estimator_mc
 MODULES		+= modules/position_estimator
+MODULES		+= modules/position_estimator_flow
 MODULES		+= modules/att_pos_estimator_ekf
+MODULES		+= modules/flow_position_estimator
+MODULES		+= modules/radar_flow
 
 #
 # Vehicle Control
@@ -75,6 +79,10 @@ MODULES		+= modules/fixedwing_att_control
 MODULES		+= modules/fixedwing_pos_control
 MODULES		+= modules/multirotor_att_control
 MODULES		+= modules/multirotor_pos_control
+MODULES		+= modules/multirotor_pos_control_flow
+MODULES		+= modules/flow_position_control
+MODULES		+= modules/flow_speed_control
+MODULES		+= modules/mission_commander_flow
 
 #
 # Logging

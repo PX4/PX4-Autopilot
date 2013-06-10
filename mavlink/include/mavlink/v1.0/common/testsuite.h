@@ -3939,6 +3939,57 @@ static void mavlink_test_omnidirectional_flow(uint8_t system_id, uint8_t compone
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }
 
+static void mavlink_test_discrete_radar(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
+{
+	mavlink_message_t msg;
+        uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+        uint16_t i;
+	mavlink_discrete_radar_t packet_in = {
+		93372036854775807ULL,
+	73.0,
+	{ 17859, 17860, 17861, 17862, 17863, 17864, 17865, 17866, 17867, 17868, 17869, 17870, 17871, 17872, 17873, 17874, 17875, 17876, 17877, 17878, 17879, 17880, 17881, 17882, 17883, 17884, 17885, 17886, 17887, 17888, 17889, 17890 },
+	233,
+	44,
+	};
+	mavlink_discrete_radar_t packet1, packet2;
+        memset(&packet1, 0, sizeof(packet1));
+        	packet1.time_usec = packet_in.time_usec;
+        	packet1.sonar = packet_in.sonar;
+        	packet1.sensor_id = packet_in.sensor_id;
+        	packet1.quality = packet_in.quality;
+        
+        	mav_array_memcpy(packet1.distances, packet_in.distances, sizeof(int16_t)*32);
+        
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_discrete_radar_encode(system_id, component_id, &msg, &packet1);
+	mavlink_msg_discrete_radar_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_discrete_radar_pack(system_id, component_id, &msg , packet1.time_usec , packet1.sensor_id , packet1.distances , packet1.sonar , packet1.quality );
+	mavlink_msg_discrete_radar_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_discrete_radar_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.time_usec , packet1.sensor_id , packet1.distances , packet1.sonar , packet1.quality );
+	mavlink_msg_discrete_radar_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+        mavlink_msg_to_send_buffer(buffer, &msg);
+        for (i=0; i<mavlink_msg_get_send_buffer_length(&msg); i++) {
+        	comm_send_ch(MAVLINK_COMM_0, buffer[i]);
+        }
+	mavlink_msg_discrete_radar_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+        
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_discrete_radar_send(MAVLINK_COMM_1 , packet1.time_usec , packet1.sensor_id , packet1.distances , packet1.sonar , packet1.quality );
+	mavlink_msg_discrete_radar_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+}
+
 static void mavlink_test_file_transfer_start(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
 {
 	mavlink_message_t msg;
@@ -4616,6 +4667,7 @@ static void mavlink_test_common(uint8_t system_id, uint8_t component_id, mavlink
 	mavlink_test_vicon_position_estimate(system_id, component_id, last_msg);
 	mavlink_test_highres_imu(system_id, component_id, last_msg);
 	mavlink_test_omnidirectional_flow(system_id, component_id, last_msg);
+	mavlink_test_discrete_radar(system_id, component_id, last_msg);
 	mavlink_test_file_transfer_start(system_id, component_id, last_msg);
 	mavlink_test_file_transfer_dir_list(system_id, component_id, last_msg);
 	mavlink_test_file_transfer_res(system_id, component_id, last_msg);

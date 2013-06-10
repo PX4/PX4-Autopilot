@@ -86,6 +86,9 @@ ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 #include "topics/vehicle_local_position.h"
 ORB_DEFINE(vehicle_local_position, struct vehicle_local_position_s);
 
+#include "topics/vehicle_bodyframe_position.h"
+ORB_DEFINE(vehicle_bodyframe_position, struct vehicle_bodyframe_position_s);
+
 #include "topics/vehicle_vicon_position.h"
 ORB_DEFINE(vehicle_vicon_position, struct vehicle_vicon_position_s);
 
@@ -100,6 +103,18 @@ ORB_DEFINE(vehicle_command, struct vehicle_command_s);
 
 #include "topics/vehicle_local_position_setpoint.h"
 ORB_DEFINE(vehicle_local_position_setpoint, struct vehicle_local_position_setpoint_s);
+
+#include "topics/vehicle_bodyframe_position_setpoint.h"
+ORB_DEFINE(vehicle_bodyframe_position_setpoint, struct vehicle_bodyframe_position_setpoint_s);
+
+#include "topics/vehicle_bodyframe_speed_setpoint.h"
+ORB_DEFINE(vehicle_bodyframe_speed_setpoint, struct vehicle_bodyframe_speed_setpoint_s);
+
+#include "topics/vehicle_global_waypoint.h"
+ORB_DEFINE(vehicle_global_waypoint, struct vehicle_global_waypoint_s);
+
+#include "topics/vehicle_local_waypoint.h"
+ORB_DEFINE(vehicle_local_waypoint, struct vehicle_local_waypoint_s);
 
 #include "topics/vehicle_global_position_setpoint.h"
 ORB_DEFINE(vehicle_global_position_setpoint, struct vehicle_global_position_setpoint_s);
@@ -121,6 +136,9 @@ ORB_DEFINE(optical_flow, struct optical_flow_s);
 
 #include "topics/omnidirectional_flow.h"
 ORB_DEFINE(omnidirectional_flow, struct omnidirectional_flow_s);
+
+#include "topics/discrete_radar.h"
+ORB_DEFINE(discrete_radar, struct discrete_radar_s);
 
 #include "topics/airspeed.h"
 ORB_DEFINE(airspeed, struct airspeed_s);

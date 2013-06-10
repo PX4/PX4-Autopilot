@@ -53,112 +53,12 @@
 #include <systemlib/pid/pid.h>
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
+#include "multirotor_att_control_params.h"
 
-PARAM_DEFINE_FLOAT(MC_YAWPOS_P, 0.3f);
-PARAM_DEFINE_FLOAT(MC_YAWPOS_I, 0.15f);
-PARAM_DEFINE_FLOAT(MC_YAWPOS_D, 0.0f);
-//PARAM_DEFINE_FLOAT(MC_YAWPOS_AWU, 1.0f);
-//PARAM_DEFINE_FLOAT(MC_YAWPOS_LIM, 3.0f);
-
-PARAM_DEFINE_FLOAT(MC_ATT_P, 0.2f);
-PARAM_DEFINE_FLOAT(MC_ATT_I, 0.0f);
-PARAM_DEFINE_FLOAT(MC_ATT_D, 0.05f);
-//PARAM_DEFINE_FLOAT(MC_ATT_AWU, 0.05f);
-//PARAM_DEFINE_FLOAT(MC_ATT_LIM, 0.4f);
-
-//PARAM_DEFINE_FLOAT(MC_ATT_XOFF, 0.0f);
-//PARAM_DEFINE_FLOAT(MC_ATT_YOFF, 0.0f);
-
-struct mc_att_control_params {
-	float yaw_p;
-	float yaw_i;
-	float yaw_d;
-	//float yaw_awu;
-	//float yaw_lim;
-
-	float att_p;
-	float att_i;
-	float att_d;
-	//float att_awu;
-	//float att_lim;
-
-	//float att_xoff;
-	//float att_yoff;
-};
-
-struct mc_att_control_param_handles {
-	param_t yaw_p;
-	param_t yaw_i;
-	param_t yaw_d;
-	//param_t yaw_awu;
-	//param_t yaw_lim;
-
-	param_t att_p;
-	param_t att_i;
-	param_t att_d;
-	//param_t att_awu;
-	//param_t att_lim;
-
-	//param_t att_xoff;
-	//param_t att_yoff;
-};
-
-/**
- * Initialize all parameter handles and values
- *
- */
-static int parameters_init(struct mc_att_control_param_handles *h);
-
-/**
- * Update all parameters
- *
- */
-static int parameters_update(const struct mc_att_control_param_handles *h, struct mc_att_control_params *p);
-
-
-static int parameters_init(struct mc_att_control_param_handles *h)
-{
-	/* PID parameters */
-	h->yaw_p 	=	param_find("MC_YAWPOS_P");
-	h->yaw_i 	=	param_find("MC_YAWPOS_I");
-	h->yaw_d 	=	param_find("MC_YAWPOS_D");
-	//h->yaw_awu 	=	param_find("MC_YAWPOS_AWU");
-	//h->yaw_lim 	=	param_find("MC_YAWPOS_LIM");
-
-	h->att_p 	= 	param_find("MC_ATT_P");
-	h->att_i 	= 	param_find("MC_ATT_I");
-	h->att_d 	= 	param_find("MC_ATT_D");
-	//h->att_awu 	= 	param_find("MC_ATT_AWU");
-	//h->att_lim 	= 	param_find("MC_ATT_LIM");
-
-	//h->att_xoff 	= 	param_find("MC_ATT_XOFF");
-	//h->att_yoff 	= 	param_find("MC_ATT_YOFF");
-
-	return OK;
-}
-
-static int parameters_update(const struct mc_att_control_param_handles *h, struct mc_att_control_params *p)
-{
-	param_get(h->yaw_p, &(p->yaw_p));
-	param_get(h->yaw_i, &(p->yaw_i));
-	param_get(h->yaw_d, &(p->yaw_d));
-	//param_get(h->yaw_awu, &(p->yaw_awu));
-	//param_get(h->yaw_lim, &(p->yaw_lim));
-
-	param_get(h->att_p, &(p->att_p));
-	param_get(h->att_i, &(p->att_i));
-	param_get(h->att_d, &(p->att_d));
-	//param_get(h->att_awu, &(p->att_awu));
-	//param_get(h->att_lim, &(p->att_lim));
-
-	//param_get(h->att_xoff, &(p->att_xoff));
-	//param_get(h->att_yoff, &(p->att_yoff));
-
-	return OK;
-}
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-				 const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position)
+		const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp,
+		bool control_yaw_position, struct multirotor_att_control_params *params, bool params_updated)
 {
 	static uint64_t last_run = 0;
 	static uint64_t last_input = 0;
@@ -177,9 +77,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	static PID_t pitch_controller;
 	static PID_t roll_controller;
-
-	static struct mc_att_control_params p;
-	static struct mc_att_control_param_handles h;
+	static PID_t yaw_controller;
 
 	static bool initialized = false;
 
@@ -187,33 +85,31 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	/* initialize the pid controllers when the function is called for the first time */
 	if (initialized == false) {
-		parameters_init(&h);
-		parameters_update(&h, &p);
 
-		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f,
-			 1000.0f, PID_MODE_DERIVATIV_SET);
-		pid_init(&roll_controller, p.att_p, p.att_i, p.att_d, 1000.0f,
-			 1000.0f, PID_MODE_DERIVATIV_SET);
+		pid_init(&pitch_controller, params->att_p, params->att_i, params->att_d, 1000.0f,
+				1000.0f, PID_MODE_DERIVATIV_SET);
+		pid_init(&roll_controller, params->att_p, params->att_i, params->att_d, 1000.0f,
+				1000.0f, PID_MODE_DERIVATIV_SET);
+		pid_init(&yaw_controller, params->yaw_p, params->yaw_i, params->yaw_d, params->yaw_intmax,
+				1000.0f, PID_MODE_DERIVATIV_SET);
 
 		initialized = true;
 	}
 
 	/* load new parameters with lower rate */
-	if (motor_skip_counter % 500 == 0) {
-		/* update parameters from storage */
-		parameters_update(&h, &p);
-
+	if (params_updated) {
 		/* apply parameters */
-		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
-		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
+		pid_set_parameters(&pitch_controller, params->att_p, params->att_i, params->att_d, 1000.0f, 1000.0f);
+		pid_set_parameters(&roll_controller, params->att_p, params->att_i, params->att_d, 1000.0f, 1000.0f);
+		pid_set_parameters(&yaw_controller, params->yaw_p, params->yaw_i, params->yaw_d, params->yaw_intmax, 1000.0f);
 	}
 
 	/* reset integral if on ground */
 	if (att_sp->thrust < 0.1f) {
 		pid_reset_integral(&pitch_controller);
 		pid_reset_integral(&roll_controller);
+		pid_reset_integral(&yaw_controller);
 	}
-
 
 	/* calculate current control outputs */
 
@@ -228,10 +124,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	if (control_yaw_position) {
 		/* control yaw rate */
 
-		/* positive error: rotate to right, negative error, rotate to left (NED frame) */
-		// yaw_error = _wrap_pi(att_sp->yaw_body - att->yaw);
-
-		yaw_error = att_sp->yaw_body - att->yaw;
+		yaw_error = att->yaw - att_sp->yaw_body;
 
 		if (yaw_error > M_PI_F) {
 			yaw_error -= M_TWOPI_F;
@@ -240,7 +133,8 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 			yaw_error += M_TWOPI_F;
 		}
 
-		rates_sp->yaw = p.yaw_p * (yaw_error) - (p.yaw_d * att->yawspeed);
+		rates_sp->yaw = pid_calculate(&yaw_controller, 0.0f, yaw_error, att->yawspeed, deltaT);
+
 	}
 
 	rates_sp->thrust = att_sp->thrust;
