@@ -294,8 +294,7 @@ mixer_handle_text(const void *buffer, size_t length)
 	case F2I_MIXER_ACTION_APPEND:
 		isr_debug(2, "append %d", length);
 
-		/* check for overflow - this is really fatal */
-		/* XXX could add just what will fit & try to parse, then repeat... */
+		/* check for overflow - this would be really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text)) {
 			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
 			return;
@@ -314,8 +313,13 @@ mixer_handle_text(const void *buffer, size_t length)
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
 
-			/* ideally, this should test resid == 0 ? */
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_MIXER_OK;
+			/* only set mixer ok if no residual is left over */
+			if (resid == 0) {
+				r_status_flags |= PX4IO_P_STATUS_FLAGS_MIXER_OK;
+			} else {
+				/* not yet reached the end of the mixer, set as not ok */
+				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_MIXER_OK;
+			}
 
 			isr_debug(2, "used %u", mixer_text_length - resid);
 
@@ -338,11 +342,13 @@ mixer_set_failsafe()
 {
 	/* 
 	 * Check if a custom failsafe value has been written,
-	 * else use the opportunity to set decent defaults.
+	 * or if the mixer is not ok and bail out.
 	 */
-	if (r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)
+	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) ||
+		!(r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))
 		return;
 
+	/* set failsafe defaults to the values for all inputs = 0 */
 	float	outputs[IO_SERVO_COUNT];
 	unsigned mixed;
 

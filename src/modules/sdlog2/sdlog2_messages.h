@@ -132,6 +132,41 @@ struct log_GPS_s {
 	float vel_d;
 	float cog;
 };
+
+/* --- ATTC - ATTITUDE CONTROLS (ACTUATOR_0 CONTROLS)--- */
+#define LOG_ATTC_MSG 9
+struct log_ATTC_s {
+	float roll;
+	float pitch;
+	float yaw;
+	float thrust;
+};
+
+/* --- STAT - VEHICLE STATE --- */
+#define LOG_STAT_MSG 10
+struct log_STAT_s {
+	unsigned char state;
+	unsigned char flight_mode;
+	unsigned char manual_control_mode;
+	unsigned char manual_sas_mode;
+	unsigned char armed;
+	float battery_voltage;
+	float battery_current;
+	float battery_remaining;
+	unsigned char battery_warning;
+};
+
+/* --- RC - RC INPUT CHANNELS --- */
+#define LOG_RC_MSG 11
+struct log_RC_s {
+	float channel[8];
+};
+
+/* --- OUT0 - ACTUATOR_0 OUTPUT --- */
+#define LOG_OUT0_MSG 12
+struct log_OUT0_s {
+	float output[8];
+};
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -145,6 +180,10 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,Heading,HomeLat,HomeLon,HomeAlt"),
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
+	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
+	LOG_FORMAT(STAT, "BBBBBfffB", "State,FlightMode,CtlMode,SASMode,Armed,BatV,BatC,BatRem,BatWarn"),
+	LOG_FORMAT(RC, "ffffffff", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7"),
+	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
