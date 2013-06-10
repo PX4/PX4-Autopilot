@@ -1,7 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
+ *   		 Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +35,7 @@
 
 /**
  * @file vehicle_bodyframe_speed_setpoint.h
- * Definition of the bodyframe NED speed setpoint uORB topic.
+ * Definition of the bodyframe speed setpoint uORB topic.
  */
 
 #ifndef TOPIC_VEHICLE_BODYFRAME_SPEED_SETPOINT_H_
@@ -51,12 +52,12 @@ struct vehicle_bodyframe_speed_setpoint_s
 {
 	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
 
-	float vx;		/**< in m/s NED			  		*/
-	float vy;		/**< in m/s NED			  		*/
-//	float vz;		/**< in m/s NED			  		*/
+	float vx;		/**< in m/s				  		*/
+	float vy;		/**< in m/s				  		*/
+//	float vz;		/**< in m/s				  		*/
 	float thrust_sp;
-	float yaw_sp;	/**< in radian NED	-PI +PI		*/
-}; /**< Bodyframe speed in NED frame to go to */
+	float yaw_sp;	/**< in radian		-PI +PI		*/
+}; /**< Speed in bodyframe to go to */
 
 /**
  * @}

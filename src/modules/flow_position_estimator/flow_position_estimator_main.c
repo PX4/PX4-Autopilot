@@ -1,8 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *   		 Samuel Zihlmann <samuezih@ee.ethz.ch
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
+ *   		 Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

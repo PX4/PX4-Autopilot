@@ -1,9 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
+ *   		 Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +35,7 @@
 
 /**
  * @file vehicle_bodyframe_position_setpoint.h
- * Definition of the bodyframe NED position setpoint uORB topic.
+ * Definition of the bodyframe position setpoint uORB topic.
  */
 
 #ifndef TOPIC_VEHICLE_BODYFRAME_POSITION_SETPOINT_H_
@@ -51,11 +50,11 @@
 
 struct vehicle_bodyframe_position_setpoint_s
 {
-	float x;		/**< in meters NED			  		*/
-	float y;		/**< in meters NED			  		*/
-	float z;		/**< in meters NED			  		*/
-	float yaw;		/**< in radians NED -PI..+PI  		*/
-}; /**< Bodyframe position in NED frame to go to */
+	float x;		/**< in meters			  		*/
+	float y;		/**< in meters			  		*/
+	float z;		/**< in meters			  		*/
+	float yaw;		/**< in radians -PI..+PI  		*/
+}; /**< Position in bodyframe to go to */
 
 /**
  * @}

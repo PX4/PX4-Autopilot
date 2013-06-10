@@ -1,7 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
+ *   		 Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +35,7 @@
 
 /**
  * @file vehicle_bodyframe_position.h
- * Definition of the bodyframe NED position uORB topic.
+ * Definition of the bodyframe position uORB topic.
  */
 
 #ifndef TOPIC_VEHICLE_BODYFRAME_POSITION_H_
@@ -50,30 +51,30 @@
  */
 
 /**
- * Bodyframe position in NED.
+ * Position in bodyframe.
  */
 struct vehicle_bodyframe_position_s
 {
 	uint64_t timestamp;		/**< time of this estimate, in microseconds since system start */
 	bool valid;				/**< true if position satisfies validity criteria of estimator */
 
-	float x;				/**< X positin in meters in NED earth-fixed frame */
-	float y;				/**< X positin in meters in NED earth-fixed frame */
-	float z;				/**< Z positin in meters in NED earth-fixed frame (negative altitude) */
-	float absolute_alt;		/**< Altitude as defined by pressure / GPS, 			LOGME */
-	float vx; 				/**< Ground X Speed (Latitude), m/s in NED				LOGME */
-	float vy;				/**< Ground Y Speed (Longitude), m/s in NED				LOGME */
-	float vz;				/**< Ground Z Speed (Altitude), m/s	in NED				LOGME */
-	float hdg; 				/**< Compass heading in radians -PI..+PI.					  */
+	float x;				/**< X positin in meters in bodyframe 						   */
+	float y;				/**< X positin in meters in bodyframe						   */
+	float z;				/**< Z positin in meters in bodyframe (negative altitude) 	   */
+	float absolute_alt;		/**< Altitude as defined by pressure / GPS, 			LOGME  */
+	float vx; 				/**< Ground X Speed (Latitude), m/s						LOGME  */
+	float vy;				/**< Ground Y Speed (Longitude), m/s 					LOGME  */
+	float vz;				/**< Ground Z Speed (Altitude), m/s						LOGME  */
+	float hdg; 				/**< Compass heading in radians -PI..+PI.					   */
 
 	// TODO Add covariances here
 
 	/* Reference position in GPS / WGS84 frame */
-	uint64_t home_timestamp;/**< Time when home position was set						  */
-	int32_t home_lat;		/**< Latitude in 1E7 degrees							LOGME */
-	int32_t home_lon;		/**< Longitude in 1E7 degrees							LOGME */
-	float home_alt;			/**< Altitude in meters									LOGME */
-	float home_hdg; 		/**< Compass heading in radians -PI..+PI.					  */
+	uint64_t home_timestamp;/**< Time when home position was set						   */
+	int32_t home_lat;		/**< Latitude in 1E7 degrees							LOGME  */
+	int32_t home_lon;		/**< Longitude in 1E7 degrees							LOGME  */
+	float home_alt;			/**< Altitude in meters									LOGME  */
+	float home_hdg; 		/**< Compass heading in radians -PI..+PI.					   */
 
 };
 
