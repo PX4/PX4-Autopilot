@@ -184,7 +184,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 	parameters_init(&param_handles);
 	parameters_update(&param_handles, &params);
 
-	//TODO init
+	/* init bodyframe position setpoint */
 	bodyframe_pos_sp.x = 0.0f;
 	bodyframe_pos_sp.y = 0.0f;
 	bodyframe_pos_sp.yaw = 0.0f;
@@ -193,7 +193,6 @@ flow_position_control_thread_main(int argc, char *argv[])
 	float integrated_h_error = 0.0f;
 	float last_height = 0.0f;
 	float thrust_limit_upper = params.limit_thrust_upper; // it will be updated with manual input
-	bool bodyframe_setpoint_valid = false;
 	bool update_bodyframe_position_sp_x = false;
 	bool update_bodyframe_position_sp_y = false;
 
@@ -223,12 +222,11 @@ flow_position_control_thread_main(int argc, char *argv[])
 			{
 				/* poll error, count it in perf */
 				perf_count(mc_err_perf);
-
 			}
 			else if (ret == 0)
 			{
 				/* no return value, ignore */
-				printf("[flow position control] no bodyframe position updates\n"); // XXX wrong place
+//				printf("[flow position control] no bodyframe position updates\n");
 			}
 			else
 			{
@@ -259,180 +257,156 @@ flow_position_control_thread_main(int argc, char *argv[])
 
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO)
 					{
-//						/* be sure that we have a valid setpoint to the current position
-//						 * can be a setpoint referring to the old position (wait one update)
-//						 * */
-//						if(!bodyframe_setpoint_valid) {
-//							/* if setpoint is invalid, wait until setpoint changes... */
-//							bool new_setpoint =  false;
-//							orb_check(vehicle_bodyframe_position_setpoint_sub, &new_setpoint);
-//							if (new_setpoint) {
-//								bodyframe_setpoint_valid = true;
-//							}
-//						}
-//
-//						if (bodyframe_setpoint_valid) {
-//							/* get a local copy of bodyframe position setpoint */
-//							orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
+						/* update bodyframe position according to manual input */
+						if (update_bodyframe_position_sp_x)
+						{
+							bodyframe_pos_sp.x = bodyframe_pos.x;
+							update_bodyframe_position_sp_x = false;
+						}
+						if (update_bodyframe_position_sp_y)
+						{
+							bodyframe_pos_sp.y = bodyframe_pos.y;
+							update_bodyframe_position_sp_y = false;
+						}
 
-							/* update bodyframe position according to manual input */
-							if (update_bodyframe_position_sp_x)
+						/* calc new roll/pitch */
+						float speed_body_x = (bodyframe_pos_sp.x - bodyframe_pos.x) * params.pos_p - bodyframe_pos.vx * params.pos_d;
+						float speed_body_y = (bodyframe_pos_sp.y - bodyframe_pos.y) * params.pos_p - bodyframe_pos.vy * params.pos_d;
+
+						/* overwrite with rc input if there is any */
+						if(isfinite(manual.pitch) && isfinite(manual.roll))
+						{
+							if(fabsf(manual.pitch) > params.manual_xy_min_abs)
 							{
-								bodyframe_pos_sp.x = bodyframe_pos.x;
-								update_bodyframe_position_sp_x = false;
-							}
-							if (update_bodyframe_position_sp_y)
-							{
-								bodyframe_pos_sp.y = bodyframe_pos.y;
-								update_bodyframe_position_sp_y = false;
+								speed_body_x = -manual.pitch / params.manual_xy_max_abs * params.limit_speed_x;
+								update_bodyframe_position_sp_x = true;
 							}
 
-							/* calc new roll/pitch */
-							float speed_body_x = (bodyframe_pos_sp.x - bodyframe_pos.x) * params.pos_p - bodyframe_pos.vx * params.pos_d;
-							float speed_body_y = (bodyframe_pos_sp.y - bodyframe_pos.y) * params.pos_p - bodyframe_pos.vy * params.pos_d;
-
-							/* overwrite with rc input if there is any */
-							if(isfinite(manual.pitch) && isfinite(manual.roll))
+							if(fabsf(manual.roll) > params.manual_xy_min_abs)
 							{
-								if(fabsf(manual.pitch) > params.manual_xy_min_abs)
-								{
-									speed_body_x = -manual.pitch / params.manual_xy_max_abs * params.limit_speed_x;
-									update_bodyframe_position_sp_x = true;
-								}
-
-								if(fabsf(manual.roll) > params.manual_xy_min_abs)
-								{
-									speed_body_y = manual.roll / params.manual_xy_max_abs * params.limit_speed_y;
-									update_bodyframe_position_sp_y = true;
-								}
+								speed_body_y = manual.roll / params.manual_xy_max_abs * params.limit_speed_y;
+								update_bodyframe_position_sp_y = true;
 							}
+						}
 
-							/* limit speed setpoints */
-							if((speed_body_x <= params.limit_speed_x) && (speed_body_x >= -params.limit_speed_x))
+						/* limit speed setpoints */
+						if((speed_body_x <= params.limit_speed_x) && (speed_body_x >= -params.limit_speed_x))
+						{
+							speed_sp.vx = speed_body_x;
+						}
+						else
+						{
+							if(speed_body_x > params.limit_speed_x)
+								speed_sp.vx = params.limit_speed_x;
+							if(speed_body_x < -params.limit_speed_x)
+								speed_sp.vx = -params.limit_speed_x;
+						}
+
+						if((speed_body_y <= params.limit_speed_y) && (speed_body_y >= -params.limit_speed_y))
+						{
+							speed_sp.vy = speed_body_y;
+						}
+						else
+						{
+							if(speed_body_y > params.limit_speed_y)
+								speed_sp.vy = params.limit_speed_y;
+							if(speed_body_y < -params.limit_speed_y)
+								speed_sp.vy = -params.limit_speed_y;
+						}
+
+						/* manual yaw change */
+						if(isfinite(manual.yaw))
+						{
+							if(fabsf(manual.yaw) > params.manual_yaw_min_abs) // bigger threshold because of rc calibration for manual flight
 							{
-								speed_sp.vx = speed_body_x;
+								bodyframe_pos_sp.yaw += manual.yaw / params.manual_yaw_max_abs * params.limit_yaw_step;
+
+								/* modulo for rotation -pi +pi */
+								if(bodyframe_pos_sp.yaw < -M_PI_F)
+									bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + M_TWOPI_F;
+								else if(bodyframe_pos_sp.yaw > M_PI_F)
+									bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - M_TWOPI_F;
 							}
-							else
+						}
+
+						/* forward yaw setpoint */
+						speed_sp.yaw_sp = bodyframe_pos_sp.yaw;
+
+						/* calc new thrust */
+						float height_error = (bodyframe_pos.z - params.height_sp);
+						integrated_h_error = integrated_h_error + height_error;
+						float integrated_thrust_addition = integrated_h_error * params.height_i;
+
+						if(integrated_thrust_addition > params.limit_thrust_int)
+							integrated_thrust_addition = params.limit_thrust_int;
+						if(integrated_thrust_addition < -params.limit_thrust_int)
+							integrated_thrust_addition = -params.limit_thrust_int;
+
+						float height_speed = last_height - bodyframe_pos.z;
+						last_height = bodyframe_pos.z;
+						float thrust_diff = height_error * params.height_p - height_speed * params.height_d; // just PD controller
+						float thrust = thrust_diff + integrated_thrust_addition;
+
+						float height_ctrl_thrust = params.thrust_feedforward + thrust;
+
+						/* the throttle stick on the rc control limits the maximum thrust */
+						thrust_limit_upper = params.limit_thrust_upper;
+						if(isfinite(manual.throttle))
+						{
+							if (manual.throttle < thrust_limit_upper)
+								thrust_limit_upper = manual.throttle;
+						}
+
+						/* reset integral if on ground */
+						if (thrust_limit_upper < 0.2f)
+							integrated_h_error = 0.0f;
+
+						/* set thrust within controllable limits */
+						if(height_ctrl_thrust < params.limit_thrust_lower)
+							height_ctrl_thrust = params.limit_thrust_lower;
+						if(height_ctrl_thrust > thrust_limit_upper)
+							height_ctrl_thrust = thrust_limit_upper;
+
+						speed_sp.thrust_sp = height_ctrl_thrust;
+						speed_sp.timestamp = hrt_absolute_time();
+
+						/* publish new attitude setpoint */
+						if(isfinite(speed_sp.vx) && isfinite(speed_sp.vy) && isfinite(speed_sp.yaw_sp) && isfinite(speed_sp.thrust_sp))
+						{
+							debug_speed_sp.x = speed_sp.vx;
+							debug_speed_sp.y = speed_sp.vy;
+							debug_speed_sp.yaw = speed_sp.yaw_sp;
+							debug_speed_sp.z = speed_sp.thrust_sp;
+
+							if(speed_setpoint_adverted)
 							{
-								if(speed_body_x > params.limit_speed_x)
-									speed_sp.vx = params.limit_speed_x;
-								if(speed_body_x < -params.limit_speed_x)
-									speed_sp.vx = -params.limit_speed_x;
-							}
-
-							if((speed_body_y <= params.limit_speed_y) && (speed_body_y >= -params.limit_speed_y))
-							{
-								speed_sp.vy = speed_body_y;
-							}
-							else
-							{
-								if(speed_body_y > params.limit_speed_y)
-									speed_sp.vy = params.limit_speed_y;
-								if(speed_body_y < -params.limit_speed_y)
-									speed_sp.vy = -params.limit_speed_y;
-							}
-
-							/* manual yaw change */
-							if(isfinite(manual.yaw))
-							{
-								if(fabsf(manual.yaw) > params.manual_yaw_min_abs) // bigger threshold because of rc calibration for manual flight
-								{
-									bodyframe_pos_sp.yaw += manual.yaw / params.manual_yaw_max_abs * params.limit_yaw_step;
-
-									/* modulo for rotation -pi +pi */
-									if(bodyframe_pos_sp.yaw < -M_PI_F)
-										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw + M_TWOPI_F;
-									else if(bodyframe_pos_sp.yaw > M_PI_F)
-										bodyframe_pos_sp.yaw = bodyframe_pos_sp.yaw - M_TWOPI_F;
-								}
-							}
-
-							/* forward yaw setpoint */
-							speed_sp.yaw_sp = bodyframe_pos_sp.yaw;
-
-							/* calc new thrust */
-							float height_error = (bodyframe_pos.z - params.height_sp);
-							integrated_h_error = integrated_h_error + height_error;
-							float integrated_thrust_addition = integrated_h_error * params.height_i;
-
-							if(integrated_thrust_addition > params.limit_thrust_int)
-								integrated_thrust_addition = params.limit_thrust_int;
-							if(integrated_thrust_addition < -params.limit_thrust_int)
-								integrated_thrust_addition = -params.limit_thrust_int;
-
-							float height_speed = last_height - bodyframe_pos.z;
-							last_height = bodyframe_pos.z;
-							float thrust_diff = height_error * params.height_p - height_speed * params.height_d; // just PD controller
-							float thrust = thrust_diff + integrated_thrust_addition;
-
-							float height_ctrl_thrust = params.thrust_feedforward + thrust;
-
-							/* the throttle stick on the rc control limits the maximum thrust */
-							thrust_limit_upper = params.limit_thrust_upper;
-							if(isfinite(manual.throttle))
-							{
-								if (manual.throttle < thrust_limit_upper)
-									thrust_limit_upper = manual.throttle;
-							}
-
-							/* reset integral if on ground */
-							if (thrust_limit_upper < 0.2f)
-								integrated_h_error = 0.0f;
-
-							/* set thrust within controllable limits */
-							if(height_ctrl_thrust < params.limit_thrust_lower)
-								height_ctrl_thrust = params.limit_thrust_lower;
-							if(height_ctrl_thrust > thrust_limit_upper)
-								height_ctrl_thrust = thrust_limit_upper;
-
-							speed_sp.thrust_sp = height_ctrl_thrust;
-							speed_sp.timestamp = hrt_absolute_time();
-
-							/* publish new attitude setpoint */
-							if(isfinite(speed_sp.vx) && isfinite(speed_sp.vy) && isfinite(speed_sp.yaw_sp) && isfinite(speed_sp.thrust_sp))
-							{
-								debug_speed_sp.x = speed_sp.vx;
-								debug_speed_sp.y = speed_sp.vy;
-								debug_speed_sp.yaw = speed_sp.yaw_sp;
-								debug_speed_sp.z = speed_sp.thrust_sp;
-
-								if(speed_setpoint_adverted)
-								{
-									orb_publish(ORB_ID(vehicle_local_position_setpoint), debug_speed_sp_pub, &debug_speed_sp);
-									orb_publish(ORB_ID(vehicle_bodyframe_speed_setpoint), speed_sp_pub, &speed_sp);
-								}
-								else
-								{
-									debug_speed_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &debug_speed_sp);
-									speed_sp_pub = orb_advertise(ORB_ID(vehicle_bodyframe_speed_setpoint), &speed_sp);
-									speed_setpoint_adverted = true;
-								}
+								orb_publish(ORB_ID(vehicle_local_position_setpoint), debug_speed_sp_pub, &debug_speed_sp);
+								orb_publish(ORB_ID(vehicle_bodyframe_speed_setpoint), speed_sp_pub, &speed_sp);
 							}
 							else
 							{
-								warnx("NaN in flow position controller!");
+								debug_speed_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &debug_speed_sp);
+								speed_sp_pub = orb_advertise(ORB_ID(vehicle_bodyframe_speed_setpoint), &speed_sp);
+								speed_setpoint_adverted = true;
 							}
-//						}
-
+						}
+						else
+						{
+							warnx("NaN in flow position controller!");
+						}
 					}
 					else
 					{
-						/* call orb copy for setpoint to recognize new one if mode changes */
-//						orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
-
-						/* in manual or stabilized state just reset attitude setpoint */
+						/* in manual or stabilized state just reset speed and position setpoint */
 						speed_sp.vx = 0.0f;
 						speed_sp.vy = 0.0f;
-						if(isfinite(att.yaw))
-							speed_sp.yaw_sp = att.yaw;
-						if(isfinite(manual.throttle))
-							speed_sp.thrust_sp = manual.throttle;
-//						bodyframe_setpoint_valid = false;
-
-						//TODO input
 						bodyframe_pos_sp.x = bodyframe_pos.x;
 						bodyframe_pos_sp.y = bodyframe_pos.y;
+						if(isfinite(att.yaw))
+							speed_sp.yaw_sp = att.yaw;
 						bodyframe_pos_sp.yaw = att.yaw;
+						if(isfinite(manual.throttle))
+							speed_sp.thrust_sp = manual.throttle;
 					}
 
 					/* measure in what intervals the controller runs */

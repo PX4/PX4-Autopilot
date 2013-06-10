@@ -35,6 +35,8 @@
 
 /**
  * @file flow_position_estimator_main.c
+ *
+ * Optical flow position estimator
  */
 
 #include <nuttx/config.h>
@@ -140,7 +142,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 	thread_running = true;
 	printf("[flow position estimator] starting\n");
 
-	/* rotation matrix for transformation of flow messages */
+	/* rotation matrix for transformation of optical flow speed vectors */
 	static const int8_t rotM_flow_sensor[3][3] =   {{  0, 1, 0 },
 													{ -1, 0, 0 },
 													{  0, 0, 1 }}; // 90deg rotated
@@ -218,7 +220,6 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit)
 	{
-
 		if (sensors_ready)
 		{
 			/*This runs at the rate of the sensors */
@@ -239,8 +240,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 			else if (ret == 0)
 			{
 				/* no return value, ignore */
-				printf("[flow position estimator] no bottom flow.\n");
-
+//				printf("[flow position estimator] no bottom flow.\n");
 			}
 			else
 			{
@@ -354,7 +354,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 					if (!vehicle_liftoff || !vstatus.flag_system_armed)
 					{
-						/* not posible to fly */
+						/* not possible to fly */
 						sonar_valid = false;
 						bodyframe_pos.z = 0.0f;
 						local_pos.z = 0.0f;

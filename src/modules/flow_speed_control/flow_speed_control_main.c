@@ -186,11 +186,9 @@ flow_speed_control_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit)
 	{
-
 		/* wait for first attitude msg to be sure all data are available */
 		if (sensors_ready)
 		{
-
 			/* polling */
 			struct pollfd fds[2] = {
 				{ .fd = vehicle_bodyframe_speed_setpoint_sub, .events = POLLIN }, // speed setpoint from pos controller
@@ -212,7 +210,6 @@ flow_speed_control_thread_main(int argc, char *argv[])
 			}
 			else
 			{
-
 				/* parameter update available? */
 				if (fds[1].revents & POLLIN)
 				{
@@ -297,7 +294,6 @@ flow_speed_control_thread_main(int argc, char *argv[])
 					}
 					else
 					{
-
 						/* reset attitude setpoint */
 						att_sp.roll_body = 0.0f;
 						att_sp.pitch_body = 0.0f;
@@ -312,8 +308,6 @@ flow_speed_control_thread_main(int argc, char *argv[])
 			}
 
 			counter++;
-
-
 		}
 		else
 		{
@@ -365,4 +359,3 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	fflush(stdout);
 	return 0;
 }
-
