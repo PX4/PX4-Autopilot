@@ -34,73 +34,39 @@
 
 /*
  * @file position_estimator_inav_params.c
- * 
+ *
  * Parameters for position_estimator_inav
  */
 
 #include "position_estimator_inav_params.h"
 
-PARAM_DEFINE_INT32(INAV_USE_GPS, 0);
+PARAM_DEFINE_INT32(INAV_USE_GPS, 1);
+PARAM_DEFINE_FLOAT(INAV_W_ALT_BARO, 1.0f);
+PARAM_DEFINE_FLOAT(INAV_W_ALT_ACC, 50.0f);
+PARAM_DEFINE_FLOAT(INAV_W_POS_GPS_P, 1.0f);
+PARAM_DEFINE_FLOAT(INAV_W_POS_GPS_V, 1.0f);
+PARAM_DEFINE_FLOAT(INAV_W_POS_ACC, 50.0f);
 
-PARAM_DEFINE_FLOAT(INAV_K_ALT_00, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_ALT_01, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_ALT_10, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_ALT_11, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_ALT_20, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_ALT_21, 0.0f);
-
-PARAM_DEFINE_FLOAT(INAV_K_POS_00, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_POS_01, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_POS_02, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_POS_10, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_POS_11, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_POS_12, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_POS_20, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_POS_21, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_K_POS_22, 0.0f);
-
-int parameters_init(struct position_estimator_inav_param_handles *h) {
+int parameters_init(struct position_estimator_inav_param_handles *h)
+{
 	h->use_gps = param_find("INAV_USE_GPS");
-
-	h->k_alt_00 = param_find("INAV_K_ALT_00");
-	h->k_alt_01 = param_find("INAV_K_ALT_01");
-	h->k_alt_10 = param_find("INAV_K_ALT_10");
-	h->k_alt_11 = param_find("INAV_K_ALT_11");
-	h->k_alt_20 = param_find("INAV_K_ALT_20");
-	h->k_alt_21 = param_find("INAV_K_ALT_21");
-
-	h->k_pos_00 = param_find("INAV_K_POS_00");
-	h->k_pos_01 = param_find("INAV_K_POS_01");
-	h->k_pos_02 = param_find("INAV_K_POS_02");
-	h->k_pos_10 = param_find("INAV_K_POS_10");
-	h->k_pos_11 = param_find("INAV_K_POS_11");
-	h->k_pos_12 = param_find("INAV_K_POS_12");
-	h->k_pos_20 = param_find("INAV_K_POS_20");
-	h->k_pos_21 = param_find("INAV_K_POS_21");
-	h->k_pos_22 = param_find("INAV_K_POS_22");
+	h->w_alt_baro = param_find("INAV_W_ALT_BARO");
+	h->w_alt_acc = param_find("INAV_W_ALT_ACC");
+	h->w_pos_gps_p = param_find("INAV_W_POS_GPS_P");
+	h->w_pos_gps_v = param_find("INAV_W_POS_GPS_V");
+	h->w_pos_acc = param_find("INAV_W_POS_ACC");
 
 	return OK;
 }
 
-int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p) {
+int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p)
+{
 	param_get(h->use_gps, &(p->use_gps));
-
-	param_get(h->k_alt_00, &(p->k_alt[0][0]));
-	param_get(h->k_alt_01, &(p->k_alt[0][1]));
-	param_get(h->k_alt_10, &(p->k_alt[1][0]));
-	param_get(h->k_alt_11, &(p->k_alt[1][1]));
-	param_get(h->k_alt_20, &(p->k_alt[2][0]));
-	param_get(h->k_alt_21, &(p->k_alt[2][1]));
-
-	param_get(h->k_pos_00, &(p->k_pos[0][0]));
-	param_get(h->k_pos_01, &(p->k_pos[0][1]));
-	param_get(h->k_pos_02, &(p->k_pos[0][2]));
-	param_get(h->k_pos_10, &(p->k_pos[1][0]));
-	param_get(h->k_pos_11, &(p->k_pos[1][1]));
-	param_get(h->k_pos_12, &(p->k_pos[1][2]));
-	param_get(h->k_pos_20, &(p->k_pos[2][0]));
-	param_get(h->k_pos_21, &(p->k_pos[2][1]));
-	param_get(h->k_pos_22, &(p->k_pos[2][2]));
+	param_get(h->w_alt_baro, &(p->w_alt_baro));
+	param_get(h->w_alt_acc, &(p->w_alt_acc));
+	param_get(h->w_pos_gps_p, &(p->w_pos_gps_p));
+	param_get(h->w_pos_gps_v, &(p->w_pos_gps_v));
+	param_get(h->w_pos_acc, &(p->w_pos_acc));
 
 	return OK;
 }

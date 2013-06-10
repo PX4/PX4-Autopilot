@@ -34,7 +34,7 @@
 
 /*
  * @file position_estimator_inav_params.h
- * 
+ *
  * Parameters for Position Estimator
  */
 
@@ -42,29 +42,20 @@
 
 struct position_estimator_inav_params {
 	int use_gps;
-	float k_alt[3][2];
-	float k_pos[3][3];
+	float w_alt_baro;
+	float w_alt_acc;
+	float w_pos_gps_p;
+	float w_pos_gps_v;
+	float w_pos_acc;
 };
 
 struct position_estimator_inav_param_handles {
 	param_t use_gps;
-
-	param_t k_alt_00;
-	param_t k_alt_01;
-	param_t k_alt_10;
-	param_t k_alt_11;
-	param_t k_alt_20;
-	param_t k_alt_21;
-
-	param_t k_pos_00;
-	param_t k_pos_01;
-	param_t k_pos_02;
-	param_t k_pos_10;
-	param_t k_pos_11;
-	param_t k_pos_12;
-	param_t k_pos_20;
-	param_t k_pos_21;
-	param_t k_pos_22;
+	param_t w_alt_baro;
+	param_t w_alt_acc;
+	param_t w_pos_gps_p;
+	param_t w_pos_gps_v;
+	param_t w_pos_acc;
 };
 
 /**

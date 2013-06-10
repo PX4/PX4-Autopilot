@@ -38,4 +38,4 @@
 MODULE_COMMAND	 	= position_estimator_inav
 SRCS		 	= position_estimator_inav_main.c \
 			position_estimator_inav_params.c \
-			kalman_filter_inertial.c
+			inertial_filter.c
