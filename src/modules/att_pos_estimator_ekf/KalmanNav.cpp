@@ -683,7 +683,8 @@ int KalmanNav::correctPos()
 	// fault detetcion
 	float beta = y.dot(S.inverse() * y);
 
-	if (beta > _faultPos.get()) {
+	static int counter = 0;
+	if (beta > _faultPos.get() && (counter % 10 == 0)) {
 		printf("fault in gps: beta = %8.4f\n", (double)beta);
 		printf("Y/N: vN: %8.4f, vE: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
 		       double(y(0) / sqrtf(RPos(0, 0))),
@@ -693,6 +694,7 @@ int KalmanNav::correctPos()
 		       double(y(4) / sqrtf(RPos(4, 4))),
 		       double(y(5) / sqrtf(RPos(5, 5))));
 	}
+	counter++;
 
 	return ret_ok;
 }
