@@ -41,6 +41,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -178,8 +179,10 @@ uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE
  * PAGE 105
  *
  * Failsafe servo PWM values
+ * 
+ * Disable pulses as default.
  */
-uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT];
+uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT] = { 0 };
 
 void
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
@@ -230,10 +233,13 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 	case PX4IO_PAGE_FAILSAFE_PWM:
 
 		/* copy channel data */
-		while ((offset < PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
+		while ((offset < IO_SERVO_COUNT) && (num_values > 0)) {
 
 			/* XXX range-check value? */
 			r_page_servo_failsafe[offset] = *values;
+
+			/* flag the failsafe values as custom */
+			r_setup_arming |= PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
 
 			offset++;
 			num_values--;

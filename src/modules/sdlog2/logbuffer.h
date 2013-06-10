@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Anton Babushkin <rk3dov@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +32,37 @@
  *
  ****************************************************************************/
 
-/*
- * @file params.c
- * 
- * Parameters for fixedwing demo
- */
-
-#include "params.h"
-
-/* controller parameters, use max. 15 characters for param name! */
-
 /**
+ * @file logbuffer.h
  *
- */
-PARAM_DEFINE_FLOAT(EXFW_HDNG_P, 0.1f);
-
-/**
+ * Ring FIFO buffer for binary log data.
  *
+ * @author Anton Babushkin <rk3dov@gmail.com>
  */
-PARAM_DEFINE_FLOAT(EXFW_ROLL_P, 0.2f);
 
-/**
- *
- */
-PARAM_DEFINE_FLOAT(EXFW_PITCH_P, 0.2f);
+#ifndef SDLOG2_RINGBUFFER_H_
+#define SDLOG2_RINGBUFFER_H_
 
-int parameters_init(struct param_handles *h)
-{
-	/* PID parameters */
-	h->hdng_p 	=	param_find("EXFW_HDNG_P");
-	h->roll_p 	=	param_find("EXFW_ROLL_P");
-	h->pitch_p 	=	param_find("EXFW_PITCH_P");
+#include <stdbool.h>
 
-	return OK;
-}
+struct logbuffer_s {
+	// pointers and size are in bytes
+	int write_ptr;
+	int read_ptr;
+	int size;
+	char *data;
+};
 
-int parameters_update(const struct param_handles *h, struct params *p)
-{
-	param_get(h->hdng_p, &(p->hdng_p));
-	param_get(h->roll_p, &(p->roll_p));
-	param_get(h->pitch_p, &(p->pitch_p));
+int logbuffer_init(struct logbuffer_s *lb, int size);
 
-	return OK;
-}
+int logbuffer_count(struct logbuffer_s *lb);
+
+int logbuffer_is_empty(struct logbuffer_s *lb);
+
+bool logbuffer_write(struct logbuffer_s *lb, void *ptr, int size);
+
+int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part);
+
+void logbuffer_mark_read(struct logbuffer_s *lb, int n);
+
+#endif

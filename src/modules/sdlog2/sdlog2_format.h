@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Anton Babushkin <rk3dov@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,46 +32,67 @@
  *
  ****************************************************************************/
 
+/**
+ * @file sdlog2_format.h
+ *
+ * General log format structures and macro.
+ *
+ * @author Anton Babushkin <rk3dov@gmail.com>
+ */
+
 /*
- * @file params.c
- * 
- * Parameters for fixedwing demo
+Format characters in the format string for binary log messages
+  b   : int8_t
+  B   : uint8_t
+  h   : int16_t
+  H   : uint16_t
+  i   : int32_t
+  I   : uint32_t
+  f   : float
+  n   : char[4]
+  N   : char[16]
+  Z   : char[64]
+  c   : int16_t * 100
+  C   : uint16_t * 100
+  e   : int32_t * 100
+  E   : uint32_t * 100
+  L   : int32_t latitude/longitude
+  M   : uint8_t flight mode
+
+  q   : int64_t
+  Q   : uint64_t
  */
 
-#include "params.h"
+#ifndef SDLOG2_FORMAT_H_
+#define SDLOG2_FORMAT_H_
 
-/* controller parameters, use max. 15 characters for param name! */
+#define LOG_PACKET_HEADER_LEN	   3
+#define LOG_PACKET_HEADER	       uint8_t head1, head2, msg_type;
+#define LOG_PACKET_HEADER_INIT(id) .head1 = HEAD_BYTE1, .head2 = HEAD_BYTE2, .msg_type = id
 
-/**
- *
- */
-PARAM_DEFINE_FLOAT(EXFW_HDNG_P, 0.1f);
+// once the logging code is all converted we will remove these from
+// this header
+#define HEAD_BYTE1  0xA3    // Decimal 163
+#define HEAD_BYTE2  0x95    // Decimal 149
 
-/**
- *
- */
-PARAM_DEFINE_FLOAT(EXFW_ROLL_P, 0.2f);
+struct log_format_s {
+	uint8_t type;
+	uint8_t length;		// full packet length including header
+	char name[4];
+	char format[16];
+	char labels[64];
+};
 
-/**
- *
- */
-PARAM_DEFINE_FLOAT(EXFW_PITCH_P, 0.2f);
+#define LOG_FORMAT(_name, _format, _labels) { \
+		.type = LOG_##_name##_MSG, \
+		.length = sizeof(struct log_##_name##_s) + LOG_PACKET_HEADER_LEN, \
+		.name = #_name, \
+		.format = _format, \
+		.labels = _labels \
+	}
 
-int parameters_init(struct param_handles *h)
-{
-	/* PID parameters */
-	h->hdng_p 	=	param_find("EXFW_HDNG_P");
-	h->roll_p 	=	param_find("EXFW_ROLL_P");
-	h->pitch_p 	=	param_find("EXFW_PITCH_P");
+#define LOG_FORMAT_MSG	  0x80
 
-	return OK;
-}
+#define LOG_PACKET_SIZE(_name)	LOG_PACKET_HEADER_LEN + sizeof(struct log_##_name##_s)
 
-int parameters_update(const struct param_handles *h, struct params *p)
-{
-	param_get(h->hdng_p, &(p->hdng_p));
-	param_get(h->roll_p, &(p->roll_p));
-	param_get(h->pitch_p, &(p->pitch_p));
-
-	return OK;
-}
+#endif /* SDLOG2_FORMAT_H_ */
