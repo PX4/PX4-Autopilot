@@ -37,5 +37,5 @@
 
 MODULE_COMMAND	= flow_position_control
 
-SRCS		= flow_position_control.c \
+SRCS		= flow_position_control_main.c \
 		  flow_position_control_params.c

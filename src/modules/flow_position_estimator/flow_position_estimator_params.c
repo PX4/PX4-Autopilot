@@ -34,39 +34,39 @@
  ****************************************************************************/
 
 /*
- * @file flow_speed_control_params.h
+ * @file flow_position_estimator_params.c
  * 
- * Parameters for speed controller
+ * Parameters for position estimator
  */
 
-#include <systemlib/param/param.h>
+#include "flow_position_estimator_params.h"
 
-struct flow_speed_control_params {
-	float speed_p;
-	float limit_pitch;
-	float limit_roll;
-	float limit_thrust_lower;
-	float trim_roll;
-	float trim_pitch;
-};
+/* Extended Kalman Filter covariances */
 
-struct flow_speed_control_param_handles {
-	param_t speed_p;
-	param_t limit_pitch;
-	param_t limit_roll;
-	param_t limit_thrust_lower;
-	param_t trim_roll;
-	param_t trim_pitch;
-};
+/* controller parameters */
+PARAM_DEFINE_FLOAT(FPE_LO_THRUST, 0.6f);
+PARAM_DEFINE_FLOAT(FPE_SONAR_LP_U, 0.5f);
+PARAM_DEFINE_FLOAT(FPE_SONAR_LP_L, 0.2f);
+PARAM_DEFINE_INT32(FPE_DEBUG, 0);
 
-/**
- * Initialize all parameter handles and values
- *
- */
-int parameters_init(struct flow_speed_control_param_handles *h);
 
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct flow_speed_control_param_handles *h, struct flow_speed_control_params *p);
+int parameters_init(struct flow_position_estimator_param_handles *h)
+{
+	/* PID parameters */
+	h->minimum_liftoff_thrust	=	param_find("FPE_LO_THRUST");
+	h->sonar_upper_lp_threshold	=	param_find("FPE_SONAR_LP_U");
+	h->sonar_lower_lp_threshold	=	param_find("FPE_SONAR_LP_L");
+	h->debug					=	param_find("FPE_DEBUG");
+
+	return OK;
+}
+
+int parameters_update(const struct flow_position_estimator_param_handles *h, struct flow_position_estimator_params *p)
+{
+	param_get(h->minimum_liftoff_thrust, &(p->minimum_liftoff_thrust));
+	param_get(h->sonar_upper_lp_threshold, &(p->sonar_upper_lp_threshold));
+	param_get(h->sonar_lower_lp_threshold, &(p->sonar_lower_lp_threshold));
+	param_get(h->debug, &(p->debug));
+
+	return OK;
+}

@@ -2,6 +2,7 @@
  *
  *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   		 Samuel Zihlmann <samuezih@ee.ethz.ch
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +36,7 @@
 /**
  * @file flow_speed_control.c
  *
- * Skeleton for flow speed controller
+ * Optical flow speed controller
  */
 
 #include <nuttx/config.h>
@@ -55,13 +56,10 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_bodyframe_position.h>
 #include <uORB/topics/vehicle_bodyframe_speed_setpoint.h>
-#include <uORB/topics/vehicle_vicon_position.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -108,9 +106,10 @@ int flow_speed_control_main(int argc, char *argv[])
 	if (argc < 1)
 		usage("missing command");
 
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
+	if (!strcmp(argv[1], "start"))
+	{
+		if (thread_running)
+		{
 			printf("flow speed control already running\n");
 			/* this is not an error */
 			exit(0);
@@ -126,17 +125,19 @@ int flow_speed_control_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "stop")) {
+	if (!strcmp(argv[1], "stop"))
+	{
 		thread_should_exit = true;
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
+	if (!strcmp(argv[1], "status"))
+	{
+		if (thread_running)
 			printf("\tflow speed control app is running\n");
-		} else {
+		else
 			printf("\tflow speed control app not started\n");
-		}
+
 		exit(0);
 	}
 
@@ -155,8 +156,6 @@ flow_speed_control_thread_main(int argc, char *argv[])
 
 	/* structures */
 	struct vehicle_status_s vstatus;
-	struct vehicle_attitude_s att;
-	struct manual_control_setpoint_s manual;
 	struct vehicle_bodyframe_position_s bodyframe_pos;
 	struct vehicle_bodyframe_speed_setpoint_s speed_sp;
 
@@ -166,7 +165,6 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int vehicle_bodyframe_position_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_position));
 	int vehicle_bodyframe_speed_setpoint_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_speed_setpoint));
 
@@ -179,9 +177,6 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	parameters_init(&param_handles);
 	parameters_update(&param_handles, &params);
 
-	/* states */
-	float thrust_limit_upper = 0.0f; // it will be updated with RC input
-
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "flow_speed_control_runtime");
 	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "flow_speed_control_interval");
@@ -189,10 +184,12 @@ flow_speed_control_thread_main(int argc, char *argv[])
 
 	static bool sensors_ready = false;
 
-	while (!thread_should_exit) {
+	while (!thread_should_exit)
+	{
 
 		/* wait for first attitude msg to be sure all data are available */
-		if (sensors_ready) {
+		if (sensors_ready)
+		{
 
 			/* polling */
 			struct pollfd fds[2] = {
@@ -201,19 +198,24 @@ flow_speed_control_thread_main(int argc, char *argv[])
 			};
 
 			/* wait for a position update, check for exit condition every 5000 ms */
-			int ret = poll(fds, 2, 5000);
+			int ret = poll(fds, 2, 500);
 
-			if (ret < 0) {
+			if (ret < 0)
+			{
 				/* poll error, count it in perf */
 				perf_count(mc_err_perf);
-
-			} else if (ret == 0) {
+			}
+			else if (ret == 0)
+			{
 				/* no return value, ignore */
-				printf("[flow speed control] no bodyframe speed setpoints updates\n"); // XXX wrong place
-			} else {
+//				printf("[flow speed control] no bodyframe speed setpoints updates\n");
+			}
+			else
+			{
 
 				/* parameter update available? */
-				if (fds[1].revents & POLLIN){
+				if (fds[1].revents & POLLIN)
+				{
 					/* read from param to clear updated flag */
 					struct parameter_update_s update;
 					orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
@@ -223,48 +225,46 @@ flow_speed_control_thread_main(int argc, char *argv[])
 				}
 
 				/* only run controller if position/speed changed */
-				if (fds[0].revents & POLLIN) {
-
+				if (fds[0].revents & POLLIN)
+				{
 					perf_begin(mc_loop_perf);
 
 					/* get a local copy of the vehicle state */
 					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-					/* get a local copy of manual setpoint */
-					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
-					/* get a local copy of attitude */
-					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					/* get a local copy of bodyframe position */
 					orb_copy(ORB_ID(vehicle_bodyframe_position), vehicle_bodyframe_position_sub, &bodyframe_pos);
 					/* get a local copy of bodyframe speed setpoint */
 					orb_copy(ORB_ID(vehicle_bodyframe_speed_setpoint), vehicle_bodyframe_speed_setpoint_sub, &speed_sp);
 
-					if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
-
+					if (vstatus.state_machine == SYSTEM_STATE_AUTO)
+					{
 						/* calc new roll/pitch */
 						float pitch_body = -(speed_sp.vx - bodyframe_pos.vx) * params.speed_p;
 						float roll_body  =  (speed_sp.vy - bodyframe_pos.vy) * params.speed_p;
 
 						/* limit roll and pitch corrections */
-						if((pitch_body <= params.limit_pitch) && (pitch_body >= -params.limit_pitch)){
+						if((pitch_body <= params.limit_pitch) && (pitch_body >= -params.limit_pitch))
+						{
 							att_sp.pitch_body = pitch_body;
-						} else {
-							if(pitch_body > params.limit_pitch){
+						}
+						else
+						{
+							if(pitch_body > params.limit_pitch)
 								att_sp.pitch_body = params.limit_pitch;
-							}
-							if(pitch_body < -params.limit_pitch){
+							if(pitch_body < -params.limit_pitch)
 								att_sp.pitch_body = -params.limit_pitch;
-							}
 						}
 
-						if((roll_body <= params.limit_roll) && (roll_body >= -params.limit_roll)){
+						if((roll_body <= params.limit_roll) && (roll_body >= -params.limit_roll))
+						{
 							att_sp.roll_body = roll_body;
-						} else {
-							if(roll_body > params.limit_roll){
+						}
+						else
+						{
+							if(roll_body > params.limit_roll)
 								att_sp.roll_body = params.limit_roll;
-							}
-							if(roll_body < -params.limit_roll){
+							if(roll_body < -params.limit_roll)
 								att_sp.roll_body = -params.limit_roll;
-							}
 						}
 
 						/* set yaw setpoint forward*/
@@ -274,16 +274,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 						att_sp.roll_body = att_sp.roll_body + params.trim_roll;
 						att_sp.pitch_body = att_sp.pitch_body + params.trim_pitch;
 
-						/* the throttle stick on the rc control limits the maximum thrust */
-						if(isfinite(manual.throttle)) {
-							thrust_limit_upper = manual.throttle;
-						}
-
-						if (speed_sp.thrust_sp > thrust_limit_upper)
-							att_sp.thrust = thrust_limit_upper;
-						else
-							att_sp.thrust = speed_sp.thrust_sp;
-
+						att_sp.thrust = speed_sp.thrust_sp;
 						att_sp.timestamp = hrt_absolute_time();
 
 						/* publish new attitude setpoint */
@@ -298,36 +289,34 @@ flow_speed_control_thread_main(int argc, char *argv[])
 								att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 								attitude_setpoint_adverted = true;
 							}
-
-						} else {
+						}
+						else
+						{
 							warnx("NaN in flow speed controller!");
 						}
+					}
+					else
+					{
 
-					} else {
-						/* call orb copy for setpoint to recognize new one if mode changes */
-//						orb_copy(ORB_ID(vehicle_bodyframe_position_setpoint), vehicle_bodyframe_position_setpoint_sub, &bodyframe_pos_sp);
-
-						/* in manual or stabilized state just reset attitude setpoint */
+						/* reset attitude setpoint */
 						att_sp.roll_body = 0.0f;
 						att_sp.pitch_body = 0.0f;
-						if(isfinite(att.yaw))
-							att_sp.yaw_body = att.yaw;
-						if(isfinite(manual.throttle))
-							att_sp.thrust = manual.throttle;
-//						bodyframe_setpoint_valid = false;
+						att_sp.thrust = 0.0f;
+						att_sp.yaw_body = 0.0f;
 					}
 
 					/* measure in what intervals the controller runs */
 					perf_count(mc_interval_perf);
 					perf_end(mc_loop_perf);
 				}
-
 			}
 
 			counter++;
 
 
-		} else {
+		}
+		else
+		{
 			/* sensors not ready waiting for first attitude msg */
 
 			/* polling */
@@ -338,22 +327,25 @@ flow_speed_control_thread_main(int argc, char *argv[])
 			/* wait for a flow msg, check for exit condition every 5 s */
 			int ret = poll(fds, 1, 5000);
 
-			if (ret < 0) {
+			if (ret < 0)
+			{
 				/* poll error, count it in perf */
 				perf_count(mc_err_perf);
-
-			} else if (ret == 0) {
+			}
+			else if (ret == 0)
+			{
 				/* no return value, ignore */
 				printf("[flow speed control] no attitude received.\n");
-			} else {
-
-				if (fds[0].revents & POLLIN){
+			}
+			else
+			{
+				if (fds[0].revents & POLLIN)
+				{
 					sensors_ready = true;
 					printf("[flow speed control] initialized.\n");
 				}
 			}
 		}
-
 	}
 
 	printf("[flow speed control] ending now...\n");
@@ -365,7 +357,6 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	close(vehicle_bodyframe_speed_setpoint_sub);
 	close(vehicle_bodyframe_position_sub);
 	close(vehicle_status_sub);
-	close(manual_control_setpoint_sub);
 	close(att_sp_pub);
 
 	perf_print_counter(mc_loop_perf);

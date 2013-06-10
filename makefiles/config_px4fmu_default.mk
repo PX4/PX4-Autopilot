@@ -68,6 +68,7 @@ MODULES		+= modules/attitude_estimator_so3_comp
 MODULES		+= modules/position_estimator
 MODULES		+= modules/position_estimator_flow
 MODULES		+= modules/att_pos_estimator_ekf
+MODULES		+= modules/flow_position_estimator
 MODULES		+= modules/radar_flow
 
 #

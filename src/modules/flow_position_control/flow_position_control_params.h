@@ -1,8 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   		 Samuel Zihlmann <samuezih@ee.ethz.ch
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,11 @@ struct flow_position_control_params {
 	float limit_thrust_int;
 	float limit_thrust_upper;
 	float limit_thrust_lower;
+	float limit_yaw_step;
+	float manual_xy_min_abs;
+	float manual_xy_max_abs;
+	float manual_yaw_min_abs;
+	float manual_yaw_max_abs;
 };
 
 struct flow_position_control_param_handles {
@@ -69,6 +74,11 @@ struct flow_position_control_param_handles {
 	param_t limit_thrust_int;
 	param_t limit_thrust_upper;
 	param_t limit_thrust_lower;
+	param_t limit_yaw_step;
+	param_t manual_xy_min_abs;
+	param_t manual_xy_max_abs;
+	param_t manual_yaw_min_abs;
+	param_t manual_yaw_max_abs;
 };
 
 /**

@@ -1,8 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   		 Samuel Zihlmann <samuezih@ee.ethz.ch
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,27 +35,28 @@
 
 /*
  * @file flow_position_control_params.c
- * 
- * Parameters for EKF filter
  */
 
 #include "flow_position_control_params.h"
 
-/* Extended Kalman Filter covariances */
-
 /* controller parameters */
-PARAM_DEFINE_FLOAT(FPC_POS_P, 0.2f);
+PARAM_DEFINE_FLOAT(FPC_POS_P, 5.0f);
 PARAM_DEFINE_FLOAT(FPC_POS_D, 0.0f);
-PARAM_DEFINE_FLOAT(FPC_H_P, 0.06f);
+PARAM_DEFINE_FLOAT(FPC_H_P, 0.15f);
 PARAM_DEFINE_FLOAT(FPC_H_I, 0.00001f);
-PARAM_DEFINE_FLOAT(FPC_H_D, 0.01f);
-PARAM_DEFINE_FLOAT(FPC_H_SP, -1.0f);
-PARAM_DEFINE_FLOAT(FPC_T_FFWD, 0.66f);
-PARAM_DEFINE_FLOAT(FPC_L_S_X, 0.5f);
-PARAM_DEFINE_FLOAT(FPC_L_S_Y, 0.5f);
+PARAM_DEFINE_FLOAT(FPC_H_D, 0.8f);
+PARAM_DEFINE_FLOAT(FPC_H_SP, -0.8f);
+PARAM_DEFINE_FLOAT(FPC_T_FFWD, 0.7f);
+PARAM_DEFINE_FLOAT(FPC_L_S_X, 1.0f);
+PARAM_DEFINE_FLOAT(FPC_L_S_Y, 1.0f);
 PARAM_DEFINE_FLOAT(FPC_L_TH_I, 0.05f);
 PARAM_DEFINE_FLOAT(FPC_L_TH_U, 0.8f);
 PARAM_DEFINE_FLOAT(FPC_L_TH_L, 0.6f);
+PARAM_DEFINE_FLOAT(FPC_L_YAW_STEP, 0.02f);
+PARAM_DEFINE_FLOAT(FPC_MAN_XY_MIN, 0.05f);
+PARAM_DEFINE_FLOAT(FPC_MAN_XY_MAX, 0.3f);
+PARAM_DEFINE_FLOAT(FPC_MAN_YAW_MIN, 0.5f);
+PARAM_DEFINE_FLOAT(FPC_MAN_YAW_MAX, 3.0f);
 
 int parameters_init(struct flow_position_control_param_handles *h)
 {
@@ -72,6 +73,11 @@ int parameters_init(struct flow_position_control_param_handles *h)
 	h->limit_thrust_int 	=	param_find("FPC_L_TH_I");
 	h->limit_thrust_upper 	=	param_find("FPC_L_TH_U");
 	h->limit_thrust_lower 	=	param_find("FPC_L_TH_L");
+	h->limit_yaw_step		=	param_find("FPC_L_YAW_STEP");
+	h->manual_xy_min_abs 	=	param_find("FPC_MAN_XY_MIN");
+	h->manual_xy_max_abs 	=	param_find("FPC_MAN_XY_MAX");
+	h->manual_yaw_min_abs 	=	param_find("FPC_MAN_YAW_MIN");
+	h->manual_yaw_max_abs 	=	param_find("FPC_MAN_YAW_MAX");
 
 	return OK;
 }
@@ -90,6 +96,11 @@ int parameters_update(const struct flow_position_control_param_handles *h, struc
 	param_get(h->limit_thrust_int, &(p->limit_thrust_int));
 	param_get(h->limit_thrust_upper, &(p->limit_thrust_upper));
 	param_get(h->limit_thrust_lower, &(p->limit_thrust_lower));
+	param_get(h->limit_yaw_step, &(p->limit_yaw_step));
+	param_get(h->manual_xy_min_abs, &(p->manual_xy_min_abs));
+	param_get(h->manual_xy_max_abs, &(p->manual_xy_max_abs));
+	param_get(h->manual_yaw_min_abs, &(p->manual_yaw_min_abs));
+	param_get(h->manual_yaw_max_abs, &(p->manual_yaw_max_abs));
 
 	return OK;
 }

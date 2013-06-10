@@ -1,8 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   		 Samuel Zihlmann <samuezih@ee.ethz.ch
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,6 +55,7 @@ int parameters_init(struct flow_speed_control_param_handles *h)
 	h->limit_thrust_lower 	=	param_find("FSC_L_TH_L");
 	h->trim_roll 			=	param_find("TRIM_ROLL");
 	h->trim_pitch 			=	param_find("TRIM_PITCH");
+
 
 	return OK;
 }

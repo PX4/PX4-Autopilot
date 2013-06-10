@@ -34,39 +34,35 @@
  ****************************************************************************/
 
 /*
- * @file flow_speed_control_params.h
+ * @file flow_position_estimator_params.h
  * 
- * Parameters for speed controller
+ * Parameters for position estimator
  */
 
 #include <systemlib/param/param.h>
 
-struct flow_speed_control_params {
-	float speed_p;
-	float limit_pitch;
-	float limit_roll;
-	float limit_thrust_lower;
-	float trim_roll;
-	float trim_pitch;
+struct flow_position_estimator_params {
+	float minimum_liftoff_thrust;
+	float sonar_upper_lp_threshold;
+	float sonar_lower_lp_threshold;
+	int debug;
 };
 
-struct flow_speed_control_param_handles {
-	param_t speed_p;
-	param_t limit_pitch;
-	param_t limit_roll;
-	param_t limit_thrust_lower;
-	param_t trim_roll;
-	param_t trim_pitch;
+struct flow_position_estimator_param_handles {
+	param_t minimum_liftoff_thrust;
+	param_t sonar_upper_lp_threshold;
+	param_t sonar_lower_lp_threshold;
+	param_t debug;
 };
 
 /**
  * Initialize all parameter handles and values
  *
  */
-int parameters_init(struct flow_speed_control_param_handles *h);
+int parameters_init(struct flow_position_estimator_param_handles *h);
 
 /**
  * Update all parameters
  *
  */
-int parameters_update(const struct flow_speed_control_param_handles *h, struct flow_speed_control_params *p);
+int parameters_update(const struct flow_position_estimator_param_handles *h, struct flow_position_estimator_params *p);

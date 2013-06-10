@@ -32,10 +32,10 @@
 ############################################################################
 
 #
-# Build flow speed control
+# Build position estimator
 #
 
-MODULE_COMMAND	= flow_speed_control
+MODULE_COMMAND		= flow_position_estimator
 
-SRCS		= flow_speed_control_main.c \
-		  flow_speed_control_params.c
+SRCS		= flow_position_estimator_main.c \
+		  flow_position_estimator_params.c
