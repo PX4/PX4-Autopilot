@@ -50,7 +50,7 @@ OBJDUMP			 = $(CROSSDEV)objdump
 
 # XXX this is pulled pretty directly from the fmu Make.defs - needs cleanup
 
-MAXOPTIMIZATION		 = -O3
+MAXOPTIMIZATION		 ?= -O3
 
 # Base CPU flags for each of the supported architectures.
 #
@@ -69,6 +69,14 @@ ARCHCPUFLAGS_CORTEXM3	 = -mcpu=cortex-m3 \
 			   -mthumb \
 			   -march=armv7-m \
 			   -mfloat-abi=soft
+
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4F = -finstrument-functions \
+			   -ffixed-r10
+
+ARCHINSTRUMENTATIONDEFINES_CORTEXM4 = -finstrument-functions \
+			   -ffixed-r10
+
+ARCHINSTRUMENTATIONDEFINES_CORTEXM3 = 
 
 # Pick the right set of flags for the architecture.
 #
@@ -91,8 +99,8 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 
 # enable precise stack overflow tracking
 # note - requires corresponding support in NuttX
-INSTRUMENTATIONDEFINES	 = -finstrument-functions \
-			   -ffixed-r10
+INSTRUMENTATIONDEFINES	 = $(ARCHINSTRUMENTATIONDEFINES_$(CONFIG_ARCH))
+
 # Language-specific flags
 #
 ARCHCFLAGS		 = -std=gnu99
@@ -219,7 +227,7 @@ endef
 define PRELINK
 	@$(ECHO) "PRELINK: $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) -Ur -o $1 $2 && $(OBJCOPY) --localize-hidden $1
+	$(Q) $(LD) -Ur -Map $1.map -o $1 $2 && $(OBJCOPY) --localize-hidden $1
 endef
 
 # Update the archive $1 with the files in $2
@@ -235,7 +243,7 @@ endef
 define LINK
 	@$(ECHO) "LINK:    $1"
 	@$(MKDIR) -p $(dir $1)
-	$(Q) $(LD) $(LDFLAGS) -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+	$(Q) $(LD) $(LDFLAGS) -Map $1.map -o $1 --start-group $2 $(LIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
 endef
 
 # Convert $1 from a linked object to a raw binary in $2
@@ -280,6 +288,7 @@ define BIN_TO_OBJ
 	$(Q) $(OBJCOPY) $2 \
 		--redefine-sym $(call BIN_SYM_PREFIX,$1)_start=$3 \
 		--redefine-sym $(call BIN_SYM_PREFIX,$1)_size=$3_len \
-		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end
+		--strip-symbol $(call BIN_SYM_PREFIX,$1)_end \
+		--rename-section .data=.rodata
 	$(Q) $(REMOVE) $2.c $2.c.o
 endef

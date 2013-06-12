@@ -56,12 +56,14 @@ MODULES		+= systemcmds/tests
 MODULES		+= modules/commander
 MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
+MODULES		+= modules/gpio_led
 
 #
 # Estimation modules (EKF / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/position_estimator_mc
+MODULES		+= modules/attitude_estimator_so3_comp
+#MODULES		+= modules/position_estimator_mc
 MODULES		+= modules/position_estimator
 MODULES		+= modules/att_pos_estimator_ekf
 
@@ -78,16 +80,21 @@ MODULES		+= modules/multirotor_pos_control
 # Logging
 #
 MODULES		+= modules/sdlog
+MODULES		+= modules/sdlog2
 
 #
-# Libraries
+# Library modules
 #
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/mathlib
-MODULES		+= modules/mathlib/CMSIS
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
+
+#
+# Libraries
+#
+LIBRARIES	+= modules/mathlib/CMSIS
 
 #
 # Demo apps
