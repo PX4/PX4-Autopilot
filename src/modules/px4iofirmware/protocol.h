@@ -75,10 +75,13 @@
 #define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
 
+#define PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC	2
+#define PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC	2
+
 /* static configuration page */
 #define PX4IO_PAGE_CONFIG		0
-#define PX4IO_P_CONFIG_PROTOCOL_VERSION		2	/* magic numbers TBD */
-#define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers TBD */
+#define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers */
+#define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers */
 #define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
 #define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum I2C transfer size */
 #define PX4IO_P_CONFIG_CONTROL_COUNT		4	/* hardcoded max control count supported */

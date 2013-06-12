@@ -404,13 +404,23 @@ PX4IO::init()
 	unsigned proto_version = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
 	unsigned sw_version = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_SOFTWARE_VERSION);
 
-	if (proto_version != PX4IO_P_CONFIG_PROTOCOL_VERSION) {
+	if (proto_version != PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC) {
 		mavlink_log_emergency(_mavlink_fd, "[IO] ERROR! PROTO VER MISMATCH: v%u vs v%u\n",
 			proto_version,
-			PX4IO_P_CONFIG_PROTOCOL_VERSION);
+			PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC);
 
 		mavlink_log_emergency(_mavlink_fd, "[IO] Please update PX4IO firmware.");
-		log("protocol version mismatch (v%u on IO vs v%u on FMU)", proto_version, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+		log("protocol version mismatch (v%u on IO vs v%u on FMU)", proto_version, PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC);
+		return 1;
+	}
+
+	if (sw_version != PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC) {
+		mavlink_log_emergency(_mavlink_fd, "[IO] ERROR! SOFTWARE VER MISMATCH: v%u vs v%u\n",
+			proto_version,
+			PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC);
+
+		mavlink_log_emergency(_mavlink_fd, "[IO] Please update PX4IO firmware.");
+		log("software version mismatch (v%u on IO vs v%u on FMU)", sw_version, PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC);
 		return 1;
 	}
 

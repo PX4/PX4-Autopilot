@@ -57,8 +57,8 @@ static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t alt
  * Static configuration parameters.
  */
 static const uint16_t	r_page_config[] = {
-	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= 1,	/* XXX hardcoded magic number */
-	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= 1,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC,
+	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC,
 	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= 3,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
