@@ -545,6 +545,9 @@ void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_s
 
 					/* play warning tune */
 					tune_error();
+
+					/* abort */
+					return;
 				}
 
 			}
