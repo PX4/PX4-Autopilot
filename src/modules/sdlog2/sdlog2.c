@@ -861,11 +861,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				// Don't orb_copy, it's already done few lines above
 				log_msg.msg_type = LOG_STAT_MSG;
-				log_msg.body.log_STAT.state = (unsigned char) buf_status.state_machine;
-				log_msg.body.log_STAT.flight_mode = (unsigned char) buf_status.flight_mode;
-				log_msg.body.log_STAT.manual_control_mode = (unsigned char) buf_status.manual_control_mode;
-				log_msg.body.log_STAT.manual_sas_mode = (unsigned char) buf_status.manual_sas_mode;
-				log_msg.body.log_STAT.armed = (unsigned char) buf_status.flag_system_armed;
+				// XXX fix this
+				// log_msg.body.log_STAT.state = (unsigned char) buf_status.state_machine;
+				// log_msg.body.log_STAT.flight_mode = (unsigned char) buf_status.flight_mode;
+				// log_msg.body.log_STAT.manual_control_mode = (unsigned char) buf_status.manual_control_mode;
+				// log_msg.body.log_STAT.manual_sas_mode = (unsigned char) buf_status.manual_sas_mode;
+				log_msg.body.log_STAT.state = 0;
+				log_msg.body.log_STAT.flight_mode = 0;
+				log_msg.body.log_STAT.manual_control_mode = 0;
+				log_msg.body.log_STAT.manual_sas_mode = 0;
+				log_msg.body.log_STAT.armed = (unsigned char) buf_status.flag_fmu_armed; /* XXX fmu armed correct? */
 				log_msg.body.log_STAT.battery_voltage = buf_status.voltage_battery;
 				log_msg.body.log_STAT.battery_current = buf_status.current_battery;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
@@ -1165,8 +1170,9 @@ void handle_command(struct vehicle_command_s *cmd)
 
 void handle_status(struct vehicle_status_s *status)
 {
-	if (status->flag_system_armed != flag_system_armed) {
-		flag_system_armed = status->flag_system_armed;
+	/* XXX fmu armed correct? */
+	if (status->flag_fmu_armed != flag_system_armed) {
+		flag_system_armed = status->flag_fmu_armed;
 
 		if (flag_system_armed) {
 			sdlog2_start_log();

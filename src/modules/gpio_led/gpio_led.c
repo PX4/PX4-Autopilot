@@ -171,7 +171,8 @@ void gpio_led_cycle(FAR void *arg)
 	/* select pattern for current status */
 	int pattern = 0;
 
-	if (priv->status.flag_system_armed) {
+	/* XXX fmu armed correct? */
+	if (priv->status.flag_fmu_armed) {
 		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
 			pattern = 0x3f;	// ****** solid (armed)
 
@@ -180,10 +181,10 @@ void gpio_led_cycle(FAR void *arg)
 		}
 
 	} else {
-		if (priv->status.state_machine == SYSTEM_STATE_PREFLIGHT) {
+		if (priv->status.arming_state == ARMING_STATE_STANDBY) {
 			pattern = 0x00;	// ______ off (disarmed, preflight check)
 
-		} else if (priv->status.state_machine == SYSTEM_STATE_STANDBY &&
+		} else if (priv->status.arming_state == ARMING_STATE_STANDBY &&
 			   priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
 			pattern = 0x38;	// ***___ slow blink (disarmed, ready)
 
