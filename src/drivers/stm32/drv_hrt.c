@@ -278,8 +278,10 @@ static void		hrt_call_invoke(void);
 #ifdef CONFIG_HRT_PPM
 /* 
  * If the timer hardware doesn't support GTIM_CCER_CCxNP, then we will work around it.
+ *
+ * Note that we assume that M3 means STM32F1 (since we don't really care about the F2).
  */
-# ifndef GTIM_CCER_CC1NP
+# ifdef CONFIG_ARCH_CORTEXM3
 #  define GTIM_CCER_CC1NP 0
 #  define GTIM_CCER_CC2NP 0
 #  define GTIM_CCER_CC3NP 0
