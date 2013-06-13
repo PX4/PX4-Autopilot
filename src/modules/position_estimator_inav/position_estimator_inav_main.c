@@ -152,7 +152,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	warnx("started.");
 	int mavlink_fd;
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-	mavlink_log_info(mavlink_fd, "[position_estimator_inav] started");
+	mavlink_log_info(mavlink_fd, "[inav] started");
 
 	/* initialize values */
 	float x_est[3] = { 0.0f, 0.0f, 0.0f };
@@ -241,8 +241,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		map_projection_init(lat_current, lon_current);
 		/* publish global position messages only after first GPS message */
 	}
-
-	warnx("initialized projection with: lat: %.10f,  lon:%.10f", lat_current, lon_current);
+	warnx("initialized projection with: lat = %.10f,  lon = %.10f", lat_current, lon_current);
+	mavlink_log_info(mavlink_fd, "[inav] home: lat = %.10f,  lon = %.10f", lat_current, lon_current);
 
 	hrt_abstime t_prev = 0;
 	thread_running = true;
@@ -269,7 +269,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		{ .fd = sensor_combined_sub, .events = POLLIN },
 		{ .fd = vehicle_gps_position_sub, .events = POLLIN }
 	};
-	printf("[position_estimator_inav] main loop started\n");
+	warnx("main loop started.");
 
 	while (!thread_should_exit) {
 		bool accelerometer_updated = false;
@@ -337,7 +337,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						baro_alt0 /= (float)(baro_loop_cnt);
 						local_flag_baroINITdone = true;
-						mavlink_log_info(mavlink_fd, "[position_estimator_inav] baro_alt0 = %.2f", baro_alt0);
+						warnx("baro_alt0 = %.2f", baro_alt0);
+						mavlink_log_info(mavlink_fd, "[inav] baro_alt0 = %.2f", baro_alt0);
+						pos.home_alt = baro_alt0;
 					}
 				}
 			}
@@ -428,7 +430,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (t - updates_counter_start > updates_counter_len) {
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
 				printf(
-					"[position_estimator_inav] updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s\n",
+					"[inav] updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s\n",
 					accel_updates / updates_dt,
 					baro_updates / updates_dt,
 					gps_updates / updates_dt,
@@ -462,7 +464,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	}
 
 	warnx("exiting.");
-	mavlink_log_info(mavlink_fd, "[position_estimator_inav] exiting");
+	mavlink_log_info(mavlink_fd, "[inav] exiting");
 	thread_running = false;
 	return 0;
 }
