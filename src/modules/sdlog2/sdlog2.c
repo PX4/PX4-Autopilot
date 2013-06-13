@@ -77,6 +77,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/rc_channels.h>
 
 #include <systemlib/systemlib.h>
 
@@ -209,7 +210,7 @@ sdlog2_usage(const char *reason)
 
 	errx(1, "usage: sdlog2 {start|stop|status} [-r <log rate>] [-b <buffer size>] -e -a\n"
 	     "\t-r\tLog rate in Hz, 0 means unlimited rate\n"
-	     "\t-r\tLog buffer size in KBytes, default is 8\n"
+	     "\t-b\tLog buffer size in KiB, default is 8\n"
 	     "\t-e\tEnable logging by default (if not, can be started by command)\n"
 	     "\t-a\tLog only when armed (can be still overriden by command)\n");
 }
@@ -635,7 +636,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
 		struct optical_flow_s flow;
-		struct battery_status_s batt;
+		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
 		struct airspeed_s airspeed;
 	} buf;
@@ -656,9 +657,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int gps_pos_sub;
 		int vicon_pos_sub;
 		int flow_sub;
-		int batt_sub;
-		int diff_pres_sub;
-		int airspeed_sub;
+		int rc_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -676,6 +675,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
 			struct log_STAT_s log_STAT;
+			struct log_RC_s log_RC;
+			struct log_OUT0_s log_OUT0;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -720,7 +721,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fdsc_count++;
 
 	/* --- ACTUATOR OUTPUTS --- */
-	subs.act_outputs_sub = orb_subscribe(ORB_ID(actuator_outputs_0));
+	subs.act_outputs_sub = orb_subscribe(ORB_ID_VEHICLE_CONTROLS);
 	fds[fdsc_count].fd = subs.act_outputs_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
@@ -767,9 +768,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- BATTERY STATUS --- */
-	subs.batt_sub = orb_subscribe(ORB_ID(battery_status));
-	fds[fdsc_count].fd = subs.batt_sub;
+	/* --- RC CHANNELS --- */
+	subs.rc_sub = orb_subscribe(ORB_ID(rc_channels));
+	fds[fdsc_count].fd = subs.rc_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -968,7 +969,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- ACTUATOR OUTPUTS --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(actuator_outputs_0), subs.act_outputs_sub, &buf.act_outputs);
-				// TODO not implemented yet
+				log_msg.msg_type = LOG_OUT0_MSG;
+				memcpy(log_msg.body.log_OUT0.output, buf.act_outputs.output, sizeof(log_msg.body.log_OUT0.output));
+				LOGBUFFER_WRITE_AND_COUNT(OUT0);
 			}
 
 			/* --- ACTUATOR CONTROL --- */
@@ -1034,10 +1037,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 				// TODO not implemented yet
 			}
 
-			/* --- BATTERY STATUS --- */
+			/* --- RC CHANNELS --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID(battery_status), subs.batt_sub, &buf.batt);
-				// TODO not implemented yet
+				orb_copy(ORB_ID(rc_channels), subs.rc_sub, &buf.rc);
+				log_msg.msg_type = LOG_RC_MSG;
+				/* Copy only the first 8 channels of 14 */
+				memcpy(log_msg.body.log_RC.channel, buf.rc.chan, sizeof(log_msg.body.log_RC.channel));
+				LOGBUFFER_WRITE_AND_COUNT(RC);
 			}
 
 			/* signal the other thread new data, but not yet unlock */
@@ -1073,10 +1079,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 void sdlog2_status()
 {
-	float mebibytes = log_bytes_written / 1024.0f / 1024.0f;
+	float kibibytes = log_bytes_written / 1024.0f;
+	float mebibytes = kibibytes / 1024.0f;
 	float seconds = ((float)(hrt_absolute_time() - start_time)) / 1000000.0f;
 
-	warnx("wrote %lu msgs, %4.2f MiB (average %5.3f MiB/s), skipped %lu msgs.", log_msgs_written, (double)mebibytes, (double)(mebibytes / seconds), log_msgs_skipped);
+	warnx("wrote %lu msgs, %4.2f MiB (average %5.3f KiB/s), skipped %lu msgs.", log_msgs_written, (double)mebibytes, (double)(kibibytes / seconds), log_msgs_skipped);
+	mavlink_log_info(mavlink_fd, "[sdlog2] wrote %lu msgs, skipped %lu msgs.", log_msgs_written, log_msgs_skipped);
 }
 
 /**
