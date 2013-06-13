@@ -78,6 +78,7 @@ static const int ERROR = -1;
 
 /* register addresses */
 #define ADDR_WHO_AM_I			0x0F
+#define WHO_I_AM_H 				0xD7
 #define WHO_I_AM				0xD4
 
 #define ADDR_CTRL_REG1			0x20
@@ -351,7 +352,7 @@ L3GD20::probe()
 	(void)read_reg(ADDR_WHO_AM_I);
 
 	/* verify that the device is attached and functioning */
-	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM)
+	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM || read_reg(ADDR_WHO_AM_I) == WHO_I_AM_H)
 		return OK;
 
 	return -EIO;
