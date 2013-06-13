@@ -955,7 +955,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				/* check if no other task is scheduled */
 				if(low_prio_task == LOW_PRIO_TASK_NONE) {
-					low_prio_task = LOW_PRIO_TASK_PARAM_LOAD;
+					low_prio_task = LOW_PRIO_TASK_PARAM_SAVE;
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
