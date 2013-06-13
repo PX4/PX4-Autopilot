@@ -64,6 +64,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
@@ -612,7 +613,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 15;
+	const ssize_t fdsc = 16;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -627,6 +628,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
+		struct vehicle_rates_setpoint_s rates_sp;
 		struct actuator_outputs_s act_outputs;
 		struct actuator_controls_s act_controls;
 		struct actuator_controls_effective_s act_controls_effective;
@@ -648,6 +650,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int sensor_sub;
 		int att_sub;
 		int att_sp_sub;
+		int rates_sp_sub;
 		int act_outputs_sub;
 		int act_controls_sub;
 		int act_controls_effective_sub;
@@ -677,6 +680,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_STAT_s log_STAT;
 			struct log_RC_s log_RC;
 			struct log_OUT0_s log_OUT0;
+			struct log_ARSP_s log_ARSP;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -717,6 +721,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- ATTITUDE SETPOINT --- */
 	subs.att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	fds[fdsc_count].fd = subs.att_sp_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- RATES SETPOINT --- */
+	subs.rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+	fds[fdsc_count].fd = subs.rates_sp_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -953,6 +963,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_ATT.roll = buf.att.roll;
 				log_msg.body.log_ATT.pitch = buf.att.pitch;
 				log_msg.body.log_ATT.yaw = buf.att.yaw;
+				log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
+				log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
+				log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
 				LOGBUFFER_WRITE_AND_COUNT(ATT);
 			}
 
@@ -964,6 +977,16 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
 				log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
 				LOGBUFFER_WRITE_AND_COUNT(ATSP);
+			}
+
+			/* --- RATES SETPOINT --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_rates_setpoint), subs.rates_sp_sub, &buf.rates_sp);
+				log_msg.msg_type = LOG_ARSP_MSG;
+				log_msg.body.log_ARSP.roll_rate_sp = buf.rates_sp.roll;
+				log_msg.body.log_ARSP.pitch_rate_sp = buf.rates_sp.pitch;
+				log_msg.body.log_ARSP.yaw_rate_sp = buf.rates_sp.yaw;
+				LOGBUFFER_WRITE_AND_COUNT(ARSP);
 			}
 
 			/* --- ACTUATOR OUTPUTS --- */
