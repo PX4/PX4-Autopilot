@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,22 +32,34 @@
  ****************************************************************************/
 
 /**
- * @file util.h
- * Utility and helper functions and data.
+ * @file actuator_controls.h
+ *
+ * Actuator control topics - mixer inputs.
+ *
+ * Values published to these topics are the outputs of the vehicle control
+ * system, and are expected to be mixed and used to drive the actuators
+ * (servos, speed controls, etc.) that operate the vehicle.
+ *
+ * Each topic can be published by a single controller
  */
 
-#pragma once
+#ifndef TOPIC_ACTUATOR_SAFETY_H
+#define TOPIC_ACTUATOR_SAFETY_H
 
-#include "orb_topics.h"
+#include <stdint.h>
+#include "../uORB.h"
 
-/** MAVLink communications channel */
-extern uint8_t chan;
+/** global 'actuator output is live' control. */
+struct actuator_safety_s {
 
-/** Shutdown marker */
-extern volatile bool thread_should_exit;
+	uint64_t	timestamp;
 
-/**
- * Translate the custom state into standard mavlink modes and state.
- */
-extern void get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct actuator_safety_s *safety,
-	uint8_t *mavlink_state, uint8_t *mavlink_mode);
+	bool	safety_off;	/**< Set to true if safety is off */
+	bool	armed;		/**< Set to true if system is armed */
+	bool	ready_to_arm;	/**< Set to true if system is ready to be armed */
+	bool	lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
+};
+
+ORB_DECLARE(actuator_safety);
+
+#endif

@@ -55,6 +55,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_safety.h>
 
 #include <systemlib/systemlib.h>
 
@@ -247,13 +248,13 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	memset(&state, 0, sizeof(state));
 	struct actuator_controls_s actuator_controls;
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
-	struct actuator_armed_s armed;
-	armed.armed = false;
+	struct actuator_safety_s safety;
+	safety.armed = false;
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
-	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
 
 	printf("[ardrone_interface] Motors initialized - ready.\n");
 	fflush(stdout);
@@ -322,18 +323,14 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		} else {
 			/* MAIN OPERATION MODE */
 
-			/* get a local copy of the vehicle state */
-			orb_copy(ORB_ID(vehicle_status), state_sub, &state);
 			/* get a local copy of the actuator controls */
 			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
-			orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+			orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
 			
 			/* for now only spin if armed and immediately shut down
 			 * if in failsafe
 			 */
-			//XXX fix this
-			//if (armed.armed && !armed.lockdown) {
-			if (state.flag_fmu_armed) {
+			if (safety.armed && !safety.lockdown) {
 				ardrone_mixing_and_output(ardrone_write, &actuator_controls);
 
 			} else {

@@ -116,6 +116,7 @@
 #include <poll.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_safety.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
 static const float MAX_CELL_VOLTAGE	= 4.3f;
@@ -376,6 +377,7 @@ BlinkM::led()
 
 	static int vehicle_status_sub_fd;
 	static int vehicle_gps_position_sub_fd;
+	static int actuator_safety_sub_fd;
 
 	static int num_of_cells = 0;
 	static int detected_cells_runcount = 0;
@@ -386,6 +388,7 @@ BlinkM::led()
 	static int led_interval = 1000;
 
 	static int no_data_vehicle_status = 0;
+	static int no_data_actuator_safety = 0;
 	static int no_data_vehicle_gps_position = 0;
 
 	static bool topic_initialized = false;
@@ -397,6 +400,9 @@ BlinkM::led()
 	if(!topic_initialized) {
 		vehicle_status_sub_fd = orb_subscribe(ORB_ID(vehicle_status));
 		orb_set_interval(vehicle_status_sub_fd, 1000);
+
+		actuator_safety_sub_fd = orb_subscribe(ORB_ID(actuator_safety));
+		orb_set_interval(actuator_safety_sub_fd, 1000);
 
 		vehicle_gps_position_sub_fd = orb_subscribe(ORB_ID(vehicle_gps_position));
 		orb_set_interval(vehicle_gps_position_sub_fd, 1000);
@@ -452,12 +458,14 @@ BlinkM::led()
 	if (led_thread_runcount == 15) {
 		/* obtained data for the first file descriptor */
 		struct vehicle_status_s vehicle_status_raw;
+		struct actuator_safety_s actuator_safety;
 		struct vehicle_gps_position_s vehicle_gps_position_raw;
 
 		memset(&vehicle_status_raw, 0, sizeof(vehicle_status_raw));
 		memset(&vehicle_gps_position_raw, 0, sizeof(vehicle_gps_position_raw));
 
 		bool new_data_vehicle_status;
+		bool new_data_actuator_safety;
 		bool new_data_vehicle_gps_position;
 
 		orb_check(vehicle_status_sub_fd, &new_data_vehicle_status);
@@ -467,6 +475,17 @@ BlinkM::led()
 			no_data_vehicle_status = 0;
 		} else {
 			no_data_vehicle_status++;
+			if(no_data_vehicle_status >= 3)
+				no_data_vehicle_status = 3;
+		}
+
+		orb_check(actuator_safety_sub_fd, &new_data_actuator_safety);
+
+		if (new_data_actuator_safety) {
+			orb_copy(ORB_ID(actuator_safety), actuator_safety_sub_fd, &actuator_safety);
+			no_data_actuator_safety = 0;
+		} else {
+			no_data_actuator_safety++;
 			if(no_data_vehicle_status >= 3)
 				no_data_vehicle_status = 3;
 		}
@@ -530,7 +549,7 @@ BlinkM::led()
 				} else {
 					/* no battery warnings here */
 
-					if(vehicle_status_raw.flag_fmu_armed == false) {
+					if(actuator_safety.armed == false) {
 						/* system not armed */
 						led_color_1 = LED_RED;
 						led_color_2 = LED_RED;

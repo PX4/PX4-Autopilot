@@ -46,6 +46,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_safety.h>
 
 void navigation_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
@@ -53,7 +54,7 @@ void navigation_state_update(int status_pub, struct vehicle_status_s *current_st
 
 void state_machine_publish(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
-int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, const int mavlink_fd);
+int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int safety_pub, struct actuator_safety_s *safety, const int mavlink_fd);
 int navigation_state_transition(int status_pub, struct vehicle_status_s *current_state, navigation_state_t new_navigation_state, const int mavlink_fd);
 
 int hil_state_transition(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, hil_state_t new_state);

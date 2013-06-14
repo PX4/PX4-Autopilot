@@ -199,8 +199,8 @@ struct vehicle_status_s
 	bool flag_external_manual_override_ok;	/**< external override non-fatal for system. Only true for fixed wing */
 
 	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */
-	bool flag_fmu_armed;				/**< true is motors / actuators of FMU are armed  */
-	bool flag_io_armed;				/**< true is motors / actuators of IO are armed */
+	bool flag_armed;				/**< true is motors / actuators are armed  */
+	bool flag_safety_off;				/**< true if safety is off */
 	bool flag_system_emergency;
 	bool flag_preflight_calibration;
 
@@ -245,7 +245,6 @@ struct vehicle_status_s
 	uint16_t errors_count2;
 	uint16_t errors_count3;
 	uint16_t errors_count4;
-
 };
 
 /**

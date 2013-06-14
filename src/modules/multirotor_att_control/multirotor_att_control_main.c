@@ -58,6 +58,7 @@
 #include <uORB/uORB.h>
 #include <drivers/drv_gyro.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_safety.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -84,13 +85,16 @@ static bool motor_test_mode = false;
 
 static orb_advert_t actuator_pub;
 
-static struct vehicle_status_s state;
+
 
 static int
 mc_thread_main(int argc, char *argv[])
 {
 	/* declare and safely initialize all structs */
+	struct vehicle_status_s state;
 	memset(&state, 0, sizeof(state));
+	struct actuator_safety_s safety;
+	memset(&safety, 0, sizeof(safety));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_attitude_setpoint_s att_sp;
@@ -113,6 +117,7 @@ mc_thread_main(int argc, char *argv[])
 	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int setpoint_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 
@@ -150,7 +155,7 @@ mc_thread_main(int argc, char *argv[])
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
 	bool flag_control_attitude_enabled = false;
-	bool flag_fmu_armed = false;
+	bool flag_armed = false;
 	bool flag_control_position_enabled = false;
 	bool flag_control_velocity_enabled = false;
 
@@ -198,6 +203,12 @@ mc_thread_main(int argc, char *argv[])
 
 				if (updated) {
 					orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+				}
+
+				orb_check(safety_sub, &updated);
+
+				if (updated) {
+					orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
 				}
 
 				/* get a local copy of manual setpoint */
@@ -248,7 +259,7 @@ mc_thread_main(int argc, char *argv[])
 						/* initialize to current yaw if switching to manual or att control */
 						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
 						    state.flag_control_manual_enabled != flag_control_manual_enabled ||
-						    state.flag_fmu_armed != flag_fmu_armed) {
+						    safety.armed != flag_armed) {
 							att_sp.yaw_body = att.yaw;
 						}
 
@@ -292,7 +303,7 @@ mc_thread_main(int argc, char *argv[])
 							att_sp.pitch_body = manual.pitch;
 
 							/* set attitude if arming */
-							if (!flag_control_attitude_enabled && state.flag_fmu_armed) {
+							if (!flag_control_attitude_enabled && safety.armed) {
 								att_sp.yaw_body = att.yaw;
 							}
 
@@ -399,7 +410,7 @@ mc_thread_main(int argc, char *argv[])
 				flag_control_manual_enabled = state.flag_control_manual_enabled;
 				flag_control_position_enabled = state.flag_control_position_enabled;
 				flag_control_velocity_enabled = state.flag_control_velocity_enabled;
-				flag_fmu_armed = state.flag_fmu_armed;
+				flag_armed = safety.armed;
 
 				perf_end(mc_loop_perf);
 			} /* end of poll call for attitude updates */

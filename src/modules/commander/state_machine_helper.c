@@ -54,7 +54,7 @@
 
 #include "state_machine_helper.h"
 
-int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, const int mavlink_fd) {
+int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int safety_pub, struct actuator_safety_s *safety, const int mavlink_fd) {
 	
 	int ret = ERROR;
 
@@ -69,7 +69,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				/* allow going back from INIT for calibration */
 				if (current_state->arming_state == ARMING_STATE_STANDBY) {
 					ret = OK;
-					current_state->flag_fmu_armed = false;
+					safety->armed = false;
 				}
 				break;
 			case ARMING_STATE_STANDBY:
@@ -81,7 +81,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 					/* sensors need to be initialized for STANDBY state */
 					if (current_state->condition_system_sensors_initialized) {
 						ret = OK;
-						current_state->flag_fmu_armed = false;
+						safety->armed = false;
 					} else {
 						mavlink_log_critical(mavlink_fd, "Rej. STANDBY state, sensors not initialized");
 					}
@@ -95,7 +95,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 
 					/* XXX conditions for arming? */
 					ret = OK;
-					current_state->flag_fmu_armed = true;
+					safety->armed = true;
 				}
 				break;
 			case ARMING_STATE_ARMED_ERROR:
@@ -105,7 +105,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 					
 					/* XXX conditions for an error state? */
 					ret = OK;
-					current_state->flag_fmu_armed = true;
+					safety->armed = true;
 				}
 				break;
 			case ARMING_STATE_STANDBY_ERROR:
@@ -114,7 +114,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				 || current_state->arming_state == ARMING_STATE_INIT
 				 || current_state->arming_state == ARMING_STATE_ARMED_ERROR) {
 					ret = OK;
-					current_state->flag_fmu_armed = false;
+					safety->armed = false;
 				}
 				break;
 			case ARMING_STATE_REBOOT:
@@ -125,7 +125,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				 || current_state->arming_state == ARMING_STATE_STANDBY_ERROR) {
 
 					ret = OK;
-					current_state->flag_fmu_armed = false;
+					safety->armed = false;
 
 				}
 				break;
@@ -139,7 +139,12 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 
 		if (ret == OK) {
 			current_state->arming_state = new_arming_state;
-			state_machine_publish(status_pub, current_state, mavlink_fd);
+			current_state->counter++;
+			current_state->timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(vehicle_status), status_pub, current_state);
+
+			safety->timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(actuator_safety), safety_pub, safety);
 		}
 	}
 
@@ -460,7 +465,9 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 
 		if (ret == OK) {
 			current_state->navigation_state = new_navigation_state;
-			state_machine_publish(status_pub, current_state, mavlink_fd);
+			current_state->counter++;
+			current_state->timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(vehicle_status), status_pub, current_state);
 		}
 	}
 

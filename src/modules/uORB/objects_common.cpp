@@ -137,7 +137,9 @@ ORB_DEFINE(actuator_controls_0, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_1, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_2, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
-ORB_DEFINE(actuator_armed, struct actuator_armed_s);
+
+#include "topics/actuator_safety.h"
+ORB_DEFINE(actuator_safety, struct actuator_safety_s);
 
 /* actuator controls, as set by actuators / mixers after limiting */
 #include "topics/actuator_controls_effective.h"

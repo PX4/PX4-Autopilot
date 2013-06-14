@@ -60,6 +60,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/actuator_safety.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -190,7 +191,7 @@ static int file_copy(const char *file_old, const char *file_new);
 
 static void handle_command(struct vehicle_command_s *cmd);
 
-static void handle_status(struct vehicle_status_s *cmd);
+static void handle_status(struct actuator_safety_s *safety);
 
 /**
  * Create folder for current logging session. Store folder name in 'log_folder'.
@@ -623,6 +624,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
+		struct actuator_safety_s safety;
 		struct vehicle_command_s cmd;
 		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
@@ -643,6 +645,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	memset(&buf, 0, sizeof(buf));
 
 	struct {
+		int safety_sub;
 		int cmd_sub;
 		int status_sub;
 		int sensor_sub;
@@ -687,6 +690,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- VEHICLE COMMAND --- */
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	fds[fdsc_count].fd = subs.cmd_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- SAFETY STATUS --- */
+	subs.safety_sub = orb_subscribe(ORB_ID(actuator_safety));
+	fds[fdsc_count].fd = subs.safety_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -826,6 +835,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			int ifds = 0;
 			int handled_topics = 0;
 
+
 			/* --- VEHICLE COMMAND - LOG MANAGEMENT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd);
@@ -838,7 +848,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_status), subs.status_sub, &buf_status);
 
 				if (log_when_armed) {
-					handle_status(&buf_status);
+					handle_status(&buf.safety);
 				}
 
 				handled_topics++;
@@ -870,7 +880,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_STAT.flight_mode = 0;
 				log_msg.body.log_STAT.manual_control_mode = 0;
 				log_msg.body.log_STAT.manual_sas_mode = 0;
-				log_msg.body.log_STAT.armed = (unsigned char) buf_status.flag_fmu_armed; /* XXX fmu armed correct? */
+				log_msg.body.log_STAT.armed = (unsigned char) buf.safety.armed; /* XXX fmu armed correct? */
 				log_msg.body.log_STAT.battery_voltage = buf_status.voltage_battery;
 				log_msg.body.log_STAT.battery_current = buf_status.current_battery;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
@@ -1168,11 +1178,10 @@ void handle_command(struct vehicle_command_s *cmd)
 	}
 }
 
-void handle_status(struct vehicle_status_s *status)
+void handle_status(struct actuator_safety_s *safety)
 {
-	/* XXX fmu armed correct? */
-	if (status->flag_fmu_armed != flag_system_armed) {
-		flag_system_armed = status->flag_fmu_armed;
+	if (safety->armed != flag_system_armed) {
+		flag_system_armed = safety->armed;
 
 		if (flag_system_armed) {
 			sdlog2_start_log();

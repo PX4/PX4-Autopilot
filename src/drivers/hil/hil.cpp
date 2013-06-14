@@ -75,6 +75,7 @@
 #include <systemlib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_safety.h>
 #include <uORB/topics/actuator_outputs.h>
 
 #include <systemlib/err.h>
@@ -108,7 +109,7 @@ private:
 	int 		_current_update_rate;
 	int		_task;
 	int		_t_actuators;
-	int		_t_armed;
+	int		_t_safety;
 	orb_advert_t	_t_outputs;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
@@ -161,7 +162,7 @@ HIL::HIL() :
 	_current_update_rate(0),
 	_task(-1),
 	_t_actuators(-1),
-	_t_armed(-1),
+	_t_safety(-1),
 	_t_outputs(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
@@ -321,8 +322,8 @@ HIL::task_main()
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
-	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
+	_t_safety = orb_subscribe(ORB_ID(actuator_safety));
+	orb_set_interval(_t_safety, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -334,7 +335,7 @@ HIL::task_main()
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
-	fds[1].fd = _t_armed;
+	fds[1].fd = _t_safety;
 	fds[1].events = POLLIN;
 
 	unsigned num_outputs;
@@ -426,15 +427,15 @@ HIL::task_main()
 
 		/* how about an arming update? */
 		if (fds[1].revents & POLLIN) {
-			actuator_armed_s aa;
+			actuator_safety_s aa;
 
 			/* get new value */
-			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
+			orb_copy(ORB_ID(actuator_safety), _t_safety, &aa);
 		}
 	}
 
 	::close(_t_actuators);
-	::close(_t_armed);
+	::close(_t_safety);
 
 	/* make sure servos are off */
 	// up_pwm_servo_deinit();

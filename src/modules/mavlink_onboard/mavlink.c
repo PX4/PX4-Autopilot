@@ -274,7 +274,7 @@ void mavlink_update_system(void)
 }
 
 void
-get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct actuator_armed_s *armed,
+get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct actuator_safety_s *safety,
 	uint8_t *mavlink_state, uint8_t *mavlink_mode)
 {
 	/* reset MAVLink mode bitfield */
@@ -290,7 +290,7 @@ get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct
 	}
 
 	/* set arming state */
-	if (v_status->flag_fmu_armed) {
+	if (safety->armed) {
 		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	} else {
 		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
@@ -369,7 +369,7 @@ int mavlink_thread_main(int argc, char *argv[])
 	baudrate = 57600;
 
 	struct vehicle_status_s v_status;
-	struct actuator_armed_s armed;
+	struct actuator_safety_s safety;
 
 	/* work around some stupidity in task_create's argv handling */
 	argc -= 2;
@@ -437,7 +437,7 @@ int mavlink_thread_main(int argc, char *argv[])
 			/* translate the current system state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
 			uint8_t mavlink_mode = 0;
-			get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
+			get_mavlink_mode_and_state(&v_status, &safety, &mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */
 			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.navigation_state, mavlink_state);
