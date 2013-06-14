@@ -1991,9 +1991,6 @@ int commander_thread_main(int argc, char *argv[])
 				// printf("checking\n");
 				if ((sp_man.yaw < -STICK_ON_OFF_LIMIT) && (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						
-
-						printf("System Type: %d\n", current_status.system_type);
 
 						if((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
 						 (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||

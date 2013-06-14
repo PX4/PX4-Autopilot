@@ -198,6 +198,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to be disarmed first */
 					if (current_state->arming_state != ARMING_STATE_STANDBY) {
 						mavlink_log_critical(mavlink_fd, "Rej. MANUAL_STANDBY: not disarmed");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
@@ -214,6 +215,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				/* need to be armed first */
 				if (current_state->arming_state != ARMING_STATE_ARMED) {
 					mavlink_log_critical(mavlink_fd, "Rej. MANUAL: not armed");
+					tune_negative();
 				} else {
 					ret = OK;
 					current_state->flag_control_rates_enabled = true;
@@ -236,8 +238,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to be disarmed and have a position estimate */
 					if (current_state->arming_state != ARMING_STATE_STANDBY) {
 						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_STANDBY: not disarmed");
+						tune_negative();
 					} else if (!current_state->condition_local_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_STANDBY: no position estimate");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
@@ -265,8 +269,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to be armed and have a position estimate */
 					if (current_state->arming_state != ARMING_STATE_ARMED) {
 						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: not armed");
+						tune_negative();
 					} else if (!current_state->condition_local_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no pos estimate");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
@@ -293,8 +299,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to be armed and have a position estimate */
 					if (current_state->arming_state != ARMING_STATE_ARMED) {
 						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_DESCENT: not armed");
+						tune_negative();
 					} else if (!current_state->condition_local_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_DESCENT: no pos estimate");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
@@ -317,10 +325,13 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to be disarmed and have a position and home lock */
 					if (current_state->arming_state != ARMING_STATE_STANDBY) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_STANDBY: not disarmed");
+						tune_negative();
 					} else if (!current_state->condition_global_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_STANDBY: no pos lock");
+						tune_negative();
 					} else if (!current_state->condition_home_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_STANDBY: no home pos");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
@@ -343,6 +354,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to be armed and have a position and home lock */
 					if (current_state->arming_state != ARMING_STATE_ARMED) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_READY: not armed");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
@@ -380,8 +392,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to have a position and home lock */
 					if (!current_state->condition_global_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LOITER: no pos lock");
+						tune_negative();
 					} else if (!current_state->condition_home_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LOITER: no home pos");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
@@ -405,6 +419,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to have a mission ready */
 					if (!current_state-> condition_auto_mission_available) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_MISSION: no mission available");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
@@ -428,8 +443,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to have a position and home lock */
 					if (!current_state->condition_global_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_RTL: no pos lock");
+						tune_negative();
 					} else if (!current_state->condition_home_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_RTL: no home pos");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
@@ -450,8 +467,10 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					/* need to have a position and home lock */
 					if (!current_state->condition_global_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LAND: no pos lock");
+						tune_negative();
 					} else if (!current_state->condition_home_position_valid) {
 						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LAND: no home pos");
+						tune_negative();
 					} else {
 						ret = OK;
 						current_state->flag_control_rates_enabled = true;
