@@ -70,6 +70,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				if (current_state->arming_state == ARMING_STATE_STANDBY) {
 					ret = OK;
 					safety->armed = false;
+					safety->ready_to_arm = false;
 				}
 				break;
 			case ARMING_STATE_STANDBY:
@@ -82,6 +83,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 					if (current_state->condition_system_sensors_initialized) {
 						ret = OK;
 						safety->armed = false;
+						safety->ready_to_arm = true;
 					} else {
 						mavlink_log_critical(mavlink_fd, "Rej. STANDBY state, sensors not initialized");
 					}
@@ -115,6 +117,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				 || current_state->arming_state == ARMING_STATE_ARMED_ERROR) {
 					ret = OK;
 					safety->armed = false;
+					safety->ready_to_arm = false;
 				}
 				break;
 			case ARMING_STATE_REBOOT:
@@ -126,6 +129,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 
 					ret = OK;
 					safety->armed = false;
+					safety->ready_to_arm = false;
 
 				}
 				break;

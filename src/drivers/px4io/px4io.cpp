@@ -728,12 +728,11 @@ PX4IO::io_set_arming_state()
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 	}
-	// TODO fix this
-//	if (armed.ready_to_arm) {
-//		set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
-//	} else {
-//		clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
-//	}
+	if (safety.ready_to_arm) {
+		set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
+	} else {
+		clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
+	}
 
 	if (vstatus.flag_external_manual_override_ok) {
 		set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
