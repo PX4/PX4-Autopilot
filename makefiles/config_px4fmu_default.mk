@@ -63,10 +63,10 @@ MODULES		+= modules/gpio_led
 #
 MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/attitude_estimator_so3_comp
-#MODULES		+= modules/position_estimator_mc
 MODULES		+= modules/position_estimator
 MODULES		+= modules/att_pos_estimator_ekf
 MODULES		+= modules/position_estimator_inav
+MODULES		+= examples/flow_position_estimator
 
 #
 # Vehicle Control
@@ -76,11 +76,12 @@ MODULES		+= modules/fixedwing_att_control
 MODULES		+= modules/fixedwing_pos_control
 MODULES		+= modules/multirotor_att_control
 MODULES		+= modules/multirotor_pos_control
+MODULES		+= examples/flow_position_control
+MODULES		+= examples/flow_speed_control
 
 #
 # Logging
 #
-MODULES		+= modules/sdlog
 MODULES		+= modules/sdlog2
 
 #
