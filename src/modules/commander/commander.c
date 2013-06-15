@@ -1233,12 +1233,17 @@ int commander_thread_main(int argc, char *argv[])
 	// XXX for now just set sensors as initialized
 	current_status.condition_system_sensors_initialized = true;
 
+	// XXX just disable offboard control for now
+	control_mode.flag_control_offboard_enabled = false;
+
 	/* advertise to ORB */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
 	/* publish current state machine */
 	state_machine_publish(status_pub, &current_status, mavlink_fd);
 
 	safety_pub = orb_advertise(ORB_ID(actuator_safety), &safety);
+
+	control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);	
 
 	/* home position */
 	orb_advert_t home_pub = -1;
@@ -1824,7 +1829,7 @@ int commander_thread_main(int argc, char *argv[])
 						/* just manual, XXX this might depend on the return switch */
 						if (current_status.mode_switch == MODE_SWITCH_MANUAL) {
 							
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL_STANDBY, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// These is not supposed to happen
 								warnx("ERROR: Navigation state MANUAL_STANDBY rejected");
 							}
@@ -1832,9 +1837,9 @@ int commander_thread_main(int argc, char *argv[])
 						/* Try seatbelt or fallback to manual */
 						} else if (current_status.mode_switch == MODE_SWITCH_SEATBELT) {
 			
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_STANDBY, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// fallback to MANUAL_STANDBY
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL_STANDBY, mavlink_fd) != OK) {
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// These is not supposed to happen
 								warnx("ERROR: Navigation state MANUAL_STANDBY rejected");
 								}
@@ -1843,11 +1848,11 @@ int commander_thread_main(int argc, char *argv[])
 						/* Try auto or fallback to seatbelt or even manual */
 						} else if (current_status.mode_switch == MODE_SWITCH_AUTO) {
 							
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_STANDBY, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// first fallback to SEATBELT_STANDY
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_STANDBY, mavlink_fd) != OK) {
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// or fallback to MANUAL_STANDBY
-									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL_STANDBY, mavlink_fd) != OK) {
+									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// These is not supposed to happen
 									warnx("ERROR: Navigation state MANUAL_STANDBY rejected");
 									}
@@ -1863,7 +1868,7 @@ int commander_thread_main(int argc, char *argv[])
 						/* Always accept manual mode */
 						if (current_status.mode_switch == MODE_SWITCH_MANUAL) {
 
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// These is not supposed to happen
 								warnx("ERROR: Navigation state MANUAL rejected");
 							}
@@ -1872,9 +1877,9 @@ int commander_thread_main(int argc, char *argv[])
 						} else if (current_status.mode_switch == MODE_SWITCH_SEATBELT
 								&& current_status.return_switch == RETURN_SWITCH_NONE) {
 			
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// fallback to MANUAL_STANDBY
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, mavlink_fd) != OK) {
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// These is not supposed to happen
 								warnx("ERROR: Navigation state MANUAL rejected");
 								}
@@ -1884,9 +1889,9 @@ int commander_thread_main(int argc, char *argv[])
 						} else if (current_status.mode_switch == MODE_SWITCH_SEATBELT
 								&& current_status.return_switch == RETURN_SWITCH_RETURN) {
 			
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_DESCENT, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_DESCENT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// fallback to MANUAL_STANDBY
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, mavlink_fd) != OK) {
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// These is not supposed to happen
 								warnx("ERROR: Navigation state MANUAL rejected");
 								}
@@ -1898,19 +1903,19 @@ int commander_thread_main(int argc, char *argv[])
 								&& current_status.mission_switch == MISSION_SWITCH_NONE) {
 			
 							/* we might come from the disarmed state AUTO_STANDBY */
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_READY, mavlink_fd) != OK) {
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_READY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// fallback to MANUAL_STANDBY
-									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, mavlink_fd) != OK) {
+									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// These is not supposed to happen
 									warnx("ERROR: Navigation state MANUAL rejected");
 									}
 								}
 							/* or from some other armed state like SEATBELT or MANUAL */
-							} else if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_LOITER, mavlink_fd) != OK) {
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, mavlink_fd) != OK) {
+							} else if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// fallback to MANUAL_STANDBY
-									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, mavlink_fd) != OK) {
+									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// These is not supposed to happen
 									warnx("ERROR: Navigation state MANUAL rejected");
 									}
@@ -1922,10 +1927,10 @@ int commander_thread_main(int argc, char *argv[])
 								&& current_status.return_switch == RETURN_SWITCH_NONE
 								&& current_status.mission_switch == MISSION_SWITCH_MISSION) {
 							
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_MISSION, mavlink_fd) != OK) {
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// fallback to MANUAL_STANDBY
-									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, mavlink_fd) != OK) {
+									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// These is not supposed to happen
 									warnx("ERROR: Navigation state MANUAL rejected");
 									}
@@ -1937,10 +1942,10 @@ int commander_thread_main(int argc, char *argv[])
 								&& current_status.return_switch == RETURN_SWITCH_RETURN
 								&& (current_status.mission_switch == MISSION_SWITCH_NONE || current_status.mission_switch == MISSION_SWITCH_MISSION)) {
 			
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_RTL, mavlink_fd) != OK) {
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_DESCENT, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_RTL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_DESCENT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// fallback to MANUAL_STANDBY
-									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, mavlink_fd) != OK) {
+									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// These is not supposed to happen
 									warnx("ERROR: Navigation state MANUAL rejected");
 									}
@@ -2070,43 +2075,43 @@ int commander_thread_main(int argc, char *argv[])
 		if (!current_status.rc_signal_found_once && sp_offboard.timestamp != 0) {
 			if ((hrt_absolute_time() - sp_offboard.timestamp) < 5000000) {
 
-				/* decide about attitude control flag, enable in att/pos/vel */
-				bool attitude_ctrl_enabled = (sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE ||
-								  sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY ||
-								  sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION);
+				// /* decide about attitude control flag, enable in att/pos/vel */
+				// bool attitude_ctrl_enabled = (sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE ||
+				// 				  sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY ||
+				// 				  sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION);
 
-				/* decide about rate control flag, enable it always XXX (for now) */
-				bool rates_ctrl_enabled = true;
+				// /* decide about rate control flag, enable it always XXX (for now) */
+				// bool rates_ctrl_enabled = true;
 
-				/* set up control mode */
-				if (current_status.flag_control_attitude_enabled != attitude_ctrl_enabled) {
-					current_status.flag_control_attitude_enabled = attitude_ctrl_enabled;
-					state_changed = true;
-				}
+				// /* set up control mode */
+				// if (current_status.flag_control_attitude_enabled != attitude_ctrl_enabled) {
+				// 	current_status.flag_control_attitude_enabled = attitude_ctrl_enabled;
+				// 	state_changed = true;
+				// }
 
-				if (current_status.flag_control_rates_enabled != rates_ctrl_enabled) {
-					current_status.flag_control_rates_enabled = rates_ctrl_enabled;
-					state_changed = true;
-				}
+				// if (current_status.flag_control_rates_enabled != rates_ctrl_enabled) {
+				// 	current_status.flag_control_rates_enabled = rates_ctrl_enabled;
+				// 	state_changed = true;
+				// }
 
-				/* handle the case where offboard control signal was regained */
-				if (!current_status.offboard_control_signal_found_once) {
-					current_status.offboard_control_signal_found_once = true;
-					/* enable offboard control, disable manual input */
-					current_status.flag_control_manual_enabled = false;
-					current_status.flag_control_offboard_enabled = true;
-					state_changed = true;
-					tune_positive();
+				// /* handle the case where offboard control signal was regained */
+				// if (!current_status.offboard_control_signal_found_once) {
+				// 	current_status.offboard_control_signal_found_once = true;
+				// 	/* enable offboard control, disable manual input */
+				// 	current_status.flag_control_manual_enabled = false;
+				// 	current_status.flag_control_offboard_enabled = true;
+				// 	state_changed = true;
+				// 	tune_positive();
 
-					mavlink_log_critical(mavlink_fd, "DETECTED OFFBOARD SIGNAL FIRST");
+				// 	mavlink_log_critical(mavlink_fd, "DETECTED OFFBOARD SIGNAL FIRST");
 
-				} else {
-					if (current_status.offboard_control_signal_lost) {
-						mavlink_log_critical(mavlink_fd, "RECOVERY OFFBOARD CONTROL");
-						state_changed = true;
-						tune_positive();
-					}
-				}
+				// } else {
+				// 	if (current_status.offboard_control_signal_lost) {
+				// 		mavlink_log_critical(mavlink_fd, "RECOVERY OFFBOARD CONTROL");
+				// 		state_changed = true;
+				// 		tune_positive();
+				// 	}
+				// }
 
 				current_status.offboard_control_signal_weak = false;
 				current_status.offboard_control_signal_lost = false;

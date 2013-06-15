@@ -46,6 +46,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -161,7 +162,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
  * This functions does not evaluate any input flags but only checks if the transitions
  * are valid.
  */
-int navigation_state_transition(int status_pub, struct vehicle_status_s *current_state, navigation_state_t new_navigation_state, const int mavlink_fd) {
+int navigation_state_transition(int status_pub, struct vehicle_status_s *current_state, navigation_state_t new_navigation_state, int control_mode_pub, struct vehicle_control_mode_s *control_mode, const int mavlink_fd) {
 
 	int ret = ERROR;
 
@@ -179,11 +180,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_STANDBY) {
 
 					ret = OK;
-					current_state->flag_control_rates_enabled = false;
-					current_state->flag_control_attitude_enabled = false;
-					current_state->flag_control_velocity_enabled = false;
-					current_state->flag_control_position_enabled = false;
-					current_state->flag_control_manual_enabled = false;
+					control_mode->flag_control_rates_enabled = false;
+					control_mode->flag_control_attitude_enabled = false;
+					control_mode->flag_control_velocity_enabled = false;
+					control_mode->flag_control_position_enabled = false;
+					control_mode->flag_control_manual_enabled = false;
 				}
 				break;
 
@@ -201,11 +202,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = false;
-						current_state->flag_control_position_enabled = false;
-						current_state->flag_control_manual_enabled = true;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = false;
+						control_mode->flag_control_position_enabled = false;
+						control_mode->flag_control_manual_enabled = true;
 					}
 				}
 				break;
@@ -218,11 +219,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					tune_negative();
 				} else {
 					ret = OK;
-					current_state->flag_control_rates_enabled = true;
-					current_state->flag_control_attitude_enabled = true;
-					current_state->flag_control_velocity_enabled = false;
-					current_state->flag_control_position_enabled = false;
-					current_state->flag_control_manual_enabled = true;
+					control_mode->flag_control_rates_enabled = true;
+					control_mode->flag_control_attitude_enabled = true;
+					control_mode->flag_control_velocity_enabled = false;
+					control_mode->flag_control_position_enabled = false;
+					control_mode->flag_control_manual_enabled = true;
 				}
 				break;
 
@@ -244,11 +245,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = true;
-						current_state->flag_control_position_enabled = false;
-						current_state->flag_control_manual_enabled = false;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = false;
+						control_mode->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -275,11 +276,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = true;
-						current_state->flag_control_position_enabled = false;
-						current_state->flag_control_manual_enabled = false;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = false;
+						control_mode->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -305,11 +306,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = true;
-						current_state->flag_control_position_enabled = false;
-						current_state->flag_control_manual_enabled = false;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = false;
+						control_mode->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -334,11 +335,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = true;
-						current_state->flag_control_position_enabled = true;
-						current_state->flag_control_manual_enabled = false;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -357,11 +358,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = true;
-						current_state->flag_control_position_enabled = true;
-						current_state->flag_control_manual_enabled = false;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -372,11 +373,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_READY) {
 
 					ret = OK;
-					current_state->flag_control_rates_enabled = true;
-					current_state->flag_control_attitude_enabled = true;
-					current_state->flag_control_velocity_enabled = true;
-					current_state->flag_control_position_enabled = true;
-					current_state->flag_control_manual_enabled = false;
+					control_mode->flag_control_rates_enabled = true;
+					control_mode->flag_control_attitude_enabled = true;
+					control_mode->flag_control_velocity_enabled = true;
+					control_mode->flag_control_position_enabled = true;
+					control_mode->flag_control_manual_enabled = false;
 				}
 				break;
 
@@ -398,11 +399,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = true;
-						current_state->flag_control_position_enabled = true;
-						current_state->flag_control_manual_enabled = false;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -422,11 +423,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = true;
-						current_state->flag_control_position_enabled = true;
-						current_state->flag_control_manual_enabled = false;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -449,11 +450,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = true;
-						current_state->flag_control_position_enabled = true;
-						current_state->flag_control_manual_enabled = false;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -473,11 +474,11 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						tune_negative();
 					} else {
 						ret = OK;
-						current_state->flag_control_rates_enabled = true;
-						current_state->flag_control_attitude_enabled = true;
-						current_state->flag_control_velocity_enabled = true;
-						current_state->flag_control_position_enabled = true;
-						current_state->flag_control_manual_enabled = false;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_manual_enabled = false;
 					}
 				}
 				break;
@@ -491,6 +492,9 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 			current_state->counter++;
 			current_state->timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(vehicle_status), status_pub, current_state);
+
+			control_mode->timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, control_mode);
 		}
 	}
 

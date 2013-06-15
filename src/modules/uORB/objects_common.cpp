@@ -98,6 +98,9 @@ ORB_DEFINE(rc_channels, struct rc_channels_s);
 #include "topics/vehicle_command.h"
 ORB_DEFINE(vehicle_command, struct vehicle_command_s);
 
+#include "topics/vehicle_control_mode.h"
+ORB_DEFINE(vehicle_control_mode, struct vehicle_control_mode_s);
+
 #include "topics/vehicle_local_position_setpoint.h"
 ORB_DEFINE(vehicle_local_position_setpoint, struct vehicle_local_position_setpoint_s);
 

@@ -58,6 +58,7 @@ struct actuator_safety_s {
 	bool	armed;		/**< Set to true if system is armed */
 	bool	ready_to_arm;	/**< Set to true if system is ready to be armed */
 	bool	lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
+	bool	hil_enabled;	/**< Set to true if hardware-in-the-loop (HIL) is enabled */
 };
 
 ORB_DECLARE(actuator_safety);

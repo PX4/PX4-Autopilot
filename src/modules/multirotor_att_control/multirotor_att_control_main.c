@@ -57,7 +57,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <drivers/drv_gyro.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/actuator_safety.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -91,8 +91,8 @@ static int
 mc_thread_main(int argc, char *argv[])
 {
 	/* declare and safely initialize all structs */
-	struct vehicle_status_s state;
-	memset(&state, 0, sizeof(state));
+	struct vehicle_control_mode_s control_mode;
+	memset(&control_mode, 0, sizeof(control_mode));
 	struct actuator_safety_s safety;
 	memset(&safety, 0, sizeof(safety));
 	struct vehicle_attitude_s att;
@@ -116,7 +116,7 @@ mc_thread_main(int argc, char *argv[])
 	int param_sub = orb_subscribe(ORB_ID(parameter_update));
 	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int setpoint_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
-	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
@@ -181,7 +181,6 @@ mc_thread_main(int argc, char *argv[])
 		} else if (ret == 0) {
 			/* no return value, ignore */
 		} else {
-
 			/* only update parameters if they changed */
 			if (fds[1].revents & POLLIN) {
 				/* read from param to clear updated flag */
@@ -199,10 +198,10 @@ mc_thread_main(int argc, char *argv[])
 
 				/* get a local copy of system state */
 				bool updated;
-				orb_check(state_sub, &updated);
+				orb_check(control_mode_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 				}
 
 				orb_check(safety_sub, &updated);
@@ -227,9 +226,8 @@ mc_thread_main(int argc, char *argv[])
 				/* get a local copy of the current sensor values */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
-
 				/** STEP 1: Define which input is the dominating control input */
-				if (state.flag_control_offboard_enabled) {
+				if (control_mode.flag_control_offboard_enabled) {
 					/* offboard inputs */
 					if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES) {
 						rates_sp.roll = offboard_sp.p1;
@@ -252,13 +250,11 @@ mc_thread_main(int argc, char *argv[])
 					}
 
 
-				} else if (state.flag_control_manual_enabled) {
-
-					if (state.flag_control_attitude_enabled) {
-
+				} else if (control_mode.flag_control_manual_enabled) {
+					if (control_mode.flag_control_attitude_enabled) {
 						/* initialize to current yaw if switching to manual or att control */
-						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-						    state.flag_control_manual_enabled != flag_control_manual_enabled ||
+						if (control_mode.flag_control_attitude_enabled != flag_control_attitude_enabled ||
+						    control_mode.flag_control_manual_enabled != flag_control_manual_enabled ||
 						    safety.armed != flag_armed) {
 							att_sp.yaw_body = att.yaw;
 						}
@@ -266,6 +262,8 @@ mc_thread_main(int argc, char *argv[])
 						static bool rc_loss_first_time = true;
 
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
+/* XXX fix this */
+#if 0
 						if (state.rc_signal_lost) {
 							/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
 							param_get(failsafe_throttle_handle, &failsafe_throttle);
@@ -297,6 +295,7 @@ mc_thread_main(int argc, char *argv[])
 							rc_loss_first_time = false;
 
 						} else {
+#endif
 							rc_loss_first_time = true;
 
 							att_sp.roll_body = manual.roll;
@@ -344,7 +343,9 @@ mc_thread_main(int argc, char *argv[])
 
 							att_sp.thrust = manual.throttle;
 							att_sp.timestamp = hrt_absolute_time();
+#if 0
 						}
+#endif
 
 						/* STEP 2: publish the controller output */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
@@ -378,7 +379,7 @@ mc_thread_main(int argc, char *argv[])
 				}
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
-				if (state.flag_control_attitude_enabled) {
+				if (control_mode.flag_control_attitude_enabled) {
 					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
 
 					orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
@@ -405,11 +406,11 @@ mc_thread_main(int argc, char *argv[])
 				multirotor_control_rates(&rates_sp, gyro, &actuators);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
-				/* update state */
-				flag_control_attitude_enabled = state.flag_control_attitude_enabled;
-				flag_control_manual_enabled = state.flag_control_manual_enabled;
-				flag_control_position_enabled = state.flag_control_position_enabled;
-				flag_control_velocity_enabled = state.flag_control_velocity_enabled;
+				/* update control_mode */
+				flag_control_attitude_enabled = control_mode.flag_control_attitude_enabled;
+				flag_control_manual_enabled = control_mode.flag_control_manual_enabled;
+				flag_control_position_enabled = control_mode.flag_control_position_enabled;
+				flag_control_velocity_enabled = control_mode.flag_control_velocity_enabled;
 				flag_armed = safety.armed;
 
 				perf_end(mc_loop_perf);
@@ -427,7 +428,7 @@ mc_thread_main(int argc, char *argv[])
 
 
 	close(att_sub);
-	close(state_sub);
+	close(control_mode_sub);
 	close(manual_sub);
 	close(actuator_pub);
 	close(att_sp_pub);

@@ -61,16 +61,11 @@
  */
 struct vehicle_control_mode_s
 {
-	/* use of a counter and timestamp recommended (but not necessary) */
-
 	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	bool flag_external_manual_override_ok;	/**< external override non-fatal for system. Only true for fixed wing */
 
-	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */
-	bool flag_armed;				/**< true is motors / actuators are armed  */
-	bool flag_safety_off;				/**< true if safety is off */
 	bool flag_system_emergency;
 	bool flag_preflight_calibration;
 
@@ -83,7 +78,7 @@ struct vehicle_control_mode_s
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 
 	bool failsave_lowlevel;				/**< Set to true if low-level failsafe mode is enabled */
-	bool failsave_highlevel;
+	bool failsave_highlevel;			/**< Set to true if high-level failsafe mode is enabled */
 };
 
 /**
@@ -91,6 +86,6 @@ struct vehicle_control_mode_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_status);
+ORB_DECLARE(vehicle_control_mode);
 
 #endif

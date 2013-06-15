@@ -199,18 +199,18 @@ struct vehicle_status_s
 	bool flag_external_manual_override_ok;	/**< external override non-fatal for system. Only true for fixed wing */
 
 	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */
-	bool flag_armed;				/**< true is motors / actuators are armed  */
-	bool flag_safety_off;				/**< true if safety is off */
+	//bool flag_armed;				/**< true is motors / actuators are armed  */
+	//bool flag_safety_off;				/**< true if safety is off */
 	bool flag_system_emergency;
 	bool flag_preflight_calibration;
 
-	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
-	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
-	bool flag_auto_enabled;
-	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
-	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
-	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
-	bool flag_control_position_enabled;		/**< true if position is controlled */
+	// bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
+	// bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
+	// bool flag_auto_enabled;
+	// bool flag_control_rates_enabled;		/**< true if rates are stabilized */
+	// bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
+	// bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
+	// bool flag_control_position_enabled;		/**< true if position is controlled */
 
 	// bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
 	// bool flag_preflight_mag_calibration;		/**< true if mag calibration is requested */
