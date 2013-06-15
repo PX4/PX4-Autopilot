@@ -283,11 +283,16 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 			float alt_err_linear_limit = params.alt_d / params.alt_p * params.alt_rate_max;
 			float pos_err_linear_limit = params.pos_d / params.pos_p * params.pos_rate_max;
 
+			float pos_sp_speed_x = 0.0f;
+			float pos_sp_speed_y = 0.0f;
+			float pos_sp_speed_z = 0.0f;
+
 			if (status.flag_control_manual_enabled) {
 				/* move altitude setpoint with manual controls */
 				float alt_sp_ctl = scale_control(manual.throttle - 0.5f, 0.5f, alt_ctl_dz);
 				if (alt_sp_ctl != 0.0f) {
-					local_pos_sp.z -= alt_sp_ctl * params.alt_rate_max * dt;
+					pos_sp_speed_z = -alt_sp_ctl * params.alt_rate_max;
+					local_pos_sp.z += pos_sp_speed_z * dt;
 					if (local_pos_sp.z > local_pos.z + alt_err_linear_limit) {
 						local_pos_sp.z = local_pos.z + alt_err_linear_limit;
 					} else if (local_pos_sp.z < local_pos.z - alt_err_linear_limit) {
@@ -297,14 +302,16 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 
 				if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE) {
 					/* move position setpoint with manual controls */
-					float pos_x_sp_ctl = scale_control(-manual.pitch, 1.0f, pos_ctl_dz);
-					float pos_y_sp_ctl = scale_control(manual.roll, 1.0f, pos_ctl_dz);
+					float pos_x_sp_ctl = scale_control(-manual.pitch / params.rc_scale_pitch, 1.0f, pos_ctl_dz);
+					float pos_y_sp_ctl = scale_control(manual.roll / params.rc_scale_roll, 1.0f, pos_ctl_dz);
 					if (pos_x_sp_ctl != 0.0f || pos_y_sp_ctl != 0.0f) {
 						/* calculate direction and increment of control in NED frame */
 						float dir_sp_ctl = att.yaw + atan2f(pos_y_sp_ctl, pos_x_sp_ctl);
-						float d_sp_ctl = norm(pos_x_sp_ctl, pos_y_sp_ctl) * params.pos_rate_max * dt;
-						local_pos_sp.x += cosf(dir_sp_ctl) * d_sp_ctl;
-						local_pos_sp.y += sinf(dir_sp_ctl) * d_sp_ctl;
+						float d_sp_ctl = norm(pos_x_sp_ctl, pos_y_sp_ctl) * params.pos_rate_max;
+						pos_sp_speed_x = cosf(dir_sp_ctl) * d_sp_ctl;
+						pos_sp_speed_x = sinf(dir_sp_ctl) * d_sp_ctl;
+						local_pos_sp.x += pos_sp_speed_x * dt;
+						local_pos_sp.y += pos_sp_speed_y * dt;
 						/* limit maximum setpoint from position offset and preserve direction */
 						float pos_vec_x = local_pos_sp.x - local_pos.x;
 						float pos_vec_y = local_pos_sp.y - local_pos.y;
@@ -315,15 +322,19 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 						}
 					}
 				}
+
+				if (params.hard == 0) {
+					pos_sp_speed_x = 0.0f;
+					pos_sp_speed_y = 0.0f;
+					pos_sp_speed_z = 0.0f;
+				}
 			}
 
 			/* PID for altitude */
 			/* don't accelerate more than ALT_RATE_MAX, limit error to corresponding value */
-			float alt_err = limit_value(local_pos.z - local_pos_sp.z, alt_err_linear_limit);
+			float alt_err = limit_value(local_pos_sp.z - local_pos.z, alt_err_linear_limit);
 			/* P and D components */
-			float thrust_ctl_pd = alt_err * params.alt_p + local_pos.vz * params.alt_d;
-			/* add I component */
-			float thrust_ctl = thrust_ctl_pd + alt_integral;
+			float thrust_ctl_pd = -(alt_err * params.alt_p + (pos_sp_speed_z - local_pos.vz) * params.alt_d);	// altitude = -z
 			/* integrate */
 			alt_integral += thrust_ctl_pd / params.alt_p * params.alt_i * dt;
 			if (alt_integral < params.thr_min) {
@@ -331,6 +342,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 			} else if (alt_integral > params.thr_max) {
 				alt_integral = params.thr_max;
 			}
+			/* add I component */
+			float thrust_ctl = thrust_ctl_pd + alt_integral;
 			if (thrust_ctl < params.thr_min) {
 				thrust_ctl = params.thr_min;
 			} else if (thrust_ctl > params.thr_max) {
@@ -342,14 +355,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 				float pos_x_err = limit_value(local_pos.x - local_pos_sp.x, pos_err_linear_limit);
 				float pos_y_err = limit_value(local_pos.y - local_pos_sp.y, pos_err_linear_limit);
 				/* P and D components */
-				float pos_x_ctl_pd = - pos_x_err * params.pos_p - local_pos.vx * params.pos_d;
-				float pos_y_ctl_pd = - pos_y_err * params.pos_p - local_pos.vy * params.pos_d;
-				/* add I component */
-				float pos_x_ctl = pos_x_ctl_pd + pos_x_integral;
-				float pos_y_ctl = pos_y_ctl_pd + pos_y_integral;
+				float pos_x_ctl_pd = - pos_x_err * params.pos_p + (pos_sp_speed_x - local_pos.vx) * params.pos_d;
+				float pos_y_ctl_pd = - pos_y_err * params.pos_p + (pos_sp_speed_y - local_pos.vy) * params.pos_d;
 				/* integrate */
 				pos_x_integral = limit_value(pos_x_integral + pos_x_ctl_pd / params.pos_p * params.pos_i * dt, params.slope_max);
 				pos_y_integral = limit_value(pos_y_integral + pos_y_ctl_pd / params.pos_p * params.pos_i * dt, params.slope_max);
+				/* add I component */
+				float pos_x_ctl = pos_x_ctl_pd + pos_x_integral;
+				float pos_y_ctl = pos_y_ctl_pd + pos_y_integral;
 				/* calculate direction and slope in NED frame */
 				float dir = atan2f(pos_y_ctl, pos_x_ctl);
 				/* use approximation: slope ~ sin(slope) = force */

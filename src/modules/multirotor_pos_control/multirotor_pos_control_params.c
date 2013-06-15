@@ -53,6 +53,7 @@ PARAM_DEFINE_FLOAT(MPC_POS_I, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_POS_D, 0.2f);
 PARAM_DEFINE_FLOAT(MPC_POS_RATE_MAX, 10.0f);
 PARAM_DEFINE_FLOAT(MPC_SLOPE_MAX, 0.5f);
+PARAM_DEFINE_INT32(MPC_HARD, 0);
 
 int parameters_init(struct multirotor_position_control_param_handles *h)
 {
@@ -67,6 +68,11 @@ int parameters_init(struct multirotor_position_control_param_handles *h)
 	h->pos_d 	=	param_find("MPC_POS_D");
 	h->pos_rate_max 	=	param_find("MPC_POS_RATE_MAX");
 	h->slope_max 	=	param_find("MPC_SLOPE_MAX");
+	h->slope_max 	=	param_find("MPC_HARD");
+
+	h->rc_scale_pitch    =   param_find("RC_SCALE_PITCH");
+	h->rc_scale_roll    =   param_find("RC_SCALE_ROLL");
+	h->rc_scale_yaw      =   param_find("RC_SCALE_YAW");
 
 	return OK;
 }
@@ -84,6 +90,11 @@ int parameters_update(const struct multirotor_position_control_param_handles *h,
 	param_get(h->pos_d, &(p->pos_d));
 	param_get(h->pos_rate_max, &(p->pos_rate_max));
 	param_get(h->slope_max, &(p->slope_max));
+	param_get(h->hard, &(p->hard));
+
+	param_get(h->rc_scale_pitch, &(p->rc_scale_pitch));
+	param_get(h->rc_scale_roll, &(p->rc_scale_roll));
+	param_get(h->rc_scale_yaw, &(p->rc_scale_yaw));
 
 	return OK;
 }

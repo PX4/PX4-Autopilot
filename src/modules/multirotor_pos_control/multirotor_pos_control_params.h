@@ -53,6 +53,11 @@ struct multirotor_position_control_params {
 	float pos_d;
 	float pos_rate_max;
 	float slope_max;
+	int hard;
+
+	float rc_scale_pitch;
+	float rc_scale_roll;
+	float rc_scale_yaw;
 };
 
 struct multirotor_position_control_param_handles {
@@ -67,6 +72,11 @@ struct multirotor_position_control_param_handles {
 	param_t pos_d;
 	param_t pos_rate_max;
 	param_t slope_max;
+	param_t hard;
+
+	param_t rc_scale_pitch;
+	param_t rc_scale_roll;
+	param_t rc_scale_yaw;
 };
 
 /**
