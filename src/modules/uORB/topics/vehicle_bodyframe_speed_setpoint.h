@@ -1,9 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
+ *   		 Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,46 +34,36 @@
  ****************************************************************************/
 
 /**
- * @file pid.h
- * Definition of generic PID control interface
+ * @file vehicle_bodyframe_speed_setpoint.h
+ * Definition of the bodyframe speed setpoint uORB topic.
  */
 
-#ifndef PID_H_
-#define PID_H_
+#ifndef TOPIC_VEHICLE_BODYFRAME_SPEED_SETPOINT_H_
+#define TOPIC_VEHICLE_BODYFRAME_SPEED_SETPOINT_H_
 
-#include <stdint.h>
+#include "../uORB.h"
 
-/* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
- * val_dot in pid_calculate() will be ignored */
-#define PID_MODE_DERIVATIV_CALC	0
-/* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
-#define PID_MODE_DERIVATIV_SET	1
-// Use PID_MODE_DERIVATIV_NONE for a PI controller (vs PID)
-#define PID_MODE_DERIVATIV_NONE 9
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-typedef struct {
-	float kp;
-	float ki;
-	float kd;
-	float intmax;
-	float sp;
-	float integral;
-	float error_previous_filtered;
-	float control_previous;
-	float last_output;
-	float limit;
-	uint8_t mode;
-	float diff_filter_factor;
-	uint8_t count;
-	uint8_t saturated;
-} PID_t;
+struct vehicle_bodyframe_speed_setpoint_s
+{
+	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
 
-__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor, uint8_t mode);
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor);
-//void pid_set(PID_t *pid, float sp);
-__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
+	float vx;		/**< in m/s				  		*/
+	float vy;		/**< in m/s				  		*/
+//	float vz;		/**< in m/s				  		*/
+	float thrust_sp;
+	float yaw_sp;	/**< in radian		-PI +PI		*/
+}; /**< Speed in bodyframe to go to */
 
-__EXPORT void pid_reset_integral(PID_t *pid);
+/**
+ * @}
+ */
 
+/* register this as object request broker structure */
+ORB_DECLARE(vehicle_bodyframe_speed_setpoint);
 
-#endif /* PID_H_ */
+#endif

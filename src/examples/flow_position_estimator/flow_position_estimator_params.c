@@ -1,9 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
+ *   		 Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,47 +33,40 @@
  *
  ****************************************************************************/
 
-/**
- * @file pid.h
- * Definition of generic PID control interface
+/*
+ * @file flow_position_estimator_params.c
+ * 
+ * Parameters for position estimator
  */
 
-#ifndef PID_H_
-#define PID_H_
+#include "flow_position_estimator_params.h"
 
-#include <stdint.h>
+/* Extended Kalman Filter covariances */
 
-/* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
- * val_dot in pid_calculate() will be ignored */
-#define PID_MODE_DERIVATIV_CALC	0
-/* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
-#define PID_MODE_DERIVATIV_SET	1
-// Use PID_MODE_DERIVATIV_NONE for a PI controller (vs PID)
-#define PID_MODE_DERIVATIV_NONE 9
-
-typedef struct {
-	float kp;
-	float ki;
-	float kd;
-	float intmax;
-	float sp;
-	float integral;
-	float error_previous_filtered;
-	float control_previous;
-	float last_output;
-	float limit;
-	uint8_t mode;
-	float diff_filter_factor;
-	uint8_t count;
-	uint8_t saturated;
-} PID_t;
-
-__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor, uint8_t mode);
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor);
-//void pid_set(PID_t *pid, float sp);
-__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
-
-__EXPORT void pid_reset_integral(PID_t *pid);
+/* controller parameters */
+PARAM_DEFINE_FLOAT(FPE_LO_THRUST, 0.4f);
+PARAM_DEFINE_FLOAT(FPE_SONAR_LP_U, 0.5f);
+PARAM_DEFINE_FLOAT(FPE_SONAR_LP_L, 0.2f);
+PARAM_DEFINE_INT32(FPE_DEBUG, 0);
 
 
-#endif /* PID_H_ */
+int parameters_init(struct flow_position_estimator_param_handles *h)
+{
+	/* PID parameters */
+	h->minimum_liftoff_thrust	=	param_find("FPE_LO_THRUST");
+	h->sonar_upper_lp_threshold	=	param_find("FPE_SONAR_LP_U");
+	h->sonar_lower_lp_threshold	=	param_find("FPE_SONAR_LP_L");
+	h->debug					=	param_find("FPE_DEBUG");
+
+	return OK;
+}
+
+int parameters_update(const struct flow_position_estimator_param_handles *h, struct flow_position_estimator_params *p)
+{
+	param_get(h->minimum_liftoff_thrust, &(p->minimum_liftoff_thrust));
+	param_get(h->sonar_upper_lp_threshold, &(p->sonar_upper_lp_threshold));
+	param_get(h->sonar_lower_lp_threshold, &(p->sonar_lower_lp_threshold));
+	param_get(h->debug, &(p->debug));
+
+	return OK;
+}

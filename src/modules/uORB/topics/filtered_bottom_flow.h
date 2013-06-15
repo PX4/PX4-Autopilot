@@ -1,9 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
+ *   Author: Samuel Zihlmann <samuezih@ee.ethz.ch>
+ *   		 Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,46 +34,41 @@
  ****************************************************************************/
 
 /**
- * @file pid.h
- * Definition of generic PID control interface
+ * @file filtered_bottom_flow.h
+ * Definition of the filtered bottom flow uORB topic.
  */
 
-#ifndef PID_H_
-#define PID_H_
+#ifndef TOPIC_FILTERED_BOTTOM_FLOW_H_
+#define TOPIC_FILTERED_BOTTOM_FLOW_H_
 
 #include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
-/* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
- * val_dot in pid_calculate() will be ignored */
-#define PID_MODE_DERIVATIV_CALC	0
-/* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
-#define PID_MODE_DERIVATIV_SET	1
-// Use PID_MODE_DERIVATIV_NONE for a PI controller (vs PID)
-#define PID_MODE_DERIVATIV_NONE 9
+/**
+ * @addtogroup topics
+ * @{
+ */
 
-typedef struct {
-	float kp;
-	float ki;
-	float kd;
-	float intmax;
-	float sp;
-	float integral;
-	float error_previous_filtered;
-	float control_previous;
-	float last_output;
-	float limit;
-	uint8_t mode;
-	float diff_filter_factor;
-	uint8_t count;
-	uint8_t saturated;
-} PID_t;
+/**
+ * Filtered bottom flow in bodyframe.
+ */
+struct filtered_bottom_flow_s
+{
+	uint64_t timestamp;		/**< time of this estimate, in microseconds since system start */
 
-__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor, uint8_t mode);
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, float diff_filter_factor);
-//void pid_set(PID_t *pid, float sp);
-__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
+	float sumx;				/**< Integrated bodyframe x flow in meters					   */
+	float sumy;				/**< Integrated bodyframe y flow in meters			   		   */
 
-__EXPORT void pid_reset_integral(PID_t *pid);
+	float vx; 				/**< Flow bodyframe x speed, m/s							   */
+	float vy;				/**< Flow bodyframe y Speed, m/s 							   */
+};
 
+/**
+ * @}
+ */
 
-#endif /* PID_H_ */
+/* register this as object request broker structure */
+ORB_DECLARE(filtered_bottom_flow);
+
+#endif
