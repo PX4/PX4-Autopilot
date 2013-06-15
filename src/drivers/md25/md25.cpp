@@ -49,6 +49,7 @@
 
 #include <systemlib/err.h>
 #include <arch/board/board.h>
+#include <mavlink/mavlink_log.h>
 
 // registers
 enum {
@@ -72,6 +73,9 @@ enum {
 	REG_MODE_RW,
 	REG_COMMAND_RW,
 };
+
+// File descriptors
+static int mavlink_fd;
 
 MD25::MD25(const char *deviceName, int bus,
 	   uint16_t address, uint32_t speed) :
@@ -579,6 +583,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 		usleep(1000000 * dt);
 		t += dt;
 		float speed_rpm = 60*(md25.getRevolutions1() - prev_revolution)/dt;
+		mavlink_log_info(mavlink_fd, "rpm: %10.4f\n", (double)speed_rpm);
 		md25.readData();
 		if (t > 2.0f) break;
 	}
