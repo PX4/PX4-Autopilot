@@ -976,6 +976,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_ATSP.roll_sp = buf.att_sp.roll_body;
 				log_msg.body.log_ATSP.pitch_sp = buf.att_sp.pitch_body;
 				log_msg.body.log_ATSP.yaw_sp = buf.att_sp.yaw_body;
+				log_msg.body.log_ATSP.thrust_sp = buf.att_sp.thrust;
 				LOGBUFFER_WRITE_AND_COUNT(ATSP);
 			}
 

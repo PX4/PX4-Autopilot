@@ -71,6 +71,7 @@ struct log_ATSP_s {
 	float roll_sp;
 	float pitch_sp;
 	float yaw_sp;
+	float thrust_sp;
 };
 
 /* --- IMU - IMU SENSORS --- */
@@ -185,7 +186,7 @@ struct log_ARSP_s {
 static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TIME, "Q", "StartTime"),
 	LOG_FORMAT(ATT, "ffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate"),
-	LOG_FORMAT(ATSP, "fff", "RollSP,PitchSP,YawSP"),
+	LOG_FORMAT(ATSP, "ffff", "RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),
 	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,Heading,HomeLat,HomeLon,HomeAlt"),
