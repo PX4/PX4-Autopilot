@@ -613,7 +613,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 15;
+	const ssize_t fdsc = 16;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -622,9 +622,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 	struct vehicle_status_s buf_status;
 	memset(&buf_status, 0, sizeof(buf_status));
 
+	struct actuator_safety_s buf_safety;
+	memset(&buf_safety, 0, sizeof(buf_safety));
+
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
-		struct actuator_safety_s safety;
 		struct vehicle_command_s cmd;
 		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
@@ -645,9 +647,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	memset(&buf, 0, sizeof(buf));
 
 	struct {
-		int safety_sub;
 		int cmd_sub;
 		int status_sub;
+		int safety_sub;
 		int sensor_sub;
 		int att_sub;
 		int att_sp_sub;
@@ -693,7 +695,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- SAFETY STATUS --- */
+	/* --- SAFETY --- */
 	subs.safety_sub = orb_subscribe(ORB_ID(actuator_safety));
 	fds[fdsc_count].fd = subs.safety_sub;
 	fds[fdsc_count].events = POLLIN;
@@ -835,7 +837,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			int ifds = 0;
 			int handled_topics = 0;
 
-
 			/* --- VEHICLE COMMAND - LOG MANAGEMENT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd);
@@ -843,22 +844,33 @@ int sdlog2_thread_main(int argc, char *argv[])
 				handled_topics++;
 			}
 
+			/* --- SAFETY- LOG MANAGEMENT --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(actuator_safety), subs.safety_sub, &buf_safety);
+
+				if (log_when_armed) {
+					handle_status(&buf_safety);
+				}
+
+				handled_topics++;
+			}
+
 			/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_status), subs.status_sub, &buf_status);
 
-				if (log_when_armed) {
-					handle_status(&buf.safety);
-				}
+				//if (log_when_armed) {
+				//	handle_status(&buf_safety);
+				//}
 
-				handled_topics++;
+				//handled_topics++;
 			}
 
 			if (!logging_enabled || !check_data || handled_topics >= poll_ret) {
 				continue;
 			}
 
-			ifds = 1;	// Begin from fds[1] again
+			ifds = 2;	// Begin from fds[2] again
 
 			pthread_mutex_lock(&logbuffer_mutex);
 
@@ -880,7 +892,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_STAT.flight_mode = 0;
 				log_msg.body.log_STAT.manual_control_mode = 0;
 				log_msg.body.log_STAT.manual_sas_mode = 0;
-				log_msg.body.log_STAT.armed = (unsigned char) buf.safety.armed; /* XXX fmu armed correct? */
+				log_msg.body.log_STAT.armed = (unsigned char) buf_safety.armed; /* XXX fmu armed correct? */
 				log_msg.body.log_STAT.battery_voltage = buf_status.voltage_battery;
 				log_msg.body.log_STAT.battery_current = buf_status.current_battery;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
