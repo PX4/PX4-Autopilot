@@ -101,7 +101,7 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 	}
 
 	if (isfinite(diff_filter_factor)) {
-		pid->limit = diff_filter_factor;
+		pid->diff_filter_factor = diff_filter_factor;
 
 	}  else {
 		ret = 1;
@@ -179,8 +179,7 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	}
 
 	// Calculate the output.  Limit output magnitude to pid->limit
-	float output = (pid->error_previous * pid->kp) + (i * pid->ki) + (d * pid->kd);
-
+	float output = (error * pid->kp) + (i * pid->ki) + (d * pid->kd);
 	if (output > pid->limit) output = pid->limit;
 
 	if (output < -pid->limit) output = -pid->limit;
