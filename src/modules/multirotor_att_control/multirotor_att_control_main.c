@@ -64,6 +64,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_control_debug.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
@@ -84,7 +85,7 @@ static int mc_task;
 static bool motor_test_mode = false;
 
 static orb_advert_t actuator_pub;
-
+static orb_advert_t control_debug_pub;
 
 
 static int
@@ -110,6 +111,9 @@ mc_thread_main(int argc, char *argv[])
 
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
+
+	struct vehicle_control_debug_s control_debug;
+	memset(&control_debug, 0, sizeof(control_debug));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -138,6 +142,8 @@ mc_thread_main(int argc, char *argv[])
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
 		actuators.control[i] = 0.0f;
 	}
+	
+	control_debug_pub = orb_advertise(ORB_ID(vehicle_control_debug), &control_debug);
 
 	actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
@@ -380,7 +386,7 @@ mc_thread_main(int argc, char *argv[])
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 				if (control_mode.flag_control_attitude_enabled) {
-					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
+					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position, &control_debug_pub, &control_debug);
 
 					orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 				}
@@ -403,8 +409,10 @@ mc_thread_main(int argc, char *argv[])
 				gyro[1] = att.pitchspeed;
 				gyro[2] = att.yawspeed;
 
-				multirotor_control_rates(&rates_sp, gyro, &actuators);
+				multirotor_control_rates(&rates_sp, gyro, &actuators, &control_debug_pub, &control_debug);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+
+				orb_publish(ORB_ID(vehicle_control_debug), control_debug_pub, &control_debug);
 
 				/* update control_mode */
 				flag_control_attitude_enabled = control_mode.flag_control_attitude_enabled;

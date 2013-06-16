@@ -91,7 +91,6 @@
 
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \
-		printf("size: %d\n", LOG_PACKET_SIZE(_msg)); \
 	} else { \
 		log_msgs_skipped++; \
 		/*printf("skip\n");*/ \
@@ -616,6 +615,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
 	const ssize_t fdsc = 17;
+
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -1072,26 +1072,20 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- CONTROL DEBUG --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_control_debug), subs.control_debug_sub, &buf.control_debug);
-				printf("copied control debug\n");
 
-				// log_msg.body.log_CTRL.roll_p = buf.control_debug.roll_p;
-				// log_msg.body.log_CTRL.roll_i = buf.control_debug.roll_i;
-				// log_msg.body.log_CTRL.roll_d = buf.control_debug.roll_d;
+				log_msg.msg_type = LOG_CTRL_MSG;
+				log_msg.body.log_CTRL.roll_p = buf.control_debug.roll_p;
+				log_msg.body.log_CTRL.roll_i = buf.control_debug.roll_i;
+				log_msg.body.log_CTRL.roll_d = buf.control_debug.roll_d;
 				log_msg.body.log_CTRL.roll_rate_p = buf.control_debug.roll_rate_p;
 				log_msg.body.log_CTRL.roll_rate_i = buf.control_debug.roll_rate_i;
 				log_msg.body.log_CTRL.roll_rate_d = buf.control_debug.roll_rate_d;
-				// log_msg.body.log_CTRL.pitch_p = buf.control_debug.pitch_p;
-				// log_msg.body.log_CTRL.pitch_i = buf.control_debug.pitch_i;
-				// log_msg.body.log_CTRL.pitch_d = buf.control_debug.pitch_d;
+				log_msg.body.log_CTRL.pitch_p = buf.control_debug.pitch_p;
+				log_msg.body.log_CTRL.pitch_i = buf.control_debug.pitch_i;
+				log_msg.body.log_CTRL.pitch_d = buf.control_debug.pitch_d;
 				log_msg.body.log_CTRL.pitch_rate_p = buf.control_debug.pitch_rate_p;
 				log_msg.body.log_CTRL.pitch_rate_i = buf.control_debug.pitch_rate_i;
 				log_msg.body.log_CTRL.pitch_rate_d = buf.control_debug.pitch_rate_d;
-				// log_msg.body.log_CTRL.yaw_p = buf.control_debug.yaw_p;
-				// log_msg.body.log_CTRL.yaw_i = buf.control_debug.yaw_i;
-				// log_msg.body.log_CTRL.yaw_d = buf.control_debug.yaw_d;
-				log_msg.body.log_CTRL.yaw_rate_p = buf.control_debug.yaw_rate_p;
-				log_msg.body.log_CTRL.yaw_rate_i = buf.control_debug.yaw_rate_i;
-				log_msg.body.log_CTRL.yaw_rate_d = buf.control_debug.yaw_rate_d;
 
 				LOGBUFFER_WRITE_AND_COUNT(CTRL);
 			}

@@ -55,7 +55,7 @@
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/vehicle_control_debug.h>
+
 
 
 PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.0f); /* same on Flamewheel */
@@ -151,7 +151,8 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 }
 
 void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-			      const float rates[], struct actuator_controls_s *actuators)
+			      const float rates[], struct actuator_controls_s *actuators,
+			      const orb_advert_t *control_debug_pub, struct vehicle_control_debug_s *control_debug)
 {
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
@@ -178,10 +179,6 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	static bool initialized = false;
 
-	static struct vehicle_control_debug_s control_debug;
-	static orb_advert_t control_debug_pub;
-	
-
 
 	/* initialize the pid controllers when the function is called for the first time */
 	if (initialized == false) {
@@ -194,7 +191,6 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		pid_init(&roll_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1000.0f,
 					 1000.0f, 0.2f, PID_MODE_DERIVATIV_CALC);
 
-		control_debug_pub = orb_advertise(ORB_ID(vehicle_control_debug), &control_debug);
 	}
 
 	/* load new parameters with lower rate */
@@ -207,11 +203,11 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	/* control pitch (forward) output */
 	float pitch_control = pid_calculate(&pitch_rate_controller, rate_sp->pitch ,
-			rates[1], 0.0f, deltaT, &control_debug.pitch_rate_p, &control_debug.pitch_rate_i, &control_debug.pitch_rate_d);
+			rates[1], 0.0f, deltaT, &control_debug->pitch_rate_p, &control_debug->pitch_rate_i, &control_debug->pitch_rate_d);
 
 	/* control roll (left/right) output */
 	float roll_control = pid_calculate(&roll_rate_controller, rate_sp->roll ,
-			rates[0], 0.0f, deltaT, &control_debug.roll_rate_p, &control_debug.roll_rate_i, &control_debug.roll_rate_d);
+			rates[0], 0.0f, deltaT, &control_debug->roll_rate_p, &control_debug->roll_rate_i, &control_debug->roll_rate_d);
 
 	/* increase resilience to faulty control inputs */
 	if (isfinite(pitch_control)) {
@@ -246,7 +242,4 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	actuators->control[3] = rate_sp->thrust;
 
 	motor_skip_counter++;
-
-	orb_publish(ORB_ID(vehicle_control_debug), control_debug_pub, &control_debug);
-	printf("Published control debug\n");
 }

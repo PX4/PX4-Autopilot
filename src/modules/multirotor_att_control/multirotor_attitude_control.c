@@ -123,7 +123,8 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 }
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-				 const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position)
+				 const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position,
+				 const orb_advert_t *control_debug_pub, struct vehicle_control_debug_s *control_debug)
 {
 	static uint64_t last_run = 0;
 	static uint64_t last_input = 0;
@@ -182,11 +183,11 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	/* control pitch (forward) output */
 	rates_sp->pitch = pid_calculate(&pitch_controller, att_sp->pitch_body ,
-					att->pitch, att->pitchspeed, deltaT, NULL, NULL, NULL);
+					att->pitch, att->pitchspeed, deltaT, &control_debug->roll_p, &control_debug->roll_i, &control_debug->roll_d);
 
 	/* control roll (left/right) output */
 	rates_sp->roll = pid_calculate(&roll_controller, att_sp->roll_body ,
-				       att->roll, att->rollspeed, deltaT, NULL, NULL, NULL);
+				       att->roll, att->rollspeed, deltaT, &control_debug->pitch_p, &control_debug->pitch_i, &control_debug->pitch_d);
 
 	// printf("rates_sp: %4.4f, att setpoint: %4.4f\n, pitch: %4.4f, pitchspeed: %4.4f, dT: %4.4f", rates_sp->pitch, att_sp->pitch_body, att->pitch, att->pitchspeed, deltaT);
 
