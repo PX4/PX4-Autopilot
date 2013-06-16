@@ -74,6 +74,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vehicle_control_debug.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -613,7 +614,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 16;
+	const ssize_t fdsc = 17;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -639,6 +640,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_position_s global_pos;
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
+		struct vehicle_control_debug_s control_debug;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -661,6 +663,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int global_pos_sub;
 		int gps_pos_sub;
 		int vicon_pos_sub;
+		int control_debug_sub;
 		int flow_sub;
 		int rc_sub;
 	} subs;
@@ -680,6 +683,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
 			struct log_STAT_s log_STAT;
+			struct log_CTRL_s log_CTRL;
 			struct log_RC_s log_RC;
 			struct log_OUT0_s log_OUT0;
 		} body;
@@ -770,6 +774,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- VICON POSITION --- */
 	subs.vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
 	fds[fdsc_count].fd = subs.vicon_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- CONTROL DEBUG --- */
+	subs.control_debug_sub = orb_subscribe(ORB_ID(vehicle_control_debug));
+	fds[fdsc_count].fd = subs.control_debug_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1056,6 +1066,30 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
 				// TODO not implemented yet
+			}
+
+			/* --- CONTROL DEBUG --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_control_debug), subs.control_debug_sub, &buf.control_debug);
+				
+				log_msg.body.log_CTRL.roll_p = buf.control_debug.roll_p;
+				log_msg.body.log_CTRL.roll_i = buf.control_debug.roll_i;
+				log_msg.body.log_CTRL.roll_d = buf.control_debug.roll_d;
+				log_msg.body.log_CTRL.roll_rate_p = buf.control_debug.roll_rate_p;
+				log_msg.body.log_CTRL.roll_rate_i = buf.control_debug.roll_rate_i;
+				log_msg.body.log_CTRL.roll_rate_d = buf.control_debug.roll_rate_d;
+				log_msg.body.log_CTRL.pitch_p = buf.control_debug.pitch_p;
+				log_msg.body.log_CTRL.pitch_i = buf.control_debug.pitch_i;
+				log_msg.body.log_CTRL.pitch_d = buf.control_debug.pitch_d;
+				log_msg.body.log_CTRL.pitch_rate_p = buf.control_debug.pitch_rate_p;
+				log_msg.body.log_CTRL.pitch_rate_i = buf.control_debug.pitch_rate_i;
+				log_msg.body.log_CTRL.pitch_rate_d = buf.control_debug.pitch_rate_d;
+				log_msg.body.log_CTRL.yaw_p = buf.control_debug.yaw_p;
+				log_msg.body.log_CTRL.yaw_i = buf.control_debug.yaw_i;
+				log_msg.body.log_CTRL.yaw_d = buf.control_debug.yaw_d;
+				log_msg.body.log_CTRL.yaw_rate_p = buf.control_debug.yaw_rate_p;
+				log_msg.body.log_CTRL.yaw_rate_i = buf.control_debug.yaw_rate_i;
+				log_msg.body.log_CTRL.yaw_rate_d = buf.control_debug.yaw_rate_d;
 			}
 
 			/* --- FLOW --- */
