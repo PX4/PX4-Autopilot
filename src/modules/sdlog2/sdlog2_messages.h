@@ -167,6 +167,13 @@ struct log_RC_s {
 struct log_OUT0_s {
 	float output[8];
 };
+
+/* --- AIRS - AIRSPEED --- */
+#define LOG_AIRS_MSG 13
+struct log_AIRS_s {
+	float indicated_airspeed;
+	float true_airspeed;
+};
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -184,6 +191,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(STAT, "BBBBBfffB", "State,FlightMode,CtlMode,SASMode,Armed,BatV,BatC,BatRem,BatWarn"),
 	LOG_FORMAT(RC, "ffffffff", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
+	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
