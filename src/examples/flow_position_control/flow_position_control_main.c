@@ -268,6 +268,8 @@ flow_position_control_thread_main(int argc, char *argv[])
 					/* get a local copy of local position */
 					orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
 
+// XXX fix this
+#if 0
 					if (vstatus.state_machine == SYSTEM_STATE_AUTO)
 					{
 						float manual_pitch = manual.pitch / params.rc_scale_pitch; // 0 to 1
@@ -527,7 +529,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 						if(isfinite(manual.throttle))
 							speed_sp.thrust_sp = manual.throttle;
 					}
-
+#endif
 					/* measure in what intervals the controller runs */
 					perf_count(mc_interval_perf);
 					perf_end(mc_loop_perf);

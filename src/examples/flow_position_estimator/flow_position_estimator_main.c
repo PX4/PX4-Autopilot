@@ -218,6 +218,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit)
 	{
+// XXX fix this
+#if 0
 		if (sensors_ready)
 		{
 			/*This runs at the rate of the sensors */
@@ -273,6 +275,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 					 * -> accept sonar measurements after reaching calibration distance (values between 0.3m and 1.0m for some time)
 					 * -> minimum sonar value 0.3m
 					 */
+
 					if (!vehicle_liftoff)
 					{
 						if (vstatus.flag_system_armed && att_sp.thrust > params.minimum_liftoff_thrust && sonar_new > 0.3f && sonar_new < 1.0f)
@@ -437,6 +440,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 		}
 
 		counter++;
+		#endif
 	}
 
 	printf("[flow position estimator] exiting.\n");

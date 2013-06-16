@@ -186,6 +186,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit)
 	{
+#if 0
 		/* wait for first attitude msg to be sure all data are available */
 		if (sensors_ready)
 		{
@@ -340,6 +341,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 				}
 			}
 		}
+#endif
 	}
 
 	printf("[flow speed control] ending now...\n");
