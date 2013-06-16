@@ -248,4 +248,5 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	motor_skip_counter++;
 
 	orb_publish(ORB_ID(vehicle_control_debug), control_debug_pub, &control_debug);
+	printf("Published control debug\n");
 }
