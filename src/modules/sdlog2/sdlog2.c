@@ -1054,6 +1054,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_CTRL.yaw_rate_p = buf.control_debug.yaw_rate_p;
 				log_msg.body.log_CTRL.yaw_rate_i = buf.control_debug.yaw_rate_i;
 				log_msg.body.log_CTRL.yaw_rate_d = buf.control_debug.yaw_rate_d;
+
+				LOGBUFFER_WRITE_AND_COUNT(CTRL);
 			}
 
 			/* --- FLOW --- */
