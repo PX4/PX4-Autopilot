@@ -155,8 +155,8 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		parameters_init(&h);
 		parameters_update(&h, &p);
 
-		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f, 0.0f, PID_MODE_DERIVATIV_SET);
-		pid_init(&roll_controller,  p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f, 0.0f, PID_MODE_DERIVATIV_SET);
+		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f, 0.2f, PID_MODE_DERIVATIV_SET);
+		pid_init(&roll_controller,  p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f, 0.2f, PID_MODE_DERIVATIV_SET);
 
 		initialized = true;
 	}
@@ -167,8 +167,8 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		parameters_update(&h, &p);
 
 		/* apply parameters */
-		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f, 0.0f);
-		pid_set_parameters(&roll_controller,  p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f, 0.0f);
+		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f, 0.2f);
+		pid_set_parameters(&roll_controller,  p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f, 0.2f);
 	}
 
 	/* reset integral if on ground */
@@ -187,6 +187,8 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	/* control roll (left/right) output */
 	rates_sp->roll = pid_calculate(&roll_controller, att_sp->roll_body ,
 				       att->roll, att->rollspeed, deltaT);
+
+	// printf("rates_sp: %4.4f, att setpoint: %4.4f\n, pitch: %4.4f, pitchspeed: %4.4f, dT: %4.4f", rates_sp->pitch, att_sp->pitch_body, att->pitch, att->pitchspeed, deltaT);
 
 	if (control_yaw_position) {
 		/* control yaw rate */
