@@ -80,7 +80,7 @@
 #define I2C_ADDRESS		0x75	/* 7-bit address. 8-bit address is 0xEA */
 
 /* Register address */
-#define READ_CMD		0x07		/* Read the data */
+#define READ_CMD		0x07	/* Read the data */
 	 
 /**
  * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h. 
@@ -470,7 +470,7 @@ ETSAirspeed::collect()
 		diff_pres_pa -= _diff_pres_offset;	
 	}
 
-    // XXX we may want to smooth out the readings to remove noise.
+	// XXX we may want to smooth out the readings to remove noise.
 
 	_reports[_next_report].timestamp = hrt_absolute_time();
 	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
@@ -597,7 +597,7 @@ ETSAirspeed::print_info()
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("report queue:   %u (%u/%u @ %p)\n",
-	       _num_reports, _oldest_report, _next_report, _reports);
+		   _num_reports, _oldest_report, _next_report, _reports);
 }
 
 /**
@@ -776,7 +776,7 @@ info()
 static void 
 ets_airspeed_usage() 
 {
-	fprintf(stderr, "usage: ets_airspeed [options] command\n");
+	fprintf(stderr, "usage: ets_airspeed command [options]\n");
 	fprintf(stderr, "options:\n");
 	fprintf(stderr, "\t-b --bus i2cbus (%d)\n", PX4_I2C_BUS_DEFAULT);
 	fprintf(stderr, "command:\n");
