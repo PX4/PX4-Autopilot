@@ -77,10 +77,10 @@
 #define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
 
 /* I2C bus address */
-#define I2C_ADDRESS		0x75	/* 7-bit address. 8-bit address is 0xEA */
+#define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */
 
 /* Register address */
-#define READ_CMD		0x07	/* Read the data */
+#define READ_CMD	0x07	/* Read the data */
 
 /**
  * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h.
@@ -106,35 +106,35 @@ public:
 	ETSAirspeed(int bus, int address = I2C_ADDRESS);
 	virtual ~ETSAirspeed();
 
-	virtual int 		init();
+	virtual int	init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
-	void				print_info();
+	void		print_info();
 
 protected:
-	virtual int			probe();
+	virtual int	probe();
 
 private:
-	work_s				_work;
-	unsigned			_num_reports;
-	volatile unsigned		_next_report;
-	volatile unsigned		_oldest_report;
-	differential_pressure_s		*_reports;
-	bool				_sensor_ok;
-	int				_measure_ticks;
-	bool				_collect_phase;
-	int				_diff_pres_offset;
+	work_s			_work;
+	unsigned		_num_reports;
+	volatile unsigned	_next_report;
+	volatile unsigned	_oldest_report;
+	differential_pressure_s	*_reports;
+	bool			_sensor_ok;
+	int			_measure_ticks;
+	bool			_collect_phase;
+	int			_diff_pres_offset;
 
-	orb_advert_t			_airspeed_pub;
+	orb_advert_t		_airspeed_pub;
 
-	perf_counter_t			_sample_perf;
-	perf_counter_t			_comms_errors;
-	perf_counter_t			_buffer_overflows;
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_comms_errors;
+	perf_counter_t		_buffer_overflows;
 
 
 	/**
@@ -152,20 +152,20 @@ private:
 	* @note This function is called at open and error time.  It might make sense
 	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
-	void start();
+	void	start();
 
 	/**
 	* Stop the automatic measurement state machine.
 	*/
-	void stop();
+	void	stop();
 
 	/**
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void cycle();
-	int measure();
-	int collect();
+	void	cycle();
+	int	measure();
+	int	collect();
 
 	/**
 	* Static trampoline from the workq context; because we don't have a
@@ -173,7 +173,7 @@ private:
 	*
 	* @param arg		Instance pointer for the driver that is polling.
 	*/
-	static void cycle_trampoline(void *arg);
+	static void	cycle_trampoline(void *arg);
 
 
 };
