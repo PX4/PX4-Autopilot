@@ -1044,7 +1044,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- CONTROL DEBUG --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_control_debug), subs.control_debug_sub, &buf.control_debug);
-				
+				log_msg.msg_type = LOG_CTRL_MSG;
 				log_msg.body.log_CTRL.roll_rate_p = buf.control_debug.roll_rate_p;
 				log_msg.body.log_CTRL.roll_rate_i = buf.control_debug.roll_rate_i;
 				log_msg.body.log_CTRL.roll_rate_d = buf.control_debug.roll_rate_d;
