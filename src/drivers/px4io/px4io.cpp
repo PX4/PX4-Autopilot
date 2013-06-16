@@ -80,6 +80,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/safety.h>
 #include <debug.h>
 
 #include <mavlink/mavlink_log.h>
@@ -161,6 +162,7 @@ private:
 	orb_advert_t 		_to_actuators_effective; ///< effective actuator controls topic
 	orb_advert_t		_to_outputs;	///< mixed servo outputs topic
 	orb_advert_t		_to_battery;	///< battery status / voltage
+	orb_advert_t		_to_safety;	///< status of safety
 
 	actuator_outputs_s	_outputs;	///< mixed outputs
 	actuator_controls_effective_s _controls_effective; ///< effective controls
@@ -334,6 +336,7 @@ PX4IO::PX4IO() :
 	_to_actuators_effective(0),
 	_to_outputs(0),
 	_to_battery(0),
+	_to_safety(0),
 	_primary_pwm_device(false),
 	_battery_amp_per_volt(90.0f/5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
@@ -387,6 +390,40 @@ PX4IO::init()
 	 */
 	_retries = 2;
 
+	/* get IO's last seen FMU state */
+	int val = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
+	if (val == _io_reg_get_error) {
+		mavlink_log_emergency(_mavlink_fd, "[IO] ERROR! FAILED READING STATE");
+	}
+	uint16_t arming = val;
+
+	/* get basic software version */
+	/* basic configuration */
+	usleep(5000);
+
+	unsigned proto_version = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+	unsigned sw_version = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_SOFTWARE_VERSION);
+
+	if (proto_version != PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC) {
+		mavlink_log_emergency(_mavlink_fd, "[IO] ERROR! PROTO VER MISMATCH: v%u vs v%u\n",
+			proto_version,
+			PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC);
+
+		mavlink_log_emergency(_mavlink_fd, "[IO] Please update PX4IO firmware.");
+		log("protocol version mismatch (v%u on IO vs v%u on FMU)", proto_version, PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC);
+		return 1;
+	}
+
+	if (sw_version != PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC) {
+		mavlink_log_emergency(_mavlink_fd, "[IO] ERROR! SOFTWARE VER MISMATCH: v%u vs v%u\n",
+			proto_version,
+			PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC);
+
+		mavlink_log_emergency(_mavlink_fd, "[IO] Please update PX4IO firmware.");
+		log("software version mismatch (v%u on IO vs v%u on FMU)", sw_version, PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC);
+		return 1;
+	}
+
 	/* get some parameters */
 	_max_actuators = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT);
 	_max_controls = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT);
@@ -412,21 +449,23 @@ PX4IO::init()
 	 * in this case.
 	 */
 
-	uint16_t reg;
+	printf("arming 0x%04x%s%s%s%s\n",
+		arming,
+		((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)          ? " FMU_ARMED" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)	    ? " IO_ARM_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? " MANUAL_OVERRIDE_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""));
 
-	/* get IO's last seen FMU state */
-	ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, &reg, sizeof(reg));
-	if (ret != OK)
-		return ret;
 
 	/*
 	 * in-air restart is only tried if the IO board reports it is
 	 * already armed, and has been configured for in-air restart
 	 */
-	if ((reg & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK) &&
-	    (reg & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+	if ((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK) &&
+	    (arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 
 	    	mavlink_log_emergency(_mavlink_fd, "[IO] RECOVERING FROM FMU IN-AIR RESTART");
+	    	log("INAIR RESTART RECOVERY (needs commander app running)");
 
 		/* WARNING: COMMANDER app/vehicle status must be initialized.
 		 * If this fails (or the app is not started), worst-case IO
@@ -480,7 +519,7 @@ PX4IO::init()
 		cmd.confirmation =  1;
 
 		/* send command once */
-		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
 
 		/* spin here until IO's state has propagated into the system */
 		do {
@@ -490,16 +529,22 @@ PX4IO::init()
 				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &status);
 			}
 
-			/* wait 10 ms */
-			usleep(10000);
+			/* wait 50 ms */
+			usleep(50000);
 
 			/* abort after 5s */
-			if ((hrt_absolute_time() - try_start_time)/1000 > 50000) {
+			if ((hrt_absolute_time() - try_start_time)/1000 > 2000) {
 				log("failed to recover from in-air restart (2), aborting IO driver init.");
 				return 1;
 			}
 
-		/* keep waiting for state change for 10 s */
+			/* re-send if necessary */
+			if (!status.flag_system_armed) {
+				orb_publish(ORB_ID(vehicle_command), pub, &cmd);
+				log("re-sending arm cmd");
+			}
+
+		/* keep waiting for state change for 2 s */
 		} while (!status.flag_system_armed);
 
 	/* regular boot, no in-air restart, init IO */
@@ -538,7 +583,7 @@ PX4IO::init()
 		return -errno;
 	}
 
-	mavlink_log_info(_mavlink_fd, "[IO] init ok");
+	mavlink_log_info(_mavlink_fd, "[IO] init ok (sw v.%u)", sw_version);
 
 	return OK;
 }
@@ -861,14 +906,14 @@ PX4IO::io_handle_status(uint16_t status)
 	 */
 
 	/* check for IO reset - force it back to armed if necessary */
-	if (_status & PX4IO_P_STATUS_FLAGS_ARMED && !(status & PX4IO_P_STATUS_FLAGS_ARMED)
+	if (_status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF && !(status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
 		&& !(status & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
 		/* set the arming flag */
-		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_ARMED | PX4IO_P_STATUS_FLAGS_ARM_SYNC);
+		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_SAFETY_OFF | PX4IO_P_STATUS_FLAGS_ARM_SYNC);
 
 		/* set new status */
 		_status = status;
-		_status &= PX4IO_P_STATUS_FLAGS_ARMED;
+		_status &= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 	} else if (!(_status & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
 
 		/* set the sync flag */
@@ -881,6 +926,25 @@ PX4IO::io_handle_status(uint16_t status)
 
 		/* set new status */
 		_status = status;
+	}
+
+	/**
+	 * Get and handle the safety status
+	 */
+	struct safety_s safety;
+	safety.timestamp = hrt_absolute_time();
+
+	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
+		safety.status = SAFETY_STATUS_UNLOCKED;
+	} else {
+		safety.status = SAFETY_STATUS_SAFE;
+	}
+
+	/* lazily publish the safety status */
+	if (_to_safety > 0) {
+		orb_publish(ORB_ID(safety), _to_safety, &safety);
+	} else {
+		_to_safety = orb_advertise(ORB_ID(safety), &safety);
 	}
 
 	return ret;
@@ -912,7 +976,7 @@ PX4IO::io_get_status()
 
 	io_handle_status(regs[0]);
 	io_handle_alarms(regs[1]);
-
+	
 	/* only publish if battery has a valid minimum voltage */
 	if (regs[2] > 3300) {
 		battery_status_s	battery_status;
@@ -946,6 +1010,7 @@ PX4IO::io_get_status()
 			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
 		}
 	}
+
 	return ret;
 }
 
@@ -1273,7 +1338,8 @@ PX4IO::print_status()
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
 	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		flags,
-		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " ARMED" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED) ? " OUTPUTS_ARMED" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? " SAFETY_OFF" : " SAFETY_SAFE"),
 		((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
@@ -1634,6 +1700,11 @@ test(void)
 	if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count))
 		err(1, "failed to get servo count");
 
+	/* tell IO that its ok to disable its safety with the switch */
+	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
+	if (ret != OK)
+		err(1, "PWM_SERVO_SET_ARM_OK");
+
 	if (ioctl(fd, PWM_SERVO_ARM, 0))
 		err(1, "failed to arm servos");
 
@@ -1682,7 +1753,7 @@ test(void)
 		/* Check if user wants to quit */
 		char c;
 		if (read(console, &c, 1) == 1) {
-			if (c == 0x03 || c == 0x63) {
+			if (c == 0x03 || c == 0x63 || c == 'q') {
 				warnx("User abort\n");
 				close(console);
 				exit(0);

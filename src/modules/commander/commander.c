@@ -81,6 +81,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/safety.h>
 #include <mavlink/mavlink_log.h>
 
 #include <systemlib/param/param.h>
@@ -1281,6 +1282,8 @@ int commander_thread_main(int argc, char *argv[])
 	current_status.flag_vector_flight_mode_ok = false;
 	/* set battery warning flag */
 	current_status.battery_warning = VEHICLE_BATTERY_WARNING_NONE;
+	/* set safety device detection flag */
+	current_status.flag_safety_present = false;
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
@@ -1377,6 +1380,12 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&battery, 0, sizeof(battery));
 	battery.voltage_v = 0.0f;
 
+	/* subscribe to safety topic */
+	int safety_sub = orb_subscribe(ORB_ID(safety));
+	struct safety_s safety;
+	memset(&safety, 0, sizeof(safety));
+	safety.status = SAFETY_STATUS_NOT_PRESENT;
+
 	// uint8_t vehicle_state_previous = current_status.state_machine;
 	float voltage_previous = 0.0f;
 
@@ -1396,6 +1405,39 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Get current values */
 		bool new_data;
+
+		/* update parameters */
+		orb_check(param_changed_sub, &new_data);
+
+		if (new_data || param_init_forced) {
+			param_init_forced = false;
+			/* parameters changed */
+			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
+
+
+			/* update parameters */
+			if (!current_status.flag_system_armed) {
+				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
+					warnx("failed setting new system type");
+				}
+
+				/* disable manual override for all systems that rely on electronic stabilization */
+				if (current_status.system_type == VEHICLE_TYPE_QUADROTOR ||
+				    current_status.system_type == VEHICLE_TYPE_HEXAROTOR ||
+				    current_status.system_type == VEHICLE_TYPE_OCTOROTOR) {
+					current_status.flag_external_manual_override_ok = false;
+
+				} else {
+					current_status.flag_external_manual_override_ok = true;
+				}
+
+				/* check and update system / component ID */
+				param_get(_param_system_id, &(current_status.system_id));
+				param_get(_param_component_id, &(current_status.component_id));
+
+			}
+		}
+
 		orb_check(sp_man_sub, &new_data);
 
 		if (new_data) {
@@ -1431,36 +1473,17 @@ int commander_thread_main(int argc, char *argv[])
 			handle_command(stat_pub, &current_status, &cmd);
 		}
 
-		/* update parameters */
-		orb_check(param_changed_sub, &new_data);
+		orb_check(safety_sub, &new_data);
 
-		if (new_data || param_init_forced) {
-			param_init_forced = false;
-			/* parameters changed */
-			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
+		if (new_data) {
+			/* got safety change */
+			orb_copy(ORB_ID(safety), safety_sub, &safety);
 
-
-			/* update parameters */
-			if (!current_status.flag_system_armed) {
-				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
-					warnx("failed setting new system type");
-				}
-
-				/* disable manual override for all systems that rely on electronic stabilization */
-				if (current_status.system_type == VEHICLE_TYPE_QUADROTOR ||
-				    current_status.system_type == VEHICLE_TYPE_HEXAROTOR ||
-				    current_status.system_type == VEHICLE_TYPE_OCTOROTOR) {
-					current_status.flag_external_manual_override_ok = false;
-
-				} else {
-					current_status.flag_external_manual_override_ok = true;
-				}
-
-				/* check and update system / component ID */
-				param_get(_param_system_id, &(current_status.system_id));
-				param_get(_param_component_id, &(current_status.component_id));
-
-			}
+			/* handle it */
+			current_status.flag_safety_present = (safety.status != SAFETY_STATUS_NOT_PRESENT);
+			
+			if (current_status.flag_safety_present)
+				current_status.flag_safety_safe = (safety.status == SAFETY_STATUS_SAFE);
 		}
 
 		/* update global position estimate */
@@ -1699,7 +1722,8 @@ int commander_thread_main(int argc, char *argv[])
 			state_changed = true;
 		}
 
-		if (orb_check(ORB_ID(vehicle_gps_position), &new_data)) {
+		orb_check(ORB_ID(vehicle_gps_position), &new_data);
+		if (new_data) {
 
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
 

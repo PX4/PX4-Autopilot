@@ -49,6 +49,7 @@
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
+#include "commander.h"
 
 static const char *system_state_txt[] = {
 	"SYSTEM_STATE_PREFLIGHT",
@@ -64,6 +65,20 @@ static const char *system_state_txt[] = {
 	"SYSTEM_STATE_REBOOT",
 
 };
+
+bool is_multirotor(const struct vehicle_status_s *current_status)
+{
+	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
+	    (current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
+	    (current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
+	    (current_status->system_type == VEHICLE_TYPE_TRICOPTER));
+}
+
+bool is_rotary_wing(const struct vehicle_status_s *current_status)
+{
+	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
+	|| (current_status->system_type == VEHICLE_TYPE_COAXIAL);
+}
 
 /**
  * Transition from one state to another
@@ -513,6 +528,31 @@ void update_state_machine_no_position_fix(int status_pub, struct vehicle_status_
 void update_state_machine_arm(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	if (current_status->state_machine == SYSTEM_STATE_STANDBY) {
+
+		/* reject arming if safety status is wrong */
+		if (current_status->flag_safety_present) {
+
+			/*
+			 * The operator should not touch the vehicle if
+			 * its armed, so we don't allow arming in the
+			 * first place
+			 */
+			if (is_rotary_wing(current_status)) {
+
+				/* safety is in safe position, disallow arming */
+				if (current_status->flag_safety_safe) {
+					mavlink_log_critical(mavlink_fd, "DISENGAGE SAFETY BEFORE ARMING!");
+
+					/* play warning tune */
+					tune_error();
+
+					/* abort */
+					return;
+				}
+
+			}
+		}	
+
 		printf("[cmd] arming\n");
 		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_READY);
 	}
@@ -538,9 +578,7 @@ void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *c
 	current_status->flag_control_manual_enabled = true;
 
 	/* set behaviour based on airframe */
-	if ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_OCTOROTOR)) {
+	if (is_rotary_wing(current_status)) {
 
 		/* assuming a rotary wing, set to SAS */
 		current_status->manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
