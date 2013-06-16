@@ -156,14 +156,37 @@ struct log_STAT_s {
 	unsigned char battery_warning;
 };
 
+/* --- CTRL - CONTROL DEBUG --- */
+#define LOG_CTRL_MSG 11
+struct log_CTRL_s {
+	float roll_p;
+	float roll_i;
+	float roll_d;
+	float roll_rate_p;
+	float roll_rate_i;
+	float roll_rate_d;
+	float pitch_p;
+	float pitch_i;
+	float pitch_d;
+	float pitch_rate_p;
+	float pitch_rate_i;
+	float pitch_rate_d;
+	float yaw_p;
+	float yaw_i;
+	float yaw_d;
+	float yaw_rate_p;
+	float yaw_rate_i;
+	float yaw_rate_d;
+};
+
 /* --- RC - RC INPUT CHANNELS --- */
-#define LOG_RC_MSG 11
+#define LOG_RC_MSG 12
 struct log_RC_s {
 	float channel[8];
 };
 
 /* --- OUT0 - ACTUATOR_0 OUTPUT --- */
-#define LOG_OUT0_MSG 12
+#define LOG_OUT0_MSG 13
 struct log_OUT0_s {
 	float output[8];
 };
@@ -182,6 +205,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT(STAT, "BBBBBfffB", "State,FlightMode,CtlMode,SASMode,Armed,BatV,BatC,BatRem,BatWarn"),
+	LOG_FORMAT(CTRL, "ffffffffffffffffff", "RollP,RollI,RollD,RollRP,RollRI,RollRD,PitchP,PitchI,PitchD,PitchRP,PitchRI,PitchRD,YawP,YawI,YawD,YawRP,YawRI,YawRD"),
 	LOG_FORMAT(RC, "ffffffff", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 };
