@@ -1045,21 +1045,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_control_debug), subs.control_debug_sub, &buf.control_debug);
 				
-				log_msg.body.log_CTRL.roll_p = buf.control_debug.roll_p;
-				log_msg.body.log_CTRL.roll_i = buf.control_debug.roll_i;
-				log_msg.body.log_CTRL.roll_d = buf.control_debug.roll_d;
 				log_msg.body.log_CTRL.roll_rate_p = buf.control_debug.roll_rate_p;
 				log_msg.body.log_CTRL.roll_rate_i = buf.control_debug.roll_rate_i;
 				log_msg.body.log_CTRL.roll_rate_d = buf.control_debug.roll_rate_d;
-				log_msg.body.log_CTRL.pitch_p = buf.control_debug.pitch_p;
-				log_msg.body.log_CTRL.pitch_i = buf.control_debug.pitch_i;
-				log_msg.body.log_CTRL.pitch_d = buf.control_debug.pitch_d;
 				log_msg.body.log_CTRL.pitch_rate_p = buf.control_debug.pitch_rate_p;
 				log_msg.body.log_CTRL.pitch_rate_i = buf.control_debug.pitch_rate_i;
 				log_msg.body.log_CTRL.pitch_rate_d = buf.control_debug.pitch_rate_d;
-				log_msg.body.log_CTRL.yaw_p = buf.control_debug.yaw_p;
-				log_msg.body.log_CTRL.yaw_i = buf.control_debug.yaw_i;
-				log_msg.body.log_CTRL.yaw_d = buf.control_debug.yaw_d;
 				log_msg.body.log_CTRL.yaw_rate_p = buf.control_debug.yaw_rate_p;
 				log_msg.body.log_CTRL.yaw_rate_i = buf.control_debug.yaw_rate_i;
 				log_msg.body.log_CTRL.yaw_rate_d = buf.control_debug.yaw_rate_d;
