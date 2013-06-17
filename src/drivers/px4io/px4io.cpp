@@ -126,6 +126,16 @@ public:
 	int			set_failsafe_values(const uint16_t *vals, unsigned len);
 
 	/**
+	 * Set the minimum PWM signals when armed
+	 */
+	int 			set_min_values(const uint16_t *vals, unsigned len);
+
+	/**
+	 * Set the maximum PWM signal when armed
+	 */
+	int 			set_max_values(const uint16_t *vals, unsigned len);
+
+	/**
 	* Print the current status of IO
 	*/
 	void			print_status();
@@ -710,6 +720,34 @@ PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
 	/* copy values to registers in IO */
 	return io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, vals, len);
 }
+
+int
+PX4IO::set_min_values(const uint16_t *vals, unsigned len)
+{
+	uint16_t 		regs[_max_actuators];
+
+	if (len > _max_actuators)
+		/* fail with error */
+		return E2BIG;
+
+	/* copy values to registers in IO */
+	return io_reg_set(PX4IO_PAGE_CONTROL_MIN_PWM, 0, vals, len);
+}
+
+int
+PX4IO::set_max_values(const uint16_t *vals, unsigned len)
+{
+	uint16_t 		regs[_max_actuators];
+
+	if (len > _max_actuators)
+		/* fail with error */
+		return E2BIG;
+
+	/* copy values to registers in IO */
+	return io_reg_set(PX4IO_PAGE_CONTROL_MAX_PWM, 0, vals, len);
+}
+
+
 
 int
 PX4IO::io_set_arming_state()
@@ -1786,6 +1824,76 @@ px4io_main(int argc, char *argv[])
 
 			if (ret != OK)
 				errx(ret, "failed setting failsafe values");
+		} else {
+			errx(1, "not loaded");
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "min")) {
+
+		if (argc < 3) {
+			errx(1, "min command needs at least one channel value (PWM)");
+		}
+
+		if (g_dev != nullptr) {
+
+			/* set values for first 8 channels, fill unassigned channels with 900. */
+			uint16_t min[8];
+
+			for (int i = 0; i < sizeof(min) / sizeof(min[0]); i++)
+			{
+				/* set channel to commanline argument or to 900 for non-provided channels */
+				if (argc > i + 2) {
+					min[i] = atoi(argv[i+2]);
+					if (min[i] < 900 || min[i] > 1200) {
+						errx(1, "value out of range of 900 < value < 1200. Aborting.");
+					}
+				} else {
+					/* a zero value will the default */
+					min[i] = 900;
+				}
+			}
+
+			int ret = g_dev->set_min_values(min, sizeof(min) / sizeof(min[0]));
+
+			if (ret != OK)
+				errx(ret, "failed setting min values");
+		} else {
+			errx(1, "not loaded");
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "max")) {
+
+		if (argc < 3) {
+			errx(1, "max command needs at least one channel value (PWM)");
+		}
+
+		if (g_dev != nullptr) {
+
+			/* set values for first 8 channels, fill unassigned channels with 2100. */
+			uint16_t max[8];
+
+			for (int i = 0; i < sizeof(max) / sizeof(max[0]); i++)
+			{
+				/* set channel to commanline argument or to 2100 for non-provided channels */
+				if (argc > i + 2) {
+					max[i] = atoi(argv[i+2]);
+					if (max[i] < 1800 || max[i] > 2100) {
+						errx(1, "value out of range of 1800 < value < 2100. Aborting.");
+					}
+				} else {
+					/* a zero value will the default */
+					max[i] = 2100;
+				}
+			}
+
+			int ret = g_dev->set_max_values(max, sizeof(max) / sizeof(max[0]));
+
+			if (ret != OK)
+				errx(ret, "failed setting max values");
 		} else {
 			errx(1, "not loaded");
 		}

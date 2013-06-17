@@ -59,6 +59,11 @@ extern "C" {
  */
 #define FMU_INPUT_DROP_LIMIT_US		200000
 
+/*
+ * Time that the ESCs need to initialize
+ */
+ #define ESC_INIT_TIME_US		500000
+
 /* XXX need to move the RC_CHANNEL_FUNCTION out of rc_channels.h and into systemlib */
 #define ROLL     0
 #define PITCH    1
@@ -68,6 +73,8 @@ extern "C" {
 
 /* current servo arm/disarm state */
 static bool mixer_servos_armed = false;
+
+static uint64_t time_armed;
 
 /* selected control values and count for mixing */
 enum mixer_source {
@@ -176,8 +183,16 @@ mixer_tick(void)
 			/* save actuator values for FMU readback */
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 
-			/* scale to servo output */
-			r_page_servos[i] = (outputs[i] * 600.0f) + 1500;
+			/* scale to control range after init time */
+			if (mixer_servos_armed && (hrt_elapsed_time(&time_armed) > ESC_INIT_TIME_US)) {
+				r_page_servos[i] = (outputs[i]
+					* (r_page_servo_control_max[i] - r_page_servo_control_min[i])/2
+					+ (r_page_servo_control_max[i] + r_page_servo_control_min[i])/2);
+
+			/* but use init range from 900 to 2100 right after arming */
+			} else {
+				r_page_servos[i] = (outputs[i] * 600 + 1500);
+			}
 
 		}
 		for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
@@ -206,6 +221,7 @@ mixer_tick(void)
 		/* need to arm, but not armed */
 		up_pwm_servo_arm(true);
 		mixer_servos_armed = true;
+		time_armed = hrt_absolute_time();
 
 	} else if (!should_arm && mixer_servos_armed) {
 		/* armed but need to disarm */

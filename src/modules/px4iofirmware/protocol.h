@@ -183,6 +183,12 @@
 /* PWM failsafe values - zero disables the output */
 #define PX4IO_PAGE_FAILSAFE_PWM			105	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
+/* PWM minimum values for certain ESCs */
+#define PX4IO_PAGE_CONTROL_MIN_PWM		106	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+
+ /* PWM maximum values for certain ESCs */
+#define PX4IO_PAGE_CONTROL_MAX_PWM		107	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+
 /**
  * As-needed mixer data upload.
  *
