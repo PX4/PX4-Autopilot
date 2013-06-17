@@ -189,10 +189,8 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		parameters_update(&h, &p);
 		initialized = true;
 
-		pid_init(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1000.0f,
-					 1000.0f, 0.2f, PID_MODE_DERIVATIV_CALC);
-		pid_init(&roll_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1000.0f,
-					 1000.0f, 0.2f, PID_MODE_DERIVATIV_CALC);
+		pid_init(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, 0.2f, PID_MODE_DERIVATIV_CALC);
+		pid_init(&roll_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, 0.2f, PID_MODE_DERIVATIV_CALC);
 
 		control_debug_pub = orb_advertise(ORB_ID(vehicle_control_debug), &control_debug);
 	}
@@ -201,8 +199,8 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		pid_set_parameters(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1000.0f, 1000.0f, 0.2f);
-		pid_set_parameters(&roll_rate_controller,  p.attrate_p, p.attrate_i, p.attrate_d, 1000.0f, 1000.0f, 0.2f);
+		pid_set_parameters(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, 0.2f);
+		pid_set_parameters(&roll_rate_controller,  p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, 0.2f);
 	}
 
 	/* control pitch (forward) output */
