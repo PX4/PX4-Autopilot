@@ -121,7 +121,7 @@ int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part)
 	} else {
 		// read pointer is after write pointer, read bytes from read_ptr to end of the buffer
 		n = lb->size - lb->read_ptr;
-		*is_part = true;
+		*is_part = lb->write_ptr > 0;
 	}
 
 	*ptr = &(lb->data[lb->read_ptr]);
