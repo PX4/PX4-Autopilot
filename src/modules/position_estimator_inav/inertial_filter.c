@@ -13,16 +13,16 @@ void inertial_filter_predict(float dt, float x[3])
 	x[1] += x[2] * dt;
 }
 
-void inertial_filter_correct(float dt, float x[3], int i, float z, float w)
+void inertial_filter_correct(float edt, float x[3], int i, float w)
 {
-	float e = z - x[i];
-	x[i] += e * w * dt;
+	float ewdt = w * edt;
+	x[i] += ewdt;
 
 	if (i == 0) {
-		x[1] += e * w * w * dt;
+		x[1] += w * ewdt;
 		//x[2] += e * w * w * w * dt / 3.0; // ~ 0.0
 
 	} else if (i == 1) {
-		x[2] += e * w * w * dt;
+		x[2] += w * ewdt;
 	}
 }

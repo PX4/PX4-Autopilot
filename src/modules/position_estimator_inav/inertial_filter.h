@@ -10,4 +10,4 @@
 
 void inertial_filter_predict(float dt, float x[3]);
 
-void inertial_filter_correct(float dt, float x[3], int i, float z, float w);
+void inertial_filter_correct(float edt, float x[3], int i, float w);
