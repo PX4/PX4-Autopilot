@@ -114,35 +114,34 @@ static const int MAX_WRITE_CHUNK = 512;
 static const int MIN_BYTES_TO_WRITE = 512;
 
 static const char *mountpoint = "/fs/microsd";
-int log_file = -1;
-int mavlink_fd = -1;
+static int mavlink_fd = -1;
 struct logbuffer_s lb;
 
 /* mutex / condition to synchronize threads */
-pthread_mutex_t logbuffer_mutex;
-pthread_cond_t logbuffer_cond;
+static pthread_mutex_t logbuffer_mutex;
+static pthread_cond_t logbuffer_cond;
 
-char folder_path[64];
+static char folder_path[64];
 
 /* statistics counters */
-unsigned long log_bytes_written = 0;
-uint64_t start_time = 0;
-unsigned long log_msgs_written = 0;
-unsigned long log_msgs_skipped = 0;
+static unsigned long log_bytes_written = 0;
+static uint64_t start_time = 0;
+static unsigned long log_msgs_written = 0;
+static unsigned long log_msgs_skipped = 0;
 
 /* current state of logging */
-bool logging_enabled = false;
+static bool logging_enabled = false;
 /* enable logging on start (-e option) */
-bool log_on_start = false;
+static bool log_on_start = false;
 /* enable logging when armed (-a option) */
-bool log_when_armed = false;
+static bool log_when_armed = false;
 /* delay = 1 / rate (rate defined by -r option) */
-useconds_t sleep_delay = 0;
+static useconds_t sleep_delay = 0;
 
 /* helper flag to track system state changes */
-bool flag_system_armed = false;
+static bool flag_system_armed = false;
 
-pthread_t logwriter_pthread = 0;
+static pthread_t logwriter_pthread = 0;
 
 /**
  * Log buffer writing thread. Open and close file here.
@@ -172,17 +171,17 @@ static void sdlog2_status(void);
 /**
  * Start logging: create new file and start log writer thread.
  */
-void sdlog2_start_log();
+static void sdlog2_start_log(void);
 
 /**
  * Stop logging: stop log writer thread and close log file.
  */
-void sdlog2_stop_log();
+static void sdlog2_stop_log(void);
 
 /**
  * Write a header to log file: list of message formats.
  */
-void write_formats(int fd);
+static void write_formats(int fd);
 
 
 static bool file_exist(const char *filename);
@@ -196,12 +195,12 @@ static void handle_status(struct vehicle_status_s *cmd);
 /**
  * Create folder for current logging session. Store folder name in 'log_folder'.
  */
-static int create_logfolder();
+static int create_logfolder(void);
 
 /**
  * Select first free log file name and open it.
  */
-static int open_logfile();
+static int open_logfile(void);
 
 static void
 sdlog2_usage(const char *reason)
@@ -286,22 +285,6 @@ int create_logfolder()
 
 		if (mkdir_ret == 0) {
 			/* folder does not exist, success */
-
-			/* copy parser script file */
-			// TODO
-			/*
-			char mfile_out[100];
-			sprintf(mfile_out, "%s/session%04u/run_to_plot_data.m", mountpoint, foldernumber);
-			int ret = file_copy(mfile_in, mfile_out);
-
-			if (!ret) {
-				warnx("copied m file to %s", mfile_out);
-
-			} else {
-				warnx("failed copying m file from %s to\n %s", mfile_in, mfile_out);
-			}
-			*/
-
 			break;
 
 		} else if (mkdir_ret == -1) {
@@ -403,6 +386,11 @@ static void *logwriter_thread(void *arg)
 		/* only get pointer to thread-safe data, do heavy I/O a few lines down */
 		int available = logbuffer_get_ptr(logbuf, &read_ptr, &is_part);
 
+#ifdef SDLOG2_DEBUG
+		int rp = logbuf->read_ptr;
+		int wp = logbuf->write_ptr;
+#endif
+
 		/* continue */
 		pthread_mutex_unlock(&logbuffer_mutex);
 
@@ -419,7 +407,7 @@ static void *logwriter_thread(void *arg)
 
 			should_wait = (n == available) && !is_part;
 #ifdef SDLOG2_DEBUG
-			printf("%i wrote: %i of %i, is_part=%i, should_wait=%i", poll_count, n, available, (int)is_part, (int)should_wait);
+			printf("write %i %i of %i rp=%i wp=%i, is_part=%i, should_wait=%i\n", log_bytes_written, n, available, rp, wp, (int)is_part, (int)should_wait);
 #endif
 
 			if (n < 0) {
@@ -432,14 +420,14 @@ static void *logwriter_thread(void *arg)
 			}
 
 		} else {
+			n = 0;
 			should_wait = true;
 		}
 
-		if (poll_count % 10 == 0) {
+		if (++poll_count == 10) {
 			fsync(log_file);
+			poll_count = 0;
 		}
-
-		poll_count++;
 	}
 
 	fsync(log_file);
@@ -608,12 +596,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		errx(1, "can't allocate log buffer, exiting.");
 	}
 
-	/* file descriptors to wait for */
-	struct pollfd fds_control[2];
-
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 16;
+	const ssize_t fdsc = 17;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -901,7 +886,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GPS.epv = buf.gps_pos.epv_m;
 				log_msg.body.log_GPS.lat = buf.gps_pos.lat;
 				log_msg.body.log_GPS.lon = buf.gps_pos.lon;
-				log_msg.body.log_GPS.alt = buf.gps_pos.alt * 0.001;
+				log_msg.body.log_GPS.alt = buf.gps_pos.alt * 0.001f;
 				log_msg.body.log_GPS.vel_n = buf.gps_pos.vel_n_m_s;
 				log_msg.body.log_GPS.vel_e = buf.gps_pos.vel_e_m_s;
 				log_msg.body.log_GPS.vel_d = buf.gps_pos.vel_d_m_s;
@@ -1087,10 +1072,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(AIRS);
 			}
 
+#ifdef SDLOG2_DEBUG
+				printf("fill rp=%i wp=%i count=%i\n", lb.read_ptr, lb.write_ptr, logbuffer_count(&lb));
+#endif
 			/* signal the other thread new data, but not yet unlock */
 			if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {
 #ifdef SDLOG2_DEBUG
-				printf("signal %i", logbuffer_count(&lb));
+				printf("signal rp=%i wp=%i count=%i\n", lb.read_ptr, lb.write_ptr, logbuffer_count(&lb));
 #endif
 				/* only request write if several packets can be written at once */
 				pthread_cond_signal(&logbuffer_cond);
