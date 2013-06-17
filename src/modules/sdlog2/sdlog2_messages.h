@@ -180,7 +180,7 @@ struct log_AIRS_s {
 };
 
 /* --- ARSP - ATTITUDE RATE SET POINT --- */
-#define LOG_ARSP_MSG 13
+#define LOG_ARSP_MSG 14
 struct log_ARSP_s {
 	float roll_rate_sp;
 	float pitch_rate_sp;
