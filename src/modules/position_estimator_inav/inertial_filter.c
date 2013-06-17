@@ -20,7 +20,7 @@ void inertial_filter_correct(float edt, float x[3], int i, float w)
 
 	if (i == 0) {
 		x[1] += w * ewdt;
-		//x[2] += e * w * w * w * dt / 3.0; // ~ 0.0
+		x[2] += w * w * ewdt / 3.0;
 
 	} else if (i == 1) {
 		x[2] += w * ewdt;

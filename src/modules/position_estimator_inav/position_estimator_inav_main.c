@@ -355,7 +355,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 
 				if (sensor.baro_counter > baro_counter) {
-					baro_corr = baro_alt0 - sensor.baro_alt_meter - z_est[2];
+					baro_corr = baro_alt0 - sensor.baro_alt_meter - z_est[0];
 					baro_counter = sensor.baro_counter;
 					baro_updates++;
 				}
