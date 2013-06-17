@@ -241,7 +241,7 @@ int sdlog2_main(int argc, char *argv[])
 		deamon_task = task_spawn("sdlog2",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT - 30,
-					 2048,
+					 3000,
 					 sdlog2_thread_main,
 					 (const char **)argv);
 		exit(0);
@@ -661,6 +661,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int vicon_pos_sub;
 		int flow_sub;
 		int rc_sub;
+		int airspeed_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -681,6 +682,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_RC_s log_RC;
 			struct log_OUT0_s log_OUT0;
 			struct log_ARSP_s log_ARSP;
+			struct log_AIRS_s log_AIRS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -783,6 +785,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].fd = subs.rc_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
+
+	/* --- AIRSPEED --- */
+	subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	fds[fdsc_count].fd = subs.airspeed_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;	
 
 	/* WARNING: If you get the error message below,
 	 * then the number of registered messages (fdsc)
@@ -1067,6 +1075,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 				/* Copy only the first 8 channels of 14 */
 				memcpy(log_msg.body.log_RC.channel, buf.rc.chan, sizeof(log_msg.body.log_RC.channel));
 				LOGBUFFER_WRITE_AND_COUNT(RC);
+			}
+
+			/* --- AIRSPEED --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(airspeed), subs.airspeed_sub, &buf.airspeed);
+				log_msg.msg_type = LOG_AIRS_MSG;
+				log_msg.body.log_AIRS.indicated_airspeed = buf.airspeed.indicated_airspeed_m_s;
+				log_msg.body.log_AIRS.true_airspeed = buf.airspeed.true_airspeed_m_s;
+				LOGBUFFER_WRITE_AND_COUNT(AIRS);
 			}
 
 			/* signal the other thread new data, but not yet unlock */
