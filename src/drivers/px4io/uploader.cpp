@@ -258,12 +258,12 @@ PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
 	int ret = ::poll(&fds[0], 1, timeout);
 
 	if (ret < 1) {
-		log("poll timeout %d", ret);
+		//log("poll timeout %d", ret);
 		return -ETIMEDOUT;
 	}
 
 	read(_io_fd, &c, 1);
-	log("recv 0x%02x", c);
+	//log("recv 0x%02x", c);
 	return OK;
 }
 
@@ -290,7 +290,7 @@ PX4IO_Uploader::drain()
 		ret = recv(c, 1000);
 
 		if (ret == OK) {
-			log("discard 0x%02x", c);
+			//log("discard 0x%02x", c);
 		}
 	} while (ret == OK);
 }
@@ -298,7 +298,7 @@ PX4IO_Uploader::drain()
 int
 PX4IO_Uploader::send(uint8_t c)
 {
-	log("send 0x%02x", c);
+	//log("send 0x%02x", c);
 	if (write(_io_fd, &c, 1) != 1)
 		return -errno;
 
