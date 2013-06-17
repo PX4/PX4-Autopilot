@@ -608,12 +608,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		errx(1, "can't allocate log buffer, exiting.");
 	}
 
-	/* file descriptors to wait for */
-	struct pollfd fds_control[2];
-
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 16;
+	const ssize_t fdsc = 17;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -681,8 +678,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_STAT_s log_STAT;
 			struct log_RC_s log_RC;
 			struct log_OUT0_s log_OUT0;
-			struct log_ARSP_s log_ARSP;
 			struct log_AIRS_s log_AIRS;
+			struct log_ARSP_s log_ARSP;
+			struct log_GPOS_s log_GPOS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1053,7 +1051,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- GLOBAL POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
-				// TODO not implemented yet
+				log_msg.msg_type = LOG_GPOS_MSG;
+				log_msg.body.log_GPOS.lat = buf.global_pos.lat;
+				log_msg.body.log_GPOS.lon = buf.global_pos.lon;
+				log_msg.body.log_GPOS.alt = buf.global_pos.alt;
+				log_msg.body.log_GPOS.vel_n = buf.global_pos.vx;
+				log_msg.body.log_GPOS.vel_e = buf.global_pos.vy;
+				log_msg.body.log_GPOS.vel_d = buf.global_pos.vz;
+				log_msg.body.log_GPOS.hdg = buf.global_pos.hdg;
+				LOGBUFFER_WRITE_AND_COUNT(GPOS);
 			}
 
 			/* --- VICON POSITION --- */
