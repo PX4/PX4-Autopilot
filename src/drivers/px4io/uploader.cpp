@@ -49,6 +49,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <termios.h>
 #include <sys/stat.h>
 
 #include "uploader.h"
@@ -120,6 +121,12 @@ PX4IO_Uploader::upload(const char *filenames[])
 		log("could not open interface");
 		return -errno;
 	}
+
+	/* adjust line speed to match bootloader */
+	struct termios t;
+	tcgetattr(_io_fd, &t);
+	cfsetspeed(&t, 115200);
+	tcsetattr(_io_fd, TCSANOW, &t);
 
 	/* look for the bootloader */
 	ret = sync();
@@ -256,7 +263,7 @@ PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
 	}
 
 	read(_io_fd, &c, 1);
-	//log("recv 0x%02x", c);
+	log("recv 0x%02x", c);
 	return OK;
 }
 
@@ -283,7 +290,7 @@ PX4IO_Uploader::drain()
 		ret = recv(c, 1000);
 
 		if (ret == OK) {
-			//log("discard 0x%02x", c);
+			log("discard 0x%02x", c);
 		}
 	} while (ret == OK);
 }
@@ -291,7 +298,7 @@ PX4IO_Uploader::drain()
 int
 PX4IO_Uploader::send(uint8_t c)
 {
-	//log("send 0x%02x", c);
+	log("send 0x%02x", c);
 	if (write(_io_fd, &c, 1) != 1)
 		return -errno;
 
