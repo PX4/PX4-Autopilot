@@ -268,7 +268,11 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* copy channel data */
 		while ((offset < IO_SERVO_COUNT) && (num_values > 0)) {
 
-			if (*values > 1200)
+			if (*values == 0)
+				/* set to default */
+				r_page_servo_control_min[offset] = 900;
+
+			else if (*values > 1200)
 				r_page_servo_control_min[offset] = 1200;
 			else if (*values < 900)
 				r_page_servo_control_min[offset] = 900;
@@ -286,10 +290,14 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* copy channel data */
 		while ((offset < IO_SERVO_COUNT) && (num_values > 0)) {
 
-			if (*values > 1200)
-				r_page_servo_control_max[offset] = 1200;
-			else if (*values < 900)
-				r_page_servo_control_max[offset] = 900;
+			if (*values == 0)
+				/* set to default */
+				r_page_servo_control_max[offset] = 2100;
+
+			else if (*values > 2100)
+				r_page_servo_control_max[offset] = 2100;
+			else if (*values < 1800)
+				r_page_servo_control_max[offset] = 1800;
 			else
 				r_page_servo_control_max[offset] = *values;
 

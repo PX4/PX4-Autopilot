@@ -62,7 +62,7 @@ extern "C" {
 /*
  * Time that the ESCs need to initialize
  */
- #define ESC_INIT_TIME_US		500000
+ #define ESC_INIT_TIME_US		2000000
 
 /* XXX need to move the RC_CHANNEL_FUNCTION out of rc_channels.h and into systemlib */
 #define ROLL     0
@@ -75,6 +75,7 @@ extern "C" {
 static bool mixer_servos_armed = false;
 
 static uint64_t time_armed;
+static bool init_complete = false;
 
 /* selected control values and count for mixing */
 enum mixer_source {
@@ -177,6 +178,10 @@ mixer_tick(void)
 		/* mix */
 		mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
 
+		if (!init_complete && mixer_servos_armed && (hrt_elapsed_time(&time_armed) > ESC_INIT_TIME_US)) {
+			init_complete = true;
+		}
+
 		/* scale to PWM and update the servo outputs as required */
 		for (unsigned i = 0; i < mixed; i++) {
 
@@ -184,7 +189,7 @@ mixer_tick(void)
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 
 			/* scale to control range after init time */
-			if (mixer_servos_armed && (hrt_elapsed_time(&time_armed) > ESC_INIT_TIME_US)) {
+			if (init_complete) {
 				r_page_servos[i] = (outputs[i]
 					* (r_page_servo_control_max[i] - r_page_servo_control_min[i])/2
 					+ (r_page_servo_control_max[i] + r_page_servo_control_min[i])/2);
@@ -222,11 +227,13 @@ mixer_tick(void)
 		up_pwm_servo_arm(true);
 		mixer_servos_armed = true;
 		time_armed = hrt_absolute_time();
+		init_complete = false;
 
 	} else if (!should_arm && mixer_servos_armed) {
 		/* armed but need to disarm */
 		up_pwm_servo_arm(false);
 		mixer_servos_armed = false;
+		init_complete = false;
 	}
 
 	if (mixer_servos_armed) {

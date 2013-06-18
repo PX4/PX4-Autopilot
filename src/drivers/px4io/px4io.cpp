@@ -1851,7 +1851,7 @@ px4io_main(int argc, char *argv[])
 					}
 				} else {
 					/* a zero value will the default */
-					min[i] = 900;
+					min[i] = 0;
 				}
 			}
 
@@ -1886,7 +1886,7 @@ px4io_main(int argc, char *argv[])
 					}
 				} else {
 					/* a zero value will the default */
-					max[i] = 2100;
+					max[i] = 0;
 				}
 			}
 
