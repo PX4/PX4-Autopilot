@@ -103,7 +103,7 @@
 
 //#define SDLOG2_DEBUG
 
-static bool thread_should_exit = false;		/**< Deamon exit flag */
+static bool main_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;			/**< Deamon status flag */
 static int deamon_task;						/**< Handle of deamon task / thread */
 static bool logwriter_should_exit = false;	/**< Logwriter thread exit flag */
@@ -236,7 +236,7 @@ int sdlog2_main(int argc, char *argv[])
 			exit(0);
 		}
 
-		thread_should_exit = false;
+		main_thread_should_exit = false;
 		deamon_task = task_spawn("sdlog2",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT - 30,
@@ -251,7 +251,7 @@ int sdlog2_main(int argc, char *argv[])
 			printf("\tsdlog2 is not started\n");
 		}
 
-		thread_should_exit = true;
+		main_thread_should_exit = true;
 		exit(0);
 	}
 
@@ -330,10 +330,10 @@ int open_logfile()
 		fd = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC);
 
 		if (fd == 0) {
-			errx(1, "opening %s failed.", path_buf);
+			warn("opening %s failed", path_buf);
 		}
 
-		warnx("logging to: %s", path_buf);
+		warnx("logging to: %s.", path_buf);
 		mavlink_log_info(mavlink_fd, "[sdlog2] log: %s", path_buf);
 
 		return fd;
@@ -341,7 +341,7 @@ int open_logfile()
 
 	if (file_number > MAX_NO_LOGFILE) {
 		/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
-		warn("all %d possible files exist already", MAX_NO_LOGFILE);
+		warnx("all %d possible files exist already.", MAX_NO_LOGFILE);
 		return -1;
 	}
 
@@ -367,8 +367,7 @@ static void *logwriter_thread(void *arg)
 	bool should_wait = false;
 	bool is_part = false;
 
-	while (!thread_should_exit && !logwriter_should_exit) {
-
+	while (true) {
 		/* make sure threads are synchronized */
 		pthread_mutex_lock(&logbuffer_mutex);
 
@@ -378,7 +377,7 @@ static void *logwriter_thread(void *arg)
 		}
 
 		/* only wait if no data is available to process */
-		if (should_wait) {
+		if (should_wait && !logwriter_should_exit) {
 			/* blocking wait for new data at this line */
 			pthread_cond_wait(&logbuffer_cond, &logbuffer_mutex);
 		}
@@ -411,7 +410,7 @@ static void *logwriter_thread(void *arg)
 #endif
 
 			if (n < 0) {
-				thread_should_exit = true;
+				main_thread_should_exit = true;
 				err(1, "error writing log file");
 			}
 
@@ -421,6 +420,16 @@ static void *logwriter_thread(void *arg)
 
 		} else {
 			n = 0;
+#ifdef SDLOG2_DEBUG
+			printf("no data available, main_thread_should_exit=%i, logwriter_should_exit=%i\n", (int)main_thread_should_exit, (int)logwriter_should_exit);
+#endif
+			/* exit only with empty buffer */
+			if (main_thread_should_exit || logwriter_should_exit) {
+#ifdef SDLOG2_DEBUG
+				printf("break logwriter thread\n");
+#endif
+				break;
+			}
 			should_wait = true;
 		}
 
@@ -432,6 +441,10 @@ static void *logwriter_thread(void *arg)
 
 	fsync(log_file);
 	close(log_file);
+
+#ifdef SDLOG2_DEBUG
+	printf("logwriter thread exit\n");
+#endif
 
 	return OK;
 }
@@ -459,10 +472,9 @@ void sdlog2_start_log()
 	pthread_attr_setstacksize(&receiveloop_attr, 2048);
 
 	logwriter_should_exit = false;
-	pthread_t thread;
 
 	/* start log buffer emptying thread */
-	if (0 != pthread_create(&thread, &receiveloop_attr, logwriter_thread, &lb)) {
+	if (0 != pthread_create(&logwriter_pthread, &receiveloop_attr, logwriter_thread, &lb)) {
 		errx(1, "error creating logwriter thread");
 	}
 
@@ -476,16 +488,20 @@ void sdlog2_stop_log()
 	mavlink_log_info(mavlink_fd, "[sdlog2] stop logging");
 
 	logging_enabled = false;
-	logwriter_should_exit = true;
 
 	/* wake up write thread one last time */
 	pthread_mutex_lock(&logbuffer_mutex);
+	logwriter_should_exit = true;
 	pthread_cond_signal(&logbuffer_cond);
 	/* unlock, now the writer thread may return */
 	pthread_mutex_unlock(&logbuffer_mutex);
 
 	/* wait for write thread to return */
-	(void)pthread_join(logwriter_pthread, NULL);
+	int ret;
+	if ((ret = pthread_join(logwriter_pthread, NULL)) != 0) {
+		warnx("error joining logwriter thread: %i", ret);
+	}
+	logwriter_pthread = 0;
 
 	sdlog2_status();
 }
@@ -506,7 +522,7 @@ void write_formats(int fd)
 
 	for (i = 0; i < log_formats_num; i++) {
 		log_format_packet.body = log_formats[i];
-		write(fd, &log_format_packet, sizeof(log_format_packet));
+		log_bytes_written += write(fd, &log_format_packet, sizeof(log_format_packet));
 	}
 
 	fsync(fd);
@@ -810,7 +826,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	if (log_on_start)
 		sdlog2_start_log();
 
-	while (!thread_should_exit) {
+	while (!main_thread_should_exit) {
 		/* decide use usleep() or blocking poll() */
 		bool use_sleep = sleep_delay > 0 && logging_enabled;
 
@@ -820,7 +836,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		/* handle the poll result */
 		if (poll_ret < 0) {
 			warnx("ERROR: poll error, stop logging.");
-			thread_should_exit = true;
+			main_thread_should_exit = true;
 
 		} else if (poll_ret > 0) {
 
