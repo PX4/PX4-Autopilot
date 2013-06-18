@@ -54,9 +54,25 @@
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
+#include "commander.h"
+
+bool is_multirotor(const struct vehicle_status_s *current_status)
+{
+	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
+	    (current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
+	    (current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
+	    (current_status->system_type == VEHICLE_TYPE_TRICOPTER));
+}
+
+bool is_rotary_wing(const struct vehicle_status_s *current_status)
+{
+	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
+	|| (current_status->system_type == VEHICLE_TYPE_COAXIAL);
+}
 
 int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int safety_pub, struct actuator_safety_s *safety, const int mavlink_fd) {
-	
+
+
 	int ret = ERROR;
 
 	/* only check transition if the new state is actually different from the current one */
@@ -715,7 +731,6 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 // 	}
 
 // }
-
 
 
 ///* END SUBSYSTEM/EMERGENCY FUNCTIONS*/

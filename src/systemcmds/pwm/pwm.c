@@ -180,7 +180,8 @@ pwm_main(int argc, char *argv[])
 	}
 
 	/* iterate remaining arguments */
-	unsigned channel = 0;
+	unsigned nchannels = 0;
+	unsigned channel[8] = {0};
 	while (argc--) {
 		const char *arg = argv[0];
 		argv++;
@@ -204,13 +205,15 @@ pwm_main(int argc, char *argv[])
 		}
 		unsigned pwm_value = strtol(arg, &ep, 0);
 		if (*ep == '\0') {
-			ret = ioctl(fd, PWM_SERVO_SET(channel), pwm_value);
-			if (ret != OK)
-				err(1, "PWM_SERVO_SET(%d)", channel);
-			channel++;
+			if (nchannels > sizeof(channel) / sizeof(channel[0]))
+				err(1, "too many pwm values (max %d)", sizeof(channel) / sizeof(channel[0]));
+
+			channel[nchannels] = pwm_value;
+			nchannels++;
+
 			continue;
 		}
-		usage("unrecognised option");
+		usage("unrecognized option");
 	}
 
 	/* print verbose info */
@@ -250,5 +253,38 @@ pwm_main(int argc, char *argv[])
 		}
 		fflush(stdout);
 	}
+
+	/* perform PWM output */
+	if (nchannels) {
+
+		/* Open console directly to grab CTRL-C signal */
+		int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
+		if (!console)
+			err(1, "failed opening console");
+
+		warnx("Press CTRL-C or 'c' to abort.");
+
+		while (1) {
+			for (int i = 0; i < nchannels; i++) {
+				ret = ioctl(fd, PWM_SERVO_SET(i), channel[i]);
+				if (ret != OK)
+					err(1, "PWM_SERVO_SET(%d)", i);
+			}
+
+			/* abort on user request */
+			char c;
+			if (read(console, &c, 1) == 1) {
+				if (c == 0x03 || c == 0x63 || c == 'q') {
+					warnx("User abort\n");
+					close(console);
+					exit(0);
+				}
+			}
+
+			/* rate limit to ~ 20 Hz */
+			usleep(50000);
+		}
+	}
+
 	exit(0);
 }

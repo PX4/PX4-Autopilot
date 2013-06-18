@@ -79,6 +79,7 @@
 #include <uORB/topics/actuator_safety.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/safety.h>
 #include <mavlink/mavlink_log.h>
 
 #include <drivers/drv_led.h>
@@ -1229,6 +1230,10 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* set battery warning flag */
 	current_status.battery_warning = VEHICLE_BATTERY_WARNING_NONE;
+	/* set safety device detection flag */
+	
+	/* XXX do we need this? */
+	//current_status.flag_safety_present = false;
 
 	// XXX for now just set sensors as initialized
 	current_status.condition_system_sensors_initialized = true;
@@ -1352,7 +1357,6 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&battery, 0, sizeof(battery));
 	battery.voltage_v = 0.0f;
 
-
 	// uint8_t vehicle_state_previous = current_status.state_machine;
 	float voltage_previous = 0.0f;
 
@@ -1374,6 +1378,39 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Get current values */
 		bool new_data;
+
+		/* update parameters */
+		orb_check(param_changed_sub, &new_data);
+
+		if (new_data || param_init_forced) {
+			param_init_forced = false;
+			/* parameters changed */
+			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
+
+
+			/* update parameters */
+			if (!safety.armed) {
+				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
+					warnx("failed setting new system type");
+				}
+
+				/* disable manual override for all systems that rely on electronic stabilization */
+				if (current_status.system_type == VEHICLE_TYPE_QUADROTOR ||
+				    current_status.system_type == VEHICLE_TYPE_HEXAROTOR ||
+				    current_status.system_type == VEHICLE_TYPE_OCTOROTOR) {
+					current_status.flag_external_manual_override_ok = false;
+
+				} else {
+					current_status.flag_external_manual_override_ok = true;
+				}
+
+				/* check and update system / component ID */
+				param_get(_param_system_id, &(current_status.system_id));
+				param_get(_param_component_id, &(current_status.component_id));
+
+			}
+		}
+
 		orb_check(sp_man_sub, &new_data);
 
 		if (new_data) {
@@ -1408,7 +1445,6 @@ int commander_thread_main(int argc, char *argv[])
 			/* handle it */
 			handle_command(status_pub, &current_status, &cmd, safety_pub, &safety);
 		}
-
 		
 
 		/* update parameters */
@@ -1686,7 +1722,9 @@ int commander_thread_main(int argc, char *argv[])
 		// 	state_changed = true;
 		// }
 
-		if (orb_check(gps_sub, &new_data)) {
+		orb_check(ORB_ID(vehicle_gps_position), &new_data);
+		if (new_data) {
+
 
 			orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps_position);
 

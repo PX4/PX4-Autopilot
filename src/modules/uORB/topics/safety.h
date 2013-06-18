@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,34 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file state_machine_helper.h
- * State machine helper functions definitions
+ * @file safety.h
+ *
+ * Status of an attached safety device
  */
 
-#ifndef STATE_MACHINE_HELPER_H_
-#define STATE_MACHINE_HELPER_H_
+#ifndef TOPIC_SAFETY_H
+#define TOPIC_SAFETY_H
 
-#define GPS_NOFIX_COUNTER_LIMIT 4 //need GPS_NOFIX_COUNTER_LIMIT gps packets with a bad fix to call an error (if outdoor)
-#define GPS_GOTFIX_COUNTER_REQUIRED 4 //need GPS_GOTFIX_COUNTER_REQUIRED gps packets with a good fix to obtain position lock
+#include <stdint.h>
+#include "../uORB.h"
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_safety.h>
-#include <uORB/topics/vehicle_control_mode.h>
+enum SAFETY_STATUS {
+	SAFETY_STATUS_NOT_PRESENT,
+	SAFETY_STATUS_SAFE,
+	SAFETY_STATUS_UNLOCKED
+};
 
+struct safety_s {
+	uint64_t timestamp;			/**< output timestamp in us since system boot */
+	enum SAFETY_STATUS status;
+};
 
-void navigation_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
+/* actuator output sets; this list can be expanded as more drivers emerge */
+ORB_DECLARE(safety);
 
-bool is_multirotor(const struct vehicle_status_s *current_status);
-
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
-
-//int do_arming_state_update(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, arming_state_t new_state);
-
-void state_machine_publish(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
-
-int navigation_state_transition(int status_pub, struct vehicle_status_s *current_state, navigation_state_t new_navigation_state, int control_mode_pub, struct vehicle_control_mode_s *control_mode, const int mavlink_fd);
-
-int hil_state_transition(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, hil_state_t new_state);
-
-#endif /* STATE_MACHINE_HELPER_H_ */
+#endif /* TOPIC_SAFETY_H */

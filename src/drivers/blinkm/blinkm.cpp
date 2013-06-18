@@ -505,15 +505,15 @@ BlinkM::led()
 
 		/* get number of used satellites in navigation */
 		num_of_used_sats = 0;
-		//for(int satloop=0; satloop<20; satloop++) {
-		for(int satloop=0; satloop<sizeof(vehicle_gps_position_raw.satellite_used); satloop++) {
-			if(vehicle_gps_position_raw.satellite_used[satloop] == 1) {
+
+		for (unsigned satloop = 0; satloop < (sizeof(vehicle_gps_position_raw.satellite_used) / sizeof(vehicle_gps_position_raw.satellite_used[0])); satloop++) {
+			if (vehicle_gps_position_raw.satellite_used[satloop] == 1) {
 				num_of_used_sats++;
 			}
 		}
 
-		if(new_data_vehicle_status || no_data_vehicle_status < 3){
-			if(num_of_cells == 0) {
+		if (new_data_vehicle_status || no_data_vehicle_status < 3) {
+			if (num_of_cells == 0) {
 				/* looking for lipo cells that are connected */
 				printf("<blinkm> checking cells\n");
 				for(num_of_cells = 2; num_of_cells < 7; num_of_cells++) {

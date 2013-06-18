@@ -659,7 +659,7 @@ uorb_receive_thread(void *arg)
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
-			mavlink_missionlib_send_gcs_string("[mavlink] No telemetry data for 1 s");
+			/* silent */
 
 		} else if (poll_ret < 0) {
 			mavlink_missionlib_send_gcs_string("[mavlink] ERROR reading uORB data");

@@ -57,8 +57,8 @@ static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t alt
  * Static configuration parameters.
  */
 static const uint16_t	r_page_config[] = {
-	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= 1,	/* XXX hardcoded magic number */
-	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= 1,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC,
+	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC,
 	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= 3,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
@@ -146,7 +146,8 @@ volatile uint16_t	r_page_setup[] =
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
 					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
 					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
-					 PX4IO_P_SETUP_ARMING_IO_ARM_OK)
+					 PX4IO_P_SETUP_ARMING_IO_ARM_OK) | \
+					 PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM
 #define PX4IO_P_SETUP_RATES_VALID	((1 << IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -377,9 +378,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			 * so that an in-air reset of FMU can not lead to a
 			 * lockup of the IO arming state.
 			 */
-			if ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) && !(value & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
-				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
-			}
+
+			// XXX do not reset IO's safety state by FMU for now
+			// if ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) && !(value & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+			// 	r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
+			// }
 
 			r_setup_arming = value;
 
@@ -427,9 +430,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 	case PX4IO_PAGE_RC_CONFIG: {
 
-		/* do not allow a RC config change while fully armed */
-		if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) &&
-		    /* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
+		/* do not allow a RC config change while outputs armed */
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
 			break;
 		}
 

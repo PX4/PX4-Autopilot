@@ -75,10 +75,13 @@
 #define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
 
+#define PX4IO_P_CONFIG_PROTOCOL_VERSION_MAGIC	2
+#define PX4IO_P_CONFIG_SOFTWARE_VERSION_MAGIC	2
+
 /* static configuration page */
 #define PX4IO_PAGE_CONFIG		0
-#define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers TBD */
-#define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers TBD */
+#define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers */
+#define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers */
 #define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
 #define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum I2C transfer size */
 #define PX4IO_P_CONFIG_CONTROL_COUNT		4	/* hardcoded max control count supported */
@@ -93,7 +96,7 @@
 #define PX4IO_P_STATUS_CPULOAD			1
 
 #define PX4IO_P_STATUS_FLAGS			2	 /* monitoring flags */
-#define PX4IO_P_STATUS_FLAGS_ARMED		(1 << 0) /* arm-ok and locally armed */
+#define PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED	(1 << 0) /* arm-ok and locally armed */
 #define PX4IO_P_STATUS_FLAGS_OVERRIDE		(1 << 1) /* in manual override */
 #define PX4IO_P_STATUS_FLAGS_RC_OK		(1 << 2) /* RC input is valid */
 #define PX4IO_P_STATUS_FLAGS_RC_PPM		(1 << 3) /* PPM input is valid */
@@ -105,6 +108,7 @@
 #define PX4IO_P_STATUS_FLAGS_ARM_SYNC		(1 << 9) /* the arming state between IO and FMU is in sync */
 #define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 10) /* initialisation of the IO completed without error */
 #define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
+#define PX4IO_P_STATUS_FLAGS_SAFETY_OFF		(1 << 12) /* safety is off */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* VBatt is very close to regulator dropout */
