@@ -147,7 +147,8 @@ volatile uint16_t	r_page_setup[] =
 					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
 					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
 					 PX4IO_P_SETUP_ARMING_IO_ARM_OK) | \
-					 PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM
+					 PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM | \
+					 PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE
 #define PX4IO_P_SETUP_RATES_VALID	((1 << IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -200,6 +201,14 @@ uint16_t		r_page_servo_control_min[IO_SERVO_COUNT] = { 900, 900, 900, 900, 900, 
  *
  */
 uint16_t		r_page_servo_control_max[IO_SERVO_COUNT] = { 2100, 2100, 2100, 2100, 2100, 2100, 2100, 2100 };
+
+/**
+ * PAGE 108
+ *
+ * idle PWM values for difficult ESCs
+ *
+ */
+uint16_t		r_page_servo_idle[IO_SERVO_COUNT] = { 900, 900, 900, 900, 900, 900, 900, 900 };
 
 void
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
@@ -301,6 +310,31 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 				r_page_servo_control_max[offset] = 1800;
 			else
 				r_page_servo_control_max[offset] = *values;
+
+			offset++;
+			num_values--;
+			values++;
+		}
+		break;
+
+	case PX4IO_PAGE_IDLE_PWM:
+
+		/* copy channel data */
+		while ((offset < IO_SERVO_COUNT) && (num_values > 0)) {
+
+			if (*values == 0)
+				/* set to default */
+				r_page_servo_idle[offset] = 0;
+
+			else if (*values < 900)
+				r_page_servo_idle[offset] = 900;
+			else if (*values > 2100)
+				r_page_servo_idle[offset] = 2100;
+			else
+				r_page_servo_idle[offset] = *values;
+
+			/* flag the failsafe values as custom */
+			r_setup_arming |= PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE;
 
 			offset++;
 			num_values--;
@@ -650,6 +684,9 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 		break;
 	case PX4IO_PAGE_CONTROL_MAX_PWM:
 		SELECT_PAGE(r_page_servo_control_max);
+		break;
+	case PX4IO_PAGE_IDLE_PWM:
+		SELECT_PAGE(r_page_servo_idle);
 		break;
 
 	default:

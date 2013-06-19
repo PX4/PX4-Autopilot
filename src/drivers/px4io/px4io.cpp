@@ -137,6 +137,11 @@ public:
 	int 			set_max_values(const uint16_t *vals, unsigned len);
 
 	/**
+	 * Set an idle PWM signal that is active right after startup, even when SAFETY_SAFE
+	 */
+	int 			set_idle_values(const uint16_t *vals, unsigned len);
+
+	/**
 	* Print the current status of IO
 	*/
 	void			print_status();
@@ -567,7 +572,8 @@ PX4IO::init()
 		io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
 			PX4IO_P_SETUP_ARMING_FMU_ARMED |
 			PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK |
-			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK, 0);
+			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | 
+			PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE, 0);
 
 		/* publish RC config to IO */
 		ret = io_set_rc_config();
@@ -793,6 +799,20 @@ PX4IO::set_max_values(const uint16_t *vals, unsigned len)
 	return io_reg_set(PX4IO_PAGE_CONTROL_MAX_PWM, 0, vals, len);
 }
 
+int
+PX4IO::set_idle_values(const uint16_t *vals, unsigned len)
+{
+	uint16_t 		regs[_max_actuators];
+
+	if (len > _max_actuators)
+		/* fail with error */
+		return E2BIG;
+
+	printf("Sending IDLE values\n");
+
+	/* copy values to registers in IO */
+	return io_reg_set(PX4IO_PAGE_IDLE_PWM, 0, vals, len);
+}
 
 
 int
@@ -1441,12 +1461,14 @@ PX4IO::print_status()
 	/* setup and state */
 	printf("features 0x%04x\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES));
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04x%s%s%s%s\n",
+	printf("arming 0x%04x%s%s%s%s%s%s\n",
 		arming,
 		((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)          ? " FMU_ARMED" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)	    ? " IO_ARM_OK" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? " MANUAL_OVERRIDE_OK" : ""),
-		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""));
+		((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)   ? " FAILSAFE_CUSTOM" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)  ? " ALWAYS_PWM_ENABLE" : ""));
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
@@ -1473,8 +1495,10 @@ PX4IO::print_status()
 	}
 	printf("failsafe");
 	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
-	printf("\n");
+		printf(" %u\n", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
+	printf("idle values");
+	for (unsigned i = 0; i < _max_actuators; i++)
+		printf(" %u\n", io_reg_get(PX4IO_PAGE_IDLE_PWM, i));
 }
 
 int
@@ -1973,6 +1997,41 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "idle")) {
+
+		if (argc < 3) {
+			errx(1, "max command needs at least one channel value (PWM)");
+		}
+
+		if (g_dev != nullptr) {
+
+			/* set values for first 8 channels, fill unassigned channels with 0. */
+			uint16_t idle[8];
+
+			for (int i = 0; i < sizeof(idle) / sizeof(idle[0]); i++)
+			{
+				/* set channel to commanline argument or to 0 for non-provided channels */
+				if (argc > i + 2) {
+					idle[i] = atoi(argv[i+2]);
+					if (idle[i] < 900 || idle[i] > 2100) {
+						errx(1, "value out of range of 900 < value < 2100. Aborting.");
+					}
+				} else {
+					/* a zero value will the default */
+					idle[i] = 0;
+				}
+			}
+
+			int ret = g_dev->set_idle_values(idle, sizeof(idle) / sizeof(idle[0]));
+
+			if (ret != OK)
+				errx(ret, "failed setting idle values");
+		} else {
+			errx(1, "not loaded");
+		}
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "recovery")) {
 
 		if (g_dev != nullptr) {
@@ -2100,5 +2159,5 @@ px4io_main(int argc, char *argv[])
 		monitor();
 
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe', 'min, 'max', 'idle' or 'update'");
 }

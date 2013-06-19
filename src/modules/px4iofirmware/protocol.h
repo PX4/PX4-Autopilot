@@ -155,6 +155,7 @@
 #define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK	(1 << 2) /* OK to switch to manual override via override RC channel */
 #define PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM	(1 << 3) /* use custom failsafe values, not 0 values of mixer */
 #define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 4) /* OK to try in-air restart */
+#define PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE	(1 << 5) /* Output of PWM right after startup enabled to help ESCs initialize and prevent them from beeping */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
@@ -190,8 +191,11 @@
 /* PWM minimum values for certain ESCs */
 #define PX4IO_PAGE_CONTROL_MIN_PWM		106	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
- /* PWM maximum values for certain ESCs */
+/* PWM maximum values for certain ESCs */
 #define PX4IO_PAGE_CONTROL_MAX_PWM		107	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+
+/* PWM idle values that are active, even when SAFETY_SAFE */
+#define PX4IO_PAGE_IDLE_PWM		108	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.

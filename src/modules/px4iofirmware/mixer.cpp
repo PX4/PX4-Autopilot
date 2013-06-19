@@ -63,6 +63,7 @@ extern "C" {
  * Time that the ESCs need to initialize
  */
  #define ESC_INIT_TIME_US		1000000
+ #define ESC_RAMP_TIME_US		2000000
 
 /* XXX need to move the RC_CHANNEL_FUNCTION out of rc_channels.h and into systemlib */
 #define ROLL     0
@@ -73,10 +74,17 @@ extern "C" {
 
 /* current servo arm/disarm state */
 static bool mixer_servos_armed = false;
-
+static bool should_arm = false;
+static bool should_always_enable_pwm = false;
 static uint64_t esc_init_time;
-static bool esc_init_active = false;
-static bool esc_init_done = false;
+
+enum esc_state_e {
+	ESC_OFF,
+	ESC_INIT,
+	ESC_RAMP,
+	ESC_ON
+};
+static esc_state_e esc_state;
 
 /* selected control values and count for mixing */
 enum mixer_source {
@@ -175,17 +183,47 @@ mixer_tick(void)
 		float	outputs[IO_SERVO_COUNT];
 		unsigned mixed;
 
-		/* after arming, some ESCs need an initalization period, count the time from here */
-		if (mixer_servos_armed && !esc_init_done && !esc_init_active) {
-			esc_init_time = hrt_absolute_time();
-			esc_init_active = true;
+		uint16_t ramp_promille;
+
+		/* update esc init state, but only if we are truely armed and not just PWM enabled */
+		if (mixer_servos_armed && should_arm) {
+
+			switch (esc_state) {
+
+				/* after arming, some ESCs need an initalization period, count the time from here */
+				case ESC_OFF:
+					esc_init_time = hrt_absolute_time();
+					esc_state = ESC_INIT;
+				break;
+
+				/* after waiting long enough for the ESC initialization, we can start with the ramp to start the ESCs */
+				case ESC_INIT:
+					if (hrt_elapsed_time(&esc_init_time) > ESC_INIT_TIME_US) {
+						esc_state = ESC_RAMP;
+					}
+				break;
+
+				/* then ramp until the min speed is reached */
+				case ESC_RAMP:
+					if (hrt_elapsed_time(&esc_init_time) > (ESC_INIT_TIME_US + ESC_RAMP_TIME_US)) {
+						esc_state = ESC_ON;
+					}
+				break;
+
+				case ESC_ON:
+				default:
+
+				break;
+			}
+		} else {
+			esc_state = ESC_OFF;
 		}
 
-		/* after waiting long enough for the ESC initialization, we can disable the ESC initialization phase */
-		if (!esc_init_done && esc_init_active && mixer_servos_armed && (hrt_elapsed_time(&esc_init_time) > ESC_INIT_TIME_US)) {
-			esc_init_active = false;
-			esc_init_done = true;
+		/* do the calculations during the ramp for all at once */
+		if(esc_state == ESC_RAMP) {
+			ramp_promille = (1000*(hrt_elapsed_time(&esc_init_time)-ESC_INIT_TIME_US))/ESC_RAMP_TIME_US;
 		}
+
 
 		/* mix */
 		mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
@@ -196,21 +234,27 @@ mixer_tick(void)
 			/* save actuator values for FMU readback */
 			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
 
-			/* XXX maybe this check for an armed FMU could be achieved a little less messy */
-			if (source == MIX_FMU && !(r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) && (r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)) {
-				r_page_servos[i] = r_page_servo_failsafe[i];
-			}
-			/* during ESC initialization, use low PWM */
-			else if (esc_init_active) {
-				r_page_servos[i] = (outputs[i] * 600 + 1500);
-			
-			/* afterwards use min and max values */
-			} else {
-				r_page_servos[i] = (outputs[i]
-					* (r_page_servo_control_max[i] - r_page_servo_control_min[i])/2
-					+ (r_page_servo_control_max[i] + r_page_servo_control_min[i])/2);
-			}
+			switch (esc_state) {
+				case ESC_INIT:
+					r_page_servos[i] = (outputs[i] * 600 + 1500);
+				break;
 
+				case ESC_RAMP:
+					r_page_servos[i] = (outputs[i]
+					 * (ramp_promille*r_page_servo_control_max[i] + (1000-ramp_promille)*2100 - ramp_promille*r_page_servo_control_min[i] - (1000-ramp_promille)*900)/2/1000
+					 + (ramp_promille*r_page_servo_control_max[i] + (1000-ramp_promille)*2100 + ramp_promille*r_page_servo_control_min[i] + (1000-ramp_promille)*900)/2/1000);
+				break;
+
+				case ESC_ON:
+					r_page_servos[i] = (outputs[i]
+					 * (r_page_servo_control_max[i] - r_page_servo_control_min[i])/2
+					 + (r_page_servo_control_max[i] + r_page_servo_control_min[i])/2);
+				break;
+
+				case ESC_OFF:
+				default:
+				break;
+			}
 		}
 		for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
 			r_page_servos[i] = 0;
@@ -225,36 +269,43 @@ mixer_tick(void)
 	 * XXX correct behaviour for failsafe may require an additional case
 	 * here.
 	 */
-	bool should_arm = (
+	should_arm = (
 		/* IO initialised without error */  (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK) &&
-		/* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) && 
-			/* and either FMU is armed */ ( ( (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) && 
-				/* and there is valid input via direct PWM or mixer */ (r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK))) ||
-			
-			/* or failsafe was set manually */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) )
+		/* and IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) && 
+		/* and FMU is armed */ ( (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) && 
+			/* and there is valid input via direct PWM or mixer */ ((r_status_flags & (PX4IO_P_STATUS_FLAGS_RAW_PWM | PX4IO_P_STATUS_FLAGS_MIXER_OK)) ||
+			/* or failsafe was set manually */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM) ) )
 	);
 
+	should_always_enable_pwm = (r_setup_arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)
+						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
+						&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK);
 
-	if (should_arm && !mixer_servos_armed) {
+	if ((should_arm || should_always_enable_pwm) && !mixer_servos_armed) {
 		/* need to arm, but not armed */
 		up_pwm_servo_arm(true);
 		mixer_servos_armed = true;
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED;
-		isr_debug(5, "> armed");
+		isr_debug(5, "> PWM enabled");
 
-	} else if (!should_arm && mixer_servos_armed) {
+	} else if ((!should_arm && !should_always_enable_pwm) && mixer_servos_armed) {
 		/* armed but need to disarm */
 		up_pwm_servo_arm(false);
 		mixer_servos_armed = false;
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED);
-		isr_debug(5, "> disarmed");
+		isr_debug(5, "> PWM disabled");
 
-		esc_init_active = false;	}
+	}
 
-	if (mixer_servos_armed) {
+	if (mixer_servos_armed && should_arm) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servos[i]);
+
+	} else if (mixer_servos_armed && should_always_enable_pwm) {
+		/* set the idle servo outputs. */
+		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+			up_pwm_servo_set(i, r_page_servo_idle[i]);
 	}
 }
 
