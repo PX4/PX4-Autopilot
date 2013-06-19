@@ -1496,9 +1496,10 @@ PX4IO::print_status()
 	printf("failsafe");
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u\n", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
-	printf("idle values");
+	printf("\nidle values");
 	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u\n", io_reg_get(PX4IO_PAGE_IDLE_PWM, i));
+		printf(" %u", io_reg_get(PX4IO_PAGE_IDLE_PWM, i));
+	printf("\n");
 }
 
 int
