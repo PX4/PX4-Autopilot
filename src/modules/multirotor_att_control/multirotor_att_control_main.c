@@ -394,7 +394,8 @@ mc_thread_main(int argc, char *argv[])
 				/* measure in what intervals the controller runs */
 				perf_count(mc_interval_perf);
 
-				float gyro[3];
+				float rates[3];
+				float rates_acc[3];
 
 				/* get current rate setpoint */
 				bool rates_sp_valid = false;
@@ -405,11 +406,17 @@ mc_thread_main(int argc, char *argv[])
 				}
 
 				/* apply controller */
-				gyro[0] = att.rollspeed;
-				gyro[1] = att.pitchspeed;
-				gyro[2] = att.yawspeed;
+				rates[0] = att.rollspeed;
+				rates[1] = att.pitchspeed;
+				rates[2] = att.yawspeed;
 
-				multirotor_control_rates(&rates_sp, gyro, &actuators, &control_debug_pub, &control_debug);
+				rates_acc[0] = att.rollacc;
+				rates_acc[1] = att.pitchacc;
+				rates_acc[2] = att.yawacc;
+
+
+
+				multirotor_control_rates(&rates_sp, rates, rates_acc, &actuators, &control_debug_pub, &control_debug);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 				orb_publish(ORB_ID(vehicle_control_debug), control_debug_pub, &control_debug);
