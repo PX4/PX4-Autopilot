@@ -199,6 +199,12 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		pid_set_parameters(&roll_rate_controller,  p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, 0.2f);
 	}
 
+	/* reset integral if on ground */
+	if (rate_sp->thrust < 0.01f) {
+		pid_reset_integral(&pitch_rate_controller);
+		pid_reset_integral(&roll_rate_controller);
+	}
+
 	/* control pitch (forward) output */
 	float pitch_control = pid_calculate(&pitch_rate_controller, rate_sp->pitch ,
 			rates[1], rates_acc[1], deltaT, &control_debug->pitch_rate_p, &control_debug->pitch_rate_i, &control_debug->pitch_rate_d);
