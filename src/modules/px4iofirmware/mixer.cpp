@@ -179,14 +179,12 @@ mixer_tick(void)
 		if (mixer_servos_armed && !esc_init_done && !esc_init_active) {
 			esc_init_time = hrt_absolute_time();
 			esc_init_active = true;
-			isr_debug(1, "start counting now");
 		}
 
 		/* after waiting long enough for the ESC initialization, we can disable the ESC initialization phase */
 		if (!esc_init_done && esc_init_active && mixer_servos_armed && (hrt_elapsed_time(&esc_init_time) > ESC_INIT_TIME_US)) {
 			esc_init_active = false;
 			esc_init_done = true;
-			isr_debug(1, "time is up");
 		}
 
 		/* mix */
@@ -251,9 +249,7 @@ mixer_tick(void)
 		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED);
 		isr_debug(5, "> disarmed");
 
-		esc_init_active = false;
-		isr_debug(1, "disarming, and init aborted");
-	}
+		esc_init_active = false;	}
 
 	if (mixer_servos_armed) {
 		/* update the servo outputs. */
