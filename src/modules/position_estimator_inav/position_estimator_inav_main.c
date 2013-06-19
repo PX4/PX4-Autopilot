@@ -254,7 +254,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					/* initialize coordinates */
 					map_projection_init(lat_current, lon_current);
 					warnx("init GPS: lat = %.10f,  lon = %.10f", lat_current, lon_current);
-					mavlink_log_info(mavlink_fd, "[inav] init GPS: lat = %.10f,  lon = %.10f", lat_current, lon_current);
+					mavlink_log_info(mavlink_fd, "[inav] init GPS: %.7f, %.7f", lat_current, lon_current);
 				}
 			}
 		}
@@ -361,34 +361,27 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (params.use_gps) {
+			if (params.use_gps && fds[4].revents & POLLIN) {
 				/* vehicle GPS position */
-				if (fds[4].revents & POLLIN) {
-					/* new GPS value */
-					orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
-					if (gps.fix_type >= 3) {
-						/* project GPS lat lon to plane */
-						float gps_proj[2];
-						map_projection_project(gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
-						gps_corr[0][0] = gps_proj[0] - x_est[0];
-						gps_corr[1][0] = gps_proj[1] - y_est[0];
-						if (gps.vel_ned_valid) {
-							gps_corr[0][1] = gps.vel_n_m_s;
-							gps_corr[1][1] = gps.vel_e_m_s;
-						} else {
-							gps_corr[0][1] = 0.0f;
-							gps_corr[1][1] = 0.0f;
-						}
-						local_pos.valid = true;
-						gps_updates++;
+				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
+				if (gps.fix_type >= 3) {
+					/* project GPS lat lon to plane */
+					float gps_proj[2];
+					map_projection_project(gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
+					gps_corr[0][0] = gps_proj[0] - x_est[0];
+					gps_corr[1][0] = gps_proj[1] - y_est[0];
+					if (gps.vel_ned_valid) {
+						gps_corr[0][1] = gps.vel_n_m_s;
+						gps_corr[1][1] = gps.vel_e_m_s;
 					} else {
-						local_pos.valid = false;
+						gps_corr[0][1] = 0.0f;
+						gps_corr[1][1] = 0.0f;
 					}
+					gps_updates++;
+				} else {
+					memset(gps_corr, 0, sizeof(gps_corr));
 				}
-			} else {
-				local_pos.valid = true;
 			}
-
 		}
 
 		/* end of poll return value check */
@@ -403,19 +396,25 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		inertial_filter_correct(baro_corr * dt, z_est, 0, params.w_alt_baro);
 		inertial_filter_correct(accel_corr[2] * dt, z_est, 2, params.w_alt_acc);
 
-		if (params.use_gps) {
+		/* dont't try to estimate position when no any position source available */
+		bool can_estimate_pos = params.use_gps && gps.fix_type >= 3;
+		if (can_estimate_pos) {
 			/* inertial filter prediction for position */
 			inertial_filter_predict(dt, x_est);
 			inertial_filter_predict(dt, y_est);
 
 			/* inertial filter correction for position */
-			inertial_filter_correct(gps_corr[0][0] * dt, x_est, 0, params.w_pos_gps_p);
-			inertial_filter_correct(gps_corr[0][1] * dt, x_est, 1, params.w_pos_gps_v);
-			inertial_filter_correct(gps_corr[1][0] * dt, y_est, 0, params.w_pos_gps_p);
-			inertial_filter_correct(gps_corr[1][1] * dt, y_est, 1, params.w_pos_gps_v);
-
 			inertial_filter_correct(accel_corr[0] * dt, x_est, 2, params.w_pos_acc);
 			inertial_filter_correct(accel_corr[1] * dt, y_est, 2, params.w_pos_acc);
+
+			if (params.use_gps && gps.fix_type >= 3) {
+				inertial_filter_correct(gps_corr[0][0] * dt, x_est, 0, params.w_pos_gps_p);
+				inertial_filter_correct(gps_corr[1][0] * dt, y_est, 0, params.w_pos_gps_p);
+				if (gps.vel_ned_valid) {
+					inertial_filter_correct(gps_corr[0][1] * dt, x_est, 1, params.w_pos_gps_v);
+					inertial_filter_correct(gps_corr[1][1] * dt, y_est, 1, params.w_pos_gps_v);
+				}
+			}
 		}
 
 		if (verbose_mode) {
@@ -439,6 +438,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (t - pub_last > pub_interval) {
 			pub_last = t;
 			local_pos.timestamp = t;
+			local_pos.valid = can_estimate_pos;
 			local_pos.x = x_est[0];
 			local_pos.vx = x_est[1];
 			local_pos.y = y_est[0];
