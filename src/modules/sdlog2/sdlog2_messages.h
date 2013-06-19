@@ -187,14 +187,14 @@ struct log_OUT0_s {
 };
 
 /* --- AIRS - AIRSPEED --- */
-#define LOG_AIRS_MSG 13
+#define LOG_AIRS_MSG 14
 struct log_AIRS_s {
 	float indicated_airspeed;
 	float true_airspeed;
 };
 
 /* --- ARSP - ATTITUDE RATE SET POINT --- */
-#define LOG_ARSP_MSG 14
+#define LOG_ARSP_MSG 15
 struct log_ARSP_s {
 	float roll_rate_sp;
 	float pitch_rate_sp;
