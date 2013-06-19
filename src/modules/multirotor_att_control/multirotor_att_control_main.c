@@ -63,6 +63,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_control_debug.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
@@ -83,6 +84,7 @@ static int mc_task;
 static bool motor_test_mode = false;
 
 static orb_advert_t actuator_pub;
+static orb_advert_t control_debug_pub;
 
 static struct vehicle_status_s state;
 
@@ -106,6 +108,9 @@ mc_thread_main(int argc, char *argv[])
 
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
+
+	struct vehicle_control_debug_s control_debug;
+	memset(&control_debug, 0, sizeof(control_debug));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -133,6 +138,8 @@ mc_thread_main(int argc, char *argv[])
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
 		actuators.control[i] = 0.0f;
 	}
+	
+	control_debug_pub = orb_advertise(ORB_ID(vehicle_control_debug), &control_debug);
 
 	actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
@@ -372,7 +379,8 @@ mc_thread_main(int argc, char *argv[])
 				/* measure in what intervals the controller runs */
 				perf_count(mc_interval_perf);
 
-				float gyro[3];
+				float rates[3];
+				float rates_acc[3];
 
 				/* get current rate setpoint */
 				bool rates_sp_valid = false;
@@ -383,12 +391,20 @@ mc_thread_main(int argc, char *argv[])
 				}
 
 				/* apply controller */
-				gyro[0] = att.rollspeed;
-				gyro[1] = att.pitchspeed;
-				gyro[2] = att.yawspeed;
+				rates[0] = att.rollspeed;
+				rates[1] = att.pitchspeed;
+				rates[2] = att.yawspeed;
 
-				multirotor_control_rates(&rates_sp, gyro, &actuators);
+				rates_acc[0] = att.rollacc;
+				rates_acc[1] = att.pitchacc;
+				rates_acc[2] = att.yawacc;
+
+
+
+				multirotor_control_rates(&rates_sp, rates, rates_acc, &actuators, &control_debug_pub, &control_debug);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+
+				orb_publish(ORB_ID(vehicle_control_debug), control_debug_pub, &control_debug);
 
 				/* update state */
 				flag_control_attitude_enabled = state.flag_control_attitude_enabled;
