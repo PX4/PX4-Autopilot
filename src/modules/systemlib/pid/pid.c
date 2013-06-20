@@ -155,7 +155,7 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		pid->error_previous_filtered = error_filtered;
 	} else if (pid->mode == PID_MODE_DERIVATIV_CALC_NO_SP) {
 
-		error_filtered = pid->error_previous_filtered + (val - pid->error_previous_filtered) * pid->diff_filter_factor;
+		error_filtered = pid->error_previous_filtered + (- val - pid->error_previous_filtered) * pid->diff_filter_factor;
 		d = (error_filtered - pid->error_previous_filtered) / fmaxf(dt, 0.003f);		// fail-safe for too low dt
 		pid->error_previous_filtered = error_filtered;
 	} else if (pid->mode == PID_MODE_DERIVATIV_SET) {
