@@ -47,8 +47,11 @@
 /* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
  * val_dot in pid_calculate() will be ignored */
 #define PID_MODE_DERIVATIV_CALC	0
+/* PID_MODE_DERIVATIV_CALC_NO_SP calculates discrete derivative from previous value, setpoint derivative is ignored
+ * val_dot in pid_calculate() will be ignored */
+#define PID_MODE_DERIVATIV_CALC_NO_SP	1
 /* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
-#define PID_MODE_DERIVATIV_SET	1
+#define PID_MODE_DERIVATIV_SET	2
 // Use PID_MODE_DERIVATIV_NONE for a PI controller (vs PID)
 #define PID_MODE_DERIVATIV_NONE 9
 
