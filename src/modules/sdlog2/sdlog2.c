@@ -986,6 +986,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
 				log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
 				log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
+				log_msg.body.log_ATT.roll_acc = buf.att.rollacc;
+				log_msg.body.log_ATT.pitch_acc = buf.att.pitchacc;
+				log_msg.body.log_ATT.yaw_acc = buf.att.yawacc;
 				LOGBUFFER_WRITE_AND_COUNT(ATT);
 			}
 
