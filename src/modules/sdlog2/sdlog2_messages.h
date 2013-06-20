@@ -63,6 +63,9 @@ struct log_ATT_s {
 	float roll_rate;
 	float pitch_rate;
 	float yaw_rate;
+	float roll_acc;
+	float pitch_acc;
+	float yaw_acc;
 };
 
 /* --- ATSP - ATTITUDE SET POINT --- */
@@ -209,7 +212,7 @@ struct log_ARSP_s {
 
 static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TIME, "Q", "StartTime"),
-	LOG_FORMAT(ATT, "ffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate"),
+	LOG_FORMAT(ATT, "fffffffff", "Roll,Pitch,Yaw,RollR,PitchR,YawR,RollA,PitchA,YawA"),
 	LOG_FORMAT(ATSP, "ffff", "RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),
