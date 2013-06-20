@@ -68,7 +68,7 @@ int parameters_init(struct multirotor_position_control_param_handles *h)
 	h->pos_d 	=	param_find("MPC_POS_D");
 	h->pos_rate_max 	=	param_find("MPC_POS_RATE_MAX");
 	h->slope_max 	=	param_find("MPC_SLOPE_MAX");
-	h->slope_max 	=	param_find("MPC_HARD");
+	h->hard 	=	param_find("MPC_HARD");
 
 	h->rc_scale_pitch    =   param_find("RC_SCALE_PITCH");
 	h->rc_scale_roll    =   param_find("RC_SCALE_ROLL");

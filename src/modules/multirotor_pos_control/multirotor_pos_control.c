@@ -302,14 +302,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 
 				if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE) {
 					/* move position setpoint with manual controls */
-					float pos_x_sp_ctl = scale_control(-manual.pitch / params.rc_scale_pitch, 1.0f, pos_ctl_dz);
-					float pos_y_sp_ctl = scale_control(manual.roll / params.rc_scale_roll, 1.0f, pos_ctl_dz);
-					if (pos_x_sp_ctl != 0.0f || pos_y_sp_ctl != 0.0f) {
+					float pos_pitch_sp_ctl = scale_control(-manual.pitch / params.rc_scale_pitch, 1.0f, pos_ctl_dz);
+					float pos_roll_sp_ctl = scale_control(manual.roll / params.rc_scale_roll, 1.0f, pos_ctl_dz);
+					if (pos_pitch_sp_ctl != 0.0f || pos_roll_sp_ctl != 0.0f) {
 						/* calculate direction and increment of control in NED frame */
-						float dir_sp_ctl = att.yaw + atan2f(pos_y_sp_ctl, pos_x_sp_ctl);
-						float d_sp_ctl = norm(pos_x_sp_ctl, pos_y_sp_ctl) * params.pos_rate_max;
-						pos_sp_speed_x = cosf(dir_sp_ctl) * d_sp_ctl;
-						pos_sp_speed_x = sinf(dir_sp_ctl) * d_sp_ctl;
+						float pos_sp_ctl_dir = att.yaw + atan2f(pos_roll_sp_ctl, pos_pitch_sp_ctl);
+						float pos_sp_ctl_speed = norm(pos_pitch_sp_ctl, pos_roll_sp_ctl) * params.pos_rate_max;
+						pos_sp_speed_x = cosf(pos_sp_ctl_dir) * pos_sp_ctl_speed;
+						pos_sp_speed_y = sinf(pos_sp_ctl_dir) * pos_sp_ctl_speed;
 						local_pos_sp.x += pos_sp_speed_x * dt;
 						local_pos_sp.y += pos_sp_speed_y * dt;
 						/* limit maximum setpoint from position offset and preserve direction */
