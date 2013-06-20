@@ -1,9 +1,10 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
  *   Author: @author Laurens Mackay <mackayl@student.ethz.ch>
  *           @author Tobias Naegeli <naegelit@student.ethz.ch>
  *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,8 +48,11 @@
 /* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
  * val_dot in pid_calculate() will be ignored */
 #define PID_MODE_DERIVATIV_CALC	0
+/* PID_MODE_DERIVATIV_CALC_NO_SP calculates discrete derivative from previous value, setpoint derivative is ignored
+ * val_dot in pid_calculate() will be ignored */
+#define PID_MODE_DERIVATIV_CALC_NO_SP	1
 /* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
-#define PID_MODE_DERIVATIV_SET	1
+#define PID_MODE_DERIVATIV_SET	2
 // Use PID_MODE_DERIVATIV_NONE for a PI controller (vs PID)
 #define PID_MODE_DERIVATIV_NONE 9
 
@@ -62,12 +66,13 @@ typedef struct {
 	float error_previous;
 	float last_output;
 	float limit;
+	float dt_min;
 	uint8_t mode;
 	uint8_t count;
 	uint8_t saturated;
 } PID_t;
 
-__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, uint8_t mode);
+__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, uint8_t mode, float dt_min);
 __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit);
 //void pid_set(PID_t *pid, float sp);
 __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
