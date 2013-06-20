@@ -151,7 +151,7 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 }
 
 void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-			      const float rates[], const float rates_acc[], struct actuator_controls_s *actuators,
+			      const float rates[], struct actuator_controls_s *actuators,
 			      const orb_advert_t *control_debug_pub, struct vehicle_control_debug_s *control_debug)
 {
 	static uint64_t last_run = 0;
@@ -208,11 +208,11 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	/* control pitch (forward) output */
 	float pitch_control = pid_calculate(&pitch_rate_controller, rate_sp->pitch ,
-			rates[1], rates_acc[1], deltaT, &control_debug->pitch_rate_p, &control_debug->pitch_rate_i, &control_debug->pitch_rate_d);
+			rates[1], 0.0f, deltaT, &control_debug->pitch_rate_p, &control_debug->pitch_rate_i, &control_debug->pitch_rate_d);
 
 	/* control roll (left/right) output */
 	float roll_control = pid_calculate(&roll_rate_controller, rate_sp->roll ,
-			rates[0], rates_acc[0], deltaT, &control_debug->roll_rate_p, &control_debug->roll_rate_i, &control_debug->roll_rate_d);
+			rates[0], 0.0f, deltaT, &control_debug->roll_rate_p, &control_debug->roll_rate_i, &control_debug->roll_rate_d);
 
 	/* increase resilience to faulty control inputs */
 	if (isfinite(pitch_control)) {

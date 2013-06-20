@@ -395,13 +395,7 @@ mc_thread_main(int argc, char *argv[])
 				rates[1] = att.pitchspeed;
 				rates[2] = att.yawspeed;
 
-				rates_acc[0] = att.rollacc;
-				rates_acc[1] = att.pitchacc;
-				rates_acc[2] = att.yawacc;
-
-
-
-				multirotor_control_rates(&rates_sp, rates, rates_acc, &actuators, &control_debug_pub, &control_debug);
+				multirotor_control_rates(&rates_sp, rates, &actuators, &control_debug_pub, &control_debug);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 				orb_publish(ORB_ID(vehicle_control_debug), control_debug_pub, &control_debug);
