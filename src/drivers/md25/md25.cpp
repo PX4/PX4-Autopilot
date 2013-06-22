@@ -605,11 +605,13 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 		input_signal.timestamp_ms = timestamp;
 		input_signal.value = amplitude*sinf(omega*t);
 		md25.setMotor1Speed(input_signal.value);
+		input_signal.update();
 
 		// output
 		output_signal.timestamp_ms = timestamp;
 		float speed_rpm = 60*(md25.getRevolutions1() - prev_revolution)/dt;
 		output_signal.value = speed_rpm;
+		output_signal.update();
 		mavlink_log_info(mavlink_fd, "rpm: %10.4f\n", (double)speed_rpm);
 		md25.readData();
 		if (t > 2.0f) break;
