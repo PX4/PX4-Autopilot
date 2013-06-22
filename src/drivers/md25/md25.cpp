@@ -46,10 +46,15 @@
 #include <poll.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 #include <systemlib/err.h>
 #include <arch/board/board.h>
 #include <mavlink/mavlink_log.h>
+
+#include <controllib/block/UOrbPublication.hpp>
+#include <uORB/topics/debug_key_value.h>
+#include <drivers/drv_hrt.h>
 
 // registers
 enum {
@@ -572,17 +577,39 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 	md25.setTimeout(true);
 	float dt = 0.1;
 	float amplitude = 0.2;
-	float t = 0;
 	float omega = 0.1;
+
+	// input signal
+	control::UOrbPublication<debug_key_value_s> input_signal(NULL,
+			ORB_ID(debug_key_value));
+	strncpy(input_signal.key, "md25 in   ", 10);
+	input_signal.timestamp_ms = hrt_absolute_time();
+	input_signal.value = 0;
+
+	// output signal
+	control::UOrbPublication<debug_key_value_s> output_signal(NULL,
+			ORB_ID(debug_key_value));
+	strncpy(output_signal.key, "md25 out  ", 10);
+	output_signal.timestamp_ms = hrt_absolute_time();
+	output_signal.value = 0;
 
 	// sine wave for motor 1
 	md25.resetEncoders();
 	while (true) {
 		float prev_revolution = md25.getRevolutions1();
-		md25.setMotor1Speed(amplitude*sinf(omega*t));
 		usleep(1000000 * dt);
-		t += dt;
+
+		// input
+		uint64_t timestamp = hrt_absolute_time();
+		float t = timestamp/1000;
+		input_signal.timestamp_ms = timestamp;
+		input_signal.value = amplitude*sinf(omega*t);
+		md25.setMotor1Speed(input_signal.value);
+
+		// output
+		output_signal.timestamp_ms = timestamp;
 		float speed_rpm = 60*(md25.getRevolutions1() - prev_revolution)/dt;
+		output_signal.value = speed_rpm;
 		mavlink_log_info(mavlink_fd, "rpm: %10.4f\n", (double)speed_rpm);
 		md25.readData();
 		if (t > 2.0f) break;
