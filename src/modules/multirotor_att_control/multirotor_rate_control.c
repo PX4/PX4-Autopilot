@@ -1,9 +1,10 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
  *           Lorenz Meier <lm@inf.ethz.ch>
  *           Anton Babushkin <anton.babushkin@me.com>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,11 +38,12 @@
 /**
  * @file multirotor_rate_control.c
  *
- * Implementation of rate controller
+ * Implementation of rate controller for multirotors.
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include "multirotor_rate_control.h"

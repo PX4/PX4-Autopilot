@@ -1,10 +1,11 @@
 /****************************************************************************
  *
  *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
+ *   Author: Laurens Mackay <mackayl@student.ethz.ch>
+ *           Tobias Naegeli <naegelit@student.ethz.ch>
+ *           Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +38,14 @@
 
 /**
  * @file pid.h
- * Definition of generic PID control interface
+ *
+ * Definition of generic PID control interface.
+ *
+ * @author Laurens Mackay <mackayl@student.ethz.ch>
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #ifndef PID_H_

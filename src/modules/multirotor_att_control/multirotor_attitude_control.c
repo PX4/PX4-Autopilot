@@ -1,12 +1,12 @@
 /****************************************************************************
  *
  *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           Julian Oes <joes@student.ethz.ch>
+ *           Laurens Mackay <mackayl@student.ethz.ch>
+ *           Tobias Naegeli <naegelit@student.ethz.ch>
+ *           Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,15 @@
 
 /*
  * @file multirotor_attitude_control.c
- * Implementation of attitude controller
+ *
+ * Implementation of attitude controller for multirotors.
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Laurens Mackay <mackayl@student.ethz.ch>
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include "multirotor_attitude_control.h"
