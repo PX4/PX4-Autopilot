@@ -55,7 +55,8 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -158,7 +159,8 @@ flow_position_control_thread_main(int argc, char *argv[])
 	const float time_scale = powf(10.0f,-6.0f);
 
 	/* structures */
-	struct vehicle_status_s vstatus;
+	struct actuator_safety_s safety;
+	struct vehicle_control_mode_s control_mode;
 	struct vehicle_attitude_s att;
 	struct manual_control_setpoint_s manual;
 	struct filtered_bottom_flow_s filtered_flow;
@@ -169,7 +171,8 @@ flow_position_control_thread_main(int argc, char *argv[])
 	/* subscribe to attitude, motor setpoints and system state */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
+	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int filtered_bottom_flow_sub = orb_subscribe(ORB_ID(filtered_bottom_flow));
 	int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -258,7 +261,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 					perf_begin(mc_loop_perf);
 
 					/* get a local copy of the vehicle state */
-					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+					orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
 					/* get a local copy of manual setpoint */
 					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
 					/* get a local copy of attitude */
@@ -268,9 +271,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 					/* get a local copy of local position */
 					orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &local_pos);
 
-// XXX fix this
-#if 0
-					if (vstatus.state_machine == SYSTEM_STATE_AUTO)
+					if (control_mode.flag_control_velocity_enabled)
 					{
 						float manual_pitch = manual.pitch / params.rc_scale_pitch; // 0 to 1
 						float manual_roll = manual.roll / params.rc_scale_roll; // 0 to 1
@@ -492,7 +493,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 						/* store actual height for speed estimation */
 						last_local_pos_z = local_pos.z;
 
-						speed_sp.thrust_sp = thrust_control;
+						speed_sp.thrust_sp =  thrust_control; //manual.throttle;
 						speed_sp.timestamp = hrt_absolute_time();
 
 						/* publish new speed setpoint */
@@ -529,7 +530,6 @@ flow_position_control_thread_main(int argc, char *argv[])
 						if(isfinite(manual.throttle))
 							speed_sp.thrust_sp = manual.throttle;
 					}
-#endif
 					/* measure in what intervals the controller runs */
 					perf_count(mc_interval_perf);
 					perf_end(mc_loop_perf);
@@ -578,7 +578,8 @@ flow_position_control_thread_main(int argc, char *argv[])
 	close(parameter_update_sub);
 	close(vehicle_attitude_sub);
 	close(vehicle_local_position_sub);
-	close(vehicle_status_sub);
+	close(safety_sub);
+	close(control_mode_sub);
 	close(manual_control_setpoint_sub);
 	close(speed_sp_pub);
 

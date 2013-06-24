@@ -331,7 +331,7 @@ mc_thread_main(int argc, char *argv[])
 //									 */
 //
 									/* only move setpoint if manual input is != 0 */
-									if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
+									if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.1f) {
 										rates_sp.yaw = manual.yaw;
 										control_yaw_position = false;
 										first_time_after_yaw_speed_control = true;

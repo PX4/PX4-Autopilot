@@ -56,7 +56,8 @@
 #include <math.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -143,8 +144,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 	printf("[flow position estimator] starting\n");
 
 	/* rotation matrix for transformation of optical flow speed vectors */
-	static const int8_t rotM_flow_sensor[3][3] =   {{  0, 1, 0 },
-													{ -1, 0, 0 },
+	static const int8_t rotM_flow_sensor[3][3] =   {{  0, -1, 0 },
+													{ 1, 0, 0 },
 													{  0, 0, 1 }}; // 90deg rotated
 	const float time_scale = powf(10.0f,-6.0f);
 	static float speed[3] = {0.0f, 0.0f, 0.0f};
@@ -158,8 +159,10 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 	static float sonar_lp = 0.0f;
 
 	/* subscribe to vehicle status, attitude, sensors and flow*/
-	struct vehicle_status_s vstatus;
-	memset(&vstatus, 0, sizeof(vstatus));
+	struct actuator_safety_s safety;
+	memset(&safety, 0, sizeof(safety));
+	struct vehicle_control_mode_s control_mode;
+	memset(&control_mode, 0, sizeof(control_mode));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_attitude_setpoint_s att_sp;
@@ -170,8 +173,11 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 	/* subscribe to parameter changes */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	/* subscribe to vehicle status */
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	/* subscribe to safety topic */
+	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
+
+	/* subscribe to safety topic */
+	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	/* subscribe to attitude */
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -218,8 +224,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit)
 	{
-// XXX fix this
-#if 0
+
 		if (sensors_ready)
 		{
 			/*This runs at the rate of the sensors */
@@ -265,7 +270,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 					/* got flow, updating attitude and status as well */
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					orb_copy(ORB_ID(vehicle_attitude_setpoint), vehicle_attitude_setpoint_sub, &att_sp);
-					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+					orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
+					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 
 					/* vehicle state estimation */
 					float sonar_new = flow.ground_distance_m;
@@ -278,12 +284,12 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 					if (!vehicle_liftoff)
 					{
-						if (vstatus.flag_system_armed && att_sp.thrust > params.minimum_liftoff_thrust && sonar_new > 0.3f && sonar_new < 1.0f)
+						if (safety.armed && att_sp.thrust > params.minimum_liftoff_thrust && sonar_new > 0.3f && sonar_new < 1.0f)
 							vehicle_liftoff = true;
 					}
 					else
 					{
-						if (!vstatus.flag_system_armed || (att_sp.thrust < params.minimum_liftoff_thrust && sonar_new <= 0.3f))
+						if (!safety.armed || (att_sp.thrust < params.minimum_liftoff_thrust && sonar_new <= 0.3f))
 							vehicle_liftoff = false;
 					}
 
@@ -350,7 +356,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 					}
 
 					/* filtering ground distance */
-					if (!vehicle_liftoff || !vstatus.flag_system_armed)
+					if (!vehicle_liftoff || !safety.armed)
 					{
 						/* not possible to fly */
 						sonar_valid = false;
@@ -440,7 +446,6 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 		}
 
 		counter++;
-		#endif
 	}
 
 	printf("[flow position estimator] exiting.\n");
@@ -448,7 +453,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 	close(vehicle_attitude_setpoint_sub);
 	close(vehicle_attitude_sub);
-	close(vehicle_status_sub);
+	close(safety_sub);
+	close(control_mode_sub);
 	close(parameter_update_sub);
 	close(optical_flow_sub);
 

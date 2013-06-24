@@ -55,7 +55,8 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_bodyframe_speed_setpoint.h>
@@ -155,7 +156,8 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	uint32_t counter = 0;
 
 	/* structures */
-	struct vehicle_status_s vstatus;
+	struct actuator_safety_s safety;
+	struct vehicle_control_mode_s control_mode;
 	struct filtered_bottom_flow_s filtered_flow;
 	struct vehicle_bodyframe_speed_setpoint_s speed_sp;
 
@@ -164,7 +166,8 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	/* subscribe to attitude, motor setpoints and system state */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
+	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	int filtered_bottom_flow_sub = orb_subscribe(ORB_ID(filtered_bottom_flow));
 	int vehicle_bodyframe_speed_setpoint_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_speed_setpoint));
 
@@ -186,7 +189,6 @@ flow_speed_control_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit)
 	{
-#if 0
 		/* wait for first attitude msg to be sure all data are available */
 		if (sensors_ready)
 		{
@@ -227,14 +229,16 @@ flow_speed_control_thread_main(int argc, char *argv[])
 				{
 					perf_begin(mc_loop_perf);
 
-					/* get a local copy of the vehicle state */
-					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+					/* get a local copy of the safety topic */
+					orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
+					/* get a local copy of the control mode */
+					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 					/* get a local copy of filtered bottom flow */
 					orb_copy(ORB_ID(filtered_bottom_flow), filtered_bottom_flow_sub, &filtered_flow);
 					/* get a local copy of bodyframe speed setpoint */
 					orb_copy(ORB_ID(vehicle_bodyframe_speed_setpoint), vehicle_bodyframe_speed_setpoint_sub, &speed_sp);
 
-					if (vstatus.state_machine == SYSTEM_STATE_AUTO)
+					if (control_mode.flag_control_velocity_enabled)
 					{
 						/* calc new roll/pitch */
 						float pitch_body = -(speed_sp.vx - filtered_flow.vx) * params.speed_p;
@@ -341,7 +345,6 @@ flow_speed_control_thread_main(int argc, char *argv[])
 				}
 			}
 		}
-#endif
 	}
 
 	printf("[flow speed control] ending now...\n");
@@ -352,7 +355,8 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	close(vehicle_attitude_sub);
 	close(vehicle_bodyframe_speed_setpoint_sub);
 	close(filtered_bottom_flow_sub);
-	close(vehicle_status_sub);
+	close(safety_sub);
+	close(control_mode_sub);
 	close(att_sp_pub);
 
 	perf_print_counter(mc_loop_perf);
