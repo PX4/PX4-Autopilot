@@ -206,6 +206,15 @@ struct log_ARSP_s {
 	float pitch_rate_sp;
 	float yaw_rate_sp;
 };
+
+/* --- FLOW - FLOW DATA --- */
+#define LOG_FLOW_MSG 16
+struct log_FLOW_s {
+	float flow_comp_x_m;
+	float flow_comp_y_m;
+	float ground_distance_m;
+	uint8_t	quality;
+};
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -226,6 +235,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
+	LOG_FORMAT(FLOW, "fffB", "FlowX,FlowY,SonAlt,FQual")
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);

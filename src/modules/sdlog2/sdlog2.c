@@ -616,7 +616,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 19;
+	const ssize_t fdsc = 20;
 
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
@@ -686,6 +686,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_SENS_s log_SENS;
 			struct log_LPOS_s log_LPOS;
 			struct log_LPSP_s log_LPSP;
+			struct log_FLOW_s log_FLOW;
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
 			struct log_STAT_s log_STAT;
@@ -1129,7 +1130,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- FLOW --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
-				// TODO not implemented yet
+				log_msg.msg_type = LOG_FLOW_MSG;
+				log_msg.body.log_FLOW.flow_comp_x_m = buf.flow.flow_comp_x_m;
+				log_msg.body.log_FLOW.flow_comp_y_m = buf.flow.flow_comp_y_m;
+				log_msg.body.log_FLOW.ground_distance_m = buf.flow.ground_distance_m;
+				log_msg.body.log_FLOW.quality = buf.flow.quality;
+				LOGBUFFER_WRITE_AND_COUNT(FLOW);
 			}
 
 			/* --- RC CHANNELS --- */
