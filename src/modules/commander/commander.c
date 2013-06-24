@@ -1658,7 +1658,7 @@ int commander_thread_main(int argc, char *argv[])
 
 
 		/* check for global or local position updates, set a timeout of 2s */
-		if (hrt_absolute_time() - last_global_position_time < 2000000) {
+		if (hrt_absolute_time() - last_global_position_time < 2000000 && hrt_absolute_time() > 2000000) {
 			current_status.condition_global_position_valid = true;
 			// XXX check for controller status and home position as well
 
@@ -1666,7 +1666,7 @@ int commander_thread_main(int argc, char *argv[])
 			current_status.condition_global_position_valid = false;
 		}
 
-		if (hrt_absolute_time() - last_local_position_time < 2000000) {
+		if (hrt_absolute_time() - last_local_position_time < 2000000 && hrt_absolute_time() > 2000000) {
 			current_status.condition_local_position_valid = true;
 			// XXX check for controller status and home position as well
 
@@ -1675,7 +1675,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* Check for valid airspeed/differential pressure measurements */
-		if (hrt_absolute_time() - last_diff_pres_time < 2000000) {
+		if (hrt_absolute_time() - last_diff_pres_time < 2000000 && hrt_absolute_time() > 2000000) {
 			current_status.condition_airspeed_valid = true;
 
 		} else {
