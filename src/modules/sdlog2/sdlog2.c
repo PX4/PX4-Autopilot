@@ -1070,7 +1070,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
 				log_msg.msg_type = LOG_FLOW_MSG;
 				log_msg.body.log_FLOW.flow_raw_x = buf.flow.flow_raw_x;
-				log_msg.body.log_FLOW.flow_raw_y = buf.flow.flow_raw_x;
+				log_msg.body.log_FLOW.flow_raw_y = buf.flow.flow_raw_y;
 				log_msg.body.log_FLOW.flow_comp_x = buf.flow.flow_comp_x_m;
 				log_msg.body.log_FLOW.flow_comp_y = buf.flow.flow_comp_y_m;
 				log_msg.body.log_FLOW.distance = buf.flow.ground_distance_m;
