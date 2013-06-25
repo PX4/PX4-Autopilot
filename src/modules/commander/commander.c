@@ -2033,9 +2033,11 @@ int commander_thread_main(int argc, char *argv[])
 						 (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
 						) {
 							arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, safety_pub, &safety, mavlink_fd);
+							tune_positive();
 							
 						} else {
 							mavlink_log_critical(mavlink_fd, "STICK DISARM not allowed");
+							tune_negative();
 						}
 						stick_off_counter = 0;
 
@@ -2050,6 +2052,7 @@ int commander_thread_main(int argc, char *argv[])
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						arming_state_transition(status_pub, &current_status, ARMING_STATE_ARMED, safety_pub, &safety, mavlink_fd);
 						stick_on_counter = 0;
+						tune_positive();
 
 					} else {
 						stick_on_counter++;
@@ -2219,17 +2222,16 @@ int commander_thread_main(int argc, char *argv[])
 		/* play tone according to evaluation result */
 		/* check if we recently armed */
 		if (!arm_tune_played && safety.armed && ( !safety.safety_switch_available || (safety.safety_off && safety.safety_switch_available))) {
-			ioctl(buzzer, TONE_SET_ALARM, 12);
-			arm_tune_played = true;
+			if (ioctl(buzzer, TONE_SET_ALARM, 12) == OK)
+				arm_tune_played = true;
 
-		// // XXX Export patterns and threshold to parameters
 		/* Trigger audio event for low battery */
 		} else if (bat_remain < 0.1f && battery_voltage_valid) {
-			ioctl(buzzer, TONE_SET_ALARM, 14);
-			battery_tune_played = true;
+			if (ioctl(buzzer, TONE_SET_ALARM, 14) == OK)
+				battery_tune_played = true;
 		} else if (bat_remain < 0.2f && battery_voltage_valid) {
-			ioctl(buzzer, TONE_SET_ALARM, 13);
-			battery_tune_played = true;
+			if (ioctl(buzzer, TONE_SET_ALARM, 13) == OK)
+				battery_tune_played = true;
 		} else if(battery_tune_played) {
 			ioctl(buzzer, TONE_SET_ALARM, 0);
 			battery_tune_played = false;
