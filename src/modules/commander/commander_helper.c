@@ -34,26 +34,96 @@
  ****************************************************************************/
 
 /**
- * @file state_machine_helper.h
- * State machine helper functions definitions
+ * @file commander_helper.c
+ * Commander helper functions implementations
  */
 
-#ifndef STATE_MACHINE_HELPER_H_
-#define STATE_MACHINE_HELPER_H_
-
-#define GPS_NOFIX_COUNTER_LIMIT 4 //need GPS_NOFIX_COUNTER_LIMIT gps packets with a bad fix to call an error (if outdoor)
-#define GPS_GOTFIX_COUNTER_REQUIRED 4 //need GPS_GOTFIX_COUNTER_REQUIRED gps packets with a good fix to obtain position lock
+#include <stdio.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <fcntl.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_tone_alarm.h>
 
+#include "commander_helper.h"
 
-int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int safety_pub, struct actuator_safety_s *safety, const int mavlink_fd);
+bool is_multirotor(const struct vehicle_status_s *current_status)
+{
+	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
+	    (current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
+	    (current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
+	    (current_status->system_type == VEHICLE_TYPE_TRICOPTER));
+}
 
-int navigation_state_transition(int status_pub, struct vehicle_status_s *current_state, navigation_state_t new_navigation_state, int control_mode_pub, struct vehicle_control_mode_s *control_mode, const int mavlink_fd);
+bool is_rotary_wing(const struct vehicle_status_s *current_status)
+{
+	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
+	|| (current_status->system_type == VEHICLE_TYPE_COAXIAL);
+}
 
-int hil_state_transition(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, hil_state_t new_state);
+static int buzzer;
 
-#endif /* STATE_MACHINE_HELPER_H_ */
+int buzzer_init()
+{
+	buzzer = open("/dev/tone_alarm", O_WRONLY);
+
+	if (buzzer < 0) {
+		warnx("Buzzer: open fail\n");
+		return ERROR;
+	}
+
+	return OK;
+}
+
+void buzzer_deinit()
+{
+	close(buzzer);
+}
+
+void tune_error()
+{
+	ioctl(buzzer, TONE_SET_ALARM, 2);
+}
+
+void tune_positive()
+{
+	ioctl(buzzer, TONE_SET_ALARM, 3);
+}
+
+void tune_neutral()
+{
+	ioctl(buzzer, TONE_SET_ALARM, 4);
+}
+
+void tune_negative()
+{
+	ioctl(buzzer, TONE_SET_ALARM, 5);
+}
+
+int tune_arm()
+{
+	return ioctl(buzzer, TONE_SET_ALARM, 12);
+}
+
+int tune_critical_bat()
+{
+	return ioctl(buzzer, TONE_SET_ALARM, 14);
+}
+
+int tune_low_bat()
+{
+	return ioctl(buzzer, TONE_SET_ALARM, 13);
+}
+
+void tune_stop()
+{
+	ioctl(buzzer, TONE_SET_ALARM, 0);
+}
+

@@ -1,10 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
- *           Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,19 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file commander.h
- * Main system state machine definition.
- *
- * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- *
+ * @file mag_calibration.h
+ * Magnetometer calibration routine
  */
 
-#ifndef COMMANDER_H_
-#define COMMANDER_H_
+#ifndef MAG_CALIBRATION_H_
+#define MAG_CALIBRATION_H_
 
+#include <stdint.h>
 
+void do_mag_calibration(int mavlink_fd);
 
-#endif /* COMMANDER_H_ */
+#endif /* MAG_CALIBRATION_H_ */

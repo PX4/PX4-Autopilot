@@ -70,15 +70,25 @@
  */
 
 #include "accelerometer_calibration.h"
+#include "commander_helper.h"
 
+#include <unistd.h>
+#include <stdio.h>
 #include <poll.h>
+#include <fcntl.h>
+#include <sys/prctl.h>
+#include <math.h>
+#include <string.h>
+
+
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_accel.h>
 #include <systemlib/conversions.h>
+#include <systemlib/param/param.h>
+#include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
 
-void do_accel_calibration(int mavlink_fd);
 int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float accel_scale[3]);
 int detect_orientation(int mavlink_fd, int sub_sensor_combined);
 int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samples_num);
@@ -355,7 +365,7 @@ int mat_invert3(float src[3][3], float dst[3][3]) {
 	float det = src[0][0] * (src[1][1] * src[2][2] - src[1][2] * src[2][1]) -
 			    src[0][1] * (src[1][0] * src[2][2] - src[1][2] * src[2][0]) +
 			    src[0][2] * (src[1][0] * src[2][1] - src[1][1] * src[2][0]);
-	if (det == 0.0)
+	if (det == 0.0f)
 		return ERROR;	// Singular matrix
 
 	dst[0][0] = (src[1][1] * src[2][2] - src[1][2] * src[2][1]) / det;

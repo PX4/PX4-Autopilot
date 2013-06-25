@@ -91,15 +91,15 @@
 #include <systemlib/err.h>
 #include <systemlib/cpuload.h>
 
+#include "commander_helper.h"
 #include "state_machine_helper.h"
-
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <drivers/drv_baro.h>
-
 #include "calibration_routines.h"
 #include "accelerometer_calibration.h"
+#include "gyro_calibration.h"
+#include "mag_calibration.h"
+#include "baro_calibration.h"
+#include "rc_calibration.h"
+#include "airspeed_calibration.h"
 
 PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
 //PARAM_DEFINE_INT32(SYS_FAILSAVE_HL, 0);	/**< Go into high-level failsafe after 0 ms */
@@ -109,6 +109,9 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 
 
 extern struct system_load_s system_load;
+
+#define LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 1000.0f
+#define CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 100.0f
 
 /* Decouple update interval and hysteris counters, all depends on intervals */
 #define COMMANDER_MONITORING_INTERVAL 50000
@@ -130,7 +133,6 @@ extern struct system_load_s system_load;
 
 /* File descriptors */
 static int leds;
-static int buzzer;
 static int mavlink_fd;
 
 /* flags */
@@ -167,27 +169,17 @@ __EXPORT int commander_main(int argc, char *argv[]);
  */
 int commander_thread_main(int argc, char *argv[]);
 
-int buzzer_init(void);
-void buzzer_deinit(void);
 int led_init(void);
 void led_deinit(void);
 int led_toggle(int led);
 int led_on(int led);
 int led_off(int led);
-void tune_error(void);
-void tune_positive(void);
-void tune_neutral(void);
-void tune_negative(void);
 void do_reboot(void);
-void do_gyro_calibration(void);
-void do_mag_calibration(void);
-void do_rc_calibration(void);
-void do_airspeed_calibration(void);
 
 
 void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd, int safety_pub, struct actuator_safety_s *safety);
 
-int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
+// int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
 
 
 
@@ -205,23 +197,6 @@ void usage(const char *reason);
  * @param n 	The number of entries in the array
  */
 // static void cal_bsort(float a[], int n);
-
-int buzzer_init()
-{
-	buzzer = open("/dev/tone_alarm", O_WRONLY);
-
-	if (buzzer < 0) {
-		warnx("Buzzer: open fail\n");
-		return ERROR;
-	}
-
-	return 0;
-}
-
-void buzzer_deinit()
-{
-	close(buzzer);
-}
 
 
 int led_init()
@@ -268,27 +243,6 @@ int led_off(int led)
 	return ioctl(leds, LED_OFF, led);
 }
 
-
-void tune_error()
-{
-	ioctl(buzzer, TONE_SET_ALARM, 2);
-}
-
-void tune_positive()
-{
-	ioctl(buzzer, TONE_SET_ALARM, 3);
-}
-
-void tune_neutral()
-{
-	ioctl(buzzer, TONE_SET_ALARM, 4);
-}
-
-void tune_negative()
-{
-	ioctl(buzzer, TONE_SET_ALARM, 5);
-}
-
 void do_reboot()
 {
 	mavlink_log_critical(mavlink_fd, "REBOOTING SYSTEM");
@@ -298,424 +252,6 @@ void do_reboot()
 }
 
 
-void do_rc_calibration()
-{
-	mavlink_log_info(mavlink_fd, "trim calibration starting");
-
-	/* XXX fix this */
-	// if (current_status.offboard_control_signal_lost) {
-	// 	mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
-	// 	return;
-	// }
-
-	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
-	struct manual_control_setpoint_s sp;
-	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
-
-	/* set parameters */
-	float p = sp.roll;
-	param_set(param_find("TRIM_ROLL"), &p);
-	p = sp.pitch;
-	param_set(param_find("TRIM_PITCH"), &p);
-	p = sp.yaw;
-	param_set(param_find("TRIM_YAW"), &p);
-
-	/* store to permanent storage */
-	/* auto-save */
-	int save_ret = param_save_default();
-
-	if (save_ret != 0) {
-		mavlink_log_critical(mavlink_fd, "TRIM CAL: WARN: auto-save of params failed");
-	}
-
-	tune_positive();
-
-	mavlink_log_info(mavlink_fd, "trim calibration done");
-}
-
-void do_mag_calibration()
-{
-	mavlink_log_info(mavlink_fd, "mag calibration starting, hold still");
-
-	int sub_mag = orb_subscribe(ORB_ID(sensor_mag));
-	struct mag_report mag;
-
-	/* 45 seconds */
-	uint64_t calibration_interval = 45 * 1000 * 1000;
-
-	/* maximum 2000 values */
-	const unsigned int calibration_maxcount = 500;
-	unsigned int calibration_counter = 0;
-
-	/* limit update rate to get equally spaced measurements over time (in ms) */
-	orb_set_interval(sub_mag, (calibration_interval / 1000) / calibration_maxcount);
-
-	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
-
-	/* erase old calibration */
-	struct mag_scale mscale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
-
-	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
-		warn("WARNING: failed to set scale / offsets for mag");
-		mavlink_log_info(mavlink_fd, "failed to set scale / offsets for mag");
-	}
-
-	/* calibrate range */
-	if (OK != ioctl(fd, MAGIOCCALIBRATE, fd)) {
-		warnx("failed to calibrate scale");
-	}
-
-	close(fd);
-
-	/* calibrate offsets */
-
-	// uint64_t calibration_start = hrt_absolute_time();
-
-	uint64_t axis_deadline = hrt_absolute_time();
-	uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
-
-	const char axislabels[3] = { 'X', 'Y', 'Z'};
-	int axis_index = -1;
-
-	float *x = (float *)malloc(sizeof(float) * calibration_maxcount);
-	float *y = (float *)malloc(sizeof(float) * calibration_maxcount);
-	float *z = (float *)malloc(sizeof(float) * calibration_maxcount);
-
-	if (x == NULL || y == NULL || z == NULL) {
-		warnx("mag cal failed: out of memory");
-		mavlink_log_info(mavlink_fd, "mag cal failed: out of memory");
-		warnx("x:%p y:%p z:%p\n", x, y, z);
-		return;
-	}
-
-	while (hrt_absolute_time() < calibration_deadline &&
-	       calibration_counter < calibration_maxcount) {
-
-		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = sub_mag, .events = POLLIN } };
-
-		/* user guidance */
-		if (hrt_absolute_time() >= axis_deadline &&
-		    axis_index < 3) {
-
-			axis_index++;
-
-			char buf[50];
-			sprintf(buf, "please rotate around %c", axislabels[axis_index]);
-			mavlink_log_info(mavlink_fd, buf);
-			tune_neutral();
-
-			axis_deadline += calibration_interval / 3;
-		}
-
-		if (!(axis_index < 3)) {
-			break;
-		}
-
-		// int axis_left = (int64_t)axis_deadline - (int64_t)hrt_absolute_time();
-
-		// if ((axis_left / 1000) == 0 && axis_left > 0) {
-		// 	char buf[50];
-		// 	sprintf(buf, "[cmd] %d seconds left for axis %c", axis_left, axislabels[axis_index]);
-		// 	mavlink_log_info(mavlink_fd, buf);
-		// }
-
-		int poll_ret = poll(fds, 1, 1000);
-
-		if (poll_ret) {
-			orb_copy(ORB_ID(sensor_mag), sub_mag, &mag);
-
-			x[calibration_counter] = mag.x;
-			y[calibration_counter] = mag.y;
-			z[calibration_counter] = mag.z;
-
-			/* get min/max values */
-
-			// if (mag.x < mag_min[0]) {
-			// 	mag_min[0] = mag.x;
-			// }
-			// else if (mag.x > mag_max[0]) {
-			// 	mag_max[0] = mag.x;
-			// }
-
-			// if (raw.magnetometer_ga[1] < mag_min[1]) {
-			// 	mag_min[1] = raw.magnetometer_ga[1];
-			// }
-			// else if (raw.magnetometer_ga[1] > mag_max[1]) {
-			// 	mag_max[1] = raw.magnetometer_ga[1];
-			// }
-
-			// if (raw.magnetometer_ga[2] < mag_min[2]) {
-			// 	mag_min[2] = raw.magnetometer_ga[2];
-			// }
-			// else if (raw.magnetometer_ga[2] > mag_max[2]) {
-			// 	mag_max[2] = raw.magnetometer_ga[2];
-			// }
-
-			calibration_counter++;
-
-		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "mag cal canceled (timed out)");
-			break;
-		}
-	}
-
-	float sphere_x;
-	float sphere_y;
-	float sphere_z;
-	float sphere_radius;
-
-	sphere_fit_least_squares(x, y, z, calibration_counter, 100, 0.0f, &sphere_x, &sphere_y, &sphere_z, &sphere_radius);
-
-	free(x);
-	free(y);
-	free(z);
-
-	if (isfinite(sphere_x) && isfinite(sphere_y) && isfinite(sphere_z)) {
-
-		fd = open(MAG_DEVICE_PATH, 0);
-
-		struct mag_scale mscale;
-
-		if (OK != ioctl(fd, MAGIOCGSCALE, (long unsigned int)&mscale))
-			warn("WARNING: failed to get scale / offsets for mag");
-
-		mscale.x_offset = sphere_x;
-		mscale.y_offset = sphere_y;
-		mscale.z_offset = sphere_z;
-
-		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
-			warn("WARNING: failed to set scale / offsets for mag");
-
-		close(fd);
-
-		/* announce and set new offset */
-
-		if (param_set(param_find("SENS_MAG_XOFF"), &(mscale.x_offset))) {
-			warnx("Setting X mag offset failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_YOFF"), &(mscale.y_offset))) {
-			warnx("Setting Y mag offset failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_ZOFF"), &(mscale.z_offset))) {
-			warnx("Setting Z mag offset failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_XSCALE"), &(mscale.x_scale))) {
-			warnx("Setting X mag scale failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_YSCALE"), &(mscale.y_scale))) {
-			warnx("Setting Y mag scale failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_ZSCALE"), &(mscale.z_scale))) {
-			warnx("Setting Z mag scale failed!\n");
-		}
-
-		/* auto-save to EEPROM */
-		int save_ret = param_save_default();
-
-		if (save_ret != 0) {
-			warn("WARNING: auto-save of params to storage failed");
-			mavlink_log_info(mavlink_fd, "FAILED storing calibration");
-		}
-
-		warnx("\tscale: %.6f %.6f %.6f\n         \toffset: %.6f %.6f %.6f\nradius: %.6f GA\n",
-		       (double)mscale.x_scale, (double)mscale.y_scale, (double)mscale.z_scale,
-		       (double)mscale.x_offset, (double)mscale.y_offset, (double)mscale.z_offset, (double)sphere_radius);
-
-		char buf[52];
-		sprintf(buf, "mag off: x:%.2f y:%.2f z:%.2f Ga", (double)mscale.x_offset,
-			(double)mscale.y_offset, (double)mscale.z_offset);
-		mavlink_log_info(mavlink_fd, buf);
-
-		sprintf(buf, "mag scale: x:%.2f y:%.2f z:%.2f", (double)mscale.x_scale,
-			(double)mscale.y_scale, (double)mscale.z_scale);
-		mavlink_log_info(mavlink_fd, buf);
-
-		mavlink_log_info(mavlink_fd, "mag calibration done");
-
-		tune_positive();
-		/* third beep by cal end routine */
-
-	} else {
-		mavlink_log_info(mavlink_fd, "mag calibration FAILED (NaN in sphere fit)");
-	}
-
-	close(sub_mag);
-}
-
-void do_gyro_calibration()
-{
-	mavlink_log_info(mavlink_fd, "gyro calibration starting, hold still");
-
-	const int calibration_count = 5000;
-
-	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
-	struct sensor_combined_s raw;
-
-	int calibration_counter = 0;
-	float gyro_offset[3] = {0.0f, 0.0f, 0.0f};
-
-	/* set offsets to zero */
-	int fd = open(GYRO_DEVICE_PATH, 0);
-	struct gyro_scale gscale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
-
-	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale_null))
-		warn("WARNING: failed to set scale / offsets for gyro");
-
-	close(fd);
-
-	while (calibration_counter < calibration_count) {
-
-		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
-
-		int poll_ret = poll(fds, 1, 1000);
-
-		if (poll_ret) {
-			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
-			gyro_offset[0] += raw.gyro_rad_s[0];
-			gyro_offset[1] += raw.gyro_rad_s[1];
-			gyro_offset[2] += raw.gyro_rad_s[2];
-			calibration_counter++;
-
-		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "gyro calibration aborted, retry");
-			return;
-		}
-	}
-
-	gyro_offset[0] = gyro_offset[0] / calibration_count;
-	gyro_offset[1] = gyro_offset[1] / calibration_count;
-	gyro_offset[2] = gyro_offset[2] / calibration_count;
-
-	if (isfinite(gyro_offset[0]) && isfinite(gyro_offset[1]) && isfinite(gyro_offset[2])) {
-
-		if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_offset[0]))
-			|| param_set(param_find("SENS_GYRO_YOFF"), &(gyro_offset[1]))
-			|| param_set(param_find("SENS_GYRO_ZOFF"), &(gyro_offset[2]))) {
-			mavlink_log_critical(mavlink_fd, "Setting gyro offsets failed!");
-		}
-
-		/* set offsets to actual value */
-		fd = open(GYRO_DEVICE_PATH, 0);
-		struct gyro_scale gscale = {
-			gyro_offset[0],
-			1.0f,
-			gyro_offset[1],
-			1.0f,
-			gyro_offset[2],
-			1.0f,
-		};
-
-		if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale))
-			warn("WARNING: failed to set scale / offsets for gyro");
-
-		close(fd);
-
-		/* auto-save to EEPROM */
-		int save_ret = param_save_default();
-
-		if (save_ret != 0) {
-			warn("WARNING: auto-save of params to storage failed");
-		}
-
-		// char buf[50];
-		// sprintf(buf, "cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
-		// mavlink_log_info(mavlink_fd, buf);
-		mavlink_log_info(mavlink_fd, "gyro calibration done");
-
-		tune_positive();
-		/* third beep by cal end routine */
-
-	} else {
-		mavlink_log_info(mavlink_fd, "gyro calibration FAILED (NaN)");
-	}
-
-	close(sub_sensor_combined);
-}
-
-
-void do_airspeed_calibration()
-{
-	/* give directions */
-	mavlink_log_info(mavlink_fd, "airspeed calibration starting, keep it still");
-
-	const int calibration_count = 2500;
-
-	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
-	struct differential_pressure_s diff_pres;
-
-	int calibration_counter = 0;
-	float diff_pres_offset = 0.0f;
-
-	while (calibration_counter < calibration_count) {
-
-		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = diff_pres_sub, .events = POLLIN } };
-
-		int poll_ret = poll(fds, 1, 1000);
-
-		if (poll_ret) {
-			orb_copy(ORB_ID(differential_pressure), diff_pres_sub, &diff_pres);
-			diff_pres_offset += diff_pres.differential_pressure_pa;
-			calibration_counter++;
-
-		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "airspeed calibration aborted");
-			return;
-		}
-	}
-
-	diff_pres_offset = diff_pres_offset / calibration_count;
-
-	if (isfinite(diff_pres_offset)) {
-
-		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-			mavlink_log_critical(mavlink_fd, "Setting offs failed!");
-		}
-
-		/* auto-save to EEPROM */
-		int save_ret = param_save_default();
-
-		if (save_ret != 0) {
-			warn("WARNING: auto-save of params to storage failed");
-		}
-
-		//char buf[50];
-		//sprintf(buf, "[cmd] accel cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0], (double)accel_offset[1], (double)accel_offset[2]);
-		//mavlink_log_info(mavlink_fd, buf);
-		mavlink_log_info(mavlink_fd, "airspeed calibration done");
-
-		tune_positive();
-
-	} else {
-		mavlink_log_info(mavlink_fd, "airspeed calibration FAILED (NaN)");
-	}
-
-	close(diff_pres_sub);
-}
 
 void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_status, struct vehicle_command_s *cmd, int safety_pub, struct actuator_safety_s *safety)
 {
@@ -1182,7 +718,7 @@ int commander_thread_main(int argc, char *argv[])
 		warnx("ERROR: Failed to initialize leds");
 	}
 
-	if (buzzer_init() != 0) {
+	if (buzzer_init() != OK) {
 		warnx("ERROR: Failed to initialize buzzer");
 	}
 
@@ -1246,7 +782,12 @@ int commander_thread_main(int argc, char *argv[])
 	/* advertise to ORB */
 	status_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
 	/* publish current state machine */
-	state_machine_publish(status_pub, &current_status, mavlink_fd);
+	
+	/* publish the new state */
+	current_status.counter++;
+	current_status.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(vehicle_status), status_pub, &current_status);
+
 
 	safety_pub = orb_advertise(ORB_ID(actuator_safety), &safety);
 
@@ -1715,7 +1256,7 @@ int commander_thread_main(int argc, char *argv[])
 		// 	state_changed = true;
 		// }
 
-		orb_check(ORB_ID(vehicle_gps_position), &new_data);
+		orb_check(gps_sub, &new_data);
 		if (new_data) {
 
 
@@ -2222,18 +1763,18 @@ int commander_thread_main(int argc, char *argv[])
 		/* play tone according to evaluation result */
 		/* check if we recently armed */
 		if (!arm_tune_played && safety.armed && ( !safety.safety_switch_available || (safety.safety_off && safety.safety_switch_available))) {
-			if (ioctl(buzzer, TONE_SET_ALARM, 12) == OK)
+			if (tune_arm() == OK)
 				arm_tune_played = true;
 
 		/* Trigger audio event for low battery */
 		} else if (bat_remain < 0.1f && battery_voltage_valid) {
-			if (ioctl(buzzer, TONE_SET_ALARM, 14) == OK)
+			if (tune_critical_bat() == OK)
 				battery_tune_played = true;
 		} else if (bat_remain < 0.2f && battery_voltage_valid) {
-			if (ioctl(buzzer, TONE_SET_ALARM, 13) == OK)
+			if (tune_low_bat() == OK)
 				battery_tune_played = true;
 		} else if(battery_tune_played) {
-			ioctl(buzzer, TONE_SET_ALARM, 0);
+			tune_stop();
 			battery_tune_played = false;
 		}
 
@@ -2305,25 +1846,25 @@ void *commander_low_prio_loop(void *arg)
 
 			case LOW_PRIO_TASK_GYRO_CALIBRATION:
 
-				do_gyro_calibration();
+				do_gyro_calibration(mavlink_fd);
 
 				low_prio_task = LOW_PRIO_TASK_NONE;
 				break;
 
 			case LOW_PRIO_TASK_MAG_CALIBRATION:
 
-				do_mag_calibration();
+				do_mag_calibration(mavlink_fd);
 
 				low_prio_task = LOW_PRIO_TASK_NONE;
 				break;
 
 			case LOW_PRIO_TASK_ALTITUDE_CALIBRATION:
 
-				// do_baro_calibration();
+				// do_baro_calibration(mavlink_fd);
 
 			case LOW_PRIO_TASK_RC_CALIBRATION:
 
-				// do_rc_calibration();
+				// do_rc_calibration(mavlink_fd);
 
 				low_prio_task = LOW_PRIO_TASK_NONE;
 				break;
@@ -2337,7 +1878,7 @@ void *commander_low_prio_loop(void *arg)
 
 			case LOW_PRIO_TASK_AIRSPEED_CALIBRATION:
 
-				do_airspeed_calibration();
+				do_airspeed_calibration(mavlink_fd);
 
 				low_prio_task = LOW_PRIO_TASK_NONE;
 				break;

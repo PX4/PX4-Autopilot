@@ -1,9 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
- *           Thomas Gubler <thomasgubler@student.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
  *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,19 +34,33 @@
  ****************************************************************************/
 
 /**
- * @file commander.h
- * Main system state machine definition.
- *
- * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- *
+ * @file commander_helper.h
+ * Commander helper functions definitions
  */
 
-#ifndef COMMANDER_H_
-#define COMMANDER_H_
+#ifndef COMMANDER_HELPER_H_
+#define COMMANDER_HELPER_H_
+
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
 
 
+bool is_multirotor(const struct vehicle_status_s *current_status);
+bool is_rotary_wing(const struct vehicle_status_s *current_status);
 
-#endif /* COMMANDER_H_ */
+int buzzer_init(void);
+void buzzer_deinit(void);
+
+void tune_error(void);
+void tune_positive(void);
+void tune_neutral(void);
+void tune_negative(void);
+int tune_arm(void);
+int tune_critical_bat(void);
+int tune_low_bat(void);
+
+void tune_stop(void);
+
+#endif /* COMMANDER_HELPER_H_ */

@@ -1,10 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
- *           Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,19 +32,52 @@
  ****************************************************************************/
 
 /**
- * @file commander.h
- * Main system state machine definition.
- *
- * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- *
+ * @file rc_calibration.c
+ * Remote Control calibration routine
  */
 
-#ifndef COMMANDER_H_
-#define COMMANDER_H_
+#include "rc_calibration.h"
+#include "commander_helper.h"
+
+#include <poll.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <mavlink/mavlink_log.h>
+#include <systemlib/param/param.h>
+#include <systemlib/err.h>
 
 
+void do_rc_calibration(int mavlink_fd)
+{
+	mavlink_log_info(mavlink_fd, "trim calibration starting");
 
-#endif /* COMMANDER_H_ */
+	/* XXX fix this */
+	// if (current_status.offboard_control_signal_lost) {
+	// 	mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
+	// 	return;
+	// }
+
+	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
+	struct manual_control_setpoint_s sp;
+	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
+
+	/* set parameters */
+	float p = sp.roll;
+	param_set(param_find("TRIM_ROLL"), &p);
+	p = sp.pitch;
+	param_set(param_find("TRIM_PITCH"), &p);
+	p = sp.yaw;
+	param_set(param_find("TRIM_YAW"), &p);
+
+	/* store to permanent storage */
+	/* auto-save */
+	int save_ret = param_save_default();
+
+	if (save_ret != 0) {
+		mavlink_log_critical(mavlink_fd, "TRIM CAL: WARN: auto-save of params failed");
+	}
+
+	tune_positive();
+
+	mavlink_log_info(mavlink_fd, "trim calibration done");
+}

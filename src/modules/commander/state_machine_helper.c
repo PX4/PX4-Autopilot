@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
  *           Julian Oes <joes@student.ethz.ch>
  *
@@ -54,21 +54,8 @@
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
-#include "commander.h"
+#include "commander_helper.h"
 
-bool is_multirotor(const struct vehicle_status_s *current_status)
-{
-	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_TRICOPTER));
-}
-
-bool is_rotary_wing(const struct vehicle_status_s *current_status)
-{
-	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
-	|| (current_status->system_type == VEHICLE_TYPE_COAXIAL);
-}
 
 int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int safety_pub, struct actuator_safety_s *safety, const int mavlink_fd) {
 
@@ -568,7 +555,11 @@ int hil_state_transition(int status_pub, struct vehicle_status_s *current_status
 
 	if (valid_transition) {
 		current_status->hil_state = new_state;
-		state_machine_publish(status_pub, current_status, mavlink_fd);
+
+		current_status->counter++;
+		current_status->timestamp = hrt_absolute_time();
+
+		orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
 		ret = OK;
 	} else {
 		mavlink_log_critical(mavlink_fd, "REJECTING invalid hil state transition");
@@ -577,50 +568,6 @@ int hil_state_transition(int status_pub, struct vehicle_status_s *current_status
 	return ret;
 }
 
-
-
-void state_machine_publish(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	/* publish the new state */
-	current_status->counter++;
-	current_status->timestamp = hrt_absolute_time();
-
-	/* assemble state vector based on flag values */
-//	if (current_status->flag_control_rates_enabled) {
-//		current_status->onboard_control_sensors_present |= 0x400;
-//
-//	} else {
-//		current_status->onboard_control_sensors_present &= ~0x400;
-//	}
-
-//	current_status->onboard_control_sensors_present |= (current_status->flag_control_attitude_enabled) ? 0x800 : 0;
-//	current_status->onboard_control_sensors_present |= (current_status->flag_control_attitude_enabled) ? 0x1000 : 0;
-//	current_status->onboard_control_sensors_present |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x2000 : 0;
-//	current_status->onboard_control_sensors_present |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x4000 : 0;
-//
-//	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_rates_enabled) ? 0x400 : 0;
-//	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_attitude_enabled) ? 0x800 : 0;
-//	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_attitude_enabled) ? 0x1000 : 0;
-//	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x2000 : 0;
-//	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x4000 : 0;
-
-	orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
-}
-
-// void publish_armed_status(const struct vehicle_status_s *current_status)
-// {
-// 	struct actuator_armed_s armed;
-// 	armed.armed = current_status->flag_system_armed;
-// 
-//	 /* XXX allow arming by external components on multicopters only if not yet armed by RC */
-//	/* XXX allow arming only if core sensors are ok */
-//	armed.ready_to_arm = true;
-// 
-//	/* lock down actuators if required, only in HIL */
-// 	armed.lockdown = (current_status->flag_hil_enabled) ? true : false;
-// 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
-// 	orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
-// }
 
 
 // /*
@@ -805,3 +752,4 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 //
 //	return ret;
 //}
+
