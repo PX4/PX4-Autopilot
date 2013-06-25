@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *   Author: Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  *           Lorenz Meier <lm@inf.ethz.ch>
  *           Thomas Gubler <thomasgubler@student.ethz.ch>
@@ -79,7 +79,6 @@
 #include <uORB/topics/actuator_safety.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/safety.h>
 #include <mavlink/mavlink_log.h>
 
 #include <drivers/drv_led.h>
@@ -1159,6 +1158,9 @@ int commander_thread_main(int argc, char *argv[])
 	commander_initialized = false;
 	bool home_position_set = false;
 
+	bool battery_tune_played = false;
+	bool arm_tune_played = false;
+
 	/* set parameters */
 	failsafe_lowlevel_timeout_ms = 0;
 	param_get(param_find("SYS_FAILSAVE_LL"), &failsafe_lowlevel_timeout_ms);
@@ -1247,6 +1249,9 @@ int commander_thread_main(int argc, char *argv[])
 	state_machine_publish(status_pub, &current_status, mavlink_fd);
 
 	safety_pub = orb_advertise(ORB_ID(actuator_safety), &safety);
+
+	/* but also subscribe to it */
+	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
 
 	control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);	
 
@@ -1477,6 +1482,13 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+		/* update safety topic */
+		orb_check(safety_sub, &new_data);
+
+		if (new_data) {
+			orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
+		}
+
 		/* update global position estimate */
 		orb_check(global_position_sub, &new_data);
 
@@ -1571,25 +1583,6 @@ int commander_thread_main(int argc, char *argv[])
 				current_status.load = 1000 - (interval_runtime / 1000);	//system load is time spent in non-idle
 
 			last_idle_time = system_load.tasks[0].total_runtime;
-		}
-
-		// // XXX Export patterns and threshold to parameters
-		/* Trigger audio event for low battery */
-		if (bat_remain < 0.1f && battery_voltage_valid && (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 4) == 0)) {
-			/* For less than 10%, start be really annoying at 5 Hz */
-			ioctl(buzzer, TONE_SET_ALARM, 0);
-			ioctl(buzzer, TONE_SET_ALARM, 3);
-
-		} else if (bat_remain < 0.1f && battery_voltage_valid && (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 4) == 2)) {
-			ioctl(buzzer, TONE_SET_ALARM, 0);
-
-		} else if (bat_remain < 0.2f && battery_voltage_valid && (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 2) == 0)) {
-			/* For less than 20%, start be slightly annoying at 1 Hz */
-			ioctl(buzzer, TONE_SET_ALARM, 0);
-			tune_positive();
-
-		} else if (bat_remain < 0.2f && battery_voltage_valid && (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 2) == 2)) {
-			ioctl(buzzer, TONE_SET_ALARM, 0);
 		}
 
 		/* Check battery voltage */
@@ -2194,6 +2187,8 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 
+
+
 		current_status.counter++;
 		current_status.timestamp = hrt_absolute_time();
 
@@ -2219,6 +2214,33 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Store old modes to detect and act on state transitions */
 		voltage_previous = current_status.voltage_battery;
+
+
+		/* play tone according to evaluation result */
+		/* check if we recently armed */
+		if (!arm_tune_played && safety.armed && ( !safety.safety_switch_available || (safety.safety_off && safety.safety_switch_available))) {
+			ioctl(buzzer, TONE_SET_ALARM, 12);
+			arm_tune_played = true;
+
+		// // XXX Export patterns and threshold to parameters
+		/* Trigger audio event for low battery */
+		} else if (bat_remain < 0.1f && battery_voltage_valid) {
+			ioctl(buzzer, TONE_SET_ALARM, 14);
+			battery_tune_played = true;
+		} else if (bat_remain < 0.2f && battery_voltage_valid) {
+			ioctl(buzzer, TONE_SET_ALARM, 13);
+			battery_tune_played = true;
+		} else if(battery_tune_played) {
+			ioctl(buzzer, TONE_SET_ALARM, 0);
+			battery_tune_played = false;
+		}
+
+		/* reset arm_tune_played when disarmed */
+		if (!(safety.armed && ( !safety.safety_switch_available || (safety.safety_off && safety.safety_switch_available)))) {
+			arm_tune_played = false;
+		}
+
+
 		/* XXX use this voltage_previous */
 		fflush(stdout);
 		counter++;

@@ -81,7 +81,6 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/safety.h>
 #include <debug.h>
 
 #include <mavlink/mavlink_log.h>
@@ -990,20 +989,24 @@ PX4IO::io_handle_status(uint16_t status)
 	/**
 	 * Get and handle the safety status
 	 */
-	struct safety_s safety;
+	struct actuator_safety_s safety;
 	safety.timestamp = hrt_absolute_time();
 
+	orb_copy(ORB_ID(actuator_safety), _t_actuator_safety, &safety);
+
 	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
-		safety.status = SAFETY_STATUS_UNLOCKED;
+		safety.safety_off = true;
+		safety.safety_switch_available = true;
 	} else {
-		safety.status = SAFETY_STATUS_SAFE;
+		safety.safety_off = false;
+		safety.safety_switch_available = true;
 	}
 
 	/* lazily publish the safety status */
 	if (_to_safety > 0) {
-		orb_publish(ORB_ID(safety), _to_safety, &safety);
+		orb_publish(ORB_ID(actuator_safety), _to_safety, &safety);
 	} else {
-		_to_safety = orb_advertise(ORB_ID(safety), &safety);
+		_to_safety = orb_advertise(ORB_ID(actuator_safety), &safety);
 	}
 
 	return ret;

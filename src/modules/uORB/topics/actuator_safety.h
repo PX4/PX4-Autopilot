@@ -53,7 +53,7 @@
 struct actuator_safety_s {
 
 	uint64_t	timestamp;
-
+	bool	safety_switch_available; /**< Set to true if a safety switch is connected */
 	bool	safety_off;	/**< Set to true if safety is off */
 	bool	armed;		/**< Set to true if system is armed */
 	bool	ready_to_arm;	/**< Set to true if system is ready to be armed */
