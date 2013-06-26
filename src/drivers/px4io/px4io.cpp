@@ -58,7 +58,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/device/device.h>
-#include <drivers/device/i2c.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
@@ -83,16 +82,18 @@
 #include <debug.h>
 
 #include <mavlink/mavlink_log.h>
-#include "uploader.h"
 #include <modules/px4iofirmware/protocol.h>
+
+#include "uploader.h"
+#include "interface.h"
 
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
 
-class PX4IO : public device::I2C
+class PX4IO : public device::CDev
 {
 public:
-	PX4IO();
+	PX4IO(PX4IO_interface *interface);
 	virtual ~PX4IO();
 
 	virtual int		init();
@@ -130,6 +131,8 @@ public:
 	void			print_status();
 
 private:
+	PX4IO_interface		*_interface;
+
 	// XXX
 	unsigned		_max_actuators;
 	unsigned		_max_controls;
@@ -312,8 +315,9 @@ PX4IO	*g_dev;
 
 }
 
-PX4IO::PX4IO() :
-	I2C("px4io", "/dev/px4io", PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO, 320000),
+PX4IO::PX4IO(PX4IO_interface *interface) :
+	CDev("px4io", "/dev/px4io"),
+	_interface(interface),
 	_max_actuators(0),
 	_max_controls(0),
 	_max_rc_input(0),
@@ -364,6 +368,9 @@ PX4IO::~PX4IO()
 	if (_task != -1)
 		task_delete(_task);
 
+	if (_interface != nullptr)
+		delete _interface;
+
 	g_dev = nullptr;
 }
 
@@ -375,17 +382,9 @@ PX4IO::init()
 	ASSERT(_task == -1);
 
 	/* do regular cdev init */
-	ret = I2C::init();
+	ret = CDev::init();
 	if (ret != OK)
 		return ret;
-
-	/*
-	 * Enable a couple of retries for operations to IO.
-	 *
-	 * Register read/write operations are intentionally idempotent
-	 * so this is safe as designed.
-	 */
-	_retries = 2;
 
 	/* get some parameters */
 	_max_actuators = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT);
@@ -395,7 +394,7 @@ PX4IO::init()
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
 	if ((_max_actuators < 1) || (_max_actuators > 255) ||
 	    (_max_relays < 1)    || (_max_relays > 255)    ||
-	    (_max_transfer < 16)   || (_max_transfer > 255)    ||
+	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
 		log("failed getting parameters from PX4IO");
@@ -700,8 +699,6 @@ PX4IO::io_set_control_state()
 int
 PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
 {
-	uint16_t 		regs[_max_actuators];
-
 	if (len > _max_actuators)
 		/* fail with error */
 		return E2BIG;
@@ -1114,22 +1111,7 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 		return -EINVAL;
 	}
 
-	/* set up the transfer */
-	uint8_t 	addr[2] = {
-		page,
-		offset
-	};
-	i2c_msg_s	msgv[2];
-
-	msgv[0].flags = 0;
-	msgv[0].buffer = addr;
-	msgv[0].length = 2;
-	msgv[1].flags = I2C_M_NORESTART;
-	msgv[1].buffer = (uint8_t *)values;
-	msgv[1].length = num_values * sizeof(*values);
-
-	/* perform the transfer */
-	int ret = transfer(msgv, 2);
+	int ret =  _interface->set_reg(page, offset, values, num_values);
 	if (ret != OK)
 		debug("io_reg_set: error %d", ret);
 	return ret;
@@ -1144,22 +1126,13 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, uint16_t value)
 int
 PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values)
 {
-	/* set up the transfer */
-	uint8_t		addr[2] = {
-		page,
-		offset
-	};
-	i2c_msg_s	msgv[2];
+	/* range check the transfer */
+	if (num_values > ((_max_transfer) / sizeof(*values))) {
+		debug("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		return -EINVAL;
+	}
 
-	msgv[0].flags = 0;
-	msgv[0].buffer = addr;
-	msgv[0].length = 2;
-	msgv[1].flags = I2C_M_READ;
-	msgv[1].buffer = (uint8_t *)values;
-	msgv[1].length = num_values * sizeof(*values);
-
-	/* perform the transfer */
-	int ret = transfer(msgv, 2);
+	int ret =  _interface->get_reg(page, offset, values, num_values);
 	if (ret != OK)
 		debug("io_reg_get: data error %d", ret);
 	return ret;
@@ -1603,8 +1576,26 @@ start(int argc, char *argv[])
 	if (g_dev != nullptr)
 		errx(1, "already loaded");
 
+	PX4IO_interface *interface;
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+	interface = io_serial_interface(5);	/* XXX wrong port! */
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU)
+	interface = io_i2c_interface(PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO);
+#else
+# error Unknown board - cannot select interface.
+#endif
+
+	if (interface == nullptr)
+		errx(1, "cannot alloc interface");
+
+	if (!interface->ok()) {
+		delete interface;
+		errx(1, "interface init failed");
+	}
+
 	/* create the driver - it will set g_dev */
-	(void)new PX4IO();
+	(void)new PX4IO(interface);
 
 	if (g_dev == nullptr)
 		errx(1, "driver alloc failed");

@@ -58,7 +58,8 @@ __BEGIN_DECLS
  * Allocate a new hx_stream object.
  *
  * @param fd		The file handle over which the protocol will
- *			communicate.
+ *			communicate, or -1 if the protocol will use
+ *			hx_stream_start/hx_stream_send_next.
  * @param callback	Called when a frame is received.
  * @param callback_arg	Passed to the callback.
  * @return		A handle to the stream, or NULL if memory could
@@ -80,6 +81,7 @@ __EXPORT extern void		hx_stream_free(hx_stream_t stream);
  *
  * Any counter may be set to NULL to disable counting that datum.
  *
+ * @param stream	A handle returned from hx_stream_init.
  * @param tx_frames	Counter for transmitted frames.
  * @param rx_frames	Counter for received frames.
  * @param rx_errors	Counter for short and corrupt received frames.
@@ -88,6 +90,44 @@ __EXPORT extern void		hx_stream_set_counters(hx_stream_t stream,
 		perf_counter_t tx_frames,
 		perf_counter_t rx_frames,
 		perf_counter_t rx_errors);
+
+/**
+ * Reset a stream.
+ *
+ * Forces the local stream state to idle.
+ *
+ * @param stream	A handle returned from hx_stream_init.
+ */
+__EXPORT extern void		hx_stream_reset(hx_stream_t stream);
+
+/**
+ * Prepare to send a frame.
+ *
+ * Use this in conjunction with hx_stream_send_next to 
+ * set the frame to be transmitted.
+ *
+ * Use hx_stream_send() to write to the stream fd directly.
+ *
+ * @param stream	A handle returned from hx_stream_init.
+ * @param data		Pointer to the data to send.
+ * @param count		The number of bytes to send.
+ * @return		Zero on success, -errno on error.
+ */
+__EXPORT extern int		hx_stream_start(hx_stream_t stream,
+		const void *data,
+		size_t count);
+
+/**
+ * Get the next byte to send for a stream.
+ *
+ * This requires that the stream be prepared for sending by
+ * calling hx_stream_start first.
+ *
+ * @param stream	A handle returned from hx_stream_init.
+ * @return		The byte to send, or -1 if there is 
+ *			nothing left to send.
+ */
+__EXPORT extern int		hx_stream_send_next(hx_stream_t stream);
 
 /**
  * Send a frame.
@@ -114,24 +154,8 @@ __EXPORT extern int		hx_stream_send(hx_stream_t stream,
  * @param stream	A handle returned from hx_stream_init.
  * @param c		The character to process.
  */
-__EXPORT extern void		hx_stream_rx_char(hx_stream_t stream,
+__EXPORT extern void		hx_stream_rx(hx_stream_t stream,
 		uint8_t c);
-
-/**
- * Handle received bytes from the stream.
- *
- * Note that this interface should only be used with blocking streams
- * when it is OK for the call to block until a frame is received.
- *
- * When used with a non-blocking stream, it will typically return
- * immediately, or after handling a received frame.
- *
- * @param stream	A handle returned from hx_stream_init.
- * @return		-errno on error, nonzero if a frame
- *			has been received, or if not enough
- *			bytes are available to complete a frame.
- */
-__EXPORT extern int		hx_stream_rx(hx_stream_t stream);
 
 __END_DECLS
 

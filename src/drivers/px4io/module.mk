@@ -38,4 +38,9 @@
 MODULE_COMMAND		= px4io
 
 SRCS			= px4io.cpp \
-			  uploader.cpp
+			  uploader.cpp \
+			  interface_serial.cpp \
+			  interface_i2c.cpp
+
+# XXX prune to just get UART registers
+INCLUDE_DIRS    += $(NUTTX_SRC)/arch/arm/src/stm32 $(NUTTX_SRC)/arch/arm/src/common

@@ -15,6 +15,7 @@ MODULES		+= drivers/stm32
 MODULES		+= drivers/stm32/adc
 MODULES		+= drivers/stm32/tone_alarm
 MODULES		+= drivers/px4fmu
+MODULES		+= drivers/px4io
 MODULES		+= drivers/boards/px4fmuv2
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/lsm303d
