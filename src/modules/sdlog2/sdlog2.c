@@ -686,7 +686,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_SENS_s log_SENS;
 			struct log_LPOS_s log_LPOS;
 			struct log_LPSP_s log_LPSP;
-			struct log_FLOW_s log_FLOW;
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
 			struct log_STAT_s log_STAT;
