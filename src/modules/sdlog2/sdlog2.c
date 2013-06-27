@@ -695,6 +695,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_OUT0_s log_OUT0;
 			struct log_AIRS_s log_AIRS;
 			struct log_ARSP_s log_ARSP;
+			struct log_FLOW_s log_FLOW;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1131,10 +1132,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
 				log_msg.msg_type = LOG_FLOW_MSG;
-				log_msg.body.log_FLOW.flow_comp_x_m = buf.flow.flow_comp_x_m;
-				log_msg.body.log_FLOW.flow_comp_y_m = buf.flow.flow_comp_y_m;
-				log_msg.body.log_FLOW.ground_distance_m = buf.flow.ground_distance_m;
+				log_msg.body.log_FLOW.flow_raw_x = buf.flow.flow_raw_x;
+				log_msg.body.log_FLOW.flow_raw_y = buf.flow.flow_raw_y;
+				log_msg.body.log_FLOW.flow_comp_x = buf.flow.flow_comp_x_m;
+				log_msg.body.log_FLOW.flow_comp_y = buf.flow.flow_comp_y_m;
+				log_msg.body.log_FLOW.distance = buf.flow.ground_distance_m;
 				log_msg.body.log_FLOW.quality = buf.flow.quality;
+				log_msg.body.log_FLOW.sensor_id = buf.flow.sensor_id;
 				LOGBUFFER_WRITE_AND_COUNT(FLOW);
 			}
 
