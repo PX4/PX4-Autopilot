@@ -187,8 +187,20 @@ struct log_ARSP_s {
 	float yaw_rate_sp;
 };
 
+/* --- FLOW - OPTICAL FLOW --- */
+#define LOG_FLOW_MSG 15
+struct log_FLOW_s {
+	int16_t flow_raw_x;
+	int16_t flow_raw_y;
+	float flow_comp_x;
+	float flow_comp_y;
+	float distance;
+	uint8_t	quality;
+	uint8_t sensor_id;
+};
+
 /* --- GPOS - GLOBAL POSITION --- */
-#define LOG_GPOS_MSG 15
+#define LOG_GPOS_MSG 64
 struct log_GPOS_s {
 	int32_t lat;
 	int32_t lon;
@@ -218,6 +230,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
+	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLfffff", "Lat,Lon,Alt,VelN,VelE,VelD,Heading"),
 };
 
