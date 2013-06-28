@@ -44,18 +44,28 @@ struct position_estimator_inav_params {
 	int use_gps;
 	float w_alt_baro;
 	float w_alt_acc;
+	float w_alt_sonar;
 	float w_pos_gps_p;
 	float w_pos_gps_v;
 	float w_pos_acc;
+	float w_pos_flow;
+	float flow_k;
+	float sonar_filt;
+	float sonar_err;
 };
 
 struct position_estimator_inav_param_handles {
 	param_t use_gps;
 	param_t w_alt_baro;
 	param_t w_alt_acc;
+	param_t w_alt_sonar;
 	param_t w_pos_gps_p;
 	param_t w_pos_gps_v;
 	param_t w_pos_acc;
+	param_t w_pos_flow;
+	param_t flow_k;
+	param_t sonar_filt;
+	param_t sonar_err;
 };
 
 /**

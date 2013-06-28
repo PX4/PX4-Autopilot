@@ -43,18 +43,28 @@
 PARAM_DEFINE_INT32(INAV_USE_GPS, 1);
 PARAM_DEFINE_FLOAT(INAV_W_ALT_BARO, 1.0f);
 PARAM_DEFINE_FLOAT(INAV_W_ALT_ACC, 50.0f);
+PARAM_DEFINE_FLOAT(INAV_W_ALT_SONAR, 3.0f);
 PARAM_DEFINE_FLOAT(INAV_W_POS_GPS_P, 4.0f);
 PARAM_DEFINE_FLOAT(INAV_W_POS_GPS_V, 0.0f);
 PARAM_DEFINE_FLOAT(INAV_W_POS_ACC, 10.0f);
+PARAM_DEFINE_FLOAT(INAV_W_POS_FLOW, 10.0f);
+PARAM_DEFINE_FLOAT(INAV_FLOW_K, 1.0f);
+PARAM_DEFINE_FLOAT(INAV_SONAR_FILT, 0.5f);
+PARAM_DEFINE_FLOAT(INAV_SONAR_ERR, 0.5f);
 
 int parameters_init(struct position_estimator_inav_param_handles *h)
 {
 	h->use_gps = param_find("INAV_USE_GPS");
 	h->w_alt_baro = param_find("INAV_W_ALT_BARO");
 	h->w_alt_acc = param_find("INAV_W_ALT_ACC");
+	h->w_alt_sonar = param_find("INAV_W_ALT_SONAR");
 	h->w_pos_gps_p = param_find("INAV_W_POS_GPS_P");
 	h->w_pos_gps_v = param_find("INAV_W_POS_GPS_V");
 	h->w_pos_acc = param_find("INAV_W_POS_ACC");
+	h->w_pos_flow = param_find("INAV_W_POS_FLOW");
+	h->flow_k = param_find("INAV_FLOW_K");
+	h->sonar_filt = param_find("INAV_SONAR_FILT");
+	h->sonar_err = param_find("INAV_SONAR_ERR");
 
 	return OK;
 }
@@ -64,9 +74,14 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 	param_get(h->use_gps, &(p->use_gps));
 	param_get(h->w_alt_baro, &(p->w_alt_baro));
 	param_get(h->w_alt_acc, &(p->w_alt_acc));
+	param_get(h->w_alt_sonar, &(p->w_alt_sonar));
 	param_get(h->w_pos_gps_p, &(p->w_pos_gps_p));
 	param_get(h->w_pos_gps_v, &(p->w_pos_gps_v));
 	param_get(h->w_pos_acc, &(p->w_pos_acc));
+	param_get(h->w_pos_flow, &(p->w_pos_flow));
+	param_get(h->flow_k, &(p->flow_k));
+	param_get(h->sonar_filt, &(p->sonar_filt));
+	param_get(h->sonar_err, &(p->sonar_err));
 
 	return OK;
 }
