@@ -209,6 +209,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	float pos_y_integral = 0.0f;
 	const float alt_ctl_dz = 0.2f;
 	const float pos_ctl_dz = 0.05f;
+	float home_alt = 0.0f;
+	hrt_abstime home_alt_t = 0;
 
 	thread_running = true;
 
@@ -288,6 +290,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 			float pos_sp_speed_z = 0.0f;
 
 			if (status.flag_control_manual_enabled) {
+				if (local_pos.home_timestamp != home_alt_t) {
+					if (home_alt_t != 0) {
+						/* home alt changed, don't follow large ground level changes in manual flight */
+						local_pos_sp.z -= local_pos.home_alt - home_alt;
+					}
+					home_alt_t = local_pos.home_timestamp;
+					home_alt = local_pos.home_alt;
+				}
 				/* move altitude setpoint with manual controls */
 				float alt_sp_ctl = scale_control(manual.throttle - 0.5f, 0.5f, alt_ctl_dz);
 				if (alt_sp_ctl != 0.0f) {

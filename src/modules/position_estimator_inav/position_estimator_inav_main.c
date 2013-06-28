@@ -391,6 +391,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 								mavlink_log_info(mavlink_fd, "[inav] new home: alt = %.3f", baro_alt0);
 								local_pos.home_alt = baro_alt0;
 								local_pos.home_timestamp = hrt_absolute_time();
+								z_est[0] += sonar_corr;
 								sonar_corr = 0.0f;
 								sonar_corr_filtered = 0.0;
 							}
