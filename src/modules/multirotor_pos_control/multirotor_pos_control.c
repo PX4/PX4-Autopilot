@@ -293,7 +293,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 				if (local_pos.home_timestamp != home_alt_t) {
 					if (home_alt_t != 0) {
 						/* home alt changed, don't follow large ground level changes in manual flight */
-						local_pos_sp.z -= local_pos.home_alt - home_alt;
+						local_pos_sp.z += local_pos.home_alt - home_alt;
 					}
 					home_alt_t = local_pos.home_timestamp;
 					home_alt = local_pos.home_alt;
