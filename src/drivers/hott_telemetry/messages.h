@@ -60,19 +60,47 @@
 #define STOP_BYTE		0x7d
 #define TEMP_ZERO_CELSIUS	0x14
 
+#define ESC_SENSOR_ID			0x8e
+
+/* The ESC Module poll message. */
+struct esc_module_poll_msg {
+	uint8_t mode;
+	uint8_t id;
+};
+
+/* The Electric Air Module message. */
+struct esc_module_msg {
+	uint8_t start;			/**< Start byte */
+	uint8_t sensor_id;
+	uint8_t warning;
+	uint8_t sensor_text_id;
+	uint8_t alarm_inverse1;
+	uint8_t alarm_inverse2;
+	uint8_t temperature1;		/**< Temperature sensor 1. 20 = 0 degrees */
+	uint8_t temperature2;
+	uint8_t current_L;		/**< Current (mAh) lower 8-bits in steps of 0.1V */
+	uint8_t current_H;
+	uint8_t rpm_L;			/**< RPM Lower 8-bits In steps of 10 U/min */
+	uint8_t rpm_H;
+	uint8_t speed_L;		/**< Airspeed in km/h in steps of 1 km/h */
+	uint8_t speed_H;
+	uint8_t stop;			/**< Stop byte */
+	uint8_t checksum;		/**< Lower 8-bits of all bytes summed. */
+};
+
 /* Electric Air Module (EAM) constants. */
 #define EAM_SENSOR_ID			0x8e
 #define EAM_SENSOR_TEXT_ID		0xe0
 
 /* The Electric Air Module message. */
 struct eam_module_msg {
-	uint8_t start;				/**< Start byte   				*/
+	uint8_t start;			/**< Start byte   				*/
 	uint8_t eam_sensor_id;		/**< EAM sensor					*/
 	uint8_t warning;
-	uint8_t sensor_id;			/**< Sensor ID, why different?	*/
+	uint8_t sensor_text_id;
 	uint8_t alarm_inverse1;
 	uint8_t alarm_inverse2;
-	uint8_t cell1_L;			/**< Lipo cell voltages. Not supported.	*/
+	uint8_t cell1_L;		/**< Lipo cell voltages. Not supported.	*/
 	uint8_t cell2_L;
 	uint8_t cell3_L;
 	uint8_t cell4_L;
@@ -92,9 +120,9 @@ struct eam_module_msg {
 	uint8_t batt2_voltage_H;
 	uint8_t temperature1;		/**< Temperature sensor 1. 20 = 0 degrees */
 	uint8_t temperature2;
-	uint8_t altitude_L;			/**< Attitude (meters) lower 8-bits. 500 = 0 meters */
+	uint8_t altitude_L;		/**< Attitude (meters) lower 8-bits. 500 = 0 meters */
 	uint8_t altitude_H;
-	uint8_t current_L;			/**< Current (mAh) lower 8-bits in steps of 0.1V */
+	uint8_t current_L;		/**< Current (mAh) lower 8-bits in steps of 0.1V */
 	uint8_t current_H;
 	uint8_t main_voltage_L;		/**< Main power voltage lower 8-bits in steps of 0.1V */
 	uint8_t main_voltage_H;
@@ -103,21 +131,21 @@ struct eam_module_msg {
 	uint8_t climbrate_L;		/**< Climb rate in 0.01m/s. 0m/s = 30000 */
 	uint8_t climbrate_H;
 	uint8_t climbrate_3s;		/**< Climb rate in m/3sec. 0m/3sec = 120 */
-	uint8_t rpm_L;				/**< RPM Lower 8-bits In steps of 10 U/min */
+	uint8_t rpm_L;			/**< RPM Lower 8-bits In steps of 10 U/min */
 	uint8_t rpm_H;
 	uint8_t electric_min;		/**< Flight time in minutes. */
 	uint8_t electric_sec;		/**< Flight time in seconds. */
-	uint8_t speed_L;			/**< Airspeed in km/h in steps of 1 km/h */
+	uint8_t speed_L;		/**< Airspeed in km/h in steps of 1 km/h */
 	uint8_t speed_H;
-	uint8_t stop;				/**< Stop byte */
-	uint8_t checksum;			/**< Lower 8-bits of all bytes summed. */
+	uint8_t stop;			/**< Stop byte */
+	uint8_t checksum;		/**< Lower 8-bits of all bytes summed. */
 };
 
 /** 
  * The maximum buffer size required to store a HoTT message.
  */
-#define MESSAGE_BUFFER_SIZE sizeof(union { 	\
-    struct eam_module_msg eam; 				\
+#define EAM_MESSAGE_BUFFER_SIZE sizeof(union { 	\
+    struct eam_module_msg eam; 			\
 })
 
 /* GPS sensor constants. */
@@ -129,9 +157,9 @@ struct eam_module_msg {
  * Struct based on: https://code.google.com/p/diy-hott-gps/downloads 
  */
 struct gps_module_msg { 
-	uint8_t start;				/**< Start byte */
-	uint8_t sensor_id;			/**< GPS sensor ID*/
-	uint8_t warning;			/**< Byte 3: 0…= warning beeps */
+	uint8_t start;			/**< Start byte */
+	uint8_t sensor_id;		/**< GPS sensor ID*/
+	uint8_t warning;		/**< Byte 3: 0…= warning beeps */
 	uint8_t sensor_text_id;		/**< GPS Sensor text mode ID */
 	uint8_t alarm_inverse1;		/**< Byte 5: 01 inverse status */
 	uint8_t alarm_inverse2;		/**< Byte 6: 00 inverse status status 1 = no GPS Signal */
@@ -183,10 +211,14 @@ struct gps_module_msg {
  * The maximum buffer size required to store a HoTT message.
  */
 #define GPS_MESSAGE_BUFFER_SIZE sizeof(union { 	\
-    struct gps_module_msg gps; 				\
+    struct gps_module_msg gps; 			\
 })
 
+#define MESSAGE_BUFFER_SIZE GPS_MESSAGE_BUFFER_SIZE
+
 void messages_init(void);
+void build_esc_request(uint8_t *buffer, size_t *size);
+void extract_esc_message(const uint8_t *buffer);
 void build_eam_response(uint8_t *buffer, size_t *size);
 void build_gps_response(uint8_t *buffer, size_t *size);
 float _get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);

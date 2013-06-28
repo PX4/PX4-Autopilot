@@ -150,6 +150,29 @@ recv_req_id(int uart, uint8_t *id)
 }
 
 int
+recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t id)
+{
+	usleep(100000);
+
+	static const int timeout_ms = 200;
+	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
+
+	int i = 0;
+	if (poll(fds, 1, timeout_ms) > 0) {
+		while (true) {
+			read(uart, &buffer[i], sizeof(buffer[i]));
+
+			if (&buffer[i] == STOP_BYTE) {
+				*size = ++i;
+				id = &buffer[1];
+				return OK;
+			}
+		}
+	}
+	return ERROR;
+}
+
+int
 send_data(int uart, uint8_t *buffer, size_t size)
 {
 	usleep(POST_READ_DELAY_IN_USECS);
@@ -218,6 +241,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 	bool connected = true;
 
 	while (!thread_should_exit) {
+		// Listen for and serve poll from the receiver.
 		if (recv_req_id(uart, &id) == OK) {
 			if (!connected) {
 				connected = true;
@@ -241,6 +265,26 @@ hott_telemetry_thread_main(int argc, char *argv[])
 		} else {
 			connected = false;
 			warnx("syncing");
+		}
+
+		// Poll the next HoTT devices.
+		// TODO(sjwilks): Currently there is only one but if there would be more we would round-robin
+		// calling one for every loop iteration.
+		build_esc_request(&buffer, &size);
+		send_data(uart, buffer, size);
+
+		// Listen for a response.
+		recv_data(uart, &buffer, &size, &id);
+
+		for (size_t i = 0; i < size; i++) {
+			warnx("%d", buffer[i]);
+		}
+
+		// Determine which moduel sent it and process accordingly.
+		if (id == ESC_SENSOR_ID) {
+			extract_esc_message(buffer);
+		} else {
+			warnx("Unknown sensor ID received: %d", id);
 		}
 	}
 

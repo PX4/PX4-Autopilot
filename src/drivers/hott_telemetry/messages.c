@@ -73,6 +73,31 @@ messages_init(void)
 	airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 }
 
+void
+build_esc_request(uint8_t *buffer, size_t *size)
+{
+	struct esc_module_poll_msg msg;
+	*size = sizeof(msg);
+	memset(&msg, 0, *size);
+
+	msg.mode = BINARY_MODE_REQUEST_ID;
+	msg.id = ESC_SENSOR_ID;
+
+	memcpy(&msg, buffer, size);
+}
+
+void
+extract_esc_message(const uint8_t *buffer)
+{
+	struct esc_module_msg msg;
+	size_t size = sizeof(msg);
+	memset(&msg, 0, size);
+	memcpy(buffer, &msg, size);
+
+	// Publish it.
+
+}
+
 void 
 build_eam_response(uint8_t *buffer, size_t *size)
 {
@@ -92,7 +117,7 @@ build_eam_response(uint8_t *buffer, size_t *size)
 
 	msg.start = START_BYTE;
 	msg.eam_sensor_id = EAM_SENSOR_ID;
-	msg.sensor_id = EAM_SENSOR_TEXT_ID;
+	msg.sensor_text_id = EAM_SENSOR_TEXT_ID;
 	
 	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius + 20);
 	msg.temperature2 = msg.temperature1 - BOARD_TEMP_OFFSET_DEG;
@@ -111,7 +136,6 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	uint16_t speed = (uint16_t)(airspeed.indicated_airspeed_m_s);
 	msg.speed_L = (uint8_t)speed & 0xff;
 	msg.speed_H = (uint8_t)(speed >> 8) & 0xff;
-    
 
 	msg.stop = STOP_BYTE;
 	memcpy(buffer, &msg, *size);
