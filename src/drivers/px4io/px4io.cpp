@@ -1424,6 +1424,23 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = _max_actuators;
 		break;
 
+	case PWM_DSM_BIND_START:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+		usleep(500000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
+		usleep(1000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
+		usleep(100000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_pulse);
+		break;
+
+	case PWM_DSM_BIND_STOP:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
+		usleep(500000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
+		break;
+
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS - 1): {
 
 		/* TODO: we could go lower for e.g. TurboPWM */
@@ -1615,6 +1632,44 @@ start(int argc, char *argv[])
 	}
 
 	exit(0);
+}
+
+void
+bind_dsm(void)
+{
+	int		fd;
+
+	if (g_dev == nullptr)
+		errx(1, "px4io must be started first");
+
+	fd = open("/dev/px4io", O_WRONLY);
+
+	if (fd < 0)
+		errx(1, "failed to open device");
+
+	ioctl(fd, PWM_DSM_BIND_START, 0);
+
+	/* Open console directly to grab CTRL-C signal */
+	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
+	if (!console)
+		errx(1, "failed opening console");
+
+	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
+	warnx("Press CTRL-C or 'c' when done.");
+
+	for (;;) {
+		usleep(500000L);
+		/* Check if user wants to quit */
+		char c;
+		if (read(console, &c, 1) == 1) {
+			if (c == 0x03 || c == 0x63) {
+				warnx("Done\n");
+				close(console);
+				ioctl(fd, PWM_DSM_BIND_STOP, 0);
+				exit(0);
+			}
+		}
+	}
 }
 
 void
@@ -1918,6 +1973,9 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "monitor"))
 		monitor();
 
+	if (!strcmp(argv[1], "binddsm"))
+		bind_dsm();
+
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe', 'binddsm', or 'update'");
 }

@@ -157,6 +157,14 @@
 #define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
 #define PX4IO_P_SETUP_VBATT_SCALE		6	/* battery voltage correction factor (float) */
+#define PX4IO_P_SETUP_DSM		        7	/* DSM bind state */
+enum {                                      /* DSM bind states */
+	dsm_bind_power_down = 0,
+	dsm_bind_power_up,
+	dsm_bind_set_rx_out,
+	dsm_bind_set_rx_pulse,
+	dsm_bind_reinit_uart
+};
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
 /* autopilot control values, -10000..10000 */
