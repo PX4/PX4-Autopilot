@@ -578,6 +578,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 	float dt = 0.1;
 	float amplitude = 0.2;
 	float frequency = 0.3;
+	float t_final = 30.0;
 
 	// input signal
 	control::UOrbPublication<debug_key_value_s> input_signal(NULL,
@@ -614,7 +615,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 		output_signal.update();
 		mavlink_log_info(mavlink_fd, "rpm: %10.4f\n", (double)speed_rpm);
 		md25.readData();
-		if (t > 2.0f) break;
+		if (t > t_final) break;
 	}
 	md25.setMotor1Speed(0);
 
