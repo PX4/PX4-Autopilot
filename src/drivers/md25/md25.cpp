@@ -577,7 +577,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 	md25.setTimeout(true);
 	float dt = 0.1;
 	float amplitude = 0.2;
-	float omega = 0.1;
+	float frequency = 0.3;
 
 	// input signal
 	control::UOrbPublication<debug_key_value_s> input_signal(NULL,
@@ -601,9 +601,9 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 
 		// input
 		uint64_t timestamp = hrt_absolute_time();
-		float t = timestamp/1000;
+		float t = timestamp/1000000;
 		input_signal.timestamp_ms = timestamp;
-		input_signal.value = amplitude*sinf(omega*t);
+		input_signal.value = amplitude*sinf(2*M_PI*frequency*t);
 		md25.setMotor1Speed(input_signal.value);
 		input_signal.update();
 
