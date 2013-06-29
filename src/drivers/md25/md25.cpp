@@ -579,43 +579,46 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 	float amplitude = 0.2;
 	float frequency = 0.3;
 	float t_final = 30.0;
+	float prev_revolution = md25.getRevolutions1();
 
-	// input signal
-	control::UOrbPublication<debug_key_value_s> input_signal(NULL,
+	// debug publication
+	control::UOrbPublication<debug_key_value_s> debug_msg(NULL,
 			ORB_ID(debug_key_value));
-	strncpy(input_signal.key, "md25 in   ", 10);
-	input_signal.timestamp_ms = hrt_absolute_time();
-	input_signal.value = 0;
-
-	// output signal
-	control::UOrbPublication<debug_key_value_s> output_signal(NULL,
-			ORB_ID(debug_key_value));
-	strncpy(output_signal.key, "md25 out  ", 10);
-	output_signal.timestamp_ms = hrt_absolute_time();
-	output_signal.value = 0;
 
 	// sine wave for motor 1
 	md25.resetEncoders();
 	while (true) {
-		float prev_revolution = md25.getRevolutions1();
-		usleep(1000000 * dt);
 
 		// input
 		uint64_t timestamp = hrt_absolute_time();
 		float t = timestamp/1000000;
-		input_signal.timestamp_ms = timestamp;
-		input_signal.value = amplitude*sinf(2*M_PI*frequency*t);
-		md25.setMotor1Speed(input_signal.value);
-		input_signal.update();
+
+		float input_value = amplitude*sinf(2*M_PI*frequency*t);
+		md25.setMotor1Speed(input_value);
 
 		// output
-		output_signal.timestamp_ms = timestamp;
-		float speed_rpm = 60*(md25.getRevolutions1() - prev_revolution)/dt;
-		output_signal.value = speed_rpm;
-		output_signal.update();
-		mavlink_log_info(mavlink_fd, "rpm: %10.4f\n", (double)speed_rpm);
 		md25.readData();
+		float current_revolution = md25.getRevolutions1();
+		float output_speed_rpm = 60*(current_revolution - prev_revolution)/dt;
+		float prev_revolution = current_revolution;
+		mavlink_log_info(mavlink_fd, "rpm: %10.4f\n", (double)output_speed_rpm);
+
+		// send input message
+		strncpy(debug_msg.key, "md25 in   ", sizeof(10));
+		debug_msg.timestamp_ms = 1000*timestamp;
+		debug_msg.value = input_value;
+		debug_msg.update();
+
+		// send output message
+		strncpy(debug_msg.key, "md25 out  ", sizeof(10));
+		debug_msg.timestamp_ms = 1000*timestamp;
+		debug_msg.value = output_speed_rpm;;
+		debug_msg.update();
+
 		if (t > t_final) break;
+
+		// sleep
+		usleep(1000000 * dt);
 	}
 	md25.setMotor1Speed(0);
 
