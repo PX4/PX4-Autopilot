@@ -138,7 +138,7 @@ int md25_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "sine")) {
 
-		if (argc < 4) {
+		if (argc < 6) {
 			printf("usage: md25 sine bus address amp freq\n");
 			exit(0);
 		}
