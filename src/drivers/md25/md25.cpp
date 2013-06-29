@@ -604,13 +604,13 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 		mavlink_log_info(mavlink_fd, "rpm: %10.4f\n", (double)output_speed_rpm);
 
 		// send input message
-		strncpy(debug_msg.key, "md25 in   ", sizeof(10));
+		strncpy(debug_msg.key, "md25 in   ", 10);
 		debug_msg.timestamp_ms = 1000*timestamp;
 		debug_msg.value = input_value;
 		debug_msg.update();
 
 		// send output message
-		strncpy(debug_msg.key, "md25 out  ", sizeof(10));
+		strncpy(debug_msg.key, "md25 out  ", 10);
 		debug_msg.timestamp_ms = 1000*timestamp;
 		debug_msg.value = output_speed_rpm;;
 		debug_msg.update();
