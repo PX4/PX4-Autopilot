@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include <poll.h>
 
 #include "KalmanNav.hpp"
+#include <systemlib/err.h>
 
 // constants
 // Titterton pg. 52
@@ -66,6 +67,9 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// attitude representations
 	C_nb(),
 	q(),
+	_accel_sub(-1),
+	_gyro_sub(-1),
+	_mag_sub(-1),
 	// subscriptions
 	_sensors(&getSubscriptions(), ORB_ID(sensor_combined), 5), // limit to 200 Hz
 	_gps(&getSubscriptions(), ORB_ID(vehicle_gps_position), 100), // limit to 10 Hz
@@ -123,8 +127,19 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	lon = 0.0f;
 	alt = 0.0f;
 
-	// initialize quaternions
-	q = Quaternion(EulerAngles(phi, theta, psi));
+	// gyro, accel and mag subscriptions
+	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
+	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
+	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
+
+	struct accel_report accel;
+	orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel);
+
+	struct mag_report mag;
+	orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag);
+
+	// initialize rotation quaternion with a single raw sensor measurement
+	q = init(accel.x, accel.y, accel.z, mag.x, mag.y, mag.z);
 
 	// initialize dcm
 	C_nb = Dcm(q);
@@ -139,6 +154,45 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 
 	// initialize all parameters
 	updateParams();
+}
+
+math::Quaternion KalmanNav::init(float ax, float ay, float az, float mx, float my, float mz)
+{
+    float initialRoll, initialPitch;
+    float cosRoll, sinRoll, cosPitch, sinPitch;
+    float magX, magY;
+    float initialHdg, cosHeading, sinHeading;
+
+    initialRoll = atan2(-ay, -az);
+    initialPitch = atan2(ax, -az);
+
+    cosRoll = cosf(initialRoll);
+    sinRoll = sinf(initialRoll);
+    cosPitch = cosf(initialPitch);
+    sinPitch = sinf(initialPitch);
+
+    magX = mx * cosPitch + my * sinRoll * sinPitch + mz * cosRoll * sinPitch;
+
+    magY = my * cosRoll - mz * sinRoll;
+
+    initialHdg = atan2f(-magY, magX);
+
+    cosRoll = cosf(initialRoll * 0.5f);
+    sinRoll = sinf(initialRoll * 0.5f);
+
+    cosPitch = cosf(initialPitch * 0.5f);
+    sinPitch = sinf(initialPitch * 0.5f);
+
+    cosHeading = cosf(initialHdg * 0.5f);
+    sinHeading = sinf(initialHdg * 0.5f);
+
+    float q0 = cosRoll * cosPitch * cosHeading + sinRoll * sinPitch * sinHeading;
+    float q1 = sinRoll * cosPitch * cosHeading - cosRoll * sinPitch * sinHeading;
+    float q2 = cosRoll * sinPitch * cosHeading + sinRoll * cosPitch * sinHeading;
+    float q3 = cosRoll * cosPitch * sinHeading - sinRoll * sinPitch * cosHeading;
+
+    return math::Quaternion(q0, q1, q2, q3);
+
 }
 
 void KalmanNav::update()
@@ -181,8 +235,8 @@ void KalmanNav::update()
 		if (correctAtt() == ret_ok) _attitudeInitCounter++;
 
 		if (_attitudeInitCounter > 100) {
-			printf("[kalman_demo] initialized EKF attitude\n");
-			printf("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
+			warnx("initialized EKF attitude\n");
+			warnx("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
 			       double(phi), double(theta), double(psi));
 			_attitudeInitialized = true;
 		}
@@ -202,8 +256,8 @@ void KalmanNav::update()
 		setLonDegE7(_gps.lon);
 		setAltE3(_gps.alt);
 		_positionInitialized = true;
-		printf("[kalman_demo] initialized EKF state with GPS\n");
-		printf("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
+		warnx("initialized EKF state with GPS\n");
+		warnx("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
 		       double(vN), double(vE), double(vD),
 		       lat, lon, alt);
 	}
@@ -233,7 +287,7 @@ void KalmanNav::update()
 	// attitude correction step
 	if (_attitudeInitialized 								// initialized
 	    && sensorsUpdate 								// new data
-	    && _sensors.timestamp - _attTimeStamp > 1e6 / 20 	// 20 Hz
+	    && _sensors.timestamp - _attTimeStamp > 1e6 / 50 	// 50 Hz
 	   ) {
 		_attTimeStamp = _sensors.timestamp;
 		correctAtt();
@@ -480,14 +534,30 @@ int KalmanNav::correctAtt()
 	// trig
 	float cosPhi = cosf(phi);
 	float cosTheta = cosf(theta);
-	float cosPsi = cosf(psi);
+	// float cosPsi = cosf(psi);
 	float sinPhi = sinf(phi);
 	float sinTheta = sinf(theta);
-	float sinPsi = sinf(psi);
+	// float sinPsi = sinf(psi);
+
+	// mag predicted measurement
+	// choosing some typical magnetic field properties,
+	//  TODO dip/dec depend on lat/ lon/ time
+	//float dip = _magDip.get() / M_RAD_TO_DEG_F; // dip, inclination with level
+	float dec = _magDec.get() / M_RAD_TO_DEG_F; // declination, clockwise rotation from north
+
+	// compensate roll and pitch, but not yaw
+	// XXX take the vectors out of the C_nb matrix to avoid singularities
+	math::Dcm C_rp(math::EulerAngles(phi, theta, 0.0f));//C_nb.transpose();
 
 	// mag measurement
-	Vector3 magNav = C_nb.transpose() * Vector3(_sensors.magnetometer_ga);
-	float yMag = atan2f(magNav(0),magNav(1)) - psi;
+	Vector3 magBody(_sensors.magnetometer_ga);
+
+	// transform to earth frame
+	Vector3 magNav = C_rp * magBody;
+
+	// calculate error between estimate and measurement
+	// apply declination correction for true heading as well.
+	float yMag = -atan2f(magNav(1),magNav(0)) - psi - dec;
 	if (yMag > M_PI_F) yMag -= 2*M_PI_F;
 	if (yMag < -M_PI_F) yMag += 2*M_PI_F;
 
@@ -542,7 +612,7 @@ int KalmanNav::correctAtt()
 
 		if (isnan(val) || isinf(val)) {
 			// abort correction and return
-			printf("[kalman_demo] numerical failure in att correction\n");
+			warnx("numerical failure in att correction\n");
 			// reset P matrix to P0
 			P = P0;
 			return ret_error;
@@ -572,8 +642,8 @@ int KalmanNav::correctAtt()
 	float beta = y.dot(S.inverse() * y);
 
 	if (beta > _faultAtt.get()) {
-		printf("fault in attitude: beta = %8.4f\n", (double)beta);
-		printf("y:\n"); y.print();
+		warnx("fault in attitude: beta = %8.4f", (double)beta);
+		warnx("y:\n"); y.print();
 	}
 
 	// update quaternions from euler
@@ -606,9 +676,9 @@ int KalmanNav::correctPos()
 	for (size_t i = 0; i < xCorrect.getRows(); i++) {
 		float val = xCorrect(i);
 
-		if (isnan(val) || isinf(val)) {
+		if (!isfinite(val)) {
 			// abort correction and return
-			printf("[kalman_demo] numerical failure in gps correction\n");
+			warnx("numerical failure in gps correction\n");
 			// fallback to GPS
 			vN = _gps.vel_n_m_s;
 			vE = _gps.vel_e_m_s;
@@ -639,8 +709,8 @@ int KalmanNav::correctPos()
 
 	static int counter = 0;
 	if (beta > _faultPos.get() && (counter % 10 == 0)) {
-		printf("fault in gps: beta = %8.4f\n", (double)beta);
-		printf("Y/N: vN: %8.4f, vE: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
+		warnx("fault in gps: beta = %8.4f", (double)beta);
+		warnx("Y/N: vN: %8.4f, vE: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f",
 		       double(y(0) / sqrtf(RPos(0, 0))),
 		       double(y(1) / sqrtf(RPos(1, 1))),
 		       double(y(2) / sqrtf(RPos(2, 2))),
