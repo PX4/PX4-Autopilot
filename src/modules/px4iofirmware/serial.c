@@ -46,36 +46,40 @@
 #include <nuttx/arch.h>
 #include <arch/board/board.h>
 
+/* XXX might be able to prune these */
+#include <chip.h>
+#include <up_internal.h>
+#include <up_arch.h>
+#include <stm32_internal.h>
 #include <systemlib/hx_stream.h>
 
 //#define DEBUG
 #include "px4io.h"
 
-static uint8_t		tx_buf[66];		/* XXX hardcoded magic number */
-
 static hx_stream_t	if_stream;
+static volatile bool	sending = false;
 
+static int		serial_interrupt(int vector, void *context);
 static void		serial_callback(void *arg, const void *data, unsigned length);
+
+/* serial register accessors */
+#define REG(_x)		(*(volatile uint32_t *)(SERIAL_BASE + _x))
+#define rSR		REG(STM32_USART_SR_OFFSET)
+#define rDR		REG(STM32_USART_DR_OFFSET)
+#define rBRR		REG(STM32_USART_BRR_OFFSET)
+#define rCR1		REG(STM32_USART_CR1_OFFSET)
+#define rCR2		REG(STM32_USART_CR2_OFFSET)
+#define rCR3		REG(STM32_USART_CR3_OFFSET)
+#define rGTPR		REG(STM32_USART_GTPR_OFFSET)
 
 void
 interface_init(void)
 {
 
-	int fd = open("/dev/ttyS1", O_RDWR, O_NONBLOCK);
-	if (fd < 0) {
-		debug("serial fail");
-		return;
-	}
+	/* XXX do serial port init here */
 
-	/* configure serial port - XXX increase port speed? */
-	struct termios t;
-	tcgetattr(fd, &t);
-	cfsetspeed(&t, 115200);
-	t.c_cflag &= ~(CSTOPB | PARENB);
-	tcsetattr(fd, TCSANOW, &t);
-
-	/* allocate the HX stream we'll use for communication */
-	if_stream = hx_stream_init(fd, serial_callback, NULL);
+	irq_attach(SERIAL_VECTOR, serial_interrupt);
+	if_stream = hx_stream_init(-1, serial_callback, NULL);
 
 	/* XXX add stream stats counters? */
 
@@ -85,8 +89,31 @@ interface_init(void)
 void
 interface_tick()
 {
-	/* process incoming bytes */
-	hx_stream_rx(if_stream);
+	/* XXX nothing interesting to do here */
+}
+
+static int
+serial_interrupt(int vector, void *context)
+{
+	uint32_t sr = rSR;
+
+	if (sr & USART_SR_TXE) {
+		int c = hx_stream_send_next(if_stream);
+		if (c == -1) {
+			/* no more bytes to send, not interested in interrupts now */
+			rCR1 &= ~USART_CR1_TXEIE;
+			sending = false;
+		} else {
+			rDR = c;
+		}
+	}
+
+	if (sr & USART_SR_RXNE) {
+		uint8_t c = rDR;
+
+		hx_stream_rx(if_stream, c);
+	}
+	return 0;
 }
 
 static void
@@ -98,36 +125,40 @@ serial_callback(void *arg, const void *data, unsigned length)
 	if (length < 2)
 		return;
 
-	/* it's a write operation, pass it to the register API */
-	if (message[0] & PX4IO_PAGE_WRITE) {
-		registers_set(message[0] & ~PX4IO_PAGE_WRITE, message[1],
-			(const uint16_t *)&message[2],
-			(length - 2) / 2);
-
+	/* we got a new request while we were still sending the last reply - not supported */
+	if (sending)
 		return;
+
+	/* reads are page / offset / length */
+	if (length == 3) {
+		uint16_t *registers;
+		unsigned count;
+
+		/* get registers for response, send an empty reply on error */
+		if (registers_get(message[0], message[1], &registers, &count) < 0)
+			count = 0;
+
+		/* constrain count to requested size or message limit */
+		if (count > message[2])
+			count = message[2];
+		if (count > HX_STREAM_MAX_FRAME)
+			count = HX_STREAM_MAX_FRAME;
+
+		/* start sending the reply */
+		sending = true;
+		hx_stream_reset(if_stream);
+		hx_stream_start(if_stream, registers, count * 2 + 2);
+
+		/* enable the TX-ready interrupt */
+		rCR1 |= USART_CR1_TXEIE;
+		return;
+
+	} else {
+
+		/* it's a write operation, pass it to the register API */
+		registers_set(message[0], 
+				message[1],
+				(const uint16_t *)&message[2],
+				(length - 2) / 2);
 	}
-
-	/* it's a read - must contain length byte */
-	if (length != 3)
-		return;
-	uint16_t *registers;
-	unsigned count;
-
-	tx_buf[0] = message[0];
-	tx_buf[1] = message[1];
-
-	/* get registers for response, send an empty reply on error */
-	if (registers_get(message[0], message[1], &registers, &count) < 0)
-		count = 0;
-
-	/* fill buffer with message, limited by length */
-#define TX_MAX		((sizeof(tx_buf) - 2) / 2)
-	if (count > TX_MAX)
-		count = TX_MAX;
-	if (count > message[2])
-		count = message[2];
-	memcpy(&tx_buf[2], registers, count * 2);
-
-	/* try to send the message */
-	hx_stream_send(if_stream, tx_buf, count * 2 + 2);
 }

@@ -96,20 +96,6 @@ hx_tx_raw(hx_stream_t stream, uint8_t c)
 		stream->tx_error = true;
 }
 
-static void
-hx_tx_byte(hx_stream_t stream, uint8_t c)
-{
-	switch (c) {
-	case FBO:
-	case CEO:
-		hx_tx_raw(stream, CEO);
-		c ^= 0x20;
-		break;
-	}
-
-	hx_tx_raw(stream, c);
-}
-
 static int
 hx_rx_frame(hx_stream_t stream)
 {
@@ -281,12 +267,12 @@ hx_stream_send(hx_stream_t stream,
 {
 	int result;
 
-	result = hx_start(stream, data, count);
+	result = hx_stream_start(stream, data, count);
 	if (result != OK)
 		return result;
 
 	int c;
-	while ((c = hx_send_next(stream)) >= 0)
+	while ((c = hx_stream_send_next(stream)) >= 0)
 		hx_tx_raw(stream, c);
 
 	/* check for transmit error */

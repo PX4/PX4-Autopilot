@@ -44,6 +44,7 @@
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 
 #include "px4io.h"
 #include "protocol.h"
@@ -349,10 +350,18 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_RELAYS:
 			value &= PX4IO_P_SETUP_RELAYS_VALID;
 			r_setup_relays = value;
+#ifdef POWER_RELAY1
 			POWER_RELAY1(value & (1 << 0) ? 1 : 0);
+#endif
+#ifdef POWER_RELAY2
 			POWER_RELAY2(value & (1 << 1) ? 1 : 0);
+#endif
+#ifdef POWER_ACC1
 			POWER_ACC1(value & (1 << 2) ? 1 : 0);
+#endif
+#ifdef POWER_ACC2
 			POWER_ACC2(value & (1 << 3) ? 1 : 0);
+#endif
 			break;
 
 		case PX4IO_P_SETUP_SET_DEBUG:

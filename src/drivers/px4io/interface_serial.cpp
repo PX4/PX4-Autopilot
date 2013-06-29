@@ -160,6 +160,8 @@ PX4IO_serial::PX4IO_serial(int port) :
 		return;
 	}
 
+	/* XXX need to configure the port here */
+
 	/* need space for worst-case escapes + hx protocol overhead */
 	/* XXX this is kinda gross, but hx transmits a byte at a time */
 	_tx_buf = new uint8_t[HX_STREAM_MAX_FRAME];
@@ -257,7 +259,7 @@ PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned n
 		return -EIO;
 	} else {
 		/* copy back the result */
-		memcpy(values, &_tx_buf[0], count);
+		memcpy(values, &_rx_buf[0], count);
 	}
 out:
 	sem_post(&_bus_semaphore);
@@ -267,16 +269,12 @@ out:
 int
 PX4IO_serial::_wait_complete()
 {
-	/* prepare the stream for transmission */
+	/* prepare the stream for transmission (also discards any received noise) */
 	hx_stream_reset(_stream);
 	hx_stream_start(_stream, _tx_buf, _tx_size);
 
-	/* enable UART */
-	_CR1() |= USART_CR1_RE |
-		  USART_CR1_TE |
-		  USART_CR1_TXEIE |
-		  USART_CR1_RXNEIE |
-		  USART_CR1_UE;
+	/* enable transmit-ready interrupt, which will start transmission */
+	_CR1() |= USART_CR1_TXEIE;
 
 	/* compute the deadline for a 5ms timeout */
 	struct timespec abstime;
@@ -289,13 +287,6 @@ PX4IO_serial::_wait_complete()
 
 	/* wait for the transaction to complete */
 	int ret = sem_timedwait(&_completion_semaphore, &abstime);
-
-	/* disable the UART */
-	_CR1() &= ~(USART_CR1_RE |
-		    USART_CR1_TE |
-		    USART_CR1_TXEIE |
-		    USART_CR1_RXNEIE |
-		    USART_CR1_UE);
 
 	return ret;
 }
@@ -317,7 +308,7 @@ PX4IO_serial::_do_interrupt()
 	if (sr & USART_SR_TXE) {
 		int c = hx_stream_send_next(_stream);
 		if (c == -1) {
-			/* transmit (nearly) done, not interested in TX-ready interrupts now */
+			/* no more bytes to send, not interested in interrupts now */
 			_CR1() &= ~USART_CR1_TXEIE;
 
 			/* was this a tx-only operation? */
