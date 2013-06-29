@@ -575,10 +575,10 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 	// setup for test
 	md25.setSpeedRegulation(true);
 	md25.setTimeout(true);
-	float dt = 0.1;
-	float amplitude = 0.2;
-	float frequency = 0.3;
-	float t_final = 30.0;
+	float dt = 0.01;
+	float amplitude = 0.5;
+	float frequency = 1.0;
+	float t_final = 120.0;
 	float prev_revolution = md25.getRevolutions1();
 
 	// debug publication
@@ -591,7 +591,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 
 		// input
 		uint64_t timestamp = hrt_absolute_time();
-		float t = timestamp/1000000;
+		float t = timestamp/1000000.0f;
 
 		float input_value = amplitude*sinf(2*M_PI*frequency*t);
 		md25.setMotor1Speed(input_value);
@@ -600,22 +600,25 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 		md25.readData();
 		float current_revolution = md25.getRevolutions1();
 		float output_speed_rpm = 60*(current_revolution - prev_revolution)/dt;
-		float prev_revolution = current_revolution;
 		mavlink_log_info(mavlink_fd, "rpm: %10.4f\n", (double)output_speed_rpm);
 
 		// send input message
-		strncpy(debug_msg.key, "md25 in   ", 10);
-		debug_msg.timestamp_ms = 1000*timestamp;
-		debug_msg.value = input_value;
-		debug_msg.update();
+		//strncpy(debug_msg.key, "md25 in   ", 10);
+		//debug_msg.timestamp_ms = 1000*timestamp;
+		//debug_msg.value = input_value;
+		//debug_msg.update();
 
 		// send output message
 		strncpy(debug_msg.key, "md25 out  ", 10);
 		debug_msg.timestamp_ms = 1000*timestamp;
-		debug_msg.value = output_speed_rpm;;
+		debug_msg.value = current_revolution - prev_revolution;
+		//debug_msg.value = output_speed_rpm;
 		debug_msg.update();
 
 		if (t > t_final) break;
+
+		// update for next step
+		prev_revolution = current_revolution;
 
 		// sleep
 		usleep(1000000 * dt);
