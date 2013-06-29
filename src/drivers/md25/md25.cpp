@@ -560,7 +560,7 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 	return 0;
 }
 
-int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
+int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitude, float frequency)
 {
 	printf("md25 sine: starting\n");
 
@@ -576,9 +576,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 	md25.setSpeedRegulation(true);
 	md25.setTimeout(true);
 	float dt = 0.01;
-	float amplitude = 0.5;
-	float frequency = 1.0;
-	float t_final = 120.0;
+	float t_final = 60.0;
 	float prev_revolution = md25.getRevolutions1();
 
 	// debug publication
@@ -599,8 +597,6 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 		// output
 		md25.readData();
 		float current_revolution = md25.getRevolutions1();
-		float output_speed_rpm = 60*(current_revolution - prev_revolution)/dt;
-		mavlink_log_info(mavlink_fd, "rpm: %10.4f\n", (double)output_speed_rpm);
 
 		// send input message
 		//strncpy(debug_msg.key, "md25 in   ", 10);
@@ -611,8 +607,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address)
 		// send output message
 		strncpy(debug_msg.key, "md25 out  ", 10);
 		debug_msg.timestamp_ms = 1000*timestamp;
-		debug_msg.value = current_revolution - prev_revolution;
-		//debug_msg.value = output_speed_rpm;
+		debug_msg.value = current_revolution;
 		debug_msg.update();
 
 		if (t > t_final) break;

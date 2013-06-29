@@ -139,7 +139,7 @@ int md25_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "sine")) {
 
 		if (argc < 4) {
-			printf("usage: md25 sine bus address\n");
+			printf("usage: md25 sine bus address amp freq\n");
 			exit(0);
 		}
 
@@ -149,7 +149,11 @@ int md25_main(int argc, char *argv[])
 
 		uint8_t address = strtoul(argv[3], nullptr, 0);
 
-		md25Sine(deviceName, bus, address);
+		float amplitude = atof(argv[4]);
+
+		float frequency = atof(argv[5]);
+
+		md25Sine(deviceName, bus, address, amplitude, frequency);
 
 		exit(0);
 	}

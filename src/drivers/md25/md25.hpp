@@ -291,6 +291,6 @@ private:
 int md25Test(const char *deviceName, uint8_t bus, uint8_t address);
 
 // sine testing
-int md25Sine(const char *deviceName, uint8_t bus, uint8_t address);
+int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitude, float frequency);
 
 // vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78
