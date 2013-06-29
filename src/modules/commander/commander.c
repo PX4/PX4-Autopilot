@@ -1857,8 +1857,10 @@ int commander_thread_main(int argc, char *argv[])
 				     (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
 				     (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
 				    ) &&
-				    ((sp_man.yaw < -STICK_ON_OFF_LIMIT)) &&
-				    (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
+					current_status.flag_control_manual_enabled &&
+					current_status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS &&
+				    sp_man.yaw < -STICK_ON_OFF_LIMIT &&
+				    sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						update_state_machine_disarm(stat_pub, &current_status, mavlink_fd);
 						stick_on_counter = 0;
@@ -1870,7 +1872,10 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* check if left stick is in lower right position --> arm */
-				if (sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.2f) {
+				if (current_status.flag_control_manual_enabled &&
+					current_status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS &&
+					sp_man.yaw > STICK_ON_OFF_LIMIT &&
+					sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						update_state_machine_arm(stat_pub, &current_status, mavlink_fd);
 						stick_on_counter = 0;
