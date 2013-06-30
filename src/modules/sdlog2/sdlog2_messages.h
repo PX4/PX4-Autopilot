@@ -198,6 +198,17 @@ struct log_FLOW_s {
 	uint8_t	quality;
 	uint8_t sensor_id;
 };
+
+/* --- GPOS - GLOBAL POSITION ESTIMATE --- */
+#define LOG_GPOS_MSG 16
+struct log_GPOS_s {
+	int32_t lat;
+	int32_t lon;
+	float alt;
+	float vel_n;
+	float vel_e;
+	float vel_d;
+};
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -218,6 +229,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
+	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
