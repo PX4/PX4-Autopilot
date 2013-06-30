@@ -2,7 +2,7 @@
  *
  *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Anton Babushkin <anton.babushkin@me.com>
+ *           Anton Babushkin <rk3dov@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@
  * does the heavy SD I/O in a low-priority worker thread.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Anton Babushkin <rk3dov@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -1064,7 +1064,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GPOS.vel_n = buf.global_pos.vx;
 				log_msg.body.log_GPOS.vel_e = buf.global_pos.vy;
 				log_msg.body.log_GPOS.vel_d = buf.global_pos.vz;
-				log_msg.body.log_GPOS.hdg = buf.global_pos.hdg;
 				LOGBUFFER_WRITE_AND_COUNT(GPOS);
 			}
 
