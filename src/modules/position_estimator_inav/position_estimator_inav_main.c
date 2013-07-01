@@ -62,6 +62,7 @@
 #include <uORB/topics/optical_flow.h>
 #include <mavlink/mavlink_log.h>
 #include <poll.h>
+#include <systemlib/err.h>
 #include <systemlib/geo/geo.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/conversions.h>
@@ -162,7 +163,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float z_est[3] = { 0.0f, 0.0f, 0.0f };
 
 	int baro_init_cnt = 0;
-	int baro_init_num = 70; /* measurement for 1 second */
+	int baro_init_num = 200;
 	float baro_alt0 = 0.0f; /* to determine while start up */
 
 	double lat_current = 0.0; //[°]] --> 47.0
@@ -220,12 +221,25 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	/* wait for initial sensors values: baro, GPS fix, only then can we initialize the projection */
 	bool wait_gps = params.use_gps;
 	bool wait_baro = true;
+	hrt_abstime wait_gps_start = 0;
+	const hrt_abstime wait_gps_delay = 5000000;	// wait for 5s after 3D fix
 
-	while (wait_gps || wait_baro) {
-		if (poll(fds_init, 2, 1000)) {
+	thread_running = true;
+
+	while ((wait_gps || wait_baro) && !thread_should_exit) {
+		int ret = poll(fds_init, params.use_gps ? 2 : 1, 1000);
+
+		if (ret < 0) {
+			/* poll error */
+			errx(1, "subscriptions poll error on init.");
+
+		} else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
+
 				if (wait_baro && sensor.baro_counter > baro_counter) {
+					baro_counter = sensor.baro_counter;
+
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
 						baro_alt0 += sensor.baro_alt_meter;
@@ -241,24 +255,33 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 				}
 			}
-			if (fds_init[1].revents & POLLIN) {
+
+			if (params.use_gps && (fds_init[1].revents & POLLIN)) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
+
 				if (wait_gps && gps.fix_type >= 3) {
-					wait_gps = false;
-					/* get GPS position for first initialization */
-					lat_current = gps.lat * 1e-7;
-					lon_current = gps.lon * 1e-7;
-					alt_current = gps.alt * 1e-3;
+					hrt_abstime t = hrt_absolute_time();
 
-					local_pos.home_lat = lat_current * 1e7;
-					local_pos.home_lon = lon_current * 1e7;
-					local_pos.home_hdg = 0.0f;
-					local_pos.home_timestamp = hrt_absolute_time();
+					if (wait_gps_start == 0) {
+						wait_gps_start = t;
 
-					/* initialize coordinates */
-					map_projection_init(lat_current, lon_current);
-					warnx("init GPS: lat = %.10f,  lon = %.10f", lat_current, lon_current);
-					mavlink_log_info(mavlink_fd, "[inav] init GPS: %.7f, %.7f", lat_current, lon_current);
+					} else if (t - wait_gps_start > wait_gps_delay) {
+						wait_gps = false;
+						/* get GPS position for first initialization */
+						lat_current = gps.lat * 1e-7;
+						lon_current = gps.lon * 1e-7;
+						alt_current = gps.alt * 1e-3;
+
+						local_pos.home_lat = lat_current * 1e7;
+						local_pos.home_lon = lon_current * 1e7;
+						local_pos.home_hdg = 0.0f;
+						local_pos.home_timestamp = t;
+
+						/* initialize coordinates */
+						map_projection_init(lat_current, lon_current);
+						warnx("init GPS: lat = %.10f,  lon = %.10f", lat_current, lon_current);
+						mavlink_log_info(mavlink_fd, "[inav] init GPS: %.7f, %.7f", lat_current, lon_current);
+					}
 				}
 			}
 		}
@@ -282,8 +305,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float accel_corr[] = { 0.0f, 0.0f, 0.0f };	// N E D
 	float baro_corr = 0.0f;		// D
 	float gps_corr[2][2] = {
-			{ 0.0f, 0.0f },		// N (pos, vel)
-			{ 0.0f, 0.0f },		// E (pos, vel)
+		{ 0.0f, 0.0f },		// N (pos, vel)
+		{ 0.0f, 0.0f },		// E (pos, vel)
 	};
 	float sonar_corr = 0.0f;
 	float sonar_corr_filtered = 0.0f;
@@ -293,7 +316,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	hrt_abstime sonar_time = 0;
 
 	/* main loop */
-	struct pollfd fds[5] = {
+	struct pollfd fds[6] = {
 		{ .fd = parameter_update_sub, .events = POLLIN },
 		{ .fd = vehicle_status_sub, .events = POLLIN },
 		{ .fd = vehicle_attitude_sub, .events = POLLIN },
@@ -302,8 +325,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		{ .fd = vehicle_gps_position_sub, .events = POLLIN }
 	};
 
-	thread_running = true;
-	warnx("main loop started.");
+	if (!thread_should_exit) {
+		warnx("main loop started.");
+	}
 
 	while (!thread_should_exit) {
 		int ret = poll(fds, params.use_gps ? 6 : 5, 10); // wait maximal this 10 ms = 100 Hz minimum rate
@@ -346,19 +370,24 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (att.R_valid) {
 						/* transform acceleration vector from body frame to NED frame */
 						float accel_NED[3];
+
 						for (int i = 0; i < 3; i++) {
 							accel_NED[i] = 0.0f;
+
 							for (int j = 0; j < 3; j++) {
 								accel_NED[i] += att.R[i][j] * sensor.accelerometer_m_s2[j];
 							}
 						}
+
 						accel_NED[2] += CONSTANTS_ONE_G;
 						accel_corr[0] = accel_NED[0] - x_est[2];
 						accel_corr[1] = accel_NED[1] - y_est[2];
 						accel_corr[2] = accel_NED[2] - z_est[2];
+
 					} else {
 						memset(accel_corr, 0, sizeof(accel_corr));
 					}
+
 					accel_counter = sensor.accelerometer_counter;
 					accel_updates++;
 				}
@@ -373,17 +402,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* optical flow */
 			if (fds[4].revents & POLLIN) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
+
 				if (flow.ground_distance_m > 0.31f && flow.ground_distance_m < 4.0f && (flow.ground_distance_m != sonar_prev || t - sonar_time < 150000)) {
 					if (flow.ground_distance_m != sonar_prev) {
 						sonar_time = t;
 						sonar_prev = flow.ground_distance_m;
 						sonar_corr = -flow.ground_distance_m - z_est[0];
 						sonar_corr_filtered += (sonar_corr - sonar_corr_filtered) * params.sonar_filt;
+
 						if (fabsf(sonar_corr) > params.sonar_err) {
 							// correction is too large: spike or new ground level?
 							if (fabsf(sonar_corr - sonar_corr_filtered) > params.sonar_err) {
 								// spike detected, ignore
 								sonar_corr = 0.0f;
+
 							} else {
 								// new ground level
 								baro_alt0 += sonar_corr;
@@ -397,29 +429,36 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							}
 						}
 					}
+
 				} else {
 					sonar_corr = 0.0f;
 				}
+
 				flow_updates++;
 			}
 
-			if (params.use_gps && fds[5].revents & POLLIN) {
+			if (params.use_gps && (fds[5].revents & POLLIN)) {
 				/* vehicle GPS position */
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
+
 				if (gps.fix_type >= 3) {
 					/* project GPS lat lon to plane */
 					float gps_proj[2];
 					map_projection_project(gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
 					gps_corr[0][0] = gps_proj[0] - x_est[0];
 					gps_corr[1][0] = gps_proj[1] - y_est[0];
+
 					if (gps.vel_ned_valid) {
 						gps_corr[0][1] = gps.vel_n_m_s;
 						gps_corr[1][1] = gps.vel_e_m_s;
+
 					} else {
 						gps_corr[0][1] = 0.0f;
 						gps_corr[1][1] = 0.0f;
 					}
+
 					gps_updates++;
+
 				} else {
 					memset(gps_corr, 0, sizeof(gps_corr));
 				}
@@ -442,6 +481,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		/* dont't try to estimate position when no any position source available */
 		bool can_estimate_pos = params.use_gps && gps.fix_type >= 3;
+
 		if (can_estimate_pos) {
 			/* inertial filter prediction for position */
 			inertial_filter_predict(dt, x_est);
@@ -454,6 +494,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (params.use_gps && gps.fix_type >= 3) {
 				inertial_filter_correct(gps_corr[0][0], dt, x_est, 0, params.w_pos_gps_p);
 				inertial_filter_correct(gps_corr[1][0], dt, y_est, 0, params.w_pos_gps_p);
+
 				if (gps.vel_ned_valid) {
 					inertial_filter_correct(gps_corr[0][1], dt, x_est, 1, params.w_pos_gps_v);
 					inertial_filter_correct(gps_corr[1][1], dt, y_est, 1, params.w_pos_gps_v);
@@ -505,8 +546,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					global_pos.valid = local_pos.valid;
 					double est_lat, est_lon;
 					map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
-					global_pos.lat = (int32_t) (est_lat * 1e7);
-					global_pos.lon = (int32_t) (est_lon * 1e7);
+					global_pos.lat = (int32_t)(est_lat * 1e7);
+					global_pos.lon = (int32_t)(est_lon * 1e7);
 					global_pos.alt = -local_pos.z - local_pos.home_alt;
 					global_pos.relative_alt = -local_pos.z;
 					global_pos.vx = local_pos.vx;
