@@ -2,7 +2,7 @@
  *
  *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Anton Babushkin <rk3dov@gmail.com>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@
  * does the heavy SD I/O in a low-priority worker thread.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <rk3dov@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>
@@ -685,6 +685,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_AIRS_s log_AIRS;
 			struct log_ARSP_s log_ARSP;
 			struct log_FLOW_s log_FLOW;
+			struct log_GPOS_s log_GPOS;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1056,7 +1057,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			/* --- GLOBAL POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
-				// TODO not implemented yet
+				log_msg.msg_type = LOG_GPOS_MSG;
+				log_msg.body.log_GPOS.lat = buf.global_pos.lat;
+				log_msg.body.log_GPOS.lon = buf.global_pos.lon;
+				log_msg.body.log_GPOS.alt = buf.global_pos.alt;
+				log_msg.body.log_GPOS.vel_n = buf.global_pos.vx;
+				log_msg.body.log_GPOS.vel_e = buf.global_pos.vy;
+				log_msg.body.log_GPOS.vel_d = buf.global_pos.vz;
+				LOGBUFFER_WRITE_AND_COUNT(GPOS);
 			}
 
 			/* --- VICON POSITION --- */
