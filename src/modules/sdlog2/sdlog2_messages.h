@@ -209,6 +209,23 @@ struct log_GPOS_s {
 	float vel_e;
 	float vel_d;
 };
+
+/* --- ESC - ESC STATE --- */
+#define LOG_ESC_MSG 64
+struct log_ESC_s {
+	uint16_t counter;
+	uint8_t esc_count;
+	uint8_t esc_connectiontype;
+
+	uint8_t esc_num;
+	uint16_t esc_address;
+	uint16_t esc_voltage;
+	uint16_t esc_current;
+	uint16_t esc_rpm;
+	uint16_t esc_temperature;
+	float    esc_setpoint;
+	uint16_t esc_setpoint_raw;
+};
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -230,6 +247,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
+	LOG_FORMAT(ESC, "HBBBHHHHHfH", "Counter,NumESC,Conn,No,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
