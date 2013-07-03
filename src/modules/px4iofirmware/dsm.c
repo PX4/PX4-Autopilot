@@ -40,10 +40,12 @@
  */
 
 #include <nuttx/config.h>
+#include <nuttx/arch.h>
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
+#include <string.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -73,11 +75,15 @@ static bool dsm_decode(hrt_abstime now, uint16_t *values, uint16_t *num_values);
 int
 dsm_init(const char *device)
 {
-	if (dsm_fd < 0)
+	if (dsm_fd < 0) {
 		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
+	}
 
 	if (dsm_fd >= 0) {
 		struct termios t;
+
+		/* power on the DSM satellite */
+		POWER_RELAY1(1);
 
 		/* 115200bps, no parity, one stop bit */
 		tcgetattr(dsm_fd, &t);
@@ -99,6 +105,45 @@ dsm_init(const char *device)
 	}
 
 	return dsm_fd;
+}
+
+void
+dsm_bind(uint16_t cmd)
+{
+	const uint32_t usart0RxAsOutp = GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN10;
+	switch (cmd) {
+	case dsm_bind_power_down:
+		if (dsm_fd >= 0) {
+			// power down DSM satellite
+			POWER_RELAY1(0);
+		}
+		break;
+	case dsm_bind_power_up:
+		if (dsm_fd >= 0) {
+			POWER_RELAY1(1);		}
+		break;
+	case dsm_bind_set_rx_out:
+		if (dsm_fd >= 0) {
+			stm32_configgpio(usart0RxAsOutp);
+		}
+		break;
+	case dsm_bind_set_rx_pulse:
+		if (dsm_fd >= 0) {
+			for (int i = 0; i < 3; i++) {
+				stm32_gpiowrite(usart0RxAsOutp, false);
+				up_udelay(50);
+				stm32_gpiowrite(usart0RxAsOutp, true);
+				up_udelay(50);
+			}
+		}
+		break;
+	case dsm_bind_reinit_uart:
+		if (dsm_fd >= 0) {
+			// Restore USART rx pin
+			stm32_configgpio(GPIO_USART1_RX);
+		}
+		break;
+	}
 }
 
 bool

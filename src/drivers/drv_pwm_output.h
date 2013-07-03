@@ -115,6 +115,12 @@ ORB_DECLARE(output_pwm);
 /** clear the 'ARM ok' bit, which deactivates the safety switch */
 #define PWM_SERVO_CLEAR_ARM_OK	_IOC(_PWM_SERVO_BASE, 6)
 
+/** start DSM bind */
+#define PWM_DSM_BIND_START	_IOC(_PWM_SERVO_BASE, 7)
+
+/** stop DSM bind */
+#define PWM_DSM_BIND_STOP	_IOC(_PWM_SERVO_BASE, 8)
+
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
 
