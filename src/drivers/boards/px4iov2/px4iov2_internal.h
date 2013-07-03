@@ -59,8 +59,13 @@
 /******************************************************************************
  * Serial
  ******************************************************************************/
-#define SERIAL_BASE	STM32_USART1_BASE
-#define SERIAL_VECTOR	STM32_IRQ_USART1
+#define PX4FMU_SERIAL_BASE	STM32_USART2_BASE
+#define PX4FMU_SERIAL_TX_GPIO	GPIO_USART2_TX
+#define PX4FMU_SERIAL_RX_GPIO	GPIO_USART2_RX
+#define PX4FMU_SERIAL_TX_DMA	DMACHAN_USART2_TX
+#define PX4FMU_SERIAL_RX_DMA	DMACHAN_USART2_RX
+#define PX4FMU_SERIAL_CLOCK	STM32_PCLK1_FREQUENCY
+#define PX4FMU_SERIAL_BITRATE	1500000
 
 /******************************************************************************
  * GPIOS

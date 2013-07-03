@@ -56,14 +56,29 @@
 //#define DEBUG
 #include "px4io.h"
 
-static hx_stream_t	if_stream;
 static volatile bool	sending = false;
 
-static int		serial_interrupt(int vector, void *context);
-static void		serial_callback(void *arg, const void *data, unsigned length);
+static void		dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
+static DMA_HANDLE	tx_dma;
+static DMA_HANDLE	rx_dma;
+
+#define MAX_RW_REGS	32 // by agreement w/FMU
+
+#pragma pack(push, 1)
+struct IOPacket {
+	uint8_t 	count;
+#define PKT_CTRL_WRITE			(1<<7)
+	uint8_t 	spare;
+	uint8_t 	page;
+	uint8_t 	offset;
+	uint16_t	regs[MAX_RW_REGS];
+};
+#pragma pack(pop)
+
+static struct IOPacket	dma_packet;
 
 /* serial register accessors */
-#define REG(_x)		(*(volatile uint32_t *)(SERIAL_BASE + _x))
+#define REG(_x)		(*(volatile uint32_t *)(PX4FMU_SERIAL_BASE + _x))
 #define rSR		REG(STM32_USART_SR_OFFSET)
 #define rDR		REG(STM32_USART_DR_OFFSET)
 #define rBRR		REG(STM32_USART_BRR_OFFSET)
@@ -75,13 +90,51 @@ static void		serial_callback(void *arg, const void *data, unsigned length);
 void
 interface_init(void)
 {
+	/* allocate DMA */
+	tx_dma = stm32_dmachannel(PX4FMU_SERIAL_TX_DMA);
+	rx_dma = stm32_dmachannel(PX4FMU_SERIAL_RX_DMA);
 
-	/* XXX do serial port init here */
+	/* configure pins for serial use */
+	stm32_configgpio(PX4FMU_SERIAL_TX_GPIO);
+	stm32_configgpio(PX4FMU_SERIAL_RX_GPIO);
 
-	irq_attach(SERIAL_VECTOR, serial_interrupt);
-	if_stream = hx_stream_init(-1, serial_callback, NULL);
+	/* reset and configure the UART */
+	rCR1 = 0;
+	rCR2 = 0;
+	rCR3 = 0;
 
-	/* XXX add stream stats counters? */
+	/* configure line speed */
+	uint32_t usartdiv32 = PX4FMU_SERIAL_CLOCK / (PX4FMU_SERIAL_BITRATE / 2);
+	uint32_t mantissa = usartdiv32 >> 5;
+	uint32_t fraction = (usartdiv32 - (mantissa << 5) + 1) >> 1;
+	rBRR = (mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT);
+
+	/* enable UART and DMA */
+	rCR3 = USART_CR3_DMAR | USART_CR3_DMAT;
+	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE;
+
+	/* configure DMA */
+	stm32_dmasetup(
+		tx_dma,
+		(uint32_t)&rDR,
+		(uint32_t)&dma_packet,
+		sizeof(dma_packet),
+		DMA_CCR_DIR		|
+		DMA_CCR_MINC		|
+		DMA_CCR_PSIZE_8BITS	|
+		DMA_CCR_MSIZE_8BITS);
+
+	stm32_dmasetup(
+		rx_dma,
+		(uint32_t)&rDR,
+		(uint32_t)&dma_packet,
+		sizeof(dma_packet),
+		DMA_CCR_MINC		|
+		DMA_CCR_PSIZE_8BITS	|
+		DMA_CCR_MSIZE_8BITS);
+
+	/* start receive DMA ready for the first packet */
+	stm32_dmastart(rx_dma, dma_callback, NULL, false);
 
 	debug("serial init");
 }
@@ -89,76 +142,56 @@ interface_init(void)
 void
 interface_tick()
 {
-	/* XXX nothing interesting to do here */
-}
-
-static int
-serial_interrupt(int vector, void *context)
-{
-	uint32_t sr = rSR;
-
-	if (sr & USART_SR_TXE) {
-		int c = hx_stream_send_next(if_stream);
-		if (c == -1) {
-			/* no more bytes to send, not interested in interrupts now */
-			rCR1 &= ~USART_CR1_TXEIE;
-			sending = false;
-		} else {
-			rDR = c;
-		}
-	}
-
-	if (sr & USART_SR_RXNE) {
-		uint8_t c = rDR;
-
-		hx_stream_rx(if_stream, c);
-	}
-	return 0;
+	/* XXX look for stuck/damaged DMA and reset? */
 }
 
 static void
-serial_callback(void *arg, const void *data, unsigned length)
+dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
-	const uint8_t *message = (const uint8_t *)data;
-
-	/* malformed frame, ignore it */
-	if (length < 2)
+	if (!(status & DMA_STATUS_TCIF)) {
+		/* XXX what do we do here? it's fatal! */
 		return;
+	}
 
-	/* we got a new request while we were still sending the last reply - not supported */
-	if (sending)
+	/* if this is transmit-complete, make a note */
+	if (handle == tx_dma) {
+		sending = false;
 		return;
+	}
 
-	/* reads are page / offset / length */
-	if (length == 3) {
-		uint16_t *registers;
-		unsigned count;
+	/* we just received a request; sort out what to do */
+	/* XXX implement check byte */
+	/* XXX if we care about overruns, check the UART received-data-ready bit */
+	bool send_reply = false;
+	if (dma_packet.count & PKT_CTRL_WRITE) {
 
-		/* get registers for response, send an empty reply on error */
-		if (registers_get(message[0], message[1], &registers, &count) < 0)
-			count = 0;
-
-		/* constrain count to requested size or message limit */
-		if (count > message[2])
-			count = message[2];
-		if (count > HX_STREAM_MAX_FRAME)
-			count = HX_STREAM_MAX_FRAME;
-
-		/* start sending the reply */
-		sending = true;
-		hx_stream_reset(if_stream);
-		hx_stream_start(if_stream, registers, count * 2 + 2);
-
-		/* enable the TX-ready interrupt */
-		rCR1 |= USART_CR1_TXEIE;
-		return;
-
+		/* it's a blind write - pass it on */
+		registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], dma_packet.count);
 	} else {
 
-		/* it's a write operation, pass it to the register API */
-		registers_set(message[0], 
-				message[1],
-				(const uint16_t *)&message[2],
-				(length - 2) / 2);
+		/* it's a read - get register pointer for reply */
+		int result;
+		unsigned count;
+		uint16_t *registers;
+
+		result = registers_get(dma_packet.page, dma_packet.offset, &registers, &count);
+		if (result < 0)
+			count = 0;
+
+		/* constrain reply to packet size */
+		if (count > MAX_RW_REGS)
+			count = MAX_RW_REGS;
+
+		/* copy reply registers into DMA buffer */
+		send_reply = true;
+		memcpy((void *)&dma_packet.regs[0], registers, count);
+		dma_packet.count = count;
 	}
+
+	/* re-set DMA for reception first, so we are ready to receive before we start sending */
+	stm32_dmastart(rx_dma, dma_callback, NULL, false);
+
+	/* if we have a reply to send, start that now */
+	if (send_reply)
+		stm32_dmastart(tx_dma, dma_callback, NULL, false);
 }

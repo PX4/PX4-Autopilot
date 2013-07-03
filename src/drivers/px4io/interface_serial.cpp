@@ -59,14 +59,28 @@
 
 #include <debug.h>
 
-#include <systemlib/hx_stream.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/boards/px4fmuv2/px4fmu_internal.h>	/* XXX should really not be hardcoding v2 here */
 
 #include "interface.h"
+
+const unsigned	max_rw_regs = 32; // by agreement w/IO
+
+#pragma pack(push, 1)
+struct IOPacket {
+	uint8_t 	count;
+#define PKT_CTRL_WRITE			(1<<7)
+	uint8_t 	spare;
+	uint8_t 	page;
+	uint8_t 	offset;
+	uint16_t	regs[max_rw_regs];
+};
+#pragma pack(pop)
 
 class PX4IO_serial : public PX4IO_interface
 {
 public:
-	PX4IO_serial(int port);
+	PX4IO_serial();
 	virtual ~PX4IO_serial();
 
 	virtual int	set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
@@ -75,119 +89,133 @@ public:
 	virtual bool	ok();
 
 private:
-	volatile uint32_t	*_serial_base;
-	int			_vector;
+	/*
+	 * XXX tune this value
+	 *
+	 * At 1.5Mbps each register takes 13.3µs, and we always transfer a full packet.
+	 * Packet overhead is 26µs for the four-byte header.
+	 *
+	 * 32 registers = 451µs
+	 *
+	 * Maybe we can just send smaller packets (e.g. 8 regs) and loop for larger (less common)
+	 * transfers? Could cause issues with any regs expecting to be written atomically...
+	 */
+	static IOPacket		_dma_buffer;		// XXX static to ensure DMA-able memory
 
-	uint8_t			*_tx_buf;
-	unsigned		_tx_size;
+	static const unsigned	_serial_tx_dma = PX4IO_SERIAL_RX_DMAMAP;
+	DMA_HANDLE		_tx_dma;
 
-	const uint8_t		*_rx_buf;
-	unsigned		_rx_size;
+	static const unsigned	_serial_rx_dma = PX4IO_SERIAL_TX_DMAMAP;
+	DMA_HANDLE		_rx_dma;
 
-	hx_stream_t		_stream;
+	/** set if we have started a transaction that expects a reply */
+	bool			_expect_reply;
 
+	/** saved DMA status (in case we care) */
+	uint8_t			_dma_status;
+
+	/** bus-ownership lock */
 	sem_t			_bus_semaphore;
+
+	/** client-waiting lock/signal */
 	sem_t			_completion_semaphore;
 
 	/**
-	 * Send _tx_size bytes from the buffer, then
-	 * if _rx_size is greater than zero wait for a packet
-	 * to come back.
+	 * Start the transaction with IO and wait for it to complete.
+	 *
+	 * @param expect_reply		If true, expect a reply from IO.
 	 */
-	int			_wait_complete();
+	int			_wait_complete(bool expect_reply);
 
 	/**
-	 * Interrupt handler.
+	 * DMA completion handler.
 	 */
-	static int		_interrupt(int irq, void *context);
-	void			_do_interrupt();
+	static void		_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
+	void			_do_dma_callback(DMA_HANDLE handle, uint8_t status);
 
 	/**
-	 * Stream transmit callback
+	 * (re)configure the DMA
 	 */
-	static void		_tx(void *arg, uint8_t data);
-	void			_do_tx(uint8_t data);
-
-	/**
-	 * Stream receive callback
-	 */
-	static void		_rx(void *arg, const void *data, size_t length);
-	void			_do_rx(const uint8_t *data, size_t length);
+	void			_reset_dma();
 
 	/**
 	 * Serial register accessors.
 	 */
 	volatile uint32_t	&_sreg(unsigned offset)
 	{
-		return *(_serial_base + (offset / sizeof(uint32_t)));
+		return *(volatile uint32_t *)(PX4IO_SERIAL_BASE + offset);
 	}
-	volatile uint32_t	&_SR()   { return _sreg(STM32_USART_SR_OFFSET);   }
-	volatile uint32_t	&_DR()   { return _sreg(STM32_USART_DR_OFFSET);   }
-	volatile uint32_t	&_BRR()  { return _sreg(STM32_USART_BRR_OFFSET);  }
-	volatile uint32_t	&_CR1()  { return _sreg(STM32_USART_CR1_OFFSET);  }
-	volatile uint32_t	&_CR2()  { return _sreg(STM32_USART_CR2_OFFSET);  }
-	volatile uint32_t	&_CR3()  { return _sreg(STM32_USART_CR3_OFFSET);  }
-	volatile uint32_t	&_GTPR() { return _sreg(STM32_USART_GTPR_OFFSET); }
+	uint32_t	_SR()   		{ return _sreg(STM32_USART_SR_OFFSET);   }
+	void		_SR(uint32_t val)	{ _sreg(STM32_USART_SR_OFFSET) = val;    }
+	uint32_t	_DR()   		{ return _sreg(STM32_USART_DR_OFFSET);   }
+	void		_DR(uint32_t val)	{ _sreg(STM32_USART_DR_OFFSET) = val;    }
+	uint32_t	_BRR()  		{ return _sreg(STM32_USART_BRR_OFFSET);  }
+	void		_BRR(uint32_t val)	{ _sreg(STM32_USART_BRR_OFFSET) = val;   }
+	uint32_t	_CR1()  		{ return _sreg(STM32_USART_CR1_OFFSET);  }
+	void		_CR1(uint32_t val)	{ _sreg(STM32_USART_CR1_OFFSET) = val;   }
+	uint32_t	_CR2()  		{ return _sreg(STM32_USART_CR2_OFFSET);  }
+	void		_CR2(uint32_t val)	{ _sreg(STM32_USART_CR2_OFFSET) = val;   }
+	uint32_t	_CR3()  		{ return _sreg(STM32_USART_CR3_OFFSET);  }
+	void		_CR3(uint32_t val)	{ _sreg(STM32_USART_CR3_OFFSET) = val;   }
+	uint32_t	_GTPR() 		{ return _sreg(STM32_USART_GTPR_OFFSET); }
+	void		_GTPR(uint32_t val)	{ _sreg(STM32_USART_GTPR_OFFSET) = val;  }
+
 };
 
-/* XXX hack to avoid expensive IRQ lookup */
-static PX4IO_serial *io_serial;
+IOPacket PX4IO_serial::_dma_buffer;
 
 PX4IO_interface	*io_serial_interface(int port)
 {
-	return new PX4IO_serial(port);
+	return new PX4IO_serial();
 }
 
-PX4IO_serial::PX4IO_serial(int port) :
-	_serial_base(0),
-	_vector(0),
-	_tx_buf(nullptr),
-	_tx_size(0),
-	_rx_size(0),
-	_stream(0)
+PX4IO_serial::PX4IO_serial() :
+	_tx_dma(nullptr),
+	_rx_dma(nullptr),
+	_expect_reply(false)
 {
-	/* only allow one instance */
-	if (io_serial != nullptr)
+	/* allocate DMA */
+	_tx_dma = stm32_dmachannel(_serial_tx_dma);
+	_rx_dma = stm32_dmachannel(_serial_rx_dma);
+	if ((_tx_dma == nullptr) || (_rx_dma == nullptr))
 		return;
 
-	switch (port) {
-	case 5:
-		_serial_base = (volatile uint32_t *)STM32_UART5_BASE;
-		_vector = STM32_IRQ_UART5;
-		break;
-	default:
-		/* not a supported port */
-		return;
-	}
+	/* configure pins for serial use */
+	stm32_configgpio(PX4IO_SERIAL_TX_GPIO);
+	stm32_configgpio(PX4IO_SERIAL_RX_GPIO);
 
-	/* XXX need to configure the port here */
+	/* reset & configure the UART */
+	_CR1(0);
+	_CR2(0);
+	_CR3(0);
 
-	/* need space for worst-case escapes + hx protocol overhead */
-	/* XXX this is kinda gross, but hx transmits a byte at a time */
-	_tx_buf = new uint8_t[HX_STREAM_MAX_FRAME];
+	/* configure line speed */
+	uint32_t usartdiv32 = PX4IO_SERIAL_CLOCK / (PX4IO_SERIAL_BITRATE / 2);
+	uint32_t mantissa = usartdiv32 >> 5;
+	uint32_t fraction = (usartdiv32 - (mantissa << 5) + 1) >> 1;
+	_BRR((mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT));
 
-	irq_attach(_vector, &_interrupt);
+	/* enable UART and DMA but no interrupts */
+	_CR3(USART_CR3_DMAR | USART_CR3_DMAT);
+	_CR1(USART_CR1_RE | USART_CR1_TE | USART_CR1_UE);
 
-	_stream = hx_stream_init(-1, _rx, this);
+	/* configure DMA */
+	_reset_dma();
 
+	/* create semaphores */
 	sem_init(&_completion_semaphore, 0, 0);
 	sem_init(&_bus_semaphore, 0, 1);
 }
 
 PX4IO_serial::~PX4IO_serial()
 {
+	if (_tx_dma != nullptr)
+		stm32_dmafree(_tx_dma);
+	if (_rx_dma != nullptr)
+		stm32_dmafree(_rx_dma);
 
-	if (_tx_buf != nullptr)
-		delete[] _tx_buf;
-
-	if (_vector)
-		irq_detach(_vector);
-
-	if (io_serial == this)
-		io_serial = nullptr;
-
-	if (_stream)
-		hx_stream_free(_stream);
+	stm32_unconfiggpio(PX4IO_SERIAL_TX_GPIO);
+	stm32_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
 
 	sem_destroy(&_completion_semaphore);
 	sem_destroy(&_bus_semaphore);
@@ -196,13 +224,9 @@ PX4IO_serial::~PX4IO_serial()
 bool
 PX4IO_serial::ok()
 {
-	if (_serial_base == 0)
+	if (_tx_dma == nullptr)
 		return false;
-	if (_vector == 0)
-		return false;
-	if (_tx_buf == nullptr)
-		return false;
-	if (!_stream)
+	if (_rx_dma == nullptr)
 		return false;
 
 	return true;
@@ -211,22 +235,20 @@ PX4IO_serial::ok()
 int
 PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
-
-	unsigned count = num_values * sizeof(*values);
-	if (count > (HX_STREAM_MAX_FRAME - 2))
+	if (num_values > max_rw_regs)
 		return -EINVAL;
 
 	sem_wait(&_bus_semaphore);
 
-	_tx_buf[0] = page;
-	_tx_buf[1] = offset;
-	memcpy(&_tx_buf[2], (void *)values, count);
-
-	_tx_size = count + 2;
-	_rx_size = 0;
+	_dma_buffer.count = num_values | PKT_CTRL_WRITE;
+	_dma_buffer.spare = 0;
+	_dma_buffer.page = page;
+	_dma_buffer.offset = offset;
+	memcpy((void *)&_dma_buffer.regs[0], (void *)values, (2 * num_values));
+	/* XXX implement check byte */
 
 	/* start the transaction and wait for it to complete */
-	int result = _wait_complete();
+	int result = _wait_complete(false);
 
 	sem_post(&_bus_semaphore);
 	return result;
@@ -235,31 +257,28 @@ PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsi
 int
 PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values)
 {
-
-	unsigned count = num_values * sizeof(*values);
-	if (count > HX_STREAM_MAX_FRAME)
+	if (num_values > max_rw_regs)
 		return -EINVAL;
 
 	sem_wait(&_bus_semaphore);
 
-	_tx_buf[0] = page;
-	_tx_buf[1] = offset;
-	_tx_buf[2] = num_values;
-
-	_tx_size = 3;		/* this tells IO that this is a read request */
-	_rx_size = count;
+	_dma_buffer.count = num_values;
+	_dma_buffer.spare = 0;
+	_dma_buffer.page = page;
+	_dma_buffer.offset = offset;
 
 	/* start the transaction and wait for it to complete */
-	int result = _wait_complete();
+	int result = _wait_complete(true);
 	if (result != OK)
 		goto out;
 
 	/* compare the received count with the expected count */
-	if (_rx_size != count) {
+	if (_dma_buffer.count != num_values) {
 		return -EIO;
 	} else {
+		/* XXX implement check byte */
 		/* copy back the result */
-		memcpy(values, &_rx_buf[0], count);
+		memcpy(values, &_dma_buffer.regs[0], (2 * num_values));
 	}
 out:
 	sem_post(&_bus_semaphore);
@@ -267,14 +286,18 @@ out:
 }
 
 int
-PX4IO_serial::_wait_complete()
+PX4IO_serial::_wait_complete(bool expect_reply)
 {
-	/* prepare the stream for transmission (also discards any received noise) */
-	hx_stream_reset(_stream);
-	hx_stream_start(_stream, _tx_buf, _tx_size);
 
-	/* enable transmit-ready interrupt, which will start transmission */
-	_CR1() |= USART_CR1_TXEIE;
+	/* save for callback use */
+	_expect_reply = expect_reply;
+
+	/* start RX DMA */
+	if (expect_reply)
+		stm32_dmastart(_rx_dma, _dma_callback, this, false);
+
+	/* start TX DMA - no callback if we also expect a reply */
+	stm32_dmastart(_tx_dma, _dma_callback, expect_reply ? nullptr : this, false);
 
 	/* compute the deadline for a 5ms timeout */
 	struct timespec abstime;
@@ -285,68 +308,82 @@ PX4IO_serial::_wait_complete()
 		abstime.tv_nsec -= 1000000000;
 	}
 
-	/* wait for the transaction to complete */
-	int ret = sem_timedwait(&_completion_semaphore, &abstime);
+	/* wait for the transaction to complete - 64 bytes @ 1.5Mbps ~426µs */
+	int ret;
+	for (;;) {
+		ret = sem_timedwait(&_completion_semaphore, &abstime);
+
+		if (ret == OK)
+			break;
+
+		if (ret == ETIMEDOUT) {
+			/* something has broken - clear out any partial DMA state and reconfigure */
+			_reset_dma();
+			break;
+		}
+	}
 
 	return ret;
 }
 
-int
-PX4IO_serial::_interrupt(int irq, void *context)
+void
+PX4IO_serial::_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
-	/* ... because NuttX doesn't give us a handle per vector */
-	io_serial->_do_interrupt();
-	return 0;
+	if (arg != nullptr) {
+		PX4IO_serial *ps = reinterpret_cast<PX4IO_serial *>(arg);
+
+		ps->_do_dma_callback(handle, status);
+	}
 }
 
 void
-PX4IO_serial::_do_interrupt()
+PX4IO_serial::_do_dma_callback(DMA_HANDLE handle, uint8_t status)
 {
-	uint32_t sr = _SR();
+	/* on completion of a no-reply transmit, wake the sender */
+	if (handle == _tx_dma) {
+		if ((status & DMA_STATUS_TCIF) && !_expect_reply) {
+			_dma_status = status;
+			sem_post(&_completion_semaphore);
+		} 
+		/* XXX if we think we're going to see DMA errors, we should handle them here */
+	}
 
-	/* handle transmit completion */
-	if (sr & USART_SR_TXE) {
-		int c = hx_stream_send_next(_stream);
-		if (c == -1) {
-			/* no more bytes to send, not interested in interrupts now */
-			_CR1() &= ~USART_CR1_TXEIE;
-
-			/* was this a tx-only operation? */
-			if (_rx_size == 0) {
-				/* wake up waiting sender */
-				sem_post(&_completion_semaphore);
-			}
-		} else {
-			_DR() = c;
+	/* on completion of a reply, wake the waiter */
+	if (handle == _rx_dma) {
+		if (status & DMA_STATUS_TCIF) {
+			/* XXX if we are worried about overrun/synch, check UART status here */
+			_dma_status = status;
+			sem_post(&_completion_semaphore);
 		}
 	}
-
-	if (sr & USART_SR_RXNE) {
-		uint8_t c = _DR();
-
-		hx_stream_rx(_stream, c);
-	}
 }
 
 void
-PX4IO_serial::_rx(void *arg, const void *data, size_t length)
+PX4IO_serial::_reset_dma()
 {
-	PX4IO_serial *pserial = reinterpret_cast<PX4IO_serial *>(arg);
+	stm32_dmastop(_tx_dma);
+	stm32_dmastop(_rx_dma);
 
-	pserial->_do_rx((const uint8_t *)data, length);
+	stm32_dmasetup(
+		_tx_dma,
+		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
+		reinterpret_cast<uint32_t>(&_dma_buffer),
+		sizeof(_dma_buffer),
+		DMA_SCR_DIR_M2P		|
+		DMA_SCR_MINC		|
+		DMA_SCR_PSIZE_8BITS	|
+		DMA_SCR_MSIZE_8BITS	|
+		DMA_SCR_PBURST_SINGLE	|
+		DMA_SCR_MBURST_SINGLE);
+	stm32_dmasetup(
+		_rx_dma,
+		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
+		reinterpret_cast<uint32_t>(&_dma_buffer),
+		sizeof(_dma_buffer),
+		DMA_SCR_DIR_P2M		|
+		DMA_SCR_MINC		|
+		DMA_SCR_PSIZE_8BITS	|
+		DMA_SCR_MSIZE_8BITS	|
+		DMA_SCR_PBURST_SINGLE	|
+		DMA_SCR_MBURST_SINGLE);
 }
-
-void
-PX4IO_serial::_do_rx(const uint8_t *data, size_t length)
-{
-	_rx_buf = data;
-
-	if (length < _rx_size)
-		_rx_size = length;
-
-	/* notify waiting receiver */
-	sem_post(&_completion_semaphore);
-}
-
-
-
