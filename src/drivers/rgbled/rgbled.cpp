@@ -248,7 +248,7 @@ RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 void
 RGBLED::led_trampoline(void *arg)
 {
-	RGBLED *rgbl = (RGBLED *)arg;
+	RGBLED *rgbl = reinterpret_cast<RGBLED *>(arg);
 
 	rgbl->led();
 }
@@ -413,35 +413,34 @@ void rgbled_usage();
 void rgbled_usage() {
 	warnx("missing command: try 'start', 'systemstate', 'test', 'info', 'off'");
 	warnx("options:");
-	warnx("\t-b --bus i2cbus (3)");
-	warnx("\t-a --ddr addr (9)");
+	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
+	errx(0, "    -a addr (0x%x)", ADDR);
 }
 
 int
 rgbled_main(int argc, char *argv[])
 {
-
 	int i2cdevice = PX4_I2C_BUS_LED;
 	int rgbledadr = ADDR; /* 7bit */
 
-	int x;
-
-	for (x = 1; x < argc; x++) {
-		if (strcmp(argv[x], "-b") == 0 || strcmp(argv[x], "--bus") == 0) {
-			if (argc > x + 1) {
-				i2cdevice = atoi(argv[x + 1]);
-			}
+	int ch;
+	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+		switch (ch) {
+		case 'a':
+			rgbledadr = strtol(optarg, NULL, 0);
+			break;
+		case 'b':
+			i2cdevice = strtol(optarg, NULL, 0);
+			break;
+		default:
+			rgbled_usage();
 		}
-
-		if (strcmp(argv[x], "-a") == 0 || strcmp(argv[x], "--addr") == 0) {
-			if (argc > x + 1) {
-				rgbledadr = atoi(argv[x + 1]);
-			}
-		}
-
 	}
+	argc -= optind;
+	argv += optind;
+	const char *verb = argv[0];
 
-	if (!strcmp(argv[1], "start")) {
+	if (!strcmp(verb, "start")) {
 		if (g_rgbled != nullptr)
 			errx(1, "already started");
 
@@ -459,39 +458,32 @@ rgbled_main(int argc, char *argv[])
 		exit(0);
 	}
 
-
+	/* need the driver past this point */
 	if (g_rgbled == nullptr) {
 		fprintf(stderr, "not started\n");
 		rgbled_usage();
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "test")) {
+	if (!strcmp(verb, "test")) {
 		g_rgbled->setMode(LED_MODE_TEST);
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "systemstate")) {
+	if (!strcmp(verb, "systemstate")) {
 		g_rgbled->setMode(LED_MODE_SYSTEMSTATE);
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "info")) {
+	if (!strcmp(verb, "info")) {
 		g_rgbled->info();
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "off")) {
+	if (!strcmp(verb, "off")) {
 		g_rgbled->setMode(LED_MODE_OFF);
 		exit(0);
 	}
 
-
-	/* things that require access to the device */
-	int fd = open(RGBLED_DEVICE_PATH, 0);
-	if (fd < 0)
-		err(1, "can't open RGBLED device");
-
 	rgbled_usage();
-	exit(0);
 }
