@@ -52,6 +52,7 @@
 #include <arch/board/board.h>
 
 /* XXX might be able to prune these */
+#include <nuttx/arch.h>
 #include <chip.h>
 #include <up_internal.h>
 #include <up_arch.h>
@@ -61,6 +62,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/boards/px4fmuv2/px4fmu_internal.h>	/* XXX should really not be hardcoding v2 here */
+
+#include <systemlib/perf_counter.h>
 
 #include "interface.h"
 
@@ -76,6 +79,8 @@ struct IOPacket {
 	uint16_t	regs[max_rw_regs];
 };
 #pragma pack(pop)
+
+#define PKT_SIZE(_n)	(4 + (2 * (_n)))
 
 class PX4IO_serial : public PX4IO_interface
 {
@@ -105,12 +110,13 @@ private:
 
 	DMA_HANDLE		_tx_dma;
 	DMA_HANDLE		_rx_dma;
+	volatile unsigned	_rx_length;
 
-	/** set if we have started a transaction that expects a reply */
-	bool			_expect_reply;
-
-	/** saved DMA status (in case we care) */
-	uint8_t			_dma_status;
+	/** saved DMA status */
+	static const unsigned	_dma_status_inactive = 0x80000000;	// low bits overlap DMA_STATUS_* values
+	static const unsigned	_dma_status_waiting  = 0x00000000;
+	volatile unsigned	_tx_dma_status;
+	volatile unsigned	_rx_dma_status;
 
 	/** bus-ownership lock */
 	sem_t			_bus_semaphore;
@@ -123,18 +129,25 @@ private:
 	 *
 	 * @param expect_reply		If true, expect a reply from IO.
 	 */
-	int			_wait_complete(bool expect_reply);
+	int			_wait_complete(bool expect_reply, unsigned tx_length);
 
 	/**
 	 * DMA completion handler.
 	 */
 	static void		_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
-	void			_do_dma_callback(DMA_HANDLE handle, uint8_t status);
+	void			_do_tx_dma_callback(unsigned status);
+	void			_do_rx_dma_callback(unsigned status);
 
 	/**
-	 * (re)configure the DMA
+	 * Serial interrupt handler.
 	 */
-	void			_reset_dma();
+	static int		_interrupt(int vector, void *context);
+	void			_do_interrupt();
+
+	/**
+	 * Cancel any DMA in progress with an error.
+	 */
+	void			_abort_dma();
 
 	/**
 	 * Serial register accessors.
@@ -158,9 +171,19 @@ private:
 	uint32_t	_GTPR() 		{ return _sreg(STM32_USART_GTPR_OFFSET); }
 	void		_GTPR(uint32_t val)	{ _sreg(STM32_USART_GTPR_OFFSET) = val;  }
 
+	/**
+	 * Performance counters.
+	 */
+	perf_counter_t		_perf_dmasetup;
+	perf_counter_t		_perf_timeouts;
+	perf_counter_t		_perf_errors;
+	perf_counter_t		_perf_wr;
+	perf_counter_t		_perf_rd;
+
 };
 
 IOPacket PX4IO_serial::_dma_buffer;
+static PX4IO_serial *g_interface;
 
 PX4IO_interface	*io_serial_interface()
 {
@@ -170,7 +193,14 @@ PX4IO_interface	*io_serial_interface()
 PX4IO_serial::PX4IO_serial() :
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
-	_expect_reply(false)
+	_rx_length(0),
+	_tx_dma_status(_dma_status_inactive),
+	_rx_dma_status(_dma_status_inactive),
+	_perf_dmasetup(perf_alloc(PC_ELAPSED,	"dmasetup")),
+	_perf_timeouts(perf_alloc(PC_COUNT,	"timeouts")),
+	_perf_errors(perf_alloc(PC_COUNT,	"errors  ")),
+	_perf_wr(perf_alloc(PC_ELAPSED,		"writes  ")),
+	_perf_rd(perf_alloc(PC_ELAPSED,		"reads   "))
 {
 	/* allocate DMA */
 	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
@@ -193,16 +223,19 @@ PX4IO_serial::PX4IO_serial() :
 	uint32_t fraction = (usartdiv32 - (mantissa << 5) + 1) >> 1;
 	_BRR((mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT));
 
-	/* enable UART and DMA but no interrupts */
-	_CR3(USART_CR3_DMAR | USART_CR3_DMAT);
-	_CR1(USART_CR1_RE | USART_CR1_TE | USART_CR1_UE);
+	/* enable UART in DMA mode, enable error and line idle interrupts */
+	_CR3(USART_CR3_DMAR | USART_CR3_DMAT | USART_CR3_EIE);
+	_CR1(USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE);
 
-	/* configure DMA */
-	_reset_dma();
+	/* attach serial interrupt handler */
+	irq_attach(PX4IO_SERIAL_VECTOR, _interrupt);
+	up_enable_irq(PX4IO_SERIAL_VECTOR);
 
 	/* create semaphores */
 	sem_init(&_completion_semaphore, 0, 0);
 	sem_init(&_bus_semaphore, 0, 1);
+
+	g_interface = this;
 }
 
 PX4IO_serial::~PX4IO_serial()
@@ -221,6 +254,10 @@ PX4IO_serial::~PX4IO_serial()
 	_CR2(0);
 	_CR3(0);
 
+	/* detach our interrupt handler */
+	up_disable_irq(PX4IO_SERIAL_VECTOR);
+	irq_detach(PX4IO_SERIAL_VECTOR);
+
 	/* restore the GPIOs */
 	stm32_unconfiggpio(PX4IO_SERIAL_TX_GPIO);
 	stm32_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
@@ -228,6 +265,9 @@ PX4IO_serial::~PX4IO_serial()
 	/* and kill our semaphores */
 	sem_destroy(&_completion_semaphore);
 	sem_destroy(&_bus_semaphore);
+
+	if (g_interface == this)
+		g_interface = nullptr;
 }
 
 bool
@@ -265,9 +305,14 @@ PX4IO_serial::test(unsigned mode)
 		lowsyslog("test 1\n");
 		{
 			uint16_t value = 0x5555;
-			for (;;) {
+			for (unsigned count = 0;; count++) {
 				if (set_reg(0x55, 0x55, &value, 1) != OK)
 					return -2;
+				if (count > 10000) {
+					perf_print_counter(_perf_dmasetup);
+					perf_print_counter(_perf_wr);
+					count = 0;
+				}
 			}
 			return 0;
 		}
@@ -291,7 +336,7 @@ PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsi
 	/* XXX implement check byte */
 
 	/* start the transaction and wait for it to complete */
-	int result = _wait_complete(false);
+	int result = _wait_complete(false, PKT_SIZE(num_values));
 
 	sem_post(&_bus_semaphore);
 	return result;
@@ -311,7 +356,7 @@ PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned n
 	_dma_buffer.offset = offset;
 
 	/* start the transaction and wait for it to complete */
-	int result = _wait_complete(true);
+	int result = _wait_complete(true, PKT_SIZE(0));
 	if (result != OK)
 		goto out;
 
@@ -329,24 +374,58 @@ out:
 }
 
 int
-PX4IO_serial::_wait_complete(bool expect_reply)
+PX4IO_serial::_wait_complete(bool expect_reply, unsigned tx_length)
 {
 
-	/* save for callback use */
-	_expect_reply = expect_reply;
-
 	/* start RX DMA */
-	if (expect_reply)
+	if (expect_reply) {
+		perf_begin(_perf_rd);
+		perf_begin(_perf_dmasetup);
+
+		/* DMA setup time ~3µs */
+		_rx_dma_status = _dma_status_waiting;
+		_rx_length = 0;
+		stm32_dmasetup(
+			_rx_dma,
+			PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
+			reinterpret_cast<uint32_t>(&_dma_buffer),
+			sizeof(_dma_buffer),
+			DMA_SCR_DIR_P2M		|
+			DMA_SCR_MINC		|
+			DMA_SCR_PSIZE_8BITS	|
+			DMA_SCR_MSIZE_8BITS	|
+			DMA_SCR_PBURST_SINGLE	|
+			DMA_SCR_MBURST_SINGLE);
 		stm32_dmastart(_rx_dma, _dma_callback, this, false);
 
+		perf_end(_perf_dmasetup);
+	} else {
+		perf_begin(_perf_wr);
+	}
+
 	/* start TX DMA - no callback if we also expect a reply */
+	/* DMA setup time ~3µs */
+	perf_begin(_perf_dmasetup);
+	_tx_dma_status = _dma_status_waiting;
+	stm32_dmasetup(
+		_tx_dma,
+		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
+		reinterpret_cast<uint32_t>(&_dma_buffer),
+		sizeof(_dma_buffer),		/* XXX should be tx_length */
+		DMA_SCR_DIR_M2P		|
+		DMA_SCR_MINC		|
+		DMA_SCR_PSIZE_8BITS	|
+		DMA_SCR_MSIZE_8BITS	|
+		DMA_SCR_PBURST_SINGLE	|
+		DMA_SCR_MBURST_SINGLE);
 	stm32_dmastart(_tx_dma, /*expect_reply ? nullptr :*/ _dma_callback, this, false);
+	perf_end(_perf_dmasetup);
 
 	/* compute the deadline for a 5ms timeout */
 	struct timespec abstime;
 	clock_gettime(CLOCK_REALTIME, &abstime);
 #if 1
-	abstime.tv_sec++;
+	abstime.tv_sec++;		/* long timeout for testing */
 #else
 	abstime.tv_nsec += 5000000;	/* 5ms timeout */
 	while (abstime.tv_nsec > 1000000000) {
@@ -366,11 +445,31 @@ PX4IO_serial::_wait_complete(bool expect_reply)
 		if (errno == ETIMEDOUT) {
 			lowsyslog("timeout waiting for PX4IO link (%d/%d)\n", stm32_dmaresidual(_tx_dma), stm32_dmaresidual(_rx_dma));
 			/* something has broken - clear out any partial DMA state and reconfigure */
-			_reset_dma();
+			_abort_dma();
+			perf_count(_perf_timeouts);
 			break;
 		}
 		lowsyslog("unexpected ret %d/%d\n", ret, errno);
 	}
+
+	/* check for DMA errors */
+	if (ret == OK) {
+		if (_tx_dma_status & DMA_STATUS_TEIF) {
+			lowsyslog("DMA transmit error\n");
+			ret = -1;
+		}
+		if (_rx_dma_status & DMA_STATUS_TEIF) {
+			lowsyslog("DMA receive error\n");
+			ret = -1;
+		}
+		perf_count(_perf_errors);
+	}
+
+	/* reset DMA status */
+	_tx_dma_status = _dma_status_inactive;
+	_rx_dma_status = _dma_status_inactive;
+
+	perf_end(expect_reply ? _perf_rd : _perf_wr);
 
 	return ret;
 }
@@ -381,58 +480,124 @@ PX4IO_serial::_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	if (arg != nullptr) {
 		PX4IO_serial *ps = reinterpret_cast<PX4IO_serial *>(arg);
 
-		ps->_do_dma_callback(handle, status);
-	}
-}
-
-void
-PX4IO_serial::_do_dma_callback(DMA_HANDLE handle, uint8_t status)
-{
-	/* on completion of a no-reply transmit, wake the sender */
-	if (handle == _tx_dma) {
-		if ((status & DMA_STATUS_TCIF) && !_expect_reply) {
-			_dma_status = status;
-			sem_post(&_completion_semaphore);
-		} 
-		/* XXX if we think we're going to see DMA errors, we should handle them here */
-	}
-
-	/* on completion of a reply, wake the waiter */
-	if (handle == _rx_dma) {
-		if (status & DMA_STATUS_TCIF) {
-			/* XXX if we are worried about overrun/synch, check UART status here */
-			_dma_status = status;
-			sem_post(&_completion_semaphore);
+		if (handle == ps->_tx_dma) {
+			ps->_do_tx_dma_callback(status);
+		} else if (handle == ps->_rx_dma) {
+			ps->_do_rx_dma_callback(status);
 		}
 	}
 }
 
 void
-PX4IO_serial::_reset_dma()
+PX4IO_serial::_do_tx_dma_callback(unsigned status)
+{
+	/* on completion of a no-reply transmit, wake the sender */
+	if (_tx_dma_status == _dma_status_waiting) {
+
+		/* save TX status */
+		_tx_dma_status = status;
+
+		/* if we aren't going on to expect a reply, complete now */
+		if (_rx_dma_status != _dma_status_waiting)
+			sem_post(&_completion_semaphore);
+	}
+}
+
+void
+PX4IO_serial::_do_rx_dma_callback(unsigned status)
+{
+	ASSERT(_tx_dma_status != _dma_status_waiting);
+
+	/* on completion of a reply, wake the waiter */
+	if (_rx_dma_status == _dma_status_waiting) {
+
+		/* check for packet overrun - this will occur after DMA completes */
+		if (_SR() & (USART_SR_ORE | USART_SR_RXNE)) {
+			_DR();
+			status = DMA_STATUS_TEIF;
+		}
+
+		/* save RX status */
+		_rx_dma_status = status;
+
+		/* DMA may have stopped short */
+		_rx_length = sizeof(IOPacket) - stm32_dmaresidual(_rx_dma);
+
+		/* complete now */
+		sem_post(&_completion_semaphore);
+	}
+}
+
+int
+PX4IO_serial::_interrupt(int irq, void *context)
+{
+	if (g_interface != nullptr)
+		g_interface->_do_interrupt();
+	return 0;
+}
+
+void
+PX4IO_serial::_do_interrupt()
+{
+	uint32_t sr = _SR();	/* get UART status register */
+
+	/* handle error/exception conditions */
+	if (sr & (USART_SR_ORE | USART_SR_NE | USART_SR_FE | USART_SR_IDLE)) {
+		/* read DR to clear status */
+		_DR();
+	} else {
+		ASSERT(0);
+	}
+
+	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
+		USART_SR_NE |		/* noise error - we have lost a byte due to noise */
+		USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
+		
+		/* 
+		 * If we are in the process of listening for something, these are all fatal;
+		 * abort the DMA with an error.
+		 */
+		if (_rx_dma_status == _dma_status_waiting) {
+			_abort_dma();
+			return;
+		}
+
+		/* XXX we might want to use FE / line break as an out-of-band handshake ... handle it here */
+
+		/* don't attempt to handle IDLE if it's set - things went bad */
+		return;
+	}
+
+	if (sr & USART_SR_IDLE) {
+
+		/* if there was DMA transmission still going, this is an error */
+		if (_tx_dma_status == _dma_status_waiting) {
+
+			/* babble from IO */
+			_abort_dma();
+			return;
+		}
+
+		/* if there is DMA reception going on, this is a short packet */
+		if (_rx_dma_status == _dma_status_waiting) {
+
+			/* stop the receive DMA */
+			stm32_dmastop(_rx_dma);
+
+			/* complete the short reception */
+			_do_rx_dma_callback(DMA_STATUS_TCIF);
+		}
+	}
+}
+
+void
+PX4IO_serial::_abort_dma()
 {
 	stm32_dmastop(_tx_dma);
 	stm32_dmastop(_rx_dma);
+	_do_tx_dma_callback(DMA_STATUS_TEIF);
+	_do_rx_dma_callback(DMA_STATUS_TEIF);
 
-	stm32_dmasetup(
-		_tx_dma,
-		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
-		reinterpret_cast<uint32_t>(&_dma_buffer),
-		sizeof(_dma_buffer),
-		DMA_SCR_DIR_M2P		|
-		DMA_SCR_MINC		|
-		DMA_SCR_PSIZE_8BITS	|
-		DMA_SCR_MSIZE_8BITS	|
-		DMA_SCR_PBURST_SINGLE	|
-		DMA_SCR_MBURST_SINGLE);
-	stm32_dmasetup(
-		_rx_dma,
-		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
-		reinterpret_cast<uint32_t>(&_dma_buffer),
-		sizeof(_dma_buffer),
-		DMA_SCR_DIR_P2M		|
-		DMA_SCR_MINC		|
-		DMA_SCR_PSIZE_8BITS	|
-		DMA_SCR_MSIZE_8BITS	|
-		DMA_SCR_PBURST_SINGLE	|
-		DMA_SCR_MBURST_SINGLE);
+	_tx_dma_status = _dma_status_inactive;
+	_rx_dma_status = _dma_status_inactive;
 }
