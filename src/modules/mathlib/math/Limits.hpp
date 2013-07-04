@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,84 +32,49 @@
  ****************************************************************************/
 
 /**
- * @file Quaternion.hpp
+ * @file Limits.hpp
  *
- * math quaternion lib
+ * Limiting / constrain helper functions
  */
 
 #pragma once
 
-#include "Vector.hpp"
-#include "Matrix.hpp"
+#include <nuttx/config.h>
 
-namespace math
-{
+namespace math {
 
-class Dcm;
-class EulerAngles;
 
-class __EXPORT Quaternion : public Vector
-{
-public:
+float __EXPORT min(float val1, float val2);
 
-	/**
-	 * default ctor
-	 */
-	Quaternion();
+int __EXPORT min(int val1, int val2);
 
-	/**
-	 * ctor from floats
-	 */
-	Quaternion(float a, float b, float c, float d);
+unsigned __EXPORT min(unsigned val1, unsigned val2);
 
-	/**
-	 * ctor from data
-	 */
-	Quaternion(const float *data);
+double __EXPORT min(double val1, double val2);
 
-	/**
-	 * ctor from Vector
-	 */
-	Quaternion(const Vector &v);
+float __EXPORT max(float val1, float val2);
 
-	/**
-	 * ctor from EulerAngles
-	 */
-	Quaternion(const EulerAngles &euler);
+int __EXPORT max(int val1, int val2);
 
-	/**
-	 * ctor from Dcm
-	 */
-	Quaternion(const Dcm &dcm);
+unsigned __EXPORT max(unsigned val1, unsigned val2);
 
-	/**
-	 * deep copy ctor
-	 */
-	Quaternion(const Quaternion &right);
+double __EXPORT max(double val1, double val2);
 
-	/**
-	 * dtor
-	 */
-	virtual ~Quaternion();
 
-	/**
-	 * derivative
-	 */
-	Vector derivative(const Vector &w);
+float __EXPORT constrain(float val, float min, float max);
 
-	/**
-	 * accessors
-	 */
-	void setA(float a) { (*this)(0) = a; }
-	void setB(float b) { (*this)(1) = b; }
-	void setC(float c) { (*this)(2) = c; }
-	void setD(float d) { (*this)(3) = d; }
-	const float &getA() const { return (*this)(0); }
-	const float &getB() const { return (*this)(1); }
-	const float &getC() const { return (*this)(2); }
-	const float &getD() const { return (*this)(3); }
-};
+int __EXPORT constrain(int val, int min, int max);
 
-int __EXPORT quaternionTest();
-} // math
+unsigned __EXPORT constrain(unsigned val, unsigned min, unsigned max);
 
+double __EXPORT constrain(double val, double min, double max);
+
+float __EXPORT radians(float degrees);
+
+double __EXPORT radians(double degrees);
+
+float __EXPORT degrees(float radians);
+
+double __EXPORT degrees(double radians);
+
+}

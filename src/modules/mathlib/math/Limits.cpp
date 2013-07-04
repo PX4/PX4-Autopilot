@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,28 +32,99 @@
  ****************************************************************************/
 
 /**
- * @file mathlib.h
+ * @file Limits.cpp
  *
- * Common header for mathlib exports.
+ * Limiting / constrain helper functions
  */
 
-#ifdef __cplusplus
 
-#pragma once
+#include <math.h>
 
-#include "math/Dcm.hpp"
-#include "math/EulerAngles.hpp"
-#include "math/Matrix.hpp"
-#include "math/Quaternion.hpp"
-#include "math/Vector.hpp"
-#include "math/Vector3.hpp"
-#include "math/Vector2f.hpp"
-#include "math/Limits.hpp"
+#include "Limits.hpp"
 
-#endif
 
-#ifdef CONFIG_ARCH_ARM
+namespace math {
 
-#include "CMSIS/Include/arm_math.h"
 
-#endif
+float __EXPORT min(float val1, float val2)
+{
+	return (val1 < val2) ? val1 : val2;
+}
+
+int __EXPORT min(int val1, int val2)
+{
+	return (val1 < val2) ? val1 : val2;
+}
+
+unsigned __EXPORT min(unsigned val1, unsigned val2)
+{
+	return (val1 < val2) ? val1 : val2;
+}
+
+double __EXPORT min(double val1, double val2)
+{
+	return (val1 < val2) ? val1 : val2;
+}
+
+float __EXPORT max(float val1, float val2)
+{
+	return (val1 > val2) ? val1 : val2;
+}
+
+int __EXPORT max(int val1, int val2)
+{
+	return (val1 > val2) ? val1 : val2;
+}
+
+unsigned __EXPORT max(unsigned val1, unsigned val2)
+{
+	return (val1 > val2) ? val1 : val2;
+}
+
+double __EXPORT max(double val1, double val2)
+{
+	return (val1 > val2) ? val1 : val2;
+}
+
+
+float __EXPORT constrain(float val, float min, float max)
+{
+	return (val < min) ? min : ((val > max) ? max : val);
+}
+
+int __EXPORT constrain(int val, int min, int max)
+{
+	return (val < min) ? min : ((val > max) ? max : val);
+}
+
+unsigned __EXPORT constrain(unsigned val, unsigned min, unsigned max)
+{
+	return (val < min) ? min : ((val > max) ? max : val);
+}
+
+double __EXPORT constrain(double val, double min, double max)
+{
+	return (val < min) ? min : ((val > max) ? max : val);
+}
+
+float __EXPORT radians(float degrees)
+{
+	return (degrees / 180.0f) * M_PI_F;
+}
+
+double __EXPORT radians(double degrees)
+{
+	return (degrees / 180.0) * M_PI;
+}
+
+float __EXPORT degrees(float radians)
+{
+	return (radians / M_PI_F) * 180.0f;
+}
+
+double __EXPORT degrees(double radians)
+{
+	return (radians / M_PI) * 180.0;
+}
+
+}

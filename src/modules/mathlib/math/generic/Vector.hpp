@@ -184,8 +184,17 @@ public:
 
 		return result;
 	}
+	inline Vector operator-(void) const {
+		Vector result(getRows());
+
+		for (size_t i = 0; i < getRows(); i++) {
+			result(i) = -((*this)(i));
+		}
+
+		return result;
+	}
 	// other functions
-	inline float dot(const Vector &right) {
+	inline float dot(const Vector &right) const {
 		float result = 0;
 
 		for (size_t i = 0; i < getRows(); i++) {
@@ -194,11 +203,20 @@ public:
 
 		return result;
 	}
-	inline float norm() {
+	inline float norm() const {
 		return sqrtf(dot(*this));
 	}
-	inline Vector unit() {
+	inline float length() const {
+		return norm();
+	}
+	inline Vector unit() const {
 		return (*this) / norm();
+	}
+	inline Vector normalized() const {
+		return unit();
+	}
+	inline void normalize() {
+		(*this) = (*this) / norm();
 	}
 	inline static Vector zero(size_t rows) {
 		Vector result(rows);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,84 +32,72 @@
  ****************************************************************************/
 
 /**
- * @file Quaternion.hpp
+ * @file Vector2f.cpp
  *
- * math quaternion lib
+ * math vector
  */
 
-#pragma once
+#include "test/test.hpp"
 
-#include "Vector.hpp"
-#include "Matrix.hpp"
+#include "Vector2f.hpp"
 
 namespace math
 {
 
-class Dcm;
-class EulerAngles;
-
-class __EXPORT Quaternion : public Vector
+Vector2f::Vector2f() :
+	Vector(2)
 {
-public:
+}
 
-	/**
-	 * default ctor
-	 */
-	Quaternion();
+Vector2f::Vector2f(const Vector &right) :
+	Vector(right)
+{
+#ifdef VECTOR_ASSERT
+	ASSERT(right.getRows() == 2);
+#endif
+}
 
-	/**
-	 * ctor from floats
-	 */
-	Quaternion(float a, float b, float c, float d);
+Vector2f::Vector2f(float x, float y) :
+	Vector(2)
+{
+	setX(x);
+	setY(y);
+}
 
-	/**
-	 * ctor from data
-	 */
-	Quaternion(const float *data);
+Vector2f::Vector2f(const float *data) :
+	Vector(2, data)
+{
+}
 
-	/**
-	 * ctor from Vector
-	 */
-	Quaternion(const Vector &v);
+Vector2f::~Vector2f()
+{
+}
 
-	/**
-	 * ctor from EulerAngles
-	 */
-	Quaternion(const EulerAngles &euler);
+float Vector2f::cross(const Vector2f &b) const
+{
+	const Vector2f &a = *this;
+	return a(0)*b(1) - a(1)*b(0);
+}
 
-	/**
-	 * ctor from Dcm
-	 */
-	Quaternion(const Dcm &dcm);
+float Vector2f::operator %(const Vector2f &v) const
+{
+	return cross(v);
+}
+    
+float Vector2f::operator *(const Vector2f &v) const
+{
+    return dot(v);
+}
 
-	/**
-	 * deep copy ctor
-	 */
-	Quaternion(const Quaternion &right);
+int __EXPORT vector2fTest()
+{
+	printf("Test Vector2f\t\t: ");
+	// test float ctor
+	Vector2f v(1, 2);
+	ASSERT(equal(v(0), 1));
+	ASSERT(equal(v(1), 2));
+	printf("PASS\n");
+	return 0;
+}
 
-	/**
-	 * dtor
-	 */
-	virtual ~Quaternion();
-
-	/**
-	 * derivative
-	 */
-	Vector derivative(const Vector &w);
-
-	/**
-	 * accessors
-	 */
-	void setA(float a) { (*this)(0) = a; }
-	void setB(float b) { (*this)(1) = b; }
-	void setC(float c) { (*this)(2) = c; }
-	void setD(float d) { (*this)(3) = d; }
-	const float &getA() const { return (*this)(0); }
-	const float &getB() const { return (*this)(1); }
-	const float &getC() const { return (*this)(2); }
-	const float &getD() const { return (*this)(3); }
-};
-
-int __EXPORT quaternionTest();
-} // math
-
+} // namespace math
