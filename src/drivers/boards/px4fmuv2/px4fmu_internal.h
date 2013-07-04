@@ -59,6 +59,7 @@ __BEGIN_DECLS
 /* Configuration ************************************************************************************/
 
 /* PX4IO connection configuration */
+#define PX4IO_SERIAL_DEVICE	"/dev/ttyS5"
 #define PX4IO_SERIAL_TX_GPIO	GPIO_USART6_TX
 #define PX4IO_SERIAL_RX_GPIO	GPIO_USART6_RX
 #define PX4IO_SERIAL_BASE	STM32_USART6_BASE	/* hardwired on the board */

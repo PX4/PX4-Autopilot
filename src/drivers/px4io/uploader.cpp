@@ -49,9 +49,20 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <termios.h>
 #include <sys/stat.h>
 
 #include "uploader.h"
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMUV2
+#include <drivers/boards/px4fmuv2/px4fmu_internal.h>
+#endif
+#ifdef CONFIG_ARCH_BOARD_PX4FMU
+#include <drivers/boards/px4fmu/px4fmu_internal.h>
+#endif
+
+// define for comms logging
+//#define UDEBUG
 
 static const uint32_t crctab[] =
 {
@@ -114,12 +125,22 @@ PX4IO_Uploader::upload(const char *filenames[])
 	const char *filename = NULL;
 	size_t fw_size;
 
-	_io_fd = open("/dev/ttyS2", O_RDWR);
+#ifndef PX4IO_SERIAL_DEVICE
+#error Must define PX4IO_SERIAL_DEVICE in board configuration to support firmware upload
+#endif
+
+	_io_fd = open(PX4IO_SERIAL_DEVICE, O_RDWR);
 
 	if (_io_fd < 0) {
 		log("could not open interface");
 		return -errno;
 	}
+
+	/* adjust line speed to match bootloader */
+	struct termios t;
+	tcgetattr(_io_fd, &t);
+	cfsetspeed(&t, 115200);
+	tcsetattr(_io_fd, TCSANOW, &t);
 
 	/* look for the bootloader */
 	ret = sync();
@@ -251,12 +272,16 @@ PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
 	int ret = ::poll(&fds[0], 1, timeout);
 
 	if (ret < 1) {
+#ifdef UDEBUG
 		log("poll timeout %d", ret);
+#endif
 		return -ETIMEDOUT;
 	}
 
 	read(_io_fd, &c, 1);
-	//log("recv 0x%02x", c);
+#ifdef UDEBUG
+	log("recv 0x%02x", c);
+#endif
 	return OK;
 }
 
@@ -282,16 +307,20 @@ PX4IO_Uploader::drain()
 	do {
 		ret = recv(c, 1000);
 
+#ifdef UDEBUG
 		if (ret == OK) {
-			//log("discard 0x%02x", c);
+			log("discard 0x%02x", c);
 		}
+#endif
 	} while (ret == OK);
 }
 
 int
 PX4IO_Uploader::send(uint8_t c)
 {
-	//log("send 0x%02x", c);
+#ifdef UDEBUG
+	log("send 0x%02x", c);
+#endif
 	if (write(_io_fd, &c, 1) != 1)
 		return -errno;
 
