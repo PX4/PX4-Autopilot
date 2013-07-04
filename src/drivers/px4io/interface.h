@@ -72,7 +72,14 @@ public:
 	 * @return		Zero on success.
 	 */	
 	virtual int	get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values) = 0;
+
+	/**
+	 * Perform an interface test.
+	 *
+	 * @param mode		Optional test mode.
+	 */
+	virtual int	test(unsigned mode) = 0;
 };
 
 extern PX4IO_interface	*io_i2c_interface(int bus, uint8_t address);
-extern PX4IO_interface	*io_serial_interface(int port);
+extern PX4IO_interface	*io_serial_interface();

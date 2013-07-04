@@ -87,6 +87,7 @@ public:
 	virtual int	get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values);
 
 	virtual bool	ok();
+	virtual int	test(unsigned mode);
 
 private:
 	/*
@@ -102,10 +103,7 @@ private:
 	 */
 	static IOPacket		_dma_buffer;		// XXX static to ensure DMA-able memory
 
-	static const unsigned	_serial_tx_dma = PX4IO_SERIAL_RX_DMAMAP;
 	DMA_HANDLE		_tx_dma;
-
-	static const unsigned	_serial_rx_dma = PX4IO_SERIAL_TX_DMAMAP;
 	DMA_HANDLE		_rx_dma;
 
 	/** set if we have started a transaction that expects a reply */
@@ -164,7 +162,7 @@ private:
 
 IOPacket PX4IO_serial::_dma_buffer;
 
-PX4IO_interface	*io_serial_interface(int port)
+PX4IO_interface	*io_serial_interface()
 {
 	return new PX4IO_serial();
 }
@@ -175,8 +173,8 @@ PX4IO_serial::PX4IO_serial() :
 	_expect_reply(false)
 {
 	/* allocate DMA */
-	_tx_dma = stm32_dmachannel(_serial_tx_dma);
-	_rx_dma = stm32_dmachannel(_serial_rx_dma);
+	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
+	_rx_dma = stm32_dmachannel(PX4IO_SERIAL_RX_DMAMAP);
 	if ((_tx_dma == nullptr) || (_rx_dma == nullptr))
 		return;
 
@@ -209,14 +207,25 @@ PX4IO_serial::PX4IO_serial() :
 
 PX4IO_serial::~PX4IO_serial()
 {
-	if (_tx_dma != nullptr)
+	if (_tx_dma != nullptr) {
+		stm32_dmastop(_tx_dma);
 		stm32_dmafree(_tx_dma);
-	if (_rx_dma != nullptr)
+	}
+	if (_rx_dma != nullptr) {
+		stm32_dmastop(_rx_dma);
 		stm32_dmafree(_rx_dma);
+	}
 
+	/* reset the UART */
+	_CR1(0);
+	_CR2(0);
+	_CR3(0);
+
+	/* restore the GPIOs */
 	stm32_unconfiggpio(PX4IO_SERIAL_TX_GPIO);
 	stm32_unconfiggpio(PX4IO_SERIAL_RX_GPIO);
 
+	/* and kill our semaphores */
 	sem_destroy(&_completion_semaphore);
 	sem_destroy(&_bus_semaphore);
 }
@@ -230,6 +239,40 @@ PX4IO_serial::ok()
 		return false;
 
 	return true;
+}
+
+int
+PX4IO_serial::test(unsigned mode)
+{
+
+	switch (mode) {
+	case 0:
+		lowsyslog("test 0\n");
+
+		/* kill DMA, this is a PIO test */
+		stm32_dmastop(_tx_dma);
+		stm32_dmastop(_rx_dma);
+		_CR3(_CR3() & ~(USART_CR3_DMAR | USART_CR3_DMAT));
+
+		for (;;) {
+			while (!(_SR() & USART_SR_TXE))
+				;
+			_DR(0x55);
+		}
+		return 0;
+
+	case 1:
+		lowsyslog("test 1\n");
+		{
+			uint16_t value = 0x5555;
+			for (;;) {
+				if (set_reg(0x55, 0x55, &value, 1) != OK)
+					return -2;
+			}
+			return 0;
+		}
+	}
+	return -1;
 }
 
 int
@@ -297,16 +340,20 @@ PX4IO_serial::_wait_complete(bool expect_reply)
 		stm32_dmastart(_rx_dma, _dma_callback, this, false);
 
 	/* start TX DMA - no callback if we also expect a reply */
-	stm32_dmastart(_tx_dma, _dma_callback, expect_reply ? nullptr : this, false);
+	stm32_dmastart(_tx_dma, /*expect_reply ? nullptr :*/ _dma_callback, this, false);
 
 	/* compute the deadline for a 5ms timeout */
 	struct timespec abstime;
 	clock_gettime(CLOCK_REALTIME, &abstime);
+#if 1
+	abstime.tv_sec++;
+#else
 	abstime.tv_nsec += 5000000;	/* 5ms timeout */
 	while (abstime.tv_nsec > 1000000000) {
 		abstime.tv_sec++;
 		abstime.tv_nsec -= 1000000000;
 	}
+#endif
 
 	/* wait for the transaction to complete - 64 bytes @ 1.5Mbps ~426µs */
 	int ret;
@@ -316,11 +363,13 @@ PX4IO_serial::_wait_complete(bool expect_reply)
 		if (ret == OK)
 			break;
 
-		if (ret == ETIMEDOUT) {
+		if (errno == ETIMEDOUT) {
+			lowsyslog("timeout waiting for PX4IO link (%d/%d)\n", stm32_dmaresidual(_tx_dma), stm32_dmaresidual(_rx_dma));
 			/* something has broken - clear out any partial DMA state and reconfigure */
 			_reset_dma();
 			break;
 		}
+		lowsyslog("unexpected ret %d/%d\n", ret, errno);
 	}
 
 	return ret;

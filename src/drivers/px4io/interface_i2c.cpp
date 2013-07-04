@@ -69,6 +69,8 @@ public:
 
 	virtual bool	ok();
 
+	virtual int	test(unsigned mode);
+
 private:
 	static const unsigned	_retries = 2;
 
@@ -105,6 +107,12 @@ PX4IO_I2C::ok()
 	/* check any other status here */
 
 	return true;
+}
+
+int
+PX4IO_I2C::test(unsigned mode)
+{
+	return 0;
 }
 
 int

@@ -104,8 +104,8 @@ public:
 	/**
 	* Set the update rate for actuator outputs from FMU to IO.
 	*
-	* @param rate    The rate in Hz actuator outpus are sent to IO.
-	*      Min 10 Hz, max 400 Hz
+	* @param rate		The rate in Hz actuator outpus are sent to IO.
+	* 			Min 10 Hz, max 400 Hz
 	*/
 	int      		set_update_rate(int rate);
 
@@ -120,14 +120,14 @@ public:
 	/**
 	 * Push failsafe values to IO.
 	 *
-	 * @param vals Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
-	 * @param len Number of channels, could up to 8
+	 * @param vals		Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
+	 * @param len		Number of channels, could up to 8
 	 */
 	int			set_failsafe_values(const uint16_t *vals, unsigned len);
 
 	/**
-	* Print the current status of IO
-	*/
+	 * Print the current status of IO
+	 */
 	void			print_status();
 
 private:
@@ -1579,7 +1579,7 @@ start(int argc, char *argv[])
 	PX4IO_interface *interface;
 
 #if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
-	interface = io_serial_interface(5);	/* XXX wrong port! */
+	interface = io_serial_interface();
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU)
 	interface = io_i2c_interface(PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO);
 #else
@@ -1710,6 +1710,35 @@ monitor(void)
 	}
 }
 
+void
+if_test(unsigned mode)
+{
+	PX4IO_interface *interface;
+
+#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+	interface = io_serial_interface();
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU)
+	interface = io_i2c_interface(PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO);
+#else
+# error Unknown board - cannot select interface.
+#endif
+
+	if (interface == nullptr)
+		errx(1, "cannot alloc interface");
+
+	if (!interface->ok()) {
+		delete interface;
+		errx(1, "interface init failed");
+	} else {
+
+		int result = interface->test(mode);
+		delete interface;
+		errx(0, "test returned %d", result);
+	}
+
+	exit(0);
+}
+
 }
 
 int
@@ -1721,130 +1750,6 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start"))
 		start(argc - 1, argv + 1);
-
-	if (!strcmp(argv[1], "limit")) {
-
-		if (g_dev != nullptr) {
-
-			if ((argc > 2)) {
-				g_dev->set_update_rate(atoi(argv[2]));
-			} else {
-				errx(1, "missing argument (50 - 200 Hz)");
-				return 1;
-			}
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "current")) {
-		if (g_dev != nullptr) {
-			if ((argc > 3)) {
-				g_dev->set_battery_current_scaling(atof(argv[2]), atof(argv[3]));
-			} else {
-				errx(1, "missing argument (apm_per_volt, amp_offset)");
-				return 1;
-			}
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "failsafe")) {
-
-		if (argc < 3) {
-			errx(1, "failsafe command needs at least one channel value (ppm)");
-		}
-
-		if (g_dev != nullptr) {
-
-			/* set values for first 8 channels, fill unassigned channels with 1500. */
-			uint16_t failsafe[8];
-
-			for (int i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++)
-			{
-				/* set channel to commanline argument or to 900 for non-provided channels */
-				if (argc > i + 2) {
-					failsafe[i] = atoi(argv[i+2]);
-					if (failsafe[i] < 800 || failsafe[i] > 2200) {
-						errx(1, "value out of range of 800 < value < 2200. Aborting.");
-					}
-				} else {
-					/* a zero value will result in stopping to output any pulse */
-					failsafe[i] = 0;
-				}
-			}
-
-			int ret = g_dev->set_failsafe_values(failsafe, sizeof(failsafe) / sizeof(failsafe[0]));
-
-			if (ret != OK)
-				errx(ret, "failed setting failsafe values");
-		} else {
-			errx(1, "not loaded");
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "recovery")) {
-
-		if (g_dev != nullptr) {
-			/*
-			 * Enable in-air restart support.
-			 * We can cheat and call the driver directly, as it
-		 	 * doesn't reference filp in ioctl()
-			 */
-			g_dev->ioctl(NULL, PX4IO_INAIR_RESTART_ENABLE, 1);
-		} else {
-			errx(1, "not loaded");
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-
-		if (g_dev != nullptr) {
-			/* stop the driver */
-			delete g_dev;
-		} else {
-			errx(1, "not loaded");
-		}
-		exit(0);
-	}
-
-
-	if (!strcmp(argv[1], "status")) {
-
-		if (g_dev != nullptr) {
-			printf("[px4io] loaded\n");
-			g_dev->print_status();
-		} else {
-			printf("[px4io] not loaded\n");
-		}
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "debug")) {
-		if (argc <= 2) {
-			printf("usage: px4io debug LEVEL\n");
-			exit(1);
-		}
-		if (g_dev == nullptr) {
-			printf("px4io is not started\n");
-			exit(1);
-		}
-		uint8_t level = atoi(argv[2]);
-		/* we can cheat and call the driver directly, as it
-		 * doesn't reference filp in ioctl()
-		 */
-		int ret = g_dev->ioctl(NULL, PX4IO_SET_DEBUG, level);
-		if (ret != 0) {
-			printf("SET_DEBUG failed - %d\n", ret);
-			exit(1);
-		}
-		printf("SET_DEBUG %u OK\n", (unsigned)level);
-		exit(0);
-	}
-
-	/* note, stop not currently implemented */
 
 	if (!strcmp(argv[1], "update")) {
 
@@ -1896,6 +1801,119 @@ px4io_main(int argc, char *argv[])
 		return ret;
 	}
 
+	if (!strcmp(argv[1], "iftest")) {
+		if (g_dev != nullptr)
+			errx(1, "can't iftest when started");
+
+		if_test((argc > 2) ? strtol(argv[2], NULL, 0) : 0);
+	}
+
+	/* commands below here require a started driver */
+
+	if (g_dev == nullptr)
+		errx(1, "not started");
+
+	if (!strcmp(argv[1], "limit")) {
+
+		if ((argc > 2)) {
+			g_dev->set_update_rate(atoi(argv[2]));
+		} else {
+			errx(1, "missing argument (50 - 200 Hz)");
+			return 1;
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "current")) {
+		if ((argc > 3)) {
+			g_dev->set_battery_current_scaling(atof(argv[2]), atof(argv[3]));
+		} else {
+			errx(1, "missing argument (apm_per_volt, amp_offset)");
+			return 1;
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "failsafe")) {
+
+		if (argc < 3) {
+			errx(1, "failsafe command needs at least one channel value (ppm)");
+		}
+
+		/* set values for first 8 channels, fill unassigned channels with 1500. */
+		uint16_t failsafe[8];
+
+		for (int i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++) {
+
+			/* set channel to commandline argument or to 900 for non-provided channels */
+			if (argc > i + 2) {
+				failsafe[i] = atoi(argv[i+2]);
+				if (failsafe[i] < 800 || failsafe[i] > 2200) {
+					errx(1, "value out of range of 800 < value < 2200. Aborting.");
+				}
+			} else {
+				/* a zero value will result in stopping to output any pulse */
+				failsafe[i] = 0;
+			}
+		}
+
+		int ret = g_dev->set_failsafe_values(failsafe, sizeof(failsafe) / sizeof(failsafe[0]));
+
+		if (ret != OK)
+			errx(ret, "failed setting failsafe values");
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "recovery")) {
+
+		/*
+		 * Enable in-air restart support.
+		 * We can cheat and call the driver directly, as it
+	 	 * doesn't reference filp in ioctl()
+		 */
+		g_dev->ioctl(NULL, PX4IO_INAIR_RESTART_ENABLE, 1);
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+
+		/* stop the driver */
+		delete g_dev;
+		exit(0);
+	}
+
+
+	if (!strcmp(argv[1], "status")) {
+
+		printf("[px4io] loaded\n");
+		g_dev->print_status();
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "debug")) {
+		if (argc <= 2) {
+			printf("usage: px4io debug LEVEL\n");
+			exit(1);
+		}
+		if (g_dev == nullptr) {
+			printf("px4io is not started\n");
+			exit(1);
+		}
+		uint8_t level = atoi(argv[2]);
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
+		int ret = g_dev->ioctl(NULL, PX4IO_SET_DEBUG, level);
+		if (ret != 0) {
+			printf("SET_DEBUG failed - %d\n", ret);
+			exit(1);
+		}
+		printf("SET_DEBUG %u OK\n", (unsigned)level);
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "rx_dsm") ||
 	    !strcmp(argv[1], "rx_dsm_10bit") ||
 	    !strcmp(argv[1], "rx_dsm_11bit") ||
@@ -1909,6 +1927,6 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "monitor"))
 		monitor();
 
-	out:
+out:
 	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe' or 'update'");
 }
