@@ -262,7 +262,7 @@ void KalmanNav::update()
 		       lat, lon, alt);
 	}
 
-	// prediciton step
+	// prediction step
 	// using sensors timestamp so we can account for packet lag
 	float dt = (_sensors.timestamp - _predictTimeStamp) / 1.0e6f;
 	//printf("dt: %15.10f\n", double(dt));
