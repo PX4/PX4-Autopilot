@@ -1,6 +1,9 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,32 +35,58 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
- *
- * Definition of differential pressure topic
+ * @file mission_item.h
+ * Definition of one mission item.
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#ifndef TOPIC_MISSION_H_
+#define TOPIC_MISSION_H_
 
-#include "../uORB.h"
 #include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
 /**
  * @addtogroup topics
  * @{
  */
 
-/**
- * Differential pressure.
- */
-struct differential_pressure_s {
-	uint64_t	timestamp;			/**< microseconds since system boot, needed to integrate */
-	uint16_t	differential_pressure_pa;	/**< Differential pressure reading */
-	uint16_t	max_differential_pressure_pa;	/**< Maximum differential pressure reading */
-	float		voltage;			/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
-	float		temperature;			/**< Temperature provided by sensor */
+enum NAV_CMD {
+	NAV_CMD_WAYPOINT = 0,
+	NAV_CMD_LOITER_TURN_COUNT,
+	NAV_CMD_LOITER_TIME_LIMIT,
+	NAV_CMD_LOITER_UNLIMITED,
+	NAV_CMD_RETURN_TO_LAUNCH,
+	NAV_CMD_LAND,
+	NAV_CMD_TAKEOFF
+};
 
+/**
+ * Global position setpoint in WGS84 coordinates.
+ *
+ * This is the position the MAV is heading towards. If it of type loiter,
+ * the MAV is circling around it with the given loiter radius in meters.
+ */
+struct mission_item_s
+{
+	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
+	double lat;			/**< latitude in degrees * 1E7				*/
+	double lon;			/**< longitude in degrees * 1E7				*/
+	float altitude;			/**< altitude in meters					*/
+	float yaw;			/**< in radians NED -PI..+PI 				*/
+	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
+	uint8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
+	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
+	float param1;
+	float param2;
+	float param3;
+	float param4;
+};
+
+struct mission_s
+{
+	struct mission_item_s *items;
+	unsigned count;
 };
 
 /**
@@ -65,6 +94,6 @@ struct differential_pressure_s {
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
+ORB_DECLARE(mission);
 
 #endif

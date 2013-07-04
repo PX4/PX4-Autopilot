@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,39 +32,36 @@
  ****************************************************************************/
 
 /**
- * @file differential_pressure.h
+ * @file telemetry_status.h
  *
- * Definition of differential pressure topic
+ * Telemetry status topics - radio status outputs
  */
 
-#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
-#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+#ifndef TOPIC_TELEMETRY_STATUS_H
+#define TOPIC_TELEMETRY_STATUS_H
 
-#include "../uORB.h"
 #include <stdint.h>
+#include "../uORB.h"
 
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * Differential pressure.
- */
-struct differential_pressure_s {
-	uint64_t	timestamp;			/**< microseconds since system boot, needed to integrate */
-	uint16_t	differential_pressure_pa;	/**< Differential pressure reading */
-	uint16_t	max_differential_pressure_pa;	/**< Maximum differential pressure reading */
-	float		voltage;			/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
-	float		temperature;			/**< Temperature provided by sensor */
-
+enum TELEMETRY_STATUS_RADIO_TYPE {
+    TELEMETRY_STATUS_RADIO_TYPE_GENERIC = 0,
+    TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO,
+    TELEMETRY_STATUS_RADIO_TYPE_UBIQUITY_BULLET,
+    TELEMETRY_STATUS_RADIO_TYPE_WIRE
 };
 
-/**
- * @}
- */
+struct telemetry_status_s {
+	uint64_t timestamp;
+    enum TELEMETRY_STATUS_RADIO_TYPE type;  /**< type of the radio hardware     */
+	unsigned rssi;              /**< local signal strength                      */
+    unsigned remote_rssi;       /**< remote signal strength                     */
+    unsigned rxerrors;          /**< receive errors                             */
+    unsigned fixed;             /**< count of error corrected packets           */
+    uint8_t noise;              /**< background noise level                     */
+    uint8_t remote_noise;       /**< remote background noise level              */
+    uint8_t txbuf;              /**< how full the tx buffer is as a percentage  */
+};
 
-/* register this as object request broker structure */
-ORB_DECLARE(differential_pressure);
+ORB_DECLARE(telemetry_status);
 
-#endif
+#endif /* TOPIC_TELEMETRY_STATUS_H */
