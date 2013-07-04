@@ -1502,6 +1502,7 @@ int sensors_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "unrecognized command");
+	warnx("unrecognized command");
+	return 1;
 }
 
