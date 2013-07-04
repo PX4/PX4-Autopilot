@@ -53,6 +53,8 @@
 
 #include <stdint.h>
 
+__BEGIN_DECLS
+
 /* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
  * val_dot in pid_calculate() will be ignored */
 #define PID_MODE_DERIVATIV_CALC	0
@@ -87,5 +89,6 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 
 __EXPORT void pid_reset_integral(PID_t *pid);
 
+__END_DECLS
 
 #endif /* PID_H_ */
