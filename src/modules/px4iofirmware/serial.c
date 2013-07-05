@@ -80,14 +80,28 @@ static unsigned		idle_ticks;
 
 #pragma pack(push, 1)
 struct IOPacket {
-	uint8_t 	count;
-#define PKT_CTRL_WRITE			(1<<7)
+	uint8_t 	count_code;
 	uint8_t 	spare;
 	uint8_t 	page;
 	uint8_t 	offset;
 	uint16_t	regs[MAX_RW_REGS];
 };
 #pragma pack(pop)
+
+#define PKT_CODE_READ		0x00	/* FMU->IO read transaction */
+#define PKT_CODE_WRITE		0x40	/* FMU->IO write transaction */
+#define PKT_CODE_SUCCESS	0x00	/* IO->FMU success reply */
+#define PKT_CODE_CORRUPT	0x40	/* IO->FMU bad packet reply */
+#define PKT_CODE_ERROR		0x80	/* IO->FMU register op error reply */
+
+#define PKT_CODE_MASK		0xc0
+#define PKT_COUNT_MASK		0x3f
+
+#define PKT_COUNT(_p)	((_p).count_code & PKT_COUNT_MASK)
+#define PKT_CODE(_p)	((_p).count_code & PKT_CODE_MASK)
+#define PKT_SIZE(_p)	((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p)))
+
+//static uint8_t		crc_packet(void);
 
 static struct IOPacket	dma_packet;
 
@@ -192,12 +206,10 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	perf_count(pc_rx);
 
 	/* default to not sending a reply */
-	if (dma_packet.count & PKT_CTRL_WRITE) {
-
-		dma_packet.count &= ~PKT_CTRL_WRITE;
+	if (PKT_CODE(dma_packet) == PKT_CODE_WRITE) {
 
 		/* it's a blind write - pass it on */
-		if (registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], dma_packet.count))
+		if (registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], PKT_COUNT(dma_packet)))
 			perf_count(pc_regerr);
 
 	} else {
@@ -217,7 +229,7 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 		/* copy reply registers into DMA buffer */
 		memcpy((void *)&dma_packet.regs[0], registers, count);
-		dma_packet.count = count;
+		dma_packet.count_code = count | PKT_CODE_SUCCESS;
 	}
 
 	/* re-set DMA for reception first, so we are ready to receive before we start sending */

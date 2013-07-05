@@ -73,8 +73,7 @@ const unsigned	max_rw_regs = 32; // by agreement w/IO
 
 #pragma pack(push, 1)
 struct IOPacket {
-	uint8_t 	count;
-#define PKT_CTRL_WRITE			(1<<7)
+	uint8_t 	count_code;
 	uint8_t 	spare;
 	uint8_t 	page;
 	uint8_t 	offset;
@@ -92,7 +91,18 @@ struct IOPacket {
 #define rCR3		REG(STM32_USART_CR3_OFFSET)
 #define rGTPR		REG(STM32_USART_GTPR_OFFSET)
 
-#define PKT_SIZE(_n)	(4 + (2 * (_n)))
+#define PKT_CODE_READ		0x00	/* FMU->IO read transaction */
+#define PKT_CODE_WRITE		0x40	/* FMU->IO write transaction */
+#define PKT_CODE_SUCCESS	0x00	/* IO->FMU success reply */
+#define PKT_CODE_CORRUPT	0x40	/* IO->FMU bad packet reply */
+#define PKT_CODE_ERROR		0x80	/* IO->FMU register op error reply */
+
+#define PKT_CODE_MASK		0xc0
+#define PKT_COUNT_MASK		0x3f
+
+#define PKT_COUNT(_p)	((_p).count_code & PKT_COUNT_MASK)
+#define PKT_CODE(_p)	((_p).count_code & PKT_CODE_MASK)
+#define PKT_SIZE(_p)	((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p)))
 
 class PX4IO_serial : public PX4IO_interface
 {
@@ -327,7 +337,7 @@ PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsi
 
 	sem_wait(&_bus_semaphore);
 
-	_dma_buffer.count = num_values | PKT_CTRL_WRITE;
+	_dma_buffer.count_code = num_values | PKT_CODE_WRITE;
 	_dma_buffer.spare = 0;
 	_dma_buffer.page = page;
 	_dma_buffer.offset = offset;
@@ -338,7 +348,7 @@ PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsi
 	/* XXX implement check byte */
 
 	/* start the transaction and wait for it to complete */
-	int result = _wait_complete(false, PKT_SIZE(num_values));
+	int result = _wait_complete(false, PKT_SIZE(_dma_buffer));
 
 	sem_post(&_bus_semaphore);
 	return result;
@@ -352,18 +362,18 @@ PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned n
 
 	sem_wait(&_bus_semaphore);
 
-	_dma_buffer.count = num_values;
+	_dma_buffer.count_code = num_values | PKT_CODE_READ;
 	_dma_buffer.spare = 0;
 	_dma_buffer.page = page;
 	_dma_buffer.offset = offset;
 
 	/* start the transaction and wait for it to complete */
-	int result = _wait_complete(true, PKT_SIZE(0));
+	int result = _wait_complete(true, PKT_SIZE(_dma_buffer));
 	if (result != OK)
 		goto out;
 
 	/* compare the received count with the expected count */
-	if (_dma_buffer.count != num_values) {
+	if (PKT_COUNT(_dma_buffer) != num_values) {
 		return -EIO;
 	} else {
 		/* XXX implement check byte */
