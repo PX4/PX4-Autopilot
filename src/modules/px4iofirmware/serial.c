@@ -51,16 +51,27 @@
 #include <up_internal.h>
 #include <up_arch.h>
 #include <stm32_internal.h>
-#include <systemlib/hx_stream.h>
+#include <systemlib/perf_counter.h>
 
 //#define DEBUG
 #include "px4io.h"
 
 static volatile bool	sending = false;
 
-static void		dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
+static perf_counter_t	pc_rx;
+static perf_counter_t	pc_errors;
+static perf_counter_t	pc_ore;
+static perf_counter_t	pc_fe;
+static perf_counter_t	pc_ne;
+static perf_counter_t	pc_regerr;
+
+static void		rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
+static void		tx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
 static DMA_HANDLE	tx_dma;
 static DMA_HANDLE	rx_dma;
+
+static int		serial_interrupt(int irq, void *context);
+static void		dma_reset(void);
 
 #define MAX_RW_REGS	32 // by agreement w/FMU
 
@@ -90,6 +101,13 @@ static struct IOPacket	dma_packet;
 void
 interface_init(void)
 {
+	pc_rx = perf_alloc(PC_COUNT, "rx count");
+	pc_errors = perf_alloc(PC_COUNT, "errors");
+	pc_ore = perf_alloc(PC_COUNT, "overrun");
+	pc_fe = perf_alloc(PC_COUNT, "framing");
+	pc_ne = perf_alloc(PC_COUNT, "noise");
+	pc_regerr = perf_alloc(PC_COUNT, "regerr");
+
 	/* allocate DMA */
 	tx_dma = stm32_dmachannel(PX4FMU_SERIAL_TX_DMA);
 	rx_dma = stm32_dmachannel(PX4FMU_SERIAL_RX_DMA);
@@ -103,38 +121,37 @@ interface_init(void)
 	rCR2 = 0;
 	rCR3 = 0;
 
+	/* clear status/errors */
+	(void)rSR;
+	(void)rDR;
+
 	/* configure line speed */
 	uint32_t usartdiv32 = PX4FMU_SERIAL_CLOCK / (PX4FMU_SERIAL_BITRATE / 2);
 	uint32_t mantissa = usartdiv32 >> 5;
 	uint32_t fraction = (usartdiv32 - (mantissa << 5) + 1) >> 1;
 	rBRR = (mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT);
 
+	/* connect our interrupt */
+	irq_attach(PX4FMU_SERIAL_VECTOR, serial_interrupt);
+	up_enable_irq(PX4FMU_SERIAL_VECTOR);
+
 	/* enable UART and DMA */
-	rCR3 = USART_CR3_DMAR | USART_CR3_DMAT;
-	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE;
+	/*rCR3 = USART_CR3_EIE; */
+	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE /*| USART_CR1_IDLEIE*/;
 
-	/* configure DMA */
-	stm32_dmasetup(
-		tx_dma,
-		(uint32_t)&rDR,
-		(uint32_t)&dma_packet,
-		sizeof(dma_packet),
-		DMA_CCR_DIR		|
-		DMA_CCR_MINC		|
-		DMA_CCR_PSIZE_8BITS	|
-		DMA_CCR_MSIZE_8BITS);
+#if 0	/* keep this for signal integrity testing */
+	for (;;) {
+		while (!(rSR & USART_SR_TXE))
+			;
+		rDR = 0xfa;
+		while (!(rSR & USART_SR_TXE))
+			;
+		rDR = 0xa0;
+	}
+#endif
 
-	stm32_dmasetup(
-		rx_dma,
-		(uint32_t)&rDR,
-		(uint32_t)&dma_packet,
-		sizeof(dma_packet),
-		DMA_CCR_MINC		|
-		DMA_CCR_PSIZE_8BITS	|
-		DMA_CCR_MSIZE_8BITS);
-
-	/* start receive DMA ready for the first packet */
-	stm32_dmastart(rx_dma, dma_callback, NULL, false);
+	/* configure RX DMA and return to listening state */
+	dma_reset();
 
 	debug("serial init");
 }
@@ -146,27 +163,36 @@ interface_tick()
 }
 
 static void
-dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
+tx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
-	if (!(status & DMA_STATUS_TCIF)) {
-		/* XXX what do we do here? it's fatal! */
-		return;
-	}
+	sending = false;
+	rCR3 &= ~USART_CR3_DMAT;
+}
 
-	/* if this is transmit-complete, make a note */
-	if (handle == tx_dma) {
-		sending = false;
-		return;
-	}
-
+static void
+rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
+{
 	/* we just received a request; sort out what to do */
+
+	rCR3 &= ~USART_CR3_DMAR;
+
+	/* work out how big the packet actually is */
+	//unsigned rx_length = sizeof(IOPacket) - stm32_dmaresidual(rx_dma);
+
 	/* XXX implement check byte */
-	/* XXX if we care about overruns, check the UART received-data-ready bit */
+
+	perf_count(pc_rx);
+
+	/* default to not sending a reply */
 	bool send_reply = false;
 	if (dma_packet.count & PKT_CTRL_WRITE) {
 
+		dma_packet.count &= ~PKT_CTRL_WRITE;
+
 		/* it's a blind write - pass it on */
-		registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], dma_packet.count);
+		if (registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], dma_packet.count))
+			perf_count(pc_regerr);
+
 	} else {
 
 		/* it's a read - get register pointer for reply */
@@ -189,9 +215,94 @@ dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	}
 
 	/* re-set DMA for reception first, so we are ready to receive before we start sending */
-	stm32_dmastart(rx_dma, dma_callback, NULL, false);
+	/* XXX latency here could mean loss of back-to-back writes; do we want to always send an ack? */
+	/* XXX always sending an ack would simplify the FMU side (always wait for reply) too */
+	dma_reset();
 
 	/* if we have a reply to send, start that now */
-	if (send_reply)
-		stm32_dmastart(tx_dma, dma_callback, NULL, false);
+	if (send_reply) {
+		stm32_dmasetup(
+			tx_dma,
+			(uint32_t)&rDR,
+			(uint32_t)&dma_packet,
+			sizeof(dma_packet),		/* XXX cut back to actual transmit size */
+			DMA_CCR_DIR		|
+			DMA_CCR_MINC		|
+			DMA_CCR_PSIZE_8BITS	|
+			DMA_CCR_MSIZE_8BITS);
+		sending = true;
+		stm32_dmastart(tx_dma, tx_dma_callback, NULL, false);
+		rCR3 |= USART_CR3_DMAT;
+	}
+}
+
+static int
+serial_interrupt(int irq, void *context)
+{
+	uint32_t sr = rSR;	/* get UART status register */
+
+	/* handle error/exception conditions */
+	if (sr & (USART_SR_ORE | USART_SR_NE | USART_SR_FE | USART_SR_IDLE)) {
+		/* read DR to clear status */
+		(void)rDR;
+	} else {
+		ASSERT(0);
+	}
+
+	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
+		USART_SR_NE |		/* noise error - we have lost a byte due to noise */
+		USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
+
+		perf_count(pc_errors);
+		if (sr & USART_SR_ORE)
+			perf_count(pc_ore);
+		if (sr & USART_SR_NE)
+			perf_count(pc_ne);
+		if (sr & USART_SR_FE)
+			perf_count(pc_fe);
+
+		/* reset DMA state machine back to listening-for-packet */		
+		dma_reset();
+
+		/* don't attempt to handle IDLE if it's set - things went bad */
+		return 0;
+	}
+
+	if (sr & USART_SR_IDLE) {
+
+		/* XXX if there was DMA transmission still going, this is an error */
+
+		/* stop the receive DMA */
+		stm32_dmastop(rx_dma);
+
+		/* and treat this like DMA completion */
+		rx_dma_callback(rx_dma, DMA_STATUS_TCIF, NULL);
+	}
+
+	return 0;
+}
+
+static void
+dma_reset(void)
+{
+	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
+
+
+	/* kill any pending DMA */
+	stm32_dmastop(tx_dma);
+	stm32_dmastop(rx_dma);
+
+	/* reset the RX side */
+	stm32_dmasetup(
+		rx_dma,
+		(uint32_t)&rDR,
+		(uint32_t)&dma_packet,
+		sizeof(dma_packet),
+		DMA_CCR_MINC		|
+		DMA_CCR_PSIZE_8BITS	|
+		DMA_CCR_MSIZE_8BITS);
+
+	/* start receive DMA ready for the next packet */
+	stm32_dmastart(rx_dma, rx_dma_callback, NULL, false);
+	rCR3 |= USART_CR3_DMAR;
 }

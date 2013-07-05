@@ -185,7 +185,7 @@ uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE
  */
 uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT] = { 0 };
 
-void
+int
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
 
@@ -261,11 +261,13 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* iterate individual registers, set each in turn */
 		while (num_values--) {
 			if (registers_set_one(page, offset, *values))
-				break;
+				return -1;
 			offset++;
 			values++;
 		}
+		break;
 	}
+	return 0;
 }
 
 static int
@@ -450,6 +452,14 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		break;
 		/* case PX4IO_RC_PAGE_CONFIG */
 	}
+
+	case PX4IO_PAGE_TEST:
+		switch (offset) {
+		case PX4IO_P_TEST_LED:
+			LED_AMBER(value & 1);
+			break;
+		}
+		break;
 
 	default:
 		return -1;

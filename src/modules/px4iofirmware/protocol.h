@@ -183,6 +183,10 @@
 /* PWM failsafe values - zero disables the output */
 #define PX4IO_PAGE_FAILSAFE_PWM			105	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
+/* Debug and test page - not used in normal operation */
+#define PX4IO_PAGE_TEST				127
+#define PX4IO_P_TEST_LED			0	/* set the amber LED on/off */
+
 /**
  * As-needed mixer data upload.
  *

@@ -172,7 +172,7 @@ extern void	interface_tick(void);
 /**
  * Register space
  */
-extern void	registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
+extern int	registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
 extern int	registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_values);
 
 /**
