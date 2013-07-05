@@ -40,6 +40,7 @@
 #pragma once
 
 #include <nuttx/config.h>
+#include <stdint.h>
 
 namespace math {
 
@@ -50,6 +51,8 @@ int __EXPORT min(int val1, int val2);
 
 unsigned __EXPORT min(unsigned val1, unsigned val2);
 
+uint64_t __EXPORT min(uint64_t val1, uint64_t val2);
+
 double __EXPORT min(double val1, double val2);
 
 float __EXPORT max(float val1, float val2);
@@ -57,6 +60,8 @@ float __EXPORT max(float val1, float val2);
 int __EXPORT max(int val1, int val2);
 
 unsigned __EXPORT max(unsigned val1, unsigned val2);
+
+uint64_t __EXPORT max(uint64_t val1, uint64_t val2);
 
 double __EXPORT max(double val1, double val2);
 
@@ -66,6 +71,8 @@ float __EXPORT constrain(float val, float min, float max);
 int __EXPORT constrain(int val, int min, int max);
 
 unsigned __EXPORT constrain(unsigned val, unsigned min, unsigned max);
+
+uint64_t __EXPORT constrain(uint64_t val, uint64_t min, uint64_t max);
 
 double __EXPORT constrain(double val, double min, double max);
 

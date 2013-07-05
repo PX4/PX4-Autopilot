@@ -39,6 +39,7 @@
 
 
 #include <math.h>
+#include <stdint.h>
 
 #include "Limits.hpp"
 
@@ -57,6 +58,11 @@ int __EXPORT min(int val1, int val2)
 }
 
 unsigned __EXPORT min(unsigned val1, unsigned val2)
+{
+	return (val1 < val2) ? val1 : val2;
+}
+
+uint64_t __EXPORT min(uint64_t val1, uint64_t val2)
 {
 	return (val1 < val2) ? val1 : val2;
 }
@@ -81,6 +87,11 @@ unsigned __EXPORT max(unsigned val1, unsigned val2)
 	return (val1 > val2) ? val1 : val2;
 }
 
+uint64_t __EXPORT max(uint64_t val1, uint64_t val2)
+{
+	return (val1 > val2) ? val1 : val2;
+}
+
 double __EXPORT max(double val1, double val2)
 {
 	return (val1 > val2) ? val1 : val2;
@@ -98,6 +109,11 @@ int __EXPORT constrain(int val, int min, int max)
 }
 
 unsigned __EXPORT constrain(unsigned val, unsigned min, unsigned max)
+{
+	return (val < min) ? min : ((val > max) ? max : val);
+}
+
+uint64_t __EXPORT constrain(uint64_t val, uint64_t min, uint64_t max)
 {
 	return (val < min) ? min : ((val > max) ? max : val);
 }
