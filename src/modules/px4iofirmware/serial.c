@@ -73,6 +73,9 @@ static DMA_HANDLE	rx_dma;
 static int		serial_interrupt(int irq, void *context);
 static void		dma_reset(void);
 
+/* if we spend this many ticks idle, reset the DMA */
+static unsigned		idle_ticks;
+
 #define MAX_RW_REGS	32 // by agreement w/FMU
 
 #pragma pack(push, 1)
@@ -160,6 +163,10 @@ void
 interface_tick()
 {
 	/* XXX look for stuck/damaged DMA and reset? */
+	if (idle_ticks++ > 100) {
+		dma_reset();
+		idle_ticks = 0;
+	}
 }
 
 static void
@@ -175,6 +182,7 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	/* we just received a request; sort out what to do */
 
 	rCR3 &= ~USART_CR3_DMAR;
+	idle_ticks = 0;
 
 	/* work out how big the packet actually is */
 	//unsigned rx_length = sizeof(IOPacket) - stm32_dmaresidual(rx_dma);
