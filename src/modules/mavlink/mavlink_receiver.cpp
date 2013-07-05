@@ -416,7 +416,8 @@ handle_message(mavlink_message_t *msg)
 			airspeed.timestamp = hrt_absolute_time();
 
 			float ias = calc_indicated_airspeed(imu.diff_pressure);
-			float tas = calc_true_airspeed_from_indicated(ias, imu.abs_pressure, imu.temperature);
+			// XXX need to fix this
+			float tas = ias;
 
 			airspeed.indicated_airspeed_m_s = ias;
 			airspeed.true_airspeed_m_s = tas;
@@ -426,7 +427,7 @@ handle_message(mavlink_message_t *msg)
 			} else {
 				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
 			}
-			warnx("SENSOR: IAS: %6.2f TAS: %6.2f", airspeed.indicated_airspeed_m_s, airspeed.true_airspeed_m_s);
+			//warnx("SENSOR: IAS: %6.2f TAS: %6.2f", airspeed.indicated_airspeed_m_s, airspeed.true_airspeed_m_s);
 
 			/* publish */
 			if (pub_hil_sensors > 0) {

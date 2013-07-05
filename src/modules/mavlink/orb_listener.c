@@ -196,7 +196,7 @@ l_sensor_combined(const struct listener *l)
 					     raw.gyro_rad_s[1], raw.gyro_rad_s[2],
 					     raw.magnetometer_ga[0],
 					     raw.magnetometer_ga[1], raw.magnetometer_ga[2],
-					     raw.baro_pres_mbar, 0 /* no diff pressure yet */,
+					     raw.baro_pres_mbar, raw.differential_pressure_pa,
 					     raw.baro_alt_meter, raw.baro_temp_celcius,
 					     fields_updated);
 
