@@ -27,7 +27,7 @@ define _perf_print
 	# PC_COUNT
 	if $hdr->type == 0
 		set $count = (struct perf_ctr_count *)$hdr
-		printf "%llu events,\n", $count->event_count;
+		printf "%llu events\n", $count->event_count
 	end
 	# PC_ELPASED
 	if $hdr->type == 1
