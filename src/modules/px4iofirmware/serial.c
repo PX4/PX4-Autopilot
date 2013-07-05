@@ -286,7 +286,9 @@ static void
 dma_reset(void)
 {
 	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
-
+	(void)rSR;
+	(void)rDR;
+	(void)rDR;
 
 	/* kill any pending DMA */
 	stm32_dmastop(tx_dma);
