@@ -229,6 +229,8 @@ private:
 		float rc_scale_flaps;
 
 		float battery_voltage_scaling;
+
+		int   rc_rl1_DSM_VCC_control;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -276,6 +278,8 @@ private:
 		param_t rc_scale_flaps;
 
 		param_t battery_voltage_scaling;
+
+		param_t rc_rl1_DSM_VCC_control;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -509,6 +513,9 @@ Sensors::Sensors() :
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
+	/* DSM VCC relay control */
+	_parameter_handles.rc_rl1_DSM_VCC_control = param_find("RC_RL1_DSM_VCC");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -720,6 +727,26 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
 		warnx("Failed updating voltage scaling param");
+	}
+
+	/* relay 1 DSM VCC control */
+	if (param_get(_parameter_handles.rc_rl1_DSM_VCC_control, &(_parameters.rc_rl1_DSM_VCC_control)) != OK) {
+		warnx("Failed updating relay 1 DSM VCC control");
+	}
+	switch (_parameters.rc_rl1_DSM_VCC_control) {
+	case 0:
+	case 3:
+	case 5:
+	case 7:
+	case 9:
+		break;
+	default:
+		warnx("WARNING     WARNING     WARNING\n\nDSM VCC control!\n"
+			"Valid values:\n"
+			"0 - disable DSM bind feature\n"
+			"3 - bind DSM2 10-bit\n"
+			"5 - bind DSM2 11-bit\n"
+			"7 or 9 - bind DSMX\n\n");
 	}
 
 	return OK;

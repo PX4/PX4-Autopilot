@@ -95,7 +95,13 @@ controls_tick() {
 	 */
 
 	perf_begin(c_gather_dsm);
-	bool dsm_updated = dsm_input(r_raw_rc_values, &r_raw_rc_count);
+	uint16_t temp_count;
+	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count);
+	r_raw_rc_count = temp_count & 0x7fff;
+	if (temp_count & 0x8000)
+		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM11;
+	else
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RC_DSM11;
 	if (dsm_updated)
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
 	perf_end(c_gather_dsm);
@@ -138,7 +144,7 @@ controls_tick() {
 
 		/* map raw inputs to mapped inputs */
 		/* XXX mapping should be atomic relative to protocol */
-		for (unsigned i = 0; i < r_raw_rc_count; i++) {
+		for (unsigned i = 0; i < (r_raw_rc_count & 0x7fff); i++) {
 
 			/* map the input channel */
 			uint16_t *conf = &r_page_rc_input_config[i * PX4IO_P_RC_CONFIG_STRIDE];

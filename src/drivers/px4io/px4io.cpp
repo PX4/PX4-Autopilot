@@ -1271,13 +1271,14 @@ PX4IO::print_status()
 	printf("%u bytes free\n",
 		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
-	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		flags,
 		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " ARMED" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
-		((flags & PX4IO_P_STATUS_FLAGS_RC_DSM)   ? " DSM" : ""),
+		(((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (!(flags & PX4IO_P_STATUS_FLAGS_RC_DSM11))) ? " DSM10-bit" : ""),
+		(((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_STATUS_FLAGS_RC_DSM11)) ? " DSM11-bit" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)  ? " SBUS" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PPM" : ""),
@@ -1371,6 +1372,8 @@ PX4IO::print_status()
 	printf("\n");
 }
 
+static int bind_pulses;
+
 int
 PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 {
@@ -1422,6 +1425,28 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_COUNT:
 		*(unsigned *)arg = _max_actuators;
+		break;
+
+	case DSM_BIND_START:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+		usleep(500000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
+		usleep(1000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
+		for (int i = 0; i < bind_pulses; i++)
+			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_inc_pulses);
+		usleep(100000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_pulse);
+		break;
+
+	case DSM_BIND_STOP:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
+		usleep(500000);
+		break;
+
+	case DSM_BIND_POWER_UP:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
 		break;
 
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS - 1): {
@@ -1600,6 +1625,8 @@ namespace
 void
 start(int argc, char *argv[])
 {
+	int fd;
+
 	if (g_dev != nullptr)
 		errx(1, "already loaded");
 
@@ -1614,7 +1641,74 @@ start(int argc, char *argv[])
 		errx(1, "driver init failed");
 	}
 
+	if (param_get(param_find("RC_RL1_DSM_VCC"), &bind_pulses) == OK) {
+		switch (bind_pulses) {
+		case 0:
+			break;
+		case 3: case 5: case 7: case 9:
+			fd = open("/dev/px4io", O_WRONLY);
+			if (fd < 0)
+				errx(1, "failed to open device");
+			ioctl(fd, DSM_BIND_POWER_UP, 0);
+			close(fd);
+			break;
+		default:
+			bind_pulses = 0;
+			errx(1, "RC_RL1_DSM_VCC parameter is invalid!\n"
+				"Valid values:\n"
+				"0 - disable DSM bind feature\n"
+				"3 - bind DSM2 10-bit (recommended for DSM2 due to potential bug in 11 bit mode stream)\n"
+				"5 - bind DSM2 11-bit\n"
+				"7 or 9 - bind DSMX\n\n");
+		}
+	} else {
+		bind_pulses = 0;
+	}
+
 	exit(0);
+}
+
+void
+bind_dsm(void)
+{
+	int fd;
+
+	if (g_dev == nullptr)
+		errx(1, "px4io must be started first");
+
+	if (bind_pulses == 0)
+		errx(1, "DSM bind feature not enabled");
+
+	fd = open("/dev/px4io", O_WRONLY);
+
+	if (fd < 0)
+		errx(1, "failed to open device");
+
+	ioctl(fd, DSM_BIND_START, 0);
+
+	/* Open console directly to grab CTRL-C signal */
+	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
+	if (!console)
+		errx(1, "failed opening console");
+
+	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
+	warnx("Press CTRL-C or 'c' when done.");
+
+	for (;;) {
+		usleep(500000L);
+		/* Check if user wants to quit */
+		char c;
+		if (read(console, &c, 1) == 1) {
+			if (c == 0x03 || c == 0x63) {
+				warnx("Done\n");
+				ioctl(fd, DSM_BIND_STOP, 0);
+				ioctl(fd, DSM_BIND_POWER_UP, 0);
+				close(fd);
+				close(console);
+	                        exit(0);
+                        }
+		}
+	}
 }
 
 void
@@ -1918,6 +2012,9 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "monitor"))
 		monitor();
 
+	if (!strcmp(argv[1], "binddsm"))
+		bind_dsm();
+
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe', 'binddsm', or 'update'");
 }
