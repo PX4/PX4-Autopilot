@@ -128,7 +128,9 @@ extern struct sys_state_s system_state;
 #define LED_AMBER(_s)		stm32_gpiowrite(GPIO_LED2, !(_s))
 #define LED_SAFETY(_s)		stm32_gpiowrite(GPIO_LED3, !(_s))
 
-#define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
+#ifdef GPIO_SERVO_PWR_EN
+# define POWER_SERVO(_s)	stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
+#endif
 #ifdef GPIO_ACC1_PWR_EN
 # define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
 #endif

@@ -143,7 +143,9 @@ user_start(int argc, char *argv[])
 	LED_SAFETY(false);
 
 	/* turn on servo power (if supported) */
+#ifdef POWER_SERVO
 	POWER_SERVO(true);
+#endif
 
 	/* start the safety switch handler */
 	safety_init();

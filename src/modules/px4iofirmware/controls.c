@@ -59,10 +59,10 @@ static perf_counter_t c_gather_ppm;
 void
 controls_init(void)
 {
-	/* DSM input */
+	/* DSM input (USART1) */
 	dsm_init("/dev/ttyS0");
 
-	/* S.bus input */
+	/* S.bus input (USART3) */
 	sbus_init("/dev/ttyS2");
 
 	/* default to a 1:1 input map, all enabled */

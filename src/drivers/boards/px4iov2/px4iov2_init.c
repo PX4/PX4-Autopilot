@@ -104,31 +104,25 @@ __EXPORT void stm32_boardinitialize(void)
 
 	/* configure GPIOs */
 
-	/* turn off - all leds are active low */
-	stm32_gpiowrite(GPIO_LED1, true);
-	stm32_gpiowrite(GPIO_LED2, true);
-	stm32_gpiowrite(GPIO_LED3, true);
+	/* LEDS - default to off */
 	stm32_configgpio(GPIO_LED1);
 	stm32_configgpio(GPIO_LED2);
 	stm32_configgpio(GPIO_LED3);
 
-
 	stm32_configgpio(GPIO_BTN_SAFETY);
 
 	/* spektrum power enable is active high - disable it by default */
+	/* XXX might not want to do this on warm restart? */
 	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, false);
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
-	/* servo power enable is active low, and has a pull down resistor
-	 * to keep it low during boot (since it may power the whole board.)
-	*/
-	stm32_gpiowrite(GPIO_SERVO_PWR_EN, false);
-	stm32_configgpio(GPIO_SERVO_PWR_EN);
-
 	stm32_configgpio(GPIO_SERVO_FAULT_DETECT);
 
+	/* RSSI inputs */
 	stm32_configgpio(GPIO_TIM_RSSI); /* xxx alternate function */
 	stm32_configgpio(GPIO_ADC_RSSI);
+
+	/* servo rail voltage */
 	stm32_configgpio(GPIO_ADC_VSERVO);
 
 	stm32_configgpio(GPIO_SBUS_INPUT); /* xxx alternate function */
@@ -139,7 +133,6 @@ __EXPORT void stm32_boardinitialize(void)
 	/* sbus output enable is active low - disable it by default */
 	stm32_gpiowrite(GPIO_SBUS_OENABLE, true);
 	stm32_configgpio(GPIO_SBUS_OENABLE);
-
 
 	stm32_configgpio(GPIO_PPM); /* xxx alternate function */
 
@@ -166,6 +159,4 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_gpiowrite(GPIO_PWM8, false);
 	stm32_configgpio(GPIO_PWM8);
-
-//	message("[boot] Successfully initialized px4iov2 gpios\n");
 }
