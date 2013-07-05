@@ -733,6 +733,21 @@ Sensors::parameters_update()
 	if (param_get(_parameter_handles.rc_rl1_DSM_VCC_control, &(_parameters.rc_rl1_DSM_VCC_control)) != OK) {
 		warnx("Failed updating relay 1 DSM VCC control");
 	}
+	switch (_parameters.rc_rl1_DSM_VCC_control) {
+	case 0:
+	case 3:
+	case 5:
+	case 7:
+	case 9:
+		break;
+	default:
+		warnx("WARNING     WARNING     WARNING\n\nDSM VCC control!\n"
+			"Valid values:\n"
+			"0 - disable DSM bind feature\n"
+			"3 - bind DSM2 10-bit\n"
+			"5 - bind DSM2 11-bit\n"
+			"7 or 9 - bind DSMX\n\n");
+	}
 
 	return OK;
 }
