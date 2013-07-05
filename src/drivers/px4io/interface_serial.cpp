@@ -167,8 +167,7 @@ private:
 	perf_counter_t		_perf_dmasetup;
 	perf_counter_t		_perf_timeouts;
 	perf_counter_t		_perf_errors;
-	perf_counter_t		_perf_wr;
-	perf_counter_t		_perf_rd;
+	perf_counter_t		_perf_txns;
 
 };
 
@@ -189,8 +188,7 @@ PX4IO_serial::PX4IO_serial() :
 	_perf_dmasetup(perf_alloc(PC_ELAPSED,	"dmasetup")),
 	_perf_timeouts(perf_alloc(PC_COUNT,	"timeouts")),
 	_perf_errors(perf_alloc(PC_COUNT,	"errors  ")),
-	_perf_wr(perf_alloc(PC_ELAPSED,		"writes  ")),
-	_perf_rd(perf_alloc(PC_ELAPSED,		"reads   "))
+	_perf_txns(perf_alloc(PC_ELAPSED,	"txns    "))
 {
 	/* allocate DMA */
 	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
@@ -305,10 +303,12 @@ PX4IO_serial::test(unsigned mode)
 					return -2;
 				if (count > 100) {
 					perf_print_counter(_perf_dmasetup);
-					perf_print_counter(_perf_wr);
+					perf_print_counter(_perf_txns);
+					perf_print_counter(_perf_timeouts);
+					perf_print_counter(_perf_errors);
 					count = 0;
 				}
-				usleep(100000);
+				usleep(10000);
 			}
 			return 0;
 		}
@@ -384,35 +384,29 @@ PX4IO_serial::_wait_complete(bool expect_reply, unsigned tx_length)
 	(void)rDR;
 
 	/* start RX DMA */
-	if (expect_reply) {
-		perf_begin(_perf_rd);
-		perf_begin(_perf_dmasetup);
+	perf_begin(_perf_txns);
+	perf_begin(_perf_dmasetup);
 
-		/* DMA setup time ~3µs */
-		_rx_dma_status = _dma_status_waiting;
-		_rx_length = 0;
-		stm32_dmasetup(
-			_rx_dma,
-			PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
-			reinterpret_cast<uint32_t>(&_dma_buffer),
-			sizeof(_dma_buffer),
-			DMA_SCR_DIR_P2M		|
-			DMA_SCR_MINC		|
-			DMA_SCR_PSIZE_8BITS	|
-			DMA_SCR_MSIZE_8BITS	|
-			DMA_SCR_PBURST_SINGLE	|
-			DMA_SCR_MBURST_SINGLE);
-		stm32_dmastart(_rx_dma, _dma_callback, this, false);
-		rCR3 |= USART_CR3_DMAR;
+	/* DMA setup time ~3µs */
+	_rx_dma_status = _dma_status_waiting;
+	_rx_length = 0;
+	stm32_dmasetup(
+		_rx_dma,
+		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
+		reinterpret_cast<uint32_t>(&_dma_buffer),
+		sizeof(_dma_buffer),
+		DMA_SCR_DIR_P2M		|
+		DMA_SCR_MINC		|
+		DMA_SCR_PSIZE_8BITS	|
+		DMA_SCR_MSIZE_8BITS	|
+		DMA_SCR_PBURST_SINGLE	|
+		DMA_SCR_MBURST_SINGLE);
+	stm32_dmastart(_rx_dma, _dma_callback, this, false);
+	rCR3 |= USART_CR3_DMAR;
 
-		perf_end(_perf_dmasetup);
-	} else {
-		perf_begin(_perf_wr);
-	}
 
 	/* start TX DMA - no callback if we also expect a reply */
 	/* DMA setup time ~3µs */
-	perf_begin(_perf_dmasetup);
 	_tx_dma_status = _dma_status_waiting;
 	stm32_dmasetup(
 		_tx_dma,
@@ -476,7 +470,7 @@ PX4IO_serial::_wait_complete(bool expect_reply, unsigned tx_length)
 	_rx_dma_status = _dma_status_inactive;
 
 	/* update counters */
-	perf_end(expect_reply ? _perf_rd : _perf_wr);
+	perf_end(_perf_txns);
 	if (ret != OK)
 		perf_count(_perf_errors);
 

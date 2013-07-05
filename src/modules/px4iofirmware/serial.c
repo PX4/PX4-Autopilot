@@ -192,7 +192,6 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	perf_count(pc_rx);
 
 	/* default to not sending a reply */
-	bool send_reply = false;
 	if (dma_packet.count & PKT_CTRL_WRITE) {
 
 		dma_packet.count &= ~PKT_CTRL_WRITE;
@@ -217,7 +216,6 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 			count = MAX_RW_REGS;
 
 		/* copy reply registers into DMA buffer */
-		send_reply = true;
 		memcpy((void *)&dma_packet.regs[0], registers, count);
 		dma_packet.count = count;
 	}
@@ -228,20 +226,18 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	dma_reset();
 
 	/* if we have a reply to send, start that now */
-	if (send_reply) {
-		stm32_dmasetup(
-			tx_dma,
-			(uint32_t)&rDR,
-			(uint32_t)&dma_packet,
-			sizeof(dma_packet),		/* XXX cut back to actual transmit size */
-			DMA_CCR_DIR		|
-			DMA_CCR_MINC		|
-			DMA_CCR_PSIZE_8BITS	|
-			DMA_CCR_MSIZE_8BITS);
-		sending = true;
-		stm32_dmastart(tx_dma, tx_dma_callback, NULL, false);
-		rCR3 |= USART_CR3_DMAT;
-	}
+	stm32_dmasetup(
+		tx_dma,
+		(uint32_t)&rDR,
+		(uint32_t)&dma_packet,
+		sizeof(dma_packet),		/* XXX cut back to actual transmit size */
+		DMA_CCR_DIR		|
+		DMA_CCR_MINC		|
+		DMA_CCR_PSIZE_8BITS	|
+		DMA_CCR_MSIZE_8BITS);
+	sending = true;
+	stm32_dmastart(tx_dma, tx_dma_callback, NULL, false);
+	rCR3 |= USART_CR3_DMAT;
 }
 
 static int
