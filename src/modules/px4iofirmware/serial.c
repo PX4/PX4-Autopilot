@@ -269,7 +269,7 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 		tx_dma,
 		(uint32_t)&rDR,
 		(uint32_t)&dma_packet,
-		sizeof(dma_packet),		/* XXX should be PKT_LENGTH() */
+		PKT_SIZE(dma_packet),
 		DMA_CCR_DIR		|
 		DMA_CCR_MINC		|
 		DMA_CCR_PSIZE_8BITS	|

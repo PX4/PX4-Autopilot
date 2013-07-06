@@ -135,7 +135,6 @@ private:
 
 	DMA_HANDLE		_tx_dma;
 	DMA_HANDLE		_rx_dma;
-	volatile unsigned	_rx_length;
 
 	/** saved DMA status */
 	static const unsigned	_dma_status_inactive = 0x80000000;	// low bits overlap DMA_STATUS_* values
@@ -173,12 +172,14 @@ private:
 	/**
 	 * Performance counters.
 	 */
-	perf_counter_t		_perf_dmasetup;
-	perf_counter_t		_perf_timeouts;
-	perf_counter_t		_perf_crcerrs;
-	perf_counter_t		_perf_dmaerrs;
-	perf_counter_t		_perf_protoerrs;
-	perf_counter_t		_perf_txns;
+	perf_counter_t		_pc_dmasetup;
+	perf_counter_t		_pc_timeouts;
+	perf_counter_t		_pc_crcerrs;
+	perf_counter_t		_pc_dmaerrs;
+	perf_counter_t		_pc_protoerrs;
+	perf_counter_t		_pc_idle;
+	perf_counter_t		_pc_badidle;
+	perf_counter_t		_pc_txns;
 
 };
 
@@ -193,14 +194,15 @@ PX4IO_interface	*io_serial_interface()
 PX4IO_serial::PX4IO_serial() :
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
-	_rx_length(0),
 	_rx_dma_status(_dma_status_inactive),
-	_perf_dmasetup(perf_alloc(PC_ELAPSED,	"dmasetup ")),
-	_perf_timeouts(perf_alloc(PC_COUNT,	"timeouts ")),
-	_perf_crcerrs(perf_alloc(PC_COUNT,	"crcerrs  ")),
-	_perf_dmaerrs(perf_alloc(PC_COUNT,	"dmaerrs  ")),
-	_perf_protoerrs(perf_alloc(PC_COUNT,	"protoerrs")),
-	_perf_txns(perf_alloc(PC_ELAPSED,	"txns     "))
+	_pc_dmasetup(perf_alloc(PC_ELAPSED,	"dmasetup ")),
+	_pc_timeouts(perf_alloc(PC_COUNT,	"timeouts ")),
+	_pc_crcerrs(perf_alloc(PC_COUNT,	"crcerrs  ")),
+	_pc_dmaerrs(perf_alloc(PC_COUNT,	"dmaerrs  ")),
+	_pc_protoerrs(perf_alloc(PC_COUNT,	"protoerrs")),
+	_pc_idle(perf_alloc(PC_COUNT,		"idle     ")),
+	_pc_badidle(perf_alloc(PC_COUNT,	"badidle  ")),
+	_pc_txns(perf_alloc(PC_ELAPSED,		"txns     "))
 {
 	/* allocate DMA */
 	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
@@ -233,7 +235,7 @@ PX4IO_serial::PX4IO_serial() :
 
 	/* enable UART in DMA mode, enable error and line idle interrupts */
 	/* rCR3 = USART_CR3_EIE;*/
-	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE /*| USART_CR1_IDLEIE*/;
+	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
 
 	/* create semaphores */
 	sem_init(&_completion_semaphore, 0, 0);
@@ -270,12 +272,14 @@ PX4IO_serial::~PX4IO_serial()
 	sem_destroy(&_completion_semaphore);
 	sem_destroy(&_bus_semaphore);
 
-	perf_free(_perf_dmasetup);
-	perf_free(_perf_timeouts);
-	perf_free(_perf_txns);
-	perf_free(_perf_crcerrs);
-	perf_free(_perf_dmaerrs);
-	perf_free(_perf_protoerrs);
+	perf_free(_pc_dmasetup);
+	perf_free(_pc_timeouts);
+	perf_free(_pc_crcerrs);
+	perf_free(_pc_dmaerrs);
+	perf_free(_pc_protoerrs);
+	perf_free(_pc_idle);
+	perf_free(_pc_badidle);
+	perf_free(_pc_txns);
 
 	if (g_interface == this)
 		g_interface = nullptr;
@@ -321,13 +325,15 @@ PX4IO_serial::test(unsigned mode)
 				set_reg(PX4IO_PAGE_TEST, PX4IO_P_TEST_LED, &value, 1);
 				/* ignore errors */
 					
-				if (count > 100) {
-					perf_print_counter(_perf_dmasetup);
-					perf_print_counter(_perf_timeouts);
-					perf_print_counter(_perf_txns);
-					perf_print_counter(_perf_crcerrs);
-					perf_print_counter(_perf_dmaerrs);
-					perf_print_counter(_perf_protoerrs);
+				if (count >= 100) {
+					perf_print_counter(_pc_dmasetup);
+					perf_print_counter(_pc_timeouts);
+					perf_print_counter(_pc_crcerrs);
+					perf_print_counter(_pc_dmaerrs);
+					perf_print_counter(_pc_protoerrs);
+					perf_print_counter(_pc_idle);
+					perf_print_counter(_pc_badidle);
+					perf_print_counter(_pc_txns);
 					count = 0;
 				}
 				usleep(10000);
@@ -404,17 +410,27 @@ PX4IO_serial::_wait_complete()
 	(void)rDR;
 
 	/* start RX DMA */
-	perf_begin(_perf_txns);
-	perf_begin(_perf_dmasetup);
+	perf_begin(_pc_txns);
+	perf_begin(_pc_dmasetup);
 
 	/* DMA setup time ~3µs */
 	_rx_dma_status = _dma_status_waiting;
-	_rx_length = 0;
+
+	/*
+	 * Note that we enable circular buffer mode as a workaround for
+	 * there being no API to disable the DMA FIFO. We need direct mode
+	 * because otherwise when the line idle interrupt fires there
+	 * will be packet bytes still in the DMA FIFO, and we will assume
+	 * that the idle was spurious.
+	 *
+	 * XXX this should be fixed with a NuttX change.
+	 */
 	stm32_dmasetup(
 		_rx_dma,
 		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
 		reinterpret_cast<uint32_t>(&_dma_buffer),
 		sizeof(_dma_buffer),
+		DMA_SCR_CIRC		|	/* XXX see note above */
 		DMA_SCR_DIR_P2M		|
 		DMA_SCR_MINC		|
 		DMA_SCR_PSIZE_8BITS	|
@@ -432,7 +448,7 @@ PX4IO_serial::_wait_complete()
 		_tx_dma,
 		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
 		reinterpret_cast<uint32_t>(&_dma_buffer),
-		sizeof(_dma_buffer),		/* XXX should be PKT_LENGTH() */
+		PKT_SIZE(_dma_buffer),
 		DMA_SCR_DIR_M2P		|
 		DMA_SCR_MINC		|
 		DMA_SCR_PSIZE_8BITS	|
@@ -442,7 +458,7 @@ PX4IO_serial::_wait_complete()
 	stm32_dmastart(_tx_dma, nullptr, nullptr, false);
 	rCR3 |= USART_CR3_DMAT;
 
-	perf_end(_perf_dmasetup);
+	perf_end(_pc_dmasetup);
 
 	/* compute the deadline for a 5ms timeout */
 	struct timespec abstime;
@@ -465,7 +481,7 @@ PX4IO_serial::_wait_complete()
 		if (ret == OK) {
 			/* check for DMA errors */
 			if (_rx_dma_status & DMA_STATUS_TEIF) {
-				perf_count(_perf_dmaerrs);
+				perf_count(_pc_dmaerrs);
 				ret = -1;
 				errno = EIO;
 				break;
@@ -475,7 +491,7 @@ PX4IO_serial::_wait_complete()
 			uint8_t crc = _dma_buffer.crc;
 			_dma_buffer.crc = 0;
 			if (crc != crc_packet(_dma_buffer)) {
-				perf_count(_perf_crcerrs);
+				perf_count(_pc_crcerrs);
 				ret = -1;
 				errno = EIO;
 				break;
@@ -483,7 +499,7 @@ PX4IO_serial::_wait_complete()
 
 			/* check packet response code */
 			if (PKT_CODE(_dma_buffer) != PKT_CODE_SUCCESS) {
-				perf_count(_perf_protoerrs);
+				perf_count(_pc_protoerrs);
 				ret = -1;
 				errno = EIO;
 				break;
@@ -496,7 +512,7 @@ PX4IO_serial::_wait_complete()
 		if (errno == ETIMEDOUT) {
 			/* something has broken - clear out any partial DMA state and reconfigure */
 			_abort_dma();
-			perf_count(_perf_timeouts);
+			perf_count(_pc_timeouts);
 			break;
 		}
 
@@ -508,7 +524,7 @@ PX4IO_serial::_wait_complete()
 	_rx_dma_status = _dma_status_inactive;
 
 	/* update counters */
-	perf_end(_perf_txns);
+	perf_end(_pc_txns);
 
 	return ret;
 }
@@ -542,9 +558,6 @@ PX4IO_serial::_do_rx_dma_callback(unsigned status)
 		/* disable UART DMA */
 		rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
 
-		/* DMA may have stopped short */
-		_rx_length = sizeof(IOPacket) - stm32_dmaresidual(_rx_dma);
-
 		/* complete now */
 		sem_post(&_completion_semaphore);
 	}
@@ -562,15 +575,9 @@ void
 PX4IO_serial::_do_interrupt()
 {
 	uint32_t sr = rSR;	/* get UART status register */
+	(void)rDR;		/* read DR to clear status */
 
-	/* handle error/exception conditions */
-	if (sr & (USART_SR_ORE | USART_SR_NE | USART_SR_FE | USART_SR_IDLE)) {
-		/* read DR to clear status */
-		(void)rDR;
-	} else {
-		ASSERT(0);
-	}
-
+#if 0
 	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
 		USART_SR_NE |		/* noise error - we have lost a byte due to noise */
 		USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
@@ -593,19 +600,20 @@ PX4IO_serial::_do_interrupt()
 		/* don't attempt to handle IDLE if it's set - things went bad */
 		return;
 	}
-
+#endif
 	if (sr & USART_SR_IDLE) {
-
-		/* if there was DMA transmission still going, this is an error */
-		if (stm32_dmaresidual(_tx_dma) != 0) {
-
-			/* babble from IO */
-			_abort_dma();
-			return;
-		}
 
 		/* if there is DMA reception going on, this is a short packet */
 		if (_rx_dma_status == _dma_status_waiting) {
+
+			/* verify that the received packet is complete */
+			unsigned length = sizeof(_dma_buffer) - stm32_dmaresidual(_rx_dma);
+			if ((length < 1) || (length < PKT_SIZE(_dma_buffer))) {
+				perf_count(_pc_badidle);
+				return;
+			}
+
+			perf_count(_pc_idle);
 
 			/* stop the receive DMA */
 			stm32_dmastop(_rx_dma);
