@@ -959,37 +959,37 @@ int
 PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 {
 	uint32_t channel_count;
-	int	ret = OK;
+	int	ret;
 
 	/* we don't have the status bits, so input_source has to be set elsewhere */
 	input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
 	
-	/*
-	 * XXX Because the channel count and channel data are fetched
-	 *     separately, there is a risk of a race between the two
-	 *     that could leave us with channel data and a count that 
-	 *     are out of sync.
-	 *     Fixing this would require a guarantee of atomicity from
-	 *     IO, and a single fetch for both count and channels.
-	 *
-	 * XXX Since IO has the input calibration info, we ought to be
-	 *     able to get the pre-fixed-up controls directly.
-	 *
-	 * XXX can we do this more cheaply? If we knew we had DMA, it would
-	 *     almost certainly be better to just get all the inputs...
-	 */
-	channel_count =  io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
-	if (channel_count == _io_reg_get_error)
-		return -EIO;
-	if (channel_count > RC_INPUT_MAX_CHANNELS)
-		channel_count = RC_INPUT_MAX_CHANNELS;
-	input_rc.channel_count = channel_count;
+	static const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
+	uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
 
-	if (channel_count > 0) {
-		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, input_rc.values, channel_count);
-		if (ret == OK)
-			input_rc.timestamp = hrt_absolute_time();
+	/*
+	 * Read the channel count and the first 9 channels.
+	 *
+	 * This should be the common case (9 channel R/C control being a reasonable upper bound).
+	 */
+	input_rc.timestamp = hrt_absolute_time();
+	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog + 9);
+	if (ret != OK)
+		return ret;
+
+	/*
+	 * Get the channel count any any extra channels. This is no more expensive than reading the
+	 * channel count once.
+	 */
+	channel_count = regs[0];
+	if (channel_count > 9) {
+		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + 9, &regs[prolog + 9], channel_count - 9);
+		if (ret != OK)
+			return ret;
 	}
+
+	input_rc.channel_count = channel_count;
+	memcpy(input_rc.values, &regs[prolog], channel_count * 2);
 
 	return ret;
 }
