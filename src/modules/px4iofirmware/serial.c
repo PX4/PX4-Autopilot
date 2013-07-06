@@ -233,7 +233,7 @@ rx_handle_packet(void)
 				count = PKT_COUNT(dma_packet);
 
 			/* copy reply registers into DMA buffer */
-			memcpy((void *)&dma_packet.regs[0], registers, count);
+			memcpy((void *)&dma_packet.regs[0], registers, count * 2);
 			dma_packet.count_code = count | PKT_CODE_SUCCESS;
 		}
 		return;
