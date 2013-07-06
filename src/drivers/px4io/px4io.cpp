@@ -572,6 +572,14 @@ PX4IO::task_main()
 	_t_param = orb_subscribe(ORB_ID(parameter_update));
 	orb_set_interval(_t_param, 500);		/* 2Hz update rate max. */
 
+	if ((_t_actuators < 0) ||
+		(_t_armed < 0) ||
+		(_t_vstatus < 0) ||
+		(_t_param < 0)) {
+		log("subscription(s) failed");
+		goto out;
+	}
+
 	/* poll descriptor */
 	pollfd fds[4];
 	fds[0].fd = _t_actuators;
@@ -668,6 +676,7 @@ PX4IO::task_main()
 
 	unlock();
 
+out:
 	debug("exiting");
 
 	/* clean up the alternate device node */
