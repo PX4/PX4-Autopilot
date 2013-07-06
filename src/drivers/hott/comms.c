@@ -41,17 +41,17 @@
 
 #include <fcntl.h>
 #include <nuttx/config.h>
-#include <poll.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <unistd.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <termios.h>
+#include <unistd.h>
 
 int
-open_uart(const char *device, struct termios *uart_config_original)
+open_uart(const char *device)
 {
 	/* baud rate */
 	static const speed_t speed = B19200;
@@ -65,7 +65,8 @@ open_uart(const char *device, struct termios *uart_config_original)
 	
 	/* Back up the original uart configuration to restore it after exit */	
 	int termios_state;
-	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
+	struct termios uart_config_original;
+	if ((termios_state = tcgetattr(uart, &uart_config_original)) < 0) {
 		close(uart);
 		err(1, "Error getting baudrate / termios config for %s: %d", device, termios_state);
 	}

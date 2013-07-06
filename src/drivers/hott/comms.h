@@ -41,9 +41,7 @@
 #ifndef COMMS_H_
 #define COMMS_H
 
-#include <termios.h>
-
-int open_uart(const char *device, struct termios *uart_config_original);
+int open_uart(const char *device);
 
 #endif /* COMMS_H_ */
 

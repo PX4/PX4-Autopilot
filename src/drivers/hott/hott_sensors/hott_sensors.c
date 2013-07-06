@@ -47,7 +47,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
@@ -60,7 +59,7 @@ static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
 static const char daemon_name[] = "hott_sensors";
-static const char commandline_usage[] = "usage: hott_sensor start|status|stop [-d <device>]";
+static const char commandline_usage[] = "usage: hott_sensors start|status|stop [-d <device>]";
 
 /**
  * Deamon management function.
@@ -96,8 +95,6 @@ send_poll(int uart, uint8_t *buffer, size_t size)
 int
 recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
 {
-	usleep(5000);
-
 	static const int timeout_ms = 1000;
 	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
 
@@ -108,7 +105,6 @@ recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
 		bool stop_byte_read = false;
 		while (true)  {
 			read(uart, &buffer[i], sizeof(buffer[i]));
-			//printf("[%d]: %d\n", i, buffer[i]);
 
 			if (stop_byte_read) {
 				// XXX process checksum
@@ -149,37 +145,37 @@ hott_sensors_thread_main(int argc, char *argv[])
 	}
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
-	struct termios uart_config_original;
-	const int uart = open_uart(device, &uart_config_original);
-
+	const int uart = open_uart(device);
 	if (uart < 0) {
 		errx(1, "Failed opening HoTT UART, exiting.");
 		thread_running = false;
 	}
 
+	pub_messages_init();
+
 	uint8_t buffer[MESSAGE_BUFFER_SIZE];
 	size_t size = 0;
 	uint8_t id = 0;
-	bool connected = true;
 	while (!thread_should_exit) {
 		// Currently we only support a General Air Module sensor.
 		build_gam_request(&buffer, &size);
 		send_poll(uart, buffer, size);
+
+		// The sensor will need a little time before it starts sending.
+		usleep(5000);
+
 		recv_data(uart, &buffer, &size, &id);
 
 		// Determine which moduel sent it and process accordingly.
 		if (id == GAM_SENSOR_ID) {
-			//warnx("extract");
-			extract_gam_message(buffer);
+			publish_gam_message(buffer);
 		} else {
-			warnx("Unknown sensor ID received: %d", id);
-		}	
+			warnx("Unknown sensor ID: %d", id);
+		}
 	}
 
 	warnx("exiting");
-
 	close(uart);
-
 	thread_running = false;
 
 	return 0;

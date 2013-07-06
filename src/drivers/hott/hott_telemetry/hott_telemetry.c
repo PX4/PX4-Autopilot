@@ -49,7 +49,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
@@ -189,15 +188,13 @@ hott_telemetry_thread_main(int argc, char *argv[])
 	}
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
-	struct termios uart_config_original;
-	const int uart = open_uart(device, &uart_config_original);
-
+	const int uart = open_uart(device);
 	if (uart < 0) {
 		errx(1, "Failed opening HoTT UART, exiting.");
 		thread_running = false;
 	}
 
-	messages_init();
+	sub_messages_init();
 
 	uint8_t buffer[MESSAGE_BUFFER_SIZE];
 	size_t size = 0;

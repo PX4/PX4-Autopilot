@@ -256,9 +256,10 @@ struct gps_module_msg {
 
 #define MESSAGE_BUFFER_SIZE GPS_MESSAGE_BUFFER_SIZE
 
-void messages_init(void);
+void sub_messages_init(void);
+void pub_messages_init(void);
 void build_gam_request(uint8_t *buffer, size_t *size);
-void extract_gam_message(const uint8_t *buffer);
+void publish_gam_message(const uint8_t *buffer);
 void build_eam_response(uint8_t *buffer, size_t *size);
 void build_gps_response(uint8_t *buffer, size_t *size);
 float _get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);

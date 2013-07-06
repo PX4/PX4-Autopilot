@@ -58,19 +58,31 @@ static int gps_sub = -1;
 static int home_sub = -1;
 static int sensor_sub = -1;
 static int airspeed_sub = -1;
+static int esc_sub = -1;
+
+//orb_advert_t _esc_pub;
+//struct esc_s _esc;
+
 
 static bool home_position_set = false;
 static double home_lat = 0.0d;
 static double home_lon = 0.0d;
 
 void 
-messages_init(void)
+sub_messages_init(void)
 {
 	battery_sub = orb_subscribe(ORB_ID(battery_status));
 	gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	home_sub = orb_subscribe(ORB_ID(home_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	//esc_sub = orb_subscribe(ORB_ID(esc));
+}
+
+void 
+pub_messages_init(void)
+{
+	//esc_pub = orb_subscribe(ORB_ID(esc));
 }
 
 void
@@ -87,17 +99,28 @@ build_gam_request(uint8_t *buffer, size_t *size)
 }
 
 void
-extract_gam_message(const uint8_t *buffer)
+publish_gam_message(const uint8_t *buffer)
 {
 	struct gam_module_msg msg;
 	size_t size = sizeof(msg);
 	memset(&msg, 0, size);
 	memcpy(&msg, buffer, size);
 
+	/* announce the esc if needed, just publish else */
+//	if (esc_pub > 0) {
+//		orb_publish(ORB_ID(airspeed), _esc_pub, &_esc);
+//
+//	} else {
+//		_esc_pub = orb_advertise(ORB_ID(esc), &_esc);
+//	}
+
 	// Publish it.
 	uint16_t rpm = ((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
+	//_esc.rpm = rpm;
 	uint8_t temp = msg.temperature2 + 20;
+	//_esc.temperature = temp; 
 	float current = ((msg.current_H << 8) | (msg.current_L & 0xff)) * 0.1f;
+	//_esc.current = current;
 	printf("RPM: %d TEMP: %d A: %2.1f\n", rpm, temp, current);
 }
 
