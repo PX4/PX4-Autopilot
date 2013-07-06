@@ -69,7 +69,7 @@
 
 #include "interface.h"
 
-const unsigned	max_rw_regs = 32; // by agreement w/IO
+#define	PKT_MAX_REGS	32 // by agreement w/IO
 
 #pragma pack(push, 1)
 struct IOPacket {
@@ -77,7 +77,7 @@ struct IOPacket {
 	uint8_t 	crc;
 	uint8_t 	page;
 	uint8_t 	offset;
-	uint16_t	regs[max_rw_regs];
+	uint16_t	regs[PKT_MAX_REGS];
 };
 #pragma pack(pop)
 
@@ -268,6 +268,12 @@ PX4IO_serial::~PX4IO_serial()
 	sem_destroy(&_completion_semaphore);
 	sem_destroy(&_bus_semaphore);
 
+	perf_free(_perf_dmasetup);
+	perf_free(_perf_timeouts);
+	perf_free(_perf_errors);
+	perf_free(_perf_txns);
+	perf_free(_perf_crcerrs);
+
 	if (g_interface == this)
 		g_interface = nullptr;
 }
@@ -334,7 +340,7 @@ PX4IO_serial::test(unsigned mode)
 int
 PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
-	if (num_values > max_rw_regs)
+	if (num_values > PKT_MAX_REGS)
 		return -EINVAL;
 
 	sem_wait(&_bus_semaphore);
@@ -343,7 +349,7 @@ PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsi
 	_dma_buffer.page = page;
 	_dma_buffer.offset = offset;
 	memcpy((void *)&_dma_buffer.regs[0], (void *)values, (2 * num_values));
-	for (unsigned i = num_values; i < max_rw_regs; i++)
+	for (unsigned i = num_values; i < PKT_MAX_REGS; i++)
 		_dma_buffer.regs[i] = 0x55aa;
 
 	/* XXX implement check byte */
@@ -358,7 +364,7 @@ PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsi
 int
 PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values)
 {
-	if (num_values > max_rw_regs)
+	if (num_values > PKT_MAX_REGS)
 		return -EINVAL;
 
 	sem_wait(&_bus_semaphore);
@@ -422,7 +428,7 @@ PX4IO_serial::_wait_complete()
 		_tx_dma,
 		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
 		reinterpret_cast<uint32_t>(&_dma_buffer),
-		sizeof(_dma_buffer),		/* XXX should be tx_length */
+		sizeof(_dma_buffer),		/* XXX should be PKT_LENGTH() */
 		DMA_SCR_DIR_M2P		|
 		DMA_SCR_MINC		|
 		DMA_SCR_PSIZE_8BITS	|

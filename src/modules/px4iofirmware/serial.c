@@ -77,7 +77,7 @@ static void		dma_reset(void);
 /* if we spend this many ticks idle, reset the DMA */
 static unsigned		idle_ticks;
 
-#define MAX_RW_REGS	32 // by agreement w/FMU
+#define PKT_MAX_REGS	32 // by agreement w/FMU
 
 #pragma pack(push, 1)
 struct IOPacket {
@@ -85,7 +85,7 @@ struct IOPacket {
 	uint8_t 	crc;
 	uint8_t 	page;
 	uint8_t 	offset;
-	uint16_t	regs[MAX_RW_REGS];
+	uint16_t	regs[PKT_MAX_REGS];
 };
 #pragma pack(pop)
 
@@ -231,8 +231,8 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 			count = 0;
 
 		/* constrain reply to packet size */
-		if (count > MAX_RW_REGS)
-			count = MAX_RW_REGS;
+		if (count > PKT_MAX_REGS)
+			count = PKT_MAX_REGS;
 
 		/* copy reply registers into DMA buffer */
 		memcpy((void *)&dma_packet.regs[0], registers, count);
@@ -251,7 +251,7 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 		tx_dma,
 		(uint32_t)&rDR,
 		(uint32_t)&dma_packet,
-		sizeof(dma_packet),		/* XXX cut back to actual transmit size */
+		sizeof(dma_packet),		/* XXX should be PKT_LENGTH() */
 		DMA_CCR_DIR		|
 		DMA_CCR_MINC		|
 		DMA_CCR_PSIZE_8BITS	|
