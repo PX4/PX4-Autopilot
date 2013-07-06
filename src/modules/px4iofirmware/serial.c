@@ -56,8 +56,6 @@
 //#define DEBUG
 #include "px4io.h"
 
-static volatile bool	sending = false;
-
 static perf_counter_t	pc_rx;
 static perf_counter_t	pc_errors;
 static perf_counter_t	pc_ore;
@@ -66,8 +64,8 @@ static perf_counter_t	pc_ne;
 static perf_counter_t	pc_regerr;
 static perf_counter_t	pc_crcerr;
 
+static void		rx_handle_packet(void);
 static void		rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
-static void		tx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
 static DMA_HANDLE	tx_dma;
 static DMA_HANDLE	rx_dma;
 
@@ -186,33 +184,24 @@ interface_tick()
 }
 
 static void
-tx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
+rx_handle_packet(void)
 {
-	sending = false;
-	rCR3 &= ~USART_CR3_DMAT;
-}
-
-static void
-rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
-{
-	/* we just received a request; sort out what to do */
-
-	rCR3 &= ~USART_CR3_DMAR;
-	idle_ticks = 0;
-
-	/* work out how big the packet actually is */
-	//unsigned rx_length = sizeof(IOPacket) - stm32_dmaresidual(rx_dma);
-
-	/* XXX implement check byte */
-
 	perf_count(pc_rx);
 
+	/* check packet CRC */
 	uint8_t crc = dma_packet.crc;
 	dma_packet.crc = 0;
-	if (crc != crc_packet())
+	if (crc != crc_packet()) {
 		perf_count(pc_crcerr);
 
-	/* default to not sending a reply */
+		/* send a CRC error reply */
+		dma_packet.count_code = PKT_CODE_CORRUPT;
+		dma_packet.page = 0xff;
+		dma_packet.offset = 0xff;
+
+		return;
+	}
+
 	if (PKT_CODE(dma_packet) == PKT_CODE_WRITE) {
 
 		/* it's a blind write - pass it on */
@@ -222,33 +211,54 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 		} else {
 			dma_packet.count_code = PKT_CODE_SUCCESS;
 		}
+		return;
+	} 
 
-	} else {
+	if (PKT_CODE(dma_packet) == PKT_CODE_READ) {
 
 		/* it's a read - get register pointer for reply */
-		int result;
 		unsigned count;
 		uint16_t *registers;
 
-		result = registers_get(dma_packet.page, dma_packet.offset, &registers, &count);
-		if (result < 0)
-			count = 0;
+		if (registers_get(dma_packet.page, dma_packet.offset, &registers, &count) < 0) {
+			perf_count(pc_regerr);
+			dma_packet.count_code = PKT_CODE_ERROR;
+		} else {
+			/* constrain reply to requested size */
+			if (count > PKT_MAX_REGS)
+				count = PKT_MAX_REGS;
+			if (count > PKT_COUNT(dma_packet))
+				count = PKT_COUNT(dma_packet);
 
-		/* constrain reply to packet size */
-		if (count > PKT_MAX_REGS)
-			count = PKT_MAX_REGS;
-
-		/* copy reply registers into DMA buffer */
-		memcpy((void *)&dma_packet.regs[0], registers, count);
-		dma_packet.count_code = count | PKT_CODE_SUCCESS;
+			/* copy reply registers into DMA buffer */
+			memcpy((void *)&dma_packet.regs[0], registers, count);
+			dma_packet.count_code = count | PKT_CODE_SUCCESS;
+		}
+		return;
 	}
 
+	/* send a bad-packet error reply */
+	dma_packet.count_code = PKT_CODE_CORRUPT;
+	dma_packet.page = 0xff;
+	dma_packet.offset = 0xfe;
+}
+
+static void
+rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
+{
+	/* disable UART DMA */
+	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
+
+	/* reset the idle counter */
+	idle_ticks = 0;
+
+	/* handle the received packet */
+	rx_handle_packet();
+
 	/* re-set DMA for reception first, so we are ready to receive before we start sending */
-	/* XXX latency here could mean loss of back-to-back writes; do we want to always send an ack? */
-	/* XXX always sending an ack would simplify the FMU side (always wait for reply) too */
 	dma_reset();
 
-	/* if we have a reply to send, start that now */
+	/* send the reply to the previous request */
 	dma_packet.crc = 0;
 	dma_packet.crc = crc_packet();
 	stm32_dmasetup(
@@ -260,8 +270,7 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 		DMA_CCR_MINC		|
 		DMA_CCR_PSIZE_8BITS	|
 		DMA_CCR_MSIZE_8BITS);
-	sending = true;
-	stm32_dmastart(tx_dma, tx_dma_callback, NULL, false);
+	stm32_dmastart(tx_dma, NULL, NULL, false);
 	rCR3 |= USART_CR3_DMAT;
 }
 
