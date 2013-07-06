@@ -40,6 +40,7 @@
  */
 
 #include <nuttx/config.h>
+#include <nuttx/arch.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -99,6 +100,41 @@ dsm_init(const char *device)
 	}
 
 	return dsm_fd;
+}
+
+void
+dsm_bind(uint16_t cmd, int pulses)
+{
+	const uint32_t usart1RxAsOutp = GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN10;
+
+	if (dsm_fd < 0)
+		return;
+
+	switch (cmd) {
+	case dsm_bind_power_down:
+		// power down DSM satellite
+		POWER_RELAY1(0);
+		break;
+	case dsm_bind_power_up:
+		POWER_RELAY1(1);
+		dsm_guess_format(true);
+		break;
+	case dsm_bind_set_rx_out:
+		stm32_configgpio(usart1RxAsOutp); 
+		break;
+	case dsm_bind_send_pulses:
+		for (int i = 0; i < pulses; i++) {
+			stm32_gpiowrite(usart1RxAsOutp, false);
+			up_udelay(50);
+			stm32_gpiowrite(usart1RxAsOutp, true);
+			up_udelay(50);
+		}
+		break;
+	case dsm_bind_reinit_uart:
+		// Restore USART rx pin
+		stm32_configgpio(GPIO_USART1_RX);
+		break;
+	}
 }
 
 bool
@@ -218,7 +254,7 @@ dsm_guess_format(bool reset)
 
 	/*
 	 * Iterate the set of sensible sniffed channel sets and see whether
-	 * decoding in 10 or 11-bit mode has yielded anything we recognise.
+	 * decoding in 10 or 11-bit mode has yielded anything we recognize.
 	 *
 	 * XXX Note that due to what seem to be bugs in the DSM2 high-resolution
 	 *     stream, we may want to sniff for longer in some cases when we think we
@@ -303,7 +339,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
 
 		uint8_t *dp = &frame[2 + (2 * i)];
-		uint16_t raw = (dp[0] << 8) | dp[1];
+		uint16_t raw = ((uint16_t)dp[0] << 8) | dp[1];
 		unsigned channel, value;
 
 		if (!dsm_decode_channel(raw, channel_shift, &channel, &value))
@@ -348,6 +384,9 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 
 		values[channel] = value;
 	}
+
+	if (channel_shift == 11)
+		*num_values |= 0x8000;
 
 	/*
 	 * XXX Note that we may be in failsafe here; we need to work out how to detect that.

@@ -89,6 +89,8 @@
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
 
+static int dsm_vcc_ctl;
+
 class PX4IO : public device::I2C
 {
 public:
@@ -700,8 +702,6 @@ PX4IO::io_set_control_state()
 int
 PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
 {
-	uint16_t 		regs[_max_actuators];
-
 	if (len > _max_actuators)
 		/* fail with error */
 		return E2BIG;
@@ -1271,13 +1271,14 @@ PX4IO::print_status()
 	printf("%u bytes free\n",
 		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
-	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		flags,
 		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " ARMED" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
-		((flags & PX4IO_P_STATUS_FLAGS_RC_DSM)   ? " DSM" : ""),
+		(((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (!(flags & PX4IO_P_STATUS_FLAGS_RC_DSM11))) ? " DSM10" : ""),
+		(((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_STATUS_FLAGS_RC_DSM11)) ? " DSM11" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)  ? " SBUS" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PPM" : ""),
@@ -1422,6 +1423,26 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_COUNT:
 		*(unsigned *)arg = _max_actuators;
+		break;
+
+	case DSM_BIND_START:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down); 
+		usleep(500000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
+		usleep(1000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
+		usleep(100000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
+		break;
+
+	case DSM_BIND_STOP:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
+		usleep(500000);
+		break;
+
+	case DSM_BIND_POWER_UP:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
 		break;
 
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS - 1): {
@@ -1614,7 +1635,69 @@ start(int argc, char *argv[])
 		errx(1, "driver init failed");
 	}
 
+	if (param_get(param_find("RC_RL1_DSM_VCC"), &dsm_vcc_ctl) == OK) {
+		if (dsm_vcc_ctl) {
+			int fd = open("/dev/px4io", O_WRONLY);
+			if (fd < 0)
+				errx(1, "failed to open device");
+			ioctl(fd, DSM_BIND_POWER_UP, 0);
+			close(fd);
+		}
+	}
 	exit(0);
+}
+
+void
+bind(int argc, char *argv[])
+{
+	int fd, pulses;
+
+	if (g_dev == nullptr)
+		errx(1, "px4io must be started first");
+
+	if (dsm_vcc_ctl == 0)
+		errx(1, "DSM bind feature not enabled");
+
+	if (argc < 3)
+		errx(0, "needs argument, use dsm2 or dsmx");
+
+	if (!strcmp(argv[2], "dsm2"))
+		pulses = 3;
+	else if (!strcmp(argv[2], "dsmx"))
+		pulses = 7;
+	else 
+		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
+
+	fd = open("/dev/px4io", O_WRONLY);
+
+	if (fd < 0)
+		errx(1, "failed to open device");
+
+	ioctl(fd, DSM_BIND_START, pulses);
+
+	/* Open console directly to grab CTRL-C signal */
+	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
+	if (!console)
+		errx(1, "failed opening console");
+
+	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
+	warnx("Press CTRL-C or 'c' when done.");
+
+	for (;;) {
+		usleep(500000L);
+		/* Check if user wants to quit */
+		char c;
+		if (read(console, &c, 1) == 1) {
+			if (c == 0x03 || c == 0x63) {
+				warnx("Done\n");
+				ioctl(fd, DSM_BIND_STOP, 0);
+				ioctl(fd, DSM_BIND_POWER_UP, 0);
+				close(fd);
+				close(console);
+	                        exit(0);
+                        }
+		}
+	}
 }
 
 void
@@ -1918,6 +2001,9 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "monitor"))
 		monitor();
 
+	if (!strcmp(argv[1], "bind"))
+		bind(argc, argv);
+
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe', 'bind', or 'update'");
 }

@@ -360,6 +360,10 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			isr_debug(0, "set debug %u\n", (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG]);
 			break;
 
+		case PX4IO_P_SETUP_DSM:
+			dsm_bind(value & 0x0f, (value >> 4) & 7);
+			break;
+
 		default:
 			return -1;
 		}
