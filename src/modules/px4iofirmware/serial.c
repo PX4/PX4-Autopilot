@@ -56,11 +56,13 @@
 //#define DEBUG
 #include "px4io.h"
 
-static perf_counter_t	pc_rx;
+static perf_counter_t	pc_txns;
 static perf_counter_t	pc_errors;
 static perf_counter_t	pc_ore;
 static perf_counter_t	pc_fe;
 static perf_counter_t	pc_ne;
+static perf_counter_t	pc_idle;
+static perf_counter_t	pc_badidle;
 static perf_counter_t	pc_regerr;
 static perf_counter_t	pc_crcerr;
 
@@ -117,11 +119,13 @@ static struct IOPacket	dma_packet;
 void
 interface_init(void)
 {
-	pc_rx = perf_alloc(PC_COUNT, "rx count");
+	pc_txns = perf_alloc(PC_ELAPSED, "txns");
 	pc_errors = perf_alloc(PC_COUNT, "errors");
 	pc_ore = perf_alloc(PC_COUNT, "overrun");
 	pc_fe = perf_alloc(PC_COUNT, "framing");
 	pc_ne = perf_alloc(PC_COUNT, "noise");
+	pc_idle = perf_alloc(PC_COUNT, "idle");
+	pc_badidle = perf_alloc(PC_COUNT, "badidle");
 	pc_regerr = perf_alloc(PC_COUNT, "regerr");
 	pc_crcerr = perf_alloc(PC_COUNT, "crcerr");
 
@@ -154,7 +158,7 @@ interface_init(void)
 
 	/* enable UART and DMA */
 	/*rCR3 = USART_CR3_EIE; */
-	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE /*| USART_CR1_IDLEIE*/;
+	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
 
 #if 0	/* keep this for signal integrity testing */
 	for (;;) {
@@ -186,8 +190,6 @@ interface_tick()
 static void
 rx_handle_packet(void)
 {
-	perf_count(pc_rx);
-
 	/* check packet CRC */
 	uint8_t crc = dma_packet.crc;
 	dma_packet.crc = 0;
@@ -246,6 +248,8 @@ rx_handle_packet(void)
 static void
 rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
+	perf_begin(pc_txns);
+
 	/* disable UART DMA */
 	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
 
@@ -272,21 +276,17 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 		DMA_CCR_MSIZE_8BITS);
 	stm32_dmastart(tx_dma, NULL, NULL, false);
 	rCR3 |= USART_CR3_DMAT;
+
+	perf_end(pc_txns);
 }
 
 static int
 serial_interrupt(int irq, void *context)
 {
 	uint32_t sr = rSR;	/* get UART status register */
+	(void)rDR;		/* required to clear any of the interrupt status that brought us here */
 
-	/* handle error/exception conditions */
-	if (sr & (USART_SR_ORE | USART_SR_NE | USART_SR_FE | USART_SR_IDLE)) {
-		/* read DR to clear status */
-		(void)rDR;
-	} else {
-		ASSERT(0);
-	}
-
+#if 0
 	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
 		USART_SR_NE |		/* noise error - we have lost a byte due to noise */
 		USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
@@ -305,10 +305,17 @@ serial_interrupt(int irq, void *context)
 		/* don't attempt to handle IDLE if it's set - things went bad */
 		return 0;
 	}
-
+#endif
 	if (sr & USART_SR_IDLE) {
 
-		/* XXX if there was DMA transmission still going, this is an error */
+		/* the packet might have been short - go check */
+		unsigned length = sizeof(dma_packet) - stm32_dmaresidual(rx_dma);
+		if ((length < 1) || (length < PKT_SIZE(dma_packet))) {
+			perf_count(pc_badidle);
+			return 0;
+		}
+
+		perf_count(pc_idle);
 
 		/* stop the receive DMA */
 		stm32_dmastop(rx_dma);
