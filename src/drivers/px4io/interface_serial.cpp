@@ -303,7 +303,7 @@ PX4IO_serial::test(unsigned mode)
 				if (set_reg(PX4IO_PAGE_TEST, PX4IO_P_TEST_LED, &value, 1) != 0)
 					fails++;
 					
-				if (count >= 1000) {
+				if (count >= 5000) {
 					lowsyslog("==== test 1 : %u failures ====\n", fails);
 					perf_print_counter(_pc_txns);
 					perf_print_counter(_pc_dmasetup);
@@ -317,7 +317,6 @@ PX4IO_serial::test(unsigned mode)
 					perf_print_counter(_pc_badidle);
 					count = 0;
 				}
-				usleep(1000);
 			}
 			return 0;
 		}
