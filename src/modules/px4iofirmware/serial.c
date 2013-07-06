@@ -64,6 +64,7 @@ static perf_counter_t	pc_ore;
 static perf_counter_t	pc_fe;
 static perf_counter_t	pc_ne;
 static perf_counter_t	pc_regerr;
+static perf_counter_t	pc_crcerr;
 
 static void		rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
 static void		tx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
@@ -124,6 +125,7 @@ interface_init(void)
 	pc_fe = perf_alloc(PC_COUNT, "framing");
 	pc_ne = perf_alloc(PC_COUNT, "noise");
 	pc_regerr = perf_alloc(PC_COUNT, "regerr");
+	pc_crcerr = perf_alloc(PC_COUNT, "crcerr");
 
 	/* allocate DMA */
 	tx_dma = stm32_dmachannel(PX4FMU_SERIAL_TX_DMA);
@@ -204,6 +206,11 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	/* XXX implement check byte */
 
 	perf_count(pc_rx);
+
+	uint8_t crc = dma_packet.crc;
+	dma_packet.crc = 0;
+	if (crc != crc_packet())
+		perf_count(pc_crcerr);
 
 	/* default to not sending a reply */
 	if (PKT_CODE(dma_packet) == PKT_CODE_WRITE) {

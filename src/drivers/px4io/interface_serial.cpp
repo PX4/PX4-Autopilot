@@ -181,6 +181,7 @@ private:
 	perf_counter_t		_perf_timeouts;
 	perf_counter_t		_perf_errors;
 	perf_counter_t		_perf_txns;
+	perf_counter_t		_perf_crcerrs;
 
 };
 
@@ -201,7 +202,8 @@ PX4IO_serial::PX4IO_serial() :
 	_perf_dmasetup(perf_alloc(PC_ELAPSED,	"dmasetup")),
 	_perf_timeouts(perf_alloc(PC_COUNT,	"timeouts")),
 	_perf_errors(perf_alloc(PC_COUNT,	"errors  ")),
-	_perf_txns(perf_alloc(PC_ELAPSED,	"txns    "))
+	_perf_txns(perf_alloc(PC_ELAPSED,	"txns    ")),
+	_perf_crcerrs(perf_alloc(PC_COUNT,	"crcerrs "))
 {
 	/* allocate DMA */
 	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
@@ -319,6 +321,7 @@ PX4IO_serial::test(unsigned mode)
 					perf_print_counter(_perf_txns);
 					perf_print_counter(_perf_timeouts);
 					perf_print_counter(_perf_errors);
+					perf_print_counter(_perf_crcerrs);
 					count = 0;
 				}
 				usleep(10000);
@@ -460,11 +463,19 @@ PX4IO_serial::_wait_complete(bool expect_reply, unsigned tx_length)
 			if (_tx_dma_status & DMA_STATUS_TEIF) {
 				lowsyslog("DMA transmit error\n");
 				ret = -1;
+				break;
 			}
 			if (_rx_dma_status & DMA_STATUS_TEIF) {
 				lowsyslog("DMA receive error\n");
 				ret = -1;
+				break;
 			}
+
+			/* check packet CRC */
+			uint8_t crc = _dma_buffer.crc;
+			_dma_buffer.crc = 0;
+			if (crc != crc_packet(_dma_buffer))
+				perf_count(_perf_crcerrs);
 			break;
 		}
 
