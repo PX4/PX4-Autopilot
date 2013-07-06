@@ -92,13 +92,25 @@ __EXPORT extern void		perf_begin(perf_counter_t handle);
  * End a performance event.
  *
  * This call applies to counters that operate over ranges of time; PC_ELAPSED etc.
+ * If a call is made without a corresopnding perf_begin call, or if perf_cancel
+ * has been called subsequently, no change is made to the counter.
  *
  * @param handle		The handle returned from perf_alloc.
  */
 __EXPORT extern void		perf_end(perf_counter_t handle);
 
 /**
- * Reset a performance event.
+ * Cancel a performance event.
+ *
+ * This call applies to counters that operate over ranges of time; PC_ELAPSED etc.
+ * It reverts the effect of a previous perf_begin.
+ *
+ * @param handle		The handle returned from perf_alloc.
+ */
+__EXPORT extern void		perf_cancel(perf_counter_t handle);
+
+/**
+ * Reset a performance counter.
  *
  * This call resets performance counter to initial state
  *
