@@ -175,9 +175,10 @@ private:
 	 */
 	perf_counter_t		_perf_dmasetup;
 	perf_counter_t		_perf_timeouts;
-	perf_counter_t		_perf_errors;
-	perf_counter_t		_perf_txns;
 	perf_counter_t		_perf_crcerrs;
+	perf_counter_t		_perf_dmaerrs;
+	perf_counter_t		_perf_protoerrs;
+	perf_counter_t		_perf_txns;
 
 };
 
@@ -194,11 +195,12 @@ PX4IO_serial::PX4IO_serial() :
 	_rx_dma(nullptr),
 	_rx_length(0),
 	_rx_dma_status(_dma_status_inactive),
-	_perf_dmasetup(perf_alloc(PC_ELAPSED,	"dmasetup")),
-	_perf_timeouts(perf_alloc(PC_COUNT,	"timeouts")),
-	_perf_errors(perf_alloc(PC_COUNT,	"errors  ")),
-	_perf_txns(perf_alloc(PC_ELAPSED,	"txns    ")),
-	_perf_crcerrs(perf_alloc(PC_COUNT,	"crcerrs "))
+	_perf_dmasetup(perf_alloc(PC_ELAPSED,	"dmasetup ")),
+	_perf_timeouts(perf_alloc(PC_COUNT,	"timeouts ")),
+	_perf_crcerrs(perf_alloc(PC_COUNT,	"crcerrs  ")),
+	_perf_dmaerrs(perf_alloc(PC_COUNT,	"dmaerrs  ")),
+	_perf_protoerrs(perf_alloc(PC_COUNT,	"protoerrs")),
+	_perf_txns(perf_alloc(PC_ELAPSED,	"txns     "))
 {
 	/* allocate DMA */
 	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
@@ -270,9 +272,10 @@ PX4IO_serial::~PX4IO_serial()
 
 	perf_free(_perf_dmasetup);
 	perf_free(_perf_timeouts);
-	perf_free(_perf_errors);
 	perf_free(_perf_txns);
 	perf_free(_perf_crcerrs);
+	perf_free(_perf_dmaerrs);
+	perf_free(_perf_protoerrs);
 
 	if (g_interface == this)
 		g_interface = nullptr;
@@ -320,10 +323,11 @@ PX4IO_serial::test(unsigned mode)
 					
 				if (count > 100) {
 					perf_print_counter(_perf_dmasetup);
-					perf_print_counter(_perf_txns);
 					perf_print_counter(_perf_timeouts);
-					perf_print_counter(_perf_errors);
+					perf_print_counter(_perf_txns);
 					perf_print_counter(_perf_crcerrs);
+					perf_print_counter(_perf_dmaerrs);
+					perf_print_counter(_perf_protoerrs);
 					count = 0;
 				}
 				usleep(10000);
@@ -461,26 +465,42 @@ PX4IO_serial::_wait_complete()
 		if (ret == OK) {
 			/* check for DMA errors */
 			if (_rx_dma_status & DMA_STATUS_TEIF) {
-				lowsyslog("DMA receive error\n");
+				perf_count(_perf_dmaerrs);
 				ret = -1;
+				errno = EIO;
 				break;
 			}
 
 			/* check packet CRC */
 			uint8_t crc = _dma_buffer.crc;
 			_dma_buffer.crc = 0;
-			if (crc != crc_packet(_dma_buffer))
+			if (crc != crc_packet(_dma_buffer)) {
 				perf_count(_perf_crcerrs);
+				ret = -1;
+				errno = EIO;
+				break;
+			}
+
+			/* check packet response code */
+			if (PKT_CODE(_dma_buffer) != PKT_CODE_SUCCESS) {
+				perf_count(_perf_protoerrs);
+				ret = -1;
+				errno = EIO;
+				break;
+			}
+
+			/* successful txn */
 			break;
 		}
 
 		if (errno == ETIMEDOUT) {
-			lowsyslog("timeout waiting for PX4IO link (%d/%d)\n", stm32_dmaresidual(_tx_dma), stm32_dmaresidual(_rx_dma));
 			/* something has broken - clear out any partial DMA state and reconfigure */
 			_abort_dma();
 			perf_count(_perf_timeouts);
 			break;
 		}
+
+		/* we might? see this for EINTR */
 		lowsyslog("unexpected ret %d/%d\n", ret, errno);
 	}
 
@@ -489,8 +509,6 @@ PX4IO_serial::_wait_complete()
 
 	/* update counters */
 	perf_end(_perf_txns);
-	if (ret != OK)
-		perf_count(_perf_errors);
 
 	return ret;
 }
