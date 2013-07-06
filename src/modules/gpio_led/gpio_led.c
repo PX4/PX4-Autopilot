@@ -86,10 +86,10 @@ int gpio_led_main(int argc, char *argv[])
 		     "\t-p\tUse pin:\n"
 		     "\t\t1\tPX4FMU GPIO_EXT1 (default)\n"
 		     "\t\t2\tPX4FMU GPIO_EXT2\n"
-		     "\t\ta1\tPX4IO GPIO_ACC1\n"
-		     "\t\ta2\tPX4IO GPIO_ACC2\n"
-		     "\t\tr1\tPX4IO GPIO_RELAY1\n"
-		     "\t\tr2\tPX4IO GPIO_RELAY2");
+		     "\t\ta1\tPX4IO ACC1\n"
+		     "\t\ta2\tPX4IO ACC2\n"
+		     "\t\tr1\tPX4IO RELAY1\n"
+		     "\t\tr2\tPX4IO RELAY2");
 
 	} else {
 
