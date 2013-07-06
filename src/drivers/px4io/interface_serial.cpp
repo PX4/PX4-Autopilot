@@ -172,14 +172,16 @@ private:
 	/**
 	 * Performance counters.
 	 */
+	perf_counter_t		_pc_txns;
 	perf_counter_t		_pc_dmasetup;
+	perf_counter_t		_pc_retries;
 	perf_counter_t		_pc_timeouts;
 	perf_counter_t		_pc_crcerrs;
 	perf_counter_t		_pc_dmaerrs;
 	perf_counter_t		_pc_protoerrs;
+	perf_counter_t		_pc_uerrs;
 	perf_counter_t		_pc_idle;
 	perf_counter_t		_pc_badidle;
-	perf_counter_t		_pc_txns;
 
 };
 
@@ -195,14 +197,16 @@ PX4IO_serial::PX4IO_serial() :
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
 	_rx_dma_status(_dma_status_inactive),
+	_pc_txns(perf_alloc(PC_ELAPSED,		"txns     ")),
 	_pc_dmasetup(perf_alloc(PC_ELAPSED,	"dmasetup ")),
+	_pc_retries(perf_alloc(PC_COUNT,	"retries  ")),
 	_pc_timeouts(perf_alloc(PC_COUNT,	"timeouts ")),
 	_pc_crcerrs(perf_alloc(PC_COUNT,	"crcerrs  ")),
 	_pc_dmaerrs(perf_alloc(PC_COUNT,	"dmaerrs  ")),
 	_pc_protoerrs(perf_alloc(PC_COUNT,	"protoerrs")),
+	_pc_uerrs(perf_alloc(PC_COUNT,		"uarterrs ")),
 	_pc_idle(perf_alloc(PC_COUNT,		"idle     ")),
-	_pc_badidle(perf_alloc(PC_COUNT,	"badidle  ")),
-	_pc_txns(perf_alloc(PC_ELAPSED,		"txns     "))
+	_pc_badidle(perf_alloc(PC_COUNT,	"badidle  "))
 {
 	/* allocate DMA */
 	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
@@ -272,14 +276,16 @@ PX4IO_serial::~PX4IO_serial()
 	sem_destroy(&_completion_semaphore);
 	sem_destroy(&_bus_semaphore);
 
+	perf_free(_pc_txns);
 	perf_free(_pc_dmasetup);
+	perf_free(_pc_retries);
 	perf_free(_pc_timeouts);
 	perf_free(_pc_crcerrs);
 	perf_free(_pc_dmaerrs);
 	perf_free(_pc_protoerrs);
+	perf_free(_pc_uerrs);
 	perf_free(_pc_idle);
 	perf_free(_pc_badidle);
-	perf_free(_pc_txns);
 
 	if (g_interface == this)
 		g_interface = nullptr;
@@ -317,26 +323,29 @@ PX4IO_serial::test(unsigned mode)
 		return 0;
 
 	case 1:
-		lowsyslog("test 1\n");
 		{
+			unsigned fails = 0;
 			for (unsigned count = 0;; count++) {
 				uint16_t value = count & 0xffff;
 
-				set_reg(PX4IO_PAGE_TEST, PX4IO_P_TEST_LED, &value, 1);
-				/* ignore errors */
+				if (set_reg(PX4IO_PAGE_TEST, PX4IO_P_TEST_LED, &value, 1) != 0)
+					fails++;
 					
-				if (count >= 100) {
+				if (count >= 1000) {
+					lowsyslog("==== test 1 : %u failures ====\n", fails);
+					perf_print_counter(_pc_txns);
 					perf_print_counter(_pc_dmasetup);
+					perf_print_counter(_pc_retries);
 					perf_print_counter(_pc_timeouts);
 					perf_print_counter(_pc_crcerrs);
 					perf_print_counter(_pc_dmaerrs);
 					perf_print_counter(_pc_protoerrs);
+					perf_print_counter(_pc_uerrs);
 					perf_print_counter(_pc_idle);
 					perf_print_counter(_pc_badidle);
-					perf_print_counter(_pc_txns);
 					count = 0;
 				}
-				usleep(10000);
+				usleep(1000);
 			}
 			return 0;
 		}
@@ -350,22 +359,44 @@ PX4IO_serial::test(unsigned mode)
 int
 PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
-	if (num_values > PKT_MAX_REGS)
-		return -EINVAL;
+	if (num_values > PKT_MAX_REGS) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	sem_wait(&_bus_semaphore);
 
-	_dma_buffer.count_code = num_values | PKT_CODE_WRITE;
-	_dma_buffer.page = page;
-	_dma_buffer.offset = offset;
-	memcpy((void *)&_dma_buffer.regs[0], (void *)values, (2 * num_values));
-	for (unsigned i = num_values; i < PKT_MAX_REGS; i++)
-		_dma_buffer.regs[i] = 0x55aa;
+	int result;
+	for (unsigned retries = 0; retries < 3; retries++) {
 
-	/* XXX implement check byte */
+		_dma_buffer.count_code = num_values | PKT_CODE_WRITE;
+		_dma_buffer.page = page;
+		_dma_buffer.offset = offset;
+		memcpy((void *)&_dma_buffer.regs[0], (void *)values, (2 * num_values));
+		for (unsigned i = num_values; i < PKT_MAX_REGS; i++)
+			_dma_buffer.regs[i] = 0x55aa;
 
-	/* start the transaction and wait for it to complete */
-	int result = _wait_complete();
+		/* XXX implement check byte */
+
+		/* start the transaction and wait for it to complete */
+		result = _wait_complete();
+
+		/* successful transaction? */
+		if (result == OK) {
+
+			/* check result in packet */
+			if (PKT_CODE(_dma_buffer) == PKT_CODE_ERROR) {
+
+				/* IO didn't like it - no point retrying */
+				errno = EINVAL;
+				result = -1;
+				perf_count(_pc_protoerrs);
+			}
+
+			break;
+		}
+		perf_count(_pc_retries);
+	}
 
 	sem_post(&_bus_semaphore);
 	return result;
@@ -379,23 +410,45 @@ PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned n
 
 	sem_wait(&_bus_semaphore);
 
-	_dma_buffer.count_code = num_values | PKT_CODE_READ;
-	_dma_buffer.page = page;
-	_dma_buffer.offset = offset;
+	int result;
+	for (unsigned retries = 0; retries < 3; retries++) {
 
-	/* start the transaction and wait for it to complete */
-	int result = _wait_complete();
-	if (result != OK)
-		goto out;
+		_dma_buffer.count_code = num_values | PKT_CODE_READ;
+		_dma_buffer.page = page;
+		_dma_buffer.offset = offset;
 
-	/* compare the received count with the expected count */
-	if (PKT_COUNT(_dma_buffer) != num_values) {
-		result = -EIO;
-		goto out;
-	} else {
-		/* XXX implement check byte */
-		/* copy back the result */
-		memcpy(values, &_dma_buffer.regs[0], (2 * num_values));
+		/* start the transaction and wait for it to complete */
+		result = _wait_complete();
+
+		/* successful transaction? */
+		if (result == OK) {
+
+			/* check result in packet */
+			if (PKT_CODE(_dma_buffer) == PKT_CODE_ERROR) {
+
+				/* IO didn't like it - no point retrying */
+				errno = EINVAL;
+				result = -1;
+				perf_count(_pc_protoerrs);
+
+			/* compare the received count with the expected count */
+			} else if (PKT_COUNT(_dma_buffer) != num_values) {
+
+				/* IO returned the wrong number of registers - no point retrying */
+				errno = EIO;
+				result = -1;
+				perf_count(_pc_protoerrs);
+
+			/* successful read */				
+			} else {
+
+				/* copy back the result */
+				memcpy(values, &_dma_buffer.regs[0], (2 * num_values));
+			}
+
+			break;
+		}
+		perf_count(_pc_retries);
 	}
 out:
 	sem_post(&_bus_semaphore);
@@ -463,11 +516,11 @@ PX4IO_serial::_wait_complete()
 	/* compute the deadline for a 5ms timeout */
 	struct timespec abstime;
 	clock_gettime(CLOCK_REALTIME, &abstime);
-#if 1
+#if 0
 	abstime.tv_sec++;		/* long timeout for testing */
 #else
-	abstime.tv_nsec += 5000000;	/* 5ms timeout */
-	while (abstime.tv_nsec > 1000000000) {
+	abstime.tv_nsec += 10000000;	/* 0ms timeout */
+	if (abstime.tv_nsec > 1000000000) {
 		abstime.tv_sec++;
 		abstime.tv_nsec -= 1000000000;
 	}
@@ -487,25 +540,17 @@ PX4IO_serial::_wait_complete()
 				break;
 			}
 
-			/* check packet CRC */
+			/* check packet CRC - corrupt packet errors mean IO receive CRC error */
 			uint8_t crc = _dma_buffer.crc;
 			_dma_buffer.crc = 0;
-			if (crc != crc_packet(_dma_buffer)) {
+			if ((crc != crc_packet(_dma_buffer)) | (PKT_CODE(_dma_buffer) == PKT_CODE_CORRUPT)) {
 				perf_count(_pc_crcerrs);
 				ret = -1;
 				errno = EIO;
 				break;
 			}
 
-			/* check packet response code */
-			if (PKT_CODE(_dma_buffer) != PKT_CODE_SUCCESS) {
-				perf_count(_pc_protoerrs);
-				ret = -1;
-				errno = EIO;
-				break;
-			}
-
-			/* successful txn */
+			/* successful txn (may still be reporting an error) */
 			break;
 		}
 
@@ -513,6 +558,7 @@ PX4IO_serial::_wait_complete()
 			/* something has broken - clear out any partial DMA state and reconfigure */
 			_abort_dma();
 			perf_count(_pc_timeouts);
+			perf_cancel(_pc_txns);		/* don't count this as a transaction */
 			break;
 		}
 
@@ -577,7 +623,6 @@ PX4IO_serial::_do_interrupt()
 	uint32_t sr = rSR;	/* get UART status register */
 	(void)rDR;		/* read DR to clear status */
 
-#if 0
 	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
 		USART_SR_NE |		/* noise error - we have lost a byte due to noise */
 		USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
@@ -588,6 +633,7 @@ PX4IO_serial::_do_interrupt()
 		 */
 		if (_rx_dma_status == _dma_status_waiting) {
 			_abort_dma();
+			perf_count(_pc_uerrs);
 
 			/* complete DMA as though in error */
 			_do_rx_dma_callback(DMA_STATUS_TEIF);
@@ -600,7 +646,7 @@ PX4IO_serial::_do_interrupt()
 		/* don't attempt to handle IDLE if it's set - things went bad */
 		return;
 	}
-#endif
+
 	if (sr & USART_SR_IDLE) {
 
 		/* if there is DMA reception going on, this is a short packet */
