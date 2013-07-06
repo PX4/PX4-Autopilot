@@ -216,8 +216,12 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	if (PKT_CODE(dma_packet) == PKT_CODE_WRITE) {
 
 		/* it's a blind write - pass it on */
-		if (registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], PKT_COUNT(dma_packet)))
+		if (registers_set(dma_packet.page, dma_packet.offset, &dma_packet.regs[0], PKT_COUNT(dma_packet))) {
 			perf_count(pc_regerr);
+			dma_packet.count_code = PKT_CODE_ERROR;
+		} else {
+			dma_packet.count_code = PKT_CODE_SUCCESS;
+		}
 
 	} else {
 
