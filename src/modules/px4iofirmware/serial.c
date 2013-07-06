@@ -129,8 +129,8 @@ interface_init(void)
 	irq_attach(PX4FMU_SERIAL_VECTOR, serial_interrupt);
 	up_enable_irq(PX4FMU_SERIAL_VECTOR);
 
-	/* enable UART and DMA */
-	/*rCR3 = USART_CR3_EIE; */
+	/* enable UART and error/idle interrupts */
+	rCR3 = USART_CR3_EIE;
 	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
 
 #if 0	/* keep this for signal integrity testing */
@@ -259,7 +259,6 @@ serial_interrupt(int irq, void *context)
 	uint32_t sr = rSR;	/* get UART status register */
 	(void)rDR;		/* required to clear any of the interrupt status that brought us here */
 
-#if 0
 	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
 		USART_SR_NE |		/* noise error - we have lost a byte due to noise */
 		USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
@@ -278,7 +277,7 @@ serial_interrupt(int irq, void *context)
 		/* don't attempt to handle IDLE if it's set - things went bad */
 		return 0;
 	}
-#endif
+
 	if (sr & USART_SR_IDLE) {
 
 		/* the packet might have been short - go check */
