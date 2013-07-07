@@ -79,6 +79,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/esc_status.h>
 
 #include <systemlib/systemlib.h>
 
@@ -614,7 +615,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 17;
+	const ssize_t fdsc = 18;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -642,6 +643,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
 		struct airspeed_s airspeed;
+		struct esc_status_s esc;
 	} buf;
 	memset(&buf, 0, sizeof(buf));
 
@@ -663,6 +665,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int flow_sub;
 		int rc_sub;
 		int airspeed_sub;
+		int esc_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -686,6 +689,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ARSP_s log_ARSP;
 			struct log_FLOW_s log_FLOW;
 			struct log_GPOS_s log_GPOS;
+			struct log_ESC_s log_ESC;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -794,6 +798,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].fd = subs.airspeed_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;	
+
+	/* --- ESCs --- */
+	subs.esc_sub = orb_subscribe(ORB_ID(esc_status));
+	fds[fdsc_count].fd = subs.esc_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
 
 	/* WARNING: If you get the error message below,
 	 * then the number of registered messages (fdsc)
@@ -1103,6 +1113,28 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_AIRS.indicated_airspeed = buf.airspeed.indicated_airspeed_m_s;
 				log_msg.body.log_AIRS.true_airspeed = buf.airspeed.true_airspeed_m_s;
 				LOGBUFFER_WRITE_AND_COUNT(AIRS);
+			}
+
+			/* --- ESCs --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(esc_status), subs.esc_sub, &buf.esc);
+				for (uint8_t i=0; i<buf.esc.esc_count; i++)
+				{
+					log_msg.msg_type = LOG_ESC_MSG;
+					log_msg.body.log_ESC.counter = buf.esc.counter;
+					log_msg.body.log_ESC.esc_count = buf.esc.esc_count;
+					log_msg.body.log_ESC.esc_connectiontype = buf.esc.esc_connectiontype;
+					log_msg.body.log_ESC.esc_num = i;
+					log_msg.body.log_ESC.esc_address = buf.esc.esc[i].esc_address;
+					log_msg.body.log_ESC.esc_version = buf.esc.esc[i].esc_version;
+					log_msg.body.log_ESC.esc_voltage = buf.esc.esc[i].esc_voltage;
+					log_msg.body.log_ESC.esc_current = buf.esc.esc[i].esc_current;
+					log_msg.body.log_ESC.esc_rpm = buf.esc.esc[i].esc_rpm;
+					log_msg.body.log_ESC.esc_temperature = buf.esc.esc[i].esc_temperature;
+					log_msg.body.log_ESC.esc_setpoint = buf.esc.esc[i].esc_setpoint;
+					log_msg.body.log_ESC.esc_setpoint_raw = buf.esc.esc[i].esc_setpoint_raw;
+					LOGBUFFER_WRITE_AND_COUNT(ESC);
+				}
 			}
 
 #ifdef SDLOG2_DEBUG

@@ -160,3 +160,6 @@ ORB_DEFINE(actuator_outputs_3, struct actuator_outputs_s);
 
 #include "topics/debug_key_value.h"
 ORB_DEFINE(debug_key_value, struct debug_key_value_s);
+
+#include "topics/esc_status.h"
+ORB_DEFINE(esc_status, struct esc_status_s);
