@@ -1,17 +1,6 @@
 #!nsh
 #
 # PX4FMU startup script.
-#
-# This script is responsible for:
-#
-# - mounting the microSD card (if present)
-# - running the user startup script from the microSD card (if present)
-# - detecting the configuration of the system and picking a suitable
-#   startup script to continue with
-#
-# Note: DO NOT add configuration-specific commands to this script;
-#       add them to the per-configuration scripts instead.
-#
 
 #
 # Default to auto-start mode.  An init script on the microSD card
@@ -19,11 +8,6 @@
 #
 set MODE autostart
 set USB autoconnect
-
-#
-
-#
-
 
 #
 # Try to mount the microSD card.
@@ -69,7 +53,12 @@ else
 	then
 		echo "[init] USB interface connected"
 	else
-		echo "[init] No USB connected"
+		if [ -f /dev/ttyACM0 ]
+			echo "[init] NSH via USB"
+		then
+		else
+			echo "[init] No USB connected"
+		fi
 	fi
 fi
 

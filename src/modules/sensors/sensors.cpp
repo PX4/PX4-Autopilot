@@ -194,6 +194,7 @@ private:
 		float scaling_factor[_rc_max_chan_count];
 
 		float gyro_offset[3];
+		float gyro_scale[3];
 		float mag_offset[3];
 		float mag_scale[3];
 		float accel_offset[3];
@@ -245,6 +246,7 @@ private:
 		param_t rc_demix;
 
 		param_t gyro_offset[3];
+		param_t gyro_scale[3];
 		param_t accel_offset[3];
 		param_t accel_scale[3];
 		param_t mag_offset[3];
@@ -490,6 +492,9 @@ Sensors::Sensors() :
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
 	_parameter_handles.gyro_offset[1] = param_find("SENS_GYRO_YOFF");
 	_parameter_handles.gyro_offset[2] = param_find("SENS_GYRO_ZOFF");
+	_parameter_handles.gyro_scale[0] = param_find("SENS_GYRO_XSCALE");
+	_parameter_handles.gyro_scale[1] = param_find("SENS_GYRO_YSCALE");
+	_parameter_handles.gyro_scale[2] = param_find("SENS_GYRO_ZSCALE");
 
 	/* accel offsets */
 	_parameter_handles.accel_offset[0] = param_find("SENS_ACC_XOFF");
@@ -703,6 +708,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
 	param_get(_parameter_handles.gyro_offset[1], &(_parameters.gyro_offset[1]));
 	param_get(_parameter_handles.gyro_offset[2], &(_parameters.gyro_offset[2]));
+	param_get(_parameter_handles.gyro_scale[0], &(_parameters.gyro_scale[0]));
+	param_get(_parameter_handles.gyro_scale[1], &(_parameters.gyro_scale[1]));
+	param_get(_parameter_handles.gyro_scale[2], &(_parameters.gyro_scale[2]));
 
 	/* accel offsets */
 	param_get(_parameter_handles.accel_offset[0], &(_parameters.accel_offset[0]));
@@ -995,11 +1003,11 @@ Sensors::parameter_update_poll(bool forced)
 		int fd = open(GYRO_DEVICE_PATH, 0);
 		struct gyro_scale gscale = {
 			_parameters.gyro_offset[0],
-			1.0f,
+			_parameters.gyro_scale[0],
 			_parameters.gyro_offset[1],
-			1.0f,
+			_parameters.gyro_scale[1],
 			_parameters.gyro_offset[2],
-			1.0f,
+			_parameters.gyro_scale[2],
 		};
 
 		if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale))
@@ -1457,7 +1465,7 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = task_spawn("sensors_task",
+	_sensors_task = task_spawn_cmd("sensors_task",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_MAX - 5,
 				   2048,
@@ -1514,6 +1522,7 @@ int sensors_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "unrecognized command");
+	warnx("unrecognized command");
+	return 1;
 }
 

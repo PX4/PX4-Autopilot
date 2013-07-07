@@ -123,7 +123,7 @@ int position_estimator_mc_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		position_estimator_mc_task = task_spawn("position_estimator_mc",
+		position_estimator_mc_task = task_spawn_cmd("position_estimator_mc",
 					 SCHED_RR,
 					 SCHED_PRIORITY_MAX - 5,
 					 4096,
