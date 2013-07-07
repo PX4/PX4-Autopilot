@@ -145,9 +145,9 @@ ifneq ($(filter archives,$(MAKECMDGOALS)),)
 endif
 
 $(ARCHIVE_DIR)%.export:	board = $(notdir $(basename $@))
-$(ARCHIVE_DIR)%.export:	configuration = $(if $(filter px4io px4iov2,$(board)),io,nsh)
+$(ARCHIVE_DIR)%.export:	configuration = nsh
 $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC) $(NUTTX_APPS)
-	@echo %% Configuring NuttX for $(board)/$(configuration)
+	@echo %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))

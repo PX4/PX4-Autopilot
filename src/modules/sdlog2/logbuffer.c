@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <rk3dov@gmail.com>
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
  *
  * Ring FIFO buffer for binary log data.
  *
- * @author Anton Babushkin <rk3dov@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <string.h>
@@ -121,7 +121,7 @@ int logbuffer_get_ptr(struct logbuffer_s *lb, void **ptr, bool *is_part)
 	} else {
 		// read pointer is after write pointer, read bytes from read_ptr to end of the buffer
 		n = lb->size - lb->read_ptr;
-		*is_part = true;
+		*is_part = lb->write_ptr > 0;
 	}
 
 	*ptr = &(lb->data[lb->read_ptr]);

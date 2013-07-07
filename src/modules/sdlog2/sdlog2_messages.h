@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <rk3dov@gmail.com>
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
  *
  * Log messages and structures definition.
  *
- * @author Anton Babushkin <rk3dov@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #ifndef SDLOG2_MESSAGES_H_
@@ -60,6 +60,9 @@ struct log_ATT_s {
 	float roll;
 	float pitch;
 	float yaw;
+	float roll_rate;
+	float pitch_rate;
+	float yaw_rate;
 };
 
 /* --- ATSP - ATTITUDE SET POINT --- */
@@ -68,6 +71,7 @@ struct log_ATSP_s {
 	float roll_sp;
 	float pitch_sp;
 	float yaw_sp;
+	float thrust_sp;
 };
 
 /* --- IMU - IMU SENSORS --- */
@@ -167,14 +171,52 @@ struct log_RC_s {
 struct log_OUT0_s {
 	float output[8];
 };
+
+/* --- AIRS - AIRSPEED --- */
+#define LOG_AIRS_MSG 13
+struct log_AIRS_s {
+	float indicated_airspeed;
+	float true_airspeed;
+};
+
+/* --- ARSP - ATTITUDE RATE SET POINT --- */
+#define LOG_ARSP_MSG 14
+struct log_ARSP_s {
+	float roll_rate_sp;
+	float pitch_rate_sp;
+	float yaw_rate_sp;
+};
+
+/* --- FLOW - OPTICAL FLOW --- */
+#define LOG_FLOW_MSG 15
+struct log_FLOW_s {
+	int16_t flow_raw_x;
+	int16_t flow_raw_y;
+	float flow_comp_x;
+	float flow_comp_y;
+	float distance;
+	uint8_t	quality;
+	uint8_t sensor_id;
+};
+
+/* --- GPOS - GLOBAL POSITION ESTIMATE --- */
+#define LOG_GPOS_MSG 16
+struct log_GPOS_s {
+	int32_t lat;
+	int32_t lon;
+	float alt;
+	float vel_n;
+	float vel_e;
+	float vel_d;
+};
 #pragma pack(pop)
 
 /* construct list of all message formats */
 
 static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TIME, "Q", "StartTime"),
-	LOG_FORMAT(ATT, "fff", "Roll,Pitch,Yaw"),
-	LOG_FORMAT(ATSP, "fff", "RollSP,PitchSP,YawSP"),
+	LOG_FORMAT(ATT, "ffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate"),
+	LOG_FORMAT(ATSP, "ffff", "RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),
 	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,Heading,HomeLat,HomeLon,HomeAlt"),
@@ -184,6 +226,10 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(STAT, "BBBBBfffB", "State,FlightMode,CtlMode,SASMode,Armed,BatV,BatC,BatRem,BatWarn"),
 	LOG_FORMAT(RC, "ffffffff", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
+	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
+	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
+	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
+	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);

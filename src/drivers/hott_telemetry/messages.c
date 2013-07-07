@@ -44,6 +44,7 @@
 #include <string.h>
 #include <systemlib/geo/geo.h>
 #include <unistd.h>
+#include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/sensor_combined.h>
@@ -56,6 +57,7 @@ static int battery_sub = -1;
 static int gps_sub = -1;
 static int home_sub = -1;
 static int sensor_sub = -1;
+static int airspeed_sub = -1;
 
 static bool home_position_set = false;
 static double home_lat = 0.0d;
@@ -68,6 +70,7 @@ messages_init(void)
 	gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	home_sub = orb_subscribe(ORB_ID(home_position));
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 }
 
 void 
@@ -99,6 +102,16 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	uint16_t alt = (uint16_t)(raw.baro_alt_meter + 500);
 	msg.altitude_L = (uint8_t)alt & 0xff;
 	msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
+
+	/* get a local copy of the airspeed data */
+	struct airspeed_s airspeed;
+	memset(&airspeed, 0, sizeof(airspeed));
+	orb_copy(ORB_ID(airspeed), airspeed_sub, &airspeed);
+
+	uint16_t speed = (uint16_t)(airspeed.indicated_airspeed_m_s * 3.6f);
+	msg.speed_L = (uint8_t)speed & 0xff;
+	msg.speed_H = (uint8_t)(speed >> 8) & 0xff;
+    
 
 	msg.stop = STOP_BYTE;
 	memcpy(buffer, &msg, *size);

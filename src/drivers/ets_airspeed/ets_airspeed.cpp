@@ -37,7 +37,7 @@
  *
  * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
-	 
+
 #include <nuttx/config.h>
 
 #include <drivers/device/i2c.h>
@@ -77,15 +77,16 @@
 #define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
 
 /* I2C bus address */
-#define I2C_ADDRESS		0x75	/* 7-bit address. 8-bit address is 0xEA */
+#define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */
 
 /* Register address */
-#define READ_CMD		0x07		/* Read the data */
-	 
+#define READ_CMD	0x07	/* Read the data */
+
 /**
- * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h. 
+ * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h.
+ * You can set this value to 12 if you want a zero reading below 15km/h.
  */
-#define MIN_ACCURATE_DIFF_PRES_PA 12
+#define MIN_ACCURATE_DIFF_PRES_PA 0
 
 /* Measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
@@ -105,38 +106,38 @@ class ETSAirspeed : public device::I2C
 public:
 	ETSAirspeed(int bus, int address = I2C_ADDRESS);
 	virtual ~ETSAirspeed();
-	
-	virtual int 		init();
-	
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
-	
+
+	virtual int	init();
+
+	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
-	void				print_info();
-	
+	void		print_info();
+
 protected:
-	virtual int			probe();
+	virtual int	probe();
 
 private:
-	work_s						_work;
-	unsigned					_num_reports;
-	volatile unsigned			_next_report;
-	volatile unsigned			_oldest_report;
-	differential_pressure_s		*_reports;
-	bool						_sensor_ok;
-	int							_measure_ticks;
-	bool						_collect_phase;
-	int 						_diff_pres_offset;
-	
-	orb_advert_t				_airspeed_pub;
+	work_s			_work;
+	unsigned		_num_reports;
+	volatile unsigned	_next_report;
+	volatile unsigned	_oldest_report;
+	differential_pressure_s	*_reports;
+	bool			_sensor_ok;
+	int			_measure_ticks;
+	bool			_collect_phase;
+	int			_diff_pres_offset;
 
-	perf_counter_t				_sample_perf;
-	perf_counter_t				_comms_errors;
-	perf_counter_t				_buffer_overflows;
+	orb_advert_t		_airspeed_pub;
 
-	
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_comms_errors;
+	perf_counter_t		_buffer_overflows;
+
+
 	/**
 	* Test whether the device supported by the driver is present at a
 	* specific address.
@@ -144,28 +145,28 @@ private:
 	* @param address	The I2C bus address to probe.
 	* @return		True if the device is present.
 	*/
-	int					probe_address(uint8_t address);
-	
+	int	probe_address(uint8_t address);
+
 	/**
 	* Initialise the automatic measurement state machine and start it.
 	*
 	* @note This function is called at open and error time.  It might make sense
 	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
-	void				start();
-	
+	void	start();
+
 	/**
 	* Stop the automatic measurement state machine.
 	*/
-	void				stop();
-	
+	void	stop();
+
 	/**
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void				cycle();
-	int					measure();
-	int					collect();
+	void	cycle();
+	int	measure();
+	int	collect();
 
 	/**
 	* Static trampoline from the workq context; because we don't have a
@@ -173,9 +174,9 @@ private:
 	*
 	* @param arg		Instance pointer for the driver that is polling.
 	*/
-	static void		cycle_trampoline(void *arg);
-	
-	
+	static void	cycle_trampoline(void *arg);
+
+
 };
 
 /* helper macro for handling report buffer indices */
@@ -203,7 +204,7 @@ ETSAirspeed::ETSAirspeed(int bus, int address) :
 {
 	// enable debug() calls
 	_debug_enabled = true;
-	
+
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
@@ -230,6 +231,7 @@ ETSAirspeed::init()
 	/* allocate basic report buffers */
 	_num_reports = 2;
 	_reports = new struct differential_pressure_s[_num_reports];
+
 	for (unsigned i = 0; i < _num_reports; i++)
 		_reports[i].max_differential_pressure_pa = 0;
 
@@ -351,11 +353,11 @@ ETSAirspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _num_reports - 1;
-		
+
 	case SENSORIOCRESET:
 		/* XXX implement this */
 		return -EINVAL;
-	
+
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);
@@ -432,14 +434,14 @@ ETSAirspeed::measure()
 	uint8_t cmd = READ_CMD;
 	ret = transfer(&cmd, 1, nullptr, 0);
 
-	if (OK != ret)
-	{
+	if (OK != ret) {
 		perf_count(_comms_errors);
 		log("i2c::transfer returned %d", ret);
 		return ret;
 	}
+
 	ret = OK;
-	
+
 	return ret;
 }
 
@@ -447,30 +449,31 @@ int
 ETSAirspeed::collect()
 {
 	int	ret = -EIO;
-	
+
 	/* read from the sensor */
 	uint8_t val[2] = {0, 0};
-	
+
 	perf_begin(_sample_perf);
-	
+
 	ret = transfer(nullptr, 0, &val[0], 2);
-	
+
 	if (ret < 0) {
 		log("error reading from sensor: %d", ret);
 		return ret;
 	}
-	
+
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
 
+	// XXX move the parameter read out of the driver.
 	param_get(param_find("SENS_DPRES_OFF"), &_diff_pres_offset);
-	
-	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) { 
+	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
 		diff_pres_pa = 0;
+
 	} else {
-		diff_pres_pa -= _diff_pres_offset;	
+		diff_pres_pa -= _diff_pres_offset;
 	}
 
-    // XXX we may want to smooth out the readings to remove noise.
+	// XXX we may want to smooth out the readings to remove noise.
 
 	_reports[_next_report].timestamp = hrt_absolute_time();
 	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
@@ -498,7 +501,7 @@ ETSAirspeed::collect()
 	ret = OK;
 
 	perf_end(_sample_perf);
-	
+
 	return ret;
 }
 
@@ -511,17 +514,19 @@ ETSAirspeed::start()
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&ETSAirspeed::cycle_trampoline, this, 1);
-	
+
 	/* notify about state change */
 	struct subsystem_info_s info = {
 		true,
 		true,
 		true,
-		SUBSYSTEM_TYPE_DIFFPRESSURE};
+		SUBSYSTEM_TYPE_DIFFPRESSURE
+	};
 	static orb_advert_t pub = -1;
 
 	if (pub > 0) {
 		orb_publish(ORB_ID(subsystem_info), pub, &info);
+
 	} else {
 		pub = orb_advertise(ORB_ID(subsystem_info), &info);
 	}
@@ -653,8 +658,7 @@ start(int i2c_bus)
 
 fail:
 
-	if (g_dev != nullptr) 
-	{
+	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
@@ -668,15 +672,14 @@ fail:
 void
 stop()
 {
-	if (g_dev != nullptr)
-	{
+	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
-	}
-	else
-	{
+
+	} else {
 		errx(1, "driver not running");
 	}
+
 	exit(0);
 }
 
@@ -773,10 +776,10 @@ info()
 } // namespace
 
 
-static void 
-ets_airspeed_usage() 
+static void
+ets_airspeed_usage()
 {
-	fprintf(stderr, "usage: ets_airspeed [options] command\n");
+	fprintf(stderr, "usage: ets_airspeed command [options]\n");
 	fprintf(stderr, "options:\n");
 	fprintf(stderr, "\t-b --bus i2cbus (%d)\n", PX4_I2C_BUS_DEFAULT);
 	fprintf(stderr, "command:\n");
@@ -789,6 +792,7 @@ ets_airspeed_main(int argc, char *argv[])
 	int i2c_bus = PX4_I2C_BUS_DEFAULT;
 
 	int i;
+
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--bus") == 0) {
 			if (argc > i + 1) {
@@ -802,12 +806,12 @@ ets_airspeed_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "start"))
 		ets_airspeed::start(i2c_bus);
-	
-	 /*
-	  * Stop the driver
-	  */
-	 if (!strcmp(argv[1], "stop"))
-		 ets_airspeed::stop();
+
+	/*
+	 * Stop the driver
+	 */
+	if (!strcmp(argv[1], "stop"))
+		ets_airspeed::stop();
 
 	/*
 	 * Test the driver/device.

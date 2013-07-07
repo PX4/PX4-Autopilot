@@ -264,7 +264,7 @@ PX4FMU::init()
 	gpio_reset();
 
 	/* start the IO interface task */
-	_task = task_spawn("fmuservo",
+	_task = task_spawn_cmd("fmuservo",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
 			   2048,
