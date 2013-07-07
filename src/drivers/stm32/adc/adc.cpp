@@ -58,7 +58,7 @@
 #include <drivers/drv_adc.h>
 
 #include <arch/stm32/chip.h>
-#include <stm32_internal.h>
+#include <stm32.h>
 #include <stm32_gpio.h>
 
 #include <systemlib/err.h>

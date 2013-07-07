@@ -110,6 +110,9 @@ ORB_DEFINE(vehicle_global_position_setpoint, struct vehicle_global_position_setp
 #include "topics/vehicle_global_position_set_triplet.h"
 ORB_DEFINE(vehicle_global_position_set_triplet, struct vehicle_global_position_set_triplet_s);
 
+#include "topics/mission.h"
+ORB_DEFINE(mission, struct mission_s);
+
 #include "topics/vehicle_attitude_setpoint.h"
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);
 
@@ -158,5 +161,11 @@ ORB_DEFINE(actuator_outputs_1, struct actuator_outputs_s);
 ORB_DEFINE(actuator_outputs_2, struct actuator_outputs_s);
 ORB_DEFINE(actuator_outputs_3, struct actuator_outputs_s);
 
+#include "topics/telemetry_status.h"
+ORB_DEFINE(telemetry_status, struct telemetry_status_s);
+
 #include "topics/debug_key_value.h"
 ORB_DEFINE(debug_key_value, struct debug_key_value_s);
+
+#include "topics/navigation_capabilities.h"
+ORB_DEFINE(navigation_capabilities, struct navigation_capabilities_s);

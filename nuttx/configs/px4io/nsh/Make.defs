@@ -1,3 +1,0 @@
-include ${TOPDIR}/.config
-
-include $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/common/Make.defs

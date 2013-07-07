@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@ struct system_load_taskinfo_s {
 	uint64_t total_runtime;      ///< Runtime since start (start_time - total_runtime)/(start_time - current_time) = load
 	uint64_t curr_start_time;     ///< Start time of the current scheduling slot
 	uint64_t start_time;         ///< FIRST start time of task
-	FAR struct _TCB *tcb;               ///<
+	FAR struct tcb_s *tcb;               ///<
 	bool valid;                  ///< Task is currently active / valid
 };
 
@@ -59,5 +59,7 @@ struct system_load_s {
 __EXPORT extern struct system_load_s system_load;
 
 __EXPORT void cpuload_initialize_once(void);
+
+__END_DECLS
 
 #endif

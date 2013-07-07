@@ -69,6 +69,15 @@ Dcm::Dcm(float c00, float c01, float c02,
 	dcm(2, 2) = c22;
 }
 
+Dcm::Dcm(const float data[3][3]) :
+	Matrix(3, 3)
+{
+	Dcm &dcm = *this;
+	/* set rotation matrix */
+	for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+		dcm(i, j) = data[i][j];
+}
+
 Dcm::Dcm(const float *data) :
 	Matrix(3, 3, data)
 {
