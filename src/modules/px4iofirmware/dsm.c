@@ -339,7 +339,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
 
 		uint8_t *dp = &frame[2 + (2 * i)];
-		uint16_t raw = ((uint16_t)dp[0] << 8) | dp[1];
+		uint16_t raw = (dp[0] << 8) | dp[1];
 		unsigned channel, value;
 
 		if (!dsm_decode_channel(raw, channel_shift, &channel, &value))

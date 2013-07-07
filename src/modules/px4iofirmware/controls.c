@@ -145,7 +145,7 @@ controls_tick() {
 
 		/* map raw inputs to mapped inputs */
 		/* XXX mapping should be atomic relative to protocol */
-		for (unsigned i = 0; i < (r_raw_rc_count & 0x7fff); i++) {
+		for (unsigned i = 0; i < r_raw_rc_count; i++) {
 
 			/* map the input channel */
 			uint16_t *conf = &r_page_rc_input_config[i * PX4IO_P_RC_CONFIG_STRIDE];

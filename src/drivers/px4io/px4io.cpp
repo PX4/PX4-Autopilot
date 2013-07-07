@@ -89,8 +89,6 @@
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
 
-static int dsm_vcc_ctl;
-
 class PX4IO : public device::I2C
 {
 public:
@@ -130,6 +128,16 @@ public:
 	* Print the current status of IO
 	*/
 	void			print_status();
+
+	inline void		set_dsm_vcc_ctl(bool enable)
+	{
+		_dsm_vcc_ctl = enable;
+	};
+
+	inline bool		get_dsm_vcc_ctl()
+	{
+		return _dsm_vcc_ctl;
+	};
 
 private:
 	// XXX
@@ -173,6 +181,12 @@ private:
 	float			_battery_amp_bias;
 	float			_battery_mamphour_total;
 	uint64_t		_battery_last_timestamp;
+
+	/**
+	 * Relay1 is dedicated to controlling DSM receiver power
+	 */
+
+	bool			_dsm_vcc_ctl;
 
 	/**
 	 * Trampoline to the worker task
@@ -315,7 +329,7 @@ PX4IO	*g_dev;
 }
 
 PX4IO::PX4IO() :
-	I2C("px4io", "/dev/px4io", PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO, 320000),
+	I2C("px4io", GPIO_DEVICE_PATH, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO, 320000),
 	_max_actuators(0),
 	_max_controls(0),
 	_max_rc_input(0),
@@ -340,7 +354,8 @@ PX4IO::PX4IO() :
 	_battery_amp_per_volt(90.0f/5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
-	_battery_last_timestamp(0)
+	_battery_last_timestamp(0),
+	_dsm_vcc_ctl(false)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -1487,18 +1502,31 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 	}
 
-	case GPIO_RESET:
-		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0);
+	case GPIO_RESET: {
+		uint32_t bits = (1 << _max_relays) - 1;
+		/* don't touch relay1 if it's controlling RX vcc */
+		if (_dsm_vcc_ctl)
+			bits &= ~1;
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, bits, 0);
 		break;
+	}
 
 	case GPIO_SET:
 		arg &= ((1 << _max_relays) - 1);
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0, arg);
+		/* don't touch relay1 if it's controlling RX vcc */
+		if (_dsm_vcc_ctl & (arg & 1))
+			ret = -EINVAL;
+		else
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0, arg);
 		break;
 
 	case GPIO_CLEAR:
 		arg &= ((1 << _max_relays) - 1);
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, arg, 0);
+		/* don't touch relay1 if it's controlling RX vcc */
+		if (_dsm_vcc_ctl & (arg & 1))
+			ret = -EINVAL;
+		else
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, arg, 0);
 		break;
 
 	case GPIO_GET:
@@ -1635,9 +1663,12 @@ start(int argc, char *argv[])
 		errx(1, "driver init failed");
 	}
 
+	int dsm_vcc_ctl;
+
 	if (param_get(param_find("RC_RL1_DSM_VCC"), &dsm_vcc_ctl) == OK) {
 		if (dsm_vcc_ctl) {
-			int fd = open("/dev/px4io", O_WRONLY);
+			g_dev->set_dsm_vcc_ctl(true);
+			int fd = open(GPIO_DEVICE_PATH, O_WRONLY);
 			if (fd < 0)
 				errx(1, "failed to open device");
 			ioctl(fd, DSM_BIND_POWER_UP, 0);
@@ -1655,7 +1686,7 @@ bind(int argc, char *argv[])
 	if (g_dev == nullptr)
 		errx(1, "px4io must be started first");
 
-	if (dsm_vcc_ctl == 0)
+	if (!g_dev->get_dsm_vcc_ctl())
 		errx(1, "DSM bind feature not enabled");
 
 	if (argc < 3)
@@ -1668,7 +1699,7 @@ bind(int argc, char *argv[])
 	else 
 		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
 
-	fd = open("/dev/px4io", O_WRONLY);
+	fd = open(GPIO_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0)
 		errx(1, "failed to open device");
@@ -1694,8 +1725,8 @@ bind(int argc, char *argv[])
 				ioctl(fd, DSM_BIND_POWER_UP, 0);
 				close(fd);
 				close(console);
-	                        exit(0);
-                        }
+	            exit(0);
+            }
 		}
 	}
 }
@@ -1709,7 +1740,7 @@ test(void)
 	int		direction = 1;
 	int		ret;
 
-	fd = open("/dev/px4io", O_WRONLY);
+	fd = open(GPIO_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0)
 		err(1, "failed to open device");
