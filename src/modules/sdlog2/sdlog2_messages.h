@@ -219,6 +219,7 @@ struct log_ESC_s {
 
 	uint8_t esc_num;
 	uint16_t esc_address;
+	uint16_t esc_version;
 	uint16_t esc_voltage;
 	uint16_t esc_current;
 	uint16_t esc_rpm;
@@ -247,7 +248,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
-	LOG_FORMAT(ESC, "HBBBHHHHHfH", "Counter,NumESC,Conn,No,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
+	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,No,Version,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);

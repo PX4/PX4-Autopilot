@@ -1126,6 +1126,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 					log_msg.body.log_ESC.esc_connectiontype = buf.esc.esc_connectiontype;
 					log_msg.body.log_ESC.esc_num = i;
 					log_msg.body.log_ESC.esc_address = buf.esc.esc[i].esc_address;
+					log_msg.body.log_ESC.esc_version = buf.esc.esc[i].esc_version;
 					log_msg.body.log_ESC.esc_voltage = buf.esc.esc[i].esc_voltage;
 					log_msg.body.log_ESC.esc_current = buf.esc.esc[i].esc_current;
 					log_msg.body.log_ESC.esc_rpm = buf.esc.esc[i].esc_rpm;
