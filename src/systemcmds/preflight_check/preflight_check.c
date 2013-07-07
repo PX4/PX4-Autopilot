@@ -210,7 +210,7 @@ int preflight_check_main(int argc, char *argv[])
 		}
 
 		/* XXX needs inspection of all the _MAP params */
-		// if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS) {
+		// if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_CONTROL_CHANNELS) {
 		// 	mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MAP >= # CHANS", i+1);
 		// 	/* give system time to flush error message in case there are more */
 		// 	usleep(100000);

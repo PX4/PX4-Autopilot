@@ -154,7 +154,7 @@ mixer_tick(void)
 	if (source == MIX_FAILSAFE) {
 
 		/* copy failsafe values to the servo outputs */
-		for (unsigned i = 0; i < IO_SERVO_COUNT; i++) {
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			r_page_servos[i] = r_page_servo_failsafe[i];
 
 			/* safe actuators for FMU feedback */
@@ -164,11 +164,11 @@ mixer_tick(void)
 
 	} else if (source != MIX_NONE) {
 
-		float	outputs[IO_SERVO_COUNT];
+		float	outputs[PX4IO_SERVO_COUNT];
 		unsigned mixed;
 
 		/* mix */
-		mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
+		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
 
 		/* scale to PWM and update the servo outputs as required */
 		for (unsigned i = 0; i < mixed; i++) {
@@ -180,7 +180,7 @@ mixer_tick(void)
 			r_page_servos[i] = (outputs[i] * 600.0f) + 1500;
 
 		}
-		for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
+		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
 			r_page_servos[i] = 0;
 	}
 
@@ -215,7 +215,7 @@ mixer_tick(void)
 
 	if (mixer_servos_armed) {
 		/* update the servo outputs. */
-		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			up_pwm_servo_set(i, r_page_servos[i]);
 	}
 }
@@ -349,11 +349,11 @@ mixer_set_failsafe()
 		return;
 
 	/* set failsafe defaults to the values for all inputs = 0 */
-	float	outputs[IO_SERVO_COUNT];
+	float	outputs[PX4IO_SERVO_COUNT];
 	unsigned mixed;
 
 	/* mix */
-	mixed = mixer_group.mix(&outputs[0], IO_SERVO_COUNT);
+	mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
 
 	/* scale to PWM and update the servo outputs as required */
 	for (unsigned i = 0; i < mixed; i++) {
@@ -364,7 +364,7 @@ mixer_set_failsafe()
 	}
 
 	/* disable the rest of the outputs */
-	for (unsigned i = mixed; i < IO_SERVO_COUNT; i++)
+	for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
 		r_page_servo_failsafe[i] = 0;
 
 }

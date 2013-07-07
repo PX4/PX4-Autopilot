@@ -134,6 +134,7 @@ private:
 	PX4IO_interface		*_interface;
 
 	// XXX
+	unsigned		_hardware;
 	unsigned		_max_actuators;
 	unsigned		_max_controls;
 	unsigned		_max_rc_input;
@@ -318,6 +319,7 @@ PX4IO	*g_dev;
 PX4IO::PX4IO(PX4IO_interface *interface) :
 	CDev("px4io", "/dev/px4io"),
 	_interface(interface),
+	_hardware(0),
 	_max_actuators(0),
 	_max_controls(0),
 	_max_rc_input(0),
@@ -387,18 +389,25 @@ PX4IO::init()
 		return ret;
 
 	/* get some parameters */
+	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+	if (protocol != PX4IO_PROTOCOL_VERSION) {
+		log("protocol/firmware mismatch");
+		mavlink_log_emergency(_mavlink_fd, "[IO] protocol/firmware mismatch, abort.");
+		return -1;
+	}
+	_hardware      = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION);
 	_max_actuators = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT);
-	_max_controls = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT);
+	_max_controls  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT);
 	_max_relays    = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RELAY_COUNT);
 	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER) - 2;
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
 	if ((_max_actuators < 1) || (_max_actuators > 255) ||
-	    (_max_relays < 1)    || (_max_relays > 255)    ||
+	    (_max_relays > 32)   ||
 	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
-		log("failed getting parameters from PX4IO");
-		mavlink_log_emergency(_mavlink_fd, "[IO] param read fail, abort.");
+		log("config read error");
+		mavlink_log_emergency(_mavlink_fd, "[IO] config read fail, abort.");
 		return -1;
 	}
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
@@ -1122,7 +1131,7 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 
 	int ret =  _interface->set_reg(page, offset, values, num_values);
 	if (ret != OK)
-		debug("io_reg_set: error %d", ret);
+		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, errno);
 	return ret;
 }
 
@@ -1143,7 +1152,7 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 
 	int ret =  _interface->get_reg(page, offset, values, num_values);
 	if (ret != OK)
-		debug("io_reg_get: data error %d", ret);
+		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, errno);
 	return ret;
 }
 
@@ -1237,9 +1246,9 @@ void
 PX4IO::print_status()
 {
 	/* basic configuration */
-	printf("protocol %u software %u bootloader %u buffer %uB\n",
+	printf("protocol %u hardware %u bootloader %u buffer %uB\n",
 		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION),
-		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_SOFTWARE_VERSION),
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION),
 		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_BOOTLOADER_VERSION),
 		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER));
 	printf("%u controls %u actuators %u R/C inputs %u analog inputs %u relays\n",
@@ -1268,7 +1277,7 @@ PX4IO::print_status()
 		((flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  ? " INIT_OK" : " INIT_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_FAILSAFE)  ? " FAILSAFE" : ""));
 	uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
-	printf("alarms 0x%04x%s%s%s%s%s%s%s\n",
+	printf("alarms 0x%04x%s%s%s%s%s%s%s%s\n",
 		alarms,
 		((alarms & PX4IO_P_STATUS_ALARMS_VBATT_LOW)     ? " VBATT_LOW" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_TEMPERATURE)   ? " TEMPERATURE" : ""),
@@ -1276,18 +1285,26 @@ PX4IO::print_status()
 		((alarms & PX4IO_P_STATUS_ALARMS_ACC_CURRENT)   ? " ACC_CURRENT" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST)      ? " FMU_LOST" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_RC_LOST)       ? " RC_LOST" : ""),
-		((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""));
+		((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""),
+		((alarms & PX4IO_P_STATUS_ALARMS_VSERVO_FAULT)  ? " VSERVO_FAULT" : ""));
 	/* now clear alarms */
 	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0xFFFF);
 
-	printf("vbatt %u ibatt %u vbatt scale %u\n",
-	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
-	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),
-	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
-	printf("amp_per_volt %.3f amp_offset %.3f mAh discharged %.3f\n",
-	       (double)_battery_amp_per_volt,
-	       (double)_battery_amp_bias,
-	       (double)_battery_mamphour_total);
+	if (_hardware == 1) {
+		printf("vbatt %u ibatt %u vbatt scale %u\n",
+		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
+		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),
+		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
+		printf("amp_per_volt %.3f amp_offset %.3f mAh discharged %.3f\n",
+		       (double)_battery_amp_per_volt,
+		       (double)_battery_amp_bias,
+		       (double)_battery_mamphour_total);
+	} else if (_hardware == 2) {
+		printf("vservo %u vservo scale %u\n",
+		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VSERVO),
+		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
+		printf("vrssi %u\n", io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VRSSI));
+	}
 	printf("actuators");
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_ACTUATORS, i));

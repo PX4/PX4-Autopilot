@@ -62,11 +62,10 @@
  * Note that the implementation of readable pages prefers registers within
  * readable pages to be densely packed. Page numbers do not need to be
  * packed.
+ *
+ * Definitions marked 1 are only valid on PX4IOv1 boards. Likewise, 
+ * [2] denotes definitions specific to the PX4IOv2 board.
  */
-
-#define PX4IO_CONTROL_CHANNELS			8
-#define PX4IO_INPUT_CHANNELS			12
-#define PX4IO_RELAY_CHANNELS			4
 
 /* Per C, this is safe for all 2's complement systems */
 #define REG_TO_SIGNED(_reg)	((int16_t)(_reg))
@@ -75,10 +74,12 @@
 #define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
 
+#define PX4IO_PROTOCOL_VERSION		2
+
 /* static configuration page */
 #define PX4IO_PAGE_CONFIG		0
-#define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers TBD */
-#define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers TBD */
+#define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* PX4IO_PROTOCOL_VERSION */
+#define PX4IO_P_CONFIG_HARDWARE_VERSION		1	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
 #define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum I2C transfer size */
 #define PX4IO_P_CONFIG_CONTROL_COUNT		4	/* hardcoded max control count supported */
@@ -107,16 +108,20 @@
 #define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
-#define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* VBatt is very close to regulator dropout */
+#define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* [1] VBatt is very close to regulator dropout */
 #define PX4IO_P_STATUS_ALARMS_TEMPERATURE	(1 << 1) /* board temperature is high */
-#define PX4IO_P_STATUS_ALARMS_SERVO_CURRENT	(1 << 2) /* servo current limit was exceeded */
-#define PX4IO_P_STATUS_ALARMS_ACC_CURRENT	(1 << 3) /* accessory current limit was exceeded */
+#define PX4IO_P_STATUS_ALARMS_SERVO_CURRENT	(1 << 2) /* [1] servo current limit was exceeded */
+#define PX4IO_P_STATUS_ALARMS_ACC_CURRENT	(1 << 3) /* [1] accessory current limit was exceeded */
 #define PX4IO_P_STATUS_ALARMS_FMU_LOST		(1 << 4) /* timed out waiting for controls from FMU */
 #define PX4IO_P_STATUS_ALARMS_RC_LOST		(1 << 5) /* timed out waiting for RC input */
 #define PX4IO_P_STATUS_ALARMS_PWM_ERROR		(1 << 6) /* PWM configuration or output was bad */
+#define PX4IO_P_STATUS_ALARMS_VSERVO_FAULT	(1 << 7) /* [2] VServo was out of the valid range (2.5 - 5.5 V) */
 
-#define PX4IO_P_STATUS_VBATT			4	/* battery voltage in mV */
-#define PX4IO_P_STATUS_IBATT			5	/* battery current (raw ADC) */
+#define PX4IO_P_STATUS_VBATT			4	/* [1] battery voltage in mV */
+#define PX4IO_P_STATUS_IBATT			5	/* [1] battery current (raw ADC) */
+#define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
+#define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
+#define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -142,7 +147,7 @@
 #define PX4IO_RATE_MAP_BASE			0	/* 0..CONFIG_ACTUATOR_COUNT bitmaps of PWM rate groups */
 
 /* setup page */
-#define PX4IO_PAGE_SETUP			100
+#define PX4IO_PAGE_SETUP		50
 #define PX4IO_P_SETUP_FEATURES			0
 
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
@@ -155,18 +160,27 @@
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
+
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
-#define PX4IO_P_SETUP_VBATT_SCALE		6	/* battery voltage correction factor (float) */
+#define PX4IO_P_SETUP_RELAYS_POWER1		(1<<0)	/* [1] power relay 1 */
+#define PX4IO_P_SETUP_RELAYS_POWER2		(1<<1)	/* [1] power relay 2 */
+#define PX4IO_P_SETUP_RELAYS_ACC1		(1<<2)	/* [1] accessory power 1 */
+#define PX4IO_P_SETUP_RELAYS_ACC2		(1<<3)	/* [1] accessory power 2 */
+
+#define PX4IO_P_SETUP_VBATT_SCALE		6	/* [1] battery voltage correction factor (float) */
+#define PX4IO_P_SETUP_VSERVO_SCALE		6	/* [2] servo voltage correction factor (float) */
+ 					     /*	7 */
+ 					     /*	8 */
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
 /* autopilot control values, -10000..10000 */
-#define PX4IO_PAGE_CONTROLS			101	/* 0..CONFIG_CONTROL_COUNT */
+#define PX4IO_PAGE_CONTROLS		51		/* 0..CONFIG_CONTROL_COUNT */
 
 /* raw text load to the mixer parser - ignores offset */
-#define PX4IO_PAGE_MIXERLOAD			102
+#define PX4IO_PAGE_MIXERLOAD		52
 
 /* R/C channel config */
-#define PX4IO_PAGE_RC_CONFIG			103	/* R/C input configuration */
+#define PX4IO_PAGE_RC_CONFIG		53		/* R/C input configuration */
 #define PX4IO_P_RC_CONFIG_MIN			0	/* lowest input value */
 #define PX4IO_P_RC_CONFIG_CENTER		1	/* center input value */
 #define PX4IO_P_RC_CONFIG_MAX			2	/* highest input value */
@@ -178,13 +192,13 @@
 #define PX4IO_P_RC_CONFIG_STRIDE		6	/* spacing between channel config data */
 
 /* PWM output - overrides mixer */
-#define PX4IO_PAGE_DIRECT_PWM			104	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_DIRECT_PWM		54		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* PWM failsafe values - zero disables the output */
-#define PX4IO_PAGE_FAILSAFE_PWM			105	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_FAILSAFE_PWM		55		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* Debug and test page - not used in normal operation */
-#define PX4IO_PAGE_TEST				127
+#define PX4IO_PAGE_TEST			127
 #define PX4IO_P_TEST_LED			0	/* set the amber LED on/off */
 
 /**
