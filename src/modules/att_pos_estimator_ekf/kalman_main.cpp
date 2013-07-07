@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Example User <mail@example.com>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: 	James Goppert
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,10 @@
  ****************************************************************************/
 
 /**
- * @file kalman_demo.cpp
- * Demonstration of control library
+ * @file kalman_main.cpp
+ * Combined attitude / position estimator.
+ *
+ * @author James Goppert
  */
 
 #include <nuttx/config.h>
@@ -51,7 +53,7 @@
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
-static int deamon_task;             /**< Handle of deamon task / thread */
+static int daemon_task;             /**< Handle of deamon task / thread */
 
 /**
  * Deamon management function.
@@ -101,9 +103,10 @@ int att_pos_estimator_ekf_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("att_pos_estimator_ekf",
+
+		daemon_task = task_spawn_cmd("att_pos_estimator_ekf",
 					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 5,
+					 SCHED_PRIORITY_MAX - 30,
 					 4096,
 					 kalman_demo_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
@@ -133,7 +136,7 @@ int att_pos_estimator_ekf_main(int argc, char *argv[])
 int kalman_demo_thread_main(int argc, char *argv[])
 {
 
-	warnx("starting\n");
+	warnx("starting");
 
 	using namespace math;
 
@@ -145,7 +148,7 @@ int kalman_demo_thread_main(int argc, char *argv[])
 		nav.update();
 	}
 
-	printf("exiting.\n");
+	warnx("exiting.");
 
 	thread_running = false;
 

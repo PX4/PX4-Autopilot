@@ -53,7 +53,7 @@ public:
 	Vector3(float x, float y, float z);
 	Vector3(const float *data);
 	virtual ~Vector3();
-	Vector3 cross(const Vector3 &b);
+	Vector3 cross(const Vector3 &b) const;
 
 	/**
 	 * accessors
@@ -64,6 +64,11 @@ public:
 	const float &getX() const { return (*this)(0); }
 	const float &getY() const { return (*this)(1); }
 	const float &getZ() const { return (*this)(2); }
+};
+    
+class __EXPORT Vector3f :
+	public Vector3
+{
 };
 
 int __EXPORT vector3Test();

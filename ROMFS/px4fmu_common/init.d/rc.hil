@@ -54,13 +54,13 @@ sh /etc/init.d/rc.sensors
 #
 # Start the attitude estimator (depends on orb)
 #
-kalman_demo start
+att_pos_estimator_ekf start
  
 #
 # Load mixer and start controllers (depends on px4io)
 #
 mixer load /dev/pwm_output /etc/mixers/FMU_AET.mix
-control_demo start
+fixedwing_backside start
 
 echo "[HIL] setup done, running"
 

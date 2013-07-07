@@ -42,10 +42,10 @@
 #include <float.h>
 #include <stdint.h>
 
-__BEGIN_DECLS
-
 /** Reboots the board */
 extern void up_systemreset(void) noreturn_function;
+
+__BEGIN_DECLS
 
 /** Sends SIGUSR1 to all processes */
 __EXPORT void killall(void);
@@ -58,7 +58,7 @@ __EXPORT void killall(void);
 #endif
 
 /** Starts a task and performs any specific accounting, scheduler setup, etc. */
-__EXPORT int task_spawn(const char *name,
+__EXPORT int task_spawn_cmd(const char *name,
 			int priority,
 			int scheduler,
 			int stack_size,

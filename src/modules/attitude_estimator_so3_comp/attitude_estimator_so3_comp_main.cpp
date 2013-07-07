@@ -117,7 +117,7 @@ int attitude_estimator_so3_comp_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_so3_comp_task = task_spawn("attitude_estimator_so3_comp",
+		attitude_estimator_so3_comp_task = task_spawn_cmd("attitude_estimator_so3_comp",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
 					      12400,

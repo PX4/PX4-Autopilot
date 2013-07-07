@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,6 +56,10 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/parameter_update.h>
 
+#include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
+#include <drivers/drv_mag.h>
+
 #include <drivers/drv_hrt.h>
 #include <poll.h>
 #include <unistd.h>
@@ -78,6 +82,9 @@ public:
 	 */
 
 	virtual ~KalmanNav() {};
+
+	math::Quaternion init(float ax, float ay, float az, float mx, float my, float mz);
+
 	/**
 	 * The main callback function for the class
 	 */
@@ -136,6 +143,11 @@ protected:
 	// publications
 	control::UOrbPublication<vehicle_global_position_s> _pos;       /**< position pub. */
 	control::UOrbPublication<vehicle_attitude_s> _att;              /**< attitude pub. */
+
+	int			_accel_sub;		/**< Accelerometer subscription */
+	int			_gyro_sub;		/**< Gyroscope subscription */
+	int			_mag_sub;		/**< Magnetometer subscription */
+
 	// time stamps
 	uint64_t _pubTimeStamp;     /**< output data publication time stamp */
 	uint64_t _predictTimeStamp; /**< prediction time stamp */
@@ -151,7 +163,8 @@ protected:
 	enum {PHI = 0, THETA, PSI, VN, VE, VD, LAT, LON, ALT};  /**< state enumeration */
 	float phi, theta, psi;                  /**< 3-2-1 euler angles */
 	float vN, vE, vD;                       /**< navigation velocity, m/s */
-	double lat, lon, alt;                   /**< lat, lon, alt, radians */
+	double lat, lon;                   	/**< lat, lon radians */
+	float alt;                   		/**< altitude, meters */
 	// parameters
 	control::BlockParam<float> _vGyro;      /**< gyro process noise */
 	control::BlockParam<float> _vAccel;     /**< accelerometer process noise  */
