@@ -41,7 +41,7 @@
 
 #include <nuttx/arch.h>
 #include <arch/stm32/chip.h>
-#include <stm32_internal.h>
+#include <stm32.h>
 
 #include <drivers/drv_hrt.h>
 #include <systemlib/perf_counter.h>

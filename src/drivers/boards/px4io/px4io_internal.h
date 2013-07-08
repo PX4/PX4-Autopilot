@@ -47,7 +47,7 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <stm32_internal.h>
+#include <stm32.h>
 
 /************************************************************************************
  * Definitions
