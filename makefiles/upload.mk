@@ -27,7 +27,7 @@ all:	upload-$(METHOD)-$(BOARD)
 upload-serial-px4fmu-v1:	$(BUNDLE) $(UPLOADER)
 	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
-upload-serial-px4fmuv2:	$(BUNDLE) $(UPLOADER)
+upload-serial-px4fmu-v2:	$(BUNDLE) $(UPLOADER)
 	$(Q) $(PYTHON) -u $(UPLOADER) --port $(SERIAL_PORTS) $(BUNDLE)
 
 #

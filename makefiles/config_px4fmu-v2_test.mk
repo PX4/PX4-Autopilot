@@ -12,19 +12,14 @@ ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_test
 #
 MODULES		+= drivers/device
 MODULES		+= drivers/stm32
-MODULES		+= drivers/px4io
 MODULES		+= drivers/boards/px4fmuv2
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
-
-# needed because things use it for logging
-MODULES		+= modules/mavlink
 
 #
 # Library modules
 #
 MODULES		+= modules/systemlib
-MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 
 #

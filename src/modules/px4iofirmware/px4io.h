@@ -42,10 +42,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4IO
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 # include <drivers/boards/px4io/px4io_internal.h>
 #endif
-#ifdef CONFIG_ARCH_BOARD_PX4IOV2
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 # include <drivers/boards/px4iov2/px4iov2_internal.h>
 #endif
 
@@ -129,18 +129,7 @@ extern struct sys_state_s system_state;
 #define LED_AMBER(_s)			stm32_gpiowrite(GPIO_LED2, !(_s))
 #define LED_SAFETY(_s)			stm32_gpiowrite(GPIO_LED3, !(_s))
 
-#ifdef CONFIG_ARCH_BOARD_PX4IOV2
-
-# define PX4IO_RELAY_CHANNELS		0
-# define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
-
-# define VDD_SERVO_FAULT		(!stm32_gpioread(GPIO_SERVO_FAULT_DETECT))
-
-# define PX4IO_ADC_CHANNEL_COUNT	2
-# define ADC_VSERVO			4
-# define ADC_RSSI			5
-
-#else /* CONFIG_ARCH_BOARD_PX4IOV1 */
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 
 # define PX4IO_RELAY_CHANNELS		4
 # define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
@@ -155,6 +144,19 @@ extern struct sys_state_s system_state;
 # define PX4IO_ADC_CHANNEL_COUNT	2
 # define ADC_VBATT			4
 # define ADC_IN5			5
+
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+
+# define PX4IO_RELAY_CHANNELS		0
+# define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
+
+# define VDD_SERVO_FAULT		(!stm32_gpioread(GPIO_SERVO_FAULT_DETECT))
+
+# define PX4IO_ADC_CHANNEL_COUNT	2
+# define ADC_VSERVO			4
+# define ADC_RSSI			5
 
 #endif
 

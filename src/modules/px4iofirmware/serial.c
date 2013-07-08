@@ -50,7 +50,7 @@
 #include <chip.h>
 #include <up_internal.h>
 #include <up_arch.h>
-#include <stm32_internal.h>
+#include <stm32.h>
 #include <systemlib/perf_counter.h>
 
 //#define DEBUG

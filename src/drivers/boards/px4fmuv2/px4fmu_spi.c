@@ -50,9 +50,9 @@
 #include <nuttx/spi.h>
 #include <arch/board/board.h>
 
-#include "up_arch.h"
-#include "chip.h"
-#include "stm32_internal.h"
+#include <up_arch.h>
+#include <chip.h>
+#include <stm32.h>
 #include "px4fmu_internal.h"
 
 /************************************************************************************

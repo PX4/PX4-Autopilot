@@ -50,7 +50,7 @@
 __BEGIN_DECLS
 
 /* these headers are not C++ safe */
-#include <stm32_internal.h>
+#include <stm32.h>
 
  
 /****************************************************************************************************

@@ -54,7 +54,7 @@
 
 #include <nuttx/arch.h>
 
-#include "stm32_internal.h"
+#include <stm32.h>
 #include "px4iov2_internal.h"
 
 #include <arch/board/board.h>

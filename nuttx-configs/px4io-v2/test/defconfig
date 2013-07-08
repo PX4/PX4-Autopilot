@@ -75,7 +75,7 @@ CONFIG_ARCH_CORTEXM3=y
 CONFIG_ARCH_CHIP=stm32
 CONFIG_ARCH_CHIP_STM32F100C8=y
 CONFIG_ARCH_BOARD=px4iov2
-CONFIG_ARCH_BOARD_PX4IOV2=y
+CONFIG_ARCH_BOARD_PX4IO_V2=y
 CONFIG_BOARD_LOOPSPERMSEC=24000
 CONFIG_DRAM_SIZE=0x00002000
 CONFIG_DRAM_START=0x20000000
@@ -186,29 +186,6 @@ CONFIG_USART3_PARITY=0
 CONFIG_USART1_2STOP=0
 CONFIG_USART2_2STOP=0
 CONFIG_USART3_2STOP=0
-
-#
-# PX4IO specific driver settings
-#
-# CONFIG_HRT_TIMER
-#   Enables the high-resolution timer.  The board definition must
-#   set HRT_TIMER and HRT_TIMER_CHANNEL to the timer and capture/
-#   compare channels to be used.
-# CONFIG_HRT_PPM
-#   Enables R/C PPM input using the HRT.  The board definition must
-#   set HRT_PPM_CHANNEL to the timer capture/compare channel to be
-#   used, and define GPIO_PPM_IN to configure the appropriate timer
-#   GPIO.
-# CONFIG_PWM_SERVO
-#   Enables the PWM servo driver.  The driver configuration must be
-#   supplied by the board support at initialisation time.
-#   Note that USART2 must be disabled on the PX4 board for this to
-#   be available.
-#
-#
-CONFIG_HRT_TIMER=y
-CONFIG_HRT_PPM=y
-CONFIG_PWM_SERVO=y
 
 #
 # General build options

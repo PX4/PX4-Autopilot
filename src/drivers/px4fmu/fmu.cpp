@@ -59,10 +59,10 @@
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 # include <drivers/boards/px4fmu/px4fmu_internal.h>
 # define FMU_HAVE_PPM
-#elif defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 # include <drivers/boards/px4fmuv2/px4fmu_internal.h>
 # undef FMU_HAVE_PPM
 #else
@@ -158,7 +158,7 @@ private:
 };
 
 const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0},
 	{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0},
 	{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, GPIO_USART2_CTS_1},
@@ -168,7 +168,7 @@ const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
 	{GPIO_GPIO6_INPUT, GPIO_GPIO6_OUTPUT, GPIO_CAN2_TX_2},
 	{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2},
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 	{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0},
 	{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0},
 	{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, 0},
@@ -873,7 +873,7 @@ PX4FMU::gpio_reset(void)
 		}
 	}
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	/* if we have a GPIO direction control, set it to zero (input) */
 	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
 	stm32_configgpio(GPIO_GPIO_DIR);
@@ -883,7 +883,7 @@ PX4FMU::gpio_reset(void)
 void
 PX4FMU::gpio_set_function(uint32_t gpios, int function)
 {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	/*
 	 * GPIOs 0 and 1 must have the same direction as they are buffered
 	 * by a shared 2-port driver.  Any attempt to set either sets both.
@@ -918,7 +918,7 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 		}
 	}
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	/* flip buffer to input mode if required */
 	if ((GPIO_SET_INPUT == function) && (gpios & 3))
 		stm32_gpiowrite(GPIO_GPIO_DIR, 0);
@@ -1024,17 +1024,17 @@ fmu_new_mode(PortMode new_mode)
 		break;
 
 	case PORT_FULL_PWM:
-#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
 #endif
-#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 		servo_mode = PX4FMU::MODE_6PWM;
 #endif
 		break;
 
 	/* mixed modes supported on v1 board only */
-#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	case PORT_FULL_SERIAL:
 		/* set all multi-GPIOs to serial mode */
 		gpio_bits = GPIO_MULTI_1 | GPIO_MULTI_2 | GPIO_MULTI_3 | GPIO_MULTI_4;
@@ -1116,7 +1116,7 @@ test(void)
 
 	if (ioctl(fd, PWM_SERVO_SET(3), 1600) < 0) err(1, "servo 4 set failed");
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 	if (ioctl(fd, PWM_SERVO_SET(4), 1800) < 0) err(1, "servo 5 set failed");
 
 	if (ioctl(fd, PWM_SERVO_SET(5), 2000) < 0) err(1, "servo 6 set failed");
@@ -1183,7 +1183,7 @@ fmu_main(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	} else if (!strcmp(verb, "mode_serial")) {
 		new_mode = PORT_FULL_SERIAL;
 
@@ -1217,9 +1217,9 @@ fmu_main(int argc, char *argv[])
 		fake(argc - 1, argv + 1);
 
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
-#if defined(CONFIG_ARCH_BOARD_PX4FMU)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
-#elif defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 	fprintf(stderr, "  mode_gpio, mode_pwm\n");
 #endif
 	exit(1);

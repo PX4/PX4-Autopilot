@@ -56,7 +56,6 @@
 #include <chip.h>
 #include <up_internal.h>
 #include <up_arch.h>
-#include <stm32_internal.h>
 
 #include <debug.h>
 

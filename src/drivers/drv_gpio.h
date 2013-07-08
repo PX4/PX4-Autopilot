@@ -42,7 +42,7 @@
 
 #include <sys/ioctl.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 /*
  * PX4FMU GPIO numbers.
  *
@@ -67,7 +67,7 @@
 
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMUV2
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 /*
  * PX4FMUv2 GPIO numbers.
  *
@@ -93,36 +93,14 @@
 
 #endif
 
-#ifdef CONFIG_ARCH_BOARD_PX4IO
-/*
- * PX4IO GPIO numbers.
- *
- * XXX note that these are here for reference/future use; currently
- * there is no good way to wire these up without a common STM32 GPIO
- * driver, which isn't implemented yet.
- */
-/* outputs */
-# define GPIO_ACC1_POWER	(1<<0)		/**< accessory power 1 */
-# define GPIO_ACC2_POWER	(1<<1)		/**< accessory power 2 */
-# define GPIO_SERVO_POWER	(1<<2)		/**< servo power */
-# define GPIO_RELAY1		(1<<3)		/**< relay 1 */
-# define GPIO_RELAY2		(1<<4)		/**< relay 2 */
-# define GPIO_LED_BLUE		(1<<5)		/**< blue LED */
-# define GPIO_LED_AMBER		(1<<6)		/**< amber/red LED */
-# define GPIO_LED_SAFETY	(1<<7)		/**< safety LED */
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
+/* no GPIO driver on the PX4IOv1 board */
+# define GPIO_DEVICE_PATH	"/nonexistent"
+#endif
 
-/* inputs */
-# define GPIO_ACC_OVERCURRENT	(1<<8)		/**< accessory 1/2 overcurrent detect */
-# define GPIO_SERVO_OVERCURRENT	(1<<9)		/**< servo overcurrent detect */
-# define GPIO_SAFETY_BUTTON	(1<<10)		/**< safety button pressed */
-
-/**
- * Default GPIO device - other devices may also support this protocol if
- * they also export GPIO-like things.  This is always the GPIOs on the
- * main board.
- */
-# define GPIO_DEVICE_PATH	"/dev/px4io"
-
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+/* no GPIO driver on the PX4IOv2 board */
+# define GPIO_DEVICE_PATH	"/nonexistent"
 #endif
 
 #ifndef GPIO_DEVICE_PATH

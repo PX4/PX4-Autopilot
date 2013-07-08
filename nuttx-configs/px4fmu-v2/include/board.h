@@ -46,6 +46,8 @@
 # include <stdint.h>
 #endif
 
+#include <stm32.h>
+
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -194,10 +196,8 @@
 
 /* High-resolution timer
  */
-#ifdef CONFIG_HRT_TIMER
-# define HRT_TIMER		8	/* use timer8 for the HRT */
-# define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
-#endif
+#define HRT_TIMER		8	/* use timer8 for the HRT */
+#define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
 /* Alternate function pin selections ************************************************/
 

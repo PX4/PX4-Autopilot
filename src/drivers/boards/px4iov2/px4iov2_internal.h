@@ -48,7 +48,7 @@
 #include <stdint.h>
 
 /* these headers are not C++ safe */
-#include <stm32_internal.h>
+#include <stm32.h>
 
  
 /******************************************************************************

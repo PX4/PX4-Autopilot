@@ -51,8 +51,8 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include "up_arch.h"
-#include "stm32_internal.h"
+#include <up_arch.h>
+#include <stm32.h>
 #include "px4fmu_internal.h"
 
 /************************************************************************************

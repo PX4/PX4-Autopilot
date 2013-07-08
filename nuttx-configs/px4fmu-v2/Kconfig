@@ -3,5 +3,5 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-if ARCH_BOARD_PX4FMUV2
+if ARCH_BOARD_PX4FMU_V2
 endif

@@ -1604,9 +1604,9 @@ start(int argc, char *argv[])
 
 	PX4IO_interface *interface;
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 	interface = io_serial_interface();
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU)
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	interface = io_i2c_interface(PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO);
 #else
 # error Unknown board - cannot select interface.
@@ -1741,9 +1741,9 @@ if_test(unsigned mode)
 {
 	PX4IO_interface *interface;
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMUV2)
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 	interface = io_serial_interface();
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU)
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	interface = io_i2c_interface(PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO);
 #else
 # error Unknown board - cannot select interface.

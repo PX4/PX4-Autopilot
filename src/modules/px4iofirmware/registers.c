@@ -59,7 +59,7 @@ static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t alt
  */
 static const uint16_t	r_page_config[] = {
 	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= PX4IO_PROTOCOL_VERSION,
-#ifdef CONFIG_ARCH_BOARD_PX4IOV2
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 	[PX4IO_P_CONFIG_HARDWARE_VERSION]	= 2,
 #else
 	[PX4IO_P_CONFIG_HARDWARE_VERSION]	= 1,

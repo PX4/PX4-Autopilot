@@ -15,10 +15,10 @@ SRCS		= adc.c \
 		  ../systemlib/mixer/mixer_multirotor.cpp \
 		  ../systemlib/mixer/mixer_simple.cpp \
 
-ifeq ($(BOARD),px4io)
+ifeq ($(BOARD),px4io-v1)
 SRCS		+= i2c.c
 endif
-ifeq ($(BOARD),px4iov2)
+ifeq ($(BOARD),px4io-v2)
 SRCS		+= serial.c \
 		   ../systemlib/hx_stream.c
 endif
