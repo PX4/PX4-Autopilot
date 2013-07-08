@@ -49,7 +49,6 @@
 #include <fcntl.h>
 #include <mqueue.h>
 #include <string.h>
-#include <v1.0/common/mavlink.h>
 #include <drivers/drv_hrt.h>
 #include <time.h>
 #include <float.h>
@@ -503,7 +502,6 @@ handle_message(mavlink_message_t *msg)
 			} else {
 				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
 			}
-			warnx("IAS: %6.2f TAS: %6.2f", airspeed.indicated_airspeed_m_s, airspeed.true_airspeed_m_s);
 
 			hil_global_pos.lat = hil_state.lat;
 			hil_global_pos.lon = hil_state.lon;

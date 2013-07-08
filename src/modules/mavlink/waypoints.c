@@ -45,6 +45,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#include "mavlink_bridge_header.h"
 #include "missionlib.h"
 #include "waypoints.h"
 #include "util.h"

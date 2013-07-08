@@ -48,7 +48,6 @@
 #include <mqueue.h>
 #include <string.h>
 #include "mavlink_bridge_header.h"
-#include <v1.0/common/mavlink.h>
 #include <drivers/drv_hrt.h>
 #include <time.h>
 #include <float.h>

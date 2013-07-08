@@ -101,7 +101,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  * 
  * The actual stack size should be set in the call
- * to task_spawn().
+ * to task_spawn_cmd().
  */
 int flow_position_control_main(int argc, char *argv[])
 {
@@ -118,7 +118,7 @@ int flow_position_control_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("flow_position_control",
+		deamon_task = task_spawn_cmd("flow_position_control",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 6,
 					 4096,
