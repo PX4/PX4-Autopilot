@@ -221,6 +221,10 @@ rx_handle_packet(void)
 static void
 rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
+	/*
+	 * We are here because DMA completed, or UART reception stopped and
+	 * we think we have a packet in the buffer.
+	 */
 	perf_begin(pc_txns);
 
 	/* disable UART DMA */
@@ -235,7 +239,7 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	/* re-set DMA for reception first, so we are ready to receive before we start sending */
 	dma_reset();
 
-	/* send the reply to the previous request */
+	/* send the reply to the just-processed request */
 	dma_packet.crc = 0;
 	dma_packet.crc = crc_packet(&dma_packet);
 	stm32_dmasetup(
@@ -256,6 +260,8 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 static int
 serial_interrupt(int irq, void *context)
 {
+	static bool abort_on_idle = false;
+
 	uint32_t sr = rSR;	/* get UART status register */
 	(void)rDR;		/* required to clear any of the interrupt status that brought us here */
 
@@ -271,28 +277,46 @@ serial_interrupt(int irq, void *context)
 		if (sr & USART_SR_FE)
 			perf_count(pc_fe);
 
-		/* reset DMA state machine back to listening-for-packet */		
-		dma_reset();
+		/* send a line break - this will abort transmission/reception on the other end */
+		rCR1 |= USART_CR1_SBK;
 
-		/* don't attempt to handle IDLE if it's set - things went bad */
-		return 0;
+		/* when the line goes idle, abort rather than look at the packet */
+		abort_on_idle = true;
 	}
 
 	if (sr & USART_SR_IDLE) {
 
-		/* the packet might have been short - go check */
+		/* 
+		 * If we saw an error, don't bother looking at the packet - it should have
+		 * been aborted by the sender and will definitely be bad. Get the DMA reconfigured
+		 * ready for their retry.
+		 */
+		if (abort_on_idle) {
+
+			abort_on_idle = false;
+			dma_reset();
+			return 0;
+		}
+
+		/*
+		 * The sender has stopped sending - this is probably the end of a packet.
+		 * Check the received length against the length in the header to see if 
+		 * we have something that looks like a packet.
+		 */
 		unsigned length = sizeof(dma_packet) - stm32_dmaresidual(rx_dma);
 		if ((length < 1) || (length < PKT_SIZE(dma_packet))) {
+
+			/* it was too short - possibly truncated */
 			perf_count(pc_badidle);
 			return 0;
 		}
 
+		/*
+		 * Looks like we received a packet. Stop the DMA and go process the
+		 * packet.
+		 */
 		perf_count(pc_idle);
-
-		/* stop the receive DMA */
 		stm32_dmastop(rx_dma);
-
-		/* and treat this like DMA completion */
 		rx_dma_callback(rx_dma, DMA_STATUS_TCIF, NULL);
 	}
 
