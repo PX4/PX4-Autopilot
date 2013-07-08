@@ -659,7 +659,7 @@ int commander_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = task_spawn("commander",
+		daemon_task = task_spawn_cmd("commander",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 3000,

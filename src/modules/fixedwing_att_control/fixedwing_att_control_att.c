@@ -128,8 +128,8 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	if (!initialized) {
 		parameters_init(&h);
 		parameters_update(&h, &p);
-		pid_init(&roll_controller, p.roll_p, 0, 0, 0, p.rollrate_lim, 0, PID_MODE_DERIVATIV_NONE); //P Controller
-		pid_init(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitchrate_lim, 0, PID_MODE_DERIVATIV_NONE); //P Controller
+		pid_init(&roll_controller, p.roll_p, 0, 0, 0, p.rollrate_lim, PID_MODE_DERIVATIV_NONE, 0.0f); //P Controller
+		pid_init(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitchrate_lim, PID_MODE_DERIVATIV_NONE, 0.0f); //P Controller
 		initialized = true;
 	}
 
@@ -137,8 +137,8 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	if (counter % 100 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		pid_set_parameters(&roll_controller, p.roll_p, 0, 0, 0, p.rollrate_lim, 0);
-		pid_set_parameters(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitchrate_lim, 0);
+		pid_set_parameters(&roll_controller, p.roll_p, 0, 0, 0, p.rollrate_lim);
+		pid_set_parameters(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitchrate_lim);
 	}
 
 	/* Roll (P) */

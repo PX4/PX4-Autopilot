@@ -41,7 +41,7 @@
 
 #include <stdbool.h>
 
-#include "stm32_internal.h"
+#include "stm32.h"
 #include "px4fmu_internal.h"
 
 #include <arch/board/board.h>

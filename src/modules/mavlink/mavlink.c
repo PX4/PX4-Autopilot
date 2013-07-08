@@ -144,14 +144,6 @@ set_hil_on_off(bool hil_enabled)
 	/* Enable HIL */
 	if (hil_enabled && !mavlink_hil_enabled) {
 
-		/* Advertise topics */
-		pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
-		pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
-
-		/* sensore level hil */
-		pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
-		pub_hil_gps = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
-
 		mavlink_hil_enabled = true;
 
 		/* ramp up some HIL-related subscriptions */
@@ -708,6 +700,8 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		lowspeed_counter++;
 
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
+
 		/* sleep quarter the time */
 		usleep(25000);
 
@@ -719,9 +713,12 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		/* send parameters at 20 Hz (if queued for sending) */
 		mavlink_pm_queued_send();
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
 
 		/* sleep quarter the time */
 		usleep(25000);
+
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
 
 		if (baudrate > 57600) {
 			mavlink_pm_queued_send();
@@ -781,7 +778,7 @@ int mavlink_main(int argc, char *argv[])
 			errx(0, "mavlink already running\n");
 
 		thread_should_exit = false;
-		mavlink_task = task_spawn("mavlink",
+		mavlink_task = task_spawn_cmd("mavlink",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
 					  2048,

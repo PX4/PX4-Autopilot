@@ -84,8 +84,9 @@
 
 /**
  * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h.
+ * You can set this value to 12 if you want a zero reading below 15km/h.
  */
-#define MIN_ACCURATE_DIFF_PRES_PA 12
+#define MIN_ACCURATE_DIFF_PRES_PA 0
 
 /* Measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
@@ -463,8 +464,8 @@ ETSAirspeed::collect()
 
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
 
+	// XXX move the parameter read out of the driver.
 	param_get(param_find("SENS_DPRES_OFF"), &_diff_pres_offset);
-
 	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
 		diff_pres_pa = 0;
 

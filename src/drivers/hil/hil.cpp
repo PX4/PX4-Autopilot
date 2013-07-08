@@ -225,7 +225,7 @@ HIL::init()
 	// gpio_reset();
 
 	/* start the HIL interface task */
-	_task = task_spawn("fmuhil",
+	_task = task_spawn_cmd("fmuhil",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
 			   2048,

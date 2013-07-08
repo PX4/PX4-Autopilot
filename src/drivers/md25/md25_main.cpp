@@ -109,7 +109,7 @@ int md25_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("md25",
+		deamon_task = task_spawn_cmd("md25",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 10,
 					 2048,

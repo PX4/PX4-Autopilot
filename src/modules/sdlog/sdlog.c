@@ -161,7 +161,7 @@ bool logging_enabled = true;
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
- * to task_spawn().
+ * to task_spawn_cmd().
  */
 int sdlog_main(int argc, char *argv[])
 {
@@ -177,7 +177,7 @@ int sdlog_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("sdlog",
+		deamon_task = task_spawn_cmd("sdlog",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT - 30,
 					 4096,

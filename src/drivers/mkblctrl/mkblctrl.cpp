@@ -314,7 +314,7 @@ MK::init(unsigned motors)
 	gpio_reset();
 
 	/* start the IO interface task */
-	_task = task_spawn("mkblctrl",
+	_task = task_spawn_cmd("mkblctrl",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_MAX - 20,
 			   2048,

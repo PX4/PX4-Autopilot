@@ -503,7 +503,7 @@ int mavlink_onboard_main(int argc, char *argv[])
 			errx(0, "mavlink already running\n");
 
 		thread_should_exit = false;
-		mavlink_task = task_spawn("mavlink_onboard",
+		mavlink_task = task_spawn_cmd("mavlink_onboard",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
 					  2048,

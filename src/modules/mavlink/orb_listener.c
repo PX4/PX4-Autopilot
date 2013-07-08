@@ -72,6 +72,8 @@ struct vehicle_status_s v_status;
 struct rc_channels_s rc;
 struct rc_input_values rc_raw;
 struct actuator_safety_s safety;
+struct actuator_controls_effective_s actuators_0;
+struct vehicle_attitude_s att;
 
 struct mavlink_subscriptions mavlink_subs;
 
@@ -116,6 +118,7 @@ static void	l_debug_key_value(const struct listener *l);
 static void	l_optical_flow(const struct listener *l);
 static void	l_vehicle_rates_setpoint(const struct listener *l);
 static void	l_home(const struct listener *l);
+static void	l_airspeed(const struct listener *l);
 
 static const struct listener listeners[] = {
 	{l_sensor_combined,		&mavlink_subs.sensor_sub,	0},
@@ -140,6 +143,7 @@ static const struct listener listeners[] = {
 	{l_optical_flow,		&mavlink_subs.optical_flow,	0},
 	{l_vehicle_rates_setpoint,	&mavlink_subs.rates_setpoint_sub,	0},
 	{l_home,			&mavlink_subs.home_sub,		0},
+	{l_airspeed,			&mavlink_subs.airspeed_sub,		0},
 };
 
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
@@ -192,7 +196,7 @@ l_sensor_combined(const struct listener *l)
 					     raw.gyro_rad_s[1], raw.gyro_rad_s[2],
 					     raw.magnetometer_ga[0],
 					     raw.magnetometer_ga[1], raw.magnetometer_ga[2],
-					     raw.baro_pres_mbar, 0 /* no diff pressure yet */,
+					     raw.baro_pres_mbar, raw.differential_pressure_pa,
 					     raw.baro_alt_meter, raw.baro_temp_celcius,
 					     fields_updated);
 
@@ -202,9 +206,6 @@ l_sensor_combined(const struct listener *l)
 void
 l_vehicle_attitude(const struct listener *l)
 {
-	struct vehicle_attitude_s att;
-
-
 	/* copy attitude data into local buffer */
 	orb_copy(ORB_ID(vehicle_attitude), mavlink_subs.att_sub, &att);
 
@@ -564,28 +565,26 @@ l_manual_control_setpoint(const struct listener *l)
 void
 l_vehicle_attitude_controls(const struct listener *l)
 {
-	struct actuator_controls_effective_s actuators;
-
-	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, mavlink_subs.actuators_sub, &actuators);
+	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, mavlink_subs.actuators_sub, &actuators_0);
 
 	if (gcs_link) {
 		/* send, add spaces so that string buffer is at least 10 chars long */
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
 						   "eff ctrl0    ",
-						   actuators.control_effective[0]);
+						   actuators_0.control_effective[0]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
 						   "eff ctrl1    ",
-						   actuators.control_effective[1]);
+						   actuators_0.control_effective[1]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
 						   "eff ctrl2     ",
-						   actuators.control_effective[2]);
+						   actuators_0.control_effective[2]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
 						   "eff ctrl3     ",
-						   actuators.control_effective[3]);
+						   actuators_0.control_effective[3]);
 	}
 }
 
@@ -624,6 +623,22 @@ l_home(const struct listener *l)
 	orb_copy(ORB_ID(home_position), mavlink_subs.home_sub, &home);
 
 	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, home.lat, home.lon, home.alt);
+}
+
+void
+l_airspeed(const struct listener *l)
+{
+	struct airspeed_s airspeed;
+
+	orb_copy(ORB_ID(airspeed), mavlink_subs.airspeed_sub, &airspeed);
+
+	float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
+	float throttle = actuators_0.control_effective[3] * (UINT16_MAX - 1);
+	float alt = global_pos.alt;
+	float climb = global_pos.vz;
+
+	mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed,
+		((att.yaw + M_PI_F) / M_PI_F) * 180.0f, throttle, alt, climb);
 }
 
 static void *
@@ -764,6 +779,10 @@ uorb_receive_start(void)
 	/* --- FLOW SENSOR --- */
 	mavlink_subs.optical_flow = orb_subscribe(ORB_ID(optical_flow));
 	orb_set_interval(mavlink_subs.optical_flow, 200); 	/* 5Hz updates */
+
+	/* --- AIRSPEED / VFR / HUD --- */
+	mavlink_subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	orb_set_interval(mavlink_subs.airspeed_sub, 200); 	/* 5Hz updates */
 
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;

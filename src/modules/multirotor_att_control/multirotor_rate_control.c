@@ -1,8 +1,10 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
  *           Lorenz Meier <lm@inf.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,10 +38,12 @@
 /**
  * @file multirotor_rate_control.c
  *
- * Implementation of rate controller
+ * Implementation of rate controller for multirotors.
  *
  * @author Tobias Naegeli <naegelit@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include "multirotor_rate_control.h"
@@ -158,8 +162,6 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 	static uint64_t last_input = 0;
 
-//	float dT_input = (hrt_absolute_time() - last_input) / 1000000.0f;
-
 	if (last_input != rate_sp->timestamp) {
 		last_input = rate_sp->timestamp;
 	}
@@ -187,8 +189,8 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		parameters_update(&h, &p);
 		initialized = true;
 
-		pid_init(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, diff_filter_factor, PID_MODE_DERIVATIV_CALC_NO_SP);
-		pid_init(&roll_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, diff_filter_factor, PID_MODE_DERIVATIV_CALC_NO_SP);
+		pid_init(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
+		pid_init(&roll_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
 
 	}
 
@@ -196,8 +198,8 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		pid_set_parameters(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, diff_filter_factor);
-		pid_set_parameters(&roll_rate_controller,  p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, diff_filter_factor);
+		pid_set_parameters(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f);
+		pid_set_parameters(&roll_rate_controller,  p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f);
 	}
 
 	/* reset integral if on ground */
@@ -208,31 +210,15 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	/* control pitch (forward) output */
 	float pitch_control = pid_calculate(&pitch_rate_controller, rate_sp->pitch ,
-			rates[1], 0.0f, deltaT, &control_debug->pitch_rate_p, &control_debug->pitch_rate_i, &control_debug->pitch_rate_d);
+					    rates[1], 0.0f, deltaT,
+					    &control_debug->pitch_rate_p, &control_debug->pitch_rate_i, &control_debug->pitch_rate_d);
 
 	/* control roll (left/right) output */
 	float roll_control = pid_calculate(&roll_rate_controller, rate_sp->roll ,
-			rates[0], 0.0f, deltaT, &control_debug->roll_rate_p, &control_debug->roll_rate_i, &control_debug->roll_rate_d);
+					   rates[0], 0.0f, deltaT,
+					   &control_debug->roll_rate_p, &control_debug->roll_rate_i, &control_debug->roll_rate_d);
 
-	/* increase resilience to faulty control inputs */
-	if (isfinite(pitch_control)) {
-		pitch_control_last = pitch_control;
-
-	} else {
-		pitch_control = pitch_control_last;
-		warnx("rej. NaN ctrl pitch");
-	}
-
-	/* increase resilience to faulty control inputs */
-	if (isfinite(roll_control)) {
-		roll_control_last = roll_control;
-
-	} else {
-		roll_control = roll_control_last;
-		warnx("rej. NaN ctrl roll");
-	}
-
-	/* control yaw rate */ //XXX use library here and use rates_acc[2]
+	/* control yaw rate */ //XXX use library here
 	float yaw_rate_control = p.yawrate_p * (rate_sp->yaw - rates[2]);
 
 	/* increase resilience to faulty control inputs */

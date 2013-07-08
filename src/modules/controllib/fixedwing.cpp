@@ -131,7 +131,7 @@ BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const c
 	_attCmd(&getSubscriptions(), ORB_ID(vehicle_attitude_setpoint), 20),
 	_ratesCmd(&getSubscriptions(), ORB_ID(vehicle_rates_setpoint), 20),
 	_pos(&getSubscriptions() , ORB_ID(vehicle_global_position), 20),
-	_posCmd(&getSubscriptions(), ORB_ID(vehicle_global_position_setpoint), 20),
+	_posCmd(&getSubscriptions(), ORB_ID(vehicle_global_position_set_triplet), 20),
 	_manual(&getSubscriptions(), ORB_ID(manual_control_setpoint), 20),
 	_status(&getSubscriptions(), ORB_ID(vehicle_status), 20),
 	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
@@ -215,7 +215,7 @@ void BlockMultiModeBacksideAutopilot::update()
 	// only update guidance in auto mode
 	if (_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION) {
 		// update guidance
-		_guide.update(_pos, _att, _posCmd, _lastPosCmd);
+		_guide.update(_pos, _att, _posCmd.current, _lastPosCmd.current);
 	}
 
 	// XXX handle STABILIZED (loiter on spot) as well
@@ -228,7 +228,7 @@ void BlockMultiModeBacksideAutopilot::update()
 		_status.navigation_state == NAVIGATION_STATE_SEATBELT) {
 
 		// update guidance
-		_guide.update(_pos, _att, _posCmd, _lastPosCmd);
+		_guide.update(_pos, _att, _posCmd.current, _lastPosCmd.current);
 
 		// calculate velocity, XXX should be airspeed, but using ground speed for now
 		// for the purpose of control we will limit the velocity feedback between
@@ -242,7 +242,7 @@ void BlockMultiModeBacksideAutopilot::update()
 		float vCmd = _vLimit.update(_vCmd.get());
 
 		// altitude hold
-		float dThrottle = _h2Thr.update(_posCmd.altitude - _pos.alt);
+		float dThrottle = _h2Thr.update(_posCmd.current.altitude - _pos.alt);
 
 		// heading hold
 		float psiError = _wrap_pi(_guide.getPsiCmd() - _att.yaw);
@@ -332,7 +332,7 @@ void BlockMultiModeBacksideAutopilot::update()
 			_actuators.control[CH_ELV] = _stabilization.getElevator() + _trimElv.get();
 			_actuators.control[CH_RDR] = _stabilization.getRudder() + _trimRdr.get();
 
-			// currenlty using manual throttle
+			// currently using manual throttle
 			// XXX if you enable this watch out, vz might be very noisy
 			//_actuators.control[CH_THR] = dThrottle + _trimThr.get();
 			_actuators.control[CH_THR] = _manual.throttle;
