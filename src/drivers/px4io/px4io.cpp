@@ -1388,7 +1388,8 @@ PX4IO::print_status()
 }
 
 int
-PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
+PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
+/* Make it obvious that file * isn't used here */
 {
 	int ret = OK;
 
@@ -1668,11 +1669,7 @@ start(int argc, char *argv[])
 	if (param_get(param_find("RC_RL1_DSM_VCC"), &dsm_vcc_ctl) == OK) {
 		if (dsm_vcc_ctl) {
 			g_dev->set_dsm_vcc_ctl(true);
-			int fd = open(GPIO_DEVICE_PATH, O_WRONLY);
-			if (fd < 0)
-				errx(1, "failed to open device");
-			ioctl(fd, DSM_BIND_POWER_UP, 0);
-			close(fd);
+			g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);
 		}
 	}
 	exit(0);
@@ -1681,7 +1678,7 @@ start(int argc, char *argv[])
 void
 bind(int argc, char *argv[])
 {
-	int fd, pulses;
+	int pulses;
 
 	if (g_dev == nullptr)
 		errx(1, "px4io must be started first");
@@ -1699,12 +1696,7 @@ bind(int argc, char *argv[])
 	else 
 		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
 
-	fd = open(GPIO_DEVICE_PATH, O_WRONLY);
-
-	if (fd < 0)
-		errx(1, "failed to open device");
-
-	ioctl(fd, DSM_BIND_START, pulses);
+	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
 
 	/* Open console directly to grab CTRL-C signal */
 	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
@@ -1721,9 +1713,8 @@ bind(int argc, char *argv[])
 		if (read(console, &c, 1) == 1) {
 			if (c == 0x03 || c == 0x63) {
 				warnx("Done\n");
-				ioctl(fd, DSM_BIND_STOP, 0);
-				ioctl(fd, DSM_BIND_POWER_UP, 0);
-				close(fd);
+				g_dev->ioctl(nullptr, DSM_BIND_STOP, 0);
+				g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);
 				close(console);
 	            exit(0);
             }
@@ -1914,7 +1905,7 @@ px4io_main(int argc, char *argv[])
 			 * We can cheat and call the driver directly, as it
 		 	 * doesn't reference filp in ioctl()
 			 */
-			g_dev->ioctl(NULL, PX4IO_INAIR_RESTART_ENABLE, 1);
+			g_dev->ioctl(nullptr, PX4IO_INAIR_RESTART_ENABLE, 1);
 		} else {
 			errx(1, "not loaded");
 		}
@@ -1958,7 +1949,7 @@ px4io_main(int argc, char *argv[])
 		/* we can cheat and call the driver directly, as it
 		 * doesn't reference filp in ioctl()
 		 */
-		int ret = g_dev->ioctl(NULL, PX4IO_SET_DEBUG, level);
+		int ret = g_dev->ioctl(nullptr, PX4IO_SET_DEBUG, level);
 		if (ret != 0) {
 			printf("SET_DEBUG failed - %d\n", ret);
 			exit(1);
