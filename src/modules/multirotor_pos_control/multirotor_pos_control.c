@@ -61,9 +61,11 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/pid/pid.h>
 #include <mavlink/mavlink_log.h>
 
 #include "multirotor_pos_control_params.h"
+#include "thrust_pid.h"
 
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
@@ -83,8 +85,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]);
 static void usage(const char *reason);
 
 static float scale_control(float ctl, float end, float dz);
-
-static float limit_value(float v, float limit);
 
 static float norm(float x, float y);
 
@@ -110,11 +110,12 @@ int multirotor_pos_control_main(int argc, char *argv[]) {
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("multirotor_pos_control already running\n");
+			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
 
+		warnx("start");
 		thread_should_exit = false;
 		deamon_task = task_spawn_cmd("multirotor_pos_control",
 					 SCHED_DEFAULT,
@@ -126,15 +127,16 @@ int multirotor_pos_control_main(int argc, char *argv[]) {
 	}
 
 	if (!strcmp(argv[1], "stop")) {
+		warnx("stop");
 		thread_should_exit = true;
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tmultirotor_pos_control app is running\n");
+			warnx("app is running");
 		} else {
-			printf("\tmultirotor_pos_control app not started\n");
+			warnx("app not started");
 		}
 		exit(0);
 	}
@@ -153,22 +155,13 @@ static float scale_control(float ctl, float end, float dz) {
 	}
 }
 
-static float limit_value(float v, float limit) {
-	if (v > limit) {
-		v = limit;
-	} else if (v < -limit) {
-		v = -limit;
-	}
-	return v;
-}
-
 static float norm(float x, float y) {
 	return sqrtf(x * x + y * y);
 }
 
 static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	/* welcome user */
-	warnx("started.");
+	warnx("started");
 	static int mavlink_fd;
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	mavlink_log_info(mavlink_fd, "[multirotor_pos_control] started");
@@ -203,14 +196,16 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	bool reset_sp_alt = true;
 	bool reset_sp_pos = true;
 	hrt_abstime t_prev = 0;
-	float alt_integral = 0.0f;
 	/* integrate in NED frame to estimate wind but not attitude offset */
-	float pos_x_integral = 0.0f;
-	float pos_y_integral = 0.0f;
 	const float alt_ctl_dz = 0.2f;
 	const float pos_ctl_dz = 0.05f;
 	float home_alt = 0.0f;
 	hrt_abstime home_alt_t = 0;
+
+	static PID_t xy_pos_pids[2];
+	static PID_t xy_vel_pids[2];
+	static PID_t z_pos_pid;
+	static thrust_pid_t z_vel_pid;
 
 	thread_running = true;
 
@@ -218,6 +213,13 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	struct multirotor_position_control_param_handles params_h;
 	parameters_init(&params_h);
 	parameters_update(&params_h, &params);
+
+	for (int i = 0; i < 2; i++) {
+		pid_init(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, params.xy_vel_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
+		pid_init(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.slope_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
+	}
+	pid_init(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
+	thrust_pid_init(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 
 	int paramcheck_counter = 0;
 
@@ -231,6 +233,12 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 			orb_check(param_sub, &param_updated);
 			if (param_updated) {
 				parameters_update(&params_h, &params);
+				for (int i = 0; i < 2; i++) {
+					pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, params.xy_vel_max);
+					pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.slope_max);
+				}
+				pid_set_parameters(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max);
+				thrust_pid_set_parameters(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min);
 			}
 			paramcheck_counter = 0;
 		}
@@ -269,7 +277,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 			if (reset_sp_alt) {
 				reset_sp_alt = false;
 				local_pos_sp.z = local_pos.z;
-				alt_integral = manual.throttle;
+				z_vel_pid.integral = -manual.throttle;	// thrust PID uses Z downside
 				mavlink_log_info(mavlink_fd, "reset alt setpoint: z = %.2f, throttle = %.2f", local_pos_sp.z, manual.throttle);
 			}
 
@@ -277,18 +285,17 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 				reset_sp_pos = false;
 				local_pos_sp.x = local_pos.x;
 				local_pos_sp.y = local_pos.y;
-				pos_x_integral = 0.0f;
-				pos_y_integral = 0.0f;
+				xy_vel_pids[0].integral = 0.0f;
+				xy_vel_pids[1].integral = 0.0f;
 				mavlink_log_info(mavlink_fd, "reset pos setpoint: x = %.2f, y = %.2f", local_pos_sp.x, local_pos_sp.y);
 			}
 
-			float alt_err_linear_limit = params.alt_d / params.alt_p * params.alt_rate_max;
-			float pos_err_linear_limit = params.pos_d / params.pos_p * params.pos_rate_max;
+			float z_sp_offs_max = params.z_vel_max / params.z_p * 2.0f;
+			float xy_sp_offs_max = params.xy_vel_max / params.xy_p * 2.0f;
 
-			float pos_sp_speed_x = 0.0f;
-			float pos_sp_speed_y = 0.0f;
-			float pos_sp_speed_z = 0.0f;
+			float sp_move_rate[3] = { 0.0f, 0.0f, 0.0f };
 
+			/* manual control */
 			if (status.flag_control_manual_enabled) {
 				if (local_pos.home_timestamp != home_alt_t) {
 					if (home_alt_t != 0) {
@@ -299,14 +306,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 					home_alt = local_pos.home_alt;
 				}
 				/* move altitude setpoint with manual controls */
-				float alt_sp_ctl = scale_control(manual.throttle - 0.5f, 0.5f, alt_ctl_dz);
-				if (alt_sp_ctl != 0.0f) {
-					pos_sp_speed_z = -alt_sp_ctl * params.alt_rate_max;
-					local_pos_sp.z += pos_sp_speed_z * dt;
-					if (local_pos_sp.z > local_pos.z + alt_err_linear_limit) {
-						local_pos_sp.z = local_pos.z + alt_err_linear_limit;
-					} else if (local_pos_sp.z < local_pos.z - alt_err_linear_limit) {
-						local_pos_sp.z = local_pos.z - alt_err_linear_limit;
+				float z_sp_ctl = scale_control(manual.throttle - 0.5f, 0.5f, alt_ctl_dz);
+				if (z_sp_ctl != 0.0f) {
+					sp_move_rate[2] = -z_sp_ctl * params.z_vel_max;
+					local_pos_sp.z += sp_move_rate[2] * dt;
+					if (local_pos_sp.z > local_pos.z + z_sp_offs_max) {
+						local_pos_sp.z = local_pos.z + z_sp_offs_max;
+					} else if (local_pos_sp.z < local_pos.z - z_sp_offs_max) {
+						local_pos_sp.z = local_pos.z - z_sp_offs_max;
 					}
 				}
 
@@ -316,76 +323,84 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 					float pos_roll_sp_ctl = scale_control(manual.roll / params.rc_scale_roll, 1.0f, pos_ctl_dz);
 					if (pos_pitch_sp_ctl != 0.0f || pos_roll_sp_ctl != 0.0f) {
 						/* calculate direction and increment of control in NED frame */
-						float pos_sp_ctl_dir = att.yaw + atan2f(pos_roll_sp_ctl, pos_pitch_sp_ctl);
-						float pos_sp_ctl_speed = norm(pos_pitch_sp_ctl, pos_roll_sp_ctl) * params.pos_rate_max;
-						pos_sp_speed_x = cosf(pos_sp_ctl_dir) * pos_sp_ctl_speed;
-						pos_sp_speed_y = sinf(pos_sp_ctl_dir) * pos_sp_ctl_speed;
-						local_pos_sp.x += pos_sp_speed_x * dt;
-						local_pos_sp.y += pos_sp_speed_y * dt;
+						float xy_sp_ctl_dir = att.yaw + atan2f(pos_roll_sp_ctl, pos_pitch_sp_ctl);
+						float xy_sp_ctl_speed = norm(pos_pitch_sp_ctl, pos_roll_sp_ctl) * params.xy_vel_max;
+						sp_move_rate[0] = cosf(xy_sp_ctl_dir) * xy_sp_ctl_speed;
+						sp_move_rate[1] = sinf(xy_sp_ctl_dir) * xy_sp_ctl_speed;
+						local_pos_sp.x += sp_move_rate[0] * dt;
+						local_pos_sp.y += sp_move_rate[1] * dt;
 						/* limit maximum setpoint from position offset and preserve direction */
 						float pos_vec_x = local_pos_sp.x - local_pos.x;
 						float pos_vec_y = local_pos_sp.y - local_pos.y;
-						float pos_vec_norm = norm(pos_vec_x, pos_vec_y) / pos_err_linear_limit;
+						float pos_vec_norm = norm(pos_vec_x, pos_vec_y) / xy_sp_offs_max;
 						if (pos_vec_norm > 1.0f) {
 							local_pos_sp.x = local_pos.x + pos_vec_x / pos_vec_norm;
 							local_pos_sp.y = local_pos.y + pos_vec_y / pos_vec_norm;
 						}
 					}
 				}
-
-				if (params.hard == 0) {
-					pos_sp_speed_x = 0.0f;
-					pos_sp_speed_y = 0.0f;
-					pos_sp_speed_z = 0.0f;
-				}
 			}
 
-			/* PID for altitude */
-			/* don't accelerate more than ALT_RATE_MAX, limit error to corresponding value */
-			float alt_err = limit_value(local_pos_sp.z - local_pos.z, alt_err_linear_limit);
-			/* P and D components */
-			float thrust_ctl_pd = -(alt_err * params.alt_p + (pos_sp_speed_z - local_pos.vz) * params.alt_d);	// altitude = -z
-			/* integrate */
-			alt_integral += thrust_ctl_pd / params.alt_p * params.alt_i * dt;
-			if (alt_integral < params.thr_min) {
-				alt_integral = params.thr_min;
-			} else if (alt_integral > params.thr_max) {
-				alt_integral = params.thr_max;
-			}
-			/* add I component */
-			float thrust_ctl = thrust_ctl_pd + alt_integral;
-			if (thrust_ctl < params.thr_min) {
-				thrust_ctl = params.thr_min;
-			} else if (thrust_ctl > params.thr_max) {
-				thrust_ctl = params.thr_max;
-			}
+			/* run position & altitude controllers, calculate velocity setpoint */
+			float vel_sp[3] = { 0.0f, 0.0f, 0.0f };
+			vel_sp[2] = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz, dt);
 			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE || status.state_machine == SYSTEM_STATE_AUTO) {
-				/* PID for position */
-				/* don't accelerate more than POS_RATE_MAX, limit error to corresponding value */
-				float pos_x_err = limit_value(local_pos.x - local_pos_sp.x, pos_err_linear_limit);
-				float pos_y_err = limit_value(local_pos.y - local_pos_sp.y, pos_err_linear_limit);
-				/* P and D components */
-				float pos_x_ctl_pd = - pos_x_err * params.pos_p + (pos_sp_speed_x - local_pos.vx) * params.pos_d;
-				float pos_y_ctl_pd = - pos_y_err * params.pos_p + (pos_sp_speed_y - local_pos.vy) * params.pos_d;
-				/* integrate */
-				pos_x_integral = limit_value(pos_x_integral + pos_x_ctl_pd / params.pos_p * params.pos_i * dt, params.slope_max);
-				pos_y_integral = limit_value(pos_y_integral + pos_y_ctl_pd / params.pos_p * params.pos_i * dt, params.slope_max);
-				/* add I component */
-				float pos_x_ctl = pos_x_ctl_pd + pos_x_integral;
-				float pos_y_ctl = pos_y_ctl_pd + pos_y_integral;
-				/* calculate direction and slope in NED frame */
-				float dir = atan2f(pos_y_ctl, pos_x_ctl);
-				/* use approximation: slope ~ sin(slope) = force */
-				float slope = limit_value(sqrtf(pos_x_ctl * pos_x_ctl + pos_y_ctl * pos_y_ctl), params.slope_max);
-				/* convert direction to body frame */
-				dir -= att.yaw;
-				/* calculate roll and pitch */
-				att_sp.pitch_body = -cosf(dir) * slope;	// reverse pitch
-				att_sp.roll_body = sinf(dir) * slope;
+				/* calculate velocity set point in NED frame */
+				vel_sp[0] = pid_calculate(&xy_pos_pids[0], local_pos_sp.x, local_pos.x, local_pos.vx, dt);
+				vel_sp[1] = pid_calculate(&xy_pos_pids[1], local_pos_sp.y, local_pos.y, local_pos.vy, dt);
 			} else {
 				reset_sp_pos = true;
 			}
-			att_sp.thrust = thrust_ctl;
+			/* calculate direction and norm of thrust in NED frame
+			 * limit 3D speed by ellipsoid:
+			 * (vx/xy_vel_max)^2 + (vy/xy_vel_max)^2 + (vz/z_vel_max)^2 = 1 */
+			float v;
+			float vel_sp_norm = 0.0f;
+			v = vel_sp[0] / params.xy_vel_max;
+			vel_sp_norm += v * v;
+			v = vel_sp[1] / params.xy_vel_max;
+			vel_sp_norm += v * v;
+			v = vel_sp[2] / params.z_vel_max;
+			vel_sp_norm += v * v;
+			vel_sp_norm = sqrtf(vel_sp_norm);
+			if (vel_sp_norm > 1.0f) {
+				vel_sp[0] /= vel_sp_norm;
+				vel_sp[1] /= vel_sp_norm;
+				vel_sp[2] /= vel_sp_norm;
+			}
+
+			/* run velocity controllers, calculate thrust vector */
+			float thrust_sp[3] = { 0.0f, 0.0f, 0.0f };
+			thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, vel_sp[2], local_pos.vz, dt);
+			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE || status.state_machine == SYSTEM_STATE_AUTO) {
+				/* calculate velocity set point in NED frame */
+				thrust_sp[0] = pid_calculate(&xy_vel_pids[0], vel_sp[0], local_pos.vx, 0.0f, dt);
+				thrust_sp[1] = pid_calculate(&xy_vel_pids[1], vel_sp[1], local_pos.vy, 0.0f, dt);
+			}
+			/* thrust_vector now contains desired acceleration (but not in m/s^2) in NED frame */
+			/* limit horizontal part of thrust */
+			float thrust_xy_dir = atan2f(thrust_sp[1], thrust_sp[0]);
+			float thrust_xy_norm = norm(thrust_sp[0], thrust_sp[1]);
+			if (thrust_xy_norm > params.slope_max) {
+				thrust_xy_norm = params.slope_max;
+			}
+			/* use approximation: slope ~ sin(slope) = force */
+			/* convert direction to body frame */
+			thrust_xy_dir -= att.yaw;
+			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE || status.state_machine == SYSTEM_STATE_AUTO) {
+				/* calculate roll and pitch */
+				att_sp.roll_body = sinf(thrust_xy_dir) * thrust_xy_norm;
+				att_sp.pitch_body = -cosf(thrust_xy_dir) * thrust_xy_norm / cosf(att_sp.roll_body);	// reverse pitch
+			}
+			/* attitude-thrust compensation */
+			float att_comp;
+			if (att.R[2][2] > 0.8f)
+				att_comp = 1.0f / att.R[2][2];
+			else if (att.R[2][2] > 0.0f)
+				att_comp = ((1.0f / 0.8f - 1.0f) / 0.8f) * att.R[2][2] + 1.0f;
+			else
+				att_comp = 1.0f;
+			att_sp.thrust = -thrust_sp[2] * att_comp;
 			att_sp.timestamp = hrt_absolute_time();
 			if (status.flag_control_manual_enabled) {
 				/* publish local position setpoint in manual mode */
@@ -403,8 +418,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 
 	}
 
-	printf("[multirotor_pos_control] exiting\n");
-	mavlink_log_info(mavlink_fd, "[multirotor_pos_control] exiting");
+	warnx("stopped");
+	mavlink_log_info(mavlink_fd, "[multirotor_pos_control] stopped");
 
 	thread_running = false;
 
