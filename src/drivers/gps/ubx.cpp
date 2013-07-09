@@ -196,7 +196,7 @@ UBX::configure(unsigned &baudrate)
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO,
-			0);
+			1);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
@@ -539,7 +539,7 @@ UBX::handle_message()
 		}
 
 		case NAV_SVINFO: {
-//			printf("GOT NAV_SVINFO MESSAGE\n");
+			// printf("GOT NAV_SVINFO MESSAGE\n");
 
 			if (!_waiting_for_ack) {
 				//this is a more complicated message: the length depends on the number of satellites. This number is extracted from the first part of the message
@@ -560,7 +560,7 @@ UBX::handle_message()
 
 				uint8_t satellites_used = 0;
 				int i;
-
+				// printf("Number of Channels: %d\n", packet_part1->numCh);
 				for (i = 0; i < packet_part1->numCh; i++) { //for each channel
 
 					/* Get satellite information from the buffer */
@@ -572,27 +572,22 @@ UBX::handle_message()
 					_gps_position->satellite_prn[i] = packet_part2->svid;
 
 					//if satellite information is healthy store the data
-					uint8_t unhealthy = packet_part2->flags & 1 << 4; //flags is a bitfield
+					//DT uint8_t unhealthy = packet_part2->flags & 1 << 4; //flags is a bitfield
+					//DT Above is broken due to operator precedence. should be ... & (1<<4) or ... & 0x10.
+					//DT If an SV is unhealthy then it won't be used.
+ 
+					uint8_t sv_used = packet_part2->flags & 0x01; 
 
-					if (!unhealthy) {
-						if ((packet_part2->flags) & 1) { //flags is a bitfield
-							_gps_position->satellite_used[i] = 1;
-							satellites_used++;
-
-						} else {
-							_gps_position->satellite_used[i] = 0;
-						}
-
-						_gps_position->satellite_snr[i] = packet_part2->cno;
-						_gps_position->satellite_elevation[i] = (uint8_t)(packet_part2->elev);
-						_gps_position->satellite_azimuth[i] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
-
-					} else {
-						_gps_position->satellite_used[i] = 0;
-						_gps_position->satellite_snr[i] = 0;
-						_gps_position->satellite_elevation[i] = 0;
-						_gps_position->satellite_azimuth[i] = 0;
+					if (sv_used) {
+						// Update count of SVs used for NAV.
+						satellites_used++;
 					}
+		
+					// Record info for all used channels, whether or not the SV is used for NAV,
+					_gps_position->satellite_used[i] = sv_used;
+					_gps_position->satellite_snr[i] = packet_part2->cno;
+					_gps_position->satellite_elevation[i] = (uint8_t)(packet_part2->elev);
+					_gps_position->satellite_azimuth[i] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
 
 				}
 
