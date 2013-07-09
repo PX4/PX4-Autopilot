@@ -176,17 +176,17 @@ UBX::configure(unsigned &baudrate)
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC,
-			0);
+			UBX_CFG_MSG_PAYLOAD_RATE1_1HZ);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SOL,
-			1);
+			UBX_CFG_MSG_PAYLOAD_RATE1_5HZ);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_VELNED,
-			1);
+			UBX_CFG_MSG_PAYLOAD_RATE1_5HZ);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
@@ -196,7 +196,7 @@ UBX::configure(unsigned &baudrate)
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO,
-			0);
+			UBX_CFG_MSG_PAYLOAD_RATE1_05HZ);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
@@ -224,35 +224,18 @@ UBX::receive(unsigned timeout)
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
 
-	uint8_t buf[32];
+	uint8_t buf[128];
 
 	/* timeout additional to poll */
 	uint64_t time_started = hrt_absolute_time();
 
-	int j = 0;
 	ssize_t count = 0;
+
+	bool message_found = false;
 
 	while (true) {
 
-		/* pass received bytes to the packet decoder */
-		while (j < count) {
-			if (parse_char(buf[j]) > 0) {
-				/* return to configure during configuration or to the gps driver during normal work
-				 * if a packet has arrived */
-				 if (handle_message() > 0)
-					return 1;
-			}
-			/* in case we keep trying but only get crap from GPS */
-			if (time_started + timeout*1000 < hrt_absolute_time() ) {
-				return -1;
-			}
-			j++;
-		}
-
-		/* everything is read */
-		j = count = 0;
-
-		/* then poll for new data */
+		/* poll for new data */
 		int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), timeout);
 
 		if (ret < 0) {
@@ -272,7 +255,25 @@ UBX::receive(unsigned timeout)
 				 * available, we'll go back to poll() again...
 				 */
 				count = ::read(_fd, buf, sizeof(buf));
+						/* pass received bytes to the packet decoder */
+				for (int i = 0; i < count; i++) {
+					if (parse_char(buf[i])) {
+						/* return to configure during configuration or to the gps driver during normal work
+						 * if a packet has arrived */
+						handle_message();
+						message_found = true;
+					}
+				}
 			}
+		}
+
+		/* return success after receiving a packet */
+		if (message_found)
+			return 1;
+
+		/* abort after timeout if no packet parsed successfully */
+		if (time_started + timeout*1000 < hrt_absolute_time() ) {
+			return -1;
 		}
 	}
 }
