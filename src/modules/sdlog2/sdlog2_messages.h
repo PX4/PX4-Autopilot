@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <rk3dov@gmail.com>
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
  *
  * Log messages and structures definition.
  *
- * @author Anton Babushkin <rk3dov@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #ifndef SDLOG2_MESSAGES_H_
@@ -186,6 +186,47 @@ struct log_ARSP_s {
 	float pitch_rate_sp;
 	float yaw_rate_sp;
 };
+
+/* --- FLOW - OPTICAL FLOW --- */
+#define LOG_FLOW_MSG 15
+struct log_FLOW_s {
+	int16_t flow_raw_x;
+	int16_t flow_raw_y;
+	float flow_comp_x;
+	float flow_comp_y;
+	float distance;
+	uint8_t	quality;
+	uint8_t sensor_id;
+};
+
+/* --- GPOS - GLOBAL POSITION ESTIMATE --- */
+#define LOG_GPOS_MSG 16
+struct log_GPOS_s {
+	int32_t lat;
+	int32_t lon;
+	float alt;
+	float vel_n;
+	float vel_e;
+	float vel_d;
+};
+
+/* --- ESC - ESC STATE --- */
+#define LOG_ESC_MSG 64
+struct log_ESC_s {
+	uint16_t counter;
+	uint8_t esc_count;
+	uint8_t esc_connectiontype;
+
+	uint8_t esc_num;
+	uint16_t esc_address;
+	uint16_t esc_version;
+	uint16_t esc_voltage;
+	uint16_t esc_current;
+	uint16_t esc_rpm;
+	uint16_t esc_temperature;
+	float    esc_setpoint;
+	uint16_t esc_setpoint_raw;
+};
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -205,6 +246,9 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
+	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
+	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
+	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,No,Version,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);

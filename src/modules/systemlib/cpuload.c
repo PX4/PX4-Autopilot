@@ -1,9 +1,8 @@
 /****************************************************************************
- * configs/px4fmu/src/up_leds.c
- * arch/arm/src/board/up_leds.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ * 	     Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,18 +33,26 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
+/**
+ * @file cpuload.c
+ *
+ * Measurement of CPU load of each individual task.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ */
 #include <nuttx/config.h>
+#include <nuttx/sched.h>
 
+#include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#include <arch/arch.h>
+
 #include <debug.h>
 
 #include <sys/time.h>
-#include <sched.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
@@ -54,26 +61,13 @@
 
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 
-/****************************************************************************
- * Definitions
- ****************************************************************************/
-
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-__EXPORT void sched_note_start(FAR _TCB *tcb);
-__EXPORT void sched_note_stop(FAR _TCB *tcb);
-__EXPORT void sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb);
-
-/****************************************************************************
- * Name:
- ****************************************************************************/
+__EXPORT void sched_note_start(FAR struct tcb_s *tcb);
+__EXPORT void sched_note_stop(FAR struct tcb_s *tcb);
+__EXPORT void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb);
 
 __EXPORT struct system_load_s system_load;
 
-extern FAR _TCB *sched_gettcb(pid_t pid);
+extern FAR struct _TCB *sched_gettcb(pid_t pid);
 
 void cpuload_initialize_once()
 {
@@ -109,7 +103,7 @@ void cpuload_initialize_once()
 	//	}
 }
 
-void sched_note_start(FAR _TCB *tcb)
+void sched_note_start(FAR struct tcb_s *tcb)
 {
 	/* search first free slot */
 	int i;
@@ -128,7 +122,7 @@ void sched_note_start(FAR _TCB *tcb)
 	}
 }
 
-void sched_note_stop(FAR _TCB *tcb)
+void sched_note_stop(FAR struct tcb_s *tcb)
 {
 	int i;
 
@@ -145,7 +139,7 @@ void sched_note_stop(FAR _TCB *tcb)
 	}
 }
 
-void sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb)
+void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb)
 {
 	uint64_t new_time = hrt_absolute_time();
 

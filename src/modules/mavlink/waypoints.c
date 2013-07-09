@@ -45,6 +45,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#include "mavlink_bridge_header.h"
 #include "missionlib.h"
 #include "waypoints.h"
 #include "util.h"
@@ -347,15 +348,24 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 {
 	static uint16_t counter;
 
-	// Do not flood the precious wireless link with debug data
-	// if (wpm->size > 0 && counter % 10 == 0) {
-	// 	printf("Currect active waypoint id: %i\n", wpm->current_active_wp_id);
-	// }
-
-
 	if (wpm->current_active_wp_id < wpm->size) {
 
-		float orbit = wpm->waypoints[wpm->current_active_wp_id].param2;
+		float orbit;
+		if (wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_WAYPOINT) {
+
+			orbit = wpm->waypoints[wpm->current_active_wp_id].param2;
+
+		} else if (wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_TURNS ||
+				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_TIME ||
+				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_UNLIM) {
+
+			orbit = wpm->waypoints[wpm->current_active_wp_id].param3;
+		} else {
+
+			// XXX set default orbit via param
+			orbit = 15.0f;
+		}
+
 		int coordinate_frame = wpm->waypoints[wpm->current_active_wp_id].frame;
 		float dist = -1.0f;
 
@@ -374,10 +384,9 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 		}
 
 		if (dist >= 0.f && dist <= orbit /*&& wpm->yaw_reached*/) { //TODO implement yaw
+
 			wpm->pos_reached = true;
 
-			if (counter % 100 == 0)
-				printf("Setpoint reached: %0.4f, orbit: %.4f\n", dist, orbit);
 		}
 
 //		else
@@ -394,29 +403,47 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 
 			if (wpm->timestamp_firstinside_orbit == 0) {
 				// Announce that last waypoint was reached
-				printf("Reached waypoint %u for the first time \n", cur_wp->seq);
 				mavlink_wpm_send_waypoint_reached(cur_wp->seq);
 				wpm->timestamp_firstinside_orbit = now;
 			}
 
 			// check if the MAV was long enough inside the waypoint orbit
 			//if (now-timestamp_lastoutside_orbit > (cur_wp->hold_time*1000))
-			if (now - wpm->timestamp_firstinside_orbit >= cur_wp->param2 * 1000) {
-				printf("Reached waypoint %u long enough \n", cur_wp->seq);
 
+			bool time_elapsed = false;
+
+			if (cur_wp->command == (int)MAV_CMD_NAV_LOITER_TIME) {
+				if (now - wpm->timestamp_firstinside_orbit >= cur_wp->param1 * 1000 * 1000) {
+					time_elapsed = true;
+				}
+			} else if (now - wpm->timestamp_firstinside_orbit >= cur_wp->param1 * 1000 * 1000) {
+				time_elapsed = true;
+			} else if (cur_wp->command == (int)MAV_CMD_NAV_TAKEOFF) {
+				time_elapsed = true;
+			}
+
+			if (time_elapsed) {
 				if (cur_wp->autocontinue) {
 					cur_wp->current = 0;
 
-					if (wpm->current_active_wp_id == wpm->size - 1 && wpm->size > 1) {
-						/* the last waypoint was reached, if auto continue is
-						 * activated restart the waypoint list from the beginning
-						 */
-						wpm->current_active_wp_id = 0;
+					/* only accept supported navigation waypoints, skip unknown ones */
+					do {
 
-					} else {
-						if ((uint16_t)(wpm->current_active_wp_id + 1) < wpm->size)
-							wpm->current_active_wp_id++;
-					}
+						if (wpm->current_active_wp_id == wpm->size - 1 && wpm->size > 1) {
+							/* the last waypoint was reached, if auto continue is
+							 * activated restart the waypoint list from the beginning
+							 */
+							wpm->current_active_wp_id = 0;
+
+						} else {
+							if ((uint16_t)(wpm->current_active_wp_id + 1) < wpm->size)
+								wpm->current_active_wp_id++;
+						}
+			
+					} while (!(wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_WAYPOINT ||
+				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_TURNS ||
+				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_TIME ||
+				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_UNLIM));
 
 					// Fly to next waypoint
 					wpm->timestamp_firstinside_orbit = 0;

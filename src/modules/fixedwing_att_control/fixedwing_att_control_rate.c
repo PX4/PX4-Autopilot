@@ -179,9 +179,9 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (!initialized) {
 		parameters_init(&h);
 		parameters_update(&h, &p);
-		pid_init(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, 1, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the controller layout is with a PI rate controller
-		pid_init(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0, p.pitchrate_awu, 1, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
-		pid_init(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu, 1, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
+		pid_init(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, 1, PID_MODE_DERIVATIV_NONE, 0.0f); // set D part to 0 because the controller layout is with a PI rate controller
+		pid_init(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0, p.pitchrate_awu, 1, PID_MODE_DERIVATIV_NONE, 0.0f); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
+		pid_init(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu, 1, PID_MODE_DERIVATIV_NONE, 0.0f); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
 		initialized = true;
 	}
 

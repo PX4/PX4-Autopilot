@@ -15,6 +15,9 @@ typedef struct __mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t
 #define MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN 34
 #define MAVLINK_MSG_ID_61_LEN 34
 
+#define MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_CRC 240
+#define MAVLINK_MSG_ID_61_CRC 240
+
 #define MAVLINK_MSG_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_FIELD_ROLL_LEN 4
 #define MAVLINK_MSG_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_FIELD_PITCH_LEN 4
 #define MAVLINK_MSG_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_FIELD_YAW_LEN 4
@@ -51,14 +54,14 @@ static inline uint16_t mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_pack(uin
 						       uint8_t group, uint8_t mode, const int16_t *roll, const int16_t *pitch, const int16_t *yaw, const uint16_t *thrust)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[34];
+	char buf[MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN];
 	_mav_put_uint8_t(buf, 32, group);
 	_mav_put_uint8_t(buf, 33, mode);
 	_mav_put_int16_t_array(buf, 0, roll, 4);
 	_mav_put_int16_t_array(buf, 8, pitch, 4);
 	_mav_put_int16_t_array(buf, 16, yaw, 4);
 	_mav_put_uint16_t_array(buf, 24, thrust, 4);
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 34);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN);
 #else
 	mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t packet;
 	packet.group = group;
@@ -67,11 +70,15 @@ static inline uint16_t mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_pack(uin
 	mav_array_memcpy(packet.pitch, pitch, sizeof(int16_t)*4);
 	mav_array_memcpy(packet.yaw, yaw, sizeof(int16_t)*4);
 	mav_array_memcpy(packet.thrust, thrust, sizeof(uint16_t)*4);
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 34);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST;
-	return mavlink_finalize_message(msg, system_id, component_id, 34, 240);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN);
+#endif
 }
 
 /**
@@ -93,14 +100,14 @@ static inline uint16_t mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_pack_cha
 						           uint8_t group,uint8_t mode,const int16_t *roll,const int16_t *pitch,const int16_t *yaw,const uint16_t *thrust)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[34];
+	char buf[MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN];
 	_mav_put_uint8_t(buf, 32, group);
 	_mav_put_uint8_t(buf, 33, mode);
 	_mav_put_int16_t_array(buf, 0, roll, 4);
 	_mav_put_int16_t_array(buf, 8, pitch, 4);
 	_mav_put_int16_t_array(buf, 16, yaw, 4);
 	_mav_put_uint16_t_array(buf, 24, thrust, 4);
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 34);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN);
 #else
 	mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t packet;
 	packet.group = group;
@@ -109,11 +116,15 @@ static inline uint16_t mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_pack_cha
 	mav_array_memcpy(packet.pitch, pitch, sizeof(int16_t)*4);
 	mav_array_memcpy(packet.yaw, yaw, sizeof(int16_t)*4);
 	mav_array_memcpy(packet.thrust, thrust, sizeof(uint16_t)*4);
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 34);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 34, 240);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN);
+#endif
 }
 
 /**
@@ -145,14 +156,18 @@ static inline uint16_t mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_encode(u
 static inline void mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_send(mavlink_channel_t chan, uint8_t group, uint8_t mode, const int16_t *roll, const int16_t *pitch, const int16_t *yaw, const uint16_t *thrust)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[34];
+	char buf[MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN];
 	_mav_put_uint8_t(buf, 32, group);
 	_mav_put_uint8_t(buf, 33, mode);
 	_mav_put_int16_t_array(buf, 0, roll, 4);
 	_mav_put_int16_t_array(buf, 8, pitch, 4);
 	_mav_put_int16_t_array(buf, 16, yaw, 4);
 	_mav_put_uint16_t_array(buf, 24, thrust, 4);
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST, buf, 34, 240);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST, buf, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST, buf, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN);
+#endif
 #else
 	mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t packet;
 	packet.group = group;
@@ -161,7 +176,11 @@ static inline void mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_send(mavlink
 	mav_array_memcpy(packet.pitch, pitch, sizeof(int16_t)*4);
 	mav_array_memcpy(packet.yaw, yaw, sizeof(int16_t)*4);
 	mav_array_memcpy(packet.thrust, thrust, sizeof(uint16_t)*4);
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST, (const char *)&packet, 34, 240);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST, (const char *)&packet, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST, (const char *)&packet, MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN);
+#endif
 #endif
 }
 
@@ -246,6 +265,6 @@ static inline void mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(const
 	set_quad_swarm_roll_pitch_yaw_thrust->group = mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_get_group(msg);
 	set_quad_swarm_roll_pitch_yaw_thrust->mode = mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_get_mode(msg);
 #else
-	memcpy(set_quad_swarm_roll_pitch_yaw_thrust, _MAV_PAYLOAD(msg), 34);
+	memcpy(set_quad_swarm_roll_pitch_yaw_thrust, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST_LEN);
 #endif
 }

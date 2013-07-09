@@ -49,7 +49,6 @@
 #include <mqueue.h>
 #include <string.h>
 #include "mavlink_bridge_header.h"
-#include <v1.0/common/mavlink.h>
 #include <drivers/drv_hrt.h>
 #include <time.h>
 #include <float.h>
@@ -495,7 +494,7 @@ int mavlink_onboard_main(int argc, char *argv[])
 			errx(0, "mavlink already running\n");
 
 		thread_should_exit = false;
-		mavlink_task = task_spawn("mavlink_onboard",
+		mavlink_task = task_spawn_cmd("mavlink_onboard",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
 					  2048,

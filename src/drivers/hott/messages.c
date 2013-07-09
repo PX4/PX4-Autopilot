@@ -159,7 +159,7 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	memset(&airspeed, 0, sizeof(airspeed));
 	orb_copy(ORB_ID(airspeed), airspeed_sub, &airspeed);
 
-	uint16_t speed = (uint16_t)(airspeed.indicated_airspeed_m_s);
+	uint16_t speed = (uint16_t)(airspeed.indicated_airspeed_m_s * 3.6f);
 	msg.speed_L = (uint8_t)speed & 0xff;
 	msg.speed_H = (uint8_t)(speed >> 8) & 0xff;
 

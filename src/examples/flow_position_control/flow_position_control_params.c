@@ -40,14 +40,25 @@
 #include "flow_position_control_params.h"
 
 /* controller parameters */
+
+// Position control P gain
 PARAM_DEFINE_FLOAT(FPC_POS_P, 3.0f);
+// Position control D / damping gain
 PARAM_DEFINE_FLOAT(FPC_POS_D, 0.0f);
+// Altitude control P gain
 PARAM_DEFINE_FLOAT(FPC_H_P, 0.15f);
+// Altitude control I (integrator) gain
 PARAM_DEFINE_FLOAT(FPC_H_I, 0.00001f);
+// Altitude control D gain
 PARAM_DEFINE_FLOAT(FPC_H_D, 0.8f);
+// Altitude control rate limiter
 PARAM_DEFINE_FLOAT(FPC_H_RATE, 0.1f);
+// Altitude control minimum altitude
 PARAM_DEFINE_FLOAT(FPC_H_MIN, 0.5f);
+// Altitude control maximum altitude (higher than 1.5m is untested)
 PARAM_DEFINE_FLOAT(FPC_H_MAX, 1.5f);
+// Altitude control feed forward throttle - adjust to the
+// throttle position (0..1) where the copter hovers in manual flight
 PARAM_DEFINE_FLOAT(FPC_T_FFWD, 0.7f); // adjust this before flight
 PARAM_DEFINE_FLOAT(FPC_L_S_X, 1.2f);
 PARAM_DEFINE_FLOAT(FPC_L_S_Y, 1.2f);
