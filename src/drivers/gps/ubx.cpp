@@ -567,28 +567,20 @@ UBX::handle_message()
 					memcpy(_rx_buffer_part2, &(_rx_buffer[length_part1 + i * length_part2]), length_part2);
 					packet_part2 = (gps_bin_nav_svinfo_part2_packet_t *) _rx_buffer_part2;
 
+					/* Write satellite information to global storage */
+					uint8_t sv_used = packet_part2->flags & 0x01;
 
-					/* Write satellite information in the global storage */
-					_gps_position->satellite_prn[i] = packet_part2->svid;
-
-					//if satellite information is healthy store the data
-					//DT uint8_t unhealthy = packet_part2->flags & 1 << 4; //flags is a bitfield
-					//DT Above is broken due to operator precedence. should be ... & (1<<4) or ... & 0x10.
-					//DT If an SV is unhealthy then it won't be used.
- 
-					uint8_t sv_used = packet_part2->flags & 0x01; 
-
-					if (sv_used) {
-						// Update count of SVs used for NAV.
+					if ( sv_used ) {
+						// Count SVs used for NAV. 
 						satellites_used++;
 					}
 		
-					// Record info for all used channels, whether or not the SV is used for NAV,
+					// Record info for all channels, whether or not the SV is used for NAV.
 					_gps_position->satellite_used[i] = sv_used;
 					_gps_position->satellite_snr[i] = packet_part2->cno;
 					_gps_position->satellite_elevation[i] = (uint8_t)(packet_part2->elev);
 					_gps_position->satellite_azimuth[i] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
-
+					_gps_position->satellite_prn[i] = packet_part2->svid; 
 				}
 
 				for (i = packet_part1->numCh; i < 20; i++) { //these channels are unused
