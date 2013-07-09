@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -272,6 +272,11 @@ private:
 	 */
 	void _set_dlpf_filter(uint16_t frequency_hz);
 
+	/*
+	  set sample rate (approximate) - 1kHz to 5Hz
+	*/
+	void _set_sample_rate(uint16_t desired_sample_rate_hz);
+
 };
 
 /**
@@ -378,7 +383,8 @@ MPU6000::init()
 	up_udelay(1000);
 
 	// SAMPLE RATE
-	write_reg(MPUREG_SMPLRT_DIV, 0x04);     // Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
+	//write_reg(MPUREG_SMPLRT_DIV, 0x04);     // Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
+	_set_sample_rate(200); // default sample rate = 200Hz
 	usleep(1000);
 
 	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
@@ -491,6 +497,18 @@ MPU6000::probe()
 
 	debug("unexpected ID 0x%02x", _product);
 	return -EIO;
+}
+
+/*
+  set sample rate (approximate) - 1kHz to 5Hz, for both accel and gyro
+*/
+void
+MPU6000::_set_sample_rate(uint16_t desired_sample_rate_hz)
+{
+  uint8_t div = 1000 / desired_sample_rate_hz;
+  if(div>200) div=200;
+  if(div<1) div=1;
+  write_reg(MPUREG_SMPLRT_DIV, div-1);
 }
 
 /*
@@ -644,8 +662,8 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSAMPLERATE:
 	case ACCELIOCGSAMPLERATE:
-		/* XXX not implemented */
-		return -EINVAL;
+	  _set_sample_rate(arg);
+	  return OK;
 
 	case ACCELIOCSLOWPASS:
 	case ACCELIOCGLOWPASS:
@@ -702,8 +720,8 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSSAMPLERATE:
 	case GYROIOCGSAMPLERATE:
-		/* XXX not implemented */
-		return -EINVAL;
+	  _set_sample_rate(arg);
+	  return OK;
 
 	case GYROIOCSLOWPASS:
 	case GYROIOCGLOWPASS:
