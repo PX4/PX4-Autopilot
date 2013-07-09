@@ -231,7 +231,7 @@ UBX::receive(unsigned timeout)
 
 	ssize_t count = 0;
 
-	bool message_found = false;
+	bool position_updated = false;
 
 	while (true) {
 
@@ -260,15 +260,15 @@ UBX::receive(unsigned timeout)
 					if (parse_char(buf[i])) {
 						/* return to configure during configuration or to the gps driver during normal work
 						 * if a packet has arrived */
-						handle_message();
-						message_found = true;
+						if (handle_message())
+							position_updated = true;
 					}
 				}
 			}
 		}
 
 		/* return success after receiving a packet */
-		if (message_found)
+		if (position_updated)
 			return 1;
 
 		/* abort after timeout if no packet parsed successfully */
@@ -420,8 +420,8 @@ UBX::parse_char(uint8_t b)
 				// and we want to tell the module to stop sending this message
 
 				// disable unknown message
-				warnx("disabled class %d, msg %d", (int)_message_class, (int)b);
-				configure_message_rate(_message_class, b, 0);
+				//warnx("disabled class %d, msg %d", (int)_message_class, (int)b);
+				//configure_message_rate(_message_class, b, 0);
 			}
 				break;
 			case UBX_DECODE_GOT_MESSAGEID:
