@@ -176,7 +176,7 @@ UBX::configure(unsigned &baudrate)
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC,
-			1);
+			0);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
@@ -327,6 +327,7 @@ UBX::parse_char(uint8_t b)
 			}
 			break;
 		case UBX_DECODE_GOT_CLASS:
+			{
 			add_byte_to_checksum(b);
 			switch (_message_class) {
 				case NAV:
@@ -413,6 +414,14 @@ UBX::parse_char(uint8_t b)
 //					config_needed = true;
 					break;
 				}
+				// Evaluate state machine - if the state changed,
+				// the state machine was reset via decode_init()
+				// and we want to tell the module to stop sending this message
+
+				// disable unknown message
+				warnx("disabled class %d, msg %d", (int)_message_class, (int)b);
+				configure_message_rate(_message_class, b, 0);
+			}
 				break;
 			case UBX_DECODE_GOT_MESSAGEID:
 				add_byte_to_checksum(b);
