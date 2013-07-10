@@ -32,10 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file ets_airspeed.cpp
+ * @file meas_airspeed.cpp
+ * @author Lorenz Meier
  * @author Simon Wilks
  *
- * Driver for the Eagle Tree Airspeed V3 connected via I2C.
+ * Driver for the MEAS Spec series connected via I2C.
  */
 
 #include <nuttx/config.h>
@@ -72,7 +73,11 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
+
 #include <drivers/airspeed/airspeed.h>
+
+/* Default I2C bus */
+#define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
 
 /* I2C bus address */
 #define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */
@@ -89,11 +94,11 @@
 /* Measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
-class ETSAirspeed : public Airspeed
+class MEASAirspeed : public Airspeed
 {
 public:
-	ETSAirspeed(int bus, int address = I2C_ADDRESS);
-	virtual ~ETSAirspeed();
+	MEASAirspeed(int bus, int address = I2C_ADDRESS);
+	virtual ~MEASAirspeed();
 
 protected:
 
@@ -110,16 +115,16 @@ protected:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[]);
+extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
-ETSAirspeed::ETSAirspeed(int bus, int address) : Airspeed(bus, address,
+MEASAirspeed::MEASAirspeed(int bus, int address) : Airspeed(bus, address,
 	CONVERSION_INTERVAL)
 {
 
 }
 
 int
-ETSAirspeed::measure()
+MEASAirspeed::measure()
 {
 	int ret;
 
@@ -141,7 +146,7 @@ ETSAirspeed::measure()
 }
 
 int
-ETSAirspeed::collect()
+MEASAirspeed::collect()
 {
 	int	ret = -EIO;
 
@@ -199,7 +204,7 @@ ETSAirspeed::collect()
 }
 
 void
-ETSAirspeed::cycle()
+MEASAirspeed::cycle()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -249,7 +254,7 @@ ETSAirspeed::cycle()
 /**
  * Local functions in support of the shell command.
  */
-namespace ets_airspeed
+namespace meas_airspeed
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -258,7 +263,7 @@ namespace ets_airspeed
 #endif
 const int ERROR = -1;
 
-ETSAirspeed	*g_dev;
+MEASAirspeed	*g_dev;
 
 void	start(int i2c_bus);
 void	stop();
@@ -278,7 +283,7 @@ start(int i2c_bus)
 		errx(1, "already started");
 
 	/* create the driver */
-	g_dev = new ETSAirspeed(i2c_bus);
+	g_dev = new MEASAirspeed(i2c_bus);
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -339,7 +344,7 @@ test()
 	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'ets_airspeed start' if the driver is not running", AIRSPEED_DEVICE_PATH);
+		err(1, "%s open failed (try 'meas_airspeed start' if the driver is not running", AIRSPEED_DEVICE_PATH);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
@@ -418,9 +423,9 @@ info()
 
 
 static void
-ets_airspeed_usage()
+meas_airspeed_usage()
 {
-	warnx("usage: ets_airspeed command [options]");
+	warnx("usage: meas_airspeed command [options]");
 	warnx("options:");
 	warnx("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
 	warnx("command:");
@@ -428,7 +433,7 @@ ets_airspeed_usage()
 }
 
 int
-ets_airspeed_main(int argc, char *argv[])
+meas_airspeed_main(int argc, char *argv[])
 {
 	int i2c_bus = PX4_I2C_BUS_DEFAULT;
 
@@ -446,32 +451,32 @@ ets_airspeed_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start"))
-		ets_airspeed::start(i2c_bus);
+		meas_airspeed::start(i2c_bus);
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop"))
-		ets_airspeed::stop();
+		meas_airspeed::stop();
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test"))
-		ets_airspeed::test();
+		meas_airspeed::test();
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset"))
-		ets_airspeed::reset();
+		meas_airspeed::reset();
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status"))
-		ets_airspeed::info();
+		meas_airspeed::info();
 
-	ets_airspeed_usage();
+	meas_airspeed_usage();
 	exit(0);
 }
