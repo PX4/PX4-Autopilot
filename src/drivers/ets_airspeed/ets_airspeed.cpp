@@ -196,7 +196,7 @@ ETSAirspeed::ETSAirspeed(int bus, int address) :
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
-	_diff_pres_offset(0),
+	_diff_pres_offset(0.0f),
 	_airspeed_pub(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ets_airspeed_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ets_airspeed_comms_errors")),
