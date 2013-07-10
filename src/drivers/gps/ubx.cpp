@@ -176,17 +176,17 @@ UBX::configure(unsigned &baudrate)
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC,
-			1);
+			UBX_CFG_MSG_PAYLOAD_RATE1_1HZ);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SOL,
-			1);
+			UBX_CFG_MSG_PAYLOAD_RATE1_5HZ);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_VELNED,
-			1);
+			UBX_CFG_MSG_PAYLOAD_RATE1_5HZ);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
@@ -196,7 +196,7 @@ UBX::configure(unsigned &baudrate)
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
 		configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO,
-			0);
+			UBX_CFG_MSG_PAYLOAD_RATE1_05HZ);
 		// /* insist of receiving the ACK for this packet */
 		// if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0)
 		// 	continue;
@@ -224,35 +224,18 @@ UBX::receive(unsigned timeout)
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
 
-	uint8_t buf[32];
+	uint8_t buf[128];
 
 	/* timeout additional to poll */
 	uint64_t time_started = hrt_absolute_time();
 
-	int j = 0;
 	ssize_t count = 0;
+
+	bool position_updated = false;
 
 	while (true) {
 
-		/* pass received bytes to the packet decoder */
-		while (j < count) {
-			if (parse_char(buf[j]) > 0) {
-				/* return to configure during configuration or to the gps driver during normal work
-				 * if a packet has arrived */
-				 if (handle_message() > 0)
-					return 1;
-			}
-			/* in case we keep trying but only get crap from GPS */
-			if (time_started + timeout*1000 < hrt_absolute_time() ) {
-				return -1;
-			}
-			j++;
-		}
-
-		/* everything is read */
-		j = count = 0;
-
-		/* then poll for new data */
+		/* poll for new data */
 		int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), timeout);
 
 		if (ret < 0) {
@@ -272,7 +255,25 @@ UBX::receive(unsigned timeout)
 				 * available, we'll go back to poll() again...
 				 */
 				count = ::read(_fd, buf, sizeof(buf));
+						/* pass received bytes to the packet decoder */
+				for (int i = 0; i < count; i++) {
+					if (parse_char(buf[i])) {
+						/* return to configure during configuration or to the gps driver during normal work
+						 * if a packet has arrived */
+						if (handle_message())
+							position_updated = true;
+					}
+				}
 			}
+		}
+
+		/* return success after receiving a packet */
+		if (position_updated)
+			return 1;
+
+		/* abort after timeout if no packet parsed successfully */
+		if (time_started + timeout*1000 < hrt_absolute_time() ) {
+			return -1;
 		}
 	}
 }
@@ -327,6 +328,7 @@ UBX::parse_char(uint8_t b)
 			}
 			break;
 		case UBX_DECODE_GOT_CLASS:
+			{
 			add_byte_to_checksum(b);
 			switch (_message_class) {
 				case NAV:
@@ -413,6 +415,14 @@ UBX::parse_char(uint8_t b)
 //					config_needed = true;
 					break;
 				}
+				// Evaluate state machine - if the state changed,
+				// the state machine was reset via decode_init()
+				// and we want to tell the module to stop sending this message
+
+				// disable unknown message
+				//warnx("disabled class %d, msg %d", (int)_message_class, (int)b);
+				//configure_message_rate(_message_class, b, 0);
+			}
 				break;
 			case UBX_DECODE_GOT_MESSAGEID:
 				add_byte_to_checksum(b);
@@ -539,7 +549,7 @@ UBX::handle_message()
 		}
 
 		case NAV_SVINFO: {
-//			printf("GOT NAV_SVINFO MESSAGE\n");
+			// printf("GOT NAV_SVINFO MESSAGE\n");
 
 			if (!_waiting_for_ack) {
 				//this is a more complicated message: the length depends on the number of satellites. This number is extracted from the first part of the message
@@ -560,40 +570,27 @@ UBX::handle_message()
 
 				uint8_t satellites_used = 0;
 				int i;
-
+				// printf("Number of Channels: %d\n", packet_part1->numCh);
 				for (i = 0; i < packet_part1->numCh; i++) { //for each channel
 
 					/* Get satellite information from the buffer */
 					memcpy(_rx_buffer_part2, &(_rx_buffer[length_part1 + i * length_part2]), length_part2);
 					packet_part2 = (gps_bin_nav_svinfo_part2_packet_t *) _rx_buffer_part2;
 
+					/* Write satellite information to global storage */
+					uint8_t sv_used = packet_part2->flags & 0x01;
 
-					/* Write satellite information in the global storage */
-					_gps_position->satellite_prn[i] = packet_part2->svid;
-
-					//if satellite information is healthy store the data
-					uint8_t unhealthy = packet_part2->flags & 1 << 4; //flags is a bitfield
-
-					if (!unhealthy) {
-						if ((packet_part2->flags) & 1) { //flags is a bitfield
-							_gps_position->satellite_used[i] = 1;
-							satellites_used++;
-
-						} else {
-							_gps_position->satellite_used[i] = 0;
-						}
-
-						_gps_position->satellite_snr[i] = packet_part2->cno;
-						_gps_position->satellite_elevation[i] = (uint8_t)(packet_part2->elev);
-						_gps_position->satellite_azimuth[i] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
-
-					} else {
-						_gps_position->satellite_used[i] = 0;
-						_gps_position->satellite_snr[i] = 0;
-						_gps_position->satellite_elevation[i] = 0;
-						_gps_position->satellite_azimuth[i] = 0;
+					if ( sv_used ) {
+						// Count SVs used for NAV. 
+						satellites_used++;
 					}
-
+		
+					// Record info for all channels, whether or not the SV is used for NAV.
+					_gps_position->satellite_used[i] = sv_used;
+					_gps_position->satellite_snr[i] = packet_part2->cno;
+					_gps_position->satellite_elevation[i] = (uint8_t)(packet_part2->elev);
+					_gps_position->satellite_azimuth[i] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
+					_gps_position->satellite_prn[i] = packet_part2->svid; 
 				}
 
 				for (i = packet_part1->numCh; i < 20; i++) { //these channels are unused
