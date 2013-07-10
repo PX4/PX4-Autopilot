@@ -329,7 +329,7 @@ PX4IO	*g_dev;
 }
 
 PX4IO::PX4IO() :
-	I2C("px4io", GPIO_DEVICE_PATH, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO, 320000),
+	I2C("px4io", PX4IO_DEVICE_PATH, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO, 320000),
 	_max_actuators(0),
 	_max_controls(0),
 	_max_rc_input(0),
@@ -1507,7 +1507,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		uint32_t bits = (1 << _max_relays) - 1;
 		/* don't touch relay1 if it's controlling RX vcc */
 		if (_dsm_vcc_ctl)
-			bits &= ~1;
+			bits &= ~PX4IO_RELAY1;
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, bits, 0);
 		break;
 	}
@@ -1515,7 +1515,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 	case GPIO_SET:
 		arg &= ((1 << _max_relays) - 1);
 		/* don't touch relay1 if it's controlling RX vcc */
-		if (_dsm_vcc_ctl & (arg & 1))
+		if (_dsm_vcc_ctl & (arg & PX4IO_RELAY1))
 			ret = -EINVAL;
 		else
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0, arg);
@@ -1524,7 +1524,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 	case GPIO_CLEAR:
 		arg &= ((1 << _max_relays) - 1);
 		/* don't touch relay1 if it's controlling RX vcc */
-		if (_dsm_vcc_ctl & (arg & 1))
+		if (_dsm_vcc_ctl & (arg & PX4IO_RELAY1))
 			ret = -EINVAL;
 		else
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, arg, 0);
@@ -1731,7 +1731,7 @@ test(void)
 	int		direction = 1;
 	int		ret;
 
-	fd = open(GPIO_DEVICE_PATH, O_WRONLY);
+	fd = open(PX4IO_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0)
 		err(1, "failed to open device");

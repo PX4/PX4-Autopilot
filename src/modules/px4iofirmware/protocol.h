@@ -157,6 +157,13 @@
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
+
+/* px4io relay bit definitions */
+#define PX4IO_RELAY1	(1<<0)
+#define PX4IO_RELAY2	(1<<1)
+#define PX4IO_ACC1		(1<<2)
+#define PX4IO_ACC2		(1<<3)
+
 #define PX4IO_P_SETUP_VBATT_SCALE		6	/* battery voltage correction factor (float) */
 #define PX4IO_P_SETUP_DSM				7	/* DSM bind state */
 enum {                                      /* DSM bind states */

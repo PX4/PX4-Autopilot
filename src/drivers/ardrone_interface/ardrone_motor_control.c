@@ -109,7 +109,7 @@ int ar_multiplexing_init()
 {
 	int		fd;
 	
-	fd = open(GPIO_DEVICE_PATH, 0);
+	fd = open(PX4FMU_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		warn("GPIO: open fail");
