@@ -60,6 +60,7 @@
 #include <drivers/drv_baro.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_adc.h>
+#include <drivers/drv_airspeed.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -199,7 +200,7 @@ private:
 		float mag_scale[3];
 		float accel_offset[3];
 		float accel_scale[3];
-		int diff_pres_offset_pa;
+		float diff_pres_offset_pa;
 
 		int rc_type;
 
@@ -230,6 +231,8 @@ private:
 		float rc_scale_flaps;
 
 		float battery_voltage_scaling;
+
+		int airspeed_offset;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -278,6 +281,8 @@ private:
 		param_t rc_scale_flaps;
 
 		param_t battery_voltage_scaling;
+
+		param_t airspeed_offset;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -551,25 +556,11 @@ Sensors::parameters_update()
 	/* rc values */
 	for (unsigned int i = 0; i < RC_CHANNELS_MAX; i++) {
 
-		if (param_get(_parameter_handles.min[i], &(_parameters.min[i])) != OK) {
-			warnx("Failed getting min for chan %d", i);
-		}
-
-		if (param_get(_parameter_handles.trim[i], &(_parameters.trim[i])) != OK) {
-			warnx("Failed getting trim for chan %d", i);
-		}
-
-		if (param_get(_parameter_handles.max[i], &(_parameters.max[i])) != OK) {
-			warnx("Failed getting max for chan %d", i);
-		}
-
-		if (param_get(_parameter_handles.rev[i], &(_parameters.rev[i])) != OK) {
-			warnx("Failed getting rev for chan %d", i);
-		}
-
-		if (param_get(_parameter_handles.dz[i], &(_parameters.dz[i])) != OK) {
-			warnx("Failed getting dead zone for chan %d", i);
-		}
+		param_get(_parameter_handles.min[i], &(_parameters.min[i]));
+		param_get(_parameter_handles.trim[i], &(_parameters.trim[i]));
+		param_get(_parameter_handles.max[i], &(_parameters.max[i]));
+		param_get(_parameter_handles.rev[i], &(_parameters.rev[i]));
+		param_get(_parameter_handles.dz[i], &(_parameters.dz[i]));
 
 		_parameters.scaling_factor[i] = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
 
@@ -659,21 +650,10 @@ Sensors::parameters_update()
 		warnx("Failed getting mode aux 5 index");
 	}
 
-	if (param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll)) != OK) {
-		warnx("Failed getting rc scaling for roll");
-	}
-
-	if (param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch)) != OK) {
-		warnx("Failed getting rc scaling for pitch");
-	}
-
-	if (param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw)) != OK) {
-		warnx("Failed getting rc scaling for yaw");
-	}
-
-	if (param_get(_parameter_handles.rc_scale_flaps, &(_parameters.rc_scale_flaps)) != OK) {
-		warnx("Failed getting rc scaling for flaps");
-	}
+	param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll));
+	param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch));
+	param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw));
+	param_get(_parameter_handles.rc_scale_flaps, &(_parameters.rc_scale_flaps));
 
 	/* update RC function mappings */
 	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -1032,6 +1012,20 @@ Sensors::parameter_update_poll(bool forced)
 			warn("WARNING: failed to set scale / offsets for mag");
 
 		close(fd);
+
+		fd = open(AIRSPEED_DEVICE_PATH, 0);
+
+		/* this sensor is optional, abort without error */
+
+		if (fd > 0) {
+			struct airspeed_scale airscale = {
+				_parameters.diff_pres_offset_pa,
+				1.0f,
+			};
+
+			if (OK != ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale))
+				warn("WARNING: failed to set scale / offsets for airspeed sensor");
+		}
 
 #if 0
 		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.chan[0].scaling_factor * 10000), (int)(_rc.chan[0].mid), (int)_rc.function[0]);
