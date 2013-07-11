@@ -57,7 +57,6 @@
 #include <drivers/drv_accel.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
@@ -112,7 +111,6 @@ private:
 	int		_accel_sub;			/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
-	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_sub;			/**< notification of manual control updates */
@@ -125,7 +123,6 @@ private:
 	struct accel_report				_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s				_airspeed;		/**< airspeed */
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_armed_s				_arming;		/**< actuator arming status */
@@ -133,9 +130,6 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
-	bool		_airspeed_valid;		/**< flag if the airspeed measurement is valid */
-
-	// ECL_L1_Pos_Control				_att_control;
 
 	struct {
 		float yaw_p;
@@ -193,12 +187,6 @@ private:
 	 */
 	void		vehicle_manual_poll();
 
-
-	/**
-	 * Check for airspeed updates.
-	 */
-	bool		vehicle_airspeed_poll();
-
 	/**
 	 * Check for accel updates.
 	 */
@@ -245,7 +233,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 /* subscriptions */
 	_att_sub(-1),
 	_accel_sub(-1),
-	_airspeed_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
@@ -258,8 +245,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
 /* states */
-	_setpoint_valid(false),
-	_airspeed_valid(false)
+	_setpoint_valid(false)
 {
 	_parameter_handles.yaw_p	=	param_find("MC_YAWPOS_P");
 	_parameter_handles.yaw_i	=	param_find("MC_YAWPOS_I");
@@ -360,21 +346,6 @@ MulticopterAttitudeControl::vehicle_manual_poll()
 	}
 }
 
-bool
-MulticopterAttitudeControl::vehicle_airspeed_poll()
-{
-	/* check if there is a new position */
-	bool airspeed_updated;
-	orb_check(_airspeed_sub, &airspeed_updated);
-
-	if (airspeed_updated) {
-		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-		return true;
-	}
-
-	return false;
-}
-
 void
 MulticopterAttitudeControl::vehicle_accel_poll()
 {
@@ -432,7 +403,6 @@ MulticopterAttitudeControl::task_main()
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -448,7 +418,6 @@ MulticopterAttitudeControl::task_main()
 	_arming.armed = false;
 
 	/* get an initial update for all sensor and status data */
-	(void)vehicle_airspeed_poll();
 	vehicle_setpoint_poll();
 	vehicle_accel_poll();
 	vehicle_status_poll();
@@ -505,8 +474,6 @@ MulticopterAttitudeControl::task_main()
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
-
-			_airspeed_valid = vehicle_airspeed_poll();
 
 			vehicle_setpoint_poll();
 
