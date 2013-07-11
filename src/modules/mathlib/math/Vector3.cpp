@@ -84,6 +84,16 @@ Vector3 Vector3::cross(const Vector3 &b) const
 	return result;
 }
 
+Vector3 Vector3::operator %(const Vector3 &v) const
+{
+	return cross(v);
+}
+    
+float Vector3::operator *(const Vector3 &v) const
+{
+    return dot(v);
+}
+
 int __EXPORT vector3Test()
 {
 	printf("Test Vector3\t\t: ");

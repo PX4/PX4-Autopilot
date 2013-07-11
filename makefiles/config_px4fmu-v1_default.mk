@@ -74,6 +74,7 @@ MODULES		+= modules/fixedwing_backside
 MODULES		+= modules/fixedwing_att_control
 MODULES		+= modules/fixedwing_pos_control
 MODULES		+= modules/multirotor_att_control
+MODULES		+= modules/mc_att_control_vector
 MODULES		+= modules/multirotor_pos_control
 MODULES		+= examples/flow_position_control
 MODULES		+= examples/flow_speed_control

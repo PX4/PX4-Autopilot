@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author:    Tobias Naegeli
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,47 +33,28 @@
  ****************************************************************************/
 
 /**
- * @file Vector3.hpp
+ * @file ecl_mc_att_control_vector.cpp
  *
- * math 3 vector
+ * Multirotor attitude controller based on concepts in:
+ *
+ * Minimum Snap Trajectory Generation and Control for Quadrotors
+ * http://www.seas.upenn.edu/~dmel/mellingerICRA11.pdf
+ *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ *
  */
 
-#pragma once
+#include <mathlib/mathlib.h>
 
-#include "Vector.hpp"
+class ECL_MCAttControlVector {
 
-namespace math
-{
-
-class __EXPORT Vector3 :
-	public Vector
-{
 public:
-	Vector3();
-	Vector3(const Vector &right);
-	Vector3(float x, float y, float z);
-	Vector3(const float *data);
-	virtual ~Vector3();
-	Vector3 cross(const Vector3 &b) const;
-	Vector3 operator %(const Vector3 &v) const;
-	float operator *(const Vector3 &v) const;
+	void control(float dt, const math::Dcm &R_nb, float yaw, const math::Vector &F_des,
+                                float Kp, float Kd, float Ki, const math::Vector &angular_rates,
+                                math::Vector &rates_des, float &thrust);
 
-	/**
-	 * accessors
-	 */
-	void setX(float x) { (*this)(0) = x; }
-	void setY(float y) { (*this)(1) = y; }
-	void setZ(float z) { (*this)(2) = z; }
-	const float &getX() const { return (*this)(0); }
-	const float &getY() const { return (*this)(1); }
-	const float &getZ() const { return (*this)(2); }
+protected:
+    math::Vector2 _integral_error;
+    math::Vector2 _integral_max;
 };
-    
-class __EXPORT Vector3f :
-	public Vector3
-{
-};
-
-int __EXPORT vector3Test();
-} // math
-

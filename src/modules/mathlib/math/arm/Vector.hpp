@@ -141,7 +141,7 @@ public:
 			       getRows());
 		return result;
 	}
-	inline Vector operator*(float right) const {
+	inline Vector operator*(const float &right) const {
 		Vector result(getRows());
 		arm_scale_f32((float *)getData(),
 			      right, result.getData(),
