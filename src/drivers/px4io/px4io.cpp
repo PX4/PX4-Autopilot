@@ -1696,8 +1696,6 @@ bind(int argc, char *argv[])
 	else 
 		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
 
-	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
-
 	/* Open console directly to grab CTRL-C signal */
 	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
 	if (!console)
@@ -1705,6 +1703,8 @@ bind(int argc, char *argv[])
 
 	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
 	warnx("Press CTRL-C or 'c' when done.");
+
+	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
 
 	for (;;) {
 		usleep(500000L);
