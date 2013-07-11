@@ -56,8 +56,9 @@
 
 #include "ubx.h"
 
-#define UBX_CONFIG_TIMEOUT 100
-#define UBX_PACKET_TIMEOUT 2
+#define UBX_CONFIG_TIMEOUT		200		// ms, timeout for waiting ACK
+#define UBX_PACKET_TIMEOUT		2		// ms, if now data during this delay assume that full update received
+#define UBX_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
 
 UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position) :
 	_fd(fd),
@@ -214,7 +215,7 @@ UBX::configure(unsigned &baudrate)
 		return 1;
 	}
 
-	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO, 10);
+	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO, 5);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
 		warnx("ubx: msg rate configuration failed: NAV SVINFO\n");
@@ -280,9 +281,11 @@ UBX::receive(unsigned timeout)
 			if (fds[0].revents & POLLIN) {
 				/*
 				 * We are here because poll says there is some data, so this
-				 * won't block even on a blocking device.  If more bytes are
-				 * available, we'll go back to poll() again...
+				 * won't block even on a blocking device. But don't read immediately
+				 * by 1-2 bytes, wait for some more data to save expensive read() calls.
+				 * If more bytes are available, we'll go back to poll() again.
 				 */
+				usleep(UBX_WAIT_BEFORE_READ * 1000);
 				count = read(_fd, buf, sizeof(buf));
 
 				/* pass received bytes to the packet decoder */
@@ -459,45 +462,39 @@ UBX::handle_message()
 				}
 
 			case UBX_MESSAGE_NAV_SVINFO: {
-					// printf("GOT NAV_SVINFO\n");
-					// TODO avoid memcpy
+					//printf("GOT NAV_SVINFO\n");
 					const int length_part1 = 8;
-					char _rx_buffer_part1[length_part1];
-					memcpy(_rx_buffer_part1, _rx_buffer, length_part1);
-					gps_bin_nav_svinfo_part1_packet_t *packet_part1 = (gps_bin_nav_svinfo_part1_packet_t *) _rx_buffer_part1;
-
+					gps_bin_nav_svinfo_part1_packet_t *packet_part1 = (gps_bin_nav_svinfo_part1_packet_t *) _rx_buffer;
 					const int length_part2 = 12;
 					gps_bin_nav_svinfo_part2_packet_t *packet_part2;
-					char _rx_buffer_part2[length_part2]; // for temporal storage
 
 					uint8_t satellites_used = 0;
 					int i;
 
-					// printf("Number of Channels: %d\n", packet_part1->numCh);
-					for (i = 0; i < packet_part1->numCh; i++) { //for each channel
-
-						/* get satellite information from the buffer */
-						memcpy(_rx_buffer_part2, &(_rx_buffer[length_part1 + i * length_part2]), length_part2);
-						packet_part2 = (gps_bin_nav_svinfo_part2_packet_t *) _rx_buffer_part2;
+					//printf("Number of Channels: %d\n", packet_part1->numCh);
+					for (i = 0; i < packet_part1->numCh; i++) {
+						/* set pointer to sattelite_i information */
+						packet_part2 = (gps_bin_nav_svinfo_part2_packet_t *) & (_rx_buffer[length_part1 + i * length_part2]);
 
 						/* write satellite information to global storage */
 						uint8_t sv_used = packet_part2->flags & 0x01;
 
 						if (sv_used) {
-							// Count SVs used for NAV.
+							/* count SVs used for NAV */
 							satellites_used++;
 						}
 
-						// Record info for all channels, whether or not the SV is used for NAV.
+						/* record info for all channels, whether or not the SV is used for NAV */
 						_gps_position->satellite_used[i] = sv_used;
 						_gps_position->satellite_snr[i] = packet_part2->cno;
 						_gps_position->satellite_elevation[i] = (uint8_t)(packet_part2->elev);
 						_gps_position->satellite_azimuth[i] = (uint8_t)((float)packet_part2->azim * 255.0f / 360.0f);
 						_gps_position->satellite_prn[i] = packet_part2->svid;
+						//printf("SAT %d: %d %d %d %d\n", i, (int)sv_used, (int)packet_part2->cno, (int)(uint8_t)(packet_part2->elev), (int)packet_part2->svid);
 					}
 
-					for (i = packet_part1->numCh; i < 20; i++) { //these channels are unused
-						/* Unused channels have to be set to zero for e.g. MAVLink */
+					for (i = packet_part1->numCh; i < 20; i++) {
+						/* unused channels have to be set to zero for e.g. MAVLink */
 						_gps_position->satellite_prn[i] = 0;
 						_gps_position->satellite_used[i] = 0;
 						_gps_position->satellite_snr[i] = 0;
@@ -507,7 +504,6 @@ UBX::handle_message()
 
 					_gps_position->satellites_visible = satellites_used; // visible ~= used but we are interested in the used ones
 
-					/* set timestamp if any sat info is available */
 					if (packet_part1->numCh > 0) {
 						_gps_position->satellite_info_available = true;
 
