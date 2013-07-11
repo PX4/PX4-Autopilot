@@ -80,9 +80,12 @@
 # define GPIO_SERVO_5		(1<<4)		/**< servo 5 output */
 # define GPIO_SERVO_6		(1<<5)		/**< servo 6 output */
 
-# define GPIO_5V_PERIPH_EN	(1<<6)		/**< PA8 - VDD_5V_PERIPH_EN */
-# define GPIO_5V_HIPOWER_OC	(1<<7)		/**< PE10 - !VDD_5V_HIPOWER_OC */
-# define GPIO_5V_PERIPH_OC	(1<<8)		/**< PE15 - !VDD_5V_PERIPH_OC */
+# define GPIO_5V_PERIPH_EN	(1<<6)		/**< PA8 - !VDD_5V_PERIPH_EN */
+# define GPIO_3V3_SENSORS_EN	(1<<7)		/**< PE3 - VDD_3V3_SENSORS_EN */
+# define GPIO_BRICK_VALID	(1<<8)		/**< PB5 - !VDD_BRICK_VALID */
+# define GPIO_SERVO_VALID	(1<<9)		/**< PB7 - !VDD_SERVO_VALID */
+# define GPIO_5V_HIPOWER_OC	(1<<10)		/**< PE10 - !VDD_5V_HIPOWER_OC */
+# define GPIO_5V_PERIPH_OC	(1<<11)		/**< PE10 - !VDD_5V_PERIPH_OC */
 
 /**
  * Default GPIO device - other devices may also support this protocol if
