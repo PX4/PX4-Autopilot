@@ -47,11 +47,11 @@
 
 #include <v1.0/mavlink_types.h>
 
-#ifndef MAVLINK_SEND_UART_BYTES
-#define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
-#endif
-extern mavlink_system_t mavlink_system;
-#include <v1.0/common/mavlink.h>
+// #ifndef MAVLINK_SEND_UART_BYTES
+// #define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
+// #endif
+//extern mavlink_system_t mavlink_system;
+#include "mavlink_bridge_header.h"
 #include <stdbool.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
