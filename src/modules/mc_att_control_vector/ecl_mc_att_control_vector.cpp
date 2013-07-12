@@ -76,6 +76,7 @@ void ECL_MCAttControlVector::control(float dt, const math::Dcm &R_nb, float yaw,
      
     // desired thrust in body frame
     // avoid division by zero
+    // compensates for thrust loss due to roll/pitch
     if (F_des(2) >= 0.1f) {
         thrust = F_des(2) / R_bn(2, 2);
     } else {
