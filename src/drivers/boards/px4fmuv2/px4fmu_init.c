@@ -149,13 +149,21 @@ __EXPORT int nsh_archinitialize(void)
 {
 
 	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN10);
-	stm32_configgpio(GPIO_ADC1_IN11);
-	stm32_configgpio(GPIO_ADC1_IN12);
+	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	stm32_configgpio(GPIO_ADC1_IN10);	/* unrouted */
+	stm32_configgpio(GPIO_ADC1_IN11);	/* unrouted */
+	stm32_configgpio(GPIO_ADC1_IN12);	/* unrouted */
+	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
+	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
+	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
-	/* configure power supply control pins */
+	/* configure power supply control/sense pins */
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_EN);
-	stm32_configgpio(GPIO_VDD_2V8_SENSORS_EN);
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	stm32_configgpio(GPIO_VDD_BRICK_VALID);
+	stm32_configgpio(GPIO_VDD_SERVO_VALID);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
