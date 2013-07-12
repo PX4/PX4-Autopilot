@@ -60,6 +60,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/pid/pid.h>
 #include <mavlink/mavlink_log.h>
@@ -179,6 +180,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	memset(&local_pos, 0, sizeof(local_pos));
 	struct vehicle_local_position_setpoint_s local_pos_sp;
 	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
+	struct vehicle_global_position_setpoint_s global_pos_sp;
+	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int param_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -188,6 +191,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	int global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
 
 	/* publish setpoint */
 	orb_advert_t local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
@@ -201,6 +205,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	const float pos_ctl_dz = 0.05f;
 	float home_alt = 0.0f;
 	hrt_abstime home_alt_t = 0;
+	uint64_t local_home_timestamp = 0;
 
 	static PID_t xy_pos_pids[2];
 	static PID_t xy_vel_pids[2];
@@ -222,6 +227,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 	thrust_pid_init(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 
 	int paramcheck_counter = 0;
+	bool global_pos_sp_updated = false;
 
 	while (!thread_should_exit) {
 		orb_copy(ORB_ID(vehicle_status), state_sub, &status);
@@ -241,6 +247,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 				thrust_pid_set_parameters(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min);
 			}
 			paramcheck_counter = 0;
+		}
+
+		/* only check global position setpoint updates but not read */
+		if (!global_pos_sp_updated) {
+			orb_check(global_pos_sp_sub, &global_pos_sp_updated);
 		}
 
 		/* Check if controller should act */
@@ -271,7 +282,33 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[]) {
 			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
 			orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
 			if (status.state_machine == SYSTEM_STATE_AUTO) {
-				orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
+				//orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
+				if (local_pos.home_timestamp != local_home_timestamp) {
+					local_home_timestamp = local_pos.home_timestamp;
+					/* init local projection using local position home */
+					double lat_home = local_pos.home_lat * 1e-7;
+					double lon_home = local_pos.home_lon * 1e-7;
+					map_projection_init(lat_home, lon_home);
+					warnx("local pos home: lat = %.10f,  lon = %.10f", lat_home, lon_home);
+					mavlink_log_info(mavlink_fd, "local pos home: %.7f, %.7f", lat_home, lon_home);
+				}
+				if (global_pos_sp_updated) {
+					global_pos_sp_updated = false;
+					orb_copy(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_sub, &global_pos_sp);
+					double sp_lat = global_pos_sp.lat * 1e-7;
+					double sp_lon = global_pos_sp.lon * 1e-7;
+					/* project global setpoint to local setpoint */
+					map_projection_project(sp_lat, sp_lon, &(local_pos_sp.x), &(local_pos_sp.y));
+					if (global_pos_sp.altitude_is_relative) {
+						local_pos_sp.z = -global_pos_sp.altitude;
+					} else {
+						local_pos_sp.z = local_pos.home_alt - global_pos_sp.altitude;
+					}
+					warnx("new setpoint: lat = %.10f,  lon = %.10f, x = %.2f, y = %.2f", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
+					mavlink_log_info(mavlink_fd, "new setpoint: %.7f, %.7f, %.2f, %.2f", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
+					/* publish local position setpoint as projection of global position setpoint */
+					orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+				}
 			}
 
 			if (reset_sp_alt) {
