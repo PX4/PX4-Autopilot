@@ -149,15 +149,15 @@ struct log_ATTC_s {
 /* --- STAT - VEHICLE STATE --- */
 #define LOG_STAT_MSG 10
 struct log_STAT_s {
-	unsigned char state;
-	unsigned char flight_mode;
-	unsigned char manual_control_mode;
-	unsigned char manual_sas_mode;
-	unsigned char armed;
+	uint8_t state;
+	uint8_t flight_mode;
+	uint8_t manual_control_mode;
+	uint8_t manual_sas_mode;
+	uint8_t armed;
 	float battery_voltage;
 	float battery_current;
 	float battery_remaining;
-	unsigned char battery_warning;
+	uint8_t battery_warning;
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
@@ -210,13 +210,29 @@ struct log_GPOS_s {
 	float vel_d;
 };
 
+/* --- GPSP - GLOBAL POSITION SETPOINT --- */
+#define LOG_GPSP_MSG 17
+struct log_GPSP_s {
+	uint8_t altitude_is_relative;
+	int32_t lat;
+	int32_t lon;
+	float altitude;
+	float yaw;
+	float loiter_radius;
+	int8_t loiter_direction;
+	uint8_t nav_cmd;
+	float param1;
+	float param2;
+	float param3;
+	float param4;
+};
+
 /* --- ESC - ESC STATE --- */
-#define LOG_ESC_MSG 64
+#define LOG_ESC_MSG 18
 struct log_ESC_s {
 	uint16_t counter;
 	uint8_t esc_count;
 	uint8_t esc_connectiontype;
-
 	uint8_t esc_num;
 	uint16_t esc_address;
 	uint16_t esc_version;
@@ -227,6 +243,7 @@ struct log_ESC_s {
 	float    esc_setpoint;
 	uint16_t esc_setpoint_raw;
 };
+
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -248,6 +265,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
+	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,No,Version,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 };
 
