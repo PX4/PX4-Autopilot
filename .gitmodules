@@ -1,0 +1,3 @@
+[submodule "NuttX"]
+	path = NuttX
+	url = git@github.com:PX4/NuttX.git
