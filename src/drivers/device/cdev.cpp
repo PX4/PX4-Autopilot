@@ -111,21 +111,21 @@ CDev::~CDev()
 int
 CDev::init()
 {
-	int ret = OK;
-
 	// base class init first
-	ret = Device::init();
+	int ret = Device::init();
 
 	if (ret != OK)
 		goto out;
 
 	// now register the driver
-	ret = register_driver(_devname, &fops, 0666, (void *)this);
+	if (_devname != nullptr) {
+		ret = register_driver(_devname, &fops, 0666, (void *)this);
 
-	if (ret != OK)
-		goto out;
+		if (ret != OK)
+			goto out;
 
-	_registered = true;
+		_registered = true;
+	}
 
 out:
 	return ret;
@@ -393,6 +393,27 @@ cdev_poll(struct file *filp, struct pollfd *fds, bool setup)
 	CDev *cdev = (CDev *)(filp->f_inode->i_private);
 
 	return cdev->poll(filp, fds, setup);
+}
+
+int
+CDev::read(unsigned offset, void *data, unsigned count)
+{
+	errno = ENODEV;
+	return -1;
+}
+
+int
+CDev::write(unsigned offset, void *data, unsigned count)
+{
+	errno = ENODEV;
+	return -1;
+}
+
+int
+CDev::ioctl(unsigned operation, unsigned &arg)
+{
+	errno = ENODEV;
+	return -1;
 }
 
 } // namespace device
