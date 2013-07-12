@@ -48,20 +48,20 @@
 #include <mathlib/mathlib.h>
 #include "ecl_mc_att_control_vector.h"
 
+ECL_MCAttControlVector::ECL_MCAttControlVector() :
+    _integral_error(0.0f, 0.0f),
+    _integral_max(1000.0f),
+    _integral_lock(false)
+    {
+
+    }
+
 void ECL_MCAttControlVector::control(float dt, const math::Dcm &R_nb, float yaw, const math::Vector &F_des_in,
                                 float Kp, float Kd, float Ki, const math::Vector &angular_rates,
                                 math::Vector &rates_des, float &thrust)
 {
-    //function [rates_des,Thrust,ie_out] = attitudeController(R1,yaw,F_des,Kp,Kd,Ki,e_Rd_v,ie)
-    //% dt
-    //dt=1/50;
-     
-    //% shoult the controll be in the body frame or in the inertial frame: 0 is
-    //% body frame, 1 is inertial frame.
-
     // XXX
     bool earth = true;
-    bool integral_freeze = false;
     bool integral_reset = false;
      
     math::Matrix R_bn = R_nb.transpose();
@@ -70,7 +70,6 @@ void ECL_MCAttControlVector::control(float dt, const math::Dcm &R_nb, float yaw,
     float sy = sinf(yaw);
      
     math::Matrix RYaw = math::Dcm(cy,-sy,0.0f,sy,cy,0.0f,0.0f,0.0f,1.0f);
-    //%F_des=RYaw*F_des;
     math::Vector z_b = math::Vector3(R_bn(0,2), R_bn(1,2), R_bn(2,2));
 
     math::Vector3 F_des = F_des_in;
@@ -97,7 +96,7 @@ void ECL_MCAttControlVector::control(float dt, const math::Dcm &R_nb, float yaw,
 
     // desired direction in world coordinates (yaw angle)
     math::Vector3 x_C(cy, sy, 0.0f);
-    //desired body y axis
+    // desired body y axis
     y_B_des = z_B_des.cross(x_C) / (z_B_des.cross(x_C)).norm();
     // desired body x axis
     x_B_des = y_B_des.cross(z_B_des);
@@ -122,7 +121,7 @@ void ECL_MCAttControlVector::control(float dt, const math::Dcm &R_nb, float yaw,
      
     // include an integral part
     math::Vector intError = math::Vector3(0.0f, 0.0f, 0.0f);
-    if (!integral_freeze) {
+    if (!_integral_lock) {
         if (thrust > 0.3f && !integral_reset) {
             if (fabsf(_integral_error(0)) < _integral_max(0)) {
                 _integral_error(0) = _integral_error(0) + e_R_v(0) * dt;

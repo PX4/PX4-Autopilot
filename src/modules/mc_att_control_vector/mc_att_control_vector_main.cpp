@@ -309,11 +309,12 @@ MulticopterAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.att_rate_p, &(_parameters.att_rate_p));
 
-	/* class control parameters */
-	// _att_ctrl.set_tau(_parameters.p_tconst);
-	// _att_ctrl.set_k_p(math::radians(_parameters.p_p));
-	// _att_ctrl.set_k_i(math::radians(_parameters.p_i));
-	// _att_ctrl.set_k_d(math::radians(_parameters.p_d));
+	/* att control parameters */
+	_att_control.set_imax(_parameters.att_imax);
+	//_att_control.set_tau(_parameters.p_tconst);
+	// _att_control.set_k_p(math::radians(_parameters.p_p));
+	// _att_control.set_k_i(math::radians(_parameters.p_i));
+	// _att_control.set_k_d(math::radians(_parameters.p_d));
 
 	return OK;
 }
@@ -488,11 +489,11 @@ MulticopterAttitudeControl::task_main()
 			vehicle_manual_poll();
 
 			/* lock integrator until armed */
-			bool lock_integrator;
 			if (_arming.armed) {
-				lock_integrator = false;
+				_att_control.lock_integrator(false);
 			} else {
-				lock_integrator = true;
+				_att_control.reset_integral();
+				_att_control.lock_integrator(true);
 			}
 
 			/* decide if in auto or full manual control */
