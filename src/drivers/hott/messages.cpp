@@ -124,7 +124,6 @@ publish_gam_message(const uint8_t *buffer)
 	_esc.esc[0].esc_temperature = msg.temperature1 - 20; 
 	_esc.esc[0].esc_voltage = (uint16_t)((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff));
 	_esc.esc[0].esc_current = (uint16_t)((msg.current_H << 8) | (msg.current_L & 0xff));
-	//printf("T: %d\n", _esc.esc[0].esc_temperature);
 }
 
 void 

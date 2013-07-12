@@ -44,13 +44,3 @@
 int open_uart(const char *device);
 
 #endif /* COMMS_H_ */
-
-
-
-
-
-
-
-
-
-

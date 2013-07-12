@@ -95,13 +95,3 @@ open_uart(const char *device)
 
 	return uart;
 }
-
-
-
-
-
-
-
-
-
-
