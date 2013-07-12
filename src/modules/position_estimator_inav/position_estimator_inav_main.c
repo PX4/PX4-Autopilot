@@ -548,7 +548,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
 					global_pos.lat = (int32_t)(est_lat * 1e7);
 					global_pos.lon = (int32_t)(est_lon * 1e7);
-					global_pos.alt = -local_pos.z - local_pos.home_alt;
+					global_pos.alt = local_pos.home_alt - local_pos.z;
 					global_pos.relative_alt = -local_pos.z;
 					global_pos.vx = local_pos.vx;
 					global_pos.vy = local_pos.vy;
