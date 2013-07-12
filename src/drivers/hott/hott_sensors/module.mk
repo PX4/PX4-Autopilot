@@ -37,6 +37,6 @@
 
 MODULE_COMMAND	= hott_sensors
 
-SRCS		= hott_sensors.c \
-		  ../messages.c \
-		  ../comms.c
+SRCS		= hott_sensors.cpp \
+		  ../messages.cpp \
+		  ../comms.cpp

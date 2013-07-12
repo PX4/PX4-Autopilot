@@ -46,6 +46,7 @@
 #include <unistd.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -53,36 +54,37 @@
 /* The board is very roughly 5 deg warmer than the surrounding air */
 #define BOARD_TEMP_OFFSET_DEG 5
 
-static int battery_sub = -1;
-static int gps_sub = -1;
-static int home_sub = -1;
-static int sensor_sub = -1;
-static int airspeed_sub = -1;
-static int esc_sub = -1;
+static int _battery_sub = -1;
+static int _gps_sub = -1;
+static int _home_sub = -1;
+static int _sensor_sub = -1;
+static int _airspeed_sub = -1;
+static int _esc_sub = -1;
 
-//orb_advert_t _esc_pub;
-//struct esc_s _esc;
+orb_advert_t _esc_pub;
+struct esc_status_s _esc;
 
 
-static bool home_position_set = false;
-static double home_lat = 0.0d;
-static double home_lon = 0.0d;
+static bool _home_position_set = false;
+static double _home_lat = 0.0d;
+static double _home_lon = 0.0d;
 
 void 
-sub_messages_init(void)
+init_sub_messages(void)
 {
-	battery_sub = orb_subscribe(ORB_ID(battery_status));
-	gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	home_sub = orb_subscribe(ORB_ID(home_position));
-	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	//esc_sub = orb_subscribe(ORB_ID(esc));
+	_battery_sub = orb_subscribe(ORB_ID(battery_status));
+	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	_home_sub = orb_subscribe(ORB_ID(home_position));
+	_sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
+	_esc_sub = orb_subscribe(ORB_ID(esc_status));
 }
 
 void 
-pub_messages_init(void)
+init_pub_messages(void)
 {
-	//esc_pub = orb_subscribe(ORB_ID(esc));
+	memset(&_esc, 0, sizeof(_esc));
+	_esc_pub = orb_advertise(ORB_ID(esc_status), &_esc);
 }
 
 void
@@ -107,21 +109,22 @@ publish_gam_message(const uint8_t *buffer)
 	memcpy(&msg, buffer, size);
 
 	/* announce the esc if needed, just publish else */
-//	if (esc_pub > 0) {
-//		orb_publish(ORB_ID(airspeed), _esc_pub, &_esc);
-//
-//	} else {
-//		_esc_pub = orb_advertise(ORB_ID(esc), &_esc);
-//	}
+	if (_esc_pub > 0) {
+		orb_publish(ORB_ID(esc_status), _esc_pub, &_esc);
+	} else {
+		_esc_pub = orb_advertise(ORB_ID(esc_status), &_esc);
+	}
 
 	// Publish it.
-	uint16_t rpm = ((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
-	//_esc.rpm = rpm;
-	uint8_t temp = msg.temperature2 + 20;
-	//_esc.temperature = temp; 
-	float current = ((msg.current_H << 8) | (msg.current_L & 0xff)) * 0.1f;
-	//_esc.current = current;
-	printf("RPM: %d TEMP: %d A: %2.1f\n", rpm, temp, current);
+	_esc.esc_count = 1;
+	_esc.esc_connectiontype = ESC_CONNECTION_TYPE_PPM;
+
+	_esc.esc[0].esc_vendor = ESC_VENDOR_GRAUPNER_HOTT;
+	_esc.esc[0].esc_rpm = (uint16_t)((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
+	_esc.esc[0].esc_temperature = msg.temperature1 - 20; 
+	_esc.esc[0].esc_voltage = (uint16_t)((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff));
+	_esc.esc[0].esc_current = (uint16_t)((msg.current_H << 8) | (msg.current_L & 0xff));
+	//printf("T: %d\n", _esc.esc[0].esc_temperature);
 }
 
 void 
@@ -130,12 +133,12 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	/* get a local copy of the current sensor values */
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
-	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+	orb_copy(ORB_ID(sensor_combined), _sensor_sub, &raw);
 
 	/* get a local copy of the battery data */
 	struct battery_status_s battery;
 	memset(&battery, 0, sizeof(battery));
-	orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+	orb_copy(ORB_ID(battery_status), _battery_sub, &battery);
 
 	struct eam_module_msg msg;
 	*size = sizeof(msg);
@@ -145,7 +148,7 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	msg.eam_sensor_id = EAM_SENSOR_ID;
 	msg.sensor_text_id = EAM_SENSOR_TEXT_ID;
 	
-	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius - 20);
+	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius + 20);
 	msg.temperature2 = msg.temperature1 - BOARD_TEMP_OFFSET_DEG;
 
 	msg.main_voltage_L = (uint8_t)(battery.voltage_v * 10);
@@ -157,11 +160,46 @@ build_eam_response(uint8_t *buffer, size_t *size)
 	/* get a local copy of the airspeed data */
 	struct airspeed_s airspeed;
 	memset(&airspeed, 0, sizeof(airspeed));
-	orb_copy(ORB_ID(airspeed), airspeed_sub, &airspeed);
+	orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed);
 
 	uint16_t speed = (uint16_t)(airspeed.indicated_airspeed_m_s * 3.6f);
 	msg.speed_L = (uint8_t)speed & 0xff;
 	msg.speed_H = (uint8_t)(speed >> 8) & 0xff;
+
+	msg.stop = STOP_BYTE;
+	memcpy(buffer, &msg, *size);
+}
+
+void 
+build_gam_response(uint8_t *buffer, size_t *size)
+{
+	/* get a local copy of the ESC Status values */
+	struct esc_status_s esc;
+	memset(&esc, 0, sizeof(esc));
+	orb_copy(ORB_ID(esc_status), _esc_sub, &esc);
+
+	struct gam_module_msg msg;
+	*size = sizeof(msg);
+	memset(&msg, 0, *size);
+
+	msg.start = START_BYTE;
+	msg.gam_sensor_id = GAM_SENSOR_ID;
+	msg.sensor_text_id = GAM_SENSOR_TEXT_ID;
+	
+	msg.temperature1 = (uint8_t)(esc.esc[0].esc_temperature + 20);
+	msg.temperature2 = 20;  // 0 deg. C.
+
+	uint16_t voltage = (uint16_t)(esc.esc[0].esc_voltage);
+	msg.main_voltage_L = (uint8_t)voltage & 0xff;
+	msg.main_voltage_H = (uint8_t)(voltage >> 8) & 0xff;
+
+	uint16_t current = (uint16_t)(esc.esc[0].esc_current);
+	msg.current_L = (uint8_t)current & 0xff;
+	msg.current_H = (uint8_t)(current >> 8) & 0xff;
+
+	uint16_t rpm = (uint16_t)(esc.esc[0].esc_rpm * 0.1f);
+	msg.rpm_L = (uint8_t)rpm & 0xff;
+	msg.rpm_H = (uint8_t)(rpm >> 8) & 0xff;
 
 	msg.stop = STOP_BYTE;
 	memcpy(buffer, &msg, *size);
@@ -173,14 +211,14 @@ build_gps_response(uint8_t *buffer, size_t *size)
 	/* get a local copy of the current sensor values */
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
-	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+	orb_copy(ORB_ID(sensor_combined), _sensor_sub, &raw);
 
  	/* get a local copy of the battery data */
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
-	orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
+	orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);
 
-	struct gps_module_msg msg = { 0 };
+	struct gps_module_msg msg;
 	*size = sizeof(msg);
 	memset(&msg, 0, *size);
 
@@ -200,7 +238,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		msg.flight_direction = (uint8_t)(gps.cog_rad * M_RAD_TO_DEG_F);
 
 		/* GPS speed */
-		uint16_t speed = (uint16_t)(gps.vel_m_s * 3.6);
+		uint16_t speed = (uint16_t)(gps.vel_m_s * 3.6f);
 		msg.gps_speed_L = (uint8_t)speed & 0xff;
 		msg.gps_speed_H = (uint8_t)(speed >> 8) & 0xff;
 		
@@ -246,33 +284,33 @@ build_gps_response(uint8_t *buffer, size_t *size)
 		msg.longitude_sec_H = (uint8_t)(lon_sec >> 8) & 0xff;
 		
 		/* Altitude */
-		uint16_t alt = (uint16_t)(gps.alt*1e-3 + 500.0f);
+		uint16_t alt = (uint16_t)(gps.alt*1e-3f + 500.0f);
 		msg.altitude_L = (uint8_t)alt & 0xff;
 		msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
 
-		/* Get any (and probably only ever one) home_sub postion report */
+		/* Get any (and probably only ever one) _home_sub postion report */
 		bool updated;
-		orb_check(home_sub, &updated);
+		orb_check(_home_sub, &updated);
 		if (updated) {
 			/* get a local copy of the home position data */
 			struct home_position_s home;
 			memset(&home, 0, sizeof(home));
-			orb_copy(ORB_ID(home_position), home_sub, &home);
+			orb_copy(ORB_ID(home_position), _home_sub, &home);
 
-			home_lat = ((double)(home.lat))*1e-7d;
-			home_lon = ((double)(home.lon))*1e-7d;
-			home_position_set = true;
+			_home_lat = ((double)(home.lat))*1e-7d;
+			_home_lon = ((double)(home.lon))*1e-7d;
+			_home_position_set = true;
 		}
 
 		/* Distance from home */
-		if (home_position_set) {
-			uint16_t dist = (uint16_t)get_distance_to_next_waypoint(home_lat, home_lon, lat, lon);
+		if (_home_position_set) {
+			uint16_t dist = (uint16_t)get_distance_to_next_waypoint(_home_lat, _home_lon, lat, lon);
 
 			msg.distance_L = (uint8_t)dist & 0xff;
 			msg.distance_H = (uint8_t)(dist >> 8) & 0xff;
 
 			/* Direction back to home */
-			uint16_t bearing = (uint16_t)(get_bearing_to_next_waypoint(home_lat, home_lon, lat, lon) * M_RAD_TO_DEG_F);
+			uint16_t bearing = (uint16_t)(get_bearing_to_next_waypoint(_home_lat, _home_lon, lat, lon) * M_RAD_TO_DEG_F);
 			msg.home_direction = (uint8_t)bearing >> 1;
 		}
 	}

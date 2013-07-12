@@ -33,12 +33,14 @@
  ****************************************************************************/
 
 /**
- * @file hott_sensors.c
+ * @file hott_telemetry_main.c
  * @author Simon Wilks <sjwilks@gmail.com>
  *
- * Graupner HoTT sensor driver implementation.
+ * Graupner HoTT Telemetry implementation.
  *
- * Poll any sensors connected to the PX4 via the telemetry wire.
+ * The HoTT receiver polls each device at a regular interval at which point
+ * a data packet can be returned if necessary.
+ *
  */
 
 #include <fcntl.h>
@@ -55,39 +57,59 @@
 #include "../comms.h"
 #include "../messages.h"
 
+#define DEFAULT_UART "/dev/ttyS1";		/**< USART2 */
+
+/* Oddly, ERROR is not defined for C++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
 static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
-static const char daemon_name[] = "hott_sensors";
-static const char commandline_usage[] = "usage: hott_sensors start|status|stop [-d <device>]";
+static const char daemon_name[] = "hott_telemetry";
+static const char commandline_usage[] = "usage: hott_telemetry start|status|stop [-d <device>]";
 
 /**
  * Deamon management function.
  */
-__EXPORT int hott_sensors_main(int argc, char *argv[]);
+extern "C" __EXPORT int hott_telemetry_main(int argc, char *argv[]);
 
 /**
  * Mainloop of daemon.
  */
-int hott_sensors_thread_main(int argc, char *argv[]);
+int hott_telemetry_thread_main(int argc, char *argv[]);
 
-static int recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id);
-static int send_poll(int uart, uint8_t *buffer, size_t size);
+static int recv_req_id(int uart, uint8_t *id);
+static int send_data(int uart, uint8_t *buffer, size_t size);
 
 int
-send_poll(int uart, uint8_t *buffer, size_t size)
+recv_req_id(int uart, uint8_t *id)
 {
-	for (size_t i = 0; i < size; i++) {
-		write(uart, &buffer[i], sizeof(buffer[i]));
+	static const int timeout_ms = 1000;  // TODO make it a define
 
-		/* Sleep before sending the next byte. */
-		usleep(POST_WRITE_DELAY_IN_USECS);
+	uint8_t mode;
+	
+	struct pollfd fds;
+	fds.fd = uart;
+	fds.events = POLLIN;
+
+	if (poll(&fds, 1, timeout_ms) > 0) {
+		/* Get the mode: binary or text  */
+		read(uart, &mode, sizeof(mode));
+
+		/* if we have a binary mode request */
+		if (mode != BINARY_MODE_REQUEST_ID) {
+			return ERROR;
+		}
+
+		/* Read the device ID being polled */
+		read(uart, id, sizeof(*id));
+	} else {
+		warnx("UART timeout on TX/RX port");
+		return ERROR;
 	}
-
-	/* A hack the reads out what was written so the next read from the receiver doesn't get it. */
-	/* TODO: Fix this!! */
-	uint8_t dummy[size];
-	read(uart, &dummy, size);
 
 	return OK;
 }
@@ -95,19 +117,24 @@ send_poll(int uart, uint8_t *buffer, size_t size)
 int
 recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
 {
-	static const int timeout_ms = 1000;
-	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
+	usleep(5000);
 
+	static const int timeout_ms = 1000;
+
+	struct pollfd fds;
+	fds.fd = uart;
+	fds.events = POLLIN;
 	
 	// XXX should this poll be inside the while loop???
-	if (poll(fds, 1, timeout_ms) > 0) {
+	if (poll(&fds, 1, timeout_ms) > 0) {
 		int i = 0;
 		bool stop_byte_read = false;
 		while (true)  {
 			read(uart, &buffer[i], sizeof(buffer[i]));
+			//printf("[%d]: %d\n", i, buffer[i]);
 
 			if (stop_byte_read) {
-				// XXX process checksum
+				// process checksum
 				*size = ++i;
 				return OK;
 			}
@@ -123,13 +150,42 @@ recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
 }
 
 int
-hott_sensors_thread_main(int argc, char *argv[])
+send_data(int uart, uint8_t *buffer, size_t size)
+{
+	usleep(POST_READ_DELAY_IN_USECS);
+
+	uint16_t checksum = 0;
+	for (size_t i = 0; i < size; i++) {
+		if (i == size - 1) {
+			/* Set the checksum: the first uint8_t is taken as the checksum. */
+			buffer[i] = checksum & 0xff;
+
+		} else {
+			checksum += buffer[i];
+		}
+
+		write(uart, &buffer[i], sizeof(buffer[i]));
+
+		/* Sleep before sending the next byte. */
+		usleep(POST_WRITE_DELAY_IN_USECS);
+	}
+
+	/* A hack the reads out what was written so the next read from the receiver doesn't get it. */
+	/* TODO: Fix this!! */
+	uint8_t dummy[size];
+	read(uart, &dummy, size);
+
+	return OK;
+}
+
+int
+hott_telemetry_thread_main(int argc, char *argv[])
 {
 	warnx("starting");
 
 	thread_running = true;
 
-	const char *device = "/dev/ttyS2";		/**< Default telemetry port: USART5 */
+	const char *device = DEFAULT_UART;
 
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
@@ -151,31 +207,46 @@ hott_sensors_thread_main(int argc, char *argv[])
 		thread_running = false;
 	}
 
-	pub_messages_init();
+	init_sub_messages();
 
-	uint8_t buffer[MESSAGE_BUFFER_SIZE];
+	uint8_t buffer[MAX_MESSAGE_BUFFER_SIZE];
 	size_t size = 0;
 	uint8_t id = 0;
+	bool connected = true;
 	while (!thread_should_exit) {
-		// Currently we only support a General Air Module sensor.
-		build_gam_request(&buffer, &size);
-		send_poll(uart, buffer, size);
+		// Listen for and serve poll from the receiver.
+		if (recv_req_id(uart, &id) == OK) {
+			if (!connected) {
+				connected = true;
+				warnx("OK");
+			}
 
-		// The sensor will need a little time before it starts sending.
-		usleep(5000);
+			switch (id) {
+			case EAM_SENSOR_ID:
+				build_eam_response(buffer, &size);
+				break;
+			case GAM_SENSOR_ID:
+				build_gam_response(buffer, &size);
+				break;
+			case GPS_SENSOR_ID:
+				build_gps_response(buffer, &size);
+				break;
 
-		recv_data(uart, &buffer, &size, &id);
+			default:
+				continue;	// Not a module we support.
+			}
 
-		// Determine which moduel sent it and process accordingly.
-		if (id == GAM_SENSOR_ID) {
-			publish_gam_message(buffer);
+			send_data(uart, buffer, size);
 		} else {
-			warnx("Unknown sensor ID: %d", id);
+			connected = false;
+			warnx("syncing");
 		}
 	}
 
 	warnx("exiting");
+
 	close(uart);
+
 	thread_running = false;
 
 	return 0;
@@ -185,7 +256,7 @@ hott_sensors_thread_main(int argc, char *argv[])
  * Process command line arguments and start the daemon.
  */
 int
-hott_sensors_main(int argc, char *argv[])
+hott_telemetry_main(int argc, char *argv[])
 {
 	if (argc < 1) {
 		errx(1, "missing command\n%s", commandline_usage);
@@ -199,11 +270,11 @@ hott_sensors_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn(daemon_name,
+		deamon_task = task_spawn_cmd(daemon_name,
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 2048,
-					 hott_sensors_thread_main,
+					 hott_telemetry_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}

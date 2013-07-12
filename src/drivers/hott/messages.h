@@ -119,23 +119,16 @@ struct eam_module_msg {
 	uint8_t checksum;		/**< Lower 8-bits of all bytes summed. */
 };
 
-/** 
- * The maximum buffer size required to store an Electric Air Module message.
- */
-#define EAM_MESSAGE_BUFFER_SIZE sizeof(union { 	\
-    struct eam_module_msg eam; 			\
-})
-
 
 /* General Air Module (GAM) constants. */
 #define GAM_SENSOR_ID			0x8d
 #define GAM_SENSOR_TEXT_ID		0xd0
 
 struct gam_module_msg {
-        uint8_t start_byte;		// start byte constant value 0x7c
+        uint8_t start;		// start byte constant value 0x7c
         uint8_t gam_sensor_id;		// EAM sensort id. constat value 0x8d
         uint8_t warning_beeps;		// 1=A 2=B ... 0x1a=Z  0 = no alarm
-        uint8_t sensor_id;		// constant value 0xd0
+        uint8_t sensor_text_id;		// constant value 0xd0
         uint8_t alarm_invers1;		// alarm bitmask. Value is displayed inverted
         uint8_t alarm_invers2;		// alarm bitmask. Value is displayed inverted                                                                
         uint8_t cell1;			// cell 1 voltage lower value. 0.02V steps, 124=2.48V
@@ -179,14 +172,6 @@ struct gam_module_msg {
         uint8_t stop;			// stop byte
         uint8_t checksum;		// checksum
 };
-
-/** 
- * The maximum buffer size required to store a General Air Module message.
- */
-#define GAM_MESSAGE_BUFFER_SIZE sizeof(union { 	\
-    struct gam_module_msg gam; 			\
-})
-
 
 /* GPS sensor constants. */
 #define GPS_SENSOR_ID		0x8a
@@ -247,20 +232,15 @@ struct gps_module_msg {
 	uint8_t checksum;			/**< Byte 45: Parity Byte */
 };
 
-/** 
- * The maximum buffer size required to store a HoTT message.
- */
-#define GPS_MESSAGE_BUFFER_SIZE sizeof(union { 	\
-    struct gps_module_msg gps; 			\
-})
+// The maximum size of a message.
+#define MAX_MESSAGE_BUFFER_SIZE 45
 
-#define MESSAGE_BUFFER_SIZE GPS_MESSAGE_BUFFER_SIZE
-
-void sub_messages_init(void);
-void pub_messages_init(void);
+void init_sub_messages(void);
+void init_pub_messages(void);
 void build_gam_request(uint8_t *buffer, size_t *size);
 void publish_gam_message(const uint8_t *buffer);
 void build_eam_response(uint8_t *buffer, size_t *size);
+void build_gam_response(uint8_t *buffer, size_t *size);
 void build_gps_response(uint8_t *buffer, size_t *size);
 float _get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 void convert_to_degrees_minutes_seconds(double lat, int *deg, int *min, int *sec);
