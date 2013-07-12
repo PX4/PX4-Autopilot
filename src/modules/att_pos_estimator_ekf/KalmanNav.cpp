@@ -661,10 +661,10 @@ int KalmanNav::correctPos()
 	Vector y(6);
 	y(0) = _gps.vel_n_m_s - vN;
 	y(1) = _gps.vel_e_m_s - vE;
-	y(2) = double(_gps.lat) - lat * 1.0e7 * M_RAD_TO_DEG;
-	y(3) = double(_gps.lon) - lon * 1.0e7 * M_RAD_TO_DEG;
-	y(4) = double(_gps.alt) / 1.0e3 - alt;
-	y(5) = double(_sensors.baro_alt_meter) - alt;
+	y(2) = double(_gps.lat) - double(lat) * 1.0e7 * M_RAD_TO_DEG;
+	y(3) = double(_gps.lon) - double(lon) * 1.0e7 * M_RAD_TO_DEG;
+	y(4) = _gps.alt / 1.0e3f - alt;
+	y(5) = _sensors.baro_alt_meter - alt;
 
 	// compute correction
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
@@ -698,7 +698,7 @@ int KalmanNav::correctPos()
 	vD += xCorrect(VD);
 	lat += double(xCorrect(LAT));
 	lon += double(xCorrect(LON));
-	alt += double(xCorrect(ALT));
+	alt += xCorrect(ALT);
 
 	// update state covariance
 	// http://en.wikipedia.org/wiki/Extended_Kalman_filter
@@ -710,7 +710,7 @@ int KalmanNav::correctPos()
 	static int counter = 0;
 	if (beta > _faultPos.get() && (counter % 10 == 0)) {
 		warnx("fault in gps: beta = %8.4f", (double)beta);
-		warnx("Y/N: vN: %8.4f, vE: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f",
+		warnx("Y/N: vN: %8.4f, vE: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f, baro: %8.4f",
 		       double(y(0) / sqrtf(RPos(0, 0))),
 		       double(y(1) / sqrtf(RPos(1, 1))),
 		       double(y(2) / sqrtf(RPos(2, 2))),
