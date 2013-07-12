@@ -244,6 +244,14 @@ struct log_ESC_s {
 	uint16_t esc_setpoint_raw;
 };
 
+/* --- GVSP - GLOBAL VELOCITY SETPOINT --- */
+#define LOG_GVSP_MSG 19
+struct log_GVSP_s {
+	float vx;
+	float vy;
+	float vz;
+};
+
 #pragma pack(pop)
 
 /* construct list of all message formats */
@@ -267,6 +275,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
 	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,No,Version,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
+	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
