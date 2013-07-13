@@ -78,7 +78,7 @@ void ECL_FWAttControlVector::control(float dt, float airspeed, float airspeed_sc
     }
      
     math::Dcm R_bn(R_nb.transpose());
-    math::Matrix R_yaw_bn = math::Dcm(math::EulerAngles(0.0f, 0.0f, -yaw));
+    math::Matrix R_yaw_bn = math::Dcm(math::EulerAngles(0.0f, 0.0f, yaw)).transpose();
 
     // Establish actuator signs and lift compensation
     float lift_sign = (R_bn(3, 3) >= 0) ? 1.0f : -1.0f;
