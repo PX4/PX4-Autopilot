@@ -131,6 +131,8 @@ void ECL_FWAttControlVector::control(float dt, float airspeed, float airspeed_sc
     // XXX switch between operations based on difference,
     // benchmark both options
     math::Quaternion e_q = math::Quaternion(R_des) - math::Quaternion(R_bn);
+    // Renormalize
+    e_q = e_q / e_q.norm();
     math::Matrix e_R = math::Dcm(e_q);
     //small angles: math::Matrix e_R = (R_des.transpose() * R_bn - R_bn.transpose() * R_des) * 0.5f;
      
