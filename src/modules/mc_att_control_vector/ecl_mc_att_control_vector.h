@@ -50,7 +50,7 @@
 class ECL_MCAttControlVector {
 
 public:
-	ECL_MCAttControlVector(float integral_max);
+	ECL_MCAttControlVector();
 	void control(float dt, const math::Dcm &R_nb, float yaw, const math::Vector &F_des,
                                 float Kp, float Kd, float Ki, const math::Vector &angular_rates,
                                 math::Vector &rates_des, float &thrust);
@@ -65,12 +65,12 @@ public:
 		_integral_error(1) = 0.0f;
 	}
 
-	void lock_integral(bool lock) {
+	void lock_integrator(bool lock) {
 		_integral_lock = lock;
 	}
 
 protected:
-    math::Vector2 _integral_error;
-    math::Vector2 _integral_max;
+    math::Vector2f _integral_error;
+    math::Vector2f _integral_max;
     bool _integral_lock;
 };

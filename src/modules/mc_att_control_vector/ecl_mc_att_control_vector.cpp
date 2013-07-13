@@ -50,7 +50,7 @@
 
 ECL_MCAttControlVector::ECL_MCAttControlVector() :
     _integral_error(0.0f, 0.0f),
-    _integral_max(1000.0f),
+    _integral_max(1000.0f, 1000.0f),
     _integral_lock(false)
     {
 
