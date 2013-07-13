@@ -38,4 +38,5 @@
 MODULE_COMMAND	= fw_att_control_vector
 
 SRCS		= fw_att_control_vector_main.cpp \
-		  ecl_fw_att_control_vector.cpp
+		  ecl_fw_att_control_vector.cpp \
+		  fw_att_control_vector_params.c
