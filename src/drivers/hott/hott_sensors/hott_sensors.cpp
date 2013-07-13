@@ -212,7 +212,7 @@ hott_sensors_main(int argc, char *argv[])
 		deamon_task = task_spawn_cmd(daemon_name,
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 40,
-					     2048,
+					     1024,
 					     hott_sensors_thread_main,
 					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
