@@ -373,7 +373,7 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 			dist = mavlink_wpm_distance_to_point_global_wgs84(wpm->current_active_wp_id, (float)global_pos->lat * 1e-7f, (float)global_pos->lon * 1e-7f, global_pos->alt);
 
 		} else if (coordinate_frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
-			dist = mavlink_wpm_distance_to_point_global_wgs84(wpm->current_active_wp_id, global_pos->lat, global_pos->lon, global_pos->relative_alt);
+			dist = mavlink_wpm_distance_to_point_global_wgs84(wpm->current_active_wp_id, (float)global_pos->lat * 1e-7f, (float)global_pos->lon * 1e-7f, global_pos->relative_alt);
 
 		} else if (coordinate_frame == (int)MAV_FRAME_LOCAL_ENU || coordinate_frame == (int)MAV_FRAME_LOCAL_NED) {
 			dist = mavlink_wpm_distance_to_point_local(wpm->current_active_wp_id, local_pos->x, local_pos->y, local_pos->z);
