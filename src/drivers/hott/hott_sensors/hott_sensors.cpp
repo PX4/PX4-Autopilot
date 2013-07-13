@@ -55,7 +55,7 @@
 #include "../comms.h"
 #include "../messages.h"
 
-#define DEFAULT_UART "/dev/ttyS2";		/**< USART5 */
+#define DEFAULT_UART "/dev/ttyS0";		/**< USART1 */
 
 /* Oddly, ERROR is not defined for C++ */
 #ifdef ERROR

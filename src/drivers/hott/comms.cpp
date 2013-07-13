@@ -40,15 +40,10 @@
 #include "comms.h"
 
 #include <fcntl.h>
-#include <nuttx/config.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/ioctl.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <termios.h>
-#include <unistd.h>
 
 int
 open_uart(const char *device)

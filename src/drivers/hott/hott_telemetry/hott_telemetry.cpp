@@ -57,7 +57,7 @@
 #include "../comms.h"
 #include "../messages.h"
 
-#define DEFAULT_UART "/dev/ttyS1";		/**< USART2 */
+#define DEFAULT_UART "/dev/ttyS0";		/**< USART1 */
 
 /* Oddly, ERROR is not defined for C++ */
 #ifdef ERROR
@@ -112,41 +112,6 @@ recv_req_id(int uart, uint8_t *id)
 	}
 
 	return OK;
-}
-
-int
-recv_data(int uart, uint8_t *buffer, size_t *size, uint8_t *id)
-{
-	usleep(5000);
-
-	static const int timeout_ms = 1000;
-
-	struct pollfd fds;
-	fds.fd = uart;
-	fds.events = POLLIN;
-	
-	// XXX should this poll be inside the while loop???
-	if (poll(&fds, 1, timeout_ms) > 0) {
-		int i = 0;
-		bool stop_byte_read = false;
-		while (true)  {
-			read(uart, &buffer[i], sizeof(buffer[i]));
-			//printf("[%d]: %d\n", i, buffer[i]);
-
-			if (stop_byte_read) {
-				// process checksum
-				*size = ++i;
-				return OK;
-			}
-			// XXX can some other field not have the STOP BYTE value?
-			if (buffer[i] == STOP_BYTE) {
-				*id = buffer[1];
-				stop_byte_read = true;
-			}
-			i++;
-		}
-	}
-	return ERROR;
 }
 
 int

@@ -61,9 +61,8 @@ static int _sensor_sub = -1;
 static int _airspeed_sub = -1;
 static int _esc_sub = -1;
 
-orb_advert_t _esc_pub;
+static orb_advert_t _esc_pub;
 struct esc_status_s _esc;
-
 
 static bool _home_position_set = false;
 static double _home_lat = 0.0d;
