@@ -32,10 +32,11 @@
 ############################################################################
 
 #
-# Graupner HoTT Telemetry application.
+# Graupner HoTT Telemetry applications.
 #
 
 MODULE_COMMAND	= hott_telemetry
 
-SRCS		= hott_telemetry_main.c \
-		  messages.c
+SRCS		= hott_telemetry.cpp \
+		  ../messages.cpp \
+		  ../comms.cpp
