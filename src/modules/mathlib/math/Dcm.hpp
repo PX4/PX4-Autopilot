@@ -97,6 +97,11 @@ public:
 	Dcm(const Dcm &right);
 
 	/**
+	 * copy ctor (deep)
+	 */
+	Dcm(const Matrix &right);
+
+	/**
 	 * dtor
 	 */
 	virtual ~Dcm();

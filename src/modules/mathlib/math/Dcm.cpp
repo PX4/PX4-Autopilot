@@ -135,6 +135,11 @@ Dcm::Dcm(const Dcm &right) :
 {
 }
 
+Dcm::Dcm(const Matrix &right) :
+	Matrix(right)
+{
+}
+
 Dcm::~Dcm()
 {
 }
