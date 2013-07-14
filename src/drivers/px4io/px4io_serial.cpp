@@ -59,6 +59,7 @@
 
 #include <debug.h>
 
+#include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/boards/px4fmuv2/px4fmu_internal.h>	/* XXX should really not be hardcoding v2 here */
 
@@ -66,7 +67,7 @@
 
 #include <modules/px4iofirmware/protocol.h>
 
-#include "interface.h"
+device::Device	*PX4IO_serial_interface();
 
 /* serial register accessors */
 #define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + _x))
@@ -78,17 +79,16 @@
 #define rCR3		REG(STM32_USART_CR3_OFFSET)
 #define rGTPR		REG(STM32_USART_GTPR_OFFSET)
 
-class PX4IO_serial : public PX4IO_interface
+class PX4IO_serial : public device::Device
 {
 public:
 	PX4IO_serial();
 	virtual ~PX4IO_serial();
 
-	virtual int	set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
-	virtual int	get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values);
-
-	virtual bool	ok();
-	virtual int	test(unsigned mode);
+	virtual int	probe();
+	virtual int	read(unsigned offset, void *data, unsigned count = 1);
+	virtual int	write(unsigned address, void *data, unsigned count = 1);
+	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 private:
 	/*
@@ -159,12 +159,14 @@ private:
 IOPacket PX4IO_serial::_dma_buffer;
 static PX4IO_serial *g_interface;
 
-PX4IO_interface	*io_serial_interface()
+device::Device
+*PX4IO_serial_interface()
 {
 	return new PX4IO_serial();
 }
 
 PX4IO_serial::PX4IO_serial() :
+	Device("PX4IO_serial"),
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
 	_rx_dma_status(_dma_status_inactive),
@@ -262,74 +264,87 @@ PX4IO_serial::~PX4IO_serial()
 		g_interface = nullptr;
 }
 
-bool
-PX4IO_serial::ok()
+int
+PX4IO_serial::probe()
 {
-	if (_tx_dma == nullptr)
-		return false;
-	if (_rx_dma == nullptr)
-		return false;
+	/* XXX this could try talking to IO */
 
-	return true;
+	if (_tx_dma == nullptr)
+		return -1;
+	if (_rx_dma == nullptr)
+		return -1;
+
+	return 0;
 }
 
 int
-PX4IO_serial::test(unsigned mode)
+PX4IO_serial::ioctl(unsigned operation, unsigned &arg)
 {
 
-	switch (mode) {
-	case 0:
-		lowsyslog("test 0\n");
+	switch (operation) {
 
-		/* kill DMA, this is a PIO test */
-		stm32_dmastop(_tx_dma);
-		stm32_dmastop(_rx_dma);
-		rCR3 &= ~(USART_CR3_DMAR | USART_CR3_DMAT);
+	case 1:		/* XXX magic number - test operation */
+		switch (arg) {
+		case 0:
+			lowsyslog("test 0\n");
 
-		for (;;) {
-			while (!(rSR & USART_SR_TXE))
-				;
-			rDR = 0x55;
-		}
-		return 0;
+			/* kill DMA, this is a PIO test */
+			stm32_dmastop(_tx_dma);
+			stm32_dmastop(_rx_dma);
+			rCR3 &= ~(USART_CR3_DMAR | USART_CR3_DMAT);
 
-	case 1:
-		{
-			unsigned fails = 0;
-			for (unsigned count = 0;; count++) {
-				uint16_t value = count & 0xffff;
-
-				if (set_reg(PX4IO_PAGE_TEST, PX4IO_P_TEST_LED, &value, 1) != 0)
-					fails++;
-					
-				if (count >= 5000) {
-					lowsyslog("==== test 1 : %u failures ====\n", fails);
-					perf_print_counter(_pc_txns);
-					perf_print_counter(_pc_dmasetup);
-					perf_print_counter(_pc_retries);
-					perf_print_counter(_pc_timeouts);
-					perf_print_counter(_pc_crcerrs);
-					perf_print_counter(_pc_dmaerrs);
-					perf_print_counter(_pc_protoerrs);
-					perf_print_counter(_pc_uerrs);
-					perf_print_counter(_pc_idle);
-					perf_print_counter(_pc_badidle);
-					count = 0;
-				}
+			for (;;) {
+				while (!(rSR & USART_SR_TXE))
+					;
+				rDR = 0x55;
 			}
 			return 0;
+
+		case 1:
+			{
+				unsigned fails = 0;
+				for (unsigned count = 0;; count++) {
+					uint16_t value = count & 0xffff;
+
+					if (write((PX4IO_PAGE_TEST << 8) | PX4IO_P_TEST_LED, &value, 1) != 0)
+						fails++;
+						
+					if (count >= 5000) {
+						lowsyslog("==== test 1 : %u failures ====\n", fails);
+						perf_print_counter(_pc_txns);
+						perf_print_counter(_pc_dmasetup);
+						perf_print_counter(_pc_retries);
+						perf_print_counter(_pc_timeouts);
+						perf_print_counter(_pc_crcerrs);
+						perf_print_counter(_pc_dmaerrs);
+						perf_print_counter(_pc_protoerrs);
+						perf_print_counter(_pc_uerrs);
+						perf_print_counter(_pc_idle);
+						perf_print_counter(_pc_badidle);
+						count = 0;
+					}
+				}
+				return 0;
+			}
+		case 2:
+			lowsyslog("test 2\n");
+			return 0;
 		}
-	case 2:
-		lowsyslog("test 2\n");
-		return 0;
+	default:
+		break;
 	}
+
 	return -1;
 }
 
 int
-PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
+PX4IO_serial::write(unsigned address, void *data, unsigned count)
 {
-	if (num_values > PKT_MAX_REGS) {
+	uint8_t page = address >> 8;
+	uint8_t offset = address & 0xff;
+	const uint16_t *values = reinterpret_cast<const uint16_t *>(data);
+
+	if (count > PKT_MAX_REGS) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -339,11 +354,11 @@ PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsi
 	int result;
 	for (unsigned retries = 0; retries < 3; retries++) {
 
-		_dma_buffer.count_code = num_values | PKT_CODE_WRITE;
+		_dma_buffer.count_code = count | PKT_CODE_WRITE;
 		_dma_buffer.page = page;
 		_dma_buffer.offset = offset;
-		memcpy((void *)&_dma_buffer.regs[0], (void *)values, (2 * num_values));
-		for (unsigned i = num_values; i < PKT_MAX_REGS; i++)
+		memcpy((void *)&_dma_buffer.regs[0], (void *)values, (2 * count));
+		for (unsigned i = count; i < PKT_MAX_REGS; i++)
 			_dma_buffer.regs[i] = 0x55aa;
 
 		/* XXX implement check byte */
@@ -373,9 +388,13 @@ PX4IO_serial::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsi
 }
 
 int
-PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values)
+PX4IO_serial::read(unsigned address, void *data, unsigned count)
 {
-	if (num_values > PKT_MAX_REGS)
+	uint8_t page = address >> 8;
+	uint8_t offset = address & 0xff;
+	uint16_t *values = reinterpret_cast<uint16_t *>(data);
+
+	if (count > PKT_MAX_REGS)
 		return -EINVAL;
 
 	sem_wait(&_bus_semaphore);
@@ -383,7 +402,7 @@ PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned n
 	int result;
 	for (unsigned retries = 0; retries < 3; retries++) {
 
-		_dma_buffer.count_code = num_values | PKT_CODE_READ;
+		_dma_buffer.count_code = count | PKT_CODE_READ;
 		_dma_buffer.page = page;
 		_dma_buffer.offset = offset;
 
@@ -402,7 +421,7 @@ PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned n
 				perf_count(_pc_protoerrs);
 
 			/* compare the received count with the expected count */
-			} else if (PKT_COUNT(_dma_buffer) != num_values) {
+			} else if (PKT_COUNT(_dma_buffer) != count) {
 
 				/* IO returned the wrong number of registers - no point retrying */
 				errno = EIO;
@@ -413,14 +432,14 @@ PX4IO_serial::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned n
 			} else {
 
 				/* copy back the result */
-				memcpy(values, &_dma_buffer.regs[0], (2 * num_values));
+				memcpy(values, &_dma_buffer.regs[0], (2 * count));
 			}
 
 			break;
 		}
 		perf_count(_pc_retries);
 	}
-out:
+
 	sem_post(&_bus_semaphore);
 	return result;
 }

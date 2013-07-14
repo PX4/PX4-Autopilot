@@ -52,109 +52,93 @@
 
 #include <nuttx/i2c.h>
 
+#include <drivers/device/i2c.h>
 #include <mavlink/mavlink_log.h>
 #include "uploader.h"
 #include <modules/px4iofirmware/protocol.h>
 
-#include "interface.h"
+device::Device	*PX4IO_i2c_interface();
 
-class PX4IO_I2C : public PX4IO_interface
+class PX4IO_I2C : public device::I2C
 {
 public:
 	PX4IO_I2C(int bus, uint8_t address);
 	virtual ~PX4IO_I2C();
 
-	virtual int	set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
-	virtual int	get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values);
-
-	virtual bool	ok();
-
-	virtual int	test(unsigned mode);
+	virtual int	probe();
+	virtual int	read(unsigned offset, void *data, unsigned count = 1);
+	virtual int	write(unsigned address, void *data, unsigned count = 1);
+	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 private:
-	static const unsigned	_retries = 2;
 
-	struct i2c_dev_s	*_dev;
-	uint8_t			_address;
 };
 
-PX4IO_interface	*io_i2c_interface(int bus, uint8_t address)
+device::Device
+*PX4IO_i2c_interface()
 {
-	return new PX4IO_I2C(bus, address);
+#ifdef PX4_I2C_OBDEV_PX4IO
+	return new PX4IO_I2C(PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO);
+#endif
+	return nullptr;
 }
 
 PX4IO_I2C::PX4IO_I2C(int bus, uint8_t address) :
-	_dev(nullptr),
-	_address(address)
+	I2C("PX4IO_i2c", nullptr, bus, address, 400000)
 {
-	_dev = up_i2cinitialize(bus);
-	if (_dev)
-		I2C_SETFREQUENCY(_dev, 400000);
+	_retries = 3;
 }
 
 PX4IO_I2C::~PX4IO_I2C()
 {
-	if (_dev)
-		up_i2cuninitialize(_dev);
-}
-
-bool
-PX4IO_I2C::ok()
-{
-	if (!_dev)
-		return false;
-
-	/* check any other status here */
-
-	return true;
 }
 
 int
-PX4IO_I2C::test(unsigned mode)
+PX4IO_I2C::probe()
+{
+	/* XXX really should do something here */
+
+	return 0;
+}
+
+int
+PX4IO_I2C::ioctl(unsigned operation, unsigned &arg)
 {
 	return 0;
 }
 
 int
-PX4IO_I2C::set_reg(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
+PX4IO_I2C::write(unsigned address, void *data, unsigned count)
 {
-	int ret;
+	uint8_t page = address >> 8;
+	uint8_t offset = address & 0xff;
+	const uint16_t *values = reinterpret_cast<const uint16_t *>(data);
 
 	/* set up the transfer */
 	uint8_t 	addr[2] = {
 		page,
 		offset
 	};
+
 	i2c_msg_s	msgv[2];
 
-	msgv[0].addr = _address;
 	msgv[0].flags = 0;
 	msgv[0].buffer = addr;
 	msgv[0].length = 2;
 
-	msgv[1].addr = _address;
 	msgv[1].flags = I2C_M_NORESTART;
 	msgv[1].buffer = (uint8_t *)values;
-	msgv[1].length = num_values * sizeof(*values);
+	msgv[1].length = 2 * count;
 
-	unsigned tries = 0;
-	do {
-
-		/* perform the transfer */
-		ret = I2C_TRANSFER(_dev, msgv, 2);
-
-		if (ret == OK)
-			break;
-
-	} while (tries++ < _retries);
-
-	return ret;
+	return transfer(msgv, 2);
 }
 
 int
-PX4IO_I2C::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values)
+PX4IO_I2C::read(unsigned address, void *data, unsigned count)
 {
-	int ret;
+	uint8_t page = address >> 8;
+	uint8_t offset = address & 0xff;
+	const uint16_t *values = reinterpret_cast<const uint16_t *>(data);
 
 	/* set up the transfer */
 	uint8_t		addr[2] = {
@@ -163,25 +147,13 @@ PX4IO_I2C::get_reg(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_
 	};
 	i2c_msg_s	msgv[2];
 
-	msgv[0].addr = _address;
 	msgv[0].flags = 0;
 	msgv[0].buffer = addr;
 	msgv[0].length = 2;
 
-	msgv[1].addr = _address;
 	msgv[1].flags = I2C_M_READ;
 	msgv[1].buffer = (uint8_t *)values;
-	msgv[1].length = num_values * sizeof(*values);
+	msgv[1].length = 2 * count;
 
-	unsigned tries = 0;
-	do {
-		/* perform the transfer */
-		ret = I2C_TRANSFER(_dev, msgv, 2);
-
-		if (ret == OK)
-			break;
-
-	} while (tries++ < _retries);
-
-	return ret;
+	return transfer(msgv, 2);
 }

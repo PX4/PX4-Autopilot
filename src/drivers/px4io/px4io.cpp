@@ -85,7 +85,9 @@
 #include <modules/px4iofirmware/protocol.h>
 
 #include "uploader.h"
-#include "interface.h"
+
+extern device::Device *PX4IO_i2c_interface() weak_function;
+extern device::Device *PX4IO_serial_interface() weak_function;
 
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
@@ -93,7 +95,7 @@
 class PX4IO : public device::CDev
 {
 public:
-	PX4IO(PX4IO_interface *interface);
+	PX4IO(device::Device *interface);
 	virtual ~PX4IO();
 
 	virtual int		init();
@@ -131,7 +133,7 @@ public:
 	void			print_status();
 
 private:
-	PX4IO_interface		*_interface;
+	device::Device		*_interface;
 
 	// XXX
 	unsigned		_hardware;
@@ -316,7 +318,7 @@ PX4IO	*g_dev;
 
 }
 
-PX4IO::PX4IO(PX4IO_interface *interface) :
+PX4IO::PX4IO(device::Device *interface) :
 	CDev("px4io", "/dev/px4io"),
 	_interface(interface),
 	_hardware(0),
@@ -1129,7 +1131,7 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 		return -EINVAL;
 	}
 
-	int ret =  _interface->set_reg(page, offset, values, num_values);
+	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
 	if (ret != OK)
 		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, errno);
 	return ret;
@@ -1150,7 +1152,7 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 		return -EINVAL;
 	}
 
-	int ret =  _interface->get_reg(page, offset, values, num_values);
+	int ret =  _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
 	if (ret != OK)
 		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, errno);
 	return ret;
@@ -1602,12 +1604,12 @@ start(int argc, char *argv[])
 	if (g_dev != nullptr)
 		errx(1, "already loaded");
 
-	PX4IO_interface *interface;
+	device::Device *interface;
 
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-	interface = io_serial_interface();
+	interface = PX4IO_serial_interface();
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	interface = io_i2c_interface(PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO);
+	interface = PX4IO_i2c_interface();
 #else
 # error Unknown board - cannot select interface.
 #endif
@@ -1615,7 +1617,7 @@ start(int argc, char *argv[])
 	if (interface == nullptr)
 		errx(1, "cannot alloc interface");
 
-	if (!interface->ok()) {
+	if (interface->probe()) {
 		delete interface;
 		errx(1, "interface init failed");
 	}
@@ -1739,12 +1741,12 @@ monitor(void)
 void
 if_test(unsigned mode)
 {
-	PX4IO_interface *interface;
+	device::Device *interface;
 
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-	interface = io_serial_interface();
+	interface = PX4IO_serial_interface();
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	interface = io_i2c_interface(PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO);
+	interface = PX4IO_i2c_interface();
 #else
 # error Unknown board - cannot select interface.
 #endif
@@ -1752,20 +1754,17 @@ if_test(unsigned mode)
 	if (interface == nullptr)
 		errx(1, "cannot alloc interface");
 
-	if (!interface->ok()) {
+	if (interface->probe()) {
 		delete interface;
 		errx(1, "interface init failed");
 	} else {
-
-		int result = interface->test(mode);
+		int result = interface->ioctl(1, mode); /* XXX magic numbers */
 		delete interface;
 		errx(0, "test returned %d", result);
 	}
-
-	exit(0);
 }
 
-}
+} /* namespace */
 
 int
 px4io_main(int argc, char *argv[])
