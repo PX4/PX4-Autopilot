@@ -3,6 +3,7 @@
  *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
  *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
  *           Julian Oes <joes@student.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,23 +52,23 @@
 
 /* MessageIDs (the ones that are used) */
 #define UBX_MESSAGE_NAV_POSLLH 0x02
-#define UBX_MESSAGE_NAV_SOL 0x06
-#define UBX_MESSAGE_NAV_TIMEUTC 0x21
 //#define UBX_MESSAGE_NAV_DOP 0x04
-#define UBX_MESSAGE_NAV_SVINFO 0x30
+#define UBX_MESSAGE_NAV_SOL 0x06
 #define UBX_MESSAGE_NAV_VELNED 0x12
 //#define UBX_MESSAGE_RXM_SVSI 0x20
-#define UBX_MESSAGE_ACK_ACK 0x01
+#define UBX_MESSAGE_NAV_TIMEUTC 0x21
+#define UBX_MESSAGE_NAV_SVINFO 0x30
 #define UBX_MESSAGE_ACK_NAK 0x00
+#define UBX_MESSAGE_ACK_ACK 0x01
 #define UBX_MESSAGE_CFG_PRT 0x00
-#define UBX_MESSAGE_CFG_NAV5 0x24
 #define UBX_MESSAGE_CFG_MSG 0x01
 #define UBX_MESSAGE_CFG_RATE 0x08
+#define UBX_MESSAGE_CFG_NAV5 0x24
 
 #define UBX_CFG_PRT_LENGTH 20
 #define UBX_CFG_PRT_PAYLOAD_PORTID 0x01			/**< UART1 */
 #define UBX_CFG_PRT_PAYLOAD_MODE 0x000008D0		/**< 0b0000100011010000: 8N1 */
-#define UBX_CFG_PRT_PAYLOAD_BAUDRATE 38400		/**< always choose 38400 as GPS baudrate */
+#define UBX_CFG_PRT_PAYLOAD_BAUDRATE 38400		/**< choose 38400 as GPS baudrate */
 #define UBX_CFG_PRT_PAYLOAD_INPROTOMASK 0x01		/**< UBX in */
 #define UBX_CFG_PRT_PAYLOAD_OUTPROTOMASK 0x01		/**< UBX out */
 
@@ -299,44 +300,6 @@ struct ubx_cfg_msg_rate {
 // ************
 
 typedef enum {
-	UBX_CONFIG_STATE_PRT = 0,
-	UBX_CONFIG_STATE_PRT_NEW_BAUDRATE,
-	UBX_CONFIG_STATE_RATE,
-	UBX_CONFIG_STATE_NAV5,
-	UBX_CONFIG_STATE_MSG_NAV_POSLLH,
-	UBX_CONFIG_STATE_MSG_NAV_TIMEUTC,
-	UBX_CONFIG_STATE_MSG_NAV_DOP,
-	UBX_CONFIG_STATE_MSG_NAV_SVINFO,
-	UBX_CONFIG_STATE_MSG_NAV_SOL,
-	UBX_CONFIG_STATE_MSG_NAV_VELNED,
-//	UBX_CONFIG_STATE_MSG_RXM_SVSI,
-	UBX_CONFIG_STATE_CONFIGURED
-} ubx_config_state_t;
-
-typedef enum {
-	CLASS_UNKNOWN = 0,
-	NAV = 1,
-	RXM = 2,
-	ACK = 3,
-	CFG = 4
-} ubx_message_class_t;
-
-typedef enum {
-	//these numbers do NOT correspond to the message id numbers of the ubx protocol
-	ID_UNKNOWN = 0,
-	NAV_POSLLH,
-	NAV_SOL,
-	NAV_TIMEUTC,
-//	NAV_DOP,
-	NAV_SVINFO,
-	NAV_VELNED,
-//	RXM_SVSI,
-	CFG_NAV5,
-	ACK_ACK,
-	ACK_NAK,
-} ubx_message_id_t;
-
-typedef enum {
 	UBX_DECODE_UNINIT = 0,
 	UBX_DECODE_GOT_SYNC1,
 	UBX_DECODE_GOT_SYNC2,
@@ -401,17 +364,17 @@ private:
 
 	int			_fd;
 	struct vehicle_gps_position_s *_gps_position;
-	ubx_config_state_t	_config_state;
+	bool			_configured;
 	bool			_waiting_for_ack;
-	uint8_t			_clsID_needed;
-	uint8_t			_msgID_needed;
+	uint8_t			_message_class_needed;
+	uint8_t			_message_id_needed;
 	ubx_decode_state_t	_decode_state;
 	uint8_t			_rx_buffer[RECV_BUFFER_SIZE];
 	unsigned		_rx_count;
 	uint8_t			_rx_ck_a;
 	uint8_t			_rx_ck_b;
-	ubx_message_class_t	_message_class;
-	ubx_message_id_t	_message_id;
+	uint8_t			_message_class;
+	uint8_t			_message_id;
 	unsigned		_payload_size;
 	uint8_t			_disable_cmd_counter;
 };

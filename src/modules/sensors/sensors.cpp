@@ -232,7 +232,8 @@ private:
 
 		float battery_voltage_scaling;
 
-		int airspeed_offset;
+		int   rc_rl1_DSM_VCC_control;
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -282,7 +283,8 @@ private:
 
 		param_t battery_voltage_scaling;
 
-		param_t airspeed_offset;
+		param_t rc_rl1_DSM_VCC_control;
+
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -519,6 +521,9 @@ Sensors::Sensors() :
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
+	/* DSM VCC relay control */
+	_parameter_handles.rc_rl1_DSM_VCC_control = param_find("RC_RL1_DSM_VCC");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -708,6 +713,11 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
 		warnx("Failed updating voltage scaling param");
+	}
+
+	/* relay 1 DSM VCC control */
+	if (param_get(_parameter_handles.rc_rl1_DSM_VCC_control, &(_parameters.rc_rl1_DSM_VCC_control)) != OK) {
+		warnx("Failed updating relay 1 DSM VCC control");
 	}
 
 	return OK;

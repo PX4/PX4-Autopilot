@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,50 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_global_position_setpoint.h
- * Definition of the global WGS84 position setpoint uORB topic.
- */
-
-#ifndef TOPIC_VEHICLE_GLOBAL_POSITION_SETPOINT_H_
-#define TOPIC_VEHICLE_GLOBAL_POSITION_SETPOINT_H_
-
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
-#include "mission.h"
-
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * Global position setpoint in WGS84 coordinates.
+ * @file comms.h
+ * @author Simon Wilks <sjwilks@gmail.com>
  *
- * This is the position the MAV is heading towards. If it of type loiter,
- * the MAV is circling around it with the given loiter radius in meters.
- */
-struct vehicle_global_position_setpoint_s
-{
-	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	int32_t lat;			/**< latitude in degrees * 1E7				*/
-	int32_t lon;			/**< longitude in degrees * 1E7				*/
-	float altitude;			/**< altitude in meters					*/
-	float yaw;			/**< in radians NED -PI..+PI 				*/
-	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
-	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
-	float param1;
-	float param2;
-	float param3;
-	float param4;
-};
-
-/**
- * @}
  */
 
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_global_position_setpoint);
 
-#endif
+#ifndef COMMS_H_
+#define COMMS_H
+
+int open_uart(const char *device);
+
+#endif /* COMMS_H_ */

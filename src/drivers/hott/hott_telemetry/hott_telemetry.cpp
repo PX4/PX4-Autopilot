@@ -41,7 +41,6 @@
  * The HoTT receiver polls each device at a regular interval at which point
  * a data packet can be returned if necessary.
  *
- * TODO: Add support for at least the vario and GPS sensor data.
  */
 
 #include <fcntl.h>
@@ -50,13 +49,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 
-#include "messages.h"
+#include "../comms.h"
+#include "../messages.h"
+
+#define DEFAULT_UART "/dev/ttyS0";		/**< USART1 */
+
+/* Oddly, ERROR is not defined for C++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
 static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
@@ -67,7 +74,7 @@ static const char commandline_usage[] = "usage: hott_telemetry start|status|stop
 /**
  * Deamon management function.
  */
-__EXPORT int hott_telemetry_main(int argc, char *argv[]);
+extern "C" __EXPORT int hott_telemetry_main(int argc, char *argv[]);
 
 /**
  * Mainloop of daemon.
@@ -77,60 +84,18 @@ int hott_telemetry_thread_main(int argc, char *argv[]);
 static int recv_req_id(int uart, uint8_t *id);
 static int send_data(int uart, uint8_t *buffer, size_t size);
 
-static int
-open_uart(const char *device, struct termios *uart_config_original)
-{
-	/* baud rate */
-	static const speed_t speed = B19200;
-
-	/* open uart */
-	const int uart = open(device, O_RDWR | O_NOCTTY);
-
-	if (uart < 0) {
-		err(1, "Error opening port: %s", device);
-	}
-	
-	/* Back up the original uart configuration to restore it after exit */	
-	int termios_state;
-	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		close(uart);
-		err(1, "Error getting baudrate / termios config for %s: %d", device, termios_state);
-	}
-
-	/* Fill the struct for the new configuration */
-	struct termios uart_config;
-	tcgetattr(uart, &uart_config);
-
-	/* Clear ONLCR flag (which appends a CR for every LF) */
-	uart_config.c_oflag &= ~ONLCR;
-
-	/* Set baud rate */
-	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		close(uart);
-		err(1, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)",
-			 device, termios_state);
-	}
-
-	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-		close(uart);
-		err(1, "Error setting baudrate / termios config for %s (tcsetattr)", device);
-	}
-
-	/* Activate single wire mode */
-	ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
-
-	return uart;
-}
-
 int
 recv_req_id(int uart, uint8_t *id)
 {
 	static const int timeout_ms = 1000;  // TODO make it a define
-	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
 
 	uint8_t mode;
+	
+	struct pollfd fds;
+	fds.fd = uart;
+	fds.events = POLLIN;
 
-	if (poll(fds, 1, timeout_ms) > 0) {
+	if (poll(&fds, 1, timeout_ms) > 0) {
 		/* Get the mode: binary or text  */
 		read(uart, &mode, sizeof(mode));
 
@@ -155,7 +120,6 @@ send_data(int uart, uint8_t *buffer, size_t size)
 	usleep(POST_READ_DELAY_IN_USECS);
 
 	uint16_t checksum = 0;
-
 	for (size_t i = 0; i < size; i++) {
 		if (i == size - 1) {
 			/* Set the checksum: the first uint8_t is taken as the checksum. */
@@ -186,7 +150,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	const char *device = "/dev/ttyS1";		/**< Default telemetry port: USART2 */
+	const char *device = DEFAULT_UART;
 
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
@@ -202,22 +166,20 @@ hott_telemetry_thread_main(int argc, char *argv[])
 	}
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
-	struct termios uart_config_original;
-	const int uart = open_uart(device, &uart_config_original);
-
+	const int uart = open_uart(device);
 	if (uart < 0) {
 		errx(1, "Failed opening HoTT UART, exiting.");
 		thread_running = false;
 	}
 
-	messages_init();
+	init_sub_messages();
 
-	uint8_t buffer[MESSAGE_BUFFER_SIZE];
+	uint8_t buffer[MAX_MESSAGE_BUFFER_SIZE];
 	size_t size = 0;
 	uint8_t id = 0;
 	bool connected = true;
-
 	while (!thread_should_exit) {
+		// Listen for and serve poll from the receiver.
 		if (recv_req_id(uart, &id) == OK) {
 			if (!connected) {
 				connected = true;
@@ -228,7 +190,9 @@ hott_telemetry_thread_main(int argc, char *argv[])
 			case EAM_SENSOR_ID:
 				build_eam_response(buffer, &size);
 				break;
-
+			case GAM_SENSOR_ID:
+				build_gam_response(buffer, &size);
+				break;
 			case GPS_SENSOR_ID:
 				build_gps_response(buffer, &size);
 				break;
@@ -254,7 +218,7 @@ hott_telemetry_thread_main(int argc, char *argv[])
 }
 
 /**
- * Process command line arguments and tart the daemon.
+ * Process command line arguments and start the daemon.
  */
 int
 hott_telemetry_main(int argc, char *argv[])

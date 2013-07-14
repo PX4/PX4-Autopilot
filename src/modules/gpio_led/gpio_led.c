@@ -53,11 +53,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
-
-#define PX4IO_RELAY1	(1<<0)
-#define PX4IO_RELAY2	(1<<1)
-#define PX4IO_ACC1		(1<<2)
-#define PX4IO_ACC2		(1<<3)
+#include <modules/px4iofirmware/protocol.h>
 
 struct gpio_led_s {
 	struct work_s work;
@@ -186,10 +182,9 @@ void gpio_led_start(FAR void *arg)
 	char *gpio_dev;
 
 	if (priv->use_io) {
-		gpio_dev = "/dev/px4io";
-
+		gpio_dev = PX4IO_DEVICE_PATH;
 	} else {
-		gpio_dev = "/dev/px4fmu";
+		gpio_dev = PX4FMU_DEVICE_PATH;
 	}
 
 	/* open GPIO device */
@@ -203,6 +198,7 @@ void gpio_led_start(FAR void *arg)
 	}
 
 	/* configure GPIO pin */
+	/* px4fmu only, px4io doesn't support GPIO_SET_OUTPUT and will ignore */
 	ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, priv->pin);
 
 	/* subscribe to vehicle status topic */
@@ -263,7 +259,6 @@ void gpio_led_cycle(FAR void *arg)
 
 		if (led_state_new) {
 			ioctl(priv->gpio_fd, GPIO_SET, priv->pin);
-
 		} else {
 			ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin);
 		}
