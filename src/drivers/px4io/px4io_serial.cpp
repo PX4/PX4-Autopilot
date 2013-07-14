@@ -170,16 +170,16 @@ PX4IO_serial::PX4IO_serial() :
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
 	_rx_dma_status(_dma_status_inactive),
-	_pc_txns(perf_alloc(PC_ELAPSED,		"txns     ")),
-	_pc_dmasetup(perf_alloc(PC_ELAPSED,	"dmasetup ")),
-	_pc_retries(perf_alloc(PC_COUNT,	"retries  ")),
-	_pc_timeouts(perf_alloc(PC_COUNT,	"timeouts ")),
-	_pc_crcerrs(perf_alloc(PC_COUNT,	"crcerrs  ")),
-	_pc_dmaerrs(perf_alloc(PC_COUNT,	"dmaerrs  ")),
-	_pc_protoerrs(perf_alloc(PC_COUNT,	"protoerrs")),
-	_pc_uerrs(perf_alloc(PC_COUNT,		"uarterrs ")),
-	_pc_idle(perf_alloc(PC_COUNT,		"idle     ")),
-	_pc_badidle(perf_alloc(PC_COUNT,	"badidle  "))
+	_pc_txns(perf_alloc(PC_ELAPSED,		"io_txns     ")),
+	_pc_dmasetup(perf_alloc(PC_ELAPSED,	"io_dmasetup ")),
+	_pc_retries(perf_alloc(PC_COUNT,	"io_retries  ")),
+	_pc_timeouts(perf_alloc(PC_COUNT,	"io_timeouts ")),
+	_pc_crcerrs(perf_alloc(PC_COUNT,	"io_crcerrs  ")),
+	_pc_dmaerrs(perf_alloc(PC_COUNT,	"io_dmaerrs  ")),
+	_pc_protoerrs(perf_alloc(PC_COUNT,	"io_protoerrs")),
+	_pc_uerrs(perf_alloc(PC_COUNT,		"io_uarterrs ")),
+	_pc_idle(perf_alloc(PC_COUNT,		"io_idle     ")),
+	_pc_badidle(perf_alloc(PC_COUNT,	"io_badidle  "))
 {
 	/* allocate DMA */
 	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
