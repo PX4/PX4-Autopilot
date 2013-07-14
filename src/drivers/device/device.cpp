@@ -224,30 +224,21 @@ interrupt(int irq, void *context)
 }
 
 int
-Device::probe()
-{
-	return -1;
-}
-
-int
 Device::read(unsigned offset, void *data, unsigned count)
 {
-	errno = ENODEV;
-	return -1;
+	return -ENODEV;
 }
 
 int
 Device::write(unsigned offset, void *data, unsigned count)
 {
-	errno = ENODEV;
-	return -1;
+	return -ENODEV;
 }
 
 int
 Device::ioctl(unsigned operation, unsigned &arg)
 {
-	errno = ENODEV;
-	return -1;
+	return -ENODEV;
 }
 
 } // namespace device

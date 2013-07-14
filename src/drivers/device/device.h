@@ -80,49 +80,49 @@ public:
 	 */
 	virtual void	interrupt(void *ctx);	/**< interrupt handler */
 
-	 /*
-	  * Direct access methods.
-	  */
+	/*
+	 * Direct access methods.
+	 */
 
-	 /**
-	  * Probe to test whether the device is present.
-	  *
-	  * @return		Zero if present, < 0 (error) otherwise.
-	  */
-	 virtual int	probe();
+	/**
+	 * Initialise the driver and make it ready for use.
+	 *
+	 * @return	OK if the driver initialized OK, negative errno otherwise;
+	 */
+	virtual int	init();
 
-	 /**
-	  * Read directly from the device.
-	  *
-	  * The actual size of each unit quantity is device-specific.
-	  *
-	  * @param offset	The device address at which to start reading
-	  * @param data		The buffer into which the read values should be placed.
-	  * @param count		The number of items to read, defaults to 1.
-	  * @return		count on success, < 0 on error.
-	  */
-	 virtual int	read(unsigned address, void *data, unsigned count = 1);
+	/**
+	 * Read directly from the device.
+	 *
+	 * The actual size of each unit quantity is device-specific.
+	 *
+	 * @param offset	The device address at which to start reading
+	 * @param data		The buffer into which the read values should be placed.
+	 * @param count		The number of items to read.
+	 * @return		The number of items read on success, negative errno otherwise.
+	 */
+	virtual int	read(unsigned address, void *data, unsigned count);
 
-	 /**
-	  * Write directly to the device.
-	  *
-	  * The actual size of each unit quantity is device-specific.
-	  *
-	  * @param address	The device address at which to start writing.
-	  * @param data		The buffer from which values should be read.
-	  * @param count		The number of registers to write, defaults to 1.
-	  * @return		count on success, < 0 on error.
-	  */	 
-	 virtual int	write(unsigned address, void *data, unsigned count = 1);
+	/**
+	 * Write directly to the device.
+	 *
+	 * The actual size of each unit quantity is device-specific.
+	 *
+	 * @param address	The device address at which to start writing.
+	 * @param data		The buffer from which values should be read.
+	 * @param count		The number of items to write.
+	 * @return		The number of items written on success, negative errno otherwise.
+	 */	 
+	virtual int	write(unsigned address, void *data, unsigned count);
 
-	 /**
-	  * Perform a device-specific operation.
-	  *
-	  * @param operation	The operation to perform
-	  * @param arg		An argument to the operation.
-	  * @return		< 0 on error
-	  */
-	 virtual int	ioctl(unsigned operation, unsigned &arg);
+	/**
+	 * Perform a device-specific operation.
+	 *
+	 * @param operation	The operation to perform.
+	 * @param arg		An argument to the operation.
+	 * @return		Negative errno on error, OK or positive value on success.
+	 */
+	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 protected:
 	const char	*_name;			/**< driver name */
@@ -136,13 +136,6 @@ protected:
 	 */
 	Device(const char *name,
 	       int irq = 0);
-
-	/**
-	 * Initialise the driver and make it ready for use.
-	 *
-	 * @return	OK if the driver initialised OK.
-	 */
-	virtual int	init();
 
 	/**
 	 * Enable the device interrupt
