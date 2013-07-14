@@ -37,6 +37,25 @@
   * I2C interface for MS5611
   */
 
+/* XXX trim includes */
+#include <nuttx/config.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <assert.h>
+#include <debug.h>
+#include <errno.h>
+#include <unistd.h>
+
+#include <arch/board/board.h>
+
+#include <drivers/device/i2c.h>
+
+#include "ms5611.h"
+
+#ifdef PX4_I2C_OBDEV_MS5611
+
 #ifndef PX4_I2C_BUS_ONBOARD
 	#define MS5611_BUS		1
 #else
@@ -48,12 +67,12 @@
 
 
 
-device::Device *MS5611_i2c_interface();
+device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf);
 
-class MS5611_I2C : device::I2C
+class MS5611_I2C : public device::I2C
 {
 public:
-	MS5611_I2C(int bus);
+	MS5611_I2C(int bus, ms5611::prom_u &prom_buf);
 	virtual ~MS5611_I2C();
 
 	virtual int	init();
@@ -64,7 +83,7 @@ protected:
 	virtual int	probe();
 
 private:
-	ms5611::prom_u	*_prom
+	ms5611::prom_u	&_prom;
 
 	int		_probe_address(uint8_t address);
 
@@ -92,15 +111,12 @@ private:
 };
 
 device::Device *
-MS5611_i2c_interface()
+MS5611_i2c_interface(ms5611::prom_u &prom_buf)
 {
-#ifdef PX4_I2C_OBDEV_MS5611
-	return new MS5611_I2C(MS5611_BUS);
-#endif
-	return nullptr;
+	return new MS5611_I2C(MS5611_BUS, prom_buf);
 }
 
-MS5611_I2C::MS5611_I2C(int bus, ms5611_prom_u &prom) :
+MS5611_I2C::MS5611_I2C(int bus, ms5611::prom_u &prom) :
 	I2C("MS5611_I2C", nullptr, bus, 0, 400000),
 	_prom(prom)
 {
@@ -146,11 +162,6 @@ MS5611_I2C::ioctl(unsigned operation, unsigned &arg)
 	int ret;
 
 	switch (operation) {
-	case IOCTL_SET_PROMBUFFER:
-		_prom = reinterpret_cast<ms5611_prom_u *>(arg);
-		ret = OK;
-		break;
-
 	case IOCTL_RESET:
 		ret = _reset();
 		break;
@@ -255,10 +266,11 @@ MS5611_I2C::_read_prom()
 		/* assemble 16 bit value and convert from big endian (sensor) to little endian (MCU) */
 		cvt.b[0] = prom_buf[1];
 		cvt.b[1] = prom_buf[0];
-		_prom->c[i] = cvt.w;
+		_prom.c[i] = cvt.w;
 	}
 
 	/* calculate CRC and return success/failure accordingly */
-	return ms5611::crc4(&_prom->c[0]) ? OK : -EIO;
+	return ms5611::crc4(&_prom.c[0]) ? OK : -EIO;
 }
 
+#endif /* PX4_I2C_OBDEV_MS5611 */

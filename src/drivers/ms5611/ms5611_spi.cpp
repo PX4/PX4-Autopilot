@@ -37,31 +37,44 @@
   * SPI interface for MS5611
   */
 
+/* XXX trim includes */
+#include <nuttx/config.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <assert.h>
+#include <debug.h>
+#include <errno.h>
+#include <unistd.h>
+
+#include <arch/board/board.h>
+
+#include <drivers/device/spi.h>
+
+#include "ms5611.h"
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
 #define DIR_WRITE			(0<<7)
 #define ADDR_INCREMENT			(1<<6)
 
-device::Device *MS5611_spi_interface();
+#ifdef PX4_SPIDEV_BARO
 
-class MS5611_SPI : device::SPI
+device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf);
+
+class MS5611_SPI : public device::SPI
 {
 public:
-	MS5611_SPI(int bus, spi_dev_e device);
+	MS5611_SPI(int bus, spi_dev_e device, ms5611::prom_u &prom_buf);
 	virtual ~MS5611_SPI();
 
 	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count);
 	virtual int	ioctl(unsigned operation, unsigned &arg);
 
-protected:
-	virtual int	probe();
-
 private:
-	ms5611::prom_u	*_prom
-
-	int		_probe_address(uint8_t address);
+	ms5611::prom_u	&_prom;
 
 	/**
 	 * Send a reset command to the MS5611.
@@ -93,12 +106,19 @@ private:
 };
 
 device::Device *
-MS5611_spi_interface()
+MS5611_spi_interface(ms5611::prom_u &prom_buf)
 {
-#ifdef PX4_SPIDEV_BARO
-	return new MS5611_SPI(1 /* XXX MAGIC NUMBER */, (spi_dev_e)PX4_SPIDEV_BARO);
-#endif
-	return nullptr;
+	return new MS5611_SPI(1 /* XXX MAGIC NUMBER */, (spi_dev_e)PX4_SPIDEV_BARO, prom_buf);
+}
+
+MS5611_SPI::MS5611_SPI(int bus, spi_dev_e device, ms5611::prom_u &prom_buf) :
+	SPI("MS5611_SPI", nullptr, bus, device, SPIDEV_MODE3, 2000000),
+	_prom(prom_buf)
+{
+}
+
+MS5611_SPI::~MS5611_SPI()
+{
 }
 
 int
@@ -107,18 +127,24 @@ MS5611_SPI::init()
 	int ret;
 
 	ret = SPI::init();
-	if (ret != OK)
+	if (ret != OK) {
+		debug("SPI init failed");
 		goto out;
+	}
 
 	/* send reset command */
 	ret = _reset();
-	if (ret != OK)
+	if (ret != OK) {
+		debug("reset failed");
 		goto out;
+	}
 
 	/* read PROM */
 	ret = _read_prom();
-	if (ret != OK)
+	if (ret != OK) {
+		debug("prom readout failed");
 		goto out;
+	}
 
 out:
 	return ret;
@@ -139,9 +165,9 @@ MS5611_SPI::read(unsigned offset, void *data, unsigned count)
 
 	if (ret == OK) {
 		/* fetch the raw value */
-		cvt->b[0] = data[3];
-		cvt->b[1] = data[2];
-		cvt->b[2] = data[1];
+		cvt->b[0] = buf[3];
+		cvt->b[1] = buf[2];
+		cvt->b[2] = buf[1];
 		cvt->b[3] = 0;
 
 		ret = count;
@@ -156,10 +182,6 @@ MS5611_SPI::ioctl(unsigned operation, unsigned &arg)
 	int ret;
 
 	switch (operation) {
-	case IOCTL_SET_PROMBUFFER:
-		_prom = reinterpret_cast<ms5611_prom_u *>(arg);
-		return OK;
-
 	case IOCTL_RESET:
 		ret = _reset();
 		break;
@@ -226,3 +248,5 @@ MS5611_SPI::_reg16(unsigned reg)
 
 	return (uint16_t)(cmd[1] << 8) | cmd[2];
 }
+
+#endif /* PX4_SPIDEV_BARO */

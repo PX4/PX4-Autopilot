@@ -93,7 +93,7 @@ static const int ERROR = -1;
 class MS5611 : public device::CDev
 {
 public:
-	MS5611(device::Device *interface);
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf);
 	~MS5611();
 
 	virtual int		init();
@@ -109,7 +109,7 @@ public:
 protected:
 	Device			*_interface;
 
-	ms5611::prom_u		_prom;
+	ms5611::prom_s		_prom;
 
 	struct work_s		_work;
 	unsigned		_measure_ticks;
@@ -191,9 +191,10 @@ protected:
  */
 extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
-MS5611::MS5611(device::Device *interface) :
+MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
 	CDev("MS5611", BARO_DEVICE_PATH),
 	_interface(interface),
+	_prom(prom_buf.s),
 	_measure_ticks(0),
 	_num_reports(0),
 	_next_report(0),
@@ -230,13 +231,11 @@ MS5611::~MS5611()
 int
 MS5611::init()
 {
+	int ret;
 
-	/* verify that the interface is ok */
-	unsigned arg = (unsigned)&_prom;
-	_interface->ioctl(IOCTL_SET_PROMBUFFER, arg);
-	int ret = _interface->init();
+	ret = CDev::init();
 	if (ret != OK) {
-		debug("interface init failed");
+		debug("CDev init failed");
 		goto out;
 	}
 
@@ -598,14 +597,14 @@ MS5611::collect()
 	if (_measure_phase == 0) {
 
 		/* temperature offset (in ADC units) */
-		int32_t dT = (int32_t)raw - ((int32_t)_prom.s.c5_reference_temp << 8);
+		int32_t dT = (int32_t)raw - ((int32_t)_prom.c5_reference_temp << 8);
 
 		/* absolute temperature in centidegrees - note intermediate value is outside 32-bit range */
-		_TEMP = 2000 + (int32_t)(((int64_t)dT * _prom.s.c6_temp_coeff_temp) >> 23);
+		_TEMP = 2000 + (int32_t)(((int64_t)dT * _prom.c6_temp_coeff_temp) >> 23);
 
 		/* base sensor scale/offset values */
-		_SENS = ((int64_t)_prom.s.c1_pressure_sens << 15) + (((int64_t)_prom.s.c3_temp_coeff_pres_sens * dT) >> 8);
-		_OFF  = ((int64_t)_prom.s.c2_pressure_offset << 16) + (((int64_t)_prom.s.c4_temp_coeff_pres_offset * dT) >> 7);
+		_SENS = ((int64_t)_prom.c1_pressure_sens << 15) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 8);
+		_OFF  = ((int64_t)_prom.c2_pressure_offset << 16) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 7);
 
 		/* temperature compensation */
 		if (_TEMP < 2000) {
@@ -711,14 +710,14 @@ MS5611::print_info()
 	printf("OFF:            %lld\n", _OFF);
 	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
 
-	printf("factory_setup             %u\n", _prom.s.factory_setup);
-	printf("c1_pressure_sens          %u\n", _prom.s.c1_pressure_sens);
-	printf("c2_pressure_offset        %u\n", _prom.s.c2_pressure_offset);
-	printf("c3_temp_coeff_pres_sens   %u\n", _prom.s.c3_temp_coeff_pres_sens);
-	printf("c4_temp_coeff_pres_offset %u\n", _prom.s.c4_temp_coeff_pres_offset);
-	printf("c5_reference_temp         %u\n", _prom.s.c5_reference_temp);
-	printf("c6_temp_coeff_temp        %u\n", _prom.s.c6_temp_coeff_temp);
-	printf("serial_and_crc            %u\n", _prom.s.serial_and_crc);
+	printf("factory_setup             %u\n", _prom.factory_setup);
+	printf("c1_pressure_sens          %u\n", _prom.c1_pressure_sens);
+	printf("c2_pressure_offset        %u\n", _prom.c2_pressure_offset);
+	printf("c3_temp_coeff_pres_sens   %u\n", _prom.c3_temp_coeff_pres_sens);
+	printf("c4_temp_coeff_pres_offset %u\n", _prom.c4_temp_coeff_pres_offset);
+	printf("c5_reference_temp         %u\n", _prom.c5_reference_temp);
+	printf("c6_temp_coeff_temp        %u\n", _prom.c6_temp_coeff_temp);
+	printf("serial_and_crc            %u\n", _prom.serial_and_crc);
 }
 
 /**
@@ -789,6 +788,7 @@ void
 start()
 {
 	int fd;
+	prom_u prom_buf;
 
 	if (g_dev != nullptr)
 		errx(1, "already started");
@@ -797,14 +797,19 @@ start()
 
 	/* create the driver, try SPI first, fall back to I2C if unsuccessful */
 	if (MS5611_spi_interface != nullptr)
-		interface = MS5611_spi_interface();
+		interface = MS5611_spi_interface(prom_buf);
 	if (interface == nullptr && (MS5611_i2c_interface != nullptr))
-		interface = MS5611_i2c_interface();
+		interface = MS5611_i2c_interface(prom_buf);
 
 	if (interface == nullptr)
 		errx(1, "failed to allocate an interface");
 
-	g_dev = new MS5611(interface);
+	if (interface->init() != OK) {
+		delete interface;
+		errx(1, "interface init failed");
+	}
+
+	g_dev = new MS5611(interface, prom_buf);
 	if (g_dev == nullptr) {
 		delete interface;
 		errx(1, "failed to allocate driver");
@@ -814,10 +819,14 @@ start()
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(BARO_DEVICE_PATH, O_RDONLY);
-	if (fd < 0)
+	if (fd < 0) {
+		warnx("can't open baro device");
 		goto fail;
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	}
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		warnx("failed setting default poll rate");
 		goto fail;
+	}
 
 	exit(0);
 
