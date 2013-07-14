@@ -1598,29 +1598,42 @@ extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
 namespace
 {
 
+device::Device *
+get_interface()
+{
+	device::Device *interface = nullptr;
+
+	/* try for a serial interface */
+	if (PX4IO_serial_interface != nullptr)
+		interface = PX4IO_serial_interface();
+	if (interface != nullptr)
+		goto got;
+
+	/* try for an I2C interface if we haven't got a serial one */
+	if (PX4IO_i2c_interface != nullptr)
+		interface = PX4IO_i2c_interface();
+	if (interface != nullptr)
+		goto got;
+
+	errx(1, "cannot alloc interface");
+
+got:
+	if (interface->init() != OK) {
+		delete interface;
+		errx(1, "interface init failed");
+	}
+
+	return interface;
+}
+
 void
 start(int argc, char *argv[])
 {
 	if (g_dev != nullptr)
 		errx(1, "already loaded");
 
-	device::Device *interface;
-
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-	interface = PX4IO_serial_interface();
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	interface = PX4IO_i2c_interface();
-#else
-# error Unknown board - cannot select interface.
-#endif
-
-	if (interface == nullptr)
-		errx(1, "cannot alloc interface");
-
-	if (interface->init()) {
-		delete interface;
-		errx(1, "interface init failed");
-	}
+	/* allocate the interface */
+	device::Device *interface = get_interface();
 
 	/* create the driver - it will set g_dev */
 	(void)new PX4IO(interface);
@@ -1741,27 +1754,12 @@ monitor(void)
 void
 if_test(unsigned mode)
 {
-	device::Device *interface;
+	device::Device *interface = get_interface();
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-	interface = PX4IO_serial_interface();
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	interface = PX4IO_i2c_interface();
-#else
-# error Unknown board - cannot select interface.
-#endif
+	int result = interface->ioctl(1, mode); /* XXX magic numbers */
+	delete interface;
 
-	if (interface == nullptr)
-		errx(1, "cannot alloc interface");
-
-	if (interface->init()) {
-		delete interface;
-		errx(1, "interface init failed");
-	} else {
-		int result = interface->ioctl(1, mode); /* XXX magic numbers */
-		delete interface;
-		errx(0, "test returned %d", result);
-	}
+	errx(0, "test returned %d", result);
 }
 
 } /* namespace */
