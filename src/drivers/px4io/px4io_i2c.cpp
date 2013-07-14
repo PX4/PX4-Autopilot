@@ -50,12 +50,9 @@
 
 #include <arch/board/board.h>
 
-#include <nuttx/i2c.h>
-
 #include <drivers/device/i2c.h>
-#include <mavlink/mavlink_log.h>
-#include "uploader.h"
-#include <modules/px4iofirmware/protocol.h>
+
+#ifdef PX4_I2C_OBDEV_PX4IO
 
 device::Device	*PX4IO_i2c_interface();
 
@@ -77,10 +74,7 @@ private:
 device::Device
 *PX4IO_i2c_interface()
 {
-#ifdef PX4_I2C_OBDEV_PX4IO
 	return new PX4IO_I2C(PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO);
-#endif
-	return nullptr;
 }
 
 PX4IO_I2C::PX4IO_I2C(int bus, uint8_t address) :
@@ -170,3 +164,5 @@ PX4IO_I2C::read(unsigned address, void *data, unsigned count)
 		ret = count;
 	return ret;
 }
+
+#endif /* PX4_I2C_OBDEV_PX4IO */

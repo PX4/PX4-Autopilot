@@ -67,6 +67,8 @@
 
 #include <modules/px4iofirmware/protocol.h>
 
+#ifdef PX4IO_SERIAL_BASE
+
 device::Device	*PX4IO_serial_interface();
 
 /* serial register accessors */
@@ -667,3 +669,5 @@ PX4IO_serial::_abort_dma()
 	stm32_dmastop(_tx_dma);
 	stm32_dmastop(_rx_dma);
 }
+
+#endif /* PX4IO_SERIAL_BASE */
