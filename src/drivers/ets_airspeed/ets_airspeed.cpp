@@ -93,7 +93,6 @@ class ETSAirspeed : public Airspeed
 {
 public:
 	ETSAirspeed(int bus, int address = I2C_ADDRESS);
-	virtual ~ETSAirspeed();
 
 protected:
 

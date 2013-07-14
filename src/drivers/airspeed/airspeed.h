@@ -86,7 +86,7 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class Airspeed : public device::I2C
+class __EXPORT Airspeed : public device::I2C
 {
 public:
 	Airspeed(int bus, int address, unsigned conversion_interval);
@@ -100,7 +100,7 @@ public:
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
-	void		print_info();
+	virtual void	print_info();
 
 protected:
 	virtual int	probe();
