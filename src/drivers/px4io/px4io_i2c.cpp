@@ -32,7 +32,7 @@
  ****************************************************************************/
 
  /**
-  * @file interface_i2c.cpp
+  * @file px4io_i2c.cpp
   *
   * I2C interface for PX4IO
   */
@@ -65,7 +65,7 @@ public:
 	PX4IO_I2C(int bus, uint8_t address);
 	virtual ~PX4IO_I2C();
 
-	virtual int	probe();
+	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count = 1);
 	virtual int	write(unsigned address, void *data, unsigned count = 1);
 	virtual int	ioctl(unsigned operation, unsigned &arg);
@@ -94,10 +94,17 @@ PX4IO_I2C::~PX4IO_I2C()
 }
 
 int
-PX4IO_I2C::probe()
+PX4IO_I2C::init()
 {
-	/* XXX really should do something here */
+	int ret;
 
+	ret = I2C::init();
+	if (ret != OK)
+		goto out;
+
+	/* XXX really should do something more here */
+
+out:
 	return 0;
 }
 
@@ -130,7 +137,10 @@ PX4IO_I2C::write(unsigned address, void *data, unsigned count)
 	msgv[1].buffer = (uint8_t *)values;
 	msgv[1].length = 2 * count;
 
-	return transfer(msgv, 2);
+	int ret = transfer(msgv, 2);
+	if (ret == OK)
+		ret = count;
+	return ret;
 }
 
 int
@@ -155,5 +165,8 @@ PX4IO_I2C::read(unsigned address, void *data, unsigned count)
 	msgv[1].buffer = (uint8_t *)values;
 	msgv[1].length = 2 * count;
 
-	return transfer(msgv, 2);
+	int ret = transfer(msgv, 2);
+	if (ret == OK)
+		ret = count;
+	return ret;
 }

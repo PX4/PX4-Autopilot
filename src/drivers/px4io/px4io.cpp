@@ -1132,8 +1132,8 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 	}
 
 	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
-	if (ret != OK)
-		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, errno);
+	if (ret != num_values)
+		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
 	return ret;
 }
 
@@ -1153,8 +1153,8 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 	}
 
 	int ret =  _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
-	if (ret != OK)
-		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, errno);
+	if (ret != num_values)
+		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
 	return ret;
 }
 
@@ -1617,7 +1617,7 @@ start(int argc, char *argv[])
 	if (interface == nullptr)
 		errx(1, "cannot alloc interface");
 
-	if (interface->probe()) {
+	if (interface->init()) {
 		delete interface;
 		errx(1, "interface init failed");
 	}
@@ -1754,7 +1754,7 @@ if_test(unsigned mode)
 	if (interface == nullptr)
 		errx(1, "cannot alloc interface");
 
-	if (interface->probe()) {
+	if (interface->init()) {
 		delete interface;
 		errx(1, "interface init failed");
 	} else {

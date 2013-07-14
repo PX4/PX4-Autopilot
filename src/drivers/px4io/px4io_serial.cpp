@@ -32,7 +32,7 @@
  ****************************************************************************/
 
  /**
-  * @file interface_serial.cpp
+  * @file px4io_serial.cpp
   *
   * Serial interface for PX4IO
   */
@@ -85,7 +85,7 @@ public:
 	PX4IO_serial();
 	virtual ~PX4IO_serial();
 
-	virtual int	probe();
+	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count = 1);
 	virtual int	write(unsigned address, void *data, unsigned count = 1);
 	virtual int	ioctl(unsigned operation, unsigned &arg);
@@ -181,43 +181,6 @@ PX4IO_serial::PX4IO_serial() :
 	_pc_idle(perf_alloc(PC_COUNT,		"io_idle     ")),
 	_pc_badidle(perf_alloc(PC_COUNT,	"io_badidle  "))
 {
-	/* allocate DMA */
-	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
-	_rx_dma = stm32_dmachannel(PX4IO_SERIAL_RX_DMAMAP);
-	if ((_tx_dma == nullptr) || (_rx_dma == nullptr))
-		return;
-
-	/* configure pins for serial use */
-	stm32_configgpio(PX4IO_SERIAL_TX_GPIO);
-	stm32_configgpio(PX4IO_SERIAL_RX_GPIO);
-
-	/* reset & configure the UART */
-	rCR1 = 0;
-	rCR2 = 0;
-	rCR3 = 0;
-
-	/* eat any existing interrupt status */
-	(void)rSR;
-	(void)rDR;
-
-	/* configure line speed */
-	uint32_t usartdiv32 = PX4IO_SERIAL_CLOCK / (PX4IO_SERIAL_BITRATE / 2);
-	uint32_t mantissa = usartdiv32 >> 5;
-	uint32_t fraction = (usartdiv32 - (mantissa << 5) + 1) >> 1;
-	rBRR = (mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT);
-
-	/* attach serial interrupt handler */
-	irq_attach(PX4IO_SERIAL_VECTOR, _interrupt);
-	up_enable_irq(PX4IO_SERIAL_VECTOR);
-
-	/* enable UART in DMA mode, enable error and line idle interrupts */
-	/* rCR3 = USART_CR3_EIE;*/
-	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
-
-	/* create semaphores */
-	sem_init(&_completion_semaphore, 0, 0);
-	sem_init(&_bus_semaphore, 0, 1);
-
 	g_interface = this;
 }
 
@@ -265,14 +228,47 @@ PX4IO_serial::~PX4IO_serial()
 }
 
 int
-PX4IO_serial::probe()
+PX4IO_serial::init()
 {
-	/* XXX this could try talking to IO */
+	/* allocate DMA */
+	_tx_dma = stm32_dmachannel(PX4IO_SERIAL_TX_DMAMAP);
+	_rx_dma = stm32_dmachannel(PX4IO_SERIAL_RX_DMAMAP);
+	if ((_tx_dma == nullptr) || (_rx_dma == nullptr))
+		return -1;
 
-	if (_tx_dma == nullptr)
-		return -1;
-	if (_rx_dma == nullptr)
-		return -1;
+	/* configure pins for serial use */
+	stm32_configgpio(PX4IO_SERIAL_TX_GPIO);
+	stm32_configgpio(PX4IO_SERIAL_RX_GPIO);
+
+	/* reset & configure the UART */
+	rCR1 = 0;
+	rCR2 = 0;
+	rCR3 = 0;
+
+	/* eat any existing interrupt status */
+	(void)rSR;
+	(void)rDR;
+
+	/* configure line speed */
+	uint32_t usartdiv32 = PX4IO_SERIAL_CLOCK / (PX4IO_SERIAL_BITRATE / 2);
+	uint32_t mantissa = usartdiv32 >> 5;
+	uint32_t fraction = (usartdiv32 - (mantissa << 5) + 1) >> 1;
+	rBRR = (mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT);
+
+	/* attach serial interrupt handler */
+	irq_attach(PX4IO_SERIAL_VECTOR, _interrupt);
+	up_enable_irq(PX4IO_SERIAL_VECTOR);
+
+	/* enable UART in DMA mode, enable error and line idle interrupts */
+	/* rCR3 = USART_CR3_EIE;*/
+	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
+
+	/* create semaphores */
+	sem_init(&_completion_semaphore, 0, 0);
+	sem_init(&_bus_semaphore, 0, 1);
+
+
+	/* XXX this could try talking to IO */
 
 	return 0;
 }
@@ -344,10 +340,8 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 	uint8_t offset = address & 0xff;
 	const uint16_t *values = reinterpret_cast<const uint16_t *>(data);
 
-	if (count > PKT_MAX_REGS) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (count > PKT_MAX_REGS)
+		return -EINVAL;
 
 	sem_wait(&_bus_semaphore);
 
@@ -373,8 +367,7 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 			if (PKT_CODE(_dma_buffer) == PKT_CODE_ERROR) {
 
 				/* IO didn't like it - no point retrying */
-				errno = EINVAL;
-				result = -1;
+				result = -EINVAL;
 				perf_count(_pc_protoerrs);
 			}
 
@@ -384,6 +377,9 @@ PX4IO_serial::write(unsigned address, void *data, unsigned count)
 	}
 
 	sem_post(&_bus_semaphore);
+
+	if (result == OK)
+		result = count;
 	return result;
 }
 
@@ -416,16 +412,14 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 			if (PKT_CODE(_dma_buffer) == PKT_CODE_ERROR) {
 
 				/* IO didn't like it - no point retrying */
-				errno = EINVAL;
-				result = -1;
+				result = -EINVAL;
 				perf_count(_pc_protoerrs);
 
 			/* compare the received count with the expected count */
 			} else if (PKT_COUNT(_dma_buffer) != count) {
 
 				/* IO returned the wrong number of registers - no point retrying */
-				errno = EIO;
-				result = -1;
+				result = -EIO;
 				perf_count(_pc_protoerrs);
 
 			/* successful read */				
@@ -441,6 +435,9 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 	}
 
 	sem_post(&_bus_semaphore);
+
+	if (result == OK)
+		result = count;
 	return result;
 }
 
@@ -524,8 +521,7 @@ PX4IO_serial::_wait_complete()
 			/* check for DMA errors */
 			if (_rx_dma_status & DMA_STATUS_TEIF) {
 				perf_count(_pc_dmaerrs);
-				ret = -1;
-				errno = EIO;
+				ret = -EIO;
 				break;
 			}
 
@@ -534,8 +530,7 @@ PX4IO_serial::_wait_complete()
 			_dma_buffer.crc = 0;
 			if ((crc != crc_packet(&_dma_buffer)) | (PKT_CODE(_dma_buffer) == PKT_CODE_CORRUPT)) {
 				perf_count(_pc_crcerrs);
-				ret = -1;
-				errno = EIO;
+				ret = -EIO;
 				break;
 			}
 
