@@ -45,7 +45,7 @@
  *
  * Interface application notes:
  *
- *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/application-notes.aspx#)
+ *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
 #include <nuttx/config.h>
@@ -94,7 +94,12 @@
 #define I2C_ADDRESS_MS5525DSO	0x77	/* 7-bit address, addr. pin pulled low */
 
 /* Register address */
-#define READ_CMD	0x07	/* Read the data */
+#define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
+#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start pressure conversion */
+#define ADDR_DATA			0x00	/* address of 3 bytes / 32bit pressure data */
+#define ADDR_PROM_SETUP			0xA0	/* address of 8x 2 bytes factory and calibration data */
+#define ADDR_PROM_C1			0xA2	/* address of 6x 2 bytes calibration data */
 
 /**
  * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h.
@@ -136,122 +141,122 @@ MEASAirspeed::MEASAirspeed(int bus, int address) : Airspeed(bus, address,
 int
 MEASAirspeed::measure()
 {
-	// int ret;
+	int ret;
 
-	// /*
-	//  * Send the command to begin a measurement.
-	//  */
-	// uint8_t cmd = READ_CMD;
-	// ret = transfer(&cmd, 1, nullptr, 0);
+	/*
+	 * Send the command to begin a measurement.
+	 */
+	uint8_t cmd = ADDR_RESET_CMD;
+	ret = transfer(&cmd, 1, nullptr, 0);
 
-	// if (OK != ret) {
-	// 	perf_count(_comms_errors);
-	// 	log("i2c::transfer returned %d", ret);
-	// 	return ret;
-	// }
+	if (OK != ret) {
+		perf_count(_comms_errors);
+		log("i2c::transfer returned %d", ret);
+		return ret;
+	}
 
-	// ret = OK;
+	ret = OK;
 
-	// return ret;
+	return ret;
 }
 
 int
 MEASAirspeed::collect()
 {
-	// int	ret = -EIO;
+	int	ret = -EIO;
 
-	// /* read from the sensor */
-	// uint8_t val[2] = {0, 0};
+	/* read from the sensor */
+	uint8_t val[2] = {0, 0};
 
-	// perf_begin(_sample_perf);
+	perf_begin(_sample_perf);
 
-	// ret = transfer(nullptr, 0, &val[0], 2);
+	ret = transfer(nullptr, 0, &val[0], 2);
 
-	// if (ret < 0) {
-	// 	log("error reading from sensor: %d", ret);
-	// 	return ret;
-	// }
+	if (ret < 0) {
+		log("error reading from sensor: %d", ret);
+		return ret;
+	}
 
-	// uint16_t diff_pres_pa = val[1] << 8 | val[0];
+	uint16_t diff_pres_pa = val[1] << 8 | val[0];
 
-	// if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
-	// 	diff_pres_pa = 0;
+	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
+		diff_pres_pa = 0;
 
-	// } else {
-	// 	diff_pres_pa -= _diff_pres_offset;
-	// }
+	} else {
+		diff_pres_pa -= _diff_pres_offset;
+	}
 
-	// // XXX we may want to smooth out the readings to remove noise.
+	// XXX we may want to smooth out the readings to remove noise.
 
-	// _reports[_next_report].timestamp = hrt_absolute_time();
-	// _reports[_next_report].differential_pressure_pa = diff_pres_pa;
+	_reports[_next_report].timestamp = hrt_absolute_time();
+	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
 
-	// // Track maximum differential pressure measured (so we can work out top speed).
-	// if (diff_pres_pa > _reports[_next_report].max_differential_pressure_pa) {
-	// 	_reports[_next_report].max_differential_pressure_pa = diff_pres_pa;
-	// }
+	// Track maximum differential pressure measured (so we can work out top speed).
+	if (diff_pres_pa > _reports[_next_report].max_differential_pressure_pa) {
+		_reports[_next_report].max_differential_pressure_pa = diff_pres_pa;
+	}
 
-	// /* announce the airspeed if needed, just publish else */
-	// orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_reports[_next_report]);
+	/* announce the airspeed if needed, just publish else */
+	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_reports[_next_report]);
 
-	// /* post a report to the ring - note, not locked */
-	// INCREMENT(_next_report, _num_reports);
+	/* post a report to the ring - note, not locked */
+	INCREMENT(_next_report, _num_reports);
 
-	// /* if we are running up against the oldest report, toss it */
-	// if (_next_report == _oldest_report) {
-	// 	perf_count(_buffer_overflows);
-	// 	INCREMENT(_oldest_report, _num_reports);
-	// }
+	/* if we are running up against the oldest report, toss it */
+	if (_next_report == _oldest_report) {
+		perf_count(_buffer_overflows);
+		INCREMENT(_oldest_report, _num_reports);
+	}
 
-	// /* notify anyone waiting for data */
-	// poll_notify(POLLIN);
+	/* notify anyone waiting for data */
+	poll_notify(POLLIN);
 
-	// ret = OK;
+	ret = OK;
 
-	// perf_end(_sample_perf);
+	perf_end(_sample_perf);
 
-	// return ret;
+	return ret;
 }
 
 void
 MEASAirspeed::cycle()
 {
-	// /* collection phase? */
-	// if (_collect_phase) {
+	/* collection phase? */
+	if (_collect_phase) {
 
-	// 	/* perform collection */
-	// 	if (OK != collect()) {
-	// 		log("collection error");
-	// 		/* restart the measurement state machine */
-	// 		start();
-	// 		return;
-	// 	}
+		/* perform collection */
+		if (OK != collect()) {
+			log("collection error");
+			/* restart the measurement state machine */
+			start();
+			return;
+		}
 
-	// 	/* next phase is measurement */
-	// 	_collect_phase = false;
+		/* next phase is measurement */
+		_collect_phase = false;
 
-	// 	/*
-	// 	 * Is there a collect->measure gap?
-	// 	 */
-	// 	if (_measure_ticks > USEC2TICK(CONVERSION_INTERVAL)) {
+		/*
+		 * Is there a collect->measure gap?
+		 */
+		if (_measure_ticks > USEC2TICK(CONVERSION_INTERVAL)) {
 
-	// 		/* schedule a fresh cycle call when we are ready to measure again */
-	// 		work_queue(HPWORK,
-	// 			   &_work,
-	// 			   (worker_t)&Airspeed::cycle_trampoline,
-	// 			   this,
-	// 			   _measure_ticks - USEC2TICK(CONVERSION_INTERVAL));
+			/* schedule a fresh cycle call when we are ready to measure again */
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&Airspeed::cycle_trampoline,
+				   this,
+				   _measure_ticks - USEC2TICK(CONVERSION_INTERVAL));
 
-	// 		return;
-	// 	}
-	// }
+			return;
+		}
+	}
 
-	// /* measurement phase */
-	// if (OK != measure())
-	// 	log("measure error");
+	/* measurement phase */
+	if (OK != measure())
+		log("measure error");
 
-	// /* next phase is collection */
-	// _collect_phase = true;
+	/* next phase is collection */
+	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(HPWORK,
@@ -293,7 +298,42 @@ start(int i2c_bus)
 		errx(1, "already started");
 
 	/* create the driver, try the MS4525DO first */
-	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO);
+	//g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO);
+
+		{
+	int bus = PX4_I2C_BUS_EXPANSION;
+	//delete g_dev;
+
+	// XXX hack scan all addresses
+	for (int i = 1; i < 0xFF / 2; i++) {
+		warnx("scanning addr (7 bit): %0x", i);
+		g_dev = new MEASAirspeed(bus, i);
+		warnx("probing");
+		if (OK == g_dev->init()) {
+			warnx("SUCCESS!");
+			exit(0);
+		} else {
+			delete g_dev;
+		}
+
+	}
+
+	// bus = PX4_I2C_BUS_ESC;
+
+	// for (int i = 1; i < 0xFF / 2; i++) {
+	// 	warnx("scanning addr (7 bit): %0x", i);
+	// 	g_dev = new MEASAirspeed(bus, i);
+	// 	if (OK == g_dev->init()) {
+	// 		warnx("SUCCESS!");
+	// 		exit(0);
+	// 	} else {
+	// 		delete g_dev;
+	// 	}
+
+	// }
+
+	exit(1);
+}
 
 	/* check if the MS4525DO was instantiated */
 	if (g_dev == nullptr)
