@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,50 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_global_position_setpoint.h
- * Definition of the global WGS84 position setpoint uORB topic.
- */
-
-#ifndef TOPIC_VEHICLE_GLOBAL_POSITION_SETPOINT_H_
-#define TOPIC_VEHICLE_GLOBAL_POSITION_SETPOINT_H_
-
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
-#include "mission.h"
-
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * Global position setpoint in WGS84 coordinates.
+ * @file comms.c
+ * @author Simon Wilks <sjwilks@gmail.com>
  *
- * This is the position the MAV is heading towards. If it of type loiter,
- * the MAV is circling around it with the given loiter radius in meters.
  */
-struct vehicle_global_position_setpoint_s
+
+#include "comms.h"
+
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <systemlib/err.h>
+#include <termios.h>
+
+int
+open_uart(const char *device)
 {
-	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	int32_t lat;			/**< latitude in degrees * 1E7				*/
-	int32_t lon;			/**< longitude in degrees * 1E7				*/
-	float altitude;			/**< altitude in meters					*/
-	float yaw;			/**< in radians NED -PI..+PI 				*/
-	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
-	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
-	float param1;
-	float param2;
-	float param3;
-	float param4;
-};
+	/* baud rate */
+	static const speed_t speed = B19200;
 
-/**
- * @}
- */
+	/* open uart */
+	const int uart = open(device, O_RDWR | O_NOCTTY);
 
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_global_position_setpoint);
+	if (uart < 0) {
+		err(1, "Error opening port: %s", device);
+	}
+	
+	/* Back up the original uart configuration to restore it after exit */	
+	int termios_state;
+	struct termios uart_config_original;
+	if ((termios_state = tcgetattr(uart, &uart_config_original)) < 0) {
+		close(uart);
+		err(1, "Error getting baudrate / termios config for %s: %d", device, termios_state);
+	}
 
-#endif
+	/* Fill the struct for the new configuration */
+	struct termios uart_config;
+	tcgetattr(uart, &uart_config);
+
+	/* Clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+
+	/* Set baud rate */
+	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+		close(uart);
+		err(1, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)",
+			 device, termios_state);
+	}
+
+	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+		close(uart);
+		err(1, "Error setting baudrate / termios config for %s (tcsetattr)", device);
+	}
+
+	/* Activate single wire mode */
+	ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+
+	return uart;
+}

@@ -78,7 +78,7 @@ device::Device
 }
 
 PX4IO_I2C::PX4IO_I2C(int bus, uint8_t address) :
-	I2C("PX4IO_i2c", nullptr, bus, address, 400000)
+	I2C("PX4IO_i2c", nullptr, bus, address, 320000)
 {
 	_retries = 3;
 }

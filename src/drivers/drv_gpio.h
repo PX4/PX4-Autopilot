@@ -63,7 +63,8 @@
  * they also export GPIO-like things.  This is always the GPIOs on the
  * main board.
  */
-# define GPIO_DEVICE_PATH	"/dev/px4fmu"
+# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
+# define PX4IO_DEVICE_PATH	"/dev/px4io"
 
 #endif
 
@@ -92,22 +93,17 @@
  * they also export GPIO-like things.  This is always the GPIOs on the
  * main board.
  */
-# define GPIO_DEVICE_PATH	"/dev/px4fmu"
+# define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
+# define PX4IO_DEVICE_PATH	"/dev/px4io"
 
 #endif
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 /* no GPIO driver on the PX4IOv1 board */
-# define GPIO_DEVICE_PATH	"/nonexistent"
 #endif
 
 #ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 /* no GPIO driver on the PX4IOv2 board */
-# define GPIO_DEVICE_PATH	"/nonexistent"
-#endif
-
-#ifndef GPIO_DEVICE_PATH
-#  error No GPIO support for this board.
 #endif
 
 /*

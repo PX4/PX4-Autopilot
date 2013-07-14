@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/optical_flow.h>
@@ -615,7 +616,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 18;
+	const ssize_t fdsc = 19;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -637,6 +638,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_s local_pos;
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
+		struct vehicle_global_position_setpoint_s global_pos_sp;
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
 		struct optical_flow_s flow;
@@ -660,6 +662,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int local_pos_sub;
 		int local_pos_sp_sub;
 		int global_pos_sub;
+		int global_pos_sp_sub;
 		int gps_pos_sub;
 		int vicon_pos_sub;
 		int flow_sub;
@@ -689,6 +692,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ARSP_s log_ARSP;
 			struct log_FLOW_s log_FLOW;
 			struct log_GPOS_s log_GPOS;
+			struct log_GPSP_s log_GPSP;
 			struct log_ESC_s log_ESC;
 		} body;
 	} log_msg = {
@@ -772,6 +776,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- GLOBAL POSITION --- */
 	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	fds[fdsc_count].fd = subs.global_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- GLOBAL POSITION SETPOINT--- */
+	subs.global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	fds[fdsc_count].fd = subs.global_pos_sp_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1075,6 +1085,25 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GPOS.vel_e = buf.global_pos.vy;
 				log_msg.body.log_GPOS.vel_d = buf.global_pos.vz;
 				LOGBUFFER_WRITE_AND_COUNT(GPOS);
+			}
+
+			/* --- GLOBAL POSITION SETPOINT --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_global_position_setpoint), subs.global_pos_sp_sub, &buf.global_pos_sp);
+				log_msg.msg_type = LOG_GPSP_MSG;
+				log_msg.body.log_GPSP.altitude_is_relative = buf.global_pos_sp.altitude_is_relative;
+				log_msg.body.log_GPSP.lat = buf.global_pos_sp.lat;
+				log_msg.body.log_GPSP.lon = buf.global_pos_sp.lon;
+				log_msg.body.log_GPSP.altitude = buf.global_pos_sp.altitude;
+				log_msg.body.log_GPSP.yaw = buf.global_pos_sp.yaw;
+				log_msg.body.log_GPSP.loiter_radius = buf.global_pos_sp.loiter_radius;
+				log_msg.body.log_GPSP.loiter_direction = buf.global_pos_sp.loiter_direction;
+				log_msg.body.log_GPSP.nav_cmd = buf.global_pos_sp.nav_cmd;
+				log_msg.body.log_GPSP.param1 = buf.global_pos_sp.param1;
+				log_msg.body.log_GPSP.param2 = buf.global_pos_sp.param2;
+				log_msg.body.log_GPSP.param3 = buf.global_pos_sp.param3;
+				log_msg.body.log_GPSP.param4 = buf.global_pos_sp.param4;
+				LOGBUFFER_WRITE_AND_COUNT(GPSP);
 			}
 
 			/* --- VICON POSITION --- */

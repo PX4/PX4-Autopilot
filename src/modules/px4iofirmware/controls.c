@@ -95,9 +95,16 @@ controls_tick() {
 	 */
 
 	perf_begin(c_gather_dsm);
-	bool dsm_updated = dsm_input(r_raw_rc_values, &r_raw_rc_count);
-	if (dsm_updated)
+	uint16_t temp_count = r_raw_rc_count;
+	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count);
+	if (dsm_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
+		r_raw_rc_count = temp_count & 0x7fff;
+		if (temp_count & 0x8000)
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM11;
+		else
+			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RC_DSM11;
+	}
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);

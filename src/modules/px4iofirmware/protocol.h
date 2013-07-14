@@ -106,6 +106,7 @@
 #define PX4IO_P_STATUS_FLAGS_ARM_SYNC		(1 << 9) /* the arming state between IO and FMU is in sync */
 #define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 10) /* initialisation of the IO completed without error */
 #define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
+#define PX4IO_P_STATUS_FLAGS_RC_DSM11		(1 << 12) /* DSM input is 11 bit data */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* [1] VBatt is very close to regulator dropout */
@@ -169,7 +170,14 @@
 
 #define PX4IO_P_SETUP_VBATT_SCALE		6	/* [1] battery voltage correction factor (float) */
 #define PX4IO_P_SETUP_VSERVO_SCALE		6	/* [2] servo voltage correction factor (float) */
- 					     /*	7 */
+#define PX4IO_P_SETUP_DSM			7	/* DSM bind state */
+enum {							/* DSM bind states */
+	dsm_bind_power_down = 0,
+	dsm_bind_power_up,
+	dsm_bind_set_rx_out,
+	dsm_bind_send_pulses,
+	dsm_bind_reinit_uart
+};
  					     /*	8 */
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
