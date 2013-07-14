@@ -395,25 +395,4 @@ cdev_poll(struct file *filp, struct pollfd *fds, bool setup)
 	return cdev->poll(filp, fds, setup);
 }
 
-int
-CDev::read(unsigned offset, void *data, unsigned count)
-{
-	errno = ENODEV;
-	return -1;
-}
-
-int
-CDev::write(unsigned offset, void *data, unsigned count)
-{
-	errno = ENODEV;
-	return -1;
-}
-
-int
-CDev::ioctl(unsigned operation, unsigned &arg)
-{
-	errno = ENODEV;
-	return -1;
-}
-
 } // namespace device
