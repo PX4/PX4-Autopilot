@@ -88,7 +88,7 @@ protected:
 	    uint16_t address,
 	    uint32_t frequency,
 	    int irq = 0);
-	~I2C();
+	virtual ~I2C();
 
 	virtual int	init();
 
