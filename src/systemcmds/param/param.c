@@ -327,12 +327,12 @@ do_compare(const char* name, const char* val)
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &i)) {
-			printf("curr: %d: ", i);
 
 			/* convert string */
 			char* end;
 			int j = strtol(val,&end,10);
 			if (i == j) {
+				printf(" %d: ", i);
 				ret = 0;
 			}
 
@@ -342,12 +342,12 @@ do_compare(const char* name, const char* val)
 
 	case PARAM_TYPE_FLOAT:
 		if (!param_get(param, &f)) {
-			printf("curr: %4.4f: ", (double)f);
 
 			/* convert string */
 			char* end;
-			float g = strtod(val,&end);
+			float g = strtod(val, &end);
 			if (fabsf(f - g) < 1e-7f) {
+				printf(" %4.4f: ", (double)f);
 				ret = 0;	
 			}
 		}
