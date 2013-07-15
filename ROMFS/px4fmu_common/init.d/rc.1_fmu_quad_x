@@ -3,10 +3,8 @@
 # Flight startup script for PX4FMU with PWM outputs.
 #
  
-# Disable the USB interface
+# disable USB and autostart
 set USB no
- 
-# Disable autostarting other apps
 set MODE custom
  
 echo "[init] doing PX4FMU Quad startup..."
@@ -25,7 +23,16 @@ if [ -f /fs/microsd/params ]
 then
 	param load /fs/microsd/params
 fi
- 
+
+#
+# Load default params for this platform
+#
+if param compare SYS_AUTOCONFIG 1
+then
+	# Set all params here, then disable autoconfig
+	param set SYS_AUTOCONFIG 0
+fi
+
 #
 # Force some key parameters to sane values
 # MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
@@ -48,6 +55,11 @@ sh /etc/init.d/rc.sensors
 # Start the commander.
 #
 commander start
+
+#
+# Start GPS interface (depends on orb)
+#
+gps start
  
 #
 # Start the attitude estimator
@@ -57,11 +69,22 @@ attitude_estimator_ekf start
 echo "[init] starting PWM output"
 fmu mode_pwm
 mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
+pwm -u 400 -m 0xff
  
 #
 # Start attitude control
 #
 multirotor_att_control start
+
+#
+# Start logging
+#
+sdlog2 start -r 50 -a -b 14
  
-echo "[init] startup done, exiting"
-exit
+#
+# Start system state
+#
+if blinkm start
+then
+	blinkm systemstate
+fi
