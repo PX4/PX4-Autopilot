@@ -187,6 +187,7 @@ extern void	controls_init(void);
 extern void	controls_tick(void);
 extern int	dsm_init(const char *device);
 extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
+extern void     dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
 extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
 

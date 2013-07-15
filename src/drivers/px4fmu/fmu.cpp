@@ -167,7 +167,7 @@ PX4FMU	*g_fmu;
 } // namespace
 
 PX4FMU::PX4FMU() :
-	CDev("fmuservo", "/dev/px4fmu"),
+	CDev("fmuservo", PX4FMU_DEVICE_PATH),
 	_mode(MODE_NONE),
 	_pwm_default_rate(50),
 	_pwm_alt_rate(50),

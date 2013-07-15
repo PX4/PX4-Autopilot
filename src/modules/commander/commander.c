@@ -917,6 +917,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* XXX use this! */
 	//uint64_t failsave_ll_start_time = 0;
 
+	enum VEHICLE_MANUAL_SAS_MODE	manual_sas_mode;
 	bool state_changed = true;
 	bool param_init_forced = true;
 
@@ -1567,17 +1568,23 @@ int commander_thread_main(int argc, char *argv[])
 				*/
 				// printf("checking\n");
 				if ((sp_man.yaw < -STICK_ON_OFF_LIMIT) && (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
+
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 
 						if((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
 						 (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
 						 (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
 						) {
-							arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, safety_pub, &safety, mavlink_fd);
-							tune_positive();
+							if (current_status.mode_switch != MODE_SWITCH_MANUAL) {
+								mavlink_log_critical(mavlink_fd, "DISARM DENY, go manual mode first");
+								tune_negative();
+							} else {
+								arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, safety_pub, &safety, mavlink_fd);
+								tune_positive();
+							}
 							
 						} else {
-							mavlink_log_critical(mavlink_fd, "STICK DISARM not allowed");
+							mavlink_log_critical(mavlink_fd, "DISARM not allowed");
 							tune_negative();
 						}
 						stick_off_counter = 0;
@@ -1589,7 +1596,10 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* check if left stick is in lower right position --> arm */
-				if (sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.2f) {
+				if (current_status.flag_control_manual_enabled &&
+					current_status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS &&
+					sp_man.yaw > STICK_ON_OFF_LIMIT &&
+					sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						arming_state_transition(status_pub, &current_status, ARMING_STATE_ARMED, safety_pub, &safety, mavlink_fd);
 						stick_on_counter = 0;

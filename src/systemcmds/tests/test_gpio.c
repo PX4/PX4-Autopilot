@@ -92,7 +92,7 @@ int test_gpio(int argc, char *argv[])
 	int		fd;
 	int		ret = 0;
 
-	fd = open(GPIO_DEVICE_PATH, 0);
+	fd = open(PX4IO_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		printf("GPIO: open fail\n");

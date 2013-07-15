@@ -49,7 +49,6 @@
 #include <mqueue.h>
 #include <string.h>
 #include "mavlink_bridge_header.h"
-#include <v1.0/common/mavlink.h>
 #include <drivers/drv_hrt.h>
 #include <time.h>
 #include <float.h>
@@ -464,7 +463,7 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 }
 
 void
-mavlink_send_uart_bytes(mavlink_channel_t channel, uint8_t *ch, int length)
+mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length)
 {
 	write(uart, ch, (size_t)(sizeof(uint8_t) * length));
 }
@@ -472,7 +471,7 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, uint8_t *ch, int length)
 /*
  * Internal function to give access to the channel status for each channel
  */
-mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
+extern mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
 {
 	static mavlink_status_t m_mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
 	return &m_mavlink_status[channel];
@@ -481,7 +480,7 @@ mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
 /*
  * Internal function to give access to the channel buffer for each channel
  */
-mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
+extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 {
 	static mavlink_message_t m_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
 	return &m_mavlink_buffer[channel];

@@ -177,3 +177,6 @@ ORB_DEFINE(debug_key_value, struct debug_key_value_s);
 
 #include "topics/navigation_capabilities.h"
 ORB_DEFINE(navigation_capabilities, struct navigation_capabilities_s);
+
+#include "topics/esc_status.h"
+ORB_DEFINE(esc_status, struct esc_status_s);

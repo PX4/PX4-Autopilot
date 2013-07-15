@@ -73,6 +73,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_control_debug.h>
@@ -81,6 +82,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/esc_status.h>
 
 #include <systemlib/systemlib.h>
 
@@ -614,9 +616,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		errx(1, "can't allocate log buffer, exiting.");
 	}
 
-	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
-	/* number of messages */
-	const ssize_t fdsc = 20;
+	/* --- IMPORTANT: DEFINE MAX NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
+	/* max number of messages */
+	const ssize_t fdsc = 21;
 
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
@@ -642,6 +644,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_s local_pos;
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
+		struct vehicle_global_position_setpoint_s global_pos_sp;
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
 		struct vehicle_control_debug_s control_debug;
@@ -649,6 +652,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
 		struct airspeed_s airspeed;
+		struct esc_status_s esc;
 	} buf;
 	memset(&buf, 0, sizeof(buf));
 
@@ -666,12 +670,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int local_pos_sub;
 		int local_pos_sp_sub;
 		int global_pos_sub;
+		int global_pos_sp_sub;
 		int gps_pos_sub;
 		int vicon_pos_sub;
 		int control_debug_sub;
 		int flow_sub;
 		int rc_sub;
 		int airspeed_sub;
+		int esc_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -696,6 +702,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ARSP_s log_ARSP;
 			struct log_FLOW_s log_FLOW;
 			struct log_GPOS_s log_GPOS;
+			struct log_GPSP_s log_GPSP;
+			struct log_ESC_s log_ESC;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -787,6 +795,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
+	/* --- GLOBAL POSITION SETPOINT--- */
+	subs.global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	fds[fdsc_count].fd = subs.global_pos_sp_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
 	/* --- VICON POSITION --- */
 	subs.vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
 	fds[fdsc_count].fd = subs.vicon_pos_sub;
@@ -816,6 +830,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].fd = subs.airspeed_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;	
+
+	/* --- ESCs --- */
+	subs.esc_sub = orb_subscribe(ORB_ID(esc_status));
+	fds[fdsc_count].fd = subs.esc_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
 
 	/* WARNING: If you get the error message below,
 	 * then the number of registered messages (fdsc)
@@ -1108,6 +1128,25 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(GPOS);
 			}
 
+			/* --- GLOBAL POSITION SETPOINT --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_global_position_setpoint), subs.global_pos_sp_sub, &buf.global_pos_sp);
+				log_msg.msg_type = LOG_GPSP_MSG;
+				log_msg.body.log_GPSP.altitude_is_relative = buf.global_pos_sp.altitude_is_relative;
+				log_msg.body.log_GPSP.lat = buf.global_pos_sp.lat;
+				log_msg.body.log_GPSP.lon = buf.global_pos_sp.lon;
+				log_msg.body.log_GPSP.altitude = buf.global_pos_sp.altitude;
+				log_msg.body.log_GPSP.yaw = buf.global_pos_sp.yaw;
+				log_msg.body.log_GPSP.loiter_radius = buf.global_pos_sp.loiter_radius;
+				log_msg.body.log_GPSP.loiter_direction = buf.global_pos_sp.loiter_direction;
+				log_msg.body.log_GPSP.nav_cmd = buf.global_pos_sp.nav_cmd;
+				log_msg.body.log_GPSP.param1 = buf.global_pos_sp.param1;
+				log_msg.body.log_GPSP.param2 = buf.global_pos_sp.param2;
+				log_msg.body.log_GPSP.param3 = buf.global_pos_sp.param3;
+				log_msg.body.log_GPSP.param4 = buf.global_pos_sp.param4;
+				LOGBUFFER_WRITE_AND_COUNT(GPSP);
+			}
+
 			/* --- VICON POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
@@ -1165,6 +1204,28 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_AIRS.indicated_airspeed = buf.airspeed.indicated_airspeed_m_s;
 				log_msg.body.log_AIRS.true_airspeed = buf.airspeed.true_airspeed_m_s;
 				LOGBUFFER_WRITE_AND_COUNT(AIRS);
+			}
+
+			/* --- ESCs --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(esc_status), subs.esc_sub, &buf.esc);
+				for (uint8_t i=0; i<buf.esc.esc_count; i++)
+				{
+					log_msg.msg_type = LOG_ESC_MSG;
+					log_msg.body.log_ESC.counter = buf.esc.counter;
+					log_msg.body.log_ESC.esc_count = buf.esc.esc_count;
+					log_msg.body.log_ESC.esc_connectiontype = buf.esc.esc_connectiontype;
+					log_msg.body.log_ESC.esc_num = i;
+					log_msg.body.log_ESC.esc_address = buf.esc.esc[i].esc_address;
+					log_msg.body.log_ESC.esc_version = buf.esc.esc[i].esc_version;
+					log_msg.body.log_ESC.esc_voltage = buf.esc.esc[i].esc_voltage;
+					log_msg.body.log_ESC.esc_current = buf.esc.esc[i].esc_current;
+					log_msg.body.log_ESC.esc_rpm = buf.esc.esc[i].esc_rpm;
+					log_msg.body.log_ESC.esc_temperature = buf.esc.esc[i].esc_temperature;
+					log_msg.body.log_ESC.esc_setpoint = buf.esc.esc[i].esc_setpoint;
+					log_msg.body.log_ESC.esc_setpoint_raw = buf.esc.esc[i].esc_setpoint_raw;
+					LOGBUFFER_WRITE_AND_COUNT(ESC);
+				}
 			}
 
 #ifdef SDLOG2_DEBUG

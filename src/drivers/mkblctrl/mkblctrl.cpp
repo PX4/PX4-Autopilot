@@ -75,6 +75,7 @@
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/esc_status.h>
 
 #include <systemlib/err.h>
 
@@ -88,7 +89,7 @@
 #define MOTOR_STATE_PRESENT_MASK		0x80
 #define MOTOR_STATE_ERROR_MASK		0x7F
 #define MOTOR_SPINUP_COUNTER			2500
-
+#define ESC_UORB_PUBLISH_DELAY			200
 
 class MK : public device::I2C
 {
@@ -120,6 +121,7 @@ public:
 	int		set_pwm_rate(unsigned rate);
 	int		set_motor_count(unsigned count);
 	int		set_motor_test(bool motortest);
+	int		set_overrideSecurityChecks(bool overrideSecurityChecks);
 	int		set_px4mode(int px4mode);
 	int		set_frametype(int frametype);
 	unsigned int		mk_check_for_blctrl(unsigned int count, bool showOutput);
@@ -137,11 +139,15 @@ private:
 	unsigned int		_motor;
 	int    _px4mode;
 	int    _frametype;
+
 	orb_advert_t	_t_outputs;
 	orb_advert_t	_t_actuators_effective;
+	orb_advert_t	_t_esc_status;
+
 	unsigned int	_num_outputs;
 	bool		_primary_pwm_device;
 	bool     _motortest;
+	bool 		_overrideSecurityChecks;
 
 	volatile bool	_task_should_exit;
 	bool		_armed;
@@ -215,6 +221,7 @@ struct MotorData_t {
 	unsigned int Version;                        // the version of the BL (0 = old)
 	unsigned int SetPoint;                       // written by attitude controller
 	unsigned int SetPointLowerBits;      // for higher Resolution of new BLs
+	float SetPoint_PX4; 			     // Values from PX4
 	unsigned int State;                          // 7 bit for I2C error counter, highest bit indicates if motor is present
 	unsigned int ReadMode;                       // select data to read
 	unsigned short RawPwmValue;							// length of PWM pulse
@@ -244,8 +251,10 @@ MK::MK(int bus) :
 	_t_actuator_safety(-1),
 	_t_outputs(0),
 	_t_actuators_effective(0),
+	_t_esc_status(0),
 	_num_outputs(0),
 	_motortest(false),
+	_overrideSecurityChecks(false),
 	_motor(-1),
 	_px4mode(MAPPING_MK),
 	_frametype(FRAME_PLUS),
@@ -465,6 +474,13 @@ MK::set_motor_test(bool motortest)
 	return OK;
 }
 
+int
+MK::set_overrideSecurityChecks(bool overrideSecurityChecks)
+{
+	_overrideSecurityChecks = overrideSecurityChecks;
+	return OK;
+}
+
 short
 MK::scaling(float val, float inMin, float inMax, float outMin, float outMax)
 {
@@ -507,14 +523,18 @@ MK::task_main()
 	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
 				   &outputs);
 
-
-
 	/* advertise the effective control inputs */
 	actuator_controls_effective_s controls_effective;
 	memset(&controls_effective, 0, sizeof(controls_effective));
 	/* advertise the effective control inputs */
 	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
 				   &controls_effective);
+
+	/* advertise the blctrl status */
+	esc_status_s esc;
+	memset(&esc, 0, sizeof(esc));
+	_t_esc_status = orb_advertise(ORB_ID(esc_status), &esc);
+
 
 
 	pollfd fds[2];
@@ -603,9 +623,11 @@ MK::task_main()
 						}
 					}
 
-					/* don't go under BLCTRL_MIN_VALUE */
-					if (outputs.output[i] < BLCTRL_MIN_VALUE) {
-						outputs.output[i] = BLCTRL_MIN_VALUE;
+					if(!_overrideSecurityChecks) {
+						/* don't go under BLCTRL_MIN_VALUE */
+						if (outputs.output[i] < BLCTRL_MIN_VALUE) {
+							outputs.output[i] = BLCTRL_MIN_VALUE;
+						}
 					}
 
 					/* output to BLCtrl's */
@@ -613,7 +635,10 @@ MK::task_main()
 						mk_servo_test(i);
 
 					} else {
-						mk_servo_set_value(i, scaling(outputs.output[i], -1.0f, 1.0f, 0, 1024));	// scale the output to 0 - 1024 and sent to output routine
+						//mk_servo_set_value(i, scaling(outputs.output[i], -1.0f, 1.0f, 0, 1024));	// scale the output to 0 - 1024 and sent to output routine
+						// 11 Bit
+						Motor[i].SetPoint_PX4 = outputs.output[i];
+						mk_servo_set(i, scaling(outputs.output[i], -1.0f, 1.0f, 0, 2047));	// scale the output to 0 - 2047 and sent to output routine
 					}
 
 				}
@@ -636,8 +661,43 @@ MK::task_main()
 		}
 
 
+
+		/*
+		 * Only update esc topic every half second.
+		 */
+
+		if (hrt_absolute_time() - esc.timestamp > 500000) {
+			esc.counter++;
+			esc.timestamp = hrt_absolute_time();
+			esc.esc_count = (uint8_t) _num_outputs;
+			esc.esc_connectiontype = ESC_CONNECTION_TYPE_I2C;
+
+			for (unsigned int i = 0; i < _num_outputs; i++) {
+				esc.esc[i].esc_address = (uint8_t) BLCTRL_BASE_ADDR + i;
+				esc.esc[i].esc_vendor = ESC_VENDOR_MIKROKOPTER;
+				esc.esc[i].esc_version = (uint16_t) Motor[i].Version;
+				esc.esc[i].esc_voltage = (uint16_t) 0;
+				esc.esc[i].esc_current = (uint16_t) Motor[i].Current;
+				esc.esc[i].esc_rpm = (uint16_t) 0;
+				esc.esc[i].esc_setpoint = (float) Motor[i].SetPoint_PX4;
+				if (Motor[i].Version == 1) {
+					// BLCtrl 2.0 (11Bit)
+					esc.esc[i].esc_setpoint_raw = (uint16_t) (Motor[i].SetPoint<<3) | Motor[i].SetPointLowerBits;
+				} else {
+					// BLCtrl < 2.0 (8Bit)
+					esc.esc[i].esc_setpoint_raw = (uint16_t) Motor[i].SetPoint;
+				}
+				esc.esc[i].esc_temperature = (uint16_t) Motor[i].Temperature;
+				esc.esc[i].esc_state = (uint16_t) Motor[i].State;
+				esc.esc[i].esc_errorcount = (uint16_t) 0;
+			}
+
+			orb_publish(ORB_ID(esc_status), _t_esc_status, &esc);
+		}
+
 	}
 
+	//::close(_t_esc_status);
 	::close(_t_actuators);
 	::close(_t_actuators_effective);
 	::close(_t_actuator_safety);
@@ -716,16 +776,16 @@ MK::mk_check_for_blctrl(unsigned int count, bool showOutput)
 			fprintf(stderr, "[mkblctrl] blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i\n", i, Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
 		}
 
-		if (foundMotorCount != 4 && foundMotorCount != 6 && foundMotorCount != 8) {
-			_task_should_exit = true;
+		
+		if(!_overrideSecurityChecks) {
+			if (foundMotorCount != 4 && foundMotorCount != 6 && foundMotorCount != 8) {
+				_task_should_exit = true;
+			}
 		}
 	}
 
 	return foundMotorCount;
 }
-
-
-
 
 int
 MK::mk_servo_set(unsigned int chan, short val)
@@ -739,17 +799,15 @@ MK::mk_servo_set(unsigned int chan, short val)
 
 	tmpVal = val;
 
-	if (tmpVal > 1024) {
-		tmpVal = 1024;
+	if (tmpVal > 2047) {
+		tmpVal = 2047;
 
 	} else if (tmpVal < 0) {
 		tmpVal = 0;
 	}
 
-	Motor[chan].SetPoint = (uint8_t)(tmpVal / 4);
-	//Motor[chan].SetPointLowerBits = (uint8_t) tmpVal % 4;
-
-	Motor[chan].SetPointLowerBits = 0;
+	Motor[chan].SetPoint = (uint8_t)(tmpVal>>3)&0xff;
+	Motor[chan].SetPointLowerBits = ((uint8_t)tmpVal%8)&0x07;
 
 	if (_armed == false) {
 		Motor[chan].SetPoint = 0;
@@ -1015,8 +1073,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_actuators - 1):
 		if (arg < 2150) {
 			Motor[cmd - PWM_SERVO_SET(0)].RawPwmValue = (unsigned short)arg;
-			mk_servo_set_value(cmd - PWM_SERVO_SET(0), scaling(arg, 1010, 2100, 0, 1024));
-
+			mk_servo_set(cmd - PWM_SERVO_SET(0), scaling(arg, 1010, 2100, 0, 2047));
 		} else {
 			ret = -EINVAL;
 		}
@@ -1113,25 +1170,19 @@ ssize_t
 MK::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
-	// loeschen uint16_t values[4];
 	uint16_t values[8];
 
-	// loeschen if (count > 4) {
-	// loeschen 	// we only have 4 PWM outputs on the FMU
-	// loeschen	count = 4;
-	// loeschen }
 	if (count > _num_outputs) {
 		// we only have 8 I2C outputs in the driver
 		count = _num_outputs;
 	}
-
 
 	// allow for misaligned values
 	memcpy(values, buffer, count * 2);
 
 	for (uint8_t i = 0; i < count; i++) {
 		Motor[i].RawPwmValue = (unsigned short)values[i];
-		mk_servo_set_value(i, scaling(values[i], 1010, 2100, 0, 1024));
+		mk_servo_set(i, scaling(values[i], 1010, 2100, 0, 2047));
 	}
 
 	return count * 2;
@@ -1283,7 +1334,7 @@ enum FrameType {
 PortMode g_port_mode;
 
 int
-mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, int px4mode, int frametype)
+mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, int px4mode, int frametype, bool overrideSecurityChecks)
 {
 	uint32_t gpio_bits;
 	int shouldStop = 0;
@@ -1341,6 +1392,9 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 
 	/* motortest if enabled */
 	g_mk->set_motor_test(motortest);
+
+	/* ovveride security checks if enabled */
+	g_mk->set_overrideSecurityChecks(overrideSecurityChecks);
 
 
 	/* count used motors */
@@ -1407,6 +1461,7 @@ mkblctrl_main(int argc, char *argv[])
 	int px4mode = MAPPING_PX4;
 	int frametype = FRAME_PLUS;	// + plus is default
 	bool motortest = false;
+	bool overrideSecurityChecks = false;
 	bool showHelp = false;
 	bool newMode = false;
 
@@ -1462,11 +1517,21 @@ mkblctrl_main(int argc, char *argv[])
 			showHelp = true;
 		}
 
+		/* look for the optional --override-security-checks  parameter */
+		if (strcmp(argv[i], "--override-security-checks") == 0) {
+			overrideSecurityChecks = true;
+			newMode = true;
+		}
+
 	}
 
 	if (showHelp) {
 		fprintf(stderr, "mkblctrl: help:\n");
-		fprintf(stderr, "  [-mkmode frame{+/x}] [-b i2c_bus_number] [-t motortest] [-h / --help]\n");
+		fprintf(stderr, "  [-mkmode frame{+/x}] [-b i2c_bus_number] [-t motortest] [--override-security-checks] [-h / --help]\n\n");
+		fprintf(stderr, "\t -mkmode frame {+/x} \t\t Type of frame, if Mikrokopter motor order is used.\n");
+		fprintf(stderr, "\t -b i2c_bus_number \t\t Set the i2c bus where the ESCs are connected to (default 1).\n");
+		fprintf(stderr, "\t -t motortest \t\t\t Spin up once every motor in order of motoraddress. (DANGER !!!)\n");
+		fprintf(stderr, "\t --override-security-checks \t\t Disable all security checks (arming and number of ESCs). Used to test single Motors etc. (DANGER !!!)\n");
 		exit(1);
 	}
 
@@ -1484,7 +1549,7 @@ mkblctrl_main(int argc, char *argv[])
 	/* parameter set ? */
 	if (newMode) {
 		/* switch parameter */
-		return mk_new_mode(port_mode, pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype);
+		return mk_new_mode(port_mode, pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
 	}
 
 	/* test, etc. here g*/

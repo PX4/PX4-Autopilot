@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,51 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_bridge_header
- * MAVLink bridge header for UART access.
+ * @file comms.c
+ * @author Simon Wilks <sjwilks@gmail.com>
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-/* MAVLink adapter header */
-#ifndef MAVLINK_BRIDGE_HEADER_H
-#define MAVLINK_BRIDGE_HEADER_H
+#include "comms.h"
 
-#define MAVLINK_USE_CONVENIENCE_FUNCTIONS
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <systemlib/err.h>
+#include <termios.h>
 
-/* use efficient approach, see mavlink_helpers.h */
-#define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes
+int
+open_uart(const char *device)
+{
+	/* baud rate */
+	static const speed_t speed = B19200;
 
-#define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
-#define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
+	/* open uart */
+	const int uart = open(device, O_RDWR | O_NOCTTY);
 
-#include <v1.0/mavlink_types.h>
-#include <unistd.h>
+	if (uart < 0) {
+		err(1, "Error opening port: %s", device);
+	}
+	
+	/* Back up the original uart configuration to restore it after exit */	
+	int termios_state;
+	struct termios uart_config_original;
+	if ((termios_state = tcgetattr(uart, &uart_config_original)) < 0) {
+		close(uart);
+		err(1, "Error getting baudrate / termios config for %s: %d", device, termios_state);
+	}
 
+	/* Fill the struct for the new configuration */
+	struct termios uart_config;
+	tcgetattr(uart, &uart_config);
 
-/* Struct that stores the communication settings of this system.
-   you can also define / alter these settings elsewhere, as long
-   as they're included BEFORE mavlink.h.
-   So you can set the
+	/* Clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
 
-   mavlink_system.sysid = 100; // System ID, 1-255
-   mavlink_system.compid = 50; // Component/Subsystem ID, 1-255
+	/* Set baud rate */
+	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+		close(uart);
+		err(1, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)",
+			 device, termios_state);
+	}
 
-   Lines also in your main.c, e.g. by reading these parameter from EEPROM.
- */
-extern mavlink_system_t mavlink_system;
+	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+		close(uart);
+		err(1, "Error setting baudrate / termios config for %s (tcsetattr)", device);
+	}
 
-/**
- * @brief Send multiple chars (uint8_t) over a comm channel
- *
- * @param chan MAVLink channel to use, usually MAVLINK_COMM_0 = UART0
- * @param ch Character to send
- */
-extern void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length);
+	/* Activate single wire mode */
+	ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 
-extern mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
-extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
-
-#include <v1.0/common/mavlink.h>
-
-#endif /* MAVLINK_BRIDGE_HEADER_H */
+	return uart;
+}
