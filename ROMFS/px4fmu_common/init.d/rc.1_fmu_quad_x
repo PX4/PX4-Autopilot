@@ -31,6 +31,7 @@ if param compare SYS_AUTOCONFIG 1
 then
 	# Set all params here, then disable autoconfig
 	param set SYS_AUTOCONFIG 0
+	param save /fs/microsd/params
 fi
 
 #
