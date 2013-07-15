@@ -234,11 +234,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	parameters_update(&params_h, &params);
 
 	for (int i = 0; i < 2; i++) {
-		pid_init(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
+		pid_init(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
 		pid_init(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.slope_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 	}
 
-	pid_init(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
+	pid_init(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
 	thrust_pid_init(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 
 	int paramcheck_counter = 0;
@@ -401,7 +401,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						sp_move_rate[1] = sinf(xy_sp_ctl_dir) * xy_sp_ctl_speed;
 						local_pos_sp.x += sp_move_rate[0] * dt;
 						local_pos_sp.y += sp_move_rate[1] * dt;
-						/* limit maximum setpoint from position offset and preserve direction */
+						/* limit maximum setpoint from position offset and preserve direction
+						 * fail safe, should not happen in normal operation */
 						float pos_vec_x = local_pos_sp.x - local_pos.x;
 						float pos_vec_y = local_pos_sp.y - local_pos.y;
 						float pos_vec_norm = norm(pos_vec_x, pos_vec_y) / xy_sp_offs_max;
