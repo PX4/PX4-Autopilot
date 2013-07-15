@@ -60,7 +60,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/debug_key_value.h>
@@ -79,6 +79,7 @@ struct mavlink_subscriptions {
 	int man_control_sp_sub;
 	int safety_sub;
 	int actuators_sub;
+	int armed_sub;
 	int local_pos_sub;
 	int spa_sub;
 	int spl_sub;

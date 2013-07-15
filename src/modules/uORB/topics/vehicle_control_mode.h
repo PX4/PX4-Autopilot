@@ -69,9 +69,13 @@ struct vehicle_control_mode_s
 	bool flag_system_emergency;
 	bool flag_preflight_calibration;
 
+	// XXX needs yet to be set by state machine helper
+	bool flag_system_hil_enabled;
+
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
 	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
-	bool flag_auto_enabled;
+	// XXX shouldn't be necessairy
+	//bool flag_auto_enabled;
 	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
 	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */

@@ -57,7 +57,7 @@
 #include "commander_helper.h"
 
 
-int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int safety_pub, struct actuator_safety_s *safety, const int mavlink_fd) {
+int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int armed_pub, struct actuator_armed_s *armed, const int mavlink_fd) {
 
 
 	int ret = ERROR;
@@ -73,8 +73,8 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				/* allow going back from INIT for calibration */
 				if (current_state->arming_state == ARMING_STATE_STANDBY) {
 					ret = OK;
-					safety->armed = false;
-					safety->ready_to_arm = false;
+					armed->armed = false;
+					armed->ready_to_arm = false;
 				}
 				break;
 			case ARMING_STATE_STANDBY:
@@ -86,8 +86,8 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 					/* sensors need to be initialized for STANDBY state */
 					if (current_state->condition_system_sensors_initialized) {
 						ret = OK;
-						safety->armed = false;
-						safety->ready_to_arm = true;
+						armed->armed = false;
+						armed->ready_to_arm = true;
 					} else {
 						mavlink_log_critical(mavlink_fd, "Rej. STANDBY state, sensors not initialized");
 					}
@@ -101,7 +101,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 
 					/* XXX conditions for arming? */
 					ret = OK;
-					safety->armed = true;
+					armed->armed = true;
 				}
 				break;
 			case ARMING_STATE_ARMED_ERROR:
@@ -111,7 +111,7 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 					
 					/* XXX conditions for an error state? */
 					ret = OK;
-					safety->armed = true;
+					armed->armed = true;
 				}
 				break;
 			case ARMING_STATE_STANDBY_ERROR:
@@ -120,8 +120,8 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				 || current_state->arming_state == ARMING_STATE_INIT
 				 || current_state->arming_state == ARMING_STATE_ARMED_ERROR) {
 					ret = OK;
-					safety->armed = false;
-					safety->ready_to_arm = false;
+					armed->armed = false;
+					armed->ready_to_arm = false;
 				}
 				break;
 			case ARMING_STATE_REBOOT:
@@ -132,8 +132,8 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 				 || current_state->arming_state == ARMING_STATE_STANDBY_ERROR) {
 
 					ret = OK;
-					safety->armed = false;
-					safety->ready_to_arm = false;
+					armed->armed = false;
+					armed->ready_to_arm = false;
 
 				}
 				break;
@@ -151,8 +151,8 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 			current_state->timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(vehicle_status), status_pub, current_state);
 
-			safety->timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(actuator_safety), safety_pub, safety);
+			armed->timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(actuator_armed), armed_pub, armed);
 		}
 	}
 

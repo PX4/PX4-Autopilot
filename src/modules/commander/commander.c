@@ -76,9 +76,10 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/safety.h>
 #include <mavlink/mavlink_log.h>
 
 #include <drivers/drv_led.h>
@@ -177,7 +178,7 @@ int led_off(int led);
 void do_reboot(void);
 
 
-void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd, int safety_pub, struct actuator_safety_s *safety);
+void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd, int armed_pub, struct actuator_armed_s *armed);
 
 // int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
 
@@ -253,7 +254,7 @@ void do_reboot()
 
 
 
-void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_status, struct vehicle_command_s *cmd, int safety_pub, struct actuator_safety_s *safety)
+void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_status, struct vehicle_command_s *cmd, int armed_pub, struct actuator_armed_s *armed)
 {
 	/* result of the command */
 	uint8_t result = VEHICLE_CMD_RESULT_UNSUPPORTED;
@@ -273,13 +274,13 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			}
 
 			if ((int)cmd->param1 & VEHICLE_MODE_FLAG_SAFETY_ARMED) {
-				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_ARMED, safety_pub, safety, mavlink_fd)) {
+				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_ARMED, armed_pub, armed, mavlink_fd)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
 				}
 			} else {
-				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_STANDBY, safety_pub, safety, mavlink_fd)) {
+				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_STANDBY, armed_pub, armed, mavlink_fd)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
@@ -292,14 +293,14 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 			/* request to arm */
 			if ((int)cmd->param1 == 1) {
-				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_ARMED, safety_pub, safety, mavlink_fd)) {
+				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_ARMED, armed_pub, armed, mavlink_fd)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
 				}
 			/* request to disarm */
 			} else if ((int)cmd->param1 == 0) {
-				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_STANDBY, safety_pub, safety, mavlink_fd)) {
+				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_STANDBY, armed_pub, armed, mavlink_fd)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
@@ -312,7 +313,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 			/* request for an autopilot reboot */
 			if ((int)cmd->param1 == 1) {
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_REBOOT, safety_pub, safety, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_REBOOT, armed_pub, armed, mavlink_fd)) {
 						/* reboot is executed later, after positive tune is sent */
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						tune_positive();
@@ -361,7 +362,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, safety_pub, safety, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						/* now set the task for the low prio thread */
 						low_prio_task = LOW_PRIO_TASK_GYRO_CALIBRATION;
@@ -380,7 +381,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, safety_pub, safety, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						/* now set the task for the low prio thread */
 						low_prio_task = LOW_PRIO_TASK_MAG_CALIBRATION;
@@ -400,7 +401,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			// 	if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 			// 		/* try to go to INIT/PREFLIGHT arming state */
-			// 		if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, safety_pub, safety, mavlink_fd)) {
+			// 		if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 			// 			result = VEHICLE_CMD_RESULT_ACCEPTED;
 			// 			/* now set the task for the low prio thread */
 			// 			low_prio_task = LOW_PRIO_TASK_ALTITUDE_CALIBRATION;
@@ -421,7 +422,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			// 	if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 			// 		/* try to go to INIT/PREFLIGHT arming state */
-			// 		if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, safety_pub, safety, mavlink_fd)) {
+			// 		if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 			// 			result = VEHICLE_CMD_RESULT_ACCEPTED;
 			// 			/* now set the task for the low prio thread */
 			// 			low_prio_task = LOW_PRIO_TASK_RC_CALIBRATION;
@@ -441,7 +442,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, safety_pub, safety, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						/* now set the task for the low prio thread */
 						low_prio_task = LOW_PRIO_TASK_ACCEL_CALIBRATION;
@@ -460,7 +461,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, safety_pub, safety, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						/* now set the task for the low prio thread */
 						low_prio_task = LOW_PRIO_TASK_AIRSPEED_CALIBRATION;
@@ -734,12 +735,11 @@ int commander_thread_main(int argc, char *argv[])
 	/* make sure we are in preflight state */
 	memset(&current_status, 0, sizeof(current_status));
 
-	/* safety topic */
-	struct actuator_safety_s safety;
-	orb_advert_t safety_pub;
-	/* Initialize safety with all false */
-	memset(&safety, 0, sizeof(safety));
-	
+	/* armed topic */
+	struct actuator_armed_s armed;
+	orb_advert_t armed_pub;
+	/* Initialize armed with all false */
+	memset(&armed, 0, sizeof(armed));
 
 	/* flags for control apps */
 	struct vehicle_control_mode_s control_mode;
@@ -768,8 +768,8 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* set battery warning flag */
 	current_status.battery_warning = VEHICLE_BATTERY_WARNING_NONE;
-	/* set safety device detection flag */
 	
+	/* set safety device detection flag */
 	/* XXX do we need this? */
 	//current_status.flag_safety_present = false;
 
@@ -789,10 +789,7 @@ int commander_thread_main(int argc, char *argv[])
 	orb_publish(ORB_ID(vehicle_status), status_pub, &current_status);
 
 
-	safety_pub = orb_advertise(ORB_ID(actuator_safety), &safety);
-
-	/* but also subscribe to it */
-	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
+	armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
 	control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);	
 
@@ -843,6 +840,11 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* XXX what exactly is this for? */
 	uint64_t last_print_time = 0;
+
+	/* Subscribe to safety topic */
+	int safety_sub = orb_subscribe(ORB_ID(safety));
+	struct safety_s safety;
+	memset(&safety, 0, sizeof(safety));
 
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
@@ -917,7 +919,6 @@ int commander_thread_main(int argc, char *argv[])
 	/* XXX use this! */
 	//uint64_t failsave_ll_start_time = 0;
 
-	enum VEHICLE_MANUAL_SAS_MODE	manual_sas_mode;
 	bool state_changed = true;
 	bool param_init_forced = true;
 
@@ -936,7 +937,7 @@ int commander_thread_main(int argc, char *argv[])
 
 
 			/* update parameters */
-			if (!safety.armed) {
+			if (!armed.armed) {
 				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
 					warnx("failed setting new system type");
 				}
@@ -990,7 +991,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
 			/* handle it */
-			handle_command(status_pub, &current_status, &cmd, safety_pub, &safety);
+			handle_command(status_pub, &current_status, &cmd, armed_pub, &armed);
 		}
 		
 
@@ -1003,7 +1004,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
 
 			/* update parameters */
-			if (!safety.armed) {
+			if (!armed.armed) {
 				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
 					warnx("failed setting new system type");
 				}
@@ -1028,7 +1029,7 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(safety_sub, &new_data);
 
 		if (new_data) {
-			orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
+			orb_copy(ORB_ID(safety), safety_sub, &safety);
 		}
 
 		/* update global position estimate */
@@ -1170,7 +1171,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (current_status.arming_state == ARMING_STATE_INIT) {
 			// XXX check for sensors
-			arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, safety_pub, &safety, mavlink_fd);
+			arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, armed_pub, &armed, mavlink_fd);
 		} else {
 			// XXX: Add emergency stuff if sensors are lost
 		}
@@ -1287,7 +1288,7 @@ int commander_thread_main(int argc, char *argv[])
 				&& (vdop_m < vdop_threshold_m) // XXX note that vdop is 0 for mtk
 				&& !home_position_set
 				&& (hrt_absolute_time() - gps_position.timestamp_position < 2000000)
-				&& !safety.armed) {
+				&& !armed.armed) {
 				warnx("setting home position");
 
 				/* copy position data to uORB home message, store it locally as well */
@@ -1579,7 +1580,7 @@ int commander_thread_main(int argc, char *argv[])
 								mavlink_log_critical(mavlink_fd, "DISARM DENY, go manual mode first");
 								tune_negative();
 							} else {
-								arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, safety_pub, &safety, mavlink_fd);
+								arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, armed_pub, &armed, mavlink_fd);
 								tune_positive();
 							}
 							
@@ -1595,13 +1596,12 @@ int commander_thread_main(int argc, char *argv[])
 					}
 				}
 
-				/* check if left stick is in lower right position --> arm */
-				if (current_status.flag_control_manual_enabled &&
-					current_status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS &&
+				/* check if left stick is in lower right position and we're in manual --> arm */
+				if (!control_mode.flag_control_position_enabled && !control_mode.flag_control_velocity_enabled &&
 					sp_man.yaw > STICK_ON_OFF_LIMIT &&
 					sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						arming_state_transition(status_pub, &current_status, ARMING_STATE_ARMED, safety_pub, &safety, mavlink_fd);
+						arming_state_transition(status_pub, &current_status, ARMING_STATE_ARMED, armed_pub, &armed, mavlink_fd);
 						stick_on_counter = 0;
 						tune_positive();
 
@@ -1704,13 +1704,13 @@ int commander_thread_main(int argc, char *argv[])
 
 				// XXX check if this is correct
 				/* arm / disarm on request */
-				if (sp_offboard.armed && !safety.armed) {
+				if (sp_offboard.armed && !armed.armed) {
 
-					arming_state_transition(status_pub, &current_status, ARMING_STATE_ARMED, safety_pub, &safety, mavlink_fd);
+					arming_state_transition(status_pub, &current_status, ARMING_STATE_ARMED, armed_pub, &armed, mavlink_fd);
 
-				} else if (!sp_offboard.armed && safety.armed) {
+				} else if (!sp_offboard.armed && armed.armed) {
 
-					arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, safety_pub, &safety, mavlink_fd);
+					arming_state_transition(status_pub, &current_status, ARMING_STATE_STANDBY, armed_pub, &armed, mavlink_fd);
 				}
 
 			} else {
@@ -1772,7 +1772,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* play tone according to evaluation result */
 		/* check if we recently armed */
-		if (!arm_tune_played && safety.armed && ( !safety.safety_switch_available || (safety.safety_off && safety.safety_switch_available))) {
+		if (!arm_tune_played && armed.armed && ( !safety.safety_switch_available || (safety.safety_off && safety.safety_switch_available))) {
 			if (tune_arm() == OK)
 				arm_tune_played = true;
 
@@ -1789,7 +1789,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* reset arm_tune_played when disarmed */
-		if (!(safety.armed && ( !safety.safety_switch_available || (safety.safety_off && safety.safety_switch_available)))) {
+		if (!(armed.armed && ( !safety.safety_switch_available || (safety.safety_off && safety.safety_switch_available)))) {
 			arm_tune_played = false;
 		}
 
@@ -1812,6 +1812,7 @@ int commander_thread_main(int argc, char *argv[])
 	close(sp_offboard_sub);
 	close(global_position_sub);
 	close(sensor_sub);
+	close(safety_sub);
 	close(cmd_sub);
 
 	warnx("exiting");

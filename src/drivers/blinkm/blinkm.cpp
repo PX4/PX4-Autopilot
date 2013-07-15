@@ -116,7 +116,8 @@
 #include <poll.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
 static const float MAX_CELL_VOLTAGE	= 4.3f;
@@ -376,8 +377,9 @@ BlinkM::led()
 {
 
 	static int vehicle_status_sub_fd;
+	static int vehicle_control_mode_sub_fd;
 	static int vehicle_gps_position_sub_fd;
-	static int actuator_safety_sub_fd;
+	static int actuator_armed_sub_fd;
 
 	static int num_of_cells = 0;
 	static int detected_cells_runcount = 0;
@@ -388,7 +390,8 @@ BlinkM::led()
 	static int led_interval = 1000;
 
 	static int no_data_vehicle_status = 0;
-	static int no_data_actuator_safety = 0;
+	static int no_data_vehicle_control_mode = 0;
+	static int no_data_actuator_armed = 0;
 	static int no_data_vehicle_gps_position = 0;
 
 	static bool topic_initialized = false;
@@ -401,8 +404,11 @@ BlinkM::led()
 		vehicle_status_sub_fd = orb_subscribe(ORB_ID(vehicle_status));
 		orb_set_interval(vehicle_status_sub_fd, 1000);
 
-		actuator_safety_sub_fd = orb_subscribe(ORB_ID(actuator_safety));
-		orb_set_interval(actuator_safety_sub_fd, 1000);
+		vehicle_control_mode_sub_fd = orb_subscribe(ORB_ID(vehicle_control_mode));
+		orb_set_interval(vehicle_control_mode_sub_fd, 1000);
+
+		actuator_armed_sub_fd = orb_subscribe(ORB_ID(actuator_armed));
+		orb_set_interval(actuator_armed_sub_fd, 1000);
 
 		vehicle_gps_position_sub_fd = orb_subscribe(ORB_ID(vehicle_gps_position));
 		orb_set_interval(vehicle_gps_position_sub_fd, 1000);
@@ -458,14 +464,16 @@ BlinkM::led()
 	if (led_thread_runcount == 15) {
 		/* obtained data for the first file descriptor */
 		struct vehicle_status_s vehicle_status_raw;
-		struct actuator_safety_s actuator_safety;
+		struct vehicle_control_mode_s vehicle_control_mode;
+		struct actuator_armed_s actuator_armed;
 		struct vehicle_gps_position_s vehicle_gps_position_raw;
 
 		memset(&vehicle_status_raw, 0, sizeof(vehicle_status_raw));
 		memset(&vehicle_gps_position_raw, 0, sizeof(vehicle_gps_position_raw));
 
 		bool new_data_vehicle_status;
-		bool new_data_actuator_safety;
+		bool new_data_vehicle_control_mode;
+		bool new_data_actuator_armed;
 		bool new_data_vehicle_gps_position;
 
 		orb_check(vehicle_status_sub_fd, &new_data_vehicle_status);
@@ -479,15 +487,26 @@ BlinkM::led()
 				no_data_vehicle_status = 3;
 		}
 
-		orb_check(actuator_safety_sub_fd, &new_data_actuator_safety);
+		orb_check(vehicle_control_mode_sub_fd, &new_data_vehicle_control_mode);
 
-		if (new_data_actuator_safety) {
-			orb_copy(ORB_ID(actuator_safety), actuator_safety_sub_fd, &actuator_safety);
-			no_data_actuator_safety = 0;
+		if (new_data_vehicle_control_mode) {
+			orb_copy(ORB_ID(vehicle_control_mode), vehicle_control_mode_sub_fd, &vehicle_control_mode);
+			no_data_vehicle_control_mode = 0;
 		} else {
-			no_data_actuator_safety++;
-			if(no_data_vehicle_status >= 3)
-				no_data_vehicle_status = 3;
+			no_data_vehicle_control_mode++;
+			if(no_data_vehicle_control_mode >= 3)
+				no_data_vehicle_control_mode = 3;
+		}
+
+		orb_check(actuator_armed_sub_fd, &new_data_actuator_armed);
+
+		if (new_data_actuator_armed) {
+			orb_copy(ORB_ID(actuator_armed), actuator_armed_sub_fd, &actuator_armed);
+			no_data_actuator_armed = 0;
+		} else {
+			no_data_actuator_armed++;
+			if(no_data_actuator_armed >= 3)
+				no_data_actuator_armed = 3;
 		}
 
 		orb_check(vehicle_gps_position_sub_fd, &new_data_vehicle_gps_position);
@@ -549,7 +568,7 @@ BlinkM::led()
 				} else {
 					/* no battery warnings here */
 
-					if(actuator_safety.armed == false) {
+					if(actuator_armed.armed == false) {
 						/* system not armed */
 						led_color_1 = LED_RED;
 						led_color_2 = LED_RED;
@@ -573,25 +592,21 @@ BlinkM::led()
 						led_color_8 = LED_OFF;
 						led_blink = LED_BLINK;
 
-						/* handle 4th led - flightmode indicator */
-#warning fix this
-//						switch((int)vehicle_status_raw.flight_mode) {
-//							case VEHICLE_FLIGHT_MODE_MANUAL:
-//								led_color_4 = LED_AMBER;
-//								break;
-//
-//							case VEHICLE_FLIGHT_MODE_STAB:
-//								led_color_4 = LED_YELLOW;
-//								break;
-//
-//							case VEHICLE_FLIGHT_MODE_HOLD:
-//								led_color_4 = LED_BLUE;
-//								break;
-//
-//							case VEHICLE_FLIGHT_MODE_AUTO:
-//								led_color_4 = LED_GREEN;
-//								break;
-//						}
+						if(new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
+
+							//XXX please check
+							if (vehicle_control_mode.flag_control_position_enabled)
+								led_color_4 = LED_GREEN;
+							else if (vehicle_control_mode.flag_control_velocity_enabled)
+								led_color_4 = LED_BLUE;
+							else if (vehicle_control_mode.flag_control_attitude_enabled)
+								led_color_4 = LED_YELLOW;
+							else if (vehicle_control_mode.flag_control_manual_enabled)
+								led_color_4 = LED_AMBER;
+							else 
+								led_color_4 = LED_OFF;
+								
+						}
 
 						if(new_data_vehicle_gps_position || no_data_vehicle_gps_position < 3) {
 							/* handling used sat�s */

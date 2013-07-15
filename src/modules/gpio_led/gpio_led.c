@@ -51,7 +51,7 @@
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_armed.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 #include <modules/px4iofirmware/protocol.h>
@@ -63,8 +63,8 @@ struct gpio_led_s {
 	int pin;
 	struct vehicle_status_s status;
 	int vehicle_status_sub;
-	struct actuator_safety_s safety;
-	int actuator_safety_sub;
+	struct actuator_armed_s armed;
+	int actuator_armed_sub;
 	bool led_state;
 	int counter;
 };
@@ -233,12 +233,12 @@ void gpio_led_cycle(FAR void *arg)
 	orb_check(priv->vehicle_status_sub, &status_updated);
 
 	if (status_updated)
-		orb_copy(ORB_ID(actuator_safety), priv->actuator_safety_sub, &priv->safety);
+		orb_copy(ORB_ID(actuator_armed), priv->actuator_armed_sub, &priv->armed);
 
 	/* select pattern for current status */
 	int pattern = 0;
 
-	if (priv->safety.armed) {
+	if (priv->armed.armed) {
 		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
 			pattern = 0x3f;	// ****** solid (armed)
 
@@ -247,10 +247,10 @@ void gpio_led_cycle(FAR void *arg)
 		}
 
 	} else {
-		if (priv->safety.ready_to_arm) {
+		if (priv->armed.ready_to_arm) {
 			pattern = 0x00;	// ______ off (disarmed, preflight check)
 
-		} else if (priv->safety.ready_to_arm && priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
+		} else if (priv->armed.ready_to_arm && priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
 			pattern = 0x38;	// ***___ slow blink (disarmed, ready)
 
 		} else {

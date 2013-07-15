@@ -55,7 +55,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -156,7 +156,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	uint32_t counter = 0;
 
 	/* structures */
-	struct actuator_safety_s safety;
+	struct actuator_armed_s armed;
 	struct vehicle_control_mode_s control_mode;
 	struct filtered_bottom_flow_s filtered_flow;
 	struct vehicle_bodyframe_speed_setpoint_s speed_sp;
@@ -166,7 +166,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	/* subscribe to attitude, motor setpoints and system state */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	int filtered_bottom_flow_sub = orb_subscribe(ORB_ID(filtered_bottom_flow));
 	int vehicle_bodyframe_speed_setpoint_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_speed_setpoint));
@@ -229,8 +229,8 @@ flow_speed_control_thread_main(int argc, char *argv[])
 				{
 					perf_begin(mc_loop_perf);
 
-					/* get a local copy of the safety topic */
-					orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
+					/* get a local copy of the armed topic */
+					orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 					/* get a local copy of the control mode */
 					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 					/* get a local copy of filtered bottom flow */
@@ -355,7 +355,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	close(vehicle_attitude_sub);
 	close(vehicle_bodyframe_speed_setpoint_sub);
 	close(filtered_bottom_flow_sub);
-	close(safety_sub);
+	close(armed_sub);
 	close(control_mode_sub);
 	close(att_sp_pub);
 

@@ -56,7 +56,7 @@
 #include <math.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -159,8 +159,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 	static float sonar_lp = 0.0f;
 
 	/* subscribe to vehicle status, attitude, sensors and flow*/
-	struct actuator_safety_s safety;
-	memset(&safety, 0, sizeof(safety));
+	struct actuator_armed_s armed;
+	memset(&armed, 0, sizeof(armed));
 	struct vehicle_control_mode_s control_mode;
 	memset(&control_mode, 0, sizeof(control_mode));
 	struct vehicle_attitude_s att;
@@ -173,8 +173,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 	/* subscribe to parameter changes */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	/* subscribe to safety topic */
-	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
+	/* subscribe to armed topic */
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	/* subscribe to safety topic */
 	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -270,7 +270,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 					/* got flow, updating attitude and status as well */
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					orb_copy(ORB_ID(vehicle_attitude_setpoint), vehicle_attitude_setpoint_sub, &att_sp);
-					orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
+					orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 
 					/* vehicle state estimation */
@@ -284,12 +284,12 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 					if (!vehicle_liftoff)
 					{
-						if (safety.armed && att_sp.thrust > params.minimum_liftoff_thrust && sonar_new > 0.3f && sonar_new < 1.0f)
+						if (armed.armed && att_sp.thrust > params.minimum_liftoff_thrust && sonar_new > 0.3f && sonar_new < 1.0f)
 							vehicle_liftoff = true;
 					}
 					else
 					{
-						if (!safety.armed || (att_sp.thrust < params.minimum_liftoff_thrust && sonar_new <= 0.3f))
+						if (!armed.armed || (att_sp.thrust < params.minimum_liftoff_thrust && sonar_new <= 0.3f))
 							vehicle_liftoff = false;
 					}
 
@@ -356,7 +356,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 					}
 
 					/* filtering ground distance */
-					if (!vehicle_liftoff || !safety.armed)
+					if (!vehicle_liftoff || !armed.armed)
 					{
 						/* not possible to fly */
 						sonar_valid = false;
@@ -453,7 +453,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 	close(vehicle_attitude_setpoint_sub);
 	close(vehicle_attitude_sub);
-	close(safety_sub);
+	close(armed_sub);
 	close(control_mode_sub);
 	close(parameter_update_sub);
 	close(optical_flow_sub);

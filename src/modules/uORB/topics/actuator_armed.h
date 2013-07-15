@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,35 +32,27 @@
  ****************************************************************************/
 
 /**
- * @file actuator_controls.h
+ * @file actuator_armed.h
  *
- * Actuator control topics - mixer inputs.
+ * Actuator armed topic
  *
- * Values published to these topics are the outputs of the vehicle control
- * system, and are expected to be mixed and used to drive the actuators
- * (servos, speed controls, etc.) that operate the vehicle.
- *
- * Each topic can be published by a single controller
  */
 
-#ifndef TOPIC_ACTUATOR_SAFETY_H
-#define TOPIC_ACTUATOR_SAFETY_H
+#ifndef TOPIC_ACTUATOR_ARMED_H
+#define TOPIC_ACTUATOR_ARMED_H
 
 #include <stdint.h>
 #include "../uORB.h"
 
 /** global 'actuator output is live' control. */
-struct actuator_safety_s {
+struct actuator_armed_s {
 
 	uint64_t	timestamp;
-	bool	safety_switch_available; /**< Set to true if a safety switch is connected */
-	bool	safety_off;	/**< Set to true if safety is off */
 	bool	armed;		/**< Set to true if system is armed */
 	bool	ready_to_arm;	/**< Set to true if system is ready to be armed */
 	bool	lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
-	bool	hil_enabled;	/**< Set to true if hardware-in-the-loop (HIL) is enabled */
 };
 
-ORB_DECLARE(actuator_safety);
+ORB_DECLARE(actuator_armed);
 
 #endif

@@ -55,7 +55,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -159,7 +159,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 	const float time_scale = powf(10.0f,-6.0f);
 
 	/* structures */
-	struct actuator_safety_s safety;
+	struct actuator_armed_s armed;
 	struct vehicle_control_mode_s control_mode;
 	struct vehicle_attitude_s att;
 	struct manual_control_setpoint_s manual;
@@ -171,7 +171,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 	/* subscribe to attitude, motor setpoints and system state */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	int manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int filtered_bottom_flow_sub = orb_subscribe(ORB_ID(filtered_bottom_flow));
@@ -261,7 +261,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 					perf_begin(mc_loop_perf);
 
 					/* get a local copy of the vehicle state */
-					orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
+					orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 					/* get a local copy of manual setpoint */
 					orb_copy(ORB_ID(manual_control_setpoint), manual_control_setpoint_sub, &manual);
 					/* get a local copy of attitude */
@@ -578,7 +578,7 @@ flow_position_control_thread_main(int argc, char *argv[])
 	close(parameter_update_sub);
 	close(vehicle_attitude_sub);
 	close(vehicle_local_position_sub);
-	close(safety_sub);
+	close(armed_sub);
 	close(control_mode_sub);
 	close(manual_control_setpoint_sub);
 	close(speed_sp_pub);

@@ -1,8 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,33 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file commander_helper.h
- * Commander helper functions definitions
+ * @file safety.h
+ *
+ * Safety topic to pass safety state from px4io driver to commander
+ * This concerns only the safety button of the px4io but has nothing to do
+ * with arming/disarming.
  */
 
-#ifndef COMMANDER_HELPER_H_
-#define COMMANDER_HELPER_H_
+#ifndef TOPIC_SAFETY_H
+#define TOPIC_SAFETY_H
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/vehicle_control_mode.h>
+#include <stdint.h>
+#include "../uORB.h"
 
+struct safety_s {
 
-bool is_multirotor(const struct vehicle_status_s *current_status);
-bool is_rotary_wing(const struct vehicle_status_s *current_status);
+	uint64_t	timestamp;
+	bool	safety_switch_available;	/**< Set to true if a safety switch is connected */
+	bool	safety_off;			/**< Set to true if safety is off */
+};
 
-int buzzer_init(void);
-void buzzer_deinit(void);
+ORB_DECLARE(safety);
 
-void tune_error(void);
-void tune_positive(void);
-void tune_neutral(void);
-void tune_negative(void);
-int tune_arm(void);
-int tune_critical_bat(void);
-int tune_low_bat(void);
-
-void tune_stop(void);
-
-#endif /* COMMANDER_HELPER_H_ */
+#endif

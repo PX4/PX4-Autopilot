@@ -69,7 +69,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_armed.h>
 
 #include <systemlib/err.h>
 #include <systemlib/ppm_decode.h>
@@ -105,7 +105,7 @@ private:
 	unsigned	_current_update_rate;
 	int		_task;
 	int		_t_actuators;
-	int		_t_actuator_safety;
+	int		_t_actuator_armed;
 	orb_advert_t	_t_outputs;
 	orb_advert_t	_t_actuators_effective;
 	unsigned	_num_outputs;
@@ -175,7 +175,7 @@ PX4FMU::PX4FMU() :
 	_current_update_rate(0),
 	_task(-1),
 	_t_actuators(-1),
-	_t_actuator_safety(-1),
+	_t_actuator_armed(-1),
 	_t_outputs(0),
 	_t_actuators_effective(0),
 	_num_outputs(0),
@@ -377,8 +377,8 @@ PX4FMU::task_main()
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
-	_t_actuator_safety = orb_subscribe(ORB_ID(actuator_safety));
-	orb_set_interval(_t_actuator_safety, 200);		/* 5Hz update rate */
+	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
+	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -397,7 +397,7 @@ PX4FMU::task_main()
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
-	fds[1].fd = _t_actuator_safety;
+	fds[1].fd = _t_actuator_armed;
 	fds[1].events = POLLIN;
 
 	unsigned num_outputs = (_mode == MODE_2PWM) ? 2 : 4;
@@ -500,13 +500,13 @@ PX4FMU::task_main()
 
 		/* how about an arming update? */
 		if (fds[1].revents & POLLIN) {
-			actuator_safety_s as;
+			actuator_armed_s aa;
 
 			/* get new value */
-			orb_copy(ORB_ID(actuator_safety), _t_actuator_safety, &as);
+			orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &aa);
 
 			/* update PWM servo armed status if armed and not locked down */
-			bool set_armed = as.armed && !as.lockdown;
+			bool set_armed = aa.armed && !aa.lockdown;
 			if (set_armed != _armed) {
 				_armed = set_armed;
 				up_pwm_servo_arm(set_armed);
@@ -536,7 +536,7 @@ PX4FMU::task_main()
 
 	::close(_t_actuators);
 	::close(_t_actuators_effective);
-	::close(_t_actuator_safety);
+	::close(_t_actuator_armed);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
@@ -1022,12 +1022,12 @@ fake(int argc, char *argv[])
 	if (handle < 0)
 		errx(1, "advertise failed");
 
-	actuator_safety_s as;
+	actuator_armed_s aa;
 
-	as.armed = true;
-	as.lockdown = false;
+	aa.armed = true;
+	aa.lockdown = false;
 
-	handle = orb_advertise(ORB_ID(actuator_safety), &as);
+	handle = orb_advertise(ORB_ID(actuator_armed), &aa);
 
 	if (handle < 0)
 		errx(1, "advertise failed 2");

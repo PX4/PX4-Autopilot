@@ -70,7 +70,7 @@ struct vehicle_local_position_s local_pos;
 struct vehicle_status_s v_status;
 struct rc_channels_s rc;
 struct rc_input_values rc_raw;
-struct actuator_safety_s safety;
+struct actuator_armed_s armed;
 struct actuator_controls_effective_s actuators_0;
 struct vehicle_attitude_s att;
 
@@ -110,7 +110,7 @@ static void	l_global_position_setpoint(const struct listener *l);
 static void	l_local_position_setpoint(const struct listener *l);
 static void	l_attitude_setpoint(const struct listener *l);
 static void	l_actuator_outputs(const struct listener *l);
-static void	l_actuator_safety(const struct listener *l);
+static void	l_actuator_armed(const struct listener *l);
 static void	l_manual_control_setpoint(const struct listener *l);
 static void	l_vehicle_attitude_controls(const struct listener *l);
 static void	l_debug_key_value(const struct listener *l);
@@ -135,7 +135,7 @@ static const struct listener listeners[] = {
 	{l_actuator_outputs,		&mavlink_subs.act_1_sub,	1},
 	{l_actuator_outputs,		&mavlink_subs.act_2_sub,	2},
 	{l_actuator_outputs,		&mavlink_subs.act_3_sub,	3},
-	{l_actuator_safety,		&mavlink_subs.safety_sub,	0},
+	{l_actuator_armed,		&mavlink_subs.armed_sub,	0},
 	{l_manual_control_setpoint,	&mavlink_subs.man_control_sp_sub, 0},
 	{l_vehicle_attitude_controls,	&mavlink_subs.actuators_sub,	0},
 	{l_debug_key_value,		&mavlink_subs.debug_key_value,	0},
@@ -269,7 +269,7 @@ l_vehicle_status(const struct listener *l)
 {
 	/* immediately communicate state changes back to user */
 	orb_copy(ORB_ID(vehicle_status), status_sub, &v_status);
-	orb_copy(ORB_ID(actuator_safety), mavlink_subs.safety_sub, &safety);
+	orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
 
 	/* enable or disable HIL */
 	set_hil_on_off(v_status.flag_hil_enabled);
@@ -466,7 +466,7 @@ l_actuator_outputs(const struct listener *l)
 						  act_outputs.output[7]);
 
 		/* only send in HIL mode */
-		if (mavlink_hil_enabled && safety.armed) {
+		if (mavlink_hil_enabled && armed.armed) {
 
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
@@ -538,9 +538,9 @@ l_actuator_outputs(const struct listener *l)
 }
 
 void
-l_actuator_safety(const struct listener *l)
+l_actuator_armed(const struct listener *l)
 {
-	orb_copy(ORB_ID(actuator_safety), mavlink_subs.safety_sub, &safety);
+	orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
 }
 
 void
@@ -759,8 +759,8 @@ uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.act_3_sub, 100);	/* 10Hz updates */
 
 	/* --- ACTUATOR ARMED VALUE --- */
-	mavlink_subs.safety_sub = orb_subscribe(ORB_ID(actuator_safety));
-	orb_set_interval(mavlink_subs.safety_sub, 100);	/* 10Hz updates */
+	mavlink_subs.armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	orb_set_interval(mavlink_subs.armed_sub, 100);	/* 10Hz updates */
 
 	/* --- MAPPED MANUAL CONTROL INPUTS --- */
 	mavlink_subs.man_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));

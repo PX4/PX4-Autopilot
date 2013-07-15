@@ -75,7 +75,8 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
@@ -178,7 +179,7 @@ private:
 
 	/* subscribed topics */
 	int			_t_actuators;	///< actuator controls topic
-	int			_t_actuator_safety;	///< system armed control topic
+	int			_t_actuator_armed;	///< system armed control topic
 	int 			_t_vstatus;	///< system / vehicle status
 	int			_t_param;	///< parameter update topic
 
@@ -360,7 +361,7 @@ PX4IO::PX4IO() :
 	_status(0),
 	_alarms(0),
 	_t_actuators(-1),
-	_t_actuator_safety(-1),
+	_t_actuator_armed(-1),
 	_t_vstatus(-1),
 	_t_param(-1),
 	_to_input_rc(0),
@@ -505,9 +506,9 @@ PX4IO::init()
 		 * remains untouched (so manual override is still available).
 		 */
 
-		int safety_sub = orb_subscribe(ORB_ID(actuator_safety));
+		int safety_sub = orb_subscribe(ORB_ID(actuator_armed));
 		/* fill with initial values, clear updated flag */
-		struct actuator_safety_s safety;
+		struct actuator_armed_s safety;
 		uint64_t try_start_time = hrt_absolute_time();
 		bool updated = false;
 		
@@ -518,7 +519,7 @@ PX4IO::init()
 
 			if (updated) {
 				/* got data, copy and exit loop */
-				orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
+				orb_copy(ORB_ID(actuator_armed), safety_sub, &safety);
 				break;
 			}
 
@@ -559,7 +560,7 @@ PX4IO::init()
 			orb_check(safety_sub, &updated);
 
 			if (updated) {
-				orb_copy(ORB_ID(actuator_safety), safety_sub, &safety);
+				orb_copy(ORB_ID(actuator_armed), safety_sub, &safety);
 			}
 
 			/* wait 50 ms */
@@ -643,8 +644,8 @@ PX4IO::task_main()
 				     ORB_ID(actuator_controls_1));
 	orb_set_interval(_t_actuators, 20);		/* default to 50Hz */
 
-	_t_actuator_safety = orb_subscribe(ORB_ID(actuator_safety));
-	orb_set_interval(_t_actuator_safety, 200);		/* 5Hz update rate */
+	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
+	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
 
 	_t_vstatus = orb_subscribe(ORB_ID(vehicle_status));
 	orb_set_interval(_t_vstatus, 200);		/* 5Hz update rate max. */
@@ -656,7 +657,7 @@ PX4IO::task_main()
 	pollfd fds[4];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
-	fds[1].fd = _t_actuator_safety;
+	fds[1].fd = _t_actuator_armed;
 	fds[1].events = POLLIN;
 	fds[2].fd = _t_vstatus;
 	fds[2].events = POLLIN;
@@ -832,21 +833,21 @@ PX4IO::set_idle_values(const uint16_t *vals, unsigned len)
 int
 PX4IO::io_set_arming_state()
 {
-	actuator_safety_s	safety;		///< system armed state
+	actuator_armed_s	armed;		///< system armed state
 	vehicle_status_s	vstatus;	///< overall system state
 
-	orb_copy(ORB_ID(actuator_safety), _t_actuator_safety, &safety);
+	orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &armed);
 	orb_copy(ORB_ID(vehicle_status), _t_vstatus, &vstatus);
 
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-	if (safety.armed && !safety.lockdown) {
+	if (armed.armed && !armed.lockdown) {
 		set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 	}
-	if (safety.ready_to_arm) {
+	if (armed.ready_to_arm) {
 		set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
@@ -1004,10 +1005,10 @@ PX4IO::io_handle_status(uint16_t status)
 	/**
 	 * Get and handle the safety status
 	 */
-	struct actuator_safety_s safety;
+	struct safety_s safety;
 	safety.timestamp = hrt_absolute_time();
 
-	orb_copy(ORB_ID(actuator_safety), _t_actuator_safety, &safety);
+	orb_copy(ORB_ID(safety), _to_safety, &safety);
 
 	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
 		safety.safety_off = true;
@@ -1019,9 +1020,9 @@ PX4IO::io_handle_status(uint16_t status)
 
 	/* lazily publish the safety status */
 	if (_to_safety > 0) {
-		orb_publish(ORB_ID(actuator_safety), _to_safety, &safety);
+		orb_publish(ORB_ID(safety), _to_safety, &safety);
 	} else {
-		_to_safety = orb_advertise(ORB_ID(actuator_safety), &safety);
+		_to_safety = orb_advertise(ORB_ID(safety), &safety);
 	}
 
 	return ret;

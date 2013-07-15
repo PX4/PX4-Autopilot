@@ -46,11 +46,11 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_safety.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
 
 
-int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int safety_pub, struct actuator_safety_s *safety, const int mavlink_fd);
+int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int armed_pub, struct actuator_armed_s *armed, const int mavlink_fd);
 
 int navigation_state_transition(int status_pub, struct vehicle_status_s *current_state, navigation_state_t new_navigation_state, int control_mode_pub, struct vehicle_control_mode_s *control_mode, const int mavlink_fd);
 
