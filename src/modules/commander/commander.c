@@ -159,16 +159,19 @@ enum {
 
 
 /**
- * Loop that runs at a lower rate and priority for calibration and parameter tasks.
+ * The daemon app only briefly exists to start
+ * the background job. The stack size assigned in the
+ * Makefile does only apply to this management task.
+ *
+ * The actual stack size should be set in the call
+ * to task_create().
  */
-void *commander_low_prio_loop(void *arg);
-
 __EXPORT int commander_main(int argc, char *argv[]);
 
 /**
- * Mainloop of commander.
+ * Print the correct usage.
  */
-int commander_thread_main(int argc, char *argv[]);
+void usage(const char *reason);
 
 /**
  * React to commands that are sent e.g. from the mavlink module.
@@ -176,11 +179,67 @@ int commander_thread_main(int argc, char *argv[]);
 void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd, int armed_pub, struct actuator_armed_s *armed);
 
 /**
- * Print the correct usage.
+ * Mainloop of commander.
  */
-void usage(const char *reason);
+int commander_thread_main(int argc, char *argv[]);
+
+/**
+ * Loop that runs at a lower rate and priority for calibration and parameter tasks.
+ */
+void *commander_low_prio_loop(void *arg);
 
 
+int commander_main(int argc, char *argv[])
+{
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			warnx("commander already running\n");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+		daemon_task = task_spawn_cmd("commander",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 40,
+					 3000,
+					 commander_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			warnx("\tcommander is running\n");
+
+		} else {
+			warnx("\tcommander not started\n");
+		}
+
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
+}
+
+void usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+
+	fprintf(stderr, "usage: daemon {start|stop|status} [-p <additional params>]\n\n");
+	exit(1);
+}
 
 void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_status, struct vehicle_command_s *cmd, int armed_pub, struct actuator_armed_s *armed)
 {
@@ -454,116 +513,6 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		// XXX TODO
 	}
 
-}
-
-/*
- * Provides a coarse estimate of remaining battery power.
- *
- * The estimate is very basic and based on decharging voltage curves.
- *
- * @return the estimated remaining capacity in 0..1
- */
-float battery_remaining_estimate_voltage(float voltage);
-
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.2f);
-PARAM_DEFINE_FLOAT(BAT_V_FULL, 4.05f);
-PARAM_DEFINE_FLOAT(BAT_N_CELLS, 3);
-
-float battery_remaining_estimate_voltage(float voltage)
-{
-	float ret = 0;
-	static param_t bat_volt_empty;
-	static param_t bat_volt_full;
-	static param_t bat_n_cells;
-	static bool initialized = false;
-	static unsigned int counter = 0;
-	static float ncells = 3;
-	// XXX change cells to int (and param to INT32)
-
-	if (!initialized) {
-		bat_volt_empty = param_find("BAT_V_EMPTY");
-		bat_volt_full = param_find("BAT_V_FULL");
-		bat_n_cells = param_find("BAT_N_CELLS");
-		initialized = true;
-	}
-
-	static float chemistry_voltage_empty = 3.2f;
-	static float chemistry_voltage_full = 4.05f;
-
-	if (counter % 100 == 0) {
-		param_get(bat_volt_empty, &chemistry_voltage_empty);
-		param_get(bat_volt_full, &chemistry_voltage_full);
-		param_get(bat_n_cells, &ncells);
-	}
-
-	counter++;
-
-	ret = (voltage - ncells * chemistry_voltage_empty) / (ncells * (chemistry_voltage_full - chemistry_voltage_empty));
-
-	/* limit to sane values */
-	ret = (ret < 0) ? 0 : ret;
-	ret = (ret > 1) ? 1 : ret;
-	return ret;
-}
-
-void usage(const char *reason)
-{
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
-
-	fprintf(stderr, "usage: daemon {start|stop|status} [-p <additional params>]\n\n");
-	exit(1);
-}
-
-/**
- * The daemon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- *
- * The actual stack size should be set in the call
- * to task_create().
- */
-int commander_main(int argc, char *argv[])
-{
-	if (argc < 1)
-		usage("missing command");
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			warnx("commander already running\n");
-			/* this is not an error */
-			exit(0);
-		}
-
-		thread_should_exit = false;
-		daemon_task = task_spawn_cmd("commander",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 40,
-					 3000,
-					 commander_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("\tcommander is running\n");
-
-		} else {
-			warnx("\tcommander not started\n");
-		}
-
-		exit(0);
-	}
-
-	usage("unrecognized command");
-	exit(1);
 }
 
 int commander_thread_main(int argc, char *argv[])

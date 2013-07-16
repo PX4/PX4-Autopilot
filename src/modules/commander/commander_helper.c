@@ -49,6 +49,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <systemlib/err.h>
+#include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <drivers/drv_led.h>
@@ -172,4 +173,46 @@ int led_on(int led)
 int led_off(int led)
 {
 	return ioctl(leds, LED_OFF, led);
+}
+
+
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.2f);
+PARAM_DEFINE_FLOAT(BAT_V_FULL, 4.05f);
+PARAM_DEFINE_FLOAT(BAT_N_CELLS, 3);
+
+float battery_remaining_estimate_voltage(float voltage)
+{
+	float ret = 0;
+	static param_t bat_volt_empty;
+	static param_t bat_volt_full;
+	static param_t bat_n_cells;
+	static bool initialized = false;
+	static unsigned int counter = 0;
+	static float ncells = 3;
+	// XXX change cells to int (and param to INT32)
+
+	if (!initialized) {
+		bat_volt_empty = param_find("BAT_V_EMPTY");
+		bat_volt_full = param_find("BAT_V_FULL");
+		bat_n_cells = param_find("BAT_N_CELLS");
+		initialized = true;
+	}
+
+	static float chemistry_voltage_empty = 3.2f;
+	static float chemistry_voltage_full = 4.05f;
+
+	if (counter % 100 == 0) {
+		param_get(bat_volt_empty, &chemistry_voltage_empty);
+		param_get(bat_volt_full, &chemistry_voltage_full);
+		param_get(bat_n_cells, &ncells);
+	}
+
+	counter++;
+
+	ret = (voltage - ncells * chemistry_voltage_empty) / (ncells * (chemistry_voltage_full - chemistry_voltage_empty));
+
+	/* limit to sane values */
+	ret = (ret < 0) ? 0 : ret;
+	ret = (ret > 1) ? 1 : ret;
+	return ret;
 }

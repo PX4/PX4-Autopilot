@@ -68,4 +68,13 @@ int led_toggle(int led);
 int led_on(int led);
 int led_off(int led);
 
+/**
+ * Provides a coarse estimate of remaining battery power.
+ *
+ * The estimate is very basic and based on decharging voltage curves.
+ *
+ * @return the estimated remaining capacity in 0..1
+ */
+float battery_remaining_estimate_voltage(float voltage);
+
 #endif /* COMMANDER_HELPER_H_ */
