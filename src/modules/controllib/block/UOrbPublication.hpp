@@ -60,11 +60,15 @@ public:
 		List<UOrbPublicationBase *> * list,
 		const struct orb_metadata *meta) :
 		_meta(meta),
-		_handle() {
+		_handle(-1) {
 		if (list != NULL) list->add(this);
 	}
 	void update() {
-		orb_publish(getMeta(), getHandle(), getDataVoidPtr());
+		if (_handle > 0) {
+			orb_publish(getMeta(), getHandle(), getDataVoidPtr());
+		} else {
+			setHandle(orb_advertise(getMeta(), getDataVoidPtr()));
+		}
 	}
 	virtual void *getDataVoidPtr() = 0;
 	virtual ~UOrbPublicationBase() {
@@ -99,10 +103,6 @@ public:
 		const struct orb_metadata *meta) :
 		T(), // initialize data structure to zero
 		UOrbPublicationBase(list, meta) {
-		// It is important that we call T()
-		// before we publish the data, so we
-		// call this here instead of the base class
-		setHandle(orb_advertise(getMeta(), getDataVoidPtr()));
 	}
 	virtual ~UOrbPublication() {}
 	/*

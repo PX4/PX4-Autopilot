@@ -48,7 +48,7 @@
 #include <stdint.h>
 
 /* these headers are not C++ safe */
-#include <stm32_internal.h>
+#include <stm32.h>
 
  
 /******************************************************************************
@@ -57,18 +57,26 @@
 /* Configuration **************************************************************/
 
 /******************************************************************************
+ * Serial
+ ******************************************************************************/
+#define PX4FMU_SERIAL_BASE	STM32_USART2_BASE
+#define PX4FMU_SERIAL_VECTOR	STM32_IRQ_USART2
+#define PX4FMU_SERIAL_TX_GPIO	GPIO_USART2_TX
+#define PX4FMU_SERIAL_RX_GPIO	GPIO_USART2_RX
+#define PX4FMU_SERIAL_TX_DMA	DMACHAN_USART2_TX
+#define PX4FMU_SERIAL_RX_DMA	DMACHAN_USART2_RX
+#define PX4FMU_SERIAL_CLOCK	STM32_PCLK1_FREQUENCY
+#define PX4FMU_SERIAL_BITRATE	1500000
+
+/******************************************************************************
  * GPIOS
  ******************************************************************************/
 
 /* LEDS  **********************************************************************/
 
-#define GPIO_LED1 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN14)
-#define GPIO_LED2 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN15)
-#define GPIO_LED3 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN13)
-
-#define GPIO_LED_BLUE   BOARD_GPIO_LED1
-#define GPIO_LED_AMBER  BOARD_GPIO_LED2
-#define GPIO_LED_SAFETY BOARD_GPIO_LED3
+#define GPIO_LED1 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN14)
+#define GPIO_LED2 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN15)
+#define GPIO_LED3 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN13)
 
 /* Safety switch button *******************************************************/
 
@@ -78,17 +86,14 @@
 
 #define GPIO_SPEKTRUM_PWR_EN (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
-#define GPIO_SERVO_PWR_EN (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN15)
-
-#define GPIO_SERVO_FAULT_DETECT (GPIO_INPUT|GPIO_CNF_INPULLUP|GPIO_MODE_INPUT|GPIO_PORTB|GPIO_PIN13)
-
+#define GPIO_SERVO_FAULT_DETECT (GPIO_INPUT|GPIO_CNF_INPULLUP|GPIO_MODE_INPUT|GPIO_PORTA|GPIO_PIN15)
 
 /* Analog inputs **************************************************************/
 
 #define GPIO_ADC_VSERVO (GPIO_INPUT|GPIO_CNF_ANALOGIN|GPIO_MODE_INPUT|GPIO_PORTA|GPIO_PIN4)
+
 /* the same rssi signal goes to both an adc and a timer input */
 #define GPIO_ADC_RSSI   (GPIO_INPUT|GPIO_CNF_ANALOGIN|GPIO_MODE_INPUT|GPIO_PORTA|GPIO_PIN5)
-/* floating pin */
 #define GPIO_TIM_RSSI   (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|GPIO_PORTA|GPIO_PIN12)
 
 /* PWM pins  **************************************************************/
@@ -106,6 +111,7 @@
 
 /* SBUS pins  *************************************************************/
 
+/* XXX these should be UART pins */
 #define GPIO_SBUS_INPUT   (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|GPIO_PORTB|GPIO_PIN11)
 #define GPIO_SBUS_OUTPUT  (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
 #define GPIO_SBUS_OENABLE (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN4)

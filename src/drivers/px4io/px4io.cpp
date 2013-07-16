@@ -58,7 +58,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/device/device.h>
-#include <drivers/device/i2c.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
@@ -83,16 +82,20 @@
 #include <debug.h>
 
 #include <mavlink/mavlink_log.h>
-#include "uploader.h"
 #include <modules/px4iofirmware/protocol.h>
+
+#include "uploader.h"
+
+extern device::Device *PX4IO_i2c_interface() weak_function;
+extern device::Device *PX4IO_serial_interface() weak_function;
 
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
 
-class PX4IO : public device::I2C
+class PX4IO : public device::CDev
 {
 public:
-	PX4IO();
+	PX4IO(device::Device *interface);
 	virtual ~PX4IO();
 
 	virtual int		init();
@@ -103,8 +106,8 @@ public:
 	/**
 	* Set the update rate for actuator outputs from FMU to IO.
 	*
-	* @param rate    The rate in Hz actuator outpus are sent to IO.
-	*      Min 10 Hz, max 400 Hz
+	* @param rate		The rate in Hz actuator outpus are sent to IO.
+	* 			Min 10 Hz, max 400 Hz
 	*/
 	int      		set_update_rate(int rate);
 
@@ -119,18 +122,31 @@ public:
 	/**
 	 * Push failsafe values to IO.
 	 *
-	 * @param vals Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
-	 * @param len Number of channels, could up to 8
+	 * @param vals		Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
+	 * @param len		Number of channels, could up to 8
 	 */
 	int			set_failsafe_values(const uint16_t *vals, unsigned len);
 
 	/**
-	* Print the current status of IO
-	*/
+	 * Print the current status of IO
+	 */
 	void			print_status();
 
+	inline void		set_dsm_vcc_ctl(bool enable)
+	{
+		_dsm_vcc_ctl = enable;
+	};
+
+	inline bool		get_dsm_vcc_ctl()
+	{
+		return _dsm_vcc_ctl;
+	};
+
 private:
+	device::Device		*_interface;
+
 	// XXX
+	unsigned		_hardware;
 	unsigned		_max_actuators;
 	unsigned		_max_controls;
 	unsigned		_max_rc_input;
@@ -171,6 +187,12 @@ private:
 	float			_battery_amp_bias;
 	float			_battery_mamphour_total;
 	uint64_t		_battery_last_timestamp;
+
+	/**
+	 * Relay1 is dedicated to controlling DSM receiver power
+	 */
+
+	bool			_dsm_vcc_ctl;
 
 	/**
 	 * Trampoline to the worker task
@@ -312,8 +334,10 @@ PX4IO	*g_dev;
 
 }
 
-PX4IO::PX4IO() :
-	I2C("px4io", "/dev/px4io", PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_PX4IO, 320000),
+PX4IO::PX4IO(device::Device *interface) :
+	CDev("px4io", PX4IO_DEVICE_PATH),
+	_interface(interface),
+	_hardware(0),
 	_max_actuators(0),
 	_max_controls(0),
 	_max_rc_input(0),
@@ -338,7 +362,8 @@ PX4IO::PX4IO() :
 	_battery_amp_per_volt(90.0f/5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
-	_battery_last_timestamp(0)
+	_battery_last_timestamp(0),
+	_dsm_vcc_ctl(false)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -364,6 +389,9 @@ PX4IO::~PX4IO()
 	if (_task != -1)
 		task_delete(_task);
 
+	if (_interface != nullptr)
+		delete _interface;
+
 	g_dev = nullptr;
 }
 
@@ -375,31 +403,30 @@ PX4IO::init()
 	ASSERT(_task == -1);
 
 	/* do regular cdev init */
-	ret = I2C::init();
+	ret = CDev::init();
 	if (ret != OK)
 		return ret;
 
-	/*
-	 * Enable a couple of retries for operations to IO.
-	 *
-	 * Register read/write operations are intentionally idempotent
-	 * so this is safe as designed.
-	 */
-	_retries = 2;
-
 	/* get some parameters */
+	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+	if (protocol != PX4IO_PROTOCOL_VERSION) {
+		log("protocol/firmware mismatch");
+		mavlink_log_emergency(_mavlink_fd, "[IO] protocol/firmware mismatch, abort.");
+		return -1;
+	}
+	_hardware      = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION);
 	_max_actuators = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT);
-	_max_controls = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT);
+	_max_controls  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT);
 	_max_relays    = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RELAY_COUNT);
 	_max_transfer  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER) - 2;
 	_max_rc_input  = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT);
 	if ((_max_actuators < 1) || (_max_actuators > 255) ||
-	    (_max_relays < 1)    || (_max_relays > 255)    ||
-	    (_max_transfer < 16)   || (_max_transfer > 255)    ||
+	    (_max_relays > 32)   ||
+	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
-		log("failed getting parameters from PX4IO");
-		mavlink_log_emergency(_mavlink_fd, "[IO] param read fail, abort.");
+		log("config read error");
+		mavlink_log_emergency(_mavlink_fd, "[IO] config read fail, abort.");
 		return -1;
 	}
 	if (_max_rc_input > RC_INPUT_MAX_CHANNELS)
@@ -573,6 +600,14 @@ PX4IO::task_main()
 	_t_param = orb_subscribe(ORB_ID(parameter_update));
 	orb_set_interval(_t_param, 500);		/* 2Hz update rate max. */
 
+	if ((_t_actuators < 0) ||
+		(_t_armed < 0) ||
+		(_t_vstatus < 0) ||
+		(_t_param < 0)) {
+		log("subscription(s) failed");
+		goto out;
+	}
+
 	/* poll descriptor */
 	pollfd fds[4];
 	fds[0].fd = _t_actuators;
@@ -669,6 +704,7 @@ PX4IO::task_main()
 
 	unlock();
 
+out:
 	debug("exiting");
 
 	/* clean up the alternate device node */
@@ -700,8 +736,6 @@ PX4IO::io_set_control_state()
 int
 PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
 {
-	uint16_t 		regs[_max_actuators];
-
 	if (len > _max_actuators)
 		/* fail with error */
 		return E2BIG;
@@ -953,37 +987,37 @@ int
 PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 {
 	uint32_t channel_count;
-	int	ret = OK;
+	int	ret;
 
 	/* we don't have the status bits, so input_source has to be set elsewhere */
 	input_rc.input_source = RC_INPUT_SOURCE_UNKNOWN;
 	
-	/*
-	 * XXX Because the channel count and channel data are fetched
-	 *     separately, there is a risk of a race between the two
-	 *     that could leave us with channel data and a count that 
-	 *     are out of sync.
-	 *     Fixing this would require a guarantee of atomicity from
-	 *     IO, and a single fetch for both count and channels.
-	 *
-	 * XXX Since IO has the input calibration info, we ought to be
-	 *     able to get the pre-fixed-up controls directly.
-	 *
-	 * XXX can we do this more cheaply? If we knew we had DMA, it would
-	 *     almost certainly be better to just get all the inputs...
-	 */
-	channel_count =  io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
-	if (channel_count == _io_reg_get_error)
-		return -EIO;
-	if (channel_count > RC_INPUT_MAX_CHANNELS)
-		channel_count = RC_INPUT_MAX_CHANNELS;
-	input_rc.channel_count = channel_count;
+	static const unsigned prolog = (PX4IO_P_RAW_RC_BASE - PX4IO_P_RAW_RC_COUNT);
+	uint16_t regs[RC_INPUT_MAX_CHANNELS + prolog];
 
-	if (channel_count > 0) {
-		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, input_rc.values, channel_count);
-		if (ret == OK)
-			input_rc.timestamp = hrt_absolute_time();
+	/*
+	 * Read the channel count and the first 9 channels.
+	 *
+	 * This should be the common case (9 channel R/C control being a reasonable upper bound).
+	 */
+	input_rc.timestamp = hrt_absolute_time();
+	ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, &regs[0], prolog + 9);
+	if (ret != OK)
+		return ret;
+
+	/*
+	 * Get the channel count any any extra channels. This is no more expensive than reading the
+	 * channel count once.
+	 */
+	channel_count = regs[0];
+	if (channel_count > 9) {
+		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + 9, &regs[prolog + 9], channel_count - 9);
+		if (ret != OK)
+			return ret;
 	}
+
+	input_rc.channel_count = channel_count;
+	memcpy(input_rc.values, &regs[prolog], channel_count * 2);
 
 	return ret;
 }
@@ -1114,24 +1148,9 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 		return -EINVAL;
 	}
 
-	/* set up the transfer */
-	uint8_t 	addr[2] = {
-		page,
-		offset
-	};
-	i2c_msg_s	msgv[2];
-
-	msgv[0].flags = 0;
-	msgv[0].buffer = addr;
-	msgv[0].length = 2;
-	msgv[1].flags = I2C_M_NORESTART;
-	msgv[1].buffer = (uint8_t *)values;
-	msgv[1].length = num_values * sizeof(*values);
-
-	/* perform the transfer */
-	int ret = transfer(msgv, 2);
-	if (ret != OK)
-		debug("io_reg_set: error %d", ret);
+	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
+	if (ret != num_values)
+		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
 	return ret;
 }
 
@@ -1144,24 +1163,15 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, uint16_t value)
 int
 PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values)
 {
-	/* set up the transfer */
-	uint8_t		addr[2] = {
-		page,
-		offset
-	};
-	i2c_msg_s	msgv[2];
+	/* range check the transfer */
+	if (num_values > ((_max_transfer) / sizeof(*values))) {
+		debug("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		return -EINVAL;
+	}
 
-	msgv[0].flags = 0;
-	msgv[0].buffer = addr;
-	msgv[0].length = 2;
-	msgv[1].flags = I2C_M_READ;
-	msgv[1].buffer = (uint8_t *)values;
-	msgv[1].length = num_values * sizeof(*values);
-
-	/* perform the transfer */
-	int ret = transfer(msgv, 2);
-	if (ret != OK)
-		debug("io_reg_get: data error %d", ret);
+	int ret =  _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
+	if (ret != num_values)
+		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
 	return ret;
 }
 
@@ -1255,9 +1265,9 @@ void
 PX4IO::print_status()
 {
 	/* basic configuration */
-	printf("protocol %u software %u bootloader %u buffer %uB\n",
+	printf("protocol %u hardware %u bootloader %u buffer %uB\n",
 		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION),
-		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_SOFTWARE_VERSION),
+		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION),
 		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_BOOTLOADER_VERSION),
 		io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER));
 	printf("%u controls %u actuators %u R/C inputs %u analog inputs %u relays\n",
@@ -1271,13 +1281,14 @@ PX4IO::print_status()
 	printf("%u bytes free\n",
 		io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FREEMEM));
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
-	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s\n",
+	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		flags,
 		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " ARMED" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
-		((flags & PX4IO_P_STATUS_FLAGS_RC_DSM)   ? " DSM" : ""),
+		(((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (!(flags & PX4IO_P_STATUS_FLAGS_RC_DSM11))) ? " DSM10" : ""),
+		(((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_STATUS_FLAGS_RC_DSM11)) ? " DSM11" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)  ? " SBUS" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PPM" : ""),
@@ -1286,7 +1297,7 @@ PX4IO::print_status()
 		((flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  ? " INIT_OK" : " INIT_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_FAILSAFE)  ? " FAILSAFE" : ""));
 	uint16_t alarms = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS);
-	printf("alarms 0x%04x%s%s%s%s%s%s%s\n",
+	printf("alarms 0x%04x%s%s%s%s%s%s%s%s\n",
 		alarms,
 		((alarms & PX4IO_P_STATUS_ALARMS_VBATT_LOW)     ? " VBATT_LOW" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_TEMPERATURE)   ? " TEMPERATURE" : ""),
@@ -1294,18 +1305,26 @@ PX4IO::print_status()
 		((alarms & PX4IO_P_STATUS_ALARMS_ACC_CURRENT)   ? " ACC_CURRENT" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST)      ? " FMU_LOST" : ""),
 		((alarms & PX4IO_P_STATUS_ALARMS_RC_LOST)       ? " RC_LOST" : ""),
-		((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""));
+		((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""),
+		((alarms & PX4IO_P_STATUS_ALARMS_VSERVO_FAULT)  ? " VSERVO_FAULT" : ""));
 	/* now clear alarms */
 	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0xFFFF);
 
-	printf("vbatt %u ibatt %u vbatt scale %u\n",
-	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
-	       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),
-	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
-	printf("amp_per_volt %.3f amp_offset %.3f mAh discharged %.3f\n",
-	       (double)_battery_amp_per_volt,
-	       (double)_battery_amp_bias,
-	       (double)_battery_mamphour_total);
+	if (_hardware == 1) {
+		printf("vbatt %u ibatt %u vbatt scale %u\n",
+		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
+		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),
+		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
+		printf("amp_per_volt %.3f amp_offset %.3f mAh discharged %.3f\n",
+		       (double)_battery_amp_per_volt,
+		       (double)_battery_amp_bias,
+		       (double)_battery_mamphour_total);
+	} else if (_hardware == 2) {
+		printf("vservo %u vservo scale %u\n",
+		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VSERVO),
+		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
+		printf("vrssi %u\n", io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VRSSI));
+	}
 	printf("actuators");
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_ACTUATORS, i));
@@ -1372,7 +1391,8 @@ PX4IO::print_status()
 }
 
 int
-PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
+PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
+/* Make it obvious that file * isn't used here */
 {
 	int ret = OK;
 
@@ -1424,6 +1444,26 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = _max_actuators;
 		break;
 
+	case DSM_BIND_START:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down); 
+		usleep(500000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
+		usleep(1000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
+		usleep(100000);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
+		break;
+
+	case DSM_BIND_STOP:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
+		usleep(500000);
+		break;
+
+	case DSM_BIND_POWER_UP:
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
+		break;
+
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS - 1): {
 
 		/* TODO: we could go lower for e.g. TurboPWM */
@@ -1466,18 +1506,31 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 	}
 
-	case GPIO_RESET:
-		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0);
+	case GPIO_RESET: {
+		uint32_t bits = (1 << _max_relays) - 1;
+		/* don't touch relay1 if it's controlling RX vcc */
+		if (_dsm_vcc_ctl)
+			bits &= ~PX4IO_RELAY1;
+		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, bits, 0);
 		break;
+	}
 
 	case GPIO_SET:
 		arg &= ((1 << _max_relays) - 1);
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0, arg);
+		/* don't touch relay1 if it's controlling RX vcc */
+		if (_dsm_vcc_ctl & (arg & PX4IO_RELAY1))
+			ret = -EINVAL;
+		else
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0, arg);
 		break;
 
 	case GPIO_CLEAR:
 		arg &= ((1 << _max_relays) - 1);
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, arg, 0);
+		/* don't touch relay1 if it's controlling RX vcc */
+		if (_dsm_vcc_ctl & (arg & PX4IO_RELAY1))
+			ret = -EINVAL;
+		else
+			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, arg, 0);
 		break;
 
 	case GPIO_GET:
@@ -1597,14 +1650,45 @@ extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
 namespace
 {
 
+device::Device *
+get_interface()
+{
+	device::Device *interface = nullptr;
+
+	/* try for a serial interface */
+	if (PX4IO_serial_interface != nullptr)
+		interface = PX4IO_serial_interface();
+	if (interface != nullptr)
+		goto got;
+
+	/* try for an I2C interface if we haven't got a serial one */
+	if (PX4IO_i2c_interface != nullptr)
+		interface = PX4IO_i2c_interface();
+	if (interface != nullptr)
+		goto got;
+
+	errx(1, "cannot alloc interface");
+
+got:
+	if (interface->init() != OK) {
+		delete interface;
+		errx(1, "interface init failed");
+	}
+
+	return interface;
+}
+
 void
 start(int argc, char *argv[])
 {
 	if (g_dev != nullptr)
 		errx(1, "already loaded");
 
+	/* allocate the interface */
+	device::Device *interface = get_interface();
+
 	/* create the driver - it will set g_dev */
-	(void)new PX4IO();
+	(void)new PX4IO(interface);
 
 	if (g_dev == nullptr)
 		errx(1, "driver alloc failed");
@@ -1614,7 +1698,62 @@ start(int argc, char *argv[])
 		errx(1, "driver init failed");
 	}
 
+	int dsm_vcc_ctl;
+
+	if (param_get(param_find("RC_RL1_DSM_VCC"), &dsm_vcc_ctl) == OK) {
+		if (dsm_vcc_ctl) {
+			g_dev->set_dsm_vcc_ctl(true);
+			g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);
+		}
+	}
 	exit(0);
+}
+
+void
+bind(int argc, char *argv[])
+{
+	int pulses;
+
+	if (g_dev == nullptr)
+		errx(1, "px4io must be started first");
+
+	if (!g_dev->get_dsm_vcc_ctl())
+		errx(1, "DSM bind feature not enabled");
+
+	if (argc < 3)
+		errx(0, "needs argument, use dsm2 or dsmx");
+
+	if (!strcmp(argv[2], "dsm2"))
+		pulses = 3;
+	else if (!strcmp(argv[2], "dsmx"))
+		pulses = 7;
+	else 
+		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
+
+	/* Open console directly to grab CTRL-C signal */
+	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
+	if (!console)
+		errx(1, "failed opening console");
+
+	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
+	warnx("Press CTRL-C or 'c' when done.");
+
+	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
+
+	for (;;) {
+		usleep(500000L);
+		/* Check if user wants to quit */
+		char c;
+		if (read(console, &c, 1) == 1) {
+			if (c == 0x03 || c == 0x63) {
+				warnx("Done\n");
+				g_dev->ioctl(nullptr, DSM_BIND_STOP, 0);
+				g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);
+				close(console);
+	            exit(0);
+            }
+		}
+	}
 }
 
 void
@@ -1626,7 +1765,7 @@ test(void)
 	int		direction = 1;
 	int		ret;
 
-	fd = open("/dev/px4io", O_WRONLY);
+	fd = open(PX4IO_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0)
 		err(1, "failed to open device");
@@ -1719,7 +1858,18 @@ monitor(void)
 	}
 }
 
+void
+if_test(unsigned mode)
+{
+	device::Device *interface = get_interface();
+
+	int result = interface->ioctl(1, mode); /* XXX magic numbers */
+	delete interface;
+
+	errx(0, "test returned %d", result);
 }
+
+} /* namespace */
 
 int
 px4io_main(int argc, char *argv[])
@@ -1730,130 +1880,6 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start"))
 		start(argc - 1, argv + 1);
-
-	if (!strcmp(argv[1], "limit")) {
-
-		if (g_dev != nullptr) {
-
-			if ((argc > 2)) {
-				g_dev->set_update_rate(atoi(argv[2]));
-			} else {
-				errx(1, "missing argument (50 - 200 Hz)");
-				return 1;
-			}
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "current")) {
-		if (g_dev != nullptr) {
-			if ((argc > 3)) {
-				g_dev->set_battery_current_scaling(atof(argv[2]), atof(argv[3]));
-			} else {
-				errx(1, "missing argument (apm_per_volt, amp_offset)");
-				return 1;
-			}
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "failsafe")) {
-
-		if (argc < 3) {
-			errx(1, "failsafe command needs at least one channel value (ppm)");
-		}
-
-		if (g_dev != nullptr) {
-
-			/* set values for first 8 channels, fill unassigned channels with 1500. */
-			uint16_t failsafe[8];
-
-			for (int i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++)
-			{
-				/* set channel to commanline argument or to 900 for non-provided channels */
-				if (argc > i + 2) {
-					failsafe[i] = atoi(argv[i+2]);
-					if (failsafe[i] < 800 || failsafe[i] > 2200) {
-						errx(1, "value out of range of 800 < value < 2200. Aborting.");
-					}
-				} else {
-					/* a zero value will result in stopping to output any pulse */
-					failsafe[i] = 0;
-				}
-			}
-
-			int ret = g_dev->set_failsafe_values(failsafe, sizeof(failsafe) / sizeof(failsafe[0]));
-
-			if (ret != OK)
-				errx(ret, "failed setting failsafe values");
-		} else {
-			errx(1, "not loaded");
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "recovery")) {
-
-		if (g_dev != nullptr) {
-			/*
-			 * Enable in-air restart support.
-			 * We can cheat and call the driver directly, as it
-		 	 * doesn't reference filp in ioctl()
-			 */
-			g_dev->ioctl(NULL, PX4IO_INAIR_RESTART_ENABLE, 1);
-		} else {
-			errx(1, "not loaded");
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-
-		if (g_dev != nullptr) {
-			/* stop the driver */
-			delete g_dev;
-		} else {
-			errx(1, "not loaded");
-		}
-		exit(0);
-	}
-
-
-	if (!strcmp(argv[1], "status")) {
-
-		if (g_dev != nullptr) {
-			printf("[px4io] loaded\n");
-			g_dev->print_status();
-		} else {
-			printf("[px4io] not loaded\n");
-		}
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "debug")) {
-		if (argc <= 2) {
-			printf("usage: px4io debug LEVEL\n");
-			exit(1);
-		}
-		if (g_dev == nullptr) {
-			printf("px4io is not started\n");
-			exit(1);
-		}
-		uint8_t level = atoi(argv[2]);
-		/* we can cheat and call the driver directly, as it
-		 * doesn't reference filp in ioctl()
-		 */
-		int ret = g_dev->ioctl(NULL, PX4IO_SET_DEBUG, level);
-		if (ret != 0) {
-			printf("SET_DEBUG failed - %d\n", ret);
-			exit(1);
-		}
-		printf("SET_DEBUG %u OK\n", (unsigned)level);
-		exit(0);
-	}
-
-	/* note, stop not currently implemented */
 
 	if (!strcmp(argv[1], "update")) {
 
@@ -1905,6 +1931,118 @@ px4io_main(int argc, char *argv[])
 		return ret;
 	}
 
+	if (!strcmp(argv[1], "iftest")) {
+		if (g_dev != nullptr)
+			errx(1, "can't iftest when started");
+
+		if_test((argc > 2) ? strtol(argv[2], NULL, 0) : 0);
+	}
+
+	/* commands below here require a started driver */
+
+	if (g_dev == nullptr)
+		errx(1, "not started");
+
+	if (!strcmp(argv[1], "limit")) {
+
+		if ((argc > 2)) {
+			g_dev->set_update_rate(atoi(argv[2]));
+		} else {
+			errx(1, "missing argument (50 - 200 Hz)");
+			return 1;
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "current")) {
+		if ((argc > 3)) {
+			g_dev->set_battery_current_scaling(atof(argv[2]), atof(argv[3]));
+		} else {
+			errx(1, "missing argument (apm_per_volt, amp_offset)");
+			return 1;
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "failsafe")) {
+
+		if (argc < 3) {
+			errx(1, "failsafe command needs at least one channel value (ppm)");
+		}
+
+		/* set values for first 8 channels, fill unassigned channels with 1500. */
+		uint16_t failsafe[8];
+
+		for (int i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++) {
+
+			/* set channel to commandline argument or to 900 for non-provided channels */
+			if (argc > i + 2) {
+				failsafe[i] = atoi(argv[i+2]);
+				if (failsafe[i] < 800 || failsafe[i] > 2200) {
+					errx(1, "value out of range of 800 < value < 2200. Aborting.");
+				}
+			} else {
+				/* a zero value will result in stopping to output any pulse */
+				failsafe[i] = 0;
+			}
+		}
+
+		int ret = g_dev->set_failsafe_values(failsafe, sizeof(failsafe) / sizeof(failsafe[0]));
+
+		if (ret != OK)
+			errx(ret, "failed setting failsafe values");
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "recovery")) {
+
+		/*
+		 * Enable in-air restart support.
+		 * We can cheat and call the driver directly, as it
+	 	 * doesn't reference filp in ioctl()
+		 */
+		g_dev->ioctl(NULL, PX4IO_INAIR_RESTART_ENABLE, 1);
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+
+		/* stop the driver */
+		delete g_dev;
+		exit(0);
+	}
+
+
+	if (!strcmp(argv[1], "status")) {
+
+		printf("[px4io] loaded\n");
+		g_dev->print_status();
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "debug")) {
+		if (argc <= 2) {
+			printf("usage: px4io debug LEVEL\n");
+			exit(1);
+		}
+		if (g_dev == nullptr) {
+			printf("px4io is not started\n");
+			exit(1);
+		}
+		uint8_t level = atoi(argv[2]);
+		/* we can cheat and call the driver directly, as it
+		 * doesn't reference filp in ioctl()
+		 */
+		int ret = g_dev->ioctl(nullptr, PX4IO_SET_DEBUG, level);
+		if (ret != 0) {
+			printf("SET_DEBUG failed - %d\n", ret);
+			exit(1);
+		}
+		printf("SET_DEBUG %u OK\n", (unsigned)level);
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "rx_dsm") ||
 	    !strcmp(argv[1], "rx_dsm_10bit") ||
 	    !strcmp(argv[1], "rx_dsm_11bit") ||
@@ -1918,6 +2056,9 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "monitor"))
 		monitor();
 
+	if (!strcmp(argv[1], "bind"))
+		bind(argc, argv);
+
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe', 'bind', or 'update'");
 }

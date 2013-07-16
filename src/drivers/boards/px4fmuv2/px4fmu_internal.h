@@ -50,13 +50,25 @@
 __BEGIN_DECLS
 
 /* these headers are not C++ safe */
-#include <stm32_internal.h>
+#include <stm32.h>
 
  
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
+
+/* PX4IO connection configuration */
+#define PX4IO_SERIAL_DEVICE	"/dev/ttyS4"
+#define PX4IO_SERIAL_TX_GPIO	GPIO_USART6_TX
+#define PX4IO_SERIAL_RX_GPIO	GPIO_USART6_RX
+#define PX4IO_SERIAL_BASE	STM32_USART6_BASE	/* hardwired on the board */
+#define PX4IO_SERIAL_VECTOR	STM32_IRQ_USART6
+#define PX4IO_SERIAL_TX_DMAMAP	DMAMAP_USART6_TX_2
+#define PX4IO_SERIAL_RX_DMAMAP	DMAMAP_USART6_RX_2
+#define PX4IO_SERIAL_CLOCK	STM32_PCLK2_FREQUENCY
+#define PX4IO_SERIAL_BITRATE	1500000			/* 1.5Mbps -> max rate for IO */
+
 
 /* PX4FMU GPIOs ***********************************************************************************/
 /* LEDs */
@@ -90,7 +102,9 @@ __BEGIN_DECLS
 
 /* Power supply control and monitoring GPIOs */
 #define GPIO_VDD_5V_PERIPH_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
-#define GPIO_VDD_2V8_SENSORS_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
+#define GPIO_VDD_BRICK_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
+#define GPIO_VDD_SERVO_VALID	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN7)
+#define GPIO_VDD_3V3_SENSORS_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
 #define GPIO_VDD_5V_HIPOWER_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
 #define GPIO_VDD_5V_PERIPH_OC	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
 

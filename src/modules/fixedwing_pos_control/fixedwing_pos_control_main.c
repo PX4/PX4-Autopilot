@@ -239,10 +239,10 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 	parameters_init(&h);
 	parameters_update(&h, &p);
-	pid_init(&heading_controller, p.heading_p, 0.0f, 0.0f, 0.0f, 10000.0f, PID_MODE_DERIVATIV_NONE); //arbitrary high limit
-	pid_init(&heading_rate_controller, p.headingr_p, p.headingr_i, 0.0f, 0.0f, p.roll_lim, PID_MODE_DERIVATIV_NONE);
-	pid_init(&altitude_controller, p.altitude_p, 0.0f, 0.0f, 0.0f, p.pitch_lim, PID_MODE_DERIVATIV_NONE);
-	pid_init(&offtrack_controller, p.xtrack_p, 0.0f, 0.0f, 0.0f , 60.0f * M_DEG_TO_RAD, PID_MODE_DERIVATIV_NONE); //TODO: remove hardcoded value
+	pid_init(&heading_controller, p.heading_p, 0.0f, 0.0f, 0.0f, 10000.0f, PID_MODE_DERIVATIV_NONE, 0.0f); //arbitrary high limit
+	pid_init(&heading_rate_controller, p.headingr_p, p.headingr_i, 0.0f, 0.0f, p.roll_lim, PID_MODE_DERIVATIV_NONE, 0.0f);
+	pid_init(&altitude_controller, p.altitude_p, 0.0f, 0.0f, 0.0f, p.pitch_lim, PID_MODE_DERIVATIV_NONE, 0.0f);
+	pid_init(&offtrack_controller, p.xtrack_p, 0.0f, 0.0f, 0.0f , 60.0f * M_DEG_TO_RAD, PID_MODE_DERIVATIV_NONE, 0.0f); //TODO: remove hardcoded value
 
 	/* error and performance monitoring */
 	perf_counter_t fw_interval_perf = perf_alloc(PC_INTERVAL, "fixedwing_pos_control_interval");
@@ -448,7 +448,7 @@ int fixedwing_pos_control_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("fixedwing_pos_control",
+		deamon_task = task_spawn_cmd("fixedwing_pos_control",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 20,
 					 2048,

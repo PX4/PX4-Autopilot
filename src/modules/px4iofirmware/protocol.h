@@ -36,8 +36,7 @@
 /**
  * @file protocol.h
  *
- * PX4IO interface protocol
- * ========================
+ * PX4IO interface protocol.
  *
  * Communication is performed via writes to and reads from 16-bit virtual
  * registers organised into pages of 255 registers each.
@@ -46,7 +45,7 @@
  * respectively. Subsequent reads and writes increment the offset within
  * the page. 
  *
- * Most pages are readable or writable but not both.
+ * Some pages are read- or write-only.
  *
  * Note that some pages may permit offset values greater than 255, which
  * can only be achieved by long writes. The offset does not wrap.
@@ -64,33 +63,9 @@
  * readable pages to be densely packed. Page numbers do not need to be
  * packed.
  *
- * PX4IO I2C interface notes
- * -------------------------
- *
- * Register read/write operations are mapped directly to PX4IO register
- * read/write operations.
- *
- * PX4IO Serial interface notes
- * ----------------------------
- *
- * The MSB of the page number is used to distinguish between read and
- * write operations. If set, the operation is a write and additional 
- * data is expected to follow in the packet as for I2C writes.
- *
- * If clear, the packet is expected to contain a single byte giving the
- * number of registers to be read. PX4IO will respond with a packet containing
- * the same header (page, offset) and the requested data.
- *
- * If a read is requested when PX4IO does not have buffer space to store
- * the reply, the request will be dropped. PX4IO is always configured with
- * enough space to receive one full-sized write and one read request, and
- * to send one full-sized read response.
- *
+ * Definitions marked 1 are only valid on PX4IOv1 boards. Likewise, 
+ * [2] denotes definitions specific to the PX4IOv2 board.
  */
-
-#define PX4IO_CONTROL_CHANNELS			8
-#define PX4IO_INPUT_CHANNELS			12
-#define PX4IO_RELAY_CHANNELS			4
 
 /* Per C, this is safe for all 2's complement systems */
 #define REG_TO_SIGNED(_reg)	((int16_t)(_reg))
@@ -99,14 +74,14 @@
 #define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
 
-#define PX4IO_PAGE_WRITE		(1<<7)
+#define PX4IO_PROTOCOL_VERSION		2
 
 /* static configuration page */
 #define PX4IO_PAGE_CONFIG		0
-#define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers TBD */
-#define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers TBD */
+#define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* PX4IO_PROTOCOL_VERSION */
+#define PX4IO_P_CONFIG_HARDWARE_VERSION		1	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
-#define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum packet transfer size */
+#define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum I2C transfer size */
 #define PX4IO_P_CONFIG_CONTROL_COUNT		4	/* hardcoded max control count supported */
 #define PX4IO_P_CONFIG_ACTUATOR_COUNT		5	/* hardcoded max actuator output count */
 #define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
@@ -131,18 +106,23 @@
 #define PX4IO_P_STATUS_FLAGS_ARM_SYNC		(1 << 9) /* the arming state between IO and FMU is in sync */
 #define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 10) /* initialisation of the IO completed without error */
 #define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
+#define PX4IO_P_STATUS_FLAGS_RC_DSM11		(1 << 12) /* DSM input is 11 bit data */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
-#define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* VBatt is very close to regulator dropout */
+#define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* [1] VBatt is very close to regulator dropout */
 #define PX4IO_P_STATUS_ALARMS_TEMPERATURE	(1 << 1) /* board temperature is high */
-#define PX4IO_P_STATUS_ALARMS_SERVO_CURRENT	(1 << 2) /* servo current limit was exceeded */
-#define PX4IO_P_STATUS_ALARMS_ACC_CURRENT	(1 << 3) /* accessory current limit was exceeded */
+#define PX4IO_P_STATUS_ALARMS_SERVO_CURRENT	(1 << 2) /* [1] servo current limit was exceeded */
+#define PX4IO_P_STATUS_ALARMS_ACC_CURRENT	(1 << 3) /* [1] accessory current limit was exceeded */
 #define PX4IO_P_STATUS_ALARMS_FMU_LOST		(1 << 4) /* timed out waiting for controls from FMU */
 #define PX4IO_P_STATUS_ALARMS_RC_LOST		(1 << 5) /* timed out waiting for RC input */
 #define PX4IO_P_STATUS_ALARMS_PWM_ERROR		(1 << 6) /* PWM configuration or output was bad */
+#define PX4IO_P_STATUS_ALARMS_VSERVO_FAULT	(1 << 7) /* [2] VServo was out of the valid range (2.5 - 5.5 V) */
 
-#define PX4IO_P_STATUS_VBATT			4	/* battery voltage in mV */
-#define PX4IO_P_STATUS_IBATT			5	/* battery current (raw ADC) */
+#define PX4IO_P_STATUS_VBATT			4	/* [1] battery voltage in mV */
+#define PX4IO_P_STATUS_IBATT			5	/* [1] battery current (raw ADC) */
+#define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
+#define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
+#define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -168,7 +148,7 @@
 #define PX4IO_RATE_MAP_BASE			0	/* 0..CONFIG_ACTUATOR_COUNT bitmaps of PWM rate groups */
 
 /* setup page */
-#define PX4IO_PAGE_SETUP		64
+#define PX4IO_PAGE_SETUP		50
 #define PX4IO_P_SETUP_FEATURES			0
 
 #define PX4IO_P_SETUP_ARMING			1	 /* arming controls */
@@ -181,18 +161,34 @@
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
+
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
-#define PX4IO_P_SETUP_VBATT_SCALE		6	/* battery voltage correction factor (float) */
+#define PX4IO_P_SETUP_RELAYS_POWER1		(1<<0)	/* [1] power relay 1 */
+#define PX4IO_P_SETUP_RELAYS_POWER2		(1<<1)	/* [1] power relay 2 */
+#define PX4IO_P_SETUP_RELAYS_ACC1		(1<<2)	/* [1] accessory power 1 */
+#define PX4IO_P_SETUP_RELAYS_ACC2		(1<<3)	/* [1] accessory power 2 */
+
+#define PX4IO_P_SETUP_VBATT_SCALE		6	/* [1] battery voltage correction factor (float) */
+#define PX4IO_P_SETUP_VSERVO_SCALE		6	/* [2] servo voltage correction factor (float) */
+#define PX4IO_P_SETUP_DSM			7	/* DSM bind state */
+enum {							/* DSM bind states */
+	dsm_bind_power_down = 0,
+	dsm_bind_power_up,
+	dsm_bind_set_rx_out,
+	dsm_bind_send_pulses,
+	dsm_bind_reinit_uart
+};
+ 					     /*	8 */
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
 /* autopilot control values, -10000..10000 */
-#define PX4IO_PAGE_CONTROLS		65		/* 0..CONFIG_CONTROL_COUNT */
+#define PX4IO_PAGE_CONTROLS		51		/* 0..CONFIG_CONTROL_COUNT */
 
 /* raw text load to the mixer parser - ignores offset */
-#define PX4IO_PAGE_MIXERLOAD		66		/* see px4io_mixdata structure below */
+#define PX4IO_PAGE_MIXERLOAD		52
 
 /* R/C channel config */
-#define PX4IO_PAGE_RC_CONFIG		67		/* R/C input configuration */
+#define PX4IO_PAGE_RC_CONFIG		53		/* R/C input configuration */
 #define PX4IO_P_RC_CONFIG_MIN			0	/* lowest input value */
 #define PX4IO_P_RC_CONFIG_CENTER		1	/* center input value */
 #define PX4IO_P_RC_CONFIG_MAX			2	/* highest input value */
@@ -204,10 +200,14 @@
 #define PX4IO_P_RC_CONFIG_STRIDE		6	/* spacing between channel config data */
 
 /* PWM output - overrides mixer */
-#define PX4IO_PAGE_DIRECT_PWM		68		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_DIRECT_PWM		54		/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* PWM failsafe values - zero disables the output */
-#define PX4IO_PAGE_FAILSAFE_PWM		69		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_FAILSAFE_PWM		55		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+
+/* Debug and test page - not used in normal operation */
+#define PX4IO_PAGE_TEST			127
+#define PX4IO_P_TEST_LED			0	/* set the amber LED on/off */
 
 /**
  * As-needed mixer data upload.
@@ -228,3 +228,81 @@ struct px4io_mixdata {
 };
 #pragma pack(pop)
 
+/**
+ * Serial protocol encapsulation.
+ */
+
+#define PKT_MAX_REGS	32 // by agreement w/FMU
+
+#pragma pack(push, 1)
+struct IOPacket {
+	uint8_t 	count_code;
+	uint8_t 	crc;
+	uint8_t 	page;
+	uint8_t 	offset;
+	uint16_t	regs[PKT_MAX_REGS];
+};
+#pragma pack(pop)
+
+#define PKT_CODE_READ		0x00	/* FMU->IO read transaction */
+#define PKT_CODE_WRITE		0x40	/* FMU->IO write transaction */
+#define PKT_CODE_SUCCESS	0x00	/* IO->FMU success reply */
+#define PKT_CODE_CORRUPT	0x40	/* IO->FMU bad packet reply */
+#define PKT_CODE_ERROR		0x80	/* IO->FMU register op error reply */
+
+#define PKT_CODE_MASK		0xc0
+#define PKT_COUNT_MASK		0x3f
+
+#define PKT_COUNT(_p)	((_p).count_code & PKT_COUNT_MASK)
+#define PKT_CODE(_p)	((_p).count_code & PKT_CODE_MASK)
+#define PKT_SIZE(_p)	((uint8_t *)&((_p).regs[PKT_COUNT(_p)]) - ((uint8_t *)&(_p)))
+
+static const uint8_t crc8_tab[256] __attribute__((unused)) =
+{
+	0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,
+	0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A, 0x2D,
+	0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65,
+	0x48, 0x4F, 0x46, 0x41, 0x54, 0x53, 0x5A, 0x5D,
+	0xE0, 0xE7, 0xEE, 0xE9, 0xFC, 0xFB, 0xF2, 0xF5,
+	0xD8, 0xDF, 0xD6, 0xD1, 0xC4, 0xC3, 0xCA, 0xCD,
+	0x90, 0x97, 0x9E, 0x99, 0x8C, 0x8B, 0x82, 0x85,
+	0xA8, 0xAF, 0xA6, 0xA1, 0xB4, 0xB3, 0xBA, 0xBD,
+	0xC7, 0xC0, 0xC9, 0xCE, 0xDB, 0xDC, 0xD5, 0xD2,
+	0xFF, 0xF8, 0xF1, 0xF6, 0xE3, 0xE4, 0xED, 0xEA,
+	0xB7, 0xB0, 0xB9, 0xBE, 0xAB, 0xAC, 0xA5, 0xA2,
+	0x8F, 0x88, 0x81, 0x86, 0x93, 0x94, 0x9D, 0x9A,
+	0x27, 0x20, 0x29, 0x2E, 0x3B, 0x3C, 0x35, 0x32,
+	0x1F, 0x18, 0x11, 0x16, 0x03, 0x04, 0x0D, 0x0A,
+	0x57, 0x50, 0x59, 0x5E, 0x4B, 0x4C, 0x45, 0x42,
+	0x6F, 0x68, 0x61, 0x66, 0x73, 0x74, 0x7D, 0x7A,
+	0x89, 0x8E, 0x87, 0x80, 0x95, 0x92, 0x9B, 0x9C,
+	0xB1, 0xB6, 0xBF, 0xB8, 0xAD, 0xAA, 0xA3, 0xA4,
+	0xF9, 0xFE, 0xF7, 0xF0, 0xE5, 0xE2, 0xEB, 0xEC,
+	0xC1, 0xC6, 0xCF, 0xC8, 0xDD, 0xDA, 0xD3, 0xD4,
+	0x69, 0x6E, 0x67, 0x60, 0x75, 0x72, 0x7B, 0x7C,
+	0x51, 0x56, 0x5F, 0x58, 0x4D, 0x4A, 0x43, 0x44,
+	0x19, 0x1E, 0x17, 0x10, 0x05, 0x02, 0x0B, 0x0C,
+	0x21, 0x26, 0x2F, 0x28, 0x3D, 0x3A, 0x33, 0x34,
+	0x4E, 0x49, 0x40, 0x47, 0x52, 0x55, 0x5C, 0x5B,
+	0x76, 0x71, 0x78, 0x7F, 0x6A, 0x6D, 0x64, 0x63,
+	0x3E, 0x39, 0x30, 0x37, 0x22, 0x25, 0x2C, 0x2B,
+	0x06, 0x01, 0x08, 0x0F, 0x1A, 0x1D, 0x14, 0x13,
+	0xAE, 0xA9, 0xA0, 0xA7, 0xB2, 0xB5, 0xBC, 0xBB,
+	0x96, 0x91, 0x98, 0x9F, 0x8A, 0x8D, 0x84, 0x83,
+	0xDE, 0xD9, 0xD0, 0xD7, 0xC2, 0xC5, 0xCC, 0xCB,
+	0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3
+};
+
+static uint8_t crc_packet(struct IOPacket *pkt) __attribute__((unused));
+static uint8_t
+crc_packet(struct IOPacket *pkt)
+{
+	uint8_t *end = (uint8_t *)(&pkt->regs[PKT_COUNT(*pkt)]);
+	uint8_t *p = (uint8_t *)pkt;
+	uint8_t c = 0;
+
+	while (p < end)
+		c = crc8_tab[c ^ *(p++)];
+
+	return c;
+}

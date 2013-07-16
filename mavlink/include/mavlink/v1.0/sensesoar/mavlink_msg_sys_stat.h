@@ -21,6 +21,9 @@ typedef struct __mavlink_sys_stat_t
 #define MAVLINK_MSG_ID_SYS_Stat_LEN 4
 #define MAVLINK_MSG_ID_190_LEN 4
 
+#define MAVLINK_MSG_ID_SYS_Stat_CRC 157
+#define MAVLINK_MSG_ID_190_CRC 157
+
 
 
 #define MAVLINK_MESSAGE_INFO_SYS_Stat { \
@@ -58,13 +61,13 @@ static inline uint16_t mavlink_msg_sys_stat_pack(uint8_t system_id, uint8_t comp
 						       uint8_t gps, uint8_t act, uint8_t mod, uint8_t commRssi)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[4];
+	char buf[MAVLINK_MSG_ID_SYS_Stat_LEN];
 	_mav_put_uint8_t(buf, 0, gps);
 	_mav_put_uint8_t(buf, 1, act);
 	_mav_put_uint8_t(buf, 2, mod);
 	_mav_put_uint8_t(buf, 3, commRssi);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 4);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_SYS_Stat_LEN);
 #else
 	mavlink_sys_stat_t packet;
 	packet.gps = gps;
@@ -72,11 +75,15 @@ static inline uint16_t mavlink_msg_sys_stat_pack(uint8_t system_id, uint8_t comp
 	packet.mod = mod;
 	packet.commRssi = commRssi;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 4);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_SYS_Stat_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_SYS_Stat;
-	return mavlink_finalize_message(msg, system_id, component_id, 4, 157);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_SYS_Stat_LEN, MAVLINK_MSG_ID_SYS_Stat_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_SYS_Stat_LEN);
+#endif
 }
 
 /**
@@ -104,13 +111,13 @@ static inline uint16_t mavlink_msg_sys_stat_pack_chan(uint8_t system_id, uint8_t
 						           uint8_t gps,uint8_t act,uint8_t mod,uint8_t commRssi)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[4];
+	char buf[MAVLINK_MSG_ID_SYS_Stat_LEN];
 	_mav_put_uint8_t(buf, 0, gps);
 	_mav_put_uint8_t(buf, 1, act);
 	_mav_put_uint8_t(buf, 2, mod);
 	_mav_put_uint8_t(buf, 3, commRssi);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 4);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_SYS_Stat_LEN);
 #else
 	mavlink_sys_stat_t packet;
 	packet.gps = gps;
@@ -118,11 +125,15 @@ static inline uint16_t mavlink_msg_sys_stat_pack_chan(uint8_t system_id, uint8_t
 	packet.mod = mod;
 	packet.commRssi = commRssi;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 4);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_SYS_Stat_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_SYS_Stat;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 4, 157);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_SYS_Stat_LEN, MAVLINK_MSG_ID_SYS_Stat_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_SYS_Stat_LEN);
+#endif
 }
 
 /**
@@ -160,13 +171,17 @@ static inline uint16_t mavlink_msg_sys_stat_encode(uint8_t system_id, uint8_t co
 static inline void mavlink_msg_sys_stat_send(mavlink_channel_t chan, uint8_t gps, uint8_t act, uint8_t mod, uint8_t commRssi)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[4];
+	char buf[MAVLINK_MSG_ID_SYS_Stat_LEN];
 	_mav_put_uint8_t(buf, 0, gps);
 	_mav_put_uint8_t(buf, 1, act);
 	_mav_put_uint8_t(buf, 2, mod);
 	_mav_put_uint8_t(buf, 3, commRssi);
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SYS_Stat, buf, 4, 157);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SYS_Stat, buf, MAVLINK_MSG_ID_SYS_Stat_LEN, MAVLINK_MSG_ID_SYS_Stat_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SYS_Stat, buf, MAVLINK_MSG_ID_SYS_Stat_LEN);
+#endif
 #else
 	mavlink_sys_stat_t packet;
 	packet.gps = gps;
@@ -174,7 +189,11 @@ static inline void mavlink_msg_sys_stat_send(mavlink_channel_t chan, uint8_t gps
 	packet.mod = mod;
 	packet.commRssi = commRssi;
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SYS_Stat, (const char *)&packet, 4, 157);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SYS_Stat, (const char *)&packet, MAVLINK_MSG_ID_SYS_Stat_LEN, MAVLINK_MSG_ID_SYS_Stat_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_SYS_Stat, (const char *)&packet, MAVLINK_MSG_ID_SYS_Stat_LEN);
+#endif
 #endif
 }
 
@@ -245,6 +264,6 @@ static inline void mavlink_msg_sys_stat_decode(const mavlink_message_t* msg, mav
 	sys_stat->mod = mavlink_msg_sys_stat_get_mod(msg);
 	sys_stat->commRssi = mavlink_msg_sys_stat_get_commRssi(msg);
 #else
-	memcpy(sys_stat, _MAV_PAYLOAD(msg), 4);
+	memcpy(sys_stat, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_SYS_Stat_LEN);
 #endif
 }

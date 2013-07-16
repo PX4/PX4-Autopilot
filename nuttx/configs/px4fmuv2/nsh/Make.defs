@@ -1,3 +1,0 @@
-include ${TOPDIR}/.config
-
-include $(TOPDIR)/configs/px4fmuv2/common/Make.defs

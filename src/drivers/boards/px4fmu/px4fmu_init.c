@@ -58,7 +58,7 @@
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 
-#include "stm32_internal.h"
+#include "stm32.h"
 #include "px4fmu_internal.h"
 #include "stm32_uart.h"
 

@@ -37,7 +37,7 @@
  * math quaternion lib
  */
 
-//#pragma once
+#pragma once
 
 #include "Vector.hpp"
 #include "Matrix.hpp"

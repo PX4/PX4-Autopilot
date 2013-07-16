@@ -44,8 +44,7 @@
 export PX4_INCLUDE_DIR	 = $(abspath $(PX4_BASE)/src/include)/
 export PX4_MODULE_SRC	 = $(abspath $(PX4_BASE)/src)/
 export PX4_MK_DIR	 = $(abspath $(PX4_BASE)/makefiles)/
-export NUTTX_SRC	 = $(abspath $(PX4_BASE)/nuttx)/
-export NUTTX_APP_SRC	 = $(abspath $(PX4_BASE)/apps)/
+export NUTTX_SRC	 = $(abspath $(PX4_BASE)/NuttX/nuttx)/
 export MAVLINK_SRC	 = $(abspath $(PX4_BASE)/mavlink)/
 export ROMFS_SRC	 = $(abspath $(PX4_BASE)/ROMFS)/
 export IMAGE_DIR	 = $(abspath $(PX4_BASE)/Images)/

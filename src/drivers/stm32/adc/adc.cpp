@@ -58,7 +58,7 @@
 #include <drivers/drv_adc.h>
 
 #include <arch/stm32/chip.h>
-#include <stm32_internal.h>
+#include <stm32.h>
 #include <stm32_gpio.h>
 
 #include <systemlib/err.h>
@@ -227,7 +227,6 @@ ADC::init()
 		if ((hrt_absolute_time() - now) > 500) {
 			log("sample timeout");
 			return -1;
-			return 0xffff;
 		}
 	}
 
@@ -282,7 +281,7 @@ ADC::close_last(struct file *filp)
 void
 ADC::_tick_trampoline(void *arg)
 {
-	((ADC *)arg)->_tick();
+	(reinterpret_cast<ADC *>(arg))->_tick();
 }
 
 void
@@ -366,8 +365,15 @@ int
 adc_main(int argc, char *argv[])
 {
 	if (g_adc == nullptr) {
-		/* XXX this hardcodes the default channel set for PX4FMU - should be configurable */
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+		/* XXX this hardcodes the default channel set for PX4FMUv1 - should be configurable */
 		g_adc = new ADC((1 << 10) | (1 << 11) | (1 << 12) | (1 << 13));
+#endif
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+		/* XXX this hardcodes the default channel set for PX4FMUv2 - should be configurable */
+		g_adc = new ADC((1 << 2) | (1 << 3) | (1 << 4) | 
+			(1 << 10) | (1 << 11) | (1 << 12) | (1 << 13) | (1 << 14) | (1 << 15));
+#endif
 
 		if (g_adc == nullptr)
 			errx(1, "couldn't allocate the ADC driver");

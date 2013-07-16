@@ -66,11 +66,11 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
-#include "stm32_internal.h"
+#include "stm32.h"
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
 
-#ifdef CONFIG_HRT_TIMER
+#ifdef HRT_TIMER
 
 /* HRT configuration */
 #if   HRT_TIMER == 1
@@ -275,11 +275,13 @@ static void		hrt_call_invoke(void);
 /*
  * Specific registers and bits used by PPM sub-functions
  */
-#ifdef CONFIG_HRT_PPM
+#ifdef HRT_PPM_CHANNEL
 /* 
  * If the timer hardware doesn't support GTIM_CCER_CCxNP, then we will work around it.
+ *
+ * Note that we assume that M3 means STM32F1 (since we don't really care about the F2).
  */
-# ifndef GTIM_CCER_CC1NP
+# ifdef CONFIG_ARCH_CORTEXM3
 #  define GTIM_CCER_CC1NP 0
 #  define GTIM_CCER_CC2NP 0
 #  define GTIM_CCER_CC3NP 0
@@ -375,7 +377,7 @@ static void	hrt_ppm_decode(uint32_t status);
 # define CCMR1_PPM	0
 # define CCMR2_PPM	0
 # define CCER_PPM	0
-#endif /* CONFIG_HRT_PPM */
+#endif /* HRT_PPM_CHANNEL */
 
 /*
  * Initialise the timer we are going to use.
@@ -905,4 +907,4 @@ hrt_latency_update(void)
 }
 
 
-#endif /* CONFIG_HRT_TIMER */
+#endif /* HRT_TIMER */

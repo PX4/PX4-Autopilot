@@ -111,15 +111,11 @@
 #include <up_internal.h>
 #include <up_arch.h>
 
-#include <stm32_internal.h>
+#include <stm32.h>
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
 #include <systemlib/err.h>
-
-#ifndef CONFIG_HRT_TIMER
-# error This driver requires CONFIG_HRT_TIMER
-#endif
 
 /* Tone alarm configuration */
 #if   TONE_ALARM_TIMER == 2

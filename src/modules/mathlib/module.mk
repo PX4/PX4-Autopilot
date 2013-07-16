@@ -36,11 +36,13 @@
 #
 SRCS		 = math/test/test.cpp \
 		   math/Vector.cpp \
+		   math/Vector2f.cpp \
 		   math/Vector3.cpp \
 		   math/EulerAngles.cpp \
 		   math/Quaternion.cpp \
 		   math/Dcm.cpp \
-		   math/Matrix.cpp
+		   math/Matrix.cpp \
+		   math/Limits.cpp
 
 #
 # In order to include .config we first have to save off the

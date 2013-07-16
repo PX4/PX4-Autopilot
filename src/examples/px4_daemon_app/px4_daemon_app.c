@@ -95,7 +95,7 @@ int px4_daemon_app_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = task_spawn("daemon",
+		daemon_task = task_spawn_cmd("daemon",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT,
 					 4096,

@@ -50,13 +50,16 @@
 __BEGIN_DECLS
 
 /* these headers are not C++ safe */
-#include <stm32_internal.h>
+#include <stm32.h>
 
  
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
+
+/* PX4IO connection configuration */
+#define PX4IO_SERIAL_DEVICE	"/dev/ttyS2"
 
 //#ifdef CONFIG_STM32_SPI2
 //#  error "SPI2 is not supported on this board"

@@ -53,10 +53,12 @@
 #include <uORB/topics/vehicle_status.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
+#include <modules/px4iofirmware/protocol.h>
 
 struct gpio_led_s {
 	struct work_s work;
 	int gpio_fd;
+	bool use_io;
 	int pin;
 	struct vehicle_status_s status;
 	int vehicle_status_sub;
@@ -75,51 +77,97 @@ void gpio_led_cycle(FAR void *arg);
 
 int gpio_led_main(int argc, char *argv[])
 {
-	int pin = GPIO_EXT_1;
-
 	if (argc < 2) {
-		errx(1, "no argument provided. Try 'start' or 'stop' [-p 1/2]");
+		errx(1, "usage: gpio_led {start|stop} [-p <1|2|a1|a2|r1|r2>]\n"
+		     "\t-p\tUse pin:\n"
+		     "\t\t1\tPX4FMU GPIO_EXT1 (default)\n"
+		     "\t\t2\tPX4FMU GPIO_EXT2\n"
+		     "\t\ta1\tPX4IO ACC1\n"
+		     "\t\ta2\tPX4IO ACC2\n"
+		     "\t\tr1\tPX4IO RELAY1\n"
+		     "\t\tr2\tPX4IO RELAY2");
 
 	} else {
 
-		/* START COMMAND HANDLING */
 		if (!strcmp(argv[1], "start")) {
+			if (gpio_led_started) {
+				errx(1, "already running");
+			}
+
+			bool use_io = false;
+			int pin = GPIO_EXT_1;
 
 			if (argc > 2) {
-				if (!strcmp(argv[1], "-p")) {
-					if (!strcmp(argv[2], "1")) {
+				if (!strcmp(argv[2], "-p")) {
+					if (!strcmp(argv[3], "1")) {
+						use_io = false;
 						pin = GPIO_EXT_1;
 
-					} else if (!strcmp(argv[2], "2")) {
+					} else if (!strcmp(argv[3], "2")) {
+						use_io = false;
 						pin = GPIO_EXT_2;
 
+					} else if (!strcmp(argv[3], "a1")) {
+						use_io = true;
+						pin = PX4IO_ACC1;
+
+					} else if (!strcmp(argv[3], "a2")) {
+						use_io = true;
+						pin = PX4IO_ACC2;
+
+					} else if (!strcmp(argv[3], "r1")) {
+						use_io = true;
+						pin = PX4IO_RELAY1;
+
+					} else if (!strcmp(argv[3], "r2")) {
+						use_io = true;
+						pin = PX4IO_RELAY2;
+
 					} else {
-						warnx("[gpio_led] Unsupported pin: %s\n", argv[2]);
-						exit(1);
+						errx(1, "unsupported pin: %s", argv[3]);
 					}
 				}
 			}
 
 			memset(&gpio_led_data, 0, sizeof(gpio_led_data));
+			gpio_led_data.use_io = use_io;
 			gpio_led_data.pin = pin;
 			int ret = work_queue(LPWORK, &gpio_led_data.work, gpio_led_start, &gpio_led_data, 0);
 
 			if (ret != 0) {
-				warnx("[gpio_led] Failed to queue work: %d\n", ret);
-				exit(1);
+				errx(1, "failed to queue work: %d", ret);
 
 			} else {
 				gpio_led_started = true;
+				char pin_name[24];
+
+				if (use_io) {
+					if (pin & (PX4IO_ACC1 | PX4IO_ACC2)) {
+						sprintf(pin_name, "PX4IO ACC%i", (pin >> 3));
+
+					} else {
+						sprintf(pin_name, "PX4IO RELAY%i", pin);
+					}
+
+				} else {
+					sprintf(pin_name, "PX4FMU GPIO_EXT%i", pin);
+
+				}
+
+				warnx("start, using pin: %s", pin_name);
 			}
 
 			exit(0);
 
-			/* STOP COMMAND HANDLING */
 
 		} else if (!strcmp(argv[1], "stop")) {
-			gpio_led_started = false;
+			if (gpio_led_started) {
+				gpio_led_started = false;
+				warnx("stop");
 
-			/* INVALID COMMAND */
+			} else {
+				errx(1, "not running");
+			}
 
 		} else {
 			errx(1, "unrecognized command '%s', only supporting 'start' or 'stop'", argv[1]);
@@ -131,15 +179,26 @@ void gpio_led_start(FAR void *arg)
 {
 	FAR struct gpio_led_s *priv = (FAR struct gpio_led_s *)arg;
 
+	char *gpio_dev;
+
+	if (priv->use_io) {
+		gpio_dev = PX4IO_DEVICE_PATH;
+	} else {
+		gpio_dev = PX4FMU_DEVICE_PATH;
+	}
+
 	/* open GPIO device */
-	priv->gpio_fd = open(GPIO_DEVICE_PATH, 0);
+	priv->gpio_fd = open(gpio_dev, 0);
 
 	if (priv->gpio_fd < 0) {
-		warnx("[gpio_led] GPIO: open fail\n");
+		// TODO find way to print errors
+		//printf("gpio_led: GPIO device \"%s\" open fail\n", gpio_dev);
+		gpio_led_started = false;
 		return;
 	}
 
 	/* configure GPIO pin */
+	/* px4fmu only, px4io doesn't support GPIO_SET_OUTPUT and will ignore */
 	ioctl(priv->gpio_fd, GPIO_SET_OUTPUT, priv->pin);
 
 	/* subscribe to vehicle status topic */
@@ -150,11 +209,11 @@ void gpio_led_start(FAR void *arg)
 	int ret = work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, 0);
 
 	if (ret != 0) {
-		warnx("[gpio_led] Failed to queue work: %d\n", ret);
+		// TODO find way to print errors
+		//printf("gpio_led: failed to queue work: %d\n", ret);
+		gpio_led_started = false;
 		return;
 	}
-
-	warnx("[gpio_led] Started, using pin GPIO_EXT%i\n", priv->pin);
 }
 
 void gpio_led_cycle(FAR void *arg)
@@ -200,7 +259,6 @@ void gpio_led_cycle(FAR void *arg)
 
 		if (led_state_new) {
 			ioctl(priv->gpio_fd, GPIO_SET, priv->pin);
-
 		} else {
 			ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin);
 		}
@@ -211,7 +269,12 @@ void gpio_led_cycle(FAR void *arg)
 	if (priv->counter > 5)
 		priv->counter = 0;
 
-	/* repeat cycle at 5 Hz*/
-	if (gpio_led_started)
+	/* repeat cycle at 5 Hz */
+	if (gpio_led_started) {
 		work_queue(LPWORK, &priv->work, gpio_led_cycle, priv, USEC2TICK(200000));
+
+	} else {
+		/* switch off LED on stop */
+		ioctl(priv->gpio_fd, GPIO_CLEAR, priv->pin);
+	}
 }

@@ -101,11 +101,17 @@ ORB_DEFINE(vehicle_command, struct vehicle_command_s);
 #include "topics/vehicle_local_position_setpoint.h"
 ORB_DEFINE(vehicle_local_position_setpoint, struct vehicle_local_position_setpoint_s);
 
+#include "topics/vehicle_bodyframe_speed_setpoint.h"
+ORB_DEFINE(vehicle_bodyframe_speed_setpoint, struct vehicle_bodyframe_speed_setpoint_s);
+
 #include "topics/vehicle_global_position_setpoint.h"
 ORB_DEFINE(vehicle_global_position_setpoint, struct vehicle_global_position_setpoint_s);
 
 #include "topics/vehicle_global_position_set_triplet.h"
 ORB_DEFINE(vehicle_global_position_set_triplet, struct vehicle_global_position_set_triplet_s);
+
+#include "topics/mission.h"
+ORB_DEFINE(mission, struct mission_s);
 
 #include "topics/vehicle_attitude_setpoint.h"
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);
@@ -118,6 +124,9 @@ ORB_DEFINE(offboard_control_setpoint, struct offboard_control_setpoint_s);
 
 #include "topics/optical_flow.h"
 ORB_DEFINE(optical_flow, struct optical_flow_s);
+
+#include "topics/filtered_bottom_flow.h"
+ORB_DEFINE(filtered_bottom_flow, struct filtered_bottom_flow_s);
 
 #include "topics/omnidirectional_flow.h"
 ORB_DEFINE(omnidirectional_flow, struct omnidirectional_flow_s);
@@ -152,5 +161,14 @@ ORB_DEFINE(actuator_outputs_1, struct actuator_outputs_s);
 ORB_DEFINE(actuator_outputs_2, struct actuator_outputs_s);
 ORB_DEFINE(actuator_outputs_3, struct actuator_outputs_s);
 
+#include "topics/telemetry_status.h"
+ORB_DEFINE(telemetry_status, struct telemetry_status_s);
+
 #include "topics/debug_key_value.h"
 ORB_DEFINE(debug_key_value, struct debug_key_value_s);
+
+#include "topics/navigation_capabilities.h"
+ORB_DEFINE(navigation_capabilities, struct navigation_capabilities_s);
+
+#include "topics/esc_status.h"
+ORB_DEFINE(esc_status, struct esc_status_s);

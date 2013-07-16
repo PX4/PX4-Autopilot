@@ -194,6 +194,7 @@ private:
 		float scaling_factor[_rc_max_chan_count];
 
 		float gyro_offset[3];
+		float gyro_scale[3];
 		float mag_offset[3];
 		float mag_scale[3];
 		float accel_offset[3];
@@ -229,6 +230,8 @@ private:
 		float rc_scale_flaps;
 
 		float battery_voltage_scaling;
+
+		int   rc_rl1_DSM_VCC_control;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -243,6 +246,7 @@ private:
 		param_t rc_demix;
 
 		param_t gyro_offset[3];
+		param_t gyro_scale[3];
 		param_t accel_offset[3];
 		param_t accel_scale[3];
 		param_t mag_offset[3];
@@ -276,6 +280,8 @@ private:
 		param_t rc_scale_flaps;
 
 		param_t battery_voltage_scaling;
+
+		param_t rc_rl1_DSM_VCC_control;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -486,6 +492,9 @@ Sensors::Sensors() :
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
 	_parameter_handles.gyro_offset[1] = param_find("SENS_GYRO_YOFF");
 	_parameter_handles.gyro_offset[2] = param_find("SENS_GYRO_ZOFF");
+	_parameter_handles.gyro_scale[0] = param_find("SENS_GYRO_XSCALE");
+	_parameter_handles.gyro_scale[1] = param_find("SENS_GYRO_YSCALE");
+	_parameter_handles.gyro_scale[2] = param_find("SENS_GYRO_ZSCALE");
 
 	/* accel offsets */
 	_parameter_handles.accel_offset[0] = param_find("SENS_ACC_XOFF");
@@ -508,6 +517,9 @@ Sensors::Sensors() :
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
+
+	/* DSM VCC relay control */
+	_parameter_handles.rc_rl1_DSM_VCC_control = param_find("RC_RL1_DSM_VCC");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -696,6 +708,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
 	param_get(_parameter_handles.gyro_offset[1], &(_parameters.gyro_offset[1]));
 	param_get(_parameter_handles.gyro_offset[2], &(_parameters.gyro_offset[2]));
+	param_get(_parameter_handles.gyro_scale[0], &(_parameters.gyro_scale[0]));
+	param_get(_parameter_handles.gyro_scale[1], &(_parameters.gyro_scale[1]));
+	param_get(_parameter_handles.gyro_scale[2], &(_parameters.gyro_scale[2]));
 
 	/* accel offsets */
 	param_get(_parameter_handles.accel_offset[0], &(_parameters.accel_offset[0]));
@@ -720,6 +735,11 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
 		warnx("Failed updating voltage scaling param");
+	}
+
+	/* relay 1 DSM VCC control */
+	if (param_get(_parameter_handles.rc_rl1_DSM_VCC_control, &(_parameters.rc_rl1_DSM_VCC_control)) != OK) {
+		warnx("Failed updating relay 1 DSM VCC control");
 	}
 
 	return OK;
@@ -983,11 +1003,11 @@ Sensors::parameter_update_poll(bool forced)
 		int fd = open(GYRO_DEVICE_PATH, 0);
 		struct gyro_scale gscale = {
 			_parameters.gyro_offset[0],
-			1.0f,
+			_parameters.gyro_scale[0],
 			_parameters.gyro_offset[1],
-			1.0f,
+			_parameters.gyro_scale[1],
 			_parameters.gyro_offset[2],
-			1.0f,
+			_parameters.gyro_scale[2],
 		};
 
 		if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale))
@@ -1445,7 +1465,7 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = task_spawn("sensors_task",
+	_sensors_task = task_spawn_cmd("sensors_task",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_MAX - 5,
 				   2048,
@@ -1502,6 +1522,7 @@ int sensors_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "unrecognized command");
+	warnx("unrecognized command");
+	return 1;
 }
 

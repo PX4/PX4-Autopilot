@@ -44,6 +44,7 @@
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 
 #include "px4io.h"
 #include "protocol.h"
@@ -57,14 +58,18 @@ static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t alt
  * Static configuration parameters.
  */
 static const uint16_t	r_page_config[] = {
-	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= 1,	/* XXX hardcoded magic number */
-	[PX4IO_P_CONFIG_SOFTWARE_VERSION]	= 1,	/* XXX hardcoded magic number */
+	[PX4IO_P_CONFIG_PROTOCOL_VERSION]	= PX4IO_PROTOCOL_VERSION,
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+	[PX4IO_P_CONFIG_HARDWARE_VERSION]	= 2,
+#else
+	[PX4IO_P_CONFIG_HARDWARE_VERSION]	= 1,
+#endif
 	[PX4IO_P_CONFIG_BOOTLOADER_VERSION]	= 3,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
-	[PX4IO_P_CONFIG_ACTUATOR_COUNT]		= IO_SERVO_COUNT,
-	[PX4IO_P_CONFIG_RC_INPUT_COUNT]		= MAX_CONTROL_CHANNELS,
-	[PX4IO_P_CONFIG_ADC_INPUT_COUNT]	= ADC_CHANNEL_COUNT,
+	[PX4IO_P_CONFIG_ACTUATOR_COUNT]		= PX4IO_SERVO_COUNT,
+	[PX4IO_P_CONFIG_RC_INPUT_COUNT]		= PX4IO_CONTROL_CHANNELS,
+	[PX4IO_P_CONFIG_ADC_INPUT_COUNT]	= PX4IO_ADC_CHANNEL_COUNT,
 	[PX4IO_P_CONFIG_RELAY_COUNT]		= PX4IO_RELAY_CHANNELS,
 };
 
@@ -79,7 +84,10 @@ uint16_t		r_page_status[] = {
 	[PX4IO_P_STATUS_FLAGS]			= 0,
 	[PX4IO_P_STATUS_ALARMS]			= 0,
 	[PX4IO_P_STATUS_VBATT]			= 0,
-	[PX4IO_P_STATUS_IBATT]			= 0
+	[PX4IO_P_STATUS_IBATT]			= 0,
+	[PX4IO_P_STATUS_VSERVO]			= 0,
+	[PX4IO_P_STATUS_VRSSI]			= 0,
+	[PX4IO_P_STATUS_PRSSI]			= 0
 };
 
 /**
@@ -87,14 +95,14 @@ uint16_t		r_page_status[] = {
  *
  * Post-mixed actuator values.
  */
-uint16_t 		r_page_actuators[IO_SERVO_COUNT];
+uint16_t 		r_page_actuators[PX4IO_SERVO_COUNT];
 
 /**
  * PAGE 3
  *
  * Servo PWM values
  */
-uint16_t		r_page_servos[IO_SERVO_COUNT];
+uint16_t		r_page_servos[PX4IO_SERVO_COUNT];
 
 /**
  * PAGE 4
@@ -104,7 +112,7 @@ uint16_t		r_page_servos[IO_SERVO_COUNT];
 uint16_t		r_page_raw_rc_input[] =
 {
 	[PX4IO_P_RAW_RC_COUNT]			= 0,
-	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + MAX_CONTROL_CHANNELS)] = 0
+	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + PX4IO_CONTROL_CHANNELS)] = 0
 };
 
 /**
@@ -114,7 +122,7 @@ uint16_t		r_page_raw_rc_input[] =
  */
 uint16_t		r_page_rc_input[] = {
 	[PX4IO_P_RC_VALID]			= 0,
-	[PX4IO_P_RC_BASE ... (PX4IO_P_RC_BASE + MAX_CONTROL_CHANNELS)] = 0
+	[PX4IO_P_RC_BASE ... (PX4IO_P_RC_BASE + PX4IO_CONTROL_CHANNELS)] = 0
 };
 
 /**
@@ -147,7 +155,7 @@ volatile uint16_t	r_page_setup[] =
 					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
 					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
 					 PX4IO_P_SETUP_ARMING_IO_ARM_OK)
-#define PX4IO_P_SETUP_RATES_VALID	((1 << IO_SERVO_COUNT) - 1)
+#define PX4IO_P_SETUP_RATES_VALID	((1 << PX4IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
 /**
@@ -166,7 +174,7 @@ volatile uint16_t	r_page_controls[PX4IO_CONTROL_CHANNELS];
  *
  * R/C channel input configuration.
  */
-uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE];
+uint16_t		r_page_rc_input_config[PX4IO_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE];
 
 /* valid options */
 #define PX4IO_P_RC_CONFIG_OPTIONS_VALID	(PX4IO_P_RC_CONFIG_OPTIONS_REVERSE | PX4IO_P_RC_CONFIG_OPTIONS_ENABLED)
@@ -182,9 +190,9 @@ uint16_t		r_page_rc_input_config[MAX_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE
  * 
  * Disable pulses as default.
  */
-uint16_t		r_page_servo_failsafe[IO_SERVO_COUNT] = { 0 };
+uint16_t		r_page_servo_failsafe[PX4IO_SERVO_COUNT] = { 0 };
 
-void
+int
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
 {
 
@@ -233,7 +241,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 	case PX4IO_PAGE_FAILSAFE_PWM:
 
 		/* copy channel data */
-		while ((offset < IO_SERVO_COUNT) && (num_values > 0)) {
+		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
 
 			/* XXX range-check value? */
 			r_page_servo_failsafe[offset] = *values;
@@ -260,11 +268,13 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* iterate individual registers, set each in turn */
 		while (num_values--) {
 			if (registers_set_one(page, offset, *values))
-				break;
+				return -1;
 			offset++;
 			values++;
 		}
+		break;
 	}
+	return 0;
 }
 
 static int
@@ -349,15 +359,31 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_RELAYS:
 			value &= PX4IO_P_SETUP_RELAYS_VALID;
 			r_setup_relays = value;
-			POWER_RELAY1(value & (1 << 0) ? 1 : 0);
-			POWER_RELAY2(value & (1 << 1) ? 1 : 0);
-			POWER_ACC1(value & (1 << 2) ? 1 : 0);
-			POWER_ACC2(value & (1 << 3) ? 1 : 0);
+#ifdef POWER_RELAY1
+			POWER_RELAY1((value & PX4IO_P_SETUP_RELAYS_POWER1) ? 1 : 0);
+#endif
+#ifdef POWER_RELAY2
+			POWER_RELAY2((value & PX4IO_P_SETUP_RELAYS_POWER2) ? 1 : 0);
+#endif
+#ifdef POWER_ACC1
+			POWER_ACC1((value & PX4IO_P_SETUP_RELAYS_ACC1) ? 1 : 0);
+#endif
+#ifdef POWER_ACC2
+			POWER_ACC2((value & PX4IO_P_SETUP_RELAYS_ACC2) ? 1 : 0);
+#endif
+			break;
+
+		case PX4IO_P_SETUP_VBATT_SCALE:
+			r_page_setup[PX4IO_P_SETUP_VBATT_SCALE] = value;
 			break;
 
 		case PX4IO_P_SETUP_SET_DEBUG:
 			r_page_setup[PX4IO_P_SETUP_SET_DEBUG] = value;
 			isr_debug(0, "set debug %u\n", (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG]);
+			break;
+
+		case PX4IO_P_SETUP_DSM:
+			dsm_bind(value & 0x0f, (value >> 4) & 7);
 			break;
 
 		default:
@@ -377,7 +403,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		unsigned index = offset - channel * PX4IO_P_RC_CONFIG_STRIDE;
 		uint16_t *conf = &r_page_rc_input_config[channel * PX4IO_P_RC_CONFIG_STRIDE];
 
-		if (channel >= MAX_CONTROL_CHANNELS)
+		if (channel >= PX4IO_CONTROL_CHANNELS)
 			return -1;
 
 		/* disable the channel until we have a chance to sanity-check it */
@@ -422,7 +448,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500) {
 					count++;
 				}
-				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= MAX_CONTROL_CHANNELS) {
+				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_CONTROL_CHANNELS) {
 					count++;
 				}
 
@@ -441,6 +467,14 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		break;
 		/* case PX4IO_RC_PAGE_CONFIG */
 	}
+
+	case PX4IO_PAGE_TEST:
+		switch (offset) {
+		case PX4IO_P_TEST_LED:
+			LED_AMBER(value & 1);
+			break;
+		}
+		break;
 
 	default:
 		return -1;
@@ -478,6 +512,7 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 
 		/* PX4IO_P_STATUS_ALARMS maintained externally */
 
+#ifdef ADC_VBATT
 		/* PX4IO_P_STATUS_VBATT */
 		{
 			/*
@@ -511,7 +546,8 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 				r_page_status[PX4IO_P_STATUS_VBATT] = corrected;
 			}
 		}
-
+#endif
+#ifdef ADC_IBATT
 		/* PX4IO_P_STATUS_IBATT */
 		{
 			/*
@@ -521,26 +557,74 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			  FMU sort it out, with user selectable
 			  configuration for their sensor
 			 */
-			unsigned counts = adc_measure(ADC_IN5);
+			unsigned counts = adc_measure(ADC_IBATT);
 			if (counts != 0xffff) {
 				r_page_status[PX4IO_P_STATUS_IBATT] = counts;
 			}
 		}
+#endif
+#ifdef ADC_VSERVO
+		/* PX4IO_P_STATUS_VSERVO */
+		{
+			/*
+			 * Coefficients here derived by measurement of the 5-16V
+			 * range on one unit:
+			 *
+			 * V   counts
+			 *  5  1001
+			 *  6  1219
+			 *  7  1436
+			 *  8  1653
+			 *  9  1870
+			 * 10  2086
+			 * 11  2303
+			 * 12  2522
+			 * 13  2738
+			 * 14  2956
+			 * 15  3172
+			 * 16  3389
+			 *
+			 * slope = 0.0046067
+			 * intercept = 0.3863
+			 *
+			 * Intercept corrected for best results @ 12V.
+			 */
+			unsigned counts = adc_measure(ADC_VSERVO);
+			if (counts != 0xffff) {
+				unsigned mV = (4150 + (counts * 46)) / 10 - 200;
+				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
+
+				r_page_status[PX4IO_P_STATUS_VSERVO] = corrected;
+			}
+		}
+#endif
+		/* XXX PX4IO_P_STATUS_VRSSI */
+		/* XXX PX4IO_P_STATUS_PRSSI */
 
 		SELECT_PAGE(r_page_status);
 		break;
 
 	case PX4IO_PAGE_RAW_ADC_INPUT:
 		memset(r_page_scratch, 0, sizeof(r_page_scratch));
+#ifdef ADC_VBATT
 		r_page_scratch[0] = adc_measure(ADC_VBATT);
-		r_page_scratch[1] = adc_measure(ADC_IN5);
+#endif
+#ifdef ADC_IBATT
+		r_page_scratch[1] = adc_measure(ADC_IBATT);
+#endif
 
+#ifdef ADC_VSERVO
+		r_page_scratch[0] = adc_measure(ADC_VSERVO);
+#endif
+#ifdef ADC_RSSI
+		r_page_scratch[1] = adc_measure(ADC_RSSI);
+#endif
 		SELECT_PAGE(r_page_scratch);
 		break;
 
 	case PX4IO_PAGE_PWM_INFO:
 		memset(r_page_scratch, 0, sizeof(r_page_scratch));
-		for (unsigned i = 0; i < IO_SERVO_COUNT; i++)
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
 			r_page_scratch[PX4IO_RATE_MAP_BASE + i] = up_pwm_servo_get_rate_group(i);
 
 		SELECT_PAGE(r_page_scratch);
@@ -612,7 +696,7 @@ static void
 pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate)
 {
 	for (unsigned pass = 0; pass < 2; pass++) {
-		for (unsigned group = 0; group < IO_SERVO_COUNT; group++) {
+		for (unsigned group = 0; group < PX4IO_SERVO_COUNT; group++) {
 
 			/* get the channel mask for this rate group */
 			uint32_t mask = up_pwm_servo_get_rate_group(group);

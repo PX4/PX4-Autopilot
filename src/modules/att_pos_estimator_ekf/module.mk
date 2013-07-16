@@ -37,9 +37,6 @@
 
 MODULE_COMMAND	= att_pos_estimator_ekf
 
-# XXX this might be intended for the spawned deamon, validate
-MODULE_PRIORITY	 = "SCHED_PRIORITY_MAX-30"
-
 SRCS		= kalman_main.cpp \
 		  KalmanNav.cpp \
 		  params.c
