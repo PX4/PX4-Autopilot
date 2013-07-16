@@ -351,7 +351,7 @@ L3GD20::probe()
 	/* read dummy value to void to clear SPI statemachine on sensor */
 	(void)read_reg(ADDR_WHO_AM_I);
 
-	/* verify that the device is attached and functioning */
+	/* verify that the device is attached and functioning, accept L3GD20 and L3GD20H */
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM || read_reg(ADDR_WHO_AM_I) == WHO_I_AM_H)
 		return OK;
 
