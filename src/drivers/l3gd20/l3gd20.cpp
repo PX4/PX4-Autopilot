@@ -334,10 +334,10 @@ L3GD20::init()
 	write_reg(ADDR_CTRL_REG4, REG4_BDU);
 	write_reg(ADDR_CTRL_REG5, 0);
 
-	write_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);	  /* disable wake-on-interrupt */
-	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_STREAM_MODE); /* Enable FIFO, old data is overwritten */
+	write_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);		/* disable wake-on-interrupt */
+	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_STREAM_MODE);	/* Enable FIFO, old data is overwritten */
 
-	set_range(500);				/* default to 500dps */
+	set_range(2000);			/* default to 2000dps */
 	set_samplerate(0);			/* max sample rate */
 
 	ret = OK;
