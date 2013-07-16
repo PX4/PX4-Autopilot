@@ -52,7 +52,7 @@ void do_rc_calibration(int mavlink_fd)
 	mavlink_log_info(mavlink_fd, "trim calibration starting");
 
 	/* XXX fix this */
-	// if (current_status.offboard_control_signal_lost) {
+	// if (current_status.rc_signal) {
 	// 	mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
 	// 	return;
 	// }
