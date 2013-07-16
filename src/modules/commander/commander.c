@@ -1387,8 +1387,7 @@ int commander_thread_main(int argc, char *argv[])
 				* Check if left stick is in lower left position --> switch to standby state.
 				* Do this only for multirotors, not for fixed wing aircraft.
 				*/
-				// printf("checking\n");
-				if ((sp_man.yaw < -STICK_ON_OFF_LIMIT) && (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
+				if ((sp_man.yaw < -STICK_ON_OFF_LIMIT) && (sp_man.throttle < STICK_THRUST_RANGE * 0.1f)) {
 
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 
@@ -1396,7 +1395,7 @@ int commander_thread_main(int argc, char *argv[])
 						 (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
 						 (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
 						) {
-							if (current_status.mode_switch != MODE_SWITCH_MANUAL) {
+							if (control_mode.flag_control_position_enabled || control_mode.flag_control_velocity_enabled) {
 								mavlink_log_critical(mavlink_fd, "DISARM DENY, go manual mode first");
 								tune_negative();
 							} else {
@@ -1417,8 +1416,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* check if left stick is in lower right position and we're in manual --> arm */
-				if (!control_mode.flag_control_position_enabled && !control_mode.flag_control_velocity_enabled &&
-					sp_man.yaw > STICK_ON_OFF_LIMIT &&
+				if (sp_man.yaw > STICK_ON_OFF_LIMIT &&
 					sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						arming_state_transition(status_pub, &current_status, ARMING_STATE_ARMED, armed_pub, &armed, mavlink_fd);
