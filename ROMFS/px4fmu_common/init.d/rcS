@@ -42,30 +42,31 @@ then
 	sh /fs/microsd/etc/rc.txt
 fi
 
-#
-# Check for USB host
-#
-if [ $USB != autoconnect ]
-then
-	echo "[init] not connecting USB"
-else
-	if sercon
-	then
-		echo "[init] USB interface connected"
-	else
-		if [ -f /dev/ttyACM0 ]
-			echo "[init] NSH via USB"
-		then
-		else
-			echo "[init] No USB connected"
-		fi
-	fi
-fi
-
 # if this is an APM build then there will be a rc.APM script
 # from an EXTERNAL_SCRIPTS build option
 if [ -f /etc/init.d/rc.APM ]
 then
+
+	#
+	# Check for USB host
+	#
+	if [ $USB != autoconnect ]
+	then
+		echo "[init] not connecting USB"
+	else
+		if sercon
+		then
+			echo "[init] USB interface connected"
+		else
+			if [ -f /dev/ttyACM0 ]
+				echo "[init] NSH via USB"
+			then
+			else
+				echo "[init] No USB connected"
+			fi
+		fi
+	fi
+
 	echo Running rc.APM
 	# if APM startup is successful then nsh will exit
 	sh /etc/init.d/rc.APM
