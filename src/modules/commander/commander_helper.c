@@ -51,6 +51,7 @@
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
+#include <drivers/drv_led.h>
 
 #include "commander_helper.h"
 
@@ -127,3 +128,48 @@ void tune_stop()
 	ioctl(buzzer, TONE_SET_ALARM, 0);
 }
 
+static int leds;
+
+int led_init()
+{
+	leds = open(LED_DEVICE_PATH, 0);
+
+	if (leds < 0) {
+		warnx("LED: open fail\n");
+		return ERROR;
+	}
+
+	if (ioctl(leds, LED_ON, LED_BLUE) || ioctl(leds, LED_ON, LED_AMBER)) {
+		warnx("LED: ioctl fail\n");
+		return ERROR;
+	}
+
+	return 0;
+}
+
+void led_deinit()
+{
+	close(leds);
+}
+
+int led_toggle(int led)
+{
+	static int last_blue = LED_ON;
+	static int last_amber = LED_ON;
+
+	if (led == LED_BLUE) last_blue = (last_blue == LED_ON) ? LED_OFF : LED_ON;
+
+	if (led == LED_AMBER) last_amber = (last_amber == LED_ON) ? LED_OFF : LED_ON;
+
+	return ioctl(leds, ((led == LED_BLUE) ? last_blue : last_amber), led);
+}
+
+int led_on(int led)
+{
+	return ioctl(leds, LED_ON, led);
+}
+
+int led_off(int led)
+{
+	return ioctl(leds, LED_OFF, led);
+}

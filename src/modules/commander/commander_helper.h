@@ -60,7 +60,12 @@ void tune_negative(void);
 int tune_arm(void);
 int tune_critical_bat(void);
 int tune_low_bat(void);
-
 void tune_stop(void);
+
+int led_init(void);
+void led_deinit(void);
+int led_toggle(int led);
+int led_on(int led);
+int led_off(int led);
 
 #endif /* COMMANDER_HELPER_H_ */

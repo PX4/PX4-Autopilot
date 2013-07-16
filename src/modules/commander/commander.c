@@ -132,8 +132,7 @@ extern struct system_load_s system_load;
 
 #define LOCAL_POSITION_TIMEOUT 1000000 /**< consider the local position estimate invalid after 1s */
 
-/* File descriptors */
-static int leds;
+/* Mavlink file descriptors */
 static int mavlink_fd;
 
 /* flags */
@@ -159,8 +158,9 @@ enum {
 } low_prio_task;
 
 
-/* pthread loops */
-void *orb_receive_loop(void *arg);
+/**
+ * Loop that runs at a lower rate and priority for calibration and parameter tasks.
+ */
 void *commander_low_prio_loop(void *arg);
 
 __EXPORT int commander_main(int argc, char *argv[]);
@@ -170,87 +170,15 @@ __EXPORT int commander_main(int argc, char *argv[]);
  */
 int commander_thread_main(int argc, char *argv[]);
 
-int led_init(void);
-void led_deinit(void);
-int led_toggle(int led);
-int led_on(int led);
-int led_off(int led);
-void do_reboot(void);
-
-
+/**
+ * React to commands that are sent e.g. from the mavlink module.
+ */
 void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd, int armed_pub, struct actuator_armed_s *armed);
-
-// int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
-
-
 
 /**
  * Print the correct usage.
  */
 void usage(const char *reason);
-
-/**
- * Sort calibration values.
- *
- * Sorts the calibration values with bubble sort.
- *
- * @param a 	The array to sort
- * @param n 	The number of entries in the array
- */
-// static void cal_bsort(float a[], int n);
-
-
-int led_init()
-{
-	leds = open(LED_DEVICE_PATH, 0);
-
-	if (leds < 0) {
-		warnx("LED: open fail\n");
-		return ERROR;
-	}
-
-	if (ioctl(leds, LED_ON, LED_BLUE) || ioctl(leds, LED_ON, LED_AMBER)) {
-		warnx("LED: ioctl fail\n");
-		return ERROR;
-	}
-
-	return 0;
-}
-
-void led_deinit()
-{
-	close(leds);
-}
-
-int led_toggle(int led)
-{
-	static int last_blue = LED_ON;
-	static int last_amber = LED_ON;
-
-	if (led == LED_BLUE) last_blue = (last_blue == LED_ON) ? LED_OFF : LED_ON;
-
-	if (led == LED_AMBER) last_amber = (last_amber == LED_ON) ? LED_OFF : LED_ON;
-
-	return ioctl(leds, ((led == LED_BLUE) ? last_blue : last_amber), led);
-}
-
-int led_on(int led)
-{
-	return ioctl(leds, LED_ON, led);
-}
-
-int led_off(int led)
-{
-	return ioctl(leds, LED_OFF, led);
-}
-
-void do_reboot()
-{
-	mavlink_log_critical(mavlink_fd, "REBOOTING SYSTEM");
-	usleep(500000);
-	up_systemreset();
-	/* SPECIAL CASE: NEVER RETURNS FROM THIS FUNCTION CALL */
-}
 
 
 
@@ -317,8 +245,10 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 						/* reboot is executed later, after positive tune is sent */
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						tune_positive();
-						/* SPECIAL CASE: SYSTEM WILL NEVER RETURN HERE */
-						do_reboot();
+						mavlink_log_critical(mavlink_fd, "REBOOTING SYSTEM");
+						usleep(500000);
+						up_systemreset();
+						/* SPECIAL CASE: NEVER RETURNS FROM THIS FUNCTION CALL */
 
 					} else {
 						/* system may return here */
@@ -526,59 +456,6 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 }
 
-void *orb_receive_loop(void *arg)  //handles status information coming from subsystems (present, enabled, health), these values do not indicate the quality (variance) of the signal
-{
-	/* Set thread name */
-	prctl(PR_SET_NAME, "commander orb rcv", getpid());
-
-	/* Subscribe to command topic */
-	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
-	struct subsystem_info_s info;
-
-	struct vehicle_status_s *vstatus = (struct vehicle_status_s *)arg;
-
-	while (!thread_should_exit) {
-		struct pollfd fds[1] = { { .fd = subsys_sub, .events = POLLIN } };
-
-		if (poll(fds, 1, 5000) == 0) {
-			/* timeout, but this is no problem, silently ignore */
-		} else {
-			/* got command */
-			orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
-
-			warnx("Subsys changed: %d\n", (int)info.subsystem_type);
-
-			/* mark / unmark as present */
-			if (info.present) {
-				vstatus->onboard_control_sensors_present |= info.subsystem_type;
-
-			} else {
-				vstatus->onboard_control_sensors_present &= ~info.subsystem_type;
-			}
-
-			/* mark / unmark as enabled */
-			if (info.enabled) {
-				vstatus->onboard_control_sensors_enabled |= info.subsystem_type;
-
-			} else {
-				vstatus->onboard_control_sensors_enabled &= ~info.subsystem_type;
-			}
-
-			/* mark / unmark as ok */
-			if (info.ok) {
-				vstatus->onboard_control_sensors_health |= info.subsystem_type;
-
-			} else {
-				vstatus->onboard_control_sensors_health &= ~info.subsystem_type;
-			}
-		}
-	}
-
-	close(subsys_sub);
-
-	return NULL;
-}
-
 /*
  * Provides a coarse estimate of remaining battery power.
  *
@@ -709,9 +586,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* welcome user */
 	warnx("[commander] starting");
 
-	/* pthreads for command and subsystem info handling */
-	// pthread_t command_handling_thread;
-	pthread_t subsystem_info_thread;
+	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
 
 	/* initialize */
@@ -807,12 +682,6 @@ int commander_thread_main(int argc, char *argv[])
 	// XXX needed?
 	mavlink_log_info(mavlink_fd, "system is running");
 
-	/* create pthreads */
-	pthread_attr_t subsystem_info_attr;
-	pthread_attr_init(&subsystem_info_attr);
-	pthread_attr_setstacksize(&subsystem_info_attr, 2048);
-	pthread_create(&subsystem_info_thread, &subsystem_info_attr, orb_receive_loop, &current_status);
-
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
 	pthread_attr_setstacksize(&commander_low_prio_attr, 2048);
@@ -904,6 +773,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct battery_status_s battery;
 	memset(&battery, 0, sizeof(battery));
 	battery.voltage_v = 0.0f;
+
+	/* Subscribe to subsystem info topic */
+	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
+	struct subsystem_info_s info;
+	memset(&info, 0, sizeof(info));
 
 	// uint8_t vehicle_state_previous = current_status.state_machine;
 	float voltage_previous = 0.0f;
@@ -1070,6 +944,39 @@ int commander_thread_main(int argc, char *argv[])
 			 */
 			if (hrt_absolute_time() - start_time > 2500000) {
 				bat_remain = battery_remaining_estimate_voltage(battery_voltage);
+			}
+		}
+
+		/* update subsystem */
+		orb_check(subsys_sub, &new_data);
+		
+		if (new_data) {
+			orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
+
+			warnx("Subsys changed: %d\n", (int)info.subsystem_type);
+
+			/* mark / unmark as present */
+			if (info.present) {
+				current_status.onboard_control_sensors_present |= info.subsystem_type;
+
+			} else {
+				current_status.onboard_control_sensors_present &= ~info.subsystem_type;
+			}
+
+			/* mark / unmark as enabled */
+			if (info.enabled) {
+				current_status.onboard_control_sensors_enabled |= info.subsystem_type;
+
+			} else {
+				current_status.onboard_control_sensors_enabled &= ~info.subsystem_type;
+			}
+
+			/* mark / unmark as ok */
+			if (info.ok) {
+				current_status.onboard_control_sensors_health |= info.subsystem_type;
+
+			} else {
+				current_status.onboard_control_sensors_health &= ~info.subsystem_type;
 			}
 		}
 
@@ -1801,8 +1708,6 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* wait for threads to complete */
-	// pthread_join(command_handling_thread, NULL);
-	pthread_join(subsystem_info_thread, NULL);
 	pthread_join(commander_low_prio_thread, NULL);
 
 	/* close fds */
@@ -1814,6 +1719,7 @@ int commander_thread_main(int argc, char *argv[])
 	close(sensor_sub);
 	close(safety_sub);
 	close(cmd_sub);
+	close(subsys_sub);
 
 	warnx("exiting");
 	fflush(stdout);
