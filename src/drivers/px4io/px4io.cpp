@@ -1510,7 +1510,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		uint32_t bits = (1 << _max_relays) - 1;
 		/* don't touch relay1 if it's controlling RX vcc */
 		if (_dsm_vcc_ctl)
-			bits &= ~PX4IO_RELAY1;
+			bits &= ~PX4IO_P_SETUP_RELAYS_POWER1;
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, bits, 0);
 		break;
 	}
@@ -1518,7 +1518,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 	case GPIO_SET:
 		arg &= ((1 << _max_relays) - 1);
 		/* don't touch relay1 if it's controlling RX vcc */
-		if (_dsm_vcc_ctl & (arg & PX4IO_RELAY1))
+		if (_dsm_vcc_ctl & (arg & PX4IO_P_SETUP_RELAYS_POWER1))
 			ret = -EINVAL;
 		else
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0, arg);
@@ -1527,7 +1527,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 	case GPIO_CLEAR:
 		arg &= ((1 << _max_relays) - 1);
 		/* don't touch relay1 if it's controlling RX vcc */
-		if (_dsm_vcc_ctl & (arg & PX4IO_RELAY1))
+		if (_dsm_vcc_ctl & (arg & PX4IO_P_SETUP_RELAYS_POWER1))
 			ret = -EINVAL;
 		else
 			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, arg, 0);
