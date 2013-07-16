@@ -39,11 +39,6 @@
  * @file commander.c
  * Main system state machine implementation.
  *
- * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- *
  */
 
 #include "commander.h"
@@ -656,8 +651,22 @@ int commander_thread_main(int argc, char *argv[])
 	uint16_t stick_off_counter = 0;
 	uint16_t stick_on_counter = 0;
 
-	/* XXX what exactly is this for? */
+	/* To remember when last notification was sent */
 	uint64_t last_print_time = 0;
+
+	float voltage_previous = 0.0f;
+
+	uint64_t last_idle_time = 0;
+
+	uint64_t start_time = 0;
+
+	/* XXX use this! */
+	//uint64_t failsave_ll_start_time = 0;
+
+	bool state_changed = true;
+	bool param_init_forced = true;
+
+	bool new_data = false;
 
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
@@ -702,6 +711,7 @@ int commander_thread_main(int argc, char *argv[])
 	struct sensor_combined_s sensors;
 	memset(&sensors, 0, sizeof(sensors));
 
+	/* Subscribe to differential pressure topic */
 	int diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
 	struct differential_pressure_s diff_pres;
 	memset(&diff_pres, 0, sizeof(diff_pres));
@@ -717,7 +727,7 @@ int commander_thread_main(int argc, char *argv[])
 	struct parameter_update_s param_changed;
 	memset(&param_changed, 0, sizeof(param_changed));
 
-	/* subscribe to battery topic */
+	/* Subscribe to battery topic */
 	int battery_sub = orb_subscribe(ORB_ID(battery_status));
 	struct battery_status_s battery;
 	memset(&battery, 0, sizeof(battery));
@@ -728,27 +738,13 @@ int commander_thread_main(int argc, char *argv[])
 	struct subsystem_info_s info;
 	memset(&info, 0, sizeof(info));
 
-	// uint8_t vehicle_state_previous = current_status.state_machine;
-	float voltage_previous = 0.0f;
-
-	uint64_t last_idle_time = 0;
-
 	/* now initialized */
 	commander_initialized = true;
 	thread_running = true;
 
-	uint64_t start_time = hrt_absolute_time();
-
-	/* XXX use this! */
-	//uint64_t failsave_ll_start_time = 0;
-
-	bool state_changed = true;
-	bool param_init_forced = true;
+	start_time = hrt_absolute_time();
 
 	while (!thread_should_exit) {
-
-		/* Get current values */
-		bool new_data;
 
 		/* update parameters */
 		orb_check(param_changed_sub, &new_data);
@@ -758,11 +754,10 @@ int commander_thread_main(int argc, char *argv[])
 			/* parameters changed */
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
 
-
 			/* update parameters */
 			if (!armed.armed) {
 				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
-					warnx("failed setting new system type");
+					warnx("failed getting new system type");
 				}
 
 				/* disable manual override for all systems that rely on electronic stabilization */
@@ -815,37 +810,6 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* handle it */
 			handle_command(status_pub, &current_status, &cmd, armed_pub, &armed);
-		}
-		
-
-		/* update parameters */
-		orb_check(param_changed_sub, &new_data);
-
-		if (new_data || param_init_forced) {
-			param_init_forced = false;
-			/* parameters changed */
-			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
-
-			/* update parameters */
-			if (!armed.armed) {
-				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
-					warnx("failed setting new system type");
-				}
-
-				/* disable manual override for all systems that rely on electronic stabilization */
-				if (current_status.system_type == VEHICLE_TYPE_QUADROTOR ||
-				    current_status.system_type == VEHICLE_TYPE_HEXAROTOR ||
-				    current_status.system_type == VEHICLE_TYPE_OCTOROTOR) {
-					current_status.flag_external_manual_override_ok = false;
-
-				} else {
-					current_status.flag_external_manual_override_ok = true;
-				}
-
-				/* check and update system / component ID */
-				param_get(_param_system_id, &(current_status.system_id));
-				param_get(_param_component_id, &(current_status.component_id));
-			}
 		}
 
 		/* update safety topic */
@@ -1664,11 +1628,16 @@ int commander_thread_main(int argc, char *argv[])
 	buzzer_deinit();
 	close(sp_man_sub);
 	close(sp_offboard_sub);
+	close(local_position_sub);
 	close(global_position_sub);
+	close(gps_sub);
 	close(sensor_sub);
 	close(safety_sub);
 	close(cmd_sub);
 	close(subsys_sub);
+	close(diff_pres_sub);
+	close(param_changed_sub);
+	close(battery_sub);
 
 	warnx("exiting");
 	fflush(stdout);
