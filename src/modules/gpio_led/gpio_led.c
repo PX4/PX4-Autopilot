@@ -109,19 +109,19 @@ int gpio_led_main(int argc, char *argv[])
 
 					} else if (!strcmp(argv[3], "a1")) {
 						use_io = true;
-						pin = PX4IO_ACC1;
+						pin = PX4IO_P_SETUP_RELAYS_ACC1;
 
 					} else if (!strcmp(argv[3], "a2")) {
 						use_io = true;
-						pin = PX4IO_ACC2;
+						pin = PX4IO_P_SETUP_RELAYS_ACC2;
 
 					} else if (!strcmp(argv[3], "r1")) {
 						use_io = true;
-						pin = PX4IO_RELAY1;
+						pin = PX4IO_P_SETUP_RELAYS_POWER1;
 
 					} else if (!strcmp(argv[3], "r2")) {
 						use_io = true;
-						pin = PX4IO_RELAY2;
+						pin = PX4IO_P_SETUP_RELAYS_POWER2;
 
 					} else {
 						errx(1, "unsupported pin: %s", argv[3]);
@@ -142,7 +142,7 @@ int gpio_led_main(int argc, char *argv[])
 				char pin_name[24];
 
 				if (use_io) {
-					if (pin & (PX4IO_ACC1 | PX4IO_ACC2)) {
+					if (pin & (PX4IO_P_SETUP_RELAYS_ACC1 | PX4IO_P_SETUP_RELAYS_ACC2)) {
 						sprintf(pin_name, "PX4IO ACC%i", (pin >> 3));
 
 					} else {

@@ -110,6 +110,10 @@ dsm_bind(uint16_t cmd, int pulses)
 	if (dsm_fd < 0)
 		return;
 
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+	// XXX implement
+	#warning DSM BIND NOT IMPLEMENTED ON PX4IO V2
+#else
 	switch (cmd) {
 	case dsm_bind_power_down:
 		// power down DSM satellite
@@ -135,6 +139,7 @@ dsm_bind(uint16_t cmd, int pulses)
 		stm32_configgpio(GPIO_USART1_RX);
 		break;
 	}
+#endif
 }
 
 bool

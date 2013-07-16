@@ -25,3 +25,9 @@ Images/*.bin
 Images/*.px4
 mavlink/include/mavlink/v0.9/
 NuttX
+nuttx-configs/px4io-v2/src/.depend
+nuttx-configs/px4io-v2/src/Make.dep
+nuttx-configs/px4io-v2/src/libboard.a
+nuttx-configs/px4io-v1/src/.depend
+nuttx-configs/px4io-v1/src/Make.dep
+nuttx-configs/px4io-v1/src/libboard.a
