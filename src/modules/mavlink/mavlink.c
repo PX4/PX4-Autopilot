@@ -191,7 +191,7 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 	 **/
 
 	/* HIL */
-	if (v_status.flag_hil_enabled) {
+	if (v_status.hil_state == HIL_STATE_ON) {
 		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
 
@@ -234,11 +234,11 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 	 **/
 
 	/* set calibration state */
-	if (v_status.flag_preflight_calibration) {
+	if (v_status.preflight_calibration) {
 
 		*mavlink_state = MAV_STATE_CALIBRATING;
 
-	} else if (v_status.flag_system_emergency) {
+	} else if (v_status.system_emergency) {
 
 		*mavlink_state = MAV_STATE_EMERGENCY;
 
@@ -677,7 +677,10 @@ int mavlink_thread_main(int argc, char *argv[])
 			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.navigation_state, mavlink_state);
 
 			/* switch HIL mode if required */
-			set_hil_on_off(v_status.flag_hil_enabled);
+			if (v_status.hil_state == HIL_STATE_ON)
+				set_hil_on_off(true);
+			else if (v_status.hil_state == HIL_STATE_OFF)
+				set_hil_on_off(false);
 
 			/* send status (values already copied in the section above) */
 			mavlink_msg_sys_status_send(chan,
@@ -685,8 +688,8 @@ int mavlink_thread_main(int argc, char *argv[])
 						    v_status.onboard_control_sensors_enabled,
 						    v_status.onboard_control_sensors_health,
 						    v_status.load,
-						    v_status.voltage_battery * 1000.0f,
-						    v_status.current_battery * 1000.0f,
+						    v_status.battery_voltage * 1000.0f,
+						    v_status.battery_current * 1000.0f,
 						    v_status.battery_remaining,
 						    v_status.drop_rate_comm,
 						    v_status.errors_comm,

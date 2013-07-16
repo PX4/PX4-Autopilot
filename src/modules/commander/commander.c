@@ -171,7 +171,7 @@ void usage(const char *reason);
 /**
  * React to commands that are sent e.g. from the mavlink module.
  */
-void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd, int armed_pub, struct actuator_armed_s *armed);
+void handle_command(int status_pub, struct vehicle_status_s *current_status, int control_mode_pub, struct vehicle_control_mode_s *current_control_mode, struct vehicle_command_s *cmd, int armed_pub, struct actuator_armed_s *armed);
 
 /**
  * Mainloop of commander.
@@ -236,7 +236,7 @@ void usage(const char *reason)
 	exit(1);
 }
 
-void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_status, struct vehicle_command_s *cmd, int armed_pub, struct actuator_armed_s *armed)
+void handle_command(int status_pub, struct vehicle_status_s *current_status, int control_mode_pub, struct vehicle_control_mode_s *current_control_mode, struct vehicle_command_s *cmd, int armed_pub, struct actuator_armed_s *armed)
 {
 	/* result of the command */
 	uint8_t result = VEHICLE_CMD_RESULT_UNSUPPORTED;
@@ -248,7 +248,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			/* request to activate HIL */
 			if ((int)cmd->param1 & VEHICLE_MODE_FLAG_HIL_ENABLED) {
 
-				if (OK == hil_state_transition(status_pub, current_vehicle_status, mavlink_fd, HIL_STATE_ON)) {
+				if (OK == hil_state_transition(HIL_STATE_ON, status_pub, current_status, control_mode_pub, current_control_mode, mavlink_fd)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
@@ -256,13 +256,13 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			}
 
 			if ((int)cmd->param1 & VEHICLE_MODE_FLAG_SAFETY_ARMED) {
-				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_ARMED, armed_pub, armed, mavlink_fd)) {
+				if (OK == arming_state_transition(status_pub, current_status, ARMING_STATE_ARMED, armed_pub, armed, mavlink_fd)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
 				}
 			} else {
-				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_STANDBY, armed_pub, armed, mavlink_fd)) {
+				if (OK == arming_state_transition(status_pub, current_status, ARMING_STATE_STANDBY, armed_pub, armed, mavlink_fd)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
@@ -275,14 +275,14 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 			/* request to arm */
 			if ((int)cmd->param1 == 1) {
-				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_ARMED, armed_pub, armed, mavlink_fd)) {
+				if (OK == arming_state_transition(status_pub, current_status, ARMING_STATE_ARMED, armed_pub, armed, mavlink_fd)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
 				}
 			/* request to disarm */
 			} else if ((int)cmd->param1 == 0) {
-				if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_STANDBY, armed_pub, armed, mavlink_fd)) {
+				if (OK == arming_state_transition(status_pub, current_status, ARMING_STATE_STANDBY, armed_pub, armed, mavlink_fd)) {
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 				} else {
 					result = VEHICLE_CMD_RESULT_DENIED;
@@ -295,7 +295,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 			/* request for an autopilot reboot */
 			if ((int)cmd->param1 == 1) {
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_REBOOT, armed_pub, armed, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_status, ARMING_STATE_REBOOT, armed_pub, armed, mavlink_fd)) {
 						/* reboot is executed later, after positive tune is sent */
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						tune_positive();
@@ -346,7 +346,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						/* now set the task for the low prio thread */
 						low_prio_task = LOW_PRIO_TASK_GYRO_CALIBRATION;
@@ -365,7 +365,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						/* now set the task for the low prio thread */
 						low_prio_task = LOW_PRIO_TASK_MAG_CALIBRATION;
@@ -426,7 +426,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						/* now set the task for the low prio thread */
 						low_prio_task = LOW_PRIO_TASK_ACCEL_CALIBRATION;
@@ -445,7 +445,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				if(low_prio_task == LOW_PRIO_TASK_NONE) {
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (OK == arming_state_transition(status_pub, current_vehicle_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
+					if (OK == arming_state_transition(status_pub, current_status, ARMING_STATE_INIT, armed_pub, armed, mavlink_fd)) {
 						result = VEHICLE_CMD_RESULT_ACCEPTED;
 						/* now set the task for the low prio thread */
 						low_prio_task = LOW_PRIO_TASK_AIRSPEED_CALIBRATION;
@@ -580,7 +580,7 @@ int commander_thread_main(int argc, char *argv[])
 	current_status.offboard_control_signal_lost = true;
 
 	/* allow manual override initially */
-	current_status.flag_external_manual_override_ok = true;
+	control_mode.flag_external_manual_override_ok = true;
 
 	/* flag position info as bad, do not allow auto mode */
 	// current_status.flag_vector_flight_mode_ok = false;
@@ -637,31 +637,23 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, NULL);
 
 	/* Start monitoring loop */
-	uint16_t counter = 0;
-
-	/* Initialize to 0.0V */
-	float battery_voltage = 0.0f;
-	bool battery_voltage_valid = false;
-	bool low_battery_voltage_actions_done = false;
-	bool critical_battery_voltage_actions_done = false;
-	uint8_t low_voltage_counter = 0;
-	uint16_t critical_voltage_counter = 0;
-	float bat_remain = 1.0f;
-
-	uint16_t stick_off_counter = 0;
-	uint16_t stick_on_counter = 0;
+	unsigned counter = 0;
+	unsigned low_voltage_counter = 0;
+	unsigned critical_voltage_counter = 0;
+	unsigned stick_off_counter = 0;
+	unsigned stick_on_counter = 0;
 
 	/* To remember when last notification was sent */
 	uint64_t last_print_time = 0;
 
 	float voltage_previous = 0.0f;
 
+	bool low_battery_voltage_actions_done;
+	bool critical_battery_voltage_actions_done;
+
 	uint64_t last_idle_time = 0;
 
 	uint64_t start_time = 0;
-
-	/* XXX use this! */
-	//uint64_t failsave_ll_start_time = 0;
 
 	bool state_changed = true;
 	bool param_init_forced = true;
@@ -764,10 +756,10 @@ int commander_thread_main(int argc, char *argv[])
 				if (current_status.system_type == VEHICLE_TYPE_QUADROTOR ||
 				    current_status.system_type == VEHICLE_TYPE_HEXAROTOR ||
 				    current_status.system_type == VEHICLE_TYPE_OCTOROTOR) {
-					current_status.flag_external_manual_override_ok = false;
+					control_mode.flag_external_manual_override_ok = false;
 
 				} else {
-					current_status.flag_external_manual_override_ok = true;
+					control_mode.flag_external_manual_override_ok = true;
 				}
 
 				/* check and update system / component ID */
@@ -809,7 +801,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
 			/* handle it */
-			handle_command(status_pub, &current_status, &cmd, armed_pub, &armed);
+			handle_command(status_pub, &current_status, control_mode_pub, &control_mode, &cmd, armed_pub, &armed);
 		}
 
 		/* update safety topic */
@@ -848,16 +840,20 @@ int commander_thread_main(int argc, char *argv[])
 		orb_check(battery_sub, &new_data);
 		if (new_data) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
-			battery_voltage = battery.voltage_v;
-			battery_voltage_valid = true;
+			current_status.battery_voltage = battery.voltage_v;
+			current_status.condition_battery_voltage_valid = true;
 
 			/*
 			 * Only update battery voltage estimate if system has
 			 * been running for two and a half seconds.
 			 */
-			if (hrt_absolute_time() - start_time > 2500000) {
-				bat_remain = battery_remaining_estimate_voltage(battery_voltage);
-			}
+			
+		}
+
+		if (hrt_absolute_time() - start_time > 2500000 && current_status.condition_battery_voltage_valid) {
+			current_status.battery_remaining = battery_remaining_estimate_voltage(current_status.battery_voltage);
+		} else {
+			current_status.battery_voltage = 0.0f;
 		}
 
 		/* update subsystem */
@@ -897,14 +893,15 @@ int commander_thread_main(int argc, char *argv[])
 		if (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 8) == 0) {
 
 			/* XXX if armed */
-			if ((false /*current_status.state_machine == SYSTEM_STATE_GROUND_READY ||
-			     current_status.state_machine == SYSTEM_STATE_AUTO  ||
-			     current_status.state_machine == SYSTEM_STATE_MANUAL*/)) {
+			if (armed.armed) {
 				/* armed, solid */
 				led_on(LED_AMBER);
 
-			} else if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-				/* not armed */
+			} else if (armed.ready_to_arm && (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0)) {
+				/* ready to arm */
+				led_toggle(LED_AMBER);
+			} else if (counter % (100000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+				/* not ready to arm, something is wrong */
 				led_toggle(LED_AMBER);
 			}
 
@@ -926,15 +923,16 @@ int commander_thread_main(int argc, char *argv[])
 				led_off(LED_BLUE);
 			}
 
-			/* toggle GPS led at 5 Hz in HIL mode */
-			if (current_status.flag_hil_enabled) {
-				/* hil enabled */
-				led_toggle(LED_BLUE);
 
-			} else if (bat_remain < 0.3f && (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT)) {
-				/* toggle arming (red) at 5 Hz on low battery or error */
-				led_toggle(LED_AMBER);
-			}
+			// /* toggle GPS led at 5 Hz in HIL mode */
+			// if (current_status.flag_hil_enabled) {
+			// 	/* hil enabled */
+			// 	led_toggle(LED_BLUE);
+
+			// } else if (bat_remain < 0.3f && (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT)) {
+			// 	/* toggle arming (red) at 5 Hz on low battery or error */
+			// 	led_toggle(LED_AMBER);
+			// }
 
 		}
 
@@ -948,35 +946,29 @@ int commander_thread_main(int argc, char *argv[])
 			last_idle_time = system_load.tasks[0].total_runtime;
 		}
 
-		/* Check battery voltage */
-		/* write to sys_status */
-		if (battery_voltage_valid) {
-			current_status.voltage_battery = battery_voltage;
-
-		} else {
-			current_status.voltage_battery = 0.0f;
-		}
+		
 
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
-		if (battery_voltage_valid && (bat_remain < 0.15f /* XXX MAGIC NUMBER */) && (false == low_battery_voltage_actions_done)) { //TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
+		if (current_status.condition_battery_voltage_valid && (current_status.battery_remaining < 0.15f /* XXX MAGIC NUMBER */) && (false == low_battery_voltage_actions_done)) { //TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
 
 			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				low_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] WARNING! LOW BATTERY!");
 				current_status.battery_warning = VEHICLE_BATTERY_WARNING_WARNING;
+				tune_low_bat();
 			}
 
 			low_voltage_counter++;
 		}
 
 		/* Critical, this is rather an emergency, change state machine */
-		else if (battery_voltage_valid && (bat_remain < 0.1f /* XXX MAGIC NUMBER */) && (false == critical_battery_voltage_actions_done && true == low_battery_voltage_actions_done)) {
+		else if (current_status.condition_battery_voltage_valid && (current_status.battery_remaining < 0.1f /* XXX MAGIC NUMBER */) && (false == critical_battery_voltage_actions_done && true == low_battery_voltage_actions_done)) {
 			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				critical_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] EMERGENCY! CRITICAL BATTERY!");
 				current_status.battery_warning = VEHICLE_BATTERY_WARNING_ALERT;
-				// XXX implement this
-				// state_machine_emergency(status_pub, &current_status, mavlink_fd);
+				tune_critical_bat();
+				// XXX implement state change here
 			}
 
 			critical_voltage_counter++;
@@ -1585,7 +1577,7 @@ int commander_thread_main(int argc, char *argv[])
 
 
 		/* Store old modes to detect and act on state transitions */
-		voltage_previous = current_status.voltage_battery;
+		voltage_previous = current_status.battery_voltage;
 
 
 		/* play tone according to evaluation result */
@@ -1595,10 +1587,10 @@ int commander_thread_main(int argc, char *argv[])
 				arm_tune_played = true;
 
 		/* Trigger audio event for low battery */
-		} else if (bat_remain < 0.1f && battery_voltage_valid) {
+		} else if (current_status.battery_remaining < 0.1f && current_status.condition_battery_voltage_valid) {
 			if (tune_critical_bat() == OK)
 				battery_tune_played = true;
-		} else if (bat_remain < 0.2f && battery_voltage_valid) {
+		} else if (current_status.battery_remaining < 0.2f && current_status.condition_battery_voltage_valid) {
 			if (tune_low_bat() == OK)
 				battery_tune_played = true;
 		} else if(battery_tune_played) {

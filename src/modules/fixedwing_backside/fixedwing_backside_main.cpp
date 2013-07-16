@@ -150,12 +150,14 @@ int control_demo_thread_main(int argc, char *argv[])
 
 	using namespace control;
 
-	fixedwing::BlockMultiModeBacksideAutopilot autopilot(NULL, "FWB");
+#warning fix this
+//	fixedwing::BlockMultiModeBacksideAutopilot autopilot(NULL, "FWB");
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
-		autopilot.update();
+#warning fix this
+//		autopilot.update();
 	}
 
 	warnx("exiting.");

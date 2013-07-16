@@ -536,7 +536,7 @@ BlinkM::led()
 				/* looking for lipo cells that are connected */
 				printf("<blinkm> checking cells\n");
 				for(num_of_cells = 2; num_of_cells < 7; num_of_cells++) {
-					if(vehicle_status_raw.voltage_battery < num_of_cells * MAX_CELL_VOLTAGE) break;
+					if(vehicle_status_raw.battery_voltage < num_of_cells * MAX_CELL_VOLTAGE) break;
 				}
 				printf("<blinkm> cells found:%d\n", num_of_cells);
 

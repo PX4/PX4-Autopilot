@@ -66,9 +66,6 @@ struct vehicle_control_mode_s
 
 	bool flag_external_manual_override_ok;	/**< external override non-fatal for system. Only true for fixed wing */
 
-	bool flag_system_emergency;
-	bool flag_preflight_calibration;
-
 	// XXX needs yet to be set by state machine helper
 	bool flag_system_hil_enabled;
 

@@ -54,6 +54,6 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 
 int navigation_state_transition(int status_pub, struct vehicle_status_s *current_state, navigation_state_t new_navigation_state, int control_mode_pub, struct vehicle_control_mode_s *control_mode, const int mavlink_fd);
 
-int hil_state_transition(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, hil_state_t new_state);
+int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_state, int control_mode_pub, struct vehicle_control_mode_s *current_control_mode, const int mavlink_fd);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

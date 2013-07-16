@@ -945,8 +945,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_STAT.manual_control_mode = 0;
 				log_msg.body.log_STAT.manual_sas_mode = 0;
 				log_msg.body.log_STAT.armed = (unsigned char) buf_armed.armed; /* XXX fmu armed correct? */
-				log_msg.body.log_STAT.battery_voltage = buf_status.voltage_battery;
-				log_msg.body.log_STAT.battery_current = buf_status.current_battery;
+				log_msg.body.log_STAT.battery_voltage = buf_status.battery_voltage;
+				log_msg.body.log_STAT.battery_current = buf_status.battery_current;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 				log_msg.body.log_STAT.battery_warning = (unsigned char) buf_status.battery_warning;
 				LOGBUFFER_WRITE_AND_COUNT(STAT);

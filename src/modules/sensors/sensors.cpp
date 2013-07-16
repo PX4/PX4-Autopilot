@@ -73,7 +73,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -165,7 +165,7 @@ private:
 	int		_baro_sub;			/**< raw baro data subscription */
 	int     _airspeed_sub;		/**< airspeed subscription */
 	int		_diff_pres_sub;		/**< raw differential pressure subscription */
-	int		_vstatus_sub;			/**< vehicle status subscription */
+	int		_vcontrol_mode_sub;			/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;			/**< notification of manual control updates */
 
@@ -352,9 +352,9 @@ private:
 	void		diff_pres_poll(struct sensor_combined_s &raw);
 
 	/**
-	 * Check for changes in vehicle status.
+	 * Check for changes in vehicle control mode.
 	 */
-	void		vehicle_status_poll();
+	void		vehicle_control_mode_poll();
 
 	/**
 	 * Check for changes in parameters.
@@ -411,7 +411,7 @@ Sensors::Sensors() :
 	_mag_sub(-1),
 	_rc_sub(-1),
 	_baro_sub(-1),
-	_vstatus_sub(-1),
+	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
 
@@ -941,21 +941,21 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 }
 
 void
-Sensors::vehicle_status_poll()
+Sensors::vehicle_control_mode_poll()
 {
-	struct vehicle_status_s vstatus;
-	bool vstatus_updated;
+	struct vehicle_control_mode_s vcontrol_mode;
+	bool vcontrol_mode_updated;
 
-	/* Check HIL state if vehicle status has changed */
-	orb_check(_vstatus_sub, &vstatus_updated);
+	/* Check HIL state if vehicle control mode has changed */
+	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
-	if (vstatus_updated) {
+	if (vcontrol_mode_updated) {
 
-		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &vstatus);
+		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &vcontrol_mode);
 
 		/* switching from non-HIL to HIL mode */
 		//printf("[sensors] Vehicle mode: %i \t AND: %i, HIL: %i\n", vstatus.mode, vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED, hil_enabled);
-		if (vstatus.flag_hil_enabled && !_hil_enabled) {
+		if (vcontrol_mode.flag_system_hil_enabled && !_hil_enabled) {
 			_hil_enabled = true;
 			_publishing = false;
 
@@ -1348,12 +1348,12 @@ Sensors::task_main()
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
-	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vstatus_sub, 200);
+	orb_set_interval(_vcontrol_mode_sub, 200);
 
 	/*
 	 * do advertisements
@@ -1406,7 +1406,7 @@ Sensors::task_main()
 		perf_begin(_loop_perf);
 
 		/* check vehicle status for changes to publication state */
-		vehicle_status_poll();
+		vehicle_control_mode_poll();
 
 		/* check parameters for updates */
 		parameter_update_poll();

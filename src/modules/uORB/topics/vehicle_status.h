@@ -177,14 +177,11 @@ struct vehicle_status_s
 	int32_t	system_id;				/**< system id, inspired by MAVLink's system ID field */
 	int32_t component_id;				/**< subsystem / component id, inspired by MAVLink's component ID field */
 
-	/* system flags - these represent the state predicates */
-
 	mode_switch_pos_t mode_switch;
 	return_switch_pos_t return_switch;
 	mission_switch_pos_t mission_switch;
 
-	
-	bool condition_system_emergency;
+	bool condition_battery_voltage_valid;
 	bool condition_system_in_air_restore;	/**< true if we can restore in mid air */
 	bool condition_system_sensors_initialized;
 	bool condition_system_returned_to_home;
@@ -194,28 +191,6 @@ struct vehicle_status_s
 	bool condition_home_position_valid;		/**< indicates a valid home position (a valid home position is not always a valid launch) */
 	bool condition_local_position_valid;
 	bool condition_airspeed_valid;			/**< set to true by the commander app if there is a valid airspeed measurement available */
-
-	// bool condition_auto_flight_mode_ok;		/**< conditions of auto flight mode apply plus a valid takeoff position lock has been aquired */
-	bool flag_external_manual_override_ok;	/**< external override non-fatal for system. Only true for fixed wing */
-
-	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */
-	//bool flag_armed;				/**< true is motors / actuators are armed  */
-	//bool flag_safety_off;				/**< true if safety is off */
-	bool flag_system_emergency;
-	bool flag_preflight_calibration;
-
-	// bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
-	// bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
-	// bool flag_auto_enabled;
-	// bool flag_control_rates_enabled;		/**< true if rates are stabilized */
-	// bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
-	// bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
-	// bool flag_control_position_enabled;		/**< true if position is controlled */
-
-	// bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
-	// bool flag_preflight_mag_calibration;		/**< true if mag calibration is requested */
-	// bool flag_preflight_accel_calibration;
-	// bool flag_preflight_airspeed_calibration;
 
 	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception is terminally lost */
@@ -230,14 +205,20 @@ struct vehicle_status_s
 	bool failsave_lowlevel;				/**< Set to true if low-level failsafe mode is enabled */
 	bool failsave_highlevel;
 
+	bool preflight_calibration;
+
+	bool system_emergency;
+
 	/* see SYS_STATUS mavlink message for the following */
 	uint32_t onboard_control_sensors_present;
 	uint32_t onboard_control_sensors_enabled;
 	uint32_t onboard_control_sensors_health;
+	
 	float load;
-	float voltage_battery;
-	float current_battery;
+	float battery_voltage;
+	float battery_current;
 	float battery_remaining;
+
 	enum VEHICLE_BATTERY_WARNING battery_warning;    /**< current battery warning mode, as defined by VEHICLE_BATTERY_WARNING enum */
 	uint16_t drop_rate_comm;
 	uint16_t errors_comm;

@@ -77,7 +77,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
@@ -180,7 +180,7 @@ private:
 	/* subscribed topics */
 	int			_t_actuators;	///< actuator controls topic
 	int			_t_actuator_armed;	///< system armed control topic
-	int 			_t_vstatus;	///< system / vehicle status
+	int 			_t_vehicle_control_mode;	///< vehicle control mode topic
 	int			_t_param;	///< parameter update topic
 
 	/* advertised topics */
@@ -362,7 +362,7 @@ PX4IO::PX4IO() :
 	_alarms(0),
 	_t_actuators(-1),
 	_t_actuator_armed(-1),
-	_t_vstatus(-1),
+	_t_vehicle_control_mode(-1),
 	_t_param(-1),
 	_to_input_rc(0),
 	_to_actuators_effective(0),
@@ -647,8 +647,8 @@ PX4IO::task_main()
 	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
 	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
 
-	_t_vstatus = orb_subscribe(ORB_ID(vehicle_status));
-	orb_set_interval(_t_vstatus, 200);		/* 5Hz update rate max. */
+	_t_vehicle_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
+	orb_set_interval(_t_vehicle_control_mode, 200);		/* 5Hz update rate max. */
 
 	_t_param = orb_subscribe(ORB_ID(parameter_update));
 	orb_set_interval(_t_param, 500);		/* 2Hz update rate max. */
@@ -659,7 +659,7 @@ PX4IO::task_main()
 	fds[0].events = POLLIN;
 	fds[1].fd = _t_actuator_armed;
 	fds[1].events = POLLIN;
-	fds[2].fd = _t_vstatus;
+	fds[2].fd = _t_vehicle_control_mode;
 	fds[2].events = POLLIN;
 	fds[3].fd = _t_param;
 	fds[3].events = POLLIN;
@@ -834,10 +834,10 @@ int
 PX4IO::io_set_arming_state()
 {
 	actuator_armed_s	armed;		///< system armed state
-	vehicle_status_s	vstatus;	///< overall system state
+	vehicle_control_mode_s	control_mode;	///< vehicle_control_mode
 
 	orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &armed);
-	orb_copy(ORB_ID(vehicle_status), _t_vstatus, &vstatus);
+	orb_copy(ORB_ID(vehicle_control_mode), _t_vehicle_control_mode, &control_mode);
 
 	uint16_t set = 0;
 	uint16_t clear = 0;
@@ -853,7 +853,7 @@ PX4IO::io_set_arming_state()
 		clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 	}
 
-	if (vstatus.flag_external_manual_override_ok) {
+	if (control_mode.flag_external_manual_override_ok) {
 		set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;

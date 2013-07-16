@@ -272,7 +272,10 @@ l_vehicle_status(const struct listener *l)
 	orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
 
 	/* enable or disable HIL */
-	set_hil_on_off(v_status.flag_hil_enabled);
+	if (v_status.hil_state == HIL_STATE_ON)
+		set_hil_on_off(true);
+	else if (v_status.hil_state == HIL_STATE_OFF)
+		set_hil_on_off(false);
 
 	/* translate the current syste state to mavlink state and mode */
 	uint8_t mavlink_state = 0;

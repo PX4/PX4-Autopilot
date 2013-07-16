@@ -510,7 +510,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 /**
 * Transition from one hil state to another
 */
-int hil_state_transition(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, hil_state_t new_state)
+int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_status, int control_mode_pub, struct vehicle_control_mode_s *current_control_mode, const int mavlink_fd)
 {
 	bool valid_transition = false;
 	int ret = ERROR;
@@ -530,7 +530,7 @@ int hil_state_transition(int status_pub, struct vehicle_status_s *current_status
 				if (current_status->arming_state == ARMING_STATE_INIT
 				 || current_status->arming_state == ARMING_STATE_STANDBY) {
 
-					current_status->flag_hil_enabled = false;
+					current_control_mode->flag_system_hil_enabled = false;
 					mavlink_log_critical(mavlink_fd, "Switched to OFF hil state");
 					valid_transition = true;
 				}
@@ -541,7 +541,7 @@ int hil_state_transition(int status_pub, struct vehicle_status_s *current_status
 				if (current_status->arming_state == ARMING_STATE_INIT
 				 || current_status->arming_state == ARMING_STATE_STANDBY) {
 
-					current_status->flag_hil_enabled = true;
+					current_control_mode->flag_system_hil_enabled = true;
 					mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
 					valid_transition = true;
 				}
@@ -558,8 +558,11 @@ int hil_state_transition(int status_pub, struct vehicle_status_s *current_status
 
 		current_status->counter++;
 		current_status->timestamp = hrt_absolute_time();
-
 		orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
+
+		current_control_mode->timestamp = hrt_absolute_time();
+		orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, current_control_mode);
+
 		ret = OK;
 	} else {
 		mavlink_log_critical(mavlink_fd, "REJECTING invalid hil state transition");

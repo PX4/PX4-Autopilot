@@ -39,6 +39,7 @@
 
 #include "fixedwing.hpp"
 
+#if 0
 
 namespace control
 {
@@ -277,11 +278,12 @@ void BlockMultiModeBacksideAutopilot::update()
 		// This is not a hack, but a design choice.
 
 		/* do not limit in HIL */
-		if (!_status.flag_hil_enabled) {
-			/* limit to value of manual throttle */
-			_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
-						     _actuators.control[CH_THR] : _manual.throttle;
-		}
+#warning fix this
+		// if (!_status.flag_hil_enabled) {
+		// 	/* limit to value of manual throttle */
+		// 	_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
+		// 				     _actuators.control[CH_THR] : _manual.throttle;
+		// }
 
 	} else if (_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
@@ -343,11 +345,12 @@ void BlockMultiModeBacksideAutopilot::update()
 			// This is not a hack, but a design choice.
 
 			/* do not limit in HIL */
-			if (!_status.flag_hil_enabled) {
-				/* limit to value of manual throttle */
-				_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
-							     _actuators.control[CH_THR] : _manual.throttle;
-			}
+#warning fix this
+			// if (!_status.flag_hil_enabled) {
+			// 	/* limit to value of manual throttle */
+			// 	_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
+			// 				     _actuators.control[CH_THR] : _manual.throttle;
+			// }
 #warning fix this
 //		}
 
@@ -382,3 +385,4 @@ BlockMultiModeBacksideAutopilot::~BlockMultiModeBacksideAutopilot()
 
 } // namespace control
 
+#endif
