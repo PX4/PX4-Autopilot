@@ -63,7 +63,8 @@
 
 enum ESC_VENDOR {
 	ESC_VENDOR_GENERIC = 0,					/**< generic ESC */
-	ESC_VENDOR_MIKROKOPTER					/**< Mikrokopter */
+	ESC_VENDOR_MIKROKOPTER,					/**< Mikrokopter */
+	ESC_VENDOR_GRAUPNER_HOTT				/**< Graupner HoTT ESC */	
 };
 
 enum ESC_CONNECTION_TYPE {
