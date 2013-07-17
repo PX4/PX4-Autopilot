@@ -333,21 +333,21 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						local_pos_sp.z = local_pos.home_alt - global_pos_sp.altitude;
 					}
 
-					warnx("new setpoint: lat = %.10f,  lon = %.10f, x = %.2f, y = %.2f", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
+					warnx("new setpoint: lat = %.10f, lon = %.10f, x = %.2f, y = %.2f", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
 					mavlink_log_info(mavlink_fd, "new setpoint: %.7f, %.7f, %.2f, %.2f", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
 					/* publish local position setpoint as projection of global position setpoint */
 					orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
 				}
 			}
 
-			if (reset_sp_alt) {
+			if (status.flag_control_manual_enabled && reset_sp_alt) {
 				reset_sp_alt = false;
 				local_pos_sp.z = local_pos.z;
 				z_vel_pid.integral = -manual.throttle;	// thrust PID uses Z downside
 				mavlink_log_info(mavlink_fd, "reset alt setpoint: z = %.2f, throttle = %.2f", local_pos_sp.z, manual.throttle);
 			}
 
-			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE && reset_sp_pos) {
+			if (status.flag_control_manual_enabled && status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE && reset_sp_pos) {
 				reset_sp_pos = false;
 				local_pos_sp.x = local_pos.x;
 				local_pos_sp.y = local_pos.y;
