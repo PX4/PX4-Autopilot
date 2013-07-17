@@ -2,7 +2,7 @@
  *
  *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Anton Babushkin <rk3dov@gmail.com>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@
  * does the heavy SD I/O in a low-priority worker thread.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Anton Babushkin <rk3dov@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>
