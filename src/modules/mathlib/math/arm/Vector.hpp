@@ -178,8 +178,15 @@ public:
 			    getRows());
 		return result;
 	}
+	inline Vector operator-(void) const {
+		Vector result(getRows());
+		arm_negate_f32((float *)getData(),
+			    result.getData(),
+			    getRows());
+		return result;
+	}
 	// other functions
-	inline float dot(const Vector &right) {
+	inline float dot(const Vector &right) const {
 		float result = 0;
 		arm_dot_prod_f32((float *)getData(),
 				 (float *)right.getData(),
@@ -187,11 +194,20 @@ public:
 				 &result);
 		return result;
 	}
-	inline float norm() {
+	inline float norm() const {
 		return sqrtf(dot(*this));
 	}
-	inline Vector unit() {
+	inline float length() const {
+		return norm();
+	}
+	inline Vector unit() const {
 		return (*this) / norm();
+	}
+	inline Vector normalized() const {
+		return unit();
+	}
+	inline void normalize() {
+		(*this) = (*this) / norm();
 	}
 	inline static Vector zero(size_t rows) {
 		Vector result(rows);

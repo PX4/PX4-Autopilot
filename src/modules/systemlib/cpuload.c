@@ -1,9 +1,8 @@
 /****************************************************************************
- * configs/px4fmu/src/up_leds.c
- * arch/arm/src/board/up_leds.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ * 	     Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,18 +33,26 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
+/**
+ * @file cpuload.c
+ *
+ * Measurement of CPU load of each individual task.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ */
 #include <nuttx/config.h>
+#include <nuttx/sched.h>
 
+#include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#include <arch/arch.h>
+
 #include <debug.h>
 
 #include <sys/time.h>
-#include <sched.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
@@ -54,31 +61,16 @@
 
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 
-/****************************************************************************
- * Definitions
- ****************************************************************************/
-
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-__EXPORT void sched_note_start(FAR _TCB *tcb);
-__EXPORT void sched_note_stop(FAR _TCB *tcb);
-__EXPORT void sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb);
-
-/****************************************************************************
- * Name:
- ****************************************************************************/
+__EXPORT void sched_note_start(FAR struct tcb_s *tcb);
+__EXPORT void sched_note_stop(FAR struct tcb_s *tcb);
+__EXPORT void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb);
 
 __EXPORT struct system_load_s system_load;
 
-extern FAR _TCB *sched_gettcb(pid_t pid);
+extern FAR struct _TCB *sched_gettcb(pid_t pid);
 
 void cpuload_initialize_once()
 {
-//	if (!system_load.initialized)
-//	{
 	system_load.start_time = hrt_absolute_time();
 	int i;
 
@@ -86,30 +78,32 @@ void cpuload_initialize_once()
 		system_load.tasks[i].valid = false;
 	}
 
-	system_load.total_count = 0;
-
 	uint64_t now = hrt_absolute_time();
 
-	/* initialize idle thread statically */
-	system_load.tasks[0].start_time = now;
-	system_load.tasks[0].total_runtime = 0;
-	system_load.tasks[0].curr_start_time = 0;
-	system_load.tasks[0].tcb = sched_gettcb(0);
-	system_load.tasks[0].valid = true;
-	system_load.total_count++;
+	int static_tasks_count = 2;	// there are at least 2 threads that should be initialized statically - "idle" and "init"
 
-	/* initialize init thread statically */
-	system_load.tasks[1].start_time = now;
-	system_load.tasks[1].total_runtime = 0;
-	system_load.tasks[1].curr_start_time = 0;
-	system_load.tasks[1].tcb = sched_gettcb(1);
-	system_load.tasks[1].valid = true;
-	/* count init thread */
-	system_load.total_count++;
-	//	}
+#ifdef CONFIG_PAGING
+	static_tasks_count++;	// include paging thread in initialization
+#endif /* CONFIG_PAGING */
+#if CONFIG_SCHED_WORKQUEUE
+	static_tasks_count++;	// include high priority work0 thread in initialization
+#endif /* CONFIG_SCHED_WORKQUEUE */
+#if CONFIG_SCHED_LPWORK
+	static_tasks_count++;	// include low priority work1 thread in initialization
+#endif /* CONFIG_SCHED_WORKQUEUE */
+
+	// perform static initialization of "system" threads
+	for (system_load.total_count = 0; system_load.total_count < static_tasks_count; system_load.total_count++)
+	{
+		system_load.tasks[system_load.total_count].start_time = now;
+		system_load.tasks[system_load.total_count].total_runtime = 0;
+		system_load.tasks[system_load.total_count].curr_start_time = 0;
+		system_load.tasks[system_load.total_count].tcb = sched_gettcb(system_load.total_count);	// it is assumed that these static threads have consecutive PIDs
+		system_load.tasks[system_load.total_count].valid = true;
+	}
 }
 
-void sched_note_start(FAR _TCB *tcb)
+void sched_note_start(FAR struct tcb_s *tcb)
 {
 	/* search first free slot */
 	int i;
@@ -128,7 +122,7 @@ void sched_note_start(FAR _TCB *tcb)
 	}
 }
 
-void sched_note_stop(FAR _TCB *tcb)
+void sched_note_stop(FAR struct tcb_s *tcb)
 {
 	int i;
 
@@ -145,7 +139,7 @@ void sched_note_stop(FAR _TCB *tcb)
 	}
 }
 
-void sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb)
+void sched_note_switch(FAR struct tcb_s *pFromTcb, FAR struct tcb_s *pToTcb)
 {
 	uint64_t new_time = hrt_absolute_time();
 

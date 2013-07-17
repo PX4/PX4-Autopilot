@@ -12,6 +12,9 @@ typedef struct __mavlink_flexifunction_command_t
 #define MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN 3
 #define MAVLINK_MSG_ID_157_LEN 3
 
+#define MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_CRC 133
+#define MAVLINK_MSG_ID_157_CRC 133
+
 
 
 #define MAVLINK_MESSAGE_INFO_FLEXIFUNCTION_COMMAND { \
@@ -39,23 +42,27 @@ static inline uint16_t mavlink_msg_flexifunction_command_pack(uint8_t system_id,
 						       uint8_t target_system, uint8_t target_component, uint8_t command_type)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[3];
+	char buf[MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN];
 	_mav_put_uint8_t(buf, 0, target_system);
 	_mav_put_uint8_t(buf, 1, target_component);
 	_mav_put_uint8_t(buf, 2, command_type);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 3);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN);
 #else
 	mavlink_flexifunction_command_t packet;
 	packet.target_system = target_system;
 	packet.target_component = target_component;
 	packet.command_type = command_type;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 3);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND;
-	return mavlink_finalize_message(msg, system_id, component_id, 3, 133);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN);
+#endif
 }
 
 /**
@@ -74,23 +81,27 @@ static inline uint16_t mavlink_msg_flexifunction_command_pack_chan(uint8_t syste
 						           uint8_t target_system,uint8_t target_component,uint8_t command_type)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[3];
+	char buf[MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN];
 	_mav_put_uint8_t(buf, 0, target_system);
 	_mav_put_uint8_t(buf, 1, target_component);
 	_mav_put_uint8_t(buf, 2, command_type);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 3);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN);
 #else
 	mavlink_flexifunction_command_t packet;
 	packet.target_system = target_system;
 	packet.target_component = target_component;
 	packet.command_type = command_type;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 3);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 3, 133);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN);
+#endif
 }
 
 /**
@@ -119,19 +130,27 @@ static inline uint16_t mavlink_msg_flexifunction_command_encode(uint8_t system_i
 static inline void mavlink_msg_flexifunction_command_send(mavlink_channel_t chan, uint8_t target_system, uint8_t target_component, uint8_t command_type)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[3];
+	char buf[MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN];
 	_mav_put_uint8_t(buf, 0, target_system);
 	_mav_put_uint8_t(buf, 1, target_component);
 	_mav_put_uint8_t(buf, 2, command_type);
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND, buf, 3, 133);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND, buf, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND, buf, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN);
+#endif
 #else
 	mavlink_flexifunction_command_t packet;
 	packet.target_system = target_system;
 	packet.target_component = target_component;
 	packet.command_type = command_type;
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND, (const char *)&packet, 3, 133);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND, (const char *)&packet, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND, (const char *)&packet, MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN);
+#endif
 #endif
 }
 
@@ -183,6 +202,6 @@ static inline void mavlink_msg_flexifunction_command_decode(const mavlink_messag
 	flexifunction_command->target_component = mavlink_msg_flexifunction_command_get_target_component(msg);
 	flexifunction_command->command_type = mavlink_msg_flexifunction_command_get_command_type(msg);
 #else
-	memcpy(flexifunction_command, _MAV_PAYLOAD(msg), 3);
+	memcpy(flexifunction_command, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_FLEXIFUNCTION_COMMAND_LEN);
 #endif
 }

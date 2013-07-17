@@ -32,6 +32,9 @@ typedef struct __mavlink_image_available_t
 #define MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN 92
 #define MAVLINK_MSG_ID_154_LEN 92
 
+#define MAVLINK_MSG_ID_IMAGE_AVAILABLE_CRC 224
+#define MAVLINK_MSG_ID_154_CRC 224
+
 
 
 #define MAVLINK_MESSAGE_INFO_IMAGE_AVAILABLE { \
@@ -99,7 +102,7 @@ static inline uint16_t mavlink_msg_image_available_pack(uint8_t system_id, uint8
 						       uint64_t cam_id, uint8_t cam_no, uint64_t timestamp, uint64_t valid_until, uint32_t img_seq, uint32_t img_buf_index, uint16_t width, uint16_t height, uint16_t depth, uint8_t channels, uint32_t key, uint32_t exposure, float gain, float roll, float pitch, float yaw, float local_z, float lat, float lon, float alt, float ground_x, float ground_y, float ground_z)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[92];
+	char buf[MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN];
 	_mav_put_uint64_t(buf, 0, cam_id);
 	_mav_put_uint64_t(buf, 8, timestamp);
 	_mav_put_uint64_t(buf, 16, valid_until);
@@ -124,7 +127,7 @@ static inline uint16_t mavlink_msg_image_available_pack(uint8_t system_id, uint8
 	_mav_put_uint8_t(buf, 90, cam_no);
 	_mav_put_uint8_t(buf, 91, channels);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 92);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
 #else
 	mavlink_image_available_t packet;
 	packet.cam_id = cam_id;
@@ -151,11 +154,15 @@ static inline uint16_t mavlink_msg_image_available_pack(uint8_t system_id, uint8
 	packet.cam_no = cam_no;
 	packet.channels = channels;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 92);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_IMAGE_AVAILABLE;
-	return mavlink_finalize_message(msg, system_id, component_id, 92, 224);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN, MAVLINK_MSG_ID_IMAGE_AVAILABLE_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
+#endif
 }
 
 /**
@@ -194,7 +201,7 @@ static inline uint16_t mavlink_msg_image_available_pack_chan(uint8_t system_id, 
 						           uint64_t cam_id,uint8_t cam_no,uint64_t timestamp,uint64_t valid_until,uint32_t img_seq,uint32_t img_buf_index,uint16_t width,uint16_t height,uint16_t depth,uint8_t channels,uint32_t key,uint32_t exposure,float gain,float roll,float pitch,float yaw,float local_z,float lat,float lon,float alt,float ground_x,float ground_y,float ground_z)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[92];
+	char buf[MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN];
 	_mav_put_uint64_t(buf, 0, cam_id);
 	_mav_put_uint64_t(buf, 8, timestamp);
 	_mav_put_uint64_t(buf, 16, valid_until);
@@ -219,7 +226,7 @@ static inline uint16_t mavlink_msg_image_available_pack_chan(uint8_t system_id, 
 	_mav_put_uint8_t(buf, 90, cam_no);
 	_mav_put_uint8_t(buf, 91, channels);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 92);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
 #else
 	mavlink_image_available_t packet;
 	packet.cam_id = cam_id;
@@ -246,11 +253,15 @@ static inline uint16_t mavlink_msg_image_available_pack_chan(uint8_t system_id, 
 	packet.cam_no = cam_no;
 	packet.channels = channels;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 92);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_IMAGE_AVAILABLE;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 92, 224);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN, MAVLINK_MSG_ID_IMAGE_AVAILABLE_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
+#endif
 }
 
 /**
@@ -299,7 +310,7 @@ static inline uint16_t mavlink_msg_image_available_encode(uint8_t system_id, uin
 static inline void mavlink_msg_image_available_send(mavlink_channel_t chan, uint64_t cam_id, uint8_t cam_no, uint64_t timestamp, uint64_t valid_until, uint32_t img_seq, uint32_t img_buf_index, uint16_t width, uint16_t height, uint16_t depth, uint8_t channels, uint32_t key, uint32_t exposure, float gain, float roll, float pitch, float yaw, float local_z, float lat, float lon, float alt, float ground_x, float ground_y, float ground_z)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[92];
+	char buf[MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN];
 	_mav_put_uint64_t(buf, 0, cam_id);
 	_mav_put_uint64_t(buf, 8, timestamp);
 	_mav_put_uint64_t(buf, 16, valid_until);
@@ -324,7 +335,11 @@ static inline void mavlink_msg_image_available_send(mavlink_channel_t chan, uint
 	_mav_put_uint8_t(buf, 90, cam_no);
 	_mav_put_uint8_t(buf, 91, channels);
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, buf, 92, 224);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, buf, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN, MAVLINK_MSG_ID_IMAGE_AVAILABLE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, buf, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
+#endif
 #else
 	mavlink_image_available_t packet;
 	packet.cam_id = cam_id;
@@ -351,7 +366,11 @@ static inline void mavlink_msg_image_available_send(mavlink_channel_t chan, uint
 	packet.cam_no = cam_no;
 	packet.channels = channels;
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, (const char *)&packet, 92, 224);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, (const char *)&packet, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN, MAVLINK_MSG_ID_IMAGE_AVAILABLE_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_IMAGE_AVAILABLE, (const char *)&packet, MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
+#endif
 #endif
 }
 
@@ -623,6 +642,6 @@ static inline void mavlink_msg_image_available_decode(const mavlink_message_t* m
 	image_available->cam_no = mavlink_msg_image_available_get_cam_no(msg);
 	image_available->channels = mavlink_msg_image_available_get_channels(msg);
 #else
-	memcpy(image_available, _MAV_PAYLOAD(msg), 92);
+	memcpy(image_available, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_IMAGE_AVAILABLE_LEN);
 #endif
 }

@@ -282,7 +282,7 @@ void tune_error(void)
 
 void do_rc_calibration(int status_pub, struct vehicle_status_s *status)
 {
-	if (current_status.offboard_control_signal_lost) {
+	if (current_status.rc_signal_lost) {
 		mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
 		return;
 	}
@@ -1200,7 +1200,7 @@ int commander_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = task_spawn("commander",
+		daemon_task = task_spawn_cmd("commander",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 3000,
@@ -1389,6 +1389,7 @@ int commander_thread_main(int argc, char *argv[])
 	uint64_t start_time = hrt_absolute_time();
 	uint64_t failsave_ll_start_time = 0;
 
+	enum VEHICLE_MANUAL_SAS_MODE	manual_sas_mode;
 	bool state_changed = true;
 	bool param_init_forced = true;
 
@@ -1828,8 +1829,9 @@ int commander_thread_main(int argc, char *argv[])
 
 				} else if (sp_man.manual_sas_switch < -STICK_ON_OFF_LIMIT) {
 
-					/* bottom stick position, set altitude hold */
-					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ALTITUDE;
+					/* bottom stick position, set default */
+					/* this MUST be mapped to extremal position to switch easy in case of emergency */
+					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS;
 
 				} else if (sp_man.manual_sas_switch > STICK_ON_OFF_LIMIT) {
 
@@ -1837,8 +1839,14 @@ int commander_thread_main(int argc, char *argv[])
 					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_SIMPLE;
 
 				} else {
-					/* center stick position, set default */
-					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS;
+					/* center stick position, set altitude hold */
+					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ALTITUDE;
+				}
+
+				if (current_status.manual_sas_mode != manual_sas_mode) {
+					/* publish SAS mode changes immediately */
+					manual_sas_mode = current_status.manual_sas_mode;
+					state_changed = true;
 				}
 
 				/*
@@ -1849,8 +1857,10 @@ int commander_thread_main(int argc, char *argv[])
 				     (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
 				     (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
 				    ) &&
-				    ((sp_man.yaw < -STICK_ON_OFF_LIMIT)) &&
-				    (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
+					current_status.flag_control_manual_enabled &&
+					current_status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS &&
+				    sp_man.yaw < -STICK_ON_OFF_LIMIT &&
+				    sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						update_state_machine_disarm(stat_pub, &current_status, mavlink_fd);
 						stick_on_counter = 0;
@@ -1862,7 +1872,10 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* check if left stick is in lower right position --> arm */
-				if (sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.2f) {
+				if (current_status.flag_control_manual_enabled &&
+					current_status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS &&
+					sp_man.yaw > STICK_ON_OFF_LIMIT &&
+					sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						update_state_machine_arm(stat_pub, &current_status, mavlink_fd);
 						stick_on_counter = 0;

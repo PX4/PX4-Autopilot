@@ -166,7 +166,7 @@ PX4FMU	*g_fmu;
 } // namespace
 
 PX4FMU::PX4FMU() :
-	CDev("fmuservo", "/dev/px4fmu"),
+	CDev("fmuservo", PX4FMU_DEVICE_PATH),
 	_mode(MODE_NONE),
 	_pwm_default_rate(50),
 	_pwm_alt_rate(50),
@@ -239,7 +239,7 @@ PX4FMU::init()
 	gpio_reset();
 
 	/* start the IO interface task */
-	_task = task_spawn("fmuservo",
+	_task = task_spawn_cmd("fmuservo",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
 			   2048,

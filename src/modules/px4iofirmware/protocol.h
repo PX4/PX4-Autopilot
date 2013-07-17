@@ -85,7 +85,7 @@
 #define PX4IO_P_CONFIG_ACTUATOR_COUNT		5	/* hardcoded max actuator output count */
 #define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
 #define PX4IO_P_CONFIG_ADC_INPUT_COUNT		7	/* hardcoded max ADC inputs */
-#define PX4IO_P_CONFIG_RELAY_COUNT		8	/* harcoded # of relay outputs */
+#define PX4IO_P_CONFIG_RELAY_COUNT		8	/* hardcoded # of relay outputs */
 
 /* dynamic status page */
 #define PX4IO_PAGE_STATUS		1
@@ -104,6 +104,8 @@
 #define PX4IO_P_STATUS_FLAGS_MIXER_OK		(1 << 8) /* mixer is OK */
 #define PX4IO_P_STATUS_FLAGS_ARM_SYNC		(1 << 9) /* the arming state between IO and FMU is in sync */
 #define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 10) /* initialisation of the IO completed without error */
+#define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
+#define PX4IO_P_STATUS_FLAGS_RC_DSM11		(1 << 12) /* DSM input is 11 bit data */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* VBatt is very close to regulator dropout */
@@ -148,13 +150,29 @@
 #define PX4IO_P_SETUP_ARMING_IO_ARM_OK		(1 << 0) /* OK to arm the IO side */
 #define PX4IO_P_SETUP_ARMING_FMU_ARMED		(1 << 1) /* FMU is already armed */
 #define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK	(1 << 2) /* OK to switch to manual override via override RC channel */
+#define PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM	(1 << 3) /* use custom failsafe values, not 0 values of mixer */
 #define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 4) /* OK to try in-air restart */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
+
+/* px4io relay bit definitions */
+#define PX4IO_RELAY1	(1<<0)
+#define PX4IO_RELAY2	(1<<1)
+#define PX4IO_ACC1		(1<<2)
+#define PX4IO_ACC2		(1<<3)
+
 #define PX4IO_P_SETUP_VBATT_SCALE		6	/* battery voltage correction factor (float) */
+#define PX4IO_P_SETUP_DSM				7	/* DSM bind state */
+enum {                                      /* DSM bind states */
+	dsm_bind_power_down = 0,
+	dsm_bind_power_up,
+	dsm_bind_set_rx_out,
+	dsm_bind_send_pulses,
+	dsm_bind_reinit_uart
+};
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
 /* autopilot control values, -10000..10000 */

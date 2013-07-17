@@ -14,6 +14,9 @@ typedef struct __mavlink_position_control_setpoint_t
 #define MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN 18
 #define MAVLINK_MSG_ID_170_LEN 18
 
+#define MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_CRC 28
+#define MAVLINK_MSG_ID_170_CRC 28
+
 
 
 #define MAVLINK_MESSAGE_INFO_POSITION_CONTROL_SETPOINT { \
@@ -45,14 +48,14 @@ static inline uint16_t mavlink_msg_position_control_setpoint_pack(uint8_t system
 						       uint16_t id, float x, float y, float z, float yaw)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[18];
+	char buf[MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN];
 	_mav_put_float(buf, 0, x);
 	_mav_put_float(buf, 4, y);
 	_mav_put_float(buf, 8, z);
 	_mav_put_float(buf, 12, yaw);
 	_mav_put_uint16_t(buf, 16, id);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 18);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN);
 #else
 	mavlink_position_control_setpoint_t packet;
 	packet.x = x;
@@ -61,11 +64,15 @@ static inline uint16_t mavlink_msg_position_control_setpoint_pack(uint8_t system
 	packet.yaw = yaw;
 	packet.id = id;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 18);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT;
-	return mavlink_finalize_message(msg, system_id, component_id, 18, 28);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_CRC);
+#else
+    return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN);
+#endif
 }
 
 /**
@@ -86,14 +93,14 @@ static inline uint16_t mavlink_msg_position_control_setpoint_pack_chan(uint8_t s
 						           uint16_t id,float x,float y,float z,float yaw)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[18];
+	char buf[MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN];
 	_mav_put_float(buf, 0, x);
 	_mav_put_float(buf, 4, y);
 	_mav_put_float(buf, 8, z);
 	_mav_put_float(buf, 12, yaw);
 	_mav_put_uint16_t(buf, 16, id);
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 18);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN);
 #else
 	mavlink_position_control_setpoint_t packet;
 	packet.x = x;
@@ -102,11 +109,15 @@ static inline uint16_t mavlink_msg_position_control_setpoint_pack_chan(uint8_t s
 	packet.yaw = yaw;
 	packet.id = id;
 
-        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, 18);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN);
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 18, 28);
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_CRC);
+#else
+    return mavlink_finalize_message_chan(msg, system_id, component_id, chan, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN);
+#endif
 }
 
 /**
@@ -137,14 +148,18 @@ static inline uint16_t mavlink_msg_position_control_setpoint_encode(uint8_t syst
 static inline void mavlink_msg_position_control_setpoint_send(mavlink_channel_t chan, uint16_t id, float x, float y, float z, float yaw)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-	char buf[18];
+	char buf[MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN];
 	_mav_put_float(buf, 0, x);
 	_mav_put_float(buf, 4, y);
 	_mav_put_float(buf, 8, z);
 	_mav_put_float(buf, 12, yaw);
 	_mav_put_uint16_t(buf, 16, id);
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT, buf, 18, 28);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT, buf, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT, buf, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN);
+#endif
 #else
 	mavlink_position_control_setpoint_t packet;
 	packet.x = x;
@@ -153,7 +168,11 @@ static inline void mavlink_msg_position_control_setpoint_send(mavlink_channel_t 
 	packet.yaw = yaw;
 	packet.id = id;
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT, (const char *)&packet, 18, 28);
+#if MAVLINK_CRC_EXTRA
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT, (const char *)&packet, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_CRC);
+#else
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT, (const char *)&packet, MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN);
+#endif
 #endif
 }
 
@@ -227,6 +246,6 @@ static inline void mavlink_msg_position_control_setpoint_decode(const mavlink_me
 	position_control_setpoint->yaw = mavlink_msg_position_control_setpoint_get_yaw(msg);
 	position_control_setpoint->id = mavlink_msg_position_control_setpoint_get_id(msg);
 #else
-	memcpy(position_control_setpoint, _MAV_PAYLOAD(msg), 18);
+	memcpy(position_control_setpoint, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_POSITION_CONTROL_SETPOINT_LEN);
 #endif
 }

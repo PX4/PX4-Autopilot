@@ -77,6 +77,11 @@ public:
 	Dcm(const float *data);
 
 	/**
+	 * array ctor
+	 */
+	Dcm(const float data[3][3]);
+
+	/**
 	 * quaternion ctor
 	 */
 	Dcm(const Quaternion &q);

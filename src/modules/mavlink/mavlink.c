@@ -49,7 +49,6 @@
 #include <mqueue.h>
 #include <string.h>
 #include "mavlink_bridge_header.h"
-#include <v1.0/common/mavlink.h>
 #include <drivers/drv_hrt.h>
 #include <time.h>
 #include <float.h>
@@ -143,14 +142,6 @@ set_hil_on_off(bool hil_enabled)
 
 	/* Enable HIL */
 	if (hil_enabled && !mavlink_hil_enabled) {
-
-		/* Advertise topics */
-		pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
-		pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
-
-		/* sensore level hil */
-		pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
-		pub_hil_gps = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
 
 		mavlink_hil_enabled = true;
 
@@ -479,7 +470,7 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 }
 
 void
-mavlink_send_uart_bytes(mavlink_channel_t channel, uint8_t *ch, int length)
+mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length)
 {
 	write(uart, ch, (size_t)(sizeof(uint8_t) * length));
 }
@@ -487,7 +478,7 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, uint8_t *ch, int length)
 /*
  * Internal function to give access to the channel status for each channel
  */
-mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
+extern mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
 {
 	static mavlink_status_t m_mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
 	return &m_mavlink_status[channel];
@@ -496,7 +487,7 @@ mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
 /*
  * Internal function to give access to the channel buffer for each channel
  */
-mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
+extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 {
 	static mavlink_message_t m_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
 	return &m_mavlink_buffer[channel];
@@ -714,6 +705,8 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		lowspeed_counter++;
 
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
+
 		/* sleep quarter the time */
 		usleep(25000);
 
@@ -725,9 +718,12 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		/* send parameters at 20 Hz (if queued for sending) */
 		mavlink_pm_queued_send();
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
 
 		/* sleep quarter the time */
 		usleep(25000);
+
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
 
 		if (baudrate > 57600) {
 			mavlink_pm_queued_send();
@@ -787,7 +783,7 @@ int mavlink_main(int argc, char *argv[])
 			errx(0, "mavlink already running\n");
 
 		thread_should_exit = false;
-		mavlink_task = task_spawn("mavlink",
+		mavlink_task = task_spawn_cmd("mavlink",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
 					  2048,

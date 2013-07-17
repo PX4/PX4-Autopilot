@@ -74,9 +74,9 @@ Vector3::~Vector3()
 {
 }
 
-Vector3 Vector3::cross(const Vector3 &b)
+Vector3 Vector3::cross(const Vector3 &b) const
 {
-	Vector3 &a = *this;
+	const Vector3 &a = *this;
 	Vector3 result;
 	result(0) = a(1) * b(2) - a(2) * b(1);
 	result(1) = a(2) * b(0) - a(0) * b(2);
