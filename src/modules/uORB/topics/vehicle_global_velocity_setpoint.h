@@ -1,8 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: @author Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,66 +32,33 @@
  *
  ****************************************************************************/
 
-/*
- * @file multirotor_position_control_params.h
- * 
- * Parameters for position controller
+/**
+ * @file vehicle_global_velocity_setpoint.h
+ * Definition of the global velocity setpoint uORB topic.
  */
 
-#include <systemlib/param/param.h>
+#ifndef TOPIC_VEHICLE_GLOBAL_VELOCITY_SETPOINT_H_
+#define TOPIC_VEHICLE_GLOBAL_VELOCITY_SETPOINT_H_
 
-struct multirotor_position_control_params {
-	float thr_min;
-	float thr_max;
-	float z_p;
-	float z_d;
-	float z_vel_p;
-	float z_vel_i;
-	float z_vel_d;
-	float z_vel_max;
-	float xy_p;
-	float xy_d;
-	float xy_vel_p;
-	float xy_vel_i;
-	float xy_vel_d;
-	float xy_vel_max;
-	float slope_max;
-
-	float rc_scale_pitch;
-	float rc_scale_roll;
-	float rc_scale_yaw;
-};
-
-struct multirotor_position_control_param_handles {
-	param_t thr_min;
-	param_t thr_max;
-	param_t z_p;
-	param_t z_d;
-	param_t z_vel_p;
-	param_t z_vel_i;
-	param_t z_vel_d;
-	param_t z_vel_max;
-	param_t xy_p;
-	param_t xy_d;
-	param_t xy_vel_p;
-	param_t xy_vel_i;
-	param_t xy_vel_d;
-	param_t xy_vel_max;
-	param_t slope_max;
-
-	param_t rc_scale_pitch;
-	param_t rc_scale_roll;
-	param_t rc_scale_yaw;
-};
+#include "../uORB.h"
 
 /**
- * Initialize all parameter handles and values
- *
+ * @addtogroup topics
+ * @{
  */
-int parameters_init(struct multirotor_position_control_param_handles *h);
+
+struct vehicle_global_velocity_setpoint_s
+{
+	float vx;		/**< in m/s NED			  		*/
+	float vy;		/**< in m/s NED			  		*/
+	float vz;		/**< in m/s NED			  		*/
+}; /**< Velocity setpoint in NED frame */
 
 /**
- * Update all parameters
- *
+ * @}
  */
-int parameters_update(const struct multirotor_position_control_param_handles *h, struct multirotor_position_control_params *p);
+
+/* register this as object request broker structure */
+ORB_DECLARE(vehicle_global_velocity_setpoint);
+
+#endif

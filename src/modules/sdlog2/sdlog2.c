@@ -75,6 +75,7 @@
 #include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -94,16 +95,12 @@
 		log_msgs_written++; \
 	} else { \
 		log_msgs_skipped++; \
-		/*printf("skip\n");*/ \
 	}
 
 #define LOG_ORB_SUBSCRIBE(_var, _topic) subs.##_var##_sub = orb_subscribe(ORB_ID(##_topic##)); \
 	fds[fdsc_count].fd = subs.##_var##_sub; \
 	fds[fdsc_count].events = POLLIN; \
 	fdsc_count++;
-
-
-//#define SDLOG2_DEBUG
 
 static bool main_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;			/**< Deamon status flag */
@@ -233,7 +230,7 @@ int sdlog2_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("sdlog2 already running\n");
+			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
@@ -250,7 +247,7 @@ int sdlog2_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (!thread_running) {
-			printf("\tsdlog2 is not started\n");
+			warnx("not started");
 		}
 
 		main_thread_should_exit = true;
@@ -262,7 +259,7 @@ int sdlog2_main(int argc, char *argv[])
 			sdlog2_status();
 
 		} else {
-			printf("\tsdlog2 not started\n");
+			warnx("not started\n");
 		}
 
 		exit(0);
@@ -387,11 +384,6 @@ static void *logwriter_thread(void *arg)
 		/* only get pointer to thread-safe data, do heavy I/O a few lines down */
 		int available = logbuffer_get_ptr(logbuf, &read_ptr, &is_part);
 
-#ifdef SDLOG2_DEBUG
-		int rp = logbuf->read_ptr;
-		int wp = logbuf->write_ptr;
-#endif
-
 		/* continue */
 		pthread_mutex_unlock(&logbuffer_mutex);
 
@@ -407,9 +399,6 @@ static void *logwriter_thread(void *arg)
 			n = write(log_file, read_ptr, n);
 
 			should_wait = (n == available) && !is_part;
-#ifdef SDLOG2_DEBUG
-			printf("write %i %i of %i rp=%i wp=%i, is_part=%i, should_wait=%i\n", log_bytes_written, n, available, rp, wp, (int)is_part, (int)should_wait);
-#endif
 
 			if (n < 0) {
 				main_thread_should_exit = true;
@@ -422,14 +411,8 @@ static void *logwriter_thread(void *arg)
 
 		} else {
 			n = 0;
-#ifdef SDLOG2_DEBUG
-			printf("no data available, main_thread_should_exit=%i, logwriter_should_exit=%i\n", (int)main_thread_should_exit, (int)logwriter_should_exit);
-#endif
 			/* exit only with empty buffer */
 			if (main_thread_should_exit || logwriter_should_exit) {
-#ifdef SDLOG2_DEBUG
-				printf("break logwriter thread\n");
-#endif
 				break;
 			}
 			should_wait = true;
@@ -443,10 +426,6 @@ static void *logwriter_thread(void *arg)
 
 	fsync(log_file);
 	close(log_file);
-
-#ifdef SDLOG2_DEBUG
-	printf("logwriter thread exit\n");
-#endif
 
 	return OK;
 }
@@ -614,14 +593,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		errx(1, "can't allocate log buffer, exiting.");
 	}
 
-	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
-	/* number of messages */
-	const ssize_t fdsc = 19;
-	/* Sanity check variable and index */
-	ssize_t fdsc_count = 0;
-	/* file descriptors to wait for */
-	struct pollfd fds[fdsc];
-
 	struct vehicle_status_s buf_status;
 	memset(&buf_status, 0, sizeof(buf_status));
 
@@ -646,6 +617,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct differential_pressure_s diff_pres;
 		struct airspeed_s airspeed;
 		struct esc_status_s esc;
+		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 	} buf;
 	memset(&buf, 0, sizeof(buf));
 
@@ -669,6 +641,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int rc_sub;
 		int airspeed_sub;
 		int esc_sub;
+		int global_vel_sp_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -694,12 +667,21 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GPOS_s log_GPOS;
 			struct log_GPSP_s log_GPSP;
 			struct log_ESC_s log_ESC;
+			struct log_GVSP_s log_GVSP;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
 	};
 #pragma pack(pop)
 	memset(&log_msg.body, 0, sizeof(log_msg.body));
+
+	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
+	/* number of messages */
+	const ssize_t fdsc = 20;
+	/* Sanity check variable and index */
+	ssize_t fdsc_count = 0;
+	/* file descriptors to wait for */
+	struct pollfd fds[fdsc];
 
 	/* --- VEHICLE COMMAND --- */
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -812,6 +794,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- ESCs --- */
 	subs.esc_sub = orb_subscribe(ORB_ID(esc_status));
 	fds[fdsc_count].fd = subs.esc_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- GLOBAL VELOCITY SETPOINT --- */
+	subs.global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
+	fds[fdsc_count].fd = subs.global_vel_sp_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1166,14 +1154,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 				}
 			}
 
-#ifdef SDLOG2_DEBUG
-				printf("fill rp=%i wp=%i count=%i\n", lb.read_ptr, lb.write_ptr, logbuffer_count(&lb));
-#endif
+			/* --- GLOBAL VELOCITY SETPOINT --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_global_velocity_setpoint), subs.global_vel_sp_sub, &buf.global_vel_sp);
+				log_msg.msg_type = LOG_GVSP_MSG;
+				log_msg.body.log_GVSP.vx = buf.global_vel_sp.vx;
+				log_msg.body.log_GVSP.vy = buf.global_vel_sp.vy;
+				log_msg.body.log_GVSP.vz = buf.global_vel_sp.vz;
+				LOGBUFFER_WRITE_AND_COUNT(GVSP);
+			}
+
 			/* signal the other thread new data, but not yet unlock */
 			if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {
-#ifdef SDLOG2_DEBUG
-				printf("signal rp=%i wp=%i count=%i\n", lb.read_ptr, lb.write_ptr, logbuffer_count(&lb));
-#endif
 				/* only request write if several packets can be written at once */
 				pthread_cond_signal(&logbuffer_cond);
 			}

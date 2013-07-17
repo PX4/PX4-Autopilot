@@ -1,10 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,15 +33,43 @@
  ****************************************************************************/
 
 /**
- * @file multirotor_position_control.h
- * Definition of the position control for a multirotor VTOL
+ * @file thrust_pid.h
+ *
+ * Definition of thrust control PID interface.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-// #ifndef POSITION_CONTROL_H_
-// #define POSITION_CONTROL_H_
+#ifndef THRUST_PID_H_
+#define THRUST_PID_H_
 
-// void control_multirotor_position(const struct vehicle_state_s *vstatus, const struct vehicle_manual_control_s *manual,
-//  const struct vehicle_attitude_s *att, const struct vehicle_local_position_s *local_pos,
-//  const struct vehicle_local_position_setpoint_s *local_pos_sp, struct vehicle_attitude_setpoint_s *att_sp);
+#include <stdint.h>
 
-// #endif /* POSITION_CONTROL_H_ */
+__BEGIN_DECLS
+
+/* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error */
+#define THRUST_PID_MODE_DERIVATIV_CALC	0
+/* PID_MODE_DERIVATIV_CALC_NO_SP calculates discrete derivative from previous value, setpoint derivative is ignored */
+#define THRUST_PID_MODE_DERIVATIV_CALC_NO_SP	1
+
+typedef struct {
+	float kp;
+	float ki;
+	float kd;
+	float sp;
+	float integral;
+	float error_previous;
+	float last_output;
+	float limit_min;
+	float limit_max;
+	float dt_min;
+	uint8_t mode;
+} thrust_pid_t;
+
+__EXPORT void thrust_pid_init(thrust_pid_t *pid, float kp, float ki, float kd, float limit_min, float limit_max, uint8_t mode, float dt_min);
+__EXPORT int thrust_pid_set_parameters(thrust_pid_t *pid, float kp, float ki, float kd, float limit_min, float limit_max);
+__EXPORT float thrust_pid_calculate(thrust_pid_t *pid, float sp, float val, float dt);
+
+__END_DECLS
+
+#endif /* THRUST_PID_H_ */

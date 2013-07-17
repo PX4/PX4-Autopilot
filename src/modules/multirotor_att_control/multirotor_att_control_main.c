@@ -241,13 +241,18 @@ mc_thread_main(int argc, char *argv[])
 
 
 				} else if (state.flag_control_manual_enabled) {
-
+					/* direct manual input */
 					if (state.flag_control_attitude_enabled) {
+						/* Control attitude, update attitude setpoint depending on SAS mode:
+						 * VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS: roll, pitch, yaw, thrust
+						 * VEHICLE_MANUAL_SAS_MODE_ALTITUDE: roll, pitch, yaw
+						 * VEHICLE_MANUAL_SAS_MODE_SIMPLE: yaw
+						 * */
 
 						/* initialize to current yaw if switching to manual or att control */
 						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-						    state.flag_control_manual_enabled != flag_control_manual_enabled ||
-						    state.flag_system_armed != flag_system_armed) {
+							state.flag_control_manual_enabled != flag_control_manual_enabled ||
+							state.flag_system_armed != flag_system_armed) {
 							att_sp.yaw_body = att.yaw;
 						}
 
@@ -255,24 +260,30 @@ mc_thread_main(int argc, char *argv[])
 
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
 						if (state.rc_signal_lost) {
-							/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
-							param_get(failsafe_throttle_handle, &failsafe_throttle);
-							att_sp.roll_body = 0.0f;
-							att_sp.pitch_body = 0.0f;
+							if (state.manual_sas_mode != VEHICLE_MANUAL_SAS_MODE_SIMPLE) {
+								/* Don't reset attitude setpoint in SIMPLE SAS mode, it's handled by position controller. */
+								att_sp.roll_body = 0.0f;
+								att_sp.pitch_body = 0.0f;
 
-							/*
-							 * Only go to failsafe throttle if last known throttle was
-							 * high enough to create some lift to make hovering state likely.
-							 *
-							 * This is to prevent that someone landing, but not disarming his
-							 * multicopter (throttle = 0) does not make it jump up in the air
-							 * if shutting down his remote.
-							 */
-							if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
-								att_sp.thrust = failsafe_throttle;
+								if (state.manual_sas_mode != VEHICLE_MANUAL_SAS_MODE_ALTITUDE) {
+									/* Don't touch throttle in modes with altitude hold, it's handled by position controller.
+									 *
+									 * Only go to failsafe throttle if last known throttle was
+									 * high enough to create some lift to make hovering state likely.
+									 *
+									 * This is to prevent that someone landing, but not disarming his
+									 * multicopter (throttle = 0) does not make it jump up in the air
+									 * if shutting down his remote.
+									 */
+									if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
+										/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
+										param_get(failsafe_throttle_handle, &failsafe_throttle);
+										att_sp.thrust = failsafe_throttle;
 
-							} else {
-								att_sp.thrust = 0.0f;
+									} else {
+										att_sp.thrust = 0.0f;
+									}
+								}
 							}
 
 							/* keep current yaw, do not attempt to go to north orientation,
@@ -287,17 +298,15 @@ mc_thread_main(int argc, char *argv[])
 						} else {
 							rc_loss_first_time = true;
 
-							att_sp.roll_body = manual.roll;
-							att_sp.pitch_body = manual.pitch;
-
-							/* set attitude if arming */
+							/* control yaw in all SAS modes */
+							/* set yaw if arming */
 							if (!flag_control_attitude_enabled && state.flag_system_armed) {
 								att_sp.yaw_body = att.yaw;
 							}
 
 							/* act if stabilization is active or if the (nonsense) direct pass through mode is set */
 							if (state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS ||
-							    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+								state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
 
 								if (state.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_RATE) {
 									rates_sp.yaw = manual.yaw;
@@ -313,7 +322,9 @@ mc_thread_main(int argc, char *argv[])
 									 */
 
 									/* only move setpoint if manual input is != 0 */
-									if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
+									if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && (
+											state.manual_sas_mode != VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS ||
+											manual.throttle > 0.3f)) {
 										rates_sp.yaw = manual.yaw;
 										control_yaw_position = false;
 										first_time_after_yaw_speed_control = true;
@@ -329,12 +340,18 @@ mc_thread_main(int argc, char *argv[])
 								}
 							}
 
-							att_sp.thrust = manual.throttle;
+							if (state.manual_sas_mode != VEHICLE_MANUAL_SAS_MODE_SIMPLE) {
+								/* don't update attitude setpoint in SIMPLE SAS mode */
+								att_sp.roll_body = manual.roll;
+								att_sp.pitch_body = manual.pitch;
+								if (state.manual_sas_mode != VEHICLE_MANUAL_SAS_MODE_ALTITUDE) {
+									/* don't set throttle in alt hold modes */
+									att_sp.thrust = manual.throttle;
+								}
+							}
+
 							att_sp.timestamp = hrt_absolute_time();
 						}
-
-						/* STEP 2: publish the controller output */
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
 						if (motor_test_mode) {
 							printf("testmode");
@@ -343,14 +360,15 @@ mc_thread_main(int argc, char *argv[])
 							att_sp.yaw_body = 0.0f;
 							att_sp.thrust = 0.1f;
 							att_sp.timestamp = hrt_absolute_time();
-							/* STEP 2: publish the result to the vehicle actuators */
-							orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 						}
+
+						/* STEP 2: publish the controller output */
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
 					} else {
 						/* manual rate inputs, from RC control or joystick */
 						if (state.flag_control_rates_enabled &&
-						    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_RATES) {
+							state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_RATES) {
 							rates_sp.roll = manual.roll;
 
 							rates_sp.pitch = manual.pitch;
@@ -359,7 +377,6 @@ mc_thread_main(int argc, char *argv[])
 							rates_sp.timestamp = hrt_absolute_time();
 						}
 					}
-
 				}
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */

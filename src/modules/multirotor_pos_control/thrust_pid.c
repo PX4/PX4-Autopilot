@@ -37,7 +37,7 @@
  ****************************************************************************/
 
 /**
- * @file pid.c
+ * @file thrust_pid.c
  *
  * Implementation of generic PID control interface.
  *
@@ -48,27 +48,25 @@
  * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#include "pid.h"
+#include "thrust_pid.h"
 #include <math.h>
 
-__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
-		       float limit, uint8_t mode, float dt_min)
+__EXPORT void thrust_pid_init(thrust_pid_t *pid, float kp, float ki, float kd, float limit_min, float limit_max, uint8_t mode, float dt_min)
 {
 	pid->kp = kp;
 	pid->ki = ki;
 	pid->kd = kd;
-	pid->intmax = intmax;
-	pid->limit = limit;
+	pid->limit_min = limit_min;
+	pid->limit_max = limit_max;
 	pid->mode = mode;
 	pid->dt_min = dt_min;
-	pid->count = 0.0f;
-	pid->saturated = 0.0f;
 	pid->last_output = 0.0f;
 	pid->sp = 0.0f;
 	pid->error_previous = 0.0f;
 	pid->integral = 0.0f;
 }
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit)
+
+__EXPORT int thrust_pid_set_parameters(thrust_pid_t *pid, float kp, float ki, float kd, float limit_min, float limit_max)
 {
 	int ret = 0;
 
@@ -93,15 +91,15 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 		ret = 1;
 	}
 
-	if (isfinite(intmax)) {
-		pid->intmax = intmax;
+	if (isfinite(limit_min)) {
+		pid->limit_min = limit_min;
 
 	}  else {
 		ret = 1;
 	}
 
-	if (isfinite(limit)) {
-		pid->limit = limit;
+	if (isfinite(limit_max)) {
+		pid->limit_max = limit_max;
 
 	}  else {
 		ret = 1;
@@ -110,32 +108,19 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 	return ret;
 }
 
-//void pid_set(PID_t *pid, float sp)
-//{
-//	pid->sp = sp;
-//	pid->error_previous = 0;
-//	pid->integral = 0;
-//}
-
-/**
- *
- * @param pid
- * @param val
- * @param dt
- * @return
- */
-__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt)
+__EXPORT float thrust_pid_calculate(thrust_pid_t *pid, float sp, float val, float dt)
 {
-	/*  error = setpoint - actual_position
-	 integral = integral + (error*dt)
+	/* Alternative integral component calculation
+	 error = setpoint - actual_position
+	 integral = integral + (Ki*error*dt)
 	 derivative = (error - previous_error)/dt
-	 output = (Kp*error) + (Ki*integral) + (Kd*derivative)
+	 output = (Kp*error) + integral + (Kd*derivative)
 	 previous_error = error
 	 wait(dt)
 	 goto start
 	 */
 
-	if (!isfinite(sp) || !isfinite(val) || !isfinite(val_dot) || !isfinite(dt)) {
+	if (!isfinite(sp) || !isfinite(val) || !isfinite(dt)) {
 		return pid->last_output;
 	}
 
@@ -146,16 +131,13 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	float error = pid->sp - val;
 
 	// Calculate or measured current error derivative
-	if (pid->mode == PID_MODE_DERIVATIV_CALC) {
+	if (pid->mode == THRUST_PID_MODE_DERIVATIV_CALC) {
 		d = (error - pid->error_previous) / fmaxf(dt, pid->dt_min);
 		pid->error_previous = error;
 
-	} else if (pid->mode == PID_MODE_DERIVATIV_CALC_NO_SP) {
+	} else if (pid->mode == THRUST_PID_MODE_DERIVATIV_CALC_NO_SP) {
 		d = (-val - pid->error_previous) / fmaxf(dt, pid->dt_min);
 		pid->error_previous = -val;
-
-	} else if (pid->mode == PID_MODE_DERIVATIV_SET) {
-		d = -val_dot;
 
 	} else {
 		d = 0.0f;
@@ -166,12 +148,13 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	}
 
 	// Calculate the error integral and check for saturation
-	i = pid->integral + (error * dt);
+	i = pid->integral + (pid->ki * error * dt);
 
-	if ((pid->limit != 0.0f && (fabsf((error * pid->kp) + (i * pid->ki) + (d * pid->kd)) > pid->limit)) ||
-			fabsf(i) > pid->intmax) {
+	float output = (error * pid->kp) + i + (d * pid->kd);
+	if (output < pid->limit_min || output > pid->limit_max) {
 		i = pid->integral;		// If saturated then do not update integral value
-		pid->saturated = 1;
+		// recalculate output with old integral
+		output = (error * pid->kp) + i + (d * pid->kd);
 
 	} else {
 		if (!isfinite(i)) {
@@ -179,30 +162,18 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		}
 
 		pid->integral = i;
-		pid->saturated = 0;
 	}
 
-	// Calculate the output.  Limit output magnitude to pid->limit
-	float output = (error * pid->kp) + (i * pid->ki) + (d * pid->kd);
-
 	if (isfinite(output)) {
-		if (pid->limit != 0.0f) {
-			if (output > pid->limit) {
-				output = pid->limit;
+		if (output > pid->limit_max) {
+			output = pid->limit_max;
 
-			} else if (output < -pid->limit) {
-				output = -pid->limit;
-			}
+		} else if (output < pid->limit_min) {
+			output = pid->limit_min;
 		}
 
 		pid->last_output = output;
 	}
 
 	return pid->last_output;
-}
-
-
-__EXPORT void pid_reset_integral(PID_t *pid)
-{
-	pid->integral = 0;
 }

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,11 +32,10 @@
 ############################################################################
 
 #
-# Build multirotor position control
+# Makefile to build position_estimator_inav
 #
 
-MODULE_COMMAND	= multirotor_pos_control
-
-SRCS		= multirotor_pos_control.c \
-		  multirotor_pos_control_params.c \
-		  thrust_pid.c
+MODULE_COMMAND	 	= position_estimator_inav
+SRCS		 	= position_estimator_inav_main.c \
+			position_estimator_inav_params.c \
+			inertial_filter.c
