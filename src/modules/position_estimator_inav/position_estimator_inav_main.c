@@ -115,6 +115,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 			exit(0);
 		}
 
+		verbose_mode = false;
 		if (argc > 1)
 			if (!strcmp(argv[2], "-v"))
 				verbose_mode = true;
@@ -379,10 +380,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							}
 						}
 
-						accel_NED[2] += CONSTANTS_ONE_G;
 						accel_corr[0] = accel_NED[0] - x_est[2];
 						accel_corr[1] = accel_NED[1] - y_est[2];
-						accel_corr[2] = accel_NED[2] - z_est[2];
+						accel_corr[2] = accel_NED[2] + CONSTANTS_ONE_G - z_est[2];
 
 					} else {
 						memset(accel_corr, 0, sizeof(accel_corr));
