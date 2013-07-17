@@ -207,44 +207,23 @@ int auth_main(int argc, char *argv[])
 	/* register a math library (in this case TomFastMath) */
 	ltc_mp = tfm_desc;
 
-	prng_state prng;
-	unsigned char buf[10];
 
-	warnx("Starting YARROW");
-	fflush(stdout);
-	usleep(100000);
 
-	/* start */
-	if ((err = yarrow_start(&prng)) != CRYPT_OK) {
-		warnx("Start error: %s\n", error_to_string(err));
-	}
 
-	warnx("Adding entropy");
-	fflush(stdout);
 
-	/* add entropy */
-	/* XXX use sensor values for this purpose */
-	if ((err = yarrow_add_entropy("hello world", 11, &prng)) != CRYPT_OK) {
-		warnx("Add_entropy error: %s\n", error_to_string(err));
-	}
-	/* ready and read */
-	if ((err = yarrow_ready(&prng)) != CRYPT_OK) {
-		warnx("Ready error: %s\n", error_to_string(err));
-	}
+	// XXX load private key from string here, sign
 
-	warnx("Creating 1024 bit RSA key, this may take a while");
-	fflush(stdout);
-	usleep(100000);
 
-	/* register the yarrow RNG */
-	register_prng(&yarrow_desc);
 
-	/* make a 1024-bit RSA key with the system RNG */
-	if ((err = rsa_make_key(&prng, find_prng("yarrow"), 1024/8, 65537, &key))
-		!= CRYPT_OK) {
-		warnx("make_key error: %s\n", error_to_string(err));
-		return 1;
-	}
+
+
+
+
+
+
+
+
+
 
 	/*
 	 * ONE-TIME-PROGRAMMABLE (OTP) MEMORY HANDLING SECTION
@@ -282,6 +261,23 @@ int auth_main(int argc, char *argv[])
 
 	warnx("Unique serial # [%0X%0X%0X]", id.serial[0], id.serial[1], id.serial[2]);
 
+
+
+
+
+	// XXX sign serial with private key
+
+
+
+	// XXX load public key from string / array, authenticate serial + signature
+
+
+
+
+
+
+
+
 	uint16_t *fsize = ADDR_FLASH_SIZE;
 
 	warnx("Flash size: %d", (int)*fsize);
@@ -305,5 +301,54 @@ int auth_main(int argc, char *argv[])
 		printf("%0X", otp_lock_mem.lock_bytes[i]);
 	printf("\n");
 
+
+
+
+
+
+	// XXX Write signature to OTP and lock, but only on special command
+
+
 	sched_unlock();
 }
+
+
+
+	// prng_state prng;
+	// unsigned char buf[10];
+
+	// warnx("Starting YARROW");
+	// fflush(stdout);
+	// usleep(100000);
+
+	// /* start */
+	// if ((err = yarrow_start(&prng)) != CRYPT_OK) {
+	// 	warnx("Start error: %s\n", error_to_string(err));
+	// }
+
+	// warnx("Adding entropy");
+	// fflush(stdout);
+
+	// /* add entropy */
+	// /* XXX use sensor values for this purpose */
+	// if ((err = yarrow_add_entropy("hello world", 11, &prng)) != CRYPT_OK) {
+	// 	warnx("Add_entropy error: %s\n", error_to_string(err));
+	// }
+	//  ready and read 
+	// if ((err = yarrow_ready(&prng)) != CRYPT_OK) {
+	// 	warnx("Ready error: %s\n", error_to_string(err));
+	// }
+
+	// warnx("Creating 1024 bit RSA key, this may take a while");
+	// fflush(stdout);
+	// usleep(100000);
+
+	// /* register the yarrow RNG */
+	// register_prng(&yarrow_desc);
+
+	// /* make a 1024-bit RSA key with the system RNG */
+	// if ((err = rsa_make_key(&prng, find_prng("yarrow"), 1024/8, 65537, &key))
+	// 	!= CRYPT_OK) {
+	// 	warnx("make_key error: %s\n", error_to_string(err));
+	// 	return 1;
+	// }
