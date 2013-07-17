@@ -1890,7 +1890,7 @@ px4io_main(int argc, char *argv[])
 		}
 
 		PX4IO_Uploader *up;
-		const char *fn[3];
+		const char *fn[5];
 
 		/* work out what we're uploading... */
 		if (argc > 2) {
@@ -1900,7 +1900,9 @@ px4io_main(int argc, char *argv[])
 		} else {
 			fn[0] = "/fs/microsd/px4io.bin";
 			fn[1] =	"/etc/px4io.bin";
-			fn[2] =	nullptr;
+			fn[2] = "/fs/microsd/px4io2.bin";
+			fn[3] =	"/etc/px4io2.bin";
+			fn[4] =	nullptr;
 		}
 
 		up = new PX4IO_Uploader;
