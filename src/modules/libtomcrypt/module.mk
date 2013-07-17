@@ -44,7 +44,17 @@
 # - RSA
 #
 
-SRCS		=	pk/ecc/ecc_ansi_x963_export.c \
+SRCS		=	encauth/gcm/gcm_add_aad.c \
+			encauth/gcm/gcm_add_iv.c \
+			encauth/gcm/gcm_done.c \
+			encauth/gcm/gcm_gf_mult.c \
+			encauth/gcm/gcm_init.c \
+			encauth/gcm/gcm_memory.c \
+			encauth/gcm/gcm_mult_h.c \
+			encauth/gcm/gcm_process.c \
+			encauth/gcm/gcm_reset.c \
+			encauth/gcm/gcm_test.c \
+			pk/ecc/ecc_ansi_x963_export.c \
 			pk/ecc/ecc_ansi_x963_import.c \
 			pk/ecc/ecc_decrypt_key.c \
 			pk/ecc/ecc_encrypt_key.c \

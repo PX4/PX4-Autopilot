@@ -21,10 +21,8 @@ MODULES		+= drivers/ardrone_interface
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
-MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
-MODULES		+= drivers/hott_telemetry
 MODULES		+= modules/sensors
 
 #

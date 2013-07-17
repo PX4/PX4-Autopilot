@@ -26,7 +26,10 @@ Td4[x] = Si[x].[01, 01, 01, 01];
 /**
   @file aes_tab.c
   AES tables
-*/  
+*/
+
+#include <tomcrypt_macros.h>
+
 static const ulong32 TE0[256] = {
     0xc66363a5UL, 0xf87c7c84UL, 0xee777799UL, 0xf67b7b8dUL,
     0xfff2f20dUL, 0xd66b6bbdUL, 0xde6f6fb1UL, 0x91c5c554UL,

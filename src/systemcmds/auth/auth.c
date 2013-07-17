@@ -192,26 +192,104 @@ int lock_otp()
 	// val_copy(lock_ptr, &otp_lock_mem, sizeof(otp_lock_mem));
 }
 
+#define PACKET_SIZE  5
+#define KEY_LEN 16
+#define IV_LEN 12
+#define AAD_LEN 6
+
+int test(unsigned char *pt, unsigned long ptlen, unsigned char *iv,
+		unsigned long ivlen, unsigned char *aad, unsigned long aadlen,
+		gcm_state *gcm, gcm_state *gcm_2) {
+	int err;
+	unsigned long taglen;
+	unsigned char tag[16];
+	unsigned long taglen_2;
+	unsigned char tag_2[16];
+	unsigned char ct[PACKET_SIZE];
+	unsigned char pt_2[PACKET_SIZE];
+	/* reset the state */
+	if ((err = gcm_reset(gcm)) != CRYPT_OK) {
+		return err;
+	}
+	/* Add the IV */
+	if ((err = gcm_add_iv(gcm, iv, ivlen)) != CRYPT_OK) {
+		return err;
+	}
+	/* Add the AAD (note: aad can be NULL if aadlen == 0) */
+	if ((err = gcm_add_aad(gcm, aad, aadlen)) != CRYPT_OK) {
+		return err;
+
+	}
+	/* process the plaintext */
+	if ((err = gcm_process(gcm, pt, ptlen, ct, GCM_ENCRYPT)) != CRYPT_OK) {
+		return err;
+	}
+	/* Finish up and get the MAC tag */
+	taglen = sizeof(tag);
+	if ((err = gcm_done(gcm, tag, &taglen)) != CRYPT_OK) {
+		return err;
+	}
+
+	//messing around
+	//aad[0] = 45;
+	//iv[0] = 1;
+	//ct[1] = 38;
+	if ((err = gcm_reset(gcm_2)) != CRYPT_OK) {
+		return err;
+	}
+	/* Add the IV */
+	if ((err = gcm_add_iv(gcm_2, iv, ivlen)) != CRYPT_OK) {
+		return err;
+	}
+	/* Add the AAD (note: aad can be NULL if aadlen == 0) */
+	if ((err = gcm_add_aad(gcm_2, aad, aadlen)) != CRYPT_OK) {
+		return err;
+
+	}
+	/* process the plaintext */
+	if ((err = gcm_process(gcm_2, pt_2, ptlen, ct, GCM_DECRYPT)) != CRYPT_OK) {
+		return err;
+	}
+	/* Finish up and get the MAC tag */
+	taglen = sizeof(tag);
+	if ((err = gcm_done(gcm_2, tag_2, &taglen_2)) != CRYPT_OK) {
+		return err;
+	}
+
+	if (XMEMCMP(tag, tag_2, 16)) {
+
+		printf("\nTag on ciphertext wrong \n");
+
+	}
+	else {
+		printf("\nTest OK!\n");
+	}
+ 
+	return CRYPT_OK;
+}
+
 int auth_main(int argc, char *argv[])
 {
 
+	gcm_state gcm, gcm_2;
 
-	/*
-	 * PKCS#1 BASED CHIP ID SIGNING PREPARATION
-	 */
+	unsigned char key[KEY_LEN] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2,
+			0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+	unsigned char IV[IV_LEN] = {0};
 
-	/* XXX this is testing code, the key has to be read from STDINPUT later */
-	rsa_key key;
-	int err;
+	unsigned char pt[PACKET_SIZE] = { 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
+	int err, x;
+	unsigned long ptlen = PACKET_SIZE;
 
-	/* register a math library (in this case TomFastMath) */
-	ltc_mp = tfm_desc;
 
 
 
 
 
 	// XXX load private key from string here, sign
+
+
+
 
 
 
@@ -312,6 +390,36 @@ int auth_main(int argc, char *argv[])
 	sched_unlock();
 }
 
+
+	// const unsigned char aad[AAD_LEN] = { 0x25, 0x34, 0xFF, 0x00, 0xCC, 0xAB};
+	// unsigned long aadlen = AAD_LEN;
+
+
+
+	// /* register AES */
+	// register_cipher(&aes_desc);
+	// /* init the GCM state */
+	// if ((err = gcm_init(&gcm, find_cipher("aes"), key, 16)) != CRYPT_OK) {
+	// 	puts("Error");
+	// }
+
+	// /* init the GCM state */
+	// if ((err = gcm_init(&gcm_2, find_cipher("aes"), key, 16)) != CRYPT_OK) {
+	// 	puts("Error");
+	// }
+
+	// /* handle us some packets */
+	// //for (;;) {
+	// /* use IV as counter (12 byte counter) */
+	// for (x = 11; x >= 0; x--) {
+	// 	if (++IV[x]) {
+	// 		break;
+	// 	}
+	// }
+	// if ((err = test(pt, ptlen, IV, IV_LEN, aad, aadlen, &gcm, &gcm_2))
+	// 		!= CRYPT_OK) {
+	// 	puts("Error");
+	// }
 
 
 	// prng_state prng;
