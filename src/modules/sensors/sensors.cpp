@@ -1141,10 +1141,13 @@ Sensors::ppm_poll()
 {
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-	bool rc_updated;
-	orb_check(_rc_sub, &rc_updated);
+	struct pollfd fds[1];
+	fds[0].fd = _rc_sub;
+	fds[0].events = POLLIN;
+	/* check non-blocking for new data */
+	int poll_ret = poll(fds, 1, 0);
 
-	if (rc_updated) {
+	if (poll_ret > 0) {
 		struct rc_input_values	rc_input;
 
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
