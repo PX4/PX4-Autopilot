@@ -174,7 +174,7 @@ clean:
 distclean: clean
 	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
 	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/configs && find . -type l -depth 1 -delete)
+	$(Q) (cd $(NUTTX_SRC)/configs && find . -maxdepth 1 -type l -delete)
 
 #
 # Print some help text
