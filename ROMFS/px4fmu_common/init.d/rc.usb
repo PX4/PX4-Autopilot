@@ -15,29 +15,33 @@ then
 fi
 mavlink start -b 230400 -d /dev/ttyACM0
 
-# Start the commander
-commander start
-
-# Start sensors
-sh /etc/init.d/rc.sensors
-
-# Start one of the estimators
-if attitude_estimator_ekf status
+if [ $MODE == autostart ]
 then
-	echo "multicopter att filter running"
-else
-	if att_pos_estimator_ekf status
+
+	# Start the commander
+	commander start
+
+	# Start sensors
+	sh /etc/init.d/rc.sensors
+
+	# Start one of the estimators
+	if attitude_estimator_ekf status
 	then
-		echo "fixedwing att filter running"
+		echo "multicopter att filter running"
 	else
-		attitude_estimator_ekf start
+		if att_pos_estimator_ekf status
+		then
+			echo "fixedwing att filter running"
+		else
+			attitude_estimator_ekf start
+		fi
 	fi
-fi
 
-# Start GPS
-if gps start
-then
-	echo "GPS started"
+	# Start GPS
+	if gps start
+	then
+		echo "GPS started"
+	fi
 fi
 
 echo "MAVLink started, exiting shell.."
