@@ -5,8 +5,33 @@
 
 echo "Starting MAVLink on this USB console"
 
+# Stop tone alarm
+tone_alarm stop
+
 # Tell MAVLink that this link is "fast"
-mavlink start -b 230400 -d /dev/console
+if mavlink stop
+then
+	echo "stopped other MAVLink instance"
+fi
+mavlink start -b 230400 -d /dev/ttyACM0
+
+# Start the commander
+commander start
+
+# Start sensors
+sh /etc/init.d/rc.sensors
+
+# Start one of the estimators
+if attitude_estimator_ekf start
+then
+	echo "estimating attitude"
+fi
+
+# Start GPS
+if gps start
+then
+	echo "GPS started"
+fi
 
 echo "MAVLink started, exiting shell.."
 

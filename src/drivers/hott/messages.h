@@ -72,8 +72,8 @@ struct gam_module_poll_msg {
 
 /* The Electric Air Module message. */
 struct eam_module_msg {
-	uint8_t start;			/**< Start byte   				*/
-	uint8_t eam_sensor_id;		/**< EAM sensor					*/
+	uint8_t start;			/**< Start byte */
+	uint8_t eam_sensor_id;		/**< EAM sensor	*/
 	uint8_t warning;
 	uint8_t sensor_text_id;
 	uint8_t alarm_inverse1;
@@ -125,52 +125,52 @@ struct eam_module_msg {
 #define GAM_SENSOR_TEXT_ID		0xd0
 
 struct gam_module_msg {
-        uint8_t start;		// start byte constant value 0x7c
-        uint8_t gam_sensor_id;		// EAM sensort id. constat value 0x8d
-        uint8_t warning_beeps;		// 1=A 2=B ... 0x1a=Z  0 = no alarm
-        uint8_t sensor_text_id;		// constant value 0xd0
-        uint8_t alarm_invers1;		// alarm bitmask. Value is displayed inverted
-        uint8_t alarm_invers2;		// alarm bitmask. Value is displayed inverted                                                                
-        uint8_t cell1;			// cell 1 voltage lower value. 0.02V steps, 124=2.48V
+        uint8_t start;			/**< Start byte	*/
+        uint8_t gam_sensor_id;		/**< GAM sensor id */
+        uint8_t warning_beeps;
+        uint8_t sensor_text_id;
+        uint8_t alarm_invers1;
+        uint8_t alarm_invers2;                                                              
+        uint8_t cell1;			/**< Lipo cell voltages. Not supported.	*/
         uint8_t cell2;
         uint8_t cell3;
         uint8_t cell4;
         uint8_t cell5;
         uint8_t cell6;
-        uint8_t batt1_L;		// battery 1 voltage LSB value. 0.1V steps. 50 = 5.5V
+        uint8_t batt1_L;		/**< Battery 1 voltage LSB value. 0.1V steps. 50 = 5.5V	*/
         uint8_t batt1_H;
-        uint8_t batt2_L;		// battery 2 voltage LSB value. 0.1V steps. 50 = 5.5V
+        uint8_t batt2_L;		/**< Battery 2 voltage LSB value. 0.1V steps. 50 = 5.5V	*/
         uint8_t batt2_H;
-        uint8_t temperature1;		// temperature 1. offset of 20. a value of 20 = 0°C
-        uint8_t temperature2;		// temperature 2. offset of 20. a value of 20 = 0°C
-        uint8_t fuel_procent;		// Fuel capacity in %. Values 0--100
-					// graphical display ranges: 0-25% 50% 75% 100%
-        uint8_t fuel_ml_L;		// Fuel in ml scale. Full = 65535!
-        uint8_t fuel_ml_H;		//
-        uint8_t rpm_L;			// RPM in 10 RPM steps. 300 = 3000rpm
-        uint8_t rpm_H;			//
-        uint8_t altitude_L;		// altitude in meters. offset of 500, 500 = 0m
-        uint8_t altitude_H;		//
-        uint8_t climbrate_L;		// climb rate in 0.01m/s. Value of 30000 = 0.00 m/s
-        uint8_t climbrate_H;		//
-        uint8_t climbrate3s;		// climb rate in m/3sec. Value of 120 = 0m/3sec
-        uint8_t current_L;		// current in 0.1A steps
-        uint8_t current_H;		//
-        uint8_t main_voltage_L;		// Main power voltage using 0.1V steps
-        uint8_t main_voltage_H;		//
-        uint8_t batt_cap_L;		// used battery capacity in 10mAh steps
-        uint8_t batt_cap_H;		//
-        uint8_t speed_L;		// (air?) speed in km/h(?) we are using ground speed here per default
-        uint8_t speed_H;		//
-        uint8_t min_cell_volt;		// minimum cell voltage in 2mV steps. 124 = 2,48V
-        uint8_t min_cell_volt_num;	// number of the cell with the lowest voltage
-        uint8_t rpm2_L;			// RPM in 10 RPM steps. 300 = 3000rpm
-        uint8_t rpm2_H;			//
-        uint8_t general_error_number;	// Voice error == 12. TODO: more docu
-        uint8_t pressure;		// Pressure up to 16bar. 0,1bar scale. 20 = 2bar
-        uint8_t version;		// version number TODO: more info?
-        uint8_t stop;			// stop byte
-        uint8_t checksum;		// checksum
+        uint8_t temperature1;		/**< Temperature 1. offset of 20. a value of 20 = 0°C */
+        uint8_t temperature2;		/**< Temperature 2. offset of 20. a value of 20 = 0°C */
+        uint8_t fuel_procent;		/**< Fuel capacity in %. Values 0 - 100 */
+					/**< Graphical display ranges: 0 25% 50% 75% 100% */
+        uint8_t fuel_ml_L;		/**< Fuel in ml scale. Full = 65535 */
+        uint8_t fuel_ml_H;
+        uint8_t rpm_L;			/**< RPM in 10 RPM steps. 300 = 3000rpm */
+        uint8_t rpm_H;
+        uint8_t altitude_L;		/**< Altitude in meters. offset of 500, 500 = 0m */
+        uint8_t altitude_H;
+        uint8_t climbrate_L;		/**< Climb rate in 0.01m/s. Value of 30000 = 0.00 m/s */
+        uint8_t climbrate_H;
+        uint8_t climbrate3s;		/**< Climb rate in m/3sec. Value of 120 = 0m/3sec */
+        uint8_t current_L;		/**< Current in 0.1A steps */
+        uint8_t current_H;
+        uint8_t main_voltage_L;		/**< Main power voltage using 0.1V steps */
+        uint8_t main_voltage_H;
+        uint8_t batt_cap_L;		/**< Used battery capacity in 10mAh steps */
+        uint8_t batt_cap_H;
+        uint8_t speed_L;		/**< Speed in km/h */
+        uint8_t speed_H;
+        uint8_t min_cell_volt;		/**< Minimum cell voltage in 2mV steps. 124 = 2,48V */
+        uint8_t min_cell_volt_num;	/**< Number of the cell with the lowest voltage */
+        uint8_t rpm2_L;			/**< RPM in 10 RPM steps. 300 = 3000rpm */
+        uint8_t rpm2_H;
+        uint8_t general_error_number;	/**< Voice error == 12. TODO: more docu */
+        uint8_t pressure;		/**< Pressure up to 16bar. 0,1bar scale. 20 = 2bar */
+        uint8_t version;
+        uint8_t stop;			/**< Stop byte */
+        uint8_t checksum;		/**< Lower 8-bits of all bytes summed */
 };
 
 /* GPS sensor constants. */
@@ -184,52 +184,52 @@ struct gam_module_msg {
 struct gps_module_msg { 
 	uint8_t start;			/**< Start byte */
 	uint8_t sensor_id;		/**< GPS sensor ID*/
-	uint8_t warning;		/**< Byte 3: 0…= warning beeps */
+	uint8_t warning;		/**< 0…= warning beeps */
 	uint8_t sensor_text_id;		/**< GPS Sensor text mode ID */
-	uint8_t alarm_inverse1;		/**< Byte 5: 01 inverse status */
-	uint8_t alarm_inverse2;		/**< Byte 6: 00 inverse status status 1 = no GPS Signal */
-	uint8_t flight_direction;	/**< Byte 7: 119 = Flightdir./dir. 1 = 2°; 0° (North), 9 0° (East), 180° (South), 270° (West) */
-	uint8_t gps_speed_L;		/**< Byte 8: 8 = /GPS speed low byte 8km/h */
-	uint8_t gps_speed_H;		/**< Byte 9: 0 = /GPS speed high byte */
+	uint8_t alarm_inverse1;		/**< 01 inverse status */
+	uint8_t alarm_inverse2;		/**< 00 inverse status status 1 = no GPS Signal */
+	uint8_t flight_direction;	/**< 119 = Flightdir./dir. 1 = 2°; 0° (North), 9 0° (East), 180° (South), 270° (West) */
+	uint8_t gps_speed_L;		/**< 8 = /GPS speed low byte 8km/h */
+	uint8_t gps_speed_H;		/**< 0 = /GPS speed high byte */
 	  
-	uint8_t latitude_ns;		/**< Byte 10: 000 = N = 48°39’988 */
-	uint8_t latitude_min_L;		/**< Byte 11: 231 0xE7 = 0x12E7 = 4839 */
-	uint8_t latitude_min_H;		/**< Byte 12: 018 18 = 0x12 */
-	uint8_t latitude_sec_L;		/**< Byte 13: 171 220 = 0xDC = 0x03DC =0988 */
-	uint8_t latitude_sec_H;		/**< Byte 14: 016 3 = 0x03 */
+	uint8_t latitude_ns;		/**< 000 = N = 48°39’988 */
+	uint8_t latitude_min_L;		/**< 231 0xE7 = 0x12E7 = 4839 */
+	uint8_t latitude_min_H;		/**< 018 18 = 0x12 */
+	uint8_t latitude_sec_L;		/**< 171 220 = 0xDC = 0x03DC =0988 */
+	uint8_t latitude_sec_H;		/**< 016 3 = 0x03 */
 	 
-	uint8_t longitude_ew;		/**< Byte 15: 000  = E= 9° 25’9360 */
-	uint8_t longitude_min_L;	/**< Byte 16: 150 157 = 0x9D = 0x039D = 0925 */
-	uint8_t longitude_min_H;	/**< Byte 17: 003 3 = 0x03 */
-	uint8_t longitude_sec_L;	/**< Byte 18: 056 144 = 0x90 0x2490 = 9360*/
-	uint8_t longitude_sec_H;	/**< Byte 19: 004 36 = 0x24 */
+	uint8_t longitude_ew;		/**< 000  = E= 9° 25’9360 */
+	uint8_t longitude_min_L;	/**< 150 157 = 0x9D = 0x039D = 0925 */
+	uint8_t longitude_min_H;	/**< 003 3 = 0x03 */
+	uint8_t longitude_sec_L;	/**< 056 144 = 0x90 0x2490 = 9360 */
+	uint8_t longitude_sec_H;	/**< 004 36 = 0x24 */
 	  
-	uint8_t distance_L;			/**< Byte 20: 027 123 = /distance low byte 6 = 6 m */
-	uint8_t distance_H;			/**< Byte 21: 036 35 = /distance high byte */
-	uint8_t altitude_L;			/**< Byte 22: 243 244 = /Altitude low byte 500 = 0m */
-	uint8_t altitude_H;			/**< Byte 23: 001 1 = /Altitude high byte */
-	uint8_t resolution_L;		/**< Byte 24: 48 = Low Byte m/s resolution 0.01m 48 = 30000 = 0.00m/s (1=0.01m/s) */
-	uint8_t resolution_H;		/**< Byte 25: 117 = High Byte m/s resolution 0.01m */
-	uint8_t unknown1;			/**< Byte 26: 120 = 0m/3s */
-	uint8_t gps_num_sat;		/**< Byte 27: GPS.Satellites (number of satelites) (1 byte) */
-	uint8_t gps_fix_char;		/**< Byte 28: GPS.FixChar. (GPS fix character. display, if DGPS, 2D oder 3D) (1 byte) */
-	uint8_t home_direction;		/**< Byte 29: HomeDirection (direction from starting point to Model position) (1 byte) */
-	uint8_t angle_x_direction;	/**< Byte 30: angle x-direction (1 byte) */
-	uint8_t angle_y_direction;	/**< Byte 31: angle y-direction (1 byte) */
-	uint8_t angle_z_direction;	/**< Byte 32: angle z-direction (1 byte) */
-	uint8_t gyro_x_L;			/**< Byte 33: gyro x low byte (2 bytes) */
-	uint8_t gyro_x_H;			/**< Byte 34: gyro x high byte */
-	uint8_t gyro_y_L;			/**< Byte 35: gyro y low byte (2 bytes) */
-	uint8_t gyro_y_H;			/**< Byte 36: gyro y high byte */
-	uint8_t gyro_z_L;			/**< Byte 37: gyro z low byte (2 bytes) */
-	uint8_t gyro_z_H;			/**< Byte 38: gyro z high byte */
-	uint8_t vibration;			/**< Byte 39: vibration (1 bytes) */
-	uint8_t ascii4;				/**< Byte 40: 00 ASCII Free Character [4] */
-	uint8_t ascii5;				/**< Byte 41: 00 ASCII Free Character [5] */
-	uint8_t gps_fix;			/**< Byte 42: 00 ASCII Free Character [6], we use it for GPS FIX */
-	uint8_t version;			/**< Byte 43: 00 version number */
-	uint8_t stop;				/**< Byte 44: 0x7D Ende byte */
-	uint8_t checksum;			/**< Byte 45: Parity Byte */
+	uint8_t distance_L;		/**< 027 123 = /distance low byte 6 = 6 m */
+	uint8_t distance_H;		/**< 036 35 = /distance high byte */
+	uint8_t altitude_L;		/**< 243 244 = /Altitude low byte 500 = 0m */
+	uint8_t altitude_H;		/**< 001 1 = /Altitude high byte */
+	uint8_t resolution_L;		/**< 48 = Low Byte m/s resolution 0.01m 48 = 30000 = 0.00m/s (1=0.01m/s) */
+	uint8_t resolution_H;		/**< 117 = High Byte m/s resolution 0.01m */
+	uint8_t unknown1;		/**< 120 = 0m/3s */
+	uint8_t gps_num_sat;		/**< GPS.Satellites (number of satelites) (1 byte) */
+	uint8_t gps_fix_char;		/**< GPS.FixChar. (GPS fix character. display, if DGPS, 2D oder 3D) (1 byte) */
+	uint8_t home_direction;		/**< HomeDirection (direction from starting point to Model position) (1 byte) */
+	uint8_t angle_x_direction;	/**< angle x-direction (1 byte) */
+	uint8_t angle_y_direction;	/**< angle y-direction (1 byte) */
+	uint8_t angle_z_direction;	/**< angle z-direction (1 byte) */
+	uint8_t gyro_x_L;		/**< gyro x low byte (2 bytes) */
+	uint8_t gyro_x_H;		/**< gyro x high byte */
+	uint8_t gyro_y_L;		/**< gyro y low byte (2 bytes) */
+	uint8_t gyro_y_H;		/**< gyro y high byte */
+	uint8_t gyro_z_L;		/**< gyro z low byte (2 bytes) */
+	uint8_t gyro_z_H;		/**< gyro z high byte */
+	uint8_t vibration;		/**< vibration (1 bytes) */
+	uint8_t ascii4;			/**< 00 ASCII Free Character [4] */
+	uint8_t ascii5;			/**< 00 ASCII Free Character [5] */
+	uint8_t gps_fix;		/**< 00 ASCII Free Character [6], we use it for GPS FIX */
+	uint8_t version;
+	uint8_t stop;			/**< Stop byte */
+	uint8_t checksum;		/**< Lower 8-bits of all bytes summed */
 };
 
 // The maximum size of a message.
