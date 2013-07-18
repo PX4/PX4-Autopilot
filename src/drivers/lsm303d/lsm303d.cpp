@@ -125,7 +125,7 @@ static const int ERROR = -1;
 #define REG1_RATE_800HZ_A		((1<<7) | (0<<6) | (0<<5) | (1<<4))
 #define REG1_RATE_1600HZ_A		((1<<7) | (0<<6) | (1<<5) | (0<<4))
 
-#define REG1_CONT_UPDATE_A		(0<<3)
+#define REG1_BDU_UPDATE			(1<<3)
 #define REG1_Z_ENABLE_A			(1<<2)
 #define REG1_Y_ENABLE_A			(1<<1)
 #define REG1_X_ENABLE_A			(1<<0)
@@ -482,7 +482,7 @@ LSM303D::init()
 	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &_mag_reports[0]);
 
 	/* enable accel, XXX do this with an ioctl? */
-	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A);
+	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE);
 
 	/* enable mag, XXX do this with an ioctl? */
 	write_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
