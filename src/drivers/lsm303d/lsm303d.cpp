@@ -395,6 +395,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
 	_accel_topic(-1),
+	_current_samplerate(0),
 	_num_mag_reports(0),
 	_next_mag_report(0),
 	_oldest_mag_report(0),
