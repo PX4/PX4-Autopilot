@@ -41,9 +41,12 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdarg.h>
 
 #include <mavlink/mavlink_log.h>
+
+static FILE* text_recorder_fd = NULL;
 
 void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size)
 {
@@ -51,6 +54,7 @@ void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size)
 	lb->start = 0;
 	lb->count = 0;
 	lb->elems = (struct mavlink_logmessage *)calloc(lb->size, sizeof(struct mavlink_logmessage));
+	text_recorder_fd = fopen("/fs/microsd/text_recorder.txt", "w");
 }
 
 int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb)
@@ -82,6 +86,13 @@ int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessa
 		memcpy(elem, &(lb->elems[lb->start]), sizeof(struct mavlink_logmessage));
 		lb->start = (lb->start + 1) % lb->size;
 		--lb->count;
+
+		if (text_recorder_fd) {
+			fwrite(elem->text, 1, strnlen(elem->text, 50), text_recorder_fd);
+			fputc("\n", text_recorder_fd);
+			fsync(text_recorder_fd);
+		}
+
 		return 0;
 
 	} else {

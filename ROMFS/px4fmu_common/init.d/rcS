@@ -24,30 +24,6 @@ else
 fi
 
 #
-# Check if auto-setup from one of the standard scripts is wanted
-# SYS_AUTOSTART = 0 means no autostart (default)
-#
-if param compare SYS_AUTOSTART 1
-then
-	sh /etc/init.d/rc.1_fmu_quad_x
-fi
-
-if param compare SYS_AUTOSTART 2
-then
-	sh /etc/init.d/rc.2_fmu_io_quad_x
-fi
-
-if param compare SYS_AUTOSTART 30
-then
-	sh /etc/init.d/rc.30_fmu_io_camflyer
-fi
-
-if param compare SYS_AUTOSTART 31
-then
-	sh /etc/init.d/rc.31_fmu_io_phantom
-fi
-
-#
 # Look for an init script on the microSD card.
 #
 # To prevent automatic startup in the current flight mode,
@@ -105,4 +81,43 @@ else
 	fi
 fi
 
+fi
+
+#
+# Check if auto-setup from one of the standard scripts is wanted
+# SYS_AUTOSTART = 0 means no autostart (default)
+#
+if param compare SYS_AUTOSTART 1
+then
+	sh /etc/init.d/01_fmu_quad_x
+fi
+
+if param compare SYS_AUTOSTART 2
+then
+	sh /etc/init.d/02_io_quad_x
+fi
+
+if param compare SYS_AUTOSTART 8
+then
+	sh /etc/init.d/08_ardrone
+fi
+
+if param compare SYS_AUTOSTART 9
+then
+	sh /etc/init.d/09_ardrone_flow
+fi
+
+if param compare SYS_AUTOSTART 10
+then
+	sh /etc/init.d/10_io_f330
+fi
+
+if param compare SYS_AUTOSTART 30
+then
+	sh /etc/init.d/30_io_camflyer
+fi
+
+if param compare SYS_AUTOSTART 31
+then
+	sh /etc/init.d/31_io_phantom
 fi
