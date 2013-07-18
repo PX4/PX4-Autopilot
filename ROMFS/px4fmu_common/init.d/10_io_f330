@@ -6,21 +6,6 @@
 # disable USB and autostart
 set USB no
 set MODE custom
- 
-#
-# Start the ORB (first app to start)
-#
-uorb start
- 
-#
-# Load microSD params
-#
-echo "[init] loading microSD params"
-param select /fs/microsd/params
-if [ -f /fs/microsd/params ]
-then
-	param load /fs/microsd/params
-fi
 
 #
 # Load default params for this platform
@@ -29,6 +14,22 @@ if param compare SYS_AUTOCONFIG 1
 then
 	# Set all params here, then disable autoconfig
 	param set SYS_AUTOCONFIG 0
+
+	param set MC_ATTRATE_D	         0.007
+	param set MC_ATTRATE_I	         0.0
+	param set MC_ATTRATE_P	         0.13
+	param set MC_ATT_D	         0.0
+	param set MC_ATT_I	         0.0
+	param set MC_ATT_P	         7.0
+	param set MC_POS_P	         0.1
+	param set MC_RCLOSS_THR	         0.0
+	param set MC_YAWPOS_D	         0.0
+	param set MC_YAWPOS_I	         0.5
+	param set MC_YAWPOS_P	         1.0
+	param set MC_YAWRATE_D	         0.0
+	param set MC_YAWRATE_I	         0.0
+	param set MC_YAWRATE_P	         0.2
+
 	param save /fs/microsd/params
 fi
  
@@ -42,21 +43,21 @@ param set MAV_TYPE 2
 #
 # Check if PX4IO Firmware should be upgraded (from Andrew Tridgell)
 #
-if [ -f /fs/microsd/px4io.bin ]
+if [ -f /fs/microsd/px4io2.bin ]
 then
 	echo "PX4IO Firmware found. Checking Upgrade.."
-	if cmp /fs/microsd/px4io.bin /fs/microsd/px4io.bin.current
+	if cmp /fs/microsd/px4io2.bin /fs/microsd/px4io2.cur
 	then
 		echo "No newer version, skipping upgrade."
 	else
-		echo "Loading /fs/microsd/px4io.bin"
-		if px4io update /fs/microsd/px4io.bin > /fs/microsd/px4io_update.log
+		echo "Loading /fs/microsd/px4io2.bin"
+		if px4io update /fs/microsd/px4io2.bin > /fs/microsd/px4io2.log
 		then
-			cp /fs/microsd/px4io.bin /fs/microsd/px4io.bin.current
-			echo "Flashed /fs/microsd/px4io.bin OK" >> /fs/microsd/px4io_update.log
+			cp /fs/microsd/px4io2.bin /fs/microsd/px4io2.cur
+			echo "Flashed /fs/microsd/px4io2.bin OK" >> /fs/microsd/px4io2.log
 		else
-			echo "Failed flashing /fs/microsd/px4io.bin" >> /fs/microsd/px4io_update.log
-			echo "Failed to upgrade PX4IO firmware - check if PX4IO is in bootloader mode"
+			echo "Failed flashing /fs/microsd/px4io2.bin" >> /fs/microsd/px4io2.log
+			echo "Failed to upgrade PX4IO2 firmware - check if PX4IO2 is in bootloader mode"
 		fi
 	fi
 fi
@@ -64,18 +65,14 @@ fi
 #
 # Start MAVLink (depends on orb)
 #
-mavlink start -d /dev/ttyS1 -b 57600
+mavlink start
 usleep 5000
- 
-#
-# Start the commander (depends on orb, mavlink)
-#
-commander start
  
 #
 # Start PX4IO interface (depends on orb, commander)
 #
 px4io start
+pwm -u 400 -m 0xff
  
 #
 # Allow PX4IO to recover from midair restarts.
@@ -86,11 +83,31 @@ px4io recovery
 # Disable px4io topic limiting
 #
 px4io limit 200
+
+#
+# This sets a PWM right after startup (regardless of safety button)
+#
+px4io idle 900 900 900 900
+
+#
+# The values are for spinning motors when armed using DJI ESCs
+#
+px4io min 1200 1200 1200 1200
+
+#
+# Upper limits could be higher, this is on the safe side
+#
+px4io max 1800 1800 1800 1800
  
 #
 # Start the sensors (depends on orb, px4io)
 #
 sh /etc/init.d/rc.sensors
+
+#
+# Start the commander (depends on orb, mavlink)
+#
+commander start
  
 #
 # Start GPS interface (depends on orb)
@@ -106,13 +123,12 @@ attitude_estimator_ekf start
 # Load mixer and start controllers (depends on px4io)
 #
 mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
-pwm -u 400 -m 0xff
 multirotor_att_control start
  
 #
 # Start logging
 #
-sdlog2 start -r 50 -a -b 14
+sdlog2 start -r 20 -a -b 14
  
 #
 # Start system state
