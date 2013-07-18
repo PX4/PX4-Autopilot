@@ -7,7 +7,6 @@
 # can change this to prevent automatic startup of the flight script.
 #
 set MODE autostart
-set USB autoconnect
 
 #
 # Try to mount the microSD card.
@@ -46,28 +45,40 @@ fi
 # from an EXTERNAL_SCRIPTS build option
 if [ -f /etc/init.d/rc.APM ]
 then
-
-	#
-	# Check for USB host
-	#
-	if [ $USB != autoconnect ]
+	if sercon
 	then
-		echo "[init] not connecting USB"
-	else
-		if sercon
-		then
-			echo "[init] USB interface connected"
-		else
-			if [ -f /dev/ttyACM0 ]
-				echo "[init] NSH via USB"
-			then
-			else
-				echo "[init] No USB connected"
-			fi
-		fi
+		echo "[init] USB interface connected"
 	fi
 
-	echo Running rc.APM
+	echo "Running rc.APM"
 	# if APM startup is successful then nsh will exit
 	sh /etc/init.d/rc.APM
+fi
+
+if [ $MODE == autostart ]
+then
+
+#
+# Start the ORB (first app to start)
+#
+uorb start
+
+#
+# Load microSD params
+#
+if ramtron start
+then
+	param select /ramtron/params
+	if [ -f /ramtron/params ]
+	then
+		param load /ramtron/params
+	fi
+else
+	param select /fs/microsd/params
+	if [ -f /fs/microsd/params ]
+	then
+		param load /fs/microsd/params
+	fi
+fi
+
 fi
