@@ -39,5 +39,5 @@ then
 	#
 	# Check sensors - run AFTER 'sensors start'
 	#
-	preflight_check
+	preflight_check &
 fi
