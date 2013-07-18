@@ -34,9 +34,10 @@ fi
 # ALWAYS start this task before the
 # preflight_check.
 #
-sensors start
-
-#
-# Check sensors - run AFTER 'sensors start'
-#
-preflight_check
+if sensors start
+then
+	#
+	# Check sensors - run AFTER 'sensors start'
+	#
+	preflight_check
+fi
