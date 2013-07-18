@@ -65,6 +65,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 
+#include "iirFilter.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -219,6 +220,10 @@ private:
 	orb_advert_t		_accel_topic;
 
 	unsigned			_current_samplerate;
+
+	FIL_T				_filter_x;
+	FIL_T				_filter_y;
+	FIL_T				_filter_z;
 
 	unsigned			_num_mag_reports;
 	volatile unsigned	_next_mag_report;
@@ -488,6 +493,22 @@ LSM303D::init()
 	set_range(8); /* XXX 16G mode seems wrong (shows 6 instead of 9.8m/s^2, therefore use 8G for now */
 	set_antialias_filter_bandwidth(50); /* available bandwidths: 50, 194, 362 or 773 Hz */
 	set_samplerate(400); /* max sample rate */
+
+	/* initiate filter */
+	TF_DIF_t tf_filter;
+	tf_filter.numInt = 0;
+	tf_filter.numDiff = 0;
+	tf_filter.lowpassLength = 2;
+	tf_filter.highpassLength = 0;
+	tf_filter.lowpassData[0] = 10;
+	tf_filter.lowpassData[1] = 10;
+	//tf_filter.highpassData[0] = ;
+	tf_filter.gain = 1;
+	tf_filter.Ts = 1/_current_samplerate;
+
+	initFilter(&tf_filter, 1.0/(double)_current_samplerate, &_filter_x);
+	initFilter(&tf_filter, 1.0/(double)_current_samplerate, &_filter_y);
+	initFilter(&tf_filter, 1.0/(double)_current_samplerate, &_filter_z);
 
 	mag_set_range(4); /* XXX: take highest sensor range of 12GA? */
 	mag_set_samplerate(100);
@@ -1161,9 +1182,14 @@ LSM303D::measure()
 	accel_report->y_raw = raw_accel_report.y;
 	accel_report->z_raw = raw_accel_report.z;
 
-	accel_report->x = ((accel_report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	accel_report->y = ((accel_report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	accel_report->z = ((accel_report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	float x_in_new = ((accel_report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	float y_in_new = ((accel_report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	float z_in_new = ((accel_report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	
+	accel_report->x = updateFilter(&_filter_x, x_in_new);
+	accel_report->y = updateFilter(&_filter_y, y_in_new);
+	accel_report->z = updateFilter(&_filter_z, z_in_new);
+
 	accel_report->scaling = _accel_range_scale;
 	accel_report->range_m_s2 = _accel_range_m_s2;
 
