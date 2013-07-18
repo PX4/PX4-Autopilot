@@ -22,9 +22,16 @@ commander start
 sh /etc/init.d/rc.sensors
 
 # Start one of the estimators
-if attitude_estimator_ekf start
+if attitude_estimator_ekf status
 then
-	echo "estimating attitude"
+	echo "multicopter att filter running"
+else
+	if att_pos_estimator_ekf status
+	then
+		echo "fixedwing att filter running"
+	else
+		attitude_estimator_ekf start
+	fi
 fi
 
 # Start GPS
