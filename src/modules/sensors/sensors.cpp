@@ -139,14 +139,12 @@ public:
 private:
 	static const unsigned _rc_max_chan_count = RC_CHANNELS_MAX;	/**< maximum number of r/c channels we handle */
 
-#if CONFIG_HRT_PPM
 	hrt_abstime	_ppm_last_valid;		/**< last time we got a valid ppm signal */
 
 	/**
 	 * Gather and publish PPM input data.
 	 */
 	void		ppm_poll();
-#endif
 
 	/* XXX should not be here - should be own driver */
 	int 		_fd_adc;			/**< ADC driver handle */
@@ -397,9 +395,7 @@ Sensors	*g_sensors;
 }
 
 Sensors::Sensors() :
-#ifdef CONFIG_HRT_PPM
 	_ppm_last_valid(0),
-#endif
 
 	_fd_adc(-1),
 	_last_adc(0),
@@ -1135,7 +1131,6 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	}
 }
 
-#if CONFIG_HRT_PPM
 void
 Sensors::ppm_poll()
 {
@@ -1335,7 +1330,6 @@ Sensors::ppm_poll()
 	}
 
 }
-#endif
 
 void
 Sensors::task_main_trampoline(int argc, char *argv[])
@@ -1448,10 +1442,8 @@ Sensors::task_main()
 		if (_publishing)
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 
-#ifdef CONFIG_HRT_PPM
 		/* Look for new r/c input data */
 		ppm_poll();
-#endif
 
 		perf_end(_loop_perf);
 	}
