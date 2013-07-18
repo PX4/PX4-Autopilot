@@ -791,7 +791,8 @@ start()
 	prom_u prom_buf;
 
 	if (g_dev != nullptr)
-		errx(1, "already started");
+		/* if already started, the still command succeeded */
+		errx(0, "already started");
 
 	device::Device *interface = nullptr;
 
