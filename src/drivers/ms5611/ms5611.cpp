@@ -969,7 +969,8 @@ start()
 	int fd;
 
 	if (g_dev != nullptr)
-		errx(1, "already started");
+		/* if already started, the still command succeeded */
+		errx(0, "already started");
 
 	/* create the driver */
 	g_dev = new MS5611(MS5611_BUS);

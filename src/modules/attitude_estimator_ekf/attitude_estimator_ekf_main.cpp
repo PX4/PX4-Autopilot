@@ -139,10 +139,12 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tattitude_estimator_ekf app is running\n");
+			warnx("running");
+			exit(0);
 
 		} else {
-			printf("\tattitude_estimator_ekf app not started\n");
+			warnx("not started");
+			exit(1);
 		}
 
 		exit(0);

@@ -283,6 +283,9 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 	hrt_abstime t = t_start;
 	hrt_abstime t_prev = t_start;
 	hrt_abstime t_still = 0;
+
+	unsigned poll_errcount = 0;
+
 	while (true) {
 		/* wait blocking for new data */
 		int poll_ret = poll(fds, 1, 1000);
@@ -327,12 +330,14 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 				}
 			}
 		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "ERROR: poll failure");
-			return -3;
+			poll_errcount++;
 		}
 		if (t > t_timeout) {
-			mavlink_log_info(mavlink_fd, "ERROR: timeout");
+			poll_errcount++;
+		}
+
+		if (poll_errcount > 1000) {
+			mavlink_log_info(mavlink_fd, "ERROR: failed reading accel");
 			return -1;
 		}
 	}
