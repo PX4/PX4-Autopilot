@@ -1488,7 +1488,7 @@ int sensors_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (sensors::g_sensors != nullptr)
-			errx(1, "sensors task already running");
+			errx(0, "sensors task already running");
 
 		sensors::g_sensors = new Sensors;
 
