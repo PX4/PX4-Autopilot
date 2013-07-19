@@ -104,6 +104,86 @@ void do_gyro_calibration(int mavlink_fd)
 	gyro_offset[1] = gyro_offset[1] / calibration_count;
 	gyro_offset[2] = gyro_offset[2] / calibration_count;
 
+
+
+
+	/*** --- SCALING --- ***/
+
+	mavlink_log_info(mavlink_fd, "offset calibration finished. Rotate for scale 130x");
+	mavlink_log_info(mavlink_fd, "or do not rotate and wait for 5 seconds to skip.");
+	warnx("offset calibration finished. Rotate for scale 30x, or do not rotate and wait for 5 seconds to skip.");
+
+	unsigned rotations_count = 30;
+	float gyro_integral = 0.0f;
+	float baseline_integral = 0.0f;
+
+	// XXX change to mag topic
+	orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
+
+	float mag_last = -atan2f(raw.magnetometer_ga[1],raw.magnetometer_ga[0]);
+	if (mag_last > M_PI_F) mag_last -= 2*M_PI_F;
+	if (mag_last < -M_PI_F) mag_last += 2*M_PI_F;
+
+
+	uint64_t last_time = hrt_absolute_time();
+	uint64_t start_time = hrt_absolute_time();
+
+	while ((int)fabsf(baseline_integral / (2.0f * M_PI_F)) < rotations_count) {
+
+		/* abort this loop if not rotated more than 180 degrees within 5 seconds */
+		if ((fabsf(baseline_integral / (2.0f * M_PI_F)) < 0.6f)
+			&& (hrt_absolute_time() - start_time > 5 * 1e6))
+			break;
+
+		/* wait blocking for new data */
+		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
+
+		int poll_ret = poll(fds, 1, 1000);
+
+		if (poll_ret) {
+
+			float dt_ms = (hrt_absolute_time() - last_time) / 1e3f;
+			last_time = hrt_absolute_time();
+
+			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
+
+			// XXX this is just a proof of concept and needs world / body
+			// transformation and more
+
+			//math::Vector2f magNav(raw.magnetometer_ga);
+
+			// calculate error between estimate and measurement
+			// apply declination correction for true heading as well.
+			//float mag = -atan2f(magNav(1),magNav(0));
+			float mag = -atan2f(raw.magnetometer_ga[1],raw.magnetometer_ga[0]);
+			if (mag > M_PI_F) mag -= 2*M_PI_F;
+			if (mag < -M_PI_F) mag += 2*M_PI_F;
+
+			float diff = mag - mag_last;
+
+			if (diff > M_PI_F) diff -= 2*M_PI_F;
+			if (diff < -M_PI_F) diff += 2*M_PI_F;
+
+			baseline_integral += diff;
+			mag_last = mag;
+			// Jump through some timing scale hoops to avoid
+			// operating near the 1e6/1e8 max sane resolution of float.
+			gyro_integral += (raw.gyro_rad_s[2] * dt_ms) / 1e3f;
+
+			warnx("dbg: b: %6.4f, g: %6.4f", baseline_integral, gyro_integral);
+
+		// } else if (poll_ret == 0) {
+		// 	/* any poll failure for 1s is a reason to abort */
+		// 	mavlink_log_info(mavlink_fd, "gyro calibration aborted, retry");
+		// 	return;
+		}
+	}
+
+	float gyro_scale = baseline_integral / gyro_integral;
+	warnx("gyro scale: yaw (z): %6.4f", gyro_scale);
+	mavlink_log_info(mavlink_fd, "gyro scale: yaw (z): %6.4f", gyro_scale);
+
+
 	if (isfinite(gyro_offset[0]) && isfinite(gyro_offset[1]) && isfinite(gyro_offset[2])) {
 
 		if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_offset[0]))
