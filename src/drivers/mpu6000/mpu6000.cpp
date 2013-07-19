@@ -1063,7 +1063,8 @@ start()
 	int fd;
 
 	if (g_dev != nullptr)
-		errx(1, "already started");
+		/* if already started, the still command succeeded */
+		errx(0, "already started");
 
 	/* create the driver */
 	g_dev = new MPU6000(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_MPU);

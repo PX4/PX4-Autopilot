@@ -1221,7 +1221,8 @@ start()
 	int fd;
 
 	if (g_dev != nullptr)
-		errx(1, "already started");
+		/* if already started, the still command succeeded */
+		errx(0, "already started");
 
 	/* create the driver, attempt expansion bus first */
 	g_dev = new HMC5883(PX4_I2C_BUS_EXPANSION);
