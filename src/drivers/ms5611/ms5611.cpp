@@ -336,8 +336,9 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 					/* do we need to start internal polling? */
 					bool want_start = (_call_baro_interval == 0);
 
-					/* set interval for next measurement to minimum legal value */
-					_baro_call.period = _call_baro_interval = USEC2TICK(MS5611_CONVERSION_INTERVAL);
+					/* set interval to minimum legal value */
+					_baro_call.period = _call_baro_interval = MS5611_CONVERSION_INTERVAL;
+
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -351,15 +352,12 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 					/* do we need to start internal polling? */
 					bool want_start = (_call_baro_interval == 0);
 
-					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
-
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
+					if (1000000/arg < MS5611_CONVERSION_INTERVAL)
 						return -EINVAL;
 
-					/* update interval for next measurement */
-					_baro_call.period = _call_baro_interval =  ticks;
+					/* update interval */
+					_baro_call.period = _call_baro_interval =  1000000/arg;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
