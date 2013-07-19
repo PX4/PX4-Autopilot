@@ -95,7 +95,7 @@ static void usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
+	fprintf(stderr, "usage: multirotor_pos_control {start|stop|status}\n\n");
 	exit(1);
 }
 
@@ -314,7 +314,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					double lat_home = local_pos.home_lat * 1e-7;
 					double lon_home = local_pos.home_lon * 1e-7;
 					map_projection_init(lat_home, lon_home);
-					warnx("local pos home: lat = %.10f,  lon = %.10f", lat_home, lon_home);
+					warnx("local pos home: lat = %.10f, lon = %.10f", lat_home, lon_home);
 					mavlink_log_info(mavlink_fd, "local pos home: %.7f, %.7f", lat_home, lon_home);
 				}
 
