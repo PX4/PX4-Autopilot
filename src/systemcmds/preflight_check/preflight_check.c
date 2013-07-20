@@ -135,6 +135,7 @@ int preflight_check_main(int argc, char *argv[])
 
 	close(fd);
 	fd = open(BARO_DEVICE_PATH, 0);
+	close(fd);
 
 	/* ---- RC CALIBRATION ---- */
 
@@ -250,6 +251,11 @@ system_eval:
 
 		int buzzer = open("/dev/tone_alarm", O_WRONLY);
 		int leds = open(LED_DEVICE_PATH, 0);
+
+		if (leds < 0) {
+			close(buzzer);
+			errx(1, "failed to open leds, aborting");
+		}
 
 		/* flip blue led into alternating amber */
 		led_off(leds, LED_BLUE);

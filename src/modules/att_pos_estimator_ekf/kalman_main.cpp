@@ -121,12 +121,13 @@ int att_pos_estimator_ekf_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			warnx("is running\n");
+			exit(0);
 
 		} else {
 			warnx("not started\n");
+			exit(1);
 		}
 
-		exit(0);
 	}
 
 	usage("unrecognized command");
