@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,52 +33,22 @@
  ****************************************************************************/
 
 /**
- * @file rc_calibration.c
- * Remote Control calibration routine
+ * @file commander_params.c
+ *
+ * Parameters defined by the sensors task.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#include "rc_calibration.h"
-#include "commander_helper.h"
-
-#include <poll.h>
-#include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <mavlink/mavlink_log.h>
+#include <nuttx/config.h>
 #include <systemlib/param/param.h>
-#include <systemlib/err.h>
 
-
-void do_rc_calibration(int mavlink_fd)
-{
-	mavlink_log_info(mavlink_fd, "trim calibration starting");
-
-	/* XXX fix this */
-	// if (current_status.rc_signal) {
-	// 	mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
-	// 	return;
-	// }
-
-	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
-	struct manual_control_setpoint_s sp;
-	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
-
-	/* set parameters */
-	float p = sp.roll;
-	param_set(param_find("TRIM_ROLL"), &p);
-	p = sp.pitch;
-	param_set(param_find("TRIM_PITCH"), &p);
-	p = sp.yaw;
-	param_set(param_find("TRIM_YAW"), &p);
-
-	/* store to permanent storage */
-	/* auto-save */
-	int save_ret = param_save_default();
-
-	if (save_ret != 0) {
-		mavlink_log_critical(mavlink_fd, "TRIM CAL: WARN: auto-save of params failed");
-	}
-
-	tune_positive();
-
-	mavlink_log_info(mavlink_fd, "trim calibration done");
-}
+PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
+PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
+PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
+PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.2f);
+PARAM_DEFINE_FLOAT(BAT_V_FULL, 4.05f);
+PARAM_DEFINE_FLOAT(BAT_N_CELLS, 3);

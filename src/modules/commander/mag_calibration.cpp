@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mag_calibration.c
+ * @file mag_calibration.cpp
  * Magnetometer calibration routine
  */
 
@@ -120,7 +120,9 @@ void do_mag_calibration(int mavlink_fd)
 	       calibration_counter < calibration_maxcount) {
 
 		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = sub_mag, .events = POLLIN } };
+		struct pollfd fds[1];
+		fds[0].fd = sub_mag;
+		fds[0].events = POLLIN;
 
 		/* user guidance */
 		if (hrt_absolute_time() >= axis_deadline &&

@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 /**
- * @file commander_helper.c
+ * @file commander_helper.cpp
  * Commander helper functions implementations
  */
 
@@ -55,6 +55,12 @@
 #include <drivers/drv_led.h>
 
 #include "commander_helper.h"
+
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
 bool is_multirotor(const struct vehicle_status_s *current_status)
 {
@@ -174,11 +180,6 @@ int led_off(int led)
 {
 	return ioctl(leds, LED_OFF, led);
 }
-
-
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.2f);
-PARAM_DEFINE_FLOAT(BAT_V_FULL, 4.05f);
-PARAM_DEFINE_FLOAT(BAT_N_CELLS, 3);
 
 float battery_remaining_estimate_voltage(float voltage)
 {

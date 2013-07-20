@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file baro_calibration.c
+ * @file baro_calibration.cpp
  * Barometer calibration routine
  */
 

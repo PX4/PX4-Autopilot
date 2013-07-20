@@ -36,12 +36,10 @@
  ****************************************************************************/
 
 /**
- * @file commander.c
+ * @file commander.cpp
  * Main system state machine implementation.
  *
  */
-
-#include "commander.h"
 
 #include <nuttx/config.h>
 #include <pthread.h>
@@ -97,12 +95,11 @@
 #include "rc_calibration.h"
 #include "airspeed_calibration.h"
 
-PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
-//PARAM_DEFINE_INT32(SYS_FAILSAVE_HL, 0);	/**< Go into high-level failsafe after 0 ms */
-PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
-PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
-PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
-
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
 extern struct system_load_s system_load;
 
@@ -160,8 +157,10 @@ enum {
  *
  * The actual stack size should be set in the call
  * to task_create().
+ *
+ * @ingroup apps
  */
-__EXPORT int commander_main(int argc, char *argv[]);
+extern "C" __EXPORT int commander_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.

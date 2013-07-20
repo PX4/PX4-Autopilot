@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file airspeed_calibration.c
+ * @file airspeed_calibration.cpp
  * Airspeed sensor calibration routine
  */
 
@@ -65,7 +65,9 @@ void do_airspeed_calibration(int mavlink_fd)
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = diff_pres_sub, .events = POLLIN } };
+		struct pollfd fds[1];
+		fds[0].fd = diff_pres_sub;
+		fds[0].events = POLLIN;
 
 		int poll_ret = poll(fds, 1, 1000);
 

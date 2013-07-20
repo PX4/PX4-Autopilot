@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 /**
- * @file state_machine_helper.c
+ * @file state_machine_helper.cpp
  * State machine helper functions implementations
  */
 
@@ -56,6 +56,11 @@
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
 int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int armed_pub, struct actuator_armed_s *armed, const int mavlink_fd) {
 
