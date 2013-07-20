@@ -192,9 +192,8 @@ __EXPORT int nsh_archinitialize(void)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
-	// initial LED state
-	// XXX need to make this work again
-//	drv_led_start();
+	/* initial LED state */
+	//drv_led_start();
 	up_ledoff(LED_AMBER);
 
 	/* Configure SPI-based devices */

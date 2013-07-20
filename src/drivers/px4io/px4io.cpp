@@ -256,7 +256,7 @@ private:
 	 * @param offset	Register offset to start writing at.
 	 * @param values	Pointer to array of values to write.
 	 * @param num_values	The number of values to write.
-	 * @return		Zero if all values were successfully written.
+	 * @return		OK if all values were successfully written.
 	 */
 	int			io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
 
@@ -266,7 +266,7 @@ private:
 	 * @param page		Register page to write to.
 	 * @param offset	Register offset to write to.
 	 * @param value		Value to write.
-	 * @return		Zero if the value was written successfully.
+	 * @return		OK if the value was written successfully.
 	 */
 	int			io_reg_set(uint8_t page, uint8_t offset, const uint16_t value);
 
@@ -277,7 +277,7 @@ private:
 	 * @param offset	Register offset to start reading from.
 	 * @param values	Pointer to array where values should be stored.
 	 * @param num_values	The number of values to read.
-	 * @return		Zero if all values were successfully read.
+	 * @return		OK if all values were successfully read.
 	 */
 	int			io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_values);
 
@@ -1149,9 +1149,11 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 	}
 
 	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
-	if (ret != num_values)
+	if (ret != num_values) {
 		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
-	return ret;
+		return -1;
+	}
+	return OK;
 }
 
 int
@@ -1169,10 +1171,12 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 		return -EINVAL;
 	}
 
-	int ret =  _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
-	if (ret != num_values)
+	int ret = _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
+	if (ret != num_values) {
 		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
-	return ret;
+		return -1;
+	}
+	return OK;
 }
 
 uint32_t
@@ -1180,7 +1184,7 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset)
 {
 	uint16_t value;
 
-	if (io_reg_get(page, offset, &value, 1))
+	if (io_reg_get(page, offset, &value, 1) != OK)
 		return _io_reg_get_error;
 
 	return value;
@@ -1193,7 +1197,7 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 	uint16_t value;
 
 	ret = io_reg_get(page, offset, &value, 1);
-	if (ret)
+	if (ret != OK)
 		return ret;
 	value &= ~clearbits;
 	value |= setbits;
@@ -1500,9 +1504,9 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 
 		unsigned channel = cmd - PWM_SERVO_GET_RATEGROUP(0);
 
-		uint32_t value = io_reg_get(PX4IO_PAGE_PWM_INFO, PX4IO_RATE_MAP_BASE + channel);
-
-		*(uint32_t *)arg = value;
+		*(uint32_t *)arg = io_reg_get(PX4IO_PAGE_PWM_INFO, PX4IO_RATE_MAP_BASE + channel);
+		if (*(uint32_t *)arg == _io_reg_get_error)
+			ret = -EIO;
 		break;
 	}
 
@@ -1890,7 +1894,7 @@ px4io_main(int argc, char *argv[])
 		}
 
 		PX4IO_Uploader *up;
-		const char *fn[3];
+		const char *fn[5];
 
 		/* work out what we're uploading... */
 		if (argc > 2) {
@@ -1900,7 +1904,9 @@ px4io_main(int argc, char *argv[])
 		} else {
 			fn[0] = "/fs/microsd/px4io.bin";
 			fn[1] =	"/etc/px4io.bin";
-			fn[2] =	nullptr;
+			fn[2] = "/fs/microsd/px4io2.bin";
+			fn[3] =	"/etc/px4io2.bin";
+			fn[4] =	nullptr;
 		}
 
 		up = new PX4IO_Uploader;

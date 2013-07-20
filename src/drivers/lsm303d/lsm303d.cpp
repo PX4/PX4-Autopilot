@@ -65,6 +65,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 
+#include "iirFilter.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -124,7 +125,7 @@ static const int ERROR = -1;
 #define REG1_RATE_800HZ_A		((1<<7) | (0<<6) | (0<<5) | (1<<4))
 #define REG1_RATE_1600HZ_A		((1<<7) | (0<<6) | (1<<5) | (0<<4))
 
-#define REG1_CONT_UPDATE_A		(0<<3)
+#define REG1_BDU_UPDATE			(1<<3)
 #define REG1_Z_ENABLE_A			(1<<2)
 #define REG1_Y_ENABLE_A			(1<<1)
 #define REG1_X_ENABLE_A			(1<<0)
@@ -156,11 +157,11 @@ static const int ERROR = -1;
 #define REG5_RATE_100HZ_M		((1<<4) | (0<<3) | (1<<2))
 #define REG5_RATE_DO_NOT_USE_M	((1<<4) | (1<<3) | (0<<2))
 
-#define REG6_FULL_SCALE_BITS_M	((1<<7) | (1<<6))
-#define REG6_FULL_SCALE_2GA_M	((0<<7) | (0<<6))
-#define REG6_FULL_SCALE_4GA_M	((0<<7) | (1<<6))
-#define REG6_FULL_SCALE_8GA_M	((1<<7) | (0<<6))
-#define REG6_FULL_SCALE_12GA_M	((1<<7) | (1<<6))
+#define REG6_FULL_SCALE_BITS_M	((1<<6) | (1<<5))
+#define REG6_FULL_SCALE_2GA_M	((0<<6) | (0<<5))
+#define REG6_FULL_SCALE_4GA_M	((0<<6) | (1<<5))
+#define REG6_FULL_SCALE_8GA_M	((1<<6) | (0<<5))
+#define REG6_FULL_SCALE_12GA_M	((1<<6) | (1<<5))
 
 #define REG7_CONT_MODE_M		((0<<1) | (0<<0))
 
@@ -217,6 +218,12 @@ private:
 	float				_accel_range_scale;
 	float				_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
+
+	unsigned			_current_samplerate;
+
+//	FIL_T				_filter_x;
+//	FIL_T				_filter_y;
+//	FIL_T				_filter_z;
 
 	unsigned			_num_mag_reports;
 	volatile unsigned	_next_mag_report;
@@ -393,6 +400,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
 	_accel_topic(-1),
+	_current_samplerate(0),
 	_num_mag_reports(0),
 	_next_mag_report(0),
 	_oldest_mag_report(0),
@@ -404,8 +412,6 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 {
 	// enable debug() calls
 	_debug_enabled = true;
-
-	_mag_range_scale = 12.0f/32767.0f;
 
 	// default scale factors
 	_accel_scale.x_offset = 0;
@@ -476,7 +482,7 @@ LSM303D::init()
 	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &_mag_reports[0]);
 
 	/* enable accel, XXX do this with an ioctl? */
-	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A);
+	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE);
 
 	/* enable mag, XXX do this with an ioctl? */
 	write_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
@@ -487,6 +493,22 @@ LSM303D::init()
 	set_range(8); /* XXX 16G mode seems wrong (shows 6 instead of 9.8m/s^2, therefore use 8G for now */
 	set_antialias_filter_bandwidth(50); /* available bandwidths: 50, 194, 362 or 773 Hz */
 	set_samplerate(400); /* max sample rate */
+
+	/* initiate filter */
+//	TF_DIF_t tf_filter;
+//	tf_filter.numInt = 0;
+//	tf_filter.numDiff = 0;
+//	tf_filter.lowpassLength = 2;
+//	tf_filter.highpassLength = 0;
+//	tf_filter.lowpassData[0] = 10;
+//	tf_filter.lowpassData[1] = 10;
+//	//tf_filter.highpassData[0] = ;
+//	tf_filter.gain = 1;
+//	tf_filter.Ts = 1/_current_samplerate;
+//
+//	initFilter(&tf_filter, 1.0/(double)_current_samplerate, &_filter_x);
+//	initFilter(&tf_filter, 1.0/(double)_current_samplerate, &_filter_y);
+//	initFilter(&tf_filter, 1.0/(double)_current_samplerate, &_filter_z);
 
 	mag_set_range(4); /* XXX: take highest sensor range of 12GA? */
 	mag_set_samplerate(100);
@@ -705,6 +727,23 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 		else
 			return -EINVAL;
 
+	case ACCELIOCSSCALE:
+		{
+			/* copy scale, but only if off by a few percent */
+			struct accel_scale *s = (struct accel_scale *) arg;
+			float sum = s->x_scale + s->y_scale + s->z_scale;
+			if (sum > 2.0f && sum < 4.0f) {
+				memcpy(&_accel_scale, s, sizeof(_accel_scale));
+				return OK;
+			} else {
+				return -EINVAL;
+			}
+		}
+
+	case ACCELIOCGSCALE:
+		/* copy scale out */
+		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
+		return OK;
 
 	default:
 		/* give it to the superclass */
@@ -856,37 +895,43 @@ LSM303D::set_range(unsigned max_g)
 {
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG2_FULL_SCALE_BITS_A;
-	float new_range = 0.0f;
+	float new_range_g = 0.0f;
+	float new_scale_g_digit = 0.0f;
 
 	if (max_g == 0)
 		max_g = 16;
 
 	if (max_g <= 2) {
-		new_range = 2.0f;
+		new_range_g = 2.0f;
 		setbits |= REG2_FULL_SCALE_2G_A;
+		new_scale_g_digit = 0.061e-3f;
 
 	} else if (max_g <= 4) {
-		new_range = 4.0f;
+		new_range_g = 4.0f;
 		setbits |= REG2_FULL_SCALE_4G_A;
+		new_scale_g_digit = 0.122e-3f;
 
 	} else if (max_g <= 6) {
-		new_range = 6.0f;
+		new_range_g = 6.0f;
 		setbits |= REG2_FULL_SCALE_6G_A;
+		new_scale_g_digit = 0.183e-3f;
 
 	} else if (max_g <= 8) {
-		new_range = 8.0f;
+		new_range_g = 8.0f;
 		setbits |= REG2_FULL_SCALE_8G_A;
+		new_scale_g_digit = 0.244e-3f;
 
 	} else if (max_g <= 16) {
-		new_range = 16.0f;
+		new_range_g = 16.0f;
 		setbits |= REG2_FULL_SCALE_16G_A;
+		new_scale_g_digit = 0.732e-3f;
 
 	} else {
 		return -EINVAL;
 	}
 
-	_accel_range_m_s2 = new_range * 9.80665f;
-	_accel_range_scale = _accel_range_m_s2 / 32768.0f;
+	_accel_range_m_s2 = new_range_g * 9.80665f;
+	_accel_range_scale = new_scale_g_digit * 9.80665f;
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
 
@@ -899,6 +944,7 @@ LSM303D::mag_set_range(unsigned max_ga)
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG6_FULL_SCALE_BITS_M;
 	float new_range = 0.0f;
+	float new_scale_ga_digit = 0.0f;
 
 	if (max_ga == 0)
 		max_ga = 12;
@@ -906,25 +952,29 @@ LSM303D::mag_set_range(unsigned max_ga)
 	if (max_ga <= 2) {
 		new_range = 2.0f;
 		setbits |= REG6_FULL_SCALE_2GA_M;
+		new_scale_ga_digit = 0.080e-3f;
 
 	} else if (max_ga <= 4) {
 		new_range = 4.0f;
 		setbits |= REG6_FULL_SCALE_4GA_M;
+		new_scale_ga_digit = 0.160e-3f;
 
 	} else if (max_ga <= 8) {
 		new_range = 8.0f;
 		setbits |= REG6_FULL_SCALE_8GA_M;
+		new_scale_ga_digit = 0.320e-3f;
 
 	} else if (max_ga <= 12) {
 		new_range = 12.0f;
 		setbits |= REG6_FULL_SCALE_12GA_M;
+		new_scale_ga_digit = 0.479e-3f;
 
 	} else {
 		return -EINVAL;
 	}
 
 	_mag_range_ga = new_range;
-	_mag_range_scale = _mag_range_ga / 32768.0f;
+	_mag_range_scale = new_scale_ga_digit;
 
 	modify_reg(ADDR_CTRL_REG6, clearbits, setbits);
 
@@ -991,18 +1041,23 @@ LSM303D::set_samplerate(unsigned frequency)
 
 	if (frequency <= 100) {
 		setbits |= REG1_RATE_100HZ_A;
+		_current_samplerate = 100;
 
 	} else if (frequency <= 200) {
 		setbits |= REG1_RATE_200HZ_A;
+		_current_samplerate = 200;
 
 	} else if (frequency <= 400) {
 		setbits |= REG1_RATE_400HZ_A;
+		_current_samplerate = 400;
 
 	} else if (frequency <= 800) {
 		setbits |= REG1_RATE_800HZ_A;
+		_current_samplerate = 800;
 
 	} else if (frequency <= 1600) {
 		setbits |= REG1_RATE_1600HZ_A;
+		_current_samplerate = 1600;
 
 	} else {
 		return -EINVAL;
@@ -1127,9 +1182,18 @@ LSM303D::measure()
 	accel_report->y_raw = raw_accel_report.y;
 	accel_report->z_raw = raw_accel_report.z;
 
+//	float x_in_new = ((accel_report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+//	float y_in_new = ((accel_report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+//	float z_in_new = ((accel_report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+//
+//	accel_report->x = updateFilter(&_filter_x, x_in_new);
+//	accel_report->y = updateFilter(&_filter_y, y_in_new);
+//	accel_report->z = updateFilter(&_filter_z, z_in_new);
+
 	accel_report->x = ((accel_report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	accel_report->y = ((accel_report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	accel_report->z = ((accel_report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+
 	accel_report->scaling = _accel_range_scale;
 	accel_report->range_m_s2 = _accel_range_m_s2;
 
@@ -1341,7 +1405,7 @@ void
 test()
 {
 	int fd_accel = -1;
-	struct accel_report a_report;
+	struct accel_report accel_report;
 	ssize_t sz;
 	int filter_bandwidth;
 
@@ -1352,20 +1416,20 @@ test()
 		err(1, "%s open failed", ACCEL_DEVICE_PATH);
 
 	/* do a simple demand read */
-	sz = read(fd_accel, &a_report, sizeof(a_report));
+	sz = read(fd_accel, &accel_report, sizeof(accel_report));
 
-	if (sz != sizeof(a_report))
+	if (sz != sizeof(accel_report))
 		err(1, "immediate read failed");
 
 
-	warnx("accel x: \t% 9.5f\tm/s^2", (double)a_report.x);
-	warnx("accel y: \t% 9.5f\tm/s^2", (double)a_report.y);
-	warnx("accel z: \t% 9.5f\tm/s^2", (double)a_report.z);
-	warnx("accel x: \t%d\traw", (int)a_report.x_raw);
-	warnx("accel y: \t%d\traw", (int)a_report.y_raw);
-	warnx("accel z: \t%d\traw", (int)a_report.z_raw);
+	warnx("accel x: \t% 9.5f\tm/s^2", (double)accel_report.x);
+	warnx("accel y: \t% 9.5f\tm/s^2", (double)accel_report.y);
+	warnx("accel z: \t% 9.5f\tm/s^2", (double)accel_report.z);
+	warnx("accel x: \t%d\traw", (int)accel_report.x_raw);
+	warnx("accel y: \t%d\traw", (int)accel_report.y_raw);
+	warnx("accel z: \t%d\traw", (int)accel_report.z_raw);
 
-	warnx("accel range: %8.4f m/s^2", (double)a_report.range_m_s2);
+	warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
 	if (ERROR == (filter_bandwidth = ioctl(fd_accel, ACCELIOCGLOWPASS, 0)))
 		warnx("accel antialias filter bandwidth: fail");
 	else

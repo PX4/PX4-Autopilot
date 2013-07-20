@@ -32,14 +32,19 @@
  ****************************************************************************/
 
 /**
- * @file led.cpp
+ * @file px4fmu2_led.c
  *
- * LED driver.
+ * PX4FMU LED backend.
  */
 
 #include <nuttx/config.h>
-#include <drivers/device/device.h>
-#include <drivers/drv_led.h>
+
+#include <stdbool.h>
+
+#include "stm32.h"
+#include "px4fmu_internal.h"
+
+#include <arch/board/board.h>
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -54,67 +59,27 @@ extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
 
-class LED : device::CDev
+__EXPORT void led_init()
 {
-public:
-	LED();
-	virtual ~LED();
+	/* Configure LED1 GPIO for output */
 
-	virtual int		init();
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
-};
-
-LED::LED() :
-	CDev("led", LED_DEVICE_PATH)
-{
-	// force immediate init/device registration
-	init();
+	stm32_configgpio(GPIO_LED1);
 }
 
-LED::~LED()
+__EXPORT void led_on(int led)
 {
-}
-
-int
-LED::init()
-{
-	CDev::init();
-	led_init();
-
-	return 0;
-}
-
-int
-LED::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	int result = OK;
-
-	switch (cmd) {
-	case LED_ON:
-		led_on(arg);
-		break;
-
-	case LED_OFF:
-		led_off(arg);
-		break;
-
-	default:
-		result = CDev::ioctl(filp, cmd, arg);
+	if (led == 0)
+	{
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_LED1, false);
 	}
-	return result;
 }
 
-namespace
+__EXPORT void led_off(int led)
 {
-LED	*gLED;
-}
-
-void
-drv_led_start(void)
-{
-	if (gLED == nullptr) {
-		gLED = new LED;
-		if (gLED != nullptr)
-			gLED->init();
+	if (led == 0)
+	{
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_LED1, true);
 	}
 }
