@@ -866,11 +866,13 @@ BlinkM::get_firmware_version(uint8_t version[2])
 	return transfer(&msg, sizeof(msg), version, 2);
 }
 
+void blinkm_usage();
+
 void blinkm_usage() {
-	fprintf(stderr, "missing command: try 'start', 'systemstate', 'ledoff', 'list' or a script name {options}\n");
-	fprintf(stderr, "options:\n");
-	fprintf(stderr, "\t-b --bus i2cbus (3)\n");
-	fprintf(stderr, "\t-a --blinkmaddr blinkmaddr (9)\n");
+	warnx("missing command: try 'start', 'systemstate', 'ledoff', 'list' or a script name {options}");
+	warnx("options:");
+	warnx("\t-b --bus i2cbus (3)");
+	warnx("\t-a --blinkmaddr blinkmaddr (9)");
 }
 
 int
