@@ -1,11 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: Laurens Mackay <mackayl@student.ethz.ch>
- *           Tobias Naegeli <naegelit@student.ethz.ch>
- *           Martin Rutschmann <rutmarti@student.ethz.ch>
- *           Anton Babushkin <anton.babushkin@me.com>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,13 +35,9 @@
 /**
  * @file thrust_pid.c
  *
- * Implementation of generic PID control interface.
+ * Implementation of thrust control PID.
  *
- * @author Laurens Mackay <mackayl@student.ethz.ch>
- * @author Tobias Naegeli <naegelit@student.ethz.ch>
- * @author Martin Rutschmann <rutmarti@student.ethz.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
- * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include "thrust_pid.h"
@@ -108,16 +100,18 @@ __EXPORT int thrust_pid_set_parameters(thrust_pid_t *pid, float kp, float ki, fl
 	return ret;
 }
 
-__EXPORT float thrust_pid_calculate(thrust_pid_t *pid, float sp, float val, float dt)
+__EXPORT float thrust_pid_calculate(thrust_pid_t *pid, float sp, float val, float dt, float r22)
 {
 	/* Alternative integral component calculation
-	 error = setpoint - actual_position
-	 integral = integral + (Ki*error*dt)
-	 derivative = (error - previous_error)/dt
-	 output = (Kp*error) + integral + (Kd*derivative)
-	 previous_error = error
-	 wait(dt)
-	 goto start
+	 *
+	 * start:
+	 * error = setpoint - current_value
+	 * integral = integral + (Ki * error * dt)
+	 * derivative = (error - previous_error) / dt
+	 * previous_error = error
+	 * output = (Kp * error) + integral + (Kd * derivative)
+	 * wait(dt)
+	 * goto start
 	 */
 
 	if (!isfinite(sp) || !isfinite(val) || !isfinite(dt)) {
@@ -147,21 +141,32 @@ __EXPORT float thrust_pid_calculate(thrust_pid_t *pid, float sp, float val, floa
 		d = 0.0f;
 	}
 
-	// Calculate the error integral and check for saturation
+	/* calculate the error integral */
 	i = pid->integral + (pid->ki * error * dt);
 
-	float output = (error * pid->kp) + i + (d * pid->kd);
+	/* attitude-thrust compensation
+	 * r22 is (2, 2) componet of rotation matrix for current attitude */
+	float att_comp;
+
+	if (r22 > 0.8f)
+		att_comp = 1.0f / r22;
+	else if (r22 > 0.0f)
+		att_comp = ((1.0f / 0.8f - 1.0f) / 0.8f) * r22 + 1.0f;
+	else
+		att_comp = 1.0f;
+
+	/* calculate output */
+	float output = ((error * pid->kp) + i + (d * pid->kd)) * att_comp;
+
+	/* check for saturation */
 	if (output < pid->limit_min || output > pid->limit_max) {
-		i = pid->integral;		// If saturated then do not update integral value
-		// recalculate output with old integral
-		output = (error * pid->kp) + i + (d * pid->kd);
+		/* saturated, recalculate output with old integral */
+		output = (error * pid->kp) + pid->integral + (d * pid->kd);
 
 	} else {
-		if (!isfinite(i)) {
-			i = 0.0f;
+		if (isfinite(i)) {
+			pid->integral = i;
 		}
-
-		pid->integral = i;
 	}
 
 	if (isfinite(output)) {

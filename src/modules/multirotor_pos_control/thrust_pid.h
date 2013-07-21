@@ -68,7 +68,7 @@ typedef struct {
 
 __EXPORT void thrust_pid_init(thrust_pid_t *pid, float kp, float ki, float kd, float limit_min, float limit_max, uint8_t mode, float dt_min);
 __EXPORT int thrust_pid_set_parameters(thrust_pid_t *pid, float kp, float ki, float kd, float limit_min, float limit_max);
-__EXPORT float thrust_pid_calculate(thrust_pid_t *pid, float sp, float val, float dt);
+__EXPORT float thrust_pid_calculate(thrust_pid_t *pid, float sp, float val, float dt, float r22);
 
 __END_DECLS
 

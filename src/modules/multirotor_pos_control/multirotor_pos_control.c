@@ -235,7 +235,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 	for (int i = 0; i < 2; i++) {
 		pid_init(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
-		pid_init(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.slope_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
+		pid_init(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.tilt_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 	}
 
 	pid_init(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
@@ -259,7 +259,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 				for (int i = 0; i < 2; i++) {
 					pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f);
-					pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.slope_max);
+					pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.tilt_max);
 				}
 
 				pid_set_parameters(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max);
@@ -416,12 +416,12 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			}
 
 			/* run position & altitude controllers, calculate velocity setpoint */
-			global_vel_sp.vz = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz, dt);
+			global_vel_sp.vz = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz - sp_move_rate[2], dt) + sp_move_rate[2];
 
 			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE || status.state_machine == SYSTEM_STATE_AUTO) {
 				/* calculate velocity set point in NED frame */
-				global_vel_sp.vx = pid_calculate(&xy_pos_pids[0], local_pos_sp.x, local_pos.x, local_pos.vx, dt);
-				global_vel_sp.vy = pid_calculate(&xy_pos_pids[1], local_pos_sp.y, local_pos.y, local_pos.vy, dt);
+				global_vel_sp.vx = pid_calculate(&xy_pos_pids[0], local_pos_sp.x, local_pos.x, local_pos.vx - sp_move_rate[0], dt) + sp_move_rate[0];
+				global_vel_sp.vy = pid_calculate(&xy_pos_pids[1], local_pos_sp.y, local_pos.y, local_pos.vy - sp_move_rate[1], dt) + sp_move_rate[1];
 
 				/* limit horizontal speed */
 				float xy_vel_sp_norm = norm(global_vel_sp.vx, global_vel_sp.vy) / params.xy_vel_max;
@@ -439,9 +439,9 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			/* publish new velocity setpoint */
 			orb_publish(ORB_ID(vehicle_global_velocity_setpoint), global_vel_sp_pub, &global_vel_sp);
 
-			/* run velocity controllers, calculate thrust vector */
+			/* run velocity controllers, calculate thrust vector with attitude-thrust compensation */
 			float thrust_sp[3] = { 0.0f, 0.0f, 0.0f };
-			thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, local_pos.vz, dt);
+			thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, local_pos.vz, dt, att.R[2][2]);
 
 			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE || status.state_machine == SYSTEM_STATE_AUTO) {
 				/* calculate velocity set point in NED frame */
@@ -452,33 +452,24 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			/* thrust_vector now contains desired acceleration (but not in m/s^2) in NED frame */
 			/* limit horizontal part of thrust */
 			float thrust_xy_dir = atan2f(thrust_sp[1], thrust_sp[0]);
-			float thrust_xy_norm = norm(thrust_sp[0], thrust_sp[1]);
+			/* assuming that vertical component of thrust is g,
+			 * horizontal component = g * tan(alpha) */
+			float tilt = atanf(norm(thrust_sp[0], thrust_sp[1]));
 
-			if (thrust_xy_norm > params.slope_max) {
-				thrust_xy_norm = params.slope_max;
+			if (tilt > params.tilt_max) {
+				tilt = params.tilt_max;
 			}
 
-			/* use approximation: slope ~ sin(slope) = force */
 			/* convert direction to body frame */
 			thrust_xy_dir -= att.yaw;
 
 			if (status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_SIMPLE || status.state_machine == SYSTEM_STATE_AUTO) {
 				/* calculate roll and pitch */
-				att_sp.roll_body = sinf(thrust_xy_dir) * thrust_xy_norm;
-				att_sp.pitch_body = -cosf(thrust_xy_dir) * thrust_xy_norm / cosf(att_sp.roll_body);	// reverse pitch
+				att_sp.roll_body = sinf(thrust_xy_dir) * tilt;
+				att_sp.pitch_body = -cosf(thrust_xy_dir) * tilt / cosf(att_sp.roll_body);
 			}
 
-			/* attitude-thrust compensation */
-			float att_comp;
-
-			if (att.R[2][2] > 0.8f)
-				att_comp = 1.0f / att.R[2][2];
-			else if (att.R[2][2] > 0.0f)
-				att_comp = ((1.0f / 0.8f - 1.0f) / 0.8f) * att.R[2][2] + 1.0f;
-			else
-				att_comp = 1.0f;
-
-			att_sp.thrust = -thrust_sp[2] * att_comp;
+			att_sp.thrust = -thrust_sp[2];
 			att_sp.timestamp = hrt_absolute_time();
 
 			if (status.flag_control_manual_enabled) {

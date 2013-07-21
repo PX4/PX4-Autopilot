@@ -56,7 +56,7 @@ struct multirotor_position_control_params {
 	float xy_vel_i;
 	float xy_vel_d;
 	float xy_vel_max;
-	float slope_max;
+	float tilt_max;
 
 	float rc_scale_pitch;
 	float rc_scale_roll;
@@ -78,7 +78,7 @@ struct multirotor_position_control_param_handles {
 	param_t xy_vel_i;
 	param_t xy_vel_d;
 	param_t xy_vel_max;
-	param_t slope_max;
+	param_t tilt_max;
 
 	param_t rc_scale_pitch;
 	param_t rc_scale_roll;
