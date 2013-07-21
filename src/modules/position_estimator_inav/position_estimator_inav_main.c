@@ -167,9 +167,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int baro_init_num = 200;
 	float baro_alt0 = 0.0f; /* to determine while start up */
 
-	double lat_current = 0.0; //[°]] --> 47.0
-	double lon_current = 0.0; //[°]] -->8.5
-	double alt_current = 0.0; //[m] above MSL
+	double lat_current = 0.0f; //[°] --> 47.0
+	double lon_current = 0.0f; //[°] --> 8.5
+	double alt_current = 0.0f; //[m] above MSL
 
 	uint32_t accel_counter = 0;
 	uint32_t baro_counter = 0;
@@ -302,8 +302,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	hrt_abstime pub_last = hrt_absolute_time();
 	uint32_t pub_interval = 4000;	// limit publish rate to 250 Hz
 
+	/* acceleration in NED frame */
+	float accel_NED[3] = { 0.0f, 0.0f, -CONSTANTS_ONE_G };
+
 	/* store error when sensor updates, but correct on each time step to avoid jumps in estimated value */
 	float accel_corr[] = { 0.0f, 0.0f, 0.0f };	// N E D
+	float accel_bias[] = { 0.0f, 0.0f, 0.0f };	// body frame
 	float baro_corr = 0.0f;		// D
 	float gps_corr[2][2] = {
 		{ 0.0f, 0.0f },		// N (pos, vel)
@@ -369,9 +373,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				if (sensor.accelerometer_counter > accel_counter) {
 					if (att.R_valid) {
+						/* correct accel bias, now only for Z */
+						sensor.accelerometer_m_s2[2] -= accel_bias[2];
 						/* transform acceleration vector from body frame to NED frame */
-						float accel_NED[3];
-
 						for (int i = 0; i < 3; i++) {
 							accel_NED[i] = 0.0f;
 
@@ -425,7 +429,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 								local_pos.home_timestamp = hrt_absolute_time();
 								z_est[0] += sonar_corr;
 								sonar_corr = 0.0f;
-								sonar_corr_filtered = 0.0;
+								sonar_corr_filtered = 0.0f;
 							}
 						}
 					}
@@ -469,6 +473,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
 		t_prev = t;
+
+		/* accel bias correction, now only for Z
+		 * not strictly correct, but stable and works */
+		accel_bias[2] += (accel_NED[2] + CONSTANTS_ONE_G) * params.w_acc_bias * dt;
 
 		/* inertial filter prediction for altitude */
 		inertial_filter_predict(dt, z_est);
