@@ -111,8 +111,9 @@ protected:
 
 	ms5611::prom_s		_prom;
 
-	struct work_s		_work;
-	unsigned		_measure_ticks;
+	struct hrt_call		_baro_call;
+
+	unsigned _call_baro_interval;
 
 	unsigned		_num_reports;
 	volatile unsigned	_next_report;
@@ -143,12 +144,12 @@ protected:
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void			start_cycle();
+	void			start();
 
 	/**
 	 * Stop the automatic measurement state machine.
 	 */
-	void			stop_cycle();
+	void			stop();
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
@@ -166,12 +167,11 @@ protected:
 	void			cycle();
 
 	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
+	 * Static trampoline; XXX is this needed?
 	 *
 	 * @param arg		Instance pointer for the driver that is polling.
 	 */
-	static void		cycle_trampoline(void *arg);
+	void			cycle_trampoline(void *arg);
 
 	/**
 	 * Issue a measurement command for the current state.
@@ -184,6 +184,7 @@ protected:
 	 * Collect the result of the most recent measurement.
 	 */
 	virtual int		collect();
+
 };
 
 /*
@@ -195,7 +196,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
 	CDev("MS5611", BARO_DEVICE_PATH),
 	_interface(interface),
 	_prom(prom_buf.s),
-	_measure_ticks(0),
+	_call_baro_interval(0),
 	_num_reports(0),
 	_next_report(0),
 	_oldest_report(0),
@@ -212,14 +213,13 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
 	_comms_errors(perf_alloc(PC_COUNT, "ms5611_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buffer_overflows"))
 {
-	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
+
 }
 
 MS5611::~MS5611()
 {
 	/* make sure we are truly inactive */
-	stop_cycle();
+	stop();
 
 	/* free any existing reports */
 	if (_reports != nullptr)
@@ -277,7 +277,7 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 		return -ENOSPC;
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_call_baro_interval > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -298,41 +298,13 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 
 	/* manual measurement - run one conversion */
 	/* XXX really it'd be nice to lock against other readers here */
-	do {
-		_measure_phase = 0;
-		_oldest_report = _next_report = 0;
+	_measure_phase = 0;
+	_oldest_report = _next_report = 0;
+	measure();
 
-		/* do temperature first */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
-
-		usleep(MS5611_CONVERSION_INTERVAL);
-
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* now do a pressure measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
-
-		usleep(MS5611_CONVERSION_INTERVAL);
-
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* state machine will have generated a report, copy it out */
-		memcpy(buffer, _reports, sizeof(*_reports));
-		ret = sizeof(*_reports);
-
-	} while (0);
+	/* state machine will have generated a report, copy it out */
+	memcpy(buffer, _reports, sizeof(*_reports));
+	ret = sizeof(*_reports);
 
 	return ret;
 }
@@ -347,8 +319,8 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* switching to manual polling */
 			case SENSOR_POLLRATE_MANUAL:
-				stop_cycle();
-				_measure_ticks = 0;
+				stop();
+				_call_baro_interval = 0;
 				return OK;
 
 				/* external signalling not supported */
@@ -362,14 +334,15 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_call_baro_interval == 0);
 
-					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(MS5611_CONVERSION_INTERVAL);
+					/* set interval to minimum legal value */
+					_baro_call.period = _call_baro_interval = MS5611_CONVERSION_INTERVAL;
+
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
-						start_cycle();
+						start();
 
 					return OK;
 				}
@@ -377,21 +350,18 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 				/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
-
-					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					bool want_start = (_call_baro_interval == 0);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
+					if (1000000/arg < MS5611_CONVERSION_INTERVAL)
 						return -EINVAL;
 
-					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					/* update interval */
+					_baro_call.period = _call_baro_interval =  1000000/arg;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
-						start_cycle();
+						start();
 
 					return OK;
 				}
@@ -399,10 +369,10 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0)
+		if (_call_baro_interval == 0)
 			return SENSOR_POLLRATE_MANUAL;
 
-		return (1000 / _measure_ticks);
+		return (1000 / _call_baro_interval);
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* add one to account for the sentinel in the ring */
@@ -419,11 +389,11 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -ENOMEM;
 
 			/* reset the measurement state machine with the new buffer, free the old */
-			stop_cycle();
+			stop();
 			delete[] _reports;
 			_num_reports = arg;
 			_reports = buf;
-			start_cycle();
+			start();
 
 			return OK;
 		}
@@ -457,30 +427,32 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 void
-MS5611::start_cycle()
+MS5611::start()
 {
+	/* make sure we are stopped first */
+	stop();
 
-	/* reset the report ring and state machine */
-	_collect_phase = false;
-	_measure_phase = 0;
+	/* reset the report ring */
 	_oldest_report = _next_report = 0;
+	/* reset to first measure phase */
+	_measure_phase = 0;
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&MS5611::cycle_trampoline, this, 1);
+	hrt_call_every(&_baro_call, 1000, _call_baro_interval, (hrt_callout)&MS5611::cycle_trampoline, this);
 }
 
 void
-MS5611::stop_cycle()
+MS5611::stop()
 {
-	work_cancel(HPWORK, &_work);
+	hrt_cancel(&_baro_call);
 }
 
 void
 MS5611::cycle_trampoline(void *arg)
 {
-	MS5611 *dev = reinterpret_cast<MS5611 *>(arg);
+	MS5611 *dev = (MS5611 *)arg;
 
-	dev->cycle();
+	cycle();
 }
 
 void
@@ -504,7 +476,7 @@ MS5611::cycle()
 				//log("collection error %d", ret);
 			}
 			/* reset the collection state machine and try again */
-			start_cycle();
+			start();
 			return;
 		}
 
@@ -517,14 +489,16 @@ MS5611::cycle()
 		 * doing pressure measurements at something close to the desired rate.
 		 */
 		if ((_measure_phase != 0) &&
-		    (_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
+		    (_call_baro_interval > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
 
-			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&MS5611::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(MS5611_CONVERSION_INTERVAL));
+			// XXX maybe do something appropriate as well
+
+//			/* schedule a fresh cycle call when we are ready to measure again */
+//			work_queue(HPWORK,
+//				   &_work,
+//				   (worker_t)&MS5611::cycle_trampoline,
+//				   this,
+//				   _measure_ticks - USEC2TICK(MS5611_CONVERSION_INTERVAL));
 
 			return;
 		}
@@ -535,19 +509,12 @@ MS5611::cycle()
 	if (ret != OK) {
 		//log("measure error %d", ret);
 		/* reset the collection state machine and try again */
-		start_cycle();
+		start();
 		return;
 	}
 
 	/* next phase is collection */
 	_collect_phase = true;
-
-	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&MS5611::cycle_trampoline,
-		   this,
-		   USEC2TICK(MS5611_CONVERSION_INTERVAL));
 }
 
 int
@@ -696,13 +663,14 @@ MS5611::collect()
 	return OK;
 }
 
+
 void
 MS5611::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %u ticks\n", _call_baro_interval);
 	printf("report queue:   %u (%u/%u @ %p)\n",
 	       _num_reports, _oldest_report, _next_report, _reports);
 	printf("TEMP:           %d\n", _TEMP);
