@@ -184,7 +184,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 
 				/* transitions back to INIT are possible for calibration */
 				if (current_state->navigation_state == NAVIGATION_STATE_MANUAL_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_STANDBY) {
 
 					ret = OK;
@@ -200,7 +200,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 
 				/* transitions from INIT and other STANDBY states as well as MANUAL are possible */
 				if (current_state->navigation_state == NAVIGATION_STATE_INIT
-				 || current_state->navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_STANDBY
 				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL) {
 
@@ -235,14 +235,15 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				}
 				break;
 
-			case NAVIGATION_STATE_SEATBELT_STANDBY:
+			case NAVIGATION_STATE_ASSISTED_STANDBY:
 
 				/* transitions from INIT and other STANDBY states as well as SEATBELT and SEATBELT_DESCENT are possible */
 				if (current_state->navigation_state == NAVIGATION_STATE_INIT
 				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL_STANDBY
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_SEATBELT
-				 || current_state->navigation_state == NAVIGATION_STATE_SEATBELT_DESCENT) {
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_DESCENT) {
 
 					/* need to be disarmed and have a position estimate */
 					if (current_state->arming_state != ARMING_STATE_STANDBY) {
@@ -262,11 +263,12 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				}
 				break;
 
-			case NAVIGATION_STATE_SEATBELT:
+			case NAVIGATION_STATE_ASSISTED_SEATBELT:
 
 				/* transitions from all AUTO modes except AUTO_STANDBY and except MANUAL_STANDBY and INIT*/
-				if (current_state->navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_SEATBELT_DESCENT
+				if (current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_DESCENT
 				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LAND
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
@@ -293,10 +295,43 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				}
 				break;
 
-			case NAVIGATION_STATE_SEATBELT_DESCENT:
+			case NAVIGATION_STATE_ASSISTED_SIMPLE:
+
+				/* transitions from all AUTO modes except AUTO_STANDBY and except MANUAL_STANDBY and INIT*/
+				if (current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_DESCENT
+				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL
+				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LAND
+				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
+				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_MISSION
+				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_READY
+				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_RTL
+				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
+
+					/* need to be armed and have a position estimate */
+					if (current_state->arming_state != ARMING_STATE_ARMED) {
+						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: not armed");
+						tune_negative();
+					} else if (!current_state->condition_local_position_valid) {
+						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no pos estimate");
+						tune_negative();
+					} else {
+						ret = OK;
+						control_mode->flag_control_rates_enabled = true;
+						control_mode->flag_control_attitude_enabled = true;
+						control_mode->flag_control_velocity_enabled = true;
+						control_mode->flag_control_position_enabled = false;
+						control_mode->flag_control_manual_enabled = false;
+					}
+				}
+				break;
+
+			case NAVIGATION_STATE_ASSISTED_DESCENT:
 
 				/* transitions from all AUTO modes except AUTO_STANDBY and except MANUAL_STANDBY and INIT and SEATBELT_STANDBY */
-				if (current_state->navigation_state == NAVIGATION_STATE_SEATBELT
+				if (current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
 				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LAND
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
@@ -328,7 +363,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				/* transitions from INIT or from other STANDBY modes or from AUTO READY */
 				if (current_state->navigation_state == NAVIGATION_STATE_INIT
 				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_READY) {
 
 					/* need to be disarmed and have a position and home lock */
@@ -395,7 +430,8 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_MISSION
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_RTL
-				 || current_state->navigation_state == NAVIGATION_STATE_SEATBELT
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
 				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL) {
 
 					/* need to have a position and home lock */
@@ -422,7 +458,8 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_RTL
-				 || current_state->navigation_state == NAVIGATION_STATE_SEATBELT
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
 				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL) {
 
 					/* need to have a mission ready */
@@ -446,7 +483,8 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_MISSION
 				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
-				 || current_state->navigation_state == NAVIGATION_STATE_SEATBELT
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
+				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
 				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL) {
 
 					/* need to have a position and home lock */

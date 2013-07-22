@@ -58,6 +58,7 @@ struct manual_control_setpoint_s {
 
 	float mode_switch;			/**< mode 3 position switch (mandatory): manual, assisted, auto */
 	float return_switch;			/**< land 2 position switch (mandatory): land, no effect */
+	float assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
 	float mission_switch;		/**< mission 2 position switch (optional): mission, loiter */
 
 	/**

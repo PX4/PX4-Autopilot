@@ -1005,17 +1005,15 @@ int commander_thread_main(int argc, char *argv[])
 
 
 		/* check for global or local position updates, set a timeout of 2s */
-		if (hrt_absolute_time() - last_global_position_time < 2000000 && hrt_absolute_time() > 2000000) {
+		if (hrt_absolute_time() - last_global_position_time < 2000000 && hrt_absolute_time() > 2000000 && global_position.valid) {
 			current_status.condition_global_position_valid = true;
-			// XXX check for controller status and home position as well
 
 		} else {
 			current_status.condition_global_position_valid = false;
 		}
 
-		if (hrt_absolute_time() - last_local_position_time < 2000000 && hrt_absolute_time() > 2000000) {
+		if (hrt_absolute_time() - last_local_position_time < 2000000 && hrt_absolute_time() > 2000000 && local_position.valid) {
 			current_status.condition_local_position_valid = true;
-			// XXX check for controller status and home position as well
 
 		} else {
 			current_status.condition_local_position_valid = false;
@@ -1154,7 +1152,7 @@ int commander_thread_main(int argc, char *argv[])
 				} else {
 
 					/* center stick position, set seatbelt/simple control */
-					current_status.mode_switch = MODE_SWITCH_SEATBELT;
+					current_status.mode_switch = MODE_SWITCH_ASSISTED;
 				}
 
 				// warnx("man ctrl mode: %d\n", (int)current_status.manual_control_mode);
@@ -1167,19 +1165,30 @@ int commander_thread_main(int argc, char *argv[])
 					/* this switch is not properly mapped, set default */
 					current_status.return_switch = RETURN_SWITCH_NONE;
 
-				} else if (sp_man.return_switch < -STICK_ON_OFF_LIMIT) {
-
-					/* bottom stick position, set altitude hold */
-					current_status.return_switch = RETURN_SWITCH_NONE;
-
 				} else if (sp_man.return_switch > STICK_ON_OFF_LIMIT) {
 
 					/* top stick position */
 					current_status.return_switch = RETURN_SWITCH_RETURN;
 
 				} else {
-					/* center stick position, set default */
+					/* center or bottom stick position, set default */
 					current_status.return_switch = RETURN_SWITCH_NONE;
+				}
+
+				/* check assisted switch  */
+				if (!isfinite(sp_man.assisted_switch)) {
+
+					/* this switch is not properly mapped, set default */
+					current_status.assisted_switch = ASSISTED_SWITCH_SEATBELT;
+
+				} else if (sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
+
+					/* top stick position */
+					current_status.assisted_switch = ASSISTED_SWITCH_SIMPLE;
+
+				} else {
+					/* center or bottom stick position, set default */
+					current_status.assisted_switch = ASSISTED_SWITCH_SEATBELT;
 				}
 
 				/* check mission switch  */
@@ -1219,10 +1228,10 @@ int commander_thread_main(int argc, char *argv[])
 								warnx("ERROR: Navigation state MANUAL_STANDBY rejected");
 							}
 			
-						/* Try seatbelt or fallback to manual */
-						} else if (current_status.mode_switch == MODE_SWITCH_SEATBELT) {
+						/* Try assisted or fallback to manual */
+						} else if (current_status.mode_switch == MODE_SWITCH_ASSISTED) {
 			
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// fallback to MANUAL_STANDBY
 								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// These is not supposed to happen
@@ -1235,7 +1244,7 @@ int commander_thread_main(int argc, char *argv[])
 							
 							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// first fallback to SEATBELT_STANDY
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// or fallback to MANUAL_STANDBY
 									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL_STANDBY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 									// These is not supposed to happen
@@ -1250,89 +1259,104 @@ int commander_thread_main(int argc, char *argv[])
 					/* evaluate the navigation state when armed */
 					case ARMING_STATE_ARMED:
 			
-						/* Always accept manual mode */
 						if (current_status.mode_switch == MODE_SWITCH_MANUAL) {
-
+							/* MANUAL */
 							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
 								// These is not supposed to happen
 								warnx("ERROR: Navigation state MANUAL rejected");
 							}
 			
-						/* SEATBELT_STANDBY (fallback: MANUAL) */
-						} else if (current_status.mode_switch == MODE_SWITCH_SEATBELT
-								&& current_status.return_switch == RETURN_SWITCH_NONE) {
-			
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-								// fallback to MANUAL_STANDBY
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-								// These is not supposed to happen
-								warnx("ERROR: Navigation state MANUAL rejected");
-								}
-							}
-			
-						/* SEATBELT_DESCENT (fallback: MANUAL) */
-						} else if (current_status.mode_switch == MODE_SWITCH_SEATBELT
-								&& current_status.return_switch == RETURN_SWITCH_RETURN) {
-			
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_DESCENT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-								// fallback to MANUAL_STANDBY
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-								// These is not supposed to happen
-								warnx("ERROR: Navigation state MANUAL rejected");
-								}
-							}
-			
-						/* AUTO_LOITER (fallback: SEATBELT, MANUAL) */
-						} else if (current_status.mode_switch == MODE_SWITCH_AUTO
-								&& current_status.return_switch == RETURN_SWITCH_NONE
-								&& current_status.mission_switch == MISSION_SWITCH_NONE) {
-			
-							/* we might come from the disarmed state AUTO_STANDBY */
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_READY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-									// fallback to MANUAL_STANDBY
+						} else if (current_status.mode_switch == MODE_SWITCH_ASSISTED) {
+							/* ASSISTED */
+							if (current_status.return_switch == RETURN_SWITCH_RETURN) {
+								/* ASSISTED_DESCENT */
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_DESCENT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+									// fallback to MANUAL
 									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-									// These is not supposed to happen
-									warnx("ERROR: Navigation state MANUAL rejected");
+										// These is not supposed to happen
+										warnx("ERROR: Navigation state MANUAL rejected");
 									}
 								}
-							/* or from some other armed state like SEATBELT or MANUAL */
-							} else if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-									// fallback to MANUAL_STANDBY
-									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-									// These is not supposed to happen
-									warnx("ERROR: Navigation state MANUAL rejected");
+
+							} else {
+								if (current_status.assisted_switch == ASSISTED_SWITCH_SIMPLE) {
+									/* ASSISTED_SIMPLE */
+									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_SIMPLE, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+										// fallback to ASSISTED_SEATBELT
+										if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+											// fallback to MANUAL
+											if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+												// These is not supposed to happen
+												warnx("ERROR: Navigation state MANUAL rejected");
+											}
+										}
+									}
+								} else {
+									/* ASSISTED_SEATBELT */
+									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+										// fallback to MANUAL
+										if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+											// These is not supposed to happen
+											warnx("ERROR: Navigation state MANUAL rejected");
+										}
 									}
 								}
 							}
 			
-						/* AUTO_MISSION (fallback: SEATBELT, MANUAL) */
-						} else if (current_status.mode_switch == MODE_SWITCH_AUTO
-								&& current_status.return_switch == RETURN_SWITCH_NONE
-								&& current_status.mission_switch == MISSION_SWITCH_MISSION) {
-							
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-									// fallback to MANUAL_STANDBY
-									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-									// These is not supposed to happen
-									warnx("ERROR: Navigation state MANUAL rejected");
+						} else if (current_status.mode_switch == MODE_SWITCH_AUTO) {
+							/* AUTO */
+							if (current_status.return_switch == RETURN_SWITCH_RETURN) {
+								/* AUTO_RTL */
+								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_RTL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+									// fallback to ASSISTED_DESCENT
+									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_DESCENT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+										// fallback to MANUAL
+										if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+											// These is not supposed to happen
+											warnx("ERROR: Navigation state MANUAL rejected");
+										}
 									}
 								}
-							}
-			
-						/* AUTO_RTL (fallback: SEATBELT_DESCENT, MANUAL) */
-						} else if (current_status.mode_switch == MODE_SWITCH_AUTO
-								&& current_status.return_switch == RETURN_SWITCH_RETURN
-								&& (current_status.mission_switch == MISSION_SWITCH_NONE || current_status.mission_switch == MISSION_SWITCH_MISSION)) {
-			
-							if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_RTL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-								if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_SEATBELT_DESCENT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-									// fallback to MANUAL_STANDBY
-									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
-									// These is not supposed to happen
-									warnx("ERROR: Navigation state MANUAL rejected");
+							} else {
+								if (current_status.mission_switch == MISSION_SWITCH_MISSION) {
+									/* AUTO_MISSION */
+									if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+										// fallback to ASSISTED_SEATBELT
+										if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+											// fallback to MANUAL
+											if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+												// These is not supposed to happen
+												warnx("ERROR: Navigation state MANUAL rejected");
+											}
+										}
+									}
+								} else {
+									// TODO check this
+									if (current_status.navigation_state == NAVIGATION_STATE_AUTO_STANDBY
+									 || current_status.navigation_state == NAVIGATION_STATE_AUTO_LAND) {
+										/* AUTO_READY */
+										if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_READY, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+											/* AUTO_READY */
+											if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+												// fallback to MANUAL
+												if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+													// These is not supposed to happen
+													warnx("ERROR: Navigation state MANUAL rejected");
+												}
+											}
+										}
+									} else {
+										/* AUTO_LOITER */
+										if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+											// fallback to ASSISTED_SEATBELT
+											if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_ASSISTED_SEATBELT, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+												// fallback to MANUAL
+												if (navigation_state_transition(status_pub, &current_status, NAVIGATION_STATE_MANUAL, control_mode_pub, &control_mode, mavlink_fd) != OK) {
+													// These is not supposed to happen
+													warnx("ERROR: Navigation state MANUAL rejected");
+												}
+											}
+										}
 									}
 								}
 							}

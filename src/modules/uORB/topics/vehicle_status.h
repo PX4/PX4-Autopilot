@@ -60,12 +60,13 @@
 
 /* State Machine */
 typedef enum {
-	NAVIGATION_STATE_INIT=0,
+	NAVIGATION_STATE_INIT = 0,
 	NAVIGATION_STATE_MANUAL_STANDBY,
 	NAVIGATION_STATE_MANUAL,
-	NAVIGATION_STATE_SEATBELT_STANDBY,
-	NAVIGATION_STATE_SEATBELT,
-	NAVIGATION_STATE_SEATBELT_DESCENT,
+	NAVIGATION_STATE_ASSISTED_STANDBY,
+	NAVIGATION_STATE_ASSISTED_SEATBELT,
+	NAVIGATION_STATE_ASSISTED_SIMPLE,
+	NAVIGATION_STATE_ASSISTED_DESCENT,
 	NAVIGATION_STATE_AUTO_STANDBY,
 	NAVIGATION_STATE_AUTO_READY,
 	NAVIGATION_STATE_AUTO_TAKEOFF,
@@ -98,7 +99,7 @@ typedef enum {
 
 typedef enum {
 	MODE_SWITCH_MANUAL = 0,
-	MODE_SWITCH_SEATBELT,
+	MODE_SWITCH_ASSISTED,
 	MODE_SWITCH_AUTO
 } mode_switch_pos_t;
 
@@ -106,6 +107,11 @@ typedef enum {
 	RETURN_SWITCH_NONE = 0,
 	RETURN_SWITCH_RETURN
 } return_switch_pos_t;
+
+typedef enum {
+	ASSISTED_SWITCH_SEATBELT = 0,
+	ASSISTED_SWITCH_SIMPLE
+} assisted_switch_pos_t;
 
 typedef enum {
 	MISSION_SWITCH_NONE = 0,
@@ -179,6 +185,7 @@ struct vehicle_status_s
 
 	mode_switch_pos_t mode_switch;
 	return_switch_pos_t return_switch;
+	assisted_switch_pos_t assisted_switch;
 	mission_switch_pos_t mission_switch;
 
 	bool condition_battery_voltage_valid;

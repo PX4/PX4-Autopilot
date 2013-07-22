@@ -221,9 +221,9 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 	}
 
-	if (v_status.navigation_state == NAVIGATION_STATE_SEATBELT
-		|| v_status.navigation_state == NAVIGATION_STATE_SEATBELT_DESCENT
-		|| v_status.navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY) {
+	if (v_status.navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
+		|| v_status.navigation_state == NAVIGATION_STATE_ASSISTED_DESCENT
+		|| v_status.navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY) {
 
 		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
 	}
@@ -248,15 +248,15 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 			|| v_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION
 			|| v_status.navigation_state == NAVIGATION_STATE_AUTO_RTL
 			|| v_status.navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
-			|| v_status.navigation_state == NAVIGATION_STATE_SEATBELT
-			|| v_status.navigation_state == NAVIGATION_STATE_SEATBELT_DESCENT
+			|| v_status.navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
+			|| v_status.navigation_state == NAVIGATION_STATE_ASSISTED_DESCENT
 			|| v_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
 		*mavlink_state = MAV_STATE_ACTIVE;
 
 	} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_STANDBY
 			|| v_status.navigation_state == NAVIGATION_STATE_AUTO_READY // XXX correct?
-			|| v_status.navigation_state == NAVIGATION_STATE_SEATBELT_STANDBY
+			|| v_status.navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
 			|| v_status.navigation_state == NAVIGATION_STATE_MANUAL_STANDBY) {
 
 		*mavlink_state = MAV_STATE_STANDBY;
