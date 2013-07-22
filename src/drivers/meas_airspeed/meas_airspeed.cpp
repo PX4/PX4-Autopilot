@@ -85,13 +85,10 @@
 
 #include <drivers/airspeed/airspeed.h>
 
-/* Default I2C bus */
-#define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
-
 /* I2C bus address is 1010001x */
-#define I2C_ADDRESS_MS4525DO	0x51	/* 7-bit address. */
+#define I2C_ADDRESS_MS4525DO	0x28	//0x51 /* 7-bit address. */
 /* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
-#define I2C_ADDRESS_MS5525DSO	0x77	/* 7-bit address, addr. pin pulled low */
+#define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
 
 /* Register address */
 #define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
@@ -298,59 +295,25 @@ start(int i2c_bus)
 		errx(1, "already started");
 
 	/* create the driver, try the MS4525DO first */
-	//g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO);
-
-		
-	int bus = PX4_I2C_BUS_EXPANSION;
-	//delete g_dev;
-
-	// XXX hack scan all addresses
-	for (int i = 0x20 / 2; i < 0xFE / 2; i++) {
-		warnx("scanning addr (7 bit): 0x%02x", i);
-		g_dev = new MEASAirspeed(bus, i);
-		warnx("probing");
-		if (OK == g_dev->Airspeed::init()) {
-			warnx("SUCCESS!");
-			usleep(200000);
-			exit(0);
-		} else {
-			warnx("FAIL!");
-			usleep(200000);
-			delete g_dev;
-		}
-
-	}
-
-	bus = PX4_I2C_BUS_ESC;
-
-	for (int i = 1; i < 0xFF / 2; i++) {
-		warnx("scanning addr (7 bit): %0x", i);
-		g_dev = new MEASAirspeed(bus, i);
-		if (OK == g_dev->Airspeed::init()) {
-			warnx("SUCCESS!");
-			exit(0);
-		} else {
-			delete g_dev;
-		}
-
-	}
+	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO);
 
 	/* check if the MS4525DO was instantiated */
 	if (g_dev == nullptr)
 		goto fail;
 
 	/* try the MS5525DSO next if init fails */
-	if (OK != g_dev->Airspeed::init())
+	if (OK != g_dev->Airspeed::init()) {
 		delete g_dev;
 		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO);
 
-	/* check if the MS5525DSO was instantiated */
-	if (g_dev == nullptr)
-		goto fail;
+		/* check if the MS5525DSO was instantiated */
+		if (g_dev == nullptr)
+			goto fail;
 
-	/* both versions failed if the init for the MS5525DSO fails, give up */
-	if (OK != g_dev->Airspeed::init())
-		goto fail;
+		/* both versions failed if the init for the MS5525DSO fails, give up */
+		if (OK != g_dev->Airspeed::init())
+			goto fail;
+	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
