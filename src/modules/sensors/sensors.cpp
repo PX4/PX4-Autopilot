@@ -208,6 +208,7 @@ private:
 
 		int rc_map_mode_sw;
 		int rc_map_return_sw;
+		int rc_map_assisted_sw;
 		int rc_map_mission_sw;
 
 //		int rc_map_offboard_ctrl_mode_sw;
@@ -256,6 +257,7 @@ private:
 
 		param_t rc_map_mode_sw;
 		param_t rc_map_return_sw;
+		param_t rc_map_assisted_sw;
 		param_t rc_map_mission_sw;
 
 //		param_t rc_map_offboard_ctrl_mode_sw;
@@ -464,6 +466,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
 
 	/* optional mode switches, not mapped per default */
+	_parameter_handles.rc_map_assisted_sw = param_find("RC_MAP_ASSIST_SW");
 	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSIO_SW");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
@@ -617,6 +620,10 @@ Sensors::parameters_update()
 		warnx("Failed getting return sw chan index");
 	}
 
+	if (param_get(_parameter_handles.rc_map_assisted_sw, &(_parameters.rc_map_assisted_sw)) != OK) {
+		warnx("Failed getting assisted sw chan index");
+	}
+
 	if (param_get(_parameter_handles.rc_map_mission_sw, &(_parameters.rc_map_mission_sw)) != OK) {
 		warnx("Failed getting mission sw chan index");
 	}
@@ -673,6 +680,7 @@ Sensors::parameters_update()
 
 	_rc.function[MODE] = _parameters.rc_map_mode_sw - 1;
 	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
+	_rc.function[ASSISTED] = _parameters.rc_map_assisted_sw - 1;
 	_rc.function[MISSION] = _parameters.rc_map_mission_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
@@ -1142,6 +1150,7 @@ Sensors::ppm_poll()
 
 		manual_control.mode_switch = NAN;
 		manual_control.return_switch = NAN;
+		manual_control.assisted_switch = NAN;
 		manual_control.mission_switch = NAN;
 //		manual_control.auto_offboard_input_switch = NAN;
 
@@ -1249,7 +1258,10 @@ Sensors::ppm_poll()
 		/* land switch input */
 		manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
 
-		/* land switch input */
+		/* assisted switch input */
+		manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
+
+		/* mission switch input */
 		manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
 
 		/* flaps */
