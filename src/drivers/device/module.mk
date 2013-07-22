@@ -39,4 +39,5 @@ SRCS		= cdev.cpp \
 		  device.cpp \
 		  i2c.cpp \
 		  pio.cpp \
-		  spi.cpp
+		  spi.cpp \
+		  can.cpp
