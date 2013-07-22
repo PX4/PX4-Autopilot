@@ -49,12 +49,14 @@
 #include <nuttx/can.h>
 #include <arch/board/board.h>
 
-#include "chip.h"
-#include "up_arch.h"
+#include <chip.h>
+#include <up_arch.h>
 
-#include "stm32.h"
-#include "stm32_can.h"
+#include <stm32.h>
+#include <stm32_can.h>
 #include "px4fmu_internal.h"
+
+#include <drivers/device/can.h>
 
 #ifdef CONFIG_CAN
 
@@ -101,42 +103,42 @@
  * Name: can_devinit
  *
  * Description:
- *   All STM32 architectures must provide the following interface to work with
- *   examples/can.
+ *   Modified CAN initialisation to work with the PX4 CAN multiplexer architecture.
  *
  ************************************************************************************/
 
-int can_devinit(void)
+extern "C" int can_devinit();
+
+int can_devinit()
 {
 	static bool initialized = false;
-	struct can_dev_s *can;
-	int ret;
-
+	
 	/* Check if we have already initialized */
 
-	if (!initialized) {
-		/* Call stm32_caninitialize() to get an instance of the CAN interface */
+	if (!initialized)
+		return OK;
 
-		can = stm32_caninitialize(CAN_PORT);
+	/* Call stm32_caninitialize() to get an instance of the CAN interface */
 
-		if (can == NULL) {
-			candbg("ERROR:  Failed to get CAN interface\n");
-			return -ENODEV;
-		}
+	can_dev_s *can = stm32_caninitialize(CAN_PORT);
 
-		/* Register the CAN driver at "/dev/can0" */
-
-		ret = can_register("/dev/can0", can);
-
-		if (ret < 0) {
-			candbg("ERROR: can_register failed: %d\n", ret);
-			return ret;
-		}
-
-		/* Now we are initialized */
-
-		initialized = true;
+	if (can == NULL) {
+		candbg("ERROR:  Failed to get CAN interface\n");
+		return -ENODEV;
 	}
+
+	/* Register the CAN driver */
+
+	int ret = device::CAN::connect(can, CAN_PORT, 16);	/* XXX hardcoded TX queue size */
+
+	if (ret < 0) {
+		candbg("ERROR: can_register failed: %d\n", ret);
+		return ret;
+	}
+
+	/* Now we are initialized */
+
+	initialized = true;
 
 	return OK;
 }
