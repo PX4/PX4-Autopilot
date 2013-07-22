@@ -282,7 +282,7 @@ start(int i2c_bus)
 	if (g_dev == nullptr)
 		goto fail;
 
-	if (OK != g_dev->init())
+	if (OK != g_dev->Airspeed::init())
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
