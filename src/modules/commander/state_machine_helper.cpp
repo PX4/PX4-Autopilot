@@ -192,6 +192,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					control_mode->flag_control_attitude_enabled = false;
 					control_mode->flag_control_velocity_enabled = false;
 					control_mode->flag_control_position_enabled = false;
+					control_mode->flag_control_altitude_enabled = false;
 					control_mode->flag_control_manual_enabled = false;
 				}
 				break;
@@ -214,6 +215,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = false;
 						control_mode->flag_control_position_enabled = false;
+						control_mode->flag_control_altitude_enabled = false;
 						control_mode->flag_control_manual_enabled = true;
 					}
 				}
@@ -231,6 +233,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					control_mode->flag_control_attitude_enabled = true;
 					control_mode->flag_control_velocity_enabled = false;
 					control_mode->flag_control_position_enabled = false;
+					control_mode->flag_control_altitude_enabled = false;
 					control_mode->flag_control_manual_enabled = true;
 				}
 				break;
@@ -258,7 +261,8 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
 						control_mode->flag_control_position_enabled = false;
-						control_mode->flag_control_manual_enabled = false;
+						control_mode->flag_control_altitude_enabled = true;
+						control_mode->flag_control_manual_enabled = true;
 					}
 				}
 				break;
@@ -290,7 +294,8 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
 						control_mode->flag_control_position_enabled = false;
-						control_mode->flag_control_manual_enabled = false;
+						control_mode->flag_control_altitude_enabled = true;
+						control_mode->flag_control_manual_enabled = true;
 					}
 				}
 				break;
@@ -321,8 +326,9 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_rates_enabled = true;
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = false;
-						control_mode->flag_control_manual_enabled = false;
+						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_altitude_enabled = true;
+						control_mode->flag_control_manual_enabled = true;
 					}
 				}
 				break;
@@ -353,7 +359,8 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
 						control_mode->flag_control_position_enabled = false;
-						control_mode->flag_control_manual_enabled = false;
+						control_mode->flag_control_altitude_enabled = true;
+						control_mode->flag_control_manual_enabled = true;
 					}
 				}
 				break;
@@ -382,6 +389,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
 						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_altitude_enabled = true;
 						control_mode->flag_control_manual_enabled = false;
 					}
 				}
@@ -405,6 +413,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
 						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_altitude_enabled = true;
 						control_mode->flag_control_manual_enabled = false;
 					}
 				}
@@ -420,6 +429,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 					control_mode->flag_control_attitude_enabled = true;
 					control_mode->flag_control_velocity_enabled = true;
 					control_mode->flag_control_position_enabled = true;
+					control_mode->flag_control_altitude_enabled = true;
 					control_mode->flag_control_manual_enabled = false;
 				}
 				break;
@@ -447,6 +457,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
 						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_altitude_enabled = true;
 						control_mode->flag_control_manual_enabled = false;
 					}
 				}
@@ -472,6 +483,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
 						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_altitude_enabled = true;
 						control_mode->flag_control_manual_enabled = false;
 					}
 				}
@@ -500,6 +512,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
 						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_altitude_enabled = true;
 						control_mode->flag_control_manual_enabled = false;
 					}
 				}
@@ -524,6 +537,7 @@ int navigation_state_transition(int status_pub, struct vehicle_status_s *current
 						control_mode->flag_control_attitude_enabled = true;
 						control_mode->flag_control_velocity_enabled = true;
 						control_mode->flag_control_position_enabled = true;
+						control_mode->flag_control_altitude_enabled = true;
 						control_mode->flag_control_manual_enabled = false;
 					}
 				}
