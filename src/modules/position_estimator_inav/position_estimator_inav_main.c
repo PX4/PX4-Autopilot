@@ -453,8 +453,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					gps_corr[1][0] = gps_proj[1] - y_est[0];
 
 					if (gps.vel_ned_valid) {
-						gps_corr[0][1] = gps.vel_n_m_s;
-						gps_corr[1][1] = gps.vel_e_m_s;
+						gps_corr[0][1] = gps.vel_n_m_s - x_est[1];
+						gps_corr[1][1] = gps.vel_e_m_s - y_est[1];
 
 					} else {
 						gps_corr[0][1] = 0.0f;

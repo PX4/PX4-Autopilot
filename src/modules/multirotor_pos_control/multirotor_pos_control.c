@@ -259,7 +259,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 				for (int i = 0; i < 2; i++) {
 					pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f);
-					pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.tilt_max);
+					// TODO 1000.0 is hotfix
+					pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1000.0f, params.tilt_max);
 				}
 
 				pid_set_parameters(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max);
