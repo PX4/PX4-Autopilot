@@ -224,8 +224,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
-	/* rate-limit raw data updates to 200Hz */
-	orb_set_interval(sub_raw, 4);
 
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));

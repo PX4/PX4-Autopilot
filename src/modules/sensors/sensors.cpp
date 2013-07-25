@@ -150,6 +150,12 @@ private:
 	int 		_fd_adc;			/**< ADC driver handle */
 	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
+	hrt_abstime _output_interval;
+	hrt_abstime _output_next;
+
+	int _accel_n;
+	int _gyro_n;
+
 	bool 		_task_should_exit;		/**< if true, sensor task should exit */
 	int 		_sensors_task;			/**< task handle for sensor task */
 
@@ -322,12 +328,28 @@ private:
 	void		accel_poll(struct sensor_combined_s &raw);
 
 	/**
+	 * Normalize accelerometer integral and reset integral counter.
+	 *
+	 * @param raw			Combined sensor data structure which
+	 *				should be normalized.
+	 */
+	void		accel_norm(struct sensor_combined_s &raw);
+
+	/**
 	 * Poll the gyro for updated data.
 	 *
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
 	void		gyro_poll(struct sensor_combined_s &raw);
+
+	/**
+	 * Normalize gyro integral and reset integral counter.
+	 *
+	 * @param raw			Combined sensor data structure which
+	 *				should be normalized.
+	 */
+	void		gyro_norm(struct sensor_combined_s &raw);
 
 	/**
 	 * Poll the magnetometer for updated data.
@@ -399,6 +421,12 @@ Sensors::Sensors() :
 
 	_fd_adc(-1),
 	_last_adc(0),
+
+	_output_interval(0),
+	_output_next(0),
+
+	_accel_n(0),
+	_gyro_n(0),
 
 	_task_should_exit(false),
 	_sensors_task(-1),
@@ -753,7 +781,7 @@ Sensors::accel_init()
 		errx(1, "FATAL: no accelerometer found");
 
 	} else {
-		/* set the accel internal sampling rate up to at leat 500Hz */
+		/* set the accel internal sampling rate up to at least 500Hz */
 		ioctl(fd, ACCELIOCSSAMPLERATE, 500);
 
 		/* set the driver to poll at 500Hz */
@@ -776,7 +804,7 @@ Sensors::gyro_init()
 		errx(1, "FATAL: no gyro found");
 
 	} else {
-		/* set the gyro internal sampling rate up to at leat 500Hz */
+		/* set the gyro internal sampling rate up to at least 500Hz */
 		ioctl(fd, GYROIOCSSAMPLERATE, 500);
 
 		/* set the driver to poll at 500Hz */
@@ -849,16 +877,35 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
-		raw.accelerometer_m_s2[0] = accel_report.x;
-		raw.accelerometer_m_s2[1] = accel_report.y;
-		raw.accelerometer_m_s2[2] = accel_report.z;
+		if (_accel_n == 0) {
+			raw.accelerometer_m_s2[0] = 0.0f;
+			raw.accelerometer_m_s2[1] = 0.0f;
+			raw.accelerometer_m_s2[2] = 0.0f;
+		}
 
+		raw.accelerometer_m_s2[0] += accel_report.x;
+		raw.accelerometer_m_s2[1] += accel_report.y;
+		raw.accelerometer_m_s2[2] += accel_report.z;
+
+		/* don't integrate raw values because it will cause overflow */
 		raw.accelerometer_raw[0] = accel_report.x_raw;
 		raw.accelerometer_raw[1] = accel_report.y_raw;
 		raw.accelerometer_raw[2] = accel_report.z_raw;
 
-		raw.accelerometer_counter++;
+		_accel_n++;
 	}
+}
+
+void
+Sensors::accel_norm(struct sensor_combined_s &raw)
+{
+	raw.accelerometer_m_s2[0] /= _accel_n;
+	raw.accelerometer_m_s2[1] /= _accel_n;
+	raw.accelerometer_m_s2[2] /= _accel_n;
+
+	raw.accelerometer_counter++;
+
+	_accel_n = 0;
 }
 
 void
@@ -872,16 +919,35 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
-		raw.gyro_rad_s[0] = gyro_report.x;
-		raw.gyro_rad_s[1] = gyro_report.y;
-		raw.gyro_rad_s[2] = gyro_report.z;
+		if (_gyro_n == 0) {
+			raw.gyro_rad_s[0] = 0.0f;
+			raw.gyro_rad_s[1] = 0.0f;
+			raw.gyro_rad_s[2] = 0.0f;
+		}
 
+		raw.gyro_rad_s[0] += gyro_report.x;
+		raw.gyro_rad_s[1] += gyro_report.y;
+		raw.gyro_rad_s[2] += gyro_report.z;
+
+		/* don't integrate raw values because it will cause overflow */
 		raw.gyro_raw[0] = gyro_report.x_raw;
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
-		raw.gyro_counter++;
+		_gyro_n++;
 	}
+}
+
+void
+Sensors::gyro_norm(struct sensor_combined_s &raw)
+{
+	raw.gyro_rad_s[0] /= _gyro_n;
+	raw.gyro_rad_s[1] /= _gyro_n;
+	raw.gyro_rad_s[2] /= _gyro_n;
+
+	raw.gyro_counter++;
+
+	_gyro_n = 0;
 }
 
 void
@@ -1352,6 +1418,9 @@ Sensors::task_main()
 	baro_init();
 	adc_init();
 
+	/* set output rate to 200Hz (5ms interval)*/
+	_output_interval = 5000;
+
 	/*
 	 * do subscriptions
 	 */
@@ -1384,7 +1453,9 @@ Sensors::task_main()
 
 	/* get a set of initial values */
 	accel_poll(raw);
+	accel_norm(raw);
 	gyro_poll(raw);
+	gyro_norm(raw);
 	mag_poll(raw);
 	baro_poll(raw);
 	diff_pres_poll(raw);
@@ -1418,33 +1489,43 @@ Sensors::task_main()
 
 		perf_begin(_loop_perf);
 
-		/* check vehicle status for changes to publication state */
-		vehicle_status_poll();
-
-		/* check parameters for updates */
-		parameter_update_poll();
-
-		/* store the time closest to all measurements (this is bogus, sensor timestamps should be propagated...) */
-		raw.timestamp = hrt_absolute_time();
-
-		/* copy most recent sensor data */
+		/* update accel and gyro integrals */
 		gyro_poll(raw);
 		accel_poll(raw);
-		mag_poll(raw);
-		baro_poll(raw);
 
-		/* check battery voltage */
-		adc_poll(raw);
+		hrt_abstime t = hrt_absolute_time();
+		if (t > _output_next) {
+			_output_next = t + _output_interval;
 
-		diff_pres_poll(raw);
+			/* normalize integrals before publishing */
+			accel_norm(raw);
+			gyro_norm(raw);
 
-		/* Inform other processes that new data is available to copy */
-		if (_publishing)
-			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
+			/* check vehicle status for changes to publication state */
+			vehicle_status_poll();
 
-		/* Look for new r/c input data */
-		ppm_poll();
+			/* check parameters for updates */
+			parameter_update_poll();
 
+			/* store the time closest to all measurements (this is bogus, sensor timestamps should be propagated...) */
+			raw.timestamp = t;
+
+			/* copy most recent sensor data */
+			mag_poll(raw);
+			baro_poll(raw);
+
+			/* check battery voltage */
+			adc_poll(raw);
+
+			diff_pres_poll(raw);
+
+			/* Inform other processes that new data is available to copy */
+			if (_publishing)
+				orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
+
+			/* Look for new r/c input data */
+			ppm_poll();
+		}
 		perf_end(_loop_perf);
 	}
 
