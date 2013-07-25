@@ -103,14 +103,6 @@ private:
 	 * @param reg		The register to read.
 	 */
 	uint16_t	_reg16(unsigned reg);
-
-	/**
-	 * Wrapper around transfer() that prevents interrupt-context transfers
-	 * from pre-empting us. The sensor may (does) share a bus with sensors
-	 * that are polled from interrupt context (or we may be pre-empted)
-	 * so we need to guarantee that transfers complete without interruption.
-	 */
-	int		_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 };
 
 device::Device *
@@ -169,7 +161,7 @@ MS5611_SPI::read(unsigned offset, void *data, unsigned count)
 
 	/* read the most recent measurement */
 	buf[0] = 0 | DIR_WRITE;
-	int ret = _transfer(&buf[0], &buf[0], sizeof(buf));
+	int ret = transfer(&buf[0], &buf[0], sizeof(buf));
 
 	if (ret == OK) {
 		/* fetch the raw value */
@@ -214,7 +206,7 @@ MS5611_SPI::_reset()
 {
 	uint8_t cmd = ADDR_RESET_CMD | DIR_WRITE;
 
-	return  _transfer(&cmd, nullptr, 1);
+	return  transfer(&cmd, nullptr, 1);
 }
 
 int
@@ -222,7 +214,7 @@ MS5611_SPI::_measure(unsigned addr)
 {
 	uint8_t cmd = addr | DIR_WRITE;
 
-	return _transfer(&cmd, nullptr, 1);
+	return transfer(&cmd, nullptr, 1);
 }
 
 
@@ -252,21 +244,9 @@ MS5611_SPI::_reg16(unsigned reg)
 
 	cmd[0] = reg | DIR_READ;
 
-	_transfer(cmd, cmd, sizeof(cmd));
+	transfer(cmd, cmd, sizeof(cmd));
 
 	return (uint16_t)(cmd[1] << 8) | cmd[2];
-}
-
-int
-MS5611_SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
-{
-	irqstate_t flags = irqsave();
-
-	int ret = transfer(send, recv, len);
-
-	irqrestore(flags);
-
-	return ret;
 }
 
 #endif /* PX4_SPIDEV_BARO */
