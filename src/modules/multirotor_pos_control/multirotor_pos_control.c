@@ -248,9 +248,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		orb_copy(ORB_ID(vehicle_status), state_sub, &status);
 
 		/* check parameters at 1 Hz*/
-		paramcheck_counter++;
-
-		if (paramcheck_counter == 50) {
+		if (--paramcheck_counter <= 0) {
+			paramcheck_counter = 50;
 			bool param_updated;
 			orb_check(param_sub, &param_updated);
 
@@ -259,15 +258,19 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 				for (int i = 0; i < 2; i++) {
 					pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f);
-					// TODO 1000.0 is hotfix
-					pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1000.0f, params.tilt_max);
+					/* use integral_limit_out = tilt_max / 2 */
+					float i_limit;
+					if (params.xy_vel_i == 0.0) {
+						i_limit = params.tilt_max / params.xy_vel_i / 2.0;
+					} else {
+						i_limit = 1.0f;	// not used really
+					}
+					pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, i_limit, params.tilt_max);
 				}
 
 				pid_set_parameters(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max);
 				thrust_pid_set_parameters(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min);
 			}
-
-			paramcheck_counter = 0;
 		}
 
 		/* only check global position setpoint updates but not read */
