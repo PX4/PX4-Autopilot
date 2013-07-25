@@ -391,7 +391,7 @@ namespace sensors
 #endif
 static const int ERROR = -1;
 
-Sensors	*g_sensors;
+Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors() :
