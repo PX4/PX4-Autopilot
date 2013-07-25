@@ -68,7 +68,7 @@ __EXPORT void led_init()
 
 __EXPORT void led_on(int led)
 {
-	if (led == 0)
+	if (led == 1)
 	{
 		/* Pull down to switch on */
 		stm32_gpiowrite(GPIO_LED1, false);
@@ -77,7 +77,7 @@ __EXPORT void led_on(int led)
 
 __EXPORT void led_off(int led)
 {
-	if (led == 0)
+	if (led == 1)
 	{
 		/* Pull up to switch off */
 		stm32_gpiowrite(GPIO_LED1, true);
