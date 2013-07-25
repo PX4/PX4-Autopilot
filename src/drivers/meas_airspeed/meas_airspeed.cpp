@@ -91,18 +91,10 @@
 #define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
 
 /* Register address */
-#define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
-#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start pressure conversion */
-#define ADDR_DATA			0x00	/* address of 3 bytes / 32bit pressure data */
-#define ADDR_PROM_SETUP			0xA0	/* address of 8x 2 bytes factory and calibration data */
-#define ADDR_PROM_C1			0xA2	/* address of 6x 2 bytes calibration data */
-
-/**
- * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h.
- * You can set this value to 12 if you want a zero reading below 15km/h.
- */
-#define MIN_ACCURATE_DIFF_PRES_PA 0
+#define ADDR_READ_MR			0x00	/* write to this address to start conversion */
+#define ADDR_READ_DF2			0x00	/* read from this address to read pressure only */
+#define ADDR_READ_DF3			0x01
+#define ADDR_READ_DF4			0x02	/* read from this address to read pressure and temp */
 
 /* Measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
@@ -143,7 +135,7 @@ MEASAirspeed::measure()
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	uint8_t cmd = ADDR_RESET_CMD;
+	uint8_t cmd = 0;
 	ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret) {
@@ -163,7 +155,8 @@ MEASAirspeed::collect()
 	int	ret = -EIO;
 
 	/* read from the sensor */
-	uint8_t val[2] = {0, 0};
+	uint8_t val[4] = {0, 0, 0, 0};
+
 
 	perf_begin(_sample_perf);
 
@@ -174,18 +167,24 @@ MEASAirspeed::collect()
 		return ret;
 	}
 
-	uint16_t diff_pres_pa = val[1] << 8 | val[0];
+	uint8_t status = val[0] & 0xC0;
 
-	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
-		diff_pres_pa = 0;
-
-	} else {
-		diff_pres_pa -= _diff_pres_offset;
+	if (status == 2) {
+		log("err: stale data");
+	} else if (status == 3) {
+		log("err: fault");
 	}
+
+	uint16_t diff_pres_pa = (val[1]) | ((val[0] & ~(0xC0)) << 8);
+	uint16_t temp = (val[3] & 0xE0) << 8 | val[2];
+
+	diff_pres_pa = abs(diff_pres_pa - (16384 / 2.0f));
+	diff_pres_pa -= _diff_pres_offset;
 
 	// XXX we may want to smooth out the readings to remove noise.
 
 	_reports[_next_report].timestamp = hrt_absolute_time();
+	_reports[_next_report].temperature = temp;
 	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
 
 	// Track maximum differential pressure measured (so we can work out top speed).
@@ -403,6 +402,7 @@ test()
 
 		warnx("periodic read %u", i);
 		warnx("diff pressure: %d pa", report.differential_pressure_pa);
+		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 
 	errx(0, "PASS");
