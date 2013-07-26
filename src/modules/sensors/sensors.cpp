@@ -1017,8 +1017,8 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		raw.differential_pressure_counter++;
 
 		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
-		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar*1e2f, 
-											 			 raw.baro_pres_mbar*1e2f, raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar * 1e2f,
+					      raw.baro_pres_mbar * 1e2f, raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		/* announce the airspeed if needed, just publish else */
 		if (_airspeed_pub > 0) {
@@ -1142,12 +1142,12 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
 		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
-			
+
 			if (ret >= (int)sizeof(buf_adc[0])) {
 
 				/* Save raw voltage values */
 				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
-					 raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
+					raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
 				}
 
 				/* look for specific channels and process the raw voltage to measurement data */
@@ -1175,12 +1175,12 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						} else {
 							_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
 						}
-					} 
+					}
 
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
-					float voltage = (float)(buf_adc[i].am_data ) * 3.3f / 4096.0f * 2.0f; //V_ref/4096 * (voltage divider factor)
+					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  //V_ref/4096 * (voltage divider factor)
 
 					/**
 					 * The voltage divider pulls the signal down, only act on
@@ -1266,6 +1266,7 @@ Sensors::ppm_poll()
 			 */
 			if (rc_input.values[i] < _parameters.min[i])
 				rc_input.values[i] = _parameters.min[i];
+
 			if (rc_input.values[i] > _parameters.max[i])
 				rc_input.values[i] = _parameters.max[i];
 
@@ -1504,6 +1505,7 @@ Sensors::task_main()
 		accel_poll(raw);
 
 		hrt_abstime t = hrt_absolute_time();
+
 		if (t > _output_next) {
 			_output_next = t + _output_interval;
 
@@ -1536,6 +1538,7 @@ Sensors::task_main()
 			/* Look for new r/c input data */
 			ppm_poll();
 		}
+
 		perf_end(_loop_perf);
 	}
 
@@ -1552,11 +1555,11 @@ Sensors::start()
 
 	/* start the task */
 	_sensors_task = task_spawn_cmd("sensors_task",
-				   SCHED_DEFAULT,
-				   SCHED_PRIORITY_MAX - 5,
-				   2048,
-				   (main_t)&Sensors::task_main_trampoline,
-				   nullptr);
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2048,
+				       (main_t)&Sensors::task_main_trampoline,
+				       nullptr);
 
 	if (_sensors_task < 0) {
 		warn("task start failed");
@@ -1583,8 +1586,10 @@ int sensors_main(int argc, char *argv[])
 			errx(0, "sensors task already running");
 
 		long r = 200;	// default output rate
+
 		if (argc > 2) {
 			r = strtol(argv[2], 0, 10);
+
 			if (r < 10 || r > 500) {
 				errx(1, "invalid rate");
 			}
