@@ -877,6 +877,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
+		/* reset integral immediately before first measurement to avoid publishing zeros */
 		if (_accel_n == 0) {
 			raw.accelerometer_m_s2[0] = 0.0f;
 			raw.accelerometer_m_s2[1] = 0.0f;
@@ -899,13 +900,16 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 void
 Sensors::accel_norm(struct sensor_combined_s &raw)
 {
-	raw.accelerometer_m_s2[0] /= _accel_n;
-	raw.accelerometer_m_s2[1] /= _accel_n;
-	raw.accelerometer_m_s2[2] /= _accel_n;
+	/* normalize integral only if have new measurements, else it's already normalized old value */
+	if (_accel_n > 0) {
+		raw.accelerometer_m_s2[0] /= _accel_n;
+		raw.accelerometer_m_s2[1] /= _accel_n;
+		raw.accelerometer_m_s2[2] /= _accel_n;
 
-	raw.accelerometer_counter++;
+		raw.accelerometer_counter++;
 
-	_accel_n = 0;
+		_accel_n = 0;
+	}
 }
 
 void
@@ -919,6 +923,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
+		/* reset integral immediately before first measurement to avoid publishing zeros */
 		if (_gyro_n == 0) {
 			raw.gyro_rad_s[0] = 0.0f;
 			raw.gyro_rad_s[1] = 0.0f;
@@ -941,13 +946,16 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 void
 Sensors::gyro_norm(struct sensor_combined_s &raw)
 {
-	raw.gyro_rad_s[0] /= _gyro_n;
-	raw.gyro_rad_s[1] /= _gyro_n;
-	raw.gyro_rad_s[2] /= _gyro_n;
+	/* normalize integral only if have new measurements, else it's already normalized old value */
+	if (_gyro_n > 0) {
+		raw.gyro_rad_s[0] /= _gyro_n;
+		raw.gyro_rad_s[1] /= _gyro_n;
+		raw.gyro_rad_s[2] /= _gyro_n;
 
-	raw.gyro_counter++;
+		raw.gyro_counter++;
 
-	_gyro_n = 0;
+		_gyro_n = 0;
+	}
 }
 
 void
