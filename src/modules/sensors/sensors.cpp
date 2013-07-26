@@ -136,6 +136,11 @@ public:
 	 */
 	int		start();
 
+	/**
+	 * Set output interval.
+	 */
+	void	set_output_interval(hrt_abstime interval);
+
 private:
 	static const unsigned _rc_max_chan_count = RC_CHANNELS_MAX;	/**< maximum number of r/c channels we handle */
 
@@ -422,7 +427,7 @@ Sensors::Sensors() :
 	_fd_adc(-1),
 	_last_adc(0),
 
-	_output_interval(0),
+	_output_interval(5000),		// default output interval: 200Hz
 	_output_next(0),
 
 	_accel_n(0),
@@ -1416,7 +1421,7 @@ Sensors::task_main()
 {
 
 	/* inform about start */
-	printf("[sensors] Initializing..\n");
+	warnx("initializing...");
 	fflush(stdout);
 
 	/* start individual sensors */
@@ -1425,9 +1430,6 @@ Sensors::task_main()
 	mag_init();
 	baro_init();
 	adc_init();
-
-	/* set output rate to 200Hz (5ms interval)*/
-	_output_interval = 5000;
 
 	/*
 	 * do subscriptions
@@ -1537,7 +1539,7 @@ Sensors::task_main()
 		perf_end(_loop_perf);
 	}
 
-	printf("[sensors] exiting.\n");
+	warnx("exiting");
 
 	_sensors_task = -1;
 	_exit(0);
@@ -1564,20 +1566,37 @@ Sensors::start()
 	return OK;
 }
 
+void
+Sensors::set_output_interval(hrt_abstime interval)
+{
+	_output_interval = interval;
+}
+
 int sensors_main(int argc, char *argv[])
 {
-	if (argc < 1)
-		errx(1, "usage: sensors {start|stop|status}");
+	if (argc < 2)
+		errx(1, "usage: sensors {start|stop|status} [rate]");
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (sensors::g_sensors != nullptr)
 			errx(0, "sensors task already running");
 
+		long r = 200;	// default output rate
+		if (argc > 2) {
+			r = strtol(argv[2], 0, 10);
+			if (r < 10 || r > 500) {
+				errx(1, "invalid rate");
+			}
+		}
+
 		sensors::g_sensors = new Sensors;
 
 		if (sensors::g_sensors == nullptr)
 			errx(1, "sensors task alloc failed");
+
+		warnx("output rate: %dHz", r);
+		sensors::g_sensors->set_output_interval(1000000l / r);
 
 		if (OK != sensors::g_sensors->start()) {
 			delete sensors::g_sensors;
