@@ -146,7 +146,11 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_PWM_DEFAULTRATE]		= 50,
 	[PX4IO_P_SETUP_PWM_ALTRATE]		= 200,
 	[PX4IO_P_SETUP_RELAYS]			= 0,
+#ifdef ADC_VSERVO
+	[PX4IO_P_SETUP_VSERVO_SCALE]		= 10000,
+#else
 	[PX4IO_P_SETUP_VBATT_SCALE]		= 10000,
+#endif
 	[PX4IO_P_SETUP_SET_DEBUG]		= 0,
 };
 
@@ -570,29 +574,17 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 			 * Coefficients here derived by measurement of the 5-16V
 			 * range on one unit:
 			 *
-			 * V   counts
-			 *  5  1001
-			 *  6  1219
-			 *  7  1436
-			 *  8  1653
-			 *  9  1870
-			 * 10  2086
-			 * 11  2303
-			 * 12  2522
-			 * 13  2738
-			 * 14  2956
-			 * 15  3172
-			 * 16  3389
+			 * XXX pending measurements
 			 *
-			 * slope = 0.0046067
-			 * intercept = 0.3863
+			 * slope = xxx
+			 * intercept = xxx
 			 *
-			 * Intercept corrected for best results @ 12V.
+			 * Intercept corrected for best results @ 5.0V.
 			 */
 			unsigned counts = adc_measure(ADC_VSERVO);
 			if (counts != 0xffff) {
 				unsigned mV = (4150 + (counts * 46)) / 10 - 200;
-				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VBATT_SCALE]) / 10000;
+				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VSERVO_SCALE]) / 10000;
 
 				r_page_status[PX4IO_P_STATUS_VSERVO] = corrected;
 			}

@@ -1315,7 +1315,7 @@ PX4IO::print_status()
 	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0xFFFF);
 
 	if (_hardware == 1) {
-		printf("vbatt %u ibatt %u vbatt scale %u\n",
+		printf("vbatt mV %u ibatt mV %u vbatt scale %u\n",
 		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
 		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),
 		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
@@ -1324,9 +1324,9 @@ PX4IO::print_status()
 		       (double)_battery_amp_bias,
 		       (double)_battery_mamphour_total);
 	} else if (_hardware == 2) {
-		printf("vservo %u vservo scale %u\n",
+		printf("vservo %u mV vservo scale %u\n",
 		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VSERVO),
-		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
+		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VSERVO_SCALE));
 		printf("vrssi %u\n", io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VRSSI));
 	}
 	printf("actuators");

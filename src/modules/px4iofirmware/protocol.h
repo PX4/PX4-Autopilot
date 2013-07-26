@@ -163,13 +163,13 @@
 #define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
 
 #define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
-#define PX4IO_P_SETUP_RELAYS_POWER1		(1<<0)	/* [1] power relay 1 */
-#define PX4IO_P_SETUP_RELAYS_POWER2		(1<<1)	/* [1] power relay 2 */
-#define PX4IO_P_SETUP_RELAYS_ACC1		(1<<2)	/* [1] accessory power 1 */
-#define PX4IO_P_SETUP_RELAYS_ACC2		(1<<3)	/* [1] accessory power 2 */
+#define PX4IO_P_SETUP_RELAYS_POWER1		(1<<0)	/* hardware rev [1] power relay 1 */
+#define PX4IO_P_SETUP_RELAYS_POWER2		(1<<1)	/* hardware rev [1] power relay 2 */
+#define PX4IO_P_SETUP_RELAYS_ACC1		(1<<2)	/* hardware rev [1] accessory power 1 */
+#define PX4IO_P_SETUP_RELAYS_ACC2		(1<<3)	/* hardware rev [1] accessory power 2 */
 
-#define PX4IO_P_SETUP_VBATT_SCALE		6	/* [1] battery voltage correction factor (float) */
-#define PX4IO_P_SETUP_VSERVO_SCALE		6	/* [2] servo voltage correction factor (float) */
+#define PX4IO_P_SETUP_VBATT_SCALE		6	/* hardware rev [1] battery voltage correction factor (float) */
+#define PX4IO_P_SETUP_VSERVO_SCALE		6	/* hardware rev [2] servo voltage correction factor (float) */
 #define PX4IO_P_SETUP_DSM			7	/* DSM bind state */
 enum {							/* DSM bind states */
 	dsm_bind_power_down = 0,
