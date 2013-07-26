@@ -50,6 +50,7 @@ MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
+MODULES		+= systemcmds/config
 
 #
 # General system control
