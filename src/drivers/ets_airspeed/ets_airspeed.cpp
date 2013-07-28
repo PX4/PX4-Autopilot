@@ -157,6 +157,14 @@ ETSAirspeed::collect()
 	}
 
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
+        if (diff_pres_pa == 0) {
+            // a zero value means the pressure sensor cannot give us a
+            // value. We need to return, and not report a value or the
+            // caller could end up using this value as part of an
+            // average
+            log("zero value from sensor"); 
+            return -1;
+        }
 
 	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
 		diff_pres_pa = 0;
