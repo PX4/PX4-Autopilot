@@ -1,0 +1,139 @@
+#!nsh
+#
+# Flight startup script for PX4FMU+PX4IO
+#
+ 
+# disable USB and autostart
+set USB no
+set MODE custom
+
+#
+# Load default params for this platform
+#
+if param compare SYS_AUTOCONFIG 1
+then
+	# Set all params here, then disable autoconfig
+	param set SYS_AUTOCONFIG 0
+
+	param set MC_ATTRATE_D	         0.007
+	param set MC_ATTRATE_I	         0.0
+	param set MC_ATTRATE_P	         0.13
+	param set MC_ATT_D	         0.0
+	param set MC_ATT_I	         0.0
+	param set MC_ATT_P	         7.0
+	param set MC_POS_P	         0.1
+	param set MC_RCLOSS_THR	         0.0
+	param set MC_YAWPOS_D	         0.0
+	param set MC_YAWPOS_I	         0.5
+	param set MC_YAWPOS_P	         1.0
+	param set MC_YAWRATE_D	         0.0
+	param set MC_YAWRATE_I	         0.0
+	param set MC_YAWRATE_P	         0.2
+
+	param save /fs/microsd/params
+fi
+ 
+#
+# Force some key parameters to sane values
+# MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
+#              see https://pixhawk.ethz.ch/mavlink/
+#
+param set MAV_TYPE 2
+ 
+#
+# Check if PX4IO Firmware should be upgraded (from Andrew Tridgell)
+#
+if [ -f /fs/microsd/px4io2.bin ]
+then
+	echo "PX4IO Firmware found. Checking Upgrade.."
+	if cmp /fs/microsd/px4io2.bin /fs/microsd/px4io2.cur
+	then
+		echo "No newer version, skipping upgrade."
+	else
+		echo "Loading /fs/microsd/px4io2.bin"
+		if px4io update /fs/microsd/px4io2.bin > /fs/microsd/px4io2.log
+		then
+			cp /fs/microsd/px4io2.bin /fs/microsd/px4io2.cur
+			echo "Flashed /fs/microsd/px4io2.bin OK" >> /fs/microsd/px4io2.log
+		else
+			echo "Failed flashing /fs/microsd/px4io2.bin" >> /fs/microsd/px4io2.log
+			echo "Failed to upgrade PX4IO2 firmware - check if PX4IO2 is in bootloader mode"
+		fi
+	fi
+fi
+ 
+#
+# Start MAVLink (depends on orb)
+#
+mavlink start
+usleep 5000
+ 
+#
+# Start PX4IO interface (depends on orb, commander)
+#
+px4io start
+pwm -u 400 -m 0xff
+ 
+#
+# Allow PX4IO to recover from midair restarts.
+# this is very unlikely, but quite safe and robust.
+px4io recovery
+
+#
+# Disable px4io topic limiting
+#
+px4io limit 200
+
+#
+# This sets a PWM right after startup (regardless of safety button)
+#
+px4io idle 900 900 900 900
+
+#
+# The values are for spinning motors when armed using DJI ESCs
+#
+px4io min 1200 1200 1200 1200
+
+#
+# Upper limits could be higher, this is on the safe side
+#
+px4io max 1800 1800 1800 1800
+ 
+#
+# Start the sensors (depends on orb, px4io)
+#
+sh /etc/init.d/rc.sensors
+
+#
+# Start the commander (depends on orb, mavlink)
+#
+commander start
+ 
+#
+# Start GPS interface (depends on orb)
+#
+gps start
+ 
+#
+# Start the attitude estimator (depends on orb)
+#
+attitude_estimator_ekf start
+ 
+#
+# Load mixer and start controllers (depends on px4io)
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
+multirotor_att_control start
+ 
+#
+# Start logging
+#
+sdlog2 start -r 20 -a -b 14
+ 
+#
+# Start system state
+#
+if blinkm start
+then
+	blinkm systemstate
+fi

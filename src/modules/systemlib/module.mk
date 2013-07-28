@@ -47,4 +47,5 @@ SRCS		 = err.c \
 		   pid/pid.c \
 		   geo/geo.c \
 		   systemlib.c \
-		   airspeed.c
+		   airspeed.c \
+		   system_params.c

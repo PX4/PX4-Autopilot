@@ -63,6 +63,7 @@ static void	do_import(const char* param_file_name);
 static void	do_show(const char* search_string);
 static void	do_show_print(void *arg, param_t param);
 static void	do_set(const char* name, const char* val);
+static void	do_compare(const char* name, const char* val);
 
 int
 param_main(int argc, char *argv[])
@@ -117,9 +118,17 @@ param_main(int argc, char *argv[])
 				errx(1, "not enough arguments.\nTry 'param set PARAM_NAME 3'");
 			}
 		}
+
+		if (!strcmp(argv[1], "compare")) {
+			if (argc >= 4) {
+				do_compare(argv[2], argv[3]);
+			} else {
+				errx(1, "not enough arguments.\nTry 'param compare PARAM_NAME 3'");
+			}
+		}
 	}
 	
-	errx(1, "expected a command, try 'load', 'import', 'show', 'set', 'select' or 'save'");
+	errx(1, "expected a command, try 'load', 'import', 'show', 'set', 'compare', 'select' or 'save'");
 }
 
 static void
@@ -294,4 +303,66 @@ do_set(const char* name, const char* val)
 	}
 
 	exit(0);
+}
+
+static void
+do_compare(const char* name, const char* val)
+{
+	int32_t i;
+	float f;
+	param_t param = param_find(name);
+
+	/* set nothing if parameter cannot be found */
+	if (param == PARAM_INVALID) {
+		/* param not found */
+		errx(1, "Error: Parameter %s not found.", name);
+	}
+
+	/*
+	 * Set parameter if type is known and conversion from string to value turns out fine
+	 */
+
+	int ret = 1;
+
+	switch (param_type(param)) {
+	case PARAM_TYPE_INT32:
+		if (!param_get(param, &i)) {
+
+			/* convert string */
+			char* end;
+			int j = strtol(val,&end,10);
+			if (i == j) {
+				printf(" %d: ", i);
+				ret = 0;
+			}
+
+		}
+
+		break;
+
+	case PARAM_TYPE_FLOAT:
+		if (!param_get(param, &f)) {
+
+			/* convert string */
+			char* end;
+			float g = strtod(val, &end);
+			if (fabsf(f - g) < 1e-7f) {
+				printf(" %4.4f: ", (double)f);
+				ret = 0;	
+			}
+		}
+
+		break;
+
+	default:
+		errx(1, "<unknown / unsupported type %d>\n", 0 + param_type(param));
+	}
+
+	if (ret == 0) {
+		printf("%c %s: equal\n",
+		param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		param_name(param));
+	}
+
+	exit(ret);
 }
