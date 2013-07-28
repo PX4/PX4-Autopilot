@@ -123,24 +123,6 @@ void BlockWaypointGuidance::update(vehicle_global_position_s &pos,
 			    _xtYawLimit.update(_xt2Yaw.update(xtrackError.distance)));
 }
 
-BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name) :
-	SuperBlock(parent, name),
-	// subscriptions
-	_att(&getSubscriptions(), ORB_ID(vehicle_attitude), 20),
-	_attCmd(&getSubscriptions(), ORB_ID(vehicle_attitude_setpoint), 20),
-	_ratesCmd(&getSubscriptions(), ORB_ID(vehicle_rates_setpoint), 20),
-	_pos(&getSubscriptions() , ORB_ID(vehicle_global_position), 20),
-	_posCmd(&getSubscriptions(), ORB_ID(vehicle_global_position_set_triplet), 20),
-	_manual(&getSubscriptions(), ORB_ID(manual_control_setpoint), 20),
-	_status(&getSubscriptions(), ORB_ID(vehicle_status), 20),
-	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
-	// publications
-	_actuators(&getPublications(), ORB_ID(actuator_controls_0))
-{
-}
-
-BlockUorbEnabledAutopilot::~BlockUorbEnabledAutopilot() {};
-
 BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *parent, const char *name) :
 	BlockUorbEnabledAutopilot(parent, name),
 	_stabilization(this, ""), // no name needed, already unique

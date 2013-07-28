@@ -32,87 +32,59 @@
  ****************************************************************************/
 
 /**
- * @file UOrbPublication.h
+ * @file uorb_blocks.h
  *
+ * uorb block library code
  */
 
 #pragma once
 
-#include <uORB/uORB.h>
-#include "Block.hpp"
-#include "List.hpp"
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_global_position_set_triplet.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/parameter_update.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include <drivers/drv_hrt.h>
+#include <poll.h>
+
+#include "../blocks.hpp"
+#include "UOrbSubscription.hpp"
+#include "UOrbPublication.hpp"
 
 namespace control
 {
 
-class Block;
-
 /**
- * Base publication warapper class, used in list traversal
- * of various publications.
+ * UorbEnabledAutopilot
  */
-class __EXPORT UOrbPublicationBase : public ListNode<control::UOrbPublicationBase *>
+class __EXPORT BlockUorbEnabledAutopilot : public SuperBlock
 {
-public:
-
-	UOrbPublicationBase(
-		List<UOrbPublicationBase *> * list,
-		const struct orb_metadata *meta) :
-		_meta(meta),
-		_handle(-1) {
-		if (list != NULL) list->add(this);
-	}
-	void update() {
-		if (_handle > 0) {
-			orb_publish(getMeta(), getHandle(), getDataVoidPtr());
-		} else {
-			setHandle(orb_advertise(getMeta(), getDataVoidPtr()));
-		}
-	}
-	virtual void *getDataVoidPtr() = 0;
-	virtual ~UOrbPublicationBase() {
-		orb_unsubscribe(getHandle());
-	}
-	const struct orb_metadata *getMeta() { return _meta; }
-	int getHandle() { return _handle; }
 protected:
-	void setHandle(orb_advert_t handle) { _handle = handle; }
-	const struct orb_metadata *_meta;
-	orb_advert_t _handle;
-};
-
-/**
- * UOrb Publication wrapper class
- */
-template<class T>
-class UOrbPublication :
-	public T, // this must be first!
-	public UOrbPublicationBase
-{
+	// subscriptions
+	UOrbSubscription<vehicle_attitude_s> _att;
+	UOrbSubscription<vehicle_attitude_setpoint_s> _attCmd;
+	UOrbSubscription<vehicle_rates_setpoint_s> _ratesCmd;
+	UOrbSubscription<vehicle_global_position_s> _pos;
+	UOrbSubscription<vehicle_global_position_set_triplet_s> _posCmd;
+	UOrbSubscription<manual_control_setpoint_s> _manual;
+	UOrbSubscription<vehicle_status_s> _status;
+	UOrbSubscription<parameter_update_s> _param_update;
+	// publications
+	UOrbPublication<actuator_controls_s> _actuators;
 public:
-	/**
-	 * Constructor
-	 *
-	 * @param list      A list interface for adding to list during construction
-	 * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-	 *			for the topic.
-	 */
-	UOrbPublication(
-		List<UOrbPublicationBase *> * list,
-		const struct orb_metadata *meta) :
-		T(), // initialize data structure to zero
-		UOrbPublicationBase(list, meta) {
-	}
-	virtual ~UOrbPublication() {}
-	/*
-	 * XXX
-	 * This function gets the T struct, assuming
-	 * the struct is the first base class, this
-	 * should use dynamic cast, but doesn't
-	 * seem to be available
-	 */
-	void *getDataVoidPtr() { return (void *)(T *)(this); }
+	BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name);
+	virtual ~BlockUorbEnabledAutopilot();
 };
 
 } // namespace control
+

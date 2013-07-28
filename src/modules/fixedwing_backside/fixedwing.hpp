@@ -39,27 +39,8 @@
 
 #pragma once
 
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_global_position_set_triplet.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/parameter_update.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
-#include <drivers/drv_hrt.h>
-#include <poll.h>
-
-#include "blocks.hpp"
-#include "block/UOrbSubscription.hpp"
-#include "block/UOrbPublication.hpp"
+#include <controllib/blocks.hpp>
+#include <controllib/uorb/blocks.hpp>
 
 extern "C" {
 #include <systemlib/geo/geo.h>
@@ -267,28 +248,6 @@ public:
 		    vehicle_global_position_setpoint_s &posCmd,
 		    vehicle_global_position_setpoint_s &lastPosCmd);
 	float getPsiCmd() { return _psiCmd; }
-};
-
-/**
- * UorbEnabledAutopilot
- */
-class __EXPORT BlockUorbEnabledAutopilot : public SuperBlock
-{
-protected:
-	// subscriptions
-	UOrbSubscription<vehicle_attitude_s> _att;
-	UOrbSubscription<vehicle_attitude_setpoint_s> _attCmd;
-	UOrbSubscription<vehicle_rates_setpoint_s> _ratesCmd;
-	UOrbSubscription<vehicle_global_position_s> _pos;
-	UOrbSubscription<vehicle_global_position_set_triplet_s> _posCmd;
-	UOrbSubscription<manual_control_setpoint_s> _manual;
-	UOrbSubscription<vehicle_status_s> _status;
-	UOrbSubscription<parameter_update_s> _param_update;
-	// publications
-	UOrbPublication<actuator_controls_s> _actuators;
-public:
-	BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name);
-	virtual ~BlockUorbEnabledAutopilot();
 };
 
 /**

@@ -46,7 +46,7 @@
 
 #include <poll.h>
 #include <stdio.h>
-#include <controllib/block/UOrbSubscription.hpp>
+#include <controllib/uorb/UOrbSubscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <drivers/device/i2c.h>
 
