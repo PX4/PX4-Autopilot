@@ -1345,44 +1345,6 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 	gpio_bits = 0;
 	servo_mode = MK::MODE_NONE;
 
-	switch (new_mode) {
-	case PORT_FULL_GPIO:
-	case PORT_MODE_UNSET:
-		/* nothing more to do here */
-		break;
-
-	case PORT_FULL_SERIAL:
-		/* set all multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_1 | GPIO_MULTI_2 | GPIO_MULTI_3 | GPIO_MULTI_4;
-		break;
-
-	case PORT_FULL_PWM:
-		/* select 4-pin PWM mode */
-		servo_mode = MK::MODE_4PWM;
-		break;
-
-	case PORT_GPIO_AND_SERIAL:
-		/* set RX/TX multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
-		break;
-
-	case PORT_PWM_AND_SERIAL:
-		/* select 2-pin PWM mode */
-		servo_mode = MK::MODE_2PWM;
-		/* set RX/TX multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
-		break;
-
-	case PORT_PWM_AND_GPIO:
-		/* select 2-pin PWM mode */
-		servo_mode = MK::MODE_2PWM;
-		break;
-	}
-
-	/* adjust GPIO config for serial mode(s) */
-	if (gpio_bits != 0)
-		g_mk->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
-
 	/* native PX4 addressing) */
 	g_mk->set_px4mode(px4mode);
 

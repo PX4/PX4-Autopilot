@@ -21,7 +21,6 @@ MODULES		+= drivers/boards/px4fmuv2
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
-#MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
@@ -30,6 +29,10 @@ MODULES		+= drivers/hil
 MODULES		+= drivers/hott/hott_telemetry
 MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
+MODULES		+= drivers/mkblctrl
+MODULES		+= drivers/airspeed
+MODULES		+= drivers/ets_airspeed
+MODULES		+= drivers/meas_airspeed
 MODULES		+= modules/sensors
 
 #
