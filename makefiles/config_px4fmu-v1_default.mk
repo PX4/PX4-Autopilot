@@ -32,7 +32,9 @@ MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/md25
+MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
+MODULES		+= drivers/meas_airspeed
 MODULES		+= modules/sensors
 
 #

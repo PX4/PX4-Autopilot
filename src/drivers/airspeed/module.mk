@@ -32,10 +32,7 @@
 ############################################################################
 
 #
-# Makefile to build the Eagle Tree Airspeed V3 driver.
+# Makefile to build the generic airspeed driver.
 #
 
-MODULE_COMMAND		= ets_airspeed
-MODULE_STACKSIZE	= 2048
-
-SRCS			= ets_airspeed.cpp
+SRCS			= airspeed.cpp
