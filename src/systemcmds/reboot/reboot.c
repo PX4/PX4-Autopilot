@@ -47,7 +47,7 @@ __EXPORT int reboot_main(int argc, char *argv[]);
 
 int reboot_main(int argc, char *argv[])
 {
-	up_systemreset();
+	systemreset();
 }
 
 

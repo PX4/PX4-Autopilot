@@ -141,7 +141,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 			current_status->flag_system_armed = false;
 			mavlink_log_critical(mavlink_fd, "REBOOTING SYSTEM");
 			usleep(500000);
-			up_systemreset();
+			systemreset();
 			/* SPECIAL CASE: NEVER RETURNS FROM THIS FUNCTION CALL */
 
 		} else {

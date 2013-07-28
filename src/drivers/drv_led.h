@@ -60,6 +60,6 @@ __BEGIN_DECLS
 /*
  * Initialise the LED driver.
  */
-__EXPORT extern void drv_led_start(void);
+__EXPORT void drv_led_start(void);
 
 __END_DECLS

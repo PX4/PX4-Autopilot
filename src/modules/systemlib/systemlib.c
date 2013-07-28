@@ -50,6 +50,10 @@
 
 #include "systemlib.h"
 
+__EXPORT extern void systemreset(void) {
+	up_systemreset();
+}
+
 static void kill_task(FAR struct tcb_s *tcb, FAR void *arg);
 
 void killall()
