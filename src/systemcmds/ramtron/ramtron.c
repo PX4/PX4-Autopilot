@@ -63,6 +63,15 @@
 
 __EXPORT int ramtron_main(int argc, char *argv[]);
 
+#ifndef CONFIG_MTD_RAMTRON
+
+/* create a fake command with decent message to not confuse users */
+int ramtron_main(int argc, char *argv[])
+{
+	errx(1, "RAMTRON not enabled, skipping.");
+}
+#else
+
 static void	ramtron_attach(void);
 static void	ramtron_start(void);
 static void	ramtron_erase(void);
@@ -266,3 +275,5 @@ ramtron_test(void)
 //	at24c_test();
 	exit(0);
 }
+
+#endif
