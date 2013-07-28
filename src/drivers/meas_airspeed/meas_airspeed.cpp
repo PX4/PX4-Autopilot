@@ -32,10 +32,20 @@
  ****************************************************************************/
 
 /**
- * @file ets_airspeed.cpp
+ * @file meas_airspeed.cpp
+ * @author Lorenz Meier
  * @author Simon Wilks
  *
- * Driver for the Eagle Tree Airspeed V3 connected via I2C.
+ * Driver for the MEAS Spec series connected via I2C.
+ *
+ * Supported sensors:
+ *
+ *    - MS4525DO (http://www.meas-spec.com/downloads/MS4525DO.pdf)
+ *    - untested: MS5525DSO (http://www.meas-spec.com/downloads/MS5525DSO.pdf)
+ *
+ * Interface application notes:
+ *
+ *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
 #include <nuttx/config.h>
@@ -72,27 +82,27 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/subsystem_info.h>
+
 #include <drivers/airspeed/airspeed.h>
 
-/* I2C bus address */
-#define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */
+/* I2C bus address is 1010001x */
+#define I2C_ADDRESS_MS4525DO	0x28	//0x51 /* 7-bit address. */
+/* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
+#define I2C_ADDRESS_MS5525DSO	0x77	//0x77/* 7-bit address, addr. pin pulled low */
 
 /* Register address */
-#define READ_CMD	0x07	/* Read the data */
-
-/**
- * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h.
- * You can set this value to 12 if you want a zero reading below 15km/h.
- */
-#define MIN_ACCURATE_DIFF_PRES_PA 0
+#define ADDR_READ_MR			0x00	/* write to this address to start conversion */
+#define ADDR_READ_DF2			0x00	/* read from this address to read pressure only */
+#define ADDR_READ_DF3			0x01
+#define ADDR_READ_DF4			0x02	/* read from this address to read pressure and temp */
 
 /* Measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
-class ETSAirspeed : public Airspeed
+class MEASAirspeed : public Airspeed
 {
 public:
-	ETSAirspeed(int bus, int address = I2C_ADDRESS);
+	MEASAirspeed(int bus, int address = I2C_ADDRESS_MS4525DO);
 
 protected:
 
@@ -109,23 +119,23 @@ protected:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int ets_airspeed_main(int argc, char *argv[]);
+extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
-ETSAirspeed::ETSAirspeed(int bus, int address) : Airspeed(bus, address,
+MEASAirspeed::MEASAirspeed(int bus, int address) : Airspeed(bus, address,
 	CONVERSION_INTERVAL)
 {
 
 }
 
 int
-ETSAirspeed::measure()
+MEASAirspeed::measure()
 {
 	int ret;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	uint8_t cmd = READ_CMD;
+	uint8_t cmd = 0;
 	ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret) {
@@ -140,12 +150,13 @@ ETSAirspeed::measure()
 }
 
 int
-ETSAirspeed::collect()
+MEASAirspeed::collect()
 {
 	int	ret = -EIO;
 
 	/* read from the sensor */
-	uint8_t val[2] = {0, 0};
+	uint8_t val[4] = {0, 0, 0, 0};
+
 
 	perf_begin(_sample_perf);
 
@@ -156,18 +167,24 @@ ETSAirspeed::collect()
 		return ret;
 	}
 
-	uint16_t diff_pres_pa = val[1] << 8 | val[0];
+	uint8_t status = val[0] & 0xC0;
 
-	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
-		diff_pres_pa = 0;
-
-	} else {
-		diff_pres_pa -= _diff_pres_offset;
+	if (status == 2) {
+		log("err: stale data");
+	} else if (status == 3) {
+		log("err: fault");
 	}
+
+	uint16_t diff_pres_pa = (val[1]) | ((val[0] & ~(0xC0)) << 8);
+	uint16_t temp = (val[3] & 0xE0) << 8 | val[2];
+
+	diff_pres_pa = abs(diff_pres_pa - (16384 / 2.0f));
+	diff_pres_pa -= _diff_pres_offset;
 
 	// XXX we may want to smooth out the readings to remove noise.
 
 	_reports[_next_report].timestamp = hrt_absolute_time();
+	_reports[_next_report].temperature = temp;
 	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
 
 	// Track maximum differential pressure measured (so we can work out top speed).
@@ -198,7 +215,7 @@ ETSAirspeed::collect()
 }
 
 void
-ETSAirspeed::cycle()
+MEASAirspeed::cycle()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -248,7 +265,7 @@ ETSAirspeed::cycle()
 /**
  * Local functions in support of the shell command.
  */
-namespace ets_airspeed
+namespace meas_airspeed
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -257,7 +274,7 @@ namespace ets_airspeed
 #endif
 const int ERROR = -1;
 
-ETSAirspeed	*g_dev;
+MEASAirspeed	*g_dev = nullptr;
 
 void	start(int i2c_bus);
 void	stop();
@@ -276,14 +293,26 @@ start(int i2c_bus)
 	if (g_dev != nullptr)
 		errx(1, "already started");
 
-	/* create the driver */
-	g_dev = new ETSAirspeed(i2c_bus);
+	/* create the driver, try the MS4525DO first */
+	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO);
 
+	/* check if the MS4525DO was instantiated */
 	if (g_dev == nullptr)
 		goto fail;
 
-	if (OK != g_dev->Airspeed::init())
-		goto fail;
+	/* try the MS5525DSO next if init fails */
+	if (OK != g_dev->Airspeed::init()) {
+		delete g_dev;
+		g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS5525DSO);
+
+		/* check if the MS5525DSO was instantiated */
+		if (g_dev == nullptr)
+			goto fail;
+
+		/* both versions failed if the init for the MS5525DSO fails, give up */
+		if (OK != g_dev->Airspeed::init())
+			goto fail;
+	}
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
@@ -338,7 +367,7 @@ test()
 	int fd = open(AIRSPEED_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'ets_airspeed start' if the driver is not running", AIRSPEED_DEVICE_PATH);
+		err(1, "%s open failed (try 'meas_airspeed start' if the driver is not running", AIRSPEED_DEVICE_PATH);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
@@ -373,6 +402,7 @@ test()
 
 		warnx("periodic read %u", i);
 		warnx("diff pressure: %d pa", report.differential_pressure_pa);
+		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 
 	errx(0, "PASS");
@@ -417,9 +447,9 @@ info()
 
 
 static void
-ets_airspeed_usage()
+meas_airspeed_usage()
 {
-	warnx("usage: ets_airspeed command [options]");
+	warnx("usage: meas_airspeed command [options]");
 	warnx("options:");
 	warnx("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
 	warnx("command:");
@@ -427,7 +457,7 @@ ets_airspeed_usage()
 }
 
 int
-ets_airspeed_main(int argc, char *argv[])
+meas_airspeed_main(int argc, char *argv[])
 {
 	int i2c_bus = PX4_I2C_BUS_DEFAULT;
 
@@ -445,32 +475,32 @@ ets_airspeed_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start"))
-		ets_airspeed::start(i2c_bus);
+		meas_airspeed::start(i2c_bus);
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[1], "stop"))
-		ets_airspeed::stop();
+		meas_airspeed::stop();
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test"))
-		ets_airspeed::test();
+		meas_airspeed::test();
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[1], "reset"))
-		ets_airspeed::reset();
+		meas_airspeed::reset();
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status"))
-		ets_airspeed::info();
+		meas_airspeed::info();
 
-	ets_airspeed_usage();
+	meas_airspeed_usage();
 	exit(0);
 }

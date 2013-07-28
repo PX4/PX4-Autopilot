@@ -32,10 +32,10 @@
 ############################################################################
 
 #
-# Makefile to build the Eagle Tree Airspeed V3 driver.
+# Makefile to build the MEAS Spec airspeed sensor driver.
 #
 
-MODULE_COMMAND		= ets_airspeed
+MODULE_COMMAND		= meas_airspeed
 MODULE_STACKSIZE	= 2048
 
-SRCS			= ets_airspeed.cpp
+SRCS			= meas_airspeed.cpp
