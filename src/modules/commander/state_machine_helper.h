@@ -49,10 +49,18 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
 
+typedef enum {
+	TRANSITION_DENIED = -1,
+	TRANSITION_NOT_CHANGED = 0,
+	TRANSITION_CHANGED
 
-int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int armed_pub, struct actuator_armed_s *armed, const int mavlink_fd);
+} transition_result_t;
 
-int navigation_state_transition(int status_pub, struct vehicle_status_s *current_state, navigation_state_t new_navigation_state, int control_mode_pub, struct vehicle_control_mode_s *control_mode, const int mavlink_fd);
+transition_result_t arming_state_transition(struct vehicle_status_s *current_state, arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd);
+
+transition_result_t main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state, const int mavlink_fd);
+
+transition_result_t navigation_state_transition(struct vehicle_status_s *current_status, navigation_state_t new_navigation_state, struct vehicle_control_mode_s *control_mode, const int mavlink_fd);
 
 int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_status_s *current_state, int control_mode_pub, struct vehicle_control_mode_s *current_control_mode, const int mavlink_fd);
 

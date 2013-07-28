@@ -62,102 +62,110 @@
 #endif
 static const int ERROR = -1;
 
-int arming_state_transition(int status_pub, struct vehicle_status_s *current_state, arming_state_t new_arming_state, int armed_pub, struct actuator_armed_s *armed, const int mavlink_fd) {
-
-
-	int ret = ERROR;
+transition_result_t
+arming_state_transition(struct vehicle_status_s *status, arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd)
+{
+	transition_result_t ret = TRANSITION_DENIED;
 
 	/* only check transition if the new state is actually different from the current one */
-	if (new_arming_state == current_state->arming_state) {
-		ret = OK;
+	if (new_arming_state == status->arming_state) {
+		ret = TRANSITION_NOT_CHANGED;
+
 	} else {
 
 		switch (new_arming_state) {
-			case ARMING_STATE_INIT:
+		case ARMING_STATE_INIT:
 
-				/* allow going back from INIT for calibration */
-				if (current_state->arming_state == ARMING_STATE_STANDBY) {
-					ret = OK;
+			/* allow going back from INIT for calibration */
+			if (status->arming_state == ARMING_STATE_STANDBY) {
+				ret = TRANSITION_CHANGED;
+				armed->armed = false;
+				armed->ready_to_arm = false;
+			}
+
+			break;
+
+		case ARMING_STATE_STANDBY:
+
+			/* allow coming from INIT and disarming from ARMED */
+			if (status->arming_state == ARMING_STATE_INIT
+			    || status->arming_state == ARMING_STATE_ARMED) {
+
+				/* sensors need to be initialized for STANDBY state */
+				if (status->condition_system_sensors_initialized) {
+					ret = TRANSITION_CHANGED;
 					armed->armed = false;
-					armed->ready_to_arm = false;
+					armed->ready_to_arm = true;
+
+				} else {
+					mavlink_log_critical(mavlink_fd, "rej. STANDBY state, sensors not initialized");
 				}
-				break;
-			case ARMING_STATE_STANDBY:
+			}
 
-				/* allow coming from INIT and disarming from ARMED */
-				if (current_state->arming_state == ARMING_STATE_INIT
-				 || current_state->arming_state == ARMING_STATE_ARMED) {
+			break;
 
-					/* sensors need to be initialized for STANDBY state */
-					if (current_state->condition_system_sensors_initialized) {
-						ret = OK;
-						armed->armed = false;
-						armed->ready_to_arm = true;
-					} else {
-						mavlink_log_critical(mavlink_fd, "Rej. STANDBY state, sensors not initialized");
-					}
-				}
-				break;
-			case ARMING_STATE_ARMED:
+		case ARMING_STATE_ARMED:
 
-				/* allow arming from STANDBY and IN-AIR-RESTORE */
-				if (current_state->arming_state == ARMING_STATE_STANDBY
-				 || current_state->arming_state == ARMING_STATE_IN_AIR_RESTORE) {
+			/* allow arming from STANDBY and IN-AIR-RESTORE */
+			if (status->arming_state == ARMING_STATE_STANDBY
+			    || status->arming_state == ARMING_STATE_IN_AIR_RESTORE) {
+				ret = TRANSITION_CHANGED;
+				armed->armed = true;
+				armed->ready_to_arm = false;
+			}
 
-					/* XXX conditions for arming? */
-					ret = OK;
-					armed->armed = true;
-				}
-				break;
-			case ARMING_STATE_ARMED_ERROR:
+			break;
 
-				/* an armed error happens when ARMED obviously */
-				if (current_state->arming_state == ARMING_STATE_ARMED) {
-					
-					/* XXX conditions for an error state? */
-					ret = OK;
-					armed->armed = true;
-				}
-				break;
-			case ARMING_STATE_STANDBY_ERROR:
-				/* a disarmed error happens when in STANDBY or in INIT or after ARMED_ERROR */
-				if (current_state->arming_state == ARMING_STATE_STANDBY
-				 || current_state->arming_state == ARMING_STATE_INIT
-				 || current_state->arming_state == ARMING_STATE_ARMED_ERROR) {
-					ret = OK;
-					armed->armed = false;
-					armed->ready_to_arm = false;
-				}
-				break;
-			case ARMING_STATE_REBOOT:
+		case ARMING_STATE_ARMED_ERROR:
 
-				/* an armed error happens when ARMED obviously */
-				if (current_state->arming_state == ARMING_STATE_INIT
-				 || current_state->arming_state == ARMING_STATE_STANDBY
-				 || current_state->arming_state == ARMING_STATE_STANDBY_ERROR) {
+			/* an armed error happens when ARMED obviously */
+			if (status->arming_state == ARMING_STATE_ARMED) {
+				ret = TRANSITION_CHANGED;
+				armed->armed = true;
+				armed->ready_to_arm = false;
+			}
 
-					ret = OK;
-					armed->armed = false;
-					armed->ready_to_arm = false;
+			break;
 
-				}
-				break;
-			case ARMING_STATE_IN_AIR_RESTORE:
+		case ARMING_STATE_STANDBY_ERROR:
 
-				/* XXX implement */
-				break;
-			default:
-				break;
+			/* a disarmed error happens when in STANDBY or in INIT or after ARMED_ERROR */
+			if (status->arming_state == ARMING_STATE_STANDBY
+			    || status->arming_state == ARMING_STATE_INIT
+			    || status->arming_state == ARMING_STATE_ARMED_ERROR) {
+				ret = TRANSITION_CHANGED;
+				armed->armed = false;
+				armed->ready_to_arm = false;
+			}
+
+			break;
+
+		case ARMING_STATE_REBOOT:
+
+			/* an armed error happens when ARMED obviously */
+			if (status->arming_state == ARMING_STATE_INIT
+			    || status->arming_state == ARMING_STATE_STANDBY
+			    || status->arming_state == ARMING_STATE_STANDBY_ERROR) {
+				ret = TRANSITION_CHANGED;
+				armed->armed = false;
+				armed->ready_to_arm = false;
+			}
+
+			break;
+
+		case ARMING_STATE_IN_AIR_RESTORE:
+
+			/* XXX implement */
+			break;
+
+		default:
+			break;
 		}
 
-		if (ret == OK) {
-			current_state->arming_state = new_arming_state;
-			current_state->counter++;
-			current_state->timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_status), status_pub, current_state);
-
-			armed->timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(actuator_armed), armed_pub, armed);
+		if (ret == TRANSITION_CHANGED) {
+			hrt_abstime t = hrt_absolute_time();
+			status->arming_state = new_arming_state;
+			armed->timestamp = t;
 		}
 	}
 
@@ -165,400 +173,230 @@ int arming_state_transition(int status_pub, struct vehicle_status_s *current_sta
 }
 
 
-
-/*
- * This functions does not evaluate any input flags but only checks if the transitions
- * are valid.
- */
-int navigation_state_transition(int status_pub, struct vehicle_status_s *current_state, navigation_state_t new_navigation_state, int control_mode_pub, struct vehicle_control_mode_s *control_mode, const int mavlink_fd) {
-
-	int ret = ERROR;
+transition_result_t
+main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state, const int mavlink_fd)
+{
+	transition_result_t ret = TRANSITION_DENIED;
 
 	/* only check transition if the new state is actually different from the current one */
-	if (new_navigation_state == current_state->navigation_state) {
-		ret = OK;
+	if (new_main_state == current_state->main_state) {
+		ret = TRANSITION_NOT_CHANGED;
+
 	} else {
 
-		switch (new_navigation_state) {
-			case NAVIGATION_STATE_INIT:
+		switch (new_main_state) {
+		case MAIN_STATE_MANUAL:
+			ret = TRANSITION_CHANGED;
+			break;
 
-				/* transitions back to INIT are possible for calibration */
-				if (current_state->navigation_state == NAVIGATION_STATE_MANUAL_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_STANDBY) {
+		case MAIN_STATE_SEATBELT:
 
-					ret = OK;
-					control_mode->flag_control_rates_enabled = false;
-					control_mode->flag_control_attitude_enabled = false;
-					control_mode->flag_control_velocity_enabled = false;
-					control_mode->flag_control_position_enabled = false;
-					control_mode->flag_control_altitude_enabled = false;
-					control_mode->flag_control_manual_enabled = false;
-				}
-				break;
+			/* need position estimate */
+			// TODO only need altitude estimate really
+			if (!current_state->condition_local_position_valid) {
+				mavlink_log_critical(mavlink_fd, "rej. SEATBELT: no position estimate");
+				tune_negative();
 
-			case NAVIGATION_STATE_MANUAL_STANDBY:
+			} else {
+				ret = TRANSITION_CHANGED;
+			}
 
-				/* transitions from INIT and other STANDBY states as well as MANUAL are possible */
-				if (current_state->navigation_state == NAVIGATION_STATE_INIT
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL) {
+			break;
 
-					/* need to be disarmed first */
-					if (current_state->arming_state != ARMING_STATE_STANDBY) {
-						mavlink_log_critical(mavlink_fd, "Rej. MANUAL_STANDBY: not disarmed");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = false;
-						control_mode->flag_control_position_enabled = false;
-						control_mode->flag_control_altitude_enabled = false;
-						control_mode->flag_control_manual_enabled = true;
-					}
-				}
-				break;
+		case MAIN_STATE_EASY:
 
-			case NAVIGATION_STATE_MANUAL:
+			/* need position estimate */
+			if (!current_state->condition_local_position_valid) {
+				mavlink_log_critical(mavlink_fd, "rej. EASY: no position estimate");
+				tune_negative();
 
-				/* need to be armed first */
-				if (current_state->arming_state != ARMING_STATE_ARMED) {
-					mavlink_log_critical(mavlink_fd, "Rej. MANUAL: not armed");
-					tune_negative();
-				} else {
-					ret = OK;
-					control_mode->flag_control_rates_enabled = true;
-					control_mode->flag_control_attitude_enabled = true;
-					control_mode->flag_control_velocity_enabled = false;
-					control_mode->flag_control_position_enabled = false;
-					control_mode->flag_control_altitude_enabled = false;
-					control_mode->flag_control_manual_enabled = true;
-				}
-				break;
+			} else {
+				ret = TRANSITION_CHANGED;
+			}
 
-			case NAVIGATION_STATE_ASSISTED_STANDBY:
+			break;
 
-				/* transitions from INIT and other STANDBY states as well as SEATBELT and SEATBELT_DESCENT are possible */
-				if (current_state->navigation_state == NAVIGATION_STATE_INIT
-				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_DESCENT) {
+		case MAIN_STATE_AUTO:
 
-					/* need to be disarmed and have a position estimate */
-					if (current_state->arming_state != ARMING_STATE_STANDBY) {
-						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_STANDBY: not disarmed");
-						tune_negative();
-					} else if (!current_state->condition_local_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_STANDBY: no position estimate");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = false;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = true;
-					}
-				}
-				break;
+			/* need position estimate */
+			if (!current_state->condition_local_position_valid) {
+				mavlink_log_critical(mavlink_fd, "rej. AUTO: no position estimate");
+				tune_negative();
 
-			case NAVIGATION_STATE_ASSISTED_SEATBELT:
+			} else {
+				ret = TRANSITION_CHANGED;
+			}
 
-				/* transitions from all AUTO modes except AUTO_STANDBY and except MANUAL_STANDBY and INIT*/
-				if (current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_DESCENT
-				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LAND
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_MISSION
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_READY
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_RTL
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-
-					/* need to be armed and have a position estimate */
-					if (current_state->arming_state != ARMING_STATE_ARMED) {
-						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: not armed");
-						tune_negative();
-					} else if (!current_state->condition_local_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no pos estimate");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = false;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = true;
-					}
-				}
-				break;
-
-			case NAVIGATION_STATE_ASSISTED_SIMPLE:
-
-				/* transitions from all AUTO modes except AUTO_STANDBY and except MANUAL_STANDBY and INIT*/
-				if (current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_DESCENT
-				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LAND
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_MISSION
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_READY
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_RTL
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-
-					/* need to be armed and have a position estimate */
-					if (current_state->arming_state != ARMING_STATE_ARMED) {
-						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: not armed");
-						tune_negative();
-					} else if (!current_state->condition_local_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT: no pos estimate");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = true;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = true;
-					}
-				}
-				break;
-
-			case NAVIGATION_STATE_ASSISTED_DESCENT:
-
-				/* transitions from all AUTO modes except AUTO_STANDBY and except MANUAL_STANDBY and INIT and SEATBELT_STANDBY */
-				if (current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
-				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LAND
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_MISSION
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_READY
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_RTL
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-
-					/* need to be armed and have a position estimate */
-					if (current_state->arming_state != ARMING_STATE_ARMED) {
-						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_DESCENT: not armed");
-						tune_negative();
-					} else if (!current_state->condition_local_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. SEATBELT_DESCENT: no pos estimate");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = false;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = true;
-					}
-				}
-				break;
-
-			case NAVIGATION_STATE_AUTO_STANDBY:
-
-				/* transitions from INIT or from other STANDBY modes or from AUTO READY */
-				if (current_state->navigation_state == NAVIGATION_STATE_INIT
-				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_READY) {
-
-					/* need to be disarmed and have a position and home lock */
-					if (current_state->arming_state != ARMING_STATE_STANDBY) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_STANDBY: not disarmed");
-						tune_negative();
-					} else if (!current_state->condition_global_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_STANDBY: no pos lock");
-						tune_negative();
-					} else if (!current_state->condition_home_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_STANDBY: no home pos");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = true;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = false;
-					}
-				}
-				break;
-
-			case NAVIGATION_STATE_AUTO_READY:
-
-				/* transitions from AUTO_STANDBY or AUTO_LAND */
-				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_STANDBY
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LAND) {
-
-					// XXX flag test needed?
-
-					/* need to be armed and have a position and home lock */
-					if (current_state->arming_state != ARMING_STATE_ARMED) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_READY: not armed");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = true;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = false;
-					}
-				}
-				break;
-
-			case NAVIGATION_STATE_AUTO_TAKEOFF:
-
-				/* only transitions from AUTO_READY */
-				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_READY) {
-
-					ret = OK;
-					control_mode->flag_control_rates_enabled = true;
-					control_mode->flag_control_attitude_enabled = true;
-					control_mode->flag_control_velocity_enabled = true;
-					control_mode->flag_control_position_enabled = true;
-					control_mode->flag_control_altitude_enabled = true;
-					control_mode->flag_control_manual_enabled = false;
-				}
-				break;
-
-			case NAVIGATION_STATE_AUTO_LOITER:
-
-				/* from everywhere flying except AUTO_LAND and SEATBELT_DESCENT */
-				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_MISSION
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_RTL
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
-				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL) {
-
-					/* need to have a position and home lock */
-					if (!current_state->condition_global_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LOITER: no pos lock");
-						tune_negative();
-					} else if (!current_state->condition_home_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LOITER: no home pos");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = true;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = false;
-					}
-				}
-				break;
-
-			case NAVIGATION_STATE_AUTO_MISSION:
-
-				/* from everywhere flying except AUTO_LAND and SEATBELT_DESCENT */
-				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_RTL
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
-				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL) {
-
-					/* need to have a mission ready */
-					if (!current_state-> condition_auto_mission_available) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_MISSION: no mission available");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = true;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = false;
-					}
-				}
-				break;
-
-			case NAVIGATION_STATE_AUTO_RTL:
-
-				/* from everywhere flying except AUTO_LAND and SEATBELT_DESCENT */
-				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_MISSION
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SEATBELT
-				 || current_state->navigation_state == NAVIGATION_STATE_ASSISTED_SIMPLE
-				 || current_state->navigation_state == NAVIGATION_STATE_MANUAL) {
-
-					/* need to have a position and home lock */
-					if (!current_state->condition_global_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_RTL: no pos lock");
-						tune_negative();
-					} else if (!current_state->condition_home_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_RTL: no home pos");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = true;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = false;
-					}
-				}
-				break;
-
-			case NAVIGATION_STATE_AUTO_LAND:
-				/* after AUTO_RTL or when in AUTO_LOITER or AUTO_MISSION */
-				if (current_state->navigation_state == NAVIGATION_STATE_AUTO_RTL
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_MISSION
-				 || current_state->navigation_state == NAVIGATION_STATE_AUTO_LOITER) {
-
-					/* need to have a position and home lock */
-					if (!current_state->condition_global_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LAND: no pos lock");
-						tune_negative();
-					} else if (!current_state->condition_home_position_valid) {
-						mavlink_log_critical(mavlink_fd, "Rej. AUTO_LAND: no home pos");
-						tune_negative();
-					} else {
-						ret = OK;
-						control_mode->flag_control_rates_enabled = true;
-						control_mode->flag_control_attitude_enabled = true;
-						control_mode->flag_control_velocity_enabled = true;
-						control_mode->flag_control_position_enabled = true;
-						control_mode->flag_control_altitude_enabled = true;
-						control_mode->flag_control_manual_enabled = false;
-					}
-				}
-				break;
-
-			default:
-				break;
+			break;
 		}
 
-		if (ret == OK) {
-			current_state->navigation_state = new_navigation_state;
-			current_state->counter++;
-			current_state->timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_status), status_pub, current_state);
-
-			control_mode->timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, control_mode);
+		if (ret == TRANSITION_CHANGED) {
+			current_state->main_state = new_main_state;
 		}
 	}
 
-	
+	return ret;
+}
+
+transition_result_t
+navigation_state_transition(struct vehicle_status_s *current_status, navigation_state_t new_navigation_state, struct vehicle_control_mode_s *control_mode, const int mavlink_fd)
+{
+	transition_result_t ret = TRANSITION_DENIED;
+
+	/* only check transition if the new state is actually different from the current one */
+	if (new_navigation_state == current_status->navigation_state) {
+		ret = TRANSITION_NOT_CHANGED;
+
+	} else {
+
+		switch (new_navigation_state) {
+		case NAVIGATION_STATE_STANDBY:
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = false;
+			control_mode->flag_control_attitude_enabled = false;
+			control_mode->flag_control_velocity_enabled = false;
+			control_mode->flag_control_position_enabled = false;
+			control_mode->flag_control_altitude_enabled = false;
+			control_mode->flag_control_manual_enabled = false;
+			break;
+
+		case NAVIGATION_STATE_DIRECT:
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = true;
+			control_mode->flag_control_attitude_enabled = false;
+			control_mode->flag_control_velocity_enabled = false;
+			control_mode->flag_control_position_enabled = false;
+			control_mode->flag_control_altitude_enabled = false;
+			control_mode->flag_control_manual_enabled = true;
+			break;
+
+		case NAVIGATION_STATE_STABILIZE:
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = true;
+			control_mode->flag_control_attitude_enabled = true;
+			control_mode->flag_control_velocity_enabled = false;
+			control_mode->flag_control_position_enabled = false;
+			control_mode->flag_control_altitude_enabled = false;
+			control_mode->flag_control_manual_enabled = true;
+			break;
+
+		case NAVIGATION_STATE_ALTHOLD:
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = true;
+			control_mode->flag_control_attitude_enabled = true;
+			control_mode->flag_control_velocity_enabled = false;
+			control_mode->flag_control_position_enabled = false;
+			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_manual_enabled = true;
+			break;
+
+		case NAVIGATION_STATE_VECTOR:
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = true;
+			control_mode->flag_control_attitude_enabled = true;
+			control_mode->flag_control_velocity_enabled = true;
+			control_mode->flag_control_position_enabled = true;
+			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_manual_enabled = true;
+			break;
+
+		case NAVIGATION_STATE_AUTO_READY:
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = true;
+			control_mode->flag_control_attitude_enabled = true;
+			control_mode->flag_control_velocity_enabled = true;
+			control_mode->flag_control_position_enabled = true;
+			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_manual_enabled = false;
+			break;
+
+		case NAVIGATION_STATE_AUTO_TAKEOFF:
+
+			/* only transitions from AUTO_READY */
+			if (current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
+				ret = TRANSITION_CHANGED;
+				control_mode->flag_control_rates_enabled = true;
+				control_mode->flag_control_attitude_enabled = true;
+				control_mode->flag_control_velocity_enabled = true;
+				control_mode->flag_control_position_enabled = true;
+				control_mode->flag_control_altitude_enabled = true;
+				control_mode->flag_control_manual_enabled = false;
+			}
+
+			break;
+
+		case NAVIGATION_STATE_AUTO_LOITER:
+
+			/* deny transitions from landed states */
+			if (current_status->navigation_state != NAVIGATION_STATE_STANDBY &&
+			    current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
+				ret = TRANSITION_CHANGED;
+				control_mode->flag_control_rates_enabled = true;
+				control_mode->flag_control_attitude_enabled = true;
+				control_mode->flag_control_velocity_enabled = true;
+				control_mode->flag_control_position_enabled = true;
+				control_mode->flag_control_altitude_enabled = true;
+				control_mode->flag_control_manual_enabled = false;
+			}
+
+			break;
+
+		case NAVIGATION_STATE_AUTO_MISSION:
+
+			/* deny transitions from landed states */
+			if (current_status->navigation_state != NAVIGATION_STATE_STANDBY &&
+			    current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
+				ret = TRANSITION_CHANGED;
+				control_mode->flag_control_rates_enabled = true;
+				control_mode->flag_control_attitude_enabled = true;
+				control_mode->flag_control_velocity_enabled = true;
+				control_mode->flag_control_position_enabled = true;
+				control_mode->flag_control_altitude_enabled = true;
+				control_mode->flag_control_manual_enabled = false;
+			}
+
+			break;
+
+		case NAVIGATION_STATE_AUTO_RTL:
+
+			/* deny transitions from landed states */
+			if (current_status->navigation_state != NAVIGATION_STATE_STANDBY &&
+			    current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
+				ret = TRANSITION_CHANGED;
+				control_mode->flag_control_rates_enabled = true;
+				control_mode->flag_control_attitude_enabled = true;
+				control_mode->flag_control_velocity_enabled = true;
+				control_mode->flag_control_position_enabled = true;
+				control_mode->flag_control_altitude_enabled = true;
+				control_mode->flag_control_manual_enabled = false;
+			}
+
+			break;
+
+		case NAVIGATION_STATE_AUTO_LAND:
+
+			/* deny transitions from landed states */
+			if (current_status->navigation_state != NAVIGATION_STATE_STANDBY &&
+			    current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
+				ret = TRANSITION_CHANGED;
+				control_mode->flag_control_rates_enabled = true;
+				control_mode->flag_control_attitude_enabled = true;
+				control_mode->flag_control_velocity_enabled = true;
+				control_mode->flag_control_position_enabled = true;
+				control_mode->flag_control_altitude_enabled = true;
+				control_mode->flag_control_manual_enabled = false;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+
+		if (ret == TRANSITION_CHANGED) {
+			current_status->navigation_state = new_navigation_state;
+		}
+	}
 
 	return ret;
 }
@@ -582,31 +420,33 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 
 		switch (new_state) {
 
-			case HIL_STATE_OFF:
+		case HIL_STATE_OFF:
 
-				if (current_status->arming_state == ARMING_STATE_INIT
-				 || current_status->arming_state == ARMING_STATE_STANDBY) {
+			if (current_status->arming_state == ARMING_STATE_INIT
+			    || current_status->arming_state == ARMING_STATE_STANDBY) {
 
-					current_control_mode->flag_system_hil_enabled = false;
-					mavlink_log_critical(mavlink_fd, "Switched to OFF hil state");
-					valid_transition = true;
-				}
-				break;
+				current_control_mode->flag_system_hil_enabled = false;
+				mavlink_log_critical(mavlink_fd, "Switched to OFF hil state");
+				valid_transition = true;
+			}
 
-			case HIL_STATE_ON:
+			break;
 
-				if (current_status->arming_state == ARMING_STATE_INIT
-				 || current_status->arming_state == ARMING_STATE_STANDBY) {
+		case HIL_STATE_ON:
 
-					current_control_mode->flag_system_hil_enabled = true;
-					mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
-					valid_transition = true;
-				}
-				break;
+			if (current_status->arming_state == ARMING_STATE_INIT
+			    || current_status->arming_state == ARMING_STATE_STANDBY) {
 
-			default:
-				warnx("Unknown hil state");
-				break;
+				current_control_mode->flag_system_hil_enabled = true;
+				mavlink_log_critical(mavlink_fd, "Switched to ON hil state");
+				valid_transition = true;
+			}
+
+			break;
+
+		default:
+			warnx("Unknown hil state");
+			break;
 		}
 	}
 
@@ -621,6 +461,7 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 		orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, current_control_mode);
 
 		ret = OK;
+
 	} else {
 		mavlink_log_critical(mavlink_fd, "REJECTING invalid hil state transition");
 	}
