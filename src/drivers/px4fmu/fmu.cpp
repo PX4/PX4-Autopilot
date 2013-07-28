@@ -1104,28 +1104,84 @@ void
 test(void)
 {
 	int	fd;
-
-	fd = open(PWM_OUTPUT_DEVICE_PATH, 0);
+        unsigned servo_count = 0;
+	unsigned pwm_value = 1000;
+	int	 direction = 1;
+        
+	fd = open(PX4FMU_DEVICE_PATH, O_RDWR);
 
 	if (fd < 0)
 		errx(1, "open fail");
 
 	if (ioctl(fd, PWM_SERVO_ARM, 0) < 0)       err(1, "servo arm failed");
 
-	if (ioctl(fd, PWM_SERVO_SET(0), 1000) < 0) err(1, "servo 1 set failed");
+        if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count) != 0) {
+            err(1, "Unable to get servo count\n");        
+        }
 
-	if (ioctl(fd, PWM_SERVO_SET(1), 1200) < 0) err(1, "servo 2 set failed");
+	warnx("Testing %u servos", (unsigned)servo_count);
 
-	if (ioctl(fd, PWM_SERVO_SET(2), 1400) < 0) err(1, "servo 3 set failed");
+	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
+	if (!console)
+		err(1, "failed opening console");
 
-	if (ioctl(fd, PWM_SERVO_SET(3), 1600) < 0) err(1, "servo 4 set failed");
+	warnx("Press CTRL-C or 'c' to abort.");
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-	if (ioctl(fd, PWM_SERVO_SET(4), 1800) < 0) err(1, "servo 5 set failed");
+	for (;;) {
+		/* sweep all servos between 1000..2000 */
+		servo_position_t servos[servo_count];
+		for (unsigned i = 0; i < servo_count; i++)
+			servos[i] = pwm_value;
 
-	if (ioctl(fd, PWM_SERVO_SET(5), 2000) < 0) err(1, "servo 6 set failed");
-#endif
+                if (direction == 1) {
+                    // use ioctl interface for one direction
+                    for (unsigned i=0; i < servo_count;	i++) {
+                        if (ioctl(fd, PWM_SERVO_SET(i), servos[i]) < 0) {
+                            err(1, "servo %u set failed", i);
+                        }
+                    }
+                } else {
+                    // and use write interface for the other direction
+                    int ret = write(fd, servos, sizeof(servos));
+                    if (ret != (int)sizeof(servos))
+			err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
+                }
 
+		if (direction > 0) {
+			if (pwm_value < 2000) {
+				pwm_value++;
+			} else {
+				direction = -1;
+			}
+		} else {
+			if (pwm_value > 1000) {
+				pwm_value--;
+			} else {
+				direction = 1;
+			}
+		}
+
+		/* readback servo values */
+		for (unsigned i = 0; i < servo_count; i++) {
+			servo_position_t value;
+
+			if (ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value))
+				err(1, "error reading PWM servo %d", i);
+			if (value != servos[i])
+				errx(1, "servo %d readback error, got %u expected %u", i, value, servos[i]);
+		}
+
+		/* Check if user wants to quit */
+		char c;
+		if (read(console, &c, 1) == 1) {
+			if (c == 0x03 || c == 0x63) {
+				warnx("User abort\n");
+                                break;
+			}
+		}
+	}
+
+        close(console);
 	close(fd);
 
 	exit(0);
@@ -1222,9 +1278,9 @@ fmu_main(int argc, char *argv[])
 
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
+	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test\n");
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-	fprintf(stderr, "  mode_gpio, mode_pwm\n");
+	fprintf(stderr, "  mode_gpio, mode_pwm, test\n");
 #endif
 	exit(1);
 }
