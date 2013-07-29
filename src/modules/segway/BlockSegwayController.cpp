@@ -30,23 +30,24 @@ void BlockSegwayController::update() {
 		// update guidance
 	}
 
-	// XXX handle STABILIZED (loiter on spot) as well
-	// once the system switches from manual or auto to stabilized
-	// the setpoint should update to loitering around this position
+	// compute speed command
+	float spdCmd = -theta2spd.update(_att.pitch) - q2spd.update(_att.pitchspeed);
 
 	// handle autopilot modes
 	if (_status.state_machine == SYSTEM_STATE_AUTO ||
 	    _status.state_machine == SYSTEM_STATE_STABILIZED) {
-
-		float spdCmd = phi2spd.update(_att.phi);
-
-		// output
 		_actuators.control[0] = spdCmd;
 		_actuators.control[1] = spdCmd;
 
 	} else if (_status.state_machine == SYSTEM_STATE_MANUAL) {
-		_actuators.control[0] = _manual.roll;
-		_actuators.control[1] = _manual.roll;
+		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+			_actuators.control[CH_LEFT] = _manual.throttle;
+			_actuators.control[CH_RIGHT] = _manual.pitch;
+
+		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
+			_actuators.control[0] = spdCmd;
+			_actuators.control[1] = spdCmd;
+		}
 	}
 
 	// update all publications

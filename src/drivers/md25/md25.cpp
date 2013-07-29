@@ -116,7 +116,8 @@ MD25::MD25(const char *deviceName, int bus,
 	setMotor2Speed(0);
 	resetEncoders();
 	_setMode(MD25::MODE_UNSIGNED_SPEED);
-	setSpeedRegulation(true);
+	setSpeedRegulation(false);
+	setMotorAccel(10);
 	setTimeout(true);
 }
 
@@ -308,6 +309,12 @@ int MD25::setDeviceAddress(uint8_t address)
 	return OK;
 }
 
+int MD25::setMotorAccel(uint8_t accel)
+{
+	return _writeUint8(REG_ACCEL_RATE_RW,
+			   accel);
+}
+
 int MD25::setMotor1Speed(float value)
 {
 	return _writeUint8(REG_SPEED1_RW,
@@ -461,12 +468,12 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 	MD25 md25("/dev/md25", bus, address);
 
 	// print status
-	char buf[200];
+	char buf[400];
 	md25.status(buf, sizeof(buf));
 	printf("%s\n", buf);
 
 	// setup for test
-	md25.setSpeedRegulation(true);
+	md25.setSpeedRegulation(false);
 	md25.setTimeout(true);
 	float dt = 0.1;
 	float speed = 0.2;
@@ -568,12 +575,12 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 	MD25 md25("/dev/md25", bus, address);
 
 	// print status
-	char buf[200];
+	char buf[400];
 	md25.status(buf, sizeof(buf));
 	printf("%s\n", buf);
 
 	// setup for test
-	md25.setSpeedRegulation(true);
+	md25.setSpeedRegulation(false);
 	md25.setTimeout(true);
 	float dt = 0.01;
 	float t_final = 60.0;

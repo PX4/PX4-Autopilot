@@ -8,11 +8,20 @@ class BlockSegwayController : public control::BlockUorbEnabledAutopilot {
 public:
 	BlockSegwayController() :
 		BlockUorbEnabledAutopilot(NULL,"SEG"),
-		phi2spd(this, "PHI2SPD")
+		theta2spd(this, "THETA2SPD"),
+		q2spd(this, "Q2SPD"),
+		_attPoll(),
+		_timeStamp(0)
 	{
+		_attPoll.fd = _att.getHandle();
+		_attPoll.events = POLLIN;
 	}
 	void update();
 private:
-	BlockP phi2spd;
+	enum {CH_LEFT, CH_RIGHT};
+	BlockPI theta2spd;
+	BlockP q2spd;
+	struct pollfd _attPoll;
+	uint64_t _timeStamp;
 };
 

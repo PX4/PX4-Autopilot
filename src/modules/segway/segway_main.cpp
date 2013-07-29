@@ -64,12 +64,7 @@ extern "C" __EXPORT int segway_main(int argc, char *argv[]);
 /**
  * Mainloop of deamon.
  */
-int control_demo_thread_main(int argc, char *argv[]);
-
-/**
- * Test function
- */
-void test();
+int segway_thread_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.
@@ -114,13 +109,8 @@ int segway_main(int argc, char *argv[])
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 10,
 					 5120,
-					 control_demo_thread_main,
+					 segway_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "test")) {
-		test();
 		exit(0);
 	}
 
@@ -144,7 +134,7 @@ int segway_main(int argc, char *argv[])
 	exit(1);
 }
 
-int control_demo_thread_main(int argc, char *argv[])
+int segway_thread_main(int argc, char *argv[])
 {
 
 	warnx("starting");
@@ -164,10 +154,4 @@ int control_demo_thread_main(int argc, char *argv[])
 	thread_running = false;
 
 	return 0;
-}
-
-void test()
-{
-	warnx("beginning control lib test");
-	control::basicBlocksTest();
 }

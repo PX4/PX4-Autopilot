@@ -57,12 +57,35 @@
 #include <drivers/drv_hrt.h>
 #include <poll.h>
 
+extern "C" {
+#include <systemlib/geo/geo.h>
+}
+
 #include "../blocks.hpp"
 #include "UOrbSubscription.hpp"
 #include "UOrbPublication.hpp"
 
 namespace control
 {
+
+/**
+ * Waypoint Guidance block
+ */
+class __EXPORT BlockWaypointGuidance : public SuperBlock
+{
+private:
+	BlockLimitSym _xtYawLimit;
+	BlockP _xt2Yaw;
+	float _psiCmd;
+public:
+	BlockWaypointGuidance(SuperBlock *parent, const char *name);
+	virtual ~BlockWaypointGuidance();
+	void update(vehicle_global_position_s &pos,
+		    vehicle_attitude_s &att,
+		    vehicle_global_position_setpoint_s &posCmd,
+		    vehicle_global_position_setpoint_s &lastPosCmd);
+	float getPsiCmd() { return _psiCmd; }
+};
 
 /**
  * UorbEnabledAutopilot

@@ -42,10 +42,6 @@
 #include <controllib/blocks.hpp>
 #include <controllib/uorb/blocks.hpp>
 
-extern "C" {
-#include <systemlib/geo/geo.h>
-}
-
 namespace control
 {
 
@@ -230,25 +226,6 @@ public:
  * required curve/ landing etc. Less performance
  * than frontside at high speeds.
  */
-
-/**
- * Waypoint Guidance block
- */
-class __EXPORT BlockWaypointGuidance : public SuperBlock
-{
-private:
-	BlockLimitSym _xtYawLimit;
-	BlockP _xt2Yaw;
-	float _psiCmd;
-public:
-	BlockWaypointGuidance(SuperBlock *parent, const char *name);
-	virtual ~BlockWaypointGuidance();
-	void update(vehicle_global_position_s &pos,
-		    vehicle_attitude_s &att,
-		    vehicle_global_position_setpoint_s &posCmd,
-		    vehicle_global_position_setpoint_s &lastPosCmd);
-	float getPsiCmd() { return _psiCmd; }
-};
 
 /**
  * Multi-mode Autopilot
