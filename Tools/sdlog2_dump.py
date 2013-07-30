@@ -55,6 +55,8 @@ class SDLog2Parser:
     __time_msg = None
     __debug_out = False
     __correct_errors = False
+    __file_name = None
+    __file = None
     
     def __init__(self):
         return
@@ -87,6 +89,14 @@ class SDLog2Parser:
 
     def setCorrectErrors(self, correct_errors):
         self.__correct_errors = correct_errors
+
+    def setFileName(self, file_name):
+    	self.__file_name = file_name
+    	if file_name != None:
+    		self.__file = open(file_name, 'w+')
+    	else:
+    		self.__file = None
+
     
     def process(self, fn):
         self.reset()
@@ -154,10 +164,13 @@ class SDLog2Parser:
                 show_fields = self.__msg_labels.get(msg_name, [])
             self.__msg_filter_map[msg_name] = show_fields
             for field in show_fields:
-                full_label = msg_name + "." + field
+                full_label = msg_name + "_" + field
                 self.__csv_columns.append(full_label)
                 self.__csv_data[full_label] = None
-        print self.__csv_delim.join(self.__csv_columns)
+        if self.__file != None:
+                print >> self.__file, self.__csv_delim.join(self.__csv_columns)
+        else:
+                print self.__csv_delim.join(self.__csv_columns)
 
     def __printCSVRow(self):
         s = []
@@ -168,7 +181,11 @@ class SDLog2Parser:
             else:
                 v = str(v)
             s.append(v)
-        print self.__csv_delim.join(s)
+
+        if self.__file != None:
+                print >> self.__file, self.__csv_delim.join(s)
+        else:
+                print self.__csv_delim.join(s)
 
     def __parseMsgDescr(self):
         data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN])
@@ -224,7 +241,7 @@ class SDLog2Parser:
                 for i in xrange(len(data)):
                     label = msg_labels[i]
                     if label in show_fields:
-                        self.__csv_data[msg_name + "." + label] = data[i]
+                        self.__csv_data[msg_name + "_" + label] = data[i]
                         if self.__time_msg != None and msg_name != self.__time_msg:
                             self.__csv_updated = True
                 if self.__time_msg == None:
@@ -240,6 +257,7 @@ def _main():
         print "\t-n\tUse \"null\" as placeholder for empty values in CSV. Default is empty.\n"
         print "\t-m MSG[.field1,field2,...]\n\t\tDump only messages of specified type, and only specified fields.\n\t\tMultiple -m options allowed."
         print "\t-t\tSpecify TIME message name to group data messages by time and significantly reduce duplicate output.\n"
+        print "\t-fPrint to file instead of stdout"
         return
     fn = sys.argv[1]
     debug_out = False
@@ -247,7 +265,8 @@ def _main():
     msg_filter = []
     csv_null = ""
     csv_delim = ","
-    time_msg = None
+    time_msg = "TIME"
+    file_name = None
     opt = None
     for arg in sys.argv[2:]:
         if opt != None:
@@ -257,9 +276,11 @@ def _main():
                 csv_null = arg
             elif opt == "t":
                 time_msg = arg
+            elif opt == "f":
+            	file_name = arg
             elif opt == "m":
                 show_fields = "*"
-                a = arg.split(".")
+                a = arg.split("_")
                 if len(a) > 1:
                     show_fields = a[1].split(",")
                 msg_filter.append((a[0], show_fields))
@@ -277,6 +298,8 @@ def _main():
                 opt = "m"
             elif arg == "-t":
                 opt = "t"
+            elif arg == "-f":
+                opt = "f"
 
     if csv_delim == "\\t":
         csv_delim = "\t"
@@ -285,6 +308,7 @@ def _main():
     parser.setCSVNull(csv_null)
     parser.setMsgFilter(msg_filter)
     parser.setTimeMsg(time_msg)
+    parser.setFileName(file_name)
     parser.setDebugOut(debug_out)
     parser.setCorrectErrors(correct_errors)
     parser.process(fn)
