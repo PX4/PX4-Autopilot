@@ -27,17 +27,21 @@ MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
-MODULES		+= drivers/hott_telemetry
+MODULES		+= drivers/hott/hott_telemetry
+MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/md25
+MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
+MODULES		+= drivers/meas_airspeed
 MODULES		+= modules/sensors
 
 #
 # System commands
 #
 MODULES		+= systemcmds/eeprom
+MODULES		+= systemcmds/ramtron
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/i2c
@@ -49,6 +53,7 @@ MODULES		+= systemcmds/pwm
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
+MODULES		+= systemcmds/config
 
 #
 # General system control

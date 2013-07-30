@@ -420,12 +420,12 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	case 921600: speed = B921600; break;
 
 	default:
-		fprintf(stderr, "[mavlink] ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baud);
+		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baud);
 		return -EINVAL;
 	}
 
 	/* open uart */
-	printf("[mavlink] UART is %s, baudrate is %d\n", uart_name, baud);
+	warnx("UART is %s, baudrate is %d\n", uart_name, baud);
 	uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
@@ -433,37 +433,35 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	int termios_state;
 	*is_usb = false;
 
-	/* make some wild guesses including that USB serial is indicated by either /dev/ttyACM0 or /dev/console */
-	if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/console") != OK) {
-		/* Back up the original uart configuration to restore it after exit */
-		if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-			fprintf(stderr, "[mavlink] ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
-			close(uart);
-			return -1;
-		}
+	/* Back up the original uart configuration to restore it after exit */
+	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
+		warnx("ERROR get termios config %s: %d\n", uart_name, termios_state);
+		close(uart);
+		return -1;
+	}
 
-		/* Fill the struct for the new configuration */
-		tcgetattr(uart, &uart_config);
+	/* Fill the struct for the new configuration */
+	tcgetattr(uart, &uart_config);
 
-		/* Clear ONLCR flag (which appends a CR for every LF) */
-		uart_config.c_oflag &= ~ONLCR;
+	/* Clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+
+	/* USB serial is indicated by /dev/ttyACM0*/
+	if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/ttyACM1") != OK) {
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			fprintf(stderr, "[mavlink] ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+			warnx("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
 			close(uart);
 			return -1;
 		}
 
+	}
 
-		if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-			fprintf(stderr, "[mavlink] ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
-			close(uart);
-			return -1;
-		}
-
-	} else {
-		*is_usb = true;
+	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+		warnx("ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+		close(uart);
+		return -1;
 	}
 
 	return uart;
@@ -751,8 +749,7 @@ int mavlink_thread_main(int argc, char *argv[])
 	pthread_join(uorb_receive_thread, NULL);
 
 	/* Reset the UART flags to original state */
-	if (!usb_uart)
-		tcsetattr(uart, TCSANOW, &uart_config_original);
+	tcsetattr(uart, TCSANOW, &uart_config_original);
 
 	thread_running = false;
 

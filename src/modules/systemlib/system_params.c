@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,40 +31,17 @@
  *
  ****************************************************************************/
 
-/**
- * @file Airspeed driver interface.
- * @author Simon Wilks
- */
-
-#ifndef _DRV_AIRSPEED_H
-#define _DRV_AIRSPEED_H
-
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define AIRSPEED_DEVICE_PATH	"/dev/airspeed"
-
 /*
- * ioctl() definitions
+ * @file system_params.c
  *
- * Airspeed drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
+ * System wide parameters
  */
 
-#define _AIRSPEEDIOCBASE		(0x7700)
-#define __AIRSPEEDIOC(_n)		(_IOC(_AIRSPEEDIOCBASE, _n))
+#include <nuttx/config.h>
+#include <systemlib/param/param.h>
 
-#define AIRSPEEDIOCSSCALE		__AIRSPEEDIOC(0)
-#define AIRSPEEDIOCGSCALE		__AIRSPEEDIOC(1)
+// Auto-start script with index #n
+PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
 
-
-/** airspeed scaling factors; out = (in * Vscale) + offset */
-struct airspeed_scale {
-	float	offset_pa;
-	float	scale;
-};
-
-#endif /* _DRV_AIRSPEED_H */
+// Automatically configure default values
+PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);

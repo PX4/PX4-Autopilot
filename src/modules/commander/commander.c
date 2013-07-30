@@ -282,7 +282,7 @@ void tune_error(void)
 
 void do_rc_calibration(int status_pub, struct vehicle_status_s *status)
 {
-	if (current_status.offboard_control_signal_lost) {
+	if (current_status.rc_signal_lost) {
 		mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
 		return;
 	}
@@ -587,6 +587,8 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 
 	close(fd);
 
+	int errcount = 0;
+
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
@@ -602,8 +604,12 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 			calibration_counter++;
 
 		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "gyro calibration aborted, retry");
+			errcount++;
+		}
+
+		if (errcount > 1000) {
+			/* any persisting poll error is a reason to abort */
+			mavlink_log_info(mavlink_fd, "permanent gyro error, aborted.");
 			return;
 		}
 	}

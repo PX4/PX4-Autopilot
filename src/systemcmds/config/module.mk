@@ -32,10 +32,13 @@
 ############################################################################
 
 #
-# Graupner HoTT Telemetry application.
+# Build the config tool.
 #
 
-MODULE_COMMAND	= hott_telemetry
+MODULE_COMMAND	 = config
+SRCS		 = config.c
 
-SRCS		= hott_telemetry_main.c \
-		  messages.c
+MODULE_STACKSIZE = 4096
+
+MAXOPTIMIZATION	 = -Os
+

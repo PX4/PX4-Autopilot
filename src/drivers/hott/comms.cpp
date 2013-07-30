@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,39 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file Airspeed driver interface.
- * @author Simon Wilks
- */
-
-#ifndef _DRV_AIRSPEED_H
-#define _DRV_AIRSPEED_H
-
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define AIRSPEED_DEVICE_PATH	"/dev/airspeed"
-
-/*
- * ioctl() definitions
+ * @file comms.c
+ * @author Simon Wilks <sjwilks@gmail.com>
  *
- * Airspeed drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
  */
 
-#define _AIRSPEEDIOCBASE		(0x7700)
-#define __AIRSPEEDIOC(_n)		(_IOC(_AIRSPEEDIOCBASE, _n))
+#include "comms.h"
 
-#define AIRSPEEDIOCSSCALE		__AIRSPEEDIOC(0)
-#define AIRSPEEDIOCGSCALE		__AIRSPEEDIOC(1)
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <systemlib/err.h>
+#include <termios.h>
 
+int
+open_uart(const char *device)
+{
+	/* baud rate */
+	static const speed_t speed = B19200;
 
-/** airspeed scaling factors; out = (in * Vscale) + offset */
-struct airspeed_scale {
-	float	offset_pa;
-	float	scale;
-};
+	/* open uart */
+	const int uart = open(device, O_RDWR | O_NOCTTY);
 
-#endif /* _DRV_AIRSPEED_H */
+	if (uart < 0) {
+		err(1, "Error opening port: %s", device);
+	}
+	
+	/* Back up the original uart configuration to restore it after exit */	
+	int termios_state;
+	struct termios uart_config_original;
+	if ((termios_state = tcgetattr(uart, &uart_config_original)) < 0) {
+		close(uart);
+		err(1, "Error getting baudrate / termios config for %s: %d", device, termios_state);
+	}
+
+	/* Fill the struct for the new configuration */
+	struct termios uart_config;
+	tcgetattr(uart, &uart_config);
+
+	/* Clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+
+	/* Set baud rate */
+	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+		close(uart);
+		err(1, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)",
+			 device, termios_state);
+	}
+
+	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+		close(uart);
+		err(1, "Error setting baudrate / termios config for %s (tcsetattr)", device);
+	}
+
+	/* Activate single wire mode */
+	ioctl(uart, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+
+	return uart;
+}

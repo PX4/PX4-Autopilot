@@ -1,8 +1,11 @@
 #!nsh
+#
+# Flight startup script for PX4FMU+PX4IO
+#
  
-# Disable USB and autostart
+# disable USB and autostart
 set USB no
-set MODE camflyer
+set MODE custom
  
 #
 # Start the ORB (first app to start)
@@ -17,6 +20,16 @@ param select /fs/microsd/params
 if [ -f /fs/microsd/params ]
 then
 	param load /fs/microsd/params
+fi
+
+#
+# Load default params for this platform
+#
+if param compare SYS_AUTOCONFIG 1
+then
+	# Set all params here, then disable autoconfig
+	param set SYS_AUTOCONFIG 0
+	param save /fs/microsd/params
 fi
  
 #
@@ -68,6 +81,10 @@ px4io start
 # Allow PX4IO to recover from midair restarts.
 # this is very unlikely, but quite safe and robust.
 px4io recovery
+
+#
+# Set actuator limit to 100 Hz update (50 Hz PWM)
+px4io limit 100
  
 #
 # Start the sensors (depends on orb, px4io)
@@ -93,15 +110,12 @@ control_demo start
 #
 # Start logging
 #
-#sdlog start -s 4
+sdlog2 start -r 50 -a -b 14
  
 #
 # Start system state
 #
 if blinkm start
 then
-	echo "using BlinkM for state indication"
 	blinkm systemstate
-else
-	echo "no BlinkM found, OK."
 fi
