@@ -559,28 +559,32 @@ int
 L3GD20::set_range(unsigned max_dps)
 {
 	uint8_t bits = REG4_BDU;
+	float new_range_scale_dps_digit;
 
-	if (max_dps == 0)
+	if (max_dps == 0) {
 		max_dps = 2000;
-
+	}
 	if (max_dps <= 250) {
 		_current_range = 250;
 		bits |= RANGE_250DPS;
+		new_range_scale_dps_digit = 8.75e-3f;
 
 	} else if (max_dps <= 500) {
 		_current_range = 500;
 		bits |= RANGE_500DPS;
+		new_range_scale_dps_digit = 17.5e-3f;
 
 	} else if (max_dps <= 2000) {
 		_current_range = 2000;
 		bits |= RANGE_2000DPS;
+		new_range_scale_dps_digit = 70e-3f;
 
 	} else {
 		return -EINVAL;
 	}
 
 	_gyro_range_rad_s = _current_range / 180.0f * M_PI_F;
-	_gyro_range_scale = _gyro_range_rad_s / 32768.0f;
+	_gyro_range_scale = new_range_scale_dps_digit / 180.0f * M_PI_F;
 	write_reg(ADDR_CTRL_REG4, bits);
 
 	return OK;
