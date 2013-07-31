@@ -169,9 +169,6 @@ pwm_channel_init(unsigned channel)
 		rCCER(timer) |= GTIM_CCER_CC4E;
 		break;
 	}
-
-	/* generate an update event; reloads the counter and all registers */
-	rEGR(timer) = GTIM_EGR_UG;
 }
 
 int
@@ -211,9 +208,6 @@ up_pwm_servo_set(unsigned channel, servo_position_t value)
 	default:
 		return -1;
 	}
-
-	/* generate an update event; reloads the counter and all registers */
-	rEGR(timer) = GTIM_EGR_UG;
 
 	return 0;
 }
