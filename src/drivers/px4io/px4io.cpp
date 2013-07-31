@@ -1659,11 +1659,13 @@ get_interface()
 {
 	device::Device *interface = nullptr;
 
+#ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
 	/* try for a serial interface */
 	if (PX4IO_serial_interface != nullptr)
 		interface = PX4IO_serial_interface();
 	if (interface != nullptr)
 		goto got;
+#endif
 
 	/* try for an I2C interface if we haven't got a serial one */
 	if (PX4IO_i2c_interface != nullptr)
