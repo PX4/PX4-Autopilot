@@ -119,3 +119,6 @@ if param compare SYS_AUTOSTART 31
 then
 	sh /etc/init.d/31_io_phantom
 fi
+
+# End of autostart
+fi
