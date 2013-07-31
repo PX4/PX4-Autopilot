@@ -213,7 +213,7 @@ float battery_remaining_estimate_voltage(float voltage)
 	ret = (voltage - ncells * chemistry_voltage_empty) / (ncells * (chemistry_voltage_full - chemistry_voltage_empty));
 
 	/* limit to sane values */
-	ret = (ret < 0) ? 0 : ret;
-	ret = (ret > 1) ? 1 : ret;
+	ret = (ret < 0.0f) ? 0.0f : ret;
+	ret = (ret > 1.0f) ? 1.0f : ret;
 	return ret;
 }

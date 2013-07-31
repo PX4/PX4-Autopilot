@@ -62,8 +62,12 @@
 #endif
 static const int ERROR = -1;
 
+static bool arming_state_changed = true;
+static bool main_state_changed = true;
+static bool navigation_state_changed = true;
+
 transition_result_t
-arming_state_transition(struct vehicle_status_s *status, arming_state_t new_arming_state, struct actuator_armed_s *armed, const int mavlink_fd)
+arming_state_transition(struct vehicle_status_s *status, arming_state_t new_arming_state, struct actuator_armed_s *armed)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
@@ -96,9 +100,6 @@ arming_state_transition(struct vehicle_status_s *status, arming_state_t new_armi
 					ret = TRANSITION_CHANGED;
 					armed->armed = false;
 					armed->ready_to_arm = true;
-
-				} else {
-					mavlink_log_critical(mavlink_fd, "rej. STANDBY state, sensors not initialized");
 				}
 			}
 
@@ -163,18 +164,28 @@ arming_state_transition(struct vehicle_status_s *status, arming_state_t new_armi
 		}
 
 		if (ret == TRANSITION_CHANGED) {
-			hrt_abstime t = hrt_absolute_time();
 			status->arming_state = new_arming_state;
-			armed->timestamp = t;
+			arming_state_changed = true;
 		}
 	}
 
 	return ret;
 }
 
+bool
+check_arming_state_changed()
+{
+	if (arming_state_changed) {
+		arming_state_changed = false;
+		return true;
+
+	} else {
+		return false;
+	}
+}
 
 transition_result_t
-main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state, const int mavlink_fd)
+main_state_transition(struct vehicle_status_s *current_state, main_state_t new_main_state)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
@@ -193,11 +204,7 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 
 			/* need position estimate */
 			// TODO only need altitude estimate really
-			if (!current_state->condition_local_position_valid) {
-				mavlink_log_critical(mavlink_fd, "rej. SEATBELT: no position estimate");
-				tune_negative();
-
-			} else {
+			if (current_state->condition_local_position_valid) {
 				ret = TRANSITION_CHANGED;
 			}
 
@@ -206,11 +213,7 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 		case MAIN_STATE_EASY:
 
 			/* need position estimate */
-			if (!current_state->condition_local_position_valid) {
-				mavlink_log_critical(mavlink_fd, "rej. EASY: no position estimate");
-				tune_negative();
-
-			} else {
+			if (current_state->condition_local_position_valid) {
 				ret = TRANSITION_CHANGED;
 			}
 
@@ -219,11 +222,7 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 		case MAIN_STATE_AUTO:
 
 			/* need position estimate */
-			if (!current_state->condition_local_position_valid) {
-				mavlink_log_critical(mavlink_fd, "rej. AUTO: no position estimate");
-				tune_negative();
-
-			} else {
+			if (current_state->condition_local_position_valid) {
 				ret = TRANSITION_CHANGED;
 			}
 
@@ -232,14 +231,27 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 
 		if (ret == TRANSITION_CHANGED) {
 			current_state->main_state = new_main_state;
+			main_state_changed = true;
 		}
 	}
 
 	return ret;
 }
 
+bool
+check_main_state_changed()
+{
+	if (main_state_changed) {
+		main_state_changed = false;
+		return true;
+
+	} else {
+		return false;
+	}
+}
+
 transition_result_t
-navigation_state_transition(struct vehicle_status_s *current_status, navigation_state_t new_navigation_state, struct vehicle_control_mode_s *control_mode, const int mavlink_fd)
+navigation_state_transition(struct vehicle_status_s *current_status, navigation_state_t new_navigation_state, struct vehicle_control_mode_s *control_mode)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
@@ -395,12 +407,24 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 
 		if (ret == TRANSITION_CHANGED) {
 			current_status->navigation_state = new_navigation_state;
+			navigation_state_changed = true;
 		}
 	}
 
 	return ret;
 }
 
+bool
+check_navigation_state_changed()
+{
+	if (navigation_state_changed) {
+		navigation_state_changed = false;
+		return true;
+
+	} else {
+		return false;
+	}
+}
 
 /**
 * Transition from one hil state to another
