@@ -86,8 +86,8 @@ static const int ERROR = -1;
 /* keep lowpass low to avoid noise issues */
 #define RATE_95HZ_LP_25HZ		((0<<7) | (0<<6) | (0<<5) | (1<<4))
 #define RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (1<<5) | (1<<4))
-#define RATE_380HZ_LP_30HZ		((1<<7) | (0<<6) | (1<<5) | (1<<4))
-#define RATE_760HZ_LP_30HZ		((1<<7) | (1<<6) | (1<<5) | (1<<4))
+#define RATE_380HZ_LP_20HZ		((1<<7) | (0<<6) | (1<<5) | (0<<4))
+#define RATE_760HZ_LP_30HZ		((1<<7) | (1<<6) | (0<<5) | (0<<4))
 
 #define ADDR_CTRL_REG2			0x21
 #define ADDR_CTRL_REG3			0x22
@@ -598,19 +598,20 @@ L3GD20::set_samplerate(unsigned frequency)
 	if (frequency == 0)
 		frequency = 760;
 
-	if (frequency <= 95) {
+        // use limits good for H or non-H models
+	if (frequency <= 100) {
 		_current_rate = 95;
 		bits |= RATE_95HZ_LP_25HZ;
 
-	} else if (frequency <= 190) {
+	} else if (frequency <= 200) {
 		_current_rate = 190;
 		bits |= RATE_190HZ_LP_25HZ;
 
-	} else if (frequency <= 380) {
+	} else if (frequency <= 400) {
 		_current_rate = 380;
-		bits |= RATE_380HZ_LP_30HZ;
+		bits |= RATE_380HZ_LP_20HZ;
 
-	} else if (frequency <= 760) {
+	} else if (frequency <= 800) {
 		_current_rate = 760;
 		bits |= RATE_760HZ_LP_30HZ;
 
