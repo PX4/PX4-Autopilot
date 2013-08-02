@@ -13,35 +13,35 @@ if mavlink stop
 then
 	echo "stopped other MAVLink instance"
 fi
+sleep 2
 mavlink start -b 230400 -d /dev/ttyACM0
 
-if [ $MODE == autostart ]
+# Start the commander
+if commander start
 then
+	echo "Commander started"
+fi
 
-	# Start the commander
-	commander start
+# Start sensors
+sh /etc/init.d/rc.sensors
 
-	# Start sensors
-	sh /etc/init.d/rc.sensors
-
-	# Start one of the estimators
-	if attitude_estimator_ekf status
+# Start one of the estimators
+if attitude_estimator_ekf status
+then
+	echo "multicopter att filter running"
+else
+	if att_pos_estimator_ekf status
 	then
-		echo "multicopter att filter running"
+		echo "fixedwing att filter running"
 	else
-		if att_pos_estimator_ekf status
-		then
-			echo "fixedwing att filter running"
-		else
-			attitude_estimator_ekf start
-		fi
+		attitude_estimator_ekf start
 	fi
+fi
 
-	# Start GPS
-	if gps start
-	then
-		echo "GPS started"
-	fi
+# Start GPS
+if gps start
+then
+	echo "GPS started"
 fi
 
 echo "MAVLink started, exiting shell.."
