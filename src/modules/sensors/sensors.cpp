@@ -92,8 +92,35 @@
 #define BARO_HEALTH_COUNTER_LIMIT_OK 5
 #define ADC_HEALTH_COUNTER_LIMIT_OK  5
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL	10
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
+/**
+ * Analog layout:
+ * FMU:
+ * IN2 - battery voltage
+ * IN3 - battery current
+ * IN4 - 5V sense
+ * IN10 - spare (we could actually trim these from the set)
+ * IN11 - spare (we could actually trim these from the set)
+ * IN12 - spare (we could actually trim these from the set)
+ * IN13 - aux1
+ * IN14 - aux2
+ * IN15 - pressure sensor
+ * 
+ * IO:
+ * IN4 - servo supply rail
+ * IN5 - analog RSSI
+ */
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+  #define ADC_BATTERY_VOLTAGE_CHANNEL	10
+  #define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+  #define ADC_BATTERY_VOLTAGE_CHANNEL	2
+  #define ADC_BATTERY_CURRENT_CHANNEL	3
+  #define ADC_5V_RAIL_SENSE		4
+  #define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
+#endif
 
 #define BAT_VOL_INITIAL 0.f
 #define BAT_VOL_LOWPASS_1 0.99f
