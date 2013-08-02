@@ -26,6 +26,11 @@ fi
 if px4io start
 then
 	echo "PX4IO driver started"
+else
+	if fmu mode_serial
+	then
+		echo "FMU driver started"
+	fi
 fi
 
 # Start sensors
