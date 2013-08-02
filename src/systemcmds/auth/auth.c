@@ -470,8 +470,8 @@ usage(const char *reason)
 	errx(1, 
 		"usage:\n"
 		"auth [-x] [-p] [-d] [-w] [-k] [-v] [-l] \n"
-		"  -x     Read Private Key from /mnt/microsd/privatekey.px4 and display it\n"
-		"  -p     Read Public Key from  /mnt/microsd/publickey.px4 and display it\n"
+		"  -x     Read Private Key from /mnt/microsd/privatekey.txt and display it\n"
+		"  -p     Read Public Key from  /mnt/microsd/publickey.txt and display it\n"
 		"  -c     make a Certificate-Of-Authenticity with the private key and display it ( assumes also -x ) \n"
 		"  -w     write the Certificate-Of-Authenticity to Flash ( assumes also -x and -c )  \n"
 		"  -k     LOCK the Certificate-Of-Authenticity to ONE-TIME-PROGRAMMABLE Flash PERMANENTLY ( assumes -w -x -c ) \n"
@@ -635,7 +635,7 @@ int auth_main(int argc, char *argv[])
     }
     
     //TIP:    FROM THIS POINT FORWARD, 'serial' is the human-readable version, and  'serialid' is the binary version.
-    // the human-readalbe version is used to display to teh screen, and in logs... while the binary version is used in encryption functuions and on SD card in .px4 files etc 
+    // the human-readalbe version is used to display to teh screen, and in logs... while the binary version is used in encryption functuions and on SD card in .txt files etc 
 
  
     // tell the user; 
@@ -698,11 +698,11 @@ XgqaCcexpzq1mBlzf51LAkEAjaYN/u8C10f93s+hvdqS3BS8PtxlycAHtDXSMoiO\n\
 tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
         load_key( &private_key, privkeydata) ;
         warnx("HARDCODED PRIVATE KEY LOADED: \n%s\n",privkeydata);
-         
+        write_whole_file_to_sd("/fs/microsd/privatekey.txt",privkeydata,strlen(privkeydata) );  // convenient way to get it on SD.          
     } 
     if ( !hardcoded && readprivate ) {
         // OR read a private key from SD card like this: 
-        read_key_from_sd("/fs/microsd/privatekey.px4", &privkeydata);   
+        read_key_from_sd("/fs/microsd/privatekey.txt", &privkeydata);   
         load_key( &private_key, privkeydata );  
         warnx("SD PRIVATE KEY LOADED.\n"); //,privkeydata);
     }
@@ -726,16 +726,16 @@ tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
     
     // simple test suite for SD card read/write with both binary and ascii files.
     if ( false ) { 
-        write_whole_file_to_sd("/fs/microsd/test1.px4",cert,certlen ); 
+        write_whole_file_to_sd("/fs/microsd/test1.txt",cert,certlen ); 
         char cert2[1024];  // this is where the binary CERT-OF-AUTH goes.
         int certlen2;
-        certlen2 = read_key_from_sd("/fs/microsd/test1.px4", &cert2);   
+        certlen2 = read_key_from_sd("/fs/microsd/test1.txt", &cert2);   
         warnx("SD test 1:  certlen: %d certlen2: %d cert: %s  cert2:%s\n",certlen, certlen2, cert, cert2);
         
-        write_whole_file_to_sd("/fs/microsd/test2.px4",out,outlen ); 
-        char out2[255];  // this is where the binary CERT-OF-AUTH goes.
+        write_whole_file_to_sd("/fs/microsd/test2.txt",out,outlen ); 
+        char out2[255];  // this is where the text CERT-OF-AUTH goes.
         int outlen2;
-        outlen2 = read_key_from_sd("/fs/microsd/test2.px4", &out2);   
+        outlen2 = read_key_from_sd("/fs/microsd/test2.txt", &out2);   
         warnx("SD test 2:  outlen: %d outlen2: %d out: %s  out2:%s\n",outlen, outlen2, out, out2);
     }
     
@@ -775,11 +775,11 @@ tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
      // need public key to do the "verify" ... THREE ways to get it:  
       char pubkeydata[255] = "";
       if ( 0 ) { 
-        // TODO make this test for the presence of the publickey.px4, and if not there, make it.  :-) 
+        // TODO make this test for the presence of the publickey.txt, and if not there, make it.  :-) 
           // this way to start with, we use the private key ( loaded above) to make the public key, and put it on the SD card in a file.
           make_public_key_from_private(&private_key, &pubkeydata); 
           load_key( &public_key, pubkeydata ); 
-          write_whole_file_to_sd("/fs/microsd/publickey.px4",pubkeydata,strlen(pubkeydata) ); 
+          write_whole_file_to_sd("/fs/microsd/publickey.txt",pubkeydata,strlen(pubkeydata) ); 
      } 
      if ( hardcoded && readpublic ) {
        // OR we load it hard-coded like this: 
@@ -788,10 +788,11 @@ fKkXFD+h7WDXJ5uAkljQBL46l5nLdEewNGA8uidXOqXRzphl2Wt7Jw5Eu4krZcWRQ5\n\
 JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
        load_key( &public_key, pubkeydata);
        warnx("HARDCODED PUBLIC KEY LOADED: \n%s\n",pubkeydata);
+       write_whole_file_to_sd("/fs/microsd/publickey.txt",pubkeydata,strlen(pubkeydata) );  // convenient way to get it on SD. 
      }
      if ( !hardcoded && readpublic ) {
      // OR you can read the public key from the SD card, if it exists there too: 
-        read_key_from_sd("/fs/microsd/publickey.px4", &pubkeydata);   
+        read_key_from_sd("/fs/microsd/publickey.txt", &pubkeydata);   
         load_key( &public_key, pubkeydata );    
        warnx("SD PUBLIC KEY LOADED: %s",pubkeydata);
      }
