@@ -83,7 +83,7 @@ void ECL_FWAttControlVector::control(float dt, float airspeed, float airspeed_sc
     // Establish actuator signs and lift compensation
     float lift_sign = (R_bn(3, 3) >= 0) ? 1.0f : -1.0f;
 
-    float lift_comp = CONSTANTS_ONE_G / math::max(airspeed , float(_p_airspeed_min) * (R_nb(2,3) * R_nb(2,3)) / (R_nb(3,3) * sqrtf((R_nb(2,3) * R_nb(2,3)) + (R_nb(3,3) * R_nb(3,3)));
+    float lift_comp = CONSTANTS_ONE_G / math::max(airspeed , float(_p_airspeed_min) * (R_nb(2,3) * R_nb(2,3)) / (R_nb(3,3) * sqrtf((R_nb(2,3) * R_nb(2,3)) + (R_nb(3,3) * R_nb(3,3)))));
     //float lift_comp = fabsf((CONSTANTS_ONE_G / math::max(airspeed , float(_p_airspeed_min)) * tanf(roll) * sinf(roll))) * _p_roll_ffd;
     
     float cy = cosf(yaw);
