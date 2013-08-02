@@ -22,6 +22,12 @@ then
 	echo "Commander started"
 fi
 
+# Start px4io if present
+if px4io start
+then
+	echo "PX4IO driver started"
+fi
+
 # Start sensors
 sh /etc/init.d/rc.sensors
 
