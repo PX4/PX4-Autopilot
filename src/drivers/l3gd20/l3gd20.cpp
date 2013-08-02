@@ -342,7 +342,11 @@ L3GD20::init()
 	write_reg(ADDR_CTRL_REG5, 0);
 
 	write_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);		/* disable wake-on-interrupt */
-	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_STREAM_MODE);	/* Enable FIFO, old data is overwritten */
+
+        /* disable FIFO. This makes things simpler and ensures we
+         * aren't getting stale data. It means we must run the hrt
+         * callback fast enough to not miss data. */
+	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);	
 
 	set_range(2000);			/* default to 2000dps */
 	set_samplerate(0);			/* max sample rate */
