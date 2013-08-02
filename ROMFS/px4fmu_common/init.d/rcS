@@ -82,6 +82,28 @@ else
 fi
 
 #
+# Check if PX4IO Firmware should be upgraded (from Andrew Tridgell)
+#
+if [ -f /fs/microsd/px4io.bin ]
+then
+	echo "PX4IO Firmware found. Checking Upgrade.."
+	if cmp /fs/microsd/px4io.bin /fs/microsd/px4io.cur
+	then
+		echo "No newer version, skipping upgrade."
+	else
+		echo "Loading /fs/microsd/px4io.bin"
+		if px4io update /fs/microsd/px4io.bin > /fs/microsd/px4io.log
+		then
+			cp /fs/microsd/px4io.bin /fs/microsd/px4io.cur
+			echo "Flashed /fs/microsd/px4io.bin OK" >> /fs/microsd/px4io.log
+		else
+			echo "Failed flashing /fs/microsd/px4io.bin" >> /fs/microsd/px4io.log
+			echo "Failed to upgrade px4io firmware - check if px4io is in bootloader mode"
+		fi
+	fi
+fi
+
+#
 # Check if auto-setup from one of the standard scripts is wanted
 # SYS_AUTOSTART = 0 means no autostart (default)
 #

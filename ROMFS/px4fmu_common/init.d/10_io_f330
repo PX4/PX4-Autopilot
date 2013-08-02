@@ -40,28 +40,6 @@ fi
 param set MAV_TYPE 2
  
 #
-# Check if PX4IO Firmware should be upgraded (from Andrew Tridgell)
-#
-if [ -f /fs/microsd/px4io2.bin ]
-then
-	echo "PX4IO Firmware found. Checking Upgrade.."
-	if cmp /fs/microsd/px4io2.bin /fs/microsd/px4io2.cur
-	then
-		echo "No newer version, skipping upgrade."
-	else
-		echo "Loading /fs/microsd/px4io2.bin"
-		if px4io update /fs/microsd/px4io2.bin > /fs/microsd/px4io2.log
-		then
-			cp /fs/microsd/px4io2.bin /fs/microsd/px4io2.cur
-			echo "Flashed /fs/microsd/px4io2.bin OK" >> /fs/microsd/px4io2.log
-		else
-			echo "Failed flashing /fs/microsd/px4io2.bin" >> /fs/microsd/px4io2.log
-			echo "Failed to upgrade PX4IO2 firmware - check if PX4IO2 is in bootloader mode"
-		fi
-	fi
-fi
- 
-#
 # Start MAVLink (depends on orb)
 #
 mavlink start
