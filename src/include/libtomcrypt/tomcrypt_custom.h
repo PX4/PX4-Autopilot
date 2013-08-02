@@ -76,7 +76,7 @@
 #define LTC_MRSA
 
 /* check only for fatal arguments */
-#define ARGTYPE 1
+#define ARGTYPE 2
 
 #define TFM_LTC_DESC
 #define TFM_DESC
@@ -124,6 +124,7 @@
 /* Use small code where possible */
 /* #define LTC_SMALL_CODE */
 
+#define LTC_NO_TEST
 /* Enable self-test test vector checking */
 #ifndef LTC_NO_TEST
    #define LTC_TEST
@@ -136,7 +137,7 @@
 /* #define LTC_NO_FILE */
 
 /* disable all forms of ASM */
-/* #define LTC_NO_ASM */
+#define LTC_NO_ASM //*/
 
 /* disable FAST mode */
 /* #define LTC_NO_FAST */

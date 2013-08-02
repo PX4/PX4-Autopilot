@@ -75,7 +75,7 @@
 /* do we want some overflow checks
    Not required if you make sure your numbers are within range (e.g. by default a modulus for fp_exptmod() can only be upto 2048 bits long)
  */
-/* #define TFM_CHECK */
+#define TFM_CHECK
 
 /* Is the target a P4 Prescott
  */

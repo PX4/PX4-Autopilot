@@ -2,6 +2,9 @@
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *      OTP, Flash, Skeleton 
+ *   Author: @author David "Buzz" Bussenschutt <davidbuzz@gmail.com>
+ *      Encryption, Signing/Verify, SD reading/writing, parameters, keys, etc. 
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +36,7 @@
  ****************************************************************************/
 
 /**
- * @file reboot.c
+ * @file auth.c 
  * Tool similar to UNIX reboot command
  */
 
@@ -42,9 +45,16 @@
 #include <unistd.h>
 #include <stdio.h>
 
+//#include <apps/netutils/base64.h>
+
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
+#include <libtomcrypt/tomcrypt_custom.h>
 #include <libtomcrypt/tomcrypt.h>
+#include <libtomcrypt/tomcrypt_misc.h>
+#include <libtomfastmath/tfm.h>
+
+
 
 /* RM page 75 OTP. Size is 528 bytes total (512 bytes data and 16 bytes locking) */
 #define ADDR_OTP_START			0x1FFF7800
@@ -87,8 +97,9 @@ __EXPORT int auth_main(int argc, char *argv[]);
 #define ADDR_FLASH_SIZE		0x1FFF7A22
 
 #pragma pack(push, 1)
-	struct udid {
+		union udid {
 		uint32_t	serial[3];
+		char  data[12];
 	};
 #pragma pack(pop)
 
@@ -192,128 +203,374 @@ int lock_otp()
 	// val_copy(lock_ptr, &otp_lock_mem, sizeof(otp_lock_mem));
 }
 
-#define PACKET_SIZE  5
-#define KEY_LEN 16
-#define IV_LEN 12
-#define AAD_LEN 6
 
-int test(unsigned char *pt, unsigned long ptlen, unsigned char *iv,
-		unsigned long ivlen, unsigned char *aad, unsigned long aadlen,
-		gcm_state *gcm, gcm_state *gcm_2) {
-	int err;
-	unsigned long taglen;
-	unsigned char tag[16];
-	unsigned long taglen_2;
-	unsigned char tag_2[16];
-	unsigned char ct[PACKET_SIZE];
-	unsigned char pt_2[PACKET_SIZE];
-	/* reset the state */
-	if ((err = gcm_reset(gcm)) != CRYPT_OK) {
-		return err;
-	}
-	/* Add the IV */
-	if ((err = gcm_add_iv(gcm, iv, ivlen)) != CRYPT_OK) {
-		return err;
-	}
-	/* Add the AAD (note: aad can be NULL if aadlen == 0) */
-	if ((err = gcm_add_aad(gcm, aad, aadlen)) != CRYPT_OK) {
-		return err;
+#define SERIAL_LEN 27
+#define BIN_SERIAL_LEN 20  // or 24 
+#define PADDING_TYPE LTC_LTC_PKCS_1_V1_5 // or LTC_LTC_PKCS_1_PSS
+#define SALTLEN 0 // or 8, or 16 
 
-	}
-	/* process the plaintext */
-	if ((err = gcm_process(gcm, pt, ptlen, ct, GCM_ENCRYPT)) != CRYPT_OK) {
-		return err;
-	}
-	/* Finish up and get the MAC tag */
-	taglen = sizeof(tag);
-	if ((err = gcm_done(gcm, tag, &taglen)) != CRYPT_OK) {
-		return err;
-	}
 
-	//messing around
-	//aad[0] = 45;
-	//iv[0] = 1;
-	//ct[1] = 38;
-	if ((err = gcm_reset(gcm_2)) != CRYPT_OK) {
-		return err;
-	}
-	/* Add the IV */
-	if ((err = gcm_add_iv(gcm_2, iv, ivlen)) != CRYPT_OK) {
-		return err;
-	}
-	/* Add the AAD (note: aad can be NULL if aadlen == 0) */
-	if ((err = gcm_add_aad(gcm_2, aad, aadlen)) != CRYPT_OK) {
-		return err;
+void sign_serial_and_return_cert( rsa_key * private_key , prng_state * prng, char * serialid,  char * newcert, int * certlen) { 
+    	// locate indexes into hash list and prng list  
+	int hash_idx, prng_idx, err;
+    prng_idx = find_prng("yarrow");
+    hash_idx = find_hash("sha1"); 
 
-	}
-	/* process the plaintext */
-	if ((err = gcm_process(gcm_2, pt_2, ptlen, ct, GCM_DECRYPT)) != CRYPT_OK) {
-		return err;
-	}
-	/* Finish up and get the MAC tag */
-	taglen = sizeof(tag);
-	if ((err = gcm_done(gcm_2, tag_2, &taglen_2)) != CRYPT_OK) {
-		return err;
-	}
+	  if (hash_idx == -1 || prng_idx == -1) {
+          warnx( "sign requires LTC_SHA1(%d) and yarrow(%d)",hash_idx,prng_idx );
+          return 1;
+     }
 
-	if (XMEMCMP(tag, tag_2, 16)) {
+    
+    *certlen = 1024; // sizeof() no worky on undef pointers like the empty cert[] we passed in. 
+    
+    if ((err =  rsa_sign_hash_ex(
+        serialid,
+        (unsigned long) BIN_SERIAL_LEN,
+        newcert,
+        certlen,
+        PADDING_TYPE, // LTC_LTC_PKCS_1_V1_5, // V1.5 is older padding type, PSS is newer : LTC_LTC_PKCS_1_PSS, // padding type 
+        prng,
+        prng_idx,
+        hash_idx,
+        SALTLEN,   // saltlen 
+        private_key)) != CRYPT_OK) {
+            warnx("rsa_sign_hash_ex %s\n", error_to_string(err));
+        } else { 
+             warnx("\t rsa_sign_hash_ex OK. length: %d", (int)(*certlen)); 
+        }       
 
-		printf("\nTag on ciphertext wrong \n");
+/* 
+ // to verify it looks OK.... 
+ int  len, len2, cnt;
+unsigned char out[1024], tmp[1024]; 
 
-	}
-	else {
-		printf("\nTest OK!\n");
-	}
+      warnx(" out len:%d rawbytes: %02x %02x %02x %02x %02x ...", *certlen, newcert[0],newcert[1],newcert[2],newcert[3],newcert[4]);
+      len2 = 1024; // maxlen
+      base64_encode(newcert, *certlen, &tmp, &len2);
+      warnx(" post base64 len2:%d tmp:%s\n",len2, tmp);
+             
+    for (cnt = 0; cnt < *certlen; ) {
+       printf( "%02x ", newcert[cnt]);
+       cnt++;
+    }
+      warnx(" done");
+      */
+        
+  fflush(stdout);
+        
+ //   warnx("newcert len:  %d\n", *certlen);    
+    
+} 
+
+int  verify_cert_and_return(rsa_key * public_key, prng_state * prng, char * cert  , int certlen, char * oldserialid ) { 
+    	// locate indexes into hash list and prng list  
+	int hash_idx, prng_idx;
+    prng_idx = find_prng("yarrow");
+    hash_idx = find_hash("sha1"); 
+    
+      if (hash_idx == -1 || prng_idx == -1) {
+          warnx( "verify requires LTC_SHA1(%d) and yarrow(%d)",hash_idx,prng_idx );
+          return 1;
+     }
+
+    
+   int retval, err; // serial_len;
+   
+  // warnx("%s:%d:%s:%d\n",cert, certlen, oldserial, BIN_SERIAL_LEN ); 
+   
+   if ((err =   rsa_verify_hash_ex(
+        cert,
+        certlen,
+        oldserialid,
+        BIN_SERIAL_LEN, // serial length / 
+        PADDING_TYPE,
+        hash_idx,
+        SALTLEN, // saltlen /
+        &retval,
+        public_key)) != CRYPT_OK) {
+            warnx("rsa_verify_hash %s\n", error_to_string(err));
+            retval = 0; // bad. 
+        } else { 
+             warnx("\t rsa_verify_hash OK. length: %d retval: %d\n", BIN_SERIAL_LEN, retval); 
+        }         
+
+  fflush(stdout);
+
+    return retval; // res == 1 is GOOD.   res == 0 is BAD. 
+    
+} 
+
+
+int read_key_from_sd(char * filename , char * blob ) { 
+    
+  //  warnx("reading some key from SD card..."); 
+  FILE *fp;
+
+  if ((fp = fopen(filename, "rb")) == NULL) //read from file
+    {
+      warnx("ERROR! Unable to read private/public file \"%s\" from SD card, sorry.",filename); 
+      return "";
+    }
+
+  int filelen = 0;
+  //while ( !feof(fp) ) { 
+    filelen += fread( blob, 1, 1024 , fp ) ; // try to read 1024 bytes into "blob", private key is never that long. 
+  //  warnx("read: %s",blob);
+  //}
+  //filelen = actual number of bytes read from file.
+  fclose(fp);
  
-	return CRYPT_OK;
+  //add end-of-string marker to blob, needed for "warn" statement to work below.
+  blob[filelen] = 0; 
+  
+  // OPTIONAL TODO remove "-----BEGIN RSA PRIVATE KEY-----\n" and "-----END RSA PRIVATE KEY-----\n" from a file if its there.
+  // for the moment, we assume the user has correctly formatted their private key file for this system by removing those strings. 
+  
+ // warnx("sd len: %d  data: %s\n",filelen, blob ) ; 
+ warnx("\t reading file '%s' from SD done.", filename);
+  
+  return filelen; 
+} 
+
+void append_serial_data_to_sd_log( char * filename, char * serial, char * cert, char * private ) { 
+    
+    warnx("appending to file: %s on SD card.",filename); 
+static const char *log_format_string ="serial=%s cert=%s privatekey=%s\n";
+
+  FILE *fp;
+
+  if ((fp = fopen(filename, "a")) == NULL) //apend to file
+    {
+      return -1;
+    }
+
+  fprintf(fp, log_format_string, serial, cert, private);
+
+  fflush(fp);
+  fclose(fp);
+
+  return 0;
+    
+} 
+
+write_whole_file_to_sd(char * filename, char * publickeydata, int datalen){ 
+
+  FILE *fp;
+
+ warnx("writing file: '%s' to SD done.",filename);
+ 
+ // static const char *format_string ="%s";
+
+  if ((fp = fopen(filename, "wb")) == NULL) //apend to file
+    {
+      return -1;
+    }
+
+//  fprintf(fp, format_string, publickeydata); // not binary safe
+
+    fwrite(publickeydata , 1 , datalen , fp ); // binary safe
+
+
+  fflush(fp);
+  fclose(fp);
+
+  return 0;
+
+} 
+
+// BIN_SERIAL_LEN in, SERIAL_LEN out. 
+// serialid in, serial out. 
+void human_readable_serial(char *serialid, char * serial ){ 
+  
+  	sprintf(serial, "%02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",
+	   serialid[0],serialid[1],serialid[2],serialid[3],serialid[4],serialid[5],serialid[6],serialid[7],serialid[8],serialid[9],serialid[10],serialid[11]); 
+    
+} 
+
+
+// pass in the private key, and we'll return the compatible formatted public key that libtomcrypt can embed
+void  make_public_key_from_private(rsa_key * key, char * outbuffer) { 
+    
+   
+	     unsigned char OUTbuffer[255];	 
+         unsigned char OUTPEMbuffer[255];	 
+         unsigned long outlen2;
+         unsigned long outlenpem2;
+         int err; 
+          outlen2 = sizeof(OUTbuffer);
+          
+                    
+         //PUBLIC
+         // PK_PUBLIC means its just a public key component. 
+         if ( (err = rsa_export(OUTbuffer,&outlen2, PK_PUBLIC, key)) != CRYPT_OK ) {
+              warnx("Error with rsa_export: %s\n", error_to_string(err));
+          } else { 
+      	   warnx("PUBLIC rsa_export OK: size: %d\n", outlen2 );//
+      	 }
+         // convert what is essentially DER data into naked PEM format. ( ie no header or footer lines )  
+          if ( (err = base64_encode(OUTbuffer,outlen2,OUTPEMbuffer, &outlenpem2)) != CRYPT_OK ) {
+              warnx("base64_encode error: %s\n", error_to_string(err));
+          }  else { 
+          
+          // this should print our public key, human readable:      
+          warnx("base64 PUBLIC KEY.  len: %d key: %s\n", outlenpem2, OUTPEMbuffer );
+          } 
+          
+          strcpy(outbuffer,OUTPEMbuffer); // return the good bit. 
+
 }
+
+// private or public, either is good. 
+void load_key( rsa_key * key, char * PEMbuffer ) { 
+    
+    
+	 //warnx(" load key start --------------------\n");// %s\n",PEMbuffer);
+	   
+	   int err; 
+	       
+   
+        unsigned long elen;
+        unsigned long *eoutlen;
+        // well convert it to DER format and store it here, in a sec. 
+        unsigned char DERbuffer[1024];
+
+            
+        elen = strlen(PEMbuffer);// actual in len
+        eoutlen = sizeof(DERbuffer); // max out len
+
+        
+        // convert what is essentially PEM data into DER format so we can decrypt it. 
+        if ( (err = base64_decode(PEMbuffer,elen,DERbuffer, &eoutlen)) != CRYPT_OK ) {
+            warnx("\t base64_decode error: %s\n", error_to_string(err));
+        }  else { 
+    //warnx("\t base64_decode OK actualoutlen: %d\n",eoutlen);
+      //  warnx("PUBLIC base64_decode OK \n");
+        }   
+        
+       	    // read OpenSSL DER formatted key into Tom's format. :-)
+        if ( (err = rsa_import( &DERbuffer,eoutlen,key)) != CRYPT_OK ) {
+            warnx("\t Error with rsa_import : %s\n", error_to_string(err));
+        } else { 
+    	   warnx("\t rsa_import OK, length: %d",eoutlen);//
+    	 }
+
+    //warnx(" load key end --------------------.\n");
+
+	// }
+
+} 
+
+
+static void
+usage(const char *reason)
+{
+	if (reason != NULL)
+		warnx("%s", reason);
+	errx(1, 
+		"usage:\n"
+		"auth [-x] [-p] [-d] [-w] [-k] [-v] [-l] \n"
+		"  -x     Read Private Key from /mnt/microsd/privatekey.px4 and display it\n"
+		"  -p     Read Public Key from  /mnt/microsd/publickey.px4 and display it\n"
+		"  -c     make a Certificate-Of-Authenticity with the private key and display it ( assumes also -x ) \n"
+		"  -w     write the Certificate-Of-Authenticity to Flash ( assumes also -x and -c )  \n"
+		"  -k     LOCK the Certificate-Of-Authenticity to ONE-TIME-PROGRAMMABLE Flash PERMANENTLY ( assumes -w -x -c ) \n"
+		"  -v     Verify the Certificate-Of-Authenticity in OTP with the public key, and display results.  ( assumes -p ) \n"
+		"  -t     test cert-of-auth just generated without OTP ( equivalent to -x -p -c -v ) \n"
+		"  -l     log it.  Append the COA and privatekey info to the SD card at /fs/microsd/OTPCertificates.log \n"
+		"  -h     use Hardcoded Private/Public Keys, no SD card needed\n"
+		"  -s     use hardcoded serial: '33002E 32314704 34303736'  \n"
+		);
+
+}
+
 
 int auth_main(int argc, char *argv[])
 {
 
-	gcm_state gcm, gcm_2;
+     warnx("AUTH started.\n");
+  
+    int ch, err; 
 
-	unsigned char key[KEY_LEN] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2,
-			0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
-	unsigned char IV[IV_LEN] = {0};
+	if (argc < 2)
+		usage(NULL);
+		
 
-	unsigned char pt[PACKET_SIZE] = { 0x2b, 0x2b, 0x2b, 0x2b, 0x2b };
-	int err, x;
-	unsigned long ptlen = PACKET_SIZE;
+    bool readprivate = false; 
+    bool readpublic = false; 
+    bool makecert = false;
+    bool writecert = false;
+    bool lockcert  = false;
+    bool verifycert = false;
+    bool testCOA = false;
+    bool log = false;
+    bool hardcoded = false;
+    bool hardcodedserial = false;
 
+	while ((ch = getopt(argc, argv, "xpcwlvths")) != EOF) {
+		switch (ch) {
+		case 'x': // load private 
+		    readprivate = true;
+			break;
+		case 'p': // load public
+		      readpublic = true;
+			break;
+		case 'c': // generate cert-of-auth,  assumes -x 
+		      makecert = true;
+		      // also
+		      readprivate = true;
+			break;
+		case 'w': // write cert-of-auth to flash, assumes -x and -c 
+		      writecert = true;
+		      //also
+		      readprivate = true; makecert = true;
+			break;
+		case 'k': // lock flash, assumes -w -x -c
+		      lockcert = true;
+		      //also
+		      readprivate = true;makecert = true;writecert = true;
+			break;
+		case 'v': //verify cert-of-auth, assumes -p
+		      verifycert = true;
+		      // also 
+		       readpublic = true;
+			break;
+		case 't': //verify/test cert-of-auth just generated without OTP ( equivalent to -x -p -c -v )
+		      testCOA = true;
+		      //also
+		      readprivate = true; makecert = true; readpublic = true;verifycert = true;
+			break;
+		case 'l': //log it.
+		      log = true;
+			break;
+		case 'h': //Hardcoded keys
+		      hardcoded = true;
+			break;
+		case 's': //Hardcoded serial
+		      hardcodedserial = true;
+		      // precaution to avoid bad OTP
+		      writecert = false;
+		      lockcert = false;
+			break;
+		default:
+			usage(NULL);
+		}
+	}
+	argc -= optind;
+	argv += optind;
+  
+	
+	 // ONE-TIME-PROGRAMMABLE (OTP) MEMORY HANDLING SECTION
+	
 
-
-
-
-
-	// XXX load private key from string here, sign
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/*
-	 * ONE-TIME-PROGRAMMABLE (OTP) MEMORY HANDLING SECTION
-	 */
-
-	/* disable scheduling, leave interrupt processing untouched */
+	//disable scheduling, leave interrupt processing untouched 
 	sched_lock();
+
 
 	if (argc > 1 && !strcmp(argv[1], "-w")) {
 
 		warnx("Writing (but not locking) OTP");
-		/* write OTP */
+		// write OTP /
 		uint8_t id_type = 0;
 		uint32_t vid = 0x26AC;
 		uint32_t pid = 0x10;
@@ -331,45 +588,252 @@ int auth_main(int argc, char *argv[])
 		lock_otp();
 		return 0;
 	}
+	
 
-	/* read out unique chip ID */
+	// read out unique chip ID /
 	const volatile uint32_t* udid_ptr = (const uint32_t*)UDID_START;
-	struct udid id;
+	union udid id;
 	val_read(&id, udid_ptr, sizeof(id));
 
-	warnx("Unique serial # [%0X%0X%0X]", id.serial[0], id.serial[1], id.serial[2]);
+    // raw from OTP.
+	//warnx("Unique serial # [%08X %08X %08X] size: %d", id.serial[0], id.serial[1], id.serial[2], sizeof(id));
+	
+ 	unsigned char serialid[BIN_SERIAL_LEN]; //binary version of serial, padded with zero bytes. 
+ 	
+ 	
+ 	//  this copies the data from the id "union" to the serialid char[] array, but on hthe px4, it's the wrong endian order.
+    //memcpy(serialid,id.data,12); // first 12 bytes are from serial 
+	//      
+	   // this is the right order for the px4: , there's a neater way to do this, but it'll do for now. 
+	serialid[0] = id.data[3]; 	serialid[1] = id.data[2];	serialid[2] = id.data[1];	serialid[3] = id.data[0];
+	serialid[4] = id.data[7]; 	serialid[5] = id.data[6];	serialid[6] = id.data[5];	serialid[7] = id.data[4];
+	serialid[8] = id.data[11]; 	serialid[9] = id.data[10];	serialid[10] = id.data[9];	serialid[11] = id.data[8];
 
 
+ 
+    // allow to override the serial number 	
+    if ( hardcodedserial ) { 
+        
+        // compound literal trick to assign a whole array at once... // michael! 
+        memcpy(serialid, (const char[]){0x00,0x33,0x00,0x2E,0x32,0x31,0x47,0x04,0x34,0x30,0x37,0x36,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, sizeof serialid);
+        
+       //   0x00, 0x3D, 0x00, 0x1F, 0x32, 0x31, 0x47, 0x0C, 0x34, 0x30, 0x37, 0x36    // buzz
+       //   0x00, 0x33, 0x00, 0x2E, 0x32, 0x31, 0x47, 0x04, 0x34, 0x30, 0x37, 0x36    // michael 
+    }
 
+    // zero buffer to 20 bytes. 
+    serialid[12] = 0;  serialid[13] = 0;  serialid[14] = 0;  serialid[15] = 0;   
+    serialid[16] = 0;  serialid[17] = 0;  serialid[18] = 0;  serialid[19] = 0; 
+    
+ 	   	
+	unsigned char serial[SERIAL_LEN]; // human-readable version is 27 bytes  ( 3x8 + two whitespace +null) 
+	
+	human_readable_serial( &serialid, &serial ) ;  // from serialid, to serial
+	
+	if ( hardcodedserial ) { 
+        warnx("WARNING !!!! FORCING hardcoded serial: '%s' - TESTING ONLY\n", serial); 
+    }
+    
+    //TIP:    FROM THIS POINT FORWARD, 'serial' is the human-readable version, and  'serialid' is the binary version.
+    // the human-readalbe version is used to display to teh screen, and in logs... while the binary version is used in encryption functuions and on SD card in .px4 files etc 
 
+ 
+    // tell the user; 
+    warnx("Unique serial # [%s]\n", serial); 
 
-	// XXX sign serial with private key
+       
+    rsa_key private_key;
+    rsa_key public_key;
+    
+    prng_state prng;
+   
+            // / register the yarrow RNG /
+                if (register_prng(&yarrow_desc) == -1) {
+                    warnx("Error registering Yarrow: register_prng \n");
+                } else { 
+            //	   warnx("register_prng(&yarrow_desc) OK\n");
+            	 }
+            
+            /* start it */
+            if ((err = yarrow_start(&prng)) != CRYPT_OK) {
+            warnx("Start error: %s\n", error_to_string(err));
+            }
+            /* add entropy */
+            if ((err = yarrow_add_entropy("hello world", 11, &prng))
+            != CRYPT_OK) {
+            warnx("Add_entropy error: %s\n", error_to_string(err));
+            }
+            /* ready and read */
+            if ((err = yarrow_ready(&prng)) != CRYPT_OK) {
+            warnx("Ready error: %s\n", error_to_string(err));
+            }
+            
+            //warnx("Read %lu bytes from yarrow\n", yarrow_read(buf, sizeof(buf), &yarrow_prng));
+        
+           if (register_hash(&sha1_desc) == -1) {  warnx("Critical Error registering sha1 hash");   }
+ 
 
+    // register a math library (in this case TomsFastMath)
+    // this is important, don't forget it. 
+    ltc_mp = tfm_desc;
+    
+    // private key
+    // note that tabs, backslash and tabs and newlines should be ignored by this particular impl. 
+    
+    // EITHER hard-code a private key like this: 
+    char privkeydata[1024] = ""; 
+    if ( hardcoded && readprivate ) { 
+        strcpy(privkeydata, "MIICXgIBAAKBgQDQKDPZdeOCSID6jSYiP8X2mrCRYHNwbp8zHm7um/sqo2xkWnI1\n\
+ITvKjhXypFxQ/oe1g1yebgJJY0AS+OpeZy3RHsDRgPLonVzql0c6YZdlreycORLu\n\
+JK2XFkUOSVIXwan7IiEI1DMbJ0doQ5oOAia1qVKPXxzpADwWdjV0y0756wIDAQAB\n\
+AoGBAMISGXVP8lPPoWD4JGueJcWrp5+C214h5Q/V+ftBNkUkpLRTl1Ntrr9FBbV6\n\
+BBAHnyNeXAXh7wPZIy4NIQXvEMjPDk8krOWoX1QShjqk8Xl7BoZlshKRU84/7Gr3\n\
+nd2dZ5JRiVv4yLcohZ0MlSIASW/0t8T93AsJmDaUxVbRAghhAkEA8YAumnlwmaSl\n\
+sSfKawsMEB9GFZ3JxQ59URheX5b5OPbd+j7lurbCCY6Q99GdIjG7pFvl8+AOFR6V\n\
+ottYCHSX6QJBANyniO/K0J8ndDW1mamf45170L7TuDkEEPKjeGHjc+PSLXdFfFcD\n\
+VSW/DUz2ta5HE8kV03w1yZun/2r8jKIrcrMCQQDkHA5pDNIl3hY/qnUQ/ONNCy04\n\
+18yw3EnUYq8pnUIU42GysNxvq5bGTipyWkUQ+mbiDYe7/mNu4W+333VcrzyZAkA/\n\
+7vcZa62I/9iHG2g7os1DuzVfpV7SfmAevcjKrCnPD/4Gegat+5Q3TKUg8LbxmTyd\n\
+XgqaCcexpzq1mBlzf51LAkEAjaYN/u8C10f93s+hvdqS3BS8PtxlycAHtDXSMoiO\n\
+tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
+        load_key( &private_key, privkeydata) ;
+        warnx("HARDCODED PRIVATE KEY LOADED: \n%s\n",privkeydata);
+         
+    } 
+    if ( !hardcoded && readprivate ) {
+        // OR read a private key from SD card like this: 
+        read_key_from_sd("/fs/microsd/privatekey.px4", &privkeydata);   
+        load_key( &private_key, privkeydata );  
+        warnx("SD PRIVATE KEY LOADED.\n"); //,privkeydata);
+    }
+ 
+    
+    
+    char cert[1024];  // this is where the binary CERT-OF-AUTH goes.
+    int certlen; 
+    char out[255];  // THIS IS WHERE THE human-readable CERT-OF-AUTH goes….
+    int outlen = 128; // basic cert len.
+    if ( makecert ) { 
+         warnx("\t signing [binary] serial data with private key...");
+         sign_serial_and_return_cert( &private_key, &prng, serialid, &cert, &certlen);    
+          
+         // give us the human-readable version too….  
+         warnx("\t cert len:%d rawbytes: %02x %02x %02x %02x %02x ...(etc)", certlen, cert[0],cert[1],cert[2],cert[3],cert[4]);
+         outlen = 1024; // maxlen
+         base64_encode(cert, certlen, &out, &outlen);
+         warnx("\nCERT-OF-AUTHENTICITY: for serial: %s \nCERT-OF-AUTHENTICITY: humanreadable: %s\nCERT-OF-AUTHENTICITY: rawsize: %d  humanlen: %d \n", serial, out,certlen, outlen);
+    } 
+    
+    // simple test suite for SD card read/write with both binary and ascii files.
+    if ( false ) { 
+        write_whole_file_to_sd("/fs/microsd/test1.px4",cert,certlen ); 
+        char cert2[1024];  // this is where the binary CERT-OF-AUTH goes.
+        int certlen2;
+        certlen2 = read_key_from_sd("/fs/microsd/test1.px4", &cert2);   
+        warnx("SD test 1:  certlen: %d certlen2: %d cert: %s  cert2:%s\n",certlen, certlen2, cert, cert2);
+        
+        write_whole_file_to_sd("/fs/microsd/test2.px4",out,outlen ); 
+        char out2[255];  // this is where the binary CERT-OF-AUTH goes.
+        int outlen2;
+        outlen2 = read_key_from_sd("/fs/microsd/test2.px4", &out2);   
+        warnx("SD test 2:  outlen: %d outlen2: %d out: %s  out2:%s\n",outlen, outlen2, out, out2);
+    }
+    
+    // mess with cert:  should cause a fail when this is uncommented. 
+    //cert[12] = 1;
+    
+    // SAMPLE method on how to "test" any given COA agains any given Serial, such as these two: 
+   // OK, which cert do we verify.., the one we just generated, or the one from OTP? 
+     if ( ! testCOA ) { 
+        warnx("TODO: reading from OTP is not yet impl. Faking it with cached COA data from SD card... \n");
+ 
+      // read from SD instead of OTP, to fake it, run 'auth -c' to create the files before using them.  
+      outlen = read_key_from_sd("/fs/microsd/COA.b64", &out);    
+      certlen = read_key_from_sd("/fs/microsd/COA.bin", &cert);   
+      //if ( hardcodedserial ) {   
+      //  read_key_from_sd("/fs/microsd/COA.serial.px4", &serialid);    
+      //}
+        warnx("SD CERT-OF-AUTHENTICITY for serial?: %s rawsize: %d  humanlen: %d , humanreadable:%s\n", serial, certlen, outlen, out);
+        
+      // then we continue on below to read the public key, and report back on the verification.... 
 
+    }  else { 
+        
+         warnx("TESTING: due to -t, we are testing the generated cert-of-auth ( using -c ) , not one in OTP.... continuing.... \n"); 
+    
+        if ( log ) { 
+          warnx("LOGGING: Logging COA data to SD card ... with certlen: %d\n",certlen); 
+          write_whole_file_to_sd("/fs/microsd/COA.bin",cert,certlen ); 
+          write_whole_file_to_sd("/fs/microsd/COA.b64",out,outlen ); 
+          write_whole_file_to_sd("/fs/microsd/COA.ser",serial,SERIAL_LEN ); 
+          write_whole_file_to_sd("/fs/microsd/COA.sid",serialid,BIN_SERIAL_LEN ); 
+        } else { 
+          warnx("TESTING: To write this COA data to SD card, also specify -l\n"); 
+        }
+    }
+ 
+     // need public key to do the "verify" ... THREE ways to get it:  
+      char pubkeydata[255] = "";
+      if ( 0 ) { 
+        // TODO make this test for the presence of the publickey.px4, and if not there, make it.  :-) 
+          // this way to start with, we use the private key ( loaded above) to make the public key, and put it on the SD card in a file.
+          make_public_key_from_private(&private_key, &pubkeydata); 
+          load_key( &public_key, pubkeydata ); 
+          write_whole_file_to_sd("/fs/microsd/publickey.px4",pubkeydata,strlen(pubkeydata) ); 
+     } 
+     if ( hardcoded && readpublic ) {
+       // OR we load it hard-coded like this: 
+       strcpy(pubkeydata, "MIGJAoGBANAoM9l144JIgPqNJiI/xfaasJFgc3BunzMebu6b+yqjbGRacjUhO8qOF\n\
+fKkXFD+h7WDXJ5uAkljQBL46l5nLdEewNGA8uidXOqXRzphl2Wt7Jw5Eu4krZcWRQ5\n\
+JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
+       load_key( &public_key, pubkeydata);
+       warnx("HARDCODED PUBLIC KEY LOADED: \n%s\n",pubkeydata);
+     }
+     if ( !hardcoded && readpublic ) {
+     // OR you can read the public key from the SD card, if it exists there too: 
+        read_key_from_sd("/fs/microsd/publickey.px4", &pubkeydata);   
+        load_key( &public_key, pubkeydata );    
+       warnx("SD PUBLIC KEY LOADED: %s",pubkeydata);
+     }
+     
+      
+   
+    if (   verifycert ) { 
+    warnx("VALIDATING THE CERT-OF-AUTHENTICITY using the PUBLIC key...\n");
+    int result;
+    result = verify_cert_and_return( &public_key, &prng, &cert, certlen, serialid); 
+    if ( result == 1 ) { 
+       warnx("PASSED Certificate Check for serial : %s\n", serial);
+    
+    } else { 
+       warnx("FAILURE! FAILURE!! FAILURE!!! on Certificate Check for serial: %s\n", serial);
+       return; // don't write OTP or log on errors 
+    } 
+    } 
+    
+      
+    if ( log ) { 
+    warnx("WRITING THE DATA TO THE SD CARD LOG\n"); 
+    append_serial_data_to_sd_log( "/fs/microsd/OTPCertificates.log", serial, out, privkeydata );
 
-	// XXX load public key from string / array, authenticate serial + signature
+    }
 
-
-
-
-
-
-
-
+    // fetch OTP info: 
+  
 	uint16_t *fsize = ADDR_FLASH_SIZE;
 
 	warnx("Flash size: %d", (int)*fsize);
 
-	/* get OTP memory */
+	// get OTP memory /
 	struct otp otp_mem;
 	const volatile uint32_t* otp_ptr = ADDR_OTP_START;
 	val_read(&otp_mem, otp_ptr, sizeof(struct otp));
 
-	/* ID string */
+	// ID string //
 	otp_mem.id[3] = '\0';
 	warnx("ID String: %s", (otp_mem.id != 0xFF) ? otp_mem.id : "[not written]");
 
-	/* get OTP lock */
+	// get OTP lock //
 	struct otp_lock otp_lock_mem;
 	const volatile uint32_t* otp_lock_ptr = ADDR_OTP_LOCK_START;
 	val_read(&otp_lock_mem, otp_lock_ptr, sizeof(struct otp_lock));
@@ -381,82 +845,22 @@ int auth_main(int argc, char *argv[])
 
 
 
+	// TODO  Write signature to OTP and lock, but only on special command
+  
+    // WRITE THE DATA TO THE OTP
+    //TODO 
+    if ( writecert ) { 
+        warnx("-w writecert not impl yet\n");
+    }
+    
+    // LOCK THE OTP
+    // TODO 
+    if ( lockcert ) { 
+        warnx("-l lockcert not impl yet\n");
+        
+    } 
 
-
-
-	// XXX Write signature to OTP and lock, but only on special command
 
 
 	sched_unlock();
 }
-
-
-	// const unsigned char aad[AAD_LEN] = { 0x25, 0x34, 0xFF, 0x00, 0xCC, 0xAB};
-	// unsigned long aadlen = AAD_LEN;
-
-
-
-	// /* register AES */
-	// register_cipher(&aes_desc);
-	// /* init the GCM state */
-	// if ((err = gcm_init(&gcm, find_cipher("aes"), key, 16)) != CRYPT_OK) {
-	// 	puts("Error");
-	// }
-
-	// /* init the GCM state */
-	// if ((err = gcm_init(&gcm_2, find_cipher("aes"), key, 16)) != CRYPT_OK) {
-	// 	puts("Error");
-	// }
-
-	// /* handle us some packets */
-	// //for (;;) {
-	// /* use IV as counter (12 byte counter) */
-	// for (x = 11; x >= 0; x--) {
-	// 	if (++IV[x]) {
-	// 		break;
-	// 	}
-	// }
-	// if ((err = test(pt, ptlen, IV, IV_LEN, aad, aadlen, &gcm, &gcm_2))
-	// 		!= CRYPT_OK) {
-	// 	puts("Error");
-	// }
-
-
-	// prng_state prng;
-	// unsigned char buf[10];
-
-	// warnx("Starting YARROW");
-	// fflush(stdout);
-	// usleep(100000);
-
-	// /* start */
-	// if ((err = yarrow_start(&prng)) != CRYPT_OK) {
-	// 	warnx("Start error: %s\n", error_to_string(err));
-	// }
-
-	// warnx("Adding entropy");
-	// fflush(stdout);
-
-	// /* add entropy */
-	// /* XXX use sensor values for this purpose */
-	// if ((err = yarrow_add_entropy("hello world", 11, &prng)) != CRYPT_OK) {
-	// 	warnx("Add_entropy error: %s\n", error_to_string(err));
-	// }
-	//  ready and read 
-	// if ((err = yarrow_ready(&prng)) != CRYPT_OK) {
-	// 	warnx("Ready error: %s\n", error_to_string(err));
-	// }
-
-	// warnx("Creating 1024 bit RSA key, this may take a while");
-	// fflush(stdout);
-	// usleep(100000);
-
-	// /* register the yarrow RNG */
-	// register_prng(&yarrow_desc);
-
-	// /* make a 1024-bit RSA key with the system RNG */
-	// if ((err = rsa_make_key(&prng, find_prng("yarrow"), 1024/8, 65537, &key))
-	// 	!= CRYPT_OK) {
-	// 	warnx("make_key error: %s\n", error_to_string(err));
-	// 	return 1;
-	// }

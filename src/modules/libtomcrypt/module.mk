@@ -54,6 +54,7 @@ SRCS		=	encauth/gcm/gcm_add_aad.c \
 			encauth/gcm/gcm_process.c \
 			encauth/gcm/gcm_reset.c \
 			encauth/gcm/gcm_test.c \
+			hashes/sha1.c \
 			pk/ecc/ecc_ansi_x963_export.c \
 			pk/ecc/ecc_ansi_x963_import.c \
 			pk/ecc/ecc_decrypt_key.c \
@@ -95,12 +96,55 @@ SRCS		=	encauth/gcm/gcm_add_aad.c \
 			pk/rsa/rsa_make_key.c \
 			pk/rsa/rsa_sign_hash.c \
 			pk/rsa/rsa_verify_hash.c \
+			pk/asn1/der/bit/der_decode_bit_string.c \
+			pk/asn1/der/bit/der_encode_bit_string.c \
+			pk/asn1/der/bit/der_length_bit_string.c \
+			pk/asn1/der/boolean/der_decode_boolean.c \
+			pk/asn1/der/boolean/der_encode_boolean.c \
+			pk/asn1/der/boolean/der_length_boolean.c \
+			pk/asn1/der/choice/der_decode_choice.c \
+			pk/asn1/der/ia5/der_decode_ia5_string.c \
+			pk/asn1/der/ia5/der_encode_ia5_string.c \
+			pk/asn1/der/ia5/der_length_ia5_string.c \
+			pk/asn1/der/integer/der_decode_integer.c \
+			pk/asn1/der/integer/der_encode_integer.c \
+			pk/asn1/der/integer/der_length_integer.c \
+			pk/asn1/der/object_identifier/der_decode_object_identifier.c \
+			pk/asn1/der/object_identifier/der_encode_object_identifier.c \
+			pk/asn1/der/object_identifier/der_length_object_identifier.c \
+			pk/asn1/der/octet/der_decode_octet_string.c \
+			pk/asn1/der/octet/der_encode_octet_string.c \
+			pk/asn1/der/octet/der_length_octet_string.c \
+			pk/asn1/der/printable_string/der_decode_printable_string.c \
+			pk/asn1/der/printable_string/der_encode_printable_string.c \
+			pk/asn1/der/printable_string/der_length_printable_string.c \
+			pk/asn1/der/sequence/der_decode_sequence_ex.c \
+			pk/asn1/der/sequence/der_decode_sequence_flexi.c \
+			pk/asn1/der/sequence/der_decode_sequence_multi.c \
+			pk/asn1/der/sequence/der_encode_sequence_ex.c \
+			pk/asn1/der/sequence/der_encode_sequence_multi.c \
+			pk/asn1/der/sequence/der_length_sequence.c \
+			pk/asn1/der/sequence/der_sequence_free.c \
+			pk/asn1/der/set/der_encode_set.c \
+			pk/asn1/der/set/der_encode_setof.c \
+			pk/asn1/der/short_integer/der_decode_short_integer.c \
+			pk/asn1/der/short_integer/der_encode_short_integer.c \
+			pk/asn1/der/short_integer/der_length_short_integer.c \
+			pk/asn1/der/utctime/der_decode_utctime.c \
+			pk/asn1/der/utctime/der_encode_utctime.c \
+			pk/asn1/der/utctime/der_length_utctime.c \
+			pk/asn1/der/utf8/der_decode_utf8_string.c \
+			pk/asn1/der/utf8/der_encode_utf8_string.c \
+			pk/asn1/der/utf8/der_length_utf8_string.c \
 			ciphers/aes/aes_tab.c \
 			ciphers/aes/aes.c \
 			hashes/sha2/sha256.c \
+			hashes/helper/hash_memory.c \
 			prngs/yarrow.c \
 			prngs/rng_get_bytes.c \
 			prngs/rng_make_prng.c \
+			misc/base64/base64_decode.c \
+			misc/base64/base64_encode.c \
 			misc/crypt/crypt_argchk.c \
 			misc/crypt/crypt_cipher_descriptor.c \
 			misc/crypt/crypt_cipher_is_valid.c \
