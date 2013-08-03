@@ -811,8 +811,34 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return SENSOR_POLLRATE_MANUAL;
 
 		return 1000000 / _call_mag_interval;
-	case SENSORIOCSQUEUEDEPTH:
+	
+	case SENSORIOCSQUEUEDEPTH: {
+			/* account for sentinel in the ring */
+			arg++;
+
+			/* lower bound is mandatory, upper bound is a sanity check */
+			if ((arg < 2) || (arg > 100))
+				return -EINVAL;
+
+			/* allocate new buffer */
+			struct mag_report *buf = new struct mag_report[arg];
+
+			if (nullptr == buf)
+				return -ENOMEM;
+
+			/* reset the measurement state machine with the new buffer, free the old */
+			stop();
+			delete[] _mag_reports;
+			_num_mag_reports = arg;
+			_mag_reports = buf;
+			start();
+
+			return OK;
+		}
+
 	case SENSORIOCGQUEUEDEPTH:
+		return _num_mag_reports - 1;
+
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
 
