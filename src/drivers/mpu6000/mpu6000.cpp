@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,9 @@
  * @file mpu6000.cpp
  *
  * Driver for the Invensense MPU6000 connected via SPI.
+ *
+ * @author Andrew Tridgell
+ * @author Pat Hickey
  */
 
 #include <nuttx/config.h>
@@ -191,6 +194,7 @@ private:
 	orb_advert_t		_gyro_topic;
 
 	unsigned		_reads;
+	unsigned		_sample_rate;
 	perf_counter_t		_sample_perf;
 
 	/**
@@ -314,6 +318,7 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
 	_reads(0),
+	_sample_rate(500),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read"))
 {
 	// disable debug() calls
@@ -366,10 +371,6 @@ MPU6000::init()
 		return ret;
 	}
 
-	/* advertise sensor topics */
-	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &_accel_report);
-	_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &_gyro_report);
-
 	// Chip reset
 	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 	up_udelay(10000);
@@ -384,7 +385,7 @@ MPU6000::init()
 
 	// SAMPLE RATE
 	//write_reg(MPUREG_SMPLRT_DIV, 0x04);     // Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
-	_set_sample_rate(200); // default sample rate = 200Hz
+	_set_sample_rate(_sample_rate); // default sample rate = 200Hz
 	usleep(1000);
 
 	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
@@ -463,9 +464,17 @@ MPU6000::init()
 	/* do CDev init for the gyro device node, keep it optional */
 	int gyro_ret = _gyro->init();
 
+	/* ensure we got real values to share */
+	measure();
+
 	if (gyro_ret != OK) {
 		_gyro_topic = -1;
+	} else {
+		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &_gyro_report);
 	}
+
+	/* advertise sensor topics */
+	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &_accel_report);
 
 	return ret;
 }
@@ -509,6 +518,7 @@ MPU6000::_set_sample_rate(uint16_t desired_sample_rate_hz)
   if(div>200) div=200;
   if(div<1) div=1;
   write_reg(MPUREG_SMPLRT_DIV, div-1);
+  _sample_rate = 1000 / div;
 }
 
 /*
@@ -660,8 +670,10 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return -EINVAL;
 
 
-	case ACCELIOCSSAMPLERATE:
 	case ACCELIOCGSAMPLERATE:
+		return _sample_rate;
+
+	case ACCELIOCSSAMPLERATE:
 	  _set_sample_rate(arg);
 	  return OK;
 
@@ -689,12 +701,13 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case ACCELIOCSRANGE:
-	case ACCELIOCGRANGE:
 		/* XXX not implemented */
 		// XXX change these two values on set:
 		// _accel_range_scale = (9.81f / 4096.0f);
-		// _accel_range_rad_s = 8.0f * 9.81f;
+		// _accel_range_m_s2 = 8.0f * 9.81f;
 		return -EINVAL;
+	case ACCELIOCGRANGE:
+		return _accel_range_m_s2;
 
 	case ACCELIOCSELFTEST:
 		return self_test();
@@ -718,10 +731,12 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
 
-	case GYROIOCSSAMPLERATE:
 	case GYROIOCGSAMPLERATE:
-	  _set_sample_rate(arg);
-	  return OK;
+		return _sample_rate;
+
+	case GYROIOCSSAMPLERATE:
+		_set_sample_rate(arg);
+		return OK;
 
 	case GYROIOCSLOWPASS:
 	case GYROIOCGLOWPASS:
@@ -739,12 +754,13 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case GYROIOCSRANGE:
-	case GYROIOCGRANGE:
 		/* XXX not implemented */
 		// XXX change these two values on set:
 		// _gyro_range_scale = xx
-		// _gyro_range_m_s2 = xx
+		// _gyro_range_rad_s = xx
 		return -EINVAL;
+	case GYROIOCGRANGE:
+		return _gyro_range_rad_s;
 
 	case GYROIOCSELFTEST:
 		return self_test();

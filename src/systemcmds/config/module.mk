@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,10 +32,13 @@
 ############################################################################
 
 #
-# Makefile to build the Eagle Tree Airspeed V3 driver.
+# Build the config tool.
 #
 
-MODULE_COMMAND		= ets_airspeed
-MODULE_STACKSIZE	= 2048
+MODULE_COMMAND	 = config
+SRCS		 = config.c
 
-SRCS			= ets_airspeed.cpp
+MODULE_STACKSIZE = 4096
+
+MAXOPTIMIZATION	 = -Os
+
