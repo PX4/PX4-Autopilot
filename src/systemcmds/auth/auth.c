@@ -54,6 +54,8 @@
 #include <libtomcrypt/tomcrypt_misc.h>
 #include <libtomfastmath/tfm.h>
 
+#include "flash.h"
+#include "flash.c"
 
 
 /* RM page 75 OTP. Size is 528 bytes total (512 bytes data and 16 bytes locking) */
@@ -79,12 +81,15 @@ __EXPORT int auth_main(int argc, char *argv[]);
  */
 
 	struct otp {
-		char		id[4];		///< 'P' 'X' '4' '\n'
-		uint8_t		id_type;	///< 0 for USB VID, 1 for generic VID
-		uint32_t	vid;
-		uint32_t	pid;
-		char		signature[128];
-		char		public_key[128];
+	    // first 32 bytes =  the '0' Block 
+		char		id[4];		///4 bytes < 'P' 'X' '4' '\n'
+		uint8_t		id_type;	///1 byte < 0 for USB VID, 1 for generic VID
+		uint32_t	vid;        ///4 bytes
+		uint32_t	pid;        ///4 bytes
+		char        unused[19];  ///3 bytes 
+		// Cert-of-Auth is next 4 blocks ie 1-4  ( where zero is first block ) 	
+		char        signature[128];
+        // insert extras here 
 		uint32_t	lock_bytes[4];
 	};
 
@@ -142,10 +147,12 @@ int val_write(volatile void* dest, const void* src, int bytes)
 {
 	flash_unlock();
 
+	int i;
+	
+
 	volatile uint32_t *sr = (volatile uint32_t *)0x40023c0c;
 	volatile uint32_t *cr = (volatile uint32_t *)0x40023c10;
 
-	int i;
 
 	volatile uint32_t *d = (volatile uint32_t *)dest;
 	volatile uint32_t *s = (volatile uint32_t *)src;
@@ -153,6 +160,8 @@ int val_write(volatile void* dest, const void* src, int bytes)
 	for (i = 0; i < bytes / 4; i++) {
 		/* program a byte */
 		*cr = 1;
+		
+		warnx("%016x",s[i]);
 
 		d[i] = s[i];
 
@@ -173,7 +182,7 @@ flash_end:
 	return i*4;
 }
 
-int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char* signature, char* public_key)
+int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char* signature)
 {
 	struct otp otp_mem;
 	memset(&otp_mem, 0, sizeof(otp_mem));
@@ -183,6 +192,10 @@ int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char* signature, char
 	otp_mem.id[1] = 'X';
 	otp_mem.id[2] = '4';
 	otp_mem.id[3] = '\0';
+	
+	memcpy(otp_mem.signature,signature,128); 
+	
+	warnx("write_otp: %s  / %s ",signature, otp_mem.signature); 
 
 	volatile uint32_t* otp_ptr = ADDR_OTP_START;
 	val_write(otp_ptr, &otp_mem, sizeof(struct otp));
@@ -239,27 +252,7 @@ void sign_serial_and_return_cert( rsa_key * private_key , prng_state * prng, cha
         } else { 
              warnx("\t rsa_sign_hash_ex OK. length: %d", (int)(*certlen)); 
         }       
-
-/* 
- // to verify it looks OK.... 
- int  len, len2, cnt;
-unsigned char out[1024], tmp[1024]; 
-
-      warnx(" out len:%d rawbytes: %02x %02x %02x %02x %02x ...", *certlen, newcert[0],newcert[1],newcert[2],newcert[3],newcert[4]);
-      len2 = 1024; // maxlen
-      base64_encode(newcert, *certlen, &tmp, &len2);
-      warnx(" post base64 len2:%d tmp:%s\n",len2, tmp);
-             
-    for (cnt = 0; cnt < *certlen; ) {
-       printf( "%02x ", newcert[cnt]);
-       cnt++;
-    }
-      warnx(" done");
-      */
         
-  fflush(stdout);
-        
- //   warnx("newcert len:  %d\n", *certlen);    
     
 } 
 
@@ -297,7 +290,7 @@ int  verify_cert_and_return(rsa_key * public_key, prng_state * prng, char * cert
 
   fflush(stdout);
 
-    return retval; // res == 1 is GOOD.   res == 0 is BAD. 
+    return retval; //   1 is GOOD.   0 is BAD. 
     
 } 
 
@@ -489,6 +482,11 @@ int auth_main(int argc, char *argv[])
 {
 
      warnx("AUTH started.\n");
+     
+     flash_unlock(); 
+     
+          warnx("AUTH started.2\n");
+
   
     int ch, err; 
 
@@ -567,29 +565,7 @@ int auth_main(int argc, char *argv[])
 	sched_lock();
 
 
-	if (argc > 1 && !strcmp(argv[1], "-w")) {
-
-		warnx("Writing (but not locking) OTP");
-		// write OTP /
-		uint8_t id_type = 0;
-		uint32_t vid = 0x26AC;
-		uint32_t pid = 0x10;
-		char* signature = 0;
-		char* public_key = 0;
-
-		write_otp(id_type, vid, pid, signature, public_key);
-
-		return 0;
-	}
-
-	if (argc > 1 && !strcmp(argv[1], "-l")) {
-
-		warnx("Locking OTP, no further write operations are permitted");
-		lock_otp();
-		return 0;
-	}
 	
-
 	// read out unique chip ID /
 	const volatile uint32_t* udid_ptr = (const uint32_t*)UDID_START;
 	union udid id;
@@ -751,7 +727,8 @@ tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
       outlen = read_key_from_sd("/fs/microsd/COA.b64", &out);    
       certlen = read_key_from_sd("/fs/microsd/COA.bin", &cert);   
       //if ( hardcodedserial ) {   
-      //  read_key_from_sd("/fs/microsd/COA.serial.px4", &serialid);    
+      //  read_key_from_sd("/fs/microsd/COA.sid", &serialid);  // binary   
+      //  read_key_from_sd("/fs/microsd/COA.ser", &serial);    // ascii readable
       //}
         warnx("SD CERT-OF-AUTHENTICITY for serial?: %s rawsize: %d  humanlen: %d , humanreadable:%s\n", serial, certlen, outlen, out);
         
@@ -826,13 +803,15 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
 	warnx("Flash size: %d", (int)*fsize);
 
 	// get OTP memory /
+	warnx("otp_mem Struct size: %d",sizeof(struct otp)); 
 	struct otp otp_mem;
 	const volatile uint32_t* otp_ptr = ADDR_OTP_START;
 	val_read(&otp_mem, otp_ptr, sizeof(struct otp));
 
 	// ID string //
 	otp_mem.id[3] = '\0';
-	warnx("ID String: %s", (otp_mem.id != 0xFF) ? otp_mem.id : "[not written]");
+	
+	warnx("ID: %s CERT: %s", otp_mem.id ,otp_mem.signature);
 
 	// get OTP lock //
 	struct otp_lock otp_lock_mem;
@@ -852,15 +831,28 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
     //TODO 
     if ( writecert ) { 
         warnx("-w writecert not impl yet\n");
+        
+		warnx("Writing (but not locking) OTP");
+		// write OTP /
+		uint8_t id_type = 0;
+		uint32_t vid = 0x26AC;
+		uint32_t pid = 0x10;
+		char* signature = 0;
+		char* public_key = 0;
+
+		write_otp(id_type, vid, pid, cert); // cert is 128 binary bytes.   
+        
     }
     
     // LOCK THE OTP
     // TODO 
     if ( lockcert ) { 
         warnx("-l lockcert not impl yet\n");
-        
+		warnx("Locking OTP, no further write operations are permitted");
+		lock_otp();
     } 
-
+    
+ 	
 
 
 	sched_unlock();
