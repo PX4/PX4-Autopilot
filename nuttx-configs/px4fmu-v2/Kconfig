@@ -1,7 +1,0 @@
-#
-# For a description of the syntax of this configuration file,
-# see misc/tools/kconfig-language.txt.
-#
-
-if ARCH_BOARD_PX4FMU_V2
-endif
