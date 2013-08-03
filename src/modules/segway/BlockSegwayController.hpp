@@ -8,8 +8,8 @@ class BlockSegwayController : public control::BlockUorbEnabledAutopilot {
 public:
 	BlockSegwayController() :
 		BlockUorbEnabledAutopilot(NULL,"SEG"),
-		theta2spd(this, "THETA2SPD"),
-		q2spd(this, "Q2SPD"),
+		th2v(this, "TH2V"),
+		q2v(this, "Q2V"),
 		_attPoll(),
 		_timeStamp(0)
 	{
@@ -19,8 +19,8 @@ public:
 	void update();
 private:
 	enum {CH_LEFT, CH_RIGHT};
-	BlockPI theta2spd;
-	BlockP q2spd;
+	BlockPI th2v;
+	BlockP q2v;
 	struct pollfd _attPoll;
 	uint64_t _timeStamp;
 };

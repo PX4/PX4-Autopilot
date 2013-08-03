@@ -31,7 +31,7 @@ void BlockSegwayController::update() {
 	}
 
 	// compute speed command
-	float spdCmd = -theta2spd.update(_att.pitch) - q2spd.update(_att.pitchspeed);
+	float spdCmd = -th2v.update(_att.pitch) - q2v.update(_att.pitchspeed);
 
 	// handle autopilot modes
 	if (_status.state_machine == SYSTEM_STATE_AUTO ||
