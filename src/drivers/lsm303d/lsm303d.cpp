@@ -59,11 +59,11 @@
 #include <nuttx/clock.h>
 
 #include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
-
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
+
+#include <board_config.h>
 
 #include "iirFilter.h"
 

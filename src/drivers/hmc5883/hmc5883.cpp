@@ -58,7 +58,7 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>

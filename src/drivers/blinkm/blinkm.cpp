@@ -92,12 +92,6 @@
 
 #include <nuttx/config.h>
 
-__BEGIN_DECLS
-#include <arch/board/board.h>
-__END_DECLS
-#include <systemlib/systemlib.h>
-#include <drivers/device/i2c.h>
-
 #include <sys/types.h>
 #include <stdint.h>
 #include <string.h>
@@ -107,15 +101,19 @@ __END_DECLS
 #include <unistd.h>
 #include <stdio.h>
 #include <ctype.h>
-
-#include <drivers/drv_blinkm.h>
+#include <poll.h>
 
 #include <nuttx/wqueue.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
+#include <systemlib/systemlib.h>
 
-#include <poll.h>
+#include <board_config.h>
+
+#include <drivers/device/i2c.h>
+#include <drivers/drv_blinkm.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>

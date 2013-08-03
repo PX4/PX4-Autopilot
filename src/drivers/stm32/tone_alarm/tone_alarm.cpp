@@ -104,7 +104,7 @@
 #include <math.h>
 #include <ctype.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 #include <drivers/drv_hrt.h>
 
 #include <arch/stm32/chip.h>

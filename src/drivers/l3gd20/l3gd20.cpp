@@ -59,11 +59,10 @@
 #include <nuttx/clock.h>
 
 #include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
-
 #include <drivers/device/spi.h>
 #include <drivers/drv_gyro.h>
 
+#include <board_config.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR

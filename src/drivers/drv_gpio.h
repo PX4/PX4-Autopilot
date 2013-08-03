@@ -59,9 +59,7 @@
 # define GPIO_CAN_RX		(1<<7)		/**< CAN2 RX */
 
 /**
- * Default GPIO device - other devices may also support this protocol if
- * they also export GPIO-like things.  This is always the GPIOs on the
- * main board.
+ * Device paths for things that support the GPIO ioctl protocol.
  */
 # define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 # define PX4IO_DEVICE_PATH	"/dev/px4io"
@@ -89,9 +87,7 @@
 # define GPIO_5V_PERIPH_OC	(1<<11)		/**< PE10 - !VDD_5V_PERIPH_OC */
 
 /**
- * Default GPIO device - other devices may also support this protocol if
- * they also export GPIO-like things.  This is always the GPIOs on the
- * main board.
+ * Device paths for things that support the GPIO ioctl protocol.
  */
 # define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 # define PX4IO_DEVICE_PATH	"/dev/px4io"

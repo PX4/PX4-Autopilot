@@ -1,0 +1,3 @@
+include ${TOPDIR}/.config
+
+include $(TOPDIR)/configs/px4io-v1/common/Make.defs

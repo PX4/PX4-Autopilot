@@ -148,7 +148,7 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
 	@$(ECHO) %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/configs && ln -sf $(PX4_BASE)/nuttx-configs/* .)
+	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)/nuttx-configs/* .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
 	@$(ECHO) %% Exporting NuttX for $(board)
 	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) export

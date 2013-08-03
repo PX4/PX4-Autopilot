@@ -17,7 +17,7 @@ MODULES		+= drivers/stm32/tone_alarm
 MODULES		+= drivers/led
 MODULES		+= drivers/px4fmu
 MODULES		+= drivers/px4io
-MODULES		+= drivers/boards/px4fmuv2
+MODULES		+= drivers/boards/px4fmu-v2
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
@@ -29,11 +29,14 @@ MODULES		+= drivers/hil
 MODULES		+= drivers/hott/hott_telemetry
 MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
-MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
 MODULES		+= modules/sensors
+
+# Needs to be burned to the ground and re-written; for now,
+# just don't build it.
+#MODULES		+= drivers/mkblctrl
 
 #
 # System commands

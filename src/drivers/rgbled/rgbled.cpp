@@ -41,7 +41,6 @@
 
 #include <nuttx/config.h>
 
-#include <arch/board/board.h>
 #include <drivers/device/i2c.h>
 
 #include <sys/types.h>
@@ -59,6 +58,8 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+
+#include <board_config.h>
 
 #include "device/rgbled.h"
 

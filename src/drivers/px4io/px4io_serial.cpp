@@ -61,7 +61,7 @@
 
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/boards/px4fmuv2/px4fmu_internal.h>	/* XXX should really not be hardcoding v2 here */
+#include <board_config.h>
 
 #include <systemlib/perf_counter.h>
 

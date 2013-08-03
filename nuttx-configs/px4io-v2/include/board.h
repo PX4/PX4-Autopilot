@@ -112,34 +112,6 @@
 #undef GPIO_USART3_RTS
 #define GPIO_USART3_RTS	0xffffffff
 
-/* 
- * High-resolution timer
- */
-#define HRT_TIMER		1	/* use timer1 for the HRT */
-#define HRT_TIMER_CHANNEL	2	/* use capture/compare channel 2 */
-
-/*
- * PPM
- *
- * PPM input is handled by the HRT timer.
- *
- * Pin is PA8, timer 1, channel 1
- */
-#define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 */
-#define GPIO_PPM_IN		GPIO_TIM1_CH1IN
-
-/* LED definitions ******************************************************************/
-/* PX4 has two LEDs that we will encode as: */
-
-#define LED_STARTED       0  /* LED? */
-#define LED_HEAPALLOCATE  1  /* LED? */
-#define LED_IRQSENABLED   2  /* LED? + LED? */
-#define LED_STACKCREATED  3  /* LED? */
-#define LED_INIRQ         4  /* LED? + LED? */
-#define LED_SIGNAL        5  /* LED? + LED? */
-#define LED_ASSERTION     6  /* LED? + LED? + LED? */
-#define LED_PANIC         7  /* N/C  + N/C  + N/C + LED? */
-
 /************************************************************************************
  * Public Data
  ************************************************************************************/

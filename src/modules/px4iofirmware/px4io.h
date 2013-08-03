@@ -42,12 +42,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-# include <drivers/boards/px4io/px4io_internal.h>
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
-# include <drivers/boards/px4iov2/px4iov2_internal.h>
-#endif
+#include <board_config.h>
 
 #include "protocol.h"
 

@@ -59,15 +59,7 @@
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-# include <drivers/boards/px4fmu/px4fmu_internal.h>
-# define FMU_HAVE_PPM
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-# include <drivers/boards/px4fmuv2/px4fmu_internal.h>
-# undef FMU_HAVE_PPM
-#else
-# error Unrecognised FMU board.
-#endif
+# include <board_config.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -80,7 +72,7 @@
 #include <uORB/topics/actuator_outputs.h>
 
 #include <systemlib/err.h>
-#ifdef FMU_HAVE_PPM
+#ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
 #endif
 
@@ -455,7 +447,7 @@ PX4FMU::task_main()
 	fds[1].fd = _t_armed;
 	fds[1].events = POLLIN;
 
-#ifdef FMU_HAVE_PPM
+#ifdef HRT_PPM_CHANNEL
 	// rc input, published to ORB
 	struct rc_input_values rc_in;
 	orb_advert_t to_input_rc = 0;
@@ -585,7 +577,7 @@ PX4FMU::task_main()
 			}
 		}
 
-#ifdef FMU_HAVE_PPM
+#ifdef HRT_PPM_CHANNEL
 		// see if we have new PPM input data
 		if (ppm_last_valid_decode != rc_in.timestamp) {
 			// we have a new PPM frame. Publish it.

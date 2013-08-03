@@ -52,7 +52,7 @@
 
 #include <nuttx/i2c.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 
 #include "systemlib/systemlib.h"
 #include "systemlib/err.h"

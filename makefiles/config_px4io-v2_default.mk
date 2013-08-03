@@ -6,5 +6,5 @@
 # Board support modules
 #
 MODULES		+= drivers/stm32
-MODULES		+= drivers/boards/px4iov2
+MODULES		+= drivers/boards/px4io-v2
 MODULES		+= modules/px4iofirmware

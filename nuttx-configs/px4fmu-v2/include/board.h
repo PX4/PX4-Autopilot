@@ -194,11 +194,6 @@
 
 #define DMAMAP_SDIO DMAMAP_SDIO_1
 
-/* High-resolution timer
- */
-#define HRT_TIMER		8	/* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
-
 /* Alternate function pin selections ************************************************/
 
 /*
@@ -232,35 +227,12 @@
 #define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
 #define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
 
-/*
- * PWM
- *
- * Six PWM outputs are configured.
- *
- * Pins:
- *
- * CH1 : PE14 : TIM1_CH4
- * CH2 : PE13 : TIM1_CH3
- * CH3 : PE11 : TIM1_CH2
- * CH4 : PE9  : TIM1_CH1
- * CH5 : PD13 : TIM4_CH2
- * CH6 : PD14 : TIM4_CH3
- *
- */
-#define GPIO_TIM1_CH1OUT	GPIO_TIM1_CH1OUT_2
-#define GPIO_TIM1_CH2OUT	GPIO_TIM1_CH2OUT_2
-#define GPIO_TIM1_CH3OUT	GPIO_TIM1_CH3OUT_2
-#define GPIO_TIM1_CH4OUT	GPIO_TIM1_CH4OUT_2
-#define GPIO_TIM4_CH2OUT	GPIO_TIM4_CH2OUT_2
-#define GPIO_TIM4_CH3OUT	GPIO_TIM4_CH3OUT_2
-
 /* 
  * CAN
  *
  * CAN1 is routed to the onboard transceiver. 
  * CAN2 is routed to the expansion connector.
  */
-
 #define GPIO_CAN1_RX	GPIO_CAN1_RX_3
 #define GPIO_CAN1_TX	GPIO_CAN1_TX_3
 #define GPIO_CAN2_RX	GPIO_CAN2_RX_1
@@ -284,20 +256,6 @@
 #define GPIO_I2C2_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN11)
 
 /*
- * I2C busses
- */
-#define PX4_I2C_BUS_EXPANSION	1
-#define PX4_I2C_BUS_LED		2
-
-/*
- * Devices on the onboard bus.
- *
- * Note that these are unshifted addresses.
- */
-#define PX4_I2C_OBDEV_LED	0x55
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-
-/*
  * SPI
  *
  * There are sensors on SPI1, and SPI2 is connected to the FRAM.
@@ -309,22 +267,6 @@
 #define GPIO_SPI2_MISO	GPIO_SPI2_MISO_1
 #define GPIO_SPI2_MOSI	GPIO_SPI2_MOSI_1
 #define GPIO_SPI2_SCK	GPIO_SPI2_SCK_2
-
-/*
- * Use these in place of the spi_dev_e enumeration to
- * select a specific SPI device on SPI1
- */
-#define PX4_SPIDEV_GYRO		1
-#define PX4_SPIDEV_ACCEL_MAG	2
-#define PX4_SPIDEV_BARO		3
-
-/*
- * Tone alarm output
- */
-#define TONE_ALARM_TIMER	2	/* timer 2 */
-#define TONE_ALARM_CHANNEL	1	/* channel 1 */
-#define GPIO_TONE_ALARM_IDLE	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
-#define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF1|GPIO_SPEED_2MHz|GPIO_PUSHPULL|GPIO_PORTA|GPIO_PIN15)
 
 /************************************************************************************
  * Public Data

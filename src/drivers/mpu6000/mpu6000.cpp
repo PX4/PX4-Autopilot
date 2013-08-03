@@ -63,7 +63,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 #include <drivers/drv_hrt.h>
 
 #include <drivers/device/spi.h>

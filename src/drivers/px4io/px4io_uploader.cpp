@@ -56,12 +56,7 @@
 
 #include "uploader.h"
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-#include <drivers/boards/px4fmuv2/px4fmu_internal.h>
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-#include <drivers/boards/px4fmu/px4fmu_internal.h>
-#endif
+#include <board_config.h>
 
 // define for comms logging
 //#define UDEBUG

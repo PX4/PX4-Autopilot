@@ -59,7 +59,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 #include <drivers/drv_hrt.h>
 
 #include "chip.h"
@@ -69,8 +69,6 @@
 #include "stm32.h"
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
-
-#ifdef HRT_TIMER
 
 /* HRT configuration */
 #if   HRT_TIMER == 1
@@ -905,6 +903,3 @@ hrt_latency_update(void)
 	/* catch-all at the end */
 	latency_counters[index]++;
 }
-
-
-#endif /* HRT_TIMER */
