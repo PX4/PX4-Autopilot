@@ -54,6 +54,8 @@
 
 #include "ms5611.h"
 
+#include "board_config.h"
+
 #ifdef PX4_I2C_OBDEV_MS5611
 
 #ifndef PX4_I2C_BUS_ONBOARD
