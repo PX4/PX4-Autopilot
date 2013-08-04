@@ -3,5 +3,6 @@
 #
 
 MODULE_COMMAND	 = lsm303d
-SRCS		 = lsm303d.cpp \
-		iirFilter.c
+SRCS		 = lsm303d.cpp
+
+

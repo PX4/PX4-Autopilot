@@ -65,8 +65,6 @@
 
 #include <board_config.h>
 
-#include "iirFilter.h"
-
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
@@ -220,10 +218,6 @@ private:
 	orb_advert_t		_accel_topic;
 
 	unsigned			_current_samplerate;
-
-//	FIL_T				_filter_x;
-//	FIL_T				_filter_y;
-//	FIL_T				_filter_z;
 
 	unsigned			_num_mag_reports;
 	volatile unsigned	_next_mag_report;
@@ -493,22 +487,6 @@ LSM303D::init()
 	set_range(8); /* XXX 16G mode seems wrong (shows 6 instead of 9.8m/s^2, therefore use 8G for now */
 	set_antialias_filter_bandwidth(50); /* available bandwidths: 50, 194, 362 or 773 Hz */
 	set_samplerate(400); /* max sample rate */
-
-	/* initiate filter */
-//	TF_DIF_t tf_filter;
-//	tf_filter.numInt = 0;
-//	tf_filter.numDiff = 0;
-//	tf_filter.lowpassLength = 2;
-//	tf_filter.highpassLength = 0;
-//	tf_filter.lowpassData[0] = 10;
-//	tf_filter.lowpassData[1] = 10;
-//	//tf_filter.highpassData[0] = ;
-//	tf_filter.gain = 1;
-//	tf_filter.Ts = 1/_current_samplerate;
-//
-//	initFilter(&tf_filter, 1.0/(double)_current_samplerate, &_filter_x);
-//	initFilter(&tf_filter, 1.0/(double)_current_samplerate, &_filter_y);
-//	initFilter(&tf_filter, 1.0/(double)_current_samplerate, &_filter_z);
 
 	mag_set_range(4); /* XXX: take highest sensor range of 12GA? */
 	mag_set_samplerate(100);
