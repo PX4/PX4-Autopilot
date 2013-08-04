@@ -64,6 +64,7 @@
 #include <drivers/drv_mag.h>
 
 #include <board_config.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -231,6 +232,10 @@ private:
 
 	perf_counter_t		_accel_sample_perf;
 	perf_counter_t		_mag_sample_perf;
+
+        math::LowPassFilter2p   _accel_filter_x;
+        math::LowPassFilter2p   _accel_filter_y;
+        math::LowPassFilter2p   _accel_filter_z;
 
 	/**
 	 * Start automatic measurement.
@@ -402,7 +407,10 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_mag_range_scale(0.0f),
 	_mag_range_ga(0.0f),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
-	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read"))
+        _mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
+        _accel_filter_x(800, 30),
+        _accel_filter_y(800, 30),
+        _accel_filter_z(800, 30)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -446,7 +454,6 @@ LSM303D::init()
 {
 	int ret = ERROR;
 	int mag_ret;
-	int fd_mag;
 
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK)
@@ -622,7 +629,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
-
 				return ioctl(filp, SENSORIOCSPOLLRATE, 1600);
 
 			case SENSOR_POLLRATE_DEFAULT:
@@ -644,6 +650,13 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* adjust sample rate of sensor */
 					set_samplerate(arg);
+
+                                        // adjust filters
+                                        float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
+                                        float sample_rate = 1.0e6f/ticks;
+                                        _accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                                        _accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                                        _accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
@@ -695,15 +708,17 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* XXX implement */
 		return -EINVAL;
 
-//	case ACCELIOCSLOWPASS:
+	case ACCELIOCSLOWPASS: {
+                float cutoff_freq_hz = arg;
+                float sample_rate = 1.0e6f / _call_accel_interval;
+                _accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                _accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                _accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                return OK;
+        }
+
 	case ACCELIOCGLOWPASS:
-
-		unsigned bandwidth;
-
-		if (OK == get_antialias_filter_bandwidth(bandwidth))
-			return bandwidth;
-		else
-			return -EINVAL;
+                return _accel_filter_x.get_cutoff_freq();
 
 	case ACCELIOCSSCALE:
 		{
@@ -1186,17 +1201,13 @@ LSM303D::measure()
 	accel_report->y_raw = raw_accel_report.y;
 	accel_report->z_raw = raw_accel_report.z;
 
-//	float x_in_new = ((accel_report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-//	float y_in_new = ((accel_report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-//	float z_in_new = ((accel_report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
-//
-//	accel_report->x = updateFilter(&_filter_x, x_in_new);
-//	accel_report->y = updateFilter(&_filter_y, y_in_new);
-//	accel_report->z = updateFilter(&_filter_z, z_in_new);
+	float x_in_new = ((accel_report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	float y_in_new = ((accel_report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	float z_in_new = ((accel_report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
-	accel_report->x = ((accel_report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	accel_report->y = ((accel_report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	accel_report->z = ((accel_report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	accel_report->x = _accel_filter_x.apply(x_in_new);
+	accel_report->y = _accel_filter_y.apply(y_in_new);
+	accel_report->z = _accel_filter_z.apply(z_in_new);
 
 	accel_report->scaling = _accel_range_scale;
 	accel_report->range_m_s2 = _accel_range_m_s2;
