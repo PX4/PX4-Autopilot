@@ -162,6 +162,12 @@ $(NUTTX_SRC):
 	@$(ECHO) ""
 
 #
+# Testing targets
+#
+testbuild:
+	$(Q) (cd $(PX4_BASE) && make distclean && make archives && make -j8)
+
+#
 # Cleanup targets.  'clean' should remove all built products and force
 # a complete re-compilation, 'distclean' should remove everything 
 # that's generated leaving only files that are in source control.
@@ -211,6 +217,9 @@ help:
 	@$(ECHO) "    When exactly one config is being built, add this target to upload the"
 	@$(ECHO) "    firmware to the board when the build is complete. Not supported for"
 	@$(ECHO) "    all configurations."
+	@$(ECHO) ""
+	@$(ECHO) "  testbuild"
+	@$(ECHO) "    Perform a complete clean build of the entire tree."
 	@$(ECHO) ""
 	@$(ECHO) "  Common options:"
 	@$(ECHO) "  ---------------"
