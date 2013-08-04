@@ -758,11 +758,26 @@ Sensors::accel_init()
 		errx(1, "FATAL: no accelerometer found");
 
 	} else {
+
+		// XXX do the check more elegantly
+
+		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+
 		/* set the accel internal sampling rate up to at leat 500Hz */
 		ioctl(fd, ACCELIOCSSAMPLERATE, 500);
 
 		/* set the driver to poll at 500Hz */
 		ioctl(fd, SENSORIOCSPOLLRATE, 500);
+
+		#else
+
+		/* set the accel internal sampling rate up to at leat 800Hz */
+		ioctl(fd, ACCELIOCSSAMPLERATE, 800);
+
+		/* set the driver to poll at 800Hz */
+		ioctl(fd, SENSORIOCSPOLLRATE, 800);
+
+		#endif
 
 		warnx("using system accel");
 		close(fd);
@@ -781,11 +796,26 @@ Sensors::gyro_init()
 		errx(1, "FATAL: no gyro found");
 
 	} else {
+
+		// XXX do the check more elegantly
+
+		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+
 		/* set the gyro internal sampling rate up to at leat 500Hz */
 		ioctl(fd, GYROIOCSSAMPLERATE, 500);
 
 		/* set the driver to poll at 500Hz */
 		ioctl(fd, SENSORIOCSPOLLRATE, 500);
+
+		#else
+
+		/* set the gyro internal sampling rate up to at leat 800Hz */
+		ioctl(fd, GYROIOCSSAMPLERATE, 800);
+
+		/* set the driver to poll at 800Hz */
+		ioctl(fd, SENSORIOCSPOLLRATE, 800);
+
+		#endif
 
 		warnx("using system gyro");
 		close(fd);
@@ -1387,6 +1417,9 @@ Sensors::task_main()
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
 
+	/* rate limit gyro to 250 Hz (the gyro signal is lowpassed accordingly earlier) */
+	orb_set_interval(_gyro_sub, 4);
+
 	/*
 	 * do advertisements
 	 */
@@ -1422,7 +1455,7 @@ Sensors::task_main()
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 500ms for data */
+		/* wait for up to 100ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
