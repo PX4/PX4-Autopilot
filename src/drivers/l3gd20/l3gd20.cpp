@@ -63,6 +63,7 @@
 #include <drivers/drv_gyro.h>
 
 #include <board_config.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -188,6 +189,10 @@ private:
 
 	perf_counter_t		_sample_perf;
 
+        math::LowPassFilter2p   _gyro_filter_x;
+        math::LowPassFilter2p   _gyro_filter_y;
+        math::LowPassFilter2p   _gyro_filter_z;
+
 	/**
 	 * Start automatic measurement.
 	 */
@@ -278,7 +283,10 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	_gyro_topic(-1),
 	_current_rate(0),
 	_current_range(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read"))
+        _sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
+        _gyro_filter_x(250, 30),
+        _gyro_filter_y(250, 30),
+        _gyro_filter_z(250, 30)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -441,6 +449,13 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 					/* XXX this is a bit shady, but no other way to adjust... */
 					_call.period = _call_interval = ticks;
 
+                                        // adjust filters
+                                        float cutoff_freq_hz = _gyro_filter_x.get_cutoff_freq();
+                                        float sample_rate = 1.0e6f/ticks;
+                                        _gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                                        _gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                                        _gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
 						start();
@@ -493,10 +508,17 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCGSAMPLERATE:
 		return _current_rate;
 
-	case GYROIOCSLOWPASS:
+	case GYROIOCSLOWPASS: {
+                float cutoff_freq_hz = arg;
+                float sample_rate = 1.0e6f / _call_interval;
+                _gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                _gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                _gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+                return OK;
+        }
+
 	case GYROIOCGLOWPASS:
-		/* XXX not implemented due to wacky interaction with samplerate */
-		return -EINVAL;
+                return _gyro_filter_x.get_cutoff_freq();
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
@@ -699,6 +721,11 @@ L3GD20::measure()
 	report->x = ((report->x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
 	report->y = ((report->y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
 	report->z = ((report->z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+
+	report->x = _gyro_filter_x.apply(report->x);
+	report->y = _gyro_filter_y.apply(report->y);
+	report->z = _gyro_filter_z.apply(report->z);
+
 	report->scaling = _gyro_range_scale;
 	report->range_rad_s = _gyro_range_rad_s;
 
