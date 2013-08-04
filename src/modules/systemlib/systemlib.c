@@ -50,9 +50,19 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <stm32_pwr.h>
+
 #include "systemlib.h"
 
-__EXPORT extern void systemreset(void) {
+void
+systemreset(bool to_bootloader)
+{
+	if (to_bootloader) {
+		stm32_pwr_enablebkp();
+
+		/* XXX wow, this is evil - write a magic number into backup register zero */
+		*(uint32_t *)0x40002850 = 0xb007b007;
+	}
 	up_systemreset();
 }
 

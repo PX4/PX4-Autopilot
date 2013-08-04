@@ -45,7 +45,7 @@
 __BEGIN_DECLS
 
 /** Reboots the board */
-__EXPORT void systemreset(void) noreturn_function;
+__EXPORT void systemreset(bool to_bootloader) noreturn_function;
 
 /** Sends SIGUSR1 to all processes */
 __EXPORT void killall(void);
