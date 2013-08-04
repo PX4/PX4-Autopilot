@@ -224,8 +224,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
-	/* rate-limit raw data updates to 200Hz */
-	orb_set_interval(sub_raw, 4);
+	/* rate-limit raw data updates to 333 Hz (sensors app publishes at 200, so this is just paranoid) */
+	orb_set_interval(sub_raw, 3);
 
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));
@@ -235,7 +235,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	/* advertise attitude */
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
-
 
 	int loopcounter = 0;
 	int printcounter = 0;
@@ -384,7 +383,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					static bool const_initialized = false;
 
 					/* initialize with good values once we have a reasonable dt estimate */
-					if (!const_initialized && dt < 0.05f && dt > 0.005f) {
+					if (!const_initialized && dt < 0.05f && dt > 0.001f) {
 						dt = 0.005f;
 						parameters_update(&ekf_param_handles, &ekf_params);
 
@@ -424,7 +423,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						continue;
 					}
 
-					if (last_data > 0 && raw.timestamp - last_data > 12000) printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
+					if (last_data > 0 && raw.timestamp - last_data > 12000)
+						printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
 
 					last_data = raw.timestamp;
 
