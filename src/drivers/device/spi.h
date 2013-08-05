@@ -71,7 +71,7 @@ protected:
 	    enum spi_mode_e mode,
 	    uint32_t frequency,
 	    int irq = 0);
-	~SPI();
+	virtual ~SPI();
 
 	virtual int	init();
 
