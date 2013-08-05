@@ -34,6 +34,7 @@
 /**
  * @file meas_airspeed.cpp
  * @author Lorenz Meier
+ * @author Sarthak Kaingade
  * @author Simon Wilks
  *
  * Driver for the MEAS Spec series connected via I2C.
@@ -92,9 +93,6 @@
 
 /* Register address */
 #define ADDR_READ_MR			0x00	/* write to this address to start conversion */
-#define ADDR_READ_DF2			0x00	/* read from this address to read pressure only */
-#define ADDR_READ_DF3			0x01
-#define ADDR_READ_DF4			0x02	/* read from this address to read pressure and temp */
 
 /* Measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
@@ -160,7 +158,7 @@ MEASAirspeed::collect()
 
 	perf_begin(_sample_perf);
 
-	ret = transfer(nullptr, 0, &val[0], 2);
+	ret = transfer(nullptr, 0, &val[0], 4);
 
 	if (ret < 0) {
 		log("error reading from sensor: %d", ret);
@@ -176,21 +174,32 @@ MEASAirspeed::collect()
 		log("err: fault");
 	}
 
-	uint16_t diff_pres_pa = (val[1]) | ((val[0] & ~(0xC0)) << 8);
+	//uint16_t diff_pres_pa = (val[1]) | ((val[0] & ~(0xC0)) << 8);
 	uint16_t temp = (val[3] & 0xE0) << 8 | val[2];
 
-	diff_pres_pa = abs(diff_pres_pa - (16384 / 2.0f));
-	diff_pres_pa -= _diff_pres_offset;
+	// XXX leaving this in until new calculation method has been cross-checked
+	//diff_pres_pa = abs(diff_pres_pa - (16384 / 2.0f));
+	//diff_pres_pa -= _diff_pres_offset;
+	int16_t dp_raw = 0, dT_raw = 0;
+	dp_raw = (val[0] << 8) + val[1];
+	dp_raw = 0x3FFF & dp_raw;
+	dT_raw = (val[2] << 8) + val[3];
+	dT_raw = (0xFFE0 & dT_raw) >> 5;
+	float temperature = ((200 * dT_raw) / 2047) - 50;
 
 	// XXX we may want to smooth out the readings to remove noise.
 
+	// Calculate differential pressure. As its centered around 8000
+	// and can go positive or negative, enforce absolute value
+	uint16_t diff_press_pa = abs(dp_raw - (16384 / 2.0f));
+
 	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].temperature = temp;
-	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
+	_reports[_next_report].temperature = temperature;
+	_reports[_next_report].differential_pressure_pa = diff_press_pa;
 
 	// Track maximum differential pressure measured (so we can work out top speed).
-	if (diff_pres_pa > _reports[_next_report].max_differential_pressure_pa) {
-		_reports[_next_report].max_differential_pressure_pa = diff_pres_pa;
+	if (diff_press_pa > _reports[_next_report].max_differential_pressure_pa) {
+		_reports[_next_report].max_differential_pressure_pa = diff_press_pa;
 	}
 
 	/* announce the airspeed if needed, just publish else */
