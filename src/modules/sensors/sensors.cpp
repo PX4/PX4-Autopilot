@@ -801,11 +801,13 @@ Sensors::gyro_init()
 
 		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 
-		/* set the gyro internal sampling rate up to at leat 500Hz */
-		ioctl(fd, GYROIOCSSAMPLERATE, 500);
+		/* set the gyro internal sampling rate up to at least 1000Hz */
+		if (ioctl(fd, GYROIOCSSAMPLERATE, 1000) != OK)
+			ioctl(fd, GYROIOCSSAMPLERATE, 800);
 
-		/* set the driver to poll at 500Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 500);
+		/* set the driver to poll at 1000Hz */
+		if (ioctl(fd, SENSORIOCSPOLLRATE, 1000) != OK)
+			ioctl(fd, SENSORIOCSPOLLRATE, 800);
 
 		#else
 
