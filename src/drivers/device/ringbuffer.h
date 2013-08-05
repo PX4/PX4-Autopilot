@@ -104,6 +104,17 @@ public:
 	 */
 	bool			full() { return _next(_head) == _tail; }
 
+	/*
+	 * Returns the capacity of the buffer, or zero if the buffer could
+	 * not be allocated.
+	 */
+	unsigned		size() { return (_buf != nullptr) ? _size : 0; }
+
+	/*
+	 * Empties the buffer.
+	 */
+	void			flush() { _head = _tail = _size; }
+
 private:
 	T			*const _buf;	
 	const unsigned		_size;
@@ -114,11 +125,11 @@ private:
 };
 
 template <typename T>
-RingBuffer<T>::RingBuffer(unsigned size) :
-	_buf(new T[size + 1]),
-	_size(size),
- 	_head(size),
- 	_tail(size)
+RingBuffer<T>::RingBuffer(unsigned with_size) :
+	_buf(new T[with_size + 1]),
+	_size(with_size),
+ 	_head(with_size),
+ 	_tail(with_size)
 {}
 
 template <typename T>
