@@ -54,10 +54,6 @@
 #include <libtomcrypt/tomcrypt_misc.h>
 #include <libtomfastmath/tfm.h>
 
-#include "flash.h"
-#include "flash.c"
-
-
 /* RM page 75 OTP. Size is 528 bytes total (512 bytes data and 16 bytes locking) */
 #define ADDR_OTP_START			0x1FFF7800
 #define ADDR_OTP_LOCK_START		0x1FFF7A00
