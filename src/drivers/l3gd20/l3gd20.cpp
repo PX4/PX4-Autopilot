@@ -189,9 +189,9 @@ private:
 
 	perf_counter_t		_sample_perf;
 
-        math::LowPassFilter2p   _gyro_filter_x;
-        math::LowPassFilter2p   _gyro_filter_y;
-        math::LowPassFilter2p   _gyro_filter_z;
+	math::LowPassFilter2p	_gyro_filter_x;
+	math::LowPassFilter2p	_gyro_filter_y;
+	math::LowPassFilter2p	_gyro_filter_z;
 
 	/**
 	 * Start automatic measurement.
