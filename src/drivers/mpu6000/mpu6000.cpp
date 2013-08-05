@@ -70,6 +70,7 @@
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
@@ -202,6 +203,13 @@ private:
 	unsigned		_sample_rate;
 	perf_counter_t		_sample_perf;
 
+	math::LowPassFilter2p	_accel_filter_x;
+	math::LowPassFilter2p	_accel_filter_y;
+	math::LowPassFilter2p	_accel_filter_z;
+	math::LowPassFilter2p	_gyro_filter_x;
+	math::LowPassFilter2p	_gyro_filter_y;
+	math::LowPassFilter2p	_gyro_filter_z;
+
 	/**
 	 * Start automatic measurement.
 	 */
@@ -332,8 +340,14 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
 	_reads(0),
-	_sample_rate(500),
-	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read"))
+	_sample_rate(1000),
+	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read")),
+	_accel_filter_x(1000, 30),
+	_accel_filter_y(1000, 30),
+	_accel_filter_z(1000, 30),
+	_gyro_filter_x(1000, 30),
+        _gyro_filter_y(1000, 30),
+        _gyro_filter_z(1000, 30)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -714,6 +728,19 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 					if (ticks < 1000)
 						return -EINVAL;
 
+					// adjust filters
+					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
+					float sample_rate = 1.0e6f/ticks;
+					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+
+
+					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
+					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
 					_call.period = _call_interval = ticks;
@@ -767,9 +794,17 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		_set_sample_rate(arg);
 		return OK;
 
-	case ACCELIOCSLOWPASS:
 	case ACCELIOCGLOWPASS:
-		_set_dlpf_filter((uint16_t)arg);
+		return _accel_filter_x.get_cutoff_freq();
+
+	case ACCELIOCSLOWPASS:
+		
+		// XXX decide on relationship of both filters
+		// i.e. disable the on-chip filter
+		//_set_dlpf_filter((uint16_t)arg);
+                _accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+                _accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+                _accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case ACCELIOCSSCALE:
@@ -853,9 +888,14 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		_set_sample_rate(arg);
 		return OK;
 
-	case GYROIOCSLOWPASS:
 	case GYROIOCGLOWPASS:
-		_set_dlpf_filter((uint16_t)arg);
+		return _gyro_filter_x.get_cutoff_freq();
+	case GYROIOCSLOWPASS:
+		_gyro_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_gyro_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_gyro_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		// XXX check relation to the internal lowpass
+		//_set_dlpf_filter((uint16_t)arg);
 		return OK;
 
 	case GYROIOCSSCALE:
@@ -1112,9 +1152,14 @@ MPU6000::measure()
 	arb.y_raw = report.accel_y;
 	arb.z_raw = report.accel_z;
 
-	arb.x = ((report.accel_x * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	arb.y = ((report.accel_y * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	arb.z = ((report.accel_z * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	float x_in_new = ((report.accel_x * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	float y_in_new = ((report.accel_y * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	float z_in_new = ((report.accel_z * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	
+	arb.x = _accel_filter_x.apply(x_in_new);
+	arb.y = _accel_filter_y.apply(y_in_new);
+	arb.z = _accel_filter_z.apply(z_in_new);
+
 	arb.scaling = _accel_range_scale;
 	arb.range_m_s2 = _accel_range_m_s2;
 
@@ -1125,9 +1170,14 @@ MPU6000::measure()
 	grb.y_raw = report.gyro_y;
 	grb.z_raw = report.gyro_z;
 
-	grb.x = ((report.gyro_x * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	grb.y = ((report.gyro_y * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	grb.z = ((report.gyro_z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	float x_gyro_in_new = ((report.gyro_x * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	float y_gyro_in_new = ((report.gyro_y * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	float z_gyro_in_new = ((report.gyro_z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	
+	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
+	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
+	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
+
 	grb.scaling = _gyro_range_scale;
 	grb.range_rad_s = _gyro_range_rad_s;
 
