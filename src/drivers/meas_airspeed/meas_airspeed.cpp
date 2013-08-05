@@ -122,7 +122,7 @@ protected:
 extern "C" __EXPORT int meas_airspeed_main(int argc, char *argv[]);
 
 MEASAirspeed::MEASAirspeed(int bus, int address) : Airspeed(bus, address,
-	CONVERSION_INTERVAL)
+			CONVERSION_INTERVAL)
 {
 
 }
@@ -171,6 +171,7 @@ MEASAirspeed::collect()
 
 	if (status == 2) {
 		log("err: stale data");
+
 	} else if (status == 3) {
 		log("err: fault");
 	}
