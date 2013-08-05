@@ -15,20 +15,19 @@ then
 	# Set all params here, then disable autoconfig
 	param set SYS_AUTOCONFIG 0
 
-	param set MC_ATTRATE_D	         0.007
+	param set MC_ATTRATE_D	         0.005
 	param set MC_ATTRATE_I	         0.0
-	param set MC_ATTRATE_P	         0.13
+	param set MC_ATTRATE_P	         0.1
 	param set MC_ATT_D	         0.0
 	param set MC_ATT_I	         0.0
-	param set MC_ATT_P	         7.0
-	param set MC_POS_P	         0.1
+	param set MC_ATT_P	         4.5
 	param set MC_RCLOSS_THR	         0.0
 	param set MC_YAWPOS_D	         0.0
-	param set MC_YAWPOS_I	         0.5
-	param set MC_YAWPOS_P	         1.0
+	param set MC_YAWPOS_I	         0.3
+	param set MC_YAWPOS_P	         0.6
 	param set MC_YAWRATE_D	         0.0
 	param set MC_YAWRATE_I	         0.0
-	param set MC_YAWRATE_P	         0.2
+	param set MC_YAWRATE_P	         0.1
 
 	param save /fs/microsd/params
 fi
@@ -39,28 +38,6 @@ fi
 #              see https://pixhawk.ethz.ch/mavlink/
 #
 param set MAV_TYPE 2
- 
-#
-# Check if PX4IO Firmware should be upgraded (from Andrew Tridgell)
-#
-if [ -f /fs/microsd/px4io2.bin ]
-then
-	echo "PX4IO Firmware found. Checking Upgrade.."
-	if cmp /fs/microsd/px4io2.bin /fs/microsd/px4io2.cur
-	then
-		echo "No newer version, skipping upgrade."
-	else
-		echo "Loading /fs/microsd/px4io2.bin"
-		if px4io update /fs/microsd/px4io2.bin > /fs/microsd/px4io2.log
-		then
-			cp /fs/microsd/px4io2.bin /fs/microsd/px4io2.cur
-			echo "Flashed /fs/microsd/px4io2.bin OK" >> /fs/microsd/px4io2.log
-		else
-			echo "Failed flashing /fs/microsd/px4io2.bin" >> /fs/microsd/px4io2.log
-			echo "Failed to upgrade PX4IO2 firmware - check if PX4IO2 is in bootloader mode"
-		fi
-	fi
-fi
  
 #
 # Start MAVLink (depends on orb)
@@ -128,7 +105,7 @@ multirotor_att_control start
 #
 # Start logging
 #
-sdlog2 start -r 20 -a -b 14
+sdlog2 start -r 20 -a -b 16
  
 #
 # Start system state
