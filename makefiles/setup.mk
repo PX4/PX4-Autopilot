@@ -65,6 +65,7 @@ export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
 export MKFW		 = $(PX4_BASE)/Tools/px_mkfw.py
 export UPLOADER		 = $(PX4_BASE)/Tools/px_uploader.py
 export COPY		 = cp
+export COPYDIR		 = cp -Rf
 export REMOVE		 = rm -f
 export RMDIR		 = rm -rf
 export GENROMFS		 = genromfs

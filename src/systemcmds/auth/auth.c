@@ -48,18 +48,169 @@
 //#include <apps/netutils/base64.h>
 
 #include <systemlib/systemlib.h>
-
 #include <systemlib/err.h>
-#include <systemlib/otp.h>
 #include <libtomcrypt/tomcrypt_custom.h>
 #include <libtomcrypt/tomcrypt.h>
 #include <libtomcrypt/tomcrypt_misc.h>
 #include <libtomfastmath/tfm.h>
 
+/* RM page 75 OTP. Size is 528 bytes total (512 bytes data and 16 bytes locking) */
+#define ADDR_OTP_START			0x1FFF7800
+#define ADDR_OTP_LOCK_START		0x1FFF7A00
 
+#define OTP_LEN				512
+#define OTP_LOCK_LEN			16
 
+#define OTP_LOCK_LOCKED			0x00
+#define OTP_LOCK_UNLOCKED		0xFF
 
 __EXPORT int auth_main(int argc, char *argv[]);
+
+#pragma pack(push, 1)
+
+/*
+ * The OTP area is divided into 16 OTP data blocks of 32 bytes and one lock OTP block of 16 bytes.
+ * The OTP data and lock blocks cannot be erased. The lock block contains 16 bytes LOCKBi (0 ≤ i ≤ 15)
+ * to lock the corresponding OTP data block (blocks 0 to 15). Each OTP data block can be programmed
+ * until the value 0x00 is programmed in the corresponding OTP lock byte. The lock bytes must only
+ * contain 0x00 and 0xFF values, otherwise the OTP bytes might not be taken into account correctly.
+ */
+
+	struct otp {
+	    // first 32 bytes =  the '0' Block 
+		char		id[4];		///4 bytes < 'P' 'X' '4' '\n'
+		uint8_t		id_type;	///1 byte < 0 for USB VID, 1 for generic VID
+		uint32_t	vid;        ///4 bytes
+		uint32_t	pid;        ///4 bytes
+		char        unused[19];  ///3 bytes 
+		// Cert-of-Auth is next 4 blocks ie 1-4  ( where zero is first block ) 	
+		char        signature[128];
+        // insert extras here 
+		uint32_t	lock_bytes[4];
+	};
+
+	struct otp_lock {
+		uint8_t		lock_bytes[16];
+	};
+#pragma pack(pop)
+
+#define UDID_START		0x1FFF7A10
+#define ADDR_FLASH_SIZE		0x1FFF7A22
+
+#pragma pack(push, 1)
+		union udid {
+		uint32_t	serial[3];
+		char  data[12];
+	};
+#pragma pack(pop)
+
+int flash_unlock(void)
+{
+	/* unlock the control register */
+	volatile uint32_t *keyr = (volatile uint32_t *)0x40023c04;
+	*keyr = 0x45670123U;
+	*keyr = 0xcdef89abU;
+
+	volatile uint32_t *cr = (volatile uint32_t *)0x40023c10;
+
+	/* check the control register */
+	if (*cr & 0x80000000) {
+		warnx("WARNING: flash unlock failed, flash aborted");
+		return 1;
+	}
+
+	return 0;
+}
+
+int flash_lock(void)
+{
+	volatile uint32_t *cr = (volatile uint32_t *)0x40023c10;
+	/* re-lock the flash control register */
+	*cr = 0x80000000;
+}
+
+int val_read(void* dest, volatile const void* src, int bytes)
+{
+	
+	int i;
+	for (i = 0; i < bytes / 4; i++) {
+		*(((volatile uint32_t *)dest) + i) = *(((volatile uint32_t *)src) + i);
+	}
+	return i*4;
+}
+
+int val_write(volatile void* dest, const void* src, int bytes)
+{
+	flash_unlock();
+
+	int i;
+	
+
+	volatile uint32_t *sr = (volatile uint32_t *)0x40023c0c;
+	volatile uint32_t *cr = (volatile uint32_t *)0x40023c10;
+
+
+	volatile uint32_t *d = (volatile uint32_t *)dest;
+	volatile uint32_t *s = (volatile uint32_t *)src;
+
+	for (i = 0; i < bytes / 4; i++) {
+		/* program a byte */
+		*cr = 1;
+		
+		warnx("%016x",s[i]);
+
+		d[i] = s[i];
+
+		/* wait for the operation to complete */
+		while (*sr & 0x1000) {
+		}
+
+		if (*sr & 0xf2) {
+			warnx("WARNING: program error 0x%02x after %d bytes", *sr, i*4);
+			goto flash_end;
+		}
+	}
+
+
+flash_end:
+	flash_lock();
+
+	return i*4;
+}
+
+int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char* signature)
+{
+	struct otp otp_mem;
+	memset(&otp_mem, 0, sizeof(otp_mem));
+
+	/* fill struct */
+	otp_mem.id[0] = 'P';
+	otp_mem.id[1] = 'X';
+	otp_mem.id[2] = '4';
+	otp_mem.id[3] = '\0';
+	
+	memcpy(otp_mem.signature,signature,128); 
+	
+	warnx("write_otp: %s  / %s ",signature, otp_mem.signature); 
+
+	volatile uint32_t* otp_ptr = ADDR_OTP_START;
+	val_write(otp_ptr, &otp_mem, sizeof(struct otp));
+}
+
+int lock_otp()
+{
+	/* determine the required locking size - can only write full lock bytes */
+	int size = sizeof(struct otp) / 32;
+
+	struct otp_lock otp_lock_mem;
+
+	memset(&otp_lock_mem, OTP_LOCK_UNLOCKED, sizeof(otp_lock_mem));
+	for (int i = 0; i < sizeof(otp_lock_mem) / sizeof(otp_lock_mem.lock_bytes[0]); i++)
+		otp_lock_mem.lock_bytes[i] = OTP_LOCK_LOCKED;
+
+	/* XXX add the actual call here to write the OTP_LOCK bytes only at final stage */
+	// val_copy(lock_ptr, &otp_lock_mem, sizeof(otp_lock_mem));
+}
 
 
 #define SERIAL_LEN 27

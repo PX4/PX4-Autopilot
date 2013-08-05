@@ -55,13 +55,11 @@ class __EXPORT I2C : public CDev
 
 public:
 
-    /**
-     * Get the address
-     */
-    uint16_t get_address() {
-      return _address;
-    }
-
+	/**
+	 * Get the address
+	 */
+	int16_t		get_address() { return _address; }
+	
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
@@ -90,7 +88,7 @@ protected:
 	    uint16_t address,
 	    uint32_t frequency,
 	    int irq = 0);
-	~I2C();
+	virtual ~I2C();
 
 	virtual int	init();
 
