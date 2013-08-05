@@ -763,11 +763,11 @@ Sensors::accel_init()
 
 		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 
-		/* set the accel internal sampling rate up to at leat 500Hz */
-		ioctl(fd, ACCELIOCSSAMPLERATE, 500);
+		/* set the accel internal sampling rate up to at leat 1000Hz */
+		ioctl(fd, ACCELIOCSSAMPLERATE, 1000);
 
-		/* set the driver to poll at 500Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 500);
+		/* set the driver to poll at 1000Hz */
+		ioctl(fd, SENSORIOCSPOLLRATE, 1000);
 
 		#else
 
