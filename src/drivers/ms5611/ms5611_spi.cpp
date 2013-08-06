@@ -53,6 +53,7 @@
 #include <drivers/device/spi.h>
 
 #include "ms5611.h"
+#include "board_config.h"
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)

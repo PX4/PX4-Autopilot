@@ -233,9 +233,9 @@ private:
 	perf_counter_t		_accel_sample_perf;
 	perf_counter_t		_mag_sample_perf;
 
-        math::LowPassFilter2p   _accel_filter_x;
-        math::LowPassFilter2p   _accel_filter_y;
-        math::LowPassFilter2p   _accel_filter_z;
+	math::LowPassFilter2p	_accel_filter_x;
+	math::LowPassFilter2p	_accel_filter_y;
+	math::LowPassFilter2p	_accel_filter_z;
 
 	/**
 	 * Start automatic measurement.
@@ -407,10 +407,10 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_mag_range_scale(0.0f),
 	_mag_range_ga(0.0f),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
-        _mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
-        _accel_filter_x(800, 30),
-        _accel_filter_y(800, 30),
-        _accel_filter_z(800, 30)
+	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
+	_accel_filter_x(800, 30),
+	_accel_filter_y(800, 30),
+	_accel_filter_z(800, 30)
 {
 	// enable debug() calls
 	_debug_enabled = true;
