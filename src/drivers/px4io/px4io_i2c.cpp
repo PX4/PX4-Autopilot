@@ -49,6 +49,7 @@
 #include <unistd.h>
 
 #include <arch/board/board.h>
+#include <board_config.h>
 
 #include <drivers/device/i2c.h>
 
