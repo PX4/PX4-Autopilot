@@ -415,6 +415,10 @@ test()
 		warnx("temperature: %d C (0x%02x)", (int)report.temperature, (unsigned) report.temperature);
 	}
 
+	/* reset the sensor polling to its default rate */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT))
+		errx(1, "failed to set default rate");
+
 	errx(0, "PASS");
 }
 
