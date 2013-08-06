@@ -1008,8 +1008,6 @@ PX4IO::io_handle_status(uint16_t status)
 	struct safety_s safety;
 	safety.timestamp = hrt_absolute_time();
 
-	orb_copy(ORB_ID(safety), _to_safety, &safety);
-
 	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
 		safety.safety_off = true;
 		safety.safety_switch_available = true;
