@@ -126,10 +126,6 @@ extern struct system_load_s system_load;
 #define PRINT_INTERVAL	5000000
 #define PRINT_MODE_REJECT_INTERVAL	2000000
 
-// TODO include mavlink headers
-/** @brief These flags encode the MAV mode. */
-#ifndef HAVE_ENUM_MAV_MODE_FLAG
-#define HAVE_ENUM_MAV_MODE_FLAG
 enum MAV_MODE_FLAG {
 	MAV_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
 	MAV_MODE_FLAG_TEST_ENABLED = 2, /* 0b00000010 system has a test mode enabled. This flag is intended for temporary system tests and should not be used for stable implementations. | */
@@ -141,7 +137,13 @@ enum MAV_MODE_FLAG {
 	MAV_MODE_FLAG_SAFETY_ARMED = 128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. | */
 	MAV_MODE_FLAG_ENUM_END = 129, /*  | */
 };
-#endif
+
+enum PX4_CUSTOM_MODE {
+	PX4_CUSTOM_MODE_MANUAL = 1,
+	PX4_CUSTOM_MODE_SEATBELT,
+	PX4_CUSTOM_MODE_EASY,
+	PX4_CUSTOM_MODE_AUTO,
+};
 
 /* Mavlink file descriptors */
 static int mavlink_fd;
@@ -277,8 +279,9 @@ void handle_command(struct vehicle_status_s *status, struct vehicle_control_mode
 	/* request to set different system mode */
 	switch (cmd->command) {
 	case VEHICLE_CMD_DO_SET_MODE: {
-			uint8_t base_mode = (int) cmd->param1;
-			uint8_t custom_mode = (int) cmd->param2;
+			uint8_t base_mode = (uint8_t) cmd->param1;
+			uint32_t custom_mode = (uint32_t) cmd->param2;
+
 			// TODO remove debug code
 			mavlink_log_critical(mavlink_fd, "[cmd] command setmode: %d %d", base_mode, custom_mode);
 			/* set arming state */
@@ -286,6 +289,7 @@ void handle_command(struct vehicle_status_s *status, struct vehicle_control_mode
 
 			if (base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
 				arming_res = arming_state_transition(status, ARMING_STATE_ARMED, armed);
+
 				if (arming_res == TRANSITION_CHANGED) {
 					mavlink_log_info(mavlink_fd, "[cmd] ARMED by command");
 				}
@@ -294,9 +298,11 @@ void handle_command(struct vehicle_status_s *status, struct vehicle_control_mode
 				if (status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR) {
 					arming_state_t new_arming_state = (status->arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
 					arming_res = arming_state_transition(status, new_arming_state, armed);
+
 					if (arming_res == TRANSITION_CHANGED) {
 						mavlink_log_info(mavlink_fd, "[cmd] DISARMED by command");
 					}
+
 				} else {
 					arming_res = TRANSITION_NOT_CHANGED;
 				}
@@ -305,21 +311,37 @@ void handle_command(struct vehicle_status_s *status, struct vehicle_control_mode
 			/* set main state */
 			transition_result_t main_res = TRANSITION_DENIED;
 
-			if (base_mode & MAV_MODE_FLAG_AUTO_ENABLED) {
-				/* AUTO */
-				main_res = main_state_transition(status, MAIN_STATE_AUTO);
+			if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
+				/* use autopilot-specific mode */
+				if (custom_mode == PX4_CUSTOM_MODE_MANUAL) {
+					/* MANUAL */
+					main_res = main_state_transition(status, MAIN_STATE_MANUAL);
 
-			} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
-				if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
+				} else if (custom_mode == PX4_CUSTOM_MODE_SEATBELT) {
+					/* SEATBELT */
+					main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
+
+				} else if (custom_mode == PX4_CUSTOM_MODE_EASY) {
 					/* EASY */
 					main_res = main_state_transition(status, MAIN_STATE_EASY);
 
-				} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
-					if (custom_mode & 1) {	// TODO add custom mode flags definition
-						/* SEATBELT */
-						main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
+				} else if (custom_mode == PX4_CUSTOM_MODE_AUTO) {
+					/* AUTO */
+					main_res = main_state_transition(status, MAIN_STATE_AUTO);
+				}
 
-					} else {
+			} else {
+				/* use base mode */
+				if (base_mode & MAV_MODE_FLAG_AUTO_ENABLED) {
+					/* AUTO */
+					main_res = main_state_transition(status, MAIN_STATE_AUTO);
+
+				} else if (base_mode & MAV_MODE_FLAG_MANUAL_INPUT_ENABLED) {
+					if (base_mode & MAV_MODE_FLAG_GUIDED_ENABLED) {
+						/* EASY */
+						main_res = main_state_transition(status, MAIN_STATE_EASY);
+
+					} else if (base_mode & MAV_MODE_FLAG_STABILIZE_ENABLED) {
 						/* MANUAL */
 						main_res = main_state_transition(status, MAIN_STATE_MANUAL);
 					}
@@ -1534,6 +1556,7 @@ void *commander_low_prio_loop(void *arg)
 				mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
 				tune_error();
 			}
+
 			break;
 
 		case LOW_PRIO_TASK_PARAM_SAVE:
@@ -1545,6 +1568,7 @@ void *commander_low_prio_loop(void *arg)
 				mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
 				tune_error();
 			}
+
 			break;
 
 		case LOW_PRIO_TASK_GYRO_CALIBRATION:
