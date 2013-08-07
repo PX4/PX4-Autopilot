@@ -53,14 +53,26 @@
 
 
 struct hx_stream {
-	uint8_t			buf[HX_STREAM_MAX_FRAME + 4];
-	unsigned		frame_bytes;
-	bool			escaped;
-	bool			txerror;
+	/* RX state */
+	uint8_t			rx_buf[HX_STREAM_MAX_FRAME + 4];
+	unsigned		rx_frame_bytes;
+	bool			rx_escaped;
+	hx_stream_rx_callback	rx_callback;
+	void			*rx_callback_arg;
 
+	/* TX state */
 	int			fd;
-	hx_stream_rx_callback	callback;
-	void			*callback_arg;
+	bool			tx_error;
+	uint8_t			*tx_buf;
+	unsigned		tx_resid;
+	uint32_t		tx_crc;
+	enum {
+		TX_IDLE = 0,
+		TX_SEND_START,
+		TX_SEND_DATA,
+		TX_SENT_ESCAPE,
+		TX_SEND_END
+	}			tx_state;
 
 	perf_counter_t		pc_tx_frames;
 	perf_counter_t		pc_rx_frames;
@@ -81,21 +93,7 @@ static void
 hx_tx_raw(hx_stream_t stream, uint8_t c)
 {
 	if (write(stream->fd, &c, 1) != 1)
-		stream->txerror = true;
-}
-
-static void
-hx_tx_byte(hx_stream_t stream, uint8_t c)
-{
-	switch (c) {
-	case FBO:
-	case CEO:
-		hx_tx_raw(stream, CEO);
-		c ^= 0x20;
-		break;
-	}
-
-	hx_tx_raw(stream, c);
+		stream->tx_error = true;
 }
 
 static int
@@ -105,11 +103,11 @@ hx_rx_frame(hx_stream_t stream)
 		uint8_t	b[4];
 		uint32_t w;
 	} u;
-	unsigned length = stream->frame_bytes;
+	unsigned length = stream->rx_frame_bytes;
 
 	/* reset the stream */
-	stream->frame_bytes = 0;
-	stream->escaped = false;
+	stream->rx_frame_bytes = 0;
+	stream->rx_escaped = false;
 
 	/* not a real frame - too short */
 	if (length < 4) {
@@ -122,11 +120,11 @@ hx_rx_frame(hx_stream_t stream)
 	length -= 4;
 
 	/* compute expected CRC */
-	u.w = crc32(&stream->buf[0], length);
+	u.w = crc32(&stream->rx_buf[0], length);
 
 	/* compare computed and actual CRC */
 	for (unsigned i = 0; i < 4; i++) {
-		if (u.b[i] != stream->buf[length + i]) {
+		if (u.b[i] != stream->rx_buf[length + i]) {
 			perf_count(stream->pc_rx_errors);
 			return 0;
 		}
@@ -134,7 +132,7 @@ hx_rx_frame(hx_stream_t stream)
 
 	/* frame is good */
 	perf_count(stream->pc_rx_frames);
-	stream->callback(stream->callback_arg, &stream->buf[0], length);
+	stream->rx_callback(stream->rx_callback_arg, &stream->rx_buf[0], length);
 	return 1;
 }
 
@@ -150,8 +148,8 @@ hx_stream_init(int fd,
 	if (stream != NULL) {
 		memset(stream, 0, sizeof(struct hx_stream));
 		stream->fd = fd;
-		stream->callback = callback;
-		stream->callback_arg = arg;
+		stream->rx_callback = callback;
+		stream->rx_callback_arg = arg;
 	}
 
 	return stream;
@@ -179,49 +177,112 @@ hx_stream_set_counters(hx_stream_t stream,
 	stream->pc_rx_errors = rx_errors;
 }
 
+void
+hx_stream_reset(hx_stream_t stream)
+{
+	stream->rx_frame_bytes = 0;
+	stream->rx_escaped = false;
+
+	stream->tx_buf = NULL;
+	stream->tx_resid = 0;
+	stream->tx_state = TX_IDLE;
+}
+
+int
+hx_stream_start(hx_stream_t stream,
+	       const void *data,
+	       size_t count)
+{
+	if (count > HX_STREAM_MAX_FRAME)
+		return -EINVAL;
+
+	stream->tx_buf = data;
+	stream->tx_resid = count;
+	stream->tx_state = TX_SEND_START;
+	stream->tx_crc = crc32(data, count);
+	return OK;
+}
+
+int
+hx_stream_send_next(hx_stream_t stream)
+{
+	int c;
+
+	/* sort out what we're going to send */
+	switch (stream->tx_state) {
+
+	case TX_SEND_START:
+		stream->tx_state = TX_SEND_DATA;
+		return FBO;
+
+	case TX_SEND_DATA:
+		c = *stream->tx_buf;
+
+		switch (c) {
+		case FBO:
+		case CEO:
+			stream->tx_state = TX_SENT_ESCAPE;
+			return CEO;
+		}
+		break;
+
+	case TX_SENT_ESCAPE:
+		c = *stream->tx_buf ^ 0x20;
+		stream->tx_state = TX_SEND_DATA;
+		break;
+
+	case TX_SEND_END:
+		stream->tx_state = TX_IDLE;
+		return FBO;
+
+	case TX_IDLE:
+	default:
+		return -1;
+	}
+
+	/* if we are here, we have consumed a byte from the buffer */
+	stream->tx_resid--;
+	stream->tx_buf++;
+
+	/* buffer exhausted */
+	if (stream->tx_resid == 0) {
+		uint8_t *pcrc = (uint8_t *)&stream->tx_crc;
+
+		/* was the buffer the frame CRC? */
+		if (stream->tx_buf == (pcrc + sizeof(stream->tx_crc))) {
+			stream->tx_state = TX_SEND_END;
+		} else {
+			/* no, it was the payload - switch to sending the CRC */
+			stream->tx_buf = pcrc;
+			stream->tx_resid = sizeof(stream->tx_crc);
+		}
+	}
+	return c;
+}
+
 int
 hx_stream_send(hx_stream_t stream,
 	       const void *data,
 	       size_t count)
 {
-	union {
-		uint8_t	b[4];
-		uint32_t w;
-	} u;
-	const uint8_t *p = (const uint8_t *)data;
-	unsigned resid = count;
+	int result;
 
-	if (resid > HX_STREAM_MAX_FRAME)
-		return -EINVAL;
+	result = hx_stream_start(stream, data, count);
+	if (result != OK)
+		return result;
 
-	/* start the frame */
-	hx_tx_raw(stream, FBO);
-
-	/* transmit the data */
-	while (resid--)
-		hx_tx_byte(stream, *p++);
-
-	/* compute the CRC */
-	u.w = crc32(data, count);
-
-	/* send the CRC */
-	p = &u.b[0];
-	resid = 4;
-
-	while (resid--)
-		hx_tx_byte(stream, *p++);
-
-	/* and the trailing frame separator */
-	hx_tx_raw(stream, FBO);
+	int c;
+	while ((c = hx_stream_send_next(stream)) >= 0)
+		hx_tx_raw(stream, c);
 
 	/* check for transmit error */
-	if (stream->txerror) {
-		stream->txerror = false;
+	if (stream->tx_error) {
+		stream->tx_error = false;
 		return -EIO;
 	}
 
 	perf_count(stream->pc_tx_frames);
-	return 0;
+	return OK;
 }
 
 void
@@ -234,17 +295,17 @@ hx_stream_rx(hx_stream_t stream, uint8_t c)
 	}
 
 	/* escaped? */
-	if (stream->escaped) {
-		stream->escaped = false;
+	if (stream->rx_escaped) {
+		stream->rx_escaped = false;
 		c ^= 0x20;
 
 	} else if (c == CEO) {
-		/* now escaped, ignore the byte */
-		stream->escaped = true;
+		/* now rx_escaped, ignore the byte */
+		stream->rx_escaped = true;
 		return;
 	}
 
 	/* save for later */
-	if (stream->frame_bytes < sizeof(stream->buf))
-		stream->buf[stream->frame_bytes++] = c;
+	if (stream->rx_frame_bytes < sizeof(stream->rx_buf))
+		stream->rx_buf[stream->rx_frame_bytes++] = c;
 }

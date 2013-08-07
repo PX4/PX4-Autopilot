@@ -25,7 +25,7 @@ then
 else
 	echo "using L3GD20 and LSM303D"
 	l3gd20 start
-	lsm303 start
+	lsm303d start
 fi
 
 #
