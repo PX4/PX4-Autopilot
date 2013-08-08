@@ -177,8 +177,12 @@ void do_gyro_calibration(int mavlink_fd)
 
 		/* abort this loop if not rotated more than 180 degrees within 5 seconds */
 		if ((fabsf(baseline_integral / (2.0f * M_PI_F)) < 0.6f)
-			&& (hrt_absolute_time() - start_time > 5 * 1e6))
-			break;
+			&& (hrt_absolute_time() - start_time > 5 * 1e6)) {
+			mavlink_log_info(mavlink_fd, "gyro scale calibration skipped");
+			mavlink_log_info(mavlink_fd, "gyro calibration done");
+			tune_positive();
+			return;
+		}
 
 		/* wait blocking for new data */
 		struct pollfd fds[1];
