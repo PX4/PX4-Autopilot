@@ -40,138 +40,269 @@
 #include <string.h>
 
 #include "can.h"
-#include <systemlib/uthash/utlist.h>
 
 namespace device 
 {
 
-CAN::Bus CAN::_bus_array[CAN::_maxbus];
+/****************************************************************************
+ * CANBus - Generic bus driver
+ ****************************************************************************/
+
+CANBus *CANBus::_bus_array[CANBus::_maxbus];
+
+CANBus::CANBus(const char *devname, unsigned bus, can_dev_s *dev) :
+	CAN("CANBus", devname, bus),
+	_busnum(bus),
+	_dev(dev),
+	_tx_queue(nullptr),
+	_drivers(nullptr)
+{
+}
+
+CANBus::~CANBus()
+{
+}
 
 int
-CAN::connect(can_dev_s *dev, unsigned bus, unsigned tx_queue)
+CANBus::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	if (bus >= _maxbus)
+	int ret;
+
+	switch (cmd) {
+
+	default:
+		ret = CAN::ioctl(filp, cmd, arg);
+	}
+	return ret;
+}
+
+int
+CANBus::init()
+{
+	if (_bus >= _maxbus)
 		return -ERANGE;
-	if (_bus_array[bus].dev != nullptr)
+	if (_bus_array[_bus].dev != nullptr)
 		return -EBUSY;
-	MsgQ *txq = new MsgQ(tx_queue);
+
+	MsgQ *_txq = new MsgQ(_default_txq);
 	if (txq == nullptr)
 		return -ENOMEM;
-	
-	_bus_array[bus].dev = dev;
-	_bus_array[bus].tx_queue = txq;
+		
+	_bus_array[_bus] = this;
 
-	return 0;
+	/* put ourself on our own bus */
+	attach(this);
+
 }
+
+CANBus *
+CANBus::for_bus(unsigned bus, can_dev_s *dev)
+{
+	if (bus >= _maxbus)
+		return nullptr;
+
+	/* if we have already allocated the bus, go ahead and return it */
+	if (_bus_array[bus] != nullptr)
+		return _bus_array[bus];
+
+	char devname[32];
+	sprintf(devname, "/dev/can%d", bus);
+
+	CANBus *bus = new CANBus(devname, bus, dev);
+
+	if (bus != nullptr) {
+		if (bus->init() != OK) {
+			delete bus;
+			bus = nullptr;
+		}
+	}
+	return bus;
+}
+
+void
+CANBus::attach(CAN *driver)
+{
+	CRITICAL_SECTION;
+
+	/* push the driver onto the head of the filter list */
+	driver->filter_next = _drivers;
+	_drivers = driver;
+	driver->bus = this;
+}
+
+void
+CANBus::detach(CAN *driver)
+{
+	CAN	**drvp = &_drivers;
+
+	CRITICAL_SECTION;
+	
+	/* scan the filter list, remove us from it */
+	while (*drvp != nullptr) {
+		if (*drvp == driver) {
+			*drvp = driver->filter_next;
+			break;
+		}
+		drvp = &(*drvp)->filter_next;
+	}
+}
+
+int
+CANBus::send(can_msg_s &msg)
+{
+	int ret;
+
+	/* try sending directly if nothing is queued */
+	if (_txq->empty()) {
+		ret = _dev->cd_ops->co_send(dev, const_cast<can_msg_s *>(&msg));
+
+		/* for any result other than "no room to send", return it */
+		if (ret != -EBUSY)
+			goto out;
+	}
+
+	/* queue the message for later transmission */
+	if (!_txq->put(msg)) {
+		ret = -ENOSPC;
+		goto out;
+	}
+	ret = OK;
+
+out:
+	return ret;
+}
+
+int
+CANBus::can_receive(struct can_dev_s *dev, struct can_hdr_s *hdr, uint8_t *data)
+{
+	/* find a bus willing to handle this device's inbound traffic */
+	CANBus *cb = _bus_for_dev(dev);
+
+	if (cb != nullptr) {
+
+		/* massage the message into our buffer structure */
+		can_msg_s msg;
+		msg.cm_hdr = *hdr;
+		memcpy(&msg.cm_data, data, CAN_MAXDATALEN);
+
+		/* and offer it to each of the drivers */
+		cb->_filter_msg(msg);
+	}
+	return OK;
+}
+
+int
+CANBus::can_txdone(struct can_dev_s *dev)
+{
+	CANBus *cb = _bus_for_dev(dev);
+
+	if (cb != nullptr)
+		cb->_txdone();
+
+}
+
+int
+CANBus::open_first(struct file *filp)
+{
+	/* allocate a small RX queue */
+	set_rx_queue(4);
+
+	return CDev::open_first();
+}
+
+int
+CANBus::close_last(struct file *filp)
+{
+	/* free the RX queue */
+	set_rx_queue(0);
+
+	return CDev::close_last();
+}
+
+bool
+CANBus::filter(can_msg_s &msg)
+{
+	/* if we don't have an RX queue, we aren't interested */
+	return _rx_queue != nullptr;
+}
+
+CANBus *
+CANBus::_bus_for_dev(can_dev_s *dev)
+{
+	/* find the bus this device owns - this is a bad impedance match to the NuttX driver */
+	for (unsigned bus = 0; bus < _maxbus; bus++) {
+		CANBus *cb = _bus_array[bus];
+
+		/* is this bus handling messages from this dev? */
+		if (cb->_dev == dev)
+			return cb;
+	}
+	return nullptr;
+}
+
+void
+CANBus::_filter_msg(can_msg_s &msg)
+{
+	CAN	*drv = _devs;
+
+	/* offer the message to each driver on the bus */
+	while (drv != nullptr) {
+		if (drv->filter(msg))
+			drv->enqueue(msg);
+		drv = drv->filter_next;
+	}
+}
+
+void
+CANBus::_txdone()
+{
+	bool sent = false;
+
+	/* send pending messages */
+	while (_dev->cd_ops->co_txready(dev)) {
+		can_msg_s msg;
+
+		if (!_txq->get(msg))
+			break;
+
+		/* this should never fail - would have to push back otherwise */
+		_dev->cd_ops->co_send(dev, &msg);
+		sent = true;
+	}
+
+	if (sent) {
+		/* wake up blocked senders on this bus */
+		CAN *drv = _drivers;
+
+		while (drv != nullptr) {
+			drv->poll_notify(POLLOUT);
+			drv = drv->next;
+		}
+	}
+	return OK;
+}
+
+/****************************************************************************
+ * CAN - abstract CAN device class
+ ****************************************************************************/
 
 CAN::CAN(const char *name, 
     const char *devname,
     unsigned bus) :
 	CDev(name, devname),
-	_bus(bus),
-	_filter_next(nullptr),
+	filter_next(nullptr),
+	bus(nullptr),
 	_rx_queue(nullptr)
 {
-	_filter_add();
 }
 
 CAN::~CAN()
 {
-	_filter_remove();
+	if (bus != nullptr)
+		bus->detach(this);
 
 	if (_rx_queue != nullptr)
 		delete _rx_queue;
-}
-
-void
-CAN::_filter_msg(unsigned bus, can_msg_s &msg)
-{
-	CAN	*drv = _filter_head;
-
-	/* offer the message to each driver on the bus */
-	while (drv != nullptr) {
-		if ((bus == drv->_bus) && drv->filter(msg))
-			drv->_enqueue(msg);
-		drv = drv->_filter_next;
-	}
-}
-
-void
-CAN::_filter_add()
-{
-	/* push us onto the head of the filter list */
-	_filter_next = _filter_head;
-	_filter_head = this;
-}
-
-void
-CAN::_filter_remove()
-{
-	CAN	**drvp = &_filter_head;
-
-	/* scan the filter list, remove us from it */
-	while (*drvp != nullptr) {
-		if (*drvp == this) {
-			*drvp = _filter_next;
-			return;
-		}
-		drvp = &(*drvp)->_filter_next;
-	}
-}
-
-int
-CAN::can_receive(struct can_dev_s *dev, struct can_hdr_s *hdr, uint8_t *data)
-{
-	/* find the bus this device owns */
-	for (unsigned bus = 0; bus < _maxbus; bus++) {
-		if (_bus_array[bus].dev == dev) {
-
-			/* massage the message into our buffer structure */
-			can_msg_s msg;
-			msg.cm_hdr = *hdr;
-			memcpy(&msg.cm_data, data, CAN_MAXDATALEN);
-
-			/* and offer it to each of the drivers */
-			_filter_msg(bus, msg);
-		}
-	}
-	return OK;
-}
-
-int
-CAN::can_txdone(struct can_dev_s *dev)
-{
-	/* find the bus this device owns */
-	for (unsigned bus = 0; bus < _maxbus; bus++) {
-		if (_bus_array[bus].dev == dev) {
-			MsgQ *txq = _bus_array[bus].tx_queue;
-			bool sent = false;
-
-			/* send pending messages */
-			/* XXX need locking here */
-			while (dev->cd_ops->co_txready(dev)) {
-				can_msg_s msg;
-
-				if (!txq->get(msg))
-					break;
-
-				/* XXX this should never fail - would have to push back otherwise */
-				dev->cd_ops->co_send(dev, &msg);
-				sent = true;
-			}
-
-			if (sent) {
-				/* wake up blocked senders on this bus */
-				CAN *drv = _filter_head;
-
-				while (drv != nullptr) {
-					if (drv->_bus == bus)
-						drv->poll_notify(POLLOUT);
-				}
-			}
-		}
-	}
-	return OK;
 }
 
 ssize_t
@@ -229,7 +360,27 @@ out:
 int
 CAN::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	return CDev::ioctl(filp, cmd, arg);
+	int ret = OK;
+
+	switch (cmd) {
+	case CANIOCSETRXBUF:
+		ret = set_rx_queue(arg);
+		break;
+
+	case CANIOCGETRXBUF:
+		*(reinterpret_cast<unsigned *)(arg)) = _rx_queue ? _rx_queue->size() : 0;
+		break;
+
+	default:
+		ret = CDev::ioctl(filp, cmd, arg);
+	}
+	return ret;
+}
+
+int
+CAN::init()
+{
+	return CDev::init();
 }
 
 pollevent_t
@@ -237,18 +388,14 @@ CAN::poll_state(struct file *filp)
 {
 	pollevent_t pe = 0;
 
+	CRITICAL_SECTION;
+
 	if (!_rx_queue->empty())
 		pe |= POLLIN;
 	if (!_bus_array[_bus].tx_queue->full())
 		pe |= POLLOUT;
 
 	return pe;
-}
-
-int
-CAN::init()
-{
-	return CDev::init();
 }
 
 int
@@ -268,32 +415,7 @@ CAN::filter(can_msg_s &msg)
 int
 CAN::send(const can_msg_s &msg)
 {
-	int ret;
-
-	/* XXX need locking here */
-	can_dev_s *dev;
-	dev = _bus_array[_bus].dev;
-
-	/* try sending directly if nothing is queued */
-	MsgQ *txq = _bus_array[_bus].tx_queue;
-	if (txq->empty()) {
-		ret = dev->cd_ops->co_send(dev, const_cast<can_msg_s *>(&msg));
-
-		/* for any result other than "no room to send", return it */
-		if (ret != -EBUSY)
-			goto out;
-	}
-
-	/* queue the message for later transmission */
-	if (!txq->put(msg)) {
-		ret = -ENOSPC;
-		goto out;
-	}
-	ret = 0;
-
-	/* unlock here */
-out:
-	return ret;
+	return bus->send(msg);
 }
 
 bool
@@ -306,29 +428,42 @@ CAN::receive(can_msg_s &msg)
 int
 CAN::set_rx_queue(unsigned size)
 {
-	/* allocate the new queue */
-	MsgQ *mq = new MsgQ(size);
-	if (mq == nullptr)
-		return -ENOMEM;
+	MsgQ *oq, *mq = nullptr;
+	int ret = OK;
+
+	lock();
+
+	if (size > 0) {
+		/* allocate the new queue */
+		mq = new MsgQ(size);
+		if (mq == nullptr) {
+			ret = -ENOMEM;
+			goto out;
+	}
 
 	/* swap the queue in place of the old one */
-	MsgQ *oq = _rx_queue;
+	oq = _rx_queue;
 	_rx_queue = mq;
 
 	/* and delete the old queue */
-	delete oq;
+	if (oq != nullptr)
+		delete oq;
 
-	return 0;
+out:
+	unlock();
+	return ret;
 }
 
 void
-CAN::_enqueue(const can_msg_s &msg)
+CAN::enqueue(const can_msg_s &msg)
 {
 	/* put the message into the queue */
-	_rx_queue->put(msg);
+	if (_rx_queue != nullptr) {
+		_rx_queue->put(msg);
 
-	/* and notify anyone that is looking for it */
-	poll_notify(POLLIN);
+		/* and notify anyone that is looking for it */
+		poll_notify(POLLIN);
+	}
 }
 
 
@@ -341,11 +476,11 @@ CAN::_enqueue(const can_msg_s &msg)
 int
 can_receive(FAR struct can_dev_s *dev, FAR struct can_hdr_s *hdr, FAR uint8_t *data)
 {
-	return device::CAN::can_receive(dev, hdr, data);
+	return device::CANBus::can_receive(dev, hdr, data);
 }
 
 int
 can_txdone(FAR struct can_dev_s *dev)
 {
-	return device::CAN::can_txdone(dev);
+	return device::CANBus::can_txdone(dev);
 }

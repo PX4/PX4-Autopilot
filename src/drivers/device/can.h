@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,9 @@
  * @file can.h
  *
  * Base class and infrastructure for devices connected via CAN.
+ *
+ * Note; using this class overrides the stock NuttX CAN stack with a compatible
+ * version that adds support for multiple clients, poll(), etc.
  */
 
 #pragma once
@@ -45,6 +48,8 @@
 
 namespace device __EXPORT
 {
+
+class CANBus;
 
 /**
  * Abstract class for character device connected via CAN.
@@ -57,27 +62,19 @@ public:
 	 * The CAN device class implements sensible read/write/poll semantics
 	 * for devices with minimal assistance.
 	 */
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t		write(struct file *filp, const char *buffer, size_t buflen);
+	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
-
-	/**
-	 * Make a CAN device visible to the family.
-	 *
-	 * Note: not re-entrant for a given bus number.
-	 *
-	 * @param dev		The device to make visible.
-	 * @param bus		The assigned bus number.
-	 * @param tx_queue	The transmit queue size.
-	 * @return		Zero on success, -errno on error.
-	 */
-	static int	connect(can_dev_s *dev, unsigned bus, unsigned tx_queue);
-
-	static int	can_receive(struct can_dev_s *dev, struct can_hdr_s *hdr, uint8_t *data);
-	static int	can_txdone(struct can_dev_s *dev);
+	virtual int		init();
 
 protected:
+
+	typedef RingBuffer<can_msg_s> MsgQ;	/**< ringbuffer containing messages */
+
+	CAN			*filter_next;	/**< next driver in list */
+	CANBus			*bus;		/**< bus we are attached to
+
 	/**
 	 * Constructor
 	 *
@@ -90,13 +87,12 @@ protected:
 	    unsigned bus);
 	virtual ~CAN();
 
-	virtual int	init();
-	virtual pollevent_t poll_state(struct file *filp);
+	virtual pollevent_t	poll_state(struct file *filp);
 
 	/**
 	 * Check for the presence of the device on the bus.
 	 */
-	virtual int	probe();
+	virtual int		probe();
 
 	/**
 	 * Examine a received message and decide whether it should be queued for reception.
@@ -110,14 +106,14 @@ protected:
 	 *
 	 * The default implementation returns false (suitable for a send-only driver).
 	 */
-	virtual bool	filter(can_msg_s &msg);
+	virtual bool		filter(can_msg_s &msg);
 
 	/**
 	 * Queue a CAN message for transmission.
 	 *
 	 * @param msg		The message to be sent.
 	 */
-	int		send(const can_msg_s &msg);
+	virtual int		send(const can_msg_s &msg);
 
 	/**
 	 * Collect the next message from the internal queue.
@@ -125,7 +121,7 @@ protected:
 	 * @param msg		The message to be received.
 	 * @return		True if a message was received, false otherwise.
 	 */
-	bool		receive(can_msg_s &msg);
+	bool			receive(can_msg_s &msg);
 
 	/**
 	 * Set the size of the receive queue.
@@ -137,57 +133,131 @@ protected:
 	 *			Note that if the resize fails, the queue size remains
 	 *			the same.
 	 */
-	int		set_rx_queue(unsigned size);
-
-private:
-	/** ringbuffer containing messages */
-	typedef RingBuffer<can_msg_s> MsgQ;
-
-	static const unsigned	_maxbus = 2;	/**< max number of busses we support */
-	struct Bus {
-		can_dev_s	*dev;
-		MsgQ		*tx_queue;
-	};
-	static Bus	_bus_array[_maxbus];	/**< array of bus:device mappings */
-
-	unsigned	_bus;		/**< CAN bus this driver is attached to */
-
-	static CAN	*_filter_head;	/**< linked list of CAN drivers for filtering purposes */
-	CAN		*_filter_next;	/**< next in list */
-
-	MsgQ		*_rx_queue;	/**< buffer of received messages */
-
-	/**
-	 * Filter an incoming message past all drivers.
-	 *
-	 * @param bus		The bus the message was received on.
-	 * @param msg		The message that was received.
-	 */
-	static void	_filter_msg(unsigned bus, can_msg_s &msg);
-
-	/**
-	 * Add the driver to the filter list.
-	 */
-	void		_filter_add();
-
-	/**
-	 * Remove the driver from the filter list.
-	 */
-	void		_filter_remove();
+	int			set_rx_queue(unsigned size);
 
 	/**
 	 * Enqueue a message destined for this driver.
 	 *
+	 * Normally called by the bus driver.
+	 *
 	 * @param msg		The message to enqueue.
 	 */
-	void		_enqueue(const can_msg_s &msg);
+	void			enqueue(const can_msg_s &msg);
+
+private:
+
+	MsgQ			*_rx_queue;	/**< buffer of received messages */
+};
+
+/****************************************************************************
+ * CAN bus device
+ *
+ * The bus device provides generic read/write/poll access to the CAN bus.
+ *
+ * If more than one client has the bus open for reading, received messages
+ * will be handed out on a first-come first-served basis.
+ */
+
+
+class CANBus :: public CAN
+{
+public:
+	virtual ~CANBus();
+
+	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+
+	virtual int		init();
+
+	/**
+	 * Lookup / lazy factory method.
+	 *
+	 * @param bus		Bus to look up / create.
+	 */
+	static CANBus		*for_bus(unsigned bus, can_dev_s dev = nullptr);
+
+	/**
+	 * Attach a driver to the bus.
+	 *
+	 * @param driver		Driver to attach.
+	 */
+	void			attach(CAN *driver);
+
+	/**
+	 * Detach a driver from the bus.
+	 *
+	 * @param driver		Driver to detach.
+	 */
+	void			detach(CAN *driver);
+
+	/**
+	 * Send a message on the bus.
+	 *
+	 * If the message can't be sent immediately, it may be queued for later transmission.
+	 *
+	 * @param msg			The message to send.
+	 * @return			Zero if the message was sent or queued, -ENOSPC if the
+	 *				queue is full.
+	 */
+	virtual int		send(can_msg_s &msg);
+
+	/* bridges from the NuttX CAN stack replacement functions */
+	static int		can_receive(struct can_dev_s *dev, struct can_hdr_s *hdr, uint8_t *data);
+	static int		can_txdone(struct can_dev_s *dev);
+
+protected:
+
+	/**
+	 * Constructor
+	 *
+	 * @param devname	Device node to create.
+	 * @param bus		Bus number to adopt.
+	 */
+	CANBus(const char *devname, unsigned bus);
+
+	virtual int		open_first(struct file *filp);
+	virtual int		close_last(struct file *filp);
+
+	virtual bool		filter(can_msg_s &msg);
+
+private:
+
+	static const unsigned	_maxbus = 2;	/**< max number of busses we support */
+	static const unsigned	_default_txq = 8;
+
+	static CANBus		*_bus_array[_maxbus];	/**< array of bus:device mappings */
+
+	unsigned		_busnum;
+	can_dev_s		*_drivers;
+	MsgQ			*_tx_queue;
+	CAN			*_devs;
+
+	/**
+	 * Loop up the CANBus handling a low-level driver
+	 *
+	 * @param dev		The low-level driver to look up.
+	 * @return		The CANBus instance handling the bus, or nullptr if none is assigned.
+	 */
+	CANBus			*_bus_for_dev(can_dev_s *dev);
+
+	/**
+	 * Filter an incoming message past all drivers attached to the bus.
+	 *
+	 * @param bus		The bus the message was received on.
+	 * @param msg		The message that was received.
+	 */
+	void			_filter_msg(can_msg_s &msg);
+
+	/**
+	 * Called when the low-level driver is done transmitting.
+	 */
+	void			_txdone();
+
 };
 
 } /* namespace */
 
 /*
- * We implement a replacement for the NuttX CAN device layer that supports multiple
- * clients, filtering, poll() etc.
+ * Replacements for the NuttX CAN stack entrypoints.
  */
 __BEGIN_DECLS
 
