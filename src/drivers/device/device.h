@@ -486,6 +486,18 @@ private:
 	uint32_t	_base;
 };
 
+class __EXPORT CriticalSection
+{
+public:
+	CriticalSection() : _flags(irqsave()) {}
+	~CriticalSection() { irqrestore(_flags);
+	}
+private:
+	irqstate_t	_flags;
+};
+
+#define CRITICAL_SECTION	CriticalSection __crtical_section = new CriticalSection
+
 } // namespace device
 
 #endif /* _DEVICE_DEVICE_H */
