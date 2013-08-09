@@ -226,6 +226,12 @@ int do_accel_calibration_mesurements(int mavlink_fd, float accel_offs[3], float 
 		if (orient < 0)
 			return ERROR;
 
+		if (data_collected[orient]) {
+			sprintf(str, "%s direction already measured, please rotate", orientation_strs[orient]);
+			mavlink_log_info(mavlink_fd, str);
+			continue;
+		}
+
 		sprintf(str, "meas started: %s", orientation_strs[orient]);
 		mavlink_log_info(mavlink_fd, str);
 		read_accelerometer_avg(sensor_combined_sub, &(accel_ref[orient][0]), samples_num);
@@ -380,6 +386,8 @@ int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samp
 	int count = 0;
 	float accel_sum[3] = { 0.0f, 0.0f, 0.0f };
 
+	int errcount = 0;
+
 	while (count < samples_num) {
 		int poll_ret = poll(fds, 1, 1000);
 		if (poll_ret == 1) {
@@ -389,8 +397,12 @@ int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samp
 				accel_sum[i] += sensor.accelerometer_m_s2[i];
 			count++;
 		} else {
-			return ERROR;
+			errcount++;
+			continue;
 		}
+
+		if (errcount > samples_num / 10)
+			return ERROR;
 	}
 
 	for (int i = 0; i < 3; i++) {

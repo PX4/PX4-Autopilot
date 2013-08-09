@@ -285,11 +285,25 @@ private:
 	uint16_t		swap16(uint16_t val) { return (val >> 8) | (val << 8);	}
 
 	/**
-	 * Self test
+	 * Measurement self test
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
 	 int 			self_test();
+
+	/**
+	 * Accel self test
+	 *
+	 * @return 0 on success, 1 on failure
+	 */
+	int 			accel_self_test();
+
+	/**
+	 * Gyro self test
+	 *
+	 * @return 0 on success, 1 on failure
+	 */
+	 int 			gyro_self_test();
 
 	/*
 	  set low pass filter frequency
@@ -321,6 +335,7 @@ protected:
 	void			parent_poll_notify();
 private:
 	MPU6000			*_parent;
+
 };
 
 /** driver 'main' command */
@@ -653,6 +668,54 @@ MPU6000::self_test()
 	return (_reads > 0) ? 0 : 1;
 }
 
+int
+MPU6000::accel_self_test()
+{
+	if (self_test())
+		return 1;
+
+	/* inspect accel offsets */
+	if (fabsf(_accel_scale.x_offset) < 0.000001f)
+		return 1;
+	if (fabsf(_accel_scale.x_scale - 1.0f) > 0.4f || fabsf(_accel_scale.x_scale - 1.0f) < 0.000001f)
+		return 1;
+
+	if (fabsf(_accel_scale.y_offset) < 0.000001f)
+		return 1;
+	if (fabsf(_accel_scale.y_scale - 1.0f) > 0.4f || fabsf(_accel_scale.y_scale - 1.0f) < 0.000001f)
+		return 1;
+
+	if (fabsf(_accel_scale.z_offset) < 0.000001f)
+		return 1;
+	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f)
+		return 1;
+}
+
+int
+MPU6000::gyro_self_test()
+{
+	if (self_test())
+		return 1;
+
+	/* evaluate gyro offsets, complain if offset -> zero or larger than 6 dps */
+	if (fabsf(_gyro_scale.x_offset) > 0.1f || fabsf(_gyro_scale.x_offset) < 0.000001f)
+		return 1;
+	if (fabsf(_gyro_scale.x_scale - 1.0f) > 0.3f)
+		return 1;
+
+	if (fabsf(_gyro_scale.y_offset) > 0.1f || fabsf(_gyro_scale.y_offset) < 0.000001f)
+		return 1;
+	if (fabsf(_gyro_scale.y_scale - 1.0f) > 0.3f)
+		return 1;
+
+	if (fabsf(_gyro_scale.z_offset) > 0.1f || fabsf(_gyro_scale.z_offset) < 0.000001f)
+		return 1;
+	if (fabsf(_gyro_scale.z_scale - 1.0f) > 0.3f)
+		return 1;
+
+	return 0;
+}
+
 ssize_t
 MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 {
@@ -835,7 +898,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _accel_range_m_s2;
 
 	case ACCELIOCSELFTEST:
-		return self_test();
+		return accel_self_test();
 
 	default:
 		/* give it to the superclass */
@@ -918,7 +981,7 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _gyro_range_rad_s;
 
 	case GYROIOCSELFTEST:
-		return self_test();
+		return gyro_self_test();
 
 	default:
 		/* give it to the superclass */
