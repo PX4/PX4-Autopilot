@@ -249,9 +249,12 @@
 /*
  * CAN
  *
+ * CAN1 is not connected.
  * CAN2 is routed to the expansion connector.
  */
 
+#define GPIO_CAN1_RX	0
+#define GPIO_CAN1_TX	0
 #define GPIO_CAN2_RX	GPIO_CAN2_RX_1
 #define GPIO_CAN2_TX	GPIO_CAN2_TX_1
 

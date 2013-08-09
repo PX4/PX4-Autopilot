@@ -37,7 +37,7 @@
  * Base class and infrastructure for devices connected via CAN.
  *
  * Note; using this class overrides the stock NuttX CAN stack with a compatible
- * version that adds support for multiple clients, poll(), etc.
+ * version that adds support for multiple clients, poll(), etc.≠
  */
 
 #pragma once
@@ -74,11 +74,12 @@ public:
 
 	virtual int		init();
 
-	CAN			*filter_next;	/**< next driver in list */
 
 protected:
+	friend class CANBus;
 
-	typedef RingBuffer<struct can_msg_s> MsgQ;	/**< ringbuffer containing messages */
+	CAN			*filter_next;	/**< next driver in list */
+	typedef RingBuffer<can_msg_s> MsgQ;	/**< ringbuffer containing messages */
 
 
 	/**
@@ -112,7 +113,7 @@ protected:
 	 *
 	 * The default implementation returns false (suitable for a send-only driver).
 	 */
-	virtual bool		filter(can_msg_s &msg);
+	virtual bool		filter(const can_msg_s &msg);
 
 	/**
 	 * Queue a CAN message for transmission.
@@ -179,7 +180,7 @@ public:
 	 *
 	 * @param bus		Bus to look up / create.
 	 */
-	static CANBus		*for_bus(unsigned bus, struct can_dev_s *dev = nullptr);
+	static CANBus		*for_bus(unsigned bus, can_dev_s *dev = nullptr);
 
 	/**
 	 * Attach a driver to the bus.
@@ -204,11 +205,17 @@ public:
 	 * @return			Zero if the message was sent or queued, -ENOSPC if the
 	 *				queue is full.
 	 */
-	virtual int		send(can_msg_s &msg);
+	virtual int		send(const can_msg_s &msg);
+
+	/**
+	 * Check whether there is buffer space for sending.
+	 *
+ */
+	virtual unsigned	send_space();
 
 	/* bridges from the NuttX CAN stack replacement functions */
-	static int		can_receive(struct can_dev_s *dev, struct can_hdr_s *hdr, uint8_t *data);
-	static int		can_txdone(struct can_dev_s *dev);
+	static int		can_receive(can_dev_s *dev, can_hdr_s *hdr, uint8_t *data);
+	static int		can_txdone(can_dev_s *dev);
 
 protected:
 
@@ -218,12 +225,12 @@ protected:
 	 * @param devname	Device node to create.
 	 * @param bus_number	Bus number to adopt.
 	 */
-	CANBus(const char *devname, unsigned bus_number, struct can_dev_s *dev);
+	CANBus(const char *devname, unsigned bus_number, can_dev_s *dev);
+
+	virtual bool		filter(const can_msg_s &msg);
 
 	virtual int		open_first(struct file *filp);
 	virtual int		close_last(struct file *filp);
-
-	virtual bool		filter(can_msg_s &msg);
 
 private:
 
@@ -233,7 +240,7 @@ private:
 	static CANBus		*_bus_array[_maxbus];	/**< array of bus:device mappings */
 
 	unsigned		_bus_number;
-	struct can_dev_s	*_dev;
+	can_dev_s		*_dev;
 	MsgQ			*_tx_queue;
 	CAN			*_drivers;
 
@@ -243,7 +250,7 @@ private:
 	 * @param dev		The low-level driver to look up.
 	 * @return		The CANBus instance handling the bus, or nullptr if none is assigned.
 	 */
-	CANBus			*_bus_for_dev(struct can_dev_s *dev);
+	static CANBus		*_bus_for_dev(can_dev_s *dev);
 
 	/**
 	 * Filter an incoming message past all drivers attached to the bus.
@@ -251,7 +258,7 @@ private:
 	 * @param bus		The bus the message was received on.
 	 * @param msg		The message that was received.
 	 */
-	void			_filter_msg(struct can_msg_s &msg);
+	void			_filter_msg(const can_msg_s &msg);
 
 	/**
 	 * Called when the low-level driver is done transmitting.
@@ -267,8 +274,8 @@ private:
  */
 __BEGIN_DECLS
 
-__EXPORT int can_receive(FAR struct can_dev_s *dev, FAR struct can_hdr_s *hdr, FAR uint8_t *data);
-__EXPORT int can_txdone(FAR struct can_dev_s *dev);
+__EXPORT int can_receive(FAR can_dev_s *dev, FAR can_hdr_s *hdr, FAR uint8_t *data);
+__EXPORT int can_txdone(FAR can_dev_s *dev);
 
 __END_DECLS
 

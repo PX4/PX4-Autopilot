@@ -64,18 +64,6 @@
  * Pre-processor Definitions
  ************************************************************************************/
 /* Configuration ********************************************************************/
-
-#if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_CAN2)
-#  warning "Both CAN1 and CAN2 are enabled.  Assuming only CAN1."
-#  undef CONFIG_STM32_CAN2
-#endif
-
-#ifdef CONFIG_STM32_CAN1
-#  define CAN_PORT 1
-#else
-#  define CAN_PORT 2
-#endif
-
 /* Debug ***************************************************************************/
 /* Non-standard debug that may be enabled just for testing CAN */
 
@@ -109,18 +97,12 @@
 
 extern "C" int can_devinit();
 
-int can_devinit()
+int 
+can_devinit()
 {
-	static bool initialized = false;
-	
-	/* Check if we have already initialized */
-
-	if (!initialized)
-		return OK;
-
 	/* Call stm32_caninitialize() to get an instance of the CAN interface */
 
-	can_dev_s *can = stm32_caninitialize(CAN_PORT);
+	can_dev_s *can = stm32_caninitialize(2);	/* only port 2 used */
 
 	if (can == NULL) {
 		candbg("ERROR:  Failed to get CAN interface\n");
@@ -129,16 +111,12 @@ int can_devinit()
 
 	/* Register the CAN driver */
 
-	int ret = device::CAN::connect(can, CAN_PORT, 16);	/* XXX hardcoded TX queue size */
+	device::CANBus *bus = device::CANBus::for_bus(2, can);
 
-	if (ret < 0) {
-		candbg("ERROR: can_register failed: %d\n", ret);
-		return ret;
+	if (bus == nullptr) {
+		candbg("ERROR: CANBus init failed\n");
+		return -EIO;
 	}
-
-	/* Now we are initialized */
-
-	initialized = true;
 
 	return OK;
 }

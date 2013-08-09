@@ -44,7 +44,7 @@
 #include <stdint.h>
 
 
-#define _CANIOBASE		(0x2a00)
+#define _CANIOCBASE		(0x2a00)
 #define _CANIOC(_n)		(_IOC(_CANIOCBASE, _n))
 
 

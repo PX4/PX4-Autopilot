@@ -55,7 +55,7 @@ namespace device
 
 CANBus *CANBus::_bus_array[CANBus::_maxbus];
 
-CANBus::CANBus(const char *devname, unsigned bus_number, struct can_dev_s *dev) :
+CANBus::CANBus(const char *devname, unsigned bus_number, can_dev_s *dev) :
 	CAN("CANBus", devname, this),
 	_bus_number(bus_number),
 	_dev(dev),
@@ -98,10 +98,11 @@ CANBus::init()
 	/* put ourself on our own bus */
 	attach(this);
 
+	return OK;
 }
 
 CANBus *
-CANBus::for_bus(unsigned bus_number, struct can_dev_s *dev)
+CANBus::for_bus(unsigned bus_number, can_dev_s *dev)
 {
 	if (bus_number >= _maxbus)
 		return nullptr;
@@ -156,13 +157,13 @@ CANBus::detach(CAN *driver)
 }
 
 int
-CANBus::send(can_msg_s &msg)
+CANBus::send(const can_msg_s &msg)
 {
 	int ret;
 
 	/* try sending directly if nothing is queued */
 	if (_tx_queue->empty()) {
-		ret = _dev->cd_ops->co_send(dev, const_cast<struct can_msg_s *>(&msg));
+	ret = _dev->cd_ops->co_send(_dev, const_cast<can_msg_s *>(&msg));
 
 		/* for any result other than "no room to send", return it */
 		if (ret != -EBUSY)
@@ -180,8 +181,14 @@ out:
 	return ret;
 }
 
+unsigned
+CANBus::send_space()
+{
+	return _tx_queue->space();
+}
+
 int
-CANBus::can_receive(struct can_dev_s *dev, struct can_hdr_s *hdr, uint8_t *data)
+CANBus::can_receive(can_dev_s *dev, can_hdr_s *hdr, uint8_t *data)
 {
 	/* find a bus willing to handle this device's inbound traffic */
 	CANBus *cb = _bus_for_dev(dev);
@@ -200,13 +207,14 @@ CANBus::can_receive(struct can_dev_s *dev, struct can_hdr_s *hdr, uint8_t *data)
 }
 
 int
-CANBus::can_txdone(struct can_dev_s *dev)
+CANBus::can_txdone(can_dev_s *dev)
 {
 	CANBus *cb = _bus_for_dev(dev);
 
 	if (cb != nullptr)
 		cb->_txdone();
 
+	return OK;
 }
 
 int
@@ -215,7 +223,7 @@ CANBus::open_first(struct file *filp)
 	/* allocate a small RX queue */
 	set_rx_queue(4);
 
-	return CDev::open_first();
+	return CDev::open_first(filp);
 }
 
 int
@@ -224,14 +232,14 @@ CANBus::close_last(struct file *filp)
 	/* free the RX queue */
 	set_rx_queue(0);
 
-	return CDev::close_last();
+	return CDev::close_last(filp);
 }
 
 bool
-CANBus::filter(can_msg_s &msg)
+CANBus::filter(const can_msg_s &msg)
 {
-	/* if we don't have an RX queue, we aren't interested */
-	return _rx_queue != nullptr;
+	/* if we are open, we're interested in everything */
+	return is_open();
 }
 
 CANBus *
@@ -249,9 +257,9 @@ CANBus::_bus_for_dev(can_dev_s *dev)
 }
 
 void
-CANBus::_filter_msg(can_msg_s &msg)
+CANBus::_filter_msg(const can_msg_s &msg)
 {
-	CAN	*drv = _devs;
+	CAN	*drv = _drivers;
 
 	/* offer the message to each driver on the bus */
 	while (drv != nullptr) {
@@ -267,14 +275,14 @@ CANBus::_txdone()
 	bool sent = false;
 
 	/* send pending messages */
-	while (_dev->cd_ops->co_txready(dev)) {
+	while (_dev->cd_ops->co_txready(_dev)) {
 		can_msg_s msg;
 
 		if (!_tx_queue->get(msg))
 			break;
 
 		/* this should never fail - would have to push back otherwise */
-		_dev->cd_ops->co_send(dev, &msg);
+		_dev->cd_ops->co_send(_dev, &msg);
 		sent = true;
 	}
 
@@ -284,10 +292,9 @@ CANBus::_txdone()
 
 		while (drv != nullptr) {
 			drv->poll_notify(POLLOUT);
-			drv = drv->next;
+			drv = drv->filter_next;
 		}
 	}
-	return OK;
 }
 
 /****************************************************************************
@@ -306,8 +313,8 @@ CAN::CAN(const char *name,
 
 CAN::~CAN()
 {
-	if (bus != nullptr)
-		bus->detach(this);
+	if (_bus != nullptr)
+		_bus->detach(this);
 
 	if (_rx_queue != nullptr)
 		delete _rx_queue;
@@ -400,7 +407,7 @@ CAN::poll_state(struct file *filp)
 
 	if (!_rx_queue->empty())
 		pe |= POLLIN;
-	if (!_bus_array[_bus].tx_queue->full())
+	if (_bus->send_space() > 0)
 		pe |= POLLOUT;
 
 	return pe;
@@ -414,7 +421,7 @@ CAN::probe()
 }
 
 bool
-CAN::filter(can_msg_s &msg)
+CAN::filter(const can_msg_s &msg)
 {
 	/* assume we aren't interested in messages */
 	return false;
@@ -423,7 +430,7 @@ CAN::filter(can_msg_s &msg)
 int
 CAN::send(const can_msg_s &msg)
 {
-	return bus->send(msg);
+	return _bus->send(msg);
 }
 
 bool
@@ -483,13 +490,13 @@ CAN::enqueue(const can_msg_s &msg)
  */
  
 int
-can_receive(FAR struct can_dev_s *dev, FAR struct can_hdr_s *hdr, FAR uint8_t *data)
+can_receive(FAR can_dev_s *dev, FAR can_hdr_s *hdr, FAR uint8_t *data)
 {
 	return device::CANBus::can_receive(dev, hdr, data);
 }
 
 int
-can_txdone(FAR struct can_dev_s *dev)
+can_txdone(FAR can_dev_s *dev)
 {
 	return device::CANBus::can_txdone(dev);
 }
