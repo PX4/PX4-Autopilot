@@ -51,6 +51,7 @@
 #include <stdint.h>
 #include <poll.h>
 
+#include <nuttx/irq.h>
 #include <nuttx/fs/fs.h>
 
 /**
@@ -496,7 +497,7 @@ private:
 	irqstate_t	_flags;
 };
 
-#define CRITICAL_SECTION	CriticalSection __crtical_section = new CriticalSection
+#define CRITICAL_SECTION	volatile __attribute__((unused)) CriticalSection *__crtical_section = new CriticalSection 
 
 } // namespace device
 

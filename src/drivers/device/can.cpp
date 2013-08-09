@@ -37,7 +37,12 @@
  * Base class and infrastructure for devices connected via CAN.
  */
 
+#include <nuttx/config.h>
+
 #include <string.h>
+#include <stdio.h>
+
+#include <drivers/drv_can.h>
 
 #include "can.h"
 
@@ -50,9 +55,9 @@ namespace device
 
 CANBus *CANBus::_bus_array[CANBus::_maxbus];
 
-CANBus::CANBus(const char *devname, unsigned bus, can_dev_s *dev) :
-	CAN("CANBus", devname, bus),
-	_busnum(bus),
+CANBus::CANBus(const char *devname, unsigned bus_number, struct can_dev_s *dev) :
+	CAN("CANBus", devname, this),
+	_bus_number(bus_number),
 	_dev(dev),
 	_tx_queue(nullptr),
 	_drivers(nullptr)
@@ -79,16 +84,16 @@ CANBus::ioctl(struct file *filp, int cmd, unsigned long arg)
 int
 CANBus::init()
 {
-	if (_bus >= _maxbus)
+	if (_bus_number >= _maxbus)
 		return -ERANGE;
-	if (_bus_array[_bus].dev != nullptr)
+	if (_bus_array[_bus_number] != nullptr)
 		return -EBUSY;
 
-	MsgQ *_txq = new MsgQ(_default_txq);
-	if (txq == nullptr)
+	_tx_queue = new MsgQ(_default_txq);
+	if (_tx_queue == nullptr)
 		return -ENOMEM;
 		
-	_bus_array[_bus] = this;
+	_bus_array[_bus_number] = this;
 
 	/* put ourself on our own bus */
 	attach(this);
@@ -96,19 +101,23 @@ CANBus::init()
 }
 
 CANBus *
-CANBus::for_bus(unsigned bus, can_dev_s *dev)
+CANBus::for_bus(unsigned bus_number, struct can_dev_s *dev)
 {
-	if (bus >= _maxbus)
+	if (bus_number >= _maxbus)
 		return nullptr;
 
 	/* if we have already allocated the bus, go ahead and return it */
-	if (_bus_array[bus] != nullptr)
-		return _bus_array[bus];
+	if (_bus_array[bus_number] != nullptr)
+		return _bus_array[bus_number];
+
+	/* if we don't have a device, we can't lazily construct the bus driver */
+	if (dev == nullptr)
+		return nullptr;
 
 	char devname[32];
-	sprintf(devname, "/dev/can%d", bus);
+	sprintf(devname, "/dev/can%d", bus_number);
 
-	CANBus *bus = new CANBus(devname, bus, dev);
+	CANBus *bus = new CANBus(devname, bus_number, dev);
 
 	if (bus != nullptr) {
 		if (bus->init() != OK) {
@@ -127,7 +136,6 @@ CANBus::attach(CAN *driver)
 	/* push the driver onto the head of the filter list */
 	driver->filter_next = _drivers;
 	_drivers = driver;
-	driver->bus = this;
 }
 
 void
@@ -153,8 +161,8 @@ CANBus::send(can_msg_s &msg)
 	int ret;
 
 	/* try sending directly if nothing is queued */
-	if (_txq->empty()) {
-		ret = _dev->cd_ops->co_send(dev, const_cast<can_msg_s *>(&msg));
+	if (_tx_queue->empty()) {
+		ret = _dev->cd_ops->co_send(dev, const_cast<struct can_msg_s *>(&msg));
 
 		/* for any result other than "no room to send", return it */
 		if (ret != -EBUSY)
@@ -162,7 +170,7 @@ CANBus::send(can_msg_s &msg)
 	}
 
 	/* queue the message for later transmission */
-	if (!_txq->put(msg)) {
+	if (!_tx_queue->put(msg)) {
 		ret = -ENOSPC;
 		goto out;
 	}
@@ -262,7 +270,7 @@ CANBus::_txdone()
 	while (_dev->cd_ops->co_txready(dev)) {
 		can_msg_s msg;
 
-		if (!_txq->get(msg))
+		if (!_tx_queue->get(msg))
 			break;
 
 		/* this should never fail - would have to push back otherwise */
@@ -288,10 +296,10 @@ CANBus::_txdone()
 
 CAN::CAN(const char *name, 
     const char *devname,
-    unsigned bus) :
+    CANBus *bus) :
 	CDev(name, devname),
 	filter_next(nullptr),
-	bus(nullptr),
+	_bus(bus),
 	_rx_queue(nullptr)
 {
 }
@@ -368,7 +376,7 @@ CAN::ioctl(struct file *filp, int cmd, unsigned long arg)
 		break;
 
 	case CANIOCGETRXBUF:
-		*(reinterpret_cast<unsigned *)(arg)) = _rx_queue ? _rx_queue->size() : 0;
+		*(reinterpret_cast<unsigned *>(arg)) = _rx_queue ? _rx_queue->size() : 0;
 		break;
 
 	default:
@@ -439,6 +447,7 @@ CAN::set_rx_queue(unsigned size)
 		if (mq == nullptr) {
 			ret = -ENOMEM;
 			goto out;
+		}
 	}
 
 	/* swap the queue in place of the old one */

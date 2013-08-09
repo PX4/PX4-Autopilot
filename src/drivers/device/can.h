@@ -42,6 +42,12 @@
 
 #pragma once
 
+#include <nuttx/config.h>
+
+#ifndef CONFIG_CAN
+# error CAN not configured
+#endif
+
 #include <nuttx/can.h>
 #include "device.h"
 #include "ringbuffer.h"
@@ -68,12 +74,12 @@ public:
 
 	virtual int		init();
 
+	CAN			*filter_next;	/**< next driver in list */
+
 protected:
 
-	typedef RingBuffer<can_msg_s> MsgQ;	/**< ringbuffer containing messages */
+	typedef RingBuffer<struct can_msg_s> MsgQ;	/**< ringbuffer containing messages */
 
-	CAN			*filter_next;	/**< next driver in list */
-	CANBus			*bus;		/**< bus we are attached to
 
 	/**
 	 * Constructor
@@ -84,7 +90,7 @@ protected:
 	 */
 	CAN(const char *name, 
 	    const char *devname,
-	    unsigned bus);
+	    CANBus *bus);
 	virtual ~CAN();
 
 	virtual pollevent_t	poll_state(struct file *filp);
@@ -145,7 +151,7 @@ protected:
 	void			enqueue(const can_msg_s &msg);
 
 private:
-
+	CANBus			*_bus;		/**< bus we are attached to */
 	MsgQ			*_rx_queue;	/**< buffer of received messages */
 };
 
@@ -159,7 +165,7 @@ private:
  */
 
 
-class CANBus :: public CAN
+class CANBus : public CAN
 {
 public:
 	virtual ~CANBus();
@@ -173,7 +179,7 @@ public:
 	 *
 	 * @param bus		Bus to look up / create.
 	 */
-	static CANBus		*for_bus(unsigned bus, can_dev_s dev = nullptr);
+	static CANBus		*for_bus(unsigned bus, struct can_dev_s *dev = nullptr);
 
 	/**
 	 * Attach a driver to the bus.
@@ -210,9 +216,9 @@ protected:
 	 * Constructor
 	 *
 	 * @param devname	Device node to create.
-	 * @param bus		Bus number to adopt.
+	 * @param bus_number	Bus number to adopt.
 	 */
-	CANBus(const char *devname, unsigned bus);
+	CANBus(const char *devname, unsigned bus_number, struct can_dev_s *dev);
 
 	virtual int		open_first(struct file *filp);
 	virtual int		close_last(struct file *filp);
@@ -226,10 +232,10 @@ private:
 
 	static CANBus		*_bus_array[_maxbus];	/**< array of bus:device mappings */
 
-	unsigned		_busnum;
-	can_dev_s		*_drivers;
+	unsigned		_bus_number;
+	struct can_dev_s	*_dev;
 	MsgQ			*_tx_queue;
-	CAN			*_devs;
+	CAN			*_drivers;
 
 	/**
 	 * Loop up the CANBus handling a low-level driver
@@ -237,7 +243,7 @@ private:
 	 * @param dev		The low-level driver to look up.
 	 * @return		The CANBus instance handling the bus, or nullptr if none is assigned.
 	 */
-	CANBus			*_bus_for_dev(can_dev_s *dev);
+	CANBus			*_bus_for_dev(struct can_dev_s *dev);
 
 	/**
 	 * Filter an incoming message past all drivers attached to the bus.
@@ -245,7 +251,7 @@ private:
 	 * @param bus		The bus the message was received on.
 	 * @param msg		The message that was received.
 	 */
-	void			_filter_msg(can_msg_s &msg);
+	void			_filter_msg(struct can_msg_s &msg);
 
 	/**
 	 * Called when the low-level driver is done transmitting.
