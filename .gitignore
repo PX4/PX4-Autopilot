@@ -19,7 +19,6 @@ Archives/*
 Build/*
 core
 cscope.out
-dot.gdbinit
 Firmware.sublime-workspace
 Images/*.bin
 Images/*.px4
