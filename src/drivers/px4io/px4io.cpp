@@ -1445,9 +1445,8 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down); 
 		usleep(500000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
-		usleep(1000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-		usleep(100000);
+		usleep(50000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
 		break;
 
