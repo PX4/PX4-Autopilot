@@ -1472,12 +1472,6 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
 		break;
 
-	case DSM_BIND_STOP:
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
-		usleep(500000);
-		break;
-
 	case DSM_BIND_POWER_UP:
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
 		break;
