@@ -40,7 +40,7 @@ include ${TOPDIR}/tools/Config.mk
 # We only support building with the ARM bare-metal toolchain from
 # https://launchpad.net/gcc-arm-embedded on Windows, Linux or Mac OS.
 #
-CONFIG_ARMV7M_TOOLCHAIN	:= GNU_EABI
+CONFIG_ARMV7M_TOOLCHAIN	:= GNU_EABIL
 
 include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
