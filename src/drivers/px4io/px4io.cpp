@@ -1628,8 +1628,8 @@ int
 PX4IO::set_update_rate(int rate)
 {
 	int interval_ms = 1000 / rate;
-	if (interval_ms < 5) {
-		interval_ms = 5;
+	if (interval_ms < 3) {
+		interval_ms = 3;
 		warnx("update rate too high, limiting interval to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
 	}
 
@@ -1956,7 +1956,7 @@ px4io_main(int argc, char *argv[])
 		if ((argc > 2)) {
 			g_dev->set_update_rate(atoi(argv[2]));
 		} else {
-			errx(1, "missing argument (50 - 200 Hz)");
+			errx(1, "missing argument (50 - 400 Hz)");
 			return 1;
 		}
 		exit(0);

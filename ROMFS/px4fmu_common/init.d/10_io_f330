@@ -108,7 +108,7 @@ then
 	fi
 else
 	px4io limit 400
-	sdlog2 start -r 100 -a -b 16
+	sdlog2 start -r 200 -a -b 16
 	if rgbled start
 	then
 		#rgbled systemstate
