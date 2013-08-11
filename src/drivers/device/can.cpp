@@ -71,8 +71,10 @@ CANBus::~CANBus()
 {
 	if (_tx_queue)
 		delete _tx_queue;
-	if (_dev)
+	if (_dev) {
+		_dev->cd_ops->co_rxint(_dev, false);
 		_dev->cd_ops->co_shutdown(_dev);
+	}
 }
 
 int
@@ -114,6 +116,9 @@ CANBus::init()
 	/* reset and initialise the driver */
 	_dev->cd_ops->co_reset(_dev);
 	_dev->cd_ops->co_setup(_dev);
+
+	/* start reception */
+	_dev->cd_ops->co_rxint(_dev, true);
 
 	/* do CDev init */
 	return CDev::init();
