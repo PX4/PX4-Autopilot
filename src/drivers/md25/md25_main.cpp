@@ -82,7 +82,7 @@ usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	fprintf(stderr, "usage: md25 {start|stop|status|search|test|change_address}\n\n");
+	fprintf(stderr, "usage: md25 {start|stop|read|status|search|test|change_address}\n\n");
 	exit(1);
 }
 
@@ -136,6 +136,28 @@ int md25_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "sine")) {
+
+		if (argc < 6) {
+			printf("usage: md25 sine bus address amp freq\n");
+			exit(0);
+		}
+
+		const char *deviceName = "/dev/md25";
+
+		uint8_t bus = strtoul(argv[2], nullptr, 0);
+
+		uint8_t address = strtoul(argv[3], nullptr, 0);
+
+		float amplitude = atof(argv[4]);
+
+		float frequency = atof(argv[5]);
+
+		md25Sine(deviceName, bus, address, amplitude, frequency);
+
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "probe")) {
 		if (argc < 4) {
 			printf("usage: md25 probe bus address\n");
@@ -161,6 +183,29 @@ int md25_main(int argc, char *argv[])
 
 		exit(0);
 	}
+
+	if (!strcmp(argv[1], "read")) {
+		if (argc < 4) {
+			printf("usage: md25 read bus address\n");
+			exit(0);
+		}
+
+		const char *deviceName = "/dev/md25";
+
+		uint8_t bus = strtoul(argv[2], nullptr, 0);
+
+		uint8_t address = strtoul(argv[3], nullptr, 0);
+
+		MD25 md25(deviceName, bus, address);
+
+		// print status
+		char buf[400];
+		md25.status(buf, sizeof(buf));
+		printf("%s\n", buf);
+
+		exit(0);
+	}
+	
 
 	if (!strcmp(argv[1], "search")) {
 		if (argc < 3) {
@@ -246,7 +291,7 @@ int md25_thread_main(int argc, char *argv[])
 	uint8_t address = strtoul(argv[4], nullptr, 0);
 
 	// start
-	MD25 md25("/dev/md25", bus, address);
+	MD25 md25(deviceName, bus, address);
 
 	thread_running = true;
 
