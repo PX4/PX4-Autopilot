@@ -156,6 +156,7 @@ PARAM_DEFINE_FLOAT(RC14_DZ, 0.0f);
 
 PARAM_DEFINE_INT32(RC_TYPE, 1); /** 1 = FUTABA, 2 = Spektrum, 3 = Graupner HoTT, 4 = Turnigy 9x */
 PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
+PARAM_DEFINE_INT32(RC_DSM_BIND, 0); /* 0 = Idle, 1 = Start DSM2 bind, 2 = Start DSMX bind */
 
 /* default is conversion factor for the PX4IO / PX4IOAR board, the factor for PX4FMU standalone is different */
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, (3.3f * 52.0f / 5.0f / 4095.0f));
