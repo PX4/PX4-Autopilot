@@ -47,8 +47,6 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/spi.h>
-
 #include "tests.h"
 
 #include <nuttx/analog/adc.h>

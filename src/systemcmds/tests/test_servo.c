@@ -51,8 +51,6 @@
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 
-#include <nuttx/spi.h>
-
 #include "tests.h"
 
 /****************************************************************************

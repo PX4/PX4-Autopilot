@@ -51,8 +51,6 @@
 
 #include <arch/board/board.h>
 
-#include <nuttx/spi.h>
-
 #include <systemlib/perf_counter.h>
 
 #include "tests.h"
