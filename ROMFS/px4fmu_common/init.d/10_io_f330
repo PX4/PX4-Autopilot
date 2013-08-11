@@ -57,11 +57,6 @@ pwm -u 400 -m 0xff
 px4io recovery
 
 #
-# Disable px4io topic limiting
-#
-px4io limit 200
-
-#
 # This sets a PWM right after startup (regardless of safety button)
 #
 px4io idle 900 900 900 900
@@ -99,16 +94,23 @@ gps start
 attitude_estimator_ekf start
 
 multirotor_att_control start
- 
+
 #
-# Start logging
+# Disable px4io topic limiting and start logging
 #
-sdlog2 start -r 50 -a -b 16
- 
-#
-# Start system state
-#
-if blinkm start
+if [ $BOARD == fmuv1 ]
 then
-	blinkm systemstate
+	px4io limit 200
+	sdlog2 start -r 50 -a -b 16
+	if blinkm start
+	then
+		blinkm systemstate
+	fi
+else
+	px4io limit 400
+	sdlog2 start -r 100 -a -b 16
+	if rgbled start
+	then
+		#rgbled systemstate
+	fi
 fi
