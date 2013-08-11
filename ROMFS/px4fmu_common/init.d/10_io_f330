@@ -75,6 +75,8 @@ px4io min 1200 1200 1200 1200
 # Upper limits could be higher, this is on the safe side
 #
 px4io max 1800 1800 1800 1800
+
+mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
  
 #
 # Start the sensors (depends on orb, px4io)
@@ -95,17 +97,13 @@ gps start
 # Start the attitude estimator (depends on orb)
 #
 attitude_estimator_ekf start
- 
-#
-# Load mixer and start controllers (depends on px4io)
-#
-mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
+
 multirotor_att_control start
  
 #
 # Start logging
 #
-sdlog2 start -r 20 -a -b 16
+sdlog2 start -r 50 -a -b 16
  
 #
 # Start system state

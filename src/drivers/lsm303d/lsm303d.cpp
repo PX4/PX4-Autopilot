@@ -1370,7 +1370,7 @@ start()
 	int fd, fd_mag;
 
 	if (g_dev != nullptr)
-		errx(1, "already started");
+		errx(0, "already started");
 
 	/* create the driver */
 	g_dev = new LSM303D(1 /* XXX magic number */, ACCEL_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
