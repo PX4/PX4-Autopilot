@@ -45,15 +45,18 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 
 #include <arch/board/board.h>
 
 #include <systemlib/err.h>
 
 #include <drivers/drv_can.h>
-#include <device/can.h>
+#include <drivers/device/can.h>
 
+__BEGIN_DECLS
 __EXPORT int can_main(int argc, char *argv[]);
+__END_DECLS
 
 static int	arg2msg(can_msg_s &msg, const char *arg);
 static void	opendev(int bus);
@@ -62,7 +65,8 @@ static int	send(uint32_t id, unsigned length, uint8_t *data);
 
 int can_fd;
 
-int can_main(int argc, char *argv[])
+int
+can_main(int argc, char *argv[])
 {
 	int	bus = 0;
 	int	ch;
@@ -75,24 +79,51 @@ int can_main(int argc, char *argv[])
 		}
 	}
 
-	argc += optind;
-	argv -= optind;
+	argc -= optind;
+	argv += optind;
 
-	if (!strcmp(argv[0]))
+	if (!strcmp(argv[0], "init")) {
+		can_dev_s *dev;
 
-	if (!strcmp(argv[0], "send") {
+		/* port number 2 */
+		dev = stm32_caninitialize(2);
+		if (dev == NULL)
+			errx(1, "driver init failed");
+
+		/* just use the lowest-numbered bus slot */
+		device::CANBus *bus = device::CANBus::for_bus(0, dev);
+
+		if (bus == nullptr)
+			errx(1, "bus init failed");
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[0], "send")) {
 		can_msg_s msg;
 
-		if ((argc < 2) || (arg2msg(msg, argv[1]) != OK))
+#if 0
+		if (argc < 2)
 			errx(1, "missing message, format is <id>:[<data>,<data>...]");
+		if  (arg2msg(msg, argv[1]) != OK)
+			errx(1, "bad message format");
+#endif
+		msg.cm_hdr.ch_id = 0x10;
+		msg.cm_hdr.ch_dlc = 1;
+		msg.cm_data[0] = 0x20;
 
 		opendev(bus);
 
+		for (;;)
+			write(can_fd, &msg, sizeof(msg));
+
 		if (write(can_fd, &msg, sizeof(msg)) != sizeof(msg))
 			err(1, "write error");
+
+		exit(0);
 	}
 
-	if (!strcmp(argv[0], "listen") {
+	if (!strcmp(argv[0], "listen")) {
 
 		unsigned cancels = 3;
 		opendev(bus);
@@ -100,12 +131,12 @@ int can_main(int argc, char *argv[])
 		warnx("Hit <enter> three times to exit listen mode");
 
 		for (;;) {
-			struct pollfds fds[2];
+			struct pollfd fds[2];
 
-			fs[0].fd = 0,
-			fs[0].events = POLLIN,
-			fs[1].fd = can_fd,
-			fs[1].events = POLLIN
+			fds[0].fd = 0;
+			fds[0].events = POLLIN;
+			fds[1].fd = can_fd;
+			fds[1].events = POLLIN;
 
 			if (fds[0].revents == POLLIN) {
 				int c;
@@ -128,40 +159,40 @@ int can_main(int argc, char *argv[])
 							err(1, "read error");
 					}
 
-					printf("ID %u LEN %u", msg.hdr.ch_id, msg.hdr.ch_dlc);
+					printf("ID %u LEN %u", msg.cm_hdr.ch_id, msg.cm_hdr.ch_dlc);
 
-					for (unsigned i = 0; i < msg.hdr.dlc; i++) {
+					for (unsigned i = 0; i < msg.cm_hdr.ch_dlc; i++) {
 						if (i == 0)
 							printf(" DATA");
-						printf("%02x". msg.cm_data[i]);
+						printf("%02x", msg.cm_data[i]);
 					}
 					printf("\n");
 				}
 			}
 		}
+		exit(0);
 	}
 
-	if (argc < 1)
-		errx(1, "missing or unexpected command, try 'attach <bus>', 'send <message>' or 'listen'");
+	errx(1, "missing or unexpected command, try 'attach <bus>', 'send <message>' or 'listen'");
 }
 
 static int
-arg2msg(can_mgs_s &msg, const char *arg)
+arg2msg(can_msg_s &msg, const char *arg)
 {
 	unsigned id;
 	unsigned data[8];	/* CAN_MAXDATALEN */
 
-	int ndata = sscanf("%u:%u,%u,%u,%u,%u,%u,%u,%u", 
-		&id, &data[0], &data[1], &data[2], &data[3], &data[4], &data[5], &data[6], &data[7], &data[8]);
+	int ndata = sscanf(arg, "%u:%u,%u,%u,%u,%u,%u,%u,%u",
+		&id, &data[0], &data[1], &data[2], &data[3], &data[4], &data[5], &data[6], &data[7]);
 
 	if (ndata < 1)
-		return ERROR;
+		return -1 /*ERROR*/;
 
-	msg.hdr.ch_id = addr;
+	msg.cm_hdr.ch_id = id;
 	ndata--;
 	for (unsigned i = 0; i < ndata; i++)
 		msg.cm_data[i] = data[i] & 0xff;
-	msg.hdr.ch_dlc = ndata;
+	msg.cm_hdr.ch_dlc = ndata;
 
 	return OK;
 }
@@ -171,7 +202,7 @@ opendev(int bus)
 {
 	char devname[32];
 
-	sprintf(devname, "/dev/CAN%d", bus);
+	sprintf(devname, "/dev/can%d", bus);
 
 	int fd = open(devname, O_RDWR);
 	if (fd < 0)

@@ -50,6 +50,7 @@ MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
+MODULES		+= systemcmds/can
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
