@@ -44,6 +44,8 @@
 
 #include <drivers/drv_can.h>
 
+#include <systemlib/err.h>
+
 #include "can.h"
 
 namespace device 
@@ -62,10 +64,15 @@ CANBus::CANBus(const char *devname, unsigned bus_number, can_dev_s *dev) :
 	_tx_queue(nullptr),
 	_drivers(nullptr)
 {
+	_debug_enabled = true;
 }
 
 CANBus::~CANBus()
 {
+	if (_tx_queue)
+		delete _tx_queue;
+	if (_dev)
+		_dev->cd_ops->co_shutdown(_dev);
 }
 
 int
@@ -84,36 +91,53 @@ CANBus::ioctl(struct file *filp, int cmd, unsigned long arg)
 int
 CANBus::init()
 {
-	if (_bus_number >= _maxbus)
+	if (_bus_number >= _maxbus) {
+		debug("bad bus number %u", _bus_number);
 		return -ERANGE;
-	if (_bus_array[_bus_number] != nullptr)
+	}
+	if (_bus_array[_bus_number] != nullptr) {
+		debug("bus %u already claimed", _bus_number);
 		return -EBUSY;
+	}
 
+	/* init our tx queue */
 	_tx_queue = new MsgQ(_default_txq);
-	if (_tx_queue == nullptr)
+	if (_tx_queue == nullptr) {
+		debug("txq alloc failed");
 		return -ENOMEM;
-		
+	}
 	_bus_array[_bus_number] = this;
 
 	/* put ourself on our own bus */
 	attach(this);
 
-	return OK;
+	/* reset and initialise the driver */
+	_dev->cd_ops->co_reset(_dev);
+	_dev->cd_ops->co_setup(_dev);
+
+	/* do CDev init */
+	return CDev::init();
 }
 
 CANBus *
 CANBus::for_bus(unsigned bus_number, can_dev_s *dev)
 {
-	if (bus_number >= _maxbus)
+	if (bus_number >= _maxbus) {
+		warnx("CANBus number %u is too high, max %u", bus_number, _maxbus);
 		return nullptr;
+	}
 
 	/* if we have already allocated the bus, go ahead and return it */
-	if (_bus_array[bus_number] != nullptr)
+	if (_bus_array[bus_number] != nullptr) {
+		warnx("CANBus returning cached bus %u/%p", bus_number, _bus_array[bus_number]);
 		return _bus_array[bus_number];
+	}
 
 	/* if we don't have a device, we can't lazily construct the bus driver */
-	if (dev == nullptr)
+	if (dev == nullptr) {
+		warnx("CANBus %u not allocated and no device", bus_number);
 		return nullptr;
+	}
 
 	char devname[32];
 	sprintf(devname, "/dev/can%d", bus_number);
@@ -121,10 +145,14 @@ CANBus::for_bus(unsigned bus_number, can_dev_s *dev)
 	CANBus *bus = new CANBus(devname, bus_number, dev);
 
 	if (bus != nullptr) {
-		if (bus->init() != OK) {
+		int ret = bus->init();
+		if (ret != OK) {
+			warnx("CANBus init failed with %d", ret);
 			delete bus;
 			bus = nullptr;
 		}
+	} else {
+		warnx("CANBus failed to alloc for %u", bus_number);
 	}
 	return bus;
 }
@@ -161,9 +189,11 @@ CANBus::send(const can_msg_s &msg)
 {
 	int ret;
 
+//	debug("send %u", msg.cm_hdr.ch_id);
+
 	/* try sending directly if nothing is queued */
 	if (_tx_queue->empty()) {
-	ret = _dev->cd_ops->co_send(_dev, const_cast<can_msg_s *>(&msg));
+		ret = _dev->cd_ops->co_send(_dev, const_cast<can_msg_s *>(&msg));
 
 		/* for any result other than "no room to send", return it */
 		if (ret != -EBUSY)
@@ -173,6 +203,7 @@ CANBus::send(const can_msg_s &msg)
 	/* queue the message for later transmission */
 	if (!_tx_queue->put(msg)) {
 		ret = -ENOSPC;
+//		debug("send queue full");
 		goto out;
 	}
 	ret = OK;
@@ -215,24 +246,6 @@ CANBus::can_txdone(can_dev_s *dev)
 		cb->_txdone();
 
 	return OK;
-}
-
-int
-CANBus::open_first(struct file *filp)
-{
-	/* allocate a small RX queue */
-	set_rx_queue(4);
-
-	return CDev::open_first(filp);
-}
-
-int
-CANBus::close_last(struct file *filp)
-{
-	/* free the RX queue */
-	set_rx_queue(0);
-
-	return CDev::close_last(filp);
 }
 
 bool
@@ -324,21 +337,24 @@ ssize_t
 CAN::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(can_msg_s);
+	unsigned received = 0;
 	unsigned index;
 	can_msg_s *bufs = reinterpret_cast<can_msg_s *>(buffer);
 	ssize_t ret = 0;
 
 	for (index = 0; index < count; index++) {
-		bool result = receive(bufs[count]);
+		bool result = receive(bufs[index]);
 
-		if (!result) {
+		if (result) {
+			received++;
+		} else {
 			if (index == 0) {
 				/* XXX handle blocking here */
 			}
 			break;
 		}
 	}
-	ret = index * sizeof(can_msg_s);
+	ret = received * sizeof(can_msg_s);
 
 	return ret;
 }
@@ -347,28 +363,32 @@ ssize_t
 CAN::write(struct file *filp, const char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(can_msg_s);
+	unsigned sent = 0;
 	const can_msg_s *bufs = reinterpret_cast<const can_msg_s *>(buffer);
 	ssize_t ret = 0;
 
 	for (unsigned index = 0; index < count; index++) {
-		ret = send(bufs[count]);
+		ret = send(bufs[index]);
 
 		switch (ret) {
-		case 0:
+		case OK:
+			sent++;
 			/* success, go again */
 			break;
 
 		case -EWOULDBLOCK:
 			/* XXX handle blocking here */
-			ret = (count * sizeof(can_msg_s));
+			ret = OK;
 
 			/* FALLTHROUGH */
 		default:
 			goto out;
 		}
 	}
-
 out:
+	if (ret == OK)
+		ret = sent * sizeof(can_msg_s);
+
 	return ret;
 }
 
@@ -379,7 +399,9 @@ CAN::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case CANIOCSETRXBUF:
+		lock();
 		ret = set_rx_queue(arg);
+		unlock();
 		break;
 
 	case CANIOCGETRXBUF:
@@ -420,6 +442,22 @@ CAN::probe()
 	return true;
 }
 
+int
+CAN::open_first(struct file *filp)
+{
+	/* allocate a small RX queue if we don't have one */
+	if (_rx_queue == nullptr)
+		set_rx_queue(4);
+
+	return CDev::open_first(filp);
+}
+
+int
+CAN::close_last(struct file *filp)
+{
+	return CDev::close_last(filp);
+}
+
 bool
 CAN::filter(const can_msg_s &msg)
 {
@@ -446,13 +484,17 @@ CAN::set_rx_queue(unsigned size)
 	MsgQ *oq, *mq = nullptr;
 	int ret = OK;
 
-	lock();
-
 	if (size > 0) {
 		/* allocate the new queue */
 		mq = new MsgQ(size);
 		if (mq == nullptr) {
 			ret = -ENOMEM;
+			debug("rxq alloc failed");
+			goto out;
+		}
+		if (mq->size() != size) {
+			debug("rxq buf alloc failed");
+			delete mq;
 			goto out;
 		}
 	}
@@ -461,12 +503,13 @@ CAN::set_rx_queue(unsigned size)
 	oq = _rx_queue;
 	_rx_queue = mq;
 
+	debug("rxq %p -> %p", oq, mq);
+
 	/* and delete the old queue */
 	if (oq != nullptr)
 		delete oq;
 
 out:
-	unlock();
 	return ret;
 }
 

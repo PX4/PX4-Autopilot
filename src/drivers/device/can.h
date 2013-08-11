@@ -74,7 +74,6 @@ public:
 
 	virtual int		init();
 
-
 protected:
 	friend class CANBus;
 
@@ -100,6 +99,9 @@ protected:
 	 * Check for the presence of the device on the bus.
 	 */
 	virtual int		probe();
+
+	virtual int		open_first(struct file *filp);
+	virtual int		close_last(struct file *filp);
 
 	/**
 	 * Examine a received message and decide whether it should be queued for reception.
@@ -228,9 +230,6 @@ protected:
 	CANBus(const char *devname, unsigned bus_number, can_dev_s *dev);
 
 	virtual bool		filter(const can_msg_s &msg);
-
-	virtual int		open_first(struct file *filp);
-	virtual int		close_last(struct file *filp);
 
 private:
 
