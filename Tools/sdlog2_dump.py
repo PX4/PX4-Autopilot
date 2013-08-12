@@ -105,7 +105,7 @@ class SDLog2Parser:
             for msg_name, show_fields in self.__msg_filter:
                 self.__msg_filter_map[msg_name] = show_fields
         first_data_msg = True
-        f = open(fn, "r")
+        f = open(fn, "rb")
         bytes_read = 0
         while True:
             chunk = f.read(self.BLOCK_SIZE)
