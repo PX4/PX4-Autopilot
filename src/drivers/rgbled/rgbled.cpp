@@ -166,7 +166,6 @@ RGBLED::init()
 	ret = I2C::init();
 
 	if (ret != OK) {
-		warnx("I2C init failed");
 		return ret;
 	}
 
@@ -440,7 +439,7 @@ void rgbled_usage() {
 int
 rgbled_main(int argc, char *argv[])
 {
-	int i2cdevice = PX4_I2C_BUS_LED;
+	int i2cdevice = -1;
 	int rgbledadr = ADDR; /* 7bit */
 
 	int ch;
@@ -464,15 +463,29 @@ rgbled_main(int argc, char *argv[])
 		if (g_rgbled != nullptr)
 			errx(1, "already started");
 
-		g_rgbled = new RGBLED(i2cdevice, rgbledadr);
+		if (i2cdevice == -1) {
+			// try the external bus first
+			i2cdevice = PX4_I2C_BUS_EXPANSION;
+			g_rgbled = new RGBLED(PX4_I2C_BUS_EXPANSION, rgbledadr);
+			if (g_rgbled != nullptr && OK != g_rgbled->init()) {
+				delete g_rgbled;
+				g_rgbled = nullptr;
+			}
+			if (g_rgbled == nullptr) {
+				// fall back to default bus
+				i2cdevice = PX4_I2C_BUS_LED;
+			}
+		}
+		if (g_rgbled == nullptr) {
+			g_rgbled = new RGBLED(i2cdevice, rgbledadr);
+			if (g_rgbled == nullptr)
+				errx(1, "new failed");
 
-		if (g_rgbled == nullptr)
-			errx(1, "new failed");
-
-		if (OK != g_rgbled->init()) {
-			delete g_rgbled;
-			g_rgbled = nullptr;
-			errx(1, "init failed");
+			if (OK != g_rgbled->init()) {
+				delete g_rgbled;
+				g_rgbled = nullptr;
+				errx(1, "init failed");
+			}
 		}
 
 		exit(0);
