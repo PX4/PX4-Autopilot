@@ -65,3 +65,17 @@
  * The script is terminated by a zero command.
  */
 #define RGBLED_SET_USER_SCRIPT		_RGBLEDIOC(3)
+
+/** set constant RGB values */
+#define RGBLED_SET			_RGBLEDIOC(4)
+
+/* 
+  structure passed to RGBLED_SET ioctl()
+  Note that the driver scales the brightness to 0 to 255, regardless
+  of the hardware scaling
+ */
+struct RGBLEDSet {
+	uint8_t red;
+	uint8_t green;
+	uint8_t blue;
+};

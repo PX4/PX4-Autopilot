@@ -80,7 +80,8 @@
 enum ledModes {
 	LED_MODE_TEST,
 	LED_MODE_SYSTEMSTATE,
-	LED_MODE_OFF
+	LED_MODE_OFF,
+	LED_MODE_RGB
 };
 
 class RGBLED : public device::I2C
@@ -118,6 +119,9 @@ private:
 
 	int led_colors[8];
 	int led_blink;
+
+	// RGB values for MODE_RGB 
+	struct RGBLEDSet rgb;
 
 	int mode;
 	int running;
@@ -178,6 +182,7 @@ RGBLED::setMode(enum ledModes new_mode)
 	switch (new_mode) {
 		case LED_MODE_SYSTEMSTATE:
 		case LED_MODE_TEST:
+		case LED_MODE_RGB:
 			mode = new_mode;
 			if (!running) {
 				running = true;
@@ -185,6 +190,7 @@ RGBLED::setMode(enum ledModes new_mode)
 				work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
 			}
 			break;
+
 		case LED_MODE_OFF:
 
 		default:
@@ -237,6 +243,12 @@ RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 	int ret = ENOTTY;
 
 	switch (cmd) {
+	case RGBLED_SET: {
+		/* set the specified RGB values */
+		memcpy(&rgb, (struct RGBLEDSet *)arg, sizeof(rgb));
+		setMode(LED_MODE_RGB);
+		return OK;
+	}
 
 	default:
 		break;
@@ -290,6 +302,11 @@ RGBLED::led()
 
 			break;
 
+		case LED_MODE_RGB:
+			set_rgb(rgb.red, rgb.green, rgb.blue);
+			running = false;
+			return;
+
 		case LED_MODE_OFF:
 		default:
 			return;
@@ -308,10 +325,12 @@ RGBLED::led()
 
 	led_thread_runcount++;
 
-
 	if(running) {
 		/* re-queue ourselves to run again later */
 		work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, led_interval);
+	} else if (mode == LED_MODE_RGB) {
+		// no need to run again until the colour changes
+		set_on(true);
 	} else {
 		set_on(false);
 	}
@@ -412,7 +431,7 @@ void rgbled_usage();
 
 
 void rgbled_usage() {
-	warnx("missing command: try 'start', 'systemstate', 'test', 'info', 'off'");
+	warnx("missing command: try 'start', 'systemstate', 'test', 'info', 'off', 'rgb'");
 	warnx("options:");
 	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
 	errx(0, "    -a addr (0x%x)", ADDR);
@@ -461,9 +480,9 @@ rgbled_main(int argc, char *argv[])
 
 	/* need the driver past this point */
 	if (g_rgbled == nullptr) {
-		fprintf(stderr, "not started\n");
-		rgbled_usage();
-		exit(0);
+	    fprintf(stderr, "not started\n");
+	    rgbled_usage();
+	    exit(0);
 	}
 
 	if (!strcmp(verb, "test")) {
@@ -484,6 +503,23 @@ rgbled_main(int argc, char *argv[])
 	if (!strcmp(verb, "off")) {
 		g_rgbled->setMode(LED_MODE_OFF);
 		exit(0);
+	}
+
+	if (!strcmp(verb, "rgb")) {
+		int fd = open(RGBLED_DEVICE_PATH, 0);
+		if (fd == -1) {
+			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+		}
+		if (argc < 4) {
+			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
+		}
+		struct RGBLEDSet v;
+		v.red   = strtol(argv[1], NULL, 0);
+		v.green = strtol(argv[2], NULL, 0);
+		v.blue  = strtol(argv[3], NULL, 0);
+		int ret = ioctl(fd, RGBLED_SET, (unsigned long)&v);
+		close(fd);
+		exit(ret);
 	}
 
 	rgbled_usage();
