@@ -577,8 +577,10 @@ void
 PX4IO::task_main()
 {
 	hrt_abstime last_poll_time = 0;
+	int mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	log("starting");
+
 
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
@@ -679,16 +681,24 @@ PX4IO::task_main()
 			 */
 			if (fds[3].revents & POLLIN) {
 				parameter_update_s pupdate;
-				int32_t dsm_bind_param;
+				int32_t dsm_bind_val;
+				param_t dsm_bind_param;
 
 				// See if bind parameter has been set, and reset it to 0
-				param_get(param_find("RC_DSM_BIND"), &dsm_bind_param);
-				if (dsm_bind_param) {
-					if (((dsm_bind_param == 1) || (dsm_bind_param == 2)) && !_system_armed) {
-						ioctl(nullptr, DSM_BIND_START, dsm_bind_param == 1 ? 3 : 7);
+				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
+				if (dsm_bind_val) {
+					if (!_system_armed) {
+						if ((dsm_bind_val == 1) || (dsm_bind_val == 2)) {
+							mavlink_log_info(mavlink_fd, "[IO] binding dsm%c rx", dsm_bind_val == 1 ? '2' : 'x');
+							ioctl(nullptr, DSM_BIND_START, dsm_bind_val == 1 ? 3 : 7);
+						} else {
+							mavlink_log_info(mavlink_fd, "[IO] invalid bind type, bind request rejected");
+						}
+					} else {
+						mavlink_log_info(mavlink_fd, "[IO] system armed, bind request rejected"); 
 					}
-					dsm_bind_param = 0;
-					param_set(param_find("RC_DSM_BIND"), &dsm_bind_param);
+					dsm_bind_val = 0;
+					param_set(dsm_bind_param, &dsm_bind_val);
 				}
 
 				/* copy to reset the notification */
