@@ -39,8 +39,8 @@
 #pragma once
 
 #include <uORB/uORB.h>
-#include "Block.hpp"
-#include "List.hpp"
+#include "../block/Block.hpp"
+#include "../block/List.hpp"
 
 
 namespace control
