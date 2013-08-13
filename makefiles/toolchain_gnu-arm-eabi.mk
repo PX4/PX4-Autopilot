@@ -85,6 +85,13 @@ ifeq ($(ARCHCPUFLAGS),)
 $(error Must set CONFIG_ARCH to one of CORTEXM4F, CORTEXM4 or CORTEXM3)
 endif
 
+# Set the board flags
+#
+ifeq ($(CONFIG_BOARD),)
+$(error Board config does not define CONFIG_BOARD)
+endif
+ARCHDEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD)
+
 # optimisation flags
 #
 ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \

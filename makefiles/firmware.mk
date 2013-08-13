@@ -153,11 +153,8 @@ ifeq ($(BOARD_FILE),)
 $(error Config $(CONFIG) references board $(BOARD), but no board definition file found)
 endif
 export BOARD
+export BOARD_FILE
 include $(BOARD_FILE)
-ifeq ($(CONFIG_BOARD),)
-$(error Board config for $(BOARD) does not define CONFIG_BOARD)
-endif
-EXTRADEFINES		+= -DCONFIG_ARCH_BOARD_$(CONFIG_BOARD)
 $(info %  BOARD               = $(BOARD))
 
 #
