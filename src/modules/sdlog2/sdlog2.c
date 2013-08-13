@@ -604,6 +604,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 		errx(1, "unable to create logging folder, exiting.");
 	}
 
+	const char *converter_in = "/etc/logging/log_converter.zip";
+	char* converter_out = malloc(200);
+	sprintf(converter_out, "%s/log_converter.zip", folder_path);
+
+	if (file_copy(converter_in, converter_out)) {
+		errx(1, "unable to copy conversion scripts, exiting.");
+	}
+	free(converter_out);
+
 	/* only print logging path, important to find log file later */
 	warnx("logging to directory: %s", folder_path);
 
