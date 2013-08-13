@@ -198,14 +198,19 @@ class SDLog2Parser:
         if runningPython3:
             data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN])
         else:
-            data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN])
+            data = struct.unpack(self.MSG_FORMAT_STRUCT, str(self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN]))
         msg_type = data[0]
         print(msg_type)
         if msg_type != self.MSG_TYPE_FORMAT:
             msg_length = data[1]
-            msg_name = str(data[2]).strip("\0")
-            msg_format = str(data[3]).strip("\0")
-            msg_labels = str(data[4]).strip("\0").split(",")
+            if runningPython3:
+                msg_name = str(data[2], 'ascii').strip("\0")
+                msg_format = str(data[3], 'ascii').strip("\0")
+                msg_labels = str(data[4], 'ascii').strip("\0").split(",")
+            else:
+                msg_name = str(data[2]).strip("\0")
+                msg_format = str(data[3]).strip("\0")
+                msg_labels = str(data[4]).strip("\0").split(",")
             # Convert msg_format to struct.unpack format string
             msg_struct = ""
             msg_mults = []
@@ -233,7 +238,10 @@ class SDLog2Parser:
             self.__csv_updated = False
         show_fields = self.__filterMsg(msg_name)
         if (show_fields != None):
-            data = list(struct.unpack(msg_struct, str(bytearray(self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length]))))
+            if runningPython3:
+                data = list(struct.unpack(msg_struct, self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length]))
+            else:
+                data = list(struct.unpack(msg_struct, str(self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length])))
             for i in range(len(data)):
                 if type(data[i]) is str:
                     data[i] = data[i].strip("\0")
