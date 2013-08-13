@@ -111,9 +111,9 @@ function ImportPX4LogData()
         time_us = sysvector.TIME_StartTime(end) - sysvector.TIME_StartTime(1);
         time_s = uint64(time_us*1e-6);
         time_m = uint64(time_s/60);
-        time_s = time_s - time_m * 60
+        time_s = time_s - time_m * 60;
         
-        disp([sprintf('Flight log duration: %d:%d (minutes:seconds)', time_m, time_s)]);
+        disp([sprintf('Flight log duration: %d:%d (minutes:seconds)', time_m, time_s) char(10)]);
 
         disp(['logfile conversion finished.' char(10)]);
     else

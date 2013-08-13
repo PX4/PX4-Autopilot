@@ -200,7 +200,6 @@ class SDLog2Parser:
         else:
             data = struct.unpack(self.MSG_FORMAT_STRUCT, str(self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN]))
         msg_type = data[0]
-        print(msg_type)
         if msg_type != self.MSG_TYPE_FORMAT:
             msg_length = data[1]
             if runningPython3:
