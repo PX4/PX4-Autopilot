@@ -16,7 +16,7 @@ close all
 % ************************************************************************
 
 % Set the path to your sysvector.bin file here
-filePath = 'sysvector.bin';
+filePath = 'log001.bin';
 
 % Set the minimum and maximum times to plot here [in seconds]
 mintime=0;        %The minimum time/timestamp to display, as set by the user [0 for first element / start]
@@ -26,8 +26,8 @@ maxtime=0;        %The maximum time/timestamp to display, as set by the user [0 
 bDisplayGPS=true;
 
 %conversion factors
-fconv_gpsalt=1E-3; %[mm] to [m]
-fconv_gpslatlong=1E-7; %[gps_raw_position_unit] to [deg]
+fconv_gpsalt=1; %[mm] to [m]
+fconv_gpslatlong=1; %[gps_raw_position_unit] to [deg]
 fconv_timestamp=1E-6; % [microseconds] to [seconds]
 
 % ************************************************************************
@@ -36,7 +36,7 @@ fconv_timestamp=1E-6; % [microseconds] to [seconds]
 ImportPX4LogData();
 
 %Translate min and max plot times to indices
-time=double(sysvector.timestamp) .*fconv_timestamp;
+time=double(sysvector.TIME_StartTime) .*fconv_timestamp;
 mintime_log=time(1);        %The minimum time/timestamp found in the log
 maxtime_log=time(end);      %The maximum time/timestamp found in the log
 CurTime=mintime_log;        %The current time at which to draw the aircraft position
@@ -76,109 +76,48 @@ DrawCurrentAircraftState();
 %              Other firmware versions might require different import 
 %              routines.
 
+%% ************************************************************************
+%  IMPORTPX4LOGDATA (nested function)
+%  ************************************************************************
+%  Attention:  This is the import routine for firmware from ca. 03/2013.
+%              Other firmware versions might require different import 
+%              routines.
+
 function ImportPX4LogData()
-    % Work around a Matlab bug (not related to PX4)
-    % where timestamps from 1.1.1970 do not allow to
-    % read the file's size
-    if ismac
-        system('touch -t 201212121212.12 sysvector.bin');
-    end
 
     % ************************************************************************
     % RETRIEVE SYSTEM VECTOR
     % *************************************************************************
     % //All measurements in NED frame
-    %
-    % uint64_t timestamp; //[us]
-    % float gyro[3]; //[rad/s]
-    % float accel[3]; //[m/s^2]
-    % float mag[3]; //[gauss] 
-    % float baro; //pressure [millibar]
-    % float baro_alt; //altitude above MSL [meter]
-    % float baro_temp; //[degree celcius]
-    % float control[4]; //roll, pitch, yaw [-1..1], thrust [0..1]
-    % float actuators[8]; //motor 1-8, in motor units (PWM: 1000-2000,AR.Drone: 0-512)
-    % float vbat; //battery voltage in [volt]
-    % float bat_current - current drawn from battery at this time instant
-    % float bat_discharged - discharged energy in mAh
-    % float adc[4]; //remaining auxiliary ADC ports [volt]
-    % float local_position[3]; //tangent plane mapping into x,y,z [m]
-    % int32_t gps_raw_position[3]; //latitude [degrees] north, longitude [degrees] east, altitude above MSL [millimeter]
-    % float attitude[3]; //pitch, roll, yaw [rad]
-    % float rotMatrix[9]; //unitvectors
-    % float actuator_control[4]; //unitvector
-    % float optical_flow[4]; //roll, pitch, yaw [-1..1], thrust [0..1]
-    % float diff_pressure; - pressure difference in millibar
-    % float ind_airspeed;
-    % float true_airspeed;
-
-    % Definition of the logged values
-    logFormat{1} = struct('name', 'timestamp',             'bytes', 8, 'array', 1, 'precision', 'uint64',  'machineformat', 'ieee-le.l64');
-    logFormat{2} = struct('name', 'gyro',                  'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{3} = struct('name', 'accel',                 'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{4} = struct('name', 'mag',                   'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{5} = struct('name', 'baro',                  'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{6} = struct('name', 'baro_alt',              'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{7} = struct('name', 'baro_temp',             'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{8} = struct('name', 'control',               'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{9} = struct('name', 'actuators',             'bytes', 4, 'array', 8, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{10} = struct('name', 'vbat',                 'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{11} = struct('name', 'bat_current',          'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{12} = struct('name', 'bat_discharged',       'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{13} = struct('name', 'adc',                  'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{14} = struct('name', 'local_position',       'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{15} = struct('name', 'gps_raw_position',     'bytes', 4, 'array', 3, 'precision', 'uint32',  'machineformat', 'ieee-le');
-    logFormat{16} = struct('name', 'attitude',             'bytes', 4, 'array', 3, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{17} = struct('name', 'rot_matrix',           'bytes', 4, 'array', 9, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{18} = struct('name', 'vicon_position',       'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{19} = struct('name', 'actuator_control',     'bytes', 4, 'array', 4, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{20} = struct('name', 'optical_flow',         'bytes', 4, 'array', 6, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{21} = struct('name', 'diff_pressure',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{22} = struct('name', 'ind_airspeed',         'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-    logFormat{23} = struct('name', 'true_airspeed',        'bytes', 4, 'array', 1, 'precision', 'float',   'machineformat', 'ieee-le');
-
-    % First get length of one line
-    columns = length(logFormat);
-    lineLength = 0;
-
-    for i=1:columns
-        lineLength = lineLength + logFormat{i}.bytes * logFormat{i}.array;
+    
+    % Convert to CSV
+    %arg1 = 'log-fx61-20130721-2.bin';
+    arg1 = filePath;
+    delim = ',';
+    time_field = 'TIME';
+    data_file = 'data.csv';
+    csv_null = '';
+    
+    if not(exist(data_file, 'file'))
+        s = system( sprintf('python sdlog2_dump.py "%s" -f "%s" -t"%s" -d"%s" -n"%s"', arg1, data_file, time_field, delim, csv_null) );
     end
 
+    if exist(data_file, 'file')
 
-    if exist(filePath, 'file')
-
-        fileInfo = dir(filePath);
-        fileSize = fileInfo.bytes;
-
-        elements = int64(fileSize./(lineLength));
-
-        fid = fopen(filePath, 'r');
-        offset = 0;
-        for i=1:columns
-            % using fread with a skip speeds up the import drastically, do not
-            % import the values one after the other
-            sysvector.(genvarname(logFormat{i}.name)) = transpose(fread(...
-                fid, ...
-                [logFormat{i}.array, elements], [num2str(logFormat{i}.array),'*',logFormat{i}.precision,'=>',logFormat{i}.precision], ...
-                lineLength - logFormat{i}.bytes*logFormat{i}.array, ...
-                logFormat{i}.machineformat) ...
-            );
-            offset = offset + logFormat{i}.bytes*logFormat{i}.array;
-            fseek(fid, offset,'bof');
-        end
+        %data = csvread(data_file);
+        sysvector = tdfread(data_file, ',');
 
         % shot the flight time
-        time_us = sysvector.timestamp(end) - sysvector.timestamp(1);
-        time_s = time_us*1e-6;
-        time_m = time_s/60;
+        time_us = sysvector.TIME_StartTime(end) - sysvector.TIME_StartTime(1);
+        time_s = uint64(time_us*1e-6);
+        time_m = uint64(time_s/60);
+        time_s = time_s - time_m * 60;
+        
+        disp([sprintf('Flight log duration: %d:%d (minutes:seconds)', time_m, time_s) char(10)]);
 
-        % close the logfile
-        fclose(fid);
-
-        disp(['end log2matlab conversion' char(10)]);
+        disp(['logfile conversion finished.' char(10)]);
     else
-        disp(['file: ' filePath ' does not exist' char(10)]);
+        disp(['file: ' data_file ' does not exist' char(10)]);
     end
 end
 
@@ -296,11 +235,11 @@ function DrawRawData()
     %  ************************************************************************
     figure(h.figures(2));
     % Only plot GPS data if available
-    if (sum(double(sysvector.gps_raw_position(imintime:imaxtime,1)))>0) && (bDisplayGPS)
+    if (sum(double(sysvector.GPS_Lat(imintime:imaxtime)))>0) && (bDisplayGPS)
         %Draw data
-        plot3(h.axes(1),double(sysvector.gps_raw_position(imintime:imaxtime,1))*fconv_gpslatlong, ...
-                        double(sysvector.gps_raw_position(imintime:imaxtime,2))*fconv_gpslatlong, ...
-                        double(sysvector.gps_raw_position(imintime:imaxtime,3))*fconv_gpsalt,'r.');
+        plot3(h.axes(1),double(sysvector.GPS_Lat(imintime:imaxtime))*fconv_gpslatlong, ...
+                        double(sysvector.GPS_Lon(imintime:imaxtime))*fconv_gpslatlong, ...
+                        double(sysvector.GPS_Alt(imintime:imaxtime))*fconv_gpsalt,'r.');
         title(h.axes(1),'GPS Position Data(if available)');
         xlabel(h.axes(1),'Latitude [deg]');
         ylabel(h.axes(1),'Longitude [deg]');
@@ -315,19 +254,19 @@ function DrawRawData()
     %  PLOT WINDOW 2: IMU, baro altitude
     %  ************************************************************************
     figure(h.figures(3));
-    plot(h.axes(2),time(imintime:imaxtime),sysvector.mag(imintime:imaxtime,:));
+    plot(h.axes(2),time(imintime:imaxtime),[sysvector.IMU_MagX(imintime:imaxtime), sysvector.IMU_MagY(imintime:imaxtime), sysvector.IMU_MagZ(imintime:imaxtime)]);
     title(h.axes(2),'Magnetometers [Gauss]');
     legend(h.axes(2),'x','y','z');
-    plot(h.axes(3),time(imintime:imaxtime),sysvector.accel(imintime:imaxtime,:));
+    plot(h.axes(3),time(imintime:imaxtime),[sysvector.IMU_AccX(imintime:imaxtime), sysvector.IMU_AccY(imintime:imaxtime), sysvector.IMU_AccZ(imintime:imaxtime)]);
     title(h.axes(3),'Accelerometers [m/s²]');
     legend(h.axes(3),'x','y','z');
-    plot(h.axes(4),time(imintime:imaxtime),sysvector.gyro(imintime:imaxtime,:));
+    plot(h.axes(4),time(imintime:imaxtime),[sysvector.IMU_GyroX(imintime:imaxtime), sysvector.IMU_GyroY(imintime:imaxtime), sysvector.IMU_GyroZ(imintime:imaxtime)]);
     title(h.axes(4),'Gyroscopes [rad/s]');
     legend(h.axes(4),'x','y','z');
-    plot(h.axes(5),time(imintime:imaxtime),sysvector.baro_alt(imintime:imaxtime),'color','blue');
+    plot(h.axes(5),time(imintime:imaxtime),sysvector.SENS_BaroAlt(imintime:imaxtime),'color','blue');
     if(bDisplayGPS)
         hold on;
-        plot(h.axes(5),time(imintime:imaxtime),double(sysvector.gps_raw_position(imintime:imaxtime,3)).*fconv_gpsalt,'color','red');
+        plot(h.axes(5),time(imintime:imaxtime),double(sysvector.GPS_Alt(imintime:imaxtime)).*fconv_gpsalt,'color','red');
         hold off
         legend('Barometric Altitude [m]','GPS Altitude [m]');
     else
@@ -340,22 +279,22 @@ function DrawRawData()
     % ************************************************************************
     figure(h.figures(4));
     %Attitude Estimate
-    plot(h.axes(6),time(imintime:imaxtime), sysvector.attitude(imintime:imaxtime,:).*180./3.14159);
+    plot(h.axes(6),time(imintime:imaxtime), [sysvector.ATT_Roll(imintime:imaxtime), sysvector.ATT_Pitch(imintime:imaxtime), sysvector.ATT_Yaw(imintime:imaxtime)] .*180./3.14159);
     title(h.axes(6),'Estimated attitude [deg]');
     legend(h.axes(6),'roll','pitch','yaw');
     %Actuator Controls
-    plot(h.axes(7),time(imintime:imaxtime), sysvector.actuator_control(imintime:imaxtime,:));
+    plot(h.axes(7),time(imintime:imaxtime), [sysvector.ATTC_Roll(imintime:imaxtime), sysvector.ATTC_Pitch(imintime:imaxtime), sysvector.ATTC_Yaw(imintime:imaxtime), sysvector.ATTC_Thrust(imintime:imaxtime)]);
     title(h.axes(7),'Actuator control [-]');
-    legend(h.axes(7),'0','1','2','3');
+    legend(h.axes(7),'ATT CTRL Roll [-1..+1]','ATT CTRL Pitch [-1..+1]','ATT CTRL Yaw [-1..+1]','ATT CTRL Thrust [0..+1]');
     %Actuator Controls
-    plot(h.axes(8),time(imintime:imaxtime), sysvector.actuators(imintime:imaxtime,1:8));
+    plot(h.axes(8),time(imintime:imaxtime), [sysvector.OUT0_Out0(imintime:imaxtime), sysvector.OUT0_Out1(imintime:imaxtime), sysvector.OUT0_Out2(imintime:imaxtime), sysvector.OUT0_Out3(imintime:imaxtime), sysvector.OUT0_Out4(imintime:imaxtime), sysvector.OUT0_Out5(imintime:imaxtime), sysvector.OUT0_Out6(imintime:imaxtime), sysvector.OUT0_Out7(imintime:imaxtime)]);
     title(h.axes(8),'Actuator PWM (raw-)outputs [µs]');
     legend(h.axes(8),'CH1','CH2','CH3','CH4','CH5','CH6','CH7','CH8');
     set(h.axes(8), 'YLim',[800 2200]);
     %Airspeeds
-    plot(h.axes(9),time(imintime:imaxtime), sysvector.ind_airspeed(imintime:imaxtime));
+    plot(h.axes(9),time(imintime:imaxtime), sysvector.AIRS_IndSpeed(imintime:imaxtime));
     hold on
-    plot(h.axes(9),time(imintime:imaxtime), sysvector.true_airspeed(imintime:imaxtime));
+    plot(h.axes(9),time(imintime:imaxtime), sysvector.AIRS_TrueSpeed(imintime:imaxtime));
     hold off
     %add GPS total airspeed here
     title(h.axes(9),'Airspeed [m/s]');
@@ -385,33 +324,43 @@ function DrawCurrentAircraftState()
     %**********************************************************************
     % Current aircraft state label update
     %**********************************************************************
-    acstate{1,:}=[sprintf('%s \t\t','GPS Pos:'),'[lat=',num2str(double(sysvector.gps_raw_position(i,1))*fconv_gpslatlong),'°, ',...
-                        'lon=',num2str(double(sysvector.gps_raw_position(i,2))*fconv_gpslatlong),'°, ',...
-                        'alt=',num2str(double(sysvector.gps_raw_position(i,3))*fconv_gpsalt),'m]'];
-    acstate{2,:}=[sprintf('%s \t\t','Mags[gauss]'),'[x=',num2str(sysvector.mag(i,1)),...
-                               ', y=',num2str(sysvector.mag(i,2)),...
-                               ', z=',num2str(sysvector.mag(i,3)),']'];
-    acstate{3,:}=[sprintf('%s \t\t','Accels[m/s²]'),'[x=',num2str(sysvector.accel(i,1)),...
-                               ', y=',num2str(sysvector.accel(i,2)),...
-                               ', z=',num2str(sysvector.accel(i,3)),']'];
-    acstate{4,:}=[sprintf('%s \t\t','Gyros[rad/s]'),'[x=',num2str(sysvector.gyro(i,1)),...
-                               ', y=',num2str(sysvector.gyro(i,2)),...
-                               ', z=',num2str(sysvector.gyro(i,3)),']'];
-    acstate{5,:}=[sprintf('%s \t\t','Altitude[m]'),'[Barometric: ',num2str(sysvector.baro_alt(i)),'m, GPS: ',num2str(double(sysvector.gps_raw_position(i,3))*fconv_gpsalt),'m]'];
-    acstate{6,:}=[sprintf('%s \t','Est. attitude[deg]:'),'[Roll=',num2str(sysvector.attitude(i,1).*180./3.14159),...
-                               ', Pitch=',num2str(sysvector.attitude(i,2).*180./3.14159),...
-                               ', Yaw=',num2str(sysvector.attitude(i,3).*180./3.14159),']'];
+    acstate{1,:}=[sprintf('%s \t\t','GPS Pos:'),'[lat=',num2str(double(sysvector.GPS_Lat(i))*fconv_gpslatlong),'°, ',...
+                        'lon=',num2str(double(sysvector.GPS_Lon(i))*fconv_gpslatlong),'°, ',...
+                        'alt=',num2str(double(sysvector.GPS_Alt(i))*fconv_gpsalt),'m]'];
+    acstate{2,:}=[sprintf('%s \t\t','Mags[gauss]'),'[x=',num2str(sysvector.IMU_MagX(i)),...
+                               ', y=',num2str(sysvector.IMU_MagY(i)),...
+                               ', z=',num2str(sysvector.IMU_MagZ(i)),']'];
+    acstate{3,:}=[sprintf('%s \t\t','Accels[m/s²]'),'[x=',num2str(sysvector.IMU_AccX(i)),...
+                               ', y=',num2str(sysvector.IMU_AccY(i)),...
+                               ', z=',num2str(sysvector.IMU_AccZ(i)),']'];
+    acstate{4,:}=[sprintf('%s \t\t','Gyros[rad/s]'),'[x=',num2str(sysvector.IMU_GyroX(i)),...
+                               ', y=',num2str(sysvector.IMU_GyroY(i)),...
+                               ', z=',num2str(sysvector.IMU_GyroZ(i)),']'];
+    acstate{5,:}=[sprintf('%s \t\t','Altitude[m]'),'[Barometric: ',num2str(sysvector.SENS_BaroAlt(i)),'m, GPS: ',num2str(double(sysvector.GPS_Alt(i))*fconv_gpsalt),'m]'];
+    acstate{6,:}=[sprintf('%s \t','Est. attitude[deg]:'),'[Roll=',num2str(sysvector.ATT_Roll(i).*180./3.14159),...
+                               ', Pitch=',num2str(sysvector.ATT_Pitch(i).*180./3.14159),...
+                               ', Yaw=',num2str(sysvector.ATT_Yaw(i).*180./3.14159),']'];
     acstate{7,:}=sprintf('%s \t[','Actuator Ctrls [-]:');
-    for j=1:4
-        acstate{7,:}=[acstate{7,:},num2str(sysvector.actuator_control(i,j)),','];
-    end
+    %for j=1:4
+    acstate{7,:}=[acstate{7,:},num2str(sysvector.ATTC_Roll(i)),','];
+    acstate{7,:}=[acstate{7,:},num2str(sysvector.ATTC_Pitch(i)),','];
+    acstate{7,:}=[acstate{7,:},num2str(sysvector.ATTC_Yaw(i)),','];
+    acstate{7,:}=[acstate{7,:},num2str(sysvector.ATTC_Thrust(i)),','];
+    %end
     acstate{7,:}=[acstate{7,:},']'];
     acstate{8,:}=sprintf('%s \t[','Actuator Outputs [PWM/µs]:');
-    for j=1:8
-        acstate{8,:}=[acstate{8,:},num2str(sysvector.actuators(i,j)),','];
-    end
+    %for j=1:8
+    acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out0(i)),','];
+    acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out1(i)),','];
+    acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out2(i)),','];
+    acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out3(i)),','];
+    acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out4(i)),','];
+    acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out5(i)),','];
+    acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out6(i)),','];
+    acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out7(i)),','];
+    %end
     acstate{8,:}=[acstate{8,:},']'];
-    acstate{9,:}=[sprintf('%s \t','Airspeed[m/s]:'),'[IAS: ',num2str(sysvector.ind_airspeed(i)),', TAS: ',num2str(sysvector.true_airspeed(i)),']'];
+    acstate{9,:}=[sprintf('%s \t','Airspeed[m/s]:'),'[IAS: ',num2str(sysvector.AIRS_IndSpeed(i)),', TAS: ',num2str(sysvector.AIRS_TrueSpeed(i)),']'];
     
     set(h.edits.AircraftState,'String',acstate);
     
@@ -422,13 +371,13 @@ function DrawCurrentAircraftState()
     figure(h.figures(2));
     hold on;
     if(CurTime>mintime+1) %the +1 is only a small bugfix
-        h.pathline=plot3(h.axes(1),double(sysvector.gps_raw_position(imintime:i,1))*fconv_gpslatlong, ...
-                                    double(sysvector.gps_raw_position(imintime:i,2))*fconv_gpslatlong, ...
-                                    double(sysvector.gps_raw_position(imintime:i,3))*fconv_gpsalt,'b','LineWidth',2); 
+        h.pathline=plot3(h.axes(1),double(sysvector.GPS_Lat(imintime:i))*fconv_gpslatlong, ...
+                                    double(sysvector.GPS_Lon(imintime:i))*fconv_gpslatlong, ...
+                                    double(sysvector.GPS_Alt(imintime:i))*fconv_gpsalt,'b','LineWidth',2); 
     end;
     hold off
     %Plot current position
-    newpoint=[double(sysvector.gps_raw_position(i,1))*fconv_gpslatlong double(sysvector.gps_raw_position(i,2))*fconv_gpslatlong double(sysvector.gps_raw_position(i,3))*fconv_gpsalt];
+    newpoint=[double(sysvector.GPS_Lat(i))*fconv_gpslatlong double(sysvector.GPS_Lat(i))*fconv_gpslatlong double(sysvector.GPS_Alt(i))*fconv_gpsalt];
     if(numel(h.pathpoints)<=3) %empty path
         h.pathpoints(1,1:3)=newpoint;
     else %Not empty, append new point 
@@ -443,8 +392,8 @@ function DrawCurrentAircraftState()
     if(isvalidhandle(h.markertext))
             delete(h.markertext); %delete old text
     end 
-    h.markertext=text(double(sysvector.gps_raw_position(i,1))*fconv_gpslatlong,double(sysvector.gps_raw_position(i,2))*fconv_gpslatlong,...
-                        double(sysvector.gps_raw_position(i,3))*fconv_gpsalt,textdesc);
+    h.markertext=text(double(sysvector.GPS_Lat(i))*fconv_gpslatlong,double(sysvector.GPS_Lon(i))*fconv_gpslatlong,...
+                        double(sysvector.GPS_Alt(i))*fconv_gpsalt,textdesc);
     set(h.edits.CurTime,'String',CurTime);
         
     %**********************************************************************
@@ -549,11 +498,11 @@ end
 %  FINDMINMAXINDICES (nested function)
 %  ************************************************************************
 function [idxmin,idxmax] = FindMinMaxTimeIndices()
-    for i=1:size(sysvector.timestamp,1)
+    for i=1:size(sysvector.TIME_StartTime,1)
         if time(i)>=mintime; idxmin=i; break; end
     end
-    for i=1:size(sysvector.timestamp,1)
-        if maxtime==0; idxmax=size(sysvector.timestamp,1); break; end
+    for i=1:size(sysvector.TIME_StartTime,1)
+        if maxtime==0; idxmax=size(sysvector.TIME_StartTime,1); break; end
         if time(i)>=maxtime; idxmax=i; break; end
     end
     mintime=time(idxmin); 

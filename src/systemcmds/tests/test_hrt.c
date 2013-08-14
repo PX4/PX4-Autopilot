@@ -94,7 +94,7 @@ extern uint16_t ppm_pulse_history[];
 
 int test_ppm(int argc, char *argv[])
 {
-#ifdef CONFIG_HRT_PPM
+#ifdef HRT_PPM_CHANNEL
 	unsigned i;
 
 	printf("channels: %u\n", ppm_decoded_channels);

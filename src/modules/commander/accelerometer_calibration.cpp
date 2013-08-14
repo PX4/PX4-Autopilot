@@ -275,8 +275,8 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 	float accel_disp[3] = { 0.0f, 0.0f, 0.0f };
 	/* EMA time constant in seconds*/
 	float ema_len = 0.2f;
-	/* set "still" threshold to 0.1 m/s^2 */
-	float still_thr2 = pow(0.1f, 2);
+	/* set "still" threshold to 0.25 m/s^2 */
+	float still_thr2 = pow(0.25f, 2);
 	/* set accel error threshold to 5m/s^2 */
 	float accel_err_thr = 5.0f;
 	/* still time required in us */

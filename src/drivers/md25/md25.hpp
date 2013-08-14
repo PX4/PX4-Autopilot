@@ -46,7 +46,7 @@
 
 #include <poll.h>
 #include <stdio.h>
-#include <controllib/block/UOrbSubscription.hpp>
+#include <controllib/uorb/UOrbSubscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <drivers/device/i2c.h>
 
@@ -213,6 +213,19 @@ public:
 	int setDeviceAddress(uint8_t address);
 
 	/**
+	 * set motor acceleration
+	 * @param accel
+	 * controls motor speed change (1-10)
+	 * accel rate  | time for full fwd. to full rev.
+	 *  1          | 6.375 s
+	 *  2          | 1.6 s
+	 *  3          | 0.675 s
+	 *  5(default) | 1.275 s
+	 * 10          | 0.65 s
+	 */
+	int setMotorAccel(uint8_t accel);
+
+	/**
 	 * set motor 1 speed
 	 * @param normSpeed normalize speed between -1 and 1
 	 * @return non-zero -> error
@@ -289,5 +302,8 @@ private:
 
 // unit testing
 int md25Test(const char *deviceName, uint8_t bus, uint8_t address);
+
+// sine testing
+int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitude, float frequency);
 
 // vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78

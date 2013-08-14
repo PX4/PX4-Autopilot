@@ -111,21 +111,21 @@ CDev::~CDev()
 int
 CDev::init()
 {
-	int ret = OK;
-
 	// base class init first
-	ret = Device::init();
+	int ret = Device::init();
 
 	if (ret != OK)
 		goto out;
 
 	// now register the driver
-	ret = register_driver(_devname, &fops, 0666, (void *)this);
+	if (_devname != nullptr) {
+		ret = register_driver(_devname, &fops, 0666, (void *)this);
 
-	if (ret != OK)
-		goto out;
+		if (ret != OK)
+			goto out;
 
-	_registered = true;
+		_registered = true;
+	}
 
 out:
 	return ret;

@@ -207,6 +207,12 @@ private:
 	bool			_dsm_vcc_ctl;
 
 	/**
+	 * System armed
+	 */
+
+	bool			_system_armed;
+
+	/**
 	 * Trampoline to the worker task
 	 */
 	static void		task_main_trampoline(int argc, char *argv[]);
@@ -374,7 +380,8 @@ PX4IO::PX4IO() :
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
 	_battery_last_timestamp(0),
-	_dsm_vcc_ctl(false)
+	_dsm_vcc_ctl(false),
+	_system_armed(false)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -633,8 +640,10 @@ void
 PX4IO::task_main()
 {
 	hrt_abstime last_poll_time = 0;
+	int mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	log("starting");
+
 
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
@@ -735,6 +744,25 @@ PX4IO::task_main()
 			 */
 			if (fds[3].revents & POLLIN) {
 				parameter_update_s pupdate;
+				int32_t dsm_bind_val;
+				param_t dsm_bind_param;
+
+				// See if bind parameter has been set, and reset it to 0
+				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
+				if (dsm_bind_val) {
+					if (!_system_armed) {
+						if ((dsm_bind_val == 1) || (dsm_bind_val == 2)) {
+							mavlink_log_info(mavlink_fd, "[IO] binding dsm%c rx", dsm_bind_val == 1 ? '2' : 'x');
+							ioctl(nullptr, DSM_BIND_START, dsm_bind_val == 1 ? 3 : 7);
+						} else {
+							mavlink_log_info(mavlink_fd, "[IO] invalid bind type, bind request rejected");
+						}
+					} else {
+						mavlink_log_info(mavlink_fd, "[IO] system armed, bind request rejected"); 
+					}
+					dsm_bind_val = 0;
+					param_set(dsm_bind_param, &dsm_bind_val);
+				}
 
 				/* copy to reset the notification */
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
@@ -841,6 +869,8 @@ PX4IO::io_set_arming_state()
 
 	uint16_t set = 0;
 	uint16_t clear = 0;
+
+	_system_armed = vstatus.flag_system_armed;
 
 	if (armed.armed && !armed.lockdown) {
 		set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
@@ -1578,16 +1608,11 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down); 
 		usleep(500000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
-		usleep(1000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-		usleep(100000);
+		usleep(50000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
-		break;
-
-	case DSM_BIND_STOP:
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+		usleep(50000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
-		usleep(500000);
 		break;
 
 	case DSM_BIND_POWER_UP:
@@ -1829,30 +1854,12 @@ bind(int argc, char *argv[])
 	else 
 		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
 
-	/* Open console directly to grab CTRL-C signal */
-	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
-	if (!console)
-		errx(1, "failed opening console");
-
 	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
-	warnx("Press CTRL-C or 'c' when done.");
 
 	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
 
-	for (;;) {
-		usleep(500000L);
-		/* Check if user wants to quit */
-		char c;
-		if (read(console, &c, 1) == 1) {
-			if (c == 0x03 || c == 0x63) {
-				warnx("Done\n");
-				g_dev->ioctl(nullptr, DSM_BIND_STOP, 0);
-				g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);
-				close(console);
-	            exit(0);
-            }
-		}
-	}
+	exit(0);
+
 }
 
 void

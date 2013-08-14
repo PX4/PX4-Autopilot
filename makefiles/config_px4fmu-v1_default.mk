@@ -32,13 +32,16 @@ MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/md25
+MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
+MODULES		+= drivers/meas_airspeed
 MODULES		+= modules/sensors
 
 #
 # System commands
 #
 MODULES		+= systemcmds/eeprom
+MODULES		+= systemcmds/ramtron
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/i2c
@@ -51,6 +54,7 @@ MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
+MODULES		+= systemcmds/config
 
 #
 # General system control
@@ -72,6 +76,7 @@ MODULES		+= examples/flow_position_estimator
 #
 # Vehicle Control
 #
+MODULES		+= modules/segway
 MODULES		+= modules/fixedwing_backside
 MODULES		+= modules/fixedwing_att_control
 MODULES		+= modules/fixedwing_pos_control
@@ -91,6 +96,7 @@ MODULES		+= modules/sdlog2
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/mathlib
+MODULES		+= modules/mathlib/math/filter
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
 

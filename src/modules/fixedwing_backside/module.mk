@@ -38,4 +38,5 @@
 MODULE_COMMAND	= fixedwing_backside
 
 SRCS		= fixedwing_backside_main.cpp \
+		  fixedwing.cpp \
 		  params.c
