@@ -1552,7 +1552,7 @@ void *commander_low_prio_loop(void *arg)
 				mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
 				tune_error();
 			}
-
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_PARAM_SAVE:
@@ -1564,37 +1564,43 @@ void *commander_low_prio_loop(void *arg)
 				mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
 				tune_error();
 			}
-
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_GYRO_CALIBRATION:
 
 			do_gyro_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_MAG_CALIBRATION:
 
 			do_mag_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_ALTITUDE_CALIBRATION:
 
 			// do_baro_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_RC_CALIBRATION:
 
 			// do_rc_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_ACCEL_CALIBRATION:
 
 			do_accel_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_AIRSPEED_CALIBRATION:
 
 			do_airspeed_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_NONE:
@@ -1603,8 +1609,6 @@ void *commander_low_prio_loop(void *arg)
 			usleep(100000);
 			break;
 		}
-
-		low_prio_task = LOW_PRIO_TASK_NONE;
 
 	}
 
