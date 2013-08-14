@@ -98,6 +98,7 @@
 #
 # CONFIG
 # BOARD
+# BOARD_FILE
 # MODULE_WORK_DIR
 # MODULE_OBJ
 # MODULE_MK
@@ -117,7 +118,7 @@ $(info %% MODULE_MK           = $(MODULE_MK))
 #
 # Get the board/toolchain config
 #
-include $(PX4_MK_DIR)/board_$(BOARD).mk
+include $(BOARD_FILE)
 
 #
 # Get the module's config
