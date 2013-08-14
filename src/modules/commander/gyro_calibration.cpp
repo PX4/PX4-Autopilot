@@ -154,7 +154,7 @@ void do_gyro_calibration(int mavlink_fd)
 
 	/*** --- SCALING --- ***/
 
-	mavlink_log_info(mavlink_fd, "offset calibration finished. Rotate for scale 130x");
+	mavlink_log_info(mavlink_fd, "offset calibration finished. Rotate for scale 30x");
 	mavlink_log_info(mavlink_fd, "or do not rotate and wait for 5 seconds to skip.");
 	warnx("offset calibration finished. Rotate for scale 30x, or do not rotate and wait for 5 seconds to skip.");
 
