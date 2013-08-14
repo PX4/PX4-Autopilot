@@ -195,8 +195,8 @@ RGBLED::setMode(enum ledModes new_mode)
 		default:
 			if (running) {
 				running = false;
-				set_on(false);
 			}
+			set_on(false);
 			mode = LED_MODE_OFF;
 			break;
 	}
@@ -443,7 +443,8 @@ rgbled_main(int argc, char *argv[])
 	int rgbledadr = ADDR; /* 7bit */
 
 	int ch;
-	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc-1, &argv[1], "a:b:")) != EOF) {
 		switch (ch) {
 		case 'a':
 			rgbledadr = strtol(optarg, NULL, 0);
@@ -455,9 +456,8 @@ rgbled_main(int argc, char *argv[])
 			rgbled_usage();
 		}
 	}
-	argc -= optind;
-	argv += optind;
-	const char *verb = argv[0];
+
+	const char *verb = argv[1];
 
 	if (!strcmp(verb, "start")) {
 		if (g_rgbled != nullptr)
@@ -523,13 +523,13 @@ rgbled_main(int argc, char *argv[])
 		if (fd == -1) {
 			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
 		}
-		if (argc < 4) {
+		if (argc < 5) {
 			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
 		}
 		struct RGBLEDSet v;
-		v.red   = strtol(argv[1], NULL, 0);
-		v.green = strtol(argv[2], NULL, 0);
-		v.blue  = strtol(argv[3], NULL, 0);
+		v.red   = strtol(argv[2], NULL, 0);
+		v.green = strtol(argv[3], NULL, 0);
+		v.blue  = strtol(argv[4], NULL, 0);
 		int ret = ioctl(fd, RGBLED_SET, (unsigned long)&v);
 		close(fd);
 		exit(ret);
