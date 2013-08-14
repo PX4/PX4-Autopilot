@@ -23,6 +23,11 @@ __version__ = "1.2"
 
 import struct, sys
 
+if sys.hexversion >= 0x030000F0:
+    runningPython3 = True
+else:
+    runningPython3 = False
+
 class SDLog2Parser:
     BLOCK_SIZE = 8192
     MSG_HEADER_LEN = 3
@@ -67,7 +72,7 @@ class SDLog2Parser:
         self.__msg_descrs = {}      # message descriptions by message type map
         self.__msg_labels = {}      # message labels by message name map
         self.__msg_names = []       # message names in the same order as FORMAT messages
-        self.__buffer = "" # buffer for input binary data
+        self.__buffer = bytearray() # buffer for input binary data
         self.__ptr = 0              # read pointer in buffer
         self.__csv_columns = []     # CSV file columns in correct order in format "MSG.label"
         self.__csv_data = {}        # current values for all columns
@@ -116,15 +121,15 @@ class SDLog2Parser:
             self.__buffer = self.__buffer[self.__ptr:] + chunk
             self.__ptr = 0
             while self.__bytesLeft() >= self.MSG_HEADER_LEN:
-                head1 = ord(self.__buffer[self.__ptr])
-                head2 = ord(self.__buffer[self.__ptr+1])
+                head1 = self.__buffer[self.__ptr]
+                head2 = self.__buffer[self.__ptr+1]
                 if (head1 != self.MSG_HEAD1 or head2 != self.MSG_HEAD2):
                     if self.__correct_errors:
                         self.__ptr += 1
                         continue
                     else:
                         raise Exception("Invalid header at %i (0x%X): %02X %02X, must be %02X %02X" % (bytes_read + self.__ptr, bytes_read + self.__ptr, head1, head2, self.MSG_HEAD1, self.MSG_HEAD2))
-                msg_type = ord(self.__buffer[self.__ptr+2])
+                msg_type = self.__buffer[self.__ptr+2]
                 if msg_type == self.MSG_TYPE_FORMAT:
                     # parse FORMAT message
                     if self.__bytesLeft() < self.MSG_FORMAT_PACKET_LEN:
@@ -190,13 +195,21 @@ class SDLog2Parser:
                 print(self.__csv_delim.join(s))
 
     def __parseMsgDescr(self):
-        data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN])
+        if runningPython3:
+            data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN])
+        else:
+            data = struct.unpack(self.MSG_FORMAT_STRUCT, str(self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN]))
         msg_type = data[0]
         if msg_type != self.MSG_TYPE_FORMAT:
             msg_length = data[1]
-            msg_name = str(data[2]).strip("\0")
-            msg_format = str(data[3]).strip("\0")
-            msg_labels = str(data[4]).strip("\0").split(",")
+            if runningPython3:
+                msg_name = str(data[2], 'ascii').strip("\0")
+                msg_format = str(data[3], 'ascii').strip("\0")
+                msg_labels = str(data[4], 'ascii').strip("\0").split(",")
+            else:
+                msg_name = str(data[2]).strip("\0")
+                msg_format = str(data[3]).strip("\0")
+                msg_labels = str(data[4]).strip("\0").split(",")
             # Convert msg_format to struct.unpack format string
             msg_struct = ""
             msg_mults = []
@@ -224,7 +237,10 @@ class SDLog2Parser:
             self.__csv_updated = False
         show_fields = self.__filterMsg(msg_name)
         if (show_fields != None):
-            data = list(struct.unpack(msg_struct, self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length]))
+            if runningPython3:
+                data = list(struct.unpack(msg_struct, self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length]))
+            else:
+                data = list(struct.unpack(msg_struct, str(self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length])))
             for i in range(len(data)):
                 if type(data[i]) is str:
                     data[i] = data[i].strip("\0")
