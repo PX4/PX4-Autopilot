@@ -64,6 +64,7 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
+#include <commander/px4_custom_mode.h>
 
 #include "waypoints.h"
 #include "orb_topics.h"
@@ -181,10 +182,11 @@ set_hil_on_off(bool hil_enabled)
 }
 
 void
-get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
+get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
 {
 	/* reset MAVLink mode bitfield */
-	*mavlink_mode = 0;
+	*mavlink_base_mode = 0;
+	*mavlink_custom_mode = 0;
 
 	/**
 	 * Set mode flags
@@ -192,35 +194,30 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 
 	/* HIL */
 	if (v_status.hil_state == HIL_STATE_ON) {
-		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+		*mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
 
-	/* autonomous mode */
-	if (v_status.main_state == MAIN_STATE_AUTO) {
-		*mavlink_mode |= MAV_MODE_FLAG_AUTO_ENABLED;
-	}
-
-	/* set arming state */
+	/* arming state */
 	if (v_status.arming_state == ARMING_STATE_ARMED
 			|| v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
-
-	} else {
-		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
-	if (v_status.main_state == MAIN_STATE_MANUAL
-			|| v_status.main_state == MAIN_STATE_SEATBELT
-			|| v_status.main_state == MAIN_STATE_EASY) {
-
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+	/* main state */
+	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+	if (v_status.main_state == MAIN_STATE_MANUAL) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+		*mavlink_custom_mode = PX4_CUSTOM_MODE_MANUAL;
+	} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
+		*mavlink_custom_mode = PX4_CUSTOM_MODE_SEATBELT;
+	} else if (v_status.main_state == MAIN_STATE_EASY) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+		*mavlink_custom_mode = PX4_CUSTOM_MODE_EASY;
+	} else if (v_status.main_state == MAIN_STATE_AUTO) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+		*mavlink_custom_mode = PX4_CUSTOM_MODE_AUTO;
 	}
-
-	if (v_status.navigation_state == MAIN_STATE_EASY) {
-
-		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
-	}
-
 
 	/**
 	 * Set mavlink state
@@ -645,11 +642,12 @@ int mavlink_thread_main(int argc, char *argv[])
 
 			/* translate the current system state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
-			uint8_t mavlink_mode = 0;
-			get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
+			uint8_t mavlink_base_mode = 0;
+			uint32_t mavlink_custom_mode = 0;
+			get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.navigation_state, mavlink_state);
+			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_base_mode, mavlink_custom_mode, mavlink_state);
 
 			/* switch HIL mode if required */
 			if (v_status.hil_state == HIL_STATE_ON)

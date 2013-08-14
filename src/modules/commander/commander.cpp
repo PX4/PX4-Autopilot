@@ -84,6 +84,7 @@
 #include <systemlib/err.h>
 #include <systemlib/cpuload.h>
 
+#include "px4_custom_mode.h"
 #include "commander_helper.h"
 #include "state_machine_helper.h"
 #include "calibration_routines.h"
@@ -136,13 +137,6 @@ enum MAV_MODE_FLAG {
 	MAV_MODE_FLAG_MANUAL_INPUT_ENABLED = 64, /* 0b01000000 remote control input is enabled. | */
 	MAV_MODE_FLAG_SAFETY_ARMED = 128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. | */
 	MAV_MODE_FLAG_ENUM_END = 129, /*  | */
-};
-
-enum PX4_CUSTOM_MODE {
-	PX4_CUSTOM_MODE_MANUAL = 1,
-	PX4_CUSTOM_MODE_SEATBELT,
-	PX4_CUSTOM_MODE_EASY,
-	PX4_CUSTOM_MODE_AUTO,
 };
 
 /* Mavlink file descriptors */
@@ -1321,8 +1315,10 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, vehicle_gp
 
 		} else if (armed->ready_to_arm) {
 			/* ready to arm, blink at 2.5Hz */
-			if (leds_counter % 8 == 0) {
-				led_toggle(LED_AMBER);
+			if (leds_counter & 8) {
+				led_on(LED_AMBER);
+			} else {
+				led_off(LED_AMBER);
 			}
 
 		} else {

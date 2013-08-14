@@ -51,4 +51,4 @@ extern mavlink_wpm_storage *wpm;
 /**
  * Translate the custom state into standard mavlink modes and state.
  */
-extern void get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode);
+extern void get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode);
