@@ -407,10 +407,10 @@ void handle_command(struct vehicle_status_s *status, struct vehicle_control_mode
 			low_prio_task_t new_low_prio_task = LOW_PRIO_TASK_NONE;
 
 			if (((int)(cmd->param1)) == 0) {
-				low_prio_task = LOW_PRIO_TASK_PARAM_LOAD;
+				new_low_prio_task = LOW_PRIO_TASK_PARAM_LOAD;
 
 			} else if (((int)(cmd->param1)) == 1) {
-				low_prio_task = LOW_PRIO_TASK_PARAM_SAVE;
+				new_low_prio_task = LOW_PRIO_TASK_PARAM_SAVE;
 			}
 
 			/* check if we have new task and no other task is scheduled */
