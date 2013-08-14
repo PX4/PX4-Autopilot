@@ -125,9 +125,9 @@ dsm_bind(uint16_t cmd, int pulses)
 	case dsm_bind_send_pulses:
 		for (int i = 0; i < pulses; i++) {
 			stm32_gpiowrite(usart1RxAsOutp, false);
-			up_udelay(50);
+			up_udelay(25);
 			stm32_gpiowrite(usart1RxAsOutp, true);
-			up_udelay(50);
+			up_udelay(25);
 		}
 		break;
 	case dsm_bind_reinit_uart:
