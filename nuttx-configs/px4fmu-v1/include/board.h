@@ -158,10 +158,8 @@
 
 /* High-resolution timer
  */
-#ifdef CONFIG_HRT_TIMER
-# define HRT_TIMER		1	/* use timer1 for the HRT */
-# define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
-#endif
+#define HRT_TIMER		1	/* use timer1 for the HRT */
+#define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
 /* LED definitions ******************************************************************/
 /* If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any
@@ -241,10 +239,8 @@
  *
  * PPM input is handled by the HRT timer.
  */
-#if defined(CONFIG_HRT_TIMER) && defined (CONFIG_HRT_PPM)
-# define HRT_PPM_CHANNEL	3	/* use capture/compare channel 3 */
-# define GPIO_PPM_IN	(GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN10)
-#endif
+#define HRT_PPM_CHANNEL	3	/* use capture/compare channel 3 */
+#define GPIO_PPM_IN	(GPIO_ALT|GPIO_AF1|GPIO_SPEED_50MHz|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN10)
 
 /*
  * CAN

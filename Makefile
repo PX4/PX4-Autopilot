@@ -148,13 +148,39 @@ $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
 	@$(ECHO) %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
 	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)/nuttx-configs/$(board) .)
+	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(board) .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
 	@$(ECHO) %% Exporting NuttX for $(board)
-	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) export
+	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) CONFIG_ARCH_BOARD=$(board) export
 	$(Q) mkdir -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
 	$(Q) (cd $(NUTTX_SRC)/configs && $(RMDIR) $(board))
+
+#
+# The user can run the NuttX 'menuconfig' tool for a single board configuration with
+# make BOARDS=<boardname> menuconfig
+#
+ifeq ($(MAKECMDGOALS),menuconfig)
+ifneq ($(words $(BOARDS)),1)
+$(error BOARDS must specify exactly one board for the menuconfig goal)
+endif
+BOARD			 = $(BOARDS)
+menuconfig: $(NUTTX_SRC)
+	@$(ECHO) %% Configuring NuttX for $(BOARD)
+	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
+	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(BOARD) .)
+	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(BOARD)/nsh)
+	@$(ECHO) %% Running menuconfig for $(BOARD)
+	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) menuconfig
+	@$(ECHO) %% Saving configuration file
+	$(Q)$(COPY) $(NUTTX_SRC).config $(PX4_BASE)nuttx-configs/$(BOARD)/nsh/defconfig
+else
+menuconfig:
+	@$(ECHO) ""
+	@$(ECHO) "The menuconfig goal must be invoked without any other goal being specified"
+	@$(ECHO) ""
+endif
 
 $(NUTTX_SRC):
 	@$(ECHO) ""
