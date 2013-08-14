@@ -32,11 +32,13 @@
 ############################################################################
 
 #
-# Fixedwing backside controller
+# filter library
 #
+SRCS		 = LowPassFilter2p.cpp
 
-MODULE_COMMAND	= fixedwing_backside
-
-SRCS		= fixedwing_backside_main.cpp \
-		  fixedwing.cpp \
-		  params.c
+#
+# In order to include .config we first have to save off the
+# current makefile name, since app.mk needs it.
+#
+APP_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
+-include $(TOPDIR)/.config

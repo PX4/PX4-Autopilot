@@ -45,9 +45,16 @@
 #include "md25.hpp"
 #include <poll.h>
 #include <stdio.h>
+#include <math.h>
+#include <string.h>
 
 #include <systemlib/err.h>
 #include <arch/board/board.h>
+#include <mavlink/mavlink_log.h>
+
+#include <controllib/uorb/UOrbPublication.hpp>
+#include <uORB/topics/debug_key_value.h>
+#include <drivers/drv_hrt.h>
 
 // registers
 enum {
@@ -71,6 +78,9 @@ enum {
 	REG_MODE_RW,
 	REG_COMMAND_RW,
 };
+
+// File descriptors
+static int mavlink_fd;
 
 MD25::MD25(const char *deviceName, int bus,
 	   uint16_t address, uint32_t speed) :
@@ -106,7 +116,8 @@ MD25::MD25(const char *deviceName, int bus,
 	setMotor2Speed(0);
 	resetEncoders();
 	_setMode(MD25::MODE_UNSIGNED_SPEED);
-	setSpeedRegulation(true);
+	setSpeedRegulation(false);
+	setMotorAccel(10);
 	setTimeout(true);
 }
 
@@ -298,6 +309,12 @@ int MD25::setDeviceAddress(uint8_t address)
 	return OK;
 }
 
+int MD25::setMotorAccel(uint8_t accel)
+{
+	return _writeUint8(REG_ACCEL_RATE_RW,
+			   accel);
+}
+
 int MD25::setMotor1Speed(float value)
 {
 	return _writeUint8(REG_SPEED1_RW,
@@ -451,12 +468,12 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 	MD25 md25("/dev/md25", bus, address);
 
 	// print status
-	char buf[200];
+	char buf[400];
 	md25.status(buf, sizeof(buf));
 	printf("%s\n", buf);
 
 	// setup for test
-	md25.setSpeedRegulation(true);
+	md25.setSpeedRegulation(false);
 	md25.setTimeout(true);
 	float dt = 0.1;
 	float speed = 0.2;
@@ -547,6 +564,70 @@ int md25Test(const char *deviceName, uint8_t bus, uint8_t address)
 	md25.resetEncoders();
 
 	printf("Test complete\n");
+	return 0;
+}
+
+int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitude, float frequency)
+{
+	printf("md25 sine: starting\n");
+
+	// setup
+	MD25 md25("/dev/md25", bus, address);
+
+	// print status
+	char buf[400];
+	md25.status(buf, sizeof(buf));
+	printf("%s\n", buf);
+
+	// setup for test
+	md25.setSpeedRegulation(false);
+	md25.setTimeout(true);
+	float dt = 0.01;
+	float t_final = 60.0;
+	float prev_revolution = md25.getRevolutions1();
+
+	// debug publication
+	control::UOrbPublication<debug_key_value_s> debug_msg(NULL,
+			ORB_ID(debug_key_value));
+
+	// sine wave for motor 1
+	md25.resetEncoders();
+	while (true) {
+
+		// input
+		uint64_t timestamp = hrt_absolute_time();
+		float t = timestamp/1000000.0f;
+
+		float input_value = amplitude*sinf(2*M_PI*frequency*t);
+		md25.setMotor1Speed(input_value);
+
+		// output
+		md25.readData();
+		float current_revolution = md25.getRevolutions1();
+
+		// send input message
+		//strncpy(debug_msg.key, "md25 in   ", 10);
+		//debug_msg.timestamp_ms = 1000*timestamp;
+		//debug_msg.value = input_value;
+		//debug_msg.update();
+
+		// send output message
+		strncpy(debug_msg.key, "md25 out  ", 10);
+		debug_msg.timestamp_ms = 1000*timestamp;
+		debug_msg.value = current_revolution;
+		debug_msg.update();
+
+		if (t > t_final) break;
+
+		// update for next step
+		prev_revolution = current_revolution;
+
+		// sleep
+		usleep(1000000 * dt);
+	}
+	md25.setMotor1Speed(0);
+
+	printf("md25 sine complete\n");
 	return 0;
 }
 
