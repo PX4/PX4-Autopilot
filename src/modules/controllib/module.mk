@@ -37,7 +37,7 @@
 SRCS		 = test_params.c \
 		   block/Block.cpp \
 		   block/BlockParam.cpp \
-		   block/UOrbPublication.cpp \
-		   block/UOrbSubscription.cpp \
-		   blocks.cpp \
-		   fixedwing.cpp
+		   uorb/UOrbPublication.cpp \
+		   uorb/UOrbSubscription.cpp \
+		   uorb/blocks.cpp \
+		   blocks.cpp
