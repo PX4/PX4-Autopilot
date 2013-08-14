@@ -300,6 +300,8 @@ controls_tick() {
 		} else {
 			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
 		}
+	} else {
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
 	}
 }
 
