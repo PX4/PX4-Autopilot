@@ -67,7 +67,7 @@ static bool main_state_changed = true;
 static bool navigation_state_changed = true;
 
 transition_result_t
-arming_state_transition(struct vehicle_status_s *status, arming_state_t new_arming_state, struct actuator_armed_s *armed)
+arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety, arming_state_t new_arming_state, struct actuator_armed_s *armed)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
@@ -108,8 +108,10 @@ arming_state_transition(struct vehicle_status_s *status, arming_state_t new_armi
 		case ARMING_STATE_ARMED:
 
 			/* allow arming from STANDBY and IN-AIR-RESTORE */
-			if (status->arming_state == ARMING_STATE_STANDBY
-			    || status->arming_state == ARMING_STATE_IN_AIR_RESTORE) {
+			if ((status->arming_state == ARMING_STATE_STANDBY
+			    || status->arming_state == ARMING_STATE_IN_AIR_RESTORE)
+			    && (!safety->safety_switch_available || safety->safety_off)) /* only allow arming if safety is off */
+			{
 				ret = TRANSITION_CHANGED;
 				armed->armed = true;
 				armed->ready_to_arm = false;
@@ -170,6 +172,19 @@ arming_state_transition(struct vehicle_status_s *status, arming_state_t new_armi
 	}
 
 	return ret;
+}
+
+bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed)
+{
+	// System is safe if:
+	// 1) Not armed
+	// 2) Armed, but in software lockdown (HIL)
+	// 3) Safety switch is present AND engaged -> actuators locked
+	if (!armed->armed || (armed->armed && armed->lockdown) || (safety->safety_switch_available && !safety->safety_off)) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 bool

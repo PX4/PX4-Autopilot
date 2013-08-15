@@ -47,6 +47,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_control_mode.h>
 
 typedef enum {
@@ -56,7 +57,10 @@ typedef enum {
 
 } transition_result_t;
 
-transition_result_t arming_state_transition(struct vehicle_status_s *current_state, arming_state_t new_arming_state, struct actuator_armed_s *armed);
+transition_result_t arming_state_transition(struct vehicle_status_s *current_state, const struct safety_s *safety,
+	arming_state_t new_arming_state, struct actuator_armed_s *armed);
+
+bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed);
 
 bool check_arming_state_changed();
 
