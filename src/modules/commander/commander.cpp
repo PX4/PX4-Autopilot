@@ -550,6 +550,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* set battery warning flag */
 	status.battery_warning = VEHICLE_BATTERY_WARNING_NONE;
+	status.condition_battery_voltage_valid = false;
 
 	// XXX for now just set sensors as initialized
 	status.condition_system_sensors_initialized = true;
@@ -606,8 +607,8 @@ int commander_thread_main(int argc, char *argv[])
 	enum VEHICLE_BATTERY_WARNING battery_warning_previous = VEHICLE_BATTERY_WARNING_NONE;
 	bool armed_previous = false;
 
-	bool low_battery_voltage_actions_done;
-	bool critical_battery_voltage_actions_done;
+	bool low_battery_voltage_actions_done = false;
+	bool critical_battery_voltage_actions_done = false;
 
 	uint64_t last_idle_time = 0;
 
@@ -810,19 +811,15 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
-			status.battery_voltage = battery.voltage_v;
-			status.condition_battery_voltage_valid = true;
-		}
 
-		/*
-		 * Only update battery voltage estimate if system has
-		 * been running for two and a half seconds.
-		 */
-		if (t - start_time > 2500000 && status.condition_battery_voltage_valid) {
-			status.battery_remaining = battery_remaining_estimate_voltage(status.battery_voltage);
+			warnx("bat v: %2.2f", battery.voltage_v);
 
-		} else {
-			status.battery_voltage = 0.0f;
+			/* only consider battery voltage if system has been running 2s and battery voltage is not 0 */
+			if ((t - start_time) > 2000000 && battery.voltage_v > 0.001f) {
+				status.battery_voltage = battery.voltage_v;
+				status.condition_battery_voltage_valid = true;
+				status.battery_remaining = battery_remaining_estimate_voltage(status.battery_voltage);
+			}
 		}
 
 		/* update subsystem */
