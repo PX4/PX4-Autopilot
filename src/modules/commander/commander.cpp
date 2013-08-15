@@ -1317,6 +1317,7 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, vehicle_gp
 			/* ready to arm, blink at 2.5Hz */
 			if (leds_counter & 8) {
 				led_on(LED_AMBER);
+
 			} else {
 				led_off(LED_AMBER);
 			}
@@ -1552,6 +1553,7 @@ void *commander_low_prio_loop(void *arg)
 				mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
 				tune_error();
 			}
+
 			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
@@ -1564,6 +1566,7 @@ void *commander_low_prio_loop(void *arg)
 				mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
 				tune_error();
 			}
+
 			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 

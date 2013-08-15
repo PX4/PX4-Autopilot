@@ -60,6 +60,7 @@
 #include <drivers/drv_baro.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_adc.h>
+#include <drivers/drv_airspeed.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -91,8 +92,35 @@
 #define BARO_HEALTH_COUNTER_LIMIT_OK 5
 #define ADC_HEALTH_COUNTER_LIMIT_OK  5
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL	10
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
+/**
+ * Analog layout:
+ * FMU:
+ * IN2 - battery voltage
+ * IN3 - battery current
+ * IN4 - 5V sense
+ * IN10 - spare (we could actually trim these from the set)
+ * IN11 - spare (we could actually trim these from the set)
+ * IN12 - spare (we could actually trim these from the set)
+ * IN13 - aux1
+ * IN14 - aux2
+ * IN15 - pressure sensor
+ * 
+ * IO:
+ * IN4 - servo supply rail
+ * IN5 - analog RSSI
+ */
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+  #define ADC_BATTERY_VOLTAGE_CHANNEL	10
+  #define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+  #define ADC_BATTERY_VOLTAGE_CHANNEL	2
+  #define ADC_BATTERY_CURRENT_CHANNEL	3
+  #define ADC_5V_RAIL_SENSE		4
+  #define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
+#endif
 
 #define BAT_VOL_INITIAL 0.f
 #define BAT_VOL_LOWPASS_1 0.99f
@@ -197,7 +225,7 @@ private:
 		float mag_scale[3];
 		float accel_offset[3];
 		float accel_scale[3];
-		int diff_pres_offset_pa;
+		float diff_pres_offset_pa;
 
 		int rc_type;
 
@@ -228,7 +256,6 @@ private:
 
 		float battery_voltage_scaling;
 
-		int   rc_rl1_DSM_VCC_control;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -277,7 +304,6 @@ private:
 
 		param_t battery_voltage_scaling;
 
-		param_t rc_rl1_DSM_VCC_control;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -389,7 +415,7 @@ namespace sensors
 #endif
 static const int ERROR = -1;
 
-Sensors	*g_sensors;
+Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors() :
@@ -512,9 +538,6 @@ Sensors::Sensors() :
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
-	/* DSM VCC relay control */
-	_parameter_handles.rc_rl1_DSM_VCC_control = param_find("RC_RL1_DSM_VCC");
-
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -552,25 +575,11 @@ Sensors::parameters_update()
 	/* rc values */
 	for (unsigned int i = 0; i < RC_CHANNELS_MAX; i++) {
 
-		if (param_get(_parameter_handles.min[i], &(_parameters.min[i])) != OK) {
-			warnx("Failed getting min for chan %d", i);
-		}
-
-		if (param_get(_parameter_handles.trim[i], &(_parameters.trim[i])) != OK) {
-			warnx("Failed getting trim for chan %d", i);
-		}
-
-		if (param_get(_parameter_handles.max[i], &(_parameters.max[i])) != OK) {
-			warnx("Failed getting max for chan %d", i);
-		}
-
-		if (param_get(_parameter_handles.rev[i], &(_parameters.rev[i])) != OK) {
-			warnx("Failed getting rev for chan %d", i);
-		}
-
-		if (param_get(_parameter_handles.dz[i], &(_parameters.dz[i])) != OK) {
-			warnx("Failed getting dead zone for chan %d", i);
-		}
+		param_get(_parameter_handles.min[i], &(_parameters.min[i]));
+		param_get(_parameter_handles.trim[i], &(_parameters.trim[i]));
+		param_get(_parameter_handles.max[i], &(_parameters.max[i]));
+		param_get(_parameter_handles.rev[i], &(_parameters.rev[i]));
+		param_get(_parameter_handles.dz[i], &(_parameters.dz[i]));
 
 		_parameters.scaling_factor[i] = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
 
@@ -656,21 +665,10 @@ Sensors::parameters_update()
 		warnx("Failed getting mode aux 5 index");
 	}
 
-	if (param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll)) != OK) {
-		warnx("Failed getting rc scaling for roll");
-	}
-
-	if (param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch)) != OK) {
-		warnx("Failed getting rc scaling for pitch");
-	}
-
-	if (param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw)) != OK) {
-		warnx("Failed getting rc scaling for yaw");
-	}
-
-	if (param_get(_parameter_handles.rc_scale_flaps, &(_parameters.rc_scale_flaps)) != OK) {
-		warnx("Failed getting rc scaling for flaps");
-	}
+	param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll));
+	param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch));
+	param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw));
+	param_get(_parameter_handles.rc_scale_flaps, &(_parameters.rc_scale_flaps));
 
 	/* update RC function mappings */
 	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -726,11 +724,6 @@ Sensors::parameters_update()
 		warnx("Failed updating voltage scaling param");
 	}
 
-	/* relay 1 DSM VCC control */
-	if (param_get(_parameter_handles.rc_rl1_DSM_VCC_control, &(_parameters.rc_rl1_DSM_VCC_control)) != OK) {
-		warnx("Failed updating relay 1 DSM VCC control");
-	}
-
 	return OK;
 }
 
@@ -746,11 +739,26 @@ Sensors::accel_init()
 		errx(1, "FATAL: no accelerometer found");
 
 	} else {
-		/* set the accel internal sampling rate up to at leat 500Hz */
-		ioctl(fd, ACCELIOCSSAMPLERATE, 500);
 
-		/* set the driver to poll at 500Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 500);
+		// XXX do the check more elegantly
+
+		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+
+		/* set the accel internal sampling rate up to at leat 1000Hz */
+		ioctl(fd, ACCELIOCSSAMPLERATE, 1000);
+
+		/* set the driver to poll at 1000Hz */
+		ioctl(fd, SENSORIOCSPOLLRATE, 1000);
+
+		#else
+
+		/* set the accel internal sampling rate up to at leat 800Hz */
+		ioctl(fd, ACCELIOCSSAMPLERATE, 800);
+
+		/* set the driver to poll at 800Hz */
+		ioctl(fd, SENSORIOCSPOLLRATE, 800);
+
+		#endif
 
 		warnx("using system accel");
 		close(fd);
@@ -769,11 +777,28 @@ Sensors::gyro_init()
 		errx(1, "FATAL: no gyro found");
 
 	} else {
-		/* set the gyro internal sampling rate up to at leat 500Hz */
-		ioctl(fd, GYROIOCSSAMPLERATE, 500);
 
-		/* set the driver to poll at 500Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 500);
+		// XXX do the check more elegantly
+
+		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+
+		/* set the gyro internal sampling rate up to at least 1000Hz */
+		if (ioctl(fd, GYROIOCSSAMPLERATE, 1000) != OK)
+			ioctl(fd, GYROIOCSSAMPLERATE, 800);
+
+		/* set the driver to poll at 1000Hz */
+		if (ioctl(fd, SENSORIOCSPOLLRATE, 1000) != OK)
+			ioctl(fd, SENSORIOCSPOLLRATE, 800);
+
+		#else
+
+		/* set the gyro internal sampling rate up to at leat 800Hz */
+		ioctl(fd, GYROIOCSSAMPLERATE, 800);
+
+		/* set the driver to poll at 800Hz */
+		ioctl(fd, SENSORIOCSPOLLRATE, 800);
+
+		#endif
 
 		warnx("using system gyro");
 		close(fd);
@@ -1033,6 +1058,20 @@ Sensors::parameter_update_poll(bool forced)
 			warn("WARNING: failed to set scale / offsets for mag");
 
 		close(fd);
+
+		fd = open(AIRSPEED_DEVICE_PATH, 0);
+
+		/* this sensor is optional, abort without error */
+
+		if (fd > 0) {
+			struct airspeed_scale airscale = {
+				_parameters.diff_pres_offset_pa,
+				1.0f,
+			};
+
+			if (OK != ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale))
+				warn("WARNING: failed to set scale / offsets for airspeed sensor");
+		}
 
 #if 0
 		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n", (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.chan[0].scaling_factor * 10000), (int)(_rc.chan[0].mid), (int)_rc.function[0]);
@@ -1364,6 +1403,9 @@ Sensors::task_main()
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vcontrol_mode_sub, 200);
 
+	/* rate limit gyro to 250 Hz (the gyro signal is lowpassed accordingly earlier) */
+	orb_set_interval(_gyro_sub, 4);
+
 	/*
 	 * do advertisements
 	 */
@@ -1399,7 +1441,7 @@ Sensors::task_main()
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 500ms for data */
+		/* wait for up to 100ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
