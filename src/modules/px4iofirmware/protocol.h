@@ -94,7 +94,7 @@
 #define PX4IO_P_STATUS_CPULOAD			1
 
 #define PX4IO_P_STATUS_FLAGS			2	 /* monitoring flags */
-#define PX4IO_P_STATUS_FLAGS_ARMED		(1 << 0) /* arm-ok and locally armed */
+#define PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED	(1 << 0) /* arm-ok and locally armed */
 #define PX4IO_P_STATUS_FLAGS_OVERRIDE		(1 << 1) /* in manual override */
 #define PX4IO_P_STATUS_FLAGS_RC_OK		(1 << 2) /* RC input is valid */
 #define PX4IO_P_STATUS_FLAGS_RC_PPM		(1 << 3) /* PPM input is valid */
@@ -106,7 +106,8 @@
 #define PX4IO_P_STATUS_FLAGS_ARM_SYNC		(1 << 9) /* the arming state between IO and FMU is in sync */
 #define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 10) /* initialisation of the IO completed without error */
 #define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 11) /* failsafe is active */
-#define PX4IO_P_STATUS_FLAGS_RC_DSM11		(1 << 12) /* DSM input is 11 bit data */
+#define PX4IO_P_STATUS_FLAGS_SAFETY_OFF		(1 << 12) /* safety is off */
+#define PX4IO_P_STATUS_FLAGS_RC_DSM11		(1 << 13) /* DSM input is 11 bit data */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* [1] VBatt is very close to regulator dropout */
@@ -157,6 +158,7 @@
 #define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK	(1 << 2) /* OK to switch to manual override via override RC channel */
 #define PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM	(1 << 3) /* use custom failsafe values, not 0 values of mixer */
 #define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 4) /* OK to try in-air restart */
+#define PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE	(1 << 5) /* Output of PWM right after startup enabled to help ESCs initialize and prevent them from beeping */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
@@ -208,6 +210,15 @@ enum {							/* DSM bind states */
 /* Debug and test page - not used in normal operation */
 #define PX4IO_PAGE_TEST			127
 #define PX4IO_P_TEST_LED			0	/* set the amber LED on/off */
+
+/* PWM minimum values for certain ESCs */
+#define PX4IO_PAGE_CONTROL_MIN_PWM		106	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+
+/* PWM maximum values for certain ESCs */
+#define PX4IO_PAGE_CONTROL_MAX_PWM		107	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+
+/* PWM idle values that are active, even when SAFETY_SAFE */
+#define PX4IO_PAGE_IDLE_PWM		108	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.

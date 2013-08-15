@@ -39,6 +39,8 @@
 
 #include "fixedwing.hpp"
 
+#if 0
+
 namespace control
 {
 
@@ -155,8 +157,9 @@ void BlockMultiModeBacksideAutopilot::update()
 	for (unsigned i = 4; i < NUM_ACTUATOR_CONTROLS; i++)
 		_actuators.control[i] = 0.0f;
 
+#warning this if is incomplete, should be based on flags
 	// only update guidance in auto mode
-	if (_status.state_machine == SYSTEM_STATE_AUTO) {
+	if (_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION) {
 		// update guidance
 		_guide.update(_pos, _att, _posCmd.current, _lastPosCmd.current);
 	}
@@ -165,9 +168,10 @@ void BlockMultiModeBacksideAutopilot::update()
 	// once the system switches from manual or auto to stabilized
 	// the setpoint should update to loitering around this position
 
+#warning should be base on flags
 	// handle autopilot modes
-	if (_status.state_machine == SYSTEM_STATE_AUTO ||
-	    _status.state_machine == SYSTEM_STATE_STABILIZED) {
+	if (_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
+		_status.navigation_state == NAVIGATION_STATE_SEATBELT) {
 
 		// update guidance
 		_guide.update(_pos, _att, _posCmd.current, _lastPosCmd.current);
@@ -219,21 +223,23 @@ void BlockMultiModeBacksideAutopilot::update()
 		// This is not a hack, but a design choice.
 
 		/* do not limit in HIL */
-		if (!_status.flag_hil_enabled) {
-			/* limit to value of manual throttle */
-			_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
-						     _actuators.control[CH_THR] : _manual.throttle;
-		}
+#warning fix this
+		// if (!_status.flag_hil_enabled) {
+		// 	/* limit to value of manual throttle */
+		// 	_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
+		// 				     _actuators.control[CH_THR] : _manual.throttle;
+		// }
 
-	} else if (_status.state_machine == SYSTEM_STATE_MANUAL) {
+	} else if (_status.navigation_state == NAVIGATION_STATE_MANUAL) {
 
-		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
-			_actuators.control[CH_AIL] = _manual.roll;
-			_actuators.control[CH_ELV] = _manual.pitch;
-			_actuators.control[CH_RDR] = _manual.yaw;
-			_actuators.control[CH_THR] = _manual.throttle;
-
-		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
+#warning fix here too
+//		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+//			_actuators.control[CH_AIL] = _manual.roll;
+//			_actuators.control[CH_ELV] = _manual.pitch;
+//			_actuators.control[CH_RDR] = _manual.yaw;
+//			_actuators.control[CH_THR] = _manual.throttle;
+//
+//		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
 			// calculate velocity, XXX should be airspeed, but using ground speed for now
 			// for the purpose of control we will limit the velocity feedback between
@@ -284,12 +290,14 @@ void BlockMultiModeBacksideAutopilot::update()
 			// This is not a hack, but a design choice.
 
 			/* do not limit in HIL */
-			if (!_status.flag_hil_enabled) {
-				/* limit to value of manual throttle */
-				_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
-							     _actuators.control[CH_THR] : _manual.throttle;
-			}
-		}
+#warning fix this
+			// if (!_status.flag_hil_enabled) {
+			// 	/* limit to value of manual throttle */
+			// 	_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
+			// 				     _actuators.control[CH_THR] : _manual.throttle;
+			// }
+#warning fix this
+//		}
 
 		// body rates controller, disabled for now
 		else if (0 /*_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS*/) {
@@ -322,3 +330,4 @@ BlockMultiModeBacksideAutopilot::~BlockMultiModeBacksideAutopilot()
 
 } // namespace control
 
+#endif

@@ -75,6 +75,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/esc_status.h>
 
 #include <systemlib/err.h>
@@ -135,7 +136,7 @@ private:
 	int 		_current_update_rate;
 	int		_task;
 	int		_t_actuators;
-	int		_t_armed;
+	int		_t_actuator_armed;
 	unsigned int		_motor;
 	int    _px4mode;
 	int    _frametype;
@@ -248,7 +249,7 @@ MK::MK(int bus) :
 	_update_rate(50),
 	_task(-1),
 	_t_actuators(-1),
-	_t_armed(-1),
+	_t_actuator_armed(-1),
 	_t_outputs(0),
 	_t_actuators_effective(0),
 	_t_esc_status(0),
@@ -513,8 +514,8 @@ MK::task_main()
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
-	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
+	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
+	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -540,7 +541,7 @@ MK::task_main()
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
-	fds[1].fd = _t_armed;
+	fds[1].fd = _t_actuator_armed;
 	fds[1].events = POLLIN;
 
 	log("starting");
@@ -654,7 +655,7 @@ MK::task_main()
 			actuator_armed_s aa;
 
 			/* get new value */
-			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
+			orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &aa);
 
 			/* update PWM servo armed status if armed and not locked down */
 			mk_servo_arm(aa.armed && !aa.lockdown);
@@ -700,7 +701,7 @@ MK::task_main()
 	//::close(_t_esc_status);
 	::close(_t_actuators);
 	::close(_t_actuators_effective);
-	::close(_t_armed);
+	::close(_t_actuator_armed);
 
 
 	/* make sure servos are off */

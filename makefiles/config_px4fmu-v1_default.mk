@@ -50,6 +50,7 @@ MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
+MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
@@ -75,7 +76,7 @@ MODULES		+= examples/flow_position_estimator
 #
 # Vehicle Control
 #
-MODULES		+= modules/segway
+#MODULES		+= modules/segway # XXX needs state machine update
 MODULES		+= modules/fixedwing_backside
 MODULES		+= modules/fixedwing_att_control
 MODULES		+= modules/fixedwing_pos_control

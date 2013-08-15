@@ -65,50 +65,29 @@
 PARAM_DEFINE_FLOAT(MC_YAWPOS_P, 0.3f);
 PARAM_DEFINE_FLOAT(MC_YAWPOS_I, 0.15f);
 PARAM_DEFINE_FLOAT(MC_YAWPOS_D, 0.0f);
-//PARAM_DEFINE_FLOAT(MC_YAWPOS_AWU, 1.0f);
-//PARAM_DEFINE_FLOAT(MC_YAWPOS_LIM, 3.0f);
 
 PARAM_DEFINE_FLOAT(MC_ATT_P, 0.2f);
 PARAM_DEFINE_FLOAT(MC_ATT_I, 0.0f);
 PARAM_DEFINE_FLOAT(MC_ATT_D, 0.05f);
-//PARAM_DEFINE_FLOAT(MC_ATT_AWU, 0.05f);
-//PARAM_DEFINE_FLOAT(MC_ATT_LIM, 0.4f);
-
-//PARAM_DEFINE_FLOAT(MC_ATT_XOFF, 0.0f);
-//PARAM_DEFINE_FLOAT(MC_ATT_YOFF, 0.0f);
 
 struct mc_att_control_params {
 	float yaw_p;
 	float yaw_i;
 	float yaw_d;
-	//float yaw_awu;
-	//float yaw_lim;
 
 	float att_p;
 	float att_i;
 	float att_d;
-	//float att_awu;
-	//float att_lim;
-
-	//float att_xoff;
-	//float att_yoff;
 };
 
 struct mc_att_control_param_handles {
 	param_t yaw_p;
 	param_t yaw_i;
 	param_t yaw_d;
-	//param_t yaw_awu;
-	//param_t yaw_lim;
 
 	param_t att_p;
 	param_t att_i;
 	param_t att_d;
-	//param_t att_awu;
-	//param_t att_lim;
-
-	//param_t att_xoff;
-	//param_t att_yoff;
 };
 
 /**
@@ -130,17 +109,10 @@ static int parameters_init(struct mc_att_control_param_handles *h)
 	h->yaw_p 	=	param_find("MC_YAWPOS_P");
 	h->yaw_i 	=	param_find("MC_YAWPOS_I");
 	h->yaw_d 	=	param_find("MC_YAWPOS_D");
-	//h->yaw_awu 	=	param_find("MC_YAWPOS_AWU");
-	//h->yaw_lim 	=	param_find("MC_YAWPOS_LIM");
 
 	h->att_p 	= 	param_find("MC_ATT_P");
 	h->att_i 	= 	param_find("MC_ATT_I");
 	h->att_d 	= 	param_find("MC_ATT_D");
-	//h->att_awu 	= 	param_find("MC_ATT_AWU");
-	//h->att_lim 	= 	param_find("MC_ATT_LIM");
-
-	//h->att_xoff 	= 	param_find("MC_ATT_XOFF");
-	//h->att_yoff 	= 	param_find("MC_ATT_YOFF");
 
 	return OK;
 }
@@ -150,23 +122,17 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 	param_get(h->yaw_p, &(p->yaw_p));
 	param_get(h->yaw_i, &(p->yaw_i));
 	param_get(h->yaw_d, &(p->yaw_d));
-	//param_get(h->yaw_awu, &(p->yaw_awu));
-	//param_get(h->yaw_lim, &(p->yaw_lim));
 
 	param_get(h->att_p, &(p->att_p));
 	param_get(h->att_i, &(p->att_i));
 	param_get(h->att_d, &(p->att_d));
-	//param_get(h->att_awu, &(p->att_awu));
-	//param_get(h->att_lim, &(p->att_lim));
-
-	//param_get(h->att_xoff, &(p->att_xoff));
-	//param_get(h->att_yoff, &(p->att_yoff));
 
 	return OK;
 }
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-				 const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position)
+				 const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position,
+				 const orb_advert_t *control_debug_pub, struct vehicle_control_debug_s *control_debug)
 {
 	static uint64_t last_run = 0;
 	static uint64_t last_input = 0;
@@ -207,7 +173,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 		/* apply parameters */
 		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
-		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
+		pid_set_parameters(&roll_controller,  p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
 	}
 
 	/* reset integral if on ground */
@@ -221,11 +187,13 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	/* control pitch (forward) output */
 	rates_sp->pitch = pid_calculate(&pitch_controller, att_sp->pitch_body ,
-					att->pitch, att->pitchspeed, deltaT);
+					att->pitch, att->pitchspeed, deltaT, &control_debug->pitch_p, &control_debug->pitch_i, &control_debug->pitch_d);
 
 	/* control roll (left/right) output */
 	rates_sp->roll = pid_calculate(&roll_controller, att_sp->roll_body ,
-				       att->roll, att->rollspeed, deltaT);
+				       att->roll, att->rollspeed, deltaT, NULL, NULL, NULL);
+	
+	// printf("rates_sp: %4.4f, att setpoint: %4.4f\n, pitch: %4.4f, pitchspeed: %4.4f, dT: %4.4f", rates_sp->pitch, att_sp->pitch_body, att->pitch, att->pitchspeed, deltaT);
 
 	if (control_yaw_position) {
 		/* control yaw rate */

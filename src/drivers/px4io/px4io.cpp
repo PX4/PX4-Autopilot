@@ -74,7 +74,9 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
@@ -128,8 +130,23 @@ public:
 	int			set_failsafe_values(const uint16_t *vals, unsigned len);
 
 	/**
-	 * Print the current status of IO
+	 * Set the minimum PWM signals when armed
 	 */
+	int 			set_min_values(const uint16_t *vals, unsigned len);
+
+	/**
+	 * Set the maximum PWM signal when armed
+	 */
+	int 			set_max_values(const uint16_t *vals, unsigned len);
+
+	/**
+	 * Set an idle PWM signal that is active right after startup, even when SAFETY_SAFE
+	 */
+	int 			set_idle_values(const uint16_t *vals, unsigned len);
+
+	/**
+	* Print the current status of IO
+	*/
 	void			print_status();
 
 	inline void		set_dsm_vcc_ctl(bool enable)
@@ -168,8 +185,8 @@ private:
 
 	/* subscribed topics */
 	int			_t_actuators;	///< actuator controls topic
-	int			_t_armed;	///< system armed control topic
-	int 			_t_vstatus;	///< system / vehicle status
+	int			_t_actuator_armed;	///< system armed control topic
+	int 			_t_vehicle_control_mode;	///< vehicle control mode topic
 	int			_t_param;	///< parameter update topic
 
 	/* advertised topics */
@@ -177,6 +194,7 @@ private:
 	orb_advert_t 		_to_actuators_effective; ///< effective actuator controls topic
 	orb_advert_t		_to_outputs;	///< mixed servo outputs topic
 	orb_advert_t		_to_battery;	///< battery status / voltage
+	orb_advert_t		_to_safety;	///< status of safety
 
 	actuator_outputs_s	_outputs;	///< mixed outputs
 	actuator_controls_effective_s _controls_effective; ///< effective controls
@@ -193,6 +211,12 @@ private:
 	 */
 
 	bool			_dsm_vcc_ctl;
+
+	/**
+	 * System armed
+	 */
+
+	bool			_system_armed;
 
 	/**
 	 * Trampoline to the worker task
@@ -351,19 +375,21 @@ PX4IO::PX4IO(device::Device *interface) :
 	_status(0),
 	_alarms(0),
 	_t_actuators(-1),
-	_t_armed(-1),
-	_t_vstatus(-1),
+	_t_actuator_armed(-1),
+	_t_vehicle_control_mode(-1),
 	_t_param(-1),
 	_to_input_rc(0),
 	_to_actuators_effective(0),
 	_to_outputs(0),
 	_to_battery(0),
+	_to_safety(0),
 	_primary_pwm_device(false),
 	_battery_amp_per_volt(90.0f/5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
 	_battery_last_timestamp(0),
-	_dsm_vcc_ctl(false)
+	_dsm_vcc_ctl(false),
+	_system_armed(false)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -454,26 +480,27 @@ PX4IO::init()
 	    (reg & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 
 	    	mavlink_log_emergency(_mavlink_fd, "[IO] RECOVERING FROM FMU IN-AIR RESTART");
+	    	log("INAIR RESTART RECOVERY (needs commander app running)");
 
 		/* WARNING: COMMANDER app/vehicle status must be initialized.
 		 * If this fails (or the app is not started), worst-case IO
 		 * remains untouched (so manual override is still available).
 		 */
 
-		int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+		int safety_sub = orb_subscribe(ORB_ID(actuator_armed));
 		/* fill with initial values, clear updated flag */
-		vehicle_status_s status;
+		struct actuator_armed_s safety;
 		uint64_t try_start_time = hrt_absolute_time();
 		bool updated = false;
 		
-		/* keep checking for an update, ensure we got a recent state,
+		/* keep checking for an update, ensure we got a arming information,
 		   not something that was published a long time ago. */
 		do {
-			orb_check(vstatus_sub, &updated);
+			orb_check(safety_sub, &updated);
 
 			if (updated) {
 				/* got data, copy and exit loop */
-				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &status);
+				orb_copy(ORB_ID(actuator_armed), safety_sub, &safety);
 				break;
 			}
 
@@ -499,35 +526,41 @@ PX4IO::init()
 		cmd.param6 = 0;
 		cmd.param7 = 0;
 		cmd.command = VEHICLE_CMD_COMPONENT_ARM_DISARM;
-		cmd.target_system = status.system_id;
-		cmd.target_component = status.component_id;
-		cmd.source_system = status.system_id;
-		cmd.source_component = status.component_id;
+		// cmd.target_system = status.system_id;
+		// cmd.target_component = status.component_id;
+		// cmd.source_system = status.system_id;
+		// cmd.source_component = status.component_id;
 		/* ask to confirm command */
 		cmd.confirmation =  1;
 
 		/* send command once */
-		(void)orb_advertise(ORB_ID(vehicle_command), &cmd);
+		orb_advert_t pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
 
 		/* spin here until IO's state has propagated into the system */
 		do {
-			orb_check(vstatus_sub, &updated);
+			orb_check(safety_sub, &updated);
 
 			if (updated) {
-				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &status);
+				orb_copy(ORB_ID(actuator_armed), safety_sub, &safety);
 			}
 
-			/* wait 10 ms */
-			usleep(10000);
+			/* wait 50 ms */
+			usleep(50000);
 
 			/* abort after 5s */
-			if ((hrt_absolute_time() - try_start_time)/1000 > 50000) {
+			if ((hrt_absolute_time() - try_start_time)/1000 > 2000) {
 				log("failed to recover from in-air restart (2), aborting IO driver init.");
 				return 1;
 			}
 
-		/* keep waiting for state change for 10 s */
-		} while (!status.flag_system_armed);
+			/* re-send if necessary */
+			if (!safety.armed) {
+				orb_publish(ORB_ID(vehicle_command), pub, &cmd);
+				log("re-sending arm cmd");
+			}
+
+		/* keep waiting for state change for 2 s */
+		} while (!safety.armed);
 
 	/* regular boot, no in-air restart, init IO */
 	} else {
@@ -537,7 +570,8 @@ PX4IO::init()
 		io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
 			PX4IO_P_SETUP_ARMING_FMU_ARMED |
 			PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK |
-			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK, 0);
+			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | 
+			PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE, 0);
 
 		/* publish RC config to IO */
 		ret = io_set_rc_config();
@@ -580,8 +614,10 @@ void
 PX4IO::task_main()
 {
 	hrt_abstime last_poll_time = 0;
+	int mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	log("starting");
+
 
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
@@ -591,18 +627,18 @@ PX4IO::task_main()
 				     ORB_ID(actuator_controls_1));
 	orb_set_interval(_t_actuators, 20);		/* default to 50Hz */
 
-	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
+	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
+	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
 
-	_t_vstatus = orb_subscribe(ORB_ID(vehicle_status));
-	orb_set_interval(_t_vstatus, 200);		/* 5Hz update rate max. */
+	_t_vehicle_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
+	orb_set_interval(_t_vehicle_control_mode, 200);		/* 5Hz update rate max. */
 
 	_t_param = orb_subscribe(ORB_ID(parameter_update));
 	orb_set_interval(_t_param, 500);		/* 2Hz update rate max. */
 
 	if ((_t_actuators < 0) ||
-		(_t_armed < 0) ||
-		(_t_vstatus < 0) ||
+		(_t_actuator_armed < 0) ||
+		(_t_vehicle_control_mode < 0) ||
 		(_t_param < 0)) {
 		log("subscription(s) failed");
 		goto out;
@@ -612,9 +648,9 @@ PX4IO::task_main()
 	pollfd fds[4];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
-	fds[1].fd = _t_armed;
+	fds[1].fd = _t_actuator_armed;
 	fds[1].events = POLLIN;
-	fds[2].fd = _t_vstatus;
+	fds[2].fd = _t_vehicle_control_mode;
 	fds[2].events = POLLIN;
 	fds[3].fd = _t_param;
 	fds[3].events = POLLIN;
@@ -690,6 +726,25 @@ PX4IO::task_main()
 			 */
 			if (fds[3].revents & POLLIN) {
 				parameter_update_s pupdate;
+				int32_t dsm_bind_val;
+				param_t dsm_bind_param;
+
+				// See if bind parameter has been set, and reset it to 0
+				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
+				if (dsm_bind_val) {
+					if (!_system_armed) {
+						if ((dsm_bind_val == 1) || (dsm_bind_val == 2)) {
+							mavlink_log_info(mavlink_fd, "[IO] binding dsm%c rx", dsm_bind_val == 1 ? '2' : 'x');
+							ioctl(nullptr, DSM_BIND_START, dsm_bind_val == 1 ? 3 : 7);
+						} else {
+							mavlink_log_info(mavlink_fd, "[IO] invalid bind type, bind request rejected");
+						}
+					} else {
+						mavlink_log_info(mavlink_fd, "[IO] system armed, bind request rejected"); 
+					}
+					dsm_bind_val = 0;
+					param_set(dsm_bind_param, &dsm_bind_val);
+				}
 
 				/* copy to reset the notification */
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
@@ -745,30 +800,73 @@ PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
 }
 
 int
+PX4IO::set_min_values(const uint16_t *vals, unsigned len)
+{
+	uint16_t 		regs[_max_actuators];
+
+	if (len > _max_actuators)
+		/* fail with error */
+		return E2BIG;
+
+	/* copy values to registers in IO */
+	return io_reg_set(PX4IO_PAGE_CONTROL_MIN_PWM, 0, vals, len);
+}
+
+int
+PX4IO::set_max_values(const uint16_t *vals, unsigned len)
+{
+	uint16_t 		regs[_max_actuators];
+
+	if (len > _max_actuators)
+		/* fail with error */
+		return E2BIG;
+
+	/* copy values to registers in IO */
+	return io_reg_set(PX4IO_PAGE_CONTROL_MAX_PWM, 0, vals, len);
+}
+
+int
+PX4IO::set_idle_values(const uint16_t *vals, unsigned len)
+{
+	uint16_t 		regs[_max_actuators];
+
+	if (len > _max_actuators)
+		/* fail with error */
+		return E2BIG;
+
+	printf("Sending IDLE values\n");
+
+	/* copy values to registers in IO */
+	return io_reg_set(PX4IO_PAGE_IDLE_PWM, 0, vals, len);
+}
+
+
+int
 PX4IO::io_set_arming_state()
 {
 	actuator_armed_s	armed;		///< system armed state
-	vehicle_status_s	vstatus;	///< overall system state
+	vehicle_control_mode_s	control_mode;	///< vehicle_control_mode
 
-	orb_copy(ORB_ID(actuator_armed), _t_armed, &armed);
-	orb_copy(ORB_ID(vehicle_status), _t_vstatus, &vstatus);
+	orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &armed);
+	orb_copy(ORB_ID(vehicle_control_mode), _t_vehicle_control_mode, &control_mode);
 
 	uint16_t set = 0;
 	uint16_t clear = 0;
+
+	_system_armed = armed.armed;
 
 	if (armed.armed && !armed.lockdown) {
 		set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
 	}
-
 	if (armed.ready_to_arm) {
 		set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 	}
 
-	if (vstatus.flag_external_manual_override_ok) {
+	if (control_mode.flag_external_manual_override_ok) {
 		set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
@@ -895,14 +993,14 @@ PX4IO::io_handle_status(uint16_t status)
 	 */
 
 	/* check for IO reset - force it back to armed if necessary */
-	if (_status & PX4IO_P_STATUS_FLAGS_ARMED && !(status & PX4IO_P_STATUS_FLAGS_ARMED)
+	if (_status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF && !(status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
 		&& !(status & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
 		/* set the arming flag */
-		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_ARMED | PX4IO_P_STATUS_FLAGS_ARM_SYNC);
+		ret = io_reg_modify(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, 0, PX4IO_P_STATUS_FLAGS_SAFETY_OFF | PX4IO_P_STATUS_FLAGS_ARM_SYNC);
 
 		/* set new status */
 		_status = status;
-		_status &= PX4IO_P_STATUS_FLAGS_ARMED;
+		_status &= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 	} else if (!(_status & PX4IO_P_STATUS_FLAGS_ARM_SYNC)) {
 
 		/* set the sync flag */
@@ -915,6 +1013,27 @@ PX4IO::io_handle_status(uint16_t status)
 
 		/* set new status */
 		_status = status;
+	}
+
+	/**
+	 * Get and handle the safety status
+	 */
+	struct safety_s safety;
+	safety.timestamp = hrt_absolute_time();
+
+	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
+		safety.safety_off = true;
+		safety.safety_switch_available = true;
+	} else {
+		safety.safety_off = false;
+		safety.safety_switch_available = true;
+	}
+
+	/* lazily publish the safety status */
+	if (_to_safety > 0) {
+		orb_publish(ORB_ID(safety), _to_safety, &safety);
+	} else {
+		_to_safety = orb_advertise(ORB_ID(safety), &safety);
 	}
 
 	return ret;
@@ -946,7 +1065,7 @@ PX4IO::io_get_status()
 
 	io_handle_status(regs[0]);
 	io_handle_alarms(regs[1]);
-
+	
 	/* only publish if battery has a valid minimum voltage */
 	if (regs[2] > 3300) {
 		battery_status_s	battery_status;
@@ -980,6 +1099,7 @@ PX4IO::io_get_status()
 			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
 		}
 	}
+
 	return ret;
 }
 
@@ -1287,7 +1407,8 @@ PX4IO::print_status()
 	uint16_t flags = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS);
 	printf("status 0x%04x%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 		flags,
-		((flags & PX4IO_P_STATUS_FLAGS_ARMED)    ? " ARMED" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED) ? " OUTPUTS_ARMED" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? " SAFETY_OFF" : " SAFETY_SAFE"),
 		((flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? " OVERRIDE" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_OK)    ? " RC_OK" : " RC_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_PPM)   ? " PPM" : ""),
@@ -1358,12 +1479,14 @@ PX4IO::print_status()
 	/* setup and state */
 	printf("features 0x%04x\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES));
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
-	printf("arming 0x%04x%s%s%s%s\n",
+	printf("arming 0x%04x%s%s%s%s%s%s\n",
 		arming,
 		((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)          ? " FMU_ARMED" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)	    ? " IO_ARM_OK" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? " MANUAL_OVERRIDE_OK" : ""),
-		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""));
+		((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)   ? " FAILSAFE_CUSTOM" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)  ? " ALWAYS_PWM_ENABLE" : ""));
 	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
 		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
@@ -1390,7 +1513,10 @@ PX4IO::print_status()
 	}
 	printf("failsafe");
 	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
+		printf(" %u\n", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
+	printf("\nidle values");
+	for (unsigned i = 0; i < _max_actuators; i++)
+		printf(" %u", io_reg_get(PX4IO_PAGE_IDLE_PWM, i));
 	printf("\n");
 }
 
@@ -1452,16 +1578,11 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down); 
 		usleep(500000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
-		usleep(1000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-		usleep(100000);
+		usleep(50000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
-		break;
-
-	case DSM_BIND_STOP:
-		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
+		usleep(50000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
-		usleep(500000);
 		break;
 
 	case DSM_BIND_POWER_UP:
@@ -1736,30 +1857,12 @@ bind(int argc, char *argv[])
 	else 
 		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
 
-	/* Open console directly to grab CTRL-C signal */
-	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
-	if (!console)
-		errx(1, "failed opening console");
-
 	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
-	warnx("Press CTRL-C or 'c' when done.");
 
 	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
 
-	for (;;) {
-		usleep(500000L);
-		/* Check if user wants to quit */
-		char c;
-		if (read(console, &c, 1) == 1) {
-			if (c == 0x03 || c == 0x63) {
-				warnx("Done\n");
-				g_dev->ioctl(nullptr, DSM_BIND_STOP, 0);
-				g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);
-				close(console);
-	            exit(0);
-            }
-		}
-	}
+	exit(0);
+
 }
 
 void
@@ -1778,6 +1881,11 @@ test(void)
 
 	if (ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count))
 		err(1, "failed to get servo count");
+
+	/* tell IO that its ok to disable its safety with the switch */
+	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
+	if (ret != OK)
+		err(1, "PWM_SERVO_SET_ARM_OK");
 
 	if (ioctl(fd, PWM_SERVO_ARM, 0))
 		err(1, "failed to arm servos");
@@ -1827,7 +1935,7 @@ test(void)
 		/* Check if user wants to quit */
 		char c;
 		if (read(console, &c, 1) == 1) {
-			if (c == 0x03 || c == 0x63) {
+			if (c == 0x03 || c == 0x63 || c == 'q') {
 				warnx("User abort\n");
 				close(console);
 				exit(0);
@@ -2002,6 +2110,111 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "min")) {
+
+		if (argc < 3) {
+			errx(1, "min command needs at least one channel value (PWM)");
+		}
+
+		if (g_dev != nullptr) {
+
+			/* set values for first 8 channels, fill unassigned channels with 900. */
+			uint16_t min[8];
+
+			for (int i = 0; i < sizeof(min) / sizeof(min[0]); i++)
+			{
+				/* set channel to commanline argument or to 900 for non-provided channels */
+				if (argc > i + 2) {
+					min[i] = atoi(argv[i+2]);
+					if (min[i] < 900 || min[i] > 1200) {
+						errx(1, "value out of range of 900 < value < 1200. Aborting.");
+					}
+				} else {
+					/* a zero value will the default */
+					min[i] = 0;
+				}
+			}
+
+			int ret = g_dev->set_min_values(min, sizeof(min) / sizeof(min[0]));
+
+			if (ret != OK)
+				errx(ret, "failed setting min values");
+		} else {
+			errx(1, "not loaded");
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "max")) {
+
+		if (argc < 3) {
+			errx(1, "max command needs at least one channel value (PWM)");
+		}
+
+		if (g_dev != nullptr) {
+
+			/* set values for first 8 channels, fill unassigned channels with 2100. */
+			uint16_t max[8];
+
+			for (int i = 0; i < sizeof(max) / sizeof(max[0]); i++)
+			{
+				/* set channel to commanline argument or to 2100 for non-provided channels */
+				if (argc > i + 2) {
+					max[i] = atoi(argv[i+2]);
+					if (max[i] < 1800 || max[i] > 2100) {
+						errx(1, "value out of range of 1800 < value < 2100. Aborting.");
+					}
+				} else {
+					/* a zero value will the default */
+					max[i] = 0;
+				}
+			}
+
+			int ret = g_dev->set_max_values(max, sizeof(max) / sizeof(max[0]));
+
+			if (ret != OK)
+				errx(ret, "failed setting max values");
+		} else {
+			errx(1, "not loaded");
+		}
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "idle")) {
+
+		if (argc < 3) {
+			errx(1, "max command needs at least one channel value (PWM)");
+		}
+
+		if (g_dev != nullptr) {
+
+			/* set values for first 8 channels, fill unassigned channels with 0. */
+			uint16_t idle[8];
+
+			for (int i = 0; i < sizeof(idle) / sizeof(idle[0]); i++)
+			{
+				/* set channel to commanline argument or to 0 for non-provided channels */
+				if (argc > i + 2) {
+					idle[i] = atoi(argv[i+2]);
+					if (idle[i] < 900 || idle[i] > 2100) {
+						errx(1, "value out of range of 900 < value < 2100. Aborting.");
+					}
+				} else {
+					/* a zero value will the default */
+					idle[i] = 0;
+				}
+			}
+
+			int ret = g_dev->set_idle_values(idle, sizeof(idle) / sizeof(idle[0]));
+
+			if (ret != OK)
+				errx(ret, "failed setting idle values");
+		} else {
+			errx(1, "not loaded");
+		}
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "recovery")) {
 
 		/*
@@ -2068,5 +2281,5 @@ px4io_main(int argc, char *argv[])
 		bind(argc, argv);
 
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug', 'recovery', 'limit', 'current', 'failsafe', 'bind', or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'failsafe', 'min, 'max',\n 'idle', 'bind' or 'update'");
 }

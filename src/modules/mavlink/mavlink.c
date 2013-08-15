@@ -64,6 +64,7 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
+#include <commander/px4_custom_mode.h>
 
 #include "waypoints.h"
 #include "orb_topics.h"
@@ -181,102 +182,68 @@ set_hil_on_off(bool hil_enabled)
 }
 
 void
-get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
+get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
 {
 	/* reset MAVLink mode bitfield */
-	*mavlink_mode = 0;
+	*mavlink_base_mode = 0;
+	*mavlink_custom_mode = 0;
 
-	/* set mode flags independent of system state */
+	/**
+	 * Set mode flags
+	 **/
 
 	/* HIL */
-	if (v_status.flag_hil_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+	if (v_status.hil_state == HIL_STATE_ON) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
 
-	/* manual input */
-	if (v_status.flag_control_manual_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+	/* arming state */
+	if (v_status.arming_state == ARMING_STATE_ARMED
+			|| v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
-	/* attitude or rate control */
-	if (v_status.flag_control_attitude_enabled ||
-	    v_status.flag_control_rates_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+	/* main state */
+	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+	if (v_status.main_state == MAIN_STATE_MANUAL) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+		*mavlink_custom_mode = PX4_CUSTOM_MODE_MANUAL;
+	} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
+		*mavlink_custom_mode = PX4_CUSTOM_MODE_SEATBELT;
+	} else if (v_status.main_state == MAIN_STATE_EASY) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+		*mavlink_custom_mode = PX4_CUSTOM_MODE_EASY;
+	} else if (v_status.main_state == MAIN_STATE_AUTO) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+		*mavlink_custom_mode = PX4_CUSTOM_MODE_AUTO;
 	}
 
-	/* vector control */
-	if (v_status.flag_control_velocity_enabled ||
-	    v_status.flag_control_position_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
-	}
+	/**
+	 * Set mavlink state
+	 **/
 
-	/* autonomous mode */
-	if (v_status.state_machine == SYSTEM_STATE_AUTO) {
-		*mavlink_mode |= MAV_MODE_FLAG_AUTO_ENABLED;
-	}
-
-	/* set arming state */
-	if (armed.armed) {
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
-
-	} else {
-		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
-	}
-
-	switch (v_status.state_machine) {
-	case SYSTEM_STATE_PREFLIGHT:
-		if (v_status.flag_preflight_gyro_calibration ||
-		    v_status.flag_preflight_mag_calibration ||
-		    v_status.flag_preflight_accel_calibration) {
-			*mavlink_state = MAV_STATE_CALIBRATING;
-
-		} else {
-			*mavlink_state = MAV_STATE_UNINIT;
-		}
-
-		break;
-
-	case SYSTEM_STATE_STANDBY:
+	/* set calibration state */
+	if (v_status.preflight_calibration) {
+		*mavlink_state = MAV_STATE_CALIBRATING;
+	} else if (v_status.system_emergency) {
+		*mavlink_state = MAV_STATE_EMERGENCY;
+	} else if (v_status.arming_state == ARMING_STATE_INIT
+			|| v_status.arming_state == ARMING_STATE_IN_AIR_RESTORE
+			|| v_status.arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
+		*mavlink_state = MAV_STATE_UNINIT;
+	} else if (v_status.arming_state == ARMING_STATE_ARMED) {
+		*mavlink_state = MAV_STATE_ACTIVE;
+	} else if (v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
+		*mavlink_state = MAV_STATE_CRITICAL;
+	} else if (v_status.arming_state == ARMING_STATE_STANDBY) {
 		*mavlink_state = MAV_STATE_STANDBY;
-		break;
-
-	case SYSTEM_STATE_GROUND_READY:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_MANUAL:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_STABILIZED:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_AUTO:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_MISSION_ABORT:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_LANDING:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_CUTOFF:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_GROUND_ERROR:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_REBOOT:
+	} else if (v_status.arming_state == ARMING_STATE_REBOOT) {
 		*mavlink_state = MAV_STATE_POWEROFF;
-		break;
+	} else {
+		warnx("Unknown mavlink state");
+		*mavlink_state = MAV_STATE_CRITICAL;
 	}
-
 }
 
 
@@ -568,6 +535,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		default:
 			usage();
+			break;
 		}
 	}
 
@@ -674,14 +642,18 @@ int mavlink_thread_main(int argc, char *argv[])
 
 			/* translate the current system state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
-			uint8_t mavlink_mode = 0;
-			get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
+			uint8_t mavlink_base_mode = 0;
+			uint32_t mavlink_custom_mode = 0;
+			get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
+			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_base_mode, mavlink_custom_mode, mavlink_state);
 
 			/* switch HIL mode if required */
-			set_hil_on_off(v_status.flag_hil_enabled);
+			if (v_status.hil_state == HIL_STATE_ON)
+				set_hil_on_off(true);
+			else if (v_status.hil_state == HIL_STATE_OFF)
+				set_hil_on_off(false);
 
 			/* send status (values already copied in the section above) */
 			mavlink_msg_sys_status_send(chan,
@@ -689,8 +661,8 @@ int mavlink_thread_main(int argc, char *argv[])
 						    v_status.onboard_control_sensors_enabled,
 						    v_status.onboard_control_sensors_health,
 						    v_status.load,
-						    v_status.voltage_battery * 1000.0f,
-						    v_status.current_battery * 1000.0f,
+						    v_status.battery_voltage * 1000.0f,
+						    v_status.battery_current * 1000.0f,
 						    v_status.battery_remaining,
 						    v_status.drop_rate_comm,
 						    v_status.errors_comm,

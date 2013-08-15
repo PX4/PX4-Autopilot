@@ -57,12 +57,14 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <drivers/drv_gyro.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_control_debug.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
@@ -83,14 +85,17 @@ static int mc_task;
 static bool motor_test_mode = false;
 
 static orb_advert_t actuator_pub;
+static orb_advert_t control_debug_pub;
 
-static struct vehicle_status_s state;
 
 static int
 mc_thread_main(int argc, char *argv[])
 {
 	/* declare and safely initialize all structs */
-	memset(&state, 0, sizeof(state));
+	struct vehicle_control_mode_s control_mode;
+	memset(&control_mode, 0, sizeof(control_mode));
+	struct actuator_armed_s armed;
+	memset(&armed, 0, sizeof(armed));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_attitude_setpoint_s att_sp;
@@ -107,12 +112,16 @@ mc_thread_main(int argc, char *argv[])
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
 
+	struct vehicle_control_debug_s control_debug;
+	memset(&control_debug, 0, sizeof(control_debug));
+
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int param_sub = orb_subscribe(ORB_ID(parameter_update));
 	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int setpoint_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
-	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 
@@ -133,6 +142,8 @@ mc_thread_main(int argc, char *argv[])
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
 		actuators.control[i] = 0.0f;
 	}
+	
+	control_debug_pub = orb_advertise(ORB_ID(vehicle_control_debug), &control_debug);
 
 	actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
@@ -150,7 +161,9 @@ mc_thread_main(int argc, char *argv[])
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
 	bool flag_control_attitude_enabled = false;
-	bool flag_system_armed = false;
+	bool flag_armed = false;
+	bool flag_control_position_enabled = false;
+	bool flag_control_velocity_enabled = false;
 
 	/* store if yaw position or yaw speed has been changed */
 	bool control_yaw_position = true;
@@ -161,7 +174,6 @@ mc_thread_main(int argc, char *argv[])
 	/* prepare the handle for the failsafe throttle */
 	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
-
 
 	while (!thread_should_exit) {
 
@@ -175,7 +187,6 @@ mc_thread_main(int argc, char *argv[])
 		} else if (ret == 0) {
 			/* no return value, ignore */
 		} else {
-
 			/* only update parameters if they changed */
 			if (fds[1].revents & POLLIN) {
 				/* read from param to clear updated flag */
@@ -193,10 +204,16 @@ mc_thread_main(int argc, char *argv[])
 
 				/* get a local copy of system state */
 				bool updated;
-				orb_check(state_sub, &updated);
+				orb_check(control_mode_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
+				}
+
+				orb_check(armed_sub, &updated);
+
+				if (updated) {
+					orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 				}
 
 				/* get a local copy of manual setpoint */
@@ -215,9 +232,8 @@ mc_thread_main(int argc, char *argv[])
 				/* get a local copy of the current sensor values */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
-
 				/** STEP 1: Define which input is the dominating control input */
-				if (state.flag_control_offboard_enabled) {
+				if (control_mode.flag_control_offboard_enabled) {
 					/* offboard inputs */
 					if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES) {
 						rates_sp.roll = offboard_sp.p1;
@@ -240,101 +256,50 @@ mc_thread_main(int argc, char *argv[])
 					}
 
 
-				} else if (state.flag_control_manual_enabled) {
-
-					if (state.flag_control_attitude_enabled) {
-
+				} else if (control_mode.flag_control_manual_enabled) {			
+					if (control_mode.flag_control_attitude_enabled) {
 						/* initialize to current yaw if switching to manual or att control */
-						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-						    state.flag_control_manual_enabled != flag_control_manual_enabled ||
-						    state.flag_system_armed != flag_system_armed) {
+						if (control_mode.flag_control_attitude_enabled != flag_control_attitude_enabled ||
+						    control_mode.flag_control_manual_enabled != flag_control_manual_enabled ||
+						    armed.armed != flag_armed) {
 							att_sp.yaw_body = att.yaw;
 						}
 
 						static bool rc_loss_first_time = true;
 
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-						if (state.rc_signal_lost) {
-							/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
-							param_get(failsafe_throttle_handle, &failsafe_throttle);
-							att_sp.roll_body = 0.0f;
-							att_sp.pitch_body = 0.0f;
 
-							/*
-							 * Only go to failsafe throttle if last known throttle was
-							 * high enough to create some lift to make hovering state likely.
-							 *
-							 * This is to prevent that someone landing, but not disarming his
-							 * multicopter (throttle = 0) does not make it jump up in the air
-							 * if shutting down his remote.
-							 */
-							if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
-								att_sp.thrust = failsafe_throttle;
+						rc_loss_first_time = true;
 
-							} else {
-								att_sp.thrust = 0.0f;
-							}
+						att_sp.roll_body = manual.roll;
+						att_sp.pitch_body = manual.pitch;
 
-							/* keep current yaw, do not attempt to go to north orientation,
-							 * since if the pilot regains RC control, he will be lost regarding
-							 * the current orientation.
-							 */
-							if (rc_loss_first_time)
-								att_sp.yaw_body = att.yaw;
+						/* set attitude if arming */
+						if (!flag_control_attitude_enabled && armed.armed) {
+							att_sp.yaw_body = att.yaw;
+						}
 
-							rc_loss_first_time = false;
+						/* only move setpoint if manual input is != 0 */
+						if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.1f) {
+							rates_sp.yaw = manual.yaw;
+							control_yaw_position = false;
+							first_time_after_yaw_speed_control = true;
 
 						} else {
-							rc_loss_first_time = true;
-
-							att_sp.roll_body = manual.roll;
-							att_sp.pitch_body = manual.pitch;
-
-							/* set attitude if arming */
-							if (!flag_control_attitude_enabled && state.flag_system_armed) {
+							if (first_time_after_yaw_speed_control) {
 								att_sp.yaw_body = att.yaw;
+								first_time_after_yaw_speed_control = false;
 							}
 
-							/* act if stabilization is active or if the (nonsense) direct pass through mode is set */
-							if (state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS ||
-							    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
-
-								if (state.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_RATE) {
-									rates_sp.yaw = manual.yaw;
-									control_yaw_position = false;
-
-								} else {
-									/*
-									 * This mode SHOULD be the default mode, which is:
-									 * VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS
-									 *
-									 * However, we fall back to this setting for all other (nonsense)
-									 * settings as well.
-									 */
-
-									/* only move setpoint if manual input is != 0 */
-									if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
-										rates_sp.yaw = manual.yaw;
-										control_yaw_position = false;
-										first_time_after_yaw_speed_control = true;
-
-									} else {
-										if (first_time_after_yaw_speed_control) {
-											att_sp.yaw_body = att.yaw;
-											first_time_after_yaw_speed_control = false;
-										}
-
-										control_yaw_position = true;
-									}
-								}
-							}
-
-							att_sp.thrust = manual.throttle;
-							att_sp.timestamp = hrt_absolute_time();
+							control_yaw_position = true;
 						}
+
+						att_sp.thrust = manual.throttle;
+						att_sp.timestamp = hrt_absolute_time();
 
 						/* STEP 2: publish the controller output */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+
 
 						if (motor_test_mode) {
 							printf("testmode");
@@ -348,23 +313,26 @@ mc_thread_main(int argc, char *argv[])
 						}
 
 					} else {
-						/* manual rate inputs, from RC control or joystick */
-						if (state.flag_control_rates_enabled &&
-						    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_RATES) {
-							rates_sp.roll = manual.roll;
 
-							rates_sp.pitch = manual.pitch;
-							rates_sp.yaw = manual.yaw;
-							rates_sp.thrust = manual.throttle;
-							rates_sp.timestamp = hrt_absolute_time();
-						}
+						//XXX TODO add acro mode here
+
+						/* manual rate inputs, from RC control or joystick */
+//						if (state.flag_control_rates_enabled &&
+//						    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_RATES) {
+//							rates_sp.roll = manual.roll;
+//
+//							rates_sp.pitch = manual.pitch;
+//							rates_sp.yaw = manual.yaw;
+//							rates_sp.thrust = manual.throttle;
+//							rates_sp.timestamp = hrt_absolute_time();
+//						}
 					}
 
 				}
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
-				if (state.flag_control_attitude_enabled) {
-					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
+				if (control_mode.flag_control_attitude_enabled) {
+					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position, &control_debug_pub, &control_debug);
 
 					orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 				}
@@ -372,7 +340,8 @@ mc_thread_main(int argc, char *argv[])
 				/* measure in what intervals the controller runs */
 				perf_count(mc_interval_perf);
 
-				float gyro[3];
+				float rates[3];
+				float rates_acc[3];
 
 				/* get current rate setpoint */
 				bool rates_sp_valid = false;
@@ -383,17 +352,21 @@ mc_thread_main(int argc, char *argv[])
 				}
 
 				/* apply controller */
-				gyro[0] = att.rollspeed;
-				gyro[1] = att.pitchspeed;
-				gyro[2] = att.yawspeed;
+				rates[0] = att.rollspeed;
+				rates[1] = att.pitchspeed;
+				rates[2] = att.yawspeed;
 
-				multirotor_control_rates(&rates_sp, gyro, &actuators);
+				multirotor_control_rates(&rates_sp, rates, &actuators, &control_debug_pub, &control_debug);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
-				/* update state */
-				flag_control_attitude_enabled = state.flag_control_attitude_enabled;
-				flag_control_manual_enabled = state.flag_control_manual_enabled;
-				flag_system_armed = state.flag_system_armed;
+				orb_publish(ORB_ID(vehicle_control_debug), control_debug_pub, &control_debug);
+
+				/* update control_mode */
+				flag_control_attitude_enabled = control_mode.flag_control_attitude_enabled;
+				flag_control_manual_enabled = control_mode.flag_control_manual_enabled;
+				flag_control_position_enabled = control_mode.flag_control_position_enabled;
+				flag_control_velocity_enabled = control_mode.flag_control_velocity_enabled;
+				flag_armed = armed.armed;
 
 				perf_end(mc_loop_perf);
 			} /* end of poll call for attitude updates */
@@ -410,7 +383,7 @@ mc_thread_main(int argc, char *argv[])
 
 
 	close(att_sub);
-	close(state_sub);
+	close(control_mode_sub);
 	close(manual_sub);
 	close(actuator_pub);
 	close(att_sp_pub);

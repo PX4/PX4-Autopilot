@@ -74,7 +74,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -191,7 +191,7 @@ private:
 	int		_baro_sub;			/**< raw baro data subscription */
 	int     _airspeed_sub;		/**< airspeed subscription */
 	int		_diff_pres_sub;		/**< raw differential pressure subscription */
-	int		_vstatus_sub;			/**< vehicle status subscription */
+	int		_vcontrol_mode_sub;			/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;			/**< notification of manual control updates */
 
@@ -234,13 +234,12 @@ private:
 		int rc_map_yaw;
 		int rc_map_throttle;
 
-		int rc_map_manual_override_sw;
-		int rc_map_auto_mode_sw;
+		int rc_map_mode_sw;
+		int rc_map_return_sw;
+		int rc_map_assisted_sw;
+		int rc_map_mission_sw;
 
-		int rc_map_manual_mode_sw;
-		int rc_map_sas_mode_sw;
-		int rc_map_rtl_sw;
-		int rc_map_offboard_ctrl_mode_sw;
+//		int rc_map_offboard_ctrl_mode_sw;
 
 		int rc_map_flaps;
 
@@ -256,8 +255,6 @@ private:
 		float rc_scale_flaps;
 
 		float battery_voltage_scaling;
-
-		int   rc_rl1_DSM_VCC_control;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -285,13 +282,12 @@ private:
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
 
-		param_t rc_map_manual_override_sw;
-		param_t rc_map_auto_mode_sw;
+		param_t rc_map_mode_sw;
+		param_t rc_map_return_sw;
+		param_t rc_map_assisted_sw;
+		param_t rc_map_mission_sw;
 
-		param_t rc_map_manual_mode_sw;
-		param_t rc_map_sas_mode_sw;
-		param_t rc_map_rtl_sw;
-		param_t rc_map_offboard_ctrl_mode_sw;
+//		param_t rc_map_offboard_ctrl_mode_sw;
 
 		param_t rc_map_flaps;
 
@@ -307,8 +303,6 @@ private:
 		param_t rc_scale_flaps;
 
 		param_t battery_voltage_scaling;
-
-		param_t rc_rl1_DSM_VCC_control;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -384,9 +378,9 @@ private:
 	void		diff_pres_poll(struct sensor_combined_s &raw);
 
 	/**
-	 * Check for changes in vehicle status.
+	 * Check for changes in vehicle control mode.
 	 */
-	void		vehicle_status_poll();
+	void		vehicle_control_mode_poll();
 
 	/**
 	 * Check for changes in parameters.
@@ -441,7 +435,7 @@ Sensors::Sensors() :
 	_mag_sub(-1),
 	_rc_sub(-1),
 	_baro_sub(-1),
-	_vstatus_sub(-1),
+	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
 
@@ -492,16 +486,16 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 
 	/* mandatory mode switches, mapped to channel 5 and 6 per default */
-	_parameter_handles.rc_map_manual_override_sw = param_find("RC_MAP_OVER_SW");
-	_parameter_handles.rc_map_auto_mode_sw = param_find("RC_MAP_MODE_SW");
+	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
+	_parameter_handles.rc_map_return_sw = param_find("RC_MAP_RETURN_SW");
 
 	_parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
 
 	/* optional mode switches, not mapped per default */
-	_parameter_handles.rc_map_manual_mode_sw = param_find("RC_MAP_MAN_SW");
-	_parameter_handles.rc_map_sas_mode_sw = param_find("RC_MAP_SAS_SW");
-	_parameter_handles.rc_map_rtl_sw = param_find("RC_MAP_RTL_SW");
-	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
+	_parameter_handles.rc_map_assisted_sw = param_find("RC_MAP_ASSIST_SW");
+	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSIO_SW");
+
+//	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
 
 	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -543,9 +537,6 @@ Sensors::Sensors() :
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
-
-	/* DSM VCC relay control */
-	_parameter_handles.rc_rl1_DSM_VCC_control = param_find("RC_RL1_DSM_VCC");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -630,33 +621,29 @@ Sensors::parameters_update()
 		warnx("Failed getting throttle chan index");
 	}
 
-	if (param_get(_parameter_handles.rc_map_manual_override_sw, &(_parameters.rc_map_manual_override_sw)) != OK) {
-		warnx("Failed getting override sw chan index");
+	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
+		warnx("Failed getting mode sw chan index");
 	}
 
-	if (param_get(_parameter_handles.rc_map_auto_mode_sw, &(_parameters.rc_map_auto_mode_sw)) != OK) {
-		warnx("Failed getting auto mode sw chan index");
+	if (param_get(_parameter_handles.rc_map_return_sw, &(_parameters.rc_map_return_sw)) != OK) {
+		warnx("Failed getting return sw chan index");
+	}
+
+	if (param_get(_parameter_handles.rc_map_assisted_sw, &(_parameters.rc_map_assisted_sw)) != OK) {
+		warnx("Failed getting assisted sw chan index");
+	}
+
+	if (param_get(_parameter_handles.rc_map_mission_sw, &(_parameters.rc_map_mission_sw)) != OK) {
+		warnx("Failed getting mission sw chan index");
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
 		warnx("Failed getting flaps chan index");
 	}
 
-	if (param_get(_parameter_handles.rc_map_manual_mode_sw, &(_parameters.rc_map_manual_mode_sw)) != OK) {
-		warnx("Failed getting manual mode sw chan index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_rtl_sw, &(_parameters.rc_map_rtl_sw)) != OK) {
-		warnx("Failed getting rtl sw chan index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_sas_mode_sw, &(_parameters.rc_map_sas_mode_sw)) != OK) {
-		warnx("Failed getting sas mode sw chan index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_offboard_ctrl_mode_sw, &(_parameters.rc_map_offboard_ctrl_mode_sw)) != OK) {
-		warnx("Failed getting offboard control mode sw chan index");
-	}
+//	if (param_get(_parameter_handles.rc_map_offboard_ctrl_mode_sw, &(_parameters.rc_map_offboard_ctrl_mode_sw)) != OK) {
+//		warnx("Failed getting offboard control mode sw chan index");
+//	}
 
 	if (param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1)) != OK) {
 		warnx("Failed getting mode aux 1 index");
@@ -689,15 +676,14 @@ Sensors::parameters_update()
 	_rc.function[PITCH] = _parameters.rc_map_pitch - 1;
 	_rc.function[YAW] = _parameters.rc_map_yaw - 1;
 
-	_rc.function[OVERRIDE] = _parameters.rc_map_manual_override_sw - 1;
-	_rc.function[AUTO_MODE] = _parameters.rc_map_auto_mode_sw - 1;
+	_rc.function[MODE] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
+	_rc.function[ASSISTED] = _parameters.rc_map_assisted_sw - 1;
+	_rc.function[MISSION] = _parameters.rc_map_mission_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
 
-	_rc.function[MANUAL_MODE] = _parameters.rc_map_manual_mode_sw - 1;
-	_rc.function[RTL] = _parameters.rc_map_rtl_sw - 1;
-	_rc.function[SAS_MODE] = _parameters.rc_map_sas_mode_sw - 1;
-	_rc.function[OFFBOARD_MODE] = _parameters.rc_map_offboard_ctrl_mode_sw - 1;
+//	_rc.function[OFFBOARD_MODE] = _parameters.rc_map_offboard_ctrl_mode_sw - 1;
 
 	_rc.function[AUX_1] = _parameters.rc_map_aux1 - 1;
 	_rc.function[AUX_2] = _parameters.rc_map_aux2 - 1;
@@ -736,11 +722,6 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
 		warnx("Failed updating voltage scaling param");
-	}
-
-	/* relay 1 DSM VCC control */
-	if (param_get(_parameter_handles.rc_rl1_DSM_VCC_control, &(_parameters.rc_rl1_DSM_VCC_control)) != OK) {
-		warnx("Failed updating relay 1 DSM VCC control");
 	}
 
 	return OK;
@@ -989,21 +970,21 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 }
 
 void
-Sensors::vehicle_status_poll()
+Sensors::vehicle_control_mode_poll()
 {
-	struct vehicle_status_s vstatus;
-	bool vstatus_updated;
+	struct vehicle_control_mode_s vcontrol_mode;
+	bool vcontrol_mode_updated;
 
-	/* Check HIL state if vehicle status has changed */
-	orb_check(_vstatus_sub, &vstatus_updated);
+	/* Check HIL state if vehicle control mode has changed */
+	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
 
-	if (vstatus_updated) {
+	if (vcontrol_mode_updated) {
 
-		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &vstatus);
+		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &vcontrol_mode);
 
 		/* switching from non-HIL to HIL mode */
 		//printf("[sensors] Vehicle mode: %i \t AND: %i, HIL: %i\n", vstatus.mode, vstatus.mode & VEHICLE_MODE_FLAG_HIL_ENABLED, hil_enabled);
-		if (vstatus.flag_hil_enabled && !_hil_enabled) {
+		if (vcontrol_mode.flag_system_hil_enabled && !_hil_enabled) {
 			_hil_enabled = true;
 			_publishing = false;
 
@@ -1206,10 +1187,11 @@ Sensors::ppm_poll()
 		manual_control.yaw = NAN;
 		manual_control.throttle = NAN;
 
-		manual_control.manual_mode_switch = NAN;
-		manual_control.manual_sas_switch = NAN;
-		manual_control.return_to_launch_switch = NAN;
-		manual_control.auto_offboard_input_switch = NAN;
+		manual_control.mode_switch = NAN;
+		manual_control.return_switch = NAN;
+		manual_control.assisted_switch = NAN;
+		manual_control.mission_switch = NAN;
+//		manual_control.auto_offboard_input_switch = NAN;
 
 		manual_control.flaps = NAN;
 		manual_control.aux1 = NAN;
@@ -1309,11 +1291,17 @@ Sensors::ppm_poll()
 			manual_control.yaw *= _parameters.rc_scale_yaw;
 		}
 
-		/* override switch input */
-		manual_control.manual_override_switch = limit_minus_one_to_one(_rc.chan[_rc.function[OVERRIDE]].scaled);
-
 		/* mode switch input */
-		manual_control.auto_mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[AUTO_MODE]].scaled);
+		manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
+
+		/* land switch input */
+		manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
+
+		/* assisted switch input */
+		manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
+
+		/* mission switch input */
+		manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
 
 		/* flaps */
 		if (_rc.function[FLAPS] >= 0) {
@@ -1325,21 +1313,17 @@ Sensors::ppm_poll()
 			}
 		}
 
-		if (_rc.function[MANUAL_MODE] >= 0) {
-			manual_control.manual_mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MANUAL_MODE]].scaled);
+		if (_rc.function[MODE] >= 0) {
+			manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
 		}
 
-		if (_rc.function[SAS_MODE] >= 0) {
-			manual_control.manual_sas_switch = limit_minus_one_to_one(_rc.chan[_rc.function[SAS_MODE]].scaled);
+		if (_rc.function[MISSION] >= 0) {
+			manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
 		}
 
-		if (_rc.function[RTL] >= 0) {
-			manual_control.return_to_launch_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RTL]].scaled);
-		}
-
-		if (_rc.function[OFFBOARD_MODE] >= 0) {
-			manual_control.auto_offboard_input_switch = limit_minus_one_to_one(_rc.chan[_rc.function[OFFBOARD_MODE]].scaled);
-		}
+//		if (_rc.function[OFFBOARD_MODE] >= 0) {
+//			manual_control.auto_offboard_input_switch = limit_minus_one_to_one(_rc.chan[_rc.function[OFFBOARD_MODE]].scaled);
+//		}
 
 		/* aux functions, only assign if valid mapping is present */
 		if (_rc.function[AUX_1] >= 0) {
@@ -1412,12 +1396,12 @@ Sensors::task_main()
 	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
-	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vstatus_sub, 200);
+	orb_set_interval(_vcontrol_mode_sub, 200);
 
 	/* rate limit gyro to 250 Hz (the gyro signal is lowpassed accordingly earlier) */
 	orb_set_interval(_gyro_sub, 4);
@@ -1473,7 +1457,7 @@ Sensors::task_main()
 		perf_begin(_loop_perf);
 
 		/* check vehicle status for changes to publication state */
-		vehicle_status_poll();
+		vehicle_control_mode_poll();
 
 		/* check parameters for updates */
 		parameter_update_poll();

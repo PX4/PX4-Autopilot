@@ -60,6 +60,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -75,6 +76,7 @@
 #include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vehicle_control_debug.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -192,7 +194,7 @@ static int file_copy(const char *file_old, const char *file_new);
 
 static void handle_command(struct vehicle_command_s *cmd);
 
-static void handle_status(struct vehicle_status_s *cmd);
+static void handle_status(struct actuator_armed_s *armed);
 
 /**
  * Create folder for current logging session. Store folder name in 'log_folder'.
@@ -623,9 +625,10 @@ int sdlog2_thread_main(int argc, char *argv[])
 		errx(1, "can't allocate log buffer, exiting.");
 	}
 
-	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
-	/* number of messages */
-	const ssize_t fdsc = 19;
+	/* --- IMPORTANT: DEFINE MAX NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
+	/* max number of messages */
+	const ssize_t fdsc = 21;
+
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -633,6 +636,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	struct vehicle_status_s buf_status;
 	memset(&buf_status, 0, sizeof(buf_status));
+
+	struct actuator_armed_s buf_armed;
+	memset(&buf_armed, 0, sizeof(buf_armed));
 
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
@@ -650,6 +656,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_global_position_setpoint_s global_pos_sp;
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
+		struct vehicle_control_debug_s control_debug;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -661,6 +668,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	struct {
 		int cmd_sub;
 		int status_sub;
+		int armed_sub;
 		int sensor_sub;
 		int att_sub;
 		int att_sp_sub;
@@ -674,6 +682,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int global_pos_sp_sub;
 		int gps_pos_sub;
 		int vicon_pos_sub;
+		int control_debug_sub;
 		int flow_sub;
 		int rc_sub;
 		int airspeed_sub;
@@ -695,6 +704,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
 			struct log_STAT_s log_STAT;
+			struct log_CTRL_s log_CTRL;
 			struct log_RC_s log_RC;
 			struct log_OUT0_s log_OUT0;
 			struct log_AIRS_s log_AIRS;
@@ -713,6 +723,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- VEHICLE COMMAND --- */
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	fds[fdsc_count].fd = subs.cmd_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ACTUATOR ARMED --- */
+	subs.armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	fds[fdsc_count].fd = subs.armed_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -800,6 +816,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
+	/* --- CONTROL DEBUG --- */
+	subs.control_debug_sub = orb_subscribe(ORB_ID(vehicle_control_debug));
+	fds[fdsc_count].fd = subs.control_debug_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
 	/* --- OPTICAL FLOW --- */
 	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	fds[fdsc_count].fd = subs.flow_sub;
@@ -883,22 +905,33 @@ int sdlog2_thread_main(int argc, char *argv[])
 				handled_topics++;
 			}
 
+			/* --- ARMED- LOG MANAGEMENT --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(actuator_armed), subs.armed_sub, &buf_armed);
+
+				if (log_when_armed) {
+					handle_status(&buf_armed);
+				}
+
+				handled_topics++;
+			}
+
 			/* --- VEHICLE STATUS - LOG MANAGEMENT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_status), subs.status_sub, &buf_status);
 
-				if (log_when_armed) {
-					handle_status(&buf_status);
-				}
+				//if (log_when_armed) {
+				//	handle_status(&buf_armed);
+				//}
 
-				handled_topics++;
+				//handled_topics++;
 			}
 
 			if (!logging_enabled || !check_data || handled_topics >= poll_ret) {
 				continue;
 			}
 
-			ifds = 1;	// Begin from fds[1] again
+			ifds = 2;	// Begin from fds[2] again
 
 			pthread_mutex_lock(&logbuffer_mutex);
 
@@ -911,13 +944,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				// Don't orb_copy, it's already done few lines above
 				log_msg.msg_type = LOG_STAT_MSG;
-				log_msg.body.log_STAT.state = (unsigned char) buf_status.state_machine;
-				log_msg.body.log_STAT.flight_mode = (unsigned char) buf_status.flight_mode;
-				log_msg.body.log_STAT.manual_control_mode = (unsigned char) buf_status.manual_control_mode;
-				log_msg.body.log_STAT.manual_sas_mode = (unsigned char) buf_status.manual_sas_mode;
-				log_msg.body.log_STAT.armed = (unsigned char) buf_status.flag_system_armed;
-				log_msg.body.log_STAT.battery_voltage = buf_status.voltage_battery;
-				log_msg.body.log_STAT.battery_current = buf_status.current_battery;
+				// XXX fix this
+				// log_msg.body.log_STAT.state = (unsigned char) buf_status.state_machine;
+				// log_msg.body.log_STAT.flight_mode = (unsigned char) buf_status.flight_mode;
+				// log_msg.body.log_STAT.manual_control_mode = (unsigned char) buf_status.manual_control_mode;
+				// log_msg.body.log_STAT.manual_sas_mode = (unsigned char) buf_status.manual_sas_mode;
+				log_msg.body.log_STAT.state = 0;
+				log_msg.body.log_STAT.flight_mode = 0;
+				log_msg.body.log_STAT.manual_control_mode = 0;
+				log_msg.body.log_STAT.manual_sas_mode = 0;
+				log_msg.body.log_STAT.armed = (unsigned char) buf_armed.armed; /* XXX fmu armed correct? */
+				log_msg.body.log_STAT.battery_voltage = buf_status.battery_voltage;
+				log_msg.body.log_STAT.battery_current = buf_status.battery_current;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 				log_msg.body.log_STAT.battery_warning = (unsigned char) buf_status.battery_warning;
 				LOGBUFFER_WRITE_AND_COUNT(STAT);
@@ -1006,6 +1044,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_ATT.roll_rate = buf.att.rollspeed;
 				log_msg.body.log_ATT.pitch_rate = buf.att.pitchspeed;
 				log_msg.body.log_ATT.yaw_rate = buf.att.yawspeed;
+				log_msg.body.log_ATT.roll_acc = buf.att.rollacc;
+				log_msg.body.log_ATT.pitch_acc = buf.att.pitchacc;
+				log_msg.body.log_ATT.yaw_acc = buf.att.yawacc;
 				LOGBUFFER_WRITE_AND_COUNT(ATT);
 			}
 
@@ -1119,6 +1160,27 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
 				// TODO not implemented yet
+			}
+
+			/* --- CONTROL DEBUG --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_control_debug), subs.control_debug_sub, &buf.control_debug);
+
+				log_msg.msg_type = LOG_CTRL_MSG;
+				log_msg.body.log_CTRL.roll_p = buf.control_debug.roll_p;
+				log_msg.body.log_CTRL.roll_i = buf.control_debug.roll_i;
+				log_msg.body.log_CTRL.roll_d = buf.control_debug.roll_d;
+				log_msg.body.log_CTRL.roll_rate_p = buf.control_debug.roll_rate_p;
+				log_msg.body.log_CTRL.roll_rate_i = buf.control_debug.roll_rate_i;
+				log_msg.body.log_CTRL.roll_rate_d = buf.control_debug.roll_rate_d;
+				log_msg.body.log_CTRL.pitch_p = buf.control_debug.pitch_p;
+				log_msg.body.log_CTRL.pitch_i = buf.control_debug.pitch_i;
+				log_msg.body.log_CTRL.pitch_d = buf.control_debug.pitch_d;
+				log_msg.body.log_CTRL.pitch_rate_p = buf.control_debug.pitch_rate_p;
+				log_msg.body.log_CTRL.pitch_rate_i = buf.control_debug.pitch_rate_i;
+				log_msg.body.log_CTRL.pitch_rate_d = buf.control_debug.pitch_rate_d;
+
+				LOGBUFFER_WRITE_AND_COUNT(CTRL);
 			}
 
 			/* --- FLOW --- */
@@ -1295,10 +1357,10 @@ void handle_command(struct vehicle_command_s *cmd)
 	}
 }
 
-void handle_status(struct vehicle_status_s *status)
+void handle_status(struct actuator_armed_s *armed)
 {
-	if (status->flag_system_armed != flag_system_armed) {
-		flag_system_armed = status->flag_system_armed;
+	if (armed->armed != flag_system_armed) {
+		flag_system_armed = armed->armed;
 
 		if (flag_system_armed) {
 			sdlog2_start_log();

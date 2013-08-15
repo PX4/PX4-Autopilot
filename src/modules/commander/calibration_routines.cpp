@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file calibration_routines.c
+ * @file calibration_routines.cpp
  * Calibration routines implementations.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
@@ -217,3 +217,4 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 
 	return 0;
 }
+

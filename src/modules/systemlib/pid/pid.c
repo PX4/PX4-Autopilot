@@ -124,7 +124,7 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
  * @param dt
  * @return
  */
-__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt)
+__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt, float *ctrl_p, float *ctrl_i, float *ctrl_d)
 {
 	/*  error = setpoint - actual_position
 	 integral = integral + (error*dt)
@@ -195,6 +195,10 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 
 		pid->last_output = output;
 	}
+
+	*ctrl_p = (error * pid->kp);
+	*ctrl_i = (i * pid->ki);
+	*ctrl_d = (d * pid->kd);
 
 	return pid->last_output;
 }

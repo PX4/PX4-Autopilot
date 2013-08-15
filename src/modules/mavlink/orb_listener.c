@@ -272,19 +272,23 @@ l_vehicle_status(const struct listener *l)
 	orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
 
 	/* enable or disable HIL */
-	set_hil_on_off(v_status.flag_hil_enabled);
+	if (v_status.hil_state == HIL_STATE_ON)
+		set_hil_on_off(true);
+	else if (v_status.hil_state == HIL_STATE_OFF)
+		set_hil_on_off(false);
 
 	/* translate the current syste state to mavlink state and mode */
 	uint8_t mavlink_state = 0;
-	uint8_t mavlink_mode = 0;
-	get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
+	uint8_t mavlink_base_mode = 0;
+	uint32_t mavlink_custom_mode = 0;
+	get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 	/* send heartbeat */
 	mavlink_msg_heartbeat_send(chan,
 				   mavlink_system.type,
 				   MAV_AUTOPILOT_PX4,
-				   mavlink_mode,
-				   v_status.state_machine,
+				   mavlink_base_mode,
+				   mavlink_custom_mode,
 				   mavlink_state);
 }
 
@@ -470,8 +474,9 @@ l_actuator_outputs(const struct listener *l)
 
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
-			uint8_t mavlink_mode = 0;
-			get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
+			uint8_t mavlink_base_mode = 0;
+			uint32_t mavlink_custom_mode = 0;
+			get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 			/* HIL message as per MAVLink spec */
 
@@ -488,7 +493,7 @@ l_actuator_outputs(const struct listener *l)
 							      -1,
 							      -1,
 							      -1,
-							      mavlink_mode,
+							      mavlink_base_mode,
 							      0);
 
 			} else if (mavlink_system.type == MAV_TYPE_HEXAROTOR) {
@@ -502,7 +507,7 @@ l_actuator_outputs(const struct listener *l)
 							      ((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
 							      -1,
 							      -1,
-							      mavlink_mode,
+							      mavlink_base_mode,
 							      0);
 
 			} else if (mavlink_system.type == MAV_TYPE_OCTOROTOR) {
@@ -516,7 +521,7 @@ l_actuator_outputs(const struct listener *l)
 							      ((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
 							      ((act_outputs.output[6] - 900.0f) / 600.0f) / 2.0f,
 							      ((act_outputs.output[7] - 900.0f) / 600.0f) / 2.0f,
-							      mavlink_mode,
+							      mavlink_base_mode,
 							      0);
 
 			} else {
@@ -530,7 +535,7 @@ l_actuator_outputs(const struct listener *l)
 							      (act_outputs.output[5] - 1500.0f) / 500.0f,
 							      (act_outputs.output[6] - 1500.0f) / 500.0f,
 							      (act_outputs.output[7] - 1500.0f) / 500.0f,
-							      mavlink_mode,
+							      mavlink_base_mode,
 							      0);
 			}
 		}
@@ -673,7 +678,7 @@ uorb_receive_thread(void *arg)
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
-			mavlink_missionlib_send_gcs_string("[mavlink] No telemetry data for 1 s");
+			/* silent */
 
 		} else if (poll_ret < 0) {
 			mavlink_missionlib_send_gcs_string("[mavlink] ERROR reading uORB data");

@@ -158,7 +158,9 @@ volatile uint16_t	r_page_setup[] =
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
 					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
 					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
-					 PX4IO_P_SETUP_ARMING_IO_ARM_OK)
+					 PX4IO_P_SETUP_ARMING_IO_ARM_OK) | \
+					 PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM | \
+					 PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE
 #define PX4IO_P_SETUP_RATES_VALID	((1 << PX4IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -195,6 +197,30 @@ uint16_t		r_page_rc_input_config[PX4IO_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRI
  * Disable pulses as default.
  */
 uint16_t		r_page_servo_failsafe[PX4IO_SERVO_COUNT] = { 0 };
+
+/**
+ * PAGE 106
+ *
+ * minimum PWM values when armed
+ *
+ */
+uint16_t		r_page_servo_control_min[PX4IO_SERVO_COUNT] = { 900, 900, 900, 900, 900, 900, 900, 900 };
+
+/**
+ * PAGE 107
+ *
+ * maximum PWM values when armed
+ *
+ */
+uint16_t		r_page_servo_control_max[PX4IO_SERVO_COUNT] = { 2100, 2100, 2100, 2100, 2100, 2100, 2100, 2100 };
+
+/**
+ * PAGE 108
+ *
+ * idle PWM values for difficult ESCs
+ *
+ */
+uint16_t		r_page_servo_idle[PX4IO_SERVO_COUNT] = { 900, 900, 900, 900, 900, 900, 900, 900 };
 
 int
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
@@ -252,6 +278,75 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 			/* flag the failsafe values as custom */
 			r_setup_arming |= PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
+
+			offset++;
+			num_values--;
+			values++;
+		}
+		break;
+
+	case PX4IO_PAGE_CONTROL_MIN_PWM:
+
+		/* copy channel data */
+		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
+
+			if (*values == 0)
+				/* set to default */
+				r_page_servo_control_min[offset] = 900;
+
+			else if (*values > 1200)
+				r_page_servo_control_min[offset] = 1200;
+			else if (*values < 900)
+				r_page_servo_control_min[offset] = 900;
+			else
+				r_page_servo_control_min[offset] = *values;
+
+			offset++;
+			num_values--;
+			values++;
+		}
+		break;
+	
+	case PX4IO_PAGE_CONTROL_MAX_PWM:
+
+		/* copy channel data */
+		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
+
+			if (*values == 0)
+				/* set to default */
+				r_page_servo_control_max[offset] = 2100;
+
+			else if (*values > 2100)
+				r_page_servo_control_max[offset] = 2100;
+			else if (*values < 1800)
+				r_page_servo_control_max[offset] = 1800;
+			else
+				r_page_servo_control_max[offset] = *values;
+
+			offset++;
+			num_values--;
+			values++;
+		}
+		break;
+
+	case PX4IO_PAGE_IDLE_PWM:
+
+		/* copy channel data */
+		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
+
+			if (*values == 0)
+				/* set to default */
+				r_page_servo_idle[offset] = 0;
+
+			else if (*values < 900)
+				r_page_servo_idle[offset] = 900;
+			else if (*values > 2100)
+				r_page_servo_idle[offset] = 2100;
+			else
+				r_page_servo_idle[offset] = *values;
+
+			/* flag the failsafe values as custom */
+			r_setup_arming |= PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE;
 
 			offset++;
 			num_values--;
@@ -331,9 +426,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			 * so that an in-air reset of FMU can not lead to a
 			 * lockup of the IO arming state.
 			 */
-			if ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) && !(value & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
-				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
-			}
+
+			// XXX do not reset IO's safety state by FMU for now
+			// if ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) && !(value & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+			// 	r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
+			// }
 
 			r_setup_arming = value;
 
@@ -397,9 +494,8 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 	case PX4IO_PAGE_RC_CONFIG: {
 
-		/* do not allow a RC config change while fully armed */
-		if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) &&
-		    /* IO is armed */  (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
+		/* do not allow a RC config change while outputs armed */
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
 			break;
 		}
 
@@ -658,6 +754,15 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 		break;
 	case PX4IO_PAGE_FAILSAFE_PWM:
 		SELECT_PAGE(r_page_servo_failsafe);
+		break;
+	case PX4IO_PAGE_CONTROL_MIN_PWM:
+		SELECT_PAGE(r_page_servo_control_min);
+		break;
+	case PX4IO_PAGE_CONTROL_MAX_PWM:
+		SELECT_PAGE(r_page_servo_control_max);
+		break;
+	case PX4IO_PAGE_IDLE_PWM:
+		SELECT_PAGE(r_page_servo_idle);
 		break;
 
 	default:
