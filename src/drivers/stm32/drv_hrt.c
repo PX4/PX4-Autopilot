@@ -59,7 +59,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 #include <drivers/drv_hrt.h>
 
 #include "chip.h"
