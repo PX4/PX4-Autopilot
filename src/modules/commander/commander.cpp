@@ -1331,11 +1331,11 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, vehicle_gp
 
 		} else if (armed->ready_to_arm) {
 			/* ready to arm, blink at 2.5Hz */
-			if (leds_counter & 8) {
-				led_on(LED_AMBER);
+			if (leds_counter % 8 == 0) {
+				led_toggle(LED_AMBER);
 
 			} else {
-				led_off(LED_AMBER);
+				led_toggle(LED_AMBER);
 			}
 
 		} else {
@@ -1358,9 +1358,6 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, vehicle_gp
 	}
 
 	leds_counter++;
-
-	if (leds_counter >= 16)
-		leds_counter = 0;
 }
 
 void

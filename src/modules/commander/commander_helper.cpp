@@ -53,6 +53,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <drivers/drv_led.h>
+#include <drivers/drv_rgbled.h>
+
 
 #include "commander_helper.h"
 
@@ -136,9 +138,11 @@ void tune_stop()
 }
 
 static int leds;
+static int rgbleds;
 
 int led_init()
 {
+	/* first open normal LEDs */
 	leds = open(LED_DEVICE_PATH, 0);
 
 	if (leds < 0) {
@@ -146,9 +150,28 @@ int led_init()
 		return ERROR;
 	}
 
-	if (ioctl(leds, LED_ON, LED_BLUE) || ioctl(leds, LED_ON, LED_AMBER)) {
-		warnx("LED: ioctl fail\n");
+	/* the blue LED is only available on FMUv1 but not FMUv2 */
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+
+	if (ioctl(leds, LED_ON, LED_BLUE)) {
+		warnx("Blue LED: ioctl fail\n");
 		return ERROR;
+	}
+#endif
+
+	if (ioctl(leds, LED_ON, LED_AMBER)) {
+		warnx("Amber LED: ioctl fail\n");
+		return ERROR;
+	}
+
+	/* then try RGB LEDs, this can fail on FMUv1*/
+	rgbleds = open(RGBLED_DEVICE_PATH, 0);
+	if (rgbleds == -1) {
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+		errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+#else
+		warnx("No RGB LED found");
+#endif
 	}
 
 	return 0;
@@ -157,18 +180,15 @@ int led_init()
 void led_deinit()
 {
 	close(leds);
+
+	if (rgbleds != -1) {
+		close(rgbleds);
+	}
 }
 
 int led_toggle(int led)
 {
-	static int last_blue = LED_ON;
-	static int last_amber = LED_ON;
-
-	if (led == LED_BLUE) last_blue = (last_blue == LED_ON) ? LED_OFF : LED_ON;
-
-	if (led == LED_AMBER) last_amber = (last_amber == LED_ON) ? LED_OFF : LED_ON;
-
-	return ioctl(leds, ((led == LED_BLUE) ? last_blue : last_amber), led);
+	return ioctl(leds, LED_TOGGLE, led);
 }
 
 int led_on(int led)
@@ -179,6 +199,11 @@ int led_on(int led)
 int led_off(int led)
 {
 	return ioctl(leds, LED_OFF, led);
+}
+
+int rgbled_set_color(rgbled_color_t color) {
+
+	return ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)&color);
 }
 
 float battery_remaining_estimate_voltage(float voltage)
