@@ -57,6 +57,7 @@ __BEGIN_DECLS
 extern void led_init();
 extern void led_on(int led);
 extern void led_off(int led);
+extern void led_toggle(int led);
 __END_DECLS
 
 __EXPORT void led_init()
@@ -92,5 +93,23 @@ __EXPORT void led_off(int led)
 	{
 		/* Pull up to switch off */
 		stm32_gpiowrite(GPIO_LED2, true);
+	}
+}
+
+__EXPORT void led_toggle(int led)
+{
+	if (led == 0)
+	{
+		if (stm32_gpioread(GPIO_LED1))
+			stm32_gpiowrite(GPIO_LED1, false);
+		else
+			stm32_gpiowrite(GPIO_LED1, true);
+	}
+	if (led == 1)
+	{
+		if (stm32_gpioread(GPIO_LED2))
+			stm32_gpiowrite(GPIO_LED2, false);
+		else
+			stm32_gpiowrite(GPIO_LED2, true);
 	}
 }

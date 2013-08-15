@@ -54,6 +54,7 @@
 
 #define LED_ON			_IOC(_LED_BASE, 0)
 #define LED_OFF			_IOC(_LED_BASE, 1)
+#define LED_TOGGLE		_IOC(_LED_BASE, 2)
 
 __BEGIN_DECLS
 

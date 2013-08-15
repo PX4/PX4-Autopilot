@@ -52,6 +52,7 @@ __BEGIN_DECLS
 extern void led_init();
 extern void led_on(int led);
 extern void led_off(int led);
+extern void led_toggle(int led);
 __END_DECLS
 
 class LED : device::CDev
@@ -97,6 +98,11 @@ LED::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case LED_OFF:
 		led_off(arg);
 		break;
+
+	case LED_TOGGLE:
+		led_toggle(arg);
+		break;
+
 
 	default:
 		result = CDev::ioctl(filp, cmd, arg);
