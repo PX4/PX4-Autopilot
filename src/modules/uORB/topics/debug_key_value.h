@@ -47,6 +47,7 @@
 
 /**
  * @addtogroup topics
+ * @{
  */
 
 /**
