@@ -1336,6 +1336,7 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, vehicle_gp
 			/* ready to arm, blink at 2.5Hz */
 			if (leds_counter & 8) {
 				led_on(LED_AMBER);
+
 			} else {
 				led_off(LED_AMBER);
 			}
@@ -1574,6 +1575,7 @@ void *commander_low_prio_loop(void *arg)
 				tune_error();
 			}
 
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_PARAM_SAVE:
@@ -1586,36 +1588,43 @@ void *commander_low_prio_loop(void *arg)
 				tune_error();
 			}
 
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_GYRO_CALIBRATION:
 
 			do_gyro_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_MAG_CALIBRATION:
 
 			do_mag_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_ALTITUDE_CALIBRATION:
 
 			// do_baro_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_RC_CALIBRATION:
 
 			// do_rc_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_ACCEL_CALIBRATION:
 
 			do_accel_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_AIRSPEED_CALIBRATION:
 
 			do_airspeed_calibration(mavlink_fd);
+			low_prio_task = LOW_PRIO_TASK_NONE;
 			break;
 
 		case LOW_PRIO_TASK_NONE:
@@ -1624,8 +1633,6 @@ void *commander_low_prio_loop(void *arg)
 			usleep(100000);
 			break;
 		}
-
-		low_prio_task = LOW_PRIO_TASK_NONE;
 
 	}
 
