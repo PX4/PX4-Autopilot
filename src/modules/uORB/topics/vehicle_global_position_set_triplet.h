@@ -60,8 +60,8 @@
  */
 struct vehicle_global_position_set_triplet_s
 {
-	bool previous_valid;
-	bool next_valid;
+	bool previous_valid;					/**< flag indicating previous position is valid */
+	bool next_valid;					/**< flag indicating next position is valid */
 
 	struct vehicle_global_position_setpoint_s previous;
 	struct vehicle_global_position_setpoint_s current;

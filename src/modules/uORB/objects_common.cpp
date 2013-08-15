@@ -37,6 +37,10 @@
  * Common object definitions without a better home.
  */
 
+/**
+ * @defgroup topics List of all uORB topics.
+ */
+
 #include <nuttx/config.h>
 
 #include <drivers/drv_orb_dev.h>

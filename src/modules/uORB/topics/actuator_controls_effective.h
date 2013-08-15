@@ -53,10 +53,19 @@
 #define NUM_ACTUATOR_CONTROLS_EFFECTIVE		NUM_ACTUATOR_CONTROLS
 #define NUM_ACTUATOR_CONTROL_GROUPS_EFFECTIVE	NUM_ACTUATOR_CONTROL_GROUPS	/**< for sanity checking */
 
+/**
+ * @addtogroup topics
+ * @{
+ */
+
 struct actuator_controls_effective_s {
 	uint64_t timestamp;
 	float	control_effective[NUM_ACTUATOR_CONTROLS_EFFECTIVE];
 };
+
+/**
+ * @}
+ */
 
 /* actuator control sets; this list can be expanded as more controllers emerge */
 ORB_DECLARE(actuator_controls_effective_0);

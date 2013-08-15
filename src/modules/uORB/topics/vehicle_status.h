@@ -54,10 +54,6 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
-/**
- * @addtogroup topics @{
- */
-
 /* State Machine */
 typedef enum
 {
@@ -137,6 +133,10 @@ enum VEHICLE_BATTERY_WARNING {
     VEHICLE_BATTERY_WARNING_ALERT            /**< aleting of low voltage 2. stage */
 };
 
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 /**
  * state machine / state of vehicle.

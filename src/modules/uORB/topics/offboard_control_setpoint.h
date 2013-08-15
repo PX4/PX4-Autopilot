@@ -44,11 +44,6 @@
 #include "../uORB.h"
 
 /**
- * @addtogroup topics
- * @{
- */
-
-/**
  * Off-board control inputs.
  * 
  * Typically sent by a ground control station / joystick or by
@@ -65,6 +60,11 @@ enum OFFBOARD_CONTROL_MODE
 	OFFBOARD_CONTROL_MODE_ATT_YAW_POS = 6,
 	OFFBOARD_CONTROL_MODE_MULTIROTOR_SIMPLE = 7, /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
 };
+
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 struct offboard_control_setpoint_s {
 	uint64_t timestamp;

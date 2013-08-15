@@ -52,10 +52,6 @@
 #include "../uORB.h"
 
 /**
- * @addtogroup topics @{
- */
-
-/**
  * The number of ESCs supported.
  * Current (Q2/2013) we support 8 ESCs,
  */
@@ -76,7 +72,12 @@ enum ESC_CONNECTION_TYPE {
 };
 
 /**
- *
+ * @addtogroup topics
+ * @{
+ */
+
+/**
+ * Electronic speed controller status.
  */
 struct esc_status_s
 {

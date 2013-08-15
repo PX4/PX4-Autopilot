@@ -52,11 +52,20 @@
 #define NUM_ACTUATOR_OUTPUTS		16
 #define NUM_ACTUATOR_OUTPUT_GROUPS	4	/**< for sanity checking */
 
+/**
+ * @addtogroup topics
+ * @{
+ */
+
 struct actuator_outputs_s {
 	uint64_t timestamp;				/**< output timestamp in us since system boot */
 	float	output[NUM_ACTUATOR_OUTPUTS];		/**< output data, in natural output units */
 	int noutputs;					/**< valid outputs */
 };
+
+/**
+ * @}
+ */
 
 /* actuator output sets; this list can be expanded as more drivers emerge */
 ORB_DECLARE(actuator_outputs_0);

@@ -46,11 +46,6 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
-/**
- * @addtogroup topics
- * @{
- */
-
 enum NAV_CMD {
 	NAV_CMD_WAYPOINT = 0,
 	NAV_CMD_LOITER_TURN_COUNT,
@@ -60,6 +55,11 @@ enum NAV_CMD {
 	NAV_CMD_LAND,
 	NAV_CMD_TAKEOFF
 };
+
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 /**
  * Global position setpoint in WGS84 coordinates.

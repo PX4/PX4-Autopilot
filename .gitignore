@@ -27,3 +27,4 @@ mavlink/include/mavlink/v0.9/
 /NuttX
 /Documentation/doxy.log
 /Documentation/html/
+/Documentation/doxygen*objdb*tmp

@@ -46,16 +46,16 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
-/**
- * @addtogroup topics
- * @{
- */
-
 enum MAGNETOMETER_MODE {
 	MAGNETOMETER_MODE_NORMAL = 0,
 	MAGNETOMETER_MODE_POSITIVE_BIAS,
 	MAGNETOMETER_MODE_NEGATIVE_BIAS
 };
+
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 /**
  * Sensor readings in raw and SI-unit form.

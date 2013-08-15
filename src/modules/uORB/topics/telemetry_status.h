@@ -50,6 +50,11 @@ enum TELEMETRY_STATUS_RADIO_TYPE {
     TELEMETRY_STATUS_RADIO_TYPE_WIRE
 };
 
+/**
+ * @addtogroup topics
+ * @{
+ */
+
 struct telemetry_status_s {
 	uint64_t timestamp;
     enum TELEMETRY_STATUS_RADIO_TYPE type;  /**< type of the radio hardware     */
@@ -61,6 +66,10 @@ struct telemetry_status_s {
     uint8_t remote_noise;       /**< remote background noise level              */
     uint8_t txbuf;              /**< how full the tx buffer is as a percentage  */
 };
+
+/**
+ * @}
+ */
 
 ORB_DECLARE(telemetry_status);
 
