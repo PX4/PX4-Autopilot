@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file rgbled.h
+ * @file drv_rgbled.h
  *
  * RGB led device API
  */
@@ -69,6 +69,9 @@
 /** set constant RGB values */
 #define RGBLED_SET			_RGBLEDIOC(4)
 
+/** set color */
+#define RGBLED_SET_COLOR		_RGBLEDIOC(5)
+
 /* 
   structure passed to RGBLED_SET ioctl()
   Note that the driver scales the brightness to 0 to 255, regardless
@@ -79,3 +82,22 @@ struct RGBLEDSet {
 	uint8_t green;
 	uint8_t blue;
 };
+
+typedef enum {
+	RGBLED_COLOR_OFF,
+	RGBLED_COLOR_RED,
+	RGBLED_COLOR_YELLOW,
+	RGBLED_COLOR_PURPLE,
+	RGBLED_COLOR_GREEN,
+	RGBLED_COLOR_BLUE,
+	RGBLED_COLOR_WHITE,
+	RGBLED_COLOR_AMBER,
+} rgbled_color_t;
+
+typedef enum {
+	RGBLED_BLINK_ON,
+	RGBLED_BLINK_FAST,
+	RGBLED_BLINK_NORMAL,
+	RGBLED_BLINK_SLOW,
+	RGBLED_BLINK_OFF
+} rgbled_blinkmode_t;

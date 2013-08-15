@@ -61,10 +61,10 @@
 
 #include <board_config.h>
 
-#include "device/rgbled.h"
+#include <drivers/drv_rgbled.h>
 
-#define LED_ONTIME 120
-#define LED_OFFTIME 120
+#define RGBLED_ONTIME 120
+#define RGBLED_OFFTIME 120
 
 #define ADDR			PX4_I2C_OBDEV_LED	/**< I2C adress of TCA62724FMG */
 #define SUB_ADDR_START		0x01	/**< write everything (with auto-increment) */
@@ -78,10 +78,10 @@
 
 
 enum ledModes {
-	LED_MODE_TEST,
-	LED_MODE_SYSTEMSTATE,
-	LED_MODE_OFF,
-	LED_MODE_RGB
+	RGBLED_MODE_TEST,
+	RGBLED_MODE_SYSTEMSTATE,
+	RGBLED_MODE_OFF,
+	RGBLED_MODE_RGB
 };
 
 class RGBLED : public device::I2C
@@ -98,35 +98,18 @@ public:
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 private:
-
-	enum ledColors {
-		LED_COLOR_OFF,
-		LED_COLOR_RED,
-		LED_COLOR_YELLOW,
-		LED_COLOR_PURPLE,
-		LED_COLOR_GREEN,
-		LED_COLOR_BLUE,
-		LED_COLOR_WHITE,
-		LED_COLOR_AMBER,
-	};
-
-	enum ledBlinkModes {
-		LED_BLINK_ON,
-		LED_BLINK_OFF
-	};
-
 	work_s			_work;
 
-	int led_colors[8];
-	int led_blink;
+	rgbled_color_t		_led_colors[8];
+	rgbled_blinkmode_t	_led_blinkmode;
 
 	// RGB values for MODE_RGB 
-	struct RGBLEDSet rgb;
+	struct RGBLEDSet 	_rgb;
 
-	int mode;
-	int running;
+	int			_mode;
+	int			_running;
 
-	void 			setLEDColor(int ledcolor);
+	void 			setLEDColor(rgbled_color_t ledcolor);
 	static void		led_trampoline(void *arg);
 	void			led();
 
@@ -147,10 +130,10 @@ extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
 	I2C("rgbled", RGBLED_DEVICE_PATH, bus, rgbled, 100000),
-	led_colors({0,0,0,0,0,0,0,0}),
-	led_blink(LED_BLINK_OFF),
-	mode(LED_MODE_OFF),
-	running(false)
+	_led_colors({RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF}),
+	_led_blinkmode(RGBLED_BLINK_OFF),
+	_mode(RGBLED_MODE_OFF),
+	_running(false)
 {
 	memset(&_work, 0, sizeof(_work));
 }
@@ -179,25 +162,25 @@ int
 RGBLED::setMode(enum ledModes new_mode)
 {
 	switch (new_mode) {
-		case LED_MODE_SYSTEMSTATE:
-		case LED_MODE_TEST:
-		case LED_MODE_RGB:
-			mode = new_mode;
-			if (!running) {
-				running = true;
+		case RGBLED_MODE_SYSTEMSTATE:
+		case RGBLED_MODE_TEST:
+		case RGBLED_MODE_RGB:
+			_mode = new_mode;
+			if (!_running) {
+				_running = true;
 				set_on(true);
 				work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
 			}
 			break;
 
-		case LED_MODE_OFF:
+		case RGBLED_MODE_OFF:
 
 		default:
-			if (running) {
-				running = false;
+			if (_running) {
+				_running = false;
 				set_on(false);
 			}
-			mode = LED_MODE_OFF;
+			_mode = RGBLED_MODE_OFF;
 			break;
 	}
 
@@ -244,9 +227,13 @@ RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 	case RGBLED_SET: {
 		/* set the specified RGB values */
-		memcpy(&rgb, (struct RGBLEDSet *)arg, sizeof(rgb));
-		setMode(LED_MODE_RGB);
+		memcpy(&_rgb, (struct RGBLEDSet *)arg, sizeof(_rgb));
+		setMode(RGBLED_MODE_RGB);
 		return OK;
+	}
+	case RGBLED_SET_COLOR: {
+		/* set the specified color name */
+		setLEDColor((rgbled_color_t)arg);
 	}
 
 	default:
@@ -271,42 +258,42 @@ void
 RGBLED::led()
 {
 	static int led_thread_runcount=0;
-	static int led_interval = 1000;
+	static int _led_interval = 1000;
 
-	switch (mode) {
-		case LED_MODE_TEST:
+	switch (_mode) {
+		case RGBLED_MODE_TEST:
 			/* Demo LED pattern for now */
-			led_colors[0] = LED_COLOR_YELLOW;
-			led_colors[1] = LED_COLOR_AMBER;
-			led_colors[2] = LED_COLOR_RED;
-			led_colors[3] = LED_COLOR_PURPLE;
-			led_colors[4] = LED_COLOR_BLUE;
-			led_colors[5] = LED_COLOR_GREEN;
-			led_colors[6] = LED_COLOR_WHITE;
-			led_colors[7] = LED_COLOR_OFF;
-			led_blink = LED_BLINK_ON;
+			_led_colors[0] = RGBLED_COLOR_YELLOW;
+			_led_colors[1] = RGBLED_COLOR_AMBER;
+			_led_colors[2] = RGBLED_COLOR_RED;
+			_led_colors[3] = RGBLED_COLOR_PURPLE;
+			_led_colors[4] = RGBLED_COLOR_BLUE;
+			_led_colors[5] = RGBLED_COLOR_GREEN;
+			_led_colors[6] = RGBLED_COLOR_WHITE;
+			_led_colors[7] = RGBLED_COLOR_OFF;
+			_led_blinkmode = RGBLED_BLINK_ON;
 			break;
 
-		case LED_MODE_SYSTEMSTATE:
+		case RGBLED_MODE_SYSTEMSTATE:
 			/* XXX TODO set pattern */
-			led_colors[0] = LED_COLOR_OFF;
-			led_colors[1] = LED_COLOR_OFF;
-			led_colors[2] = LED_COLOR_OFF;
-			led_colors[3] = LED_COLOR_OFF;
-			led_colors[4] = LED_COLOR_OFF;
-			led_colors[5] = LED_COLOR_OFF;
-			led_colors[6] = LED_COLOR_OFF;
-			led_colors[7] = LED_COLOR_OFF;
-			led_blink = LED_BLINK_OFF;
+			_led_colors[0] = RGBLED_COLOR_OFF;
+			_led_colors[1] = RGBLED_COLOR_OFF;
+			_led_colors[2] = RGBLED_COLOR_OFF;
+			_led_colors[3] = RGBLED_COLOR_OFF;
+			_led_colors[4] = RGBLED_COLOR_OFF;
+			_led_colors[5] = RGBLED_COLOR_OFF;
+			_led_colors[6] = RGBLED_COLOR_OFF;
+			_led_colors[7] = RGBLED_COLOR_OFF;
+			_led_blinkmode = RGBLED_BLINK_OFF;
 
 			break;
 
-		case LED_MODE_RGB:
-			set_rgb(rgb.red, rgb.green, rgb.blue);
-			running = false;
+		case RGBLED_MODE_RGB:
+			set_rgb(_rgb.red, _rgb.green, _rgb.blue);
+			_running = false;
 			return;
 
-		case LED_MODE_OFF:
+		case RGBLED_MODE_OFF:
 		default:
 			return;
 			break;
@@ -314,20 +301,20 @@ RGBLED::led()
 
 
 	if (led_thread_runcount & 1) {
-		if (led_blink == LED_BLINK_ON)
-			setLEDColor(LED_COLOR_OFF);
-		led_interval = LED_OFFTIME;
+		if (_led_blinkmode == RGBLED_BLINK_ON)
+			setLEDColor(RGBLED_COLOR_OFF);
+		_led_interval = RGBLED_OFFTIME;
 	} else {
-		setLEDColor(led_colors[(led_thread_runcount/2) % 8]);
-		led_interval = LED_ONTIME;
+		setLEDColor(_led_colors[(led_thread_runcount/2) % 8]);
+		_led_interval = RGBLED_ONTIME;
 	}
 
 	led_thread_runcount++;
 
-	if(running) {
+	if(_running) {
 		/* re-queue ourselves to run again later */
-		work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, led_interval);
-	} else if (mode == LED_MODE_RGB) {
+		work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, _led_interval);
+	} else if (_mode == RGBLED_MODE_RGB) {
 		// no need to run again until the colour changes
 		set_on(true);
 	} else {
@@ -335,30 +322,30 @@ RGBLED::led()
 	}
 }
 
-void RGBLED::setLEDColor(int ledcolor) {
+void RGBLED::setLEDColor(rgbled_color_t ledcolor) {
 	switch (ledcolor) {
-		case LED_COLOR_OFF:	// off
+		case RGBLED_COLOR_OFF:	// off
 			set_rgb(0,0,0);
 			break;
-		case LED_COLOR_RED:	// red
+		case RGBLED_COLOR_RED:	// red
 			set_rgb(255,0,0);
 			break;
-		case LED_COLOR_YELLOW:	// yellow
+		case RGBLED_COLOR_YELLOW:	// yellow
 			set_rgb(255,70,0);
 			break;
-		case LED_COLOR_PURPLE:	// purple
+		case RGBLED_COLOR_PURPLE:	// purple
 			set_rgb(255,0,255);
 			break;
-		case LED_COLOR_GREEN:	// green
+		case RGBLED_COLOR_GREEN:	// green
 			set_rgb(0,255,0);
 			break;
-		case LED_COLOR_BLUE:	// blue
+		case RGBLED_COLOR_BLUE:	// blue
 			set_rgb(0,0,255);
 			break;
-		case LED_COLOR_WHITE:	// white
+		case RGBLED_COLOR_WHITE:	// white
 			set_rgb(255,255,255);
 			break;
-		case LED_COLOR_AMBER:	// amber
+		case RGBLED_COLOR_AMBER:	// amber
 			set_rgb(255,20,0);
 			break;
 	}
@@ -499,12 +486,12 @@ rgbled_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "test")) {
-		g_rgbled->setMode(LED_MODE_TEST);
+		g_rgbled->setMode(RGBLED_MODE_TEST);
 		exit(0);
 	}
 
 	if (!strcmp(verb, "systemstate")) {
-		g_rgbled->setMode(LED_MODE_SYSTEMSTATE);
+		g_rgbled->setMode(RGBLED_MODE_SYSTEMSTATE);
 		exit(0);
 	}
 
@@ -514,7 +501,7 @@ rgbled_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "off")) {
-		g_rgbled->setMode(LED_MODE_OFF);
+		g_rgbled->setMode(RGBLED_MODE_OFF);
 		exit(0);
 	}
 
