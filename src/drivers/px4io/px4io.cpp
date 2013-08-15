@@ -870,7 +870,7 @@ PX4IO::io_set_arming_state()
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-	_system_armed = vstatus.flag_system_armed;
+	_system_armed = armed.armed;
 
 	if (armed.armed && !armed.lockdown) {
 		set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
