@@ -224,7 +224,7 @@ struct vehicle_status_s
 	uint32_t onboard_control_sensors_enabled;
 	uint32_t onboard_control_sensors_health;
 	
-	float load;
+	float load;					/**< processor load from 0 to 1 */
 	float battery_voltage;
 	float battery_current;
 	float battery_remaining;

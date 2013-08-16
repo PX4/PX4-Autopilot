@@ -862,7 +862,7 @@ int commander_thread_main(int argc, char *argv[])
 			uint64_t interval_runtime = system_load.tasks[0].total_runtime - last_idle_time;
 
 			if (last_idle_time > 0)
-				status.load = 1000 - (interval_runtime / 1000);	//system load is time spent in non-idle
+				status.load = 1.0f - ((float)interval_runtime / 1e6f);	//system load is time spent in non-idle
 
 			last_idle_time = system_load.tasks[0].total_runtime;
 		}

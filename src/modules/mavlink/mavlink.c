@@ -660,7 +660,7 @@ int mavlink_thread_main(int argc, char *argv[])
 						    v_status.onboard_control_sensors_present,
 						    v_status.onboard_control_sensors_enabled,
 						    v_status.onboard_control_sensors_health,
-						    v_status.load,
+						    v_status.load * 1000.0f,
 						    v_status.battery_voltage * 1000.0f,
 						    v_status.battery_current * 1000.0f,
 						    v_status.battery_remaining,
