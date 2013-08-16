@@ -260,6 +260,13 @@ private:
 	 * @return		OK if the value can be supported.
 	 */
 	int			set_samplerate(unsigned frequency);
+
+	/**
+	 * Self test
+	 *
+	 * @return 0 on success, 1 on failure
+	 */
+	 int 			self_test();
 };
 
 /* helper macro for handling report buffer indices */
@@ -519,6 +526,9 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCGRANGE:
 		return _current_range;
 
+	case GYROIOCSELFTEST:
+		return self_test();
+
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
@@ -713,7 +723,8 @@ L3GD20::measure()
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_gyro), _gyro_topic, report);
+	if (_gyro_topic > 0)
+		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, report);
 
 	/* stop the perf counter */
 	perf_end(_sample_perf);
@@ -725,6 +736,28 @@ L3GD20::print_info()
 	perf_print_counter(_sample_perf);
 	printf("report queue:   %u (%u/%u @ %p)\n",
 	       _num_reports, _oldest_report, _next_report, _reports);
+}
+
+int
+L3GD20::self_test()
+{
+	/* evaluate gyro offsets, complain if offset -> zero or larger than 6 dps */
+	if (fabsf(_gyro_scale.x_offset) > 0.1f || fabsf(_gyro_scale.x_offset) < 0.000001f)
+		return 1;
+	if (fabsf(_gyro_scale.x_scale - 1.0f) > 0.3f)
+		return 1;
+
+	if (fabsf(_gyro_scale.y_offset) > 0.1f || fabsf(_gyro_scale.y_offset) < 0.000001f)
+		return 1;
+	if (fabsf(_gyro_scale.y_scale - 1.0f) > 0.3f)
+		return 1;
+
+	if (fabsf(_gyro_scale.z_offset) > 0.1f || fabsf(_gyro_scale.z_offset) < 0.000001f)
+		return 1;
+	if (fabsf(_gyro_scale.z_scale - 1.0f) > 0.3f)
+		return 1;
+
+	return 0;
 }
 
 /**
