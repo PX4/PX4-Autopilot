@@ -55,10 +55,19 @@
 /* control sets with pre-defined applications */
 #define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
 
+/**
+ * @addtogroup topics
+ * @{
+ */
+
 struct actuator_controls_s {
 	uint64_t timestamp;
 	float	control[NUM_ACTUATOR_CONTROLS];
 };
+
+/**
+ * @}
+ */
 
 /* actuator control sets; this list can be expanded as more controllers emerge */
 ORB_DECLARE(actuator_controls_0);
