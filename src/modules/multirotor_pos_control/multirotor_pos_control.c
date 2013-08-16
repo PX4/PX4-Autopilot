@@ -221,10 +221,10 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	hrt_abstime home_alt_t = 0;
 	uint64_t local_home_timestamp = 0;
 
-	static PID_t xy_pos_pids[2];
-	static PID_t xy_vel_pids[2];
-	static PID_t z_pos_pid;
-	static thrust_pid_t z_vel_pid;
+	PID_t xy_pos_pids[2];
+	PID_t xy_vel_pids[2];
+	PID_t z_pos_pid;
+	thrust_pid_t z_vel_pid;
 
 	thread_running = true;
 
@@ -238,7 +238,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		pid_init(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.tilt_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 	}
 
-	pid_init(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
+	pid_init(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max, PID_MODE_DERIVATIV_SET, 0.02f);
 	thrust_pid_init(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 
 	int paramcheck_counter = 0;
@@ -247,9 +247,9 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	while (!thread_should_exit) {
 		orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 
-		/* check parameters at 1 Hz*/
-		if (--paramcheck_counter <= 0) {
-			paramcheck_counter = 50;
+		/* check parameters at 1 Hz */
+		if (++paramcheck_counter >= 50) {
+			paramcheck_counter = 0;
 			bool param_updated;
 			orb_check(param_sub, &param_updated);
 
@@ -441,14 +441,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID(vehicle_global_velocity_setpoint), global_vel_sp_pub, &global_vel_sp);
 			// TODO subcrive to velocity setpoint if altitude/position control disabled
 
-			if (control_mode.flag_control_velocity_enabled) {
+			if (control_mode.flag_control_climb_rate_enabled || control_mode.flag_control_velocity_enabled) {
 				/* run velocity controllers, calculate thrust vector with attitude-thrust compensation */
 				float thrust_sp[3] = { 0.0f, 0.0f, 0.0f };
-				if (control_mode.flag_control_altitude_enabled) {
+				if (control_mode.flag_control_climb_rate_enabled) {
 					thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, local_pos.vz, dt, att.R[2][2]);
 					att_sp.thrust = -thrust_sp[2];
 				}
-				if (control_mode.flag_control_position_enabled) {
+				if (control_mode.flag_control_velocity_enabled) {
 					/* calculate thrust set point in NED frame */
 					thrust_sp[0] = pid_calculate(&xy_vel_pids[0], global_vel_sp.vx, local_pos.vx, 0.0f, dt);
 					thrust_sp[1] = pid_calculate(&xy_vel_pids[1], global_vel_sp.vy, local_pos.vy, 0.0f, dt);

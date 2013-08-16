@@ -75,6 +75,7 @@ struct vehicle_local_position_s
 	float home_alt;			/**< Altitude in meters									LOGME */
 	float home_hdg; 		/**< Compass heading in radians -PI..+PI.					  */
 
+	bool landed;			/**< true if vehicle is landed */
 };
 
 /**

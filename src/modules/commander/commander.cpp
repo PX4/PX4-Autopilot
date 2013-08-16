@@ -122,7 +122,7 @@ extern struct system_load_s system_load;
 #define GPS_QUALITY_GOOD_HYSTERIS_TIME_MS 5000
 #define GPS_QUALITY_GOOD_COUNTER_LIMIT (GPS_QUALITY_GOOD_HYSTERIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define LOCAL_POSITION_TIMEOUT 1000000 /**< consider the local position estimate invalid after 1s */
+#define POSITION_TIMEOUT 1000000 /**< consider the local position estimate invalid after 1s */
 
 #define PRINT_INTERVAL	5000000
 #define PRINT_MODE_REJECT_INTERVAL	2000000
@@ -353,27 +353,42 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			break;
 		}
 
-	case VEHICLE_CMD_COMPONENT_ARM_DISARM:
+	case VEHICLE_CMD_NAV_TAKEOFF: {
+		transition_result_t nav_res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_TAKEOFF, control_mode);
+		if (nav_res == TRANSITION_CHANGED) {
+			mavlink_log_info(mavlink_fd, "[cmd] TAKEOFF on command");
+		}
+
+		if (nav_res != TRANSITION_DENIED) {
+			result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+		} else {
+			result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+		}
 		break;
+	}
 
 	case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
-			if (is_safe(status, safety, armed)) {
+		if (is_safe(status, safety, armed)) {
 
-				if (((int)(cmd->param1)) == 1) {
-					/* reboot */
-					up_systemreset();
-				} else if (((int)(cmd->param1)) == 3) {
-					/* reboot to bootloader */
+			if (((int)(cmd->param1)) == 1) {
+				/* reboot */
+				up_systemreset();
 
-					// XXX implement
-					result = VEHICLE_CMD_RESULT_UNSUPPORTED;
-				} else {
-					result = VEHICLE_CMD_RESULT_DENIED;
-				}
-			
+			} else if (((int)(cmd->param1)) == 3) {
+				/* reboot to bootloader */
+
+				// XXX implement
+				result = VEHICLE_CMD_RESULT_UNSUPPORTED;
+
 			} else {
 				result = VEHICLE_CMD_RESULT_DENIED;
 			}
+
+		} else {
+			result = VEHICLE_CMD_RESULT_DENIED;
+		}
+
 		break;
 
 	case VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
@@ -519,6 +534,7 @@ int commander_thread_main(int argc, char *argv[])
 	orb_advert_t status_pub;
 	/* make sure we are in preflight state */
 	memset(&status, 0, sizeof(status));
+	status.condition_landed = true;	// initialize to safe value
 
 	/* armed topic */
 	struct actuator_armed_s armed;
@@ -760,6 +776,14 @@ int commander_thread_main(int argc, char *argv[])
 			last_diff_pres_time = diff_pres.timestamp;
 		}
 
+		/* Check for valid airspeed/differential pressure measurements */
+		if (t - last_diff_pres_time < 2000000 && t > 2000000) {
+			status.condition_airspeed_valid = true;
+
+		} else {
+			status.condition_airspeed_valid = false;
+		}
+
 		orb_check(cmd_sub, &updated);
 
 		if (updated) {
@@ -785,6 +809,20 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
 		}
 
+		/* set the condition to valid if there has recently been a global position estimate */
+		if (t - global_position.timestamp < POSITION_TIMEOUT && t > POSITION_TIMEOUT && global_position.valid) {
+			if (!status.condition_global_position_valid) {
+				status.condition_global_position_valid = true;
+				status_changed = true;
+			}
+
+		} else {
+			if (status.condition_global_position_valid) {
+				status.condition_global_position_valid = false;
+				status_changed = true;
+			}
+		}
+
 		/* update local position estimate */
 		orb_check(local_position_sub, &updated);
 
@@ -794,7 +832,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* set the condition to valid if there has recently been a local position estimate */
-		if (t - local_position.timestamp < LOCAL_POSITION_TIMEOUT) {
+		if (t - local_position.timestamp < POSITION_TIMEOUT && t > POSITION_TIMEOUT && local_position.valid) {
 			if (!status.condition_local_position_valid) {
 				status.condition_local_position_valid = true;
 				status_changed = true;
@@ -919,36 +957,6 @@ int commander_thread_main(int argc, char *argv[])
 		 * The flag_vector_flight_mode_ok flag indicates that a minimum
 		 * set of position measurements is available.
 		 */
-
-		/* store current state to reason later about a state change */
-		// bool vector_flight_mode_ok = current_status.flag_vector_flight_mode_ok;
-		bool global_pos_valid = status.condition_global_position_valid;
-		bool local_pos_valid = status.condition_local_position_valid;
-		bool airspeed_valid = status.condition_airspeed_valid;
-
-
-		/* check for global or local position updates, set a timeout of 2s */
-		if (t - global_position.timestamp < 2000000 && t > 2000000 && global_position.valid) {
-			status.condition_global_position_valid = true;
-
-		} else {
-			status.condition_global_position_valid = false;
-		}
-
-		if (t - local_position.timestamp < 2000000 && t > 2000000 && local_position.valid) {
-			status.condition_local_position_valid = true;
-
-		} else {
-			status.condition_local_position_valid = false;
-		}
-
-		/* Check for valid airspeed/differential pressure measurements */
-		if (t - last_diff_pres_time < 2000000 && t > 2000000) {
-			status.condition_airspeed_valid = true;
-
-		} else {
-			status.condition_airspeed_valid = false;
-		}
 
 		orb_check(gps_sub, &updated);
 
@@ -1083,6 +1091,7 @@ int commander_thread_main(int argc, char *argv[])
 					} else {
 						mavlink_log_info(mavlink_fd, "[cmd] DISARMED by RC");
 					}
+
 				} else if (res == TRANSITION_DENIED) {
 					/* DENIED here indicates safety switch not pressed */
 
@@ -1536,8 +1545,10 @@ check_navigation_state_machine(struct vehicle_status_s *current_status, struct v
 			break;
 
 		case MAIN_STATE_AUTO:
-			if (current_status->navigation_state != NAVIGATION_STATE_AUTO_TAKEOFF) {
+			if (current_status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 				/* don't act while taking off */
+				res = TRANSITION_NOT_CHANGED;
+			} else {
 				if (current_status->condition_landed) {
 					/* if landed: transitions only to AUTO_READY are allowed */
 					res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_READY, control_mode);
@@ -1545,20 +1556,27 @@ check_navigation_state_machine(struct vehicle_status_s *current_status, struct v
 					break;
 
 				} else {
-					/* if not landed: act depending on switches */
-					if (current_status->return_switch == RETURN_SWITCH_RETURN) {
-						/* RTL */
-						res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_RTL, control_mode);
-
-					} else {
-						if (current_status->mission_switch == MISSION_SWITCH_MISSION) {
-							/* MISSION */
-							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
+					/* if not landed: */
+					if (current_status->rc_signal_found_once && !current_status->rc_signal_lost) {
+						/* act depending on switches when manual control enabled */
+						if (current_status->return_switch == RETURN_SWITCH_RETURN) {
+							/* RTL */
+							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_RTL, control_mode);
 
 						} else {
-							/* LOITER */
-							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+							if (current_status->mission_switch == MISSION_SWITCH_MISSION) {
+								/* MISSION */
+								res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
+
+							} else {
+								/* LOITER */
+								res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+							}
 						}
+
+					} else {
+						/* always switch to loiter in air when no RC control */
+						res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
 					}
 				}
 			}

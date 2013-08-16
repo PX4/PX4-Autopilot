@@ -250,12 +250,12 @@ mc_thread_main(int argc, char *argv[])
 
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
 						if (control_mode.failsave_highlevel) {
-							if (!control_mode.flag_control_position_enabled) {
+							if (!control_mode.flag_control_velocity_enabled) {
 								/* Don't reset attitude setpoint in position control mode, it's handled by position controller. */
 								att_sp.roll_body = 0.0f;
 								att_sp.pitch_body = 0.0f;
 
-								if (!control_mode.flag_control_altitude_enabled) {
+								if (!control_mode.flag_control_climb_rate_enabled) {
 									/* Don't touch throttle in modes with altitude hold, it's handled by position controller.
 									 *
 									 * Only go to failsafe throttle if last known throttle was
@@ -309,12 +309,12 @@ mc_thread_main(int argc, char *argv[])
 								control_yaw_position = true;
 							}
 
-							if (!control_mode.flag_control_position_enabled) {
+							if (!control_mode.flag_control_velocity_enabled) {
 								/* don't update attitude setpoint in position control mode */
 								att_sp.roll_body = manual.roll;
 								att_sp.pitch_body = manual.pitch;
 
-								if (!control_mode.flag_control_position_enabled) {
+								if (!control_mode.flag_control_climb_rate_enabled) {
 									/* don't set throttle in altitude hold modes */
 									att_sp.thrust = manual.throttle;
 								}

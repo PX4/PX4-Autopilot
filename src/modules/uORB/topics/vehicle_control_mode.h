@@ -75,9 +75,10 @@ struct vehicle_control_mode_s
 	//bool flag_auto_enabled;
 	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
-	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
+	bool flag_control_velocity_enabled;		/**< true if horisontal speed (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 	bool flag_control_altitude_enabled;		/**< true if altitude is controlled */
+	bool flag_control_climb_rate_enabled;		/**< true if climb rate is controlled */
 
 	bool failsave_lowlevel;				/**< Set to true if low-level failsafe mode is enabled */
 	bool failsave_highlevel;			/**< Set to true if high-level failsafe mode is enabled */

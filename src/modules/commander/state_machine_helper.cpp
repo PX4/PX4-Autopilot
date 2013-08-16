@@ -109,9 +109,8 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 
 			/* allow arming from STANDBY and IN-AIR-RESTORE */
 			if ((status->arming_state == ARMING_STATE_STANDBY
-			    || status->arming_state == ARMING_STATE_IN_AIR_RESTORE)
-			    && (!safety->safety_switch_available || safety->safety_off)) /* only allow arming if safety is off */
-			{
+			     || status->arming_state == ARMING_STATE_IN_AIR_RESTORE)
+			    && (!safety->safety_switch_available || safety->safety_off)) { /* only allow arming if safety is off */
 				ret = TRANSITION_CHANGED;
 				armed->armed = true;
 				armed->ready_to_arm = false;
@@ -182,6 +181,7 @@ bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s
 	// 3) Safety switch is present AND engaged -> actuators locked
 	if (!armed->armed || (armed->armed && armed->lockdown) || (safety->safety_switch_available && !safety->safety_off)) {
 		return true;
+
 	} else {
 		return false;
 	}
@@ -284,6 +284,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_velocity_enabled = false;
 			control_mode->flag_control_position_enabled = false;
 			control_mode->flag_control_altitude_enabled = false;
+			control_mode->flag_control_climb_rate_enabled = false;
 			control_mode->flag_control_manual_enabled = false;
 			break;
 
@@ -294,6 +295,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_velocity_enabled = false;
 			control_mode->flag_control_position_enabled = false;
 			control_mode->flag_control_altitude_enabled = false;
+			control_mode->flag_control_climb_rate_enabled = false;
 			control_mode->flag_control_manual_enabled = true;
 			break;
 
@@ -304,6 +306,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_velocity_enabled = false;
 			control_mode->flag_control_position_enabled = false;
 			control_mode->flag_control_altitude_enabled = false;
+			control_mode->flag_control_climb_rate_enabled = false;
 			control_mode->flag_control_manual_enabled = true;
 			break;
 
@@ -314,6 +317,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_velocity_enabled = false;
 			control_mode->flag_control_position_enabled = false;
 			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_climb_rate_enabled = true;
 			control_mode->flag_control_manual_enabled = true;
 			break;
 
@@ -324,80 +328,68 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_velocity_enabled = true;
 			control_mode->flag_control_position_enabled = true;
 			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_climb_rate_enabled = true;
 			control_mode->flag_control_manual_enabled = true;
 			break;
 
 		case NAVIGATION_STATE_AUTO_READY:
 			ret = TRANSITION_CHANGED;
-			control_mode->flag_control_rates_enabled = true;
-			control_mode->flag_control_attitude_enabled = true;
-			control_mode->flag_control_velocity_enabled = true;
-			control_mode->flag_control_position_enabled = true;
-			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_rates_enabled = false;
+			control_mode->flag_control_attitude_enabled = false;
+			control_mode->flag_control_velocity_enabled = false;
+			control_mode->flag_control_position_enabled = false;
+			control_mode->flag_control_altitude_enabled = false;
+			control_mode->flag_control_climb_rate_enabled = false;
 			control_mode->flag_control_manual_enabled = false;
 			break;
 
 		case NAVIGATION_STATE_AUTO_TAKEOFF:
 
 			/* only transitions from AUTO_READY */
-			if (current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
+			if (current_status->navigation_state == NAVIGATION_STATE_AUTO_READY) {
 				ret = TRANSITION_CHANGED;
 				control_mode->flag_control_rates_enabled = true;
 				control_mode->flag_control_attitude_enabled = true;
 				control_mode->flag_control_velocity_enabled = true;
 				control_mode->flag_control_position_enabled = true;
 				control_mode->flag_control_altitude_enabled = true;
+				control_mode->flag_control_climb_rate_enabled = true;
 				control_mode->flag_control_manual_enabled = false;
 			}
 
 			break;
 
 		case NAVIGATION_STATE_AUTO_LOITER:
-
-			/* deny transitions from landed states */
-			if (current_status->navigation_state != NAVIGATION_STATE_STANDBY &&
-			    current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
-				ret = TRANSITION_CHANGED;
-				control_mode->flag_control_rates_enabled = true;
-				control_mode->flag_control_attitude_enabled = true;
-				control_mode->flag_control_velocity_enabled = true;
-				control_mode->flag_control_position_enabled = true;
-				control_mode->flag_control_altitude_enabled = true;
-				control_mode->flag_control_manual_enabled = false;
-			}
-
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = true;
+			control_mode->flag_control_attitude_enabled = true;
+			control_mode->flag_control_velocity_enabled = true;
+			control_mode->flag_control_position_enabled = true;
+			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_climb_rate_enabled = true;
+			control_mode->flag_control_manual_enabled = false;
 			break;
 
 		case NAVIGATION_STATE_AUTO_MISSION:
-
-			/* deny transitions from landed states */
-			if (current_status->navigation_state != NAVIGATION_STATE_STANDBY &&
-			    current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
-				ret = TRANSITION_CHANGED;
-				control_mode->flag_control_rates_enabled = true;
-				control_mode->flag_control_attitude_enabled = true;
-				control_mode->flag_control_velocity_enabled = true;
-				control_mode->flag_control_position_enabled = true;
-				control_mode->flag_control_altitude_enabled = true;
-				control_mode->flag_control_manual_enabled = false;
-			}
-
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = true;
+			control_mode->flag_control_attitude_enabled = true;
+			control_mode->flag_control_velocity_enabled = true;
+			control_mode->flag_control_position_enabled = true;
+			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_climb_rate_enabled = true;
+			control_mode->flag_control_manual_enabled = false;
 			break;
 
 		case NAVIGATION_STATE_AUTO_RTL:
-
-			/* deny transitions from landed states */
-			if (current_status->navigation_state != NAVIGATION_STATE_STANDBY &&
-			    current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
-				ret = TRANSITION_CHANGED;
-				control_mode->flag_control_rates_enabled = true;
-				control_mode->flag_control_attitude_enabled = true;
-				control_mode->flag_control_velocity_enabled = true;
-				control_mode->flag_control_position_enabled = true;
-				control_mode->flag_control_altitude_enabled = true;
-				control_mode->flag_control_manual_enabled = false;
-			}
-
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = true;
+			control_mode->flag_control_attitude_enabled = true;
+			control_mode->flag_control_velocity_enabled = true;
+			control_mode->flag_control_position_enabled = true;
+			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_climb_rate_enabled = true;
+			control_mode->flag_control_manual_enabled = false;
 			break;
 
 		case NAVIGATION_STATE_AUTO_LAND:
@@ -411,6 +403,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 				control_mode->flag_control_velocity_enabled = true;
 				control_mode->flag_control_position_enabled = true;
 				control_mode->flag_control_altitude_enabled = true;
+				control_mode->flag_control_climb_rate_enabled = true;
 				control_mode->flag_control_manual_enabled = false;
 			}
 
