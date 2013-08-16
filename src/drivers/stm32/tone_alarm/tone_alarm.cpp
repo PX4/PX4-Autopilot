@@ -456,9 +456,7 @@ const char * const ToneAlarm::_default_tunes[] = {
 	"O2E2P64",
 	"MNT75L1O2G",					//arming warning
 	"MBNT100a8",					//battery warning slow
-	"MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"
-	"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"
-	"a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8",		//battery warning fast // XXX why is there a break before a repetition
+	"MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"	//battery warning fast // XXX why is there a break before a repetition
 };
 
 const unsigned ToneAlarm::_default_ntunes = sizeof(_default_tunes) / sizeof(_default_tunes[0]);
