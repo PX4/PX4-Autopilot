@@ -72,8 +72,11 @@
 /** set color */
 #define RGBLED_SET_COLOR		_RGBLEDIOC(5)
 
-/** set blink pattern and speed */
+/** set blink speed */
 #define RGBLED_SET_MODE			_RGBLEDIOC(6)
+
+/** set pattern */
+#define RGBLED_SET_PATTERN		_RGBLEDIOC(7)
 
 /* 
   structure passed to RGBLED_SET_RGB ioctl()
@@ -104,5 +107,13 @@ typedef enum {
 	RGBLED_MODE_ON,
 	RGBLED_MODE_BLINK_SLOW,
 	RGBLED_MODE_BLINK_NORMAL,
-	RGBLED_MODE_BLINK_FAST
+	RGBLED_MODE_BLINK_FAST,
+	RGBLED_MODE_PATTERN
 } rgbled_mode_t;
+
+#define RGBLED_PATTERN_LENGTH 20
+
+typedef struct {
+	rgbled_color_t color[RGBLED_PATTERN_LENGTH];
+	unsigned duration[RGBLED_PATTERN_LENGTH];
+} rgbled_pattern_t;

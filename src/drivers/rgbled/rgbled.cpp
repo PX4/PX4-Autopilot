@@ -92,8 +92,9 @@ public:
 private:
 	work_s			_work;
 
-	rgbled_color_t		_colors[8];
+	rgbled_color_t		_color;
 	rgbled_mode_t		_mode;
+	rgbled_pattern_t	_pattern;
 
 	bool			_should_run;
 	bool			_running;
@@ -102,6 +103,7 @@ private:
 
 	void 			set_color(rgbled_color_t ledcolor);
 	void			set_mode(rgbled_mode_t mode);
+	void			set_pattern(rgbled_pattern_t *pattern);
 
 	static void		led_trampoline(void *arg);
 	void			led();
@@ -123,13 +125,14 @@ extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
 	I2C("rgbled", RGBLED_DEVICE_PATH, bus, rgbled, 100000),
-	_colors({RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF}),
+	_color(RGBLED_COLOR_OFF),
 	_mode(RGBLED_MODE_OFF),
 	_running(false),
 	_led_interval(0),
 	_counter(0)
 {
 	memset(&_work, 0, sizeof(_work));
+	memset(&_pattern, 0, sizeof(_pattern));
 }
 
 RGBLED::~RGBLED()
@@ -204,10 +207,14 @@ RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case RGBLED_SET_MODE:
-		/* set the specified blink pattern/speed */
+		/* set the specified blink speed */
 		set_mode((rgbled_mode_t)arg);
 		return OK;
 
+	case RGBLED_SET_PATTERN:
+		/* set a special pattern */
+		set_pattern((rgbled_pattern_t*)arg);
+		return OK;
 
 	default:
 		break;
@@ -239,6 +246,14 @@ RGBLED::led()
 			else
 				set_on(false);
 			break;
+		case RGBLED_MODE_PATTERN:
+			/* don't run out of the pattern array and stop if the next frame is 0 */
+			if (_counter >= RGBLED_PATTERN_LENGTH || _pattern.duration[_counter] <= 0)
+				_counter = 0;
+
+			set_color(_pattern.color[_counter]);
+			_led_interval = _pattern.duration[_counter];
+			break;
 		default:
 			break;
 	}
@@ -251,6 +266,9 @@ RGBLED::led()
 
 void
 RGBLED::set_color(rgbled_color_t color) {
+
+	_color = color;
+
 	switch (color) {
 		case RGBLED_COLOR_OFF:		// off
 			set_rgb(0,0,0);
@@ -302,11 +320,16 @@ RGBLED::set_mode(rgbled_mode_t mode)
 			break;
 		case RGBLED_MODE_BLINK_NORMAL:
 			_should_run = true;
-			_led_interval = 1000;
+			_led_interval = 500;
 			break;
 		case RGBLED_MODE_BLINK_FAST:
 			_should_run = true;
-			_led_interval = 500;
+			_led_interval = 100;
+			break;
+		case RGBLED_MODE_PATTERN:
+			_should_run = true;
+			set_on(true);
+			_counter = 0;
 			break;
 		default:
 			warnx("mode unknown");
@@ -323,6 +346,14 @@ RGBLED::set_mode(rgbled_mode_t mode)
 		_running = false;
 		work_cancel(LPWORK, &_work);
 	}
+}
+
+void
+RGBLED::set_pattern(rgbled_pattern_t *pattern)
+{
+	memcpy(&_pattern, pattern, sizeof(rgbled_pattern_t));
+
+	set_mode(RGBLED_MODE_PATTERN);
 }
 
 int
@@ -467,13 +498,12 @@ rgbled_main(int argc, char *argv[])
 		if (fd == -1) {
 			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
 		}
-		ret = ioctl(fd, RGBLED_SET_COLOR, (unsigned long)RGBLED_COLOR_WHITE);
 
-		if(ret != OK) {
-			close(fd);
-			exit(ret);
-		}
-		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_BLINK_NORMAL);
+		rgbled_pattern_t pattern = { {RGBLED_COLOR_RED, RGBLED_COLOR_GREEN, RGBLED_COLOR_BLUE, RGBLED_COLOR_OFF},
+					     {200,              200,                200,               400             } };
+
+		ret = ioctl(fd, RGBLED_SET_PATTERN, (unsigned long)&pattern);
+
 		close(fd);
 		exit(ret);
 	}
