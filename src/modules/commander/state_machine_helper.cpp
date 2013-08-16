@@ -168,6 +168,8 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 		if (ret == TRANSITION_CHANGED) {
 			status->arming_state = new_arming_state;
 			arming_state_changed = true;
+		} else {
+			warnx("arming transition rejected");
 		}
 	}
 

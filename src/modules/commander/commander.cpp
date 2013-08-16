@@ -812,8 +812,6 @@ int commander_thread_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 
-			warnx("bat v: %2.2f", battery.voltage_v);
-
 			/* only consider battery voltage if system has been running 2s and battery voltage is not 0 */
 			if ((t - start_time) > 2000000 && battery.voltage_v > 0.001f) {
 				status.battery_voltage = battery.voltage_v;
@@ -887,7 +885,13 @@ int commander_thread_main(int argc, char *argv[])
 				critical_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] EMERGENCY: CRITICAL BATTERY");
 				status.battery_warning = VEHICLE_BATTERY_WARNING_ALERT;
-				arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
+
+				if (armed.armed) {
+					// XXX not sure what should happen when voltage is low in flight
+					//arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
+				} else {
+					arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed);
+				}
 				status_changed = true;
 			}
 
