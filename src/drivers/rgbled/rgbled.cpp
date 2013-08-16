@@ -77,13 +77,6 @@
 #define SETTING_ENABLE   	0x02	/**< on */
 
 
-enum ledModes {
-	RGBLED_MODE_TEST,
-	RGBLED_MODE_SYSTEMSTATE,
-	RGBLED_MODE_OFF,
-	RGBLED_MODE_RGB
-};
-
 class RGBLED : public device::I2C
 {
 public:
@@ -94,29 +87,29 @@ public:
 	virtual int		init();
 	virtual int		probe();
 	virtual int		info();
-	virtual int		setMode(enum ledModes mode);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 private:
 	work_s			_work;
 
-	rgbled_color_t		_led_colors[8];
-	rgbled_blinkmode_t	_led_blinkmode;
+	rgbled_color_t		_colors[8];
+	rgbled_mode_t		_mode;
 
-	// RGB values for MODE_RGB 
-	struct RGBLEDSet 	_rgb;
+	bool			_should_run;
+	bool			_running;
+	int			_led_interval;
+	int			_counter;
 
-	int			_mode;
-	int			_running;
+	void 			set_color(rgbled_color_t ledcolor);
+	void			set_mode(rgbled_mode_t mode);
 
-	void 			setLEDColor(rgbled_color_t ledcolor);
 	static void		led_trampoline(void *arg);
 	void			led();
 
-	int				set(bool on, uint8_t r, uint8_t g, uint8_t b);
-	int				set_on(bool on);
-	int				set_rgb(uint8_t r, uint8_t g, uint8_t b);
-	int				get(bool &on, bool &not_powersave, uint8_t &r, uint8_t &g, uint8_t &b);
+	int			set(bool on, uint8_t r, uint8_t g, uint8_t b);
+	int			set_on(bool on);
+	int			set_rgb(uint8_t r, uint8_t g, uint8_t b);
+	int			get(bool &on, bool &not_powersave, uint8_t &r, uint8_t &g, uint8_t &b);
 };
 
 /* for now, we only support one RGBLED */
@@ -130,10 +123,11 @@ extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
 	I2C("rgbled", RGBLED_DEVICE_PATH, bus, rgbled, 100000),
-	_led_colors({RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF}),
-	_led_blinkmode(RGBLED_BLINK_OFF),
+	_colors({RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF,RGBLED_COLOR_OFF}),
 	_mode(RGBLED_MODE_OFF),
-	_running(false)
+	_running(false),
+	_led_interval(0),
+	_counter(0)
 {
 	memset(&_work, 0, sizeof(_work));
 }
@@ -154,35 +148,6 @@ RGBLED::init()
 
 	/* start off */
 	set(false, 0, 0, 0);
-
-	return OK;
-}
-
-int
-RGBLED::setMode(enum ledModes new_mode)
-{
-	switch (new_mode) {
-		case RGBLED_MODE_SYSTEMSTATE:
-		case RGBLED_MODE_TEST:
-		case RGBLED_MODE_RGB:
-			_mode = new_mode;
-			if (!_running) {
-				_running = true;
-				set_on(true);
-				work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
-			}
-			break;
-
-		case RGBLED_MODE_OFF:
-
-		default:
-			if (_running) {
-				_running = false;
-				set_on(false);
-			}
-			_mode = RGBLED_MODE_OFF;
-			break;
-	}
 
 	return OK;
 }
@@ -225,16 +190,24 @@ RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 	int ret = ENOTTY;
 
 	switch (cmd) {
-	case RGBLED_SET: {
+	case RGBLED_SET_RGB:
 		/* set the specified RGB values */
-		memcpy(&_rgb, (struct RGBLEDSet *)arg, sizeof(_rgb));
-		setMode(RGBLED_MODE_RGB);
+		rgbled_rgbset_t rgbset;
+		memcpy(&rgbset, (rgbled_rgbset_t*)arg, sizeof(rgbset));
+		set_rgb(rgbset.red, rgbset.green, rgbset.blue);
+		set_mode(RGBLED_MODE_ON);
 		return OK;
-	}
-	case RGBLED_SET_COLOR: {
+
+	case RGBLED_SET_COLOR:
 		/* set the specified color name */
-		setLEDColor((rgbled_color_t)arg);
-	}
+		set_color((rgbled_color_t)arg);
+		return OK;
+
+	case RGBLED_SET_MODE:
+		/* set the specified blink pattern/speed */
+		set_mode((rgbled_mode_t)arg);
+		return OK;
+
 
 	default:
 		break;
@@ -257,77 +230,32 @@ RGBLED::led_trampoline(void *arg)
 void
 RGBLED::led()
 {
-	static int led_thread_runcount=0;
-	static int _led_interval = 1000;
-
 	switch (_mode) {
-		case RGBLED_MODE_TEST:
-			/* Demo LED pattern for now */
-			_led_colors[0] = RGBLED_COLOR_YELLOW;
-			_led_colors[1] = RGBLED_COLOR_AMBER;
-			_led_colors[2] = RGBLED_COLOR_RED;
-			_led_colors[3] = RGBLED_COLOR_PURPLE;
-			_led_colors[4] = RGBLED_COLOR_BLUE;
-			_led_colors[5] = RGBLED_COLOR_GREEN;
-			_led_colors[6] = RGBLED_COLOR_WHITE;
-			_led_colors[7] = RGBLED_COLOR_OFF;
-			_led_blinkmode = RGBLED_BLINK_ON;
+		case RGBLED_MODE_BLINK_SLOW:
+		case RGBLED_MODE_BLINK_NORMAL:
+		case RGBLED_MODE_BLINK_FAST:
+			if(_counter % 2 == 0)
+				set_on(true);
+			else
+				set_on(false);
 			break;
-
-		case RGBLED_MODE_SYSTEMSTATE:
-			/* XXX TODO set pattern */
-			_led_colors[0] = RGBLED_COLOR_OFF;
-			_led_colors[1] = RGBLED_COLOR_OFF;
-			_led_colors[2] = RGBLED_COLOR_OFF;
-			_led_colors[3] = RGBLED_COLOR_OFF;
-			_led_colors[4] = RGBLED_COLOR_OFF;
-			_led_colors[5] = RGBLED_COLOR_OFF;
-			_led_colors[6] = RGBLED_COLOR_OFF;
-			_led_colors[7] = RGBLED_COLOR_OFF;
-			_led_blinkmode = RGBLED_BLINK_OFF;
-
-			break;
-
-		case RGBLED_MODE_RGB:
-			set_rgb(_rgb.red, _rgb.green, _rgb.blue);
-			_running = false;
-			return;
-
-		case RGBLED_MODE_OFF:
 		default:
-			return;
 			break;
 	}
 
+	_counter++;
 
-	if (led_thread_runcount & 1) {
-		if (_led_blinkmode == RGBLED_BLINK_ON)
-			setLEDColor(RGBLED_COLOR_OFF);
-		_led_interval = RGBLED_OFFTIME;
-	} else {
-		setLEDColor(_led_colors[(led_thread_runcount/2) % 8]);
-		_led_interval = RGBLED_ONTIME;
-	}
-
-	led_thread_runcount++;
-
-	if(_running) {
-		/* re-queue ourselves to run again later */
-		work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, _led_interval);
-	} else if (_mode == RGBLED_MODE_RGB) {
-		// no need to run again until the colour changes
-		set_on(true);
-	} else {
-		set_on(false);
-	}
+	/* re-queue ourselves to run again later */
+	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, _led_interval);
 }
 
-void RGBLED::setLEDColor(rgbled_color_t ledcolor) {
-	switch (ledcolor) {
-		case RGBLED_COLOR_OFF:	// off
+void
+RGBLED::set_color(rgbled_color_t color) {
+	switch (color) {
+		case RGBLED_COLOR_OFF:		// off
 			set_rgb(0,0,0);
 			break;
-		case RGBLED_COLOR_RED:	// red
+		case RGBLED_COLOR_RED:		// red
 			set_rgb(255,0,0);
 			break;
 		case RGBLED_COLOR_YELLOW:	// yellow
@@ -339,7 +267,7 @@ void RGBLED::setLEDColor(rgbled_color_t ledcolor) {
 		case RGBLED_COLOR_GREEN:	// green
 			set_rgb(0,255,0);
 			break;
-		case RGBLED_COLOR_BLUE:	// blue
+		case RGBLED_COLOR_BLUE:		// blue
 			set_rgb(0,0,255);
 			break;
 		case RGBLED_COLOR_WHITE:	// white
@@ -348,6 +276,52 @@ void RGBLED::setLEDColor(rgbled_color_t ledcolor) {
 		case RGBLED_COLOR_AMBER:	// amber
 			set_rgb(255,20,0);
 			break;
+		default:
+			warnx("color unknown");
+			break;
+	}
+}
+
+void
+RGBLED::set_mode(rgbled_mode_t mode)
+{
+	_mode = mode;
+
+	switch (mode) {
+		case RGBLED_MODE_OFF:
+			_should_run = false;
+			set_on(false);
+			break;
+		case RGBLED_MODE_ON:
+			_should_run = false;
+			set_on(true);
+			break;
+		case RGBLED_MODE_BLINK_SLOW:
+			_should_run = true;
+			_led_interval = 2000;
+			break;
+		case RGBLED_MODE_BLINK_NORMAL:
+			_should_run = true;
+			_led_interval = 1000;
+			break;
+		case RGBLED_MODE_BLINK_FAST:
+			_should_run = true;
+			_led_interval = 500;
+			break;
+		default:
+			warnx("mode unknown");
+			break;
+	}
+
+	/* if it should run now, start the workq */
+	if (_should_run && !_running) {
+		_running = true;
+		work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
+	}
+	/* if it should stop, then cancel the workq */
+	if (!_should_run && _running) {
+		_running = false;
+		work_cancel(LPWORK, &_work);
 	}
 }
 
@@ -417,7 +391,7 @@ void rgbled_usage();
 
 
 void rgbled_usage() {
-	warnx("missing command: try 'start', 'systemstate', 'test', 'info', 'off', 'rgb'");
+	warnx("missing command: try 'start', 'test', 'info', 'off', 'rgb'");
 	warnx("options:");
 	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
 	errx(0, "    -a addr (0x%x)", ADDR);
@@ -445,6 +419,9 @@ rgbled_main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 	const char *verb = argv[0];
+
+	int fd;
+	int ret;
 
 	if (!strcmp(verb, "start")) {
 		if (g_rgbled != nullptr)
@@ -480,19 +457,25 @@ rgbled_main(int argc, char *argv[])
 
 	/* need the driver past this point */
 	if (g_rgbled == nullptr) {
-	    fprintf(stderr, "not started\n");
+	    warnx("not started");
 	    rgbled_usage();
 	    exit(0);
 	}
 
 	if (!strcmp(verb, "test")) {
-		g_rgbled->setMode(RGBLED_MODE_TEST);
-		exit(0);
-	}
+		fd = open(RGBLED_DEVICE_PATH, 0);
+		if (fd == -1) {
+			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+		}
+		ret = ioctl(fd, RGBLED_SET_COLOR, (unsigned long)RGBLED_COLOR_WHITE);
 
-	if (!strcmp(verb, "systemstate")) {
-		g_rgbled->setMode(RGBLED_MODE_SYSTEMSTATE);
-		exit(0);
+		if(ret != OK) {
+			close(fd);
+			exit(ret);
+		}
+		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_BLINK_NORMAL);
+		close(fd);
+		exit(ret);
 	}
 
 	if (!strcmp(verb, "info")) {
@@ -501,23 +484,28 @@ rgbled_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "off")) {
-		g_rgbled->setMode(RGBLED_MODE_OFF);
-		exit(0);
+		fd = open(RGBLED_DEVICE_PATH, 0);
+		if (fd == -1) {
+			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
+		}
+		ret = ioctl(fd, RGBLED_SET_MODE, (unsigned long)RGBLED_MODE_OFF);
+		close(fd);
+		exit(ret);
 	}
 
 	if (!strcmp(verb, "rgb")) {
-		int fd = open(RGBLED_DEVICE_PATH, 0);
+		fd = open(RGBLED_DEVICE_PATH, 0);
 		if (fd == -1) {
 			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
 		}
 		if (argc < 4) {
 			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
 		}
-		struct RGBLEDSet v;
+		rgbled_rgbset_t v;
 		v.red   = strtol(argv[1], NULL, 0);
 		v.green = strtol(argv[2], NULL, 0);
 		v.blue  = strtol(argv[3], NULL, 0);
-		int ret = ioctl(fd, RGBLED_SET, (unsigned long)&v);
+		ret = ioctl(fd, RGBLED_SET_RGB, (unsigned long)&v);
 		close(fd);
 		exit(ret);
 	}

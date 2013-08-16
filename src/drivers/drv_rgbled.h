@@ -67,22 +67,26 @@
 #define RGBLED_SET_USER_SCRIPT		_RGBLEDIOC(3)
 
 /** set constant RGB values */
-#define RGBLED_SET			_RGBLEDIOC(4)
+#define RGBLED_SET_RGB			_RGBLEDIOC(4)
 
 /** set color */
 #define RGBLED_SET_COLOR		_RGBLEDIOC(5)
 
+/** set blink pattern and speed */
+#define RGBLED_SET_MODE			_RGBLEDIOC(6)
+
 /* 
-  structure passed to RGBLED_SET ioctl()
+  structure passed to RGBLED_SET_RGB ioctl()
   Note that the driver scales the brightness to 0 to 255, regardless
   of the hardware scaling
  */
-struct RGBLEDSet {
+typedef struct {
 	uint8_t red;
 	uint8_t green;
 	uint8_t blue;
-};
+} rgbled_rgbset_t;
 
+/* enum passed to RGBLED_SET_COLOR ioctl()*/
 typedef enum {
 	RGBLED_COLOR_OFF,
 	RGBLED_COLOR_RED,
@@ -91,13 +95,14 @@ typedef enum {
 	RGBLED_COLOR_GREEN,
 	RGBLED_COLOR_BLUE,
 	RGBLED_COLOR_WHITE,
-	RGBLED_COLOR_AMBER,
+	RGBLED_COLOR_AMBER
 } rgbled_color_t;
 
+/* enum passed to RGBLED_SET_MODE ioctl()*/
 typedef enum {
-	RGBLED_BLINK_ON,
-	RGBLED_BLINK_FAST,
-	RGBLED_BLINK_NORMAL,
-	RGBLED_BLINK_SLOW,
-	RGBLED_BLINK_OFF
-} rgbled_blinkmode_t;
+	RGBLED_MODE_OFF,
+	RGBLED_MODE_ON,
+	RGBLED_MODE_BLINK_SLOW,
+	RGBLED_MODE_BLINK_NORMAL,
+	RGBLED_MODE_BLINK_FAST
+} rgbled_mode_t;
