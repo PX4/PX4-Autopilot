@@ -45,6 +45,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <drivers/drv_rgbled.h>
 
 
 bool is_multirotor(const struct vehicle_status_s *current_status);
@@ -58,8 +59,8 @@ void tune_positive(void);
 void tune_neutral(void);
 void tune_negative(void);
 int tune_arm(void);
-int tune_critical_bat(void);
 int tune_low_bat(void);
+int tune_critical_bat(void);
 void tune_stop(void);
 
 int led_init(void);
@@ -67,6 +68,12 @@ void led_deinit(void);
 int led_toggle(int led);
 int led_on(int led);
 int led_off(int led);
+
+void rgbled_set_color(rgbled_color_t color);
+
+void rgbled_set_mode(rgbled_mode_t mode);
+
+void rgbled_set_pattern(rgbled_pattern_t *pattern);
 
 /**
  * Provides a coarse estimate of remaining battery power.

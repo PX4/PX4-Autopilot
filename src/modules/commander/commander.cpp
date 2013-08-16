@@ -197,7 +197,7 @@ void handle_command(struct vehicle_status_s *status, struct vehicle_control_mode
  */
 int commander_thread_main(int argc, char *argv[]);
 
-void toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, vehicle_gps_position_s *gps_position);
+void toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed);
 
 void check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_status_s *current_status);
 
@@ -698,6 +698,8 @@ int commander_thread_main(int argc, char *argv[])
 	while (!thread_should_exit) {
 		hrt_abstime t = hrt_absolute_time();
 
+		status_changed = false;
+
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
 
@@ -855,8 +857,6 @@ int commander_thread_main(int argc, char *argv[])
 			status_changed = true;
 		}
 
-		toggle_status_leds(&status, &armed, &gps_position);
-
 		if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
 			/* compute system load */
 			uint64_t interval_runtime = system_load.tasks[0].total_runtime - last_idle_time;
@@ -867,14 +867,17 @@ int commander_thread_main(int argc, char *argv[])
 			last_idle_time = system_load.tasks[0].total_runtime;
 		}
 
+		warnx("bat remaining: %2.2f", status.battery_remaining);
+
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
-		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.15f && !low_battery_voltage_actions_done) {
+		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.25f && !low_battery_voltage_actions_done) {
 			//TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
 			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				low_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] WARNING: LOW BATTERY");
 				status.battery_warning = VEHICLE_BATTERY_WARNING_WARNING;
 				status_changed = true;
+				battery_tune_played = false;
 			}
 
 			low_voltage_counter++;
@@ -885,12 +888,14 @@ int commander_thread_main(int argc, char *argv[])
 				critical_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] EMERGENCY: CRITICAL BATTERY");
 				status.battery_warning = VEHICLE_BATTERY_WARNING_ALERT;
+				battery_tune_played = false;
 
 				if (armed.armed) {
 					// XXX not sure what should happen when voltage is low in flight
 					//arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
 				} else {
-					arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed);
+					// XXX should we still allow to arm with critical battery?
+					//arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed);
 				}
 				status_changed = true;
 			}
@@ -1259,7 +1264,6 @@ int commander_thread_main(int argc, char *argv[])
 			status.counter++;
 			status.timestamp = t;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
-			status_changed = false;
 		}
 
 		/* play arming and battery warning tunes */
@@ -1273,7 +1277,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (tune_low_bat() == OK)
 				battery_tune_played = true;
 
-		} else if (status.battery_remaining == VEHICLE_BATTERY_WARNING_ALERT) {
+		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
 			/* play tune on battery critical */
 			if (tune_critical_bat() == OK)
 				battery_tune_played = true;
@@ -1294,6 +1298,9 @@ int commander_thread_main(int argc, char *argv[])
 
 		fflush(stdout);
 		counter++;
+
+		toggle_status_leds(&status, &armed, arming_state_changed || status_changed);
+
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}
 
@@ -1325,40 +1332,93 @@ int commander_thread_main(int argc, char *argv[])
 }
 
 void
-toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, vehicle_gps_position_s *gps_position)
+toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed)
 {
-	if (leds_counter % 2 == 0) {
-		/* run at 10Hz, full cycle is 16 ticks = 10/16Hz */
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
+	if (armed->armed) {
+		/* armed, solid */
+		led_on(LED_BLUE);
+
+	} else if (armed->ready_to_arm) {
+		/* ready to arm, blink at 1Hz */
+		if (leds_counter % 20 == 0)
+			led_toggle(LED_BLUE);
+	} else {
+		/* not ready to arm, blink at 10Hz */
+		if (leds_counter % 2 == 0)
+			led_toggle(LED_BLUE);
+	}
+#endif
+
+	if (changed) {
+
+		warnx("changed");
+
+		int i;
+		rgbled_pattern_t pattern;
+		memset(&pattern, 0, sizeof(pattern));
+
 		if (armed->armed) {
 			/* armed, solid */
-			led_on(LED_AMBER);
+			if (status->battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
+				pattern.color[0] = RGBLED_COLOR_AMBER;
+			} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
+				pattern.color[0] = RGBLED_COLOR_RED;
+			} else {
+				pattern.color[0] = RGBLED_COLOR_GREEN;
+			}
+			pattern.duration[0] = 1000;
 
 		} else if (armed->ready_to_arm) {
-			/* ready to arm, blink at 2.5Hz */
-			if (leds_counter % 8 == 0) {
-				led_toggle(LED_AMBER);
+			for (i=0; i<3; i++) {
+				if (status->battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
+					pattern.color[i*2] = RGBLED_COLOR_AMBER;
+				} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
+					pattern.color[i*2] = RGBLED_COLOR_RED;
+				} else {
+					pattern.color[i*2] = RGBLED_COLOR_GREEN;
+				}
+				pattern.duration[i*2] = 200;
 
+				pattern.color[i*2+1] = RGBLED_COLOR_OFF;
+				pattern.duration[i*2+1] = 800;
+			}
+			if (status->condition_global_position_valid) {
+				pattern.color[i*2] = RGBLED_COLOR_BLUE;
+				pattern.duration[i*2] = 1000;
+				pattern.color[i*2+1] = RGBLED_COLOR_OFF;
+				pattern.duration[i*2+1] = 800;
 			} else {
-				led_toggle(LED_AMBER);
+				for (i=3; i<6; i++) {
+					pattern.color[i*2] = RGBLED_COLOR_BLUE;
+					pattern.duration[i*2] = 100;
+					pattern.color[i*2+1] = RGBLED_COLOR_OFF;
+					pattern.duration[i*2+1] = 100;
+				}
+				pattern.color[6*2] = RGBLED_COLOR_OFF;
+				pattern.duration[6*2] = 700;
 			}
 
 		} else {
+			for (i=0; i<3; i++) {
+				pattern.color[i*2] = RGBLED_COLOR_RED;
+				pattern.duration[i*2] = 200;
+				pattern.color[i*2+1] = RGBLED_COLOR_OFF;
+				pattern.duration[i*2+1] = 200;
+			}
 			/* not ready to arm, blink at 10Hz */
+		}
+
+		rgbled_set_pattern(&pattern);
+	}
+
+	/* give system warnings on error LED, XXX maybe add memory usage warning too */
+	if (status->load > 0.95f) {
+		if (leds_counter % 2 == 0)
 			led_toggle(LED_AMBER);
-		}
-
-		if (status->condition_global_position_valid) {
-			/* position estimated, solid */
-			led_on(LED_BLUE);
-
-		} else if (leds_counter == 0) {
-			/* waiting for position estimate, short blink at 1.25Hz */
-			led_on(LED_BLUE);
-
-		} else {
-			/* no position estimator available, off */
-			led_off(LED_BLUE);
-		}
+	} else {
+		led_off(LED_AMBER);
 	}
 
 	leds_counter++;

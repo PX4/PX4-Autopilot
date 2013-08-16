@@ -122,15 +122,17 @@ int tune_arm()
 	return ioctl(buzzer, TONE_SET_ALARM, 12);
 }
 
+int tune_low_bat()
+{
+	return ioctl(buzzer, TONE_SET_ALARM, 13);
+}
+
 int tune_critical_bat()
 {
 	return ioctl(buzzer, TONE_SET_ALARM, 14);
 }
 
-int tune_low_bat()
-{
-	return ioctl(buzzer, TONE_SET_ALARM, 13);
-}
+
 
 void tune_stop()
 {
@@ -201,9 +203,22 @@ int led_off(int led)
 	return ioctl(leds, LED_OFF, led);
 }
 
-int rgbled_set_color(rgbled_color_t color) {
+void rgbled_set_color(rgbled_color_t color) {
 
-	return ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)&color);
+	if (rgbleds != -1)
+		ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
+}
+
+void rgbled_set_mode(rgbled_mode_t mode) {
+
+	if (rgbleds != -1)
+		ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
+}
+
+void rgbled_set_pattern(rgbled_pattern_t *pattern) {
+
+	if (rgbleds != -1)
+		ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);
 }
 
 float battery_remaining_estimate_voltage(float voltage)
