@@ -242,7 +242,7 @@ mc_thread_main(int argc, char *argv[])
 						/* control attitude, update attitude setpoint depending on mode */
 						/* initialize to current yaw if switching to manual or att control */
 						if (control_mode.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-								control_mode.flag_control_manual_enabled != flag_control_manual_enabled) {
+						    control_mode.flag_control_manual_enabled != flag_control_manual_enabled) {
 							att_sp.yaw_body = att.yaw;
 						}
 
@@ -305,6 +305,7 @@ mc_thread_main(int argc, char *argv[])
 									att_sp.yaw_body = att.yaw;
 									reset_yaw_sp = false;
 								}
+
 								control_yaw_position = true;
 							}
 
@@ -312,6 +313,7 @@ mc_thread_main(int argc, char *argv[])
 								/* don't update attitude setpoint in position control mode */
 								att_sp.roll_body = manual.roll;
 								att_sp.pitch_body = manual.pitch;
+
 								if (!control_mode.flag_control_position_enabled) {
 									/* don't set throttle in altitude hold modes */
 									att_sp.thrust = manual.throttle;
@@ -355,23 +357,24 @@ mc_thread_main(int argc, char *argv[])
 				/* measure in what intervals the controller runs */
 				perf_count(mc_interval_perf);
 
-				float gyro[3];
+				if (control_mode.flag_control_rates_enabled) {
+					/* get current rate setpoint */
+					bool rates_sp_valid = false;
+					orb_check(rates_sp_sub, &rates_sp_valid);
 
-				/* get current rate setpoint */
-				bool rates_sp_valid = false;
-				orb_check(rates_sp_sub, &rates_sp_valid);
+					if (rates_sp_valid) {
+						orb_copy(ORB_ID(vehicle_rates_setpoint), rates_sp_sub, &rates_sp);
+					}
 
-				if (rates_sp_valid) {
-					orb_copy(ORB_ID(vehicle_rates_setpoint), rates_sp_sub, &rates_sp);
+					/* apply controller */
+					float gyro[3];
+					gyro[0] = att.rollspeed;
+					gyro[1] = att.pitchspeed;
+					gyro[2] = att.yawspeed;
+
+					multirotor_control_rates(&rates_sp, gyro, &actuators);
+					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 				}
-
-				/* apply controller */
-				gyro[0] = att.rollspeed;
-				gyro[1] = att.pitchspeed;
-				gyro[2] = att.yawspeed;
-
-				multirotor_control_rates(&rates_sp, gyro, &actuators);
-				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 				/* update state */
 				flag_control_attitude_enabled = control_mode.flag_control_attitude_enabled;
@@ -449,11 +452,11 @@ int multirotor_att_control_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		mc_task = task_spawn_cmd("multirotor_att_control",
-				     SCHED_DEFAULT,
-				     SCHED_PRIORITY_MAX - 15,
-				     2048,
-				     mc_thread_main,
-				     NULL);
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 15,
+					 2048,
+					 mc_thread_main,
+					 NULL);
 		exit(0);
 	}
 
