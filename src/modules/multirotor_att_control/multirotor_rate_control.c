@@ -58,9 +58,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/uORB.h>
-
-
 
 PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.0f); /* same on Flamewheel */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
@@ -155,8 +152,7 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 }
 
 void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-			      const float rates[], struct actuator_controls_s *actuators,
-			      const orb_advert_t *control_debug_pub, struct vehicle_control_debug_s *control_debug)
+			      const float rates[], struct actuator_controls_s *actuators)
 {
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
@@ -176,12 +172,7 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	static struct mc_rate_control_params p;
 	static struct mc_rate_control_param_handles h;
 
-	float pitch_control_last = 0.0f;
-	float roll_control_last = 0.0f;
-
 	static bool initialized = false;
-
-	float diff_filter_factor = 1.0f;
 
 	/* initialize the pid controllers when the function is called for the first time */
 	if (initialized == false) {
@@ -210,13 +201,11 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	/* control pitch (forward) output */
 	float pitch_control = pid_calculate(&pitch_rate_controller, rate_sp->pitch ,
-					    rates[1], 0.0f, deltaT,
-					    &control_debug->pitch_rate_p, &control_debug->pitch_rate_i, &control_debug->pitch_rate_d);
+					    rates[1], 0.0f, deltaT);
 
 	/* control roll (left/right) output */
 	float roll_control = pid_calculate(&roll_rate_controller, rate_sp->roll ,
-					   rates[0], 0.0f, deltaT,
-					   &control_debug->roll_rate_p, &control_debug->roll_rate_i, &control_debug->roll_rate_d);
+					   rates[0], 0.0f, deltaT);
 
 	/* control yaw rate */ //XXX use library here
 	float yaw_rate_control = p.yawrate_p * (rate_sp->yaw - rates[2]);

@@ -1,10 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
+ *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,16 +32,52 @@
  *
  ****************************************************************************/
 
-/**
- * @file multirotor_position_control.h
- * Definition of the position control for a multirotor VTOL
+/*
+ * @file position_estimator_inav_params.h
+ *
+ * Parameters for Position Estimator
  */
 
-// #ifndef POSITION_CONTROL_H_
-// #define POSITION_CONTROL_H_
+#include <systemlib/param/param.h>
 
-// void control_multirotor_position(const struct vehicle_state_s *vstatus, const struct vehicle_manual_control_s *manual,
-//  const struct vehicle_attitude_s *att, const struct vehicle_local_position_s *local_pos,
-//  const struct vehicle_local_position_setpoint_s *local_pos_sp, struct vehicle_attitude_setpoint_s *att_sp);
+struct position_estimator_inav_params {
+	int use_gps;
+	float w_alt_baro;
+	float w_alt_acc;
+	float w_alt_sonar;
+	float w_pos_gps_p;
+	float w_pos_gps_v;
+	float w_pos_acc;
+	float w_pos_flow;
+	float w_acc_bias;
+	float flow_k;
+	float sonar_filt;
+	float sonar_err;
+};
 
-// #endif /* POSITION_CONTROL_H_ */
+struct position_estimator_inav_param_handles {
+	param_t use_gps;
+	param_t w_alt_baro;
+	param_t w_alt_acc;
+	param_t w_alt_sonar;
+	param_t w_pos_gps_p;
+	param_t w_pos_gps_v;
+	param_t w_pos_acc;
+	param_t w_pos_flow;
+	param_t w_acc_bias;
+	param_t flow_k;
+	param_t sonar_filt;
+	param_t sonar_err;
+};
+
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+int parameters_init(struct position_estimator_inav_param_handles *h);
+
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p);

@@ -58,13 +58,11 @@
 #include <uORB/uORB.h>
 #include <drivers/drv_gyro.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_control_debug.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
@@ -84,18 +82,12 @@ static bool thread_should_exit;
 static int mc_task;
 static bool motor_test_mode = false;
 
-static orb_advert_t actuator_pub;
-static orb_advert_t control_debug_pub;
-
-
 static int
 mc_thread_main(int argc, char *argv[])
 {
 	/* declare and safely initialize all structs */
 	struct vehicle_control_mode_s control_mode;
 	memset(&control_mode, 0, sizeof(control_mode));
-	struct actuator_armed_s armed;
-	memset(&armed, 0, sizeof(armed));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_attitude_setpoint_s att_sp;
@@ -112,16 +104,12 @@ mc_thread_main(int argc, char *argv[])
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
 
-	struct vehicle_control_debug_s control_debug;
-	memset(&control_debug, 0, sizeof(control_debug));
-
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int param_sub = orb_subscribe(ORB_ID(parameter_update));
 	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int setpoint_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 
@@ -142,10 +130,8 @@ mc_thread_main(int argc, char *argv[])
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
 		actuators.control[i] = 0.0f;
 	}
-	
-	control_debug_pub = orb_advertise(ORB_ID(vehicle_control_debug), &control_debug);
 
-	actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
+	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 	orb_advert_t rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
 	int rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
@@ -161,19 +147,17 @@ mc_thread_main(int argc, char *argv[])
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
 	bool flag_control_attitude_enabled = false;
-	bool flag_armed = false;
-	bool flag_control_position_enabled = false;
-	bool flag_control_velocity_enabled = false;
 
 	/* store if yaw position or yaw speed has been changed */
 	bool control_yaw_position = true;
 
 	/* store if we stopped a yaw movement */
-	bool first_time_after_yaw_speed_control = true;
+	bool reset_yaw_sp = true;
 
 	/* prepare the handle for the failsafe throttle */
 	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
+
 
 	while (!thread_should_exit) {
 
@@ -187,6 +171,7 @@ mc_thread_main(int argc, char *argv[])
 		} else if (ret == 0) {
 			/* no return value, ignore */
 		} else {
+
 			/* only update parameters if they changed */
 			if (fds[1].revents & POLLIN) {
 				/* read from param to clear updated flag */
@@ -210,12 +195,6 @@ mc_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 				}
 
-				orb_check(armed_sub, &updated);
-
-				if (updated) {
-					orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
-				}
-
 				/* get a local copy of manual setpoint */
 				orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 				/* get a local copy of attitude */
@@ -231,6 +210,7 @@ mc_thread_main(int argc, char *argv[])
 
 				/* get a local copy of the current sensor values */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
+
 
 				/** STEP 1: Define which input is the dominating control input */
 				if (control_mode.flag_control_offboard_enabled) {
@@ -256,50 +236,90 @@ mc_thread_main(int argc, char *argv[])
 					}
 
 
-				} else if (control_mode.flag_control_manual_enabled) {			
+				} else if (control_mode.flag_control_manual_enabled) {
+					/* direct manual input */
 					if (control_mode.flag_control_attitude_enabled) {
+						/* control attitude, update attitude setpoint depending on mode */
 						/* initialize to current yaw if switching to manual or att control */
 						if (control_mode.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-						    control_mode.flag_control_manual_enabled != flag_control_manual_enabled ||
-						    armed.armed != flag_armed) {
+								control_mode.flag_control_manual_enabled != flag_control_manual_enabled) {
 							att_sp.yaw_body = att.yaw;
 						}
 
 						static bool rc_loss_first_time = true;
 
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
+						if (control_mode.failsave_highlevel) {
+							if (!control_mode.flag_control_position_enabled) {
+								/* Don't reset attitude setpoint in position control mode, it's handled by position controller. */
+								att_sp.roll_body = 0.0f;
+								att_sp.pitch_body = 0.0f;
 
-						rc_loss_first_time = true;
+								if (!control_mode.flag_control_altitude_enabled) {
+									/* Don't touch throttle in modes with altitude hold, it's handled by position controller.
+									 *
+									 * Only go to failsafe throttle if last known throttle was
+									 * high enough to create some lift to make hovering state likely.
+									 *
+									 * This is to prevent that someone landing, but not disarming his
+									 * multicopter (throttle = 0) does not make it jump up in the air
+									 * if shutting down his remote.
+									 */
+									if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
+										/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
+										param_get(failsafe_throttle_handle, &failsafe_throttle);
+										att_sp.thrust = failsafe_throttle;
 
-						att_sp.roll_body = manual.roll;
-						att_sp.pitch_body = manual.pitch;
-
-						/* set attitude if arming */
-						if (!flag_control_attitude_enabled && armed.armed) {
-							att_sp.yaw_body = att.yaw;
-						}
-
-						/* only move setpoint if manual input is != 0 */
-						if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.1f) {
-							rates_sp.yaw = manual.yaw;
-							control_yaw_position = false;
-							first_time_after_yaw_speed_control = true;
-
-						} else {
-							if (first_time_after_yaw_speed_control) {
-								att_sp.yaw_body = att.yaw;
-								first_time_after_yaw_speed_control = false;
+									} else {
+										att_sp.thrust = 0.0f;
+									}
+								}
 							}
 
-							control_yaw_position = true;
+							/* keep current yaw, do not attempt to go to north orientation,
+							 * since if the pilot regains RC control, he will be lost regarding
+							 * the current orientation.
+							 */
+							if (rc_loss_first_time)
+								att_sp.yaw_body = att.yaw;
+
+							rc_loss_first_time = false;
+
+						} else {
+							rc_loss_first_time = true;
+
+							/* control yaw in all manual / assisted modes */
+							/* set yaw if arming or switching to attitude stabilized mode */
+							if (!flag_control_attitude_enabled) {
+								reset_yaw_sp = true;
+							}
+
+							/* only move setpoint if manual input is != 0 */
+							if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {	// TODO use landed status instead of throttle
+								rates_sp.yaw = manual.yaw;
+								control_yaw_position = false;
+								reset_yaw_sp = true;
+
+							} else {
+								if (reset_yaw_sp) {
+									att_sp.yaw_body = att.yaw;
+									reset_yaw_sp = false;
+								}
+								control_yaw_position = true;
+							}
+
+							if (!control_mode.flag_control_position_enabled) {
+								/* don't update attitude setpoint in position control mode */
+								att_sp.roll_body = manual.roll;
+								att_sp.pitch_body = manual.pitch;
+								if (!control_mode.flag_control_position_enabled) {
+									/* don't set throttle in altitude hold modes */
+									att_sp.thrust = manual.throttle;
+								}
+							}
+
+							att_sp.timestamp = hrt_absolute_time();
 						}
-
-						att_sp.thrust = manual.throttle;
-						att_sp.timestamp = hrt_absolute_time();
-
-						/* STEP 2: publish the controller output */
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-
 
 						if (motor_test_mode) {
 							printf("testmode");
@@ -308,31 +328,26 @@ mc_thread_main(int argc, char *argv[])
 							att_sp.yaw_body = 0.0f;
 							att_sp.thrust = 0.1f;
 							att_sp.timestamp = hrt_absolute_time();
-							/* STEP 2: publish the result to the vehicle actuators */
-							orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 						}
 
+						/* STEP 2: publish the controller output */
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+
 					} else {
-
-						//XXX TODO add acro mode here
-
-						/* manual rate inputs, from RC control or joystick */
-//						if (state.flag_control_rates_enabled &&
-//						    state.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_RATES) {
-//							rates_sp.roll = manual.roll;
-//
-//							rates_sp.pitch = manual.pitch;
-//							rates_sp.yaw = manual.yaw;
-//							rates_sp.thrust = manual.throttle;
-//							rates_sp.timestamp = hrt_absolute_time();
-//						}
+						/* manual rate inputs (ACRO), from RC control or joystick */
+						if (control_mode.flag_control_rates_enabled) {
+							rates_sp.roll = manual.roll;
+							rates_sp.pitch = manual.pitch;
+							rates_sp.yaw = manual.yaw;
+							rates_sp.thrust = manual.throttle;
+							rates_sp.timestamp = hrt_absolute_time();
+						}
 					}
-
 				}
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 				if (control_mode.flag_control_attitude_enabled) {
-					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position, &control_debug_pub, &control_debug);
+					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
 
 					orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 				}
@@ -340,8 +355,7 @@ mc_thread_main(int argc, char *argv[])
 				/* measure in what intervals the controller runs */
 				perf_count(mc_interval_perf);
 
-				float rates[3];
-				float rates_acc[3];
+				float gyro[3];
 
 				/* get current rate setpoint */
 				bool rates_sp_valid = false;
@@ -352,21 +366,16 @@ mc_thread_main(int argc, char *argv[])
 				}
 
 				/* apply controller */
-				rates[0] = att.rollspeed;
-				rates[1] = att.pitchspeed;
-				rates[2] = att.yawspeed;
+				gyro[0] = att.rollspeed;
+				gyro[1] = att.pitchspeed;
+				gyro[2] = att.yawspeed;
 
-				multirotor_control_rates(&rates_sp, rates, &actuators, &control_debug_pub, &control_debug);
+				multirotor_control_rates(&rates_sp, gyro, &actuators);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
-				orb_publish(ORB_ID(vehicle_control_debug), control_debug_pub, &control_debug);
-
-				/* update control_mode */
+				/* update state */
 				flag_control_attitude_enabled = control_mode.flag_control_attitude_enabled;
 				flag_control_manual_enabled = control_mode.flag_control_manual_enabled;
-				flag_control_position_enabled = control_mode.flag_control_position_enabled;
-				flag_control_velocity_enabled = control_mode.flag_control_velocity_enabled;
-				flag_armed = armed.armed;
 
 				perf_end(mc_loop_perf);
 			} /* end of poll call for attitude updates */
