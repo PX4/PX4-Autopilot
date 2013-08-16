@@ -204,6 +204,7 @@ void check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicl
 transition_result_t check_main_state_machine(struct vehicle_status_s *current_status);
 
 void print_reject_mode(const char *msg);
+void print_reject_arm(const char *msg);
 
 transition_result_t check_navigation_state_machine(struct vehicle_status_s *current_status, struct vehicle_control_mode_s *control_mode);
 
@@ -1082,6 +1083,16 @@ int commander_thread_main(int argc, char *argv[])
 					} else {
 						mavlink_log_info(mavlink_fd, "[cmd] DISARMED by RC");
 					}
+				} else if (res == TRANSITION_DENIED) {
+					/* DENIED here indicates safety switch not pressed */
+
+					if (!(!safety.safety_switch_available || safety.safety_off)) {
+						print_reject_arm("NOT ARMING: Press safety switch first.");
+
+					} else {
+						warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+						mavlink_log_critical(mavlink_fd, "[cmd] ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+					}
 				}
 
 				/* fill current_status according to mode switches */
@@ -1485,6 +1496,20 @@ print_reject_mode(const char *msg)
 		last_print_mode_reject_time = t;
 		char s[80];
 		sprintf(s, "[cmd] WARNING: reject %s", msg);
+		mavlink_log_critical(mavlink_fd, s);
+		tune_negative();
+	}
+}
+
+void
+print_reject_arm(const char *msg)
+{
+	hrt_abstime t = hrt_absolute_time();
+
+	if (t - last_print_mode_reject_time > PRINT_MODE_REJECT_INTERVAL) {
+		last_print_mode_reject_time = t;
+		char s[80];
+		sprintf(s, "[cmd] %s", msg);
 		mavlink_log_critical(mavlink_fd, s);
 		tune_negative();
 	}
