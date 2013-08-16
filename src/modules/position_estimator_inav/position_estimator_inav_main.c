@@ -116,6 +116,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 		}
 
 		verbose_mode = false;
+
 		if (argc > 1)
 			if (!strcmp(argv[2], "-v"))
 				verbose_mode = true;
@@ -375,6 +376,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (att.R_valid) {
 						/* correct accel bias, now only for Z */
 						sensor.accelerometer_m_s2[2] -= accel_bias[2];
+
 						/* transform acceleration vector from body frame to NED frame */
 						for (int i = 0; i < 3; i++) {
 							accel_NED[i] = 0.0f;
@@ -551,9 +553,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
 
 				if (params.use_gps) {
-					global_pos.valid = local_pos.valid;
 					double est_lat, est_lon;
 					map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
+
+					global_pos.valid = local_pos.valid;
+					global_pos.timestamp = t;
+					global_pos.time_gps_usec = gps.time_gps_usec;
 					global_pos.lat = (int32_t)(est_lat * 1e7);
 					global_pos.lon = (int32_t)(est_lon * 1e7);
 					global_pos.alt = local_pos.home_alt - local_pos.z;
