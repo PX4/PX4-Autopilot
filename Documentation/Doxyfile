@@ -429,19 +429,19 @@ SORT_BY_SCOPE_NAME     = NO
 # disable (NO) the todo list. This list is created by putting \todo
 # commands in the documentation.
 
-GENERATE_TODOLIST      = YES
+GENERATE_TODOLIST      = NO
 
 # The GENERATE_TESTLIST tag can be used to enable (YES) or
 # disable (NO) the test list. This list is created by putting \test
 # commands in the documentation.
 
-GENERATE_TESTLIST      = YES
+GENERATE_TESTLIST      = NO
 
 # The GENERATE_BUGLIST tag can be used to enable (YES) or
 # disable (NO) the bug list. This list is created by putting \bug
 # commands in the documentation.
 
-GENERATE_BUGLIST       = YES
+GENERATE_BUGLIST       = NO
 
 # The GENERATE_DEPRECATEDLIST tag can be used to enable (YES) or
 # disable (NO) the deprecated list. This list is created by putting
@@ -569,7 +569,7 @@ WARN_LOGFILE           = doxy.log
 # directories like "/usr/src/myproject". Separate the files or directories
 # with spaces.
 
-INPUT                  = ../apps
+INPUT                  = ../src
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is
@@ -599,9 +599,8 @@ RECURSIVE              = YES
 # excluded from the INPUT source files. This way you can easily exclude a
 # subdirectory from a directory tree whose root is specified with the INPUT tag.
 
-EXCLUDE                = ../dist/ \
-						 ../docs/html/ \
-						 html
+EXCLUDE                = ../src/modules/mathlib/CMSIS \
+			 ../src/modules/attitude_estimator_ekf/codegen
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or
 # directories that are symbolic links (a Unix filesystem feature) are excluded
