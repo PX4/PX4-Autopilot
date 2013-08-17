@@ -75,6 +75,7 @@ static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool verbose_mode = false;
+static hrt_abstime gps_timeout = 1000000;	// GPS timeout = 1s
 
 __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
@@ -490,7 +491,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		inertial_filter_correct(accel_corr[2], dt, z_est, 2, params.w_alt_acc);
 
 		/* dont't try to estimate position when no any position source available */
-		bool can_estimate_pos = params.use_gps && gps.fix_type >= 3;
+		bool can_estimate_pos = params.use_gps && gps.fix_type >= 3 && t - gps.timestamp_position < gps_timeout;
 
 		if (can_estimate_pos) {
 			/* inertial filter prediction for position */
@@ -501,14 +502,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(accel_corr[0], dt, x_est, 2, params.w_pos_acc);
 			inertial_filter_correct(accel_corr[1], dt, y_est, 2, params.w_pos_acc);
 
-			if (params.use_gps && gps.fix_type >= 3) {
-				inertial_filter_correct(gps_corr[0][0], dt, x_est, 0, params.w_pos_gps_p);
-				inertial_filter_correct(gps_corr[1][0], dt, y_est, 0, params.w_pos_gps_p);
+			inertial_filter_correct(gps_corr[0][0], dt, x_est, 0, params.w_pos_gps_p);
+			inertial_filter_correct(gps_corr[1][0], dt, y_est, 0, params.w_pos_gps_p);
 
-				if (gps.vel_ned_valid) {
-					inertial_filter_correct(gps_corr[0][1], dt, x_est, 1, params.w_pos_gps_v);
-					inertial_filter_correct(gps_corr[1][1], dt, y_est, 1, params.w_pos_gps_v);
-				}
+			if (gps.vel_ned_valid && t - gps.timestamp_velocity < gps_timeout) {
+				inertial_filter_correct(gps_corr[0][1], dt, x_est, 1, params.w_pos_gps_v);
+				inertial_filter_correct(gps_corr[1][1], dt, y_est, 1, params.w_pos_gps_v);
 			}
 		}
 

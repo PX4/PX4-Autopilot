@@ -367,14 +367,20 @@ mc_thread_main(int argc, char *argv[])
 					}
 
 					/* apply controller */
-					float gyro[3];
-					gyro[0] = att.rollspeed;
-					gyro[1] = att.pitchspeed;
-					gyro[2] = att.yawspeed;
-
-					multirotor_control_rates(&rates_sp, gyro, &actuators);
-					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+					float rates[3];
+					rates[0] = att.rollspeed;
+					rates[1] = att.pitchspeed;
+					rates[2] = att.yawspeed;
+					multirotor_control_rates(&rates_sp, rates, &actuators);
+				} else {
+					/* rates controller disabled, set actuators to zero for safety */
+					actuators.control[0] = 0.0f;
+					actuators.control[1] = 0.0f;
+					actuators.control[2] = 0.0f;
+					actuators.control[3] = 0.0f;
 				}
+				actuators.timestamp = hrt_absolute_time();
+				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 				/* update state */
 				flag_control_attitude_enabled = control_mode.flag_control_attitude_enabled;
