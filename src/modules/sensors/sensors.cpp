@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <math.h>
+#include <mathlib/mathlib.h>
 
 #include <nuttx/analog/adc.h>
 
@@ -138,6 +139,77 @@
 #define limit_minus_one_to_one(arg) (arg < -1.0f) ? -1.0f : ((arg > 1.0f) ? 1.0f : arg)
 
 /**
+ * Enum for board and external compass rotations
+ * copied from https://github.com/diydrones/ardupilot/blob/master/libraries/AP_Math/rotations.h
+ */
+enum Rotation {
+    ROTATION_NONE                = 0,
+    ROTATION_YAW_45              = 1,
+    ROTATION_YAW_90              = 2,
+    ROTATION_YAW_135             = 3,
+    ROTATION_YAW_180             = 4,
+    ROTATION_YAW_225             = 5,
+    ROTATION_YAW_270             = 6,
+    ROTATION_YAW_315             = 7,
+    ROTATION_ROLL_180            = 8,
+    ROTATION_ROLL_180_YAW_45     = 9,
+    ROTATION_ROLL_180_YAW_90     = 10,
+    ROTATION_ROLL_180_YAW_135    = 11,
+    ROTATION_PITCH_180           = 12,
+    ROTATION_ROLL_180_YAW_225    = 13,
+    ROTATION_ROLL_180_YAW_270    = 14,
+    ROTATION_ROLL_180_YAW_315    = 15,
+    ROTATION_ROLL_90             = 16,
+    ROTATION_ROLL_90_YAW_45      = 17,
+    ROTATION_ROLL_90_YAW_90      = 18,
+    ROTATION_ROLL_90_YAW_135     = 19,
+    ROTATION_ROLL_270            = 20,
+    ROTATION_ROLL_270_YAW_45     = 21,
+    ROTATION_ROLL_270_YAW_90     = 22,
+    ROTATION_ROLL_270_YAW_135    = 23,
+    ROTATION_PITCH_90            = 24,
+    ROTATION_PITCH_270           = 25,
+    ROTATION_MAX
+};
+
+typedef struct
+{
+    uint16_t roll;
+    uint16_t pitch;
+    uint16_t yaw;
+} rot_lookup_t;
+
+const rot_lookup_t rot_lookup[] =
+{
+    {  0,   0,   0 },
+    {  0,   0,  45 },
+    {  0,   0,  90 },
+    {  0,   0, 135 },
+    {  0,   0, 180 },
+    {  0,   0, 225 },
+    {  0,   0, 270 },
+    {  0,   0, 315 },
+    {180,   0,   0 },
+    {180,   0,  45 },
+    {180,   0,  90 },
+    {180,   0, 135 },
+    {  0, 180,   0 },
+    {180,   0, 225 },
+    {180,   0, 270 },
+    {180,   0, 315 },
+    { 90,   0,   0 },
+    { 90,   0,  45 },
+    { 90,   0,  90 },
+    { 90,   0, 135 },
+    {270,   0,   0 },
+    {270,   0,  45 },
+    {270,   0,  90 },
+    {270,   0, 135 },
+    {  0,  90,   0 },
+    {  0, 270,   0 }
+};
+
+/**
  * Sensor app start / stop handling function
  *
  * @ingroup apps
@@ -210,6 +282,9 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 
+	math::Matrix	_board_rotation;			/**< rotation matrix for the orientation that the board is mounted */
+	math::Matrix	_external_mag_rotation;	/**< rotation matrix for the orientation that an external mag is mounted */
+
 	struct {
 		float min[_rc_max_chan_count];
 		float trim[_rc_max_chan_count];
@@ -226,6 +301,9 @@ private:
 		float accel_offset[3];
 		float accel_scale[3];
 		float diff_pres_offset_pa;
+
+		int board_rotation;
+		int external_mag_rotation;
 
 		int rc_type;
 
@@ -306,6 +384,9 @@ private:
 
 		param_t battery_voltage_scaling;
 
+		param_t board_rotation;
+		param_t external_mag_rotation;
+
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -313,6 +394,11 @@ private:
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
+
+	/**
+	 * Get the rotation matrices
+	 */
+	void		get_rot_matrix(enum Rotation rot, math::Matrix *rot_matrix);
 
 	/**
 	 * Do accel-related initialisation.
@@ -450,7 +536,10 @@ Sensors::Sensors() :
 	_diff_pres_pub(-1),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
+
+	_board_rotation(3,3),
+	_external_mag_rotation(3,3)
 {
 
 	/* basic r/c parameters */
@@ -539,6 +628,10 @@ Sensors::Sensors() :
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
+
+	/* rotations */
+	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
+	_parameter_handles.external_mag_rotation = param_find("SENS_EXT_MAG_ROT");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -731,7 +824,31 @@ Sensors::parameters_update()
 		warnx("Failed updating voltage scaling param");
 	}
 
+	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
+	param_get(_parameter_handles.external_mag_rotation, &(_parameters.external_mag_rotation));
+
+	get_rot_matrix((enum Rotation)_parameters.board_rotation, &_board_rotation);
+	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
+
 	return OK;
+}
+
+void
+Sensors::get_rot_matrix(enum Rotation rot, math::Matrix *rot_matrix)
+{
+	/* first set to zero */
+	rot_matrix->Matrix::zero(3,3);
+
+	float roll  = M_DEG_TO_RAD_F * (float)rot_lookup[rot].roll;
+	float pitch = M_DEG_TO_RAD_F * (float)rot_lookup[rot].pitch;
+	float yaw   = M_DEG_TO_RAD_F * (float)rot_lookup[rot].yaw;
+
+	math::EulerAngles euler(roll, pitch, yaw);
+
+	math::Dcm R(euler);
+
+	for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+		(*rot_matrix)(i,j) = R(i, j);
 }
 
 void
@@ -874,9 +991,12 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
-		raw.accelerometer_m_s2[0] = accel_report.x;
-		raw.accelerometer_m_s2[1] = accel_report.y;
-		raw.accelerometer_m_s2[2] = accel_report.z;
+		math::Vector3 vect = {accel_report.x, accel_report.y, accel_report.z};
+		vect = _board_rotation*vect;
+
+		raw.accelerometer_m_s2[0] = vect(0);
+		raw.accelerometer_m_s2[1] = vect(1);
+		raw.accelerometer_m_s2[2] = vect(2);
 
 		raw.accelerometer_raw[0] = accel_report.x_raw;
 		raw.accelerometer_raw[1] = accel_report.y_raw;
@@ -897,9 +1017,12 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
-		raw.gyro_rad_s[0] = gyro_report.x;
-		raw.gyro_rad_s[1] = gyro_report.y;
-		raw.gyro_rad_s[2] = gyro_report.z;
+		math::Vector3 vect = {gyro_report.x, gyro_report.y, gyro_report.z};
+		vect = _board_rotation*vect;
+
+		raw.gyro_rad_s[0] = vect(0);
+		raw.gyro_rad_s[1] = vect(1);
+		raw.gyro_rad_s[2] = vect(2);
 
 		raw.gyro_raw[0] = gyro_report.x_raw;
 		raw.gyro_raw[1] = gyro_report.y_raw;
@@ -920,9 +1043,14 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
-		raw.magnetometer_ga[0] = mag_report.x;
-		raw.magnetometer_ga[1] = mag_report.y;
-		raw.magnetometer_ga[2] = mag_report.z;
+		// XXX TODO add support for external mag orientation
+
+		math::Vector3 vect = {mag_report.x, mag_report.y, mag_report.z};
+		vect = _board_rotation*vect;
+
+		raw.magnetometer_ga[0] = vect(0);
+		raw.magnetometer_ga[1] = vect(1);
+		raw.magnetometer_ga[2] = vect(2);
 
 		raw.magnetometer_raw[0] = mag_report.x_raw;
 		raw.magnetometer_raw[1] = mag_report.y_raw;
