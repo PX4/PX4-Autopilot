@@ -92,21 +92,62 @@ extern device::Device *PX4IO_serial_interface() weak_function;
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
 
+/**
+ * The PX4IO class.
+ *
+ * Encapsulates PX4FMU to PX4IO communications modeled as file operations.
+ */
 class PX4IO : public device::CDev
 {
 public:
+	/**
+	 * Constructor.
+	 * 
+	 * Initialize all class variables.
+	 */
 	PX4IO(device::Device *interface);
+
+	/**
+	 * Destructor.
+	 * 
+	 * Wait for worker thread to terminate.
+	 */
 	virtual ~PX4IO();
 
+	/**
+	 * Initialize the PX4IO class.
+	 * 
+	 * Initialize the physical I2C interface to PX4IO. Retrieve relevant initial system parameters. Initialize PX4IO registers.
+	 */
 	virtual int		init();
 
+	/**
+	 * IO Control handler.
+	 * 
+	 * Handle all IOCTL calls to the PX4IO file descriptor.
+	 *
+	 * @param[in] filp file handle (not used). This function is always called directly through object reference
+	 * @param[in] cmd the IOCTL command
+	 * @param[in] the IOCTL command parameter (optional)
+	 */
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
+
+	/**
+	 * write handler.
+	 * 
+	 * Handle writes to the PX4IO file descriptor.
+	 *
+	 * @param[in] filp file handle (not used). This function is always called directly through object reference
+	 * @param[in] buffer pointer to the data buffer to be written
+	 * @param[in] len size in bytes to be written
+	 * @return number of bytes written
+	 */
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
 
 	/**
 	* Set the update rate for actuator outputs from FMU to IO.
 	*
-	* @param rate		The rate in Hz actuator outpus are sent to IO.
+	* @param[in] rate		The rate in Hz actuator outpus are sent to IO.
 	* 			Min 10 Hz, max 400 Hz
 	*/
 	int      		set_update_rate(int rate);
@@ -114,29 +155,41 @@ public:
 	/**
 	* Set the battery current scaling and bias
 	*
-	* @param amp_per_volt
-	* @param amp_bias
+	* @param[in] amp_per_volt
+	* @param[in] amp_bias
 	*/
 	void      		set_battery_current_scaling(float amp_per_volt, float amp_bias);
 
 	/**
 	 * Push failsafe values to IO.
 	 *
-	 * @param vals		Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
-	 * @param len		Number of channels, could up to 8
+	 * @param[in] vals	Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
+	 * @param[in] len	Number of channels, could up to 8
 	 */
 	int			set_failsafe_values(const uint16_t *vals, unsigned len);
 
 	/**
-	 * Print the current status of IO
+	 * Print IO status.
+	 *
+	 * Print all relevant IO status information
 	 */
 	void			print_status();
 
+	/**
+	 * Set the DSM VCC is controlled by relay one flag
+	 *
+	 * @param[in] enable true=DSM satellite VCC is controlled by relay1, false=DSM satellite VCC not controlled
+	 */
 	inline void		set_dsm_vcc_ctl(bool enable)
 	{
 		_dsm_vcc_ctl = enable;
 	};
 
+	/**
+	 * Get the DSM VCC is controlled by relay one flag
+	 *
+	 * @return true=DSM satellite VCC is controlled by relay1, false=DSM satellite VCC not controlled
+	 */
 	inline bool		get_dsm_vcc_ctl()
 	{
 		return _dsm_vcc_ctl;
@@ -146,59 +199,49 @@ private:
 	device::Device		*_interface;
 
 	// XXX
-	unsigned		_hardware;
-	unsigned		_max_actuators;
-	unsigned		_max_controls;
-	unsigned		_max_rc_input;
-	unsigned		_max_relays;
-	unsigned		_max_transfer;
+	unsigned		_hardware;			///< Hardware revision
+	unsigned		_max_actuators;		///<Maximum # of actuators supported by PX4IO
+	unsigned		_max_controls;		///<Maximum # of controls supported by PX4IO
+	unsigned		_max_rc_input;		///<Maximum receiver channels supported by PX4IO
+	unsigned		_max_relays;		///<Maximum relays supported by PX4IO
+	unsigned		_max_transfer;		///<Maximum number of I2C transfers supported by PX4IO
 
-	unsigned 		_update_interval; ///< subscription interval limiting send rate
+	unsigned 		_update_interval;	///<Subscription interval limiting send rate
 
-	volatile int		_task;		///< worker task
-	volatile bool		_task_should_exit;
+	volatile int		_task;			///<worker task id
+	volatile bool		_task_should_exit;	///<worker terminate flag
 
-	int			_mavlink_fd;
+	int			_mavlink_fd;		///<mavlink file descriptor
 
-	perf_counter_t		_perf_update;
+	perf_counter_t		_perf_update;		///<local performance counter
 
 	/* cached IO state */
-	uint16_t		_status;
-	uint16_t		_alarms;
+	uint16_t		_status;		///<Various IO status flags
+	uint16_t		_alarms;		///<Various IO alarms
 
 	/* subscribed topics */
-	int			_t_actuators;	///< actuator controls topic
-	int			_t_armed;	///< system armed control topic
-	int 			_t_vstatus;	///< system / vehicle status
-	int			_t_param;	///< parameter update topic
+	int			_t_actuators;		///<actuator controls topic
+	int			_t_armed;		///<system armed control topic
+	int 			_t_vstatus;		///<system / vehicle status
+	int			_t_param;		///<parameter update topic
 
 	/* advertised topics */
-	orb_advert_t 		_to_input_rc;	///< rc inputs from io
-	orb_advert_t 		_to_actuators_effective; ///< effective actuator controls topic
-	orb_advert_t		_to_outputs;	///< mixed servo outputs topic
-	orb_advert_t		_to_battery;	///< battery status / voltage
+	orb_advert_t 		_to_input_rc;		///<rc inputs from IO topic
+	orb_advert_t 		_to_actuators_effective; ///<effective actuator controls topic
+	orb_advert_t		_to_outputs;		///<mixed servo outputs topic
+	orb_advert_t		_to_battery;		///<battery status / voltage topic
 
-	actuator_outputs_s	_outputs;	///< mixed outputs
-	actuator_controls_effective_s _controls_effective; ///< effective controls
+	actuator_outputs_s	_outputs;		///<mixed outputs
+	actuator_controls_effective_s _controls_effective; ///<effective controls
 
-	bool			_primary_pwm_device;	///< true if we are the default PWM output
+	bool			_primary_pwm_device;	///<true if we are the default PWM output
 
-	float			_battery_amp_per_volt;
-	float			_battery_amp_bias;
-	float			_battery_mamphour_total;
-	uint64_t		_battery_last_timestamp;
+	float			_battery_amp_per_volt;	///<current sensor amps/volt
+	float			_battery_amp_bias;	///<current sensor bias
+	float			_battery_mamphour_total;///<amp hours consumed so far
+	uint64_t		_battery_last_timestamp;///<last amp hour calculation timestamp
 
-	/**
-	 * Relay1 is dedicated to controlling DSM receiver power
-	 */
-
-	bool			_dsm_vcc_ctl;
-
-	/**
-	 * System armed
-	 */
-
-	bool			_system_armed;
+	bool			_dsm_vcc_ctl;		///<true if relay 1 controls DSM satellite RX power
 
 	/**
 	 * Trampoline to the worker task
@@ -369,8 +412,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
 	_battery_last_timestamp(0),
-	_dsm_vcc_ctl(false),
-	_system_armed(false)
+	_dsm_vcc_ctl(false)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -705,7 +747,7 @@ PX4IO::task_main()
 				// See if bind parameter has been set, and reset it to 0
 				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
 				if (dsm_bind_val) {
-					if (!_system_armed) {
+					if (!(_status & PX4IO_P_STATUS_FLAGS_ARMED)) {
 						if ((dsm_bind_val == 1) || (dsm_bind_val == 2)) {
 							mavlink_log_info(mavlink_fd, "[IO] binding dsm%c rx", dsm_bind_val == 1 ? '2' : 'x');
 							ioctl(nullptr, DSM_BIND_START, dsm_bind_val == 1 ? 3 : 7);
@@ -783,8 +825,6 @@ PX4IO::io_set_arming_state()
 
 	uint16_t set = 0;
 	uint16_t clear = 0;
-
-	_system_armed = vstatus.flag_system_armed;
 
 	if (armed.armed && !armed.lockdown) {
 		set |= PX4IO_P_SETUP_ARMING_FMU_ARMED;
@@ -1635,7 +1675,8 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 }
 
 ssize_t
-PX4IO::write(file *filp, const char *buffer, size_t len)
+PX4IO::write(file * /*filp*/, const char *buffer, size_t len)
+/* Make it obvious that file * isn't used here */
 {
 	unsigned count = len / 2;
 
