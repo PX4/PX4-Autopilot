@@ -52,6 +52,7 @@
 #include <errno.h>
 #include <debug.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
 #include <string.h>
 #include <math.h>
 #include <poll.h>
@@ -153,6 +154,8 @@ static unsigned int failsafe_lowlevel_timeout_ms;
 static unsigned int leds_counter;
 /* To remember when last notification was sent */
 static uint64_t last_print_mode_reject_time = 0;
+/* if connected via USB */
+static bool on_usb_power = false;
 
 
 /* tasks waiting for low prio thread */
@@ -205,6 +208,8 @@ transition_result_t check_main_state_machine(struct vehicle_status_s *current_st
 
 void print_reject_mode(const char *msg);
 
+void print_status();
+
 transition_result_t check_navigation_state_machine(struct vehicle_status_s *current_status, struct vehicle_control_mode_s *control_mode);
 
 /**
@@ -244,6 +249,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			warnx("\tcommander is running\n");
+			print_status();
 
 		} else {
 			warnx("\tcommander not started\n");
@@ -263,6 +269,10 @@ void usage(const char *reason)
 
 	fprintf(stderr, "usage: daemon {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
+}
+
+void print_status() {
+	warnx("usb powered: %s", (on_usb_power) ? "yes" : "no");
 }
 
 void handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_control_mode_s *control_mode, struct vehicle_command_s *cmd, struct actuator_armed_s *armed)
@@ -865,9 +875,14 @@ int commander_thread_main(int argc, char *argv[])
 				status.load = 1.0f - ((float)interval_runtime / 1e6f);	//system load is time spent in non-idle
 
 			last_idle_time = system_load.tasks[0].total_runtime;
+
+			/* check if board is connected via USB */
+			struct stat statbuf;
+			//on_usb_power = (stat("/dev/ttyACM0", &statbuf) == 0);
 		}
 
-		warnx("bat remaining: %2.2f", status.battery_remaining);
+		// XXX remove later
+		//warnx("bat remaining: %2.2f", status.battery_remaining);
 
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
 		if (status.condition_battery_voltage_valid && status.battery_remaining < 0.25f && !low_battery_voltage_actions_done) {
@@ -1362,22 +1377,22 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 		if (armed->armed) {
 			/* armed, solid */
 			if (status->battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
-				pattern.color[0] = RGBLED_COLOR_AMBER;
+				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_AMBER : RGBLED_COLOR_AMBER;
 			} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
-				pattern.color[0] = RGBLED_COLOR_RED;
+				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
 			} else {
-				pattern.color[0] = RGBLED_COLOR_GREEN;
+				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_GREEN :RGBLED_COLOR_GREEN;
 			}
 			pattern.duration[0] = 1000;
 
 		} else if (armed->ready_to_arm) {
 			for (i=0; i<3; i++) {
 				if (status->battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
-					pattern.color[i*2] = RGBLED_COLOR_AMBER;
+					pattern.color[i*2] = (on_usb_power) ? RGBLED_COLOR_DIM_AMBER : RGBLED_COLOR_AMBER;
 				} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
-					pattern.color[i*2] = RGBLED_COLOR_RED;
+					pattern.color[i*2] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
 				} else {
-					pattern.color[i*2] = RGBLED_COLOR_GREEN;
+					pattern.color[i*2] = (on_usb_power) ? RGBLED_COLOR_DIM_GREEN : RGBLED_COLOR_GREEN;
 				}
 				pattern.duration[i*2] = 200;
 
@@ -1385,13 +1400,13 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 				pattern.duration[i*2+1] = 800;
 			}
 			if (status->condition_global_position_valid) {
-				pattern.color[i*2] = RGBLED_COLOR_BLUE;
+				pattern.color[i*2] = (on_usb_power) ? RGBLED_COLOR_DIM_BLUE : RGBLED_COLOR_BLUE;
 				pattern.duration[i*2] = 1000;
 				pattern.color[i*2+1] = RGBLED_COLOR_OFF;
 				pattern.duration[i*2+1] = 800;
 			} else {
 				for (i=3; i<6; i++) {
-					pattern.color[i*2] = RGBLED_COLOR_BLUE;
+					pattern.color[i*2] = (on_usb_power) ? RGBLED_COLOR_DIM_BLUE : RGBLED_COLOR_BLUE;
 					pattern.duration[i*2] = 100;
 					pattern.color[i*2+1] = RGBLED_COLOR_OFF;
 					pattern.duration[i*2+1] = 100;
@@ -1402,7 +1417,7 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 
 		} else {
 			for (i=0; i<3; i++) {
-				pattern.color[i*2] = RGBLED_COLOR_RED;
+				pattern.color[i*2] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
 				pattern.duration[i*2] = 200;
 				pattern.color[i*2+1] = RGBLED_COLOR_OFF;
 				pattern.duration[i*2+1] = 200;
