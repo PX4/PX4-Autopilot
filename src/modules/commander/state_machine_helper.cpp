@@ -69,6 +69,11 @@ static bool navigation_state_changed = true;
 transition_result_t
 arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety, arming_state_t new_arming_state, struct actuator_armed_s *armed)
 {
+	/*
+	 * Perform an atomic state update
+	 */
+	irqstate_t flags = irqsave();
+
 	transition_result_t ret = TRANSITION_DENIED;
 
 	/* only check transition if the new state is actually different from the current one */
@@ -168,10 +173,14 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 		if (ret == TRANSITION_CHANGED) {
 			status->arming_state = new_arming_state;
 			arming_state_changed = true;
-		} else {
-			warnx("arming transition rejected");
 		}
 	}
+
+	/* end of atomic state update */
+	irqrestore(flags);
+
+	if (ret == TRANSITION_DENIED)
+		warnx("arming transition rejected");
 
 	return ret;
 }
