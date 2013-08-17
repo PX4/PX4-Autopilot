@@ -46,11 +46,6 @@
 #include "../uORB.h"
 
 /**
- * @addtogroup topics
- * @{
- */
-
-/**
  * Commands for commander app.
  *
  * Should contain all commands from MAVLink's VEHICLE_CMD ENUM,
@@ -110,6 +105,10 @@ enum VEHICLE_CMD_RESULT
 	VEHICLE_CMD_RESULT_ENUM_END=5, /*  | */
 };
 
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 struct vehicle_command_s
 {
