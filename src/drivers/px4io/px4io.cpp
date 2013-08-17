@@ -508,7 +508,7 @@ PX4IO::init()
 			usleep(10000);
 
 			/* abort after 5s */
-			if ((hrt_absolute_time() - try_start_time)/1000 > 50000) {
+			if ((hrt_absolute_time() - try_start_time)/1000 > 3000) {
 				log("failed to recover from in-air restart (1), aborting IO driver init.");
 				return 1;
 			}
