@@ -294,6 +294,27 @@ RGBLED::set_color(rgbled_color_t color) {
 		case RGBLED_COLOR_AMBER:	// amber
 			set_rgb(255,20,0);
 			break;
+		case RGBLED_COLOR_DIM_RED:		// red
+			set_rgb(90,0,0);
+			break;
+		case RGBLED_COLOR_DIM_YELLOW:	// yellow
+			set_rgb(80,30,0);
+			break;
+		case RGBLED_COLOR_DIM_PURPLE:	// purple
+			set_rgb(45,0,45);
+			break;
+		case RGBLED_COLOR_DIM_GREEN:	// green
+			set_rgb(0,90,0);
+			break;
+		case RGBLED_COLOR_DIM_BLUE:		// blue
+			set_rgb(0,0,90);
+			break;
+		case RGBLED_COLOR_DIM_WHITE:	// white
+			set_rgb(30,30,30);
+			break;
+		case RGBLED_COLOR_DIM_AMBER:	// amber
+			set_rgb(80,20,0);
+			break;
 		default:
 			warnx("color unknown");
 			break;
