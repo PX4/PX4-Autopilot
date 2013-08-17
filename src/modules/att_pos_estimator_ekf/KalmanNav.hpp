@@ -47,8 +47,8 @@
 #include <mathlib/mathlib.h>
 #include <controllib/blocks.hpp>
 #include <controllib/block/BlockParam.hpp>
-#include <controllib/block/UOrbSubscription.hpp>
-#include <controllib/block/UOrbPublication.hpp>
+#include <controllib/uorb/UOrbSubscription.hpp>
+#include <controllib/uorb/UOrbPublication.hpp>
 
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>

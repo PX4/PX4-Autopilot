@@ -33,10 +33,10 @@
  ****************************************************************************/
 
 /**
- * @file fixedwing_backside_main.cpp
+ * @file segway_main.cpp
  * @author James Goppert
  *
- * Fixedwing backside controller using control library
+ * Segway controller using control library
  */
 
 #include <nuttx/config.h>
@@ -50,7 +50,7 @@
 #include <drivers/drv_hrt.h>
 #include <math.h>
 
-#include "fixedwing.hpp"
+#include "BlockSegwayController.hpp"
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
@@ -59,17 +59,12 @@ static int deamon_task;             /**< Handle of deamon task / thread */
 /**
  * Deamon management function.
  */
-extern "C" __EXPORT int fixedwing_backside_main(int argc, char *argv[]);
+extern "C" __EXPORT int segway_main(int argc, char *argv[]);
 
 /**
  * Mainloop of deamon.
  */
-int control_demo_thread_main(int argc, char *argv[]);
-
-/**
- * Test function
- */
-void test();
+int segway_thread_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.
@@ -82,7 +77,7 @@ usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	fprintf(stderr, "usage: fixedwing_backside {start|stop|status} [-p <additional params>]\n\n");
+	fprintf(stderr, "usage: segway {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
 }
 
@@ -94,7 +89,7 @@ usage(const char *reason)
  * The actual stack size should be set in the call
  * to task_create().
  */
-int fixedwing_backside_main(int argc, char *argv[])
+int segway_main(int argc, char *argv[])
 {
 
 	if (argc < 1)
@@ -110,17 +105,12 @@ int fixedwing_backside_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 
-		deamon_task = task_spawn_cmd("fixedwing_backside",
+		deamon_task = task_spawn_cmd("segway",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 10,
 					 5120,
-					 control_demo_thread_main,
+					 segway_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "test")) {
-		test();
 		exit(0);
 	}
 
@@ -144,14 +134,14 @@ int fixedwing_backside_main(int argc, char *argv[])
 	exit(1);
 }
 
-int control_demo_thread_main(int argc, char *argv[])
+int segway_thread_main(int argc, char *argv[])
 {
 
 	warnx("starting");
 
 	using namespace control;
 
-	fixedwing::BlockMultiModeBacksideAutopilot autopilot(NULL, "FWB");
+	BlockSegwayController autopilot;
 
 	thread_running = true;
 
@@ -164,10 +154,4 @@ int control_demo_thread_main(int argc, char *argv[])
 	thread_running = false;
 
 	return 0;
-}
-
-void test()
-{
-	warnx("beginning control lib test");
-	control::basicBlocksTest();
 }

@@ -252,8 +252,8 @@
  * CAN2 is routed to the expansion connector.
  */
 
-#define GPIO_CAN2_RX	GPIO_CAN2_RX_2
-#define GPIO_CAN2_TX	GPIO_CAN2_TX_2
+#define GPIO_CAN2_RX	GPIO_CAN2_RX_1
+#define GPIO_CAN2_TX	GPIO_CAN2_TX_1
 
 /*
  * I2C

@@ -32,11 +32,11 @@
 ############################################################################
 
 #
-# Fixedwing backside controller
+# segway controller
 #
 
-MODULE_COMMAND	= fixedwing_backside
+MODULE_COMMAND	= segway
 
-SRCS		= fixedwing_backside_main.cpp \
-		  fixedwing.cpp \
+SRCS		= segway_main.cpp \
+		  BlockSegwayController.cpp \
 		  params.c
