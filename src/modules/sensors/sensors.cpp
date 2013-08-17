@@ -139,8 +139,8 @@
 #define limit_minus_one_to_one(arg) (arg < -1.0f) ? -1.0f : ((arg > 1.0f) ? 1.0f : arg)
 
 /**
- * Enum for board and external compass rotations
- * copied from https://github.com/diydrones/ardupilot/blob/master/libraries/AP_Math/rotations.h
+ * Enum for board and external compass rotations.
+ * This enum maps from board attitude to airframe attitude.
  */
 enum Rotation {
     ROTATION_NONE                = 0,
@@ -261,8 +261,8 @@ private:
 	int		_mag_sub;			/**< raw mag data subscription */
 	int 		_rc_sub;			/**< raw rc channels data subscription */
 	int		_baro_sub;			/**< raw baro data subscription */
-	int     _airspeed_sub;		/**< airspeed subscription */
-	int		_diff_pres_sub;		/**< raw differential pressure subscription */
+	int		_airspeed_sub;			/**< airspeed subscription */
+	int		_diff_pres_sub;			/**< raw differential pressure subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;			/**< notification of manual control updates */
@@ -282,8 +282,8 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 
-	math::Matrix	_board_rotation;			/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix	_external_mag_rotation;	/**< rotation matrix for the orientation that an external mag is mounted */
+	math::Matrix	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
+	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -291,7 +291,6 @@ private:
 		float max[_rc_max_chan_count];
 		float rev[_rc_max_chan_count];
 		float dz[_rc_max_chan_count];
-		// float ex[_rc_max_chan_count];
 		float scaling_factor[_rc_max_chan_count];
 
 		float gyro_offset[3];
@@ -343,7 +342,6 @@ private:
 		param_t max[_rc_max_chan_count];
 		param_t rev[_rc_max_chan_count];
 		param_t dz[_rc_max_chan_count];
-		// param_t ex[_rc_max_chan_count];
 		param_t rc_type;
 
 		param_t rc_demix;
@@ -874,13 +872,16 @@ Sensors::accel_init()
 		/* set the driver to poll at 1000Hz */
 		ioctl(fd, SENSORIOCSPOLLRATE, 1000);
 
-		#else
+		#elif CONFIG_ARCH_BOARD_PX4FMU_V2
 
 		/* set the accel internal sampling rate up to at leat 800Hz */
 		ioctl(fd, ACCELIOCSSAMPLERATE, 800);
 
 		/* set the driver to poll at 800Hz */
 		ioctl(fd, SENSORIOCSPOLLRATE, 800);
+
+		#else
+			#error Need a board configuration, either CONFIG_ARCH_BOARD_PX4FMU_V1 or CONFIG_ARCH_BOARD_PX4FMU_V2
 
 		#endif
 
