@@ -82,6 +82,19 @@ else
 fi
 
 #
+# Start system state indicator
+#
+if rgbled start
+then
+	echo "Using external RGB Led"
+else
+	if blinkm start
+	then
+		blinkm systemstate
+	fi
+fi
+
+#
 # Check if PX4IO Firmware should be upgraded (from Andrew Tridgell)
 #
 if [ -f /fs/microsd/px4io.bin ]

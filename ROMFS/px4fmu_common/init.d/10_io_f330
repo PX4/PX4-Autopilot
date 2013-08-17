@@ -44,6 +44,11 @@ param set MAV_TYPE 2
 #
 mavlink start
 usleep 5000
+
+#
+# Start the commander (depends on orb, mavlink)
+#
+commander start
  
 #
 # Start PX4IO interface (depends on orb, commander)
@@ -77,11 +82,6 @@ mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
 # Start the sensors (depends on orb, px4io)
 #
 sh /etc/init.d/rc.sensors
-
-#
-# Start the commander (depends on orb, mavlink)
-#
-commander start
  
 #
 # Start GPS interface (depends on orb)
@@ -102,15 +102,7 @@ if [ $BOARD == fmuv1 ]
 then
 	px4io limit 200
 	sdlog2 start -r 50 -a -b 16
-	if blinkm start
-	then
-		blinkm systemstate
-	fi
 else
 	px4io limit 400
 	sdlog2 start -r 200 -a -b 16
-	if rgbled start
-	then
-		#rgbled systemstate
-	fi
 fi
