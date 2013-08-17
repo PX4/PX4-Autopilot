@@ -1667,7 +1667,8 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 }
 
 ssize_t
-PX4IO::write(file */*filp*/, const char *buffer, size_t len)
+PX4IO::write(file * /*filp*/, const char *buffer, size_t len)
+/* Make it obvious that file * isn't used here */
 {
 	unsigned count = len / 2;
 
