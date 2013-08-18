@@ -2013,21 +2013,21 @@ px4io_main(int argc, char *argv[])
 			delete g_dev;
 		}
 
-		PX4IO_Uploader *up;
-		const char *fn[3];
+		// default filenames we'll try to upload
+		const char *fn[] = {
+			"/fs/microsd/px4io.bin",
+			"/fs/microsd/px4io-v1_default.bin",
+			"/etc/px4io.bin",
+			nullptr
+		};
 
-		/* work out what we're uploading... */
+		// if user has specified a filename then override the defaults
 		if (argc > 2) {
 			fn[0] = argv[2];
 			fn[1] = nullptr;
-
-		} else {
-			fn[0] = "/fs/microsd/px4io.bin";
-			fn[1] =	"/etc/px4io.bin";
-			fn[2] =	nullptr;
 		}
 
-		up = new PX4IO_Uploader;
+		PX4IO_Uploader *up = new PX4IO_Uploader;
 		int ret = up->upload(fn);
 		delete up;
 
