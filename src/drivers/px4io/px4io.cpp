@@ -1519,8 +1519,8 @@ PX4IO::print_status()
 	uint16_t arming = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING);
 	printf("arming 0x%04x%s%s%s%s%s%s\n",
 		arming,
-		((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)          ? " FMU_ARMED" : ""),
-		((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)	    ? " IO_ARM_OK" : ""),
+		((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)          ? " FMU_ARMED" : " FMU_DISARMED"),
+		((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)	    ? " IO_ARM_OK" : " IO_ARM_DENIED"),
 		((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) ? " MANUAL_OVERRIDE_OK" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)   ? " FAILSAFE_CUSTOM" : ""),
 		((arming & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK)   ? " INAIR_RESTART_OK" : ""),

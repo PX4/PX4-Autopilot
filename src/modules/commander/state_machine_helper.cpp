@@ -119,7 +119,7 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 			{
 				ret = TRANSITION_CHANGED;
 				armed->armed = true;
-				armed->ready_to_arm = false;
+				armed->ready_to_arm = true;
 			}
 
 			break;
