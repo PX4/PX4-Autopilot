@@ -284,6 +284,7 @@ private:
 
 	math::Matrix	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
+	bool		_mag_is_external;		/**< true if the active mag is on an external board */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -537,7 +538,8 @@ Sensors::Sensors() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
 	_board_rotation(3,3),
-	_external_mag_rotation(3,3)
+	_external_mag_rotation(3,3),
+	_mag_is_external(false)
 {
 
 	/* basic r/c parameters */
@@ -948,6 +950,14 @@ Sensors::mag_init()
 	/* set the driver to poll at 150Hz */
 	ioctl(fd, SENSORIOCSPOLLRATE, 150);
 
+	int ret = ioctl(fd, MAGIOCGEXTERNAL, 0);
+	if (ret < 0)
+		errx(1, "FATAL: unknown if magnetometer is external or onboard");
+	else if (ret == 1)
+		_mag_is_external = true;
+	else
+		_mag_is_external = false;
+
 	close(fd);
 }
 
@@ -1044,10 +1054,12 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
-		// XXX TODO add support for external mag orientation
-
 		math::Vector3 vect = {mag_report.x, mag_report.y, mag_report.z};
-		vect = _board_rotation*vect;
+
+		if (_mag_is_external)
+			vect = _external_mag_rotation*vect;
+		else
+			vect = _board_rotation*vect;
 
 		raw.magnetometer_ga[0] = vect(0);
 		raw.magnetometer_ga[1] = vect(1);
