@@ -53,8 +53,13 @@ commander start
 #
 # Start PX4IO interface (depends on orb, commander)
 #
-px4io start
-pwm -u 400 -m 0xff
+if px4io start
+then
+	pwm -u 400 -m 0xff
+else
+	# SOS
+	tone_alarm 6
+fi
  
 #
 # Allow PX4IO to recover from midair restarts.
