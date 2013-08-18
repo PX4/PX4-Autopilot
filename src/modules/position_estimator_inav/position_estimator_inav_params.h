@@ -41,7 +41,6 @@
 #include <systemlib/param/param.h>
 
 struct position_estimator_inav_params {
-	int use_gps;
 	float w_alt_baro;
 	float w_alt_acc;
 	float w_alt_sonar;
@@ -56,7 +55,6 @@ struct position_estimator_inav_params {
 };
 
 struct position_estimator_inav_param_handles {
-	param_t use_gps;
 	param_t w_alt_baro;
 	param_t w_alt_acc;
 	param_t w_alt_sonar;

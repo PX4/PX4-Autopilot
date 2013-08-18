@@ -551,7 +551,7 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&control_mode, 0, sizeof(control_mode));
 
 	status.main_state = MAIN_STATE_MANUAL;
-	status.navigation_state = NAVIGATION_STATE_STANDBY;
+	status.navigation_state = NAVIGATION_STATE_DIRECT;
 	status.arming_state = ARMING_STATE_INIT;
 	status.hil_state = HIL_STATE_OFF;
 
@@ -812,8 +812,9 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_local_position), local_position_sub, &local_position);
 		}
 
-		/* update condition_local_position_valid */
-		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.valid, &(status.condition_local_position_valid), &status_changed);
+		/* update condition_local_position_valid and condition_local_altitude_valid */
+		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid, &(status.condition_local_position_valid), &status_changed);
+		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
 		/* update battery status */
 		orb_check(battery_sub, &updated);
@@ -1512,68 +1513,61 @@ check_navigation_state_machine(struct vehicle_status_s *current_status, struct v
 {
 	transition_result_t res = TRANSITION_DENIED;
 
-	if (current_status->arming_state == ARMING_STATE_ARMED || current_status->arming_state == ARMING_STATE_ARMED_ERROR) {
-		/* ARMED */
-		switch (current_status->main_state) {
-		case MAIN_STATE_MANUAL:
-			res = navigation_state_transition(current_status, current_status->is_rotary_wing ? NAVIGATION_STATE_STABILIZE : NAVIGATION_STATE_DIRECT, control_mode);
-			break;
+	switch (current_status->main_state) {
+	case MAIN_STATE_MANUAL:
+		res = navigation_state_transition(current_status, current_status->is_rotary_wing ? NAVIGATION_STATE_STABILIZE : NAVIGATION_STATE_DIRECT, control_mode);
+		break;
 
-		case MAIN_STATE_SEATBELT:
-			res = navigation_state_transition(current_status, NAVIGATION_STATE_ALTHOLD, control_mode);
-			break;
+	case MAIN_STATE_SEATBELT:
+		res = navigation_state_transition(current_status, NAVIGATION_STATE_ALTHOLD, control_mode);
+		break;
 
-		case MAIN_STATE_EASY:
-			res = navigation_state_transition(current_status, NAVIGATION_STATE_VECTOR, control_mode);
-			break;
+	case MAIN_STATE_EASY:
+		res = navigation_state_transition(current_status, NAVIGATION_STATE_VECTOR, control_mode);
+		break;
 
-		case MAIN_STATE_AUTO:
-			if (current_status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-				/* don't act while taking off */
-				res = TRANSITION_NOT_CHANGED;
+	case MAIN_STATE_AUTO:
+		if (current_status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
+			/* don't act while taking off */
+			res = TRANSITION_NOT_CHANGED;
+
+		} else {
+			if (current_status->condition_landed) {
+				/* if landed: transitions only to AUTO_READY are allowed */
+				res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_READY, control_mode);
+				// TRANSITION_DENIED is not possible here
+				break;
 
 			} else {
-				if (current_status->condition_landed) {
-					/* if landed: transitions only to AUTO_READY are allowed */
-					res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_READY, control_mode);
-					// TRANSITION_DENIED is not possible here
-					break;
-
-				} else {
-					/* if not landed: */
-					if (current_status->rc_signal_found_once && !current_status->rc_signal_lost) {
-						/* act depending on switches when manual control enabled */
-						if (current_status->return_switch == RETURN_SWITCH_RETURN) {
-							/* RTL */
-							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_RTL, control_mode);
-
-						} else {
-							if (current_status->mission_switch == MISSION_SWITCH_MISSION) {
-								/* MISSION */
-								res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
-
-							} else {
-								/* LOITER */
-								res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
-							}
-						}
+				/* if not landed: */
+				if (current_status->rc_signal_found_once && !current_status->rc_signal_lost) {
+					/* act depending on switches when manual control enabled */
+					if (current_status->return_switch == RETURN_SWITCH_RETURN) {
+						/* RTL */
+						res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_RTL, control_mode);
 
 					} else {
-						/* always switch to loiter in air when no RC control */
-						res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+						if (current_status->mission_switch == MISSION_SWITCH_MISSION) {
+							/* MISSION */
+							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
+
+						} else {
+							/* LOITER */
+							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+						}
 					}
+
+				} else {
+					/* always switch to loiter in air when no RC control */
+					res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
 				}
 			}
-
-			break;
-
-		default:
-			break;
 		}
 
-	} else {
-		/* DISARMED */
-		res = navigation_state_transition(current_status, NAVIGATION_STATE_STANDBY, control_mode);
+		break;
+
+	default:
+		break;
 	}
 
 	return res;

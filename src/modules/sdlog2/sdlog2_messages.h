@@ -106,10 +106,9 @@ struct log_LPOS_s {
 	float vx;
 	float vy;
 	float vz;
-	float hdg;
-	int32_t home_lat;
-	int32_t home_lon;
-	float home_alt;
+	int32_t ref_lat;
+	int32_t ref_lon;
+	float ref_alt;
 };
 
 /* --- LPSP - LOCAL POSITION SETPOINT --- */
@@ -260,7 +259,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ATSP, "ffff", "RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),
-	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,Heading,HomeLat,HomeLon,HomeAlt"),
+	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,RefLat,RefLon,RefAlt"),
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),

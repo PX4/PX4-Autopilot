@@ -68,8 +68,7 @@ typedef enum {
 
 /* navigation state machine */
 typedef enum {
-	NAVIGATION_STATE_STANDBY = 0,		// standby state, disarmed
-	NAVIGATION_STATE_DIRECT,		// true manual control, no any stabilization
+	NAVIGATION_STATE_DIRECT = 0,		// true manual control, no any stabilization
 	NAVIGATION_STATE_STABILIZE,		// attitude stabilization
 	NAVIGATION_STATE_ALTHOLD,		// attitude + altitude stabilization
 	NAVIGATION_STATE_VECTOR,		// attitude + altitude + position stabilization
@@ -203,6 +202,7 @@ struct vehicle_status_s
 	bool condition_launch_position_valid;		/**< indicates a valid launch position */
 	bool condition_home_position_valid;		/**< indicates a valid home position (a valid home position is not always a valid launch) */
 	bool condition_local_position_valid;
+	bool condition_local_altitude_valid;
 	bool condition_airspeed_valid;			/**< set to true by the commander app if there is a valid airspeed measurement available */
 	bool condition_landed;					/**< true if vehicle is landed, always true if disarmed */
 

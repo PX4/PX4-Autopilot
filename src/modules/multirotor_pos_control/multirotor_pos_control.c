@@ -219,7 +219,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	const float pos_ctl_dz = 0.05f;
 	float home_alt = 0.0f;
 	hrt_abstime home_alt_t = 0;
-	uint64_t local_home_timestamp = 0;
+	uint64_t local_ref_timestamp = 0;
 
 	PID_t xy_pos_pids[2];
 	PID_t xy_vel_pids[2];
@@ -316,11 +316,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			} else {
 				/* non-manual mode, project global setpoints to local frame */
 				//orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
-				if (local_pos.home_timestamp != local_home_timestamp) {
-					local_home_timestamp = local_pos.home_timestamp;
+				if (local_pos.ref_timestamp != local_ref_timestamp) {
+					local_ref_timestamp = local_pos.ref_timestamp;
 					/* init local projection using local position home */
-					double lat_home = local_pos.home_lat * 1e-7;
-					double lon_home = local_pos.home_lon * 1e-7;
+					double lat_home = local_pos.ref_lat * 1e-7;
+					double lon_home = local_pos.ref_lon * 1e-7;
 					map_projection_init(lat_home, lon_home);
 					warnx("local pos home: lat = %.10f, lon = %.10f", lat_home, lon_home);
 					mavlink_log_info(mavlink_fd, "local pos home: %.7f, %.7f", lat_home, lon_home);
@@ -338,7 +338,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						local_pos_sp.z = -global_pos_sp.altitude;
 
 					} else {
-						local_pos_sp.z = local_pos.home_alt - global_pos_sp.altitude;
+						local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
 					}
 
 					warnx("new setpoint: lat = %.10f, lon = %.10f, x = %.2f, y = %.2f", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
@@ -355,14 +355,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			/* manual control - move setpoints */
 			if (control_mode.flag_control_manual_enabled) {
-				if (local_pos.home_timestamp != home_alt_t) {
+				if (local_pos.ref_timestamp != home_alt_t) {
 					if (home_alt_t != 0) {
 						/* home alt changed, don't follow large ground level changes in manual flight */
-						local_pos_sp.z += local_pos.home_alt - home_alt;
+						local_pos_sp.z += local_pos.ref_alt - home_alt;
 					}
 
-					home_alt_t = local_pos.home_timestamp;
-					home_alt = local_pos.home_alt;
+					home_alt_t = local_pos.ref_timestamp;
+					home_alt = local_pos.ref_alt;
 				}
 
 				if (control_mode.flag_control_altitude_enabled) {

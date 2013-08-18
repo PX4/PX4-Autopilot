@@ -1042,10 +1042,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_LPOS.vx = buf.local_pos.vx;
 				log_msg.body.log_LPOS.vy = buf.local_pos.vy;
 				log_msg.body.log_LPOS.vz = buf.local_pos.vz;
-				log_msg.body.log_LPOS.hdg = buf.local_pos.hdg;
-				log_msg.body.log_LPOS.home_lat = buf.local_pos.home_lat;
-				log_msg.body.log_LPOS.home_lon = buf.local_pos.home_lon;
-				log_msg.body.log_LPOS.home_alt = buf.local_pos.home_alt;
+				log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat;
+				log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon;
+				log_msg.body.log_LPOS.ref_alt = buf.local_pos.ref_alt;
 				LOGBUFFER_WRITE_AND_COUNT(LPOS);
 			}
 

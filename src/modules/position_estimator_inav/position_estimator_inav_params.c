@@ -40,7 +40,6 @@
 
 #include "position_estimator_inav_params.h"
 
-PARAM_DEFINE_INT32(INAV_USE_GPS, 1);
 PARAM_DEFINE_FLOAT(INAV_W_ALT_BARO, 1.0f);
 PARAM_DEFINE_FLOAT(INAV_W_ALT_ACC, 50.0f);
 PARAM_DEFINE_FLOAT(INAV_W_ALT_SONAR, 3.0f);
@@ -55,7 +54,6 @@ PARAM_DEFINE_FLOAT(INAV_SONAR_ERR, 0.5f);
 
 int parameters_init(struct position_estimator_inav_param_handles *h)
 {
-	h->use_gps = param_find("INAV_USE_GPS");
 	h->w_alt_baro = param_find("INAV_W_ALT_BARO");
 	h->w_alt_acc = param_find("INAV_W_ALT_ACC");
 	h->w_alt_sonar = param_find("INAV_W_ALT_SONAR");
@@ -73,7 +71,6 @@ int parameters_init(struct position_estimator_inav_param_handles *h)
 
 int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p)
 {
-	param_get(h->use_gps, &(p->use_gps));
 	param_get(h->w_alt_baro, &(p->w_alt_baro));
 	param_get(h->w_alt_acc, &(p->w_alt_acc));
 	param_get(h->w_alt_sonar, &(p->w_alt_sonar));
