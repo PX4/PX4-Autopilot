@@ -46,11 +46,6 @@
 #include "../uORB.h"
 
 /**
- * @addtogroup topics
- * @{
- */
-
-/**
  * The number of RC channel inputs supported.
  * Current (Q1/2013) radios support up to 18 channels,
  * leaving at a sane value of 15.
@@ -84,6 +79,11 @@ enum RC_CHANNELS_FUNCTION
   AUX_5   = 14,
   RC_CHANNELS_FUNCTION_MAX /**< indicates the number of functions. There can be more functions than RC channels. */
 };
+
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 struct rc_channels_s {
 

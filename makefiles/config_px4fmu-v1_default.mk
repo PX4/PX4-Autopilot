@@ -30,6 +30,7 @@ MODULES		+= drivers/hil
 MODULES		+= drivers/hott/hott_telemetry
 MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
+MODULES		+= drivers/rgbled
 MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/md25
 MODULES		+= drivers/airspeed

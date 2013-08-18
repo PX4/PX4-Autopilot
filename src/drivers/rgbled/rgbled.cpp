@@ -294,6 +294,27 @@ RGBLED::set_color(rgbled_color_t color) {
 		case RGBLED_COLOR_AMBER:	// amber
 			set_rgb(255,20,0);
 			break;
+		case RGBLED_COLOR_DIM_RED:		// red
+			set_rgb(90,0,0);
+			break;
+		case RGBLED_COLOR_DIM_YELLOW:	// yellow
+			set_rgb(80,30,0);
+			break;
+		case RGBLED_COLOR_DIM_PURPLE:	// purple
+			set_rgb(45,0,45);
+			break;
+		case RGBLED_COLOR_DIM_GREEN:	// green
+			set_rgb(0,90,0);
+			break;
+		case RGBLED_COLOR_DIM_BLUE:		// blue
+			set_rgb(0,0,90);
+			break;
+		case RGBLED_COLOR_DIM_WHITE:	// white
+			set_rgb(30,30,30);
+			break;
+		case RGBLED_COLOR_DIM_AMBER:	// amber
+			set_rgb(80,20,0);
+			break;
 		default:
 			warnx("color unknown");
 			break;
@@ -435,7 +456,8 @@ rgbled_main(int argc, char *argv[])
 	int rgbledadr = ADDR; /* 7bit */
 
 	int ch;
-	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc-1, &argv[1], "a:b:")) != EOF) {
 		switch (ch) {
 		case 'a':
 			rgbledadr = strtol(optarg, NULL, 0);
@@ -447,9 +469,8 @@ rgbled_main(int argc, char *argv[])
 			rgbled_usage();
 		}
 	}
-	argc -= optind;
-	argv += optind;
-	const char *verb = argv[0];
+
+	const char *verb = argv[1];
 
 	int fd;
 	int ret;
@@ -528,7 +549,7 @@ rgbled_main(int argc, char *argv[])
 		if (fd == -1) {
 			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
 		}
-		if (argc < 4) {
+		if (argc < 5) {
 			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
 		}
 		rgbled_rgbset_t v;
