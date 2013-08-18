@@ -159,6 +159,10 @@ enum VEHICLE_BATTERY_WARNING {
     VEHICLE_BATTERY_WARNING_ALERT            /**< alerting of low voltage 2. stage */
 };
 
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 /**
  * state machine / state of vehicle.

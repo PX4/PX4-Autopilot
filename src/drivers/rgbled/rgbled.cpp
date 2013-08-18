@@ -456,7 +456,8 @@ rgbled_main(int argc, char *argv[])
 	int rgbledadr = ADDR; /* 7bit */
 
 	int ch;
-	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+	/* jump over start/off/etc and look at options first */
+	while ((ch = getopt(argc-1, &argv[1], "a:b:")) != EOF) {
 		switch (ch) {
 		case 'a':
 			rgbledadr = strtol(optarg, NULL, 0);
@@ -468,9 +469,8 @@ rgbled_main(int argc, char *argv[])
 			rgbled_usage();
 		}
 	}
-	argc -= optind;
-	argv += optind;
-	const char *verb = argv[0];
+
+	const char *verb = argv[1];
 
 	int fd;
 	int ret;
@@ -549,7 +549,7 @@ rgbled_main(int argc, char *argv[])
 		if (fd == -1) {
 			errx(1, "Unable to open " RGBLED_DEVICE_PATH);
 		}
-		if (argc < 4) {
+		if (argc < 5) {
 			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
 		}
 		rgbled_rgbset_t v;

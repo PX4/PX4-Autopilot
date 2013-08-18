@@ -71,6 +71,12 @@
 #endif
 static const int ERROR = -1;
 
+/* Orientation on board */
+#define SENSOR_BOARD_ROTATION_000_DEG	0
+#define SENSOR_BOARD_ROTATION_090_DEG	1
+#define SENSOR_BOARD_ROTATION_180_DEG	2
+#define SENSOR_BOARD_ROTATION_270_DEG	3
+
 /* SPI protocol address bits */
 #define DIR_READ				(1<<7)
 #define DIR_WRITE				(0<<7)
@@ -186,6 +192,7 @@ private:
 
 	unsigned		_current_rate;
 	unsigned		_current_range;
+	unsigned		_orientation;
 
 	perf_counter_t		_sample_perf;
 
@@ -283,6 +290,7 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	_gyro_topic(-1),
 	_current_rate(0),
 	_current_range(0),
+	_orientation(SENSOR_BOARD_ROTATION_270_DEG),
         _sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
         _gyro_filter_x(250, 30),
         _gyro_filter_y(250, 30),
@@ -363,8 +371,23 @@ L3GD20::probe()
 	(void)read_reg(ADDR_WHO_AM_I);
 
 	/* verify that the device is attached and functioning, accept L3GD20 and L3GD20H */
-	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM || read_reg(ADDR_WHO_AM_I) == WHO_I_AM_H)
+	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM) {
+
+		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+			_orientation = SENSOR_BOARD_ROTATION_270_DEG;
+		#elif CONFIG_ARCH_BOARD_PX4FMU_V2
+			_orientation = SENSOR_BOARD_ROTATION_270_DEG;
+		#else
+			#error This driver needs a board selection, either CONFIG_ARCH_BOARD_PX4FMU_V1 or CONFIG_ARCH_BOARD_PX4FMU_V2
+		#endif
 		return OK;
+	}
+
+
+	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM_H) {
+		_orientation = SENSOR_BOARD_ROTATION_180_DEG;
+		return OK;
+	}
 
 	return -EIO;
 }
@@ -717,9 +740,33 @@ L3GD20::measure()
 	 */
 	report->timestamp = hrt_absolute_time();
 	
-	/* swap x and y and negate y */
-	report->x_raw = raw_report.y;
-	report->y_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
+	switch (_orientation) {
+
+		case SENSOR_BOARD_ROTATION_000_DEG:
+			/* keep axes in place */
+			report->x_raw = raw_report.x;
+			report->y_raw = raw_report.y;
+			break;
+
+		case SENSOR_BOARD_ROTATION_090_DEG:
+			/* swap x and y */
+			report->x_raw = raw_report.y;
+			report->y_raw = raw_report.x;
+			break;
+
+		case SENSOR_BOARD_ROTATION_180_DEG:
+			/* swap x and y and negate both */
+			report->x_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
+			report->y_raw = ((raw_report.y == -32768) ? 32767 : -raw_report.y);
+			break;
+
+		case SENSOR_BOARD_ROTATION_270_DEG:
+			/* swap x and y and negate y */
+			report->x_raw = raw_report.y;
+			report->y_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
+			break;
+	}
+
 	report->z_raw = raw_report.z;
 
 	report->x = ((report->x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
