@@ -239,12 +239,12 @@ private:
 	/**
 	 * Trampoline to the worker task
 	 */
-	static void		task_main_trampoline(int argc, char *argv[]);
+	static int		task_main_trampoline(int argc, char *argv[]);
 
 	/**
 	 * worker task
 	 */
-	void			task_main();
+	int			task_main();
 
 	/**
 	 * Send controls to IO
@@ -596,7 +596,7 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = task_create("px4io", SCHED_PRIORITY_ACTUATOR_OUTPUTS, 4096, (main_t)&PX4IO::task_main_trampoline, nullptr);
+	_task = task_create("px4io", SCHED_PRIORITY_ACTUATOR_OUTPUTS, 4096, PX4IO::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
@@ -608,13 +608,13 @@ PX4IO::init()
 	return OK;
 }
 
-void
+int
 PX4IO::task_main_trampoline(int argc, char *argv[])
 {
-	g_dev->task_main();
+	return g_dev->task_main();
 }
 
-void
+int
 PX4IO::task_main()
 {
 	hrt_abstime last_poll_time = 0;
@@ -763,7 +763,7 @@ PX4IO::task_main()
 
 	/* tell the dtor that we are exiting */
 	_task = -1;
-	_exit(0);
+	return 0;
 }
 
 int
@@ -990,7 +990,7 @@ PX4IO::io_get_status()
 	int		ret;
 
 	/* get STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT in that order */
-	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, &regs[0], sizeof(regs) / sizeof(regs[0]));
+	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, regs, sizeof(regs) / sizeof(regs[0]));
 	if (ret != OK)
 		return ret;
 
@@ -1292,7 +1292,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen)
 			count = max_len;
 
 		if (count > 0) {
-			memcpy(&msg->text[0], buf, count);
+			memcpy(msg->text, buf, count);
 			buf += count;
 			buflen -= count;
 		}
@@ -1457,8 +1457,7 @@ PX4IO::print_status()
 }
 
 int
-PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
-/* Make it obvious that file * isn't used here */
+PX4IO::ioctl(file * filep, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -1640,7 +1639,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		}
 
 		/* read raw R/C input values */
-		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, &(rc_val->values[0]), _max_rc_input);
+		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, rc_val->values, _max_rc_input);
 		break;
 	}
 
@@ -1667,8 +1666,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 }
 
 ssize_t
-PX4IO::write(file * /*filp*/, const char *buffer, size_t len)
-/* Make it obvious that file * isn't used here */
+PX4IO::write(file * filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
 
@@ -2030,7 +2028,7 @@ px4io_main(int argc, char *argv[])
 		}
 
 		up = new PX4IO_Uploader;
-		int ret = up->upload(&fn[0]);
+		int ret = up->upload(fn);
 		delete up;
 
 		switch (ret) {
