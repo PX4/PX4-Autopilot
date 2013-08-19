@@ -18,10 +18,12 @@ fi
 ms5611 start
 adc start
 
+# mag might be external
+hmc5883 start
+
 if mpu6000 start
 then
-	echo "using MPU6000 and HMC5883L"
-	hmc5883 start
+	echo "using MPU6000"
 	set BOARD fmuv1
 else
 	echo "using L3GD20 and LSM303D"
