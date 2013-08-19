@@ -1317,6 +1317,8 @@ int commander_thread_main(int argc, char *argv[])
 		if (arming_state_changed || main_state_changed || navigation_state_changed) {
 			mavlink_log_info(mavlink_fd, "[cmd] state: arm %d, main %d, nav %d", status.arming_state, status.main_state, status.navigation_state);
 			status_changed = true;
+		} else {
+			status_changed = false;
 		}
 
 		hrt_abstime t1 = hrt_absolute_time();
@@ -1445,8 +1447,6 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 #endif
 
 	if (changed) {
-
-		warnx("changed");
 
 		int i;
 		rgbled_pattern_t pattern;
