@@ -111,4 +111,7 @@ ORB_DECLARE(sensor_mag);
 /** perform self test and report status */
 #define MAGIOCSELFTEST		_MAGIOC(7)
 
+/** determine if mag is external or onboard */
+#define MAGIOCGEXTERNAL		_MAGIOC(8)
+
 #endif /* _DRV_MAG_H */

@@ -167,6 +167,8 @@ private:
 	bool			_sensor_ok;		/**< sensor was found and reports ok */
 	bool			_calibrated;		/**< the calibration is valid */
 
+	int			_bus;			/**< the bus the device is connected to */
+
 	/**
 	 * Test whether the device supported by the driver is present at a
 	 * specific address.
@@ -326,7 +328,8 @@ HMC5883::HMC5883(int bus) :
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
 	_sensor_ok(false),
-	_calibrated(false)
+	_calibrated(false),
+	_bus(bus)
 {
 	// enable debug() calls
 	_debug_enabled = false;
@@ -665,6 +668,12 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCSELFTEST:
 		return check_calibration();
 
+	case MAGIOCGEXTERNAL:
+		if (_bus == PX4_I2C_BUS_EXPANSION)
+			return 1;
+		else
+			return 0;
+
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);
@@ -851,8 +860,9 @@ HMC5883::collect()
 		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 	} else {
 #endif
-		/* XXX axis assignment of external sensor is yet unknown */
-		_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+		/* the standard external mag by 3DR has x pointing to the right, y pointing backwards, and z down,
+		 * therefore switch and invert x and y */
+		_reports[_next_report].x = ((((report.y == -32768) ? 32767 : -report.y) * _range_scale) - _scale.x_offset) * _scale.x_scale;
 		/* flip axes and negate value for y */
 		_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
 		/* z remains z */
@@ -1292,6 +1302,11 @@ test()
 	warnx("single read");
 	warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
 	warnx("time:        %lld", report.timestamp);
+
+	/* check if mag is onboard or external */
+	if ((ret = ioctl(fd, MAGIOCGEXTERNAL, 0)) < 0)
+		errx(1, "failed to get if mag is onboard or external");
+	warnx("device active: %s", ret ? "external" : "onboard");
 
 	/* set the queue depth to 10 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
