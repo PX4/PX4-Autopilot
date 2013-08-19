@@ -418,23 +418,14 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 		if (is_safe(status, safety, armed)) {
 
-<<<<<<< HEAD
-				if (((int)(cmd->param1)) == 1) {
-					/* reboot */
-					systemreset(false);
-				} else if (((int)(cmd->param1)) == 3) {
-					/* reboot to bootloader */
-=======
 			if (((int)(cmd->param1)) == 1) {
 				/* reboot */
-				up_systemreset();
+				systemreset(false);
 
 			} else if (((int)(cmd->param1)) == 3) {
 				/* reboot to bootloader */
 
-				// XXX implement
-				result = VEHICLE_CMD_RESULT_UNSUPPORTED;
->>>>>>> f96bb824d4fc6f6d36ddf24e8879d3025af39d70
+				systemreset(true);
 
 			} else {
 				result = VEHICLE_CMD_RESULT_DENIED;
@@ -768,13 +759,7 @@ int commander_thread_main(int argc, char *argv[])
 	start_time = hrt_absolute_time();
 
 	while (!thread_should_exit) {
-<<<<<<< HEAD
-		hrt_abstime t = hrt_absolute_time();
 
-		status_changed = false;
-
-=======
->>>>>>> f96bb824d4fc6f6d36ddf24e8879d3025af39d70
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
 
@@ -882,17 +867,11 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
-<<<<<<< HEAD
 
-			/* only consider battery voltage if system has been running 2s and battery voltage is not 0 */
-			if ((t - start_time) > 2000000 && battery.voltage_v > 0.001f) {
-=======
-
-			warnx("bat v: %2.2f", battery.voltage_v);
+			// warnx("bat v: %2.2f", battery.voltage_v);
 
 			/* only consider battery voltage if system has been running 2s and battery voltage is not 0 */
 			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_v > 0.001f) {
->>>>>>> f96bb824d4fc6f6d36ddf24e8879d3025af39d70
 				status.battery_voltage = battery.voltage_v;
 				status.condition_battery_voltage_valid = true;
 				status.battery_remaining = battery_remaining_estimate_voltage(status.battery_voltage);
@@ -1010,39 +989,39 @@ int commander_thread_main(int argc, char *argv[])
 		 * set of position measurements is available.
 		 */
 
-<<<<<<< HEAD
-		/* store current state to reason later about a state change */
-		// bool vector_flight_mode_ok = current_status.flag_vector_flight_mode_ok;
-		// bool global_pos_valid = status.condition_global_position_valid;
-		// bool local_pos_valid = status.condition_local_position_valid;
-		// bool airspeed_valid = status.condition_airspeed_valid;
+// <<<<<<< HEAD
+// 		/* store current state to reason later about a state change */
+// 		// bool vector_flight_mode_ok = current_status.flag_vector_flight_mode_ok;
+// 		// bool global_pos_valid = status.condition_global_position_valid;
+// 		// bool local_pos_valid = status.condition_local_position_valid;
+// 		// bool airspeed_valid = status.condition_airspeed_valid;
 
 
-		/* check for global or local position updates, set a timeout of 2s */
-		if (t - global_position.timestamp < 2000000 && t > 2000000 && global_position.valid) {
-			status.condition_global_position_valid = true;
+// 		/* check for global or local position updates, set a timeout of 2s */
+// 		if (t - global_position.timestamp < 2000000 && t > 2000000 && global_position.valid) {
+// 			status.condition_global_position_valid = true;
 
-		} else {
-			status.condition_global_position_valid = false;
-		}
+// 		} else {
+// 			status.condition_global_position_valid = false;
+// 		}
 
-		if (t - local_position.timestamp < 2000000 && t > 2000000 && local_position.valid) {
-			status.condition_local_position_valid = true;
+// 		if (t - local_position.timestamp < 2000000 && t > 2000000 && local_position.valid) {
+// 			status.condition_local_position_valid = true;
 
-		} else {
-			status.condition_local_position_valid = false;
-		}
+// 		} else {
+// 			status.condition_local_position_valid = false;
+// 		}
 
-		/* Check for valid airspeed/differential pressure measurements */
-		if (t - last_diff_pres_time < 2000000 && t > 2000000) {
-			status.condition_airspeed_valid = true;
+// 		/* Check for valid airspeed/differential pressure measurements */
+// 		if (t - last_diff_pres_time < 2000000 && t > 2000000) {
+// 			status.condition_airspeed_valid = true;
 
-		} else {
-			status.condition_airspeed_valid = false;
-		}
+// 		} else {
+// 			status.condition_airspeed_valid = false;
+// 		}
 
-=======
->>>>>>> f96bb824d4fc6f6d36ddf24e8879d3025af39d70
+// =======
+// >>>>>>> f96bb824d4fc6f6d36ddf24e8879d3025af39d70
 		orb_check(gps_sub, &updated);
 
 		if (updated) {
@@ -1362,9 +1341,9 @@ int commander_thread_main(int argc, char *argv[])
 			status.counter++;
 			status.timestamp = t1;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
-			control_mode.timestamp = t;
+			control_mode.timestamp = t1;
 			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);
-			armed.timestamp = t;
+			armed.timestamp = t1;
 			orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		}
 
@@ -1431,6 +1410,18 @@ int commander_thread_main(int argc, char *argv[])
 	thread_running = false;
 
 	return 0;
+}
+
+void
+check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *valid_out, bool *changed)
+{
+	hrt_abstime t = hrt_absolute_time();
+	bool valid_new = (t < timestamp + timeout && t > timeout && valid_in);
+
+	if (*valid_out != valid_new) {
+		*valid_out = valid_new;
+		*changed = true;
+	}
 }
 
 void
@@ -1512,18 +1503,8 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 			/* not ready to arm, blink at 10Hz */
 		}
 
-<<<<<<< HEAD
 		rgbled_set_pattern(&pattern);
 	}
-=======
-		if (status->condition_global_position_valid) {
-			/* position estimated, solid */
-			led_on(LED_BLUE);
-
-		} else if (leds_counter == 6) {
-			/* waiting for position estimate, short blink at 1.25Hz */
-			led_on(LED_BLUE);
->>>>>>> f96bb824d4fc6f6d36ddf24e8879d3025af39d70
 
 	/* give system warnings on error LED, XXX maybe add memory usage warning too */
 	if (status->load > 0.95f) {
