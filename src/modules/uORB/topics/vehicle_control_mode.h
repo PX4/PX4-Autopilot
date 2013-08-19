@@ -61,7 +61,7 @@
  */
 struct vehicle_control_mode_s
 {
-	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
+	uint16_t counter;   /**< incremented by the writing thread every time new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	bool flag_armed;
@@ -73,11 +73,9 @@ struct vehicle_control_mode_s
 
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
 	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
-	// XXX shouldn't be necessairy
-	//bool flag_auto_enabled;
 	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
-	bool flag_control_velocity_enabled;		/**< true if horisontal speed (implies direction) is controlled */
+	bool flag_control_velocity_enabled;		/**< true if horizontal velocity (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 	bool flag_control_altitude_enabled;		/**< true if altitude is controlled */
 	bool flag_control_climb_rate_enabled;		/**< true if climb rate is controlled */
