@@ -69,9 +69,60 @@ class __EXPORT Device
 {
 public:
 	/**
+	 * Destructor.
+	 *
+	 * Public so that anonymous devices can be destroyed.
+	 */
+	virtual ~Device();
+
+	/**
 	 * Interrupt handler.
 	 */
 	virtual void	interrupt(void *ctx);	/**< interrupt handler */
+
+	/*
+	 * Direct access methods.
+	 */
+
+	/**
+	 * Initialise the driver and make it ready for use.
+	 *
+	 * @return	OK if the driver initialized OK, negative errno otherwise;
+	 */
+	virtual int	init();
+
+	/**
+	 * Read directly from the device.
+	 *
+	 * The actual size of each unit quantity is device-specific.
+	 *
+	 * @param offset	The device address at which to start reading
+	 * @param data		The buffer into which the read values should be placed.
+	 * @param count		The number of items to read.
+	 * @return		The number of items read on success, negative errno otherwise.
+	 */
+	virtual int	read(unsigned address, void *data, unsigned count);
+
+	/**
+	 * Write directly to the device.
+	 *
+	 * The actual size of each unit quantity is device-specific.
+	 *
+	 * @param address	The device address at which to start writing.
+	 * @param data		The buffer from which values should be read.
+	 * @param count		The number of items to write.
+	 * @return		The number of items written on success, negative errno otherwise.
+	 */	 
+	virtual int	write(unsigned address, void *data, unsigned count);
+
+	/**
+	 * Perform a device-specific operation.
+	 *
+	 * @param operation	The operation to perform.
+	 * @param arg		An argument to the operation.
+	 * @return		Negative errno on error, OK or positive value on success.
+	 */
+	virtual int	ioctl(unsigned operation, unsigned &arg);
 
 protected:
 	const char	*_name;			/**< driver name */
@@ -85,14 +136,6 @@ protected:
 	 */
 	Device(const char *name,
 	       int irq = 0);
-	~Device();
-
-	/**
-	 * Initialise the driver and make it ready for use.
-	 *
-	 * @return	OK if the driver initialised OK.
-	 */
-	virtual int	init();
 
 	/**
 	 * Enable the device interrupt
@@ -189,7 +232,7 @@ public:
 	/**
 	 * Destructor
 	 */
-	~CDev();
+	virtual ~CDev();
 
 	virtual int	init();
 
@@ -282,6 +325,7 @@ public:
 	 * Test whether the device is currently open.
 	 *
 	 * This can be used to avoid tearing down a device that is still active.
+	 * Note - not virtual, cannot be overridden by a subclass.
 	 *
 	 * @return              True if the device is currently open.
 	 */
@@ -396,9 +440,9 @@ public:
 	    const char *devname,
 	    uint32_t base,
 	    int irq = 0);
-	~PIO();
+	virtual ~PIO();
 
-	int		init();
+	virtual int	init();
 
 protected:
 
@@ -407,7 +451,7 @@ protected:
 	 *
 	 * @param offset	Register offset in bytes from the base address.
 	 */
-	uint32_t reg(uint32_t offset) {
+	uint32_t	reg(uint32_t offset) {
 		return *(volatile uint32_t *)(_base + offset);
 	}
 

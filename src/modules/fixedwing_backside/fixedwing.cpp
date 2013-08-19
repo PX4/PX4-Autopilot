@@ -86,61 +86,6 @@ void BlockStabilization::update(float pCmd, float qCmd, float rCmd,
 	_yawDamper.update(rCmd, r, outputScale);
 }
 
-BlockWaypointGuidance::BlockWaypointGuidance(SuperBlock *parent, const char *name) :
-	SuperBlock(parent, name),
-	_xtYawLimit(this, "XT2YAW"),
-	_xt2Yaw(this, "XT2YAW"),
-	_psiCmd(0)
-{
-}
-
-BlockWaypointGuidance::~BlockWaypointGuidance() {};
-
-void BlockWaypointGuidance::update(vehicle_global_position_s &pos,
-				   vehicle_attitude_s &att,
-				   vehicle_global_position_setpoint_s &posCmd,
-				   vehicle_global_position_setpoint_s &lastPosCmd)
-{
-
-	// heading to waypoint
-	float psiTrack = get_bearing_to_next_waypoint(
-				 (double)pos.lat / (double)1e7d,
-				 (double)pos.lon / (double)1e7d,
-				 (double)posCmd.lat / (double)1e7d,
-				 (double)posCmd.lon / (double)1e7d);
-
-	// cross track
-	struct crosstrack_error_s xtrackError;
-	get_distance_to_line(&xtrackError,
-			     (double)pos.lat / (double)1e7d,
-			     (double)pos.lon / (double)1e7d,
-			     (double)lastPosCmd.lat / (double)1e7d,
-			     (double)lastPosCmd.lon / (double)1e7d,
-			     (double)posCmd.lat / (double)1e7d,
-			     (double)posCmd.lon / (double)1e7d);
-
-	_psiCmd = _wrap_2pi(psiTrack -
-			    _xtYawLimit.update(_xt2Yaw.update(xtrackError.distance)));
-}
-
-BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name) :
-	SuperBlock(parent, name),
-	// subscriptions
-	_att(&getSubscriptions(), ORB_ID(vehicle_attitude), 20),
-	_attCmd(&getSubscriptions(), ORB_ID(vehicle_attitude_setpoint), 20),
-	_ratesCmd(&getSubscriptions(), ORB_ID(vehicle_rates_setpoint), 20),
-	_pos(&getSubscriptions() , ORB_ID(vehicle_global_position), 20),
-	_posCmd(&getSubscriptions(), ORB_ID(vehicle_global_position_set_triplet), 20),
-	_manual(&getSubscriptions(), ORB_ID(manual_control_setpoint), 20),
-	_status(&getSubscriptions(), ORB_ID(vehicle_status), 20),
-	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
-	// publications
-	_actuators(&getPublications(), ORB_ID(actuator_controls_0))
-{
-}
-
-BlockUorbEnabledAutopilot::~BlockUorbEnabledAutopilot() {};
-
 BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *parent, const char *name) :
 	BlockUorbEnabledAutopilot(parent, name),
 	_stabilization(this, ""), // no name needed, already unique

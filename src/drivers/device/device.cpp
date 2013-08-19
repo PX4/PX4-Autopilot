@@ -223,5 +223,22 @@ interrupt(int irq, void *context)
 	return OK;
 }
 
+int
+Device::read(unsigned offset, void *data, unsigned count)
+{
+	return -ENODEV;
+}
+
+int
+Device::write(unsigned offset, void *data, unsigned count)
+{
+	return -ENODEV;
+}
+
+int
+Device::ioctl(unsigned operation, unsigned &arg)
+{
+	return -ENODEV;
+}
 
 } // namespace device

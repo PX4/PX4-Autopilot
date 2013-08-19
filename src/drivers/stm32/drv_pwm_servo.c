@@ -88,6 +88,7 @@
 #define rCCR4(_tmr)   	REG(_tmr, STM32_GTIM_CCR4_OFFSET)
 #define rDCR(_tmr)    	REG(_tmr, STM32_GTIM_DCR_OFFSET)
 #define rDMAR(_tmr)   	REG(_tmr, STM32_GTIM_DMAR_OFFSET)
+#define rBDTR(_tmr)	REG(_tmr, STM32_ATIM_BDTR_OFFSET)
 
 static void		pwm_timer_init(unsigned timer);
 static void		pwm_timer_set_rate(unsigned timer, unsigned rate);
@@ -109,6 +110,11 @@ pwm_timer_init(unsigned timer)
 	rCCMR2(timer) = 0;
 	rCCER(timer) = 0;
 	rDCR(timer) = 0;
+
+	if ((pwm_timers[timer].base == STM32_TIM1_BASE) || (pwm_timers[timer].base == STM32_TIM8_BASE)) {
+		/* master output enable = on */
+		rBDTR(timer) = ATIM_BDTR_MOE;
+	}
 
 	/* configure the timer to free-run at 1MHz */
 	rPSC(timer) = (pwm_timers[timer].clock_freq / 1000000) - 1;

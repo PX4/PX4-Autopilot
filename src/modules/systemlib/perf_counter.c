@@ -201,22 +201,49 @@ perf_end(perf_counter_t handle)
 	switch (handle->type) {
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			hrt_abstime elapsed = hrt_absolute_time() - pce->time_start;
 
-			pce->event_count++;
-			pce->time_total += elapsed;
+			if (pce->time_start != 0) {
+				hrt_abstime elapsed = hrt_absolute_time() - pce->time_start;
 
-			if ((pce->time_least > elapsed) || (pce->time_least == 0))
-				pce->time_least = elapsed;
+				pce->event_count++;
+				pce->time_total += elapsed;
 
-			if (pce->time_most < elapsed)
-				pce->time_most = elapsed;
+				if ((pce->time_least > elapsed) || (pce->time_least == 0))
+					pce->time_least = elapsed;
+
+				if (pce->time_most < elapsed)
+					pce->time_most = elapsed;
+
+				pce->time_start = 0;
+			}
 		}
+		break;
 
 	default:
 		break;
 	}
 }
+
+void
+perf_cancel(perf_counter_t handle)
+{
+	if (handle == NULL)
+		return;
+
+	switch (handle->type) {
+	case PC_ELAPSED: {
+			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+
+			pce->time_start = 0;
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+
 
 void
 perf_reset(perf_counter_t handle)

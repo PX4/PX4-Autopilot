@@ -75,6 +75,7 @@ MODULES		+= examples/flow_position_estimator
 #
 # Vehicle Control
 #
+MODULES		+= modules/segway
 MODULES		+= modules/fixedwing_backside
 MODULES		+= modules/fixedwing_att_control
 MODULES		+= modules/fixedwing_pos_control
@@ -96,6 +97,7 @@ MODULES		+= modules/sdlog2
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/mathlib
+MODULES		+= modules/mathlib/math/filter
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
 

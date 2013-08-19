@@ -153,6 +153,7 @@ ifeq ($(BOARD_FILE),)
 $(error Config $(CONFIG) references board $(BOARD), but no board definition file found)
 endif
 export BOARD
+export BOARD_FILE
 include $(BOARD_FILE)
 $(info %  BOARD               = $(BOARD))
 
@@ -385,7 +386,7 @@ define BUILTIN_DEF
 endef
 
 # Don't generate until modules have updated their command files
-$(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(MODULE_OBJS) $(BUILTIN_COMMAND_FILES)
+$(BUILTIN_CSRC):	$(GLOBAL_DEPS) $(MODULE_OBJS) $(MODULE_MKFILES) $(BUILTIN_COMMAND_FILES)
 	@$(ECHO) "CMDS:    $@"
 	$(Q) $(ECHO) '/* builtin command list - automatically generated, do not edit */' > $@
 	$(Q) $(ECHO) '#include <nuttx/config.h>' >> $@
