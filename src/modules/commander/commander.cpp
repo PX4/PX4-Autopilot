@@ -399,16 +399,21 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 
 	case VEHICLE_CMD_NAV_TAKEOFF: {
-			transition_result_t nav_res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_TAKEOFF, control_mode);
+			if (armed->armed) {
+				transition_result_t nav_res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_TAKEOFF, control_mode);
 
-			if (nav_res == TRANSITION_CHANGED) {
-				mavlink_log_info(mavlink_fd, "[cmd] TAKEOFF on command");
-			}
+				if (nav_res == TRANSITION_CHANGED) {
+					mavlink_log_info(mavlink_fd, "[cmd] TAKEOFF on command");
+				}
 
-			if (nav_res != TRANSITION_DENIED) {
-				result = VEHICLE_CMD_RESULT_ACCEPTED;
+				if (nav_res != TRANSITION_DENIED) {
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
 
+				} else {
+					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				}
 			} else {
+				/* reject TAKEOFF not armed */
 				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 

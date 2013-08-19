@@ -186,8 +186,10 @@ public:
 	int 			set_idle_values(const uint16_t *vals, unsigned len);
 
 	/**
-	* Print the current status of IO
-	*/
+	 * Print IO status.
+	 *
+	 * Print all relevant IO status information
+	 */
 	void			print_status();
 
 	/**
@@ -235,16 +237,16 @@ private:
 	uint16_t		_alarms;		///<Various IO alarms
 
 	/* subscribed topics */
-	int			_t_actuators;	///< actuator controls topic
+	int			_t_actuators;		///< actuator controls topic
 	int			_t_actuator_armed;	///< system armed control topic
-	int 			_t_vehicle_control_mode;	///< vehicle control mode topic
-	int			_t_param;		///<parameter update topic
+	int 			_t_vehicle_control_mode;///< vehicle control mode topic
+	int			_t_param;		///< parameter update topic
 
 	/* advertised topics */
-	orb_advert_t 		_to_input_rc;		///<rc inputs from IO topic
-	orb_advert_t 		_to_actuators_effective; ///<effective actuator controls topic
-	orb_advert_t		_to_outputs;		///<mixed servo outputs topic
-	orb_advert_t		_to_battery;		///<battery status / voltage topic
+	orb_advert_t 		_to_input_rc;		///< rc inputs from io
+	orb_advert_t 		_to_actuators_effective; ///< effective actuator controls topic
+	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
+	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_safety;		///< status of safety
 
 	actuator_outputs_s	_outputs;		///<mixed outputs
