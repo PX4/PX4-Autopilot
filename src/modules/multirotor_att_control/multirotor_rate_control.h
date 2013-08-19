@@ -59,6 +59,6 @@
 #include <uORB/topics/actuator_controls.h>
 
 void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-			      const float rates[], struct actuator_controls_s *actuators);
+			      const float rates[], struct actuator_controls_s *actuators, bool reset_integral);
 
 #endif /* MULTIROTOR_RATE_CONTROL_H_ */

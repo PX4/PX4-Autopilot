@@ -1235,8 +1235,9 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* publish control mode */
-		if (navigation_state_changed) {
+		if (navigation_state_changed || arming_state_changed) {
 			/* publish new navigation state */
+			control_mode.flag_armed = armed.armed;	// copy armed state to vehicle_control_mode topic
 			control_mode.counter++;
 			control_mode.timestamp = t1;
 			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);

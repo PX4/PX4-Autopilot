@@ -142,16 +142,13 @@ mc_thread_main(int argc, char *argv[])
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_att_control_err");
 
 	/* welcome user */
-	printf("[multirotor_att_control] starting\n");
+	warnx("starting");
 
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
 	bool flag_control_attitude_enabled = false;
 
-	/* store if yaw position or yaw speed has been changed */
 	bool control_yaw_position = true;
-
-	/* store if we stopped a yaw movement */
 	bool reset_yaw_sp = true;
 
 	/* prepare the handle for the failsafe throttle */
@@ -211,8 +208,7 @@ mc_thread_main(int argc, char *argv[])
 				/* get a local copy of the current sensor values */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
-
-				/** STEP 1: Define which input is the dominating control input */
+				/* define which input is the dominating control input */
 				if (control_mode.flag_control_offboard_enabled) {
 					/* offboard inputs */
 					if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES) {
@@ -220,7 +216,6 @@ mc_thread_main(int argc, char *argv[])
 						rates_sp.pitch = offboard_sp.p2;
 						rates_sp.yaw = offboard_sp.p3;
 						rates_sp.thrust = offboard_sp.p4;
-//						printf("thrust_rate=%8.4f\n",offboard_sp.p4);
 						rates_sp.timestamp = hrt_absolute_time();
 						orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 
@@ -229,12 +224,10 @@ mc_thread_main(int argc, char *argv[])
 						att_sp.pitch_body = offboard_sp.p2;
 						att_sp.yaw_body = offboard_sp.p3;
 						att_sp.thrust = offboard_sp.p4;
-//						printf("thrust_att=%8.4f\n",offboard_sp.p4);
 						att_sp.timestamp = hrt_absolute_time();
 						/* STEP 2: publish the result to the vehicle actuators */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 					}
-
 
 				} else if (control_mode.flag_control_manual_enabled) {
 					/* direct manual input */
@@ -265,7 +258,7 @@ mc_thread_main(int argc, char *argv[])
 									 * multicopter (throttle = 0) does not make it jump up in the air
 									 * if shutting down his remote.
 									 */
-									if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
+									if (isfinite(manual.throttle) && manual.throttle > 0.2f) {	// TODO use landed status instead of throttle
 										/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
 										param_get(failsafe_throttle_handle, &failsafe_throttle);
 										att_sp.thrust = failsafe_throttle;
@@ -305,7 +298,6 @@ mc_thread_main(int argc, char *argv[])
 									att_sp.yaw_body = att.yaw;
 									reset_yaw_sp = false;
 								}
-
 								control_yaw_position = true;
 							}
 
@@ -347,22 +339,25 @@ mc_thread_main(int argc, char *argv[])
 					}
 				}
 
-				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
-				if (control_mode.flag_control_attitude_enabled) {
-					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
+				/* check if we should we reset integrals */
+				bool reset_integral = !control_mode.flag_armed || att_sp.thrust < 0.1f;	// TODO use landed status instead of throttle
 
+				/* run attitude controller if needed */
+				if (control_mode.flag_control_attitude_enabled) {
+					multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position, reset_integral);
 					orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 				}
 
 				/* measure in what intervals the controller runs */
 				perf_count(mc_interval_perf);
 
+				/* run rates controller if needed */
 				if (control_mode.flag_control_rates_enabled) {
 					/* get current rate setpoint */
-					bool rates_sp_valid = false;
-					orb_check(rates_sp_sub, &rates_sp_valid);
+					bool rates_sp_updated = false;
+					orb_check(rates_sp_sub, &rates_sp_updated);
 
-					if (rates_sp_valid) {
+					if (rates_sp_updated) {
 						orb_copy(ORB_ID(vehicle_rates_setpoint), rates_sp_sub, &rates_sp);
 					}
 
@@ -371,7 +366,7 @@ mc_thread_main(int argc, char *argv[])
 					rates[0] = att.rollspeed;
 					rates[1] = att.pitchspeed;
 					rates[2] = att.yawspeed;
-					multirotor_control_rates(&rates_sp, rates, &actuators);
+					multirotor_control_rates(&rates_sp, rates, &actuators, reset_integral);
 				} else {
 					/* rates controller disabled, set actuators to zero for safety */
 					actuators.control[0] = 0.0f;
@@ -391,7 +386,7 @@ mc_thread_main(int argc, char *argv[])
 		} /* end of poll return value check */
 	}
 
-	printf("[multirotor att control] stopping, disarming motors.\n");
+	warnx("stopping, disarming motors");
 
 	/* kill all outputs */
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
