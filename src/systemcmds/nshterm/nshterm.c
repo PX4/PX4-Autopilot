@@ -91,7 +91,7 @@ nshterm_main(int argc, char *argv[])
     }
 
     /* Set ONLCR flag (which appends a CR for every LF) */
-    uart_config.c_oflag |= (ONLCR | OPOST | OCRNL);
+    uart_config.c_oflag |= (ONLCR | OPOST/* | OCRNL*/);
 
     if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
         warnx("ERROR setting baudrate / termios config for %s (tcsetattr)\n", argv[1]);
