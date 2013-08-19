@@ -40,6 +40,7 @@
  */
 
 #include <nuttx/config.h>
+#include <termios.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -48,6 +49,7 @@
 #include <errno.h>
 #include <apps/nsh.h>
 #include <fcntl.h>
+#include <systemlib/err.h>
 
 __EXPORT int nshterm_main(int argc, char *argv[]);
 
@@ -61,8 +63,8 @@ nshterm_main(int argc, char *argv[])
     uint8_t retries = 0;
     int fd = -1;
     while (retries < 5) {
-        // the retries are to cope with the behaviour of /dev/ttyACM0
-        // which may not be ready immediately.
+        /* the retries are to cope with the behaviour of /dev/ttyACM0 */
+        /* which may not be ready immediately. */
         fd = open(argv[1], O_RDWR);
         if (fd != -1) {
             break;
@@ -74,7 +76,30 @@ nshterm_main(int argc, char *argv[])
         perror(argv[1]);
         exit(1);
     }
-    // setup standard file descriptors
+
+    /* set up the serial port with output processing */
+    
+    /* Try to set baud rate */
+    struct termios uart_config;
+    int termios_state;
+
+    /* Back up the original uart configuration to restore it after exit */
+    if ((termios_state = tcgetattr(fd, &uart_config)) < 0) {
+        warnx("ERROR get termios config %s: %d\n", argv[1], termios_state);
+        close(fd);
+        return -1;
+    }
+
+    /* Set ONLCR flag (which appends a CR for every LF) */
+    uart_config.c_oflag |= (ONLCR | OPOST | OCRNL);
+
+    if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
+        warnx("ERROR setting baudrate / termios config for %s (tcsetattr)\n", argv[1]);
+        close(fd);
+        return -1;
+    }
+
+    /* setup standard file descriptors */
     close(0);
     close(1);
     close(2);

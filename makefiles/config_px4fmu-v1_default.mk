@@ -56,6 +56,7 @@ MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
+MODULES		+= systemcmds/nshterm
 
 #
 # General system control
