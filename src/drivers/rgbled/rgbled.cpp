@@ -443,7 +443,7 @@ void rgbled_usage();
 
 
 void rgbled_usage() {
-	warnx("missing command: try 'start', 'test', 'info', 'off', 'rgb'");
+	warnx("missing command: try 'start', 'test', 'info', 'stop'/'off', 'rgb 30 40 50'");
 	warnx("options:");
 	warnx("    -b i2cbus (%d)", PX4_I2C_BUS_LED);
 	errx(0, "    -a addr (0x%x)", ADDR);
@@ -534,7 +534,8 @@ rgbled_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(verb, "off")) {
+	if (!strcmp(verb, "stop") || !strcmp(verb, "off")) {
+		/* although technically it doesn't stop, this is the excepted syntax */
 		fd = open(RGBLED_DEVICE_PATH, 0);
 		if (fd == -1) {
 			errx(1, "Unable to open " RGBLED_DEVICE_PATH);

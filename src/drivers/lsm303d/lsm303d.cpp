@@ -869,6 +869,10 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 //		return self_test();
 		return -EINVAL;
 
+	case MAGIOCGEXTERNAL:
+		/* no external mag board yet */
+		return 0;
+
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
@@ -1422,7 +1426,7 @@ test()
 	int fd_accel = -1;
 	struct accel_report accel_report;
 	ssize_t sz;
-	int filter_bandwidth;
+	int ret;
 
 	/* get the driver */
 	fd_accel = open(ACCEL_DEVICE_PATH, O_RDONLY);
@@ -1445,10 +1449,10 @@ test()
 	warnx("accel z: \t%d\traw", (int)accel_report.z_raw);
 
 	warnx("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
-	if (ERROR == (filter_bandwidth = ioctl(fd_accel, ACCELIOCGLOWPASS, 0)))
+	if (ERROR == (ret = ioctl(fd_accel, ACCELIOCGLOWPASS, 0)))
 		warnx("accel antialias filter bandwidth: fail");
 	else
-		warnx("accel antialias filter bandwidth: %d Hz", filter_bandwidth);
+		warnx("accel antialias filter bandwidth: %d Hz", ret);
 
 	int fd_mag = -1;
 	struct mag_report m_report;
@@ -1458,6 +1462,11 @@ test()
 
 	if (fd_mag < 0)
 		err(1, "%s open failed", MAG_DEVICE_PATH);
+
+	/* check if mag is onboard or external */
+	if ((ret = ioctl(fd_mag, MAGIOCGEXTERNAL, 0)) < 0)
+		errx(1, "failed to get if mag is onboard or external");
+	warnx("device active: %s", ret ? "external" : "onboard");
 
 	/* do a simple demand read */
 	sz = read(fd_mag, &m_report, sizeof(m_report));
