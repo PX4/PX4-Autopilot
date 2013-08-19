@@ -150,6 +150,11 @@ then
 	sh /etc/init.d/10_io_f330
 fi
 
+if param compare SYS_AUTOSTART 15
+then
+	sh /etc/init.d/15_io_tbs
+fi
+
 if param compare SYS_AUTOSTART 30
 then
 	sh /etc/init.d/30_io_camflyer

@@ -1,6 +1,7 @@
 #!nsh
 #
-# Flight startup script for PX4FMU+PX4IO on an F330 quad.
+# Flight startup script for PX4FMU+PX4IO on a Team Blacksheep Discovery quad
+# with stock DJI ESCs, motors and props.
 #
  
 # disable USB and autostart
@@ -13,6 +14,16 @@ set MODE custom
 uorb start
 
 #
+# Load microSD params
+#
+echo "[init] loading microSD params"
+param select /fs/microsd/params
+if [ -f /fs/microsd/params ]
+then
+	param load /fs/microsd/params
+fi
+
+#
 # Load default params for this platform
 #
 if param compare SYS_AUTOCONFIG 1
@@ -20,19 +31,19 @@ then
 	# Set all params here, then disable autoconfig
 	param set SYS_AUTOCONFIG 0
 
-	param set MC_ATTRATE_D	         0.005
+	param set MC_ATTRATE_D	         0.006
 	param set MC_ATTRATE_I	         0.0
-	param set MC_ATTRATE_P	         0.1
+	param set MC_ATTRATE_P	         0.17
 	param set MC_ATT_D	         0.0
 	param set MC_ATT_I	         0.0
-	param set MC_ATT_P	         4.5
+	param set MC_ATT_P	         5.0
 	param set MC_RCLOSS_THR	         0.0
 	param set MC_YAWPOS_D	         0.0
-	param set MC_YAWPOS_I	         0.3
-	param set MC_YAWPOS_P	         0.6
+	param set MC_YAWPOS_I	         0.15
+	param set MC_YAWPOS_P	         0.5
 	param set MC_YAWRATE_D	         0.0
 	param set MC_YAWRATE_I	         0.0
-	param set MC_YAWRATE_P	         0.1
+	param set MC_YAWRATE_P	         0.2
 
 	param save /fs/microsd/params
 fi
@@ -58,17 +69,12 @@ commander start
 #
 # Start PX4IO interface (depends on orb, commander)
 #
-if px4io start
-then
-	pwm -u 400 -m 0xff
-else
-	# SOS
-	tone_alarm 6
-fi
+px4io start
+pwm -u 400 -m 0xff
  
 #
 # Allow PX4IO to recover from midair restarts.
-# this is very unlikely, but quite safe and robust.
+# This is very unlikely, but quite safe and robust.
 px4io recovery
 
 #
@@ -79,14 +85,17 @@ px4io idle 900 900 900 900
 #
 # The values are for spinning motors when armed using DJI ESCs
 #
-px4io min 1200 1200 1200 1200
+px4io min 1180 1180 1180 1180
 
 #
 # Upper limits could be higher, this is on the safe side
 #
 px4io max 1800 1800 1800 1800
 
-mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
+#
+# Load the mixer for a quad with wide arms
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_quad_w.mix
  
 #
 # Start the sensors (depends on orb, px4io)
@@ -103,6 +112,9 @@ gps start
 #
 attitude_estimator_ekf start
 
+#
+# Start the controllers (depends on orb)
+#
 multirotor_att_control start
 
 #
@@ -112,7 +124,15 @@ if [ $BOARD == fmuv1 ]
 then
 	px4io limit 200
 	sdlog2 start -r 50 -a -b 16
+	if blinkm start
+	then
+		blinkm systemstate
+	fi
 else
 	px4io limit 400
 	sdlog2 start -r 200 -a -b 16
+	if rgbled start
+	then
+		#rgbled systemstate
+	fi
 fi
