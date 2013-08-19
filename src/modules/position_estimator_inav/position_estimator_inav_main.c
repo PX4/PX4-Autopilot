@@ -508,6 +508,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (gps_valid) {
 				inertial_filter_correct(gps_corr[0][0], dt, x_est, 0, params.w_pos_gps_p);
 				inertial_filter_correct(gps_corr[1][0], dt, y_est, 0, params.w_pos_gps_p);
+
 				if (gps.vel_ned_valid && t < gps.timestamp_velocity + gps_timeout) {
 					inertial_filter_correct(gps_corr[0][1], dt, x_est, 1, params.w_pos_gps_v);
 					inertial_filter_correct(gps_corr[1][1], dt, y_est, 1, params.w_pos_gps_v);
@@ -554,6 +555,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* publish global position */
 			global_pos.valid = local_pos.global_xy;
+
 			if (local_pos.global_xy) {
 				double est_lat, est_lon;
 				map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
@@ -561,21 +563,26 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.lon = (int32_t)(est_lon * 1e7);
 				global_pos.time_gps_usec = gps.time_gps_usec;
 			}
+
 			/* set valid values even if position is not valid */
 			if (local_pos.v_xy_valid) {
 				global_pos.vx = local_pos.vx;
 				global_pos.vy = local_pos.vy;
 				global_pos.hdg = atan2f(local_pos.vy, local_pos.vx);
 			}
+
 			if (local_pos.z_valid) {
 				global_pos.relative_alt = -local_pos.z;
 			}
+
 			if (local_pos.global_z) {
 				global_pos.alt = local_pos.ref_alt - local_pos.z;
 			}
+
 			if (local_pos.v_z_valid) {
 				global_pos.vz = local_pos.vz;
 			}
+
 			global_pos.timestamp = t;
 
 			orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &global_pos);

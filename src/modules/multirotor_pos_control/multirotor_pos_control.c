@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
- *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -211,14 +211,23 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	orb_advert_t global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &global_vel_sp);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
-	bool reset_sp_alt = true;
-	bool reset_sp_pos = true;
+	bool global_pos_sp_reproject = false;
+	bool global_pos_sp_valid = false;
+	bool local_pos_sp_valid = false;
+	bool reset_sp_z = true;
+	bool reset_sp_xy = true;
+	bool reset_int_z = true;
+	bool reset_int_z_manual = false;
+	bool reset_int_xy = true;
+	bool was_armed = false;
+	bool reset_integral = true;
+
 	hrt_abstime t_prev = 0;
 	/* integrate in NED frame to estimate wind but not attitude offset */
 	const float alt_ctl_dz = 0.2f;
 	const float pos_ctl_dz = 0.05f;
-	float home_alt = 0.0f;
-	hrt_abstime home_alt_t = 0;
+	float ref_alt = 0.0f;
+	hrt_abstime ref_alt_t = 0;
 	uint64_t local_ref_timestamp = 0;
 
 	PID_t xy_pos_pids[2];
@@ -242,11 +251,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	thrust_pid_init(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 
 	int paramcheck_counter = 0;
-	bool global_pos_sp_updated = false;
 
 	while (!thread_should_exit) {
-		orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
-
 		/* check parameters at 1 Hz */
 		if (++paramcheck_counter >= 50) {
 			paramcheck_counter = 0;
@@ -260,11 +266,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f);
 					/* use integral_limit_out = tilt_max / 2 */
 					float i_limit;
+
 					if (params.xy_vel_i == 0.0) {
 						i_limit = params.tilt_max / params.xy_vel_i / 2.0;
+
 					} else {
 						i_limit = 1.0f;	// not used really
 					}
+
 					pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, i_limit, params.tilt_max);
 				}
 
@@ -273,9 +282,20 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* only check global position setpoint updates but not read */
-		if (!global_pos_sp_updated) {
-			orb_check(global_pos_sp_sub, &global_pos_sp_updated);
+		bool updated;
+
+		orb_check(control_mode_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
+		}
+
+		orb_check(global_pos_sp_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_sub, &global_pos_sp);
+			global_pos_sp_valid = true;
+			global_pos_sp_reproject = true;
 		}
 
 		hrt_abstime t = hrt_absolute_time();
@@ -288,6 +308,16 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			dt = 0.0f;
 		}
 
+		if (control_mode.flag_armed && !was_armed) {
+			/* reset setpoints and integrals on arming */
+			reset_sp_z = true;
+			reset_sp_xy = true;
+			reset_int_z = true;
+			reset_int_xy = true;
+		}
+
+		was_armed = control_mode.flag_armed;
+
 		t_prev = t;
 
 		if (control_mode.flag_control_altitude_enabled || control_mode.flag_control_velocity_enabled || control_mode.flag_control_position_enabled) {
@@ -296,77 +326,33 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
 			orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
 
-			if (control_mode.flag_control_manual_enabled) {
-				/* manual mode, reset setpoints if needed */
-				if (reset_sp_alt) {
-					reset_sp_alt = false;
-					local_pos_sp.z = local_pos.z;
-					thrust_pid_set_integral(&z_vel_pid, -manual.throttle);	// thrust PID uses Z downside
-					mavlink_log_info(mavlink_fd, "reset alt setpoint: z = %.2f, throttle = %.2f", local_pos_sp.z, manual.throttle);
-				}
-
-				if (control_mode.flag_control_position_enabled && reset_sp_pos) {
-					reset_sp_pos = false;
-					local_pos_sp.x = local_pos.x;
-					local_pos_sp.y = local_pos.y;
-					pid_reset_integral(&xy_vel_pids[0]);
-					pid_reset_integral(&xy_vel_pids[1]);
-					mavlink_log_info(mavlink_fd, "reset pos setpoint: x = %.2f, y = %.2f", local_pos_sp.x, local_pos_sp.y);
-				}
-			} else {
-				/* non-manual mode, project global setpoints to local frame */
-				//orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
-				if (local_pos.ref_timestamp != local_ref_timestamp) {
-					local_ref_timestamp = local_pos.ref_timestamp;
-					/* init local projection using local position home */
-					double lat_home = local_pos.ref_lat * 1e-7;
-					double lon_home = local_pos.ref_lon * 1e-7;
-					map_projection_init(lat_home, lon_home);
-					warnx("local pos home: lat = %.10f, lon = %.10f", lat_home, lon_home);
-					mavlink_log_info(mavlink_fd, "local pos home: %.7f, %.7f", lat_home, lon_home);
-				}
-
-				if (global_pos_sp_updated) {
-					global_pos_sp_updated = false;
-					orb_copy(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_sub, &global_pos_sp);
-					double sp_lat = global_pos_sp.lat * 1e-7;
-					double sp_lon = global_pos_sp.lon * 1e-7;
-					/* project global setpoint to local setpoint */
-					map_projection_project(sp_lat, sp_lon, &(local_pos_sp.x), &(local_pos_sp.y));
-
-					if (global_pos_sp.altitude_is_relative) {
-						local_pos_sp.z = -global_pos_sp.altitude;
-
-					} else {
-						local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
-					}
-
-					warnx("new setpoint: lat = %.10f, lon = %.10f, x = %.2f, y = %.2f", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
-					mavlink_log_info(mavlink_fd, "new setpoint: %.7f, %.7f, %.2f, %.2f", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
-					/* publish local position setpoint as projection of global position setpoint */
-					orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
-				}
-			}
-
 			float z_sp_offs_max = params.z_vel_max / params.z_p * 2.0f;
 			float xy_sp_offs_max = params.xy_vel_max / params.xy_p * 2.0f;
-
 			float sp_move_rate[3] = { 0.0f, 0.0f, 0.0f };
 
-			/* manual control - move setpoints */
 			if (control_mode.flag_control_manual_enabled) {
-				if (local_pos.ref_timestamp != home_alt_t) {
-					if (home_alt_t != 0) {
+				/* manual control */
+				/* check for reference point updates and correct setpoint */
+				if (local_pos.ref_timestamp != ref_alt_t) {
+					if (ref_alt_t != 0) {
 						/* home alt changed, don't follow large ground level changes in manual flight */
-						local_pos_sp.z += local_pos.ref_alt - home_alt;
+						local_pos_sp.z += local_pos.ref_alt - ref_alt;
 					}
 
-					home_alt_t = local_pos.ref_timestamp;
-					home_alt = local_pos.ref_alt;
+					ref_alt_t = local_pos.ref_timestamp;
+					ref_alt = local_pos.ref_alt;
+					// TODO also correct XY setpoint
 				}
 
+				/* reset setpoints to current position if needed */
 				if (control_mode.flag_control_altitude_enabled) {
-					/* move altitude setpoint with manual controls */
+					if (reset_sp_z) {
+						reset_sp_z = false;
+						local_pos_sp.z = local_pos.z;
+						mavlink_log_info(mavlink_fd, "[mpc] reset alt sp: %.2f", -local_pos_sp.z);
+					}
+
+					/* move altitude setpoint with throttle stick */
 					float z_sp_ctl = scale_control(manual.throttle - 0.5f, 0.5f, alt_ctl_dz);
 
 					if (z_sp_ctl != 0.0f) {
@@ -383,7 +369,16 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				}
 
 				if (control_mode.flag_control_position_enabled) {
-					/* move position setpoint with manual controls */
+					if (reset_sp_xy) {
+						reset_sp_xy = false;
+						local_pos_sp.x = local_pos.x;
+						local_pos_sp.y = local_pos.y;
+						pid_reset_integral(&xy_vel_pids[0]);
+						pid_reset_integral(&xy_vel_pids[1]);
+						mavlink_log_info(mavlink_fd, "[mpc] reset pos sp: %.2f, %.2f", local_pos_sp.x, local_pos_sp.y);
+					}
+
+					/* move position setpoint with roll/pitch stick */
 					float pos_pitch_sp_ctl = scale_control(-manual.pitch / params.rc_scale_pitch, 1.0f, pos_ctl_dz);
 					float pos_roll_sp_ctl = scale_control(manual.roll / params.rc_scale_roll, 1.0f, pos_ctl_dz);
 
@@ -410,12 +405,68 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 				/* publish local position setpoint */
 				orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+
+				/* local position setpoint is valid and can be used for loiter after position controlled mode */
+				local_pos_sp_valid = control_mode.flag_control_position_enabled;
+
+				/* force reprojection of global setpoint after manual mode */
+				global_pos_sp_reproject = true;
+
+			} else {
+				/* non-manual mode, use global setpoint */
+				/* init local projection using local position ref */
+				if (local_pos.ref_timestamp != local_ref_timestamp) {
+					global_pos_sp_reproject = true;
+					local_ref_timestamp = local_pos.ref_timestamp;
+					double lat_home = local_pos.ref_lat * 1e-7;
+					double lon_home = local_pos.ref_lon * 1e-7;
+					map_projection_init(lat_home, lon_home);
+					mavlink_log_info(mavlink_fd, "[mpc] local pos ref: %.7f, %.7f", lat_home, lon_home);
+				}
+
+				if (global_pos_sp_reproject) {
+					/* update global setpoint projection */
+					global_pos_sp_reproject = false;
+
+					if (global_pos_sp_valid) {
+						/* global position setpoint valid, use it */
+						double sp_lat = global_pos_sp.lat * 1e-7;
+						double sp_lon = global_pos_sp.lon * 1e-7;
+						/* project global setpoint to local setpoint */
+						map_projection_project(sp_lat, sp_lon, &(local_pos_sp.x), &(local_pos_sp.y));
+
+						if (global_pos_sp.altitude_is_relative) {
+							local_pos_sp.z = -global_pos_sp.altitude;
+
+						} else {
+							local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
+						}
+
+						mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
+
+					} else {
+						if (!local_pos_sp_valid) {
+							/* local position setpoint is invalid,
+							 * use current position as setpoint for loiter */
+							local_pos_sp.x = local_pos.x;
+							local_pos_sp.y = local_pos.y;
+							local_pos_sp.z = local_pos.z;
+						}
+
+						mavlink_log_info(mavlink_fd, "[mpc] no global pos sp, loiter: %.2f, %.2f", local_pos_sp.x, local_pos_sp.y);
+					}
+
+					/* publish local position setpoint as projection of global position setpoint */
+					orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+				}
 			}
 
 			/* run position & altitude controllers, calculate velocity setpoint */
 			if (control_mode.flag_control_altitude_enabled) {
 				global_vel_sp.vz = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz - sp_move_rate[2], dt) + sp_move_rate[2];
+
 			} else {
+				reset_sp_z = true;
 				global_vel_sp.vz = 0.0f;
 			}
 
@@ -426,13 +477,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 				/* limit horizontal speed */
 				float xy_vel_sp_norm = norm(global_vel_sp.vx, global_vel_sp.vy) / params.xy_vel_max;
+
 				if (xy_vel_sp_norm > 1.0f) {
 					global_vel_sp.vx /= xy_vel_sp_norm;
 					global_vel_sp.vy /= xy_vel_sp_norm;
 				}
 
 			} else {
-				reset_sp_pos = true;
+				reset_sp_xy = true;
 				global_vel_sp.vx = 0.0f;
 				global_vel_sp.vy = 0.0f;
 			}
@@ -444,20 +496,44 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			if (control_mode.flag_control_climb_rate_enabled || control_mode.flag_control_velocity_enabled) {
 				/* run velocity controllers, calculate thrust vector with attitude-thrust compensation */
 				float thrust_sp[3] = { 0.0f, 0.0f, 0.0f };
-				bool reset_integral = !control_mode.flag_armed;
+
 				if (control_mode.flag_control_climb_rate_enabled) {
-					if (reset_integral) {
-						thrust_pid_set_integral(&z_vel_pid, params.thr_min);
+					if (reset_int_z) {
+						reset_int_z = false;
+						float i = params.thr_min;
+
+						if (reset_int_z_manual) {
+							i = manual.throttle;
+
+							if (i < params.thr_min) {
+								i = params.thr_min;
+
+							} else if (i > params.thr_max) {
+								i = params.thr_max;
+							}
+						}
+
+						thrust_pid_set_integral(&z_vel_pid, -i);
+						mavlink_log_info(mavlink_fd, "[mpc] reset hovering thrust: %.2f", i);
 					}
+
 					thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, local_pos.vz, dt, att.R[2][2]);
 					att_sp.thrust = -thrust_sp[2];
+
+				} else {
+					/* reset thrust integral when altitude control enabled */
+					reset_int_z = true;
 				}
+
 				if (control_mode.flag_control_velocity_enabled) {
 					/* calculate thrust set point in NED frame */
-					if (reset_integral) {
+					if (reset_int_xy) {
+						reset_int_xy = false;
 						pid_reset_integral(&xy_vel_pids[0]);
 						pid_reset_integral(&xy_vel_pids[1]);
+						mavlink_log_info(mavlink_fd, "[mpc] reset pos integral");
 					}
+
 					thrust_sp[0] = pid_calculate(&xy_vel_pids[0], global_vel_sp.vx, local_pos.vx, 0.0f, dt);
 					thrust_sp[1] = pid_calculate(&xy_vel_pids[1], global_vel_sp.vy, local_pos.vy, 0.0f, dt);
 
@@ -471,11 +547,15 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (tilt > params.tilt_max) {
 						tilt = params.tilt_max;
 					}
+
 					/* convert direction to body frame */
 					thrust_xy_dir -= att.yaw;
 					/* calculate roll and pitch */
 					att_sp.roll_body = sinf(thrust_xy_dir) * tilt;
 					att_sp.pitch_body = -cosf(thrust_xy_dir) * tilt / cosf(att_sp.roll_body);
+
+				} else {
+					reset_int_xy = true;
 				}
 
 				att_sp.timestamp = hrt_absolute_time();
@@ -483,14 +563,21 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				/* publish new attitude setpoint */
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 			}
+
 		} else {
-			reset_sp_alt = true;
-			reset_sp_pos = true;
+			/* position controller disabled, reset setpoints */
+			reset_sp_z = true;
+			reset_sp_xy = true;
+			reset_int_z = true;
+			reset_int_xy = true;
+			global_pos_sp_reproject = true;
 		}
+
+		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
+		reset_int_z_manual = control_mode.flag_armed && control_mode.flag_control_manual_enabled && !control_mode.flag_control_climb_rate_enabled;
 
 		/* run at approximately 50 Hz */
 		usleep(20000);
-
 	}
 
 	warnx("stopped");

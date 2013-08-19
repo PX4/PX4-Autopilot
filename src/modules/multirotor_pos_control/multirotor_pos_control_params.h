@@ -1,8 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,9 +33,9 @@
  ****************************************************************************/
 
 /*
- * @file multirotor_position_control_params.h
- * 
- * Parameters for position controller
+ * @file multirotor_pos_control_params.h
+ *
+ * Parameters for multirotor_pos_control
  */
 
 #include <systemlib/param/param.h>
