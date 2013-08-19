@@ -55,7 +55,6 @@
 /* control sets with pre-defined applications */
 #define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
 
-
 /**
  * @addtogroup topics
  * @{

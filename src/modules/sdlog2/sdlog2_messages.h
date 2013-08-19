@@ -63,9 +63,6 @@ struct log_ATT_s {
 	float roll_rate;
 	float pitch_rate;
 	float yaw_rate;
-	float roll_acc;
-	float pitch_acc;
-	float yaw_acc;
 };
 
 /* --- ATSP - ATTITUDE SET POINT --- */
@@ -109,10 +106,9 @@ struct log_LPOS_s {
 	float vx;
 	float vy;
 	float vz;
-	float hdg;
-	int32_t home_lat;
-	int32_t home_lon;
-	float home_alt;
+	int32_t ref_lat;
+	int32_t ref_lon;
+	float ref_alt;
 };
 
 /* --- LPSP - LOCAL POSITION SETPOINT --- */
@@ -152,55 +148,36 @@ struct log_ATTC_s {
 /* --- STAT - VEHICLE STATE --- */
 #define LOG_STAT_MSG 10
 struct log_STAT_s {
-	uint8_t state;
-	uint8_t flight_mode;
-	uint8_t manual_control_mode;
-	uint8_t manual_sas_mode;
-	uint8_t armed;
+	uint8_t main_state;
+	uint8_t navigation_state;
+	uint8_t arming_state;
 	float battery_voltage;
 	float battery_current;
 	float battery_remaining;
 	uint8_t battery_warning;
 };
 
-/* --- CTRL - CONTROL DEBUG --- */
-#define LOG_CTRL_MSG 11
-struct log_CTRL_s {
-	float roll_p;
-	float roll_i;
-	float roll_d;
-	float roll_rate_p;
-	float roll_rate_i;
-	float roll_rate_d;
-	float pitch_p;
-	float pitch_i;
-	float pitch_d;
-	float pitch_rate_p;
-	float pitch_rate_i;
-	float pitch_rate_d;
-};
-
 /* --- RC - RC INPUT CHANNELS --- */
-#define LOG_RC_MSG 12
+#define LOG_RC_MSG 11
 struct log_RC_s {
 	float channel[8];
 };
 
 /* --- OUT0 - ACTUATOR_0 OUTPUT --- */
-#define LOG_OUT0_MSG 13
+#define LOG_OUT0_MSG 12
 struct log_OUT0_s {
 	float output[8];
 };
 
 /* --- AIRS - AIRSPEED --- */
-#define LOG_AIRS_MSG 14
+#define LOG_AIRS_MSG 13
 struct log_AIRS_s {
 	float indicated_airspeed;
 	float true_airspeed;
 };
 
 /* --- ARSP - ATTITUDE RATE SET POINT --- */
-#define LOG_ARSP_MSG 15
+#define LOG_ARSP_MSG 14
 struct log_ARSP_s {
 	float roll_rate_sp;
 	float pitch_rate_sp;
@@ -208,7 +185,7 @@ struct log_ARSP_s {
 };
 
 /* --- FLOW - OPTICAL FLOW --- */
-#define LOG_FLOW_MSG 16
+#define LOG_FLOW_MSG 15
 struct log_FLOW_s {
 	int16_t flow_raw_x;
 	int16_t flow_raw_y;
@@ -264,22 +241,29 @@ struct log_ESC_s {
 	uint16_t esc_setpoint_raw;
 };
 
+/* --- GVSP - GLOBAL VELOCITY SETPOINT --- */
+#define LOG_GVSP_MSG 19
+struct log_GVSP_s {
+	float vx;
+	float vy;
+	float vz;
+};
+
 #pragma pack(pop)
 
 /* construct list of all message formats */
 
 static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TIME, "Q", "StartTime"),
-	LOG_FORMAT(ATT, "fffffffff", "Roll,Pitch,Yaw,RollR,PitchR,YawR,RollA,PitchA,YawA"),
+	LOG_FORMAT(ATT, "ffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate"),
 	LOG_FORMAT(ATSP, "ffff", "RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),
-	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,Heading,HomeLat,HomeLon,HomeAlt"),
+	LOG_FORMAT(LPOS, "fffffffLLf", "X,Y,Z,VX,VY,VZ,RefLat,RefLon,RefAlt"),
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBBBfffB", "State,FlightMode,CtlMode,SASMode,Armed,BatV,BatC,BatRem,BatWarn"),
-	LOG_FORMAT(CTRL, "ffffffffffff", "RP,RI,RD,RRP,RRI,RRD,PP,PI,PD,PRP,PRI,PRD"),
+	LOG_FORMAT(STAT, "BBBfffB", "MainState,NavState,ArmState,BatV,BatC,BatRem,BatWarn"),
 	LOG_FORMAT(RC, "ffffffff", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
@@ -287,7 +271,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
 	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
-	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,No,Version,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
+	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
+	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
