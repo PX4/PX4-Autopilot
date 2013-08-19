@@ -263,7 +263,7 @@ system_eval:
 		led_toggle(leds, LED_BLUE);
 
 		/* display and sound error */
-		for (int i = 0; i < 150; i++)
+		for (int i = 0; i < 50; i++)
 		{
 			led_toggle(leds, LED_BLUE);
 			led_toggle(leds, LED_AMBER);

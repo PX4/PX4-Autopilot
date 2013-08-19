@@ -953,7 +953,7 @@ Sensors::baro_init()
 
 	if (fd < 0) {
 		warn("%s", BARO_DEVICE_PATH);
-		warnx("No barometer found, ignoring");
+		errx(1, "FATAL: No barometer found");
 	}
 
 	/* set the driver to poll at 150Hz */

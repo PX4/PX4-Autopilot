@@ -24,6 +24,10 @@ then
 	hmc5883 start
 	set BOARD fmuv1
 else
+	if hmc5883 start
+	then
+		echo "Using external mag"
+	fi
 	echo "using L3GD20 and LSM303D"
 	l3gd20 start
 	lsm303d start
