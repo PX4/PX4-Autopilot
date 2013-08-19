@@ -187,7 +187,7 @@ extern void	controls_init(void);
 extern void	controls_tick(void);
 extern int	dsm_init(const char *device);
 extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
-extern void     dsm_bind(uint16_t cmd, int pulses);
+extern void	dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
 extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
 
@@ -195,9 +195,9 @@ extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
 extern volatile uint8_t debug_level;
 
 /* send a debug message to the console */
-extern void isr_debug(uint8_t level, const char *fmt, ...);
+extern void	isr_debug(uint8_t level, const char *fmt, ...);
 
 #ifdef CONFIG_STM32_I2C1
-void i2c_dump(void);
-void i2c_reset(void);
+void		i2c_dump(void);
+void		i2c_reset(void);
 #endif
