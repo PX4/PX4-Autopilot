@@ -182,3 +182,8 @@ __EXPORT float thrust_pid_calculate(thrust_pid_t *pid, float sp, float val, floa
 
 	return pid->last_output;
 }
+
+__EXPORT void thrust_pid_set_integral(thrust_pid_t *pid, float i)
+{
+	pid->integral = i;
+}

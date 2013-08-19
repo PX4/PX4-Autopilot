@@ -301,7 +301,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				if (reset_sp_alt) {
 					reset_sp_alt = false;
 					local_pos_sp.z = local_pos.z;
-					z_vel_pid.integral = -manual.throttle;	// thrust PID uses Z downside
+					thrust_pid_set_integral(&z_vel_pid, -manual.throttle);	// thrust PID uses Z downside
 					mavlink_log_info(mavlink_fd, "reset alt setpoint: z = %.2f, throttle = %.2f", local_pos_sp.z, manual.throttle);
 				}
 
@@ -309,8 +309,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					reset_sp_pos = false;
 					local_pos_sp.x = local_pos.x;
 					local_pos_sp.y = local_pos.y;
-					xy_vel_pids[0].integral = 0.0f;
-					xy_vel_pids[1].integral = 0.0f;
+					pid_reset_integral(&xy_vel_pids[0]);
+					pid_reset_integral(&xy_vel_pids[1]);
 					mavlink_log_info(mavlink_fd, "reset pos setpoint: x = %.2f, y = %.2f", local_pos_sp.x, local_pos_sp.y);
 				}
 			} else {
@@ -439,17 +439,25 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			/* publish new velocity setpoint */
 			orb_publish(ORB_ID(vehicle_global_velocity_setpoint), global_vel_sp_pub, &global_vel_sp);
-			// TODO subcrive to velocity setpoint if altitude/position control disabled
+			// TODO subscribe to velocity setpoint if altitude/position control disabled
 
 			if (control_mode.flag_control_climb_rate_enabled || control_mode.flag_control_velocity_enabled) {
 				/* run velocity controllers, calculate thrust vector with attitude-thrust compensation */
 				float thrust_sp[3] = { 0.0f, 0.0f, 0.0f };
+				bool reset_integral = !control_mode.flag_armed;
 				if (control_mode.flag_control_climb_rate_enabled) {
+					if (reset_integral) {
+						thrust_pid_set_integral(&z_vel_pid, params.thr_min);
+					}
 					thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, local_pos.vz, dt, att.R[2][2]);
 					att_sp.thrust = -thrust_sp[2];
 				}
 				if (control_mode.flag_control_velocity_enabled) {
 					/* calculate thrust set point in NED frame */
+					if (reset_integral) {
+						pid_reset_integral(&xy_vel_pids[0]);
+						pid_reset_integral(&xy_vel_pids[1]);
+					}
 					thrust_sp[0] = pid_calculate(&xy_vel_pids[0], global_vel_sp.vx, local_pos.vx, 0.0f, dt);
 					thrust_sp[1] = pid_calculate(&xy_vel_pids[1], global_vel_sp.vy, local_pos.vy, 0.0f, dt);
 
