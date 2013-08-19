@@ -19,7 +19,10 @@ ms5611 start
 adc start
 
 # mag might be external
-hmc5883 start
+if hmc5883 start
+then
+	echo "using HMC5883"
+fi
 
 if mpu6000 start
 then
