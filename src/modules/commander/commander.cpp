@@ -820,6 +820,17 @@ int commander_thread_main(int argc, char *argv[])
 		/* update condition_local_position_valid and condition_local_altitude_valid */
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
+		if (status.condition_local_altitude_valid) {
+			if (status.condition_landed != local_position.landed) {
+				status.condition_landed = local_position.landed;
+				status_changed = true;
+				if (status.condition_landed) {
+					mavlink_log_info(mavlink_fd, "[cmd] LANDED");
+				} else {
+					mavlink_log_info(mavlink_fd, "[cmd] IN AIR");
+				}
+			}
+		}
 
 		/* update battery status */
 		orb_check(battery_sub, &updated);

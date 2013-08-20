@@ -52,10 +52,11 @@
 #include <limits.h>
 #include <math.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/actuator_controls_effective.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -169,14 +170,18 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
 	float baro_alt0 = 0.0f; /* to determine while start up */
+	float alt_avg = 0.0f;
+	bool landed = true;
+	hrt_abstime landed_time = 0;
 
 	uint32_t accel_counter = 0;
 	uint32_t baro_counter = 0;
 
 	/* declare and safely initialize all structs */
-	struct vehicle_status_s vehicle_status;
-	memset(&vehicle_status, 0, sizeof(vehicle_status));
-	/* make sure that baroINITdone = false */
+	struct actuator_controls_effective_s actuator;
+	memset(&actuator, 0, sizeof(actuator));
+	struct actuator_armed_s armed;
+	memset(&armed, 0, sizeof(armed));
 	struct sensor_combined_s sensor;
 	memset(&sensor, 0, sizeof(sensor));
 	struct vehicle_gps_position_s gps;
@@ -192,7 +197,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* subscribe */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int actuator_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
@@ -294,9 +300,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	hrt_abstime sonar_time = 0;
 
 	/* main loop */
-	struct pollfd fds[6] = {
+	struct pollfd fds[7] = {
 		{ .fd = parameter_update_sub, .events = POLLIN },
-		{ .fd = vehicle_status_sub, .events = POLLIN },
+		{ .fd = actuator_sub, .events = POLLIN },
+		{ .fd = armed_sub, .events = POLLIN },
 		{ .fd = vehicle_attitude_sub, .events = POLLIN },
 		{ .fd = sensor_combined_sub, .events = POLLIN },
 		{ .fd = optical_flow_sub, .events = POLLIN },
@@ -308,7 +315,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	}
 
 	while (!thread_should_exit) {
-		int ret = poll(fds, 6, 10); // wait maximal this 10 ms = 100 Hz minimum rate
+		int ret = poll(fds, 7, 10); // wait maximal this 10 ms = 100 Hz minimum rate
 		hrt_abstime t = hrt_absolute_time();
 
 		if (ret < 0) {
@@ -328,20 +335,24 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				parameters_update(&pos_inav_param_handles, &params);
 			}
 
-			/* vehicle status */
+			/* actuator */
 			if (fds[1].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_status), vehicle_status_sub,
-					 &vehicle_status);
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, actuator_sub, &actuator);
+			}
+
+			/* armed */
+			if (fds[2].revents & POLLIN) {
+				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 			}
 
 			/* vehicle attitude */
-			if (fds[2].revents & POLLIN) {
+			if (fds[3].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 				attitude_updates++;
 			}
 
 			/* sensor combined */
-			if (fds[3].revents & POLLIN) {
+			if (fds[4].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
 				if (sensor.accelerometer_counter > accel_counter) {
@@ -378,7 +389,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			/* optical flow */
-			if (fds[4].revents & POLLIN) {
+			if (fds[5].revents & POLLIN) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 
 				if (flow.ground_distance_m > 0.31f && flow.ground_distance_m < 4.0f && (flow.ground_distance_m != sonar_prev || t - sonar_time < 150000)) {
@@ -415,33 +426,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				flow_updates++;
 			}
 
-			if (fds[5].revents & POLLIN) {
-				/* vehicle GPS position */
+			/* vehicle GPS position */
+			if (fds[6].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
-				if (gps.fix_type >= 3) {
+				if (gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout) {
 					/* initialize reference position if needed */
-					if (ref_xy_inited) {
-						/* project GPS lat lon to plane */
-						float gps_proj[2];
-						map_projection_project(gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
-						/* calculate correction for position */
-						gps_corr[0][0] = gps_proj[0] - x_est[0];
-						gps_corr[1][0] = gps_proj[1] - y_est[0];
-
-						/* calculate correction for velocity */
-						if (gps.vel_ned_valid) {
-							gps_corr[0][1] = gps.vel_n_m_s - x_est[1];
-							gps_corr[1][1] = gps.vel_e_m_s - y_est[1];
-
-						} else {
-							gps_corr[0][1] = 0.0f;
-							gps_corr[1][1] = 0.0f;
-						}
-
-					} else {
-						hrt_abstime t = hrt_absolute_time();
-
+					if (!ref_xy_inited) {
 						if (ref_xy_init_start == 0) {
 							ref_xy_init_start = t;
 
@@ -462,12 +453,32 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 					}
 
-					gps_updates++;
+					if (ref_xy_inited) {
+						/* project GPS lat lon to plane */
+						float gps_proj[2];
+						map_projection_project(gps.lat * 1e-7, gps.lon * 1e-7, &(gps_proj[0]), &(gps_proj[1]));
+						/* calculate correction for position */
+						gps_corr[0][0] = gps_proj[0] - x_est[0];
+						gps_corr[1][0] = gps_proj[1] - y_est[0];
+
+						/* calculate correction for velocity */
+						if (gps.vel_ned_valid) {
+							gps_corr[0][1] = gps.vel_n_m_s - x_est[1];
+							gps_corr[1][1] = gps.vel_e_m_s - y_est[1];
+
+						} else {
+							gps_corr[0][1] = 0.0f;
+							gps_corr[1][1] = 0.0f;
+						}
+					}
 
 				} else {
 					/* no GPS lock */
 					memset(gps_corr, 0, sizeof(gps_corr));
+					ref_xy_init_start = 0;
 				}
+
+				gps_updates++;
 			}
 		}
 
@@ -516,9 +527,40 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		}
 
+		/* detect land */
+		alt_avg += (z_est[0] - alt_avg) * dt / params.land_t;
+		float alt_disp = z_est[0] - alt_avg;
+		alt_disp = alt_disp * alt_disp;
+		float land_disp2 = params.land_disp * params.land_disp;
+		/* get actual thrust output */
+		float thrust = armed.armed ? actuator.control_effective[3] : 0.0f;
+
+		if (landed) {
+			if (alt_disp > land_disp2 && thrust > params.land_thr) {
+				landed = false;
+				landed_time = 0;
+			}
+
+		} else {
+			if (alt_disp < land_disp2 && thrust < params.land_thr) {
+				if (landed_time == 0) {
+					landed_time = t;    // land detected first time
+
+				} else {
+					if (t > landed_time + params.land_t * 1000000.0f) {
+						landed = true;
+						landed_time = 0;
+					}
+				}
+
+			} else {
+				landed_time = 0;
+			}
+		}
+
 		if (verbose_mode) {
 			/* print updates rate */
-			if (t - updates_counter_start > updates_counter_len) {
+			if (t > updates_counter_start + updates_counter_len) {
 				float updates_dt = (t - updates_counter_start) * 0.000001f;
 				warnx(
 					"updates rate: accelerometer = %.1f/s, baro = %.1f/s, gps = %.1f/s, attitude = %.1f/s, flow = %.1f/s",
@@ -536,7 +578,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		}
 
-		if (t - pub_last > pub_interval) {
+		if (t > pub_last + pub_interval) {
 			pub_last = t;
 			/* publish local position */
 			local_pos.timestamp = t;
@@ -549,7 +591,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.vy = y_est[1];
 			local_pos.z = z_est[0];
 			local_pos.vz = z_est[1];
-			local_pos.landed = false;	// TODO
+			local_pos.landed = landed;
 
 			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
 

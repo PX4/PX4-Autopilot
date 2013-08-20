@@ -52,6 +52,9 @@ struct position_estimator_inav_params {
 	float flow_k;
 	float sonar_filt;
 	float sonar_err;
+	float land_t;
+	float land_disp;
+	float land_thr;
 };
 
 struct position_estimator_inav_param_handles {
@@ -66,6 +69,9 @@ struct position_estimator_inav_param_handles {
 	param_t flow_k;
 	param_t sonar_filt;
 	param_t sonar_err;
+	param_t land_t;
+	param_t land_disp;
+	param_t land_thr;
 };
 
 /**
