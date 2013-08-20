@@ -689,6 +689,8 @@ MPU6000::accel_self_test()
 		return 1;
 	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f)
 		return 1;
+
+	return 0;
 }
 
 int
