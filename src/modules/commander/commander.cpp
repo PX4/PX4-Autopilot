@@ -316,6 +316,8 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	/* result of the command */
 	uint8_t result = VEHICLE_CMD_RESULT_UNSUPPORTED;
 
+	/* only handle high-priority commands here */
+
 	/* request to set different system mode */
 	switch (cmd->command) {
 	case VEHICLE_CMD_DO_SET_MODE: {
@@ -420,94 +422,10 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			break;
 		}
 
-	case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
-		if (is_safe(status, safety, armed)) {
-
-			if (((int)(cmd->param1)) == 1) {
-				/* reboot */
-				systemreset(false);
-
-			} else if (((int)(cmd->param1)) == 3) {
-				/* reboot to bootloader */
-
-				systemreset(true);
-
-			} else {
-				result = VEHICLE_CMD_RESULT_DENIED;
-			}
-
-		} else {
-			result = VEHICLE_CMD_RESULT_DENIED;
-		}
-
+	case VEHICLE_CMD_COMPONENT_ARM_DISARM:
+		// XXX implement later
+		result = VEHICLE_CMD_RESULT_DENIED;
 		break;
-
-	case VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
-			low_prio_task_t new_low_prio_task = LOW_PRIO_TASK_NONE;
-
-			if ((int)(cmd->param1) == 1) {
-				/* gyro calibration */
-				new_low_prio_task = LOW_PRIO_TASK_GYRO_CALIBRATION;
-
-			} else if ((int)(cmd->param2) == 1) {
-				/* magnetometer calibration */
-				new_low_prio_task = LOW_PRIO_TASK_MAG_CALIBRATION;
-
-			} else if ((int)(cmd->param3) == 1) {
-				/* zero-altitude pressure calibration */
-				//new_low_prio_task = LOW_PRIO_TASK_ALTITUDE_CALIBRATION;
-			} else if ((int)(cmd->param4) == 1) {
-				/* RC calibration */
-				new_low_prio_task = LOW_PRIO_TASK_RC_CALIBRATION;
-
-			} else if ((int)(cmd->param5) == 1) {
-				/* accelerometer calibration */
-				new_low_prio_task = LOW_PRIO_TASK_ACCEL_CALIBRATION;
-
-			} else if ((int)(cmd->param6) == 1) {
-				/* airspeed calibration */
-				new_low_prio_task = LOW_PRIO_TASK_AIRSPEED_CALIBRATION;
-			}
-
-			/* check if we have new task and no other task is scheduled */
-			if (low_prio_task == LOW_PRIO_TASK_NONE && new_low_prio_task != LOW_PRIO_TASK_NONE) {
-				/* try to go to INIT/PREFLIGHT arming state */
-				if (TRANSITION_DENIED != arming_state_transition(status, safety, ARMING_STATE_INIT, armed)) {
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-					low_prio_task = new_low_prio_task;
-
-				} else {
-					result = VEHICLE_CMD_RESULT_DENIED;
-				}
-
-			} else {
-				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-			}
-
-			break;
-		}
-
-	case VEHICLE_CMD_PREFLIGHT_STORAGE: {
-			low_prio_task_t new_low_prio_task = LOW_PRIO_TASK_NONE;
-
-			if (((int)(cmd->param1)) == 0) {
-				new_low_prio_task = LOW_PRIO_TASK_PARAM_LOAD;
-
-			} else if (((int)(cmd->param1)) == 1) {
-				new_low_prio_task = LOW_PRIO_TASK_PARAM_SAVE;
-			}
-
-			/* check if we have new task and no other task is scheduled */
-			if (low_prio_task == LOW_PRIO_TASK_NONE && new_low_prio_task != LOW_PRIO_TASK_NONE) {
-				result = VEHICLE_CMD_RESULT_ACCEPTED;
-				low_prio_task = new_low_prio_task;
-
-			} else {
-				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-			}
-
-			break;
-		}
 
 	default:
 		break;
@@ -517,6 +435,8 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	if (result == VEHICLE_CMD_RESULT_ACCEPTED) {
 		tune_positive();
 
+	} else if (result == VEHICLE_CMD_RESULT_UNSUPPORTED) {
+		/* we do not care in the high prio loop about commands we don't know */
 	} else {
 		tune_negative();
 
@@ -529,18 +449,23 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		} else if (result == VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED) {
 			mavlink_log_critical(mavlink_fd, "[cmd] command temporarily rejected: %u", cmd->command);
 
-		} else if (result == VEHICLE_CMD_RESULT_UNSUPPORTED) {
-			mavlink_log_critical(mavlink_fd, "[cmd] command unsupported: %u", cmd->command);
 		}
 	}
 
 	/* send any requested ACKs */
-	if (cmd->confirmation > 0) {
+	if (cmd->confirmation > 0 && result != VEHICLE_CMD_RESULT_UNSUPPORTED) {
 		/* send acknowledge command */
 		// XXX TODO
 	}
 
 }
+
+static struct vehicle_status_s status;
+
+/* armed topic */
+static struct actuator_armed_s armed;
+
+static struct safety_s safety;
 
 int commander_thread_main(int argc, char *argv[])
 {
@@ -581,14 +506,12 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* Main state machine */
-	struct vehicle_status_s status;
 	orb_advert_t status_pub;
 	/* make sure we are in preflight state */
 	memset(&status, 0, sizeof(status));
 	status.condition_landed = true;	// initialize to safe value
 
 	/* armed topic */
-	struct actuator_armed_s armed;
 	orb_advert_t armed_pub;
 	/* Initialize armed with all false */
 	memset(&armed, 0, sizeof(armed));
@@ -689,7 +612,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
-	struct safety_s safety;
 	memset(&safety, 0, sizeof(safety));
 	safety.safety_switch_available = false;
 	safety.safety_off = false;
@@ -994,39 +916,6 @@ int commander_thread_main(int argc, char *argv[])
 		 * set of position measurements is available.
 		 */
 
-// <<<<<<< HEAD
-// 		/* store current state to reason later about a state change */
-// 		// bool vector_flight_mode_ok = current_status.flag_vector_flight_mode_ok;
-// 		// bool global_pos_valid = status.condition_global_position_valid;
-// 		// bool local_pos_valid = status.condition_local_position_valid;
-// 		// bool airspeed_valid = status.condition_airspeed_valid;
-
-
-// 		/* check for global or local position updates, set a timeout of 2s */
-// 		if (t - global_position.timestamp < 2000000 && t > 2000000 && global_position.valid) {
-// 			status.condition_global_position_valid = true;
-
-// 		} else {
-// 			status.condition_global_position_valid = false;
-// 		}
-
-// 		if (t - local_position.timestamp < 2000000 && t > 2000000 && local_position.valid) {
-// 			status.condition_local_position_valid = true;
-
-// 		} else {
-// 			status.condition_local_position_valid = false;
-// 		}
-
-// 		/* Check for valid airspeed/differential pressure measurements */
-// 		if (t - last_diff_pres_time < 2000000 && t > 2000000) {
-// 			status.condition_airspeed_valid = true;
-
-// 		} else {
-// 			status.condition_airspeed_valid = false;
-// 		}
-
-// =======
-// >>>>>>> f96bb824d4fc6f6d36ddf24e8879d3025af39d70
 		orb_check(gps_sub, &updated);
 
 		if (updated) {
@@ -1733,78 +1622,167 @@ void *commander_low_prio_loop(void *arg)
 	/* Set thread name */
 	prctl(PR_SET_NAME, "commander_low_prio", getpid());
 
-	low_prio_task = LOW_PRIO_TASK_NONE;
+	/* Subscribe to command topic */
+	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
+	struct vehicle_command_s cmd;
+	memset(&cmd, 0, sizeof(cmd));
+
+	/* wakeup source(s) */
+	struct pollfd fds[1];
+
+	/* use the gyro to pace output - XXX BROKEN if we are using the L3GD20 */
+	fds[0].fd = cmd_sub;
+	fds[0].events = POLLIN;
 
 	while (!thread_should_exit) {
 
-		switch (low_prio_task) {
-		case LOW_PRIO_TASK_PARAM_LOAD:
+		/* wait for up to 100ms for data */
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
 
-			if (0 == param_load_default()) {
-				mavlink_log_info(mavlink_fd, "[cmd] parameters loaded");
+		/* timed out - periodic check for _task_should_exit, etc. */
+		if (pret == 0)
+			continue;
 
-			} else {
-				mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
-				tune_error();
+		/* this is undesirable but not much we can do - might want to flag unhappy status */
+		if (pret < 0) {
+			warn("poll error %d, %d", pret, errno);
+			continue;
+		}
+
+		/* if we reach here, we have a valid command */
+		orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
+
+		/* ignore commands the high-prio loop handles */
+		if (cmd.command == VEHICLE_CMD_DO_SET_MODE ||
+		    cmd.command == VEHICLE_CMD_COMPONENT_ARM_DISARM)
+			continue;
+
+		/* result of the command */
+		uint8_t result = VEHICLE_CMD_RESULT_UNSUPPORTED;
+
+		/* only handle low-priority commands here */
+		switch (cmd.command) {
+
+		case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
+				if (is_safe(&status, &safety, &armed)) {
+
+					if (((int)(cmd.param1)) == 1) {
+						/* reboot */
+						systemreset(false);
+					} else if (((int)(cmd.param1)) == 3) {
+						/* reboot to bootloader */
+						systemreset(true);
+					} else {
+						result = VEHICLE_CMD_RESULT_DENIED;
+					}
+				
+				} else {
+					result = VEHICLE_CMD_RESULT_DENIED;
+				}
+			break;
+
+		case VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
+
+				/* try to go to INIT/PREFLIGHT arming state */
+
+				// XXX disable interrupts in arming_state_transition
+				if (TRANSITION_DENIED == arming_state_transition(&status, &safety, ARMING_STATE_INIT, &armed)) {
+					result = VEHICLE_CMD_RESULT_DENIED;
+					break;
+				}
+
+				if ((int)(cmd.param1) == 1) {
+					/* gyro calibration */
+					do_gyro_calibration(mavlink_fd);
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else if ((int)(cmd.param2) == 1) {
+					/* magnetometer calibration */
+					do_mag_calibration(mavlink_fd);
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else if ((int)(cmd.param3) == 1) {
+					/* zero-altitude pressure calibration */
+					result = VEHICLE_CMD_RESULT_DENIED;
+					
+				} else if ((int)(cmd.param4) == 1) {
+					/* RC calibration */
+					result = VEHICLE_CMD_RESULT_DENIED;
+
+				} else if ((int)(cmd.param5) == 1) {
+					/* accelerometer calibration */
+					do_accel_calibration(mavlink_fd);
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else if ((int)(cmd.param6) == 1) {
+					/* airspeed calibration */
+					do_airspeed_calibration(mavlink_fd);
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+				}
+
+				arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed);
+
+				break;
 			}
 
-			low_prio_task = LOW_PRIO_TASK_NONE;
-			break;
+		case VEHICLE_CMD_PREFLIGHT_STORAGE: {
 
-		case LOW_PRIO_TASK_PARAM_SAVE:
+				if (((int)(cmd.param1)) == 0) {
+					if (0 == param_load_default()) {
+						mavlink_log_info(mavlink_fd, "[cmd] parameters loaded");
+						result = VEHICLE_CMD_RESULT_ACCEPTED;
 
-			if (0 == param_save_default()) {
-				mavlink_log_info(mavlink_fd, "[cmd] parameters saved");
+					} else {
+						mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
+						tune_error();
+						result = VEHICLE_CMD_RESULT_FAILED;
+					}
 
-			} else {
-				mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
-				tune_error();
+				} else if (((int)(cmd.param1)) == 1) {
+					if (0 == param_save_default()) {
+						mavlink_log_info(mavlink_fd, "[cmd] parameters saved");
+						result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+					} else {
+						mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
+						tune_error();
+						result = VEHICLE_CMD_RESULT_FAILED;
+					}
+				}
+
+				break;
 			}
 
-			low_prio_task = LOW_PRIO_TASK_NONE;
-			break;
-
-		case LOW_PRIO_TASK_GYRO_CALIBRATION:
-
-			do_gyro_calibration(mavlink_fd);
-			low_prio_task = LOW_PRIO_TASK_NONE;
-			break;
-
-		case LOW_PRIO_TASK_MAG_CALIBRATION:
-
-			do_mag_calibration(mavlink_fd);
-			low_prio_task = LOW_PRIO_TASK_NONE;
-			break;
-
-		case LOW_PRIO_TASK_ALTITUDE_CALIBRATION:
-
-			// do_baro_calibration(mavlink_fd);
-			low_prio_task = LOW_PRIO_TASK_NONE;
-			break;
-
-		case LOW_PRIO_TASK_RC_CALIBRATION:
-
-			// do_rc_calibration(mavlink_fd);
-			low_prio_task = LOW_PRIO_TASK_NONE;
-			break;
-
-		case LOW_PRIO_TASK_ACCEL_CALIBRATION:
-
-			do_accel_calibration(mavlink_fd);
-			low_prio_task = LOW_PRIO_TASK_NONE;
-			break;
-
-		case LOW_PRIO_TASK_AIRSPEED_CALIBRATION:
-
-			do_airspeed_calibration(mavlink_fd);
-			low_prio_task = LOW_PRIO_TASK_NONE;
-			break;
-
-		case LOW_PRIO_TASK_NONE:
 		default:
-			/* slow down to 10Hz */
-			usleep(100000);
 			break;
+		}
+
+		/* supported command handling stop */
+		if (result == VEHICLE_CMD_RESULT_ACCEPTED) {
+			tune_positive();
+
+		} else {
+			tune_negative();
+
+			if (result == VEHICLE_CMD_RESULT_DENIED) {
+				mavlink_log_critical(mavlink_fd, "[cmd] command denied: %u", cmd.command);
+
+			} else if (result == VEHICLE_CMD_RESULT_FAILED) {
+				mavlink_log_critical(mavlink_fd, "[cmd] command failed: %u", cmd.command);
+
+			} else if (result == VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED) {
+				mavlink_log_critical(mavlink_fd, "[cmd] command temporarily rejected: %u", cmd.command);
+
+			} else if (result == VEHICLE_CMD_RESULT_UNSUPPORTED) {
+				mavlink_log_critical(mavlink_fd, "[cmd] command unsupported: %u", cmd.command);
+			}
+		}
+
+		/* send any requested ACKs */
+		if (cmd.confirmation > 0 && cmd.command != VEHICLE_CMD_DO_SET_MODE
+			&& cmd.command != VEHICLE_CMD_COMPONENT_ARM_DISARM) {
+			/* send acknowledge command */
+			// XXX TODO
 		}
 
 	}
