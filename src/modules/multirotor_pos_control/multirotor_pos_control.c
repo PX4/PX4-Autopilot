@@ -459,6 +459,10 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					/* publish local position setpoint as projection of global position setpoint */
 					orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
 				}
+
+				/* reset setpoints after non-manual modes */
+				reset_sp_xy = true;
+				reset_sp_z = true;
 			}
 
 			/* run position & altitude controllers, calculate velocity setpoint */
