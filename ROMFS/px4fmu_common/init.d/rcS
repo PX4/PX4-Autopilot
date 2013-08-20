@@ -61,11 +61,7 @@ then
 #
 # Start terminal
 #
-if sercon
-then
-	echo "USB connected"
-	nshterm /dev/ttyACM0 &
-fi
+sercon
 
 #
 # Start the ORB (first app to start)
@@ -163,6 +159,9 @@ if param compare SYS_AUTOSTART 31
 then
 	sh /etc/init.d/31_io_phantom
 fi
+
+# Try to get an USB console
+nshterm /dev/ttyACM0 &
 
 # End of autostart
 fi

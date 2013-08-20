@@ -62,7 +62,7 @@ nshterm_main(int argc, char *argv[])
     }
     uint8_t retries = 0;
     int fd = -1;
-    while (retries < 5) {
+    while (retries < 50) {
         /* the retries are to cope with the behaviour of /dev/ttyACM0 */
         /* which may not be ready immediately. */
         fd = open(argv[1], O_RDWR);
