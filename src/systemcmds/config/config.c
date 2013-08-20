@@ -90,6 +90,7 @@ static void
 do_gyro(int argc, char *argv[])
 {
 	int	fd;
+	int	ret;
 
 	fd = open(GYRO_DEVICE_PATH, 0);
 
@@ -102,20 +103,29 @@ do_gyro(int argc, char *argv[])
 		if (argc == 2 && !strcmp(argv[0], "sampling")) {
 
 			/* set the gyro internal sampling rate up to at least i Hz */
-			ioctl(fd, GYROIOCSSAMPLERATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, GYROIOCSSAMPLERATE, strtoul(argv[1], NULL, 0));
+
+			if (ret)
+				errx(ret,"sampling rate could not be set");
 
 		} else if (argc == 2 && !strcmp(argv[0], "rate")) {
 
 			/* set the driver to poll at i Hz */
-			ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[1], NULL, 0));
+
+			if (ret)
+				errx(ret,"pollrate could not be set");
 
 		} else if (argc == 2 && !strcmp(argv[0], "range")) {
 
 			/* set the range to i dps */
-			ioctl(fd, GYROIOCSRANGE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, GYROIOCSRANGE, strtoul(argv[1], NULL, 0));
+
+			if (ret)
+				errx(ret,"range could not be set");
 
 		} else if(argc == 1 && !strcmp(argv[0], "check")) {
-			int ret = ioctl(fd, GYROIOCSELFTEST, 0);
+			ret = ioctl(fd, GYROIOCSELFTEST, 0);
 
 			if (ret) {
 				warnx("gyro self test FAILED! Check calibration:");
@@ -147,6 +157,7 @@ static void
 do_mag(int argc, char *argv[])
 {
 	int fd;
+	int ret;
 
 	fd = open(MAG_DEVICE_PATH, 0);
 
@@ -156,8 +167,32 @@ do_mag(int argc, char *argv[])
 
 	} else {
 
-		if(argc == 1 && !strcmp(argv[0], "check")) {
-			int ret = ioctl(fd, MAGIOCSELFTEST, 0);
+		if (argc == 2 && !strcmp(argv[0], "sampling")) {
+
+			/* set the mag internal sampling rate up to at least i Hz */
+			ret = ioctl(fd, MAGIOCSSAMPLERATE, strtoul(argv[1], NULL, 0));
+
+			if (ret)
+				errx(ret,"sampling rate could not be set");
+
+		} else if (argc == 2 && !strcmp(argv[0], "rate")) {
+
+			/* set the driver to poll at i Hz */
+			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[1], NULL, 0));
+
+			if (ret)
+				errx(ret,"pollrate could not be set");
+
+		} else if (argc == 2 && !strcmp(argv[0], "range")) {
+
+			/* set the range to i G */
+			ret = ioctl(fd, MAGIOCSRANGE, strtoul(argv[1], NULL, 0));
+
+			if (ret)
+				errx(ret,"range could not be set");
+
+		} else if(argc == 1 && !strcmp(argv[0], "check")) {
+			ret = ioctl(fd, MAGIOCSELFTEST, 0);
 
 			if (ret) {
 				warnx("mag self test FAILED! Check calibration:");
@@ -173,9 +208,9 @@ do_mag(int argc, char *argv[])
 			errx(1, "wrong or no arguments given. Try: \n\n\t'check' for the self test\n\t");
 		}
 
-		int srate = -1; //ioctl(fd, MAGIOCGSAMPLERATE, 0);
+		int srate = ioctl(fd, MAGIOCGSAMPLERATE, 0);
 		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
-		int range = -1; //ioctl(fd, MAGIOCGRANGE, 0);
+		int range = ioctl(fd, MAGIOCGRANGE, 0);
 
 		warnx("mag: \n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d gauss", srate, prate, range);
 
@@ -189,6 +224,7 @@ static void
 do_accel(int argc, char *argv[])
 {
 	int	fd;
+	int	ret;
 
 	fd = open(ACCEL_DEVICE_PATH, 0);
 
@@ -201,20 +237,29 @@ do_accel(int argc, char *argv[])
 		if (argc == 2 && !strcmp(argv[0], "sampling")) {
 
 			/* set the accel internal sampling rate up to at least i Hz */
-			ioctl(fd, ACCELIOCSSAMPLERATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, ACCELIOCSSAMPLERATE, strtoul(argv[1], NULL, 0));
+
+			if (ret)
+				errx(ret,"sampling rate could not be set");
 
 		} else if (argc == 2 && !strcmp(argv[0], "rate")) {
 
 			/* set the driver to poll at i Hz */
-			ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[1], NULL, 0));
+			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[1], NULL, 0));
+
+			if (ret)
+				errx(ret,"pollrate could not be set");
 
 		} else if (argc == 2 && !strcmp(argv[0], "range")) {
 
-			/* set the range to i m/s^2 */
-			ioctl(fd, ACCELIOCSRANGE, strtoul(argv[1], NULL, 0));
+			/* set the range to i G */
+			ret = ioctl(fd, ACCELIOCSRANGE, strtoul(argv[1], NULL, 0));
+
+			if (ret)
+				errx(ret,"range could not be set");
 
 		} else if(argc == 1 && !strcmp(argv[0], "check")) {
-			int ret = ioctl(fd, ACCELIOCSELFTEST, 0);
+			ret = ioctl(fd, ACCELIOCSELFTEST, 0);
 
 			if (ret) {
 				warnx("accel self test FAILED! Check calibration:");

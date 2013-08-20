@@ -637,13 +637,18 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return -EINVAL;
 
 	case MAGIOCSSAMPLERATE:
+	case MAGIOCGSAMPLERATE:
 		/* not supported, always 1 sample per poll */
 		return -EINVAL;
 
 	case MAGIOCSRANGE:
 		return set_range(arg);
 
+	case MAGIOCGRANGE:
+		return _range_ga;
+
 	case MAGIOCSLOWPASS:
+	case MAGIOCGLOWPASS:
 		/* not supported, no internal filtering */
 		return -EINVAL;
 
