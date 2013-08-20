@@ -861,10 +861,10 @@ HMC5883::collect()
 	} else {
 #endif
 		/* the standard external mag by 3DR has x pointing to the right, y pointing backwards, and z down,
-		 * therefore switch and invert x and y */
+		 * therefore switch x and y and invert y */
 		_reports[_next_report].x = ((((report.y == -32768) ? 32767 : -report.y) * _range_scale) - _scale.x_offset) * _scale.x_scale;
 		/* flip axes and negate value for y */
-		_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
+		_reports[_next_report].y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
 		/* z remains z */
 		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 #ifdef PX4_I2C_BUS_ONBOARD
