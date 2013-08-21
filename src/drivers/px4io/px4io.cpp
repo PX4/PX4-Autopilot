@@ -103,6 +103,12 @@ extern device::Device *PX4IO_serial_interface() weak_function;
 #define ORB_CHECK_INTERVAL		200000		// 200 ms -> 5 Hz
 #define IO_POLL_INTERVAL		20000		// 20 ms -> 50 Hz
 
+#ifndef ARDUPILOT_BUILD
+# define RC_HANDLING_DEFAULT false
+#else
+# define RC_HANDLING_DEFAULT true
+#endif
+
 /**
  * The PX4IO class.
  *
@@ -467,7 +473,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_max_relays(0),
 	_max_transfer(16),	/* sensible default */
 	_update_interval(0),
-	_rc_handling_disabled(false),
+	_rc_handling_disabled(RC_HANDLING_DEFAULT),
 	_rc_chan_count(0),
 	_rc_last_valid(0),
 	_task(-1),
