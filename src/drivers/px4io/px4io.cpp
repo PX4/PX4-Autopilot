@@ -193,6 +193,11 @@ public:
 	void			print_status();
 
 	/**
+	 * Disable RC input handling
+	 */
+	int			disable_rc_handling();
+
+	/**
 	 * Set the DSM VCC is controlled by relay one flag
 	 *
 	 * @param[in] enable true=DSM satellite VCC is controlled by relay1, false=DSM satellite VCC not controlled
@@ -223,7 +228,8 @@ private:
 	unsigned		_max_relays;		///<Maximum relays supported by PX4IO
 	unsigned		_max_transfer;		///<Maximum number of I2C transfers supported by PX4IO
 
-	unsigned 		_update_interval;	///<Subscription interval limiting send rate
+	unsigned 		_update_interval;	///< Subscription interval limiting send rate
+	bool			_rc_handling_disabled;	///< If set, IO does not evaluate, but only forward the RC values
 
 	volatile int		_task;			///<worker task id
 	volatile bool		_task_should_exit;	///<worker terminate flag
@@ -292,6 +298,11 @@ private:
 	 * Also publishes battery voltage/current.
 	 */
 	int			io_get_status();
+
+	/**
+	 * Disable RC input handling
+	 */
+	int			io_disable_rc_handling();
 
 	/**
 	 * Fetch RC inputs from IO.
@@ -411,6 +422,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_max_relays(0),
 	_max_transfer(16),	/* sensible default */
 	_update_interval(0),
+	_rc_handling_disabled(false),
 	_task(-1),
 	_task_should_exit(false),
 	_mavlink_fd(-1),
@@ -615,12 +627,16 @@ PX4IO::init()
 			PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | 
 			PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE, 0);
 
-		/* publish RC config to IO */
-		ret = io_set_rc_config();
-		if (ret != OK) {
-			log("failed to update RC input config");
-			mavlink_log_info(_mavlink_fd, "[IO] RC config upload fail");
-			return ret;
+		if (_rc_handling_disabled) {
+			ret = io_disable_rc_handling();
+		} else {
+			/* publish RC config to IO */
+			ret = io_set_rc_config();
+			if (ret != OK) {
+				log("failed to update RC input config");
+				mavlink_log_info(_mavlink_fd, "[IO] RC config upload fail");
+				return ret;
+			}
 		}
 
 	}
@@ -911,6 +927,21 @@ PX4IO::io_set_arming_state()
 	} else {
 		clear |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
 	}
+
+	return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
+}
+
+int
+PX4IO::disable_rc_handling()
+{
+	return io_disable_rc_handling();
+}
+
+int
+PX4IO::io_disable_rc_handling()
+{
+	uint16_t set = PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED;
+	uint16_t clear = 0;
 
 	return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
 }
@@ -1456,7 +1487,7 @@ PX4IO::print_status()
 		(((flags & PX4IO_P_STATUS_FLAGS_RC_DSM) && (flags & PX4IO_P_STATUS_FLAGS_RC_DSM11)) ? " DSM11" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_RC_SBUS)  ? " SBUS" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_FMU_OK)   ? " FMU_OK" : " FMU_FAIL"),
-		((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PPM" : ""),
+		((flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)  ? " RAW_PWM_PASSTHROUGH" : ""),
 		((flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) ? " MIXER_OK" : " MIXER_FAIL"),
 		((flags & PX4IO_P_STATUS_FLAGS_ARM_SYNC) ? " ARM_SYNC" : " ARM_NO_SYNC"),
 		((flags & PX4IO_P_STATUS_FLAGS_INIT_OK)  ? " INIT_OK" : " INIT_FAIL"),
@@ -1864,6 +1895,16 @@ start(int argc, char *argv[])
 	if (OK != g_dev->init()) {
 		delete g_dev;
 		errx(1, "driver init failed");
+	}
+
+	/* disable RC handling on request */
+	if (argc > 0 && !strcmp(argv[0], "norc")) {
+
+		if(g_dev->disable_rc_handling())
+			warnx("Failed disabling RC handling");
+
+	} else {
+		warnx("unknown argument: %s", argv[0]);
 	}
 
 	int dsm_vcc_ctl;

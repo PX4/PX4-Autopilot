@@ -77,8 +77,8 @@
 
 #define HMC5883L_ADDRESS		PX4_I2C_OBDEV_HMC5883
 
-/* Max measurement rate is 160Hz */
-#define HMC5883_CONVERSION_INTERVAL	(1000000 / 160)	/* microseconds */
+/* Max measurement rate is 160Hz, however with 160 it will be set to 166 Hz, therefore workaround using 150 */
+#define HMC5883_CONVERSION_INTERVAL	(1000000 / 150)	/* microseconds */
 
 #define ADDR_CONF_A			0x00
 #define ADDR_CONF_B			0x01
@@ -190,6 +190,11 @@ private:
 	 * Stop the automatic measurement state machine.
 	 */
 	void			stop();
+
+	/**
+	 * Reset the device
+	 */
+	int			reset();
 
 	/**
 	 * Perform the on-sensor scale calibration routine.
@@ -365,6 +370,9 @@ HMC5883::init()
 	if (I2C::init() != OK)
 		goto out;
 
+	/* reset the device configuration */
+	reset();
+
 	/* allocate basic report buffers */
 	_num_reports = 2;
 	_reports = new struct mag_report[_num_reports];
@@ -380,9 +388,6 @@ HMC5883::init()
 
 	if (_mag_topic < 0)
 		debug("failed to create sensor_mag object");
-
-	/* set range */
-	set_range(_range_ga);
 
 	ret = OK;
 	/* sensor is ok, but not calibrated */
@@ -542,68 +547,67 @@ int
 HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-
 	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
+		switch (arg) {
 
-				/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
+			/* switching to manual polling */
+		case SENSOR_POLLRATE_MANUAL:
+			stop();
+			_measure_ticks = 0;
+			return OK;
+
+			/* external signalling (DRDY) not supported */
+		case SENSOR_POLLRATE_EXTERNAL:
+
+			/* zero would be bad */
+		case 0:
+			return -EINVAL;
+
+			/* set default/max polling rate */
+		case SENSOR_POLLRATE_MAX:
+		case SENSOR_POLLRATE_DEFAULT: {
+				/* do we need to start internal polling? */
+				bool want_start = (_measure_ticks == 0);
+
+				/* set interval for next measurement to minimum legal value */
+				_measure_ticks = USEC2TICK(HMC5883_CONVERSION_INTERVAL);
+
+				/* if we need to start the poll state machine, do it */
+				if (want_start)
+					start();
+
 				return OK;
+			}
 
-				/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
+			/* adjust to a legal polling interval in Hz */
+		default: {
+				/* do we need to start internal polling? */
+				bool want_start = (_measure_ticks == 0);
 
-				/* zero would be bad */
-			case 0:
-				return -EINVAL;
+				/* convert hz to tick interval via microseconds */
+				unsigned ticks = USEC2TICK(1000000 / arg);
 
-				/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-			case SENSOR_POLLRATE_DEFAULT: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+				/* check against maximum rate */
+				if (ticks < USEC2TICK(HMC5883_CONVERSION_INTERVAL))
+					return -EINVAL;
 
-					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(HMC5883_CONVERSION_INTERVAL);
+				/* update interval for next measurement */
+				_measure_ticks = ticks;
 
-					/* if we need to start the poll state machine, do it */
-					if (want_start)
-						start();
+				/* if we need to start the poll state machine, do it */
+				if (want_start)
+					start();
 
-					return OK;
-				}
-
-				/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
-
-					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
-
-					/* check against maximum rate */
-					if (ticks < USEC2TICK(HMC5883_CONVERSION_INTERVAL))
-						return -EINVAL;
-
-					/* update interval for next measurement */
-					_measure_ticks = ticks;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start)
-						start();
-
-					return OK;
-				}
+				return OK;
 			}
 		}
+	}
 
 	case SENSORIOCGPOLLRATE:
 		if (_measure_ticks == 0)
 			return SENSOR_POLLRATE_MANUAL;
 
-		return (1000 / _measure_ticks);
+		return 1000000/TICK2USEC(_measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* add one to account for the sentinel in the ring */
@@ -633,17 +637,24 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _num_reports - 1;
 
 	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
+		return reset();
 
 	case MAGIOCSSAMPLERATE:
-		/* not supported, always 1 sample per poll */
-		return -EINVAL;
+		/* same as pollrate because device is in single measurement mode*/
+		return ioctl(filp, SENSORIOCSPOLLRATE, arg);
+
+	case MAGIOCGSAMPLERATE:
+		/* same as pollrate because device is in single measurement mode*/
+		return 1000000/TICK2USEC(_measure_ticks);
 
 	case MAGIOCSRANGE:
 		return set_range(arg);
 
+	case MAGIOCGRANGE:
+		return _range_ga;
+
 	case MAGIOCSLOWPASS:
+	case MAGIOCGLOWPASS:
 		/* not supported, no internal filtering */
 		return -EINVAL;
 
@@ -695,6 +706,13 @@ void
 HMC5883::stop()
 {
 	work_cancel(HPWORK, &_work);
+}
+
+int
+HMC5883::reset()
+{
+	/* set range */
+	return set_range(_range_ga);
 }
 
 void
@@ -861,10 +879,10 @@ HMC5883::collect()
 	} else {
 #endif
 		/* the standard external mag by 3DR has x pointing to the right, y pointing backwards, and z down,
-		 * therefore switch and invert x and y */
+		 * therefore switch x and y and invert y */
 		_reports[_next_report].x = ((((report.y == -32768) ? 32767 : -report.y) * _range_scale) - _scale.x_offset) * _scale.x_scale;
 		/* flip axes and negate value for y */
-		_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
+		_reports[_next_report].y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
 		/* z remains z */
 		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 #ifdef PX4_I2C_BUS_ONBOARD

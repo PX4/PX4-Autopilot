@@ -74,7 +74,7 @@
 #define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
 #define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
 
-#define PX4IO_PROTOCOL_VERSION		3
+#define PX4IO_PROTOCOL_VERSION		4
 
 /* static configuration page */
 #define PX4IO_PAGE_CONFIG		0
@@ -159,6 +159,7 @@
 #define PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM	(1 << 3) /* use custom failsafe values, not 0 values of mixer */
 #define PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK	(1 << 4) /* OK to try in-air restart */
 #define PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE	(1 << 5) /* Output of PWM right after startup enabled to help ESCs initialize and prevent them from beeping */
+#define PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED	(1 << 6) /* Disable the IO-internal evaluation of the RC */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
