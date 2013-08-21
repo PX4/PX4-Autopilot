@@ -220,7 +220,6 @@ private:
 
 	struct accel_scale	_accel_scale;
 	unsigned		_accel_range_g;
-	float			_accel_range_m_s2;
 	float			_accel_range_scale;
 	unsigned		_accel_samplerate;
 	unsigned		_accel_filter_bandwith;
@@ -420,7 +419,6 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_oldest_mag_report(0),
 	_mag_reports(nullptr),
 	_accel_range_g(8),
-	_accel_range_m_s2(0.0f),
 	_accel_range_scale(0.0f),
 	_accel_samplerate(800),
 	_accel_filter_bandwith(50),
@@ -1029,7 +1027,6 @@ LSM303D::accel_set_range(unsigned max_g)
 		return -EINVAL;
 	}
 
-	_accel_range_m_s2 = _accel_range_g * 9.80665f;
 	_accel_range_scale = new_scale_g_digit * 9.80665f;
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
@@ -1275,7 +1272,7 @@ LSM303D::measure()
 	accel_report->z = _accel_filter_z.apply(z_in_new);
 
 	accel_report->scaling = _accel_range_scale;
-	accel_report->range_m_s2 = _accel_range_m_s2;
+	accel_report->range_m_s2 = _accel_range_g * 9.80665f;
 
 	/* post a report to the ring - note, not locked */
 	INCREMENT(_next_accel_report, _num_accel_reports);
