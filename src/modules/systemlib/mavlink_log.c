@@ -46,28 +46,25 @@
 
 #include <mavlink/mavlink_log.h>
 
-static FILE* text_recorder_fd = NULL;
-
-void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size)
+__EXPORT void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size)
 {
 	lb->size  = size;
 	lb->start = 0;
 	lb->count = 0;
 	lb->elems = (struct mavlink_logmessage *)calloc(lb->size, sizeof(struct mavlink_logmessage));
-	text_recorder_fd = fopen("/fs/microsd/text_recorder.txt", "w");
 }
 
-int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb)
+__EXPORT int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb)
 {
 	return lb->count == (int)lb->size;
 }
 
-int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb)
+__EXPORT int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb)
 {
 	return lb->count == 0;
 }
 
-void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem)
+__EXPORT void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem)
 {
 	int end = (lb->start + lb->count) % lb->size;
 	memcpy(&(lb->elems[end]), elem, sizeof(struct mavlink_logmessage));
@@ -80,18 +77,12 @@ void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_
 	}
 }
 
-int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem)
+__EXPORT int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem)
 {
 	if (!mavlink_logbuffer_is_empty(lb)) {
 		memcpy(elem, &(lb->elems[lb->start]), sizeof(struct mavlink_logmessage));
 		lb->start = (lb->start + 1) % lb->size;
 		--lb->count;
-
-		if (text_recorder_fd) {
-			fwrite(elem->text, 1, strnlen(elem->text, 50), text_recorder_fd);
-			fputc("\n", text_recorder_fd);
-			fsync(text_recorder_fd);
-		}
 
 		return 0;
 
@@ -100,7 +91,7 @@ int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessa
 	}
 }
 
-void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int severity, const char *fmt, ...)
+__EXPORT void mavlink_logbuffer_vasprintf(struct mavlink_logbuffer *lb, int severity, const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);

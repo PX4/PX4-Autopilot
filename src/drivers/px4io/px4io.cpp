@@ -864,7 +864,7 @@ PX4IO::io_set_arming_state()
 }
 
 int
-PX4IO::io_disable_rc_handling()
+PX4IO::disable_rc_handling()
 {
 	return io_disable_rc_handling();
 }
@@ -1803,7 +1803,7 @@ start(int argc, char *argv[])
 
 	/* disable RC handling on request */
 	if (argc > 0 && !strcmp(argv[0], "norc")) {
-		
+
 		if(g_dev->disable_rc_handling())
 			warnx("Failed disabling RC handling");
 
