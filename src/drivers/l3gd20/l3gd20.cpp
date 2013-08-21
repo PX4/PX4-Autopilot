@@ -154,6 +154,10 @@ static const int ERROR = -1;
 #define FIFO_CTRL_STREAM_TO_FIFO_MODE		(3<<5)
 #define FIFO_CTRL_BYPASS_TO_STREAM_MODE		(1<<7)
 
+#define L3GD20_DEFAULT_RATE			760
+#define L3GD20_DEFAULT_RANGE_DPS		2000
+#define L3GD20_DEFAULT_FILTER_FREQ		30
+
 extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 
 class L3GD20 : public device::SPI
@@ -191,8 +195,9 @@ private:
 	orb_advert_t		_gyro_topic;
 
 	unsigned		_current_rate;
-	unsigned		_current_range;
 	unsigned		_orientation;
+
+	unsigned		_read;
 
 	perf_counter_t		_sample_perf;
 
@@ -209,6 +214,11 @@ private:
 	 * Stop automatic measurement.
 	 */
 	void			stop();
+
+	/**
+	 * Reset the driver
+	 */
+	void			reset();
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -274,6 +284,14 @@ private:
 	int			set_samplerate(unsigned frequency);
 
 	/**
+	 * Set the lowpass filter of the driver
+	 *
+	 * @param samplerate	The current samplerate
+	 * @param frequency	The cutoff frequency for the lowpass filter
+	 */
+	void			set_driver_lowpass_filter(float samplerate, float bandwidth);
+
+	/**
 	 * Self test
 	 *
 	 * @return 0 on success, 1 on failure
@@ -296,12 +314,12 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
 	_current_rate(0),
-	_current_range(0),
 	_orientation(SENSOR_BOARD_ROTATION_270_DEG),
-        _sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
-        _gyro_filter_x(250, 30),
-        _gyro_filter_y(250, 30),
-        _gyro_filter_z(250, 30)
+	_read(0),
+	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
+	_gyro_filter_x(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
+	_gyro_filter_y(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
+	_gyro_filter_z(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -349,22 +367,7 @@ L3GD20::init()
 	memset(&_reports[0], 0, sizeof(_reports[0]));
 	_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &_reports[0]);
 
-	/* set default configuration */
-	write_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
-	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
-	write_reg(ADDR_CTRL_REG3, 0);		/* no interrupts - we don't use them */
-	write_reg(ADDR_CTRL_REG4, REG4_BDU);
-	write_reg(ADDR_CTRL_REG5, 0);
-
-	write_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);		/* disable wake-on-interrupt */
-
-        /* disable FIFO. This makes things simpler and ensures we
-         * aren't getting stale data. It means we must run the hrt
-         * callback fast enough to not miss data. */
-	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);	
-
-	set_range(2000);			/* default to 2000dps */
-	set_samplerate(0);			/* max sample rate */
+	reset();
 
 	ret = OK;
 out:
@@ -464,8 +467,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 				/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
 			case SENSOR_POLLRATE_DEFAULT:
-				/* With internal low pass filters enabled, 250 Hz is sufficient */
-				return ioctl(filp, SENSORIOCSPOLLRATE, 250);
+				return ioctl(filp, SENSORIOCSPOLLRATE, L3GD20_DEFAULT_RATE);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -483,12 +485,10 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 					/* XXX this is a bit shady, but no other way to adjust... */
 					_call.period = _call_interval = ticks;
 
-                                        // adjust filters
-                                        float cutoff_freq_hz = _gyro_filter_x.get_cutoff_freq();
-                                        float sample_rate = 1.0e6f/ticks;
-                                        _gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-                                        _gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-                                        _gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+					/* adjust filters */
+					float cutoff_freq_hz = _gyro_filter_x.get_cutoff_freq();
+					float sample_rate = 1.0e6f/ticks;
+					set_driver_lowpass_filter(sample_rate, cutoff_freq_hz);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -533,8 +533,8 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _num_reports - 1;
 
 	case SENSORIOCRESET:
-		/* XXX implement */
-		return -EINVAL;
+		reset();
+		return OK;
 
 	case GYROIOCSSAMPLERATE:
 		return set_samplerate(arg);
@@ -543,16 +543,15 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _current_rate;
 
 	case GYROIOCSLOWPASS: {
-                float cutoff_freq_hz = arg;
-                float sample_rate = 1.0e6f / _call_interval;
-                _gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-                _gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-                _gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-                return OK;
-        }
+		float cutoff_freq_hz = arg;
+		float sample_rate = 1.0e6f / _call_interval;
+		set_driver_lowpass_filter(sample_rate, cutoff_freq_hz);
+
+		return OK;
+	}
 
 	case GYROIOCGLOWPASS:
-                return _gyro_filter_x.get_cutoff_freq();
+		return _gyro_filter_x.get_cutoff_freq();
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
@@ -565,10 +564,12 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case GYROIOCSRANGE:
+		/* arg should be in dps */
 		return set_range(arg);
 
 	case GYROIOCGRANGE:
-		return _current_range;
+		/* convert to dps and round */
+		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
 	case GYROIOCSELFTEST:
 		return self_test();
@@ -618,22 +619,23 @@ L3GD20::set_range(unsigned max_dps)
 {
 	uint8_t bits = REG4_BDU;
 	float new_range_scale_dps_digit;
+	float new_range;
 
 	if (max_dps == 0) {
 		max_dps = 2000;
 	}
 	if (max_dps <= 250) {
-		_current_range = 250;
+		new_range = 250;
 		bits |= RANGE_250DPS;
 		new_range_scale_dps_digit = 8.75e-3f;
 
 	} else if (max_dps <= 500) {
-		_current_range = 500;
+		new_range = 500;
 		bits |= RANGE_500DPS;
 		new_range_scale_dps_digit = 17.5e-3f;
 
 	} else if (max_dps <= 2000) {
-		_current_range = 2000;
+		new_range = 2000;
 		bits |= RANGE_2000DPS;
 		new_range_scale_dps_digit = 70e-3f;
 
@@ -641,7 +643,7 @@ L3GD20::set_range(unsigned max_dps)
 		return -EINVAL;
 	}
 
-	_gyro_range_rad_s = _current_range / 180.0f * M_PI_F;
+	_gyro_range_rad_s = new_range / 180.0f * M_PI_F;
 	_gyro_range_scale = new_range_scale_dps_digit / 180.0f * M_PI_F;
 	write_reg(ADDR_CTRL_REG4, bits);
 
@@ -656,7 +658,7 @@ L3GD20::set_samplerate(unsigned frequency)
 	if (frequency == 0)
 		frequency = 760;
 
-        // use limits good for H or non-H models
+	/* use limits good for H or non-H models */
 	if (frequency <= 100) {
 		_current_rate = 95;
 		bits |= RATE_95HZ_LP_25HZ;
@@ -683,6 +685,14 @@ L3GD20::set_samplerate(unsigned frequency)
 }
 
 void
+L3GD20::set_driver_lowpass_filter(float samplerate, float bandwidth)
+{
+	_gyro_filter_x.set_cutoff_frequency(samplerate, bandwidth);
+	_gyro_filter_y.set_cutoff_frequency(samplerate, bandwidth);
+	_gyro_filter_z.set_cutoff_frequency(samplerate, bandwidth);
+}
+
+void
 L3GD20::start()
 {
 	/* make sure we are stopped first */
@@ -699,6 +709,30 @@ void
 L3GD20::stop()
 {
 	hrt_cancel(&_call);
+}
+
+void
+L3GD20::reset()
+{
+	/* set default configuration */
+	write_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
+	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
+	write_reg(ADDR_CTRL_REG3, 0);		/* no interrupts - we don't use them */
+	write_reg(ADDR_CTRL_REG4, REG4_BDU);
+	write_reg(ADDR_CTRL_REG5, 0);
+
+	write_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);		/* disable wake-on-interrupt */
+
+	/* disable FIFO. This makes things simpler and ensures we
+	 * aren't getting stale data. It means we must run the hrt
+	 * callback fast enough to not miss data. */
+	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);
+
+	set_samplerate(L3GD20_DEFAULT_RATE);
+	set_range(L3GD20_DEFAULT_RANGE_DPS);
+	set_driver_lowpass_filter(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ);
+
+	_read = 0;
 }
 
 void
@@ -804,6 +838,8 @@ L3GD20::measure()
 	if (_gyro_topic > 0)
 		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, report);
 
+	_read++;
+
 	/* stop the perf counter */
 	perf_end(_sample_perf);
 }
@@ -811,6 +847,7 @@ L3GD20::measure()
 void
 L3GD20::print_info()
 {
+	printf("gyro reads:          %u\n", _read);
 	perf_print_counter(_sample_perf);
 	printf("report queue:   %u (%u/%u @ %p)\n",
 	       _num_reports, _oldest_report, _next_report, _reports);
@@ -949,7 +986,7 @@ reset()
 		err(1, "driver reset failed");
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
-		err(1, "driver poll restart failed");
+		err(1, "accel pollrate reset failed");
 
 	exit(0);
 }
