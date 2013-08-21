@@ -919,11 +919,11 @@ Sensors::gyro_init()
 
 		#else
 
-		/* set the gyro internal sampling rate up to at leat 800Hz */
-		ioctl(fd, GYROIOCSSAMPLERATE, 800);
+		/* set the gyro internal sampling rate up to at least 760Hz */
+		ioctl(fd, GYROIOCSSAMPLERATE, 760);
 
-		/* set the driver to poll at 800Hz */
-		ioctl(fd, SENSORIOCSPOLLRATE, 800);
+		/* set the driver to poll at 760Hz */
+		ioctl(fd, SENSORIOCSPOLLRATE, 760);
 
 		#endif
 
