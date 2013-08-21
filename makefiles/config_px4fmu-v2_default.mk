@@ -66,16 +66,15 @@ MODULES		+= modules/mavlink_onboard
 # Estimation modules (EKF / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/position_estimator_mc
-MODULES		+= modules/position_estimator
 MODULES		+= modules/att_pos_estimator_ekf
+MODULES		+= modules/position_estimator_inav
+MODULES		+= examples/flow_position_estimator
 
 #
 # Vehicle Control
 #
-MODULES		+= modules/fixedwing_backside
-MODULES		+= modules/fixedwing_att_control
-MODULES		+= modules/fixedwing_pos_control
+#MODULES		+= modules/fw_pos_control_l1
+#MODULES		+= modules/fw_att_control
 MODULES		+= modules/multirotor_att_control
 MODULES		+= modules/multirotor_pos_control
 
@@ -89,15 +88,17 @@ MODULES		+= modules/sdlog2
 #
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
-MODULES		+= modules/mathlib
-MODULES		+= modules/mathlib/math/filter
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
 
 #
 # Libraries
 #
-LIBRARIES	+= modules/mathlib/CMSIS
+LIBRARIES	+= lib/mathlib/CMSIS
+MODULES		+= lib/mathlib
+MODULES		+= lib/mathlib/math/filter
+#MODULES		+= lib/ecl
+MODULES		+= lib/geo
 
 #
 # Demo apps
