@@ -176,6 +176,11 @@ public:
 	void			print_status();
 
 	/**
+	 * Disable RC input handling
+	 */
+	int			disable_rc_handling();
+
+	/**
 	 * Set the DSM VCC is controlled by relay one flag
 	 *
 	 * @param[in] enable true=DSM satellite VCC is controlled by relay1, false=DSM satellite VCC not controlled
@@ -275,6 +280,11 @@ private:
 	 * Also publishes battery voltage/current.
 	 */
 	int			io_get_status();
+
+	/**
+	 * Disable RC input handling
+	 */
+	int			io_disable_rc_handling();
 
 	/**
 	 * Fetch RC inputs from IO.
@@ -851,6 +861,12 @@ PX4IO::io_set_arming_state()
 	}
 
 	return io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, clear, set);
+}
+
+int
+PX4IO::io_disable_rc_handling()
+{
+	return io_disable_rc_handling();
 }
 
 int
@@ -1783,6 +1799,16 @@ start(int argc, char *argv[])
 	if (OK != g_dev->init()) {
 		delete g_dev;
 		errx(1, "driver init failed");
+	}
+
+	/* disable RC handling on request */
+	if (argc > 0 && !strcmp(argv[0], "norc")) {
+		
+		if(g_dev->disable_rc_handling())
+			warnx("Failed disabling RC handling");
+
+	} else {
+		warnx("unknown argument: %s", argv[0]);
 	}
 
 	int dsm_vcc_ctl;
