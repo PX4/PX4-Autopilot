@@ -279,6 +279,9 @@ int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_m
 		orb_set_interval(subs->act_2_sub, min_interval);
 		orb_set_interval(subs->act_3_sub, min_interval);
 		orb_set_interval(subs->actuators_sub, min_interval);
+		orb_set_interval(subs->actuators_effective_sub, min_interval);
+		orb_set_interval(subs->spa_sub, min_interval);
+		orb_set_interval(mavlink_subs.rates_setpoint_sub, min_interval);
 		break;
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:

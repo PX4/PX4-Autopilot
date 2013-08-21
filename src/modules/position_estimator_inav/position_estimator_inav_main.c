@@ -64,9 +64,8 @@
 #include <mavlink/mavlink_log.h>
 #include <poll.h>
 #include <systemlib/err.h>
-#include <systemlib/geo/geo.h>
+#include <geo/geo.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/conversions.h>
 #include <drivers/drv_hrt.h>
 
 #include "position_estimator_inav_params.h"

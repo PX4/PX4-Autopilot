@@ -159,6 +159,8 @@
 
 #define MPU6000_DEFAULT_ONCHIP_FILTER_FREQ		42
 
+#define MPU6000_ONE_G					9.80665f
+
 class MPU6000_gyro;
 
 class MPU6000 : public device::SPI
@@ -543,8 +545,8 @@ void MPU6000::reset()
 
 	// Correct accel scale factors of 4096 LSB/g
 	// scale to m/s^2 ( 1g = 9.81 m/s^2)
-	_accel_range_scale = (CONSTANTS_ONE_G / 4096.0f);
-	_accel_range_m_s2 = 8.0f * CONSTANTS_ONE_G;
+	_accel_range_scale = (MPU6000_ONE_G / 4096.0f);
+	_accel_range_m_s2 = 8.0f * MPU6000_ONE_G;
 
 	usleep(1000);
 
@@ -906,7 +908,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		// _accel_range_m_s2 = 8.0f * 9.81f;
 		return -EINVAL;
 	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2)/CONSTANTS_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2)/MPU6000_ONE_G + 0.5f);
 
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
@@ -1409,7 +1411,7 @@ test()
 	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
 	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
 	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-	      (double)(a_report.range_m_s2 / CONSTANTS_ONE_G));
+	      (double)(a_report.range_m_s2 / MPU6000_ONE_G));
 
 	/* do a simple demand read */
 	sz = read(fd_gyro, &g_report, sizeof(g_report));

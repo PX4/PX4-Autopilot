@@ -32,20 +32,7 @@
 ############################################################################
 
 #
-# System utility library
+# Geo library
 #
 
-SRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c \
-		   pid/pid.c \
-		   systemlib.c \
-		   airspeed.c \
-		   system_params.c \
-		   mavlink_log.c
+SRCS		 = geo.c

@@ -116,7 +116,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_accel.h>
-#include <systemlib/conversions.h>
+#include <geo/geo.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>

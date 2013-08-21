@@ -44,7 +44,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <systemlib/geo/geo.h>
+#include <geo/geo.h>
 #include <nuttx/config.h>
 #include <unistd.h>
 #include <pthread.h>

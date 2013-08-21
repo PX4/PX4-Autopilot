@@ -54,7 +54,6 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/geo/geo.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
@@ -177,6 +176,8 @@ static const int ERROR = -1;
 
 #define LSM303D_MAG_DEFAULT_RANGE_GA			2
 #define LSM303D_MAG_DEFAULT_RATE			100
+
+#define LSM303D_ONE_G					9.80665f
 
 extern "C" { __EXPORT int lsm303d_main(int argc, char *argv[]); }
 
@@ -778,7 +779,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
-		return (unsigned long)((_accel_range_m_s2)/CONSTANTS_ONE_G + 0.5f);
+		return (unsigned long)((_accel_range_m_s2)/LSM303D_ONE_G + 0.5f);
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
@@ -1015,27 +1016,27 @@ LSM303D::accel_set_range(unsigned max_g)
 		max_g = 16;
 
 	if (max_g <= 2) {
-		_accel_range_m_s2 = 2.0f*CONSTANTS_ONE_G;
+		_accel_range_m_s2 = 2.0f*LSM303D_ONE_G;
 		setbits |= REG2_FULL_SCALE_2G_A;
 		new_scale_g_digit = 0.061e-3f;
 
 	} else if (max_g <= 4) {
-		_accel_range_m_s2 = 4.0f*CONSTANTS_ONE_G;
+		_accel_range_m_s2 = 4.0f*LSM303D_ONE_G;
 		setbits |= REG2_FULL_SCALE_4G_A;
 		new_scale_g_digit = 0.122e-3f;
 
 	} else if (max_g <= 6) {
-		_accel_range_m_s2 = 6.0f*CONSTANTS_ONE_G;
+		_accel_range_m_s2 = 6.0f*LSM303D_ONE_G;
 		setbits |= REG2_FULL_SCALE_6G_A;
 		new_scale_g_digit = 0.183e-3f;
 
 	} else if (max_g <= 8) {
-		_accel_range_m_s2 = 8.0f*CONSTANTS_ONE_G;
+		_accel_range_m_s2 = 8.0f*LSM303D_ONE_G;
 		setbits |= REG2_FULL_SCALE_8G_A;
 		new_scale_g_digit = 0.244e-3f;
 
 	} else if (max_g <= 16) {
-		_accel_range_m_s2 = 16.0f*CONSTANTS_ONE_G;
+		_accel_range_m_s2 = 16.0f*LSM303D_ONE_G;
 		setbits |= REG2_FULL_SCALE_16G_A;
 		new_scale_g_digit = 0.732e-3f;
 
@@ -1043,7 +1044,7 @@ LSM303D::accel_set_range(unsigned max_g)
 		return -EINVAL;
 	}
 
-	_accel_range_scale = new_scale_g_digit * CONSTANTS_ONE_G;
+	_accel_range_scale = new_scale_g_digit * LSM303D_ONE_G;
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
 

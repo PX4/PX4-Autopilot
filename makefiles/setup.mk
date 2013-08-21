@@ -43,6 +43,7 @@
 #
 export PX4_INCLUDE_DIR	 = $(abspath $(PX4_BASE)/src/include)/
 export PX4_MODULE_SRC	 = $(abspath $(PX4_BASE)/src)/
+export PX4_LIB_DIR	 = $(abspath $(PX4_BASE)/src/lib)/
 export PX4_MK_DIR	 = $(abspath $(PX4_BASE)/makefiles)/
 export NUTTX_SRC	 = $(abspath $(PX4_BASE)/NuttX/nuttx)/
 export NUTTX_APP_SRC	 = $(abspath $(PX4_BASE)/NuttX/apps)/
@@ -57,7 +58,8 @@ export ARCHIVE_DIR	 = $(abspath $(PX4_BASE)/Archives)/
 #
 export INCLUDE_DIRS	:= $(PX4_MODULE_SRC) \
 			   $(PX4_MODULE_SRC)/modules/ \
-			   $(PX4_INCLUDE_DIR)
+			   $(PX4_INCLUDE_DIR) \
+			   $(PX4_LIB_DIR)
 
 #
 # Tools

@@ -80,6 +80,7 @@ struct mavlink_subscriptions {
 	int safety_sub;
 	int actuators_sub;
 	int armed_sub;
+	int actuators_effective_sub;
 	int local_pos_sub;
 	int spa_sub;
 	int spl_sub;

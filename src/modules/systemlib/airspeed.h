@@ -85,6 +85,14 @@
   */
  __EXPORT float calc_true_airspeed(float total_pressure, float static_pressure, float temperature_celsius);
 
+ /**
+ * Calculates air density.
+ *
+ * @param static_pressure ambient pressure in millibar
+ * @param temperature_celcius air / ambient temperature in celcius
+ */
+__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
+
 __END_DECLS
 
 #endif
