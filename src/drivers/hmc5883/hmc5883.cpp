@@ -77,8 +77,8 @@
 
 #define HMC5883L_ADDRESS		PX4_I2C_OBDEV_HMC5883
 
-/* Max measurement rate is 160Hz */
-#define HMC5883_CONVERSION_INTERVAL	(1000000 / 160)	/* microseconds */
+/* Max measurement rate is 160Hz, however with 160 it will be set to 166 Hz, therefore workaround using 150 */
+#define HMC5883_CONVERSION_INTERVAL	(1000000 / 150)	/* microseconds */
 
 #define ADDR_CONF_A			0x00
 #define ADDR_CONF_B			0x01
@@ -607,7 +607,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		if (_measure_ticks == 0)
 			return SENSOR_POLLRATE_MANUAL;
 
-		return (1000 / _measure_ticks);
+		return 1000000/TICK2USEC(_measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* add one to account for the sentinel in the ring */
@@ -645,7 +645,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCGSAMPLERATE:
 		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(filp, SENSORIOCGPOLLRATE, 0);
+		return 1000000/TICK2USEC(_measure_ticks);
 
 	case MAGIOCSRANGE:
 		return set_range(arg);
