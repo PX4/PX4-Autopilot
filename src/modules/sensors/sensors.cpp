@@ -947,7 +947,7 @@ Sensors::mag_init()
 
 	/* try different mag sampling rates */
 
-#if 0
+
 	ret = ioctl(fd, MAGIOCSSAMPLERATE, 150);
 	if (ret == OK) {
 		/* set the pollrate accordingly */
@@ -962,7 +962,7 @@ Sensors::mag_init()
 			errx(1, "FATAL: mag sampling rate could not be set");
 		}
 	}
-#endif
+
 	
 
 	ret = ioctl(fd, MAGIOCGEXTERNAL, 0);
