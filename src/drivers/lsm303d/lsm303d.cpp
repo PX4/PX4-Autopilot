@@ -170,13 +170,13 @@ static const int ERROR = -1;
 #define INT_SRC_M               0x13
 
 /* default values for this device */
-#define ACCEL_DEFAULT_RANGE_G 8
-#define ACCEL_DEFAULT_SAMPLERATE 800
-#define ACCEL_DEFAULT_ONCHIP_FILTER_FREQ 50
-#define ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
+#define LSM303D_ACCEL_DEFAULT_RANGE_G			8
+#define LSM303D_ACCEL_DEFAULT_RATE			800
+#define LSM303D_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ	50
+#define LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
 
-#define MAG_DEFAULT_RANGE_GA 2
-#define MAG_DEFAULT_SAMPLERATE 100
+#define LSM303D_MAG_DEFAULT_RANGE_GA			2
+#define LSM303D_MAG_DEFAULT_RATE			100
 
 extern "C" { __EXPORT int lsm303d_main(int argc, char *argv[]); }
 
@@ -231,7 +231,7 @@ private:
 	unsigned		_accel_range_m_s2;
 	float			_accel_range_scale;
 	unsigned		_accel_samplerate;
-	unsigned		_accel_filter_bandwith;
+	unsigned		_accel_onchip_filter_bandwith;
 
 	struct mag_scale	_mag_scale;
 	unsigned		_mag_range_ga;
@@ -356,13 +356,22 @@ private:
 	int			mag_set_range(unsigned max_g);
 
 	/**
-	 * Set the LSM303D accel anti-alias filter.
+	 * Set the LSM303D on-chip anti-alias filter bandwith.
 	 *
 	 * @param bandwidth The anti-alias filter bandwidth in Hz
 	 * 			Zero selects the highest bandwidth
 	 * @return		OK if the value can be supported, -ERANGE otherwise.
 	 */
-	int			accel_set_antialias_filter_bandwidth(unsigned bandwith);
+	int			accel_set_onchip_lowpass_filter_bandwidth(unsigned bandwidth);
+
+	/**
+	 * Set the driver lowpass filter bandwidth.
+	 *
+	 * @param bandwidth The anti-alias filter bandwidth in Hz
+	 * 			Zero selects the highest bandwidth
+	 * @return		OK if the value can be supported, -ERANGE otherwise.
+	 */
+	int			accel_set_driver_lowpass_filter(float samplerate, float bandwidth);
 
 	/**
 	 * Set the LSM303D internal accel sampling frequency.
@@ -430,7 +439,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_accel_range_m_s2(0.0f),
 	_accel_range_scale(0.0f),
 	_accel_samplerate(0),
-	_accel_filter_bandwith(0),
+	_accel_onchip_filter_bandwith(0),
 	_mag_range_ga(0.0f),
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
@@ -440,9 +449,9 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_mag_read(0),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
-	_accel_filter_x(0, 0),
-	_accel_filter_y(0, 0),
-	_accel_filter_z(0, 0)
+	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -538,14 +547,13 @@ LSM303D::reset()
 	write_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
 	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
 
-	_accel_filter_bandwith = ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
+	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
+	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
+	accel_set_driver_lowpass_filter((float)LSM303D_ACCEL_DEFAULT_RATE, (float)LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ);
+	accel_set_onchip_lowpass_filter_bandwidth(LSM303D_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ);
 
-	accel_set_range(ACCEL_DEFAULT_RANGE_G);
-	accel_set_samplerate(ACCEL_DEFAULT_SAMPLERATE);
-	accel_set_antialias_filter_bandwidth(ACCEL_DEFAULT_ONCHIP_FILTER_FREQ);
-
-	mag_set_range(MAG_DEFAULT_RANGE_GA);
-	mag_set_samplerate(MAG_DEFAULT_SAMPLERATE);
+	mag_set_range(LSM303D_MAG_DEFAULT_RANGE_GA);
+	mag_set_samplerate(LSM303D_MAG_DEFAULT_RATE);
 
 	_accel_read = 0;
 	_mag_read = 0;
@@ -672,7 +680,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ioctl(filp, SENSORIOCSPOLLRATE, 1600);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, ACCEL_DEFAULT_SAMPLERATE);
+				return ioctl(filp, SENSORIOCSPOLLRATE, LSM303D_ACCEL_DEFAULT_RATE);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -687,11 +695,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 					return -EINVAL;
 
 				/* adjust filters */
-				float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-
-				_accel_filter_x.set_cutoff_frequency((float)arg, cutoff_freq_hz);
-				_accel_filter_y.set_cutoff_frequency((float)arg, cutoff_freq_hz);
-				_accel_filter_z.set_cutoff_frequency((float)arg, cutoff_freq_hz);
+				accel_set_driver_lowpass_filter((float)arg, _accel_filter_x.get_cutoff_freq());
 
 				/* update interval for next measurement */
 				/* XXX this is a bit shady, but no other way to adjust... */
@@ -750,10 +754,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _accel_samplerate;
 
 	case ACCELIOCSLOWPASS: {
-		_accel_filter_x.set_cutoff_frequency((float)_accel_samplerate, (float)arg);
-		_accel_filter_y.set_cutoff_frequency((float)_accel_samplerate, (float)arg);
-		_accel_filter_z.set_cutoff_frequency((float)_accel_samplerate, (float)arg);
-		return OK;
+		return accel_set_driver_lowpass_filter((float)_accel_samplerate, (float)arg);
 	}
 
 	case ACCELIOCGLOWPASS:
@@ -1091,7 +1092,7 @@ LSM303D::mag_set_range(unsigned max_ga)
 }
 
 int
-LSM303D::accel_set_antialias_filter_bandwidth(unsigned bandwidth)
+LSM303D::accel_set_onchip_lowpass_filter_bandwidth(unsigned bandwidth)
 {
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG2_ANTIALIAS_FILTER_BW_BITS_A;
@@ -1101,25 +1102,35 @@ LSM303D::accel_set_antialias_filter_bandwidth(unsigned bandwidth)
 
 	if (bandwidth <= 50) {
 		setbits |= REG2_AA_FILTER_BW_50HZ_A;
-		_accel_filter_bandwith = 50;
+		_accel_onchip_filter_bandwith = 50;
 
 	} else if (bandwidth <= 194) {
 		setbits |= REG2_AA_FILTER_BW_194HZ_A;
-		_accel_filter_bandwith = 194;
+		_accel_onchip_filter_bandwith = 194;
 
 	} else if (bandwidth <= 362) {
 		setbits |= REG2_AA_FILTER_BW_362HZ_A;
-		_accel_filter_bandwith = 362;
+		_accel_onchip_filter_bandwith = 362;
 
 	} else if (bandwidth <= 773) {
 		setbits |= REG2_AA_FILTER_BW_773HZ_A;
-		_accel_filter_bandwith = 773;
+		_accel_onchip_filter_bandwith = 773;
 
 	} else {
 		return -EINVAL;
 	}
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
+
+	return OK;
+}
+
+int
+LSM303D::accel_set_driver_lowpass_filter(float samplerate, float bandwidth)
+{
+	_accel_filter_x.set_cutoff_frequency(samplerate, bandwidth);
+	_accel_filter_y.set_cutoff_frequency(samplerate, bandwidth);
+	_accel_filter_z.set_cutoff_frequency(samplerate, bandwidth);
 
 	return OK;
 }
@@ -1582,15 +1593,16 @@ reset()
 		err(1, "driver reset failed");
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
-		err(1, "accel driver poll rate reset failed");
+		err(1, "accel pollrate reset failed");
 
-	int fd_mag = open(MAG_DEVICE_PATH, O_RDONLY);
+	fd = open(MAG_DEVICE_PATH, O_RDONLY);
 
-	if (fd_mag < 0) {
-		warnx("could not open to mag " MAG_DEVICE_PATH);
+	if (fd < 0) {
+		warnx("mag could not be opened, external mag might be used");
 	} else {
+		/* no need to reset the mag as well, the reset() is the same */
 		if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
-			err(1, "mag driver poll rate reset failed");
+			err(1, "mag pollrate reset failed");
 	}
 
 	exit(0);
