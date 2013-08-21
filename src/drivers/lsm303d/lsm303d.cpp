@@ -54,6 +54,7 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
+#include <systemlib/geo/geo.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
@@ -168,6 +169,14 @@ static const int ERROR = -1;
 #define INT_CTRL_M              0x12
 #define INT_SRC_M               0x13
 
+/* default values for this device */
+#define ACCEL_DEFAULT_RANGE_G 8
+#define ACCEL_DEFAULT_SAMPLERATE 800
+#define ACCEL_DEFAULT_ONCHIP_FILTER_FREQ 50
+#define ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
+
+#define MAG_DEFAULT_RANGE_GA 2
+#define MAG_DEFAULT_SAMPLERATE 100
 
 extern "C" { __EXPORT int lsm303d_main(int argc, char *argv[]); }
 
@@ -219,7 +228,7 @@ private:
 	struct mag_report	*_mag_reports;
 
 	struct accel_scale	_accel_scale;
-	unsigned		_accel_range_g;
+	unsigned		_accel_range_m_s2;
 	float			_accel_range_scale;
 	unsigned		_accel_samplerate;
 	unsigned		_accel_filter_bandwith;
@@ -418,22 +427,22 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_next_mag_report(0),
 	_oldest_mag_report(0),
 	_mag_reports(nullptr),
-	_accel_range_g(8),
+	_accel_range_m_s2(0.0f),
 	_accel_range_scale(0.0f),
-	_accel_samplerate(800),
-	_accel_filter_bandwith(50),
-	_mag_range_ga(2),
+	_accel_samplerate(0),
+	_accel_filter_bandwith(0),
+	_mag_range_ga(0.0f),
 	_mag_range_scale(0.0f),
-	_mag_samplerate(100),
+	_mag_samplerate(0),
 	_accel_topic(-1),
 	_mag_topic(-1),
 	_accel_read(0),
 	_mag_read(0),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
-	_accel_filter_x(800, 30),
-	_accel_filter_y(800, 30),
-	_accel_filter_z(800, 30)
+	_accel_filter_x(0, 0),
+	_accel_filter_y(0, 0),
+	_accel_filter_z(0, 0)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -529,12 +538,17 @@ LSM303D::reset()
 	write_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
 	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
 
-	accel_set_range(_accel_range_g);
-	accel_set_samplerate(_accel_samplerate);
-	accel_set_antialias_filter_bandwidth(_accel_filter_bandwith);
+	_accel_filter_bandwith = ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
 
-	mag_set_range(_mag_range_ga);
-	mag_set_samplerate(_mag_samplerate);
+	accel_set_range(ACCEL_DEFAULT_RANGE_G);
+	accel_set_samplerate(ACCEL_DEFAULT_SAMPLERATE);
+	accel_set_antialias_filter_bandwidth(ACCEL_DEFAULT_ONCHIP_FILTER_FREQ);
+
+	mag_set_range(MAG_DEFAULT_RANGE_GA);
+	mag_set_samplerate(MAG_DEFAULT_SAMPLERATE);
+
+	_accel_read = 0;
+	_mag_read = 0;
 }
 
 int
@@ -658,8 +672,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ioctl(filp, SENSORIOCSPOLLRATE, 1600);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				/* Use 800Hz as it is filtered in the driver as well*/
-				return ioctl(filp, SENSORIOCSPOLLRATE, 800);
+				return ioctl(filp, SENSORIOCSPOLLRATE, ACCEL_DEFAULT_SAMPLERATE);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -759,10 +772,12 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 
 	case ACCELIOCSRANGE:
+		/* arg needs to be in G */
 		return accel_set_range(arg);
 
 	case ACCELIOCGRANGE:
-		return _accel_range_g;
+		/* convert to m/s^2 and return rounded in G */
+		return (unsigned long)((_accel_range_m_s2)/CONSTANTS_ONE_G + 0.5f);
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
@@ -999,27 +1014,27 @@ LSM303D::accel_set_range(unsigned max_g)
 		max_g = 16;
 
 	if (max_g <= 2) {
-		_accel_range_g = 2;
+		_accel_range_m_s2 = 2.0f*CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_2G_A;
 		new_scale_g_digit = 0.061e-3f;
 
 	} else if (max_g <= 4) {
-		_accel_range_g = 4;
+		_accel_range_m_s2 = 4.0f*CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_4G_A;
 		new_scale_g_digit = 0.122e-3f;
 
 	} else if (max_g <= 6) {
-		_accel_range_g = 6;
+		_accel_range_m_s2 = 6.0f*CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_6G_A;
 		new_scale_g_digit = 0.183e-3f;
 
 	} else if (max_g <= 8) {
-		_accel_range_g = 8;
+		_accel_range_m_s2 = 8.0f*CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_8G_A;
 		new_scale_g_digit = 0.244e-3f;
 
 	} else if (max_g <= 16) {
-		_accel_range_g = 16;
+		_accel_range_m_s2 = 16.0f*CONSTANTS_ONE_G;
 		setbits |= REG2_FULL_SCALE_16G_A;
 		new_scale_g_digit = 0.732e-3f;
 
@@ -1027,7 +1042,7 @@ LSM303D::accel_set_range(unsigned max_g)
 		return -EINVAL;
 	}
 
-	_accel_range_scale = new_scale_g_digit * 9.80665f;
+	_accel_range_scale = new_scale_g_digit * CONSTANTS_ONE_G;
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
 
@@ -1272,7 +1287,7 @@ LSM303D::measure()
 	accel_report->z = _accel_filter_z.apply(z_in_new);
 
 	accel_report->scaling = _accel_range_scale;
-	accel_report->range_m_s2 = _accel_range_g * 9.80665f;
+	accel_report->range_m_s2 = _accel_range_m_s2;
 
 	/* post a report to the ring - note, not locked */
 	INCREMENT(_next_accel_report, _num_accel_reports);
