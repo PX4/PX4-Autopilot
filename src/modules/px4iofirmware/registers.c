@@ -158,7 +158,8 @@ volatile uint16_t	r_page_setup[] =
 #define PX4IO_P_SETUP_ARMING_VALID	(PX4IO_P_SETUP_ARMING_FMU_ARMED | \
 					 PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK | \
 					 PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK | \
-					 PX4IO_P_SETUP_ARMING_IO_ARM_OK)
+					 PX4IO_P_SETUP_ARMING_IO_ARM_OK | \
+					 PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << PX4IO_SERVO_COUNT) - 1)
 #define PX4IO_P_SETUP_RELAYS_VALID	((1 << PX4IO_RELAY_CHANNELS) - 1)
 
@@ -335,6 +336,10 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
 			}
 
+			if (value & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) {
+				r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
+			}
+
 			r_setup_arming = value;
 
 			break;
@@ -426,6 +431,9 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_RC_CONFIG_OPTIONS:
 			value &= PX4IO_P_RC_CONFIG_OPTIONS_VALID;
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_INIT_OK;
+
+			/* clear any existing RC disabled flag */
+			r_setup_arming &= ~(PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED);
 
 			/* set all options except the enabled option */
 			conf[index] = value & ~PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;

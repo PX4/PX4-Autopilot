@@ -132,7 +132,8 @@ mixer_tick(void)
 
 		if ( (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
 		     (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
-		     (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) &&
+		     !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED)) {
 
 		 	/* if allowed, mix from RC inputs directly */
 			source = MIX_OVERRIDE;
