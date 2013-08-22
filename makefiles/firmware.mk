@@ -153,6 +153,7 @@ ifeq ($(BOARD_FILE),)
 $(error Config $(CONFIG) references board $(BOARD), but no board definition file found)
 endif
 export BOARD
+export BOARD_FILE
 include $(BOARD_FILE)
 $(info %  BOARD               = $(BOARD))
 

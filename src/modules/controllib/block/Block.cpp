@@ -43,8 +43,8 @@
 
 #include "Block.hpp"
 #include "BlockParam.hpp"
-#include "UOrbSubscription.hpp"
-#include "UOrbPublication.hpp"
+#include "../uorb/UOrbSubscription.hpp"
+#include "../uorb/UOrbPublication.hpp"
 
 namespace control
 {

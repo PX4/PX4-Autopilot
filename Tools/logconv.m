@@ -16,7 +16,7 @@ close all
 % ************************************************************************
 
 % Set the path to your sysvector.bin file here
-filePath = 'log_second_flight.bin';
+filePath = 'log001.bin';
 
 % Set the minimum and maximum times to plot here [in seconds]
 mintime=0;        %The minimum time/timestamp to display, as set by the user [0 for first element / start]
@@ -111,8 +111,9 @@ function ImportPX4LogData()
         time_us = sysvector.TIME_StartTime(end) - sysvector.TIME_StartTime(1);
         time_s = uint64(time_us*1e-6);
         time_m = uint64(time_s/60);
+        time_s = time_s - time_m * 60;
         
-        disp([sprintf('Flight log duration: %d:%d (minutes:seconds)', time_m, time_s)]);
+        disp([sprintf('Flight log duration: %d:%d (minutes:seconds)', time_m, time_s) char(10)]);
 
         disp(['logfile conversion finished.' char(10)]);
     else

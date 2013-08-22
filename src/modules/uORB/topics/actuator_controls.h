@@ -52,10 +52,19 @@
 #define NUM_ACTUATOR_CONTROLS		8
 #define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
 
+/**
+ * @addtogroup topics
+ * @{
+ */
+
 struct actuator_controls_s {
 	uint64_t timestamp;
 	float	control[NUM_ACTUATOR_CONTROLS];
 };
+
+/**
+ * @}
+ */
 
 /* actuator control sets; this list can be expanded as more controllers emerge */
 ORB_DECLARE(actuator_controls_0);
