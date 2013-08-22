@@ -879,14 +879,9 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 				_tune = nullptr;
 				_next = nullptr;
 			} else {
-				/* don't interrupt alarms unless they are repeated */
-				if (_tune != nullptr && !_repeat) {
-					/* abort and let the current tune finish */ 
-					result = -EBUSY;
-				} else if (_repeat && _default_tune_number == arg) {
-					/* requested repeating tune already playing */
-				} else {
-					// play the selected tune
+				/* always interrupt alarms, unless they are repeating and already playing */
+				if (!(_repeat && _default_tune_number == arg)) {
+					/* play the selected tune */
 					_default_tune_number = arg;
 					start_tune(_default_tunes[arg - 1]);
 				}
