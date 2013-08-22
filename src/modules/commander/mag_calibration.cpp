@@ -53,8 +53,13 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
-void do_mag_calibration(int mavlink_fd)
+int do_mag_calibration(int mavlink_fd)
 {
 	mavlink_log_info(mavlink_fd, "mag calibration starting, hold still");
 
@@ -113,7 +118,7 @@ void do_mag_calibration(int mavlink_fd)
 		warnx("mag cal failed: out of memory");
 		mavlink_log_info(mavlink_fd, "mag cal failed: out of memory");
 		warnx("x:%p y:%p z:%p\n", x, y, z);
-		return;
+		return ERROR;
 	}
 
 	while (hrt_absolute_time() < calibration_deadline &&
@@ -252,6 +257,7 @@ void do_mag_calibration(int mavlink_fd)
 		if (save_ret != 0) {
 			warn("WARNING: auto-save of params to storage failed");
 			mavlink_log_info(mavlink_fd, "FAILED storing calibration");
+			return ERROR;
 		}
 
 		warnx("\tscale: %.6f %.6f %.6f\n         \toffset: %.6f %.6f %.6f\nradius: %.6f GA\n",
@@ -269,12 +275,11 @@ void do_mag_calibration(int mavlink_fd)
 
 		mavlink_log_info(mavlink_fd, "mag calibration done");
 
-		tune_positive();
+		return OK;
 		/* third beep by cal end routine */
 
 	} else {
 		mavlink_log_info(mavlink_fd, "mag calibration FAILED (NaN in sphere fit)");
+		return ERROR;
 	}
-
-	close(sub_mag);
 }

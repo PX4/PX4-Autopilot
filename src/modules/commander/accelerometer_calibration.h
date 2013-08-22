@@ -45,6 +45,6 @@
 
 #include <stdint.h>
 
-void do_accel_calibration(int mavlink_fd);
+int do_accel_calibration(int mavlink_fd);
 
 #endif /* ACCELEROMETER_CALIBRATION_H_ */

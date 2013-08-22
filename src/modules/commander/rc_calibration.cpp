@@ -46,8 +46,13 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
-void do_rc_calibration(int mavlink_fd)
+int do_rc_calibration(int mavlink_fd)
 {
 	mavlink_log_info(mavlink_fd, "trim calibration starting");
 
@@ -75,9 +80,9 @@ void do_rc_calibration(int mavlink_fd)
 
 	if (save_ret != 0) {
 		mavlink_log_critical(mavlink_fd, "TRIM CAL: WARN: auto-save of params failed");
+		return ERROR;
 	}
 
-	tune_positive();
-
 	mavlink_log_info(mavlink_fd, "trim calibration done");
+	return OK;
 }

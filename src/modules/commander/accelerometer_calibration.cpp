@@ -133,7 +133,7 @@ int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samp
 int mat_invert3(float src[3][3], float dst[3][3]);
 int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], float accel_offs[3], float g);
 
-void do_accel_calibration(int mavlink_fd) {
+int do_accel_calibration(int mavlink_fd) {
 	/* announce change */
 	mavlink_log_info(mavlink_fd, "accel calibration started");
 
@@ -176,11 +176,11 @@ void do_accel_calibration(int mavlink_fd) {
 		}
 
 		mavlink_log_info(mavlink_fd, "accel calibration done");
-		tune_positive();
+		return OK;
 	} else {
 		/* measurements error */
 		mavlink_log_info(mavlink_fd, "accel calibration aborted");
-		tune_negative();
+		return ERROR;
 	}
 
 	/* exit accel calibration mode */

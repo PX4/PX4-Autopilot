@@ -502,7 +502,13 @@ int commander_thread_main(int argc, char *argv[])
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 	if (mavlink_fd < 0) {
-		warnx("ERROR: Failed to open MAVLink log stream, start mavlink app first.");
+		/* try again later */
+		usleep(20000);
+		mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
+		if (mavlink_fd < 0) {
+			warnx("ERROR: Failed to open MAVLink log stream again, start mavlink app first.");
+		}
 	}
 
 	/* Main state machine */
@@ -1628,6 +1634,33 @@ check_navigation_state_machine(struct vehicle_status_s *current_status, struct v
 	return res;
 }
 
+void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT result)
+{
+	switch (result) {
+		case VEHICLE_CMD_RESULT_ACCEPTED:
+			tune_positive();
+			break;
+		case VEHICLE_CMD_RESULT_DENIED:
+			mavlink_log_critical(mavlink_fd, "[cmd] command denied: %u", cmd.command);
+			tune_negative();
+			break;
+		case VEHICLE_CMD_RESULT_FAILED:
+			mavlink_log_critical(mavlink_fd, "[cmd] command failed: %u", cmd.command);
+			tune_negative();
+			break;
+		case VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
+			mavlink_log_critical(mavlink_fd, "[cmd] command temporarily rejected: %u", cmd.command);
+			tune_negative();
+			break;
+		case VEHICLE_CMD_RESULT_UNSUPPORTED:
+			mavlink_log_critical(mavlink_fd, "[cmd] command unsupported: %u", cmd.command);
+			tune_negative();
+			break;
+		default:
+			break;
+	}
+}
+
 void *commander_low_prio_loop(void *arg)
 {
 	/* Set thread name */
@@ -1668,125 +1701,110 @@ void *commander_low_prio_loop(void *arg)
 		    cmd.command == VEHICLE_CMD_COMPONENT_ARM_DISARM)
 			continue;
 
-		/* result of the command */
-		uint8_t result = VEHICLE_CMD_RESULT_UNSUPPORTED;
-
 		/* only handle low-priority commands here */
 		switch (cmd.command) {
 
 		case VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
-				if (is_safe(&status, &safety, &armed)) {
+			if (is_safe(&status, &safety, &armed)) {
 
-					if (((int)(cmd.param1)) == 1) {
-						/* reboot */
-						systemreset(false);
-					} else if (((int)(cmd.param1)) == 3) {
-						/* reboot to bootloader */
-						systemreset(true);
-					} else {
-						result = VEHICLE_CMD_RESULT_DENIED;
-					}
-				
+				if (((int)(cmd.param1)) == 1) {
+					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+					usleep(1000000);
+					/* reboot */
+					systemreset(false);
+				} else if (((int)(cmd.param1)) == 3) {
+					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+					usleep(1000000);
+					/* reboot to bootloader */
+					systemreset(true);
 				} else {
-					result = VEHICLE_CMD_RESULT_DENIED;
+					answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 				}
-			break;
+
+			} else {
+				answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
+			}
+		break;
 
 		case VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
 
-				/* try to go to INIT/PREFLIGHT arming state */
+			int calib_ret = ERROR;
 
-				// XXX disable interrupts in arming_state_transition
-				if (TRANSITION_DENIED == arming_state_transition(&status, &safety, ARMING_STATE_INIT, &armed)) {
-					result = VEHICLE_CMD_RESULT_DENIED;
-					break;
-				}
+			/* try to go to INIT/PREFLIGHT arming state */
 
-				if ((int)(cmd.param1) == 1) {
-					/* gyro calibration */
-					do_gyro_calibration(mavlink_fd);
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else if ((int)(cmd.param2) == 1) {
-					/* magnetometer calibration */
-					do_mag_calibration(mavlink_fd);
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else if ((int)(cmd.param3) == 1) {
-					/* zero-altitude pressure calibration */
-					result = VEHICLE_CMD_RESULT_DENIED;
-					
-				} else if ((int)(cmd.param4) == 1) {
-					/* RC calibration */
-					result = VEHICLE_CMD_RESULT_DENIED;
-
-				} else if ((int)(cmd.param5) == 1) {
-					/* accelerometer calibration */
-					do_accel_calibration(mavlink_fd);
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else if ((int)(cmd.param6) == 1) {
-					/* airspeed calibration */
-					do_airspeed_calibration(mavlink_fd);
-					result = VEHICLE_CMD_RESULT_ACCEPTED;
-				}
-
-				arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed);
-
+			// XXX disable interrupts in arming_state_transition
+			if (TRANSITION_DENIED == arming_state_transition(&status, &safety, ARMING_STATE_INIT, &armed)) {
+				answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 				break;
 			}
 
-		case VEHICLE_CMD_PREFLIGHT_STORAGE: {
+			if ((int)(cmd.param1) == 1) {
+				/* gyro calibration */
+				answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+				calib_ret = do_gyro_calibration(mavlink_fd);
 
-				if (((int)(cmd.param1)) == 0) {
-					if (0 == param_load_default()) {
-						mavlink_log_info(mavlink_fd, "[cmd] parameters loaded");
-						result = VEHICLE_CMD_RESULT_ACCEPTED;
+			} else if ((int)(cmd.param2) == 1) {
+				/* magnetometer calibration */
+				answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+				calib_ret = do_mag_calibration(mavlink_fd);
 
-					} else {
-						mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
-						tune_error();
-						result = VEHICLE_CMD_RESULT_FAILED;
-					}
+			} else if ((int)(cmd.param3) == 1) {
+				/* zero-altitude pressure calibration */
+				answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 
-				} else if (((int)(cmd.param1)) == 1) {
-					if (0 == param_save_default()) {
-						mavlink_log_info(mavlink_fd, "[cmd] parameters saved");
-						result = VEHICLE_CMD_RESULT_ACCEPTED;
+			} else if ((int)(cmd.param4) == 1) {
+				/* RC calibration */
+				answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
 
-					} else {
-						mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
-						tune_error();
-						result = VEHICLE_CMD_RESULT_FAILED;
-					}
-				}
+			} else if ((int)(cmd.param5) == 1) {
+				/* accelerometer calibration */
+				answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+				calib_ret = do_accel_calibration(mavlink_fd);
 
-				break;
+			} else if ((int)(cmd.param6) == 1) {
+				/* airspeed calibration */
+				answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
+				calib_ret = do_airspeed_calibration(mavlink_fd);
 			}
 
-		default:
+			if (calib_ret == OK)
+				tune_positive();
+			else
+				tune_negative();
+
+			arming_state_transition(&status, &safety, ARMING_STATE_STANDBY, &armed);
+
 			break;
 		}
 
-		/* supported command handling stop */
-		if (result == VEHICLE_CMD_RESULT_ACCEPTED) {
-			tune_positive();
+		case VEHICLE_CMD_PREFLIGHT_STORAGE: {
 
-		} else {
-			tune_negative();
+			if (((int)(cmd.param1)) == 0) {
+				if (0 == param_load_default()) {
+					mavlink_log_info(mavlink_fd, "[cmd] parameters loaded");
+					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
-			if (result == VEHICLE_CMD_RESULT_DENIED) {
-				mavlink_log_critical(mavlink_fd, "[cmd] command denied: %u", cmd.command);
+				} else {
+					mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
+					answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
+				}
 
-			} else if (result == VEHICLE_CMD_RESULT_FAILED) {
-				mavlink_log_critical(mavlink_fd, "[cmd] command failed: %u", cmd.command);
+			} else if (((int)(cmd.param1)) == 1) {
+				if (0 == param_save_default()) {
+					mavlink_log_info(mavlink_fd, "[cmd] parameters saved");
+					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
-			} else if (result == VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED) {
-				mavlink_log_critical(mavlink_fd, "[cmd] command temporarily rejected: %u", cmd.command);
-
-			} else if (result == VEHICLE_CMD_RESULT_UNSUPPORTED) {
-				mavlink_log_critical(mavlink_fd, "[cmd] command unsupported: %u", cmd.command);
+				} else {
+					mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
+					answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
+				}
 			}
+			break;
+		}
+
+		default:
+			answer_command(cmd, VEHICLE_CMD_RESULT_UNSUPPORTED);
+			break;
 		}
 
 		/* send any requested ACKs */

@@ -41,6 +41,6 @@
 
 #include <stdint.h>
 
-void do_gyro_calibration(int mavlink_fd);
+int do_gyro_calibration(int mavlink_fd);
 
 #endif /* GYRO_CALIBRATION_H_ */

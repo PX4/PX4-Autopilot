@@ -49,7 +49,13 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
-void do_airspeed_calibration(int mavlink_fd)
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
+int do_airspeed_calibration(int mavlink_fd)
 {
 	/* give directions */
 	mavlink_log_info(mavlink_fd, "airspeed calibration starting, keep it still");
@@ -79,7 +85,7 @@ void do_airspeed_calibration(int mavlink_fd)
 		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
 			mavlink_log_info(mavlink_fd, "airspeed calibration aborted");
-			return;
+			return ERROR;
 		}
 	}
 
@@ -89,6 +95,7 @@ void do_airspeed_calibration(int mavlink_fd)
 
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 			mavlink_log_critical(mavlink_fd, "Setting offs failed!");
+			return ERROR;
 		}
 
 		/* auto-save to EEPROM */
@@ -96,6 +103,8 @@ void do_airspeed_calibration(int mavlink_fd)
 
 		if (save_ret != 0) {
 			warn("WARNING: auto-save of params to storage failed");
+			mavlink_log_info(mavlink_fd, "FAILED storing calibration");
+			return ERROR;
 		}
 
 		//char buf[50];
@@ -103,11 +112,10 @@ void do_airspeed_calibration(int mavlink_fd)
 		//mavlink_log_info(mavlink_fd, buf);
 		mavlink_log_info(mavlink_fd, "airspeed calibration done");
 
-		tune_positive();
+		return OK;
 
 	} else {
 		mavlink_log_info(mavlink_fd, "airspeed calibration FAILED (NaN)");
+		return ERROR;
 	}
-
-	close(diff_pres_sub);
 }

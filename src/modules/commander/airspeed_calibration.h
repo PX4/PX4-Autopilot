@@ -41,6 +41,6 @@
 
 #include <stdint.h>
 
-void do_airspeed_calibration(int mavlink_fd);
+int do_airspeed_calibration(int mavlink_fd);
 
 #endif /* AIRSPEED_CALIBRATION_H_ */
