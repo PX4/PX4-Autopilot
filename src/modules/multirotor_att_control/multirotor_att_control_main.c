@@ -81,6 +81,8 @@ __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 static bool thread_should_exit;
 static int mc_task;
 static bool motor_test_mode = false;
+static const float min_takeoff_throttle = 0.3f;
+static const float yaw_deadzone = 0.01f;
 
 static int
 mc_thread_main(int argc, char *argv[])
@@ -147,14 +149,14 @@ mc_thread_main(int argc, char *argv[])
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
 	bool flag_control_attitude_enabled = false;
-
 	bool control_yaw_position = true;
 	bool reset_yaw_sp = true;
+	bool failsafe_first_time = true;
 
 	/* prepare the handle for the failsafe throttle */
 	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
-
+	param_get(failsafe_throttle_handle, &failsafe_throttle);
 
 	while (!thread_should_exit) {
 
@@ -176,7 +178,7 @@ mc_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(parameter_update), param_sub, &update);
 
 				/* update parameters */
-				// XXX no params here yet
+				param_get(failsafe_throttle_handle, &failsafe_throttle);
 			}
 
 			/* only run controller if attitude changed */
@@ -208,6 +210,9 @@ mc_thread_main(int argc, char *argv[])
 				/* get a local copy of the current sensor values */
 				orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
+				/* set flag to safe value */
+				control_yaw_position = true;
+
 				/* define which input is the dominating control input */
 				if (control_mode.flag_control_offboard_enabled) {
 					/* offboard inputs */
@@ -225,47 +230,40 @@ mc_thread_main(int argc, char *argv[])
 						att_sp.yaw_body = offboard_sp.p3;
 						att_sp.thrust = offboard_sp.p4;
 						att_sp.timestamp = hrt_absolute_time();
-						/* STEP 2: publish the result to the vehicle actuators */
+						/* publish the result to the vehicle actuators */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 					}
 
 				} else if (control_mode.flag_control_manual_enabled) {
-					/* direct manual input */
+					/* manual input */
 					if (control_mode.flag_control_attitude_enabled) {
 						/* control attitude, update attitude setpoint depending on mode */
-						/* initialize to current yaw if switching to manual or att control */
-						if (control_mode.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-						    control_mode.flag_control_manual_enabled != flag_control_manual_enabled) {
-							att_sp.yaw_body = att.yaw;
-						}
-
-						static bool rc_loss_first_time = true;
-
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
 						if (control_mode.failsave_highlevel) {
+							failsafe_first_time = false;
+
 							if (!control_mode.flag_control_velocity_enabled) {
-								/* Don't reset attitude setpoint in position control mode, it's handled by position controller. */
+								/* don't reset attitude setpoint in position control mode, it's handled by position controller. */
 								att_sp.roll_body = 0.0f;
 								att_sp.pitch_body = 0.0f;
+							}
 
-								if (!control_mode.flag_control_climb_rate_enabled) {
-									/* Don't touch throttle in modes with altitude hold, it's handled by position controller.
-									 *
-									 * Only go to failsafe throttle if last known throttle was
-									 * high enough to create some lift to make hovering state likely.
-									 *
-									 * This is to prevent that someone landing, but not disarming his
-									 * multicopter (throttle = 0) does not make it jump up in the air
-									 * if shutting down his remote.
-									 */
-									if (isfinite(manual.throttle) && manual.throttle > 0.2f) {	// TODO use landed status instead of throttle
-										/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
-										param_get(failsafe_throttle_handle, &failsafe_throttle);
-										att_sp.thrust = failsafe_throttle;
+							if (!control_mode.flag_control_climb_rate_enabled) {
+								/* don't touch throttle in modes with altitude hold, it's handled by position controller.
+								 *
+								 * Only go to failsafe throttle if last known throttle was
+								 * high enough to create some lift to make hovering state likely.
+								 *
+								 * This is to prevent that someone landing, but not disarming his
+								 * multicopter (throttle = 0) does not make it jump up in the air
+								 * if shutting down his remote.
+								 */
+								if (isfinite(manual.throttle) && manual.throttle > min_takeoff_throttle) {	// TODO use landed status instead of throttle
+									/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
+									att_sp.thrust = failsafe_throttle;
 
-									} else {
-										att_sp.thrust = 0.0f;
-									}
+								} else {
+									att_sp.thrust = 0.0f;
 								}
 							}
 
@@ -273,46 +271,48 @@ mc_thread_main(int argc, char *argv[])
 							 * since if the pilot regains RC control, he will be lost regarding
 							 * the current orientation.
 							 */
-							if (rc_loss_first_time)
-								att_sp.yaw_body = att.yaw;
-
-							rc_loss_first_time = false;
+							if (failsafe_first_time) {
+								reset_yaw_sp = true;
+							}
 
 						} else {
-							rc_loss_first_time = true;
+							failsafe_first_time = true;
 
 							/* control yaw in all manual / assisted modes */
 							/* set yaw if arming or switching to attitude stabilized mode */
-							if (!flag_control_attitude_enabled) {
+							if (!flag_control_manual_enabled || !flag_control_attitude_enabled || !control_mode.flag_armed) {
 								reset_yaw_sp = true;
 							}
 
 							/* only move setpoint if manual input is != 0 */
-							if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {	// TODO use landed status instead of throttle
-								rates_sp.yaw = manual.yaw;
+							// TODO review yaw restpoint reset
+							if ((manual.yaw < -yaw_deadzone || yaw_deadzone < manual.yaw) && manual.throttle > min_takeoff_throttle) {
+								/* control yaw rate */
 								control_yaw_position = false;
-								reset_yaw_sp = true;
+								rates_sp.yaw = manual.yaw;
+								reset_yaw_sp = true;	// has no effect on control, just for beautiful log
 
 							} else {
-								if (reset_yaw_sp) {
-									att_sp.yaw_body = att.yaw;
-									reset_yaw_sp = false;
-								}
 								control_yaw_position = true;
 							}
 
 							if (!control_mode.flag_control_velocity_enabled) {
-								/* don't update attitude setpoint in position control mode */
+								/* update attitude setpoint if not in position control mode */
 								att_sp.roll_body = manual.roll;
 								att_sp.pitch_body = manual.pitch;
 
 								if (!control_mode.flag_control_climb_rate_enabled) {
-									/* don't set throttle in altitude hold modes */
+									/* pass throttle directly if not in altitude control mode */
 									att_sp.thrust = manual.throttle;
 								}
 							}
 
-							att_sp.timestamp = hrt_absolute_time();
+						}
+
+						/* reset yaw setpint to current position if needed */
+						if (reset_yaw_sp) {
+							att_sp.yaw_body = att.yaw;
+							reset_yaw_sp = false;
 						}
 
 						if (motor_test_mode) {
@@ -321,10 +321,11 @@ mc_thread_main(int argc, char *argv[])
 							att_sp.pitch_body = 0.0f;
 							att_sp.yaw_body = 0.0f;
 							att_sp.thrust = 0.1f;
-							att_sp.timestamp = hrt_absolute_time();
 						}
 
-						/* STEP 2: publish the controller output */
+						att_sp.timestamp = hrt_absolute_time();
+
+						/* publish the controller output */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
 					} else {
@@ -367,6 +368,7 @@ mc_thread_main(int argc, char *argv[])
 					rates[1] = att.pitchspeed;
 					rates[2] = att.yawspeed;
 					multirotor_control_rates(&rates_sp, rates, &actuators, reset_integral);
+
 				} else {
 					/* rates controller disabled, set actuators to zero for safety */
 					actuators.control[0] = 0.0f;
@@ -374,6 +376,7 @@ mc_thread_main(int argc, char *argv[])
 					actuators.control[2] = 0.0f;
 					actuators.control[3] = 0.0f;
 				}
+
 				actuators.timestamp = hrt_absolute_time();
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
