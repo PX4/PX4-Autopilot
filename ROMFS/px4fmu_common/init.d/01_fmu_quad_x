@@ -97,11 +97,9 @@ multirotor_att_control start
 # Start logging
 #
 sdlog2 start -r 50 -a -b 14
- 
-#
-# Start system state
-#
-if blinkm start
-then
-	blinkm systemstate
-fi
+
+# Try to get an USB console
+nshterm /dev/ttyACM0 &
+
+# Exit, because /dev/ttyS0 is needed for MAVLink
+exit

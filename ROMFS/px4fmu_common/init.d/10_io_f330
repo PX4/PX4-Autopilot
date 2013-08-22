@@ -2,10 +2,6 @@
 #
 # Flight startup script for PX4FMU+PX4IO on an F330 quad.
 #
- 
-# disable USB and autostart
-set USB no
-set MODE custom
 
 #
 # Start the ORB (first app to start)
@@ -60,33 +56,36 @@ commander start
 #
 if px4io start
 then
+	#
+	# This sets a PWM right after startup (regardless of safety button)
+	#
+	px4io idle 900 900 900 900
+
 	pwm -u 400 -m 0xff
+
+	#
+	# Allow PX4IO to recover from midair restarts.
+	# this is very unlikely, but quite safe and robust.
+	px4io recovery
+
+
+
+	#
+	# The values are for spinning motors when armed using DJI ESCs
+	#
+	px4io min 1200 1200 1200 1200
+
+	#
+	# Upper limits could be higher, this is on the safe side
+	#
+	px4io max 1800 1800 1800 1800
+
+	mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
+
 else
 	# SOS
 	tone_alarm 6
 fi
- 
-#
-# Allow PX4IO to recover from midair restarts.
-# this is very unlikely, but quite safe and robust.
-px4io recovery
-
-#
-# This sets a PWM right after startup (regardless of safety button)
-#
-px4io idle 900 900 900 900
-
-#
-# The values are for spinning motors when armed using DJI ESCs
-#
-px4io min 1200 1200 1200 1200
-
-#
-# Upper limits could be higher, this is on the safe side
-#
-px4io max 1800 1800 1800 1800
-
-mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
  
 #
 # Start the sensors (depends on orb, px4io)

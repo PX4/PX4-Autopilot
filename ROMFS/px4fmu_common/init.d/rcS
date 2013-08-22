@@ -61,7 +61,13 @@ then
 #
 # Start terminal
 #
-sercon
+if sercon
+then
+	echo "USB connected"
+else
+	# second attempt
+	sercon &
+fi
 
 #
 # Start the ORB (first app to start)
@@ -128,45 +134,84 @@ fi
 if param compare SYS_AUTOSTART 1
 then
 	sh /etc/init.d/01_fmu_quad_x
+	set MODE custom
 fi
 
 if param compare SYS_AUTOSTART 2
 then
 	sh /etc/init.d/02_io_quad_x
+	set MODE custom
 fi
 
 if param compare SYS_AUTOSTART 8
 then
 	sh /etc/init.d/08_ardrone
+	set MODE custom
 fi
 
 if param compare SYS_AUTOSTART 9
 then
 	sh /etc/init.d/09_ardrone_flow
+	set MODE custom
 fi
 
 if param compare SYS_AUTOSTART 10
 then
 	sh /etc/init.d/10_io_f330
+	set MODE custom
 fi
 
 if param compare SYS_AUTOSTART 15
 then
 	sh /etc/init.d/15_io_tbs
+	set MODE custom
 fi
 
 if param compare SYS_AUTOSTART 30
 then
 	sh /etc/init.d/30_io_camflyer
+	set MODE custom
 fi
 
 if param compare SYS_AUTOSTART 31
 then
 	sh /etc/init.d/31_io_phantom
+	set MODE custom
 fi
 
 # Try to get an USB console
 nshterm /dev/ttyACM0 &
+
+# If none of the autostart scripts triggered, get a minimal setup
+if [ $MODE == autostart ]
+then
+	# Telemetry port is on both FMU boards ttyS1
+	mavlink start -b 57600 -d /dev/ttyS1
+
+	# Start commander
+	commander start
+
+	# Start px4io if present
+	if px4io start
+	then
+		echo "PX4IO driver started"
+	else
+		if fmu mode_serial
+		then
+			echo "FMU driver started"
+		fi
+	fi
+
+	# Start sensors
+	sh /etc/init.d/rc.sensors
+
+	# Start one of the estimators
+	attitude_estimator_ekf start
+
+	# Start GPS
+	gps start
+
+fi
 
 # End of autostart
 fi

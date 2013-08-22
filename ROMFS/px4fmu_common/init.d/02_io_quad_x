@@ -88,7 +88,7 @@ pwm -u 400 -m 0xff
 multirotor_att_control start
  
 #
-# Start logging
+# Start logging once armed
 #
 sdlog2 start -r 50 -a -b 14
  

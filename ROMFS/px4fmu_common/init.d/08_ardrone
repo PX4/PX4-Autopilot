@@ -2,12 +2,6 @@
 #
 # Flight startup script for PX4FMU on PX4IOAR carrier board.
 #
-
-# Disable the USB interface
-set USB no
-
-# Disable autostarting other apps
-set MODE ardrone
  
 echo "[init] doing PX4IOAR startup..."
  
@@ -70,25 +64,14 @@ multirotor_att_control start
 ardrone_interface start -d /dev/ttyS1
 
 #
-# Start logging
+# Start logging once armed
 #
-sdlog start -s 10
+sdlog2 start -r 50 -a -b 14
 
 #
 # Start GPS capture
 #
 gps start
-
-#
-# Start system state
-#
-if blinkm start
-then
-	echo "using BlinkM for state indication"
-	blinkm systemstate
-else
-	echo "no BlinkM found, OK."
-fi
  
 #
 # startup is done; we don't want the shell because we
@@ -96,4 +79,8 @@ fi
 #
 echo "[init] startup done"
 
+# Try to get an USB console
+nshterm /dev/ttyACM0 &
+
+# Exit, because /dev/ttyS0 is needed for MAVLink
 exit
