@@ -129,7 +129,23 @@ do_gyro(int argc, char *argv[])
 				ioctl(fd, GYROIOCSRANGE, i);
 			}
 
-		} else if (!(argc > 0 && !strcmp(argv[0], "info"))) {
+		} else if (argc > 0) {
+
+			if(!strcmp(argv[0], "check")) {
+				int ret = ioctl(fd, GYROIOCSELFTEST, 0);
+
+				if (ret) {
+					warnx("gyro self test FAILED! Check calibration:");
+					struct gyro_scale scale;
+					ret = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&scale);
+					warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_offset, scale.y_offset, scale.z_offset);
+					warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_scale, scale.y_scale, scale.z_scale);
+				} else {
+					warnx("gyro calibration and self test OK");
+				}
+			}
+
+		} else {
 			warnx("no arguments given. Try: \n\n\t'sampling 500' to set sampling to 500 Hz\n\t'rate 500' to set publication rate to 500 Hz\n\t'range 2000' to set measurement range to 2000 dps\n\t");
 		}
 
@@ -148,6 +164,45 @@ do_gyro(int argc, char *argv[])
 static void
 do_mag(int argc, char *argv[])
 {
+	int fd;
+
+	fd = open(MAG_DEVICE_PATH, 0);
+
+	if (fd < 0) {
+		warn("%s", MAG_DEVICE_PATH);
+		errx(1, "FATAL: no magnetometer found");
+
+	} else {
+
+		if (argc > 0) {
+
+			if (!strcmp(argv[0], "check")) {
+				int ret = ioctl(fd, MAGIOCSELFTEST, 0);
+
+				if (ret) {
+					warnx("mag self test FAILED! Check calibration.");
+					struct mag_scale scale;
+					ret = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&scale);
+					warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_offset, scale.y_offset, scale.z_offset);
+					warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_scale, scale.y_scale, scale.z_scale);
+				} else {
+					warnx("mag calibration and self test OK");
+				}
+			}
+
+		} else {
+			warnx("no arguments given. Try: \n\n\t'check' or 'info'\n\t");
+		}
+
+		int srate = -1;//ioctl(fd, MAGIOCGSAMPLERATE, 0);
+		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
+		int range = -1;//ioctl(fd, MAGIOCGRANGE, 0);
+
+		warnx("mag: \n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d gauss", srate, prate, range);
+
+		close(fd);
+	}
+
 	exit(0);
 }
 
@@ -183,7 +238,23 @@ do_accel(int argc, char *argv[])
 				/* set the range to i dps */
 				ioctl(fd, ACCELIOCSRANGE, i);
 			}
-		} else if (!(argc > 0 && !strcmp(argv[0], "info"))) {
+		} else if (argc > 0) {
+
+			if (!strcmp(argv[0], "check")) {
+				int ret = ioctl(fd, ACCELIOCSELFTEST, 0);
+
+				if (ret) {
+					warnx("accel self test FAILED! Check calibration.");
+					struct accel_scale scale;
+					ret = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&scale);
+					warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_offset, scale.y_offset, scale.z_offset);
+					warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_scale, scale.y_scale, scale.z_scale);
+				} else {
+					warnx("accel calibration and self test OK");
+				}
+			}
+
+		} else {
 			warnx("no arguments given. Try: \n\n\t'sampling 500' to set sampling to 500 Hz\n\t'rate 500' to set publication rate to 500 Hz\n\t'range 2' to set measurement range to 2 G\n\t");
 		}
 
