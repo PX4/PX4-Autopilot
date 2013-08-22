@@ -45,6 +45,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
+
 //#include <apps/netutils/base64.h>
 
 #include <systemlib/systemlib.h>
@@ -193,7 +194,7 @@ write_whole_file_to_sd(char * filename, char * publickeydata, int datalen){
 
   FILE *fp;
 
- warnx("writing file: '%s' to SD done.",filename);
+ warnx("\t writing file: '%s' to SD done.",filename);
  
  // static const char *format_string ="%s";
 
@@ -305,16 +306,20 @@ usage(const char *reason)
 	errx(1, 
 		"usage:\n"
 		"auth [-x] [-p] [-d] [-w] [-k] [-v] [-l] \n"
-		"  -x     Read Private Key from /mnt/microsd/privatekey.txt and display it\n"
-		"  -p     Read Public Key from  /mnt/microsd/publickey.txt and display it\n"
+		"  -x     Read Private Key ( usually from /mnt/microsd/privatekey.txt ) and display it\n"
+		"  -p     Read Public Key ( usually from /mnt/microsd/publickey.txt ) and display it\n"
+		"  -m     make a public key file on SD card at /mnt/microsd/publickey.txt from the private key and display it ( assumes also -x -p ) \n"
 		"  -c     make a Certificate-Of-Authenticity with the private key and display it ( assumes also -x ) \n"
 		"  -w     write the Certificate-Of-Authenticity to Flash ( assumes also -x and -c )  \n"
 		"  -k     LOCK the Certificate-Of-Authenticity to ONE-TIME-PROGRAMMABLE Flash PERMANENTLY ( assumes -w -x -c ) \n"
-		"  -v     Verify the Certificate-Of-Authenticity in OTP with the public key, and display results.  ( assumes -p ) \n"
+		"  -v     Verify the Certificate-Of-Authenticity in OTP with just the public key, and display results.  ( assumes -p ) \n"
 		"  -t     test cert-of-auth just generated without OTP ( equivalent to -x -p -c -v ) \n"
 		"  -l     log it.  Append the COA and privatekey info to the SD card at /fs/microsd/OTPCertificates.log \n"
 		"  -h     use Hardcoded Private/Public Keys, no SD card needed\n"
+		"  -d     dump Hardcoded Private/Public Keys onto SD card ( assumes also -x -p -h ) \n"
 		"  -s     use hardcoded serial: '33002E 32314704 34303736'  \n"
+		" CAUTION: AUTH IS STACK/RAM HUNGRY. CAN HANG IF YOU RUN IT MORE THAN ONCE PER BOOT\n"
+		" typical use-case for blank SD card:  ( to put keys on SD card from flash )  'auth -d' , [reboot] , then 'auth -t -l' or 'auth -v -l ' \n"
 		);
 
 }
@@ -325,11 +330,8 @@ int auth_main(int argc, char *argv[])
 
      warnx("AUTH started.\n");
      
-     flash_unlock(); 
-     
-          warnx("AUTH started.2\n");
-
-  
+     F_unlock();
+       
     int ch, err; 
 
 	if (argc < 2)
@@ -346,14 +348,22 @@ int auth_main(int argc, char *argv[])
     bool log = false;
     bool hardcoded = false;
     bool hardcodedserial = false;
+    bool dumptosd = false;
+    bool makepublic = false;
 
-	while ((ch = getopt(argc, argv, "xpcwlvths")) != EOF) {
+	while ((ch = getopt(argc, argv, "xpcwlvthdsm")) != EOF) {
 		switch (ch) {
 		case 'x': // load private 
 		    readprivate = true;
 			break;
 		case 'p': // load public
 		      readpublic = true;
+			break;
+		case 'm': // load public
+		      makepublic = true;
+		      // and 
+		      readpublic = true;
+		      readprivate = true;
 			break;
 		case 'c': // generate cert-of-auth,  assumes -x 
 		      makecert = true;
@@ -386,6 +396,12 @@ int auth_main(int argc, char *argv[])
 		case 'h': //Hardcoded keys
 		      hardcoded = true;
 			break;
+		case 'd': //dump Hardcoded keys to SD
+		      hardcoded = true;
+		      dumptosd = true;
+		      readprivate = true;
+		      readpublic = true;
+			break;
 		case 's': //Hardcoded serial
 		      hardcodedserial = true;
 		      // precaution to avoid bad OTP
@@ -406,13 +422,23 @@ int auth_main(int argc, char *argv[])
 	//disable scheduling, leave interrupt processing untouched 
 	sched_lock();
 
-
 	
 	// read out unique chip ID /
 	const volatile uint32_t* udid_ptr = (const uint32_t*)UDID_START;
 	union udid id;
 	val_read(&id, udid_ptr, sizeof(id));
+	
+	
+	// fetch OTP info: 
+	uint16_t *fsize = ADDR_F_SIZE;
+	warnx("Flash size: %d", (int)*fsize);
+	// get OTP memory 
+	warnx("otp_mem Struct size: %d",sizeof(struct otp)); 
+	struct otp otp_mem;
+	const volatile uint32_t* otp_ptr = ADDR_OTP_START;
+	val_read(&otp_mem, otp_ptr, sizeof(struct otp));
 
+	
     // raw from OTP.
 	//warnx("Unique serial # [%08X %08X %08X] size: %d", id.serial[0], id.serial[1], id.serial[2], sizeof(id));
 	
@@ -426,7 +452,6 @@ int auth_main(int argc, char *argv[])
 	serialid[0] = id.data[3]; 	serialid[1] = id.data[2];	serialid[2] = id.data[1];	serialid[3] = id.data[0];
 	serialid[4] = id.data[7]; 	serialid[5] = id.data[6];	serialid[6] = id.data[5];	serialid[7] = id.data[4];
 	serialid[8] = id.data[11]; 	serialid[9] = id.data[10];	serialid[10] = id.data[9];	serialid[11] = id.data[8];
-
 
  
     // allow to override the serial number 	
@@ -457,12 +482,16 @@ int auth_main(int argc, char *argv[])
 
  
     // tell the user; 
-    warnx("Unique serial # [%s]\n", serial); 
+    warnx("Unique serial # [%s]", serial); 
 
-       
+    // tell them the key OTP stuff too...
+    warnx("OTP DATA:- id: %s (%02X-%02X-%02X-%02X) vid:%04X pid:%04X \n", otp_mem.id, \
+    otp_mem.id[0],otp_mem.id[1],otp_mem.id[2],otp_mem.id[3], otp_mem.vid, otp_mem.pid); //4 char/bytes
+
+
+    // setup RSA support code   
     rsa_key private_key;
-    rsa_key public_key;
-    
+    rsa_key public_key;    
     prng_state prng;
    
             // / register the yarrow RNG /
@@ -495,6 +524,7 @@ int auth_main(int argc, char *argv[])
     // this is important, don't forget it. 
     ltc_mp = tfm_desc;
     
+    
     // private key
     // note that tabs, backslash and tabs and newlines should be ignored by this particular impl. 
     
@@ -516,7 +546,9 @@ XgqaCcexpzq1mBlzf51LAkEAjaYN/u8C10f93s+hvdqS3BS8PtxlycAHtDXSMoiO\n\
 tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
         load_key( &private_key, privkeydata) ;
         warnx("HARDCODED PRIVATE KEY LOADED: \n%s\n",privkeydata);
-        write_whole_file_to_sd("/fs/microsd/privatekey.txt",privkeydata,strlen(privkeydata) );  // convenient way to get it on SD.          
+        if ( dumptosd ) { 
+            write_whole_file_to_sd("/fs/microsd/privatekey.txt",privkeydata,strlen(privkeydata) );  // convenient way to get it on SD.  
+        }        
     } 
     if ( !hardcoded && readprivate ) {
         // OR read a private key from SD card like this: 
@@ -563,16 +595,33 @@ tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
     // SAMPLE method on how to "test" any given COA agains any given Serial, such as these two: 
    // OK, which cert do we verify.., the one we just generated, or the one from OTP? 
      if ( ! testCOA ) { 
+       
+       // superceeded, but worth leaving in the code:
+       if ( false ) { 
         warnx("TODO: reading from OTP is not yet impl. Faking it with cached COA data from SD card... \n");
+         // read from SD instead of OTP, to fake it, run 'auth -c' to create the files before using them.  
+         outlen = read_key_from_sd("/fs/microsd/COA.b64", &out);    
+         certlen = read_key_from_sd("/fs/microsd/COA.bin", &cert);   
+        warnx("SD FAKED CERT-OF-AUTHENTICITY for serial?: %s rawsize: %d  humanlen: %d , humanreadable:%s\n", serial, certlen, outlen, out);
+       } 
+       
+       // OTP data as binary COA data
+       certlen = sizeof(otp_mem.signature); // 128bytes
+       memcpy(cert,otp_mem.signature,certlen);
+      // human readable too: 
+       outlen = 1024; // maxlen
+       base64_encode(cert, certlen, &out, &outlen);
  
-      // read from SD instead of OTP, to fake it, run 'auth -c' to create the files before using them.  
-      outlen = read_key_from_sd("/fs/microsd/COA.b64", &out);    
-      certlen = read_key_from_sd("/fs/microsd/COA.bin", &cert);   
-      //if ( hardcodedserial ) {   
-      //  read_key_from_sd("/fs/microsd/COA.sid", &serialid);  // binary   
-      //  read_key_from_sd("/fs/microsd/COA.ser", &serial);    // ascii readable
-      //}
-        warnx("SD CERT-OF-AUTHENTICITY for serial?: %s rawsize: %d  humanlen: %d , humanreadable:%s\n", serial, certlen, outlen, out);
+        warnx("OTP CERT-OF-AUTHENTICITY for serial?: %s rawsize: %d  humanlen: %d , humanreadable:%s\n", serial, certlen, outlen, out);
+        
+        // you can verbosely display the binary version as Hex to the user like thi too, if you want…. 
+        if ( false ) { 
+        	printf("OTP SIGNATURE: ");
+        	// here we are actually just printing the .signature element from OTP, leaving out the .id .vid .pid, etc. ( see otp.h ) 
+        	for (int i = 0; i < sizeof(otp_mem.signature) ; i++)
+        		printf("%02X.", otp_mem.signature[i]);
+        	printf("\n");
+        }
         
       // then we continue on below to read the public key, and report back on the verification.... 
 
@@ -593,8 +642,10 @@ tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
  
      // need public key to do the "verify" ... THREE ways to get it:  
       char pubkeydata[255] = "";
-      if ( 0 ) { 
-        // TODO make this test for the presence of the publickey.txt, and if not there, make it.  :-) 
+      
+      // optional way of using the private key to make the public key, works, but not typiucally needed if you make your keys externally. 
+      if ( makepublic ) { 
+        // TODO make this test for the presence of the publickey.txt, and only if not there, make it?  :-) 
           // this way to start with, we use the private key ( loaded above) to make the public key, and put it on the SD card in a file.
           make_public_key_from_private(&private_key, &pubkeydata); 
           load_key( &public_key, pubkeydata ); 
@@ -607,7 +658,9 @@ fKkXFD+h7WDXJ5uAkljQBL46l5nLdEewNGA8uidXOqXRzphl2Wt7Jw5Eu4krZcWRQ5\n\
 JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
        load_key( &public_key, pubkeydata);
        warnx("HARDCODED PUBLIC KEY LOADED: \n%s\n",pubkeydata);
-       write_whole_file_to_sd("/fs/microsd/publickey.txt",pubkeydata,strlen(pubkeydata) );  // convenient way to get it on SD. 
+       if ( dumptosd ) { 
+            write_whole_file_to_sd("/fs/microsd/publickey.txt",pubkeydata,strlen(pubkeydata) );  // convenient way to get it on SD. 
+       }
      }
      if ( !hardcoded && readpublic ) {
      // OR you can read the public key from the SD card, if it exists there too: 
@@ -638,22 +691,6 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
 
     }
 
-    // fetch OTP info: 
-  
-	uint16_t *fsize = ADDR_FLASH_SIZE;
-
-	warnx("Flash size: %d", (int)*fsize);
-
-	// get OTP memory /
-	warnx("otp_mem Struct size: %d",sizeof(struct otp)); 
-	struct otp otp_mem;
-	const volatile uint32_t* otp_ptr = ADDR_OTP_START;
-	val_read(&otp_mem, otp_ptr, sizeof(struct otp));
-
-	// ID string //
-	otp_mem.id[3] = '\0';
-	
-	warnx("ID: %s CERT: %s", otp_mem.id ,otp_mem.signature);
 
 	// get OTP lock //
 	struct otp_lock otp_lock_mem;
@@ -662,7 +699,7 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
 
 	printf("OTP LOCK STATUS: ");
 	for (int i = 0; i < sizeof(otp_lock_mem) / sizeof(otp_lock_mem.lock_bytes[0]); i++)
-		printf("%0X", otp_lock_mem.lock_bytes[i]);
+		printf("%0X ", otp_lock_mem.lock_bytes[i]);
 	printf("\n");
 
 
@@ -672,18 +709,15 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
     // WRITE THE DATA TO THE OTP
     //TODO 
     if ( writecert ) { 
-        warnx("-w writecert not impl yet\n");
         
 		warnx("Writing (but not locking) OTP");
 		// write OTP /
 		uint8_t id_type = 0;
 		uint32_t vid = 0x26AC;
 		uint32_t pid = 0x10;
-		char* signature = 0;
-		char* public_key = 0;
-
+		
 		write_otp(id_type, vid, pid, cert); // cert is 128 binary bytes.   
-        
+       
     }
     
     // LOCK THE OTP
@@ -691,11 +725,11 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
     if ( lockcert ) { 
         warnx("-l lockcert not impl yet\n");
 		warnx("Locking OTP, no further write operations are permitted");
-		lock_otp();
+		//lock_otp();
     } 
     
  	
-
+    F_lock();
 
 	sched_unlock();
 }
