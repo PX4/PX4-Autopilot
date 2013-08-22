@@ -1898,13 +1898,15 @@ start(int argc, char *argv[])
 	}
 
 	/* disable RC handling on request */
-	if (argc > 0 && !strcmp(argv[0], "norc")) {
+	if (argc > 1) {
+		if (!strcmp(argv[1], "norc")) {
 
-		if(g_dev->disable_rc_handling())
-			warnx("Failed disabling RC handling");
+			if(g_dev->disable_rc_handling())
+				warnx("Failed disabling RC handling");
 
-	} else {
-		warnx("unknown argument: %s", argv[0]);
+		} else {
+			warnx("unknown argument: %s", argv[1]);
+		}
 	}
 
 	int dsm_vcc_ctl;
