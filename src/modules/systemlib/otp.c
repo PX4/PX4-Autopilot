@@ -50,32 +50,8 @@
 #include "conversions.h"
 #include "otp.h"
 #include "err.h"   // warnx 
+#include <assert.h>
 
-
-int flash_unlock(void)
-{
-	/* unlock the control register */
-	volatile uint32_t *keyr = (volatile uint32_t *)0x40023c04;
-	*keyr = 0x45670123U;
-	*keyr = 0xcdef89abU;
-
-	volatile uint32_t *cr = (volatile uint32_t *)0x40023c10;
-
-	/* check the control register */
-	if (*cr & 0x80000000) {
-		warnx("WARNING: flash unlock failed, flash aborted");
-		return 1;
-	}
-
-	return 0;
-}
-
-int flash_lock(void)
-{
-	volatile uint32_t *cr = (volatile uint32_t *)0x40023c10;
-	/* re-lock the flash control register */
-	*cr = 0x80000000;
-}
 
 int val_read(void* dest, volatile const void* src, int bytes)
 {
@@ -87,78 +63,123 @@ int val_read(void* dest, volatile const void* src, int bytes)
 	return i*4;
 }
 
-int val_write(volatile void* dest, const void* src, int bytes)
-{
-	flash_unlock();
-
-	int i;
-	
-
-	volatile uint32_t *sr = (volatile uint32_t *)0x40023c0c;
-	volatile uint32_t *cr = (volatile uint32_t *)0x40023c10;
-
-
-	volatile uint32_t *d = (volatile uint32_t *)dest;
-	volatile uint32_t *s = (volatile uint32_t *)src;
-
-	for (i = 0; i < bytes / 4; i++) {
-		/* program a byte */
-		*cr = 1;
-		
-		warnx("%016x",s[i]);
-
-		d[i] = s[i];
-
-		/* wait for the operation to complete */
-		while (*sr & 0x1000) {
-		}
-
-		if (*sr & 0xf2) {
-			warnx("WARNING: program error 0x%02x after %d bytes", *sr, i*4);
-			goto flash_end;
-		}
-	}
-
-
-flash_end:
-	flash_lock();
-
-	return i*4;
-}
 
 int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char* signature)
 {
-	struct otp otp_mem;
-	memset(&otp_mem, 0, sizeof(otp_mem));
-
-	/* fill struct */
-	otp_mem.id[0] = 'P';
-	otp_mem.id[1] = 'X';
-	otp_mem.id[2] = '4';
-	otp_mem.id[3] = '\0';
 	
-	memcpy(otp_mem.signature,signature,128); 
-	
-	warnx("write_otp: %s  / %s ",signature, otp_mem.signature); 
+	warnx("write_otp: PX4 / %02X / %02X / %02X  / ... etc  \n",id_type, vid, pid); 
 
-	volatile uint32_t* otp_ptr = ADDR_OTP_START;
-	val_write(otp_ptr, &otp_mem, sizeof(struct otp));
+        // descriptor
+        F_write_byte( ADDR_OTP_START, 'P'); //  write the 'P' from PX4. to first byte in OTP 
+        F_write_byte( ADDR_OTP_START+1, 'X'); //  write the 'P' from PX4. to first byte in OTP 
+        F_write_byte( ADDR_OTP_START+2, '4'); 
+        F_write_byte( ADDR_OTP_START+3, '\0'); 
+        //id_type
+        F_write_byte( ADDR_OTP_START+4, id_type); 
+        // vid and pid are 4 bytes each
+        F_write_word( ADDR_OTP_START+5, vid); 
+        F_write_word( ADDR_OTP_START+9, pid); 
+        // leave some 19 bytes of space, and go to the next block...
+        // then the auth sig starts 
+        for ( int i = 0 ; i < 128 ; i++ ) {
+            F_write_byte( ADDR_OTP_START+32+i, signature[i]); 
+        }
+
+        
 }
 
 int lock_otp(void)
 {
-	/* determine the required locking size - can only write full lock bytes */
-	int size = sizeof(struct otp) / 32;
-
-	struct otp_lock otp_lock_mem;
-
-	memset(&otp_lock_mem, OTP_LOCK_UNLOCKED, sizeof(otp_lock_mem));
-	for (int i = 0; i < sizeof(otp_lock_mem) / sizeof(otp_lock_mem.lock_bytes[0]); i++)
-		otp_lock_mem.lock_bytes[i] = OTP_LOCK_LOCKED;
-
-	/* XXX add the actual call here to write the OTP_LOCK bytes only at final stage */
-	// val_copy(lock_ptr, &otp_lock_mem, sizeof(otp_lock_mem));
+//	//determine the required locking size - can only write full lock bytes */
+//	int size = sizeof(struct otp) / 32;
+//
+//	struct otp_lock otp_lock_mem;
+//
+//	memset(&otp_lock_mem, OTP_LOCK_UNLOCKED, sizeof(otp_lock_mem));
+//	for (int i = 0; i < sizeof(otp_lock_mem) / sizeof(otp_lock_mem.lock_bytes[0]); i++)
+//		otp_lock_mem.lock_bytes[i] = OTP_LOCK_LOCKED;
+//
+//	//XXX add the actual call here to write the OTP_LOCK bytes only at final stage 
+//	// val_copy(lock_ptr, &otp_lock_mem, sizeof(otp_lock_mem));
 }
+
+
+
+// COMPLETE, BUSY, or other flash error?  
+uint8_t F_GetStatus(void) { 
+    uint8_t fs = F_COMPLETE; 
+    if((FLASH->status & F_BSY) == F_BSY) { fs = F_BUSY; } else { 
+        if((FLASH->status & F_WRPERR) != (uint32_t)0x00) { fs = F_ERROR_WRP; } else { 
+            if((FLASH->status & (uint32_t)0xEF) != (uint32_t)0x00) { fs = F_ERROR_PROGRAM; } else { 
+                if((FLASH->status & F_OPERR) != (uint32_t)0x00) { fs = F_ERROR_OPERATION; } else { 
+                    fs = F_COMPLETE; } } } }  
+                    return fs; 
+} 
+
+
+// enable FLASH Registers 
+void F_unlock(void)
+{
+  if((FLASH->control & F_CR_LOCK) != 0)
+  {
+    FLASH->key = F_KEY1;
+    FLASH->key = F_KEY2;
+  }  
+}
+
+//  lock the FLASH Registers 
+void F_lock(void)
+{
+  FLASH->control |= F_CR_LOCK;
+}
+
+// flash write word. 
+uint8_t F_write_word(uint32_t Address, uint32_t Data)
+{
+    unsigned char octet[4] = {0,0,0,0};  
+    for (int i=0; i<4; i++)
+    {
+       octet[i] = ( Data >> (i*8) ) & 0xFF;
+       F_write_byte(Address+i,octet[i]);
+    }
+     
+ }
+
+// flash write byte
+uint8_t F_write_byte(uint32_t Address, uint8_t Data)
+{
+  volatile uint8_t status = F_COMPLETE;
+  
+  //warnx("F_write_byte: %08X %02d", Address , Data ) ;
+
+  //Check the parameters 
+  assert(IS_F_ADDRESS(Address));
+
+       //Wait for FLASH operation to complete by polling on BUSY flag.
+      status = F_GetStatus();
+      while(status == F_BUSY){ status = F_GetStatus();}
+  
+  if(status == F_COMPLETE)
+  {
+    //if the previous operation is completed, proceed to program the new data 
+    FLASH->control &= CR_PSIZE_MASK;
+    FLASH->control |= F_PSIZE_BYTE;
+    FLASH->control |= F_CR_PG;
+  
+    *(volatile uint8_t*)Address = Data;
+
+       //Wait for FLASH operation to complete by polling on BUSY flag.
+      status = F_GetStatus();
+      while(status == F_BUSY){ status = F_GetStatus();}
+
+    //if the program operation is completed, disable the PG Bit 
+    FLASH->control &= (~F_CR_PG);
+  } 
+
+  //Return the Program Status 
+  return status;
+}
+
 
 
  

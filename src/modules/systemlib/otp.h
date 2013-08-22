@@ -48,16 +48,58 @@
 
  __BEGIN_DECLS
  
-
-/* RM page 75 OTP. Size is 528 bytes total (512 bytes data and 16 bytes locking) */
 #define ADDR_OTP_START			0x1FFF7800
 #define ADDR_OTP_LOCK_START		0x1FFF7A00
 
+/* RM page 75 OTP. Size is 528 bytes total (512 bytes data and 16 bytes locking) */
+/* 
 #define OTP_LEN				512
 #define OTP_LOCK_LEN			16
 
 #define OTP_LOCK_LOCKED			0x00
 #define OTP_LOCK_UNLOCKED		0xFF
+
+*/
+
+
+#include <unistd.h>
+#include <stdio.h>
+ 
+// possible flash statuses   
+#define F_BUSY 1
+#define F_ERROR_WRP 2
+#define F_ERROR_PROGRAM 3
+#define F_ERROR_OPERATION 4
+#define F_COMPLETE 5
+
+typedef struct
+{
+  volatile uint32_t accesscontrol;      // 0x00 
+  volatile uint32_t key;     //  0x04 
+  volatile uint32_t optionkey;  //  0x08 
+  volatile uint32_t status;       // 0x0C 
+  volatile uint32_t control;       // 0x10 
+  volatile uint32_t optioncontrol;    //0x14 
+} flash_registers;
+
+#define PERIPH_BASE           ((uint32_t)0x40000000) //Peripheral base address
+#define AHB1PERIPH_BASE       (PERIPH_BASE + 0x00020000)
+#define F_R_BASE          (AHB1PERIPH_BASE + 0x3C00)
+#define FLASH               ((flash_registers *) F_R_BASE)
+
+#define F_BSY ((uint32_t)0x00010000) //FLASH Busy flag bit
+#define F_OPERR ((uint32_t)0x00000002) //FLASH operation Error flag bit
+#define F_WRPERR ((uint32_t)0x00000010) //FLASH Write protected error flag bit
+#define CR_PSIZE_MASK ((uint32_t)0xFFFFFCFF)
+#define F_PSIZE_WORD ((uint32_t)0x00000200)
+#define F_PSIZE_BYTE ((uint32_t)0x00000000)
+#define F_CR_PG ((uint32_t)0x00000001) // a bit in the F_CR register
+#define F_CR_LOCK ((uint32_t)0x80000000) // also another bit.
+
+#define F_KEY1 ((uint32_t)0x45670123)
+#define F_KEY2 ((uint32_t)0xCDEF89AB)
+#define IS_F_ADDRESS(ADDRESS) ((((ADDRESS) >= 0x08000000) && ((ADDRESS) < 0x080FFFFF)) || (((ADDRESS) >= 0x1FFF7800) && ((ADDRESS) < 0x1FFF7A0F)))
+
 
 
  #pragma pack(push, 1)
@@ -76,7 +118,7 @@
 		uint8_t		id_type;	///1 byte < 0 for USB VID, 1 for generic VID
 		uint32_t	vid;        ///4 bytes
 		uint32_t	pid;        ///4 bytes
-		char        unused[19];  ///3 bytes 
+		char        unused[19];  ///19 bytes 
 		// Cert-of-Auth is next 4 blocks ie 1-4  ( where zero is first block ) 	
 		char        signature[128];
         // insert extras here 
@@ -89,7 +131,7 @@
 #pragma pack(pop)
 
 #define UDID_START		0x1FFF7A10
-#define ADDR_FLASH_SIZE		0x1FFF7A22
+#define ADDR_F_SIZE		0x1FFF7A22
 
 #pragma pack(push, 1)
 		union udid {
@@ -104,13 +146,16 @@
   */
  //__EXPORT float calc_indicated_airspeed(float differential_pressure);
  
- __EXPORT int flash_unlock(void);
- __EXPORT int flash_lock(void);
+ __EXPORT void F_unlock(void);
+ __EXPORT void F_lock(void);
  __EXPORT int val_read(void* dest, volatile const void* src, int bytes);
  __EXPORT int val_write(volatile void* dest, const void* src, int bytes);
  __EXPORT int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char* signature);
  __EXPORT int lock_otp(void);
-
+ 
+ 
+ __EXPORT uint8_t F_write_byte(uint32_t Address, uint8_t Data);
+ __EXPORT uint8_t F_write_word(uint32_t Address, uint32_t Data);
       
 __END_DECLS
 
