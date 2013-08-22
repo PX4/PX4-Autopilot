@@ -610,7 +610,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.v_xy_valid) {
 				global_pos.vx = local_pos.vx;
 				global_pos.vy = local_pos.vy;
-				global_pos.hdg = atan2f(local_pos.vy, local_pos.vx);
+				global_pos.hdg = atan2f(local_pos.vy, local_pos.vx);	// TODO is it correct?
 			}
 
 			if (local_pos.z_valid) {

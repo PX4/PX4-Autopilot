@@ -825,9 +825,9 @@ int commander_thread_main(int argc, char *argv[])
 				status.condition_landed = local_position.landed;
 				status_changed = true;
 				if (status.condition_landed) {
-					mavlink_log_info(mavlink_fd, "[cmd] LANDED");
+					mavlink_log_critical(mavlink_fd, "[cmd] LANDED");
 				} else {
-					mavlink_log_info(mavlink_fd, "[cmd] IN AIR");
+					mavlink_log_critical(mavlink_fd, "[cmd] IN AIR");
 				}
 			}
 		}
