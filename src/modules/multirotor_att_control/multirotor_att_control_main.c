@@ -144,10 +144,6 @@ mc_thread_main(int argc, char *argv[])
 	/* welcome user */
 	warnx("starting");
 
-	/* store last control mode to detect mode switches */
-	bool flag_control_manual_enabled = false;
-	bool flag_control_attitude_enabled = false;
-
 	bool control_yaw_position = true;
 	bool reset_yaw_sp = true;
 
@@ -232,12 +228,6 @@ mc_thread_main(int argc, char *argv[])
 				} else if (control_mode.flag_control_manual_enabled) {
 					/* direct manual input */
 					if (control_mode.flag_control_attitude_enabled) {
-						/* control attitude, update attitude setpoint depending on mode */
-						/* initialize to current yaw if switching to manual or att control */
-						if (control_mode.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-						    control_mode.flag_control_manual_enabled != flag_control_manual_enabled) {
-							att_sp.yaw_body = att.yaw;
-						}
 
 						static bool rc_loss_first_time = true;
 
@@ -283,12 +273,12 @@ mc_thread_main(int argc, char *argv[])
 
 							/* control yaw in all manual / assisted modes */
 							/* set yaw if arming or switching to attitude stabilized mode */
-							if (!flag_control_attitude_enabled) {
+							if (!control_mode.flag_armed) {
 								reset_yaw_sp = true;
 							}
 
 							/* only move setpoint if manual input is != 0 */
-							if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {	// TODO use landed status instead of throttle
+							if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.1f) {	// TODO use landed status instead of throttle
 								rates_sp.yaw = manual.yaw;
 								control_yaw_position = false;
 								reset_yaw_sp = true;
@@ -376,10 +366,6 @@ mc_thread_main(int argc, char *argv[])
 				}
 				actuators.timestamp = hrt_absolute_time();
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
-
-				/* update state */
-				flag_control_attitude_enabled = control_mode.flag_control_attitude_enabled;
-				flag_control_manual_enabled = control_mode.flag_control_manual_enabled;
 
 				perf_end(mc_loop_perf);
 			} /* end of poll call for attitude updates */
