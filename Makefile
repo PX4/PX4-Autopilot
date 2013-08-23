@@ -122,6 +122,19 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
 		$(FIRMWARE_GOAL)
 
 #
+# Make FMU firmwares depend on pre-packaged IO binaries.
+#
+# This is a pretty vile hack, since it hard-codes knowledge of the FMU->IO dependency
+# and forces the _default config in all cases. There has to be a better way to do this...
+#
+FMU_VERSION		 = $(patsubst px4fmu-%,%,$(word 1, $(subst _, ,$(1))))
+define FMU_DEP
+$(BUILD_DIR)$(1).build/firmware.px4: $(IMAGE_DIR)px4io-$(call FMU_VERSION,$(1))_default.px4
+endef
+FMU_CONFIGS		:= $(filter px4fmu%,$(CONFIGS))
+$(foreach config,$(FMU_CONFIGS),$(eval $(call FMU_DEP,$(config))))
+
+#
 # Build the NuttX export archives.
 #
 # Note that there are no explicit dependencies extended from these
