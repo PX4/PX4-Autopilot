@@ -67,6 +67,7 @@
 #include <systemlib/err.h>
 #include <systemlib/airspeed.h>
 #include <mavlink/mavlink_log.h>
+#include <commander/px4_custom_mode.h>
 
 __BEGIN_DECLS
 
@@ -188,9 +189,11 @@ handle_message(mavlink_message_t *msg)
 		mavlink_set_mode_t new_mode;
 		mavlink_msg_set_mode_decode(msg, &new_mode);
 
+		union px4_custom_mode custom_mode;
+		custom_mode.data = new_mode.custom_mode;
 		/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 		vcmd.param1 = new_mode.base_mode;
-		vcmd.param2 = new_mode.custom_mode;
+		vcmd.param2 = custom_mode.data_float;
 		vcmd.param3 = 0;
 		vcmd.param4 = 0;
 		vcmd.param5 = 0;
