@@ -3,9 +3,11 @@
 #
 
 #
-# Use the configuration's ROMFS.
+# Use the configuration's ROMFS, copy the px4iov2 firmware into
+# the ROMFS if it's available
 #
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
+ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v2_default.bin
 
 #
 # Board support modules
