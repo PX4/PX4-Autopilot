@@ -322,7 +322,8 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	switch (cmd->command) {
 	case VEHICLE_CMD_DO_SET_MODE: {
 			uint8_t base_mode = (uint8_t) cmd->param1;
-			uint32_t custom_mode = (uint32_t) cmd->param2;
+			union px4_custom_mode custom_mode;
+			custom_mode.data_float = cmd->param2;
 
 			// TODO remove debug code
 			mavlink_log_critical(mavlink_fd, "[cmd] command setmode: %d %d", base_mode, custom_mode);
@@ -355,19 +356,19 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 			if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
 				/* use autopilot-specific mode */
-				if (custom_mode == PX4_CUSTOM_MODE_MANUAL) {
+				if (custom_mode.main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
 					/* MANUAL */
 					main_res = main_state_transition(status, MAIN_STATE_MANUAL);
 
-				} else if (custom_mode == PX4_CUSTOM_MODE_SEATBELT) {
+				} else if (custom_mode.main_mode == PX4_CUSTOM_MAIN_MODE_SEATBELT) {
 					/* SEATBELT */
 					main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
 
-				} else if (custom_mode == PX4_CUSTOM_MODE_EASY) {
+				} else if (custom_mode.main_mode == PX4_CUSTOM_MAIN_MODE_EASY) {
 					/* EASY */
 					main_res = main_state_transition(status, MAIN_STATE_EASY);
 
-				} else if (custom_mode == PX4_CUSTOM_MODE_AUTO) {
+				} else if (custom_mode.main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					main_res = main_state_transition(status, MAIN_STATE_AUTO);
 				}
@@ -1588,43 +1589,46 @@ check_navigation_state_machine(struct vehicle_status_s *current_status, struct v
 		break;
 
 	case MAIN_STATE_AUTO:
-		if (current_status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-			/* don't act while taking off */
-			res = TRANSITION_NOT_CHANGED;
-
-		} else {
-			if (current_status->condition_landed) {
-				/* if landed: transitions only to AUTO_READY are allowed */
-				res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_READY, control_mode);
-				// TRANSITION_DENIED is not possible here
-				break;
+		if (current_status->arming_state == ARMING_STATE_ARMED || current_status->arming_state == ARMING_STATE_ARMED_ERROR) {
+			if (current_status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
+				/* don't act while taking off */
+				res = TRANSITION_NOT_CHANGED;
 
 			} else {
-				/* if not landed: */
-				if (current_status->rc_signal_found_once && !current_status->rc_signal_lost) {
-					/* act depending on switches when manual control enabled */
-					if (current_status->return_switch == RETURN_SWITCH_RETURN) {
-						/* RTL */
-						res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_RTL, control_mode);
-
-					} else {
-						if (current_status->mission_switch == MISSION_SWITCH_MISSION) {
-							/* MISSION */
-							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
-
-						} else {
-							/* LOITER */
-							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
-						}
-					}
+				if (current_status->condition_landed) {
+					/* if landed: transitions only to AUTO_READY are allowed */
+					res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_READY, control_mode);
+					// TRANSITION_DENIED is not possible here
+					break;
 
 				} else {
-					/* always switch to loiter in air when no RC control */
-					res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+					/* if not landed: */
+					if (current_status->rc_signal_found_once && !current_status->rc_signal_lost) {
+						/* act depending on switches when manual control enabled */
+						if (current_status->return_switch == RETURN_SWITCH_RETURN) {
+							/* RTL */
+							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_RTL, control_mode);
+
+						} else {
+							if (current_status->mission_switch == MISSION_SWITCH_MISSION) {
+								/* MISSION */
+								res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
+
+							} else {
+								/* LOITER */
+								res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+							}
+						}
+
+					} else {
+						/* always switch to loiter in air when no RC control */
+						res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+					}
 				}
 			}
+		} else {
+			res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_READY, control_mode);
 		}
-
 		break;
 
 	default:
