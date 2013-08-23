@@ -1182,6 +1182,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	pthread_mutex_destroy(&logbuffer_mutex);
 	pthread_cond_destroy(&logbuffer_cond);
 
+	free(lb.data);
+
 	warnx("exiting.");
 
 	thread_running = false;
