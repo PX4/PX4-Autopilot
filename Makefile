@@ -114,8 +114,8 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
 	@$(ECHO) %%%%
 	@$(ECHO) %%%% Building $(config) in $(work_dir)
 	@$(ECHO) %%%%
-	$(Q) mkdir -p $(work_dir)
-	$(Q) make -r -C $(work_dir) \
+	$(Q) $(MKDIR) -p $(work_dir)
+	$(Q) $(MAKE) -r -C $(work_dir) \
 		-f $(PX4_MK_DIR)firmware.mk \
 		CONFIG=$(config) \
 		WORK_DIR=$(work_dir) \
@@ -147,12 +147,12 @@ $(ARCHIVE_DIR)%.export:	configuration = nsh
 $(NUTTX_ARCHIVES): $(ARCHIVE_DIR)%.export: $(NUTTX_SRC)
 	@$(ECHO) %% Configuring NuttX for $(board)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
-	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(board) .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(board)/$(configuration))
 	@$(ECHO) %% Exporting NuttX for $(board)
-	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) CONFIG_ARCH_BOARD=$(board) export
-	$(Q) mkdir -p $(dir $@)
+	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) CONFIG_ARCH_BOARD=$(board) export
+	$(Q) $(MKDIR) -p $(dir $@)
 	$(Q) $(COPY) $(NUTTX_SRC)nuttx-export.zip $@
 	$(Q) (cd $(NUTTX_SRC)/configs && $(RMDIR) $(board))
 
@@ -168,11 +168,11 @@ BOARD			 = $(BOARDS)
 menuconfig: $(NUTTX_SRC)
 	@$(ECHO) %% Configuring NuttX for $(BOARD)
 	$(Q) (cd $(NUTTX_SRC) && $(RMDIR) nuttx-export)
-	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	$(Q) (cd $(NUTTX_SRC)/configs && $(COPYDIR) $(PX4_BASE)nuttx-configs/$(BOARD) .)
 	$(Q) (cd $(NUTTX_SRC)tools && ./configure.sh $(BOARD)/nsh)
 	@$(ECHO) %% Running menuconfig for $(BOARD)
-	$(Q) make -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) menuconfig
+	$(Q) $(MAKE) -r -j1 -C $(NUTTX_SRC) -r $(MQUIET) menuconfig
 	@$(ECHO) %% Saving configuration file
 	$(Q)$(COPY) $(NUTTX_SRC).config $(PX4_BASE)nuttx-configs/$(BOARD)/nsh/defconfig
 else
@@ -191,7 +191,7 @@ $(NUTTX_SRC):
 # Testing targets
 #
 testbuild:
-	$(Q) (cd $(PX4_BASE) && make distclean && make archives && make -j8)
+	$(Q) (cd $(PX4_BASE) && $(MAKE) distclean && $(MAKE) archives && $(MAKE) -j8)
 
 #
 # Cleanup targets.  'clean' should remove all built products and force
@@ -206,8 +206,8 @@ clean:
 .PHONY:	distclean
 distclean: clean
 	$(Q) $(REMOVE) $(ARCHIVE_DIR)*.export
-	$(Q) make -C $(NUTTX_SRC) -r $(MQUIET) distclean
-	$(Q) (cd $(NUTTX_SRC)/configs && find . -maxdepth 1 -type l -delete)
+	$(Q) $(MAKE) -C $(NUTTX_SRC) -r $(MQUIET) distclean
+	$(Q) (cd $(NUTTX_SRC)/configs && $(FIND) . -maxdepth 1 -type l -delete)
 
 #
 # Print some help text
@@ -229,9 +229,9 @@ help:
 	@$(ECHO) "    A limited set of configs can be built with CONFIGS=<list-of-configs>"
 	@$(ECHO) ""
 	@for config in $(CONFIGS); do \
-		echo "  $$config"; \
-		echo "    Build just the $$config firmware configuration."; \
-		echo ""; \
+		$(ECHO) "  $$config"; \
+		$(ECHO) "    Build just the $$config firmware configuration."; \
+		$(ECHO) ""; \
 	done
 	@$(ECHO) "  clean"
 	@$(ECHO) "    Remove all firmware build pieces."
