@@ -82,6 +82,10 @@ gps start
 # Start the attitude estimator
 #
 attitude_estimator_ekf start
+#
+# Start the position estimator
+#
+position_estimator_inav start
  
 echo "[init] starting PWM output"
 fmu mode_pwm
@@ -92,6 +96,11 @@ pwm -u 400 -m 0xff
 # Start attitude control
 #
 multirotor_att_control start
+
+#
+# Start position control
+#
+multirotor_pos_control start
 
 #
 # Start logging
