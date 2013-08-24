@@ -351,7 +351,7 @@ int auth_main(int argc, char *argv[])
     bool dumptosd = false;
     bool makepublic = false;
 
-	while ((ch = getopt(argc, argv, "xpcwlvthdsm")) != EOF) {
+	while ((ch = getopt(argc, argv, "xpcwlvthdsmk")) != EOF) {
 		switch (ch) {
 		case 'x': // load private 
 		    readprivate = true;
@@ -680,6 +680,8 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
     
     } else { 
        warnx("FAILURE! FAILURE!! FAILURE!!! on Certificate Check for serial: %s\n", serial);
+       writecert = false;
+       lockcert = false;
        return; // don't write OTP or log on errors 
     } 
     } 
@@ -699,7 +701,7 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
 
 	printf("OTP LOCK STATUS: ");
 	for (int i = 0; i < sizeof(otp_lock_mem) / sizeof(otp_lock_mem.lock_bytes[0]); i++)
-		printf("%0X ", otp_lock_mem.lock_bytes[i]);
+		printf("%02X ", otp_lock_mem.lock_bytes[i]);
 	printf("\n");
 
 
@@ -720,16 +722,29 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
        
     }
     
-    // LOCK THE OTP
-    // TODO 
+    // LOCK THE OTP - this is the -k parameter!
     if ( lockcert ) { 
-        warnx("-l lockcert not impl yet\n");
-		warnx("Locking OTP, no further write operations are permitted");
-		//lock_otp();
+ 		warnx("Locking OTP, no further write operations are permitted");
+		lock_otp();
+		
+ 
+ 		warnx("New Lock Status:");
+   			// get OTP lock //
+    	struct otp_lock otp_lock_mem;
+    	const volatile uint32_t* otp_lock_ptr = ADDR_OTP_LOCK_START;
+    	val_read(&otp_lock_mem, otp_lock_ptr, sizeof(struct otp_lock));
+    
+    	printf("OTP LOCK STATUS: ");
+    	for (int i = 0; i < sizeof(otp_lock_mem) / sizeof(otp_lock_mem.lock_bytes[0]); i++)
+    		printf("%02X ", otp_lock_mem.lock_bytes[i]);
+    	printf("\n");
+
+
     } 
     
  	
     F_lock();
 
 	sched_unlock();
+	warnx("ALL DONE!");
 }
