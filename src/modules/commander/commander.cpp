@@ -1017,46 +1017,42 @@ int commander_thread_main(int argc, char *argv[])
 				/* arm/disarm by RC */
 				res = TRANSITION_NOT_CHANGED;
 
-				/* check if left stick is in lower left position and we are in MANUAL or AUTO mode -> disarm
+				/* check if left stick is in lower left position and we are in MANUAL or AUTO_READY mode or (ASSISTED mode and landed) -> disarm
 				 * do it only for rotary wings */
 				if (status.is_rotary_wing &&
 				    (status.arming_state == ARMING_STATE_ARMED || status.arming_state == ARMING_STATE_ARMED_ERROR) &&
-				    (status.main_state == MAIN_STATE_MANUAL || status.navigation_state == NAVIGATION_STATE_AUTO_READY)) {
-					if (sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
-						if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-							/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
-							arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
-							res = arming_state_transition(&status, &safety, new_arming_state, &armed);
-							stick_off_counter = 0;
-
-						} else {
-							stick_off_counter++;
-						}
-
-						stick_on_counter = 0;
+				    (status.main_state == MAIN_STATE_MANUAL || status.navigation_state == NAVIGATION_STATE_AUTO_READY ||
+				    	(status.condition_landed && (
+				   			status.navigation_state == NAVIGATION_STATE_ALTHOLD ||
+			 				status.navigation_state == NAVIGATION_STATE_VECTOR
+			    		))) && sp_man.yaw < -STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+						/* disarm to STANDBY if ARMED or to STANDBY_ERROR if ARMED_ERROR */
+						arming_state_t new_arming_state = (status.arming_state == ARMING_STATE_ARMED ? ARMING_STATE_STANDBY : ARMING_STATE_STANDBY_ERROR);
+						res = arming_state_transition(&status, &safety, new_arming_state, &armed);
+						stick_off_counter = 0;
 
 					} else {
-						stick_off_counter = 0;
+						stick_off_counter++;
 					}
+				} else {
+					stick_off_counter = 0;
 				}
 
-				/* check if left stick is in lower right position and we're in manual mode -> arm */
+				/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
 				if (status.arming_state == ARMING_STATE_STANDBY &&
-				    status.main_state == MAIN_STATE_MANUAL) {
-					if (sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
-						if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-							res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
-							stick_on_counter = 0;
-
-						} else {
-							stick_on_counter++;
-						}
-
-						stick_off_counter = 0;
+				    status.main_state == MAIN_STATE_MANUAL &&
+				    sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
+					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+						res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
+						stick_on_counter = 0;
 
 					} else {
-						stick_on_counter = 0;
+						stick_on_counter++;
 					}
+
+				} else {
+					stick_on_counter = 0;
 				}
 
 				if (res == TRANSITION_CHANGED) {
@@ -1702,7 +1698,8 @@ void *commander_low_prio_loop(void *arg)
 
 		/* ignore commands the high-prio loop handles */
 		if (cmd.command == VEHICLE_CMD_DO_SET_MODE ||
-		    cmd.command == VEHICLE_CMD_COMPONENT_ARM_DISARM)
+		    cmd.command == VEHICLE_CMD_COMPONENT_ARM_DISARM ||
+		    cmd.command == VEHICLE_CMD_NAV_TAKEOFF)
 			continue;
 
 		/* only handle low-priority commands here */
