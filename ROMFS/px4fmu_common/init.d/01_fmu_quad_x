@@ -62,44 +62,21 @@ param set MAV_TYPE 2
 #
 mavlink start -d /dev/ttyS0 -b 57600
 usleep 5000
- 
-#
-# Start the sensors and test them.
-#
-sh /etc/init.d/rc.sensors
- 
-#
-# Start the commander.
-#
-commander start
 
 #
-# Start GPS interface (depends on orb)
+# Start common for all multirotors apps
 #
-gps start
- 
+sh /etc/init.d/rc.multirotor
+
 #
-# Start the attitude estimator
+# Start PWM output
 #
-attitude_estimator_ekf start
- 
-echo "[init] starting PWM output"
 fmu mode_pwm
 mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
 pwm -u 400 -m 0xff
  
-#
-# Start attitude control
-#
-multirotor_att_control start
-
-#
-# Start logging
-#
-sdlog2 start -r 50 -a -b 14
-
 # Try to get an USB console
 nshterm /dev/ttyACM0 &
 
 # Exit, because /dev/ttyS0 is needed for MAVLink
-exit
+#exit

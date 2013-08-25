@@ -1,0 +1,49 @@
+#!nsh
+#
+# Standard everything needed for multirotors except mixer, output and mavlink
+#
+
+#
+# Start the sensors and test them.
+#
+sh /etc/init.d/rc.sensors
+
+#
+# Start the commander.
+#
+commander start
+
+#
+# Start GPS interface (depends on orb)
+#
+gps start
+
+#
+# Start the attitude estimator
+#
+attitude_estimator_ekf start
+ 
+#
+# Start position estimator
+#
+position_estimator_inav start
+
+#
+# Start attitude control
+#
+multirotor_att_control start
+
+#
+# Start position control
+#
+multirotor_pos_control start
+
+#
+# Start logging
+#
+if [ $BOARD == fmuv1 ]
+then
+	sdlog2 start -r 50 -a -b 16
+else
+	sdlog2 start -r 200 -a -b 16
+fi
