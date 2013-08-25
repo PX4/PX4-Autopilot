@@ -84,6 +84,7 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <systemlib/cpuload.h>
+#include <systemlib/rc_check.h>
 
 #include "px4_custom_mode.h"
 #include "commander_helper.h"
@@ -617,6 +618,8 @@ int commander_thread_main(int argc, char *argv[])
 
 	bool updated = false;
 
+	bool rc_calibration_ok = (OK == rc_calibration_check());
+
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
 	memset(&safety, 0, sizeof(safety));
@@ -727,6 +730,9 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_system_id, &(status.system_id));
 				param_get(_param_component_id, &(status.component_id));
 				status_changed = true;
+
+				/* Re-check RC calibration */
+				rc_calibration_ok = (OK == rc_calibration_check());
 			}
 		}
 

@@ -136,6 +136,7 @@ int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], flo
 int do_accel_calibration(int mavlink_fd) {
 	/* announce change */
 	mavlink_log_info(mavlink_fd, "accel calibration started");
+	mavlink_log_info(mavlink_fd, "accel cal progress <0> percent");
 
 	/* measure and calculate offsets & scales */
 	float accel_offs[3];
@@ -211,17 +212,28 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 	}
 
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+
+	unsigned done_count = 0;
+
 	while (true) {
 		bool done = true;
-		char str[80];
+		char str[60];
 		int str_ptr;
 		str_ptr = sprintf(str, "keep vehicle still:");
+		unsigned old_done_count = done_count;
+		done_count = 0;
 		for (int i = 0; i < 6; i++) {
 			if (!data_collected[i]) {
 				str_ptr += sprintf(&(str[str_ptr]), " %s", orientation_strs[i]);
 				done = false;
+			} else {
+				done_count++;
 			}
 		}
+
+		if (old_done_count != done_count)
+			mavlink_log_info(mavlink_fd, "accel cal progress <%u> percent", 17 * done_count);
+
 		if (done)
 			break;
 		mavlink_log_info(mavlink_fd, str);
@@ -236,8 +248,8 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 			continue;
 		}
 
-		sprintf(str, "meas started: %s", orientation_strs[orient]);
-		mavlink_log_info(mavlink_fd, str);
+		// sprintf(str, 
+		mavlink_log_info(mavlink_fd, "accel meas started: %s", orientation_strs[orient]);
 		read_accelerometer_avg(sensor_combined_sub, &(accel_ref[orient][0]), samples_num);
 		str_ptr = sprintf(str, "meas result for %s: [ %.2f %.2f %.2f ]", orientation_strs[orient],
 			(double)accel_ref[orient][0],

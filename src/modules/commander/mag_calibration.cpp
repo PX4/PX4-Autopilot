@@ -100,6 +100,8 @@ int do_mag_calibration(int mavlink_fd)
 
 	close(fd);
 
+	mavlink_log_info(mavlink_fd, "mag cal progress <20> percent");
+
 	/* calibrate offsets */
 
 	// uint64_t calibration_start = hrt_absolute_time();
@@ -135,9 +137,8 @@ int do_mag_calibration(int mavlink_fd)
 
 			axis_index++;
 
-			char buf[50];
-			sprintf(buf, "please rotate around %c", axislabels[axis_index]);
-			mavlink_log_info(mavlink_fd, buf);
+			mavlink_log_info(mavlink_fd, "please rotate in a figure 8 or around %c", axislabels[axis_index]);
+			mavlink_log_info(mavlink_fd, "mag cal progress <%u> percent", 20 + (calibration_maxcount * 50) / calibration_counter);
 			tune_neutral();
 
 			axis_deadline += calibration_interval / 3;
@@ -251,6 +252,8 @@ int do_mag_calibration(int mavlink_fd)
 			warnx("Setting Z mag scale failed!\n");
 		}
 
+		mavlink_log_info(mavlink_fd, "mag cal progress <90> percent");
+
 		/* auto-save to EEPROM */
 		int save_ret = param_save_default();
 
@@ -274,6 +277,7 @@ int do_mag_calibration(int mavlink_fd)
 		mavlink_log_info(mavlink_fd, buf);
 
 		mavlink_log_info(mavlink_fd, "mag calibration done");
+		mavlink_log_info(mavlink_fd, "mag cal progress <100> percent");
 
 		return OK;
 		/* third beep by cal end routine */
