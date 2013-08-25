@@ -1,10 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
- *           Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
+ *   Author: Simon Wilks <sjwilks@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +34,8 @@
 
 /**
  * @file commander_tests.cpp
- * Commander unit tests.
+ * Commander unit tests. Run the tests as follows:
+ *   nsh> commander_tests
  *
  */
 

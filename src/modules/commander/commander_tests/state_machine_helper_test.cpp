@@ -245,4 +245,3 @@ state_machine_helper_test()
 	StateMachineHelperTest* test = new StateMachineHelperTest();
 	test->UnitTest::print_results(test->run_tests());
 }
-

@@ -96,7 +96,6 @@ MODULES		+= modules/sdlog2
 MODULES 	+= modules/unit_test
 MODULES 	+= modules/commander/commander_tests
 
-
 #
 # Library modules
 #
