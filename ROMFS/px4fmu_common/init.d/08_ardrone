@@ -1,31 +1,30 @@
 #!nsh
-#
-# Flight startup script for PX4FMU on PX4IOAR carrier board.
-#
- 
-echo "[init] doing PX4IOAR startup..."
+
+echo "[init] 08_ardrone: PX4FMU on PX4IOAR carrier board"
  
 #
-# Start the ORB
+# Load default params for this platform
 #
-uorb start
- 
-#
-# Load microSD params
-#
-echo "[init] loading microSD params"
-param select /fs/microsd/params
-if [ -f /fs/microsd/params ]
+if param compare SYS_AUTOCONFIG 1
 then
-	param load /fs/microsd/params
+	# Set all params here, then disable autoconfig
+	# TODO
+
+	param set SYS_AUTOCONFIG 0
+	param save /fs/microsd/params
 fi
 
 #
 # Force some key parameters to sane values
-# MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
-#              see https://pixhawk.ethz.ch/mavlink/
+# MAV_TYPE     2 = quadrotor
 #
 param set MAV_TYPE 2
+
+#
+# Start MAVLink
+#
+mavlink start -d /dev/ttyS0 -b 57600
+usleep 5000
 
 #
 # Configure PX4FMU for operation with PX4IOAR
@@ -33,54 +32,14 @@ param set MAV_TYPE 2
 fmu mode_gpio_serial
  
 #
-# Start the sensors.
-#
-sh /etc/init.d/rc.sensors
- 
-#
-# Start MAVLink
-#
-mavlink start -d /dev/ttyS0 -b 57600
-usleep 5000
- 
-#
-# Start the commander.
-#
-commander start
- 
-#
-# Start the attitude estimator
-#
-attitude_estimator_ekf start
- 
-#
-# Fire up the multi rotor attitude controller
-#
-multirotor_att_control start
- 
-#
 # Fire up the AR.Drone interface.
 #
 ardrone_interface start -d /dev/ttyS1
-
-#
-# Start logging once armed
-#
-sdlog2 start -r 50 -a -b 14
-
-#
-# Start GPS capture
-#
-gps start
  
 #
-# startup is done; we don't want the shell because we
-# use the same UART for telemetry
+# Start common for all multirotors apps
 #
-echo "[init] startup done"
-
-# Try to get an USB console
-nshterm /dev/ttyACM0 &
-
+sh /etc/init.d/rc.multirotor
+ 
 # Exit, because /dev/ttyS0 is needed for MAVLink
 exit
