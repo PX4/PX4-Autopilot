@@ -201,7 +201,7 @@ handle_message(mavlink_message_t *msg)
 		custom_mode.data = new_mode.custom_mode;
 		/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 		vcmd.param1 = new_mode.base_mode;
-		vcmd.param2 = custom_mode.data_float;
+		vcmd.param2 = custom_mode.main_mode;
 		vcmd.param3 = 0;
 		vcmd.param4 = 0;
 		vcmd.param5 = 0;

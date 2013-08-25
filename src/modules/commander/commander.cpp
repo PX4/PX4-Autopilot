@@ -323,11 +323,10 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	switch (cmd->command) {
 	case VEHICLE_CMD_DO_SET_MODE: {
 			uint8_t base_mode = (uint8_t) cmd->param1;
-			union px4_custom_mode custom_mode;
-			custom_mode.data_float = cmd->param2;
+			uint8_t custom_main_mode = (uint8_t) cmd->param2;
 
 			// TODO remove debug code
-			mavlink_log_critical(mavlink_fd, "[cmd] command setmode: %d %d", base_mode, custom_mode);
+			mavlink_log_critical(mavlink_fd, "[cmd] command setmode: %d %d", base_mode, custom_main_mode);
 			/* set arming state */
 			transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
@@ -357,19 +356,19 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 
 			if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
 				/* use autopilot-specific mode */
-				if (custom_mode.main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
+				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
 					/* MANUAL */
 					main_res = main_state_transition(status, MAIN_STATE_MANUAL);
 
-				} else if (custom_mode.main_mode == PX4_CUSTOM_MAIN_MODE_SEATBELT) {
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_SEATBELT) {
 					/* SEATBELT */
 					main_res = main_state_transition(status, MAIN_STATE_SEATBELT);
 
-				} else if (custom_mode.main_mode == PX4_CUSTOM_MAIN_MODE_EASY) {
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_EASY) {
 					/* EASY */
 					main_res = main_state_transition(status, MAIN_STATE_EASY);
 
-				} else if (custom_mode.main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
 					/* AUTO */
 					main_res = main_state_transition(status, MAIN_STATE_AUTO);
 				}
