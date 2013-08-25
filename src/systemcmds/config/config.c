@@ -135,7 +135,11 @@ do_gyro(int argc, char *argv[])
 				int ret = ioctl(fd, GYROIOCSELFTEST, 0);
 
 				if (ret) {
-					warnx("gyro self test FAILED! Check calibration.");
+					warnx("gyro self test FAILED! Check calibration:");
+					struct gyro_scale scale;
+					ret = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&scale);
+					warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_offset, scale.y_offset, scale.z_offset);
+					warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_scale, scale.y_scale, scale.z_scale);
 				} else {
 					warnx("gyro calibration and self test OK");
 				}
@@ -177,6 +181,10 @@ do_mag(int argc, char *argv[])
 
 				if (ret) {
 					warnx("mag self test FAILED! Check calibration.");
+					struct mag_scale scale;
+					ret = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&scale);
+					warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_offset, scale.y_offset, scale.z_offset);
+					warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_scale, scale.y_scale, scale.z_scale);
 				} else {
 					warnx("mag calibration and self test OK");
 				}
@@ -237,6 +245,10 @@ do_accel(int argc, char *argv[])
 
 				if (ret) {
 					warnx("accel self test FAILED! Check calibration.");
+					struct accel_scale scale;
+					ret = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&scale);
+					warnx("offsets: X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_offset, scale.y_offset, scale.z_offset);
+					warnx("scale:   X: % 9.6f Y: % 9.6f Z: % 9.6f", scale.x_scale, scale.y_scale, scale.z_scale);
 				} else {
 					warnx("accel calibration and self test OK");
 				}
