@@ -186,6 +186,12 @@ then
 	# Try to get an USB console
 	nshterm /dev/ttyACM0 &
 	
+	# Start any custom extensions that might be missing
+	if [ -f /fs/microsd/etc/rc.local ]
+	then
+		sh /fs/microsd/etc/rc.local
+	fi
+	
 	# If none of the autostart scripts triggered, get a minimal setup
 	if [ $MODE == autostart ]
 	then

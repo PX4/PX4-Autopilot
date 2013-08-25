@@ -73,6 +73,7 @@ export RMDIR		 = rm -rf
 export GENROMFS		 = genromfs
 export TOUCH		 = touch
 export MKDIR		 = mkdir
+export FIND		 = find
 export ECHO		 = echo
 export UNZIP_CMD	 = unzip
 export PYTHON		 = python

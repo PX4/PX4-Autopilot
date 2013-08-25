@@ -305,8 +305,6 @@ private:
 		int board_rotation;
 		int external_mag_rotation;
 
-		int rc_type;
-
 		int rc_map_roll;
 		int rc_map_pitch;
 		int rc_map_yaw;
@@ -342,9 +340,6 @@ private:
 		param_t max[_rc_max_chan_count];
 		param_t rev[_rc_max_chan_count];
 		param_t dz[_rc_max_chan_count];
-		param_t rc_type;
-
-		param_t rc_demix;
 
 		param_t gyro_offset[3];
 		param_t gyro_scale[3];
@@ -566,8 +561,6 @@ Sensors::Sensors() :
 
 	}
 
-	_parameter_handles.rc_type = param_find("RC_TYPE");
-
 	/* mandatory input switched, mapped to channels 1-4 per default */
 	_parameter_handles.rc_map_roll 	= param_find("RC_MAP_ROLL");
 	_parameter_handles.rc_map_pitch = param_find("RC_MAP_PITCH");
@@ -692,11 +685,6 @@ Sensors::parameters_update()
 	if (!rc_valid)
 		warnx("WARNING     WARNING     WARNING\n\nRC CALIBRATION NOT SANE!\n\n");
 
-	/* remote control type */
-	if (param_get(_parameter_handles.rc_type, &(_parameters.rc_type)) != OK) {
-		warnx("Failed getting remote control type");
-	}
-
 	/* channel mapping */
 	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
 		warnx("Failed getting roll chan index");
@@ -738,26 +726,11 @@ Sensors::parameters_update()
 //		warnx("Failed getting offboard control mode sw chan index");
 //	}
 
-	if (param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1)) != OK) {
-		warnx("Failed getting mode aux 1 index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_aux2, &(_parameters.rc_map_aux2)) != OK) {
-		warnx("Failed getting mode aux 2 index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3)) != OK) {
-		warnx("Failed getting mode aux 3 index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4)) != OK) {
-		warnx("Failed getting mode aux 4 index");
-	}
-
-	if (param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5)) != OK) {
-		warnx("Failed getting mode aux 5 index");
-	}
-
+	param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1));
+	param_get(_parameter_handles.rc_map_aux2, &(_parameters.rc_map_aux2));
+	param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3));
+	param_get(_parameter_handles.rc_map_aux4, &(_parameters.rc_map_aux4));
+	param_get(_parameter_handles.rc_map_aux5, &(_parameters.rc_map_aux5));
 	param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll));
 	param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch));
 	param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw));
