@@ -91,6 +91,13 @@ MODULES		+= examples/flow_speed_control
 MODULES		+= modules/sdlog2
 
 #
+# Unit tests
+#
+MODULES 	+= modules/unit_test
+MODULES 	+= modules/commander/commander_tests
+
+
+#
 # Library modules
 #
 MODULES		+= modules/systemlib
