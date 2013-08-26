@@ -9,6 +9,11 @@
 sh /etc/init.d/rc.sensors
 
 #
+# Start logging (depends on sensors)
+#
+sh /etc/init.d/rc.logging
+
+#
 # Start the commander.
 #
 commander start

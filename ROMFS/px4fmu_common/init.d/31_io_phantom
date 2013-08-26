@@ -44,6 +44,11 @@ commander start
 # Start the sensors
 #
 sh /etc/init.d/rc.sensors
+
+#
+# Start logging (depends on sensors)
+#
+sh /etc/init.d/rc.logging
  
 #
 # Start GPS interface
@@ -59,4 +64,4 @@ kalman_demo start
 # Load mixer and start controllers (depends on px4io)
 #
 mixer load /dev/pwm_output /etc/mixers/FMU_Q.mix
-control_demo start
+fw_att_control start

@@ -1,6 +1,6 @@
 #!nsh
 
-cho "[init] 30_io_camflyer: PX4FMU+PX4IO on Camflyer"
+echo "[init] 30_io_camflyer: PX4FMU+PX4IO on Camflyer"
 
 #
 # Load default params for this platform
@@ -49,6 +49,11 @@ px4io limit 100
 # Start the sensors (depends on orb, px4io)
 #
 sh /etc/init.d/rc.sensors
+
+#
+# Start logging (depends on sensors)
+#
+sh /etc/init.d/rc.logging
  
 #
 # Start GPS interface (depends on orb)
@@ -64,4 +69,4 @@ kalman_demo start
 # Load mixer and start controllers (depends on px4io)
 #
 mixer load /dev/pwm_output /etc/mixers/FMU_Q.mix
-control_demo start
+fw_att_control start
