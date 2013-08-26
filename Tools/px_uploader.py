@@ -154,11 +154,12 @@ class uploader(object):
         PROG_MULTI      = chr(0x27)
         READ_MULTI      = chr(0x28)     # rev2 only
         GET_CRC         = chr(0x29)     # rev3+
+        GET_OTP         = chr(0x2a)     #rev4+
         REBOOT          = chr(0x30)
         
         INFO_BL_REV     = chr(1)        # bootloader protocol revision
         BL_REV_MIN      = 2             # minimum supported bootloader protocol 
-        BL_REV_MAX      = 3             # maximum supported bootloader protocol 
+        BL_REV_MAX      = 4             # maximum supported bootloader protocol 
         INFO_BOARD_ID   = chr(2)        # board type
         INFO_BOARD_REV  = chr(3)        # board revision
         INFO_FLASH_SIZE = chr(4)        # max firmware size in bytes
@@ -169,20 +170,21 @@ class uploader(object):
         def __init__(self, portname, baudrate):
                 # open the port, keep the default timeout short so we can poll quickly
                 self.port = serial.Serial(portname, baudrate, timeout=0.5)
+                self.otp = ''
 
         def close(self):
                 if self.port is not None:
                         self.port.close()
 
         def __send(self, c):
-#               print("send " + binascii.hexlify(c))
+#                print("send " + binascii.hexlify(c))
                 self.port.write(str(c))
 
         def __recv(self, count=1):
                 c = self.port.read(count)
                 if len(c) < 1:
                         raise RuntimeError("timeout waiting for data")
-#               print("recv " + binascii.hexlify(c))
+#                print("recv " + binascii.hexlify(c))
                 return c
 
         def __recv_int(self):
@@ -230,7 +232,16 @@ class uploader(object):
                 value = self.__recv_int()
                 self.__getSync()
                 return value
-
+                
+        # send the GET_OTP command and wait for an info parameter
+        def __getOTP(self, param):
+                t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array. 
+#                print "otp: sending %d" % param
+                self.__send(uploader.GET_OTP + t + uploader.EOC)
+                value = self.__recv(4)
+                self.__getSync()
+                return value
+                
         # send the CHIP_ERASE command and wait for the bootloader to become ready
         def __erase(self):
                 self.__send(uploader.CHIP_ERASE
@@ -327,6 +338,8 @@ class uploader(object):
                 self.board_rev = self.__getInfo(uploader.INFO_BOARD_REV)
                 self.fw_maxsize = self.__getInfo(uploader.INFO_FLASH_SIZE)
 
+                    
+
         # upload the firmware
         def upload(self, fw):
                 # Make sure we are doing the right thing
@@ -335,6 +348,34 @@ class uploader(object):
                 if self.fw_maxsize < fw.property('image_size'):
                         raise RuntimeError("Firmware image is too large for this board")
 
+                print("OTP(first 5 blocks)")
+                for byte in range(0,32*5,4):
+                    x = self.__getOTP(byte)
+                    self.otp  = self.otp + x
+                    print(" " + binascii.hexlify(x)),
+                print
+                #according to src/modules/systemlib/otp.h in px4 code:  
+                # first block is: 
+                #char		id[4];		///4 bytes < 'P' 'X' '4' '\n'
+		        #uint8_t	id_type;    ///1 byte < 0 for USB VID, 1 for generic VID
+		        #uint32_t	vid;        ///4 bytes
+		        #uint32_t	pid;        ///4 bytes
+		        #char        unused[19];  ///19 bytes 
+		        # next 4 blocks are: "Certificate Of Authenticity" aka "signature".
+            	#char        signature[128];
+                self.otp_id = self.otp[0:4]
+                self.otp_idtype = self.otp[4:5]
+                self.otp_vid = self.otp[8:4:-1]
+                self.otp_pid = self.otp[12:8:-1]
+                self.otp_coa = self.otp[32:160]
+                
+                print("type:" + self.otp_id);
+                print("idtype:" +binascii.b2a_qp(self.otp_idtype));
+                print("vid:" + binascii.hexlify(self.otp_vid));
+                print("pid:"+ binascii.hexlify(self.otp_pid));
+                #print(self.otp_coa);
+                #print(binascii.b2a_base64(self.otp))
+ 
                 print("erase...")
                 self.__erase()
 
