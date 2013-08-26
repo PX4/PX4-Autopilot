@@ -154,7 +154,8 @@ class uploader(object):
         PROG_MULTI      = chr(0x27)
         READ_MULTI      = chr(0x28)     # rev2 only
         GET_CRC         = chr(0x29)     # rev3+
-        GET_OTP         = chr(0x2a)     #rev4+
+        GET_OTP         = chr(0x2a)     #rev4+  , get a word from OTP area
+        GET_SN          = chr(0x2b)     #rev4+  , get a word from SN area
         REBOOT          = chr(0x30)
         
         INFO_BL_REV     = chr(1)        # bootloader protocol revision
@@ -171,6 +172,7 @@ class uploader(object):
                 # open the port, keep the default timeout short so we can poll quickly
                 self.port = serial.Serial(portname, baudrate, timeout=0.5)
                 self.otp = ''
+                self.sn = ''
 
         def close(self):
                 if self.port is not None:
@@ -238,6 +240,14 @@ class uploader(object):
                 t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array. 
 #                print "otp: sending %d" % param
                 self.__send(uploader.GET_OTP + t + uploader.EOC)
+                value = self.__recv(4)
+                self.__getSync()
+                return value
+        # send the GET_OTP command and wait for an info parameter
+        def __getSN(self, param):
+                t = struct.pack("I", param) # int param as 32bit ( 4 byte ) char array. 
+#                print "otp: sending %d" % param
+                self.__send(uploader.GET_SN + t + uploader.EOC)
                 value = self.__recv(4)
                 self.__getSync()
                 return value
@@ -348,12 +358,12 @@ class uploader(object):
                 if self.fw_maxsize < fw.property('image_size'):
                         raise RuntimeError("Firmware image is too large for this board")
 
-                print("OTP(first 5 blocks)")
+                #print("OTP(first 5 blocks)")
                 for byte in range(0,32*5,4):
                     x = self.__getOTP(byte)
                     self.otp  = self.otp + x
-                    print(" " + binascii.hexlify(x)),
-                print
+                #    print(" " + binascii.hexlify(x)),
+                #print
                 #according to src/modules/systemlib/otp.h in px4 code:  
                 # first block is: 
                 #char		id[4];		///4 bytes < 'P' 'X' '4' '\n'
@@ -368,13 +378,22 @@ class uploader(object):
                 self.otp_vid = self.otp[8:4:-1]
                 self.otp_pid = self.otp[12:8:-1]
                 self.otp_coa = self.otp[32:160]
+                # show user:
+                print("type:" + self.otp_id)
+                print("idtype:" +binascii.b2a_qp(self.otp_idtype))
+                print("vid:" + binascii.hexlify(self.otp_vid))
+                print("pid:"+ binascii.hexlify(self.otp_pid))
+                #print("coa as hex:"+ binascii.hexlify(self.otp_coa))
+                print("coa:"+ binascii.b2a_base64(self.otp_coa)),
+
+                print("sn:"),
+                for byte in range(0,12,4):
+                    x = self.__getSN(byte)
+                    x = x[::-1]  # reverse the bytes
+                    self.sn  = self.sn + x
+                    print(binascii.hexlify(x)), # show user
+                print
                 
-                print("type:" + self.otp_id);
-                print("idtype:" +binascii.b2a_qp(self.otp_idtype));
-                print("vid:" + binascii.hexlify(self.otp_vid));
-                print("pid:"+ binascii.hexlify(self.otp_pid));
-                #print(self.otp_coa);
-                #print(binascii.b2a_base64(self.otp))
  
                 print("erase...")
                 self.__erase()
