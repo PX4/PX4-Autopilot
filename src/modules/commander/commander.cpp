@@ -1592,43 +1592,41 @@ check_navigation_state_machine(struct vehicle_status_s *current_status, struct v
 	case MAIN_STATE_AUTO:
 		if (current_status->arming_state == ARMING_STATE_ARMED || current_status->arming_state == ARMING_STATE_ARMED_ERROR) {
 			if (current_status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-				/* check if takeoff completed */
-				if (local_pos->z < -5.0f && !status.condition_landed) {
-					res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
-				} else {
+				/* don't switch to other states until takeoff not completed */
+				if (local_pos->z > -5.0f || status.condition_landed) {
 					res = TRANSITION_NOT_CHANGED;
+					break;
 				}
+			}
+			/* check again, state can be changed */
+			if (current_status->condition_landed) {
+				/* if landed: transitions only to AUTO_READY are allowed */
+				res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_READY, control_mode);
+				// TRANSITION_DENIED is not possible here
+				break;
 
 			} else {
-				if (current_status->condition_landed) {
-					/* if landed: transitions only to AUTO_READY are allowed */
-					res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_READY, control_mode);
-					// TRANSITION_DENIED is not possible here
-					break;
-
-				} else {
-					/* if not landed: */
-					if (current_status->rc_signal_found_once && !current_status->rc_signal_lost) {
-						/* act depending on switches when manual control enabled */
-						if (current_status->return_switch == RETURN_SWITCH_RETURN) {
-							/* RTL */
-							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_RTL, control_mode);
-
-						} else {
-							if (current_status->mission_switch == MISSION_SWITCH_MISSION) {
-								/* MISSION */
-								res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
-
-							} else {
-								/* LOITER */
-								res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
-							}
-						}
+				/* if not landed: */
+				if (current_status->rc_signal_found_once && !current_status->rc_signal_lost) {
+					/* act depending on switches when manual control enabled */
+					if (current_status->return_switch == RETURN_SWITCH_RETURN) {
+						/* RTL */
+						res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_RTL, control_mode);
 
 					} else {
-						/* always switch to loiter in air when no RC control */
-						res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+						if (current_status->mission_switch == MISSION_SWITCH_MISSION) {
+							/* MISSION */
+							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
+
+						} else {
+							/* LOITER */
+							res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+						}
 					}
+
+				} else {
+					/* switch to mission in air when no RC control */
+					res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
 				}
 			}
 		} else {
