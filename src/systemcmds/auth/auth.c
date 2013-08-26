@@ -605,12 +605,14 @@ tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
         warnx("SD FAKED CERT-OF-AUTHENTICITY for serial?: %s rawsize: %d  humanlen: %d , humanreadable:%s\n", serial, certlen, outlen, out);
        } 
        
-       // OTP data as binary COA data
-       certlen = sizeof(otp_mem.signature); // 128bytes
-       memcpy(cert,otp_mem.signature,certlen);
-      // human readable too: 
-       outlen = 1024; // maxlen
-       base64_encode(cert, certlen, &out, &outlen);
+       if ( !makecert ) { 
+        // OTP data as binary COA data
+        certlen = sizeof(otp_mem.signature); // 128bytes
+        memcpy(cert,otp_mem.signature,certlen);
+       // human readable too: 
+        outlen = 1024; // maxlen
+        base64_encode(cert, certlen, &out, &outlen);
+       } 
  
         warnx("OTP CERT-OF-AUTHENTICITY for serial?: %s rawsize: %d  humanlen: %d , humanreadable:%s\n", serial, certlen, outlen, out);
         
