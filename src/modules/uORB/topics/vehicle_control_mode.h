@@ -82,6 +82,8 @@ struct vehicle_control_mode_s
 
 	bool failsave_lowlevel;				/**< Set to true if low-level failsafe mode is enabled */
 	bool failsave_highlevel;			/**< Set to true if high-level failsafe mode is enabled */
+
+	uint8_t auto_state;	// TEMP navigation state for AUTO modes
 };
 
 /**

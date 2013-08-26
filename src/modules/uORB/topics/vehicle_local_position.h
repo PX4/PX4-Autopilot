@@ -67,6 +67,8 @@ struct vehicle_local_position_s
 	float vx; 				/**< Ground X Speed (Latitude), m/s in NED */
 	float vy;				/**< Ground Y Speed (Longitude), m/s in NED */
 	float vz;				/**< Ground Z Speed (Altitude), m/s	in NED */
+	/* Heading */
+	float yaw;
 	/* Reference position in GPS / WGS84 frame */
 	bool global_xy;			/**< true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon) */
 	bool global_z;			/**< true if z is valid and has valid global reference (ref_alt) */

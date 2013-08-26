@@ -103,11 +103,9 @@ then
 			blinkm systemstate
 		fi
 	fi
-	
-	#
-	# Start logging
-	#
-	sh /etc/init.d/rc.logging
+
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
 	
 	#
 	# Check if PX4IO Firmware should be upgraded (from Andrew Tridgell)
@@ -182,9 +180,6 @@ then
 		sh /etc/init.d/31_io_phantom
 		set MODE custom
 	fi
-	
-	# Try to get an USB console
-	nshterm /dev/ttyACM0 &
 	
 	# Start any custom extensions that might be missing
 	if [ -f /fs/microsd/etc/rc.local ]
