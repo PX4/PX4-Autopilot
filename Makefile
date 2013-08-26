@@ -40,14 +40,16 @@ export PX4_BASE		 := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))/
 include $(PX4_BASE)makefiles/setup.mk
 
 #
-# Canned firmware configurations that we build.
+# Canned firmware configurations that we (know how to) build.
 #
-CONFIGS			?= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
+KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
+CONFIGS			?= $(KNOWN_CONFIGS)
 
 #
-# Boards that we build NuttX export kits for.
+# Boards that we (know how to) build NuttX export kits for.
 #
-BOARDS			:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
+KNOWN_BOARDS		:= $(subst board_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)board_*.mk))))
+BOARDS			?= $(KNOWN_BOARDS)
 
 #
 # Debugging
@@ -87,10 +89,11 @@ endif
 #
 # Built products
 #
-STAGED_FIRMWARES	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
-FIRMWARES		 = $(foreach config,$(CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
+DESIRED_FIRMWARES 	 = $(foreach config,$(CONFIGS),$(IMAGE_DIR)$(config).px4)
+STAGED_FIRMWARES	 = $(foreach config,$(KNOWN_CONFIGS),$(IMAGE_DIR)$(config).px4)
+FIRMWARES		 = $(foreach config,$(KNOWN_CONFIGS),$(BUILD_DIR)$(config).build/firmware.px4)
 
-all:			$(STAGED_FIRMWARES)
+all:			$(DESIRED_FIRMWARES)
 
 #
 # Copy FIRMWARES into the image directory.
@@ -122,7 +125,7 @@ $(FIRMWARES): $(BUILD_DIR)%.build/firmware.px4:
 		$(FIRMWARE_GOAL)
 
 #
-# Make FMU firmwares depend on pre-packaged IO binaries.
+# Make FMU firmwares depend on the corresponding IO firmware.
 #
 # This is a pretty vile hack, since it hard-codes knowledge of the FMU->IO dependency
 # and forces the _default config in all cases. There has to be a better way to do this...
