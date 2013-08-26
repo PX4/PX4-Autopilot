@@ -54,6 +54,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -221,11 +222,12 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	bool reset_int_xy = true;
 	bool was_armed = false;
 	bool reset_integral = true;
+	bool reset_auto_pos = true;
 
 	hrt_abstime t_prev = 0;
-	/* integrate in NED frame to estimate wind but not attitude offset */
 	const float alt_ctl_dz = 0.2f;
 	const float pos_ctl_dz = 0.05f;
+	const float takeoff_alt_default = 10.0f;
 	float ref_alt = 0.0f;
 	hrt_abstime ref_alt_t = 0;
 	uint64_t local_ref_timestamp = 0;
@@ -414,50 +416,76 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			} else {
 				/* non-manual mode, use global setpoint */
-				/* init local projection using local position ref */
-				if (local_pos.ref_timestamp != local_ref_timestamp) {
-					global_pos_sp_reproject = true;
-					local_ref_timestamp = local_pos.ref_timestamp;
-					double lat_home = local_pos.ref_lat * 1e-7;
-					double lon_home = local_pos.ref_lon * 1e-7;
-					map_projection_init(lat_home, lon_home);
-					mavlink_log_info(mavlink_fd, "[mpc] local pos ref: %.7f, %.7f", lat_home, lon_home);
-				}
-
-				if (global_pos_sp_reproject) {
-					/* update global setpoint projection */
-					global_pos_sp_reproject = false;
-
-					if (global_pos_sp_valid) {
-						/* global position setpoint valid, use it */
-						double sp_lat = global_pos_sp.lat * 1e-7;
-						double sp_lon = global_pos_sp.lon * 1e-7;
-						/* project global setpoint to local setpoint */
-						map_projection_project(sp_lat, sp_lon, &(local_pos_sp.x), &(local_pos_sp.y));
-
-						if (global_pos_sp.altitude_is_relative) {
-							local_pos_sp.z = -global_pos_sp.altitude;
-
-						} else {
-							local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
-						}
-
-						mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
-
-					} else {
-						if (!local_pos_sp_valid) {
-							/* local position setpoint is invalid,
-							 * use current position as setpoint for loiter */
-							local_pos_sp.x = local_pos.x;
-							local_pos_sp.y = local_pos.y;
-							local_pos_sp.z = local_pos.z;
-						}
-
-						mavlink_log_info(mavlink_fd, "[mpc] no global pos sp, loiter: %.2f, %.2f", local_pos_sp.x, local_pos_sp.y);
+				if (control_mode.auto_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
+					if (reset_auto_pos) {
+						local_pos_sp.x = local_pos.x;
+						local_pos_sp.y = local_pos.y;
+						local_pos_sp.z = -takeoff_alt_default;
+						att_sp.yaw_body = att.yaw;
+						reset_auto_pos = false;
+					}
+				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_LOITER) {
+					if (reset_auto_pos) {
+						local_pos_sp.x = local_pos.x;
+						local_pos_sp.y = local_pos.y;
+						local_pos_sp.z = local_pos.z;
+						att_sp.yaw_body = att.yaw;
+						reset_auto_pos = false;
+					}
+				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_RTL) {
+					// TODO
+					reset_auto_pos = true;
+				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_MISSION) {
+					/* init local projection using local position ref */
+					if (local_pos.ref_timestamp != local_ref_timestamp) {
+						global_pos_sp_reproject = true;
+						local_ref_timestamp = local_pos.ref_timestamp;
+						double lat_home = local_pos.ref_lat * 1e-7;
+						double lon_home = local_pos.ref_lon * 1e-7;
+						map_projection_init(lat_home, lon_home);
+						mavlink_log_info(mavlink_fd, "[mpc] local pos ref: %.7f, %.7f", lat_home, lon_home);
 					}
 
-					/* publish local position setpoint as projection of global position setpoint */
-					orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+					if (global_pos_sp_reproject) {
+						/* update global setpoint projection */
+						global_pos_sp_reproject = false;
+						if (global_pos_sp_valid) {
+							/* global position setpoint valid, use it */
+							double sp_lat = global_pos_sp.lat * 1e-7;
+							double sp_lon = global_pos_sp.lon * 1e-7;
+							/* project global setpoint to local setpoint */
+							map_projection_project(sp_lat, sp_lon, &(local_pos_sp.x), &(local_pos_sp.y));
+
+							if (global_pos_sp.altitude_is_relative) {
+								local_pos_sp.z = -global_pos_sp.altitude;
+
+							} else {
+								local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
+							}
+
+							mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
+
+						} else {
+							if (!local_pos_sp_valid) {
+								/* local position setpoint is invalid,
+								 * use current position as setpoint for loiter */
+								local_pos_sp.x = local_pos.x;
+								local_pos_sp.y = local_pos.y;
+								local_pos_sp.z = local_pos.z;
+							}
+
+							mavlink_log_info(mavlink_fd, "[mpc] no global pos sp, loiter: %.2f, %.2f", local_pos_sp.x, local_pos_sp.y);
+						}
+
+						/* publish local position setpoint as projection of global position setpoint */
+						orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+					}
+					att_sp.yaw_body = global_pos_sp.yaw;
+					reset_auto_pos = true;
+				}
+
+				if (control_mode.auto_state != NAVIGATION_STATE_AUTO_MISSION) {
+					global_pos_sp_reproject = true;
 				}
 
 				/* reset setpoints after non-manual modes */
@@ -575,6 +603,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			reset_int_z = true;
 			reset_int_xy = true;
 			global_pos_sp_reproject = true;
+			reset_auto_pos = true;
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */

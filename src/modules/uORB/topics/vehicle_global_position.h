@@ -72,8 +72,7 @@ struct vehicle_global_position_s
 	float vx; 				/**< Ground X velocity, m/s in NED				 			   */
 	float vy;				/**< Ground Y velocity, m/s in NED							   */
 	float vz;				/**< Ground Z velocity, m/s	in NED 							   */
-	float hdg; 				/**< Compass heading in radians -PI..+PI.					   */
-
+	float yaw; 				/**< Compass heading in radians -PI..+PI.					   */
 };
 
 /**

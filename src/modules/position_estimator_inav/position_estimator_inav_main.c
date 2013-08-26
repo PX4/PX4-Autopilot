@@ -591,6 +591,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.z = z_est[0];
 			local_pos.vz = z_est[1];
 			local_pos.landed = landed;
+			local_pos.yaw = att.yaw;
 
 			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
 
@@ -609,7 +610,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.v_xy_valid) {
 				global_pos.vx = local_pos.vx;
 				global_pos.vy = local_pos.vy;
-				global_pos.hdg = atan2f(local_pos.vy, local_pos.vx);	// TODO is it correct?
 			}
 
 			if (local_pos.z_valid) {
@@ -623,6 +623,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.v_z_valid) {
 				global_pos.vz = local_pos.vz;
 			}
+			global_pos.yaw = local_pos.yaw;
 
 			global_pos.timestamp = t;
 

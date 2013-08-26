@@ -210,7 +210,7 @@ void print_reject_arm(const char *msg);
 
 void print_status();
 
-transition_result_t check_navigation_state_machine(struct vehicle_status_s *current_status, struct vehicle_control_mode_s *control_mode);
+transition_result_t check_navigation_state_machine(struct vehicle_status_s *current_status, struct vehicle_control_mode_s *control_mode, struct vehicle_local_position_s *local_pos);
 
 /**
  * Loop that runs at a lower rate and priority for calibration and parameter tasks.
@@ -1214,7 +1214,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* evaluate the navigation state machine */
-		transition_result_t res = check_navigation_state_machine(&status, &control_mode);
+		transition_result_t res = check_navigation_state_machine(&status, &control_mode, &local_position);
 
 		if (res == TRANSITION_DENIED) {
 			/* DENIED here indicates bug in the commander */
@@ -1572,7 +1572,7 @@ print_reject_arm(const char *msg)
 }
 
 transition_result_t
-check_navigation_state_machine(struct vehicle_status_s *current_status, struct vehicle_control_mode_s *control_mode)
+check_navigation_state_machine(struct vehicle_status_s *current_status, struct vehicle_control_mode_s *control_mode, struct vehicle_local_position_s *local_pos)
 {
 	transition_result_t res = TRANSITION_DENIED;
 
@@ -1592,8 +1592,12 @@ check_navigation_state_machine(struct vehicle_status_s *current_status, struct v
 	case MAIN_STATE_AUTO:
 		if (current_status->arming_state == ARMING_STATE_ARMED || current_status->arming_state == ARMING_STATE_ARMED_ERROR) {
 			if (current_status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-				/* don't act while taking off */
-				res = TRANSITION_NOT_CHANGED;
+				/* check if takeoff completed */
+				if (local_pos->z < -5.0f && !status.condition_landed) {
+					res = navigation_state_transition(current_status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
+				} else {
+					res = TRANSITION_NOT_CHANGED;
+				}
 
 			} else {
 				if (current_status->condition_landed) {

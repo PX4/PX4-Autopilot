@@ -413,6 +413,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 
 		if (ret == TRANSITION_CHANGED) {
 			current_status->navigation_state = new_navigation_state;
+			control_mode->auto_state = current_status->navigation_state;
 			navigation_state_changed = true;
 		}
 	}
