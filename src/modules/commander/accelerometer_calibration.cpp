@@ -217,19 +217,22 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 
 	while (true) {
 		bool done = true;
-		char str[60];
-		int str_ptr;
-		str_ptr = sprintf(str, "keep the vehicle still in one of these axes:");
 		unsigned old_done_count = done_count;
 		done_count = 0;
+
 		for (int i = 0; i < 6; i++) {
 			if (!data_collected[i]) {
-				str_ptr += sprintf(&(str[str_ptr]), " %s", orientation_strs[i]);
 				done = false;
-			} else {
-				done_count++;
 			}
 		}
+
+		mavlink_log_info(mavlink_fd, "directions left: %s%s%s%s%s%s",
+			(!data_collected[0]) ? "x+ " : "",
+			(!data_collected[0]) ? "x- " : "",
+			(!data_collected[0]) ? "y+ " : "",
+			(!data_collected[0]) ? "y- " : "",
+			(!data_collected[0]) ? "z+ " : "",
+			(!data_collected[0]) ? "z- " : "");
 
 		if (old_done_count != done_count)
 			mavlink_log_info(mavlink_fd, "accel cal progress <%u> percent", 17 * done_count);
@@ -242,19 +245,17 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 			return ERROR;
 
 		if (data_collected[orient]) {
-			sprintf(str, "%s done, please rotate to a different axis", orientation_strs[orient]);
-			mavlink_log_info(mavlink_fd, str);
+			mavlink_log_info(mavlink_fd, "%s done, please rotate to a different axis", orientation_strs[orient]);
 			continue;
 		}
 
-		// sprintf(str, 
 		mavlink_log_info(mavlink_fd, "accel measurement started: %s axis", orientation_strs[orient]);
 		read_accelerometer_avg(sensor_combined_sub, &(accel_ref[orient][0]), samples_num);
-		str_ptr = sprintf(str, "result for %s axis: [ %.2f %.2f %.2f ]", orientation_strs[orient],
+		mavlink_log_info(mavlink_fd, "result for %s axis: [ %.2f %.2f %.2f ]", orientation_strs[orient],
 			(double)accel_ref[orient][0],
 			(double)accel_ref[orient][1],
 			(double)accel_ref[orient][2]);
-		mavlink_log_info(mavlink_fd, str);
+
 		data_collected[orient] = true;
 		tune_neutral();
 	}
