@@ -147,8 +147,6 @@ mc_thread_main(int argc, char *argv[])
 	warnx("starting");
 
 	/* store last control mode to detect mode switches */
-	bool flag_control_manual_enabled = false;
-	bool flag_control_attitude_enabled = false;
 	bool control_yaw_position = true;
 	bool reset_yaw_sp = true;
 	bool failsafe_first_time = true;
@@ -213,6 +211,11 @@ mc_thread_main(int argc, char *argv[])
 				/* set flag to safe value */
 				control_yaw_position = true;
 
+				/* reset yaw setpoint if not armed */
+				if (!control_mode.flag_armed) {
+					reset_yaw_sp = true;
+				}
+
 				/* define which input is the dominating control input */
 				if (control_mode.flag_control_offboard_enabled) {
 					/* offboard inputs */
@@ -234,10 +237,12 @@ mc_thread_main(int argc, char *argv[])
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 					}
 
+					/* reset yaw setpoint after offboard control */
+					reset_yaw_sp = true;
+
 				} else if (control_mode.flag_control_manual_enabled) {
 					/* manual input */
 					if (control_mode.flag_control_attitude_enabled) {
-
 						/* control attitude, update attitude setpoint depending on mode */
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
 						if (control_mode.failsave_highlevel) {
@@ -279,17 +284,8 @@ mc_thread_main(int argc, char *argv[])
 						} else {
 							failsafe_first_time = true;
 
-							/* control yaw in all manual / assisted modes */
-							/* set yaw if arming or switching to attitude stabilized mode */
-
-							if (!flag_control_manual_enabled || !flag_control_attitude_enabled || !control_mode.flag_armed) {
-								reset_yaw_sp = true;
-							}
-
-							/* only move setpoint if manual input is != 0 */
-
-							// TODO review yaw restpoint reset
-							if ((manual.yaw < -yaw_deadzone || yaw_deadzone < manual.yaw) && manual.throttle > min_takeoff_throttle) {
+							/* only move yaw setpoint if manual input is != 0 and not landed */
+							if (manual.yaw < -yaw_deadzone || yaw_deadzone < manual.yaw) {
 								/* control yaw rate */
 								control_yaw_position = false;
 								rates_sp.yaw = manual.yaw;
@@ -340,7 +336,14 @@ mc_thread_main(int argc, char *argv[])
 							rates_sp.thrust = manual.throttle;
 							rates_sp.timestamp = hrt_absolute_time();
 						}
+
+						/* reset yaw setpoint after ACRO */
+						reset_yaw_sp = true;
 					}
+
+				} else {
+					/* reset yaw setpoint after non-manual control */
+					reset_yaw_sp = true;
 				}
 
 				/* check if we should we reset integrals */
