@@ -184,7 +184,7 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 	return ret;
 }
 
-bool is_safe(const struct vehicle_status_s *current_state, const struct safety_s *safety, const struct actuator_armed_s *armed)
+bool is_safe(const struct vehicle_status_s *status, const struct safety_s *safety, const struct actuator_armed_s *armed)
 {
 	// System is safe if:
 	// 1) Not armed
@@ -276,12 +276,12 @@ check_main_state_changed()
 }
 
 transition_result_t
-navigation_state_transition(struct vehicle_status_s *current_status, navigation_state_t new_navigation_state, struct vehicle_control_mode_s *control_mode)
+navigation_state_transition(struct vehicle_status_s *status, navigation_state_t new_navigation_state, struct vehicle_control_mode_s *control_mode)
 {
 	transition_result_t ret = TRANSITION_DENIED;
 
 	/* only check transition if the new state is actually different from the current one */
-	if (new_navigation_state == current_status->navigation_state) {
+	if (new_navigation_state == status->navigation_state) {
 		ret = TRANSITION_NOT_CHANGED;
 
 	} else {
@@ -296,6 +296,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_altitude_enabled = false;
 			control_mode->flag_control_climb_rate_enabled = false;
 			control_mode->flag_control_manual_enabled = true;
+			control_mode->flag_control_auto_enabled = false;
 			break;
 
 		case NAVIGATION_STATE_STABILIZE:
@@ -307,6 +308,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_altitude_enabled = false;
 			control_mode->flag_control_climb_rate_enabled = false;
 			control_mode->flag_control_manual_enabled = true;
+			control_mode->flag_control_auto_enabled = false;
 			break;
 
 		case NAVIGATION_STATE_ALTHOLD:
@@ -318,6 +320,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_altitude_enabled = true;
 			control_mode->flag_control_climb_rate_enabled = true;
 			control_mode->flag_control_manual_enabled = true;
+			control_mode->flag_control_auto_enabled = false;
 			break;
 
 		case NAVIGATION_STATE_VECTOR:
@@ -329,6 +332,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_altitude_enabled = true;
 			control_mode->flag_control_climb_rate_enabled = true;
 			control_mode->flag_control_manual_enabled = true;
+			control_mode->flag_control_auto_enabled = false;
 			break;
 
 		case NAVIGATION_STATE_AUTO_READY:
@@ -340,12 +344,13 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_altitude_enabled = false;
 			control_mode->flag_control_climb_rate_enabled = false;
 			control_mode->flag_control_manual_enabled = false;
+			control_mode->flag_control_auto_enabled = true;
 			break;
 
 		case NAVIGATION_STATE_AUTO_TAKEOFF:
 
 			/* only transitions from AUTO_READY */
-			if (current_status->navigation_state == NAVIGATION_STATE_AUTO_READY) {
+			if (status->navigation_state == NAVIGATION_STATE_AUTO_READY) {
 				ret = TRANSITION_CHANGED;
 				control_mode->flag_control_rates_enabled = true;
 				control_mode->flag_control_attitude_enabled = true;
@@ -354,6 +359,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 				control_mode->flag_control_altitude_enabled = true;
 				control_mode->flag_control_climb_rate_enabled = true;
 				control_mode->flag_control_manual_enabled = false;
+				control_mode->flag_control_auto_enabled = true;
 			}
 
 			break;
@@ -367,6 +373,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_altitude_enabled = true;
 			control_mode->flag_control_climb_rate_enabled = true;
 			control_mode->flag_control_manual_enabled = false;
+			control_mode->flag_control_auto_enabled = false;
 			break;
 
 		case NAVIGATION_STATE_AUTO_MISSION:
@@ -378,6 +385,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_altitude_enabled = true;
 			control_mode->flag_control_climb_rate_enabled = true;
 			control_mode->flag_control_manual_enabled = false;
+			control_mode->flag_control_auto_enabled = true;
 			break;
 
 		case NAVIGATION_STATE_AUTO_RTL:
@@ -389,12 +397,13 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 			control_mode->flag_control_altitude_enabled = true;
 			control_mode->flag_control_climb_rate_enabled = true;
 			control_mode->flag_control_manual_enabled = false;
+			control_mode->flag_control_auto_enabled = true;
 			break;
 
 		case NAVIGATION_STATE_AUTO_LAND:
 
 			/* deny transitions from landed state */
-			if (current_status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
+			if (status->navigation_state != NAVIGATION_STATE_AUTO_READY) {
 				ret = TRANSITION_CHANGED;
 				control_mode->flag_control_rates_enabled = true;
 				control_mode->flag_control_attitude_enabled = true;
@@ -403,6 +412,7 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 				control_mode->flag_control_altitude_enabled = true;
 				control_mode->flag_control_climb_rate_enabled = true;
 				control_mode->flag_control_manual_enabled = false;
+				control_mode->flag_control_auto_enabled = true;
 			}
 
 			break;
@@ -412,8 +422,8 @@ navigation_state_transition(struct vehicle_status_s *current_status, navigation_
 		}
 
 		if (ret == TRANSITION_CHANGED) {
-			current_status->navigation_state = new_navigation_state;
-			control_mode->auto_state = current_status->navigation_state;
+			status->navigation_state = new_navigation_state;
+			control_mode->auto_state = status->navigation_state;
 			navigation_state_changed = true;
 		}
 	}
@@ -431,6 +441,12 @@ check_navigation_state_changed()
 	} else {
 		return false;
 	}
+}
+
+void
+set_navigation_state_changed()
+{
+	navigation_state_changed = true;
 }
 
 /**

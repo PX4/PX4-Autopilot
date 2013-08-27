@@ -429,7 +429,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds[6].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
-				if (gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout && gps.eph_m < 5.0f) {
+				if (gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout && gps.eph_m < 4.0f) {
 					/* initialize reference position if needed */
 					if (!ref_xy_inited) {
 						if (ref_xy_init_start == 0) {
