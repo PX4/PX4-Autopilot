@@ -205,19 +205,35 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 
 	/* main state */
 	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+	union px4_custom_mode custom_mode;
+	custom_mode.data = 0;
 	if (v_status.main_state == MAIN_STATE_MANUAL) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
-		*mavlink_custom_mode = PX4_CUSTOM_MODE_MANUAL;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
 	} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
-		*mavlink_custom_mode = PX4_CUSTOM_MODE_SEATBELT;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
 	} else if (v_status.main_state == MAIN_STATE_EASY) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-		*mavlink_custom_mode = PX4_CUSTOM_MODE_EASY;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
 	} else if (v_status.main_state == MAIN_STATE_AUTO) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-		*mavlink_custom_mode = PX4_CUSTOM_MODE_AUTO;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		if (v_status.navigation_state == NAVIGATION_STATE_AUTO_READY) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LOITER) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_RTL) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LAND) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
+		}
 	}
+	*mavlink_custom_mode = custom_mode.data;
 
 	/**
 	 * Set mavlink state

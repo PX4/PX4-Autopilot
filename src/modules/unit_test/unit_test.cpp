@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Author: Simon Wilks <sjwilks@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,18 +33,33 @@
  ****************************************************************************/
 
 /**
- * @file accelerometer_calibration.h
+ * @file unit_test.cpp
+ * A unit test library.
  *
- * Definition of accelerometer calibration.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef ACCELEROMETER_CALIBRATION_H_
-#define ACCELEROMETER_CALIBRATION_H_
+#include "unit_test.h"
 
-#include <stdint.h>
+#include <systemlib/err.h>
 
-int do_accel_calibration(int mavlink_fd);
 
-#endif /* ACCELEROMETER_CALIBRATION_H_ */
+UnitTest::UnitTest()
+{
+}
+
+UnitTest::~UnitTest()
+{
+}
+
+void
+UnitTest::print_results(const char* result)
+{
+	if (result != 0) {
+        	warnx("Failed: %s:%d", mu_last_test(), mu_line());
+        	warnx("%s", result);
+    	} else {
+        	warnx("ALL TESTS PASSED");
+        	warnx("  Tests run : %d", mu_tests_run());
+        	warnx("  Assertion : %d", mu_assertion());
+    	}
+}

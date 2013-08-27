@@ -50,10 +50,15 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
-void do_gyro_calibration(int mavlink_fd)
+int do_gyro_calibration(int mavlink_fd)
 {
-	mavlink_log_info(mavlink_fd, "gyro calibration starting, hold still");
+	mavlink_log_info(mavlink_fd, "Gyro calibration starting, do not move unit.");
 
 	const int calibration_count = 5000;
 
@@ -79,6 +84,8 @@ void do_gyro_calibration(int mavlink_fd)
 
 	close(fd);
 
+	unsigned poll_errcount = 0;
+
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
@@ -88,17 +95,20 @@ void do_gyro_calibration(int mavlink_fd)
 
 		int poll_ret = poll(fds, 1, 1000);
 
-		if (poll_ret) {
+		if (poll_ret > 0) {
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
 			gyro_offset[0] += raw.gyro_rad_s[0];
 			gyro_offset[1] += raw.gyro_rad_s[1];
 			gyro_offset[2] += raw.gyro_rad_s[2];
 			calibration_counter++;
 
-		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "gyro calibration aborted, retry");
-			return;
+		} else {
+			poll_errcount++;
+		}
+
+		if (poll_errcount > 1000) {
+			mavlink_log_info(mavlink_fd, "ERROR: Failed reading gyro sensor");
+			return ERROR;
 		}
 	}
 
@@ -137,18 +147,17 @@ void do_gyro_calibration(int mavlink_fd)
 		if (save_ret != 0) {
 			warnx("WARNING: auto-save of params to storage failed");
 			mavlink_log_critical(mavlink_fd, "gyro store failed");
-			// XXX negative tune
-			return;
+			return ERROR;
 		}
 
 		mavlink_log_info(mavlink_fd, "gyro calibration done");
 
-		tune_positive();
+		tune_neutral();
 		/* third beep by cal end routine */
 
 	} else {
 		mavlink_log_info(mavlink_fd, "offset cal FAILED (NaN)");
-		return;
+		return ERROR;
 	}
 
 
@@ -180,8 +189,7 @@ void do_gyro_calibration(int mavlink_fd)
 			&& (hrt_absolute_time() - start_time > 5 * 1e6)) {
 			mavlink_log_info(mavlink_fd, "gyro scale calibration skipped");
 			mavlink_log_info(mavlink_fd, "gyro calibration done");
-			tune_positive();
-			return;
+			return OK;
 		}
 
 		/* wait blocking for new data */
@@ -221,7 +229,7 @@ void do_gyro_calibration(int mavlink_fd)
 			// operating near the 1e6/1e8 max sane resolution of float.
 			gyro_integral += (raw.gyro_rad_s[2] * dt_ms) / 1e3f;
 
-			warnx("dbg: b: %6.4f, g: %6.4f", baseline_integral, gyro_integral);
+//			warnx("dbg: b: %6.4f, g: %6.4f", (double)baseline_integral, (double)gyro_integral);
 
 		// } else if (poll_ret == 0) {
 		// 	/* any poll failure for 1s is a reason to abort */
@@ -232,8 +240,8 @@ void do_gyro_calibration(int mavlink_fd)
 
 	float gyro_scale = baseline_integral / gyro_integral;
 	float gyro_scales[] = { gyro_scale, gyro_scale, gyro_scale };
-	warnx("gyro scale: yaw (z): %6.4f", gyro_scale);
-	mavlink_log_info(mavlink_fd, "gyro scale: yaw (z): %6.4f", gyro_scale);
+	warnx("gyro scale: yaw (z): %6.4f", (double)gyro_scale);
+	mavlink_log_info(mavlink_fd, "gyro scale: yaw (z): %6.4f", (double)gyro_scale);
 
 
 	if (isfinite(gyro_scales[0]) && isfinite(gyro_scales[1]) && isfinite(gyro_scales[2])) {
@@ -272,12 +280,10 @@ void do_gyro_calibration(int mavlink_fd)
 		// mavlink_log_info(mavlink_fd, buf);
 		mavlink_log_info(mavlink_fd, "gyro calibration done");
 
-		tune_positive();
 		/* third beep by cal end routine */
-
+		return OK;
 	} else {
 		mavlink_log_info(mavlink_fd, "gyro calibration FAILED (NaN)");
+		return ERROR;
 	}
-
-	close(sub_sensor_combined);
 }

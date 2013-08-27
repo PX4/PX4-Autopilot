@@ -6,6 +6,7 @@
 # Use the configuration's ROMFS.
 #
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
+ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v1_default.bin
 
 #
 # Board support modules
@@ -89,6 +90,12 @@ MODULES		+= examples/flow_speed_control
 # Logging
 #
 MODULES		+= modules/sdlog2
+
+#
+# Unit tests
+#
+MODULES 	+= modules/unit_test
+MODULES 	+= modules/commander/commander_tests
 
 #
 # Library modules

@@ -41,6 +41,6 @@
 
 #include <stdint.h>
 
-void do_mag_calibration(int mavlink_fd);
+int do_mag_calibration(int mavlink_fd);
 
 #endif /* MAG_CALIBRATION_H_ */

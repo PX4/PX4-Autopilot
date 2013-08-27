@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Author: Simon Wilks <sjwilks@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,18 +33,23 @@
  ****************************************************************************/
 
 /**
- * @file accelerometer_calibration.h
+ * @file commander_tests.cpp
+ * Commander unit tests. Run the tests as follows:
+ *   nsh> commander_tests
  *
- * Definition of accelerometer calibration.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef ACCELEROMETER_CALIBRATION_H_
-#define ACCELEROMETER_CALIBRATION_H_
+#include <systemlib/err.h>
 
-#include <stdint.h>
+#include "state_machine_helper_test.h"
 
-int do_accel_calibration(int mavlink_fd);
+extern "C" __EXPORT int commander_tests_main(int argc, char *argv[]);
 
-#endif /* ACCELEROMETER_CALIBRATION_H_ */
+
+int commander_tests_main(int argc, char *argv[])
+{
+	state_machine_helper_test();
+	//state_machine_test();
+
+	return 0;
+}

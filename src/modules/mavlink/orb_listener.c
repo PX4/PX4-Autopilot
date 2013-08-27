@@ -341,7 +341,7 @@ l_global_position(const struct listener *l)
 	int16_t vz = (int16_t)(global_pos.vz * 100.0f);
 
 	/* heading in degrees * 10, from 0 to 36.000) */
-	uint16_t hdg = (global_pos.hdg / M_PI_F) * (180.0f * 10.0f) + (180.0f * 10.0f);
+	uint16_t hdg = (global_pos.yaw / M_PI_F) * (180.0f * 10.0f) + (180.0f * 10.0f);
 
 	mavlink_msg_global_position_int_send(MAVLINK_COMM_0,
 					     timestamp / 1000,
@@ -666,12 +666,12 @@ l_airspeed(const struct listener *l)
 	orb_copy(ORB_ID(airspeed), mavlink_subs.airspeed_sub, &airspeed);
 
 	float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
+	uint16_t heading = (att.yaw + M_PI_F) / M_PI_F * 180.0f;
 	float throttle = actuators_effective_0.control_effective[3] * (UINT16_MAX - 1);
-	float alt = global_pos.alt;
-	float climb = global_pos.vz;
+	float alt = global_pos.relative_alt;
+	float climb = -global_pos.vz;
 
-	mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed,
-		((att.yaw + M_PI_F) / M_PI_F) * 180.0f, throttle, alt, climb);
+	mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, alt, climb);
 }
 
 static void *

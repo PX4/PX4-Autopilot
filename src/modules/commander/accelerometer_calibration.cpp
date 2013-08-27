@@ -133,9 +133,10 @@ int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samp
 int mat_invert3(float src[3][3], float dst[3][3]);
 int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], float accel_offs[3], float g);
 
-void do_accel_calibration(int mavlink_fd) {
+int do_accel_calibration(int mavlink_fd) {
 	/* announce change */
 	mavlink_log_info(mavlink_fd, "accel calibration started");
+	mavlink_log_info(mavlink_fd, "accel cal progress <0> percent");
 
 	/* measure and calculate offsets & scales */
 	float accel_offs[3];
@@ -176,11 +177,11 @@ void do_accel_calibration(int mavlink_fd) {
 		}
 
 		mavlink_log_info(mavlink_fd, "accel calibration done");
-		tune_positive();
+		return OK;
 	} else {
 		/* measurements error */
 		mavlink_log_info(mavlink_fd, "accel calibration aborted");
-		tune_negative();
+		return ERROR;
 	}
 
 	/* exit accel calibration mode */
@@ -211,39 +212,50 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 	}
 
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+
+	unsigned done_count = 0;
+
 	while (true) {
 		bool done = true;
-		char str[80];
-		int str_ptr;
-		str_ptr = sprintf(str, "keep vehicle still:");
+		unsigned old_done_count = done_count;
+		done_count = 0;
+
 		for (int i = 0; i < 6; i++) {
 			if (!data_collected[i]) {
-				str_ptr += sprintf(&(str[str_ptr]), " %s", orientation_strs[i]);
 				done = false;
 			}
 		}
+
+		mavlink_log_info(mavlink_fd, "directions left: %s%s%s%s%s%s",
+			(!data_collected[0]) ? "x+ " : "",
+			(!data_collected[1]) ? "x- " : "",
+			(!data_collected[2]) ? "y+ " : "",
+			(!data_collected[3]) ? "y- " : "",
+			(!data_collected[4]) ? "z+ " : "",
+			(!data_collected[5]) ? "z- " : "");
+
+		if (old_done_count != done_count)
+			mavlink_log_info(mavlink_fd, "accel cal progress <%u> percent", 17 * done_count);
+
 		if (done)
 			break;
-		mavlink_log_info(mavlink_fd, str);
 
 		int orient = detect_orientation(mavlink_fd, sensor_combined_sub);
 		if (orient < 0)
 			return ERROR;
 
 		if (data_collected[orient]) {
-			sprintf(str, "%s direction already measured, please rotate", orientation_strs[orient]);
-			mavlink_log_info(mavlink_fd, str);
+			mavlink_log_info(mavlink_fd, "%s done, please rotate to a different axis", orientation_strs[orient]);
 			continue;
 		}
 
-		sprintf(str, "meas started: %s", orientation_strs[orient]);
-		mavlink_log_info(mavlink_fd, str);
+		mavlink_log_info(mavlink_fd, "accel measurement started: %s axis", orientation_strs[orient]);
 		read_accelerometer_avg(sensor_combined_sub, &(accel_ref[orient][0]), samples_num);
-		str_ptr = sprintf(str, "meas result for %s: [ %.2f %.2f %.2f ]", orientation_strs[orient],
+		mavlink_log_info(mavlink_fd, "result for %s axis: [ %.2f %.2f %.2f ]", orientation_strs[orient],
 			(double)accel_ref[orient][0],
 			(double)accel_ref[orient][1],
 			(double)accel_ref[orient][2]);
-		mavlink_log_info(mavlink_fd, str);
+
 		data_collected[orient] = true;
 		tune_neutral();
 	}
@@ -253,7 +265,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 	float accel_T[3][3];
 	int res = calculate_calibration_values(accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
 	if (res != 0) {
-		mavlink_log_info(mavlink_fd, "ERROR: calibration values calc error");
+		mavlink_log_info(mavlink_fd, "ERROR: calibration values calculation error");
 		return ERROR;
 	}
 
@@ -286,7 +298,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 	/* set accel error threshold to 5m/s^2 */
 	float accel_err_thr = 5.0f;
 	/* still time required in us */
-	int64_t still_time = 2000000;
+	hrt_abstime still_time = 2000000;
 	struct pollfd fds[1];
 	fds[0].fd = sub_sensor_combined;
 	fds[0].events = POLLIN;
@@ -325,12 +337,12 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 				/* is still now */
 				if (t_still == 0) {
 					/* first time */
-					mavlink_log_info(mavlink_fd, "still...");
+					mavlink_log_info(mavlink_fd, "detected rest position, waiting...");
 					t_still = t;
 					t_timeout = t + timeout;
 				} else {
 					/* still since t_still */
-					if ((int64_t) t - (int64_t) t_still > still_time) {
+					if (t > t_still + still_time) {
 						/* vehicle is still, exit from the loop to detection of its orientation */
 						break;
 					}
@@ -340,7 +352,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 					    accel_disp[2] > still_thr2 * 2.0f) {
 				/* not still, reset still start time */
 				if (t_still != 0) {
-					mavlink_log_info(mavlink_fd, "moving...");
+					mavlink_log_info(mavlink_fd, "detected motion, please hold still...");
 					t_still = 0;
 				}
 			}
@@ -352,7 +364,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 		}
 
 		if (poll_errcount > 1000) {
-			mavlink_log_info(mavlink_fd, "ERROR: failed reading accel");
+			mavlink_log_info(mavlink_fd, "ERROR: Failed reading sensor");
 			return -1;
 		}
 	}

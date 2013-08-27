@@ -146,7 +146,14 @@ out:
 int
 Airspeed::probe()
 {
-	return measure();
+	/* on initial power up the device needs more than one retry
+	   for detection. Once it is running then retries aren't
+	   needed 
+	*/
+	_retries = 4;
+	int ret = measure();
+	_retries = 0;
+	return ret;
 }
 
 int

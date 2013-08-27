@@ -247,6 +247,8 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	}
 
 	rates_sp->thrust = att_sp->thrust;
+    //need to update the timestamp now that we've touched rates_sp
+    rates_sp->timestamp = hrt_absolute_time();
 
 	motor_skip_counter++;
 }

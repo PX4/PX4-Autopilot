@@ -47,8 +47,14 @@
 #include <mavlink/mavlink_log.h>
 #include <systemlib/param/param.h>
 
-void do_baro_calibration(int mavlink_fd)
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
+int do_baro_calibration(int mavlink_fd)
 {
 	// TODO implement this
-	return;
+	return ERROR;
 }

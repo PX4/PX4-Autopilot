@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,18 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file accelerometer_calibration.h
+ * @file rc_check.h
  *
- * Definition of accelerometer calibration.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * RC calibration check
  */
 
-#ifndef ACCELEROMETER_CALIBRATION_H_
-#define ACCELEROMETER_CALIBRATION_H_
+#pragma once
 
-#include <stdint.h>
+ __BEGIN_DECLS
 
-int do_accel_calibration(int mavlink_fd);
+/**
+ * Check the RC calibration
+ *
+ * @return			0 / OK if RC calibration is ok, index + 1 of the first
+ *				channel that failed else (so 1 == first channel failed)
+ */
+__EXPORT int	rc_calibration_check(void);
 
-#endif /* ACCELEROMETER_CALIBRATION_H_ */
+__END_DECLS

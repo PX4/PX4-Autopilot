@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Author: Simon Wilks <sjwilks@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,18 +33,12 @@
  ****************************************************************************/
 
 /**
- * @file accelerometer_calibration.h
- *
- * Definition of accelerometer calibration.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @file state_machine_helper_test.h
  */
 
-#ifndef ACCELEROMETER_CALIBRATION_H_
-#define ACCELEROMETER_CALIBRATION_H_
+#ifndef STATE_MACHINE_HELPER_TEST_H_
+#define STATE_MACHINE_HELPER_TEST_
 
-#include <stdint.h>
+void state_machine_helper_test();
 
-int do_accel_calibration(int mavlink_fd);
-
-#endif /* ACCELEROMETER_CALIBRATION_H_ */
+#endif /* STATE_MACHINE_HELPER_TEST_H_ */

@@ -75,8 +75,11 @@ static bool thread_should_exit = false; /**< Deamon exit flag */
 static bool thread_running = false; /**< Deamon status flag */
 static int position_estimator_inav_task; /**< Handle of deamon task / thread */
 static bool verbose_mode = false;
-static hrt_abstime gps_timeout = 1000000;	// GPS timeout = 1s
-static hrt_abstime flow_timeout = 1000000;	// optical flow timeout = 1s
+
+static const hrt_abstime gps_timeout = 1000000;	// GPS timeout = 1s
+static const hrt_abstime flow_timeout = 1000000;	// optical flow timeout = 1s
+static const uint32_t updates_counter_len = 1000000;
+static const uint32_t pub_interval = 4000;	// limit publish rate to 250 Hz
 
 __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
@@ -172,6 +175,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float alt_avg = 0.0f;
 	bool landed = true;
 	hrt_abstime landed_time = 0;
+	bool flag_armed = false;
 
 	uint32_t accel_counter = 0;
 	uint32_t baro_counter = 0;
@@ -275,10 +279,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	uint16_t flow_updates = 0;
 
 	hrt_abstime updates_counter_start = hrt_absolute_time();
-	uint32_t updates_counter_len = 1000000;
-
 	hrt_abstime pub_last = hrt_absolute_time();
-	uint32_t pub_interval = 4000;	// limit publish rate to 250 Hz
 
 	/* acceleration in NED frame */
 	float accel_NED[3] = { 0.0f, 0.0f, -CONSTANTS_ONE_G };
@@ -407,7 +408,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							} else {
 								// new ground level
 								baro_alt0 += sonar_corr;
-								warnx("new home: alt = %.3f", baro_alt0);
 								mavlink_log_info(mavlink_fd, "[inav] new home: alt = %.3f", baro_alt0);
 								local_pos.ref_alt = baro_alt0;
 								local_pos.ref_timestamp = hrt_absolute_time();
@@ -429,7 +429,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds[6].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
-				if (gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout) {
+				if (gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout && gps.eph_m < 5.0f) {
 					/* initialize reference position if needed */
 					if (!ref_xy_inited) {
 						if (ref_xy_init_start == 0) {
@@ -485,6 +485,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
 		t_prev = t;
+
+		/* reset ground level on arm */
+		if (armed.armed && !flag_armed) {
+			baro_alt0 -= z_est[0];
+			z_est[0] = 0.0f;
+			local_pos.ref_alt = baro_alt0;
+			local_pos.ref_timestamp = hrt_absolute_time();
+			mavlink_log_info(mavlink_fd, "[inav] new home on arm: alt = %.3f", baro_alt0);
+		}
 
 		/* accel bias correction, now only for Z
 		 * not strictly correct, but stable and works */
@@ -591,6 +600,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.z = z_est[0];
 			local_pos.vz = z_est[1];
 			local_pos.landed = landed;
+			local_pos.yaw = att.yaw;
 
 			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
 
@@ -609,7 +619,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.v_xy_valid) {
 				global_pos.vx = local_pos.vx;
 				global_pos.vy = local_pos.vy;
-				global_pos.hdg = atan2f(local_pos.vy, local_pos.vx);
 			}
 
 			if (local_pos.z_valid) {
@@ -623,11 +632,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.v_z_valid) {
 				global_pos.vz = local_pos.vz;
 			}
+			global_pos.yaw = local_pos.yaw;
 
 			global_pos.timestamp = t;
 
 			orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &global_pos);
 		}
+		flag_armed = armed.armed;
 	}
 
 	warnx("exiting.");
