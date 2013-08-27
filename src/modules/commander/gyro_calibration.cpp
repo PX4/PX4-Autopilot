@@ -58,7 +58,7 @@ static const int ERROR = -1;
 
 int do_gyro_calibration(int mavlink_fd)
 {
-	mavlink_log_info(mavlink_fd, "gyro calibration starting, hold still");
+	mavlink_log_info(mavlink_fd, "Gyro calibration starting, do not move unit.");
 
 	const int calibration_count = 5000;
 
@@ -84,6 +84,8 @@ int do_gyro_calibration(int mavlink_fd)
 
 	close(fd);
 
+	unsigned poll_errcount = 0;
+
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
@@ -93,16 +95,19 @@ int do_gyro_calibration(int mavlink_fd)
 
 		int poll_ret = poll(fds, 1, 1000);
 
-		if (poll_ret) {
+		if (poll_ret > 0) {
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
 			gyro_offset[0] += raw.gyro_rad_s[0];
 			gyro_offset[1] += raw.gyro_rad_s[1];
 			gyro_offset[2] += raw.gyro_rad_s[2];
 			calibration_counter++;
 
-		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "gyro calibration aborted, retry");
+		} else {
+			poll_errcount++;
+		}
+
+		if (poll_errcount > 1000) {
+			mavlink_log_info(mavlink_fd, "ERROR: Failed reading gyro sensor");
 			return ERROR;
 		}
 	}

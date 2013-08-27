@@ -61,7 +61,7 @@ static const int ERROR = -1;
 
 int do_mag_calibration(int mavlink_fd)
 {
-	mavlink_log_info(mavlink_fd, "mag calibration starting, hold still");
+	mavlink_log_info(mavlink_fd, "please put the system in a rest position and wait.");
 
 	int sub_mag = orb_subscribe(ORB_ID(sensor_mag));
 	struct mag_report mag;
@@ -123,6 +123,10 @@ int do_mag_calibration(int mavlink_fd)
 		return ERROR;
 	}
 
+	mavlink_log_info(mavlink_fd, "scale calibration completed, dynamic calibration starting..");
+
+	unsigned poll_errcount = 0;
+
 	while (hrt_absolute_time() < calibration_deadline &&
 	       calibration_counter < calibration_maxcount) {
 
@@ -137,7 +141,7 @@ int do_mag_calibration(int mavlink_fd)
 
 			axis_index++;
 
-			mavlink_log_info(mavlink_fd, "please rotate in a figure 8 or around %c", axislabels[axis_index]);
+			mavlink_log_info(mavlink_fd, "please rotate in a figure 8 or around %c axis.", axislabels[axis_index]);
 			mavlink_log_info(mavlink_fd, "mag cal progress <%u> percent", 20 + (calibration_maxcount * 50) / calibration_counter);
 			tune_neutral();
 
@@ -158,7 +162,7 @@ int do_mag_calibration(int mavlink_fd)
 
 		int poll_ret = poll(fds, 1, 1000);
 
-		if (poll_ret) {
+		if (poll_ret > 0) {
 			orb_copy(ORB_ID(sensor_mag), sub_mag, &mag);
 
 			x[calibration_counter] = mag.x;
@@ -190,11 +194,16 @@ int do_mag_calibration(int mavlink_fd)
 
 			calibration_counter++;
 
-		} else if (poll_ret == 0) {
-			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "mag cal canceled (timed out)");
-			break;
+		} else {
+			poll_errcount++;
 		}
+
+		if (poll_errcount > 1000) {
+			mavlink_log_info(mavlink_fd, "ERROR: Failed reading mag sensor");
+			return ERROR;
+		}
+
+
 	}
 
 	float sphere_x;
@@ -276,7 +285,7 @@ int do_mag_calibration(int mavlink_fd)
 			(double)mscale.y_scale, (double)mscale.z_scale);
 		mavlink_log_info(mavlink_fd, buf);
 
-		mavlink_log_info(mavlink_fd, "mag calibration done");
+		mavlink_log_info(mavlink_fd, "magnetometer calibration completed");
 		mavlink_log_info(mavlink_fd, "mag cal progress <100> percent");
 
 		return OK;
