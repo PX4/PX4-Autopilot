@@ -298,7 +298,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 	/* set accel error threshold to 5m/s^2 */
 	float accel_err_thr = 5.0f;
 	/* still time required in us */
-	int64_t still_time = 2000000;
+	hrt_abstime still_time = 2000000;
 	struct pollfd fds[1];
 	fds[0].fd = sub_sensor_combined;
 	fds[0].events = POLLIN;
@@ -342,7 +342,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined) {
 					t_timeout = t + timeout;
 				} else {
 					/* still since t_still */
-					if ((int64_t) t - (int64_t) t_still > still_time) {
+					if (t > t_still + still_time) {
 						/* vehicle is still, exit from the loop to detection of its orientation */
 						break;
 					}

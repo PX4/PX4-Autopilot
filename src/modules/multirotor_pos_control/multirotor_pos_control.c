@@ -405,30 +405,38 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					}
 				}
 
-				/* publish local position setpoint */
-				orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
+				local_pos_sp.yaw = att_sp.yaw_body;
 
 				/* local position setpoint is valid and can be used for loiter after position controlled mode */
 				local_pos_sp_valid = control_mode.flag_control_position_enabled;
+
+				reset_auto_pos = true;
 
 				/* force reprojection of global setpoint after manual mode */
 				global_pos_sp_reproject = true;
 
 			} else {
 				/* non-manual mode, use global setpoint */
-				if (control_mode.auto_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
+				if (control_mode.auto_state == NAVIGATION_STATE_AUTO_READY) {
+					reset_auto_pos = true;
+				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 					if (reset_auto_pos) {
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
 						local_pos_sp.z = -takeoff_alt_default;
+						local_pos_sp.yaw = att.yaw;
+						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
 						reset_auto_pos = false;
+						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", local_pos_sp.x, local_pos_sp.y, local_pos_sp.z);
 					}
 				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_LOITER) {
 					if (reset_auto_pos) {
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
 						local_pos_sp.z = local_pos.z;
+						local_pos_sp.yaw = att.yaw;
+						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
 						reset_auto_pos = false;
 					}
@@ -462,6 +470,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							} else {
 								local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
 							}
+							local_pos_sp.yaw = global_pos_sp.yaw;
+							att_sp.yaw_body = global_pos_sp.yaw;
 
 							mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
 
@@ -472,15 +482,13 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 								local_pos_sp.x = local_pos.x;
 								local_pos_sp.y = local_pos.y;
 								local_pos_sp.z = local_pos.z;
+								local_pos_sp.yaw = att.yaw;
+								local_pos_sp_valid = true;
 							}
 
 							mavlink_log_info(mavlink_fd, "[mpc] no global pos sp, loiter: %.2f, %.2f", local_pos_sp.x, local_pos_sp.y);
 						}
-
-						/* publish local position setpoint as projection of global position setpoint */
-						orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
 					}
-					att_sp.yaw_body = global_pos_sp.yaw;
 					reset_auto_pos = true;
 				}
 
@@ -492,6 +500,9 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				reset_sp_xy = true;
 				reset_sp_z = true;
 			}
+
+			/* publish local position setpoint */
+			orb_publish(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_pub, &local_pos_sp);
 
 			/* run position & altitude controllers, calculate velocity setpoint */
 			if (control_mode.flag_control_altitude_enabled) {
