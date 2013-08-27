@@ -106,7 +106,10 @@ extern device::Device *PX4IO_serial_interface() weak_function;
 #ifndef ARDUPILOT_BUILD
 # define RC_HANDLING_DEFAULT false
 #else
+// APM uses raw PWM output
 # define RC_HANDLING_DEFAULT true
+// APM doesn't yet use a mavlink log listener
+# define mavlink_vasprintf(_fd, severity, fmt, ...)
 #endif
 
 /**
