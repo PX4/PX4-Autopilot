@@ -228,11 +228,11 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 
 		mavlink_log_info(mavlink_fd, "directions left: %s%s%s%s%s%s",
 			(!data_collected[0]) ? "x+ " : "",
-			(!data_collected[0]) ? "x- " : "",
-			(!data_collected[0]) ? "y+ " : "",
-			(!data_collected[0]) ? "y- " : "",
-			(!data_collected[0]) ? "z+ " : "",
-			(!data_collected[0]) ? "z- " : "");
+			(!data_collected[1]) ? "x- " : "",
+			(!data_collected[2]) ? "y+ " : "",
+			(!data_collected[3]) ? "y- " : "",
+			(!data_collected[4]) ? "z+ " : "",
+			(!data_collected[5]) ? "z- " : "");
 
 		if (old_done_count != done_count)
 			mavlink_log_info(mavlink_fd, "accel cal progress <%u> percent", 17 * done_count);
