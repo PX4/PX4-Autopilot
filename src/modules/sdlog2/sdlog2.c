@@ -890,13 +890,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				// Don't orb_copy, it's already done few lines above
 				log_msg.msg_type = LOG_STAT_MSG;
-				log_msg.body.log_STAT.main_state = (unsigned char) buf_status.main_state;
-				log_msg.body.log_STAT.navigation_state = (unsigned char) buf_status.navigation_state;
-				log_msg.body.log_STAT.arming_state = (unsigned char) buf_status.arming_state;
+				log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
+				log_msg.body.log_STAT.navigation_state = (uint8_t) buf_status.navigation_state;
+				log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
 				log_msg.body.log_STAT.battery_voltage = buf_status.battery_voltage;
 				log_msg.body.log_STAT.battery_current = buf_status.battery_current;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
-				log_msg.body.log_STAT.battery_warning = (unsigned char) buf_status.battery_warning;
+				log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
+				log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
 				LOGBUFFER_WRITE_AND_COUNT(STAT);
 			}
 
