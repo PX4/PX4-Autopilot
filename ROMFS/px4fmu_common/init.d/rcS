@@ -125,17 +125,6 @@ then
 	# Check if auto-setup from one of the standard scripts is wanted
 	# SYS_AUTOSTART = 0 means no autostart (default)
 	#
-	if param compare SYS_AUTOSTART 1
-	then
-		sh /etc/init.d/01_fmu_quad_x
-		set MODE custom
-	fi
-	
-	if param compare SYS_AUTOSTART 2
-	then
-		sh /etc/init.d/02_io_quad_x
-		set MODE custom
-	fi
 	
 	if param compare SYS_AUTOSTART 8
 	then
@@ -151,13 +140,25 @@ then
 	
 	if param compare SYS_AUTOSTART 10
 	then
-		sh /etc/init.d/10_io_f330
+		sh /etc/init.d/10_dji_f330
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 11
+	then
+		sh /etc/init.d/11_dji_f450
 		set MODE custom
 	fi
 	
 	if param compare SYS_AUTOSTART 15
 	then
-		sh /etc/init.d/15_io_tbs
+		sh /etc/init.d/15_tbs_discovery
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 16
+	then
+		sh /etc/init.d/16_3dr_iris
 		set MODE custom
 	fi
 	

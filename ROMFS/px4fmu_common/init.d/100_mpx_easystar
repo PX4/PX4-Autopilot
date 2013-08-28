@@ -1,6 +1,6 @@
 #!nsh
 
-echo "[init] 31_io_phantom: PX4FMU+PX4IO on Phantom"
+echo "[init] Multiplex Easystar"
 
 #
 # Load default params for this platform
@@ -63,6 +63,6 @@ att_pos_estimator_ekf start
 #
 # Load mixer and start controllers (depends on px4io)
 #
-mixer load /dev/pwm_output /etc/mixers/FMU_Q.mix
+mixer load /dev/pwm_output /etc/mixers/FMU_RET.mix
 fw_att_control start
 fw_pos_control_l1 start
