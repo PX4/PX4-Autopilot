@@ -30,6 +30,7 @@ MODULES		+= modules/sensors
 #
 MODULES		+= systemcmds/auth
 MODULES		+= systemcmds/reboot
+MODULES		+= systemcmds/bl_update
 
 #
 # General system control
