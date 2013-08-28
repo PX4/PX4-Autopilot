@@ -301,6 +301,7 @@ private:
 		float accel_offset[3];
 		float accel_scale[3];
 		float diff_pres_offset_pa;
+		float diff_pres_analog_enabled;
 
 		int board_rotation;
 		int external_mag_rotation;
@@ -348,6 +349,7 @@ private:
 		param_t mag_offset[3];
 		param_t mag_scale[3];
 		param_t diff_pres_offset_pa;
+		param_t diff_pres_analog_enabled;
 
 		param_t rc_map_roll;
 		param_t rc_map_pitch;
@@ -617,6 +619,7 @@ Sensors::Sensors() :
 
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
+	_parameter_handles.diff_pres_analog_enabled = param_find("SENS_DPRES_ANA");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
@@ -784,6 +787,7 @@ Sensors::parameters_update()
 
 	/* Airspeed offset */
 	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
+	param_get(_parameter_handles.diff_pres_analog_enabled, &(_parameters.diff_pres_analog_enabled));
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
@@ -1266,9 +1270,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 					/**
 					 * The voltage divider pulls the signal down, only act on
-					 * a valid voltage from a connected sensor
+					 * a valid voltage from a connected sensor. Also assume a non-
+					 * zero offset from the sensor if its connected.
 					 */
-					if (voltage > 0.4f) {
+					if (voltage > 0.4f && _parameters.diff_pres_analog_enabled) {
 
 						float diff_pres_pa = voltage * 1000.0f - _parameters.diff_pres_offset_pa; //for MPXV7002DP sensor
 
