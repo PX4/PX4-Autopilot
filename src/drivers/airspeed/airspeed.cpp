@@ -157,7 +157,7 @@ Airspeed::probe()
 	*/
 	_retries = 4;
 	int ret = measure();
-	_retries = 0;
+	_retries = 2;
 	return ret;
 }
 
