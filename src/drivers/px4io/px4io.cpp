@@ -1969,7 +1969,7 @@ detect(int argc, char *argv[])
 	if (OK != g_dev->detect()) {
 		delete g_dev;
 		g_dev = nullptr;
-		errx(1, "driver detect did not succeed");
+		exit(1);
 	}
 
 	if (g_dev != nullptr) {
