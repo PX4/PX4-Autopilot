@@ -162,6 +162,8 @@ MEASAirspeed::collect()
 
 	if (ret < 0) {
 		log("error reading from sensor: %d", ret);
+                perf_count(_comms_errors);
+                perf_end(_sample_perf);
 		return ret;
 	}
 
@@ -169,9 +171,14 @@ MEASAirspeed::collect()
 
 	if (status == 2) {
 		log("err: stale data");
-
+                perf_count(_comms_errors);
+                perf_end(_sample_perf);
+		return ret;
 	} else if (status == 3) {
 		log("err: fault");
+                perf_count(_comms_errors);
+                perf_end(_sample_perf);
+		return ret;                
 	}
 
 	//uint16_t diff_pres_pa = (val[1]) | ((val[0] & ~(0xC0)) << 8);

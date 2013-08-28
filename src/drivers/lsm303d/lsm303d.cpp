@@ -421,7 +421,7 @@ private:
 
 
 /* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
+#define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
 
 
 LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
