@@ -2,6 +2,7 @@
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +39,7 @@
  * Implementation of multirotor attitude control main loop.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #include <nuttx/config.h>
@@ -63,6 +65,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
@@ -73,8 +76,6 @@
 
 #include "multirotor_attitude_control.h"
 #include "multirotor_rate_control.h"
-
-PARAM_DEFINE_FLOAT(MC_RCLOSS_THR, 0.0f); // This defines the throttle when the RC signal is lost.
 
 __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 
@@ -102,7 +103,8 @@ mc_thread_main(int argc, char *argv[])
 	memset(&offboard_sp, 0, sizeof(offboard_sp));
 	struct vehicle_rates_setpoint_s rates_sp;
 	memset(&rates_sp, 0, sizeof(rates_sp));
-
+	struct vehicle_status_s status;
+	memset(&status, 0, sizeof(status));
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
 
@@ -114,6 +116,8 @@ mc_thread_main(int argc, char *argv[])
 	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	int rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+	int status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	/*
 	 * Do not rate-limit the loop to prevent aliasing
@@ -136,7 +140,6 @@ mc_thread_main(int argc, char *argv[])
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 	orb_advert_t rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
-	int rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control_runtime");
@@ -149,12 +152,6 @@ mc_thread_main(int argc, char *argv[])
 	/* store last control mode to detect mode switches */
 	bool control_yaw_position = true;
 	bool reset_yaw_sp = true;
-	bool failsafe_first_time = true;
-
-	/* prepare the handle for the failsafe throttle */
-	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
-	float failsafe_throttle = 0.0f;
-	param_get(failsafe_throttle_handle, &failsafe_throttle);
 
 	while (!thread_should_exit) {
 
@@ -176,7 +173,6 @@ mc_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(parameter_update), param_sub, &update);
 
 				/* update parameters */
-				param_get(failsafe_throttle_handle, &failsafe_throttle);
 			}
 
 			/* only run controller if attitude changed */
@@ -203,6 +199,13 @@ mc_thread_main(int argc, char *argv[])
 
 				if (updated) {
 					orb_copy(ORB_ID(offboard_control_setpoint), setpoint_sub, &offboard_sp);
+				}
+
+				/* get a local copy of status */
+				orb_check(status_sub, &updated);
+
+				if (updated) {
+					orb_copy(ORB_ID(vehicle_status), status_sub, &status);
 				}
 
 				/* get a local copy of the current sensor values */
@@ -244,47 +247,18 @@ mc_thread_main(int argc, char *argv[])
 					/* manual input */
 					if (control_mode.flag_control_attitude_enabled) {
 						/* control attitude, update attitude setpoint depending on mode */
-						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-						if (control_mode.failsave_highlevel) {
-							failsafe_first_time = false;
+						if (att_sp.thrust < 0.1f) {
+							/* no thrust, don't try to control yaw */
+							rates_sp.yaw = 0.0f;
+							control_yaw_position = false;
 
-							if (!control_mode.flag_control_velocity_enabled) {
-								/* don't reset attitude setpoint in position control mode, it's handled by position controller. */
-								att_sp.roll_body = 0.0f;
-								att_sp.pitch_body = 0.0f;
-							}
-
-							if (!control_mode.flag_control_climb_rate_enabled) {
-								/* don't touch throttle in modes with altitude hold, it's handled by position controller.
-								 *
-								 * Only go to failsafe throttle if last known throttle was
-								 * high enough to create some lift to make hovering state likely.
-								 *
-								 * This is to prevent that someone landing, but not disarming his
-								 * multicopter (throttle = 0) does not make it jump up in the air
-								 * if shutting down his remote.
-								 */
-								if (isfinite(manual.throttle) && manual.throttle > min_takeoff_throttle) {	// TODO use landed status instead of throttle
-									/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
-									att_sp.thrust = failsafe_throttle;
-
-								} else {
-									att_sp.thrust = 0.0f;
-								}
-							}
-
-							/* keep current yaw, do not attempt to go to north orientation,
-							 * since if the pilot regains RC control, he will be lost regarding
-							 * the current orientation.
-							 */
-							if (failsafe_first_time) {
+							if (status.condition_landed) {
+								/* reset yaw setpoint if on ground */
 								reset_yaw_sp = true;
 							}
 
 						} else {
-							failsafe_first_time = true;
-
-							/* only move yaw setpoint if manual input is != 0 and not landed */
+							/* only move yaw setpoint if manual input is != 0 */
 							if (manual.yaw < -yaw_deadzone || yaw_deadzone < manual.yaw) {
 								/* control yaw rate */
 								control_yaw_position = false;
@@ -294,18 +268,17 @@ mc_thread_main(int argc, char *argv[])
 							} else {
 								control_yaw_position = true;
 							}
+						}
 
-							if (!control_mode.flag_control_velocity_enabled) {
-								/* update attitude setpoint if not in position control mode */
-								att_sp.roll_body = manual.roll;
-								att_sp.pitch_body = manual.pitch;
+						if (!control_mode.flag_control_velocity_enabled) {
+							/* update attitude setpoint if not in position control mode */
+							att_sp.roll_body = manual.roll;
+							att_sp.pitch_body = manual.pitch;
 
-								if (!control_mode.flag_control_climb_rate_enabled) {
-									/* pass throttle directly if not in altitude control mode */
-									att_sp.thrust = manual.throttle;
-								}
+							if (!control_mode.flag_control_climb_rate_enabled) {
+								/* pass throttle directly if not in altitude control mode */
+								att_sp.thrust = manual.throttle;
 							}
-
 						}
 
 						/* reset yaw setpint to current position if needed */
@@ -324,7 +297,7 @@ mc_thread_main(int argc, char *argv[])
 
 						att_sp.timestamp = hrt_absolute_time();
 
-						/* publish the controller output */
+						/* publish the attitude setpoint */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
 					} else {
@@ -342,6 +315,17 @@ mc_thread_main(int argc, char *argv[])
 					}
 
 				} else {
+					if (!control_mode.flag_control_auto_enabled) {
+						/* no control, try to stay on place */
+						if (!control_mode.flag_control_velocity_enabled) {
+							/* no velocity control, reset attitude setpoint */
+							att_sp.roll_body = 0.0f;
+							att_sp.pitch_body = 0.0f;
+							att_sp.timestamp = hrt_absolute_time();
+							orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+						}
+					}
+
 					/* reset yaw setpoint after non-manual control */
 					reset_yaw_sp = true;
 				}

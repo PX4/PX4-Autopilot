@@ -2096,10 +2096,10 @@ px4io_main(int argc, char *argv[])
 			fn[1] = nullptr;
 
 		} else {
-			fn[0] = "/fs/microsd/px4io.bin";
-			fn[1] =	"/etc/px4io.bin";
-			fn[2] = "/fs/microsd/px4io2.bin";
-			fn[3] =	"/etc/px4io2.bin";
+			fn[0] = "/etc/extras/px4io-v2_default.bin";
+			fn[1] = "/etc/extras/px4io-v1_default.bin";
+			fn[2] =	"/fs/microsd/px4io.bin";
+			fn[3] =	"/fs/microsd/px4io2.bin";
 			fn[4] =	nullptr;
 		}
 

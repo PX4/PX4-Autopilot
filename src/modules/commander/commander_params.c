@@ -45,7 +45,7 @@
 #include <nuttx/config.h>
 #include <systemlib/param/param.h>
 
-PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
+PARAM_DEFINE_INT32(SYS_FAILSAFE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
 PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
 PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);

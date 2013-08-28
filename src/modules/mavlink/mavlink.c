@@ -240,11 +240,7 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 	 **/
 
 	/* set calibration state */
-	if (v_status.preflight_calibration) {
-		*mavlink_state = MAV_STATE_CALIBRATING;
-	} else if (v_status.system_emergency) {
-		*mavlink_state = MAV_STATE_EMERGENCY;
-	} else if (v_status.arming_state == ARMING_STATE_INIT
+	if (v_status.arming_state == ARMING_STATE_INIT
 			|| v_status.arming_state == ARMING_STATE_IN_AIR_RESTORE
 			|| v_status.arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
 		*mavlink_state = MAV_STATE_UNINIT;

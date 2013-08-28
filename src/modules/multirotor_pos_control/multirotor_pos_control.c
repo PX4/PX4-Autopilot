@@ -415,10 +415,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				/* force reprojection of global setpoint after manual mode */
 				global_pos_sp_reproject = true;
 
-			} else {
-				/* non-manual mode, use global setpoint */
+			} else if (control_mode.flag_control_auto_enabled) {
+				/* AUTO mode, use global setpoint */
 				if (control_mode.auto_state == NAVIGATION_STATE_AUTO_READY) {
 					reset_auto_pos = true;
+
 				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 					if (reset_auto_pos) {
 						local_pos_sp.x = local_pos.x;
@@ -428,21 +429,13 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
 						reset_auto_pos = false;
-						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", local_pos_sp.x, local_pos_sp.y, local_pos_sp.z);
+						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", local_pos_sp.x, local_pos_sp.y, -local_pos_sp.z);
 					}
-				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_LOITER) {
-					if (reset_auto_pos) {
-						local_pos_sp.x = local_pos.x;
-						local_pos_sp.y = local_pos.y;
-						local_pos_sp.z = local_pos.z;
-						local_pos_sp.yaw = att.yaw;
-						local_pos_sp_valid = true;
-						att_sp.yaw_body = att.yaw;
-						reset_auto_pos = false;
-					}
+
 				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_RTL) {
 					// TODO
 					reset_auto_pos = true;
+
 				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_MISSION) {
 					/* init local projection using local position ref */
 					if (local_pos.ref_timestamp != local_ref_timestamp) {
@@ -457,6 +450,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (global_pos_sp_reproject) {
 						/* update global setpoint projection */
 						global_pos_sp_reproject = false;
+
 						if (global_pos_sp_valid) {
 							/* global position setpoint valid, use it */
 							double sp_lat = global_pos_sp.lat * 1e-7;
@@ -470,6 +464,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							} else {
 								local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
 							}
+
 							local_pos_sp.yaw = global_pos_sp.yaw;
 							att_sp.yaw_body = global_pos_sp.yaw;
 
@@ -489,6 +484,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							mavlink_log_info(mavlink_fd, "[mpc] no global pos sp, loiter: %.2f, %.2f", local_pos_sp.x, local_pos_sp.y);
 						}
 					}
+
 					reset_auto_pos = true;
 				}
 
@@ -496,9 +492,44 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					global_pos_sp_reproject = true;
 				}
 
-				/* reset setpoints after non-manual modes */
+				/* reset setpoints after AUTO mode */
 				reset_sp_xy = true;
 				reset_sp_z = true;
+
+			} else {
+				/* no control, loiter or stay on ground */
+				if (local_pos.landed) {
+					/* landed: move setpoint down */
+					/* in air: hold altitude */
+					if (local_pos_sp.z < 5.0f) {
+						/* set altitude setpoint to 5m under ground,
+						 * don't set it too deep to avoid unexpected landing in case of false "landed" signal */
+						local_pos_sp.z = 5.0f;
+						mavlink_log_info(mavlink_fd, "[mpc] landed, set alt: %.2f", -local_pos_sp.z);
+					}
+
+					reset_sp_z = true;
+
+				} else {
+					/* in air: hold altitude */
+					if (reset_sp_z) {
+						reset_sp_z = false;
+						local_pos_sp.z = local_pos.z;
+						mavlink_log_info(mavlink_fd, "[mpc] set loiter alt: %.2f", -local_pos_sp.z);
+					}
+				}
+
+				if (control_mode.flag_control_position_enabled) {
+					if (reset_sp_xy) {
+						reset_sp_xy = false;
+						local_pos_sp.x = local_pos.x;
+						local_pos_sp.y = local_pos.y;
+						local_pos_sp.yaw = att.yaw;
+						local_pos_sp_valid = true;
+						att_sp.yaw_body = att.yaw;
+						mavlink_log_info(mavlink_fd, "[mpc] set loiter pos: %.2f %.2f", local_pos_sp.x, local_pos_sp.y);
+					}
+				}
 			}
 
 			/* publish local position setpoint */
