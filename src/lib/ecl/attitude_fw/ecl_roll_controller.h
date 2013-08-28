@@ -54,7 +54,9 @@ public:
 	void reset_integrator();
 
 	void set_time_constant(float time_constant) {
-		_tc = time_constant;
+		if (time_constant > 0.1f && time_constant < 3.0f) {
+			_tc = time_constant;
+		}
 	}
 	void set_k_p(float k_p) {
 		_k_p = k_p;
