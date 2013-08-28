@@ -497,10 +497,10 @@ PX4IO::detect()
 	/* get some parameters */
 	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
 	if (protocol != PX4IO_PROTOCOL_VERSION) {
-		log("protocol/firmware mismatch");
-		mavlink_log_emergency(_mavlink_fd, "[IO] protocol/firmware mismatch, abort.");
+		log("IO not installed");
 		return -1;
 	}
+	log("IO found");
 
 	return 0;
 }
