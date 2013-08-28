@@ -106,6 +106,11 @@ Airspeed::~Airspeed()
 	/* free any existing reports */
 	if (_reports != nullptr)
 		delete[] _reports;
+
+	// free perf counters
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int

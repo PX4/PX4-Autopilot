@@ -225,6 +225,12 @@ MS5611::~MS5611()
 	if (_reports != nullptr)
 		delete[] _reports;
 
+	// free perf counters
+	perf_free(_sample_perf);
+	perf_free(_measure_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
+
 	delete _interface;
 }
 
