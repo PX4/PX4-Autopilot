@@ -191,13 +191,13 @@ then
 		commander start
 	
 		# Start px4io if present
-		if px4io start
+		if px4io detect
 		then
-			echo "PX4IO driver started"
+			px4io start
 		else
 			if fmu mode_serial
 			then
-				echo "FMU driver started"
+				echo "FMU driver (no PWM) started"
 			fi
 		fi
 	
