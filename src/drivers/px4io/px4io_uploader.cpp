@@ -82,6 +82,27 @@ PX4IO_Uploader::upload(const char *filenames[])
 #error Must define PX4IO_SERIAL_DEVICE in board configuration to support firmware upload
 #endif
 
+	/* allow an early abort and look for file first */
+	for (unsigned i = 0; filenames[i] != nullptr; i++) {
+		_fw_fd = open(filenames[i], O_RDONLY);
+
+		if (_fw_fd < 0) {
+			log("failed to open %s", filenames[i]);
+			continue;
+		}
+
+		log("using firmware from %s", filenames[i]);
+		filename = filenames[i];
+		break;
+	}
+
+	if (filename == NULL) {
+		log("no firmware found");
+		close(_io_fd);
+		_io_fd = -1;
+		return -ENOENT;
+	}
+
 	_io_fd = open(PX4IO_SERIAL_DEVICE, O_RDWR);
 
 	if (_io_fd < 0) {
@@ -104,26 +125,6 @@ PX4IO_Uploader::upload(const char *filenames[])
 		close(_io_fd);
 		_io_fd = -1;
 		return -EIO;
-	}
-
-	for (unsigned i = 0; filenames[i] != nullptr; i++) {
-		_fw_fd = open(filenames[i], O_RDONLY);
-
-		if (_fw_fd < 0) {
-			log("failed to open %s", filenames[i]);
-			continue;
-		}
-
-		log("using firmware from %s", filenames[i]);
-		filename = filenames[i];
-		break;
-	}
-
-	if (filename == NULL) {
-		log("no firmware found");
-		close(_io_fd);
-		_io_fd = -1;
-		return -ENOENT;
 	}
 
 	struct stat st;
