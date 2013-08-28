@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -104,7 +104,7 @@
 #include <math.h>
 #include <ctype.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 #include <drivers/drv_hrt.h>
 
 #include <arch/stm32/chip.h>
@@ -236,6 +236,8 @@ private:
 	static const char	* const _default_tunes[];
 	static const unsigned	_default_ntunes;
 	static const uint8_t	_note_tab[];
+
+	unsigned		_default_tune_number; // number of currently playing default tune (0 for none)
 
 	const char		*_user_tune;
 
@@ -452,6 +454,9 @@ const char * const ToneAlarm::_default_tunes[] = {
 	"O1B8O2G+8E8B8G+8O3E8O2B8O3E8O2B8O3G+8E8B8"
 	"O3G+8O4E4P8E16E16E8E8E8E8E4P8E16E4P8O2E16"
 	"O2E2P64",
+	"MNT75L1O2G",					//arming warning
+	"MBNT100a8",					//battery warning slow
+	"MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8"	//battery warning fast // XXX why is there a break before a repetition
 };
 
 const unsigned ToneAlarm::_default_ntunes = sizeof(_default_tunes) / sizeof(_default_tunes[0]);
@@ -467,6 +472,7 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 ToneAlarm::ToneAlarm() :
 	CDev("tone_alarm", "/dev/tone_alarm"),
+	_default_tune_number(0),
 	_user_tune(nullptr),
 	_tune(nullptr),
 	_next(nullptr)
@@ -799,8 +805,12 @@ tune_error:
 	// stop (and potentially restart) the tune
 tune_end:
 	stop_note();
-	if (_repeat)
+	if (_repeat) {
 		start_tune(_tune);
+	} else {
+		_tune = nullptr;
+		_default_tune_number = 0;
+	}
 	return;
 }
 
@@ -869,8 +879,12 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 				_tune = nullptr;
 				_next = nullptr;
 			} else {
-				// play the selected tune
-				start_tune(_default_tunes[arg - 1]);
+				/* always interrupt alarms, unless they are repeating and already playing */
+				if (!(_repeat && _default_tune_number == arg)) {
+					/* play the selected tune */
+					_default_tune_number = arg;
+					start_tune(_default_tunes[arg - 1]);
+				}
 			}
 		} else {
 			result = -EINVAL;

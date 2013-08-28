@@ -75,6 +75,7 @@
 #include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -94,16 +95,12 @@
 		log_msgs_written++; \
 	} else { \
 		log_msgs_skipped++; \
-		/*printf("skip\n");*/ \
 	}
 
 #define LOG_ORB_SUBSCRIBE(_var, _topic) subs.##_var##_sub = orb_subscribe(ORB_ID(##_topic##)); \
 	fds[fdsc_count].fd = subs.##_var##_sub; \
 	fds[fdsc_count].events = POLLIN; \
 	fdsc_count++;
-
-
-//#define SDLOG2_DEBUG
 
 static bool main_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;			/**< Deamon status flag */
@@ -233,7 +230,7 @@ int sdlog2_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("sdlog2 already running\n");
+			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
@@ -250,7 +247,7 @@ int sdlog2_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (!thread_running) {
-			printf("\tsdlog2 is not started\n");
+			warnx("not started");
 		}
 
 		main_thread_should_exit = true;
@@ -262,7 +259,7 @@ int sdlog2_main(int argc, char *argv[])
 			sdlog2_status();
 
 		} else {
-			printf("\tsdlog2 not started\n");
+			warnx("not started\n");
 		}
 
 		exit(0);
@@ -387,11 +384,6 @@ static void *logwriter_thread(void *arg)
 		/* only get pointer to thread-safe data, do heavy I/O a few lines down */
 		int available = logbuffer_get_ptr(logbuf, &read_ptr, &is_part);
 
-#ifdef SDLOG2_DEBUG
-		int rp = logbuf->read_ptr;
-		int wp = logbuf->write_ptr;
-#endif
-
 		/* continue */
 		pthread_mutex_unlock(&logbuffer_mutex);
 
@@ -407,9 +399,6 @@ static void *logwriter_thread(void *arg)
 			n = write(log_file, read_ptr, n);
 
 			should_wait = (n == available) && !is_part;
-#ifdef SDLOG2_DEBUG
-			printf("write %i %i of %i rp=%i wp=%i, is_part=%i, should_wait=%i\n", log_bytes_written, n, available, rp, wp, (int)is_part, (int)should_wait);
-#endif
 
 			if (n < 0) {
 				main_thread_should_exit = true;
@@ -422,14 +411,8 @@ static void *logwriter_thread(void *arg)
 
 		} else {
 			n = 0;
-#ifdef SDLOG2_DEBUG
-			printf("no data available, main_thread_should_exit=%i, logwriter_should_exit=%i\n", (int)main_thread_should_exit, (int)logwriter_should_exit);
-#endif
 			/* exit only with empty buffer */
 			if (main_thread_should_exit || logwriter_should_exit) {
-#ifdef SDLOG2_DEBUG
-				printf("break logwriter thread\n");
-#endif
 				break;
 			}
 			should_wait = true;
@@ -443,10 +426,6 @@ static void *logwriter_thread(void *arg)
 
 	fsync(log_file);
 	close(log_file);
-
-#ifdef SDLOG2_DEBUG
-	printf("logwriter thread exit\n");
-#endif
 
 	return OK;
 }
@@ -604,15 +583,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		errx(1, "unable to create logging folder, exiting.");
 	}
 
-	const char *converter_in = "/etc/logging/conv.zip";
-	char* converter_out = malloc(150);
-	sprintf(converter_out, "%s/conv.zip", folder_path);
-
-	if (file_copy(converter_in, converter_out)) {
-		errx(1, "unable to copy conversion scripts, exiting.");
-	}
-	free(converter_out);
-
 	/* only print logging path, important to find log file later */
 	warnx("logging to directory: %s", folder_path);
 
@@ -622,14 +592,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	if (OK != logbuffer_init(&lb, log_buffer_size)) {
 		errx(1, "can't allocate log buffer, exiting.");
 	}
-
-	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
-	/* number of messages */
-	const ssize_t fdsc = 19;
-	/* Sanity check variable and index */
-	ssize_t fdsc_count = 0;
-	/* file descriptors to wait for */
-	struct pollfd fds[fdsc];
 
 	struct vehicle_status_s buf_status;
 	memset(&buf_status, 0, sizeof(buf_status));
@@ -655,6 +617,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct differential_pressure_s diff_pres;
 		struct airspeed_s airspeed;
 		struct esc_status_s esc;
+		struct vehicle_global_velocity_setpoint_s global_vel_sp;
 	} buf;
 	memset(&buf, 0, sizeof(buf));
 
@@ -678,6 +641,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int rc_sub;
 		int airspeed_sub;
 		int esc_sub;
+		int global_vel_sp_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -703,12 +667,21 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GPOS_s log_GPOS;
 			struct log_GPSP_s log_GPSP;
 			struct log_ESC_s log_ESC;
+			struct log_GVSP_s log_GVSP;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
 	};
 #pragma pack(pop)
 	memset(&log_msg.body, 0, sizeof(log_msg.body));
+
+	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
+	/* number of messages */
+	const ssize_t fdsc = 20;
+	/* Sanity check variable and index */
+	ssize_t fdsc_count = 0;
+	/* file descriptors to wait for */
+	struct pollfd fds[fdsc];
 
 	/* --- VEHICLE COMMAND --- */
 	subs.cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -824,6 +797,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
+	/* --- GLOBAL VELOCITY SETPOINT --- */
+	subs.global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
+	fds[fdsc_count].fd = subs.global_vel_sp_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
 	/* WARNING: If you get the error message below,
 	 * then the number of registered messages (fdsc)
 	 * differs from the number of messages in the above list.
@@ -911,13 +890,11 @@ int sdlog2_thread_main(int argc, char *argv[])
 			if (fds[ifds++].revents & POLLIN) {
 				// Don't orb_copy, it's already done few lines above
 				log_msg.msg_type = LOG_STAT_MSG;
-				log_msg.body.log_STAT.state = (unsigned char) buf_status.state_machine;
-				log_msg.body.log_STAT.flight_mode = (unsigned char) buf_status.flight_mode;
-				log_msg.body.log_STAT.manual_control_mode = (unsigned char) buf_status.manual_control_mode;
-				log_msg.body.log_STAT.manual_sas_mode = (unsigned char) buf_status.manual_sas_mode;
-				log_msg.body.log_STAT.armed = (unsigned char) buf_status.flag_system_armed;
-				log_msg.body.log_STAT.battery_voltage = buf_status.voltage_battery;
-				log_msg.body.log_STAT.battery_current = buf_status.current_battery;
+				log_msg.body.log_STAT.main_state = (unsigned char) buf_status.main_state;
+				log_msg.body.log_STAT.navigation_state = (unsigned char) buf_status.navigation_state;
+				log_msg.body.log_STAT.arming_state = (unsigned char) buf_status.arming_state;
+				log_msg.body.log_STAT.battery_voltage = buf_status.battery_voltage;
+				log_msg.body.log_STAT.battery_current = buf_status.battery_current;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 				log_msg.body.log_STAT.battery_warning = (unsigned char) buf_status.battery_warning;
 				LOGBUFFER_WRITE_AND_COUNT(STAT);
@@ -1065,10 +1042,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_LPOS.vx = buf.local_pos.vx;
 				log_msg.body.log_LPOS.vy = buf.local_pos.vy;
 				log_msg.body.log_LPOS.vz = buf.local_pos.vz;
-				log_msg.body.log_LPOS.hdg = buf.local_pos.hdg;
-				log_msg.body.log_LPOS.home_lat = buf.local_pos.home_lat;
-				log_msg.body.log_LPOS.home_lon = buf.local_pos.home_lon;
-				log_msg.body.log_LPOS.home_alt = buf.local_pos.home_alt;
+				log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat;
+				log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon;
+				log_msg.body.log_LPOS.ref_alt = buf.local_pos.ref_alt;
 				LOGBUFFER_WRITE_AND_COUNT(LPOS);
 			}
 
@@ -1175,14 +1151,18 @@ int sdlog2_thread_main(int argc, char *argv[])
 				}
 			}
 
-#ifdef SDLOG2_DEBUG
-				printf("fill rp=%i wp=%i count=%i\n", lb.read_ptr, lb.write_ptr, logbuffer_count(&lb));
-#endif
+			/* --- GLOBAL VELOCITY SETPOINT --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_global_velocity_setpoint), subs.global_vel_sp_sub, &buf.global_vel_sp);
+				log_msg.msg_type = LOG_GVSP_MSG;
+				log_msg.body.log_GVSP.vx = buf.global_vel_sp.vx;
+				log_msg.body.log_GVSP.vy = buf.global_vel_sp.vy;
+				log_msg.body.log_GVSP.vz = buf.global_vel_sp.vz;
+				LOGBUFFER_WRITE_AND_COUNT(GVSP);
+			}
+
 			/* signal the other thread new data, but not yet unlock */
 			if (logbuffer_count(&lb) > MIN_BYTES_TO_WRITE) {
-#ifdef SDLOG2_DEBUG
-				printf("signal rp=%i wp=%i count=%i\n", lb.read_ptr, lb.write_ptr, logbuffer_count(&lb));
-#endif
 				/* only request write if several packets can be written at once */
 				pthread_cond_signal(&logbuffer_cond);
 			}
@@ -1201,6 +1181,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	pthread_mutex_destroy(&logbuffer_mutex);
 	pthread_cond_destroy(&logbuffer_cond);
+
+	free(lb.data);
 
 	warnx("exiting.");
 
@@ -1265,7 +1247,7 @@ int file_copy(const char *file_old, const char *file_new)
 	fclose(source);
 	fclose(target);
 
-	return OK;
+	return ret;
 }
 
 void handle_command(struct vehicle_command_s *cmd)
@@ -1297,8 +1279,10 @@ void handle_command(struct vehicle_command_s *cmd)
 
 void handle_status(struct vehicle_status_s *status)
 {
-	if (status->flag_system_armed != flag_system_armed) {
-		flag_system_armed = status->flag_system_armed;
+	// TODO use flag from actuator_armed here?
+	bool armed = status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR;
+	if (armed != flag_system_armed) {
+		flag_system_armed = armed;
 
 		if (flag_system_armed) {
 			sdlog2_start_log();

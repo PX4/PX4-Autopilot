@@ -59,8 +59,6 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/board.h>
-
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
@@ -69,6 +67,8 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
+
+#include <board_config.h>
 
 /* Configuration Constants */
 #define MB12XX_BUS 			PX4_I2C_BUS_EXPANSION

@@ -54,12 +54,13 @@
 
 #define LED_ON			_IOC(_LED_BASE, 0)
 #define LED_OFF			_IOC(_LED_BASE, 1)
+#define LED_TOGGLE		_IOC(_LED_BASE, 2)
 
 __BEGIN_DECLS
 
 /*
  * Initialise the LED driver.
  */
-__EXPORT extern void drv_led_start(void);
+__EXPORT void drv_led_start(void);
 
 __END_DECLS

@@ -107,9 +107,6 @@ top_main(void)
 
 	float interval_time_ms_inv = 0.f;
 
-	/* Open console directly to grab CTRL-C signal */
-	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
-
 	/* clear screen */
 	printf("\033[2J");
 
@@ -256,17 +253,24 @@ top_main(void)
 		interval_start_time = new_time;
 
 		/* Sleep 200 ms waiting for user input five times ~ 1s */
-		/* XXX use poll ... */
 		for (int k = 0; k < 5; k++) {
 			char c;
 
-			if (read(console, &c, 1) == 1) {
+			struct pollfd fds;
+			int ret;
+			fds.fd = 0; /* stdin */
+			fds.events = POLLIN;
+			ret = poll(&fds, 1, 0);
+
+			if (ret > 0) {
+
+				read(0, &c, 1);
+
 				switch (c) {
 				case 0x03: // ctrl-c
 				case 0x1b: // esc
 				case 'c':
 				case 'q':
-					close(console);
 					return OK;
 					/* not reached */
 				}
@@ -277,8 +281,6 @@ top_main(void)
 
 		new_time = hrt_absolute_time();
 	}
-
-	close(console);
 
 	return OK;
 }

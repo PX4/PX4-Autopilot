@@ -50,6 +50,10 @@
 #include <mqueue.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
+#include <drivers/drv_mag.h>
+#include <drivers/drv_baro.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
@@ -67,6 +71,7 @@
 #include <systemlib/err.h>
 #include <systemlib/airspeed.h>
 #include <mavlink/mavlink_log.h>
+#include <commander/px4_custom_mode.h>
 
 __BEGIN_DECLS
 
@@ -101,6 +106,10 @@ static orb_advert_t pub_hil_global_pos = -1;
 static orb_advert_t pub_hil_attitude = -1;
 static orb_advert_t pub_hil_gps = -1;
 static orb_advert_t pub_hil_sensors = -1;
+static orb_advert_t pub_hil_gyro = -1;
+static orb_advert_t pub_hil_accel = -1;
+static orb_advert_t pub_hil_mag = -1;
+static orb_advert_t pub_hil_baro = -1;
 static orb_advert_t pub_hil_airspeed = -1;
 
 static orb_advert_t cmd_pub = -1;
@@ -188,9 +197,11 @@ handle_message(mavlink_message_t *msg)
 		mavlink_set_mode_t new_mode;
 		mavlink_msg_set_mode_decode(msg, &new_mode);
 
+		union px4_custom_mode custom_mode;
+		custom_mode.data = new_mode.custom_mode;
 		/* Copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 		vcmd.param1 = new_mode.base_mode;
-		vcmd.param2 = new_mode.custom_mode;
+		vcmd.param2 = custom_mode.main_mode;
 		vcmd.param3 = 0;
 		vcmd.param4 = 0;
 		vcmd.param5 = 0;
@@ -412,12 +423,12 @@ handle_message(mavlink_message_t *msg)
 
 			/* airspeed from differential pressure, ambient pressure and temp */
 			struct airspeed_s airspeed;
-			airspeed.timestamp = hrt_absolute_time();
 
 			float ias = calc_indicated_airspeed(imu.diff_pressure);
 			// XXX need to fix this
 			float tas = ias;
 
+			airspeed.timestamp = hrt_absolute_time();
 			airspeed.indicated_airspeed_m_s = ias;
 			airspeed.true_airspeed_m_s = tas;
 
@@ -428,7 +439,67 @@ handle_message(mavlink_message_t *msg)
 			}
 			//warnx("SENSOR: IAS: %6.2f TAS: %6.2f", airspeed.indicated_airspeed_m_s, airspeed.true_airspeed_m_s);
 
-			/* publish */
+			/* individual sensor publications */
+			struct gyro_report gyro;
+			gyro.x_raw = imu.xgyro / mrad2rad;
+			gyro.y_raw = imu.ygyro / mrad2rad;
+			gyro.z_raw = imu.zgyro / mrad2rad;
+			gyro.x = imu.xgyro;
+			gyro.y = imu.ygyro;
+			gyro.z = imu.zgyro;
+			gyro.temperature = imu.temperature;
+			gyro.timestamp = hrt_absolute_time();
+
+			if (pub_hil_gyro < 0) {
+				pub_hil_gyro = orb_advertise(ORB_ID(sensor_gyro), &gyro);
+			} else {
+				orb_publish(ORB_ID(sensor_gyro), pub_hil_gyro, &gyro);
+			}
+
+			struct accel_report accel;
+			accel.x_raw = imu.xacc / mg2ms2;
+			accel.y_raw = imu.yacc / mg2ms2;
+			accel.z_raw = imu.zacc / mg2ms2;
+			accel.x = imu.xacc;
+			accel.y = imu.yacc;
+			accel.z = imu.zacc;
+			accel.temperature = imu.temperature;
+			accel.timestamp = hrt_absolute_time();
+
+			if (pub_hil_accel < 0) {
+				pub_hil_accel = orb_advertise(ORB_ID(sensor_accel), &accel);
+			} else {
+				orb_publish(ORB_ID(sensor_accel), pub_hil_accel, &accel);
+			}
+
+			struct mag_report mag;
+			mag.x_raw = imu.xmag / mga2ga;
+			mag.y_raw = imu.ymag / mga2ga;
+			mag.z_raw = imu.zmag / mga2ga;
+			mag.x = imu.xmag;
+			mag.y = imu.ymag;
+			mag.z = imu.zmag;
+			mag.timestamp = hrt_absolute_time();
+
+			if (pub_hil_mag < 0) {
+				pub_hil_mag = orb_advertise(ORB_ID(sensor_mag), &mag);
+			} else {
+				orb_publish(ORB_ID(sensor_mag), pub_hil_mag, &mag);
+			}
+
+			struct baro_report baro;
+			baro.pressure = imu.abs_pressure;
+			baro.altitude = imu.pressure_alt;
+			baro.temperature = imu.temperature;
+			baro.timestamp = hrt_absolute_time();
+
+			if (pub_hil_baro < 0) {
+				pub_hil_baro = orb_advertise(ORB_ID(sensor_baro), &baro);
+			} else {
+				orb_publish(ORB_ID(sensor_baro), pub_hil_baro, &baro);
+			}
+
+			/* publish combined sensor topic */
 			if (pub_hil_sensors > 0) {
 				orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
 			} else {
@@ -551,6 +622,22 @@ handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
 			} else {
 				pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
+			}
+
+			struct accel_report accel;
+			accel.x_raw = hil_state.xacc / 9.81f * 1e3f;
+			accel.y_raw = hil_state.yacc / 9.81f * 1e3f;
+			accel.z_raw = hil_state.zacc / 9.81f * 1e3f;
+			accel.x = hil_state.xacc;
+			accel.y = hil_state.yacc;
+			accel.z = hil_state.zacc;
+			accel.temperature = 25.0f;
+			accel.timestamp = hrt_absolute_time();
+
+			if (pub_hil_accel < 0) {
+				pub_hil_accel = orb_advertise(ORB_ID(sensor_accel), &accel);
+			} else {
+				orb_publish(ORB_ID(sensor_accel), pub_hil_accel, &accel);
 			}
 		}
 
