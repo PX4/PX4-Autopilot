@@ -25,7 +25,7 @@ then
 	param set RC_SCALE_YAW                3
 
 	param set SYS_AUTOCONFIG 0
-	param save /fs/microsd/params
+	param save
 fi
 
 #

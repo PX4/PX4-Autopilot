@@ -9,7 +9,7 @@ then
 	# TODO
 	
 	param set SYS_AUTOCONFIG 0
-	param save /fs/microsd/params
+	param save
 fi
  
 #
