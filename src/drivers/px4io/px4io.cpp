@@ -119,9 +119,16 @@ public:
 	/**
 	 * Initialize the PX4IO class.
 	 * 
-	 * Initialize the physical I2C interface to PX4IO. Retrieve relevant initial system parameters. Initialize PX4IO registers.
+	 * Retrieve relevant initial system parameters. Initialize PX4IO registers.
 	 */
 	virtual int		init();
+
+	/**
+	 * Detect if a PX4IO is connected.
+	 * 
+	 * Only validate if there is a PX4IO to talk to.
+	 */
+	virtual int		detect();
 
 	/**
 	 * IO Control handler.
@@ -473,6 +480,29 @@ PX4IO::~PX4IO()
 		delete _interface;
 
 	g_dev = nullptr;
+}
+
+int
+PX4IO::detect()
+{
+	int ret;
+
+	ASSERT(_task == -1);
+
+	/* do regular cdev init */
+	ret = CDev::init();
+	if (ret != OK)
+		return ret;
+
+	/* get some parameters */
+	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+	if (protocol != PX4IO_PROTOCOL_VERSION) {
+		log("protocol/firmware mismatch");
+		mavlink_log_emergency(_mavlink_fd, "[IO] protocol/firmware mismatch, abort.");
+		return -1;
+	}
+
+	return 0;
 }
 
 int
@@ -1894,6 +1924,7 @@ start(int argc, char *argv[])
 
 	if (OK != g_dev->init()) {
 		delete g_dev;
+		g_dev = nullptr;
 		errx(1, "driver init failed");
 	}
 
@@ -1917,6 +1948,35 @@ start(int argc, char *argv[])
 			g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);
 		}
 	}
+	exit(0);
+}
+
+void
+detect(int argc, char *argv[])
+{
+	if (g_dev != nullptr)
+		errx(0, "already loaded");
+
+	/* allocate the interface */
+	device::Device *interface = get_interface();
+
+	/* create the driver - it will set g_dev */
+	(void)new PX4IO(interface);
+
+	if (g_dev == nullptr)
+		errx(1, "driver alloc failed");
+
+	if (OK != g_dev->detect()) {
+		delete g_dev;
+		g_dev = nullptr;
+		errx(1, "driver detect did not succeed");
+	}
+
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
+	}
+
 	exit(0);
 }
 
@@ -2078,6 +2138,9 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start"))
 		start(argc - 1, argv + 1);
+
+	if (!strcmp(argv[1], "detect"))
+		detect(argc - 1, argv + 1);
 
 	if (!strcmp(argv[1], "update")) {
 
