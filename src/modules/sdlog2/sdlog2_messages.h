@@ -155,6 +155,7 @@ struct log_STAT_s {
 	float battery_current;
 	float battery_remaining;
 	uint8_t battery_warning;
+	uint8_t landed;
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
@@ -263,7 +264,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
-	LOG_FORMAT(STAT, "BBBfffB", "MainState,NavState,ArmState,BatV,BatC,BatRem,BatWarn"),
+	LOG_FORMAT(STAT, "BBBfffBB", "MainState,NavState,ArmState,BatV,BatC,BatRem,BatWarn,Landed"),
 	LOG_FORMAT(RC, "ffffffff", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
