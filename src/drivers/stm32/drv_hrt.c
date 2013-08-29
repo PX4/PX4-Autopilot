@@ -70,9 +70,7 @@
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
 
-#ifndef HRT_TIMER
-# error HRT_TIMER must be defined in board.h 
-#endif
+#ifdef HRT_TIMER
 
 /* HRT configuration */
 #if   HRT_TIMER == 1
@@ -907,3 +905,6 @@ hrt_latency_update(void)
 	/* catch-all at the end */
 	latency_counters[index]++;
 }
+
+
+#endif /* HRT_TIMER */

@@ -24,4 +24,9 @@ Firmware.sublime-workspace
 Images/*.bin
 Images/*.px4
 mavlink/include/mavlink/v0.9/
-NuttX
+/NuttX
+/Documentation/doxy.log
+/Documentation/html/
+/Documentation/doxygen*objdb*tmp
+.tags
+.tags_sorted_by_file

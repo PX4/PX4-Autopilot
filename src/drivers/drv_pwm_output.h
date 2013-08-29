@@ -118,11 +118,8 @@ ORB_DECLARE(output_pwm);
 /** start DSM bind */
 #define DSM_BIND_START	_IOC(_PWM_SERVO_BASE, 7)
 
-/** stop DSM bind */
-#define DSM_BIND_STOP	_IOC(_PWM_SERVO_BASE, 8)
-
 /** Power up DSM receiver */
-#define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 9)
+#define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 8)
 
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
