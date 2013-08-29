@@ -890,7 +890,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				low_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] WARNING: LOW BATTERY");
-				status.battery_warning = VEHICLE_BATTERY_WARNING_WARNING;
+				status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
 				status_changed = true;
 				battery_tune_played = false;
 			}
@@ -902,7 +902,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				critical_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] EMERGENCY: CRITICAL BATTERY");
-				status.battery_warning = VEHICLE_BATTERY_WARNING_ALERT;
+				status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
 				battery_tune_played = false;
 
 				if (armed.armed) {
@@ -1160,12 +1160,12 @@ int commander_thread_main(int argc, char *argv[])
 			if (tune_arm() == OK)
 				arm_tune_played = true;
 
-		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
+		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
 			/* play tune on battery warning */
 			if (tune_low_bat() == OK)
 				battery_tune_played = true;
 
-		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
+		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 			/* play tune on battery critical */
 			if (tune_critical_bat() == OK)
 				battery_tune_played = true;
@@ -1258,10 +1258,10 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 
 		if (armed->armed) {
 			/* armed, solid */
-			if (status->battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
+			if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
 				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_AMBER : RGBLED_COLOR_AMBER;
 
-			} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
+			} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
 
 			} else {
@@ -1272,10 +1272,10 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 
 		} else if (armed->ready_to_arm) {
 			for (i = 0; i < 3; i++) {
-				if (status->battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
+				if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
 					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_AMBER : RGBLED_COLOR_AMBER;
 
-				} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
+				} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
 
 				} else {

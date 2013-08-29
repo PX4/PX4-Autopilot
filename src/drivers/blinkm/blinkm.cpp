@@ -541,7 +541,7 @@ BlinkM::led()
 				printf("<blinkm> cells found:%d\n", num_of_cells);
 
 			} else {
-				if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
+				if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
 					/* LED Pattern for battery low warning */
 					led_color_1 = LED_YELLOW;
 					led_color_2 = LED_YELLOW;
@@ -553,7 +553,7 @@ BlinkM::led()
 					led_color_8 = LED_YELLOW;
 					led_blink = LED_BLINK;
 
-				} else if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
+				} else if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 					/* LED Pattern for battery critical alerting */
 					led_color_1 = LED_RED;
 					led_color_2 = LED_RED;
