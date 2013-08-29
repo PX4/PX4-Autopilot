@@ -153,9 +153,9 @@ enum VEHICLE_TYPE {
 };
 
 enum VEHICLE_BATTERY_WARNING {
-    VEHICLE_BATTERY_WARNING_NONE = 0,    /**< no battery low voltage warning active */
-    VEHICLE_BATTERY_WARNING_WARNING,        /**< warning of low voltage 1. stage */
-    VEHICLE_BATTERY_WARNING_ALERT            /**< alerting of low voltage 2. stage */
+    VEHICLE_BATTERY_WARNING_NONE = 0,	/**< no battery low voltage warning active */
+    VEHICLE_BATTERY_WARNING_LOW,	/**< warning of low voltage */
+    VEHICLE_BATTERY_WARNING_CRITICAL	/**< alerting of critical voltage */
 };
 
 /**
