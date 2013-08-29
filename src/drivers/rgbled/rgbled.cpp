@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -96,6 +96,11 @@ private:
 	rgbled_mode_t		_mode;
 	rgbled_pattern_t	_pattern;
 
+	float			_brightness;
+	uint8_t			_r;
+	uint8_t			_g;
+	uint8_t			_b;
+
 	bool			_should_run;
 	bool			_running;
 	int			_led_interval;
@@ -104,6 +109,7 @@ private:
 	void 			set_color(rgbled_color_t ledcolor);
 	void			set_mode(rgbled_mode_t mode);
 	void			set_pattern(rgbled_pattern_t *pattern);
+	void			set_brightness(float brightness);
 
 	static void		led_trampoline(void *arg);
 	void			led();
@@ -128,6 +134,10 @@ RGBLED::RGBLED(int bus, int rgbled) :
 	_color(RGBLED_COLOR_OFF),
 	_mode(RGBLED_MODE_OFF),
 	_running(false),
+	_brightness(1.0f),
+	_r(0),
+	_g(0),
+	_b(0),
 	_led_interval(0),
 	_counter(0)
 {
@@ -191,7 +201,6 @@ int
 RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	int ret = ENOTTY;
-
 	switch (cmd) {
 	case RGBLED_SET_RGB:
 		/* set the specified RGB values */
@@ -246,6 +255,15 @@ RGBLED::led()
 			else
 				set_on(false);
 			break;
+		case RGBLED_MODE_BREATHE:
+			if (_counter >= 30)
+				_counter = 0;
+			if (_counter <= 15) {
+				set_brightness(((float)_counter)*((float)_counter)/(15.0f*15.0f));
+			} else {
+				set_brightness(((float)(30-_counter))*((float)(30-_counter))/(15.0f*15.0f));
+			}
+			break;
 		case RGBLED_MODE_PATTERN:
 			/* don't run out of the pattern array and stop if the next frame is 0 */
 			if (_counter >= RGBLED_PATTERN_LENGTH || _pattern.duration[_counter] <= 0)
@@ -294,7 +312,7 @@ RGBLED::set_color(rgbled_color_t color) {
 		case RGBLED_COLOR_AMBER:	// amber
 			set_rgb(255,20,0);
 			break;
-		case RGBLED_COLOR_DIM_RED:		// red
+		case RGBLED_COLOR_DIM_RED:	// red
 			set_rgb(90,0,0);
 			break;
 		case RGBLED_COLOR_DIM_YELLOW:	// yellow
@@ -306,7 +324,7 @@ RGBLED::set_color(rgbled_color_t color) {
 		case RGBLED_COLOR_DIM_GREEN:	// green
 			set_rgb(0,90,0);
 			break;
-		case RGBLED_COLOR_DIM_BLUE:		// blue
+		case RGBLED_COLOR_DIM_BLUE:	// blue
 			set_rgb(0,0,90);
 			break;
 		case RGBLED_COLOR_DIM_WHITE:	// white
@@ -347,6 +365,12 @@ RGBLED::set_mode(rgbled_mode_t mode)
 			_should_run = true;
 			_led_interval = 100;
 			break;
+		case RGBLED_MODE_BREATHE:
+			_should_run = true;
+			set_on(true);
+			_counter = 0;
+			_led_interval = 1000/15;
+			break;
 		case RGBLED_MODE_PATTERN:
 			_should_run = true;
 			set_on(true);
@@ -375,6 +399,13 @@ RGBLED::set_pattern(rgbled_pattern_t *pattern)
 	memcpy(&_pattern, pattern, sizeof(rgbled_pattern_t));
 
 	set_mode(RGBLED_MODE_PATTERN);
+}
+
+void
+RGBLED::set_brightness(float brightness) {
+
+	_brightness = brightness;
+	set_rgb(_r, _g, _b);
 }
 
 int
@@ -413,7 +444,12 @@ RGBLED::set_on(bool on)
 int
 RGBLED::set_rgb(uint8_t r, uint8_t g, uint8_t b)
 {
-	const uint8_t msg[6] = { SUB_ADDR_PWM0, (uint8_t)(b*15/255), SUB_ADDR_PWM1, (uint8_t)(g*15/255), SUB_ADDR_PWM2, (uint8_t)(r*15/255)};
+	/* save the RGB values in case we want to change the brightness later */
+	_r = r;
+	_g = g;
+	_b = b;
+
+	const uint8_t msg[6] = { SUB_ADDR_PWM0, (uint8_t)((float)b/255.0f*15.0f*_brightness), SUB_ADDR_PWM1, (uint8_t)((float)g/255.0f*15.0f*_brightness), SUB_ADDR_PWM2, (uint8_t)((float)r/255.0f*15.0f*_brightness)};
 
 	return transfer(msg, sizeof(msg), nullptr, 0);
 }

@@ -689,6 +689,8 @@ int commander_thread_main(int argc, char *argv[])
 	struct subsystem_info_s info;
 	memset(&info, 0, sizeof(info));
 
+	toggle_status_leds(&status, &armed, true);
+
 	/* now initialized */
 	commander_initialized = true;
 	thread_running = true;
@@ -1252,72 +1254,45 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 
 	if (changed) {
 
-		int i;
-		rgbled_pattern_t pattern;
-		memset(&pattern, 0, sizeof(pattern));
+		/* XXX TODO blink fast when armed and serious error occurs */
 
 		if (armed->armed) {
-			/* armed, solid */
-			if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
-				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_AMBER : RGBLED_COLOR_AMBER;
-
-			} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
-				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
-
-			} else {
-				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_GREEN : RGBLED_COLOR_GREEN;
-			}
-
-			pattern.duration[0] = 1000;
-
+			rgbled_set_mode(RGBLED_MODE_ON);
 		} else if (armed->ready_to_arm) {
-			for (i = 0; i < 3; i++) {
-				if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
-					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_AMBER : RGBLED_COLOR_AMBER;
-
-				} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
-					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
-
-				} else {
-					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_GREEN : RGBLED_COLOR_GREEN;
-				}
-
-				pattern.duration[i * 2] = 200;
-
-				pattern.color[i * 2 + 1] = RGBLED_COLOR_OFF;
-				pattern.duration[i * 2 + 1] = 800;
-			}
-
-			if (status->condition_global_position_valid) {
-				pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_BLUE : RGBLED_COLOR_BLUE;
-				pattern.duration[i * 2] = 1000;
-				pattern.color[i * 2 + 1] = RGBLED_COLOR_OFF;
-				pattern.duration[i * 2 + 1] = 800;
-
-			} else {
-				for (i = 3; i < 6; i++) {
-					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_BLUE : RGBLED_COLOR_BLUE;
-					pattern.duration[i * 2] = 100;
-					pattern.color[i * 2 + 1] = RGBLED_COLOR_OFF;
-					pattern.duration[i * 2 + 1] = 100;
-				}
-
-				pattern.color[6 * 2] = RGBLED_COLOR_OFF;
-				pattern.duration[6 * 2] = 700;
-			}
-
+			rgbled_set_mode(RGBLED_MODE_BREATHE);
 		} else {
-			for (i = 0; i < 3; i++) {
-				pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
-				pattern.duration[i * 2] = 200;
-				pattern.color[i * 2 + 1] = RGBLED_COLOR_OFF;
-				pattern.duration[i * 2 + 1] = 200;
-			}
-
-			/* not ready to arm, blink at 10Hz */
+			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 		}
 
-		rgbled_set_pattern(&pattern);
+
+	}
+
+	if (status->battery_warning != VEHICLE_BATTERY_WARNING_NONE) {
+		switch (status->battery_warning) {
+			case VEHICLE_BATTERY_WARNING_LOW:
+				rgbled_set_color(RGBLED_COLOR_YELLOW);
+				break;
+			case VEHICLE_BATTERY_WARNING_CRITICAL:
+				rgbled_set_color(RGBLED_COLOR_AMBER);
+				break;
+			default:
+				break;
+		}
+	} else {
+		switch (status->main_state) {
+			case MAIN_STATE_MANUAL:
+				rgbled_set_color(RGBLED_COLOR_WHITE);
+				break;
+			case MAIN_STATE_SEATBELT:
+			case MAIN_STATE_EASY:
+				rgbled_set_color(RGBLED_COLOR_GREEN);
+				break;
+			case MAIN_STATE_AUTO:
+				rgbled_set_color(RGBLED_COLOR_BLUE);
+				break;
+			default:
+				break;
+		}
 	}
 
 	/* give system warnings on error LED, XXX maybe add memory usage warning too */
