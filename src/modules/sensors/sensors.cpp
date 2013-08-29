@@ -660,7 +660,9 @@ int
 Sensors::parameters_update()
 {
 	bool rc_valid = true;
-
+    float tmpScaleFactor = 0.0f;
+    float tmpRevFactor = 0.0f;
+    
 	/* rc values */
 	for (unsigned int i = 0; i < RC_CHANNELS_MAX; i++) {
 
@@ -670,18 +672,21 @@ Sensors::parameters_update()
 		param_get(_parameter_handles.rev[i], &(_parameters.rev[i]));
 		param_get(_parameter_handles.dz[i], &(_parameters.dz[i]));
 
-		_parameters.scaling_factor[i] = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
-
+		tmpScaleFactor = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
+		tmpRevFactor = tmpScaleFactor * _parameters.rev[i];
+        
 		/* handle blowup in the scaling factor calculation */
-		if (!isfinite(_parameters.scaling_factor[i]) ||
-		    _parameters.scaling_factor[i] * _parameters.rev[i] < 0.000001f ||
-		    _parameters.scaling_factor[i] * _parameters.rev[i] > 0.2f) {
-			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, _parameters.scaling_factor[i], (int)(_parameters.rev[i]));
+		if (!isfinite(tmpScaleFactor) ||
+		    (tmpRevFactor < 0.000001f) ||
+		    (tmpRevFactor > 0.2f) ) {
+			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, tmpScaleFactor, (int)(_parameters.rev[i]));
 			/* scaling factors do not make sense, lock them down */
-			_parameters.scaling_factor[i] = 0;
+			_parameters.scaling_factor[i] = 0.0f;
 			rc_valid = false;
 		}
-
+        else {
+            _parameters.scaling_factor[i] = tmpScaleFactor;
+        }
 	}
 
 	/* handle wrong values */
