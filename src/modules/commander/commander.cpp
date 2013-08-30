@@ -153,6 +153,7 @@ static uint64_t last_print_mode_reject_time = 0;
 /* if connected via USB */
 static bool on_usb_power = false;
 
+static float takeoff_alt = 5.0f;
 
 /* tasks waiting for low prio thread */
 typedef enum {
@@ -492,9 +493,10 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_sys_type = param_find("MAV_TYPE");
 	param_t _param_system_id = param_find("MAV_SYS_ID");
 	param_t _param_component_id = param_find("MAV_COMP_ID");
+	param_t _param_takeoff_alt = param_find("NAV_TAKEOFF_ALT");
 
 	/* welcome user */
-	warnx("[commander] starting");
+	warnx("starting");
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -733,8 +735,11 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_component_id, &(status.component_id));
 				status_changed = true;
 
-				/* Re-check RC calibration */
+				/* re-check RC calibration */
 				rc_calibration_ok = (OK == rc_calibration_check());
+
+				/* navigation parameters */
+				param_get(_param_takeoff_alt, &takeoff_alt);
 			}
 		}
 
@@ -1253,7 +1258,6 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 #endif
 
 	if (changed) {
-
 		/* XXX TODO blink fast when armed and serious error occurs */
 
 		if (armed->armed) {
@@ -1263,8 +1267,6 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 		} else {
 			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 		}
-
-
 	}
 
 	if (status->battery_warning != VEHICLE_BATTERY_WARNING_NONE) {
@@ -1455,54 +1457,52 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 
 	if (status->main_state == MAIN_STATE_AUTO) {
 		if (status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR) {
+			// TODO AUTO_LAND handling
 			if (status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 				/* don't switch to other states until takeoff not completed */
-				if (local_pos->z > -5.0f || status->condition_landed) {
-					res = TRANSITION_NOT_CHANGED;
+				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+					return TRANSITION_NOT_CHANGED;
 				}
 			}
-
-			if (res != TRANSITION_NOT_CHANGED) {
-				/* check again, state can be changed */
-				if (status->condition_landed) {
-					/* if landed: transitions only to AUTO_READY are allowed */
-					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_READY, control_mode);
-					// TRANSITION_DENIED is not possible here
+			if (status->navigation_state != NAVIGATION_STATE_AUTO_TAKEOFF &&
+				status->navigation_state != NAVIGATION_STATE_AUTO_LOITER &&
+				status->navigation_state != NAVIGATION_STATE_AUTO_MISSION &&
+				status->navigation_state != NAVIGATION_STATE_AUTO_RTL) {
+				/* possibly on ground, switch to TAKEOFF if needed */
+				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_TAKEOFF, control_mode);
+					return res;
+				}
+			}
+			/* switch to AUTO mode */
+			if (status->rc_signal_found_once && !status->rc_signal_lost) {
+				/* act depending on switches when manual control enabled */
+				if (status->return_switch == RETURN_SWITCH_RETURN) {
+					/* RTL */
+					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_RTL, control_mode);
 
 				} else {
-					/* not landed */
-					if (status->rc_signal_found_once && !status->rc_signal_lost) {
-						/* act depending on switches when manual control enabled */
-						if (status->return_switch == RETURN_SWITCH_RETURN) {
-							/* RTL */
-							res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_RTL, control_mode);
-
-						} else {
-							if (status->mission_switch == MISSION_SWITCH_MISSION) {
-								/* MISSION */
-								res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
-
-							} else {
-								/* LOITER */
-								res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
-							}
-						}
+					if (status->mission_switch == MISSION_SWITCH_MISSION) {
+						/* MISSION */
+						res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
 
 					} else {
-						/* switch to MISSION in air when no RC control */
-						if (status->navigation_state == NAVIGATION_STATE_AUTO_LOITER ||
-						    status->navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
-						    status->navigation_state == NAVIGATION_STATE_AUTO_RTL ||
-						    status->navigation_state == NAVIGATION_STATE_AUTO_LAND) {
-							res = TRANSITION_NOT_CHANGED;
-
-						} else {
-							res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
-						}
+						/* LOITER */
+						res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
 					}
 				}
-			}
+			} else {
+				/* switch to MISSION when no RC control and first time in some AUTO mode  */
+				if (status->navigation_state == NAVIGATION_STATE_AUTO_LOITER ||
+					status->navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
+					status->navigation_state == NAVIGATION_STATE_AUTO_RTL ||
+					status->navigation_state == NAVIGATION_STATE_AUTO_LAND) {
+					res = TRANSITION_NOT_CHANGED;
 
+				} else {
+					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
+				}
+			}
 		} else {
 			/* disarmed, always switch to AUTO_READY */
 			res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_READY, control_mode);
