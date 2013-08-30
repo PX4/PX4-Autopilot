@@ -429,26 +429,31 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds[6].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
-				if (gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout && gps.eph_m < 4.0f) {
+				if (gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout) {
 					/* initialize reference position if needed */
 					if (!ref_xy_inited) {
-						if (ref_xy_init_start == 0) {
-							ref_xy_init_start = t;
+						/* require EPH < 10m */
+						if (gps.eph_m < 10.0f) {
+							if (ref_xy_init_start == 0) {
+								ref_xy_init_start = t;
 
-						} else if (t > ref_xy_init_start + ref_xy_init_delay) {
-							ref_xy_inited = true;
-							/* reference GPS position */
-							double lat = gps.lat * 1e-7;
-							double lon = gps.lon * 1e-7;
+							} else if (t > ref_xy_init_start + ref_xy_init_delay) {
+								ref_xy_inited = true;
+								/* reference GPS position */
+								double lat = gps.lat * 1e-7;
+								double lon = gps.lon * 1e-7;
 
-							local_pos.ref_lat = gps.lat;
-							local_pos.ref_lon = gps.lon;
-							local_pos.ref_timestamp = t;
+								local_pos.ref_lat = gps.lat;
+								local_pos.ref_lon = gps.lon;
+								local_pos.ref_timestamp = t;
 
-							/* initialize projection */
-							map_projection_init(lat, lon);
-							warnx("init GPS: lat = %.10f,  lon = %.10f", lat, lon);
-							mavlink_log_info(mavlink_fd, "[inav] init GPS: %.7f, %.7f", lat, lon);
+								/* initialize projection */
+								map_projection_init(lat, lon);
+								warnx("init GPS: lat = %.10f,  lon = %.10f", lat, lon);
+								mavlink_log_info(mavlink_fd, "[inav] init GPS: %.7f, %.7f", lat, lon);
+							}
+						} else {
+							ref_xy_init_start = 0;
 						}
 					}
 
