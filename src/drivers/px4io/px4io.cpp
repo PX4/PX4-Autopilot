@@ -890,7 +890,6 @@ PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
 int
 PX4IO::set_min_values(const uint16_t *vals, unsigned len)
 {
-	uint16_t 		regs[_max_actuators];
 
 	if (len > _max_actuators)
 		/* fail with error */
@@ -903,7 +902,6 @@ PX4IO::set_min_values(const uint16_t *vals, unsigned len)
 int
 PX4IO::set_max_values(const uint16_t *vals, unsigned len)
 {
-	uint16_t 		regs[_max_actuators];
 
 	if (len > _max_actuators)
 		/* fail with error */
@@ -1370,7 +1368,7 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 	}
 
 	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
-	if (ret != num_values) {
+	if (ret != (int)num_values) {
 		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
 		return -1;
 	}
@@ -1393,7 +1391,7 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 	}
 
 	int ret = _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
-	if (ret != num_values) {
+	if (ret != (int)num_values) {
 		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
 		return -1;
 	}
@@ -1966,16 +1964,17 @@ detect(int argc, char *argv[])
 	if (g_dev == nullptr)
 		errx(1, "driver alloc failed");
 
-	ret = g_dev->detect()
+	int ret = g_dev->detect();
 
 	delete g_dev;
 	g_dev = nullptr;
 
-	if (ret)
+	if (ret) {
 		/* nonzero, error */
 		exit(1);
-	else
+	} else {
 		exit(0);
+	}
 }
 
 void
