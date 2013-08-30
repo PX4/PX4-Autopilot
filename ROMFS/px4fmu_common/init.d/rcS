@@ -110,8 +110,12 @@ then
 	#
 	# Upgrade PX4IO firmware
 	#
-	if px4io update
+	if px4io detect
 	then
+		echo "PX4IO running, not upgrading"
+	else
+		echo "Attempting to upgrade PX4IO"
+		px4io update
 		if [ -d /fs/microsd ]
 		then
 			echo "Flashed PX4IO Firmware OK" > /fs/microsd/px4io.log
