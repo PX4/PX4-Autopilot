@@ -1966,18 +1966,16 @@ detect(int argc, char *argv[])
 	if (g_dev == nullptr)
 		errx(1, "driver alloc failed");
 
-	if (OK != g_dev->detect()) {
-		delete g_dev;
-		g_dev = nullptr;
+	ret = g_dev->detect()
+
+	delete g_dev;
+	g_dev = nullptr;
+
+	if (ret)
+		/* nonzero, error */
 		exit(1);
-	}
-
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
-
-	exit(0);
+	else
+		exit(0);
 }
 
 void
