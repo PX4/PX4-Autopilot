@@ -44,8 +44,7 @@
 #define ACCELEROMETER_CALIBRATION_H_
 
 #include <stdint.h>
-#include <uORB/topics/vehicle_status.h>
 
-void do_accel_calibration(int status_pub, struct vehicle_status_s *status, int mavlink_fd);
+int do_accel_calibration(int mavlink_fd);
 
 #endif /* ACCELEROMETER_CALIBRATION_H_ */

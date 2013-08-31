@@ -58,7 +58,7 @@
 #include <poll.h>
 
 extern "C" {
-#include <systemlib/geo/geo.h>
+#include <geo/geo.h>
 }
 
 #include "../blocks.hpp"

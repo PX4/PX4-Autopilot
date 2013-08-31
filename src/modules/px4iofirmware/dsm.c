@@ -53,13 +53,13 @@
 #define DSM_FRAME_SIZE		16		/**<DSM frame size in bytes*/
 #define DSM_FRAME_CHANNELS	7		/**<Max supported DSM channels*/
 
-static int dsm_fd = -1;				/**<File handle to the DSM UART*/
-static hrt_abstime dsm_last_rx_time;		/**<Timestamp when we last received*/
-static hrt_abstime dsm_last_frame_time;		/**<Timestamp for start of last dsm frame*/
-static uint8_t dsm_frame[DSM_FRAME_SIZE];	/**<DSM dsm frame receive buffer*/
-static unsigned dsm_partial_frame_count;	/**<Count of bytes received for current dsm frame*/
-static unsigned dsm_channel_shift;		/**<Channel resolution, 0=unknown, 1=10 bit, 2=11 bit*/
-static unsigned dsm_frame_drops;		/**<Count of incomplete DSM frames*/
+static int dsm_fd = -1;						/**< File handle to the DSM UART */
+static hrt_abstime dsm_last_rx_time;		/**< Timestamp when we last received */
+static hrt_abstime dsm_last_frame_time;		/**< Timestamp for start of last dsm frame */
+static uint8_t dsm_frame[DSM_FRAME_SIZE];	/**< DSM dsm frame receive buffer */
+static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
+static unsigned dsm_channel_shift;			/**< Channel resolution, 0=unknown, 1=10 bit, 2=11 bit */
+static unsigned dsm_frame_drops;			/**< Count of incomplete DSM frames */
 
 /**
  * Attempt to decode a single channel raw channel datum
@@ -249,6 +249,10 @@ dsm_bind(uint16_t cmd, int pulses)
 	if (dsm_fd < 0)
 		return;
 
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+	// XXX implement
+	#warning DSM BIND NOT IMPLEMENTED ON PX4IO V2
+#else
 	switch (cmd) {
 
 	case dsm_bind_power_down:
@@ -288,6 +292,7 @@ dsm_bind(uint16_t cmd, int pulses)
 		break;
 
 	}
+#endif
 }
 
 /**

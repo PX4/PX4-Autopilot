@@ -55,7 +55,7 @@
 #include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 
 #include "systemlib/systemlib.h"
 #include "systemlib/param/param.h"

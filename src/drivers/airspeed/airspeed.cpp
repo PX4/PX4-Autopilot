@@ -106,6 +106,11 @@ Airspeed::~Airspeed()
 	/* free any existing reports */
 	if (_reports != nullptr)
 		delete[] _reports;
+
+	// free perf counters
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int
@@ -146,7 +151,14 @@ out:
 int
 Airspeed::probe()
 {
-	return measure();
+	/* on initial power up the device needs more than one retry
+	   for detection. Once it is running then retries aren't
+	   needed 
+	*/
+	_retries = 4;
+	int ret = measure();
+	_retries = 2;
+	return ret;
 }
 
 int
