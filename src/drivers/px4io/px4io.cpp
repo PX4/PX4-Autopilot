@@ -497,7 +497,13 @@ PX4IO::detect()
 	/* get some parameters */
 	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
 	if (protocol != PX4IO_PROTOCOL_VERSION) {
-		log("IO not installed");
+		if (protocol == _io_reg_get_error) {
+			log("IO not installed");
+		} else {
+			log("IO version error");
+			mavlink_log_emergency(_mavlink_fd, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
+		}
+		
 		return -1;
 	}
 	log("IO found");
@@ -914,7 +920,6 @@ PX4IO::set_max_values(const uint16_t *vals, unsigned len)
 int
 PX4IO::set_idle_values(const uint16_t *vals, unsigned len)
 {
-	uint16_t 		regs[_max_actuators];
 
 	if (len > _max_actuators)
 		/* fail with error */
@@ -1612,7 +1617,7 @@ PX4IO::print_status()
 	}
 	printf("failsafe");
 	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u\n", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
+		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
 	printf("\nidle values");
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_IDLE_PWM, i));
@@ -2233,7 +2238,7 @@ px4io_main(int argc, char *argv[])
 		/* set values for first 8 channels, fill unassigned channels with 1500. */
 		uint16_t failsafe[8];
 
-		for (int i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++) {
+		for (unsigned i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++) {
 
 			/* set channel to commandline argument or to 900 for non-provided channels */
 			if (argc > i + 2) {
@@ -2265,7 +2270,7 @@ px4io_main(int argc, char *argv[])
 			/* set values for first 8 channels, fill unassigned channels with 900. */
 			uint16_t min[8];
 
-			for (int i = 0; i < sizeof(min) / sizeof(min[0]); i++)
+			for (unsigned i = 0; i < sizeof(min) / sizeof(min[0]); i++)
 			{
 				/* set channel to commanline argument or to 900 for non-provided channels */
 				if (argc > i + 2) {
@@ -2300,7 +2305,7 @@ px4io_main(int argc, char *argv[])
 			/* set values for first 8 channels, fill unassigned channels with 2100. */
 			uint16_t max[8];
 
-			for (int i = 0; i < sizeof(max) / sizeof(max[0]); i++)
+			for (unsigned i = 0; i < sizeof(max) / sizeof(max[0]); i++)
 			{
 				/* set channel to commanline argument or to 2100 for non-provided channels */
 				if (argc > i + 2) {
@@ -2335,7 +2340,7 @@ px4io_main(int argc, char *argv[])
 			/* set values for first 8 channels, fill unassigned channels with 0. */
 			uint16_t idle[8];
 
-			for (int i = 0; i < sizeof(idle) / sizeof(idle[0]); i++)
+			for (unsigned i = 0; i < sizeof(idle) / sizeof(idle[0]); i++)
 			{
 				/* set channel to commanline argument or to 0 for non-provided channels */
 				if (argc > i + 2) {
