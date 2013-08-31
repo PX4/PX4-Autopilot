@@ -252,36 +252,35 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	pid_init(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max, PID_MODE_DERIVATIV_SET, 0.02f);
 	thrust_pid_init(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 
-	int paramcheck_counter = 0;
-
 	while (!thread_should_exit) {
-		/* check parameters at 1 Hz */
-		if (++paramcheck_counter >= 50) {
-			paramcheck_counter = 0;
-			bool param_updated;
-			orb_check(param_sub, &param_updated);
 
-			if (param_updated) {
-				parameters_update(&params_h, &params);
+		bool param_updated;
+		orb_check(param_sub, &param_updated);
 
-				for (int i = 0; i < 2; i++) {
-					pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f);
-					/* use integral_limit_out = tilt_max / 2 */
-					float i_limit;
+		if (param_updated) {
+			/* clear updated flag */
+			struct parameter_update_s ps;
+			orb_copy(ORB_ID(parameter_update), param_sub, &ps);
+			/* update params */
+			parameters_update(&params_h, &params);
 
-					if (params.xy_vel_i == 0.0) {
-						i_limit = params.tilt_max / params.xy_vel_i / 2.0;
+			for (int i = 0; i < 2; i++) {
+				pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f);
+				/* use integral_limit_out = tilt_max / 2 */
+				float i_limit;
 
-					} else {
-						i_limit = 1.0f;	// not used really
-					}
+				if (params.xy_vel_i == 0.0f) {
+					i_limit = params.tilt_max / params.xy_vel_i / 2.0f;
 
-					pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, i_limit, params.tilt_max);
+				} else {
+					i_limit = 1.0f;	// not used really
 				}
 
-				pid_set_parameters(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max);
-				thrust_pid_set_parameters(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min);
+				pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, i_limit, params.tilt_max);
 			}
+
+			pid_set_parameters(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max);
+			thrust_pid_set_parameters(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min);
 		}
 
 		bool updated;
@@ -351,7 +350,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (reset_sp_z) {
 						reset_sp_z = false;
 						local_pos_sp.z = local_pos.z;
-						mavlink_log_info(mavlink_fd, "[mpc] reset alt sp: %.2f", -local_pos_sp.z);
+						mavlink_log_info(mavlink_fd, "[mpc] reset alt sp: %.2f", (double)-local_pos_sp.z);
 					}
 
 					/* move altitude setpoint with throttle stick */
@@ -377,7 +376,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						local_pos_sp.y = local_pos.y;
 						pid_reset_integral(&xy_vel_pids[0]);
 						pid_reset_integral(&xy_vel_pids[1]);
-						mavlink_log_info(mavlink_fd, "[mpc] reset pos sp: %.2f, %.2f", local_pos_sp.x, local_pos_sp.y);
+						mavlink_log_info(mavlink_fd, "[mpc] reset pos sp: %.2f, %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y);
 					}
 
 					/* move position setpoint with roll/pitch stick */
@@ -429,7 +428,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
 						reset_auto_pos = false;
-						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", local_pos_sp.x, local_pos_sp.y, -local_pos_sp.z);
+						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y, (double)-local_pos_sp.z);
 					}
 
 				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_RTL) {
@@ -444,7 +443,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						double lat_home = local_pos.ref_lat * 1e-7;
 						double lon_home = local_pos.ref_lon * 1e-7;
 						map_projection_init(lat_home, lon_home);
-						mavlink_log_info(mavlink_fd, "[mpc] local pos ref: %.7f, %.7f", lat_home, lon_home);
+						mavlink_log_info(mavlink_fd, "[mpc] local pos ref: %.7f, %.7f", (double)lat_home, (double)lon_home);
 					}
 
 					if (global_pos_sp_reproject) {
@@ -468,7 +467,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							local_pos_sp.yaw = global_pos_sp.yaw;
 							att_sp.yaw_body = global_pos_sp.yaw;
 
-							mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", sp_lat, sp_lon, local_pos_sp.x, local_pos_sp.y);
+							mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", (double)sp_lat, sp_lon, (double)local_pos_sp.x, (double)local_pos_sp.y);
 
 						} else {
 							if (!local_pos_sp_valid) {
@@ -481,7 +480,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 								local_pos_sp_valid = true;
 							}
 
-							mavlink_log_info(mavlink_fd, "[mpc] no global pos sp, loiter: %.2f, %.2f", local_pos_sp.x, local_pos_sp.y);
+							mavlink_log_info(mavlink_fd, "[mpc] no global pos sp, loiter: %.2f, %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y);
 						}
 					}
 
@@ -505,7 +504,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						/* set altitude setpoint to 5m under ground,
 						 * don't set it too deep to avoid unexpected landing in case of false "landed" signal */
 						local_pos_sp.z = 5.0f;
-						mavlink_log_info(mavlink_fd, "[mpc] landed, set alt: %.2f", -local_pos_sp.z);
+						mavlink_log_info(mavlink_fd, "[mpc] landed, set alt: %.2f", (double)-local_pos_sp.z);
 					}
 
 					reset_sp_z = true;
@@ -515,7 +514,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (reset_sp_z) {
 						reset_sp_z = false;
 						local_pos_sp.z = local_pos.z;
-						mavlink_log_info(mavlink_fd, "[mpc] set loiter alt: %.2f", -local_pos_sp.z);
+						mavlink_log_info(mavlink_fd, "[mpc] set loiter alt: %.2f", (double)-local_pos_sp.z);
 					}
 				}
 
@@ -527,7 +526,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						local_pos_sp.yaw = att.yaw;
 						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
-						mavlink_log_info(mavlink_fd, "[mpc] set loiter pos: %.2f %.2f", local_pos_sp.x, local_pos_sp.y);
+						mavlink_log_info(mavlink_fd, "[mpc] set loiter pos: %.2f %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y);
 					}
 				}
 			}
@@ -588,7 +587,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						}
 
 						thrust_pid_set_integral(&z_vel_pid, -i);
-						mavlink_log_info(mavlink_fd, "[mpc] reset hovering thrust: %.2f", i);
+						mavlink_log_info(mavlink_fd, "[mpc] reset hovering thrust: %.2f", (double)i);
 					}
 
 					thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, local_pos.vz, dt, att.R[2][2]);
