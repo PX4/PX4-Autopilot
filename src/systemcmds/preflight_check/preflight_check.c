@@ -176,15 +176,15 @@ system_eval:
 			led_toggle(leds, LED_AMBER);
 
 			if (i % 10 == 0) {
-				ioctl(buzzer, TONE_SET_ALARM, 4);
+				ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEUTRAL_TUNE);
 			} else if (i % 5 == 0) {
-				ioctl(buzzer, TONE_SET_ALARM, 2);
+				ioctl(buzzer, TONE_SET_ALARM, TONE_ERROR_TUNE);
 			}
 			usleep(100000);
 		}
 
 		/* stop alarm */
-		ioctl(buzzer, TONE_SET_ALARM, 0);
+		ioctl(buzzer, TONE_SET_ALARM, TONE_STOP_TUNE);
 
 		/* switch on leds */
 		led_on(leds, LED_BLUE);

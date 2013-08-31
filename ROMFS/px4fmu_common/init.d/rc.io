@@ -19,5 +19,5 @@ then
 	fi
 else
 	# SOS
-	tone_alarm 6
+	tone_alarm error
 fi

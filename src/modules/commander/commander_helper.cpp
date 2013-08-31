@@ -99,44 +99,44 @@ void buzzer_deinit()
 
 void tune_error()
 {
-	ioctl(buzzer, TONE_SET_ALARM, 2);
+	ioctl(buzzer, TONE_SET_ALARM, TONE_ERROR_TUNE);
 }
 
 void tune_positive()
 {
-	ioctl(buzzer, TONE_SET_ALARM, 3);
+	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_POSITIVE_TUNE);
 }
 
 void tune_neutral()
 {
-	ioctl(buzzer, TONE_SET_ALARM, 4);
+	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEUTRAL_TUNE);
 }
 
 void tune_negative()
 {
-	ioctl(buzzer, TONE_SET_ALARM, 5);
+	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEGATIVE_TUNE);
 }
 
 int tune_arm()
 {
-	return ioctl(buzzer, TONE_SET_ALARM, 12);
+	return ioctl(buzzer, TONE_SET_ALARM, TONE_ARMING_WARNING_TUNE);
 }
 
 int tune_low_bat()
 {
-	return ioctl(buzzer, TONE_SET_ALARM, 13);
+	return ioctl(buzzer, TONE_SET_ALARM, TONE_BATTERY_WARNING_SLOW_TUNE);
 }
 
 int tune_critical_bat()
 {
-	return ioctl(buzzer, TONE_SET_ALARM, 14);
+	return ioctl(buzzer, TONE_SET_ALARM, TONE_BATTERY_WARNING_FAST_TUNE);
 }
 
 
 
 void tune_stop()
 {
-	ioctl(buzzer, TONE_SET_ALARM, 0);
+	ioctl(buzzer, TONE_SET_ALARM, TONE_STOP_TUNE);
 }
 
 static int leds;
