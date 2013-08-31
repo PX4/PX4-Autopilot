@@ -115,14 +115,18 @@ then
 		echo "PX4IO running, not upgrading"
 	else
 		echo "Attempting to upgrade PX4IO"
-		px4io update
-		if [ -d /fs/microsd ]
+		if px4io update
 		then
-			echo "Flashed PX4IO Firmware OK" > /fs/microsd/px4io.log
-		fi
+			if [ -d /fs/microsd ]
+			then
+				echo "Flashed PX4IO Firmware OK" > /fs/microsd/px4io.log
+			fi
 
-		# Allow IO to safely kick back to app
-		usleep 200000
+			# Allow IO to safely kick back to app
+			usleep 200000
+		else
+			echo "No PX4IO to upgrade here"
+		fi
 	fi
 	
 	#
