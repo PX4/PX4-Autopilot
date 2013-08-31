@@ -137,7 +137,7 @@ int test_tone(int argc, char *argv[])
 		tone = atoi(argv[1]);
 
 	if (tone  == 0) {
-		result = ioctl(fd, TONE_SET_ALARM, 0);
+		result = ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
 
 		if (result < 0) {
 			printf("failed clearing alarms\n");
@@ -148,7 +148,7 @@ int test_tone(int argc, char *argv[])
 		}
 
 	} else {
-		result = ioctl(fd, TONE_SET_ALARM, 0);
+		result = ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
 
 		if (result < 0) {
 			printf("failed clearing alarms\n");

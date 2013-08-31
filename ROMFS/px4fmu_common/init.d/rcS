@@ -20,7 +20,7 @@ then
 else
 	echo "[init] no microSD card found"
 	# Play SOS
-	tone_alarm 2
+	tone_alarm error
 fi
 
 #
