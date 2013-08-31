@@ -874,7 +874,7 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 	case TONE_SET_ALARM:
 		debug("TONE_SET_ALARM %u", arg);
 
-		if (arg <= TONE_NUMBER_OF_TUNES) {
+		if (arg < TONE_NUMBER_OF_TUNES) {
 			if (arg == 0) {
 				// stop the tune
 				_tune = nullptr;
