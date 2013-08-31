@@ -42,13 +42,14 @@
  *
  * @see http://www.u-blox.com/images/downloads/Product_Docs/u-blox6_ReceiverDescriptionProtocolSpec_%28GPS.G6-SW-10018%29.pdf
  */
-
-#include <unistd.h>
-#include <stdio.h>
-#include <poll.h>
-#include <math.h>
-#include <string.h>
 #include <assert.h>
+#include <math.h>
+#include <poll.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -452,7 +453,16 @@ UBX::handle_message()
 					timeinfo.tm_min = packet->min;
 					timeinfo.tm_sec = packet->sec;
 					time_t epoch = mktime(&timeinfo);
-
+                
+#ifndef CONFIG_RTC
+                    //Since we lack a hardware RTC, set the system time clock based on GPS UTC
+                    //TODO generalize this by moving into gps.cpp? 
+                    timespec ts;
+                    ts.tv_sec = epoch;
+                    ts.tv_nsec = packet->time_nanoseconds;
+                    clock_settime(CLOCK_REALTIME,&ts);
+#endif
+                
 					_gps_position->time_gps_usec = (uint64_t)epoch * 1000000; //TODO: test this
 					_gps_position->time_gps_usec += (uint64_t)(packet->time_nanoseconds * 1e-3f);
 					_gps_position->timestamp_time = hrt_absolute_time();

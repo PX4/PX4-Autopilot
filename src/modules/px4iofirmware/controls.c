@@ -59,14 +59,14 @@ static perf_counter_t c_gather_ppm;
 void
 controls_init(void)
 {
-	/* DSM input */
+	/* DSM input (USART1) */
 	dsm_init("/dev/ttyS0");
 
-	/* S.bus input */
+	/* S.bus input (USART3) */
 	sbus_init("/dev/ttyS2");
 
 	/* default to a 1:1 input map, all enabled */
-	for (unsigned i = 0; i < MAX_CONTROL_CHANNELS; i++) {
+	for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
 
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_OPTIONS]    = 0;
@@ -124,7 +124,7 @@ controls_tick() {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
 	perf_end(c_gather_ppm);
 
-	ASSERT(r_raw_rc_count <= MAX_CONTROL_CHANNELS);
+	ASSERT(r_raw_rc_count <= PX4IO_CONTROL_CHANNELS);
 
 	/*
 	 * In some cases we may have received a frame, but input has still
@@ -197,7 +197,7 @@ controls_tick() {
 
 				/* and update the scaled/mapped version */
 				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
-				ASSERT(mapped < MAX_CONTROL_CHANNELS);
+				ASSERT(mapped < PX4IO_CONTROL_CHANNELS);
 
 				/* invert channel if pitch - pulling the lever down means pitching up by convention */
 				if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
@@ -209,7 +209,7 @@ controls_tick() {
 		}
 
 		/* set un-assigned controls to zero */
-		for (unsigned i = 0; i < MAX_CONTROL_CHANNELS; i++) {
+		for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
 			if (!(assigned_channels & (1 << i)))
 				r_rc_values[i] = 0;
 		}
@@ -321,8 +321,8 @@ ppm_input(uint16_t *values, uint16_t *num_values)
 
 		/* PPM data exists, copy it */
 		*num_values = ppm_decoded_channels;
-		if (*num_values > MAX_CONTROL_CHANNELS)
-			*num_values = MAX_CONTROL_CHANNELS;
+		if (*num_values > PX4IO_CONTROL_CHANNELS)
+			*num_values = PX4IO_CONTROL_CHANNELS;
 
 		for (unsigned i = 0; i < *num_values; i++)
 			values[i] = ppm_buffer[i];

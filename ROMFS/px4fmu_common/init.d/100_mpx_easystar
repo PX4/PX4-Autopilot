@@ -1,0 +1,68 @@
+#!nsh
+
+echo "[init] Multiplex Easystar"
+
+#
+# Load default params for this platform
+#
+if param compare SYS_AUTOCONFIG 1
+then
+	# Set all params here, then disable autoconfig
+	# TODO
+	
+	param set SYS_AUTOCONFIG 0
+	param save
+fi
+ 
+#
+# Force some key parameters to sane values
+# MAV_TYPE     1 = fixed wing
+#
+param set MAV_TYPE 1
+
+#
+# Start MAVLink (depends on orb)
+#
+mavlink start -d /dev/ttyS1 -b 57600
+usleep 5000
+
+#
+# Start and configure PX4IO interface
+#
+sh /etc/init.d/rc.io
+
+#
+# Set actuator limit to 100 Hz update (50 Hz PWM)
+px4io limit 100
+ 
+#
+# Start the commander
+#
+commander start
+ 
+#
+# Start the sensors
+#
+sh /etc/init.d/rc.sensors
+
+#
+# Start logging (depends on sensors)
+#
+sh /etc/init.d/rc.logging
+ 
+#
+# Start GPS interface
+#
+gps start
+ 
+#
+# Start the attitude and position estimator
+#
+att_pos_estimator_ekf start
+ 
+#
+# Load mixer and start controllers (depends on px4io)
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_RET.mix
+fw_att_control start
+fw_pos_control_l1 start
