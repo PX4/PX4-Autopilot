@@ -230,10 +230,14 @@ public:
 
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
+	inline const char	*name(int tune) {
+		return _tune_names[tune];
+	}
 
 private:
 	static const unsigned	_tune_max = 1024; // be reasonable about user tunes
-	static const char	* _default_tunes[TONE_NUMBER_OF_TUNES - 1];
+	const char		* _default_tunes[TONE_NUMBER_OF_TUNES];
+	const char		* _tune_names[TONE_NUMBER_OF_TUNES];
 	static const uint8_t	_note_tab[];
 
 	unsigned		_default_tune_number; // number of currently playing default tune (0 for none)
@@ -303,9 +307,6 @@ private:
 
 };
 
-// predefined tune array
-const char * ToneAlarm::_default_tunes[TONE_NUMBER_OF_TUNES - 1];
-
 // semitone offsets from C for the characters 'A'-'G'
 const uint8_t ToneAlarm::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
 
@@ -324,20 +325,20 @@ ToneAlarm::ToneAlarm() :
 {
 	// enable debug() calls
 	//_debug_enabled = true;
-	_default_tunes[TONE_STARTUP_TUNE - 1] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
-	_default_tunes[TONE_ERROR_TUNE - 1] = "MBT200a8a8a8PaaaP";					// ERROR tone
-	_default_tunes[TONE_NOTIFY_POSITIVE_TUNE - 1] = "MFT200e8a8a";					// NotifyPositive tone
-	_default_tunes[TONE_NOTIFY_NEUTRAL_TUNE - 1] = "MFT200e8e";					// NotifyNeutral tone
-	_default_tunes[TONE_NOTIFY_NEGATIVE_TUNE - 1] = "MFT200e8c8e8c8e8c8";				// NotifyNegative tone
-	_default_tunes[TONE_CHARGE_TUNE - 1] =
-		"MFT90O3C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C4"; // charge!
+	_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
+	_default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
+	_default_tunes[TONE_NOTIFY_POSITIVE_TUNE] = "MFT200e8a8a";					// Notify Positive tone
+	_default_tunes[TONE_NOTIFY_NEUTRAL_TUNE] = "MFT200e8e";						// Notify Neutral tone
+	_default_tunes[TONE_NOTIFY_NEGATIVE_TUNE] = "MFT200e8c8e8c8e8c8";				// Notify Negative tone
 #if 0 // don't include unused tunes... but keep them for nostalgic reason
-	_default_tunes[TONE_DIXIE_TUNE - 1] = "MFT60O3C32O2A32F16F16F32G32A32A+32O3C16C16C16O2A16";	// dixie
-	_default_tunes[TONE_CUCURACHA_TUNE - 1] = "MFT90O2C16C16C16F8.A8C16C16C16F8.A4P16P8";		// cucuracha 
-	_default_tunes[TONE_YANKEE_TUNE - 1] = "MNT150L8O2GGABGBADGGABL4GL8F+";				// yankee
-	_default_tunes[TONE_DAISY_TUNE - 1] =
+	_default_tunes[TONE_CHARGE_TUNE] =
+		"MFT90O3C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C16.C32C16.C32C16.C32G16.E32G16.E32G16.E32C4"; // charge!
+	_default_tunes[TONE_DIXIE_TUNE] = "MFT60O3C32O2A32F16F16F32G32A32A+32O3C16C16C16O2A16";		// dixie
+	_default_tunes[TONE_CUCURACHA_TUNE] = "MFT90O2C16C16C16F8.A8C16C16C16F8.A4P16P8";		// cucuracha 
+	_default_tunes[TONE_YANKEE_TUNE] = "MNT150L8O2GGABGBADGGABL4GL8F+";				// yankee
+	_default_tunes[TONE_DAISY_TUNE] =
 		"MFT200O3C4.O2A4.G4.F4.D8E8F8D4F8C2.O2G4.O3C4.O2A4.F4.D8E8F8G4A8G2P8";			// daisy
-	_default_tunes[TONE_WILLIAM_TELL_TUNE - 1] =
+	_default_tunes[TONE_WILLIAM_TELL_TUNE] =
 		"T200O2B4P8B16B16B4P8B16B16B8G+8E8G+8B8G+8B8O3E8"					// william tell
 		"O2B8G+8E8G+8B8G+8B8O3E8O2B4P8B16B16B4P8B16"
 		"O2B16B4P8B16B16B4P8B16B16B8B16B16B8B8B8B16"
@@ -477,9 +478,18 @@ ToneAlarm::ToneAlarm() :
 		"O3G+8O4E4P8E16E16E8E8E8E8E4P8E16E4P8O2E16"
 		"O2E2P64";
 #endif
-	_default_tunes[TONE_ARMING_WARNING_TUNE - 1] = "MNT75L1O2G";					//arming warning
-	_default_tunes[TONE_BATTERY_WARNING_SLOW_TUNE - 1] = "MBNT100a8";				//battery warning slow
-	_default_tunes[TONE_BATTERY_WARNING_FAST_TUNE - 1] = "MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8";	//battery warning fast
+	_default_tunes[TONE_ARMING_WARNING_TUNE] = "MNT75L1O2G";					//arming warning
+	_default_tunes[TONE_BATTERY_WARNING_SLOW_TUNE] = "MBNT100a8";					//battery warning slow
+	_default_tunes[TONE_BATTERY_WARNING_FAST_TUNE] = "MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8";	//battery warning fast
+
+	_tune_names[TONE_STARTUP_TUNE] = "startup";			// startup tune
+	_tune_names[TONE_ERROR_TUNE] = "error";				// ERROR tone
+	_tune_names[TONE_NOTIFY_POSITIVE_TUNE] = "positive";		// Notify Positive tone
+	_tune_names[TONE_NOTIFY_NEUTRAL_TUNE] = "neutral";		// Notify Neutral tone
+	_tune_names[TONE_NOTIFY_NEGATIVE_TUNE] = "negative";		// Notify Negative tone
+	_tune_names[TONE_ARMING_WARNING_TUNE] = "arming";		// arming warning
+	_tune_names[TONE_BATTERY_WARNING_SLOW_TUNE] = "slow_bat";	// battery warning slow
+	_tune_names[TONE_BATTERY_WARNING_FAST_TUNE] = "fast_bat";	// battery warning fast
 }
 
 ToneAlarm::~ToneAlarm()
@@ -875,16 +885,18 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 		debug("TONE_SET_ALARM %u", arg);
 
 		if (arg < TONE_NUMBER_OF_TUNES) {
-			if (arg == 0) {
+			if (arg == TONE_STOP_TUNE) {
 				// stop the tune
 				_tune = nullptr;
 				_next = nullptr;
+				_repeat = false;
+				_default_tune_number = 0;
 			} else {
 				/* always interrupt alarms, unless they are repeating and already playing */
 				if (!(_repeat && _default_tune_number == arg)) {
 					/* play the selected tune */
 					_default_tune_number = arg;
-					start_tune(_default_tunes[arg - 1]);
+					start_tune(_default_tunes[arg]);
 				}
 			}
 		} else {
@@ -1008,22 +1020,30 @@ tone_alarm_main(int argc, char *argv[])
 		}
 	}
 
-	if ((argc > 1) && !strcmp(argv[1], "start"))
-		play_tune(TONE_STARTUP_TUNE);
+	if (argc > 1) {
+		if (!strcmp(argv[1], "start"))
+			play_tune(TONE_STARTUP_TUNE);
 
-	if ((argc > 1) && !strcmp(argv[1], "stop"))
-		play_tune(TONE_STOP_TUNE);
+		if (!strcmp(argv[1], "stop"))
+			play_tune(TONE_STOP_TUNE);
 
-	if ((tune = strtol(argv[1], nullptr, 10)) != 0)
-		play_tune(tune);
+		if ((tune = strtol(argv[1], nullptr, 10)) != 0)
+			play_tune(tune);
 
-	/* if it looks like a PLAY string... */
-	if (strlen(argv[1]) > 2) {
-		const char *str = argv[1];
-		if (str[0] == 'M') {
-			play_string(str);
+		/* It might be a tune name */
+		for (tune = 1; tune < TONE_NUMBER_OF_TUNES; tune++)
+			if (!strcmp(g_dev->name(tune), argv[1]))
+				play_tune(tune);
+
+		/* if it looks like a PLAY string... */
+		if (strlen(argv[1]) > 2) {
+			const char *str = argv[1];
+			if (str[0] == 'M') {
+				play_string(str);
+			}
 		}
+
 	}
 
-	errx(1, "unrecognised command, try 'start', 'stop' or an alarm number");
+	errx(1, "unrecognised command, try 'start', 'stop' or an alarm number or name");
 }
