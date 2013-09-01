@@ -516,7 +516,7 @@ void mavlink_update_system(void)
 int mavlink_thread_main(int argc, char *argv[])
 {
 	/* initialize mavlink text message buffering */
-	mavlink_logbuffer_init(&lb, 2);
+	mavlink_logbuffer_init(&lb, 10);
 
 	int ch;
 	char *device_name = "/dev/ttyS1";
