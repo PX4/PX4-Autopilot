@@ -60,12 +60,12 @@ int do_gyro_calibration(int mavlink_fd)
 {
 	mavlink_log_info(mavlink_fd, "Gyro calibration starting, do not move unit.");
 
-	const int calibration_count = 5000;
+	const unsigned calibration_count = 5000;
 
 	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
 	struct sensor_combined_s raw;
 
-	int calibration_counter = 0;
+	unsigned calibration_counter = 0;
 	float gyro_offset[3] = {0.0f, 0.0f, 0.0f};
 
 	/* set offsets to zero */
@@ -101,6 +101,8 @@ int do_gyro_calibration(int mavlink_fd)
 			gyro_offset[1] += raw.gyro_rad_s[1];
 			gyro_offset[2] += raw.gyro_rad_s[2];
 			calibration_counter++;
+			if (calibration_counter % (calibration_count / 20) == 0)
+				mavlink_log_info(mavlink_fd, "gyro cal progress <%u> percent", (calibration_counter * 100) / calibration_count);
 
 		} else {
 			poll_errcount++;
@@ -108,6 +110,7 @@ int do_gyro_calibration(int mavlink_fd)
 
 		if (poll_errcount > 1000) {
 			mavlink_log_info(mavlink_fd, "ERROR: Failed reading gyro sensor");
+			close(sub_sensor_combined);
 			return ERROR;
 		}
 	}
@@ -147,24 +150,23 @@ int do_gyro_calibration(int mavlink_fd)
 		if (save_ret != 0) {
 			warnx("WARNING: auto-save of params to storage failed");
 			mavlink_log_critical(mavlink_fd, "gyro store failed");
+			close(sub_sensor_combined);
 			return ERROR;
 		}
-
-		mavlink_log_info(mavlink_fd, "gyro calibration done");
 
 		tune_neutral();
 		/* third beep by cal end routine */
 
 	} else {
 		mavlink_log_info(mavlink_fd, "offset cal FAILED (NaN)");
+		close(sub_sensor_combined);
 		return ERROR;
 	}
 
 
 	/*** --- SCALING --- ***/
 
-	mavlink_log_info(mavlink_fd, "offset calibration finished. Rotate for scale 30x");
-	mavlink_log_info(mavlink_fd, "or do not rotate and wait for 5 seconds to skip.");
+	mavlink_log_info(mavlink_fd, "offset done. Rotate for scale 30x or wait 5s to skip.");
 	warnx("offset calibration finished. Rotate for scale 30x, or do not rotate and wait for 5 seconds to skip.");
 
 	unsigned rotations_count = 30;
@@ -187,8 +189,8 @@ int do_gyro_calibration(int mavlink_fd)
 		/* abort this loop if not rotated more than 180 degrees within 5 seconds */
 		if ((fabsf(baseline_integral / (2.0f * M_PI_F)) < 0.6f)
 			&& (hrt_absolute_time() - start_time > 5 * 1e6)) {
-			mavlink_log_info(mavlink_fd, "gyro scale calibration skipped");
-			mavlink_log_info(mavlink_fd, "gyro calibration done");
+			mavlink_log_info(mavlink_fd, "scale skipped, gyro calibration done");
+			close(sub_sensor_combined);
 			return OK;
 		}
 
@@ -281,9 +283,11 @@ int do_gyro_calibration(int mavlink_fd)
 		mavlink_log_info(mavlink_fd, "gyro calibration done");
 
 		/* third beep by cal end routine */
+		close(sub_sensor_combined);
 		return OK;
 	} else {
 		mavlink_log_info(mavlink_fd, "gyro calibration FAILED (NaN)");
+		close(sub_sensor_combined);
 		return ERROR;
 	}
 }

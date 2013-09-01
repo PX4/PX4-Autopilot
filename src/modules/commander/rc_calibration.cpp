@@ -40,6 +40,7 @@
 #include "commander_helper.h"
 
 #include <poll.h>
+#include <unistd.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <mavlink/mavlink_log.h>
@@ -80,9 +81,11 @@ int do_rc_calibration(int mavlink_fd)
 
 	if (save_ret != 0) {
 		mavlink_log_critical(mavlink_fd, "TRIM CAL: WARN: auto-save of params failed");
+		close(sub_man);
 		return ERROR;
 	}
 
 	mavlink_log_info(mavlink_fd, "trim calibration done");
+	close(sub_man);
 	return OK;
 }

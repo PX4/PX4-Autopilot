@@ -85,6 +85,7 @@ int do_airspeed_calibration(int mavlink_fd)
 		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
 			mavlink_log_info(mavlink_fd, "airspeed calibration aborted");
+			close(diff_pres_sub);
 			return ERROR;
 		}
 	}
@@ -95,6 +96,7 @@ int do_airspeed_calibration(int mavlink_fd)
 
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 			mavlink_log_critical(mavlink_fd, "Setting offs failed!");
+			close(diff_pres_sub);
 			return ERROR;
 		}
 
@@ -104,18 +106,17 @@ int do_airspeed_calibration(int mavlink_fd)
 		if (save_ret != 0) {
 			warn("WARNING: auto-save of params to storage failed");
 			mavlink_log_info(mavlink_fd, "FAILED storing calibration");
+			close(diff_pres_sub);
 			return ERROR;
 		}
 
-		//char buf[50];
-		//sprintf(buf, "[cmd] accel cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0], (double)accel_offset[1], (double)accel_offset[2]);
-		//mavlink_log_info(mavlink_fd, buf);
 		mavlink_log_info(mavlink_fd, "airspeed calibration done");
-
+		close(diff_pres_sub);
 		return OK;
 
 	} else {
 		mavlink_log_info(mavlink_fd, "airspeed calibration FAILED (NaN)");
+		close(diff_pres_sub);
 		return ERROR;
 	}
 }

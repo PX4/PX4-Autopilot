@@ -66,7 +66,7 @@ int rc_calibration_check(void) {
 		// 	count++;
 		// }
 
-
+	int channel_fail_count = 0;
 
 	for (int i = 0; i < RC_CHANNELS_MAX; i++) {
 		/* should the channel be enabled? */
@@ -142,7 +142,12 @@ int rc_calibration_check(void) {
 		/* sanity checks pass, enable channel */
 		if (count) {
 			mavlink_log_critical(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
+			warnx(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
 			usleep(100000);
 		}
+
+		channel_fail_count += count;
 	}
+
+	return channel_fail_count;
 }

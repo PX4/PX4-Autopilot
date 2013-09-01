@@ -142,6 +142,10 @@ int preflight_check_main(int argc, char *argv[])
 
 	bool rc_ok = (OK == rc_calibration_check());
 
+	/* warn */
+	if (!rc_ok)
+		warnx("rc calibration test failed");
+
 	/* require RC ok to keep system_ok */
 	system_ok &= rc_ok;
 
@@ -155,6 +159,9 @@ system_eval:
 		exit(0);
 	} else {
 		fflush(stdout);
+
+		warnx("PREFLIGHT CHECK ERROR! TRIGGERING ALARM");
+		fflush(stderr);
 
 		int buzzer = open("/dev/tone_alarm", O_WRONLY);
 		int leds = open(LED_DEVICE_PATH, 0);

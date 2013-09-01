@@ -241,8 +241,10 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 			break;
 
 		int orient = detect_orientation(mavlink_fd, sensor_combined_sub);
-		if (orient < 0)
+		if (orient < 0) {
+			close(sensor_combined_sub);
 			return ERROR;
+		}
 
 		if (data_collected[orient]) {
 			mavlink_log_info(mavlink_fd, "%s done, please rotate to a different axis", orientation_strs[orient]);
