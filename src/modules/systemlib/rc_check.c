@@ -112,13 +112,13 @@ int rc_calibration_check(void) {
 		}
 		if (param_trim < param_min) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM < MIN", i+1);
+			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM < MIN (%d/%d)", i+1, (int)param_trim, (int)param_min);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 		if (param_trim > param_max) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM > MAX", i+1);
+			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM > MAX (%d/%d)", i+1, (int)param_trim, (int)param_max);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
