@@ -51,6 +51,8 @@
 #include "pid.h"
 #include <math.h>
 
+#define SIGMA 0.000001f
+
 __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
 		       float limit, uint8_t mode, float dt_min)
 {
@@ -168,8 +170,8 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	// Calculate the error integral and check for saturation
 	i = pid->integral + (error * dt);
 
-	if (fabsf((error * pid->kp) + (i * pid->ki) + (d * pid->kd)) > pid->limit ||
-	    fabsf(i) > pid->intmax) {
+	if ((pid->limit > SIGMA && (fabsf((error * pid->kp) + (i * pid->ki) + (d * pid->kd)) > pid->limit)) ||
+			fabsf(i) > pid->intmax) {
 		i = pid->integral;		// If saturated then do not update integral value
 		pid->saturated = 1;
 
@@ -186,11 +188,13 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	float output = (error * pid->kp) + (i * pid->ki) + (d * pid->kd);
 
 	if (isfinite(output)) {
-		if (output > pid->limit) {
-			output = pid->limit;
+		if (pid->limit > SIGMA) {
+			if (output > pid->limit) {
+				output = pid->limit;
 
-		} else if (output < -pid->limit) {
-			output = -pid->limit;
+			} else if (output < -pid->limit) {
+				output = -pid->limit;
+			}
 		}
 
 		pid->last_output = output;
