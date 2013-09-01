@@ -730,7 +730,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					// Because proper mount of PX4 will give you a reversed accelerometer readings.
 					NonlinearSO3AHRSupdate(gyro[0],gyro[1],gyro[2],-acc[0],-acc[1],-acc[2],mag[0],mag[1],mag[2],so3_comp_params.Kp,so3_comp_params.Ki, dt);
 
-					// Convert q->R.
+					// Convert q->R, This R converts inertial frame to body frame.
 					Rot_matrix[0] = q0q0 + q1q1 - q2q2 - q3q3;// 11
         				Rot_matrix[1] = 2.0 * (q1*q2 + q0*q3);	// 12
         				Rot_matrix[2] = 2.0 * (q1*q3 - q0*q2);	// 13
@@ -794,7 +794,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					memcpy(&att.rate_offsets, &(gyro_bias), sizeof(att.rate_offsets));
 
 					/* copy rotation matrix */
-					memcpy(&att.R, Rot_matrix, sizeof(Rot_matrix));
+					memcpy(&att.R, Rot_matrix, sizeof(float)*9);
 					att.R_valid = true;
 
 					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
