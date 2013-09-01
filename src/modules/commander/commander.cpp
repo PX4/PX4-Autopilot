@@ -319,6 +319,8 @@ void print_status()
 		break;
 	}
 
+	close(state_sub);
+
 
 	warnx("arming: %s", armed_str);
 }
@@ -1763,6 +1765,8 @@ void *commander_low_prio_loop(void *arg)
 		}
 
 	}
+
+	close(cmd_sub);
 
 	return 0;
 }
