@@ -41,6 +41,7 @@
 #include <systemlib/param/param.h>
 
 struct multirotor_position_control_params {
+    float takeoff_alt;
 	float thr_min;
 	float thr_max;
 	float z_p;
@@ -63,6 +64,7 @@ struct multirotor_position_control_params {
 };
 
 struct multirotor_position_control_param_handles {
+    param_t takeoff_alt;
 	param_t thr_min;
 	param_t thr_max;
 	param_t z_p;

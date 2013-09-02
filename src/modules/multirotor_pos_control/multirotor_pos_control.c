@@ -227,7 +227,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	hrt_abstime t_prev = 0;
 	const float alt_ctl_dz = 0.2f;
 	const float pos_ctl_dz = 0.05f;
-	const float takeoff_alt_default = 10.0f;
+
 	float ref_alt = 0.0f;
 	hrt_abstime ref_alt_t = 0;
 	uint64_t local_ref_timestamp = 0;
@@ -244,6 +244,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	parameters_init(&params_h);
 	parameters_update(&params_h, &params);
 
+    
 	for (int i = 0; i < 2; i++) {
 		pid_init(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
 		pid_init(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.tilt_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
@@ -423,7 +424,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (reset_auto_pos) {
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
-						local_pos_sp.z = -takeoff_alt_default;
+						local_pos_sp.z = -params.takeoff_alt;
 						local_pos_sp.yaw = att.yaw;
 						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
