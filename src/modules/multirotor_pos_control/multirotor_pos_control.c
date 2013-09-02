@@ -424,7 +424,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (reset_auto_pos) {
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
-						local_pos_sp.z = - params.takeoff_alt - 3.0f;
+						local_pos_sp.z = - params.takeoff_alt - params.takeoff_gap;
 						local_pos_sp.yaw = att.yaw;
 						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
