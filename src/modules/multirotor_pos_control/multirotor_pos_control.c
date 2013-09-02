@@ -244,7 +244,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	parameters_init(&params_h);
 	parameters_update(&params_h, &params);
 
-    
+
 	for (int i = 0; i < 2; i++) {
 		pid_init(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
 		pid_init(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.tilt_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
@@ -351,7 +351,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (reset_sp_z) {
 						reset_sp_z = false;
 						local_pos_sp.z = local_pos.z;
-						mavlink_log_info(mavlink_fd, "[mpc] reset alt sp: %.2f", (double)-local_pos_sp.z);
+						mavlink_log_info(mavlink_fd, "[mpc] reset alt sp: %.2f", (double) - local_pos_sp.z);
 					}
 
 					/* move altitude setpoint with throttle stick */
@@ -424,12 +424,12 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (reset_auto_pos) {
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
-						local_pos_sp.z = -params.takeoff_alt;
+						local_pos_sp.z = - params.takeoff_alt - 3.0f;
 						local_pos_sp.yaw = att.yaw;
 						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
 						reset_auto_pos = false;
-						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y, (double)-local_pos_sp.z);
+						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y, (double) - local_pos_sp.z);
 					}
 
 				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_RTL) {
@@ -505,7 +505,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						/* set altitude setpoint to 5m under ground,
 						 * don't set it too deep to avoid unexpected landing in case of false "landed" signal */
 						local_pos_sp.z = 5.0f;
-						mavlink_log_info(mavlink_fd, "[mpc] landed, set alt: %.2f", (double)-local_pos_sp.z);
+						mavlink_log_info(mavlink_fd, "[mpc] landed, set alt: %.2f", (double) - local_pos_sp.z);
 					}
 
 					reset_sp_z = true;
@@ -515,7 +515,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (reset_sp_z) {
 						reset_sp_z = false;
 						local_pos_sp.z = local_pos.z;
-						mavlink_log_info(mavlink_fd, "[mpc] set loiter alt: %.2f", (double)-local_pos_sp.z);
+						mavlink_log_info(mavlink_fd, "[mpc] set loiter alt: %.2f", (double) - local_pos_sp.z);
 					}
 				}
 
