@@ -63,9 +63,8 @@ then
 	if sercon
 	then
 		echo "USB connected"
-	else
-		# second attempt
-		sercon &
+		sleep 3
+		mavlink start -d /dev/ttyACM0 -b 230400
 	fi
 	
 	#
@@ -105,7 +104,7 @@ then
 	fi
 
 	# Try to get an USB console
-	nshterm /dev/ttyACM0 &
+	#nshterm /dev/ttyACM0 &
 	
 	#
 	# Upgrade PX4IO firmware
@@ -219,5 +218,6 @@ then
 		gps start
 	
 	fi
+
 # End of autostart
 fi
