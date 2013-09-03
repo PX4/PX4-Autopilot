@@ -8,21 +8,21 @@ echo "[init] 666_fmu_q_x550: PX4FMU Quad X550 with PWM outputs"
 if param compare SYS_AUTOCONFIG 1
 then
 	# Set all params here, then disable autoconfig
-	param set MC_ATTRATE_P                0.14
-	param set MC_ATTRATE_I                0
-	param set MC_ATTRATE_D                0.006
-	param set MC_ATT_P                    5.5
-	param set MC_ATT_I                    0
-	param set MC_ATT_D                    0
-	param set MC_YAWPOS_D                 0
-	param set MC_YAWPOS_I                 0
-	param set MC_YAWPOS_P                 0.6
-	param set MC_YAWRATE_D                0
-	param set MC_YAWRATE_I                0
-	param set MC_YAWRATE_P                0.08
-	param set RC_SCALE_PITCH              1
-	param set RC_SCALE_ROLL               1
-	param set RC_SCALE_YAW                3
+	param set MC_ATTRATE_P 0.14
+	param set MC_ATTRATE_I 0
+	param set MC_ATTRATE_D 0.006
+	param set MC_ATT_P 5.5
+	param set MC_ATT_I 0
+	param set MC_ATT_D 0
+	param set MC_YAWPOS_D 0
+	param set MC_YAWPOS_I 0
+	param set MC_YAWPOS_P 0.6
+	param set MC_YAWRATE_D 0
+	param set MC_YAWRATE_I 0
+	param set MC_YAWRATE_P 0.08
+	param set RC_SCALE_PITCH 1
+	param set RC_SCALE_ROLL 1
+	param set RC_SCALE_YAW 3
 
 	param set SYS_AUTOCONFIG 0
 	param save
