@@ -158,7 +158,7 @@ class uploader(object):
         
         INFO_BL_REV     = chr(1)        # bootloader protocol revision
         BL_REV_MIN      = 2             # minimum supported bootloader protocol 
-        BL_REV_MAX      = 3             # maximum supported bootloader protocol 
+        BL_REV_MAX      = 4             # maximum supported bootloader protocol 
         INFO_BOARD_ID   = chr(2)        # board type
         INFO_BOARD_REV  = chr(3)        # board revision
         INFO_FLASH_SIZE = chr(4)        # max firmware size in bytes
