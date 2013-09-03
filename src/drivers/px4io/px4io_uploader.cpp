@@ -110,6 +110,10 @@ PX4IO_Uploader::upload(const char *filenames[])
 		return -errno;
 	}
 
+	/* save initial uart configuration to reset after the update */
+	struct termios t_original;
+	tcgetattr(_io_fd, &t_original);
+
 	/* adjust line speed to match bootloader */
 	struct termios t;
 	tcgetattr(_io_fd, &t);
@@ -122,6 +126,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 	if (ret != OK) {
 		/* this is immediately fatal */
 		log("bootloader not responding");
+		tcsetattr(_io_fd, TCSANOW, &t_original);
 		close(_io_fd);
 		_io_fd = -1;
 		return -EIO;
@@ -130,6 +135,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 	struct stat st;
 	if (stat(filename, &st) != 0) {
 		log("Failed to stat %s - %d\n", filename, (int)errno);
+		tcsetattr(_io_fd, TCSANOW, &t_original);
 		close(_io_fd);
 		_io_fd = -1;
 		return -errno;
@@ -137,6 +143,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 	fw_size = st.st_size;
 
 	if (_fw_fd == -1) {
+		tcsetattr(_io_fd, TCSANOW, &t_original);
 		close(_io_fd);
 		_io_fd = -1;
 		return -ENOENT;
@@ -151,6 +158,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 			if (ret != OK) {
 				/* this is immediately fatal */
 				log("bootloader not responding");
+				tcsetattr(_io_fd, TCSANOW, &t_original);
 				close(_io_fd);
 				_io_fd = -1;
 				return -EIO;
@@ -164,6 +172,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 				log("found bootloader revision: %d", bl_rev);
 			} else {
 				log("found unsupported bootloader revision %d, exiting", bl_rev);
+				tcsetattr(_io_fd, TCSANOW, &t_original);
 				close(_io_fd);
 				_io_fd = -1;
 				return OK;
@@ -199,6 +208,9 @@ PX4IO_Uploader::upload(const char *filenames[])
 
 		if (ret != OK) {
 			log("reboot failed");
+			tcsetattr(_io_fd, TCSANOW, &t_original);
+			close(_io_fd);
+			_io_fd = -1;
 			return ret;
 		}
 
@@ -207,6 +219,9 @@ PX4IO_Uploader::upload(const char *filenames[])
 		ret = OK;
 		break;
 	}
+
+	/* reset uart to previous/default baudrate */
+	tcsetattr(_io_fd, TCSANOW, &t_original);
 
 	close(_fw_fd);
 	close(_io_fd);
