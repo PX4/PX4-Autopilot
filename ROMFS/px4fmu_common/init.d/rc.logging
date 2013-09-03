@@ -5,5 +5,10 @@
 
 if [ -d /fs/microsd ]
 then
-	sdlog start
+	if [ $BOARD == fmuv1 ]
+	then
+		sdlog2 start -r 50 -a -b 16
+	else
+		sdlog2 start -r 200 -a -b 16
+	fi
 fi

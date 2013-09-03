@@ -57,6 +57,7 @@
 #include <drivers/drv_baro.h>
 
 #include <mavlink/mavlink_log.h>
+#include <systemlib/rc_check.h>
 
 __EXPORT int preflight_check_main(int argc, char *argv[]);
 static int led_toggle(int leds, int led);
@@ -139,101 +140,11 @@ int preflight_check_main(int argc, char *argv[])
 
 	/* ---- RC CALIBRATION ---- */
 
-	param_t _parameter_handles_min, _parameter_handles_trim, _parameter_handles_max,
-	_parameter_handles_rev, _parameter_handles_dz;
+	bool rc_ok = (OK == rc_calibration_check());
 
-	float param_min, param_max, param_trim, param_rev, param_dz;
-
-	bool rc_ok = true;
-	char nbuf[20];
-
-	/* first check channel mappings */
-			/* check which map param applies */
-		// if (map_by_channel[i] >= MAX_CONTROL_CHANNELS) {
-		// 	mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MAP >= # CHANS", i+1);
-		// 	/* give system time to flush error message in case there are more */
-		// 	usleep(100000);
-		// 	count++;
-		// }
-
-	for (int i = 0; i < 12; i++) {
-		/* should the channel be enabled? */
-		uint8_t count = 0;
-
-		/* min values */
-		sprintf(nbuf, "RC%d_MIN", i + 1);
-		_parameter_handles_min = param_find(nbuf);
-		param_get(_parameter_handles_min, &param_min);
-
-		/* trim values */
-		sprintf(nbuf, "RC%d_TRIM", i + 1);
-		_parameter_handles_trim = param_find(nbuf);
-		param_get(_parameter_handles_trim, &param_trim);
-
-		/* max values */
-		sprintf(nbuf, "RC%d_MAX", i + 1);
-		_parameter_handles_max = param_find(nbuf);
-		param_get(_parameter_handles_max, &param_max);
-
-		/* channel reverse */
-		sprintf(nbuf, "RC%d_REV", i + 1);
-		_parameter_handles_rev = param_find(nbuf);
-		param_get(_parameter_handles_rev, &param_rev);
-
-		/* channel deadzone */
-		sprintf(nbuf, "RC%d_DZ", i + 1);
-		_parameter_handles_dz = param_find(nbuf);
-		param_get(_parameter_handles_dz, &param_dz);
-
-		/* assert min..center..max ordering */
-		if (param_min < 500) {
-			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MIN < 500", i+1);
-			/* give system time to flush error message in case there are more */
-			usleep(100000);
-		}
-		if (param_max > 2500) {
-			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MAX > 2500", i+1);
-			/* give system time to flush error message in case there are more */
-			usleep(100000);
-		}
-		if (param_trim < param_min) {
-			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM < MIN", i+1);
-			/* give system time to flush error message in case there are more */
-			usleep(100000);
-		}
-		if (param_trim > param_max) {
-			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM > MAX", i+1);
-			/* give system time to flush error message in case there are more */
-			usleep(100000);
-		}
-
-		/* assert deadzone is sane */
-		if (param_dz > 500) {
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_DZ > 500", i+1);
-			/* give system time to flush error message in case there are more */
-			usleep(100000);
-			count++;
-		}
-
-		/* check which map param applies */
-		// if (map_by_channel[i] >= MAX_CONTROL_CHANNELS) {
-		// 	mavlink_log_critical(mavlink_fd, "ERR: RC_%d_MAP >= # CHANS", i+1);
-		// 	/* give system time to flush error message in case there are more */
-		// 	usleep(100000);
-		// 	count++;
-		// }
-
-		/* sanity checks pass, enable channel */
-		if (count) {
-			mavlink_log_critical(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
-			usleep(100000);
-			rc_ok = false;
-		}
-	}
+	/* warn */
+	if (!rc_ok)
+		warnx("rc calibration test failed");
 
 	/* require RC ok to keep system_ok */
 	system_ok &= rc_ok;
@@ -249,6 +160,9 @@ system_eval:
 	} else {
 		fflush(stdout);
 
+		warnx("PREFLIGHT CHECK ERROR! TRIGGERING ALARM");
+		fflush(stderr);
+
 		int buzzer = open("/dev/tone_alarm", O_WRONLY);
 		int leds = open(LED_DEVICE_PATH, 0);
 
@@ -263,21 +177,21 @@ system_eval:
 		led_toggle(leds, LED_BLUE);
 
 		/* display and sound error */
-		for (int i = 0; i < 150; i++)
+		for (int i = 0; i < 50; i++)
 		{
 			led_toggle(leds, LED_BLUE);
 			led_toggle(leds, LED_AMBER);
 
 			if (i % 10 == 0) {
-				ioctl(buzzer, TONE_SET_ALARM, 4);
+				ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEUTRAL_TUNE);
 			} else if (i % 5 == 0) {
-				ioctl(buzzer, TONE_SET_ALARM, 2);
+				ioctl(buzzer, TONE_SET_ALARM, TONE_ERROR_TUNE);
 			}
 			usleep(100000);
 		}
 
 		/* stop alarm */
-		ioctl(buzzer, TONE_SET_ALARM, 0);
+		ioctl(buzzer, TONE_SET_ALARM, TONE_STOP_TUNE);
 
 		/* switch on leds */
 		led_on(leds, LED_BLUE);

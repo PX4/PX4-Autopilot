@@ -63,7 +63,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 #include <drivers/drv_hrt.h>
 
 #include <drivers/device/spi.h>
@@ -149,6 +149,17 @@
 #define MPU6000_REV_D9			0x59
 #define MPU6000_REV_D10			0x5A
 
+#define MPU6000_ACCEL_DEFAULT_RANGE_G			8
+#define MPU6000_ACCEL_DEFAULT_RATE			1000
+#define MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
+
+#define MPU6000_GYRO_DEFAULT_RANGE_G			8
+#define MPU6000_GYRO_DEFAULT_RATE			1000
+#define MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ		30
+
+#define MPU6000_DEFAULT_ONCHIP_FILTER_FREQ		42
+
+#define MPU6000_ONE_G					9.80665f
 
 class MPU6000_gyro;
 
@@ -357,12 +368,12 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_reads(0),
 	_sample_rate(1000),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read")),
-	_accel_filter_x(1000, 30),
-	_accel_filter_y(1000, 30),
-	_accel_filter_z(1000, 30),
-	_gyro_filter_x(1000, 30),
-        _gyro_filter_y(1000, 30),
-        _gyro_filter_z(1000, 30)
+	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_accel_filter_z(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_x(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_y(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ)
 {
 	// disable debug() calls
 	_debug_enabled = false;
@@ -485,14 +496,13 @@ void MPU6000::reset()
 	up_udelay(1000);
 
 	// SAMPLE RATE
-	//write_reg(MPUREG_SMPLRT_DIV, 0x04);     // Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
-	_set_sample_rate(_sample_rate); // default sample rate = 200Hz
+	_set_sample_rate(_sample_rate);
 	usleep(1000);
 
 	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
 	// was 90 Hz, but this ruins quality and does not improve the
 	// system response
-	_set_dlpf_filter(42);
+	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
 	usleep(1000);
 	// Gyro scale 2000 deg/s ()
 	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
@@ -535,8 +545,8 @@ void MPU6000::reset()
 
 	// Correct accel scale factors of 4096 LSB/g
 	// scale to m/s^2 ( 1g = 9.81 m/s^2)
-	_accel_range_scale = (9.81f / 4096.0f);
-	_accel_range_m_s2 = 8.0f * 9.81f;
+	_accel_range_scale = (MPU6000_ONE_G / 4096.0f);
+	_accel_range_m_s2 = 8.0f * MPU6000_ONE_G;
 
 	usleep(1000);
 
@@ -777,9 +787,10 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 				/* set default/max polling rate */
 			case SENSOR_POLLRATE_MAX:
+				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
+
 			case SENSOR_POLLRATE_DEFAULT:
-				/* set to same as sample rate per default */
-				return ioctl(filp, SENSORIOCSPOLLRATE, _sample_rate);
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU6000_ACCEL_DEFAULT_RATE);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -867,9 +878,9 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		// XXX decide on relationship of both filters
 		// i.e. disable the on-chip filter
 		//_set_dlpf_filter((uint16_t)arg);
-                _accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-                _accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
-                _accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_accel_filter_x.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_accel_filter_y.set_cutoff_frequency(1.0e6f / _call_interval, arg);
+		_accel_filter_z.set_cutoff_frequency(1.0e6f / _call_interval, arg);
 		return OK;
 
 	case ACCELIOCSSCALE:
@@ -897,7 +908,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		// _accel_range_m_s2 = 8.0f * 9.81f;
 		return -EINVAL;
 	case ACCELIOCGRANGE:
-		return _accel_range_m_s2;
+		return (unsigned long)((_accel_range_m_s2)/MPU6000_ONE_G + 0.5f);
 
 	case ACCELIOCSELFTEST:
 		return accel_self_test();
@@ -920,28 +931,28 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return ioctl(filp, cmd, arg);
 
 	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100))
-				return -EINVAL;
+		/* lower bound is mandatory, upper bound is a sanity check */
+		if ((arg < 1) || (arg > 100))
+			return -EINVAL;
 
-			/* allocate new buffer */
-			GyroReportBuffer *buf = new GyroReportBuffer(arg);
+		/* allocate new buffer */
+		GyroReportBuffer *buf = new GyroReportBuffer(arg);
 
-			if (nullptr == buf)
-				return -ENOMEM;
-			if (buf->size() == 0) {
-				delete buf;
-				return -ENOMEM;
-			}
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop();
-			delete _gyro_reports;
-			_gyro_reports = buf;
-			start();
-
-			return OK;
+		if (nullptr == buf)
+			return -ENOMEM;
+		if (buf->size() == 0) {
+			delete buf;
+			return -ENOMEM;
 		}
+
+		/* reset the measurement state machine with the new buffer, free the old */
+		stop();
+		delete _gyro_reports;
+		_gyro_reports = buf;
+		start();
+
+		return OK;
+	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _gyro_reports->size();
@@ -980,7 +991,7 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		// _gyro_range_rad_s = xx
 		return -EINVAL;
 	case GYROIOCGRANGE:
-		return _gyro_range_rad_s;
+		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
 	case GYROIOCSELFTEST:
 		return gyro_self_test();
@@ -1400,7 +1411,7 @@ test()
 	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
 	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
 	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-	      (double)(a_report.range_m_s2 / 9.81f));
+	      (double)(a_report.range_m_s2 / MPU6000_ONE_G));
 
 	/* do a simple demand read */
 	sz = read(fd_gyro, &g_report, sizeof(g_report));

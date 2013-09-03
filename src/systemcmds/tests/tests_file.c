@@ -76,9 +76,39 @@ test_file(int argc, char *argv[])
 
 	close(fd);
 
+	unlink("/fs/microsd/testfile");
+
 	warnx("512KiB in %llu microseconds", end - start);
 	perf_print_counter(wperf);
 	perf_free(wperf);
+
+	warnx("running unlink test");
+
+	/* ensure that common commands do not run against file count limits */
+	for (unsigned i = 0; i < 64; i++) {
+
+		warnx("unlink iteration #%u", i);
+
+		int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+		if (fd < 0)
+			errx(1, "failed opening test file before unlink()");
+		int ret = write(fd, buf, sizeof(buf));
+		if (ret < 0)
+			errx(1, "failed writing test file before unlink()");
+		close(fd);
+
+		ret = unlink("/fs/microsd/testfile");
+		if (ret != OK)
+			errx(1, "failed unlinking test file");
+
+		fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+		if (fd < 0)
+			errx(1, "failed opening test file after unlink()");
+		ret = write(fd, buf, sizeof(buf));
+		if (ret < 0)
+			errx(1, "failed writing test file after unlink()");
+		close(fd);
+	}
 
 	return 0;
 }
