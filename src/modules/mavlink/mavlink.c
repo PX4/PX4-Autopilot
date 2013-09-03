@@ -739,7 +739,7 @@ int mavlink_thread_main(int argc, char *argv[])
 	tcsetattr(uart, TCSANOW, &uart_config_original);
 
 	/* destroy log buffer */
-	mavlink_logbuffer_destroy(&lb);
+	//mavlink_logbuffer_destroy(&lb);
 
 	thread_running = false;
 
