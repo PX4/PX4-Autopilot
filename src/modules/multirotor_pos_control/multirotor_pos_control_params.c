@@ -59,6 +59,8 @@ PARAM_DEFINE_FLOAT(MPC_TILT_MAX, 0.5f);
 
 int parameters_init(struct multirotor_position_control_param_handles *h)
 {
+	h->takeoff_alt = param_find("NAV_TAKEOFF_ALT");
+	h->takeoff_gap = param_find("NAV_TAKEOFF_GAP");
 	h->thr_min 	=	param_find("MPC_THR_MIN");
 	h->thr_max 	=	param_find("MPC_THR_MAX");
 	h->z_p 	=	param_find("MPC_Z_P");
@@ -84,6 +86,8 @@ int parameters_init(struct multirotor_position_control_param_handles *h)
 
 int parameters_update(const struct multirotor_position_control_param_handles *h, struct multirotor_position_control_params *p)
 {
+	param_get(h->takeoff_alt, &(p->takeoff_alt));
+	param_get(h->takeoff_gap, &(p->takeoff_gap));
 	param_get(h->thr_min, &(p->thr_min));
 	param_get(h->thr_max, &(p->thr_max));
 	param_get(h->z_p, &(p->z_p));
