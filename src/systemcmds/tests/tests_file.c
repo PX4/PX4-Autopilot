@@ -52,6 +52,8 @@
 int
 test_file(int argc, char *argv[])
 {
+	const iterations = 10;
+
 	/* check if microSD card is mounted */
 	struct stat buffer;
 	if (stat("/fs/microsd/", &buffer)) {
@@ -67,7 +69,43 @@ test_file(int argc, char *argv[])
 	memset(buf, 0, sizeof(buf));
 
 	start = hrt_absolute_time();
-	for (unsigned i = 0; i < 1024; i++) {
+	for (unsigned i = 0; i < iterations; i++) {
+		perf_begin(wperf);
+		write(fd, buf, sizeof(buf));
+		perf_end(wperf);
+	}
+	end = hrt_absolute_time();
+
+	close(fd);
+
+	warnx("%dKiB in %llu microseconds", iterations / 2, end - start);
+	perf_print_counter(wperf);
+	perf_free(wperf);
+
+	return 0;
+}
+#if 0
+int
+test_file(int argc, char *argv[])
+{
+	const iterations = 1024;
+
+	/* check if microSD card is mounted */
+	struct stat buffer;
+	if (stat("/fs/microsd/", &buffer)) {
+		warnx("no microSD card mounted, aborting file test");
+		return 1;
+	}
+
+	uint8_t buf[512];
+	hrt_abstime start, end;
+	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes");
+
+	int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+	memset(buf, 0, sizeof(buf));
+
+	start = hrt_absolute_time();
+	for (unsigned i = 0; i < iterations; i++) {
 		perf_begin(wperf);
 		write(fd, buf, sizeof(buf));
 		perf_end(wperf);
@@ -78,7 +116,7 @@ test_file(int argc, char *argv[])
 
 	unlink("/fs/microsd/testfile");
 
-	warnx("512KiB in %llu microseconds", end - start);
+	warnx("%dKiB in %llu microseconds", iterations / 2, end - start);
 	perf_print_counter(wperf);
 	perf_free(wperf);
 
@@ -112,3 +150,4 @@ test_file(int argc, char *argv[])
 
 	return 0;
 }
+#endif
