@@ -51,7 +51,7 @@ __EXPORT void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size)
 	lb->size  = size;
 	lb->start = 0;
 	lb->count = 0;
-	lb->elems = (struct mavlink_logmessage *)calloc(lb->size, sizeof(struct mavlink_logmessage));
+	lb->elems = calloc(lb->size, sizeof(struct mavlink_logmessage));
 }
 
 __EXPORT void mavlink_logbuffer_destroy(struct mavlink_logbuffer *lb)
