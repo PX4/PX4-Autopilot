@@ -152,7 +152,7 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 }
 
 void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-			      const float rates[], struct actuator_controls_s *actuators)
+			      const float rates[], struct actuator_controls_s *actuators, bool reset_integral)
 {
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
@@ -193,10 +193,11 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		pid_set_parameters(&roll_rate_controller,  p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f);
 	}
 
-	/* reset integral if on ground */
-	if (rate_sp->thrust < 0.01f) {
+	/* reset integrals if needed */
+	if (reset_integral) {
 		pid_reset_integral(&pitch_rate_controller);
 		pid_reset_integral(&roll_rate_controller);
+		// TODO pid_reset_integral(&yaw_rate_controller);
 	}
 
 	/* control pitch (forward) output */

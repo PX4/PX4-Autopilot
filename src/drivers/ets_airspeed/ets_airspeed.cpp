@@ -59,7 +59,7 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>

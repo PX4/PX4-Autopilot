@@ -51,6 +51,7 @@
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_armed.h>
 #include <poll.h>
 #include <drivers/drv_gpio.h>
 #include <modules/px4iofirmware/protocol.h>
@@ -62,6 +63,8 @@ struct gpio_led_s {
 	int pin;
 	struct vehicle_status_s status;
 	int vehicle_status_sub;
+	struct actuator_armed_s armed;
+	int actuator_armed_sub;
 	bool led_state;
 	int counter;
 };
@@ -109,19 +112,19 @@ int gpio_led_main(int argc, char *argv[])
 
 					} else if (!strcmp(argv[3], "a1")) {
 						use_io = true;
-						pin = PX4IO_ACC1;
+						pin = PX4IO_P_SETUP_RELAYS_ACC1;
 
 					} else if (!strcmp(argv[3], "a2")) {
 						use_io = true;
-						pin = PX4IO_ACC2;
+						pin = PX4IO_P_SETUP_RELAYS_ACC2;
 
 					} else if (!strcmp(argv[3], "r1")) {
 						use_io = true;
-						pin = PX4IO_RELAY1;
+						pin = PX4IO_P_SETUP_RELAYS_POWER1;
 
 					} else if (!strcmp(argv[3], "r2")) {
 						use_io = true;
-						pin = PX4IO_RELAY2;
+						pin = PX4IO_P_SETUP_RELAYS_POWER2;
 
 					} else {
 						errx(1, "unsupported pin: %s", argv[3]);
@@ -142,7 +145,7 @@ int gpio_led_main(int argc, char *argv[])
 				char pin_name[24];
 
 				if (use_io) {
-					if (pin & (PX4IO_ACC1 | PX4IO_ACC2)) {
+					if (pin & (PX4IO_P_SETUP_RELAYS_ACC1 | PX4IO_P_SETUP_RELAYS_ACC2)) {
 						sprintf(pin_name, "PX4IO ACC%i", (pin >> 3));
 
 					} else {
@@ -227,10 +230,15 @@ void gpio_led_cycle(FAR void *arg)
 	if (status_updated)
 		orb_copy(ORB_ID(vehicle_status), priv->vehicle_status_sub, &priv->status);
 
+	orb_check(priv->vehicle_status_sub, &status_updated);
+
+	if (status_updated)
+		orb_copy(ORB_ID(actuator_armed), priv->actuator_armed_sub, &priv->armed);
+
 	/* select pattern for current status */
 	int pattern = 0;
 
-	if (priv->status.flag_system_armed) {
+	if (priv->armed.armed) {
 		if (priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
 			pattern = 0x3f;	// ****** solid (armed)
 
@@ -239,11 +247,10 @@ void gpio_led_cycle(FAR void *arg)
 		}
 
 	} else {
-		if (priv->status.state_machine == SYSTEM_STATE_PREFLIGHT) {
+		if (priv->armed.ready_to_arm) {
 			pattern = 0x00;	// ______ off (disarmed, preflight check)
 
-		} else if (priv->status.state_machine == SYSTEM_STATE_STANDBY &&
-			   priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
+		} else if (priv->armed.ready_to_arm && priv->status.battery_warning == VEHICLE_BATTERY_WARNING_NONE) {
 			pattern = 0x38;	// ***___ slow blink (disarmed, ready)
 
 		} else {

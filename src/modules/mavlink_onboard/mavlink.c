@@ -273,18 +273,18 @@ void mavlink_update_system(void)
 }
 
 void
-get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct actuator_armed_s *armed,
+get_mavlink_mode_and_state(const struct vehicle_control_mode_s *control_mode, const struct actuator_armed_s *armed,
 	uint8_t *mavlink_state, uint8_t *mavlink_mode)
 {
 	/* reset MAVLink mode bitfield */
 	*mavlink_mode = 0;
 
 	/* set mode flags independent of system state */
-	if (v_status->flag_control_manual_enabled) {
+	if (control_mode->flag_control_manual_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 	}
 
-	if (v_status->flag_hil_enabled) {
+	if (control_mode->flag_system_hil_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
 
@@ -295,60 +295,66 @@ get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct
 		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
-	switch (v_status->state_machine) {
-	case SYSTEM_STATE_PREFLIGHT:
-		if (v_status->flag_preflight_gyro_calibration ||
-		    v_status->flag_preflight_mag_calibration ||
-		    v_status->flag_preflight_accel_calibration) {
-			*mavlink_state = MAV_STATE_CALIBRATING;
-		} else {
-			*mavlink_state = MAV_STATE_UNINIT;
-		}
-		break;
-
-	case SYSTEM_STATE_STANDBY:
-		*mavlink_state = MAV_STATE_STANDBY;
-		break;
-
-	case SYSTEM_STATE_GROUND_READY:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_MANUAL:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-		break;
-
-	case SYSTEM_STATE_STABILIZED:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
-		break;
-
-	case SYSTEM_STATE_AUTO:
-		*mavlink_state = MAV_STATE_ACTIVE;
+	if (control_mode->flag_control_velocity_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
-		break;
-
-	case SYSTEM_STATE_MISSION_ABORT:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_LANDING:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_CUTOFF:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_GROUND_ERROR:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_REBOOT:
-		*mavlink_state = MAV_STATE_POWEROFF;
-		break;
+	} else {
+		*mavlink_mode &= ~MAV_MODE_FLAG_GUIDED_ENABLED;
 	}
+
+//	switch (v_status->state_machine) {
+//	case SYSTEM_STATE_PREFLIGHT:
+//		if (v_status->flag_preflight_gyro_calibration ||
+//		    v_status->flag_preflight_mag_calibration ||
+//		    v_status->flag_preflight_accel_calibration) {
+//			*mavlink_state = MAV_STATE_CALIBRATING;
+//		} else {
+//			*mavlink_state = MAV_STATE_UNINIT;
+//		}
+//		break;
+//
+//	case SYSTEM_STATE_STANDBY:
+//		*mavlink_state = MAV_STATE_STANDBY;
+//		break;
+//
+//	case SYSTEM_STATE_GROUND_READY:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		break;
+//
+//	case SYSTEM_STATE_MANUAL:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+//		break;
+//
+//	case SYSTEM_STATE_STABILIZED:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+//		break;
+//
+//	case SYSTEM_STATE_AUTO:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+//		break;
+//
+//	case SYSTEM_STATE_MISSION_ABORT:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_EMCY_LANDING:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_EMCY_CUTOFF:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_GROUND_ERROR:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_REBOOT:
+//		*mavlink_state = MAV_STATE_POWEROFF;
+//		break;
+//	}
 
 }
 
@@ -361,7 +367,9 @@ int mavlink_thread_main(int argc, char *argv[])
 	char *device_name = "/dev/ttyS1";
 	baudrate = 57600;
 
+	/* XXX this is never written? */
 	struct vehicle_status_s v_status;
+	struct vehicle_control_mode_s control_mode;
 	struct actuator_armed_s armed;
 
 	/* work around some stupidity in task_create's argv handling */
@@ -430,19 +438,19 @@ int mavlink_thread_main(int argc, char *argv[])
 			/* translate the current system state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
 			uint8_t mavlink_mode = 0;
-			get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
+			get_mavlink_mode_and_state(&control_mode, &armed, &mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
+			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.navigation_state, mavlink_state);
 
 			/* send status (values already copied in the section above) */
 			mavlink_msg_sys_status_send(chan,
 						    v_status.onboard_control_sensors_present,
 						    v_status.onboard_control_sensors_enabled,
 						    v_status.onboard_control_sensors_health,
-						    v_status.load,
-						    v_status.voltage_battery * 1000.0f,
-						    v_status.current_battery * 1000.0f,
+						    v_status.load * 1000.0f,
+						    v_status.battery_voltage * 1000.0f,
+						    v_status.battery_current * 1000.0f,
 						    v_status.battery_remaining,
 						    v_status.drop_rate_comm,
 						    v_status.errors_comm,
