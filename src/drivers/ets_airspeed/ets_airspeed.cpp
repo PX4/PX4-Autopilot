@@ -59,7 +59,7 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
@@ -382,6 +382,10 @@ test()
 		warnx("periodic read %u", i);
 		warnx("diff pressure: %d pa", report.differential_pressure_pa);
 	}
+
+	/* reset the sensor polling to its default rate */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT))
+		errx(1, "failed to set default rate");
 
 	errx(0, "PASS");
 }

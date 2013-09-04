@@ -325,7 +325,7 @@ void KalmanNav::updatePublications()
 	_pos.vx = vN;
 	_pos.vy = vE;
 	_pos.vz = vD;
-	_pos.hdg = psi;
+	_pos.yaw = psi;
 
 	// attitude publication
 	_att.timestamp = _pubTimeStamp;

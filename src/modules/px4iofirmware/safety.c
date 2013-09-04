@@ -110,7 +110,7 @@ safety_check_button(void *arg)
 	 * state machine, keep ARM_COUNTER_THRESHOLD the same
 	 * length in all cases of the if/else struct below.
 	 */
-	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
+	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
 		(r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)) {
 
 		if (counter < ARM_COUNTER_THRESHOLD) {
@@ -118,18 +118,18 @@ safety_check_button(void *arg)
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* switch to armed state */
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_ARMED;
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 			counter++;
 		}
 
-	} else if (safety_button_pressed && (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
+	} else if (safety_button_pressed && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
 
 		if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* change to disarmed state and notify the FMU */
-			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
+			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 			counter++;
 		}
 
@@ -140,7 +140,7 @@ safety_check_button(void *arg)
 	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
 	uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
 
-	if (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) {
+	if (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
 		if (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) {
 			pattern = LED_PATTERN_IO_FMU_ARMED;
 

@@ -40,14 +40,31 @@
 #include <nuttx/config.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <getopt.h>
 
 #include <systemlib/systemlib.h>
+#include <systemlib/err.h>
 
 __EXPORT int reboot_main(int argc, char *argv[]);
 
 int reboot_main(int argc, char *argv[])
 {
-	up_systemreset();
+	int ch;
+	bool to_bootloader = false;
+
+	while ((ch = getopt(argc, argv, "b")) != -1) {
+		switch (ch) {
+		case 'b':
+			to_bootloader = true;
+			break;
+		default:
+			errx(1, "usage: reboot [-b]\n"
+				"   -b   reboot into the bootloader");
+
+		}
+	}
+
+	systemreset(to_bootloader);
 }
 
 

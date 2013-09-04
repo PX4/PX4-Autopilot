@@ -59,7 +59,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 #include <drivers/drv_hrt.h>
 
 #include "chip.h"
@@ -70,7 +70,7 @@
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
 
-#ifdef CONFIG_HRT_TIMER
+#ifdef HRT_TIMER
 
 /* HRT configuration */
 #if   HRT_TIMER == 1
@@ -155,7 +155,7 @@
 #  error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=11
 # endif
 #else
-# error HRT_TIMER must be set in board.h if CONFIG_HRT_TIMER=y
+# error HRT_TIMER must be a value between 1 and 11
 #endif
 
 /*
@@ -275,7 +275,7 @@ static void		hrt_call_invoke(void);
 /*
  * Specific registers and bits used by PPM sub-functions
  */
-#ifdef CONFIG_HRT_PPM
+#ifdef HRT_PPM_CHANNEL
 /* 
  * If the timer hardware doesn't support GTIM_CCER_CCxNP, then we will work around it.
  *
@@ -326,7 +326,7 @@ static void		hrt_call_invoke(void);
 #  define CCER_PPM	(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP) /* CC4, both edges */
 #  define CCER_PPM_FLIP	GTIM_CCER_CC4P
 # else
-#  error HRT_PPM_CHANNEL must be a value between 1 and 4 if CONFIG_HRT_PPM is set
+#  error HRT_PPM_CHANNEL must be a value between 1 and 4
 # endif
 
 /*
@@ -377,7 +377,7 @@ static void	hrt_ppm_decode(uint32_t status);
 # define CCMR1_PPM	0
 # define CCMR2_PPM	0
 # define CCER_PPM	0
-#endif /* CONFIG_HRT_PPM */
+#endif /* HRT_PPM_CHANNEL */
 
 /*
  * Initialise the timer we are going to use.
@@ -424,7 +424,7 @@ hrt_tim_init(void)
 	up_enable_irq(HRT_TIMER_VECTOR);
 }
 
-#ifdef CONFIG_HRT_PPM
+#ifdef HRT_PPM_CHANNEL
 /*
  * Handle the PPM decoder state machine.
  */
@@ -526,7 +526,7 @@ error:
 	ppm_decoded_channels = 0;
 
 }
-#endif /* CONFIG_HRT_PPM */
+#endif /* HRT_PPM_CHANNEL */
 
 /*
  * Handle the compare interupt by calling the callout dispatcher
@@ -546,7 +546,7 @@ hrt_tim_isr(int irq, void *context)
 	/* ack the interrupts we just read */
 	rSR = ~status;
 
-#ifdef CONFIG_HRT_PPM
+#ifdef HRT_PPM_CHANNEL
 
 	/* was this a PPM edge? */
 	if (status & (SR_INT_PPM | SR_OVF_PPM)) {
@@ -686,7 +686,7 @@ hrt_init(void)
 	sq_init(&callout_queue);
 	hrt_tim_init();
 
-#ifdef CONFIG_HRT_PPM
+#ifdef HRT_PPM_CHANNEL
 	/* configure the PPM input pin */
 	stm32_configgpio(GPIO_PPM_IN);
 #endif
@@ -907,4 +907,4 @@ hrt_latency_update(void)
 }
 
 
-#endif /* CONFIG_HRT_TIMER */
+#endif /* HRT_TIMER */

@@ -115,26 +115,6 @@
 #undef GPIO_USART3_RTS
 #define GPIO_USART3_RTS	0xffffffff
 
-/* 
- * High-resolution timer
- */
-#ifdef CONFIG_HRT_TIMER
-# define HRT_TIMER		1	/* use timer1 for the HRT */
-# define HRT_TIMER_CHANNEL	2	/* use capture/compare channel 2 */
-#endif
-
-/*
- * PPM
- *
- * PPM input is handled by the HRT timer.
- *
- * Pin is PA8, timer 1, channel 1
- */
-#if defined(CONFIG_HRT_TIMER) && defined (CONFIG_HRT_PPM)
-# define HRT_PPM_CHANNEL	1	/* use capture/compare channel 1 */
-# define GPIO_PPM_IN		GPIO_TIM1_CH1IN
-#endif
-
 /************************************************************************************
  * Public Data
  ************************************************************************************/
