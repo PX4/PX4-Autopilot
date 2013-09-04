@@ -165,6 +165,12 @@ class uploader(object):
 
         PROG_MULTI_MAX  = 60            # protocol max is 255, must be multiple of 4
         READ_MULTI_MAX  = 60            # protocol max is 255, something overflows with >= 64
+        
+        NSH_INIT        = bytearray(b'\x0d\x0d\x0d')
+        NSH_REBOOT_BL   = b"reboot -b\n"
+        NSH_REBOOT      = b"reboot\n"
+        MAVLINK_REBOOT_ID1 = bytearray(b'\xfe\x21\x72\xff\x00\x4c\x00\x00\x80\x3f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x48\xf0')
+        MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x80\x3f\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xd7\xac')
 
         def __init__(self, portname, baudrate):
                 # open the port, keep the default timeout short so we can poll quickly
@@ -362,6 +368,18 @@ class uploader(object):
                 print("done, rebooting.")
                 self.__reboot()
                 self.port.close()
+                
+        def send_reboot(self):
+                # try reboot via NSH first
+                self.__send(uploader.NSH_INIT)
+                self.__send(uploader.NSH_REBOOT_BL)
+                self.__send(uploader.NSH_INIT)
+                self.__send(uploader.NSH_REBOOT)
+                # then try MAVLINK command
+                self.__send(uploader.MAVLINK_REBOOT_ID1)
+                self.__send(uploader.MAVLINK_REBOOT_ID0)
+                
+                
 
 # Detect python version
 if sys.version_info[0] < 3:
@@ -414,7 +432,11 @@ while True:
                         print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
 
                 except:
-                        # most probably a timeout talking to the port, no bootloader
+                        # most probably a timeout talking to the port, no bootloader, try to reboot the board
+                        print("attempting reboot on %s..." % port)
+                        up.send_reboot()
+                        # wait for the reboot, without we might run into Serial I/O Error 5 
+                        time.sleep(1.5)
                         continue
 
                 try:
