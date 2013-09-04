@@ -78,10 +78,6 @@
 
 /* Configuration ************************************************************/
 
-#if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
-# error microSD DMA support requires CONFIG_GRAN and CONFIG_FAT_DMAMEMORY
-#endif
-
 /* Debug ********************************************************************/
 
 #ifdef CONFIG_CPP_HAVE_VARARGS
@@ -101,6 +97,11 @@
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
+
+#if defined(CONFIG_FAT_DMAMEMORY)
+# if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
+#  error microSD DMA support requires CONFIG_GRAN
+# endif
 
 static GRAN_HANDLE dma_allocator;
 
@@ -154,6 +155,12 @@ fat_dma_free(FAR void *memory, size_t size)
 {
 	gran_free(dma_allocator, memory, size);
 }
+
+#else
+
+# define dma_alloc_init()
+
+#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
