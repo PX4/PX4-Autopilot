@@ -137,31 +137,31 @@ class uploader(object):
         '''Uploads a firmware file to the PX FMU bootloader'''
 
         # protocol bytes
-        INSYNC          = chr(0x12)
-        EOC             = chr(0x20)
+        INSYNC          = b'\x12'
+        EOC             = b'\x20'
 
         # reply bytes
-        OK              = chr(0x10)
-        FAILED          = chr(0x11)
-        INVALID         = chr(0x13)     # rev3+
+        OK              = b'\x10'
+        FAILED          = b'\x11'
+        INVALID         = b'\x13'     # rev3+
 
         # command bytes
-        NOP             = chr(0x00)     # guaranteed to be discarded by the bootloader
-        GET_SYNC        = chr(0x21)
-        GET_DEVICE      = chr(0x22)
-        CHIP_ERASE      = chr(0x23)
-        CHIP_VERIFY     = chr(0x24)     # rev2 only
-        PROG_MULTI      = chr(0x27)
-        READ_MULTI      = chr(0x28)     # rev2 only
-        GET_CRC         = chr(0x29)     # rev3+
-        REBOOT          = chr(0x30)
+        NOP             = b'\x00'     # guaranteed to be discarded by the bootloader
+        GET_SYNC        = b'\x21'
+        GET_DEVICE      = b'\x22'
+        CHIP_ERASE      = b'\x23'
+        CHIP_VERIFY     = b'\x24'     # rev2 only
+        PROG_MULTI      = b'\x27'
+        READ_MULTI      = b'\x28'     # rev2 only
+        GET_CRC         = b'\x29'     # rev3+
+        REBOOT          = b'\x30'
         
-        INFO_BL_REV     = chr(1)        # bootloader protocol revision
+        INFO_BL_REV     = b'\x01'        # bootloader protocol revision
         BL_REV_MIN      = 2             # minimum supported bootloader protocol 
         BL_REV_MAX      = 4             # maximum supported bootloader protocol 
-        INFO_BOARD_ID   = chr(2)        # board type
-        INFO_BOARD_REV  = chr(3)        # board revision
-        INFO_FLASH_SIZE = chr(4)        # max firmware size in bytes
+        INFO_BOARD_ID   = b'\x02'        # board type
+        INFO_BOARD_REV  = b'\x03'        # board revision
+        INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
 
         PROG_MULTI_MAX  = 60            # protocol max is 255, must be multiple of 4
         READ_MULTI_MAX  = 60            # protocol max is 255, something overflows with >= 64
@@ -176,7 +176,7 @@ class uploader(object):
 
         def __send(self, c):
 #               print("send " + binascii.hexlify(c))
-                self.port.write(str(c))
+                self.port.write(c)
 
         def __recv(self, count=1):
                 c = self.port.read(count)
@@ -192,9 +192,9 @@ class uploader(object):
 
         def __getSync(self):
                 self.port.flush()
-                c = self.__recv()
-                if c is not self.INSYNC:
-                        raise RuntimeError("unexpected 0x%x instead of INSYNC" % ord(c))
+                c = bytes(self.__recv())
+                if c != self.INSYNC:
+                        raise RuntimeError("unexpected %s instead of INSYNC" % c)
                 c = self.__recv()
                 if c == self.INVALID:
                         raise RuntimeError("bootloader reports INVALID OPERATION")
@@ -249,17 +249,29 @@ class uploader(object):
 
         # send a PROG_MULTI command to write a collection of bytes
         def __program_multi(self, data):
-                self.__send(uploader.PROG_MULTI
-                            + chr(len(data)))
+                
+                if runningPython3 == True:
+                    length = len(data).to_bytes(1, byteorder='big')
+                else:
+                    length = chr(len(data))
+            
+                self.__send(uploader.PROG_MULTI)
+                self.__send(length)
                 self.__send(data)
                 self.__send(uploader.EOC)
                 self.__getSync()
 
         # verify multiple bytes in flash
         def __verify_multi(self, data):
-                self.__send(uploader.READ_MULTI
-                            + chr(len(data))
-                            + uploader.EOC)
+            
+                if runningPython3 == True:
+                    length = len(data).to_bytes(1, byteorder='big')
+                else:
+                    length = chr(len(data))
+                
+                self.__send(uploader.READ_MULTI)
+                self.__send(length)
+                self.__send(uploader.EOC)
                 self.port.flush()
                 programmed = self.__recv(len(data))
                 if programmed != data:
@@ -351,6 +363,11 @@ class uploader(object):
                 self.__reboot()
                 self.port.close()
 
+# Detect python version
+if sys.version_info[0] < 3:
+    runningPython3 = False
+else:
+    runningPython3 = True
 
 # Parse commandline arguments
 parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
