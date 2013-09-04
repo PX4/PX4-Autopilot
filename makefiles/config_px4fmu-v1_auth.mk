@@ -6,6 +6,7 @@
 # Use the configuration's ROMFS.
 #
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
+ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v1_default.bin
 
 #
 # Board support modules
@@ -16,7 +17,7 @@ MODULES		+= drivers/stm32/adc
 MODULES		+= drivers/stm32/tone_alarm
 MODULES		+= drivers/led
 MODULES		+= drivers/px4fmu
-MODULES		+= drivers/boards/px4fmu
+MODULES		+= drivers/boards/px4fmu-v1
 MODULES		+= drivers/ardrone_interface
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
@@ -31,6 +32,8 @@ MODULES		+= modules/sensors
 MODULES		+= systemcmds/auth
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/bl_update
+MODULES		+= systemcmds/nshterm
+
 
 #
 # General system control
@@ -49,7 +52,6 @@ MODULES		+= modules/sdlog
 #
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
-MODULES		+= modules/mathlib
 MODULES		+= modules/controllib
 MODULES		+= modules/libtomfastmath
 MODULES		+= modules/libtomcrypt
@@ -58,7 +60,12 @@ MODULES		+= modules/uORB
 #
 # Libraries
 #
-LIBRARIES	+= modules/mathlib/CMSIS
+LIBRARIES	+= lib/mathlib/CMSIS
+MODULES		+= lib/mathlib
+MODULES		+= lib/mathlib/math/filter
+#MODULES		+= lib/ecl
+MODULES		+= lib/geo
+
 
 #
 # Demo apps
