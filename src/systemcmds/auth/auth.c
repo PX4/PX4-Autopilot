@@ -235,7 +235,7 @@ void  make_public_key_from_private(rsa_key * key, char * outbuffer) {
          unsigned long outlenpem2;
          int err; 
           outlen2 = sizeof(OUTbuffer);
-          
+          outlenpem2 = sizeof(OUTPEMbuffer);
                     
          //PUBLIC
          // PK_PUBLIC means its just a public key component. 
