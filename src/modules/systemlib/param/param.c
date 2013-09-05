@@ -505,24 +505,31 @@ param_get_default_file(void)
 int
 param_save_default(void)
 {
+	int result;
+
 	/* delete the file in case it exists */
-	unlink(param_get_default_file());
+	struct stat buffer;
+	if (stat(param_get_default_file(), &buffer) == 0) {
+		result = unlink(param_get_default_file());
+		if (result != OK)
+			warnx("unlinking file %s failed.", param_get_default_file());
+	}
 
 	/* create the file */
 	int fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
 
 	if (fd < 0) {
 		warn("opening '%s' for writing failed", param_get_default_file());
-		return -1;
+		return fd;
 	}
 
-	int result = param_export(fd, false);
+	result = param_export(fd, false);
 	close(fd);
 
 	if (result != 0) {
 		warn("error exporting parameters to '%s'", param_get_default_file());
 		unlink(param_get_default_file());
-		return -2;
+		return result;
 	}
 
 	return 0;

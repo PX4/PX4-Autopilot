@@ -14,16 +14,6 @@ mavlink start -b 230400 -d /dev/ttyS1
 hil mode_pwm
 
 #
-# Load microSD params
-#
-echo "[init] loading microSD params"
-param select /fs/microsd/params
-if [ -f /fs/microsd/params ]
-then
-	param load /fs/microsd/params
-fi
-
-#
 # Force some key parameters to sane values
 # MAV_TYPE     1 = fixed wing, 2 = quadrotor, 13 = hexarotor
 #              see https://pixhawk.ethz.ch/mavlink/

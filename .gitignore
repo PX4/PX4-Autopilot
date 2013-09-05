@@ -33,3 +33,5 @@ mavlink/include/mavlink/v0.9/
 /Documentation/doxy.log
 /Documentation/html/
 /Documentation/doxygen*objdb*tmp
+.tags
+.tags_sorted_by_file

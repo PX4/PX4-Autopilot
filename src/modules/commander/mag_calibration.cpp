@@ -142,7 +142,6 @@ int do_mag_calibration(int mavlink_fd)
 			axis_index++;
 
 			mavlink_log_info(mavlink_fd, "please rotate in a figure 8 or around %c axis.", axislabels[axis_index]);
-			mavlink_log_info(mavlink_fd, "mag cal progress <%u> percent", 20 + (calibration_maxcount * 50) / calibration_counter);
 			tune_neutral();
 
 			axis_deadline += calibration_interval / 3;
@@ -151,14 +150,6 @@ int do_mag_calibration(int mavlink_fd)
 		if (!(axis_index < 3)) {
 			break;
 		}
-
-		// int axis_left = (int64_t)axis_deadline - (int64_t)hrt_absolute_time();
-
-		// if ((axis_left / 1000) == 0 && axis_left > 0) {
-		// 	char buf[50];
-		// 	sprintf(buf, "[cmd] %d seconds left for axis %c", axis_left, axislabels[axis_index]);
-		// 	mavlink_log_info(mavlink_fd, buf);
-		// }
 
 		int poll_ret = poll(fds, 1, 1000);
 
@@ -169,30 +160,10 @@ int do_mag_calibration(int mavlink_fd)
 			y[calibration_counter] = mag.y;
 			z[calibration_counter] = mag.z;
 
-			/* get min/max values */
-
-			// if (mag.x < mag_min[0]) {
-			// 	mag_min[0] = mag.x;
-			// }
-			// else if (mag.x > mag_max[0]) {
-			// 	mag_max[0] = mag.x;
-			// }
-
-			// if (raw.magnetometer_ga[1] < mag_min[1]) {
-			// 	mag_min[1] = raw.magnetometer_ga[1];
-			// }
-			// else if (raw.magnetometer_ga[1] > mag_max[1]) {
-			// 	mag_max[1] = raw.magnetometer_ga[1];
-			// }
-
-			// if (raw.magnetometer_ga[2] < mag_min[2]) {
-			// 	mag_min[2] = raw.magnetometer_ga[2];
-			// }
-			// else if (raw.magnetometer_ga[2] > mag_max[2]) {
-			// 	mag_max[2] = raw.magnetometer_ga[2];
-			// }
-
 			calibration_counter++;
+			if (calibration_counter % (calibration_maxcount / 20) == 0)
+				mavlink_log_info(mavlink_fd, "mag cal progress <%u> percent", 20 + (calibration_counter * 50) / calibration_maxcount);
+
 
 		} else {
 			poll_errcount++;
@@ -200,6 +171,10 @@ int do_mag_calibration(int mavlink_fd)
 
 		if (poll_errcount > 1000) {
 			mavlink_log_info(mavlink_fd, "ERROR: Failed reading mag sensor");
+			close(sub_mag);
+			free(x);
+			free(y);
+			free(z);
 			return ERROR;
 		}
 
@@ -211,7 +186,9 @@ int do_mag_calibration(int mavlink_fd)
 	float sphere_z;
 	float sphere_radius;
 
+	mavlink_log_info(mavlink_fd, "mag cal progress <70> percent");
 	sphere_fit_least_squares(x, y, z, calibration_counter, 100, 0.0f, &sphere_x, &sphere_y, &sphere_z, &sphere_radius);
+	mavlink_log_info(mavlink_fd, "mag cal progress <80> percent");
 
 	free(x);
 	free(y);
@@ -269,6 +246,7 @@ int do_mag_calibration(int mavlink_fd)
 		if (save_ret != 0) {
 			warn("WARNING: auto-save of params to storage failed");
 			mavlink_log_info(mavlink_fd, "FAILED storing calibration");
+			close(sub_mag);
 			return ERROR;
 		}
 
@@ -288,11 +266,13 @@ int do_mag_calibration(int mavlink_fd)
 		mavlink_log_info(mavlink_fd, "magnetometer calibration completed");
 		mavlink_log_info(mavlink_fd, "mag cal progress <100> percent");
 
+		close(sub_mag);
 		return OK;
 		/* third beep by cal end routine */
 
 	} else {
 		mavlink_log_info(mavlink_fd, "mag calibration FAILED (NaN in sphere fit)");
+		close(sub_mag);
 		return ERROR;
 	}
 }

@@ -301,6 +301,7 @@ private:
 		float accel_offset[3];
 		float accel_scale[3];
 		float diff_pres_offset_pa;
+		float diff_pres_analog_enabled;
 
 		int board_rotation;
 		int external_mag_rotation;
@@ -348,6 +349,7 @@ private:
 		param_t mag_offset[3];
 		param_t mag_scale[3];
 		param_t diff_pres_offset_pa;
+		param_t diff_pres_analog_enabled;
 
 		param_t rc_map_roll;
 		param_t rc_map_pitch;
@@ -617,6 +619,7 @@ Sensors::Sensors() :
 
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
+	_parameter_handles.diff_pres_analog_enabled = param_find("SENS_DPRES_ANA");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
@@ -657,7 +660,9 @@ int
 Sensors::parameters_update()
 {
 	bool rc_valid = true;
-
+    float tmpScaleFactor = 0.0f;
+    float tmpRevFactor = 0.0f;
+    
 	/* rc values */
 	for (unsigned int i = 0; i < RC_CHANNELS_MAX; i++) {
 
@@ -667,18 +672,21 @@ Sensors::parameters_update()
 		param_get(_parameter_handles.rev[i], &(_parameters.rev[i]));
 		param_get(_parameter_handles.dz[i], &(_parameters.dz[i]));
 
-		_parameters.scaling_factor[i] = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
-
+		tmpScaleFactor = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
+		tmpRevFactor = tmpScaleFactor * _parameters.rev[i];
+        
 		/* handle blowup in the scaling factor calculation */
-		if (!isfinite(_parameters.scaling_factor[i]) ||
-		    _parameters.scaling_factor[i] * _parameters.rev[i] < 0.000001f ||
-		    _parameters.scaling_factor[i] * _parameters.rev[i] > 0.2f) {
-
+		if (!isfinite(tmpScaleFactor) ||
+		    (tmpRevFactor < 0.000001f) ||
+		    (tmpRevFactor > 0.2f) ) {
+			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, tmpScaleFactor, (int)(_parameters.rev[i]));
 			/* scaling factors do not make sense, lock them down */
-			_parameters.scaling_factor[i] = 0;
+			_parameters.scaling_factor[i] = 0.0f;
 			rc_valid = false;
 		}
-
+        else {
+            _parameters.scaling_factor[i] = tmpScaleFactor;
+        }
 	}
 
 	/* handle wrong values */
@@ -784,6 +792,7 @@ Sensors::parameters_update()
 
 	/* Airspeed offset */
 	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
+	param_get(_parameter_handles.diff_pres_analog_enabled, &(_parameters.diff_pres_analog_enabled));
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
@@ -1266,9 +1275,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 					/**
 					 * The voltage divider pulls the signal down, only act on
-					 * a valid voltage from a connected sensor
+					 * a valid voltage from a connected sensor. Also assume a non-
+					 * zero offset from the sensor if its connected.
 					 */
-					if (voltage > 0.4f) {
+					if (voltage > 0.4f && _parameters.diff_pres_analog_enabled) {
 
 						float diff_pres_pa = voltage * 1000.0f - _parameters.diff_pres_offset_pa; //for MPXV7002DP sensor
 

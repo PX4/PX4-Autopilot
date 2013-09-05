@@ -94,8 +94,8 @@ MODULES		+= modules/sdlog2
 #
 # Unit tests
 #
-MODULES 	+= modules/unit_test
-MODULES 	+= modules/commander/commander_tests
+#MODULES 	+= modules/unit_test
+#MODULES 	+= modules/commander/commander_tests
 
 #
 # Library modules

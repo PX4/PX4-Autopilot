@@ -358,8 +358,8 @@ static unsigned mixer_text_length = 0;
 void
 mixer_handle_text(const void *buffer, size_t length)
 {
-	/* do not allow a mixer change while outputs armed */
-	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
+	/* do not allow a mixer change while safety off */
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
 		return;
 	}
 

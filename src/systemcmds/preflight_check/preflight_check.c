@@ -142,6 +142,10 @@ int preflight_check_main(int argc, char *argv[])
 
 	bool rc_ok = (OK == rc_calibration_check());
 
+	/* warn */
+	if (!rc_ok)
+		warnx("rc calibration test failed");
+
 	/* require RC ok to keep system_ok */
 	system_ok &= rc_ok;
 
@@ -155,6 +159,9 @@ system_eval:
 		exit(0);
 	} else {
 		fflush(stdout);
+
+		warnx("PREFLIGHT CHECK ERROR! TRIGGERING ALARM");
+		fflush(stderr);
 
 		int buzzer = open("/dev/tone_alarm", O_WRONLY);
 		int leds = open(LED_DEVICE_PATH, 0);
@@ -176,15 +183,15 @@ system_eval:
 			led_toggle(leds, LED_AMBER);
 
 			if (i % 10 == 0) {
-				ioctl(buzzer, TONE_SET_ALARM, 4);
+				ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEUTRAL_TUNE);
 			} else if (i % 5 == 0) {
-				ioctl(buzzer, TONE_SET_ALARM, 2);
+				ioctl(buzzer, TONE_SET_ALARM, TONE_ERROR_TUNE);
 			}
 			usleep(100000);
 		}
 
 		/* stop alarm */
-		ioctl(buzzer, TONE_SET_ALARM, 0);
+		ioctl(buzzer, TONE_SET_ALARM, TONE_STOP_TUNE);
 
 		/* switch on leds */
 		led_on(leds, LED_BLUE);

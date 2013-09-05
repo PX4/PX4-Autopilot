@@ -78,6 +78,7 @@
 /** set pattern */
 #define RGBLED_SET_PATTERN		_RGBLEDIOC(7)
 
+
 /* 
   structure passed to RGBLED_SET_RGB ioctl()
   Note that the driver scales the brightness to 0 to 255, regardless
@@ -115,6 +116,7 @@ typedef enum {
 	RGBLED_MODE_BLINK_SLOW,
 	RGBLED_MODE_BLINK_NORMAL,
 	RGBLED_MODE_BLINK_FAST,
+	RGBLED_MODE_BREATHE,
 	RGBLED_MODE_PATTERN
 } rgbled_mode_t;
 

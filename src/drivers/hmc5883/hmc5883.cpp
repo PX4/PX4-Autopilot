@@ -311,7 +311,7 @@ private:
 };
 
 /* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
+#define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
 
 /*
  * Driver 'main' command.
@@ -359,6 +359,11 @@ HMC5883::~HMC5883()
 	/* free any existing reports */
 	if (_reports != nullptr)
 		delete[] _reports;
+
+	// free perf counters
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int
@@ -957,11 +962,12 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	warnx("sampling 500 samples for scaling offset");
 
 	/* set the queue depth to 10 */
-	if (OK != ioctl(filp, SENSORIOCSQUEUEDEPTH, 10)) {
-		warn("failed to set queue depth");
-		ret = 1;
-		goto out;
-	}
+	/* don't do this for now, it can lead to a crash in start() respectively work_queue() */
+//	if (OK != ioctl(filp, SENSORIOCSQUEUEDEPTH, 10)) {
+//		warn("failed to set queue depth");
+//		ret = 1;
+//		goto out;
+//	}
 
 	/* start the sensor polling at 50 Hz */
 	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {

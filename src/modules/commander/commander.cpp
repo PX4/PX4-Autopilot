@@ -50,6 +50,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <systemlib/err.h>
 #include <debug.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -153,6 +154,7 @@ static uint64_t last_print_mode_reject_time = 0;
 /* if connected via USB */
 static bool on_usb_power = false;
 
+static float takeoff_alt = 5.0f;
 
 /* tasks waiting for low prio thread */
 typedef enum {
@@ -317,6 +319,8 @@ void print_status()
 		armed_str = "ERR: UNKNOWN STATE";
 		break;
 	}
+
+	close(state_sub);
 
 
 	warnx("arming: %s", armed_str);
@@ -492,9 +496,10 @@ int commander_thread_main(int argc, char *argv[])
 	param_t _param_sys_type = param_find("MAV_TYPE");
 	param_t _param_system_id = param_find("MAV_SYS_ID");
 	param_t _param_component_id = param_find("MAV_COMP_ID");
+	param_t _param_takeoff_alt = param_find("NAV_TAKEOFF_ALT");
 
 	/* welcome user */
-	warnx("[commander] starting");
+	warnx("starting");
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -592,9 +597,10 @@ int commander_thread_main(int argc, char *argv[])
 
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
-	pthread_attr_setstacksize(&commander_low_prio_attr, 2048);
+	pthread_attr_setstacksize(&commander_low_prio_attr, 2992);
 
 	struct sched_param param;
+	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
 	/* low priority */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 50;
 	(void)pthread_attr_setschedparam(&commander_low_prio_attr, &param);
@@ -689,6 +695,8 @@ int commander_thread_main(int argc, char *argv[])
 	struct subsystem_info_s info;
 	memset(&info, 0, sizeof(info));
 
+	toggle_status_leds(&status, &armed, true);
+
 	/* now initialized */
 	commander_initialized = true;
 	thread_running = true;
@@ -731,8 +739,11 @@ int commander_thread_main(int argc, char *argv[])
 				param_get(_param_component_id, &(status.component_id));
 				status_changed = true;
 
-				/* Re-check RC calibration */
+				/* re-check RC calibration */
 				rc_calibration_ok = (OK == rc_calibration_check());
+
+				/* navigation parameters */
+				param_get(_param_takeoff_alt, &takeoff_alt);
 			}
 		}
 
@@ -890,7 +901,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				low_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] WARNING: LOW BATTERY");
-				status.battery_warning = VEHICLE_BATTERY_WARNING_WARNING;
+				status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
 				status_changed = true;
 				battery_tune_played = false;
 			}
@@ -902,7 +913,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				critical_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] EMERGENCY: CRITICAL BATTERY");
-				status.battery_warning = VEHICLE_BATTERY_WARNING_ALERT;
+				status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
 				battery_tune_played = false;
 
 				if (armed.armed) {
@@ -1160,12 +1171,12 @@ int commander_thread_main(int argc, char *argv[])
 			if (tune_arm() == OK)
 				arm_tune_played = true;
 
-		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
+		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
 			/* play tune on battery warning */
 			if (tune_low_bat() == OK)
 				battery_tune_played = true;
 
-		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
+		} else if (status.battery_warning == VEHICLE_BATTERY_WARNING_CRITICAL) {
 			/* play tune on battery critical */
 			if (tune_critical_bat() == OK)
 				battery_tune_played = true;
@@ -1251,73 +1262,43 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 #endif
 
 	if (changed) {
-
-		int i;
-		rgbled_pattern_t pattern;
-		memset(&pattern, 0, sizeof(pattern));
+		/* XXX TODO blink fast when armed and serious error occurs */
 
 		if (armed->armed) {
-			/* armed, solid */
-			if (status->battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
-				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_AMBER : RGBLED_COLOR_AMBER;
-
-			} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
-				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
-
-			} else {
-				pattern.color[0] = (on_usb_power) ? RGBLED_COLOR_DIM_GREEN : RGBLED_COLOR_GREEN;
-			}
-
-			pattern.duration[0] = 1000;
-
+			rgbled_set_mode(RGBLED_MODE_ON);
 		} else if (armed->ready_to_arm) {
-			for (i = 0; i < 3; i++) {
-				if (status->battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
-					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_AMBER : RGBLED_COLOR_AMBER;
-
-				} else if (status->battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
-					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
-
-				} else {
-					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_GREEN : RGBLED_COLOR_GREEN;
-				}
-
-				pattern.duration[i * 2] = 200;
-
-				pattern.color[i * 2 + 1] = RGBLED_COLOR_OFF;
-				pattern.duration[i * 2 + 1] = 800;
-			}
-
-			if (status->condition_global_position_valid) {
-				pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_BLUE : RGBLED_COLOR_BLUE;
-				pattern.duration[i * 2] = 1000;
-				pattern.color[i * 2 + 1] = RGBLED_COLOR_OFF;
-				pattern.duration[i * 2 + 1] = 800;
-
-			} else {
-				for (i = 3; i < 6; i++) {
-					pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_BLUE : RGBLED_COLOR_BLUE;
-					pattern.duration[i * 2] = 100;
-					pattern.color[i * 2 + 1] = RGBLED_COLOR_OFF;
-					pattern.duration[i * 2 + 1] = 100;
-				}
-
-				pattern.color[6 * 2] = RGBLED_COLOR_OFF;
-				pattern.duration[6 * 2] = 700;
-			}
-
+			rgbled_set_mode(RGBLED_MODE_BREATHE);
 		} else {
-			for (i = 0; i < 3; i++) {
-				pattern.color[i * 2] = (on_usb_power) ? RGBLED_COLOR_DIM_RED : RGBLED_COLOR_RED;
-				pattern.duration[i * 2] = 200;
-				pattern.color[i * 2 + 1] = RGBLED_COLOR_OFF;
-				pattern.duration[i * 2 + 1] = 200;
-			}
-
-			/* not ready to arm, blink at 10Hz */
+			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 		}
+	}
 
-		rgbled_set_pattern(&pattern);
+	if (status->battery_warning != VEHICLE_BATTERY_WARNING_NONE) {
+		switch (status->battery_warning) {
+			case VEHICLE_BATTERY_WARNING_LOW:
+				rgbled_set_color(RGBLED_COLOR_YELLOW);
+				break;
+			case VEHICLE_BATTERY_WARNING_CRITICAL:
+				rgbled_set_color(RGBLED_COLOR_AMBER);
+				break;
+			default:
+				break;
+		}
+	} else {
+		switch (status->main_state) {
+			case MAIN_STATE_MANUAL:
+				rgbled_set_color(RGBLED_COLOR_WHITE);
+				break;
+			case MAIN_STATE_SEATBELT:
+			case MAIN_STATE_EASY:
+				rgbled_set_color(RGBLED_COLOR_GREEN);
+				break;
+			case MAIN_STATE_AUTO:
+				rgbled_set_color(RGBLED_COLOR_BLUE);
+				break;
+			default:
+				break;
+		}
 	}
 
 	/* give system warnings on error LED, XXX maybe add memory usage warning too */
@@ -1480,54 +1461,52 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 
 	if (status->main_state == MAIN_STATE_AUTO) {
 		if (status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR) {
+			// TODO AUTO_LAND handling
 			if (status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 				/* don't switch to other states until takeoff not completed */
-				if (local_pos->z > -5.0f || status->condition_landed) {
-					res = TRANSITION_NOT_CHANGED;
+				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+					return TRANSITION_NOT_CHANGED;
 				}
 			}
-
-			if (res != TRANSITION_NOT_CHANGED) {
-				/* check again, state can be changed */
-				if (status->condition_landed) {
-					/* if landed: transitions only to AUTO_READY are allowed */
-					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_READY, control_mode);
-					// TRANSITION_DENIED is not possible here
+			if (status->navigation_state != NAVIGATION_STATE_AUTO_TAKEOFF &&
+				status->navigation_state != NAVIGATION_STATE_AUTO_LOITER &&
+				status->navigation_state != NAVIGATION_STATE_AUTO_MISSION &&
+				status->navigation_state != NAVIGATION_STATE_AUTO_RTL) {
+				/* possibly on ground, switch to TAKEOFF if needed */
+				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_TAKEOFF, control_mode);
+					return res;
+				}
+			}
+			/* switch to AUTO mode */
+			if (status->rc_signal_found_once && !status->rc_signal_lost) {
+				/* act depending on switches when manual control enabled */
+				if (status->return_switch == RETURN_SWITCH_RETURN) {
+					/* RTL */
+					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_RTL, control_mode);
 
 				} else {
-					/* not landed */
-					if (status->rc_signal_found_once && !status->rc_signal_lost) {
-						/* act depending on switches when manual control enabled */
-						if (status->return_switch == RETURN_SWITCH_RETURN) {
-							/* RTL */
-							res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_RTL, control_mode);
-
-						} else {
-							if (status->mission_switch == MISSION_SWITCH_MISSION) {
-								/* MISSION */
-								res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
-
-							} else {
-								/* LOITER */
-								res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
-							}
-						}
+					if (status->mission_switch == MISSION_SWITCH_MISSION) {
+						/* MISSION */
+						res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
 
 					} else {
-						/* switch to MISSION in air when no RC control */
-						if (status->navigation_state == NAVIGATION_STATE_AUTO_LOITER ||
-						    status->navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
-						    status->navigation_state == NAVIGATION_STATE_AUTO_RTL ||
-						    status->navigation_state == NAVIGATION_STATE_AUTO_LAND) {
-							res = TRANSITION_NOT_CHANGED;
-
-						} else {
-							res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
-						}
+						/* LOITER */
+						res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
 					}
 				}
-			}
+			} else {
+				/* switch to MISSION when no RC control and first time in some AUTO mode  */
+				if (status->navigation_state == NAVIGATION_STATE_AUTO_LOITER ||
+					status->navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
+					status->navigation_state == NAVIGATION_STATE_AUTO_RTL ||
+					status->navigation_state == NAVIGATION_STATE_AUTO_LAND) {
+					res = TRANSITION_NOT_CHANGED;
 
+				} else {
+					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
+				}
+			}
 		} else {
 			/* disarmed, always switch to AUTO_READY */
 			res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_READY, control_mode);
@@ -1678,13 +1657,13 @@ void *commander_low_prio_loop(void *arg)
 
 				if (((int)(cmd.param1)) == 1) {
 					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
-					usleep(1000000);
+					usleep(100000);
 					/* reboot */
 					systemreset(false);
 
 				} else if (((int)(cmd.param1)) == 3) {
 					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
-					usleep(1000000);
+					usleep(100000);
 					/* reboot to bootloader */
 					systemreset(true);
 
@@ -1727,6 +1706,7 @@ void *commander_low_prio_loop(void *arg)
 				} else if ((int)(cmd.param4) == 1) {
 					/* RC calibration */
 					answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
+					calib_ret = do_rc_calibration(mavlink_fd);
 
 				} else if ((int)(cmd.param5) == 1) {
 					/* accelerometer calibration */
@@ -1752,22 +1732,36 @@ void *commander_low_prio_loop(void *arg)
 		case VEHICLE_CMD_PREFLIGHT_STORAGE: {
 
 				if (((int)(cmd.param1)) == 0) {
-					if (0 == param_load_default()) {
+					int ret = param_load_default();
+					if (ret == OK) {
 						mavlink_log_info(mavlink_fd, "[cmd] parameters loaded");
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
 						mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
+						/* convenience as many parts of NuttX use negative errno */
+						if (ret < 0)
+							ret = -ret;
+
+						if (ret < 1000)
+							mavlink_log_critical(mavlink_fd, "[cmd] %s", strerror(ret));
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
 					}
 
 				} else if (((int)(cmd.param1)) == 1) {
-					if (0 == param_save_default()) {
+					int ret = param_save_default();
+					if (ret == OK) {
 						mavlink_log_info(mavlink_fd, "[cmd] parameters saved");
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
 						mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
+						/* convenience as many parts of NuttX use negative errno */
+						if (ret < 0)
+							ret = -ret;
+
+						if (ret < 1000)
+							mavlink_log_critical(mavlink_fd, "[cmd] %s", strerror(ret));
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
 					}
 				}
@@ -1788,6 +1782,8 @@ void *commander_low_prio_loop(void *arg)
 		}
 
 	}
+
+	close(cmd_sub);
 
 	return 0;
 }

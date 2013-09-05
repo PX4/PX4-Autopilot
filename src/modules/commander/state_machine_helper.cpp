@@ -348,20 +348,15 @@ navigation_state_transition(struct vehicle_status_s *status, navigation_state_t 
 			break;
 
 		case NAVIGATION_STATE_AUTO_TAKEOFF:
-
-			/* only transitions from AUTO_READY */
-			if (status->navigation_state == NAVIGATION_STATE_AUTO_READY) {
-				ret = TRANSITION_CHANGED;
-				control_mode->flag_control_rates_enabled = true;
-				control_mode->flag_control_attitude_enabled = true;
-				control_mode->flag_control_velocity_enabled = true;
-				control_mode->flag_control_position_enabled = true;
-				control_mode->flag_control_altitude_enabled = true;
-				control_mode->flag_control_climb_rate_enabled = true;
-				control_mode->flag_control_manual_enabled = false;
-				control_mode->flag_control_auto_enabled = true;
-			}
-
+			ret = TRANSITION_CHANGED;
+			control_mode->flag_control_rates_enabled = true;
+			control_mode->flag_control_attitude_enabled = true;
+			control_mode->flag_control_velocity_enabled = true;
+			control_mode->flag_control_position_enabled = true;
+			control_mode->flag_control_altitude_enabled = true;
+			control_mode->flag_control_climb_rate_enabled = true;
+			control_mode->flag_control_manual_enabled = false;
+			control_mode->flag_control_auto_enabled = true;
 			break;
 
 		case NAVIGATION_STATE_AUTO_LOITER:

@@ -747,6 +747,7 @@ receive_start(int uart)
 	fcntl(uart, F_SETFL, flags | O_NONBLOCK);
 
 	struct sched_param param;
+	(void)pthread_attr_getschedparam(&receiveloop_attr, &param);
 	param.sched_priority = SCHED_PRIORITY_MAX - 40;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 

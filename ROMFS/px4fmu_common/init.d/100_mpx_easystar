@@ -1,5 +1,7 @@
 #!nsh
 
+echo "[init] Multiplex Easystar"
+
 #
 # Load default params for this platform
 #
@@ -14,43 +16,53 @@ fi
  
 #
 # Force some key parameters to sane values
-# MAV_TYPE     10 = ground rover
+# MAV_TYPE     1 = fixed wing
 #
-param set MAV_TYPE 10
-  
+param set MAV_TYPE 1
+
 #
 # Start MAVLink (depends on orb)
 #
 mavlink start -d /dev/ttyS1 -b 57600
 usleep 5000
- 
+
 #
 # Start and configure PX4IO interface
 #
 sh /etc/init.d/rc.io
- 
-#
-# Start the commander (depends on orb, mavlink)
-#
-commander start
 
 #
-# Start the sensors (depends on orb, px4io)
-#
-sh /etc/init.d/rc.sensors
+# Set actuator limit to 100 Hz update (50 Hz PWM)
+px4io limit 100
  
 #
-# Start GPS interface (depends on orb)
+# Start the commander
+#
+commander start
+ 
+#
+# Start the sensors
+#
+sh /etc/init.d/rc.sensors
+
+#
+# Start logging (depends on sensors)
+#
+sh /etc/init.d/rc.logging
+ 
+#
+# Start GPS interface
 #
 gps start
  
 #
-# Start the attitude estimator (depends on orb)
+# Start the attitude and position estimator
 #
-attitude_estimator_ekf start
+att_pos_estimator_ekf start
  
 #
 # Load mixer and start controllers (depends on px4io)
 #
-md25 start 3 0x58
-segway start
+mixer load /dev/pwm_output /etc/mixers/FMU_RET.mix
+fw_att_control start
+fw_pos_control_l1 start

@@ -119,9 +119,16 @@ public:
 	/**
 	 * Initialize the PX4IO class.
 	 * 
-	 * Initialize the physical I2C interface to PX4IO. Retrieve relevant initial system parameters. Initialize PX4IO registers.
+	 * Retrieve relevant initial system parameters. Initialize PX4IO registers.
 	 */
 	virtual int		init();
+
+	/**
+	 * Detect if a PX4IO is connected.
+	 * 
+	 * Only validate if there is a PX4IO to talk to.
+	 */
+	virtual int		detect();
 
 	/**
 	 * IO Control handler.
@@ -473,6 +480,35 @@ PX4IO::~PX4IO()
 		delete _interface;
 
 	g_dev = nullptr;
+}
+
+int
+PX4IO::detect()
+{
+	int ret;
+
+	ASSERT(_task == -1);
+
+	/* do regular cdev init */
+	ret = CDev::init();
+	if (ret != OK)
+		return ret;
+
+	/* get some parameters */
+	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+	if (protocol != PX4IO_PROTOCOL_VERSION) {
+		if (protocol == _io_reg_get_error) {
+			log("IO not installed");
+		} else {
+			log("IO version error");
+			mavlink_log_emergency(_mavlink_fd, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
+		}
+		
+		return -1;
+	}
+	log("IO found");
+
+	return 0;
 }
 
 int
@@ -860,7 +896,6 @@ PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
 int
 PX4IO::set_min_values(const uint16_t *vals, unsigned len)
 {
-	uint16_t 		regs[_max_actuators];
 
 	if (len > _max_actuators)
 		/* fail with error */
@@ -873,7 +908,6 @@ PX4IO::set_min_values(const uint16_t *vals, unsigned len)
 int
 PX4IO::set_max_values(const uint16_t *vals, unsigned len)
 {
-	uint16_t 		regs[_max_actuators];
 
 	if (len > _max_actuators)
 		/* fail with error */
@@ -886,7 +920,6 @@ PX4IO::set_max_values(const uint16_t *vals, unsigned len)
 int
 PX4IO::set_idle_values(const uint16_t *vals, unsigned len)
 {
-	uint16_t 		regs[_max_actuators];
 
 	if (len > _max_actuators)
 		/* fail with error */
@@ -1340,7 +1373,7 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 	}
 
 	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
-	if (ret != num_values) {
+	if (ret != (int)num_values) {
 		debug("io_reg_set(%u,%u,%u): error %d", page, offset, num_values, ret);
 		return -1;
 	}
@@ -1363,7 +1396,7 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 	}
 
 	int ret = _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
-	if (ret != num_values) {
+	if (ret != (int)num_values) {
 		debug("io_reg_get(%u,%u,%u): data error %d", page, offset, num_values, ret);
 		return -1;
 	}
@@ -1584,7 +1617,7 @@ PX4IO::print_status()
 	}
 	printf("failsafe");
 	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u\n", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
+		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
 	printf("\nidle values");
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_IDLE_PWM, i));
@@ -1894,6 +1927,7 @@ start(int argc, char *argv[])
 
 	if (OK != g_dev->init()) {
 		delete g_dev;
+		g_dev = nullptr;
 		errx(1, "driver init failed");
 	}
 
@@ -1918,6 +1952,34 @@ start(int argc, char *argv[])
 		}
 	}
 	exit(0);
+}
+
+void
+detect(int argc, char *argv[])
+{
+	if (g_dev != nullptr)
+		errx(0, "already loaded");
+
+	/* allocate the interface */
+	device::Device *interface = get_interface();
+
+	/* create the driver - it will set g_dev */
+	(void)new PX4IO(interface);
+
+	if (g_dev == nullptr)
+		errx(1, "driver alloc failed");
+
+	int ret = g_dev->detect();
+
+	delete g_dev;
+	g_dev = nullptr;
+
+	if (ret) {
+		/* nonzero, error */
+		exit(1);
+	} else {
+		exit(0);
+	}
 }
 
 void
@@ -2079,6 +2141,9 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start"))
 		start(argc - 1, argv + 1);
 
+	if (!strcmp(argv[1], "detect"))
+		detect(argc - 1, argv + 1);
+
 	if (!strcmp(argv[1], "update")) {
 
 		if (g_dev != nullptr) {
@@ -2173,7 +2238,7 @@ px4io_main(int argc, char *argv[])
 		/* set values for first 8 channels, fill unassigned channels with 1500. */
 		uint16_t failsafe[8];
 
-		for (int i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++) {
+		for (unsigned i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++) {
 
 			/* set channel to commandline argument or to 900 for non-provided channels */
 			if (argc > i + 2) {
@@ -2205,7 +2270,7 @@ px4io_main(int argc, char *argv[])
 			/* set values for first 8 channels, fill unassigned channels with 900. */
 			uint16_t min[8];
 
-			for (int i = 0; i < sizeof(min) / sizeof(min[0]); i++)
+			for (unsigned i = 0; i < sizeof(min) / sizeof(min[0]); i++)
 			{
 				/* set channel to commanline argument or to 900 for non-provided channels */
 				if (argc > i + 2) {
@@ -2240,7 +2305,7 @@ px4io_main(int argc, char *argv[])
 			/* set values for first 8 channels, fill unassigned channels with 2100. */
 			uint16_t max[8];
 
-			for (int i = 0; i < sizeof(max) / sizeof(max[0]); i++)
+			for (unsigned i = 0; i < sizeof(max) / sizeof(max[0]); i++)
 			{
 				/* set channel to commanline argument or to 2100 for non-provided channels */
 				if (argc > i + 2) {
@@ -2275,7 +2340,7 @@ px4io_main(int argc, char *argv[])
 			/* set values for first 8 channels, fill unassigned channels with 0. */
 			uint16_t idle[8];
 
-			for (int i = 0; i < sizeof(idle) / sizeof(idle[0]); i++)
+			for (unsigned i = 0; i < sizeof(idle) / sizeof(idle[0]); i++)
 			{
 				/* set channel to commanline argument or to 0 for non-provided channels */
 				if (argc > i + 2) {

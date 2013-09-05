@@ -308,18 +308,20 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 				orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
 
 				if (!initialized) {
+					// XXX disabling init for now
+					initialized = true;
 
-					gyro_offsets[0] += raw.gyro_rad_s[0];
-					gyro_offsets[1] += raw.gyro_rad_s[1];
-					gyro_offsets[2] += raw.gyro_rad_s[2];
-					offset_count++;
+					// gyro_offsets[0] += raw.gyro_rad_s[0];
+					// gyro_offsets[1] += raw.gyro_rad_s[1];
+					// gyro_offsets[2] += raw.gyro_rad_s[2];
+					// offset_count++;
 
-					if (hrt_absolute_time() - start_time > 3000000LL) {
-						initialized = true;
-						gyro_offsets[0] /= offset_count;
-						gyro_offsets[1] /= offset_count;
-						gyro_offsets[2] /= offset_count;
-					}
+					// if (hrt_absolute_time() - start_time > 3000000LL) {
+					// 	initialized = true;
+					// 	gyro_offsets[0] /= offset_count;
+					// 	gyro_offsets[1] /= offset_count;
+					// 	gyro_offsets[2] /= offset_count;
+					// }
 
 				} else {
 

@@ -11,7 +11,7 @@ then
 	# TODO
 	
 	param set SYS_AUTOCONFIG 0
-	param save /fs/microsd/params
+	param save
 fi
  
 #
@@ -61,12 +61,13 @@ sh /etc/init.d/rc.logging
 gps start
  
 #
-# Start the attitude estimator (depends on orb)
+# Start the attitude and position estimator
 #
-kalman_demo start
+att_pos_estimator_ekf start
  
 #
 # Load mixer and start controllers (depends on px4io)
 #
 mixer load /dev/pwm_output /etc/mixers/FMU_Q.mix
 fw_att_control start
+fw_pos_control_l1 start

@@ -66,7 +66,7 @@ int rc_calibration_check(void) {
 		// 	count++;
 		// }
 
-
+	int channel_fail_count = 0;
 
 	for (int i = 0; i < RC_CHANNELS_MAX; i++) {
 		/* should the channel be enabled? */
@@ -112,13 +112,13 @@ int rc_calibration_check(void) {
 		}
 		if (param_trim < param_min) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM < MIN", i+1);
+			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM < MIN (%d/%d)", i+1, (int)param_trim, (int)param_min);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
 		if (param_trim > param_max) {
 			count++;
-			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM > MAX", i+1);
+			mavlink_log_critical(mavlink_fd, "ERR: RC_%d_TRIM > MAX (%d/%d)", i+1, (int)param_trim, (int)param_max);
 			/* give system time to flush error message in case there are more */
 			usleep(100000);
 		}
@@ -142,7 +142,12 @@ int rc_calibration_check(void) {
 		/* sanity checks pass, enable channel */
 		if (count) {
 			mavlink_log_critical(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
+			warnx(mavlink_fd, "ERROR: %d config error(s) for RC channel %d.", count, (i + 1));
 			usleep(100000);
 		}
+
+		channel_fail_count += count;
 	}
+
+	return channel_fail_count;
 }
