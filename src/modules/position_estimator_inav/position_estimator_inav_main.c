@@ -53,7 +53,7 @@
 #include <math.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_controls_effective.h>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -181,7 +181,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	uint32_t baro_counter = 0;
 
 	/* declare and safely initialize all structs */
-	struct actuator_controls_effective_s actuator;
+	struct actuator_controls_s actuator;
 	memset(&actuator, 0, sizeof(actuator));
 	struct actuator_armed_s armed;
 	memset(&armed, 0, sizeof(armed));
@@ -200,7 +200,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	/* subscribe */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	int actuator_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
+	int actuator_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -337,7 +337,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* actuator */
 			if (fds[1].revents & POLLIN) {
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, actuator_sub, &actuator);
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_sub, &actuator);
 			}
 
 			/* armed */
@@ -546,7 +546,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		alt_disp = alt_disp * alt_disp;
 		float land_disp2 = params.land_disp * params.land_disp;
 		/* get actual thrust output */
-		float thrust = armed.armed ? actuator.control_effective[3] : 0.0f;
+		float thrust = armed.armed ? actuator.control[3] : 0.0f;
 
 		if (landed) {
 			if (alt_disp > land_disp2 && thrust > params.land_thr) {
