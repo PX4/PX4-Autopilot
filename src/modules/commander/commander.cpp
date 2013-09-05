@@ -50,6 +50,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <systemlib/err.h>
 #include <debug.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -599,6 +600,7 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_attr_setstacksize(&commander_low_prio_attr, 2992);
 
 	struct sched_param param;
+	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
 	/* low priority */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 50;
 	(void)pthread_attr_setschedparam(&commander_low_prio_attr, &param);
@@ -1655,13 +1657,13 @@ void *commander_low_prio_loop(void *arg)
 
 				if (((int)(cmd.param1)) == 1) {
 					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
-					usleep(1000000);
+					usleep(100000);
 					/* reboot */
 					systemreset(false);
 
 				} else if (((int)(cmd.param1)) == 3) {
 					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
-					usleep(1000000);
+					usleep(100000);
 					/* reboot to bootloader */
 					systemreset(true);
 
@@ -1704,6 +1706,7 @@ void *commander_low_prio_loop(void *arg)
 				} else if ((int)(cmd.param4) == 1) {
 					/* RC calibration */
 					answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
+					calib_ret = do_rc_calibration(mavlink_fd);
 
 				} else if ((int)(cmd.param5) == 1) {
 					/* accelerometer calibration */
@@ -1729,22 +1732,36 @@ void *commander_low_prio_loop(void *arg)
 		case VEHICLE_CMD_PREFLIGHT_STORAGE: {
 
 				if (((int)(cmd.param1)) == 0) {
-					if (0 == param_load_default()) {
+					int ret = param_load_default();
+					if (ret == OK) {
 						mavlink_log_info(mavlink_fd, "[cmd] parameters loaded");
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
 						mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
+						/* convenience as many parts of NuttX use negative errno */
+						if (ret < 0)
+							ret = -ret;
+
+						if (ret < 1000)
+							mavlink_log_critical(mavlink_fd, "[cmd] %s", strerror(ret));
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
 					}
 
 				} else if (((int)(cmd.param1)) == 1) {
-					if (0 == param_save_default()) {
+					int ret = param_save_default();
+					if (ret == OK) {
 						mavlink_log_info(mavlink_fd, "[cmd] parameters saved");
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
 						mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
+						/* convenience as many parts of NuttX use negative errno */
+						if (ret < 0)
+							ret = -ret;
+
+						if (ret < 1000)
+							mavlink_log_critical(mavlink_fd, "[cmd] %s", strerror(ret));
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
 					}
 				}

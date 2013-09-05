@@ -520,7 +520,7 @@ param_save_default(void)
 
 	if (fd < 0) {
 		warn("opening '%s' for writing failed", param_get_default_file());
-		return -1;
+		return fd;
 	}
 
 	result = param_export(fd, false);
@@ -529,7 +529,7 @@ param_save_default(void)
 	if (result != 0) {
 		warn("error exporting parameters to '%s'", param_get_default_file());
 		unlink(param_get_default_file());
-		return -2;
+		return result;
 	}
 
 	return 0;

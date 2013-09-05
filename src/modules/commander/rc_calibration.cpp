@@ -57,14 +57,16 @@ int do_rc_calibration(int mavlink_fd)
 {
 	mavlink_log_info(mavlink_fd, "trim calibration starting");
 
-	/* XXX fix this */
-	// if (current_status.rc_signal) {
-	// 	mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
-	// 	return;
-	// }
-
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
 	struct manual_control_setpoint_s sp;
+	bool changed;
+	orb_check(sub_man, &changed);
+
+	if (!changed) {
+		mavlink_log_critical(mavlink_fd, "no manual control, aborting");
+		return ERROR;
+	}
+
 	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
 
 	/* set parameters */
