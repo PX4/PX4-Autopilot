@@ -107,13 +107,14 @@ struct mavlink_logmessage {
 
 struct mavlink_logbuffer {
 	unsigned int start;
-	// unsigned int end;
 	unsigned int size;
 	int count;
 	struct mavlink_logmessage *elems;
 };
 
 void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size);
+
+void mavlink_logbuffer_destroy(struct mavlink_logbuffer *lb);
 
 int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb);
 

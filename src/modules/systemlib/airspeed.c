@@ -42,7 +42,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "conversions.h"
+#include <geo/geo.h>
 #include "airspeed.h"
 
 
@@ -95,17 +95,21 @@ float calc_true_airspeed_from_indicated(float speed_indicated, float pressure_am
 float calc_true_airspeed(float total_pressure, float static_pressure, float temperature_celsius)
 {
 	float density = get_air_density(static_pressure, temperature_celsius);
+
 	if (density < 0.0001f || !isfinite(density)) {
-	 density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
-//	 printf("[airspeed] Invalid air density, using density at sea level\n");
+		density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
 	}
 
 	float pressure_difference = total_pressure - static_pressure;
 
-	if(pressure_difference > 0) {
+	if (pressure_difference > 0) {
 		return sqrtf((2.0f*(pressure_difference)) / density);
-	} else
-	{
+	} else {
 		return -sqrtf((2.0f*fabsf(pressure_difference)) / density);
 	}
+}
+
+float get_air_density(float static_pressure, float temperature_celsius)
+{
+	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
 }

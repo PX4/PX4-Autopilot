@@ -69,7 +69,7 @@ private:
 		PROTO_REBOOT		= 0x30,
 
 		INFO_BL_REV		= 1,		/**< bootloader protocol revision */
-		BL_REV			= 3,		/**< supported bootloader protocol  */
+		BL_REV			= 4,		/**< supported bootloader protocol  */
 		INFO_BOARD_ID		= 2,		/**< board type */
 		INFO_BOARD_REV		= 3,		/**< board revision */
 		INFO_FLASH_SIZE		= 4,		/**< max firmware size in bytes */

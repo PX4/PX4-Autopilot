@@ -156,7 +156,7 @@ void BlockMultiModeBacksideAutopilot::update()
 		_actuators.control[i] = 0.0f;
 
 	// only update guidance in auto mode
-	if (_status.state_machine == SYSTEM_STATE_AUTO) {
+	if (_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION) {	// TODO use vehicle_control_mode here?
 		// update guidance
 		_guide.update(_pos, _att, _posCmd.current, _lastPosCmd.current);
 	}
@@ -166,8 +166,8 @@ void BlockMultiModeBacksideAutopilot::update()
 	// the setpoint should update to loitering around this position
 
 	// handle autopilot modes
-	if (_status.state_machine == SYSTEM_STATE_AUTO ||
-	    _status.state_machine == SYSTEM_STATE_STABILIZED) {
+	if (_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
+	    _status.navigation_state == NAVIGATION_STATE_STABILIZE) {	// TODO use vehicle_control_mode here?
 
 		// update guidance
 		_guide.update(_pos, _att, _posCmd.current, _lastPosCmd.current);
@@ -219,89 +219,83 @@ void BlockMultiModeBacksideAutopilot::update()
 		// This is not a hack, but a design choice.
 
 		/* do not limit in HIL */
-		if (!_status.flag_hil_enabled) {
+		if (_status.hil_state != HIL_STATE_ON) {
 			/* limit to value of manual throttle */
 			_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
 						     _actuators.control[CH_THR] : _manual.throttle;
 		}
 
-	} else if (_status.state_machine == SYSTEM_STATE_MANUAL) {
+	} else if (_status.navigation_state == NAVIGATION_STATE_DIRECT) {	// TODO use vehicle_control_mode here?
+		_actuators.control[CH_AIL] = _manual.roll;
+		_actuators.control[CH_ELV] = _manual.pitch;
+		_actuators.control[CH_RDR] = _manual.yaw;
+		_actuators.control[CH_THR] = _manual.throttle;
+	} else if (_status.navigation_state == NAVIGATION_STATE_STABILIZE) {	// TODO use vehicle_control_mode here?
+		// calculate velocity, XXX should be airspeed, but using ground speed for now
+		// for the purpose of control we will limit the velocity feedback between
+		// the min/max velocity
+		float v = _vLimit.update(sqrtf(
+					_pos.vx * _pos.vx +
+					_pos.vy * _pos.vy +
+					_pos.vz * _pos.vz));
 
-		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
-			_actuators.control[CH_AIL] = _manual.roll;
-			_actuators.control[CH_ELV] = _manual.pitch;
-			_actuators.control[CH_RDR] = _manual.yaw;
-			_actuators.control[CH_THR] = _manual.throttle;
+		// pitch channel -> rate of climb
+		// TODO, might want to put a gain on this, otherwise commanding
+		// from +1 -> -1 m/s for rate of climb
+		//float dThrottle = _cr2Thr.update(
+		//_crMax.get()*_manual.pitch - _pos.vz);
 
-		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
+		// roll channel -> bank angle
+		float phiCmd = _phiLimit.update(_manual.roll * _phiLimit.getMax());
+		float pCmd = _phi2P.update(phiCmd - _att.roll);
 
-			// calculate velocity, XXX should be airspeed, but using ground speed for now
-			// for the purpose of control we will limit the velocity feedback between
-			// the min/max velocity
-			float v = _vLimit.update(sqrtf(
-						_pos.vx * _pos.vx +
-						_pos.vy * _pos.vy +
-						_pos.vz * _pos.vz));
+		// throttle channel -> velocity
+		// negative sign because nose over to increase speed
+		float vCmd = _vLimit.update(_manual.throttle *
+				(_vLimit.getMax() - _vLimit.getMin()) +
+				_vLimit.getMin());
+		float thetaCmd = _theLimit.update(-_v2Theta.update(vCmd - v));
+		float qCmd = _theta2Q.update(thetaCmd - _att.pitch);
 
-			// pitch channel -> rate of climb
-			// TODO, might want to put a gain on this, otherwise commanding
-			// from +1 -> -1 m/s for rate of climb
-			//float dThrottle = _cr2Thr.update(
-			//_crMax.get()*_manual.pitch - _pos.vz);
+		// yaw rate cmd
+		float rCmd = 0;
 
-			// roll channel -> bank angle
-			float phiCmd = _phiLimit.update(_manual.roll * _phiLimit.getMax());
-			float pCmd = _phi2P.update(phiCmd - _att.roll);
+		// stabilization
+		_stabilization.update(pCmd, qCmd, rCmd,
+					  _att.rollspeed, _att.pitchspeed, _att.yawspeed);
 
-			// throttle channel -> velocity
-			// negative sign because nose over to increase speed
-			float vCmd = _vLimit.update(_manual.throttle *
-					(_vLimit.getMax() - _vLimit.getMin()) +
-					_vLimit.getMin());
-			float thetaCmd = _theLimit.update(-_v2Theta.update(vCmd - v));
-			float qCmd = _theta2Q.update(thetaCmd - _att.pitch);
+		// output
+		_actuators.control[CH_AIL] = _stabilization.getAileron() + _trimAil.get();
+		_actuators.control[CH_ELV] = _stabilization.getElevator() + _trimElv.get();
+		_actuators.control[CH_RDR] = _stabilization.getRudder() + _trimRdr.get();
 
-			// yaw rate cmd
-			float rCmd = 0;
+		// currently using manual throttle
+		// XXX if you enable this watch out, vz might be very noisy
+		//_actuators.control[CH_THR] = dThrottle + _trimThr.get();
+		_actuators.control[CH_THR] = _manual.throttle;
 
-			// stabilization
-			_stabilization.update(pCmd, qCmd, rCmd,
-					      _att.rollspeed, _att.pitchspeed, _att.yawspeed);
+		// XXX limit throttle to manual setting (safety) for now.
+		// If it turns out to be confusing, it can be removed later once
+		// a first binary release can be targeted.
+		// This is not a hack, but a design choice.
 
-			// output
-			_actuators.control[CH_AIL] = _stabilization.getAileron() + _trimAil.get();
-			_actuators.control[CH_ELV] = _stabilization.getElevator() + _trimElv.get();
-			_actuators.control[CH_RDR] = _stabilization.getRudder() + _trimRdr.get();
-
-			// currently using manual throttle
-			// XXX if you enable this watch out, vz might be very noisy
-			//_actuators.control[CH_THR] = dThrottle + _trimThr.get();
-			_actuators.control[CH_THR] = _manual.throttle;
-
-			// XXX limit throttle to manual setting (safety) for now.
-			// If it turns out to be confusing, it can be removed later once
-			// a first binary release can be targeted.
-			// This is not a hack, but a design choice.
-
-			/* do not limit in HIL */
-			if (!_status.flag_hil_enabled) {
-				/* limit to value of manual throttle */
-				_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
-							     _actuators.control[CH_THR] : _manual.throttle;
-			}
+		/* do not limit in HIL */
+		if (_status.hil_state != HIL_STATE_ON) {
+			/* limit to value of manual throttle */
+			_actuators.control[CH_THR] = (_actuators.control[CH_THR] < _manual.throttle) ?
+							 _actuators.control[CH_THR] : _manual.throttle;
 		}
+	// body rates controller, disabled for now
+	// TODO
+	} else if (0 /*_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS*/) {	// TODO use vehicle_control_mode here?
 
-		// body rates controller, disabled for now
-		else if (0 /*_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS*/) {
+		_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
+					  _att.rollspeed, _att.pitchspeed, _att.yawspeed);
 
-			_stabilization.update(_manual.roll, _manual.pitch, _manual.yaw,
-					      _att.rollspeed, _att.pitchspeed, _att.yawspeed);
-
-			_actuators.control[CH_AIL] = _stabilization.getAileron();
-			_actuators.control[CH_ELV] = _stabilization.getElevator();
-			_actuators.control[CH_RDR] = _stabilization.getRudder();
-			_actuators.control[CH_THR] = _manual.throttle;
-		}
+		_actuators.control[CH_AIL] = _stabilization.getAileron();
+		_actuators.control[CH_ELV] = _stabilization.getElevator();
+		_actuators.control[CH_RDR] = _stabilization.getRudder();
+		_actuators.control[CH_THR] = _manual.throttle;
 	}
 
 	// update all publications

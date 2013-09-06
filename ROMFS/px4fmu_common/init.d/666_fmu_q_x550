@@ -1,0 +1,64 @@
+#!nsh
+
+echo "[init] 666_fmu_q_x550: PX4FMU Quad X550 with PWM outputs"
+
+#
+# Load default params for this platform
+#
+if param compare SYS_AUTOCONFIG 1
+then
+	# Set all params here, then disable autoconfig
+	param set MC_ATTRATE_P 0.14
+	param set MC_ATTRATE_I 0
+	param set MC_ATTRATE_D 0.006
+	param set MC_ATT_P 5.5
+	param set MC_ATT_I 0
+	param set MC_ATT_D 0
+	param set MC_YAWPOS_D 0
+	param set MC_YAWPOS_I 0
+	param set MC_YAWPOS_P 0.6
+	param set MC_YAWRATE_D 0
+	param set MC_YAWRATE_I 0
+	param set MC_YAWRATE_P 0.08
+	param set RC_SCALE_PITCH 1
+	param set RC_SCALE_ROLL 1
+	param set RC_SCALE_YAW 3
+
+	param set SYS_AUTOCONFIG 0
+	param save
+fi
+
+#
+# Force some key parameters to sane values
+# MAV_TYPE     2 = quadrotor
+#
+param set MAV_TYPE 2
+ 
+#
+# Start MAVLink
+#
+mavlink start -d /dev/ttyS0 -b 57600
+usleep 5000
+
+#
+# Start PWM output
+#
+fmu mode_pwm
+
+#
+# Load mixer
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
+
+#
+# Set PWM output frequency
+#
+pwm -u 400 -m 0xff
+
+#
+# Start common for all multirotors apps
+#
+sh /etc/init.d/rc.multirotor
+ 
+# Exit, because /dev/ttyS0 is needed for MAVLink
+exit

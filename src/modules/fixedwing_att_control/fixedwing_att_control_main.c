@@ -53,6 +53,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -116,6 +117,8 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 	memset(&global_pos, 0, sizeof(global_pos));
 	struct manual_control_setpoint_s manual_sp;
 	memset(&manual_sp, 0, sizeof(manual_sp));
+	struct vehicle_control_mode_s control_mode;
+	memset(&control_mode, 0, sizeof(control_mode));
 	struct vehicle_status_s vstatus;
 	memset(&vstatus, 0, sizeof(vstatus));
 
@@ -137,7 +140,8 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 	int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	int manual_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	/* Setup of loop */
 	float gyro[3] = {0.0f, 0.0f, 0.0f};
@@ -178,30 +182,16 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 		}
 
 		orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
-		orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
+		orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
+		orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
 
 		gyro[0] = att.rollspeed;
 		gyro[1] = att.pitchspeed;
 		gyro[2] = att.yawspeed;
 
-		/* control */
-
-		if (vstatus.state_machine == SYSTEM_STATE_AUTO ||
-		    vstatus.state_machine == SYSTEM_STATE_STABILIZED) {
-			/* attitude control */
-			fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
-
-			/* angular rate control */
-			fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
-
-			/* pass through throttle */
-			actuators.control[3] = att_sp.thrust;
-
-			/* set flaps to zero */
-			actuators.control[4] = 0.0f;
-
-		} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
-			if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
+		/* set manual setpoints if required */
+		if (control_mode.flag_control_manual_enabled) {
+			if (control_mode.flag_control_attitude_enabled) {
 
 				/* if the RC signal is lost, try to stay level and go slowly back down to ground */
 				if (vstatus.rc_signal_lost) {
@@ -234,15 +224,6 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 
 				att_sp.timestamp = hrt_absolute_time();
 
-				/* attitude control */
-				fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
-
-				/* angular rate control */
-				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
-
-				/* pass through throttle */
-				actuators.control[3] = att_sp.thrust;
-
 				/* pass through flaps */
 				if (isfinite(manual_sp.flaps)) {
 					actuators.control[4] = manual_sp.flaps;
@@ -251,7 +232,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 					actuators.control[4] = 0.0f;
 				}
 
-			} else if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+			} else {
 				/* directly pass through values */
 				actuators.control[0] = manual_sp.roll;
 				/* positive pitch means negative actuator -> pull up */
@@ -266,6 +247,22 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 					actuators.control[4] = 0.0f;
 				}
 			}
+		}
+		
+		/* execute attitude control if requested */
+		if (control_mode.flag_control_attitude_enabled) {
+			/* attitude control */
+			fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
+
+			/* angular rate control */
+			fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
+
+			/* pass through throttle */
+			actuators.control[3] = att_sp.thrust;
+
+			/* set flaps to zero */
+			actuators.control[4] = 0.0f;
+
 		}
 
 		/* publish rates */

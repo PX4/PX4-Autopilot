@@ -38,4 +38,5 @@
 MODULE_COMMAND	= multirotor_pos_control
 
 SRCS		= multirotor_pos_control.c \
-		  multirotor_pos_control_params.c
+		  multirotor_pos_control_params.c \
+		  thrust_pid.c

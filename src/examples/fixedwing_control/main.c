@@ -66,7 +66,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
-#include <systemlib/geo/geo.h>
+#include <geo/geo.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -380,9 +380,10 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 				/* control */
 
-				/* if in auto mode, fly global position setpoint */
-				if (vstatus.state_machine == SYSTEM_STATE_AUTO ||
-				    vstatus.state_machine == SYSTEM_STATE_STABILIZED) {
+#warning fix this
+#if 0
+				if (vstatus.navigation_state == NAVIGATION_STATE_AUTO_ ||
+				    vstatus.navigation_state == NAVIGATION_STATE_STABILIZED) {
 
 				    	/* simple heading control */
 				    	control_heading(&global_pos, &global_sp, &att, &att_sp);
@@ -400,6 +401,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					/* set flaps to zero */
 					actuators.control[4] = 0.0f;
 
+				} else if (vstatus.navigation_state == NAVIGATION_STATE_MANUAL) {
 				/* if in manual mode, decide between attitude stabilization (SAS) and full manual pass-through */
 				} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
 					if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
@@ -465,6 +467,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 						}
 					}
 				}
+#endif
 
 				/* publish rates */
 				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
