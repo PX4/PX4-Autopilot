@@ -110,6 +110,8 @@ ifneq ($(words $(PX4_BASE)),1)
 $(error Cannot build when the PX4_BASE path contains one or more space characters.)
 endif
 
+$(info %  GIT_DESC            = $(GIT_DESC))
+
 #
 # Set a default target so that included makefiles or errors here don't 
 # cause confusion.
@@ -176,6 +178,12 @@ GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 # Extra things we should clean
 #
 EXTRA_CLEANS		 = 
+
+
+#
+# Extra defines for compilation
+#
+export EXTRADEFINES := -DGIT_VERSION=$(GIT_DESC)
 
 #
 # Append the per-board driver directory to the header search path.
