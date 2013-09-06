@@ -40,6 +40,17 @@ export PX4_BASE		 := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))/
 include $(PX4_BASE)makefiles/setup.mk
 
 #
+# Get a version string provided by git
+# This assumes that git command is available and that
+# the directory holding this file also contains .git directory
+#
+GIT_DESC := $(shell git log -1 --pretty=format:%H)
+ifneq ($(words $(GIT_DESC)),1)
+    GIT_DESC := "unknown_git_version"
+endif
+export GIT_DESC
+
+#
 # Canned firmware configurations that we (know how to) build.
 #
 KNOWN_CONFIGS		:= $(subst config_,,$(basename $(notdir $(wildcard $(PX4_MK_DIR)config_*.mk))))
