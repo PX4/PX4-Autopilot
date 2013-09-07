@@ -54,7 +54,7 @@
 
 #include <stm32.h>
 #include <stm32_can.h>
-#include "px4fmu_internal.h"
+#include "board_config.h"
 
 #include <drivers/device/can.h>
 
