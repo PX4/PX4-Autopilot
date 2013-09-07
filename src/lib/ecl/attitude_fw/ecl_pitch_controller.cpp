@@ -44,20 +44,75 @@ ECL_PitchController::ECL_PitchController() :
 	_last_output(0.0f),
 	_integrator(0.0f),
 	_rate_error(0.0f),
-	_desired_rate(0.0f)
+	_desired_rate(0.0f),
+	_max_deflection_rad(math::radians(45.0f))
 {
 }
 
 float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitch_rate, float roll, float scaler,
-				   bool lock_integrator, float airspeed_min, float airspeed_max, float aspeed)
+				   bool lock_integrator, float airspeed_min, float airspeed_max, float airspeed)
 {
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
 
-	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
+	float dt = dt_micros / 1000000;
 
-	return 0.0f;
+	/* lock integral for long intervals */
+	if (dt_micros > 500000)
+		lock_integrator = true;
+
+	float k_roll_ff = max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
+	float k_i_rate = _k_i * _tc;
+
+	/* input conditioning */
+	if (!isfinite(airspeed)) {
+		/* airspeed is NaN, +- INF or not available, pick center of band */
+		airspeed = 0.5f * (airspeed_min + airspeed_max);
+	} else if (airspeed < airspeed_min) {
+		airspeed = airspeed_min;
+	}
+
+	/* calculate the offset in the rate resulting from rolling  */
+	float turn_offset = fabsf((CONSTANTS_ONE_G / airspeed) *
+				tanf(roll) * sinf(roll)) * _roll;
+
+	float pitch_error = pitch_setpoint - pitch;
+	/* rate setpoint from current error and time constant */
+	_rate_setpoint = pitch_error / _tc;
+
+	/* add turn offset */
+	_rate_setpoint += turn_offset;
+
+	_rate_error = _rate_setpoint - pitch_rate;
+
+	float ilimit_scaled = 0.0f;
+
+	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5 * airspeed_min) {
+
+		float id = _rate_error * k_i_rate * dt * scaler;
+
+		/*
+		 * anti-windup: do not allow integrator to increase into the
+		 * wrong direction if actuator is at limit
+		 */
+		if (_last_output < -_max_deflection_rad) {
+			/* only allow motion to center: increase value */
+			id = max(id, 0.0f);
+		} else if (_last_output > _max_deflection_rad) {
+			/* only allow motion to center: decrease value */
+			id = min(id, 0.0f);
+		}
+
+		_integrator += id;
+	}
+
+	/* integrator limit */
+	_integrator = constrain(_integrator, -ilimit_scaled, ilimit_scaled);
+	/* store non-limited output */
+	_last_output = ((_rate_error * _k_d * scaler) + _integrator + (_rate_setpoint * k_roll_ff)) * scaler;
+
+	return constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }
 
 void ECL_PitchController::reset_integrator()

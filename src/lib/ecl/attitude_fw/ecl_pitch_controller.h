@@ -49,7 +49,7 @@ public:
 	ECL_PitchController();
 
 	float control(float pitch_setpoint, float pitch, float pitch_rate, float roll, float scaler = 1.0f,
-		      bool lock_integrator = false, float airspeed_min = 0.0f, float airspeed_max = 0.0f, float aspeed = (0.0f / 0.0f));
+		      bool lock_integrator = false, float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f));
 
 	void reset_integrator();
 
@@ -100,7 +100,8 @@ private:
 	float _last_output;
 	float _integrator;
 	float _rate_error;
-	float _desired_rate;
+	float _rate_setpoint;
+	float _max_deflection_rad;
 };
 
 #endif // ECL_PITCH_CONTROLLER_H
