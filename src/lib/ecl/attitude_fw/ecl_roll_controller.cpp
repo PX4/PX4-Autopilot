@@ -61,7 +61,7 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
 
 
-
+	float integrator_limit_scaled = 0.0f;
 
 	return 0.0f;
 }
