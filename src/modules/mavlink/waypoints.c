@@ -417,6 +417,7 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 			}
 
 			if (time_elapsed) {
+
 				if (cur_wp->autocontinue) {
 					cur_wp->current = 0;
 
@@ -425,9 +426,10 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 
 						if (wpm->current_active_wp_id == wpm->size - 1 && wpm->size > 1) {
 							/* the last waypoint was reached, if auto continue is
-							 * activated restart the waypoint list from the beginning
+							 * activated keep the system loitering there.
 							 */
-							wpm->current_active_wp_id = 0;
+							cur_wp->command = MAV_CMD_NAV_LOITER_UNLIM;
+							cur_wp->param3 = 15.0f; // XXX magic number 15 m loiter radius
 
 						} else {
 							if ((uint16_t)(wpm->current_active_wp_id + 1) < wpm->size)
