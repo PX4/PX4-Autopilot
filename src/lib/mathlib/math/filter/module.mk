@@ -41,4 +41,3 @@ SRCS		 = LowPassFilter2p.cpp
 # current makefile name, since app.mk needs it.
 #
 APP_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
--include $(TOPDIR)/.config
