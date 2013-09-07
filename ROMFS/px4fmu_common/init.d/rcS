@@ -178,6 +178,18 @@ then
 		sh /etc/init.d/31_io_phantom
 		set MODE custom
 	fi
+
+	if param compare SYS_AUTOSTART 100
+	then
+		sh /etc/init.d/100_mpx_easystar
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 101
+	then
+		sh /etc/init.d/101_hk_bixler
+		set MODE custom
+	fi
 	
 	# Start any custom extensions that might be missing
 	if [ -f /fs/microsd/etc/rc.local ]
