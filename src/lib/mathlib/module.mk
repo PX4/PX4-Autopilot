@@ -49,7 +49,6 @@ SRCS		 = math/test/test.cpp \
 # current makefile name, since app.mk needs it.
 #
 APP_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
--include $(TOPDIR)/.config
 
 ifeq ($(CONFIG_ARCH_CORTEXM4)$(CONFIG_ARCH_FPU),yy)
 INCLUDE_DIRS	+= math/arm
