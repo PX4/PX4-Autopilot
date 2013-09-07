@@ -102,7 +102,7 @@ can_devinit()
 {
 	/* Call stm32_caninitialize() to get an instance of the CAN interface */
 
-	can_dev_s *can = stm32_caninitialize(2);	/* only port 2 used */
+	can_dev_s *can = stm32_caninitialize(1);	/* only port 1 used */
 
 	if (can == NULL) {
 		candbg("ERROR:  Failed to get CAN interface\n");
@@ -111,7 +111,7 @@ can_devinit()
 
 	/* Register the CAN driver */
 
-	device::CANBus *bus = device::CANBus::for_bus(2, can);
+	device::CANBus *bus = device::CANBus::for_bus(1, can);
 
 	if (bus == nullptr) {
 		candbg("ERROR: CANBus init failed\n");
