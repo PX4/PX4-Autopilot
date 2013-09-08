@@ -842,8 +842,10 @@ HMC5883::collect()
 	 */
 	if ((abs(report.x) > 2048) ||
 	    (abs(report.y) > 2048) ||
-	    (abs(report.z) > 2048))
+	    (abs(report.z) > 2048)) {
+		perf_count(_comms_errors);
 		goto out;
+	}
 
 	/*
 	 * RAW outputs
@@ -852,7 +854,7 @@ HMC5883::collect()
 	 * and y needs to be negated
 	 */
 	_reports[_next_report].x_raw = report.y;
-	_reports[_next_report].y_raw = ((report.x == -32768) ? 32767 : -report.x);
+	_reports[_next_report].y_raw = -report.x;
 	/* z remains z */
 	_reports[_next_report].z_raw = report.z;
 
@@ -878,14 +880,14 @@ HMC5883::collect()
 		/* to align the sensor axes with the board, x and y need to be flipped */
 		_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
 		/* flip axes and negate value for y */
-		_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
+		_reports[_next_report].y = ((-report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
 		/* z remains z */
 		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 	} else {
 #endif
 		/* the standard external mag by 3DR has x pointing to the right, y pointing backwards, and z down,
 		 * therefore switch x and y and invert y */
-		_reports[_next_report].x = ((((report.y == -32768) ? 32767 : -report.y) * _range_scale) - _scale.x_offset) * _scale.x_scale;
+		_reports[_next_report].x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
 		/* flip axes and negate value for y */
 		_reports[_next_report].y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
 		/* z remains z */
