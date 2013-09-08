@@ -85,8 +85,8 @@ can_main(int argc, char *argv[])
 	if (!strcmp(argv[0], "init")) {
 		can_dev_s *dev;
 
-		/* port number 2 */
-		dev = stm32_caninitialize(2);
+		/* port number 1 */
+		dev = stm32_caninitialize(1);
 		if (dev == NULL)
 			errx(1, "driver init failed");
 
@@ -101,6 +101,7 @@ can_main(int argc, char *argv[])
 
 	if (!strcmp(argv[0], "send")) {
 		can_msg_s msg;
+		memset(&msg, 0, sizeof(msg));
 
 #if 0
 		if (argc < 2)
@@ -115,7 +116,13 @@ can_main(int argc, char *argv[])
 		opendev(bus);
 
 		for (;;)
-			write(can_fd, &msg, sizeof(msg));
+		{
+			if (write(can_fd, &msg, sizeof(msg)) != sizeof(msg))
+				errx(1, "write error");
+			else
+				puts("sent ok!");
+			sleep(1);
+		}
 
 		if (write(can_fd, &msg, sizeof(msg)) != sizeof(msg))
 			err(1, "write error");
@@ -125,55 +132,34 @@ can_main(int argc, char *argv[])
 
 	if (!strcmp(argv[0], "listen")) {
 
-		unsigned cancels = 3;
 		opendev(bus);
-
-		warnx("Hit <enter> three times to exit listen mode");
-
+		puts("Listening now");
+		can_msg_s msg;
 		for (;;) {
-			struct pollfd fds[2];
+			const int ret = read(can_fd, &msg, sizeof(msg));
 
-			fds[0].fd = 0;
-			fds[0].events = POLLIN;
-			fds[1].fd = can_fd;
-			fds[1].events = POLLIN;
-
-			if (fds[0].revents == POLLIN) {
-				int c;
-				read(0, &c, 1);
-
-				if (cancels-- == 0)
-					exit(0);
+			if (ret != sizeof(msg)) {
+				if (ret >= 0)
+					warnx("unexpected read length %d", ret);
+				if (ret < 0)
+					warnx("read error");
+				sleep(1);
+				continue;
 			}
 
-			if (fds[1].revents == POLLIN) {
-				can_msg_s msg;
+			printf("ID %u LEN %u", msg.cm_hdr.ch_id, msg.cm_hdr.ch_dlc);
 
-				for (;;) {
-					int ret = read(can_fd, &msg, sizeof(msg));
-
-					if (ret != sizeof(msg)) {
-						if (ret >= 0)
-							errx(1, "unexpected read length %d", ret);
-						if (ret < 0)
-							err(1, "read error");
-					}
-
-					printf("ID %u LEN %u", msg.cm_hdr.ch_id, msg.cm_hdr.ch_dlc);
-
-					for (unsigned i = 0; i < msg.cm_hdr.ch_dlc; i++) {
-						if (i == 0)
-							printf(" DATA");
-						printf("%02x", msg.cm_data[i]);
-					}
-					printf("\n");
-				}
+			for (unsigned i = 0; i < msg.cm_hdr.ch_dlc; i++) {
+				if (i == 0)
+					printf(" DATA");
+				printf("%02x", msg.cm_data[i]);
 			}
+			printf("\n");
 		}
 		exit(0);
 	}
 
-	errx(1, "missing or unexpected command, try 'attach <bus>', 'send <message>' or 'listen'");
+	errx(1, "missing or unexpected command");
 }
 
 static int
