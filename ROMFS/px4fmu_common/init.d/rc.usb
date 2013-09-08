@@ -21,7 +21,6 @@ if mavlink stop
 then
 	echo "stopped other MAVLink instance"
 fi
-sleep 2
 mavlink start -b 230400 -d /dev/ttyACM0
 
 # Stop commander
@@ -36,13 +35,6 @@ if commander start
 then
 	echo "Commander started"
 fi
-
-# Stop px4io
-if px4io stop
-then
-	echo "PX4IO stopped"
-fi
-sleep 1
 
 # Start px4io if present
 if px4io start
