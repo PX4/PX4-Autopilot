@@ -39,6 +39,11 @@
 
 #include "../ecl.h"
 #include "ecl_roll_controller.h"
+#include <stdint.h>
+#include <float.h>
+#include <geo/geo.h>
+#include <ecl/ecl.h>
+#include <mathlib/mathlib.h>
 
 ECL_RollController::ECL_RollController() :
 	_last_run(0),
@@ -61,7 +66,7 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 
 	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
 
-	float k_ff = max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
+	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
 	float k_i_rate = _k_i * _tc;
 
 	/* input conditioning */
@@ -86,7 +91,7 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 
 	float ilimit_scaled = 0.0f;
 
-	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5 * airspeed_min) {
+	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
 
 		float id = _rate_error * k_i_rate * dt * scaler;
 
@@ -96,21 +101,21 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 		 */
 		if (_last_output < -_max_deflection_rad) {
 			/* only allow motion to center: increase value */
-			id = max(id, 0.0f);
+			id = math::max(id, 0.0f);
 		} else if (_last_output > _max_deflection_rad) {
 			/* only allow motion to center: decrease value */
-			id = min(id, 0.0f);
+			id = math::min(id, 0.0f);
 		}
 
 		_integrator += id;
 	}
 
 	/* integrator limit */
-	_integrator = constrain(_integrator, -ilimit_scaled, ilimit_scaled);
+	_integrator = math::constrain(_integrator, -ilimit_scaled, ilimit_scaled);
 	/* store non-limited output */
-	_last_output = ((_rate_error * _k_d * scaler) + _integrator + (_rate_setpoint * k_roll_ff)) * scaler;
+	_last_output = ((_rate_error * _k_d * scaler) + _integrator + (_rate_setpoint * k_ff)) * scaler;
 
-	return constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
+	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }
 
 void ECL_RollController::reset_integrator()

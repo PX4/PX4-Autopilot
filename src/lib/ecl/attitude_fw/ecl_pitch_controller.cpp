@@ -38,13 +38,19 @@
  */
 
 #include "ecl_pitch_controller.h"
+#include <math.h>
+#include <stdint.h>
+#include <float.h>
+#include <geo/geo.h>
+#include <ecl/ecl.h>
+#include <mathlib/mathlib.h>
 
 ECL_PitchController::ECL_PitchController() :
 	_last_run(0),
 	_last_output(0.0f),
 	_integrator(0.0f),
 	_rate_error(0.0f),
-	_desired_rate(0.0f),
+	_rate_setpoint(0.0f),
 	_max_deflection_rad(math::radians(45.0f))
 {
 }
@@ -62,7 +68,7 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 	if (dt_micros > 500000)
 		lock_integrator = true;
 
-	float k_roll_ff = max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
+	float k_roll_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
 	float k_i_rate = _k_i * _tc;
 
 	/* input conditioning */
@@ -75,7 +81,7 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 
 	/* calculate the offset in the rate resulting from rolling  */
 	float turn_offset = fabsf((CONSTANTS_ONE_G / airspeed) *
-				tanf(roll) * sinf(roll)) * _roll;
+				tanf(roll) * sinf(roll)) * _roll_ff;
 
 	float pitch_error = pitch_setpoint - pitch;
 	/* rate setpoint from current error and time constant */
@@ -88,7 +94,7 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 
 	float ilimit_scaled = 0.0f;
 
-	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5 * airspeed_min) {
+	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
 
 		float id = _rate_error * k_i_rate * dt * scaler;
 
@@ -98,21 +104,21 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 		 */
 		if (_last_output < -_max_deflection_rad) {
 			/* only allow motion to center: increase value */
-			id = max(id, 0.0f);
+			id = math::max(id, 0.0f);
 		} else if (_last_output > _max_deflection_rad) {
 			/* only allow motion to center: decrease value */
-			id = min(id, 0.0f);
+			id = math::min(id, 0.0f);
 		}
 
 		_integrator += id;
 	}
 
 	/* integrator limit */
-	_integrator = constrain(_integrator, -ilimit_scaled, ilimit_scaled);
+	_integrator = math::constrain(_integrator, -ilimit_scaled, ilimit_scaled);
 	/* store non-limited output */
 	_last_output = ((_rate_error * _k_d * scaler) + _integrator + (_rate_setpoint * k_roll_ff)) * scaler;
 
-	return constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
+	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }
 
 void ECL_PitchController::reset_integrator()

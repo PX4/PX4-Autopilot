@@ -38,6 +38,11 @@
  */
 
 #include "ecl_yaw_controller.h"
+#include <stdint.h>
+#include <float.h>
+#include <geo/geo.h>
+#include <ecl/ecl.h>
+#include <mathlib/mathlib.h>
 
 ECL_YawController::ECL_YawController() :
 	_last_run(0),

@@ -79,7 +79,7 @@ public:
 	}
 
 	float get_desired_rate() {
-		return _desired_rate;
+		return _rate_setpoint;
 	}
 
 private:
