@@ -504,6 +504,8 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 		current_control_mode->timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, current_control_mode);
 
+		// XXX also set lockdown here
+
 		ret = OK;
 
 	} else {

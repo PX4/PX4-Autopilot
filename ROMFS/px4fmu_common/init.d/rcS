@@ -101,8 +101,14 @@ then
 		fi
 	fi
 
-	# Try to get an USB console
-	nshterm /dev/ttyACM0 &
+	if param compare SYS_AUTOSTART 1000
+	then
+		sh /etc/init.d/rc.hil
+		set MODE custom
+	else
+		# Try to get an USB console
+		nshterm /dev/ttyACM0 &
+	fi
 	
 	#
 	# Upgrade PX4IO firmware
@@ -202,7 +208,6 @@ then
 	then
 		# Telemetry port is on both FMU boards ttyS1
 		mavlink start -b 57600 -d /dev/ttyS1
-		usleep 5000
 	
 		# Start commander
 		commander start

@@ -49,7 +49,7 @@ public:
 	ECL_RollController();
 
 	float control(float roll_setpoint, float roll, float roll_rate,
-		      float scaler = 1.0f, bool lock_integrator = false, float airspeed_min = 0.0f, float airspeed_max = 0.0f, float aspeed = (0.0f / 0.0f));
+		      float scaler = 1.0f, bool lock_integrator = false, float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f));
 
 	void reset_integrator();
 
@@ -79,7 +79,7 @@ public:
 	}
 
 	float get_desired_rate() {
-		return _desired_rate;
+		return _rate_setpoint;
 	}
 
 private:
@@ -93,7 +93,8 @@ private:
 	float _last_output;
 	float _integrator;
 	float _rate_error;
-	float _desired_rate;
+	float _rate_setpoint;
+	float _max_deflection_rad;
 };
 
 #endif // ECL_ROLL_CONTROLLER_H

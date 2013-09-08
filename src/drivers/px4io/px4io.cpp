@@ -487,25 +487,27 @@ PX4IO::detect()
 {
 	int ret;
 
-	ASSERT(_task == -1);
+	if (_task == -1) {
 
-	/* do regular cdev init */
-	ret = CDev::init();
-	if (ret != OK)
-		return ret;
+		/* do regular cdev init */
+		ret = CDev::init();
+		if (ret != OK)
+			return ret;
 
-	/* get some parameters */
-	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
-	if (protocol != PX4IO_PROTOCOL_VERSION) {
-		if (protocol == _io_reg_get_error) {
-			log("IO not installed");
-		} else {
-			log("IO version error");
-			mavlink_log_emergency(_mavlink_fd, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
+		/* get some parameters */
+		unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+		if (protocol != PX4IO_PROTOCOL_VERSION) {
+			if (protocol == _io_reg_get_error) {
+				log("IO not installed");
+			} else {
+				log("IO version error");
+				mavlink_log_emergency(_mavlink_fd, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
+			}
+			
+			return -1;
 		}
-		
-		return -1;
 	}
+
 	log("IO found");
 
 	return 0;

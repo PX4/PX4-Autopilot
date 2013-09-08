@@ -829,5 +829,7 @@ uorb_receive_start(void)
 
 	pthread_t thread;
 	pthread_create(&thread, &uorb_attr, uorb_receive_thread, NULL);
+
+	pthread_attr_destroy(&uorb_attr);
 	return thread;
 }

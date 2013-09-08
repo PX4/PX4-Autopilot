@@ -755,5 +755,7 @@ receive_start(int uart)
 
 	pthread_t thread;
 	pthread_create(&thread, &receiveloop_attr, receive_thread, &uart);
+
+	pthread_attr_destroy(&receiveloop_attr);
 	return thread;
 }

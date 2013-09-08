@@ -39,6 +39,11 @@
 
 #include "../ecl.h"
 #include "ecl_roll_controller.h"
+#include <stdint.h>
+#include <float.h>
+#include <geo/geo.h>
+#include <ecl/ecl.h>
+#include <mathlib/mathlib.h>
 
 ECL_RollController::ECL_RollController() :
 	_last_run(0),
@@ -46,13 +51,14 @@ ECL_RollController::ECL_RollController() :
 	_last_output(0.0f),
 	_integrator(0.0f),
 	_rate_error(0.0f),
-	_desired_rate(0.0f)
+	_rate_setpoint(0.0f),
+	_max_deflection_rad(math::radians(45.0f))
 {
 
 }
 
 float ECL_RollController::control(float roll_setpoint, float roll, float roll_rate,
-				  float scaler, bool lock_integrator, float airspeed_min, float airspeed_max, float aspeed)
+				  float scaler, bool lock_integrator, float airspeed_min, float airspeed_max, float airspeed)
 {
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
@@ -60,10 +66,56 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 
 	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
 
+	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
+	float k_i_rate = _k_i * _tc;
+
+	/* input conditioning */
+	if (!isfinite(airspeed)) {
+		/* airspeed is NaN, +- INF or not available, pick center of band */
+		airspeed = 0.5f * (airspeed_min + airspeed_max);
+	} else if (airspeed < airspeed_min) {
+		airspeed = airspeed_min;
+	}
+
+	float roll_error = roll_setpoint - roll;
+	_rate_setpoint = roll_error / _tc;
+
+	/* limit the rate */
+	if (_max_rate > 0.01f) {
+		_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
+		_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
+	}
+
+	_rate_error = _rate_setpoint - roll_rate;
 
 
+	float ilimit_scaled = 0.0f;
 
-	return 0.0f;
+	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
+
+		float id = _rate_error * k_i_rate * dt * scaler;
+
+		/*
+		 * anti-windup: do not allow integrator to increase into the
+		 * wrong direction if actuator is at limit
+		 */
+		if (_last_output < -_max_deflection_rad) {
+			/* only allow motion to center: increase value */
+			id = math::max(id, 0.0f);
+		} else if (_last_output > _max_deflection_rad) {
+			/* only allow motion to center: decrease value */
+			id = math::min(id, 0.0f);
+		}
+
+		_integrator += id;
+	}
+
+	/* integrator limit */
+	_integrator = math::constrain(_integrator, -ilimit_scaled, ilimit_scaled);
+	/* store non-limited output */
+	_last_output = ((_rate_error * _k_d * scaler) + _integrator + (_rate_setpoint * k_ff)) * scaler;
+
+	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }
 
 void ECL_RollController::reset_integrator()
