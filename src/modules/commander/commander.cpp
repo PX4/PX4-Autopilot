@@ -144,8 +144,8 @@ static int mavlink_fd;
 
 /* flags */
 static bool commander_initialized = false;
-static bool thread_should_exit = false;		/**< daemon exit flag */
-static bool thread_running = false;		/**< daemon status flag */
+static volatile bool thread_should_exit = false;		/**< daemon exit flag */
+static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;				/**< Handle of daemon task / thread */
 
 static unsigned int leds_counter;
@@ -230,7 +230,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("commander already running\n");
+			warnx("commander already running");
 			/* this is not an error */
 			exit(0);
 		}
@@ -242,21 +242,38 @@ int commander_main(int argc, char *argv[])
 					     3000,
 					     commander_thread_main,
 					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
+
+		while (!thread_running) {
+			usleep(200);
+		}
+
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
+
+		if (!thread_running)
+			errx(0, "commander already stopped");
+
 		thread_should_exit = true;
+
+		while (thread_running) {
+			usleep(200000);
+			warnx(".");
+		}
+
+		warnx("terminated.");
+
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("\tcommander is running\n");
+			warnx("\tcommander is running");
 			print_status();
 
 		} else {
-			warnx("\tcommander not started\n");
+			warnx("\tcommander not started");
 		}
 
 		exit(0);
@@ -595,16 +612,20 @@ int commander_thread_main(int argc, char *argv[])
 
 	mavlink_log_info(mavlink_fd, "[cmd] started");
 
+	int ret;
+
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
 	pthread_attr_setstacksize(&commander_low_prio_attr, 2992);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
+
 	/* low priority */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 50;
 	(void)pthread_attr_setschedparam(&commander_low_prio_attr, &param);
 	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, NULL);
+	pthread_attr_destroy(&commander_low_prio_attr);
 
 	/* Start monitoring loop */
 	unsigned counter = 0;
@@ -1200,7 +1221,12 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* wait for threads to complete */
-	pthread_join(commander_low_prio_thread, NULL);
+	ret = pthread_join(commander_low_prio_thread, NULL);
+	if (ret) {
+		warn("join failed", ret);
+	}
+
+	rgbled_set_mode(RGBLED_MODE_OFF);
 
 	/* close fds */
 	led_deinit();
@@ -1217,9 +1243,6 @@ int commander_thread_main(int argc, char *argv[])
 	close(diff_pres_sub);
 	close(param_changed_sub);
 	close(battery_sub);
-
-	warnx("exiting");
-	fflush(stdout);
 
 	thread_running = false;
 
@@ -1628,7 +1651,7 @@ void *commander_low_prio_loop(void *arg)
 	while (!thread_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 200);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0)
@@ -1785,5 +1808,5 @@ void *commander_low_prio_loop(void *arg)
 
 	close(cmd_sub);
 
-	return 0;
+	return NULL;
 }
