@@ -131,9 +131,25 @@ public:
 	 */
 	void			flush();
 
+	/*
+	 * resize the buffer. This is unsafe to be called while
+	 * a producer or consuming is running. Caller is responsible
+	 * for any locking needed
+	 *
+	 * @param new_size	new size for buffer
+	 * @return		true if the resize succeeds, false if
+	 * 			not (allocation error)
+	 */
+	bool			resize(unsigned new_size);
+
+	/*
+	 * printf() some info on the buffer
+	 */
+	void			print_info(const char *name);
+
 private:
-	T			*const _buf;	
-	const unsigned		_size;
+	T			*_buf;	
+	unsigned		_size;
 	volatile unsigned	_head;	/**< insertion point */
 	volatile unsigned	_tail;	/**< removal point */
 
@@ -304,4 +320,28 @@ unsigned RingBuffer<T>::count(void)
 	 * over-estimate the number of items in the buffer.
 	 */
 	return _size - space();
+}
+
+template <typename T>
+bool RingBuffer<T>::resize(unsigned new_size) 
+{
+	T *old_buffer;
+	T *new_buffer = new T[new_size + 1];
+	if (new_buffer == nullptr) {
+		return false;
+	}
+	old_buffer = _buf;
+	_buf = new_buffer;
+	_size = new_size;
+	_head = new_size;
+	_tail = new_size;
+	delete[] old_buffer;
+	return true;
+}
+
+template <typename T>
+void RingBuffer<T>::print_info(const char *name) 
+{
+	printf("%s	%u (%u/%u @ %p)\n",
+	       name, _size, _head, _tail, _buf);
 }
