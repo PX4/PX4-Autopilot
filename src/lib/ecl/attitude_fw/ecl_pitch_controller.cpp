@@ -79,9 +79,31 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 		airspeed = airspeed_min;
 	}
 
+	/* flying inverted (wings upside down) ? */
+	bool inverted = false;
+
+	/* roll is used as feedforward term and inverted flight needs to be considered */
+	if (fabsf(roll) < math::radians(90.0f)) {
+		/* not inverted, but numerically still potentially close to infinity */
+		roll = math::constrain(roll, math::radians(-80.0f), math::radians(80.0f));
+	} else {
+		/* inverted flight, constrain on the two extremes of -pi..+pi to avoid infinity */
+
+		/* note: the ranges are extended by 10 deg here to avoid numeric resolution effects */
+		if (roll > 0.0f) {
+			/* right hemisphere */
+			roll = math::constrain(roll, math::radians(100.0f), math::radians(180.0f));
+		} else {
+			/* left hemisphere */
+			roll = math::constrain(roll, math::radians(-100.0f), math::radians(-180.0f));
+		}
+	}
+
 	/* calculate the offset in the rate resulting from rolling  */
 	float turn_offset = fabsf((CONSTANTS_ONE_G / airspeed) *
 				tanf(roll) * sinf(roll)) * _roll_ff;
+	if (inverted)
+		turn_offset = -turn_offset;
 
 	float pitch_error = pitch_setpoint - pitch;
 	/* rate setpoint from current error and time constant */
