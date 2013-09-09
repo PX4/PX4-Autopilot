@@ -67,6 +67,7 @@ extern bool gcs_link;
 
 struct vehicle_global_position_s global_pos;
 struct vehicle_local_position_s local_pos;
+struct vehicle_vicon_position_s vicon_pos;
 struct vehicle_status_s v_status;
 struct rc_channels_s rc;
 struct rc_input_values rc_raw;
@@ -107,6 +108,7 @@ static void	l_rc_channels(const struct listener *l);
 static void	l_input_rc(const struct listener *l);
 static void	l_global_position(const struct listener *l);
 static void	l_local_position(const struct listener *l);
+static void	l_vicon_position(const struct listener *l);
 static void	l_global_position_setpoint(const struct listener *l);
 static void	l_local_position_setpoint(const struct listener *l);
 static void	l_attitude_setpoint(const struct listener *l);
@@ -130,6 +132,7 @@ static const struct listener listeners[] = {
 	{l_input_rc,			&mavlink_subs.input_rc_sub,	0},
 	{l_global_position,		&mavlink_subs.global_pos_sub,	0},
 	{l_local_position,		&mavlink_subs.local_pos_sub,	0},
+	{l_vicon_position,		&mavlink_subs.vicon_pos_sub,	0},
 	{l_global_position_setpoint,	&mavlink_subs.spg_sub,		0},
 	{l_local_position_setpoint,	&mavlink_subs.spl_sub,		0},
 	{l_attitude_setpoint,		&mavlink_subs.spa_sub,		0},
@@ -370,6 +373,22 @@ l_local_position(const struct listener *l)
 						    local_pos.vx,
 						    local_pos.vy,
 						    local_pos.vz);
+}
+
+void
+l_vicon_position(const struct listener *l)
+{
+	orb_copy(ORB_ID(vehicle_vicon_position), mavlink_subs.vicon_pos_sub, &vicon_pos);
+
+	if (gcs_link)
+		mavlink_msg_vicon_position_estimate_send(MAVLINK_COMM_0,
+							vicon_pos.timestamp / 1000,
+							vicon_pos.x,
+							vicon_pos.y,
+							vicon_pos.z,
+							vicon_pos.roll,
+							vicon_pos.pitch,
+							vicon_pos.yaw);
 }
 
 void
@@ -764,6 +783,9 @@ uorb_receive_start(void)
 	/* --- LOCAL POS VALUE --- */
 	mavlink_subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	orb_set_interval(mavlink_subs.local_pos_sub, 1000);	/* 1Hz active updates */
+
+	mavlink_subs.vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
+	orb_set_interval(mavlink_subs.vicon_pos_sub, 1000);
 
 	/* --- GLOBAL SETPOINT VALUE --- */
 	mavlink_subs.spg_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
