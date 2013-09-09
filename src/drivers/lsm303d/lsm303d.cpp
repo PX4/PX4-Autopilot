@@ -62,6 +62,7 @@
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
@@ -218,15 +219,19 @@ private:
 	unsigned		_call_accel_interval;
 	unsigned		_call_mag_interval;
 
-	unsigned		_num_accel_reports;
-	volatile unsigned	_next_accel_report;
-	volatile unsigned	_oldest_accel_report;
-	struct accel_report	*_accel_reports;
+	/*
+	  these wrapper types are needed to avoid a linker error for
+	  RingBuffer instances which appear in two drivers.
+	 */
+	struct _accel_report {
+		struct accel_report r;
+	};
+	RingBuffer<struct _accel_report> *_accel_reports;
 
-	unsigned		_num_mag_reports;
-	volatile unsigned	_next_mag_report;
-	volatile unsigned	_oldest_mag_report;
-	struct mag_report	*_mag_reports;
+	struct _mag_report {
+		struct mag_report r;
+	};
+	RingBuffer<struct _mag_report> *_mag_reports;
 
 	struct accel_scale	_accel_scale;
 	unsigned		_accel_range_m_s2;
@@ -420,22 +425,12 @@ private:
 };
 
 
-/* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
-
-
 LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 8000000),
 	_mag(new LSM303D_mag(this)),
 	_call_accel_interval(0),
 	_call_mag_interval(0),
-	_num_accel_reports(0),
-	_next_accel_report(0),
-	_oldest_accel_report(0),
 	_accel_reports(nullptr),
-	_num_mag_reports(0),
-	_next_mag_report(0),
-	_oldest_mag_report(0),
 	_mag_reports(nullptr),
 	_accel_range_m_s2(0.0f),
 	_accel_range_scale(0.0f),
@@ -480,9 +475,9 @@ LSM303D::~LSM303D()
 
 	/* free any existing reports */
 	if (_accel_reports != nullptr)
-		delete[] _accel_reports;
+		delete _accel_reports;
 	if (_mag_reports != nullptr)
-		delete[] _mag_reports;
+		delete _mag_reports;
 
 	delete _mag;
 
@@ -504,20 +499,17 @@ LSM303D::init()
 	}
 
 	/* allocate basic report buffers */
-	_num_accel_reports = 2;
-	_oldest_accel_report = _next_accel_report = 0;
-	_accel_reports = new struct accel_report[_num_accel_reports];
+	_accel_reports = new RingBuffer<struct _accel_report>(2);
 
 	if (_accel_reports == nullptr)
 		goto out;
 
 	/* advertise accel topic */
-	memset(&_accel_reports[0], 0, sizeof(_accel_reports[0]));
-	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &_accel_reports[0]);
+	struct accel_report zero_report;
+	memset(&zero_report, 0, sizeof(zero_report));
+	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &zero_report);
 
-	_num_mag_reports = 2;
-	_oldest_mag_report = _next_mag_report = 0;
-	_mag_reports = new struct mag_report[_num_mag_reports];
+	_mag_reports = new RingBuffer<struct _mag_report>(2);
 
 	if (_mag_reports == nullptr)
 		goto out;
@@ -525,8 +517,9 @@ LSM303D::init()
 	reset();
 
 	/* advertise mag topic */
-	memset(&_mag_reports[0], 0, sizeof(_mag_reports[0]));
-	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &_mag_reports[0]);
+	struct mag_report zero_mag_report;
+	memset(&zero_mag_report, 0, sizeof(zero_mag_report));
+	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &zero_mag_report);
 
 	/* do CDev init for the mag device node, keep it optional */
 	mag_ret = _mag->init();
@@ -586,6 +579,7 @@ ssize_t
 LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct accel_report);
+	struct _accel_report *arb = reinterpret_cast<struct _accel_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -594,17 +588,13 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 
 	/* if automatic measurement is enabled */
 	if (_call_accel_interval > 0) {
-
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
-		 * Note that we may be pre-empted by the measurement code while we are doing this;
-		 * we are careful to avoid racing with it.
 		 */
 		while (count--) {
-			if (_oldest_accel_report != _next_accel_report) {
-				memcpy(buffer, _accel_reports + _oldest_accel_report, sizeof(*_accel_reports));
-				ret += sizeof(_accel_reports[0]);
-				INCREMENT(_oldest_accel_report, _num_accel_reports);
+			if (_accel_reports->get(*arb)) {
+				ret += sizeof(*arb);
+				arb++;
 			}
 		}
 
@@ -613,12 +603,11 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement */
-	_oldest_accel_report = _next_accel_report = 0;
 	measure();
 
 	/* measurement will have generated a report, copy it out */
-	memcpy(buffer, _accel_reports, sizeof(*_accel_reports));
-	ret = sizeof(*_accel_reports);
+	if (_accel_reports->get(*arb))
+		ret = sizeof(*arb);
 
 	return ret;
 }
@@ -627,6 +616,7 @@ ssize_t
 LSM303D::mag_read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct mag_report);
+	struct _mag_report *mrb = reinterpret_cast<struct _mag_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -638,14 +628,11 @@ LSM303D::mag_read(struct file *filp, char *buffer, size_t buflen)
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
-		 * Note that we may be pre-empted by the measurement code while we are doing this;
-		 * we are careful to avoid racing with it.
 		 */
 		while (count--) {
-			if (_oldest_mag_report != _next_mag_report) {
-				memcpy(buffer, _mag_reports + _oldest_mag_report, sizeof(*_mag_reports));
-				ret += sizeof(_mag_reports[0]);
-				INCREMENT(_oldest_mag_report, _num_mag_reports);
+			if (_mag_reports->get(*mrb)) {
+				ret += sizeof(*mrb);
+				mrb++;
 			}
 		}
 
@@ -654,12 +641,12 @@ LSM303D::mag_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement */
-	_oldest_mag_report = _next_mag_report = 0;
+	_mag_reports->flush();
 	measure();
 
 	/* measurement will have generated a report, copy it out */
-	memcpy(buffer, _mag_reports, sizeof(*_mag_reports));
-	ret = sizeof(*_mag_reports);
+	if (_mag_reports->get(*mrb))
+		ret = sizeof(*mrb);
 
 	return ret;
 }
@@ -727,31 +714,22 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return 1000000 / _call_accel_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
-		/* account for sentinel in the ring */
-		arg++;
-
 		/* lower bound is mandatory, upper bound is a sanity check */
-		if ((arg < 2) || (arg > 100))
+		if ((arg < 1) || (arg > 100))
 			return -EINVAL;
 
-		/* allocate new buffer */
-		struct accel_report *buf = new struct accel_report[arg];
-
-		if (nullptr == buf)
+		irqstate_t flags = irqsave();
+		if (!_accel_reports->resize(arg)) {
+			irqrestore(flags);
 			return -ENOMEM;
-
-		/* reset the measurement state machine with the new buffer, free the old */
-		stop();
-		delete[] _accel_reports;
-		_num_accel_reports = arg;
-		_accel_reports = buf;
-		start();
+		}
+		irqrestore(flags);
 
 		return OK;
 	}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_accel_reports - 1;
+		return _accel_reports->size();
 
 	case SENSORIOCRESET:
 		reset();
@@ -863,31 +841,22 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return 1000000 / _call_mag_interval;
 	
 	case SENSORIOCSQUEUEDEPTH: {
-			/* account for sentinel in the ring */
-			arg++;
+		/* lower bound is mandatory, upper bound is a sanity check */
+		if ((arg < 1) || (arg > 100))
+			return -EINVAL;
 
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 2) || (arg > 100))
-				return -EINVAL;
-
-			/* allocate new buffer */
-			struct mag_report *buf = new struct mag_report[arg];
-
-			if (nullptr == buf)
-				return -ENOMEM;
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop();
-			delete[] _mag_reports;
-			_num_mag_reports = arg;
-			_mag_reports = buf;
-			start();
-
-			return OK;
+		irqstate_t flags = irqsave();
+		if (!_mag_reports->resize(arg)) {
+			irqrestore(flags);
+			return -ENOMEM;
 		}
+		irqrestore(flags);
+
+		return OK;
+	}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_mag_reports - 1;
+		return _mag_reports->size();
 
 	case SENSORIOCRESET:
 		reset();
@@ -1220,8 +1189,8 @@ LSM303D::start()
 	stop();
 
 	/* reset the report ring */
-	_oldest_accel_report = _next_accel_report = 0;
-	_oldest_mag_report = _next_mag_report = 0;
+	_accel_reports->flush();
+	_mag_reports->flush();
 
 	/* start polling at the specified rate */
 	hrt_call_every(&_accel_call, 1000, _call_accel_interval, (hrt_callout)&LSM303D::measure_trampoline, this);
@@ -1268,7 +1237,7 @@ LSM303D::measure()
 	} raw_accel_report;
 #pragma pack(pop)
 
-	accel_report		*accel_report = &_accel_reports[_next_accel_report];
+	struct _accel_report accel_report;
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
@@ -1293,35 +1262,30 @@ LSM303D::measure()
 	 */
 
 
-	accel_report->timestamp = hrt_absolute_time();
+	accel_report.r.timestamp = hrt_absolute_time();
 
-	accel_report->x_raw = raw_accel_report.x;
-	accel_report->y_raw = raw_accel_report.y;
-	accel_report->z_raw = raw_accel_report.z;
+	accel_report.r.x_raw = raw_accel_report.x;
+	accel_report.r.y_raw = raw_accel_report.y;
+	accel_report.r.z_raw = raw_accel_report.z;
 
-	float x_in_new = ((accel_report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((accel_report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((accel_report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	float x_in_new = ((accel_report.r.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	float y_in_new = ((accel_report.r.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	float z_in_new = ((accel_report.r.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
-	accel_report->x = _accel_filter_x.apply(x_in_new);
-	accel_report->y = _accel_filter_y.apply(y_in_new);
-	accel_report->z = _accel_filter_z.apply(z_in_new);
+	accel_report.r.x = _accel_filter_x.apply(x_in_new);
+	accel_report.r.y = _accel_filter_y.apply(y_in_new);
+	accel_report.r.z = _accel_filter_z.apply(z_in_new);
 
-	accel_report->scaling = _accel_range_scale;
-	accel_report->range_m_s2 = _accel_range_m_s2;
+	accel_report.r.scaling = _accel_range_scale;
+	accel_report.r.range_m_s2 = _accel_range_m_s2;
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_accel_report, _num_accel_reports);
-
-	/* if we are running up against the oldest report, fix it */
-	if (_next_accel_report == _oldest_accel_report)
-		INCREMENT(_oldest_accel_report, _num_accel_reports);
+	_accel_reports->force(accel_report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_accel), _accel_topic, accel_report);
+	orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report.r);
 
 	_accel_read++;
 
@@ -1343,7 +1307,7 @@ LSM303D::mag_measure()
 	} raw_mag_report;
 #pragma pack(pop)
 
-	mag_report		*mag_report = &_mag_reports[_next_mag_report];
+	struct _mag_report mag_report;
 
 	/* start the performance counter */
 	perf_begin(_mag_sample_perf);
@@ -1368,30 +1332,25 @@ LSM303D::mag_measure()
 	 */
 
 
-	mag_report->timestamp = hrt_absolute_time();
+	mag_report.r.timestamp = hrt_absolute_time();
 
-	mag_report->x_raw = raw_mag_report.x;
-	mag_report->y_raw = raw_mag_report.y;
-	mag_report->z_raw = raw_mag_report.z;
-	mag_report->x = ((mag_report->x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	mag_report->y = ((mag_report->y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	mag_report->z = ((mag_report->z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
-	mag_report->scaling = _mag_range_scale;
-	mag_report->range_ga = (float)_mag_range_ga;
+	mag_report.r.x_raw = raw_mag_report.x;
+	mag_report.r.y_raw = raw_mag_report.y;
+	mag_report.r.z_raw = raw_mag_report.z;
+	mag_report.r.x = ((mag_report.r.x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	mag_report.r.y = ((mag_report.r.y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	mag_report.r.z = ((mag_report.r.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+	mag_report.r.scaling = _mag_range_scale;
+	mag_report.r.range_ga = (float)_mag_range_ga;
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_mag_report, _num_mag_reports);
-
-	/* if we are running up against the oldest report, fix it */
-	if (_next_mag_report == _oldest_mag_report)
-		INCREMENT(_oldest_mag_report, _num_mag_reports);
+	_mag_reports->force(mag_report);
 
 	/* XXX please check this poll_notify, is it the right one? */
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_mag), _mag_topic, mag_report);
+	orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report.r);
 
 	_mag_read++;
 
@@ -1405,11 +1364,8 @@ LSM303D::print_info()
 	printf("accel reads:          %u\n", _accel_read);
 	printf("mag reads:            %u\n", _mag_read);
 	perf_print_counter(_accel_sample_perf);
-	printf("report queue:   %u (%u/%u @ %p)\n",
-	       _num_accel_reports, _oldest_accel_report, _next_accel_report, _accel_reports);
-	perf_print_counter(_mag_sample_perf);
-		printf("report queue:   %u (%u/%u @ %p)\n",
-		   _num_mag_reports, _oldest_mag_report, _next_mag_report, _mag_reports);
+	_accel_reports->print_info("accel reports");
+	_mag_reports->print_info("mag reports");
 }
 
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
