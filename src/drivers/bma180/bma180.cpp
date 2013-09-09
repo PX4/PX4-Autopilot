@@ -63,6 +63,7 @@
 
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
+#include <drivers/device/ringbuffer.h>
 
 
 /* oddly, ERROR is not defined for c++ */
@@ -146,10 +147,14 @@ private:
 	struct hrt_call		_call;
 	unsigned		_call_interval;
 
-	unsigned		_num_reports;
-	volatile unsigned	_next_report;
-	volatile unsigned	_oldest_report;
-	struct accel_report	*_reports;
+	/*
+	  this wrapper type is needed to avoid a linker error for
+	  RingBuffer instances which appear in two drivers.
+	 */
+	struct _accel_report {
+		accel_report r;
+	};
+	RingBuffer<struct _accel_report> *_reports;
 
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
@@ -233,16 +238,9 @@ private:
 	int			set_lowpass(unsigned frequency);
 };
 
-/* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
-
-
 BMA180::BMA180(int bus, spi_dev_e device) :
 	SPI("BMA180", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, 8000000),
 	_call_interval(0),
-	_num_reports(0),
-	_next_report(0),
-	_oldest_report(0),
 	_reports(nullptr),
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
@@ -270,7 +268,7 @@ BMA180::~BMA180()
 
 	/* free any existing reports */
 	if (_reports != nullptr)
-		delete[] _reports;
+		delete _reports;
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -286,16 +284,15 @@ BMA180::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_num_reports = 2;
-	_oldest_report = _next_report = 0;
-	_reports = new struct accel_report[_num_reports];
+	_reports = new RingBuffer<_accel_report>(2);
 
 	if (_reports == nullptr)
 		goto out;
 
 	/* advertise sensor topic */
-	memset(&_reports[0], 0, sizeof(_reports[0]));
-	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &_reports[0]);
+	struct accel_report zero_report;
+	memset(&zero_report, 0, sizeof(zero_report));
+	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &zero_report);
 
 	/* perform soft reset (p48) */
 	write_reg(ADDR_RESET, SOFT_RESET);
@@ -352,6 +349,7 @@ ssize_t
 BMA180::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct accel_report);
+	struct _accel_report *arp = reinterpret_cast<struct _accel_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -367,10 +365,9 @@ BMA180::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with it.
 		 */
 		while (count--) {
-			if (_oldest_report != _next_report) {
-				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
-				ret += sizeof(_reports[0]);
-				INCREMENT(_oldest_report, _num_reports);
+			if (_reports->get(*arp)) {
+				ret += sizeof(*arp);
+				arp++;
 			}
 		}
 
@@ -379,12 +376,12 @@ BMA180::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement */
-	_oldest_report = _next_report = 0;
+	_reports->flush();
 	measure();
 
 	/* measurement will have generated a report, copy it out */
-	memcpy(buffer, _reports, sizeof(*_reports));
-	ret = sizeof(*_reports);
+	if (_reports->get(*arp))
+		ret = sizeof(*arp);
 
 	return ret;
 }
@@ -449,31 +446,22 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
-			/* account for sentinel in the ring */
-			arg++;
-
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 2) || (arg > 100))
-				return -EINVAL;
-
-			/* allocate new buffer */
-			struct accel_report *buf = new struct accel_report[arg];
-
-			if (nullptr == buf)
-				return -ENOMEM;
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop();
-			delete[] _reports;
-			_num_reports = arg;
-			_reports = buf;
-			start();
-
-			return OK;
+		/* lower bound is mandatory, upper bound is a sanity check */
+		if ((arg < 2) || (arg > 100))
+			return -EINVAL;
+		
+		irqstate_t flags = irqsave();
+		if (!_reports->resize(arg)) {
+			irqrestore(flags);
+			return -ENOMEM;
 		}
+		irqrestore(flags);
+		
+		return OK;
+	}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports - 1;
+		return _reports->size();
 
 	case SENSORIOCRESET:
 		/* XXX implement */
@@ -654,7 +642,7 @@ BMA180::start()
 	stop();
 
 	/* reset the report ring */
-	_oldest_report = _next_report = 0;
+	_reports->flush();
 
 	/* start polling at the specified rate */
 	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&BMA180::measure_trampoline, this);
@@ -688,7 +676,7 @@ BMA180::measure()
 // 	} raw_report;
 // #pragma pack(pop)
 
-	accel_report		*report = &_reports[_next_report];
+	struct _accel_report report;
 
 	/* start the performance counter */
 	perf_begin(_sample_perf);
@@ -708,45 +696,40 @@ BMA180::measure()
 	 * them before.  There is no good way to synchronise with the internal
 	 * measurement flow without using the external interrupt.
 	 */
-	_reports[_next_report].timestamp = hrt_absolute_time();
+	report.r.timestamp = hrt_absolute_time();
 	/*
 	 * y of board is x of sensor and x of board is -y of sensor
 	 * perform only the axis assignment here.
 	 * Two non-value bits are discarded directly
 	 */
-	report->y_raw  = read_reg(ADDR_ACC_X_LSB + 0);
-	report->y_raw |= read_reg(ADDR_ACC_X_LSB + 1) << 8;
-	report->x_raw  = read_reg(ADDR_ACC_X_LSB + 2);
-	report->x_raw |= read_reg(ADDR_ACC_X_LSB + 3) << 8;
-	report->z_raw  = read_reg(ADDR_ACC_X_LSB + 4);
-	report->z_raw |= read_reg(ADDR_ACC_X_LSB + 5) << 8;
+	report.r.y_raw  = read_reg(ADDR_ACC_X_LSB + 0);
+	report.r.y_raw |= read_reg(ADDR_ACC_X_LSB + 1) << 8;
+	report.r.x_raw  = read_reg(ADDR_ACC_X_LSB + 2);
+	report.r.x_raw |= read_reg(ADDR_ACC_X_LSB + 3) << 8;
+	report.r.z_raw  = read_reg(ADDR_ACC_X_LSB + 4);
+	report.r.z_raw |= read_reg(ADDR_ACC_X_LSB + 5) << 8;
 
 	/* discard two non-value bits in the 16 bit measurement */
-	report->x_raw = (report->x_raw / 4);
-	report->y_raw = (report->y_raw / 4);
-	report->z_raw = (report->z_raw / 4);
+	report.r.x_raw = (report.r.x_raw / 4);
+	report.r.y_raw = (report.r.y_raw / 4);
+	report.r.z_raw = (report.r.z_raw / 4);
 
 	/* invert y axis, due to 14 bit data no overflow can occur in the negation */
-	report->y_raw = -report->y_raw;
+	report.r.y_raw = -report.r.y_raw;
 
-	report->x = ((report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	report->y = ((report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	report->z = ((report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
-	report->scaling = _accel_range_scale;
-	report->range_m_s2 = _accel_range_m_s2;
+	report.r.x = ((report.r.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	report.r.y = ((report.r.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	report.r.z = ((report.r.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	report.r.scaling = _accel_range_scale;
+	report.r.range_m_s2 = _accel_range_m_s2;
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_report, _num_reports);
-
-	/* if we are running up against the oldest report, fix it */
-	if (_next_report == _oldest_report)
-		INCREMENT(_oldest_report, _num_reports);
+	_reports->force(report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_accel), _accel_topic, report);
+	orb_publish(ORB_ID(sensor_accel), _accel_topic, &report.r);
 
 	/* stop the perf counter */
 	perf_end(_sample_perf);
@@ -756,8 +739,7 @@ void
 BMA180::print_info()
 {
 	perf_print_counter(_sample_perf);
-	printf("report queue:   %u (%u/%u @ %p)\n",
-	       _num_reports, _oldest_report, _next_report, _reports);
+	_reports->print_info("report queue");
 }
 
 /**
