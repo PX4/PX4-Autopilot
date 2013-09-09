@@ -82,6 +82,7 @@ struct mavlink_subscriptions {
 	int armed_sub;
 	int actuators_effective_sub;
 	int local_pos_sub;
+	int vicon_pos_sub;
 	int spa_sub;
 	int spl_sub;
 	int spg_sub;
@@ -100,6 +101,8 @@ extern struct vehicle_global_position_s global_pos;
 
 /** Local position */
 extern struct vehicle_local_position_s local_pos;
+
+extern struct vehicle_vicon_position_s vicon_pos;
 
 /** Vehicle status */
 extern struct vehicle_status_s v_status;
