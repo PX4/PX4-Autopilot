@@ -668,9 +668,10 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 	_accel_report *arp = reinterpret_cast<_accel_report *>(buffer);
 	int transferred = 0;
 	while (count--) {
-		if (!_accel_reports->get(*arp++))
+		if (!_accel_reports->get(*arp))
 			break;
 		transferred++;
+		arp++;
 	}
 
 	/* return the number of bytes transferred */
@@ -758,12 +759,13 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 		return -EAGAIN;
 
 	/* copy reports out of our buffer to the caller */
-	_gyro_report *arp = reinterpret_cast<_gyro_report *>(buffer);
+	_gyro_report *grp = reinterpret_cast<_gyro_report *>(buffer);
 	int transferred = 0;
 	while (count--) {
-		if (!_gyro_reports->get(*arp++))
+		if (!_gyro_reports->get(*grp))
 			break;
 		transferred++;
+		grp++;
 	}
 
 	/* return the number of bytes transferred */
