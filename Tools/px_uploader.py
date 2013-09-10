@@ -436,7 +436,7 @@ while True:
                         print("attempting reboot on %s..." % port)
                         up.send_reboot()
                         # wait for the reboot, without we might run into Serial I/O Error 5 
-                        time.sleep(1.5)
+                        time.sleep(0.5)
                         continue
 
                 try:
