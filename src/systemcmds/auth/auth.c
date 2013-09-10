@@ -306,9 +306,9 @@ usage(const char *reason)
 	errx(1, 
 		"usage:\n"
 		"auth [-x] [-p] [-d] [-w] [-k] [-v] [-l] \n"
-		"  -x     Read Private Key ( usually from /mnt/microsd/privatekey.txt ) and display it\n"
-		"  -p     Read Public Key ( usually from /mnt/microsd/publickey.txt ) and display it\n"
-		"  -m     make a public key file on SD card at /mnt/microsd/publickey.txt from the private key and display it ( assumes also -x -p ) \n"
+		"  -x     Read Private Key ( usually from /fs/microsd/privatekey.txt ) and display it\n"
+		"  -p     Read Public Key ( usually from /fs/microsd/publickey.txt ) and display it\n"
+		"  -m     make a public key file on SD card at /fs/microsd/publickey.txt from the private key and display it ( assumes also -x -p ) \n"
 		"  -c     make a Certificate-Of-Authenticity with the private key and display it ( assumes also -x ) \n"
 		"  -w     write the Certificate-Of-Authenticity to Flash ( assumes also -x and -c )  \n"
 		"  -k     LOCK the Certificate-Of-Authenticity to ONE-TIME-PROGRAMMABLE Flash PERMANENTLY ( assumes -w -x -c ) \n"
