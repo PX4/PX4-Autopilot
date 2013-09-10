@@ -49,7 +49,7 @@ att_pos_estimator_ekf start
 # Load mixer and start controllers (depends on px4io)
 #
 mixer load /dev/pwm_output /etc/mixers/FMU_AET.mix
-#fw_pos_control_l1 start
+fw_pos_control_l1 start
 fw_att_control start
 
 echo "[HIL] setup done, running"
