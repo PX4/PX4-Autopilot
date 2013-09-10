@@ -115,7 +115,7 @@ protected:
 	struct work_s		_work;
 	unsigned		_measure_ticks;
 
-	RingBuffer<struct baro_report> *_reports;
+	RingBuffer		*_reports;
 
 	bool			_collect_phase;
 	unsigned		_measure_phase;
@@ -241,7 +241,7 @@ MS5611::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer<struct baro_report>(2);
+	_reports = new RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
 		debug("can't get memory for reports");
@@ -285,7 +285,7 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_reports->get(*brp)) {
+			if (_reports->get(brp)) {
 				ret += sizeof(*brp);
 				brp++;
 			}
@@ -327,7 +327,7 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* state machine will have generated a report, copy it out */
-		if (_reports->get(*brp))
+		if (_reports->get(brp))
 			ret = sizeof(*brp);
 
 	} while (0);
@@ -664,7 +664,7 @@ MS5611::collect()
 		/* publish it */
 		orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 
-		if (_reports->force(report)) {
+		if (_reports->force(&report)) {
 			perf_count(_buffer_overflows);
 		}
 

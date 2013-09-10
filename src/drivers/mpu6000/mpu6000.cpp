@@ -194,26 +194,14 @@ private:
 	struct hrt_call		_call;
 	unsigned		_call_interval;
 
-	/*
-	  these wrapper types are needed to avoid a linker error for
-	  RingBuffer instances which appear in two drivers.
-	 */
-	struct _accel_report {
-		struct accel_report r;
-	};
-	typedef RingBuffer<_accel_report> AccelReportBuffer;
-	AccelReportBuffer	*_accel_reports;
+	RingBuffer		*_accel_reports;
 
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
 
-	struct _gyro_report {
-		struct gyro_report r;
-	};
-	typedef RingBuffer<_gyro_report> GyroReportBuffer;
-	GyroReportBuffer	*_gyro_reports;
+	RingBuffer		*_gyro_reports;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
@@ -441,11 +429,11 @@ MPU6000::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new AccelReportBuffer(2);
+	_accel_reports = new RingBuffer(2, sizeof(accel_report));
 	if (_accel_reports == nullptr)
 		goto out;
 
-	_gyro_reports = new GyroReportBuffer(2);
+	_gyro_reports = new RingBuffer(2, sizeof(gyro_report));
 	if (_gyro_reports == nullptr)
 		goto out;
 
@@ -475,16 +463,16 @@ MPU6000::init()
 	if (gyro_ret != OK) {
 		_gyro_topic = -1;
 	} else {
-		_gyro_report gr;
-		_gyro_reports->get(gr);
+		gyro_report gr;
+		_gyro_reports->get(&gr);
 
-		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &gr.r);
+		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &gr);
 	}
 
 	/* advertise accel topic */
-	_accel_report ar;
-	_accel_reports->get(ar);
-	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &ar.r);
+	accel_report ar;
+	_accel_reports->get(&ar);
+	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &ar);
 
 out:
 	return ret;
@@ -665,10 +653,10 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 		return -EAGAIN;
 
 	/* copy reports out of our buffer to the caller */
-	_accel_report *arp = reinterpret_cast<_accel_report *>(buffer);
+	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
 	int transferred = 0;
 	while (count--) {
-		if (!_accel_reports->get(*arp))
+		if (!_accel_reports->get(arp))
 			break;
 		transferred++;
 		arp++;
@@ -759,10 +747,10 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 		return -EAGAIN;
 
 	/* copy reports out of our buffer to the caller */
-	_gyro_report *grp = reinterpret_cast<_gyro_report *>(buffer);
+	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
 	int transferred = 0;
 	while (count--) {
-		if (!_gyro_reports->get(*grp))
+		if (!_gyro_reports->get(grp))
 			break;
 		transferred++;
 		grp++;
@@ -1191,13 +1179,13 @@ MPU6000::measure()
 	/*
 	 * Report buffers.
 	 */
-	_accel_report		arb;
-	_gyro_report		grb;
+	accel_report		arb;
+	gyro_report		grb;
 
 	/*
 	 * Adjust and scale results to m/s^2.
 	 */
-	grb.r.timestamp = arb.r.timestamp = hrt_absolute_time();
+	grb.timestamp = arb.timestamp = hrt_absolute_time();
 
 
 	/*
@@ -1218,53 +1206,53 @@ MPU6000::measure()
 
 	/* NOTE: Axes have been swapped to match the board a few lines above. */
 
-	arb.r.x_raw = report.accel_x;
-	arb.r.y_raw = report.accel_y;
-	arb.r.z_raw = report.accel_z;
+	arb.x_raw = report.accel_x;
+	arb.y_raw = report.accel_y;
+	arb.z_raw = report.accel_z;
 
 	float x_in_new = ((report.accel_x * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	float y_in_new = ((report.accel_y * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	float z_in_new = ((report.accel_z * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 	
-	arb.r.x = _accel_filter_x.apply(x_in_new);
-	arb.r.y = _accel_filter_y.apply(y_in_new);
-	arb.r.z = _accel_filter_z.apply(z_in_new);
+	arb.x = _accel_filter_x.apply(x_in_new);
+	arb.y = _accel_filter_y.apply(y_in_new);
+	arb.z = _accel_filter_z.apply(z_in_new);
 
-	arb.r.scaling = _accel_range_scale;
-	arb.r.range_m_s2 = _accel_range_m_s2;
+	arb.scaling = _accel_range_scale;
+	arb.range_m_s2 = _accel_range_m_s2;
 
-	arb.r.temperature_raw = report.temp;
-	arb.r.temperature = (report.temp) / 361.0f + 35.0f;
+	arb.temperature_raw = report.temp;
+	arb.temperature = (report.temp) / 361.0f + 35.0f;
 
-	grb.r.x_raw = report.gyro_x;
-	grb.r.y_raw = report.gyro_y;
-	grb.r.z_raw = report.gyro_z;
+	grb.x_raw = report.gyro_x;
+	grb.y_raw = report.gyro_y;
+	grb.z_raw = report.gyro_z;
 
 	float x_gyro_in_new = ((report.gyro_x * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
 	float y_gyro_in_new = ((report.gyro_y * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
 	float z_gyro_in_new = ((report.gyro_z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 	
-	grb.r.x = _gyro_filter_x.apply(x_gyro_in_new);
-	grb.r.y = _gyro_filter_y.apply(y_gyro_in_new);
-	grb.r.z = _gyro_filter_z.apply(z_gyro_in_new);
+	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
+	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
+	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
 
-	grb.r.scaling = _gyro_range_scale;
-	grb.r.range_rad_s = _gyro_range_rad_s;
+	grb.scaling = _gyro_range_scale;
+	grb.range_rad_s = _gyro_range_rad_s;
 
-	grb.r.temperature_raw = report.temp;
-	grb.r.temperature = (report.temp) / 361.0f + 35.0f;
+	grb.temperature_raw = report.temp;
+	grb.temperature = (report.temp) / 361.0f + 35.0f;
 
-	_accel_reports->force(arb);
-	_gyro_reports->force(grb);
+	_accel_reports->force(&arb);
+	_gyro_reports->force(&grb);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 	_gyro->parent_poll_notify();
 
 	/* and publish for subscribers */
-	orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb.r);
+	orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	if (_gyro_topic != -1) {
-		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &grb.r);
+		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &grb);
 	}
 
 	/* stop measuring */

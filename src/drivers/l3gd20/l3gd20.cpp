@@ -185,7 +185,7 @@ private:
 	struct hrt_call		_call;
 	unsigned		_call_interval;
 	
-	RingBuffer<gyro_report> *_reports;
+	RingBuffer		*_reports;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
@@ -347,7 +347,7 @@ L3GD20::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer<struct gyro_report>(2);
+	_reports = new RingBuffer(2, sizeof(gyro_report));
 
 	if (_reports == nullptr)
 		goto out;
@@ -421,7 +421,7 @@ L3GD20::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with it.
 		 */
 		while (count--) {
-			if (_reports->get(*gbuf)) {
+			if (_reports->get(gbuf)) {
 				ret += sizeof(*gbuf);
 				gbuf++;
 			}
@@ -436,7 +436,7 @@ L3GD20::read(struct file *filp, char *buffer, size_t buflen)
 	measure();
 
 	/* measurement will have generated a report, copy it out */
-	if (_reports->get(*gbuf)) {
+	if (_reports->get(gbuf)) {
 		ret = sizeof(*gbuf);
 	}
 
@@ -815,7 +815,7 @@ L3GD20::measure()
 	report.scaling = _gyro_range_scale;
 	report.range_rad_s = _gyro_range_rad_s;
 
-	_reports->force(report);
+	_reports->force(&report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
