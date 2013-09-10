@@ -89,7 +89,7 @@ static inline uint16_t mavlink_msg_raw_aux_pack(uint8_t system_id, uint8_t compo
  * @brief Pack a raw_aux message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param adc1 ADC1 (J405 ADC3, LPC2148 AD0.6)
  * @param adc2 ADC2 (J405 ADC5, LPC2148 AD0.2)
@@ -137,7 +137,7 @@ static inline uint16_t mavlink_msg_raw_aux_pack_chan(uint8_t system_id, uint8_t 
 }
 
 /**
- * @brief Encode a raw_aux struct into a message
+ * @brief Encode a raw_aux struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -147,6 +147,20 @@ static inline uint16_t mavlink_msg_raw_aux_pack_chan(uint8_t system_id, uint8_t 
 static inline uint16_t mavlink_msg_raw_aux_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_raw_aux_t* raw_aux)
 {
 	return mavlink_msg_raw_aux_pack(system_id, component_id, msg, raw_aux->adc1, raw_aux->adc2, raw_aux->adc3, raw_aux->adc4, raw_aux->vbat, raw_aux->temp, raw_aux->baro);
+}
+
+/**
+ * @brief Encode a raw_aux struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param raw_aux C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_raw_aux_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_raw_aux_t* raw_aux)
+{
+	return mavlink_msg_raw_aux_pack_chan(system_id, component_id, chan, msg, raw_aux->adc1, raw_aux->adc2, raw_aux->adc3, raw_aux->adc4, raw_aux->vbat, raw_aux->temp, raw_aux->baro);
 }
 
 /**

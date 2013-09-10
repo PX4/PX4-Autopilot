@@ -99,7 +99,7 @@ static inline uint16_t mavlink_msg_attitude_control_pack(uint8_t system_id, uint
  * @brief Pack a attitude_control message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param target The system to be controlled
  * @param roll roll
@@ -153,7 +153,7 @@ static inline uint16_t mavlink_msg_attitude_control_pack_chan(uint8_t system_id,
 }
 
 /**
- * @brief Encode a attitude_control struct into a message
+ * @brief Encode a attitude_control struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -163,6 +163,20 @@ static inline uint16_t mavlink_msg_attitude_control_pack_chan(uint8_t system_id,
 static inline uint16_t mavlink_msg_attitude_control_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_attitude_control_t* attitude_control)
 {
 	return mavlink_msg_attitude_control_pack(system_id, component_id, msg, attitude_control->target, attitude_control->roll, attitude_control->pitch, attitude_control->yaw, attitude_control->thrust, attitude_control->roll_manual, attitude_control->pitch_manual, attitude_control->yaw_manual, attitude_control->thrust_manual);
+}
+
+/**
+ * @brief Encode a attitude_control struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param attitude_control C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_attitude_control_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_attitude_control_t* attitude_control)
+{
+	return mavlink_msg_attitude_control_pack_chan(system_id, component_id, chan, msg, attitude_control->target, attitude_control->roll, attitude_control->pitch, attitude_control->yaw, attitude_control->thrust, attitude_control->roll_manual, attitude_control->pitch_manual, attitude_control->yaw_manual, attitude_control->thrust_manual);
 }
 
 /**

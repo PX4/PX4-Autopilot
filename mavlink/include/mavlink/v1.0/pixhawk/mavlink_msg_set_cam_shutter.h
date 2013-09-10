@@ -84,7 +84,7 @@ static inline uint16_t mavlink_msg_set_cam_shutter_pack(uint8_t system_id, uint8
  * @brief Pack a set_cam_shutter message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param cam_no Camera id
  * @param cam_mode Camera mode: 0 = auto, 1 = manual
@@ -129,7 +129,7 @@ static inline uint16_t mavlink_msg_set_cam_shutter_pack_chan(uint8_t system_id, 
 }
 
 /**
- * @brief Encode a set_cam_shutter struct into a message
+ * @brief Encode a set_cam_shutter struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -139,6 +139,20 @@ static inline uint16_t mavlink_msg_set_cam_shutter_pack_chan(uint8_t system_id, 
 static inline uint16_t mavlink_msg_set_cam_shutter_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_set_cam_shutter_t* set_cam_shutter)
 {
 	return mavlink_msg_set_cam_shutter_pack(system_id, component_id, msg, set_cam_shutter->cam_no, set_cam_shutter->cam_mode, set_cam_shutter->trigger_pin, set_cam_shutter->interval, set_cam_shutter->exposure, set_cam_shutter->gain);
+}
+
+/**
+ * @brief Encode a set_cam_shutter struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param set_cam_shutter C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_set_cam_shutter_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_set_cam_shutter_t* set_cam_shutter)
+{
+	return mavlink_msg_set_cam_shutter_pack_chan(system_id, component_id, chan, msg, set_cam_shutter->cam_no, set_cam_shutter->cam_mode, set_cam_shutter->trigger_pin, set_cam_shutter->interval, set_cam_shutter->exposure, set_cam_shutter->gain);
 }
 
 /**

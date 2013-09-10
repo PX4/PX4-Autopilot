@@ -78,7 +78,7 @@ static inline uint16_t mavlink_msg_watchdog_process_info_pack(uint8_t system_id,
  * @brief Pack a watchdog_process_info message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param watchdog_id Watchdog ID
  * @param process_id Process ID
@@ -118,7 +118,7 @@ static inline uint16_t mavlink_msg_watchdog_process_info_pack_chan(uint8_t syste
 }
 
 /**
- * @brief Encode a watchdog_process_info struct into a message
+ * @brief Encode a watchdog_process_info struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -128,6 +128,20 @@ static inline uint16_t mavlink_msg_watchdog_process_info_pack_chan(uint8_t syste
 static inline uint16_t mavlink_msg_watchdog_process_info_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_watchdog_process_info_t* watchdog_process_info)
 {
 	return mavlink_msg_watchdog_process_info_pack(system_id, component_id, msg, watchdog_process_info->watchdog_id, watchdog_process_info->process_id, watchdog_process_info->name, watchdog_process_info->arguments, watchdog_process_info->timeout);
+}
+
+/**
+ * @brief Encode a watchdog_process_info struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param watchdog_process_info C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_watchdog_process_info_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_watchdog_process_info_t* watchdog_process_info)
+{
+	return mavlink_msg_watchdog_process_info_pack_chan(system_id, component_id, chan, msg, watchdog_process_info->watchdog_id, watchdog_process_info->process_id, watchdog_process_info->name, watchdog_process_info->arguments, watchdog_process_info->timeout);
 }
 
 /**
