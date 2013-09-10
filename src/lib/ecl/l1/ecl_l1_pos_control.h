@@ -35,7 +35,6 @@
  * @file ecl_l1_pos_control.h
  * Implementation of L1 position control.
  *
- * @author Lorenz Meier
  *
  * Acknowledgements and References:
  *
