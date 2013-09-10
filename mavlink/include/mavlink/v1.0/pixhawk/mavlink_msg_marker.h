@@ -89,7 +89,7 @@ static inline uint16_t mavlink_msg_marker_pack(uint8_t system_id, uint8_t compon
  * @brief Pack a marker message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param id ID
  * @param x x position
@@ -137,7 +137,7 @@ static inline uint16_t mavlink_msg_marker_pack_chan(uint8_t system_id, uint8_t c
 }
 
 /**
- * @brief Encode a marker struct into a message
+ * @brief Encode a marker struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -147,6 +147,20 @@ static inline uint16_t mavlink_msg_marker_pack_chan(uint8_t system_id, uint8_t c
 static inline uint16_t mavlink_msg_marker_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_marker_t* marker)
 {
 	return mavlink_msg_marker_pack(system_id, component_id, msg, marker->id, marker->x, marker->y, marker->z, marker->roll, marker->pitch, marker->yaw);
+}
+
+/**
+ * @brief Encode a marker struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param marker C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_marker_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_marker_t* marker)
+{
+	return mavlink_msg_marker_pack_chan(system_id, component_id, chan, msg, marker->id, marker->x, marker->y, marker->z, marker->roll, marker->pitch, marker->yaw);
 }
 
 /**

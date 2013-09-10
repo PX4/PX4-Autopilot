@@ -194,7 +194,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f2_a_pack(uint8_t system_id,
  * @brief Pack a serial_udb_extra_f2_a message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param sue_time Serial UDB Extra Time
  * @param sue_status Serial UDB Extra Status
@@ -305,7 +305,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f2_a_pack_chan(uint8_t syste
 }
 
 /**
- * @brief Encode a serial_udb_extra_f2_a struct into a message
+ * @brief Encode a serial_udb_extra_f2_a struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -315,6 +315,20 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f2_a_pack_chan(uint8_t syste
 static inline uint16_t mavlink_msg_serial_udb_extra_f2_a_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_serial_udb_extra_f2_a_t* serial_udb_extra_f2_a)
 {
 	return mavlink_msg_serial_udb_extra_f2_a_pack(system_id, component_id, msg, serial_udb_extra_f2_a->sue_time, serial_udb_extra_f2_a->sue_status, serial_udb_extra_f2_a->sue_latitude, serial_udb_extra_f2_a->sue_longitude, serial_udb_extra_f2_a->sue_altitude, serial_udb_extra_f2_a->sue_waypoint_index, serial_udb_extra_f2_a->sue_rmat0, serial_udb_extra_f2_a->sue_rmat1, serial_udb_extra_f2_a->sue_rmat2, serial_udb_extra_f2_a->sue_rmat3, serial_udb_extra_f2_a->sue_rmat4, serial_udb_extra_f2_a->sue_rmat5, serial_udb_extra_f2_a->sue_rmat6, serial_udb_extra_f2_a->sue_rmat7, serial_udb_extra_f2_a->sue_rmat8, serial_udb_extra_f2_a->sue_cog, serial_udb_extra_f2_a->sue_sog, serial_udb_extra_f2_a->sue_cpu_load, serial_udb_extra_f2_a->sue_voltage_milis, serial_udb_extra_f2_a->sue_air_speed_3DIMU, serial_udb_extra_f2_a->sue_estimated_wind_0, serial_udb_extra_f2_a->sue_estimated_wind_1, serial_udb_extra_f2_a->sue_estimated_wind_2, serial_udb_extra_f2_a->sue_magFieldEarth0, serial_udb_extra_f2_a->sue_magFieldEarth1, serial_udb_extra_f2_a->sue_magFieldEarth2, serial_udb_extra_f2_a->sue_svs, serial_udb_extra_f2_a->sue_hdop);
+}
+
+/**
+ * @brief Encode a serial_udb_extra_f2_a struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param serial_udb_extra_f2_a C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_serial_udb_extra_f2_a_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_serial_udb_extra_f2_a_t* serial_udb_extra_f2_a)
+{
+	return mavlink_msg_serial_udb_extra_f2_a_pack_chan(system_id, component_id, chan, msg, serial_udb_extra_f2_a->sue_time, serial_udb_extra_f2_a->sue_status, serial_udb_extra_f2_a->sue_latitude, serial_udb_extra_f2_a->sue_longitude, serial_udb_extra_f2_a->sue_altitude, serial_udb_extra_f2_a->sue_waypoint_index, serial_udb_extra_f2_a->sue_rmat0, serial_udb_extra_f2_a->sue_rmat1, serial_udb_extra_f2_a->sue_rmat2, serial_udb_extra_f2_a->sue_rmat3, serial_udb_extra_f2_a->sue_rmat4, serial_udb_extra_f2_a->sue_rmat5, serial_udb_extra_f2_a->sue_rmat6, serial_udb_extra_f2_a->sue_rmat7, serial_udb_extra_f2_a->sue_rmat8, serial_udb_extra_f2_a->sue_cog, serial_udb_extra_f2_a->sue_sog, serial_udb_extra_f2_a->sue_cpu_load, serial_udb_extra_f2_a->sue_voltage_milis, serial_udb_extra_f2_a->sue_air_speed_3DIMU, serial_udb_extra_f2_a->sue_estimated_wind_0, serial_udb_extra_f2_a->sue_estimated_wind_1, serial_udb_extra_f2_a->sue_estimated_wind_2, serial_udb_extra_f2_a->sue_magFieldEarth0, serial_udb_extra_f2_a->sue_magFieldEarth1, serial_udb_extra_f2_a->sue_magFieldEarth2, serial_udb_extra_f2_a->sue_svs, serial_udb_extra_f2_a->sue_hdop);
 }
 
 /**
