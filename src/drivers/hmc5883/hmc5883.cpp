@@ -149,7 +149,7 @@ private:
 	work_s			_work;
 	unsigned		_measure_ticks;
 
-	RingBuffer<struct mag_report> *_reports;
+	RingBuffer		*_reports;
 	mag_scale		_scale;
 	float 			_range_scale;
 	float 			_range_ga;
@@ -367,7 +367,7 @@ HMC5883::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer<struct mag_report>(2);
+	_reports = new RingBuffer(2, sizeof(mag_report));
 	if (_reports == nullptr)
 		goto out;
 
@@ -496,7 +496,7 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_reports->get(*mag_buf)) {
+			if (_reports->get(mag_buf)) {
 				ret += sizeof(struct mag_report);
 				mag_buf++;
 			}
@@ -526,7 +526,7 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 			break;
 		}
 
-		if (_reports->get(*mag_buf)) {
+		if (_reports->get(mag_buf)) {
 			ret = sizeof(struct mag_report);
 		}
 	} while (0);
@@ -878,7 +878,7 @@ HMC5883::collect()
 	orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
 
 	/* post a report to the ring */
-	if (_reports->force(new_report)) {
+	if (_reports->force(&new_report)) {
 		perf_count(_buffer_overflows);
 	}
 

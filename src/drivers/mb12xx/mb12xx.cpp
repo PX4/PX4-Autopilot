@@ -120,7 +120,7 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	RingBuffer<struct range_finder_report> *_reports;
+	RingBuffer		*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
@@ -226,7 +226,7 @@ MB12XX::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer<struct range_finder_report>(2);
+	_reports = new RingBuffer(2, sizeof(range_finder_report));
 
 	if (_reports == nullptr)
 		goto out;
@@ -403,7 +403,7 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_reports->get(*rbuf)) {
+			if (_reports->get(rbuf)) {
 				ret += sizeof(*rbuf);
 				rbuf++;
 			}
@@ -433,7 +433,7 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* state machine will have generated a report, copy it out */
-		if (_reports->get(*rbuf)) {
+		if (_reports->get(rbuf)) {
 			ret = sizeof(*rbuf);
 		}
 
@@ -496,7 +496,7 @@ MB12XX::collect()
 	/* publish it */
 	orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
 
-	if (_reports->force(report)) {
+	if (_reports->force(&report)) {
 		perf_count(_buffer_overflows);
 	}
 
