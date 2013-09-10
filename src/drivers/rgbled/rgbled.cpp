@@ -590,9 +590,9 @@ rgbled_main(int argc, char *argv[])
 			errx(1, "Usage: rgbled rgb <red> <green> <blue>");
 		}
 		rgbled_rgbset_t v;
-		v.red   = strtol(argv[1], NULL, 0);
-		v.green = strtol(argv[2], NULL, 0);
-		v.blue  = strtol(argv[3], NULL, 0);
+		v.red   = strtol(argv[2], NULL, 0);
+		v.green = strtol(argv[3], NULL, 0);
+		v.blue  = strtol(argv[4], NULL, 0);
 		ret = ioctl(fd, RGBLED_SET_RGB, (unsigned long)&v);
 		close(fd);
 		exit(ret);
