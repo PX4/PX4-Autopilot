@@ -45,4 +45,4 @@
 #			or any of the license implications.
 #
 
-SRCS		 = 	tecs/TECS.cpp
+SRCS		 = 	tecs/tecs.cpp
