@@ -1,6 +1,6 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 
-/// @file    TECS.h
+/// @file    tecs.h
 /// @brief   Combined Total Energy Speed & Height Control.
 
 /*

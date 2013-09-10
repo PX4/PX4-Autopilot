@@ -1,6 +1,6 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 
-#include "TECS.h"
+#include "tecs.h"
 #include <ecl/ecl.h>
 
 using namespace math;
@@ -10,7 +10,7 @@ using namespace math;
 #endif
 
 /**
- * @file TECS.cpp
+ * @file tecs.cpp
  *
  * @author Paul Riseborough
  *
