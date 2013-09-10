@@ -124,8 +124,6 @@ controls_tick() {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
 	perf_end(c_gather_ppm);
 
-	ASSERT(r_raw_rc_count <= PX4IO_CONTROL_CHANNELS);
-
 	/*
 	 * In some cases we may have received a frame, but input has still
 	 * been lost.
