@@ -36,13 +36,15 @@
  * Implementation of a generic position controller based on the L1 norm. Outputs a bank / roll
  * angle, equivalent to a lateral motion (for copters and rovers).
  *
- * Original publication for horizontal control:
+ * Original publication for horizontal control class:
  *    S. Park, J. Deyst, and J. P. How, "A New Nonlinear Guidance Logic for Trajectory Tracking,"
  *    Proceedings of the AIAA Guidance, Navigation and Control
  *    Conference, Aug 2004. AIAA-2004-4900.
  *
- * Original implementation for total energy control:
+ * Original implementation for total energy control class:
  *    Paul Riseborough and Andrew Tridgell, 2013 (code in lib/external_lgpl)
+ *
+ * More details and acknowledgements in the referenced library headers.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
@@ -79,7 +81,7 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 
-#include <ecl/l1/ECL_L1_Pos_Control.h>
+#include <ecl/l1/ecl_l1_pos_control.h>
 #include <external_lgpl/tecs/tecs.h>
 
 /**

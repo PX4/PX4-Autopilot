@@ -39,18 +39,22 @@
  *
  * Acknowledgements and References:
  *
- * Original publication:
- *    S. Park, J. Deyst, and J. P. How, "A New Nonlinear Guidance Logic for Trajectory Tracking,"
+ *    This implementation has been built for PX4 based on the original
+ *    publication from [1] and does include a lot of the ideas (not code)
+ *    from [2].
+ *
+ *
+ *    [1] S. Park, J. Deyst, and J. P. How, "A New Nonlinear Guidance Logic for Trajectory Tracking,"
  *    Proceedings of the AIAA Guidance, Navigation and Control
  *    Conference, Aug 2004. AIAA-2004-4900.
  *
- * Original navigation logic modified by Paul Riseborough 2013:
- *  - Explicit control over frequency and damping
- *  - Explicit control over track capture angle
- *  - Ability to use loiter radius smaller than L1 length
- *  - Modified to use PD control for circle tracking to enable loiter radius less than L1 length
- *  - Modified to enable period and damping of guidance loop to be set explicitly
- *  - Modified to provide explicit control over capture angle
+ *    [2] Paul Riseborough and Andrew Tridgell, L1 control for APM. Aug 2013.
+ *     - Explicit control over frequency and damping
+ *     - Explicit control over track capture angle
+ *     - Ability to use loiter radius smaller than L1 length
+ *     - Modified to use PD control for circle tracking to enable loiter radius less than L1 length
+ *     - Modified to enable period and damping of guidance loop to be set explicitly
+ *     - Modified to provide explicit control over capture angle
  *
  */
 
@@ -79,14 +83,13 @@ public:
 	 */
 	float nav_bearing();
 
+
 	/**
 	 * Get lateral acceleration demand.
 	 *
 	 * @return Lateral acceleration in m/s^2
 	 */
 	float nav_lateral_acceleration_demand();
-
-	// return the heading error angle +ve to left of track
 
 
 	/**
@@ -146,6 +149,7 @@ public:
 	 * Calling this function with two waypoints results in the
 	 * control outputs to fly to the line segment defined by
 	 * the points and once captured following the line segment.
+	 * This follows the logic in [1].
 	 *
 	 * @return sets _lateral_accel setpoint
 	 */
@@ -155,6 +159,9 @@ public:
 
 	/**
 	 * Navigate on an orbit around a loiter waypoint.
+	 *
+	 * This allow orbits smaller than the L1 length,
+	 * this modification was introduced in [2].
 	 *
 	 * @return sets _lateral_accel setpoint
 	 */
@@ -166,7 +173,8 @@ public:
 	 * Navigate on a fixed bearing.
 	 *
 	 * This only holds a certain direction and does not perform cross
-	 * track correction.
+	 * track correction. Helpful for semi-autonomous modes. Introduced
+	 * by [2].
 	 *
 	 * @return sets _lateral_accel setpoint
 	 */
@@ -174,7 +182,10 @@ public:
 
 
 	/**
-	 * Keep the wings level
+	 * Keep the wings level.
+	 *
+	 * This is typically needed for maximum-lift-demand situations,
+	 * such as takeoff or near stall. Introduced in [2].
 	 */
 	void navigate_level_flight(float current_heading);
 
@@ -184,6 +195,7 @@ public:
 	 */
 	void set_l1_period(float period) {
 		_L1_period = period;
+		/* calculate the ratio introduced in [2] */
 		_L1_ratio = 1.0f / M_PI_F * _L1_damping * _L1_period;
 		/* calculate normalized frequency for heading tracking */
 		_heading_omega = sqrtf(2.0f) * M_PI_F / _L1_period;
@@ -197,14 +209,16 @@ public:
 	 */
 	void set_l1_damping(float damping) {
 		_L1_damping = damping;
+		/* calculate the ratio introduced in [2] */
 		_L1_ratio = 1.0f / M_PI_F * _L1_damping * _L1_period;
+		/* calculate the L1 gain (following [2]) */
 		_K_L1 = 4.0f * _L1_damping * _L1_damping;
 	}
 
 private:
 
 	float _lateral_accel;		///< Lateral acceleration setpoint in m/s^2
-	float _L1_distance;			///< L1 lead distance, defined by period and damping
+	float _L1_distance;		///< L1 lead distance, defined by period and damping
 	bool _circle_mode;		///< flag for loiter mode
 	float _nav_bearing;		///< bearing to L1 reference point
 	float _bearing_error;		///< bearing error
