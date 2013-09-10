@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,10 +32,10 @@
 ############################################################################
 
 #
-# Estimation and Control Library
+# Fixedwing L1 position control application
 #
 
-SRCS		 = 	attitude_fw/ecl_pitch_controller.cpp \
-			attitude_fw/ecl_roll_controller.cpp \
-			attitude_fw/ecl_yaw_controller.cpp \
-			l1/ecl_l1_pos_control.cpp
+MODULE_COMMAND	= fw_pos_control_l1
+
+SRCS		= fw_pos_control_l1_main.cpp \
+		  fw_pos_control_l1_params.c

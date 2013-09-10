@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +13,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,43 +33,77 @@
  ****************************************************************************/
 
 /**
- * @file ecl_yaw_controller.cpp
- * Implementation of a simple orthogonal coordinated turn yaw PID controller.
+ * @file fw_pos_control_l1_params.c
+ *
+ * Parameters defined by the L1 position control task
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ */
+
+#include <nuttx/config.h>
+
+#include <systemlib/param/param.h>
+
+/*
+ * Controller parameters, accessible via MAVLink
  *
  */
 
-#include "ecl_yaw_controller.h"
-#include <stdint.h>
-#include <float.h>
-#include <geo/geo.h>
-#include <ecl/ecl.h>
-#include <mathlib/mathlib.h>
+PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 25.0f);
 
-ECL_YawController::ECL_YawController() :
-	_last_run(0),
-	_last_error(0.0f),
-	_last_output(0.0f),
-	_last_rate_hp_out(0.0f),
-	_last_rate_hp_in(0.0f),
-	_k_d_last(0.0f),
-	_integrator(0.0f)
-{
 
-}
+PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 
-float ECL_YawController::control(float roll, float yaw_rate, float accel_y, float scaler, bool lock_integrator,
-				 float airspeed_min, float airspeed_max, float aspeed)
-{
-	/* get the usual dt estimate */
-	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
-	_last_run = ecl_absolute_time();
 
-	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
+PARAM_DEFINE_FLOAT(FW_LOITER_R, 50.0f);
 
-	return 0.0f;
-}
 
-void ECL_YawController::reset_integrator()
-{
-	_integrator = 0.0f;
-}
+PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.7f);
+
+
+PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
+
+
+PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,10 +32,17 @@
 ############################################################################
 
 #
-# Estimation and Control Library
+#  W A R N I N G: The contents of this directory are license-incompatible
+# 			with the rest of the codebase. Do NOT copy any parts of it
+#			into other folders.
+#
+#  Acknowledgements:
+#
+#			The algorithms in this folder have been developed by Paul Riseborough
+#			with support from Andrew Tridgell.
+#			Originally licensed as LGPL for APM. As this is built as library and
+#			linked, use of this code does not change the usability of PX4 in general
+#			or any of the license implications.
 #
 
-SRCS		 = 	attitude_fw/ecl_pitch_controller.cpp \
-			attitude_fw/ecl_roll_controller.cpp \
-			attitude_fw/ecl_yaw_controller.cpp \
-			l1/ecl_l1_pos_control.cpp
+SRCS		 = 	tecs/TECS.cpp
