@@ -79,6 +79,7 @@ typedef uint16_t	servo_position_t;
 struct pwm_output_values {
 	/** desired pulse widths for each of the supported channels */
 	servo_position_t	values[PWM_OUTPUT_MAX_CHANNELS];
+	int			channel_count;
 };
 
 /*
@@ -118,8 +119,17 @@ ORB_DECLARE(output_pwm);
 /** start DSM bind */
 #define DSM_BIND_START	_IOC(_PWM_SERVO_BASE, 7)
 
-/** Power up DSM receiver */
+/** power up DSM receiver */
 #define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 8)
+
+/** set the PWM value when disarmed - should be no PWM (zero) by default */
+#define PWM_SERVO_SET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 9)
+
+/** set the minimum PWM value the output will send */
+#define PWM_SERVO_SET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 10)
+
+/** set the maximum PWM value the output will send */
+#define PWM_SERVO_SET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 11)
 
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)

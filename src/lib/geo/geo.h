@@ -57,10 +57,6 @@ __BEGIN_DECLS
 #define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
 #define CONSTANTS_RADIUS_OF_EARTH			6371000			/* meters (m)		*/
 
-/* compatibility aliases */
-#define RADIUS_OF_EARTH		CONSTANTS_RADIUS_OF_EARTH
-#define GRAVITY_MSS		CONSTANTS_ONE_G
-
 // XXX remove
 struct crosstrack_error_s {
 	bool past_end;		// Flag indicating we are past the end of the line/arc segment
@@ -115,6 +111,10 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
  * @param lon_next next waypoint position in degrees (8.1234567°, not 81234567°)
  */
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
+
+__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float* vx, float* vy);
+
+__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float* vx, float* vy);
 
 __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
 

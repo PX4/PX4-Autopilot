@@ -178,21 +178,6 @@ public:
 	int			set_failsafe_values(const uint16_t *vals, unsigned len);
 
 	/**
-	 * Set the minimum PWM signals when armed
-	 */
-	int 			set_min_values(const uint16_t *vals, unsigned len);
-
-	/**
-	 * Set the maximum PWM signal when armed
-	 */
-	int 			set_max_values(const uint16_t *vals, unsigned len);
-
-	/**
-	 * Set an idle PWM signal that is active right after startup, even when SAFETY_SAFE
-	 */
-	int 			set_idle_values(const uint16_t *vals, unsigned len);
-
-	/**
 	 * Print IO status.
 	 *
 	 * Print all relevant IO status information
@@ -392,6 +377,21 @@ private:
 	int			mixer_send(const char *buf, unsigned buflen);
 
 	/**
+	 * Set the minimum PWM signals when armed
+	 */
+	int 			set_min_values(const uint16_t *vals, unsigned len);
+
+	/**
+	 * Set the maximum PWM signal when armed
+	 */
+	int 			set_max_values(const uint16_t *vals, unsigned len);
+
+	/**
+	 * Set an idle PWM signal that is active right after startup, even when SAFETY_SAFE
+	 */
+	int 			set_idle_values(const uint16_t *vals, unsigned len);
+
+	/**
 	 * Handle a status update from IO.
 	 *
 	 * Publish IO status information if necessary.
@@ -487,25 +487,27 @@ PX4IO::detect()
 {
 	int ret;
 
-	ASSERT(_task == -1);
+	if (_task == -1) {
 
-	/* do regular cdev init */
-	ret = CDev::init();
-	if (ret != OK)
-		return ret;
+		/* do regular cdev init */
+		ret = CDev::init();
+		if (ret != OK)
+			return ret;
 
-	/* get some parameters */
-	unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
-	if (protocol != PX4IO_PROTOCOL_VERSION) {
-		if (protocol == _io_reg_get_error) {
-			log("IO not installed");
-		} else {
-			log("IO version error");
-			mavlink_log_emergency(_mavlink_fd, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
+		/* get some parameters */
+		unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
+		if (protocol != PX4IO_PROTOCOL_VERSION) {
+			if (protocol == _io_reg_get_error) {
+				log("IO not installed");
+			} else {
+				log("IO version error");
+				mavlink_log_emergency(_mavlink_fd, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
+			}
+			
+			return -1;
 		}
-		
-		return -1;
 	}
+
 	log("IO found");
 
 	return 0;
@@ -1674,6 +1676,24 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		break;
 	}
 
+	case PWM_SERVO_SET_DISARMED_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		set_idle_values(pwm->values, pwm->channel_count);
+	}
+		break;
+
+	case PWM_SERVO_SET_MIN_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		set_min_values(pwm->values, pwm->channel_count);
+	}
+		break;
+
+	case PWM_SERVO_SET_MAX_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		set_max_values(pwm->values, pwm->channel_count);
+	}
+		break;
+
 	case PWM_SERVO_GET_COUNT:
 		*(unsigned *)arg = _max_actuators;
 		break;
@@ -2265,26 +2285,26 @@ px4io_main(int argc, char *argv[])
 			errx(1, "min command needs at least one channel value (PWM)");
 		}
 
-		if (g_dev != nullptr) {
+		int iofd = open(PWM_OUTPUT_DEVICE_PATH, 0);
+		struct pwm_output_values pwm;
 
-			/* set values for first 8 channels, fill unassigned channels with 900. */
-			uint16_t min[8];
+		if (iofd > 0) {
 
-			for (unsigned i = 0; i < sizeof(min) / sizeof(min[0]); i++)
+			pwm.channel_count = 0;
+
+			for (unsigned i = 0; i < sizeof(pwm.values) / sizeof(pwm.values[0]); i++)
 			{
 				/* set channel to commanline argument or to 900 for non-provided channels */
 				if (argc > i + 2) {
-					min[i] = atoi(argv[i+2]);
-					if (min[i] < 900 || min[i] > 1200) {
+					pwm.values[i] = atoi(argv[i+2]);
+					if (pwm.values[i] < 900 || pwm.values[i] > 1200) {
 						errx(1, "value out of range of 900 < value < 1200. Aborting.");
 					}
-				} else {
-					/* a zero value will the default */
-					min[i] = 0;
+					pwm.channel_count++;
 				}
 			}
 
-			int ret = g_dev->set_min_values(min, sizeof(min) / sizeof(min[0]));
+			int ret = ioctl(iofd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm);
 
 			if (ret != OK)
 				errx(ret, "failed setting min values");
@@ -2300,26 +2320,26 @@ px4io_main(int argc, char *argv[])
 			errx(1, "max command needs at least one channel value (PWM)");
 		}
 
-		if (g_dev != nullptr) {
+		int iofd = open(PWM_OUTPUT_DEVICE_PATH, 0);
+		struct pwm_output_values pwm;
 
-			/* set values for first 8 channels, fill unassigned channels with 2100. */
-			uint16_t max[8];
+		if (iofd > 0) {
 
-			for (unsigned i = 0; i < sizeof(max) / sizeof(max[0]); i++)
+			pwm.channel_count = 0;
+
+			for (int i = 0; i < sizeof(pwm.values) / sizeof(pwm.values[0]); i++)
 			{
 				/* set channel to commanline argument or to 2100 for non-provided channels */
 				if (argc > i + 2) {
-					max[i] = atoi(argv[i+2]);
-					if (max[i] < 1800 || max[i] > 2100) {
+					pwm.values[i] = atoi(argv[i+2]);
+					if (pwm.values[i] < 1800 || pwm.values[i] > 2100) {
 						errx(1, "value out of range of 1800 < value < 2100. Aborting.");
 					}
-				} else {
-					/* a zero value will the default */
-					max[i] = 0;
+					pwm.channel_count++;
 				}
 			}
 
-			int ret = g_dev->set_max_values(max, sizeof(max) / sizeof(max[0]));
+			int ret = ioctl(iofd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm);
 
 			if (ret != OK)
 				errx(ret, "failed setting max values");
@@ -2329,32 +2349,32 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "idle")) {
+	if (!strcmp(argv[1], "idle") || !strcmp(argv[1], "disarmed")) {
 
 		if (argc < 3) {
 			errx(1, "max command needs at least one channel value (PWM)");
 		}
 
-		if (g_dev != nullptr) {
+		int iofd = open(PWM_OUTPUT_DEVICE_PATH, 0);
+		struct pwm_output_values pwm;
 
-			/* set values for first 8 channels, fill unassigned channels with 0. */
-			uint16_t idle[8];
+		if (iofd > 0) {
 
-			for (unsigned i = 0; i < sizeof(idle) / sizeof(idle[0]); i++)
+			pwm.channel_count = 0;
+
+			for (unsigned i = 0; i < sizeof(pwm.values) / sizeof(pwm.values[0]); i++)
 			{
 				/* set channel to commanline argument or to 0 for non-provided channels */
 				if (argc > i + 2) {
-					idle[i] = atoi(argv[i+2]);
-					if (idle[i] < 900 || idle[i] > 2100) {
+					pwm.values[i] = atoi(argv[i+2]);
+					if (pwm.values[i] < 900 || pwm.values[i] > 2100) {
 						errx(1, "value out of range of 900 < value < 2100. Aborting.");
 					}
-				} else {
-					/* a zero value will the default */
-					idle[i] = 0;
+					pwm.channel_count++;
 				}
 			}
 
-			int ret = g_dev->set_idle_values(idle, sizeof(idle) / sizeof(idle[0]));
+			int ret = ioctl(iofd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm);
 
 			if (ret != OK)
 				errx(ret, "failed setting idle values");
