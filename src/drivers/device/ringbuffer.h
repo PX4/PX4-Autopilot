@@ -55,12 +55,28 @@ public:
 	bool			put(T &val);
 
 	/**
-	 * Put an item into the buffer.
+	 * Put an item into the buffer if there is space.
 	 *
 	 * @param val		Item to put
 	 * @return		true if the item was put, false if the buffer is full
 	 */
 	bool			put(const T &val);
+
+	/**
+	 * Force an item into the buffer, discarding an older item if there is not space.
+	 *
+	 * @param val		Item to put
+	 * @return		true if an item was discarded to make space
+	 */
+	bool			force(T &val);
+
+	/**
+	 * Force an item into the buffer, discarding an older item if there is not space.
+	 *
+	 * @param val		Item to put
+	 * @return		true if an item was discarded to make space
+	 */
+	bool			force(const T &val);
 
 	/**
 	 * Get an item from the buffer.
@@ -73,8 +89,8 @@ public:
 	/**
 	 * Get an item from the buffer (scalars only).
 	 *
-	 * @return		The value that was fetched, or zero if the buffer was
-	 *			empty.
+	 * @return		The value that was fetched. If the buffer is empty, 
+	 *			returns zero.
 	 */
 	T			get(void);
 
@@ -97,27 +113,43 @@ public:
 	/*
 	 * Returns true if the buffer is empty.
 	 */
-	bool			empty() { return _tail == _head; }
+	bool			empty();
 
 	/*
 	 * Returns true if the buffer is full.
 	 */
-	bool			full() { return _next(_head) == _tail; }
+	bool			full();
 
 	/*
 	 * Returns the capacity of the buffer, or zero if the buffer could
 	 * not be allocated.
 	 */
-	unsigned		size() { return (_buf != nullptr) ? _size : 0; }
+	unsigned		size();
 
 	/*
 	 * Empties the buffer.
 	 */
-	void			flush() { _head = _tail = _size; }
+	void			flush();
+
+	/*
+	 * resize the buffer. This is unsafe to be called while
+	 * a producer or consuming is running. Caller is responsible
+	 * for any locking needed
+	 *
+	 * @param new_size	new size for buffer
+	 * @return		true if the resize succeeds, false if
+	 * 			not (allocation error)
+	 */
+	bool			resize(unsigned new_size);
+
+	/*
+	 * printf() some info on the buffer
+	 */
+	void			print_info(const char *name);
 
 private:
-	T			*const _buf;	
-	const unsigned		_size;
+	T			*_buf;	
+	unsigned		_size;
 	volatile unsigned	_head;	/**< insertion point */
 	volatile unsigned	_tail;	/**< removal point */
 
@@ -137,6 +169,38 @@ RingBuffer<T>::~RingBuffer()
 {
 	if (_buf != nullptr)
 		delete[] _buf;
+}
+
+template <typename T>
+bool RingBuffer<T>::empty()
+{
+	return _tail == _head; 
+}
+
+template <typename T>
+bool RingBuffer<T>::full()
+{
+	return _next(_head) == _tail; 
+}
+
+template <typename T>
+unsigned RingBuffer<T>::size()
+{
+	return (_buf != nullptr) ? _size : 0; 
+}
+
+template <typename T>
+void RingBuffer<T>::flush()
+{
+	T junk;
+	while (!empty())
+		get(junk); 
+}
+
+template <typename T>
+unsigned RingBuffer<T>::_next(unsigned index)
+{
+	return (0 == index) ? _size : (index - 1); 
 }
 
 template <typename T>
@@ -166,11 +230,54 @@ bool RingBuffer<T>::put(const T &val)
 }
 
 template <typename T>
+bool RingBuffer<T>::force(T &val)
+{
+	bool overwrote = false;
+
+	for (;;) {
+		if (put(val))
+			break;
+		T junk;
+		get(junk);
+		overwrote = true;
+	}
+	return overwrote;
+}
+
+template <typename T>
+bool RingBuffer<T>::force(const T &val)
+{
+	bool overwrote = false;
+
+	for (;;) {
+		if (put(val))
+			break;
+		T junk;
+		get(junk);
+		overwrote = true;
+	}
+	return overwrote;
+}
+
+template <typename T>
 bool RingBuffer<T>::get(T &val) 
 {
 	if (_tail != _head) {
-		val = _buf[_tail];
-		_tail = _next(_tail);
+		unsigned candidate;
+		unsigned next;
+		do {
+			/* decide which element we think we're going to read */
+			candidate = _tail;
+
+			/* and what the corresponding next index will be */
+			next = _next(candidate);
+
+			/* go ahead and read from this index */
+			val = _buf[candidate];
+
+			/* if the tail pointer didn't change, we got our item */
+		} while (!__sync_bool_compare_and_swap(&_tail, candidate, next));
+
 		return true;
 	} else {
 		return false;
@@ -187,17 +294,54 @@ T RingBuffer<T>::get(void)
 template <typename T>
 unsigned RingBuffer<T>::space(void) 
 {
-	return (_tail >= _head) ? (_size - (_tail - _head)) : (_head - _tail - 1);
+	unsigned tail, head;
+
+	/*
+	 * Make a copy of the head/tail pointers in a fashion that
+	 * may err on the side of under-estimating the free space
+	 * in the buffer in the case that the buffer is being updated
+	 * asynchronously with our check.
+	 * If the head pointer changes (reducing space) while copying,
+	 * re-try the copy.
+	 */
+	do {
+		head = _head;
+		tail = _tail;
+	} while (head != _head);
+
+	return (tail >= head) ? (_size - (tail - head)) : (head - tail - 1);
 }
 
 template <typename T>
 unsigned RingBuffer<T>::count(void) 
 {
+	/*
+	 * Note that due to the conservative nature of space(), this may
+	 * over-estimate the number of items in the buffer.
+	 */
 	return _size - space();
 }
 
 template <typename T>
-unsigned RingBuffer<T>::_next(unsigned index) 
+bool RingBuffer<T>::resize(unsigned new_size) 
 {
-	return (0 == index) ? _size : (index - 1);
+	T *old_buffer;
+	T *new_buffer = new T[new_size + 1];
+	if (new_buffer == nullptr) {
+		return false;
+	}
+	old_buffer = _buf;
+	_buf = new_buffer;
+	_size = new_size;
+	_head = new_size;
+	_tail = new_size;
+	delete[] old_buffer;
+	return true;
+}
+
+template <typename T>
+void RingBuffer<T>::print_info(const char *name) 
+{
+	printf("%s	%u (%u/%u @ %p)\n",
+	       name, _size, _head, _tail, _buf);
 }
