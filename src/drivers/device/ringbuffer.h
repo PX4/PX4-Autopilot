@@ -155,21 +155,21 @@ public:
 	void			print_info(const char *name);
 
 private:
-	unsigned		_ring_size;
+	unsigned		_num_items;
 	const size_t		_item_size;
 	char			*_buf;	
-	volatile unsigned	_head;	/**< insertion point */
-	volatile unsigned	_tail;	/**< removal point */
+	volatile unsigned	_head;	/**< insertion point in _item_size units */
+	volatile unsigned	_tail;	/**< removal point in _item_size units */
 
 	unsigned		_next(unsigned index);
 };
 
-RingBuffer::RingBuffer(unsigned ring_size, size_t item_size) :
-	_ring_size((ring_size + 1) * item_size),
+RingBuffer::RingBuffer(unsigned num_items, size_t item_size) :
+	_num_items(num_items),
 	_item_size(item_size),
-	_buf(new char[_ring_size]),
- 	_head(ring_size),
- 	_tail(ring_size)
+	_buf(new char[(_num_items+1) * item_size]),
+ 	_head(_num_items),
+ 	_tail(_num_items)
 {}
 
 RingBuffer::~RingBuffer()
@@ -181,7 +181,7 @@ RingBuffer::~RingBuffer()
 unsigned
 RingBuffer::_next(unsigned index)
 {
-	return (0 == index) ? _ring_size : (index - _item_size); 
+	return (0 == index) ? _num_items : (index - 1); 
 }
 
 bool
@@ -199,7 +199,7 @@ RingBuffer::full()
 unsigned
 RingBuffer::size()
 {
-	return (_buf != nullptr) ? _ring_size : 0; 
+	return (_buf != nullptr) ? _num_items : 0; 
 }
 
 void
@@ -216,7 +216,7 @@ RingBuffer::put(const void *val, size_t val_size)
 	if (next != _tail) {
 		if ((val_size == 0) || (val_size > _item_size))
 			val_size = _item_size;
-		memcpy(&_buf[_head], val, val_size);
+		memcpy(&_buf[_head * _item_size], val, val_size);
 		_head = next;
 		return true;
 	} else {
@@ -377,7 +377,7 @@ RingBuffer::get(void *val, size_t val_size)
 
 			/* go ahead and read from this index */
 			if (val != NULL)
-				memcpy(val, &_buf[candidate], val_size);
+				memcpy(val, &_buf[candidate * _item_size], val_size);
 
 			/* if the tail pointer didn't change, we got our item */
 		} while (!__sync_bool_compare_and_swap(&_tail, candidate, next));
@@ -466,9 +466,7 @@ RingBuffer::space(void)
 		tail = _tail;
 	} while (head != _head);
 
-	unsigned reported_space = (tail >= head) ? (_ring_size - (tail - head)) : (head - tail - 1);
-
-	return reported_space / _item_size;
+	return (tail >= head) ? (_num_items - (tail - head)) : (head - tail - 1);
 }
 
 unsigned
@@ -478,21 +476,20 @@ RingBuffer::count(void)
 	 * Note that due to the conservative nature of space(), this may
 	 * over-estimate the number of items in the buffer.
 	 */
-	return (_ring_size / _item_size) - space();
+	return _num_items - space();
 }
 
 bool
 RingBuffer::resize(unsigned new_size) 
 {
-	unsigned new_ring_size = (new_size + 1) * _item_size;
 	char *old_buffer;
-	char *new_buffer = new char [new_ring_size];
+	char *new_buffer = new char [(new_size+1) * _item_size];
 	if (new_buffer == nullptr) {
 		return false;
 	}
 	old_buffer = _buf;
 	_buf = new_buffer;
-	_ring_size = new_ring_size;
+	_num_items = new_size;
 	_head = new_size;
 	_tail = new_size;
 	delete[] old_buffer;
@@ -503,5 +500,10 @@ void
 RingBuffer::print_info(const char *name) 
 {
 	printf("%s	%u/%u (%u/%u @ %p)\n",
-	       name, _ring_size/_item_size, _head, _tail, _buf);
+	       name, 
+	       _num_items, 
+	       _num_items * _item_size, 
+	       _head, 
+	       _tail, 
+	       _buf);
 }
