@@ -65,7 +65,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f16_pack(uint8_t system_id, 
  * @brief Pack a serial_udb_extra_f16 message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param sue_ID_LEAD_PILOT Serial UDB Extra Name of Expected Lead Pilot
  * @param sue_ID_DIY_DRONES_URL Serial UDB Extra URL of Lead Pilot or Team
@@ -98,7 +98,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f16_pack_chan(uint8_t system
 }
 
 /**
- * @brief Encode a serial_udb_extra_f16 struct into a message
+ * @brief Encode a serial_udb_extra_f16 struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -108,6 +108,20 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f16_pack_chan(uint8_t system
 static inline uint16_t mavlink_msg_serial_udb_extra_f16_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_serial_udb_extra_f16_t* serial_udb_extra_f16)
 {
 	return mavlink_msg_serial_udb_extra_f16_pack(system_id, component_id, msg, serial_udb_extra_f16->sue_ID_LEAD_PILOT, serial_udb_extra_f16->sue_ID_DIY_DRONES_URL);
+}
+
+/**
+ * @brief Encode a serial_udb_extra_f16 struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param serial_udb_extra_f16 C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_serial_udb_extra_f16_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_serial_udb_extra_f16_t* serial_udb_extra_f16)
+{
+	return mavlink_msg_serial_udb_extra_f16_pack_chan(system_id, component_id, chan, msg, serial_udb_extra_f16->sue_ID_LEAD_PILOT, serial_udb_extra_f16->sue_ID_DIY_DRONES_URL);
 }
 
 /**

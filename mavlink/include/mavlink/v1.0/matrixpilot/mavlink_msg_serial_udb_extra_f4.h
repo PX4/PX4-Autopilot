@@ -104,7 +104,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f4_pack(uint8_t system_id, u
  * @brief Pack a serial_udb_extra_f4 message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param sue_ROLL_STABILIZATION_AILERONS Serial UDB Extra Roll Stabilization with Ailerons Enabled
  * @param sue_ROLL_STABILIZATION_RUDDER Serial UDB Extra Roll Stabilization with Rudder Enabled
@@ -161,7 +161,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f4_pack_chan(uint8_t system_
 }
 
 /**
- * @brief Encode a serial_udb_extra_f4 struct into a message
+ * @brief Encode a serial_udb_extra_f4 struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -171,6 +171,20 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f4_pack_chan(uint8_t system_
 static inline uint16_t mavlink_msg_serial_udb_extra_f4_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_serial_udb_extra_f4_t* serial_udb_extra_f4)
 {
 	return mavlink_msg_serial_udb_extra_f4_pack(system_id, component_id, msg, serial_udb_extra_f4->sue_ROLL_STABILIZATION_AILERONS, serial_udb_extra_f4->sue_ROLL_STABILIZATION_RUDDER, serial_udb_extra_f4->sue_PITCH_STABILIZATION, serial_udb_extra_f4->sue_YAW_STABILIZATION_RUDDER, serial_udb_extra_f4->sue_YAW_STABILIZATION_AILERON, serial_udb_extra_f4->sue_AILERON_NAVIGATION, serial_udb_extra_f4->sue_RUDDER_NAVIGATION, serial_udb_extra_f4->sue_ALTITUDEHOLD_STABILIZED, serial_udb_extra_f4->sue_ALTITUDEHOLD_WAYPOINT, serial_udb_extra_f4->sue_RACING_MODE);
+}
+
+/**
+ * @brief Encode a serial_udb_extra_f4 struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param serial_udb_extra_f4 C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_serial_udb_extra_f4_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_serial_udb_extra_f4_t* serial_udb_extra_f4)
+{
+	return mavlink_msg_serial_udb_extra_f4_pack_chan(system_id, component_id, chan, msg, serial_udb_extra_f4->sue_ROLL_STABILIZATION_AILERONS, serial_udb_extra_f4->sue_ROLL_STABILIZATION_RUDDER, serial_udb_extra_f4->sue_PITCH_STABILIZATION, serial_udb_extra_f4->sue_YAW_STABILIZATION_RUDDER, serial_udb_extra_f4->sue_YAW_STABILIZATION_AILERON, serial_udb_extra_f4->sue_AILERON_NAVIGATION, serial_udb_extra_f4->sue_RUDDER_NAVIGATION, serial_udb_extra_f4->sue_ALTITUDEHOLD_STABILIZED, serial_udb_extra_f4->sue_ALTITUDEHOLD_WAYPOINT, serial_udb_extra_f4->sue_RACING_MODE);
 }
 
 /**

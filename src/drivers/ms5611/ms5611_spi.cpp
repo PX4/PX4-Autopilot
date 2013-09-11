@@ -134,6 +134,7 @@ int
 MS5611_SPI::init()
 {
 	int ret;
+	irqstate_t flags;
 
 	ret = SPI::init();
 	if (ret != OK) {
@@ -141,15 +142,23 @@ MS5611_SPI::init()
 		goto out;
 	}
 
+	/* disable interrupts, make this section atomic */
+	flags = irqsave();
 	/* send reset command */
 	ret = _reset();
+	/* re-enable interrupts */
+	irqrestore(flags);
 	if (ret != OK) {
 		debug("reset failed");
 		goto out;
 	}
 
+	/* disable interrupts, make this section atomic */
+	flags = irqsave();
 	/* read PROM */
 	ret = _read_prom();
+	/* re-enable interrupts */
+	irqrestore(flags);
 	if (ret != OK) {
 		debug("prom readout failed");
 		goto out;

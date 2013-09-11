@@ -108,9 +108,11 @@ controls_tick() {
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count);
-	if (sbus_updated)
+	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, PX4IO_CONTROL_CHANNELS /* XXX this should be INPUT channels, once untangled */);
+	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
+		r_raw_rc_count = 8;
+	}
 	perf_end(c_gather_sbus);
 
 	/*
@@ -123,8 +125,6 @@ controls_tick() {
 	if (ppm_updated)
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
 	perf_end(c_gather_ppm);
-
-	ASSERT(r_raw_rc_count <= PX4IO_CONTROL_CHANNELS);
 
 	/*
 	 * In some cases we may have received a frame, but input has still

@@ -404,7 +404,7 @@ public:
 	LSM303D_mag(LSM303D *parent);
 	~LSM303D_mag();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t			read(struct file *filp, char *buffer, size_t buflen);
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 
 protected:
@@ -498,8 +498,10 @@ LSM303D::init()
 	int mag_ret;
 
 	/* do SPI init (and probe) first */
-	if (SPI::init() != OK)
+	if (SPI::init() != OK) {
+		warnx("SPI init failed");
 		goto out;
+	}
 
 	/* allocate basic report buffers */
 	_num_accel_reports = 2;
@@ -541,6 +543,7 @@ out:
 void
 LSM303D::reset()
 {
+	irqstate_t flags = irqsave();
 	/* enable accel*/
 	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE);
 
@@ -555,6 +558,7 @@ LSM303D::reset()
 
 	mag_set_range(LSM303D_MAG_DEFAULT_RANGE_GA);
 	mag_set_samplerate(LSM303D_MAG_DEFAULT_RATE);
+	irqrestore(flags);
 
 	_accel_read = 0;
 	_mag_read = 0;
@@ -563,11 +567,16 @@ LSM303D::reset()
 int
 LSM303D::probe()
 {
+	irqstate_t flags = irqsave();
 	/* read dummy value to void to clear SPI statemachine on sensor */
 	(void)read_reg(ADDR_WHO_AM_I);
 
 	/* verify that the device is attached and functioning */
-	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM)
+	bool success = (read_reg(ADDR_WHO_AM_I) == WHO_I_AM);
+	
+	irqrestore(flags);
+
+	if (success)
 		return OK;
 
 	return -EIO;
@@ -1470,8 +1479,10 @@ start()
 	/* create the driver */
 	g_dev = new LSM303D(1 /* XXX magic number */, ACCEL_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
 
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
+		warnx("failed instantiating LSM303D obj");
 		goto fail;
+	}
 
 	if (OK != g_dev->init())
 		goto fail;

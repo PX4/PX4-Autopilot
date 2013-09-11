@@ -66,7 +66,7 @@ static unsigned partial_frame_count;
 
 unsigned sbus_frame_drops;
 
-static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values);
+static bool sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint16_t max_channels);
 
 int
 sbus_init(const char *device)
@@ -97,7 +97,7 @@ sbus_init(const char *device)
 }
 
 bool
-sbus_input(uint16_t *values, uint16_t *num_values)
+sbus_input(uint16_t *values, uint16_t *num_values, uint16_t max_channels)
 {
 	ssize_t		ret;
 	hrt_abstime	now;
@@ -154,7 +154,7 @@ sbus_input(uint16_t *values, uint16_t *num_values)
 	 * decode it.
 	 */
 	partial_frame_count = 0;
-	return sbus_decode(now, values, num_values);
+	return sbus_decode(now, values, num_values, max_channels);
 }
 
 /*
@@ -194,7 +194,7 @@ static const struct sbus_bit_pick sbus_decoder[SBUS_INPUT_CHANNELS][3] = {
 };
 
 static bool
-sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
+sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint16_t max_values)
 {
 	/* check frame boundary markers to avoid out-of-sync cases */
 	if ((frame[0] != 0x0f) || (frame[24] != 0x00)) {
@@ -214,8 +214,8 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 	/* we have received something we think is a frame */
 	last_frame_time = frame_time;
 
-	unsigned chancount = (PX4IO_INPUT_CHANNELS > SBUS_INPUT_CHANNELS) ?
-			     SBUS_INPUT_CHANNELS : PX4IO_INPUT_CHANNELS;
+	unsigned chancount = (max_values > SBUS_INPUT_CHANNELS) ?
+			     SBUS_INPUT_CHANNELS : max_values;
 
 	/* use the decoder matrix to extract channel data */
 	for (unsigned channel = 0; channel < chancount; channel++) {

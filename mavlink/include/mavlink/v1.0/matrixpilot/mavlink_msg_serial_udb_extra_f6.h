@@ -79,7 +79,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f6_pack(uint8_t system_id, u
  * @brief Pack a serial_udb_extra_f6 message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param sue_PITCHGAIN Serial UDB Extra PITCHGAIN Proportional Control
  * @param sue_PITCHKD Serial UDB Extra Pitch Rate Control
@@ -121,7 +121,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f6_pack_chan(uint8_t system_
 }
 
 /**
- * @brief Encode a serial_udb_extra_f6 struct into a message
+ * @brief Encode a serial_udb_extra_f6 struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -131,6 +131,20 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f6_pack_chan(uint8_t system_
 static inline uint16_t mavlink_msg_serial_udb_extra_f6_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_serial_udb_extra_f6_t* serial_udb_extra_f6)
 {
 	return mavlink_msg_serial_udb_extra_f6_pack(system_id, component_id, msg, serial_udb_extra_f6->sue_PITCHGAIN, serial_udb_extra_f6->sue_PITCHKD, serial_udb_extra_f6->sue_RUDDER_ELEV_MIX, serial_udb_extra_f6->sue_ROLL_ELEV_MIX, serial_udb_extra_f6->sue_ELEVATOR_BOOST);
+}
+
+/**
+ * @brief Encode a serial_udb_extra_f6 struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param serial_udb_extra_f6 C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_serial_udb_extra_f6_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_serial_udb_extra_f6_t* serial_udb_extra_f6)
+{
+	return mavlink_msg_serial_udb_extra_f6_pack_chan(system_id, component_id, chan, msg, serial_udb_extra_f6->sue_PITCHGAIN, serial_udb_extra_f6->sue_PITCHKD, serial_udb_extra_f6->sue_RUDDER_ELEV_MIX, serial_udb_extra_f6->sue_ROLL_ELEV_MIX, serial_udb_extra_f6->sue_ELEVATOR_BOOST);
 }
 
 /**

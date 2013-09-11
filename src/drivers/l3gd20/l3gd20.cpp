@@ -377,8 +377,11 @@ out:
 int
 L3GD20::probe()
 {
+	irqstate_t flags = irqsave();
 	/* read dummy value to void to clear SPI statemachine on sensor */
 	(void)read_reg(ADDR_WHO_AM_I);
+
+	bool success = false;
 
 	/* verify that the device is attached and functioning, accept L3GD20 and L3GD20H */
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM) {
@@ -390,14 +393,20 @@ L3GD20::probe()
 		#else
 			#error This driver needs a board selection, either CONFIG_ARCH_BOARD_PX4FMU_V1 or CONFIG_ARCH_BOARD_PX4FMU_V2
 		#endif
-		return OK;
+
+		success = true;
 	}
 
 
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM_H) {
 		_orientation = SENSOR_BOARD_ROTATION_180_DEG;
-		return OK;
+		success = true;
 	}
+
+	irqrestore(flags);
+
+	if (success)
+		return OK;
 
 	return -EIO;
 }

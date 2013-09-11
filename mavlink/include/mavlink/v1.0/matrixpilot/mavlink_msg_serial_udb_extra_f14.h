@@ -109,7 +109,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f14_pack(uint8_t system_id, 
  * @brief Pack a serial_udb_extra_f14 message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param sue_WIND_ESTIMATION Serial UDB Extra Wind Estimation Enabled
  * @param sue_GPS_TYPE Serial UDB Extra Type of GPS Unit
@@ -169,7 +169,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f14_pack_chan(uint8_t system
 }
 
 /**
- * @brief Encode a serial_udb_extra_f14 struct into a message
+ * @brief Encode a serial_udb_extra_f14 struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -179,6 +179,20 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f14_pack_chan(uint8_t system
 static inline uint16_t mavlink_msg_serial_udb_extra_f14_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_serial_udb_extra_f14_t* serial_udb_extra_f14)
 {
 	return mavlink_msg_serial_udb_extra_f14_pack(system_id, component_id, msg, serial_udb_extra_f14->sue_WIND_ESTIMATION, serial_udb_extra_f14->sue_GPS_TYPE, serial_udb_extra_f14->sue_DR, serial_udb_extra_f14->sue_BOARD_TYPE, serial_udb_extra_f14->sue_AIRFRAME, serial_udb_extra_f14->sue_RCON, serial_udb_extra_f14->sue_TRAP_FLAGS, serial_udb_extra_f14->sue_TRAP_SOURCE, serial_udb_extra_f14->sue_osc_fail_count, serial_udb_extra_f14->sue_CLOCK_CONFIG, serial_udb_extra_f14->sue_FLIGHT_PLAN_TYPE);
+}
+
+/**
+ * @brief Encode a serial_udb_extra_f14 struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param serial_udb_extra_f14 C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_serial_udb_extra_f14_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_serial_udb_extra_f14_t* serial_udb_extra_f14)
+{
+	return mavlink_msg_serial_udb_extra_f14_pack_chan(system_id, component_id, chan, msg, serial_udb_extra_f14->sue_WIND_ESTIMATION, serial_udb_extra_f14->sue_GPS_TYPE, serial_udb_extra_f14->sue_DR, serial_udb_extra_f14->sue_BOARD_TYPE, serial_udb_extra_f14->sue_AIRFRAME, serial_udb_extra_f14->sue_RCON, serial_udb_extra_f14->sue_TRAP_FLAGS, serial_udb_extra_f14->sue_TRAP_SOURCE, serial_udb_extra_f14->sue_osc_fail_count, serial_udb_extra_f14->sue_CLOCK_CONFIG, serial_udb_extra_f14->sue_FLIGHT_PLAN_TYPE);
 }
 
 /**
