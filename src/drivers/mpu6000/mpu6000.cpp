@@ -194,16 +194,14 @@ private:
 	struct hrt_call		_call;
 	unsigned		_call_interval;
 
-	typedef RingBuffer<accel_report> AccelReportBuffer;
-	AccelReportBuffer	*_accel_reports;
+	RingBuffer		*_accel_reports;
 
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
 
-	typedef RingBuffer<gyro_report> GyroReportBuffer;
-	GyroReportBuffer	*_gyro_reports;
+	RingBuffer		*_gyro_reports;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
@@ -431,11 +429,11 @@ MPU6000::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new AccelReportBuffer(2);
+	_accel_reports = new RingBuffer(2, sizeof(accel_report));
 	if (_accel_reports == nullptr)
 		goto out;
 
-	_gyro_reports = new GyroReportBuffer(2);
+	_gyro_reports = new RingBuffer(2, sizeof(gyro_report));
 	if (_gyro_reports == nullptr)
 		goto out;
 
@@ -466,14 +464,14 @@ MPU6000::init()
 		_gyro_topic = -1;
 	} else {
 		gyro_report gr;
-		_gyro_reports->get(gr);
+		_gyro_reports->get(&gr);
 
 		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &gr);
 	}
 
 	/* advertise accel topic */
 	accel_report ar;
-	_accel_reports->get(ar);
+	_accel_reports->get(&ar);
 	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &ar);
 
 out:
@@ -658,9 +656,10 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
 	int transferred = 0;
 	while (count--) {
-		if (!_accel_reports->get(*arp++))
+		if (!_accel_reports->get(arp))
 			break;
 		transferred++;
+		arp++;
 	}
 
 	/* return the number of bytes transferred */
@@ -748,12 +747,13 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 		return -EAGAIN;
 
 	/* copy reports out of our buffer to the caller */
-	gyro_report *arp = reinterpret_cast<gyro_report *>(buffer);
+	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
 	int transferred = 0;
 	while (count--) {
-		if (!_gyro_reports->get(*arp++))
+		if (!_gyro_reports->get(grp))
 			break;
 		transferred++;
+		grp++;
 	}
 
 	/* return the number of bytes transferred */
@@ -837,28 +837,19 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100))
-				return -EINVAL;
-
-			/* allocate new buffer */
-			AccelReportBuffer *buf = new AccelReportBuffer(arg);
-
-			if (nullptr == buf)
-				return -ENOMEM;
-			if (buf->size() == 0) {
-				delete buf;
-				return -ENOMEM;
-			}
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop();
-			delete _accel_reports;
-			_accel_reports = buf;
-			start();
-
-			return OK;
+		/* lower bound is mandatory, upper bound is a sanity check */
+		if ((arg < 1) || (arg > 100))
+			return -EINVAL;
+		
+		irqstate_t flags = irqsave();
+		if (!_accel_reports->resize(arg)) {
+			irqrestore(flags);
+			return -ENOMEM;
 		}
+		irqrestore(flags);
+		
+		return OK;
+	}
 
 	case SENSORIOCGQUEUEDEPTH:
 		return _accel_reports->size();
@@ -935,21 +926,12 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		if ((arg < 1) || (arg > 100))
 			return -EINVAL;
 
-		/* allocate new buffer */
-		GyroReportBuffer *buf = new GyroReportBuffer(arg);
-
-		if (nullptr == buf)
-			return -ENOMEM;
-		if (buf->size() == 0) {
-			delete buf;
+		irqstate_t flags = irqsave();
+		if (!_gyro_reports->resize(arg)) {
+			irqrestore(flags);
 			return -ENOMEM;
 		}
-
-		/* reset the measurement state machine with the new buffer, free the old */
-		stop();
-		delete _gyro_reports;
-		_gyro_reports = buf;
-		start();
+		irqrestore(flags);
 
 		return OK;
 	}
@@ -1260,8 +1242,8 @@ MPU6000::measure()
 	grb.temperature_raw = report.temp;
 	grb.temperature = (report.temp) / 361.0f + 35.0f;
 
-	_accel_reports->put(arb);
-	_gyro_reports->put(grb);
+	_accel_reports->force(&arb);
+	_gyro_reports->force(&grb);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -1280,7 +1262,10 @@ MPU6000::measure()
 void
 MPU6000::print_info()
 {
+	perf_print_counter(_sample_perf);
 	printf("reads:          %u\n", _reads);
+	_accel_reports->print_info("accel queue");
+	_gyro_reports->print_info("gyro queue");
 }
 
 MPU6000_gyro::MPU6000_gyro(MPU6000 *parent) :

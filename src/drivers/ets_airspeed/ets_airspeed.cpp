@@ -68,6 +68,7 @@
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
@@ -173,27 +174,22 @@ ETSAirspeed::collect()
 		diff_pres_pa -= _diff_pres_offset;
 	}
 
-	// XXX we may want to smooth out the readings to remove noise.
-
-	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
-
 	// Track maximum differential pressure measured (so we can work out top speed).
-	if (diff_pres_pa > _reports[_next_report].max_differential_pressure_pa) {
-		_reports[_next_report].max_differential_pressure_pa = diff_pres_pa;
+	if (diff_pres_pa > _max_differential_pressure_pa) {
+	    _max_differential_pressure_pa = diff_pres_pa;
 	}
+
+	// XXX we may want to smooth out the readings to remove noise.
+	differential_pressure_s report;
+	report.timestamp = hrt_absolute_time();
+	report.differential_pressure_pa = diff_pres_pa;
+	report.voltage = 0;
+	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	/* announce the airspeed if needed, just publish else */
-	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_reports[_next_report]);
+	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_report, _num_reports);
-
-	/* if we are running up against the oldest report, toss it */
-	if (_next_report == _oldest_report) {
-		perf_count(_buffer_overflows);
-		INCREMENT(_oldest_report, _num_reports);
-	}
+	new_report(report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
