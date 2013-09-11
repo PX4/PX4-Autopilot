@@ -169,7 +169,7 @@ static inline uint16_t mavlink_msg_image_available_pack(uint8_t system_id, uint8
  * @brief Pack a image_available message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param cam_id Camera id
  * @param cam_no Camera # (starts with 0)
@@ -265,7 +265,7 @@ static inline uint16_t mavlink_msg_image_available_pack_chan(uint8_t system_id, 
 }
 
 /**
- * @brief Encode a image_available struct into a message
+ * @brief Encode a image_available struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -275,6 +275,20 @@ static inline uint16_t mavlink_msg_image_available_pack_chan(uint8_t system_id, 
 static inline uint16_t mavlink_msg_image_available_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_image_available_t* image_available)
 {
 	return mavlink_msg_image_available_pack(system_id, component_id, msg, image_available->cam_id, image_available->cam_no, image_available->timestamp, image_available->valid_until, image_available->img_seq, image_available->img_buf_index, image_available->width, image_available->height, image_available->depth, image_available->channels, image_available->key, image_available->exposure, image_available->gain, image_available->roll, image_available->pitch, image_available->yaw, image_available->local_z, image_available->lat, image_available->lon, image_available->alt, image_available->ground_x, image_available->ground_y, image_available->ground_z);
+}
+
+/**
+ * @brief Encode a image_available struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param image_available C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_image_available_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_image_available_t* image_available)
+{
+	return mavlink_msg_image_available_pack_chan(system_id, component_id, chan, msg, image_available->cam_id, image_available->cam_no, image_available->timestamp, image_available->valid_until, image_available->img_seq, image_available->img_buf_index, image_available->width, image_available->height, image_available->depth, image_available->channels, image_available->key, image_available->exposure, image_available->gain, image_available->roll, image_available->pitch, image_available->yaw, image_available->local_z, image_available->lat, image_available->lon, image_available->alt, image_available->ground_x, image_available->ground_y, image_available->ground_z);
 }
 
 /**

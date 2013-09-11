@@ -84,7 +84,7 @@ static inline uint16_t mavlink_msg_flexifunction_directory_ack_pack(uint8_t syst
  * @brief Pack a flexifunction_directory_ack message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param target_system System ID
  * @param target_component Component ID
@@ -129,7 +129,7 @@ static inline uint16_t mavlink_msg_flexifunction_directory_ack_pack_chan(uint8_t
 }
 
 /**
- * @brief Encode a flexifunction_directory_ack struct into a message
+ * @brief Encode a flexifunction_directory_ack struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -139,6 +139,20 @@ static inline uint16_t mavlink_msg_flexifunction_directory_ack_pack_chan(uint8_t
 static inline uint16_t mavlink_msg_flexifunction_directory_ack_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_flexifunction_directory_ack_t* flexifunction_directory_ack)
 {
 	return mavlink_msg_flexifunction_directory_ack_pack(system_id, component_id, msg, flexifunction_directory_ack->target_system, flexifunction_directory_ack->target_component, flexifunction_directory_ack->directory_type, flexifunction_directory_ack->start_index, flexifunction_directory_ack->count, flexifunction_directory_ack->result);
+}
+
+/**
+ * @brief Encode a flexifunction_directory_ack struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param flexifunction_directory_ack C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_flexifunction_directory_ack_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_flexifunction_directory_ack_t* flexifunction_directory_ack)
+{
+	return mavlink_msg_flexifunction_directory_ack_pack_chan(system_id, component_id, chan, msg, flexifunction_directory_ack->target_system, flexifunction_directory_ack->target_component, flexifunction_directory_ack->directory_type, flexifunction_directory_ack->start_index, flexifunction_directory_ack->count, flexifunction_directory_ack->result);
 }
 
 /**

@@ -30,6 +30,30 @@ extern "C" {
 // ENUM DEFINITIONS
 
 
+/** @brief Available operating modes/statuses for AutoQuad flight controller. 
+				Bitmask up to 32 bits. Low side bits for base modes, high side for 
+				additional active features/modifiers/constraints. */
+#ifndef HAVE_ENUM_AUTOQUAD_NAV_STATUS
+#define HAVE_ENUM_AUTOQUAD_NAV_STATUS
+enum AUTOQUAD_NAV_STATUS
+{
+	AQ_NAV_STATUS_INIT=0, /* System is initializing | */
+	AQ_NAV_STATUS_STANDBY=1, /* System is standing by, not active | */
+	AQ_NAV_STATUS_MANUAL=2, /* Stabilized, under full manual control | */
+	AQ_NAV_STATUS_ALTHOLD=4, /* Altitude hold engaged | */
+	AQ_NAV_STATUS_POSHOLD=8, /* Position hold engaged | */
+	AQ_NAV_STATUS_DVH=16, /* Dynamic Velocity Hold is active | */
+	AQ_NAV_STATUS_MISSION=32, /* Autonomous mission execution mode | */
+	AQ_NAV_STATUS_CEILING_REACHED=67108864, /* Craft is at ceiling altitude | */
+	AQ_NAV_STATUS_CEILING=134217728, /* Ceiling altitude is set | */
+	AQ_NAV_STATUS_HF_DYNAMIC=268435456, /* Heading-Free dynamic mode active | */
+	AQ_NAV_STATUS_HF_LOCKED=536870912, /* Heading-Free locked mode active | */
+	AQ_NAV_STATUS_RTH=1073741824, /* Automatic Return to Home is active | */
+	AQ_NAV_STATUS_FAILSAFE=2147483648, /* System is in failsafe recovery mode | */
+	AUTOQUAD_NAV_STATUS_ENUM_END=2147483649, /*  | */
+};
+#endif
+
 /** @brief  */
 #ifndef HAVE_ENUM_MAV_CMD
 #define HAVE_ENUM_MAV_CMD
@@ -63,6 +87,7 @@ enum MAV_CMD
 	MAV_CMD_DO_SET_SERVO=183, /* Set a servo to a desired PWM value. |Servo number| PWM (microseconds, 1000 to 2000 typical)| Empty| Empty| Empty| Empty| Empty|  */
 	MAV_CMD_DO_REPEAT_SERVO=184, /* Cycle a between its nominal setting and a desired PWM for a desired number of cycles with a desired period. |Servo number| PWM (microseconds, 1000 to 2000 typical)| Cycle count| Cycle time (seconds)| Empty| Empty| Empty|  */
 	MAV_CMD_DO_CONTROL_VIDEO=200, /* Control onboard camera system. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|  */
+	MAV_CMD_DO_SET_ROI=201, /* Sets the region of interest (ROI) for a sensor set or the vehicle itself. This can then be used by the vehicles control system to control the vehicle attitude and the attitude of various sensors such as cameras. |Region of intereset mode. (see MAV_ROI enum)| MISSION index/ target ID. (see MAV_ROI enum)| ROI index (allows a vehicle to manage multiple ROI's)| Empty| x the location of the fixed ROI (see MAV_FRAME)| y| z|  */
 	MAV_CMD_DO_LAST=240, /* NOP - This command is only used to mark the upper limit of the DO commands in the enumeration |Empty| Empty| Empty| Empty| Empty| Empty| Empty|  */
 	MAV_CMD_PREFLIGHT_CALIBRATION=241, /* Trigger calibration. This command will be only accepted if in pre-flight mode. |Gyro calibration: 0: no, 1: yes| Magnetometer calibration: 0: no, 1: yes| Ground pressure: 0: no, 1: yes| Radio calibration: 0: no, 1: yes| Accelerometer calibration: 0: no, 1: yes| Empty| Empty|  */
 	MAV_CMD_PREFLIGHT_SET_SENSOR_OFFSETS=242, /* Set sensor offsets. This command will be only accepted if in pre-flight mode. |Sensor to adjust the offsets for: 0: gyros, 1: accelerometer, 2: magnetometer, 3: barometer, 4: optical flow| X axis offset (or generic dimension 1), in the sensor's raw units| Y axis offset (or generic dimension 2), in the sensor's raw units| Z axis offset (or generic dimension 3), in the sensor's raw units| Generic dimension 4, in the sensor's raw units| Generic dimension 5, in the sensor's raw units| Generic dimension 6, in the sensor's raw units|  */
@@ -71,7 +96,8 @@ enum MAV_CMD
 	MAV_CMD_OVERRIDE_GOTO=252, /* Hold / continue the current action |MAV_GOTO_DO_HOLD: hold MAV_GOTO_DO_CONTINUE: continue with next item in mission plan| MAV_GOTO_HOLD_AT_CURRENT_POSITION: Hold at current position MAV_GOTO_HOLD_AT_SPECIFIED_POSITION: hold at specified position| MAV_FRAME coordinate frame of hold point| Desired yaw angle in degrees| Latitude / X position| Longitude / Y position| Altitude / Z position|  */
 	MAV_CMD_MISSION_START=300, /* start running a mission |first_item: the first mission item to run| last_item:  the last mission item to run (after this item is run, the mission ends)|  */
 	MAV_CMD_COMPONENT_ARM_DISARM=400, /* Arms / Disarms a component |1 to arm, 0 to disarm|  */
-	MAV_CMD_ENUM_END=401, /*  | */
+	MAV_CMD_START_RX_PAIR=500, /* Starts receiver pairing |0:Spektrum| 0:Spektrum DSM2, 1:Spektrum DSMX|  */
+	MAV_CMD_ENUM_END=501, /*  | */
 };
 #endif
 

@@ -63,7 +63,7 @@ static inline uint16_t mavlink_msg_filt_rot_vel_pack(uint8_t system_id, uint8_t 
  * @brief Pack a filt_rot_vel message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param rotVel 
                 
@@ -95,7 +95,7 @@ static inline uint16_t mavlink_msg_filt_rot_vel_pack_chan(uint8_t system_id, uin
 }
 
 /**
- * @brief Encode a filt_rot_vel struct into a message
+ * @brief Encode a filt_rot_vel struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -105,6 +105,20 @@ static inline uint16_t mavlink_msg_filt_rot_vel_pack_chan(uint8_t system_id, uin
 static inline uint16_t mavlink_msg_filt_rot_vel_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_filt_rot_vel_t* filt_rot_vel)
 {
 	return mavlink_msg_filt_rot_vel_pack(system_id, component_id, msg, filt_rot_vel->rotVel);
+}
+
+/**
+ * @brief Encode a filt_rot_vel struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param filt_rot_vel C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_filt_rot_vel_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_filt_rot_vel_t* filt_rot_vel)
+{
+	return mavlink_msg_filt_rot_vel_pack_chan(system_id, component_id, chan, msg, filt_rot_vel->rotVel);
 }
 
 /**
