@@ -1252,6 +1252,7 @@ LSM303D::measure()
 
 
 	accel_report.timestamp = hrt_absolute_time();
+        accel_report.error_count = 0; // not reported
 
 	accel_report.x_raw = raw_accel_report.x;
 	accel_report.y_raw = raw_accel_report.y;
