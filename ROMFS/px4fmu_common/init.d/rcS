@@ -189,8 +189,9 @@ then
 	if [ $MODE == autostart ]
 	then
 		# Telemetry port is on both FMU boards ttyS1
-		mavlink start -b 57600 -d /dev/ttyS1
-		usleep 5000
+		# but the AR.Drone motors can be get 'flashed'
+		# if starting MAVLink on them - so do not
+		# start it as default (default link: USB)
 	
 		# Start commander
 		commander start
