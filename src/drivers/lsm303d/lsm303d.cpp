@@ -532,6 +532,7 @@ LSM303D::reset()
 	/* enable mag */
 	write_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
 	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
+	irqrestore(flags);
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
@@ -540,7 +541,6 @@ LSM303D::reset()
 
 	mag_set_range(LSM303D_MAG_DEFAULT_RANGE_GA);
 	mag_set_samplerate(LSM303D_MAG_DEFAULT_RATE);
-	irqrestore(flags);
 
 	_accel_read = 0;
 	_mag_read = 0;
@@ -1012,6 +1012,7 @@ LSM303D::accel_set_range(unsigned max_g)
 	}
 
 	_accel_range_scale = new_scale_g_digit * LSM303D_ONE_G;
+
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
 
