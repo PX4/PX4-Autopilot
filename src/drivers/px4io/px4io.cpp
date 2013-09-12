@@ -409,8 +409,17 @@ private:
 	 */
 	int			io_handle_alarms(uint16_t alarms);
 
+	/**
+	 * Handle a battery update from IO.
+	 *
+	 * Publish IO battery information if necessary.
+	 *
+	 * @param vbatt		vbattery register
+	 * @param status	ibatter register
+	 */
+	void			io_handle_battery(uint16_t vbatt, uint16_t ibatt);
+        
 };
-
 
 namespace
 {
@@ -1158,6 +1167,45 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 	return 0;
 }
 
+void
+PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
+{
+	/* only publish if battery has a valid minimum voltage */
+	if (vbatt <= 3300) {
+		return;
+	}
+
+	battery_status_s	battery_status;
+	battery_status.timestamp = hrt_absolute_time();
+
+	/* voltage is scaled to mV */
+	battery_status.voltage_v = vbatt / 1000.0f;
+
+	/*
+	  ibatt contains the raw ADC count, as 12 bit ADC
+	  value, with full range being 3.3v
+	*/
+	battery_status.current_a = ibatt * (3.3f/4096.0f) * _battery_amp_per_volt;
+	battery_status.current_a += _battery_amp_bias;
+
+	/*
+	  integrate battery over time to get total mAh used
+	*/
+	if (_battery_last_timestamp != 0) {
+		_battery_mamphour_total += battery_status.current_a * 
+			(battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
+	}
+	battery_status.discharged_mah = _battery_mamphour_total;
+	_battery_last_timestamp = battery_status.timestamp;
+	
+	/* lazily publish the battery voltage */
+	if (_to_battery > 0) {
+		orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
+	} else {
+		_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+	}
+}
+
 int
 PX4IO::io_get_status()
 {
@@ -1171,40 +1219,10 @@ PX4IO::io_get_status()
 
 	io_handle_status(regs[0]);
 	io_handle_alarms(regs[1]);
-	
-	/* only publish if battery has a valid minimum voltage */
-	if (regs[2] > 3300) {
-		battery_status_s	battery_status;
 
-		battery_status.timestamp = hrt_absolute_time();
-
-		/* voltage is scaled to mV */
-		battery_status.voltage_v = regs[2] / 1000.0f;
-
-		/*
-		  regs[3] contains the raw ADC count, as 12 bit ADC
-		  value, with full range being 3.3v
-		 */
-		battery_status.current_a = regs[3] * (3.3f/4096.0f) * _battery_amp_per_volt;
-		battery_status.current_a += _battery_amp_bias;
-
-		/*
-		  integrate battery over time to get total mAh used
-		 */
-		if (_battery_last_timestamp != 0) {
-			_battery_mamphour_total += battery_status.current_a * 
-				(battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
-		}
-		battery_status.discharged_mah = _battery_mamphour_total;
-		_battery_last_timestamp = battery_status.timestamp;
-
-		/* lazily publish the battery voltage */
-		if (_to_battery > 0) {
-			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
-		} else {
-			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
-		}
-	}
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	io_handle_battery(regs[2], regs[3]);
+#endif
 
 	return ret;
 }
