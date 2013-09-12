@@ -35,6 +35,12 @@
  * @file ecl_pitch_controller.h
  * Definition of a simple orthogonal pitch PID controller.
  *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ *
+ * Acknowledgements:
+ *
+ *   The control design is based on a design
+ *   by Paul Riseborough, 2013.
  */
 
 #ifndef ECL_PITCH_CONTROLLER_H

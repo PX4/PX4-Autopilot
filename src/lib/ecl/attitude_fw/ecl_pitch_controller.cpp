@@ -35,6 +35,7 @@
  * @file ecl_pitch_controller.cpp
  * Implementation of a simple orthogonal pitch PID controller.
  *
+ * Authors and acknowledgements in header.
  */
 
 #include "ecl_pitch_controller.h"

@@ -35,6 +35,7 @@
  * @file ecl_yaw_controller.cpp
  * Implementation of a simple orthogonal coordinated turn yaw PID controller.
  *
+ * Authors and acknowledgements in header.
  */
 
 #include "ecl_yaw_controller.h"

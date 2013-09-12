@@ -35,6 +35,12 @@
  * @file ecl_roll_controller.h
  * Definition of a simple orthogonal roll PID controller.
  *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ *
+ * Acknowledgements:
+ *
+ *   The control design is based on a design
+ *   by Paul Riseborough, 2013.
  */
 
 #ifndef ECL_ROLL_CONTROLLER_H

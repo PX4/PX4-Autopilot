@@ -35,6 +35,7 @@
  * @file ecl_roll_controller.cpp
  * Implementation of a simple orthogonal roll PID controller.
  *
+ * Authors and acknowledgements in header.
  */
 
 #include "../ecl.h"
