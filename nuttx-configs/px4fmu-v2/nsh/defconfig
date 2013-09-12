@@ -38,8 +38,8 @@ CONFIG_ARCH_MATH_H=y
 #
 # Debug Options
 #
-CONFIG_DEBUG=y
-CONFIG_DEBUG_VERBOSE=y
+CONFIG_DEBUG=n
+CONFIG_DEBUG_VERBOSE=n
 
 #
 # Subsystem Debug Options
