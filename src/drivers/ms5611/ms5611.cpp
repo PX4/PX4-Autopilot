@@ -60,6 +60,7 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -114,10 +115,7 @@ protected:
 	struct work_s		_work;
 	unsigned		_measure_ticks;
 
-	unsigned		_num_reports;
-	volatile unsigned	_next_report;
-	volatile unsigned	_oldest_report;
-	struct baro_report	*_reports;
+	RingBuffer		*_reports;
 
 	bool			_collect_phase;
 	unsigned		_measure_phase;
@@ -196,9 +194,6 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
 	_interface(interface),
 	_prom(prom_buf.s),
 	_measure_ticks(0),
-	_num_reports(0),
-	_next_report(0),
-	_oldest_report(0),
 	_reports(nullptr),
 	_collect_phase(false),
 	_measure_phase(0),
@@ -223,7 +218,7 @@ MS5611::~MS5611()
 
 	/* free any existing reports */
 	if (_reports != nullptr)
-		delete[] _reports;
+		delete _reports;
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -246,8 +241,7 @@ MS5611::init()
 	}
 
 	/* allocate basic report buffers */
-	_num_reports = 2;
-	_reports = new struct baro_report[_num_reports];
+	_reports = new RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
 		debug("can't get memory for reports");
@@ -255,11 +249,10 @@ MS5611::init()
 		goto out;
 	}
 
-	_oldest_report = _next_report = 0;
-
 	/* get a publish handle on the baro topic */
-	memset(&_reports[0], 0, sizeof(_reports[0]));
-	_baro_topic = orb_advertise(ORB_ID(sensor_baro), &_reports[0]);
+	struct baro_report zero_report;
+	memset(&zero_report, 0, sizeof(zero_report));
+	_baro_topic = orb_advertise(ORB_ID(sensor_baro), &zero_report);
 
 	if (_baro_topic < 0) {
 		debug("failed to create sensor_baro object");
@@ -276,6 +269,7 @@ ssize_t
 MS5611::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct baro_report);
+	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -291,10 +285,9 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_oldest_report != _next_report) {
-				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
-				ret += sizeof(_reports[0]);
-				INCREMENT(_oldest_report, _num_reports);
+			if (_reports->get(brp)) {
+				ret += sizeof(*brp);
+				brp++;
 			}
 		}
 
@@ -303,10 +296,9 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement - run one conversion */
-	/* XXX really it'd be nice to lock against other readers here */
 	do {
 		_measure_phase = 0;
-		_oldest_report = _next_report = 0;
+		_reports->flush();
 
 		/* do temperature first */
 		if (OK != measure()) {
@@ -335,8 +327,8 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* state machine will have generated a report, copy it out */
-		memcpy(buffer, _reports, sizeof(*_reports));
-		ret = sizeof(*_reports);
+		if (_reports->get(brp))
+			ret = sizeof(*brp);
 
 	} while (0);
 
@@ -411,31 +403,21 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
-			/* add one to account for the sentinel in the ring */
-			arg++;
+		/* lower bound is mandatory, upper bound is a sanity check */
+		if ((arg < 1) || (arg > 100))
+			return -EINVAL;
 
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 2) || (arg > 100))
-				return -EINVAL;
-
-			/* allocate new buffer */
-			struct baro_report *buf = new struct baro_report[arg];
-
-			if (nullptr == buf)
-				return -ENOMEM;
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop_cycle();
-			delete[] _reports;
-			_num_reports = arg;
-			_reports = buf;
-			start_cycle();
-
-			return OK;
+		irqstate_t flags = irqsave();
+		if (!_reports->resize(arg)) {
+			irqrestore(flags);
+			return -ENOMEM;
 		}
+		irqrestore(flags);		
+		return OK;
+	}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports - 1;
+		return _reports->size();
 
 	case SENSORIOCRESET:
 		/* XXX implement this */
@@ -469,7 +451,7 @@ MS5611::start_cycle()
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_measure_phase = 0;
-	_oldest_report = _next_report = 0;
+	_reports->flush();
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&MS5611::cycle_trampoline, this, 1);
@@ -588,8 +570,9 @@ MS5611::collect()
 
 	perf_begin(_sample_perf);
 
+	struct baro_report report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
-	_reports[_next_report].timestamp = hrt_absolute_time();
+	report.timestamp = hrt_absolute_time();
 
 	/* read the most recent measurement - read offset/size are hardcoded in the interface */
 	ret = _interface->read(0, (void *)&raw, 0);
@@ -638,8 +621,8 @@ MS5611::collect()
 		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
 
 		/* generate a new report */
-		_reports[_next_report].temperature = _TEMP / 100.0f;
-		_reports[_next_report].pressure = P / 100.0f;		/* convert to millibar */
+		report.temperature = _TEMP / 100.0f;
+		report.pressure = P / 100.0f;		/* convert to millibar */
 
 		/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
@@ -676,18 +659,13 @@ MS5611::collect()
 		 * h = -------------------------------  + h1
 		 *                   a
 		 */
-		_reports[_next_report].altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 		/* publish it */
-		orb_publish(ORB_ID(sensor_baro), _baro_topic, &_reports[_next_report]);
+		orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 
-		/* post a report to the ring - note, not locked */
-		INCREMENT(_next_report, _num_reports);
-
-		/* if we are running up against the oldest report, toss it */
-		if (_next_report == _oldest_report) {
+		if (_reports->force(&report)) {
 			perf_count(_buffer_overflows);
-			INCREMENT(_oldest_report, _num_reports);
 		}
 
 		/* notify anyone waiting for data */
@@ -709,8 +687,7 @@ MS5611::print_info()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
-	printf("report queue:   %u (%u/%u @ %p)\n",
-	       _num_reports, _oldest_report, _next_report, _reports);
+	_reports->print_info("report queue");
 	printf("TEMP:           %d\n", _TEMP);
 	printf("SENS:           %lld\n", _SENS);
 	printf("OFF:            %lld\n", _OFF);
