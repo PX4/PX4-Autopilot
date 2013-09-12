@@ -241,7 +241,8 @@ private:
 	volatile int		_task;			///<worker task id
 	volatile bool		_task_should_exit;	///<worker terminate flag
 
-	int			_mavlink_fd;		///<mavlink file descriptor
+	int			_mavlink_fd;		///<mavlink file descriptor. This is opened by class instantiation and Doesn't appear to be usable in main thread.
+	int			_thread_mavlink_fd;	///<mavlink file descriptor for thread.
 
 	perf_counter_t		_perf_update;		///<local performance counter
 
@@ -274,6 +275,7 @@ private:
 	uint64_t		_battery_last_timestamp;///<last amp hour calculation timestamp
 
 	bool			_dsm_vcc_ctl;		///<true if relay 1 controls DSM satellite RX power
+
 
 	/**
 	 * Trampoline to the worker task
@@ -410,6 +412,14 @@ private:
 	 */
 	int			io_handle_alarms(uint16_t alarms);
 
+	/**
+	 * Handle issuing dsm bind ioctl to px4io.
+	 *
+	 * @param valid		true: the dsm mode is in range
+	 * @param isDsm2	true: dsm2m false: dsmx
+	 */
+	void			dsm_bind_ioctl(bool valid, bool isDsm2);
+
 };
 
 
@@ -434,6 +444,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_task(-1),
 	_task_should_exit(false),
 	_mavlink_fd(-1),
+	_thread_mavlink_fd(-1),
 	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
 	_status(0),
 	_alarms(0),
@@ -712,10 +723,10 @@ void
 PX4IO::task_main()
 {
 	hrt_abstime last_poll_time = 0;
-	int mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	log("starting");
 
+	_thread_mavlink_fd = ::open(MAVLINK_LOG_DEVICE, 0);
 
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
@@ -803,17 +814,9 @@ PX4IO::task_main()
 		if (fds[4].revents & POLLIN) {
 			struct vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
+			// Check for a DSM pairing command
 			if ((cmd.command == VEHICLE_CMD_START_RX_PAIR) && (cmd.param1== 0.0f)) {
-				if (!(_status & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
-					if ((cmd.param2 == 0.0f) || (cmd.param2 == 1.0f)) {
-						mavlink_log_info(mavlink_fd, "[IO] binding dsm%c rx", (cmd.param2 == 0.0f) == 1 ? '2' : 'x');
-						ioctl(nullptr, DSM_BIND_START, (cmd.param2 == 0.0f) ? 3 : 7);
-					} else {
-						mavlink_log_info(mavlink_fd, "[IO] invalid bind type, bind request rejected");
-					}
-				} else {
-					mavlink_log_info(mavlink_fd, "[IO] system armed, bind request rejected"); 
-				}
+				dsm_bind_ioctl((cmd.param2 == 0.0f) || (cmd.param2 == 1.0f), cmd.param2 == 0.0f);
 			}
 		}
 
@@ -854,16 +857,7 @@ PX4IO::task_main()
 				// See if bind parameter has been set, and reset it to 0
 				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
 				if (dsm_bind_val) {
-					if (!(_status & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
-						if ((dsm_bind_val == 1) || (dsm_bind_val == 2)) {
-							mavlink_log_info(mavlink_fd, "[IO] binding dsm%c rx", dsm_bind_val == 1 ? '2' : 'x');
-							ioctl(nullptr, DSM_BIND_START, dsm_bind_val == 1 ? 3 : 7);
-						} else {
-							mavlink_log_info(mavlink_fd, "[IO] invalid bind type, bind request rejected");
-						}
-					} else {
-						mavlink_log_info(mavlink_fd, "[IO] system armed, bind request rejected"); 
-					}
+					dsm_bind_ioctl((dsm_bind_val == 1) || (dsm_bind_val == 2), dsm_bind_val == 1);
 					dsm_bind_val = 0;
 					param_set(dsm_bind_param, &dsm_bind_val);
 				}
@@ -1170,6 +1164,22 @@ PX4IO::io_handle_status(uint16_t status)
 
 	return ret;
 }
+
+void
+PX4IO::dsm_bind_ioctl(bool valid, bool isDsm2)
+{
+	if (!(_status & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
+		if (valid) {
+			mavlink_log_info(_thread_mavlink_fd, "[IO] binding dsm%c rx", isDsm2 ? '2' : 'x');
+			ioctl(nullptr, DSM_BIND_START, isDsm2 ? 3 : 7);
+		} else {
+			mavlink_log_info(_thread_mavlink_fd, "[IO] invalid bind type, bind request rejected");
+		}
+	} else {
+		mavlink_log_info(_thread_mavlink_fd, "[IO] system armed, bind request rejected"); 
+	}
+}
+
 
 int
 PX4IO::io_handle_alarms(uint16_t alarms)
