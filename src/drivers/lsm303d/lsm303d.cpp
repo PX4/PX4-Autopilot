@@ -219,19 +219,8 @@ private:
 	unsigned		_call_accel_interval;
 	unsigned		_call_mag_interval;
 
-	/*
-	  these wrapper types are needed to avoid a linker error for
-	  RingBuffer instances which appear in two drivers.
-	 */
-	struct _accel_report {
-		struct accel_report r;
-	};
-	RingBuffer<struct _accel_report> *_accel_reports;
-
-	struct _mag_report {
-		struct mag_report r;
-	};
-	RingBuffer<struct _mag_report> *_mag_reports;
+	RingBuffer		*_accel_reports;
+	RingBuffer		*_mag_reports;
 
 	struct accel_scale	_accel_scale;
 	unsigned		_accel_range_m_s2;
@@ -409,7 +398,7 @@ public:
 	LSM303D_mag(LSM303D *parent);
 	~LSM303D_mag();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t			read(struct file *filp, char *buffer, size_t buflen);
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 
 protected:
@@ -493,11 +482,13 @@ LSM303D::init()
 	int mag_ret;
 
 	/* do SPI init (and probe) first */
-	if (SPI::init() != OK)
+	if (SPI::init() != OK) {
+		warnx("SPI init failed");
 		goto out;
+	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new RingBuffer<struct _accel_report>(2);
+	_accel_reports = new RingBuffer(2, sizeof(accel_report));
 
 	if (_accel_reports == nullptr)
 		goto out;
@@ -507,7 +498,7 @@ LSM303D::init()
 	memset(&zero_report, 0, sizeof(zero_report));
 	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &zero_report);
 
-	_mag_reports = new RingBuffer<struct _mag_report>(2);
+	_mag_reports = new RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr)
 		goto out;
@@ -534,6 +525,7 @@ out:
 void
 LSM303D::reset()
 {
+	irqstate_t flags = irqsave();
 	/* enable accel*/
 	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE);
 
@@ -548,6 +540,7 @@ LSM303D::reset()
 
 	mag_set_range(LSM303D_MAG_DEFAULT_RANGE_GA);
 	mag_set_samplerate(LSM303D_MAG_DEFAULT_RATE);
+	irqrestore(flags);
 
 	_accel_read = 0;
 	_mag_read = 0;
@@ -556,11 +549,16 @@ LSM303D::reset()
 int
 LSM303D::probe()
 {
+	irqstate_t flags = irqsave();
 	/* read dummy value to void to clear SPI statemachine on sensor */
 	(void)read_reg(ADDR_WHO_AM_I);
 
 	/* verify that the device is attached and functioning */
-	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM)
+	bool success = (read_reg(ADDR_WHO_AM_I) == WHO_I_AM);
+	
+	irqrestore(flags);
+
+	if (success)
 		return OK;
 
 	return -EIO;
@@ -570,7 +568,7 @@ ssize_t
 LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct accel_report);
-	struct _accel_report *arb = reinterpret_cast<struct _accel_report *>(buffer);
+	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -583,7 +581,7 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 */
 		while (count--) {
-			if (_accel_reports->get(*arb)) {
+			if (_accel_reports->get(arb)) {
 				ret += sizeof(*arb);
 				arb++;
 			}
@@ -597,7 +595,7 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 	measure();
 
 	/* measurement will have generated a report, copy it out */
-	if (_accel_reports->get(*arb))
+	if (_accel_reports->get(arb))
 		ret = sizeof(*arb);
 
 	return ret;
@@ -607,7 +605,7 @@ ssize_t
 LSM303D::mag_read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct mag_report);
-	struct _mag_report *mrb = reinterpret_cast<struct _mag_report *>(buffer);
+	mag_report *mrb = reinterpret_cast<mag_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -621,7 +619,7 @@ LSM303D::mag_read(struct file *filp, char *buffer, size_t buflen)
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 */
 		while (count--) {
-			if (_mag_reports->get(*mrb)) {
+			if (_mag_reports->get(mrb)) {
 				ret += sizeof(*mrb);
 				mrb++;
 			}
@@ -636,7 +634,7 @@ LSM303D::mag_read(struct file *filp, char *buffer, size_t buflen)
 	measure();
 
 	/* measurement will have generated a report, copy it out */
-	if (_mag_reports->get(*mrb))
+	if (_mag_reports->get(mrb))
 		ret = sizeof(*mrb);
 
 	return ret;
@@ -1228,7 +1226,7 @@ LSM303D::measure()
 	} raw_accel_report;
 #pragma pack(pop)
 
-	struct _accel_report accel_report;
+	accel_report accel_report;
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
@@ -1253,30 +1251,30 @@ LSM303D::measure()
 	 */
 
 
-	accel_report.r.timestamp = hrt_absolute_time();
+	accel_report.timestamp = hrt_absolute_time();
 
-	accel_report.r.x_raw = raw_accel_report.x;
-	accel_report.r.y_raw = raw_accel_report.y;
-	accel_report.r.z_raw = raw_accel_report.z;
+	accel_report.x_raw = raw_accel_report.x;
+	accel_report.y_raw = raw_accel_report.y;
+	accel_report.z_raw = raw_accel_report.z;
 
-	float x_in_new = ((accel_report.r.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((accel_report.r.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((accel_report.r.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	float x_in_new = ((accel_report.x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	float y_in_new = ((accel_report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	float z_in_new = ((accel_report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
-	accel_report.r.x = _accel_filter_x.apply(x_in_new);
-	accel_report.r.y = _accel_filter_y.apply(y_in_new);
-	accel_report.r.z = _accel_filter_z.apply(z_in_new);
+	accel_report.x = _accel_filter_x.apply(x_in_new);
+	accel_report.y = _accel_filter_y.apply(y_in_new);
+	accel_report.z = _accel_filter_z.apply(z_in_new);
 
-	accel_report.r.scaling = _accel_range_scale;
-	accel_report.r.range_m_s2 = _accel_range_m_s2;
+	accel_report.scaling = _accel_range_scale;
+	accel_report.range_m_s2 = _accel_range_m_s2;
 
-	_accel_reports->force(accel_report);
+	_accel_reports->force(&accel_report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report.r);
+	orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
 
 	_accel_read++;
 
@@ -1298,7 +1296,7 @@ LSM303D::mag_measure()
 	} raw_mag_report;
 #pragma pack(pop)
 
-	struct _mag_report mag_report;
+	mag_report mag_report;
 
 	/* start the performance counter */
 	perf_begin(_mag_sample_perf);
@@ -1323,25 +1321,25 @@ LSM303D::mag_measure()
 	 */
 
 
-	mag_report.r.timestamp = hrt_absolute_time();
+	mag_report.timestamp = hrt_absolute_time();
 
-	mag_report.r.x_raw = raw_mag_report.x;
-	mag_report.r.y_raw = raw_mag_report.y;
-	mag_report.r.z_raw = raw_mag_report.z;
-	mag_report.r.x = ((mag_report.r.x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	mag_report.r.y = ((mag_report.r.y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	mag_report.r.z = ((mag_report.r.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
-	mag_report.r.scaling = _mag_range_scale;
-	mag_report.r.range_ga = (float)_mag_range_ga;
+	mag_report.x_raw = raw_mag_report.x;
+	mag_report.y_raw = raw_mag_report.y;
+	mag_report.z_raw = raw_mag_report.z;
+	mag_report.x = ((mag_report.x_raw * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+	mag_report.y = ((mag_report.y_raw * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+	mag_report.z = ((mag_report.z_raw * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+	mag_report.scaling = _mag_range_scale;
+	mag_report.range_ga = (float)_mag_range_ga;
 
-	_mag_reports->force(mag_report);
+	_mag_reports->force(&mag_report);
 
 	/* XXX please check this poll_notify, is it the right one? */
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report.r);
+	orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
 
 	_mag_read++;
 
@@ -1426,8 +1424,10 @@ start()
 	/* create the driver */
 	g_dev = new LSM303D(1 /* XXX magic number */, ACCEL_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
 
-	if (g_dev == nullptr)
+	if (g_dev == nullptr) {
+		warnx("failed instantiating LSM303D obj");
 		goto fail;
+	}
 
 	if (OK != g_dev->init())
 		goto fail;

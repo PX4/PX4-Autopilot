@@ -79,6 +79,7 @@
 Airspeed::Airspeed(int bus, int address, unsigned conversion_interval) :
 	I2C("Airspeed", AIRSPEED_DEVICE_PATH, bus, address, 100000),
 	_reports(nullptr),
+	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows")),
 	_max_differential_pressure_pa(0),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -87,8 +88,7 @@ Airspeed::Airspeed(int bus, int address, unsigned conversion_interval) :
 	_airspeed_pub(-1),
 	_conversion_interval(conversion_interval),
 	_sample_perf(perf_alloc(PC_ELAPSED, "airspeed_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "airspeed_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows"))
+	_comms_errors(perf_alloc(PC_COUNT, "airspeed_comms_errors"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -122,7 +122,7 @@ Airspeed::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_reports = new RingBuffer<differential_pressure_s>(2);
+	_reports = new RingBuffer(2, sizeof(differential_pressure_s));
 	if (_reports == nullptr)
 		goto out;
 
@@ -282,7 +282,7 @@ Airspeed::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_reports->get(*abuf)) {
+			if (_reports->get(abuf)) {
 				ret += sizeof(*abuf);
 				abuf++;
 			}
@@ -312,7 +312,7 @@ Airspeed::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* state machine will have generated a report, copy it out */
-		if (_reports->get(*abuf)) {
+		if (_reports->get(abuf)) {
 			ret = sizeof(*abuf);
 		}
 
@@ -375,6 +375,6 @@ Airspeed::print_info()
 void
 Airspeed::new_report(const differential_pressure_s &report)
 {
-	if (!_reports->force(report))
+	if (!_reports->force(&report))
 		perf_count(_buffer_overflows);
 }

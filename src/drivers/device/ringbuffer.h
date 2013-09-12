@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,15 +34,14 @@
 /**
  * @file ringbuffer.h
  *
- * A simple ringbuffer template.
+ * A flexible ringbuffer class.
  */
 
 #pragma once
 
-template<typename T>
 class RingBuffer {
 public:
-	RingBuffer(unsigned size);
+	RingBuffer(unsigned ring_size, size_t entry_size);
 	virtual ~RingBuffer();
 
 	/**
@@ -52,23 +50,18 @@ public:
 	 * @param val		Item to put
 	 * @return		true if the item was put, false if the buffer is full
 	 */
-	bool			put(T &val);
+	bool			put(const void *val, size_t val_size = 0);
 
-	/**
-	 * Put an item into the buffer if there is space.
-	 *
-	 * @param val		Item to put
-	 * @return		true if the item was put, false if the buffer is full
-	 */
-	bool			put(const T &val);
-
-	/**
-	 * Force an item into the buffer, discarding an older item if there is not space.
-	 *
-	 * @param val		Item to put
-	 * @return		true if an item was discarded to make space
-	 */
-	bool			force(T &val);
+	bool			put(int8_t val);
+	bool			put(uint8_t val);
+	bool			put(int16_t val);
+	bool			put(uint16_t val);
+	bool			put(int32_t val);
+	bool			put(uint32_t val);
+	bool			put(int64_t val);
+	bool			put(uint64_t val);
+	bool			put(float val);
+	bool			put(double val);
 
 	/**
 	 * Force an item into the buffer, discarding an older item if there is not space.
@@ -76,7 +69,18 @@ public:
 	 * @param val		Item to put
 	 * @return		true if an item was discarded to make space
 	 */
-	bool			force(const T &val);
+	bool			force(const void *val, size_t val_size = 0);
+
+	bool			force(int8_t val);
+	bool			force(uint8_t val);
+	bool			force(int16_t val);
+	bool			force(uint16_t val);
+	bool			force(int32_t val);
+	bool			force(uint32_t val);
+	bool			force(int64_t val);
+	bool			force(uint64_t val);
+	bool			force(float val);
+	bool			force(double val);
 
 	/**
 	 * Get an item from the buffer.
@@ -84,15 +88,18 @@ public:
 	 * @param val		Item that was gotten
 	 * @return		true if an item was got, false if the buffer was empty.
 	 */
-	bool			get(T &val);
+	bool			get(void *val, size_t val_size = 0);
 
-	/**
-	 * Get an item from the buffer (scalars only).
-	 *
-	 * @return		The value that was fetched. If the buffer is empty, 
-	 *			returns zero.
-	 */
-	T			get(void);
+	bool			get(int8_t &val);
+	bool			get(uint8_t &val);
+	bool			get(int16_t &val);
+	bool			get(uint16_t &val);
+	bool			get(int32_t &val);
+	bool			get(uint32_t &val);
+	bool			get(int64_t &val);
+	bool			get(uint64_t &val);
+	bool			get(float &val);
+	bool			get(double &val);
 
 	/*
 	 * Get the number of slots free in the buffer.
@@ -148,67 +155,68 @@ public:
 	void			print_info(const char *name);
 
 private:
-	T			*_buf;	
-	unsigned		_size;
-	volatile unsigned	_head;	/**< insertion point */
-	volatile unsigned	_tail;	/**< removal point */
+	unsigned		_num_items;
+	const size_t		_item_size;
+	char			*_buf;	
+	volatile unsigned	_head;	/**< insertion point in _item_size units */
+	volatile unsigned	_tail;	/**< removal point in _item_size units */
 
 	unsigned		_next(unsigned index);
 };
 
-template <typename T>
-RingBuffer<T>::RingBuffer(unsigned with_size) :
-	_buf(new T[with_size + 1]),
-	_size(with_size),
- 	_head(with_size),
- 	_tail(with_size)
+RingBuffer::RingBuffer(unsigned num_items, size_t item_size) :
+	_num_items(num_items),
+	_item_size(item_size),
+	_buf(new char[(_num_items+1) * item_size]),
+ 	_head(_num_items),
+ 	_tail(_num_items)
 {}
 
-template <typename T>
-RingBuffer<T>::~RingBuffer()
+RingBuffer::~RingBuffer()
 {
 	if (_buf != nullptr)
 		delete[] _buf;
 }
 
-template <typename T>
-bool RingBuffer<T>::empty()
+unsigned
+RingBuffer::_next(unsigned index)
+{
+	return (0 == index) ? _num_items : (index - 1); 
+}
+
+bool
+RingBuffer::empty()
 {
 	return _tail == _head; 
 }
 
-template <typename T>
-bool RingBuffer<T>::full()
+bool
+RingBuffer::full()
 {
 	return _next(_head) == _tail; 
 }
 
-template <typename T>
-unsigned RingBuffer<T>::size()
+unsigned
+RingBuffer::size()
 {
-	return (_buf != nullptr) ? _size : 0; 
+	return (_buf != nullptr) ? _num_items : 0; 
 }
 
-template <typename T>
-void RingBuffer<T>::flush()
+void
+RingBuffer::flush()
 {
-	T junk;
 	while (!empty())
-		get(junk); 
+		get(NULL);
 }
 
-template <typename T>
-unsigned RingBuffer<T>::_next(unsigned index)
-{
-	return (0 == index) ? _size : (index - 1); 
-}
-
-template <typename T>
-bool RingBuffer<T>::put(T &val) 
+bool
+RingBuffer::put(const void *val, size_t val_size) 
 {
 	unsigned next = _next(_head);
 	if (next != _tail) {
-		_buf[_head] = val;
+		if ((val_size == 0) || (val_size > _item_size))
+			val_size = _item_size;
+		memcpy(&_buf[_head * _item_size], val, val_size);
 		_head = next;
 		return true;
 	} else {
@@ -216,55 +224,150 @@ bool RingBuffer<T>::put(T &val)
 	}
 }
 
-template <typename T>
-bool RingBuffer<T>::put(const T &val) 
+bool
+RingBuffer::put(int8_t val)
 {
-	unsigned next = _next(_head);
-	if (next != _tail) {
-		_buf[_head] = val;
-		_head = next;
-		return true;
-	} else {
-		return false;
-	}
+	return put(&val, sizeof(val));
 }
 
-template <typename T>
-bool RingBuffer<T>::force(T &val)
+bool
+RingBuffer::put(uint8_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(int16_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(uint16_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(int32_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(uint32_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(int64_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(uint64_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(float val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(double val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(const void *val, size_t val_size)
 {
 	bool overwrote = false;
 
 	for (;;) {
-		if (put(val))
+		if (put(val, val_size))
 			break;
-		T junk;
-		get(junk);
+		get(NULL);
 		overwrote = true;
 	}
 	return overwrote;
 }
 
-template <typename T>
-bool RingBuffer<T>::force(const T &val)
+bool
+RingBuffer::force(int8_t val)
 {
-	bool overwrote = false;
-
-	for (;;) {
-		if (put(val))
-			break;
-		T junk;
-		get(junk);
-		overwrote = true;
-	}
-	return overwrote;
+	return force(&val, sizeof(val));
 }
 
-template <typename T>
-bool RingBuffer<T>::get(T &val) 
+bool
+RingBuffer::force(uint8_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(int16_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(uint16_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(int32_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(uint32_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(int64_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(uint64_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(float val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(double val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(void *val, size_t val_size) 
 {
 	if (_tail != _head) {
 		unsigned candidate;
 		unsigned next;
+
+		if ((val_size == 0) || (val_size > _item_size))
+			val_size = _item_size;
+
 		do {
 			/* decide which element we think we're going to read */
 			candidate = _tail;
@@ -273,7 +376,8 @@ bool RingBuffer<T>::get(T &val)
 			next = _next(candidate);
 
 			/* go ahead and read from this index */
-			val = _buf[candidate];
+			if (val != NULL)
+				memcpy(val, &_buf[candidate * _item_size], val_size);
 
 			/* if the tail pointer didn't change, we got our item */
 		} while (!__sync_bool_compare_and_swap(&_tail, candidate, next));
@@ -284,15 +388,68 @@ bool RingBuffer<T>::get(T &val)
 	}
 }
 
-template <typename T>
-T RingBuffer<T>::get(void) 
+bool
+RingBuffer::get(int8_t &val)
 {
-	T val;
-	return get(val) ? val : 0;
+	return get(&val, sizeof(val));
 }
 
-template <typename T>
-unsigned RingBuffer<T>::space(void) 
+bool
+RingBuffer::get(uint8_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(int16_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(uint16_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(int32_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(uint32_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(int64_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(uint64_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(float &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(double &val)
+{
+	return get(&val, sizeof(val));
+}
+
+unsigned
+RingBuffer::space(void) 
 {
 	unsigned tail, head;
 
@@ -309,39 +466,44 @@ unsigned RingBuffer<T>::space(void)
 		tail = _tail;
 	} while (head != _head);
 
-	return (tail >= head) ? (_size - (tail - head)) : (head - tail - 1);
+	return (tail >= head) ? (_num_items - (tail - head)) : (head - tail - 1);
 }
 
-template <typename T>
-unsigned RingBuffer<T>::count(void) 
+unsigned
+RingBuffer::count(void) 
 {
 	/*
 	 * Note that due to the conservative nature of space(), this may
 	 * over-estimate the number of items in the buffer.
 	 */
-	return _size - space();
+	return _num_items - space();
 }
 
-template <typename T>
-bool RingBuffer<T>::resize(unsigned new_size) 
+bool
+RingBuffer::resize(unsigned new_size) 
 {
-	T *old_buffer;
-	T *new_buffer = new T[new_size + 1];
+	char *old_buffer;
+	char *new_buffer = new char [(new_size+1) * _item_size];
 	if (new_buffer == nullptr) {
 		return false;
 	}
 	old_buffer = _buf;
 	_buf = new_buffer;
-	_size = new_size;
+	_num_items = new_size;
 	_head = new_size;
 	_tail = new_size;
 	delete[] old_buffer;
 	return true;
 }
 
-template <typename T>
-void RingBuffer<T>::print_info(const char *name) 
+void
+RingBuffer::print_info(const char *name) 
 {
-	printf("%s	%u (%u/%u @ %p)\n",
-	       name, _size, _head, _tail, _buf);
+	printf("%s	%u/%u (%u/%u @ %p)\n",
+	       name, 
+	       _num_items, 
+	       _num_items * _item_size, 
+	       _head, 
+	       _tail, 
+	       _buf);
 }
