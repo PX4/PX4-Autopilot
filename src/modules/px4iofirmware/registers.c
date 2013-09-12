@@ -678,27 +678,25 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 #ifdef ADC_VSERVO
 		/* PX4IO_P_STATUS_VSERVO */
 		{
-			/*
-			 * Coefficients here derived by measurement of the 5-16V
-			 * range on one unit:
-			 *
-			 * XXX pending measurements
-			 *
-			 * slope = xxx
-			 * intercept = xxx
-			 *
-			 * Intercept corrected for best results @ 5.0V.
-			 */
 			unsigned counts = adc_measure(ADC_VSERVO);
 			if (counts != 0xffff) {
-				unsigned mV = (4150 + (counts * 46)) / 10 - 200;
-				unsigned corrected = (mV * r_page_setup[PX4IO_P_SETUP_VSERVO_SCALE]) / 10000;
-
-				r_page_status[PX4IO_P_STATUS_VSERVO] = corrected;
+				// use 3:1 scaling on 3.3V ADC input
+				unsigned mV = counts * 9900 / 4096;
+				r_page_status[PX4IO_P_STATUS_VSERVO] = mV;
 			}
 		}
 #endif
-		/* XXX PX4IO_P_STATUS_VRSSI */
+#ifdef ADC_RSSI
+		/* PX4IO_P_STATUS_VRSSI */
+		{
+			unsigned counts = adc_measure(ADC_RSSI);
+			if (counts != 0xffff) {
+				// use 1:1 scaling on 3.3V ADC input
+				unsigned mV = counts * 3300 / 4096;
+				r_page_status[PX4IO_P_STATUS_VRSSI] = mV;
+			}
+		}
+#endif
 		/* XXX PX4IO_P_STATUS_PRSSI */
 
 		SELECT_PAGE(r_page_status);

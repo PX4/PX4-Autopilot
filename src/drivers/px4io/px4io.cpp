@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <debug.h>
 
@@ -260,6 +261,7 @@ private:
 	orb_advert_t 		_to_actuators_effective; ///< effective actuator controls topic
 	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
 	orb_advert_t		_to_battery;		///< battery status / voltage
+	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
 
 	actuator_outputs_s	_outputs;		///<mixed outputs
@@ -414,10 +416,20 @@ private:
 	 *
 	 * Publish IO battery information if necessary.
 	 *
-	 * @param vbatt		vbattery register
-	 * @param status	ibatter register
+	 * @param vbatt		vbatt register
+	 * @param ibatt		ibatt register
 	 */
 	void			io_handle_battery(uint16_t vbatt, uint16_t ibatt);
+
+	/**
+	 * Handle a servorail update from IO.
+	 *
+	 * Publish servo rail information if necessary.
+	 *
+	 * @param vservo	vservo register
+	 * @param vrssi 	vrssi register
+	 */
+	void			io_handle_vservo(uint16_t vbatt, uint16_t ibatt);
         
 };
 
@@ -453,6 +465,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_actuators_effective(0),
 	_to_outputs(0),
 	_to_battery(0),
+	_to_servorail(0),
 	_to_safety(0),
 	_primary_pwm_device(false),
 	_battery_amp_per_volt(90.0f/5.0f), // this matches the 3DR current sensor
@@ -1206,10 +1219,28 @@ PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
 	}
 }
 
+void
+PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
+{
+	servorail_status_s servorail_status;
+	servorail_status.timestamp = hrt_absolute_time();
+
+	/* voltage is scaled to mV */
+	servorail_status.voltage_v = vservo * 0.001f;
+	servorail_status.rssi_v    = vrssi * 0.001f;
+	
+	/* lazily publish the servorail voltages */
+	if (_to_servorail > 0) {
+		orb_publish(ORB_ID(servorail_status), _to_servorail, &servorail_status);
+	} else {
+		_to_servorail = orb_advertise(ORB_ID(servorail_status), &servorail_status);
+	}
+}
+
 int
 PX4IO::io_get_status()
 {
-	uint16_t	regs[4];
+	uint16_t	regs[6];
 	int		ret;
 
 	/* get STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT in that order */
@@ -1222,6 +1253,10 @@ PX4IO::io_get_status()
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	io_handle_battery(regs[2], regs[3]);
+#endif
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+	io_handle_vservo(regs[4], regs[5]);
 #endif
 
 	return ret;
