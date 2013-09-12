@@ -210,6 +210,36 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	return theta;
 }
 
+__EXPORT void get_vector_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next, float* vx, float* vy)
+{
+	double lat_now_rad = lat_now * M_DEG_TO_RAD;
+	double lon_now_rad = lon_now * M_DEG_TO_RAD;
+	double lat_next_rad = lat_next * M_DEG_TO_RAD;
+	double lon_next_rad = lon_next * M_DEG_TO_RAD;
+
+	double d_lat = lat_next_rad - lat_now_rad;
+	double d_lon = lon_next_rad - lon_now_rad;
+
+	/* conscious mix of double and float trig function to maximize speed and efficiency */
+	*vy = CONSTANTS_RADIUS_OF_EARTH * sin(d_lon) * cos(lat_next_rad);
+	*vx = CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon);
+}
+
+__EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next, double lon_next, float* vx, float* vy)
+{
+	double lat_now_rad = lat_now * M_DEG_TO_RAD;
+	double lon_now_rad = lon_now * M_DEG_TO_RAD;
+	double lat_next_rad = lat_next * M_DEG_TO_RAD;
+	double lon_next_rad = lon_next * M_DEG_TO_RAD;
+
+	double d_lat = lat_next_rad - lat_now_rad;
+	double d_lon = lon_next_rad - lon_now_rad;
+
+	/* conscious mix of double and float trig function to maximize speed and efficiency */
+	*vy = CONSTANTS_RADIUS_OF_EARTH * d_lon;
+	*vx = CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad);
+}
+
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
 
 __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end)

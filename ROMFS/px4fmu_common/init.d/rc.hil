@@ -5,10 +5,9 @@
 
 echo "[HIL] starting.."
 
-uorb start
-
 # Tell MAVLink that this link is "fast"
-mavlink start -b 230400 -d /dev/ttyS1
+sleep 2
+mavlink start -b 230400 -d /dev/ttyACM0
 
 # Create a fake HIL /dev/pwm_output interface
 hil mode_pwm
@@ -50,7 +49,8 @@ att_pos_estimator_ekf start
 # Load mixer and start controllers (depends on px4io)
 #
 mixer load /dev/pwm_output /etc/mixers/FMU_AET.mix
-fw_pos_control_l1 start
+#fw_pos_control_l1 start
 fw_att_control start
 
 echo "[HIL] setup done, running"
+

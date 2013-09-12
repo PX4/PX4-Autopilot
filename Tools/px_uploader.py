@@ -400,7 +400,19 @@ print("Loaded firmware for %x,%x, waiting for the bootloader..." % (fw.property(
 
 # Spin waiting for a device to show up
 while True:
-        for port in args.port.split(","):
+        portlist = []
+        patterns = args.port.split(",")
+        # on unix-like platforms use glob to support wildcard ports. This allows
+        # the use of /dev/serial/by-id/usb-3D_Robotics on Linux, which prevents the upload from
+        # causing modem hangups etc
+        if "linux" in _platform or "darwin" in _platform:
+                import glob
+                for pattern in patterns:
+                        portlist += glob.glob(pattern)
+        else:
+                portlist = patterns
+
+        for port in portlist:
 
                 #print("Trying %s" % port)
 

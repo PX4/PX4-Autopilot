@@ -199,27 +199,23 @@ MEASAirspeed::collect()
 	// Calculate differential pressure. As its centered around 8000
 	// and can go positive or negative, enforce absolute value
 	uint16_t diff_press_pa = abs(dp_raw - (16384 / 2.0f));
-
-	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].temperature = temperature;
-	_reports[_next_report].differential_pressure_pa = diff_press_pa;
+	struct differential_pressure_s report;
 
 	// Track maximum differential pressure measured (so we can work out top speed).
-	if (diff_press_pa > _reports[_next_report].max_differential_pressure_pa) {
-		_reports[_next_report].max_differential_pressure_pa = diff_press_pa;
+	if (diff_press_pa > _max_differential_pressure_pa) {
+	    _max_differential_pressure_pa = diff_press_pa;
 	}
+
+	report.timestamp = hrt_absolute_time();
+	report.temperature = temperature;
+	report.differential_pressure_pa = diff_press_pa;
+	report.voltage = 0;
+	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	/* announce the airspeed if needed, just publish else */
-	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_reports[_next_report]);
+	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_report, _num_reports);
-
-	/* if we are running up against the oldest report, toss it */
-	if (_next_report == _oldest_report) {
-		perf_count(_buffer_overflows);
-		INCREMENT(_oldest_report, _num_reports);
-	}
+	new_report(report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);

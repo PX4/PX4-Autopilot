@@ -343,6 +343,9 @@ void print_status()
 	warnx("arming: %s", armed_str);
 }
 
+static orb_advert_t control_mode_pub;
+static orb_advert_t status_pub;
+
 void handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_control_mode_s *control_mode, struct vehicle_command_s *cmd, struct actuator_armed_s *armed)
 {
 	/* result of the command */
@@ -355,6 +358,10 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 	case VEHICLE_CMD_DO_SET_MODE: {
 			uint8_t base_mode = (uint8_t) cmd->param1;
 			uint8_t custom_main_mode = (uint8_t) cmd->param2;
+
+			/* set HIL state */
+			hil_state_t new_hil_state = (base_mode & MAV_MODE_FLAG_HIL_ENABLED) ? HIL_STATE_ON : HIL_STATE_OFF;
+			hil_state_transition(new_hil_state, status_pub, status, control_mode_pub, control_mode, mavlink_fd);
 
 			// TODO remove debug code
 			//mavlink_log_critical(mavlink_fd, "[cmd] command setmode: %d %d", base_mode, custom_main_mode);
@@ -543,7 +550,6 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* Main state machine */
-	orb_advert_t status_pub;
 	/* make sure we are in preflight state */
 	memset(&status, 0, sizeof(status));
 	status.condition_landed = true;	// initialize to safe value
@@ -555,7 +561,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* flags for control apps */
 	struct vehicle_control_mode_s control_mode;
-	orb_advert_t control_mode_pub;
+	
 
 	/* Initialize all flags to false */
 	memset(&control_mode, 0, sizeof(control_mode));
