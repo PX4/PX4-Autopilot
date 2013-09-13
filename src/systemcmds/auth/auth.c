@@ -504,7 +504,7 @@ int auth_main(int argc, char *argv[])
     // setup RSA support code   
     rsa_key private_key;
     rsa_key public_key;    
-    prng_state prng;
+     prng_state prng;
    
             // / register the yarrow RNG /
                 if (register_prng(&yarrow_desc) == -1) {
@@ -587,9 +587,11 @@ tDFFYr41gHNDt7loUH1tufL4BUZy5R+9MT7ChaDvX8MLzQ==");  //"
      } 
      if ( hardcoded && readpublic ) {
        // OR we load it hard-coded like this: 
+
        strcpy(pubkeydata, "MIGJAoGBANAoM9l144JIgPqNJiI/xfaasJFgc3BunzMebu6b+yqjbGRacjUhO8qOF\n\
 fKkXFD+h7WDXJ5uAkljQBL46l5nLdEewNGA8uidXOqXRzphl2Wt7Jw5Eu4krZcWRQ5\n\
 JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
+
        load_key( &public_key, pubkeydata);
        warnx("HARDCODED PUBLIC KEY LOADED: \n%s\n",pubkeydata);
        if ( dumpkeystosd ) { 
@@ -825,18 +827,41 @@ JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
         
 
     if ( verifyCOA && ( certlen > 0 ) ) { 
-    warnx("VALIDATING THE CERT-OF-AUTHENTICITY using the PUBLIC key...\n");
-    int result;
-    result = verify_cert_and_return( &public_key, &prng, &cert, certlen, serialid); 
-    if ( result == 1 ) { 
-       warnx("PASSED Certificate Check for serial : %s\n", serial);
+        warnx("VALIDATING THE CERT-OF-AUTHENTICITY using the available PUBLIC key/s...\n");
+
+//BUZZ KEY:     
+strcpy(pubkeydata, "MIGJAoGBANAoM9l144JIgPqNJiI/xfaasJFgc3BunzMebu6b+yqjbGRacjUhO8qOF\n\
+fKkXFD+h7WDXJ5uAkljQBL46l5nLdEewNGA8uidXOqXRzphl2Wt7Jw5Eu4krZcWRQ5\n\
+JUhfBqfsiIQjUMxsnR2hDmg4CJrWpUo9fHOkAPBZ2NXTLTvnrAgMBAAE="); //"
+
+       load_key( &public_key, pubkeydata);
+       warnx("BUZZS PUBLIC KEY LOADED: \n%s\n",pubkeydata);
+
+       int result1;
+       result1 = verify_cert_and_return( &public_key, &prng, &cert, certlen, serialid); 
+       if ( result1 == 1 ) {        warnx("PASSED Certificate Check WITH BUZZS KEY for serial : %s\n", serial);    }  
+
+//3DR KEY:  
+strcpy(pubkeydata, "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDqi8E6EdZ11iE7nAc95bjdUTwd\n\
+/gLetSAAx8X9jgjInz5j47DIcDqFVFKEFZWiAc3AxJE/fNrPQey16SfI0FyDAX/U\n\
+4jyGIv9w+M1dKgUPI8UdpEMS2w1YnfzW0GO3PX0SBL6pctEIdXr0NGsFFaqU9Yz4\n\
+DbgBdR6wBz9qdfRRoQIDAQAB");
+
+       load_key( &public_key, pubkeydata);
+       warnx("3DR PUBLIC KEY LOADED: \n%s\n",pubkeydata);
+ 
+       int result2; 
+       result2 = verify_cert_and_return( &public_key, &prng, &cert, certlen, serialid); 
+       if ( result2 == 1 ) {        warnx("PASSED Certificate Check WITH 3DR KEY for serial : %s\n", serial);    }
+
+// ADD MORE PUBLIC KEYS HERE, IF DESIRED:     
     
-    } else { 
-       warnx("FAILURE! FAILURE!! FAILURE!!! on Certificate Check for serial: %s\n", serial);
-       writeCOA = false;
-       lockOTP = false;
-       return; // don't write OTP or log on errors 
-    } 
+       if ( ( result1 != 1 ) && ( result2 != 1  ) ) { 
+          warnx("FAILURE! FAILURE!! FAILURE!!! on ALL Certificate Check/s for serial: %s\n", serial);
+          writeCOA = false;
+          lockOTP = false;
+          return; // don't write OTP or log on errors 
+       } 
     } 
     
       
