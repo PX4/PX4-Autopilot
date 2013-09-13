@@ -367,7 +367,6 @@ out:
 int
 L3GD20::probe()
 {
-	irqstate_t flags = irqsave();
 	/* read dummy value to void to clear SPI statemachine on sensor */
 	(void)read_reg(ADDR_WHO_AM_I);
 
@@ -392,8 +391,6 @@ L3GD20::probe()
 		_orientation = SENSOR_BOARD_ROTATION_180_DEG;
 		success = true;
 	}
-
-	irqrestore(flags);
 
 	if (success)
 		return OK;

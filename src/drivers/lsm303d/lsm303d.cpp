@@ -525,7 +525,6 @@ out:
 void
 LSM303D::reset()
 {
-	irqstate_t flags = irqsave();
 	/* enable accel*/
 	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE);
 
@@ -549,15 +548,12 @@ LSM303D::reset()
 int
 LSM303D::probe()
 {
-	irqstate_t flags = irqsave();
 	/* read dummy value to void to clear SPI statemachine on sensor */
 	(void)read_reg(ADDR_WHO_AM_I);
 
 	/* verify that the device is attached and functioning */
 	bool success = (read_reg(ADDR_WHO_AM_I) == WHO_I_AM);
 	
-	irqrestore(flags);
-
 	if (success)
 		return OK;
 
