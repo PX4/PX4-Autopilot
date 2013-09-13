@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,48 +32,36 @@
  ****************************************************************************/
 
 /**
- * @file Barometric pressure sensor driver interface.
+ * @file servorail_status.h
+ *
+ * Definition of the servorail status uORB topic.
  */
 
-#ifndef _DRV_BARO_H
-#define _DRV_BARO_H
+#ifndef SERVORAIL_STATUS_H_
+#define SERVORAIL_STATUS_H_
 
+#include "../uORB.h"
 #include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define BARO_DEVICE_PATH	"/dev/baro"
 
 /**
- * baro report structure.  Reads from the device must be in multiples of this
- * structure.
+ * @addtogroup topics
+ * @{
  */
-struct baro_report {
-	float pressure;
-	float altitude;
-	float temperature;
-	uint64_t timestamp;
-	uint64_t error_count;
+
+/**
+ * Servorail voltages and status
+ */
+struct servorail_status_s {
+	uint64_t	timestamp;		/**< microseconds since system boot */
+	float   	voltage_v;		/**< Servo rail voltage in volts */
+	float   	rssi_v;			/**< RSSI pin voltage in volts */
 };
 
-/*
- * ObjDev tag for raw barometer data.
- */
-ORB_DECLARE(sensor_baro);
-
-/*
- * ioctl() definitions
+/**
+ * @}
  */
 
-#define _BAROIOCBASE		(0x2200)
-#define _BAROIOC(_n)		(_IOC(_BAROIOCBASE, _n))
+/* register this as object request broker structure */
+ORB_DECLARE(servorail_status);
 
-/** set corrected MSL pressure in pascals */
-#define BAROIOCSMSLPRESSURE	_BAROIOC(0)
-
-/** get current MSL pressure in pascals */
-#define BAROIOCGMSLPRESSURE	_BAROIOC(1)
-
-#endif /* _DRV_BARO_H */
+#endif

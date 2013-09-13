@@ -54,6 +54,7 @@
  */
 struct mag_report {
 	uint64_t timestamp;
+	uint64_t error_count;
 	float x;
 	float y;
 	float z;
