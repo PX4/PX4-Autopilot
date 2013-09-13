@@ -415,10 +415,9 @@ private:
 	/**
 	 * Handle issuing dsm bind ioctl to px4io.
 	 *
-	 * @param valid		true: the dsm mode is in range
-	 * @param isDsm2	true: dsm2m false: dsmx
+	 * @param dsmMode	0:dsm2, 1:dsmx
 	 */
-	void			dsm_bind_ioctl(bool valid, bool isDsm2);
+	void			dsm_bind_ioctl(int dsmMode);
 
 };
 
@@ -816,7 +815,7 @@ PX4IO::task_main()
 			orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
 			// Check for a DSM pairing command
 			if ((cmd.command == VEHICLE_CMD_START_RX_PAIR) && (cmd.param1== 0.0f)) {
-				dsm_bind_ioctl((cmd.param2 == 0.0f) || (cmd.param2 == 1.0f), cmd.param2 == 0.0f);
+				dsm_bind_ioctl((int)cmd.param2);
 			}
 		}
 
@@ -857,8 +856,8 @@ PX4IO::task_main()
 				// See if bind parameter has been set, and reset it to 0
 				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
 				if (dsm_bind_val) {
-					dsm_bind_ioctl((dsm_bind_val == 1) || (dsm_bind_val == 2), dsm_bind_val == 1);
-					dsm_bind_val = 0;
+					dsm_bind_ioctl(dsm_bind_val);
+					dsm_bind_val = -1;
 					param_set(dsm_bind_param, &dsm_bind_val);
 				}
 
@@ -1166,14 +1165,15 @@ PX4IO::io_handle_status(uint16_t status)
 }
 
 void
-PX4IO::dsm_bind_ioctl(bool valid, bool isDsm2)
+PX4IO::dsm_bind_ioctl(int dsmMode)
 {
 	if (!(_status & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
-		if (valid) {
-			mavlink_log_info(_thread_mavlink_fd, "[IO] binding dsm%c rx", isDsm2 ? '2' : 'x');
-			ioctl(nullptr, DSM_BIND_START, isDsm2 ? 3 : 7);
+		/* 0: dsm2, 1:dsmx */
+		if ((dsmMode >= 0) && (dsmMode <= 1)) {
+			mavlink_log_info(_thread_mavlink_fd, "[IO] binding dsm%c rx", (dsmMode == 0) ? '2' : 'x');
+			ioctl(nullptr, DSM_BIND_START, (dsmMode == 0) ? DSM2_BIND_PULSES : DSMX_BIND_PULSES);
 		} else {
-			mavlink_log_info(_thread_mavlink_fd, "[IO] invalid bind type, bind request rejected");
+			mavlink_log_info(_thread_mavlink_fd, "[IO] invalid dsm bind mode, bind request rejected");
 		}
 	} else {
 		mavlink_log_info(_thread_mavlink_fd, "[IO] system armed, bind request rejected"); 
@@ -2035,9 +2035,9 @@ bind(int argc, char *argv[])
 		errx(0, "needs argument, use dsm2 or dsmx");
 
 	if (!strcmp(argv[2], "dsm2"))
-		pulses = 3;
+		pulses = DSM2_BIND_PULSES;
 	else if (!strcmp(argv[2], "dsmx"))
-		pulses = 7;
+		pulses = DSMX_BIND_PULSES;
 	else 
 		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
 

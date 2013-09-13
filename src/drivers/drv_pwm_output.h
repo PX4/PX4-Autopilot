@@ -118,6 +118,9 @@ ORB_DECLARE(output_pwm);
 /** start DSM bind */
 #define DSM_BIND_START	_IOC(_PWM_SERVO_BASE, 7)
 
+#define DSM2_BIND_PULSES 3	/* DSM_BIND_START ioctl parameter, pulses required to start dsm2 pairing */
+#define DSMX_BIND_PULSES 7	/* DSM_BIND_START ioctl parameter, pulses required to start dsmx pairing */
+
 /** Power up DSM receiver */
 #define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 8)
 
