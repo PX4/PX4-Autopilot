@@ -1292,10 +1292,6 @@ test()
 	if (fd < 0)
 		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
 
-	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
-		errx(1, "failed to set queue depth");
-
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 

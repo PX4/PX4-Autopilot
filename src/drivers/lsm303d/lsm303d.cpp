@@ -531,7 +531,6 @@ LSM303D::reset()
 	/* enable mag */
 	write_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
 	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
-	irqrestore(flags);
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
