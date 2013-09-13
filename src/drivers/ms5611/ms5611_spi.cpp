@@ -142,23 +142,15 @@ MS5611_SPI::init()
 		goto out;
 	}
 
-	/* disable interrupts, make this section atomic */
-	flags = irqsave();
 	/* send reset command */
 	ret = _reset();
-	/* re-enable interrupts */
-	irqrestore(flags);
 	if (ret != OK) {
 		debug("reset failed");
 		goto out;
 	}
 
-	/* disable interrupts, make this section atomic */
-	flags = irqsave();
 	/* read PROM */
 	ret = _read_prom();
-	/* re-enable interrupts */
-	irqrestore(flags);
 	if (ret != OK) {
 		debug("prom readout failed");
 		goto out;
@@ -270,13 +262,7 @@ MS5611_SPI::_reg16(unsigned reg)
 int
 MS5611_SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
-	irqstate_t flags = irqsave();
-
-	int ret = transfer(send, recv, len);
-
-	irqrestore(flags);
-
-	return ret;
+	return transfer(send, recv, len);
 }
 
 #endif /* PX4_SPIDEV_BARO */
