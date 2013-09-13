@@ -51,15 +51,9 @@
 #define ADDR_OTP_START			0x1FFF7800
 #define ADDR_OTP_LOCK_START		0x1FFF7A00
 
-/* RM page 75 OTP. Size is 528 bytes total (512 bytes data and 16 bytes locking) */
-/* 
-#define OTP_LEN				512
-#define OTP_LOCK_LEN			16
-
 #define OTP_LOCK_LOCKED			0x00
 #define OTP_LOCK_UNLOCKED		0xFF
 
-*/
 
 
 #include <unistd.h>

@@ -90,17 +90,23 @@ int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char* signature)
 
 int lock_otp(void)
 {
-//	//determine the required locking size - can only write full lock bytes */
+	//determine the required locking size - can only write full lock bytes */
 //	int size = sizeof(struct otp) / 32;
-//
+//	
 //	struct otp_lock otp_lock_mem;
 //
 //	memset(&otp_lock_mem, OTP_LOCK_UNLOCKED, sizeof(otp_lock_mem));
 //	for (int i = 0; i < sizeof(otp_lock_mem) / sizeof(otp_lock_mem.lock_bytes[0]); i++)
 //		otp_lock_mem.lock_bytes[i] = OTP_LOCK_LOCKED;
-//
-//	//XXX add the actual call here to write the OTP_LOCK bytes only at final stage 
-//	// val_copy(lock_ptr, &otp_lock_mem, sizeof(otp_lock_mem));
+	//XXX add the actual call here to write the OTP_LOCK bytes only at final stage 
+	// val_copy(lock_ptr, &otp_lock_mem, sizeof(otp_lock_mem));
+			
+    int locksize = 5;
+	// or just realise it's exctly 5x 32byte blocks we need to lock.  1 block for ID,type,vid,pid, and 4 blocks for certificate, which is 128 bytes. 
+        for ( int i = 0 ; i < locksize ; i++ ) {
+            F_write_byte( ADDR_OTP_LOCK_START+i, OTP_LOCK_LOCKED); 
+        }
+
 }
 
 
