@@ -392,7 +392,7 @@ private:
 	/**
 	 * Send mixer definition text to IO
 	 */
-	int			mixer_send(const char *buf, unsigned buflen);
+	int			mixer_send(const char *buf, unsigned buflen, unsigned retries=3);
 
 	/**
 	 * Handle a status update from IO.
@@ -1468,60 +1468,69 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 }
 
 int
-PX4IO::mixer_send(const char *buf, unsigned buflen)
+PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 {
-	uint8_t	frame[_max_transfer];
-	px4io_mixdata *msg = (px4io_mixdata *)&frame[0];
-	unsigned max_len = _max_transfer - sizeof(px4io_mixdata);
 
-	msg->f2i_mixer_magic = F2I_MIXER_MAGIC;
-	msg->action = F2I_MIXER_ACTION_RESET;
+	uint8_t	frame[_max_transfer];
 
 	do {
-		unsigned count = buflen;
 
-		if (count > max_len)
-			count = max_len;
+		px4io_mixdata *msg = (px4io_mixdata *)&frame[0];
+		unsigned max_len = _max_transfer - sizeof(px4io_mixdata);
 
-		if (count > 0) {
-			memcpy(&msg->text[0], buf, count);
-			buf += count;
-			buflen -= count;
-		}
+		msg->f2i_mixer_magic = F2I_MIXER_MAGIC;
+		msg->action = F2I_MIXER_ACTION_RESET;
 
-		/*
-		 * We have to send an even number of bytes.  This
-		 * will only happen on the very last transfer of a
-		 * mixer, and we are guaranteed that there will be
-		 * space left to round up as _max_transfer will be
-		 * even.
-		 */
-		unsigned total_len = sizeof(px4io_mixdata) + count;
-		if (total_len % 1) {
-			msg->text[count] = '\0';
-			total_len++;
-		}
+		do {
+			unsigned count = buflen;
 
-		int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
+			if (count > max_len)
+				count = max_len;
 
-		if (ret) {
-			log("mixer send error %d", ret);
-			return ret;
-		}
+			if (count > 0) {
+				memcpy(&msg->text[0], buf, count);
+				buf += count;
+				buflen -= count;
+			}
 
-		msg->action = F2I_MIXER_ACTION_APPEND;
+			/*
+			 * We have to send an even number of bytes.  This
+			 * will only happen on the very last transfer of a
+			 * mixer, and we are guaranteed that there will be
+			 * space left to round up as _max_transfer will be
+			 * even.
+			 */
+			unsigned total_len = sizeof(px4io_mixdata) + count;
+			if (total_len % 1) {
+				msg->text[count] = '\0';
+				total_len++;
+			}
 
-	} while (buflen > 0);
+			int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
+
+			if (ret) {
+				log("mixer send error %d", ret);
+				return ret;
+			}
+
+			msg->action = F2I_MIXER_ACTION_APPEND;
+
+		} while (buflen > 0);
+
+		retries--;
+
+		log("mixer sent");
+
+	} while (retries > 0 && (!(io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK)));
 
 	/* check for the mixer-OK flag */
 	if (io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS) & PX4IO_P_STATUS_FLAGS_MIXER_OK) {
-		debug("mixer upload OK");
 		mavlink_log_info(_mavlink_fd, "[IO] mixer upload ok");
 		return 0;
-	} else {
-		debug("mixer rejected by IO");
-		mavlink_log_info(_mavlink_fd, "[IO] mixer upload fail");
 	}
+
+	log("mixer rejected by IO");
+	mavlink_log_info(_mavlink_fd, "[IO] mixer upload fail");
 
 	/* load must have failed for some reason */
 	return -EINVAL;
