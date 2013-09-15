@@ -853,9 +853,9 @@ PX4IO::task_main()
 				int32_t dsm_bind_val;
 				param_t dsm_bind_param;
 
-				// See if bind parameter has been set, and reset it to 0
+				// See if bind parameter has been set, and reset it to -1
 				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
-				if (dsm_bind_val) {
+				if (dsm_bind_val >= 0) {
 					dsm_bind_ioctl(dsm_bind_val);
 					dsm_bind_val = -1;
 					param_set(dsm_bind_param, &dsm_bind_val);
@@ -1167,7 +1167,7 @@ PX4IO::io_handle_status(uint16_t status)
 void
 PX4IO::dsm_bind_ioctl(int dsmMode)
 {
-	if (!(_status & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
+	if (!(_status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
 		/* 0: dsm2, 1:dsmx */
 		if ((dsmMode >= 0) && (dsmMode <= 1)) {
 			mavlink_log_info(_thread_mavlink_fd, "[IO] binding dsm%c rx", (dsmMode == 0) ? '2' : 'x');
