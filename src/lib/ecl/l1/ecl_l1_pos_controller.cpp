@@ -32,58 +32,58 @@
  ****************************************************************************/
 
 /**
- * @file ecl_l1_pos_control.h
+ * @file ecl_l1_pos_controller.h
  * Implementation of L1 position control.
  * Authors and acknowledgements in header.
  *
  */
 
-#include "ecl_l1_pos_control.h"
+#include "ecl_l1_pos_controller.h"
 
-float ECL_L1_Pos_Control::nav_roll()
+float ECL_L1_Pos_Controller::nav_roll()
 {
 	float ret = atanf(_lateral_accel * 1.0f / CONSTANTS_ONE_G);
 	ret = math::constrain(ret, (-M_PI_F) / 2.0f, M_PI_F / 2.0f);
 	return ret;
 }
 
-float ECL_L1_Pos_Control::nav_lateral_acceleration_demand()
+float ECL_L1_Pos_Controller::nav_lateral_acceleration_demand()
 {
 	return _lateral_accel;
 }
 
-float ECL_L1_Pos_Control::nav_bearing()
+float ECL_L1_Pos_Controller::nav_bearing()
 {
 	return _wrap_pi(_nav_bearing);
 }
 
-float ECL_L1_Pos_Control::bearing_error()
+float ECL_L1_Pos_Controller::bearing_error()
 {
 	return _bearing_error;
 }
 
-float ECL_L1_Pos_Control::target_bearing()
+float ECL_L1_Pos_Controller::target_bearing()
 {
 	return _target_bearing;
 }
 
-float ECL_L1_Pos_Control::switch_distance(float wp_radius)
+float ECL_L1_Pos_Controller::switch_distance(float wp_radius)
 {
 	/* following [2], switching on L1 distance */
 	return math::min(wp_radius, _L1_distance);
 }
 
-bool ECL_L1_Pos_Control::reached_loiter_target(void)
+bool ECL_L1_Pos_Controller::reached_loiter_target(void)
 {
 	return _circle_mode;
 }
 
-float ECL_L1_Pos_Control::crosstrack_error(void)
+float ECL_L1_Pos_Controller::crosstrack_error(void)
 {
 	return _crosstrack_error;
 }
 
-void ECL_L1_Pos_Control::navigate_waypoints(const math::Vector2f &vector_A, const math::Vector2f &vector_B, const math::Vector2f &vector_curr_position,
+void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector2f &vector_A, const math::Vector2f &vector_B, const math::Vector2f &vector_curr_position,
 				       const math::Vector2f &ground_speed_vector)
 {
 	/* this follows the logic presented in [1] */
@@ -175,7 +175,7 @@ void ECL_L1_Pos_Control::navigate_waypoints(const math::Vector2f &vector_A, cons
 	_bearing_error = eta;
 }
 
-void ECL_L1_Pos_Control::navigate_loiter(const math::Vector2f &vector_A, const math::Vector2f &vector_curr_position, float radius, int8_t loiter_direction,
+void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector2f &vector_A, const math::Vector2f &vector_curr_position, float radius, int8_t loiter_direction,
 				       const math::Vector2f &ground_speed_vector)
 {
 	/* the complete guidance logic in this section was proposed by [2] */
@@ -265,7 +265,7 @@ void ECL_L1_Pos_Control::navigate_loiter(const math::Vector2f &vector_A, const m
 }
 
 
-void ECL_L1_Pos_Control::navigate_heading(float navigation_heading, float current_heading, const math::Vector2f &ground_speed_vector)
+void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float current_heading, const math::Vector2f &ground_speed_vector)
 {
 	/* the complete guidance logic in this section was proposed by [2] */
 
@@ -301,7 +301,7 @@ void ECL_L1_Pos_Control::navigate_heading(float navigation_heading, float curren
 	_lateral_accel = 2.0f * sinf(eta) * omega_vel;
 }
 
-void ECL_L1_Pos_Control::navigate_level_flight(float current_heading)
+void ECL_L1_Pos_Controller::navigate_level_flight(float current_heading)
 {
 	/* the logic in this section is trivial, but originally proposed by [2] */
 
@@ -318,7 +318,7 @@ void ECL_L1_Pos_Control::navigate_level_flight(float current_heading)
 }
 
 
-math::Vector2f ECL_L1_Pos_Control::get_local_planar_vector(const math::Vector2f &origin, const math::Vector2f &target) const
+math::Vector2f ECL_L1_Pos_Controller::get_local_planar_vector(const math::Vector2f &origin, const math::Vector2f &target) const
 {
 	/* this is an approximation for small angles, proposed by [2] */
 

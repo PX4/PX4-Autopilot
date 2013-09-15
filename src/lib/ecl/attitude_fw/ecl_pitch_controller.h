@@ -40,7 +40,7 @@
  * Acknowledgements:
  *
  *   The control design is based on a design
- *   by Paul Riseborough, 2013.
+ *   by Paul Riseborough and Andrew Tridgell, 2013.
  */
 
 #ifndef ECL_PITCH_CONTROLLER_H

@@ -57,8 +57,8 @@
  *
  */
 
-#ifndef ECL_L1_POS_CONTROL_H
-#define ECL_L1_POS_CONTROL_H
+#ifndef ECL_L1_POS_CONTROLLER_H
+#define ECL_L1_POS_CONTROLLER_H
 
 #include <mathlib/mathlib.h>
 #include <geo/geo.h>
@@ -67,10 +67,10 @@
 /**
  * L1 Nonlinear Guidance Logic
  */
-class __EXPORT ECL_L1_Pos_Control
+class __EXPORT ECL_L1_Pos_Controller
 {
 public:
-	ECL_L1_Pos_Control() {
+	ECL_L1_Pos_Controller() {
 		_L1_period = 25;
 		_L1_damping = 0.75f;
 	}
@@ -246,4 +246,4 @@ private:
 };
 
 
-#endif /* ECL_L1_POS_CONTROL_H */
+#endif /* ECL_L1_POS_CONTROLLER_H */

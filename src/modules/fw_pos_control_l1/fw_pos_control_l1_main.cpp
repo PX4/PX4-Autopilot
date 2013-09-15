@@ -83,7 +83,7 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 
-#include <ecl/l1/ecl_l1_pos_control.h>
+#include <ecl/l1/ecl_l1_pos_controller.h>
 #include <external_lgpl/tecs/tecs.h>
 
 /**
@@ -163,7 +163,7 @@ private:
 	bool _global_pos_valid;				///< global position is valid
 	math::Dcm _R_nb;				///< current attitude
 
-	ECL_L1_Pos_Control				_l1_control;
+	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
 
 	struct {
