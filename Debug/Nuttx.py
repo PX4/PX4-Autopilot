@@ -2,6 +2,106 @@
 
 import gdb, gdb.types
 
+class NX_register_set(object):
+	"""Copy of the registers for a given context"""
+
+	v7_regmap = {
+		'R13':		0,
+		'SP':		0,
+		'PRIORITY':	1,
+		'R4':		2,
+		'R5':		3,
+		'R6':		4,
+		'R7':		5,
+		'R8':		6,
+		'R9':		7,
+		'R10':		8,
+		'R11':		9,
+		'EXC_RETURN':	10,
+		'R0':		11,
+		'R1':		12,
+		'R2':		13,
+		'R3':		14,
+		'R12':		15,
+		'R14':		16,
+		'LR':		16,
+		'R15':		17,
+		'PC':		17,
+		'XPSR':		18,
+	}
+
+	v7em_regmap = {
+		'R13':		0,
+		'SP':		0,
+		'PRIORITY':	1,
+		'R4':		2,
+		'R5':		3,
+		'R6':		4,
+		'R7':		5,
+		'R8':		6,
+		'R9':		7,
+		'R10':		8,
+		'R11':		9,
+		'EXC_RETURN':	10,
+		'R0':		27,
+		'R1':		28,
+		'R2':		29,
+		'R3':		30,
+		'R12':		31,
+		'R14':		32,
+		'LR':		32,
+		'R15':		33,
+		'PC':		33,
+		'XPSR':		34,
+	}
+
+	regs = dict()
+
+	def __init__(self, xcpt_regs):
+		if xcpt_regs is None:
+			self.regs['R0']         = long(gdb.parse_and_eval('$r0'))
+			self.regs['R1']         = long(gdb.parse_and_eval('$r1'))
+			self.regs['R2']         = long(gdb.parse_and_eval('$r2'))
+			self.regs['R3']         = long(gdb.parse_and_eval('$r3'))
+			self.regs['R4']         = long(gdb.parse_and_eval('$r4'))
+			self.regs['R5']         = long(gdb.parse_and_eval('$r5'))
+			self.regs['R6']         = long(gdb.parse_and_eval('$r6'))
+			self.regs['R7']         = long(gdb.parse_and_eval('$r7'))
+			self.regs['R8']         = long(gdb.parse_and_eval('$r8'))
+			self.regs['R9']         = long(gdb.parse_and_eval('$r9'))
+			self.regs['R10']        = long(gdb.parse_and_eval('$r10'))
+			self.regs['R11']        = long(gdb.parse_and_eval('$r11'))
+			self.regs['R12']        = long(gdb.parse_and_eval('$r12'))
+			self.regs['R13']        = long(gdb.parse_and_eval('$r13'))
+			self.regs['SP']         = long(gdb.parse_and_eval('$sp'))
+			self.regs['R14']        = long(gdb.parse_and_eval('$r14'))
+			self.regs['LR']         = long(gdb.parse_and_eval('$lr'))
+			self.regs['R15']        = long(gdb.parse_and_eval('$r15'))
+			self.regs['PC']         = long(gdb.parse_and_eval('$pc'))
+			self.regs['XPSR']       = long(gdb.parse_and_eval('$xpsr'))
+		else:
+			for key in self.v7em_regmap.keys():
+				self.regs[key] = int(xcpt_regs[self.v7em_regmap[key]])
+
+
+	@classmethod
+	def with_xcpt_regs(cls, xcpt_regs):
+		return cls(xcpt_regs)
+
+	@classmethod
+	def for_current(cls):
+		return cls(None)
+
+	def __format__(self, format_spec):
+		return format_spec.format(
+			registers	 = self.registers
+			)
+
+	@property
+	def registers(self):
+		return self.regs
+
+
 class NX_task(object):
 	"""Reference to a NuttX task and methods for introspecting it"""
 
@@ -139,56 +239,12 @@ class NX_task(object):
 		if 'registers' not in self.__dict__:
 			registers = dict()
 			if self._state_is('TSTATE_TASK_RUNNING'):
-				# XXX need to fix this to handle interrupt context
-				registers['R0']         = long(gdb.parse_and_eval('$r0'))
-				registers['R1']         = long(gdb.parse_and_eval('$r1'))
-				registers['R2']         = long(gdb.parse_and_eval('$r2'))
-				registers['R3']         = long(gdb.parse_and_eval('$r3'))
-				registers['R4']         = long(gdb.parse_and_eval('$r4'))
-				registers['R5']         = long(gdb.parse_and_eval('$r5'))
-				registers['R6']         = long(gdb.parse_and_eval('$r6'))
-				registers['R7']         = long(gdb.parse_and_eval('$r7'))
-				registers['R8']         = long(gdb.parse_and_eval('$r8'))
-				registers['R9']         = long(gdb.parse_and_eval('$r9'))
-				registers['R10']        = long(gdb.parse_and_eval('$r10'))
-				registers['R11']        = long(gdb.parse_and_eval('$r11'))
-				registers['R12']        = long(gdb.parse_and_eval('$r12'))
-				registers['R13']        = long(gdb.parse_and_eval('$r13'))
-				registers['SP']         = long(gdb.parse_and_eval('$sp'))
-				registers['R14']        = long(gdb.parse_and_eval('$r14'))
-				registers['LR']         = long(gdb.parse_and_eval('$lr'))
-				registers['R15']        = long(gdb.parse_and_eval('$r15'))
-				registers['PC']         = long(gdb.parse_and_eval('$pc'))
-				registers['XPSR']       = long(gdb.parse_and_eval('$xpsr'))
-				# this would only be valid if we were in an interrupt
-				registers['EXC_RETURN'] = 0
-				# we should be able to get this...
-				registers['PRIMASK']    = 0
+				registers = NX_register_set.for_current().registers
 			else:
 				context = self._tcb['xcp']
 				regs = context['regs']
-				registers['R0']         = long(regs[27])
-				registers['R1']         = long(regs[28])
-				registers['R2']         = long(regs[29])
-				registers['R3']         = long(regs[30])
-				registers['R4']         = long(regs[2])
-				registers['R5']         = long(regs[3])
-				registers['R6']         = long(regs[4])
-				registers['R7']         = long(regs[5])
-				registers['R8']         = long(regs[6])
-				registers['R9']         = long(regs[7])
-				registers['R10']        = long(regs[8])
-				registers['R11']        = long(regs[9])
-				registers['R12']        = long(regs[31])
-				registers['R13']        = long(regs[0])
-				registers['SP']         = long(regs[0])
-				registers['R14']        = long(regs[32])
-				registers['LR']         = long(regs[32])
-				registers['R15']        = long(regs[33])
-				registers['PC']         = long(regs[33])
-				registers['XPSR']       = long(regs[34])
-				registers['EXC_RETURN'] = long(regs[10])
-				registers['PRIMASK']    = long(regs[1])
+				registers = NX_register_set.with_xcpt_regs(regs).registers
+
 			self.__dict__['registers'] = registers
 		return self.__dict__['registers']
 
@@ -267,8 +323,7 @@ class NX_show_heap (gdb.Command):
 
 	def _print_allocations(self, region_start, region_end):
 		if region_start >= region_end:
-			print 'heap region {} corrupt'.format(hex(region_start))
-			return
+			raise gdb.GdbError('heap region {} corrupt'.format(hex(region_start)))
 		nodecount = region_end - region_start
 		print 'heap {} - {}'.format(region_start, region_end)
 		cursor = 1
@@ -286,13 +341,31 @@ class NX_show_heap (gdb.Command):
 		nregions = heap['mm_nregions']
 		region_starts = heap['mm_heapstart']
 		region_ends = heap['mm_heapend']
-		print "{} heap(s)".format(nregions)
+		print '{} heap(s)'.format(nregions)
 		# walk the heaps
 		for i in range(0, nregions):
 			self._print_allocations(region_starts[i], region_ends[i])
 
 NX_show_heap()
 
+class NX_show_interrupted_thread (gdb.Command):
+	"""(NuttX) prints the register state of an interrupted thread when in interrupt/exception context"""
 
+	def __init__(self):
+		super(NX_show_interrupted_thread, self).__init__('show interrupted-thread', gdb.COMMAND_USER)
 
+	def invoke(self, args, from_tty):
+		regs = gdb.lookup_global_symbol('current_regs').value()
+		if regs is 0:
+			raise gdb.GdbError('not in interrupt context')
+		else:
+			registers = NX_register_set.with_xcpt_regs(regs)
+			my_fmt = ''
+			my_fmt += '  R0  {registers[R0]:#010x} {registers[R1]:#010x} {registers[R2]:#010x} {registers[R3]:#010x}\n'
+			my_fmt += '  R4  {registers[R4]:#010x} {registers[R5]:#010x} {registers[R6]:#010x} {registers[R7]:#010x}\n'
+			my_fmt += '  R8  {registers[R8]:#010x} {registers[R9]:#010x} {registers[R10]:#010x} {registers[R11]:#010x}\n'
+			my_fmt += '  R12 {registers[PC]:#010x}\n'
+			my_fmt += '  SP  {registers[SP]:#010x} LR {registers[LR]:#010x} PC {registers[PC]:#010x} XPSR {registers[XPSR]:#010x}\n'
+			print format(registers, my_fmt)
 
+NX_show_interrupted_thread()
