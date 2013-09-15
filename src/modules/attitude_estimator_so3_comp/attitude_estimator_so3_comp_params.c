@@ -6,11 +6,11 @@
  * Implementation of nonlinear complementary filters on the SO(3).
  * This code performs attitude estimation by using accelerometer, gyroscopes and magnetometer.
  * Result is provided as quaternion, 1-2-3 Euler angle and rotation matrix.
- * 
+ *
  * Theory of nonlinear complementary filters on the SO(3) is based on [1].
  * Quaternion realization of [1] is based on [2].
  * Optmized quaternion update code is based on Sebastian Madgwick's implementation.
- * 
+ *
  * References
  *  [1] Mahony, R.; Hamel, T.; Pflimlin, Jean-Michel, "Nonlinear Complementary Filters on the Special Orthogonal Group," Automatic Control, IEEE Transactions on , vol.53, no.5, pp.1203,1218, June 2008
  *  [2] Euston, M.; Coote, P.; Mahony, R.; Jonghyuk Kim; Hamel, T., "A complementary filter for attitude estimation of a fixed-wing UAV," Intelligent Robots and Systems, 2008. IROS 2008. IEEE/RSJ International Conference on , vol., no., pp.340,345, 22-26 Sept. 2008
@@ -24,10 +24,10 @@
    If you are flying from ground to high altitude in short amount of time, please increase SO3_COMP_KI which
    will compensate gyro bias which depends on temperature and vibration of your vehicle */
 PARAM_DEFINE_FLOAT(SO3_COMP_KP, 1.0f); //! This parameter will give you about 15 seconds convergence time.
-                                       //! You can set this gain higher if you want more fast response.
-                                       //! But note that higher gain will give you also higher overshoot.
+//! You can set this gain higher if you want more fast response.
+//! But note that higher gain will give you also higher overshoot.
 PARAM_DEFINE_FLOAT(SO3_COMP_KI, 0.05f); //! This gain will incorporate slow time-varying bias (e.g., temperature change)
-					//! This gain is depend on your vehicle status.
+//! This gain is depend on your vehicle status.
 
 /* offsets in roll, pitch and yaw of sensor plane and body */
 PARAM_DEFINE_FLOAT(ATT_ROLL_OFFS, 0.0f);
