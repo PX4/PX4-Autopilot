@@ -47,7 +47,7 @@
  *    Proceedings of the AIAA Guidance, Navigation and Control
  *    Conference, Aug 2004. AIAA-2004-4900.
  *
- *    [2] Paul Riseborough and Andrew Tridgell, L1 control for APM. Aug 2013.
+ *    [2] Paul Riseborough, Brandon Jones and Andrew Tridgell, L1 control for APM. Aug 2013.
  *     - Explicit control over frequency and damping
  *     - Explicit control over track capture angle
  *     - Ability to use loiter radius smaller than L1 length

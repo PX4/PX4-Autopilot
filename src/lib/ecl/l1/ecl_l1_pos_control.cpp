@@ -69,6 +69,7 @@ float ECL_L1_Pos_Control::target_bearing()
 
 float ECL_L1_Pos_Control::switch_distance(float wp_radius)
 {
+	/* following [2], switching on L1 distance */
 	return math::min(wp_radius, _L1_distance);
 }
 
@@ -85,6 +86,7 @@ float ECL_L1_Pos_Control::crosstrack_error(void)
 void ECL_L1_Pos_Control::navigate_waypoints(const math::Vector2f &vector_A, const math::Vector2f &vector_B, const math::Vector2f &vector_curr_position,
 				       const math::Vector2f &ground_speed_vector)
 {
+	/* this follows the logic presented in [1] */
 
 	float eta;
 	float xtrack_vel;
@@ -126,6 +128,7 @@ void ECL_L1_Pos_Control::navigate_waypoints(const math::Vector2f &vector_A, cons
 	float distance_A_to_airplane = vector_A_to_airplane.length();
 	float alongTrackDist = vector_A_to_airplane * vector_AB;
 
+	/* extension from [2] */
 	if (distance_A_to_airplane > _L1_distance && alongTrackDist / math::max(distance_A_to_airplane , 1.0f) < -0.7071f) {
 
 		/* calculate eta to fly to waypoint A */
@@ -175,6 +178,7 @@ void ECL_L1_Pos_Control::navigate_waypoints(const math::Vector2f &vector_A, cons
 void ECL_L1_Pos_Control::navigate_loiter(const math::Vector2f &vector_A, const math::Vector2f &vector_curr_position, float radius, int8_t loiter_direction,
 				       const math::Vector2f &ground_speed_vector)
 {
+	/* the complete guidance logic in this section was proposed by [2] */
 
 	/* calculate the gains for the PD loop (circle tracking) */
 	float omega = (2.0f * M_PI_F / _L1_period);
@@ -263,6 +267,7 @@ void ECL_L1_Pos_Control::navigate_loiter(const math::Vector2f &vector_A, const m
 
 void ECL_L1_Pos_Control::navigate_heading(float navigation_heading, float current_heading, const math::Vector2f &ground_speed_vector)
 {
+	/* the complete guidance logic in this section was proposed by [2] */
 
 	float eta;
 
@@ -298,6 +303,8 @@ void ECL_L1_Pos_Control::navigate_heading(float navigation_heading, float curren
 
 void ECL_L1_Pos_Control::navigate_level_flight(float current_heading)
 {
+	/* the logic in this section is trivial, but originally proposed by [2] */
+
 	/* reset all heading / error measures resulting in zero roll */
 	_target_bearing = current_heading;
 	_nav_bearing = current_heading;
@@ -313,6 +320,8 @@ void ECL_L1_Pos_Control::navigate_level_flight(float current_heading)
 
 math::Vector2f ECL_L1_Pos_Control::get_local_planar_vector(const math::Vector2f &origin, const math::Vector2f &target) const
 {
+	/* this is an approximation for small angles, proposed by [2] */
+
 	math::Vector2f out;
 
 	out.setX(math::radians((target.getX() - origin.getX())));
