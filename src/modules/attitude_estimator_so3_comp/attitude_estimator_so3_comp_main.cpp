@@ -362,6 +362,19 @@ q3q3 = q3 * q3;
  */
 int attitude_estimator_so3_comp_thread_main(int argc, char *argv[])
 {
+/* initialize state */
+q0 = 1.0f;
+q1 = 0.0f;
+q2 = 0.0f;
+q3 = 0.0f;
+dq0 = 0.0f;
+dq1 = 0.0f;
+dq2 = 0.0f;
+dq3 = 0.0f;
+gyro_bias[0] = 0.0f;
+gyro_bias[1] = 0.0f;
+gyro_bias[2] = 0.0f;
+bFilterInit = false;
 
 const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
@@ -383,12 +396,7 @@ float acc[3] = {0.0f, 0.0f, 0.0f};
 float gyro[3] = {0.0f, 0.0f, 0.0f};
 float mag[3] = {0.0f, 0.0f, 0.0f};
 
-/* work around some stupidity in task_create's argv handling */
-argc -= 2;
-argv += 2;
-
 warnx("main thread started");
-fflush(stdout);
 
 int overloadcounter = 19;
 
@@ -500,11 +508,11 @@ while (!thread_should_exit) {
 				offset_count++;
 
 				if (hrt_absolute_time() > start_time + 3000000l) {
-					warnx("gyro initialized");
 					initialized = true;
-					gyro_bias[0] = -gyro_offsets[0] / offset_count;
-					gyro_bias[1] = -gyro_offsets[1] / offset_count;
-					gyro_bias[2] = -gyro_offsets[2] / offset_count;
+					gyro_offsets[0] /= offset_count;
+					gyro_offsets[1] /= offset_count;
+					gyro_offsets[2] /= offset_count;
+					warnx("gyro initialized, offsets: %.5f %.5f %.5f", gyro_offsets[0], gyro_offsets[1], gyro_offsets[2]);
 				}
 			} else {
 
@@ -523,9 +531,9 @@ while (!thread_should_exit) {
 					sensor_last_timestamp[0] = raw.timestamp;
 				}
 
-				gyro[0] = raw.gyro_rad_s[0];
-				gyro[1] = raw.gyro_rad_s[1];
-				gyro[2] = raw.gyro_rad_s[2];
+				gyro[0] = raw.gyro_rad_s[0] - gyro_offsets[0];
+				gyro[1] = raw.gyro_rad_s[1] - gyro_offsets[1];
+				gyro[2] = raw.gyro_rad_s[2] - gyro_offsets[2];
 
 				/* update accelerometer measurements */
 				if (sensor_last_count[1] != raw.accelerometer_counter) {
