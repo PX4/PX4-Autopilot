@@ -40,7 +40,9 @@
  * Acknowledgements:
  *
  *   The control design is based on a design
- *   by Paul Riseborough and Andrew Tridgell, 2013.
+ *   by Paul Riseborough and Andrew Tridgell, 2013,
+ *   which in turn is based on initial work of
+ *   Jonathan Challinger, 2012.
  */
 
 #ifndef ECL_ROLL_CONTROLLER_H
