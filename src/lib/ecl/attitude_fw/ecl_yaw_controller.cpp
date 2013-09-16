@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name APL nor the names of its contributors may be
+ * 3. Neither the name ECL nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -35,6 +35,7 @@
  * @file ecl_yaw_controller.cpp
  * Implementation of a simple orthogonal coordinated turn yaw PID controller.
  *
+ * Authors and acknowledgements in header.
  */
 
 #include "ecl_yaw_controller.h"

@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name APL nor the names of its contributors may be
+ * 3. Neither the name ECL nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -35,6 +35,14 @@
  * @file ecl_pitch_controller.h
  * Definition of a simple orthogonal pitch PID controller.
  *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ *
+ * Acknowledgements:
+ *
+ *   The control design is based on a design
+ *   by Paul Riseborough and Andrew Tridgell, 2013,
+ *   which in turn is based on initial work of
+ *   Jonathan Challinger, 2012.
  */
 
 #ifndef ECL_PITCH_CONTROLLER_H
