@@ -525,7 +525,6 @@ out:
 void
 LSM303D::reset()
 {
-	irqstate_t flags = irqsave();
 	/* enable accel*/
 	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE);
 
@@ -540,7 +539,6 @@ LSM303D::reset()
 
 	mag_set_range(LSM303D_MAG_DEFAULT_RANGE_GA);
 	mag_set_samplerate(LSM303D_MAG_DEFAULT_RATE);
-	irqrestore(flags);
 
 	_accel_read = 0;
 	_mag_read = 0;
@@ -549,15 +547,12 @@ LSM303D::reset()
 int
 LSM303D::probe()
 {
-	irqstate_t flags = irqsave();
 	/* read dummy value to void to clear SPI statemachine on sensor */
 	(void)read_reg(ADDR_WHO_AM_I);
 
 	/* verify that the device is attached and functioning */
 	bool success = (read_reg(ADDR_WHO_AM_I) == WHO_I_AM);
 	
-	irqrestore(flags);
-
 	if (success)
 		return OK;
 
@@ -1012,6 +1007,7 @@ LSM303D::accel_set_range(unsigned max_g)
 	}
 
 	_accel_range_scale = new_scale_g_digit * LSM303D_ONE_G;
+
 
 	modify_reg(ADDR_CTRL_REG2, clearbits, setbits);
 

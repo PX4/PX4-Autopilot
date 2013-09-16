@@ -101,6 +101,17 @@ protected:
 	 */
 	int		transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
+	/**
+	 * Locking modes supported by the driver.
+	 */
+	enum LockMode {
+		LOCK_PREEMPTION,	/**< the default; lock against all forms of preemption. */
+		LOCK_THREADS,		/**< lock only against other threads, using SPI_LOCK */
+		LOCK_NONE		/**< perform no locking, only safe if the bus is entirely private */
+	};
+
+	LockMode	locking_mode;	/**< selected locking mode */
+
 private:
 	int			_bus;
 	enum spi_dev_e		_device;

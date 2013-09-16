@@ -82,7 +82,7 @@ static int buzzer;
 
 int buzzer_init()
 {
-	buzzer = open("/dev/tone_alarm", O_WRONLY);
+	buzzer = open(TONEALARM_DEVICE_PATH, O_WRONLY);
 
 	if (buzzer < 0) {
 		warnx("Buzzer: open fail\n");

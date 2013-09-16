@@ -60,6 +60,8 @@
 
 #include <sys/ioctl.h>
 
+#define TONEALARM_DEVICE_PATH "/dev/tone_alarm"
+
 #define _TONE_ALARM_BASE	0x7400
 #define TONE_SET_ALARM		_IOC(_TONE_ALARM_BASE, 1)
 
