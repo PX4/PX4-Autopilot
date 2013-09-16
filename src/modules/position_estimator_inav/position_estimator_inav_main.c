@@ -259,7 +259,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						local_pos.ref_timestamp = hrt_absolute_time();
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
-						local_pos.global_z = true;
+						local_pos.z_global = true;
 					}
 				}
 			}
@@ -597,7 +597,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.timestamp = t;
 			local_pos.xy_valid = can_estimate_xy && gps_valid;
 			local_pos.v_xy_valid = can_estimate_xy;
-			local_pos.global_xy = local_pos.xy_valid && gps_valid;	// will make sense when local position sources (e.g. vicon) will be implemented
+			local_pos.xy_global = local_pos.xy_valid && gps_valid;	// will make sense when local position sources (e.g. vicon) will be implemented
 			local_pos.x = x_est[0];
 			local_pos.vx = x_est[1];
 			local_pos.y = y_est[0];
@@ -610,9 +610,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
 
 			/* publish global position */
-			global_pos.valid = local_pos.global_xy;
+			global_pos.valid = local_pos.xy_global;
 
-			if (local_pos.global_xy) {
+			if (local_pos.xy_global) {
 				double est_lat, est_lon;
 				map_projection_reproject(local_pos.x, local_pos.y, &est_lat, &est_lon);
 				global_pos.lat = (int32_t)(est_lat * 1e7);
@@ -630,7 +630,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				global_pos.relative_alt = -local_pos.z;
 			}
 
-			if (local_pos.global_z) {
+			if (local_pos.z_global) {
 				global_pos.alt = local_pos.ref_alt - local_pos.z;
 			}
 
