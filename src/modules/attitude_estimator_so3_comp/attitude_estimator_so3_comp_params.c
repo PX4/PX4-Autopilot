@@ -1,19 +1,42 @@
-/*
- * Author: Hyon Lim <limhyon@gmail.com, hyonlim@snu.ac.kr>
+/****************************************************************************
  *
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Hyon Lim <limhyon@gmail.com, hyonlim@snu.ac.kr>
+ *           Anton Babushkin <anton.babushkin@me.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/*
  * @file attitude_estimator_so3_comp_params.c
  *
- * Implementation of nonlinear complementary filters on the SO(3).
- * This code performs attitude estimation by using accelerometer, gyroscopes and magnetometer.
- * Result is provided as quaternion, 1-2-3 Euler angle and rotation matrix.
- *
- * Theory of nonlinear complementary filters on the SO(3) is based on [1].
- * Quaternion realization of [1] is based on [2].
- * Optmized quaternion update code is based on Sebastian Madgwick's implementation.
- *
- * References
- *  [1] Mahony, R.; Hamel, T.; Pflimlin, Jean-Michel, "Nonlinear Complementary Filters on the Special Orthogonal Group," Automatic Control, IEEE Transactions on , vol.53, no.5, pp.1203,1218, June 2008
- *  [2] Euston, M.; Coote, P.; Mahony, R.; Jonghyuk Kim; Hamel, T., "A complementary filter for attitude estimation of a fixed-wing UAV," Intelligent Robots and Systems, 2008. IROS 2008. IEEE/RSJ International Conference on , vol., no., pp.340,345, 22-26 Sept. 2008
+ * Parameters for nonlinear complementary filters on the SO(3).
  */
 
 #include "attitude_estimator_so3_comp_params.h"
@@ -30,9 +53,9 @@ PARAM_DEFINE_FLOAT(SO3_COMP_KI, 0.05f); //! This gain will incorporate slow time
 //! This gain is depend on your vehicle status.
 
 /* offsets in roll, pitch and yaw of sensor plane and body */
-PARAM_DEFINE_FLOAT(ATT_ROLL_OFFS, 0.0f);
-PARAM_DEFINE_FLOAT(ATT_PITCH_OFFS, 0.0f);
-PARAM_DEFINE_FLOAT(ATT_YAW_OFFS, 0.0f);
+PARAM_DEFINE_FLOAT(SO3_ROLL_OFFS, 0.0f);
+PARAM_DEFINE_FLOAT(SO3_PITCH_OFFS, 0.0f);
+PARAM_DEFINE_FLOAT(SO3_YAW_OFFS, 0.0f);
 
 int parameters_init(struct attitude_estimator_so3_comp_param_handles *h)
 {
@@ -40,10 +63,9 @@ int parameters_init(struct attitude_estimator_so3_comp_param_handles *h)
 	h->Kp = 	param_find("SO3_COMP_KP");
 	h->Ki = 	param_find("SO3_COMP_KI");
 
-	/* Attitude offset (WARNING: Do not change if you do not know what exactly this variable wil lchange) */
-	h->roll_off  =	param_find("ATT_ROLL_OFFS");
-	h->pitch_off =	param_find("ATT_PITCH_OFFS");
-	h->yaw_off   =	param_find("ATT_YAW_OFFS");
+	h->roll_off  =	param_find("SO3_ROLL_OFFS");
+	h->pitch_off =	param_find("SO3_PITCH_OFFS");
+	h->yaw_off   =	param_find("SO3_YAW_OFFS");
 
 	return OK;
 }
