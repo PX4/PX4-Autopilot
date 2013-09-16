@@ -103,7 +103,7 @@ then
 
 	if param compare SYS_AUTOSTART 1000
 	then
-		sh /etc/init.d/rc.hil
+		sh /etc/init.d/1000_rc.hil
 		set MODE custom
 	else
 		# Try to get an USB console
