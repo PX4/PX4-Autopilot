@@ -519,6 +519,10 @@ param_save_default(void)
 	int fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
 
 	if (fd < 0) {
+		/* do another attempt in case the unlink call is not synced yet */
+		usleep(5000);
+		fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
+
 		warn("opening '%s' for writing failed", param_get_default_file());
 		return fd;
 	}
@@ -528,7 +532,7 @@ param_save_default(void)
 
 	if (result != 0) {
 		warn("error exporting parameters to '%s'", param_get_default_file());
-		unlink(param_get_default_file());
+		(void)unlink(param_get_default_file());
 		return result;
 	}
 
