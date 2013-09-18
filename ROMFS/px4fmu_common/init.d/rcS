@@ -106,8 +106,13 @@ then
 		sh /etc/init.d/1000_rc.hil
 		set MODE custom
 	else
-		# Try to get an USB console
-		nshterm /dev/ttyACM0 &
+		if param compare SYS_AUTOSTART 1001
+		then
+			sh /etc/init.d/1001_rc_quad.hil
+		else
+			# Try to get an USB console
+			nshterm /dev/ttyACM0 &
+		fi
 	fi
 	
 	#
