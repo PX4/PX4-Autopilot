@@ -174,7 +174,8 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
 /* default is conversion factor for the PX4IO / PX4IOAR board, the factor for PX4FMU standalone is different */
 /* PX4IOAR: 0.00838095238 */
 /* FMU standalone: 1/(10 / (47+10)) * (3.3 / 4095) = 0.00459340659 */
-PARAM_DEFINE_FLOAT(BAT_V_SCALING, (3.3f * 52.0f / 5.0f / 4095.0f));
+/* FMU with PX4IOAR: (3.3f * 52.0f / 5.0f / 4095.0f) */
+PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.00459340659f);
 #endif
 
 PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);

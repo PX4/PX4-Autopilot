@@ -30,6 +30,7 @@ fi
 # MAV_TYPE     2 = quadrotor
 #
 param set MAV_TYPE 2
+param set BAT_V_SCALING 0.008381
 
 #
 # Start MAVLink and MAVLink Onboard (PX4FLOW Sensor)
