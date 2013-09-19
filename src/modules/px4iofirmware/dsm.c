@@ -243,28 +243,35 @@ dsm_init(const char *device)
 void
 dsm_bind(uint16_t cmd, int pulses)
 {
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)
+	#warning DSM BIND NOT IMPLEMENTED ON UNKNOWN PLATFORM
+#else
 	const uint32_t usart1RxAsOutp =
 		GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN10;
 
 	if (dsm_fd < 0)
 		return;
 
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
-	// XXX implement
-	#warning DSM BIND NOT IMPLEMENTED ON PX4IO V2
-#else
 	switch (cmd) {
 
 	case dsm_bind_power_down:
 
 		/*power down DSM satellite*/
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 		POWER_RELAY1(0);
+#else /* CONFIG_ARCH_BOARD_PX4IO_V2 */
+		POWER_SPEKTRUM(0);
+#endif
 		break;
 
 	case dsm_bind_power_up:
 
 		/*power up DSM satellite*/
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 		POWER_RELAY1(1);
+#else /* CONFIG_ARCH_BOARD_PX4IO_V2 */
+		POWER_SPEKTRUM(1);
+#endif
 		dsm_guess_format(true);
 		break;
 
@@ -387,8 +394,10 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 		values[channel] = value;
 	}
 
-	if (dsm_channel_shift == 11)
+	if (dsm_channel_shift == 11) {
+		/* Set the 11-bit data indicator */
 		*num_values |= 0x8000;
+	}
 
 	/*
 	 * XXX Note that we may be in failsafe here; we need to work out how to detect that.
@@ -412,7 +421,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
  * Upon receiving a full dsm frame we attempt to decode it.
  *
  * @param[out] values pointer to per channel array of decoded values
- * @param[out] num_values pointer to number of raw channel values returned
+ * @param[out] num_values pointer to number of raw channel values returned, high order bit 0:10 bit data, 1:11 bit data
  * @return true=decoded raw channel values updated, false=no update
  */
 bool
