@@ -182,6 +182,42 @@ then
 		sh /etc/init.d/16_3dr_iris
 		set MODE custom
 	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame
+	if param compare SYS_AUTOSTART 17
+	then
+		set MKBLCTRL_MODE no
+		set MKBLCTRL_FRAME x
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame
+	if param compare SYS_AUTOSTART 18
+	then
+		set MKBLCTRL_MODE no
+		set MKBLCTRL_FRAME +
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame Mikrokopter-Addressing
+	if param compare SYS_AUTOSTART 19
+	then
+		set MKBLCTRL_MODE yes
+		set MKBLCTRL_FRAME x
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame Mikrokopter-Addressing
+	if param compare SYS_AUTOSTART 20
+	then
+		set MKBLCTRL_MODE yes
+		set MKBLCTRL_FRAME +
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
 	
 	if param compare SYS_AUTOSTART 30
 	then
