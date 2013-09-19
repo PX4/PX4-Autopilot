@@ -1,6 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: Julian Oes <joes@student.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +37,6 @@
  * @file rgbled.cpp
  *
  * Driver for the onboard RGB LED controller (TCA62724FMG) connected via I2C.
- *
  *
  */
 
