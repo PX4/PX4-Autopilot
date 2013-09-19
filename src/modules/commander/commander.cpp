@@ -5,6 +5,7 @@
  *           Lorenz Meier <lm@inf.ethz.ch>
  *           Thomas Gubler <thomasgubler@student.ethz.ch>
  *           Julian Oes <joes@student.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -198,7 +199,7 @@ void handle_command(struct vehicle_status_s *status, struct vehicle_control_mode
  */
 int commander_thread_main(int argc, char *argv[]);
 
-void toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed);
+void control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed);
 
 void check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *valid_out, bool *changed);
 
@@ -650,7 +651,6 @@ int commander_thread_main(int argc, char *argv[])
 	bool critical_battery_voltage_actions_done = false;
 
 	uint64_t last_idle_time = 0;
-
 	uint64_t start_time = 0;
 
 	bool status_changed = true;
@@ -728,7 +728,7 @@ int commander_thread_main(int argc, char *argv[])
 	struct subsystem_info_s info;
 	memset(&info, 0, sizeof(info));
 
-	toggle_status_leds(&status, &armed, true);
+	control_status_leds(&status, &armed, true);
 
 	/* now initialized */
 	commander_initialized = true;
@@ -950,11 +950,9 @@ int commander_thread_main(int argc, char *argv[])
 				battery_tune_played = false;
 
 				if (armed.armed) {
-					// XXX not sure what should happen when voltage is low in flight
-					//arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
+					arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
 				} else {
-					// XXX should we still allow to arm with critical battery?
-					//arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed);
+					arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed);
 				}
 
 				status_changed = true;
@@ -1166,9 +1164,6 @@ int commander_thread_main(int argc, char *argv[])
 		if (arming_state_changed || main_state_changed || navigation_state_changed) {
 			mavlink_log_info(mavlink_fd, "[cmd] state: arm %d, main %d, nav %d", status.arming_state, status.main_state, status.navigation_state);
 			status_changed = true;
-
-		} else {
-			status_changed = false;
 		}
 
 		hrt_abstime t1 = hrt_absolute_time();
@@ -1228,7 +1223,19 @@ int commander_thread_main(int argc, char *argv[])
 		fflush(stdout);
 		counter++;
 
-		toggle_status_leds(&status, &armed, arming_state_changed || status_changed);
+		int blink_state = blink_msg_state();
+		if (blink_state > 0) {
+			/* blinking LED message, don't touch LEDs */
+			if (blink_state == 2) {
+				/* blinking LED message completed, restore normal state */
+				control_status_leds(&status, &armed, true);
+			}
+		} else {
+			/* normal state */
+			control_status_leds(&status, &armed, status_changed);
+		}
+
+		status_changed = false;
 
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}
@@ -1276,8 +1283,48 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 }
 
 void
-toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed)
+control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed)
 {
+	/* driving rgbled */
+	if (changed) {
+		bool set_normal_color = false;
+		/* set mode */
+		if (status->arming_state == ARMING_STATE_ARMED) {
+			rgbled_set_mode(RGBLED_MODE_ON);
+			set_normal_color = true;
+
+		} else if (status->arming_state == ARMING_STATE_ARMED_ERROR) {
+			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+			rgbled_set_color(RGBLED_COLOR_RED);
+
+		} else if (status->arming_state == ARMING_STATE_STANDBY) {
+			rgbled_set_mode(RGBLED_MODE_BREATHE);
+			set_normal_color = true;
+
+		} else {	// STANDBY_ERROR and other states
+			rgbled_set_mode(RGBLED_MODE_BLINK_NORMAL);
+			rgbled_set_color(RGBLED_COLOR_RED);
+		}
+
+		if (set_normal_color) {
+			/* set color */
+			if (status->battery_warning != VEHICLE_BATTERY_WARNING_NONE) {
+				if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
+					rgbled_set_color(RGBLED_COLOR_AMBER);
+				}
+				/* VEHICLE_BATTERY_WARNING_CRITICAL handled as ARMING_STATE_ARMED_ERROR / ARMING_STATE_STANDBY_ERROR */
+
+			} else {
+				if (status->condition_local_position_valid) {
+					rgbled_set_color(RGBLED_COLOR_GREEN);
+
+				} else {
+					rgbled_set_color(RGBLED_COLOR_BLUE);
+				}
+			}
+		}
+	}
+
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
@@ -1297,54 +1344,6 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 	}
 
 #endif
-
-	if (changed) {
-		/* XXX TODO blink fast when armed and serious error occurs */
-
-		if (armed->armed) {
-			rgbled_set_mode(RGBLED_MODE_ON);
-
-		} else if (armed->ready_to_arm) {
-			rgbled_set_mode(RGBLED_MODE_BREATHE);
-
-		} else {
-			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
-		}
-	}
-
-	if (status->battery_warning != VEHICLE_BATTERY_WARNING_NONE) {
-		switch (status->battery_warning) {
-		case VEHICLE_BATTERY_WARNING_LOW:
-			rgbled_set_color(RGBLED_COLOR_YELLOW);
-			break;
-
-		case VEHICLE_BATTERY_WARNING_CRITICAL:
-			rgbled_set_color(RGBLED_COLOR_AMBER);
-			break;
-
-		default:
-			break;
-		}
-
-	} else {
-		switch (status->main_state) {
-		case MAIN_STATE_MANUAL:
-			rgbled_set_color(RGBLED_COLOR_WHITE);
-			break;
-
-		case MAIN_STATE_SEATBELT:
-		case MAIN_STATE_EASY:
-			rgbled_set_color(RGBLED_COLOR_GREEN);
-			break;
-
-		case MAIN_STATE_AUTO:
-			rgbled_set_color(RGBLED_COLOR_BLUE);
-			break;
-
-		default:
-			break;
-		}
-	}
 
 	/* give system warnings on error LED, XXX maybe add memory usage warning too */
 	if (status->load > 0.95f) {

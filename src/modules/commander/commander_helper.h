@@ -62,6 +62,7 @@ int tune_arm(void);
 int tune_low_bat(void);
 int tune_critical_bat(void);
 void tune_stop(void);
+int blink_msg_state();
 
 int led_init(void);
 void led_deinit(void);
@@ -70,9 +71,7 @@ int led_on(int led);
 int led_off(int led);
 
 void rgbled_set_color(rgbled_color_t color);
-
 void rgbled_set_mode(rgbled_mode_t mode);
-
 void rgbled_set_pattern(rgbled_pattern_t *pattern);
 
 /**
