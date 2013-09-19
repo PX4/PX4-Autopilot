@@ -95,8 +95,7 @@ static void usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	fprintf(stderr,
-		"usage: position_estimator_inav {start|stop|status} [-v]\n\n");
+	fprintf(stderr, "usage: position_estimator_inav {start|stop|status} [-v]\n\n");
 	exit(1);
 }
 
@@ -115,7 +114,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 		if (thread_running) {
-			printf("position_estimator_inav already running\n");
+			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
@@ -135,16 +134,23 @@ int position_estimator_inav_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
+		if (thread_running) {
+			warnx("stop");
+			thread_should_exit = true;
+
+		} else {
+			warnx("app not started");
+		}
+
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tposition_estimator_inav is running\n");
+			warnx("app is running");
 
 		} else {
-			printf("\tposition_estimator_inav not started\n");
+			warnx("app not started");
 		}
 
 		exit(0);
@@ -159,7 +165,7 @@ int position_estimator_inav_main(int argc, char *argv[])
  ****************************************************************************/
 int position_estimator_inav_thread_main(int argc, char *argv[])
 {
-	warnx("started.");
+	warnx("started");
 	int mavlink_fd;
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	mavlink_log_info(mavlink_fd, "[inav] started");
@@ -168,6 +174,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float x_est[3] = { 0.0f, 0.0f, 0.0f };
 	float y_est[3] = { 0.0f, 0.0f, 0.0f };
 	float z_est[3] = { 0.0f, 0.0f, 0.0f };
+
+	float acc_offs[3] = { 0.0f, 0.0f, 0.0f };
 
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
@@ -268,7 +276,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	bool ref_xy_inited = false;
 	hrt_abstime ref_xy_init_start = 0;
-	const hrt_abstime ref_xy_init_delay = 5000000;	// wait for 5s after 3D fix
+	const hrt_abstime ref_xy_init_delay = 1000000;	// wait for 1s after 3D fix
 
 	hrt_abstime t_prev = 0;
 
@@ -299,6 +307,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float sonar_prev = 0.0f;
 	hrt_abstime sonar_time = 0;
 
+	bool gps_valid = false;
+
 	/* main loop */
 	struct pollfd fds[7] = {
 		{ .fd = parameter_update_sub, .events = POLLIN },
@@ -311,7 +321,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	};
 
 	if (!thread_should_exit) {
-		warnx("main loop started.");
+		warnx("main loop started");
 	}
 
 	while (!thread_should_exit) {
@@ -428,32 +438,29 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* vehicle GPS position */
 			if (fds[6].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
+				/* require EPH < 10m */
+				gps_valid = gps.fix_type >= 3 && gps.eph_m < 10.0f && t < gps.timestamp_position + gps_timeout;
 
-				if (gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout) {
+				if (gps_valid) {
 					/* initialize reference position if needed */
 					if (!ref_xy_inited) {
-						/* require EPH < 10m */
-						if (gps.eph_m < 10.0f) {
-							if (ref_xy_init_start == 0) {
-								ref_xy_init_start = t;
+						if (ref_xy_init_start == 0) {
+							ref_xy_init_start = t;
 
-							} else if (t > ref_xy_init_start + ref_xy_init_delay) {
-								ref_xy_inited = true;
-								/* reference GPS position */
-								double lat = gps.lat * 1e-7;
-								double lon = gps.lon * 1e-7;
+						} else if (t > ref_xy_init_start + ref_xy_init_delay) {
+							ref_xy_inited = true;
+							/* reference GPS position */
+							double lat = gps.lat * 1e-7;
+							double lon = gps.lon * 1e-7;
 
-								local_pos.ref_lat = gps.lat;
-								local_pos.ref_lon = gps.lon;
-								local_pos.ref_timestamp = t;
+							local_pos.ref_lat = gps.lat;
+							local_pos.ref_lon = gps.lon;
+							local_pos.ref_timestamp = t;
 
-								/* initialize projection */
-								map_projection_init(lat, lon);
-								warnx("init GPS: lat = %.10f,  lon = %.10f", lat, lon);
-								mavlink_log_info(mavlink_fd, "[inav] init GPS: %.7f, %.7f", lat, lon);
-							}
-						} else {
-							ref_xy_init_start = 0;
+							/* initialize projection */
+							map_projection_init(lat, lon);
+							warnx("init GPS: lat = %.10f, lon = %.10f", lat, lon);
+							mavlink_log_info(mavlink_fd, "[inav] init GPS: %.7f, %.7f", lat, lon);
 						}
 					}
 
@@ -513,23 +520,28 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		inertial_filter_correct(sonar_corr, dt, z_est, 0, params.w_alt_sonar);
 		inertial_filter_correct(accel_corr[2], dt, z_est, 2, params.w_alt_acc);
 
-		bool gps_valid = ref_xy_inited && gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout;
-		bool flow_valid = false;	// TODO implement opt flow
+		bool use_gps = ref_xy_inited && gps_valid;
+		bool use_flow = false;	// TODO implement opt flow
 
 		/* try to estimate xy even if no absolute position source available,
 		 * if using optical flow velocity will be correct in this case */
-		bool can_estimate_xy = gps_valid || flow_valid;
+		bool can_estimate_xy = use_gps || use_flow;
 
 		if (can_estimate_xy) {
 			/* inertial filter prediction for position */
 			inertial_filter_predict(dt, x_est);
 			inertial_filter_predict(dt, y_est);
 
+			if (!isfinite(x_est[0]) || !isfinite(y_est[0])) {
+				warnx("BAD ESTIMATE PRED %.6f x: %.3f %.3f %.3f y: %.3f %.3f %.3f", dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2]);
+				thread_should_exit = true;
+			}
+
 			/* inertial filter correction for position */
 			inertial_filter_correct(accel_corr[0], dt, x_est, 2, params.w_pos_acc);
 			inertial_filter_correct(accel_corr[1], dt, y_est, 2, params.w_pos_acc);
 
-			if (gps_valid) {
+			if (use_gps) {
 				inertial_filter_correct(gps_corr[0][0], dt, x_est, 0, params.w_pos_gps_p);
 				inertial_filter_correct(gps_corr[1][0], dt, y_est, 0, params.w_pos_gps_p);
 
@@ -537,6 +549,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					inertial_filter_correct(gps_corr[0][1], dt, x_est, 1, params.w_pos_gps_v);
 					inertial_filter_correct(gps_corr[1][1], dt, y_est, 1, params.w_pos_gps_v);
 				}
+			}
+
+			if (!isfinite(x_est[0]) || !isfinite(y_est[0])) {
+				warnx("BAD ESTIMATE CORR dt: %.6f x: %.3f %.3f %.3f y: %.3f %.3f %.3f", dt, x_est[0], x_est[1], x_est[2], y_est[0], y_est[1], y_est[2]);
+				warnx("BAD ESTIMATE CORR acc: %.3f %.3f gps x: %.3f %.3f gps y: %.3f %.3f", accel_corr[0], accel_corr[1], gps_corr[0][0], gps_corr[0][1], gps_corr[1][0], gps_corr[1][1]);
+				thread_should_exit = true;
 			}
 		}
 
@@ -595,9 +613,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			pub_last = t;
 			/* publish local position */
 			local_pos.timestamp = t;
-			local_pos.xy_valid = can_estimate_xy && gps_valid;
+			local_pos.xy_valid = can_estimate_xy && use_gps;
 			local_pos.v_xy_valid = can_estimate_xy;
-			local_pos.xy_global = local_pos.xy_valid && gps_valid;	// will make sense when local position sources (e.g. vicon) will be implemented
+			local_pos.xy_global = local_pos.xy_valid && use_gps;	// will make sense when local position sources (e.g. vicon) will be implemented
 			local_pos.x = x_est[0];
 			local_pos.vx = x_est[1];
 			local_pos.y = y_est[0];
@@ -637,17 +655,19 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.v_z_valid) {
 				global_pos.vz = local_pos.vz;
 			}
+
 			global_pos.yaw = local_pos.yaw;
 
 			global_pos.timestamp = t;
 
 			orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &global_pos);
 		}
+
 		flag_armed = armed.armed;
 	}
 
-	warnx("exiting.");
-	mavlink_log_info(mavlink_fd, "[inav] exiting");
+	warnx("stopped");
+	mavlink_log_info(mavlink_fd, "[inav] stopped");
 	thread_running = false;
 	return 0;
 }
