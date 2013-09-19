@@ -241,8 +241,9 @@ RGBLED::led_trampoline(void *arg)
 	rgbl->led();
 }
 
-
-
+/**
+ * Main loop function
+ */
 void
 RGBLED::led()
 {
@@ -317,7 +318,7 @@ RGBLED::set_color(rgbled_color_t color)
 
 	case RGBLED_COLOR_YELLOW:
 		_r = 255;
-		_g = 70;
+		_g = 200;
 		_b = 0;
 		break;
 
@@ -347,7 +348,7 @@ RGBLED::set_color(rgbled_color_t color)
 
 	case RGBLED_COLOR_AMBER:
 		_r = 255;
-		_g = 20;
+		_g = 80;
 		_b = 0;
 		break;
 
@@ -399,84 +400,91 @@ RGBLED::set_color(rgbled_color_t color)
 	}
 }
 
+/**
+ * Set mode, if mode not changed has no any effect (doesn't reset blinks phase)
+ */
 void
 RGBLED::set_mode(rgbled_mode_t mode)
 {
-	_mode = mode;
-	bool should_run = false;
+	if (mode != _mode) {
+		_mode = mode;
+		bool should_run = false;
 
-	switch (mode) {
-	case RGBLED_MODE_OFF:
-		send_led_enable(false);
-		break;
+		switch (mode) {
+		case RGBLED_MODE_OFF:
+			send_led_enable(false);
+			break;
 
-	case RGBLED_MODE_ON:
-		_brightness = 1.0f;
-		send_led_rgb();
-		send_led_enable(true);
-		break;
+		case RGBLED_MODE_ON:
+			_brightness = 1.0f;
+			send_led_rgb();
+			send_led_enable(true);
+			break;
 
-	case RGBLED_MODE_BLINK_SLOW:
-		should_run = true;
-		_counter = 0;
-		_led_interval = 2000;
-		_brightness = 1.0f;
-		send_led_rgb();
-		break;
+		case RGBLED_MODE_BLINK_SLOW:
+			should_run = true;
+			_counter = 0;
+			_led_interval = 2000;
+			_brightness = 1.0f;
+			send_led_rgb();
+			break;
 
-	case RGBLED_MODE_BLINK_NORMAL:
-		should_run = true;
-		_counter = 0;
-		_led_interval = 500;
-		_brightness = 1.0f;
-		send_led_rgb();
-		break;
+		case RGBLED_MODE_BLINK_NORMAL:
+			should_run = true;
+			_counter = 0;
+			_led_interval = 500;
+			_brightness = 1.0f;
+			send_led_rgb();
+			break;
 
-	case RGBLED_MODE_BLINK_FAST:
-		should_run = true;
-		_counter = 0;
-		_led_interval = 100;
-		_brightness = 1.0f;
-		send_led_rgb();
-		break;
+		case RGBLED_MODE_BLINK_FAST:
+			should_run = true;
+			_counter = 0;
+			_led_interval = 100;
+			_brightness = 1.0f;
+			send_led_rgb();
+			break;
 
-	case RGBLED_MODE_BREATHE:
-		should_run = true;
-		_counter = 0;
-		_led_interval = 25;
-		send_led_enable(true);
-		break;
+		case RGBLED_MODE_BREATHE:
+			should_run = true;
+			_counter = 0;
+			_led_interval = 25;
+			send_led_enable(true);
+			break;
 
-	case RGBLED_MODE_PATTERN:
-		should_run = true;
-		_counter = 0;
-		_brightness = 1.0f;
-		send_led_enable(true);
-		break;
+		case RGBLED_MODE_PATTERN:
+			should_run = true;
+			_counter = 0;
+			_brightness = 1.0f;
+			send_led_enable(true);
+			break;
 
-	default:
-		warnx("mode unknown");
-		break;
-	}
+		default:
+			warnx("mode unknown");
+			break;
+		}
 
-	/* if it should run now, start the workq */
-	if (should_run && !_running) {
-		_running = true;
-		work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
-	}
+		/* if it should run now, start the workq */
+		if (should_run && !_running) {
+			_running = true;
+			work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
+		}
 
-	/* if it should stop, then cancel the workq */
-	if (!should_run && _running) {
-		_running = false;
-		work_cancel(LPWORK, &_work);
+		/* if it should stop, then cancel the workq */
+		if (!should_run && _running) {
+			_running = false;
+			work_cancel(LPWORK, &_work);
+		}
 	}
 }
 
+/**
+ * Set pattern for PATTERN mode, but don't change current mode
+ */
 void
 RGBLED::set_pattern(rgbled_pattern_t *pattern)
 {
 	memcpy(&_pattern, pattern, sizeof(rgbled_pattern_t));
-	set_mode(RGBLED_MODE_PATTERN);
 }
 
 /**
@@ -622,7 +630,7 @@ rgbled_main(int argc, char *argv[])
 		}
 
 		rgbled_pattern_t pattern = { {RGBLED_COLOR_RED, RGBLED_COLOR_GREEN, RGBLED_COLOR_BLUE, RGBLED_COLOR_WHITE, RGBLED_COLOR_OFF, RGBLED_COLOR_OFF},
-			{500, 500, 500, 500, 1000, 0 }
+			{500, 500, 500, 500, 1000, 0 }	// "0" indicates end of pattern
 		};
 
 		ret = ioctl(fd, RGBLED_SET_PATTERN, (unsigned long)&pattern);
