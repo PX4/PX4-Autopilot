@@ -111,9 +111,7 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_configgpio(GPIO_BTN_SAFETY);
 
-	/* spektrum power enable is active high - disable it by default */
-	/* XXX might not want to do this on warm restart? */
-	stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, false);
+	/* spektrum power enable is active high - enable it by default */
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
 	stm32_configgpio(GPIO_SERVO_FAULT_DETECT);
