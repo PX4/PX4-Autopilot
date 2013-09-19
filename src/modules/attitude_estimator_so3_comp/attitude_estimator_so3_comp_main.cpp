@@ -236,7 +236,7 @@ void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, fl
 	}
         	
 	//! If magnetometer measurement is available, use it.
-	if((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
+	if((mx != 0.0f) && (my != 0.0f) && (mz != 0.0f)) {
 		float hx, hy, hz, bx, bz;
 		float halfwx, halfwy, halfwz;
 	
