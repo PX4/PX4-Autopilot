@@ -48,6 +48,7 @@
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <errno.h>
+#include <semaphore.h>
 
 #include <sys/stat.h>
 
@@ -95,18 +96,20 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
 
+static sem_t param_sem = { .semcount = 1 };
+
 /** lock the parameter store */
 static void
 param_lock(void)
 {
-	/* XXX */
+	//do {} while (sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-	/* XXX */
+	//sem_post(&param_sem);
 }
 
 /** assert that the parameter store is locked */
@@ -519,6 +522,10 @@ param_save_default(void)
 	int fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
 
 	if (fd < 0) {
+		/* do another attempt in case the unlink call is not synced yet */
+		usleep(5000);
+		fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
+
 		warn("opening '%s' for writing failed", param_get_default_file());
 		return fd;
 	}
@@ -528,7 +535,7 @@ param_save_default(void)
 
 	if (result != 0) {
 		warn("error exporting parameters to '%s'", param_get_default_file());
-		unlink(param_get_default_file());
+		(void)unlink(param_get_default_file());
 		return result;
 	}
 

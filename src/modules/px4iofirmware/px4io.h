@@ -100,7 +100,9 @@ extern uint16_t			r_page_servo_idle[];	/* PX4IO_PAGE_IDLE_PWM */
 #define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
 #define r_setup_pwm_defaultrate	r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
 #define r_setup_pwm_altrate	r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 #define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
+#endif
 
 #define r_control_values	(&r_page_controls[0])
 

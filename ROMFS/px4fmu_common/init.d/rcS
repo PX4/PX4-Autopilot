@@ -84,7 +84,12 @@ then
 		param select /fs/microsd/params
 		if [ -f /fs/microsd/params ]
 		then
-			param load /fs/microsd/params
+			if param load /fs/microsd/params
+			then
+				echo "Parameters loaded"
+			else
+				echo "Parameter file corrupt - ignoring"
+			fi
 		fi
 	#fi
 	
@@ -106,8 +111,13 @@ then
 		sh /etc/init.d/1000_rc.hil
 		set MODE custom
 	else
-		# Try to get an USB console
-		nshterm /dev/ttyACM0 &
+		if param compare SYS_AUTOSTART 1001
+		then
+			sh /etc/init.d/1001_rc_quad.hil
+		else
+			# Try to get an USB console
+			nshterm /dev/ttyACM0 &
+		fi
 	fi
 	
 	#
@@ -170,6 +180,42 @@ then
 	if param compare SYS_AUTOSTART 16
 	then
 		sh /etc/init.d/16_3dr_iris
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame
+	if param compare SYS_AUTOSTART 17
+	then
+		set MKBLCTRL_MODE no
+		set MKBLCTRL_FRAME x
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame
+	if param compare SYS_AUTOSTART 18
+	then
+		set MKBLCTRL_MODE no
+		set MKBLCTRL_FRAME +
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame Mikrokopter-Addressing
+	if param compare SYS_AUTOSTART 19
+	then
+		set MKBLCTRL_MODE yes
+		set MKBLCTRL_FRAME x
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame Mikrokopter-Addressing
+	if param compare SYS_AUTOSTART 20
+	then
+		set MKBLCTRL_MODE yes
+		set MKBLCTRL_FRAME +
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
 		set MODE custom
 	fi
 	

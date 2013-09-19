@@ -163,7 +163,9 @@ int do_gyro_calibration(int mavlink_fd)
 		return ERROR;
 	}
 
+	mavlink_log_info(mavlink_fd, "offset calibration done.");
 
+#if 0
 	/*** --- SCALING --- ***/
 
 	mavlink_log_info(mavlink_fd, "offset done. Rotate for scale 30x or wait 5s to skip.");
@@ -241,9 +243,14 @@ int do_gyro_calibration(int mavlink_fd)
 	}
 
 	float gyro_scale = baseline_integral / gyro_integral;
-	float gyro_scales[] = { gyro_scale, gyro_scale, gyro_scale };
+	
 	warnx("gyro scale: yaw (z): %6.4f", (double)gyro_scale);
 	mavlink_log_info(mavlink_fd, "gyro scale: yaw (z): %6.4f", (double)gyro_scale);
+#else
+	float gyro_scales[] = { 1.0f, 1.0f, 1.0f };
+#endif
+
+	
 
 
 	if (isfinite(gyro_scales[0]) && isfinite(gyro_scales[1]) && isfinite(gyro_scales[2])) {
@@ -277,9 +284,6 @@ int do_gyro_calibration(int mavlink_fd)
 			warn("WARNING: auto-save of params to storage failed");
 		}
 
-		// char buf[50];
-		// sprintf(buf, "cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
-		// mavlink_log_info(mavlink_fd, buf);
 		mavlink_log_info(mavlink_fd, "gyro calibration done");
 
 		/* third beep by cal end routine */
