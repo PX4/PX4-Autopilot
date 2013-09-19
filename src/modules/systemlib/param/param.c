@@ -102,14 +102,14 @@ static sem_t param_sem = { .semcount = 1 };
 static void
 param_lock(void)
 {
-	do {} while (sem_wait(&param_sem) != 0);
+	//do {} while (sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-	sem_post(&param_sem);
+	//sem_post(&param_sem);
 }
 
 /** assert that the parameter store is locked */
