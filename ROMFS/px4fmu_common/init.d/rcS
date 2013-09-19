@@ -84,7 +84,12 @@ then
 		param select /fs/microsd/params
 		if [ -f /fs/microsd/params ]
 		then
-			param load /fs/microsd/params
+			if param load /fs/microsd/params
+			then
+				echo "Parameters loaded"
+			else
+				echo "Parameter file corrupt - ignoring"
+			fi
 		fi
 	#fi
 	
