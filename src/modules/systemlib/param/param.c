@@ -96,20 +96,20 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
 
-static sem_t param_lock = { .semcount = 1 };
+static sem_t param_sem = { .semcount = 1 };
 
 /** lock the parameter store */
 static void
 param_lock(void)
 {
-	do {} while (sem_wait(&param_lock) != 0);
+	do {} while (sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-	sem_post(&param_lock);
+	sem_post(&param_sem);
 }
 
 /** assert that the parameter store is locked */
