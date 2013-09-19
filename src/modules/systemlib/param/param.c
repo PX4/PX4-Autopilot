@@ -48,6 +48,7 @@
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <errno.h>
+#include <semaphore.h>
 
 #include <sys/stat.h>
 
@@ -95,18 +96,20 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
 
+static sem_t param_lock = { .semcount = 1 };
+
 /** lock the parameter store */
 static void
 param_lock(void)
 {
-	/* XXX */
+	do {} while (sem_wait(&param_lock) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-	/* XXX */
+	sem_post(&param_lock);
 }
 
 /** assert that the parameter store is locked */
