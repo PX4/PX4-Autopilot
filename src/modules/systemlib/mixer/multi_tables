@@ -85,7 +85,7 @@ set octa_cox {
 	-135 CW
 }
 
-set tables {quad_x quad_plus quad_v quad_wide hex_x hex_plus octa_x octa_plus}
+set tables {quad_x quad_plus quad_v quad_wide hex_x hex_plus octa_x octa_plus octa_cox}
 
 proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %5.2f }," [rcos [expr $a + 90]] [rcos $a] [expr -$d]]}
 
