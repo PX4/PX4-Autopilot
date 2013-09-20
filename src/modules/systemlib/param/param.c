@@ -509,31 +509,57 @@ int
 param_save_default(void)
 {
 	int result;
+	unsigned retries = 0;
 
 	/* delete the file in case it exists */
 	struct stat buffer;
 	if (stat(param_get_default_file(), &buffer) == 0) {
-		result = unlink(param_get_default_file());
+
+		do {
+			result = unlink(param_get_default_file());
+			if (result != 0) {
+				retries++;
+				usleep(1000 * retries);
+			}
+		} while (result != OK && retries < 10);
+
 		if (result != OK)
 			warnx("unlinking file %s failed.", param_get_default_file());
 	}
 
 	/* create the file */
-	int fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
+	int fd;
+
+	do {
+		/* do another attempt in case the unlink call is not synced yet */
+		fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
+		if (fd < 0) {
+			retries++;
+			usleep(1000 * retries);
+		}
+
+	} while (fd < 0 && retries < 10);
 
 	if (fd < 0) {
-		/* do another attempt in case the unlink call is not synced yet */
-		usleep(5000);
-		fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
-
+		
 		warn("opening '%s' for writing failed", param_get_default_file());
 		return fd;
 	}
 
-	result = param_export(fd, false);
+	do {
+		result = param_export(fd, false);
+
+		if (result != OK) {
+			retries++;
+			usleep(1000 * retries);
+		}
+
+	} while (result != 0 && retries < 10);
+
+
 	close(fd);
 
-	if (result != 0) {
+	if (result != OK) {
 		warn("error exporting parameters to '%s'", param_get_default_file());
 		(void)unlink(param_get_default_file());
 		return result;
