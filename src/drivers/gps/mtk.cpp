@@ -48,9 +48,9 @@
 
 
 MTK::MTK(const int &fd, struct vehicle_gps_position_s *gps_position) :
-_fd(fd),
-_gps_position(gps_position),
-_mtk_revision(0)
+	_fd(fd),
+	_gps_position(gps_position),
+	_mtk_revision(0)
 {
 	decode_init();
 }
@@ -73,24 +73,28 @@ MTK::configure(unsigned &baudrate)
 		warnx("mtk: config write failed");
 		return -1;
 	}
+
 	usleep(10000);
 
 	if (strlen(MTK_SET_BINARY) != write(_fd, MTK_SET_BINARY, strlen(MTK_SET_BINARY))) {
 		warnx("mtk: config write failed");
 		return -1;
 	}
+
 	usleep(10000);
 
 	if (strlen(SBAS_ON) != write(_fd, SBAS_ON, strlen(SBAS_ON))) {
 		warnx("mtk: config write failed");
 		return -1;
 	}
+
 	usleep(10000);
 
 	if (strlen(WAAS_ON) != write(_fd, WAAS_ON, strlen(WAAS_ON))) {
 		warnx("mtk: config write failed");
 		return -1;
 	}
+
 	usleep(10000);
 
 	if (strlen(MTK_NAVTHRES_OFF) != write(_fd, MTK_NAVTHRES_OFF, strlen(MTK_NAVTHRES_OFF))) {
@@ -128,12 +132,15 @@ MTK::receive(unsigned timeout)
 					handle_message(packet);
 					return 1;
 				}
+
 				/* in case we keep trying but only get crap from GPS */
-				if (time_started + timeout*1000 < hrt_absolute_time() ) {
+				if (time_started + timeout * 1000 < hrt_absolute_time()) {
 					return -1;
 				}
+
 				j++;
 			}
+
 			/* everything is read */
 			j = count = 0;
 		}
@@ -181,6 +188,7 @@ MTK::parse_char(uint8_t b, gps_mtk_packet_t &packet)
 		if (b == MTK_SYNC1_V16) {
 			_decode_state = MTK_DECODE_GOT_CK_A;
 			_mtk_revision = 16;
+
 		} else if (b == MTK_SYNC1_V19) {
 			_decode_state = MTK_DECODE_GOT_CK_A;
 			_mtk_revision = 19;
@@ -201,7 +209,7 @@ MTK::parse_char(uint8_t b, gps_mtk_packet_t &packet)
 			add_byte_to_checksum(b);
 
 		// Fill packet buffer
-		((uint8_t*)(&packet))[_rx_count] = b;
+		((uint8_t *)(&packet))[_rx_count] = b;
 		_rx_count++;
 
 		/* Packet size minus checksum, XXX ? */
@@ -209,14 +217,17 @@ MTK::parse_char(uint8_t b, gps_mtk_packet_t &packet)
 			/* Compare checksum */
 			if (_rx_ck_a == packet.ck_a && _rx_ck_b == packet.ck_b) {
 				ret = 1;
+
 			} else {
 				warnx("MTK Checksum invalid");
 				ret = -1;
 			}
+
 			// Reset state machine to decode next packet
 			decode_init();
 		}
 	}
+
 	return ret;
 }
 
@@ -226,19 +237,22 @@ MTK::handle_message(gps_mtk_packet_t &packet)
 	if (_mtk_revision == 16) {
 		_gps_position->lat = packet.latitude * 10; // from degrees*1e6 to degrees*1e7
 		_gps_position->lon = packet.longitude * 10; // from degrees*1e6 to degrees*1e7
+
 	} else if (_mtk_revision == 19) {
 		_gps_position->lat = packet.latitude; // both degrees*1e7
 		_gps_position->lon = packet.longitude; // both degrees*1e7
+
 	} else {
 		warnx("mtk: unknown revision");
 		_gps_position->lat = 0;
 		_gps_position->lon = 0;
 	}
+
 	_gps_position->alt = (int32_t)(packet.msl_altitude * 10); // from cm to mm
 	_gps_position->fix_type = packet.fix_type;
 	_gps_position->eph_m = packet.hdop; // XXX: Check this because eph_m is in m and hdop is without unit
 	_gps_position->epv_m = 0.0; //unknown in mtk custom mode
-	_gps_position->vel_m_s = ((float)packet.ground_speed)*1e-2f; // from cm/s to m/s
+	_gps_position->vel_m_s = ((float)packet.ground_speed) * 1e-2f; // from cm/s to m/s
 	_gps_position->cog_rad = ((float)packet.heading) * M_DEG_TO_RAD_F * 1e-2f; //from deg *100 to rad
 	_gps_position->satellites_visible = packet.satellites;
 
