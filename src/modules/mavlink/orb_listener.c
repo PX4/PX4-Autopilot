@@ -99,6 +99,8 @@ struct listener {
 	uintptr_t	arg;
 };
 
+uint16_t cm_uint16_from_m_float(float m);
+
 static void	l_sensor_combined(const struct listener *l);
 static void	l_vehicle_attitude(const struct listener *l);
 static void	l_vehicle_gps_position(const struct listener *l);
@@ -149,6 +151,19 @@ static const struct listener listeners[] = {
 };
 
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
+
+uint16_t
+cm_uint16_from_m_float(float m)
+{
+	if (m < 0.0f) {
+		return 0;
+
+	} else if (m > 655.35f) {
+		return 65535;
+	}
+
+	return m * 0.01f;
+}
 
 void
 l_sensor_combined(const struct listener *l)
@@ -235,8 +250,10 @@ l_vehicle_gps_position(const struct listener *l)
 
 	/* GPS COG is 0..2PI in degrees * 1e2 */
 	float cog_deg = gps.cog_rad;
+
 	if (cog_deg > M_PI_F)
 		cog_deg -= 2.0f * M_PI_F;
+
 	cog_deg *= M_RAD_TO_DEG_F;
 
 
@@ -247,10 +264,10 @@ l_vehicle_gps_position(const struct listener *l)
 				     gps.lat,
 				     gps.lon,
 				     gps.alt,
-				     gps.eph_m * 1e2f, // from m to cm
-				     gps.epv_m * 1e2f, // from m to cm
+				     cm_uint16_from_m_float(gps.eph_m),
+				     cm_uint16_from_m_float(gps.epv_m),
 				     gps.vel_m_s * 1e2f, // from m/s to cm/s
-				     cog_deg * 1e2f, // from rad to deg * 100
+				     cog_deg * 1e2f, // from deg to deg * 100
 				     gps.satellites_visible);
 
 	/* update SAT info every 10 seconds */
