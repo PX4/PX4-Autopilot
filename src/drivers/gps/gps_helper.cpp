@@ -87,13 +87,15 @@ GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 
 	case 115200: speed = B115200; break;
 
-	warnx("try baudrate: %d\n", speed);
+		warnx("try baudrate: %d\n", speed);
 
 	default:
 		warnx("ERROR: Unsupported baudrate: %d\n", baud);
 		return -EINVAL;
 	}
+
 	struct termios uart_config;
+
 	int termios_state;
 
 	/* fill the struct for the new configuration */
@@ -109,14 +111,17 @@ GPS_Helper::set_baudrate(const int &fd, unsigned baud)
 		warnx("ERROR setting config: %d (cfsetispeed)\n", termios_state);
 		return -1;
 	}
+
 	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
 		warnx("ERROR setting config: %d (cfsetospeed)\n", termios_state);
 		return -1;
 	}
+
 	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
 		warnx("ERROR setting baudrate (tcsetattr)\n");
 		return -1;
 	}
+
 	/* XXX if resetting the parser here, ensure it does exist (check for null pointer) */
 	return 0;
 }
