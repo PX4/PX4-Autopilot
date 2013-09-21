@@ -162,7 +162,7 @@ cm_uint16_from_m_float(float m)
 		return 65535;
 	}
 
-	return m * 0.01f;
+	return (uint16_t)(m * 100.0f);
 }
 
 void
