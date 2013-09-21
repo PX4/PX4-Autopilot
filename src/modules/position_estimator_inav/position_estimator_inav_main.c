@@ -170,12 +170,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 	mavlink_log_info(mavlink_fd, "[inav] started");
 
-	/* initialize values */
 	float x_est[3] = { 0.0f, 0.0f, 0.0f };
 	float y_est[3] = { 0.0f, 0.0f, 0.0f };
 	float z_est[3] = { 0.0f, 0.0f, 0.0f };
-
-	float acc_offs[3] = { 0.0f, 0.0f, 0.0f };
 
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
@@ -183,10 +180,46 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float alt_avg = 0.0f;
 	bool landed = true;
 	hrt_abstime landed_time = 0;
+
 	bool flag_armed = false;
 
 	uint32_t accel_counter = 0;
 	uint32_t baro_counter = 0;
+
+	bool ref_xy_inited = false;
+	hrt_abstime ref_xy_init_start = 0;
+	const hrt_abstime ref_xy_init_delay = 1000000;	// wait for 1s after 3D fix
+
+	uint16_t accel_updates = 0;
+	uint16_t baro_updates = 0;
+	uint16_t gps_updates = 0;
+	uint16_t attitude_updates = 0;
+	uint16_t flow_updates = 0;
+
+	hrt_abstime updates_counter_start = hrt_absolute_time();
+	hrt_abstime pub_last = hrt_absolute_time();
+
+	hrt_abstime t_prev = 0;
+
+	/* acceleration in NED frame */
+	float accel_NED[3] = { 0.0f, 0.0f, -CONSTANTS_ONE_G };
+
+	/* store error when sensor updates, but correct on each time step to avoid jumps in estimated value */
+	float accel_corr[] = { 0.0f, 0.0f, 0.0f };	// N E D
+	float accel_bias[] = { 0.0f, 0.0f, 0.0f };	// body frame
+	float baro_corr = 0.0f;		// D
+	float gps_corr[2][2] = {
+		{ 0.0f, 0.0f },		// N (pos, vel)
+		{ 0.0f, 0.0f },		// E (pos, vel)
+	};
+	float sonar_corr = 0.0f;
+	float sonar_corr_filtered = 0.0f;
+	float flow_corr[] = { 0.0f, 0.0f };	// X, Y
+
+	float sonar_prev = 0.0f;
+	hrt_abstime sonar_time = 0;
+
+	bool gps_valid = false;
 
 	/* declare and safely initialize all structs */
 	struct actuator_controls_s actuator;
@@ -273,41 +306,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		}
 	}
-
-	bool ref_xy_inited = false;
-	hrt_abstime ref_xy_init_start = 0;
-	const hrt_abstime ref_xy_init_delay = 1000000;	// wait for 1s after 3D fix
-
-	hrt_abstime t_prev = 0;
-
-	uint16_t accel_updates = 0;
-	uint16_t baro_updates = 0;
-	uint16_t gps_updates = 0;
-	uint16_t attitude_updates = 0;
-	uint16_t flow_updates = 0;
-
-	hrt_abstime updates_counter_start = hrt_absolute_time();
-	hrt_abstime pub_last = hrt_absolute_time();
-
-	/* acceleration in NED frame */
-	float accel_NED[3] = { 0.0f, 0.0f, -CONSTANTS_ONE_G };
-
-	/* store error when sensor updates, but correct on each time step to avoid jumps in estimated value */
-	float accel_corr[] = { 0.0f, 0.0f, 0.0f };	// N E D
-	float accel_bias[] = { 0.0f, 0.0f, 0.0f };	// body frame
-	float baro_corr = 0.0f;		// D
-	float gps_corr[2][2] = {
-		{ 0.0f, 0.0f },		// N (pos, vel)
-		{ 0.0f, 0.0f },		// E (pos, vel)
-	};
-	float sonar_corr = 0.0f;
-	float sonar_corr_filtered = 0.0f;
-	float flow_corr[] = { 0.0f, 0.0f };	// X, Y
-
-	float sonar_prev = 0.0f;
-	hrt_abstime sonar_time = 0;
-
-	bool gps_valid = false;
 
 	/* main loop */
 	struct pollfd fds[7] = {
@@ -524,7 +522,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_flow = false;	// TODO implement opt flow
 
 		/* try to estimate xy even if no absolute position source available,
-		 * if using optical flow velocity will be correct in this case */
+		 * if using optical flow velocity will be valid */
 		bool can_estimate_xy = use_gps || use_flow;
 
 		if (can_estimate_xy) {
@@ -612,7 +610,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		if (t > pub_last + pub_interval) {
 			pub_last = t;
 			/* publish local position */
-			local_pos.timestamp = t;
 			local_pos.xy_valid = can_estimate_xy && use_gps;
 			local_pos.v_xy_valid = can_estimate_xy;
 			local_pos.xy_global = local_pos.xy_valid && use_gps;	// will make sense when local position sources (e.g. vicon) will be implemented
@@ -624,6 +621,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.vz = z_est[1];
 			local_pos.landed = landed;
 			local_pos.yaw = att.yaw;
+
+			local_pos.timestamp = t;
 
 			orb_publish(ORB_ID(vehicle_local_position), vehicle_local_position_pub, &local_pos);
 
