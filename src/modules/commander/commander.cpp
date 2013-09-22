@@ -824,16 +824,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		check_valid(diff_pres.timestamp, DIFFPRESS_TIMEOUT, true, &(status.condition_airspeed_valid), &status_changed);
 
-		orb_check(cmd_sub, &updated);
-
-		if (updated) {
-			/* got command */
-			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
-
-			/* handle it */
-			handle_command(&status, &safety, &control_mode, &cmd, &armed);
-		}
-
 		/* update safety topic */
 		orb_check(safety_sub, &updated);
 
@@ -1163,6 +1153,18 @@ int commander_thread_main(int argc, char *argv[])
 					status_changed = true;
 				}
 			}
+		}
+
+
+		/* handle commands last, as the system needs to be updated to handle them */
+		orb_check(cmd_sub, &updated);
+
+		if (updated) {
+			/* got command */
+			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
+
+			/* handle it */
+			handle_command(&status, &safety, &control_mode, &cmd, &armed);
 		}
 
 		/* evaluate the navigation state machine */

@@ -591,6 +591,9 @@ PX4IO::init()
 	if ((reg & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK) &&
 	    (reg & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 
+		/* get a status update from IO */
+		io_get_status();
+
 	    	mavlink_log_emergency(_mavlink_fd, "[IO] RECOVERING FROM FMU IN-AIR RESTART");
 	    	log("INAIR RESTART RECOVERY (needs commander app running)");
 
