@@ -120,7 +120,7 @@ struct vehicle_command_s
 	float param5;			/**< Parameter 5, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param6;			/**< Parameter 6, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param7;			/**< Parameter 7, as defined by MAVLink VEHICLE_CMD enum.   */
-	uint16_t command;		/**< Command ID, as defined MAVLink by VEHICLE_CMD enum.   */
+	enum VEHICLE_CMD command;		/**< Command ID, as defined MAVLink by VEHICLE_CMD enum.   */
 	uint8_t target_system;		/**< System which should execute the command  */
 	uint8_t target_component;	/**< Component which should execute the command, 0 for all components  */
 	uint8_t source_system;		/**< System sending the command  */
