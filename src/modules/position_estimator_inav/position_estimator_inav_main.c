@@ -438,12 +438,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* vehicle GPS position */
 			if (fds[6].revents & POLLIN) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
-				if (gps.fix_type >= 3 && t < gps.timestamp_position + gps_timeout) {
+				if (gps.fix_type >= 3) {
 					/* hysteresis for GPS quality */
 					if (gps_valid) {
-						gps_valid = gps.eph_m < 10.0f;
+						if (gps.eph_m > 10.0f) {
+							gps_valid = false;
+							warnx("GPS signal lost");
+							mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
+						}
 					} else {
-						gps_valid = gps.eph_m < 5.0f;
+						if (gps.eph_m < 5.0f) {
+							gps_valid = true;
+							warnx("GPS signal found");
+							mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
+						}
 					}
 				} else {
 					gps_valid = false;
@@ -501,7 +509,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 		}
 
-		/* end of poll return value check */
+		/* check for timeout on GPS topic */
+		if (gps_valid && t > gps.timestamp_position + gps_timeout) {
+			gps_valid = false;
+			warnx("GPS timeout");
+			mavlink_log_info(mavlink_fd, "[inav] GPS timeout");
+		}
 
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
 		t_prev = t;
