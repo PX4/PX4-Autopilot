@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/mount.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -83,22 +84,26 @@ usage(const char *reason)
 int
 esc_calib_main(int argc, char *argv[])
 {
-	const char *dev = PWM_OUTPUT_DEVICE_PATH;
+	char *dev = PWM_OUTPUT_DEVICE_PATH;
 	char *ep;
 	bool channels_selected[MAX_CHANNELS] = {false};
 	int ch;
 	int ret;
 	char c;
 
+	struct pollfd fds;
+	fds.fd = 0; /* stdin */
+	fds.events = POLLIN;
+
 	if (argc < 2)
 		usage(NULL);
 
-	while ((ch = getopt(argc, argv, "d:")) != EOF) {
+	while ((ch = getopt(argc-1, argv, "d:")) != EOF) {
 		switch (ch) {
 		
 		case 'd':
 			dev = optarg;
-			argc=-2;
+			argc-=2;
 			break;
 
 		default:
@@ -106,7 +111,7 @@ esc_calib_main(int argc, char *argv[])
 		}
 	}
 
-	if(argc < 1) {
+	if(argc < 2) {
 		usage("no channels provided");
 	}
 
@@ -124,11 +129,6 @@ esc_calib_main(int argc, char *argv[])
 		}
 	}
 
-	/* Wait for confirmation */
-	int console = open("/dev/ttyACM0", O_NONBLOCK | O_RDONLY | O_NOCTTY);
-	if (!console)
-		err(1, "failed opening console");
-
 	printf("\nATTENTION, please remove or fix propellers before starting calibration!\n"
 		"\n"
 		"Make sure\n"
@@ -141,21 +141,21 @@ esc_calib_main(int argc, char *argv[])
 	/* wait for user input */
 	while (1) {
 		
-		if (read(console, &c, 1) == 1) {
+		ret = poll(&fds, 1, 0);
+		if (ret > 0) {
+
+			read(0, &c, 1);
 			if (c == 'y' || c == 'Y') {
 				
 				break;
 			} else if (c == 0x03 || c == 0x63 || c == 'q') {
 				printf("ESC calibration exited\n");
-				close(console);
 				exit(0);
 			} else if (c == 'n' || c == 'N') {
 				printf("ESC calibration aborted\n");
-				close(console);
 				exit(0);
 			} else {
 				printf("Unknown input, ESC calibration aborted\n");
-				close(console);
 				exit(0);
 			} 
 		}
@@ -187,13 +187,15 @@ esc_calib_main(int argc, char *argv[])
 			}
 		}
 
-		if (read(console, &c, 1) == 1) {
+		ret = poll(&fds, 1, 0);
+		if (ret > 0) {
+
+			read(0, &c, 1);
 			if (c == 13) {
 				
 				break;
 			} else if (c == 0x03 || c == 0x63 || c == 'q') {
 				warnx("ESC calibration exited");
-				close(console);
 				exit(0);
 			}
 		}
@@ -218,13 +220,15 @@ esc_calib_main(int argc, char *argv[])
 			}
 		}
 
-		if (read(console, &c, 1) == 1) {
+		ret = poll(&fds, 1, 0);
+		if (ret > 0) {
+
+			read(0, &c, 1);
 			if (c == 13) {
 				
 				break;
 			} else if (c == 0x03 || c == 0x63 || c == 'q') {
 				printf("ESC calibration exited\n");
-				close(console);
 				exit(0);
 			}
 		}
@@ -234,7 +238,6 @@ esc_calib_main(int argc, char *argv[])
 
 	
 	printf("ESC calibration finished\n");
-	close(console);
 
 	exit(0);
 }
