@@ -181,6 +181,13 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	char geomname[8];
 	int s[4];
 	int used;
+	const char *end = buf + buflen;
+
+	/* require a space or newline at the end of the buffer */
+	if (*end != ' ' && *end != '\n' && *end != '\r') {
+		debug("multirotor parser rejected: No newline / space at end of buf.");
+		return nullptr;
+	}
 
 	if (sscanf(buf, "R: %s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
 		debug("multirotor parse failed on '%s'", buf);

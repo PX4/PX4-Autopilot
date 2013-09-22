@@ -142,6 +142,12 @@ NullMixer *
 NullMixer::from_text(const char *buf, unsigned &buflen)
 {
 	NullMixer *nm = nullptr;
+	const char *end = buf + buflen;
+
+	/* require a space or newline at the end of the buffer */
+	if (*end != ' ' && *end != '\n' && *end != '\r') {
+		return nm;
+	}
 
 	if ((buflen >= 2) && (buf[0] == 'Z') && (buf[1] == ':')) {
 		nm = new NullMixer;

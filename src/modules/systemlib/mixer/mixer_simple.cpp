@@ -100,8 +100,10 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 	int s[5];
 	
 	buf = findtag(buf, buflen, 'O');
-	if ((buf == nullptr) || (buflen < 12))
+	if ((buf == nullptr) || (buflen < 12)) {
+		debug("output parser failed finding tag, ret: '%s'", buf);
 		return -1;
+	}
 
 	if ((ret = sscanf(buf, "O: %d %d %d %d %d",
 			  &s[0], &s[1], &s[2], &s[3], &s[4])) != 5) {
@@ -126,8 +128,10 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 	int s[5];
 
 	buf = findtag(buf, buflen, 'S');
-	if ((buf == nullptr) || (buflen < 16))
+	if ((buf == nullptr) || (buflen < 16)) {
+		debug("contorl parser failed finding tag, ret: '%s'", buf);
 		return -1;
+	}
 
 	if (sscanf(buf, "S: %u %u %d %d %d %d %d",
 		   &u[0], &u[1], &s[0], &s[1], &s[2], &s[3], &s[4]) != 7) {
@@ -156,6 +160,12 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	int used;
 	const char *end = buf + buflen;
 
+	/* require a space or newline at the end of the buffer */
+	if (*end != ' ' && *end != '\n' && *end != '\r') {
+		debug("simple parser rejected: No newline / space at end of buf.");
+		goto out;
+	}
+
 	/* get the base info for the mixer */
 	if (sscanf(buf, "M: %u%n", &inputs, &used) != 1) {
 		debug("simple parse failed on '%s'", buf);
@@ -173,15 +183,20 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 
 	mixinfo->control_count = inputs;
 
-	if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler))
+	if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler)) {
+		debug("simple mixer parser failed parsing out scaler tag, ret: '%s'", buf);
 		goto out;
+	}
 
 	for (unsigned i = 0; i < inputs; i++) {
 		if (parse_control_scaler(end - buflen, buflen,
 					 mixinfo->controls[i].scaler,
 					 mixinfo->controls[i].control_group,
-					 mixinfo->controls[i].control_index))
+					 mixinfo->controls[i].control_index)) {
+			debug("simple mixer parser failed parsing ctrl scaler tag, ret: '%s'", buf);
 			goto out;
+		}
+
 	}
 
 	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);
