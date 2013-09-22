@@ -294,8 +294,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						wait_baro = false;
 						baro_alt0 /= (float) baro_init_cnt;
-						warnx("init ref: alt = %.3f", baro_alt0);
-						mavlink_log_info(mavlink_fd, "[inav] init ref: alt = %.3f", baro_alt0);
+						warnx("init ref: alt=%.3f", baro_alt0);
+						mavlink_log_info(mavlink_fd, "[inav] init ref: alt=%.3f", baro_alt0);
 						local_pos.ref_alt = baro_alt0;
 						local_pos.ref_timestamp = hrt_absolute_time();
 						local_pos.z_valid = true;
@@ -418,7 +418,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							} else {
 								// new ground level
 								baro_alt0 += sonar_corr;
-								mavlink_log_info(mavlink_fd, "[inav] update ref: alt = %.3f", baro_alt0);
+								mavlink_log_info(mavlink_fd, "[inav] update ref: alt=%.3f", baro_alt0);
 								local_pos.ref_alt = baro_alt0;
 								local_pos.ref_timestamp = hrt_absolute_time();
 								z_est[0] += sonar_corr;
@@ -467,8 +467,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 							/* initialize projection */
 							map_projection_init(lat, lon);
-							warnx("init ref: lat = %.10f, lon = %.10f", lat, lon);
-							mavlink_log_info(mavlink_fd, "[inav] init ref: lat = %.7f, lon = %.7f", lat, lon);
+							warnx("init ref: lat=%.7f, lon=%.7f", lat, lon);
+							mavlink_log_info(mavlink_fd, "[inav] init ref: lat=%.7f, lon=%.7f", lat, lon);
 						}
 					}
 
