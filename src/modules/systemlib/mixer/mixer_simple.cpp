@@ -55,7 +55,7 @@
 #include "mixer.h"
 
 #define debug(fmt, args...)	do { } while(0)
-//#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
+// #define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 
 SimpleMixer::SimpleMixer(ControlCallback control_cb,
 			 uintptr_t cb_handle,
@@ -98,6 +98,7 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 {
 	int ret;
 	int s[5];
+	int n = -1;
 	
 	buf = findtag(buf, buflen, 'O');
 	if ((buf == nullptr) || (buflen < 12)) {
@@ -105,9 +106,9 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 		return -1;
 	}
 
-	if ((ret = sscanf(buf, "O: %d %d %d %d %d",
-			  &s[0], &s[1], &s[2], &s[3], &s[4])) != 5) {
-		debug("scaler parse failed on '%s' (got %d)", buf, ret);
+	if ((ret = sscanf(buf, "O: %d %d %d %d %d %n",
+			  &s[0], &s[1], &s[2], &s[3], &s[4], &n)) != 5) {
+		debug("out scaler parse failed on '%s' (got %d, consumed %d)", buf, ret, n);
 		return -1;
 	}
 	skipline(buf, buflen);
@@ -160,10 +161,20 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	int used;
 	const char *end = buf + buflen;
 
-	/* require a space or newline at the end of the buffer */
-	if (*end != ' ' && *end != '\n' && *end != '\r') {
-		debug("simple parser rejected: No newline / space at end of buf.");
-		goto out;
+	/* enforce that the mixer ends with space or a new line */
+	for (int i = buflen - 1; i >= 0; i--) {
+		if (buf[i] == '\0')
+			continue;
+
+		/* require a space or newline at the end of the buffer, fail on printable chars */
+		if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
+			/* found a line ending or space, so no split symbols / numbers. good. */
+			break;
+		} else {
+			debug("simple parser rejected: No newline / space at end of buf. (#%d/%d: 0x%02x)", i, buflen-1, buf[i]);
+			goto out;
+		}
+
 	}
 
 	/* get the base info for the mixer */
@@ -203,7 +214,7 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 
 	if (sm != nullptr) {
 		mixinfo = nullptr;
-		debug("loaded mixer with %d inputs", inputs);
+		debug("loaded mixer with %d input(s)", inputs);
 
 	} else {
 		debug("could not allocate memory for mixer");
