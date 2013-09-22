@@ -281,7 +281,6 @@ UBX::receive(unsigned timeout)
 				return 1;
 
 			} else {
-				warnx("ubx: timeout - no messages");
 				return -1;
 			}
 
