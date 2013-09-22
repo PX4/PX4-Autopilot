@@ -1509,7 +1509,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			 * even.
 			 */
 			unsigned total_len = sizeof(px4io_mixdata) + count;
-			if (total_len % 1) {
+			if (total_len % 2) {
 				msg->text[count] = '\0';
 				total_len++;
 			}
