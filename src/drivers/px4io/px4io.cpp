@@ -2245,7 +2245,7 @@ px4io_main(int argc, char *argv[])
 		}
 
 		PX4IO_Uploader *up;
-		const char *fn[5];
+		const char *fn[3];
 
 		/* work out what we're uploading... */
 		if (argc > 2) {
@@ -2253,11 +2253,19 @@ px4io_main(int argc, char *argv[])
 			fn[1] = nullptr;
 
 		} else {
-			fn[0] = "/etc/extras/px4io-v2_default.bin";
-			fn[1] = "/etc/extras/px4io-v1_default.bin";
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+			fn[0] = "/etc/extras/px4io-v1_default.bin";
+			fn[1] =	"/fs/microsd/px4io1.bin";
 			fn[2] =	"/fs/microsd/px4io.bin";
-			fn[3] =	"/fs/microsd/px4io2.bin";
-			fn[4] =	nullptr;
+			fn[3] =	nullptr;
+#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
+			fn[0] = "/etc/extras/px4io-v2_default.bin";
+			fn[1] =	"/fs/microsd/px4io2.bin";
+			fn[2] =	"/fs/microsd/px4io.bin";
+			fn[3] =	nullptr;
+#else
+#error "unknown board"
+#endif
 		}
 
 		up = new PX4IO_Uploader;
