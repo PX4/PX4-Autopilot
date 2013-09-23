@@ -424,7 +424,7 @@ public:
 		HEX_PLUS,	/**< hex in + configuration */
 		OCTA_X,
 		OCTA_PLUS,
-
+		OCTA_COX,
 		MAX_GEOMETRY
 	};
 
