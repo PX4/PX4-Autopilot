@@ -130,6 +130,17 @@ const MultirotorMixer::Rotor _config_octa_plus[] = {
 	{  1.000000,  0.000000, -1.00 },
 	{ -1.000000,  0.000000, -1.00 },
 };
+const MultirotorMixer::Rotor _config_octa_cox[] = {
+	{ -0.707107,  0.707107,  1.00 },
+	{ -0.707107, -0.707107, -1.00 },
+	{  0.707107, -0.707107,  1.00 },
+	{ -0.707107, -0.707107, -1.00 },
+	{  0.707107,  0.707107,  1.00 },
+	{ -0.707107,  0.707107, -1.00 },
+	{ -0.707107, -0.707107,  1.00 },
+	{  0.707107, -0.707107, -1.00 },
+};
+
 const MultirotorMixer::Rotor *_config_index[MultirotorMixer::Geometry::MAX_GEOMETRY] = {
 	&_config_quad_x[0],
 	&_config_quad_plus[0],
