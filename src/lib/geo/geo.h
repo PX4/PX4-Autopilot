@@ -57,12 +57,20 @@ __BEGIN_DECLS
 #define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
 #define CONSTANTS_RADIUS_OF_EARTH			6371000			/* meters (m)		*/
 
-// XXX remove
+/* XXX remove */
 struct crosstrack_error_s {
-	bool past_end;		// Flag indicating we are past the end of the line/arc segment
-	float distance;		// Distance in meters to closest point on line/arc
-	float bearing;		// Bearing in radians to closest point on line/arc
-} ;
+	bool past_end;		/* Flag indicating we are past the end of the line/arc segment */
+	float distance;		/* Distance in meters to closest point on line/arc */
+	float bearing;		/* Bearing in radians to closest point on line/arc */
+};
+
+/**
+ * Point coordinates
+ */
+
+struct coordinate_s {
+	double longitude, lattitude; /*in degrees (47.1234567°, not 471234567) */
+};
 
 /**
  * Initializes the map transformation.
@@ -125,5 +133,17 @@ __EXPORT float _wrap_180(float bearing);
 __EXPORT float _wrap_360(float bearing);
 __EXPORT float _wrap_pi(float bearing);
 __EXPORT float _wrap_2pi(float bearing);
+
+/**
+ * Return whether craft is inside geofence.
+ *
+ * Calculate whether point is inside arbitrary polygon
+ * @param craft_coord pointer craft coordinates
+ * @param fence_vertices number of vertices of fence polygon
+ * @param fence_coords pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
+ * @return true: craft is inside fence, false:craft is outside fence
+ */
+__EXPORT bool inside_geofence(struct coordinate_s *craft_coord, int fence_vertices, struct coordinate_s *fence_coords);
+
 
 __END_DECLS

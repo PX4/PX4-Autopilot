@@ -60,7 +60,7 @@ static double cos_phi_1;
 static double lambda_0;
 static double scale;
 
-__EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+__EXPORT void map_projection_init(double lat_0, double lon_0) /*lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567*/
 {
 	/* notation and formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html */
 	phi_1 = lat_0 / 180.0 * M_PI;
@@ -69,7 +69,8 @@ __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are
 	sin_phi_1 = sin(phi_1);
 	cos_phi_1 = cos(phi_1);
 
-	/* calculate local scale by using the relation of true distance and the distance on plane */ //TODO: this is a quick solution, there are probably easier ways to determine the scale
+	/* calculate local scale by using the relation of true distance and the distance on plane */
+	/*TODO: this is a quick solution, there are probably easier ways to determine the scale */
 
 	/* 1) calculate true distance d on sphere to a point: http://www.movable-type.co.uk/scripts/latlong.html */
 	const double r_earth = 6371000;
@@ -90,7 +91,7 @@ __EXPORT void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are
 	if (0 != c)
 		k_bar = c / sin(c);
 
-	double x2 = k_bar * (cos_lat_2 * sin(lon2 - lambda_0)); //Projection of point 2 on plane
+	double x2 = k_bar * (cos_lat_2 * sin(lon2 - lambda_0)); /*Projection of point 2 on plane */
 	double y2 = k_bar * ((cos_phi_1 * sin_lat_2 - sin_phi_1 * cos_lat_2 * cos(lon2 - lambda_0)));
 	double rho = sqrt(pow(x2, 2) + pow(y2, 2));
 
@@ -109,16 +110,19 @@ __EXPORT void map_projection_project(double lat, double lon, float *x, float *y)
 
 	double k_bar = 0;
 	/* using small angle approximation (formula in comment is without aproximation) */
-	double c =  acos(sin_phi_1 * sin_phi + cos_phi_1 * cos_phi * (1 - pow((lambda - lambda_0), 2) / 2)); //double c =  acos( sin_phi_1 * sin_phi + cos_phi_1 * cos_phi * cos(lambda - lambda_0) );
+	double c =  acos(sin_phi_1 * sin_phi + cos_phi_1 * cos_phi * (1 - pow((lambda - lambda_0), 2) / 2));
+	/*double c =  acos( sin_phi_1 * sin_phi + cos_phi_1 * cos_phi * cos(lambda - lambda_0) );*/
 
 	if (0 != c)
 		k_bar = c / sin(c);
 
 	/* using small angle approximation (formula in comment is without aproximation) */
-	*y = k_bar * (cos_phi * (lambda - lambda_0)) * scale;//*y = k_bar * (cos_phi * sin(lambda - lambda_0)) * scale;
-	*x = k_bar * ((cos_phi_1 * sin_phi - sin_phi_1 * cos_phi * (1 - pow((lambda - lambda_0), 2) / 2))) * scale; //	*x = k_bar * ((cos_phi_1 * sin_phi - sin_phi_1 * cos_phi * cos(lambda - lambda_0))) * scale;
+	*y = k_bar * (cos_phi * (lambda - lambda_0)) * scale;
+	/* *y = k_bar * (cos_phi * sin(lambda - lambda_0)) * scale; */
+	*x = k_bar * ((cos_phi_1 * sin_phi - sin_phi_1 * cos_phi * (1 - pow((lambda - lambda_0), 2) / 2))) * scale;
+	/* *x = k_bar * ((cos_phi_1 * sin_phi - sin_phi_1 * cos_phi * cos(lambda - lambda_0))) * scale; */
 
-//	printf("%phi_1=%.10f, lambda_0 =%.10f\n", phi_1, lambda_0);
+/*	printf("%phi_1=%.10f, lambda_0 =%.10f\n", phi_1, lambda_0); */
 }
 
 __EXPORT void map_projection_reproject(float x, float y, double *lat, double *lon)
@@ -139,34 +143,26 @@ __EXPORT void map_projection_reproject(float x, float y, double *lat, double *lo
 	else
 		lat_sphere = asin(cos_c * sin_phi_1);
 
-//	printf("lat_sphere = %.10f\n",lat_sphere);
+/*	printf("lat_sphere = %.10f\n",lat_sphere); */
 
 	double lon_sphere = 0;
 
 	if (phi_1  == M_PI / 2) {
-		//using small angle approximation (formula in comment is without aproximation)
-		lon_sphere = (lambda_0 - y_descaled / x_descaled); //lon_sphere = (lambda_0 + atan2(-y_descaled, x_descaled));
+		/* using small angle approximation (formula in comment is without approximation) */
+		/* lon_sphere = (lambda_0 + atan2(-y_descaled, x_descaled)); */
+		lon_sphere = (lambda_0 - y_descaled / x_descaled);
 
 	} else if (phi_1 == -M_PI / 2) {
-		//using small angle approximation (formula in comment is without aproximation)
-		lon_sphere = (lambda_0 + y_descaled / x_descaled); //lon_sphere = (lambda_0 + atan2(y_descaled, x_descaled));
+		/* using small angle approximation (formula in comment is without approximation) */
+		/* lon_sphere = (lambda_0 + atan2(y_descaled, x_descaled)); */
+		lon_sphere = (lambda_0 + y_descaled / x_descaled);
 
 	} else {
-
+		/* using small angle approximation */
 		lon_sphere = (lambda_0 + atan2(y_descaled * sin_c , c * cos_phi_1 * cos_c - x_descaled * sin_phi_1 * sin_c));
-		//using small angle approximation
-//    	double denominator = (c * cos_phi_1 * cos_c - x_descaled * sin_phi_1 * sin_c);
-//    	if(denominator != 0)
-//    	{
-//    		lon_sphere = (lambda_0 + (y_descaled * sin_c) / denominator);
-//    	}
-//    	else
-//    	{
-//    	...
-//    	}
 	}
 
-//	printf("lon_sphere = %.10f\n",lon_sphere);
+/*	printf("lon_sphere = %.10f\n",lon_sphere); */
 
 	*lat = lat_sphere * 180.0 / M_PI;
 	*lon = lon_sphere * 180.0 / M_PI;
@@ -240,25 +236,25 @@ __EXPORT void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, d
 	*vx = CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad);
 }
 
-// Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
+/* Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu> */
 
 __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end)
 {
-// This function returns the distance to the nearest point on the track line.  Distance is positive if current
-// position is right of the track and negative if left of the track as seen from a point on the track line
-// headed towards the end point.
+/* This function returns the distance to the nearest point on the track line.  Distance is positive if current
+ * position is right of the track and negative if left of the track as seen from a point on the track line
+ * headed towards the end point. */
 
 	float dist_to_end;
 	float bearing_end;
 	float bearing_track;
 	float bearing_diff;
 
-	int return_value = ERROR;	// Set error flag, cleared when valid result calculated.
+	int return_value = ERROR;	/* Set error flag, cleared when valid result calculated. */
 	crosstrack_error->past_end = false;
 	crosstrack_error->distance = 0.0f;
 	crosstrack_error->bearing = 0.0f;
 
-	// Return error if arguments are bad
+	/* Return error if arguments are bad */
 	if (lat_now == 0.0d || lon_now == 0.0d || lat_start == 0.0d || lon_start == 0.0d || lat_end == 0.0d || lon_end == 0.0d) return return_value;
 
 	bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
@@ -266,7 +262,7 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, 
 	bearing_diff = bearing_track - bearing_end;
 	bearing_diff = _wrap_pi(bearing_diff);
 
-	// Return past_end = true if past end point of line
+	/* Return past_end = true if past end point of line */
 	if (bearing_diff > M_PI_2_F || bearing_diff < -M_PI_2_F) {
 		crosstrack_error->past_end = true;
 		return_value = OK;
@@ -293,23 +289,23 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, 
 __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
 		float radius, float arc_start_bearing, float arc_sweep)
 {
-	// This function returns the distance to the nearest point on the track arc.  Distance is positive if current
-	// position is right of the arc and negative if left of the arc as seen from the closest point on the arc and
-	// headed towards the end point.
+	/* This function returns the distance to the nearest point on the track arc.  Distance is positive if current
+	 * position is right of the arc and negative if left of the arc as seen from the closest point on the arc and
+	 * headed towards the end point. */
 
-	// Determine if the current position is inside or outside the sector between the line from the center
-	// to the arc start and the line from the center to the arc end
+	/* Determine if the current position is inside or outside the sector between the line from the center
+	 * to the arc start and the line from the center to the arc end */
 	float	bearing_sector_start;
 	float	bearing_sector_end;
 	float	bearing_now = get_bearing_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
 	bool	in_sector;
 
-	int return_value = ERROR;		// Set error flag, cleared when valid result calculated.
+	int return_value = ERROR;		/* Set error flag, cleared when valid result calculated. */
 	crosstrack_error->past_end = false;
 	crosstrack_error->distance = 0.0f;
 	crosstrack_error->bearing = 0.0f;
 
-	// Return error if arguments are bad
+	/* Return error if arguments are bad */
 	if (lat_now == 0.0d || lon_now == 0.0d || lat_center == 0.0d || lon_center == 0.0d || radius == 0.0d) return return_value;
 
 
@@ -328,13 +324,13 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, d
 
 	in_sector = false;
 
-	// Case where sector does not span zero
+	/* Case where sector does not span zero */
 	if (bearing_sector_end >= bearing_sector_start && bearing_now >= bearing_sector_start && bearing_now <= bearing_sector_end) in_sector = true;
 
-	// Case where sector does span zero
+	/* Case where sector does span zero */
 	if (bearing_sector_end < bearing_sector_start && (bearing_now > bearing_sector_start || bearing_now < bearing_sector_end)) in_sector = true;
 
-	// If in the sector then calculate distance and bearing to closest point
+	/* If in the sector then calculate distance and bearing to closest point */
 	if (in_sector) {
 		crosstrack_error->past_end = false;
 		float dist_to_center = get_distance_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
@@ -348,16 +344,16 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, d
 			crosstrack_error->bearing = bearing_now;
 		}
 
-		// If out of the sector then calculate dist and bearing to start or end point
+		/* If out of the sector then calculate dist and bearing to start or end point */
 
 	} else {
 
-		// Use the approximation  that 111,111 meters in the y direction is 1 degree (of latitude)
-		// and 111,111 * cos(latitude) meters in the x direction is 1 degree (of longitude) to
-		// calculate the position of the start and end points.  We should not be doing this often
-		// as this function generally will not be called repeatedly when we are out of the sector.
+		/* Use the approximation  that 111,111 meters in the y direction is 1 degree (of latitude)
+		 * and 111,111 * cos(latitude) meters in the x direction is 1 degree (of longitude) to
+		 * calculate the position of the start and end points.  We should not be doing this often
+		 * as this function generally will not be called repeatedly when we are out of the sector. */
 
-		// TO DO - this is messed up and won't compile
+		/* TO DO - this is messed up and won't compile */
 		float start_disp_x = radius * sin(arc_start_bearing);
 		float start_disp_y = radius * cos(arc_start_bearing);
 		float end_disp_x = radius * sin(_wrapPI(arc_start_bearing + arc_sweep));
@@ -463,6 +459,19 @@ __EXPORT float _wrap_360(float bearing)
 	}
 
 	return bearing;
+}
+
+__EXPORT bool inside_geofence(struct coordinate_s *craft_coord, int fence_vertices, struct coordinate_s *fence_coords)
+{
+	int i, j, nvert = fence_vertices;
+	bool c = false;
+
+	for (i = 0, j = nvert - 1; i < nvert; j = i++)
+		if (((fence_coords[i].longitude) >= craft_coord->longitude != (fence_coords[j].longitude >= craft_coord->longitude)) &&
+			(craft_coord->lattitude <= (fence_coords[j].lattitude - fence_coords[i].lattitude) * (craft_coord->longitude - fence_coords[i].longitude) /
+			(fence_coords[j].longitude - fence_coords[i].longitude) + fence_coords[i].lattitude))
+			c = !c;
+	return c;
 }
 
 
