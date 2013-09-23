@@ -463,10 +463,10 @@ __EXPORT float _wrap_360(float bearing)
 
 __EXPORT bool inside_geofence(struct coordinate_s *craft_coord, int fence_vertices, struct coordinate_s *fence_coords)
 {
-	int i, j, nvert = fence_vertices;
+	int i, j;
 	bool c = false;
 
-	for (i = 0, j = nvert - 1; i < nvert; j = i++)
+	for (i = 0, j = fence_vertices - 1; i < fence_vertices; j = i++)
 		if (((fence_coords[i].longitude) >= craft_coord->longitude != (fence_coords[j].longitude >= craft_coord->longitude)) &&
 			(craft_coord->lattitude <= (fence_coords[j].lattitude - fence_coords[i].lattitude) * (craft_coord->longitude - fence_coords[i].longitude) /
 			(fence_coords[j].longitude - fence_coords[i].longitude) + fence_coords[i].lattitude))
