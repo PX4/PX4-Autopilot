@@ -52,7 +52,6 @@
 #include <math.h>
 #include <stdbool.h>
 
-
 /* values for map projection */
 static double phi_1;
 static double sin_phi_1;
@@ -461,17 +460,20 @@ __EXPORT float _wrap_360(float bearing)
 	return bearing;
 }
 
-__EXPORT bool inside_geofence(struct coordinate_s *craft_coord, int fence_vertices, struct coordinate_s *fence_coords)
+__EXPORT bool inside_geofence(struct vehicle_global_position_s *vehicle, struct fence_s *fence)
 {
-	int i, j;
+	unsigned int i, j, vertices = fence->count;
 	bool c = false;
+	double lat = vehicle->lat / 1e7;
+	double lon = vehicle->lon / 1e7;
 
-	for (i = 0, j = fence_vertices - 1; i < fence_vertices; j = i++)
-		if (((fence_coords[i].longitude) >= craft_coord->longitude != (fence_coords[j].longitude >= craft_coord->longitude)) &&
-			(craft_coord->lattitude <= (fence_coords[j].lattitude - fence_coords[i].lattitude) * (craft_coord->longitude - fence_coords[i].longitude) /
-			(fence_coords[j].longitude - fence_coords[i].longitude) + fence_coords[i].lattitude))
+	for (i = 0, j = vertices - 1; i < vertices; j = i++)
+		if (((fence->items[i].lon) >= lon != (fence->items[j].lon >= lon)) &&
+			(lat <= (fence->items[j].lat - fence->items[i].lat) * (lon - fence->items[i].lon) /
+			(fence->items[j].lon - fence->items[i].lon) + fence->items[i].lat))
 			c = !c;
 	return c;
 }
+
 
 

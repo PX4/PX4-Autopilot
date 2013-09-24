@@ -47,6 +47,9 @@
 
 #pragma once
 
+#include "uORB/topics/fence.h"
+#include "uORB/topics/vehicle_global_position.h"
+
 __BEGIN_DECLS
 
 #include <stdbool.h>
@@ -143,7 +146,7 @@ __EXPORT float _wrap_2pi(float bearing);
  * @param fence_coords pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
  * @return true: craft is inside fence, false:craft is outside fence
  */
-__EXPORT bool inside_geofence(struct coordinate_s *craft_coord, int fence_vertices, struct coordinate_s *fence_coords);
+__EXPORT bool inside_geofence(struct vehicle_global_position_s *craft, struct fence_s *fence);
 
 
 __END_DECLS

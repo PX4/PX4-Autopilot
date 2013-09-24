@@ -35,12 +35,12 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_global_position.h
- * Definition of the global fused WGS84 position uORB topic.
+ * @file mission_item.h
+ * Definition of one mission item.
  */
 
-#ifndef VEHICLE_GLOBAL_POSITION_T_H_
-#define VEHICLE_GLOBAL_POSITION_T_H_
+#ifndef TOPIC_FENCE_H_
+#define TOPIC_FENCE_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -51,28 +51,20 @@
  * @{
  */
 
- /**
- * Fused global position in WGS84.
+/**
+ * This is the position of a geofence vertex
  *
- * This struct contains the system's believ about its position. It is not the raw GPS
- * measurement (@see vehicle_gps_position). This topic is usually published by the position
- * estimator, which will take more sources of information into account than just GPS,
- * e.g. control inputs of the vehicle in a Kalman-filter implementation.
  */
-struct vehicle_global_position_s
+struct fence_item_s
 {
-	uint64_t timestamp;		/**< time of this estimate, in microseconds since system start */
-	uint64_t time_gps_usec; 	/**< GPS timestamp in microseconds							   */
-	bool valid;			/**< true if position satisfies validity criteria of estimator */
+	double lat;			/**< latitude in degrees */
+	double lon;			/**< longitude in degrees */
+};
 
-	int32_t lat;			/**< Latitude in 1E-7 degrees							 	   */
-	int32_t lon;			/**< Longitude in 1E-7 degrees							 	   */
-	float alt;			/**< Altitude in meters									 	   */
-	float relative_alt;		/**< Altitude above home position in meters, 				   */
-	float vx; 			/**< Ground X velocity, m/s in NED				 			   */
-	float vy;			/**< Ground Y velocity, m/s in NED							   */
-	float vz;			/**< Ground Z velocity, m/s	in NED 							   */
-	float yaw; 			/**< Compass heading in radians -PI..+PI.					   */
+struct fence_s
+{
+	struct fence_item_s *items;
+	unsigned count;
 };
 
 /**
@@ -80,6 +72,6 @@ struct vehicle_global_position_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_global_position);
+ORB_DECLARE(fence);
 
 #endif
