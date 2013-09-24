@@ -345,6 +345,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 						local_pos.y = local_pos.y + global_speed[1] * dt;
 						local_pos.vx = global_speed[0];
 						local_pos.vy = global_speed[1];
+						local_pos.xy_valid = true;
+						local_pos.v_xy_valid = true;
 					}
 					else
 					{
@@ -353,6 +355,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 						filtered_flow.vy = 0;
 						local_pos.vx = 0;
 						local_pos.vy = 0;
+						local_pos.xy_valid = false;
+						local_pos.v_xy_valid = false;
 					}
 
 					/* filtering ground distance */
@@ -361,6 +365,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 						/* not possible to fly */
 						sonar_valid = false;
 						local_pos.z = 0.0f;
+						local_pos.z_valid = false;
 					}
 					else
 					{
@@ -388,6 +393,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 						{
 							local_pos.z = -sonar_new;
 						}
+
+						local_pos.z_valid = true;
 					}
 
 					filtered_flow.timestamp = hrt_absolute_time();
