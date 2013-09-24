@@ -462,6 +462,11 @@ __EXPORT float _wrap_360(float bearing)
 
 __EXPORT bool inside_geofence(struct vehicle_global_position_s *vehicle, struct fence_s *fence)
 {
+
+	/* Adaptation of algorithm originally presented as
+	 * PNPOLY - Point Inclusion in Polygon Test
+	 * W. Randolph Franklin (WRF) */
+
 	unsigned int i, j, vertices = fence->count;
 	bool c = false;
 	double lat = vehicle->lat / 1e7;
