@@ -1,9 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Jean Cyr <jean.m.cyr@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +33,8 @@
  ****************************************************************************/
 
 /**
- * @file mission_item.h
- * Definition of one mission item.
+ * @file fence.h
+ * Definition of geofence.
  */
 
 #ifndef TOPIC_FENCE_H_
@@ -61,6 +59,10 @@ struct fence_item_s
 	double lon;			/**< longitude in degrees */
 };
 
+/**
+ * This is the position of a geofence
+ *
+ */
 struct fence_s
 {
 	struct fence_item_s *items;
