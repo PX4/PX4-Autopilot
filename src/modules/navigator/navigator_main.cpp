@@ -128,7 +128,6 @@ private:
 	struct	mission_item_s 				* _mission_items;	/**< storage for mission items */
 	bool						_mission_valid;		/**< flag if mission is valid */
 
-	unsigned					_fence_items_maxcount;	/**< maximum number of fence vertices supported */
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
 	bool						_inside_fence;		/**< vehicle is inside fence */		
@@ -240,7 +239,6 @@ Navigator::Navigator() :
 	_mission_items_maxcount(20),
 	_mission_valid(false),
 	_loiter_hold(false),
-	_fence_items_maxcount(8),
 	_fence_valid(false),
 	_inside_fence(true)
 {
@@ -248,12 +246,6 @@ Navigator::Navigator() :
 	if (!_mission_items) {
 		_mission_items_maxcount = 0;
 		warnx("no free RAM to allocate mission, rejecting any waypoints");
-	}
-
-	_fence.items = (fence_item_s*)malloc(sizeof(fence_item_s) * _fence_items_maxcount);
-	if (!_fence.items) {
-		_mission_items_maxcount = 0;
-		warnx("no free RAM to allocate fence, rejecting any fence vertices");
 	}
 
 	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
@@ -361,22 +353,10 @@ Navigator::fence_poll()
 
 	if (fence_updated) {
 
-		struct fence_s fence;
-		orb_copy(ORB_ID(fence), _fence_sub, &fence);
-
-		if (fence.count <= _fence_items_maxcount) {
-			/*
-			 * Perform an atomic copy & state update
-			 */
-			irqstate_t flags = irqsave();
-
-			memcpy(_fence.items, fence.items, fence.count * sizeof(struct fence_item_s));
-			_fence_valid = true;
-
-			irqrestore(flags);
-		} else {
-			warnx("fence larger than storage space");
-		}
+		irqstate_t flags = irqsave();
+		orb_copy(ORB_ID(fence), _fence_sub, &_fence);
+		_fence_valid = true;
+		irqrestore(flags);
 	}
 }
 

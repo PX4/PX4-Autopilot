@@ -49,6 +49,8 @@
  * @{
  */
 
+#define GEOFENCE_MAX_VERTICES 8
+
 /**
  * This is the position of a geofence vertex
  *
@@ -65,8 +67,8 @@ struct fence_item_s
  */
 struct fence_s
 {
-	struct fence_item_s *items;
-	unsigned count;
+    unsigned count;     /**< number of actual vertices */
+	struct fence_item_s items[GEOFENCE_MAX_VERTICES];
 };
 
 /**
