@@ -68,14 +68,6 @@ struct crosstrack_error_s {
 };
 
 /**
- * Point coordinates
- */
-
-struct coordinate_s {
-	double longitude, lattitude; /*in degrees (47.1234567°, not 471234567) */
-};
-
-/**
  * Initializes the map transformation.
  *
  * Initializes the transformation between the geographic coordinate system and the azimuthal equidistant plane

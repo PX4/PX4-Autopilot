@@ -352,11 +352,8 @@ Navigator::fence_poll()
 	orb_check(_fence_sub, &fence_updated);
 
 	if (fence_updated) {
-
-		irqstate_t flags = irqsave();
 		orb_copy(ORB_ID(fence), _fence_sub, &_fence);
 		_fence_valid = true;
-		irqrestore(flags);
 	}
 }
 
