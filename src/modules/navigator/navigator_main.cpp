@@ -353,7 +353,8 @@ Navigator::fence_poll()
 
 	if (fence_updated) {
 		orb_copy(ORB_ID(fence), _fence_sub, &_fence);
-		_fence_valid = true;
+		// Fence polygon needs at least 3 sides, and we support up to GEOFENCE_MAX_VERTICES sides.
+		_fence_valid = (_fence.count > 2) && (_fence.count <= GEOFENCE_MAX_VERTICES);
 	}
 }
 
