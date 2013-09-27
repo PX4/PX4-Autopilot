@@ -49,4 +49,6 @@ SRCS		 = err.c \
 		   airspeed.c \
 		   system_params.c \
 		   mavlink_log.c \
-		   rc_check.c
+		   rc_check.c \
+		   otp.c
+
