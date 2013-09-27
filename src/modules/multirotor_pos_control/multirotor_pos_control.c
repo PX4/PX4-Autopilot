@@ -199,7 +199,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	struct vehicle_local_position_setpoint_s local_pos_sp;
 	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
 	struct vehicle_global_position_setpoint_s global_pos_sp;
-	memset(&global_pos_sp, 0, sizeof(local_pos_sp));
+	memset(&global_pos_sp, 0, sizeof(global_pos_sp));
 	struct vehicle_global_velocity_setpoint_s global_vel_sp;
 	memset(&global_vel_sp, 0, sizeof(global_vel_sp));
 
@@ -414,6 +414,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					}
 				}
 
+				/* copy yaw setpoint to vehicle_local_position_setpoint topic */
 				local_pos_sp.yaw = att_sp.yaw_body;
 
 				/* local position setpoint is valid and can be used for auto loiter after position controlled mode */
@@ -436,7 +437,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
 						local_pos_sp.z = - params.takeoff_alt - params.takeoff_gap;
-						local_pos_sp.yaw = att.yaw;
 						att_sp.yaw_body = att.yaw;
 						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y, (double) - local_pos_sp.z);
 					}
@@ -477,8 +477,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							} else {
 								local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
 							}
-
-							local_pos_sp.yaw = global_pos_sp.yaw;
 							att_sp.yaw_body = global_pos_sp.yaw;
 
 							mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", (double)sp_lat, sp_lon, (double)local_pos_sp.x, (double)local_pos_sp.y);
@@ -491,7 +489,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 								local_pos_sp.x = local_pos.x;
 								local_pos_sp.y = local_pos.y;
 								local_pos_sp.yaw = att.yaw;
-								att_sp.yaw_body = global_pos_sp.yaw;
 							}
 
 							if (reset_auto_sp_z) {
@@ -514,6 +511,9 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				if (control_mode.auto_state != NAVIGATION_STATE_AUTO_MISSION) {
 					reset_mission_sp = true;
 				}
+
+				/* copy yaw setpoint to vehicle_local_position_setpoint topic */
+				local_pos_sp.yaw = att_sp.yaw_body;
 
 				/* reset setpoints after AUTO mode */
 				reset_man_sp_xy = true;

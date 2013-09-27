@@ -591,6 +591,9 @@ PX4IO::init()
 	if ((reg & PX4IO_P_SETUP_ARMING_INAIR_RESTART_OK) &&
 	    (reg & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 
+		/* get a status update from IO */
+		io_get_status();
+
 	    	mavlink_log_emergency(_mavlink_fd, "[IO] RECOVERING FROM FMU IN-AIR RESTART");
 	    	log("INAIR RESTART RECOVERY (needs commander app running)");
 
@@ -1509,7 +1512,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			 * even.
 			 */
 			unsigned total_len = sizeof(px4io_mixdata) + count;
-			if (total_len % 1) {
+			if (total_len % 2) {
 				msg->text[count] = '\0';
 				total_len++;
 			}
@@ -2128,10 +2131,9 @@ test(void)
 	if (ioctl(fd, PWM_SERVO_ARM, 0))
 		err(1, "failed to arm servos");
 
-	/* Open console directly to grab CTRL-C signal */
-	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
-	if (!console)
-		err(1, "failed opening console");
+	struct pollfd fds;
+	fds.fd = 0; /* stdin */
+	fds.events = POLLIN;
 
 	warnx("Press CTRL-C or 'c' to abort.");
 
@@ -2172,10 +2174,12 @@ test(void)
 
 		/* Check if user wants to quit */
 		char c;
-		if (read(console, &c, 1) == 1) {
+		ret = poll(&fds, 1, 0);
+		if (ret > 0) {
+
+			read(0, &c, 1);
 			if (c == 0x03 || c == 0x63 || c == 'q') {
 				warnx("User abort\n");
-				close(console);
 				exit(0);
 			}
 		}

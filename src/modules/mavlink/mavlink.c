@@ -531,7 +531,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		case 'b':
 			baudrate = strtoul(optarg, NULL, 10);
 
-			if (baudrate == 0)
+			if (baudrate < 9600 || baudrate > 921600)
 				errx(1, "invalid baud rate '%s'", optarg);
 
 			break;

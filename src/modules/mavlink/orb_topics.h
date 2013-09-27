@@ -65,6 +65,7 @@
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/battery_status.h>
 #include <drivers/drv_rc_input.h>
 
 struct mavlink_subscriptions {

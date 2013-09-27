@@ -470,8 +470,26 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM:
-		// XXX implement later
-		result = VEHICLE_CMD_RESULT_DENIED;
+	{
+		transition_result_t arming_res = TRANSITION_NOT_CHANGED;
+		if (!armed->armed && ((int)(cmd->param1 + 0.5f)) == 1) {
+			if (safety->safety_switch_available && !safety->safety_off) {
+				print_reject_arm("NOT ARMING: Press safety switch first.");
+				arming_res = TRANSITION_DENIED;
+
+			} else {
+				arming_res = arming_state_transition(status, safety, ARMING_STATE_ARMED, armed);
+			}
+
+			if (arming_res == TRANSITION_CHANGED) {
+				mavlink_log_info(mavlink_fd, "[cmd] ARMED by component arm cmd");
+				result = VEHICLE_CMD_RESULT_ACCEPTED;
+			} else {
+				mavlink_log_info(mavlink_fd, "[cmd] REJECTING component arm cmd");
+				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			}
+		}
+	}
 		break;
 
 	default:
@@ -806,16 +824,6 @@ int commander_thread_main(int argc, char *argv[])
 
 		check_valid(diff_pres.timestamp, DIFFPRESS_TIMEOUT, true, &(status.condition_airspeed_valid), &status_changed);
 
-		orb_check(cmd_sub, &updated);
-
-		if (updated) {
-			/* got command */
-			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
-
-			/* handle it */
-			handle_command(&status, &safety, &control_mode, &cmd, &armed);
-		}
-
 		/* update safety topic */
 		orb_check(safety_sub, &updated);
 
@@ -1145,6 +1153,18 @@ int commander_thread_main(int argc, char *argv[])
 					status_changed = true;
 				}
 			}
+		}
+
+
+		/* handle commands last, as the system needs to be updated to handle them */
+		orb_check(cmd_sub, &updated);
+
+		if (updated) {
+			/* got command */
+			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
+
+			/* handle it */
+			handle_command(&status, &safety, &control_mode, &cmd, &armed);
 		}
 
 		/* evaluate the navigation state machine */

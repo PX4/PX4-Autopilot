@@ -38,7 +38,9 @@
  */
 
 #include <sys/stat.h>
+#include <dirent.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <systemlib/err.h>
@@ -52,7 +54,7 @@
 int
 test_file(int argc, char *argv[])
 {
-	const iterations = 10;
+	const iterations = 200;
 
 	/* check if microSD card is mounted */
 	struct stat buffer;
@@ -63,15 +65,52 @@ test_file(int argc, char *argv[])
 
 	uint8_t buf[512];
 	hrt_abstime start, end;
-	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes");
+	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes (aligned)");
 
 	int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 	memset(buf, 0, sizeof(buf));
+
+	warnx("aligned write - please wait..");
+
+	if ((0x3 & (uintptr_t)buf))
+		warnx("memory is unaligned!");
 
 	start = hrt_absolute_time();
 	for (unsigned i = 0; i < iterations; i++) {
 		perf_begin(wperf);
 		write(fd, buf, sizeof(buf));
+		fsync(fd);
+		perf_end(wperf);
+	}
+	end = hrt_absolute_time();
+
+	warnx("%dKiB in %llu microseconds", iterations / 2, end - start);
+
+	perf_print_counter(wperf);
+	perf_free(wperf);
+
+	int ret = unlink("/fs/microsd/testfile");
+
+	if (ret)
+		err(1, "UNLINKING FILE FAILED");
+
+	warnx("unaligned write - please wait..");
+
+	struct {
+		uint8_t byte;
+		uint8_t unaligned[512];
+	} unaligned_buf;
+
+	if ((0x3 & (uintptr_t)unaligned_buf.unaligned) == 0)
+		warnx("creating unaligned memory failed.");
+
+	wperf = perf_alloc(PC_ELAPSED, "SD writes (unaligned)");
+
+	start = hrt_absolute_time();
+	for (unsigned i = 0; i < iterations; i++) {
+		perf_begin(wperf);
+		write(fd, unaligned_buf.unaligned, sizeof(unaligned_buf.unaligned));
+		fsync(fd);
 		perf_end(wperf);
 	}
 	end = hrt_absolute_time();
@@ -79,8 +118,28 @@ test_file(int argc, char *argv[])
 	close(fd);
 
 	warnx("%dKiB in %llu microseconds", iterations / 2, end - start);
+
 	perf_print_counter(wperf);
 	perf_free(wperf);
+
+	/* list directory */
+	DIR           *d;
+	struct dirent *dir;
+	d = opendir("/fs/microsd");
+	if (d) {
+
+		while ((dir = readdir(d)) != NULL) {
+			//printf("%s\n", dir->d_name);
+		}
+
+		closedir(d);
+
+		warnx("directory listing ok (FS mounted and readable)");
+
+	} else {
+		/* failed opening dir */
+		err(1, "FAILED LISTING MICROSD ROOT DIRECTORY");
+	}
 
 	return 0;
 }
