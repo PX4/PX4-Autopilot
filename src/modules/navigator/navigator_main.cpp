@@ -62,6 +62,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/fence.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
@@ -109,6 +110,7 @@ private:
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
 	int		_mission_sub;
+	int		_fence_sub;
 
 	orb_advert_t	_triplet_pub;			/**< position setpoint */
 
@@ -125,6 +127,10 @@ private:
 	unsigned	_mission_items_maxcount;				/**< maximum number of mission items supported */
 	struct	mission_item_s 				* _mission_items;	/**< storage for mission items */
 	bool		_mission_valid;						/**< flag if mission is valid */
+
+	struct	fence_s 				_fence;			/**< storage for fence vertices */
+	bool						_fence_valid;		/**< flag if fence is valid */
+	bool						_inside_fence;		/**< vehicle is inside fence */		
 
 	/** manual control states */
 	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
@@ -168,6 +174,11 @@ private:
 	 * Check for set triplet updates.
 	 */
 	void		mission_poll();
+
+	/**
+	 * Check for fence updates.
+	 */
+	void		fence_poll();
 
 	/**
 	 * Control throttle.
@@ -227,7 +238,9 @@ Navigator::Navigator() :
 /* states */
 	_mission_items_maxcount(20),
 	_mission_valid(false),
-	_loiter_hold(false)
+	_loiter_hold(false),
+	_fence_valid(false),
+	_inside_fence(true)
 {
 	_mission_items = (mission_item_s*)malloc(sizeof(mission_item_s) * _mission_items_maxcount);
 	if (!_mission_items) {
@@ -333,6 +346,19 @@ Navigator::mission_poll()
 }
 
 void
+Navigator::fence_poll()
+{
+	bool fence_updated;
+	orb_check(_fence_sub, &fence_updated);
+
+	if (fence_updated) {
+		orb_copy(ORB_ID(fence), _fence_sub, &_fence);
+		// Fence polygon needs at least 3 sides, and we support up to GEOFENCE_MAX_VERTICES sides.
+		_fence_valid = (_fence.count > 2) && (_fence.count <= GEOFENCE_MAX_VERTICES);
+	}
+}
+
+void
 Navigator::task_main_trampoline(int argc, char *argv[])
 {
 	navigator::g_navigator->task_main();
@@ -351,6 +377,7 @@ Navigator::task_main()
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
+	_fence_sub = orb_subscribe(ORB_ID(fence));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -420,7 +447,13 @@ Navigator::task_main()
 
 			vehicle_attitude_poll();
 
+			fence_poll();
+
 			mission_poll();
+
+			if (_fence_valid && _global_pos.valid) {
+				_inside_fence = inside_geofence(&_global_pos, &_fence);
+			}
 
 			math::Vector2f ground_speed(_global_pos.vx, _global_pos.vy);
 			// Current waypoint
