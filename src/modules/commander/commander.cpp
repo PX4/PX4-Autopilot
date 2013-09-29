@@ -815,29 +815,41 @@ int commander_thread_main(int argc, char *argv[])
             status.manual_control_last_timestamp = hrt_absolute_time();
 		}
         else if (status.manual_control_signal_found_once &&
-                 (status.arming_state == ARMING_STATE_ARMED) ) {
-            int32_t deltaT = (hrt_absolute_time() - status.manual_control_last_timestamp);
+                 (0 != status.manual_control_last_timestamp) )  {
             // determine whether we had and then lost manual signal
+            int32_t deltaT = (hrt_absolute_time() - status.manual_control_last_timestamp);
             if (deltaT > MANUAL_CTRL_TIMEOUT) {
                 status.manual_control_signal_lost = true;
                 mavlink_log_critical(mavlink_fd, "[cmd] manual control signal lost after %d",deltaT);
                 status_changed = true;
+                status.manual_control_last_timestamp = 0;//ensure we only lose signal once before regaining
             }
         }
-
 
 		orb_check(sp_offboard_sub, &updated);
 		if (updated) {
 			orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
+            if (!status.offboard_control_signal_found_once) {
+                mavlink_log_critical(mavlink_fd, "[cmd] detected offboard control signal first time");
+                status_changed = true;
+            }
+            else if (status.offboard_control_signal_lost) {
+                mavlink_log_critical(mavlink_fd, "[cmd] offboard control signal regained");
+                status_changed = true;
+            }
             status.offboard_control_signal_found_once = true;
             status.offboard_control_signal_lost = false;
+            status.offboard_control_last_timestamp = hrt_absolute_time();
 		}
-        else if (status.offboard_control_signal_found_once) {
+        else if (status.offboard_control_signal_found_once &&
+                 (0 != status.offboard_control_last_timestamp)) {
             // determine whether we had and then lost offboard signal
-            if (0 != sp_offboard.timestamp  &&
-                hrt_absolute_time() > sp_offboard.timestamp + OFFBOARD_CTRL_TIMEOUT) {
+            int32_t deltaT = (hrt_absolute_time() - status.offboard_control_last_timestamp);
+            if (deltaT > OFFBOARD_CTRL_TIMEOUT) {
                 status.offboard_control_signal_lost = true;
-                sp_offboard.timestamp = 0;
+                mavlink_log_critical(mavlink_fd, "[cmd] offboard control signal lost after %d",deltaT);
+                status_changed = true;
+                status.offboard_control_last_timestamp = 0;//ensure we only lose signal once before regaining
             }        
         }
 
