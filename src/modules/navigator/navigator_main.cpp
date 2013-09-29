@@ -249,7 +249,6 @@ Navigator::Navigator() :
 	_inside_fence(true)
 {
 	memset(&_global_pos, 0, sizeof(_global_pos));
-	_global_pos.valid = true;
 	_mission_items = (mission_item_s*)malloc(sizeof(mission_item_s) * _mission_items_maxcount);
 	if (!_mission_items) {
 		_mission_items_maxcount = 0;
