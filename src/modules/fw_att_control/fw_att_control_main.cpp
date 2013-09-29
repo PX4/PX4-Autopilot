@@ -635,11 +635,11 @@ FixedwingAttitudeControl::task_main()
 					}
 				}
 
-				float roll_rad = _roll_ctrl.control(roll_sp, _att.roll, _att.rollspeed,
+				float roll_rad = _roll_ctrl.control(roll_sp, _att.roll, _att.rollspeed, _att.pitch, _att.yawspeed,
 								    airspeed_scaling, lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
 				_actuators.control[0] = (isfinite(roll_rad)) ? roll_rad * actuator_scaling : 0.0f;
 
-				float pitch_rad = _pitch_ctrl.control(pitch_sp, _att.pitch, _att.pitchspeed, _att.roll, airspeed_scaling,
+				float pitch_rad = _pitch_ctrl.control(pitch_sp, _att.pitch, _att.pitchspeed, _att.roll, _att.yawspeed, airspeed_scaling,
 								      lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
 				_actuators.control[1] = (isfinite(pitch_rad)) ? pitch_rad * actuator_scaling : 0.0f;
 
