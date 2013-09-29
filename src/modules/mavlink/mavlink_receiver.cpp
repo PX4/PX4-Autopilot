@@ -351,6 +351,62 @@ handle_message(mavlink_message_t *msg)
 		}
 	}
 
+    
+    // Manual control messages may be sent either by external GCS systems such as
+    // tablets or laptops, or may be sent by HIL:
+    // do not assume that these only apply in HIL mode!
+    if (msg->msgid == MAVLINK_MSG_ID_MANUAL_CONTROL) {
+        mavlink_manual_control_t man;
+        mavlink_msg_manual_control_decode(msg, &man);
+        
+        struct manual_control_setpoint_s mc;
+        static orb_advert_t mc_pub = 0;
+        
+        int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+        
+        /* get a copy first, to prevent altering values that are not sent by the mavlink command */
+        orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &mc);
+        
+        mc.timestamp = hrt_absolute_time();
+        mc.roll = man.x / 1000.0f;
+        mc.pitch = man.y / 1000.0f;
+        mc.yaw = man.r / 1000.0f;
+        mc.throttle = man.z / 1000.0f;        
+        
+        if (mc_pub == 0) {
+            mc_pub = orb_advertise(ORB_ID(manual_control_setpoint), &mc);
+            
+        } else {
+            orb_publish(ORB_ID(manual_control_setpoint), mc_pub, &mc);
+        }
+        
+        
+        if (mavlink_hil_enabled) {
+            /* fake RC channels with manual control input from simulator */
+            
+            struct rc_channels_s rc_hil;
+            memset(&rc_hil, 0, sizeof(rc_hil));
+            static orb_advert_t rc_pub = 0;
+            
+            rc_hil.timestamp = mc.timestamp;
+            rc_hil.chan_count = 4;
+            
+            rc_hil.chan[0].scaled = man.x / 1000.0f;
+            rc_hil.chan[1].scaled = man.y / 1000.0f;
+            rc_hil.chan[2].scaled = man.r / 1000.0f;
+            rc_hil.chan[3].scaled = man.z / 1000.0f;
+            
+            if (rc_pub == 0) {
+                rc_pub = orb_advertise(ORB_ID(rc_channels), &rc_hil);
+                
+            } else {
+                orb_publish(ORB_ID(rc_channels), rc_pub, &rc_hil);
+            }
+        }
+        
+
+    }
+    
 	/*
 	 * Only decode hil messages in HIL mode.
 	 *
@@ -666,54 +722,6 @@ handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(battery_status), pub_hil_battery, &hil_battery_status);
 			} else {
 				pub_hil_battery = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
-			}
-		}
-
-		if (msg->msgid == MAVLINK_MSG_ID_MANUAL_CONTROL) {
-			mavlink_manual_control_t man;
-			mavlink_msg_manual_control_decode(msg, &man);
-
-			struct rc_channels_s rc_hil;
-			memset(&rc_hil, 0, sizeof(rc_hil));
-			static orb_advert_t rc_pub = 0;
-
-			rc_hil.timestamp = hrt_absolute_time();
-			rc_hil.chan_count = 4;
-
-			rc_hil.chan[0].scaled = man.x / 1000.0f;
-			rc_hil.chan[1].scaled = man.y / 1000.0f;
-			rc_hil.chan[2].scaled = man.r / 1000.0f;
-			rc_hil.chan[3].scaled = man.z / 1000.0f;
-
-			struct manual_control_setpoint_s mc;
-			static orb_advert_t mc_pub = 0;
-
-			int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-
-			/* get a copy first, to prevent altering values that are not sent by the mavlink command */
-			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &mc);
-
-			mc.timestamp = rc_hil.timestamp;
-			mc.roll = man.x / 1000.0f;
-			mc.pitch = man.y / 1000.0f;
-			mc.yaw = man.r / 1000.0f;
-			mc.throttle = man.z / 1000.0f;
-
-			/* fake RC channels with manual control input from simulator */
-
-
-			if (rc_pub == 0) {
-				rc_pub = orb_advertise(ORB_ID(rc_channels), &rc_hil);
-
-			} else {
-				orb_publish(ORB_ID(rc_channels), rc_pub, &rc_hil);
-			}
-
-			if (mc_pub == 0) {
-				mc_pub = orb_advertise(ORB_ID(manual_control_setpoint), &mc);
-
-			} else {
-				orb_publish(ORB_ID(manual_control_setpoint), mc_pub, &mc);
 			}
 		}
 	}
