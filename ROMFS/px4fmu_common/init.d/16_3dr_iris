@@ -53,7 +53,7 @@ else
 	mavlink start -d /dev/ttyS0
 	usleep 5000
 	fmu mode_pwm
-	param set BAT_V_SCALING 0.004593
+	param set BAT_V_SCALING 0.0098
 	set EXIT_ON_END yes
 fi
 
