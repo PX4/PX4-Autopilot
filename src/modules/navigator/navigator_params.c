@@ -2,6 +2,7 @@
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *           Jean Cyr
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +49,20 @@
  * Navigator parameters, accessible via MAVLink
  *
  */
-
-PARAM_DEFINE_FLOAT(NAV_DUMMY, 0.0f);
-
+PARAM_DEFINE_INT32(NAV_FNC_VTX_N, 0);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX0_LAT, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX0_LON, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX1_LAT, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX1_LON, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX2_LAT, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX2_LON, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX3_LAT, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX3_LON, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX4_LAT, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX4_LON, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX5_LAT, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX5_LON, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX6_LAT, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX6_LON, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX7_LAT, 0.0f);
+PARAM_DEFINE_FLOAT(NAV_FNC_VTX7_LON, 0.0f);
