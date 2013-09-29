@@ -407,7 +407,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
 						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-						if (vstatus.rc_signal_lost && throttle_half_once) {
+						if (vstatus.manual_control_signal_lost && throttle_half_once) {
 
 							/* put plane into loiter */
 							att_sp.roll_body = 0.3f;

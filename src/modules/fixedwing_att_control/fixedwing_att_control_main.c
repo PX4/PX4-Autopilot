@@ -194,7 +194,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			if (control_mode.flag_control_attitude_enabled) {
 
 				/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-				if (vstatus.rc_signal_lost) {
+				if (vstatus.manual_control_signal_lost) {
 
 					/* put plane into loiter */
 					att_sp.roll_body = 0.3f;
