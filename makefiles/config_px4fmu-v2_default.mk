@@ -62,6 +62,7 @@ MODULES		+= systemcmds/nshterm
 # General system control
 #
 MODULES		+= modules/commander
+MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
 
@@ -72,6 +73,11 @@ MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/att_pos_estimator_ekf
 MODULES		+= modules/position_estimator_inav
 MODULES		+= examples/flow_position_estimator
+
+#
+# Navigator
+#
+MODULES		+= modules/navigator
 
 #
 # Vehicle Control
