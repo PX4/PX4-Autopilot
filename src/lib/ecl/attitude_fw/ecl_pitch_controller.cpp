@@ -56,7 +56,7 @@ ECL_PitchController::ECL_PitchController() :
 {
 }
 
-float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitch_rate, float roll, float scaler,
+float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitch_rate, float roll, float yaw_rate, float scaler,
 				   bool lock_integrator, float airspeed_min, float airspeed_max, float airspeed)
 {
 	/* get the usual dt estimate */
@@ -108,7 +108,8 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 
 	float pitch_error = pitch_setpoint - pitch;
 	/* rate setpoint from current error and time constant */
-	_rate_setpoint = pitch_error / _tc;
+	float theta_dot_setpoint =  pitch_error / _tc;
+	_rate_setpoint = cosf(roll) * theta_dot_setpoint + cosf(pitch) * sinf(roll) * yaw_rate; //jacobian
 
 	/* add turn offset */
 	_rate_setpoint += turn_offset;
