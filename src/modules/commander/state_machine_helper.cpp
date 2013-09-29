@@ -228,8 +228,9 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 
 		case MAIN_STATE_SEATBELT:
 
-			/* need altitude estimate */
-			if (current_state->condition_local_altitude_valid) {
+			/* need at minimum altitude estimate */
+			if (current_state->condition_local_altitude_valid ||
+				current_state->condition_global_position_valid) {
 				ret = TRANSITION_CHANGED;
 			}
 
@@ -237,8 +238,9 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 
 		case MAIN_STATE_EASY:
 
-			/* need local position estimate */
-			if (current_state->condition_local_position_valid) {
+			/* need at minimum local position estimate */
+			if (current_state->condition_local_position_valid ||
+				current_state->condition_global_position_valid) {
 				ret = TRANSITION_CHANGED;
 			}
 
@@ -501,6 +503,8 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 
 		current_control_mode->timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, current_control_mode);
+
+		// XXX also set lockdown here
 
 		ret = OK;
 

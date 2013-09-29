@@ -221,7 +221,7 @@ mixer_tick(void)
 		}
 
 		/* do the calculations during the ramp for all at once */
-		if(esc_state == ESC_RAMP) {
+		if (esc_state == ESC_RAMP) {
 			ramp_promille = (1000*(hrt_elapsed_time(&esc_init_time)-ESC_INIT_TIME_US))/ESC_RAMP_TIME_US;
 		}
 

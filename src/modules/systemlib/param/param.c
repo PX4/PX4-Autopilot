@@ -48,6 +48,7 @@
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <errno.h>
+#include <semaphore.h>
 
 #include <sys/stat.h>
 
@@ -95,18 +96,20 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
 
+static sem_t param_sem = { .semcount = 1 };
+
 /** lock the parameter store */
 static void
 param_lock(void)
 {
-	/* XXX */
+	//do {} while (sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-	/* XXX */
+	//sem_post(&param_sem);
 }
 
 /** assert that the parameter store is locked */
@@ -506,29 +509,59 @@ int
 param_save_default(void)
 {
 	int result;
+	unsigned retries = 0;
 
 	/* delete the file in case it exists */
 	struct stat buffer;
 	if (stat(param_get_default_file(), &buffer) == 0) {
-		result = unlink(param_get_default_file());
+
+		do {
+			result = unlink(param_get_default_file());
+			if (result != 0) {
+				retries++;
+				usleep(1000 * retries);
+			}
+		} while (result != OK && retries < 10);
+
 		if (result != OK)
 			warnx("unlinking file %s failed.", param_get_default_file());
 	}
 
 	/* create the file */
-	int fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
+	int fd;
+
+	do {
+		/* do another attempt in case the unlink call is not synced yet */
+		fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
+		if (fd < 0) {
+			retries++;
+			usleep(1000 * retries);
+		}
+
+	} while (fd < 0 && retries < 10);
 
 	if (fd < 0) {
+		
 		warn("opening '%s' for writing failed", param_get_default_file());
 		return fd;
 	}
 
-	result = param_export(fd, false);
+	do {
+		result = param_export(fd, false);
+
+		if (result != OK) {
+			retries++;
+			usleep(1000 * retries);
+		}
+
+	} while (result != 0 && retries < 10);
+
+
 	close(fd);
 
-	if (result != 0) {
+	if (result != OK) {
 		warn("error exporting parameters to '%s'", param_get_default_file());
-		unlink(param_get_default_file());
+		(void)unlink(param_get_default_file());
 		return result;
 	}
 

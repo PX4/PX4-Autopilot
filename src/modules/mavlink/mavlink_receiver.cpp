@@ -102,6 +102,7 @@ struct vehicle_global_position_s hil_global_pos;
 struct vehicle_attitude_s hil_attitude;
 struct vehicle_gps_position_s hil_gps;
 struct sensor_combined_s hil_sensors;
+struct battery_status_s	hil_battery_status;
 static orb_advert_t pub_hil_global_pos = -1;
 static orb_advert_t pub_hil_attitude = -1;
 static orb_advert_t pub_hil_gps = -1;
@@ -111,6 +112,12 @@ static orb_advert_t pub_hil_accel = -1;
 static orb_advert_t pub_hil_mag = -1;
 static orb_advert_t pub_hil_baro = -1;
 static orb_advert_t pub_hil_airspeed = -1;
+static orb_advert_t pub_hil_battery = -1;
+
+/* packet counter */
+static int hil_counter = 0;
+static int hil_frames = 0;
+static uint64_t old_timestamp = 0;
 
 static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;
@@ -149,7 +156,8 @@ handle_message(mavlink_message_t *msg)
 				vcmd.param5 = cmd_mavlink.param5;
 				vcmd.param6 = cmd_mavlink.param6;
 				vcmd.param7 = cmd_mavlink.param7;
-				vcmd.command = cmd_mavlink.command;
+				// XXX do proper translation
+				vcmd.command = (enum VEHICLE_CMD)cmd_mavlink.command;
 				vcmd.target_system = cmd_mavlink.target_system;
 				vcmd.target_component = cmd_mavlink.target_component;
 				vcmd.source_system = msg->sysid;
@@ -207,7 +215,7 @@ handle_message(mavlink_message_t *msg)
 		vcmd.param5 = 0;
 		vcmd.param6 = 0;
 		vcmd.param7 = 0;
-		vcmd.command = MAV_CMD_DO_SET_MODE;
+		vcmd.command = VEHICLE_CMD_DO_SET_MODE;
 		vcmd.target_system = new_mode.target_system;
 		vcmd.target_component = MAV_COMP_ID_ALL;
 		vcmd.source_system = msg->sysid;
@@ -360,11 +368,6 @@ handle_message(mavlink_message_t *msg)
 			mavlink_hil_sensor_t imu;
 			mavlink_msg_hil_sensor_decode(msg, &imu);
 
-			/* packet counter */
-			static uint16_t hil_counter = 0;
-			static uint16_t hil_frames = 0;
-			static uint64_t old_timestamp = 0;
-
 			/* sensors general */
 			hil_sensors.timestamp = hrt_absolute_time();
 
@@ -391,9 +394,9 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.accelerometer_range_m_s2 = 32.7f; // int16
 
 			/* adc */
-			hil_sensors.adc_voltage_v[0] = 0;
-			hil_sensors.adc_voltage_v[1] = 0;
-			hil_sensors.adc_voltage_v[2] = 0;
+			hil_sensors.adc_voltage_v[0] = 0.0f;
+			hil_sensors.adc_voltage_v[1] = 0.0f;
+			hil_sensors.adc_voltage_v[2] = 0.0f;
 
 			/* magnetometer */
 			float mga2ga = 1.0e-3f;
@@ -506,6 +509,18 @@ handle_message(mavlink_message_t *msg)
 				pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
 			}
 
+			/* fill in HIL battery status */
+			hil_battery_status.timestamp = hrt_absolute_time();
+			hil_battery_status.voltage_v = 11.1f;
+			hil_battery_status.current_a = 10.0f;
+
+			/* lazily publish the battery voltage */
+			if (pub_hil_battery > 0) {
+				orb_publish(ORB_ID(battery_status), pub_hil_battery, &hil_battery_status);
+			} else {
+				pub_hil_battery = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
+			}
+
 			// increment counters
 			hil_counter++;
 			hil_frames++;
@@ -574,6 +589,7 @@ handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
 			}
 
+			hil_global_pos.valid = true;
 			hil_global_pos.lat = hil_state.lat;
 			hil_global_pos.lon = hil_state.lon;
 			hil_global_pos.alt = hil_state.alt / 1000.0f;
@@ -638,6 +654,18 @@ handle_message(mavlink_message_t *msg)
 				pub_hil_accel = orb_advertise(ORB_ID(sensor_accel), &accel);
 			} else {
 				orb_publish(ORB_ID(sensor_accel), pub_hil_accel, &accel);
+			}
+
+			/* fill in HIL battery status */
+			hil_battery_status.timestamp = hrt_absolute_time();
+			hil_battery_status.voltage_v = 11.1f;
+			hil_battery_status.current_a = 10.0f;
+
+			/* lazily publish the battery voltage */
+			if (pub_hil_battery > 0) {
+				orb_publish(ORB_ID(battery_status), pub_hil_battery, &hil_battery_status);
+			} else {
+				pub_hil_battery = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
 			}
 		}
 
@@ -755,5 +783,7 @@ receive_start(int uart)
 
 	pthread_t thread;
 	pthread_create(&thread, &receiveloop_attr, receive_thread, &uart);
+
+	pthread_attr_destroy(&receiveloop_attr);
 	return thread;
 }

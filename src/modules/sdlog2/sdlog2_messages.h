@@ -109,6 +109,9 @@ struct log_LPOS_s {
 	int32_t ref_lat;
 	int32_t ref_lon;
 	float ref_alt;
+	uint8_t xy_flags;
+	uint8_t z_flags;
+	uint8_t landed;
 };
 
 /* --- LPSP - LOCAL POSITION SETPOINT --- */
@@ -250,7 +253,25 @@ struct log_GVSP_s {
 	float vz;
 };
 
+/* --- FWRV - FIRMWARE REVISION --- */
+#define LOG_FWRV_MSG 20
+struct log_FWRV_s {
+	char    fw_revision[64];
+};
+
 #pragma pack(pop)
+
+
+/*
+ GIT_VERSION is defined at build time via a Makefile call to the
+ git command line. We create a fake log message format for 
+ the firmware revision "FWRV" that is written to every log
+ header. This makes it easier to determine which version
+ of the firmware was running when a log was created.
+ */
+#define FREEZE_STR(s) #s
+#define STRINGIFY(s) FREEZE_STR(s)
+#define FW_VERSION_STR  STRINGIFY(GIT_VERSION)
 
 /* construct list of all message formats */
 
@@ -260,7 +281,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ATSP, "ffff", "RollSP,PitchSP,YawSP,ThrustSP"),
 	LOG_FORMAT(IMU, "fffffffff", "AccX,AccY,AccZ,GyroX,GyroY,GyroZ,MagX,MagY,MagZ"),
 	LOG_FORMAT(SENS, "ffff", "BaroPres,BaroAlt,BaroTemp,DiffPres"),
-	LOG_FORMAT(LPOS, "ffffffLLf", "X,Y,Z,VX,VY,VZ,RefLat,RefLon,RefAlt"),
+	LOG_FORMAT(LPOS, "ffffffLLfBBB", "X,Y,Z,VX,VY,VZ,RefLat,RefLon,RefAlt,XYFlags,ZFlags,Landed"),
 	LOG_FORMAT(LPSP, "ffff", "X,Y,Z,Yaw"),
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
@@ -274,6 +295,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
+	LOG_FORMAT(FWRV,"Z",FW_VERSION_STR),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);

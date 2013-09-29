@@ -73,20 +73,25 @@ then
 	#
 	# Load microSD params
 	#
-	if ramtron start
-	then
-		param select /ramtron/params
-		if [ -f /ramtron/params ]
-		then
-			param load /ramtron/params
-		fi
-	else
+	#if ramtron start
+	#then
+	#	param select /ramtron/params
+	#	if [ -f /ramtron/params ]
+	#	then
+	#		param load /ramtron/params
+	#	fi
+	#else
 		param select /fs/microsd/params
 		if [ -f /fs/microsd/params ]
 		then
-			param load /fs/microsd/params
+			if param load /fs/microsd/params
+			then
+				echo "Parameters loaded"
+			else
+				echo "Parameter file corrupt - ignoring"
+			fi
 		fi
-	fi
+	#fi
 	
 	#
 	# Start system state indicator
@@ -101,8 +106,26 @@ then
 		fi
 	fi
 
-	# Try to get an USB console
-	nshterm /dev/ttyACM0 &
+	if param compare SYS_AUTOSTART 1000
+	then
+		sh /etc/init.d/1000_rc_fw.hil		
+		set MODE custom
+	else
+		if param compare SYS_AUTOSTART 1001
+		then
+			sh /etc/init.d/1001_rc_quad.hil
+			set MODE custom
+		else
+			if param compare SYS_AUTOSTART 1002
+			then
+				sh /etc/init.d/1002_rc_fw_state.hil
+				set MODE custom
+			else
+				# Try to get an USB console
+				nshterm /dev/ttyACM0 &
+			fi	
+		fi
+	fi
 	
 	#
 	# Upgrade PX4IO firmware
@@ -166,6 +189,42 @@ then
 		sh /etc/init.d/16_3dr_iris
 		set MODE custom
 	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame
+	if param compare SYS_AUTOSTART 17
+	then
+		set MKBLCTRL_MODE no
+		set MKBLCTRL_FRAME x
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame
+	if param compare SYS_AUTOSTART 18
+	then
+		set MKBLCTRL_MODE no
+		set MKBLCTRL_FRAME +
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame Mikrokopter-Addressing
+	if param compare SYS_AUTOSTART 19
+	then
+		set MKBLCTRL_MODE yes
+		set MKBLCTRL_FRAME x
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
+
+	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame Mikrokopter-Addressing
+	if param compare SYS_AUTOSTART 20
+	then
+		set MKBLCTRL_MODE yes
+		set MKBLCTRL_FRAME +
+		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+		set MODE custom
+	fi
 	
 	if param compare SYS_AUTOSTART 30
 	then
@@ -176,6 +235,18 @@ then
 	if param compare SYS_AUTOSTART 31
 	then
 		sh /etc/init.d/31_io_phantom
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 100
+	then
+		sh /etc/init.d/100_mpx_easystar
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 101
+	then
+		sh /etc/init.d/101_hk_bixler
 		set MODE custom
 	fi
 	
@@ -189,8 +260,9 @@ then
 	if [ $MODE == autostart ]
 	then
 		# Telemetry port is on both FMU boards ttyS1
-		mavlink start -b 57600 -d /dev/ttyS1
-		usleep 5000
+		# but the AR.Drone motors can be get 'flashed'
+		# if starting MAVLink on them - so do not
+		# start it as default (default link: USB)
 	
 		# Start commander
 		commander start

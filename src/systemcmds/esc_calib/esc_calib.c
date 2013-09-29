@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +46,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/mount.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -63,7 +65,7 @@
 static void	usage(const char *reason);
 __EXPORT int	esc_calib_main(int argc, char *argv[]);
 
-#define MAX_CHANNELS 8
+#define MAX_CHANNELS 14
 
 static void
 usage(const char *reason)
@@ -82,22 +84,26 @@ usage(const char *reason)
 int
 esc_calib_main(int argc, char *argv[])
 {
-	const char *dev = PWM_OUTPUT_DEVICE_PATH;
+	char *dev = PWM_OUTPUT_DEVICE_PATH;
 	char *ep;
 	bool channels_selected[MAX_CHANNELS] = {false};
 	int ch;
 	int ret;
 	char c;
 
+	struct pollfd fds;
+	fds.fd = 0; /* stdin */
+	fds.events = POLLIN;
+
 	if (argc < 2)
 		usage(NULL);
 
-	while ((ch = getopt(argc, argv, "d:")) != EOF) {
+	while ((ch = getopt(argc-1, argv, "d:")) != EOF) {
 		switch (ch) {
 		
 		case 'd':
 			dev = optarg;
-			argc--;
+			argc-=2;
 			break;
 
 		default:
@@ -105,7 +111,7 @@ esc_calib_main(int argc, char *argv[])
 		}
 	}
 
-	if(argc < 1) {
+	if(argc < 2) {
 		usage("no channels provided");
 	}
 
@@ -123,35 +129,33 @@ esc_calib_main(int argc, char *argv[])
 		}
 	}
 
-	/* Wait for confirmation */
-	int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
-	if (!console)
-		err(1, "failed opening console");
-
-	warnx("ATTENTION, please remove or fix props before starting calibration!\n"
+	printf("\nATTENTION, please remove or fix propellers before starting calibration!\n"
 		"\n"
-		"Also press the arming switch first for safety off\n"
+		"Make sure\n"
+		"\t - that the ESCs are not powered\n"
+		"\t - that safety is off (two short blinks)\n"
+		"\t - that the controllers are stopped\n"
 		"\n"
-		"Do you really want to start calibration: y or n?\n");
+		"Do you want to start calibration now: y or n?\n");
 
 	/* wait for user input */
 	while (1) {
 		
-		if (read(console, &c, 1) == 1) {
+		ret = poll(&fds, 1, 0);
+		if (ret > 0) {
+
+			read(0, &c, 1);
 			if (c == 'y' || c == 'Y') {
 				
 				break;
 			} else if (c == 0x03 || c == 0x63 || c == 'q') {
-				warnx("ESC calibration exited");
-				close(console);
+				printf("ESC calibration exited\n");
 				exit(0);
 			} else if (c == 'n' || c == 'N') {
-				warnx("ESC calibration aborted");
-				close(console);
+				printf("ESC calibration aborted\n");
 				exit(0);
 			} else {
-				warnx("Unknown input, ESC calibration aborted");
-				close(console);
+				printf("Unknown input, ESC calibration aborted\n");
 				exit(0);
 			} 
 		}
@@ -163,23 +167,14 @@ esc_calib_main(int argc, char *argv[])
 	int fd = open(dev, 0);
 	if (fd < 0)
 		err(1, "can't open %s", dev);
-
-	// XXX arming not necessaire at the moment
-	// /* Then arm */
-	// ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
-	// 	if (ret != OK)
-	// 		err(1, "PWM_SERVO_SET_ARM_OK");
-
-	// ret = ioctl(fd, PWM_SERVO_ARM, 0);
-	// 	if (ret != OK)
-	// 		err(1, "PWM_SERVO_ARM");
-
-
 	
 
 	/* Wait for user confirmation */
-	warnx("Set high PWM\n"
-	      "Connect battery now and hit ENTER after the ESCs confirm the first calibration step");
+	printf("\nHigh PWM set\n"
+		"\n"
+		"Connect battery now and hit ENTER after the ESCs confirm the first calibration step\n"
+		"\n");
+	fflush(stdout);
 
 	while (1) {
 
@@ -192,13 +187,15 @@ esc_calib_main(int argc, char *argv[])
 			}
 		}
 
-		if (read(console, &c, 1) == 1) {
+		ret = poll(&fds, 1, 0);
+		if (ret > 0) {
+
+			read(0, &c, 1);
 			if (c == 13) {
 				
 				break;
 			} else if (c == 0x03 || c == 0x63 || c == 'q') {
 				warnx("ESC calibration exited");
-				close(console);
 				exit(0);
 			}
 		}
@@ -209,7 +206,8 @@ esc_calib_main(int argc, char *argv[])
 	/* we don't need any more user input */
 	
 
-	warnx("Set low PWM, hit ENTER when finished");
+	printf("Low PWM set, hit ENTER when finished\n"
+		"\n");
 
 	while (1) {
 
@@ -222,13 +220,15 @@ esc_calib_main(int argc, char *argv[])
 			}
 		}
 
-		if (read(console, &c, 1) == 1) {
+		ret = poll(&fds, 1, 0);
+		if (ret > 0) {
+
+			read(0, &c, 1);
 			if (c == 13) {
 				
 				break;
 			} else if (c == 0x03 || c == 0x63 || c == 'q') {
-				warnx("ESC calibration exited");
-				close(console);
+				printf("ESC calibration exited\n");
 				exit(0);
 			}
 		}
@@ -237,14 +237,7 @@ esc_calib_main(int argc, char *argv[])
 	}
 
 	
-	warnx("ESC calibration finished");
-	close(console);
-
-	// XXX disarming not necessaire at the moment
-	/* Now disarm again */
-	// ret = ioctl(fd, PWM_SERVO_DISARM, 0);
-
-	
+	printf("ESC calibration finished\n");
 
 	exit(0);
 }

@@ -163,7 +163,7 @@ system_eval:
 		warnx("PREFLIGHT CHECK ERROR! TRIGGERING ALARM");
 		fflush(stderr);
 
-		int buzzer = open("/dev/tone_alarm", O_WRONLY);
+		int buzzer = open(TONEALARM_DEVICE_PATH, O_WRONLY);
 		int leds = open(LED_DEVICE_PATH, 0);
 
 		if (leds < 0) {

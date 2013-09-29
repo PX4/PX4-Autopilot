@@ -142,6 +142,22 @@ NullMixer *
 NullMixer::from_text(const char *buf, unsigned &buflen)
 {
 	NullMixer *nm = nullptr;
+	const char *end = buf + buflen;
+
+	/* enforce that the mixer ends with space or a new line */
+	for (int i = buflen - 1; i >= 0; i--) {
+		if (buf[i] == '\0')
+			continue;
+
+		/* require a space or newline at the end of the buffer, fail on printable chars */
+		if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
+			/* found a line ending or space, so no split symbols / numbers. good. */
+			break;
+		} else {
+			return nm;
+		}
+
+	}
 
 	if ((buflen >= 2) && (buf[0] == 'Z') && (buf[1] == ':')) {
 		nm = new NullMixer;

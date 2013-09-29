@@ -3,6 +3,7 @@
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
  *           Julian Oes <joes@student.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,7 +56,6 @@
 #include <drivers/drv_led.h>
 #include <drivers/drv_rgbled.h>
 
-
 #include "commander_helper.h"
 
 /* oddly, ERROR is not defined for c++ */
@@ -64,25 +64,28 @@
 #endif
 static const int ERROR = -1;
 
+#define BLINK_MSG_TIME	700000	// 3 fast blinks
+
 bool is_multirotor(const struct vehicle_status_s *current_status)
 {
 	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
-	    (current_status->system_type == VEHICLE_TYPE_TRICOPTER));
+		(current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
+		(current_status->system_type == VEHICLE_TYPE_OCTOROTOR) ||
+		(current_status->system_type == VEHICLE_TYPE_TRICOPTER));
 }
 
 bool is_rotary_wing(const struct vehicle_status_s *current_status)
 {
 	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
-	|| (current_status->system_type == VEHICLE_TYPE_COAXIAL);
+	       || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
 }
 
 static int buzzer;
+static hrt_abstime blink_msg_end;
 
 int buzzer_init()
 {
-	buzzer = open("/dev/tone_alarm", O_WRONLY);
+	buzzer = open(TONEALARM_DEVICE_PATH, O_WRONLY);
 
 	if (buzzer < 0) {
 		warnx("Buzzer: open fail\n");
@@ -104,16 +107,25 @@ void tune_error()
 
 void tune_positive()
 {
+	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	rgbled_set_color(RGBLED_COLOR_GREEN);
+	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_POSITIVE_TUNE);
 }
 
 void tune_neutral()
 {
+	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	rgbled_set_color(RGBLED_COLOR_WHITE);
+	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEUTRAL_TUNE);
 }
 
 void tune_negative()
 {
+	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	rgbled_set_color(RGBLED_COLOR_RED);
+	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEGATIVE_TUNE);
 }
 
@@ -132,11 +144,22 @@ int tune_critical_bat()
 	return ioctl(buzzer, TONE_SET_ALARM, TONE_BATTERY_WARNING_FAST_TUNE);
 }
 
-
-
 void tune_stop()
 {
 	ioctl(buzzer, TONE_SET_ALARM, TONE_STOP_TUNE);
+}
+
+int blink_msg_state()
+{
+	if (blink_msg_end == 0) {
+		return 0;
+
+	} else if (hrt_absolute_time() > blink_msg_end) {
+		return 2;
+
+	} else {
+		return 1;
+	}
 }
 
 static int leds;
@@ -144,6 +167,8 @@ static int rgbleds;
 
 int led_init()
 {
+	blink_msg_end = 0;
+
 	/* first open normal LEDs */
 	leds = open(LED_DEVICE_PATH, 0);
 
@@ -159,6 +184,7 @@ int led_init()
 		warnx("Blue LED: ioctl fail\n");
 		return ERROR;
 	}
+
 #endif
 
 	if (ioctl(leds, LED_ON, LED_AMBER)) {
@@ -168,6 +194,7 @@ int led_init()
 
 	/* then try RGB LEDs, this can fail on FMUv1*/
 	rgbleds = open(RGBLED_DEVICE_PATH, 0);
+
 	if (rgbleds == -1) {
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		errx(1, "Unable to open " RGBLED_DEVICE_PATH);
@@ -203,19 +230,22 @@ int led_off(int led)
 	return ioctl(leds, LED_OFF, led);
 }
 
-void rgbled_set_color(rgbled_color_t color) {
+void rgbled_set_color(rgbled_color_t color)
+{
 
 	if (rgbleds != -1)
 		ioctl(rgbleds, RGBLED_SET_COLOR, (unsigned long)color);
 }
 
-void rgbled_set_mode(rgbled_mode_t mode) {
+void rgbled_set_mode(rgbled_mode_t mode)
+{
 
 	if (rgbleds != -1)
 		ioctl(rgbleds, RGBLED_SET_MODE, (unsigned long)mode);
 }
 
-void rgbled_set_pattern(rgbled_pattern_t *pattern) {
+void rgbled_set_pattern(rgbled_pattern_t *pattern)
+{
 
 	if (rgbleds != -1)
 		ioctl(rgbleds, RGBLED_SET_PATTERN, (unsigned long)pattern);

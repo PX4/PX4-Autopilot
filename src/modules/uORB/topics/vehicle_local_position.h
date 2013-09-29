@@ -70,8 +70,8 @@ struct vehicle_local_position_s
 	/* Heading */
 	float yaw;
 	/* Reference position in GPS / WGS84 frame */
-	bool global_xy;			/**< true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon) */
-	bool global_z;			/**< true if z is valid and has valid global reference (ref_alt) */
+	bool xy_global;			/**< true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon) */
+	bool z_global;			/**< true if z is valid and has valid global reference (ref_alt) */
 	uint64_t ref_timestamp;	/**< Time when reference position was set */
 	int32_t ref_lat;		/**< Reference point latitude in 1E7 degrees */
 	int32_t ref_lon;		/**< Reference point longitude in 1E7 degrees */

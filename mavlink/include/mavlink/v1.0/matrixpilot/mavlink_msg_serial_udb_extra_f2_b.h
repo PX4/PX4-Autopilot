@@ -219,7 +219,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f2_b_pack(uint8_t system_id,
  * @brief Pack a serial_udb_extra_f2_b message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param sue_time Serial UDB Extra Time
  * @param sue_pwm_input_1 Serial UDB Extra PWM Input Channel 1
@@ -345,7 +345,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f2_b_pack_chan(uint8_t syste
 }
 
 /**
- * @brief Encode a serial_udb_extra_f2_b struct into a message
+ * @brief Encode a serial_udb_extra_f2_b struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -355,6 +355,20 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f2_b_pack_chan(uint8_t syste
 static inline uint16_t mavlink_msg_serial_udb_extra_f2_b_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_serial_udb_extra_f2_b_t* serial_udb_extra_f2_b)
 {
 	return mavlink_msg_serial_udb_extra_f2_b_pack(system_id, component_id, msg, serial_udb_extra_f2_b->sue_time, serial_udb_extra_f2_b->sue_pwm_input_1, serial_udb_extra_f2_b->sue_pwm_input_2, serial_udb_extra_f2_b->sue_pwm_input_3, serial_udb_extra_f2_b->sue_pwm_input_4, serial_udb_extra_f2_b->sue_pwm_input_5, serial_udb_extra_f2_b->sue_pwm_input_6, serial_udb_extra_f2_b->sue_pwm_input_7, serial_udb_extra_f2_b->sue_pwm_input_8, serial_udb_extra_f2_b->sue_pwm_input_9, serial_udb_extra_f2_b->sue_pwm_input_10, serial_udb_extra_f2_b->sue_pwm_output_1, serial_udb_extra_f2_b->sue_pwm_output_2, serial_udb_extra_f2_b->sue_pwm_output_3, serial_udb_extra_f2_b->sue_pwm_output_4, serial_udb_extra_f2_b->sue_pwm_output_5, serial_udb_extra_f2_b->sue_pwm_output_6, serial_udb_extra_f2_b->sue_pwm_output_7, serial_udb_extra_f2_b->sue_pwm_output_8, serial_udb_extra_f2_b->sue_pwm_output_9, serial_udb_extra_f2_b->sue_pwm_output_10, serial_udb_extra_f2_b->sue_imu_location_x, serial_udb_extra_f2_b->sue_imu_location_y, serial_udb_extra_f2_b->sue_imu_location_z, serial_udb_extra_f2_b->sue_flags, serial_udb_extra_f2_b->sue_osc_fails, serial_udb_extra_f2_b->sue_imu_velocity_x, serial_udb_extra_f2_b->sue_imu_velocity_y, serial_udb_extra_f2_b->sue_imu_velocity_z, serial_udb_extra_f2_b->sue_waypoint_goal_x, serial_udb_extra_f2_b->sue_waypoint_goal_y, serial_udb_extra_f2_b->sue_waypoint_goal_z, serial_udb_extra_f2_b->sue_memory_stack_free);
+}
+
+/**
+ * @brief Encode a serial_udb_extra_f2_b struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param serial_udb_extra_f2_b C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_serial_udb_extra_f2_b_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_serial_udb_extra_f2_b_t* serial_udb_extra_f2_b)
+{
+	return mavlink_msg_serial_udb_extra_f2_b_pack_chan(system_id, component_id, chan, msg, serial_udb_extra_f2_b->sue_time, serial_udb_extra_f2_b->sue_pwm_input_1, serial_udb_extra_f2_b->sue_pwm_input_2, serial_udb_extra_f2_b->sue_pwm_input_3, serial_udb_extra_f2_b->sue_pwm_input_4, serial_udb_extra_f2_b->sue_pwm_input_5, serial_udb_extra_f2_b->sue_pwm_input_6, serial_udb_extra_f2_b->sue_pwm_input_7, serial_udb_extra_f2_b->sue_pwm_input_8, serial_udb_extra_f2_b->sue_pwm_input_9, serial_udb_extra_f2_b->sue_pwm_input_10, serial_udb_extra_f2_b->sue_pwm_output_1, serial_udb_extra_f2_b->sue_pwm_output_2, serial_udb_extra_f2_b->sue_pwm_output_3, serial_udb_extra_f2_b->sue_pwm_output_4, serial_udb_extra_f2_b->sue_pwm_output_5, serial_udb_extra_f2_b->sue_pwm_output_6, serial_udb_extra_f2_b->sue_pwm_output_7, serial_udb_extra_f2_b->sue_pwm_output_8, serial_udb_extra_f2_b->sue_pwm_output_9, serial_udb_extra_f2_b->sue_pwm_output_10, serial_udb_extra_f2_b->sue_imu_location_x, serial_udb_extra_f2_b->sue_imu_location_y, serial_udb_extra_f2_b->sue_imu_location_z, serial_udb_extra_f2_b->sue_flags, serial_udb_extra_f2_b->sue_osc_fails, serial_udb_extra_f2_b->sue_imu_velocity_x, serial_udb_extra_f2_b->sue_imu_velocity_y, serial_udb_extra_f2_b->sue_imu_velocity_z, serial_udb_extra_f2_b->sue_waypoint_goal_x, serial_udb_extra_f2_b->sue_waypoint_goal_y, serial_udb_extra_f2_b->sue_waypoint_goal_z, serial_udb_extra_f2_b->sue_memory_stack_free);
 }
 
 /**

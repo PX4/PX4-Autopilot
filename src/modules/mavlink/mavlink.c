@@ -531,7 +531,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		case 'b':
 			baudrate = strtoul(optarg, NULL, 10);
 
-			if (baudrate == 0)
+			if (baudrate < 9600 || baudrate > 921600)
 				errx(1, "invalid baud rate '%s'", optarg);
 
 			break;
@@ -743,7 +743,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	thread_running = false;
 
-	exit(0);
+	return 0;
 }
 
 static void
@@ -767,7 +767,7 @@ int mavlink_main(int argc, char *argv[])
 
 		/* this is not an error */
 		if (thread_running)
-			errx(0, "mavlink already running\n");
+			errx(0, "mavlink already running");
 
 		thread_should_exit = false;
 		mavlink_task = task_spawn_cmd("mavlink",
@@ -776,15 +776,25 @@ int mavlink_main(int argc, char *argv[])
 					  2048,
 					  mavlink_thread_main,
 					  (const char **)argv);
+
+		while (!thread_running) {
+			usleep(200);
+		}
+
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
+
+		/* this is not an error */
+		if (!thread_running)
+			errx(0, "mavlink already stopped");
+
 		thread_should_exit = true;
 
 		while (thread_running) {
 			usleep(200000);
-			printf(".");
+			warnx(".");
 		}
 
 		warnx("terminated.");

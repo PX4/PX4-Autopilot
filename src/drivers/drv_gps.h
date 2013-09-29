@@ -51,8 +51,7 @@
 typedef enum {
 	GPS_DRIVER_MODE_NONE = 0,
 	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK,
-	GPS_DRIVER_MODE_NMEA,
+	GPS_DRIVER_MODE_MTK
 } gps_driver_mode_t;
 
 

@@ -73,7 +73,7 @@ static inline uint16_t mavlink_msg_llc_out_pack(uint8_t system_id, uint8_t compo
  * @brief Pack a llc_out message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param servoOut 
                 
@@ -110,7 +110,7 @@ static inline uint16_t mavlink_msg_llc_out_pack_chan(uint8_t system_id, uint8_t 
 }
 
 /**
- * @brief Encode a llc_out struct into a message
+ * @brief Encode a llc_out struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -120,6 +120,20 @@ static inline uint16_t mavlink_msg_llc_out_pack_chan(uint8_t system_id, uint8_t 
 static inline uint16_t mavlink_msg_llc_out_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_llc_out_t* llc_out)
 {
 	return mavlink_msg_llc_out_pack(system_id, component_id, msg, llc_out->servoOut, llc_out->MotorOut);
+}
+
+/**
+ * @brief Encode a llc_out struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param llc_out C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_llc_out_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_llc_out_t* llc_out)
+{
+	return mavlink_msg_llc_out_pack_chan(system_id, component_id, chan, msg, llc_out->servoOut, llc_out->MotorOut);
 }
 
 /**

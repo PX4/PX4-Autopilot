@@ -5,6 +5,7 @@
  *           Lorenz Meier <lm@inf.ethz.ch>
  *           Thomas Gubler <thomasgubler@student.ethz.ch>
  *           Julian Oes <joes@student.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -144,8 +145,8 @@ static int mavlink_fd;
 
 /* flags */
 static bool commander_initialized = false;
-static bool thread_should_exit = false;		/**< daemon exit flag */
-static bool thread_running = false;		/**< daemon status flag */
+static volatile bool thread_should_exit = false;		/**< daemon exit flag */
+static volatile bool thread_running = false;		/**< daemon status flag */
 static int daemon_task;				/**< Handle of daemon task / thread */
 
 static unsigned int leds_counter;
@@ -198,7 +199,7 @@ void handle_command(struct vehicle_status_s *status, struct vehicle_control_mode
  */
 int commander_thread_main(int argc, char *argv[]);
 
-void toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed);
+void control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed);
 
 void check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *valid_out, bool *changed);
 
@@ -230,7 +231,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("commander already running\n");
+			warnx("commander already running");
 			/* this is not an error */
 			exit(0);
 		}
@@ -242,21 +243,38 @@ int commander_main(int argc, char *argv[])
 					     3000,
 					     commander_thread_main,
 					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
+
+		while (!thread_running) {
+			usleep(200);
+		}
+
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
+
+		if (!thread_running)
+			errx(0, "commander already stopped");
+
 		thread_should_exit = true;
+
+		while (thread_running) {
+			usleep(200000);
+			warnx(".");
+		}
+
+		warnx("terminated.");
+
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			warnx("\tcommander is running\n");
+			warnx("\tcommander is running");
 			print_status();
 
 		} else {
-			warnx("\tcommander not started\n");
+			warnx("\tcommander not started");
 		}
 
 		exit(0);
@@ -326,6 +344,9 @@ void print_status()
 	warnx("arming: %s", armed_str);
 }
 
+static orb_advert_t control_mode_pub;
+static orb_advert_t status_pub;
+
 void handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_control_mode_s *control_mode, struct vehicle_command_s *cmd, struct actuator_armed_s *armed)
 {
 	/* result of the command */
@@ -339,13 +360,23 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			uint8_t base_mode = (uint8_t) cmd->param1;
 			uint8_t custom_main_mode = (uint8_t) cmd->param2;
 
+			/* set HIL state */
+			hil_state_t new_hil_state = (base_mode & MAV_MODE_FLAG_HIL_ENABLED) ? HIL_STATE_ON : HIL_STATE_OFF;
+			hil_state_transition(new_hil_state, status_pub, status, control_mode_pub, control_mode, mavlink_fd);
+
 			// TODO remove debug code
 			//mavlink_log_critical(mavlink_fd, "[cmd] command setmode: %d %d", base_mode, custom_main_mode);
 			/* set arming state */
 			transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
 			if (base_mode & MAV_MODE_FLAG_SAFETY_ARMED) {
-				arming_res = arming_state_transition(status, safety, ARMING_STATE_ARMED, armed);
+				if (safety->safety_switch_available && !safety->safety_off) {
+					print_reject_arm("NOT ARMING: Press safety switch first.");
+					arming_res = TRANSITION_DENIED;
+
+				} else {
+					arming_res = arming_state_transition(status, safety, ARMING_STATE_ARMED, armed);
+				}
 
 				if (arming_res == TRANSITION_CHANGED) {
 					mavlink_log_info(mavlink_fd, "[cmd] ARMED by command");
@@ -439,8 +470,26 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 
 	case VEHICLE_CMD_COMPONENT_ARM_DISARM:
-		// XXX implement later
-		result = VEHICLE_CMD_RESULT_DENIED;
+	{
+		transition_result_t arming_res = TRANSITION_NOT_CHANGED;
+		if (!armed->armed && ((int)(cmd->param1 + 0.5f)) == 1) {
+			if (safety->safety_switch_available && !safety->safety_off) {
+				print_reject_arm("NOT ARMING: Press safety switch first.");
+				arming_res = TRANSITION_DENIED;
+
+			} else {
+				arming_res = arming_state_transition(status, safety, ARMING_STATE_ARMED, armed);
+			}
+
+			if (arming_res == TRANSITION_CHANGED) {
+				mavlink_log_info(mavlink_fd, "[cmd] ARMED by component arm cmd");
+				result = VEHICLE_CMD_RESULT_ACCEPTED;
+			} else {
+				mavlink_log_info(mavlink_fd, "[cmd] REJECTING component arm cmd");
+				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			}
+		}
+	}
 		break;
 
 	default:
@@ -526,7 +575,6 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* Main state machine */
-	orb_advert_t status_pub;
 	/* make sure we are in preflight state */
 	memset(&status, 0, sizeof(status));
 	status.condition_landed = true;	// initialize to safe value
@@ -538,7 +586,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* flags for control apps */
 	struct vehicle_control_mode_s control_mode;
-	orb_advert_t control_mode_pub;
+
 
 	/* Initialize all flags to false */
 	memset(&control_mode, 0, sizeof(control_mode));
@@ -595,16 +643,20 @@ int commander_thread_main(int argc, char *argv[])
 
 	mavlink_log_info(mavlink_fd, "[cmd] started");
 
+	int ret;
+
 	pthread_attr_t commander_low_prio_attr;
 	pthread_attr_init(&commander_low_prio_attr);
 	pthread_attr_setstacksize(&commander_low_prio_attr, 2992);
 
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&commander_low_prio_attr, &param);
+
 	/* low priority */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 50;
 	(void)pthread_attr_setschedparam(&commander_low_prio_attr, &param);
 	pthread_create(&commander_low_prio_thread, &commander_low_prio_attr, commander_low_prio_loop, NULL);
+	pthread_attr_destroy(&commander_low_prio_attr);
 
 	/* Start monitoring loop */
 	unsigned counter = 0;
@@ -617,7 +669,6 @@ int commander_thread_main(int argc, char *argv[])
 	bool critical_battery_voltage_actions_done = false;
 
 	uint64_t last_idle_time = 0;
-
 	uint64_t start_time = 0;
 
 	bool status_changed = true;
@@ -695,7 +746,7 @@ int commander_thread_main(int argc, char *argv[])
 	struct subsystem_info_s info;
 	memset(&info, 0, sizeof(info));
 
-	toggle_status_leds(&status, &armed, true);
+	control_status_leds(&status, &armed, true);
 
 	/* now initialized */
 	commander_initialized = true;
@@ -772,16 +823,6 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		check_valid(diff_pres.timestamp, DIFFPRESS_TIMEOUT, true, &(status.condition_airspeed_valid), &status_changed);
-
-		orb_check(cmd_sub, &updated);
-
-		if (updated) {
-			/* got command */
-			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
-
-			/* handle it */
-			handle_command(&status, &safety, &control_mode, &cmd, &armed);
-		}
 
 		/* update safety topic */
 		orb_check(safety_sub, &updated);
@@ -917,11 +958,9 @@ int commander_thread_main(int argc, char *argv[])
 				battery_tune_played = false;
 
 				if (armed.armed) {
-					// XXX not sure what should happen when voltage is low in flight
-					//arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
+					arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
 				} else {
-					// XXX should we still allow to arm with critical battery?
-					//arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed);
+					arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed);
 				}
 
 				status_changed = true;
@@ -1056,10 +1095,18 @@ int commander_thread_main(int argc, char *argv[])
 
 				/* check if left stick is in lower right position and we're in MANUAL mode -> arm */
 				if (status.arming_state == ARMING_STATE_STANDBY &&
-				    status.main_state == MAIN_STATE_MANUAL &&
 				    sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-						res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
+						if (safety.safety_switch_available && !safety.safety_off) {
+							print_reject_arm("NOT ARMING: Press safety switch first.");
+
+						} else if (status.main_state != MAIN_STATE_MANUAL) {
+							print_reject_arm("NOT ARMING: Switch to MANUAL mode first.");
+
+						} else {
+							res = arming_state_transition(&status, &safety, ARMING_STATE_ARMED, &armed);
+						}
+
 						stick_on_counter = 0;
 
 					} else {
@@ -1079,15 +1126,8 @@ int commander_thread_main(int argc, char *argv[])
 					}
 
 				} else if (res == TRANSITION_DENIED) {
-					/* DENIED here indicates safety switch not pressed */
-
-					if (!(!safety.safety_switch_available || safety.safety_off)) {
-						print_reject_arm("NOT ARMING: Press safety switch first.");
-
-					} else {
-						warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
-						mavlink_log_critical(mavlink_fd, "[cmd] ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
-					}
+					warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+					mavlink_log_critical(mavlink_fd, "[cmd] ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
 				}
 
 				/* fill current_status according to mode switches */
@@ -1115,6 +1155,18 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+
+		/* handle commands last, as the system needs to be updated to handle them */
+		orb_check(cmd_sub, &updated);
+
+		if (updated) {
+			/* got command */
+			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
+
+			/* handle it */
+			handle_command(&status, &safety, &control_mode, &cmd, &armed);
+		}
+
 		/* evaluate the navigation state machine */
 		transition_result_t res = check_navigation_state_machine(&status, &control_mode, &local_position);
 
@@ -1132,9 +1184,6 @@ int commander_thread_main(int argc, char *argv[])
 		if (arming_state_changed || main_state_changed || navigation_state_changed) {
 			mavlink_log_info(mavlink_fd, "[cmd] state: arm %d, main %d, nav %d", status.arming_state, status.main_state, status.navigation_state);
 			status_changed = true;
-
-		} else {
-			status_changed = false;
 		}
 
 		hrt_abstime t1 = hrt_absolute_time();
@@ -1194,13 +1243,31 @@ int commander_thread_main(int argc, char *argv[])
 		fflush(stdout);
 		counter++;
 
-		toggle_status_leds(&status, &armed, arming_state_changed || status_changed);
+		int blink_state = blink_msg_state();
+		if (blink_state > 0) {
+			/* blinking LED message, don't touch LEDs */
+			if (blink_state == 2) {
+				/* blinking LED message completed, restore normal state */
+				control_status_leds(&status, &armed, true);
+			}
+		} else {
+			/* normal state */
+			control_status_leds(&status, &armed, status_changed);
+		}
+
+		status_changed = false;
 
 		usleep(COMMANDER_MONITORING_INTERVAL);
 	}
 
 	/* wait for threads to complete */
-	pthread_join(commander_low_prio_thread, NULL);
+	ret = pthread_join(commander_low_prio_thread, NULL);
+
+	if (ret) {
+		warn("join failed", ret);
+	}
+
+	rgbled_set_mode(RGBLED_MODE_OFF);
 
 	/* close fds */
 	led_deinit();
@@ -1217,9 +1284,6 @@ int commander_thread_main(int argc, char *argv[])
 	close(diff_pres_sub);
 	close(param_changed_sub);
 	close(battery_sub);
-
-	warnx("exiting");
-	fflush(stdout);
 
 	thread_running = false;
 
@@ -1239,8 +1303,48 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 }
 
 void
-toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed)
+control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed)
 {
+	/* driving rgbled */
+	if (changed) {
+		bool set_normal_color = false;
+		/* set mode */
+		if (status->arming_state == ARMING_STATE_ARMED) {
+			rgbled_set_mode(RGBLED_MODE_ON);
+			set_normal_color = true;
+
+		} else if (status->arming_state == ARMING_STATE_ARMED_ERROR) {
+			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+			rgbled_set_color(RGBLED_COLOR_RED);
+
+		} else if (status->arming_state == ARMING_STATE_STANDBY) {
+			rgbled_set_mode(RGBLED_MODE_BREATHE);
+			set_normal_color = true;
+
+		} else {	// STANDBY_ERROR and other states
+			rgbled_set_mode(RGBLED_MODE_BLINK_NORMAL);
+			rgbled_set_color(RGBLED_COLOR_RED);
+		}
+
+		if (set_normal_color) {
+			/* set color */
+			if (status->battery_warning != VEHICLE_BATTERY_WARNING_NONE) {
+				if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
+					rgbled_set_color(RGBLED_COLOR_AMBER);
+				}
+				/* VEHICLE_BATTERY_WARNING_CRITICAL handled as ARMING_STATE_ARMED_ERROR / ARMING_STATE_STANDBY_ERROR */
+
+			} else {
+				if (status->condition_local_position_valid) {
+					rgbled_set_color(RGBLED_COLOR_GREEN);
+
+				} else {
+					rgbled_set_color(RGBLED_COLOR_BLUE);
+				}
+			}
+		}
+	}
+
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
@@ -1260,46 +1364,6 @@ toggle_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chang
 	}
 
 #endif
-
-	if (changed) {
-		/* XXX TODO blink fast when armed and serious error occurs */
-
-		if (armed->armed) {
-			rgbled_set_mode(RGBLED_MODE_ON);
-		} else if (armed->ready_to_arm) {
-			rgbled_set_mode(RGBLED_MODE_BREATHE);
-		} else {
-			rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
-		}
-	}
-
-	if (status->battery_warning != VEHICLE_BATTERY_WARNING_NONE) {
-		switch (status->battery_warning) {
-			case VEHICLE_BATTERY_WARNING_LOW:
-				rgbled_set_color(RGBLED_COLOR_YELLOW);
-				break;
-			case VEHICLE_BATTERY_WARNING_CRITICAL:
-				rgbled_set_color(RGBLED_COLOR_AMBER);
-				break;
-			default:
-				break;
-		}
-	} else {
-		switch (status->main_state) {
-			case MAIN_STATE_MANUAL:
-				rgbled_set_color(RGBLED_COLOR_WHITE);
-				break;
-			case MAIN_STATE_SEATBELT:
-			case MAIN_STATE_EASY:
-				rgbled_set_color(RGBLED_COLOR_GREEN);
-				break;
-			case MAIN_STATE_AUTO:
-				rgbled_set_color(RGBLED_COLOR_BLUE);
-				break;
-			default:
-				break;
-		}
-	}
 
 	/* give system warnings on error LED, XXX maybe add memory usage warning too */
 	if (status->load > 0.95f) {
@@ -1468,16 +1532,18 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 					return TRANSITION_NOT_CHANGED;
 				}
 			}
+
 			if (status->navigation_state != NAVIGATION_STATE_AUTO_TAKEOFF &&
-				status->navigation_state != NAVIGATION_STATE_AUTO_LOITER &&
-				status->navigation_state != NAVIGATION_STATE_AUTO_MISSION &&
-				status->navigation_state != NAVIGATION_STATE_AUTO_RTL) {
+			    status->navigation_state != NAVIGATION_STATE_AUTO_LOITER &&
+			    status->navigation_state != NAVIGATION_STATE_AUTO_MISSION &&
+			    status->navigation_state != NAVIGATION_STATE_AUTO_RTL) {
 				/* possibly on ground, switch to TAKEOFF if needed */
 				if (local_pos->z > -takeoff_alt || status->condition_landed) {
 					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_TAKEOFF, control_mode);
 					return res;
 				}
 			}
+
 			/* switch to AUTO mode */
 			if (status->rc_signal_found_once && !status->rc_signal_lost) {
 				/* act depending on switches when manual control enabled */
@@ -1495,18 +1561,20 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 						res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_LOITER, control_mode);
 					}
 				}
+
 			} else {
 				/* switch to MISSION when no RC control and first time in some AUTO mode  */
 				if (status->navigation_state == NAVIGATION_STATE_AUTO_LOITER ||
-					status->navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
-					status->navigation_state == NAVIGATION_STATE_AUTO_RTL ||
-					status->navigation_state == NAVIGATION_STATE_AUTO_LAND) {
+				    status->navigation_state == NAVIGATION_STATE_AUTO_MISSION ||
+				    status->navigation_state == NAVIGATION_STATE_AUTO_RTL ||
+				    status->navigation_state == NAVIGATION_STATE_AUTO_LAND) {
 					res = TRANSITION_NOT_CHANGED;
 
 				} else {
 					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_MISSION, control_mode);
 				}
 			}
+
 		} else {
 			/* disarmed, always switch to AUTO_READY */
 			res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_READY, control_mode);
@@ -1628,7 +1696,7 @@ void *commander_low_prio_loop(void *arg)
 	while (!thread_should_exit) {
 
 		/* wait for up to 100ms for data */
-		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
+		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 200);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
 		if (pret == 0)
@@ -1733,35 +1801,41 @@ void *commander_low_prio_loop(void *arg)
 
 				if (((int)(cmd.param1)) == 0) {
 					int ret = param_load_default();
+
 					if (ret == OK) {
 						mavlink_log_info(mavlink_fd, "[cmd] parameters loaded");
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
 						mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
+
 						/* convenience as many parts of NuttX use negative errno */
 						if (ret < 0)
 							ret = -ret;
 
 						if (ret < 1000)
 							mavlink_log_critical(mavlink_fd, "[cmd] %s", strerror(ret));
+
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
 					}
 
 				} else if (((int)(cmd.param1)) == 1) {
 					int ret = param_save_default();
+
 					if (ret == OK) {
 						mavlink_log_info(mavlink_fd, "[cmd] parameters saved");
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
 						mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
+
 						/* convenience as many parts of NuttX use negative errno */
 						if (ret < 0)
 							ret = -ret;
 
 						if (ret < 1000)
 							mavlink_log_critical(mavlink_fd, "[cmd] %s", strerror(ret));
+
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
 					}
 				}
@@ -1785,5 +1859,5 @@ void *commander_low_prio_loop(void *arg)
 
 	close(cmd_sub);
 
-	return 0;
+	return NULL;
 }

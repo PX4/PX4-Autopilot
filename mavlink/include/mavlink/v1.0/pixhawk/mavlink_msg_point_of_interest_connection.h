@@ -107,7 +107,7 @@ static inline uint16_t mavlink_msg_point_of_interest_connection_pack(uint8_t sys
  * @brief Pack a point_of_interest_connection message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param type 0: Notice, 1: Warning, 2: Critical, 3: Emergency, 4: Debug
  * @param color 0: blue, 1: yellow, 2: red, 3: orange, 4: green, 5: magenta
@@ -165,7 +165,7 @@ static inline uint16_t mavlink_msg_point_of_interest_connection_pack_chan(uint8_
 }
 
 /**
- * @brief Encode a point_of_interest_connection struct into a message
+ * @brief Encode a point_of_interest_connection struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -175,6 +175,20 @@ static inline uint16_t mavlink_msg_point_of_interest_connection_pack_chan(uint8_
 static inline uint16_t mavlink_msg_point_of_interest_connection_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_point_of_interest_connection_t* point_of_interest_connection)
 {
 	return mavlink_msg_point_of_interest_connection_pack(system_id, component_id, msg, point_of_interest_connection->type, point_of_interest_connection->color, point_of_interest_connection->coordinate_system, point_of_interest_connection->timeout, point_of_interest_connection->xp1, point_of_interest_connection->yp1, point_of_interest_connection->zp1, point_of_interest_connection->xp2, point_of_interest_connection->yp2, point_of_interest_connection->zp2, point_of_interest_connection->name);
+}
+
+/**
+ * @brief Encode a point_of_interest_connection struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param point_of_interest_connection C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_point_of_interest_connection_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_point_of_interest_connection_t* point_of_interest_connection)
+{
+	return mavlink_msg_point_of_interest_connection_pack_chan(system_id, component_id, chan, msg, point_of_interest_connection->type, point_of_interest_connection->color, point_of_interest_connection->coordinate_system, point_of_interest_connection->timeout, point_of_interest_connection->xp1, point_of_interest_connection->yp1, point_of_interest_connection->zp1, point_of_interest_connection->xp2, point_of_interest_connection->yp2, point_of_interest_connection->zp2, point_of_interest_connection->name);
 }
 
 /**

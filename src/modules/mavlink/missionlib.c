@@ -167,9 +167,9 @@ bool set_special_fields(float param1, float param2, float param3, float param4, 
 	sp->loiter_direction = (param3 >= 0) ? 1 : -1;
 
 	sp->param1 = param1;
-	sp->param1 = param2;
-	sp->param1 = param3;
-	sp->param1 = param4;
+	sp->param2 = param2;
+	sp->param3 = param3;
+	sp->param4 = param4;
 }
 
 /**

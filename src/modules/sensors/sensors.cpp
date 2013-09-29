@@ -1516,8 +1516,7 @@ Sensors::task_main()
 {
 
 	/* inform about start */
-	printf("[sensors] Initializing..\n");
-	fflush(stdout);
+	warnx("Initializing..");
 
 	/* start individual sensors */
 	accel_init();

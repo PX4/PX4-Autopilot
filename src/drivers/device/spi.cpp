@@ -67,6 +67,7 @@ SPI::SPI(const char *name,
 	CDev(name, devname, irq),
 	// public
 	// protected
+	locking_mode(LOCK_PREEMPTION),
 	// private
 	_bus(bus),
 	_device(device),
@@ -132,13 +133,25 @@ SPI::probe()
 int
 SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
+	irqstate_t	state;
 
 	if ((send == nullptr) && (recv == nullptr))
 		return -EINVAL;
 
-	/* do common setup */
-	if (!up_interrupt_context())
-		SPI_LOCK(_dev, true);
+	/* lock the bus as required */
+	if (!up_interrupt_context()) {
+		switch (locking_mode) {
+		default:
+		case LOCK_PREEMPTION:
+			state = irqsave();
+			break;
+		case LOCK_THREADS:
+			SPI_LOCK(_dev, true);
+			break;
+		case LOCK_NONE:
+			break;
+		}
+	}
 
 	SPI_SETFREQUENCY(_dev, _frequency);
 	SPI_SETMODE(_dev, _mode);
@@ -151,8 +164,19 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	/* and clean up */
 	SPI_SELECT(_dev, _device, false);
 
-	if (!up_interrupt_context())
-		SPI_LOCK(_dev, false);
+	if (!up_interrupt_context()) {
+		switch (locking_mode) {
+		default:
+		case LOCK_PREEMPTION:
+			irqrestore(state);
+			break;
+		case LOCK_THREADS:
+			SPI_LOCK(_dev, false);
+			break;
+		case LOCK_NONE:
+			break;
+		}
+	}
 
 	return OK;
 }

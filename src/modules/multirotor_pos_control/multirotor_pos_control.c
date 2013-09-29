@@ -193,7 +193,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	struct vehicle_local_position_setpoint_s local_pos_sp;
 	memset(&local_pos_sp, 0, sizeof(local_pos_sp));
 	struct vehicle_global_position_setpoint_s global_pos_sp;
-	memset(&global_pos_sp, 0, sizeof(local_pos_sp));
+	memset(&global_pos_sp, 0, sizeof(global_pos_sp));
 	struct vehicle_global_velocity_setpoint_s global_vel_sp;
 	memset(&global_vel_sp, 0, sizeof(global_vel_sp));
 
@@ -212,17 +212,17 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	orb_advert_t global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &global_vel_sp);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
-	bool global_pos_sp_reproject = false;
+	bool reset_mission_sp = false;
 	bool global_pos_sp_valid = false;
-	bool local_pos_sp_valid = false;
-	bool reset_sp_z = true;
-	bool reset_sp_xy = true;
+	bool reset_man_sp_z = true;
+	bool reset_man_sp_xy = true;
 	bool reset_int_z = true;
 	bool reset_int_z_manual = false;
 	bool reset_int_xy = true;
 	bool was_armed = false;
-	bool reset_integral = true;
-	bool reset_auto_pos = true;
+	bool reset_auto_sp_xy = true;
+	bool reset_auto_sp_z = true;
+	bool reset_takeoff_sp = true;
 
 	hrt_abstime t_prev = 0;
 	const float alt_ctl_dz = 0.2f;
@@ -270,11 +270,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				/* use integral_limit_out = tilt_max / 2 */
 				float i_limit;
 
-				if (params.xy_vel_i == 0.0f) {
+				if (params.xy_vel_i > 0.0f) {
 					i_limit = params.tilt_max / params.xy_vel_i / 2.0f;
 
 				} else {
-					i_limit = 1.0f;	// not used really
+					i_limit = 0.0f;	// not used
 				}
 
 				pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, i_limit, params.tilt_max);
@@ -297,7 +297,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		if (updated) {
 			orb_copy(ORB_ID(vehicle_global_position_setpoint), global_pos_sp_sub, &global_pos_sp);
 			global_pos_sp_valid = true;
-			global_pos_sp_reproject = true;
+			reset_mission_sp = true;
 		}
 
 		hrt_abstime t = hrt_absolute_time();
@@ -312,8 +312,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 		if (control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
-			reset_sp_z = true;
-			reset_sp_xy = true;
+			reset_man_sp_z = true;
+			reset_man_sp_xy = true;
+			reset_auto_sp_z = true;
+			reset_auto_sp_xy = true;
+			reset_takeoff_sp = true;
 			reset_int_z = true;
 			reset_int_xy = true;
 		}
@@ -348,8 +351,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 				/* reset setpoints to current position if needed */
 				if (control_mode.flag_control_altitude_enabled) {
-					if (reset_sp_z) {
-						reset_sp_z = false;
+					if (reset_man_sp_z) {
+						reset_man_sp_z = false;
 						local_pos_sp.z = local_pos.z;
 						mavlink_log_info(mavlink_fd, "[mpc] reset alt sp: %.2f", (double) - local_pos_sp.z);
 					}
@@ -371,8 +374,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				}
 
 				if (control_mode.flag_control_position_enabled) {
-					if (reset_sp_xy) {
-						reset_sp_xy = false;
+					if (reset_man_sp_xy) {
+						reset_man_sp_xy = false;
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
 						pid_reset_integral(&xy_vel_pids[0]);
@@ -405,41 +408,45 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					}
 				}
 
+				/* copy yaw setpoint to vehicle_local_position_setpoint topic */
 				local_pos_sp.yaw = att_sp.yaw_body;
 
-				/* local position setpoint is valid and can be used for loiter after position controlled mode */
-				local_pos_sp_valid = control_mode.flag_control_position_enabled;
-
-				reset_auto_pos = true;
+				/* local position setpoint is valid and can be used for auto loiter after position controlled mode */
+				reset_auto_sp_xy = !control_mode.flag_control_position_enabled;
+				reset_auto_sp_z = !control_mode.flag_control_altitude_enabled;
+				reset_takeoff_sp = true;
 
 				/* force reprojection of global setpoint after manual mode */
-				global_pos_sp_reproject = true;
+				reset_mission_sp = true;
 
 			} else if (control_mode.flag_control_auto_enabled) {
 				/* AUTO mode, use global setpoint */
 				if (control_mode.auto_state == NAVIGATION_STATE_AUTO_READY) {
-					reset_auto_pos = true;
+					reset_auto_sp_xy = true;
+					reset_auto_sp_z = true;
 
 				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
-					if (reset_auto_pos) {
+					if (reset_takeoff_sp) {
+						reset_takeoff_sp = false;
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
 						local_pos_sp.z = - params.takeoff_alt - params.takeoff_gap;
-						local_pos_sp.yaw = att.yaw;
-						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
-						reset_auto_pos = false;
 						mavlink_log_info(mavlink_fd, "[mpc] takeoff sp: %.2f %.2f %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y, (double) - local_pos_sp.z);
 					}
 
+					reset_auto_sp_xy = false;
+					reset_auto_sp_z = true;
+
 				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_RTL) {
 					// TODO
-					reset_auto_pos = true;
+					reset_auto_sp_xy = true;
+					reset_auto_sp_z = true;
 
 				} else if (control_mode.auto_state == NAVIGATION_STATE_AUTO_MISSION) {
 					/* init local projection using local position ref */
 					if (local_pos.ref_timestamp != local_ref_timestamp) {
-						global_pos_sp_reproject = true;
+						reset_mission_sp = true;
 						local_ref_timestamp = local_pos.ref_timestamp;
 						double lat_home = local_pos.ref_lat * 1e-7;
 						double lon_home = local_pos.ref_lon * 1e-7;
@@ -447,9 +454,9 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						mavlink_log_info(mavlink_fd, "[mpc] local pos ref: %.7f, %.7f", (double)lat_home, (double)lon_home);
 					}
 
-					if (global_pos_sp_reproject) {
+					if (reset_mission_sp) {
+						reset_mission_sp = false;
 						/* update global setpoint projection */
-						global_pos_sp_reproject = false;
 
 						if (global_pos_sp_valid) {
 							/* global position setpoint valid, use it */
@@ -464,40 +471,50 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							} else {
 								local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
 							}
-
-							local_pos_sp.yaw = global_pos_sp.yaw;
 							att_sp.yaw_body = global_pos_sp.yaw;
 
 							mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", (double)sp_lat, sp_lon, (double)local_pos_sp.x, (double)local_pos_sp.y);
 
 						} else {
-							if (!local_pos_sp_valid) {
+							if (reset_auto_sp_xy) {
+								reset_auto_sp_xy = false;
 								/* local position setpoint is invalid,
 								 * use current position as setpoint for loiter */
 								local_pos_sp.x = local_pos.x;
 								local_pos_sp.y = local_pos.y;
-								local_pos_sp.z = local_pos.z;
 								local_pos_sp.yaw = att.yaw;
-								local_pos_sp_valid = true;
+							}
+
+							if (reset_auto_sp_z) {
+								reset_auto_sp_z = false;
+								local_pos_sp.z = local_pos.z;
 							}
 
 							mavlink_log_info(mavlink_fd, "[mpc] no global pos sp, loiter: %.2f, %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y);
 						}
 					}
 
-					reset_auto_pos = true;
+					reset_auto_sp_xy = true;
+					reset_auto_sp_z = true;
+				}
+
+				if (control_mode.auto_state != NAVIGATION_STATE_AUTO_TAKEOFF) {
+					reset_takeoff_sp = true;
 				}
 
 				if (control_mode.auto_state != NAVIGATION_STATE_AUTO_MISSION) {
-					global_pos_sp_reproject = true;
+					reset_mission_sp = true;
 				}
 
+				/* copy yaw setpoint to vehicle_local_position_setpoint topic */
+				local_pos_sp.yaw = att_sp.yaw_body;
+
 				/* reset setpoints after AUTO mode */
-				reset_sp_xy = true;
-				reset_sp_z = true;
+				reset_man_sp_xy = true;
+				reset_man_sp_z = true;
 
 			} else {
-				/* no control, loiter or stay on ground */
+				/* no control (failsafe), loiter or stay on ground */
 				if (local_pos.landed) {
 					/* landed: move setpoint down */
 					/* in air: hold altitude */
@@ -508,27 +525,30 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						mavlink_log_info(mavlink_fd, "[mpc] landed, set alt: %.2f", (double) - local_pos_sp.z);
 					}
 
-					reset_sp_z = true;
+					reset_man_sp_z = true;
 
 				} else {
 					/* in air: hold altitude */
-					if (reset_sp_z) {
-						reset_sp_z = false;
+					if (reset_man_sp_z) {
+						reset_man_sp_z = false;
 						local_pos_sp.z = local_pos.z;
 						mavlink_log_info(mavlink_fd, "[mpc] set loiter alt: %.2f", (double) - local_pos_sp.z);
 					}
+
+					reset_auto_sp_z = false;
 				}
 
 				if (control_mode.flag_control_position_enabled) {
-					if (reset_sp_xy) {
-						reset_sp_xy = false;
+					if (reset_man_sp_xy) {
+						reset_man_sp_xy = false;
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
 						local_pos_sp.yaw = att.yaw;
-						local_pos_sp_valid = true;
 						att_sp.yaw_body = att.yaw;
 						mavlink_log_info(mavlink_fd, "[mpc] set loiter pos: %.2f %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y);
 					}
+
+					reset_auto_sp_xy = false;
 				}
 			}
 
@@ -540,7 +560,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				global_vel_sp.vz = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz - sp_move_rate[2], dt) + sp_move_rate[2];
 
 			} else {
-				reset_sp_z = true;
+				reset_man_sp_z = true;
 				global_vel_sp.vz = 0.0f;
 			}
 
@@ -558,7 +578,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				}
 
 			} else {
-				reset_sp_xy = true;
+				reset_man_sp_xy = true;
 				global_vel_sp.vx = 0.0f;
 				global_vel_sp.vy = 0.0f;
 			}
@@ -640,12 +660,13 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 		} else {
 			/* position controller disabled, reset setpoints */
-			reset_sp_z = true;
-			reset_sp_xy = true;
+			reset_man_sp_z = true;
+			reset_man_sp_xy = true;
 			reset_int_z = true;
 			reset_int_xy = true;
-			global_pos_sp_reproject = true;
-			reset_auto_pos = true;
+			reset_mission_sp = true;
+			reset_auto_sp_xy = true;
+			reset_auto_sp_z = true;
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */

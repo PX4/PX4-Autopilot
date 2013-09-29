@@ -72,7 +72,7 @@ static inline uint16_t mavlink_msg_cmd_airspeed_chng_pack(uint8_t system_id, uin
  * @brief Pack a cmd_airspeed_chng message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param target 
                 
@@ -109,7 +109,7 @@ static inline uint16_t mavlink_msg_cmd_airspeed_chng_pack_chan(uint8_t system_id
 }
 
 /**
- * @brief Encode a cmd_airspeed_chng struct into a message
+ * @brief Encode a cmd_airspeed_chng struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -119,6 +119,20 @@ static inline uint16_t mavlink_msg_cmd_airspeed_chng_pack_chan(uint8_t system_id
 static inline uint16_t mavlink_msg_cmd_airspeed_chng_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_cmd_airspeed_chng_t* cmd_airspeed_chng)
 {
 	return mavlink_msg_cmd_airspeed_chng_pack(system_id, component_id, msg, cmd_airspeed_chng->target, cmd_airspeed_chng->spCmd);
+}
+
+/**
+ * @brief Encode a cmd_airspeed_chng struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param cmd_airspeed_chng C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_cmd_airspeed_chng_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_cmd_airspeed_chng_t* cmd_airspeed_chng)
+{
+	return mavlink_msg_cmd_airspeed_chng_pack_chan(system_id, component_id, chan, msg, cmd_airspeed_chng->target, cmd_airspeed_chng->spCmd);
 }
 
 /**
