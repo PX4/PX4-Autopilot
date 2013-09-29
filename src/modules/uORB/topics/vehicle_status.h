@@ -206,10 +206,11 @@ struct vehicle_status_s
     
     bool manual_control_signal_found_once; /**< we received a manual control signal at least once */
     bool manual_control_signal_lost; /**< we haven't received manual control update in a while, and manual_control_signal_found_once is true  */
-    uint64_t   manual_control_last_timestamp;
+    uint64_t   manual_control_last_timestamp; /**< last time we received a manual control message: reset to zero when lost */
     
 	bool offboard_control_signal_found_once; /**< we received an offboard control signal at least once */
 	bool offboard_control_signal_lost; /**< true if offboard signals lost and offboard_control_signal_found_once is true */
+    uint64_t  offboard_control_last_timestamp;/**< last time we received an offboard control message: reset to zero when lost */
 
 	/* see SYS_STATUS mavlink message for the following */
 	uint32_t onboard_control_sensors_present;
