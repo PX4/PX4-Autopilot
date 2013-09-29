@@ -203,14 +203,13 @@ struct vehicle_status_s
 	bool condition_local_altitude_valid;
 	bool condition_airspeed_valid;			/**< set to true by the commander app if there is a valid airspeed measurement available */
 	bool condition_landed;					/**< true if vehicle is landed, always true if disarmed */
-
-	bool rc_signal_found_once;
-	bool rc_signal_lost;				/**< true if RC reception lost */
-
-	bool offboard_control_signal_found_once;
-	bool offboard_control_signal_lost;
-	bool offboard_control_signal_weak;
-	uint64_t offboard_control_signal_lost_interval;	/**< interval in microseconds without an offboard control message */
+    
+    bool manual_control_signal_found_once; /**< we received a manual control signal at least once */
+    bool manual_control_signal_lost; /**< we haven't received manual control update in a while, and manual_control_signal_found_once is true  */
+    uint64_t   manual_control_last_timestamp;
+    
+	bool offboard_control_signal_found_once; /**< we received an offboard control signal at least once */
+	bool offboard_control_signal_lost; /**< true if offboard signals lost and offboard_control_signal_found_once is true */
 
 	/* see SYS_STATUS mavlink message for the following */
 	uint32_t onboard_control_sensors_present;
