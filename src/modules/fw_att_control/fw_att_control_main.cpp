@@ -155,6 +155,11 @@ private:
 		float airspeed_min;
 		float airspeed_trim;
 		float airspeed_max;
+
+		float roll_trim_rad;
+		float pitch_trim_rad;
+		float yaw_trim_rad;
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -181,6 +186,11 @@ private:
 		param_t airspeed_min;
 		param_t airspeed_trim;
 		param_t airspeed_max;
+
+		param_t roll_trim_rad;
+		param_t pitch_trim_rad;
+		param_t yaw_trim_rad;
+
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -298,6 +308,10 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
 
+	_parameter_handles.roll_trim_rad = param_find("TRIM_ROLL");
+	_parameter_handles.pitch_trim_rad = param_find("TRIM_PITCH");
+	_parameter_handles.yaw_trim_rad = param_find("TRIM_YAW");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -355,6 +369,10 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
 	param_get(_parameter_handles.airspeed_max, &(_parameters.airspeed_max));
+
+	param_get(_parameter_handles.roll_trim_rad, &(_parameters.roll_trim_rad));
+	param_get(_parameter_handles.pitch_trim_rad, &(_parameters.pitch_trim_rad));
+	param_get(_parameter_handles.yaw_trim_rad, &(_parameters.yaw_trim_rad));
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
@@ -633,15 +651,15 @@ FixedwingAttitudeControl::task_main()
 
 				float roll_rad = _roll_ctrl.control(roll_sp, _att.roll, _att.rollspeed,
 								    airspeed_scaling, lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
-				_actuators.control[0] = (isfinite(roll_rad)) ? roll_rad * actuator_scaling : 0.0f;
+				_actuators.control[0] = (isfinite(roll_rad)) ? (roll_rad + _parameters.roll_trim_rad) * actuator_scaling : 0.0f;
 
 				float pitch_rad = _pitch_ctrl.control(pitch_sp, _att.pitch, _att.pitchspeed, _att.roll, airspeed_scaling,
 								      lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
-				_actuators.control[1] = (isfinite(pitch_rad)) ? pitch_rad * actuator_scaling : 0.0f;
+				_actuators.control[1] = (isfinite(pitch_rad)) ? (pitch_rad + _parameters.pitch_trim_rad) * actuator_scaling : 0.0f;
 
 				float yaw_rad = _yaw_ctrl.control(_att.roll, _att.yawspeed, _accel.y, airspeed_scaling, lock_integrator,
 								  _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
-				_actuators.control[2] = (isfinite(yaw_rad)) ? yaw_rad * actuator_scaling : 0.0f;
+				_actuators.control[2] = (isfinite(yaw_rad)) ? (yaw_rad + _parameters.yaw_trim_rad) * actuator_scaling : 0.0f;
 
 				/* throttle passed through */
 				_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
