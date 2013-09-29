@@ -85,6 +85,34 @@ static bool motor_test_mode = false;
 static const float min_takeoff_throttle = 0.3f;
 static const float yaw_deadzone = 0.01f;
 
+static struct {
+	float roll_trim_rad;
+	float pitch_trim_rad;
+	float yaw_trim_rad;
+
+}		_parameters;			/**< local copies of interesting parameters */
+
+static struct {
+	param_t roll_trim_rad;
+	param_t pitch_trim_rad;
+	param_t yaw_trim_rad;
+
+}		_parameter_handles;		/**< handles for interesting parameters */
+
+
+mc_att_sp_trim_and_publish(orb_advert_t att_sp_pub, struct vehicle_attitude_setpoint_s *att_sp);
+
+mc_att_sp_trim_and_publish(orb_advert_t att_sp_pub, struct vehicle_attitude_setpoint_s *att_sp)
+{
+	/* add trims */
+	att_sp->roll_body += _parameters.roll_trim_rad;
+	att_sp->pitch_body += _parameters.pitch_trim_rad;
+	att_sp->yaw_body += _parameters.yaw_trim_rad;
+
+	/* publish the attitude setpoint */
+	orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+}
+
 static int
 mc_thread_main(int argc, char *argv[])
 {
@@ -146,8 +174,14 @@ mc_thread_main(int argc, char *argv[])
 	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "multirotor_att_control_interval");
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_att_control_err");
 
-	/* welcome user */
-	warnx("starting");
+	/* initialize params */
+	_parameter_handles.roll_trim_rad = param_find("TRIM_ROLL");
+	_parameter_handles.pitch_trim_rad = param_find("TRIM_PITCH");
+	_parameter_handles.yaw_trim_rad = param_find("TRIM_YAW");
+
+	param_get(_parameter_handles.roll_trim_rad, &(_parameters.roll_trim_rad));
+	param_get(_parameter_handles.pitch_trim_rad, &(_parameters.pitch_trim_rad));
+	param_get(_parameter_handles.yaw_trim_rad, &(_parameters.yaw_trim_rad));
 
 	/* store last control mode to detect mode switches */
 	bool control_yaw_position = true;
@@ -173,6 +207,9 @@ mc_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(parameter_update), param_sub, &update);
 
 				/* update parameters */
+				param_get(_parameter_handles.roll_trim_rad, &(_parameters.roll_trim_rad));
+				param_get(_parameter_handles.pitch_trim_rad, &(_parameters.pitch_trim_rad));
+				param_get(_parameter_handles.yaw_trim_rad, &(_parameters.yaw_trim_rad));
 			}
 
 			/* only run controller if attitude changed */
@@ -236,8 +273,7 @@ mc_thread_main(int argc, char *argv[])
 						att_sp.yaw_body = offboard_sp.p3;
 						att_sp.thrust = offboard_sp.p4;
 						att_sp.timestamp = hrt_absolute_time();
-						/* publish the result to the vehicle actuators */
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+						mc_att_sp_trim_and_publish(att_sp_pub, &att_sp);
 					}
 
 					/* reset yaw setpoint after offboard control */
@@ -297,8 +333,7 @@ mc_thread_main(int argc, char *argv[])
 
 						att_sp.timestamp = hrt_absolute_time();
 
-						/* publish the attitude setpoint */
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+						mc_att_sp_trim_and_publish(att_sp_pub, &att_sp);
 
 					} else {
 						/* manual rate inputs (ACRO), from RC control or joystick */
@@ -322,7 +357,7 @@ mc_thread_main(int argc, char *argv[])
 							att_sp.roll_body = 0.0f;
 							att_sp.pitch_body = 0.0f;
 							att_sp.timestamp = hrt_absolute_time();
-							orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+							mc_att_sp_trim_and_publish(att_sp_pub, &att_sp);
 						}
 					}
 
