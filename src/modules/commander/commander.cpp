@@ -470,27 +470,28 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			break;
 		}
 
-	case VEHICLE_CMD_COMPONENT_ARM_DISARM:
-	{
-		transition_result_t arming_res = TRANSITION_NOT_CHANGED;
-		if (!armed->armed && ((int)(cmd->param1 + 0.5f)) == 1) {
-			if (safety->safety_switch_available && !safety->safety_off) {
-				print_reject_arm("NOT ARMING: Press safety switch first.");
-				arming_res = TRANSITION_DENIED;
+	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
+			transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
-			} else {
-				arming_res = arming_state_transition(status, safety, ARMING_STATE_ARMED, armed);
-			}
+			if (!armed->armed && ((int)(cmd->param1 + 0.5f)) == 1) {
+				if (safety->safety_switch_available && !safety->safety_off) {
+					print_reject_arm("NOT ARMING: Press safety switch first.");
+					arming_res = TRANSITION_DENIED;
 
-			if (arming_res == TRANSITION_CHANGED) {
-				mavlink_log_info(mavlink_fd, "[cmd] ARMED by component arm cmd");
-				result = VEHICLE_CMD_RESULT_ACCEPTED;
-			} else {
-				mavlink_log_info(mavlink_fd, "[cmd] REJECTING component arm cmd");
-				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				} else {
+					arming_res = arming_state_transition(status, safety, ARMING_STATE_ARMED, armed);
+				}
+
+				if (arming_res == TRANSITION_CHANGED) {
+					mavlink_log_info(mavlink_fd, "[cmd] ARMED by component arm cmd");
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					mavlink_log_info(mavlink_fd, "[cmd] REJECTING component arm cmd");
+					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				}
 			}
 		}
-	}
 		break;
 
 	default:
@@ -599,12 +600,12 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* neither manual nor offboard control commands have been received */
 	status.offboard_control_signal_found_once = false;
-    status.manual_control_signal_found_once = false;
+	status.manual_control_signal_found_once = false;
 
 	/* mark all signals lost as long as they haven't been found */
-    status.manual_control_signal_lost = true;
+	status.manual_control_signal_lost = true;
 	status.offboard_control_signal_lost = true;
-    
+
 	/* allow manual override initially */
 	control_mode.flag_external_manual_override_ok = true;
 
@@ -800,58 +801,66 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		orb_check(sp_man_sub, &updated);
+
 		if (updated) {
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
-            if (!status.manual_control_signal_found_once) {
-                mavlink_log_critical(mavlink_fd, "[cmd] detected manual control signal first time");
-                status_changed = true;
-            }
-            else if (status.manual_control_signal_lost) {
-                mavlink_log_critical(mavlink_fd, "[cmd] manual control signal regained");
-                status_changed = true;
-            }
-            status.manual_control_signal_found_once = true;
-            status.manual_control_signal_lost = false;
-            status.manual_control_last_timestamp = hrt_absolute_time();
+
+			if (!status.manual_control_signal_found_once) {
+				mavlink_log_critical(mavlink_fd, "[cmd] detected manual control signal first time");
+				status_changed = true;
+
+			} else if (status.manual_control_signal_lost) {
+				mavlink_log_critical(mavlink_fd, "[cmd] manual control signal regained");
+				status_changed = true;
+			}
+
+			status.manual_control_signal_found_once = true;
+			status.manual_control_signal_lost = false;
+			status.manual_control_last_timestamp = hrt_absolute_time();
+
+		} else if (status.manual_control_signal_found_once &&
+			   (0 != status.manual_control_last_timestamp))  {
+			// determine whether we had and then lost manual signal
+			int32_t deltaT = (hrt_absolute_time() - status.manual_control_last_timestamp);
+
+			if (deltaT > MANUAL_CTRL_TIMEOUT) {
+				status.manual_control_signal_lost = true;
+				mavlink_log_critical(mavlink_fd, "[cmd] manual control signal lost after %d", deltaT);
+				status_changed = true;
+				status.manual_control_last_timestamp = 0;//ensure we only lose signal once before regaining
+			}
 		}
-        else if (status.manual_control_signal_found_once &&
-                 (0 != status.manual_control_last_timestamp) )  {
-            // determine whether we had and then lost manual signal
-            int32_t deltaT = (hrt_absolute_time() - status.manual_control_last_timestamp);
-            if (deltaT > MANUAL_CTRL_TIMEOUT) {
-                status.manual_control_signal_lost = true;
-                mavlink_log_critical(mavlink_fd, "[cmd] manual control signal lost after %d",deltaT);
-                status_changed = true;
-                status.manual_control_last_timestamp = 0;//ensure we only lose signal once before regaining
-            }
-        }
 
 		orb_check(sp_offboard_sub, &updated);
+
 		if (updated) {
 			orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
-            if (!status.offboard_control_signal_found_once) {
-                mavlink_log_critical(mavlink_fd, "[cmd] detected offboard control signal first time");
-                status_changed = true;
-            }
-            else if (status.offboard_control_signal_lost) {
-                mavlink_log_critical(mavlink_fd, "[cmd] offboard control signal regained");
-                status_changed = true;
-            }
-            status.offboard_control_signal_found_once = true;
-            status.offboard_control_signal_lost = false;
-            status.offboard_control_last_timestamp = hrt_absolute_time();
+
+			if (!status.offboard_control_signal_found_once) {
+				mavlink_log_critical(mavlink_fd, "[cmd] detected offboard control signal first time");
+				status_changed = true;
+
+			} else if (status.offboard_control_signal_lost) {
+				mavlink_log_critical(mavlink_fd, "[cmd] offboard control signal regained");
+				status_changed = true;
+			}
+
+			status.offboard_control_signal_found_once = true;
+			status.offboard_control_signal_lost = false;
+			status.offboard_control_last_timestamp = hrt_absolute_time();
+
+		} else if (status.offboard_control_signal_found_once &&
+			   (0 != status.offboard_control_last_timestamp)) {
+			// determine whether we had and then lost offboard signal
+			int32_t deltaT = (hrt_absolute_time() - status.offboard_control_last_timestamp);
+
+			if (deltaT > OFFBOARD_CTRL_TIMEOUT) {
+				status.offboard_control_signal_lost = true;
+				mavlink_log_critical(mavlink_fd, "[cmd] offboard control signal lost after %d", deltaT);
+				status_changed = true;
+				status.offboard_control_last_timestamp = 0;//ensure we only lose signal once before regaining
+			}
 		}
-        else if (status.offboard_control_signal_found_once &&
-                 (0 != status.offboard_control_last_timestamp)) {
-            // determine whether we had and then lost offboard signal
-            int32_t deltaT = (hrt_absolute_time() - status.offboard_control_last_timestamp);
-            if (deltaT > OFFBOARD_CTRL_TIMEOUT) {
-                status.offboard_control_signal_lost = true;
-                mavlink_log_critical(mavlink_fd, "[cmd] offboard control signal lost after %d",deltaT);
-                status_changed = true;
-                status.offboard_control_last_timestamp = 0;//ensure we only lose signal once before regaining
-            }        
-        }
 
 		orb_check(sensor_sub, &updated);
 
@@ -1002,6 +1011,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				if (armed.armed) {
 					arming_state_transition(&status, &safety, ARMING_STATE_ARMED_ERROR, &armed);
+
 				} else {
 					arming_state_transition(&status, &safety, ARMING_STATE_STANDBY_ERROR, &armed);
 				}
@@ -1092,7 +1102,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* ignore RC signals if in offboard control mode */
 		if (status.offboard_control_signal_lost && sp_man.timestamp != 0) {
 			/* start manual input check */
-            if (!status.manual_control_signal_lost) {
+			if (!status.manual_control_signal_lost) {
 				transition_result_t res;	// store all transitions results here
 
 				/* arm/disarm by RC */
@@ -1265,12 +1275,14 @@ int commander_thread_main(int argc, char *argv[])
 		counter++;
 
 		int blink_state = blink_msg_state();
+
 		if (blink_state > 0) {
 			/* blinking LED message, don't touch LEDs */
 			if (blink_state == 2) {
 				/* blinking LED message completed, restore normal state */
 				control_status_leds(&status, &armed, true);
 			}
+
 		} else {
 			/* normal state */
 			control_status_leds(&status, &armed, status_changed);
@@ -1329,6 +1341,7 @@ control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chan
 	/* driving rgbled */
 	if (changed) {
 		bool set_normal_color = false;
+
 		/* set mode */
 		if (status->arming_state == ARMING_STATE_ARMED) {
 			rgbled_set_mode(RGBLED_MODE_ON);
@@ -1353,6 +1366,7 @@ control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chan
 				if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
 					rgbled_set_color(RGBLED_COLOR_AMBER);
 				}
+
 				/* VEHICLE_BATTERY_WARNING_CRITICAL handled as ARMING_STATE_ARMED_ERROR / ARMING_STATE_STANDBY_ERROR */
 
 			} else {
@@ -1603,9 +1617,9 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 
 	} else {
 		/* manual control modes */
-        
+
 		if ((status->manual_control_signal_lost && status->offboard_control_signal_lost) &&
-            (status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR)) {
+		    (status->arming_state == ARMING_STATE_ARMED || status->arming_state == ARMING_STATE_ARMED_ERROR)) {
 			/* switch to failsafe mode */
 			bool manual_control_old = control_mode->flag_control_manual_enabled;
 
