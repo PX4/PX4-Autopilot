@@ -527,6 +527,8 @@ param_save_default(void)
 			warnx("unlinking file %s failed.", param_get_default_file());
 	}
 
+	retries = 0;
+
 	/* create the file */
 	int fd;
 
@@ -545,6 +547,8 @@ param_save_default(void)
 		warn("opening '%s' for writing failed", param_get_default_file());
 		return fd;
 	}
+
+	retries = 0;
 
 	do {
 		result = param_export(fd, false);
