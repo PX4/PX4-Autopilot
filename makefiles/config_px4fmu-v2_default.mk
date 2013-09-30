@@ -75,6 +75,11 @@ MODULES		+= modules/position_estimator_inav
 MODULES		+= examples/flow_position_estimator
 
 #
+# Navigator
+#
+MODULES		+= modules/navigator
+
+#
 # Vehicle Control
 #
 #MODULES		+= modules/segway # XXX needs state machine update
