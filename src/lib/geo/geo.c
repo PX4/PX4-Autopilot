@@ -460,7 +460,7 @@ __EXPORT float _wrap_360(float bearing)
 	return bearing;
 }
 
-__EXPORT bool inside_geofence(struct vehicle_global_position_s *vehicle, struct fence_s *fence)
+__EXPORT bool inside_geofence(const struct vehicle_global_position_s *vehicle, const struct fence_s *fence)
 {
 
 	/* Adaptation of algorithm originally presented as
@@ -472,7 +472,8 @@ __EXPORT bool inside_geofence(struct vehicle_global_position_s *vehicle, struct 
 	double lat = vehicle->lat / 1e7;
 	double lon = vehicle->lon / 1e7;
 
-	for (i = 0, j = vertices - 1; i < vertices; j = i++)
+	// skip vertex 0 (return point)
+	for (i = 1, j = vertices - 1; i < vertices; j = i++)
 		if (((fence->items[i].lon) >= lon != (fence->items[j].lon >= lon)) &&
 			(lat <= (fence->items[j].lat - fence->items[i].lat) * (lon - fence->items[i].lon) /
 			(fence->items[j].lon - fence->items[i].lon) + fence->items[i].lat))

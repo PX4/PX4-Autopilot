@@ -137,7 +137,7 @@ __EXPORT float _wrap_2pi(float bearing);
  * @param fence pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
  * @return true: craft is inside fence, false:craft is outside fence
  */
-__EXPORT bool inside_geofence(struct vehicle_global_position_s *craft, struct fence_s *fence);
+__EXPORT bool inside_geofence(const struct vehicle_global_position_s *craft, const struct fence_s *fence);
 
 
 __END_DECLS
