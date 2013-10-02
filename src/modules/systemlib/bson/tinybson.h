@@ -43,6 +43,10 @@
 #ifndef _TINYBSON_H
 #define _TINYBSON_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -99,7 +103,7 @@ typedef struct bson_decoder_s *bson_decoder_t;
  *
  * The node callback function's return value is returned by bson_decoder_next.
  */
-typedef int	(* bson_decoder_callback)(bson_decoder_t decoder, void *private, bson_node_t node);
+typedef int	(* bson_decoder_callback)(bson_decoder_t decoder, void *privat, bson_node_t node);
 
 struct bson_decoder_s {
 	/* file reader state */
@@ -112,7 +116,7 @@ struct bson_decoder_s {
 
 	bool			dead;
 	bson_decoder_callback	callback;
-	void			*private;
+	void			*privat;
 	unsigned		nesting;
 	struct bson_node_s	node;
 	int32_t			pending;
@@ -127,7 +131,7 @@ struct bson_decoder_s {
  * @param private		Callback private data, stored in node.
  * @return			Zero on success.
  */
-__EXPORT int bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *private);
+__EXPORT int bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *privat);
 
 /**
  * Initialise the decoder to read from a buffer in memory.
@@ -141,7 +145,7 @@ __EXPORT int bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder
  * @param private		Callback private data, stored in node.
  * @return			Zero on success.
  */
-__EXPORT int bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback, void *private);
+__EXPORT int bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback, void *privat);
 
 /**
  * Process the next node from the stream and invoke the callback.
@@ -270,6 +274,10 @@ __EXPORT int bson_encoder_append_string(bson_encoder_t encoder, const char *name
  * @param data			Buffer containing data to be encoded.
  */
 __EXPORT int bson_encoder_append_binary(bson_encoder_t encoder, const char *name, bson_binary_subtype_t subtype, size_t size, const void *data);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

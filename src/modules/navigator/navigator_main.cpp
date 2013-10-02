@@ -65,6 +65,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <systemlib/param/param.h>
+#include <systemlib/bson/tinybson.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
@@ -117,6 +118,10 @@ public:
 	 * Specify fence vertex parameter.
 	 */
 	void		fence_point(int argc, char *argv[]);
+
+	inline void	set_temp_fence_count(int count) {_temp_fence.count = count;};
+
+	inline void	set_temp_fence_vertex(int ix, float lat, float lon) {_temp_fence.items[ix].lat = lat; _temp_fence.items[ix].lon = lon;};
 
 private:
 
@@ -653,8 +658,8 @@ Navigator::fence_valid(const struct fence_s *fence)
 		printf("Fence must have at least 3 sides and not more than %d\n", GEOFENCE_MAX_VERTICES - 1);
 		return false;
 	}
-	pos.lat = fence->items[0].lat * 1e7;
-	pos.lon = fence->items[0].lon * 1e7;
+	pos.lat = (int)(fence->items[0].lat * 1e7f);
+	pos.lon = (int)(fence->items[0].lon * 1e7f);
 	if (!inside_geofence(&pos, fence)) {
 		printf("Return point must be inside fence\n");
 		return false;
@@ -664,74 +669,111 @@ Navigator::fence_valid(const struct fence_s *fence)
 
 static const char *defauld_fence_file_name = "/fs/microsd/fence";
 
+static int
+fence_import_callback(bson_decoder_t decoder, void *privat, bson_node_t node)
+{
+	Navigator *nav = (Navigator *)privat;
+	static int ix, lat;
+
+	if (strcmp(node->name, "count") == 0) {
+		if (node->type == BSON_INT32) {
+			nav->set_temp_fence_count(node->i);
+			ix = 0;
+			return 1;
+		}
+	}
+	else if (strcmp(node->name, "lat") == 0) {
+		if (node->type == BSON_DOUBLE) {
+			lat = (float)node->d;
+			return 1;
+		}
+	}
+	else if (strcmp(node->name, "lon") == 0) {
+		if (node->type == BSON_DOUBLE) {
+			nav->set_temp_fence_vertex(ix++, lat, (float)node->d);
+			return 1;
+		}
+	}
+	ix = 0;
+	return 0;
+}
+
 void
 Navigator::load_fence(int argc, char *argv[])
 {
 	const char *file_name = defauld_fence_file_name;
-	FILE *fence_file;
-	char line[120];
-	int ix, num_points, result;
-	float lon, lat;
+	int fence_file, result = -1;
+	struct bson_decoder_s decoder;
 
 	if (argc > 0)
 		file_name = argv[0];
 	printf("Loading fence parameters from '%s'\n", file_name);
-	fence_file = fopen(file_name, "r");
-	if (fence_file == NULL) {
-		printf("Could not open file '%s'\n", file_name);
-		return;
+	fence_file = open(file_name, O_RDONLY);
+	if (fence_file < 0)
+		errx(1, "Could not open file '%s'\n", file_name);
+
+	if (bson_decoder_init_file(&decoder, fence_file, fence_import_callback, this)) {
+		close(fence_file);
+		errx(1, "decoder init failed");
 	}
-	for (;;) {
-		fgets(line, sizeof(line), fence_file);
-		if (feof(fence_file))
-			break;
-		result = sscanf(line, "%d %d %f %f", &ix, &num_points, &lat, &lon);
-		if (result != 4) {
-			printf("Invalid fence point specification\n");
-			fclose(fence_file);
-			return;
-		}
-		if (ix >=  num_points) {
-			printf("Invalid fence point index\n");
-			fclose(fence_file);
-			return;
-		}
-		_temp_fence.count = num_points;
-		_temp_fence.items[ix].lat = (float)lat;
-		_temp_fence.items[ix].lon = (float)lon;
-		if (feof(fence_file))
-			break;
-	}
-	fclose(fence_file);
+
+	while ((result = bson_decoder_next(&decoder)) > 0);
+
+	close(fence_file);
+
+	if (result < 0)
+		errx(1, "BSON error decoding parameters");
+
 	if (fence_valid(&_temp_fence))
 		publish_fence();
 	else
-		printf("Invalid fence loaded, ignored!\n");
+		errx(1, "Invalid fence loaded, ignored!\n");
 }
 
 void
 Navigator::save_fence(int argc, char *argv[])
 {
 	const char *file_name = defauld_fence_file_name;
-	FILE *fence_file;
+	int fence_file, result = -1;
+	struct bson_encoder_s encoder;
 	unsigned ix;
 
-	if (!fence_valid(&_temp_fence)) {
-		printf("Not saving invalid fence\n");
-		return;
-	}
+	if (!fence_valid(&_temp_fence))
+		errx(1, "Not saving invalid fence");
+
 	if (argc > 0)
 		file_name = argv[0];
+
 	printf("Saving fence parameters to '%s'\n", file_name);
-	fence_file = fopen(file_name, "w");
-	if (fence_file == NULL) {
-		printf("Could not create file '%s'\n", file_name);
-		return;
+	/* delete the parameter file in case it exists */
+	unlink(file_name);
+	fence_file = open(file_name,  O_WRONLY | O_CREAT | O_EXCL);
+	if (fence_file < 0)
+		errx(1, "opening '%s' failed", file_name);
+
+	bson_encoder_init_file(&encoder, fence_file);
+
+	if (bson_encoder_append_int(&encoder, "count", _temp_fence.count))
+		goto done;
+
+	for (ix = 0; ix < _temp_fence.count; ix++) {
+		if (bson_encoder_append_double(&encoder, "lat", (double)_temp_fence.items[ix].lat))
+			goto done;
+		if (bson_encoder_append_double(&encoder, "lon", (double)_temp_fence.items[ix].lon))
+			goto done;
 	}
-	for (ix = 0; ix < _temp_fence.count; ix++)
-		fprintf(fence_file, "%d %d %9.5f %9.5f\n",
-			ix, _temp_fence.count, (double)_temp_fence.items[ix].lat, (double)_temp_fence.items[ix].lon);
-	fclose(fence_file);
+
+	result = 0;
+	bson_encoder_fini(&encoder);
+
+done:
+	close(fence_file);
+
+	if (result < 0) {
+		unlink(file_name);
+		errx(1, "error saving to '%s'", file_name);
+	}
+
 	publish_fence();
 }
 
