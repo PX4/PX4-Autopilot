@@ -382,6 +382,7 @@ handle_message(mavlink_message_t *msg)
 			int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 			/* get a copy first, to prevent altering values that are not sent by the mavlink command */
+            memset(&mc, 0, sizeof(mc));
 			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &mc);
 
 			mc.timestamp = hrt_absolute_time();
