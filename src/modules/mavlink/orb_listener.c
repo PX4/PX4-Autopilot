@@ -581,8 +581,8 @@ l_manual_control_setpoint(const struct listener *l)
 						mavlink_system.sysid,
 						man_control.roll * 1000,
 						man_control.pitch * 1000,
-						man_control.yaw * 1000,
 						man_control.throttle * 1000,
+						man_control.yaw * 1000,
 						0);
 }
 
