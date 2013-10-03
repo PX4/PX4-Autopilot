@@ -1,8 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
- *           Jean Cyr
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Jean Cyr <jean.m.cyr@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,21 +33,51 @@
  ****************************************************************************/
 
 /**
- * @file navigator_params.c
- *
- * Parameters defined by the navigator task.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @file fence.h
+ * Definition of geofence.
  */
 
-#include <nuttx/config.h>
+#ifndef TOPIC_FENCE_H_
+#define TOPIC_FENCE_H_
 
-#include <systemlib/param/param.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
-/*
- * Navigator parameters, accessible via MAVLink
- *
+/**
+ * @addtogroup topics
+ * @{
  */
 
-PARAM_DEFINE_FLOAT(NAV_DUMMY, 0.0f);
+#define GEOFENCE_MAX_VERTICES 8
+#define GEOFENCE_DEFAULT_FILE_NAME "/fs/microsd/fence"
 
+/**
+ * This is the position of a geofence vertex
+ *
+ */
+struct fence_item_s
+{
+	// Worst case float precision gives us 2 meter resolution at the equator
+	float lat;			/**< latitude in degrees */
+	float lon;			/**< longitude in degrees */
+};
+
+/**
+ * This is the position of a geofence
+ *
+ */
+struct fence_s
+{
+	unsigned count;     /**< number of actual vertices */
+	struct fence_item_s items[GEOFENCE_MAX_VERTICES];
+};
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(fence);
+
+#endif
