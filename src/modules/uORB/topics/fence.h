@@ -50,6 +50,7 @@
  */
 
 #define GEOFENCE_MAX_VERTICES 8
+#define GEOFENCE_DEFAULT_FILE_NAME "/fs/microsd/fence"
 
 /**
  * This is the position of a geofence vertex
