@@ -957,8 +957,6 @@ PX4IO::set_idle_values(const uint16_t *vals, unsigned len)
 		/* fail with error */
 		return E2BIG;
 
-	printf("Sending IDLE values\n");
-
 	/* copy values to registers in IO */
 	return io_reg_set(PX4IO_PAGE_IDLE_PWM, 0, vals, len);
 }
