@@ -45,6 +45,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/mount.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -71,16 +72,25 @@ usage(const char *reason)
 		warnx("%s", reason);
 	errx(1, 
 		"usage:\n"
-		"pwm [-v] [-d <device>] [-u <alt_rate>] [-c <channel group>] [-m chanmask ] [arm|disarm] [<channel_value> ...]\n"
-		"  -v                 Print information about the PWM device\n"
-		"  <device>           PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
-		"  <alt_rate>         PWM update rate for channels in <alt_channel_mask>\n"
-		"  <channel_group>    Channel group that should update at the alternate rate (may be specified more than once)\n"
-		"  arm | disarm       Arm or disarm the ouptut\n"
-		"  <channel_value>... PWM output values in microseconds to assign to the PWM outputs\n"
-		"  <chanmask>         Directly supply alt rate channel mask (debug use only)\n"
+		"pwm [-v] [-d <device>] set|config|arm|disarm|info ...\n"
+		""
+		"  -v                     Print verbose information\n"
+		"  -d <device>            PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
 		"\n"
-		"When -c is specified, any channel groups not listed with -c will update at the default rate.\n"
+		"arm                      Arm output\n"
+		"disarm                   Disarm output\n"
+		"\n"
+		"set <channel_value> ...  Directly set PWM values\n"
+		"\n"
+		"config rate <alt_rate>   Configure PWM rates\n"
+		"  [-c <channel group>]   Channel group that should update at the alternate rate\n"
+		"  [-m <chanmask> ]       Directly supply alt rate channel mask\n"
+		"\n"
+		"config min <channel value]> ...     Configure minimum PWM values\n"
+		"config max <channel value]> ...     Configure maximum PWM values\n"
+		"config disarmed <channel_value> ... Configure disarmed PWM values\n"
+		"\n"
+		"info                     Print information about the PWM device\n"
 		);
 
 }
@@ -92,100 +102,53 @@ pwm_main(int argc, char *argv[])
 	unsigned alt_rate = 0;
 	uint32_t alt_channel_groups = 0;
 	bool alt_channels_set = false;
-	bool print_info = false;
+	bool print_verbose = false;
 	int ch;
 	int ret;
 	char *ep;
-	unsigned group;
 	int32_t set_mask = -1;
+	unsigned group;
 
-	if (argc < 2)
+	if (argc < 1)
 		usage(NULL);
 
-	while ((ch = getopt(argc, argv, "c:d:u:vm:")) != EOF) {
+	while ((ch = getopt(argc, argv, "v:d:")) != EOF) {
 		switch (ch) {
-		case 'c':
-			group = strtoul(optarg, &ep, 0);
-			if ((*ep != '\0') || (group >= 32))
-				usage("bad channel_group value");
-			alt_channel_groups |= (1 << group);
-			alt_channels_set = true;
-			break;
 
 		case 'd':
+			if (NULL == strstr(optarg, "/dev/")) {
+				warnx("device %s not valid", optarg);
+				usage(NULL);
+			}
 			dev = optarg;
-			break;
-
-		case 'u':
-			alt_rate = strtol(optarg, &ep, 0);
-			if (*ep != '\0')
-				usage("bad alt_rate value");
-			break;
-
-		case 'm':
-			set_mask = strtol(optarg, &ep, 0);
-			if (*ep != '\0')
-				usage("bad set_mask value");
+			argv+=2;
+			argc-=2;
 			break;
 
 		case 'v':
-			print_info = true;
+			print_verbose = true;
+			argv+=1;
+			argc-=1;
 			break;
 
 		default:
-			usage(NULL);
+			break;
 		}
 	}
-	argc -= optind;
-	argv += optind;
+
+	/* get rid of cmd name */
+	argv+=1;
+	argc-=1;
 
 	/* open for ioctl only */
 	int fd = open(dev, 0);
 	if (fd < 0)
 		err(1, "can't open %s", dev);
 
-	/* change alternate PWM rate */
-	if (alt_rate > 0) {
-		ret = ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
-		if (ret != OK)
-			err(1, "PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
-	}
 
-	/* directly supplied channel mask */
-	if (set_mask != -1) {
-		ret = ioctl(fd, PWM_SERVO_SELECT_UPDATE_RATE, set_mask);
-		if (ret != OK)
-			err(1, "PWM_SERVO_SELECT_UPDATE_RATE");
-	}
+	for (int argi=0; argi<argc; argi++) {
 
-	/* assign alternate rate to channel groups */
-	if (alt_channels_set) {
-		uint32_t mask = 0;
-
-		for (unsigned group = 0; group < 32; group++) {
-			if ((1 << group) & alt_channel_groups) {
-				uint32_t group_mask;
-
-				ret = ioctl(fd, PWM_SERVO_GET_RATEGROUP(group), (unsigned long)&group_mask);
-				if (ret != OK)
-					err(1, "PWM_SERVO_GET_RATEGROUP(%u)", group);
-
-				mask |= group_mask;
-			}
-		}
-
-		ret = ioctl(fd, PWM_SERVO_SELECT_UPDATE_RATE, mask);
-		if (ret != OK)
-			err(1, "PWM_SERVO_SELECT_UPDATE_RATE");
-	}
-
-	/* iterate remaining arguments */
-	unsigned nchannels = 0;
-	unsigned channel[8] = {0};
-	while (argc--) {
-		const char *arg = argv[0];
-		argv++;
-		if (!strcmp(arg, "arm")) {
+		if (!strcmp(argv[argi], "arm")) {
 			/* tell IO that its ok to disable its safety with the switch */
 			ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 			if (ret != OK)
@@ -194,97 +157,275 @@ pwm_main(int argc, char *argv[])
 			ret = ioctl(fd, PWM_SERVO_ARM, 0);
 			if (ret != OK)
 				err(1, "PWM_SERVO_ARM");
-			continue;
-		}
-		if (!strcmp(arg, "disarm")) {
+
+			warnx("Outputs armed");
+			exit(0);
+
+		} else if (!strcmp(argv[argi], "disarm")) {
 			/* disarm, but do not revoke the SET_ARM_OK flag */
 			ret = ioctl(fd, PWM_SERVO_DISARM, 0);
 			if (ret != OK)
 				err(1, "PWM_SERVO_DISARM");
-			continue;
-		}
-		unsigned pwm_value = strtol(arg, &ep, 0);
-		if (*ep == '\0') {
-			if (nchannels > sizeof(channel) / sizeof(channel[0]))
-				err(1, "too many pwm values (max %d)", sizeof(channel) / sizeof(channel[0]));
 
-			channel[nchannels] = pwm_value;
-			nchannels++;
+			warnx("Outputs disarmed");
+			exit(0);
 
-			continue;
-		}
-		usage("unrecognized option");
-	}
+		} else if (!strcmp(argv[argi], "set")) {
 
-	/* print verbose info */
-	if (print_info) {
-		/* get the number of servo channels */
-		unsigned count;
-		ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&count);
-		if (ret != OK)
-			err(1, "PWM_SERVO_GET_COUNT");
+			/* iterate remaining arguments */
+			unsigned nchannels = 0;
+			unsigned channel[PWM_OUTPUT_MAX_CHANNELS] = {0};
 
-		/* print current servo values */
-		for (unsigned i = 0; i < count; i++) {
-			servo_position_t spos;
+			while (argc - argi > 1) {
+				argi++;
+				unsigned pwm_value = strtol(argv[argi], &ep, 0);
+				if (*ep == '\0') {
+					if (nchannels > sizeof(channel) / sizeof(channel[0]))
+						err(1, "too many pwm values (max %d)", sizeof(channel) / sizeof(channel[0]));
+					//XXX check for sane values ?
+					channel[nchannels] = pwm_value;
+					if (print_verbose)
+						warnx("Set channel %d: %d us", nchannels+1, channel[nchannels]);
 
-			ret = ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&spos);
-			if (ret == OK) {
-				printf("channel %u: %uus\n", i, spos);
+					nchannels++;
+
+					continue;
+				}
+				usage("unrecognized option");
+			}
+
+			/* perform PWM output */
+			if (nchannels) {
+
+				/* Open console directly to grab CTRL-C signal */
+				struct pollfd fds;
+				fds.fd = 0; /* stdin */
+				fds.events = POLLIN;
+
+				warnx("Press CTRL-C or 'c' to abort.");
+
+				while (1) {
+					for (unsigned i = 0; i < nchannels; i++) {
+						ret = ioctl(fd, PWM_SERVO_SET(i), channel[i]);
+						if (ret != OK)
+							err(1, "PWM_SERVO_SET(%d)", i);
+					}
+
+					/* abort on user request */
+					char c;
+					ret = poll(&fds, 1, 0);
+					if (ret > 0) {
+
+					read(0, &c, 1);
+						if (c == 0x03 || c == 0x63 || c == 'q') {
+							warnx("User abort\n");
+							exit(0);
+						}
+					}
+				}
 			} else {
-				printf("%u: ERROR\n", i);
+				usage("no PWM values supplied");
 			}
-		}
 
-		/* print rate groups */
-		for (unsigned i = 0; i < count; i++) {
-			uint32_t group_mask;
+		} else if (!strcmp(argv[argi], "config")) {
 
-			ret = ioctl(fd, PWM_SERVO_GET_RATEGROUP(i), (unsigned long)&group_mask);
-			if (ret != OK)
+			struct pwm_output_values pwm_values = {.values = {0}, .channel_count = 0};
+
+			argi++;
+
+			if (!strcmp(argv[argi], "rate")) {
+
+				while ((ch = getopt(argc, argv, "m:c:")) != EOF) {
+					switch (ch) {
+
+					case 'm':
+						set_mask = strtol(optarg, &ep, 0);
+						if (*ep != '\0')
+							usage("bad set_mask value");
+						break;
+						argi+=2;
+
+					case 'c':
+						group = strtoul(optarg, &ep, 0);
+						if ((*ep != '\0') || (group >= 32))
+							usage("bad channel_group value");
+						alt_channel_groups |= (1 << group);
+						alt_channels_set = true;
+						argi+=2;
+					break;
+					}
+				}
+				argi++;
+				if (argi >= argc)
+					usage("no alt_rate value supplied");
+
+				alt_rate = strtol(argv[argi], &ep, 0);
+				if (*ep != '\0')
+					usage("bad alt_rate value");
 				break;
-			if (group_mask != 0) {
-				printf("channel group %u: channels", i);
-				for (unsigned j = 0; j < 32; j++)
-					if (group_mask & (1 << j))
-						printf(" %u", j);
-				printf("\n");
+
+				/* change alternate PWM rate */
+				if (alt_rate > 0) {
+					ret = ioctl(fd, PWM_SERVO_SET_UPDATE_RATE, alt_rate);
+					if (ret != OK)
+						err(1, "PWM_SERVO_SET_UPDATE_RATE (check rate for sanity)");
+				}
+
+				/* directly supplied channel mask */
+				if (set_mask != -1) {
+					ret = ioctl(fd, PWM_SERVO_SELECT_UPDATE_RATE, set_mask);
+					if (ret != OK)
+						err(1, "PWM_SERVO_SELECT_UPDATE_RATE");
+				}
+
+				/* assign alternate rate to channel groups */
+				if (alt_channels_set) {
+					uint32_t mask = 0;
+
+					for (group = 0; group < 32; group++) {
+						if ((1 << group) & alt_channel_groups) {
+							uint32_t group_mask;
+
+							ret = ioctl(fd, PWM_SERVO_GET_RATEGROUP(group), (unsigned long)&group_mask);
+							if (ret != OK)
+								err(1, "PWM_SERVO_GET_RATEGROUP(%u)", group);
+
+							mask |= group_mask;
+						}
+					}
+
+					ret = ioctl(fd, PWM_SERVO_SELECT_UPDATE_RATE, mask);
+					if (ret != OK)
+						err(1, "PWM_SERVO_SELECT_UPDATE_RATE");
+				}
+
+
+			} else if (!strcmp(argv[argi], "min")) {
+
+				/* iterate remaining arguments */
+				while (argc - argi > 1) {
+					argi++;
+					unsigned pwm_value = strtol(argv[argi], &ep, 0);
+					if (*ep == '\0') {
+						if (pwm_values.channel_count > PWM_OUTPUT_MAX_CHANNELS)
+							err(1, "too many pwm values (max %d)", PWM_OUTPUT_MAX_CHANNELS);
+						//XXX check for sane values ?
+						pwm_values.values[pwm_values.channel_count] = pwm_value;
+						pwm_values.channel_count++;
+
+						continue;
+					}
+					usage("unrecognized option");
+				}
+				if (pwm_values.channel_count == 0) {
+					usage("no PWM values added");
+				} else {
+
+					ret = ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm_values);
+					if (ret != OK)
+						errx(ret, "failed setting idle values");
+				}
+
+
+			} else if (!strcmp(argv[argi], "max")) {
+
+				/* iterate remaining arguments */
+				while (argc - argi > 1) {
+					argi++;
+					unsigned pwm_value = strtol(argv[argi], &ep, 0);
+					if (*ep == '\0') {
+						if (pwm_values.channel_count > PWM_OUTPUT_MAX_CHANNELS)
+							err(1, "too many pwm values (max %d)", PWM_OUTPUT_MAX_CHANNELS);
+						//XXX check for sane values ?
+						pwm_values.values[pwm_values.channel_count] = pwm_value;
+						pwm_values.channel_count++;
+
+						continue;
+					}
+					usage("unrecognized option");
+				}
+				if (pwm_values.channel_count == 0) {
+					usage("no PWM values added");
+				} else {
+
+					ret = ioctl(fd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm_values);
+					if (ret != OK)
+						errx(ret, "failed setting idle values");
+				}
+
+
+			} else if (!strcmp(argv[argi], "disarmed")) {
+
+				/* iterate remaining arguments */
+				while (argc - argi > 1) {
+					argi++;
+					unsigned pwm_value = strtol(argv[argi], &ep, 0);
+					if (*ep == '\0') {
+						if (pwm_values.channel_count > PWM_OUTPUT_MAX_CHANNELS)
+							err(1, "too many pwm values (max %d)", PWM_OUTPUT_MAX_CHANNELS);
+						//XXX check for sane values ?
+						pwm_values.values[pwm_values.channel_count] = pwm_value;
+						pwm_values.channel_count++;
+
+						continue;
+					}
+					usage("unrecognized option");
+				}
+				if (pwm_values.channel_count == 0) {
+					usage("no PWM values added");
+				} else {
+
+					ret = ioctl(fd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm_values);
+					if (ret != OK)
+						errx(ret, "failed setting idle values");
+				}
+
+			} else {
+				usage("specify rate, min, max or disarmed");
 			}
-		}
-		fflush(stdout);
-	}
 
-	/* perform PWM output */
-	if (nchannels) {
+		} else if (!strcmp(argv[argi], "info")) {
 
-		/* Open console directly to grab CTRL-C signal */
-		int console = open("/dev/console", O_NONBLOCK | O_RDONLY | O_NOCTTY);
-		if (!console)
-			err(1, "failed opening console");
+			/* get the number of servo channels */
+			unsigned count;
+			ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&count);
+			if (ret != OK)
+				err(1, "PWM_SERVO_GET_COUNT");
 
-		warnx("Press CTRL-C or 'c' to abort.");
+			/* print current servo values */
+			for (unsigned i = 0; i < count; i++) {
+				servo_position_t spos;
 
-		while (1) {
-			for (int i = 0; i < nchannels; i++) {
-				ret = ioctl(fd, PWM_SERVO_SET(i), channel[i]);
-				if (ret != OK)
-					err(1, "PWM_SERVO_SET(%d)", i);
-			}
-
-			/* abort on user request */
-			char c;
-			if (read(console, &c, 1) == 1) {
-				if (c == 0x03 || c == 0x63 || c == 'q') {
-					warnx("User abort\n");
-					close(console);
-					exit(0);
+				ret = ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&spos);
+				if (ret == OK) {
+					printf("channel %u: %uus\n", i, spos);
+				} else {
+					printf("%u: ERROR\n", i);
 				}
 			}
 
-			/* rate limit to ~ 20 Hz */
-			usleep(50000);
+			/* print rate groups */
+			for (unsigned i = 0; i < count; i++) {
+				uint32_t group_mask;
+
+				ret = ioctl(fd, PWM_SERVO_GET_RATEGROUP(i), (unsigned long)&group_mask);
+				if (ret != OK)
+					break;
+				if (group_mask != 0) {
+					printf("channel group %u: channels", i);
+					for (unsigned j = 0; j < 32; j++)
+						if (group_mask & (1 << j))
+							printf(" %u", j);
+					printf("\n");
+				}
+			}
+
+		} else {
+			usage("specify arm|disarm|set|config");
 		}
 	}
-
 	exit(0);
 }
+
+
+

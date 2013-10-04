@@ -1748,6 +1748,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_MIN_PWM: {
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		warnx("Set min values");
 		set_min_values(pwm->values, pwm->channel_count);
 	}
 		break;
@@ -2381,110 +2382,7 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "min")) {
 
-		if (argc < 3) {
-			errx(1, "min command needs at least one channel value (PWM)");
-		}
-
-		int iofd = open(PWM_OUTPUT_DEVICE_PATH, 0);
-		struct pwm_output_values pwm;
-
-		if (iofd > 0) {
-
-			pwm.channel_count = 0;
-
-			for (unsigned i = 0; i < sizeof(pwm.values) / sizeof(pwm.values[0]); i++)
-			{
-				/* set channel to commanline argument or to 900 for non-provided channels */
-				if (argc > i + 2) {
-					pwm.values[i] = atoi(argv[i+2]);
-					if (pwm.values[i] < 900 || pwm.values[i] > 1200) {
-						errx(1, "value out of range of 900 < value < 1200. Aborting.");
-					}
-					pwm.channel_count++;
-				}
-			}
-
-			int ret = ioctl(iofd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&pwm);
-
-			if (ret != OK)
-				errx(ret, "failed setting min values");
-		} else {
-			errx(1, "not loaded");
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "max")) {
-
-		if (argc < 3) {
-			errx(1, "max command needs at least one channel value (PWM)");
-		}
-
-		int iofd = open(PWM_OUTPUT_DEVICE_PATH, 0);
-		struct pwm_output_values pwm;
-
-		if (iofd > 0) {
-
-			pwm.channel_count = 0;
-
-			for (int i = 0; i < sizeof(pwm.values) / sizeof(pwm.values[0]); i++)
-			{
-				/* set channel to commanline argument or to 2100 for non-provided channels */
-				if (argc > i + 2) {
-					pwm.values[i] = atoi(argv[i+2]);
-					if (pwm.values[i] < 1800 || pwm.values[i] > 2100) {
-						errx(1, "value out of range of 1800 < value < 2100. Aborting.");
-					}
-					pwm.channel_count++;
-				}
-			}
-
-			int ret = ioctl(iofd, PWM_SERVO_SET_MAX_PWM, (long unsigned int)&pwm);
-
-			if (ret != OK)
-				errx(ret, "failed setting max values");
-		} else {
-			errx(1, "not loaded");
-		}
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "idle") || !strcmp(argv[1], "disarmed")) {
-
-		if (argc < 3) {
-			errx(1, "max command needs at least one channel value (PWM)");
-		}
-
-		int iofd = open(PWM_OUTPUT_DEVICE_PATH, 0);
-		struct pwm_output_values pwm;
-
-		if (iofd > 0) {
-
-			pwm.channel_count = 0;
-
-			for (unsigned i = 0; i < sizeof(pwm.values) / sizeof(pwm.values[0]); i++)
-			{
-				/* set channel to commanline argument or to 0 for non-provided channels */
-				if (argc > i + 2) {
-					pwm.values[i] = atoi(argv[i+2]);
-					if (pwm.values[i] < 900 || pwm.values[i] > 2100) {
-						errx(1, "value out of range of 900 < value < 2100. Aborting.");
-					}
-					pwm.channel_count++;
-				}
-			}
-
-			int ret = ioctl(iofd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm);
-
-			if (ret != OK)
-				errx(ret, "failed setting idle values");
-		} else {
-			errx(1, "not loaded");
-		}
-		exit(0);
-	}
 
 	if (!strcmp(argv[1], "recovery")) {
 
