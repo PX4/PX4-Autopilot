@@ -153,7 +153,8 @@ private:
 
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
-	bool						_inside_fence;		/**< vehicle is inside fence */		
+	bool						_inside_fence;		/**< vehicle is inside fence */	
+	bool						_fence_needs_save;	/**< save fence at next opportunity */
 
 	/** manual control states */
 	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
@@ -264,7 +265,8 @@ Navigator::Navigator() :
 	_mission_valid(false),
 	_loiter_hold(false),
 	_fence_valid(false),
-	_inside_fence(true)
+	_inside_fence(true),
+	_fence_needs_save(false)
 {
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
@@ -452,16 +454,14 @@ Navigator::task_main()
 			/* read from fence to clear updated flag */
 			struct fence_s fence;
 			orb_copy(ORB_ID(fence), _fence_sub, &fence);
-			if (fence.count == 0) {
-				_fence_valid = false;
-				_fence.count = 0;
-			}
-			else if (fence_valid(&fence)) {
-				/* fence is valid if it has at least 3 sides and return point is inside fence */
-				memcpy(&_fence, &fence, sizeof(_fence));
-				_fence_valid = true;
-				// probably shouldn't do this while in flight
-				save_fence(nullptr);
+			if (fence_valid(&fence)) {
+				// Only update and save if it has changed
+				unsigned len = sizeof(fence.count) + (fence.count * sizeof(struct fence_item_s));
+				if (memcmp(&fence, &_fence, len)) {
+					memcpy(&_fence, &fence, len);
+					_fence_valid = _fence.count != 0;
+					_fence_needs_save = true;
+				}
 			}
 		}
 
@@ -594,6 +594,12 @@ Navigator::task_main()
 		}
 
 		perf_end(_loop_perf);
+
+		// Only do file io if in standby mode
+		if (_fence_needs_save && (_vstatus.arming_state != ARMING_STATE_STANDBY)) {
+			_fence_needs_save = false;
+			save_fence(nullptr);
+		}
 	}
 
 	warnx("exiting.");
@@ -638,8 +644,12 @@ Navigator::status()
 	if (_fence_valid) {
 		warnx("Geofence is valid");
 		warnx("Vertex longitude latitude");
-		for (unsigned i = 0; i < _fence.count; i++)
-			warnx("%6u %9.5f %8.5f", i, (double)_fence.items[i].lon, (double)_fence.items[i].lat);
+		for (unsigned i = 0; i < _fence.count; i++) {
+			const char *ret_point = "";
+			if (i == 0)
+				ret_point = "(return point)";
+			warnx("%6u %9.5f %8.5f %s", i, (double)_fence.items[i].lon, (double)_fence.items[i].lat, ret_point);
+		}
 		if (_global_pos.valid)
 			warnx("Craft is %sside fence", _inside_fence ? "in" : "out");
 	} else
@@ -659,6 +669,10 @@ bool
 Navigator::fence_valid(const struct fence_s *fence)
 {
 	struct vehicle_global_position_s pos;
+	// NULL fence is valid
+	if (fence->count == 0)
+		return true;
+	// Otherwise
 	if ((fence->count < 4) || (fence->count > GEOFENCE_MAX_VERTICES)) {
 		warnx("Fence must have at least 3 sides and not more than %d", GEOFENCE_MAX_VERTICES - 1);
 		return false;
@@ -730,7 +744,7 @@ Navigator::load_fence(const char *fname)
 
 	if (fence_valid(&fence)) {
 		memcpy(&_fence, &fence, sizeof(_fence));
-		_fence_valid = true;
+		_fence_valid = _fence.count != 0;
 	}
 	else
 		errx(1, "Invalid fence loaded, ignored!\n");
@@ -796,17 +810,16 @@ Navigator::fence_point(int argc, char *argv[])
 	num_points = atoi(argv[1]);
 	lat = strtod(argv[2], &end);
 	lon = strtod(argv[3], &end);
-	if ((ix < 0) || (ix >= num_points))
-		errx(1, "Specify: index must be greater than 0 and less than num_points\n");
+	// Number of points = 0 means clear the fence
+	if ((num_points != 0) && ((ix < 0) || (ix >= num_points)))
+		errx(1, "Index must be greater than 0 and less than num_points\n");
 	fence.count = num_points;
 	fence.items[ix].lat = (float)lat;
 	fence.items[ix].lon = (float)lon;
-	if (ix == (num_points - 1)) {
-		if (fence_valid(&fence))
-			publish_fence(&fence);
-		else
-			errx(1, "Fence is invalid");
-	}
+	if (num_points == 0)
+		publish_fence(&fence);
+	else if (ix == (num_points - 1))
+		publish_fence(&fence);
 }
 
 int navigator_main(int argc, char *argv[])
