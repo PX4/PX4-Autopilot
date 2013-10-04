@@ -47,6 +47,9 @@
 
 #pragma once
 
+#include "uORB/topics/fence.h"
+#include "uORB/topics/vehicle_global_position.h"
+
 __BEGIN_DECLS
 
 #include <stdbool.h>
@@ -57,11 +60,11 @@ __BEGIN_DECLS
 #define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
 #define CONSTANTS_RADIUS_OF_EARTH			6371000			/* meters (m)		*/
 
-// XXX remove
+/* XXX remove */
 struct crosstrack_error_s {
-	bool past_end;		// Flag indicating we are past the end of the line/arc segment
-	float distance;		// Distance in meters to closest point on line/arc
-	float bearing;		// Bearing in radians to closest point on line/arc
+	bool past_end;		/* Flag indicating we are past the end of the line/arc segment */
+	float distance;		/* Distance in meters to closest point on line/arc */
+	float bearing;		/* Bearing in radians to closest point on line/arc */
 } ;
 
 /**
@@ -125,5 +128,16 @@ __EXPORT float _wrap_180(float bearing);
 __EXPORT float _wrap_360(float bearing);
 __EXPORT float _wrap_pi(float bearing);
 __EXPORT float _wrap_2pi(float bearing);
+
+/**
+ * Return whether craft is inside geofence.
+ *
+ * Calculate whether point is inside arbitrary polygon
+ * @param craft pointer craft coordinates
+ * @param fence pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
+ * @return true: craft is inside fence, false:craft is outside fence
+ */
+__EXPORT bool inside_geofence(const struct vehicle_global_position_s *craft, const struct fence_s *fence);
+
 
 __END_DECLS

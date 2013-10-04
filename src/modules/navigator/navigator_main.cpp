@@ -2,6 +2,7 @@
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *   Author: 	Lorenz Meier
+ *              Jean Cyr
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,6 +63,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/fence.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
@@ -90,11 +92,31 @@ public:
 	~Navigator();
 
 	/**
-	 * Start the sensors task.
+	 * Start the navigator task.
 	 *
 	 * @return		OK on success.
 	 */
 	int		start();
+
+	/**
+	 * Display the navigator status.
+	 */
+	void		status();
+
+	/**
+	 * Load fence parameters.
+	 */
+	void		load_fence(const char *file_name);
+
+	/**
+	 * Save fence parameters.
+	 */
+	void		save_fence(const char *file_name);
+
+	/**
+	 * Specify fence vertex parameter.
+	 */
+	void		fence_point(int argc, char *argv[]);
 
 private:
 
@@ -109,6 +131,8 @@ private:
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
 	int		_mission_sub;
+	int		_fence_sub;
+	int		_fence_pub;
 
 	orb_advert_t	_triplet_pub;			/**< position setpoint */
 
@@ -125,6 +149,11 @@ private:
 	unsigned	_mission_items_maxcount;				/**< maximum number of mission items supported */
 	struct	mission_item_s 				* _mission_items;	/**< storage for mission items */
 	bool		_mission_valid;						/**< flag if mission is valid */
+
+	struct	fence_s 				_fence;			/**< storage for fence vertices */
+	bool						_fence_valid;		/**< flag if fence is valid */
+	bool						_inside_fence;		/**< vehicle is inside fence */	
+	bool						_fence_needs_save;	/**< save fence at next opportunity */
 
 	/** manual control states */
 	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
@@ -192,6 +221,10 @@ private:
 	 * Main sensor collection task.
 	 */
 	void		task_main() __attribute__((noreturn));
+
+	void		publish_fence(const struct fence_s *fence);
+
+	bool		fence_valid(const struct fence_s *fence);
 };
 
 namespace navigator
@@ -218,6 +251,8 @@ Navigator::Navigator() :
 	_vstatus_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
+	_fence_sub(-1),
+	_fence_pub(-1),
 
 /* publications */
 	_triplet_pub(-1),
@@ -227,8 +262,13 @@ Navigator::Navigator() :
 /* states */
 	_mission_items_maxcount(20),
 	_mission_valid(false),
-	_loiter_hold(false)
+	_loiter_hold(false),
+	_fence_valid(false),
+	_inside_fence(true),
+	_fence_needs_save(false)
 {
+	_global_pos.valid = false;
+	memset(&_fence, 0, sizeof(_fence));
 	_mission_items = (mission_item_s*)malloc(sizeof(mission_item_s) * _mission_items_maxcount);
 	if (!_mission_items) {
 		_mission_items_maxcount = 0;
@@ -237,7 +277,7 @@ Navigator::Navigator() :
 
 	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
 
-	/* fetch initial parameter values */
+	/* fetch initial values */
 	parameters_update();
 }
 
@@ -283,10 +323,8 @@ Navigator::vehicle_status_poll()
 	/* Check HIL state if vehicle status has changed */
 	orb_check(_vstatus_sub, &vstatus_updated);
 
-	if (vstatus_updated) {
-
+	if (vstatus_updated)
 		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
-	}
 }
 
 void
@@ -296,9 +334,8 @@ Navigator::vehicle_attitude_poll()
 	bool att_updated;
 	orb_check(_att_sub, &att_updated);
 
-	if (att_updated) {
+	if (att_updated)
 		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
-	}
 }
 
 void
@@ -351,11 +388,28 @@ Navigator::task_main()
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
+	_fence_sub = orb_subscribe(ORB_ID(fence));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+
+	// Load initial states
+	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK)
+		_vstatus.arming_state = ARMING_STATE_STANDBY; // for testing... commander may not be running
+	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
+	struct mission_s mission;
+	orb_copy(ORB_ID(mission), _mission_sub, &mission);
+	if (mission.count <= _mission_items_maxcount) {
+		/*
+		 * Perform an atomic copy & state update
+		 */
+		irqstate_t flags = irqsave();
+		memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
+		_mission_valid = true;
+		irqrestore(flags);
+	}
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -364,14 +418,18 @@ Navigator::task_main()
 
 	parameters_update();
 
+	load_fence(nullptr);
+
 	/* wakeup source(s) */
-	struct pollfd fds[2];
+	struct pollfd fds[3];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
 	fds[1].fd = _global_pos_sub;
 	fds[1].events = POLLIN;
+	fds[2].fd = _fence_sub;
+	fds[2].events = POLLIN;
 
 	while (!_task_should_exit) {
 
@@ -403,6 +461,22 @@ Navigator::task_main()
 			parameters_update();
 		}
 
+		/* only update fence if it has changed */
+		if (fds[2].revents & POLLIN) {
+			/* read from fence to clear updated flag */
+			struct fence_s fence;
+			orb_copy(ORB_ID(fence), _fence_sub, &fence);
+			if (fence_valid(&fence)) {
+				// Only update and save if it has changed
+				unsigned len = sizeof(fence.count) + (fence.count * sizeof(struct fence_item_s));
+				if (memcmp(&fence, &_fence, len)) {
+					memcpy(&_fence, &fence, len);
+					_fence_valid = _fence.count != 0;
+					_fence_needs_save = true;
+				}
+			}
+		}
+
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
 
@@ -421,6 +495,10 @@ Navigator::task_main()
 			vehicle_attitude_poll();
 
 			mission_poll();
+
+			if (_fence_valid && _global_pos.valid) {
+				_inside_fence = inside_geofence(&_global_pos, &_fence);
+			}
 
 			math::Vector2f ground_speed(_global_pos.vx, _global_pos.vy);
 			// Current waypoint
@@ -528,9 +606,15 @@ Navigator::task_main()
 		}
 
 		perf_end(_loop_perf);
+
+		// Only do file io if in standby mode
+		if (_fence_needs_save && (_vstatus.arming_state == ARMING_STATE_STANDBY)) {
+			_fence_needs_save = false;
+			save_fence(nullptr);
+		}
 	}
 
-	warnx("exiting.\n");
+	warnx("exiting.");
 
 	_navigator_task = -1;
 	_exit(0);
@@ -557,10 +641,158 @@ Navigator::start()
 	return OK;
 }
 
+void
+Navigator::status()
+{
+	warnx("Global position is %svalid", _global_pos.valid ? "" : "in");
+	if (_global_pos.valid) {
+		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon / 1e7, _global_pos.lat / 1e7);
+		warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
+			(double)_global_pos.alt, (double)_global_pos.relative_alt);
+		warnx("Ground velocity in m/s, x %5.5f, y %5.5f, z %5.5f",
+			(double)_global_pos.vx, (double)_global_pos.vy, (double)_global_pos.vz);
+		warnx("Compass heading in degrees %5.5f", (double)_global_pos.yaw * 57.2957795);
+	}
+	if (_fence_valid) {
+		warnx("Geofence is valid");
+		warnx("Vertex longitude latitude");
+		for (unsigned i = 0; i < _fence.count; i++) {
+			const char *ret_point = "";
+			if (i == 0)
+				ret_point = "(return point)";
+			warnx("%6u %9.5f %8.5f %s", i, (double)_fence.items[i].lon, (double)_fence.items[i].lat, ret_point);
+		}
+		if (_global_pos.valid)
+			warnx("Craft is %sside fence", _inside_fence ? "in" : "out");
+	} else
+		warnx("Geofence not set");
+}
+
+void
+Navigator::publish_fence(const struct fence_s *fence)
+{
+	if (_fence_pub == -1)
+		_fence_pub = orb_advertise(ORB_ID(fence), fence);
+	else
+		orb_publish(ORB_ID(fence), _fence_pub, fence);
+}
+
+bool
+Navigator::fence_valid(const struct fence_s *fence)
+{
+	struct vehicle_global_position_s pos;
+	// NULL fence is valid
+	if (fence->count == 0)
+		return true;
+	// Otherwise
+	if ((fence->count < 4) || (fence->count > GEOFENCE_MAX_VERTICES)) {
+		warnx("Fence must have at least 3 sides and not more than %d", GEOFENCE_MAX_VERTICES - 1);
+		return false;
+	}
+	pos.lat = (int)(fence->items[0].lat * 1e7f);
+	pos.lon = (int)(fence->items[0].lon * 1e7f);
+	if (!inside_geofence(&pos, fence)) {
+		warnx("Return point must be inside fence");
+		return false;
+	}
+	return true;
+}
+
+void
+Navigator::load_fence(const char *fname)
+{
+	const char *file_name = GEOFENCE_DEFAULT_FILE_NAME;
+	int fence_file, result;
+	struct fence_s fence;
+
+	if (fname)
+		file_name = fname;
+
+	warnx("Loading fence parameters from '%s'", file_name);
+	fence_file = open(file_name, O_RDONLY);
+	if (fence_file < 0)
+		errx(1, "Could not open file '%s'", file_name);
+
+	result = read(fence_file, &fence, sizeof(fence));
+
+	close(fence_file);
+
+	if (result < sizeof(fence.count))
+		errx(1, "error reading file");
+	else if (result < (sizeof(fence.count) + (fence.count * sizeof(struct fence_item_s))))
+		errx(1, "error reading file");
+
+	if (fence_valid(&fence)) {
+		memcpy(&_fence, &fence, sizeof(_fence));
+		_fence_valid = _fence.count != 0;
+	}
+	else
+		errx(1, "Invalid fence loaded, ignored!\n");
+}
+
+void
+Navigator::save_fence(const char *fname)
+{
+	const char *file_name = GEOFENCE_DEFAULT_FILE_NAME;
+	int fence_file, result;
+	unsigned ix;
+
+	if (!fence_valid(&_fence))
+		errx(1, "Not saving invalid fence");
+
+	if (fname)
+		file_name = fname;
+
+	warnx("Saving fence parameters to '%s'", file_name);
+	/* delete the parameter file in case it exists */
+	unlink(file_name);
+	fence_file = open(file_name,  O_WRONLY | O_CREAT | O_EXCL);
+	if (fence_file < 0)
+		errx(1, "opening '%s' failed", file_name);
+
+	int len = sizeof(_fence.count) + (_fence.count * sizeof(struct fence_item_s));
+
+	result = write(fence_file, &_fence, len);
+
+	close(fence_file);
+
+	if (result < len) {
+		unlink(file_name);
+		errx(1, "error saving to '%s'", file_name);
+	}
+}
+
+void
+Navigator::fence_point(int argc, char *argv[])
+{
+	int ix, num_points;
+	double lon, lat;
+	char *end;
+	static struct fence_s fence;
+
+	if (argc < 4)
+		errx(1, "Specify: index num_points latitude longitude");
+
+	ix = atoi(argv[0]);
+	num_points = atoi(argv[1]);
+	lat = strtod(argv[2], &end);
+	lon = strtod(argv[3], &end);
+	// Number of points = 0 means clear the fence
+	if ((num_points != 0) && ((ix < 0) || (ix >= num_points)))
+		errx(1, "Index must be greater than 0 and less than num_points\n");
+	fence.count = num_points;
+	fence.items[ix].lat = (float)lat;
+	fence.items[ix].lon = (float)lon;
+	if (num_points == 0)
+		publish_fence(&fence);
+	else if (ix == (num_points - 1))
+		publish_fence(&fence);
+}
+
 int navigator_main(int argc, char *argv[])
 {
-	if (argc < 1)
-		errx(1, "usage: navigator {start|stop|status}");
+	if (argc < 2)
+		errx(1, "usage: navigator {start|stop|status|loadfence|savefence|fencepoint}");
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -581,9 +813,10 @@ int navigator_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (navigator::g_navigator == nullptr)
+		errx(1, "not running");
+
 	if (!strcmp(argv[1], "stop")) {
-		if (navigator::g_navigator == nullptr)
-			errx(1, "not running");
 
 		delete navigator::g_navigator;
 		navigator::g_navigator = nullptr;
@@ -591,14 +824,31 @@ int navigator_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (navigator::g_navigator) {
-			errx(0, "running");
-
-		} else {
-			errx(1, "not running");
-		}
+		navigator::g_navigator->status();
+		exit(0);
 	}
 
-	warnx("unrecognized command");
+	if (!strcmp(argv[1], "loadfence")) {
+		char *fname = nullptr;
+		if (argc > 2)
+			fname = argv[2];
+		navigator::g_navigator->load_fence(fname);
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "savefence")) {
+		char *fname = nullptr;
+		if (argc > 2)
+			fname = argv[2];
+		navigator::g_navigator->save_fence(fname);
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "fencepoint")) {
+		navigator::g_navigator->fence_point(argc - 2, argv + 2);
+		exit(0);
+	}
+
+	warnx("unrecognized command\nusage: navigator {start|stop|status|loadfence|savefence|fencepoint}");
 	return 1;
 }
