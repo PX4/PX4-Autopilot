@@ -292,7 +292,7 @@ do_set(const char* name, const char* val)
 			char* end;
 			f = strtod(val,&end);
 			param_set(param, &f);
-			printf(" -> new: %f\n", f);
+			printf(" -> new: %4.4f\n", f);
 
 		}
 
