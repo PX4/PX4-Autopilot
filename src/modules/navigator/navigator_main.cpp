@@ -65,7 +65,6 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
 #include <systemlib/param/param.h>
-#include <systemlib/bson/tinybson.h>
 #include <systemlib/err.h>
 #include <geo/geo.h>
 #include <systemlib/perf_counter.h>
@@ -278,7 +277,7 @@ Navigator::Navigator() :
 
 	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
 
-	/* fetch initial parameter values */
+	/* fetch initial values */
 	parameters_update();
 }
 
@@ -324,10 +323,8 @@ Navigator::vehicle_status_poll()
 	/* Check HIL state if vehicle status has changed */
 	orb_check(_vstatus_sub, &vstatus_updated);
 
-	if (vstatus_updated) {
-
+	if (vstatus_updated)
 		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
-	}
 }
 
 void
@@ -337,9 +334,8 @@ Navigator::vehicle_attitude_poll()
 	bool att_updated;
 	orb_check(_att_sub, &att_updated);
 
-	if (att_updated) {
+	if (att_updated)
 		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
-	}
 }
 
 void
@@ -398,6 +394,22 @@ Navigator::task_main()
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+
+	// Load initial states
+	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK)
+		_vstatus.arming_state = ARMING_STATE_STANDBY; // for testing... commander may not be running
+	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
+	struct mission_s mission;
+	orb_copy(ORB_ID(mission), _mission_sub, &mission);
+	if (mission.count <= _mission_items_maxcount) {
+		/*
+		 * Perform an atomic copy & state update
+		 */
+		irqstate_t flags = irqsave();
+		memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
+		_mission_valid = true;
+		irqrestore(flags);
+	}
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -596,7 +608,7 @@ Navigator::task_main()
 		perf_end(_loop_perf);
 
 		// Only do file io if in standby mode
-		if (_fence_needs_save && (_vstatus.arming_state != ARMING_STATE_STANDBY)) {
+		if (_fence_needs_save && (_vstatus.arming_state == ARMING_STATE_STANDBY)) {
 			_fence_needs_save = false;
 			save_fence(nullptr);
 		}
@@ -686,61 +698,29 @@ Navigator::fence_valid(const struct fence_s *fence)
 	return true;
 }
 
-static int
-fence_import_callback(bson_decoder_t decoder, void *privat, bson_node_t node)
-{
-	struct fence_s *fence = (struct fence_s *)privat;
-	static int ix;
-
-	if (strcmp(node->name, "count") == 0) {
-		if (node->type == BSON_INT32) {
-			fence->count = node->i;
-			ix = 0;
-			return 1;
-		}
-	}
-	else if (strcmp(node->name, "lat") == 0) {
-		if (node->type == BSON_DOUBLE) {
-			fence->items[ix].lat = (float)node->d;
-			return 1;
-		}
-	}
-	else if (strcmp(node->name, "lon") == 0) {
-		if (node->type == BSON_DOUBLE) {
-			fence->items[ix++].lon = (float)node->d;
-			return 1;
-		}
-	}
-	ix = 0;
-	return 0;
-}
-
 void
 Navigator::load_fence(const char *fname)
 {
 	const char *file_name = GEOFENCE_DEFAULT_FILE_NAME;
-	int fence_file, result = -1;
-	struct bson_decoder_s decoder;
+	int fence_file, result;
 	struct fence_s fence;
 
 	if (fname)
 		file_name = fname;
+
 	warnx("Loading fence parameters from '%s'", file_name);
 	fence_file = open(file_name, O_RDONLY);
 	if (fence_file < 0)
 		errx(1, "Could not open file '%s'", file_name);
 
-	if (bson_decoder_init_file(&decoder, fence_file, fence_import_callback, &fence)) {
-		close(fence_file);
-		errx(1, "decoder init failed");
-	}
-
-	while ((result = bson_decoder_next(&decoder)) > 0);
+	result = read(fence_file, &fence, sizeof(fence));
 
 	close(fence_file);
 
-	if (result < 0)
-		errx(1, "BSON error decoding parameters");
+	if (result < sizeof(fence.count))
+		errx(1, "error reading file");
+	else if (result < (sizeof(fence.count) + (fence.count * sizeof(struct fence_item_s))))
+		errx(1, "error reading file");
 
 	if (fence_valid(&fence)) {
 		memcpy(&_fence, &fence, sizeof(_fence));
@@ -754,8 +734,7 @@ void
 Navigator::save_fence(const char *fname)
 {
 	const char *file_name = GEOFENCE_DEFAULT_FILE_NAME;
-	int fence_file, result = -1;
-	struct bson_encoder_s encoder;
+	int fence_file, result;
 	unsigned ix;
 
 	if (!fence_valid(&_fence))
@@ -771,25 +750,13 @@ Navigator::save_fence(const char *fname)
 	if (fence_file < 0)
 		errx(1, "opening '%s' failed", file_name);
 
-	bson_encoder_init_file(&encoder, fence_file);
+	int len = sizeof(_fence.count) + (_fence.count * sizeof(struct fence_item_s));
 
-	if (bson_encoder_append_int(&encoder, "count", _fence.count))
-		goto done;
+	result = write(fence_file, &_fence, len);
 
-	for (ix = 0; ix < _fence.count; ix++) {
-		if (bson_encoder_append_double(&encoder, "lat", (double)_fence.items[ix].lat))
-			goto done;
-		if (bson_encoder_append_double(&encoder, "lon", (double)_fence.items[ix].lon))
-			goto done;
-	}
-
-	result = 0;
-	bson_encoder_fini(&encoder);
-
-done:
 	close(fence_file);
 
-	if (result < 0) {
+	if (result < len) {
 		unlink(file_name);
 		errx(1, "error saving to '%s'", file_name);
 	}
