@@ -238,9 +238,8 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 
 		case MAIN_STATE_EASY:
 
-			/* need at minimum local position estimate */
-			if (current_state->condition_local_position_valid ||
-				current_state->condition_global_position_valid) {
+			/* need at minimum local velocity estimate */
+			if (current_state->condition_local_velocity_valid) {
 				ret = TRANSITION_CHANGED;
 			}
 
