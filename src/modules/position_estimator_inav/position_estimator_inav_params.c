@@ -41,14 +41,15 @@
 #include "position_estimator_inav_params.h"
 
 PARAM_DEFINE_FLOAT(INAV_W_ALT_BARO, 0.5f);
-PARAM_DEFINE_FLOAT(INAV_W_ALT_ACC, 50.0f);
+PARAM_DEFINE_FLOAT(INAV_W_ALT_ACC, 20.0f);
 PARAM_DEFINE_FLOAT(INAV_W_ALT_SONAR, 3.0f);
 PARAM_DEFINE_FLOAT(INAV_W_POS_GPS_P, 1.0f);
 PARAM_DEFINE_FLOAT(INAV_W_POS_GPS_V, 2.0f);
 PARAM_DEFINE_FLOAT(INAV_W_POS_ACC, 10.0f);
-PARAM_DEFINE_FLOAT(INAV_W_POS_FLOW, 0.0f);
+PARAM_DEFINE_FLOAT(INAV_W_POS_FLOW, 5.0f);
 PARAM_DEFINE_FLOAT(INAV_W_ACC_BIAS, 0.0f);
-PARAM_DEFINE_FLOAT(INAV_FLOW_K, 1.0f);
+PARAM_DEFINE_FLOAT(INAV_FLOW_K, 0.0165f);
+PARAM_DEFINE_FLOAT(INAV_FLOW_Q_MIN, 0.5f);
 PARAM_DEFINE_FLOAT(INAV_SONAR_FILT, 0.02f);
 PARAM_DEFINE_FLOAT(INAV_SONAR_ERR, 0.5f);
 PARAM_DEFINE_FLOAT(INAV_LAND_T, 3.0f);
@@ -66,6 +67,7 @@ int parameters_init(struct position_estimator_inav_param_handles *h)
 	h->w_pos_flow = param_find("INAV_W_POS_FLOW");
 	h->w_acc_bias = param_find("INAV_W_ACC_BIAS");
 	h->flow_k = param_find("INAV_FLOW_K");
+	h->flow_q_min = param_find("INAV_FLOW_Q_MIN");
 	h->sonar_filt = param_find("INAV_SONAR_FILT");
 	h->sonar_err = param_find("INAV_SONAR_ERR");
 	h->land_t = param_find("INAV_LAND_T");
@@ -86,6 +88,7 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 	param_get(h->w_pos_flow, &(p->w_pos_flow));
 	param_get(h->w_acc_bias, &(p->w_acc_bias));
 	param_get(h->flow_k, &(p->flow_k));
+	param_get(h->flow_q_min, &(p->flow_q_min));
 	param_get(h->sonar_filt, &(p->sonar_filt));
 	param_get(h->sonar_err, &(p->sonar_err));
 	param_get(h->land_t, &(p->land_t));
