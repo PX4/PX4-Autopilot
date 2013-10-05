@@ -391,9 +391,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 			break;
 		}
 
-		// drop channel data beyond 8 channels
-		if (channel < PX4IO_CONTROL_CHANNELS)
-			values[channel] = value;
+		values[channel] = value;
 	}
 
 	if (dsm_channel_shift == 11) {
