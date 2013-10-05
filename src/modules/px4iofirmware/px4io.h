@@ -51,7 +51,6 @@
  */
 #define PX4IO_SERVO_COUNT		8
 #define PX4IO_CONTROL_CHANNELS		8
-#define PX4IO_INPUT_CHANNELS		8 // XXX this should be 18 channels
 
 /*
  * Debug logging
