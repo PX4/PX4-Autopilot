@@ -307,7 +307,9 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 {
 	static uint16_t counter;
 
-	if (!global_pos->valid && !local_pos->xy_valid) {
+	if ((!global_pos->valid && !local_pos->xy_valid) ||
+		/* no waypoint */
+		wpm->size == 0) {
 		/* nothing to check here, return */
 		return;
 	}
