@@ -370,6 +370,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
+
 				if (sensor.accelerometer_counter > accel_counter) {
 					if (att.R_valid) {
 						/* correct accel bias, now only for Z */
@@ -407,6 +408,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* optical flow */
 			orb_check(optical_flow_sub, &updated);
+
 			if (updated) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 
@@ -490,6 +492,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* vehicle GPS position */
 			orb_check(vehicle_gps_position_sub, &updated);
+
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 
@@ -606,17 +609,21 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		/* accelerometer bias correction */
 		float accel_bias_corr[3] = { 0.0f, 0.0f, 0.0f };
+
 		if (use_gps) {
 			accel_bias_corr[0] -= gps_corr[0][0] * params.w_pos_gps_p * params.w_pos_gps_p;
 			accel_bias_corr[0] -= gps_corr[0][1] * params.w_pos_gps_v;
 			accel_bias_corr[1] -= gps_corr[1][0] * params.w_pos_gps_p * params.w_pos_gps_p;
 			accel_bias_corr[1] -= gps_corr[1][1] * params.w_pos_gps_v;
 		}
+
 		if (use_flow) {
 			accel_bias_corr[0] -= flow_corr[0] * params.w_pos_flow;
 			accel_bias_corr[1] -= flow_corr[1] * params.w_pos_flow;
 		}
+
 		accel_bias_corr[2] -= (baro_corr + baro_alt0) * params.w_alt_baro * params.w_alt_baro;
+
 		if (sonar_valid) {
 			accel_bias_corr[2] -= sonar_corr * params.w_alt_sonar * params.w_alt_sonar;
 		}
@@ -624,9 +631,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* transform error vector from NED frame to body frame */
 		for (int i = 0; i < 3; i++) {
 			float c = 0.0f;
+
 			for (int j = 0; j < 3; j++) {
 				c += att.R[j][i] * accel_bias_corr[j];
 			}
+
 			accel_bias[i] += c * params.w_acc_bias * dt;
 		}
 
