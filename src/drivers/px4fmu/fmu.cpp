@@ -685,12 +685,24 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		up_pwm_servo_arm(false);
 		break;
 
+	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
+		*(uint32_t *)arg = _pwm_default_rate;
+		break;
+
 	case PWM_SERVO_SET_UPDATE_RATE:
 		ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
 		break;
 
-	case PWM_SERVO_SELECT_UPDATE_RATE:
+	case PWM_SERVO_GET_UPDATE_RATE:
+		*(uint32_t *)arg = _pwm_alt_rate;
+		break;
+
+	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
 		ret = set_pwm_rate(arg, _pwm_default_rate, _pwm_alt_rate);
+		break;
+
+	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
+		*(uint32_t *)arg = _pwm_alt_rate_channels;
 		break;
 
 	case PWM_SERVO_SET(5):

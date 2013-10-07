@@ -101,38 +101,56 @@ ORB_DECLARE(output_pwm);
 /** disarm all servo outputs (stop generating pulses) */
 #define PWM_SERVO_DISARM	_IOC(_PWM_SERVO_BASE, 1)
 
+/** get default servo update rate */
+#define PWM_SERVO_GET_DEFAULT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 2)
+
 /** set alternate servo update rate */
-#define PWM_SERVO_SET_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 2)
+#define PWM_SERVO_SET_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 3)
+
+/** get alternate servo update rate */
+#define PWM_SERVO_GET_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 4)
 
 /** get the number of servos in *(unsigned *)arg */
-#define PWM_SERVO_GET_COUNT	_IOC(_PWM_SERVO_BASE, 3)
+#define PWM_SERVO_GET_COUNT	_IOC(_PWM_SERVO_BASE, 5)
 
 /** selects servo update rates, one bit per servo. 0 = default (50Hz), 1 = alternate */
-#define PWM_SERVO_SELECT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 4)
+#define PWM_SERVO_SET_SELECT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 6)
+
+/** check the selected update rates */
+#define PWM_SERVO_GET_SELECT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 7)
 
 /** set the 'ARM ok' bit, which activates the safety switch */
-#define PWM_SERVO_SET_ARM_OK	_IOC(_PWM_SERVO_BASE, 5)
+#define PWM_SERVO_SET_ARM_OK	_IOC(_PWM_SERVO_BASE, 8)
 
 /** clear the 'ARM ok' bit, which deactivates the safety switch */
-#define PWM_SERVO_CLEAR_ARM_OK	_IOC(_PWM_SERVO_BASE, 6)
+#define PWM_SERVO_CLEAR_ARM_OK	_IOC(_PWM_SERVO_BASE, 9)
 
 /** start DSM bind */
-#define DSM_BIND_START	_IOC(_PWM_SERVO_BASE, 7)
+#define DSM_BIND_START	_IOC(_PWM_SERVO_BASE, 10)
 
 #define DSM2_BIND_PULSES 3	/* DSM_BIND_START ioctl parameter, pulses required to start dsm2 pairing */
 #define DSMX_BIND_PULSES 7	/* DSM_BIND_START ioctl parameter, pulses required to start dsmx pairing */
 
 /** power up DSM receiver */
-#define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 8)
+#define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 11)
 
 /** set the PWM value when disarmed - should be no PWM (zero) by default */
-#define PWM_SERVO_SET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 9)
+#define PWM_SERVO_SET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 12)
+
+/** get the PWM value when disarmed */
+#define PWM_SERVO_GET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 13)
 
 /** set the minimum PWM value the output will send */
-#define PWM_SERVO_SET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 10)
+#define PWM_SERVO_SET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 14)
+
+/** get the minimum PWM value the output will send */
+#define PWM_SERVO_GET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 15)
 
 /** set the maximum PWM value the output will send */
-#define PWM_SERVO_SET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 11)
+#define PWM_SERVO_SET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 16)
+
+/** get the maximum PWM value the output will send */
+#define PWM_SERVO_GET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 17)
 
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)

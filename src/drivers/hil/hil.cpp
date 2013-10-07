@@ -517,7 +517,7 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		g_hil->set_pwm_rate(arg);
 		break;
 
-	case PWM_SERVO_SELECT_UPDATE_RATE:
+	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
 		// HIL always outputs at the alternate (usually faster) rate 
 		break;
 

@@ -307,9 +307,9 @@ mixer_tick(void)
 			up_pwm_servo_set(i, r_page_servos[i]);
 
 	} else if (mixer_servos_armed && should_always_enable_pwm) {
-		/* set the idle servo outputs. */
+		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++)
-			up_pwm_servo_set(i, r_page_servo_idle[i]);
+			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
 	}
 }
 

@@ -958,7 +958,7 @@ PX4IO::set_idle_values(const uint16_t *vals, unsigned len)
 		return E2BIG;
 
 	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_IDLE_PWM, 0, vals, len);
+	return io_reg_set(PX4IO_PAGE_DISARMED_PWM, 0, vals, len);
 }
 
 
@@ -1684,7 +1684,7 @@ PX4IO::print_status()
 		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
 	printf("\nidle values");
 	for (unsigned i = 0; i < _max_actuators; i++)
-		printf(" %u", io_reg_get(PX4IO_PAGE_IDLE_PWM, i));
+		printf(" %u", io_reg_get(PX4IO_PAGE_DISARMED_PWM, i));
 	printf("\n");
 }
 
@@ -1716,12 +1716,22 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED, 0);
 		break;
 
+	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
+		/* get the default update rate */
+		*(unsigned *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE);
+		break;
+
 	case PWM_SERVO_SET_UPDATE_RATE:
 		/* set the requested alternate rate */
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE, arg);
 		break;
 
-	case PWM_SERVO_SELECT_UPDATE_RATE: {
+	case PWM_SERVO_GET_UPDATE_RATE:
+		/* get the alternative update rate */
+		*(unsigned *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE);
+		break;
+
+	case PWM_SERVO_SET_SELECT_UPDATE_RATE: {
 
 		/* blindly clear the PWM update alarm - might be set for some other reason */
 		io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, PX4IO_P_STATUS_ALARMS_PWM_ERROR);
@@ -1738,23 +1748,51 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		break;
 	}
 
+	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
+
+		*(unsigned *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES);
+		break;
+
 	case PWM_SERVO_SET_DISARMED_PWM: {
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
 		set_idle_values(pwm->values, pwm->channel_count);
+		break;
 	}
+
+	case PWM_SERVO_GET_DISARMED_PWM:
+
+		ret = io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, (uint16_t*)arg, sizeof(struct pwm_output_values)/sizeof(uint16_t));
+		if (ret != OK) {
+			ret = -EIO;
+		}
 		break;
 
 	case PWM_SERVO_SET_MIN_PWM: {
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
-		warnx("Set min values");
 		set_min_values(pwm->values, pwm->channel_count);
+		break;
 	}
+
+	case PWM_SERVO_GET_MIN_PWM:
+
+		ret = io_reg_get(PX4IO_PAGE_CONTROL_MIN_PWM, 0, (uint16_t*)arg, sizeof(struct pwm_output_values)/sizeof(uint16_t));
+		if (ret != OK) {
+			ret = -EIO;
+		}
 		break;
 
 	case PWM_SERVO_SET_MAX_PWM: {
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
 		set_max_values(pwm->values, pwm->channel_count);
+		break;
 	}
+
+	case PWM_SERVO_GET_MAX_PWM:
+
+		ret = io_reg_get(PX4IO_PAGE_CONTROL_MAX_PWM, 0, (uint16_t*)arg, sizeof(struct pwm_output_values)/sizeof(uint16_t));
+		if (ret != OK) {
+			ret = -EIO;
+		}
 		break;
 
 	case PWM_SERVO_GET_COUNT:
@@ -2448,5 +2486,5 @@ px4io_main(int argc, char *argv[])
 		bind(argc, argv);
 
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'failsafe', 'min, 'max',\n 'idle', 'bind' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'failsafe', 'bind' or 'update'");
 }

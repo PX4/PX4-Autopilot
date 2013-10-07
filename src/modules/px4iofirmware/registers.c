@@ -220,10 +220,10 @@ uint16_t		r_page_servo_control_max[PX4IO_SERVO_COUNT] = { 2100, 2100, 2100, 2100
 /**
  * PAGE 108
  *
- * idle PWM values for difficult ESCs
+ * disarmed PWM values for difficult ESCs
  *
  */
-uint16_t		r_page_servo_idle[PX4IO_SERVO_COUNT] = { 900, 900, 900, 900, 900, 900, 900, 900 };
+uint16_t		r_page_servo_disarmed[PX4IO_SERVO_COUNT] = { 900, 900, 900, 900, 900, 900, 900, 900 };
 
 int
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
@@ -293,16 +293,15 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* copy channel data */
 		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
 
-			if (*values == 0)
-				/* set to default */
-				r_page_servo_control_min[offset] = 900;
-
-			else if (*values > 1200)
+			if (*values == 0) {
+				/* ignore 0 */
+			} else if (*values > 1200) {
 				r_page_servo_control_min[offset] = 1200;
-			else if (*values < 900)
+			} else if (*values < 900) {
 				r_page_servo_control_min[offset] = 900;
-			else
+			} else {
 				r_page_servo_control_min[offset] = *values;
+			}
 
 			offset++;
 			num_values--;
@@ -315,16 +314,15 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* copy channel data */
 		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
 
-			if (*values == 0)
-				/* set to default */
+			if (*values == 0) {
+				/* ignore 0 */
+			} else if (*values > 2100) {
 				r_page_servo_control_max[offset] = 2100;
-
-			else if (*values > 2100)
-				r_page_servo_control_max[offset] = 2100;
-			else if (*values < 1800)
+			} else if (*values < 1800) {
 				r_page_servo_control_max[offset] = 1800;
-			else
+			} else {
 				r_page_servo_control_max[offset] = *values;
+			}
 
 			offset++;
 			num_values--;
@@ -332,21 +330,20 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		}
 		break;
 
-	case PX4IO_PAGE_IDLE_PWM:
+	case PX4IO_PAGE_DISARMED_PWM:
 
 		/* copy channel data */
 		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
 
-			if (*values == 0)
-				/* set to default */
-				r_page_servo_idle[offset] = 0;
-
-			else if (*values < 900)
-				r_page_servo_idle[offset] = 900;
-			else if (*values > 2100)
-				r_page_servo_idle[offset] = 2100;
-			else
-				r_page_servo_idle[offset] = *values;
+			if (*values == 0) {
+				/* ignore 0 */
+			} else if (*values < 900) {
+				r_page_servo_disarmed[offset] = 900;
+			} else if (*values > 2100) {
+				r_page_servo_disarmed[offset] = 2100;
+			} else {
+				r_page_servo_disarmed[offset] = *values;
+			}
 
 			/* flag the failsafe values as custom */
 			r_setup_arming |= PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE;
@@ -769,8 +766,8 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	case PX4IO_PAGE_CONTROL_MAX_PWM:
 		SELECT_PAGE(r_page_servo_control_max);
 		break;
-	case PX4IO_PAGE_IDLE_PWM:
-		SELECT_PAGE(r_page_servo_idle);
+	case PX4IO_PAGE_DISARMED_PWM:
+		SELECT_PAGE(r_page_servo_disarmed);
 		break;
 
 	default:
