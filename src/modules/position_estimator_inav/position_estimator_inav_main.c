@@ -363,6 +363,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
+
 				if (sensor.accelerometer_counter > accel_counter) {
 					if (att.R_valid) {
 						/* correct accel bias, now only for Z */
@@ -400,6 +401,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* optical flow */
 			orb_check(optical_flow_sub, &updated);
+
 			if (updated) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 
@@ -438,8 +440,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* vehicle GPS position */
 			orb_check(vehicle_gps_position_sub, &updated);
+
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
+
 				if (gps.fix_type >= 3) {
 					/* hysteresis for GPS quality */
 					if (gps_valid) {
@@ -448,6 +452,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							warnx("GPS signal lost");
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 						}
+
 					} else {
 						if (gps.eph_m < 5.0f) {
 							gps_valid = true;
@@ -455,6 +460,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
 						}
 					}
+
 				} else {
 					gps_valid = false;
 				}
@@ -533,6 +539,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* transform error vector from NED frame to body frame */
 		// TODO add sonar weight
 		float accel_bias_corr = -(baro_corr + baro_alt0) * params.w_acc_bias * params.w_alt_baro * params.w_alt_baro * dt;
+
 		for (int i = 0; i < 3; i++) {
 			accel_bias[i] += att.R[2][i] * accel_bias_corr;
 			// TODO add XY correction
