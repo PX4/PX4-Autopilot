@@ -94,7 +94,9 @@ extern device::Device *PX4IO_serial_interface() weak_function;
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
 
-#define UPDATE_INTERVAL_MIN		2
+#define UPDATE_INTERVAL_MIN		2			// 2 ms	-> 500 Hz
+#define ORB_CHECK_INTERVAL		200000		// 200 ms -> 5 Hz
+#define IO_POLL_INTERVAL		20000		// 20 ms -> 50 Hz
 
 /**
  * The PX4IO class.
@@ -734,7 +736,8 @@ PX4IO::task_main_trampoline(int argc, char *argv[])
 void
 PX4IO::task_main()
 {
-	hrt_abstime last_poll_time = 0;
+	hrt_abstime poll_last = 0;
+	hrt_abstime orb_check_last = 0;
 
 	log("starting");
 
@@ -747,18 +750,10 @@ PX4IO::task_main()
 	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
 				     ORB_ID(actuator_controls_1));
 	orb_set_interval(_t_actuators, 20);		/* default to 50Hz */
-
 	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
-
 	_t_vehicle_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
-	orb_set_interval(_t_vehicle_control_mode, 200);		/* 5Hz update rate max. */
-
 	_t_param = orb_subscribe(ORB_ID(parameter_update));
-	orb_set_interval(_t_param, 500);		/* 2Hz update rate max. */
-
 	_t_vehicle_command = orb_subscribe(ORB_ID(vehicle_command));
-	orb_set_interval(_t_param, 1000);		/* 1Hz update rate max. */
 
 	if ((_t_actuators < 0) ||
 		(_t_actuator_armed < 0) ||
@@ -770,17 +765,9 @@ PX4IO::task_main()
 	}
 
 	/* poll descriptor */
-	pollfd fds[5];
+	pollfd fds[1];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
-	fds[1].fd = _t_actuator_armed;
-	fds[1].events = POLLIN;
-	fds[2].fd = _t_vehicle_control_mode;
-	fds[2].events = POLLIN;
-	fds[3].fd = _t_param;
-	fds[3].events = POLLIN;
-	fds[4].fd = _t_vehicle_command;
-	fds[4].events = POLLIN;
 
 	log("ready");
 
@@ -802,7 +789,7 @@ PX4IO::task_main()
 
 		/* sleep waiting for topic updates, but no more than 20ms */
 		unlock();
-		int ret = ::poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 20);
+		int ret = ::poll(fds, 1, 20);
 		lock();
 
 		/* this would be bad... */
@@ -815,67 +802,72 @@ PX4IO::task_main()
 		hrt_abstime now = hrt_absolute_time();
 
 		/* if we have new control data from the ORB, handle it */
-		if (fds[0].revents & POLLIN)
+		if (fds[0].revents & POLLIN) {
 			io_set_control_state();
-
-		/* if we have an arming state update, handle it */
-		if ((fds[1].revents & POLLIN) || (fds[2].revents & POLLIN))
-			io_set_arming_state();
-
-		/* if we have a vehicle command, handle it */
-		if (fds[4].revents & POLLIN) {
-			struct vehicle_command_s cmd;
-			orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
-			// Check for a DSM pairing command
-			if ((cmd.command == VEHICLE_CMD_START_RX_PAIR) && (cmd.param1== 0.0f)) {
-				dsm_bind_ioctl((int)cmd.param2);
-			}
 		}
 
-		/*
-		 * If it's time for another tick of the polling status machine,
-		 * try it now.
-		 */
-		if ((now - last_poll_time) >= 20000) {
+		if (now >= poll_last + IO_POLL_INTERVAL) {
+			/* run at 50Hz */
+			poll_last = now;
 
-			/*
-			 * Pull status and alarms from IO.
-			 */
+			/* pull status and alarms from IO */
 			io_get_status();
 
-			/*
-			 * Get raw R/C input from IO.
-			 */
+			/* get raw R/C input from IO */
 			io_publish_raw_rc();
 
-			/*
-			 * Fetch mixed servo controls and PWM outputs from IO.
-			 *
-			 * XXX We could do this at a reduced rate in many/most cases.
-			 */
+			/* fetch mixed servo controls and PWM outputs from IO */
 			io_publish_mixed_controls();
 			io_publish_pwm_outputs();
+		}
+
+		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
+			/* run at 5Hz */
+			orb_check_last = now;
+
+			/* check updates on uORB topics and handle it */
+			bool updated = false;
+
+			/* arming state */
+			orb_check(_t_actuator_armed, &updated);
+			if (!updated) {
+				orb_check(_t_vehicle_control_mode, &updated);
+			}
+			if (updated) {
+				io_set_arming_state();
+			}
+
+			/* vehicle command */
+			orb_check(_t_vehicle_command, &updated);
+			if (updated) {
+				struct vehicle_command_s cmd;
+				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
+				// Check for a DSM pairing command
+				if ((cmd.command == VEHICLE_CMD_START_RX_PAIR) && (cmd.param1== 0.0f)) {
+					dsm_bind_ioctl((int)cmd.param2);
+				}
+			}
 
 			/*
 			 * If parameters have changed, re-send RC mappings to IO
 			 *
 			 * XXX this may be a bit spammy
 			 */
-			if (fds[3].revents & POLLIN) {
+			orb_check(_t_param, &updated);
+			if (updated) {
 				parameter_update_s pupdate;
+				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
+
 				int32_t dsm_bind_val;
 				param_t dsm_bind_param;
 
-				// See if bind parameter has been set, and reset it to -1
+				/* see if bind parameter has been set, and reset it to -1 */
 				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
 				if (dsm_bind_val > -1) {
 					dsm_bind_ioctl(dsm_bind_val);
 					dsm_bind_val = -1;
 					param_set(dsm_bind_param, &dsm_bind_val);
 				}
-
-				/* copy to reset the notification */
-				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
 				/* re-upload RC input config as it may have changed */
 				io_set_rc_config();
