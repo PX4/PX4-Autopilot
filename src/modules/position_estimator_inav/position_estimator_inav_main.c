@@ -79,7 +79,7 @@ static bool verbose_mode = false;
 static const hrt_abstime gps_timeout = 1000000;	// GPS timeout = 1s
 static const hrt_abstime flow_timeout = 1000000;	// optical flow timeout = 1s
 static const uint32_t updates_counter_len = 1000000;
-static const uint32_t pub_interval = 4000;	// limit publish rate to 250 Hz
+static const uint32_t pub_interval = 10000;	// limit publish rate to 100 Hz
 
 __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
@@ -308,14 +308,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	}
 
 	/* main loop */
-	struct pollfd fds[7] = {
-		{ .fd = parameter_update_sub, .events = POLLIN },
-		{ .fd = actuator_sub, .events = POLLIN },
-		{ .fd = armed_sub, .events = POLLIN },
+	struct pollfd fds[1] = {
 		{ .fd = vehicle_attitude_sub, .events = POLLIN },
-		{ .fd = sensor_combined_sub, .events = POLLIN },
-		{ .fd = optical_flow_sub, .events = POLLIN },
-		{ .fd = vehicle_gps_position_sub, .events = POLLIN }
 	};
 
 	if (!thread_should_exit) {
@@ -323,7 +317,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	}
 
 	while (!thread_should_exit) {
-		int ret = poll(fds, 7, 10); // wait maximal this 10 ms = 100 Hz minimum rate
+		int ret = poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate
 		hrt_abstime t = hrt_absolute_time();
 
 		if (ret < 0) {
@@ -333,36 +327,42 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			continue;
 
 		} else if (ret > 0) {
+			/* act on attitude updates */
+
+			/* vehicle attitude */
+			orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+			attitude_updates++;
+
+			bool updated;
+
 			/* parameter update */
-			if (fds[0].revents & POLLIN) {
-				/* read from param to clear updated flag */
+			orb_check(parameter_update_sub, &updated);
+
+			if (updated) {
 				struct parameter_update_s update;
-				orb_copy(ORB_ID(parameter_update), parameter_update_sub,
-					 &update);
-				/* update parameters */
+				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
 				parameters_update(&pos_inav_param_handles, &params);
 			}
 
 			/* actuator */
-			if (fds[1].revents & POLLIN) {
+			orb_check(actuator_sub, &updated);
+
+			if (updated) {
 				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_sub, &actuator);
 			}
 
 			/* armed */
-			if (fds[2].revents & POLLIN) {
+			orb_check(armed_sub, &updated);
+
+			if (updated) {
 				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 			}
 
-			/* vehicle attitude */
-			if (fds[3].revents & POLLIN) {
-				orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
-				attitude_updates++;
-			}
-
 			/* sensor combined */
-			if (fds[4].revents & POLLIN) {
-				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
+			orb_check(sensor_combined_sub, &updated);
 
+			if (updated) {
+				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 				if (sensor.accelerometer_counter > accel_counter) {
 					if (att.R_valid) {
 						/* correct accel bias, now only for Z */
@@ -399,7 +399,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			/* optical flow */
-			if (fds[5].revents & POLLIN) {
+			orb_check(optical_flow_sub, &updated);
+			if (updated) {
 				orb_copy(ORB_ID(optical_flow), optical_flow_sub, &flow);
 
 				if (flow.ground_distance_m > 0.31f && flow.ground_distance_m < 4.0f && (flow.ground_distance_m != sonar_prev || t - sonar_time < 150000)) {
@@ -436,7 +437,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			/* vehicle GPS position */
-			if (fds[6].revents & POLLIN) {
+			orb_check(vehicle_gps_position_sub, &updated);
+			if (updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps);
 				if (gps.fix_type >= 3) {
 					/* hysteresis for GPS quality */
