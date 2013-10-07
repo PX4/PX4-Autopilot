@@ -1818,7 +1818,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 
 		/* TODO: we could go lower for e.g. TurboPWM */
 		unsigned channel = cmd - PWM_SERVO_SET(0);
-		if ((channel >= _max_actuators) || (arg < 900) || (arg > 2100)) {
+		if ((channel >= _max_actuators) || (arg < PWM_MIN) || (arg > PWM_MAX)) {
 			ret = -EINVAL;
 		} else {
 			/* send a direct PWM value */
@@ -2402,8 +2402,8 @@ px4io_main(int argc, char *argv[])
 			/* set channel to commandline argument or to 900 for non-provided channels */
 			if (argc > i + 2) {
 				failsafe[i] = atoi(argv[i+2]);
-				if (failsafe[i] < 800 || failsafe[i] > 2200) {
-					errx(1, "value out of range of 800 < value < 2200. Aborting.");
+				if (failsafe[i] < PWM_MIN || failsafe[i] > PWM_AX) {
+					errx(1, "value out of range of %d < value < %d. Aborting.", PWM_MIN, PWM_MAX);
 				}
 			} else {
 				/* a zero value will result in stopping to output any pulse */

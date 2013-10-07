@@ -207,7 +207,7 @@ uint16_t		r_page_servo_failsafe[PX4IO_SERVO_COUNT] = { 0 };
  * minimum PWM values when armed
  *
  */
-uint16_t		r_page_servo_control_min[PX4IO_SERVO_COUNT] = { 900, 900, 900, 900, 900, 900, 900, 900 };
+uint16_t		r_page_servo_control_min[PX4IO_SERVO_COUNT] = { PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN };
 
 /**
  * PAGE 107
@@ -215,7 +215,7 @@ uint16_t		r_page_servo_control_min[PX4IO_SERVO_COUNT] = { 900, 900, 900, 900, 90
  * maximum PWM values when armed
  *
  */
-uint16_t		r_page_servo_control_max[PX4IO_SERVO_COUNT] = { 2100, 2100, 2100, 2100, 2100, 2100, 2100, 2100 };
+uint16_t		r_page_servo_control_max[PX4IO_SERVO_COUNT] = { PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX };
 
 /**
  * PAGE 108
@@ -223,7 +223,7 @@ uint16_t		r_page_servo_control_max[PX4IO_SERVO_COUNT] = { 2100, 2100, 2100, 2100
  * disarmed PWM values for difficult ESCs
  *
  */
-uint16_t		r_page_servo_disarmed[PX4IO_SERVO_COUNT] = { 900, 900, 900, 900, 900, 900, 900, 900 };
+uint16_t		r_page_servo_disarmed[PX4IO_SERVO_COUNT] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 int
 registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values)
@@ -295,10 +295,10 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 			if (*values == 0) {
 				/* ignore 0 */
-			} else if (*values > 1200) {
-				r_page_servo_control_min[offset] = 1200;
-			} else if (*values < 900) {
-				r_page_servo_control_min[offset] = 900;
+			} else if (*values > PWM_HIGHEST_MIN) {
+				r_page_servo_control_min[offset] = PWM_HIGHEST_MIN;
+			} else if (*values < PWM_MIN) {
+				r_page_servo_control_min[offset] = PWM_MIN;
 			} else {
 				r_page_servo_control_min[offset] = *values;
 			}
@@ -316,10 +316,10 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 			if (*values == 0) {
 				/* ignore 0 */
-			} else if (*values > 2100) {
-				r_page_servo_control_max[offset] = 2100;
-			} else if (*values < 1800) {
-				r_page_servo_control_max[offset] = 1800;
+			} else if (*values > PWM_MAX) {
+				r_page_servo_control_max[offset] = PWM_MAX;
+			} else if (*values < PWM_LOWEST_MAX) {
+				r_page_servo_control_max[offset] = PWM_LOWEST_MAX;
 			} else {
 				r_page_servo_control_max[offset] = *values;
 			}
@@ -337,10 +337,10 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 
 			if (*values == 0) {
 				/* ignore 0 */
-			} else if (*values < 900) {
-				r_page_servo_disarmed[offset] = 900;
-			} else if (*values > 2100) {
-				r_page_servo_disarmed[offset] = 2100;
+			} else if (*values < PWM_MIN) {
+				r_page_servo_disarmed[offset] = PWM_MIN;
+			} else if (*values > PWM_MAX) {
+				r_page_servo_disarmed[offset] = PWM_MAX;
 			} else {
 				r_page_servo_disarmed[offset] = *values;
 			}

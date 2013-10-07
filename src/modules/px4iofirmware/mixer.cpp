@@ -242,8 +242,8 @@ mixer_tick(void)
 
 				case ESC_RAMP:
 					r_page_servos[i] = (outputs[i]
-					 * (ramp_promille*r_page_servo_control_max[i] + (1000-ramp_promille)*2100 - ramp_promille*r_page_servo_control_min[i] - (1000-ramp_promille)*900)/2/1000
-					 + (ramp_promille*r_page_servo_control_max[i] + (1000-ramp_promille)*2100 + ramp_promille*r_page_servo_control_min[i] + (1000-ramp_promille)*900)/2/1000);
+					 * (ramp_promille*r_page_servo_control_max[i] + (1000-ramp_promille)*PWM_MAX - ramp_promille*r_page_servo_control_min[i] - (1000-ramp_promille)*PWM_MIN)/2/1000
+					 + (ramp_promille*r_page_servo_control_max[i] + (1000-ramp_promille)*PWM_MAX + ramp_promille*r_page_servo_control_min[i] + (1000-ramp_promille)*PWM_MIN)/2/1000);
 				break;
 
 				case ESC_ON:

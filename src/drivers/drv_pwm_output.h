@@ -65,6 +65,26 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_MAX_CHANNELS	16
 
 /**
+ * Minimum PWM in us
+ */
+#define PWM_MIN 900
+
+/**
+ * Highest PWM allowed as the minimum PWM
+ */
+#define PWM_HIGHEST_MIN 1300
+
+/**
+ * Maximum PWM in us
+ */
+#define PWM_MAX 2100
+
+/**
+ * Lowest PWM allowed as the maximum PWM
+ */
+#define PWM_LOWEST_MAX 1700
+
+/**
  * Servo output signal type, value is actual servo output pulse
  * width in microseconds.
  */
