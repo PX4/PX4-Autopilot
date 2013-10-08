@@ -347,7 +347,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				/* check for reference point updates and correct setpoint */
 				if (local_pos.ref_surface_timestamp != ref_surface_prev_t) {
 					/* reference alt changed, don't follow large ground level changes in manual flight */
-					mavlink_log_info(mavlink_fd, "[mpc] update z sp %.2f -> %.2f = %.2f", ref_alt_prev, local_pos.ref_alt, local_pos.ref_alt - ref_alt_prev);
 					local_pos_sp.z += local_pos.ref_alt - ref_alt_prev;
 
 					// TODO also correct XY setpoint
