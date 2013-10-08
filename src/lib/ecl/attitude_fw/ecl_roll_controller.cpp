@@ -58,7 +58,7 @@ ECL_RollController::ECL_RollController() :
 
 }
 
-float ECL_RollController::control(float roll_setpoint, float roll, float roll_rate,
+float ECL_RollController::control(float roll_setpoint, float roll, float roll_rate, float pitch, float yaw_rate,
 				  float scaler, bool lock_integrator, float airspeed_min, float airspeed_max, float airspeed)
 {
 	/* get the usual dt estimate */
@@ -79,7 +79,8 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 	}
 
 	float roll_error = roll_setpoint - roll;
-	_rate_setpoint = roll_error / _tc;
+	float phi_dot_setpoint = roll_error / _tc;
+	_rate_setpoint = phi_dot_setpoint - sinf(pitch) * yaw_rate; //jacobian
 
 	/* limit the rate */
 	if (_max_rate > 0.01f) {

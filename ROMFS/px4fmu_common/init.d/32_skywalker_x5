@@ -1,6 +1,6 @@
 #!nsh
 
-echo "[init] PX4FMU v1, v2 with or without IO on EasyStar"
+echo "[init] PX4FMU v1, v2 with or without IO on Skywalker X5"
 
 #
 # Load default params for this platform
@@ -45,7 +45,7 @@ else
 	param set BAT_V_SCALING 0.004593
 	set EXIT_ON_END yes
 fi
-
+ 
 #
 # Start the sensors and test them.
 #
@@ -65,17 +65,17 @@ gps start
 # Start the attitude and position estimator
 #
 att_pos_estimator_ekf start
- 
+
 #
 # Load mixer and start controllers (depends on px4io)
 #
-if [ -f /fs/microsd/etc/mixers/FMU_RET.mix ]
+if [ -f /fs/microsd/etc/mixers/FMU_delta.mix ]
 then
-	echo "Using FMU_RET mixer from sd card"
-	mixer load /dev/pwm_output /fs/microsd/etc/mixers/FMU_RET.mix
+	echo "Using FMU_delta mixer from sd card"
+	mixer load /dev/pwm_output /fs/microsd/etc/mixers/FMU_delta.mix
 else
-	echo "Using standard FMU_RET mixer"
-	mixer load /dev/pwm_output /etc/mixers/FMU_RET.mix
+	echo "Using standard FMU_delta mixer"
+	mixer load /dev/pwm_output /etc/mixers/FMU_delta.mix
 fi
 fw_att_control start
 fw_pos_control_l1 start

@@ -56,7 +56,7 @@ class __EXPORT ECL_RollController
 public:
 	ECL_RollController();
 
-	float control(float roll_setpoint, float roll, float roll_rate,
+	float control(float roll_setpoint, float roll, float roll_rate,  float pitch, float yaw_rate,
 		      float scaler = 1.0f, bool lock_integrator = false, float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f));
 
 	void reset_integrator();
