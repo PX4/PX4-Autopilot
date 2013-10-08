@@ -70,7 +70,7 @@ float ECL_L1_Pos_Controller::target_bearing()
 float ECL_L1_Pos_Controller::switch_distance(float wp_radius)
 {
 	/* following [2], switching on L1 distance */
-	return math::min(wp_radius, _L1_distance);
+	return math::max(wp_radius, _L1_distance);
 }
 
 bool ECL_L1_Pos_Controller::reached_loiter_target(void)
@@ -117,7 +117,6 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector2f &vector_A, c
 
 	/* calculate the vector from waypoint A to the aircraft */
 	math::Vector2f vector_A_to_airplane = get_local_planar_vector(vector_A, vector_curr_position);
-	math::Vector2f vector_B_to_airplane = get_local_planar_vector(vector_B, vector_curr_position);
 
 	/* calculate crosstrack error (output only) */
 	_crosstrack_error = vector_AB % vector_A_to_airplane;
@@ -128,10 +127,13 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector2f &vector_A, c
 	 * If the aircraft is already between A and B normal L1 logic is applied.
 	 */
 	float distance_A_to_airplane = vector_A_to_airplane.length();
-	float distance_B_to_airplane = vector_B_to_airplane.length();
 	float alongTrackDist = vector_A_to_airplane * vector_AB;
 
-	/* extension from [2] */
+	/* estimate airplane position WRT to B */
+	math::Vector2f vector_B_to_airplane_unit = get_local_planar_vector(vector_B, vector_curr_position).normalized();
+	float bearing_wp_b = atan2f(-vector_B_to_airplane_unit.getY() , -vector_B_to_airplane_unit.getX());
+
+	/* extension from [2], fly directly to A */
 	if (distance_A_to_airplane > _L1_distance && alongTrackDist / math::max(distance_A_to_airplane , 1.0f) < -0.7071f) {
 
 		/* calculate eta to fly to waypoint A */
@@ -146,19 +148,21 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector2f &vector_A, c
 		/* bearing from current position to L1 point */
 		_nav_bearing = atan2f(-vector_A_to_airplane_unit.getY() , -vector_A_to_airplane_unit.getX());
 
-	} else if (distance_B_to_airplane < alongTrackDist || distance_B_to_airplane < _L1_distance) {
+// XXX this can be useful as last-resort guard, but is currently not needed
+#if 0
+	} else if (absf(bearing_wp_b) > math::radians(80.0f)) {
+		/* extension, fly back to waypoint */
 
-		/* fly directly to B */
-		/* unit vector from waypoint B to current position */
-		math::Vector2f vector_B_to_airplane_unit = vector_B_to_airplane.normalized();
+		/* calculate eta to fly to waypoint B */
+		
 		/* velocity across / orthogonal to line */
 		xtrack_vel = ground_speed_vector % (-vector_B_to_airplane_unit);
 		/* velocity along line */
 		ltrack_vel = ground_speed_vector * (-vector_B_to_airplane_unit);
 		eta = atan2f(xtrack_vel, ltrack_vel);
 		/* bearing from current position to L1 point */
-		_nav_bearing = atan2f(-vector_B_to_airplane_unit.getY() , -vector_B_to_airplane_unit.getX());
-
+		_nav_bearing = bearing_wp_b;
+#endif
 	} else {
 
 		/* calculate eta to fly along the line between A and B */
@@ -178,6 +182,7 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector2f &vector_A, c
 		eta = eta1 + eta2;
 		/* bearing from current position to L1 point */
 		_nav_bearing = atan2f(vector_AB.getY(), vector_AB.getX()) + eta1;
+
 	}
 
 	/* limit angle to +-90 degrees */
