@@ -593,6 +593,10 @@ FixedwingAttitudeControl::task_main()
 					pitch_sp = _att_sp.pitch_body;
 					throttle_sp = _att_sp.thrust;
 
+					/* reset integrals where needed */
+					if (_att_sp.roll_reset_integral)
+						_roll_ctrl.reset_integrator();
+
 				} else {
 					/*
 					 * Scale down roll and pitch as the setpoints are radians
