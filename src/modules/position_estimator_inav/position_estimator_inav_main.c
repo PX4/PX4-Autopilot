@@ -363,6 +363,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+				/* reset ground level on arm if sonar is invalid */
+				if (armed.armed && !flag_armed && t > sonar_valid_time + sonar_valid_timeout) {
+					flag_armed = armed.armed;
+					baro_alt0 -= z_est[0];
+					z_est[0] = 0.0f;
+					alt_avg = 0.0f;
+					local_pos.ref_alt = baro_alt0;
+					local_pos.ref_timestamp = hrt_absolute_time();
+				}
 			}
 
 			/* sensor combined */
@@ -433,6 +442,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 								local_pos.ref_alt = baro_alt0;
 								local_pos.ref_timestamp = hrt_absolute_time();
 								z_est[0] += sonar_corr;
+								alt_avg -= sonar_corr;
 								sonar_corr = 0.0f;
 								sonar_corr_filtered = 0.0f;
 								sonar_valid_time = t;
@@ -587,14 +597,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		float dt = t_prev > 0 ? (t - t_prev) / 1000000.0f : 0.0f;
 		t_prev = t;
 
-		/* reset ground level on arm */
-		if (armed.armed && !flag_armed) {
-			baro_alt0 -= z_est[0];
-			z_est[0] = 0.0f;
-			local_pos.ref_alt = baro_alt0;
-			local_pos.ref_timestamp = hrt_absolute_time();
-		}
-
 		bool use_gps = ref_xy_inited && gps_valid;
 		bool use_flow = flow_valid;
 
@@ -687,21 +689,21 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* detect land */
-		alt_avg += (z_est[0] - alt_avg) * dt / params.land_t;
-		float alt_disp = z_est[0] - alt_avg;
-		alt_disp = alt_disp * alt_disp;
+		alt_avg += (- z_est[0] - alt_avg) * dt / params.land_t;
+		float alt_disp2 = - z_est[0] - alt_avg;
+		alt_disp2 = alt_disp2 * alt_disp2;
 		float land_disp2 = params.land_disp * params.land_disp;
 		/* get actual thrust output */
 		float thrust = armed.armed ? actuator.control[3] : 0.0f;
 
 		if (landed) {
-			if (alt_disp > land_disp2 && thrust > params.land_thr) {
+			if (alt_disp2 > land_disp2 && thrust > params.land_thr) {
 				landed = false;
 				landed_time = 0;
 			}
 
 		} else {
-			if (alt_disp < land_disp2 && thrust < params.land_thr) {
+			if (alt_disp2 < land_disp2 && thrust < params.land_thr) {
 				if (landed_time == 0) {
 					landed_time = t;    // land detected first time
 
@@ -791,8 +793,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			orb_publish(ORB_ID(vehicle_global_position), vehicle_global_position_pub, &global_pos);
 		}
-
-		flag_armed = armed.armed;
 	}
 
 	warnx("stopped");
