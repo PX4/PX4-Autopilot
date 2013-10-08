@@ -82,6 +82,7 @@ static const hrt_abstime sonar_valid_timeout = 1000000;	// assume that altitude 
 static const hrt_abstime flow_timeout = 1000000;	// optical flow topic timeout = 1s
 static const uint32_t updates_counter_len = 1000000;
 static const uint32_t pub_interval = 10000;	// limit publish rate to 100 Hz
+static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
 
 __EXPORT int position_estimator_inav_main(int argc, char *argv[]);
 
@@ -363,6 +364,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			if (updated) {
 				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+
 				/* reset ground level on arm if sonar is invalid */
 				if (armed.armed && !flag_armed && t > sonar_valid_time + sonar_valid_timeout) {
 					flag_armed = armed.armed;
@@ -370,7 +372,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					z_est[0] = 0.0f;
 					alt_avg = 0.0f;
 					local_pos.ref_alt = baro_alt0;
-					local_pos.ref_timestamp = hrt_absolute_time();
+					local_pos.ref_timestamp = t;
+					local_pos.ref_surface_timestamp = t;
 				}
 			}
 
@@ -439,8 +442,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 								/* new ground level */
 								baro_alt0 += sonar_corr;
 								mavlink_log_info(mavlink_fd, "[inav] update ref: alt=%.3f", baro_alt0);
-								local_pos.ref_alt = baro_alt0;
-								local_pos.ref_timestamp = hrt_absolute_time();
+								local_pos.ref_surface_timestamp = t;
 								z_est[0] += sonar_corr;
 								alt_avg -= sonar_corr;
 								sonar_corr = 0.0f;
@@ -465,32 +467,49 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (z_est[0] < - 0.31f && flow_q > params.flow_q_min && t < sonar_valid_time + sonar_valid_timeout && att.R[2][2] > 0.7) {
 					/* distance to surface */
 					float flow_dist = -z_est[0] / att.R[2][2];
-					/* convert raw flow to angular flow */
-					float flow_ang[2];
-					flow_ang[0] = flow.flow_raw_x * params.flow_k;
-					flow_ang[1] = flow.flow_raw_y * params.flow_k;
-					/* flow measurements vector */
-					float flow_m[3];
-					flow_m[0] = -flow_ang[0] * flow_dist;
-					flow_m[1] = -flow_ang[1] * flow_dist;
-					flow_m[2] = z_est[1];
-					/* velocity in NED */
-					float flow_v[2] = { 0.0f, 0.0f };
+					/* check if flow if too large for accurate measurements */
+					/* calculate estimated velocity in body frame */
+					float body_v_est[2] = { 0.0f, 0.0f };
 
-					/* project measurements vector to NED basis, skip Z component */
 					for (int i = 0; i < 2; i++) {
-						for (int j = 0; j < 3; j++) {
-							flow_v[i] += att.R[i][j] * flow_m[j];
-						}
+						body_v_est[i] = att.R[0][i] * x_est[1] + att.R[1][i] * y_est[1] + att.R[2][i] * z_est[1];
 					}
 
-					/* velocity correction */
-					flow_corr[0] = flow_v[0] - x_est[1];
-					flow_corr[1] = flow_v[1] - y_est[1];
-					/* adjust correction weight */
-					float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);
-					flow_w = att.R[2][2] * flow_q_weight;
-					flow_valid = true;
+					/* use flow only if it is not too large according to estimate */
+					// TODO add timeout for flow to allow flying without GPS
+					if (fabsf(body_v_est[1] / flow_dist - att.rollspeed) < max_flow &&
+					    fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow) {
+						/* convert raw flow to angular flow */
+						float flow_ang[2];
+						flow_ang[0] = flow.flow_raw_x * params.flow_k;
+						flow_ang[1] = flow.flow_raw_y * params.flow_k;
+						/* flow measurements vector */
+						float flow_m[3];
+						flow_m[0] = -flow_ang[0] * flow_dist;
+						flow_m[1] = -flow_ang[1] * flow_dist;
+						flow_m[2] = z_est[1];
+						/* velocity in NED */
+						float flow_v[2] = { 0.0f, 0.0f };
+
+						/* project measurements vector to NED basis, skip Z component */
+						for (int i = 0; i < 2; i++) {
+							for (int j = 0; j < 3; j++) {
+								flow_v[i] += att.R[i][j] * flow_m[j];
+							}
+						}
+
+						/* velocity correction */
+						flow_corr[0] = flow_v[0] - x_est[1];
+						flow_corr[1] = flow_v[1] - y_est[1];
+						/* adjust correction weight */
+						float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);
+						flow_w = att.R[2][2] * flow_q_weight;
+						flow_valid = true;
+
+					} else {
+						flow_w = 0.0f;
+						flow_valid = false;
+					}
 
 				} else {
 					flow_w = 0.0f;
@@ -607,6 +626,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* baro offset correction if sonar available */
 		if (sonar_valid) {
 			baro_alt0 -= (baro_corr + baro_alt0) * params.w_alt_sonar * dt;
+			local_pos.ref_alt = baro_alt0;
+			local_pos.ref_timestamp = t;
 		}
 
 		/* accelerometer bias correction */

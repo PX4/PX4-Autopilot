@@ -73,6 +73,7 @@ struct vehicle_local_position_s
 	bool xy_global;			/**< true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon) */
 	bool z_global;			/**< true if z is valid and has valid global reference (ref_alt) */
 	uint64_t ref_timestamp;	/**< Time when reference position was set */
+	uint64_t ref_surface_timestamp;	/**< Time when reference surface was set */
 	int32_t ref_lat;		/**< Reference point latitude in 1E7 degrees */
 	int32_t ref_lon;		/**< Reference point longitude in 1E7 degrees */
 	float ref_alt;			/**< Reference altitude AMSL in meters, MUST be set to current (not at reference point!) ground level */
