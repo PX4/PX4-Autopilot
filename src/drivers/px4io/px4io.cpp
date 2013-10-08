@@ -2402,7 +2402,7 @@ px4io_main(int argc, char *argv[])
 			/* set channel to commandline argument or to 900 for non-provided channels */
 			if (argc > i + 2) {
 				failsafe[i] = atoi(argv[i+2]);
-				if (failsafe[i] < PWM_MIN || failsafe[i] > PWM_AX) {
+				if (failsafe[i] < PWM_MIN || failsafe[i] > PWM_MAX) {
 					errx(1, "value out of range of %d < value < %d. Aborting.", PWM_MIN, PWM_MAX);
 				}
 			} else {

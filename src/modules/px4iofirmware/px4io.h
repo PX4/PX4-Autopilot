@@ -46,6 +46,8 @@
 
 #include "protocol.h"
 
+#include <systemlib/pwm_limit/pwm_limit.h>
+
 /*
  * Constants and limits.
  */
@@ -121,6 +123,11 @@ struct sys_state_s {
 };
 
 extern struct sys_state_s system_state;
+
+/*
+ * PWM limit structure
+ */
+extern pwm_limit_t pwm_limit;
 
 /*
  * GPIO handling.
