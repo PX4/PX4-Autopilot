@@ -104,7 +104,7 @@ handle_message(mavlink_message_t *msg)
 			//check for MAVLINK terminate command
 			if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 				/* This is the link shutdown command, terminate mavlink */
-				printf("[mavlink] Terminating .. \n");
+				warnx("terminating...");
 				fflush(stdout);
 				usleep(50000);
 
@@ -284,28 +284,33 @@ receive_thread(void *arg)
 	int uart_fd = *((int*)arg);
 
 	const int timeout = 1000;
-	uint8_t ch;
+	uint8_t buf[32];
 
 	mavlink_message_t msg;
 
-	prctl(PR_SET_NAME, "mavlink offb rcv", getpid());
+	prctl(PR_SET_NAME, "mavlink_onboard_rcv", getpid());
+
+	struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
+
+	ssize_t nread = 0;
 
 	while (!thread_should_exit) {
-
-		struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
-
 		if (poll(fds, 1, timeout) > 0) {
-			/* non-blocking read until buffer is empty */
-			int nread = 0;
+			if (nread < sizeof(buf)) {
+				/* to avoid reading very small chunks wait for data before reading */
+				usleep(1000);
+			}
 
-			do {
-				nread = read(uart_fd, &ch, 1);
+			/* non-blocking read. read may return negative values */
+			ssize_t nread = read(uart_fd, buf, sizeof(buf));
 
-				if (mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
+			/* if read failed, this loop won't execute */
+			for (ssize_t i = 0; i < nread; i++) {
+				if (mavlink_parse_char(chan, buf[i], &msg, &status)) {
 					/* handle generic messages and commands */
 					handle_message(&msg);
 				}
-			} while (nread > 0);
+			}
 		}
 	}
 
