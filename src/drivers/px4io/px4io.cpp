@@ -194,6 +194,11 @@ public:
 	int 			set_idle_values(const uint16_t *vals, unsigned len);
 
 	/**
+	 * Disable RC input handling
+	 */
+	int			disable_rc_handling();
+
+	/**
 	 * Print IO status.
 	 *
 	 * Print all relevant IO status information
@@ -201,9 +206,9 @@ public:
 	void			print_status();
 
 	/**
-	 * Disable RC input handling
+	 * Fetch and print debug console output.
 	 */
-	int			disable_rc_handling();
+	int			print_debug();
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	/**
@@ -1532,8 +1537,52 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 }
 
 int
+PX4IO::print_debug()
+{
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+	int io_fd = -1;
+
+	if (io_fd < 0) {
+		io_fd = ::open("/dev/ttyS0", O_RDONLY | O_NONBLOCK);
+	}
+
+	/* read IO's output */
+	if (io_fd > 0) {
+		pollfd fds[1];
+		fds[0].fd = io_fd;
+		fds[0].events = POLLIN;
+
+		usleep(500);
+		int pret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), 10);
+
+		if (pret > 0) {
+			int count;
+			char buf[65];
+
+			do {
+				count = ::read(io_fd, buf, sizeof(buf) - 1);
+				if (count > 0) {
+					/* enforce null termination */
+					buf[count] = '\0';
+					warnx("IO CONSOLE: %s", buf);
+				}
+
+			} while (count > 0);
+		}
+
+		::close(io_fd);
+		return 0;
+	}
+#endif
+	return 1;
+
+}
+
+int
 PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 {
+	/* get debug level */
+	int debuglevel = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG);
 
 	uint8_t	frame[_max_transfer];
 
@@ -1572,6 +1621,15 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 
 			int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
 
+			/* print mixer chunk */
+			if (debuglevel > 5 || ret) {
+
+				warnx("fmu sent: \"%s\"", msg->text);
+
+				/* read IO's output */
+				print_debug();
+			}
+
 			if (ret) {
 				log("mixer send error %d", ret);
 				return ret;
@@ -1580,6 +1638,11 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			msg->action = F2I_MIXER_ACTION_APPEND;
 
 		} while (buflen > 0);
+
+		/* ensure a closing newline */
+		msg->text[0] = '\n';
+		msg->text[1] = '\0';
+		int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, 1);
 
 		retries--;
 
@@ -2242,28 +2305,37 @@ test(void)
 void
 monitor(void)
 {
+	/* clear screen */
+	printf("\033[2J");
+
 	unsigned cancels = 3;
-	printf("Hit <enter> three times to exit monitor mode\n");
 
 	for (;;) {
 		pollfd fds[1];
 
 		fds[0].fd = 0;
 		fds[0].events = POLLIN;
-		poll(fds, 1, 500);
+		poll(fds, 1, 2000);
 
 		if (fds[0].revents == POLLIN) {
 			int c;
 			read(0, &c, 1);
 
-			if (cancels-- == 0)
+			if (cancels-- == 0) {
+				printf("\033[H"); /* move cursor home and clear screen */
 				exit(0);
+			}
 		}
 
-#warning implement this
+		if (g_dev != nullptr) {
 
-//		if (g_dev != nullptr)
-//			g_dev->dump_one = true;
+			printf("\033[H"); /* move cursor home and clear screen */
+			(void)g_dev->print_status();
+			(void)g_dev->print_debug();
+			printf("[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
+		} else {
+			errx(1, "driver not loaded, exiting");
+		}
 	}
 }
 
