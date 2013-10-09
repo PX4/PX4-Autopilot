@@ -74,6 +74,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/navigation_capabilities.h>
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -129,9 +130,11 @@ private:
 	int		_accel_sub;			/**< body frame accelerations */
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
+	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
+	struct navigation_capabilities_s		_nav_capabilities;	/**< navigation capabilities */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct airspeed_s				_airspeed;		/**< airspeed */
 	struct vehicle_control_mode_s				_control_mode;		/**< vehicle status */
@@ -312,6 +315,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* publications */
 	_attitude_sp_pub(-1),
+	_nav_capabilities_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw l1 control")),
@@ -323,6 +327,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false)
 {
+	_nav_capabilities.turn_distance = 0.0f;
+
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
 	_parameter_handles.l1_damping = param_find("FW_L1_DAMPING");
 	_parameter_handles.loiter_hold_radius = param_find("FW_LOITER_R");
@@ -625,6 +631,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 	// else integrators should be constantly reset.
 	if (_control_mode.flag_control_position_enabled) {
 
+		/* get circle mode */
+		bool was_circle_mode = _l1_control.circle_mode();
+
 		/* execute navigation once we have a setpoint */
 		if (_setpoint_valid) {
 
@@ -642,7 +651,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 			} else {
 				/*
-				 * No valid next waypoint, go for heading hold.
+				 * No valid previous waypoint, go for the current wp.
 				 * This is automatically handled by the L1 library.
 				 */
 				prev_wp.setX(global_triplet.current.lat / 1e7f);
@@ -810,6 +819,11 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			}
 		}
 
+		if (was_circle_mode && !_l1_control.circle_mode()) {
+			/* just kicked out of loiter, reset roll integrals */
+			_att_sp.roll_reset_integral = true;
+		}
+
 	} else if (0/* seatbelt mode enabled */) {
 
 		/** SEATBELT FLIGHT **/
@@ -966,6 +980,21 @@ FixedwingPositionControl::task_main()
 				} else {
 					/* advertise and publish */
 					_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+				}
+
+				float turn_distance = _l1_control.switch_distance(_global_triplet.current.turn_distance_xy);
+
+				/* lazily publish navigation capabilities */
+				if (turn_distance != _nav_capabilities.turn_distance && turn_distance > 0) {
+
+					/* set new turn distance */
+					_nav_capabilities.turn_distance = turn_distance;
+
+					if (_nav_capabilities_pub > 0) {
+						orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
+					} else {
+						_nav_capabilities_pub = orb_advertise(ORB_ID(navigation_capabilities), &_nav_capabilities);
+					}
 				}
 
 			}
