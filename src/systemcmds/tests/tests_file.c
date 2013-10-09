@@ -121,7 +121,7 @@ test_file(int argc, char *argv[])
 
 		for (int j = 0; j < 512; j++) {
 			if ((read_buf + 0)[j] != write_buf[j + 1/*+ (i % 64)*/]) {
-				warnx("COMPARISON ERROR: byte %d, align shift: %d", j, (i % 64));
+				warnx("COMPARISON ERROR: byte %d, align shift: %d", j, 1/*(i % 64)*/);
 				compare_ok = false;
 				break;
 			}
