@@ -45,7 +45,7 @@
 #include <stdbool.h>
 #include <drivers/drv_hrt.h>
 
-__EXPORT pwm_limit_init(pwm_limit_t *limit)
+__EXPORT void pwm_limit_init(pwm_limit_t *limit)
 {
 	limit->nchannels = 0;
 	limit->state = LIMIT_STATE_OFF;
