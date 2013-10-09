@@ -103,16 +103,33 @@ test_file(int argc, char *argv[])
 	perf_print_counter(wperf);
 	perf_free(wperf);
 
+	close(fd);
+
+	fd = open("/fs/microsd/testfile", O_RDONLY);
+
 	/* read back data for validation */
 	for (unsigned i = 0; i < iterations; i++) {
 		int rret = read(fd, read_buf, 512);
+
+		if (rret != 512) {
+			warn("READ ERROR!");
+			break;
+		}
 		
 		/* compare value */
+		bool compare_ok = true;
 
 		for (int j = 0; j < 512; j++) {
-			if (read_buf[j] != write_buf[j + (i % 64)]) {
+			if (read_buf[j] != write_buf[j + 1/*+ (i % 64)*/]) {
 				warnx("COMPARISON ERROR: byte %d, align shift: %d", j, (i % 64));
+				compare_ok = false;
+				break;
 			}
+		}
+
+		if (!compare_ok) {
+			warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
+			break;
 		}
 
 	}
