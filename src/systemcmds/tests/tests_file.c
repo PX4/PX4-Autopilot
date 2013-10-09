@@ -63,24 +63,38 @@ test_file(int argc, char *argv[])
 		return 1;
 	}
 
-	uint8_t buf[512];
+	uint8_t write_buf[512 + 64];
+
+	/* fill write buffer with known values */
+	for (int i = 0; i < sizeof(write_buf); i++) {
+		/* this will wrap, but we just need a known value with spacing */
+		write_buf[i] = i+11;
+	}
+
+	uint8_t read_buf[512 + 64];
 	hrt_abstime start, end;
 	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes (aligned)");
 
 	int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
-	memset(buf, 0, sizeof(buf));
 
-	warnx("aligned write - please wait..");
-
-	if ((0x3 & (uintptr_t)buf))
-		warnx("memory is unaligned!");
+	warnx("testing aligned and unaligned writes - please wait..");
 
 	start = hrt_absolute_time();
 	for (unsigned i = 0; i < iterations; i++) {
 		perf_begin(wperf);
-		write(fd, buf, sizeof(buf));
+		int wret = write(fd, write_buf + (i % 64), 512);
+
+		if (wret != 512) {
+			warn("WRITE ERROR!");
+
+			if ((0x3 & (uintptr_t)(write_buf + (i % 64))))
+				warnx("memory is unaligned, align shift: %d", (i % 64));
+
+		}
+
 		fsync(fd);
 		perf_end(wperf);
+
 	}
 	end = hrt_absolute_time();
 
@@ -88,39 +102,36 @@ test_file(int argc, char *argv[])
 
 	perf_print_counter(wperf);
 	perf_free(wperf);
+
+	/* read back data for validation */
+	for (unsigned i = 0; i < iterations; i++) {
+		int rret = read(fd, read_buf, 512);
+		
+		/* compare value */
+
+		for (int j = 0; j < 512; j++) {
+			if (read_buf[j] != write_buf[j + (i % 64)]) {
+				warnx("COMPARISON ERROR: byte %d, align shift: %d", j, (i % 64));
+			}
+		}
+
+	}
+
+	/* read back data for alignment checks */
+	// for (unsigned i = 0; i < iterations; i++) {
+	// 	perf_begin(wperf);
+	// 	int rret = read(fd, buf + (i % 64), sizeof(buf));
+	// 	fsync(fd);
+	// 	perf_end(wperf);
+
+	// }
 
 	int ret = unlink("/fs/microsd/testfile");
 
 	if (ret)
 		err(1, "UNLINKING FILE FAILED");
 
-	warnx("unaligned write - please wait..");
-
-	struct {
-		uint8_t byte;
-		uint8_t unaligned[512];
-	} unaligned_buf;
-
-	if ((0x3 & (uintptr_t)unaligned_buf.unaligned) == 0)
-		warnx("creating unaligned memory failed.");
-
-	wperf = perf_alloc(PC_ELAPSED, "SD writes (unaligned)");
-
-	start = hrt_absolute_time();
-	for (unsigned i = 0; i < iterations; i++) {
-		perf_begin(wperf);
-		write(fd, unaligned_buf.unaligned, sizeof(unaligned_buf.unaligned));
-		fsync(fd);
-		perf_end(wperf);
-	}
-	end = hrt_absolute_time();
-
 	close(fd);
-
-	warnx("%dKiB in %llu microseconds", iterations / 2, end - start);
-
-	perf_print_counter(wperf);
-	perf_free(wperf);
 
 	/* list directory */
 	DIR           *d;

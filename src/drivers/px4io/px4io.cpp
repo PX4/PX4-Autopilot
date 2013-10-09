@@ -95,6 +95,8 @@ extern device::Device *PX4IO_serial_interface() weak_function;
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
 
+#define UPDATE_INTERVAL_MIN		2
+
 /**
  * The PX4IO class.
  *
@@ -817,8 +819,8 @@ PX4IO::task_main()
 
 		/* adjust update interval */
 		if (_update_interval != 0) {
-			if (_update_interval < 5)
-				_update_interval = 5;
+			if (_update_interval < UPDATE_INTERVAL_MIN)
+				_update_interval = UPDATE_INTERVAL_MIN;
 			if (_update_interval > 100)
 				_update_interval = 100;
 			orb_set_interval(_t_actuators, _update_interval);
@@ -2058,8 +2060,8 @@ int
 PX4IO::set_update_rate(int rate)
 {
 	int interval_ms = 1000 / rate;
-	if (interval_ms < 3) {
-		interval_ms = 3;
+	if (interval_ms < UPDATE_INTERVAL_MIN) {
+		interval_ms = UPDATE_INTERVAL_MIN;
 		warnx("update rate too high, limiting interval to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
 	}
 
@@ -2442,7 +2444,7 @@ px4io_main(int argc, char *argv[])
 		if ((argc > 2)) {
 			g_dev->set_update_rate(atoi(argv[2]));
 		} else {
-			errx(1, "missing argument (50 - 400 Hz)");
+			errx(1, "missing argument (50 - 500 Hz)");
 			return 1;
 		}
 		exit(0);
