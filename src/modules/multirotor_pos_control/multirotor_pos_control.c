@@ -345,7 +345,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			if (control_mode.flag_control_manual_enabled) {
 				/* manual control */
 				/* check for reference point updates and correct setpoint */
-				if (local_pos.ref_surface_timestamp != ref_surface_prev_t) {
+				if (local_pos.ref_timestamp != ref_surface_prev_t) {
 					/* reference alt changed, don't follow large ground level changes in manual flight */
 					local_pos_sp.z += local_pos.ref_alt - ref_alt_prev;
 
@@ -674,7 +674,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		}
 
 		/* track local position reference even when not controlling position */
-		ref_surface_prev_t = local_pos.ref_surface_timestamp;
+		ref_surface_prev_t = local_pos.ref_timestamp;
 		ref_alt_prev = local_pos.ref_alt;
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */

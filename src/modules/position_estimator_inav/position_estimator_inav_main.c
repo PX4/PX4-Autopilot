@@ -180,7 +180,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
-	float baro_alt0 = 0.0f; /* to determine while start up */
+	float baro_offset = 0.0f;		// baro offset from reference altitude, it's not the same as local_position.ref_alt if sonar available
 	float alt_avg = 0.0f;
 	bool landed = true;
 	hrt_abstime landed_time = 0;
@@ -299,15 +299,15 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 					/* mean calculation over several measurements */
 					if (baro_init_cnt < baro_init_num) {
-						baro_alt0 += sensor.baro_alt_meter;
+						baro_offset += sensor.baro_alt_meter;
 						baro_init_cnt++;
 
 					} else {
 						wait_baro = false;
-						baro_alt0 /= (float) baro_init_cnt;
-						warnx("init ref: alt=%.3f", baro_alt0);
-						mavlink_log_info(mavlink_fd, "[inav] init ref: alt=%.3f", baro_alt0);
-						local_pos.ref_alt = baro_alt0;
+						baro_offset /= (float) baro_init_cnt;
+						warnx("init ref: alt=%.3f", baro_offset);
+						mavlink_log_info(mavlink_fd, "[inav] init ref: alt=%.3f", baro_offset);
+						local_pos.ref_alt = baro_offset;
 						local_pos.ref_timestamp = hrt_absolute_time();
 						local_pos.z_valid = true;
 						local_pos.v_z_valid = true;
@@ -322,10 +322,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	struct pollfd fds[1] = {
 		{ .fd = vehicle_attitude_sub, .events = POLLIN },
 	};
-
-	if (!thread_should_exit) {
-		warnx("main loop started");
-	}
 
 	while (!thread_should_exit) {
 		int ret = poll(fds, 1, 20); // wait maximal 20 ms = 50 Hz minimum rate
@@ -371,12 +367,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				/* reset ground level on arm if sonar is invalid */
 				if (armed.armed && !flag_armed && t > sonar_valid_time + sonar_valid_timeout) {
 					flag_armed = armed.armed;
-					baro_alt0 -= z_est[0];
+					baro_offset -= z_est[0];
 					z_est[0] = 0.0f;
 					alt_avg = 0.0f;
-					local_pos.ref_alt = baro_alt0;
+					local_pos.ref_alt = baro_offset;
 					local_pos.ref_timestamp = t;
-					local_pos.ref_surface_timestamp = t;
 				}
 			}
 
@@ -415,7 +410,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 
 				if (sensor.baro_counter > baro_counter) {
-					baro_corr = - sensor.baro_alt_meter - z_est[0];
+					baro_corr = - sensor.baro_alt_meter - z_est[0];	// should be shifted by baro_offset before applying correction
 					baro_counter = sensor.baro_counter;
 					baro_updates++;
 				}
@@ -442,9 +437,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						} else {
 							/* new ground level */
-							baro_alt0 += sonar_corr;
-							mavlink_log_info(mavlink_fd, "[inav] update ref: alt=%.3f", baro_alt0);
-							local_pos.ref_surface_timestamp = t;
+							baro_offset += sonar_corr;
+							mavlink_log_info(mavlink_fd, "[inav] update ref: alt=%.3f", baro_offset);
+							local_pos.ref_alt += sonar_corr;
+							local_pos.ref_timestamp = t;
 							z_est[0] += sonar_corr;
 							alt_avg -= sonar_corr;
 							sonar_corr = 0.0f;
@@ -619,16 +615,14 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_gps = ref_xy_inited && gps_valid;
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps);
-
 		/* try to estimate xy even if no absolute position source available,
 		 * if using optical flow velocity will be valid */
 		bool can_estimate_xy = use_gps || use_flow || (t < flow_valid_time + flow_valid_timeout);
 
-		/* baro offset correction if sonar available */
+		/* baro offset correction if sonar available,
+		 * don't touch reference altitude, local_pos.ref_alt != baro_offset after this */
 		if (sonar_valid) {
-			baro_alt0 -= (baro_corr + baro_alt0) * params.w_alt_sonar * dt;
-			local_pos.ref_alt = baro_alt0;
-			local_pos.ref_timestamp = t;
+			baro_offset -= (baro_corr + baro_offset) * params.w_alt_sonar * dt;
 		}
 
 		/* accelerometer bias correction */
@@ -646,7 +640,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			accel_bias_corr[1] -= flow_corr[1] * params.w_pos_flow;
 		}
 
-		accel_bias_corr[2] -= (baro_corr + baro_alt0) * params.w_alt_baro * params.w_alt_baro;
+		accel_bias_corr[2] -= (baro_corr + baro_offset) * params.w_alt_baro * params.w_alt_baro;
 
 		if (sonar_valid) {
 			accel_bias_corr[2] -= sonar_corr * params.w_alt_sonar * params.w_alt_sonar;
@@ -671,7 +665,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			inertial_filter_correct(sonar_corr, dt, z_est, 0, params.w_alt_sonar);
 		}
 
-		inertial_filter_correct(baro_corr + baro_alt0, dt, z_est, 0, params.w_alt_baro);
+		inertial_filter_correct(baro_corr + baro_offset, dt, z_est, 0, params.w_alt_baro);
 		inertial_filter_correct(accel_corr[2], dt, z_est, 2, params.w_alt_acc);
 
 		if (can_estimate_xy) {
