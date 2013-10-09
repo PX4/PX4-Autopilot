@@ -82,7 +82,7 @@ test_file(int argc, char *argv[])
 	start = hrt_absolute_time();
 	for (unsigned i = 0; i < iterations; i++) {
 		perf_begin(wperf);
-		int wret = write(fd, write_buf + (i % 64), 512);
+		int wret = write(fd, write_buf + 1/*+ (i % 64)*/, 512);
 
 		if (wret != 512) {
 			warn("WRITE ERROR!");
@@ -109,7 +109,7 @@ test_file(int argc, char *argv[])
 
 	/* read back data for validation */
 	for (unsigned i = 0; i < iterations; i++) {
-		int rret = read(fd, read_buf, 512);
+		int rret = read(fd, read_buf + 0, 512);
 
 		if (rret != 512) {
 			warn("READ ERROR!");
@@ -120,7 +120,7 @@ test_file(int argc, char *argv[])
 		bool compare_ok = true;
 
 		for (int j = 0; j < 512; j++) {
-			if (read_buf[j] != write_buf[j + 1/*+ (i % 64)*/]) {
+			if ((read_buf + 0)[j] != write_buf[j + 1/*+ (i % 64)*/]) {
 				warnx("COMPARISON ERROR: byte %d, align shift: %d", j, (i % 64));
 				compare_ok = false;
 				break;
