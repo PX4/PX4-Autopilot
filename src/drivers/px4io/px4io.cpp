@@ -1545,7 +1545,7 @@ PX4IO::print_debug()
 	int io_fd = -1;
 
 	if (io_fd < 0) {
-		io_fd = ::open("/dev/ttyS0", O_RDONLY | O_NONBLOCK);
+		io_fd = ::open("/dev/ttyS0", O_RDONLY | O_NONBLOCK | O_NOCTTY);
 	}
 
 	/* read IO's output */
@@ -1555,7 +1555,7 @@ PX4IO::print_debug()
 		fds[0].events = POLLIN;
 
 		usleep(500);
-		int pret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), 10);
+		int pret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), 0);
 
 		if (pret > 0) {
 			int count;
@@ -1606,6 +1606,8 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 				memcpy(&msg->text[0], buf, count);
 				buf += count;
 				buflen -= count;
+			} else {
+				continue;
 			}
 
 			/*
@@ -1644,7 +1646,8 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 		/* ensure a closing newline */
 		msg->text[0] = '\n';
 		msg->text[1] = '\0';
-		int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, 1);
+
+		int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, (sizeof(px4io_mixdata) + 2) / 2);
 
 		retries--;
 
