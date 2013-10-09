@@ -497,6 +497,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					/* adjust correction weight */
 					float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);
 					flow_w = att.R[2][2] * flow_q_weight;
+					/* if flow is not accurate, lower weight for it */
+					// TODO make this more fuzzy
+					if (!flow_accurate)
+						flow_w *= 0.2f;
 					flow_valid = true;
 					flow_valid_time = t;
 
