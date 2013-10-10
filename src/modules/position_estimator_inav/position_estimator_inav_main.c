@@ -180,7 +180,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 	int baro_init_cnt = 0;
 	int baro_init_num = 200;
-	float baro_offset = 0.0f;		// baro offset from reference altitude, it's not the same as local_position.ref_alt if sonar available
+	float baro_offset = 0.0f;		// baro offset for reference altitude, initialized only once
+	float surface_offset = 0.0f;	// ground level offset from reference altitude
 	float alt_avg = 0.0f;
 	bool landed = true;
 	hrt_abstime landed_time = 0;
@@ -365,7 +366,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 
 				/* reset ground level on arm if sonar is invalid */
-				if (armed.armed && !flag_armed && t > sonar_valid_time + sonar_valid_timeout) {
+				if (armed.armed && !flag_armed) {
 					flag_armed = armed.armed;
 					baro_offset -= z_est[0];
 					z_est[0] = 0.0f;
@@ -410,7 +411,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 
 				if (sensor.baro_counter > baro_counter) {
-					baro_corr = - sensor.baro_alt_meter - z_est[0];	// should be shifted by baro_offset before applying correction
+					baro_corr = baro_offset - sensor.baro_alt_meter - z_est[0];
 					baro_counter = sensor.baro_counter;
 					baro_updates++;
 				}
@@ -425,7 +426,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				if (flow.ground_distance_m > 0.31f && flow.ground_distance_m < 4.0f && att.R[2][2] > 0.7 && flow.ground_distance_m != sonar_prev) {
 					sonar_time = t;
 					sonar_prev = flow.ground_distance_m;
-					sonar_corr = -flow.ground_distance_m - z_est[0];
+					sonar_corr = flow.ground_distance_m + surface_offset + z_est[0];
 					sonar_corr_filtered += (sonar_corr - sonar_corr_filtered) * params.sonar_filt;
 
 					if (fabsf(sonar_corr) > params.sonar_err) {
@@ -437,12 +438,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 						} else {
 							/* new ground level */
-							baro_offset += sonar_corr;
-							mavlink_log_info(mavlink_fd, "[inav] update ref: alt=%.3f", baro_offset);
-							local_pos.ref_alt += sonar_corr;
-							local_pos.ref_timestamp = t;
-							z_est[0] += sonar_corr;
-							alt_avg -= sonar_corr;
+							surface_offset -= sonar_corr;
+							mavlink_log_info(mavlink_fd, "[inav] new surface level: %.3f", surface_offset);
+							alt_avg -= sonar_corr;	// TODO check this
 							sonar_corr = 0.0f;
 							sonar_corr_filtered = 0.0f;
 							sonar_valid_time = t;
@@ -459,7 +457,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				if (z_est[0] < - 0.31f && flow_q > params.flow_q_min && t < sonar_valid_time + sonar_valid_timeout && att.R[2][2] > 0.7) {
 					/* distance to surface */
-					float flow_dist = -z_est[0] / att.R[2][2];
+					float flow_dist = (- z_est[0] - surface_offset) / att.R[2][2];
 					/* check if flow if too large for accurate measurements */
 					/* calculate estimated velocity in body frame */
 					float body_v_est[2] = { 0.0f, 0.0f };
@@ -626,7 +624,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* baro offset correction if sonar available,
 		 * don't touch reference altitude, local_pos.ref_alt != baro_offset after this */
 		if (sonar_valid) {
-			baro_offset -= (baro_corr + baro_offset) * params.w_alt_sonar * dt;
+			surface_offset -= sonar_corr * params.w_alt_sonar * dt;
 		}
 
 		/* accelerometer bias correction */
@@ -644,11 +642,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			accel_bias_corr[1] -= flow_corr[1] * params.w_pos_flow;
 		}
 
-		accel_bias_corr[2] -= (baro_corr + baro_offset) * params.w_alt_baro * params.w_alt_baro;
-
-		if (sonar_valid) {
-			accel_bias_corr[2] -= sonar_corr * params.w_alt_sonar * params.w_alt_sonar;
-		}
+		accel_bias_corr[2] -= baro_corr * params.w_alt_baro * params.w_alt_baro;
 
 		/* transform error vector from NED frame to body frame */
 		for (int i = 0; i < 3; i++) {
@@ -665,11 +659,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		inertial_filter_predict(dt, z_est);
 
 		/* inertial filter correction for altitude */
-		if (sonar_valid) {
-			inertial_filter_correct(sonar_corr, dt, z_est, 0, params.w_alt_sonar);
-		}
-
-		inertial_filter_correct(baro_corr + baro_offset, dt, z_est, 0, params.w_alt_baro);
+		inertial_filter_correct(baro_corr, dt, z_est, 0, params.w_alt_baro);
 		inertial_filter_correct(accel_corr[2], dt, z_est, 2, params.w_alt_acc);
 
 		if (can_estimate_xy) {
@@ -773,6 +763,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.vz = z_est[1];
 			local_pos.landed = landed;
 			local_pos.yaw = att.yaw;
+			local_pos.dist_bottom_valid = t < sonar_valid_time + sonar_valid_timeout;
+			if (local_pos.dist_bottom_valid) {
+				local_pos.dist_bottom = -z_est[0] - surface_offset;
+			}
 
 			local_pos.timestamp = t;
 
