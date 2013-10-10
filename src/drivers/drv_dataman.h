@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Jean Cyr <jean.m.cyr@gmail.com>
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,51 +29,53 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
+ ****************************************************************************/ 
 
 /**
- * @file fence.h
- * Definition of geofence.
- */
-
-#ifndef TOPIC_FENCE_H_
-#define TOPIC_FENCE_H_
-
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
-
-/**
- * @addtogroup topics
- * @{
- */
-
-#define GEOFENCE_MAX_VERTICES 8
-
-/**
- * This is the position of a geofence vertex
+ * @file drv_dataman.h
  *
+ * DATAMANAGER driver.
  */
-struct fence_vertex_s {
-	// Worst case float precision gives us 2 meter resolution at the equator
-	float lat;			/**< latitude in degrees */
-	float lon;			/**< longitude in degrees */
+#ifndef _DATAMANAGER_H
+#define _DATAMANAGER_H
+
+#define DATAMANAGER_DEVICE_PATH "/dev/dataman"
+
+#define _DM_IOCBASE		0x2900
+#define _DM_IOC(_n)		(_IOC(_DM_IOCBASE, _n))
+
+/** play the named script in *(char *)arg, repeating forever */
+#define DM_SET_KEY	    _DM_IOC(1)
+enum {
+	DM_KEY_RTL_POINT = 0,
+	DM_KEY_RETURN_POINT,
+	DM_KEY_SAFE_POINTS,
+	DM_KEY_WAY_POINTS,
+	DM_KEY_FENCE_POINTS,
+	DM_KEY_NUM_KEYS
 };
 
-/**
- * This is the position of a geofence
- *
- */
-struct fence_s { 
-	unsigned count;     /**< number of actual vertices */
-	struct fence_vertex_s vertices[GEOFENCE_MAX_VERTICES];
+enum {
+	DM_KEY_RTL_POINT_MAX = 1,
+	DM_KEY_RETURN_POINT_MAX = 1,
+	DM_KEY_SAFE_POINTS_MAX = 5,
+	DM_KEY_WAY_POINTS_MAX = 128,
+	DM_KEY_FENCE_POINTS_MAX = 10
 };
 
-/**
- * @}
- */
+#define DM_SET_PERSIST  _DM_IOC(2)
+enum {
+	DM_PERSIST_POWER_ON_RESET = 0,  /* Data survives resets */
+	DM_PERSIST_IN_FLIGHT_RESET,     /* Data survives in-flight resets only */
+	DM_PERSIST_VOLATILE             /* Data does not survive resets */
+};
 
-/* register this as object request broker structure */
-ORB_DECLARE(fence);
+#define DM_INIT  _DM_IOC(3)
+enum {
+	DM_INIT_REASON_POWER_ON = 0,  /* Data survives resets */
+	DM_INIT_REASON_IN_FLIGHT     /* Data survives in-flight resets only */
+};
+
+#define DM_MAX_DATA_SIZE 126
 
 #endif
