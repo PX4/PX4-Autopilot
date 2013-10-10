@@ -54,7 +54,7 @@
 int
 test_file(int argc, char *argv[])
 {
-	const iterations = 200;
+	const iterations = 64;
 
 	/* check if microSD card is mounted */
 	struct stat buffer;
@@ -63,7 +63,7 @@ test_file(int argc, char *argv[])
 		return 1;
 	}
 
-	uint8_t write_buf[512 + 64] __attribute__((aligned(64)));
+	static uint8_t write_buf[512 + 64] __attribute__((aligned(64)));
 
 	/* fill write buffer with known values */
 	for (int i = 0; i < sizeof(write_buf); i++) {
@@ -71,7 +71,7 @@ test_file(int argc, char *argv[])
 		write_buf[i] = i+11;
 	}
 
-	uint8_t read_buf[512 + 64] __attribute__((aligned(64)));
+	static uint8_t read_buf[512 + 64] __attribute__((aligned(64)));
 	hrt_abstime start, end;
 	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes (aligned)");
 
@@ -82,15 +82,10 @@ test_file(int argc, char *argv[])
 	start = hrt_absolute_time();
 	for (unsigned i = 0; i < iterations; i++) {
 		perf_begin(wperf);
-		int wret = write(fd, write_buf + 1/*+ (i % 64)*/, 512);
+		int wret = write(fd, &write_buf[i], 512);
 
-		if (wret != 512) {
+		if (wret != 512)
 			warn("WRITE ERROR!");
-
-			if ((0x3 & (uintptr_t)(write_buf + 1 /* (i % 64)*/)))
-				warnx("memory is unaligned, align shift: %d", 1/*(i % 64)*/);
-
-		}
 
 		fsync(fd);
 		perf_end(wperf);
@@ -119,8 +114,8 @@ test_file(int argc, char *argv[])
 		bool compare_ok = true;
 
 		for (int j = 0; j < 512; j++) {
-			if (read_buf[j] != write_buf[j + 1/*+ (i % 64)*/]) {
-				warnx("COMPARISON ERROR: byte %d, align shift: %d", j, 1/*(i % 64)*/);
+			if (read_buf[j] != write_buf[j + i]) {
+				warnx("byte %u shift %u expected %u got %u", j, i, write_buf[i + j], read_buf[j]);
 				compare_ok = false;
 				break;
 			}
@@ -132,6 +127,8 @@ test_file(int argc, char *argv[])
 		}
 
 	}
+
+	return 0;
 
 	/*
 	 * ALIGNED WRITES AND UNALIGNED READS
