@@ -680,8 +680,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
 		reset_int_z_manual = control_mode.flag_armed && control_mode.flag_control_manual_enabled && !control_mode.flag_control_climb_rate_enabled;
 
-		/* run at approximately 50 Hz */
-		usleep(20000);
+		/* run at approximately 100 Hz */
+		usleep(10000);
 	}
 
 	warnx("stopped");
