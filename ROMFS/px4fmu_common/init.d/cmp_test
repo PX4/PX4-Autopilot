@@ -1,0 +1,9 @@
+#!nsh
+
+cp /etc/extras/px4io-v2_default.bin /fs/microsd/px4io.loaded
+if cmp /etc/extras/px4io-v2_default.bin /fs/microsd/px4io.loaded
+then
+	echo "CMP returned true"
+else
+	echo "CMP returned false"
+fi
