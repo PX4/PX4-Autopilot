@@ -63,7 +63,7 @@ test_file(int argc, char *argv[])
 		return 1;
 	}
 
-	uint8_t write_buf[512 + 64];
+	uint8_t write_buf[512 + 64] __attribute__((aligned(64)));
 
 	/* fill write buffer with known values */
 	for (int i = 0; i < sizeof(write_buf); i++) {
@@ -71,7 +71,7 @@ test_file(int argc, char *argv[])
 		write_buf[i] = i+11;
 	}
 
-	uint8_t read_buf[512 + 64];
+	uint8_t read_buf[512 + 64] __attribute__((aligned(64)));
 	hrt_abstime start, end;
 	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes (aligned)");
 
@@ -87,8 +87,8 @@ test_file(int argc, char *argv[])
 		if (wret != 512) {
 			warn("WRITE ERROR!");
 
-			if ((0x3 & (uintptr_t)(write_buf + (i % 64))))
-				warnx("memory is unaligned, align shift: %d", (i % 64));
+			if ((0x3 & (uintptr_t)(write_buf + 1 /* (i % 64)*/)))
+				warnx("memory is unaligned, align shift: %d", 1/*(i % 64)*/);
 
 		}
 
