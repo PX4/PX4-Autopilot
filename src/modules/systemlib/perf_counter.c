@@ -321,6 +321,32 @@ perf_print_counter(perf_counter_t handle)
 	}
 }
 
+uint64_t
+perf_event_count(perf_counter_t handle)
+{
+	if (handle == NULL)
+		return 0;
+
+	switch (handle->type) {
+	case PC_COUNT:
+		return ((struct perf_ctr_count *)handle)->event_count;
+
+	case PC_ELAPSED: {
+		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+		return pce->event_count;
+	}
+
+	case PC_INTERVAL: {
+		struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+		return pci->event_count;
+	}
+
+	default:
+		break;
+	}
+	return 0;
+}
+
 void
 perf_print_all(void)
 {

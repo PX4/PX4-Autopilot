@@ -52,6 +52,7 @@
  */
 struct gyro_report {
 	uint64_t timestamp;
+	uint64_t error_count;
 	float x;		/**< angular velocity in the NED X board axis in rad/s */
 	float y;		/**< angular velocity in the NED Y board axis in rad/s */
 	float z;		/**< angular velocity in the NED Z board axis in rad/s */
