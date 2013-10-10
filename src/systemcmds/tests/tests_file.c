@@ -226,7 +226,7 @@ test_file(int argc, char *argv[])
 			}
 
 			if ((read_buf + 1)[j] != write_buf[j]) {
-				warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, 1/*(i % 64)*/, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
+				warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, 1/*(i % 64)*/, (unsigned int)read_ptr[j], (unsigned int)write_buf[j]);
 				unalign_read_ok = false;
 				unalign_read_err_count++;
 				
