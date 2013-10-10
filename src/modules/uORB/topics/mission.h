@@ -61,6 +61,8 @@ enum NAV_CMD {
  * @{
  */
 
+#define MAX_MISSION_ITEMS 20
+
 /**
  * Global position setpoint in WGS84 coordinates.
  *

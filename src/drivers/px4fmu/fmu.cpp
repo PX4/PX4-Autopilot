@@ -58,6 +58,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_dataman.h>
 
 # include <board_config.h>
 
@@ -259,6 +260,18 @@ PX4FMU::init()
 
 	/* reset GPIOs */
 	gpio_reset();
+
+	/* Start the data manager */
+	int dm = ::open(DATAMANAGER_DEVICE_PATH, O_RDWR | O_BINARY);
+
+	if (dm < 0)
+		warnx("Data manager not running!!!");
+	else {
+		if (::ioctl(dm, DM_INIT, DM_INIT_REASON_POWER_ON) < 0)
+			warnx("Error initializing data manager");
+
+		::close(dm);
+	}
 
 	/* start the IO interface task */
 	_task = task_spawn_cmd("fmuservo",

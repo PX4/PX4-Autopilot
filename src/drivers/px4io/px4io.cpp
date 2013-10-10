@@ -63,6 +63,7 @@
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
+#include <drivers/drv_dataman.h>
 
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/perf_counter.h>
@@ -586,6 +587,10 @@ PX4IO::init()
 	if (ret != OK)
 		return ret;
 
+	int dm = ::open(DATAMANAGER_DEVICE_PATH, O_RDWR | O_BINARY);
+	if (dm < 0)
+		warnx("Data manager not running!!!");
+
 	/*
 	 * in-air restart is only tried if the IO board reports it is
 	 * already armed, and has been configured for in-air restart
@@ -653,6 +658,11 @@ PX4IO::init()
 		/* send command once */
 		orb_advert_t pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
 
+		/* now would be a good time to init the data manager */
+		if (dm >= 0)
+			if (::ioctl(dm, DM_INIT, DM_INIT_REASON_IN_FLIGHT) < 0)
+				warnx("Error initializing data manager");
+
 		/* spin here until IO's state has propagated into the system */
 		do {
 			orb_check(safety_sub, &updated);
@@ -682,6 +692,9 @@ PX4IO::init()
 	/* regular boot, no in-air restart, init IO */
 	} else {
 
+		if (dm >= 0)
+			if (::ioctl(dm, DM_INIT, DM_INIT_REASON_POWER_ON) < 0)
+				warnx("Error initializing data manager");
 
 		/* dis-arm IO before touching anything */
 		io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
@@ -703,6 +716,9 @@ PX4IO::init()
 		}
 
 	}
+
+	if (dm >= 0)
+		::close(dm);
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
 	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
