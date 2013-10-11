@@ -69,7 +69,7 @@ test_file(int argc, char *argv[])
 
 	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
 
-		printf("\n====== FILE TEST: %u bytes chunks ======", chunk_sizes[c]);
+		printf("\n====== FILE TEST: %u bytes chunks ======\n", chunk_sizes[c]);
 
 		for (unsigned a = 0; a < alignments; a++) {
 
