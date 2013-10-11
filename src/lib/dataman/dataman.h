@@ -94,7 +94,7 @@ extern "C" {
 		int fd,				/* Data manager handle */
 		dm_item_t item,			/* The item type to retrieve */
 		unsigned char index,		/* The index of the item */
-		char *buffer,			/* Pointer to caller data buffer */
+		void *buffer,			/* Pointer to caller data buffer */
 		size_t buflen			/* Length in bytes of data to retrieve */
 	);
 
@@ -105,7 +105,7 @@ extern "C" {
 		dm_item_t  item,		/* The item type to store */
 		unsigned char index,		/* The index of the item */
 		dm_persitence_t persistence,	/* The persistence level of this item */
-		const char *buffer,		/* Pointer to caller data buffer */
+		const void *buffer,		/* Pointer to caller data buffer */
 		size_t buflen			/* Length in bytes of data to retrieve */
 	);
 

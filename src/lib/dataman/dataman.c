@@ -81,7 +81,7 @@ unlock(void)
 static int
 calculate_offset(dm_item_t item, unsigned char index)
 {
-	/* If offset table hasn't been initialized then initialized it */
+	/* If offset table hasn't been initialized then initialize it */
 	if (!g_initialized) {
 		g_key_offsets[0] = 0;
 
@@ -128,7 +128,7 @@ dm_close(int fd)
 
 /* write to the data manager file */
 __EXPORT ssize_t
-dm_write(int fd, dm_item_t item, unsigned char index, dm_persitence_t persistence, const char *buf, size_t count)
+dm_write(int fd, dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf, size_t count)
 {
 	unsigned char buffer[DM_MAX_DATA_SIZE + 2];
 	size_t len;
@@ -167,7 +167,7 @@ dm_write(int fd, dm_item_t item, unsigned char index, dm_persitence_t persistenc
 
 /* Retrieve from the data manager file */
 __EXPORT ssize_t
-dm_read(int fd, dm_item_t item, unsigned char index, char *buf, size_t count)
+dm_read(int fd, dm_item_t item, unsigned char index, void *buf, size_t count)
 {
 	unsigned char buffer[DM_MAX_DATA_SIZE + 2];
 	int len, offset;
