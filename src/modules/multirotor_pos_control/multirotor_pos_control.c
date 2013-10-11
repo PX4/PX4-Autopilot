@@ -70,10 +70,12 @@
 #include "multirotor_pos_control_params.h"
 #include "thrust_pid.h"
 
-
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
+
+static const float alt_ctl_dz = 0.2f;
+static const float pos_ctl_dz = 0.05f;
 
 __EXPORT int multirotor_pos_control_main(int argc, char *argv[]);
 
@@ -233,9 +235,10 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	float surface_offset = 0.0f;	// Z of ground level
 	float z_sp_dist = 0.0f;			// distance to ground setpoint (positive)
 
+	float ref_alt = 0.0f;
+	hrt_abstime ref_timestamp = 0;
+
 	hrt_abstime t_prev = 0;
-	const float alt_ctl_dz = 0.2f;
-	const float pos_ctl_dz = 0.05f;
 
 	uint64_t local_ref_timestamp = 0;
 	uint64_t surface_bottom_timestamp = 0;
@@ -346,11 +349,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			if (control_mode.flag_control_manual_enabled) {
 				/* manual control */
 				/* check for reference point updates and correct setpoint */
-				//if (local_pos.ref_timestamp != ref_prev_t) {
+				if (local_pos.ref_timestamp != ref_timestamp) {
 					/* reference alt changed, don't follow large ground level changes in manual flight */
-					//local_pos_sp.z += local_pos.ref_alt - ref_alt_prev;
+					local_pos_sp.z += local_pos.ref_alt - ref_alt;
 					// TODO also correct XY setpoint
-				//}
+				}
 
 				if (control_mode.flag_control_altitude_enabled) {
 					/* reset setpoints to current position if needed */
@@ -703,6 +706,9 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		}
 
 		surface_bottom_timestamp = local_pos.surface_bottom_timestamp;
+
+		ref_alt = local_pos.ref_alt;
+		ref_timestamp = local_pos.ref_timestamp;
 
 		/* run at approximately 100 Hz */
 		usleep(10000);
