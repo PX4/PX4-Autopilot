@@ -54,7 +54,8 @@
 int
 test_file(int argc, char *argv[])
 {
-	const iterations = 200;
+	const unsigned iterations = 100;
+	const unsigned alignments = 65;
 
 	/* check if microSD card is mounted */
 	struct stat buffer;
@@ -63,194 +64,189 @@ test_file(int argc, char *argv[])
 		return 1;
 	}
 
-	uint8_t write_buf[512 + 64] __attribute__((aligned(64)));
+	/* perform tests for a range of chunk sizes */
+	unsigned chunk_sizes[] = {1, 5, 8, 16, 32, 33, 64, 70, 128, 133, 256, 300, 512, 555, 1024, 1500};
 
-	/* fill write buffer with known values */
-	for (int i = 0; i < sizeof(write_buf); i++) {
-		/* this will wrap, but we just need a known value with spacing */
-		write_buf[i] = i+11;
-	}
+	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
 
-	uint8_t read_buf[512 + 64] __attribute__((aligned(64)));
-	hrt_abstime start, end;
-	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes (aligned)");
+		printf("\n====== FILE TEST: %u bytes chunks ======", chunk_sizes[c]);
 
-	int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+		for (unsigned a = 0; a < alignments; a++) {
 
-	warnx("testing unaligned writes - please wait..");
+			warnx("----- alignment test: %u bytes -----", a);
 
-	start = hrt_absolute_time();
-	for (unsigned i = 0; i < iterations; i++) {
-		perf_begin(wperf);
-		int wret = write(fd, write_buf + 1/*+ (i % 64)*/, 512);
+			uint8_t write_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 
-		if (wret != 512) {
-			warn("WRITE ERROR!");
-
-			if ((0x3 & (uintptr_t)(write_buf + 1 /* (i % 64)*/)))
-				warnx("memory is unaligned, align shift: %d", 1/*(i % 64)*/);
-
-		}
-
-		fsync(fd);
-		perf_end(wperf);
-
-	}
-	end = hrt_absolute_time();
-
-	warnx("%dKiB in %llu microseconds", iterations / 2, end - start);
-
-	perf_print_counter(wperf);
-	perf_free(wperf);
-
-	close(fd);
-	fd = open("/fs/microsd/testfile", O_RDONLY);
-
-	/* read back data for validation */
-	for (unsigned i = 0; i < iterations; i++) {
-		int rret = read(fd, read_buf, 512);
-
-		if (rret != 512) {
-			warn("READ ERROR!");
-			break;
-		}
-		
-		/* compare value */
-		bool compare_ok = true;
-
-		for (int j = 0; j < 512; j++) {
-			if (read_buf[j] != write_buf[j + 1/*+ (i % 64)*/]) {
-				warnx("COMPARISON ERROR: byte %d, align shift: %d", j, 1/*(i % 64)*/);
-				compare_ok = false;
-				break;
-			}
-		}
-
-		if (!compare_ok) {
-			warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
-			break;
-		}
-
-	}
-
-	/*
-	 * ALIGNED WRITES AND UNALIGNED READS
-	 */
-
-	int ret = unlink("/fs/microsd/testfile");
-	fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
-
-	warnx("testing aligned writes - please wait..");
-
-	start = hrt_absolute_time();
-	for (unsigned i = 0; i < iterations; i++) {
-		perf_begin(wperf);
-		int wret = write(fd, write_buf, 512);
-
-		if (wret != 512) {
-			warn("WRITE ERROR!");
-		}
-
-		perf_end(wperf);
-
-	}
-
-	fsync(fd);
-
-	warnx("reading data aligned..");
-
-	close(fd);
-	fd = open("/fs/microsd/testfile", O_RDONLY);
-
-	bool align_read_ok = true;
-
-	/* read back data unaligned */
-	for (unsigned i = 0; i < iterations; i++) {
-		int rret = read(fd, read_buf, 512);
-
-		if (rret != 512) {
-			warn("READ ERROR!");
-			break;
-		}
-		
-		/* compare value */
-		bool compare_ok = true;
-
-		for (int j = 0; j < 512; j++) {
-			if (read_buf[j] != write_buf[j]) {
-				warnx("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
-				align_read_ok = false;
-				break;
-			}
-		}
-
-		if (!align_read_ok) {
-			warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
-			break;
-		}
-
-	}
-
-	warnx("align read result: %s\n", (align_read_ok) ? "OK" : "ERROR");
-
-	warnx("reading data unaligned..");
-
-	close(fd);
-	fd = open("/fs/microsd/testfile", O_RDONLY);
-
-	bool unalign_read_ok = true;
-	int unalign_read_err_count = 0;
-
-	memset(read_buf, 0, sizeof(read_buf));
-	read_buf[0] = 0;
-
-	warnx("printing first 10 pairs:");
-
-	uint8_t *read_ptr = &read_buf[1];
-
-	/* read back data unaligned */
-	for (unsigned i = 0; i < iterations; i++) {
-		int rret = read(fd, read_ptr, 512);
-
-		warnx("first byte: %u (should be zero)", (unsigned int)read_buf[0]);
-
-		if (rret != 512) {
-			warn("READ ERROR!");
-			break;
-		}
-
-		for (int j = 0; j < 512; j++) {
-
-			if (i == 0 && j < 10) {
-				warnx("read: %u, expect: %u", (unsigned int)(read_buf + 1)[j], (unsigned int)write_buf[j]);
+			/* fill write buffer with known values */
+			for (int i = 0; i < sizeof(write_buf); i++) {
+				/* this will wrap, but we just need a known value with spacing */
+				write_buf[i] = i+11;
 			}
 
-			if ((read_buf + 1)[j] != write_buf[j]) {
-				warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, 1/*(i % 64)*/, (unsigned int)read_ptr[j], (unsigned int)write_buf[j]);
-				unalign_read_ok = false;
-				unalign_read_err_count++;
+			uint8_t read_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
+			hrt_abstime start, end;
+			//perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes (aligned)");
+
+			int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+
+			warnx("testing unaligned writes - please wait..");
+
+			start = hrt_absolute_time();
+			for (unsigned i = 0; i < iterations; i++) {
+				//perf_begin(wperf);
+				int wret = write(fd, write_buf + a, chunk_sizes[c]);
+
+				if (wret != chunk_sizes[c]) {
+					warn("WRITE ERROR!");
+
+					if ((0x3 & (uintptr_t)(write_buf + a)))
+						errx(1, "memory is unaligned, align shift: %d", a);
+
+				}
+
+				fsync(fd);
+				//perf_end(wperf);
+
+			}
+			end = hrt_absolute_time();
+
+			//warnx("%dKiB in %llu microseconds", iterations / 2, end - start);
+
+			//perf_print_counter(wperf);
+			//perf_free(wperf);
+
+			close(fd);
+			fd = open("/fs/microsd/testfile", O_RDONLY);
+
+			/* read back data for validation */
+			for (unsigned i = 0; i < iterations; i++) {
+				int rret = read(fd, read_buf, chunk_sizes[c]);
+
+				if (rret != chunk_sizes[c]) {
+					errx(1, "READ ERROR!");
+				}
 				
-				if (unalign_read_err_count > 10)
-					break;
+				/* compare value */
+				bool compare_ok = true;
+
+				for (int j = 0; j < chunk_sizes[c]; j++) {
+					if (read_buf[j] != write_buf[j + a]) {
+						warnx("COMPARISON ERROR: byte %d, align shift: %d", j, a);
+						compare_ok = false;
+						break;
+					}
+				}
+
+				if (!compare_ok) {
+					errx(1, "ABORTING FURTHER COMPARISON DUE TO ERROR");
+				}
+
 			}
-		}
 
-		if (!unalign_read_ok) {
-			warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
-			break;
-		}
+			/*
+			 * ALIGNED WRITES AND UNALIGNED READS
+			 */
 
+			close(fd);
+			int ret = unlink("/fs/microsd/testfile");
+			fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+
+			warnx("testing aligned writes - please wait..");
+
+			start = hrt_absolute_time();
+			for (unsigned i = 0; i < iterations; i++) {
+				int wret = write(fd, write_buf, chunk_sizes[c]);
+
+				if (wret != chunk_sizes[c]) {
+					err(1, "WRITE ERROR!");
+				}
+
+			}
+
+			fsync(fd);
+
+			warnx("reading data aligned..");
+
+			close(fd);
+			fd = open("/fs/microsd/testfile", O_RDONLY);
+
+			bool align_read_ok = true;
+
+			/* read back data unaligned */
+			for (unsigned i = 0; i < iterations; i++) {
+				int rret = read(fd, read_buf, chunk_sizes[c]);
+
+				if (rret != chunk_sizes[c]) {
+					err(1, "READ ERROR!");
+				}
+				
+				/* compare value */
+				bool compare_ok = true;
+
+				for (int j = 0; j < chunk_sizes[c]; j++) {
+					if (read_buf[j] != write_buf[j]) {
+						warnx("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
+						align_read_ok = false;
+						break;
+					}
+				}
+
+				if (!align_read_ok) {
+					errx(1, "ABORTING FURTHER COMPARISON DUE TO ERROR");
+				}
+
+			}
+
+			warnx("align read result: %s\n", (align_read_ok) ? "OK" : "ERROR");
+
+			warnx("reading data unaligned..");
+
+			close(fd);
+			fd = open("/fs/microsd/testfile", O_RDONLY);
+
+			bool unalign_read_ok = true;
+			int unalign_read_err_count = 0;
+
+			memset(read_buf, 0, sizeof(read_buf));
+
+			/* read back data unaligned */
+			for (unsigned i = 0; i < iterations; i++) {
+				int rret = read(fd, read_buf + a, chunk_sizes[c]);
+
+				if (rret != chunk_sizes[c]) {
+					err(1, "READ ERROR!");
+				}
+
+				for (int j = 0; j < chunk_sizes[c]; j++) {
+
+					if ((read_buf + a)[j] != write_buf[j]) {
+						warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, a, (unsigned int)read_buf[j + a], (unsigned int)write_buf[j]);
+						unalign_read_ok = false;
+						unalign_read_err_count++;
+						
+						if (unalign_read_err_count > 10)
+							break;
+					}
+				}
+
+				if (!unalign_read_ok) {
+					errx(1, "ABORTING FURTHER COMPARISON DUE TO ERROR");
+				}
+
+			}
+
+			ret = unlink("/fs/microsd/testfile");
+			close(fd);
+
+			if (ret)
+				err(1, "UNLINKING FILE FAILED");
+
+		}
 	}
-
-	ret = unlink("/fs/microsd/testfile");
-	close(fd);
-
-	if (ret)
-		err(1, "UNLINKING FILE FAILED");
 
 	/* list directory */
-	DIR           *d;
-	struct dirent *dir;
+	DIR		*d;
+	struct dirent	*dir;
 	d = opendir("/fs/microsd");
 	if (d) {
 
