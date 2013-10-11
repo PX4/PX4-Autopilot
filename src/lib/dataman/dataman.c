@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file dataman.cpp
+ * @file dataman.c
  *
  * DATAMANAGER driver.
  */
@@ -197,7 +197,7 @@ dm_read(int fd, dm_item_t item, unsigned char index, char *buf, size_t count)
 		memcpy(buf, buffer + 2, buffer[0]);
 	}
 
-	/* Return the number of bytes of caller data written */
+	/* Return the number of bytes of caller data read */
 	return buffer[0];
 }
 
