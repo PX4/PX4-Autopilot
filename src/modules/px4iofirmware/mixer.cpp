@@ -197,9 +197,7 @@ mixer_tick(void)
 		/* mix */
 		mixed = mixer_group.mix(&outputs[0], PX4IO_SERVO_COUNT);
 
-		pwm_limit.nchannels = mixed;
-
-		pwm_limit_calc(should_arm, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
 			r_page_servos[i] = 0;

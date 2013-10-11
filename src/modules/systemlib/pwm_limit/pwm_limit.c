@@ -45,15 +45,14 @@
 #include <stdbool.h>
 #include <drivers/drv_hrt.h>
 
-__EXPORT void pwm_limit_init(pwm_limit_t *limit)
+void pwm_limit_init(pwm_limit_t *limit)
 {
-	limit->nchannels = 0;
 	limit->state = LIMIT_STATE_OFF;
 	limit->time_armed = 0;
 	return;
 }
 
-__EXPORT void pwm_limit_calc(const bool armed, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, const float *output_requested, uint16_t *effective_pwm, pwm_limit_t *limit)
+void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, float *output, uint16_t *effective_pwm, pwm_limit_t *limit)
 {
 	/* first evaluate state changes */
 	switch (limit->state) {
@@ -89,24 +88,26 @@ __EXPORT void pwm_limit_calc(const bool armed, const uint16_t *disarmed_pwm, con
 	switch (limit->state) {
 		case LIMIT_STATE_OFF:
 		case LIMIT_STATE_INIT:
-			for (unsigned i=0; i<limit->nchannels; i++) {
+			for (unsigned i=0; i<num_channels; i++) {
 				effective_pwm[i] = disarmed_pwm[i];
+				output[i] = 0.0f;
 			}
 			break;
 		case LIMIT_STATE_RAMP:
 
 			progress = (hrt_absolute_time() - INIT_TIME_US - limit->time_armed)*10000 / RAMP_TIME_US;
-			for (unsigned i=0; i<limit->nchannels; i++) {
+			for (unsigned i=0; i<num_channels; i++) {
 
-				temp_pwm = output_requested[i] * (max_pwm[i] - min_pwm[i])/2 + (max_pwm[i] + min_pwm[i])/2;
+				temp_pwm = output[i] * (max_pwm[i] - min_pwm[i])/2 + (max_pwm[i] + min_pwm[i])/2;
 				/* already follow user/controller input if higher than min_pwm */
 				effective_pwm[i] = (disarmed_pwm[i]*(10000-progress) + (temp_pwm > min_pwm[i] ? temp_pwm : min_pwm[i])*progress)/10000;
-
+				output[i] = (float)progress/10000.0f * output[i];
 			}
 			break;
 		case LIMIT_STATE_ON:
-			for (unsigned i=0; i<limit->nchannels; i++) {
-				effective_pwm[i] = output_requested[i] * (max_pwm[i] - min_pwm[i])/2 + (max_pwm[i] + min_pwm[i])/2;
+			for (unsigned i=0; i<num_channels; i++) {
+				effective_pwm[i] = output[i] * (max_pwm[i] - min_pwm[i])/2 + (max_pwm[i] + min_pwm[i])/2;
+				/* effective_output stays the same */
 			}
 			break;
 		default:

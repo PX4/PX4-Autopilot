@@ -46,8 +46,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-__BEGIN_DECLS
-
 /*
  * time for the ESCs to initialize
  * (this is not actually needed if PWM is sent right after boot)
@@ -66,13 +64,13 @@ typedef struct {
 		LIMIT_STATE_ON
 	} state;
 	uint64_t time_armed;
-	unsigned nchannels;
 } pwm_limit_t;
+
+__BEGIN_DECLS
 
 __EXPORT void pwm_limit_init(pwm_limit_t *limit);
 
-__EXPORT void pwm_limit_calc(const bool armed, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, const float *output_requested, uint16_t *effective_pwm, pwm_limit_t *limit);
-
+__EXPORT void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, float *output, uint16_t *effective_pwm, pwm_limit_t *limit);
 
 __END_DECLS
 
