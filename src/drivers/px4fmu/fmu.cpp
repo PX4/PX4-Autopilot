@@ -59,11 +59,12 @@
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 
-# include <board_config.h>
+#include <board_config.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
+#include <systemlib/pwm_limit/pwm_limit.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_rc_input.h>
 
@@ -72,7 +73,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 
-#include <systemlib/err.h>
+
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
 #endif
@@ -100,7 +101,7 @@ public:
 	int		set_pwm_alt_channels(uint32_t channels);
 
 private:
-	static const unsigned _max_actuators = 4;
+	static const unsigned _max_actuators = 6;
 
 	Mode		_mode;
 	unsigned	_pwm_default_rate;
@@ -121,6 +122,11 @@ private:
 	MixerGroup	*_mixers;
 
 	actuator_controls_s _controls;
+
+	pwm_limit_t	_pwm_limit;
+	uint16_t	_disarmed_pwm[_max_actuators];
+	uint16_t	_min_pwm[_max_actuators];
+	uint16_t	_max_pwm[_max_actuators];
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main() __attribute__((noreturn));
@@ -203,7 +209,10 @@ PX4FMU::PX4FMU() :
 	_primary_pwm_device(false),
 	_task_should_exit(false),
 	_armed(false),
-	_mixers(nullptr)
+	_mixers(nullptr),
+	_disarmed_pwm({0}),
+	_min_pwm({PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN}),
+	_max_pwm({PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX})
 {
 	_debug_enabled = true;
 }
@@ -457,6 +466,9 @@ PX4FMU::task_main()
 	rc_in.input_source = RC_INPUT_SOURCE_PX4FMU_PPM;
 #endif
 
+	/* initialize PWM limit lib */
+	pwm_limit_init(&_pwm_limit);
+
 	log("starting");
 
 	/* loop until killed */
@@ -530,32 +542,35 @@ PX4FMU::task_main()
 				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
 				outputs.timestamp = hrt_absolute_time();
 
-				// XXX output actual limited values
-				memcpy(&controls_effective, &_controls, sizeof(controls_effective));
-
-				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
-
 				/* iterate actuators */
 				for (unsigned i = 0; i < num_outputs; i++) {
-
 					/* last resort: catch NaN, INF and out-of-band errors */
-					if (i < outputs.noutputs &&
-						isfinite(outputs.output[i]) &&
-						outputs.output[i] >= -1.0f &&
-						outputs.output[i] <= 1.0f) {
-						/* scale for PWM output 900 - 2100us */
-						outputs.output[i] = 1500 + (600 * outputs.output[i]);
-					} else {
+					if (i >= outputs.noutputs ||
+						!isfinite(outputs.output[i]) ||
+						outputs.output[i] < -1.0f ||
+						outputs.output[i] > 1.0f) {
 						/*
 						 * Value is NaN, INF or out of band - set to the minimum value.
 						 * This will be clearly visible on the servo status and will limit the risk of accidentally
 						 * spinning motors. It would be deadly in flight.
 						 */
-						outputs.output[i] = 900;
+						outputs.output[i] = -1.0f;
 					}
+				}
 
-					/* output to the servo */
-					up_pwm_servo_set(i, outputs.output[i]);
+				uint16_t pwm_limited[num_outputs];
+
+				pwm_limit_calc(_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
+
+				/* output actual limited values */
+				for (unsigned i = 0; i < num_outputs; i++) {
+					controls_effective.control_effective[i] = (float)pwm_limited[i];
+				}
+				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
+
+				/* output to the servos */
+				for (unsigned i = 0; i < num_outputs; i++) {
+					up_pwm_servo_set(i, pwm_limited[i]);
 				}
 
 				/* and publish for anyone that cares to see */
@@ -704,6 +719,95 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
 		*(uint32_t *)arg = _pwm_alt_rate_channels;
 		break;
+
+	case PWM_SERVO_SET_DISARMED_PWM: {
+		struct pwm_output_values *pwm = (struct pwm_output_values*)arg;
+		/* discard if too many values are sent */
+		if (pwm->channel_count > _max_actuators) {
+			ret = -EINVAL;
+			break;
+		}
+		for (unsigned i = 0; i < pwm->channel_count; i++) {
+			if (pwm->values[i] == 0) {
+				/* ignore 0 */
+			} else if (pwm->values[i] > PWM_MAX) {
+				_disarmed_pwm[i] = PWM_MAX;
+			} else if (pwm->values[i] < PWM_MIN) {
+				_disarmed_pwm[i] = PWM_MIN;
+			} else {
+				_disarmed_pwm[i] = pwm->values[i];
+			}
+		}
+		break;
+	}
+	case PWM_SERVO_GET_DISARMED_PWM: {
+		struct pwm_output_values *pwm = (struct pwm_output_values*)arg;
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			pwm->values[i] = _disarmed_pwm[i];
+		}
+		pwm->channel_count = _max_actuators;
+		break;
+	}
+
+	case PWM_SERVO_SET_MIN_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		/* discard if too many values are sent */
+		if (pwm->channel_count > _max_actuators) {
+			ret = -EINVAL;
+			break;
+		}
+		for (unsigned i = 0; i < pwm->channel_count; i++) {
+			if (pwm->values[i] == 0) {
+				/* ignore 0 */
+			} else if (pwm->values[i] > PWM_HIGHEST_MIN) {
+				_min_pwm[i] = PWM_HIGHEST_MIN;
+			} else if (pwm->values[i] < PWM_MIN) {
+				_min_pwm[i] = PWM_MIN;
+			} else {
+				_min_pwm[i] = pwm->values[i];
+			}
+		}
+		break;
+	}
+	case PWM_SERVO_GET_MIN_PWM: {
+		struct pwm_output_values *pwm = (struct pwm_output_values*)arg;
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			pwm->values[i] = _min_pwm[i];
+		}
+		pwm->channel_count = _max_actuators;
+		arg = (unsigned long)&pwm;
+		break;
+	}
+
+	case PWM_SERVO_SET_MAX_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		/* discard if too many values are sent */
+		if (pwm->channel_count > _max_actuators) {
+			ret = -EINVAL;
+			break;
+		}
+		for (unsigned i = 0; i < pwm->channel_count; i++) {
+			if (pwm->values[i] == 0) {
+				/* ignore 0 */
+			} else if (pwm->values[i] < PWM_LOWEST_MAX) {
+				_max_pwm[i] = PWM_LOWEST_MAX;
+			} else if (pwm->values[i] > PWM_MAX) {
+				_max_pwm[i] = PWM_MAX;
+			} else {
+				_max_pwm[i] = pwm->values[i];
+			}
+		}
+		break;
+	}
+	case PWM_SERVO_GET_MAX_PWM: {
+		struct pwm_output_values *pwm = (struct pwm_output_values*)arg;
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			pwm->values[i] = _max_pwm[i];
+		}
+		pwm->channel_count = _max_actuators;
+		arg = (unsigned long)&pwm;
+		break;
+	}
 
 	case PWM_SERVO_SET(5):
 	case PWM_SERVO_SET(4):
@@ -1148,7 +1252,7 @@ test(void)
                     }
                 } else {
                     // and use write interface for the other direction
-                    int ret = write(fd, servos, sizeof(servos));
+                    ret = write(fd, servos, sizeof(servos));
                     if (ret != (int)sizeof(servos))
 			err(1, "error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
                 }
