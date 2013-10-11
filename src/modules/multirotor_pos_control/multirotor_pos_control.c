@@ -133,8 +133,14 @@ int multirotor_pos_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		warnx("stop");
-		thread_should_exit = true;
+		if (thread_running) {
+			warnx("stop");
+			thread_should_exit = true;
+
+		} else {
+			warnx("app not started");
+		}
+
 		exit(0);
 	}
 
