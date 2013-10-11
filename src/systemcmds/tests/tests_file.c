@@ -73,6 +73,7 @@ test_file(int argc, char *argv[])
 
 		for (unsigned a = 0; a < alignments; a++) {
 
+			printf("\n");
 			warnx("----- alignment test: %u bytes -----", a);
 
 			uint8_t write_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
