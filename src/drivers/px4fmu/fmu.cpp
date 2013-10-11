@@ -101,7 +101,12 @@ public:
 	int		set_pwm_alt_channels(uint32_t channels);
 
 private:
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
+	static const unsigned _max_actuators = 4;
+#endif
+#if defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
 	static const unsigned _max_actuators = 6;
+#endif
 
 	Mode		_mode;
 	unsigned	_pwm_default_rate;
@@ -214,10 +219,13 @@ PX4FMU::PX4FMU() :
 	_pwm_on(false),
 	_mixers(nullptr),
 	_disarmed_pwm({0}),
-	_min_pwm({PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN}),
-	_max_pwm({PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX}),
 	_num_disarmed_set(0)
 {
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		_min_pwm[i] = PWM_MIN;
+		_max_pwm[i] = PWM_MAX;
+	}
+
 	_debug_enabled = true;
 }
 
