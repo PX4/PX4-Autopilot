@@ -67,7 +67,9 @@ static bool main_state_changed = true;
 static bool navigation_state_changed = true;
 
 transition_result_t
-arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety, arming_state_t new_arming_state, struct actuator_armed_s *armed)
+arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety,
+	const struct vehicle_control_mode_s *control_mode,
+	arming_state_t new_arming_state, struct actuator_armed_s *armed)
 {
 	/*
 	 * Perform an atomic state update
@@ -81,6 +83,13 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 		ret = TRANSITION_NOT_CHANGED;
 
 	} else {
+
+		/* enforce lockdown in HIL */
+		if (control_mode->flag_system_hil_enabled) {
+			armed->lockdown = true;
+		} else {
+			armed->lockdown = false;
+		}
 
 		switch (new_arming_state) {
 		case ARMING_STATE_INIT:
@@ -98,7 +107,8 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 
 			/* allow coming from INIT and disarming from ARMED */
 			if (status->arming_state == ARMING_STATE_INIT
-			    || status->arming_state == ARMING_STATE_ARMED) {
+			    || status->arming_state == ARMING_STATE_ARMED
+			    || control_mode->flag_system_hil_enabled) {
 
 				/* sensors need to be initialized for STANDBY state */
 				if (status->condition_system_sensors_initialized) {
@@ -115,7 +125,7 @@ arming_state_transition(struct vehicle_status_s *status, const struct safety_s *
 			/* allow arming from STANDBY and IN-AIR-RESTORE */
 			if ((status->arming_state == ARMING_STATE_STANDBY
 			     || status->arming_state == ARMING_STATE_IN_AIR_RESTORE)
-			    && (!safety->safety_switch_available || safety->safety_off)) { /* only allow arming if safety is off */
+			    && (!safety->safety_switch_available || safety->safety_off || control_mode->flag_system_hil_enabled)) { /* only allow arming if safety is off */
 				ret = TRANSITION_CHANGED;
 				armed->armed = true;
 				armed->ready_to_arm = true;
@@ -466,20 +476,17 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 
 		case HIL_STATE_OFF:
 
-			if (current_status->arming_state == ARMING_STATE_INIT
-			    || current_status->arming_state == ARMING_STATE_STANDBY) {
-
-				current_control_mode->flag_system_hil_enabled = false;
-				mavlink_log_critical(mavlink_fd, "Switched to OFF hil state");
-				valid_transition = true;
-			}
+			/* we're in HIL and unexpected things can happen if we disable HIL now */
+			mavlink_log_critical(mavlink_fd, "Not switching off HIL (safety)");
+			valid_transition = false;
 
 			break;
 
 		case HIL_STATE_ON:
 
 			if (current_status->arming_state == ARMING_STATE_INIT
-			    || current_status->arming_state == ARMING_STATE_STANDBY) {
+			    || current_status->arming_state == ARMING_STATE_STANDBY
+			    || current_status->arming_state == ARMING_STATE_STANDBY_ERROR) {
 
 				current_control_mode->flag_system_hil_enabled = true;
 				mavlink_log_critical(mavlink_fd, "Switched to ON hil state");

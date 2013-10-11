@@ -138,7 +138,6 @@ MEASAirspeed::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -161,7 +160,6 @@ MEASAirspeed::collect()
 	ret = transfer(nullptr, 0, &val[0], 4);
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
                 perf_count(_comms_errors);
                 perf_end(_sample_perf);
 		return ret;
@@ -207,6 +205,7 @@ MEASAirspeed::collect()
 	}
 
 	report.timestamp = hrt_absolute_time();
+        report.error_count = perf_event_count(_comms_errors);
 	report.temperature = temperature;
 	report.differential_pressure_pa = diff_press_pa;
 	report.voltage = 0;
@@ -235,7 +234,6 @@ MEASAirspeed::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;

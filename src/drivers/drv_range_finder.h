@@ -52,6 +52,7 @@
  */
 struct range_finder_report {
 	uint64_t timestamp;
+	uint64_t error_count;
 	float distance; 			/** in meters */
 	uint8_t valid;				/** 1 == within sensor range, 0 = outside sensor range */
 };
