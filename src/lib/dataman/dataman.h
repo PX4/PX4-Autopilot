@@ -29,7 +29,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/ 
+ ****************************************************************************/
 
 /**
  * @file drv_dataman.h
@@ -43,44 +43,77 @@
 extern "C" {
 #endif
 
-#define DATAMANAGER_DEVICE_PATH "/fs/microsd/data"
-#define DATAMANAGER_REVISION 0x0001
+	/* Types of items that the data manager can store */
+	typedef enum {
+		DM_KEY_RTL_POINT = 0,		/* Return to landing point coordinates */
+		DM_KEY_FENCE_RETURN_POINT,	/* Fence violation return coordinates */
+		DM_KEY_SAFE_POINTS,		/* Safe points coordinates */
+		DM_KEY_WAY_POINTS,		/* Mission way point coordinates */
+		DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
+		DM_KEY_NUM_KEYS			/* Total number of item types defined */
+	} dm_item_t;
 
-enum {
-	DM_KEY_RTL_POINT = 0,
-	DM_KEY_RETURN_POINT,
-	DM_KEY_SAFE_POINTS,
-	DM_KEY_WAY_POINTS,
-	DM_KEY_FENCE_POINTS,
-	DM_KEY_NUM_KEYS
-};
+	/* The maximum number of instances for each item type */
+	enum {
+		DM_KEY_RTL_POINT_MAX = 1,
+		DM_KEY_RETURN_POINT_MAX = 1,
+		DM_KEY_SAFE_POINTS_MAX = 5,
+		DM_KEY_FENCE_POINTS_MAX = 10,
+		DM_KEY_WAY_POINTS_MAX = 128,
+	};
 
-enum {
-	DM_KEY_RTL_POINT_MAX = 1,
-	DM_KEY_RETURN_POINT_MAX = 1,
-	DM_KEY_SAFE_POINTS_MAX = 5,
-	DM_KEY_FENCE_POINTS_MAX = 10,
-	DM_KEY_WAY_POINTS_MAX = 128,
-};
+	/* Data persistence levels */
+	typedef enum {
+		DM_PERSIST_POWER_ON_RESET = 0,	/* Data survives all resets */
+		DM_PERSIST_IN_FLIGHT_RESET,     /* Data survives in-flight resets only */
+		DM_PERSIST_VOLATILE             /* Data does not survive resets */
+	} dm_persitence_t;
 
-enum {
-	DM_PERSIST_POWER_ON_RESET = 0,  /* Data survives resets */
-	DM_PERSIST_IN_FLIGHT_RESET,     /* Data survives in-flight resets only */
-	DM_PERSIST_VOLATILE             /* Data does not survive resets */
-};
+	/* The reason for the last reset */
+	typedef enum {
+		DM_INIT_REASON_POWER_ON = 0,	/* Data survives resets */
+		DM_INIT_REASON_IN_FLIGHT	/* Data survives in-flight resets only */
+	} dm_reset_reason;
 
-enum {
-	DM_INIT_REASON_POWER_ON = 0,  /* Data survives resets */
-	DM_INIT_REASON_IN_FLIGHT     /* Data survives in-flight resets only */
-};
+	/* Maximum size in bytes of a single item instance */
+	#define DM_MAX_DATA_SIZE 126
 
-#define DM_MAX_DATA_SIZE 126
+	/* Open a data manager handle */
+	__EXPORT int
+	dm_open(void);
 
-__EXPORT int		dm_open(void);
-__EXPORT void		dm_close(int fd);
-__EXPORT ssize_t	dm_read(int fd, unsigned char item, unsigned char index, char *buffer, size_t buflen);
-__EXPORT ssize_t	dm_write(int fd, unsigned char item, unsigned char index, unsigned char persistence, const char *buffer, size_t buflen);
-__EXPORT int		dm_restart(unsigned char restart_type);
+	/* Close the data manager handle */
+	__EXPORT void
+	dm_close(
+		int fd				/* The handle to be closed */
+	);
+
+	/* Retrieve from the data manager store */
+	__EXPORT ssize_t
+	dm_read(
+		int fd,				/* Data manager handle */
+		dm_item_t item,			/* The item type to retrieve */
+		unsigned char index,		/* The index of the item */
+		char *buffer,			/* Pointer to caller data buffer */
+		size_t buflen			/* Length in bytes of data to retrieve */
+	);
+
+	/* write to the data manager store */
+	__EXPORT ssize_t
+	dm_write(
+		int fd,				/* Data manager handle */
+		dm_item_t  item,		/* The item type to store */
+		unsigned char index,		/* The index of the item */
+		dm_persitence_t persistence,	/* The persistence level of this item */
+		const char *buffer,		/* Pointer to caller data buffer */
+		size_t buflen			/* Length in bytes of data to retrieve */
+	);
+
+	/* Tell the data manager about the type of the last reset */
+	__EXPORT int
+	dm_restart(
+		dm_reset_reason restart_type	/* The last reset type */
+	);
 
 #ifdef __cplusplus
 }

@@ -47,10 +47,12 @@
 
 #include <lib/dataman/dataman.h>
 
+static char *k_data_manager_device_path = "/fs/microsd/data";
 
-static sem_t g_mutex = SEM_INITIALIZER(1);
-static int g_initialized = 0;
+static sem_t g_mutex = SEM_INITIALIZER(1);	/* Mutual exclusion during IO operations */
+static int g_initialized = 0;			/* Initialization flag */
 
+/* table of maximum number of instances for each item type */
 static const unsigned g_key_sizes[DM_KEY_NUM_KEYS] = {
 	DM_KEY_RTL_POINT_MAX,
 	DM_KEY_RETURN_POINT_MAX,
@@ -59,8 +61,10 @@ static const unsigned g_key_sizes[DM_KEY_NUM_KEYS] = {
 	DM_KEY_FENCE_POINTS_MAX
 };
 
+/* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
+/* Local lock and unlock functions */
 static void
 lock(void)
 {
@@ -73,9 +77,11 @@ unlock(void)
 	sem_post(&g_mutex);
 }
 
+/* Calculate the offset in file of specific item */
 static int
-calculate_offset(unsigned char item, unsigned char index)
+calculate_offset(dm_item_t item, unsigned char index)
 {
+	/* If offset table hasn't been initialized the initialized it */
 	if (!g_initialized) {
 		g_key_offsets[0] = 0;
 
@@ -85,44 +91,51 @@ calculate_offset(unsigned char item, unsigned char index)
 		g_initialized = 1;
 	}
 
+	/* Make sure the item type is valid */
 	if (item >= DM_KEY_NUM_KEYS)
 		return -1;
 
+	/* Make sure the index for this item type is valid */
 	if (index >= g_key_sizes[item])
 		return -1;
 
+	/* Calulate and return the item index based on type and index */
 	return g_key_offsets[item] + (index * (DM_MAX_DATA_SIZE + 2));
 }
 
+/* Open the global data manager file */
 __EXPORT int
 dm_open(void)
 {
-	return open(DATAMANAGER_DEVICE_PATH, O_RDWR | O_CREAT | O_BINARY);
+	return open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
 }
 
+/* Close the global data manager file */
 __EXPORT void
 dm_close(int fd)
 {
 	close(fd);
 }
 
+/* write to the data manager file */
 __EXPORT ssize_t
-dm_write(int fd, unsigned char item, unsigned char index, unsigned char persistence, const char *buf, size_t count)
+dm_write(int fd, dm_item_t item, unsigned char index, dm_persitence_t persistence, const char *buf, size_t count)
 {
 	unsigned char buffer[DM_MAX_DATA_SIZE + 2];
 	size_t len;
 	int offset;
 
+	/* Get the offset for this item */
 	offset = calculate_offset(item, index);
 
 	if (offset < 0)
 		return -1;
 
-	/* Make sure caller has given us data we can handle */
+	/* Make sure caller has not given us more data than we can handle */
 	if (count > DM_MAX_DATA_SIZE)
 		return -1;
 
-	/* Write out the data */
+	/* Write out the data, prefixed with length and persistence level */
 	buffer[0] = count;
 	buffer[1] = persistence;
 	memcpy(buffer + 2, buf, count);
@@ -139,24 +152,28 @@ dm_write(int fd, unsigned char item, unsigned char index, unsigned char persiste
 	if (len != count)
 		return -1;
 
+	/* All is well... return the number of user data written */
 	return count - 2;
 }
 
+/* Retrieve from the data manager file */
 __EXPORT ssize_t
-dm_read(int fd, unsigned char item, unsigned char index, char *buf, size_t count)
+dm_read(int fd, dm_item_t item, unsigned char index, char *buf, size_t count)
 {
 	unsigned char buffer[DM_MAX_DATA_SIZE + 2];
 	int len, offset;
 
+	/* Get the offset for this item */
 	offset = calculate_offset(item, index);
 
 	if (offset < 0)
 		return -1;
 
-	/* Make sure the caller hasn't asked for something we can't handle */
+	/* Make sure the caller hasn't asked for more data than we can handle */
 	if (count > DM_MAX_DATA_SIZE)
 		return -1;
 
+	/* Read the prefix and data */
 	len = -1;
 	lock();
 
@@ -180,14 +197,18 @@ dm_read(int fd, unsigned char item, unsigned char index, char *buf, size_t count
 		memcpy(buf, buffer + 2, buffer[0]);
 	}
 
+	/* Return the number of bytes of caller data written */
 	return buffer[0];
 }
 
+/* Tell the data manager about the type of the last reset */
 __EXPORT int
-dm_restart(unsigned char reason)
+dm_restart(dm_reset_reason reason)
 {
 	unsigned char buffer[2];
 	int offset, fd, result = 0;
+
+	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 
 	fd = dm_open();
 
@@ -252,6 +273,6 @@ dm_restart(unsigned char reason)
 
 	unlock();
 
+	/* tell the caller how it went */
 	return result;
 }
-
