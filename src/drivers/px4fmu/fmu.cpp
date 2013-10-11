@@ -118,6 +118,7 @@ private:
 
 	volatile bool	_task_should_exit;
 	bool		_armed;
+	bool		_pwm_on;
 
 	MixerGroup	*_mixers;
 
@@ -127,6 +128,7 @@ private:
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
 	uint16_t	_max_pwm[_max_actuators];
+	unsigned	_num_disarmed_set;
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main() __attribute__((noreturn));
@@ -209,10 +211,12 @@ PX4FMU::PX4FMU() :
 	_primary_pwm_device(false),
 	_task_should_exit(false),
 	_armed(false),
+	_pwm_on(false),
 	_mixers(nullptr),
 	_disarmed_pwm({0}),
 	_min_pwm({PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN, PWM_MIN}),
-	_max_pwm({PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX})
+	_max_pwm({PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX, PWM_MAX}),
+	_num_disarmed_set(0)
 {
 	_debug_enabled = true;
 }
@@ -585,11 +589,16 @@ PX4FMU::task_main()
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &aa);
 
-			/* update PWM servo armed status if armed and not locked down */
+			/* update the armed status and check that we're not locked down */
 			bool set_armed = aa.armed && !aa.lockdown;
-			if (set_armed != _armed) {
+			if (_armed != set_armed)
 				_armed = set_armed;
-				up_pwm_servo_arm(set_armed);
+
+			/* update PWM status if armed or if disarmed PWM values are set */
+			bool pwm_on = (aa.armed || _num_disarmed_set > 0);
+			if (_pwm_on != pwm_on) {
+				_pwm_on = pwm_on;
+				up_pwm_servo_arm(pwm_on);
 			}
 		}
 
@@ -737,6 +746,16 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			} else {
 				_disarmed_pwm[i] = pwm->values[i];
 			}
+		}
+
+		/*
+		 * update the counter
+		 * this is needed to decide if disarmed PWM output should be turned on or not
+		 */
+		_num_disarmed_set = 0;
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			if (_disarmed_pwm[i] > 0)
+				_num_disarmed_set++;
 		}
 		break;
 	}
