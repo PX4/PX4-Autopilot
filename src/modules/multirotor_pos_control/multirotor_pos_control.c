@@ -701,7 +701,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		reset_int_z_manual = control_mode.flag_armed && control_mode.flag_control_manual_enabled && !control_mode.flag_control_climb_rate_enabled;
 
 		/* reset distance setpoint if distance is not available */
-		if (!local_pos.dist_bottom_valid) {
+		if (!local_pos.dist_bottom_valid || !control_mode.flag_use_dist_bottom) {
 			reset_z_sp_dist = true;
 		}
 
