@@ -65,13 +65,13 @@ static const unsigned g_key_sizes[DM_KEY_NUM_KEYS] = {
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
 /* Local lock and unlock functions */
-static void
+static inline void
 lock(void)
 {
 	sem_wait(&g_mutex);
 }
 
-static void
+static inline void
 unlock(void)
 {
 	sem_post(&g_mutex);
@@ -99,7 +99,7 @@ calculate_offset(dm_item_t item, unsigned char index)
 	if (index >= g_key_sizes[item])
 		return -1;
 
-	/* Calulate and return the item index based on type and index */
+	/* Calculate and return the item index based on type and index */
 	return g_key_offsets[item] + (index * (DM_MAX_DATA_SIZE + 2));
 }
 
