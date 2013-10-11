@@ -87,6 +87,9 @@ ORB_DEFINE(safety, struct safety_s);
 #include "topics/battery_status.h"
 ORB_DEFINE(battery_status, struct battery_status_s);
 
+#include "topics/servorail_status.h"
+ORB_DEFINE(servorail_status, struct servorail_status_s);
+
 #include "topics/vehicle_global_position.h"
 ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 
@@ -127,7 +130,7 @@ ORB_DEFINE(vehicle_global_velocity_setpoint, struct vehicle_global_velocity_setp
 ORB_DEFINE(mission, struct mission_s);
 
 #include "topics/fence.h"
-ORB_DEFINE(fence, struct fence_s);
+ORB_DEFINE(fence, unsigned);
 
 #include "topics/vehicle_attitude_setpoint.h"
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);

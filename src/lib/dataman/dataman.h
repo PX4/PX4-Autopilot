@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,51 +29,61 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
+ ****************************************************************************/ 
 
 /**
- * @file Barometric pressure sensor driver interface.
+ * @file drv_dataman.h
+ *
+ * DATAMANAGER driver.
  */
+#ifndef _DATAMANAGER_H
+#define _DATAMANAGER_H
 
-#ifndef _DRV_BARO_H
-#define _DRV_BARO_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#define DATAMANAGER_DEVICE_PATH "/fs/microsd/data"
+#define DATAMANAGER_REVISION 0x0001
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define BARO_DEVICE_PATH	"/dev/baro"
-
-/**
- * baro report structure.  Reads from the device must be in multiples of this
- * structure.
- */
-struct baro_report {
-	float pressure;
-	float altitude;
-	float temperature;
-	uint64_t timestamp;
-	uint64_t error_count;
+enum {
+	DM_KEY_RTL_POINT = 0,
+	DM_KEY_RETURN_POINT,
+	DM_KEY_SAFE_POINTS,
+	DM_KEY_WAY_POINTS,
+	DM_KEY_FENCE_POINTS,
+	DM_KEY_NUM_KEYS
 };
 
-/*
- * ObjDev tag for raw barometer data.
- */
-ORB_DECLARE(sensor_baro);
+enum {
+	DM_KEY_RTL_POINT_MAX = 1,
+	DM_KEY_RETURN_POINT_MAX = 1,
+	DM_KEY_SAFE_POINTS_MAX = 5,
+	DM_KEY_FENCE_POINTS_MAX = 10,
+	DM_KEY_WAY_POINTS_MAX = 128,
+};
 
-/*
- * ioctl() definitions
- */
+enum {
+	DM_PERSIST_POWER_ON_RESET = 0,  /* Data survives resets */
+	DM_PERSIST_IN_FLIGHT_RESET,     /* Data survives in-flight resets only */
+	DM_PERSIST_VOLATILE             /* Data does not survive resets */
+};
 
-#define _BAROIOCBASE		(0x2200)
-#define _BAROIOC(_n)		(_IOC(_BAROIOCBASE, _n))
+enum {
+	DM_INIT_REASON_POWER_ON = 0,  /* Data survives resets */
+	DM_INIT_REASON_IN_FLIGHT     /* Data survives in-flight resets only */
+};
 
-/** set corrected MSL pressure in pascals */
-#define BAROIOCSMSLPRESSURE	_BAROIOC(0)
+#define DM_MAX_DATA_SIZE 126
 
-/** get current MSL pressure in pascals */
-#define BAROIOCGMSLPRESSURE	_BAROIOC(1)
+__EXPORT int		dm_open(void);
+__EXPORT void		dm_close(int fd);
+__EXPORT ssize_t	dm_read(int fd, unsigned char item, unsigned char index, char *buffer, size_t buflen);
+__EXPORT ssize_t	dm_write(int fd, unsigned char item, unsigned char index, unsigned char persistence, const char *buffer, size_t buflen);
+__EXPORT int		dm_restart(unsigned char restart_type);
 
-#endif /* _DRV_BARO_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif

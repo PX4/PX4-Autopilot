@@ -50,14 +50,12 @@
  */
 
 #define GEOFENCE_MAX_VERTICES 8
-#define GEOFENCE_DEFAULT_FILE_NAME "/fs/microsd/fence"
 
 /**
  * This is the position of a geofence vertex
  *
  */
-struct fence_item_s
-{
+struct fence_vertex_s {
 	// Worst case float precision gives us 2 meter resolution at the equator
 	float lat;			/**< latitude in degrees */
 	float lon;			/**< longitude in degrees */
@@ -67,10 +65,9 @@ struct fence_item_s
  * This is the position of a geofence
  *
  */
-struct fence_s
-{
+struct fence_s { 
 	unsigned count;     /**< number of actual vertices */
-	struct fence_item_s items[GEOFENCE_MAX_VERTICES];
+	struct fence_vertex_s vertices[GEOFENCE_MAX_VERTICES];
 };
 
 /**

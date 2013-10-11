@@ -474,9 +474,9 @@ __EXPORT bool inside_geofence(const struct vehicle_global_position_s *vehicle, c
 
 	// skip vertex 0 (return point)
 	for (i = 1, j = vertices - 1; i < vertices; j = i++)
-		if (((fence->items[i].lon) >= lon != (fence->items[j].lon >= lon)) &&
-			(lat <= (fence->items[j].lat - fence->items[i].lat) * (lon - fence->items[i].lon) /
-			(fence->items[j].lon - fence->items[i].lon) + fence->items[i].lat))
+		if (((fence->vertices[i].lon) >= lon != (fence->vertices[j].lon >= lon)) &&
+		    (lat <= (fence->vertices[j].lat - fence->vertices[i].lat) * (lon - fence->vertices[i].lon) /
+		     (fence->vertices[j].lon - fence->vertices[i].lon) + fence->vertices[i].lat))
 			c = !c;
 	return c;
 }

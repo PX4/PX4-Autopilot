@@ -690,6 +690,7 @@ BMA180::measure()
 	 * measurement flow without using the external interrupt.
 	 */
 	report.timestamp = hrt_absolute_time();
+        report.error_count = 0;
 	/*
 	 * y of board is x of sensor and x of board is -y of sensor
 	 * perform only the axis assignment here.

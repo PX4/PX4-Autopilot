@@ -111,6 +111,7 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
+MODULES		+= lib/dataman
 
 #
 # Demo apps
@@ -127,6 +128,9 @@ MODULES		+= lib/geo
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/debug_values
 #MODULES		+= examples/px4_mavlink_debug
+
+# Hardware test
+MODULES			+= examples/hwtest
 
 #
 # Transitional support - add commands from the NuttX export archive.
