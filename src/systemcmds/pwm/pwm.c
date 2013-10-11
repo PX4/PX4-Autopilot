@@ -72,7 +72,7 @@ usage(const char *reason)
 		warnx("%s", reason);
 	errx(1, 
 		"usage:\n"
-		"pwm arm|disarm|rate|min|max|disarmed|test|info  ...\n"
+		"pwm arm|disarm|rate|min|max|disarmed|set|info  ...\n"
 		"\n"
 		"  arm                      Arm output\n"
 		"  disarm                   Disarm output\n"
@@ -91,10 +91,11 @@ usage(const char *reason)
 		"    [-a]                   Configure all outputs\n"
 		"    -p <pwm value>         PWM value\n"
 		"\n"
-		"  test ...                 Directly set PWM values\n"
+		"  set ...                  Directly set PWM values\n"
 		"    [-c <channels>]        Supply channels (e.g. 1234)\n"
 		"    [-m <chanmask> ]       Directly supply channel mask (e.g. 0xF)\n"
 		"    [-a]                   Configure all outputs\n"
+		"    [-e]                   Repeat setting the values until stopped\n"
 		"    -p <pwm value>         PWM value\n"
 		"\n"
 		"  info                     Print information about the PWM device\n"
@@ -113,6 +114,7 @@ pwm_main(int argc, char *argv[])
 	uint32_t alt_channel_groups = 0;
 	bool alt_channels_set = false;
 	bool print_verbose = false;
+	bool repeated_pwm_output = false;
 	int ch;
 	int ret;
 	char *ep;
@@ -125,7 +127,7 @@ pwm_main(int argc, char *argv[])
 	if (argc < 1)
 		usage(NULL);
 
-	while ((ch = getopt(argc-1, &argv[1], "d:vc:g:m:ap:r:")) != EOF) {
+	while ((ch = getopt(argc-1, &argv[1], "d:vc:g:m:ap:r:e")) != EOF) {
 		switch (ch) {
 
 		case 'd':
@@ -181,6 +183,9 @@ pwm_main(int argc, char *argv[])
 			alt_rate = strtoul(optarg, &ep, 0);
 			if (*ep != '\0')
 				usage("bad alternative rate provided");
+			break;
+		case 'e':
+			repeated_pwm_output = true;
 			break;
 		default:
 			break;
@@ -357,7 +362,7 @@ pwm_main(int argc, char *argv[])
 		}
 		exit(0);
 
-	} else if (!strcmp(argv[1], "test")) {
+	} else if (!strcmp(argv[1], "set")) {
 
 		if (set_mask == 0) {
 			usage("no channels set");
@@ -367,31 +372,43 @@ pwm_main(int argc, char *argv[])
 
 		/* perform PWM output */
 
-		/* Open console directly to grab CTRL-C signal */
-		struct pollfd fds;
-		fds.fd = 0; /* stdin */
-		fds.events = POLLIN;
+		if (repeated_pwm_output) {
 
-		warnx("Press CTRL-C or 'c' to abort.");
+			/* Open console directly to grab CTRL-C signal */
+			struct pollfd fds;
+			fds.fd = 0; /* stdin */
+			fds.events = POLLIN;
 
-		while (1) {
+			warnx("Press CTRL-C or 'c' to abort.");
+
+			while (1) {
+				for (unsigned i = 0; i < servo_count; i++) {
+					if (set_mask & 1<<i) {
+						ret = ioctl(fd, PWM_SERVO_SET(i), pwm_value);
+						if (ret != OK)
+							err(1, "PWM_SERVO_SET(%d)", i);
+					}
+				}
+
+				/* abort on user request */
+				char c;
+				ret = poll(&fds, 1, 0);
+				if (ret > 0) {
+
+				read(0, &c, 1);
+					if (c == 0x03 || c == 0x63 || c == 'q') {
+						warnx("User abort\n");
+						exit(0);
+					}
+				}
+			}
+		} else {
+			/* only set the values once */
 			for (unsigned i = 0; i < servo_count; i++) {
 				if (set_mask & 1<<i) {
 					ret = ioctl(fd, PWM_SERVO_SET(i), pwm_value);
 					if (ret != OK)
 						err(1, "PWM_SERVO_SET(%d)", i);
-				}
-			}
-
-			/* abort on user request */
-			char c;
-			ret = poll(&fds, 1, 0);
-			if (ret > 0) {
-
-			read(0, &c, 1);
-				if (c == 0x03 || c == 0x63 || c == 'q') {
-					warnx("User abort\n");
-					exit(0);
 				}
 			}
 		}
@@ -476,7 +493,7 @@ pwm_main(int argc, char *argv[])
 		exit(0);
 
 	}
-	usage("specify arm|disarm|rate|min|max|disarmed|test|info");
+	usage("specify arm|disarm|rate|min|max|disarmed|set|info");
 	return 0;
 }
 
