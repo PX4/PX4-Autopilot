@@ -65,7 +65,7 @@ test_file(int argc, char *argv[])
 	}
 
 	/* perform tests for a range of chunk sizes */
-	unsigned chunk_sizes[] = {1, 5, 8, 16, 32, 33, 64, 70, 128, 133, 256, 300, 512, 555, 1024, 1500};
+	unsigned chunk_sizes[] = {1, 5, 8, 13, 16, 32, 33, 64, 70, 128, 133, 256, 300, 512, 555, 1024, 1500};
 
 	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
 
