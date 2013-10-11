@@ -454,10 +454,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 
 				float flow_q = flow.quality / 255.0f;
+				float dist_bottom = - z_est[0] - surface_offset;
 
-				if (z_est[0] < - 0.31f && flow_q > params.flow_q_min && t < sonar_valid_time + sonar_valid_timeout && att.R[2][2] > 0.7) {
+				if (dist_bottom > 0.3f && flow_q > params.flow_q_min && (t < sonar_valid_time + sonar_valid_timeout) && att.R[2][2] > 0.7) {
 					/* distance to surface */
-					float flow_dist = (- z_est[0] - surface_offset) / att.R[2][2];
+					float flow_dist = dist_bottom / att.R[2][2];
 					/* check if flow if too large for accurate measurements */
 					/* calculate estimated velocity in body frame */
 					float body_v_est[2] = { 0.0f, 0.0f };
@@ -612,7 +613,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		t_prev = t;
 
 		/* use GPS if it's valid and reference position initialized */
-		bool use_gps = ref_xy_inited && gps_valid;
+		bool use_gps = ref_xy_inited && gps_valid && params.w_pos_gps_p > 0.00001f;
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps);
 		/* try to estimate xy even if no absolute position source available,
