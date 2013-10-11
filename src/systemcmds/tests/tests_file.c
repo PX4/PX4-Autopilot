@@ -63,7 +63,7 @@ test_file(int argc, char *argv[])
 		return 1;
 	}
 
-	uint8_t write_buf[512 + 64];
+	uint8_t write_buf[512 + 64] __attribute__((aligned(64)));
 
 	/* fill write buffer with known values */
 	for (int i = 0; i < sizeof(write_buf); i++) {
@@ -71,24 +71,24 @@ test_file(int argc, char *argv[])
 		write_buf[i] = i+11;
 	}
 
-	uint8_t read_buf[512 + 64];
+	uint8_t read_buf[512 + 64] __attribute__((aligned(64)));
 	hrt_abstime start, end;
 	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes (aligned)");
 
 	int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
-	warnx("testing aligned and unaligned writes - please wait..");
+	warnx("testing unaligned writes - please wait..");
 
 	start = hrt_absolute_time();
 	for (unsigned i = 0; i < iterations; i++) {
 		perf_begin(wperf);
-		int wret = write(fd, write_buf + (i % 64), 512);
+		int wret = write(fd, write_buf + 1/*+ (i % 64)*/, 512);
 
 		if (wret != 512) {
 			warn("WRITE ERROR!");
 
-			if ((0x3 & (uintptr_t)(write_buf + (i % 64))))
-				warnx("memory is unaligned, align shift: %d", (i % 64));
+			if ((0x3 & (uintptr_t)(write_buf + 1 /* (i % 64)*/)))
+				warnx("memory is unaligned, align shift: %d", 1/*(i % 64)*/);
 
 		}
 
@@ -104,7 +104,6 @@ test_file(int argc, char *argv[])
 	perf_free(wperf);
 
 	close(fd);
-
 	fd = open("/fs/microsd/testfile", O_RDONLY);
 
 	/* read back data for validation */
@@ -121,7 +120,7 @@ test_file(int argc, char *argv[])
 
 		for (int j = 0; j < 512; j++) {
 			if (read_buf[j] != write_buf[j + 1/*+ (i % 64)*/]) {
-				warnx("COMPARISON ERROR: byte %d, align shift: %d", j, (i % 64));
+				warnx("COMPARISON ERROR: byte %d, align shift: %d", j, 1/*(i % 64)*/);
 				compare_ok = false;
 				break;
 			}
@@ -134,21 +133,120 @@ test_file(int argc, char *argv[])
 
 	}
 
-	/* read back data for alignment checks */
-	// for (unsigned i = 0; i < iterations; i++) {
-	// 	perf_begin(wperf);
-	// 	int rret = read(fd, buf + (i % 64), sizeof(buf));
-	// 	fsync(fd);
-	// 	perf_end(wperf);
-
-	// }
+	/*
+	 * ALIGNED WRITES AND UNALIGNED READS
+	 */
 
 	int ret = unlink("/fs/microsd/testfile");
+	fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+
+	warnx("testing aligned writes - please wait..");
+
+	start = hrt_absolute_time();
+	for (unsigned i = 0; i < iterations; i++) {
+		perf_begin(wperf);
+		int wret = write(fd, write_buf, 512);
+
+		if (wret != 512) {
+			warn("WRITE ERROR!");
+		}
+
+		perf_end(wperf);
+
+	}
+
+	fsync(fd);
+
+	warnx("reading data aligned..");
+
+	close(fd);
+	fd = open("/fs/microsd/testfile", O_RDONLY);
+
+	bool align_read_ok = true;
+
+	/* read back data unaligned */
+	for (unsigned i = 0; i < iterations; i++) {
+		int rret = read(fd, read_buf, 512);
+
+		if (rret != 512) {
+			warn("READ ERROR!");
+			break;
+		}
+		
+		/* compare value */
+		bool compare_ok = true;
+
+		for (int j = 0; j < 512; j++) {
+			if (read_buf[j] != write_buf[j]) {
+				warnx("COMPARISON ERROR: byte %d: %u != %u", j, (unsigned int)read_buf[j], (unsigned int)write_buf[j]);
+				align_read_ok = false;
+				break;
+			}
+		}
+
+		if (!align_read_ok) {
+			warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
+			break;
+		}
+
+	}
+
+	warnx("align read result: %s\n", (align_read_ok) ? "OK" : "ERROR");
+
+	warnx("reading data unaligned..");
+
+	close(fd);
+	fd = open("/fs/microsd/testfile", O_RDONLY);
+
+	bool unalign_read_ok = true;
+	int unalign_read_err_count = 0;
+
+	memset(read_buf, 0, sizeof(read_buf));
+	read_buf[0] = 0;
+
+	warnx("printing first 10 pairs:");
+
+	uint8_t *read_ptr = &read_buf[1];
+
+	/* read back data unaligned */
+	for (unsigned i = 0; i < iterations; i++) {
+		int rret = read(fd, read_ptr, 512);
+
+		warnx("first byte: %u (should be zero)", (unsigned int)read_buf[0]);
+
+		if (rret != 512) {
+			warn("READ ERROR!");
+			break;
+		}
+
+		for (int j = 0; j < 512; j++) {
+
+			if (i == 0 && j < 10) {
+				warnx("read: %u, expect: %u", (unsigned int)(read_buf + 1)[j], (unsigned int)write_buf[j]);
+			}
+
+			if ((read_buf + 1)[j] != write_buf[j]) {
+				warnx("COMPARISON ERROR: byte %d, align shift: %d: %u != %u", j, 1/*(i % 64)*/, (unsigned int)read_ptr[j], (unsigned int)write_buf[j]);
+				unalign_read_ok = false;
+				unalign_read_err_count++;
+				
+				if (unalign_read_err_count > 10)
+					break;
+			}
+		}
+
+		if (!unalign_read_ok) {
+			warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
+			break;
+		}
+
+	}
+
+	ret = unlink("/fs/microsd/testfile");
+	close(fd);
 
 	if (ret)
 		err(1, "UNLINKING FILE FAILED");
-
-	close(fd);
 
 	/* list directory */
 	DIR           *d;
