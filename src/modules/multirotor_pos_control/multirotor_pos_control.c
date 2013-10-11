@@ -229,14 +229,16 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	bool reset_auto_sp_xy = true;
 	bool reset_auto_sp_z = true;
 	bool reset_takeoff_sp = true;
+	bool reset_z_sp_dist = false;
+	float surface_offset = 0.0f;	// Z of ground level
+	float z_sp_dist = 0.0f;			// distance to ground setpoint (positive)
 
 	hrt_abstime t_prev = 0;
 	const float alt_ctl_dz = 0.2f;
 	const float pos_ctl_dz = 0.05f;
 
-	float ref_alt_prev = 0.0f;
-	hrt_abstime ref_surface_prev_t = 0;
 	uint64_t local_ref_timestamp = 0;
+	uint64_t surface_bottom_timestamp = 0;
 
 	PID_t xy_pos_pids[2];
 	PID_t xy_vel_pids[2];
@@ -249,7 +251,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	struct multirotor_position_control_param_handles params_h;
 	parameters_init(&params_h);
 	parameters_update(&params_h, &params);
-
 
 	for (int i = 0; i < 2; i++) {
 		pid_init(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
@@ -345,19 +346,37 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			if (control_mode.flag_control_manual_enabled) {
 				/* manual control */
 				/* check for reference point updates and correct setpoint */
-				if (local_pos.ref_timestamp != ref_surface_prev_t) {
+				//if (local_pos.ref_timestamp != ref_prev_t) {
 					/* reference alt changed, don't follow large ground level changes in manual flight */
-					local_pos_sp.z += local_pos.ref_alt - ref_alt_prev;
-
+					//local_pos_sp.z += local_pos.ref_alt - ref_alt_prev;
 					// TODO also correct XY setpoint
-				}
+				//}
 
-				/* reset setpoints to current position if needed */
 				if (control_mode.flag_control_altitude_enabled) {
+					/* reset setpoints to current position if needed */
 					if (reset_man_sp_z) {
 						reset_man_sp_z = false;
 						local_pos_sp.z = local_pos.z;
+						reset_z_sp_dist = true;
 						mavlink_log_info(mavlink_fd, "[mpc] reset alt sp: %.2f", (double) - local_pos_sp.z);
+					}
+
+					/* if distance to surface is available, use it */
+					if (control_mode.flag_use_dist_bottom && local_pos.dist_bottom_valid) {
+						if (reset_z_sp_dist) {
+							reset_z_sp_dist = false;
+							surface_offset = local_pos.z + local_pos.dist_bottom;
+							z_sp_dist = -local_pos_sp.z + surface_offset;
+							mavlink_log_info(mavlink_fd, "[mpc] surface offset: %.2f", surface_offset);
+						} else {
+							if (local_pos.surface_bottom_timestamp != surface_bottom_timestamp) {
+								/* new surface level */
+								z_sp_dist += local_pos.z + local_pos.dist_bottom - surface_offset;
+							}
+							surface_offset = local_pos.z + local_pos.dist_bottom;
+						}
+						/* move altitude setpoint according to ground distance */
+						local_pos_sp.z = surface_offset - z_sp_dist;
 					}
 
 					/* move altitude setpoint with throttle stick */
@@ -366,7 +385,9 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (z_sp_ctl != 0.0f) {
 						sp_move_rate[2] = -z_sp_ctl * params.z_vel_max;
 						local_pos_sp.z += sp_move_rate[2] * dt;
+						z_sp_dist -= sp_move_rate[2] * dt;	// this will have effect only if distance sensor used
 
+						// TODO add z_sp_dist correction here
 						if (local_pos_sp.z > local_pos.z + z_sp_offs_max) {
 							local_pos_sp.z = local_pos.z + z_sp_offs_max;
 
@@ -673,12 +694,15 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			reset_auto_sp_z = true;
 		}
 
-		/* track local position reference even when not controlling position */
-		ref_surface_prev_t = local_pos.ref_timestamp;
-		ref_alt_prev = local_pos.ref_alt;
-
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
 		reset_int_z_manual = control_mode.flag_armed && control_mode.flag_control_manual_enabled && !control_mode.flag_control_climb_rate_enabled;
+
+		/* reset distance setpoint if distance is not available */
+		if (!local_pos.dist_bottom_valid) {
+			reset_z_sp_dist = true;
+		}
+
+		surface_bottom_timestamp = local_pos.surface_bottom_timestamp;
 
 		/* run at approximately 100 Hz */
 		usleep(10000);

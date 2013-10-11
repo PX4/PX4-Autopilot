@@ -424,6 +424,16 @@ navigation_state_transition(struct vehicle_status_s *status, navigation_state_t 
 		}
 	}
 
+	bool use_dist_bottom_prev = control_mode->flag_use_dist_bottom;
+	control_mode->flag_use_dist_bottom = control_mode->flag_control_manual_enabled &&
+			control_mode->flag_control_altitude_enabled && status->dist_bottom_switch == SWITCH_ON;
+
+	if (ret == TRANSITION_NOT_CHANGED && control_mode->flag_use_dist_bottom != use_dist_bottom_prev) {
+		// TODO really, navigation state not changed, set this to force publishing control_mode
+		ret = TRANSITION_CHANGED;
+		navigation_state_changed = true;
+	}
+
 	return ret;
 }
 

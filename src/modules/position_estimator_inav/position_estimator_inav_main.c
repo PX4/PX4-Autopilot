@@ -439,12 +439,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						} else {
 							/* new ground level */
 							surface_offset -= sonar_corr;
-							mavlink_log_info(mavlink_fd, "[inav] new surface level: %.3f", surface_offset);
-							alt_avg -= sonar_corr;	// TODO check this
 							sonar_corr = 0.0f;
 							sonar_corr_filtered = 0.0f;
 							sonar_valid_time = t;
 							sonar_valid = true;
+							local_pos.surface_bottom_timestamp = t;
+							mavlink_log_info(mavlink_fd, "[inav] new surface level: %.2f", surface_offset);
 						}
 
 					} else {
@@ -521,14 +521,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					if (gps_valid) {
 						if (gps.eph_m > 10.0f) {
 							gps_valid = false;
-							warnx("GPS signal lost");
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal lost");
 						}
 
 					} else {
 						if (gps.eph_m < 5.0f) {
 							gps_valid = true;
-							warnx("GPS signal found");
 							mavlink_log_info(mavlink_fd, "[inav] GPS signal found");
 						}
 					}

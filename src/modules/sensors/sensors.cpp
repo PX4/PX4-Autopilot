@@ -315,6 +315,7 @@ private:
 		int rc_map_return_sw;
 		int rc_map_assisted_sw;
 		int rc_map_mission_sw;
+		int rc_map_dist_bottom_sw;
 
 //		int rc_map_offboard_ctrl_mode_sw;
 
@@ -360,6 +361,7 @@ private:
 		param_t rc_map_return_sw;
 		param_t rc_map_assisted_sw;
 		param_t rc_map_mission_sw;
+		param_t rc_map_dist_bottom_sw;
 
 //		param_t rc_map_offboard_ctrl_mode_sw;
 
@@ -578,6 +580,7 @@ Sensors::Sensors() :
 	/* optional mode switches, not mapped per default */
 	_parameter_handles.rc_map_assisted_sw = param_find("RC_MAP_ASSIST_SW");
 	_parameter_handles.rc_map_mission_sw = param_find("RC_MAP_MISSIO_SW");
+	_parameter_handles.rc_map_dist_bottom_sw = param_find("RC_MAP_DIST_B_SW");
 
 //	_parameter_handles.rc_map_offboard_ctrl_mode_sw = param_find("RC_MAP_OFFB_SW");
 
@@ -726,6 +729,10 @@ Sensors::parameters_update()
 		warnx("Failed getting mission sw chan index");
 	}
 
+	if (param_get(_parameter_handles.rc_map_dist_bottom_sw, &(_parameters.rc_map_dist_bottom_sw)) != OK) {
+		warnx("Failed getting distance bottom sw chan index");
+	}
+
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
 		warnx("Failed getting flaps chan index");
 	}
@@ -754,6 +761,7 @@ Sensors::parameters_update()
 	_rc.function[RETURN] = _parameters.rc_map_return_sw - 1;
 	_rc.function[ASSISTED] = _parameters.rc_map_assisted_sw - 1;
 	_rc.function[MISSION] = _parameters.rc_map_mission_sw - 1;
+	_rc.function[DIST_BOTTOM] = _parameters.rc_map_dist_bottom_sw - 1;
 
 	_rc.function[FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -1330,6 +1338,8 @@ Sensors::ppm_poll()
 		manual_control.return_switch = NAN;
 		manual_control.assisted_switch = NAN;
 		manual_control.mission_switch = NAN;
+		manual_control.dist_bottom_switch = NAN;
+
 //		manual_control.auto_offboard_input_switch = NAN;
 
 		manual_control.flaps = NAN;
@@ -1442,6 +1452,9 @@ Sensors::ppm_poll()
 		/* mission switch input */
 		manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
 
+		/* distance bottom switch input */
+		manual_control.dist_bottom_switch = limit_minus_one_to_one(_rc.chan[_rc.function[DIST_BOTTOM]].scaled);
+
 		/* flaps */
 		if (_rc.function[FLAPS] >= 0) {
 
@@ -1458,6 +1471,10 @@ Sensors::ppm_poll()
 
 		if (_rc.function[MISSION] >= 0) {
 			manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
+		}
+
+		if (_rc.function[DIST_BOTTOM] >= 0) {
+			manual_control.dist_bottom_switch = limit_minus_one_to_one(_rc.chan[_rc.function[DIST_BOTTOM]].scaled);
 		}
 
 //		if (_rc.function[OFFBOARD_MODE] >= 0) {

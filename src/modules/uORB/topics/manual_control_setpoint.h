@@ -60,6 +60,7 @@ struct manual_control_setpoint_s {
 	float return_switch;			/**< land 2 position switch (mandatory): land, no effect */
 	float assisted_switch;			/**< assisted 2 position switch (optional): seatbelt, simple */
 	float mission_switch;		/**< mission 2 position switch (optional): mission, loiter */
+	float dist_bottom_switch;		/**< distance bottom 2 position switch (optional): off, on */
 
 	/**
 	 * Any of the channels below may not be available and be set to NaN

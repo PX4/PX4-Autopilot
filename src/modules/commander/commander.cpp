@@ -1398,13 +1398,13 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 
 	/* land switch */
 	if (!isfinite(sp_man->return_switch)) {
-		current_status->return_switch = RETURN_SWITCH_NONE;
+		current_status->return_switch = SWITCH_OFF;
 
 	} else if (sp_man->return_switch > STICK_ON_OFF_LIMIT) {
-		current_status->return_switch = RETURN_SWITCH_RETURN;
+		current_status->return_switch = SWITCH_ON;
 
 	} else {
-		current_status->return_switch = RETURN_SWITCH_NONE;
+		current_status->return_switch = SWITCH_OFF;
 	}
 
 	/* assisted switch */
@@ -1418,7 +1418,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 		current_status->assisted_switch = ASSISTED_SWITCH_SEATBELT;
 	}
 
-	/* mission switch  */
+	/* mission switch */
 	if (!isfinite(sp_man->mission_switch)) {
 		current_status->mission_switch = MISSION_SWITCH_MISSION;
 
@@ -1427,6 +1427,17 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 
 	} else {
 		current_status->mission_switch = MISSION_SWITCH_MISSION;
+	}
+
+	/* distance bottom switch */
+	if (!isfinite(sp_man->dist_bottom_switch)) {
+		current_status->dist_bottom_switch = SWITCH_OFF;
+
+	} else if (sp_man->dist_bottom_switch > STICK_ON_OFF_LIMIT) {
+		current_status->dist_bottom_switch = SWITCH_ON;
+
+	} else {
+		current_status->dist_bottom_switch = SWITCH_OFF;
 	}
 }
 
@@ -1548,7 +1559,7 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			/* switch to AUTO mode */
 			if (status->rc_signal_found_once && !status->rc_signal_lost) {
 				/* act depending on switches when manual control enabled */
-				if (status->return_switch == RETURN_SWITCH_RETURN) {
+				if (status->return_switch == SWITCH_ON) {
 					/* RTL */
 					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_RTL, control_mode);
 
