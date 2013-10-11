@@ -490,6 +490,7 @@ MB12XX::collect()
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
+        report.error_count = perf_event_count(_comms_errors);
 	report.distance = si_units;
 	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
 	
