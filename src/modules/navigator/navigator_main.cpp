@@ -49,6 +49,8 @@
 #include <math.h>
 #include <poll.h>
 #include <time.h>
+#include <sys/ioctl.h>
+#include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
@@ -70,6 +72,8 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
+#include <lib/dataman/dataman.h>
+
 
 /**
  * navigator app start / stop handling function
@@ -92,7 +96,7 @@ public:
 	~Navigator();
 
 	/**
-	 * Start the navigator task.
+	* Start the navigator task.
 	 *
 	 * @return		OK on success.
 	 */
@@ -106,15 +110,10 @@ public:
 	/**
 	 * Load fence parameters.
 	 */
-	void		load_fence(const char *file_name);
+	bool		load_fence(unsigned vertices);
 
 	/**
-	 * Save fence parameters.
-	 */
-	void		save_fence(const char *file_name);
-
-	/**
-	 * Specify fence vertex parameter.
+	 * Specify fence vertex position.
 	 */
 	void		fence_point(int argc, char *argv[]);
 
@@ -147,13 +146,12 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	unsigned	_mission_items_maxcount;				/**< maximum number of mission items supported */
-	struct	mission_item_s 				* _mission_items;	/**< storage for mission items */
+	struct	mission_item_s 				 *_mission_items;	/**< storage for mission items */
 	bool		_mission_valid;						/**< flag if mission is valid */
 
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
-	bool						_inside_fence;		/**< vehicle is inside fence */	
-	bool						_fence_needs_save;	/**< save fence at next opportunity */
+	bool						_inside_fence;		/**< vehicle is inside fence */
 
 	/** manual control states */
 	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
@@ -199,6 +197,11 @@ private:
 	void		mission_poll();
 
 	/**
+	* Retrieve mission.
+	*/
+	bool		mission_update();
+
+	/**
 	 * Control throttle.
 	 */
 	float		control_throttle(float energy_error);
@@ -222,9 +225,9 @@ private:
 	 */
 	void		task_main() __attribute__((noreturn));
 
-	void		publish_fence(const struct fence_s *fence);
+	void		publish_fence(unsigned vertices);
 
-	bool		fence_valid(const struct fence_s *fence);
+	bool		fence_valid(const struct fence_s &fence);
 };
 
 namespace navigator
@@ -260,16 +263,16 @@ Navigator::Navigator() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 /* states */
-	_mission_items_maxcount(20),
+	_mission_items_maxcount(MAX_MISSION_ITEMS),
 	_mission_valid(false),
 	_loiter_hold(false),
 	_fence_valid(false),
-	_inside_fence(true),
-	_fence_needs_save(false)
+	_inside_fence(true)
 {
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
-	_mission_items = (mission_item_s*)malloc(sizeof(mission_item_s) * _mission_items_maxcount);
+	_mission_items = (mission_item_s *)malloc(sizeof(mission_item_s) * _mission_items_maxcount);
+
 	if (!_mission_items) {
 		_mission_items_maxcount = 0;
 		warnx("no free RAM to allocate mission, rejecting any waypoints");
@@ -345,28 +348,28 @@ Navigator::mission_poll()
 	bool mission_updated;
 	orb_check(_mission_sub, &mission_updated);
 
-	if (mission_updated) {
-
-		struct mission_s mission;
-		orb_copy(ORB_ID(mission), _mission_sub, &mission);
-
-		// XXX this is not optimal yet, but a first prototype /
-		// test implementation
-
-		if (mission.count <= _mission_items_maxcount) {
-			/*
-			 * Perform an atomic copy & state update
-			 */
-			irqstate_t flags = irqsave();
-
-			memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
-			_mission_valid = true;
-
-			irqrestore(flags);
-		} else {
+	if (mission_updated)
+		if (!mission_update()) {
 			warnx("mission larger than storage space");
 		}
+}
+
+bool
+Navigator::mission_update()
+{
+	struct mission_s mission;
+	orb_copy(ORB_ID(mission), _mission_sub, &mission);
+
+	if (mission.count > _mission_items_maxcount) {
+		return false;
 	}
+
+	// Perform an atomic copy & state update
+	irqstate_t flags = irqsave();
+	memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
+	_mission_valid = true;
+	irqrestore(flags);
+	return true;
 }
 
 void
@@ -396,20 +399,12 @@ Navigator::task_main()
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	// Load initial states
-	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK)
-		_vstatus.arming_state = ARMING_STATE_STANDBY; // for testing... commander may not be running
-	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
-	struct mission_s mission;
-	orb_copy(ORB_ID(mission), _mission_sub, &mission);
-	if (mission.count <= _mission_items_maxcount) {
-		/*
-		 * Perform an atomic copy & state update
-		 */
-		irqstate_t flags = irqsave();
-		memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
-		_mission_valid = true;
-		irqrestore(flags);
+	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
+		_vstatus.arming_state = ARMING_STATE_STANDBY;    // for testing... commander may not be running
 	}
+
+	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
+	mission_update();
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -418,7 +413,7 @@ Navigator::task_main()
 
 	parameters_update();
 
-	load_fence(nullptr);
+	_fence_valid = load_fence(GEOFENCE_MAX_VERTICES);
 
 	/* wakeup source(s) */
 	struct pollfd fds[3];
@@ -437,8 +432,9 @@ Navigator::task_main()
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0)
+		if (pret == 0) {
 			continue;
+		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -464,17 +460,9 @@ Navigator::task_main()
 		/* only update fence if it has changed */
 		if (fds[2].revents & POLLIN) {
 			/* read from fence to clear updated flag */
-			struct fence_s fence;
-			orb_copy(ORB_ID(fence), _fence_sub, &fence);
-			if (fence_valid(&fence)) {
-				// Only update and save if it has changed
-				unsigned len = sizeof(fence.count) + (fence.count * sizeof(struct fence_item_s));
-				if (memcmp(&fence, &_fence, len)) {
-					memcpy(&_fence, &fence, len);
-					_fence_valid = _fence.count != 0;
-					_fence_needs_save = true;
-				}
-			}
+			unsigned vertices;
+			orb_copy(ORB_ID(fence), _fence_sub, &vertices);
+			_fence_valid = load_fence(vertices);
 		}
 
 		/* only run controller if position changed */
@@ -486,8 +474,9 @@ Navigator::task_main()
 			last_run = hrt_absolute_time();
 
 			/* guard against too large deltaT's */
-			if (deltaT > 1.0f)
+			if (deltaT > 1.0f) {
 				deltaT = 0.01f;
+			}
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
@@ -538,14 +527,14 @@ Navigator::task_main()
 
 					if (_global_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
 						/* waypoint is a plain navigation waypoint */
-						
+
 
 					} else if (_global_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-						_global_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-						_global_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
+						   _global_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+						   _global_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
 
 						/* waypoint is a loiter waypoint */
-						
+
 					}
 
 					// XXX at this point we always want no loiter hold if a
@@ -607,11 +596,6 @@ Navigator::task_main()
 
 		perf_end(_loop_perf);
 
-		// Only do file io if in standby mode
-		if (_fence_needs_save && (_vstatus.arming_state == ARMING_STATE_STANDBY)) {
-			_fence_needs_save = false;
-			save_fence(nullptr);
-		}
 	}
 
 	warnx("exiting.");
@@ -627,11 +611,11 @@ Navigator::start()
 
 	/* start the task */
 	_navigator_task = task_spawn_cmd("navigator",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       2048,
-				       (main_t)&Navigator::task_main_trampoline,
-				       nullptr);
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 5,
+					 2048,
+					 (main_t)&Navigator::task_main_trampoline,
+					 nullptr);
 
 	if (_navigator_task < 0) {
 		warn("task start failed");
@@ -642,7 +626,7 @@ Navigator::start()
 }
 
 void
-Navigator::status()
+Navigator::status() 
 {
 	warnx("Global position is %svalid", _global_pos.valid ? "" : "in");
 	if (_global_pos.valid) {
@@ -660,7 +644,7 @@ Navigator::status()
 			const char *ret_point = "";
 			if (i == 0)
 				ret_point = "(return point)";
-			warnx("%6u %9.5f %8.5f %s", i, (double)_fence.items[i].lon, (double)_fence.items[i].lat, ret_point);
+			warnx("%6u %9.5f %8.5f %s", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat, ret_point);
 		}
 		if (_global_pos.valid)
 			warnx("Craft is %sside fence", _inside_fence ? "in" : "out");
@@ -669,97 +653,70 @@ Navigator::status()
 }
 
 void
-Navigator::publish_fence(const struct fence_s *fence)
+Navigator::publish_fence(unsigned vertices)
 {
-	if (_fence_pub == -1)
-		_fence_pub = orb_advertise(ORB_ID(fence), fence);
-	else
-		orb_publish(ORB_ID(fence), _fence_pub, fence);
+	if (_fence_pub == -1) {
+		_fence_pub = orb_advertise(ORB_ID(fence), &vertices);
+
+	} else {
+		orb_publish(ORB_ID(fence), _fence_pub, &vertices);
+	}
 }
 
 bool
-Navigator::fence_valid(const struct fence_s *fence)
+Navigator::fence_valid(const struct fence_s &fence)
 {
 	struct vehicle_global_position_s pos;
+
 	// NULL fence is valid
-	if (fence->count == 0)
+	if (fence.count == 0) {
 		return true;
+	}
+
 	// Otherwise
-	if ((fence->count < 4) || (fence->count > GEOFENCE_MAX_VERTICES)) {
+	if ((fence.count < 4) || (fence.count > GEOFENCE_MAX_VERTICES)) {
 		warnx("Fence must have at least 3 sides and not more than %d", GEOFENCE_MAX_VERTICES - 1);
 		return false;
 	}
-	pos.lat = (int)(fence->items[0].lat * 1e7f);
-	pos.lon = (int)(fence->items[0].lon * 1e7f);
-	if (!inside_geofence(&pos, fence)) {
+
+	pos.lat = (int)(fence.vertices[0].lat * 1e7f);
+	pos.lon = (int)(fence.vertices[0].lon * 1e7f);
+
+	if (!inside_geofence(&pos, &fence)) {
 		warnx("Return point must be inside fence");
 		return false;
 	}
+
 	return true;
 }
 
-void
-Navigator::load_fence(const char *fname)
+bool
+Navigator::load_fence(unsigned vertices)
 {
-	const char *file_name = GEOFENCE_DEFAULT_FILE_NAME;
-	int fence_file, result;
-	struct fence_s fence;
+	struct fence_s temp_fence;
+	unsigned i;
+	int fh = dm_open();
 
-	if (fname)
-		file_name = fname;
+	if (fh >= 0) {
+		for (i = 0; i < vertices; i++) {
+			if (dm_read(fh, DM_KEY_FENCE_POINTS, i, (char *)(temp_fence.vertices + i), sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
+				break;
+			}
+		}
 
-	warnx("Loading fence parameters from '%s'", file_name);
-	fence_file = open(file_name, O_RDONLY);
-	if (fence_file < 0)
-		errx(1, "Could not open file '%s'", file_name);
+		dm_close(fh);
 
-	result = read(fence_file, &fence, sizeof(fence));
+		temp_fence.count = i;
 
-	close(fence_file);
+		if (fence_valid(temp_fence))
+			memcpy(&_fence, &temp_fence, sizeof(_fence));
+		else
+			warnx("Invalid fence file, ignored!");
 
-	if (result < sizeof(fence.count))
-		errx(1, "error reading file");
-	else if (result < (sizeof(fence.count) + (fence.count * sizeof(struct fence_item_s))))
-		errx(1, "error reading file");
+	} else
+		warnx("error opening data manager");
 
-	if (fence_valid(&fence)) {
-		memcpy(&_fence, &fence, sizeof(_fence));
-		_fence_valid = _fence.count != 0;
-	}
-	else
-		errx(1, "Invalid fence loaded, ignored!\n");
-}
-
-void
-Navigator::save_fence(const char *fname)
-{
-	const char *file_name = GEOFENCE_DEFAULT_FILE_NAME;
-	int fence_file, result;
-	unsigned ix;
-
-	if (!fence_valid(&_fence))
-		errx(1, "Not saving invalid fence");
-
-	if (fname)
-		file_name = fname;
-
-	warnx("Saving fence parameters to '%s'", file_name);
-	/* delete the parameter file in case it exists */
-	unlink(file_name);
-	fence_file = open(file_name,  O_WRONLY | O_CREAT | O_EXCL);
-	if (fence_file < 0)
-		errx(1, "opening '%s' failed", file_name);
-
-	int len = sizeof(_fence.count) + (_fence.count * sizeof(struct fence_item_s));
-
-	result = write(fence_file, &_fence, len);
-
-	close(fence_file);
-
-	if (result < len) {
-		unlink(file_name);
-		errx(1, "error saving to '%s'", file_name);
-	}
+	return _fence.count != 0;
 }
 
 void
@@ -767,42 +724,66 @@ Navigator::fence_point(int argc, char *argv[])
 {
 	int ix, num_points;
 	double lon, lat;
+	struct fence_vertex_s vertex;
 	char *end;
-	static struct fence_s fence;
+	int fh;
 
-	if (argc < 4)
+	if (argc < 4) {
 		errx(1, "Specify: index num_points latitude longitude");
+	}
 
 	ix = atoi(argv[0]);
 	num_points = atoi(argv[1]);
 	lat = strtod(argv[2], &end);
 	lon = strtod(argv[3], &end);
+
 	// Number of points = 0 means clear the fence
-	if ((num_points != 0) && ((ix < 0) || (ix >= num_points)))
-		errx(1, "Index must be greater than 0 and less than num_points\n");
-	fence.count = num_points;
-	fence.items[ix].lat = (float)lat;
-	fence.items[ix].lon = (float)lon;
-	if (num_points == 0)
-		publish_fence(&fence);
-	else if (ix == (num_points - 1))
-		publish_fence(&fence);
+	if ((num_points != 0) && ((ix < 0) || (ix >= num_points))) {
+		errx(1, "Index must be greater than 0 and less than num_points");
+	}
+
+	vertex.lat = (float)lat;
+	vertex.lon = (float)lon;
+
+	fh = dm_open();
+
+	if (fh < 0) {
+		errx(1, "cant open data manager handle");
+	}
+
+	if (dm_write(fh, DM_KEY_FENCE_POINTS, ix, DM_PERSIST_POWER_ON_RESET, (const char *)(&vertex), sizeof(vertex)) == sizeof(vertex)) {
+		close(fh);
+		if ((num_points == 0) || (ix == (num_points - 1)))
+			publish_fence((unsigned)num_points);
+		return;
+	}
+
+	close(fh);
+	errx(1, "can't store fence point");
+}
+
+static void usage()
+{
+	errx(1, "usage: navigator {start|stop|status|fencepoint}");
 }
 
 int navigator_main(int argc, char *argv[])
 {
-	if (argc < 2)
-		errx(1, "usage: navigator {start|stop|status|loadfence|savefence|fencepoint}");
+	if (argc < 2) {
+		usage();
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (navigator::g_navigator != nullptr)
+		if (navigator::g_navigator != nullptr) {
 			errx(1, "already running");
+		}
 
 		navigator::g_navigator = new Navigator;
 
-		if (navigator::g_navigator == nullptr)
+		if (navigator::g_navigator == nullptr) {
 			errx(1, "alloc failed");
+		}
 
 		if (OK != navigator::g_navigator->start()) {
 			delete navigator::g_navigator;
@@ -810,45 +791,25 @@ int navigator_main(int argc, char *argv[])
 			err(1, "start failed");
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	if (navigator::g_navigator == nullptr)
 		errx(1, "not running");
 
 	if (!strcmp(argv[1], "stop")) {
-
 		delete navigator::g_navigator;
 		navigator::g_navigator = nullptr;
-		exit(0);
-	}
 
-	if (!strcmp(argv[1], "status")) {
+	} else if (!strcmp(argv[1], "status")) {
 		navigator::g_navigator->status();
-		exit(0);
-	}
 
-	if (!strcmp(argv[1], "loadfence")) {
-		char *fname = nullptr;
-		if (argc > 2)
-			fname = argv[2];
-		navigator::g_navigator->load_fence(fname);
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "savefence")) {
-		char *fname = nullptr;
-		if (argc > 2)
-			fname = argv[2];
-		navigator::g_navigator->save_fence(fname);
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "fencepoint")) {
+	} else if ((!strcmp(argv[1], "fencepoint")) || (!strcmp(argv[1], "point"))) {
 		navigator::g_navigator->fence_point(argc - 2, argv + 2);
-		exit(0);
+
+	} else {
+		usage();
 	}
 
-	warnx("unrecognized command\nusage: navigator {start|stop|status|loadfence|savefence|fencepoint}");
-	return 1;
+	return 0;
 }

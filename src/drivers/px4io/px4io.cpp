@@ -82,6 +82,9 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
+
+#include <lib/dataman/dataman.h>
+
 #include <debug.h>
 
 #include <mavlink/mavlink_log.h>
@@ -680,6 +683,10 @@ PX4IO::init()
 		/* send command once */
 		orb_advert_t pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
 
+		/* now would be a good time to init the data manager */
+		if (dm_restart(DM_INIT_REASON_IN_FLIGHT) < 0)
+			warnx("Error restarting the data manager");
+
 		/* spin here until IO's state has propagated into the system */
 		do {
 			orb_check(safety_sub, &updated);
@@ -709,6 +716,8 @@ PX4IO::init()
 	/* regular boot, no in-air restart, init IO */
 	} else {
 
+		if (dm_restart(DM_INIT_REASON_POWER_ON) < 0)
+			warnx("Error restarting the data manager");
 
 		/* dis-arm IO before touching anything */
 		io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
