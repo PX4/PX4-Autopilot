@@ -1186,7 +1186,7 @@ MPU6000::measure()
 	 * Adjust and scale results to m/s^2.
 	 */
 	grb.timestamp = arb.timestamp = hrt_absolute_time();
-
+        grb.error_count = arb.error_count = 0; // not reported
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.

@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <debug.h>
 
@@ -197,6 +198,11 @@ public:
 	int 			set_idle_values(const uint16_t *vals, unsigned len);
 
 	/**
+	 * Disable RC input handling
+	 */
+	int			disable_rc_handling();
+
+	/**
 	 * Print IO status.
 	 *
 	 * Print all relevant IO status information
@@ -204,9 +210,9 @@ public:
 	void			print_status();
 
 	/**
-	 * Disable RC input handling
+	 * Fetch and print debug console output.
 	 */
-	int			disable_rc_handling();
+	int			print_debug();
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 	/**
@@ -268,6 +274,7 @@ private:
 	orb_advert_t 		_to_actuators_effective; ///< effective actuator controls topic
 	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
 	orb_advert_t		_to_battery;		///< battery status / voltage
+	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
 
 	actuator_outputs_s	_outputs;		///<mixed outputs
@@ -426,8 +433,27 @@ private:
 	 */
 	void			dsm_bind_ioctl(int dsmMode);
 
-};
+	/**
+	 * Handle a battery update from IO.
+	 *
+	 * Publish IO battery information if necessary.
+	 *
+	 * @param vbatt		vbatt register
+	 * @param ibatt		ibatt register
+	 */
+	void			io_handle_battery(uint16_t vbatt, uint16_t ibatt);
 
+	/**
+	 * Handle a servorail update from IO.
+	 *
+	 * Publish servo rail information if necessary.
+	 *
+	 * @param vservo	vservo register
+	 * @param vrssi 	vrssi register
+	 */
+	void			io_handle_vservo(uint16_t vbatt, uint16_t ibatt);
+
+};
 
 namespace
 {
@@ -463,6 +489,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_actuators_effective(0),
 	_to_outputs(0),
 	_to_battery(0),
+	_to_servorail(0),
 	_to_safety(0),
 	_primary_pwm_device(false),
 	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor
@@ -1232,10 +1259,70 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 	return 0;
 }
 
+void
+PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
+{
+	/* only publish if battery has a valid minimum voltage */
+	if (vbatt <= 3300) {
+		return;
+	}
+
+	battery_status_s	battery_status;
+	battery_status.timestamp = hrt_absolute_time();
+
+	/* voltage is scaled to mV */
+	battery_status.voltage_v = vbatt / 1000.0f;
+
+	/*
+	  ibatt contains the raw ADC count, as 12 bit ADC
+	  value, with full range being 3.3v
+	*/
+	battery_status.current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
+	battery_status.current_a += _battery_amp_bias;
+
+	/*
+	  integrate battery over time to get total mAh used
+	*/
+	if (_battery_last_timestamp != 0) {
+		_battery_mamphour_total += battery_status.current_a *
+					   (battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
+	}
+
+	battery_status.discharged_mah = _battery_mamphour_total;
+	_battery_last_timestamp = battery_status.timestamp;
+
+	/* lazily publish the battery voltage */
+	if (_to_battery > 0) {
+		orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
+
+	} else {
+		_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+	}
+}
+
+void
+PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
+{
+	servorail_status_s servorail_status;
+	servorail_status.timestamp = hrt_absolute_time();
+
+	/* voltage is scaled to mV */
+	servorail_status.voltage_v = vservo * 0.001f;
+	servorail_status.rssi_v    = vrssi * 0.001f;
+
+	/* lazily publish the servorail voltages */
+	if (_to_servorail > 0) {
+		orb_publish(ORB_ID(servorail_status), _to_servorail, &servorail_status);
+
+	} else {
+		_to_servorail = orb_advertise(ORB_ID(servorail_status), &servorail_status);
+	}
+}
+
 int
 PX4IO::io_get_status()
 {
-	uint16_t	regs[4];
+	uint16_t	regs[6];
 	int		ret;
 
 	/* get STATUS_FLAGS, STATUS_ALARMS, STATUS_VBATT, STATUS_IBATT in that order */
@@ -1247,41 +1334,13 @@ PX4IO::io_get_status()
 	io_handle_status(regs[0]);
 	io_handle_alarms(regs[1]);
 
-	/* only publish if battery has a valid minimum voltage */
-	if (regs[2] > 3300) {
-		battery_status_s	battery_status;
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+	io_handle_battery(regs[2], regs[3]);
+#endif
 
-		battery_status.timestamp = hrt_absolute_time();
-
-		/* voltage is scaled to mV */
-		battery_status.voltage_v = regs[2] / 1000.0f;
-
-		/*
-		  regs[3] contains the raw ADC count, as 12 bit ADC
-		  value, with full range being 3.3v
-		 */
-		battery_status.current_a = regs[3] * (3.3f / 4096.0f) * _battery_amp_per_volt;
-		battery_status.current_a += _battery_amp_bias;
-
-		/*
-		  integrate battery over time to get total mAh used
-		 */
-		if (_battery_last_timestamp != 0) {
-			_battery_mamphour_total += battery_status.current_a *
-						   (battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
-		}
-
-		battery_status.discharged_mah = _battery_mamphour_total;
-		_battery_last_timestamp = battery_status.timestamp;
-
-		/* lazily publish the battery voltage */
-		if (_to_battery > 0) {
-			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
-
-		} else {
-			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
-		}
-	}
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+	io_handle_vservo(regs[4], regs[5]);
+#endif
 
 	return ret;
 }
@@ -1528,8 +1587,54 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 }
 
 int
+PX4IO::print_debug()
+{
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+	int io_fd = -1;
+
+	if (io_fd < 0) {
+		io_fd = ::open("/dev/ttyS0", O_RDONLY | O_NONBLOCK | O_NOCTTY);
+	}
+
+	/* read IO's output */
+	if (io_fd > 0) {
+		pollfd fds[1];
+		fds[0].fd = io_fd;
+		fds[0].events = POLLIN;
+
+		usleep(500);
+		int pret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), 0);
+
+		if (pret > 0) {
+			int count;
+			char buf[65];
+
+			do {
+				count = ::read(io_fd, buf, sizeof(buf) - 1);
+
+				if (count > 0) {
+					/* enforce null termination */
+					buf[count] = '\0';
+					warnx("IO CONSOLE: %s", buf);
+				}
+
+			} while (count > 0);
+		}
+
+		::close(io_fd);
+		return 0;
+	}
+
+#endif
+	return 1;
+
+}
+
+int
 PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 {
+	/* get debug level */
+	int debuglevel = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG);
 
 	uint8_t	frame[_max_transfer];
 
@@ -1551,6 +1656,9 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 				memcpy(&msg->text[0], buf, count);
 				buf += count;
 				buflen -= count;
+
+			} else {
+				continue;
 			}
 
 			/*
@@ -1569,6 +1677,15 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 
 			int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
 
+			/* print mixer chunk */
+			if (debuglevel > 5 || ret) {
+
+				warnx("fmu sent: \"%s\"", msg->text);
+
+				/* read IO's output */
+				print_debug();
+			}
+
 			if (ret) {
 				log("mixer send error %d", ret);
 				return ret;
@@ -1577,6 +1694,12 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			msg->action = F2I_MIXER_ACTION_APPEND;
 
 		} while (buflen > 0);
+
+		/* ensure a closing newline */
+		msg->text[0] = '\n';
+		msg->text[1] = '\0';
+
+		int ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, (sizeof(px4io_mixdata) + 2) / 2);
 
 		retries--;
 
@@ -2307,28 +2430,38 @@ test(void)
 void
 monitor(void)
 {
+	/* clear screen */
+	printf("\033[2J");
+
 	unsigned cancels = 3;
-	printf("Hit <enter> three times to exit monitor mode\n");
 
 	for (;;) {
 		pollfd fds[1];
 
 		fds[0].fd = 0;
 		fds[0].events = POLLIN;
-		poll(fds, 1, 500);
+		poll(fds, 1, 2000);
 
 		if (fds[0].revents == POLLIN) {
 			int c;
 			read(0, &c, 1);
 
-			if (cancels-- == 0)
+			if (cancels-- == 0) {
+				printf("\033[H"); /* move cursor home and clear screen */
 				exit(0);
+			}
 		}
 
-#warning implement this
+		if (g_dev != nullptr) {
 
-//		if (g_dev != nullptr)
-//			g_dev->dump_one = true;
+			printf("\033[H"); /* move cursor home and clear screen */
+			(void)g_dev->print_status();
+			(void)g_dev->print_debug();
+			printf("[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
+
+		} else {
+			errx(1, "driver not loaded, exiting");
+		}
 	}
 }
 
