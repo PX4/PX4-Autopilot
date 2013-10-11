@@ -99,7 +99,7 @@ typedef uint16_t	servo_position_t;
 struct pwm_output_values {
 	/** desired pulse widths for each of the supported channels */
 	servo_position_t	values[PWM_OUTPUT_MAX_CHANNELS];
-	int			channel_count;
+	unsigned			channel_count;
 };
 
 /*

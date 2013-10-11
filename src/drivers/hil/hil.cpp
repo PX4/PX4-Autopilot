@@ -404,7 +404,7 @@ HIL::task_main()
 				for (unsigned i = 0; i < num_outputs; i++) {
 
 					/* last resort: catch NaN, INF and out-of-band errors */
-					if (i < (unsigned)outputs.noutputs &&
+					if (i < outputs.noutputs &&
 						isfinite(outputs.output[i]) &&
 						outputs.output[i] >= -1.0f &&
 						outputs.output[i] <= 1.0f) {
