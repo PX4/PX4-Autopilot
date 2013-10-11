@@ -87,6 +87,9 @@ ORB_DEFINE(safety, struct safety_s);
 #include "topics/battery_status.h"
 ORB_DEFINE(battery_status, struct battery_status_s);
 
+#include "topics/servorail_status.h"
+ORB_DEFINE(servorail_status, struct servorail_status_s);
+
 #include "topics/vehicle_global_position.h"
 ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 

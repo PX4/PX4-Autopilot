@@ -153,35 +153,36 @@ ETSAirspeed::collect()
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
+		perf_count(_comms_errors);
 		return ret;
 	}
 
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
         if (diff_pres_pa == 0) {
-            // a zero value means the pressure sensor cannot give us a
-            // value. We need to return, and not report a value or the
-            // caller could end up using this value as part of an
-            // average
-            log("zero value from sensor"); 
-            return -1;
+		// a zero value means the pressure sensor cannot give us a
+		// value. We need to return, and not report a value or the
+		// caller could end up using this value as part of an
+		// average
+		perf_count(_comms_errors);
+		log("zero value from sensor"); 
+		return -1;
         }
 
 	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
 		diff_pres_pa = 0;
-
 	} else {
 		diff_pres_pa -= _diff_pres_offset;
 	}
 
 	// Track maximum differential pressure measured (so we can work out top speed).
 	if (diff_pres_pa > _max_differential_pressure_pa) {
-	    _max_differential_pressure_pa = diff_pres_pa;
+		_max_differential_pressure_pa = diff_pres_pa;
 	}
 
 	// XXX we may want to smooth out the readings to remove noise.
 	differential_pressure_s report;
 	report.timestamp = hrt_absolute_time();
+        report.error_count = perf_event_count(_comms_errors);
 	report.differential_pressure_pa = diff_pres_pa;
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
@@ -209,7 +210,7 @@ ETSAirspeed::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
+			perf_count(_comms_errors);
 			/* restart the measurement state machine */
 			start();
 			return;

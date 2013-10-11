@@ -791,6 +791,7 @@ HMC5883::collect()
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
+        new_report.error_count = perf_event_count(_comms_errors);
 
 	/*
 	 * @note  We could read the status register here, which could tell us that
