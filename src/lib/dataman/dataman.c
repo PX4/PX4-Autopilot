@@ -81,7 +81,7 @@ unlock(void)
 static int
 calculate_offset(dm_item_t item, unsigned char index)
 {
-	/* If offset table hasn't been initialized the initialized it */
+	/* If offset table hasn't been initialized then initialized it */
 	if (!g_initialized) {
 		g_key_offsets[0] = 0;
 
@@ -116,6 +116,15 @@ dm_close(int fd)
 {
 	close(fd);
 }
+
+/* Each data item is stored as follows
+ *
+ * byte 0: Length of user data item
+ * byte 1: Persistence of this data item
+ * byte 2... : data item value
+ *
+ * The total size must not exceed DM_MAX_DATA_SIZE + 2
+ */
 
 /* write to the data manager file */
 __EXPORT ssize_t
