@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,16 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_attitude_setpoint.h
- * Definition of the vehicle attitude setpoint uORB topic.
+ * @file servorail_status.h
+ *
+ * Definition of the servorail status uORB topic.
  */
 
-#ifndef TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
-#define TOPIC_VEHICLE_ATTITUDE_SETPOINT_H_
+#ifndef SERVORAIL_STATUS_H_
+#define SERVORAIL_STATUS_H_
 
-#include <stdint.h>
-#include <stdbool.h>
 #include "../uORB.h"
+#include <stdint.h>
 
 /**
  * @addtogroup topics
@@ -50,30 +49,12 @@
  */
 
 /**
- * vehicle attitude setpoint.
+ * Servorail voltages and status
  */
-struct vehicle_attitude_setpoint_s
-{
-	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
-
-	float roll_body;				/**< body angle in NED frame		*/
-	float pitch_body;				/**< body angle in NED frame		*/
-	float yaw_body;					/**< body angle in NED frame		*/
-	//float body_valid;				/**< Set to true if body angles are valid */
-
-	float R_body[9];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */
-	bool R_valid;					/**< Set to true if rotation matrix is valid */
-
-	//! For quaternion-based attitude control
-	float q_d[4];				/** Desired quaternion for quaternion control */
-	bool q_d_valid;					/**< Set to true if quaternion vector is valid */
-	float q_e[4];				/** Attitude error in quaternion */
-	bool q_e_valid;					/**< Set to true if quaternion error vector is valid */
-
-	float thrust;					/**< Thrust in Newton the power system should generate */
-
-	bool	roll_reset_integral;			/**< Reset roll integral part (navigation logic change) */
-
+struct servorail_status_s {
+	uint64_t	timestamp;		/**< microseconds since system boot */
+	float   	voltage_v;		/**< Servo rail voltage in volts */
+	float   	rssi_v;			/**< RSSI pin voltage in volts */
 };
 
 /**
@@ -81,6 +62,6 @@ struct vehicle_attitude_setpoint_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_attitude_setpoint);
+ORB_DECLARE(servorail_status);
 
-#endif /* TOPIC_ARDRONE_CONTROL_H_ */
+#endif

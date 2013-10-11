@@ -131,6 +131,14 @@ public:
 
 
 	/**
+	 * Returns true if following a circle (loiter)
+	 */
+	bool circle_mode() {
+		return _circle_mode;
+	}
+
+
+	/**
 	 * Get the switch distance
 	 * 
 	 * This is the distance at which the system will
