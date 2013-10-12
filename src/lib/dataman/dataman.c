@@ -58,8 +58,7 @@ static const unsigned g_key_sizes[DM_KEY_NUM_KEYS] = {
 	DM_KEY_SAFE_POINTS_MAX,
 	DM_KEY_FENCE_POINTS_MAX,
 	DM_KEY_WAY_POINTS_MAX,
-	DM_KEY_MAV_MISSION_ITEMS_MAX,
-	DM_KEY_MAV_MISSION_RCV_ITEMS_MAX,
+	DM_KEY_NEW_WAY_POINTS_MAX,
 };
 
 /* Table of offset for index 0 of each item type */

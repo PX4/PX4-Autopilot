@@ -52,8 +52,7 @@ extern "C" {
 		DM_KEY_SAFE_POINTS,		/* Safe points coordinates */
 		DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
 		DM_KEY_WAY_POINTS,		/* Mission way point coordinates */
-		DM_KEY_MAV_MISSION_ITEMS,
-		DM_KEY_MAV_MISSION_RCV_ITEMS,
+		DM_KEY_NEW_WAY_POINTS,		/* New mission way point coordinates received by mavlink */
 		DM_KEY_NUM_KEYS			/* Total number of item types defined */
 	} dm_item_t;
 
@@ -64,8 +63,7 @@ extern "C" {
 		DM_KEY_SAFE_POINTS_MAX = 5,
 		DM_KEY_FENCE_POINTS_MAX = 10,
 		DM_KEY_WAY_POINTS_MAX = MAX_MISSION_ITEMS,
-		DM_KEY_MAV_MISSION_ITEMS_MAX = 200,
-		DM_KEY_MAV_MISSION_RCV_ITEMS_MAX = 200,
+		DM_KEY_NEW_WAY_POINTS_MAX = MAX_MISSION_ITEMS,
 	};
 
 	/* Data persistence levels */
