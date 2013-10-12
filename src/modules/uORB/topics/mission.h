@@ -61,7 +61,7 @@ enum NAV_CMD {
  * @{
  */
 
-#define MAX_MISSION_ITEMS 20
+#define MAX_MISSION_ITEMS 200
 
 /**
  * Global position setpoint in WGS84 coordinates.
@@ -71,18 +71,20 @@ enum NAV_CMD {
  */
 struct mission_item_s
 {
-	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	double lat;			/**< latitude in degrees * 1E7				*/
-	double lon;			/**< longitude in degrees * 1E7				*/
+	float lat;			/**< latitude in degrees * 1E-7				*/
+	float lon;			/**< longitude in degrees * 1E-7			*/
 	float altitude;			/**< altitude in meters					*/
-	float yaw;			/**< in radians NED -PI..+PI 				*/
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	uint8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
-	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
-	float param1;
-	float param2;
-	float param3;
-	float param4;
+	float accept_radius;		/**< Radius in which the MISSION is accepted as reached, in meters */
+	float resident_time;		/**< Time that the MAV should stay inside the radius before advancing, in milliseconds */
+	float loiter_orbit;		/**< Orbit to circle around the MISSION, in meters. If positive the orbit direction should
+					     be clockwise, if negative the orbit direction should be counter-clockwise. */
+	float yaw;			/**< Yaw orientation in degrees, [0..360] 0 = NORTH	*/
+	enum NAV_CMD nav_cmd;		/**< The scheduled action for the MISSION. see MAV_CMD */
+	uint8_t frame;			/**< The coordinate system of the MISSION. see MAV_FRAME in mavlink_types.h */
+	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
+	bool current;			/**< false:not the current target, true:current target	*/
+	bool auto_continue;		/**< auto-continue to next waypoint			*/
 };
 
 struct mission_s

@@ -699,7 +699,7 @@ Navigator::load_fence(unsigned vertices)
 
 	if (fh >= 0) {
 		for (i = 0; i < vertices; i++) {
-			if (dm_read(fh, DM_KEY_FENCE_POINTS, i, (char *)(temp_fence.vertices + i), sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
+			if (dm_read(fh, DM_KEY_FENCE_POINTS, i, temp_fence.vertices + i, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
 				break;
 			}
 		}
@@ -751,7 +751,7 @@ Navigator::fence_point(int argc, char *argv[])
 		errx(1, "cant open data manager handle");
 	}
 
-	if (dm_write(fh, DM_KEY_FENCE_POINTS, ix, DM_PERSIST_POWER_ON_RESET, (const char *)(&vertex), sizeof(vertex)) == sizeof(vertex)) {
+	if (dm_write(fh, DM_KEY_FENCE_POINTS, ix, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) == sizeof(vertex)) {
 		close(fh);
 		if ((num_points == 0) || (ix == (num_points - 1)))
 			publish_fence((unsigned)num_points);
