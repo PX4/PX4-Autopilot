@@ -82,6 +82,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
+
 #include <debug.h>
 
 #include <mavlink/mavlink_log.h>
@@ -709,7 +710,6 @@ PX4IO::init()
 	/* regular boot, no in-air restart, init IO */
 	} else {
 
-
 		/* dis-arm IO before touching anything */
 		io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 
 			PX4IO_P_SETUP_ARMING_FMU_ARMED |
@@ -1210,13 +1210,13 @@ PX4IO::dsm_bind_ioctl(int dsmMode)
 	if (!(_status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
 		/* 0: dsm2, 1:dsmx */
 		if ((dsmMode == 0) || (dsmMode == 1)) {
-			mavlink_log_info(_thread_mavlink_fd, "[IO] binding dsm%c rx", (dsmMode == 0) ? '2' : 'x');
-			ioctl(nullptr, DSM_BIND_START, (dsmMode == 0) ? DSM2_BIND_PULSES : DSMX_BIND_PULSES);
+			mavlink_log_info(_thread_mavlink_fd, "[IO] binding dsm%s rx", (dsmMode == 0) ? "2" : ((dsmMode == 1) ? "x" : "x8"));
+			ioctl(nullptr, DSM_BIND_START, (dsmMode == 0) ? DSM2_BIND_PULSES : ((dsmMode == 1) ? DSMX_BIND_PULSES : DSMX8_BIND_PULSES));
 		} else {
 			mavlink_log_info(_thread_mavlink_fd, "[IO] invalid dsm bind mode, bind request rejected");
 		}
 	} else {
-		mavlink_log_info(_thread_mavlink_fd, "[IO] system armed, bind request rejected"); 
+		mavlink_log_info(_thread_mavlink_fd, "[IO] system armed, bind request rejected");
 	}
 }
 
@@ -1870,7 +1870,7 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		usleep(500000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-		usleep(50000);
+		usleep(72000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
 		usleep(50000);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
@@ -2213,8 +2213,13 @@ bind(int argc, char *argv[])
 		pulses = DSM2_BIND_PULSES;
 	else if (!strcmp(argv[2], "dsmx"))
 		pulses = DSMX_BIND_PULSES;
+	else if (!strcmp(argv[2], "dsmx8"))
+		pulses = DSMX8_BIND_PULSES;
 	else 
 		errx(1, "unknown parameter %s, use dsm2 or dsmx", argv[2]);
+	// Test for custom pulse parameter
+	if (argc > 3)
+		pulses = atoi(argv[3]);
 	if (g_dev->system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) 
 		errx(1, "system must not be armed");
 
