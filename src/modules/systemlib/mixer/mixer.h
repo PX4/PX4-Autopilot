@@ -128,7 +128,9 @@
 #ifndef _SYSTEMLIB_MIXER_MIXER_H
 #define _SYSTEMLIB_MIXER_MIXER_H value
 
+#include <nuttx/config.h>
 #include "drivers/drv_mixer.h"
+#include "mixer_load.h"
 
 /**
  * Abstract class defining a mixer mixing zero or more inputs to

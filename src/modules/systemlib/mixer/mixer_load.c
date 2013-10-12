@@ -32,72 +32,23 @@
  ****************************************************************************/
 
 /**
- * @file mixer.c
+ * @file mixer_load.c
  *
- * Mixer utility.
+ * Programmable multi-channel mixer library.
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <ctype.h>
-#include <nuttx/compiler.h>
-
+#include <nuttx/config.h>
 #include <systemlib/err.h>
-#include <drivers/drv_mixer.h>
-#include <uORB/topics/actuator_controls.h>
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
 
-__EXPORT int mixer_main(int argc, char *argv[]);
+#include "mixer_load.h"
 
-static void	usage(const char *reason) noreturn_function;
-static void	load(const char *devname, const char *fname) noreturn_function;
-
-int
-mixer_main(int argc, char *argv[])
+int load_mixer_file(const char *fname, char *buf)
 {
-	if (argc < 2)
-		usage("missing command");
-
-	if (!strcmp(argv[1], "load")) {
-		if (argc < 4)
-			usage("missing device or filename");
-
-		load(argv[2], argv[3]);
-	}
-
-	usage("unrecognised command");
-}
-
-static void
-usage(const char *reason)
-{
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
-
-	fprintf(stderr, "usage:\n");
-	fprintf(stderr, "  mixer load <device> <filename>\n");
-	/* XXX other useful commands? */
-	exit(1);
-}
-
-static void
-load(const char *devname, const char *fname)
-{
-	int		dev;
 	FILE		*fp;
 	char		line[120];
-	char		buf[2048];
-
-	/* open the device */
-	if ((dev = open(devname, 0)) < 0)
-		err(1, "can't open %s\n", devname);
-
-	/* reset mixers on the device */
-	if (ioctl(dev, MIXERIOCRESET, 0))
-		err(1, "can't reset mixers on %s", devname);
 
 	/* open the mixer definition file */
 	fp = fopen(fname, "r");
@@ -143,10 +94,6 @@ load(const char *devname, const char *fname)
 		strcat(buf, line);
 	}
 
-	/* XXX pass the buffer to the device */
-	int ret = ioctl(dev, MIXERIOCLOADBUF, (unsigned long)buf);
-
-	if (ret < 0)
-		err(1, "error loading mixers from %s", fname);
-	exit(0);
+	return 0;
 }
+
