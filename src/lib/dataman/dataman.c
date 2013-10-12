@@ -44,7 +44,6 @@
 #include <string.h>
 #include <semaphore.h>
 #include <errno.h>
-
 #include <lib/dataman/dataman.h>
 
 static char *k_data_manager_device_path = "/fs/microsd/data";
@@ -57,8 +56,10 @@ static const unsigned g_key_sizes[DM_KEY_NUM_KEYS] = {
 	DM_KEY_RTL_POINT_MAX,
 	DM_KEY_RETURN_POINT_MAX,
 	DM_KEY_SAFE_POINTS_MAX,
+	DM_KEY_FENCE_POINTS_MAX,
 	DM_KEY_WAY_POINTS_MAX,
-	DM_KEY_FENCE_POINTS_MAX
+	DM_KEY_MAV_MISSION_ITEMS_MAX,
+	DM_KEY_MAV_MISSION_RCV_ITEMS_MAX,
 };
 
 /* Table of offset for index 0 of each item type */
@@ -154,7 +155,8 @@ dm_write(int fd, dm_item_t item, unsigned char index, dm_persitence_t persistenc
 	lock();
 
 	if (lseek(fd, offset, SEEK_SET) == offset)
-		len = write(fd, buffer, count);
+		if ((len = write(fd, buffer, count)) == count)
+			fsync(fd);
 
 	unlock();
 

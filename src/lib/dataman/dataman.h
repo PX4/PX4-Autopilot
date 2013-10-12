@@ -39,6 +39,8 @@
 #ifndef _DATAMANAGER_H
 #define _DATAMANAGER_H
 
+#include <uORB/topics/mission.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,8 +50,10 @@ extern "C" {
 		DM_KEY_RTL_POINT = 0,		/* Return to landing point coordinates */
 		DM_KEY_FENCE_RETURN_POINT,	/* Fence violation return coordinates */
 		DM_KEY_SAFE_POINTS,		/* Safe points coordinates */
-		DM_KEY_WAY_POINTS,		/* Mission way point coordinates */
 		DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
+		DM_KEY_WAY_POINTS,		/* Mission way point coordinates */
+		DM_KEY_MAV_MISSION_ITEMS,
+		DM_KEY_MAV_MISSION_RCV_ITEMS,
 		DM_KEY_NUM_KEYS			/* Total number of item types defined */
 	} dm_item_t;
 
@@ -59,7 +63,9 @@ extern "C" {
 		DM_KEY_RETURN_POINT_MAX = 1,
 		DM_KEY_SAFE_POINTS_MAX = 5,
 		DM_KEY_FENCE_POINTS_MAX = 10,
-		DM_KEY_WAY_POINTS_MAX = 128,
+		DM_KEY_WAY_POINTS_MAX = MAX_MISSION_ITEMS,
+		DM_KEY_MAV_MISSION_ITEMS_MAX = 200,
+		DM_KEY_MAV_MISSION_RCV_ITEMS_MAX = 200,
 	};
 
 	/* Data persistence levels */
