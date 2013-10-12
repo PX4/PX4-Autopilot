@@ -48,6 +48,7 @@ struct position_estimator_inav_params {
 	float w_pos_gps_v;
 	float w_pos_acc;
 	float w_pos_flow;
+	float w_gps_flow;
 	float w_acc_bias;
 	float flow_k;
 	float flow_q_min;
@@ -66,6 +67,7 @@ struct position_estimator_inav_param_handles {
 	param_t w_pos_gps_v;
 	param_t w_pos_acc;
 	param_t w_pos_flow;
+	param_t w_gps_flow;
 	param_t w_acc_bias;
 	param_t flow_k;
 	param_t flow_q_min;

@@ -79,8 +79,8 @@ static bool verbose_mode = false;
 static const hrt_abstime gps_topic_timeout = 1000000;		// GPS topic timeout = 1s
 static const hrt_abstime flow_topic_timeout = 1000000;	// optical flow topic timeout = 1s
 static const hrt_abstime sonar_timeout = 150000;	// sonar timeout = 150ms
-static const hrt_abstime sonar_valid_timeout = 1000000;	// assume that altitude == distance to surface during this time
-static const hrt_abstime flow_valid_timeout = 1000000;	// assume that altitude == distance to surface during this time
+static const hrt_abstime sonar_valid_timeout = 1000000;	// estimate sonar distance during this time after sonar loss
+static const hrt_abstime xy_src_timeout = 2000000;	// estimate position during this time after position sources loss
 static const uint32_t updates_counter_len = 1000000;
 static const uint32_t pub_interval = 10000;	// limit publish rate to 100 Hz
 static const float max_flow = 1.0f;	// max flow value that can be used, rad/s
@@ -182,6 +182,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int baro_init_num = 200;
 	float baro_offset = 0.0f;		// baro offset for reference altitude, initialized only once
 	float surface_offset = 0.0f;	// ground level offset from reference altitude
+	float surface_offset_rate = 0.0f;	// surface offset change rate
 	float alt_avg = 0.0f;
 	bool landed = true;
 	hrt_abstime landed_time = 0;
@@ -226,7 +227,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	float sonar_prev = 0.0f;
 	hrt_abstime sonar_time = 0;			// time of last sonar measurement (not filtered)
 	hrt_abstime sonar_valid_time = 0;	// time of last sonar measurement used for correction (filtered)
-	hrt_abstime flow_valid_time = 0;	// time of last flow measurement used for correction (filtered)
+	hrt_abstime xy_src_time = 0;		// time of last available position data
 
 	bool gps_valid = false;			// GPS is valid
 	bool sonar_valid = false;		// sonar is valid
@@ -434,6 +435,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						if (fabsf(sonar_corr - sonar_corr_filtered) > params.sonar_err) {
 							/* spike detected, ignore */
 							sonar_corr = 0.0f;
+							surface_offset_rate = 0.0f;
 							sonar_valid = false;
 
 						} else {
@@ -441,6 +443,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 							surface_offset -= sonar_corr;
 							sonar_corr = 0.0f;
 							sonar_corr_filtered = 0.0f;
+							surface_offset_rate = 0.0f;
 							sonar_valid_time = t;
 							sonar_valid = true;
 							local_pos.surface_bottom_timestamp = t;
@@ -448,8 +451,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						}
 
 					} else {
+						/* correction is ok, use it */
 						sonar_valid_time = t;
 						sonar_valid = true;
+						surface_offset_rate = -sonar_corr * params.w_alt_sonar;
 					}
 				}
 
@@ -495,13 +500,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					flow_corr[1] = flow_v[1] - y_est[1];
 					/* adjust correction weight */
 					float flow_q_weight = (flow_q - params.flow_q_min) / (1.0f - params.flow_q_min);
-					flow_w = att.R[2][2] * flow_q_weight;
-					/* if flow is not accurate, lower weight for it */
+					flow_w = att.R[2][2] * flow_q_weight / fmaxf(1.0f, flow_dist);
+					/* if flow is not accurate, reduce weight for it */
 					// TODO make this more fuzzy
 					if (!flow_accurate)
-						flow_w *= 0.2f;
+						flow_w *= 0.05f;
 					flow_valid = true;
-					flow_valid_time = t;
 
 				} else {
 					flow_w = 0.0f;
@@ -606,6 +610,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		/* check for sonar measurement timeout */
 		if (sonar_valid && t > sonar_time + sonar_timeout) {
 			sonar_corr = 0.0f;
+			surface_offset_rate = 0.0f;
 			sonar_valid = false;
 		}
 
@@ -616,24 +621,35 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		bool use_gps = ref_xy_inited && gps_valid && params.w_pos_gps_p > 0.00001f;
 		/* use flow if it's valid and (accurate or no GPS available) */
 		bool use_flow = flow_valid && (flow_accurate || !use_gps);
-		/* try to estimate xy even if no absolute position source available,
-		 * if using optical flow velocity will be valid */
-		bool can_estimate_xy = use_gps || use_flow || (t < flow_valid_time + flow_valid_timeout);
+		/* try to estimate position during some time after position sources lost */
+		if (use_gps || use_flow) {
+            xy_src_time = t;
+		}
+		bool can_estimate_xy = (t < xy_src_time + xy_src_timeout);
 
 		/* baro offset correction if sonar available,
 		 * don't touch reference altitude, local_pos.ref_alt != baro_offset after this */
 		if (sonar_valid) {
-			surface_offset -= sonar_corr * params.w_alt_sonar * dt;
+			surface_offset += surface_offset_rate * dt;
 		}
 
 		/* accelerometer bias correction */
 		float accel_bias_corr[3] = { 0.0f, 0.0f, 0.0f };
 
+		float w_pos_gps_p = params.w_pos_gps_p;
+		float w_pos_gps_v = params.w_pos_gps_v;
+
+		/* reduce GPS weight if optical flow is good */
+		if (use_flow && flow_accurate) {
+			w_pos_gps_p *= params.w_gps_flow;
+			w_pos_gps_v *= params.w_gps_flow;
+		}
+
 		if (use_gps) {
-			accel_bias_corr[0] -= gps_corr[0][0] * params.w_pos_gps_p * params.w_pos_gps_p;
-			accel_bias_corr[0] -= gps_corr[0][1] * params.w_pos_gps_v;
-			accel_bias_corr[1] -= gps_corr[1][0] * params.w_pos_gps_p * params.w_pos_gps_p;
-			accel_bias_corr[1] -= gps_corr[1][1] * params.w_pos_gps_v;
+			accel_bias_corr[0] -= gps_corr[0][0] * w_pos_gps_p * w_pos_gps_p;
+			accel_bias_corr[0] -= gps_corr[0][1] * w_pos_gps_v;
+			accel_bias_corr[1] -= gps_corr[1][0] * w_pos_gps_p * w_pos_gps_p;
+			accel_bias_corr[1] -= gps_corr[1][1] * w_pos_gps_v;
 		}
 
 		if (use_flow) {
@@ -681,12 +697,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			}
 
 			if (use_gps) {
-				inertial_filter_correct(gps_corr[0][0], dt, x_est, 0, params.w_pos_gps_p);
-				inertial_filter_correct(gps_corr[1][0], dt, y_est, 0, params.w_pos_gps_p);
+				inertial_filter_correct(gps_corr[0][0], dt, x_est, 0, w_pos_gps_p);
+				inertial_filter_correct(gps_corr[1][0], dt, y_est, 0, w_pos_gps_p);
 
 				if (gps.vel_ned_valid && t < gps.timestamp_velocity + gps_topic_timeout) {
-					inertial_filter_correct(gps_corr[0][1], dt, x_est, 1, params.w_pos_gps_v);
-					inertial_filter_correct(gps_corr[1][1], dt, y_est, 1, params.w_pos_gps_v);
+					inertial_filter_correct(gps_corr[0][1], dt, x_est, 1, w_pos_gps_v);
+					inertial_filter_correct(gps_corr[1][1], dt, y_est, 1, w_pos_gps_v);
 				}
 			}
 
@@ -765,6 +781,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.dist_bottom_valid = t < sonar_valid_time + sonar_valid_timeout;
 			if (local_pos.dist_bottom_valid) {
 				local_pos.dist_bottom = -z_est[0] - surface_offset;
+				local_pos.dist_bottom_rate = -z_est[1] - surface_offset_rate;
 			}
 
 			local_pos.timestamp = t;
