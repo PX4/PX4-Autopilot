@@ -504,7 +504,6 @@ int hil_state_transition(hil_state_t new_state, int status_pub, struct vehicle_s
 	if (valid_transition) {
 		current_status->hil_state = new_state;
 
-		current_status->counter++;
 		current_status->timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
 

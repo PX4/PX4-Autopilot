@@ -68,7 +68,6 @@
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
 
-#include <systemlib/ppm_decode.h>
 #include <systemlib/airspeed.h>
 
 #include <uORB/uORB.h>
@@ -105,22 +104,22 @@
  * IN13 - aux1
  * IN14 - aux2
  * IN15 - pressure sensor
- * 
+ *
  * IO:
  * IN4 - servo supply rail
  * IN5 - analog RSSI
  */
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-  #define ADC_BATTERY_VOLTAGE_CHANNEL	10
-  #define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
+#define ADC_BATTERY_VOLTAGE_CHANNEL	10
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL	11
 #endif
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-  #define ADC_BATTERY_VOLTAGE_CHANNEL	2
-  #define ADC_BATTERY_CURRENT_CHANNEL	3
-  #define ADC_5V_RAIL_SENSE		4
-  #define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
+#define ADC_BATTERY_VOLTAGE_CHANNEL	2
+#define ADC_BATTERY_CURRENT_CHANNEL	3
+#define ADC_5V_RAIL_SENSE		4
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL	15
 #endif
 
 #define BAT_VOL_INITIAL 0.f
@@ -134,8 +133,6 @@
  */
 #define PCB_TEMP_ESTIMATE_DEG 5.0f
 
-#define PPM_INPUT_TIMEOUT_INTERVAL	50000 /**< 50 ms timeout / 20 Hz */
-
 #define limit_minus_one_to_one(arg) (arg < -1.0f) ? -1.0f : ((arg > 1.0f) ? 1.0f : arg)
 
 /**
@@ -143,70 +140,68 @@
  * This enum maps from board attitude to airframe attitude.
  */
 enum Rotation {
-    ROTATION_NONE                = 0,
-    ROTATION_YAW_45              = 1,
-    ROTATION_YAW_90              = 2,
-    ROTATION_YAW_135             = 3,
-    ROTATION_YAW_180             = 4,
-    ROTATION_YAW_225             = 5,
-    ROTATION_YAW_270             = 6,
-    ROTATION_YAW_315             = 7,
-    ROTATION_ROLL_180            = 8,
-    ROTATION_ROLL_180_YAW_45     = 9,
-    ROTATION_ROLL_180_YAW_90     = 10,
-    ROTATION_ROLL_180_YAW_135    = 11,
-    ROTATION_PITCH_180           = 12,
-    ROTATION_ROLL_180_YAW_225    = 13,
-    ROTATION_ROLL_180_YAW_270    = 14,
-    ROTATION_ROLL_180_YAW_315    = 15,
-    ROTATION_ROLL_90             = 16,
-    ROTATION_ROLL_90_YAW_45      = 17,
-    ROTATION_ROLL_90_YAW_90      = 18,
-    ROTATION_ROLL_90_YAW_135     = 19,
-    ROTATION_ROLL_270            = 20,
-    ROTATION_ROLL_270_YAW_45     = 21,
-    ROTATION_ROLL_270_YAW_90     = 22,
-    ROTATION_ROLL_270_YAW_135    = 23,
-    ROTATION_PITCH_90            = 24,
-    ROTATION_PITCH_270           = 25,
-    ROTATION_MAX
+	ROTATION_NONE                = 0,
+	ROTATION_YAW_45              = 1,
+	ROTATION_YAW_90              = 2,
+	ROTATION_YAW_135             = 3,
+	ROTATION_YAW_180             = 4,
+	ROTATION_YAW_225             = 5,
+	ROTATION_YAW_270             = 6,
+	ROTATION_YAW_315             = 7,
+	ROTATION_ROLL_180            = 8,
+	ROTATION_ROLL_180_YAW_45     = 9,
+	ROTATION_ROLL_180_YAW_90     = 10,
+	ROTATION_ROLL_180_YAW_135    = 11,
+	ROTATION_PITCH_180           = 12,
+	ROTATION_ROLL_180_YAW_225    = 13,
+	ROTATION_ROLL_180_YAW_270    = 14,
+	ROTATION_ROLL_180_YAW_315    = 15,
+	ROTATION_ROLL_90             = 16,
+	ROTATION_ROLL_90_YAW_45      = 17,
+	ROTATION_ROLL_90_YAW_90      = 18,
+	ROTATION_ROLL_90_YAW_135     = 19,
+	ROTATION_ROLL_270            = 20,
+	ROTATION_ROLL_270_YAW_45     = 21,
+	ROTATION_ROLL_270_YAW_90     = 22,
+	ROTATION_ROLL_270_YAW_135    = 23,
+	ROTATION_PITCH_90            = 24,
+	ROTATION_PITCH_270           = 25,
+	ROTATION_MAX
 };
 
-typedef struct
-{
-    uint16_t roll;
-    uint16_t pitch;
-    uint16_t yaw;
+typedef struct {
+	uint16_t roll;
+	uint16_t pitch;
+	uint16_t yaw;
 } rot_lookup_t;
 
-const rot_lookup_t rot_lookup[] =
-{
-    {  0,   0,   0 },
-    {  0,   0,  45 },
-    {  0,   0,  90 },
-    {  0,   0, 135 },
-    {  0,   0, 180 },
-    {  0,   0, 225 },
-    {  0,   0, 270 },
-    {  0,   0, 315 },
-    {180,   0,   0 },
-    {180,   0,  45 },
-    {180,   0,  90 },
-    {180,   0, 135 },
-    {  0, 180,   0 },
-    {180,   0, 225 },
-    {180,   0, 270 },
-    {180,   0, 315 },
-    { 90,   0,   0 },
-    { 90,   0,  45 },
-    { 90,   0,  90 },
-    { 90,   0, 135 },
-    {270,   0,   0 },
-    {270,   0,  45 },
-    {270,   0,  90 },
-    {270,   0, 135 },
-    {  0,  90,   0 },
-    {  0, 270,   0 }
+const rot_lookup_t rot_lookup[] = {
+	{  0,   0,   0 },
+	{  0,   0,  45 },
+	{  0,   0,  90 },
+	{  0,   0, 135 },
+	{  0,   0, 180 },
+	{  0,   0, 225 },
+	{  0,   0, 270 },
+	{  0,   0, 315 },
+	{180,   0,   0 },
+	{180,   0,  45 },
+	{180,   0,  90 },
+	{180,   0, 135 },
+	{  0, 180,   0 },
+	{180,   0, 225 },
+	{180,   0, 270 },
+	{180,   0, 315 },
+	{ 90,   0,   0 },
+	{ 90,   0,  45 },
+	{ 90,   0,  90 },
+	{ 90,   0, 135 },
+	{270,   0,   0 },
+	{270,   0,  45 },
+	{270,   0,  90 },
+	{270,   0, 135 },
+	{  0,  90,   0 },
+	{  0, 270,   0 }
 };
 
 /**
@@ -239,12 +234,12 @@ public:
 private:
 	static const unsigned _rc_max_chan_count = RC_CHANNELS_MAX;	/**< maximum number of r/c channels we handle */
 
-	hrt_abstime	_ppm_last_valid;		/**< last time we got a valid ppm signal */
+	hrt_abstime	_rc_last_valid;		/**< last time we got a valid RC signal */
 
 	/**
-	 * Gather and publish PPM input data.
+	 * Gather and publish RC input data.
 	 */
-	void		ppm_poll();
+	void		rc_poll();
 
 	/* XXX should not be here - should be own driver */
 	int 		_fd_adc;			/**< ADC driver handle */
@@ -501,7 +496,7 @@ Sensors	*g_sensors = nullptr;
 }
 
 Sensors::Sensors() :
-	_ppm_last_valid(0),
+	_rc_last_valid(0),
 
 	_fd_adc(-1),
 	_last_adc(0),
@@ -532,8 +527,8 @@ Sensors::Sensors() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
-	_board_rotation(3,3),
-	_external_mag_rotation(3,3),
+	_board_rotation(3, 3),
+	_external_mag_rotation(3, 3),
 	_mag_is_external(false)
 {
 
@@ -660,9 +655,9 @@ int
 Sensors::parameters_update()
 {
 	bool rc_valid = true;
-    float tmpScaleFactor = 0.0f;
-    float tmpRevFactor = 0.0f;
-    
+	float tmpScaleFactor = 0.0f;
+	float tmpRevFactor = 0.0f;
+
 	/* rc values */
 	for (unsigned int i = 0; i < RC_CHANNELS_MAX; i++) {
 
@@ -674,19 +669,19 @@ Sensors::parameters_update()
 
 		tmpScaleFactor = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
 		tmpRevFactor = tmpScaleFactor * _parameters.rev[i];
-        
+
 		/* handle blowup in the scaling factor calculation */
 		if (!isfinite(tmpScaleFactor) ||
 		    (tmpRevFactor < 0.000001f) ||
-		    (tmpRevFactor > 0.2f) ) {
+		    (tmpRevFactor > 0.2f)) {
 			warnx("RC chan %u not sane, scaling: %8.6f, rev: %d", i, tmpScaleFactor, (int)(_parameters.rev[i]));
 			/* scaling factors do not make sense, lock them down */
 			_parameters.scaling_factor[i] = 0.0f;
 			rc_valid = false;
+
+		} else {
+			_parameters.scaling_factor[i] = tmpScaleFactor;
 		}
-        else {
-            _parameters.scaling_factor[i] = tmpScaleFactor;
-        }
 	}
 
 	/* handle wrong values */
@@ -812,7 +807,7 @@ void
 Sensors::get_rot_matrix(enum Rotation rot, math::Matrix *rot_matrix)
 {
 	/* first set to zero */
-	rot_matrix->Matrix::zero(3,3);
+	rot_matrix->Matrix::zero(3, 3);
 
 	float roll  = M_DEG_TO_RAD_F * (float)rot_lookup[rot].roll;
 	float pitch = M_DEG_TO_RAD_F * (float)rot_lookup[rot].pitch;
@@ -823,7 +818,7 @@ Sensors::get_rot_matrix(enum Rotation rot, math::Matrix *rot_matrix)
 	math::Dcm R(euler);
 
 	for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-		(*rot_matrix)(i,j) = R(i, j);
+			(*rot_matrix)(i, j) = R(i, j);
 }
 
 void
@@ -841,7 +836,7 @@ Sensors::accel_init()
 
 		// XXX do the check more elegantly
 
-		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 
 		/* set the accel internal sampling rate up to at leat 1000Hz */
 		ioctl(fd, ACCELIOCSSAMPLERATE, 1000);
@@ -849,7 +844,7 @@ Sensors::accel_init()
 		/* set the driver to poll at 1000Hz */
 		ioctl(fd, SENSORIOCSPOLLRATE, 1000);
 
-		#elif CONFIG_ARCH_BOARD_PX4FMU_V2
+#elif CONFIG_ARCH_BOARD_PX4FMU_V2
 
 		/* set the accel internal sampling rate up to at leat 800Hz */
 		ioctl(fd, ACCELIOCSSAMPLERATE, 800);
@@ -857,10 +852,10 @@ Sensors::accel_init()
 		/* set the driver to poll at 800Hz */
 		ioctl(fd, SENSORIOCSPOLLRATE, 800);
 
-		#else
-			#error Need a board configuration, either CONFIG_ARCH_BOARD_PX4FMU_V1 or CONFIG_ARCH_BOARD_PX4FMU_V2
+#else
+#error Need a board configuration, either CONFIG_ARCH_BOARD_PX4FMU_V1 or CONFIG_ARCH_BOARD_PX4FMU_V2
 
-		#endif
+#endif
 
 		warnx("using system accel");
 		close(fd);
@@ -882,7 +877,7 @@ Sensors::gyro_init()
 
 		// XXX do the check more elegantly
 
-		#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 
 		/* set the gyro internal sampling rate up to at least 1000Hz */
 		if (ioctl(fd, GYROIOCSSAMPLERATE, 1000) != OK)
@@ -892,7 +887,7 @@ Sensors::gyro_init()
 		if (ioctl(fd, SENSORIOCSPOLLRATE, 1000) != OK)
 			ioctl(fd, SENSORIOCSPOLLRATE, 800);
 
-		#else
+#else
 
 		/* set the gyro internal sampling rate up to at least 760Hz */
 		ioctl(fd, GYROIOCSSAMPLERATE, 760);
@@ -900,7 +895,7 @@ Sensors::gyro_init()
 		/* set the driver to poll at 760Hz */
 		ioctl(fd, SENSORIOCSPOLLRATE, 760);
 
-		#endif
+#endif
 
 		warnx("using system gyro");
 		close(fd);
@@ -924,23 +919,28 @@ Sensors::mag_init()
 
 
 	ret = ioctl(fd, MAGIOCSSAMPLERATE, 150);
+
 	if (ret == OK) {
 		/* set the pollrate accordingly */
 		ioctl(fd, SENSORIOCSPOLLRATE, 150);
+
 	} else {
 		ret = ioctl(fd, MAGIOCSSAMPLERATE, 100);
+
 		/* if the slower sampling rate still fails, something is wrong */
 		if (ret == OK) {
 			/* set the driver to poll also at the slower rate */
 			ioctl(fd, SENSORIOCSPOLLRATE, 100);
+
 		} else {
 			errx(1, "FATAL: mag sampling rate could not be set");
 		}
 	}
 
-	
+
 
 	ret = ioctl(fd, MAGIOCGEXTERNAL, 0);
+
 	if (ret < 0)
 		errx(1, "FATAL: unknown if magnetometer is external or onboard");
 	else if (ret == 1)
@@ -993,7 +993,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
 		math::Vector3 vect = {accel_report.x, accel_report.y, accel_report.z};
-		vect = _board_rotation*vect;
+		vect = _board_rotation * vect;
 
 		raw.accelerometer_m_s2[0] = vect(0);
 		raw.accelerometer_m_s2[1] = vect(1);
@@ -1019,7 +1019,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
 		math::Vector3 vect = {gyro_report.x, gyro_report.y, gyro_report.z};
-		vect = _board_rotation*vect;
+		vect = _board_rotation * vect;
 
 		raw.gyro_rad_s[0] = vect(0);
 		raw.gyro_rad_s[1] = vect(1);
@@ -1047,9 +1047,9 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		math::Vector3 vect = {mag_report.x, mag_report.y, mag_report.z};
 
 		if (_mag_is_external)
-			vect = _external_mag_rotation*vect;
+			vect = _external_mag_rotation * vect;
 		else
-			vect = _board_rotation*vect;
+			vect = _board_rotation * vect;
 
 		raw.magnetometer_ga[0] = vect(0);
 		raw.magnetometer_ga[1] = vect(1);
@@ -1094,8 +1094,8 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		raw.differential_pressure_counter++;
 
 		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
-		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar*1e2f, 
-											 			 raw.baro_pres_mbar*1e2f, raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
+		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar * 1e2f,
+					      raw.baro_pres_mbar * 1e2f, raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
 		/* announce the airspeed if needed, just publish else */
 		if (_airspeed_pub > 0) {
@@ -1236,12 +1236,12 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
 		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
-			
+
 			if (ret >= (int)sizeof(buf_adc[0])) {
 
 				/* Save raw voltage values */
 				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
-					 raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
+					raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
 				}
 
 				/* look for specific channels and process the raw voltage to measurement data */
@@ -1269,12 +1269,12 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						} else {
 							_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
 						}
-					} 
+					}
 
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
-					float voltage = (float)(buf_adc[i].am_data ) * 3.3f / 4096.0f * 2.0f; //V_ref/4096 * (voltage divider factor)
+					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  //V_ref/4096 * (voltage divider factor)
 
 					/**
 					 * The voltage divider pulls the signal down, only act on
@@ -1306,17 +1306,13 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 }
 
 void
-Sensors::ppm_poll()
+Sensors::rc_poll()
 {
+	bool rc_updated;
+	orb_check(_rc_sub, &rc_updated);
 
-	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-	struct pollfd fds[1];
-	fds[0].fd = _rc_sub;
-	fds[0].events = POLLIN;
-	/* check non-blocking for new data */
-	int poll_ret = poll(fds, 1, 0);
-
-	if (poll_ret > 0) {
+	if (rc_updated) {
+		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 		struct rc_input_values	rc_input;
 
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
@@ -1352,7 +1348,7 @@ Sensors::ppm_poll()
 			channel_limit = _rc_max_chan_count;
 
 		/* we are accepting this message */
-		_ppm_last_valid = rc_input.timestamp;
+		_rc_last_valid = rc_input.timestamp;
 
 		/* Read out values from raw message */
 		for (unsigned int i = 0; i < channel_limit; i++) {
@@ -1362,6 +1358,7 @@ Sensors::ppm_poll()
 			 */
 			if (rc_input.values[i] < _parameters.min[i])
 				rc_input.values[i] = _parameters.min[i];
+
 			if (rc_input.values[i] > _parameters.max[i])
 				rc_input.values[i] = _parameters.max[i];
 
@@ -1622,7 +1619,7 @@ Sensors::task_main()
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 
 		/* Look for new r/c input data */
-		ppm_poll();
+		rc_poll();
 
 		perf_end(_loop_perf);
 	}
@@ -1640,11 +1637,11 @@ Sensors::start()
 
 	/* start the task */
 	_sensors_task = task_spawn_cmd("sensors_task",
-				   SCHED_DEFAULT,
-				   SCHED_PRIORITY_MAX - 5,
-				   2048,
-				   (main_t)&Sensors::task_main_trampoline,
-				   nullptr);
+				       SCHED_DEFAULT,
+				       SCHED_PRIORITY_MAX - 5,
+				       2048,
+				       (main_t)&Sensors::task_main_trampoline,
+				       nullptr);
 
 	if (_sensors_task < 0) {
 		warn("task start failed");

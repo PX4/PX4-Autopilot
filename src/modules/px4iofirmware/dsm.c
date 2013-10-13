@@ -285,10 +285,10 @@ dsm_bind(uint16_t cmd, int pulses)
 
 		/*Pulse RX pin a number of times*/
 		for (int i = 0; i < pulses; i++) {
+			up_udelay(25);
 			stm32_gpiowrite(usart1RxAsOutp, false);
 			up_udelay(25);
 			stm32_gpiowrite(usart1RxAsOutp, true);
-			up_udelay(25);
 		}
 		break;
 
