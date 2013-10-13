@@ -10,12 +10,12 @@ then
 	# Set all params here, then disable autoconfig
 	param set SYS_AUTOCONFIG 0
 
-	param set MC_ATTRATE_D 0.006
+	param set MC_ATTRATE_D 0.004
 	param set MC_ATTRATE_I 0.0
-	param set MC_ATTRATE_P 0.17
+	param set MC_ATTRATE_P 0.13
 	param set MC_ATT_D 0.0
 	param set MC_ATT_I 0.0
-	param set MC_ATT_P 5.0
+	param set MC_ATT_P 9.0
 	param set MC_YAWPOS_D 0.0
 	param set MC_YAWPOS_I 0.15
 	param set MC_YAWPOS_P 0.5

@@ -237,7 +237,7 @@ PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
 	fds[0].fd = _io_fd;
 	fds[0].events = POLLIN;
 
-	/* wait 100 ms for a character */
+	/* wait <timout> ms for a character */
 	int ret = ::poll(&fds[0], 1, timeout);
 
 	if (ret < 1) {
