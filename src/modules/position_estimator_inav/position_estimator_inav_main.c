@@ -636,7 +636,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 			/* surface distance correction */
 			if (sonar_valid) {
-				surface_offset_rate -= sonar_corr * params.w_alt_sonar * params.w_alt_sonar * dt;
+				surface_offset_rate -= sonar_corr * 0.5f * params.w_alt_sonar * params.w_alt_sonar * dt;
 				surface_offset -= sonar_corr * params.w_alt_sonar * dt;
 			}
 		}
