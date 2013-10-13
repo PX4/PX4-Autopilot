@@ -166,19 +166,19 @@ protected:
 	double lat, lon;                   	/**< lat, lon radians */
 	float alt;                   		/**< altitude, meters */
 	// parameters
-	control::BlockParam<float> _vGyro;      /**< gyro process noise */
-	control::BlockParam<float> _vAccel;     /**< accelerometer process noise  */
-	control::BlockParam<float> _rMag;       /**< magnetometer measurement noise  */
-	control::BlockParam<float> _rGpsVel;    /**< gps velocity measurement noise */
-	control::BlockParam<float> _rGpsPos;    /**< gps position measurement noise */
-	control::BlockParam<float> _rGpsAlt;    /**< gps altitude measurement noise */
-	control::BlockParam<float> _rPressAlt;  /**< press altitude measurement noise */
-	control::BlockParam<float> _rAccel;     /**< accelerometer measurement noise */
-	control::BlockParam<float> _magDip;     /**< magnetic inclination with level */
-	control::BlockParam<float> _magDec;     /**< magnetic declination, clockwise rotation */
-	control::BlockParam<float> _g;          /**< gravitational constant */
-	control::BlockParam<float> _faultPos;   /**< fault detection threshold for position */
-	control::BlockParam<float> _faultAtt;   /**< fault detection threshold for attitude */
+	control::BlockParamFloat _vGyro;      /**< gyro process noise */
+	control::BlockParamFloat _vAccel;     /**< accelerometer process noise  */
+	control::BlockParamFloat _rMag;       /**< magnetometer measurement noise  */
+	control::BlockParamFloat _rGpsVel;    /**< gps velocity measurement noise */
+	control::BlockParamFloat _rGpsPos;    /**< gps position measurement noise */
+	control::BlockParamFloat _rGpsAlt;    /**< gps altitude measurement noise */
+	control::BlockParamFloat _rPressAlt;  /**< press altitude measurement noise */
+	control::BlockParamFloat _rAccel;     /**< accelerometer measurement noise */
+	control::BlockParamFloat _magDip;     /**< magnetic inclination with level */
+	control::BlockParamFloat _magDec;     /**< magnetic declination, clockwise rotation */
+	control::BlockParamFloat _g;          /**< gravitational constant */
+	control::BlockParamFloat _faultPos;   /**< fault detection threshold for position */
+	control::BlockParamFloat _faultAtt;   /**< fault detection threshold for attitude */
 	// status
 	bool _attitudeInitialized;
 	bool _positionInitialized;

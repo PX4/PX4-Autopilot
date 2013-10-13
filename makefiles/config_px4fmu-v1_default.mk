@@ -134,7 +134,10 @@ MODULES		+= lib/geo
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/example_fixedwing_control
-MODULES			+= examples/fixedwing_control
+#MODULES			+= examples/fixedwing_control
+
+# Hardware test
+#MODULES			+= examples/hwtest
 
 #
 # Transitional support - add commands from the NuttX export archive.
