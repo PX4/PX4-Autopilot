@@ -47,10 +47,15 @@
 #include <nuttx/compiler.h>
 
 #include <systemlib/err.h>
-#include <drivers/drv_mixer.h>
+#include <systemlib/mixer/mixer.h>
 #include <uORB/topics/actuator_controls.h>
 
-__EXPORT int mixer_main(int argc, char *argv[]);
+/**
+ * Mixer utility for loading mixer files to devices
+ *
+ * @ingroup apps
+ */
+extern "C" __EXPORT int mixer_main(int argc, char *argv[]);
 
 static void	usage(const char *reason) noreturn_function;
 static void	load(const char *devname, const char *fname) noreturn_function;
@@ -87,8 +92,6 @@ static void
 load(const char *devname, const char *fname)
 {
 	int		dev;
-	FILE		*fp;
-	char		line[120];
 	char		buf[2048];
 
 	/* open the device */
@@ -99,49 +102,7 @@ load(const char *devname, const char *fname)
 	if (ioctl(dev, MIXERIOCRESET, 0))
 		err(1, "can't reset mixers on %s", devname);
 
-	/* open the mixer definition file */
-	fp = fopen(fname, "r");
-	if (fp == NULL)
-		err(1, "can't open %s", fname);
-
-	/* read valid lines from the file into a buffer */
-	buf[0] = '\0';
-	for (;;) {
-
-		/* get a line, bail on error/EOF */
-		line[0] = '\0';
-		if (fgets(line, sizeof(line), fp) == NULL)
-			break;
-
-		/* if the line doesn't look like a mixer definition line, skip it */
-		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':'))
-			continue;
-
-		/* compact whitespace in the buffer */
-		char *t, *f;
-		for (f = buf; *f != '\0'; f++) {
-			/* scan for space characters */
-			if (*f == ' ') {
-				/* look for additional spaces */
-				t = f + 1;
-				while (*t == ' ')
-					t++;
-				if (*t == '\0') {
-					/* strip trailing whitespace */
-					*f = '\0';
-				} else if (t > (f + 1)) {
-					memmove(f + 1, t, strlen(t) + 1);
-				}
-			}
-		}
-
-		/* if the line is too long to fit in the buffer, bail */
-		if ((strlen(line) + strlen(buf) + 1) >= sizeof(buf))
-			break;
-
-		/* add the line to the buffer */
-		strcat(buf, line);
-	}
+	load_mixer_file(fname, &buf[0], sizeof(buf));
 
 	/* XXX pass the buffer to the device */
 	int ret = ioctl(dev, MIXERIOCLOADBUF, (unsigned long)buf);
