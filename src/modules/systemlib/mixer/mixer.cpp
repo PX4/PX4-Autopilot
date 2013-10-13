@@ -116,6 +116,33 @@ Mixer::scale_check(struct mixer_scaler_s &scaler)
 	return 0;
 }
 
+const char *
+Mixer::findtag(const char *buf, unsigned &buflen, char tag)
+{
+	while (buflen >= 2) {
+		if ((buf[0] == tag) && (buf[1] == ':'))
+			return buf;
+		buf++;
+		buflen--;
+	}
+	return nullptr;
+}
+
+const char *
+Mixer::skipline(const char *buf, unsigned &buflen)
+{
+	const char *p;
+
+	/* if we can find a CR or NL in the buffer, skip up to it */
+	if ((p = (const char *)memchr(buf, '\r', buflen)) || (p = (const char *)memchr(buf, '\n', buflen))) {
+		/* skip up to it AND one beyond - could be on the NUL symbol now */
+		buflen -= (p - buf) + 1;
+		return p + 1;
+	}
+
+	return nullptr;
+}
+
 /****************************************************************************/
 
 NullMixer::NullMixer() :

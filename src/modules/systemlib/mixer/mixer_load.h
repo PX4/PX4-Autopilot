@@ -44,7 +44,7 @@
 
 __BEGIN_DECLS
 
-__EXPORT int load_mixer_file(const char *fname, char *buf);
+__EXPORT int load_mixer_file(const char *fname, char *buf, unsigned maxlen);
 
 __END_DECLS
 

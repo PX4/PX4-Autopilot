@@ -205,11 +205,17 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	}
 
 	if (used > (int)buflen) {
-		debug("multirotor spec used %d of %u", used, buflen);
+		debug("OVERFLOW: multirotor spec used %d of %u", used, buflen);
 		return nullptr;
 	}
 
-	buflen -= used;
+	buf = skipline(buf, buflen);
+	if (buf == nullptr) {
+		debug("no line ending, line is incomplete");
+		return nullptr;
+	}
+
+	debug("remaining in buf: %d, first char: %c", buflen, buf[0]);
 
 	if (!strcmp(geomname, "4+")) {
 		geometry = MultirotorMixer::QUAD_PLUS;

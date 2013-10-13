@@ -38,22 +38,22 @@
  */
 
 #include <nuttx/config.h>
-#include <systemlib/err.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
 
 #include "mixer_load.h"
 
-int load_mixer_file(const char *fname, char *buf)
+int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 {
 	FILE		*fp;
 	char		line[120];
 
 	/* open the mixer definition file */
 	fp = fopen(fname, "r");
-	if (fp == NULL)
-		err(1, "can't open %s", fname);
+	if (fp == NULL) {
+		return 1;
+	}
 
 	/* read valid lines from the file into a buffer */
 	buf[0] = '\0';
@@ -70,7 +70,7 @@ int load_mixer_file(const char *fname, char *buf)
 
 		/* compact whitespace in the buffer */
 		char *t, *f;
-		for (f = buf; *f != '\0'; f++) {
+		for (f = line; *f != '\0'; f++) {
 			/* scan for space characters */
 			if (*f == ' ') {
 				/* look for additional spaces */
@@ -87,8 +87,9 @@ int load_mixer_file(const char *fname, char *buf)
 		}
 
 		/* if the line is too long to fit in the buffer, bail */
-		if ((strlen(line) + strlen(buf) + 1) >= sizeof(buf))
-			break;
+		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
+			return 1;
+		}
 
 		/* add the line to the buffer */
 		strcat(buf, line);
