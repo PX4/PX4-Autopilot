@@ -69,22 +69,39 @@ protected:
 /**
  * Parameters that are tied to blocks for updating and nameing.
  */
-template<class T>
-class __EXPORT BlockParam : public BlockParamBase
+
+class __EXPORT BlockParamFloat : public BlockParamBase
 {
 public:
-	BlockParam(Block *block, const char *name, bool parent_prefix=true) :
+	BlockParamFloat(Block *block, const char *name, bool parent_prefix=true) :
 		BlockParamBase(block, name, parent_prefix),
 		_val() {
 		update();
 	}
-	T get() { return _val; }
-	void set(T val) { _val = val; }
+	float get() { return _val; }
+	void set(float val) { _val = val; }
 	void update() {
 		if (_handle != PARAM_INVALID) param_get(_handle, &_val);
 	}
 protected:
-	T _val;
+	float _val;
+};
+
+class __EXPORT BlockParamInt : public BlockParamBase
+{
+public:
+	BlockParamInt(Block *block, const char *name, bool parent_prefix=true) :
+		BlockParamBase(block, name, parent_prefix),
+		_val() {
+		update();
+	}
+	int get() { return _val; }
+	void set(int val) { _val = val; }
+	void update() {
+		if (_handle != PARAM_INVALID) param_get(_handle, &_val);
+	}
+protected:
+	int _val;
 };
 
 } // namespace control
