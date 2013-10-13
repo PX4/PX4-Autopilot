@@ -233,7 +233,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	bool reset_takeoff_sp = true;
 	bool reset_z_sp_dist = false;
 	float surface_offset = 0.0f;	// Z of ground level
-	float z_sp_dist = 0.0f;			// distance to ground setpoint (positive)
+	float sp_z_dist = 0.0f;			// distance to ground setpoint (positive)
 
 	float ref_alt = 0.0f;
 	hrt_abstime ref_timestamp = 0;
@@ -346,6 +346,10 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			float xy_sp_offs_max = params.xy_vel_max / params.xy_p * 2.0f;
 			float sp_move_rate[3] = { 0.0f, 0.0f, 0.0f };
 
+			float sp_z = local_pos_sp.z;
+			float z = local_pos.z;
+			float vz = local_pos.vz;
+
 			if (control_mode.flag_control_manual_enabled) {
 				/* manual control */
 				/* check for reference point updates and correct setpoint */
@@ -369,17 +373,23 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						if (reset_z_sp_dist) {
 							reset_z_sp_dist = false;
 							surface_offset = local_pos.z + local_pos.dist_bottom;
-							z_sp_dist = -local_pos_sp.z + surface_offset;
+							sp_z_dist = -local_pos_sp.z + surface_offset;
 							mavlink_log_info(mavlink_fd, "[mpc] surface offset: %.2f", surface_offset);
+
 						} else {
 							if (local_pos.surface_bottom_timestamp != surface_bottom_timestamp) {
 								/* new surface level */
-								z_sp_dist += local_pos.z + local_pos.dist_bottom - surface_offset;
+								sp_z_dist += local_pos.z + local_pos.dist_bottom - surface_offset;
 							}
+
 							surface_offset = local_pos.z + local_pos.dist_bottom;
 						}
+
+						z = -local_pos.dist_bottom;
+						vz = -local_pos.dist_bottom_rate;
 						/* move altitude setpoint according to ground distance */
-						local_pos_sp.z = surface_offset - z_sp_dist;
+						local_pos_sp.z = surface_offset - sp_z_dist;
+						sp_z = -sp_z_dist;
 					}
 
 					/* move altitude setpoint with throttle stick */
@@ -388,7 +398,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (z_sp_ctl != 0.0f) {
 						sp_move_rate[2] = -z_sp_ctl * params.z_vel_max;
 						local_pos_sp.z += sp_move_rate[2] * dt;
-						z_sp_dist -= sp_move_rate[2] * dt;	// this will have effect only if distance sensor used
+						sp_z_dist -= sp_move_rate[2] * dt;
 
 						// TODO add z_sp_dist correction here
 						if (local_pos_sp.z > local_pos.z + z_sp_offs_max) {
@@ -541,6 +551,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				reset_man_sp_xy = true;
 				reset_man_sp_z = true;
 
+				sp_z = local_pos_sp.z;
+
 			} else {
 				/* no control (failsafe), loiter or stay on ground */
 				if (local_pos.landed) {
@@ -578,6 +590,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 					reset_auto_sp_xy = false;
 				}
+
+				sp_z = local_pos_sp.z;
 			}
 
 			/* publish local position setpoint */
@@ -585,7 +599,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			/* run position & altitude controllers, calculate velocity setpoint */
 			if (control_mode.flag_control_altitude_enabled) {
-				global_vel_sp.vz = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz - sp_move_rate[2], dt) + sp_move_rate[2];
+				// TODO add feed-forward to PID library to allow limiting resulting value
+				global_vel_sp.vz = pid_calculate(&z_pos_pid, sp_z, z, vz - sp_move_rate[2], dt) + sp_move_rate[2];
 
 			} else {
 				reset_man_sp_z = true;
@@ -639,7 +654,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						mavlink_log_info(mavlink_fd, "[mpc] reset hovering thrust: %.2f", (double)i);
 					}
 
-					thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, local_pos.vz, dt, att.R[2][2]);
+					thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, vz, dt, att.R[2][2]);
 					att_sp.thrust = -thrust_sp[2];
 
 				} else {
