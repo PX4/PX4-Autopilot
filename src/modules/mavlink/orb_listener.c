@@ -711,7 +711,7 @@ static void *
 uorb_receive_thread(void *arg)
 {
 	/* Set thread name */
-	prctl(PR_SET_NAME, "mavlink orb rcv", getpid());
+	prctl(PR_SET_NAME, "mavlink_orb_rcv", getpid());
 
 	/*
 	 * set up poll to block for new data,
