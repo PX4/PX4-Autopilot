@@ -668,6 +668,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GPSP_s log_GPSP;
 			struct log_ESC_s log_ESC;
 			struct log_GVSP_s log_GVSP;
+			struct log_DIST_s log_DIST;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -830,6 +831,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	uint16_t magnetometer_counter = 0;
 	uint16_t baro_counter = 0;
 	uint16_t differential_pressure_counter = 0;
+
+	/* track changes in distance status */
+	bool dist_bottom_present = false;
 
 	/* enable logging on start if needed */
 	if (log_on_start)
@@ -1046,12 +1050,21 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat;
 				log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon;
 				log_msg.body.log_LPOS.ref_alt = buf.local_pos.ref_alt;
-				log_msg.body.log_LPOS.dist_bottom = buf.local_pos.dist_bottom;
 				log_msg.body.log_LPOS.xy_flags = (buf.local_pos.xy_valid ? 1 : 0) | (buf.local_pos.v_xy_valid ? 2 : 0) | (buf.local_pos.xy_global ? 8 : 0);
 				log_msg.body.log_LPOS.z_flags = (buf.local_pos.z_valid ? 1 : 0) | (buf.local_pos.v_z_valid ? 2 : 0) | (buf.local_pos.z_global ? 8 : 0);
-				log_msg.body.log_LPOS.dist_flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
 				log_msg.body.log_LPOS.landed = buf.local_pos.landed;
 				LOGBUFFER_WRITE_AND_COUNT(LPOS);
+
+				if (buf.local_pos.dist_bottom_valid) {
+					dist_bottom_present = true;
+				}
+				if (dist_bottom_present) {
+					log_msg.msg_type = LOG_DIST_MSG;
+					log_msg.body.log_DIST.bottom = buf.local_pos.dist_bottom;
+					log_msg.body.log_DIST.bottom_rate = buf.local_pos.dist_bottom_rate;
+					log_msg.body.log_DIST.flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
+					LOGBUFFER_WRITE_AND_COUNT(DIST);
+				}
 			}
 
 			/* --- LOCAL POSITION SETPOINT --- */
