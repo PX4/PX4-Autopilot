@@ -1193,31 +1193,19 @@ int commander_thread_main(int argc, char *argv[])
 		bool main_state_changed = check_main_state_changed();
 		bool navigation_state_changed = check_navigation_state_changed();
 
+		hrt_abstime t1 = hrt_absolute_time();
+
+		if (navigation_state_changed || arming_state_changed) {
+			control_mode.flag_armed = armed.armed;	// copy armed state to vehicle_control_mode topic
+		}
+
 		if (arming_state_changed || main_state_changed || navigation_state_changed) {
 			mavlink_log_info(mavlink_fd, "[cmd] state: arm %d, main %d, nav %d", status.arming_state, status.main_state, status.navigation_state);
 			status_changed = true;
 		}
 
-		hrt_abstime t1 = hrt_absolute_time();
-
-		/* publish arming state */
-		if (arming_state_changed) {
-			armed.timestamp = t1;
-			orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
-		}
-
-		/* publish control mode */
-		if (navigation_state_changed || arming_state_changed) {
-			/* publish new navigation state */
-			control_mode.flag_armed = armed.armed;	// copy armed state to vehicle_control_mode topic
-			control_mode.counter++;
-			control_mode.timestamp = t1;
-			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);
-		}
-
 		/* publish states (armed, control mode, vehicle status) at least with 5 Hz */
 		if (counter % (200000 / COMMANDER_MONITORING_INTERVAL) == 0 || status_changed) {
-			status.counter++;
 			status.timestamp = t1;
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
 			control_mode.timestamp = t1;
