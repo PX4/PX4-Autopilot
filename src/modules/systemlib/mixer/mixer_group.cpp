@@ -111,6 +111,20 @@ MixerGroup::mix(float *outputs, unsigned space)
 	return index;
 }
 
+unsigned
+MixerGroup::count()
+{
+	Mixer	*mixer = _first;
+	unsigned index = 0;
+
+	while ((mixer != nullptr)) {
+		mixer = mixer->_next;
+		index++;
+	}
+
+	return index;
+}
+
 void
 MixerGroup::groups_required(uint32_t &groups)
 {
@@ -170,6 +184,7 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 
 			/* only adjust buflen if parsing was successful */
 			buflen = resid;
+			debug("SUCCESS - buflen: %d", buflen);
 		} else {
 
 			/*

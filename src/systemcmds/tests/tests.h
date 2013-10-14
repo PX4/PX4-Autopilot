@@ -76,6 +76,8 @@
  * Public Function Prototypes
  ****************************************************************************/
 
+__BEGIN_DECLS
+
 extern int	test_sensors(int argc, char *argv[]);
 extern int	test_gpio(int argc, char *argv[]);
 extern int	test_hrt(int argc, char *argv[]);
@@ -98,5 +100,8 @@ extern int	test_jig_voltages(int argc, char *argv[]);
 extern int	test_param(int argc, char *argv[]);
 extern int	test_bson(int argc, char *argv[]);
 extern int	test_file(int argc, char *argv[]);
+extern int	test_mixer(int argc, char *argv[]);
+
+__END_DECLS
 
 #endif /* __APPS_PX4_TESTS_H */
