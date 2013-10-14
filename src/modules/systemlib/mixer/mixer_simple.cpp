@@ -55,7 +55,7 @@
 #include "mixer.h"
 
 #define debug(fmt, args...)	do { } while(0)
-// #define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
+//#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 
 SimpleMixer::SimpleMixer(ControlCallback control_cb,
 			 uintptr_t cb_handle,
@@ -69,28 +69,6 @@ SimpleMixer::~SimpleMixer()
 {
 	if (_info != nullptr)
 		free(_info);
-}
-
-static const char *
-findtag(const char *buf, unsigned &buflen, char tag)
-{
-	while (buflen >= 2) {
-		if ((buf[0] == tag) && (buf[1] == ':'))
-			return buf;
-		buf++;
-		buflen--;
-	}
-	return nullptr;
-}
-
-static void
-skipline(const char *buf, unsigned &buflen)
-{
-	const char *p;
-
-	/* if we can find a CR or NL in the buffer, skip up to it */
-	if ((p = (const char *)memchr(buf, '\r', buflen)) || (p = (const char *)memchr(buf, '\n', buflen)))
-		buflen -= (p - buf);
 }
 
 int
@@ -111,7 +89,12 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 		debug("out scaler parse failed on '%s' (got %d, consumed %d)", buf, ret, n);
 		return -1;
 	}
-	skipline(buf, buflen);
+
+	buf = skipline(buf, buflen);
+	if (buf == nullptr) {
+		debug("no line ending, line is incomplete");
+		return -1;
+	}
 
 	scaler.negative_scale	= s[0] / 10000.0f;
 	scaler.positive_scale	= s[1] / 10000.0f;
@@ -130,7 +113,7 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 
 	buf = findtag(buf, buflen, 'S');
 	if ((buf == nullptr) || (buflen < 16)) {
-		debug("contorl parser failed finding tag, ret: '%s'", buf);
+		debug("control parser failed finding tag, ret: '%s'", buf);
 		return -1;
 	}
 
@@ -139,7 +122,12 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 		debug("control parse failed on '%s'", buf);
 		return -1;
 	}
-	skipline(buf, buflen);
+
+	buf = skipline(buf, buflen);
+	if (buf == nullptr) {
+		debug("no line ending, line is incomplete");
+		return -1;
+	}
 
 	control_group		= u[0];
 	control_index		= u[1];
@@ -161,29 +149,17 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	int used;
 	const char *end = buf + buflen;
 
-	/* enforce that the mixer ends with space or a new line */
-	for (int i = buflen - 1; i >= 0; i--) {
-		if (buf[i] == '\0')
-			continue;
-
-		/* require a space or newline at the end of the buffer, fail on printable chars */
-		if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
-			/* found a line ending or space, so no split symbols / numbers. good. */
-			break;
-		} else {
-			debug("simple parser rejected: No newline / space at end of buf. (#%d/%d: 0x%02x)", i, buflen-1, buf[i]);
-			goto out;
-		}
-
-	}
-
 	/* get the base info for the mixer */
 	if (sscanf(buf, "M: %u%n", &inputs, &used) != 1) {
 		debug("simple parse failed on '%s'", buf);
 		goto out;
 	}
 
-	buflen -= used;
+	buf = skipline(buf, buflen);
+	if (buf == nullptr) {
+		debug("no line ending, line is incomplete");
+		goto out;
+	}
 
 	mixinfo = (mixer_simple_s *)malloc(MIXER_SIMPLE_SIZE(inputs));
 
