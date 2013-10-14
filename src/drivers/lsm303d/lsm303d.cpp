@@ -415,7 +415,7 @@ private:
 
 
 LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
-	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 8000000),
+	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 10000000),
 	_mag(new LSM303D_mag(this)),
 	_call_accel_interval(0),
 	_call_mag_interval(0),
