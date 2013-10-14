@@ -248,6 +248,11 @@ RGBLED::led_trampoline(void *arg)
 void
 RGBLED::led()
 {
+	if (!_should_run) {
+		_running = false;
+		return;
+	}
+
 	switch (_mode) {
 	case RGBLED_MODE_BLINK_SLOW:
 	case RGBLED_MODE_BLINK_NORMAL:
@@ -471,11 +476,6 @@ RGBLED::set_mode(rgbled_mode_t mode)
 			work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
 		}
 
-		/* if it should stop, then cancel the workq */
-		if (!should_run && _running) {
-			_running = false;
-			work_cancel(LPWORK, &_work);
-		}
 	}
 }
 
