@@ -72,8 +72,6 @@
 #include "util.h"
 #include "mavlink_parameters.h"
 
-#include "lib/dataman/dataman.h"
-
 /* define MAVLink specific parameters */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
@@ -642,8 +640,6 @@ int mavlink_thread_main(int argc, char *argv[])
 	/* arm counter to go off immediately */
 	unsigned lowspeed_counter = 10;
 
-	int dm = dm_open();
-
 	while (!thread_should_exit) {
 
 		/* 1 Hz */
@@ -707,8 +703,6 @@ int mavlink_thread_main(int argc, char *argv[])
 		/* sleep 15 ms */
 		usleep(15000);
 	}
-
-	dm_close(dm);
 
 	/* wait for threads to complete */
 	pthread_join(receive_thread, NULL);
