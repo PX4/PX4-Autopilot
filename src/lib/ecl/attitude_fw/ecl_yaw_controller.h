@@ -50,39 +50,17 @@ public:
 	float control(float roll, float yaw_rate, float accel_y, float scaler = 1.0f, bool lock_integrator = false,
 		      float airspeed_min = 0, float airspeed_max = 0, float aspeed = (0.0f / 0.0f));
 
-	void reset_integrator();
 
-	void set_k_side(float k_a) {
-		_k_side = k_a;
-	}
-	void set_k_i(float k_i) {
-		_k_i = k_i;
-	}
-	void set_k_d(float k_d) {
-		_k_d = k_d;
-	}
-	void set_k_roll_ff(float k_roll_ff) {
-		_k_roll_ff = k_roll_ff;
-	}
-	void set_integrator_max(float max) {
-		_integrator_max = max;
+	float get_desired_rate() {
+		return _rate_setpoint;
 	}
 
 private:
 	uint64_t _last_run;
 
-	float _k_side;
-	float _k_i;
-	float _k_d;
-	float _k_roll_ff;
-	float _integrator_max;
-
-	float _last_error;
+	float _rate_setpoint;
 	float _last_output;
-	float _last_rate_hp_out;
-	float _last_rate_hp_in;
-	float _k_d_last;
-	float _integrator;
+	float _max_deflection_rad;
 
 };
 

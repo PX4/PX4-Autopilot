@@ -47,12 +47,10 @@
 
 ECL_YawController::ECL_YawController() :
 	_last_run(0),
-	_last_error(0.0f),
 	_last_output(0.0f),
-	_last_rate_hp_out(0.0f),
-	_last_rate_hp_in(0.0f),
-	_k_d_last(0.0f),
-	_integrator(0.0f)
+	_rate_setpoint(0.0f),
+	_max_deflection_rad(math::radians(45.0f))
+
 {
 
 }
@@ -66,7 +64,21 @@ float ECL_YawController::control(float roll, float yaw_rate, float accel_y, floa
 
 	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
 
-	return 0.0f;
+//	float psi_dot = 0.0f;
+//		float denumerator = (speed_body[0] * cosf(att_sp->roll_body) * cosf(att_sp->pitch_body) + speed_body[2] * sinf(att_sp->pitch_body));
+//		if(denumerator != 0.0f) {
+//			psi_dot = (speed_body[2] * phi_dot + 9.81f * sinf(att_sp->roll_body) * cosf(att_sp->pitch_body) + speed_body[0] * theta_dot * sinf(att_sp->roll_body))
+//				/ (speed_body[0] * cosf(att_sp->roll_body) * cosf(att_sp->pitch_body) + speed_body[2] * sinf(att_sp->pitch_body));
+//		}
+
+	/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
+	_last_output = 0.0f;
+	float denumerator = (speed_body_u * cosf(roll) * cosf(pitch) + speed_body_w * sinf(pitch));
+	if(denumerator != 0.0f) { //XXX: floating point comparison
+		_last_output = (speed_body_w * roll_rate_desired + 9.81f * sinf(roll) * cosf(pitch) + speed_body_u * pitch_rate_desired * sinf(roll)) / denumerator;
+	}
+
+	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }
 
 void ECL_YawController::reset_integrator()

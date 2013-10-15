@@ -661,7 +661,7 @@ FixedwingAttitudeControl::task_main()
 				vehicle_rates_setpoint_s rates_sp;
 				rates_sp.roll = _roll_ctrl.get_desired_rate();
 				rates_sp.pitch = _pitch_ctrl.get_desired_rate();
-				rates_sp.yaw = 0.0f; // XXX not yet implemented
+				rates_sp.yaw = _yaw_ctrl.get_desired_rate();
 
 				rates_sp.timestamp = hrt_absolute_time();
 
