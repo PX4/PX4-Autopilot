@@ -91,10 +91,6 @@ enum MAVLINK_WPM_CODES {
 
 
 struct mavlink_wpm_storage {
-	mavlink_mission_item_t waypoints[MAVLINK_WPM_MAX_WP_COUNT];      ///< Currently active waypoints
-#ifdef MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE
-	mavlink_mission_item_t rcv_waypoints[MAVLINK_WPM_MAX_WP_COUNT];  ///< Receive buffer for next waypoints
-#endif
 	uint16_t size;
 	uint16_t max_size;
 	uint16_t rcv_size;
@@ -120,13 +116,16 @@ struct mavlink_wpm_storage {
 typedef struct mavlink_wpm_storage mavlink_wpm_storage;
 
 void mavlink_wpm_init(mavlink_wpm_storage *state);
-int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_position_s *global_position,
+int mavlink_waypoint_eventloop(int dm, uint64_t now, const struct vehicle_global_position_s *global_position,
 			       struct vehicle_local_position_s *local_pos, struct navigation_capabilities_s *nav_cap);
-void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos ,
+void mavlink_wpm_message_handler(int fm, const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos ,
 				 struct vehicle_local_position_s *local_pos);
 
-extern void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
+extern void mavlink_missionlib_current_waypoint_changed(int dm, uint16_t index, float param1,
 		float param2, float param3, float param4, float param5_lat_x,
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
+
+void get_waypoint(int dm, int ix, mission_item_t *wp);
+void set_waypoint(int dm, int ix, mission_item_t *wp);
 
 #endif /* WAYPOINTS_H_ */

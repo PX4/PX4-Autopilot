@@ -146,7 +146,6 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	unsigned	_mission_items_maxcount;				/**< maximum number of mission items supported */
-	struct	mission_item_s 				 *_mission_items;	/**< storage for mission items */
 	bool		_mission_valid;						/**< flag if mission is valid */
 
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
@@ -271,13 +270,6 @@ Navigator::Navigator() :
 {
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
-	_mission_items = (mission_item_s *)malloc(sizeof(mission_item_s) * _mission_items_maxcount);
-
-	if (!_mission_items) {
-		_mission_items_maxcount = 0;
-		warnx("no free RAM to allocate mission, rejecting any waypoints");
-	}
-
 	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
 
 	/* fetch initial values */
@@ -357,18 +349,8 @@ Navigator::mission_poll()
 bool
 Navigator::mission_update()
 {
-	struct mission_s mission;
+	unsigned mission;
 	orb_copy(ORB_ID(mission), _mission_sub, &mission);
-
-	if (mission.count > _mission_items_maxcount) {
-		return false;
-	}
-
-	// Perform an atomic copy & state update
-	irqstate_t flags = irqsave();
-	memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
-	_mission_valid = true;
-	irqrestore(flags);
 	return true;
 }
 
