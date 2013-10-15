@@ -37,6 +37,7 @@
  * Implementation of a generic attitude controller based on classic orthogonal PIDs.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  *
  */
 
@@ -62,6 +63,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
@@ -106,26 +108,28 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_control_task;			/**< task handle for sensor task */
 
-	int		_att_sub;			/**< vehicle attitude subscription */
-	int		_accel_sub;			/**< accelerometer subscription */
+	int		_att_sub;				/**< vehicle attitude subscription */
+	int		_accel_sub;				/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
-	int		_vcontrol_mode_sub;			/**< vehicle status subscription */
-	int 		_params_sub;			/**< notification of parameter updates */
-	int 		_manual_sub;			/**< notification of manual control updates */
+	int		_vcontrol_mode_sub;		/**< vehicle status subscription */
+	int 	_params_sub;			/**< notification of parameter updates */
+	int 	_manual_sub;			/**< notification of manual control updates */
+	int		_global_pos_sub;		/**< global position subscription */
 
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
 
-	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
-	struct accel_report				_accel;			/**< body frame accelerations */
+	struct vehicle_attitude_s				_att;			/**< vehicle attitude */
+	struct accel_report						_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s				_airspeed;		/**< airspeed */
-	struct vehicle_control_mode_s			_vcontrol_mode;		/**< vehicle control mode */
-	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
+	struct airspeed_s						_airspeed;		/**< airspeed */
+	struct vehicle_control_mode_s			_vcontrol_mode;	/**< vehicle control mode */
+	struct actuator_controls_s				_actuators;		/**< actuator control inputs */
+	struct vehicle_global_position_s		_global_pos;	/**< global position */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -227,6 +231,11 @@ private:
 	void		vehicle_setpoint_poll();
 
 	/**
+	 * Check for global position updates.
+	 */
+	void		global_pos_poll();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -261,6 +270,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_vcontrol_mode_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
+	_global_pos_sub(-1),
 
 /* publications */
 	_rate_sp_pub(-1),
@@ -375,7 +385,7 @@ FixedwingAttitudeControl::parameters_update()
 	_roll_ctrl.set_max_rate(math::radians(_parameters.r_rmax));
 
 	/* yaw control parameters */
-	_yaw_ctrl.set_k_side(math::radians(_parameters.y_p));
+	_yaw_ctrl.set_k_p(math::radians(_parameters.y_p));
 	_yaw_ctrl.set_k_i(math::radians(_parameters.y_i));
 	_yaw_ctrl.set_k_d(math::radians(_parameters.y_d));
 	_yaw_ctrl.set_k_roll_ff(math::radians(_parameters.y_roll_feedforward));
@@ -453,6 +463,18 @@ FixedwingAttitudeControl::vehicle_setpoint_poll()
 }
 
 void
+FixedwingAttitudeControl::global_pos_poll()
+{
+	/* check if there is a new setpoint */
+	bool global_pos_updated;
+	orb_check(_global_pos_sub, &global_pos_updated);
+
+	if (global_pos_updated) {
+		orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+	}
+}
+
+void
 FixedwingAttitudeControl::task_main_trampoline(int argc, char *argv[])
 {
 	att_control::g_control->task_main();
@@ -476,6 +498,7 @@ FixedwingAttitudeControl::task_main()
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vcontrol_mode_sub, 200);
@@ -550,6 +573,8 @@ FixedwingAttitudeControl::task_main()
 			vehicle_control_mode_poll();
 
 			vehicle_manual_poll();
+
+			global_pos_poll();
 
 			/* lock integrator until control is started */
 			bool lock_integrator;
@@ -635,16 +660,41 @@ FixedwingAttitudeControl::task_main()
 					}
 				}
 
-				float roll_rad = _roll_ctrl.control(roll_sp, _att.roll, _att.rollspeed, _att.pitch, _att.yawspeed,
-								    airspeed_scaling, lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
+				/* Prepare speed_body_u and speed_body_w */
+				float speed_body_u = 0.0f;
+				float speed_body_w = 0.0f;
+				if(_att.R_valid) 	{
+					speed_body_u = _att.R[0][0] * _global_pos.vx + _att.R[0][1] * _global_pos.vy + _att.R[0][2] * _global_pos.vz;
+//					speed_body_v = _att.R[1][0] * _global_pos.vx + _att.R[1][1] * _global_pos.vy + _att.R[1][2] * _global_pos.vz;
+					speed_body_w = _att.R[2][0] * _global_pos.vx + _att.R[2][1] * _global_pos.vy + _att.R[2][2] * _global_pos.vz;
+				} else	{
+					warnx("Did not get a valid R\n");
+				}
+
+				/* Run attitude controllers */
+				_roll_ctrl.control_attitude(roll_sp, _att.roll);
+				_pitch_ctrl.control_attitude(roll_sp, _att.roll, _att.pitch, airspeed);
+				_yaw_ctrl.control_attitude(_att.roll, _att.pitch,
+						speed_body_u,speed_body_w,
+						_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
+
+				/* Run attitude RATE controllers which need the desired attitudes from above */
+				float roll_rad = _roll_ctrl.control_bodyrate(_att.pitch,
+						_att.rollspeed, _att.yawspeed,
+						_yaw_ctrl.get_desired_rate(),
+						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 				_actuators.control[0] = (isfinite(roll_rad)) ? roll_rad * actuator_scaling : 0.0f;
 
-				float pitch_rad = _pitch_ctrl.control(pitch_sp, _att.pitch, _att.pitchspeed, _att.roll, _att.yawspeed, airspeed_scaling,
-								      lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
+				float pitch_rad = _pitch_ctrl.control_bodyrate(_att.roll, _att.pitch,
+						_att.pitchspeed, _att.yawspeed,
+						_yaw_ctrl.get_desired_rate(),
+						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 				_actuators.control[1] = (isfinite(pitch_rad)) ? pitch_rad * actuator_scaling : 0.0f;
 
-				float yaw_rad = _yaw_ctrl.control(_att.roll, _att.yawspeed, _accel.y, airspeed_scaling, lock_integrator,
-								  _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
+				float yaw_rad = _yaw_ctrl.control_bodyrate(	_att.roll, _att.pitch,
+						_att.pitchspeed, _att.yawspeed,
+						_pitch_ctrl.get_desired_rate(),
+						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
 				_actuators.control[2] = (isfinite(yaw_rad)) ? yaw_rad * actuator_scaling : 0.0f;
 
 				/* throttle passed through */

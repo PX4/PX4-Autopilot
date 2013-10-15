@@ -36,6 +36,7 @@
  * Definition of a simple orthogonal pitch PID controller.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Acknowledgements:
  *
@@ -51,13 +52,18 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-class __EXPORT ECL_PitchController
+class __EXPORT ECL_PitchController //XXX: create controller superclass
 {
 public:
 	ECL_PitchController();
 
-	float control(float pitch_setpoint, float pitch, float pitch_rate, float roll, float yaw_rate, float scaler = 1.0f,
-		      bool lock_integrator = false, float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f));
+	float control_attitude(float pitch_setpoint, float roll, float pitch, float airspeed);
+
+
+	float control_bodyrate(float roll, float pitch,
+			float pitch_rate, float yaw_rate,
+			float yaw_rate_setpoint,
+			float airspeed_min = 0.0f, float airspeed_max = 0.0f, float airspeed = (0.0f / 0.0f), float scaler = 1.0f, bool lock_integrator = false);
 
 	void reset_integrator();
 
@@ -94,6 +100,10 @@ public:
 		return _rate_setpoint;
 	}
 
+	float get_desired_bodyrate() {
+		return _bodyrate_setpoint;
+	}
+
 private:
 
 	uint64_t _last_run;
@@ -109,6 +119,7 @@ private:
 	float _integrator;
 	float _rate_error;
 	float _rate_setpoint;
+	float _bodyrate_setpoint;
 	float _max_deflection_rad;
 };
 

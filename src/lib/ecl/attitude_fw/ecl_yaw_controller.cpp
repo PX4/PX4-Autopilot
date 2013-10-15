@@ -47,36 +47,94 @@
 
 ECL_YawController::ECL_YawController() :
 	_last_run(0),
+	_tc(0.1f),
 	_last_output(0.0f),
+	_integrator(0.0f),
+	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
+	_bodyrate_setpoint(0.0f),
 	_max_deflection_rad(math::radians(45.0f))
 
 {
 
 }
 
-float ECL_YawController::control(float roll, float yaw_rate, float accel_y, float scaler, bool lock_integrator,
-				 float airspeed_min, float airspeed_max, float aspeed)
+float ECL_YawController::control_attitude(float roll, float pitch,
+		float speed_body_u, float speed_body_w,
+		float roll_rate_setpoint, float pitch_rate_setpoint)
+{
+	/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
+	_rate_setpoint = 0.0f;
+	float denumerator = (speed_body_u * cosf(roll) * cosf(pitch) + speed_body_w * sinf(pitch));
+	if(denumerator != 0.0f) { //XXX: floating point comparison
+		_rate_setpoint = (speed_body_w * roll_rate_setpoint + 9.81f * sinf(roll) * cosf(pitch) + speed_body_u * pitch_rate_setpoint * sinf(roll)) / denumerator;
+	}
+
+	/* limit the rate */ //XXX: move to body angluar rates
+	if (_max_rate > 0.01f) {
+	_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
+	_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
+	}
+
+	return _rate_setpoint;
+}
+
+float ECL_YawController::control_bodyrate(float roll, float pitch,
+		float pitch_rate, float yaw_rate,
+		float pitch_rate_setpoint,
+		float airspeed_min, float airspeed_max, float airspeed, float scaler, bool lock_integrator)
 {
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
-
 	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
 
-//	float psi_dot = 0.0f;
-//		float denumerator = (speed_body[0] * cosf(att_sp->roll_body) * cosf(att_sp->pitch_body) + speed_body[2] * sinf(att_sp->pitch_body));
-//		if(denumerator != 0.0f) {
-//			psi_dot = (speed_body[2] * phi_dot + 9.81f * sinf(att_sp->roll_body) * cosf(att_sp->pitch_body) + speed_body[0] * theta_dot * sinf(att_sp->roll_body))
-//				/ (speed_body[0] * cosf(att_sp->roll_body) * cosf(att_sp->pitch_body) + speed_body[2] * sinf(att_sp->pitch_body));
-//		}
+	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
+	float k_i_rate = _k_i * _tc;
 
-	/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
-	_last_output = 0.0f;
-	float denumerator = (speed_body_u * cosf(roll) * cosf(pitch) + speed_body_w * sinf(pitch));
-	if(denumerator != 0.0f) { //XXX: floating point comparison
-		_last_output = (speed_body_w * roll_rate_desired + 9.81f * sinf(roll) * cosf(pitch) + speed_body_u * pitch_rate_desired * sinf(roll)) / denumerator;
+	/* input conditioning */
+	if (!isfinite(airspeed)) {
+	/* airspeed is NaN, +- INF or not available, pick center of band */
+	airspeed = 0.5f * (airspeed_min + airspeed_max);
+	} else if (airspeed < airspeed_min) {
+	airspeed = airspeed_min;
 	}
+
+
+	/* Transform setpoint to body angular rates */
+	_bodyrate_setpoint = -sinf(roll) * pitch_rate_setpoint * cosf(roll)*cosf(pitch) * _rate_setpoint; //jacobian
+
+	/* Transform estimation to body angular rates */
+	float yaw_bodyrate = -sinf(roll) * pitch_rate * cosf(roll)*cosf(pitch) * yaw_rate; //jacobian
+
+	/* Calculate body angular rate error */
+	_rate_error = _bodyrate_setpoint - yaw_bodyrate; //body angular rate error
+
+	float ilimit_scaled = 0.0f;
+
+	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
+
+	float id = _rate_error * k_i_rate * dt * scaler;
+
+	/*
+	 * anti-windup: do not allow integrator to increase into the
+	 * wrong direction if actuator is at limit
+	 */
+	if (_last_output < -_max_deflection_rad) {
+		/* only allow motion to center: increase value */
+		id = math::max(id, 0.0f);
+	} else if (_last_output > _max_deflection_rad) {
+		/* only allow motion to center: decrease value */
+		id = math::min(id, 0.0f);
+	}
+
+	_integrator += id;
+	}
+
+	/* integrator limit */
+	_integrator = math::constrain(_integrator, -ilimit_scaled, ilimit_scaled);
+	/* store non-limited output */
+	_last_output = ((_rate_error * _k_d * scaler) + _integrator + (_rate_setpoint * k_ff)) * scaler;
 
 	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }

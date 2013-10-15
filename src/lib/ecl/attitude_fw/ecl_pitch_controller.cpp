@@ -56,29 +56,9 @@ ECL_PitchController::ECL_PitchController() :
 {
 }
 
-float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitch_rate, float roll, float yaw_rate, float scaler,
-				   bool lock_integrator, float airspeed_min, float airspeed_max, float airspeed)
+float ECL_PitchController::control_attitude(float pitch_setpoint, float roll, float pitch, float airspeed)
 {
-	/* get the usual dt estimate */
-	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
-	_last_run = ecl_absolute_time();
 
-	float dt = dt_micros / 1000000;
-
-	/* lock integral for long intervals */
-	if (dt_micros > 500000)
-		lock_integrator = true;
-
-	float k_roll_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
-	float k_i_rate = _k_i * _tc;
-
-	/* input conditioning */
-	if (!isfinite(airspeed)) {
-		/* airspeed is NaN, +- INF or not available, pick center of band */
-		airspeed = 0.5f * (airspeed_min + airspeed_max);
-	} else if (airspeed < airspeed_min) {
-		airspeed = airspeed_min;
-	}
 
 	/* flying inverted (wings upside down) ? */
 	bool inverted = false;
@@ -106,20 +86,61 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 	if (inverted)
 		turn_offset = -turn_offset;
 
+	/* Calculate the error */
 	float pitch_error = pitch_setpoint - pitch;
-	/* /* Apply P controller: rate setpoint from current error and time constant */
-	float theta_dot_setpoint =  pitch_error / _tc;
 
-	/* Transform setpoint to body angular rates */
-	_rate_setpoint = cosf(roll) * theta_dot_setpoint + cosf(pitch) * sinf(roll) * yaw_rate; //jacobian //XXX: use desired yaw_rate?
+	/*  Apply P controller: rate setpoint from current error and time constant */
+	float _rate_setpoint =  pitch_error / _tc;
 
 	/* add turn offset */
 	_rate_setpoint += turn_offset;
 
-	/* Transform estimation to body angular rates */
-	float pitch_rate_body = cosf(roll) * theta_dot_setpoint + cosf(pitch) * sinf(roll) * yaw_rate; //jacobian
+	/* limit the rate */ //XXX: move to body angluar rates
+	if (_max_rate_pos > 0.01f && _max_rate_neg > 0.01f) {
+		if (_rate_setpoint > 0.0f) {
+			_rate_setpoint = (_rate_setpoint > _max_rate_pos) ? _max_rate_pos : _rate_setpoint;
+		} else {
+			_rate_setpoint = (_rate_setpoint < -_max_rate_neg) ? -_max_rate_neg : _rate_setpoint;
+		}
 
-	_rate_error = _rate_setpoint - pitch_rate_body;
+	}
+
+	return _rate_setpoint;
+}
+
+float ECL_PitchController::control_bodyrate(float roll, float pitch,
+		float pitch_rate, float yaw_rate,
+		float yaw_rate_setpoint,
+		float airspeed_min, float airspeed_max, float airspeed, float scaler, bool lock_integrator)
+{
+	/* get the usual dt estimate */
+	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
+	_last_run = ecl_absolute_time();
+
+	float dt = dt_micros / 1000000;
+
+	/* lock integral for long intervals */
+	if (dt_micros > 500000)
+		lock_integrator = true;
+
+	float k_roll_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
+	float k_i_rate = _k_i * _tc;
+
+	/* input conditioning */
+	if (!isfinite(airspeed)) {
+		/* airspeed is NaN, +- INF or not available, pick center of band */
+		airspeed = 0.5f * (airspeed_min + airspeed_max);
+	} else if (airspeed < airspeed_min) {
+		airspeed = airspeed_min;
+	}
+
+	/* Transform setpoint to body angular rates */
+	_bodyrate_setpoint = cosf(roll) * _rate_setpoint + cosf(pitch) * sinf(roll) * yaw_rate_setpoint; //jacobian
+
+	/* Transform estimation to body angular rates */
+	float pitch_bodyrate = cosf(roll) * pitch_rate + cosf(pitch) * sinf(roll) * yaw_rate; //jacobian
+
+	_rate_error = _bodyrate_setpoint - pitch_bodyrate;
 
 	float ilimit_scaled = 0.0f;
 

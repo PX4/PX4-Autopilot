@@ -53,18 +53,38 @@ ECL_RollController::ECL_RollController() :
 	_integrator(0.0f),
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
+	_bodyrate_setpoint(0.0f),
 	_max_deflection_rad(math::radians(45.0f))
 {
 
 }
 
-float ECL_RollController::control(float roll_setpoint, float roll, float roll_rate, float pitch, float yaw_rate,
-				  float scaler, bool lock_integrator, float airspeed_min, float airspeed_max, float airspeed)
+float ECL_RollController::control_attitude(float roll_setpoint, float roll)
+{
+
+	/* Calculate error */
+	float roll_error = roll_setpoint - roll;
+
+	/* Apply P controller */
+	_rate_setpoint = roll_error / _tc;
+
+	/* limit the rate */ //XXX: move to body angluar rates
+	if (_max_rate > 0.01f) {
+		_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
+		_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
+	}
+
+	return _rate_setpoint;
+}
+
+float ECL_RollController::control_bodyrate(float pitch,
+		float roll_rate, float yaw_rate,
+		float yaw_rate_setpoint,
+		float airspeed_min, float airspeed_max, float airspeed, float scaler, bool lock_integrator)
 {
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
-
 	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
 
 	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
@@ -78,25 +98,15 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 		airspeed = airspeed_min;
 	}
 
-	float roll_error = roll_setpoint - roll;
-
-	/* Apply P controller */
-	float phi_dot_setpoint = roll_error / _tc;
 
 	/* Transform setpoint to body angular rates */
-	_rate_setpoint = phi_dot_setpoint - sinf(pitch) * yaw_rate; //jacobian //XXX: use desired yaw_rate?
-
-	/* limit the rate */
-	if (_max_rate > 0.01f) {
-		_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
-		_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
-	}
+	_bodyrate_setpoint = _rate_setpoint - sinf(pitch) * yaw_rate_setpoint; //jacobian
 
 	/* Transform estimation to body angular rates */
-	float roll_rate_body = roll_rate - sinf(pitch) * yaw_rate; //jacobian
+	float roll_bodyrate = roll_rate - sinf(pitch) * yaw_rate; //jacobian
 
 	/* Calculate body angular rate error */
-	_rate_error = _rate_setpoint - roll_rate_body; //body angular rate error
+	_rate_error = _bodyrate_setpoint - roll_bodyrate; //body angular rate error
 
 	float ilimit_scaled = 0.0f;
 
