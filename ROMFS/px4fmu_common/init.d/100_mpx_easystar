@@ -98,8 +98,7 @@ else
 	mixer load /dev/pwm_output /etc/mixers/FMU_RET.mix
 fi
 fw_att_control start
-# Not ready yet for prime-time
-#fw_pos_control_l1 start
+fw_pos_control_l1 start
 
 if [ $EXIT_ON_END == yes ]
 then

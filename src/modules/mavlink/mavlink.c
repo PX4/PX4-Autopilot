@@ -66,13 +66,15 @@
 #include <mavlink/mavlink_log.h>
 #include <commander/px4_custom_mode.h>
 
-#include "waypoints.h"
 #include "orb_topics.h"
+#include "waypoints.h"
 #include "missionlib.h"
 #include "mavlink_hil.h"
 #include "util.h"
 #include "waypoints.h"
 #include "mavlink_parameters.h"
+
+#include "lib/dataman/dataman.h"
 
 /* define MAVLink specific parameters */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
@@ -649,6 +651,8 @@ int mavlink_thread_main(int argc, char *argv[])
 	/* arm counter to go off immediately */
 	unsigned lowspeed_counter = 10;
 
+	int dm = dm_open();
+
 	while (!thread_should_exit) {
 
 		/* 1 Hz */
@@ -690,25 +694,25 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		lowspeed_counter++;
 
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(dm, mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
 
 		/* sleep quarter the time */
 		usleep(25000);
 
 		/* check if waypoint has been reached against the last positions */
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(dm, mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
 
 		/* sleep quarter the time */
 		usleep(25000);
 
 		/* send parameters at 20 Hz (if queued for sending) */
 		mavlink_pm_queued_send();
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(dm, mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
 
 		/* sleep quarter the time */
 		usleep(25000);
 
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(dm, mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
 
 		if (baudrate > 57600) {
 			mavlink_pm_queued_send();
@@ -730,6 +734,8 @@ int mavlink_thread_main(int argc, char *argv[])
 		/* sleep 15 ms */
 		usleep(15000);
 	}
+
+	dm_close(dm);
 
 	/* wait for threads to complete */
 	pthread_join(receive_thread, NULL);

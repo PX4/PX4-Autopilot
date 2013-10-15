@@ -76,8 +76,8 @@
 __BEGIN_DECLS
 
 #include "mavlink_bridge_header.h"
-#include "waypoints.h"
 #include "orb_topics.h"
+#include "waypoints.h"
 #include "missionlib.h"
 #include "mavlink_hil.h"
 #include "mavlink_parameters.h"
@@ -86,6 +86,8 @@ __BEGIN_DECLS
 extern bool gcs_link;
 
 __END_DECLS
+
+#include "lib/dataman/dataman.h"
 
 /* XXX should be in a header somewhere */
 extern "C" pthread_t receive_start(int uart);
@@ -785,6 +787,8 @@ receive_thread(void *arg)
 
 	ssize_t nread = 0;
 
+	int dm = dm_open();
+
 	while (!thread_should_exit) {
 		if (poll(fds, 1, timeout) > 0) {
 			if (nread < sizeof(buf)) {
@@ -802,7 +806,7 @@ receive_thread(void *arg)
 					handle_message(&msg);
 
 					/* handle packet with waypoint component */
-					mavlink_wpm_message_handler(&msg, &global_pos, &local_pos);
+					mavlink_wpm_message_handler(dm, &msg, &global_pos, &local_pos);
 
 					/* handle packet with parameter component */
 					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
@@ -810,6 +814,8 @@ receive_thread(void *arg)
 			}
 		}
 	}
+
+	dm_close(dm);
 
 	return NULL;
 }
