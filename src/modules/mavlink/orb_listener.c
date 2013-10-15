@@ -57,8 +57,8 @@
 
 #include <mavlink/mavlink_log.h>
 
-#include "waypoints.h"
 #include "orb_topics.h"
+#include "waypoints.h"
 #include "missionlib.h"
 #include "mavlink_hil.h"
 #include "util.h"

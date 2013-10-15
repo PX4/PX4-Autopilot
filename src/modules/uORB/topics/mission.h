@@ -69,29 +69,23 @@ enum NAV_CMD {
  * This is the position the MAV is heading towards. If it of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
  */
-struct mission_item_s
+typedef struct mission_item_s
 {
-	float lat;			/**< latitude in degrees * 1E-7				*/
-	float lon;			/**< longitude in degrees * 1E-7			*/
-	float altitude;			/**< altitude in meters					*/
-	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	float accept_radius;		/**< Radius in which the MISSION is accepted as reached, in meters */
-	float resident_time;		/**< Time that the MAV should stay inside the radius before advancing, in milliseconds */
-	float loiter_orbit;		/**< Orbit to circle around the MISSION, in meters. If positive the orbit direction should
-					     be clockwise, if negative the orbit direction should be counter-clockwise. */
-	float yaw;			/**< Yaw orientation in degrees, [0..360] 0 = NORTH	*/
-	enum NAV_CMD nav_cmd;		/**< The scheduled action for the MISSION. see MAV_CMD */
-	uint8_t frame;			/**< The coordinate system of the MISSION. see MAV_FRAME in mavlink_types.h */
-	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	bool current;			/**< false:not the current target, true:current target	*/
-	bool auto_continue;		/**< auto-continue to next waypoint			*/
-};
+	float aceptable_radius; /* For NAV command MISSIONs: Radius in which the MISSION is accepted as reached, in meters */
+	float acceptable_time; /* For NAV command MISSIONs: Time that the MAV should stay inside the PARAM1 radius before advancing, in milliseconds */
+	float orbit; /* For LOITER command MISSIONs: Orbit to circle around the MISSION, in meters. If positive the orbit direction should be clockwise,
+		        if negative the orbit direction should be counter-clockwise. */
+	float yaw; /* For NAV and LOITER command MISSIONs: Yaw orientation in degrees, [0..360] 0 = NORTH */
+	float lat; /* local: x position, global: latitude */
+	float lon; /* y position: global: longitude */
+	float alt; /* z position: global: altitude */
+	uint16_t seq; /* Sequence */
+	uint16_t command; /* The scheduled action for the MISSION. see MAV_CMD in common.xml MAVLink specs */
+	uint8_t frame; /* The coordinate system of the MISSION. see MAV_FRAME in mavlink_types.h */
+	uint8_t current; /* false:0, true:1 */
+	uint8_t autocontinue; /* autocontinue to next wp */
+} mission_item_t;
 
-struct mission_s
-{
-	struct mission_item_s *items;
-	unsigned count;
-};
 
 /**
  * @}
@@ -101,3 +95,4 @@ struct mission_s
 ORB_DECLARE(mission);
 
 #endif
+
