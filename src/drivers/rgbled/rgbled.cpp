@@ -93,22 +93,25 @@ public:
 private:
 	work_s			_work;
 
+	rgbled_mode_t		_set_mode;
+	rgbled_pattern_t	_set_pattern;
+	uint8_t			_set_r;
+	uint8_t			_set_g;
+	uint8_t			_set_b;
+
 	rgbled_mode_t		_mode;
 	rgbled_pattern_t	_pattern;
-
 	uint8_t			_r;
 	uint8_t			_g;
 	uint8_t			_b;
 	float			_brightness;
 
-	bool			_running;
 	int			_led_interval;
 	bool			_should_run;
 	int			_counter;
 
 	void 			set_color(rgbled_color_t ledcolor);
 	void			set_mode(rgbled_mode_t mode);
-	void			set_pattern(rgbled_pattern_t *pattern);
 
 	static void		led_trampoline(void *arg);
 	void			led();
@@ -135,7 +138,6 @@ RGBLED::RGBLED(int bus, int rgbled) :
 	_g(0),
 	_b(0),
 	_brightness(1.0f),
-	_running(false),
 	_led_interval(0),
 	_should_run(false),
 	_counter(0)
@@ -203,33 +205,43 @@ RGBLED::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	int ret = ENOTTY;
 
+	/* don't send any data here, only set _set_XXX variables, that will be read by led() from work queue thread later */
 	switch (cmd) {
 	case RGBLED_SET_RGB:
 		/* set the specified color */
-		_r = ((rgbled_rgbset_t *) arg)->red;
-		_g = ((rgbled_rgbset_t *) arg)->green;
-		_b = ((rgbled_rgbset_t *) arg)->blue;
-		send_led_rgb();
-		return OK;
+		_set_r = ((rgbled_rgbset_t *) arg)->red;
+		_set_g = ((rgbled_rgbset_t *) arg)->green;
+		_set_b = ((rgbled_rgbset_t *) arg)->blue;
+		ret = OK;
+		break;
 
 	case RGBLED_SET_COLOR:
 		/* set the specified color name */
 		set_color((rgbled_color_t)arg);
-		send_led_rgb();
-		return OK;
+		ret = OK;
+		break;
 
 	case RGBLED_SET_MODE:
 		/* set the specified mode */
-		set_mode((rgbled_mode_t)arg);
-		return OK;
+		_set_mode = (rgbled_mode_t)arg;
+		ret = OK;
+		break;
 
 	case RGBLED_SET_PATTERN:
 		/* set a special pattern */
-		set_pattern((rgbled_pattern_t *)arg);
-		return OK;
+		memcpy(&_set_pattern, (rgbled_pattern_t *)arg, sizeof(rgbled_pattern_t));
+		ret = OK;
+		break;
 
 	default:
 		break;
+	}
+
+	if (ret == OK) {
+		/* cancel work from queue if exists */
+		work_cancel(LPWORK, &_work);
+		/* add work immediately to apply changes */
+		work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 0);
 	}
 
 	return ret;
@@ -250,10 +262,11 @@ RGBLED::led_trampoline(void *arg)
 void
 RGBLED::led()
 {
-	if (!_should_run) {
-		_running = false;
-		return;
-	}
+	memcpy(&_pattern, &_set_pattern, sizeof(_pattern));
+	_r = _set_r;
+	_g = _set_g;
+	_b = _set_b;
+	set_mode(_set_mode);	// sets _mode = _set_mode
 
 	switch (_mode) {
 	case RGBLED_MODE_BLINK_SLOW:
@@ -301,8 +314,10 @@ RGBLED::led()
 
 	_counter++;
 
-	/* re-queue ourselves to run again later */
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, _led_interval);
+	if (_should_run) {
+		/* re-queue ourselves to run again later if needed */
+		work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, _led_interval);
+	}
 }
 
 /**
@@ -313,93 +328,93 @@ RGBLED::set_color(rgbled_color_t color)
 {
 	switch (color) {
 	case RGBLED_COLOR_OFF:
-		_r = 0;
-		_g = 0;
-		_b = 0;
+		_set_r = 0;
+		_set_g = 0;
+		_set_b = 0;
 		break;
 
 	case RGBLED_COLOR_RED:
-		_r = 255;
-		_g = 0;
-		_b = 0;
+		_set_r = 255;
+		_set_g = 0;
+		_set_b = 0;
 		break;
 
 	case RGBLED_COLOR_YELLOW:
-		_r = 255;
-		_g = 200;
-		_b = 0;
+		_set_r = 255;
+		_set_g = 200;
+		_set_b = 0;
 		break;
 
 	case RGBLED_COLOR_PURPLE:
-		_r = 255;
-		_g = 0;
-		_b = 255;
+		_set_r = 255;
+		_set_g = 0;
+		_set_b = 255;
 		break;
 
 	case RGBLED_COLOR_GREEN:
-		_r = 0;
-		_g = 255;
-		_b = 0;
+		_set_r = 0;
+		_set_g = 255;
+		_set_b = 0;
 		break;
 
 	case RGBLED_COLOR_BLUE:
-		_r = 0;
-		_g = 0;
-		_b = 255;
+		_set_r = 0;
+		_set_g = 0;
+		_set_b = 255;
 		break;
 
 	case RGBLED_COLOR_WHITE:
-		_r = 255;
-		_g = 255;
-		_b = 255;
+		_set_r = 255;
+		_set_g = 255;
+		_set_b = 255;
 		break;
 
 	case RGBLED_COLOR_AMBER:
-		_r = 255;
-		_g = 80;
-		_b = 0;
+		_set_r = 255;
+		_set_g = 80;
+		_set_b = 0;
 		break;
 
 	case RGBLED_COLOR_DIM_RED:
-		_r = 90;
-		_g = 0;
-		_b = 0;
+		_set_r = 90;
+		_set_g = 0;
+		_set_b = 0;
 		break;
 
 	case RGBLED_COLOR_DIM_YELLOW:
-		_r = 80;
-		_g = 30;
-		_b = 0;
+		_set_r = 80;
+		_set_g = 30;
+		_set_b = 0;
 		break;
 
 	case RGBLED_COLOR_DIM_PURPLE:
-		_r = 45;
-		_g = 0;
-		_b = 45;
+		_set_r = 45;
+		_set_g = 0;
+		_set_b = 45;
 		break;
 
 	case RGBLED_COLOR_DIM_GREEN:
-		_r = 0;
-		_g = 90;
-		_b = 0;
+		_set_r = 0;
+		_set_g = 90;
+		_set_b = 0;
 		break;
 
 	case RGBLED_COLOR_DIM_BLUE:
-		_r = 0;
-		_g = 0;
-		_b = 90;
+		_set_r = 0;
+		_set_g = 0;
+		_set_b = 90;
 		break;
 
 	case RGBLED_COLOR_DIM_WHITE:
-		_r = 30;
-		_g = 30;
-		_b = 30;
+		_set_r = 30;
+		_set_g = 30;
+		_set_b = 30;
 		break;
 
 	case RGBLED_COLOR_DIM_AMBER:
-		_r = 80;
-		_g = 20;
-		_b = 0;
+		_set_r = 80;
+		_set_g = 20;
+		_set_b = 0;
 		break;
 
 	default:
@@ -416,10 +431,10 @@ RGBLED::set_mode(rgbled_mode_t mode)
 {
 	if (mode != _mode) {
 		_mode = mode;
+		_should_run = false;
 
 		switch (mode) {
 		case RGBLED_MODE_OFF:
-			_should_run = false;
 			send_led_enable(false);
 			break;
 
@@ -471,23 +486,7 @@ RGBLED::set_mode(rgbled_mode_t mode)
 			warnx("mode unknown");
 			break;
 		}
-
-		/* if it should run now, start the workq */
-		if (_should_run && !_running) {
-			_running = true;
-			work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
-		}
-
 	}
-}
-
-/**
- * Set pattern for PATTERN mode, but don't change current mode
- */
-void
-RGBLED::set_pattern(rgbled_pattern_t *pattern)
-{
-	memcpy(&_pattern, pattern, sizeof(rgbled_pattern_t));
 }
 
 /**
