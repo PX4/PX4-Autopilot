@@ -166,11 +166,11 @@ then
 		set MODE custom
 	fi
 	
-	if param compare SYS_AUTOSTART 10
-	then
+	#if param compare SYS_AUTOSTART 10
+	#then
 		sh /etc/init.d/10_dji_f330
 		set MODE custom
-	fi
+	#fi
 
 	if param compare SYS_AUTOSTART 11
 	then
