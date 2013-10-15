@@ -583,6 +583,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 		errx(1, "unable to create logging folder, exiting.");
 	}
 
+	const char *converter_in = "/etc/logging/conv.zip";
+	char* converter_out = malloc(120);
+	sprintf(converter_out, "%s/conv.zip", folder_path);
+
+	if (file_copy(converter_in, converter_out)) {
+		errx(1, "unable to copy conversion scripts, exiting.");
+	}
+	free(converter_out);
+
 	/* only print logging path, important to find log file later */
 	warnx("logging to directory: %s", folder_path);
 
@@ -1251,7 +1260,7 @@ int file_copy(const char *file_old, const char *file_new)
 	fclose(source);
 	fclose(target);
 
-	return ret;
+	return OK;
 }
 
 void handle_command(struct vehicle_command_s *cmd)
