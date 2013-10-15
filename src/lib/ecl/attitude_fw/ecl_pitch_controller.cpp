@@ -107,14 +107,19 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 		turn_offset = -turn_offset;
 
 	float pitch_error = pitch_setpoint - pitch;
-	/* rate setpoint from current error and time constant */
+	/* /* Apply P controller: rate setpoint from current error and time constant */
 	float theta_dot_setpoint =  pitch_error / _tc;
-	_rate_setpoint = cosf(roll) * theta_dot_setpoint + cosf(pitch) * sinf(roll) * yaw_rate; //jacobian
+
+	/* Transform setpoint to body angular rates */
+	_rate_setpoint = cosf(roll) * theta_dot_setpoint + cosf(pitch) * sinf(roll) * yaw_rate; //jacobian //XXX: use desired yaw_rate?
 
 	/* add turn offset */
 	_rate_setpoint += turn_offset;
 
-	_rate_error = _rate_setpoint - pitch_rate;
+	/* Transform estimation to body angular rates */
+	float pitch_rate_body = cosf(roll) * theta_dot_setpoint + cosf(pitch) * sinf(roll) * yaw_rate; //jacobian
+
+	_rate_error = _rate_setpoint - pitch_rate_body;
 
 	float ilimit_scaled = 0.0f;
 

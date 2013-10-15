@@ -79,8 +79,12 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 	}
 
 	float roll_error = roll_setpoint - roll;
+
+	/* Apply P controller */
 	float phi_dot_setpoint = roll_error / _tc;
-	_rate_setpoint = phi_dot_setpoint - sinf(pitch) * yaw_rate; //jacobian
+
+	/* Transform setpoint to body angular rates */
+	_rate_setpoint = phi_dot_setpoint - sinf(pitch) * yaw_rate; //jacobian //XXX: use desired yaw_rate?
 
 	/* limit the rate */
 	if (_max_rate > 0.01f) {
@@ -88,8 +92,11 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 		_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
 	}
 
-	_rate_error = _rate_setpoint - roll_rate;
+	/* Transform estimation to body angular rates */
+	float roll_rate_body = roll_rate - sinf(pitch) * yaw_rate; //jacobian
 
+	/* Calculate body angular rate error */
+	_rate_error = _rate_setpoint - roll_rate_body; //body angular rate error
 
 	float ilimit_scaled = 0.0f;
 
