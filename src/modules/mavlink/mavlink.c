@@ -67,11 +67,9 @@
 #include <commander/px4_custom_mode.h>
 
 #include "orb_topics.h"
-#include "waypoints.h"
-#include "missionlib.h"
+#include "navigator/waypoints.h"
 #include "mavlink_hil.h"
 #include "util.h"
-#include "waypoints.h"
 #include "mavlink_parameters.h"
 
 #include "lib/dataman/dataman.h"
@@ -111,10 +109,6 @@ uint8_t chan = MAVLINK_COMM_0;
 
 /* XXX probably should be in a header... */
 extern pthread_t receive_start(int uart);
-
-/* Allocate storage space for waypoints */
-static mavlink_wpm_storage wpm_s;
-mavlink_wpm_storage *wpm = &wpm_s;
 
 bool mavlink_hil_enabled = false;
 
@@ -460,7 +454,7 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, const uint8_t *ch, int length
 /*
  * Internal function to give access to the channel status for each channel
  */
-extern mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
+mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
 {
 	static mavlink_status_t m_mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
 	return &m_mavlink_status[channel];
@@ -469,7 +463,7 @@ extern mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
 /*
  * Internal function to give access to the channel buffer for each channel
  */
-extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
+mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 {
 	static mavlink_message_t m_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
 	return &m_mavlink_buffer[channel];
@@ -587,9 +581,6 @@ int mavlink_thread_main(int argc, char *argv[])
 	/* start the ORB receiver */
 	uorb_receive_thread = uorb_receive_start();
 
-	/* initialize waypoint manager */
-	mavlink_wpm_init(wpm);
-
 	/* all subscriptions are now active, set up initial guess about rate limits */
 	if (baudrate >= 230400) {
 		/* 200 Hz / 5 ms */
@@ -694,25 +685,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		lowspeed_counter++;
 
-		mavlink_waypoint_eventloop(dm, mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
-
-		/* sleep quarter the time */
-		usleep(25000);
-
-		/* check if waypoint has been reached against the last positions */
-		mavlink_waypoint_eventloop(dm, mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
-
-		/* sleep quarter the time */
-		usleep(25000);
-
-		/* send parameters at 20 Hz (if queued for sending) */
-		mavlink_pm_queued_send();
-		mavlink_waypoint_eventloop(dm, mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
-
-		/* sleep quarter the time */
-		usleep(25000);
-
-		mavlink_waypoint_eventloop(dm, mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		usleep(75000);
 
 		if (baudrate > 57600) {
 			mavlink_pm_queued_send();
@@ -727,7 +700,7 @@ int mavlink_thread_main(int argc, char *argv[])
 			int lb_ret = mavlink_logbuffer_read(&lb, &msg);
 
 			if (lb_ret == OK) {
-				mavlink_missionlib_send_gcs_string(msg.text);
+				missionlib_send_mavlink_gcs_string(msg.text);
 			}
 		}
 

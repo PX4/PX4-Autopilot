@@ -73,6 +73,8 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <lib/dataman/dataman.h>
+#include <v1.0/mavlink_types.h>
+#include <navigator/waypoints.h>
 
 
 /**
@@ -379,6 +381,9 @@ Navigator::task_main()
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+
+	/* initialize waypoint manager */
+	waypoints_init(&wpm);
 
 	// Load initial states
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {

@@ -77,8 +77,7 @@ __BEGIN_DECLS
 
 #include "mavlink_bridge_header.h"
 #include "orb_topics.h"
-#include "waypoints.h"
-#include "missionlib.h"
+#include "navigator/waypoints.h"
 #include "mavlink_hil.h"
 #include "mavlink_parameters.h"
 #include "util.h"
@@ -806,7 +805,7 @@ receive_thread(void *arg)
 					handle_message(&msg);
 
 					/* handle packet with waypoint component */
-					mavlink_wpm_message_handler(dm, &msg, &global_pos, &local_pos);
+					waypoints_message_handler(dm, &msg, &global_pos, &local_pos);
 
 					/* handle packet with parameter component */
 					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
