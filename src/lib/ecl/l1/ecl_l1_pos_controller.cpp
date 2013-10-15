@@ -130,8 +130,12 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector2f &vector_A, c
 	float alongTrackDist = vector_A_to_airplane * vector_AB;
 
 	/* estimate airplane position WRT to B */
-	math::Vector2f vector_B_to_airplane_unit = get_local_planar_vector(vector_B, vector_curr_position).normalized();
-	float bearing_wp_b = atan2f(-vector_B_to_airplane_unit.getY() , -vector_B_to_airplane_unit.getX());
+	math::Vector2f vector_B_to_P_unit = get_local_planar_vector(vector_B, vector_curr_position).normalized();
+	
+	/* calculate angle of airplane position vector relative to line) */
+
+	// XXX this could probably also be based solely on the dot product
+	float AB_to_BP_bearing = atan2f(vector_B_to_P_unit % vector_AB, vector_B_to_P_unit * vector_AB);
 
 	/* extension from [2], fly directly to A */
 	if (distance_A_to_airplane > _L1_distance && alongTrackDist / math::max(distance_A_to_airplane , 1.0f) < -0.7071f) {
@@ -148,21 +152,30 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector2f &vector_A, c
 		/* bearing from current position to L1 point */
 		_nav_bearing = atan2f(-vector_A_to_airplane_unit.getY() , -vector_A_to_airplane_unit.getX());
 
-// XXX this can be useful as last-resort guard, but is currently not needed
-#if 0
-	} else if (absf(bearing_wp_b) > math::radians(80.0f)) {
-		/* extension, fly back to waypoint */
+	/*
+	 * If the AB vector and the vector from B to airplane point in the same
+	 * direction, we have missed the waypoint. At +- 90 degrees we are just passing it.
+	 */
+	} else if (fabsf(AB_to_BP_bearing) < math::radians(100.0f)) {
+		/*
+		 * Extension, fly back to waypoint.
+		 * 
+		 * This corner case is possible if the system was following
+		 * the AB line from waypoint A to waypoint B, then is
+		 * switched to manual mode (or otherwise misses the waypoint)
+		 * and behind the waypoint continues to follow the AB line.
+		 */
 
 		/* calculate eta to fly to waypoint B */
 		
 		/* velocity across / orthogonal to line */
-		xtrack_vel = ground_speed_vector % (-vector_B_to_airplane_unit);
+		xtrack_vel = ground_speed_vector % (-vector_B_to_P_unit);
 		/* velocity along line */
-		ltrack_vel = ground_speed_vector * (-vector_B_to_airplane_unit);
+		ltrack_vel = ground_speed_vector * (-vector_B_to_P_unit);
 		eta = atan2f(xtrack_vel, ltrack_vel);
 		/* bearing from current position to L1 point */
-		_nav_bearing = bearing_wp_b;
-#endif
+		_nav_bearing = atan2f(-vector_B_to_P_unit.getY() , -vector_B_to_P_unit.getX());
+
 	} else {
 
 		/* calculate eta to fly along the line between A and B */
