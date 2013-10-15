@@ -110,22 +110,32 @@ then
 	then
 		sh /etc/init.d/1000_rc_fw.hil		
 		set MODE custom
-	else
-		if param compare SYS_AUTOSTART 1001
-		then
-			sh /etc/init.d/1001_rc_quad.hil
-			set MODE custom
-		else
-			if param compare SYS_AUTOSTART 1002
-			then
-				sh /etc/init.d/1002_rc_fw_state.hil
-				set MODE custom
-			else
-				# Try to get an USB console
-				nshterm /dev/ttyACM0 &
-			fi	
-		fi
 	fi
+	
+	if param compare SYS_AUTOSTART 1001
+	then
+		sh /etc/init.d/1001_rc_quad.hil
+		set MODE custom
+	fi
+	
+	if param compare SYS_AUTOSTART 1002
+	then
+		sh /etc/init.d/1002_rc_fw_state.hil
+		set MODE custom
+	fi
+	
+	if param compare SYS_AUTOSTART 1003
+	then
+		sh /etc/init.d/1003_rc_quad_+.hil
+		set MODE custom
+	fi
+	
+	if [ $MODE != custom ]
+	then
+		# Try to get an USB console
+		nshterm /dev/ttyACM0 &
+	fi
+
 	
 	#
 	# Upgrade PX4IO firmware
