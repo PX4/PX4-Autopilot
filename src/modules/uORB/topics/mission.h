@@ -69,8 +69,7 @@ enum NAV_CMD {
  * This is the position the MAV is heading towards. If it of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
  */
-typedef struct mission_item_s
-{
+typedef struct mission_item_s {
 	float aceptable_radius; /* For NAV command MISSIONs: Radius in which the MISSION is accepted as reached, in meters */
 	float acceptable_time; /* For NAV command MISSIONs: Time that the MAV should stay inside the PARAM1 radius before advancing, in milliseconds */
 	float orbit; /* For LOITER command MISSIONs: Orbit to circle around the MISSION, in meters. If positive the orbit direction should be clockwise,

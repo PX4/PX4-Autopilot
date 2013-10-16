@@ -179,8 +179,8 @@ static void wpm_send_setpoint(int dm, uint16_t seq)
 		mission_item_t cur;
 		get_waypoint(dm, seq, &cur);
 		waypoints_current_waypoint_changed(dm, cur.seq, cur.aceptable_radius,
-				cur.acceptable_time, cur.orbit, cur.yaw, cur.lat,
-				cur.lon, cur.alt, cur.frame, cur.command);
+						   cur.acceptable_time, cur.orbit, cur.yaw, cur.lat,
+						   cur.lon, cur.alt, cur.frame, cur.command);
 
 		wpm.timestamp_last_send_setpoint = missionlib_get_system_timestamp();
 
@@ -221,7 +221,7 @@ static void wpm_send_waypoint(int dm, uint8_t sysid, uint8_t compid, uint16_t se
 		mwp.y = wp.lon;
 		mwp.z = wp.alt;
 		mwp.seq = wp.seq;
-		mwp.command = wp.command; 
+		mwp.command = wp.command;
 		mwp.frame = wp.frame;
 		mwp.current = wp.current;
 		mwp.autocontinue = wp.autocontinue;
@@ -357,15 +357,17 @@ static void check_waypoints_reached(int dm, uint64_t now, const struct vehicle_g
 		float orbit;
 		mission_item_t wp;
 		get_waypoint(dm, wpm.current_active_wp_id, &wp);
+
 		if (wp.command == MAV_CMD_NAV_WAYPOINT) {
 
 			orbit = wp.acceptable_time;
 
 		} else if (wp.command == MAV_CMD_NAV_LOITER_TURNS ||
-				wp.command == MAV_CMD_NAV_LOITER_TIME ||
-				wp.command == MAV_CMD_NAV_LOITER_UNLIM) {
+			   wp.command == MAV_CMD_NAV_LOITER_TIME ||
+			   wp.command == MAV_CMD_NAV_LOITER_UNLIM) {
 
 			orbit = wp.orbit;
+
 		} else {
 
 			// XXX set default orbit via param
@@ -406,6 +408,7 @@ static void check_waypoints_reached(int dm, uint64_t now, const struct vehicle_g
 		// check if required yaw reached
 		float yaw_sp = _wrap_pi(wp.yaw / 180.0f * FM_PI);
 		float yaw_err = _wrap_pi(yaw_sp - global_pos->yaw);
+
 		if (fabsf(yaw_err) < 0.05f) {
 			wpm.yaw_reached = true;
 		}
@@ -430,6 +433,7 @@ static void check_waypoints_reached(int dm, uint64_t now, const struct vehicle_g
 
 			if (now - wpm.timestamp_firstinside_orbit >= cur_wp.aceptable_radius * 1000 * 1000) {
 				time_elapsed = true;
+
 			} else if (cur_wp.command == MAV_CMD_NAV_TAKEOFF) {
 				time_elapsed = true;
 			}
@@ -447,11 +451,12 @@ static void check_waypoints_reached(int dm, uint64_t now, const struct vehicle_g
 
 					/* initialize to current position in case we don't find a suitable navigation waypoint */
 					if (global_pos->valid) {
-						navigation_lat = global_pos->lat/1e7;
-						navigation_lon = global_pos->lon/1e7;
+						navigation_lat = global_pos->lat / 1e7;
+						navigation_lon = global_pos->lon / 1e7;
 						navigation_alt = global_pos->alt;
 						navigation_frame = MAV_FRAME_GLOBAL;
 					}
+
 					//else if (local_pos->xy_valid && local_pos->z_valid) {
 					//	navigation_lat = local_pos->x;
 					//	navigation_lon = local_pos->y;
@@ -462,11 +467,12 @@ static void check_waypoints_reached(int dm, uint64_t now, const struct vehicle_g
 					/* only accept supported navigation waypoints, skip unknown ones */
 					do {
 						get_waypoint(dm, wpm.current_active_wp_id, &cur_wp);
+
 						/* pick up the last valid navigation waypoint, this will be one we hold on to after the mission */
 						if (cur_wp.command == MAV_CMD_NAV_WAYPOINT ||
-							cur_wp.command == MAV_CMD_NAV_LOITER_TURNS ||
-							cur_wp.command == MAV_CMD_NAV_LOITER_TIME ||
-							cur_wp.command == MAV_CMD_NAV_LOITER_UNLIM) {
+						    cur_wp.command == MAV_CMD_NAV_LOITER_TURNS ||
+						    cur_wp.command == MAV_CMD_NAV_LOITER_TIME ||
+						    cur_wp.command == MAV_CMD_NAV_LOITER_UNLIM) {
 
 							/* this is a navigation waypoint */
 							navigation_frame = cur_wp.frame;
@@ -495,11 +501,11 @@ static void check_waypoints_reached(int dm, uint64_t now, const struct vehicle_g
 							if ((uint16_t)(wpm.current_active_wp_id + 1) < wpm.size)
 								wpm.current_active_wp_id++;
 						}
-			
+
 					} while (!(cur_wp.command == (int)MAV_CMD_NAV_WAYPOINT ||
-						cur_wp.command == (int)MAV_CMD_NAV_LOITER_TURNS ||
-						cur_wp.command == (int)MAV_CMD_NAV_LOITER_TIME ||
-						cur_wp.command == (int)MAV_CMD_NAV_LOITER_UNLIM));
+						   cur_wp.command == (int)MAV_CMD_NAV_LOITER_TURNS ||
+						   cur_wp.command == (int)MAV_CMD_NAV_LOITER_TIME ||
+						   cur_wp.command == (int)MAV_CMD_NAV_LOITER_UNLIM));
 
 					// Fly to next waypoint
 					wpm.timestamp_firstinside_orbit = 0;
@@ -522,7 +528,7 @@ static void check_waypoints_reached(int dm, uint64_t now, const struct vehicle_g
 }
 
 
-__EXPORT int waypoints_eventloop(int dm, uint64_t now, const struct vehicle_global_position_s *global_position, struct navigation_capabilities_s *nav_cap)
+__EXPORT int waypoints_check(int dm, uint64_t now, const struct vehicle_global_position_s *global_position, struct navigation_capabilities_s *nav_cap)
 {
 	/* check for timed-out operations */
 	if (now - wpm.timestamp_lastaction > wpm.timeout && wpm.current_state != WPM_STATE_IDLE) {
@@ -551,7 +557,7 @@ __EXPORT int waypoints_eventloop(int dm, uint64_t now, const struct vehicle_glob
 }
 
 
-__EXPORT void 
+__EXPORT void
 waypoints_message_handler(int dm, const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos , struct vehicle_local_position_s *local_pos)
 {
 	uint64_t now = missionlib_get_system_timestamp();
@@ -599,12 +605,14 @@ waypoints_message_handler(int dm, const mavlink_message_t *msg, const struct veh
 							mission_item_t wp;
 							get_waypoint(dm, i, &wp);
 							bool current = wp.current;
+
 							if (i == wpm.current_active_wp_id) {
 								wp.current = 1;
 
 							} else {
 								wp.current = 0;
 							}
+
 							if (current ^ (bool)wp.current)
 								set_waypoint(dm, i, &wp);
 						}
@@ -799,10 +807,6 @@ waypoints_message_handler(int dm, const mavlink_message_t *msg, const struct veh
 				wpm.timestamp_lastaction = now;
 
 				if (wpm.current_state == WPM_STATE_IDLE || (wpm.current_state == WPM_STATE_GETLIST && wpm.current_wp_id == 0)) {
-//                	printf("wpc count in: %d\n",wpc.count);
-//                	printf("Comp id: %d\n",msg->compid);
-//                	printf("Current partner sysid: %d\n",wpm.current_partner_sysid);
-
 					if (wpc.count > 0) {
 						if (wpm.current_state == WPM_STATE_IDLE) {
 #ifdef MAVLINK_WPM_NO_PRINTF
@@ -838,11 +842,6 @@ waypoints_message_handler(int dm, const mavlink_message_t *msg, const struct veh
 
 #endif
 						wpm.rcv_size = 0;
-						//while(waypoints_receive_buffer->size() > 0)
-//                        {
-//                            delete waypoints_receive_buffer->back();
-//                            waypoints_receive_buffer->pop_back();
-//                        }
 
 						wpm_send_waypoint_request(wpm.current_partner_sysid, wpm.current_partner_compid, wpm.current_wp_id);
 
@@ -855,11 +854,6 @@ waypoints_message_handler(int dm, const mavlink_message_t *msg, const struct veh
 
 #endif
 						wpm.rcv_size = 0;
-						//while(waypoints_receive_buffer->size() > 0)
-//                        {
-//                            delete waypoints->back();
-//                            waypoints->pop_back();
-//                        }
 						wpm.current_active_wp_id = -1;
 						wpm.yaw_reached = false;
 						wpm.pos_reached = false;
@@ -932,11 +926,11 @@ waypoints_message_handler(int dm, const mavlink_message_t *msg, const struct veh
 			wp.lon = mwp.y;
 			wp.alt = mwp.z;
 			wp.seq = mwp.seq;
-			wp.command = mwp.command; 
+			wp.command = mwp.command;
 			wp.frame = mwp.frame;
 			wp.current = mwp.current;
 			wp.autocontinue = mwp.autocontinue;
-			
+
 			missionlib_send_mavlink_gcs_string("GOT WP");
 
 			if (mwp.target_system == mavlink_system.sysid && mwp.target_component == mavlink_wpm_comp_id) {
@@ -965,9 +959,11 @@ waypoints_message_handler(int dm, const mavlink_message_t *msg, const struct veh
 
 						//get the new current waypoint
 						int i;
+
 						for (i = 0; i < wpm.size; i++) {
 							mission_item_t work_wp;
 							get_waypoint(dm, i, &work_wp);
+
 							if (work_wp.current == 1) {
 								wpm.current_active_wp_id = i;
 								//// if (verbose) // printf("New current waypoint %u\n", current_active_wp_id);
@@ -990,6 +986,7 @@ waypoints_message_handler(int dm, const mavlink_message_t *msg, const struct veh
 						wpm.current_state = WPM_STATE_IDLE;
 
 						unsigned info = wpm.size;
+
 						if (mission_pub > 0) {
 							orb_publish(ORB_ID(mission), mission_pub, &info);
 
@@ -1060,6 +1057,7 @@ waypoints_message_handler(int dm, const mavlink_message_t *msg, const struct veh
 				wpm.current_active_wp_id = -1;
 				wpm.yaw_reached = false;
 				wpm.pos_reached = false;
+				dm_clear(dm, DM_KEY_WAY_POINTS);
 
 			} else if (wpca.target_system == mavlink_system.sysid /*&& wpca.target_component == mavlink_wpm_comp_id */ && wpm.current_state != WPM_STATE_IDLE) {
 				// if (verbose) // printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM_CLEAR_LIST from %u because i'm doing something else already (state=%i).\n", msg->sysid, wpm.current_state);

@@ -98,7 +98,7 @@ typedef struct waypoints_storage {
 extern waypoints_storage wpm;
 
 void waypoints_init(waypoints_storage *state);
-int waypoints_eventloop(int dm, uint64_t now, const struct vehicle_global_position_s *global_position, struct navigation_capabilities_s *nav_cap);
+int waypoints_check(int dm, uint64_t now, const struct vehicle_global_position_s *global_position, struct navigation_capabilities_s *nav_cap);
 void waypoints_message_handler(int fm, const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos,
 				struct vehicle_local_position_s *local_pos);
 
