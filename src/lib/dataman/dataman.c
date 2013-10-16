@@ -46,7 +46,9 @@
 #include <errno.h>
 #include <lib/dataman/dataman.h>
 
-static char *k_data_manager_device_path = "/fs/microsd/data";
+static const char *k_data_manager_device_path = "/fs/microsd/data";
+
+static const unsigned k_sector_size = DM_MAX_DATA_SIZE + 2;
 
 static sem_t g_mutex = SEM_INITIALIZER(1);	/* Mutual exclusion during IO operations */
 static int g_initialized = 0;			/* Initialization flag */
@@ -85,7 +87,7 @@ calculate_offset(dm_item_t item, unsigned char index)
 		g_key_offsets[0] = 0;
 
 		for (unsigned i = 0; i < (DM_KEY_NUM_KEYS - 1); i++)
-			g_key_offsets[i + 1] = g_key_offsets[i] + (g_key_sizes[i] * (DM_MAX_DATA_SIZE + 2));
+			g_key_offsets[i + 1] = g_key_offsets[i] + (g_key_sizes[i] * k_sector_size);
 
 		g_initialized = 1;
 	}
@@ -99,7 +101,7 @@ calculate_offset(dm_item_t item, unsigned char index)
 		return -1;
 
 	/* Calculate and return the item index based on type and index */
-	return g_key_offsets[item] + (index * (DM_MAX_DATA_SIZE + 2));
+	return g_key_offsets[item] + (index * k_sector_size);
 }
 
 /* Open the global data manager file */
@@ -122,14 +124,14 @@ dm_close(int fd)
  * byte 1: Persistence of this data item
  * byte 2... : data item value
  *
- * The total size must not exceed DM_MAX_DATA_SIZE + 2
+ * The total size must not exceed k_sector_size
  */
 
 /* write to the data manager file */
 __EXPORT ssize_t
 dm_write(int fd, dm_item_t item, unsigned char index, dm_persitence_t persistence, const void *buf, size_t count)
 {
-	unsigned char buffer[DM_MAX_DATA_SIZE + 2];
+	unsigned char buffer[k_sector_size];
 	size_t len;
 	int offset;
 
@@ -169,7 +171,7 @@ dm_write(int fd, dm_item_t item, unsigned char index, dm_persitence_t persistenc
 __EXPORT ssize_t
 dm_read(int fd, dm_item_t item, unsigned char index, void *buf, size_t count)
 {
-	unsigned char buffer[DM_MAX_DATA_SIZE + 2];
+	unsigned char buffer[k_sector_size];
 	int len, offset;
 
 	/* Get the offset for this item */
@@ -233,7 +235,7 @@ dm_clear(int fd, dm_item_t item)
 			if (write(fd, buf, 1) != 1)
 				break;
 		}
-		offset += DM_MAX_DATA_SIZE + 2;
+		offset += k_sector_size;
 	}
 	fsync(fd);
 	unlock();
@@ -308,7 +310,7 @@ dm_restart(dm_reset_reason reason)
 			}
 		}
 
-		offset += DM_MAX_DATA_SIZE + 2;
+		offset += k_sector_size;
 	}
 
 	fsync(fd);
