@@ -58,8 +58,7 @@
 #include <mavlink/mavlink_log.h>
 
 #include "orb_topics.h"
-#include "waypoints.h"
-#include "missionlib.h"
+#include "navigator/waypoints.h"
 #include "mavlink_hil.h"
 #include "util.h"
 
@@ -743,7 +742,7 @@ uorb_receive_thread(void *arg)
 			/* silent */
 
 		} else if (poll_ret < 0) {
-			mavlink_missionlib_send_gcs_string("[mavlink] ERROR reading uORB data");
+			missionlib_send_mavlink_gcs_string("[mavlink] ERROR reading uORB data");
 
 		} else {
 

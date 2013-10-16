@@ -40,24 +40,12 @@
 // XXX trim includes
 #include <nuttx/config.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
-#include <fcntl.h>
-#include <mqueue.h>
 #include <string.h>
-#include "mavlink_bridge_header.h"
 #include <drivers/drv_hrt.h>
-#include <time.h>
-#include <float.h>
-#include <unistd.h>
-#include <nuttx/sched.h>
-#include <sys/prctl.h>
-#include <termios.h>
-#include <errno.h>
 #include <stdlib.h>
-#include <poll.h>
 
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
@@ -65,22 +53,19 @@
 #include <mavlink/mavlink_log.h>
 
 #include "uORB/topics/mission.h"
-#include "orb_topics.h"
+#include "mavlink/orb_topics.h"
+#include "mavlink/mavlink_bridge_header.h"
 #include "waypoints.h"
 #include "missionlib.h"
-#include "mavlink_hil.h"
-#include "util.h"
-#include "waypoints.h"
-#include "mavlink_parameters.h"
+//#include "mavlink/mavlink_hil.h"
+#include "mavlink/util.h"
+//#include "mavlink/mavlink_parameters.h"
 
 static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
 static uint64_t loiter_start_time;
 
-static bool set_special_fields(float param1, float param2, float param3, float param4, uint16_t command,
-	struct vehicle_global_position_setpoint_s *sp);
-
-int
-mavlink_missionlib_send_message(mavlink_message_t *msg)
+__EXPORT int
+missionlib_send_mavlink_message(mavlink_message_t *msg)
 {
 	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
 
@@ -88,8 +73,8 @@ mavlink_missionlib_send_message(mavlink_message_t *msg)
 	return 0;
 }
 
-int
-mavlink_missionlib_send_gcs_string(const char *string)
+__EXPORT int
+missionlib_send_mavlink_gcs_string(const char *string)
 {
 	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
 	mavlink_statustext_t statustext;
@@ -110,7 +95,7 @@ mavlink_missionlib_send_gcs_string(const char *string)
 		mavlink_message_t msg;
 
 		mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &statustext);
-		return mavlink_missionlib_send_message(&msg);
+		return missionlib_send_mavlink_message(&msg);
 
 	} else {
 		return 1;
@@ -122,7 +107,7 @@ mavlink_missionlib_send_gcs_string(const char *string)
  *
  * @return the system time since boot in microseconds
  */
-uint64_t mavlink_missionlib_get_system_timestamp()
+__EXPORT uint64_t missionlib_get_system_timestamp()
 {
 	return hrt_absolute_time();
 }
@@ -133,7 +118,7 @@ uint64_t mavlink_missionlib_get_system_timestamp()
  * @return true if the mission item could be interpreted
  * successfully, it return false on failure.
  */
-bool set_special_fields(float param1, float param2, float param3, float param4, uint16_t command,
+static bool set_special_fields(float param1, float param2, float param3, float param4, uint16_t command,
 	struct vehicle_global_position_setpoint_s *sp)
 {
 	switch (command) {
@@ -201,7 +186,7 @@ bool set_special_fields(float param1, float param2, float param3, float param4, 
  * It publishes the vehicle_global_position_setpoint_s or the
  * vehicle_local_position_setpoint_s topic, depending on the type of waypoint
  */
-void mavlink_missionlib_current_waypoint_changed(int dm, uint16_t index, float param1,
+void waypoints_current_waypoint_changed(int dm, uint16_t index, float param1,
 		float param2, float param3, float param4, float param5_lat_x,
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command)
 {
@@ -273,18 +258,18 @@ void mavlink_missionlib_current_waypoint_changed(int dm, uint16_t index, float p
 		bool next_setpoint_valid = false;
 
 		/* next waypoint */
-		if (wpm->size > 1) {
+		if (wpm.size > 1) {
 			next_setpoint_index = index + 1;
 		}
 
 		mission_item_t next_wp;
-		while (next_setpoint_index < wpm->size - 1) {
+		while (next_setpoint_index < wpm.size - 1) {
 			get_waypoint(dm, next_setpoint_index, &next_wp);
 			if (next_wp.frame == (int)MAV_FRAME_GLOBAL &&
-				(next_wp.command == (int)MAV_CMD_NAV_WAYPOINT ||
-					next_wp.command == (int)MAV_CMD_NAV_LOITER_TURNS ||
-					next_wp.command == (int)MAV_CMD_NAV_LOITER_TIME ||
-					next_wp.command == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
+				(next_wp.command == MAV_CMD_NAV_WAYPOINT ||
+					next_wp.command == MAV_CMD_NAV_LOITER_TURNS ||
+					next_wp.command == MAV_CMD_NAV_LOITER_TIME ||
+					next_wp.command == MAV_CMD_NAV_LOITER_UNLIM)) {
 				next_setpoint_valid = true;
 				break;
 			}
@@ -380,14 +365,14 @@ void mavlink_missionlib_current_waypoint_changed(int dm, uint16_t index, float p
 		sprintf(buf, "[mp] WP#%i (x: %f/y %f/z %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 	} else {
 		warnx("non-navigation WP, ignoring");
-		mavlink_missionlib_send_gcs_string("[mp] Unknown waypoint type, ignoring.");
+		missionlib_send_mavlink_gcs_string("[mp] Unknown waypoint type, ignoring.");
 		return;
 	}
 
 	/* only set this for known waypoint types (non-navigation types would have returned earlier) */
 	last_waypoint_index = index;
 
-	mavlink_missionlib_send_gcs_string(buf);
+	missionlib_send_mavlink_gcs_string(buf);
 	printf("%s\n", buf);
 	//printf("[mavlink mp] new setpoint\n");//: frame: %d, lat: %d, lon: %d, alt: %d, yaw: %d\n", frame, param5_lat_x*1000, param6_lon_y*1000, param7_alt_z*1000, param4*1000);
 }

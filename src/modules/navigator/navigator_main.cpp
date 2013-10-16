@@ -73,6 +73,9 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <lib/dataman/dataman.h>
+#include <v1.0/mavlink_types.h>
+#include <navigator/waypoints.h>
+#include <navigator/missionlib.h>
 
 
 /**
@@ -130,6 +133,7 @@ private:
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
 	int		_mission_sub;
+	int		_capabilities_sub;
 	int		_fence_sub;
 	int		_fence_pub;
 
@@ -145,12 +149,14 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	unsigned	_mission_items_maxcount;				/**< maximum number of mission items supported */
+	unsigned	_mission_item_count;				/**< maximum number of mission items supported */
 	bool		_mission_valid;						/**< flag if mission is valid */
 
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
 	bool						_inside_fence;		/**< vehicle is inside fence */
+
+	struct navigation_capabilities_s		_nav_caps;
 
 	/** manual control states */
 	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
@@ -193,12 +199,12 @@ private:
 	/**
 	 * Check for set triplet updates.
 	 */
-	void		mission_poll();
+	void		mission_poll(int dm);
 
 	/**
 	* Retrieve mission.
 	*/
-	bool		mission_update();
+	void		mission_update();
 
 	/**
 	 * Control throttle.
@@ -255,6 +261,7 @@ Navigator::Navigator() :
 	_manual_control_sub(-1),
 	_fence_sub(-1),
 	_fence_pub(-1),
+	_capabilities_sub(-1),
 
 /* publications */
 	_triplet_pub(-1),
@@ -262,7 +269,7 @@ Navigator::Navigator() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 /* states */
-	_mission_items_maxcount(MAX_MISSION_ITEMS),
+	_mission_item_count(0),
 	_mission_valid(false),
 	_loiter_hold(false),
 	_fence_valid(false),
@@ -334,24 +341,24 @@ Navigator::vehicle_attitude_poll()
 }
 
 void
-Navigator::mission_poll()
+Navigator::mission_poll(int dm)
 {
 	/* check if there is a new setpoint */
 	bool mission_updated;
 	orb_check(_mission_sub, &mission_updated);
 
 	if (mission_updated)
-		if (!mission_update()) {
-			warnx("mission larger than storage space");
-		}
+		mission_update();
+	waypoints_eventloop(dm, missionlib_get_system_timestamp(), &_global_pos, &_nav_caps);
 }
 
-bool
+void
 Navigator::mission_update()
 {
 	unsigned mission;
 	orb_copy(ORB_ID(mission), _mission_sub, &mission);
-	return true;
+	_mission_item_count = mission;
+	_mission_valid = (mission > 0) && (mission <= MAX_MISSION_ITEMS);
 }
 
 void
@@ -373,12 +380,16 @@ Navigator::task_main()
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
+	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_fence_sub = orb_subscribe(ORB_ID(fence));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+
+	/* initialize waypoint manager */
+	waypoints_init(&wpm);
 
 	// Load initial states
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
@@ -397,8 +408,10 @@ Navigator::task_main()
 
 	_fence_valid = load_fence(GEOFENCE_MAX_VERTICES);
 
+	int dm = dm_open();
+
 	/* wakeup source(s) */
-	struct pollfd fds[3];
+	struct pollfd fds[4];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -407,10 +420,12 @@ Navigator::task_main()
 	fds[1].events = POLLIN;
 	fds[2].fd = _fence_sub;
 	fds[2].events = POLLIN;
+	fds[3].fd = _capabilities_sub;
+	fds[3].events = POLLIN;
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 500ms for data */
+		/* wait for up to 100ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		/* timed out - periodic check for _task_should_exit, etc. */
@@ -447,6 +462,11 @@ Navigator::task_main()
 			_fence_valid = load_fence(vertices);
 		}
 
+		/* only update fence if it has changed */
+		if (fds[3].revents & POLLIN) {
+			orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
+		}
+
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
 
@@ -465,7 +485,7 @@ Navigator::task_main()
 
 			vehicle_attitude_poll();
 
-			mission_poll();
+			mission_poll(dm);
 
 			if (_fence_valid && _global_pos.valid) {
 				_inside_fence = inside_geofence(&_global_pos, &_fence);
@@ -579,6 +599,8 @@ Navigator::task_main()
 		perf_end(_loop_perf);
 
 	}
+
+	dm_close(dm);
 
 	warnx("exiting.");
 

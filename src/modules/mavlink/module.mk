@@ -37,10 +37,8 @@
 
 MODULE_COMMAND	 = mavlink
 SRCS		 += mavlink.c \
-			   missionlib.c \
 			   mavlink_parameters.c \
 			   mavlink_receiver.cpp \
-			   orb_listener.c \
-			   waypoints.c
+			   orb_listener.c
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink

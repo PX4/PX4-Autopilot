@@ -45,9 +45,6 @@ extern uint8_t chan;
 /** Shutdown marker */
 extern volatile bool thread_should_exit;
 
-/** Waypoint storage */
-extern mavlink_wpm_storage *wpm;
-
 /**
  * Translate the custom state into standard mavlink modes and state.
  */

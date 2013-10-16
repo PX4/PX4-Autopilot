@@ -38,4 +38,8 @@
 MODULE_COMMAND	= navigator
 
 SRCS		= navigator_main.cpp \
-		  navigator_params.c
+		  navigator_params.c \
+		  waypoints.c \
+		  missionlib.c
+
+INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink

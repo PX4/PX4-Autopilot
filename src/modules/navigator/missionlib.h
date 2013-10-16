@@ -39,14 +39,18 @@
 
 #pragma once
 
-#include "mavlink_bridge_header.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-//extern void	mavlink_wpm_send_message(mavlink_message_t *msg);
-//extern void	mavlink_wpm_send_gcs_string(const char *string);
-//extern uint64_t	mavlink_wpm_get_system_timestamp(void);
-extern int	mavlink_missionlib_send_message(mavlink_message_t *msg);
-extern int	mavlink_missionlib_send_gcs_string(const char *string);
-extern uint64_t	mavlink_missionlib_get_system_timestamp(void);
-extern void	mavlink_missionlib_current_waypoint_changed(int dm, uint16_t index, float param1,
-		float param2, float param3, float param4, float param5_lat_x,
-		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
+int		missionlib_send_mavlink_message(mavlink_message_t *msg);
+int		missionlib_send_mavlink_gcs_string(const char *string);
+uint64_t	missionlib_get_system_timestamp(void);
+void		waypoints_current_waypoint_changed(int dm, uint16_t index, float param1,
+			float param2, float param3, float param4, float param5_lat_x,
+			float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
+
+#ifdef __cplusplus
+}
+#endif
+
