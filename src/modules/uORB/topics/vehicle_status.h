@@ -201,6 +201,7 @@ struct vehicle_status_s
 	bool condition_home_position_valid;		/**< indicates a valid home position (a valid home position is not always a valid launch) */
 	bool condition_local_position_valid;
 	bool condition_local_altitude_valid;
+	bool condition_local_velocity_valid;
 	bool condition_airspeed_valid;			/**< set to true by the commander app if there is a valid airspeed measurement available */
 	bool condition_landed;					/**< true if vehicle is landed, always true if disarmed */
 

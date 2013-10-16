@@ -50,6 +50,7 @@ struct position_estimator_inav_params {
 	float w_pos_flow;
 	float w_acc_bias;
 	float flow_k;
+	float flow_q_min;
 	float sonar_filt;
 	float sonar_err;
 	float land_t;
@@ -67,6 +68,7 @@ struct position_estimator_inav_param_handles {
 	param_t w_pos_flow;
 	param_t w_acc_bias;
 	param_t flow_k;
+	param_t flow_q_min;
 	param_t sonar_filt;
 	param_t sonar_err;
 	param_t land_t;
