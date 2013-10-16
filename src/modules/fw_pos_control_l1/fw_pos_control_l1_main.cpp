@@ -196,6 +196,8 @@ private:
 		float throttle_max;
 		float throttle_cruise;
 
+		float throttle_land_max;
+
 		float loiter_hold_radius;
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -226,6 +228,8 @@ private:
 		param_t throttle_min;
 		param_t throttle_max;
 		param_t throttle_cruise;
+
+		param_t throttle_land_max;
 
 		param_t loiter_hold_radius;
 	}		_parameter_handles;		/**< handles for interesting parameters */
@@ -342,6 +346,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.throttle_min = param_find("FW_THR_MIN");
 	_parameter_handles.throttle_max = param_find("FW_THR_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
+	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
@@ -403,6 +408,8 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+
+	param_get(_parameter_handles.throttle_land_max, &(_parameters.throttle_land_max));
 
 	param_get(_parameter_handles.time_const, &(_parameters.time_const));
 	param_get(_parameter_handles.min_sink_rate, &(_parameters.min_sink_rate));
@@ -625,6 +632,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 	_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
 	float altitude_error = _global_triplet.current.altitude - _global_pos.alt;
 
+	/* no throttle limit as default */
+	float throttle_max = 1.0f;
+
 	/* AUTONOMOUS FLIGHT */
 
 	// XXX this should only execute if auto AND safety off (actuators active),
@@ -634,10 +644,11 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		/* get circle mode */
 		bool was_circle_mode = _l1_control.circle_mode();
 
+		/* restore speed weight, in case changed intermittently (e.g. in landing handling) */
+		_tecs.set_speed_weight(_parameters.speed_weight);
+
 		/* execute navigation once we have a setpoint */
 		if (_setpoint_valid) {
-
-			float altitude_error = _global_triplet.current.altitude - _global_pos.alt;
 
 			/* current waypoint (the one currently heading for) */
 			math::Vector2f next_wp(global_triplet.current.lat / 1e7f, global_triplet.current.lon / 1e7f);
@@ -712,15 +723,22 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 				// XXX this could make a great param
-				if (altitude_error > -20.0f) {
 
-					float flare_angle_rad = math::radians(15.0f);//math::radians(global_triplet.current.param1)
+				if (altitude_error > -10.0f) {
+
+					float flare_angle_rad = math::radians(10.0f);//math::radians(global_triplet.current.param1)
+
+					/* set the speed weight to 0.0 to push the system to control altitude with pitch */
+					_tecs.set_speed_weight(0.0f);
 
 					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
-								    true, flare_angle_rad,
+								    false, flare_angle_rad,
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+
+					/* kill the throttle if param requests it */
+					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
 
 					/* limit roll motion to prevent wings from touching the ground first */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-20.0f), math::radians(20.0f));
@@ -785,7 +803,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				_loiter_hold = true;
 			}
 
-			float altitude_error = _loiter_hold_alt - _global_pos.alt;
+			altitude_error = _loiter_hold_alt - _global_pos.alt;
 
 			math::Vector2f loiter_hold_pos(_loiter_hold_lat, _loiter_hold_lon);
 
@@ -862,7 +880,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 	}
 
 	_att_sp.pitch_body = _tecs.get_pitch_demand();
-	_att_sp.thrust = _tecs.get_throttle_demand();
+	_att_sp.thrust = math::min(_tecs.get_throttle_demand(), throttle_max);
 
 	return setpoint;
 }
