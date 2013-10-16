@@ -186,6 +186,8 @@ dm_read(int fd, dm_item_t item, unsigned char index, void *buf, size_t count)
 	len = -1;
 	lock();
 
+	/* Try to get fresh data */
+	fsync(fd);
 	if (lseek(fd, offset, SEEK_SET) == offset)
 		len = read(fd, buffer, count + 2);
 
@@ -210,6 +212,33 @@ dm_read(int fd, dm_item_t item, unsigned char index, void *buf, size_t count)
 	return buffer[0];
 }
 
+__EXPORT void
+dm_clear(int fd, dm_item_t item)
+{
+	int i;
+	int offset = calculate_offset(item, 0);
+
+	lock();
+	fsync(fd);
+	for (i = 0; i < g_key_sizes[item]; i++) {
+		char buf[1];
+		if (lseek(fd, offset, SEEK_SET) != offset)
+			break;
+		if (read(fd, buf, 1) < 1)
+			break;
+		if (buf[0]) {
+			if (lseek(fd, offset, SEEK_SET) != offset)
+				break;
+			buf[0] = 0;
+			if (write(fd, buf, 1) != 1)
+				break;
+		}
+		offset += DM_MAX_DATA_SIZE + 2;
+	}
+	fsync(fd);
+	unlock();
+}
+
 /* Tell the data manager about the type of the last reset */
 __EXPORT int
 dm_restart(dm_reset_reason reason)
@@ -228,6 +257,8 @@ dm_restart(dm_reset_reason reason)
 	offset = 0;
 
 	lock();
+
+	fsync(fd);
 
 	while (1) {
 		size_t len;
@@ -279,6 +310,8 @@ dm_restart(dm_reset_reason reason)
 
 		offset += DM_MAX_DATA_SIZE + 2;
 	}
+
+	fsync(fd);
 
 	unlock();
 

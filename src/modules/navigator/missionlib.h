@@ -37,7 +37,8 @@
  * MAVLink mission helper library
  */
 
-#pragma once
+#ifndef _MISSION_LIB_H
+#define _MISSION_LIB_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,3 +55,4 @@ void		waypoints_current_waypoint_changed(int dm, uint16_t index, float param1,
 }
 #endif
 
+#endif

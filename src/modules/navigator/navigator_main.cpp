@@ -349,7 +349,7 @@ Navigator::mission_poll(int dm)
 
 	if (mission_updated)
 		mission_update();
-	waypoints_eventloop(dm, missionlib_get_system_timestamp(), &_global_pos, &_nav_caps);
+	waypoints_check(dm, missionlib_get_system_timestamp(), &_global_pos, &_nav_caps);
 }
 
 void
