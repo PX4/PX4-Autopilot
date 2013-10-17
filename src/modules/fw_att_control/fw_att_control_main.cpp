@@ -673,7 +673,7 @@ FixedwingAttitudeControl::task_main()
 
 				/* Run attitude controllers */
 				_roll_ctrl.control_attitude(roll_sp, _att.roll);
-				_pitch_ctrl.control_attitude(roll_sp, _att.roll, _att.pitch, airspeed);
+				_pitch_ctrl.control_attitude(pitch_sp, _att.roll, _att.pitch, airspeed);
 				_yaw_ctrl.control_attitude(_att.roll, _att.pitch,
 						speed_body_u,speed_body_w,
 						_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
@@ -709,9 +709,9 @@ FixedwingAttitudeControl::task_main()
 				 * only once available
 				 */
 				vehicle_rates_setpoint_s rates_sp;
-				rates_sp.roll = _roll_ctrl.get_desired_rate();
-				rates_sp.pitch = _pitch_ctrl.get_desired_rate();
-				rates_sp.yaw = _yaw_ctrl.get_desired_rate();
+				rates_sp.roll = _roll_ctrl.get_desired_bodyrate();
+				rates_sp.pitch = _pitch_ctrl.get_desired_bodyrate();
+				rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
 
 				rates_sp.timestamp = hrt_absolute_time();
 

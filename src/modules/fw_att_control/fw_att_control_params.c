@@ -44,6 +44,8 @@
 
 #include <systemlib/param/param.h>
 
+//XXX resolve unclear naming of paramters: FW_P_D --> FW_PR_P
+
 /*
  * Controller parameters, accessible via MAVLink
  *
@@ -130,7 +132,7 @@ PARAM_DEFINE_FLOAT(FW_Y_P, 0);
 PARAM_DEFINE_FLOAT(FW_Y_I, 0);
 PARAM_DEFINE_FLOAT(FW_Y_IMAX, 15.0f);
 PARAM_DEFINE_FLOAT(FW_Y_D, 0);
-PARAM_DEFINE_FLOAT(FW_Y_ROLLFF, 1);
+PARAM_DEFINE_FLOAT(FW_Y_ROLLFF, 0);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 9.0f);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 12.0f);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 18.0f);

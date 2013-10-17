@@ -90,7 +90,7 @@ float ECL_PitchController::control_attitude(float pitch_setpoint, float roll, fl
 	float pitch_error = pitch_setpoint - pitch;
 
 	/*  Apply P controller: rate setpoint from current error and time constant */
-	float _rate_setpoint =  pitch_error / _tc;
+	_rate_setpoint =  pitch_error / _tc;
 
 	/* add turn offset */
 	_rate_setpoint += turn_offset;
