@@ -111,6 +111,13 @@ extern "C" {
 		size_t buflen			/* Length in bytes of data to retrieve */
 	);
 
+	/* Retrieve from the data manager store */
+	__EXPORT void
+	dm_clear(
+		int fd,				/* Data manager handle */
+		dm_item_t item			/* The item type to clear */
+		);
+
 	/* Tell the data manager about the type of the last reset */
 	__EXPORT int
 	dm_restart(
