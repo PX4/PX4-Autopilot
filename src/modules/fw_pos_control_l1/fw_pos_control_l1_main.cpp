@@ -727,15 +727,17 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				if (altitude_error > -10.0f) {
 
 					float flare_angle_rad = math::radians(10.0f);//math::radians(global_triplet.current.param1)
+					float land_pitch_min = math::radians(5.0f);
+					float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 
-					/* set the speed weight to 0.0 to push the system to control altitude with pitch */
-					_tecs.set_speed_weight(0.0f);
+					// /* set the speed weight to 0.0 to push the system to control altitude with pitch */
+					// _tecs.set_speed_weight(0.0f);
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, _parameters.airspeed_min,
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, flare_angle_rad,
-								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+								    0.0f, _parameters.throttle_max, throttle_land,
+								    land_pitch_min, math::radians(_parameters.pitch_limit_max));
 
 					/* kill the throttle if param requests it */
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
@@ -814,7 +816,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
 			/* climb with full throttle if the altitude error is bigger than 5 meters */
-			bool climb_out = (altitude_error > 5);
+			bool climb_out = (altitude_error > 3);
 
 			float min_pitch;
 
@@ -842,6 +844,43 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			_att_sp.roll_reset_integral = true;
 		}
 
+	} else if (0/* easy mode enabled */) {
+
+		/** EASY FLIGHT **/
+
+		if (0/* switched from another mode to easy */) {
+			_seatbelt_hold_heading = _att.yaw;
+		}
+
+		if (0/* easy on and manual control yaw non-zero */) {
+			_seatbelt_hold_heading = _att.yaw + _manual.yaw;
+		}
+
+		/* climb out control */
+		bool climb_out = false;
+
+		/* user wants to climb out */
+		if (_manual.pitch > 0.3f && _manual.throttle > 0.8f) {
+			climb_out = true;
+		}
+
+		/* if in seatbelt mode, set airspeed based on manual control */
+
+		// XXX check if ground speed undershoot should be applied here
+		float seatbelt_airspeed = _parameters.airspeed_min +
+					  (_parameters.airspeed_max - _parameters.airspeed_min) *
+					  _manual.throttle;
+
+		_l1_control.navigate_heading(_seatbelt_hold_heading, _att.yaw, ground_speed);
+		_att_sp.roll_body = _l1_control.nav_roll();
+		_att_sp.yaw_body = _l1_control.nav_bearing();
+		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.pitch * 2.0f,
+					    seatbelt_airspeed,
+					    _airspeed.indicated_airspeed_m_s, eas2tas,
+					    false, _parameters.pitch_limit_min,
+					    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+					    _parameters.pitch_limit_min, _parameters.pitch_limit_max);
+
 	} else if (0/* seatbelt mode enabled */) {
 
 		/** SEATBELT FLIGHT **/
@@ -861,13 +900,28 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					  (_parameters.airspeed_max - _parameters.airspeed_min) *
 					  _manual.throttle;
 
+		/* user switched off throttle */
+		if (_manual.throttle < 0.1f) {
+			throttle_max = 0.0f;
+			/* switch to pure pitch based altitude control, give up speed */
+			_tecs.set_speed_weight(0.0f);
+		}
+
+		/* climb out control */
+		bool climb_out = false;
+
+		/* user wants to climb out */
+		if (_manual.pitch > 0.3f && _manual.throttle > 0.8f) {
+			climb_out = true;
+		}
+
 		_l1_control.navigate_heading(_seatbelt_hold_heading, _att.yaw, ground_speed);
-		_att_sp.roll_body = _l1_control.nav_roll();
-		_att_sp.yaw_body = _l1_control.nav_bearing();
+		_att_sp.roll_body =	_manual.roll;
+		_att_sp.yaw_body =	_manual.yaw;
 		_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_pos.alt + _manual.pitch * 2.0f,
 					    seatbelt_airspeed,
 					    _airspeed.indicated_airspeed_m_s, eas2tas,
-					    false, _parameters.pitch_limit_min,
+					    climb_out, _parameters.pitch_limit_min,
 					    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 					    _parameters.pitch_limit_min, _parameters.pitch_limit_max);
 
