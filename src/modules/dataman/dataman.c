@@ -186,25 +186,26 @@ destroy_work_item(dataman_q_item_t *item)
 	free(item);
 }
 
+/* Work queue management functions */
 static void
 enqueue_work_item(dataman_q_item_t *item)
 {
-        /* put the work item on the work queue */
-        sem_wait(&g_work_q_mutex);
-        sq_addlast(&item->link, &g_dataman_work);
-        sem_post(&g_work_q_mutex);
-        /* tell the work thread that work is available */
-        sem_post(&g_work_mutex);
+	/* put the work item on the work queue */
+	sem_wait(&g_work_q_mutex);
+	sq_addlast(&item->link, &g_dataman_work);
+	sem_post(&g_work_q_mutex);
+	/* tell the work thread that work is available */
+	sem_post(&g_work_mutex);
 }
 
 static dataman_q_item_t *
 dequeue_work_item(void)
 {
-        dataman_q_item_t *work;
-        sem_wait(&g_work_q_mutex);
-        work = (dataman_q_item_t *)sq_remfirst(&g_dataman_work);
-        sem_post(&g_work_q_mutex);
-        return work;
+	dataman_q_item_t *work;
+	sem_wait(&g_work_q_mutex);
+	work = (dataman_q_item_t *)sq_remfirst(&g_dataman_work);
+	sem_post(&g_work_q_mutex);
+	return work;
 }
 
 /* Calculate the offset in file of specific item */
@@ -320,6 +321,7 @@ _clear(dm_item_t item)
 	int i, result = 0;
 
 	int offset = calculate_offset(item, 0);
+
 	if (offset < 0)
 		return -1;
 
@@ -437,7 +439,8 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 	if (g_fd < 0)
 		return -1;
 
-	work = create_work_item();
+	if ((work = create_work_item()) == NULL)
+		return -1;
 
 	work->func = dm_write_func;
 	work->write_params.item = item;
@@ -461,7 +464,8 @@ dm_read(dm_item_t item, unsigned char index, void *buf, size_t count)
 	if (g_fd < 0)
 		return -1;
 
-	work = create_work_item();
+	if ((work = create_work_item()) == NULL)
+		return -1;
 
 	work->func = dm_read_func;
 	work->read_params.item = item;
@@ -483,10 +487,8 @@ dm_clear(dm_item_t item)
 	if (g_fd < 0)
 		return -1;
 
-	work = create_work_item();
-
-	if (work == NULL)
-		return;
+	if ((work = create_work_item()) == NULL)
+		return -1;
 
 	work->func = dm_clear_func;
 	work->clear_params.item = item;
@@ -506,9 +508,7 @@ dm_restart(dm_reset_reason reason)
 	if (g_fd < 0)
 		return -1;
 
-	work = create_work_item();
-
-	if (work == NULL)
+	if ((work = create_work_item()) == NULL)
 		return -1;
 
 	work->func = dm_restart_func;
@@ -523,7 +523,7 @@ dm_restart(dm_reset_reason reason)
 int
 task_main(int argc, char *argv[])
 {
-        dataman_q_item_t *work;
+	dataman_q_item_t *work;
 
 	/* inform about start */
 	warnx("Initializing..");
@@ -546,12 +546,14 @@ task_main(int argc, char *argv[])
 
 	while (true) {
 
-                /* do we need to exit ??? */
+		/* do we need to exit ??? */
 		if (g_task_should_exit)
 			break;
-                /* wait for work */
+
+		/* wait for work */
 		sem_wait(&g_work_mutex);
-                /* make sure we still don't need to exit */
+
+		/* make sure we still don't need to exit */
 		if (g_task_should_exit)
 			break;
 
@@ -563,19 +565,19 @@ task_main(int argc, char *argv[])
 			g_func_counts[dm_write_func]++;
 			work->write_params.result =
 				_write(work->write_params.item,
-					   work->write_params.index,
-					   work->write_params.persistence,
-					   work->write_params.buf,
-					   work->write_params.count);
+				       work->write_params.index,
+				       work->write_params.persistence,
+				       work->write_params.buf,
+				       work->write_params.count);
 			break;
 
 		case dm_read_func:
 			g_func_counts[dm_read_func]++;
 			work->read_params.result =
 				_read(work->read_params.item,
-					  work->read_params.index,
-					  work->read_params.buf,
-					  work->read_params.count);
+				      work->read_params.index,
+				      work->read_params.buf,
+				      work->read_params.count);
 			break;
 
 		case dm_clear_func:
@@ -590,11 +592,12 @@ task_main(int argc, char *argv[])
 				_restart(work->restart_params.reason);
 			break;
 		}
-                /* Inform the caller that work is done */
+
+		/* Inform the caller that work is done */
 		sem_post(&work->wait_sem);
 	}
 
-        /* all done... clean up */
+	/* all done... clean up */
 	int fd = g_fd;
 	g_fd = -1;
 	close(fd);
@@ -608,15 +611,17 @@ task_main(int argc, char *argv[])
 static int
 start(void)
 {
-        int task;
+	int task;
 
 	sem_init(&g_initialized, 1, 0);
+
 	/* start the task */
 	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2048, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}
-        /* wait for the thread to actuall initialize */
+
+	/* wait for the thread to actuall initialize */
 	sem_wait(&g_initialized);
 
 	return 0;
@@ -625,7 +630,7 @@ start(void)
 static void
 status(void)
 {
-        /* display usage statistics */
+	/* display usage statistics */
 	warnx("Writes   %d", g_func_counts[dm_write_func]);
 	warnx("Reads    %d", g_func_counts[dm_read_func]);
 	warnx("Clears   %d", g_func_counts[dm_clear_func]);
@@ -635,7 +640,7 @@ status(void)
 static void
 stop(void)
 {
-        /* Tell the worker task to shut down */
+	/* Tell the worker task to shut down */
 	g_task_should_exit = true;
 	sem_post(&g_work_mutex);
 }
