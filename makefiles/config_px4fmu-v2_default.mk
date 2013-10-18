@@ -101,6 +101,7 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
+MODULES     += modules/dataman
 
 #
 # Libraries
@@ -111,7 +112,6 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
-MODULES		+= lib/dataman
 
 #
 # Demo apps

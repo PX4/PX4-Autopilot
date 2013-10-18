@@ -82,7 +82,7 @@ static pthread_t receive_thread;
 /* terminate MAVLink on user request - disabled by default */
 static bool mavlink_link_termination_allowed = false;
 
-mavlink_system_t mavlink_system = {
+__EXPORT mavlink_system_t mavlink_system = {
 	100,
 	50,
 	MAV_TYPE_QUADROTOR,
@@ -92,7 +92,7 @@ mavlink_system_t mavlink_system = {
 }; // System ID, 1-255, Component/Subsystem ID, 1-255
 
 /* XXX not widely used */
-uint8_t chan = MAVLINK_COMM_0;
+__EXPORT uint8_t chan = MAVLINK_COMM_0;
 
 /* XXX probably should be in a header... */
 extern pthread_t receive_start(int uart);
@@ -215,7 +215,7 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	return uart;
 }
 
-void 
+__EXPORT void 
 mavlink_send_uart_bytes(mavlink_channel_t channel, uint8_t *ch, int length)
 {
 	write(uart, ch, (size_t)(sizeof(uint8_t) * length));
@@ -224,7 +224,7 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, uint8_t *ch, int length)
 /*
  * Internal function to give access to the channel status for each channel
  */
-mavlink_status_t* mavlink_get_channel_status(uint8_t channel)
+__EXPORT mavlink_status_t* mavlink_get_channel_status(uint8_t channel)
 {
 	static mavlink_status_t m_mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
 	return &m_mavlink_status[channel];

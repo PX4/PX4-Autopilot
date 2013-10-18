@@ -54,11 +54,6 @@
 #include <systemlib/err.h>
 #include <sys/stat.h>
 
-extern mavlink_system_t mavlink_system;
-
-extern int mavlink_missionlib_send_message(mavlink_message_t *msg);
-extern int mavlink_missionlib_send_gcs_string(const char *string);
-
 /**
  * If the queue index is not at 0, the queue sending
  * logic will send parameters from the current index
@@ -160,7 +155,7 @@ int mavlink_pm_send_param(param_t param)
 					  mavlink_type,
 					  param_count(),
 					  param_get_index(param));
-	ret = mavlink_missionlib_send_message(&tx_msg);
+	ret = missionlib_send_mavlink_message(&tx_msg);
 	return ret;
 }
 
@@ -170,7 +165,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
 			/* Start sending parameters */
 			mavlink_pm_start_queued_send();
-			mavlink_missionlib_send_gcs_string("[mavlink pm] sending list");
+			missionlib_send_mavlink_gcs_string("[mavlink pm] sending list");
 		} break;
 
 	case MAVLINK_MSG_ID_PARAM_SET: {
@@ -193,7 +188,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 					if (param == PARAM_INVALID) {
 						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
 						sprintf(buf, "[mavlink pm] unknown: %s", name);
-						mavlink_missionlib_send_gcs_string(buf);
+						missionlib_send_mavlink_gcs_string(buf);
 
 					} else {
 						/* set and send parameter */

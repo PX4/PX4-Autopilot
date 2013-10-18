@@ -80,20 +80,9 @@ extern "C" {
 	/* Maximum size in bytes of a single item instance */
 	#define DM_MAX_DATA_SIZE 126
 
-	/* Open a data manager handle */
-	__EXPORT int
-	dm_open(void);
-
-	/* Close the data manager handle */
-	__EXPORT void
-	dm_close(
-		int fd				/* The handle to be closed */
-	);
-
 	/* Retrieve from the data manager store */
 	__EXPORT ssize_t
 	dm_read(
-		int fd,				/* Data manager handle */
 		dm_item_t item,			/* The item type to retrieve */
 		unsigned char index,		/* The index of the item */
 		void *buffer,			/* Pointer to caller data buffer */
@@ -103,13 +92,18 @@ extern "C" {
 	/* write to the data manager store */
 	__EXPORT ssize_t
 	dm_write(
-		int fd,				/* Data manager handle */
 		dm_item_t  item,		/* The item type to store */
 		unsigned char index,		/* The index of the item */
 		dm_persitence_t persistence,	/* The persistence level of this item */
 		const void *buffer,		/* Pointer to caller data buffer */
 		size_t buflen			/* Length in bytes of data to retrieve */
 	);
+
+	/* Retrieve from the data manager store */
+	__EXPORT void
+	dm_clear(
+		dm_item_t item			/* The item type to clear */
+		);
 
 	/* Tell the data manager about the type of the last reset */
 	__EXPORT int
