@@ -97,7 +97,7 @@ dm_restart(
 	dm_reset_reason restart_type	/* The last reset type */
 );
 
-
+/* Types of function calls supported by the worker task */
 typedef enum {
 	dm_write_func = 0,
 	dm_read_func,
@@ -106,6 +106,7 @@ typedef enum {
 	dm_number_of_funcs
 } dm_function_t;
 
+/* Work task work item */
 typedef struct {
 	sq_entry_t link;	/**< list linkage */
 	sem_t wait_sem;
@@ -137,10 +138,12 @@ typedef struct {
 	};
 } dataman_q_item_t;
 
+/* Usage statistics */
 static unsigned g_func_counts[dm_number_of_funcs];
 
-static sem_t g_work_q_mutex;	/* Mutual exclusion during IO operations */
+static sem_t g_work_q_mutex;	/* Mutual exclusion on work queue adds and deletes */
 static sem_t g_work_mutex;	/* Mutual exclusion during IO operations */
+static sem_t g_initialized;     /* Initialization lock */
 
 /* table of maximum number of instances for each item type */
 static const unsigned g_key_sizes[DM_KEY_NUM_KEYS] = {
@@ -154,26 +157,24 @@ static const unsigned g_key_sizes[DM_KEY_NUM_KEYS] = {
 /* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
+/* The data manager store file handle and file name */
 static int g_fd = -1;
+static const char *k_data_manager_device_path = "/fs/microsd/data";
 
+/* The data manager work queue */
 static sq_queue_t g_dataman_work;
 
-static sem_t g_initialized;
-
 static bool g_task_should_exit;		/**< if true, sensor task should exit */
-
-static const char *k_data_manager_device_path = "/fs/microsd/data";
 
 static const unsigned k_sector_size = DM_MAX_DATA_SIZE + 2;
 
 static dataman_q_item_t *
 create_work_item(void)
 {
-	dataman_q_item_t *item = (dataman_q_item_t *)malloc(sizeof(dataman_q_item_t));
+	dataman_q_item_t *item;
 
-	if (item) {
-		sem_init(&item->wait_sem, 1, 0); /* Semaphore is initially locked */
-	}
+	if ((item = (dataman_q_item_t *)malloc(sizeof(dataman_q_item_t))))
+		sem_init(&item->wait_sem, 1, 0); /* Caller will wait on this... initially locked */
 
 	return item;
 }
@@ -188,10 +189,22 @@ destroy_work_item(dataman_q_item_t *item)
 static void
 enqueue_work_item(dataman_q_item_t *item)
 {
-	sem_wait(&g_work_q_mutex);
-	sq_addlast(&item->link, &g_dataman_work);
-	sem_post(&g_work_q_mutex);
-	sem_post(&g_work_mutex);
+        /* put the work item on the work queue */
+        sem_wait(&g_work_q_mutex);
+        sq_addlast(&item->link, &g_dataman_work);
+        sem_post(&g_work_q_mutex);
+        /* tell the work thread that work is available */
+        sem_post(&g_work_mutex);
+}
+
+static dataman_q_item_t *
+dequeue_work_item(void)
+{
+        dataman_q_item_t *work;
+        sem_wait(&g_work_q_mutex);
+        work = (dataman_q_item_t *)sq_remfirst(&g_dataman_work);
+        sem_post(&g_work_q_mutex);
+        return work;
 }
 
 /* Calculate the offset in file of specific item */
@@ -510,6 +523,7 @@ dm_restart(dm_reset_reason reason)
 int
 task_main(int argc, char *argv[])
 {
+        dataman_q_item_t *work;
 
 	/* inform about start */
 	warnx("Initializing..");
@@ -531,20 +545,18 @@ task_main(int argc, char *argv[])
 	sem_post(&g_initialized);
 
 	while (true) {
+
+                /* do we need to exit ??? */
 		if (g_task_should_exit)
 			break;
-
+                /* wait for work */
 		sem_wait(&g_work_mutex);
-
+                /* make sure we still don't need to exit */
 		if (g_task_should_exit)
 			break;
 
-		sem_wait(&g_work_q_mutex);
-		dataman_q_item_t *work = (dataman_q_item_t *)sq_remfirst(&g_dataman_work);
-		sem_post(&g_work_q_mutex);
-
-		if (work == NULL)
-			continue;
+		if ((work = dequeue_work_item()) == NULL)
+			continue; /* In theory this shouldn't happen */
 
 		switch (work->func) {
 		case dm_write_func:
@@ -578,10 +590,11 @@ task_main(int argc, char *argv[])
 				_restart(work->restart_params.reason);
 			break;
 		}
-
+                /* Inform the caller that work is done */
 		sem_post(&work->wait_sem);
 	}
 
+        /* all done... clean up */
 	int fd = g_fd;
 	g_fd = -1;
 	close(fd);
@@ -589,34 +602,30 @@ task_main(int argc, char *argv[])
 	sem_destroy(&g_work_q_mutex);
 	sem_destroy(&g_work_mutex);
 
-	_exit(0);
+	return 0;
 }
 
 static int
 start(void)
 {
+        int task;
+
 	sem_init(&g_initialized, 1, 0);
 	/* start the task */
-	int task = task_spawn_cmd("dataman",
-				  SCHED_DEFAULT,
-				  SCHED_PRIORITY_MAX - 5,
-				  2048,
-				  task_main,
-				  NULL);
-
-	if (task <= 0) {
+	if ((task = task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 2048, task_main, NULL)) <= 0) {
 		warn("task start failed");
 		return -1;
 	}
-
+        /* wait for the thread to actuall initialize */
 	sem_wait(&g_initialized);
 
-	return OK;
+	return 0;
 }
 
 static void
 status(void)
 {
+        /* display usage statistics */
 	warnx("Writes   %d", g_func_counts[dm_write_func]);
 	warnx("Reads    %d", g_func_counts[dm_read_func]);
 	warnx("Clears   %d", g_func_counts[dm_clear_func]);
@@ -626,6 +635,7 @@ status(void)
 static void
 stop(void)
 {
+        /* Tell the worker task to shut down */
 	g_task_should_exit = true;
 	sem_post(&g_work_mutex);
 }
@@ -660,10 +670,8 @@ dataman_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop"))
 		stop();
-
 	else if (!strcmp(argv[1], "status"))
 		status();
-
 	else
 		usage();
 
