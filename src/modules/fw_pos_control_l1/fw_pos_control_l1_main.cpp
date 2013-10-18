@@ -635,6 +635,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
 
+	/* not in non-abort mode for landing yet */
+	bool land_noreturn = false;
+
 	/* AUTONOMOUS FLIGHT */
 
 	// XXX this should only execute if auto AND safety off (actuators active),
@@ -717,23 +720,39 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 			} else if (global_triplet.current.nav_cmd == NAV_CMD_LAND) {
 
-				_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
+				/* switch to heading hold for the last meters, continue heading hold after */
+
+				float wp_distance = get_distance_to_next_waypoint(current_position.getX(), current_position.getY(), next_wp.getX(), next_wp.getY());
+
+				if (wp_distance < 5.0f || land_noreturn) {
+
+					/* heading hold, along the line connecting this and the last waypoint */
+					float target_bearing = get_bearing_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), next_wp.getX(), next_wp.getY());
+					_l1_control.navigate_heading(target_bearing, _att.yaw, ground_speed);
+
+					if (altitude_error > -20.0f)
+						land_noreturn = true;
+
+				} else {
+
+					/* normal navigation */
+					_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
+				}
+
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
 
 				/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 				// XXX this could make a great param
 
-				if (altitude_error > -10.0f) {
+				float flare_angle_rad = math::radians(10.0f);//math::radians(global_triplet.current.param1)
+				float land_pitch_min = math::radians(5.0f);
+				float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
+				float airspeed_land = (_parameters.airspeed_min + _parameters.airspeed_trim) / 2.0f;
 
-					float flare_angle_rad = math::radians(10.0f);//math::radians(global_triplet.current.param1)
-					float land_pitch_min = math::radians(5.0f);
-					float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
+				if (altitude_error > -5.0f) {
 
-					// /* set the speed weight to 0.0 to push the system to control altitude with pitch */
-					// _tecs.set_speed_weight(0.0f);
-
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, _parameters.airspeed_min,
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, flare_angle_rad,
 								    0.0f, _parameters.throttle_max, throttle_land,
@@ -743,7 +762,15 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
 
 					/* limit roll motion to prevent wings from touching the ground first */
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-20.0f), math::radians(20.0f));
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
+
+				} else if (altitude_error > -20.0f) {
+
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_land),
+								    _airspeed.indicated_airspeed_m_s, eas2tas,
+								    false, flare_angle_rad,
+								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
 
 				} else {
 
