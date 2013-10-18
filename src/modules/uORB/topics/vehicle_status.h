@@ -107,14 +107,14 @@ typedef enum {
 } assisted_switch_pos_t;
 
 typedef enum {
-	RETURN_SWITCH_NONE = 0,
-	RETURN_SWITCH_RETURN
-} return_switch_pos_t;
-
-typedef enum {
 	MISSION_SWITCH_NONE = 0,
 	MISSION_SWITCH_MISSION
 } mission_switch_pos_t;
+
+typedef enum {
+	SWITCH_OFF = 0,
+	SWITCH_ON
+} on_off_switch_pos_t;
 
 enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_SAFETY_ARMED = 128,
@@ -187,9 +187,10 @@ struct vehicle_status_s
 	bool is_rotary_wing;
 
 	mode_switch_pos_t mode_switch;
-	return_switch_pos_t return_switch;
+	on_off_switch_pos_t return_switch;
 	assisted_switch_pos_t assisted_switch;
 	mission_switch_pos_t mission_switch;
+	on_off_switch_pos_t dist_bottom_switch;
 
 	bool condition_battery_voltage_valid;
 	bool condition_system_in_air_restore;	/**< true if we can restore in mid air */
@@ -201,6 +202,7 @@ struct vehicle_status_s
 	bool condition_home_position_valid;		/**< indicates a valid home position (a valid home position is not always a valid launch) */
 	bool condition_local_position_valid;
 	bool condition_local_altitude_valid;
+	bool condition_local_velocity_valid;
 	bool condition_airspeed_valid;			/**< set to true by the commander app if there is a valid airspeed measurement available */
 	bool condition_landed;					/**< true if vehicle is landed, always true if disarmed */
 

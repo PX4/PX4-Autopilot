@@ -259,6 +259,14 @@ struct log_FWRV_s {
 	char    fw_revision[64];
 };
 
+/* --- DIST - DISTANCE TO SURFACE --- */
+#define LOG_DIST_MSG 21
+struct log_DIST_s {
+	float bottom;
+	float bottom_rate;
+	uint8_t flags;
+};
+
 #pragma pack(pop)
 
 
@@ -295,7 +303,8 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
-	LOG_FORMAT(FWRV,"Z",FW_VERSION_STR),
+	LOG_FORMAT(FWRV, "Z", FW_VERSION_STR),
+	LOG_FORMAT(DIST, "ffB", "Bottom,BottomRate,Flags"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
