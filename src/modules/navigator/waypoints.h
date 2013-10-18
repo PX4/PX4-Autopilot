@@ -102,9 +102,9 @@ int waypoints_check(uint64_t now, const struct vehicle_global_position_s *global
 void waypoints_message_handler(const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos,
 				struct vehicle_local_position_s *local_pos);
 
-extern void waypoints_current_waypoint_changed(uint16_t index, float param1,
-		float param2, float param3, float param4, float param5_lat_x,
-		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
+void waypoints_current_waypoint_changed(uint16_t index, float param1,
+        float param2, float param3, float param4, float param5_lat_x,
+        float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
 
 void get_waypoint(int ix, mission_item_t *wp);
 void set_waypoint(int ix, mission_item_t *wp);

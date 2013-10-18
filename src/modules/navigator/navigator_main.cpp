@@ -75,7 +75,7 @@
 #include <dataman/dataman.h>
 #include <v1.0/mavlink_types.h>
 #include <navigator/waypoints.h>
-#include <navigator/missionlib.h>
+#include <mavlink/missionlib.h>
 
 
 /**
