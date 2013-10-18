@@ -39,4 +39,5 @@ LIBNAME	= mixerlib
 SRCS		= mixer.cpp \
 		  mixer_group.cpp \
 		  mixer_multirotor.cpp \
-		  mixer_simple.cpp
+		  mixer_simple.cpp \
+		  mixer_load.c

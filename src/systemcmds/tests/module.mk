@@ -23,6 +23,7 @@ SRCS			 = test_adc.c \
 			   test_uart_console.c \
 			   test_uart_loopback.c \
 			   test_uart_send.c \
+			   test_mixer.cpp \
 			   tests_file.c \
 			   tests_main.c \
 			   tests_param.c

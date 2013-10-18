@@ -128,7 +128,9 @@
 #ifndef _SYSTEMLIB_MIXER_MIXER_H
 #define _SYSTEMLIB_MIXER_MIXER_H value
 
+#include <nuttx/config.h>
 #include "drivers/drv_mixer.h"
+#include "mixer_load.h"
 
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
@@ -210,6 +212,24 @@ protected:
 	 */
 	static int			scale_check(struct mixer_scaler_s &scaler);
 
+	/**
+	 * Find a tag
+	 *
+	 * @param buf			The buffer to operate on.
+	 * @param buflen		length of the buffer.
+	 * @param tag			character to search for.
+	 */
+	static const char *		findtag(const char *buf, unsigned &buflen, char tag);
+
+	/**
+	 * Skip a line
+	 *
+	 * @param buf			The buffer to operate on.
+	 * @param buflen		length of the buffer.
+	 * @return			0 / OK if a line could be skipped, 1 else
+	 */
+	static const char *		skipline(const char *buf, unsigned &buflen);
+
 private:
 };
 
@@ -237,6 +257,11 @@ public:
 	 * Remove all the mixers from the group.
 	 */
 	void				reset();
+
+	/**
+	 * Count the mixers in the group.
+	 */
+	unsigned			count();
 
 	/**
 	 * Adds mixers to the group based on a text description in a buffer.
