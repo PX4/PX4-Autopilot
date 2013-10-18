@@ -389,7 +389,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						vz = -local_pos.dist_bottom_rate;
 						/* move altitude setpoint according to ground distance */
 						local_pos_sp.z = surface_offset - sp_z_dist;
-						sp_z = -sp_z_dist;
 					}
 
 					/* move altitude setpoint with throttle stick */
@@ -407,6 +406,12 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						} else if (local_pos_sp.z < local_pos.z - z_sp_offs_max) {
 							local_pos_sp.z = local_pos.z - z_sp_offs_max;
 						}
+					}
+
+					if (control_mode.flag_use_dist_bottom && local_pos.dist_bottom_valid) {
+						sp_z = -sp_z_dist;
+					} else {
+						sp_z = local_pos_sp.z;
 					}
 				}
 
