@@ -86,7 +86,7 @@ dmwrite(
 );
 
 /* Retrieve from the data manager store */
-__EXPORT void
+__EXPORT int
 dm_clear(
 	dm_item_t item			/* The item type to clear */
 );
@@ -128,6 +128,7 @@ typedef struct {
 		} read_params;
 		struct {
 			dm_item_t item;
+			int result;
 		} clear_params;
 		struct {
 			dm_reset_reason reason;
@@ -300,37 +301,47 @@ _read(dm_item_t item, unsigned char index, void *buf, size_t count)
 	return buffer[0];
 }
 
-static void
+static int
 _clear(dm_item_t item)
 {
-	int i;
+	int i, result = 0;
+
 	int offset = calculate_offset(item, 0);
+	if (offset < 0)
+		return -1;
 
 	fsync(g_fd);
 
 	for (i = 0; (unsigned)i < g_key_sizes[item]; i++) {
 		char buf[1];
 
-		if (lseek(g_fd, offset, SEEK_SET) != offset)
+		if (lseek(g_fd, offset, SEEK_SET) != offset) {
+			result = -1;
 			break;
+		}
 
 		if (read(g_fd, buf, 1) < 1)
 			break;
 
 		if (buf[0]) {
-			if (lseek(g_fd, offset, SEEK_SET) != offset)
+			if (lseek(g_fd, offset, SEEK_SET) != offset) {
+				result = -1;
 				break;
+			}
 
 			buf[0] = 0;
 
-			if (write(g_fd, buf, 1) != 1)
+			if (write(g_fd, buf, 1) != 1) {
+				result = -1;
 				break;
+			}
 		}
 
 		offset += k_sector_size;
 	}
 
 	fsync(g_fd);
+	return result;
 }
 
 /* Tell the data manager about the type of the last reset */
@@ -451,7 +462,7 @@ dm_read(dm_item_t item, unsigned char index, void *buf, size_t count)
 	return result;
 }
 
-__EXPORT void
+__EXPORT int
 dm_clear(dm_item_t item)
 {
 	dataman_q_item_t *work;
@@ -468,7 +479,9 @@ dm_clear(dm_item_t item)
 	work->clear_params.item = item;
 	enqueue_work_item(work);
 	sem_wait(&work->wait_sem);
+	int result = work->clear_params.result;
 	destroy_work_item(work);
+	return result;
 }
 
 /* Tell the data manager about the type of the last reset */
@@ -555,7 +568,8 @@ task_main(int argc, char *argv[])
 
 		case dm_clear_func:
 			g_func_counts[dm_clear_func]++;
-			_clear(work->clear_params.item);
+			work->clear_params.result =
+				_clear(work->clear_params.item);
 			break;
 
 		case dm_restart_func:

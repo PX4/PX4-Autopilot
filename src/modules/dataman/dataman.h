@@ -100,7 +100,7 @@ extern "C" {
 	);
 
 	/* Retrieve from the data manager store */
-	__EXPORT void
+	__EXPORT int
 	dm_clear(
 		dm_item_t item			/* The item type to clear */
 		);
