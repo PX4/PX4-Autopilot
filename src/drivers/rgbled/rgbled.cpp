@@ -574,7 +574,7 @@ rgbled_main(int argc, char *argv[])
 	int ch;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc - 1, &argv[1], "a:b:")) != EOF) {
+	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
 		switch (ch) {
 		case 'a':
 			rgbledadr = strtol(optarg, NULL, 0);
@@ -590,7 +590,12 @@ rgbled_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[1];
+        if (optind >= argc) {
+            rgbled_usage();
+            exit(1);
+        }
+
+	const char *verb = argv[optind];
 
 	int fd;
 	int ret;
