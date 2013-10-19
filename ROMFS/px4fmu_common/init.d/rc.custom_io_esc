@@ -58,7 +58,7 @@ usleep 10000
 if px4io detect
 then
 	# Start MAVLink (depends on orb)
-	mavlink start -d /dev/ttyS1 -b 115200
+	mavlink start -d /dev/ttyS1 -b 57600
 	usleep 5000
 
 	sh /etc/init.d/rc.io
@@ -78,7 +78,7 @@ then
 else
 	fmu mode_pwm
 	# Start MAVLink (on UART1 / ttyS0)
-	mavlink start -d /dev/ttyS1 -b 115200
+	mavlink start -d /dev/ttyS1 -b 57600
 	usleep 5000
 	param set BAT_V_SCALING 0.004593
 	set EXIT_ON_END yes
