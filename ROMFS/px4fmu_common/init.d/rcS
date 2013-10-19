@@ -108,7 +108,7 @@ then
 
 	if param compare SYS_AUTOSTART 1000
 	then
-		sh /etc/init.d/1000_rc_fw.hil		
+		sh /etc/init.d/1000_rc_fw_easystar.hil		
 		set MODE custom
 	fi
 	
@@ -127,6 +127,12 @@ then
 	if param compare SYS_AUTOSTART 1003
 	then
 		sh /etc/init.d/1003_rc_quad_+.hil
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 1004
+	then
+		sh /etc/init.d/1004_rc_fw_Rascal110.hil
 		set MODE custom
 	fi
 	
