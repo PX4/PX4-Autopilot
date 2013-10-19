@@ -44,6 +44,7 @@
 #include <geo/geo.h>
 #include <ecl/ecl.h>
 #include <mathlib/mathlib.h>
+#include <systemlib/err.h>
 
 ECL_YawController::ECL_YawController() :
 	_last_run(0),
@@ -53,7 +54,8 @@ ECL_YawController::ECL_YawController() :
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
 	_bodyrate_setpoint(0.0f),
-	_max_deflection_rad(math::radians(45.0f))
+	_max_deflection_rad(math::radians(45.0f)),
+	_coordinated(1.0f)
 
 {
 
@@ -63,11 +65,18 @@ float ECL_YawController::control_attitude(float roll, float pitch,
 		float speed_body_u, float speed_body_w,
 		float roll_rate_setpoint, float pitch_rate_setpoint)
 {
+//	static int counter = 0;
 	/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
 	_rate_setpoint = 0.0f;
-	float denumerator = (speed_body_u * cosf(roll) * cosf(pitch) + speed_body_w * sinf(pitch));
-	if(denumerator != 0.0f) { //XXX: floating point comparison
-		_rate_setpoint = (speed_body_w * roll_rate_setpoint + 9.81f * sinf(roll) * cosf(pitch) + speed_body_u * pitch_rate_setpoint * sinf(roll)) / denumerator;
+	if (_coordinated > 0.1) {
+		float denumerator = (speed_body_u * cosf(roll) * cosf(pitch) + speed_body_w * sinf(pitch));
+		if(denumerator != 0.0f) { //XXX: floating point comparison
+			_rate_setpoint = (speed_body_w * roll_rate_setpoint + 9.81f * sinf(roll) * cosf(pitch) + speed_body_u * pitch_rate_setpoint * sinf(roll)) / denumerator;
+		}
+
+//		if(counter % 20 == 0) {
+//			warnx("denumerator: %.4f, speed_body_u: %.4f, speed_body_w: %.4f, cosf(roll): %.4f, cosf(pitch): %.4f, sinf(pitch): %.4f", (double)denumerator, (double)speed_body_u, (double)speed_body_w, (double)cosf(roll), (double)cosf(pitch), (double)sinf(pitch));
+//		}
 	}
 
 	/* limit the rate */ //XXX: move to body angluar rates
@@ -75,6 +84,9 @@ float ECL_YawController::control_attitude(float roll, float pitch,
 	_rate_setpoint = (_rate_setpoint > _max_rate) ? _max_rate : _rate_setpoint;
 	_rate_setpoint = (_rate_setpoint < -_max_rate) ? -_max_rate : _rate_setpoint;
 	}
+
+
+//	counter++;
 
 	return _rate_setpoint;
 }
@@ -87,7 +99,7 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
-	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
+	float dt = (dt_micros > 500000) ? 0.0f : (float)dt_micros * 1e-6f;
 
 	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
 	float k_i_rate = _k_i * _tc;
@@ -110,11 +122,9 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 	/* Calculate body angular rate error */
 	_rate_error = _bodyrate_setpoint - yaw_bodyrate; //body angular rate error
 
-	float ilimit_scaled = 0.0f;
-
 	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
 
-	float id = _rate_error * k_i_rate * dt * scaler;
+	float id = _rate_error * dt;
 
 	/*
 	 * anti-windup: do not allow integrator to increase into the
@@ -132,9 +142,9 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 	}
 
 	/* integrator limit */
-	_integrator = math::constrain(_integrator, -ilimit_scaled, ilimit_scaled);
+	_integrator = math::constrain(_integrator, -_integrator_max, _integrator_max);
 	/* store non-limited output */
-	_last_output = ((_rate_error * _k_d * scaler) + _integrator + (_rate_setpoint * k_ff)) * scaler;
+	_last_output = ((_rate_error * _k_d * scaler) + _integrator * k_i_rate * scaler + (_rate_setpoint * k_ff)) * scaler;
 
 	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }

@@ -85,6 +85,9 @@ public:
 	void set_k_roll_ff(float roll_ff) {
 		_roll_ff = roll_ff;
 	}
+	void set_coordinated(float coordinated) {
+		_coordinated = coordinated;
+	}
 
 
 	float get_rate_error() {
@@ -115,6 +118,7 @@ private:
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
 	float _max_deflection_rad;
+	float _coordinated;
 
 };
 

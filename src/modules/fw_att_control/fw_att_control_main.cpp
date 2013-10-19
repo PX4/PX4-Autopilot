@@ -155,6 +155,7 @@ private:
 		float y_d;
 		float y_roll_feedforward;
 		float y_integrator_max;
+		float y_coordinated;
 
 		float airspeed_min;
 		float airspeed_trim;
@@ -181,6 +182,7 @@ private:
 		param_t y_d;
 		param_t y_roll_feedforward;
 		param_t y_integrator_max;
+		param_t y_coordinated;
 
 		param_t airspeed_min;
 		param_t airspeed_trim;
@@ -289,24 +291,26 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.p_i = param_find("FW_P_I");
 	_parameter_handles.p_rmax_pos = param_find("FW_P_RMAX_POS");
 	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
-	_parameter_handles.p_integrator_max = param_find("FW_P_integrator_max");
+	_parameter_handles.p_integrator_max = param_find("FW_P_IMAX");
 	_parameter_handles.p_roll_feedforward = param_find("FW_P_ROLLFF");
 
 	_parameter_handles.r_p = param_find("FW_R_P");
 	_parameter_handles.r_d = param_find("FW_R_D");
 	_parameter_handles.r_i = param_find("FW_R_I");
-	_parameter_handles.r_integrator_max = param_find("FW_R_integrator_max");
+	_parameter_handles.r_integrator_max = param_find("FW_R_IMAX");
 	_parameter_handles.r_rmax = param_find("FW_R_RMAX");
 
 	_parameter_handles.y_p = param_find("FW_Y_P");
 	_parameter_handles.y_i = param_find("FW_Y_I");
 	_parameter_handles.y_d = param_find("FW_Y_D");
 	_parameter_handles.y_roll_feedforward = param_find("FW_Y_ROLLFF");
-	_parameter_handles.y_integrator_max = param_find("FW_Y_integrator_max");
+	_parameter_handles.y_integrator_max = param_find("FW_Y_IMAX");
 
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
+
+	_parameter_handles.y_coordinated = param_find("FW_Y_COORD");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -361,6 +365,7 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_d, &(_parameters.y_d));
 	param_get(_parameter_handles.y_roll_feedforward, &(_parameters.y_roll_feedforward));
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
+	param_get(_parameter_handles.y_coordinated, &(_parameters.y_coordinated));
 
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
@@ -390,6 +395,7 @@ FixedwingAttitudeControl::parameters_update()
 	_yaw_ctrl.set_k_d(math::radians(_parameters.y_d));
 	_yaw_ctrl.set_k_roll_ff(math::radians(_parameters.y_roll_feedforward));
 	_yaw_ctrl.set_integrator_max(math::radians(_parameters.y_integrator_max));
+	_yaw_ctrl.set_coordinated(_parameters.y_coordinated);
 
 	return OK;
 }
@@ -709,9 +715,9 @@ FixedwingAttitudeControl::task_main()
 				 * only once available
 				 */
 				vehicle_rates_setpoint_s rates_sp;
-				rates_sp.roll = _roll_ctrl.get_desired_bodyrate();
-				rates_sp.pitch = _pitch_ctrl.get_desired_bodyrate();
-				rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
+				rates_sp.roll = _roll_ctrl.get_desired_rate();
+				rates_sp.pitch = _pitch_ctrl.get_desired_rate();
+				rates_sp.yaw = _yaw_ctrl.get_desired_rate();
 
 				rates_sp.timestamp = hrt_absolute_time();
 
