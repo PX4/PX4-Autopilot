@@ -34,25 +34,77 @@
 
 /**
  * @file missionlib.h
- * MAVLink mission helper library
+ * MAVLink missionlib components
  */
 
-#ifndef _MISSION_LIB_H
-#define _MISSION_LIB_H
+// XXX trim includes
+#include <nuttx/config.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <math.h>
+#include <stdbool.h>
+#include <string.h>
+#include <drivers/drv_hrt.h>
+#include <stdlib.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <systemlib/err.h>
+#include <systemlib/param/param.h>
+#include <systemlib/systemlib.h>
+#include <mavlink/mavlink_log.h>
 
-int		missionlib_send_mavlink_message(mavlink_message_t *msg);
-int		missionlib_send_mavlink_gcs_string(const char *string);
-uint64_t	missionlib_get_system_timestamp(void);
-void		waypoints_current_waypoint_changed(uint16_t index, float param1,
-			float param2, float param3, float param4, float param5_lat_x,
-			float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
+#include <mavlink/orb_topics.h>
+#include <mavlink/mavlink_bridge_header.h>
+#include <navigator/waypoints.h>
+#include <mavlink/missionlib.h>
+#include <mavlink/util.h>
 
-#ifdef __cplusplus
+static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
+
+__EXPORT int
+missionlib_send_mavlink_message(mavlink_message_t *msg)
+{
+	uint16_t len = mavlink_msg_to_send_buffer(missionlib_msg_buf, msg);
+
+	mavlink_send_uart_bytes(chan, missionlib_msg_buf, len);
+	return 0;
 }
-#endif
 
-#endif
+__EXPORT int
+missionlib_send_mavlink_gcs_string(const char *string)
+{
+	const int len = MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN;
+	mavlink_statustext_t statustext;
+	int i = 0;
+
+	while (i < len - 1) {
+		statustext.text[i] = string[i];
+
+		if (string[i] == '\0')
+			break;
+
+		i++;
+	}
+
+	if (i > 1) {
+		/* Enforce null termination */
+		statustext.text[i] = '\0';
+		mavlink_message_t msg;
+
+		mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &statustext);
+		return missionlib_send_mavlink_message(&msg);
+
+	} else {
+		return 1;
+	}
+}
+
+/**
+ * Get system time since boot in microseconds
+ *
+ * @return the system time since boot in microseconds
+ */
+__EXPORT uint64_t missionlib_get_system_timestamp()
+{
+	return hrt_absolute_time();
+}
+
