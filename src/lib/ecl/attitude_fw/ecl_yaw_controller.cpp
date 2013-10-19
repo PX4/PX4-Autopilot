@@ -150,8 +150,7 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 	_integrator = math::constrain(_integrator, -_integrator_max, _integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
-	//xxx: naming of gain variables  (k_d <--> k_p)
-	_last_output = (_rate_error * _k_d + _integrator * _k_i * _rate_setpoint * k_ff) * scaler * scaler;  //scaler^2 is proportional to 1/airspeed^2
+	_last_output = (_rate_error * _k_p + _integrator * _k_i * _rate_setpoint * k_ff) * scaler * scaler;  //scaler^2 is proportional to 1/airspeed^2
 
 	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }

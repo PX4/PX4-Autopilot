@@ -44,7 +44,7 @@
 
 #include <systemlib/param/param.h>
 
-//XXX resolve unclear naming of paramters: FW_P_D --> FW_PR_P
+//XXX resolve unclear naming of paramters: FW_P_P --> FW_PR_P
 
 /*
  * Controller parameters, accessible via MAVLink

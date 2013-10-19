@@ -136,8 +136,7 @@ float ECL_RollController::control_bodyrate(float pitch,
 	//warnx("roll: _integrator: %.4f, _integrator_max: %.4f", (double)_integrator, (double)_integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
-	//xxx: naming of gain variables
-	_last_output = (_rate_error * _k_d + _integrator * _k_i * _rate_setpoint * k_ff) * scaler * scaler;  //scaler^2 is proportional to 1/airspeed^2
+	_last_output = (_rate_error * _k_p + _integrator * _k_i * _rate_setpoint * k_ff) * scaler * scaler;  //scaler^2 is proportional to 1/airspeed^2
 
 	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }
