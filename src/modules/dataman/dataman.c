@@ -50,7 +50,6 @@
 #include <poll.h>
 #include <time.h>
 #include <sys/ioctl.h>
-//#include <arch/board/board.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <queue.h>
@@ -158,7 +157,7 @@ static const unsigned g_key_sizes[DM_KEY_NUM_KEYS] = {
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
 /* The data manager store file handle and file name */
-static int g_fd = -1;
+static int g_fd = -1, g_task_fd = -1;
 static const char *k_data_manager_device_path = "/fs/microsd/data";
 
 /* The data manager work queue */
@@ -259,10 +258,9 @@ _write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const v
 	count += 2;
 
 	len = -1;
-
-	if (lseek(g_fd, offset, SEEK_SET) == offset)
-		if ((len = write(g_fd, buffer, count)) == count)
-			fsync(g_fd);
+	if (lseek(g_task_fd, offset, SEEK_SET) == offset)
+		if ((len = write(g_task_fd, buffer, count)) == count)
+			fsync(g_task_fd);
 
 	if (len != count)
 		return -1;
@@ -290,11 +288,8 @@ _read(dm_item_t item, unsigned char index, void *buf, size_t count)
 
 	/* Read the prefix and data */
 	len = -1;
-	/* Try to get fresh data */
-	fsync(g_fd);
-
-	if (lseek(g_fd, offset, SEEK_SET) == offset)
-		len = read(g_fd, buffer, count + 2);
+	if (lseek(g_task_fd, offset, SEEK_SET) == offset)
+		len = read(g_task_fd, buffer, count + 2);
 
 	/* Check for length issues */
 	if (len < 0)
@@ -325,28 +320,26 @@ _clear(dm_item_t item)
 	if (offset < 0)
 		return -1;
 
-	fsync(g_fd);
-
 	for (i = 0; (unsigned)i < g_key_sizes[item]; i++) {
 		char buf[1];
 
-		if (lseek(g_fd, offset, SEEK_SET) != offset) {
+		if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
 			result = -1;
 			break;
 		}
 
-		if (read(g_fd, buf, 1) < 1)
+		if (read(g_task_fd, buf, 1) < 1)
 			break;
 
 		if (buf[0]) {
-			if (lseek(g_fd, offset, SEEK_SET) != offset) {
+			if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
 				result = -1;
 				break;
 			}
 
 			buf[0] = 0;
 
-			if (write(g_fd, buf, 1) != 1) {
+			if (write(g_task_fd, buf, 1) != 1) {
 				result = -1;
 				break;
 			}
@@ -355,7 +348,7 @@ _clear(dm_item_t item)
 		offset += k_sector_size;
 	}
 
-	fsync(g_fd);
+	fsync(g_task_fd);
 	return result;
 }
 
@@ -371,18 +364,16 @@ _restart(dm_reset_reason reason)
 	/* Loop through all of the data segments and delete those that are not persistent */
 	offset = 0;
 
-	fsync(g_fd);
-
 	while (1) {
 		size_t len;
 
 		/* Get data segment at current offset */
-		if (lseek(g_fd, offset, SEEK_SET) != offset) {
+		if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
 			result = -1;
 			break;
 		}
 
-		len = read(g_fd, buffer, sizeof(buffer));
+		len = read(g_task_fd, buffer, sizeof(buffer));
 
 		if (len == 0)
 			break;
@@ -405,14 +396,14 @@ _restart(dm_reset_reason reason)
 
 			/* Set segment to unused if data does not persist */
 			if (clear_entry) {
-				if (lseek(g_fd, offset, SEEK_SET) != offset) {
+				if (lseek(g_task_fd, offset, SEEK_SET) != offset) {
 					result = -1;
 					break;
 				}
 
 				buffer[0] = 0;
 
-				len = write(g_fd, buffer, 1);
+				len = write(g_task_fd, buffer, 1);
 
 				if (len != 1) {
 					result = -1;
@@ -424,7 +415,7 @@ _restart(dm_reset_reason reason)
 		offset += k_sector_size;
 	}
 
-	fsync(g_fd);
+	fsync(g_task_fd);
 
 	/* tell the caller how it went */
 	return result;
@@ -436,7 +427,7 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 {
 	dataman_q_item_t *work;
 
-	if (g_fd < 0)
+	if ((g_fd < 0) || g_task_should_exit)
 		return -1;
 
 	if ((work = create_work_item()) == NULL)
@@ -461,7 +452,7 @@ dm_read(dm_item_t item, unsigned char index, void *buf, size_t count)
 {
 	dataman_q_item_t *work;
 
-	if (g_fd < 0)
+	if ((g_fd < 0) || g_task_should_exit)
 		return -1;
 
 	if ((work = create_work_item()) == NULL)
@@ -484,7 +475,7 @@ dm_clear(dm_item_t item)
 {
 	dataman_q_item_t *work;
 
-	if (g_fd < 0)
+	if ((g_fd < 0) || g_task_should_exit)
 		return -1;
 
 	if ((work = create_work_item()) == NULL)
@@ -505,7 +496,7 @@ dm_restart(dm_reset_reason reason)
 {
 	dataman_q_item_t *work;
 
-	if (g_fd < 0)
+	if ((g_fd < 0) || g_task_should_exit)
 		return -1;
 
 	if ((work = create_work_item()) == NULL)
@@ -540,67 +531,69 @@ task_main(int argc, char *argv[])
 	sem_init(&g_work_q_mutex, 1, 1);
 	sem_init(&g_work_mutex, 1, 0);
 
-	g_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
+	g_task_fd = g_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
 
 	sem_post(&g_initialized);
 
 	while (true) {
 
 		/* do we need to exit ??? */
-		if (g_task_should_exit)
-			break;
-
-		/* wait for work */
-		sem_wait(&g_work_mutex);
-
-		/* make sure we still don't need to exit */
-		if (g_task_should_exit)
-			break;
-
-		if ((work = dequeue_work_item()) == NULL)
-			continue; /* In theory this shouldn't happen */
-
-		switch (work->func) {
-		case dm_write_func:
-			g_func_counts[dm_write_func]++;
-			work->write_params.result =
-				_write(work->write_params.item,
-				       work->write_params.index,
-				       work->write_params.persistence,
-				       work->write_params.buf,
-				       work->write_params.count);
-			break;
-
-		case dm_read_func:
-			g_func_counts[dm_read_func]++;
-			work->read_params.result =
-				_read(work->read_params.item,
-				      work->read_params.index,
-				      work->read_params.buf,
-				      work->read_params.count);
-			break;
-
-		case dm_clear_func:
-			g_func_counts[dm_clear_func]++;
-			work->clear_params.result =
-				_clear(work->clear_params.item);
-			break;
-
-		case dm_restart_func:
-			g_func_counts[dm_restart_func]++;
-			work->restart_params.result =
-				_restart(work->restart_params.reason);
-			break;
+		if ((g_task_should_exit) && (g_fd >= 0)) {
+			/* Close the file handle to stop further queueing */
+			g_fd = -1;
 		}
 
-		/* Inform the caller that work is done */
-		sem_post(&work->wait_sem);
+		if (!g_task_should_exit) {
+			/* wait for work */
+			sem_wait(&g_work_mutex);
+		}
+
+		/* Empty the work queue */
+		while ((work = dequeue_work_item())) {
+
+			switch (work->func) {
+			case dm_write_func:
+				g_func_counts[dm_write_func]++;
+				work->write_params.result =
+					_write(work->write_params.item,
+					work->write_params.index,
+					work->write_params.persistence,
+					work->write_params.buf,
+					work->write_params.count);
+				break;
+
+			case dm_read_func:
+				g_func_counts[dm_read_func]++;
+				work->read_params.result =
+					_read(work->read_params.item,
+					work->read_params.index,
+					work->read_params.buf,
+					work->read_params.count);
+				break;
+
+			case dm_clear_func:
+				g_func_counts[dm_clear_func]++;
+				work->clear_params.result =
+					_clear(work->clear_params.item);
+				break;
+
+			case dm_restart_func:
+				g_func_counts[dm_restart_func]++;
+				work->restart_params.result =
+					_restart(work->restart_params.reason);
+				break;
+			}
+
+			/* Inform the caller that work is done */
+			sem_post(&work->wait_sem);
+		}
+		/* time to go???? */
+		if ((g_task_should_exit) && (g_fd < 0))
+			break;
 	}
 
-	/* all done... clean up */
-	int fd = g_fd;
-	g_fd = -1;
-	close(fd);
+	close(g_task_fd);
+	g_task_fd = -1;
 
 	sem_destroy(&g_work_q_mutex);
 	sem_destroy(&g_work_mutex);
