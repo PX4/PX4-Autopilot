@@ -116,7 +116,7 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
-	float dt = (dt_micros > 500000) ? 0.0f : (float)dt_micros * 1e-6f;
+	float dt = (float)dt_micros * 1e-6f;
 
 	/* lock integral for long intervals */
 	if (dt_micros > 500000)
