@@ -177,6 +177,20 @@ then
 		sh /etc/init.d/11_dji_f450
 		set MODE custom
 	fi
+
+	if param compare SYS_AUTOSTART 12
+	then
+		set MIXER /etc/mixers/FMU_hex_x.mix
+		sh /etc/init.d/12-13_hex
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 13
+	then
+		set MIXER /etc/mixers/FMU_hex_+.mix
+		sh /etc/init.d/12-13_hex
+		set MODE custom
+	fi
 	
 	if param compare SYS_AUTOSTART 15
 	then
