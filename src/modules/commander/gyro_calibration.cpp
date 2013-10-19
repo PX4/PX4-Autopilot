@@ -129,7 +129,7 @@ int do_gyro_calibration(int mavlink_fd)
 	}
 
 	/* beep on calibration end */
-	mavlink_log_info(mavlink_fd, "offset calibration done.");
+	mavlink_log_info(mavlink_fd, "gyro offset calibration done.");
 	tune_neutral();
 
 	/* set offset parameters to new values */
@@ -240,7 +240,7 @@ int do_gyro_calibration(int mavlink_fd)
 	}
 
 	/* beep on calibration end */
-	mavlink_log_info(mavlink_fd, "scale calibration done.");
+	mavlink_log_info(mavlink_fd, "gyro scale calibration done.");
 	tune_neutral();
 
 #endif
@@ -269,6 +269,8 @@ int do_gyro_calibration(int mavlink_fd)
 		close(sub_sensor_gyro);
 		return ERROR;
 	}
+
+	mavlink_log_info(mavlink_fd, "gyro calibration done.");
 
 	close(sub_sensor_gyro);
 	return OK;
