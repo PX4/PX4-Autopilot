@@ -122,8 +122,8 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	if (dt_micros > 500000)
 		lock_integrator = true;
 
-	float k_roll_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
-	float k_i_rate = _k_i * _tc;
+//	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
+	float k_ff = 0;
 
 	/* input conditioning */
 	if (!isfinite(airspeed)) {
@@ -141,13 +141,12 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 
 	_rate_error = _bodyrate_setpoint - pitch_bodyrate;
 
-	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
+	if (!lock_integrator && _k_i > 0.0f && airspeed > 0.5f * airspeed_min) {
 
 		float id = _rate_error * dt;
 
 		/*
-		 * anti-windup: do not allow integrator to increase into the
-		 * wrong direction if actuator is at limit
+		 * anti-windup: do not allow integrator to increase if actuator is at limit
 		 */
 		if (_last_output < -_max_deflection_rad) {
 			/* only allow motion to center: increase value */
@@ -162,8 +161,10 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 
 	/* integrator limit */
 	_integrator = math::constrain(_integrator, -_integrator_max, _integrator_max);
-	/* store non-limited output */
-	_last_output = ((_rate_error * _k_d * scaler) + _integrator * k_i_rate * scaler + (_rate_setpoint * k_roll_ff)) * scaler;
+
+	/* Apply PI rate controller and store non-limited output */
+	//xxx: naming of gain variables  (k_d <--> k_p)
+	_last_output = (_rate_error * _k_d + _integrator * _k_i * _rate_setpoint * k_ff) * scaler * scaler;  //scaler^2 is proportional to 1/airspeed^2
 
 	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }
