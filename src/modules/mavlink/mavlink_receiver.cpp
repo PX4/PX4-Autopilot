@@ -167,6 +167,7 @@ handle_message(mavlink_message_t *msg)
 				/* check if topic is advertised */
 				if (cmd_pub <= 0) {
 					cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+
 				} else {
 					/* publish */
 					orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
@@ -437,9 +438,11 @@ handle_message(mavlink_message_t *msg)
 
 			if (pub_hil_airspeed < 0) {
 				pub_hil_airspeed = orb_advertise(ORB_ID(airspeed), &airspeed);
+
 			} else {
 				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
 			}
+
 			//warnx("SENSOR: IAS: %6.2f TAS: %6.2f", airspeed.indicated_airspeed_m_s, airspeed.true_airspeed_m_s);
 
 			/* individual sensor publications */
@@ -455,49 +458,72 @@ handle_message(mavlink_message_t *msg)
 
 			if (pub_hil_gyro < 0) {
 				pub_hil_gyro = orb_advertise(ORB_ID(sensor_gyro), &gyro);
+
 			} else {
 				orb_publish(ORB_ID(sensor_gyro), pub_hil_gyro, &gyro);
 			}
 
 			struct accel_report accel;
+
 			accel.x_raw = imu.xacc / mg2ms2;
+
 			accel.y_raw = imu.yacc / mg2ms2;
+
 			accel.z_raw = imu.zacc / mg2ms2;
+
 			accel.x = imu.xacc;
+
 			accel.y = imu.yacc;
+
 			accel.z = imu.zacc;
+
 			accel.temperature = imu.temperature;
+
 			accel.timestamp = hrt_absolute_time();
 
 			if (pub_hil_accel < 0) {
 				pub_hil_accel = orb_advertise(ORB_ID(sensor_accel), &accel);
+
 			} else {
 				orb_publish(ORB_ID(sensor_accel), pub_hil_accel, &accel);
 			}
 
 			struct mag_report mag;
+
 			mag.x_raw = imu.xmag / mga2ga;
+
 			mag.y_raw = imu.ymag / mga2ga;
+
 			mag.z_raw = imu.zmag / mga2ga;
+
 			mag.x = imu.xmag;
+
 			mag.y = imu.ymag;
+
 			mag.z = imu.zmag;
+
 			mag.timestamp = hrt_absolute_time();
 
 			if (pub_hil_mag < 0) {
 				pub_hil_mag = orb_advertise(ORB_ID(sensor_mag), &mag);
+
 			} else {
 				orb_publish(ORB_ID(sensor_mag), pub_hil_mag, &mag);
 			}
 
 			struct baro_report baro;
+
 			baro.pressure = imu.abs_pressure;
+
 			baro.altitude = imu.pressure_alt;
+
 			baro.temperature = imu.temperature;
+
 			baro.timestamp = hrt_absolute_time();
 
 			if (pub_hil_baro < 0) {
 				pub_hil_baro = orb_advertise(ORB_ID(sensor_baro), &baro);
+
 			} else {
 				orb_publish(ORB_ID(sensor_baro), pub_hil_baro, &baro);
 			}
@@ -505,6 +531,7 @@ handle_message(mavlink_message_t *msg)
 			/* publish combined sensor topic */
 			if (pub_hil_sensors > 0) {
 				orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
+
 			} else {
 				pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
 			}
@@ -517,6 +544,7 @@ handle_message(mavlink_message_t *msg)
 			/* lazily publish the battery voltage */
 			if (pub_hil_battery > 0) {
 				orb_publish(ORB_ID(battery_status), pub_hil_battery, &hil_battery_status);
+
 			} else {
 				pub_hil_battery = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
 			}
@@ -527,7 +555,7 @@ handle_message(mavlink_message_t *msg)
 
 			// output
 			if ((timestamp - old_timestamp) > 10000000) {
-				printf("receiving hil sensor at %d hz\n", hil_frames/10);
+				printf("receiving hil sensor at %d hz\n", hil_frames / 10);
 				old_timestamp = timestamp;
 				hil_frames = 0;
 			}
@@ -552,9 +580,11 @@ handle_message(mavlink_message_t *msg)
 
 			/* gps.cog is in degrees 0..360 * 100, heading is -PI..+PI */
 			float heading_rad = gps.cog * M_DEG_TO_RAD_F * 1e-2f;
+
 			/* go back to -PI..PI */
 			if (heading_rad > M_PI_F)
 				heading_rad -= 2.0f * M_PI_F;
+
 			hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
 			hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
 			hil_gps.vel_d_m_s = gps.vd * 1e-2f; // from cm to m
@@ -567,6 +597,7 @@ handle_message(mavlink_message_t *msg)
 			/* publish GPS measurement data */
 			if (pub_hil_gps > 0) {
 				orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
+
 			} else {
 				pub_hil_gps = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
 			}
@@ -585,6 +616,7 @@ handle_message(mavlink_message_t *msg)
 
 			if (pub_hil_airspeed < 0) {
 				pub_hil_airspeed = orb_advertise(ORB_ID(airspeed), &airspeed);
+
 			} else {
 				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
 			}
@@ -602,6 +634,7 @@ handle_message(mavlink_message_t *msg)
 
 			if (pub_hil_global_pos > 0) {
 				orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
+
 			} else {
 				pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
 			}
@@ -613,8 +646,8 @@ handle_message(mavlink_message_t *msg)
 
 			/* set rotation matrix */
 			for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-				hil_attitude.R[i][j] = C_nb(i, j);
-			
+					hil_attitude.R[i][j] = C_nb(i, j);
+
 			hil_attitude.R_valid = true;
 
 			/* set quaternion */
@@ -636,22 +669,32 @@ handle_message(mavlink_message_t *msg)
 
 			if (pub_hil_attitude > 0) {
 				orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
+
 			} else {
 				pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
 			}
 
 			struct accel_report accel;
+
 			accel.x_raw = hil_state.xacc / 9.81f * 1e3f;
+
 			accel.y_raw = hil_state.yacc / 9.81f * 1e3f;
+
 			accel.z_raw = hil_state.zacc / 9.81f * 1e3f;
+
 			accel.x = hil_state.xacc;
+
 			accel.y = hil_state.yacc;
+
 			accel.z = hil_state.zacc;
+
 			accel.temperature = 25.0f;
+
 			accel.timestamp = hrt_absolute_time();
 
 			if (pub_hil_accel < 0) {
 				pub_hil_accel = orb_advertise(ORB_ID(sensor_accel), &accel);
+
 			} else {
 				orb_publish(ORB_ID(sensor_accel), pub_hil_accel, &accel);
 			}
@@ -664,6 +707,7 @@ handle_message(mavlink_message_t *msg)
 			/* lazily publish the battery voltage */
 			if (pub_hil_battery > 0) {
 				orb_publish(ORB_ID(battery_status), pub_hil_battery, &hil_battery_status);
+
 			} else {
 				pub_hil_battery = orb_advertise(ORB_ID(battery_status), &hil_battery_status);
 			}
@@ -733,17 +777,23 @@ receive_thread(void *arg)
 
 	mavlink_message_t msg;
 
-	prctl(PR_SET_NAME, "mavlink uart rcv", getpid());
+	prctl(PR_SET_NAME, "mavlink_uart_rcv", getpid());
+
+	struct pollfd fds[1];
+	fds[0].fd = uart_fd;
+	fds[0].events = POLLIN;
+
+	ssize_t nread = 0;
 
 	while (!thread_should_exit) {
-
-		struct pollfd fds[1];
-		fds[0].fd = uart_fd;
-		fds[0].events = POLLIN;
-
 		if (poll(fds, 1, timeout) > 0) {
+			if (nread < sizeof(buf)) {
+				/* to avoid reading very small chunks wait for data before reading */
+				usleep(1000);
+			}
+
 			/* non-blocking read. read may return negative values */
-			ssize_t nread = read(uart_fd, buf, sizeof(buf));
+			nread = read(uart_fd, buf, sizeof(buf));
 
 			/* if read failed, this loop won't execute */
 			for (ssize_t i = 0; i < nread; i++) {
@@ -751,10 +801,10 @@ receive_thread(void *arg)
 					/* handle generic messages and commands */
 					handle_message(&msg);
 
-					/* Handle packet with waypoint component */
+					/* handle packet with waypoint component */
 					mavlink_wpm_message_handler(&msg, &global_pos, &local_pos);
 
-					/* Handle packet with parameter component */
+					/* handle packet with parameter component */
 					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
 				}
 			}

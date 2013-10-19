@@ -32,76 +32,20 @@
  ****************************************************************************/
 
 /**
- * @file BlockParam.h
+ * @file mixer_load.h
  *
- * Controller library code
  */
 
-#pragma once
 
-#include <systemlib/param/param.h>
+#ifndef _SYSTEMLIB_MIXER_LOAD_H
+#define _SYSTEMLIB_MIXER_LOAD_H value
 
-#include "Block.hpp"
-#include "List.hpp"
+#include <nuttx/config.h>
 
-namespace control
-{
+__BEGIN_DECLS
 
-/**
- * A base class for block params that enables traversing linked list.
- */
-class __EXPORT BlockParamBase : public ListNode<BlockParamBase *>
-{
-public:
-	/**
-	 * Instantiate a block param base.
-	 *
-	 * @param parent_prefix Set to true to include the parent name in the parameter name
-	 */
-	BlockParamBase(Block *parent, const char *name, bool parent_prefix=true);
-	virtual ~BlockParamBase() {};
-	virtual void update() = 0;
-	const char *getName() { return param_name(_handle); }
-protected:
-	param_t _handle;
-};
+__EXPORT int load_mixer_file(const char *fname, char *buf, unsigned maxlen);
 
-/**
- * Parameters that are tied to blocks for updating and nameing.
- */
+__END_DECLS
 
-class __EXPORT BlockParamFloat : public BlockParamBase
-{
-public:
-	BlockParamFloat(Block *block, const char *name, bool parent_prefix=true) :
-		BlockParamBase(block, name, parent_prefix),
-		_val() {
-		update();
-	}
-	float get() { return _val; }
-	void set(float val) { _val = val; }
-	void update() {
-		if (_handle != PARAM_INVALID) param_get(_handle, &_val);
-	}
-protected:
-	float _val;
-};
-
-class __EXPORT BlockParamInt : public BlockParamBase
-{
-public:
-	BlockParamInt(Block *block, const char *name, bool parent_prefix=true) :
-		BlockParamBase(block, name, parent_prefix),
-		_val() {
-		update();
-	}
-	int get() { return _val; }
-	void set(int val) { _val = val; }
-	void update() {
-		if (_handle != PARAM_INVALID) param_get(_handle, &_val);
-	}
-protected:
-	int _val;
-};
-
-} // namespace control
+#endif

@@ -32,76 +32,69 @@
  ****************************************************************************/
 
 /**
- * @file BlockParam.h
+ * @file mixer_load.c
  *
- * Controller library code
+ * Programmable multi-channel mixer library.
  */
 
-#pragma once
+#include <nuttx/config.h>
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
 
-#include <systemlib/param/param.h>
+#include "mixer_load.h"
 
-#include "Block.hpp"
-#include "List.hpp"
-
-namespace control
+int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 {
+	FILE		*fp;
+	char		line[120];
 
-/**
- * A base class for block params that enables traversing linked list.
- */
-class __EXPORT BlockParamBase : public ListNode<BlockParamBase *>
-{
-public:
-	/**
-	 * Instantiate a block param base.
-	 *
-	 * @param parent_prefix Set to true to include the parent name in the parameter name
-	 */
-	BlockParamBase(Block *parent, const char *name, bool parent_prefix=true);
-	virtual ~BlockParamBase() {};
-	virtual void update() = 0;
-	const char *getName() { return param_name(_handle); }
-protected:
-	param_t _handle;
-};
-
-/**
- * Parameters that are tied to blocks for updating and nameing.
- */
-
-class __EXPORT BlockParamFloat : public BlockParamBase
-{
-public:
-	BlockParamFloat(Block *block, const char *name, bool parent_prefix=true) :
-		BlockParamBase(block, name, parent_prefix),
-		_val() {
-		update();
+	/* open the mixer definition file */
+	fp = fopen(fname, "r");
+	if (fp == NULL) {
+		return 1;
 	}
-	float get() { return _val; }
-	void set(float val) { _val = val; }
-	void update() {
-		if (_handle != PARAM_INVALID) param_get(_handle, &_val);
-	}
-protected:
-	float _val;
-};
 
-class __EXPORT BlockParamInt : public BlockParamBase
-{
-public:
-	BlockParamInt(Block *block, const char *name, bool parent_prefix=true) :
-		BlockParamBase(block, name, parent_prefix),
-		_val() {
-		update();
-	}
-	int get() { return _val; }
-	void set(int val) { _val = val; }
-	void update() {
-		if (_handle != PARAM_INVALID) param_get(_handle, &_val);
-	}
-protected:
-	int _val;
-};
+	/* read valid lines from the file into a buffer */
+	buf[0] = '\0';
+	for (;;) {
 
-} // namespace control
+		/* get a line, bail on error/EOF */
+		line[0] = '\0';
+		if (fgets(line, sizeof(line), fp) == NULL)
+			break;
+
+		/* if the line doesn't look like a mixer definition line, skip it */
+		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':'))
+			continue;
+
+		/* compact whitespace in the buffer */
+		char *t, *f;
+		for (f = line; *f != '\0'; f++) {
+			/* scan for space characters */
+			if (*f == ' ') {
+				/* look for additional spaces */
+				t = f + 1;
+				while (*t == ' ')
+					t++;
+				if (*t == '\0') {
+					/* strip trailing whitespace */
+					*f = '\0';
+				} else if (t > (f + 1)) {
+					memmove(f + 1, t, strlen(t) + 1);
+				}
+			}
+		}
+
+		/* if the line is too long to fit in the buffer, bail */
+		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
+			return 1;
+		}
+
+		/* add the line to the buffer */
+		strcat(buf, line);
+	}
+
+	return 0;
+}
+

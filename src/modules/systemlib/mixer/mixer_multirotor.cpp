@@ -130,7 +130,7 @@ const MultirotorMixer::Rotor _config_octa_plus[] = {
 	{  1.000000,  0.000000, -1.00 },
 	{ -1.000000,  0.000000, -1.00 },
 };
-const MultirotorMixer::Rotor *_config_index[MultirotorMixer::Geometry::MAX_GEOMETRY] = {
+const MultirotorMixer::Rotor *_config_index[MultirotorMixer::MAX_GEOMETRY] = {
 	&_config_quad_x[0],
 	&_config_quad_plus[0],
 	&_config_quad_v[0],
@@ -140,7 +140,7 @@ const MultirotorMixer::Rotor *_config_index[MultirotorMixer::Geometry::MAX_GEOME
 	&_config_octa_x[0],
 	&_config_octa_plus[0],
 };
-const unsigned _config_rotor_count[MultirotorMixer::Geometry::MAX_GEOMETRY] = {
+const unsigned _config_rotor_count[MultirotorMixer::MAX_GEOMETRY] = {
 	4, /* quad_x */
 	4, /* quad_plus */
 	4, /* quad_v */
@@ -205,11 +205,17 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	}
 
 	if (used > (int)buflen) {
-		debug("multirotor spec used %d of %u", used, buflen);
+		debug("OVERFLOW: multirotor spec used %d of %u", used, buflen);
 		return nullptr;
 	}
 
-	buflen -= used;
+	buf = skipline(buf, buflen);
+	if (buf == nullptr) {
+		debug("no line ending, line is incomplete");
+		return nullptr;
+	}
+
+	debug("remaining in buf: %d, first char: %c", buflen, buf[0]);
 
 	if (!strcmp(geomname, "4+")) {
 		geometry = MultirotorMixer::QUAD_PLUS;

@@ -103,6 +103,7 @@ private:
 
 	bool			_running;
 	int			_led_interval;
+	bool			_should_run;
 	int			_counter;
 
 	void 			set_color(rgbled_color_t ledcolor);
@@ -136,6 +137,7 @@ RGBLED::RGBLED(int bus, int rgbled) :
 	_brightness(1.0f),
 	_running(false),
 	_led_interval(0),
+	_should_run(false),
 	_counter(0)
 {
 	memset(&_work, 0, sizeof(_work));
@@ -248,6 +250,11 @@ RGBLED::led_trampoline(void *arg)
 void
 RGBLED::led()
 {
+	if (!_should_run) {
+		_running = false;
+		return;
+	}
+
 	switch (_mode) {
 	case RGBLED_MODE_BLINK_SLOW:
 	case RGBLED_MODE_BLINK_NORMAL:
@@ -409,10 +416,10 @@ RGBLED::set_mode(rgbled_mode_t mode)
 {
 	if (mode != _mode) {
 		_mode = mode;
-		bool should_run = false;
 
 		switch (mode) {
 		case RGBLED_MODE_OFF:
+			_should_run = false;
 			send_led_enable(false);
 			break;
 
@@ -423,7 +430,7 @@ RGBLED::set_mode(rgbled_mode_t mode)
 			break;
 
 		case RGBLED_MODE_BLINK_SLOW:
-			should_run = true;
+			_should_run = true;
 			_counter = 0;
 			_led_interval = 2000;
 			_brightness = 1.0f;
@@ -431,7 +438,7 @@ RGBLED::set_mode(rgbled_mode_t mode)
 			break;
 
 		case RGBLED_MODE_BLINK_NORMAL:
-			should_run = true;
+			_should_run = true;
 			_counter = 0;
 			_led_interval = 500;
 			_brightness = 1.0f;
@@ -439,7 +446,7 @@ RGBLED::set_mode(rgbled_mode_t mode)
 			break;
 
 		case RGBLED_MODE_BLINK_FAST:
-			should_run = true;
+			_should_run = true;
 			_counter = 0;
 			_led_interval = 100;
 			_brightness = 1.0f;
@@ -447,14 +454,14 @@ RGBLED::set_mode(rgbled_mode_t mode)
 			break;
 
 		case RGBLED_MODE_BREATHE:
-			should_run = true;
+			_should_run = true;
 			_counter = 0;
 			_led_interval = 25;
 			send_led_enable(true);
 			break;
 
 		case RGBLED_MODE_PATTERN:
-			should_run = true;
+			_should_run = true;
 			_counter = 0;
 			_brightness = 1.0f;
 			send_led_enable(true);
@@ -466,16 +473,11 @@ RGBLED::set_mode(rgbled_mode_t mode)
 		}
 
 		/* if it should run now, start the workq */
-		if (should_run && !_running) {
+		if (_should_run && !_running) {
 			_running = true;
 			work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 1);
 		}
 
-		/* if it should stop, then cancel the workq */
-		if (!should_run && _running) {
-			_running = false;
-			work_cancel(LPWORK, &_work);
-		}
 	}
 }
 

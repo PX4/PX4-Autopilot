@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,12 +33,29 @@
 ############################################################################
 
 #
-# Build the mixer tool.
+# PX4 paramers processor (main executable file)
+#
+# It scans src/ subdirectory of the project, collects all parameters
+# definitions, and outputs list of parameters in XML and DokuWiki formats.
 #
 
-MODULE_COMMAND	 = mixer
-SRCS		 = mixer.cpp
+import scanner
+import parser
+import xmlout
+import dokuwikiout
 
-MODULE_STACKSIZE = 4096
+# Initialize parser
+prs = parser.Parser()
 
-MAXOPTIMIZATION	 = -Os
+# Scan directories, and parse the files
+sc = scanner.Scanner()
+sc.ScanDir("../../src", prs)
+output = prs.GetParamGroups()
+
+# Output into XML
+out = xmlout.XMLOutput()
+out.Save(output, "parameters.xml")
+
+# Output into DokuWiki
+out = dokuwikiout.DokuWikiOutput()
+out.Save(output, "parameters.wiki")

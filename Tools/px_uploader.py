@@ -430,7 +430,7 @@ while True:
                                 # Windows, don't open POSIX ports
                                 if not "/" in port:
                                         up = uploader(port, args.baud)
-                except:
+                except Exception:
                         # open failed, rate-limit our attempts
                         time.sleep(0.05)
 
@@ -443,7 +443,7 @@ while True:
                         up.identify()
                         print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
 
-                except:
+                except Exception:
                         # most probably a timeout talking to the port, no bootloader, try to reboot the board
                         print("attempting reboot on %s..." % port)
                         up.send_reboot()

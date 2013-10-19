@@ -61,7 +61,6 @@
  */
 struct vehicle_control_mode_s
 {
-	uint16_t counter;   /**< incremented by the writing thread every time new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	bool flag_armed;
