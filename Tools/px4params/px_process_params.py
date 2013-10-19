@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +33,29 @@
 ############################################################################
 
 #
-# MAVLink protocol to uORB interface process
+# PX4 paramers processor (main executable file)
+#
+# It scans src/ subdirectory of the project, collects all parameters
+# definitions, and outputs list of parameters in XML and DokuWiki formats.
 #
 
-MODULE_COMMAND	 = mavlink
-SRCS		 += mavlink.c \
-			   mavlink_parameters.c \
-			   mavlink_receiver.cpp \
-			   orb_listener.c \
-			   missionlib.c
+import scanner
+import parser
+import xmlout
+import dokuwikiout
 
-INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
+# Initialize parser
+prs = parser.Parser()
+
+# Scan directories, and parse the files
+sc = scanner.Scanner()
+sc.ScanDir("../../src", prs)
+output = prs.GetParamGroups()
+
+# Output into XML
+out = xmlout.XMLOutput()
+out.Save(output, "parameters.xml")
+
+# Output into DokuWiki
+out = dokuwikiout.DokuWikiOutput()
+out.Save(output, "parameters.wiki")

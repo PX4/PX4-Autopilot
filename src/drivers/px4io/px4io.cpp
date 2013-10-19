@@ -83,7 +83,7 @@
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
 
-#include <lib/dataman/dataman.h>
+#include <dataman/dataman.h>
 
 #include <debug.h>
 

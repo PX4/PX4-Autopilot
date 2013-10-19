@@ -58,7 +58,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
-#include <lib/dataman/dataman.h>
+#include <dataman/dataman.h>
 
 # include <board_config.h>
 
