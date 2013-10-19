@@ -943,53 +943,6 @@ PX4IO::io_set_control_state()
 	return io_reg_set(PX4IO_PAGE_CONTROLS, 0, regs, _max_controls);
 }
 
-int
-PX4IO::set_failsafe_values(const uint16_t *vals, unsigned len)
-{
-	if (len > _max_actuators)
-		/* fail with error */
-		return E2BIG;
-
-	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, vals, len);
-}
-
-int
-PX4IO::set_min_values(const uint16_t *vals, unsigned len)
-{
-
-	if (len > _max_actuators)
-		/* fail with error */
-		return E2BIG;
-
-	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_CONTROL_MIN_PWM, 0, vals, len);
-}
-
-int
-PX4IO::set_max_values(const uint16_t *vals, unsigned len)
-{
-
-	if (len > _max_actuators)
-		/* fail with error */
-		return E2BIG;
-
-	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_CONTROL_MAX_PWM, 0, vals, len);
-}
-
-int
-PX4IO::set_idle_values(const uint16_t *vals, unsigned len)
-{
-
-	if (len > _max_actuators)
-		/* fail with error */
-		return E2BIG;
-
-	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_DISARMED_PWM, 0, vals, len);
-}
-
 
 int
 PX4IO::io_set_arming_state()
@@ -1803,7 +1756,7 @@ PX4IO::print_status()
 	printf("failsafe");
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, i));
-	printf("\nidle values");
+	printf("\ndisarmed values");
 	for (unsigned i = 0; i < _max_actuators; i++)
 		printf(" %u", io_reg_get(PX4IO_PAGE_DISARMED_PWM, i));
 	printf("\n");
@@ -1874,15 +1827,39 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		*(unsigned *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES);
 		break;
 
+	case PWM_SERVO_SET_FAILSAFE_PWM: {
+		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
+		if (pwm->channel_count > _max_actuators)
+			/* fail with error */
+			return E2BIG;
+
+		/* copy values to registers in IO */
+		ret = io_reg_set(PX4IO_PAGE_FAILSAFE_PWM, 0, pwm->values, pwm->channel_count);
+		break;
+	}
+
+	case PWM_SERVO_GET_FAILSAFE_PWM:
+
+		ret = io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, 0, (uint16_t*)arg, _max_actuators);
+		if (ret != OK) {
+			ret = -EIO;
+		}
+		break;
+
 	case PWM_SERVO_SET_DISARMED_PWM: {
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
-		set_idle_values(pwm->values, pwm->channel_count);
+		if (pwm->channel_count > _max_actuators)
+			/* fail with error */
+			return E2BIG;
+
+		/* copy values to registers in IO */
+		ret = io_reg_set(PX4IO_PAGE_DISARMED_PWM, 0, pwm->values, pwm->channel_count);
 		break;
 	}
 
 	case PWM_SERVO_GET_DISARMED_PWM:
 
-		ret = io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, (uint16_t*)arg, sizeof(struct pwm_output_values)/sizeof(uint16_t));
+		ret = io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, (uint16_t*)arg, _max_actuators);
 		if (ret != OK) {
 			ret = -EIO;
 		}
@@ -1890,13 +1867,18 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_MIN_PWM: {
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
-		set_min_values(pwm->values, pwm->channel_count);
+		if (pwm->channel_count > _max_actuators)
+			/* fail with error */
+			return E2BIG;
+
+		/* copy values to registers in IO */
+		ret = io_reg_set(PX4IO_PAGE_CONTROL_MIN_PWM, 0, pwm->values, pwm->channel_count);
 		break;
 	}
 
 	case PWM_SERVO_GET_MIN_PWM:
 
-		ret = io_reg_get(PX4IO_PAGE_CONTROL_MIN_PWM, 0, (uint16_t*)arg, sizeof(struct pwm_output_values)/sizeof(uint16_t));
+		ret = io_reg_get(PX4IO_PAGE_CONTROL_MIN_PWM, 0, (uint16_t*)arg, _max_actuators);
 		if (ret != OK) {
 			ret = -EIO;
 		}
@@ -1904,13 +1886,18 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_MAX_PWM: {
 		struct pwm_output_values* pwm = (struct pwm_output_values*)arg;
-		set_max_values(pwm->values, pwm->channel_count);
+		if (pwm->channel_count > _max_actuators)
+			/* fail with error */
+			return E2BIG;
+
+		/* copy values to registers in IO */
+		ret = io_reg_set(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm->values, pwm->channel_count);
 		break;
 	}
 
 	case PWM_SERVO_GET_MAX_PWM:
 
-		ret = io_reg_get(PX4IO_PAGE_CONTROL_MAX_PWM, 0, (uint16_t*)arg, sizeof(struct pwm_output_values)/sizeof(uint16_t));
+		ret = io_reg_get(PX4IO_PAGE_CONTROL_MAX_PWM, 0, (uint16_t*)arg, _max_actuators);
 		if (ret != OK) {
 			ret = -EIO;
 		}
@@ -2518,37 +2505,6 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "failsafe")) {
-
-		if (argc < 3) {
-			errx(1, "failsafe command needs at least one channel value (ppm)");
-		}
-
-		/* set values for first 8 channels, fill unassigned channels with 1500. */
-		uint16_t failsafe[8];
-
-		for (unsigned i = 0; i < sizeof(failsafe) / sizeof(failsafe[0]); i++) {
-
-			/* set channel to commandline argument or to 900 for non-provided channels */
-			if ((unsigned)argc > i + 2) {
-				failsafe[i] = atoi(argv[i+2]);
-				if (failsafe[i] < PWM_MIN || failsafe[i] > PWM_MAX) {
-					errx(1, "value out of range of %d < value < %d. Aborting.", PWM_MIN, PWM_MAX);
-				}
-			} else {
-				/* a zero value will result in stopping to output any pulse */
-				failsafe[i] = 0;
-			}
-		}
-
-		int ret = g_dev->set_failsafe_values(failsafe, sizeof(failsafe) / sizeof(failsafe[0]));
-
-		if (ret != OK)
-			errx(ret, "failed setting failsafe values");
-		exit(0);
-	}
-
-
 
 	if (!strcmp(argv[1], "recovery")) {
 
@@ -2616,5 +2572,5 @@ px4io_main(int argc, char *argv[])
 		bind(argc, argv);
 
 	out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'failsafe', 'bind' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'bind' or 'update'");
 }

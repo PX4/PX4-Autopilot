@@ -199,7 +199,7 @@ uint16_t		r_page_rc_input_config[PX4IO_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRI
  * 
  * Disable pulses as default.
  */
-uint16_t		r_page_servo_failsafe[PX4IO_SERVO_COUNT] = { 0 };
+uint16_t		r_page_servo_failsafe[PX4IO_SERVO_COUNT] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 /**
  * PAGE 106
@@ -276,8 +276,15 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		/* copy channel data */
 		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
 
-			/* XXX range-check value? */
-			r_page_servo_failsafe[offset] = *values;
+			if (*values == 0) {
+				/* ignore 0 */
+			} else if (*values < PWM_MIN) {
+				r_page_servo_failsafe[offset] = PWM_MIN;
+			} else if (*values > PWM_MAX) {
+				r_page_servo_failsafe[offset] = PWM_MAX;
+			} else {
+				r_page_servo_failsafe[offset] = *values;
+			}
 
 			/* flag the failsafe values as custom */
 			r_setup_arming |= PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;

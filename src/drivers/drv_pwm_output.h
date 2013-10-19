@@ -154,23 +154,29 @@ ORB_DECLARE(output_pwm);
 /** power up DSM receiver */
 #define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 11)
 
+/** set the PWM value for failsafe */
+#define PWM_SERVO_SET_FAILSAFE_PWM	_IOC(_PWM_SERVO_BASE, 12)
+
+/** get the PWM value for failsafe */
+#define PWM_SERVO_GET_FAILSAFE_PWM	_IOC(_PWM_SERVO_BASE, 13)
+
 /** set the PWM value when disarmed - should be no PWM (zero) by default */
-#define PWM_SERVO_SET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 12)
+#define PWM_SERVO_SET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 14)
 
 /** get the PWM value when disarmed */
-#define PWM_SERVO_GET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 13)
+#define PWM_SERVO_GET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 15)
 
 /** set the minimum PWM value the output will send */
-#define PWM_SERVO_SET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 14)
+#define PWM_SERVO_SET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 16)
 
 /** get the minimum PWM value the output will send */
-#define PWM_SERVO_GET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 15)
+#define PWM_SERVO_GET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 17)
 
 /** set the maximum PWM value the output will send */
-#define PWM_SERVO_SET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 16)
+#define PWM_SERVO_SET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 18)
 
 /** get the maximum PWM value the output will send */
-#define PWM_SERVO_GET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 17)
+#define PWM_SERVO_GET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 19)
 
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)

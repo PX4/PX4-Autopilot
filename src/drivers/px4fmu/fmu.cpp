@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,6 +78,12 @@
 # include <systemlib/ppm_decode.h>
 #endif
 
+/*
+ * This is the analog to FMU_INPUT_DROP_LIMIT_US on the IO side
+ */
+
+#define CONTROL_INPUT_DROP_LIMIT_MS		20
+
 class PX4FMU : public device::CDev
 {
 public:
@@ -130,9 +136,11 @@ private:
 	actuator_controls_s _controls;
 
 	pwm_limit_t	_pwm_limit;
+	uint16_t	_failsafe_pwm[_max_actuators];
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
 	uint16_t	_max_pwm[_max_actuators];
+	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
 
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -218,7 +226,9 @@ PX4FMU::PX4FMU() :
 	_armed(false),
 	_pwm_on(false),
 	_mixers(nullptr),
+	_failsafe_pwm({0}),
 	_disarmed_pwm({0}),
+	_num_failsafe_set(0),
 	_num_disarmed_set(0)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
@@ -515,98 +525,103 @@ PX4FMU::task_main()
 
 		/* sleep waiting for data, stopping to check for PPM
 		 * input at 100Hz */
-		int ret = ::poll(&fds[0], 2, 10);
+		int ret = ::poll(&fds[0], 2, CONTROL_INPUT_DROP_LIMIT_MS);
 
 		/* this would be bad... */
 		if (ret < 0) {
 			log("poll error %d", errno);
 			usleep(1000000);
 			continue;
-		}
+		} else if (ret == 0) {
+			/* timeout: no control data, switch to failsafe values */
+//			warnx("no PWM: failsafe");
 
-		/* do we have a control update? */
-		if (fds[0].revents & POLLIN) {
+		} else {
 
-			/* get controls - must always do this to avoid spinning */
-			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
+			/* do we have a control update? */
+			if (fds[0].revents & POLLIN) {
 
-			/* can we mix? */
-			if (_mixers != nullptr) {
+				/* get controls - must always do this to avoid spinning */
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
 
-				unsigned num_outputs;
+				/* can we mix? */
+				if (_mixers != nullptr) {
 
-				switch (_mode) {
-				case MODE_2PWM:
-					num_outputs = 2;
-					break;
-				case MODE_4PWM:
-					num_outputs = 4;
-					break;
-				case MODE_6PWM:
-					num_outputs = 6;
-					break;
-				default:
-					num_outputs = 0;
-					break;
-				}
+					unsigned num_outputs;
 
-				/* do mixing */
-				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
-				outputs.timestamp = hrt_absolute_time();
-
-				/* iterate actuators */
-				for (unsigned i = 0; i < num_outputs; i++) {
-					/* last resort: catch NaN, INF and out-of-band errors */
-					if (i >= outputs.noutputs ||
-						!isfinite(outputs.output[i]) ||
-						outputs.output[i] < -1.0f ||
-						outputs.output[i] > 1.0f) {
-						/*
-						 * Value is NaN, INF or out of band - set to the minimum value.
-						 * This will be clearly visible on the servo status and will limit the risk of accidentally
-						 * spinning motors. It would be deadly in flight.
-						 */
-						outputs.output[i] = -1.0f;
+					switch (_mode) {
+					case MODE_2PWM:
+						num_outputs = 2;
+						break;
+					case MODE_4PWM:
+						num_outputs = 4;
+						break;
+					case MODE_6PWM:
+						num_outputs = 6;
+						break;
+					default:
+						num_outputs = 0;
+						break;
 					}
+
+					/* do mixing */
+					outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
+					outputs.timestamp = hrt_absolute_time();
+
+					/* iterate actuators */
+					for (unsigned i = 0; i < num_outputs; i++) {
+						/* last resort: catch NaN, INF and out-of-band errors */
+						if (i >= outputs.noutputs ||
+							!isfinite(outputs.output[i]) ||
+							outputs.output[i] < -1.0f ||
+							outputs.output[i] > 1.0f) {
+							/*
+							 * Value is NaN, INF or out of band - set to the minimum value.
+							 * This will be clearly visible on the servo status and will limit the risk of accidentally
+							 * spinning motors. It would be deadly in flight.
+							 */
+							outputs.output[i] = -1.0f;
+						}
+					}
+
+					uint16_t pwm_limited[num_outputs];
+
+					pwm_limit_calc(_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
+
+					/* output actual limited values */
+					for (unsigned i = 0; i < num_outputs; i++) {
+						controls_effective.control_effective[i] = (float)pwm_limited[i];
+					}
+					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
+
+					/* output to the servos */
+					for (unsigned i = 0; i < num_outputs; i++) {
+						up_pwm_servo_set(i, pwm_limited[i]);
+					}
+
+					/* and publish for anyone that cares to see */
+					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
 				}
-
-				uint16_t pwm_limited[num_outputs];
-
-				pwm_limit_calc(_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
-
-				/* output actual limited values */
-				for (unsigned i = 0; i < num_outputs; i++) {
-					controls_effective.control_effective[i] = (float)pwm_limited[i];
-				}
-				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
-
-				/* output to the servos */
-				for (unsigned i = 0; i < num_outputs; i++) {
-					up_pwm_servo_set(i, pwm_limited[i]);
-				}
-
-				/* and publish for anyone that cares to see */
-				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
 			}
-		}
 
-		/* how about an arming update? */
-		if (fds[1].revents & POLLIN) {
-			actuator_armed_s aa;
+			/* how about an arming update? */
+			if (fds[1].revents & POLLIN) {
+				actuator_armed_s aa;
 
-			/* get new value */
-			orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &aa);
+				/* get new value */
+				orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &aa);
 
-			/* update the armed status and check that we're not locked down */
-			bool set_armed = aa.armed && !aa.lockdown;
-			if (_armed != set_armed)
-				_armed = set_armed;
+				/* update the armed status and check that we're not locked down */
+				bool set_armed = aa.armed && !aa.lockdown;
+				if (_armed != set_armed)
+					_armed = set_armed;
 
-			/* update PWM status if armed or if disarmed PWM values are set */
-			bool pwm_on = (aa.armed || _num_disarmed_set > 0);
-			if (_pwm_on != pwm_on) {
-				_pwm_on = pwm_on;
-				up_pwm_servo_arm(pwm_on);
+				/* update PWM status if armed or if disarmed PWM values are set */
+				bool pwm_on = (aa.armed || _num_disarmed_set > 0);
+				if (_pwm_on != pwm_on) {
+					_pwm_on = pwm_on;
+					up_pwm_servo_arm(pwm_on);
+				}
 			}
 		}
 
@@ -736,6 +751,45 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
 		*(uint32_t *)arg = _pwm_alt_rate_channels;
 		break;
+
+	case PWM_SERVO_SET_FAILSAFE_PWM: {
+		struct pwm_output_values *pwm = (struct pwm_output_values*)arg;
+		/* discard if too many values are sent */
+		if (pwm->channel_count > _max_actuators) {
+			ret = -EINVAL;
+			break;
+		}
+		for (unsigned i = 0; i < pwm->channel_count; i++) {
+			if (pwm->values[i] == 0) {
+				/* ignore 0 */
+			} else if (pwm->values[i] > PWM_MAX) {
+				_failsafe_pwm[i] = PWM_MAX;
+			} else if (pwm->values[i] < PWM_MIN) {
+				_failsafe_pwm[i] = PWM_MIN;
+			} else {
+				_failsafe_pwm[i] = pwm->values[i];
+			}
+		}
+
+		/*
+		 * update the counter
+		 * this is needed to decide if disarmed PWM output should be turned on or not
+		 */
+		_num_failsafe_set = 0;
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			if (_failsafe_pwm[i] > 0)
+				_num_failsafe_set++;
+		}
+		break;
+	}
+	case PWM_SERVO_GET_FAILSAFE_PWM: {
+		struct pwm_output_values *pwm = (struct pwm_output_values*)arg;
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			pwm->values[i] = _failsafe_pwm[i];
+		}
+		pwm->channel_count = _max_actuators;
+		break;
+	}
 
 	case PWM_SERVO_SET_DISARMED_PWM: {
 		struct pwm_output_values *pwm = (struct pwm_output_values*)arg;

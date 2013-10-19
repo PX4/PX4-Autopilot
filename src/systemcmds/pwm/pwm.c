@@ -72,20 +72,21 @@ usage(const char *reason)
 		warnx("%s", reason);
 	errx(1, 
 		"usage:\n"
-		"pwm arm|disarm|rate|min|max|disarmed|test|info  ...\n"
+		"pwm arm|disarm|rate|failsafe|disarmed|min|max|test|info  ...\n"
 		"\n"
 		"  arm                      Arm output\n"
 		"  disarm                   Disarm output\n"
 		"\n"
-		"  rate                     Configure PWM rates\n"
+		"  rate ...                 Configure PWM rates\n"
 		"    [-g <channel group>]   Channel group that should update at the alternate rate\n"
 		"    [-m <chanmask> ]       Directly supply channel mask\n"
 		"    [-a]                   Configure all outputs\n"
 		"    -r <alt_rate>          PWM rate (50 to 400 Hz)\n"
 		"\n"
+		"  failsafe ...      	    Configure failsafe PWM values\n"
+		"  disarmed ...      	    Configure disarmed PWM values\n"
 		"  min ...           	    Configure minimum PWM values\n"
 		"  max ...           	    Configure maximum PWM values\n"
-		"  disarmed ...      	    Configure disarmed PWM values\n"
 		"    [-c <channels>]        Supply channels (e.g. 1234)\n"
 		"    [-m <chanmask> ]       Directly supply channel mask (e.g. 0xF)\n"
 		"    [-a]                   Configure all outputs\n"
@@ -357,6 +358,35 @@ pwm_main(int argc, char *argv[])
 		}
 		exit(0);
 
+	} else if (!strcmp(argv[1], "failsafe")) {
+
+		if (set_mask == 0) {
+			usage("no channels set");
+		}
+		if (pwm_value == 0)
+			usage("no PWM value provided");
+
+		struct pwm_output_values pwm_values = {.values = {0}, .channel_count = 0};
+
+		for (unsigned i = 0; i < servo_count; i++) {
+			if (set_mask & 1<<i) {
+				pwm_values.values[i] = pwm_value;
+				if (print_verbose)
+					warnx("Channel %d: failsafe PWM: %d", i+1, pwm_value);
+			}
+			pwm_values.channel_count++;
+		}
+
+		if (pwm_values.channel_count == 0) {
+			usage("no PWM values added");
+		} else {
+
+			ret = ioctl(fd, PWM_SERVO_SET_FAILSAFE_PWM, (long unsigned int)&pwm_values);
+			if (ret != OK)
+				errx(ret, "failed setting failsafe values");
+		}
+		exit(0);
+
 	} else if (!strcmp(argv[1], "test")) {
 
 		if (set_mask == 0) {
@@ -421,10 +451,15 @@ pwm_main(int argc, char *argv[])
 			err(1, "PWM_SERVO_GET_SELECT_UPDATE_RATE");
 		}
 
+		struct pwm_output_values failsafe_pwm;
 		struct pwm_output_values disarmed_pwm;
 		struct pwm_output_values min_pwm;
 		struct pwm_output_values max_pwm;
 
+		ret = ioctl(fd, PWM_SERVO_GET_FAILSAFE_PWM, (unsigned long)&failsafe_pwm);
+		if (ret != OK) {
+			err(1, "PWM_SERVO_GET_FAILSAFE_PWM");
+		}
 		ret = ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (unsigned long)&disarmed_pwm);
 		if (ret != OK) {
 			err(1, "PWM_SERVO_GET_DISARMED_PWM");
@@ -452,7 +487,8 @@ pwm_main(int argc, char *argv[])
 					printf(" (default rate: %d Hz", info_default_rate);
 
 
-				printf(" disarmed; %d us, min: %d us, max: %d us)", disarmed_pwm.values[i], min_pwm.values[i], max_pwm.values[i]);
+				printf(" failsafe: %d, disarmed: %d us, min: %d us, max: %d us)",
+					failsafe_pwm.values[i], disarmed_pwm.values[i], min_pwm.values[i], max_pwm.values[i]);
 				printf("\n");
 			} else {
 				printf("%u: ERROR\n", i);
@@ -476,7 +512,7 @@ pwm_main(int argc, char *argv[])
 		exit(0);
 
 	}
-	usage("specify arm|disarm|rate|min|max|disarmed|test|info");
+	usage("specify arm|disarm|rate|failsafe|disarmed|min|max|test|info");
 	return 0;
 }
 
