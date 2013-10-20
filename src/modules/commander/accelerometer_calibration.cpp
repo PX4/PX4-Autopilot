@@ -112,11 +112,13 @@
 #include <fcntl.h>
 #include <sys/prctl.h>
 #include <math.h>
+#include <mathlib/mathlib.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_accel.h>
 #include <geo/geo.h>
+#include <conversion/rotation.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
@@ -144,24 +146,41 @@ int do_accel_calibration(int mavlink_fd) {
 	int res = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_scale);
 
 	if (res == OK) {
-		/* measurements complete successfully, set parameters */
-		if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offs[0]))
-			|| param_set(param_find("SENS_ACC_YOFF"), &(accel_offs[1]))
-			|| param_set(param_find("SENS_ACC_ZOFF"), &(accel_offs[2]))
-			|| param_set(param_find("SENS_ACC_XSCALE"), &(accel_scale[0]))
-			|| param_set(param_find("SENS_ACC_YSCALE"), &(accel_scale[1]))
-			|| param_set(param_find("SENS_ACC_ZSCALE"), &(accel_scale[2]))) {
+		/* measurements complete successfully, rotate calibration values */
+		param_t board_rotation_h = param_find("SENS_BOARD_ROT");
+		enum Rotation board_rotation_id;
+		param_get(board_rotation_h, &(board_rotation_id));
+		math::Matrix board_rotation(3, 3);
+		get_rot_matrix(board_rotation_id, &board_rotation);
+		board_rotation = board_rotation.transpose();
+		math::Vector3 vect(3);
+		vect(0) = accel_offs[0];
+		vect(1) = accel_offs[1];
+		vect(2) = accel_offs[2];
+		math::Vector3 accel_offs_rotated = board_rotation * vect;
+		vect(0) = accel_scale[0];
+		vect(1) = accel_scale[1];
+		vect(2) = accel_scale[2];
+		math::Vector3 accel_scale_rotated = board_rotation * vect;
+
+		/* set parameters */
+		if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offs_rotated(0)))
+			|| param_set(param_find("SENS_ACC_YOFF"), &(accel_offs_rotated(1)))
+			|| param_set(param_find("SENS_ACC_ZOFF"), &(accel_offs_rotated(2)))
+			|| param_set(param_find("SENS_ACC_XSCALE"), &(accel_scale_rotated(0)))
+			|| param_set(param_find("SENS_ACC_YSCALE"), &(accel_scale_rotated(1)))
+			|| param_set(param_find("SENS_ACC_ZSCALE"), &(accel_scale_rotated(2)))) {
 			mavlink_log_critical(mavlink_fd, "ERROR: setting offs or scale failed");
 		}
 
 		int fd = open(ACCEL_DEVICE_PATH, 0);
 		struct accel_scale ascale = {
-			accel_offs[0],
-			accel_scale[0],
-			accel_offs[1],
-			accel_scale[1],
-			accel_offs[2],
-			accel_scale[2],
+			accel_offs_rotated(0),
+			accel_scale_rotated(0),
+			accel_offs_rotated(1),
+			accel_scale_rotated(1),
+			accel_offs_rotated(2),
+			accel_scale_rotated(2),
 		};
 
 		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
