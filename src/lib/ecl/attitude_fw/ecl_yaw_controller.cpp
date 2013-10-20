@@ -119,10 +119,10 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 
 
 	/* Transform setpoint to body angular rates */
-	_bodyrate_setpoint = -sinf(roll) * pitch_rate_setpoint * cosf(roll)*cosf(pitch) * _rate_setpoint; //jacobian
+	_bodyrate_setpoint = -sinf(roll) * pitch_rate_setpoint + cosf(roll)*cosf(pitch) * _rate_setpoint; //jacobian
 
 	/* Transform estimation to body angular rates */
-	float yaw_bodyrate = -sinf(roll) * pitch_rate * cosf(roll)*cosf(pitch) * yaw_rate; //jacobian
+	float yaw_bodyrate = -sinf(roll) * pitch_rate + cosf(roll)*cosf(pitch) * yaw_rate; //jacobian
 
 	/* Calculate body angular rate error */
 	_rate_error = _bodyrate_setpoint - yaw_bodyrate; //body angular rate error
@@ -150,6 +150,8 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 
 	/* Apply PI rate controller and store non-limited output */
 	_last_output = (_rate_error * _k_p + _integrator * _k_i + _rate_setpoint * k_ff) * scaler * scaler;  //scaler is proportional to 1/airspeed
+	//warnx("yaw:_last_output: %.4f, _integrator: %.4f, _integrator_max: %.4f, airspeed %.4f, _k_i %.4f, _k_p: %.4f", (double)_last_output, (double)_integrator, (double)_integrator_max, (double)airspeed, (double)_k_i, (double)_k_p);
+
 
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }

@@ -45,6 +45,7 @@
 #include <geo/geo.h>
 #include <ecl/ecl.h>
 #include <mathlib/mathlib.h>
+#include <systemlib/err.h>
 
 ECL_PitchController::ECL_PitchController() :
 	_last_run(0),
@@ -163,7 +164,8 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 
 	/* Apply PI rate controller and store non-limited output */
 	_last_output = (_rate_error * _k_p + _integrator * _k_i + _rate_setpoint * k_ff) * scaler * scaler;  //scaler is proportional to 1/airspeed
-
+//	warnx("pitch: _integrator: %.4f, _integrator_max: %.4f, airspeed %.4f, _k_i %.4f, _k_p: %.4f", (double)_integrator, (double)_integrator_max, (double)airspeed, (double)_k_i, (double)_k_p);
+//	warnx("roll: _last_output %.4f", (double)_last_output);
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
 
