@@ -201,6 +201,11 @@ public:
 	 */
 	void			print_info();
 
+	/**
+	 * dump register values
+	 */
+	void			print_registers();
+
 protected:
 	virtual int		probe();
 
@@ -1380,6 +1385,30 @@ LSM303D::print_info()
 	_mag_reports->print_info("mag reports");
 }
 
+void
+LSM303D::print_registers()
+{
+	const struct {
+		uint8_t reg;
+		const char *name;
+	} regmap[] = {
+		{ ADDR_WHO_AM_I,  "WHO_AM_I" },
+		{ ADDR_STATUS_A,  "STATUS_A" },
+		{ ADDR_STATUS_M,  "STATUS_M" },
+		{ ADDR_CTRL_REG0, "CTRL_REG0" },
+		{ ADDR_CTRL_REG1, "CTRL_REG1" },
+		{ ADDR_CTRL_REG2, "CTRL_REG2" },
+		{ ADDR_CTRL_REG3, "CTRL_REG3" },
+		{ ADDR_CTRL_REG4, "CTRL_REG4" },
+		{ ADDR_CTRL_REG5, "CTRL_REG5" },
+		{ ADDR_CTRL_REG6, "CTRL_REG6" },
+		{ ADDR_CTRL_REG7, "CTRL_REG7" },
+	};
+	for (uint8_t i=0; i<sizeof(regmap)/sizeof(regmap[0]); i++) {
+		printf("0x%02x %s\n", read_reg(regmap[i].reg), regmap[i].name);
+	}
+}
+
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", MAG_DEVICE_PATH),
 	_parent(parent)
@@ -1432,6 +1461,7 @@ void	start();
 void	test();
 void	reset();
 void	info();
+void	regdump();
 
 /**
  * Start the driver.
@@ -1603,6 +1633,21 @@ info()
 	exit(0);
 }
 
+/**
+ * dump registers from device
+ */
+void
+regdump()
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running\n");
+
+	printf("regdump @ %p\n", g_dev);
+	g_dev->print_registers();
+
+	exit(0);
+}
+
 
 } // namespace
 
@@ -1634,5 +1679,11 @@ lsm303d_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "info"))
 		lsm303d::info();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	/*
+	 * dump device registers
+	 */
+	if (!strcmp(argv[1], "regdump"))
+		lsm303d::regdump();
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
 }
