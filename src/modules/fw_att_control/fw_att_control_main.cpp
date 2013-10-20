@@ -664,9 +664,9 @@ FixedwingAttitudeControl::task_main()
 				float speed_body_u = 0.0f;
 				float speed_body_w = 0.0f;
 				if(_att.R_valid) 	{
-					speed_body_u = _att.R[0][0] * _global_pos.vx + _att.R[0][1] * _global_pos.vy + _att.R[0][2] * _global_pos.vz;
-//					speed_body_v = _att.R[1][0] * _global_pos.vx + _att.R[1][1] * _global_pos.vy + _att.R[1][2] * _global_pos.vz;
-					speed_body_w = _att.R[2][0] * _global_pos.vx + _att.R[2][1] * _global_pos.vy + _att.R[2][2] * _global_pos.vz;
+					speed_body_u = _att.R[0][0] * _global_pos.vx + _att.R[1][0] * _global_pos.vy + _att.R[2][0] * _global_pos.vz;
+//					speed_body_v = _att.R[0][1] * _global_pos.vx + _att.R[1][1] * _global_pos.vy + _att.R[2][1] * _global_pos.vz;
+					speed_body_w = _att.R[0][2] * _global_pos.vx + _att.R[1][2] * _global_pos.vy + _att.R[2][2] * _global_pos.vz;
 				} else	{
 					warnx("Did not get a valid R\n");
 				}
