@@ -422,13 +422,13 @@ handle_message(mavlink_message_t *msg)
 			hil_sensors.accelerometer_counter = hil_counter;
 
 			/* differential pressure */
-			hil_sensors.differential_pressure_pa = imu.diff_pressure;
+			hil_sensors.differential_pressure_pa = imu.diff_pressure * 1e2f; //from hPa to Pa
 			hil_sensors.differential_pressure_counter = hil_counter;
 
 			/* airspeed from differential pressure, ambient pressure and temp */
 			struct airspeed_s airspeed;
 
-			float ias = calc_indicated_airspeed(imu.diff_pressure);
+			float ias = calc_indicated_airspeed(hil_sensors.differential_pressure_pa);
 			// XXX need to fix this
 			float tas = ias;
 
