@@ -32,7 +32,7 @@
 ############################################################################
 
 #
-# Rotation library
+# Conversion library
 #
 
 SRCS		 = rotation.cpp
