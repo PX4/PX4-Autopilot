@@ -129,7 +129,7 @@
 #endif
 static const int ERROR = -1;
 
-int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float accel_scale[3]);
+int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float accel_T[3][3]);
 int detect_orientation(int mavlink_fd, int sub_sensor_combined);
 int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samples_num);
 int mat_invert3(float src[3][3], float dst[3][3]);
@@ -142,8 +142,8 @@ int do_accel_calibration(int mavlink_fd) {
 
 	/* measure and calculate offsets & scales */
 	float accel_offs[3];
-	float accel_scale[3];
-	int res = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_scale);
+	float accel_T[3][3];
+	int res = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_T);
 
 	if (res == OK) {
 		/* measurements complete successfully, rotate calibration values */
@@ -153,34 +153,31 @@ int do_accel_calibration(int mavlink_fd) {
 		math::Matrix board_rotation(3, 3);
 		get_rot_matrix(board_rotation_id, &board_rotation);
 		board_rotation = board_rotation.transpose();
-		math::Vector3 vect(3);
-		vect(0) = accel_offs[0];
-		vect(1) = accel_offs[1];
-		vect(2) = accel_offs[2];
-		math::Vector3 accel_offs_rotated = board_rotation * vect;
-		vect(0) = accel_scale[0];
-		vect(1) = accel_scale[1];
-		vect(2) = accel_scale[2];
-		math::Vector3 accel_scale_rotated = board_rotation * vect;
+		math::Vector3 accel_offs_vec;
+		accel_offs_vec.set(&accel_offs[0]);
+		math::Vector3 accel_offs_rotated = board_rotation * accel_offs_vec;
+		math::Matrix accel_T_mat(3, 3);
+		accel_T_mat.set(&accel_T[0][0]);
+		math::Matrix accel_T_rotated = board_rotation.transpose() * accel_T_mat * board_rotation;
 
 		/* set parameters */
 		if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offs_rotated(0)))
 			|| param_set(param_find("SENS_ACC_YOFF"), &(accel_offs_rotated(1)))
 			|| param_set(param_find("SENS_ACC_ZOFF"), &(accel_offs_rotated(2)))
-			|| param_set(param_find("SENS_ACC_XSCALE"), &(accel_scale_rotated(0)))
-			|| param_set(param_find("SENS_ACC_YSCALE"), &(accel_scale_rotated(1)))
-			|| param_set(param_find("SENS_ACC_ZSCALE"), &(accel_scale_rotated(2)))) {
+			|| param_set(param_find("SENS_ACC_XSCALE"), &(accel_T_rotated(0, 0)))
+			|| param_set(param_find("SENS_ACC_YSCALE"), &(accel_T_rotated(1, 1)))
+			|| param_set(param_find("SENS_ACC_ZSCALE"), &(accel_T_rotated(2, 2)))) {
 			mavlink_log_critical(mavlink_fd, "ERROR: setting offs or scale failed");
 		}
 
 		int fd = open(ACCEL_DEVICE_PATH, 0);
 		struct accel_scale ascale = {
 			accel_offs_rotated(0),
-			accel_scale_rotated(0),
+			accel_T_rotated(0, 0),
 			accel_offs_rotated(1),
-			accel_scale_rotated(1),
+			accel_T_rotated(1, 1),
 			accel_offs_rotated(2),
-			accel_scale_rotated(2),
+			accel_T_rotated(2, 2),
 		};
 
 		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
@@ -206,7 +203,7 @@ int do_accel_calibration(int mavlink_fd) {
 	/* exit accel calibration mode */
 }
 
-int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float accel_scale[3]) {
+int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float accel_T[3][3]) {
 	const int samples_num = 2500;
 	float accel_ref[6][3];
 	bool data_collected[6] = { false, false, false, false, false, false };
@@ -282,19 +279,11 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 	}
 	close(sensor_combined_sub);
 
-	/* calculate offsets and rotation+scale matrix */
-	float accel_T[3][3];
+	/* calculate offsets and transform matrix */
 	int res = calculate_calibration_values(accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
 	if (res != 0) {
 		mavlink_log_info(mavlink_fd, "ERROR: calibration values calculation error");
 		return ERROR;
-	}
-
-	/* convert accel transform matrix to scales,
-	 * rotation part of transform matrix is not used by now
-	 */
-	for (int i = 0; i < 3; i++) {
-		accel_scale[i] = accel_T[i][i];
 	}
 
 	return OK;
