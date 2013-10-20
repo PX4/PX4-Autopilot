@@ -442,7 +442,7 @@ FixedwingAttitudeControl::vehicle_airspeed_poll()
 
 	if (airspeed_updated) {
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-		warnx("airspeed poll: ind: %.4f,  true: %.4f", _airspeed.indicated_airspeed_m_s, _airspeed.true_airspeed_m_s);
+//		warnx("airspeed poll: ind: %.4f,  true: %.4f", _airspeed.indicated_airspeed_m_s, _airspeed.true_airspeed_m_s);
 		return true;
 	}
 
@@ -698,7 +698,7 @@ FixedwingAttitudeControl::task_main()
 						_att.pitchspeed, _att.yawspeed,
 						_yaw_ctrl.get_desired_rate(),
 						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-				_actuators.control[1] = (isfinite(roll_u)) ? roll_u : 0.0f;
+				_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u : 0.0f;
 
 				float yaw_u = _yaw_ctrl.control_bodyrate(	_att.roll, _att.pitch,
 						_att.pitchspeed, _att.yawspeed,
