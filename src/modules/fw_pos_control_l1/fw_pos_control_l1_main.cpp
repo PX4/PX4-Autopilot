@@ -192,6 +192,7 @@ private:
 
 		float pitch_limit_min;
 		float pitch_limit_max;
+		float roll_limit;
 		float throttle_min;
 		float throttle_max;
 		float throttle_cruise;
@@ -223,6 +224,7 @@ private:
 
 		param_t pitch_limit_min;
 		param_t pitch_limit_max;
+		param_t roll_limit;
 		param_t throttle_min;
 		param_t throttle_max;
 		param_t throttle_cruise;
@@ -339,6 +341,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 	_parameter_handles.pitch_limit_min = param_find("FW_P_LIM_MIN");
 	_parameter_handles.pitch_limit_max = param_find("FW_P_LIM_MAX");
+	_parameter_handles.roll_limit = param_find("FW_R_LIM");
 	_parameter_handles.throttle_min = param_find("FW_THR_MIN");
 	_parameter_handles.throttle_max = param_find("FW_THR_MAX");
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
@@ -400,6 +403,7 @@ FixedwingPositionControl::parameters_update()
 
 	param_get(_parameter_handles.pitch_limit_min, &(_parameters.pitch_limit_min));
 	param_get(_parameter_handles.pitch_limit_max, &(_parameters.pitch_limit_max));
+	param_get(_parameter_handles.roll_limit, &(_parameters.roll_limit));
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
@@ -419,6 +423,7 @@ FixedwingPositionControl::parameters_update()
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
+	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
 
 	_tecs.set_time_const(_parameters.time_const);
 	_tecs.set_min_sink_rate(_parameters.min_sink_rate);
