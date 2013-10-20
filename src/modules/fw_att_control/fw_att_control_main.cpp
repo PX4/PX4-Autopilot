@@ -156,6 +156,7 @@ private:
 		float y_roll_feedforward;
 		float y_integrator_max;
 		float y_coordinated;
+		float y_rmax;
 
 		float airspeed_min;
 		float airspeed_trim;
@@ -183,6 +184,7 @@ private:
 		param_t y_roll_feedforward;
 		param_t y_integrator_max;
 		param_t y_coordinated;
+		param_t y_rmax;
 
 		param_t airspeed_min;
 		param_t airspeed_trim;
@@ -305,6 +307,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.y_d = param_find("FW_Y_D");
 	_parameter_handles.y_roll_feedforward = param_find("FW_Y_ROLLFF");
 	_parameter_handles.y_integrator_max = param_find("FW_Y_IMAX");
+	_parameter_handles.y_rmax = param_find("FW_Y_RMAX");
 
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
@@ -366,6 +369,7 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_roll_feedforward, &(_parameters.y_roll_feedforward));
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
 	param_get(_parameter_handles.y_coordinated, &(_parameters.y_coordinated));
+	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
 	param_get(_parameter_handles.airspeed_trim, &(_parameters.airspeed_trim));
@@ -373,29 +377,30 @@ FixedwingAttitudeControl::parameters_update()
 
 	/* pitch control parameters */
 	_pitch_ctrl.set_time_constant(_parameters.tconst);
-	_pitch_ctrl.set_k_p(math::radians(_parameters.p_p));
-	_pitch_ctrl.set_k_i(math::radians(_parameters.p_i));
-	_pitch_ctrl.set_k_d(math::radians(_parameters.p_d));
-	_pitch_ctrl.set_integrator_max(math::radians(_parameters.p_integrator_max));
+	_pitch_ctrl.set_k_p(_parameters.p_p);
+	_pitch_ctrl.set_k_i(_parameters.p_i);
+	_pitch_ctrl.set_k_d(_parameters.p_d);
+	_pitch_ctrl.set_integrator_max(_parameters.p_integrator_max);
 	_pitch_ctrl.set_max_rate_pos(math::radians(_parameters.p_rmax_pos));
 	_pitch_ctrl.set_max_rate_neg(math::radians(_parameters.p_rmax_neg));
-	_pitch_ctrl.set_roll_ff(math::radians(_parameters.p_roll_feedforward));
+	_pitch_ctrl.set_roll_ff(_parameters.p_roll_feedforward);
 
 	/* roll control parameters */
 	_roll_ctrl.set_time_constant(_parameters.tconst);
-	_roll_ctrl.set_k_p(math::radians(_parameters.r_p));
-	_roll_ctrl.set_k_i(math::radians(_parameters.r_i));
-	_roll_ctrl.set_k_d(math::radians(_parameters.r_d));
-	_roll_ctrl.set_integrator_max(math::radians(_parameters.r_integrator_max));
+	_roll_ctrl.set_k_p(_parameters.r_p);
+	_roll_ctrl.set_k_i(_parameters.r_i);
+	_roll_ctrl.set_k_d(_parameters.r_d);
+	_roll_ctrl.set_integrator_max(_parameters.r_integrator_max);
 	_roll_ctrl.set_max_rate(math::radians(_parameters.r_rmax));
 
 	/* yaw control parameters */
-	_yaw_ctrl.set_k_p(math::radians(_parameters.y_p));
-	_yaw_ctrl.set_k_i(math::radians(_parameters.y_i));
-	_yaw_ctrl.set_k_d(math::radians(_parameters.y_d));
-	_yaw_ctrl.set_k_roll_ff(math::radians(_parameters.y_roll_feedforward));
-	_yaw_ctrl.set_integrator_max(math::radians(_parameters.y_integrator_max));
+	_yaw_ctrl.set_k_p(_parameters.y_p);
+	_yaw_ctrl.set_k_i(_parameters.y_i);
+	_yaw_ctrl.set_k_d(_parameters.y_d);
+	_yaw_ctrl.set_k_roll_ff(_parameters.y_roll_feedforward);
+	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
 	_yaw_ctrl.set_coordinated(_parameters.y_coordinated);
+	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
 	return OK;
 }
@@ -437,6 +442,7 @@ FixedwingAttitudeControl::vehicle_airspeed_poll()
 
 	if (airspeed_updated) {
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+		warnx("airspeed poll: ind: %.4f,  true: %.4f", _airspeed.indicated_airspeed_m_s, _airspeed.true_airspeed_m_s);
 		return true;
 	}
 
@@ -596,9 +602,6 @@ FixedwingAttitudeControl::task_main()
 
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
 
-				/* scale from radians to normalized -1 .. 1 range */
-				const float actuator_scaling = 1.0f / (M_PI_F / 4.0f);
-
 				/* scale around tuning airspeed */
 
 				float airspeed;
@@ -685,23 +688,23 @@ FixedwingAttitudeControl::task_main()
 						_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
 
 				/* Run attitude RATE controllers which need the desired attitudes from above */
-				float roll_rad = _roll_ctrl.control_bodyrate(_att.pitch,
+				float roll_u = _roll_ctrl.control_bodyrate(_att.pitch,
 						_att.rollspeed, _att.yawspeed,
 						_yaw_ctrl.get_desired_rate(),
 						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-				_actuators.control[0] = (isfinite(roll_rad)) ? roll_rad * actuator_scaling : 0.0f;
+				_actuators.control[0] = (isfinite(roll_u)) ? roll_u : 0.0f;
 
-				float pitch_rad = _pitch_ctrl.control_bodyrate(_att.roll, _att.pitch,
+				float pitch_u = _pitch_ctrl.control_bodyrate(_att.roll, _att.pitch,
 						_att.pitchspeed, _att.yawspeed,
 						_yaw_ctrl.get_desired_rate(),
 						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-				_actuators.control[1] = (isfinite(pitch_rad)) ? pitch_rad * actuator_scaling : 0.0f;
+				_actuators.control[1] = (isfinite(roll_u)) ? roll_u : 0.0f;
 
-				float yaw_rad = _yaw_ctrl.control_bodyrate(	_att.roll, _att.pitch,
+				float yaw_u = _yaw_ctrl.control_bodyrate(	_att.roll, _att.pitch,
 						_att.pitchspeed, _att.yawspeed,
 						_pitch_ctrl.get_desired_rate(),
 						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-				_actuators.control[2] = (isfinite(yaw_rad)) ? yaw_rad * actuator_scaling : 0.0f;
+				_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u : 0.0f;
 
 				/* throttle passed through */
 				_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;

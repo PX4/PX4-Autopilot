@@ -117,7 +117,6 @@ private:
 	float _rate_error;
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
-	float _max_deflection_rad;
 	float _coordinated;
 
 };

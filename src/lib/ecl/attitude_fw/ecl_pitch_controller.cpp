@@ -51,8 +51,7 @@ ECL_PitchController::ECL_PitchController() :
 	_last_output(0.0f),
 	_integrator(0.0f),
 	_rate_error(0.0f),
-	_rate_setpoint(0.0f),
-	_max_deflection_rad(math::radians(45.0f))
+	_rate_setpoint(0.0f)
 {
 }
 
@@ -148,10 +147,10 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 		/*
 		 * anti-windup: do not allow integrator to increase if actuator is at limit
 		 */
-		if (_last_output < -_max_deflection_rad) {
+		if (_last_output < -1.0f) {
 			/* only allow motion to center: increase value */
 			id = math::max(id, 0.0f);
-		} else if (_last_output > _max_deflection_rad) {
+		} else if (_last_output > 1.0f) {
 			/* only allow motion to center: decrease value */
 			id = math::min(id, 0.0f);
 		}
@@ -163,9 +162,9 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	_integrator = math::constrain(_integrator, -_integrator_max, _integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
-	_last_output = (_rate_error * _k_p + _integrator * _k_i * _rate_setpoint * k_ff) * scaler * scaler;  //scaler^2 is proportional to 1/airspeed^2
+	_last_output = (_rate_error * _k_p + _integrator * _k_i + _rate_setpoint * k_ff) * scaler * scaler;  //scaler is proportional to 1/airspeed
 
-	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
+	return math::constrain(_last_output, -1.0f, 1.0f);
 }
 
 void ECL_PitchController::reset_integrator()
