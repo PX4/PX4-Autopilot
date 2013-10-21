@@ -100,6 +100,24 @@
  * accel_T = A^-1 * g
  * g = 9.80665
  *
+ * ===== Rotation =====
+ *
+ * Calibrating using model:
+ * accel_corr = accel_T_r * (rot * accel_raw - accel_offs_r)
+ *
+ * Actual correction:
+ * accel_corr = rot * accel_T * (accel_raw - accel_offs)
+ *
+ * Known: accel_T_r, accel_offs_r, rot
+ * Unknown: accel_T, accel_offs
+ *
+ * Solution:
+ * accel_T_r * (rot * accel_raw - accel_offs_r) = rot * accel_T * (accel_raw - accel_offs)
+ * rot^-1 * accel_T_r * (rot * accel_raw - accel_offs_r) = accel_T * (accel_raw - accel_offs)
+ * rot^-1 * accel_T_r * rot * accel_raw - rot^-1 * accel_T_r * accel_offs_r = accel_T * accel_raw - accel_T * accel_offs)
+ * => accel_T = rot^-1 * accel_T_r * rot
+ * => accel_offs = rot^-1 * accel_offs_r
+ *
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
@@ -137,72 +155,97 @@ int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], flo
 
 int do_accel_calibration(int mavlink_fd)
 {
-	/* announce change */
-	mavlink_log_info(mavlink_fd, "accel calibration started");
-	mavlink_log_info(mavlink_fd, "accel cal progress <0> percent");
+	mavlink_log_info(mavlink_fd, "accel calibration: started");
+	mavlink_log_info(mavlink_fd, "accel calibration: progress <0>");
+
+	struct accel_scale accel_scale = {
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+
+	int res = OK;
+
+	/* reset all offsets to zero and all scales to one */
+	int fd = open(ACCEL_DEVICE_PATH, 0);
+	res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
+	close(fd);
+
+	if (res != OK) {
+		mavlink_log_critical(mavlink_fd, "ERROR: failed to reset scale / offsets");
+	}
 
 	/* measure and calculate offsets & scales */
 	float accel_offs[3];
 	float accel_T[3][3];
-	int res = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_T);
+	res = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_T);
 
 	if (res == OK) {
-		/* measurements complete successfully, rotate calibration values */
+		/* measurements completed successfully, rotate calibration values */
 		param_t board_rotation_h = param_find("SENS_BOARD_ROT");
-		enum Rotation board_rotation_id;
-		param_get(board_rotation_h, &(board_rotation_id));
+		int32_t board_rotation_int;
+		param_get(board_rotation_h, &(board_rotation_int));
+		enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
 		math::Matrix board_rotation(3, 3);
 		get_rot_matrix(board_rotation_id, &board_rotation);
-		board_rotation = board_rotation.transpose();
+		math::Matrix board_rotation_t = board_rotation.transpose();
 		math::Vector3 accel_offs_vec;
 		accel_offs_vec.set(&accel_offs[0]);
-		math::Vector3 accel_offs_rotated = board_rotation * accel_offs_vec;
+		math::Vector3 accel_offs_rotated = board_rotation_t * accel_offs_vec;
 		math::Matrix accel_T_mat(3, 3);
 		accel_T_mat.set(&accel_T[0][0]);
-		math::Matrix accel_T_rotated = board_rotation.transpose() * accel_T_mat * board_rotation;
+		math::Matrix accel_T_rotated = board_rotation_t * accel_T_mat * board_rotation;
+
+		accel_scale.x_offset = accel_offs_rotated(0);
+		accel_scale.x_scale = accel_T_rotated(0, 0);
+		accel_scale.y_offset = accel_offs_rotated(1);
+		accel_scale.y_scale = accel_T_rotated(1, 1);
+		accel_scale.z_offset = accel_offs_rotated(2);
+		accel_scale.z_scale = accel_T_rotated(2, 2);
 
 		/* set parameters */
-		if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offs_rotated(0)))
-		    || param_set(param_find("SENS_ACC_YOFF"), &(accel_offs_rotated(1)))
-		    || param_set(param_find("SENS_ACC_ZOFF"), &(accel_offs_rotated(2)))
-		    || param_set(param_find("SENS_ACC_XSCALE"), &(accel_T_rotated(0, 0)))
-		    || param_set(param_find("SENS_ACC_YSCALE"), &(accel_T_rotated(1, 1)))
-		    || param_set(param_find("SENS_ACC_ZSCALE"), &(accel_T_rotated(2, 2)))) {
-			mavlink_log_critical(mavlink_fd, "ERROR: setting offs or scale failed");
+		if (param_set(param_find("SENS_ACC_XOFF"), &(accel_scale.x_offset))
+		    || param_set(param_find("SENS_ACC_YOFF"), &(accel_scale.y_offset))
+		    || param_set(param_find("SENS_ACC_ZOFF"), &(accel_scale.z_offset))
+		    || param_set(param_find("SENS_ACC_XSCALE"), &(accel_scale.x_scale))
+		    || param_set(param_find("SENS_ACC_YSCALE"), &(accel_scale.y_scale))
+		    || param_set(param_find("SENS_ACC_ZSCALE"), &(accel_scale.z_scale))) {
+			mavlink_log_critical(mavlink_fd, "ERROR: setting accel params failed");
+			res = ERROR;
 		}
-
-		int fd = open(ACCEL_DEVICE_PATH, 0);
-		struct accel_scale ascale = {
-			accel_offs_rotated(0),
-			accel_T_rotated(0, 0),
-			accel_offs_rotated(1),
-			accel_T_rotated(1, 1),
-			accel_offs_rotated(2),
-			accel_T_rotated(2, 2),
-		};
-
-		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
-			warn("WARNING: failed to set scale / offsets for accel");
-
-		close(fd);
-
-		/* auto-save to EEPROM */
-		int save_ret = param_save_default();
-
-		if (save_ret != 0) {
-			warn("WARNING: auto-save of params to storage failed");
-		}
-
-		mavlink_log_info(mavlink_fd, "accel calibration done");
-		return OK;
-
-	} else {
-		/* measurements error */
-		mavlink_log_info(mavlink_fd, "accel calibration aborted");
-		return ERROR;
 	}
 
-	/* exit accel calibration mode */
+	if (res == OK) {
+		/* apply new scaling and offsets */
+		int fd = open(ACCEL_DEVICE_PATH, 0);
+		res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
+		close(fd);
+
+		if (res != OK) {
+			mavlink_log_critical(mavlink_fd, "ERROR: failed to apply new params for accel");
+		}
+	}
+
+	if (res == OK) {
+		/* auto-save to EEPROM */
+		res = param_save_default();
+
+		if (res != OK) {
+			mavlink_log_critical(mavlink_fd, "ERROR: failed to save parameters");
+		}
+	}
+
+	if (res == OK) {
+		mavlink_log_info(mavlink_fd, "accel calibration: done");
+
+	} else {
+		mavlink_log_info(mavlink_fd, "accel calibration: failed");
+	}
+
+	return res;
 }
 
 int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float accel_T[3][3])
@@ -212,27 +255,10 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 	bool data_collected[6] = { false, false, false, false, false, false };
 	const char *orientation_strs[6] = { "x+", "x-", "y+", "y-", "z+", "z-" };
 
-	/* reset existing calibration */
-	int fd = open(ACCEL_DEVICE_PATH, 0);
-	struct accel_scale ascale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
-	int ioctl_res = ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale_null);
-	close(fd);
-
-	if (OK != ioctl_res) {
-		warn("ERROR: failed to set scale / offsets for accel");
-		return ERROR;
-	}
-
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	unsigned done_count = 0;
+	int res = OK;
 
 	while (true) {
 		bool done = true;
@@ -245,6 +271,12 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 			}
 		}
 
+		if (old_done_count != done_count)
+			mavlink_log_info(mavlink_fd, "accel calibration: progress <%u>", 17 * done_count);
+
+		if (done)
+			break;
+
 		mavlink_log_info(mavlink_fd, "directions left: %s%s%s%s%s%s",
 				 (!data_collected[0]) ? "x+ " : "",
 				 (!data_collected[1]) ? "x- " : "",
@@ -253,17 +285,11 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 				 (!data_collected[4]) ? "z+ " : "",
 				 (!data_collected[5]) ? "z- " : "");
 
-		if (old_done_count != done_count)
-			mavlink_log_info(mavlink_fd, "accel cal progress <%u> percent", 17 * done_count);
-
-		if (done)
-			break;
-
 		int orient = detect_orientation(mavlink_fd, sensor_combined_sub);
 
 		if (orient < 0) {
-			close(sensor_combined_sub);
-			return ERROR;
+			res = ERROR;
+			break;
 		}
 
 		if (data_collected[orient]) {
@@ -284,15 +310,16 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 
 	close(sensor_combined_sub);
 
-	/* calculate offsets and transform matrix */
-	int res = calculate_calibration_values(accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
+	if (res == OK) {
+		/* calculate offsets and transform matrix */
+		res = calculate_calibration_values(accel_ref, accel_T, accel_offs, CONSTANTS_ONE_G);
 
-	if (res != 0) {
-		mavlink_log_info(mavlink_fd, "ERROR: calibration values calculation error");
-		return ERROR;
+		if (res != OK) {
+			mavlink_log_info(mavlink_fd, "ERROR: calibration values calculation error");
+		}
 	}
 
-	return OK;
+	return res;
 }
 
 /*
@@ -309,7 +336,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 	/* max-hold dispersion of accel */
 	float accel_disp[3] = { 0.0f, 0.0f, 0.0f };
 	/* EMA time constant in seconds*/
-	float ema_len = 0.2f;
+	float ema_len = 0.5f;
 	/* set "still" threshold to 0.25 m/s^2 */
 	float still_thr2 = pow(0.25f, 2);
 	/* set accel error threshold to 5m/s^2 */
@@ -342,8 +369,8 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 			float w = dt / ema_len;
 
 			for (int i = 0; i < 3; i++) {
-				accel_ema[i] = accel_ema[i] * (1.0f - w) + sensor.accelerometer_m_s2[i] * w;
-				float d = (float) sensor.accelerometer_m_s2[i] - accel_ema[i];
+				float d = sensor.accelerometer_m_s2[i] - accel_ema[i];
+				accel_ema[i] += d * w;
 				d = d * d;
 				accel_disp[i] = accel_disp[i] * (1.0f - w);
 
@@ -389,8 +416,8 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 		}
 
 		if (poll_errcount > 1000) {
-			mavlink_log_info(mavlink_fd, "ERROR: Failed reading sensor");
-			return -1;
+			mavlink_log_critical(mavlink_fd, "ERROR: failed reading sensor");
+			return ERROR;
 		}
 	}
 
@@ -424,9 +451,9 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 	    fabsf(accel_ema[2] + CONSTANTS_ONE_G) < accel_err_thr)
 		return 5;	// [ 0, 0, -g ]
 
-	mavlink_log_info(mavlink_fd, "ERROR: invalid orientation");
+	mavlink_log_critical(mavlink_fd, "ERROR: invalid orientation");
 
-	return -2;	// Can't detect orientation
+	return ERROR;	// Can't detect orientation
 }
 
 /*
