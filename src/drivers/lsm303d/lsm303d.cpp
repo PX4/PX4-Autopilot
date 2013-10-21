@@ -1417,21 +1417,54 @@ LSM303D::print_registers()
 		uint8_t reg;
 		const char *name;
 	} regmap[] = {
-		{ ADDR_WHO_AM_I,  "WHO_AM_I" },
-		{ ADDR_STATUS_A,  "STATUS_A" },
-		{ ADDR_STATUS_M,  "STATUS_M" },
-		{ ADDR_CTRL_REG0, "CTRL_REG0" },
-		{ ADDR_CTRL_REG1, "CTRL_REG1" },
-		{ ADDR_CTRL_REG2, "CTRL_REG2" },
-		{ ADDR_CTRL_REG3, "CTRL_REG3" },
-		{ ADDR_CTRL_REG4, "CTRL_REG4" },
-		{ ADDR_CTRL_REG5, "CTRL_REG5" },
-		{ ADDR_CTRL_REG6, "CTRL_REG6" },
-		{ ADDR_CTRL_REG7, "CTRL_REG7" },
+		{ ADDR_WHO_AM_I,    "WHO_AM_I" },
+		{ ADDR_STATUS_A,    "STATUS_A" },
+		{ ADDR_STATUS_M,    "STATUS_M" },
+		{ ADDR_CTRL_REG0,   "CTRL_REG0" },
+		{ ADDR_CTRL_REG1,   "CTRL_REG1" },
+		{ ADDR_CTRL_REG2,   "CTRL_REG2" },
+		{ ADDR_CTRL_REG3,   "CTRL_REG3" },
+		{ ADDR_CTRL_REG4,   "CTRL_REG4" },
+		{ ADDR_CTRL_REG5,   "CTRL_REG5" },
+		{ ADDR_CTRL_REG6,   "CTRL_REG6" },
+		{ ADDR_CTRL_REG7,   "CTRL_REG7" },
+		{ ADDR_OUT_TEMP_L,  "TEMP_L" },
+		{ ADDR_OUT_TEMP_H,  "TEMP_H" },
+		{ ADDR_INT_CTRL_M,  "INT_CTRL_M" },
+		{ ADDR_INT_SRC_M,   "INT_SRC_M" },
+		{ ADDR_REFERENCE_X, "REFERENCE_X" },
+		{ ADDR_REFERENCE_Y, "REFERENCE_Y" },
+		{ ADDR_REFERENCE_Z, "REFERENCE_Z" },
+		{ ADDR_OUT_X_L_A,   "ACCEL_XL" },
+		{ ADDR_OUT_X_H_A,   "ACCEL_XH" },
+		{ ADDR_OUT_Y_L_A,   "ACCEL_YL" },
+		{ ADDR_OUT_Y_H_A,   "ACCEL_YH" },
+		{ ADDR_OUT_Z_L_A,   "ACCEL_ZL" },
+		{ ADDR_OUT_Z_H_A,   "ACCEL_ZH" },
+		{ ADDR_FIFO_CTRL,   "FIFO_CTRL" },
+		{ ADDR_FIFO_SRC,    "FIFO_SRC" },
+		{ ADDR_IG_CFG1,     "IG_CFG1" },
+		{ ADDR_IG_SRC1,     "IG_SRC1" },
+		{ ADDR_IG_THS1,     "IG_THS1" },
+		{ ADDR_IG_DUR1,     "IG_DUR1" },
+		{ ADDR_IG_CFG2,     "IG_CFG2" },
+		{ ADDR_IG_SRC2,     "IG_SRC2" },
+		{ ADDR_IG_THS2,     "IG_THS2" },
+		{ ADDR_IG_DUR2,     "IG_DUR2" },
+		{ ADDR_CLICK_CFG,   "CLICK_CFG" },
+		{ ADDR_CLICK_SRC,   "CLICK_SRC" },
+		{ ADDR_CLICK_THS,   "CLICK_THS" },
+		{ ADDR_TIME_LIMIT,  "TIME_LIMIT" },
+		{ ADDR_TIME_LATENCY,"TIME_LATENCY" },
+		{ ADDR_TIME_WINDOW, "TIME_WINDOW" },
+		{ ADDR_ACT_THS,     "ACT_THS" },
+		{ ADDR_ACT_DUR,     "ACT_DUR" }
 	};
 	for (uint8_t i=0; i<sizeof(regmap)/sizeof(regmap[0]); i++) {
 		printf("0x%02x %s\n", read_reg(regmap[i].reg), regmap[i].name);
 	}
+	printf("_reg1_expected=0x%02x\n", _reg1_expected);
+	printf("_reg7_expected=0x%02x\n", _reg7_expected);
 }
 
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
