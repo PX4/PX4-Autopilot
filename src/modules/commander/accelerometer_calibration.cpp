@@ -180,10 +180,13 @@ int do_accel_calibration(int mavlink_fd)
 		mavlink_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
 	}
 
-	/* measure and calculate offsets & scales */
 	float accel_offs[3];
 	float accel_T[3][3];
-	res = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_T);
+
+	if (res == OK) {
+		/* measure and calculate offsets & scales */
+		res = do_accel_calibration_measurements(mavlink_fd, accel_offs, accel_T);
+	}
 
 	if (res == OK) {
 		/* measurements completed successfully, rotate calibration values */
