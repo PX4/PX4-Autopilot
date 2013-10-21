@@ -33,10 +33,12 @@
 
 /**
  * @file gyro_calibration.cpp
+ *
  * Gyroscope calibration routine
  */
 
 #include "gyro_calibration.h"
+#include "calibration_messages.h"
 #include "commander_helper.h"
 
 #include <stdio.h>
@@ -56,9 +58,12 @@
 #endif
 static const int ERROR = -1;
 
+static const char *sensor_name = "gyro";
+
 int do_gyro_calibration(int mavlink_fd)
 {
-	mavlink_log_info(mavlink_fd, "gyro calibration: started");
+	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
+	mavlink_log_info(mavlink_fd, "don't move system");
 
 	struct gyro_scale gyro_scale = {
 		0.0f,
@@ -77,18 +82,18 @@ int do_gyro_calibration(int mavlink_fd)
 	close(fd);
 
 	if (res != OK) {
-		mavlink_log_critical(mavlink_fd, "ERROR: failed to reset scale / offsets");
+		mavlink_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
 	}
-
-	/* subscribe to gyro sensor topic */
-	int sub_sensor_gyro = orb_subscribe(ORB_ID(sensor_gyro));
-	struct gyro_report gyro_report;
 
 	if (res == OK) {
 		/* determine gyro mean values */
 		const unsigned calibration_count = 5000;
 		unsigned calibration_counter = 0;
 		unsigned poll_errcount = 0;
+
+		/* subscribe to gyro sensor topic */
+		int sub_sensor_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+		struct gyro_report gyro_report;
 
 		while (calibration_counter < calibration_count) {
 			/* wait blocking for new data */
@@ -106,18 +111,20 @@ int do_gyro_calibration(int mavlink_fd)
 				calibration_counter++;
 
 				if (calibration_counter % (calibration_count / 20) == 0)
-					mavlink_log_info(mavlink_fd, "gyro calibration: progress <%u>", (calibration_counter * 100) / calibration_count);
+					mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count);
 
 			} else {
 				poll_errcount++;
 			}
 
 			if (poll_errcount > 1000) {
-				mavlink_log_critical(mavlink_fd, "ERROR: failed reading gyro sensor");
+				mavlink_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
 				res = ERROR;
 				break;
 			}
 		}
+
+		close(sub_sensor_gyro);
 
 		gyro_scale.x_offset /= calibration_count;
 		gyro_scale.y_offset /= calibration_count;
@@ -137,7 +144,7 @@ int do_gyro_calibration(int mavlink_fd)
 		if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_scale.x_offset))
 		    || param_set(param_find("SENS_GYRO_YOFF"), &(gyro_scale.y_offset))
 		    || param_set(param_find("SENS_GYRO_ZOFF"), &(gyro_scale.z_offset))) {
-			mavlink_log_critical(mavlink_fd, "ERROR: setting gyro offs params failed");
+			mavlink_log_critical(mavlink_fd, "ERROR: failed to set offset params");
 			res = ERROR;
 		}
 	}
@@ -257,14 +264,12 @@ int do_gyro_calibration(int mavlink_fd)
 
 #endif
 
-	close(sub_sensor_gyro);
-
 	if (res == OK) {
 		/* set scale parameters to new values */
 		if (param_set(param_find("SENS_GYRO_XSCALE"), &(gyro_scale.x_scale))
 		    || param_set(param_find("SENS_GYRO_YSCALE"), &(gyro_scale.y_scale))
 		    || param_set(param_find("SENS_GYRO_ZSCALE"), &(gyro_scale.z_scale))) {
-			mavlink_log_critical(mavlink_fd, "ERROR: setting gyro scale params failed");
+			mavlink_log_critical(mavlink_fd, "ERROR: failed to set scale params");
 			res = ERROR;
 		}
 	}
@@ -276,7 +281,7 @@ int do_gyro_calibration(int mavlink_fd)
 		close(fd);
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, "ERROR: failed to apply new params for gyro");
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
 		}
 	}
 
@@ -285,15 +290,15 @@ int do_gyro_calibration(int mavlink_fd)
 		res = param_save_default();
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, "ERROR: failed to save parameters");
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_SAVE_PARAMS_MSG);
 		}
 	}
 
 	if (res == OK) {
-		mavlink_log_info(mavlink_fd, "gyro calibration: done");
+		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
 
 	} else {
-		mavlink_log_info(mavlink_fd, "gyro calibration: failed");
+		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 	}
 
 	return res;

@@ -122,6 +122,7 @@
  */
 
 #include "accelerometer_calibration.h"
+#include "calibration_messages.h"
 #include "commander_helper.h"
 
 #include <unistd.h>
@@ -147,6 +148,8 @@
 #endif
 static const int ERROR = -1;
 
+static const char *sensor_name = "accel";
+
 int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float accel_T[3][3]);
 int detect_orientation(int mavlink_fd, int sub_sensor_combined);
 int read_accelerometer_avg(int sensor_combined_sub, float accel_avg[3], int samples_num);
@@ -155,8 +158,7 @@ int calculate_calibration_values(float accel_ref[6][3], float accel_T[3][3], flo
 
 int do_accel_calibration(int mavlink_fd)
 {
-	mavlink_log_info(mavlink_fd, "accel calibration: started");
-	mavlink_log_info(mavlink_fd, "accel calibration: progress <0>");
+	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
 
 	struct accel_scale accel_scale = {
 		0.0f,
@@ -175,7 +177,7 @@ int do_accel_calibration(int mavlink_fd)
 	close(fd);
 
 	if (res != OK) {
-		mavlink_log_critical(mavlink_fd, "ERROR: failed to reset scale / offsets");
+		mavlink_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
 	}
 
 	/* measure and calculate offsets & scales */
@@ -213,7 +215,7 @@ int do_accel_calibration(int mavlink_fd)
 		    || param_set(param_find("SENS_ACC_XSCALE"), &(accel_scale.x_scale))
 		    || param_set(param_find("SENS_ACC_YSCALE"), &(accel_scale.y_scale))
 		    || param_set(param_find("SENS_ACC_ZSCALE"), &(accel_scale.z_scale))) {
-			mavlink_log_critical(mavlink_fd, "ERROR: setting accel params failed");
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
 			res = ERROR;
 		}
 	}
@@ -225,7 +227,7 @@ int do_accel_calibration(int mavlink_fd)
 		close(fd);
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, "ERROR: failed to apply new params for accel");
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
 		}
 	}
 
@@ -234,15 +236,15 @@ int do_accel_calibration(int mavlink_fd)
 		res = param_save_default();
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, "ERROR: failed to save parameters");
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_SAVE_PARAMS_MSG);
 		}
 	}
 
 	if (res == OK) {
-		mavlink_log_info(mavlink_fd, "accel calibration: done");
+		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
 
 	} else {
-		mavlink_log_info(mavlink_fd, "accel calibration: failed");
+		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 	}
 
 	return res;
@@ -266,13 +268,16 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 		done_count = 0;
 
 		for (int i = 0; i < 6; i++) {
-			if (!data_collected[i]) {
+			if (data_collected[i]) {
+				done_count++;
+
+			} else {
 				done = false;
 			}
 		}
 
 		if (old_done_count != done_count)
-			mavlink_log_info(mavlink_fd, "accel calibration: progress <%u>", 17 * done_count);
+			mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 17 * done_count);
 
 		if (done)
 			break;
@@ -293,7 +298,7 @@ int do_accel_calibration_measurements(int mavlink_fd, float accel_offs[3], float
 		}
 
 		if (data_collected[orient]) {
-			mavlink_log_info(mavlink_fd, "%s done, please rotate to a different axis", orientation_strs[orient]);
+			mavlink_log_info(mavlink_fd, "%s done, rotate to a different axis", orientation_strs[orient]);
 			continue;
 		}
 
@@ -374,6 +379,9 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 				d = d * d;
 				accel_disp[i] = accel_disp[i] * (1.0f - w);
 
+				if (d > still_thr2 * 8.0f)
+					d = still_thr2 * 8.0f;
+
 				if (d > accel_disp[i])
 					accel_disp[i] = d;
 			}
@@ -397,12 +405,12 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 					}
 				}
 
-			} else if (accel_disp[0] > still_thr2 * 2.0f ||
-				   accel_disp[1] > still_thr2 * 2.0f ||
-				   accel_disp[2] > still_thr2 * 2.0f) {
+			} else if (accel_disp[0] > still_thr2 * 4.0f ||
+				   accel_disp[1] > still_thr2 * 4.0f ||
+				   accel_disp[2] > still_thr2 * 4.0f) {
 				/* not still, reset still start time */
 				if (t_still != 0) {
-					mavlink_log_info(mavlink_fd, "detected motion, please hold still...");
+					mavlink_log_info(mavlink_fd, "detected motion, hold still...");
 					t_still = 0;
 				}
 			}
@@ -416,7 +424,7 @@ int detect_orientation(int mavlink_fd, int sub_sensor_combined)
 		}
 
 		if (poll_errcount > 1000) {
-			mavlink_log_critical(mavlink_fd, "ERROR: failed reading sensor");
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
 			return ERROR;
 		}
 	}
