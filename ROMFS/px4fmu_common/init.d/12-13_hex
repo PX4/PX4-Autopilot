@@ -1,5 +1,7 @@
 #!nsh
 
+echo "[init] PX4FMU v1, v2 with or without IO on Hex"
+
 #
 # Load default params for this platform
 #
@@ -8,12 +10,12 @@ then
 	# Set all params here, then disable autoconfig
 	param set SYS_AUTOCONFIG 0
 
-	param set MC_ATTRATE_D 0.002
+	param set MC_ATTRATE_D 0.004
 	param set MC_ATTRATE_I 0.0
-	param set MC_ATTRATE_P 0.09
+	param set MC_ATTRATE_P 0.12
 	param set MC_ATT_D 0.0
 	param set MC_ATT_I 0.0
-	param set MC_ATT_P 6.8
+	param set MC_ATT_P 7.0
 	param set MC_YAWPOS_D 0.0
 	param set MC_YAWPOS_I 0.0
 	param set MC_YAWPOS_P 2.0
@@ -39,18 +41,15 @@ then
 
 	param save
 fi
-
-echo "RC script for PX4FMU + PX4IO + PPM-ESCs running"
  
 #
 # Force some key parameters to sane values
-# MAV_TYPE     2 = quadrotor
+# MAV_TYPE list: https://pixhawk.ethz.ch/mavlink/
+# 13 = hexarotor
 #
-param set MAV_TYPE 2
+param set MAV_TYPE 13
 
 set EXIT_ON_END no
-
-usleep 10000
 
 #
 # Start and configure PX4IO or FMU interface
@@ -58,28 +57,19 @@ usleep 10000
 if px4io detect
 then
 	# Start MAVLink (depends on orb)
-	mavlink start -d /dev/ttyS1 -b 57600
+	mavlink start
 	usleep 5000
 
 	sh /etc/init.d/rc.io
-
-	if [ $ESC_MAKER = afro ]
-	then
-		# Set PWM values for Afro ESCs
-		px4io idle 1050 1050 1050 1050 
-		px4io min 1080 1080 1080 1080
-		px4io max 1860 1860 1860 1860
-	else
-		# Set PWM values for typical ESCs
-        	px4io idle 900 900 900 900
-        	px4io min 1110 1100 1100 1100
-        	px4io max 1800 1800 1800 1800
-	fi
+	# Set PWM values for DJI ESCs
+	px4io idle 900 900 900 900 900 900
+	px4io min 1200 1200 1200 1200 1200 1200
+	px4io max 1900 1900 1900 1900 1900 1900
 else
-	fmu mode_pwm
 	# Start MAVLink (on UART1 / ttyS0)
-	mavlink start -d /dev/ttyS1 -b 57600
+	mavlink start -d /dev/ttyS0
 	usleep 5000
+	fmu mode_pwm
 	param set BAT_V_SCALING 0.004593
 	set EXIT_ON_END yes
 fi
@@ -87,23 +77,10 @@ fi
 #
 # Load mixer
 #
-if [ $FRAME_GEOMETRY == x ]
-then
-    echo "Frame geometry X"
-    mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
-else
-    if [ $FRAME_GEOMETRY == w ]
-    then
-	echo "Frame geometry W"
-	mixer load /dev/pwm_output /etc/mixers/FMU_quad_w.mix
-    else
-	echo "Frame geometry +"
-    	mixer load /dev/pwm_output /etc/mixers/FMU_quad_+.mix
-    fi
-fi
+mixer load /dev/pwm_output $MIXER
 
 #
-# Set PWM output frequency
+# Set PWM output frequency to 400 Hz
 #
 pwm -u 400 -m 0xff
 
@@ -116,5 +93,3 @@ if [ $EXIT_ON_END == yes ]
 then
 	exit
 fi
-
-echo "Script end"
