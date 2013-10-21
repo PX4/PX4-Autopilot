@@ -49,7 +49,7 @@
  * @{
  */
 
-#define GEOFENCE_MAX_VERTICES 8
+#define GEOFENCE_MAX_VERTICES 16
 
 /**
  * This is the position of a geofence vertex

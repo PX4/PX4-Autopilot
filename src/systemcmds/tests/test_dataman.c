@@ -73,24 +73,24 @@ task_main(int argc, char *argv[])
 	/* try to read an invalid item */
 	if (dm_read(DM_KEY_NUM_KEYS, 0, buffer, sizeof(buffer)) >= 0) {
 		warnx("%d read an invalid item failed", my_id);
-		return -1;
+		goto fail;
 	}
 	/* try to read an invalid index */
-	if (dm_read(DM_KEY_RTL_POINT, DM_KEY_RTL_POINT_MAX, buffer, sizeof(buffer)) >= 0) {
+	if (dm_read(DM_KEY_HOME_POINT, DM_KEY_HOME_POINTS_MAX, buffer, sizeof(buffer)) >= 0) {
 		warnx("%d read an invalid index failed", my_id);
-		return -1;
+		goto fail;
 	}
-	srand(2323748);
+	srand(hrt_absolute_time() ^ my_id);
 	unsigned hit = 0, miss = 0;
 	wstart = hrt_absolute_time();
 	for (unsigned i = 0; i < 256; i++) {
-		buffer[0] = my_id;
+		memset(buffer, my_id, sizeof(buffer));
 		buffer[1] = i;
 		unsigned hash = i ^ my_id;
 		unsigned len = (hash & 63) + 2;
 		if (dm_write(DM_KEY_WAY_POINTS, hash, DM_PERSIST_IN_FLIGHT_RESET, buffer, len) != len) {
 			warnx("%d write failed, index %d, length %d", my_id, hash, len);
-			return -1;
+			goto fail;
 		}
 		usleep(rand() & ((64 * 1024) - 1));
 	}
@@ -102,32 +102,37 @@ task_main(int argc, char *argv[])
 		unsigned len2, len = (hash & 63) + 2;
 		if ((len2 = dm_read(DM_KEY_WAY_POINTS, hash, buffer, sizeof(buffer))) < 2) {
 			warnx("%d read failed length test, index %d", my_id, hash);
-			return -1;
+			goto fail;
 		}
 		if (buffer[0] == my_id) {
 			hit++;
 			if (len2 != len) {
 				warnx("%d read failed length test, index %d, wanted %d, got %d", my_id, hash, len, len2);
-				return -1;
+				goto fail;
 			}
 			if (buffer[1] != i) {
 				warnx("%d data verification failed, index %d, wanted %d, got %d", my_id, hash, my_id, buffer[1]);
-				return -1;
+				goto fail;
 			}
 		}
 		else
 			miss++;
 	}
 	rend = hrt_absolute_time();
-	warnx("Test %d, hit %d, miss %d, io time read %llums. write %llums.",
+	warnx("Test %d pass, hit %d, miss %d, io time read %llums. write %llums.",
 		my_id, hit, miss, (rend - rstart) / 256000, (wend - wstart) / 256000);
 	sem_post(sems + my_id);
 	return 0;
+fail:
+	warnx("Test %d fail, buffer %02x %02x %02x %02x %02x %02x",
+		my_id, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
+	sem_post(sems + my_id);
+	return -1;
 }
 
 int test_dataman(int argc, char *argv[])
 {
-	int num_tasks = 4;
+	int i, num_tasks = 4;
 	char buffer[DM_MAX_DATA_SIZE];
 
 	if (argc > 1)
@@ -135,14 +140,7 @@ int test_dataman(int argc, char *argv[])
 	
 	sems = (sem_t *)malloc(num_tasks * sizeof(sem_t));
 	warnx("Running %d tasks", num_tasks);
-	dm_clear(DM_KEY_WAY_POINTS);
-	for (unsigned i = 0; i < 256; i++) {
-		if (dm_read(DM_KEY_WAY_POINTS, i, buffer, sizeof(buffer)) != 0) {
-			warnx("read failed clear test, index %d", i);
-			return -1;
-		}
-	}
-	for (int i = 0; i < num_tasks; i++) {
+	for (i = 0; i < num_tasks; i++) {
 		int task;
 		char a[16];
 		sprintf(a, "%d", i);
@@ -155,10 +153,27 @@ int test_dataman(int argc, char *argv[])
 			warn("task start failed");
 		}
 	}
-	for (int i = 0; i < num_tasks; i++) {
+	for (i = 0; i < num_tasks; i++) {
 		sem_wait(sems + i);
 		sem_destroy(sems + i);
 	}
 	free(sems);
+	dm_restart(DM_INIT_REASON_IN_FLIGHT);
+	for (i = 0; i < 256; i++) {
+		if (dm_read(DM_KEY_WAY_POINTS, i, buffer, sizeof(buffer)) != 0)
+			break;
+	}
+	if (i >= 256) {
+		warnx("Restart in-flight failed");
+		return -1;
+
+	}
+	dm_restart(DM_INIT_REASON_POWER_ON);
+	for (i = 0; i < 256; i++) {
+		if (dm_read(DM_KEY_WAY_POINTS, i, buffer, sizeof(buffer)) != 0) {
+			warnx("Restart power-on failed");
+			return -1;
+		}
+	}
 	return 0;
 }

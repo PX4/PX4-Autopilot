@@ -40,6 +40,7 @@
 #define _DATAMANAGER_H
 
 #include <uORB/topics/mission.h>
+#include <uORB/topics/fence.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,8 +48,7 @@ extern "C" {
 
 	/* Types of items that the data manager can store */
 	typedef enum {
-		DM_KEY_RTL_POINT = 0,		/* Return to landing point coordinates */
-		DM_KEY_FENCE_RETURN_POINT,	/* Fence violation return coordinates */
+		DM_KEY_HOME_POINT = 0,		/* Return to landing point coordinates */
 		DM_KEY_SAFE_POINTS,		/* Safe points coordinates */
 		DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
 		DM_KEY_WAY_POINTS,		/* Mission way point coordinates */
@@ -57,10 +57,9 @@ extern "C" {
 
 	/* The maximum number of instances for each item type */
 	enum {
-		DM_KEY_RTL_POINT_MAX = 1,
-		DM_KEY_RETURN_POINT_MAX = 1,
-		DM_KEY_SAFE_POINTS_MAX = 5,
-		DM_KEY_FENCE_POINTS_MAX = 10,
+		DM_KEY_HOME_POINTS_MAX = 1,
+		DM_KEY_SAFE_POINTS_MAX = 8,
+		DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
 		DM_KEY_WAY_POINTS_MAX = MAX_MISSION_ITEMS,
 	};
 
