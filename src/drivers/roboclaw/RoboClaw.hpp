@@ -122,7 +122,7 @@ public:
 	/**
 	 * print status
 	 */
-	void status(char *string, size_t n);
+	void printStatus(char *string, size_t n);
 
 private:
 

@@ -75,12 +75,18 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address):
 
 	// start serial port
 	_uart = open(deviceName, O_RDWR | O_NOCTTY);
+	if (_uart < 0) err(1, "could not open %s", deviceName);
+	int ret = 0;
 	struct termios uart_config;
-	tcgetattr(_uart, &uart_config);
+	ret = tcgetattr(_uart, &uart_config);
+	if (ret < 0) err (1, "failed to get attr");
 	uart_config.c_oflag &= ~ONLCR; // no CR for every LF
-	cfsetispeed(&uart_config, B38400);
-	cfsetospeed(&uart_config, B38400);
-	tcsetattr(_uart, TCSANOW, &uart_config);
+	ret = cfsetispeed(&uart_config, B38400);
+	if (ret < 0) err (1, "failed to set input speed");
+	ret = cfsetospeed(&uart_config, B38400);
+	if (ret < 0) err (1, "failed to set output speed");
+	ret = tcsetattr(_uart, TCSANOW, &uart_config);
+	if (ret < 0) err (1, "failed to set attr");
 
 	// setup default settings, reset encoders
 	resetEncoders();
@@ -110,23 +116,30 @@ int RoboClaw::readEncoder(e_motor motor)
 	countBytes[1] = rbuf[2];
 	countBytes[0] = rbuf[3];
 	uint8_t status = rbuf[4];
-	if ((sum + _sumBytes(rbuf,5)) & 
-			checksum_mask == rbuf[5]) return -1;
+	if (((sum + _sumBytes(rbuf,5)) & checksum_mask) 
+			== rbuf[5]) return -1;
 	int overFlow = 0;
 	if (status & STATUS_UNDERFLOW) {
+		printf("roboclaw: underflow\n");
 		overFlow = -1;
 	} else if (status & STATUS_OVERFLOW) {
+		printf("roboclaw: overflow\n");
 		overFlow = +1;
 	}
+	static int64_t overflowAmount = 0x100000000LL;
 	if (motor == MOTOR_1) {
 		_motor1Overflow += overFlow;
+		_motor1Position = count + 
+			_motor1Overflow*_motor1Position;
 	} else if (motor == MOTOR_2) {
 		_motor2Overflow += overFlow;
+		_motor2Position = count + 
+			_motor2Overflow*_motor2Position;
 	}
 	return ret;
 }
 
-void RoboClaw::status(char *string, size_t n)
+void RoboClaw::printStatus(char *string, size_t n)
 {
 	snprintf(string, n,
 		 "motor 1 position:\t%10.2f\tspeed:\t%10.2f\n"
@@ -195,6 +208,13 @@ int RoboClaw::setMotorDutyCycle(e_motor motor, float value)
 	}
 }
 
+int RoboClaw::resetEncoders() 
+{
+	uint16_t sum = 0;
+	return _sendCommand(CMD_RESET_ENCODERS,
+			nullptr, 0, sum);
+}
+
 void RoboClaw::update()
 {
 	// wait for an actuator publication,
@@ -214,9 +234,13 @@ void RoboClaw::update()
 uint16_t RoboClaw::_sumBytes(uint8_t * buf, size_t n)
 {
 	uint16_t sum = 0;
+	printf("sum\n");
 	for (size_t i=0;i<n;i++) {
 		sum += buf[i];
+		printf("%d\t", buf[i]);
 	}
+	printf("total sum %d\n", sum);
+	printf("\n");
 	return sum;
 }
 
@@ -233,6 +257,11 @@ int RoboClaw::_sendCommand(e_command cmd, uint8_t * data,
 	uint16_t sum = _sumBytes(buf, n_data + 2);
 	prev_sum += sum;
 	buf[n_data + 2] = sum & checksum_mask;
+	printf("\nmessage:\n");
+	for (int i=0;i<n_data+3;i++) {
+		printf("%d\t", buf[i]);
+	}
+	printf("\n");
 	return write(_uart, buf, n_data + 3);
 }
 
@@ -242,6 +271,15 @@ int roboclawTest(const char *deviceName, uint8_t address)
 
 	// setup
 	RoboClaw roboclaw(deviceName, address);
+	char buf[200];
+	for (int i=0; i<10; i++) {
+		usleep(1000000);
+		roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, 0.3);
+		//roboclaw.setMotorSpeed(RoboClaw::MOTOR_1, 0.3);
+		//roboclaw.readEncoder(RoboClaw::MOTOR_1);
+		roboclaw.printStatus(buf, 200);
+		printf("%s\n", buf);
+	}
 
 	printf("Test complete\n");
 	return 0;

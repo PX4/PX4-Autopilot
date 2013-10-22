@@ -119,8 +119,10 @@ int roboclaw_main(int argc, char *argv[])
 			exit(-1);
 		}
 
-		const char *deviceName = argv[1];
-		uint8_t address = strtoul(argv[2], nullptr, 0);
+		const char *deviceName = argv[2];
+		uint8_t address = strtoul(argv[3], nullptr, 0);
+
+		printf("device:\t%s\taddress:\t%d\n", deviceName, address);
 
 		roboclawTest(deviceName, address);
 		thread_should_exit = true;
@@ -161,6 +163,8 @@ int roboclaw_thread_main(int argc, char *argv[])
 
 	const char *deviceName = argv[1];
 	uint8_t address = strtoul(argv[2], nullptr, 0);
+
+	printf("device:\t%s\taddress:\t%d\n", deviceName, address);
 
 	// start
 	RoboClaw roboclaw(deviceName, address);
