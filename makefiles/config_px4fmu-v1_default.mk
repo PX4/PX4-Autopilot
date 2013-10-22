@@ -33,7 +33,7 @@ MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/mkblctrl
-MODULES		+= drivers/md25
+MODULES		+= drivers/roboclaw
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
@@ -79,7 +79,7 @@ MODULES		+= examples/flow_position_estimator
 #
 # Vehicle Control
 #
-#MODULES		+= modules/segway # XXX needs state machine update
+MODULES		+= modules/segway
 MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
 MODULES		+= modules/multirotor_att_control
