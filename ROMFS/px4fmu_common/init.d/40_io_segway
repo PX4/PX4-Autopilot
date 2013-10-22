@@ -21,8 +21,8 @@ param set MAV_TYPE 10
 #
 # Start MAVLink (depends on orb)
 #
-#mavlink start -d /dev/ttyS1 -b 57600
-#usleep 5000
+mavlink start -d /dev/ttyS1 -b 57600
+usleep 5000
  
 #
 # Start and configure PX4IO interface
@@ -32,25 +32,25 @@ sh /etc/init.d/rc.io
 #
 # Start the commander (depends on orb, mavlink)
 #
-#commander start
+commander start
 
 #
 # Start the sensors (depends on orb, px4io)
 #
-#sh /etc/init.d/rc.sensors
+sh /etc/init.d/rc.sensors
  
 #
 # Start GPS interface (depends on orb)
 #
-#gps start
+gps start
  
 #
 # Start the attitude estimator (depends on orb)
 #
-#attitude_estimator_ekf start
+attitude_estimator_ekf start
  
 #
 # Load mixer and start controllers (depends on px4io)
 #
-roboclaw test /dev/ttyS2 128
-#segway start
+roboclaw start /dev/ttyS2 128 1200
+segway start

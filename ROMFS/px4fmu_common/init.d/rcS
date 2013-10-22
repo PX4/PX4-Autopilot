@@ -273,18 +273,18 @@ then
 		set MODE custom
 	fi
 
-	if param compare SYS_AUTOSTART 40
-	then
-		sh /etc/init.d/40_io_segway
-		set MODE custom
-	fi
-	
 	if param compare SYS_AUTOSTART 31
 	then
 		sh /etc/init.d/31_io_phantom
 		set MODE custom
 	fi
 
+	if param compare SYS_AUTOSTART 40
+	then
+		sh /etc/init.d/40_io_segway
+		set MODE custom
+	fi
+	
 	if param compare SYS_AUTOSTART 100
 	then
 		sh /etc/init.d/100_mpx_easystar
