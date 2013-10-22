@@ -254,8 +254,8 @@ int RoboClaw::update()
 	// if new data, send to motors
 	if (_actuators.updated()) {
 		_actuators.update();
-		setMotorSpeed(MOTOR_1,_actuators.control[CH_VOLTAGE_LEFT]);
-		setMotorSpeed(MOTOR_2,_actuators.control[CH_VOLTAGE_RIGHT]);
+		setMotorDutyCycle(MOTOR_1,_actuators.control[CH_VOLTAGE_LEFT]);
+		setMotorDutyCycle(MOTOR_2,_actuators.control[CH_VOLTAGE_RIGHT]);
 	}
 	return 0;
 }
