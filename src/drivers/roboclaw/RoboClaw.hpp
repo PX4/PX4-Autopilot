@@ -74,8 +74,11 @@ public:
 	 * 	serial port e.g. "/dev/ttyS2"
 	 * @param address the adddress  of the motor
 	 * 	(selectable on roboclaw)
+	 * @param pulsesPerRev # of encoder
+	 *  pulses per revolution of wheel
 	 */
-	RoboClaw(const char *deviceName, uint16_t address);
+	RoboClaw(const char *deviceName, uint16_t address, 
+			uint16_t pulsesPerRev);
 
 	/**
 	 * deconstructor
@@ -112,7 +115,7 @@ public:
 	 * main update loop that updates RoboClaw motor
 	 * dutycycle based on actuator publication
 	 */
-	void update();
+	int update();
 
 	/**
 	 * read data from serial
@@ -158,6 +161,7 @@ private:
 	static uint8_t checksum_mask;
 
 	uint16_t _address;
+	uint16_t _pulsesPerRev;
 
 	int _uart;
 
@@ -182,6 +186,7 @@ private:
 };
 
 // unit testing
-int roboclawTest(const char *deviceName, uint8_t address);
+int roboclawTest(const char *deviceName, uint8_t address,
+		uint16_t pulsesPerRev);
 
 // vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78

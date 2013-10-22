@@ -114,17 +114,25 @@ int roboclaw_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "test")) {
 
-		if (argc < 4) {
-			printf("usage: roboclaw test device address\n");
+		const char * deviceName = "/dev/ttyS2";
+		uint8_t address = 128;
+		uint16_t pulsesPerRev = 1200;
+
+		if (argc == 2) {
+			printf("testing with default settings\n");
+		} else if (argc != 4) {
+			printf("usage: roboclaw test device address pulses_per_rev\n");
 			exit(-1);
+		} else {
+			deviceName = argv[2];
+			address = strtoul(argv[3], nullptr, 0);
+			pulsesPerRev = strtoul(argv[4], nullptr, 0);
 		}
 
-		const char *deviceName = argv[2];
-		uint8_t address = strtoul(argv[3], nullptr, 0);
+		printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
+			deviceName, address, pulsesPerRev);
 
-		printf("device:\t%s\taddress:\t%d\n", deviceName, address);
-
-		roboclawTest(deviceName, address);
+		roboclawTest(deviceName, address, pulsesPerRev);
 		thread_should_exit = true;
 		exit(0);
 
@@ -163,11 +171,13 @@ int roboclaw_thread_main(int argc, char *argv[])
 
 	const char *deviceName = argv[1];
 	uint8_t address = strtoul(argv[2], nullptr, 0);
+	uint16_t pulsesPerRev = strtoul(argv[3], nullptr, 0);
 
-	printf("device:\t%s\taddress:\t%d\n", deviceName, address);
+	printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
+			deviceName, address, pulsesPerRev);
 
 	// start
-	RoboClaw roboclaw(deviceName, address);
+	RoboClaw roboclaw(deviceName, address, pulsesPerRev);
 
 	thread_running = true;
 

@@ -59,15 +59,19 @@
 
 uint8_t RoboClaw::checksum_mask = 0x7f;
 
-RoboClaw::RoboClaw(const char *deviceName, uint16_t address):
+RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
+		uint16_t pulsesPerRev):
 	_address(address),
+	_pulsesPerRev(pulsesPerRev),
 	_uart(0),
 	_controlPoll(),
 	_actuators(NULL, ORB_ID(actuator_controls_0), 20),
 	_motor1Position(0),
 	_motor1Speed(0),
+	_motor1Overflow(0),
 	_motor2Position(0),
-	_motor2Speed(0)
+	_motor2Speed(0),
+	_motor2Overflow(0)
 {
 	// setup control polling
 	_controlPoll.fd = _actuators.getHandle();
@@ -90,6 +94,13 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address):
 
 	// setup default settings, reset encoders
 	resetEncoders();
+
+	// XXX roboclaw gives 128 as first several csums
+	// have to read a couple of messages first
+	for (int i=0;i<5;i++) {
+		if (readEncoder(MOTOR_1) > 0) break;
+		usleep(3000);
+	}	
 }
 
 RoboClaw::~RoboClaw()
@@ -107,8 +118,18 @@ int RoboClaw::readEncoder(e_motor motor)
 	} else if (motor == MOTOR_2) {
 		_sendCommand(CMD_READ_ENCODER_2, nullptr, 0, sum);
 	}
-	uint8_t rbuf[6];
-	int ret = read(_uart, rbuf, 6);
+	uint8_t rbuf[50];
+	usleep(5000);
+	int nread = read(_uart, rbuf, 50);
+	if (nread < 6) { 
+		printf("failed to read\n");
+		return -1;
+	}
+	//printf("received: \n");
+	//for (int i=0;i<nread;i++) {
+		//printf("%d\t", rbuf[i]);
+	//}
+	//printf("\n");
 	uint32_t count = 0;
 	uint8_t * countBytes = (uint8_t *)(&count);
 	countBytes[3] = rbuf[0];
@@ -116,34 +137,46 @@ int RoboClaw::readEncoder(e_motor motor)
 	countBytes[1] = rbuf[2];
 	countBytes[0] = rbuf[3];
 	uint8_t status = rbuf[4];
-	if (((sum + _sumBytes(rbuf,5)) & checksum_mask) 
-			== rbuf[5]) return -1;
+	uint8_t checksum = rbuf[5];
+	uint8_t checksum_computed = (sum + _sumBytes(rbuf, 5)) & 
+		checksum_mask;
+	// check if checksum is valid
+	if (checksum != checksum_computed) {
+		printf("checksum failed: expected %d got %d\n",
+				checksum, checksum_computed);
+		return -1;
+	}
 	int overFlow = 0;
+
+	if (status & STATUS_REVERSE) {
+		//printf("roboclaw: reverse\n");
+	}
+
 	if (status & STATUS_UNDERFLOW) {
-		printf("roboclaw: underflow\n");
+		//printf("roboclaw: underflow\n");
 		overFlow = -1;
 	} else if (status & STATUS_OVERFLOW) {
-		printf("roboclaw: overflow\n");
+		//printf("roboclaw: overflow\n");
 		overFlow = +1;
 	}
+
 	static int64_t overflowAmount = 0x100000000LL;
 	if (motor == MOTOR_1) {
 		_motor1Overflow += overFlow;
-		_motor1Position = count + 
-			_motor1Overflow*_motor1Position;
+		_motor1Position = float(int64_t(count) + 
+			_motor1Overflow*overflowAmount)/_pulsesPerRev;
 	} else if (motor == MOTOR_2) {
 		_motor2Overflow += overFlow;
-		_motor2Position = count + 
-			_motor2Overflow*_motor2Position;
+		_motor2Position = float(int64_t(count) + 
+			_motor2Overflow*overflowAmount)/_pulsesPerRev;
 	}
-	return ret;
+	return 0;
 }
 
 void RoboClaw::printStatus(char *string, size_t n)
 {
 	snprintf(string, n,
-		 "motor 1 position:\t%10.2f\tspeed:\t%10.2f\n"
-		 "motor 2 position:\t%10.2f\tspeed:\t%10.2f\n",
+		 "pos1,spd1,pos2,spd2: %10.2f %10.2f %10.2f %10.2f\n",
 		 double(getMotorPosition(MOTOR_1)),
 		 double(getMotorSpeed(MOTOR_1)),
 		 double(getMotorPosition(MOTOR_2)),
@@ -178,17 +211,18 @@ int RoboClaw::setMotorSpeed(e_motor motor, float value)
 	// send command
 	if (motor == MOTOR_1) {
 		if (value > 0) {
-			_sendCommand(CMD_DRIVE_FWD_1, &speed, 1, sum);
+			return _sendCommand(CMD_DRIVE_FWD_1, &speed, 1, sum);
 		} else {
-			_sendCommand(CMD_DRIVE_REV_1, &speed, 1, sum);
+			return _sendCommand(CMD_DRIVE_REV_1, &speed, 1, sum);
 		}
 	} else if (motor == MOTOR_2) {
 		if (value > 0) {
-			_sendCommand(CMD_DRIVE_FWD_2, &speed, 1, sum);
+			return _sendCommand(CMD_DRIVE_FWD_2, &speed, 1, sum);
 		} else {
-			_sendCommand(CMD_DRIVE_REV_2, &speed, 1, sum);
+			return _sendCommand(CMD_DRIVE_REV_2, &speed, 1, sum);
 		}
 	}
+	return -1;
 }
 
 int RoboClaw::setMotorDutyCycle(e_motor motor, float value)
@@ -200,12 +234,13 @@ int RoboClaw::setMotorDutyCycle(e_motor motor, float value)
 	int16_t duty = 1500*value;
 	// send command
 	if (motor == MOTOR_1) {
-		_sendCommand(CMD_SIGNED_DUTYCYCLE_1,
+		return _sendCommand(CMD_SIGNED_DUTYCYCLE_1,
 				(uint8_t *)(&duty), 2, sum);
 	} else if (motor == MOTOR_2) {
-		_sendCommand(CMD_SIGNED_DUTYCYCLE_2,
+		return _sendCommand(CMD_SIGNED_DUTYCYCLE_2,
 				(uint8_t *)(&duty), 2, sum);
 	}
+	return -1;
 }
 
 int RoboClaw::resetEncoders() 
@@ -215,13 +250,13 @@ int RoboClaw::resetEncoders()
 			nullptr, 0, sum);
 }
 
-void RoboClaw::update()
+int RoboClaw::update()
 {
 	// wait for an actuator publication,
 	// check for exit condition every second
 	// note "::poll" is required to distinguish global
 	// poll from member function for driver
-	if (::poll(&_controlPoll, 1, 1000) < 0) return; // poll error
+	if (::poll(&_controlPoll, 1, 1000) < 0) return -1; // poll error
 
 	// if new data, send to motors
 	if (_actuators.updated()) {
@@ -229,56 +264,68 @@ void RoboClaw::update()
 		setMotorSpeed(MOTOR_1,_actuators.control[CH_VOLTAGE_LEFT]);
 		setMotorSpeed(MOTOR_2,_actuators.control[CH_VOLTAGE_RIGHT]);
 	}
+	return 0;
 }
 
 uint16_t RoboClaw::_sumBytes(uint8_t * buf, size_t n)
 {
 	uint16_t sum = 0;
-	printf("sum\n");
+	//printf("sum\n");
 	for (size_t i=0;i<n;i++) {
 		sum += buf[i];
-		printf("%d\t", buf[i]);
+		//printf("%d\t", buf[i]);
 	}
-	printf("total sum %d\n", sum);
-	printf("\n");
+	//printf("total sum %d\n", sum);
 	return sum;
 }
 
 int RoboClaw::_sendCommand(e_command cmd, uint8_t * data, 
 		size_t n_data, uint16_t & prev_sum)
 {
-	tcflush(_uart, TCIOFLUSH);
+	tcflush(_uart, TCIOFLUSH); // flush  buffers
 	uint8_t buf[n_data + 3];
 	buf[0] = _address;
 	buf[1] = cmd;
-	for (int i=0;i<n_data;i++) {
+	for (size_t i=0;i<n_data;i++) {
 		buf[i+2] = data[n_data - i - 1]; // MSB
 	}
 	uint16_t sum = _sumBytes(buf, n_data + 2);
 	prev_sum += sum;
 	buf[n_data + 2] = sum & checksum_mask;
-	printf("\nmessage:\n");
-	for (int i=0;i<n_data+3;i++) {
-		printf("%d\t", buf[i]);
-	}
-	printf("\n");
+	//printf("\nmessage:\n");
+	//for (size_t i=0;i<n_data+3;i++) {
+		//printf("%d\t", buf[i]);
+	//}
+	//printf("\n");
 	return write(_uart, buf, n_data + 3);
 }
 
-int roboclawTest(const char *deviceName, uint8_t address)
+int roboclawTest(const char *deviceName, uint8_t address, 
+		uint16_t pulsesPerRev)
 {
 	printf("roboclaw test: starting\n");
 
 	// setup
-	RoboClaw roboclaw(deviceName, address);
+	RoboClaw roboclaw(deviceName, address, pulsesPerRev);
+	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, 0.3);
+	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_2, 0.3);
 	char buf[200];
 	for (int i=0; i<10; i++) {
-		usleep(1000000);
-		roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, 0.3);
-		//roboclaw.setMotorSpeed(RoboClaw::MOTOR_1, 0.3);
-		//roboclaw.readEncoder(RoboClaw::MOTOR_1);
-		roboclaw.printStatus(buf, 200);
-		printf("%s\n", buf);
+		usleep(100000);
+		roboclaw.readEncoder(RoboClaw::MOTOR_1);
+		roboclaw.readEncoder(RoboClaw::MOTOR_2);
+		roboclaw.printStatus(buf,200);
+		printf("%s", buf);
+	}
+
+	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, -0.3);
+	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_2, -0.3);
+	for (int i=0; i<10; i++) {
+		usleep(100000);
+		roboclaw.readEncoder(RoboClaw::MOTOR_1);
+		roboclaw.readEncoder(RoboClaw::MOTOR_2);
+		roboclaw.printStatus(buf,200);
+		printf("%s", buf);
 	}
 
 	printf("Test complete\n");
