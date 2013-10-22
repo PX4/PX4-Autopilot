@@ -94,13 +94,6 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
 
 	// setup default settings, reset encoders
 	resetEncoders();
-
-	// XXX roboclaw gives 128 as first several csums
-	// have to read a couple of messages first
-	for (int i=0;i<5;i++) {
-		if (readEncoder(MOTOR_1) > 0) break;
-		usleep(3000);
-	}	
 }
 
 RoboClaw::~RoboClaw()
