@@ -72,12 +72,13 @@ usage(const char *reason)
 {
 	if (reason != NULL)
 		warnx("%s", reason);
-	errx(1, 
-		"usage:\n"
-		"esc_calib [-d <device>] <channels>\n"
-		"  <device>           PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
-		"  <channels>         Provide channels (e.g.: 1 2 3 4)\n"
-		);
+
+	errx(1,
+	     "usage:\n"
+	     "esc_calib [-d <device>] <channels>\n"
+	     "  <device>           PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
+	     "  <channels>         Provide channels (e.g.: 1 2 3 4)\n"
+	    );
 
 }
 
@@ -98,12 +99,12 @@ esc_calib_main(int argc, char *argv[])
 	if (argc < 2)
 		usage(NULL);
 
-	while ((ch = getopt(argc-1, argv, "d:")) != EOF) {
+	while ((ch = getopt(argc - 1, argv, "d:")) != EOF) {
 		switch (ch) {
-		
+
 		case 'd':
 			dev = optarg;
-			argc-=2;
+			argc -= 2;
 			break;
 
 		default:
@@ -111,7 +112,7 @@ esc_calib_main(int argc, char *argv[])
 		}
 	}
 
-	if(argc < 2) {
+	if (argc < 2) {
 		usage("no channels provided");
 	}
 
@@ -122,121 +123,149 @@ esc_calib_main(int argc, char *argv[])
 		if (*ep == '\0') {
 			if (channel_number > MAX_CHANNELS || channel_number <= 0) {
 				err(1, "invalid channel number: %d", channel_number);
+
 			} else {
-				channels_selected[channel_number-1] = true;
+				channels_selected[channel_number - 1] = true;
 
 			}
 		}
 	}
 
 	printf("\nATTENTION, please remove or fix propellers before starting calibration!\n"
-		"\n"
-		"Make sure\n"
-		"\t - that the ESCs are not powered\n"
-		"\t - that safety is off (two short blinks)\n"
-		"\t - that the controllers are stopped\n"
-		"\n"
-		"Do you want to start calibration now: y or n?\n");
+	       "\n"
+	       "Make sure\n"
+	       "\t - that the ESCs are not powered\n"
+	       "\t - that safety is off (two short blinks)\n"
+	       "\t - that the controllers are stopped\n"
+	       "\n"
+	       "Do you want to start calibration now: y or n?\n");
 
 	/* wait for user input */
 	while (1) {
-		
+
 		ret = poll(&fds, 1, 0);
+
 		if (ret > 0) {
 
 			read(0, &c, 1);
+
 			if (c == 'y' || c == 'Y') {
-				
+
 				break;
+
 			} else if (c == 0x03 || c == 0x63 || c == 'q') {
 				printf("ESC calibration exited\n");
 				exit(0);
+
 			} else if (c == 'n' || c == 'N') {
 				printf("ESC calibration aborted\n");
 				exit(0);
+
 			} else {
 				printf("Unknown input, ESC calibration aborted\n");
 				exit(0);
-			} 
+			}
 		}
+
 		/* rate limit to ~ 20 Hz */
 		usleep(50000);
 	}
 
 	/* open for ioctl only */
 	int fd = open(dev, 0);
+
 	if (fd < 0)
 		err(1, "can't open %s", dev);
-	
 
-	/* Wait for user confirmation */
-	printf("\nHigh PWM set\n"
-		"\n"
-		"Connect battery now and hit ENTER after the ESCs confirm the first calibration step\n"
-		"\n");
+	/* get max PWM value setting */
+	uint16_t pwm_max = 0;
+	ret = ioctl(fd, PWM_SERVO_GET_MAX_PWM, &pwm_max);
+
+	if (ret != OK)
+		err(1, "PWM_SERVO_GET_MAX_PWM");
+
+	/* get disarmed PWM value setting */
+	uint16_t pwm_disarmed = 0;
+	ret = ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, &pwm_disarmed);
+
+	if (ret != OK)
+		err(1, "PWM_SERVO_GET_DISARMED_PWM");
+
+	/* wait for user confirmation */
+	printf("\nHigh PWM set: %d\n"
+	       "\n"
+	       "Connect battery now and hit ENTER after the ESCs confirm the first calibration step\n"
+	       "\n", pwm_max);
 	fflush(stdout);
 
 	while (1) {
+		/* set max PWM */
+		for (unsigned i = 0; i < MAX_CHANNELS; i++) {
+			if (channels_selected[i]) {
+				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_max);
 
-		/* First set high PWM */
-		for (unsigned i = 0; i<MAX_CHANNELS; i++) {
-			if(channels_selected[i]) {
-				ret = ioctl(fd, PWM_SERVO_SET(i), 2100);
 				if (ret != OK)
 					err(1, "PWM_SERVO_SET(%d)", i);
 			}
 		}
 
 		ret = poll(&fds, 1, 0);
+
 		if (ret > 0) {
 
 			read(0, &c, 1);
+
 			if (c == 13) {
-				
+
 				break;
+
 			} else if (c == 0x03 || c == 0x63 || c == 'q') {
 				warnx("ESC calibration exited");
 				exit(0);
 			}
 		}
+
 		/* rate limit to ~ 20 Hz */
 		usleep(50000);
 	}
 
-	/* we don't need any more user input */
-	
-
-	printf("Low PWM set, hit ENTER when finished\n"
-		"\n");
+	printf("Low PWM set: %d\n"
+	       "\n"
+	       "Hit ENTER when finished\n"
+	       "\n", pwm_disarmed);
 
 	while (1) {
 
-		/* Then set low PWM */
-		for (unsigned i = 0; i<MAX_CHANNELS; i++) {
-			if(channels_selected[i]) {
-				ret = ioctl(fd, PWM_SERVO_SET(i), 900);
+		/* set disarmed PWM */
+		for (unsigned i = 0; i < MAX_CHANNELS; i++) {
+			if (channels_selected[i]) {
+				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_disarmed);
+
 				if (ret != OK)
 					err(1, "PWM_SERVO_SET(%d)", i);
 			}
 		}
 
 		ret = poll(&fds, 1, 0);
+
 		if (ret > 0) {
 
 			read(0, &c, 1);
+
 			if (c == 13) {
-				
+
 				break;
+
 			} else if (c == 0x03 || c == 0x63 || c == 'q') {
 				printf("ESC calibration exited\n");
 				exit(0);
 			}
 		}
+
 		/* rate limit to ~ 20 Hz */
 		usleep(50000);
 	}
 
-	
 	printf("ESC calibration finished\n");
 
 	exit(0);
