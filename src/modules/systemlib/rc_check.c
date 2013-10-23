@@ -47,13 +47,11 @@
 #include <mavlink/mavlink_log.h>
 #include <uORB/topics/rc_channels.h>
 
-int rc_calibration_check(void) {
+int rc_calibration_check(int mavlink_fd) {
 
 	char nbuf[20];
 	param_t _parameter_handles_min, _parameter_handles_trim, _parameter_handles_max,
 	_parameter_handles_rev, _parameter_handles_dz;
-
-	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 	float param_min, param_max, param_trim, param_rev, param_dz;
 

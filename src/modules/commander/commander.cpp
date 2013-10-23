@@ -687,7 +687,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	bool updated = false;
 
-	bool rc_calibration_ok = (OK == rc_calibration_check());
+	bool rc_calibration_ok = (OK == rc_calibration_check(mavlink_fd));
 
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
@@ -802,7 +802,7 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 
 				/* re-check RC calibration */
-				rc_calibration_ok = (OK == rc_calibration_check());
+				rc_calibration_ok = (OK == rc_calibration_check(mavlink_fd));
 
 				/* navigation parameters */
 				param_get(_param_takeoff_alt, &takeoff_alt);
