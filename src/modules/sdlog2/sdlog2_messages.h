@@ -253,28 +253,16 @@ struct log_GVSP_s {
 	float vz;
 };
 
-/* --- FWRV - FIRMWARE REVISION --- */
-#define LOG_FWRV_MSG 20
-struct log_FWRV_s {
-	char    fw_revision[64];
+/* --- VER - VERSION --- */
+#define LOG_VER_MSG 127
+struct log_VER_s {
+	char arch[16];
+	char fw_git[64];
 };
 
 #pragma pack(pop)
 
-
-/*
- GIT_VERSION is defined at build time via a Makefile call to the
- git command line. We create a fake log message format for 
- the firmware revision "FWRV" that is written to every log
- header. This makes it easier to determine which version
- of the firmware was running when a log was created.
- */
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define FW_VERSION_STR  STRINGIFY(GIT_VERSION)
-
 /* construct list of all message formats */
-
 static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(TIME, "Q", "StartTime"),
 	LOG_FORMAT(ATT, "ffffff", "Roll,Pitch,Yaw,RollRate,PitchRate,YawRate"),
@@ -295,7 +283,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
-	LOG_FORMAT(FWRV,"Z",FW_VERSION_STR),
+	LOG_FORMAT(VER, "NZ", "Arch,FwGit"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);
