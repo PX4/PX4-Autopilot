@@ -110,22 +110,32 @@ then
 	then
 		sh /etc/init.d/1000_rc_fw.hil		
 		set MODE custom
-	else
-		if param compare SYS_AUTOSTART 1001
-		then
-			sh /etc/init.d/1001_rc_quad.hil
-			set MODE custom
-		else
-			if param compare SYS_AUTOSTART 1002
-			then
-				sh /etc/init.d/1002_rc_fw_state.hil
-				set MODE custom
-			else
-				# Try to get an USB console
-				nshterm /dev/ttyACM0 &
-			fi	
-		fi
 	fi
+	
+	if param compare SYS_AUTOSTART 1001
+	then
+		sh /etc/init.d/1001_rc_quad.hil
+		set MODE custom
+	fi
+	
+	if param compare SYS_AUTOSTART 1002
+	then
+		sh /etc/init.d/1002_rc_fw_state.hil
+		set MODE custom
+	fi
+	
+	if param compare SYS_AUTOSTART 1003
+	then
+		sh /etc/init.d/1003_rc_quad_+.hil
+		set MODE custom
+	fi
+	
+	if [ $MODE != custom ]
+	then
+		# Try to get an USB console
+		nshterm /dev/ttyACM0 &
+	fi
+
 	
 	#
 	# Upgrade PX4IO firmware
@@ -175,6 +185,20 @@ then
 	if param compare SYS_AUTOSTART 11
 	then
 		sh /etc/init.d/11_dji_f450
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 12
+	then
+		set MIXER /etc/mixers/FMU_hex_x.mix
+		sh /etc/init.d/12-13_hex
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 13
+	then
+		set MIXER /etc/mixers/FMU_hex_+.mix
+		sh /etc/init.d/12-13_hex
 		set MODE custom
 	fi
 	
@@ -248,13 +272,19 @@ then
 		sh /etc/init.d/30_io_camflyer
 		set MODE custom
 	fi
-	
+
 	if param compare SYS_AUTOSTART 31
 	then
 		sh /etc/init.d/31_io_phantom
 		set MODE custom
 	fi
 
+	if param compare SYS_AUTOSTART 40
+	then
+		sh /etc/init.d/40_io_segway
+		set MODE custom
+	fi
+	
 	if param compare SYS_AUTOSTART 100
 	then
 		sh /etc/init.d/100_mpx_easystar

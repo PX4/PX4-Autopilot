@@ -369,8 +369,10 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			if (hil_ret == OK && control_mode->flag_system_hil_enabled) {
 				/* reset the arming mode to disarmed */
 				arming_res = arming_state_transition(status, safety, control_mode, ARMING_STATE_STANDBY, armed);
+
 				if (arming_res != TRANSITION_DENIED) {
 					mavlink_log_info(mavlink_fd, "[cmd] HIL: Reset ARMED state to standby");
+
 				} else {
 					mavlink_log_info(mavlink_fd, "[cmd] HIL: FAILED resetting armed state");
 				}
@@ -481,27 +483,28 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			break;
 		}
 
-	case VEHICLE_CMD_COMPONENT_ARM_DISARM:
-	{
-		transition_result_t arming_res = TRANSITION_NOT_CHANGED;
-		if (!armed->armed && ((int)(cmd->param1 + 0.5f)) == 1) {
-			if (safety->safety_switch_available && !safety->safety_off) {
-				print_reject_arm("NOT ARMING: Press safety switch first.");
-				arming_res = TRANSITION_DENIED;
+	case VEHICLE_CMD_COMPONENT_ARM_DISARM: {
+			transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
-			} else {
-				arming_res = arming_state_transition(status, safety, control_mode, ARMING_STATE_ARMED, armed);
-			}
+			if (!armed->armed && ((int)(cmd->param1 + 0.5f)) == 1) {
+				if (safety->safety_switch_available && !safety->safety_off) {
+					print_reject_arm("NOT ARMING: Press safety switch first.");
+					arming_res = TRANSITION_DENIED;
 
-			if (arming_res == TRANSITION_CHANGED) {
-				mavlink_log_info(mavlink_fd, "[cmd] ARMED by component arm cmd");
-				result = VEHICLE_CMD_RESULT_ACCEPTED;
-			} else {
-				mavlink_log_info(mavlink_fd, "[cmd] REJECTING component arm cmd");
-				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				} else {
+					arming_res = arming_state_transition(status, safety, control_mode, ARMING_STATE_ARMED, armed);
+				}
+
+				if (arming_res == TRANSITION_CHANGED) {
+					mavlink_log_info(mavlink_fd, "[cmd] ARMED by component arm cmd");
+					result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					mavlink_log_info(mavlink_fd, "[cmd] REJECTING component arm cmd");
+					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+				}
 			}
 		}
-	}
 		break;
 
 	default:
@@ -687,7 +690,7 @@ int commander_thread_main(int argc, char *argv[])
 
 	bool updated = false;
 
-	bool rc_calibration_ok = (OK == rc_calibration_check());
+	bool rc_calibration_ok = (OK == rc_calibration_check(mavlink_fd));
 
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
@@ -802,7 +805,7 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 
 				/* re-check RC calibration */
-				rc_calibration_ok = (OK == rc_calibration_check());
+				rc_calibration_ok = (OK == rc_calibration_check(mavlink_fd));
 
 				/* navigation parameters */
 				param_get(_param_takeoff_alt, &takeoff_alt);
@@ -940,7 +943,7 @@ int commander_thread_main(int argc, char *argv[])
 			last_idle_time = system_load.tasks[0].total_runtime;
 
 			/* check if board is connected via USB */
-			struct stat statbuf;
+			//struct stat statbuf;
 			//on_usb_power = (stat("/dev/ttyACM0", &statbuf) == 0);
 		}
 
@@ -970,6 +973,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				if (armed.armed) {
 					arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_ARMED_ERROR, &armed);
+
 				} else {
 					arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_STANDBY_ERROR, &armed);
 				}
@@ -1244,12 +1248,14 @@ int commander_thread_main(int argc, char *argv[])
 		counter++;
 
 		int blink_state = blink_msg_state();
+
 		if (blink_state > 0) {
 			/* blinking LED message, don't touch LEDs */
 			if (blink_state == 2) {
 				/* blinking LED message completed, restore normal state */
 				control_status_leds(&status, &armed, true);
 			}
+
 		} else {
 			/* normal state */
 			control_status_leds(&status, &armed, status_changed);
@@ -1264,7 +1270,7 @@ int commander_thread_main(int argc, char *argv[])
 	ret = pthread_join(commander_low_prio_thread, NULL);
 
 	if (ret) {
-		warn("join failed", ret);
+		warn("join failed: %d", ret);
 	}
 
 	rgbled_set_mode(RGBLED_MODE_OFF);
@@ -1308,6 +1314,7 @@ control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chan
 	/* driving rgbled */
 	if (changed) {
 		bool set_normal_color = false;
+
 		/* set mode */
 		if (status->arming_state == ARMING_STATE_ARMED) {
 			rgbled_set_mode(RGBLED_MODE_ON);
@@ -1332,6 +1339,7 @@ control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chan
 				if (status->battery_warning == VEHICLE_BATTERY_WARNING_LOW) {
 					rgbled_set_color(RGBLED_COLOR_AMBER);
 				}
+
 				/* VEHICLE_BATTERY_WARNING_CRITICAL handled as ARMING_STATE_ARMED_ERROR / ARMING_STATE_STANDBY_ERROR */
 
 			} else {
@@ -1694,11 +1702,10 @@ void *commander_low_prio_loop(void *arg)
 	fds[0].events = POLLIN;
 
 	while (!thread_should_exit) {
-
-		/* wait for up to 100ms for data */
+		/* wait for up to 200ms for data */
 		int pret = poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 200);
 
-		/* timed out - periodic check for _task_should_exit, etc. */
+		/* timed out - periodic check for thread_should_exit, etc. */
 		if (pret == 0)
 			continue;
 
@@ -1773,7 +1780,7 @@ void *commander_low_prio_loop(void *arg)
 
 				} else if ((int)(cmd.param4) == 1) {
 					/* RC calibration */
-					answer_command(cmd, VEHICLE_CMD_RESULT_DENIED);
+					answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 					calib_ret = do_rc_calibration(mavlink_fd);
 
 				} else if ((int)(cmd.param5) == 1) {
@@ -1854,7 +1861,6 @@ void *commander_low_prio_loop(void *arg)
 			/* send acknowledge command */
 			// XXX TODO
 		}
-
 	}
 
 	close(cmd_sub);

@@ -44,8 +44,34 @@
 
 #include <systemlib/param/param.h>
 
+/**
+ * Gyro X offset FIXME
+ *
+ * This is an X-axis offset for the gyro.
+ * Adjust it according to the calibration data.
+ *
+ * @min -10.0
+ * @max 10.0
+ * @group Gyro Config
+ */
 PARAM_DEFINE_FLOAT(SENS_GYRO_XOFF, 0.0f);
+
+/**
+ * Gyro Y offset FIXME with dot.
+ *
+ * @min -10.0
+ * @max 10.0
+ * @group Gyro Config
+ */
 PARAM_DEFINE_FLOAT(SENS_GYRO_YOFF, 0.0f);
+
+/**
+ * Gyro Z offset FIXME
+ *
+ * @min -5.0
+ * @max 5.0
+ * @group Gyro Config
+ */
 PARAM_DEFINE_FLOAT(SENS_GYRO_ZOFF, 0.0f);
 
 PARAM_DEFINE_FLOAT(SENS_GYRO_XSCALE, 1.0f);
