@@ -902,6 +902,13 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
 		math::Vector3 vect = {accel_report.x, accel_report.y, accel_report.z};
+
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+		if (accel_report.x_raw == -32760 && accel_report.y_raw == -32760 && accel_report.z_raw == -32760) {
+			return;
+		}
+#endif
+
 		vect = _board_rotation * vect;
 
 		raw.accelerometer_m_s2[0] = vect(0);
