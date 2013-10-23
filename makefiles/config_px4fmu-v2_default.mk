@@ -112,6 +112,7 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
+MODULES		+= lib/conversion
 
 #
 # Demo apps
