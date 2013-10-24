@@ -75,6 +75,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
@@ -196,6 +197,7 @@ private:
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
+	orb_advert_t	_actuator_group_3_pub;		/**< manual control as actuator topic */
 	orb_advert_t	_rc_pub;			/**< raw r/c control topic */
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
@@ -446,6 +448,7 @@ Sensors::Sensors() :
 /* publications */
 	_sensor_pub(-1),
 	_manual_control_pub(-1),
+	_actuator_group_3_pub(-1),
 	_rc_pub(-1),
 	_battery_pub(-1),
 	_airspeed_pub(-1),
@@ -1227,6 +1230,7 @@ Sensors::rc_poll()
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 
 		struct manual_control_setpoint_s manual_control;
+		struct actuator_controls_s actuator_group_3;
 
 		/* initialize to default values */
 		manual_control.roll = NAN;
@@ -1394,6 +1398,16 @@ Sensors::rc_poll()
 			manual_control.aux5 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_5]].scaled);
 		}
 
+		/* copy from mapped manual control to control group 3 */
+		actuator_group_3.control[0] = manual_control.roll;
+		actuator_group_3.control[1] = manual_control.pitch;
+		actuator_group_3.control[2] = manual_control.yaw;
+		actuator_group_3.control[3] = manual_control.throttle;
+		actuator_group_3.control[4] = manual_control.flaps;
+		actuator_group_3.control[5] = manual_control.aux1;
+		actuator_group_3.control[6] = manual_control.aux2;
+		actuator_group_3.control[7] = manual_control.aux3;
+
 		/* check if ready for publishing */
 		if (_rc_pub > 0) {
 			orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
@@ -1409,6 +1423,14 @@ Sensors::rc_poll()
 
 		} else {
 			_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
+		}
+
+		/* check if ready for publishing */
+		if (_actuator_group_3_pub > 0) {
+			orb_publish(ORB_ID(actuator_controls_3), _actuator_group_3_pub, &actuator_group_3);
+
+		} else {
+			_actuator_group_3_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_group_3);
 		}
 	}
 

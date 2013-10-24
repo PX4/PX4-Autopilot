@@ -368,6 +368,12 @@ mc_thread_main(int argc, char *argv[])
 				actuators.control[3] = 0.0f;
 			}
 
+			/* fill in manual control values */
+			actuators.control[4] = manual.flaps;
+			actuators.control[5] = manual.aux1;
+			actuators.control[6] = manual.aux2;
+			actuators.control[7] = manual.aux3;
+
 			actuators.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 

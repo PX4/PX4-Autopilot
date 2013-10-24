@@ -219,8 +219,9 @@ PARAM_DEFINE_INT32(RC_MAP_MISSIO_SW, 0);
 
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
-PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);	/**< default function: camera yaw / azimuth */
-PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera pitch / tilt */
+PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);	/**< default function: camera pitch */
+PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera roll */
+PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);	/**< default function: camera azimuth / yaw */
 
 PARAM_DEFINE_FLOAT(RC_SCALE_ROLL, 0.6f);
 PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);
