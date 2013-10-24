@@ -158,6 +158,12 @@ private:
 	float		_launch_alt;
 	bool		_launch_valid;
 
+	/* land states */
+	/* not in non-abort mode for landing yet */
+	bool land_noreturn;
+	/* heading hold */
+	float target_bearing;
+
 	/* throttle and airspeed states */
 	float _airspeed_error;				///< airspeed error to setpoint in m/s
 	bool _airspeed_valid;				///< flag if a valid airspeed estimate exists
@@ -331,7 +337,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_airspeed_error(0.0f),
 	_airspeed_valid(false),
 	_groundspeed_undershoot(0.0f),
-	_global_pos_valid(false)
+	_global_pos_valid(false),
+	land_noreturn(false)
 {
 	_nav_capabilities.turn_distance = 0.0f;
 
@@ -640,9 +647,6 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
 
-	/* not in non-abort mode for landing yet */
-	bool land_noreturn = false;
-
 	/* AUTONOMOUS FLIGHT */
 
 	// XXX this should only execute if auto AND safety off (actuators active),
@@ -727,15 +731,26 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				/* switch to heading hold for the last meters, continue heading hold after */
 
-				float wp_distance = get_distance_to_next_waypoint(current_position.getX(), current_position.getY(), next_wp.getX(), next_wp.getY());
-
-				if (wp_distance < 5.0f || land_noreturn) {
+				float wp_distance = get_distance_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), current_position.getX(), current_position.getY());
+				//warnx("wp dist: %d, alt err: %d, noret: %s", (int)wp_distance, (int)altitude_error, (land_noreturn) ? "YES" : "NO");
+				if (wp_distance < 15.0f || land_noreturn) {
 
 					/* heading hold, along the line connecting this and the last waypoint */
-					float target_bearing = get_bearing_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), next_wp.getX(), next_wp.getY());
+					
+
+					// if (global_triplet.previous_valid) {
+					// 	target_bearing = get_bearing_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), next_wp.getX(), next_wp.getY());
+					// } else {
+
+					if (!land_noreturn)
+						target_bearing = _att.yaw;
+					//}
+
+					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn, (int)math::degrees(target_bearing), (int)math::degrees(_att.yaw));
+
 					_l1_control.navigate_heading(target_bearing, _att.yaw, ground_speed);
 
-					if (altitude_error > -20.0f)
+					if (altitude_error > -5.0f)
 						land_noreturn = true;
 
 				} else {
@@ -743,6 +758,12 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					/* normal navigation */
 					_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
 				}
+
+				/* do not go down too early */
+				if (wp_distance > 50.0f) {
+					altitude_error = (_global_triplet.current.altitude + 25.0f) - _global_pos.alt;
+				}
+
 
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
@@ -753,15 +774,21 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float flare_angle_rad = math::radians(10.0f);//math::radians(global_triplet.current.param1)
 				float land_pitch_min = math::radians(5.0f);
 				float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
-				float airspeed_land = (_parameters.airspeed_min + _parameters.airspeed_trim) / 2.0f;
+				float airspeed_land = _parameters.airspeed_min;
+				float airspeed_approach = (_parameters.airspeed_min + _parameters.airspeed_trim) / 2.0f;
 
-				if (altitude_error > -5.0f) {
+				if (altitude_error > -4.0f) {
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
+					/* land with minimal speed */
+
+					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
+					_tecs.set_speed_weight(2.0f);
+
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_land),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, flare_angle_rad,
 								    0.0f, _parameters.throttle_max, throttle_land,
-								    land_pitch_min, math::radians(_parameters.pitch_limit_max));
+								    math::radians(-10.0f), math::radians(15.0f));
 
 					/* kill the throttle if param requests it */
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
@@ -769,15 +796,19 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					/* limit roll motion to prevent wings from touching the ground first */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
 
-				} else if (altitude_error > -20.0f) {
+				} else if (wp_distance < 60.0f && altitude_error > -20.0f) {
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_land),
+					/* minimize speed to approach speed */
+
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_approach),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, flare_angle_rad,
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
 
 				} else {
+
+					/* normal cruise speed */
 
 					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
@@ -869,6 +900,11 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				/* limit roll motion to ensure enough lift */
 				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
 			}
+		}
+
+		/* reset land state */
+		if (global_triplet.current.nav_cmd != NAV_CMD_LAND) {
+			land_noreturn = false;
 		}
 
 		if (was_circle_mode && !_l1_control.circle_mode()) {

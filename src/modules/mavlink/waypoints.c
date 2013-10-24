@@ -398,13 +398,13 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 
 			if (time_elapsed) {
 
-				if (cur_wp->autocontinue) {
+				/* safeguard against invalid missions with last wp autocontinue on */
+				if (wpm->current_active_wp_id == wpm->size - 1) {
+					/* stop handling missions here */
+					cur_wp->autocontinue = false;
+				}
 
-					/* safeguard against invalid missions with last wp autocontinue on */
-					if (wpm->current_active_wp_id == wpm->size - 1) {
-						/* stop handling missions here */
-						cur_wp->autocontinue = false;
-					}
+				if (cur_wp->autocontinue) {
 
 					cur_wp->current = 0;
 
