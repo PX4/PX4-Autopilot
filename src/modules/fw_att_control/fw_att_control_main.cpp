@@ -288,25 +288,25 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_airspeed_valid(false)
 {
 	_parameter_handles.tconst = param_find("FW_ATT_TC");
-	_parameter_handles.p_p = param_find("FW_P_P");
-	_parameter_handles.p_d = param_find("FW_P_D");
-	_parameter_handles.p_i = param_find("FW_P_I");
+	_parameter_handles.p_p = param_find("FW_PR_P");
+	_parameter_handles.p_d = param_find("FW_PR_D");
+	_parameter_handles.p_i = param_find("FW_PR_I");
 	_parameter_handles.p_rmax_pos = param_find("FW_P_RMAX_POS");
 	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
-	_parameter_handles.p_integrator_max = param_find("FW_P_IMAX");
+	_parameter_handles.p_integrator_max = param_find("FW_PR_IMAX");
 	_parameter_handles.p_roll_feedforward = param_find("FW_P_ROLLFF");
 
-	_parameter_handles.r_p = param_find("FW_R_P");
-	_parameter_handles.r_d = param_find("FW_R_D");
-	_parameter_handles.r_i = param_find("FW_R_I");
-	_parameter_handles.r_integrator_max = param_find("FW_R_IMAX");
+	_parameter_handles.r_p = param_find("FW_RR_P");
+	_parameter_handles.r_d = param_find("FW_RR_D");
+	_parameter_handles.r_i = param_find("FW_RR_I");
+	_parameter_handles.r_integrator_max = param_find("FW_RR_IMAX");
 	_parameter_handles.r_rmax = param_find("FW_R_RMAX");
 
-	_parameter_handles.y_p = param_find("FW_Y_P");
-	_parameter_handles.y_i = param_find("FW_Y_I");
-	_parameter_handles.y_d = param_find("FW_Y_D");
+	_parameter_handles.y_p = param_find("FW_YR_P");
+	_parameter_handles.y_i = param_find("FW_YR_I");
+	_parameter_handles.y_d = param_find("FW_YR_D");
 	_parameter_handles.y_roll_feedforward = param_find("FW_Y_ROLLFF");
-	_parameter_handles.y_integrator_max = param_find("FW_Y_IMAX");
+	_parameter_handles.y_integrator_max = param_find("FW_YR_IMAX");
 	_parameter_handles.y_rmax = param_find("FW_Y_RMAX");
 
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");

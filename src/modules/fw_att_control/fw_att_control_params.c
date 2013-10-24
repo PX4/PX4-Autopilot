@@ -50,7 +50,7 @@
  * Controller parameters, accessible via MAVLink
  *
  */
-
+//xxx: update descriptions
 // @DisplayName		Attitude Time Constant
 // @Description		This defines the latency between a step input and the achieved setpoint. Half a second is a good start value and fits for most average systems. Smaller systems may require smaller values, but as this will wear out servos faster, the value should only be decreased as needed.
 // @Range		0.4 to 1.0 seconds, in tens of seconds
@@ -59,33 +59,33 @@ PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.5f);
 // @DisplayName		Proportional gain.
 // @Description		This defines how much the elevator input will be commanded dependend on the current pitch error.
 // @Range		10 to 200, 1 increments
-PARAM_DEFINE_FLOAT(FW_P_P, 40.0f);
+PARAM_DEFINE_FLOAT(FW_PR_P, 0.3f);
 
 // @DisplayName		Damping gain.
 // @Description		This gain damps the airframe pitch rate. In particular relevant for flying wings.
 // @Range		0.0 to 10.0, 0.1 increments
-PARAM_DEFINE_FLOAT(FW_P_D, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PR_D, 0.0f); //xxx: remove
 
 // @DisplayName		Integrator gain.
 // @Description		This gain defines how much control response will result out of a steady state error. It trims any constant error.
 // @Range		0 to 50.0
-PARAM_DEFINE_FLOAT(FW_P_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.05f);
 
 // @DisplayName		Maximum positive / up pitch rate.
 // @Description		This limits the maximum pitch up angular rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
 // @Range		0 to 90.0 degrees per seconds, in 1 increments
-PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
 
 // @DisplayName		Maximum negative / down pitch rate.
 // @Description		This limits the maximum pitch down up angular rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
 // @Range		0 to 90.0 degrees per seconds, in 1 increments
-PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 
 // @DisplayName		Pitch Integrator Anti-Windup
 // @Description		This limits the range in degrees the integrator can wind up to.
 // @Range		0.0 to 45.0
 // @Increment		1.0
-PARAM_DEFINE_FLOAT(FW_P_IMAX, 15.0f);
+PARAM_DEFINE_FLOAT(FW_PR_IMAX, 1000.0f);
 
 // @DisplayName		Roll feedforward gain.
 // @Description		This compensates during turns and ensures the nose stays level.
@@ -99,27 +99,27 @@ PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 1.0f);
 // @Range		10.0 200.0
 // @Increment		10.0
 // @User		User
-PARAM_DEFINE_FLOAT(FW_R_P, 40.0f);
+PARAM_DEFINE_FLOAT(FW_RR_P, 0.5f);
 
 // @DisplayName		Damping Gain
 // @Description		Controls the roll rate to roll actuator output. It helps to reduce motions in turbulence.
 // @Range		0.0 10.0
 // @Increment		1.0
 // @User		User
-PARAM_DEFINE_FLOAT(FW_R_D, 0.0f);
+PARAM_DEFINE_FLOAT(FW_RR_D, 0.0f); //xxx: remove
 
 // @DisplayName		Integrator Gain
 // @Description		This gain controls the contribution of the integral to roll actuator outputs. It trims out steady state errors.
 // @Range		0.0 100.0
 // @Increment		5.0
 // @User		User
-PARAM_DEFINE_FLOAT(FW_R_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_RR_I, 0.05f);
 
 // @DisplayName		Roll Integrator Anti-Windup
 // @Description		This limits the range in degrees the integrator can wind up to.
 // @Range		0.0 to 45.0
 // @Increment		1.0
-PARAM_DEFINE_FLOAT(FW_R_IMAX, 15.0f);
+PARAM_DEFINE_FLOAT(FW_RR_IMAX, 1000.0f);
 
 // @DisplayName		Maximum Roll Rate
 // @Description		This limits the maximum roll rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
@@ -128,10 +128,10 @@ PARAM_DEFINE_FLOAT(FW_R_IMAX, 15.0f);
 PARAM_DEFINE_FLOAT(FW_R_RMAX, 60);
 
 
-PARAM_DEFINE_FLOAT(FW_Y_P, 0);
-PARAM_DEFINE_FLOAT(FW_Y_I, 0);
-PARAM_DEFINE_FLOAT(FW_Y_IMAX, 15.0f);
-PARAM_DEFINE_FLOAT(FW_Y_D, 0);
+PARAM_DEFINE_FLOAT(FW_YR_P, 0.5);
+PARAM_DEFINE_FLOAT(FW_YR_I, 0.05);
+PARAM_DEFINE_FLOAT(FW_YR_IMAX, 1000.0f);
+PARAM_DEFINE_FLOAT(FW_YR_D, 0); //xxx: remove
 PARAM_DEFINE_FLOAT(FW_Y_ROLLFF, 0);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 9.0f);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 12.0f);
