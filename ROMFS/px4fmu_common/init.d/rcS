@@ -284,6 +284,12 @@ then
 		sh /etc/init.d/31_io_phantom
 		set MODE custom
 	fi
+	
+	if param compare SYS_AUTOSTART 32
+	then
+		sh /etc/init.d/32_skywalker_x5
+		set MODE custom
+	fi
 
 	if param compare SYS_AUTOSTART 40
 	then
