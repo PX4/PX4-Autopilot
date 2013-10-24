@@ -465,7 +465,7 @@ FixedwingAttitudeControl::vehicle_setpoint_poll()
 void
 FixedwingAttitudeControl::global_pos_poll()
 {
-	/* check if there is a new setpoint */
+	/* check if there is a new global position */
 	bool global_pos_updated;
 	orb_check(_global_pos_sub, &global_pos_updated);
 
