@@ -69,13 +69,13 @@ att_pos_estimator_ekf start
 #
 # Load mixer and start controllers (depends on px4io)
 #
-if [ -f /fs/microsd/etc/mixers/FMU_delta.mix ]
+if [ -f /fs/microsd/etc/mixers/FMU_Q.mix ]
 then
-	echo "Using FMU_delta mixer from sd card"
-	mixer load /dev/pwm_output /fs/microsd/etc/mixers/FMU_delta.mix
+	echo "Using /fs/microsd/etc/mixers/FMU_Q.mix"
+	mixer load /dev/pwm_output /fs/microsd/etc/mixers/FMU_Q.mix
 else
-	echo "Using standard FMU_delta mixer"
-	mixer load /dev/pwm_output /etc/mixers/FMU_delta.mix
+	echo "Using /etc/mixers/FMU_Q.mix"
+	mixer load /dev/pwm_output /etc/mixers/FMU_Q.mix
 fi
 fw_att_control start
 fw_pos_control_l1 start
