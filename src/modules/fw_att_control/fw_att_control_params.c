@@ -85,7 +85,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 // @Description		This limits the range in degrees the integrator can wind up to.
 // @Range		0.0 to 45.0
 // @Increment		1.0
-PARAM_DEFINE_FLOAT(FW_PR_IMAX, 1000.0f);
+PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.2f);
 
 // @DisplayName		Roll feedforward gain.
 // @Description		This compensates during turns and ensures the nose stays level.
@@ -119,7 +119,7 @@ PARAM_DEFINE_FLOAT(FW_RR_I, 0.05f);
 // @Description		This limits the range in degrees the integrator can wind up to.
 // @Range		0.0 to 45.0
 // @Increment		1.0
-PARAM_DEFINE_FLOAT(FW_RR_IMAX, 1000.0f);
+PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
 
 // @DisplayName		Maximum Roll Rate
 // @Description		This limits the maximum roll rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
@@ -130,7 +130,7 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 60);
 
 PARAM_DEFINE_FLOAT(FW_YR_P, 0.5);
 PARAM_DEFINE_FLOAT(FW_YR_I, 0.05);
-PARAM_DEFINE_FLOAT(FW_YR_IMAX, 1000.0f);
+PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
 PARAM_DEFINE_FLOAT(FW_YR_D, 0); //xxx: remove
 PARAM_DEFINE_FLOAT(FW_Y_ROLLFF, 0);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 9.0f);

@@ -146,10 +146,11 @@ float ECL_YawController::control_bodyrate(float roll, float pitch,
 	}
 
 	/* integrator limit */
-	_integrator = math::constrain(_integrator, -_integrator_max, _integrator_max);
+	//xxx: until start detection is available: integral part in control signal is limited here
+	float integrator_constrained = math::constrain(_integrator * _k_i, -_integrator_max, _integrator_max);
 
 	/* Apply PI rate controller and store non-limited output */
-	_last_output = (_rate_error * _k_p + _integrator * _k_i + _rate_setpoint * k_ff) * scaler * scaler;  //scaler is proportional to 1/airspeed
+	_last_output = (_rate_error * _k_p + integrator_constrained + _rate_setpoint * k_ff) * scaler * scaler;  //scaler is proportional to 1/airspeed
 	//warnx("yaw:_last_output: %.4f, _integrator: %.4f, _integrator_max: %.4f, airspeed %.4f, _k_i %.4f, _k_p: %.4f", (double)_last_output, (double)_integrator, (double)_integrator_max, (double)airspeed, (double)_k_i, (double)_k_p);
 
 
