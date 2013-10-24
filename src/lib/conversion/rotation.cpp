@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,66 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file sdlog2_format.h
+ * @file rotation.cpp
  *
- * General log format structures and macro.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * Vector rotation library
  */
 
-/*
-Format characters in the format string for binary log messages
-  b   : int8_t
-  B   : uint8_t
-  h   : int16_t
-  H   : uint16_t
-  i   : int32_t
-  I   : uint32_t
-  f   : float
-  n   : char[4]
-  N   : char[16]
-  Z   : char[64]
-  c   : int16_t * 100
-  C   : uint16_t * 100
-  e   : int32_t * 100
-  E   : uint32_t * 100
-  L   : int32_t latitude/longitude
-  M   : uint8_t flight mode
+#include "math.h"
+#include "rotation.h"
 
-  q   : int64_t
-  Q   : uint64_t
- */
+__EXPORT void
+get_rot_matrix(enum Rotation rot, math::Matrix *rot_matrix)
+{
+	/* first set to zero */
+	rot_matrix->Matrix::zero(3, 3);
 
-#ifndef SDLOG2_FORMAT_H_
-#define SDLOG2_FORMAT_H_
+	float roll  = M_DEG_TO_RAD_F * (float)rot_lookup[rot].roll;
+	float pitch = M_DEG_TO_RAD_F * (float)rot_lookup[rot].pitch;
+	float yaw   = M_DEG_TO_RAD_F * (float)rot_lookup[rot].yaw;
 
-#define LOG_PACKET_HEADER_LEN	   3
-#define LOG_PACKET_HEADER	       uint8_t head1, head2, msg_type;
-#define LOG_PACKET_HEADER_INIT(id) .head1 = HEAD_BYTE1, .head2 = HEAD_BYTE2, .msg_type = id
+	math::EulerAngles euler(roll, pitch, yaw);
 
-// once the logging code is all converted we will remove these from
-// this header
-#define HEAD_BYTE1  0xA3    // Decimal 163
-#define HEAD_BYTE2  0x95    // Decimal 149
+	math::Dcm R(euler);
 
-struct log_format_s {
-	uint8_t type;
-	uint8_t length;		// full packet length including header
-	char name[4];
-	char format[16];
-	char labels[64];
-};
-
-#define LOG_FORMAT(_name, _format, _labels) { \
-		.type = LOG_##_name##_MSG, \
-			.length = sizeof(struct log_##_name##_s) + LOG_PACKET_HEADER_LEN, \
-				  .name = #_name, \
-					  .format = _format, \
-						    .labels = _labels \
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			(*rot_matrix)(i, j) = R(i, j);
+		}
 	}
-
-#define LOG_FORMAT_MSG	  0x80
-
-#define LOG_PACKET_SIZE(_name)	LOG_PACKET_HEADER_LEN + sizeof(struct log_##_name##_s)
-
-#endif /* SDLOG2_FORMAT_H_ */
+}

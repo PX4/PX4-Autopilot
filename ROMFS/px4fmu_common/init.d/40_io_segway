@@ -52,5 +52,5 @@ attitude_estimator_ekf start
 #
 # Load mixer and start controllers (depends on px4io)
 #
-md25 start 3 0x58
+roboclaw start /dev/ttyS2 128 1200
 segway start

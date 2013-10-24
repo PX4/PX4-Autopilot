@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2013 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,18 +32,7 @@
 ############################################################################
 
 #
-# Main system state machine
+# Conversion library
 #
 
-MODULE_COMMAND	 	= commander
-SRCS		 	= commander.cpp \
-			commander_params.c \
-			state_machine_helper.cpp \
-			commander_helper.cpp \
-			calibration_routines.cpp \
-			accelerometer_calibration.cpp \
-			gyro_calibration.cpp \
-			mag_calibration.cpp \
-			baro_calibration.cpp \
-			rc_calibration.cpp \
-			airspeed_calibration.cpp
+SRCS		 = rotation.cpp

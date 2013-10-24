@@ -33,66 +33,30 @@
  ****************************************************************************/
 
 /**
- * @file sdlog2_format.h
+ * @file sdlog2_version.h
  *
- * General log format structures and macro.
+ * Tools for system version detection.
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#ifndef SDLOG2_VERSION_H_
+#define SDLOG2_VERSION_H_
+
 /*
-Format characters in the format string for binary log messages
-  b   : int8_t
-  B   : uint8_t
-  h   : int16_t
-  H   : uint16_t
-  i   : int32_t
-  I   : uint32_t
-  f   : float
-  n   : char[4]
-  N   : char[16]
-  Z   : char[64]
-  c   : int16_t * 100
-  C   : uint16_t * 100
-  e   : int32_t * 100
-  E   : uint32_t * 100
-  L   : int32_t latitude/longitude
-  M   : uint8_t flight mode
-
-  q   : int64_t
-  Q   : uint64_t
+ GIT_VERSION is defined at build time via a Makefile call to the
+ git command line.
  */
+#define FREEZE_STR(s) #s
+#define STRINGIFY(s) FREEZE_STR(s)
+#define FW_GIT STRINGIFY(GIT_VERSION)
 
-#ifndef SDLOG2_FORMAT_H_
-#define SDLOG2_FORMAT_H_
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+#define	HW_ARCH "PX4FMU_V1"
+#endif
 
-#define LOG_PACKET_HEADER_LEN	   3
-#define LOG_PACKET_HEADER	       uint8_t head1, head2, msg_type;
-#define LOG_PACKET_HEADER_INIT(id) .head1 = HEAD_BYTE1, .head2 = HEAD_BYTE2, .msg_type = id
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#define	HW_ARCH "PX4FMU_V2"
+#endif
 
-// once the logging code is all converted we will remove these from
-// this header
-#define HEAD_BYTE1  0xA3    // Decimal 163
-#define HEAD_BYTE2  0x95    // Decimal 149
-
-struct log_format_s {
-	uint8_t type;
-	uint8_t length;		// full packet length including header
-	char name[4];
-	char format[16];
-	char labels[64];
-};
-
-#define LOG_FORMAT(_name, _format, _labels) { \
-		.type = LOG_##_name##_MSG, \
-			.length = sizeof(struct log_##_name##_s) + LOG_PACKET_HEADER_LEN, \
-				  .name = #_name, \
-					  .format = _format, \
-						    .labels = _labels \
-	}
-
-#define LOG_FORMAT_MSG	  0x80
-
-#define LOG_PACKET_SIZE(_name)	LOG_PACKET_HEADER_LEN + sizeof(struct log_##_name##_s)
-
-#endif /* SDLOG2_FORMAT_H_ */
+#endif /* SDLOG2_VERSION_H_ */
