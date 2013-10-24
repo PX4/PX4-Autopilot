@@ -25,8 +25,12 @@ import struct, sys
 
 if sys.hexversion >= 0x030000F0:
     runningPython3 = True
+    def _parseCString(cstr):
+        return str(cstr, 'ascii').split('\0')[0]
 else:
     runningPython3 = False
+    def _parseCString(cstr):
+        return str(cstr).split('\0')[0]
 
 class SDLog2Parser:
     BLOCK_SIZE = 8192
@@ -175,9 +179,9 @@ class SDLog2Parser:
                 self.__csv_columns.append(full_label)
                 self.__csv_data[full_label] = None
         if self.__file != None:
-                print(self.__csv_delim.join(self.__csv_columns), file=self.__file)
+            print(self.__csv_delim.join(self.__csv_columns), file=self.__file)
         else:
-                print(self.__csv_delim.join(self.__csv_columns))
+            print(self.__csv_delim.join(self.__csv_columns))
 
     def __printCSVRow(self):
         s = []
@@ -190,9 +194,9 @@ class SDLog2Parser:
             s.append(v)
 
         if self.__file != None:
-                print(self.__csv_delim.join(s), file=self.__file)
+            print(self.__csv_delim.join(s), file=self.__file)
         else:
-                print(self.__csv_delim.join(s))
+            print(self.__csv_delim.join(s))
 
     def __parseMsgDescr(self):
         if runningPython3:
@@ -202,14 +206,9 @@ class SDLog2Parser:
         msg_type = data[0]
         if msg_type != self.MSG_TYPE_FORMAT:
             msg_length = data[1]
-            if runningPython3:
-                msg_name = str(data[2], 'ascii').strip("\0")
-                msg_format = str(data[3], 'ascii').strip("\0")
-                msg_labels = str(data[4], 'ascii').strip("\0").split(",")
-            else:
-                msg_name = str(data[2]).strip("\0")
-                msg_format = str(data[3]).strip("\0")
-                msg_labels = str(data[4]).strip("\0").split(",")
+            msg_name = _parseCString(data[2])
+            msg_format = _parseCString(data[3])
+            msg_labels = _parseCString(data[4]).split(",")
             # Convert msg_format to struct.unpack format string
             msg_struct = ""
             msg_mults = []
@@ -243,7 +242,7 @@ class SDLog2Parser:
                 data = list(struct.unpack(msg_struct, str(self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length])))
             for i in range(len(data)):
                 if type(data[i]) is str:
-                    data[i] = data[i].strip("\0")
+                    data[i] = _parseCString(data[i])
                 m = msg_mults[i]
                 if m != None:
                     data[i] = data[i] * m

@@ -43,7 +43,7 @@
 float ECL_L1_Pos_Controller::nav_roll()
 {
 	float ret = atanf(_lateral_accel * 1.0f / CONSTANTS_ONE_G);
-	ret = math::constrain(ret, (-M_PI_F) / 2.0f, M_PI_F / 2.0f);
+	ret = math::constrain(ret, -_roll_lim_rad, _roll_lim_rad);
 	return ret;
 }
 

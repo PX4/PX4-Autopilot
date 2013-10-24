@@ -44,8 +44,34 @@
 
 #include <systemlib/param/param.h>
 
+/**
+ * Gyro X offset FIXME
+ *
+ * This is an X-axis offset for the gyro.
+ * Adjust it according to the calibration data.
+ *
+ * @min -10.0
+ * @max 10.0
+ * @group Gyro Config
+ */
 PARAM_DEFINE_FLOAT(SENS_GYRO_XOFF, 0.0f);
+
+/**
+ * Gyro Y offset FIXME with dot.
+ *
+ * @min -10.0
+ * @max 10.0
+ * @group Gyro Config
+ */
 PARAM_DEFINE_FLOAT(SENS_GYRO_YOFF, 0.0f);
+
+/**
+ * Gyro Z offset FIXME
+ *
+ * @min -5.0
+ * @max 5.0
+ * @group Gyro Config
+ */
 PARAM_DEFINE_FLOAT(SENS_GYRO_ZOFF, 0.0f);
 
 PARAM_DEFINE_FLOAT(SENS_GYRO_XSCALE, 1.0f);
@@ -193,8 +219,9 @@ PARAM_DEFINE_INT32(RC_MAP_MISSIO_SW, 0);
 
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
-PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);	/**< default function: camera yaw / azimuth */
-PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera pitch / tilt */
+PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);	/**< default function: camera pitch */
+PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera roll */
+PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);	/**< default function: camera azimuth / yaw */
 
 PARAM_DEFINE_FLOAT(RC_SCALE_ROLL, 0.6f);
 PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);
