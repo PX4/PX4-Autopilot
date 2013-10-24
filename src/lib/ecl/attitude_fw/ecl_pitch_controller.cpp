@@ -161,9 +161,10 @@ float ECL_PitchController::control_bodyrate(float roll, float pitch,
 	}
 
 	/* integrator limit */
-	_integrator = math::constrain(_integrator, -_integrator_max, _integrator_max);
+	//xxx: until start detection is available: integral part in control signal is limited here
+	float integrator_constrained = math::constrain(_integrator * k_i_rate, -_integrator_max, _integrator_max);
 	/* store non-limited output */
-	_last_output = ((_rate_error * _k_d * scaler) + _integrator * k_i_rate * scaler + (_rate_setpoint * k_roll_ff)) * scaler;
+	_last_output = ((_rate_error * _k_d * scaler) + integrator_constrained  * scaler + (_rate_setpoint * k_roll_ff)) * scaler;
 
 	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }
