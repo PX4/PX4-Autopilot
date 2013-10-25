@@ -62,14 +62,13 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
-
-	float dt = dt_micros / 1000000;
+	float dt = (float)dt_micros * 1e-6f;
 
 	/* lock integral for long intervals */
 	if (dt_micros > 500000)
 		lock_integrator = true;
 
-	float k_roll_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
+	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
 	float k_i_rate = _k_i * _tc;
 
 	/* input conditioning */
@@ -114,12 +113,9 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 	_rate_setpoint += turn_offset;
 
 	_rate_error = _rate_setpoint - pitch_rate;
-
-	float ilimit_scaled = 0.0f;
-
 	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
 
-		float id = _rate_error * k_i_rate * dt * scaler;
+		float id = _rate_error * dt;
 
 		/*
 		 * anti-windup: do not allow integrator to increase into the
@@ -137,9 +133,9 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 	}
 
 	/* integrator limit */
-	_integrator = math::constrain(_integrator, -ilimit_scaled, ilimit_scaled);
+	_integrator = math::constrain(_integrator, -_integrator_max, _integrator_max);
 	/* store non-limited output */
-	_last_output = ((_rate_error * _k_d * scaler) + _integrator + (_rate_setpoint * k_roll_ff)) * scaler;
+	_last_output = ((_rate_error * _k_d * scaler) + _integrator * k_i_rate * scaler + (_rate_setpoint * k_ff)) * scaler;
 
 	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }

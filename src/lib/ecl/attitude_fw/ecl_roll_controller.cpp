@@ -45,6 +45,7 @@
 #include <geo/geo.h>
 #include <ecl/ecl.h>
 #include <mathlib/mathlib.h>
+#include <systemlib/err.h>
 
 ECL_RollController::ECL_RollController() :
 	_last_run(0),
@@ -64,8 +65,11 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
+	float dt = (float)dt_micros * 1e-6f;
 
-	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
+	/* lock integral for long intervals */
+	if (dt_micros > 500000)
+		lock_integrator = true;
 
 	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
 	float k_i_rate = _k_i * _tc;
@@ -90,11 +94,9 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 	_rate_error = _rate_setpoint - roll_rate;
 
 
-	float ilimit_scaled = 0.0f;
-
 	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
 
-		float id = _rate_error * k_i_rate * dt * scaler;
+		float id = _rate_error * dt;
 
 		/*
 		 * anti-windup: do not allow integrator to increase into the
@@ -112,9 +114,11 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 	}
 
 	/* integrator limit */
-	_integrator = math::constrain(_integrator, -ilimit_scaled, ilimit_scaled);
+	_integrator = math::constrain(_integrator, -_integrator_max, _integrator_max);
+	//warnx("roll: _integrator: %.4f, _integrator_max: %.4f", (double)_integrator, (double)_integrator_max);
+
 	/* store non-limited output */
-	_last_output = ((_rate_error * _k_d * scaler) + _integrator + (_rate_setpoint * k_ff)) * scaler;
+	_last_output = ((_rate_error * _k_d * scaler) + _integrator * k_i_rate * scaler + (_rate_setpoint * k_ff)) * scaler;
 
 	return math::constrain(_last_output, -_max_deflection_rad, _max_deflection_rad);
 }
