@@ -110,8 +110,8 @@ static void usage(const char *reason);
  * @param rates_sp The angular rate setpoint. This is the output of the controller.
  */
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-	float speed_body[], struct vehicle_rates_setpoint_s *rates_sp, 
-	struct actuator_controls_s *actuators);
+		      float speed_body[], struct vehicle_rates_setpoint_s *rates_sp,
+		      struct actuator_controls_s *actuators);
 
 /**
  * Control heading.
@@ -126,7 +126,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
  * @param att_sp The attitude setpoint. This is the output of the controller
  */
 void control_heading(const struct vehicle_global_position_s *pos, const struct vehicle_global_position_setpoint_s *sp,
-	const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp);
+		     const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp);
 
 /* Variables */
 static bool thread_should_exit = false;		/**< Daemon exit flag */
@@ -136,18 +136,18 @@ static struct params p;
 static struct param_handles ph;
 
 void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-	float speed_body[], struct vehicle_rates_setpoint_s *rates_sp, 
-	struct actuator_controls_s *actuators)
+		      float speed_body[], struct vehicle_rates_setpoint_s *rates_sp,
+		      struct actuator_controls_s *actuators)
 {
 
-	/* 
+	/*
 	 * The PX4 architecture provides a mixer outside of the controller.
 	 * The mixer is fed with a default vector of actuator controls, representing
 	 * moments applied to the vehicle frame. This vector
 	 * is structured as:
 	 *
 	 * Control Group 0 (attitude):
-	 * 
+	 *
 	 *    0  -  roll   (-1..+1)
 	 *    1  -  pitch  (-1..+1)
 	 *    2  -  yaw    (-1..+1)
@@ -174,18 +174,18 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 }
 
 void control_heading(const struct vehicle_global_position_s *pos, const struct vehicle_global_position_setpoint_s *sp,
-	const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp)
+		     const struct vehicle_attitude_s *att, struct vehicle_attitude_setpoint_s *att_sp)
 {
 
 	/*
 	 * Calculate heading error of current position to desired position
 	 */
 
-	/* 
+	/*
 	 * PX4 uses 1e7 scaled integers to represent global coordinates for max resolution,
 	 * so they need to be scaled by 1e7 and converted to IEEE double precision floating point.
 	 */
-	float bearing = get_bearing_to_next_waypoint(pos->lat/1e7d, pos->lon/1e7d, sp->lat/1e7d, sp->lon/1e7d);
+	float bearing = get_bearing_to_next_waypoint(pos->lat / 1e7d, pos->lon / 1e7d, sp->lat / 1e7d, sp->lon / 1e7d);
 
 	/* calculate heading error */
 	float yaw_err = att->yaw - bearing;
@@ -195,6 +195,7 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct v
 	/* limit output, this commonly is a tuning parameter, too */
 	if (att_sp->roll_body < -0.6f) {
 		att_sp->roll_body = -0.6f;
+
 	} else if (att_sp->roll_body > 0.6f) {
 		att_sp->roll_body = 0.6f;
 	}
@@ -233,7 +234,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	 *
 	 * Wikipedia description:
 	 * http://en.wikipedia.org/wiki/Publish–subscribe_pattern
-	 * 
+	 *
 	 */
 
 
@@ -241,7 +242,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 	/*
 	 * Declare and safely initialize all structs to zero.
-	 * 
+	 *
 	 * These structs contain the system state and things
 	 * like attitude, position, the current waypoint, etc.
 	 */
@@ -291,7 +292,8 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	/* RC failsafe check */
 	bool throttle_half_once = false;
 	struct pollfd fds[2] = {{ .fd = param_sub, .events = POLLIN },
-				{ .fd = att_sub, .events = POLLIN }};
+		{ .fd = att_sub, .events = POLLIN }
+	};
 
 	while (!thread_should_exit) {
 
@@ -310,7 +312,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 		if (ret < 0) {
 			/*
 			 * Poll error, this will not really happen in practice,
-			 * but its good design practice to make output an error message. 
+			 * but its good design practice to make output an error message.
 			 */
 			warnx("poll error");
 
@@ -365,13 +367,13 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				}
 
 				if (manual_sp_updated)
-					/* get the RC (or otherwise user based) input */ 
+					/* get the RC (or otherwise user based) input */
 					orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
 
 				/* check if the throttle was ever more than 50% - go later only to failsafe if yes */
 				if (isfinite(manual_sp.throttle) &&
-							    (manual_sp.throttle >= 0.6f) &&
-							    (manual_sp.throttle <= 1.0f)) {
+				    (manual_sp.throttle >= 0.6f) &&
+				    (manual_sp.throttle <= 1.0f)) {
 					throttle_half_once = true;
 				}
 
@@ -382,16 +384,17 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 #warning fix this
 #if 0
+
 				if (vstatus.navigation_state == NAVIGATION_STATE_AUTO_ ||
 				    vstatus.navigation_state == NAVIGATION_STATE_STABILIZED) {
 
-				    	/* simple heading control */
-				    	control_heading(&global_pos, &global_sp, &att, &att_sp);
+					/* simple heading control */
+					control_heading(&global_pos, &global_sp, &att, &att_sp);
 
-				    	/* nail pitch and yaw (rudder) to zero. This example only controls roll (index 0) */
-				    	actuators.control[1] = 0.0f;
-				    	actuators.control[2] = 0.0f;
-					
+					/* nail pitch and yaw (rudder) to zero. This example only controls roll (index 0) */
+					actuators.control[1] = 0.0f;
+					actuators.control[2] = 0.0f;
+
 					/* simple attitude control */
 					control_attitude(&att_sp, &att, speed_body, &rates_sp, &actuators);
 
@@ -402,7 +405,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 					actuators.control[4] = 0.0f;
 
 				} else if (vstatus.navigation_state == NAVIGATION_STATE_MANUAL) {
-				/* if in manual mode, decide between attitude stabilization (SAS) and full manual pass-through */
+					/* if in manual mode, decide between attitude stabilization (SAS) and full manual pass-through */
 				} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
 					if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
@@ -467,6 +470,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 						}
 					}
 				}
+
 #endif
 
 				/* publish rates */
@@ -532,11 +536,11 @@ int ex_fixedwing_control_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = task_spawn_cmd("ex_fixedwing_control",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 20,
-					 2048,
-					 fixedwing_control_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX - 20,
+					     2048,
+					     fixedwing_control_thread_main,
+					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}

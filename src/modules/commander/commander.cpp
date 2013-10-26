@@ -1024,6 +1024,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				if (armed.armed) {
 					arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_ARMED_ERROR, &armed);
+
 				} else {
 					arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_STANDBY_ERROR, &armed);
 				}

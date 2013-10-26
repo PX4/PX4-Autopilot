@@ -248,7 +248,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				}
 			}
 		}
-		
+
 		/* execute attitude control if requested */
 		if (control_mode.flag_control_attitude_enabled) {
 			/* attitude control */
@@ -334,11 +334,11 @@ int fixedwing_att_control_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = task_spawn_cmd("fixedwing_att_control",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 20,
-					 2048,
-					 fixedwing_att_control_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+					     SCHED_DEFAULT,
+					     SCHED_PRIORITY_MAX - 20,
+					     2048,
+					     fixedwing_att_control_thread_main,
+					     (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}
