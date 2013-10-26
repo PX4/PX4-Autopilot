@@ -94,6 +94,11 @@ public:
 	// Rate of change of velocity along X body axis in m/s^2
 	float get_VXdot(void) { return _vel_dot; }
 
+
+	float get_speed_weight() {
+		return _spdWeight;
+	}
+
 	// log data on internal state of the controller. Called at 10Hz
 	// void log_data(DataFlash_Class &dataflash, uint8_t msgid);
 

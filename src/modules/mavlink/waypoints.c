@@ -398,7 +398,14 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 
 			if (time_elapsed) {
 
+				/* safeguard against invalid missions with last wp autocontinue on */
+				if (wpm->current_active_wp_id == wpm->size - 1) {
+					/* stop handling missions here */
+					cur_wp->autocontinue = false;
+				}
+
 				if (cur_wp->autocontinue) {
+
 					cur_wp->current = 0;
 
 					float navigation_lat = -1.0f;
@@ -419,13 +426,16 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 						navigation_frame = MAV_FRAME_LOCAL_NED;
 					}
 
+					/* guard against missions without final land waypoint */
 					/* only accept supported navigation waypoints, skip unknown ones */
 					do {
+
 						/* pick up the last valid navigation waypoint, this will be one we hold on to after the mission */
 						if (wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_WAYPOINT ||
 				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_TURNS ||
 				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_TIME ||
-				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_UNLIM) {
+				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_LOITER_UNLIM ||
+				wpm->waypoints[wpm->current_active_wp_id].command == (int)MAV_CMD_NAV_TAKEOFF) {
 
 							/* this is a navigation waypoint */
 							navigation_frame = cur_wp->frame;
@@ -434,17 +444,20 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 							navigation_alt = cur_wp->z;
 						}
 
-						if (wpm->current_active_wp_id == wpm->size - 1 && wpm->size > 1) {
-							/* the last waypoint was reached, if auto continue is
-							 * activated keep the system loitering there.
-							 */
-							cur_wp->command = MAV_CMD_NAV_LOITER_UNLIM;
-							cur_wp->param3 = 20.0f; // XXX magic number 20 m loiter radius
-							cur_wp->frame = navigation_frame;
-							cur_wp->x = navigation_lat;
-							cur_wp->y = navigation_lon;
-							cur_wp->z = navigation_alt;
-							cur_wp->autocontinue = false;
+						if (wpm->current_active_wp_id == wpm->size - 1) {
+
+							/* if we're not landing at the last nav waypoint, we're falling back to loiter */
+							if (wpm->waypoints[wpm->current_active_wp_id].command != (int)MAV_CMD_NAV_LAND) {
+								/* the last waypoint was reached, if auto continue is
+								 * activated AND it is NOT a land waypoint, keep the system loitering there.
+								 */
+								cur_wp->command = MAV_CMD_NAV_LOITER_UNLIM;
+								cur_wp->param3 = 20.0f; // XXX magic number 20 m loiter radius
+								cur_wp->frame = navigation_frame;
+								cur_wp->x = navigation_lat;
+								cur_wp->y = navigation_lon;
+								cur_wp->z = navigation_alt;
+							}
 
 							/* we risk an endless loop for missions without navigation waypoints, abort. */
 							break;
