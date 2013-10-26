@@ -683,6 +683,10 @@ FixedwingAttitudeControl::task_main()
 				_actuators.control[4] = _manual.flaps;
 			}
 
+			_actuators.control[5] = _manual.aux1;
+			_actuators.control[6] = _manual.aux2;
+			_actuators.control[7] = _manual.aux3;
+
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
 

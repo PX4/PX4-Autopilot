@@ -33,12 +33,14 @@
 
 /**
  * @file mag_calibration.cpp
+ *
  * Magnetometer calibration routine
  */
 
 #include "mag_calibration.h"
 #include "commander_helper.h"
 #include "calibration_routines.h"
+#include "calibration_messages.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,26 +61,20 @@
 #endif
 static const int ERROR = -1;
 
+static const char *sensor_name = "mag";
+
 int do_mag_calibration(int mavlink_fd)
 {
-	mavlink_log_info(mavlink_fd, "please put the system in a rest position and wait.");
-
-	int sub_mag = orb_subscribe(ORB_ID(sensor_mag));
-	struct mag_report mag;
+	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
+	mavlink_log_info(mavlink_fd, "don't move system");
 
 	/* 45 seconds */
 	uint64_t calibration_interval = 45 * 1000 * 1000;
 
-	/* maximum 2000 values */
+	/* maximum 500 values */
 	const unsigned int calibration_maxcount = 500;
 	unsigned int calibration_counter = 0;
 
-	/* limit update rate to get equally spaced measurements over time (in ms) */
-	orb_set_interval(sub_mag, (calibration_interval / 1000) / calibration_maxcount);
-
-	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
-
-	/* erase old calibration */
 	struct mag_scale mscale_null = {
 		0.0f,
 		1.0f,
@@ -88,97 +84,92 @@ int do_mag_calibration(int mavlink_fd)
 		1.0f,
 	};
 
-	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
-		warn("WARNING: failed to set scale / offsets for mag");
-		mavlink_log_info(mavlink_fd, "failed to set scale / offsets for mag");
+	int res = OK;
+
+	/* erase old calibration */
+	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null);
+
+	if (res != OK) {
+		mavlink_log_critical(mavlink_fd, CAL_FAILED_RESET_CAL_MSG);
 	}
 
-	/* calibrate range */
-	if (OK != ioctl(fd, MAGIOCCALIBRATE, fd)) {
-		warnx("failed to calibrate scale");
+	if (res == OK) {
+		/* calibrate range */
+		res = ioctl(fd, MAGIOCCALIBRATE, fd);
+
+		if (res != OK) {
+			mavlink_log_critical(mavlink_fd, "ERROR: failed to calibrate scale");
+		}
 	}
 
 	close(fd);
 
-	mavlink_log_info(mavlink_fd, "mag cal progress <20> percent");
+	float *x;
+	float *y;
+	float *z;
 
-	/* calibrate offsets */
+	if (res == OK) {
+		/* allocate memory */
+		mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20);
 
-	// uint64_t calibration_start = hrt_absolute_time();
+		x = (float *)malloc(sizeof(float) * calibration_maxcount);
+		y = (float *)malloc(sizeof(float) * calibration_maxcount);
+		z = (float *)malloc(sizeof(float) * calibration_maxcount);
 
-	uint64_t axis_deadline = hrt_absolute_time();
-	uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
-
-	const char axislabels[3] = { 'X', 'Y', 'Z'};
-	int axis_index = -1;
-
-	float *x = (float *)malloc(sizeof(float) * calibration_maxcount);
-	float *y = (float *)malloc(sizeof(float) * calibration_maxcount);
-	float *z = (float *)malloc(sizeof(float) * calibration_maxcount);
-
-	if (x == NULL || y == NULL || z == NULL) {
-		warnx("mag cal failed: out of memory");
-		mavlink_log_info(mavlink_fd, "mag cal failed: out of memory");
-		warnx("x:%p y:%p z:%p\n", x, y, z);
-		return ERROR;
+		if (x == NULL || y == NULL || z == NULL) {
+			mavlink_log_critical(mavlink_fd, "ERROR: out of memory");
+			res = ERROR;
+		}
 	}
 
-	mavlink_log_info(mavlink_fd, "scale calibration completed, dynamic calibration starting..");
+	if (res == OK) {
+		int sub_mag = orb_subscribe(ORB_ID(sensor_mag));
+		struct mag_report mag;
 
-	unsigned poll_errcount = 0;
+		/* limit update rate to get equally spaced measurements over time (in ms) */
+		orb_set_interval(sub_mag, (calibration_interval / 1000) / calibration_maxcount);
 
-	while (hrt_absolute_time() < calibration_deadline &&
-	       calibration_counter < calibration_maxcount) {
+		/* calibrate offsets */
+		uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
+		unsigned poll_errcount = 0;
 
-		/* wait blocking for new data */
-		struct pollfd fds[1];
-		fds[0].fd = sub_mag;
-		fds[0].events = POLLIN;
+		mavlink_log_info(mavlink_fd, "rotate in a figure 8 around all axis");
 
-		/* user guidance */
-		if (hrt_absolute_time() >= axis_deadline &&
-		    axis_index < 3) {
+		while (hrt_absolute_time() < calibration_deadline &&
+		       calibration_counter < calibration_maxcount) {
 
-			axis_index++;
+			/* wait blocking for new data */
+			struct pollfd fds[1];
+			fds[0].fd = sub_mag;
+			fds[0].events = POLLIN;
 
-			mavlink_log_info(mavlink_fd, "please rotate in a figure 8 or around %c axis.", axislabels[axis_index]);
-			tune_neutral();
+			int poll_ret = poll(fds, 1, 1000);
 
-			axis_deadline += calibration_interval / 3;
+			if (poll_ret > 0) {
+				orb_copy(ORB_ID(sensor_mag), sub_mag, &mag);
+
+				x[calibration_counter] = mag.x;
+				y[calibration_counter] = mag.y;
+				z[calibration_counter] = mag.z;
+
+				calibration_counter++;
+
+				if (calibration_counter % (calibration_maxcount / 20) == 0)
+					mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20 + (calibration_counter * 50) / calibration_maxcount);
+
+			} else {
+				poll_errcount++;
+			}
+
+			if (poll_errcount > 1000) {
+				mavlink_log_critical(mavlink_fd, CAL_FAILED_SENSOR_MSG);
+				res = ERROR;
+				break;
+			}
 		}
 
-		if (!(axis_index < 3)) {
-			break;
-		}
-
-		int poll_ret = poll(fds, 1, 1000);
-
-		if (poll_ret > 0) {
-			orb_copy(ORB_ID(sensor_mag), sub_mag, &mag);
-
-			x[calibration_counter] = mag.x;
-			y[calibration_counter] = mag.y;
-			z[calibration_counter] = mag.z;
-
-			calibration_counter++;
-			if (calibration_counter % (calibration_maxcount / 20) == 0)
-				mavlink_log_info(mavlink_fd, "mag cal progress <%u> percent", 20 + (calibration_counter * 50) / calibration_maxcount);
-
-
-		} else {
-			poll_errcount++;
-		}
-
-		if (poll_errcount > 1000) {
-			mavlink_log_info(mavlink_fd, "ERROR: Failed reading mag sensor");
-			close(sub_mag);
-			free(x);
-			free(y);
-			free(z);
-			return ERROR;
-		}
-
-
+		close(sub_mag);
 	}
 
 	float sphere_x;
@@ -186,93 +177,100 @@ int do_mag_calibration(int mavlink_fd)
 	float sphere_z;
 	float sphere_radius;
 
-	mavlink_log_info(mavlink_fd, "mag cal progress <70> percent");
-	sphere_fit_least_squares(x, y, z, calibration_counter, 100, 0.0f, &sphere_x, &sphere_y, &sphere_z, &sphere_radius);
-	mavlink_log_info(mavlink_fd, "mag cal progress <80> percent");
+	if (res == OK) {
+		/* sphere fit */
+		mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 70);
+		sphere_fit_least_squares(x, y, z, calibration_counter, 100, 0.0f, &sphere_x, &sphere_y, &sphere_z, &sphere_radius);
+		mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 80);
 
-	free(x);
-	free(y);
-	free(z);
+		if (!isfinite(sphere_x) || !isfinite(sphere_y) || !isfinite(sphere_z)) {
+			mavlink_log_critical(mavlink_fd, "ERROR: NaN in sphere fit");
+			res = ERROR;
+		}
+	}
 
-	if (isfinite(sphere_x) && isfinite(sphere_y) && isfinite(sphere_z)) {
+	if (x != NULL)
+		free(x);
 
-		fd = open(MAG_DEVICE_PATH, 0);
+	if (y != NULL)
+		free(y);
 
+	if (z != NULL)
+		free(z);
+
+	if (res == OK) {
+		/* apply calibration and set parameters */
 		struct mag_scale mscale;
 
-		if (OK != ioctl(fd, MAGIOCGSCALE, (long unsigned int)&mscale))
-			warn("WARNING: failed to get scale / offsets for mag");
+		fd = open(MAG_DEVICE_PATH, 0);
+		res = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&mscale);
 
-		mscale.x_offset = sphere_x;
-		mscale.y_offset = sphere_y;
-		mscale.z_offset = sphere_z;
+		if (res != OK) {
+			mavlink_log_critical(mavlink_fd, "ERROR: failed to get current calibration");
+		}
 
-		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
-			warn("WARNING: failed to set scale / offsets for mag");
+		if (res == OK) {
+			mscale.x_offset = sphere_x;
+			mscale.y_offset = sphere_y;
+			mscale.z_offset = sphere_z;
+
+			res = ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale);
+
+			if (res != OK) {
+				mavlink_log_critical(mavlink_fd, CAL_FAILED_APPLY_CAL_MSG);
+			}
+		}
 
 		close(fd);
 
-		/* announce and set new offset */
+		if (res == OK) {
+			/* set parameters */
+			if (param_set(param_find("SENS_MAG_XOFF"), &(mscale.x_offset)))
+				res = ERROR;
 
-		if (param_set(param_find("SENS_MAG_XOFF"), &(mscale.x_offset))) {
-			warnx("Setting X mag offset failed!\n");
+			if (param_set(param_find("SENS_MAG_YOFF"), &(mscale.y_offset)))
+				res = ERROR;
+
+			if (param_set(param_find("SENS_MAG_ZOFF"), &(mscale.z_offset)))
+				res = ERROR;
+
+			if (param_set(param_find("SENS_MAG_XSCALE"), &(mscale.x_scale)))
+				res = ERROR;
+
+			if (param_set(param_find("SENS_MAG_YSCALE"), &(mscale.y_scale)))
+				res = ERROR;
+
+			if (param_set(param_find("SENS_MAG_ZSCALE"), &(mscale.z_scale)))
+				res = ERROR;
+
+			if (res != OK) {
+				mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
+			}
+
+			mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 90);
 		}
 
-		if (param_set(param_find("SENS_MAG_YOFF"), &(mscale.y_offset))) {
-			warnx("Setting Y mag offset failed!\n");
+		if (res == OK) {
+			/* auto-save to EEPROM */
+			res = param_save_default();
+
+			if (res != OK) {
+				mavlink_log_critical(mavlink_fd, CAL_FAILED_SAVE_PARAMS_MSG);
+			}
 		}
 
-		if (param_set(param_find("SENS_MAG_ZOFF"), &(mscale.z_offset))) {
-			warnx("Setting Z mag offset failed!\n");
+		mavlink_log_info(mavlink_fd, "mag off: x:%.2f y:%.2f z:%.2f Ga", (double)mscale.x_offset,
+				 (double)mscale.y_offset, (double)mscale.z_offset);
+		mavlink_log_info(mavlink_fd, "mag scale: x:%.2f y:%.2f z:%.2f", (double)mscale.x_scale,
+				 (double)mscale.y_scale, (double)mscale.z_scale);
+
+		if (res == OK) {
+			mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
+
+		} else {
+			mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 		}
 
-		if (param_set(param_find("SENS_MAG_XSCALE"), &(mscale.x_scale))) {
-			warnx("Setting X mag scale failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_YSCALE"), &(mscale.y_scale))) {
-			warnx("Setting Y mag scale failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_ZSCALE"), &(mscale.z_scale))) {
-			warnx("Setting Z mag scale failed!\n");
-		}
-
-		mavlink_log_info(mavlink_fd, "mag cal progress <90> percent");
-
-		/* auto-save to EEPROM */
-		int save_ret = param_save_default();
-
-		if (save_ret != 0) {
-			warn("WARNING: auto-save of params to storage failed");
-			mavlink_log_info(mavlink_fd, "FAILED storing calibration");
-			close(sub_mag);
-			return ERROR;
-		}
-
-		warnx("\tscale: %.6f %.6f %.6f\n         \toffset: %.6f %.6f %.6f\nradius: %.6f GA\n",
-		       (double)mscale.x_scale, (double)mscale.y_scale, (double)mscale.z_scale,
-		       (double)mscale.x_offset, (double)mscale.y_offset, (double)mscale.z_offset, (double)sphere_radius);
-
-		char buf[52];
-		sprintf(buf, "mag off: x:%.2f y:%.2f z:%.2f Ga", (double)mscale.x_offset,
-			(double)mscale.y_offset, (double)mscale.z_offset);
-		mavlink_log_info(mavlink_fd, buf);
-
-		sprintf(buf, "mag scale: x:%.2f y:%.2f z:%.2f", (double)mscale.x_scale,
-			(double)mscale.y_scale, (double)mscale.z_scale);
-		mavlink_log_info(mavlink_fd, buf);
-
-		mavlink_log_info(mavlink_fd, "magnetometer calibration completed");
-		mavlink_log_info(mavlink_fd, "mag cal progress <100> percent");
-
-		close(sub_mag);
-		return OK;
-		/* third beep by cal end routine */
-
-	} else {
-		mavlink_log_info(mavlink_fd, "mag calibration FAILED (NaN in sphere fit)");
-		close(sub_mag);
-		return ERROR;
+		return res;
 	}
 }

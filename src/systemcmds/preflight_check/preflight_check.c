@@ -140,7 +140,7 @@ int preflight_check_main(int argc, char *argv[])
 
 	/* ---- RC CALIBRATION ---- */
 
-	bool rc_ok = (OK == rc_calibration_check());
+	bool rc_ok = (OK == rc_calibration_check(mavlink_fd));
 
 	/* warn */
 	if (!rc_ok)

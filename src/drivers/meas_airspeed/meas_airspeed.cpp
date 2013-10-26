@@ -138,10 +138,7 @@ MEASAirspeed::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		return ret;
 	}
-
-	ret = OK;
 
 	return ret;
 }
