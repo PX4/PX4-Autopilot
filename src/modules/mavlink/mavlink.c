@@ -78,6 +78,8 @@
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
 PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
+PARAM_DEFINE_INT32(MAV_MANUAL_CTRL, 0); //nonzero enables mavlink_msg_manual_control
+
 
 __EXPORT int mavlink_main(int argc, char *argv[]);
 
@@ -199,7 +201,7 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 
 	/* arming state */
 	if (v_status.arming_state == ARMING_STATE_ARMED
-			|| v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
+	    || v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
@@ -207,32 +209,43 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 	union px4_custom_mode custom_mode;
 	custom_mode.data = 0;
+
 	if (v_status.main_state == MAIN_STATE_MANUAL) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+
 	} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
+
 	} else if (v_status.main_state == MAIN_STATE_EASY) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
+
 	} else if (v_status.main_state == MAIN_STATE_AUTO) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+
 		if (v_status.navigation_state == NAVIGATION_STATE_AUTO_READY) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+
 		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF;
+
 		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LOITER) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+
 		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+
 		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_RTL) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+
 		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LAND) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		}
 	}
+
 	*mavlink_custom_mode = custom_mode.data;
 
 	/**
@@ -241,17 +254,22 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 
 	/* set calibration state */
 	if (v_status.arming_state == ARMING_STATE_INIT
-			|| v_status.arming_state == ARMING_STATE_IN_AIR_RESTORE
-			|| v_status.arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
+	    || v_status.arming_state == ARMING_STATE_IN_AIR_RESTORE
+	    || v_status.arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
 		*mavlink_state = MAV_STATE_UNINIT;
+
 	} else if (v_status.arming_state == ARMING_STATE_ARMED) {
 		*mavlink_state = MAV_STATE_ACTIVE;
+
 	} else if (v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
 		*mavlink_state = MAV_STATE_CRITICAL;
+
 	} else if (v_status.arming_state == ARMING_STATE_STANDBY) {
 		*mavlink_state = MAV_STATE_STANDBY;
+
 	} else if (v_status.arming_state == ARMING_STATE_REBOOT) {
 		*mavlink_state = MAV_STATE_POWEROFF;
+
 	} else {
 		warnx("Unknown mavlink state");
 		*mavlink_state = MAV_STATE_CRITICAL;
@@ -771,11 +789,11 @@ int mavlink_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		mavlink_task = task_spawn_cmd("mavlink",
-					  SCHED_DEFAULT,
-					  SCHED_PRIORITY_DEFAULT,
-					  2048,
-					  mavlink_thread_main,
-					  (const char **)argv);
+					      SCHED_DEFAULT,
+					      SCHED_PRIORITY_DEFAULT,
+					      2048,
+					      mavlink_thread_main,
+					      (const char **)argv);
 
 		while (!thread_running) {
 			usleep(200);

@@ -131,31 +131,31 @@ enum VEHICLE_MODE_FLAG {
  * Should match 1:1 MAVLink's MAV_TYPE ENUM
  */
 enum VEHICLE_TYPE {
-	VEHICLE_TYPE_GENERIC=0, /* Generic micro air vehicle. | */
-	VEHICLE_TYPE_FIXED_WING=1, /* Fixed wing aircraft. | */
-	VEHICLE_TYPE_QUADROTOR=2, /* Quadrotor | */
-	VEHICLE_TYPE_COAXIAL=3, /* Coaxial helicopter | */
-	VEHICLE_TYPE_HELICOPTER=4, /* Normal helicopter with tail rotor. | */
-	VEHICLE_TYPE_ANTENNA_TRACKER=5, /* Ground installation | */
-	VEHICLE_TYPE_GCS=6, /* Operator control unit / ground control station | */
-	VEHICLE_TYPE_AIRSHIP=7, /* Airship, controlled | */
-	VEHICLE_TYPE_FREE_BALLOON=8, /* Free balloon, uncontrolled | */
-	VEHICLE_TYPE_ROCKET=9, /* Rocket | */
-	VEHICLE_TYPE_GROUND_ROVER=10, /* Ground rover | */
-	VEHICLE_TYPE_SURFACE_BOAT=11, /* Surface vessel, boat, ship | */
-	VEHICLE_TYPE_SUBMARINE=12, /* Submarine | */
-	VEHICLE_TYPE_HEXAROTOR=13, /* Hexarotor | */
-	VEHICLE_TYPE_OCTOROTOR=14, /* Octorotor | */
-	VEHICLE_TYPE_TRICOPTER=15, /* Octorotor | */
-	VEHICLE_TYPE_FLAPPING_WING=16, /* Flapping wing | */
-	VEHICLE_TYPE_KITE=17, /* Kite | */
-	VEHICLE_TYPE_ENUM_END=18, /*  | */
+	VEHICLE_TYPE_GENERIC = 0, /* Generic micro air vehicle. | */
+	VEHICLE_TYPE_FIXED_WING = 1, /* Fixed wing aircraft. | */
+	VEHICLE_TYPE_QUADROTOR = 2, /* Quadrotor | */
+	VEHICLE_TYPE_COAXIAL = 3, /* Coaxial helicopter | */
+	VEHICLE_TYPE_HELICOPTER = 4, /* Normal helicopter with tail rotor. | */
+	VEHICLE_TYPE_ANTENNA_TRACKER = 5, /* Ground installation | */
+	VEHICLE_TYPE_GCS = 6, /* Operator control unit / ground control station | */
+	VEHICLE_TYPE_AIRSHIP = 7, /* Airship, controlled | */
+	VEHICLE_TYPE_FREE_BALLOON = 8, /* Free balloon, uncontrolled | */
+	VEHICLE_TYPE_ROCKET = 9, /* Rocket | */
+	VEHICLE_TYPE_GROUND_ROVER = 10, /* Ground rover | */
+	VEHICLE_TYPE_SURFACE_BOAT = 11, /* Surface vessel, boat, ship | */
+	VEHICLE_TYPE_SUBMARINE = 12, /* Submarine | */
+	VEHICLE_TYPE_HEXAROTOR = 13, /* Hexarotor | */
+	VEHICLE_TYPE_OCTOROTOR = 14, /* Octorotor | */
+	VEHICLE_TYPE_TRICOPTER = 15, /* Octorotor | */
+	VEHICLE_TYPE_FLAPPING_WING = 16, /* Flapping wing | */
+	VEHICLE_TYPE_KITE = 17, /* Kite | */
+	VEHICLE_TYPE_ENUM_END = 18, /*  | */
 };
 
 enum VEHICLE_BATTERY_WARNING {
-    VEHICLE_BATTERY_WARNING_NONE = 0,	/**< no battery low voltage warning active */
-    VEHICLE_BATTERY_WARNING_LOW,	/**< warning of low voltage */
-    VEHICLE_BATTERY_WARNING_CRITICAL	/**< alerting of critical voltage */
+	VEHICLE_BATTERY_WARNING_NONE = 0,	/**< no battery low voltage warning active */
+	VEHICLE_BATTERY_WARNING_LOW,	/**< warning of low voltage */
+	VEHICLE_BATTERY_WARNING_CRITICAL	/**< alerting of critical voltage */
 };
 
 /**
@@ -168,8 +168,7 @@ enum VEHICLE_BATTERY_WARNING {
  *
  * Encodes the complete system state and is set by the commander app.
  */
-struct vehicle_status_s
-{
+struct vehicle_status_s {
 	/* use of a counter and timestamp recommended (but not necessary) */
 
 	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
@@ -204,19 +203,19 @@ struct vehicle_status_s
 	bool condition_airspeed_valid;			/**< set to true by the commander app if there is a valid airspeed measurement available */
 	bool condition_landed;					/**< true if vehicle is landed, always true if disarmed */
 
-	bool rc_signal_found_once;
-	bool rc_signal_lost;				/**< true if RC reception lost */
+	bool manual_control_signal_found_once; /**< we received a manual control signal at least once */
+	bool manual_control_signal_lost; /**< we haven't received manual control update in a while, and manual_control_signal_found_once is true  */
+	uint64_t   manual_control_last_timestamp; /**< last time we received a manual control message: reset to zero when lost */
 
-	bool offboard_control_signal_found_once;
-	bool offboard_control_signal_lost;
-	bool offboard_control_signal_weak;
-	uint64_t offboard_control_signal_lost_interval;	/**< interval in microseconds without an offboard control message */
+	bool offboard_control_signal_found_once; /**< we received an offboard control signal at least once */
+	bool offboard_control_signal_lost; /**< true if offboard signals lost and offboard_control_signal_found_once is true */
+	uint64_t  offboard_control_last_timestamp;/**< last time we received an offboard control message: reset to zero when lost */
 
 	/* see SYS_STATUS mavlink message for the following */
 	uint32_t onboard_control_sensors_present;
 	uint32_t onboard_control_sensors_enabled;
 	uint32_t onboard_control_sensors_health;
-	
+
 	float load;					/**< processor load from 0 to 1 */
 	float battery_voltage;
 	float battery_current;
