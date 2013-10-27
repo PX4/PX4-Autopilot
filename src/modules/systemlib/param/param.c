@@ -508,64 +508,63 @@ param_get_default_file(void)
 int
 param_save_default(void)
 {
-	int result;
-	unsigned retries = 0;
-
-	/* delete the file in case it exists */
-	struct stat buffer;
-	if (stat(param_get_default_file(), &buffer) == 0) {
-
-		do {
-			result = unlink(param_get_default_file());
-			if (result != 0) {
-				retries++;
-				usleep(1000 * retries);
-			}
-		} while (result != OK && retries < 10);
-
-		if (result != OK)
-			warnx("unlinking file %s failed.", param_get_default_file());
-	}
-
-	/* create the file */
+	int res;
 	int fd;
 
-	do {
-		/* do another attempt in case the unlink call is not synced yet */
-		fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
+	const char *filename = param_get_default_file();
+	const char *filename_tmp = malloc(strlen(filename) + 5);
+	sprintf(filename_tmp, "%s.tmp", filename);
+
+	/* delete temp file if exist */
+	res = unlink(filename_tmp);
+
+	if (res != OK && errno == ENOENT)
+		res = OK;
+
+	if (res != OK)
+		warn("failed to delete temp file: %s", filename_tmp);
+
+	if (res == OK) {
+		/* write parameters to temp file */
+		fd = open(filename_tmp, O_WRONLY | O_CREAT | O_EXCL);
+
 		if (fd < 0) {
-			retries++;
-			usleep(1000 * retries);
+			warn("failed to open temp file: %s", filename_tmp);
+			res = ERROR;
 		}
 
-	} while (fd < 0 && retries < 10);
+		if (res == OK) {
+			res = param_export(fd, false);
 
-	if (fd < 0) {
-		
-		warn("opening '%s' for writing failed", param_get_default_file());
-		return fd;
-	}
-
-	do {
-		result = param_export(fd, false);
-
-		if (result != OK) {
-			retries++;
-			usleep(1000 * retries);
+			if (res != OK)
+				warnx("failed to write parameters to file: %s", filename_tmp);
 		}
 
-	} while (result != 0 && retries < 10);
-
-
-	close(fd);
-
-	if (result != OK) {
-		warn("error exporting parameters to '%s'", param_get_default_file());
-		(void)unlink(param_get_default_file());
-		return result;
+		close(fd);
 	}
 
-	return 0;
+	if (res == OK) {
+		/* delete parameters file */
+		res = unlink(filename);
+
+		if (res != OK && errno == ENOENT)
+			res = OK;
+
+		if (res != OK)
+			warn("failed to delete parameters file: %s", filename);
+	}
+
+	if (res == OK) {
+		/* rename temp file to parameters */
+		res = rename(filename_tmp, filename);
+
+		if (res != OK)
+			warn("failed to rename %s to %s", filename_tmp, filename);
+	}
+
+	free(filename_tmp);
+
+	return res;
 }
 
 /**
