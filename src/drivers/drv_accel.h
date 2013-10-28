@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Accelerometer driver interface.
+ * @file drv_accel.h
+ *
+ * Accelerometer driver interface.
  */
 
 #ifndef _DRV_ACCEL_H

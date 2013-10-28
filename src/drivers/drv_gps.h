@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file GPS driver interface.
+ * @file drv_gps.h
+ *
+ * GPS driver interface.
  */
 
 #ifndef _DRV_GPS_H
