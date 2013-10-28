@@ -159,9 +159,6 @@ user_start(int argc, char *argv[])
 	/* start the FMU interface */
 	interface_init();
 
-	/* add a performance counter for the interface */
-	perf_counter_t interface_perf = perf_alloc(PC_ELAPSED, "interface");
-
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
 
@@ -203,11 +200,6 @@ user_start(int argc, char *argv[])
 		/* track the rate at which the loop is running */
 		perf_count(loop_perf);
 
-		/* kick the interface */
-		perf_begin(interface_perf);
-		interface_tick();
-		perf_end(interface_perf);
-
 		/* kick the mixer */
 		perf_begin(mixer_perf);
 		mixer_tick();
@@ -218,6 +210,7 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
+#if 0
 		/* check for debug activity */
 		show_debug_messages();
 
@@ -234,6 +227,7 @@ user_start(int argc, char *argv[])
 				  (unsigned)minfo.mxordblk);
 			last_debug_time = hrt_absolute_time();
 		}
+#endif
 	}
 }
 
