@@ -82,19 +82,24 @@ static const int ERROR = -1;
 
 /* register addresses: A: accel, M: mag, T: temp */
 #define ADDR_WHO_AM_I			0x0F
-#define WHO_I_AM				0x49
+#define WHO_I_AM			0x49
 
-#define ADDR_OUT_L_T         	0x05
-#define ADDR_OUT_H_T        	0x06
-#define ADDR_STATUS_M           0x07
-#define ADDR_OUT_X_L_M          0x08
-#define ADDR_OUT_X_H_M          0x09
-#define ADDR_OUT_Y_L_M          0x0A
-#define ADDR_OUT_Y_H_M          0x0B
-#define ADDR_OUT_Z_L_M          0x0C
-#define ADDR_OUT_Z_H_M          0x0D
+#define ADDR_OUT_TEMP_L			0x05
+#define ADDR_OUT_TEMP_H			0x05
+#define ADDR_STATUS_M			0x07
+#define ADDR_OUT_X_L_M          	0x08
+#define ADDR_OUT_X_H_M          	0x09
+#define ADDR_OUT_Y_L_M          	0x0A
+#define ADDR_OUT_Y_H_M			0x0B
+#define ADDR_OUT_Z_L_M			0x0C
+#define ADDR_OUT_Z_H_M			0x0D
 
-#define ADDR_OUT_TEMP_A			0x26
+#define ADDR_INT_CTRL_M			0x12
+#define ADDR_INT_SRC_M			0x13
+#define ADDR_REFERENCE_X		0x1c
+#define ADDR_REFERENCE_Y		0x1d
+#define ADDR_REFERENCE_Z		0x1e
+
 #define ADDR_STATUS_A			0x27
 #define ADDR_OUT_X_L_A			0x28
 #define ADDR_OUT_X_H_A			0x29
@@ -111,6 +116,26 @@ static const int ERROR = -1;
 #define ADDR_CTRL_REG5			0x24
 #define ADDR_CTRL_REG6			0x25
 #define ADDR_CTRL_REG7			0x26
+
+#define ADDR_FIFO_CTRL			0x2e
+#define ADDR_FIFO_SRC			0x2f
+
+#define ADDR_IG_CFG1			0x30
+#define ADDR_IG_SRC1			0x31
+#define ADDR_IG_THS1			0x32
+#define ADDR_IG_DUR1			0x33
+#define ADDR_IG_CFG2			0x34
+#define ADDR_IG_SRC2			0x35
+#define ADDR_IG_THS2			0x36
+#define ADDR_IG_DUR2			0x37
+#define ADDR_CLICK_CFG			0x38
+#define ADDR_CLICK_SRC			0x39
+#define ADDR_CLICK_THS			0x3a
+#define ADDR_TIME_LIMIT			0x3b
+#define ADDR_TIME_LATENCY		0x3c
+#define ADDR_TIME_WINDOW		0x3d
+#define ADDR_ACT_THS			0x3e
+#define ADDR_ACT_DUR			0x3f
 
 #define REG1_RATE_BITS_A		((1<<7) | (1<<6) | (1<<5) | (1<<4))
 #define REG1_POWERDOWN_A		((0<<7) | (0<<6) | (0<<5) | (0<<4))
