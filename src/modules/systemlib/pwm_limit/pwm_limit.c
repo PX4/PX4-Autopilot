@@ -100,7 +100,7 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 
 				temp_pwm = output[i] * (max_pwm[i] - min_pwm[i])/2 + (max_pwm[i] + min_pwm[i])/2;
 				/* already follow user/controller input if higher than min_pwm */
-				effective_pwm[i] = (disarmed_pwm[i]*(10000-progress) + (temp_pwm > min_pwm[i] ? temp_pwm : min_pwm[i])*progress)/10000;
+				effective_pwm[i] = (temp_pwm > min_pwm[i]) ? temp_pwm : ((disarmed_pwm[i]*(10000-progress) + min_pwm[i])*progress) / 10000;
 				output[i] = (float)progress/10000.0f * output[i];
 			}
 			break;
