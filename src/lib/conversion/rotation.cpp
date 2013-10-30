@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,40 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file drv_gps.h
+ * @file rotation.cpp
  *
- * GPS driver interface.
+ * Vector rotation library
  */
 
-#ifndef _DRV_GPS_H
-#define _DRV_GPS_H
+#include "math.h"
+#include "rotation.h"
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+__EXPORT void
+get_rot_matrix(enum Rotation rot, math::Matrix *rot_matrix)
+{
+	/* first set to zero */
+	rot_matrix->Matrix::zero(3, 3);
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+	float roll  = M_DEG_TO_RAD_F * (float)rot_lookup[rot].roll;
+	float pitch = M_DEG_TO_RAD_F * (float)rot_lookup[rot].pitch;
+	float yaw   = M_DEG_TO_RAD_F * (float)rot_lookup[rot].yaw;
 
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
+	math::EulerAngles euler(roll, pitch, yaw);
 
-#define GPS_DEVICE_PATH	"/dev/gps"
+	math::Dcm R(euler);
 
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK
-} gps_driver_mode_t;
-
-
-/*
- * ObjDev tag for GPS data.
- */
-ORB_DECLARE(gps);
-
-/*
- * ioctl() definitions
- */
-#define _GPSIOCBASE			(0x2800)            //TODO: arbitrary choice...
-#define _GPSIOC(_n)		(_IOC(_GPSIOCBASE, _n))
-
-#endif /* _DRV_GPS_H */
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			(*rot_matrix)(i, j) = R(i, j);
+		}
+	}
+}

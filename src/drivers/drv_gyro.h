@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Gyroscope driver interface.
+ * @file drv_gyro.h
+ *
+ * Gyroscope driver interface.
  */
 
 #ifndef _DRV_GYRO_H

@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,40 +33,25 @@
  ****************************************************************************/
 
 /**
- * @file drv_gps.h
+ * @file calibration_messages.h
  *
- * GPS driver interface.
+ * Common calibration messages.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef _DRV_GPS_H
-#define _DRV_GPS_H
+#ifndef CALIBRATION_MESSAGES_H_
+#define CALIBRATION_MESSAGES_H_
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#define CAL_STARTED_MSG	"%s calibration: started"
+#define CAL_DONE_MSG	"%s calibration: done"
+#define CAL_FAILED_MSG	"%s calibration: failed"
+#define CAL_PROGRESS_MSG	"%s calibration: progress <%u>"
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+#define CAL_FAILED_SENSOR_MSG	"ERROR: failed reading sensor"
+#define CAL_FAILED_RESET_CAL_MSG	"ERROR: failed to reset calibration"
+#define CAL_FAILED_APPLY_CAL_MSG	"ERROR: failed to apply calibration"
+#define CAL_FAILED_SET_PARAMS_MSG	"ERROR: failed to set parameters"
+#define CAL_FAILED_SAVE_PARAMS_MSG	"ERROR: failed to save parameters"
 
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
-
-#define GPS_DEVICE_PATH	"/dev/gps"
-
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK
-} gps_driver_mode_t;
-
-
-/*
- * ObjDev tag for GPS data.
- */
-ORB_DECLARE(gps);
-
-/*
- * ioctl() definitions
- */
-#define _GPSIOCBASE			(0x2800)            //TODO: arbitrary choice...
-#define _GPSIOC(_n)		(_IOC(_GPSIOCBASE, _n))
-
-#endif /* _DRV_GPS_H */
+#endif /* CALIBRATION_MESSAGES_H_ */

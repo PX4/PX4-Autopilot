@@ -31,7 +31,9 @@
  *
  ****************************************************************************/
 
-/*
+/**
+ * @file drv_tone_alarm.h
+ *
  * Driver for the PX4 audio alarm port, /dev/tone_alarm.
  *
  * The tone_alarm driver supports a set of predefined "alarm"

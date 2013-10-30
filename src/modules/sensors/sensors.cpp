@@ -67,6 +67,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
+#include <conversion/rotation.h>
 
 #include <systemlib/airspeed.h>
 
@@ -74,6 +75,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
@@ -136,75 +138,6 @@
 #define limit_minus_one_to_one(arg) (arg < -1.0f) ? -1.0f : ((arg > 1.0f) ? 1.0f : arg)
 
 /**
- * Enum for board and external compass rotations.
- * This enum maps from board attitude to airframe attitude.
- */
-enum Rotation {
-	ROTATION_NONE                = 0,
-	ROTATION_YAW_45              = 1,
-	ROTATION_YAW_90              = 2,
-	ROTATION_YAW_135             = 3,
-	ROTATION_YAW_180             = 4,
-	ROTATION_YAW_225             = 5,
-	ROTATION_YAW_270             = 6,
-	ROTATION_YAW_315             = 7,
-	ROTATION_ROLL_180            = 8,
-	ROTATION_ROLL_180_YAW_45     = 9,
-	ROTATION_ROLL_180_YAW_90     = 10,
-	ROTATION_ROLL_180_YAW_135    = 11,
-	ROTATION_PITCH_180           = 12,
-	ROTATION_ROLL_180_YAW_225    = 13,
-	ROTATION_ROLL_180_YAW_270    = 14,
-	ROTATION_ROLL_180_YAW_315    = 15,
-	ROTATION_ROLL_90             = 16,
-	ROTATION_ROLL_90_YAW_45      = 17,
-	ROTATION_ROLL_90_YAW_90      = 18,
-	ROTATION_ROLL_90_YAW_135     = 19,
-	ROTATION_ROLL_270            = 20,
-	ROTATION_ROLL_270_YAW_45     = 21,
-	ROTATION_ROLL_270_YAW_90     = 22,
-	ROTATION_ROLL_270_YAW_135    = 23,
-	ROTATION_PITCH_90            = 24,
-	ROTATION_PITCH_270           = 25,
-	ROTATION_MAX
-};
-
-typedef struct {
-	uint16_t roll;
-	uint16_t pitch;
-	uint16_t yaw;
-} rot_lookup_t;
-
-const rot_lookup_t rot_lookup[] = {
-	{  0,   0,   0 },
-	{  0,   0,  45 },
-	{  0,   0,  90 },
-	{  0,   0, 135 },
-	{  0,   0, 180 },
-	{  0,   0, 225 },
-	{  0,   0, 270 },
-	{  0,   0, 315 },
-	{180,   0,   0 },
-	{180,   0,  45 },
-	{180,   0,  90 },
-	{180,   0, 135 },
-	{  0, 180,   0 },
-	{180,   0, 225 },
-	{180,   0, 270 },
-	{180,   0, 315 },
-	{ 90,   0,   0 },
-	{ 90,   0,  45 },
-	{ 90,   0,  90 },
-	{ 90,   0, 135 },
-	{270,   0,   0 },
-	{270,   0,  45 },
-	{270,   0,  90 },
-	{270,   0, 135 },
-	{  0,  90,   0 },
-	{  0, 270,   0 }
-};
-
-/**
  * Sensor app start / stop handling function
  *
  * @ingroup apps
@@ -264,6 +197,7 @@ private:
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
+	orb_advert_t	_actuator_group_3_pub;		/**< manual control as actuator topic */
 	orb_advert_t	_rc_pub;			/**< raw r/c control topic */
 	orb_advert_t	_battery_pub;			/**< battery status */
 	orb_advert_t	_airspeed_pub;			/**< airspeed */
@@ -383,11 +317,6 @@ private:
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
-
-	/**
-	 * Get the rotation matrices
-	 */
-	void		get_rot_matrix(enum Rotation rot, math::Matrix *rot_matrix);
 
 	/**
 	 * Do accel-related initialisation.
@@ -519,6 +448,7 @@ Sensors::Sensors() :
 /* publications */
 	_sensor_pub(-1),
 	_manual_control_pub(-1),
+	_actuator_group_3_pub(-1),
 	_rc_pub(-1),
 	_battery_pub(-1),
 	_airspeed_pub(-1),
@@ -801,24 +731,6 @@ Sensors::parameters_update()
 	get_rot_matrix((enum Rotation)_parameters.external_mag_rotation, &_external_mag_rotation);
 
 	return OK;
-}
-
-void
-Sensors::get_rot_matrix(enum Rotation rot, math::Matrix *rot_matrix)
-{
-	/* first set to zero */
-	rot_matrix->Matrix::zero(3, 3);
-
-	float roll  = M_DEG_TO_RAD_F * (float)rot_lookup[rot].roll;
-	float pitch = M_DEG_TO_RAD_F * (float)rot_lookup[rot].pitch;
-	float yaw   = M_DEG_TO_RAD_F * (float)rot_lookup[rot].yaw;
-
-	math::EulerAngles euler(roll, pitch, yaw);
-
-	math::Dcm R(euler);
-
-	for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
-			(*rot_matrix)(i, j) = R(i, j);
 }
 
 void
@@ -1318,6 +1230,7 @@ Sensors::rc_poll()
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 
 		struct manual_control_setpoint_s manual_control;
+		struct actuator_controls_s actuator_group_3;
 
 		/* initialize to default values */
 		manual_control.roll = NAN;
@@ -1485,6 +1398,16 @@ Sensors::rc_poll()
 			manual_control.aux5 = limit_minus_one_to_one(_rc.chan[_rc.function[AUX_5]].scaled);
 		}
 
+		/* copy from mapped manual control to control group 3 */
+		actuator_group_3.control[0] = manual_control.roll;
+		actuator_group_3.control[1] = manual_control.pitch;
+		actuator_group_3.control[2] = manual_control.yaw;
+		actuator_group_3.control[3] = manual_control.throttle;
+		actuator_group_3.control[4] = manual_control.flaps;
+		actuator_group_3.control[5] = manual_control.aux1;
+		actuator_group_3.control[6] = manual_control.aux2;
+		actuator_group_3.control[7] = manual_control.aux3;
+
 		/* check if ready for publishing */
 		if (_rc_pub > 0) {
 			orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
@@ -1500,6 +1423,14 @@ Sensors::rc_poll()
 
 		} else {
 			_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
+		}
+
+		/* check if ready for publishing */
+		if (_actuator_group_3_pub > 0) {
+			orb_publish(ORB_ID(actuator_controls_3), _actuator_group_3_pub, &actuator_group_3);
+
+		} else {
+			_actuator_group_3_pub = orb_advertise(ORB_ID(actuator_controls_3), &actuator_group_3);
 		}
 	}
 

@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,40 +33,30 @@
  ****************************************************************************/
 
 /**
- * @file drv_gps.h
+ * @file sdlog2_version.h
  *
- * GPS driver interface.
+ * Tools for system version detection.
+ *
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#ifndef _DRV_GPS_H
-#define _DRV_GPS_H
-
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
-
-#define GPS_DEVICE_PATH	"/dev/gps"
-
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK
-} gps_driver_mode_t;
-
+#ifndef SDLOG2_VERSION_H_
+#define SDLOG2_VERSION_H_
 
 /*
- * ObjDev tag for GPS data.
+ GIT_VERSION is defined at build time via a Makefile call to the
+ git command line.
  */
-ORB_DECLARE(gps);
+#define FREEZE_STR(s) #s
+#define STRINGIFY(s) FREEZE_STR(s)
+#define FW_GIT STRINGIFY(GIT_VERSION)
 
-/*
- * ioctl() definitions
- */
-#define _GPSIOCBASE			(0x2800)            //TODO: arbitrary choice...
-#define _GPSIOC(_n)		(_IOC(_GPSIOCBASE, _n))
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
+#define	HW_ARCH "PX4FMU_V1"
+#endif
 
-#endif /* _DRV_GPS_H */
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#define	HW_ARCH "PX4FMU_V2"
+#endif
+
+#endif /* SDLOG2_VERSION_H_ */

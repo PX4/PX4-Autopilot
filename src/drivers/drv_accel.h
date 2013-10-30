@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Accelerometer driver interface.
+ * @file drv_accel.h
+ *
+ * Accelerometer driver interface.
  */
 
 #ifndef _DRV_ACCEL_H
@@ -66,7 +68,7 @@ struct accel_report {
 	int16_t temperature_raw;
 };
 
-/** accel scaling factors; Vout = (Vin * Vscale) + Voffset */
+/** accel scaling factors; Vout = Vscale * (Vin + Voffset) */
 struct accel_scale {
 	float	x_offset;
 	float	x_scale;
