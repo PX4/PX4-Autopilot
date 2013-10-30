@@ -61,6 +61,8 @@ then
 	mavlink start -d /dev/ttyS1 -b 115200
 	usleep 5000
 
+	commander start
+
 	sh /etc/init.d/rc.io
 else
 	fmu mode_pwm

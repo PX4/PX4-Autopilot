@@ -59,6 +59,8 @@ then
 	mavlink start
 	usleep 5000
 
+	commander start
+
 	sh /etc/init.d/rc.io
 	# Set PWM values for DJI ESCs
 else
