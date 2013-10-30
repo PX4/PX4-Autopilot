@@ -1093,6 +1093,20 @@ fmu_start(void)
 	return ret;
 }
 
+int
+fmu_stop(void)
+{
+	int ret = OK;
+
+	if (g_fmu != nullptr) {
+
+		delete g_fmu;
+		g_fmu = nullptr;
+	}
+
+	return ret;
+}
+
 void
 test(void)
 {
@@ -1223,6 +1237,12 @@ fmu_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[1];
+
+	if (!strcmp(verb, "stop")) {
+		fmu_stop();
+		errx(0, "FMU driver stopped");
+	}
+
 
 	if (fmu_start() != OK)
 		errx(1, "failed to start the FMU driver");
