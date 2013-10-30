@@ -167,12 +167,12 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	case 921600: speed = B921600; break;
 
 	default:
-		fprintf(stderr, "[mavlink] ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baud);
+		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600", baud);
 		return -EINVAL;
 	}
 
 	/* open uart */
-	printf("[mavlink] UART is %s, baudrate is %d\n", uart_name, baud);
+	warnx("UART is %s, baudrate is %d", uart_name, baud);
 	uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
@@ -183,7 +183,7 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	if (strcmp(uart_name, "/dev/ttyACM0") != OK) {
 		/* Back up the original uart configuration to restore it after exit */
 		if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-			fprintf(stderr, "[mavlink] ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
+			warnx("ERROR getting baudrate / termios config for %s: %d", uart_name, termios_state);
 			close(uart);
 			return -1;
 		}
@@ -196,14 +196,14 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			fprintf(stderr, "[mavlink] ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+			warnx("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)", uart_name, termios_state);
 			close(uart);
 			return -1;
 		}
 
 
 		if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-			fprintf(stderr, "[mavlink] ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+			warnx("ERROR setting baudrate / termios config for %s (tcsetattr)", uart_name);
 			close(uart);
 			return -1;
 		}
@@ -481,9 +481,9 @@ int mavlink_thread_main(int argc, char *argv[])
 static void
 usage()
 {
-	fprintf(stderr, "usage: mavlink start [-d <devicename>] [-b <baud rate>]\n"
-			"       mavlink stop\n"
-			"       mavlink status\n");
+	fprintf(stderr, "usage: mavlink_onboard start [-d <devicename>] [-b <baud rate>]\n"
+			"       mavlink_onboard stop\n"
+			"       mavlink_onboard status\n");
 	exit(1);
 }
 
@@ -499,7 +499,7 @@ int mavlink_onboard_main(int argc, char *argv[])
 
 		/* this is not an error */
 		if (thread_running)
-			errx(0, "mavlink already running\n");
+			errx(0, "already running");
 
 		thread_should_exit = false;
 		mavlink_task = task_spawn_cmd("mavlink_onboard",
@@ -516,7 +516,7 @@ int mavlink_onboard_main(int argc, char *argv[])
 		while (thread_running) {
 			usleep(200000);
 		}
-		warnx("terminated.");
+		warnx("terminated");
 		exit(0);
 	}
 

@@ -65,6 +65,7 @@
 
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
@@ -148,10 +149,7 @@ private:
 	work_s			_work;
 	unsigned		_measure_ticks;
 
-	unsigned		_num_reports;
-	volatile unsigned	_next_report;
-	volatile unsigned	_oldest_report;
-	mag_report		*_reports;
+	RingBuffer		*_reports;
 	mag_scale		_scale;
 	float 			_range_scale;
 	float 			_range_ga;
@@ -310,9 +308,6 @@ private:
 
 };
 
-/* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
-
 /*
  * Driver 'main' command.
  */
@@ -322,9 +317,6 @@ extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 HMC5883::HMC5883(int bus) :
 	I2C("HMC5883", MAG_DEVICE_PATH, bus, HMC5883L_ADDRESS, 400000),
 	_measure_ticks(0),
-	_num_reports(0),
-	_next_report(0),
-	_oldest_report(0),
 	_reports(nullptr),
 	_range_scale(0), /* default range scale from counts to gauss */
 	_range_ga(1.3f),
@@ -356,9 +348,8 @@ HMC5883::~HMC5883()
 	/* make sure we are truly inactive */
 	stop();
 
-	/* free any existing reports */
 	if (_reports != nullptr)
-		delete[] _reports;
+		delete _reports;
 
 	// free perf counters
 	perf_free(_sample_perf);
@@ -375,21 +366,18 @@ HMC5883::init()
 	if (I2C::init() != OK)
 		goto out;
 
-	/* reset the device configuration */
-	reset();
-
 	/* allocate basic report buffers */
-	_num_reports = 2;
-	_reports = new struct mag_report[_num_reports];
-
+	_reports = new RingBuffer(2, sizeof(mag_report));
 	if (_reports == nullptr)
 		goto out;
 
-	_oldest_report = _next_report = 0;
+	/* reset the device configuration */
+	reset();
 
 	/* get a publish handle on the mag topic */
-	memset(&_reports[0], 0, sizeof(_reports[0]));
-	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &_reports[0]);
+	struct mag_report zero_report;
+	memset(&zero_report, 0, sizeof(zero_report));
+	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &zero_report);
 
 	if (_mag_topic < 0)
 		debug("failed to create sensor_mag object");
@@ -493,6 +481,7 @@ ssize_t
 HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct mag_report);
+	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -501,17 +490,15 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 
 	/* if automatic measurement is enabled */
 	if (_measure_ticks > 0) {
-
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 * Note that we may be pre-empted by the workq thread while we are doing this;
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_oldest_report != _next_report) {
-				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
-				ret += sizeof(_reports[0]);
-				INCREMENT(_oldest_report, _num_reports);
+			if (_reports->get(mag_buf)) {
+				ret += sizeof(struct mag_report);
+				mag_buf++;
 			}
 		}
 
@@ -522,7 +509,7 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 	/* manual measurement - run one conversion */
 	/* XXX really it'd be nice to lock against other readers here */
 	do {
-		_oldest_report = _next_report = 0;
+		_reports->flush();
 
 		/* trigger a measurement */
 		if (OK != measure()) {
@@ -539,10 +526,9 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 			break;
 		}
 
-		/* state machine will have generated a report, copy it out */
-		memcpy(buffer, _reports, sizeof(*_reports));
-		ret = sizeof(*_reports);
-
+		if (_reports->get(mag_buf)) {
+			ret = sizeof(struct mag_report);
+		}
 	} while (0);
 
 	return ret;
@@ -615,31 +601,22 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return 1000000/TICK2USEC(_measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
-			/* add one to account for the sentinel in the ring */
-			arg++;
-
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 2) || (arg > 100))
+			if ((arg < 1) || (arg > 100))
 				return -EINVAL;
 
-			/* allocate new buffer */
-			struct mag_report *buf = new struct mag_report[arg];
-
-			if (nullptr == buf)
+			irqstate_t flags = irqsave();
+			if (!_reports->resize(arg)) {
+				irqrestore(flags);
 				return -ENOMEM;
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop();
-			delete[] _reports;
-			_num_reports = arg;
-			_reports = buf;
-			start();
+			}
+			irqrestore(flags);
 
 			return OK;
 		}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports - 1;
+		return _reports->size();
 
 	case SENSORIOCRESET:
 		return reset();
@@ -701,7 +678,7 @@ HMC5883::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
-	_oldest_report = _next_report = 0;
+	_reports->flush();
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&HMC5883::cycle_trampoline, this, 1);
@@ -810,9 +787,11 @@ HMC5883::collect()
 
 
 	perf_begin(_sample_perf);
+	struct mag_report new_report;
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
-	_reports[_next_report].timestamp = hrt_absolute_time();
+	new_report.timestamp = hrt_absolute_time();
+        new_report.error_count = perf_event_count(_comms_errors);
 
 	/*
 	 * @note  We could read the status register here, which could tell us that
@@ -842,8 +821,10 @@ HMC5883::collect()
 	 */
 	if ((abs(report.x) > 2048) ||
 	    (abs(report.y) > 2048) ||
-	    (abs(report.z) > 2048))
+	    (abs(report.z) > 2048)) {
+		perf_count(_comms_errors);
 		goto out;
+	}
 
 	/*
 	 * RAW outputs
@@ -851,10 +832,10 @@ HMC5883::collect()
 	 * to align the sensor axes with the board, x and y need to be flipped
 	 * and y needs to be negated
 	 */
-	_reports[_next_report].x_raw = report.y;
-	_reports[_next_report].y_raw = ((report.x == -32768) ? 32767 : -report.x);
+	new_report.x_raw = report.y;
+	new_report.y_raw = -report.x;
 	/* z remains z */
-	_reports[_next_report].z_raw = report.z;
+	new_report.z_raw = report.z;
 
 	/* scale values for output */
 
@@ -876,34 +857,30 @@ HMC5883::collect()
 #ifdef PX4_I2C_BUS_ONBOARD
 	if (_bus == PX4_I2C_BUS_ONBOARD) {
 		/* to align the sensor axes with the board, x and y need to be flipped */
-		_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+		new_report.x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
 		/* flip axes and negate value for y */
-		_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
+		new_report.y = ((-report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
 		/* z remains z */
-		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+		new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 	} else {
 #endif
 		/* the standard external mag by 3DR has x pointing to the right, y pointing backwards, and z down,
 		 * therefore switch x and y and invert y */
-		_reports[_next_report].x = ((((report.y == -32768) ? 32767 : -report.y) * _range_scale) - _scale.x_offset) * _scale.x_scale;
+		new_report.x = ((-report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
 		/* flip axes and negate value for y */
-		_reports[_next_report].y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
+		new_report.y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
 		/* z remains z */
-		_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
+		new_report.z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 #ifdef PX4_I2C_BUS_ONBOARD
 	}
 #endif
 
 	/* publish it */
-	orb_publish(ORB_ID(sensor_mag), _mag_topic, &_reports[_next_report]);
+	orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_report, _num_reports);
-
-	/* if we are running up against the oldest report, toss it */
-	if (_next_report == _oldest_report) {
+	/* post a report to the ring */
+	if (_reports->force(&new_report)) {
 		perf_count(_buffer_overflows);
-		INCREMENT(_oldest_report, _num_reports);
 	}
 
 	/* notify anyone waiting for data */
@@ -1222,8 +1199,7 @@ HMC5883::print_info()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
-	printf("report queue:   %u (%u/%u @ %p)\n",
-	       _num_reports, _oldest_report, _next_report, _reports);
+	_reports->print_info("report queue");
 }
 
 /**
@@ -1332,7 +1308,7 @@ test()
 		errx(1, "failed to get if mag is onboard or external");
 	warnx("device active: %s", ret ? "external" : "onboard");
 
-	/* set the queue depth to 10 */
+	/* set the queue depth to 5 */
 	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
 		errx(1, "failed to set queue depth");
 

@@ -67,6 +67,7 @@ extern bool gcs_link;
 
 struct vehicle_global_position_s global_pos;
 struct vehicle_local_position_s local_pos;
+struct navigation_capabilities_s nav_cap;
 struct vehicle_status_s v_status;
 struct rc_channels_s rc;
 struct rc_input_values rc_raw;
@@ -99,6 +100,8 @@ struct listener {
 	uintptr_t	arg;
 };
 
+uint16_t cm_uint16_from_m_float(float m);
+
 static void	l_sensor_combined(const struct listener *l);
 static void	l_vehicle_attitude(const struct listener *l);
 static void	l_vehicle_gps_position(const struct listener *l);
@@ -120,6 +123,7 @@ static void	l_optical_flow(const struct listener *l);
 static void	l_vehicle_rates_setpoint(const struct listener *l);
 static void	l_home(const struct listener *l);
 static void	l_airspeed(const struct listener *l);
+static void	l_nav_cap(const struct listener *l);
 
 static const struct listener listeners[] = {
 	{l_sensor_combined,		&mavlink_subs.sensor_sub,	0},
@@ -146,9 +150,23 @@ static const struct listener listeners[] = {
 	{l_vehicle_rates_setpoint,	&mavlink_subs.rates_setpoint_sub,	0},
 	{l_home,			&mavlink_subs.home_sub,		0},
 	{l_airspeed,			&mavlink_subs.airspeed_sub,		0},
+	{l_nav_cap,			&mavlink_subs.navigation_capabilities_sub,		0},
 };
 
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
+
+uint16_t
+cm_uint16_from_m_float(float m)
+{
+	if (m < 0.0f) {
+		return 0;
+
+	} else if (m > 655.35f) {
+		return 65535;
+	}
+
+	return (uint16_t)(m * 100.0f);
+}
 
 void
 l_sensor_combined(const struct listener *l)
@@ -235,8 +253,10 @@ l_vehicle_gps_position(const struct listener *l)
 
 	/* GPS COG is 0..2PI in degrees * 1e2 */
 	float cog_deg = gps.cog_rad;
+
 	if (cog_deg > M_PI_F)
 		cog_deg -= 2.0f * M_PI_F;
+
 	cog_deg *= M_RAD_TO_DEG_F;
 
 
@@ -247,10 +267,10 @@ l_vehicle_gps_position(const struct listener *l)
 				     gps.lat,
 				     gps.lon,
 				     gps.alt,
-				     gps.eph_m * 1e2f, // from m to cm
-				     gps.epv_m * 1e2f, // from m to cm
+				     cm_uint16_from_m_float(gps.eph_m),
+				     cm_uint16_from_m_float(gps.epv_m),
 				     gps.vel_m_s * 1e2f, // from m/s to cm/s
-				     cog_deg * 1e2f, // from rad to deg * 100
+				     cog_deg * 1e2f, // from deg to deg * 100
 				     gps.satellites_visible);
 
 	/* update SAT info every 10 seconds */
@@ -674,11 +694,24 @@ l_airspeed(const struct listener *l)
 	mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, alt, climb);
 }
 
+void
+l_nav_cap(const struct listener *l)
+{
+
+	orb_copy(ORB_ID(navigation_capabilities), mavlink_subs.navigation_capabilities_sub, &nav_cap);
+
+	mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+				   hrt_absolute_time() / 1000,
+				   "turn dist",
+				   nav_cap.turn_distance);
+
+}
+
 static void *
 uorb_receive_thread(void *arg)
 {
 	/* Set thread name */
-	prctl(PR_SET_NAME, "mavlink orb rcv", getpid());
+	prctl(PR_SET_NAME, "mavlink_orb_rcv", getpid());
 
 	/*
 	 * set up poll to block for new data,
@@ -820,6 +853,11 @@ uorb_receive_start(void)
 	mavlink_subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	orb_set_interval(mavlink_subs.airspeed_sub, 200); 	/* 5Hz updates */
 
+	/* --- NAVIGATION CAPABILITIES --- */
+	mavlink_subs.navigation_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
+	orb_set_interval(mavlink_subs.navigation_capabilities_sub, 500); 	/* 2Hz updates */
+	nav_cap.turn_distance = 0.0f;
+
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;
 	pthread_attr_init(&uorb_attr);
@@ -829,5 +867,7 @@ uorb_receive_start(void)
 
 	pthread_t thread;
 	pthread_create(&thread, &uorb_attr, uorb_receive_thread, NULL);
+
+	pthread_attr_destroy(&uorb_attr);
 	return thread;
 }

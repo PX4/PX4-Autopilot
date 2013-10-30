@@ -96,9 +96,10 @@ class MK : public device::I2C
 {
 public:
 	enum Mode {
+		MODE_NONE,
 		MODE_2PWM,
 		MODE_4PWM,
-		MODE_NONE
+		MODE_6PWM,
 	};
 
 	enum MappingMode {
@@ -1023,9 +1024,11 @@ MK::ioctl(file *filp, int cmd, unsigned long arg)
 		return ret;
 
 	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
+	/*
 	switch (_mode) {
 	case MODE_2PWM:
 	case MODE_4PWM:
+	case MODE_6PWM:
 		ret = pwm_ioctl(filp, cmd, arg);
 		break;
 
@@ -1033,6 +1036,8 @@ MK::ioctl(file *filp, int cmd, unsigned long arg)
 		debug("not in a PWM mode");
 		break;
 	}
+	*/
+	ret = pwm_ioctl(filp, cmd, arg);
 
 	/* if nobody wants it, let CDev have it */
 	if (ret == -ENOTTY)
@@ -1066,7 +1071,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		ret = OK;
 		break;
 
-	case PWM_SERVO_SELECT_UPDATE_RATE:
+	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
 		ret = OK;
 		break;
 

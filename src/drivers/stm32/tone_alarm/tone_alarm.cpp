@@ -317,7 +317,7 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 
 ToneAlarm::ToneAlarm() :
-	CDev("tone_alarm", "/dev/tone_alarm"),
+	CDev("tone_alarm", TONEALARM_DEVICE_PATH),
 	_default_tune_number(0),
 	_user_tune(nullptr),
 	_tune(nullptr),
@@ -333,6 +333,7 @@ ToneAlarm::ToneAlarm() :
 	_default_tunes[TONE_ARMING_WARNING_TUNE] = "MNT75L1O2G";					//arming warning
 	_default_tunes[TONE_BATTERY_WARNING_SLOW_TUNE] = "MBNT100a8";					//battery warning slow
 	_default_tunes[TONE_BATTERY_WARNING_FAST_TUNE] = "MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8";	//battery warning fast
+	_default_tunes[TONE_GPS_WARNING_TUNE] = "MFT255L4AAAL1F#";					//gps warning slow
 
 	_tune_names[TONE_STARTUP_TUNE] = "startup";			// startup tune
 	_tune_names[TONE_ERROR_TUNE] = "error";				// ERROR tone
@@ -342,6 +343,7 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_ARMING_WARNING_TUNE] = "arming";		// arming warning
 	_tune_names[TONE_BATTERY_WARNING_SLOW_TUNE] = "slow_bat";	// battery warning slow
 	_tune_names[TONE_BATTERY_WARNING_FAST_TUNE] = "fast_bat";	// battery warning fast
+	_tune_names[TONE_GPS_WARNING_TUNE] = "gps_warning";	            // gps warning
 }
 
 ToneAlarm::~ToneAlarm()
@@ -820,10 +822,10 @@ play_tune(unsigned tune)
 {
 	int	fd, ret;
 
-	fd = open("/dev/tone_alarm", 0);
+	fd = open(TONEALARM_DEVICE_PATH, 0);
 
 	if (fd < 0)
-		err(1, "/dev/tone_alarm");
+		err(1, TONEALARM_DEVICE_PATH);
 
 	ret = ioctl(fd, TONE_SET_ALARM, tune);
 	close(fd);
@@ -839,10 +841,10 @@ play_string(const char *str, bool free_buffer)
 {
 	int	fd, ret;
 
-	fd = open("/dev/tone_alarm", O_WRONLY);
+	fd = open(TONEALARM_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0)
-		err(1, "/dev/tone_alarm");
+		err(1, TONEALARM_DEVICE_PATH);
 
 	ret = write(fd, str, strlen(str) + 1);
 	close(fd);

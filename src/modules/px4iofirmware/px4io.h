@@ -46,12 +46,14 @@
 
 #include "protocol.h"
 
+#include <systemlib/pwm_limit/pwm_limit.h>
+
 /*
  * Constants and limits.
  */
 #define PX4IO_SERVO_COUNT		8
 #define PX4IO_CONTROL_CHANNELS		8
-#define PX4IO_INPUT_CHANNELS		12
+#define PX4IO_INPUT_CHANNELS		8 // XXX this should be 18 channels
 
 /*
  * Debug logging
@@ -80,7 +82,7 @@ extern uint16_t			r_page_rc_input_config[]; /* PX4IO_PAGE_RC_INPUT_CONFIG */
 extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
 extern uint16_t			r_page_servo_control_min[]; /* PX4IO_PAGE_CONTROL_MIN_PWM */
 extern uint16_t			r_page_servo_control_max[]; /* PX4IO_PAGE_CONTROL_MAX_PWM */
-extern uint16_t			r_page_servo_idle[];	/* PX4IO_PAGE_IDLE_PWM */
+extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 
 /*
  * Register aliases.
@@ -100,7 +102,9 @@ extern uint16_t			r_page_servo_idle[];	/* PX4IO_PAGE_IDLE_PWM */
 #define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
 #define r_setup_pwm_defaultrate	r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
 #define r_setup_pwm_altrate	r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 #define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
+#endif
 
 #define r_control_values	(&r_page_controls[0])
 
@@ -119,6 +123,11 @@ struct sys_state_s {
 };
 
 extern struct sys_state_s system_state;
+
+/*
+ * PWM limit structure
+ */
+extern pwm_limit_t pwm_limit;
 
 /*
  * GPIO handling.
@@ -200,7 +209,7 @@ extern int	dsm_init(const char *device);
 extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern void	dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
-extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
+extern bool	sbus_input(uint16_t *values, uint16_t *num_values, uint16_t max_channels);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;

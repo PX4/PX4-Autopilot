@@ -100,11 +100,11 @@ handle_message(mavlink_message_t *msg)
 		mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
 		if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid)
-			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+				|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 			//check for MAVLINK terminate command
 			if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 				/* This is the link shutdown command, terminate mavlink */
-				printf("[mavlink] Terminating .. \n");
+				warnx("terminating...");
 				fflush(stdout);
 				usleep(50000);
 
@@ -132,6 +132,7 @@ handle_message(mavlink_message_t *msg)
 				if (cmd_pub <= 0) {
 					cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 				}
+
 				/* publish */
 				orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
 			}
@@ -156,6 +157,7 @@ handle_message(mavlink_message_t *msg)
 		/* check if topic is advertised */
 		if (flow_pub <= 0) {
 			flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
+
 		} else {
 			/* publish */
 			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
@@ -186,6 +188,7 @@ handle_message(mavlink_message_t *msg)
 		/* check if topic is advertised */
 		if (cmd_pub <= 0) {
 			cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+
 		} else {
 			/* create command */
 			orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
@@ -203,6 +206,7 @@ handle_message(mavlink_message_t *msg)
 
 		if (vicon_position_pub <= 0) {
 			vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+
 		} else {
 			orb_publish(ORB_ID(vehicle_vicon_position), vicon_position_pub, &vicon_position);
 		}
@@ -219,7 +223,7 @@ handle_message(mavlink_message_t *msg)
 			/* switch to a receiving link mode */
 			gcs_link = false;
 
-			/* 
+			/*
 			 * rate control mode - defined by MAVLink
 			 */
 
@@ -227,33 +231,37 @@ handle_message(mavlink_message_t *msg)
 			bool ml_armed = false;
 
 			switch (quad_motors_setpoint.mode) {
-				case 0:
-					ml_armed = false;
-					break;
-				case 1:
-					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
-					ml_armed = true;
+			case 0:
+				ml_armed = false;
+				break;
 
-					break;
-				case 2:
-					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
-					ml_armed = true;
+			case 1:
+				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
+				ml_armed = true;
 
-					break;
-				case 3:
-					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
-					break;
-				case 4:
-					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
-					break;
+				break;
+
+			case 2:
+				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
+				ml_armed = true;
+
+				break;
+
+			case 3:
+				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
+				break;
+
+			case 4:
+				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
+				break;
 			}
 
-			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid-1]   / (float)INT16_MAX;
-			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid-1]  / (float)INT16_MAX;
-			offboard_control_sp.p3= (float)quad_motors_setpoint.yaw[mavlink_system.sysid-1]    / (float)INT16_MAX;
-			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid-1]/(float)UINT16_MAX;
+			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
+			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
+			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
 
-			if (quad_motors_setpoint.thrust[mavlink_system.sysid-1] == 0) {
+			if (quad_motors_setpoint.thrust[mavlink_system.sysid - 1] == 0) {
 				ml_armed = false;
 			}
 
@@ -265,6 +273,7 @@ handle_message(mavlink_message_t *msg)
 			/* check if topic has to be advertised */
 			if (offboard_control_sp_pub <= 0) {
 				offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+
 			} else {
 				/* Publish */
 				orb_publish(ORB_ID(offboard_control_setpoint), offboard_control_sp_pub, &offboard_control_sp);
@@ -281,31 +290,36 @@ handle_message(mavlink_message_t *msg)
 static void *
 receive_thread(void *arg)
 {
-	int uart_fd = *((int*)arg);
+	int uart_fd = *((int *)arg);
 
 	const int timeout = 1000;
-	uint8_t ch;
+	uint8_t buf[32];
 
 	mavlink_message_t msg;
 
-	prctl(PR_SET_NAME, "mavlink offb rcv", getpid());
+	prctl(PR_SET_NAME, "mavlink_onboard_rcv", getpid());
+
+	struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
+
+	ssize_t nread = 0;
 
 	while (!thread_should_exit) {
-
-		struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
-
 		if (poll(fds, 1, timeout) > 0) {
-			/* non-blocking read until buffer is empty */
-			int nread = 0;
+			if (nread < sizeof(buf)) {
+				/* to avoid reading very small chunks wait for data before reading */
+				usleep(1000);
+			}
 
-			do {
-				nread = read(uart_fd, &ch, 1);
+			/* non-blocking read. read may return negative values */
+			nread = read(uart_fd, buf, sizeof(buf));
 
-				if (mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
+			/* if read failed, this loop won't execute */
+			for (ssize_t i = 0; i < nread; i++) {
+				if (mavlink_parse_char(chan, buf[i], &msg, &status)) {
 					/* handle generic messages and commands */
 					handle_message(&msg);
 				}
-			} while (nread > 0);
+			}
 		}
 	}
 
@@ -319,8 +333,8 @@ receive_start(int uart)
 	pthread_attr_init(&receiveloop_attr);
 
 	struct sched_param param;
-  	param.sched_priority = SCHED_PRIORITY_MAX - 40;
-  	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
+	param.sched_priority = SCHED_PRIORITY_MAX - 40;
+	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
 	pthread_attr_setstacksize(&receiveloop_attr, 2048);
 

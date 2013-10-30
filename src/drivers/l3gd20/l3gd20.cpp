@@ -61,6 +61,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_gyro.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
@@ -183,11 +184,8 @@ private:
 
 	struct hrt_call		_call;
 	unsigned		_call_interval;
-
-	unsigned		_num_reports;
-	volatile unsigned	_next_report;
-	volatile unsigned	_oldest_report;
-	struct gyro_report	*_reports;
+	
+	RingBuffer		*_reports;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
@@ -299,16 +297,9 @@ private:
 	 int 			self_test();
 };
 
-/* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
-
-
 L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 8000000),
 	_call_interval(0),
-	_num_reports(0),
-	_next_report(0),
-	_oldest_report(0),
 	_reports(nullptr),
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
@@ -340,7 +331,7 @@ L3GD20::~L3GD20()
 
 	/* free any existing reports */
 	if (_reports != nullptr)
-		delete[] _reports;
+		delete _reports;
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -356,16 +347,15 @@ L3GD20::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_num_reports = 2;
-	_oldest_report = _next_report = 0;
-	_reports = new struct gyro_report[_num_reports];
+	_reports = new RingBuffer(2, sizeof(gyro_report));
 
 	if (_reports == nullptr)
 		goto out;
 
 	/* advertise sensor topic */
-	memset(&_reports[0], 0, sizeof(_reports[0]));
-	_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &_reports[0]);
+	struct gyro_report zero_report;
+	memset(&zero_report, 0, sizeof(zero_report));
+	_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &zero_report);
 
 	reset();
 
@@ -380,6 +370,8 @@ L3GD20::probe()
 	/* read dummy value to void to clear SPI statemachine on sensor */
 	(void)read_reg(ADDR_WHO_AM_I);
 
+	bool success = false;
+
 	/* verify that the device is attached and functioning, accept L3GD20 and L3GD20H */
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM) {
 
@@ -390,14 +382,18 @@ L3GD20::probe()
 		#else
 			#error This driver needs a board selection, either CONFIG_ARCH_BOARD_PX4FMU_V1 or CONFIG_ARCH_BOARD_PX4FMU_V2
 		#endif
-		return OK;
+
+		success = true;
 	}
 
 
 	if (read_reg(ADDR_WHO_AM_I) == WHO_I_AM_H) {
 		_orientation = SENSOR_BOARD_ROTATION_180_DEG;
-		return OK;
+		success = true;
 	}
+
+	if (success)
+		return OK;
 
 	return -EIO;
 }
@@ -406,6 +402,7 @@ ssize_t
 L3GD20::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct gyro_report);
+	struct gyro_report *gbuf = reinterpret_cast<struct gyro_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -421,10 +418,9 @@ L3GD20::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with it.
 		 */
 		while (count--) {
-			if (_oldest_report != _next_report) {
-				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
-				ret += sizeof(_reports[0]);
-				INCREMENT(_oldest_report, _num_reports);
+			if (_reports->get(gbuf)) {
+				ret += sizeof(*gbuf);
+				gbuf++;
 			}
 		}
 
@@ -433,12 +429,13 @@ L3GD20::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement */
-	_oldest_report = _next_report = 0;
+	_reports->flush();
 	measure();
 
 	/* measurement will have generated a report, copy it out */
-	memcpy(buffer, _reports, sizeof(*_reports));
-	ret = sizeof(*_reports);
+	if (_reports->get(gbuf)) {
+		ret = sizeof(*gbuf);
+	}
 
 	return ret;
 }
@@ -506,31 +503,22 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
-			/* account for sentinel in the ring */
-			arg++;
+		/* lower bound is mandatory, upper bound is a sanity check */
+		if ((arg < 1) || (arg > 100))
+			return -EINVAL;
 
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 2) || (arg > 100))
-				return -EINVAL;
-
-			/* allocate new buffer */
-			struct gyro_report *buf = new struct gyro_report[arg];
-
-			if (nullptr == buf)
-				return -ENOMEM;
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop();
-			delete[] _reports;
-			_num_reports = arg;
-			_reports = buf;
-			start();
-
-			return OK;
+		irqstate_t flags = irqsave();
+		if (!_reports->resize(arg)) {
+			irqrestore(flags);
+			return -ENOMEM;
 		}
+		irqrestore(flags);
+		
+		return OK;
+	}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports - 1;
+		return _reports->size();
 
 	case SENSORIOCRESET:
 		reset();
@@ -699,7 +687,7 @@ L3GD20::start()
 	stop();
 
 	/* reset the report ring */
-	_oldest_report = _next_report = 0;
+	_reports->flush();
 
 	/* start polling at the specified rate */
 	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&L3GD20::measure_trampoline, this);
@@ -759,7 +747,7 @@ L3GD20::measure()
 	} raw_report;
 #pragma pack(pop)
 
-	gyro_report		*report = &_reports[_next_report];
+	gyro_report report;
 
 	/* start the performance counter */
 	perf_begin(_sample_perf);
@@ -782,61 +770,57 @@ L3GD20::measure()
 	 *	 	  the offset is 74 from the origin and subtracting
 	 *		  74 from all measurements centers them around zero.
 	 */
-	report->timestamp = hrt_absolute_time();
+	report.timestamp = hrt_absolute_time();
+        report.error_count = 0; // not recorded
 	
 	switch (_orientation) {
 
 		case SENSOR_BOARD_ROTATION_000_DEG:
 			/* keep axes in place */
-			report->x_raw = raw_report.x;
-			report->y_raw = raw_report.y;
+			report.x_raw = raw_report.x;
+			report.y_raw = raw_report.y;
 			break;
 
 		case SENSOR_BOARD_ROTATION_090_DEG:
 			/* swap x and y */
-			report->x_raw = raw_report.y;
-			report->y_raw = raw_report.x;
+			report.x_raw = raw_report.y;
+			report.y_raw = raw_report.x;
 			break;
 
 		case SENSOR_BOARD_ROTATION_180_DEG:
 			/* swap x and y and negate both */
-			report->x_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
-			report->y_raw = ((raw_report.y == -32768) ? 32767 : -raw_report.y);
+			report.x_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
+			report.y_raw = ((raw_report.y == -32768) ? 32767 : -raw_report.y);
 			break;
 
 		case SENSOR_BOARD_ROTATION_270_DEG:
 			/* swap x and y and negate y */
-			report->x_raw = raw_report.y;
-			report->y_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
+			report.x_raw = raw_report.y;
+			report.y_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
 			break;
 	}
 
-	report->z_raw = raw_report.z;
+	report.z_raw = raw_report.z;
 
-	report->x = ((report->x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	report->y = ((report->y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	report->z = ((report->z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	report.x = ((report.x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	report.y = ((report.y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	report.z = ((report.z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
-	report->x = _gyro_filter_x.apply(report->x);
-	report->y = _gyro_filter_y.apply(report->y);
-	report->z = _gyro_filter_z.apply(report->z);
+	report.x = _gyro_filter_x.apply(report.x);
+	report.y = _gyro_filter_y.apply(report.y);
+	report.z = _gyro_filter_z.apply(report.z);
 
-	report->scaling = _gyro_range_scale;
-	report->range_rad_s = _gyro_range_rad_s;
+	report.scaling = _gyro_range_scale;
+	report.range_rad_s = _gyro_range_rad_s;
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_report, _num_reports);
-
-	/* if we are running up against the oldest report, fix it */
-	if (_next_report == _oldest_report)
-		INCREMENT(_oldest_report, _num_reports);
+	_reports->force(&report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
 	/* publish for subscribers */
 	if (_gyro_topic > 0)
-		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, report);
+		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
 
 	_read++;
 
@@ -849,8 +833,7 @@ L3GD20::print_info()
 {
 	printf("gyro reads:          %u\n", _read);
 	perf_print_counter(_sample_perf);
-	printf("report queue:   %u (%u/%u @ %p)\n",
-	       _num_reports, _oldest_report, _next_report, _reports);
+	_reports->print_info("report queue");
 }
 
 int

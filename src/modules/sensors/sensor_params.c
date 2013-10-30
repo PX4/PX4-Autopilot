@@ -44,8 +44,34 @@
 
 #include <systemlib/param/param.h>
 
+/**
+ * Gyro X offset FIXME
+ *
+ * This is an X-axis offset for the gyro.
+ * Adjust it according to the calibration data.
+ *
+ * @min -10.0
+ * @max 10.0
+ * @group Gyro Config
+ */
 PARAM_DEFINE_FLOAT(SENS_GYRO_XOFF, 0.0f);
+
+/**
+ * Gyro Y offset FIXME with dot.
+ *
+ * @min -10.0
+ * @max 10.0
+ * @group Gyro Config
+ */
 PARAM_DEFINE_FLOAT(SENS_GYRO_YOFF, 0.0f);
+
+/**
+ * Gyro Z offset FIXME
+ *
+ * @min -5.0
+ * @max 5.0
+ * @group Gyro Config
+ */
 PARAM_DEFINE_FLOAT(SENS_GYRO_ZOFF, 0.0f);
 
 PARAM_DEFINE_FLOAT(SENS_GYRO_XSCALE, 1.0f);
@@ -164,9 +190,10 @@ PARAM_DEFINE_FLOAT(RC15_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC15_REV, 1.0f);
 PARAM_DEFINE_FLOAT(RC15_DZ, 0.0f);
 
-
+#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
-PARAM_DEFINE_INT32(RC_DSM_BIND, 0); /* 0 = Idle, 1 = Start DSM2 bind, 2 = Start DSMX bind */
+#endif
+PARAM_DEFINE_INT32(RC_DSM_BIND, -1); /* -1 = Idle, 0 = Start DSM2 bind, 1 = Start DSMX bind */
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
@@ -174,7 +201,8 @@ PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
 /* default is conversion factor for the PX4IO / PX4IOAR board, the factor for PX4FMU standalone is different */
 /* PX4IOAR: 0.00838095238 */
 /* FMU standalone: 1/(10 / (47+10)) * (3.3 / 4095) = 0.00459340659 */
-PARAM_DEFINE_FLOAT(BAT_V_SCALING, (3.3f * 52.0f / 5.0f / 4095.0f));
+/* FMU with PX4IOAR: (3.3f * 52.0f / 5.0f / 4095.0f) */
+PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.00459340659f);
 #endif
 
 PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
@@ -191,8 +219,9 @@ PARAM_DEFINE_INT32(RC_MAP_MISSIO_SW, 0);
 
 PARAM_DEFINE_INT32(RC_MAP_FLAPS, 0);
 
-PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);	/**< default function: camera yaw / azimuth */
-PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera pitch / tilt */
+PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);	/**< default function: camera pitch */
+PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);	/**< default function: camera roll */
+PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);	/**< default function: camera azimuth / yaw */
 
 PARAM_DEFINE_FLOAT(RC_SCALE_ROLL, 0.6f);
 PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);

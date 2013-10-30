@@ -79,7 +79,7 @@ static inline uint16_t mavlink_msg_pm_elec_pack(uint8_t system_id, uint8_t compo
  * @brief Pack a pm_elec message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param PwCons 
                 
@@ -119,7 +119,7 @@ static inline uint16_t mavlink_msg_pm_elec_pack_chan(uint8_t system_id, uint8_t 
 }
 
 /**
- * @brief Encode a pm_elec struct into a message
+ * @brief Encode a pm_elec struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -129,6 +129,20 @@ static inline uint16_t mavlink_msg_pm_elec_pack_chan(uint8_t system_id, uint8_t 
 static inline uint16_t mavlink_msg_pm_elec_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_pm_elec_t* pm_elec)
 {
 	return mavlink_msg_pm_elec_pack(system_id, component_id, msg, pm_elec->PwCons, pm_elec->BatStat, pm_elec->PwGen);
+}
+
+/**
+ * @brief Encode a pm_elec struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param pm_elec C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_pm_elec_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_pm_elec_t* pm_elec)
+{
+	return mavlink_msg_pm_elec_pack_chan(system_id, component_id, chan, msg, pm_elec->PwCons, pm_elec->BatStat, pm_elec->PwGen);
 }
 
 /**

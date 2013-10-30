@@ -47,4 +47,3 @@ SRCS		 	= commander.cpp \
 			baro_calibration.cpp \
 			rc_calibration.cpp \
 			airspeed_calibration.cpp
-

@@ -1,0 +1,101 @@
+#!nsh
+
+echo "[init] PX4FMU v1, v2 with or without IO on HK Bixler"
+
+#
+# Load default params for this platform
+#
+if param compare SYS_AUTOCONFIG 1
+then
+	# Set all params here, then disable autoconfig
+	param set FW_P_D 0
+	param set FW_P_I 0
+	param set FW_P_IMAX 15
+	param set FW_P_LIM_MAX 50
+	param set FW_P_LIM_MIN -50
+	param set FW_P_P 60
+	param set FW_P_RMAX_NEG 0
+	param set FW_P_RMAX_POS 0
+	param set FW_P_ROLLFF 1.1
+	param set FW_R_D 0
+	param set FW_R_I 5
+	param set FW_R_IMAX 20
+	param set FW_R_P 100
+	param set FW_R_RMAX 100
+	param set FW_THR_CRUISE 0.65
+	param set FW_THR_MAX 1
+	param set FW_THR_MIN 0
+	param set FW_T_SINK_MAX 5.0
+	param set FW_T_SINK_MIN 4.0
+	param set FW_Y_ROLLFF 1.1
+	param set FW_L1_PERIOD 16
+	param set RC_SCALE_ROLL 1.0
+	param set RC_SCALE_PITCH 1.0
+	
+	param set SYS_AUTOCONFIG 0
+	param save
+fi
+ 
+#
+# Force some key parameters to sane values
+# MAV_TYPE     1 = fixed wing
+#
+param set MAV_TYPE 1
+
+set EXIT_ON_END no
+
+#
+# Start and configure PX4IO or FMU interface
+#
+if px4io detect
+then
+	# Start MAVLink (depends on orb)
+	mavlink start
+
+	commander start
+
+	sh /etc/init.d/rc.io
+	# Limit to 100 Hz updates and (implicit) 50 Hz PWM
+	px4io limit 100
+else
+	# Start MAVLink (on UART1 / ttyS0)
+	mavlink start -d /dev/ttyS0
+
+	commander start
+
+	fmu mode_pwm
+	param set BAT_V_SCALING 0.004593
+	set EXIT_ON_END yes
+fi
+ 
+#
+# Start the sensors and test them.
+#
+sh /etc/init.d/rc.sensors
+
+#
+# Start logging (depends on sensors)
+#
+sh /etc/init.d/rc.logging
+
+#
+# Start GPS interface (depends on orb)
+#
+gps start
+ 
+#
+# Start the attitude and position estimator
+#
+att_pos_estimator_ekf start
+ 
+#
+# Load mixer and start controllers (depends on px4io)
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_AERT.mix
+fw_att_control start
+fw_pos_control_l1 start
+
+if [ $EXIT_ON_END == yes ]
+then
+	exit
+fi

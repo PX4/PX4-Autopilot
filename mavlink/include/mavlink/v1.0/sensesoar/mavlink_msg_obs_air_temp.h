@@ -63,7 +63,7 @@ static inline uint16_t mavlink_msg_obs_air_temp_pack(uint8_t system_id, uint8_t 
  * @brief Pack a obs_air_temp message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param airT 
                 
@@ -95,7 +95,7 @@ static inline uint16_t mavlink_msg_obs_air_temp_pack_chan(uint8_t system_id, uin
 }
 
 /**
- * @brief Encode a obs_air_temp struct into a message
+ * @brief Encode a obs_air_temp struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -105,6 +105,20 @@ static inline uint16_t mavlink_msg_obs_air_temp_pack_chan(uint8_t system_id, uin
 static inline uint16_t mavlink_msg_obs_air_temp_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_obs_air_temp_t* obs_air_temp)
 {
 	return mavlink_msg_obs_air_temp_pack(system_id, component_id, msg, obs_air_temp->airT);
+}
+
+/**
+ * @brief Encode a obs_air_temp struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param obs_air_temp C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_obs_air_temp_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_obs_air_temp_t* obs_air_temp)
+{
+	return mavlink_msg_obs_air_temp_pack_chan(system_id, component_id, chan, msg, obs_air_temp->airT);
 }
 
 /**

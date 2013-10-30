@@ -74,7 +74,7 @@ static inline uint16_t mavlink_msg_flexifunction_read_req_pack(uint8_t system_id
  * @brief Pack a flexifunction_read_req message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param target_system System ID
  * @param target_component Component ID
@@ -113,7 +113,7 @@ static inline uint16_t mavlink_msg_flexifunction_read_req_pack_chan(uint8_t syst
 }
 
 /**
- * @brief Encode a flexifunction_read_req struct into a message
+ * @brief Encode a flexifunction_read_req struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -123,6 +123,20 @@ static inline uint16_t mavlink_msg_flexifunction_read_req_pack_chan(uint8_t syst
 static inline uint16_t mavlink_msg_flexifunction_read_req_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_flexifunction_read_req_t* flexifunction_read_req)
 {
 	return mavlink_msg_flexifunction_read_req_pack(system_id, component_id, msg, flexifunction_read_req->target_system, flexifunction_read_req->target_component, flexifunction_read_req->read_req_type, flexifunction_read_req->data_index);
+}
+
+/**
+ * @brief Encode a flexifunction_read_req struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param flexifunction_read_req C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_flexifunction_read_req_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_flexifunction_read_req_t* flexifunction_read_req)
+{
+	return mavlink_msg_flexifunction_read_req_pack_chan(system_id, component_id, chan, msg, flexifunction_read_req->target_system, flexifunction_read_req->target_component, flexifunction_read_req->read_req_type, flexifunction_read_req->data_index);
 }
 
 /**

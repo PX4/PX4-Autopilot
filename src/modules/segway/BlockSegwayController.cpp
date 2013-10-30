@@ -26,7 +26,7 @@ void BlockSegwayController::update() {
 		_actuators.control[i] = 0.0f;
 
 	// only update guidance in auto mode
-	if (_status.state_machine == SYSTEM_STATE_AUTO) {
+	if (_status.main_state == MAIN_STATE_AUTO) {
 		// update guidance
 	}
 
@@ -34,17 +34,18 @@ void BlockSegwayController::update() {
 	float spdCmd = -th2v.update(_att.pitch) - q2v.update(_att.pitchspeed);
 
 	// handle autopilot modes
-	if (_status.state_machine == SYSTEM_STATE_AUTO ||
-	    _status.state_machine == SYSTEM_STATE_STABILIZED) {
+	if (_status.main_state == MAIN_STATE_AUTO ||
+	    _status.main_state == MAIN_STATE_SEATBELT ||
+	    _status.main_state == MAIN_STATE_EASY) {
 		_actuators.control[0] = spdCmd;
 		_actuators.control[1] = spdCmd;
 
-	} else if (_status.state_machine == SYSTEM_STATE_MANUAL) {
-		if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_DIRECT) {
+	} else if (_status.main_state == MAIN_STATE_MANUAL) {
+		if (_status.navigation_state == NAVIGATION_STATE_DIRECT) {
 			_actuators.control[CH_LEFT] = _manual.throttle;
 			_actuators.control[CH_RIGHT] = _manual.pitch;
 
-		} else if (_status.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
+		} else if (_status.navigation_state == NAVIGATION_STATE_STABILIZE) {
 			_actuators.control[0] = spdCmd;
 			_actuators.control[1] = spdCmd;
 		}
