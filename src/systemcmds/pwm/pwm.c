@@ -335,7 +335,7 @@ pwm_main(int argc, char *argv[])
 			usage("no channels set");
 		}
 		if (pwm_value == 0)
-			usage("no PWM value provided");
+			warnx("reading disarmed value of zero, disabling disarmed PWM");
 
 		struct pwm_output_values pwm_values = {.values = {0}, .channel_count = 0};
 
@@ -343,7 +343,7 @@ pwm_main(int argc, char *argv[])
 			if (set_mask & 1<<i) {
 				pwm_values.values[i] = pwm_value;
 				if (print_verbose)
-					warnx("Channel %d: disarmed PWM: %d", i+1, pwm_value);
+					warnx("channel %d: disarmed PWM: %d", i+1, pwm_value);
 			}
 			pwm_values.channel_count++;
 		}
