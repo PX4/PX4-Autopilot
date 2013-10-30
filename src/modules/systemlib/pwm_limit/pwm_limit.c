@@ -97,10 +97,26 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 
 			progress = (hrt_absolute_time() - INIT_TIME_US - limit->time_armed)*10000 / RAMP_TIME_US;
 			for (unsigned i=0; i<num_channels; i++) {
+                
+				uint16_t ramp_min_pwm;
+                
+				/* if a disarmed pwm value was set, blend between disarmed and min */
+				if (disarmed_pwm[i] > 0) {
 
-				temp_pwm = output[i] * (max_pwm[i] - min_pwm[i])/2 + (max_pwm[i] + min_pwm[i])/2;
-				/* already follow user/controller input if higher than min_pwm */
-				effective_pwm[i] = (temp_pwm > min_pwm[i]) ? temp_pwm : ((disarmed_pwm[i]*(10000-progress) + min_pwm[i])*progress) / 10000;
+					/* safeguard against overflows */
+					uint16_t disarmed = disarmed_pwm[i];
+					if (disarmed > min_pwm[i])
+						disarmed = min_pwm[i];
+
+					uint16_t disarmed_min_diff = min_pwm[i] - disarmed;
+					ramp_min_pwm = disarmed + (disarmed_min_diff * progress) / 10000;
+				} else {
+                    
+					/* no disarmed pwm value set, choose min pwm */
+					ramp_min_pwm = min_pwm[i];
+				}
+
+				effective_pwm[i] = output[i] * (max_pwm[i] - ramp_min_pwm)/2 + (max_pwm[i] + ramp_min_pwm)/2;
 				output[i] = (float)progress/10000.0f * output[i];
 			}
 			break;
