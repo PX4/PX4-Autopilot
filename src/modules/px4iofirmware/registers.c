@@ -338,26 +338,39 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 		break;
 
 	case PX4IO_PAGE_DISARMED_PWM:
+		{
+			/* flag for all outputs */
+			bool all_disarmed_off = true;
 
-		/* copy channel data */
-		while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
+			/* copy channel data */
+			while ((offset < PX4IO_SERVO_COUNT) && (num_values > 0)) {
 
-			if (*values == 0) {
-				/* ignore 0 */
-			} else if (*values < PWM_MIN) {
-				r_page_servo_disarmed[offset] = PWM_MIN;
-			} else if (*values > PWM_MAX) {
-				r_page_servo_disarmed[offset] = PWM_MAX;
-			} else {
-				r_page_servo_disarmed[offset] = *values;
+				if (*values == 0) {
+					/* 0 means disabling always PWM */
+					r_page_servo_disarmed[offset] = 0;
+				} else if (*values < PWM_MIN) {
+					r_page_servo_disarmed[offset] = PWM_MIN;
+					all_disarmed_off = false;
+				} else if (*values > PWM_MAX) {
+					r_page_servo_disarmed[offset] = PWM_MAX;
+					all_disarmed_off = false;
+				} else {
+					r_page_servo_disarmed[offset] = *values;
+					all_disarmed_off = false;
+				}
+
+				offset++;
+				num_values--;
+				values++;
 			}
 
-			/* flag the failsafe values as custom */
-			r_setup_arming |= PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE;
-
-			offset++;
-			num_values--;
-			values++;
+			if (all_disarmed_off) {
+				/* disable PWM output if disarmed */
+				r_setup_arming &= ~(PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE);
+			} else {
+				/* enable PWM output always */
+				r_setup_arming |= PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE;
+			}
 		}
 		break;
 
