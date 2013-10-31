@@ -77,7 +77,7 @@ usage(const char *reason)
 
 	errx(1,
 	     "usage:\n"
-	     "esc_calib [-d <device>] <channels>\n"
+	     "esc_calib [-l <low pwm>] [-h <high pwm>] [-d <device>] <channels>\n"
 	     "  <device>           PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
 	     "  <channels>         Provide channels (e.g.: 1 2 3 4)\n"
 	    );
@@ -101,25 +101,32 @@ esc_calib_main(int argc, char *argv[])
 	fds.fd = 0; /* stdin */
 	fds.events = POLLIN;
 
-	if (argc < 2)
-		usage(NULL);
+	if (argc < 2) {
+		usage("no channels provided");
+	}
 
-	while ((ch = getopt(argc - 1, argv, "d:")) != EOF) {
+	int arg_consumed = 0;
+
+	while ((ch = getopt(argc, &argv[0], "l:h:d:")) != -1) {
 		switch (ch) {
 
 		case 'd':
 			dev = optarg;
-			argc -= 2;
+			arg_consumed += 2;
 			break;
 
 		case 'l':
-			low = strtol(optarg, NULL, 0);
-			argc -= 2;
+			low = strtoul(optarg, &ep, 0);
+			if (*ep != '\0')
+				usage("bad low pwm value");
+			arg_consumed += 2;
 			break;
 
 		case 'h':
-			high = strtol(optarg, NULL, 0);
-			argc -= 2;
+			high = strtoul(optarg, &ep, 0);
+			if (*ep != '\0')
+				usage("bad high pwm value");
+			arg_consumed += 2;
 			break;
 
 		default:
@@ -127,13 +134,11 @@ esc_calib_main(int argc, char *argv[])
 		}
 	}
 
-	if (argc < 2) {
-		usage("no channels provided");
-	}
-
-	while (--argc) {
+	while ((--argc - arg_consumed) > 0) {
 		const char *arg = argv[argc];
 		unsigned channel_number = strtol(arg, &ep, 0);
+
+		warnx("adding channel #%d", channel_number);
 
 		if (*ep == '\0') {
 			if (channel_number > MAX_CHANNELS || channel_number <= 0) {
@@ -257,11 +262,11 @@ esc_calib_main(int argc, char *argv[])
 	if (pwm_disarmed < 800)
 		pwm_disarmed = 800;
 
-	/* tell IO that its ok to disable its safety with the switch */
+	/* tell IO/FMU that its ok to disable its safety with the switch */
 	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 	if (ret != OK)
 		err(1, "PWM_SERVO_SET_ARM_OK");
-	/* tell IO that the system is armed (it will output values if safety is off) */
+	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
 	ret = ioctl(fd, PWM_SERVO_ARM, 0);
 	if (ret != OK)
 		err(1, "PWM_SERVO_ARM");
@@ -342,6 +347,13 @@ esc_calib_main(int argc, char *argv[])
 		/* rate limit to ~ 20 Hz */
 		usleep(50000);
 	}
+
+	/* disarm */
+	ret = ioctl(fd, PWM_SERVO_DISARM, 0);
+	if (ret != OK)
+		err(1, "PWM_SERVO_DISARM");
+
+	warnx("Outputs disarmed");
 
 	printf("ESC calibration finished\n");
 
