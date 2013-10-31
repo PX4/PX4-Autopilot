@@ -206,6 +206,8 @@ private:
 		float throttle_land_max;
 
 		float loiter_hold_radius;
+
+		float heightrate_p;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -240,6 +242,8 @@ private:
 		param_t throttle_land_max;
 
 		param_t loiter_hold_radius;
+
+		param_t heightrate_p;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -370,6 +374,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.roll_throttle_compensation = 	param_find("FW_T_RLL2THR");
 	_parameter_handles.speed_weight = 			param_find("FW_T_SPDWEIGHT");
 	_parameter_handles.pitch_damping = 			param_find("FW_T_PTCH_DAMP");
+	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -435,6 +440,8 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
 	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
 
+	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
+
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
 	_l1_control.set_l1_roll_limit(math::radians(_parameters.roll_limit));
@@ -453,6 +460,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
 	_tecs.set_indicated_airspeed_max(_parameters.airspeed_min);
 	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
+	_tecs.set_heightrate_p(_parameters.heightrate_p);
 
 	/* sanity check parameters */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||

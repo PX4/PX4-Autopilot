@@ -231,7 +231,7 @@ void TECS::_update_height_demand(float demand, float state)
 	_hgt_dem_adj = demand;//0.025f * demand + 0.975f * _hgt_dem_adj_last;
 	_hgt_dem_adj_last = _hgt_dem_adj;
 
-	_hgt_rate_dem = (_hgt_dem_adj-state)*0.1f; //xxx: parameter
+	_hgt_rate_dem = (_hgt_dem_adj-state)*_heightrate_p;
 	// Limit height rate of change
 	if (_hgt_rate_dem > _maxClimbRate) {
 		_hgt_rate_dem = _maxClimbRate;
