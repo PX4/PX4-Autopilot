@@ -759,10 +759,10 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
 				}
 
-				/* do not go down too early */
-				if (wp_distance > 50.0f) {
-					altitude_error = (_global_triplet.current.altitude + 25.0f) - _global_pos.alt;
-				}
+//				/* do not go down too early */
+//				if (wp_distance > 50.0f) {
+//					altitude_error = (_global_triplet.current.altitude + 25.0f) - _global_pos.alt;
+//				}
 
 
 				_att_sp.roll_body = _l1_control.nav_roll();
@@ -776,6 +776,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 				float airspeed_land = _parameters.airspeed_min;
 				float airspeed_approach = (_parameters.airspeed_min + _parameters.airspeed_trim) / 2.0f;
+
+				const float landing_slope_angle_rad = 20.0f/180.0f*M_PI_F; //xxx: param
+				float landing_slope_alt_desired = wp_distance * tanf(landing_slope_angle_rad);
 
 				if (altitude_error > -4.0f) {
 
@@ -798,9 +801,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				} else if (wp_distance < 60.0f && altitude_error > -20.0f) {
 
-					/* minimize speed to approach speed */
+					/* minimize speed to approach speed, stay on glide slope */
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_approach),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, landing_slope_alt_desired, calculate_target_airspeed(airspeed_approach),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, flare_angle_rad,
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
@@ -808,9 +811,14 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				} else {
 
-					/* normal cruise speed */
+					/* normal cruise speed
+					 * intersect glide slope: if current position higher than slope sink to glide slope but continue horizontally if below slope */
+					float altitude_desired = _global_pos.alt;
+					if (_global_pos.alt > landing_slope_alt_desired) {
+						altitude_desired = landing_slope_alt_desired;
+					}
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, altitude_desired, calculate_target_airspeed(_parameters.airspeed_trim),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, math::radians(_parameters.pitch_limit_min),
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
