@@ -778,7 +778,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float airspeed_approach = (_parameters.airspeed_min + _parameters.airspeed_trim) / 2.0f;
 
 				const float landing_slope_angle_rad = 20.0f/180.0f*M_PI_F; //xxx: param
-				float landing_slope_alt_desired = wp_distance * tanf(landing_slope_angle_rad);
+				float landing_slope_alt_desired = wp_distance * tanf(landing_slope_angle_rad) + _global_triplet.current.altitude;
 
 				if (altitude_error > -4.0f) {
 
