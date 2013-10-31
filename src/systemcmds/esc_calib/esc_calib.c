@@ -62,6 +62,8 @@
 #include "systemlib/err.h"
 #include "drivers/drv_pwm_output.h"
 
+#include <uORB/topics/actuator_controls.h>
+
 static void	usage(const char *reason);
 __EXPORT int	esc_calib_main(int argc, char *argv[]);
 
@@ -92,6 +94,9 @@ esc_calib_main(int argc, char *argv[])
 	int ret;
 	char c;
 
+	int low = -1;
+	int high = -1;
+
 	struct pollfd fds;
 	fds.fd = 0; /* stdin */
 	fds.events = POLLIN;
@@ -104,6 +109,16 @@ esc_calib_main(int argc, char *argv[])
 
 		case 'd':
 			dev = optarg;
+			argc -= 2;
+			break;
+
+		case 'l':
+			low = strtol(optarg, NULL, 0);
+			argc -= 2;
+			break;
+
+		case 'h':
+			high = strtol(optarg, NULL, 0);
 			argc -= 2;
 			break;
 
@@ -129,6 +144,26 @@ esc_calib_main(int argc, char *argv[])
 
 			}
 		}
+	}
+
+	/* make sure no other source is publishing control values now */
+	struct actuator_controls_s actuators;
+	int act_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+
+	/* clear changed flag */
+	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, act_sub, &actuators);
+
+	/* wait 50 ms */
+	usleep(50000);
+
+	/* now expect nothing changed on that topic */
+	bool orb_updated;
+	orb_check(act_sub, &orb_updated);
+
+	if (orb_updated) {
+		errx(1, "ABORTING! Attitude control still active. Please ensure to shut down all controllers:\n"
+			"\tmultirotor_att_control stop\n"
+			"\tfw_att_control stop\n");
 	}
 
 	printf("\nATTENTION, please remove or fix propellers before starting calibration!\n"
@@ -179,17 +214,59 @@ esc_calib_main(int argc, char *argv[])
 
 	/* get max PWM value setting */
 	uint16_t pwm_max = 0;
-	ret = ioctl(fd, PWM_SERVO_GET_MAX_PWM, &pwm_max);
 
-	if (ret != OK)
-		err(1, "PWM_SERVO_GET_MAX_PWM");
+	if (high > 0 && high > low && high < 2200) {
+		pwm_max = high;
+	} else {
+		ret = ioctl(fd, PWM_SERVO_GET_MAX_PWM, &pwm_max);
+
+		if (ret != OK)
+			err(1, "PWM_SERVO_GET_MAX_PWM");
+	}
+
+	/* bound to sane values */
+	if (pwm_max > 2200)
+		pwm_max = 2200;
+
+	if (pwm_max < 1700)
+		pwm_max = 1700;
 
 	/* get disarmed PWM value setting */
 	uint16_t pwm_disarmed = 0;
-	ret = ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, &pwm_disarmed);
 
+	if (low > 0 && low < high && low > 800) {
+		pwm_disarmed = low;
+	} else {
+		ret = ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, &pwm_disarmed);
+
+		if (ret != OK)
+			err(1, "PWM_SERVO_GET_DISARMED_PWM");
+
+		if (pwm_disarmed == 0) {
+			ret = ioctl(fd, PWM_SERVO_GET_MIN_PWM, &pwm_disarmed);
+
+			if (ret != OK)
+				err(1, "PWM_SERVO_GET_MIN_PWM");
+		}
+	}
+
+	/* bound to sane values */
+	if (pwm_disarmed > 1300)
+		pwm_disarmed = 1300;
+
+	if (pwm_disarmed < 800)
+		pwm_disarmed = 800;
+
+	/* tell IO that its ok to disable its safety with the switch */
+	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 	if (ret != OK)
-		err(1, "PWM_SERVO_GET_DISARMED_PWM");
+		err(1, "PWM_SERVO_SET_ARM_OK");
+	/* tell IO that the system is armed (it will output values if safety is off) */
+	ret = ioctl(fd, PWM_SERVO_ARM, 0);
+	if (ret != OK)
+		err(1, "PWM_SERVO_ARM");
+
+	warnx("Outputs armed");
 
 	/* wait for user confirmation */
 	printf("\nHigh PWM set: %d\n"
@@ -205,7 +282,7 @@ esc_calib_main(int argc, char *argv[])
 				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_max);
 
 				if (ret != OK)
-					err(1, "PWM_SERVO_SET(%d)", i);
+					err(1, "PWM_SERVO_SET(%d), value: %d", i, pwm_max);
 			}
 		}
 
@@ -242,7 +319,7 @@ esc_calib_main(int argc, char *argv[])
 				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_disarmed);
 
 				if (ret != OK)
-					err(1, "PWM_SERVO_SET(%d)", i);
+					err(1, "PWM_SERVO_SET(%d), value: %d", i, pwm_disarmed);
 			}
 		}
 
