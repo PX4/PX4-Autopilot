@@ -220,7 +220,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.lon = param6_lon_y * 1e7f;
 		sp.altitude = param7_alt_z;
 		sp.altitude_is_relative = false;
-		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		sp.yaw = _wrap_pi(param4 / 180.0f * M_PI_F);
 		set_special_fields(param1, param2, param3, param4, command, &sp);
 
 		/* Initialize setpoint publication if necessary */

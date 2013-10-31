@@ -61,20 +61,9 @@ then
 	mavlink start -d /dev/ttyS1 -b 57600
 	usleep 5000
 
-	sh /etc/init.d/rc.io
+	commander start
 
-	if [ $ESC_MAKER = afro ]
-	then
-		# Set PWM values for Afro ESCs
-		px4io idle 1050 1050 1050 1050 
-		px4io min 1080 1080 1080 1080
-		px4io max 1860 1860 1860 1860
-	else
-		# Set PWM values for typical ESCs
-        	px4io idle 900 900 900 900
-        	px4io min 1110 1100 1100 1100
-        	px4io max 1800 1800 1800 1800
-	fi
+	sh /etc/init.d/rc.io
 else
 	fmu mode_pwm
 	# Start MAVLink (on UART1 / ttyS0)
@@ -82,6 +71,19 @@ else
 	usleep 5000
 	param set BAT_V_SCALING 0.004593
 	set EXIT_ON_END yes
+fi
+
+if [ $ESC_MAKER = afro ]
+then
+	# Set PWM values for Afro ESCs
+	pwm disarmed -c 1234 -p 1050
+	pwm min -c 1234 -p 1080
+	pwm max -c 1234 -p 1860
+else
+	# Set PWM values for typical ESCs
+	pwm disarmed -c 1234 -p 900
+	pwm min -c 1234 -p 980
+	pwm max -c 1234 -p 1800
 fi
 
 #
@@ -105,7 +107,7 @@ fi
 #
 # Set PWM output frequency
 #
-pwm -u 400 -m 0xff
+pwm rate -r 400 -c 1234
 
 #
 # Start common for all multirotors apps

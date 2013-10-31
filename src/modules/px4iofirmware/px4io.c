@@ -50,6 +50,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/perf_counter.h>
+#include <systemlib/pwm_limit/pwm_limit.h>
 
 #include <stm32_uart.h>
 
@@ -63,6 +64,8 @@ extern void up_cxxinitialize(void);
 struct sys_state_s 	system_state;
 
 static struct hrt_call serial_dma_call;
+
+pwm_limit_t pwm_limit;
 
 /*
  * a set of debug buffers to allow us to send debug information from ISRs
@@ -159,9 +162,6 @@ user_start(int argc, char *argv[])
 	/* start the FMU interface */
 	interface_init();
 
-	/* add a performance counter for the interface */
-	perf_counter_t interface_perf = perf_alloc(PC_ELAPSED, "interface");
-
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
 
@@ -173,6 +173,9 @@ user_start(int argc, char *argv[])
 
 	struct mallinfo minfo = mallinfo();
 	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+
+	/* initialize PWM limit lib */
+	pwm_limit_init(&pwm_limit);
 
 #if 0
 	/* not enough memory, lock down */
@@ -203,11 +206,6 @@ user_start(int argc, char *argv[])
 		/* track the rate at which the loop is running */
 		perf_count(loop_perf);
 
-		/* kick the interface */
-		perf_begin(interface_perf);
-		interface_tick();
-		perf_end(interface_perf);
-
 		/* kick the mixer */
 		perf_begin(mixer_perf);
 		mixer_tick();
@@ -218,6 +216,7 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
+#if 0
 		/* check for debug activity */
 		show_debug_messages();
 
@@ -234,6 +233,7 @@ user_start(int argc, char *argv[])
 				  (unsigned)minfo.mxordblk);
 			last_debug_time = hrt_absolute_time();
 		}
+#endif
 	}
 }
 

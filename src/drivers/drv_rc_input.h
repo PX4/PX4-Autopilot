@@ -32,8 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file R/C input interface.
+ * @file drv_rc_input.h
  *
+ * R/C input interface.
  */
 
 #ifndef _DRV_RC_INPUT_H
