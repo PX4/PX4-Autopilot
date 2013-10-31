@@ -799,10 +799,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					/* limit roll motion to prevent wings from touching the ground first */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
 
-				} else if (wp_distance < 60.0f && altitude_error > -20.0f) {
+				} else if (wp_distance < 60.0f || altitude_error > -20.0f) {
 
 					/* minimize speed to approach speed, stay on glide slope */
-
 					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, landing_slope_alt_desired, calculate_target_airspeed(airspeed_approach),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, flare_angle_rad,
