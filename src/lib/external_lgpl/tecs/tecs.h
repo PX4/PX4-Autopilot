@@ -327,7 +327,7 @@ private:
 	void _update_speed_demand(void);
 
 	// Update the demanded height
-	void _update_height_demand(float demand);
+	void _update_height_demand(float demand, float state);
 
 	// Detect an underspeed condition
 	void _detect_underspeed(void);
