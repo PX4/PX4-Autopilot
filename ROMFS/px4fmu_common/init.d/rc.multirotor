@@ -14,11 +14,6 @@ sh /etc/init.d/rc.sensors
 sh /etc/init.d/rc.logging
 
 #
-# Start the commander.
-#
-commander start
-
-#
 # Start GPS interface (depends on orb)
 #
 gps start
