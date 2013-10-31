@@ -82,7 +82,7 @@ usage(const char *reason)
 		"    [-c <channels>]     Supply channels (e.g. 1234)\n"
 		"    [-m <chanmask> ]    Directly supply channel mask (e.g. 0xF)\n"
 		"    [-a]                Use all outputs\n"
-		, PWM_MIN, PWM_MAX);
+		, PWM_DEFAULT_MIN, PWM_DEFAULT_MAX);
 }
 
 int
@@ -100,8 +100,8 @@ esc_calib_main(int argc, char *argv[])
 	unsigned long channels;
 	unsigned single_ch = 0;
 
-	uint16_t pwm_high = PWM_MAX;
-	uint16_t pwm_low = PWM_MIN;
+	uint16_t pwm_high = PWM_DEFAULT_MAX;
+	uint16_t pwm_low = PWM_DEFAULT_MIN;
 
 	struct pollfd fds;
 	fds.fd = 0; /* stdin */
@@ -148,13 +148,13 @@ esc_calib_main(int argc, char *argv[])
 
 		case 'l':
 			/* Read in custom low value */
-			if (*ep != '\0' || pwm_low < PWM_MIN || pwm_low > PWM_HIGHEST_MIN)
+			if (*ep != '\0' || pwm_low < PWM_LOWEST_MIN || pwm_low > PWM_HIGHEST_MIN)
 				usage("low PWM invalid");
 			break;
 		case 'h':
 			/* Read in custom high value */
 			pwm_high = strtoul(optarg, &ep, 0);
-			if (*ep != '\0' || pwm_high > PWM_MAX || pwm_high < PWM_LOWEST_MAX)
+			if (*ep != '\0' || pwm_high > PWM_HIGHEST_MAX || pwm_high < PWM_LOWEST_MAX)
 				usage("high PWM invalid");
 			break;
 		default:
