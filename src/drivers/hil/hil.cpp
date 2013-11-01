@@ -404,7 +404,7 @@ HIL::task_main()
 				for (unsigned i = 0; i < num_outputs; i++) {
 
 					/* last resort: catch NaN, INF and out-of-band errors */
-					if (i < (unsigned)outputs.noutputs &&
+					if (i < outputs.noutputs &&
 						isfinite(outputs.output[i]) &&
 						outputs.output[i] >= -1.0f &&
 						outputs.output[i] <= 1.0f) {
@@ -517,7 +517,7 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		g_hil->set_pwm_rate(arg);
 		break;
 
-	case PWM_SERVO_SELECT_UPDATE_RATE:
+	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
 		// HIL always outputs at the alternate (usually faster) rate 
 		break;
 

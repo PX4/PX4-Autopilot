@@ -1071,7 +1071,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		ret = OK;
 		break;
 
-	case PWM_SERVO_SELECT_UPDATE_RATE:
+	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
 		ret = OK;
 		break;
 

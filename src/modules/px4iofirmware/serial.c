@@ -74,9 +74,6 @@ static DMA_HANDLE	rx_dma;
 static int		serial_interrupt(int irq, void *context);
 static void		dma_reset(void);
 
-/* if we spend this many ticks idle, reset the DMA */
-static unsigned		idle_ticks;
-
 static struct IOPacket	dma_packet;
 
 /* serial register accessors */
@@ -150,16 +147,6 @@ interface_init(void)
 	debug("serial init");
 }
 
-void
-interface_tick()
-{
-	/* XXX look for stuck/damaged DMA and reset? */
-	if (idle_ticks++ > 100) {
-		dma_reset();
-		idle_ticks = 0;
-	}
-}
-
 static void
 rx_handle_packet(void)
 {
@@ -229,9 +216,6 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 	/* disable UART DMA */
 	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
-
-	/* reset the idle counter */
-	idle_ticks = 0;
 
 	/* handle the received packet */
 	rx_handle_packet();
@@ -308,6 +292,7 @@ serial_interrupt(int irq, void *context)
 
 			/* it was too short - possibly truncated */
 			perf_count(pc_badidle);
+			dma_reset();
 			return 0;
 		}
 
@@ -343,7 +328,8 @@ dma_reset(void)
 		sizeof(dma_packet),
 		DMA_CCR_MINC		|
 		DMA_CCR_PSIZE_8BITS	|
-		DMA_CCR_MSIZE_8BITS);
+		DMA_CCR_MSIZE_8BITS     |
+		DMA_CCR_PRIVERYHI);
 
 	/* start receive DMA ready for the next packet */
 	stm32_dmastart(rx_dma, rx_dma_callback, NULL, false);
