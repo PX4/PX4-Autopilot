@@ -729,8 +729,8 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 			} else if (global_triplet.current.nav_cmd == NAV_CMD_LAND) {
 
+				/* Horizontal landing control */
 				/* switch to heading hold for the last meters, continue heading hold after */
-
 				float wp_distance = get_distance_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), current_position.getX(), current_position.getY());
 				//warnx("wp dist: %d, alt err: %d, noret: %s", (int)wp_distance, (int)altitude_error, (land_noreturn) ? "YES" : "NO");
 				if (wp_distance < 15.0f || land_noreturn) {
@@ -758,16 +758,16 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					/* normal navigation */
 					_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
 				}
+				_att_sp.roll_body = _l1_control.nav_roll();
+				_att_sp.yaw_body = _l1_control.nav_bearing();
+
+
+				/* Vertical landing control */
 
 //				/* do not go down too early */
 //				if (wp_distance > 50.0f) {
 //					altitude_error = (_global_triplet.current.altitude + 25.0f) - _global_pos.alt;
 //				}
-
-
-				_att_sp.roll_body = _l1_control.nav_roll();
-				_att_sp.yaw_body = _l1_control.nav_bearing();
-
 				/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 				// XXX this could make a great param
 
