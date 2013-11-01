@@ -78,7 +78,7 @@ MODULES		+= examples/flow_position_estimator
 #
 # Vehicle Control
 #
-MODULES		+= modules/segway
+#MODULES		+= modules/segway # XXX Needs GCC 4.7 fix
 MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
 MODULES		+= modules/multirotor_att_control
@@ -120,7 +120,7 @@ MODULES		+= lib/conversion
 #MODULES		+= examples/math_demo
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
-#MODULES		+= examples/px4_simple_app
+MODULES		+= examples/px4_simple_app
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/daemon

@@ -67,8 +67,6 @@
 static void	usage(const char *reason);
 __EXPORT int	esc_calib_main(int argc, char *argv[]);
 
-#define MAX_CHANNELS 14
-
 static void
 usage(const char *reason)
 {
@@ -76,12 +74,15 @@ usage(const char *reason)
 		warnx("%s", reason);
 
 	errx(1,
-	     "usage:\n"
-	     "esc_calib [-l <low pwm>] [-h <high pwm>] [-d <device>] <channels>\n"
-	     "  <device>           PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
-	     "  <channels>         Provide channels (e.g.: 1 2 3 4)\n"
-	    );
-
+		"usage:\n"
+		"esc_calib\n"
+		"    [-d <device>        PWM output device (defaults to " PWM_OUTPUT_DEVICE_PATH ")\n"
+		"    [-l <pwm>           Low PWM value in us (default: %dus)\n"
+		"    [-h <pwm>           High PWM value in us (default: %dus)\n"
+		"    [-c <channels>]     Supply channels (e.g. 1234)\n"
+		"    [-m <chanmask> ]    Directly supply channel mask (e.g. 0xF)\n"
+		"    [-a]                Use all outputs\n"
+		, PWM_DEFAULT_MIN, PWM_DEFAULT_MAX);
 }
 
 int
@@ -89,13 +90,18 @@ esc_calib_main(int argc, char *argv[])
 {
 	char *dev = PWM_OUTPUT_DEVICE_PATH;
 	char *ep;
-	bool channels_selected[MAX_CHANNELS] = {false};
 	int ch;
 	int ret;
 	char c;
 
-	int low = -1;
-	int high = -1;
+	unsigned max_channels = 0;
+
+	uint32_t set_mask = 0;
+	unsigned long channels;
+	unsigned single_ch = 0;
+
+	uint16_t pwm_high = PWM_DEFAULT_MAX;
+	uint16_t pwm_low = PWM_DEFAULT_MIN;
 
 	struct pollfd fds;
 	fds.fd = 0; /* stdin */
@@ -107,7 +113,7 @@ esc_calib_main(int argc, char *argv[])
 
 	int arg_consumed = 0;
 
-	while ((ch = getopt(argc, &argv[0], "l:h:d:")) != -1) {
+	while ((ch = getopt(argc, argv, "d:c:m:al:h:")) != EOF) {
 		switch (ch) {
 
 		case 'd':
@@ -115,41 +121,49 @@ esc_calib_main(int argc, char *argv[])
 			arg_consumed += 2;
 			break;
 
+		case 'c':
+			/* Read in channels supplied as one int and convert to mask: 1234 -> 0xF */
+			channels = strtoul(optarg, &ep, 0);
+
+			while ((single_ch = channels % 10)) {
+
+				set_mask |= 1<<(single_ch-1);
+				channels /= 10;
+			}
+			break;
+
+		case 'm':
+			/* Read in mask directly */
+			set_mask = strtoul(optarg, &ep, 0);
+			if (*ep != '\0')
+				usage("bad set_mask value");
+			break;
+
+		case 'a':
+			/* Choose all channels */
+			for (unsigned i = 0; i<PWM_OUTPUT_MAX_CHANNELS; i++) {
+				set_mask |= 1<<i;
+			}
+			break;
+
 		case 'l':
-			low = strtoul(optarg, &ep, 0);
-			if (*ep != '\0')
-				usage("bad low pwm value");
-			arg_consumed += 2;
+			/* Read in custom low value */
+			if (*ep != '\0' || pwm_low < PWM_LOWEST_MIN || pwm_low > PWM_HIGHEST_MIN)
+				usage("low PWM invalid");
 			break;
-
 		case 'h':
-			high = strtoul(optarg, &ep, 0);
-			if (*ep != '\0')
-				usage("bad high pwm value");
-			arg_consumed += 2;
+			/* Read in custom high value */
+			pwm_high = strtoul(optarg, &ep, 0);
+			if (*ep != '\0' || pwm_high > PWM_HIGHEST_MAX || pwm_high < PWM_LOWEST_MAX)
+				usage("high PWM invalid");
 			break;
-
 		default:
 			usage(NULL);
 		}
 	}
 
-	while ((--argc - arg_consumed) > 0) {
-		const char *arg = argv[argc];
-		unsigned channel_number = strtol(arg, &ep, 0);
-
-		warnx("adding channel #%d", channel_number);
-
-		if (*ep == '\0') {
-			if (channel_number > MAX_CHANNELS || channel_number <= 0) {
-				err(1, "invalid channel number: %d", channel_number);
-
-			} else {
-				channels_selected[channel_number - 1] = true;
-
-			}
-		}
-	}
+	if (set_mask == 0)
+		usage("no channels chosen");
 
 	/* make sure no other source is publishing control values now */
 	struct actuator_controls_s actuators;
@@ -217,50 +231,10 @@ esc_calib_main(int argc, char *argv[])
 	if (fd < 0)
 		err(1, "can't open %s", dev);
 
-	/* get max PWM value setting */
-	uint16_t pwm_max = 0;
-
-	if (high > 0 && high > low && high < 2200) {
-		pwm_max = high;
-	} else {
-		ret = ioctl(fd, PWM_SERVO_GET_MAX_PWM, &pwm_max);
-
-		if (ret != OK)
-			err(1, "PWM_SERVO_GET_MAX_PWM");
-	}
-
-	/* bound to sane values */
-	if (pwm_max > 2200)
-		pwm_max = 2200;
-
-	if (pwm_max < 1700)
-		pwm_max = 1700;
-
-	/* get disarmed PWM value setting */
-	uint16_t pwm_disarmed = 0;
-
-	if (low > 0 && low < high && low > 800) {
-		pwm_disarmed = low;
-	} else {
-		ret = ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, &pwm_disarmed);
-
-		if (ret != OK)
-			err(1, "PWM_SERVO_GET_DISARMED_PWM");
-
-		if (pwm_disarmed == 0) {
-			ret = ioctl(fd, PWM_SERVO_GET_MIN_PWM, &pwm_disarmed);
-
-			if (ret != OK)
-				err(1, "PWM_SERVO_GET_MIN_PWM");
-		}
-	}
-
-	/* bound to sane values */
-	if (pwm_disarmed > 1300)
-		pwm_disarmed = 1300;
-
-	if (pwm_disarmed < 800)
-		pwm_disarmed = 800;
+	/* get number of channels available on the device */
+	ret = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&max_channels);
+	if (ret != OK)
+		err(1, "PWM_SERVO_GET_COUNT");
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
 	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
@@ -273,21 +247,23 @@ esc_calib_main(int argc, char *argv[])
 
 	warnx("Outputs armed");
 
+
 	/* wait for user confirmation */
 	printf("\nHigh PWM set: %d\n"
 	       "\n"
 	       "Connect battery now and hit ENTER after the ESCs confirm the first calibration step\n"
-	       "\n", pwm_max);
+	       "\n", pwm_high);
 	fflush(stdout);
 
 	while (1) {
 		/* set max PWM */
-		for (unsigned i = 0; i < MAX_CHANNELS; i++) {
-			if (channels_selected[i]) {
-				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_max);
+		for (unsigned i = 0; i < max_channels; i++) {
+
+			if (set_mask & 1<<i) {
+				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_high);
 
 				if (ret != OK)
-					err(1, "PWM_SERVO_SET(%d), value: %d", i, pwm_max);
+					err(1, "PWM_SERVO_SET(%d), value: %d", i, pwm_high);
 			}
 		}
 
@@ -314,17 +290,17 @@ esc_calib_main(int argc, char *argv[])
 	printf("Low PWM set: %d\n"
 	       "\n"
 	       "Hit ENTER when finished\n"
-	       "\n", pwm_disarmed);
+	       "\n", pwm_low);
 
 	while (1) {
 
 		/* set disarmed PWM */
-		for (unsigned i = 0; i < MAX_CHANNELS; i++) {
-			if (channels_selected[i]) {
-				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_disarmed);
+		for (unsigned i = 0; i < max_channels; i++) {
+			if (set_mask & 1<<i) {
+				ret = ioctl(fd, PWM_SERVO_SET(i), pwm_low);
 
 				if (ret != OK)
-					err(1, "PWM_SERVO_SET(%d), value: %d", i, pwm_disarmed);
+					err(1, "PWM_SERVO_SET(%d), value: %d", i, pwm_low);
 			}
 		}
 
