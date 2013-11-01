@@ -280,6 +280,11 @@ private:
 	void		vehicle_setpoint_poll();
 
 	/**
+	 * Get Altitude on the landing glide slope
+	 */
+	float getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude, float landing_slope_angle_rad);
+
+	/**
 	 * Control position.
 	 */
 	bool		control_position(const math::Vector2f &global_pos, const math::Vector2f &ground_speed,
@@ -624,6 +629,11 @@ FixedwingPositionControl::calculate_gndspeed_undershoot()
 	}
 }
 
+float FixedwingPositionControl::getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude, float landing_slope_angle_rad)
+{
+	return wp_distance * tanf(landing_slope_angle_rad) + wp_altitude;
+}
+
 bool
 FixedwingPositionControl::control_position(const math::Vector2f &current_position, const math::Vector2f &ground_speed,
 		const struct vehicle_global_position_set_triplet_s &global_triplet)
@@ -778,7 +788,10 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float airspeed_approach = (_parameters.airspeed_min + _parameters.airspeed_trim) / 2.0f;
 
 				const float landing_slope_angle_rad = 20.0f/180.0f*M_PI_F; //xxx: param
-				float landing_slope_alt_desired = wp_distance * tanf(landing_slope_angle_rad) + _global_triplet.current.altitude;
+				const float landingslope_length = 64.0f;
+				const float L_wp_distance = cosf(landing_slope_angle_rad) * landingslope_length;
+				float L_altitude = getLandingSlopeAbsoluteAltitude(L_wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad);
+				float landing_slope_alt_desired = getLandingSlopeAbsoluteAltitude(wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad);
 
 				if (altitude_error > -4.0f) {
 
@@ -799,7 +812,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					/* limit roll motion to prevent wings from touching the ground first */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
 
-				} else if (wp_distance < 60.0f || altitude_error > -20.0f) {
+				} else if (wp_distance < L_wp_distance) {
 
 					/* minimize speed to approach speed, stay on glide slope */
 					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, landing_slope_alt_desired, calculate_target_airspeed(airspeed_approach),
@@ -811,10 +824,20 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				} else {
 
 					/* normal cruise speed
-					 * intersect glide slope: if current position higher than slope sink to glide slope but continue horizontally if below slope */
+					 * intersect glide slope:
+					 * if current position is higher or within 10m of slope follow the glide slope
+					 * if current position is below slope -10m and above altitude at L (see documentation) continue horizontally
+					 * if current position is below altitude at L, climb to altitude of L */
 					float altitude_desired = _global_pos.alt;
-					if (_global_pos.alt > landing_slope_alt_desired) {
+					if (_global_pos.alt > landing_slope_alt_desired - 10.0f) {
+						/* stay on slope */
 						altitude_desired = landing_slope_alt_desired;
+					} else if (_global_pos.alt < landing_slope_alt_desired - 10.0f && _global_pos.alt > L_altitude) {
+						/* continue horizontally */
+						altitude_desired = _global_pos.alt; //xxx: dangerous, but we have the altitude < L_altitude protection
+					} else {
+						/* climb to L_altitude */
+						altitude_desired = L_altitude;
 					}
 
 					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, altitude_desired, calculate_target_airspeed(_parameters.airspeed_trim),
