@@ -65,6 +65,36 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_MAX_CHANNELS	16
 
 /**
+ * Lowest minimum PWM in us
+ */
+#define PWM_LOWEST_MIN 900
+
+/**
+ * Default minimum PWM in us
+ */
+#define PWM_DEFAULT_MIN 1000
+
+/**
+ * Highest PWM allowed as the minimum PWM
+ */
+#define PWM_HIGHEST_MIN 1300
+
+/**
+ * Highest maximum PWM in us
+ */
+#define PWM_HIGHEST_MAX 2100
+
+/**
+ * Default maximum PWM in us
+ */
+#define PWM_DEFAULT_MAX 2000
+
+/**
+ * Lowest PWM allowed as the maximum PWM
+ */
+#define PWM_LOWEST_MAX 1700
+
+/**
  * Servo output signal type, value is actual servo output pulse
  * width in microseconds.
  */
@@ -79,6 +109,7 @@ typedef uint16_t	servo_position_t;
 struct pwm_output_values {
 	/** desired pulse widths for each of the supported channels */
 	servo_position_t	values[PWM_OUTPUT_MAX_CHANNELS];
+	unsigned			channel_count;
 };
 
 /*
@@ -100,30 +131,63 @@ ORB_DECLARE(output_pwm);
 /** disarm all servo outputs (stop generating pulses) */
 #define PWM_SERVO_DISARM	_IOC(_PWM_SERVO_BASE, 1)
 
+/** get default servo update rate */
+#define PWM_SERVO_GET_DEFAULT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 2)
+
 /** set alternate servo update rate */
-#define PWM_SERVO_SET_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 2)
+#define PWM_SERVO_SET_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 3)
+
+/** get alternate servo update rate */
+#define PWM_SERVO_GET_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 4)
 
 /** get the number of servos in *(unsigned *)arg */
-#define PWM_SERVO_GET_COUNT	_IOC(_PWM_SERVO_BASE, 3)
+#define PWM_SERVO_GET_COUNT	_IOC(_PWM_SERVO_BASE, 5)
 
 /** selects servo update rates, one bit per servo. 0 = default (50Hz), 1 = alternate */
-#define PWM_SERVO_SELECT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 4)
+#define PWM_SERVO_SET_SELECT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 6)
+
+/** check the selected update rates */
+#define PWM_SERVO_GET_SELECT_UPDATE_RATE _IOC(_PWM_SERVO_BASE, 7)
 
 /** set the 'ARM ok' bit, which activates the safety switch */
-#define PWM_SERVO_SET_ARM_OK	_IOC(_PWM_SERVO_BASE, 5)
+#define PWM_SERVO_SET_ARM_OK	_IOC(_PWM_SERVO_BASE, 8)
 
 /** clear the 'ARM ok' bit, which deactivates the safety switch */
-#define PWM_SERVO_CLEAR_ARM_OK	_IOC(_PWM_SERVO_BASE, 6)
+#define PWM_SERVO_CLEAR_ARM_OK	_IOC(_PWM_SERVO_BASE, 9)
 
 /** start DSM bind */
-#define DSM_BIND_START	_IOC(_PWM_SERVO_BASE, 7)
+#define DSM_BIND_START	_IOC(_PWM_SERVO_BASE, 10)
 
 #define DSM2_BIND_PULSES 3	/* DSM_BIND_START ioctl parameter, pulses required to start dsm2 pairing */
 #define DSMX_BIND_PULSES 7	/* DSM_BIND_START ioctl parameter, pulses required to start dsmx pairing */
 #define DSMX8_BIND_PULSES 10	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
 
-/** Power up DSM receiver */
-#define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 8)
+/** power up DSM receiver */
+#define DSM_BIND_POWER_UP _IOC(_PWM_SERVO_BASE, 11)
+
+/** set the PWM value for failsafe */
+#define PWM_SERVO_SET_FAILSAFE_PWM	_IOC(_PWM_SERVO_BASE, 12)
+
+/** get the PWM value for failsafe */
+#define PWM_SERVO_GET_FAILSAFE_PWM	_IOC(_PWM_SERVO_BASE, 13)
+
+/** set the PWM value when disarmed - should be no PWM (zero) by default */
+#define PWM_SERVO_SET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 14)
+
+/** get the PWM value when disarmed */
+#define PWM_SERVO_GET_DISARMED_PWM	_IOC(_PWM_SERVO_BASE, 15)
+
+/** set the minimum PWM value the output will send */
+#define PWM_SERVO_SET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 16)
+
+/** get the minimum PWM value the output will send */
+#define PWM_SERVO_GET_MIN_PWM	_IOC(_PWM_SERVO_BASE, 17)
+
+/** set the maximum PWM value the output will send */
+#define PWM_SERVO_SET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 18)
+
+/** get the maximum PWM value the output will send */
+#define PWM_SERVO_GET_MAX_PWM	_IOC(_PWM_SERVO_BASE, 19)
 
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)

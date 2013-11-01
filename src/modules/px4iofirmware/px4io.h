@@ -46,6 +46,8 @@
 
 #include "protocol.h"
 
+#include <systemlib/pwm_limit/pwm_limit.h>
+
 /*
  * Constants and limits.
  */
@@ -80,7 +82,7 @@ extern uint16_t			r_page_rc_input_config[]; /* PX4IO_PAGE_RC_INPUT_CONFIG */
 extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
 extern uint16_t			r_page_servo_control_min[]; /* PX4IO_PAGE_CONTROL_MIN_PWM */
 extern uint16_t			r_page_servo_control_max[]; /* PX4IO_PAGE_CONTROL_MAX_PWM */
-extern uint16_t			r_page_servo_idle[];	/* PX4IO_PAGE_IDLE_PWM */
+extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 
 /*
  * Register aliases.
@@ -121,6 +123,11 @@ struct sys_state_s {
 };
 
 extern struct sys_state_s system_state;
+
+/*
+ * PWM limit structure
+ */
+extern pwm_limit_t pwm_limit;
 
 /*
  * GPIO handling.
