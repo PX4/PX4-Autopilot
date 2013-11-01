@@ -232,8 +232,8 @@ PX4FMU::PX4FMU() :
 	_num_disarmed_set(0)
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
-		_min_pwm[i] = PWM_MIN;
-		_max_pwm[i] = PWM_MAX;
+		_min_pwm[i] = PWM_DEFAULT_MIN;
+		_max_pwm[i] = PWM_DEFAULT_MAX;
 	}
 
 	_debug_enabled = true;
@@ -762,10 +762,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		for (unsigned i = 0; i < pwm->channel_count; i++) {
 			if (pwm->values[i] == 0) {
 				/* ignore 0 */
-			} else if (pwm->values[i] > PWM_MAX) {
-				_failsafe_pwm[i] = PWM_MAX;
-			} else if (pwm->values[i] < PWM_MIN) {
-				_failsafe_pwm[i] = PWM_MIN;
+			} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
+				_failsafe_pwm[i] = PWM_HIGHEST_MAX;
+			} else if (pwm->values[i] < PWM_LOWEST_MIN) {
+				_failsafe_pwm[i] = PWM_LOWEST_MIN;
 			} else {
 				_failsafe_pwm[i] = pwm->values[i];
 			}
@@ -801,10 +801,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		for (unsigned i = 0; i < pwm->channel_count; i++) {
 			if (pwm->values[i] == 0) {
 				/* ignore 0 */
-			} else if (pwm->values[i] > PWM_MAX) {
-				_disarmed_pwm[i] = PWM_MAX;
-			} else if (pwm->values[i] < PWM_MIN) {
-				_disarmed_pwm[i] = PWM_MIN;
+			} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
+				_disarmed_pwm[i] = PWM_HIGHEST_MAX;
+			} else if (pwm->values[i] < PWM_LOWEST_MIN) {
+				_disarmed_pwm[i] = PWM_LOWEST_MIN;
 			} else {
 				_disarmed_pwm[i] = pwm->values[i];
 			}
@@ -842,8 +842,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				/* ignore 0 */
 			} else if (pwm->values[i] > PWM_HIGHEST_MIN) {
 				_min_pwm[i] = PWM_HIGHEST_MIN;
-			} else if (pwm->values[i] < PWM_MIN) {
-				_min_pwm[i] = PWM_MIN;
+			} else if (pwm->values[i] < PWM_LOWEST_MIN) {
+				_min_pwm[i] = PWM_LOWEST_MIN;
 			} else {
 				_min_pwm[i] = pwm->values[i];
 			}
@@ -872,8 +872,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				/* ignore 0 */
 			} else if (pwm->values[i] < PWM_LOWEST_MAX) {
 				_max_pwm[i] = PWM_LOWEST_MAX;
-			} else if (pwm->values[i] > PWM_MAX) {
-				_max_pwm[i] = PWM_MAX;
+			} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
+				_max_pwm[i] = PWM_HIGHEST_MAX;
 			} else {
 				_max_pwm[i] = pwm->values[i];
 			}

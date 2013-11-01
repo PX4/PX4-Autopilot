@@ -65,9 +65,14 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_MAX_CHANNELS	16
 
 /**
- * Minimum PWM in us
+ * Lowest minimum PWM in us
  */
-#define PWM_MIN 900
+#define PWM_LOWEST_MIN 900
+
+/**
+ * Default minimum PWM in us
+ */
+#define PWM_DEFAULT_MIN 1000
 
 /**
  * Highest PWM allowed as the minimum PWM
@@ -75,9 +80,14 @@ __BEGIN_DECLS
 #define PWM_HIGHEST_MIN 1300
 
 /**
- * Maximum PWM in us
+ * Highest maximum PWM in us
  */
-#define PWM_MAX 2100
+#define PWM_HIGHEST_MAX 2100
+
+/**
+ * Default maximum PWM in us
+ */
+#define PWM_DEFAULT_MAX 2000
 
 /**
  * Lowest PWM allowed as the maximum PWM
