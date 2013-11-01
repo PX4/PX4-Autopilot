@@ -1276,6 +1276,7 @@ Sensors::rc_poll()
 			if (_parameters.rc_fs_mode == 0) {
 				if (rc_input.values[_parameters.rc_fs_ch - 1] < _parameters.rc_fs_thr)
 					return;
+
 			} else if (_parameters.rc_fs_mode == 1) {
 				if (rc_input.values[_parameters.rc_fs_ch - 1] > _parameters.rc_fs_thr)
 					return;
