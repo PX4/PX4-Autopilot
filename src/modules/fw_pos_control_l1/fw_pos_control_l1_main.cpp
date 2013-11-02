@@ -501,7 +501,6 @@ FixedwingPositionControl::vehicle_airspeed_poll()
 		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 		_airspeed_valid = true;
 		_airspeed_last_valid = hrt_absolute_time();
-		return true;
 
 	} else {
 
@@ -514,7 +513,7 @@ FixedwingPositionControl::vehicle_airspeed_poll()
 	/* update TECS state */
 	_tecs.enable_airspeed(_airspeed_valid);
 
-	return false;
+	return airspeed_updated;
 }
 
 void
