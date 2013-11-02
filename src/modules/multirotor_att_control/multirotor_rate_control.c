@@ -168,6 +168,7 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	static PID_t pitch_rate_controller;
 	static PID_t roll_rate_controller;
+	static PID_t yaw_rate_controller;
 
 	static struct mc_rate_control_params p;
 	static struct mc_rate_control_param_handles h;
@@ -182,7 +183,7 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 		pid_init(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
 		pid_init(&roll_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
-
+		pid_init(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, 1.0f, 1.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
 	}
 
 	/* load new parameters with lower rate */
@@ -191,13 +192,14 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		parameters_update(&h, &p);
 		pid_set_parameters(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f);
 		pid_set_parameters(&roll_rate_controller,  p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f);
+		pid_set_parameters(&yaw_rate_controller,  p.yawrate_p, p.yawrate_i, p.yawrate_d, 1.0f, 1.0f);
 	}
 
 	/* reset integrals if needed */
 	if (reset_integral) {
 		pid_reset_integral(&pitch_rate_controller);
 		pid_reset_integral(&roll_rate_controller);
-		// TODO pid_reset_integral(&yaw_rate_controller);
+		pid_reset_integral(&yaw_rate_controller);
 	}
 
 	/* control pitch (forward) output */
@@ -208,18 +210,12 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	float roll_control = pid_calculate(&roll_rate_controller, rate_sp->roll ,
 					   rates[0], 0.0f, deltaT);
 
-	/* control yaw rate */ //XXX use library here
-	float yaw_rate_control = p.yawrate_p * (rate_sp->yaw - rates[2]);
-
-	/* increase resilience to faulty control inputs */
-	if (!isfinite(yaw_rate_control)) {
-		yaw_rate_control = 0.0f;
-		warnx("rej. NaN ctrl yaw");
-	}
+	/* control yaw output */
+	float yaw_control = pid_calculate(&yaw_rate_controller, rate_sp->yaw, rates[2], 0.0f, deltaT);
 
 	actuators->control[0] = roll_control;
 	actuators->control[1] = pitch_control;
-	actuators->control[2] = yaw_rate_control;
+	actuators->control[2] = yaw_control;
 	actuators->control[3] = rate_sp->thrust;
 
 	motor_skip_counter++;
