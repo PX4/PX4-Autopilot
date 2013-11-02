@@ -224,6 +224,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
+	uint64_t last_gps = 0;
 
 	float vel_prev[3] = { 0.0f, 0.0f, 0.0f };
 
@@ -363,17 +364,20 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 					float acc[3];
 					if (gps.fix_type >= 3 && gps.eph_m < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
-						/* calculate acceleration in NED frame */
-						float acc_NED[3];
-						acc_NED[0] = (gps.vel_n_m_s - vel_prev[0]) / dt;
-						acc_NED[1] = (gps.vel_e_m_s - vel_prev[1]) / dt;
-						acc_NED[2] = (gps.vel_d_m_s - vel_prev[2]) / dt;
+						if (last_gps != 0 && gps.timestamp_velocity != last_gps) {
+							float gps_dt = (gps.timestamp_velocity - last_gps) / 1000000.0f;
+							/* calculate acceleration in NED frame */
+							float acc_NED[3];
+							acc_NED[0] = (gps.vel_n_m_s - vel_prev[0]) / gps_dt;
+							acc_NED[1] = (gps.vel_e_m_s - vel_prev[1]) / gps_dt;
+							acc_NED[2] = (gps.vel_d_m_s - vel_prev[2]) / gps_dt;
 
-						/* project acceleration to body frame */
-						for (int i = 0; i < 3; i++) {
-							acc[i] = 0.0f;
-							for (int j = 0; j < 3; j++) {
-								acc[i] += att.R[j][i] * acc_NED[j];
+							/* project acceleration to body frame */
+							for (int i = 0; i < 3; i++) {
+								acc[i] = 0.0f;
+								for (int j = 0; j < 3; j++) {
+									acc[i] += att.R[j][i] * acc_NED[j];
+								}
 							}
 						}
 
@@ -387,10 +391,12 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						vel_prev[0] = gps.vel_n_m_s;
 						vel_prev[1] = gps.vel_e_m_s;
 						vel_prev[2] = gps.vel_d_m_s;
+						last_gps = gps.timestamp_velocity;
 					} else {
 						vel_prev[0] = 0.0f;
 						vel_prev[1] = 0.0f;
 						vel_prev[2] = 0.0f;
+						last_gps = 0;
 					}
 
 					z_k[3] = raw.accelerometer_m_s2[0] - acc[0];
