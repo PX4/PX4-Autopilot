@@ -799,7 +799,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float land_pitch_min = math::radians(5.0f);
 				float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 				float airspeed_land = _parameters.airspeed_min;
-				float airspeed_approach = (_parameters.airspeed_min + _parameters.airspeed_trim) / 2.0f;
+				float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
 				float landing_slope_angle_rad = math::radians(_parameters.land_slope_angle);
 				float landingslope_length = _parameters.land_slope_length;
@@ -807,21 +807,21 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float L_altitude = getLandingSlopeAbsoluteAltitude(L_wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad);
 				float landing_slope_alt_desired = getLandingSlopeAbsoluteAltitude(wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad);
 
-				if (altitude_error > -4.0f) {
+				if (altitude_error > -10.0f || land_noreturn) { //be generous here as we currently have to rely on the user input for the waypoint, checking for land_noreturn to avoid unwanted climb out
 
 					/* land with minimal speed */
 
 					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
 					_tecs.set_speed_weight(2.0f);
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_land),
-								    _airspeed.indicated_airspeed_m_s, eas2tas,
-								    false, flare_angle_rad,
-								    0.0f, _parameters.throttle_max, throttle_land,
-								    math::radians(-10.0f), math::radians(15.0f));
-
 					/* kill the throttle if param requests it */
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
+
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_land),
+													    _airspeed.indicated_airspeed_m_s, eas2tas,
+													    false, flare_angle_rad,
+													    0.0f, throttle_max, throttle_land,
+													    math::radians(flare_angle_rad), math::radians(15.0f));
 
 					/* limit roll motion to prevent wings from touching the ground first */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
@@ -839,8 +839,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					warnx("Landing: after L, stay on landing slope, alt_desired: %.4f (wp_distance: %.4f)", landing_slope_alt_desired, wp_distance);
 				} else {
 
-					/* normal cruise speed
-					 * intersect glide slope:
+					 /* intersect glide slope:
 					 * if current position is higher or within 10m of slope follow the glide slope
 					 * if current position is below slope -10m and above altitude at L (see documentation) continue horizontally
 					 * if current position is below altitude at L, climb to altitude of L */
@@ -859,7 +858,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 						warnx("Landing: before L, below L, climb: %.4f (wp_distance: %.4f)", altitude_desired, wp_distance);
 					}
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, altitude_desired, calculate_target_airspeed(_parameters.airspeed_trim),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, altitude_desired, calculate_target_airspeed(airspeed_approach),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, math::radians(_parameters.pitch_limit_min),
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
