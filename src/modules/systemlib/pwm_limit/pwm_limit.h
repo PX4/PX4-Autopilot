@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,48 +33,45 @@
  ****************************************************************************/
 
 /**
- * @file actuator_outputs.h
+ * @file pwm_limit.h
  *
- * Actuator output values.
+ * Lib to limit PWM output
  *
- * Values published to these topics are the outputs of the control mixing
- * system as sent to the actuators (servos, motors, etc.) that operate
- * the vehicle.
- *
- * Each topic can be published by a single output driver.
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#ifndef TOPIC_ACTUATOR_OUTPUTS_H
-#define TOPIC_ACTUATOR_OUTPUTS_H
+#ifndef PWM_LIMIT_H_
+#define PWM_LIMIT_H_
 
 #include <stdint.h>
-#include "../uORB.h"
+#include <stdbool.h>
 
-#define NUM_ACTUATOR_OUTPUTS		16
-#define NUM_ACTUATOR_OUTPUT_GROUPS	4	/**< for sanity checking */
-
-/**
- * @addtogroup topics
- * @{
+/*
+ * time for the ESCs to initialize
+ * (this is not actually needed if PWM is sent right after boot)
  */
-
-struct actuator_outputs_s {
-	uint64_t timestamp;				/**< output timestamp in us since system boot */
-	float	output[NUM_ACTUATOR_OUTPUTS];		/**< output data, in natural output units */
-	unsigned noutputs;					/**< valid outputs */
-};
-
-/**
- * @}
+#define INIT_TIME_US 500000
+/*
+ * time to slowly ramp up the ESCs
  */
+#define RAMP_TIME_US 2500000
 
-/* actuator output sets; this list can be expanded as more drivers emerge */
-ORB_DECLARE(actuator_outputs_0);
-ORB_DECLARE(actuator_outputs_1);
-ORB_DECLARE(actuator_outputs_2);
-ORB_DECLARE(actuator_outputs_3);
+typedef struct {
+	enum {
+		LIMIT_STATE_OFF = 0,
+		LIMIT_STATE_INIT,
+		LIMIT_STATE_RAMP,
+		LIMIT_STATE_ON
+	} state;
+	uint64_t time_armed;
+} pwm_limit_t;
 
-/* output sets with pre-defined applications */
-#define ORB_ID_VEHICLE_CONTROLS		ORB_ID(actuator_outputs_0)
+__BEGIN_DECLS
 
-#endif
+__EXPORT void pwm_limit_init(pwm_limit_t *limit);
+
+__EXPORT void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, float *output, uint16_t *effective_pwm, pwm_limit_t *limit);
+
+__END_DECLS
+
+#endif /* PWM_LIMIT_H_ */

@@ -53,7 +53,7 @@ mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
 #
 # Set PWM output frequency
 #
-pwm -u 400 -m 0xff
+pwm rate -c 1234 -r 400
 
 #
 # Start common for all multirotors apps

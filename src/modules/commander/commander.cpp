@@ -199,7 +199,7 @@ void handle_command(struct vehicle_status_s *status, struct vehicle_control_mode
  */
 int commander_thread_main(int argc, char *argv[]);
 
-void control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed);
+void control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_armed, bool changed);
 
 void check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *valid_out, bool *changed);
 
@@ -843,6 +843,12 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (updated) {
 			orb_copy(ORB_ID(safety), safety_sub, &safety);
+
+			// XXX this would be the right approach to do it, but do we *WANT* this?
+			// /* disarm if safety is now on and still armed */
+			// if (safety.safety_switch_available && !safety.safety_off) {
+			// 	(void)arming_state_transition(&status, &safety, &control_mode, ARMING_STATE_STANDBY, &armed);
+			// }
 		}
 
 		/* update global position estimate */
@@ -1219,7 +1225,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* play arming and battery warning tunes */
-		if (!arm_tune_played && armed.armed) {
+		if (!arm_tune_played && armed.armed && (!safety.safety_switch_available || (safety.safety_switch_available && safety.safety_off))) {
 			/* play tune when armed */
 			if (tune_arm() == OK)
 				arm_tune_played = true;
@@ -1240,7 +1246,7 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* reset arm_tune_played when disarmed */
-		if (!(armed.armed && (!safety.safety_switch_available || (safety.safety_off && safety.safety_switch_available)))) {
+		if (status.arming_state != ARMING_STATE_ARMED || (safety.safety_switch_available && !safety.safety_off)) {
 			arm_tune_played = false;
 		}
 
@@ -1309,7 +1315,7 @@ check_valid(hrt_abstime timestamp, hrt_abstime timeout, bool valid_in, bool *val
 }
 
 void
-control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool changed)
+control_status_leds(vehicle_status_s *status, const actuator_armed_s *actuator_armed, bool changed)
 {
 	/* driving rgbled */
 	if (changed) {
@@ -1356,11 +1362,11 @@ control_status_leds(vehicle_status_s *status, actuator_armed_s *armed, bool chan
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
-	if (armed->armed) {
+	if (actuator_armed->armed) {
 		/* armed, solid */
 		led_on(LED_BLUE);
 
-	} else if (armed->ready_to_arm) {
+	} else if (actuator_armed->ready_to_arm) {
 		/* ready to arm, blink at 1Hz */
 		if (leds_counter % 20 == 0)
 			led_toggle(LED_BLUE);
