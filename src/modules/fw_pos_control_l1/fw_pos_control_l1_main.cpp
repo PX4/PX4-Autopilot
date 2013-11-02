@@ -451,7 +451,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_weight(_parameters.speed_weight);
 	_tecs.set_pitch_damping(_parameters.pitch_damping);
 	_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
-	_tecs.set_indicated_airspeed_max(_parameters.airspeed_min);
+	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
 	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
 
 	/* sanity check parameters */
