@@ -42,6 +42,8 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <fcntl.h>
+#include <math.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -51,6 +53,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_accel.h>
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
@@ -66,17 +69,67 @@ static bool arming_state_changed = true;
 static bool main_state_changed = true;
 static bool navigation_state_changed = true;
 
+int prearm_check(const int mavlink_fd)
+{
+	warnx("PREARM");
+
+	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	int ret = ioctl(fd, ACCELIOCSELFTEST, 0);
+
+	if (ret != OK) {
+		warnx("accel self test failed");
+		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL CALIBRATION");
+		goto system_eval;
+	}
+
+	/* check measurement result range */
+	struct accel_report acc;
+	ret = read(fd, &acc, sizeof(acc));
+
+	if (ret == sizeof(acc)) {
+		/* evaluate values */
+		if (sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z) > 30.0f /* m/s^2 */) {
+			warnx("accel with spurious values");
+			mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL RANGE");
+			/* this is frickin' fatal */
+			ret = ERROR;
+			goto system_eval;
+		} else {
+			ret = OK;
+		}
+	} else {
+		warnx("accel read failed");
+		mavlink_log_critical(mavlink_fd, "#audio: FAIL: ACCEL READ");
+		/* this is frickin' fatal */
+		ret = ERROR;
+		goto system_eval;
+	}
+
+	warnx("PRE RES: %d", ret);
+
+system_eval:
+	close(fd);
+	return ret;
+}
+
+
 transition_result_t
-arming_state_transition(struct vehicle_status_s *status, const struct safety_s *safety,
+arming_state_transition(const int mavlink_fd, struct vehicle_status_s *status, const struct safety_s *safety,
 	const struct vehicle_control_mode_s *control_mode,
 	arming_state_t new_arming_state, struct actuator_armed_s *armed)
 {
+	transition_result_t ret = TRANSITION_DENIED;
+
+	/*
+	 * Perform an pre-arm check and abort early if necessary
+	 */
+	if (new_arming_state == ARMING_STATE_ARMED && prearm_check(mavlink_fd) != OK)
+		return ret;
+
 	/*
 	 * Perform an atomic state update
 	 */
 	irqstate_t flags = irqsave();
-
-	transition_result_t ret = TRANSITION_DENIED;
 
 	/* only check transition if the new state is actually different from the current one */
 	if (new_arming_state == status->arming_state) {

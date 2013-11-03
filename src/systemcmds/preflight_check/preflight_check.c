@@ -132,6 +132,8 @@ int preflight_check_main(int argc, char *argv[])
 			fail_on_error = true;
 			system_ok = false;
 			goto system_eval;
+		} else {
+			ret = OK;
 		}
 	} else {
 		warnx("accel read failed");
