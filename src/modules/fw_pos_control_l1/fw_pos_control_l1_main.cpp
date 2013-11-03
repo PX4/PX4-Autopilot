@@ -798,7 +798,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float flare_angle_rad = -math::radians(5.0f);//math::radians(global_triplet.current.param1)
 				float land_pitch_min = math::radians(5.0f);
 				float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
-				float airspeed_land = _parameters.airspeed_min;
+				float airspeed_land = 1.3f * _parameters.airspeed_min;
 				float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
 				float landing_slope_angle_rad = math::radians(_parameters.land_slope_angle);
