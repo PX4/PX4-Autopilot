@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Barometric pressure sensor driver interface.
+ * @file drv_baro.h
+ *
+ * Barometric pressure sensor driver interface.
  */
 
 #ifndef _DRV_BARO_H

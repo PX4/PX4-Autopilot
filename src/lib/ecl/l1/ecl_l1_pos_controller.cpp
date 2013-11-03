@@ -190,7 +190,7 @@ void ECL_L1_Pos_Controller::navigate_waypoints(const math::Vector2f &vector_A, c
 		float xtrackErr = vector_A_to_airplane % vector_AB;
 		float sine_eta1 = xtrackErr / math::max(_L1_distance , 0.1f);
 		/* limit output to 45 degrees */
-		sine_eta1 = math::constrain(sine_eta1, -M_PI_F / 4.0f, +M_PI_F / 4.0f);
+		sine_eta1 = math::constrain(sine_eta1, -0.7071f, 0.7071f); //sin(pi/4) = 0.7071
 		float eta1 = asinf(sine_eta1);
 		eta = eta1 + eta2;
 		/* bearing from current position to L1 point */

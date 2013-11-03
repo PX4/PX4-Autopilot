@@ -272,7 +272,7 @@ do_accel(int argc, char *argv[])
 			}
 
 		} else {
-			errx(1,"no arguments given. Try: \n\n\t'sampling 500' to set sampling to 500 Hz\n\t'rate 500' to set publication rate to 500 Hz\n\t'range 2' to set measurement range to 4 G\n\t");
+			errx(1,"no arguments given. Try: \n\n\t'sampling 500' to set sampling to 500 Hz\n\t'rate 500' to set publication rate to 500 Hz\n\t'range 4' to set measurement range to 4 G\n\t");
 		}
 
 		int srate = ioctl(fd, ACCELIOCGSAMPLERATE, 0);

@@ -220,8 +220,8 @@ enum {							/* DSM bind states */
 /* PWM maximum values for certain ESCs */
 #define PX4IO_PAGE_CONTROL_MAX_PWM		107	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
-/* PWM idle values that are active, even when SAFETY_SAFE */
-#define PX4IO_PAGE_IDLE_PWM		108	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+/* PWM disarmed values that are active, even when SAFETY_SAFE */
+#define PX4IO_PAGE_DISARMED_PWM		108	/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.

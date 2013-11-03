@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,40 +33,45 @@
  ****************************************************************************/
 
 /**
- * @file drv_gps.h
+ * @file pwm_limit.h
  *
- * GPS driver interface.
+ * Lib to limit PWM output
+ *
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#ifndef _DRV_GPS_H
-#define _DRV_GPS_H
+#ifndef PWM_LIMIT_H_
+#define PWM_LIMIT_H_
 
 #include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS3"
-
-#define GPS_DEVICE_PATH	"/dev/gps"
-
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK
-} gps_driver_mode_t;
-
+#include <stdbool.h>
 
 /*
- * ObjDev tag for GPS data.
+ * time for the ESCs to initialize
+ * (this is not actually needed if PWM is sent right after boot)
  */
-ORB_DECLARE(gps);
-
+#define INIT_TIME_US 500000
 /*
- * ioctl() definitions
+ * time to slowly ramp up the ESCs
  */
-#define _GPSIOCBASE			(0x2800)            //TODO: arbitrary choice...
-#define _GPSIOC(_n)		(_IOC(_GPSIOCBASE, _n))
+#define RAMP_TIME_US 2500000
 
-#endif /* _DRV_GPS_H */
+typedef struct {
+	enum {
+		LIMIT_STATE_OFF = 0,
+		LIMIT_STATE_INIT,
+		LIMIT_STATE_RAMP,
+		LIMIT_STATE_ON
+	} state;
+	uint64_t time_armed;
+} pwm_limit_t;
+
+__BEGIN_DECLS
+
+__EXPORT void pwm_limit_init(pwm_limit_t *limit);
+
+__EXPORT void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, float *output, uint16_t *effective_pwm, pwm_limit_t *limit);
+
+__END_DECLS
+
+#endif /* PWM_LIMIT_H_ */

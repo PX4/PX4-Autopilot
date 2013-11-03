@@ -149,12 +149,6 @@ interface_init(void)
 #endif
 }
 
-void
-interface_tick()
-{
-}
-
-
 /*
   reset the I2C bus
   used to recover from lockups
