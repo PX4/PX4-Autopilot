@@ -104,8 +104,6 @@ public:
 
 private:
 	uint64_t _last_run;
-
-	float _tc;
 	float _k_p;
 	float _k_i;
 	float _k_d;
