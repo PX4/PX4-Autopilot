@@ -800,7 +800,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 				// XXX this could make a great param
 
-				float flare_angle_rad = math::radians(10.0f);//math::radians(global_triplet.current.param1)
+				float flare_angle_rad = -math::radians(5.0f);//math::radians(global_triplet.current.param1)
 				float land_pitch_min = math::radians(5.0f);
 				float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 				float airspeed_land = _parameters.airspeed_min;
