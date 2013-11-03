@@ -253,6 +253,7 @@ ORBDevNode::close(struct file *filp)
 			hrt_cancel(&sd->update_call);
 			delete sd;
 		}
+	}
 
 	return CDev::close(filp);
 }
