@@ -771,7 +771,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					// 	target_bearing = get_bearing_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), next_wp.getX(), next_wp.getY());
 					// } else {
 
-					if (!land_noreturn)
+					if (!land_noreturn) //set target_bearing in first occurrence
 						target_bearing = _att.yaw;
 					//}
 
@@ -779,8 +779,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 					_l1_control.navigate_heading(target_bearing, _att.yaw, ground_speed);
 
-					if (altitude_error > -5.0f)
-						land_noreturn = true;
+					land_noreturn = true;
 
 				} else {
 
