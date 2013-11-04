@@ -90,6 +90,11 @@ float ECL_YawController::control_attitude(float roll, float pitch,
 
 //	counter++;
 
+	if(!isfinite(_rate_setpoint)){
+		warnx("yaw rate sepoint not finite");
+		_rate_setpoint = 0.0f;
+	}
+
 	return _rate_setpoint;
 }
 

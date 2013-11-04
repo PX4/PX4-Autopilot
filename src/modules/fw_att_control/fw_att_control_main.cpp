@@ -619,7 +619,8 @@ FixedwingAttitudeControl::task_main()
 				float airspeed_scaling = _parameters.airspeed_trim / airspeed;
 				//warnx("aspd scale: %6.2f act scale: %6.2f", airspeed_scaling, actuator_scaling);
 
-				float roll_sp, pitch_sp;
+				float roll_sp = 0.0f;
+				float pitch_sp = 0.0f;
 				float throttle_sp = 0.0f;
 
 				if (_vcontrol_mode.flag_control_velocity_enabled || _vcontrol_mode.flag_control_position_enabled) {
@@ -643,6 +644,7 @@ FixedwingAttitudeControl::task_main()
 					 */
 					roll_sp = _manual.roll * 0.75f;
 					pitch_sp = _manual.pitch * 0.75f;
+					warnx("copy(2) _att_sp.roll_body %.4f", _att_sp.roll_body);
 					throttle_sp = _manual.throttle;
 					_actuators.control[4] = _manual.flaps;
 
@@ -681,33 +683,50 @@ FixedwingAttitudeControl::task_main()
 				}
 
 				/* Run attitude controllers */
-				_roll_ctrl.control_attitude(roll_sp, _att.roll);
-				_pitch_ctrl.control_attitude(pitch_sp, _att.roll, _att.pitch, airspeed);
-				_yaw_ctrl.control_attitude(_att.roll, _att.pitch,
-						speed_body_u,speed_body_w,
-						_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
+				if (isfinite(roll_sp) && isfinite(pitch_sp)) {
+					_roll_ctrl.control_attitude(roll_sp, _att.roll);
+					_pitch_ctrl.control_attitude(pitch_sp, _att.roll, _att.pitch, airspeed);
+					_yaw_ctrl.control_attitude(_att.roll, _att.pitch,
+							speed_body_u,speed_body_w,
+							_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
 
-				/* Run attitude RATE controllers which need the desired attitudes from above */
-				float roll_u = _roll_ctrl.control_bodyrate(_att.pitch,
-						_att.rollspeed, _att.yawspeed,
-						_yaw_ctrl.get_desired_rate(),
-						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-				_actuators.control[0] = (isfinite(roll_u)) ? roll_u : 0.0f;
+					/* Run attitude RATE controllers which need the desired attitudes from above */
+					float roll_u = _roll_ctrl.control_bodyrate(_att.pitch,
+							_att.rollspeed, _att.yawspeed,
+							_yaw_ctrl.get_desired_rate(),
+							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
+					_actuators.control[0] = (isfinite(roll_u)) ? roll_u : 0.0f;
+					if (!isfinite(roll_u)) {
+						warnx("roll_u %.4f", roll_u);
+					}
 
-				float pitch_u = _pitch_ctrl.control_bodyrate(_att.roll, _att.pitch,
-						_att.pitchspeed, _att.yawspeed,
-						_yaw_ctrl.get_desired_rate(),
-						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-				_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u : 0.0f;
+					float pitch_u = _pitch_ctrl.control_bodyrate(_att.roll, _att.pitch,
+							_att.pitchspeed, _att.yawspeed,
+							_yaw_ctrl.get_desired_rate(),
+							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
+					_actuators.control[1] = (isfinite(pitch_u)) ? pitch_u : 0.0f;
+					if (!isfinite(pitch_u)) {
+						warnx("pitch_u %.4f, _yaw_ctrl.get_desired_rate() %.4f, airspeed %.4f, airspeed_scaling %.4f, roll_sp %.4f, pitch_sp %.4f, _roll_ctrl.get_desired_rate() %.4f, _pitch_ctrl.get_desired_rate() %.4f att_sp.roll_body %.4f",
+								pitch_u, _yaw_ctrl.get_desired_rate(), airspeed, airspeed_scaling, roll_sp, pitch_sp, _roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate(), _att_sp.roll_body);
+					}
 
-				float yaw_u = _yaw_ctrl.control_bodyrate(	_att.roll, _att.pitch,
-						_att.pitchspeed, _att.yawspeed,
-						_pitch_ctrl.get_desired_rate(),
-						_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
-				_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u : 0.0f;
+					float yaw_u = _yaw_ctrl.control_bodyrate(	_att.roll, _att.pitch,
+							_att.pitchspeed, _att.yawspeed,
+							_pitch_ctrl.get_desired_rate(),
+							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
+					_actuators.control[2] = (isfinite(yaw_u)) ? yaw_u : 0.0f;
+					if (!isfinite(yaw_u)) {
+						warnx("yaw_u %.4f", yaw_u);
+					}
 
-				/* throttle passed through */
-				_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
+					/* throttle passed through */
+					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
+					if (!isfinite(throttle_sp)) {
+						warnx("throttle_sp %.4f", throttle_sp);
+					}
+				} else {
+					warnx("Non-finite setpoint roll_sp: %.4f, pitch_sp %.4f", roll_sp, pitch_sp);
+				}
 
 				// warnx("aspd: %s: %6.2f, aspd scaling: %6.2f, controls: %5.2f %5.2f %5.2f %5.2f", (_airspeed_valid) ? "valid" : "unknown",
 				// 			airspeed, airspeed_scaling, _actuators.control[0], _actuators.control[1],
