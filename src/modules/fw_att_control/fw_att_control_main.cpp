@@ -644,7 +644,6 @@ FixedwingAttitudeControl::task_main()
 					 */
 					roll_sp = _manual.roll * 0.75f;
 					pitch_sp = _manual.pitch * 0.75f;
-					warnx("copy(2) _att_sp.roll_body %.4f", _att_sp.roll_body);
 					throttle_sp = _manual.throttle;
 					_actuators.control[4] = _manual.flaps;
 
