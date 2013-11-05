@@ -105,6 +105,11 @@ then
 			blinkm systemstate
 		fi
 	fi
+	
+	#
+	# Start the Commander (needs to be this early for in-air-restarts)
+	#
+	commander start
 
 	if param compare SYS_AUTOSTART 1000
 	then

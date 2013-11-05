@@ -4,11 +4,6 @@
 #
 
 #
-# Start the Commander
-#
-commander start
-
-#
 # Start the sensors and test them.
 #
 sh /etc/init.d/rc.sensors
