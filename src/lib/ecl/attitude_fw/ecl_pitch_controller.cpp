@@ -62,8 +62,7 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
-
-	float dt = dt_micros / 1000000;
+	float dt = (float)dt_micros * 1e-6f;
 
 	/* lock integral for long intervals */
 	if (dt_micros > 500000)
@@ -115,7 +114,7 @@ float ECL_PitchController::control(float pitch_setpoint, float pitch, float pitc
 
 	_rate_error = _rate_setpoint - pitch_rate;
 
-	float ilimit_scaled = 0.0f;
+	float ilimit_scaled = _integrator_max * scaler;
 
 	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
 

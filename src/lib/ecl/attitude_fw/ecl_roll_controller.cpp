@@ -64,8 +64,11 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 	/* get the usual dt estimate */
 	uint64_t dt_micros = ecl_elapsed_time(&_last_run);
 	_last_run = ecl_absolute_time();
+	float dt = (float)dt_micros * 1e-6f;
 
-	float dt = (dt_micros > 500000) ? 0.0f : dt_micros / 1000000;
+	/* lock integral for long intervals */
+	if (dt_micros > 500000)
+		lock_integrator = true;
 
 	float k_ff = math::max((_k_p - _k_i * _tc) * _tc - _k_d, 0.0f);
 	float k_i_rate = _k_i * _tc;
@@ -90,7 +93,7 @@ float ECL_RollController::control(float roll_setpoint, float roll, float roll_ra
 	_rate_error = _rate_setpoint - roll_rate;
 
 
-	float ilimit_scaled = 0.0f;
+	float ilimit_scaled = _integrator_max * scaler;
 
 	if (!lock_integrator && k_i_rate > 0.0f && airspeed > 0.5f * airspeed_min) {
 
