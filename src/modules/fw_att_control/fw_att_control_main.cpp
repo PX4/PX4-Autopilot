@@ -635,43 +635,46 @@ FixedwingAttitudeControl::task_main()
 					}
 				}
 
-				float roll_rad = _roll_ctrl.control(roll_sp, _att.roll, _att.rollspeed,
-								    airspeed_scaling, lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
-				_actuators.control[0] = (isfinite(roll_rad)) ? roll_rad * actuator_scaling : 0.0f;
+				if (isfinite(roll_sp) && isfinite(pitch_sp)) {
 
-				float pitch_rad = _pitch_ctrl.control(pitch_sp, _att.pitch, _att.pitchspeed, _att.roll, airspeed_scaling,
-								      lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
-				_actuators.control[1] = (isfinite(pitch_rad)) ? pitch_rad * actuator_scaling : 0.0f;
+					float roll_rad = _roll_ctrl.control(roll_sp, _att.roll, _att.rollspeed,
+									    airspeed_scaling, lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
+					_actuators.control[0] = (isfinite(roll_rad)) ? roll_rad * actuator_scaling : 0.0f;
 
-				float yaw_rad = _yaw_ctrl.control(_att.roll, _att.yawspeed, _accel.y, airspeed_scaling, lock_integrator,
-								  _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
-				_actuators.control[2] = (isfinite(yaw_rad)) ? yaw_rad * actuator_scaling : 0.0f;
+					float pitch_rad = _pitch_ctrl.control(pitch_sp, _att.pitch, _att.pitchspeed, _att.roll, airspeed_scaling,
+									      lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
+					_actuators.control[1] = (isfinite(pitch_rad)) ? pitch_rad * actuator_scaling : 0.0f;
 
-				/* throttle passed through */
-				_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
+					float yaw_rad = _yaw_ctrl.control(_att.roll, _att.yawspeed, _accel.y, airspeed_scaling, lock_integrator,
+									  _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
+					_actuators.control[2] = (isfinite(yaw_rad)) ? yaw_rad * actuator_scaling : 0.0f;
 
-				// warnx("aspd: %s: %6.2f, aspd scaling: %6.2f, controls: %5.2f %5.2f %5.2f %5.2f", (_airspeed_valid) ? "valid" : "unknown",
-				// 			airspeed, airspeed_scaling, _actuators.control[0], _actuators.control[1],
-				// 			_actuators.control[2], _actuators.control[3]);
+					/* throttle passed through */
+					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
 
-				/*
-				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
-				 * only once available
-				 */
-				vehicle_rates_setpoint_s rates_sp;
-				rates_sp.roll = _roll_ctrl.get_desired_rate();
-				rates_sp.pitch = _pitch_ctrl.get_desired_rate();
-				rates_sp.yaw = 0.0f; // XXX not yet implemented
+					// warnx("aspd: %s: %6.2f, aspd scaling: %6.2f, controls: %5.2f %5.2f %5.2f %5.2f", (_airspeed_valid) ? "valid" : "unknown",
+					// 			airspeed, airspeed_scaling, _actuators.control[0], _actuators.control[1],
+					// 			_actuators.control[2], _actuators.control[3]);
 
-				rates_sp.timestamp = hrt_absolute_time();
+					/*
+					 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
+					 * only once available
+					 */
+					vehicle_rates_setpoint_s rates_sp;
+					rates_sp.roll = _roll_ctrl.get_desired_rate();
+					rates_sp.pitch = _pitch_ctrl.get_desired_rate();
+					rates_sp.yaw = 0.0f; // XXX not yet implemented
 
-				if (_rate_sp_pub > 0) {
-					/* publish the attitude setpoint */
-					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &rates_sp);
+					rates_sp.timestamp = hrt_absolute_time();
 
-				} else {
-					/* advertise and publish */
-					_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+					if (_rate_sp_pub > 0) {
+						/* publish the attitude setpoint */
+						orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &rates_sp);
+
+					} else {
+						/* advertise and publish */
+						_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+					}
 				}
 
 			} else {
