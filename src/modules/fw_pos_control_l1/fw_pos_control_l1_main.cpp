@@ -292,7 +292,7 @@ private:
 	/**
 	 * Get Altitude on the landing glide slope
 	 */
-	float getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude, float landing_slope_angle_rad);
+	float getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude, float landing_slope_angle_rad, float flare_relative_alt);
 
 	/**
 	 * Control position.
@@ -648,9 +648,9 @@ FixedwingPositionControl::calculate_gndspeed_undershoot()
 	}
 }
 
-float FixedwingPositionControl::getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude, float landing_slope_angle_rad)
+float FixedwingPositionControl::getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude, float landing_slope_angle_rad, float flare_relative_alt)
 {
-	return wp_distance * tanf(landing_slope_angle_rad) + wp_altitude;
+	return wp_distance * tanf(landing_slope_angle_rad) + wp_altitude + flare_relative_alt; //flare_relative_alt is negative
 }
 
 bool
@@ -807,16 +807,17 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				float landing_slope_angle_rad = math::radians(_parameters.land_slope_angle);
 				float landingslope_length = _parameters.land_slope_length;
+				float flare_relative_alt = -10.0f; //negative!, be generous here as we currently have to rely on the user input for the waypoint //xxx: find better definition, e.g. as a function of the horizontal distance ("abflachbogen")
 				float L_wp_distance = cosf(landing_slope_angle_rad) * landingslope_length;
-				float L_altitude = getLandingSlopeAbsoluteAltitude(L_wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad);
-				float landing_slope_alt_desired = getLandingSlopeAbsoluteAltitude(wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad);
+				float L_altitude = getLandingSlopeAbsoluteAltitude(L_wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad, flare_relative_alt);
+				float landing_slope_alt_desired = getLandingSlopeAbsoluteAltitude(wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad, flare_relative_alt);
 
-				if (altitude_error > -10.0f || land_noreturn) { //be generous here as we currently have to rely on the user input for the waypoint, checking for land_noreturn to avoid unwanted climb out
+				if (altitude_error > flare_relative_alt || land_noreturn) {  //checking for land_noreturn to avoid unwanted climb out
 
 					/* land with minimal speed */
 
-					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
-					_tecs.set_speed_weight(2.0f);
+//					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
+//					_tecs.set_speed_weight(2.0f);
 
 					/* kill the throttle if param requests it */
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
