@@ -34,7 +34,7 @@
 /**
  * @file KalmanNav.cpp
  *
- * kalman filter navigation code
+ * Kalman filter navigation code
  */
 
 #include <poll.h>
@@ -228,10 +228,7 @@ void KalmanNav::update()
 	updateSubscriptions();
 
 	// initialize attitude when sensors online
-	if (!_attitudeInitialized && sensorsUpdate &&
-	    _sensors.accelerometer_counter > 10 &&
-	    _sensors.gyro_counter > 10 &&
-	    _sensors.magnetometer_counter > 10) {
+	if (!_attitudeInitialized && sensorsUpdate) {
 		if (correctAtt() == ret_ok) _attitudeInitCounter++;
 
 		if (_attitudeInitCounter > 100) {
@@ -643,7 +640,7 @@ int KalmanNav::correctAtt()
 
 	if (beta > _faultAtt.get()) {
 		warnx("fault in attitude: beta = %8.4f", (double)beta);
-		warnx("y:\n"); y.print();
+		warnx("y:"); y.print();
 	}
 
 	// update quaternions from euler
