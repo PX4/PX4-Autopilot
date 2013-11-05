@@ -241,10 +241,17 @@ private:
 
 	perf_counter_t		_accel_sample_perf;
 	perf_counter_t		_mag_sample_perf;
+	perf_counter_t		_reg7_resets;
+	perf_counter_t		_reg1_resets;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
 	math::LowPassFilter2p	_accel_filter_z;
+
+	// expceted values of reg1 and reg7 to catch in-flight
+	// brownouts of the sensor
+	uint8_t			_reg7_expected;
+	uint8_t			_reg1_expected;
 
 	/**
 	 * Start automatic measurement.
@@ -434,9 +441,13 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_mag_read(0),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
+	_reg1_resets(perf_alloc(PC_COUNT, "lsm303d_reg1_resets")),
+	_reg7_resets(perf_alloc(PC_COUNT, "lsm303d_reg7_resets")),
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ)
+	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
+	_reg1_expected(0),
+	_reg7_expected(0)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -526,10 +537,12 @@ void
 LSM303D::reset()
 {
 	/* enable accel*/
-	write_reg(ADDR_CTRL_REG1, REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE);
+	_reg1_expected = REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A;
+	write_reg(ADDR_CTRL_REG1, _reg1_expected);
 
 	/* enable mag */
-	write_reg(ADDR_CTRL_REG7, REG7_CONT_MODE_M);
+	_reg7_expected = REG7_CONT_MODE_M;
+	write_reg(ADDR_CTRL_REG7, _reg7_expected);
 	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
@@ -1133,6 +1146,7 @@ LSM303D::accel_set_samplerate(unsigned frequency)
 	}
 
 	modify_reg(ADDR_CTRL_REG1, clearbits, setbits);
+	_reg1_expected = (_reg1_expected & ~clearbits) | setbits;
 
 	return OK;
 }
@@ -1210,6 +1224,12 @@ LSM303D::mag_measure_trampoline(void *arg)
 void
 LSM303D::measure()
 {
+	if (read_reg(ADDR_CTRL_REG1) != _reg1_expected) {
+		perf_count(_reg1_resets);
+		reset();
+		return;
+	}
+
 	/* status register and data as read back from the device */
 
 #pragma pack(push, 1)
@@ -1282,6 +1302,12 @@ LSM303D::measure()
 void
 LSM303D::mag_measure()
 {
+	if (read_reg(ADDR_CTRL_REG7) != _reg7_expected) {
+		perf_count(_reg7_resets);
+		reset();
+		return;
+	}
+
 	/* status register and data as read back from the device */
 #pragma pack(push, 1)
 	struct {

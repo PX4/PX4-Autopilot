@@ -206,6 +206,9 @@ private:
 		float throttle_land_max;
 
 		float loiter_hold_radius;
+
+		float land_slope_angle;
+		float land_slope_length;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -240,6 +243,9 @@ private:
 		param_t throttle_land_max;
 
 		param_t loiter_hold_radius;
+
+		param_t land_slope_angle;
+		param_t land_slope_length;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -278,6 +284,11 @@ private:
 	 * Check for set triplet updates.
 	 */
 	void		vehicle_setpoint_poll();
+
+	/**
+	 * Get Altitude on the landing glide slope
+	 */
+	float getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude, float landing_slope_angle_rad);
 
 	/**
 	 * Control position.
@@ -358,6 +369,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.throttle_cruise = param_find("FW_THR_CRUISE");
 	_parameter_handles.throttle_land_max = param_find("FW_THR_LND_MAX");
 
+	_parameter_handles.land_slope_angle = param_find("FW_LND_ANG");
+	_parameter_handles.land_slope_length = param_find("FW_LND_SLL");
+
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
 	_parameter_handles.max_sink_rate =			param_find("FW_T_SINK_MAX");
@@ -434,6 +448,11 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.speed_weight, &(_parameters.speed_weight));
 	param_get(_parameter_handles.pitch_damping, &(_parameters.pitch_damping));
 	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
+
+
+	param_get(_parameter_handles.land_slope_angle, &(_parameters.land_slope_angle));
+	param_get(_parameter_handles.land_slope_length, &(_parameters.land_slope_length));
+
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -624,6 +643,11 @@ FixedwingPositionControl::calculate_gndspeed_undershoot()
 	}
 }
 
+float FixedwingPositionControl::getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude, float landing_slope_angle_rad)
+{
+	return wp_distance * tanf(landing_slope_angle_rad) + wp_altitude;
+}
+
 bool
 FixedwingPositionControl::control_position(const math::Vector2f &current_position, const math::Vector2f &ground_speed,
 		const struct vehicle_global_position_set_triplet_s &global_triplet)
@@ -663,7 +687,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		if (_setpoint_valid) {
 
 			/* current waypoint (the one currently heading for) */
-			math::Vector2f next_wp(global_triplet.current.lat / 1e7f, global_triplet.current.lon / 1e7f);
+			math::Vector2f curr_wp(global_triplet.current.lat / 1e7f, global_triplet.current.lon / 1e7f);
 
 			/* previous waypoint */
 			math::Vector2f prev_wp;
@@ -701,7 +725,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 			} else if (global_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
 				/* waypoint is a plain navigation waypoint */
-				_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed);
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
 
@@ -716,7 +740,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				   global_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
 
 				/* waypoint is a loiter waypoint */
-				_l1_control.navigate_loiter(next_wp, current_position, global_triplet.current.loiter_radius,
+				_l1_control.navigate_loiter(curr_wp, current_position, global_triplet.current.loiter_radius,
 							  global_triplet.current.loiter_direction, ground_speed);
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
@@ -729,9 +753,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 			} else if (global_triplet.current.nav_cmd == NAV_CMD_LAND) {
 
+				/* Horizontal landing control */
 				/* switch to heading hold for the last meters, continue heading hold after */
-
-				float wp_distance = get_distance_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), current_position.getX(), current_position.getY());
+				float wp_distance = get_distance_to_next_waypoint(current_position.getX(), current_position.getY(), curr_wp.getX(), curr_wp.getY());
 				//warnx("wp dist: %d, alt err: %d, noret: %s", (int)wp_distance, (int)altitude_error, (land_noreturn) ? "YES" : "NO");
 				if (wp_distance < 15.0f || land_noreturn) {
 
@@ -742,7 +766,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					// 	target_bearing = get_bearing_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), next_wp.getX(), next_wp.getY());
 					// } else {
 
-					if (!land_noreturn)
+					if (!land_noreturn) //set target_bearing in first occurrence
 						target_bearing = _att.yaw;
 					//}
 
@@ -750,67 +774,90 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 					_l1_control.navigate_heading(target_bearing, _att.yaw, ground_speed);
 
-					if (altitude_error > -5.0f)
-						land_noreturn = true;
+					land_noreturn = true;
 
 				} else {
 
 					/* normal navigation */
-					_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
+					_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed);
 				}
-
-				/* do not go down too early */
-				if (wp_distance > 50.0f) {
-					altitude_error = (_global_triplet.current.altitude + 25.0f) - _global_pos.alt;
-				}
-
-
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
 
+
+				/* Vertical landing control */
+
+//				/* do not go down too early */
+//				if (wp_distance > 50.0f) {
+//					altitude_error = (_global_triplet.current.altitude + 25.0f) - _global_pos.alt;
+//				}
 				/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 				// XXX this could make a great param
 
-				float flare_angle_rad = math::radians(10.0f);//math::radians(global_triplet.current.param1)
+				float flare_angle_rad = -math::radians(5.0f);//math::radians(global_triplet.current.param1)
 				float land_pitch_min = math::radians(5.0f);
 				float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
-				float airspeed_land = _parameters.airspeed_min;
-				float airspeed_approach = (_parameters.airspeed_min + _parameters.airspeed_trim) / 2.0f;
+				float airspeed_land = 1.3f * _parameters.airspeed_min;
+				float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
-				if (altitude_error > -4.0f) {
+				float landing_slope_angle_rad = math::radians(_parameters.land_slope_angle);
+				float landingslope_length = _parameters.land_slope_length;
+				float L_wp_distance = cosf(landing_slope_angle_rad) * landingslope_length;
+				float L_altitude = getLandingSlopeAbsoluteAltitude(L_wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad);
+				float landing_slope_alt_desired = getLandingSlopeAbsoluteAltitude(wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad);
+
+				if (altitude_error > -10.0f || land_noreturn) { //be generous here as we currently have to rely on the user input for the waypoint, checking for land_noreturn to avoid unwanted climb out
 
 					/* land with minimal speed */
 
 					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
 					_tecs.set_speed_weight(2.0f);
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_land),
-								    _airspeed.indicated_airspeed_m_s, eas2tas,
-								    false, flare_angle_rad,
-								    0.0f, _parameters.throttle_max, throttle_land,
-								    math::radians(-10.0f), math::radians(15.0f));
-
 					/* kill the throttle if param requests it */
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
+
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_land),
+													    _airspeed.indicated_airspeed_m_s, eas2tas,
+													    false, flare_angle_rad,
+													    0.0f, throttle_max, throttle_land,
+													    math::radians(flare_angle_rad), math::radians(15.0f));
 
 					/* limit roll motion to prevent wings from touching the ground first */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
 
-				} else if (wp_distance < 60.0f && altitude_error > -20.0f) {
+					warnx("Landing:  land with minimal speed");
 
-					/* minimize speed to approach speed */
+				} else if (wp_distance < L_wp_distance) {
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_approach),
+					/* minimize speed to approach speed, stay on landing slope */
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, landing_slope_alt_desired, calculate_target_airspeed(airspeed_approach),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, flare_angle_rad,
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
-
+					warnx("Landing: after L, stay on landing slope, alt_desired: %.4f (wp_distance: %.4f)", landing_slope_alt_desired, wp_distance);
 				} else {
 
-					/* normal cruise speed */
+					 /* intersect glide slope:
+					 * if current position is higher or within 10m of slope follow the glide slope
+					 * if current position is below slope -10m and above altitude at L (see documentation) continue horizontally
+					 * if current position is below altitude at L, climb to altitude of L */
+					float altitude_desired = _global_pos.alt;
+					if (_global_pos.alt > landing_slope_alt_desired - 10.0f) {
+						/* stay on slope */
+						altitude_desired = landing_slope_alt_desired;
+						warnx("Landing: before L, stay on landing slope, alt_desired: %.4f (wp_distance: %.4f)", altitude_desired, wp_distance);
+					} else if (_global_pos.alt < landing_slope_alt_desired - 10.0f && _global_pos.alt > L_altitude) {
+						/* continue horizontally */
+						altitude_desired = _global_pos.alt; //xxx: dangerous, but we have the altitude < L_altitude protection
+						warnx("Landing: before L,continue horizontal at: %.4f, (landing_slope_alt_desired %.4f, wp_distance: %.4f, L_altitude: %.4f)", altitude_desired, landing_slope_alt_desired, wp_distance, L_altitude);
+					} else {
+						/* climb to L_altitude */
+						altitude_desired = L_altitude;
+						warnx("Landing: before L, below L, climb: %.4f (wp_distance: %.4f)", altitude_desired, wp_distance);
+					}
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, altitude_desired, calculate_target_airspeed(airspeed_approach),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, math::radians(_parameters.pitch_limit_min),
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
@@ -819,7 +866,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 			} else if (global_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
 
-				_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
+				_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed);
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
 

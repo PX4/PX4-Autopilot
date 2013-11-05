@@ -379,7 +379,7 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			}
 
 			// TODO remove debug code
-			//mavlink_log_critical(mavlink_fd, "[cmd] command setmode: %d %d", base_mode, custom_main_mode);
+			//mavlink_log_critical(mavlink_fd, "#audio: command setmode: %d %d", base_mode, custom_main_mode);
 			/* set arming state */
 			arming_res = TRANSITION_NOT_CHANGED;
 
@@ -496,11 +496,11 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				}
 
 				if (arming_res == TRANSITION_CHANGED) {
-					mavlink_log_info(mavlink_fd, "[cmd] ARMED by component arm cmd");
+					mavlink_log_critical(mavlink_fd, "#audio: ARMED by component arm cmd");
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
 
 				} else {
-					mavlink_log_info(mavlink_fd, "[cmd] REJECTING component arm cmd");
+					mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");
 					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 			}
@@ -521,13 +521,13 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		tune_negative();
 
 		if (result == VEHICLE_CMD_RESULT_DENIED) {
-			mavlink_log_critical(mavlink_fd, "[cmd] command denied: %u", cmd->command);
+			mavlink_log_critical(mavlink_fd, "#audio: command denied: %u", cmd->command);
 
 		} else if (result == VEHICLE_CMD_RESULT_FAILED) {
-			mavlink_log_critical(mavlink_fd, "[cmd] command failed: %u", cmd->command);
+			mavlink_log_critical(mavlink_fd, "#audio: command failed: %u", cmd->command);
 
 		} else if (result == VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED) {
-			mavlink_log_critical(mavlink_fd, "[cmd] command temporarily rejected: %u", cmd->command);
+			mavlink_log_critical(mavlink_fd, "#audio: command temporarily rejected: %u", cmd->command);
 
 		}
 	}
@@ -874,10 +874,10 @@ int commander_thread_main(int argc, char *argv[])
 				status_changed = true;
 
 				if (status.condition_landed) {
-					mavlink_log_critical(mavlink_fd, "[cmd] LANDED");
+					mavlink_log_critical(mavlink_fd, "#audio: LANDED");
 
 				} else {
-					mavlink_log_critical(mavlink_fd, "[cmd] IN AIR");
+					mavlink_log_critical(mavlink_fd, "#audio: IN AIR");
 				}
 			}
 		}
@@ -955,7 +955,7 @@ int commander_thread_main(int argc, char *argv[])
 			//TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
 			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				low_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "[cmd] WARNING: LOW BATTERY");
+				mavlink_log_critical(mavlink_fd, "#audio: WARNING: LOW BATTERY");
 				status.battery_warning = VEHICLE_BATTERY_WARNING_LOW;
 				status_changed = true;
 				battery_tune_played = false;
@@ -967,7 +967,7 @@ int commander_thread_main(int argc, char *argv[])
 			/* critical battery voltage, this is rather an emergency, change state machine */
 			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				critical_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "[cmd] EMERGENCY: CRITICAL BATTERY");
+				mavlink_log_critical(mavlink_fd, "#audio: EMERGENCY: CRITICAL BATTERY");
 				status.battery_warning = VEHICLE_BATTERY_WARNING_CRITICAL;
 				battery_tune_played = false;
 
@@ -1069,12 +1069,12 @@ int commander_thread_main(int argc, char *argv[])
 				/* handle the case where RC signal was regained */
 				if (!status.rc_signal_found_once) {
 					status.rc_signal_found_once = true;
-					mavlink_log_critical(mavlink_fd, "[cmd] detected RC signal first time");
+					mavlink_log_critical(mavlink_fd, "#audio: detected RC signal first time");
 					status_changed = true;
 
 				} else {
 					if (status.rc_signal_lost) {
-						mavlink_log_critical(mavlink_fd, "[cmd] RC signal regained");
+						mavlink_log_critical(mavlink_fd, "#audio: RC signal regained");
 						status_changed = true;
 					}
 				}
@@ -1143,7 +1143,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				} else if (res == TRANSITION_DENIED) {
 					warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
-					mavlink_log_critical(mavlink_fd, "[cmd] ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+					mavlink_log_critical(mavlink_fd, "#audio: ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
 				}
 
 				/* fill current_status according to mode switches */
@@ -1159,12 +1159,12 @@ int commander_thread_main(int argc, char *argv[])
 				} else if (res == TRANSITION_DENIED) {
 					/* DENIED here indicates bug in the commander */
 					warnx("ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
-					mavlink_log_critical(mavlink_fd, "[cmd] ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
+					mavlink_log_critical(mavlink_fd, "#audio: ERROR: main denied: arm %d main %d mode_sw %d", status.arming_state, status.main_state, status.mode_switch);
 				}
 
 			} else {
 				if (!status.rc_signal_lost) {
-					mavlink_log_critical(mavlink_fd, "[cmd] CRITICAL: RC SIGNAL LOST");
+					mavlink_log_critical(mavlink_fd, "#audio: CRITICAL: RC SIGNAL LOST");
 					status.rc_signal_lost = true;
 					status_changed = true;
 				}
@@ -1189,7 +1189,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (res == TRANSITION_DENIED) {
 			/* DENIED here indicates bug in the commander */
 			warnx("ERROR: nav denied: arm %d main %d nav %d", status.arming_state, status.main_state, status.navigation_state);
-			mavlink_log_critical(mavlink_fd, "[cmd] ERROR: nav denied: arm %d main %d nav %d", status.arming_state, status.main_state, status.navigation_state);
+			mavlink_log_critical(mavlink_fd, "#audio: ERROR: nav denied: arm %d main %d nav %d", status.arming_state, status.main_state, status.navigation_state);
 		}
 
 		/* check which state machines for changes, clear "changed" flag */
@@ -1506,7 +1506,7 @@ print_reject_mode(const char *msg)
 	if (t - last_print_mode_reject_time > PRINT_MODE_REJECT_INTERVAL) {
 		last_print_mode_reject_time = t;
 		char s[80];
-		sprintf(s, "[cmd] WARNING: reject %s", msg);
+		sprintf(s, "#audio: warning: reject %s", msg);
 		mavlink_log_critical(mavlink_fd, s);
 		tune_negative();
 	}
@@ -1520,7 +1520,7 @@ print_reject_arm(const char *msg)
 	if (t - last_print_mode_reject_time > PRINT_MODE_REJECT_INTERVAL) {
 		last_print_mode_reject_time = t;
 		char s[80];
-		sprintf(s, "[cmd] %s", msg);
+		sprintf(s, "#audio: %s", msg);
 		mavlink_log_critical(mavlink_fd, s);
 		tune_negative();
 	}
@@ -1617,14 +1617,14 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 
 			if (res == TRANSITION_CHANGED) {
 				if (control_mode->flag_control_position_enabled) {
-					mavlink_log_critical(mavlink_fd, "[cmd] FAILSAFE: POS HOLD");
+					mavlink_log_critical(mavlink_fd, "#audio: FAILSAFE: POS HOLD");
 
 				} else {
 					if (status->condition_landed) {
-						mavlink_log_critical(mavlink_fd, "[cmd] FAILSAFE: ALT HOLD (LAND)");
+						mavlink_log_critical(mavlink_fd, "#audio: FAILSAFE: ALT HOLD (LAND)");
 
 					} else {
-						mavlink_log_critical(mavlink_fd, "[cmd] FAILSAFE: ALT HOLD");
+						mavlink_log_critical(mavlink_fd, "#audio: FAILSAFE: ALT HOLD");
 					}
 				}
 			}
@@ -1660,22 +1660,22 @@ void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT resul
 		break;
 
 	case VEHICLE_CMD_RESULT_DENIED:
-		mavlink_log_critical(mavlink_fd, "[cmd] command denied: %u", cmd.command);
+		mavlink_log_critical(mavlink_fd, "#audio: command denied: %u", cmd.command);
 		tune_negative();
 		break;
 
 	case VEHICLE_CMD_RESULT_FAILED:
-		mavlink_log_critical(mavlink_fd, "[cmd] command failed: %u", cmd.command);
+		mavlink_log_critical(mavlink_fd, "#audio: command failed: %u", cmd.command);
 		tune_negative();
 		break;
 
 	case VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
-		mavlink_log_critical(mavlink_fd, "[cmd] command temporarily rejected: %u", cmd.command);
+		mavlink_log_critical(mavlink_fd, "#audio: command temporarily rejected: %u", cmd.command);
 		tune_negative();
 		break;
 
 	case VEHICLE_CMD_RESULT_UNSUPPORTED:
-		mavlink_log_critical(mavlink_fd, "[cmd] command unsupported: %u", cmd.command);
+		mavlink_log_critical(mavlink_fd, "#audio: command unsupported: %u", cmd.command);
 		tune_negative();
 		break;
 
@@ -1814,14 +1814,14 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
-						mavlink_log_critical(mavlink_fd, "[cmd] parameters load ERROR");
+						mavlink_log_critical(mavlink_fd, "#audio: parameters load ERROR");
 
 						/* convenience as many parts of NuttX use negative errno */
 						if (ret < 0)
 							ret = -ret;
 
 						if (ret < 1000)
-							mavlink_log_critical(mavlink_fd, "[cmd] %s", strerror(ret));
+							mavlink_log_critical(mavlink_fd, "#audio: %s", strerror(ret));
 
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
 					}
@@ -1834,14 +1834,14 @@ void *commander_low_prio_loop(void *arg)
 						answer_command(cmd, VEHICLE_CMD_RESULT_ACCEPTED);
 
 					} else {
-						mavlink_log_critical(mavlink_fd, "[cmd] parameters save error");
+						mavlink_log_critical(mavlink_fd, "#audio: parameters save error");
 
 						/* convenience as many parts of NuttX use negative errno */
 						if (ret < 0)
 							ret = -ret;
 
 						if (ret < 1000)
-							mavlink_log_critical(mavlink_fd, "[cmd] %s", strerror(ret));
+							mavlink_log_critical(mavlink_fd, "#audio: %s", strerror(ret));
 
 						answer_command(cmd, VEHICLE_CMD_RESULT_FAILED);
 					}

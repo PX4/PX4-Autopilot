@@ -48,6 +48,7 @@
 #include <time.h>
 #include <errno.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <arch/board/board.h>
 
@@ -262,7 +263,8 @@ PX4IO_serial::init()
 	up_enable_irq(PX4IO_SERIAL_VECTOR);
 
 	/* enable UART in DMA mode, enable error and line idle interrupts */
-	/* rCR3 = USART_CR3_EIE;*/
+	rCR3 = USART_CR3_EIE;
+
 	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
 
 	/* create semaphores */
@@ -497,22 +499,20 @@ PX4IO_serial::_wait_complete()
 		DMA_SCR_PBURST_SINGLE	|
 		DMA_SCR_MBURST_SINGLE);
 	stm32_dmastart(_tx_dma, nullptr, nullptr, false);
+	//rCR1 &= ~USART_CR1_TE;
+	//rCR1 |= USART_CR1_TE;
 	rCR3 |= USART_CR3_DMAT;
 
 	perf_end(_pc_dmasetup);
 
-	/* compute the deadline for a 5ms timeout */
+	/* compute the deadline for a 10ms timeout */
 	struct timespec abstime;
 	clock_gettime(CLOCK_REALTIME, &abstime);
-#if 0
-	abstime.tv_sec++;		/* long timeout for testing */
-#else
-	abstime.tv_nsec += 10000000;	/* 0ms timeout */
-	if (abstime.tv_nsec > 1000000000) {
+	abstime.tv_nsec += 10*1000*1000;
+	if (abstime.tv_nsec >= 1000*1000*1000) {
 		abstime.tv_sec++;
-		abstime.tv_nsec -= 1000000000;
+		abstime.tv_nsec -= 1000*1000*1000;
 	}
-#endif
 
 	/* wait for the transaction to complete - 64 bytes @ 1.5Mbps ~426µs */
 	int ret;
@@ -619,8 +619,8 @@ PX4IO_serial::_do_interrupt()
 		 */
 		if (_rx_dma_status == _dma_status_waiting) {
 			_abort_dma();
-			perf_count(_pc_uerrs);
 
+			perf_count(_pc_uerrs);
 			/* complete DMA as though in error */
 			_do_rx_dma_callback(DMA_STATUS_TEIF);
 
@@ -642,6 +642,12 @@ PX4IO_serial::_do_interrupt()
 			unsigned length = sizeof(_dma_buffer) - stm32_dmaresidual(_rx_dma);
 			if ((length < 1) || (length < PKT_SIZE(_dma_buffer))) {
 				perf_count(_pc_badidle);
+
+				/* stop the receive DMA */
+				stm32_dmastop(_rx_dma);
+
+				/* complete the short reception */
+				_do_rx_dma_callback(DMA_STATUS_TEIF);
 				return;
 			}
 

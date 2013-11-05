@@ -265,13 +265,13 @@ then
 		set MODE custom
 	fi
 
-        # PX4FMU v1 with IO + PPM-based ESCs on Quad X-shape frame
-        if param compare SYS_AUTOSTART 22
-        then
-                set FRAME_GEOMETRY w
-                sh /etc/init.d/rc.custom_io_esc
-                set MODE custom
-        fi
+	# PX4FMU v1 with IO + PPM-based ESCs on Quad X-shape frame
+	if param compare SYS_AUTOSTART 22
+	then
+		set FRAME_GEOMETRY w
+		sh /etc/init.d/rc.custom_io_esc
+		set MODE custom
+	fi
 	
 	if param compare SYS_AUTOSTART 30
 	then
