@@ -61,11 +61,6 @@ hil mode_pwm
 param set MAV_TYPE 2
 
 #
-# Start the commander (depends on orb, mavlink)
-#
-commander start
-
-#
 # Check if we got an IO
 #
 if px4io start
