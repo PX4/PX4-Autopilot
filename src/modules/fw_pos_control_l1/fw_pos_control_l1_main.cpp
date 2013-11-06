@@ -873,17 +873,17 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 					 /* intersect glide slope:
 					 * if current position is higher or within 10m of slope follow the glide slope
-					 * if current position is below slope -10m continue on previous wp altitude until the intersection with the slope
+					 * if current position is below slope -10m continue on maximum of previous wp altitude or L_altitude until the intersection with the slope
 					 * */
 					float altitude_desired = _global_pos.alt;
 					if (_global_pos.alt > landing_slope_alt_desired - 10.0f) {
 						/* stay on slope */
 						altitude_desired = landing_slope_alt_desired;
 						warnx("Landing: before L, stay on landing slope, alt_desired: %.1f (wp_distance: %.1f, L_wp_distance %.1f), calculate_target_airspeed(airspeed_land) %.1f, horizontal_slope_displacement %.1f", altitude_desired, wp_distance, L_wp_distance, calculate_target_airspeed(airspeed_land), horizontal_slope_displacement);
-					} else if (_global_pos.alt < landing_slope_alt_desired - 10.0f) {
+					} else {
 						/* continue horizontally */
-						altitude_desired = _global_triplet.previous.altitude; //xxx: dangerous, but we have the altitude < L_altitude protection
-						warnx("Landing: before L,continue horizontal at last wp alt: %.4f, (landing_slope_alt_desired %.4f, wp_distance: %.4f, L_altitude: %.4f L_wp_distance: %.4f)", altitude_desired, landing_slope_alt_desired, wp_distance, L_altitude, L_wp_distance);
+						altitude_desired =  math::max(_global_pos.alt, L_altitude);
+						warnx("Landing: before L,continue at: %.4f, (landing_slope_alt_desired %.4f, wp_distance: %.4f, L_altitude: %.4f L_wp_distance: %.4f)", altitude_desired, landing_slope_alt_desired, wp_distance, L_altitude, L_wp_distance);
 					}
 
 					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, altitude_desired, calculate_target_airspeed(airspeed_approach),
