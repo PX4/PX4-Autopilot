@@ -73,7 +73,7 @@ pwm min -c 1234 -p 1200
 pwm max -c 1234 -p 1800
 
 #
-# Start common for all multirotors apps
+# Start common multirotor apps
 #
 sh /etc/init.d/rc.multirotor
 
