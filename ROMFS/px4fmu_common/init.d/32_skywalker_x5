@@ -55,7 +55,7 @@ else
 fi
 
 #
-Start common fixedwing apps
+# Start common fixedwing apps
 #
 sh /etc/init.d/rc.fixedwing
 
