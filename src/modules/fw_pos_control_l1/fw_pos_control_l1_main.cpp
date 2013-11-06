@@ -826,7 +826,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float L_altitude = getLandingSlopeAbsoluteAltitude(L_wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad, horizontal_slope_displacement);
 				float landing_slope_alt_desired = getLandingSlopeAbsoluteAltitude(wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad, horizontal_slope_displacement);
 
-				if (_global_pos.alt < _global_triplet.current.altitude + flare_relative_alt || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+				if (((wp_distance < 2.0f * math::max(15.0f, flare_relative_alt)) && (_global_pos.alt < _global_triplet.current.altitude + flare_relative_alt)) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 
 					/* land with minimal speed */
 
@@ -836,9 +836,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					/* kill the throttle if param requests it */
 					throttle_max = _parameters.throttle_max;
 
-					if (_global_pos.alt < _global_triplet.current.altitude + motor_lim_relative_alt) {
+					// if ((_global_pos.alt < _global_triplet.current.altitude + motor_lim_relative_alt)) {
 						throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
-					}
+					// }
 
 					float flare_curve_alt =   _global_triplet.current.altitude + H0 * expf(-math::max(0.0f, flare_length - wp_distance)/flare_constant) - H1;
 
@@ -903,7 +903,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				_att_sp.yaw_body = _l1_control.nav_bearing();
 
 				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
-				if (altitude_error > 10.0f) {
+				if (altitude_error > 15.0f) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
 					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
