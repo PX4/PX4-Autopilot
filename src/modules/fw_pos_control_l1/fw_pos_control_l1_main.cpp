@@ -711,7 +711,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		_tecs.set_speed_weight(_parameters.speed_weight);
 
 		/* execute navigation once we have a setpoint */
-		if (_setpoint_valid) {
+		if (_setpoint_valid && _control_mode.flag_control_auto_enabled) {
 
 			/* current waypoint (the one currently heading for) */
 			math::Vector2f curr_wp(global_triplet.current.lat / 1e7f, global_triplet.current.lon / 1e7f);

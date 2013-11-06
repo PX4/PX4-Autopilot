@@ -1539,7 +1539,8 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			// TODO AUTO_LAND handling
 			if (status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 				/* don't switch to other states until takeoff not completed */
-				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+				// XXX: only respect the condition_landed when the local position is actually valid
+				if (status->condition_local_altitude_valid && (local_pos->z > -takeoff_alt || status->condition_landed)) {
 					return TRANSITION_NOT_CHANGED;
 				}
 			}
