@@ -31,7 +31,7 @@ fi
 # MAV_TYPE     2 = quadrotor
 #
 param set MAV_TYPE 2
- 
+
 set EXIT_ON_END no
 
 #
@@ -42,8 +42,6 @@ then
 	# Start MAVLink (depends on orb)
 	mavlink start
 	usleep 5000
-
-	commander start
 
 	sh /etc/init.d/rc.io
 else
