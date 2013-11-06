@@ -163,6 +163,7 @@ private:
 	bool land_noreturn_horizontal;
 	bool land_noreturn_vertical;
 	bool land_stayonground;
+	bool land_motor_lim;
 	float flare_curve_alt_last;
 	/* heading hold */
 	float target_bearing;
@@ -355,6 +356,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_noreturn_horizontal(false),
 	land_noreturn_vertical(false),
 	land_stayonground(false),
+	land_motor_lim(false),
 	flare_curve_alt_last(0.0f)
 {
 	_nav_capabilities.turn_distance = 0.0f;
@@ -809,7 +811,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				float landing_slope_angle_rad = math::radians(_parameters.land_slope_angle);
 				float flare_relative_alt = 15.0f;
-				float motor_lim_relative_alt = 10.0f;//be generous here as we currently have to rely on the user input for the waypoint
+				float motor_lim_horizontal_distance = 30.0f;//be generous here as we currently have to rely on the user input for the waypoint
 				float L_wp_distance = get_distance_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), curr_wp.getX(), curr_wp.getY()) * _parameters.land_slope_length;
 				float H1 = 10.0f;
 				float H0 = flare_relative_alt + H1;
@@ -820,7 +822,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float L_altitude = getLandingSlopeAbsoluteAltitude(L_wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad, horizontal_slope_displacement);
 				float landing_slope_alt_desired = getLandingSlopeAbsoluteAltitude(wp_distance, _global_triplet.current.altitude, landing_slope_angle_rad, horizontal_slope_displacement);
 
-				if (((wp_distance < 2.0f * math::max(15.0f, flare_relative_alt)) && (_global_pos.alt < _global_triplet.current.altitude + flare_relative_alt)) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+				if ( (_global_pos.alt < _global_triplet.current.altitude + flare_relative_alt) || land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 
 					/* land with minimal speed */
 
@@ -830,9 +832,10 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					/* kill the throttle if param requests it */
 					throttle_max = _parameters.throttle_max;
 
-					// if ((_global_pos.alt < _global_triplet.current.altitude + motor_lim_relative_alt)) {
+					 if (wp_distance < motor_lim_horizontal_distance || land_motor_lim) {
 						throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
-					// }
+						land_motor_lim  = true;
+					 }
 
 					float flare_curve_alt =   _global_triplet.current.altitude + H0 * expf(-math::max(0.0f, flare_length - wp_distance)/flare_constant) - H1;
 
@@ -980,6 +983,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			land_noreturn_horizontal = false;
 			land_noreturn_vertical = false;
 			land_stayonground = false;
+			land_motor_lim = false;
 		}
 
 		if (was_circle_mode && !_l1_control.circle_mode()) {
