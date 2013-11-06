@@ -59,10 +59,7 @@ then
 	mavlink start
 	usleep 5000
 
-	commander start
-
 	sh /etc/init.d/rc.io
-	# Set PWM values for DJI ESCs
 else
 	# Start MAVLink (on UART1 / ttyS0)
 	mavlink start -d /dev/ttyS0
@@ -83,7 +80,7 @@ mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
 pwm rate -c 1234 -r 400
 
 #
-# Set disarmed, min and max PWM signals
+# Set disarmed, min and max PWM signals (for DJI ESCs)
 #
 pwm disarmed -c 1234 -p 900
 pwm min -c 1234 -p 1200

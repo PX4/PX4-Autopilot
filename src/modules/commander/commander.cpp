@@ -116,6 +116,8 @@ extern struct system_load_s system_load;
 #define LOW_VOLTAGE_BATTERY_COUNTER_LIMIT (LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 #define CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT (CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
+#define MAVLINK_OPEN_INTERVAL 50000
+
 #define STICK_ON_OFF_LIMIT 0.75f
 #define STICK_THRUST_RANGE 1.0f
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
@@ -582,16 +584,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
-	if (mavlink_fd < 0) {
-		/* try again later */
-		usleep(20000);
-		mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-
-		if (mavlink_fd < 0) {
-			warnx("ERROR: Failed to open MAVLink log stream again, start mavlink app first.");
-		}
-	}
-
 	/* Main state machine */
 	/* make sure we are in preflight state */
 	memset(&status, 0, sizeof(status));
@@ -769,6 +761,11 @@ int commander_thread_main(int argc, char *argv[])
 	start_time = hrt_absolute_time();
 
 	while (!thread_should_exit) {
+
+		if (mavlink_fd < 0 && counter % (1000000 / MAVLINK_OPEN_INTERVAL) == 0) {
+			/* try to open the mavlink log device every once in a while */
+			mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+		}
 
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
