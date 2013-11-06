@@ -213,6 +213,10 @@ private:
 
 		float land_slope_angle;
 		float land_slope_length;
+		float land_H1_virt;
+		float land_flare_alt_relative;
+		float land_thrust_lim_horizontal_distance;
+
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -250,6 +254,10 @@ private:
 
 		param_t land_slope_angle;
 		param_t land_slope_length;
+		param_t land_H1_virt;
+		param_t land_flare_alt_relative;
+		param_t land_thrust_lim_horizontal_distance;
+
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
@@ -379,6 +387,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 	_parameter_handles.land_slope_angle = param_find("FW_LND_ANG");
 	_parameter_handles.land_slope_length = param_find("FW_LND_SLLR");
+	_parameter_handles.land_H1_virt = param_find("FW_LND_HVIRT");
+	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FLALT");
+	_parameter_handles.land_thrust_lim_horizontal_distance = param_find("FW_LND_TLDIST");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
@@ -460,6 +471,9 @@ FixedwingPositionControl::parameters_update()
 
 	param_get(_parameter_handles.land_slope_angle, &(_parameters.land_slope_angle));
 	param_get(_parameter_handles.land_slope_length, &(_parameters.land_slope_length));
+	param_get(_parameter_handles.land_H1_virt, &(_parameters.land_H1_virt));
+	param_get(_parameter_handles.land_flare_alt_relative, &(_parameters.land_flare_alt_relative));
+	param_get(_parameter_handles.land_thrust_lim_horizontal_distance, &(_parameters.land_thrust_lim_horizontal_distance));
 
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
@@ -474,7 +488,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_vertical_accel_limit(_parameters.vertical_accel_limit);
 	_tecs.set_height_comp_filter_omega(_parameters.height_comp_filter_omega);
 	_tecs.set_speed_comp_filter_omega(_parameters.speed_comp_filter_omega);
-	_tecs.set_roll_throttle_compensation(math::radians(_parameters.roll_throttle_compensation));
+	_tecs.set_roll_throttle_compensation(_parameters.roll_throttle_compensation);
 	_tecs.set_speed_weight(_parameters.speed_weight);
 	_tecs.set_pitch_damping(_parameters.pitch_damping);
 	_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
@@ -810,10 +824,10 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
 				float landing_slope_angle_rad = math::radians(_parameters.land_slope_angle);
-				float flare_relative_alt = 15.0f;
-				float motor_lim_horizontal_distance = 30.0f;//be generous here as we currently have to rely on the user input for the waypoint
+				float flare_relative_alt = _parameters.land_flare_alt_relative;
+				float motor_lim_horizontal_distance = _parameters.land_thrust_lim_horizontal_distance;//be generous here as we currently have to rely on the user input for the waypoint
 				float L_wp_distance = get_distance_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), curr_wp.getX(), curr_wp.getY()) * _parameters.land_slope_length;
-				float H1 = 10.0f;
+				float H1 = _parameters.land_H1_virt;
 				float H0 = flare_relative_alt + H1;
 				float d1 = flare_relative_alt/tanf(landing_slope_angle_rad);
 				float flare_constant = (H0 * d1)/flare_relative_alt;//-flare_length/(logf(H1/H0));
