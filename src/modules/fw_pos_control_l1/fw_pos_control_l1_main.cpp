@@ -83,6 +83,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
+#include <mavlink/mavlink_log.h>
 
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <external_lgpl/tecs/tecs.h>
@@ -93,6 +94,8 @@
  * @ingroup apps
  */
 extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
+
+static int mavlink_fd;
 
 class FixedwingPositionControl
 {
@@ -164,6 +167,8 @@ private:
 	bool land_noreturn_vertical;
 	bool land_stayonground;
 	bool land_motor_lim;
+	bool land_onslope;
+
 	float flare_curve_alt_last;
 	/* heading hold */
 	float target_bearing;
@@ -369,8 +374,12 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_noreturn_vertical(false),
 	land_stayonground(false),
 	land_motor_lim(false),
+	land_onslope(false),
 	flare_curve_alt_last(0.0f)
 {
+
+	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
 	_nav_capabilities.turn_distance = 0.0f;
 
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
@@ -854,7 +863,11 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 					 if (wp_distance < motor_lim_horizontal_distance || land_motor_lim) {
 						throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
-						land_motor_lim  = true;
+						if (!land_motor_lim) {
+							land_motor_lim  = true;
+							mavlink_log_info(mavlink_fd, "[POSCTRL] Landing, limit throttle");
+						}
+
 					 }
 
 					float flare_curve_alt =   _global_triplet.current.altitude + H0 * expf(-math::max(0.0f, flare_length - wp_distance)/flare_constant) - H1;
@@ -874,9 +887,11 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 					/* limit roll motion to prevent wings from touching the ground first */
 					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
-
-					land_noreturn_vertical = true;
-					warnx("Landing:  flare, _global_pos.alt  %.1f, flare_curve_alt %.1f, flare_curve_alt_last %.1f, flare_length %.1f, wp_distance %.1f", _global_pos.alt, flare_curve_alt, flare_curve_alt_last, flare_length, wp_distance);
+					if (!land_noreturn_vertical) {
+						mavlink_log_info(mavlink_fd, "[POSCTRL] Landing, flare");
+						land_noreturn_vertical = true;
+					}
+					//warnx("Landing:  flare, _global_pos.alt  %.1f, flare_curve_alt %.1f, flare_curve_alt_last %.1f, flare_length %.1f, wp_distance %.1f", _global_pos.alt, flare_curve_alt, flare_curve_alt_last, flare_length, wp_distance);
 
 					flare_curve_alt_last = flare_curve_alt;
 
@@ -888,7 +903,14 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 								    false, flare_angle_rad,
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
-					warnx("Landing: stay on slope, alt_desired: %.1f (wp_distance: %.1f), calculate_target_airspeed(airspeed_land) %.1f, horizontal_slope_displacement %.1f, d1 %.1f, flare_length %.1f", landing_slope_alt_desired, wp_distance, calculate_target_airspeed(airspeed_land), horizontal_slope_displacement, d1, flare_length);
+					//warnx("Landing: stay on slope, alt_desired: %.1f (wp_distance: %.1f), calculate_target_airspeed(airspeed_land) %.1f, horizontal_slope_displacement %.1f, d1 %.1f, flare_length %.1f", landing_slope_alt_desired, wp_distance, calculate_target_airspeed(airspeed_land), horizontal_slope_displacement, d1, flare_length);
+
+					if (!land_onslope) {
+
+						mavlink_log_info(mavlink_fd, "[POSCTRL] Landing, on slope");
+						land_onslope = true;
+					}
+
 				} else {
 
 					 /* intersect glide slope:
@@ -899,11 +921,11 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					if (_global_pos.alt > landing_slope_alt_desired - 10.0f) {
 						/* stay on slope */
 						altitude_desired = landing_slope_alt_desired;
-						warnx("Landing: before L, stay on landing slope, alt_desired: %.1f (wp_distance: %.1f, L_wp_distance %.1f), calculate_target_airspeed(airspeed_land) %.1f, horizontal_slope_displacement %.1f", altitude_desired, wp_distance, L_wp_distance, calculate_target_airspeed(airspeed_land), horizontal_slope_displacement);
+						//warnx("Landing: before L, stay on landing slope, alt_desired: %.1f (wp_distance: %.1f, L_wp_distance %.1f), calculate_target_airspeed(airspeed_land) %.1f, horizontal_slope_displacement %.1f", altitude_desired, wp_distance, L_wp_distance, calculate_target_airspeed(airspeed_land), horizontal_slope_displacement);
 					} else {
 						/* continue horizontally */
 						altitude_desired =  math::max(_global_pos.alt, L_altitude);
-						warnx("Landing: before L,continue at: %.4f, (landing_slope_alt_desired %.4f, wp_distance: %.4f, L_altitude: %.4f L_wp_distance: %.4f)", altitude_desired, landing_slope_alt_desired, wp_distance, L_altitude, L_wp_distance);
+						//warnx("Landing: before L,continue at: %.4f, (landing_slope_alt_desired %.4f, wp_distance: %.4f, L_altitude: %.4f L_wp_distance: %.4f)", altitude_desired, landing_slope_alt_desired, wp_distance, L_altitude, L_wp_distance);
 					}
 
 					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, altitude_desired, calculate_target_airspeed(airspeed_approach),
@@ -1004,6 +1026,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			land_noreturn_vertical = false;
 			land_stayonground = false;
 			land_motor_lim = false;
+			land_onslope = false;
 		}
 
 		if (was_circle_mode && !_l1_control.circle_mode()) {
