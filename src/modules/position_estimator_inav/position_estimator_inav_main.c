@@ -312,7 +312,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					} else {
 						wait_baro = false;
 						baro_offset /= (float) baro_init_cnt;
-						corr_baro = -baro_offset;
 						warnx("baro offs: %.2f", baro_offset);
 						mavlink_log_info(mavlink_fd, "[inav] baro offs: %.2f", baro_offset);
 						local_pos.z_valid = true;
@@ -369,11 +368,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 
-				/* reset ground level on arm if sonar is invalid */
+				/* reset ground level on arm */
 				if (armed.armed && !flag_armed) {
 					flag_armed = armed.armed;
 					baro_offset -= z_est[0];
-					corr_baro = -baro_offset;
+					corr_baro = 0.0f;
 					local_pos.ref_alt -= z_est[0];
 					local_pos.ref_timestamp = t;
 					z_est[0] = 0.0f;
@@ -416,7 +415,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				}
 
 				if (sensor.baro_counter > baro_counter) {
-					corr_baro = - sensor.baro_alt_meter - z_est[0];
+					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
 					baro_counter = sensor.baro_counter;
 					baro_updates++;
 				}
@@ -667,7 +666,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		/* baro offset correction */
         if (use_gps_z) {
-            baro_offset += corr_gps[2][0] * w_z_gps_p * dt;
+        	float offs_corr = corr_gps[2][0] * w_z_gps_p * dt;
+            baro_offset += offs_corr;
+            baro_counter += offs_corr;
         }
 
 		/* accelerometer bias correction */
@@ -689,7 +690,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			accel_bias_corr[1] -= corr_flow[1] * params.w_xy_flow;
 		}
 
-		accel_bias_corr[2] -= (corr_baro + baro_offset) * params.w_z_baro * params.w_z_baro;
+		accel_bias_corr[2] -= corr_baro * params.w_z_baro * params.w_z_baro;
 
 		/* transform error vector from NED frame to body frame */
 		for (int i = 0; i < 3; i++) {
@@ -706,7 +707,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		inertial_filter_predict(dt, z_est);
 
 		/* inertial filter correction for altitude */
-		inertial_filter_correct(corr_baro + baro_offset, dt, z_est, 0, params.w_z_baro);
+		inertial_filter_correct(corr_baro, dt, z_est, 0, params.w_z_baro);
 		inertial_filter_correct(corr_gps[2][0], dt, z_est, 0, w_z_gps_p);
 		inertial_filter_correct(corr_gps[2][1], dt, z_est, 1, w_z_gps_v);
 		inertial_filter_correct(corr_acc[2], dt, z_est, 2, params.w_z_acc);
