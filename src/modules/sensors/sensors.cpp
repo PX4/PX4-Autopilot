@@ -261,6 +261,7 @@ private:
 		float rc_scale_flaps;
 
 		float battery_voltage_scaling;
+		float battery_current_scaling;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -306,6 +307,7 @@ private:
 		param_t rc_scale_flaps;
 
 		param_t battery_voltage_scaling;
+		param_t battery_current_scaling;
 
 		param_t board_rotation;
 		param_t external_mag_rotation;
@@ -547,6 +549,7 @@ Sensors::Sensors() :
 	_parameter_handles.diff_pres_analog_enabled = param_find("SENS_DPRES_ANA");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
+	_parameter_handles.battery_current_scaling = param_find("BAT_C_SCALING");
 
 	/* rotations */
 	_parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -722,6 +725,11 @@ Sensors::parameters_update()
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
 		warnx("Failed updating voltage scaling param");
+	}
+
+	/* scaling of ADC ticks to battery current */
+	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
+		warnx("Failed updating current scaling param");
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -1162,25 +1170,25 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					float voltage = (buf_adc[i].am_data * _parameters.battery_voltage_scaling);
 
 					if (voltage > VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
-
 						/* one-time initialization of low-pass value to avoid long init delays */
-						if (_battery_status.voltage_v < 3.0f) {
+						if (_battery_status.voltage_v < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
 							_battery_status.voltage_v = voltage;
 						}
 
 						_battery_status.timestamp = hrt_absolute_time();
 						_battery_status.voltage_v = (BAT_VOL_LOWPASS_1 * (_battery_status.voltage_v + BAT_VOL_LOWPASS_2 * voltage));;
-						/* current and discharge are unknown */
-						_battery_status.current_a = -1.0f;
-						_battery_status.discharged_mah = -1.0f;
 
-						/* announce the battery voltage if needed, just publish else */
-						if (_battery_pub > 0) {
-							orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+					} else {
+						/* mark status as invalid */
+						_battery_status.timestamp = 0;
+					}
 
-						} else {
-							_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
-						}
+				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
+					/* handle current only if voltage is valid */
+					if (_battery_status.timestamp != 0) {
+						_battery_status.current_a = (buf_adc[i].am_data * _parameters.battery_current_scaling);
+						float dt = fminf(20.0f, (hrt_absolute_time() - _last_adc) * 0.001f);	// in ms, limit to 20ms
+						_battery_status.discharged_mah += _battery_status.current_a * dt;
 					}
 
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
@@ -1212,6 +1220,16 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 
 				_last_adc = hrt_absolute_time();
+			}
+		}
+
+		if (_battery_status.timestamp != 0) {
+			/* announce the battery status if needed, just publish else */
+			if (_battery_pub > 0) {
+				orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+
+			} else {
+				_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
 			}
 		}
 	}
