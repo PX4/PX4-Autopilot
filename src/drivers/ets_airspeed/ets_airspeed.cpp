@@ -59,7 +59,7 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
@@ -68,6 +68,7 @@
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
@@ -131,10 +132,7 @@ ETSAirspeed::measure()
 	if (OK != ret) {
 		perf_count(_comms_errors);
 		log("i2c::transfer returned %d", ret);
-		return ret;
 	}
-
-	ret = OK;
 
 	return ret;
 }
@@ -152,48 +150,44 @@ ETSAirspeed::collect()
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
+		perf_count(_comms_errors);
 		return ret;
 	}
 
 	uint16_t diff_pres_pa = val[1] << 8 | val[0];
         if (diff_pres_pa == 0) {
-            // a zero value means the pressure sensor cannot give us a
-            // value. We need to return, and not report a value or the
-            // caller could end up using this value as part of an
-            // average
-            log("zero value from sensor"); 
-            return -1;
+		// a zero value means the pressure sensor cannot give us a
+		// value. We need to return, and not report a value or the
+		// caller could end up using this value as part of an
+		// average
+		perf_count(_comms_errors);
+		log("zero value from sensor"); 
+		return -1;
         }
 
 	if (diff_pres_pa < _diff_pres_offset + MIN_ACCURATE_DIFF_PRES_PA) {
 		diff_pres_pa = 0;
-
 	} else {
 		diff_pres_pa -= _diff_pres_offset;
 	}
 
-	// XXX we may want to smooth out the readings to remove noise.
-
-	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].differential_pressure_pa = diff_pres_pa;
-
 	// Track maximum differential pressure measured (so we can work out top speed).
-	if (diff_pres_pa > _reports[_next_report].max_differential_pressure_pa) {
-		_reports[_next_report].max_differential_pressure_pa = diff_pres_pa;
+	if (diff_pres_pa > _max_differential_pressure_pa) {
+		_max_differential_pressure_pa = diff_pres_pa;
 	}
+
+	// XXX we may want to smooth out the readings to remove noise.
+	differential_pressure_s report;
+	report.timestamp = hrt_absolute_time();
+        report.error_count = perf_event_count(_comms_errors);
+	report.differential_pressure_pa = diff_pres_pa;
+	report.voltage = 0;
+	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	/* announce the airspeed if needed, just publish else */
-	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_reports[_next_report]);
+	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_report, _num_reports);
-
-	/* if we are running up against the oldest report, toss it */
-	if (_next_report == _oldest_report) {
-		perf_count(_buffer_overflows);
-		INCREMENT(_oldest_report, _num_reports);
-	}
+	new_report(report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -213,7 +207,7 @@ ETSAirspeed::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
+			perf_count(_comms_errors);
 			/* restart the measurement state machine */
 			start();
 			return;

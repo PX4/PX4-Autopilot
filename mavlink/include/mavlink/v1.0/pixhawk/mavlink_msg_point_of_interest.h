@@ -92,7 +92,7 @@ static inline uint16_t mavlink_msg_point_of_interest_pack(uint8_t system_id, uin
  * @brief Pack a point_of_interest message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param type 0: Notice, 1: Warning, 2: Critical, 3: Emergency, 4: Debug
  * @param color 0: blue, 1: yellow, 2: red, 3: orange, 4: green, 5: magenta
@@ -141,7 +141,7 @@ static inline uint16_t mavlink_msg_point_of_interest_pack_chan(uint8_t system_id
 }
 
 /**
- * @brief Encode a point_of_interest struct into a message
+ * @brief Encode a point_of_interest struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -151,6 +151,20 @@ static inline uint16_t mavlink_msg_point_of_interest_pack_chan(uint8_t system_id
 static inline uint16_t mavlink_msg_point_of_interest_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_point_of_interest_t* point_of_interest)
 {
 	return mavlink_msg_point_of_interest_pack(system_id, component_id, msg, point_of_interest->type, point_of_interest->color, point_of_interest->coordinate_system, point_of_interest->timeout, point_of_interest->x, point_of_interest->y, point_of_interest->z, point_of_interest->name);
+}
+
+/**
+ * @brief Encode a point_of_interest struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param point_of_interest C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_point_of_interest_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_point_of_interest_t* point_of_interest)
+{
+	return mavlink_msg_point_of_interest_pack_chan(system_id, component_id, chan, msg, point_of_interest->type, point_of_interest->color, point_of_interest->coordinate_system, point_of_interest->timeout, point_of_interest->x, point_of_interest->y, point_of_interest->z, point_of_interest->name);
 }
 
 /**

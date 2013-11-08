@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Accelerometer driver interface.
+ * @file drv_accel.h
+ *
+ * Accelerometer driver interface.
  */
 
 #ifndef _DRV_ACCEL_H
@@ -52,6 +54,7 @@
  */
 struct accel_report {
 	uint64_t timestamp;
+	uint64_t error_count;
 	float x;		/**< acceleration in the NED X board axis in m/s^2 */
 	float y;		/**< acceleration in the NED Y board axis in m/s^2 */
 	float z;		/**< acceleration in the NED Z board axis in m/s^2 */
@@ -65,7 +68,7 @@ struct accel_report {
 	int16_t temperature_raw;
 };
 
-/** accel scaling factors; Vout = (Vin * Vscale) + Voffset */
+/** accel scaling factors; Vout = Vscale * (Vin + Voffset) */
 struct accel_scale {
 	float	x_offset;
 	float	x_scale;

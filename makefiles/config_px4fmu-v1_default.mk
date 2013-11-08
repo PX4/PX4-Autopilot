@@ -6,6 +6,7 @@
 # Use the configuration's ROMFS.
 #
 ROMFS_ROOT	 = $(PX4_BASE)/ROMFS/px4fmu_common
+ROMFS_OPTIONAL_FILES = $(PX4_BASE)/Images/px4io-v1_default.bin
 
 #
 # Board support modules
@@ -17,7 +18,7 @@ MODULES		+= drivers/stm32/tone_alarm
 MODULES		+= drivers/led
 MODULES		+= drivers/px4io
 MODULES		+= drivers/px4fmu
-MODULES		+= drivers/boards/px4fmu
+MODULES		+= drivers/boards/px4fmu-v1
 MODULES		+= drivers/ardrone_interface
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/bma180
@@ -30,8 +31,9 @@ MODULES		+= drivers/hil
 MODULES		+= drivers/hott/hott_telemetry
 MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
+MODULES		+= drivers/rgbled
 MODULES		+= drivers/mkblctrl
-MODULES		+= drivers/md25
+MODULES		+= drivers/roboclaw
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
@@ -50,15 +52,18 @@ MODULES		+= systemcmds/param
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/preflight_check
 MODULES		+= systemcmds/pwm
+MODULES		+= systemcmds/esc_calib
 MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
+MODULES		+= systemcmds/nshterm
 
 #
 # General system control
 #
 MODULES		+= modules/commander
+MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
 MODULES		+= modules/gpio_led
@@ -67,21 +72,17 @@ MODULES		+= modules/gpio_led
 # Estimation modules (EKF / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
-MODULES		+= modules/attitude_estimator_so3_comp
-MODULES		+= modules/position_estimator
 MODULES		+= modules/att_pos_estimator_ekf
+MODULES		+= modules/position_estimator_inav
 MODULES		+= examples/flow_position_estimator
 
 #
 # Vehicle Control
 #
-MODULES		+= modules/segway
-MODULES		+= modules/fixedwing_backside
-MODULES		+= modules/fixedwing_att_control
-MODULES		+= modules/fixedwing_pos_control
-MODULES		+= modules/fw_att_control_vector
+#MODULES		+= modules/segway # XXX Needs GCC 4.7 fix
+MODULES		+= modules/fw_pos_control_l1
+MODULES		+= modules/fw_att_control
 MODULES		+= modules/multirotor_att_control
-MODULES		+= modules/mc_att_control_vector
 MODULES		+= modules/multirotor_pos_control
 MODULES		+= examples/flow_position_control
 MODULES		+= examples/flow_speed_control
@@ -92,19 +93,29 @@ MODULES		+= examples/flow_speed_control
 MODULES		+= modules/sdlog2
 
 #
+# Unit tests
+#
+#MODULES 	+= modules/unit_test
+#MODULES 	+= modules/commander/commander_tests
+
+#
 # Library modules
 #
 MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
-MODULES		+= modules/mathlib
-MODULES		+= modules/mathlib/math/filter
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
 
 #
 # Libraries
 #
-LIBRARIES	+= modules/mathlib/CMSIS
+LIBRARIES	+= lib/mathlib/CMSIS
+MODULES		+= lib/mathlib
+MODULES		+= lib/mathlib/math/filter
+MODULES		+= lib/ecl
+MODULES		+= lib/external_lgpl
+MODULES		+= lib/geo
+MODULES		+= lib/conversion
 
 #
 # Demo apps
@@ -124,7 +135,10 @@ LIBRARIES	+= modules/mathlib/CMSIS
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/example_fixedwing_control
-MODULES			+= examples/fixedwing_control
+#MODULES			+= examples/fixedwing_control
+
+# Hardware test
+#MODULES			+= examples/hwtest
 
 #
 # Transitional support - add commands from the NuttX export archive.

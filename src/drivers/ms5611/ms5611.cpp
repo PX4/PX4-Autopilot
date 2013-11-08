@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,12 +33,10 @@
 
 /**
  * @file ms5611.cpp
- * Driver for the MS5611 barometric pressure sensor connected via I2C.
+ * Driver for the MS5611 barometric pressure sensor connected via I2C or SPI.
  */
 
 #include <nuttx/config.h>
-
-#include <drivers/device/i2c.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -59,12 +57,15 @@
 
 #include <arch/board/board.h>
 
+#include <drivers/device/device.h>
+#include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
-#include <drivers/drv_baro.h>
+#include "ms5611.h"
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -76,35 +77,25 @@ static const int ERROR = -1;
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-/**
- * Calibration PROM as reported by the device.
- */
-#pragma pack(push,1)
-struct ms5611_prom_s {
-	uint16_t factory_setup;
-	uint16_t c1_pressure_sens;
-	uint16_t c2_pressure_offset;
-	uint16_t c3_temp_coeff_pres_sens;
-	uint16_t c4_temp_coeff_pres_offset;
-	uint16_t c5_reference_temp;
-	uint16_t c6_temp_coeff_temp;
-	uint16_t serial_and_crc;
-};
+/* helper macro for handling report buffer indices */
+#define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
 
-/**
- * Grody hack for crc4()
- */
-union ms5611_prom_u {
-	uint16_t c[8];
-	struct ms5611_prom_s s;
-};
-#pragma pack(pop)
+/* helper macro for arithmetic - returns the square of the argument */
+#define POW2(_x)		((_x) * (_x))
 
-class MS5611 : public device::I2C
+/*
+ * MS5611 internal constants and data structures.
+ */
+
+/* internal conversion time: 9.17 ms, so should not be read at rates higher than 100 Hz */
+#define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
+#define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
+
+class MS5611 : public device::CDev
 {
 public:
-	MS5611(int bus);
-	virtual ~MS5611();
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf);
+	~MS5611();
 
 	virtual int		init();
 
@@ -117,18 +108,14 @@ public:
 	void			print_info();
 
 protected:
-	virtual int		probe();
+	Device			*_interface;
 
-private:
-	union ms5611_prom_u	_prom;
+	ms5611::prom_s		_prom;
 
 	struct work_s		_work;
 	unsigned		_measure_ticks;
 
-	unsigned		_num_reports;
-	volatile unsigned	_next_report;
-	volatile unsigned	_oldest_report;
-	struct baro_report	*_reports;
+	RingBuffer		*_reports;
 
 	bool			_collect_phase;
 	unsigned		_measure_phase;
@@ -149,16 +136,7 @@ private:
 	perf_counter_t		_buffer_overflows;
 
 	/**
-	 * Test whether the device supported by the driver is present at a
-	 * specific address.
-	 *
-	 * @param address	The I2C bus address to probe.
-	 * @return		True if the device is present.
-	 */
-	int			probe_address(uint8_t address);
-
-	/**
-	 * Initialise the automatic measurement state machine and start it.
+	 * Initialize the automatic measurement state machine and start it.
 	 *
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
@@ -198,74 +176,24 @@ private:
 	 *
 	 * @return		OK if the measurement command was successful.
 	 */
-	int			measure();
+	virtual int		measure();
 
 	/**
 	 * Collect the result of the most recent measurement.
 	 */
-	int			collect();
-
-	/**
-	 * Send a reset command to the MS5611.
-	 *
-	 * This is required after any bus reset.
-	 */
-	int			cmd_reset();
-
-	/**
-	 * Read the MS5611 PROM
-	 *
-	 * @return		OK if the PROM reads successfully.
-	 */
-	int			read_prom();
-
-	/**
-	 * PROM CRC routine ported from MS5611 application note
-	 *
-	 * @param n_prom	Pointer to words read from PROM.
-	 * @return		True if the CRC matches.
-	 */
-	bool			crc4(uint16_t *n_prom);
-
+	virtual int		collect();
 };
-
-/* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
-
-/* helper macro for arithmetic - returns the square of the argument */
-#define POW2(_x)		((_x) * (_x))
-
-/*
- * MS5611 internal constants and data structures.
- */
-
-/* internal conversion time: 9.17 ms, so should not be read at rates higher than 100 Hz */
-#define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
-#define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
-
-#define MS5611_BUS			PX4_I2C_BUS_ONBOARD
-#define MS5611_ADDRESS_1		PX4_I2C_OBDEV_MS5611 /* address select pins pulled high (PX4FMU series v1.6+) */
-#define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
-
-#define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
-#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start pressure conversion */
-#define ADDR_DATA			0x00	/* address of 3 bytes / 32bit pressure data */
-#define ADDR_PROM_SETUP			0xA0	/* address of 8x 2 bytes factory and calibration data */
-#define ADDR_PROM_C1			0xA2	/* address of 6x 2 bytes calibration data */
 
 /*
  * Driver 'main' command.
  */
 extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
-
-MS5611::MS5611(int bus) :
-	I2C("MS5611", BARO_DEVICE_PATH, bus, 0, 400000),
+MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf) :
+	CDev("MS5611", BARO_DEVICE_PATH),
+	_interface(interface),
+	_prom(prom_buf.s),
 	_measure_ticks(0),
-	_num_reports(0),
-	_next_report(0),
-	_oldest_report(0),
 	_reports(nullptr),
 	_collect_phase(false),
 	_measure_phase(0),
@@ -279,10 +207,7 @@ MS5611::MS5611(int bus) :
 	_comms_errors(perf_alloc(PC_COUNT, "ms5611_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buffer_overflows"))
 {
-	// enable debug() calls
-	_debug_enabled = true;
-
-	// work_cancel in the dtor will explode if we don't do this...
+	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
 
@@ -293,78 +218,58 @@ MS5611::~MS5611()
 
 	/* free any existing reports */
 	if (_reports != nullptr)
-		delete[] _reports;
+		delete _reports;
+
+	// free perf counters
+	perf_free(_sample_perf);
+	perf_free(_measure_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
+
+	delete _interface;
 }
 
 int
 MS5611::init()
 {
-	int ret = ERROR;
+	int ret;
 
-	/* do I2C init (and probe) first */
-	if (I2C::init() != OK)
+	ret = CDev::init();
+	if (ret != OK) {
+		debug("CDev init failed");
 		goto out;
+	}
 
 	/* allocate basic report buffers */
-	_num_reports = 2;
-	_reports = new struct baro_report[_num_reports];
+	_reports = new RingBuffer(2, sizeof(baro_report));
 
-	if (_reports == nullptr)
+	if (_reports == nullptr) {
+		debug("can't get memory for reports");
+		ret = -ENOMEM;
 		goto out;
-
-	_oldest_report = _next_report = 0;
+	}
 
 	/* get a publish handle on the baro topic */
-	memset(&_reports[0], 0, sizeof(_reports[0]));
-	_baro_topic = orb_advertise(ORB_ID(sensor_baro), &_reports[0]);
+	struct baro_report zero_report;
+	memset(&zero_report, 0, sizeof(zero_report));
+	_baro_topic = orb_advertise(ORB_ID(sensor_baro), &zero_report);
 
-	if (_baro_topic < 0)
+	if (_baro_topic < 0) {
 		debug("failed to create sensor_baro object");
+		ret = -ENOSPC;
+		goto out;
+	}
 
 	ret = OK;
 out:
 	return ret;
 }
 
-int
-MS5611::probe()
-{
-	_retries = 10;
-
-	if ((OK == probe_address(MS5611_ADDRESS_1)) ||
-	    (OK == probe_address(MS5611_ADDRESS_2))) {
-		/*
-	    	 * Disable retries; we may enable them selectively in some cases,
-		 * but the device gets confused if we retry some of the commands.
-	    	 */
-		_retries = 0;
-		return OK;
-	}
-
-	return -EIO;
-}
-
-int
-MS5611::probe_address(uint8_t address)
-{
-	/* select the address we are going to try */
-	set_address(address);
-
-	/* send reset command */
-	if (OK != cmd_reset())
-		return -EIO;
-
-	/* read PROM */
-	if (OK != read_prom())
-		return -EIO;
-
-	return OK;
-}
-
 ssize_t
 MS5611::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct baro_report);
+	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -380,10 +285,9 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_oldest_report != _next_report) {
-				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
-				ret += sizeof(_reports[0]);
-				INCREMENT(_oldest_report, _num_reports);
+			if (_reports->get(brp)) {
+				ret += sizeof(*brp);
+				brp++;
 			}
 		}
 
@@ -392,10 +296,9 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement - run one conversion */
-	/* XXX really it'd be nice to lock against other readers here */
 	do {
 		_measure_phase = 0;
-		_oldest_report = _next_report = 0;
+		_reports->flush();
 
 		/* do temperature first */
 		if (OK != measure()) {
@@ -424,8 +327,8 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* state machine will have generated a report, copy it out */
-		memcpy(buffer, _reports, sizeof(*_reports));
-		ret = sizeof(*_reports);
+		if (_reports->get(brp))
+			ret = sizeof(*brp);
 
 	} while (0);
 
@@ -500,31 +403,21 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
-			/* add one to account for the sentinel in the ring */
-			arg++;
+		/* lower bound is mandatory, upper bound is a sanity check */
+		if ((arg < 1) || (arg > 100))
+			return -EINVAL;
 
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 2) || (arg > 100))
-				return -EINVAL;
-
-			/* allocate new buffer */
-			struct baro_report *buf = new struct baro_report[arg];
-
-			if (nullptr == buf)
-				return -ENOMEM;
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop_cycle();
-			delete[] _reports;
-			_num_reports = arg;
-			_reports = buf;
-			start_cycle();
-
-			return OK;
+		irqstate_t flags = irqsave();
+		if (!_reports->resize(arg)) {
+			irqrestore(flags);
+			return -ENOMEM;
 		}
+		irqrestore(flags);		
+		return OK;
+	}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports - 1;
+		return _reports->size();
 
 	case SENSORIOCRESET:
 		/* XXX implement this */
@@ -546,8 +439,9 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 		break;
 	}
 
-	/* give it to the superclass */
-	return I2C::ioctl(filp, cmd, arg);
+	/* give it to the bus-specific superclass */
+	// return bus_ioctl(filp, cmd, arg);
+	return CDev::ioctl(filp, cmd, arg);
 }
 
 void
@@ -557,7 +451,7 @@ MS5611::start_cycle()
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_measure_phase = 0;
-	_oldest_report = _next_report = 0;
+	_reports->flush();
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&MS5611::cycle_trampoline, this, 1);
@@ -572,7 +466,7 @@ MS5611::stop_cycle()
 void
 MS5611::cycle_trampoline(void *arg)
 {
-	MS5611 *dev = (MS5611 *)arg;
+	MS5611 *dev = reinterpret_cast<MS5611 *>(arg);
 
 	dev->cycle();
 }
@@ -592,7 +486,7 @@ MS5611::cycle()
 				/*
 				 * The ms5611 seems to regularly fail to respond to
 				 * its address; this happens often enough that we'd rather not
-				 * spam the console with the message.
+				 * spam the console with a message for this.
 				 */
 			} else {
 				//log("collection error %d", ret);
@@ -654,17 +548,12 @@ MS5611::measure()
 	/*
 	 * In phase zero, request temperature; in other phases, request pressure.
 	 */
-	uint8_t	cmd_data = (_measure_phase == 0) ? ADDR_CMD_CONVERT_D2 : ADDR_CMD_CONVERT_D1;
+	unsigned addr = (_measure_phase == 0) ? ADDR_CMD_CONVERT_D2 : ADDR_CMD_CONVERT_D1;
 
 	/*
 	 * Send the command to begin measuring.
-	 *
-	 * Disable retries on this command; we can't know whether failure 
-	 * means the device did or did not see the write.
 	 */
-	_retries = 0;
-	ret = transfer(&cmd_data, 1, nullptr, 0);
-
+	ret = _interface->ioctl(IOCTL_MEASURE, addr);
 	if (OK != ret)
 		perf_count(_comms_errors);
 
@@ -677,47 +566,35 @@ int
 MS5611::collect()
 {
 	int ret;
-	uint8_t cmd;
-	uint8_t data[3];
-	union {
-		uint8_t	b[4];
-		uint32_t w;
-	} cvt;
-
-	/* read the most recent measurement */
-	cmd = 0;
+	uint32_t raw;
 
 	perf_begin(_sample_perf);
 
+	struct baro_report report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
-	_reports[_next_report].timestamp = hrt_absolute_time();
+	report.timestamp = hrt_absolute_time();
+        report.error_count = perf_event_count(_comms_errors);
 
-	ret = transfer(&cmd, 1, &data[0], 3);
-	if (ret != OK) {
+	/* read the most recent measurement - read offset/size are hardcoded in the interface */
+	ret = _interface->read(0, (void *)&raw, 0);
+	if (ret < 0) {
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
 	}
 
-	/* fetch the raw value */
-	cvt.b[0] = data[2];
-	cvt.b[1] = data[1];
-	cvt.b[2] = data[0];
-	cvt.b[3] = 0;
-	uint32_t raw = cvt.w;
-
 	/* handle a measurement */
 	if (_measure_phase == 0) {
 
 		/* temperature offset (in ADC units) */
-		int32_t dT = (int32_t)raw - ((int32_t)_prom.s.c5_reference_temp << 8);
+		int32_t dT = (int32_t)raw - ((int32_t)_prom.c5_reference_temp << 8);
 
 		/* absolute temperature in centidegrees - note intermediate value is outside 32-bit range */
-		_TEMP = 2000 + (int32_t)(((int64_t)dT * _prom.s.c6_temp_coeff_temp) >> 23);
+		_TEMP = 2000 + (int32_t)(((int64_t)dT * _prom.c6_temp_coeff_temp) >> 23);
 
 		/* base sensor scale/offset values */
-		_SENS = ((int64_t)_prom.s.c1_pressure_sens << 15) + (((int64_t)_prom.s.c3_temp_coeff_pres_sens * dT) >> 8);
-		_OFF  = ((int64_t)_prom.s.c2_pressure_offset << 16) + (((int64_t)_prom.s.c4_temp_coeff_pres_offset * dT) >> 7);
+		_SENS = ((int64_t)_prom.c1_pressure_sens << 15) + (((int64_t)_prom.c3_temp_coeff_pres_sens * dT) >> 8);
+		_OFF  = ((int64_t)_prom.c2_pressure_offset << 16) + (((int64_t)_prom.c4_temp_coeff_pres_offset * dT) >> 7);
 
 		/* temperature compensation */
 		if (_TEMP < 2000) {
@@ -745,8 +622,8 @@ MS5611::collect()
 		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
 
 		/* generate a new report */
-		_reports[_next_report].temperature = _TEMP / 100.0f;
-		_reports[_next_report].pressure = P / 100.0f;		/* convert to millibar */
+		report.temperature = _TEMP / 100.0f;
+		report.pressure = P / 100.0f;		/* convert to millibar */
 
 		/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
@@ -761,30 +638,7 @@ MS5611::collect()
 		 * 	double precision: ms5611_read: 992 events, 258641us elapsed, min 202us max 305us
 		 *	single precision: ms5611_read: 963 events, 208066us elapsed, min 202us max 241us
 		 */
-#if 0/* USE_FLOAT */
-		/* tropospheric properties (0-11km) for standard atmosphere */
-		const float T1 = 15.0f + 273.15f;	/* temperature at base height in Kelvin */
-		const float a  = -6.5f / 1000f;	/* temperature gradient in degrees per metre */
-		const float g  = 9.80665f;	/* gravity constant in m/s/s */
-		const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
 
-		/* current pressure at MSL in kPa */
-		float p1 = _msl_pressure / 1000.0f;
-
-		/* measured pressure in kPa */
-		float p = P / 1000.0f;
-
-		/*
-		 * Solve:
-		 *
-		 *     /        -(aR / g)     \
-		 *    | (p / p1)          . T1 | - T1
-		 *     \                      /
-		 * h = -------------------------------  + h1
-		 *                   a
-		 */
-		_reports[_next_report].altitude = (((powf((p / p1), (-(a * R) / g))) * T1) - T1) / a;
-#else
 		/* tropospheric properties (0-11km) for standard atmosphere */
 		const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
 		const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
@@ -806,18 +660,13 @@ MS5611::collect()
 		 * h = -------------------------------  + h1
 		 *                   a
 		 */
-		_reports[_next_report].altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
-#endif
+		report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+
 		/* publish it */
-		orb_publish(ORB_ID(sensor_baro), _baro_topic, &_reports[_next_report]);
+		orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 
-		/* post a report to the ring - note, not locked */
-		INCREMENT(_next_report, _num_reports);
-
-		/* if we are running up against the oldest report, toss it */
-		if (_next_report == _oldest_report) {
+		if (_reports->force(&report)) {
 			perf_count(_buffer_overflows);
-			INCREMENT(_oldest_report, _num_reports);
 		}
 
 		/* notify anyone waiting for data */
@@ -832,55 +681,48 @@ MS5611::collect()
 	return OK;
 }
 
-int
-MS5611::cmd_reset()
+void
+MS5611::print_info()
 {
-	unsigned	old_retrycount = _retries;
-	uint8_t		cmd = ADDR_RESET_CMD;
-	int		result;
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_buffer_overflows);
+	printf("poll interval:  %u ticks\n", _measure_ticks);
+	_reports->print_info("report queue");
+	printf("TEMP:           %d\n", _TEMP);
+	printf("SENS:           %lld\n", _SENS);
+	printf("OFF:            %lld\n", _OFF);
+	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
 
-	/* bump the retry count */
-	_retries = 10;
-	result = transfer(&cmd, 1, nullptr, 0);
-	_retries = old_retrycount;
-
-	return result;
+	printf("factory_setup             %u\n", _prom.factory_setup);
+	printf("c1_pressure_sens          %u\n", _prom.c1_pressure_sens);
+	printf("c2_pressure_offset        %u\n", _prom.c2_pressure_offset);
+	printf("c3_temp_coeff_pres_sens   %u\n", _prom.c3_temp_coeff_pres_sens);
+	printf("c4_temp_coeff_pres_offset %u\n", _prom.c4_temp_coeff_pres_offset);
+	printf("c5_reference_temp         %u\n", _prom.c5_reference_temp);
+	printf("c6_temp_coeff_temp        %u\n", _prom.c6_temp_coeff_temp);
+	printf("serial_and_crc            %u\n", _prom.serial_and_crc);
 }
 
-int
-MS5611::read_prom()
+/**
+ * Local functions in support of the shell command.
+ */
+namespace ms5611
 {
-	uint8_t		prom_buf[2];
-	union {
-		uint8_t		b[2];
-		uint16_t	w;
-	} cvt;
 
-	/*
-	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are
-	 * called immediately after reset.
-	 */
-	usleep(3000);
+MS5611	*g_dev;
 
-	/* read and convert PROM words */
-	for (int i = 0; i < 8; i++) {
-		uint8_t cmd = ADDR_PROM_SETUP + (i * 2);
+void	start();
+void	test();
+void	reset();
+void	info();
+void	calibrate(unsigned altitude);
 
-		if (OK != transfer(&cmd, 1, &prom_buf[0], 2))
-			break;
-
-		/* assemble 16 bit value and convert from big endian (sensor) to little endian (MCU) */
-		cvt.b[0] = prom_buf[1];
-		cvt.b[1] = prom_buf[0];
-		_prom.c[i] = cvt.w;
-	}
-
-	/* calculate CRC and return success/failure accordingly */
-	return crc4(&_prom.c[0]) ? OK : -EIO;
-}
-
+/**
+ * MS5611 crc4 cribbed from the datasheet
+ */
 bool
-MS5611::crc4(uint16_t *n_prom)
+crc4(uint16_t *n_prom)
 {
 	int16_t cnt;
 	uint16_t n_rem;
@@ -922,43 +764,6 @@ MS5611::crc4(uint16_t *n_prom)
 	return (0x000F & crc_read) == (n_rem ^ 0x00);
 }
 
-void
-MS5611::print_info()
-{
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_buffer_overflows);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
-	printf("report queue:   %u (%u/%u @ %p)\n",
-	       _num_reports, _oldest_report, _next_report, _reports);
-	printf("TEMP:           %d\n", _TEMP);
-	printf("SENS:           %lld\n", _SENS);
-	printf("OFF:            %lld\n", _OFF);
-	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
-
-	printf("factory_setup             %u\n", _prom.s.factory_setup);
-	printf("c1_pressure_sens          %u\n", _prom.s.c1_pressure_sens);
-	printf("c2_pressure_offset        %u\n", _prom.s.c2_pressure_offset);
-	printf("c3_temp_coeff_pres_sens   %u\n", _prom.s.c3_temp_coeff_pres_sens);
-	printf("c4_temp_coeff_pres_offset %u\n", _prom.s.c4_temp_coeff_pres_offset);
-	printf("c5_reference_temp         %u\n", _prom.s.c5_reference_temp);
-	printf("c6_temp_coeff_temp        %u\n", _prom.s.c6_temp_coeff_temp);
-	printf("serial_and_crc            %u\n", _prom.s.serial_and_crc);
-}
-
-/**
- * Local functions in support of the shell command.
- */
-namespace ms5611
-{
-
-MS5611	*g_dev;
-
-void	start();
-void	test();
-void	reset();
-void	info();
-void	calibrate(unsigned altitude);
 
 /**
  * Start the driver.
@@ -967,28 +772,46 @@ void
 start()
 {
 	int fd;
+	prom_u prom_buf;
 
 	if (g_dev != nullptr)
 		/* if already started, the still command succeeded */
 		errx(0, "already started");
 
-	/* create the driver */
-	g_dev = new MS5611(MS5611_BUS);
+	device::Device *interface = nullptr;
 
-	if (g_dev == nullptr)
-		goto fail;
+	/* create the driver, try SPI first, fall back to I2C if unsuccessful */
+	if (MS5611_spi_interface != nullptr)
+		interface = MS5611_spi_interface(prom_buf);
+	if (interface == nullptr && (MS5611_i2c_interface != nullptr))
+		interface = MS5611_i2c_interface(prom_buf);
 
-	if (OK != g_dev->init())
+	if (interface == nullptr)
+		errx(1, "failed to allocate an interface");
+
+	if (interface->init() != OK) {
+		delete interface;
+		errx(1, "interface init failed");
+	}
+
+	g_dev = new MS5611(interface, prom_buf);
+	if (g_dev == nullptr) {
+		delete interface;
+		errx(1, "failed to allocate driver");
+	}
+	if (g_dev->init() != OK)
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(BARO_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0)
+	if (fd < 0) {
+		warnx("can't open baro device");
 		goto fail;
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+	}
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		warnx("failed setting default poll rate");
 		goto fail;
+	}
 
 	exit(0);
 
@@ -1155,11 +978,11 @@ calibrate(unsigned altitude)
 	const float g  = 9.80665f;	/* gravity constant in m/s/s */
 	const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
 
-	warnx("averaged pressure %10.4fkPa at %um", pressure, altitude);
+	warnx("averaged pressure %10.4fkPa at %um", (double)pressure, altitude);
 
 	p1 = pressure * (powf(((T1 + (a * (float)altitude)) / T1), (g / (a * R))));
 
-	warnx("calculated MSL pressure %10.4fkPa", p1);
+	warnx("calculated MSL pressure %10.4fkPa", (double)p1);
 
 	/* save as integer Pa */
 	p1 *= 1000.0f;

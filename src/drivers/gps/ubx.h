@@ -347,7 +347,7 @@ private:
 	/**
 	 * Add the two checksum bytes to an outgoing message
 	 */
-	void			add_checksum_to_message(uint8_t* message, const unsigned length);
+	void			add_checksum_to_message(uint8_t *message, const unsigned length);
 
 	/**
 	 * Helper to send a config packet
@@ -358,7 +358,7 @@ private:
 
 	void			send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint8_t size);
 
-	void			add_checksum(uint8_t* message, const unsigned length, uint8_t &ck_a, uint8_t &ck_b);
+	void			add_checksum(uint8_t *message, const unsigned length, uint8_t &ck_a, uint8_t &ck_b);
 
 	int			wait_for_ack(unsigned timeout);
 
@@ -376,7 +376,7 @@ private:
 	uint8_t			_message_class;
 	uint8_t			_message_id;
 	unsigned		_payload_size;
-	uint8_t			_disable_cmd_counter;
+	uint8_t			_disable_cmd_last;
 };
 
 #endif /* UBX_H_ */

@@ -68,6 +68,7 @@
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
@@ -77,10 +78,9 @@
 
 Airspeed::Airspeed(int bus, int address, unsigned conversion_interval) :
 	I2C("Airspeed", AIRSPEED_DEVICE_PATH, bus, address, 100000),
-	_num_reports(0),
-	_next_report(0),
-	_oldest_report(0),
 	_reports(nullptr),
+	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows")),
+	_max_differential_pressure_pa(0),
 	_sensor_ok(false),
 	_measure_ticks(0),
 	_collect_phase(false),
@@ -88,8 +88,7 @@ Airspeed::Airspeed(int bus, int address, unsigned conversion_interval) :
 	_airspeed_pub(-1),
 	_conversion_interval(conversion_interval),
 	_sample_perf(perf_alloc(PC_ELAPSED, "airspeed_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "airspeed_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "airspeed_buffer_overflows"))
+	_comms_errors(perf_alloc(PC_COUNT, "airspeed_comms_errors"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -105,7 +104,12 @@ Airspeed::~Airspeed()
 
 	/* free any existing reports */
 	if (_reports != nullptr)
-		delete[] _reports;
+		delete _reports;
+
+	// free perf counters
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_buffer_overflows);
 }
 
 int
@@ -118,20 +122,14 @@ Airspeed::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_num_reports = 2;
-	_reports = new struct differential_pressure_s[_num_reports];
-
-	for (unsigned i = 0; i < _num_reports; i++)
-		_reports[i].max_differential_pressure_pa = 0;
-
+	_reports = new RingBuffer(2, sizeof(differential_pressure_s));
 	if (_reports == nullptr)
 		goto out;
 
-	_oldest_report = _next_report = 0;
-
 	/* get a publish handle on the airspeed topic */
-	memset(&_reports[0], 0, sizeof(_reports[0]));
-	_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &_reports[0]);
+	differential_pressure_s zero_report;
+	memset(&zero_report, 0, sizeof(zero_report));
+	_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &zero_report);
 
 	if (_airspeed_pub < 0)
 		warnx("failed to create airspeed sensor object. Did you start uOrb?");
@@ -146,7 +144,14 @@ out:
 int
 Airspeed::probe()
 {
-	return measure();
+	/* on initial power up the device needs more than one retry
+	   for detection. Once it is running then retries aren't
+	   needed 
+	*/
+	_retries = 4;
+	int ret = measure();
+	_retries = 2;
+	return ret;
 }
 
 int
@@ -217,31 +222,22 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
-			/* add one to account for the sentinel in the ring */
-			arg++;
-
 			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 2) || (arg > 100))
+			if ((arg < 1) || (arg > 100))
 				return -EINVAL;
 
-			/* allocate new buffer */
-			struct differential_pressure_s *buf = new struct differential_pressure_s[arg];
-
-			if (nullptr == buf)
+			irqstate_t flags = irqsave();
+			if (!_reports->resize(arg)) {
+				irqrestore(flags);
 				return -ENOMEM;
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop();
-			delete[] _reports;
-			_num_reports = arg;
-			_reports = buf;
-			start();
+			}
+			irqrestore(flags);
 
 			return OK;
 		}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports - 1;
+		return _reports->size();
 
 	case SENSORIOCRESET:
 		/* XXX implement this */
@@ -269,7 +265,8 @@ Airspeed::ioctl(struct file *filp, int cmd, unsigned long arg)
 ssize_t
 Airspeed::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct differential_pressure_s);
+	unsigned count = buflen / sizeof(differential_pressure_s);
+	differential_pressure_s *abuf = reinterpret_cast<differential_pressure_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -285,10 +282,9 @@ Airspeed::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_oldest_report != _next_report) {
-				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
-				ret += sizeof(_reports[0]);
-				INCREMENT(_oldest_report, _num_reports);
+			if (_reports->get(abuf)) {
+				ret += sizeof(*abuf);
+				abuf++;
 			}
 		}
 
@@ -297,9 +293,8 @@ Airspeed::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement - run one conversion */
-	/* XXX really it'd be nice to lock against other readers here */
 	do {
-		_oldest_report = _next_report = 0;
+		_reports->flush();
 
 		/* trigger a measurement */
 		if (OK != measure()) {
@@ -317,8 +312,9 @@ Airspeed::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* state machine will have generated a report, copy it out */
-		memcpy(buffer, _reports, sizeof(*_reports));
-		ret = sizeof(*_reports);
+		if (_reports->get(abuf)) {
+			ret = sizeof(*abuf);
+		}
 
 	} while (0);
 
@@ -330,7 +326,7 @@ Airspeed::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
-	_oldest_report = _next_report = 0;
+	_reports->flush();
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, 1);
@@ -373,6 +369,12 @@ Airspeed::print_info()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	warnx("poll interval:  %u ticks", _measure_ticks);
-	warnx("report queue:   %u (%u/%u @ %p)",
-	       _num_reports, _oldest_report, _next_report, _reports);
+	_reports->print_info("report queue");
+}
+
+void
+Airspeed::new_report(const differential_pressure_s &report)
+{
+	if (!_reports->force(&report))
+		perf_count(_buffer_overflows);
 }

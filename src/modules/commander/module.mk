@@ -36,8 +36,14 @@
 #
 
 MODULE_COMMAND	 	= commander
-SRCS		 	= commander.c \
-			state_machine_helper.c \
-			calibration_routines.c \
-			accelerometer_calibration.c
-
+SRCS		 	= commander.cpp \
+			commander_params.c \
+			state_machine_helper.cpp \
+			commander_helper.cpp \
+			calibration_routines.cpp \
+			accelerometer_calibration.cpp \
+			gyro_calibration.cpp \
+			mag_calibration.cpp \
+			baro_calibration.cpp \
+			rc_calibration.cpp \
+			airspeed_calibration.cpp

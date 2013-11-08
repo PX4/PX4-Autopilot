@@ -50,6 +50,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/perf_counter.h>
+#include <systemlib/pwm_limit/pwm_limit.h>
 
 #include <stm32_uart.h>
 
@@ -64,10 +65,7 @@ struct sys_state_s 	system_state;
 
 static struct hrt_call serial_dma_call;
 
-#ifdef CONFIG_STM32_I2C1
-/* store i2c reset count XXX this should be a register, together with other error counters */
-volatile uint32_t i2c_loop_resets = 0;
-#endif
+pwm_limit_t pwm_limit;
 
 /*
  * a set of debug buffers to allow us to send debug information from ISRs
@@ -147,8 +145,10 @@ user_start(int argc, char *argv[])
 	LED_BLUE(false);
 	LED_SAFETY(false);
 
-	/* turn on servo power */
+	/* turn on servo power (if supported) */
+#ifdef POWER_SERVO
 	POWER_SERVO(true);
+#endif
 
 	/* start the safety switch handler */
 	safety_init();
@@ -159,10 +159,8 @@ user_start(int argc, char *argv[])
 	/* initialise the control inputs */
 	controls_init();
 
-#ifdef CONFIG_STM32_I2C1
-	/* start the i2c handler */
-	i2c_init();
-#endif
+	/* start the FMU interface */
+	interface_init();
 
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
@@ -175,6 +173,9 @@ user_start(int argc, char *argv[])
 
 	struct mallinfo minfo = mallinfo();
 	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+
+	/* initialize PWM limit lib */
+	pwm_limit_init(&pwm_limit);
 
 #if 0
 	/* not enough memory, lock down */
@@ -215,6 +216,7 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
+#if 0
 		/* check for debug activity */
 		show_debug_messages();
 
@@ -223,15 +225,15 @@ user_start(int argc, char *argv[])
 
 			struct mallinfo minfo = mallinfo();
 
-			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x r=%u m=%u", 
+			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u", 
 				  (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG],
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,
 				  (unsigned)r_setup_features,
-				  (unsigned)i2c_loop_resets,
 				  (unsigned)minfo.mxordblk);
 			last_debug_time = hrt_absolute_time();
 		}
+#endif
 	}
 }
 

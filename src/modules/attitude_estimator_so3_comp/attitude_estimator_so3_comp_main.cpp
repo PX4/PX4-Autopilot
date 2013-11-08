@@ -35,7 +35,7 @@
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -547,8 +547,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 
-	struct vehicle_status_s state;
-	memset(&state, 0, sizeof(state));
+	struct vehicle_control_mode_s control_mode;
+	memset(&control_mode, 0, sizeof(control_mode));
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
@@ -561,8 +561,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));
 
-	/* subscribe to system state*/
-	int sub_state = orb_subscribe(ORB_ID(vehicle_status));
+	/* subscribe to control mode */
+	int sub_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	/* advertise attitude */
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
@@ -612,9 +612,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 			/* XXX this is seriously bad - should be an emergency */
 		} else if (ret == 0) {
 			/* check if we're in HIL - not getting sensor data is fine then */
-			orb_copy(ORB_ID(vehicle_status), sub_state, &state);
+			orb_copy(ORB_ID(vehicle_control_mode), sub_control_mode, &control_mode);
 
-			if (!state.flag_hil_enabled) {
+			if (!control_mode.flag_system_hil_enabled) {
 				fprintf(stderr,
 					"[att so3_comp] WARNING: Not getting sensors - sensor app running?\n");
 			}
@@ -730,7 +730,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					// Because proper mount of PX4 will give you a reversed accelerometer readings.
 					NonlinearSO3AHRSupdate(gyro[0],gyro[1],gyro[2],-acc[0],-acc[1],-acc[2],mag[0],mag[1],mag[2],so3_comp_params.Kp,so3_comp_params.Ki, dt);
 
-					// Convert q->R.
+					// Convert q->R, This R converts inertial frame to body frame.
 					Rot_matrix[0] = q0q0 + q1q1 - q2q2 - q3q3;// 11
         				Rot_matrix[1] = 2.0 * (q1*q2 + q0*q3);	// 12
         				Rot_matrix[2] = 2.0 * (q1*q3 - q0*q2);	// 13
@@ -794,7 +794,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					memcpy(&att.rate_offsets, &(gyro_bias), sizeof(att.rate_offsets));
 
 					/* copy rotation matrix */
-					memcpy(&att.R, Rot_matrix, sizeof(Rot_matrix));
+					memcpy(&att.R, Rot_matrix, sizeof(float)*9);
 					att.R_valid = true;
 
 					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {

@@ -60,7 +60,7 @@
 struct actuator_outputs_s {
 	uint64_t timestamp;				/**< output timestamp in us since system boot */
 	float	output[NUM_ACTUATOR_OUTPUTS];		/**< output data, in natural output units */
-	int noutputs;					/**< valid outputs */
+	unsigned noutputs;					/**< valid outputs */
 };
 
 /**

@@ -42,15 +42,18 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <drivers/boards/px4io/px4io_internal.h>
+#include <board_config.h>
 
 #include "protocol.h"
+
+#include <systemlib/pwm_limit/pwm_limit.h>
 
 /*
  * Constants and limits.
  */
-#define MAX_CONTROL_CHANNELS	12
-#define IO_SERVO_COUNT		8
+#define PX4IO_SERVO_COUNT		8
+#define PX4IO_CONTROL_CHANNELS		8
+#define PX4IO_INPUT_CHANNELS		8 // XXX this should be 18 channels
 
 /*
  * Debug logging
@@ -77,6 +80,9 @@ extern volatile uint16_t	r_page_setup[];		/* PX4IO_PAGE_SETUP */
 extern volatile uint16_t	r_page_controls[];	/* PX4IO_PAGE_CONTROLS */
 extern uint16_t			r_page_rc_input_config[]; /* PX4IO_PAGE_RC_INPUT_CONFIG */
 extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
+extern uint16_t			r_page_servo_control_min[]; /* PX4IO_PAGE_CONTROL_MIN_PWM */
+extern uint16_t			r_page_servo_control_max[]; /* PX4IO_PAGE_CONTROL_MAX_PWM */
+extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 
 /*
  * Register aliases.
@@ -96,7 +102,9 @@ extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
 #define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
 #define r_setup_pwm_defaultrate	r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
 #define r_setup_pwm_altrate	r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
 #define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
+#endif
 
 #define r_control_values	(&r_page_controls[0])
 
@@ -117,33 +125,49 @@ struct sys_state_s {
 extern struct sys_state_s system_state;
 
 /*
+ * PWM limit structure
+ */
+extern pwm_limit_t pwm_limit;
+
+/*
  * GPIO handling.
  */
-#define LED_BLUE(_s)		stm32_gpiowrite(GPIO_LED1, !(_s))
-#define LED_AMBER(_s)		stm32_gpiowrite(GPIO_LED2, !(_s))
-#define LED_SAFETY(_s)		stm32_gpiowrite(GPIO_LED3, !(_s))
+#define LED_BLUE(_s)			stm32_gpiowrite(GPIO_LED1, !(_s))
+#define LED_AMBER(_s)			stm32_gpiowrite(GPIO_LED2, !(_s))
+#define LED_SAFETY(_s)			stm32_gpiowrite(GPIO_LED3, !(_s))
 
-#define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
-#ifdef GPIO_ACC1_PWR_EN
-    #define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
-#endif
-#ifdef GPIO_ACC2_PWR_EN
-    #define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
-#endif
-#ifdef GPIO_RELAY1_EN
-    #define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
-#endif
-#ifdef GPIO_RELAY2_EN
-    #define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
+
+# define PX4IO_RELAY_CHANNELS		4
+# define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
+# define POWER_ACC1(_s)			stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
+# define POWER_ACC2(_s)			stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
+# define POWER_RELAY1(_s)		stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
+# define POWER_RELAY2(_s)		stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
+
+# define OVERCURRENT_ACC		(!stm32_gpioread(GPIO_ACC_OC_DETECT))
+# define OVERCURRENT_SERVO		(!stm32_gpioread(GPIO_SERVO_OC_DETECT))
+
+# define PX4IO_ADC_CHANNEL_COUNT	2
+# define ADC_VBATT			4
+# define ADC_IN5			5
+
 #endif
 
-#define OVERCURRENT_ACC		(!stm32_gpioread(GPIO_ACC_OC_DETECT))
-#define OVERCURRENT_SERVO	(!stm32_gpioread(GPIO_SERVO_OC_DETECT))
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+
+# define PX4IO_RELAY_CHANNELS		0
+# define POWER_SPEKTRUM(_s)		stm32_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_s))
+
+# define VDD_SERVO_FAULT		(!stm32_gpioread(GPIO_SERVO_FAULT_DETECT))
+
+# define PX4IO_ADC_CHANNEL_COUNT	2
+# define ADC_VSERVO			4
+# define ADC_RSSI			5
+
+#endif
+
 #define BUTTON_SAFETY		stm32_gpioread(GPIO_BTN_SAFETY)
-
-#define ADC_VBATT		4
-#define ADC_IN5			5
-#define ADC_CHANNEL_COUNT	2
 
 /*
  * Mixer
@@ -156,17 +180,16 @@ extern void	mixer_handle_text(const void *buffer, size_t length);
  */
 extern void	safety_init(void);
 
-#ifdef CONFIG_STM32_I2C1
 /**
  * FMU communications
  */
-extern void	i2c_init(void);
-#endif
+extern void	interface_init(void);
+extern void	interface_tick(void);
 
 /**
  * Register space
  */
-extern void	registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
+extern int	registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num_values);
 extern int	registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_values);
 
 /**
@@ -186,15 +209,10 @@ extern int	dsm_init(const char *device);
 extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern void	dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
-extern bool	sbus_input(uint16_t *values, uint16_t *num_values);
+extern bool	sbus_input(uint16_t *values, uint16_t *num_values, uint16_t max_channels);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;
 
-/* send a debug message to the console */
+/** send a debug message to the console */
 extern void	isr_debug(uint8_t level, const char *fmt, ...);
-
-#ifdef CONFIG_STM32_I2C1
-void		i2c_dump(void);
-void		i2c_reset(void);
-#endif

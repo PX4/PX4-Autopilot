@@ -74,7 +74,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f13_pack(uint8_t system_id, 
  * @brief Pack a serial_udb_extra_f13 message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param sue_week_no Serial UDB Extra GPS Week Number
  * @param sue_lat_origin Serial UDB Extra MP Origin Latitude
@@ -113,7 +113,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f13_pack_chan(uint8_t system
 }
 
 /**
- * @brief Encode a serial_udb_extra_f13 struct into a message
+ * @brief Encode a serial_udb_extra_f13 struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -123,6 +123,20 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f13_pack_chan(uint8_t system
 static inline uint16_t mavlink_msg_serial_udb_extra_f13_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_serial_udb_extra_f13_t* serial_udb_extra_f13)
 {
 	return mavlink_msg_serial_udb_extra_f13_pack(system_id, component_id, msg, serial_udb_extra_f13->sue_week_no, serial_udb_extra_f13->sue_lat_origin, serial_udb_extra_f13->sue_lon_origin, serial_udb_extra_f13->sue_alt_origin);
+}
+
+/**
+ * @brief Encode a serial_udb_extra_f13 struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param serial_udb_extra_f13 C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_serial_udb_extra_f13_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_serial_udb_extra_f13_t* serial_udb_extra_f13)
+{
+	return mavlink_msg_serial_udb_extra_f13_pack_chan(system_id, component_id, chan, msg, serial_udb_extra_f13->sue_week_no, serial_udb_extra_f13->sue_lat_origin, serial_udb_extra_f13->sue_lon_origin, serial_udb_extra_f13->sue_alt_origin);
 }
 
 /**

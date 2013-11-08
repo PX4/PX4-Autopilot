@@ -55,7 +55,8 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_bodyframe_speed_setpoint.h>
@@ -64,6 +65,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 #include <poll.h>
+#include <mavlink/mavlink_log.h>
 
 #include "flow_speed_control_params.h"
 
@@ -150,21 +152,29 @@ flow_speed_control_thread_main(int argc, char *argv[])
 {
 	/* welcome user */
 	thread_running = true;
-	printf("[flow speed control] starting\n");
+	static int mavlink_fd;
+	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+	mavlink_log_info(mavlink_fd,"[fsc] started");
 
 	uint32_t counter = 0;
 
 	/* structures */
-	struct vehicle_status_s vstatus;
+	struct actuator_armed_s armed;
+	memset(&armed, 0, sizeof(armed));
+	struct vehicle_control_mode_s control_mode;
+	memset(&control_mode, 0, sizeof(control_mode));
 	struct filtered_bottom_flow_s filtered_flow;
+	memset(&filtered_flow, 0, sizeof(filtered_flow));
 	struct vehicle_bodyframe_speed_setpoint_s speed_sp;
-
+	memset(&speed_sp, 0, sizeof(speed_sp));
 	struct vehicle_attitude_setpoint_s att_sp;
+	memset(&att_sp, 0, sizeof(att_sp));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	int filtered_bottom_flow_sub = orb_subscribe(ORB_ID(filtered_bottom_flow));
 	int vehicle_bodyframe_speed_setpoint_sub = orb_subscribe(ORB_ID(vehicle_bodyframe_speed_setpoint));
 
@@ -183,6 +193,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "flow_speed_control_err");
 
 	static bool sensors_ready = false;
+	static bool status_changed = false;
 
 	while (!thread_should_exit)
 	{
@@ -218,7 +229,7 @@ flow_speed_control_thread_main(int argc, char *argv[])
 					orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
 
 					parameters_update(&param_handles, &params);
-					printf("[flow speed control] parameters updated.\n");
+					mavlink_log_info(mavlink_fd,"[fsp] parameters updated.");
 				}
 
 				/* only run controller if position/speed changed */
@@ -226,18 +237,27 @@ flow_speed_control_thread_main(int argc, char *argv[])
 				{
 					perf_begin(mc_loop_perf);
 
-					/* get a local copy of the vehicle state */
-					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+					/* get a local copy of the armed topic */
+					orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+					/* get a local copy of the control mode */
+					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 					/* get a local copy of filtered bottom flow */
 					orb_copy(ORB_ID(filtered_bottom_flow), filtered_bottom_flow_sub, &filtered_flow);
 					/* get a local copy of bodyframe speed setpoint */
 					orb_copy(ORB_ID(vehicle_bodyframe_speed_setpoint), vehicle_bodyframe_speed_setpoint_sub, &speed_sp);
+					/* get a local copy of control mode */
+					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 
-					if (vstatus.state_machine == SYSTEM_STATE_AUTO)
+					if (control_mode.flag_control_velocity_enabled)
 					{
 						/* calc new roll/pitch */
 						float pitch_body = -(speed_sp.vx - filtered_flow.vx) * params.speed_p;
 						float roll_body  =  (speed_sp.vy - filtered_flow.vy) * params.speed_p;
+
+						if(status_changed == false)
+							mavlink_log_info(mavlink_fd,"[fsc] flow SPEED control engaged");
+
+						status_changed = true;
 
 						/* limit roll and pitch corrections */
 						if((pitch_body <= params.limit_pitch) && (pitch_body >= -params.limit_pitch))
@@ -294,6 +314,11 @@ flow_speed_control_thread_main(int argc, char *argv[])
 					}
 					else
 					{
+						if(status_changed == true)
+							mavlink_log_info(mavlink_fd,"[fsc] flow SPEED controller disengaged.");
+
+						status_changed = false;
+
 						/* reset attitude setpoint */
 						att_sp.roll_body = 0.0f;
 						att_sp.pitch_body = 0.0f;
@@ -329,20 +354,20 @@ flow_speed_control_thread_main(int argc, char *argv[])
 			else if (ret == 0)
 			{
 				/* no return value, ignore */
-				printf("[flow speed control] no attitude received.\n");
+				mavlink_log_info(mavlink_fd,"[fsc] no attitude received.");
 			}
 			else
 			{
 				if (fds[0].revents & POLLIN)
 				{
 					sensors_ready = true;
-					printf("[flow speed control] initialized.\n");
+					mavlink_log_info(mavlink_fd,"[fsp] initialized.");
 				}
 			}
 		}
 	}
 
-	printf("[flow speed control] ending now...\n");
+	mavlink_log_info(mavlink_fd,"[fsc] ending now...");
 
 	thread_running = false;
 
@@ -350,7 +375,8 @@ flow_speed_control_thread_main(int argc, char *argv[])
 	close(vehicle_attitude_sub);
 	close(vehicle_bodyframe_speed_setpoint_sub);
 	close(filtered_bottom_flow_sub);
-	close(vehicle_status_sub);
+	close(armed_sub);
+	close(control_mode_sub);
 	close(att_sp_pub);
 
 	perf_print_counter(mc_loop_perf);

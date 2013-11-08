@@ -56,7 +56,8 @@
 #include <math.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -143,8 +144,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 	printf("[flow position estimator] starting\n");
 
 	/* rotation matrix for transformation of optical flow speed vectors */
-	static const int8_t rotM_flow_sensor[3][3] =   {{  0, 1, 0 },
-													{ -1, 0, 0 },
+	static const int8_t rotM_flow_sensor[3][3] =   {{  0, -1, 0 },
+													{ 1, 0, 0 },
 													{  0, 0, 1 }}; // 90deg rotated
 	const float time_scale = powf(10.0f,-6.0f);
 	static float speed[3] = {0.0f, 0.0f, 0.0f};
@@ -158,8 +159,10 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 	static float sonar_lp = 0.0f;
 
 	/* subscribe to vehicle status, attitude, sensors and flow*/
-	struct vehicle_status_s vstatus;
-	memset(&vstatus, 0, sizeof(vstatus));
+	struct actuator_armed_s armed;
+	memset(&armed, 0, sizeof(armed));
+	struct vehicle_control_mode_s control_mode;
+	memset(&control_mode, 0, sizeof(control_mode));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_attitude_setpoint_s att_sp;
@@ -170,8 +173,11 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 	/* subscribe to parameter changes */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 
-	/* subscribe to vehicle status */
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	/* subscribe to armed topic */
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+
+	/* subscribe to safety topic */
+	int control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	/* subscribe to attitude */
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -218,6 +224,7 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit)
 	{
+
 		if (sensors_ready)
 		{
 			/*This runs at the rate of the sensors */
@@ -263,7 +270,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 					/* got flow, updating attitude and status as well */
 					orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
 					orb_copy(ORB_ID(vehicle_attitude_setpoint), vehicle_attitude_setpoint_sub, &att_sp);
-					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
+					orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+					orb_copy(ORB_ID(vehicle_control_mode), control_mode_sub, &control_mode);
 
 					/* vehicle state estimation */
 					float sonar_new = flow.ground_distance_m;
@@ -273,14 +281,15 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 					 * -> accept sonar measurements after reaching calibration distance (values between 0.3m and 1.0m for some time)
 					 * -> minimum sonar value 0.3m
 					 */
+
 					if (!vehicle_liftoff)
 					{
-						if (vstatus.flag_system_armed && att_sp.thrust > params.minimum_liftoff_thrust && sonar_new > 0.3f && sonar_new < 1.0f)
+						if (armed.armed && att_sp.thrust > params.minimum_liftoff_thrust && sonar_new > 0.3f && sonar_new < 1.0f)
 							vehicle_liftoff = true;
 					}
 					else
 					{
-						if (!vstatus.flag_system_armed || (att_sp.thrust < params.minimum_liftoff_thrust && sonar_new <= 0.3f))
+						if (!armed.armed || (att_sp.thrust < params.minimum_liftoff_thrust && sonar_new <= 0.3f))
 							vehicle_liftoff = false;
 					}
 
@@ -336,6 +345,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 						local_pos.y = local_pos.y + global_speed[1] * dt;
 						local_pos.vx = global_speed[0];
 						local_pos.vy = global_speed[1];
+						local_pos.xy_valid = true;
+						local_pos.v_xy_valid = true;
 					}
 					else
 					{
@@ -344,14 +355,17 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 						filtered_flow.vy = 0;
 						local_pos.vx = 0;
 						local_pos.vy = 0;
+						local_pos.xy_valid = false;
+						local_pos.v_xy_valid = false;
 					}
 
 					/* filtering ground distance */
-					if (!vehicle_liftoff || !vstatus.flag_system_armed)
+					if (!vehicle_liftoff || !armed.armed)
 					{
 						/* not possible to fly */
 						sonar_valid = false;
 						local_pos.z = 0.0f;
+						local_pos.z_valid = false;
 					}
 					else
 					{
@@ -379,6 +393,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 						{
 							local_pos.z = -sonar_new;
 						}
+
+						local_pos.z_valid = true;
 					}
 
 					filtered_flow.timestamp = hrt_absolute_time();
@@ -444,7 +460,8 @@ int flow_position_estimator_thread_main(int argc, char *argv[])
 
 	close(vehicle_attitude_setpoint_sub);
 	close(vehicle_attitude_sub);
-	close(vehicle_status_sub);
+	close(armed_sub);
+	close(control_mode_sub);
 	close(parameter_update_sub);
 	close(optical_flow_sub);
 

@@ -59,10 +59,11 @@
 #include <nuttx/arch.h>
 #include <nuttx/i2c.h>
 
+#include <board_config.h>
+
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
-#include <drivers/boards/px4fmu/px4fmu_internal.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 
@@ -74,6 +75,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/esc_status.h>
 
 #include <systemlib/err.h>
@@ -94,9 +96,10 @@ class MK : public device::I2C
 {
 public:
 	enum Mode {
+		MODE_NONE,
 		MODE_2PWM,
 		MODE_4PWM,
-		MODE_NONE
+		MODE_6PWM,
 	};
 
 	enum MappingMode {
@@ -134,7 +137,7 @@ private:
 	int 		_current_update_rate;
 	int		_task;
 	int		_t_actuators;
-	int		_t_armed;
+	int		_t_actuator_armed;
 	unsigned int		_motor;
 	int    _px4mode;
 	int    _frametype;
@@ -247,7 +250,7 @@ MK::MK(int bus) :
 	_update_rate(50),
 	_task(-1),
 	_t_actuators(-1),
-	_t_armed(-1),
+	_t_actuator_armed(-1),
 	_t_outputs(0),
 	_t_actuators_effective(0),
 	_t_esc_status(0),
@@ -512,8 +515,8 @@ MK::task_main()
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
-	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
+	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
+	orb_set_interval(_t_actuator_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	actuator_outputs_s outputs;
@@ -539,7 +542,7 @@ MK::task_main()
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
-	fds[1].fd = _t_armed;
+	fds[1].fd = _t_actuator_armed;
 	fds[1].events = POLLIN;
 
 	log("starting");
@@ -653,7 +656,7 @@ MK::task_main()
 			actuator_armed_s aa;
 
 			/* get new value */
-			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
+			orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &aa);
 
 			/* update PWM servo armed status if armed and not locked down */
 			mk_servo_arm(aa.armed && !aa.lockdown);
@@ -699,7 +702,7 @@ MK::task_main()
 	//::close(_t_esc_status);
 	::close(_t_actuators);
 	::close(_t_actuators_effective);
-	::close(_t_armed);
+	::close(_t_actuator_armed);
 
 
 	/* make sure servos are off */
@@ -1021,9 +1024,11 @@ MK::ioctl(file *filp, int cmd, unsigned long arg)
 		return ret;
 
 	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
+	/*
 	switch (_mode) {
 	case MODE_2PWM:
 	case MODE_4PWM:
+	case MODE_6PWM:
 		ret = pwm_ioctl(filp, cmd, arg);
 		break;
 
@@ -1031,6 +1036,8 @@ MK::ioctl(file *filp, int cmd, unsigned long arg)
 		debug("not in a PWM mode");
 		break;
 	}
+	*/
+	ret = pwm_ioctl(filp, cmd, arg);
 
 	/* if nobody wants it, let CDev have it */
 	if (ret == -ENOTTY)
@@ -1064,7 +1071,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		ret = OK;
 		break;
 
-	case PWM_SERVO_SELECT_UPDATE_RATE:
+	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
 		ret = OK;
 		break;
 
@@ -1344,44 +1351,6 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 
 	gpio_bits = 0;
 	servo_mode = MK::MODE_NONE;
-
-	switch (new_mode) {
-	case PORT_FULL_GPIO:
-	case PORT_MODE_UNSET:
-		/* nothing more to do here */
-		break;
-
-	case PORT_FULL_SERIAL:
-		/* set all multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_1 | GPIO_MULTI_2 | GPIO_MULTI_3 | GPIO_MULTI_4;
-		break;
-
-	case PORT_FULL_PWM:
-		/* select 4-pin PWM mode */
-		servo_mode = MK::MODE_4PWM;
-		break;
-
-	case PORT_GPIO_AND_SERIAL:
-		/* set RX/TX multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
-		break;
-
-	case PORT_PWM_AND_SERIAL:
-		/* select 2-pin PWM mode */
-		servo_mode = MK::MODE_2PWM;
-		/* set RX/TX multi-GPIOs to serial mode */
-		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
-		break;
-
-	case PORT_PWM_AND_GPIO:
-		/* select 2-pin PWM mode */
-		servo_mode = MK::MODE_2PWM;
-		break;
-	}
-
-	/* adjust GPIO config for serial mode(s) */
-	if (gpio_bits != 0)
-		g_mk->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
 
 	/* native PX4 addressing) */
 	g_mk->set_px4mode(px4mode);

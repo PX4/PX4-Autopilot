@@ -68,6 +68,7 @@
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
@@ -102,6 +103,10 @@ public:
 	 */
 	virtual void	print_info();
 
+private:
+	RingBuffer		*_reports;
+	perf_counter_t		_buffer_overflows;
+
 protected:
 	virtual int	probe();
 
@@ -114,10 +119,7 @@ protected:
 	virtual int	collect() = 0;
 
 	work_s			_work;
-	unsigned		_num_reports;
-	volatile unsigned	_next_report;
-	volatile unsigned	_oldest_report;
-	differential_pressure_s	*_reports;
+	uint16_t		_max_differential_pressure_pa;
 	bool			_sensor_ok;
 	int			_measure_ticks;
 	bool			_collect_phase;
@@ -129,7 +131,6 @@ protected:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
-	perf_counter_t		_buffer_overflows;
 
 
 	/**
@@ -162,8 +163,12 @@ protected:
 	*/
 	static void	cycle_trampoline(void *arg);
 
+	/**
+	* add a new report to the reports queue
+	*
+	* @param report		differential_pressure_s report
+	*/
+	void	new_report(const differential_pressure_s &report);
 };
 
-/* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
 

@@ -7,25 +7,40 @@
 # Start sensor drivers here.
 #
 
-#
-# Check for UORB
-#
-if uorb start
-then
-	echo "uORB started"
-fi
-
 ms5611 start
 adc start
 
+# mag might be external
+if hmc5883 start
+then
+	echo "using HMC5883"
+fi
+
 if mpu6000 start
 then
-	echo "using MPU6000 and HMC5883L"
-	hmc5883 start
+	echo "using MPU6000"
+	set BOARD fmuv1
 else
 	echo "using L3GD20 and LSM303D"
 	l3gd20 start
 	lsm303d start
+	set BOARD fmuv2
+fi
+
+# Start airspeed sensors
+if meas_airspeed start
+then
+	echo "using MEAS airspeed sensor"
+else
+	if ets_airspeed start
+	then
+		echo "using ETS airspeed sensor (bus 3)"
+	else
+		if ets_airspeed start -b 1
+		then
+			echo "Using ETS airspeed sensor (bus 1)"
+		fi
+	fi
 fi
 
 #
@@ -36,8 +51,5 @@ fi
 #
 if sensors start
 then
-	#
-	# Check sensors - run AFTER 'sensors start'
-	#
 	preflight_check &
 fi
