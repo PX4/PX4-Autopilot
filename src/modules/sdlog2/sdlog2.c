@@ -704,6 +704,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct airspeed_s airspeed;
 		struct esc_status_s esc;
 		struct vehicle_global_velocity_setpoint_s global_vel_sp;
+		struct battery_status_s battery;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -729,6 +730,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int airspeed_sub;
 		int esc_sub;
 		int global_vel_sp_sub;
+		int battery_sub;
 	} subs;
 
 	/* log message buffer: header + body */
@@ -755,6 +757,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_GPSP_s log_GPSP;
 			struct log_ESC_s log_ESC;
 			struct log_GVSP_s log_GVSP;
+			struct log_BATT_s log_BATT;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -764,7 +767,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 20;
+	const ssize_t fdsc = 21;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -890,6 +893,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
+	/* --- BATTERY --- */
+	subs.battery_sub = orb_subscribe(ORB_ID(battery_status));
+	fds[fdsc_count].fd = subs.battery_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
 	/* WARNING: If you get the error message below,
 	 * then the number of registered messages (fdsc)
 	 * differs from the number of messages in the above list.
@@ -980,8 +989,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
 				log_msg.body.log_STAT.navigation_state = (uint8_t) buf_status.navigation_state;
 				log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
-				log_msg.body.log_STAT.battery_voltage = buf_status.battery_voltage;
-				log_msg.body.log_STAT.battery_current = buf_status.battery_current;
 				log_msg.body.log_STAT.battery_remaining = buf_status.battery_remaining;
 				log_msg.body.log_STAT.battery_warning = (uint8_t) buf_status.battery_warning;
 				log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
@@ -1250,6 +1257,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GVSP.vy = buf.global_vel_sp.vy;
 				log_msg.body.log_GVSP.vz = buf.global_vel_sp.vz;
 				LOGBUFFER_WRITE_AND_COUNT(GVSP);
+			}
+
+			/* --- BATTERY --- */
+			if (fds[ifds++].revents & POLLIN) {
+				log_msg.msg_type = LOG_BATT_MSG;
+				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
+				log_msg.body.log_BATT.current = buf.battery.current_a;
+				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
+				LOGBUFFER_WRITE_AND_COUNT(BATT);
 			}
 
 			/* signal the other thread new data, but not yet unlock */
