@@ -896,8 +896,9 @@ int commander_thread_main(int argc, char *argv[])
 			/* only consider battery voltage if system has been running 2s and battery voltage is higher than 4V */
 			if (hrt_absolute_time() > start_time + 2000000 && battery.voltage_v > 4.0f) {
 				status.battery_voltage = battery.voltage_v;
+				status.battery_current = battery.current_a;
 				status.condition_battery_voltage_valid = true;
-				status.battery_remaining = battery_remaining_estimate_voltage(status.battery_voltage);
+				status.battery_remaining = battery_remaining_estimate_voltage(battery.voltage_v, battery.discharged_mah);
 			}
 		}
 
