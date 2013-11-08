@@ -62,17 +62,16 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/pid/pid.h>
-#include <systemlib/geo/geo.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 
-//#include <ecl/attitude_mc/ecl_mc_att_control_vector.h>
 #include "ecl_mc_att_control_vector.h"
 
 /**
@@ -111,7 +110,7 @@ private:
 	int		_accel_sub;			/**< accelerometer subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
-	int		_vstatus_sub;			/**< vehicle status subscription */
+	int		_control_mode_sub;			/**< vehicle control mode subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_sub;			/**< notification of manual control updates */
 	int		_arming_sub;			/**< arming status of outputs */
@@ -123,7 +122,7 @@ private:
 	struct accel_report				_accel;			/**< body frame accelerations */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct vehicle_status_s				_vstatus;		/**< vehicle status */
+	struct vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_armed_s				_arming;		/**< actuator arming status */
 
@@ -178,9 +177,9 @@ private:
 	void		control_update();
 
 	/**
-	 * Check for changes in vehicle status.
+	 * Check for changes in vehicle control mode.
 	 */
-	void		vehicle_status_poll();
+	void		vehicle_control_mode_poll();
 
 	/**
 	 * Check for changes in manual inputs.
@@ -233,7 +232,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 /* subscriptions */
 	_att_sub(-1),
 	_accel_sub(-1),
-	_vstatus_sub(-1),
+	_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
 	_arming_sub(-1),
@@ -320,16 +319,16 @@ MulticopterAttitudeControl::parameters_update()
 }
 
 void
-MulticopterAttitudeControl::vehicle_status_poll()
+MulticopterAttitudeControl::vehicle_control_mode_poll()
 {
-	bool vstatus_updated;
+	bool control_mode_updated;
 
 	/* Check HIL state if vehicle status has changed */
-	orb_check(_vstatus_sub, &vstatus_updated);
+	orb_check(_control_mode_sub, &control_mode_updated);
 
-	if (vstatus_updated) {
+	if (control_mode_updated) {
 
-		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
+		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 	}
 }
 
@@ -404,14 +403,13 @@ MulticopterAttitudeControl::task_main()
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
-	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vstatus_sub, 200);
-	orb_set_interval(_att_sub, 100);
+	/* rate limit attitude updates to 100Hz */
+	orb_set_interval(_att_sub, 10);
 
 	parameters_update();
 
@@ -421,7 +419,7 @@ MulticopterAttitudeControl::task_main()
 	/* get an initial update for all sensor and status data */
 	vehicle_setpoint_poll();
 	vehicle_accel_poll();
-	vehicle_status_poll();
+	vehicle_control_mode_poll();
 	vehicle_manual_poll();
 	arming_status_poll();
 
@@ -463,8 +461,6 @@ MulticopterAttitudeControl::task_main()
 
 		/* only run controller if attitude changed */
 		if (fds[1].revents & POLLIN) {
-
-
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
@@ -477,15 +473,9 @@ MulticopterAttitudeControl::task_main()
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
 			vehicle_setpoint_poll();
-
 			vehicle_accel_poll();
-
-			/* check vehicle status for changes to publication state */
-			vehicle_status_poll();
-
-			/* check for arming status changes */
+			vehicle_control_mode_poll();
 			arming_status_poll();
-
 			vehicle_manual_poll();
 
 			/* lock integrator until armed */
@@ -497,33 +487,22 @@ MulticopterAttitudeControl::task_main()
 			}
 
 			/* decide if in auto or full manual control */
-			float roll_sp, pitch_sp;
+			float roll_sp = 0.0f;
+			float pitch_sp = 0.0f;
 			float throttle_sp = 0.0f;
 			float yaw_sp = 0.0f;
 
-			if (_vstatus.state_machine == SYSTEM_STATE_MANUAL ||
-				(_vstatus.state_machine == SYSTEM_STATE_STABILIZED)) {
-
-				/*
-				 * Scale down roll and pitch as the setpoints are radians
-				 * and a typical remote can only do 45 degrees, the mapping is
-				 * -1..+1 to -45..+45 degrees or -0.75..+0.75 radians.
-				 * 
-				 * With this mapping the stick angle is a 1:1 representation of
-				 * the commanded attitude. If more than 45 degrees are desired,
-				 * a scaling parameter can be applied to the remote.
-				 */
-				roll_sp = _manual.roll * 0.75f;
-				pitch_sp = _manual.pitch * 0.75f;
-				yaw_sp = _manual.yaw;
+			if (_control_mode.flag_control_manual_enabled) {
+				roll_sp = _manual.roll;
+				pitch_sp = _manual.pitch;
+				yaw_sp = _manual.yaw;	// XXX move yaw setpoint
 				throttle_sp = _manual.throttle;
 
-			} else if (_vstatus.state_machine == SYSTEM_STATE_AUTO) {
-
-					roll_sp = _att_sp.roll_body;
-					pitch_sp = _att_sp.pitch_body;
-					yaw_sp = _att_sp.yaw_body;
-					throttle_sp = _att_sp.thrust;
+			} else if (_control_mode.flag_control_auto_enabled) {
+				roll_sp = _att_sp.roll_body;
+				pitch_sp = _att_sp.pitch_body;
+				yaw_sp = _att_sp.yaw_body;
+				throttle_sp = _att_sp.thrust;
 			}
 
 			// XXX take rotation matrix directly from att_sp for auto mode
@@ -532,6 +511,7 @@ MulticopterAttitudeControl::task_main()
 			math::Vector3 rates_des;
 
 			math::Dcm R_nb(_att.R);
+			// XXX actually it's not euler angles rates, but body rates, rename it (?)
 			math::Vector3 angular_rates(_att.rollspeed, _att.pitchspeed, _att.yawspeed);
 
 			_att_control.control(deltaT, R_nb, _att.yaw, F_des,
