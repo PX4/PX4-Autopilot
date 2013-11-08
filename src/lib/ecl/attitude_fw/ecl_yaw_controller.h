@@ -57,7 +57,7 @@ public:
 	ECL_YawController();
 
 	float control_attitude(float roll, float pitch,
-			float speed_body_u, float speed_body_w,
+			float speed_body_u, float speed_body_v, float speed_body_w,
 			float roll_rate_setpoint, float pitch_rate_setpoint);
 
 	float control_bodyrate(	float roll, float pitch,
@@ -85,8 +85,8 @@ public:
 	void set_k_roll_ff(float roll_ff) {
 		_roll_ff = roll_ff;
 	}
-	void set_coordinated(float coordinated) {
-		_coordinated = coordinated;
+	void set_coordinated_min_speed(float coordinated_min_speed) {
+		_coordinated_min_speed = coordinated_min_speed;
 	}
 
 
@@ -115,7 +115,7 @@ private:
 	float _rate_error;
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
-	float _coordinated;
+	float _coordinated_min_speed;
 
 };
 

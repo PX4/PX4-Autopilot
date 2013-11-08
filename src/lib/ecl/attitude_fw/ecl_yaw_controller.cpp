@@ -59,21 +59,22 @@ ECL_YawController::ECL_YawController() :
 	_rate_error(0.0f),
 	_rate_setpoint(0.0f),
 	_bodyrate_setpoint(0.0f),
-	_coordinated(0.0f)
+	_coordinated_min_speed(1.0f)
 {
 }
 
 float ECL_YawController::control_attitude(float roll, float pitch,
-		float speed_body_u, float speed_body_w,
+		float speed_body_u, float speed_body_v, float speed_body_w,
 		float roll_rate_setpoint, float pitch_rate_setpoint)
 {
 //	static int counter = 0;
 	/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
 	_rate_setpoint = 0.0f;
-	if (_coordinated > 0.1) {
+	if (sqrtf(speed_body_u * speed_body_u + speed_body_v * speed_body_v + speed_body_w * speed_body_w) > _coordinated_min_speed) {
 		float denumerator = (speed_body_u * cosf(roll) * cosf(pitch) + speed_body_w * sinf(pitch));
 		if(denumerator != 0.0f) { //XXX: floating point comparison
 			_rate_setpoint = (speed_body_w * roll_rate_setpoint + 9.81f * sinf(roll) * cosf(pitch) + speed_body_u * pitch_rate_setpoint * sinf(roll)) / denumerator;
+//			warnx("yaw: speed_body_u %.f speed_body_w %1.f roll %.1f pitch %.1f denumerator %.1f _rate_setpoint %.1f", speed_body_u, speed_body_w, denumerator, _rate_setpoint);
 		}
 
 //		if(counter % 20 == 0) {

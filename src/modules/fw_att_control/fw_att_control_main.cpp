@@ -155,7 +155,7 @@ private:
 		float y_d;
 		float y_roll_feedforward;
 		float y_integrator_max;
-		float y_coordinated;
+		float y_coordinated_min_speed;
 		float y_rmax;
 
 		float airspeed_min;
@@ -183,7 +183,7 @@ private:
 		param_t y_d;
 		param_t y_roll_feedforward;
 		param_t y_integrator_max;
-		param_t y_coordinated;
+		param_t y_coordinated_min_speed;
 		param_t y_rmax;
 
 		param_t airspeed_min;
@@ -287,6 +287,17 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_setpoint_valid(false),
 	_airspeed_valid(false)
 {
+	/* safely initialize structs */
+	vehicle_attitude_s			_att = {0};
+	accel_report				_accel = {0};
+	vehicle_attitude_setpoint_s		_att_sp = {0};
+	manual_control_setpoint_s		_manual = {0};
+	airspeed_s				_airspeed = {0};
+	vehicle_control_mode_s			_vcontrol_mode = {0};
+	actuator_controls_s			_actuators = {0};
+	vehicle_global_position_s		_global_pos = {0};
+
+
 	_parameter_handles.tconst = param_find("FW_ATT_TC");
 	_parameter_handles.p_p = param_find("FW_PR_P");
 	_parameter_handles.p_d = param_find("FW_PR_D");
@@ -313,7 +324,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
 
-	_parameter_handles.y_coordinated = param_find("FW_Y_COORD");
+	_parameter_handles.y_coordinated_min_speed = param_find("FW_YCO_VMIN");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -368,7 +379,7 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.y_d, &(_parameters.y_d));
 	param_get(_parameter_handles.y_roll_feedforward, &(_parameters.y_roll_feedforward));
 	param_get(_parameter_handles.y_integrator_max, &(_parameters.y_integrator_max));
-	param_get(_parameter_handles.y_coordinated, &(_parameters.y_coordinated));
+	param_get(_parameter_handles.y_coordinated_min_speed, &(_parameters.y_coordinated_min_speed));
 	param_get(_parameter_handles.y_rmax, &(_parameters.y_rmax));
 
 	param_get(_parameter_handles.airspeed_min, &(_parameters.airspeed_min));
@@ -399,7 +410,7 @@ FixedwingAttitudeControl::parameters_update()
 	_yaw_ctrl.set_k_d(_parameters.y_d);
 	_yaw_ctrl.set_k_roll_ff(_parameters.y_roll_feedforward);
 	_yaw_ctrl.set_integrator_max(_parameters.y_integrator_max);
-	_yaw_ctrl.set_coordinated(_parameters.y_coordinated);
+	_yaw_ctrl.set_coordinated_min_speed(_parameters.y_coordinated_min_speed);
 	_yaw_ctrl.set_max_rate(math::radians(_parameters.y_rmax));
 
 	return OK;
@@ -672,10 +683,11 @@ FixedwingAttitudeControl::task_main()
 
 				/* Prepare speed_body_u and speed_body_w */
 				float speed_body_u = 0.0f;
+				float speed_body_v = 0.0f;
 				float speed_body_w = 0.0f;
 				if(_att.R_valid) 	{
 					speed_body_u = _att.R[0][0] * _global_pos.vx + _att.R[1][0] * _global_pos.vy + _att.R[2][0] * _global_pos.vz;
-//					speed_body_v = _att.R[0][1] * _global_pos.vx + _att.R[1][1] * _global_pos.vy + _att.R[2][1] * _global_pos.vz;
+					speed_body_v = _att.R[0][1] * _global_pos.vx + _att.R[1][1] * _global_pos.vy + _att.R[2][1] * _global_pos.vz;
 					speed_body_w = _att.R[0][2] * _global_pos.vx + _att.R[1][2] * _global_pos.vy + _att.R[2][2] * _global_pos.vz;
 				} else	{
 					warnx("Did not get a valid R\n");
@@ -686,7 +698,7 @@ FixedwingAttitudeControl::task_main()
 					_roll_ctrl.control_attitude(roll_sp, _att.roll);
 					_pitch_ctrl.control_attitude(pitch_sp, _att.roll, _att.pitch, airspeed);
 					_yaw_ctrl.control_attitude(_att.roll, _att.pitch,
-							speed_body_u,speed_body_w,
+							speed_body_u, speed_body_v, speed_body_w,
 							_roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate()); //runs last, because is depending on output of roll and pitch attitude
 
 					/* Run attitude RATE controllers which need the desired attitudes from above */
@@ -709,7 +721,7 @@ FixedwingAttitudeControl::task_main()
 								pitch_u, _yaw_ctrl.get_desired_rate(), airspeed, airspeed_scaling, roll_sp, pitch_sp, _roll_ctrl.get_desired_rate(), _pitch_ctrl.get_desired_rate(), _att_sp.roll_body);
 					}
 
-					float yaw_u = _yaw_ctrl.control_bodyrate(	_att.roll, _att.pitch,
+					float yaw_u = _yaw_ctrl.control_bodyrate(_att.roll, _att.pitch,
 							_att.pitchspeed, _att.yawspeed,
 							_pitch_ctrl.get_desired_rate(),
 							_parameters.airspeed_min, _parameters.airspeed_max, airspeed, airspeed_scaling, lock_integrator);
