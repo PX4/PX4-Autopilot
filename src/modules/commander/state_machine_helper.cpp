@@ -239,8 +239,9 @@ main_state_transition(struct vehicle_status_s *current_state, main_state_t new_m
 		case MAIN_STATE_SEATBELT:
 
 			/* need at minimum altitude estimate */
-			if (current_state->condition_local_altitude_valid ||
-				current_state->condition_global_position_valid) {
+			if (!current_state->is_rotary_wing ||
+				(current_state->condition_local_altitude_valid ||
+				current_state->condition_global_position_valid)) {
 				ret = TRANSITION_CHANGED;
 			}
 
