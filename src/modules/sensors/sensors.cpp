@@ -1189,7 +1189,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					if (_battery_status.timestamp != 0) {
 						_battery_status.current_a = (buf_adc[i].am_data * _parameters.battery_current_scaling);
 						float dt = fminf(20.0f, (hrt_absolute_time() - _last_adc) * 0.001f);	// in ms, limit to 20ms
-						_battery_status.discharged_mah += _battery_status.current_a * dt;
+						_battery_status.discharged_mah += _battery_status.current_a * dt / 3600.0f;
 					}
 
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
