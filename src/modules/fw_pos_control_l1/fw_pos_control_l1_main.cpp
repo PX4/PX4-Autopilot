@@ -380,6 +380,20 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
+	/* safely initialize structs */
+	vehicle_attitude_s			_att = {0};
+	vehicle_attitude_setpoint_s		_att_sp = {0};
+	navigation_capabilities_s		_nav_capabilities = {0};
+	manual_control_setpoint_s		_manual = {0};
+	airspeed_s				_airspeed = {0};
+	vehicle_control_mode_s			_control_mode = {0};
+	vehicle_global_position_s		_global_pos = {0};
+	vehicle_global_position_set_triplet_s	_global_triplet = {0};
+	accel_report				_accel = {0};
+
+
+
+
 	_nav_capabilities.turn_distance = 0.0f;
 
 	_parameter_handles.l1_period = param_find("FW_L1_PERIOD");
