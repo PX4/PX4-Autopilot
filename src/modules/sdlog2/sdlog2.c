@@ -1261,6 +1261,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- BATTERY --- */
 			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(battery_status), subs.battery_sub, &buf.battery);
 				log_msg.msg_type = LOG_BATT_MSG;
 				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
 				log_msg.body.log_BATT.current = buf.battery.current_a;
