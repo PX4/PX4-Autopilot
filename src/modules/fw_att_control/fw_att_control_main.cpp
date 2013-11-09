@@ -279,20 +279,20 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.p_i = param_find("FW_P_I");
 	_parameter_handles.p_rmax_pos = param_find("FW_P_RMAX_POS");
 	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
-	_parameter_handles.p_integrator_max = param_find("FW_P_integrator_max");
+	_parameter_handles.p_integrator_max = param_find("FW_P_IMAX");
 	_parameter_handles.p_roll_feedforward = param_find("FW_P_ROLLFF");
 
 	_parameter_handles.r_p = param_find("FW_R_P");
 	_parameter_handles.r_d = param_find("FW_R_D");
 	_parameter_handles.r_i = param_find("FW_R_I");
-	_parameter_handles.r_integrator_max = param_find("FW_R_integrator_max");
+	_parameter_handles.r_integrator_max = param_find("FW_R_IMAX");
 	_parameter_handles.r_rmax = param_find("FW_R_RMAX");
 
 	_parameter_handles.y_p = param_find("FW_Y_P");
 	_parameter_handles.y_i = param_find("FW_Y_I");
 	_parameter_handles.y_d = param_find("FW_Y_D");
 	_parameter_handles.y_roll_feedforward = param_find("FW_Y_ROLLFF");
-	_parameter_handles.y_integrator_max = param_find("FW_Y_integrator_max");
+	_parameter_handles.y_integrator_max = param_find("FW_Y_IMAX");
 
 	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
 	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
@@ -635,43 +635,46 @@ FixedwingAttitudeControl::task_main()
 					}
 				}
 
-				float roll_rad = _roll_ctrl.control(roll_sp, _att.roll, _att.rollspeed,
-								    airspeed_scaling, lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
-				_actuators.control[0] = (isfinite(roll_rad)) ? roll_rad * actuator_scaling : 0.0f;
+				if (isfinite(roll_sp) && isfinite(pitch_sp)) {
 
-				float pitch_rad = _pitch_ctrl.control(pitch_sp, _att.pitch, _att.pitchspeed, _att.roll, airspeed_scaling,
-								      lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
-				_actuators.control[1] = (isfinite(pitch_rad)) ? pitch_rad * actuator_scaling : 0.0f;
+					float roll_rad = _roll_ctrl.control(roll_sp, _att.roll, _att.rollspeed,
+									    airspeed_scaling, lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
+					_actuators.control[0] = (isfinite(roll_rad)) ? roll_rad * actuator_scaling : 0.0f;
 
-				float yaw_rad = _yaw_ctrl.control(_att.roll, _att.yawspeed, _accel.y, airspeed_scaling, lock_integrator,
-								  _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
-				_actuators.control[2] = (isfinite(yaw_rad)) ? yaw_rad * actuator_scaling : 0.0f;
+					float pitch_rad = _pitch_ctrl.control(pitch_sp, _att.pitch, _att.pitchspeed, _att.roll, airspeed_scaling,
+									      lock_integrator, _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
+					_actuators.control[1] = (isfinite(pitch_rad)) ? pitch_rad * actuator_scaling : 0.0f;
 
-				/* throttle passed through */
-				_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
+					float yaw_rad = _yaw_ctrl.control(_att.roll, _att.yawspeed, _accel.y, airspeed_scaling, lock_integrator,
+									  _parameters.airspeed_min, _parameters.airspeed_max, airspeed);
+					_actuators.control[2] = (isfinite(yaw_rad)) ? yaw_rad * actuator_scaling : 0.0f;
 
-				// warnx("aspd: %s: %6.2f, aspd scaling: %6.2f, controls: %5.2f %5.2f %5.2f %5.2f", (_airspeed_valid) ? "valid" : "unknown",
-				// 			airspeed, airspeed_scaling, _actuators.control[0], _actuators.control[1],
-				// 			_actuators.control[2], _actuators.control[3]);
+					/* throttle passed through */
+					_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
 
-				/*
-				 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
-				 * only once available
-				 */
-				vehicle_rates_setpoint_s rates_sp;
-				rates_sp.roll = _roll_ctrl.get_desired_rate();
-				rates_sp.pitch = _pitch_ctrl.get_desired_rate();
-				rates_sp.yaw = 0.0f; // XXX not yet implemented
+					// warnx("aspd: %s: %6.2f, aspd scaling: %6.2f, controls: %5.2f %5.2f %5.2f %5.2f", (_airspeed_valid) ? "valid" : "unknown",
+					// 			airspeed, airspeed_scaling, _actuators.control[0], _actuators.control[1],
+					// 			_actuators.control[2], _actuators.control[3]);
 
-				rates_sp.timestamp = hrt_absolute_time();
+					/*
+					 * Lazily publish the rate setpoint (for analysis, the actuators are published below)
+					 * only once available
+					 */
+					vehicle_rates_setpoint_s rates_sp;
+					rates_sp.roll = _roll_ctrl.get_desired_rate();
+					rates_sp.pitch = _pitch_ctrl.get_desired_rate();
+					rates_sp.yaw = 0.0f; // XXX not yet implemented
 
-				if (_rate_sp_pub > 0) {
-					/* publish the attitude setpoint */
-					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &rates_sp);
+					rates_sp.timestamp = hrt_absolute_time();
 
-				} else {
-					/* advertise and publish */
-					_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+					if (_rate_sp_pub > 0) {
+						/* publish the attitude setpoint */
+						orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &rates_sp);
+
+					} else {
+						/* advertise and publish */
+						_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+					}
 				}
 
 			} else {
