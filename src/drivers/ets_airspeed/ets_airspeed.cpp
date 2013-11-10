@@ -180,7 +180,7 @@ ETSAirspeed::collect()
 	differential_pressure_s report;
 	report.timestamp = hrt_absolute_time();
         report.error_count = perf_event_count(_comms_errors);
-	report.differential_pressure_pa = diff_pres_pa;
+	report.differential_pressure_pa = (float)diff_pres_pa;
 	report.voltage = 0;
 	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 

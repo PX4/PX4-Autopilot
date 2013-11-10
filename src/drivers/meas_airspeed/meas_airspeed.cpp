@@ -36,6 +36,7 @@
  * @author Lorenz Meier
  * @author Sarthak Kaingade
  * @author Simon Wilks
+ * @author Thomas Gubler
  *
  * Driver for the MEAS Spec series connected via I2C.
  *
@@ -76,6 +77,7 @@
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
+#include <mathlib/mathlib.h>
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
@@ -184,7 +186,7 @@ MEASAirspeed::collect()
 	//diff_pres_pa -= _diff_pres_offset;
 	int16_t dp_raw = 0, dT_raw = 0;
 	dp_raw = (val[0] << 8) + val[1];
-	dp_raw = 0x3FFF & dp_raw;
+	dp_raw = 0x3FFF & dp_raw; //mask the used bits
 	dT_raw = (val[2] << 8) + val[3];
 	dT_raw = (0xFFE0 & dT_raw) >> 5;
 	float temperature = ((200 * dT_raw) / 2047) - 50;
@@ -193,7 +195,11 @@ MEASAirspeed::collect()
 
 	// Calculate differential pressure. As its centered around 8000
 	// and can go positive or negative, enforce absolute value
-	uint16_t diff_press_pa = abs(dp_raw - (16384 / 2.0f));
+//	uint16_t diff_press_pa = abs(dp_raw - (16384 / 2.0f));
+	const float P_min = -1.0f;
+	const float P_max = 1.0f;
+	float diff_press_pa = math::max(0.0f, fabsf( ( ((float)dp_raw - 0.1f*16383.0f) * (P_max-P_min)/(0.8f*16383.0f) + P_min) * 6894.8f)   - _diff_pres_offset);
+
 	struct differential_pressure_s report;
 
 	// Track maximum differential pressure measured (so we can work out top speed).

@@ -1121,6 +1121,7 @@ Sensors::parameter_update_poll(bool forced)
 
 			if (OK != ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale))
 				warn("WARNING: failed to set scale / offsets for airspeed sensor");
+			close(fd);
 		}
 
 #if 0
