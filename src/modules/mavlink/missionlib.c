@@ -64,6 +64,7 @@
 #include <systemlib/systemlib.h>
 #include <mavlink/mavlink_log.h>
 
+#include "geo/geo.h"
 #include "waypoints.h"
 #include "orb_topics.h"
 #include "missionlib.h"
