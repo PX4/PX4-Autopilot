@@ -126,8 +126,7 @@
 #endif
 
 #define BAT_VOL_INITIAL 0.f
-#define BAT_VOL_LOWPASS_1 0.99f
-#define BAT_VOL_LOWPASS_2 0.01f
+#define BAT_VOL_LOWPASS 0.01f
 #define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
 
 /**
@@ -215,6 +214,9 @@ private:
 	math::Matrix	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
 	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
+
+	unsigned long _battery_discharged;		/**< battery discharged current in mA*ms */
+	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -462,7 +464,9 @@ Sensors::Sensors() :
 
 	_board_rotation(3, 3),
 	_external_mag_rotation(3, 3),
-	_mag_is_external(false)
+	_mag_is_external(false),
+	_battery_discharged(0),
+	_battery_current_timestamp(0)
 {
 
 	/* basic r/c parameters */
@@ -1149,17 +1153,16 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	if (!_publishing)
 		return;
 
+	hrt_abstime t = hrt_absolute_time();
 	/* rate limit to 100 Hz */
-	if (hrt_absolute_time() - _last_adc >= 10000) {
+	if (t - _last_adc >= 10000) {
 		/* make space for a maximum of eight channels */
 		struct adc_msg_s buf_adc[8];
 		/* read all channels available */
 		int ret = read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
-		for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
-
-			if (ret >= (int)sizeof(buf_adc[0])) {
-
+		if (ret >= (int)sizeof(buf_adc[0])) {
+			for (unsigned i = 0; i < sizeof(buf_adc) / sizeof(buf_adc[0]); i++) {
 				/* Save raw voltage values */
 				if (i < (sizeof(raw.adc_voltage_v)) / sizeof(raw.adc_voltage_v[0])) {
 					raw.adc_voltage_v[i] = buf_adc[i].am_data / (4096.0f / 3.3f);
@@ -1176,8 +1179,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 							_battery_status.voltage_v = voltage;
 						}
 
-						_battery_status.timestamp = hrt_absolute_time();
-						_battery_status.voltage_v = (BAT_VOL_LOWPASS_1 * (_battery_status.voltage_v + BAT_VOL_LOWPASS_2 * voltage));;
+						_battery_status.timestamp = t;
+						_battery_status.voltage_v += (voltage - _battery_status.voltage_v) * BAT_VOL_LOWPASS;
 
 					} else {
 						/* mark status as invalid */
@@ -1187,9 +1190,14 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				} else if (ADC_BATTERY_CURRENT_CHANNEL == buf_adc[i].am_channel) {
 					/* handle current only if voltage is valid */
 					if (_battery_status.timestamp != 0) {
-						_battery_status.current_a = (buf_adc[i].am_data * _parameters.battery_current_scaling);
-						float dt = fminf(20.0f, (hrt_absolute_time() - _last_adc) * 0.001f);	// in ms, limit to 20ms
-						_battery_status.discharged_mah += _battery_status.current_a * dt / 3600.0f;
+						float current = (buf_adc[i].am_data * _parameters.battery_current_scaling);
+						_battery_status.timestamp = t;
+						_battery_status.current_a = current;
+						if (_battery_current_timestamp != 0) {
+							_battery_discharged += current * (t - _battery_current_timestamp);
+							_battery_status.discharged_mah = ((float) _battery_discharged) / 3600000.0f;
+						}
+						_battery_current_timestamp = t;
 					}
 
 				} else if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
@@ -1206,7 +1214,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 						float diff_pres_pa = voltage * 1000.0f - _parameters.diff_pres_offset_pa; //for MPXV7002DP sensor
 
-						_diff_pres.timestamp = hrt_absolute_time();
+						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_pa = diff_pres_pa;
 						_diff_pres.voltage = voltage;
 
@@ -1219,18 +1227,16 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						}
 					}
 				}
-
-				_last_adc = hrt_absolute_time();
 			}
-		}
+			_last_adc = t;
+			if (_battery_status.timestamp != 0) {
+				/* announce the battery status if needed, just publish else */
+				if (_battery_pub > 0) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
 
-		if (_battery_status.timestamp != 0) {
-			/* announce the battery status if needed, just publish else */
-			if (_battery_pub > 0) {
-				orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
-
-			} else {
-				_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				} else {
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				}
 			}
 		}
 	}
