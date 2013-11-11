@@ -249,6 +249,7 @@ struct log_GVSP_s {
 #define LOG_BATT_MSG 20
 struct log_BATT_s {
 	float voltage;
+	float voltage_filtered;
 	float current;
 	float discharged;
 };
@@ -296,7 +297,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
-	LOG_FORMAT(BATT, "fff", "V,C,Discharged"),
+	LOG_FORMAT(BATT, "ffff", "V,VFilt,C,Discharged"),
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
 	LOG_FORMAT(TIME, "Q", "StartTime"),

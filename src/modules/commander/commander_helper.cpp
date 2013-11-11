@@ -44,6 +44,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -282,12 +283,15 @@ float battery_remaining_estimate_voltage(float voltage, float discharged)
 
 	counter++;
 
+	/* remaining charge estimate based on voltage */
+	float remaining_voltage = (voltage - bat_n_cells * bat_v_empty) / (bat_n_cells * (bat_v_full - bat_v_empty));
+
 	if (bat_capacity > 0.0f) {
-		/* if battery capacity is known, use it to estimate remaining charge */
-		ret = 1.0f - discharged / bat_capacity;
+		/* if battery capacity is known, use discharged current for estimate, but don't show more than voltage estimate */
+		ret = fminf(remaining_voltage, 1.0f - discharged / bat_capacity);
 	} else {
 		/* else use voltage */
-		ret = (voltage - bat_n_cells * bat_v_empty) / (bat_n_cells * (bat_v_full - bat_v_empty));
+		ret = remaining_voltage;
 	}
 
 	/* limit to sane values */

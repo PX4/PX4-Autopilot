@@ -1264,6 +1264,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(battery_status), subs.battery_sub, &buf.battery);
 				log_msg.msg_type = LOG_BATT_MSG;
 				log_msg.body.log_BATT.voltage = buf.battery.voltage_v;
+				log_msg.body.log_BATT.voltage_filtered = buf.battery.voltage_filtered_v;
 				log_msg.body.log_BATT.current = buf.battery.current_a;
 				log_msg.body.log_BATT.discharged = buf.battery.discharged_mah;
 				LOGBUFFER_WRITE_AND_COUNT(BATT);
