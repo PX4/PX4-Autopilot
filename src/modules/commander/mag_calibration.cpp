@@ -73,7 +73,7 @@ int do_mag_calibration(int mavlink_fd)
 
 	/* maximum 500 values */
 	const unsigned int calibration_maxcount = 500;
-	unsigned int calibration_counter = 0;
+	unsigned int calibration_counter;
 
 	struct mag_scale mscale_null = {
 		0.0f,
@@ -99,28 +99,34 @@ int do_mag_calibration(int mavlink_fd)
 		res = ioctl(fd, MAGIOCCALIBRATE, fd);
 
 		if (res != OK) {
-			mavlink_log_critical(mavlink_fd, "ERROR: failed to calibrate scale");
+			mavlink_log_critical(mavlink_fd, "Skipped scale calibration");
+			/* this is non-fatal - mark it accordingly */
+			res = OK;
 		}
 	}
 
 	close(fd);
 
-	float *x;
-	float *y;
-	float *z;
+	float *x = NULL;
+	float *y = NULL;
+	float *z = NULL;
 
 	if (res == OK) {
 		/* allocate memory */
 		mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 20);
 
-		x = (float *)malloc(sizeof(float) * calibration_maxcount);
-		y = (float *)malloc(sizeof(float) * calibration_maxcount);
-		z = (float *)malloc(sizeof(float) * calibration_maxcount);
+		x = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_maxcount));
+		y = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_maxcount));
+		z = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_maxcount));
 
 		if (x == NULL || y == NULL || z == NULL) {
 			mavlink_log_critical(mavlink_fd, "ERROR: out of memory");
 			res = ERROR;
+			return res;
 		}
+	} else {
+		/* exit */
+		return ERROR;
 	}
 
 	if (res == OK) {
@@ -135,6 +141,8 @@ int do_mag_calibration(int mavlink_fd)
 		unsigned poll_errcount = 0;
 
 		mavlink_log_info(mavlink_fd, "rotate in a figure 8 around all axis");
+
+		calibration_counter = 0;
 
 		while (hrt_absolute_time() < calibration_deadline &&
 		       calibration_counter < calibration_maxcount) {
@@ -178,6 +186,7 @@ int do_mag_calibration(int mavlink_fd)
 	float sphere_radius;
 
 	if (res == OK) {
+
 		/* sphere fit */
 		mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, 70);
 		sphere_fit_least_squares(x, y, z, calibration_counter, 100, 0.0f, &sphere_x, &sphere_y, &sphere_z, &sphere_radius);
@@ -270,7 +279,7 @@ int do_mag_calibration(int mavlink_fd)
 		} else {
 			mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 		}
-
-		return res;
 	}
+
+	return res;
 }

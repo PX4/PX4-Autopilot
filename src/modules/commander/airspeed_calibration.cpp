@@ -37,12 +37,15 @@
  */
 
 #include "airspeed_calibration.h"
+#include "calibration_messages.h"
 #include "commander_helper.h"
 
 #include <stdio.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <math.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_airspeed.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/differential_pressure.h>
 #include <mavlink/mavlink_log.h>
@@ -55,10 +58,13 @@
 #endif
 static const int ERROR = -1;
 
+static const char *sensor_name = "dpress";
+
 int do_airspeed_calibration(int mavlink_fd)
 {
 	/* give directions */
-	mavlink_log_info(mavlink_fd, "airspeed calibration starting, keep it still");
+	mavlink_log_info(mavlink_fd, CAL_STARTED_MSG, sensor_name);
+	mavlink_log_info(mavlink_fd, "don't move system");
 
 	const int calibration_count = 2500;
 
@@ -67,6 +73,28 @@ int do_airspeed_calibration(int mavlink_fd)
 
 	int calibration_counter = 0;
 	float diff_pres_offset = 0.0f;
+
+	/* Reset sensor parameters */
+	struct airspeed_scale airscale = {
+		0.0f,
+		1.0f,
+	};
+
+	bool paramreset_successful = false;
+	int  fd = open(AIRSPEED_DEVICE_PATH, 0);
+	if (fd > 0) {
+		if (OK == ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
+			paramreset_successful = true;
+		}
+		close(fd);
+	}
+
+	if (!paramreset_successful) {
+		warn("WARNING: failed to set scale / offsets for airspeed sensor");
+		mavlink_log_critical(mavlink_fd, "could not reset dpress sensor");
+		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
+		return ERROR;
+	}
 
 	while (calibration_counter < calibration_count) {
 
@@ -82,9 +110,12 @@ int do_airspeed_calibration(int mavlink_fd)
 			diff_pres_offset += diff_pres.differential_pressure_pa;
 			calibration_counter++;
 
+			if (calibration_counter % (calibration_count / 20) == 0)
+				mavlink_log_info(mavlink_fd, CAL_PROGRESS_MSG, sensor_name, (calibration_counter * 100) / calibration_count);
+
 		} else if (poll_ret == 0) {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "airspeed calibration aborted");
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 			close(diff_pres_sub);
 			return ERROR;
 		}
@@ -95,7 +126,7 @@ int do_airspeed_calibration(int mavlink_fd)
 	if (isfinite(diff_pres_offset)) {
 
 		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-			mavlink_log_critical(mavlink_fd, "Setting offs failed!");
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_SET_PARAMS_MSG);
 			close(diff_pres_sub);
 			return ERROR;
 		}
@@ -105,17 +136,18 @@ int do_airspeed_calibration(int mavlink_fd)
 
 		if (save_ret != 0) {
 			warn("WARNING: auto-save of params to storage failed");
-			mavlink_log_info(mavlink_fd, "FAILED storing calibration");
+			mavlink_log_critical(mavlink_fd, CAL_FAILED_SAVE_PARAMS_MSG);
 			close(diff_pres_sub);
 			return ERROR;
 		}
 
-		mavlink_log_info(mavlink_fd, "airspeed calibration done");
+		mavlink_log_info(mavlink_fd, CAL_DONE_MSG, sensor_name);
+		tune_neutral();
 		close(diff_pres_sub);
 		return OK;
 
 	} else {
-		mavlink_log_info(mavlink_fd, "airspeed calibration FAILED (NaN)");
+		mavlink_log_info(mavlink_fd, CAL_FAILED_MSG, sensor_name);
 		close(diff_pres_sub);
 		return ERROR;
 	}
