@@ -395,6 +395,17 @@ pwm_main(int argc, char *argv[])
 		if (pwm_value == 0)
 			usage("no PWM value provided");
 
+		/* get current servo values */
+		struct pwm_output_values last_spos;
+
+		for (unsigned i = 0; i < servo_count; i++) {
+
+
+			ret = ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&last_spos.values[i]);
+			if (ret != OK)
+				err(1, "PWM_SERVO_GET(%d)", i);
+		}
+
 		/* perform PWM output */
 
 		/* Open console directly to grab CTRL-C signal */
@@ -420,6 +431,14 @@ pwm_main(int argc, char *argv[])
 
 			read(0, &c, 1);
 				if (c == 0x03 || c == 0x63 || c == 'q') {
+					/* reset output to the last value */
+					for (unsigned i = 0; i < servo_count; i++) {
+									if (set_mask & 1<<i) {
+										ret = ioctl(fd, PWM_SERVO_SET(i), last_spos.values[i]);
+										if (ret != OK)
+											err(1, "PWM_SERVO_SET(%d)", i);
+									}
+								}
 					warnx("User abort\n");
 					exit(0);
 				}
