@@ -54,6 +54,7 @@
 #include <sys/prctl.h>
 #include <stdlib.h>
 #include <poll.h>
+#include <lib/geo/geo.h>
 
 #include <mavlink/mavlink_log.h>
 
@@ -248,7 +249,7 @@ l_vehicle_attitude(const struct listener *l)
 		if (t >= last_sent_vfr + 100000) {
 			last_sent_vfr = t;
 			float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
-			uint16_t heading = (att.yaw + M_PI_F) / M_PI_F * 180.0f;
+			uint16_t heading = _wrap_2pi(att.yaw) / M_PI_F * 180.0f;
 			float throttle = actuators_effective_0.control_effective[3] * (UINT16_MAX - 1);
 			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
 		}
