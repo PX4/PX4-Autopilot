@@ -103,13 +103,6 @@ else
 fi
 
 #
-# Set disarmed, min and max PWM signals
-#
-pwm disarmed -c 1234 -p 900
-pwm min -c 1234 -p 1200
-pwm max -c 1234 -p 1800
-
-#
 # Start common for all multirotors apps
 #
 sh /etc/init.d/rc.multirotor
