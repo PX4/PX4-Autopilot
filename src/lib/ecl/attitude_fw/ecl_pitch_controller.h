@@ -73,21 +73,30 @@ public:
 	void set_k_p(float k_p) {
 		_k_p = k_p;
 	}
+
 	void set_k_i(float k_i) {
 		_k_i = k_i;
 	}
 	void set_k_d(float k_d) {
 		_k_d = k_d;
 	}
+
+	void set_k_ff(float k_ff) {
+		_k_ff = k_ff;
+	}
+
 	void set_integrator_max(float max) {
 		_integrator_max = max;
 	}
+
 	void set_max_rate_pos(float max_rate_pos) {
 		_max_rate_pos = max_rate_pos;
 	}
+
 	void set_max_rate_neg(float max_rate_neg) {
 		_max_rate_neg = max_rate_neg;
 	}
+
 	void set_roll_ff(float roll_ff) {
 		_roll_ff = roll_ff;
 	}
@@ -111,6 +120,7 @@ private:
 	float _k_p;
 	float _k_i;
 	float _k_d;
+	float _k_ff;
 	float _integrator_max;
 	float _max_rate_pos;
 	float _max_rate_neg;

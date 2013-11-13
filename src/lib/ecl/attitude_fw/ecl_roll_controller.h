@@ -71,18 +71,27 @@ public:
 			_tc = time_constant;
 		}
 	}
+
 	void set_k_p(float k_p) {
 		_k_p = k_p;
 	}
+
 	void set_k_i(float k_i) {
 		_k_i = k_i;
 	}
+
 	void set_k_d(float k_d) {
 		_k_d = k_d;
 	}
+
+	void set_k_ff(float k_ff) {
+		_k_ff = k_ff;
+	}
+
 	void set_integrator_max(float max) {
 		_integrator_max = max;
 	}
+
 	void set_max_rate(float max_rate) {
 		_max_rate = max_rate;
 	}
@@ -105,6 +114,7 @@ private:
 	float _k_p;
 	float _k_i;
 	float _k_d;
+	float _k_ff;
 	float _integrator_max;
 	float _max_rate;
 	float _last_output;

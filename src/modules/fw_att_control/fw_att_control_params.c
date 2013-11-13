@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+f *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -138,3 +138,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 12.0f);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 18.0f);
 PARAM_DEFINE_FLOAT(FW_Y_RMAX, 60);
 PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1.0f);
+
+PARAM_DEFINE_FLOAT(FW_RR_FF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PR_FF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YR_FF, 0.0f);
