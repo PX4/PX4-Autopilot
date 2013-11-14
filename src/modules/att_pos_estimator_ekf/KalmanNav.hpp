@@ -52,6 +52,7 @@
 
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/parameter_update.h>
@@ -142,12 +143,8 @@ protected:
 	control::UOrbSubscription<parameter_update_s> _param_update;    /**< parameter update sub. */
 	// publications
 	control::UOrbPublication<vehicle_global_position_s> _pos;       /**< position pub. */
+	control::UOrbPublication<vehicle_local_position_s> _localPos;   /**< local position pub. */
 	control::UOrbPublication<vehicle_attitude_s> _att;              /**< attitude pub. */
-
-	int			_accel_sub;		/**< Accelerometer subscription */
-	int			_gyro_sub;		/**< Gyroscope subscription */
-	int			_mag_sub;		/**< Magnetometer subscription */
-
 	// time stamps
 	uint64_t _pubTimeStamp;     /**< output data publication time stamp */
 	uint64_t _predictTimeStamp; /**< prediction time stamp */
@@ -164,8 +161,10 @@ protected:
 	float phi, theta, psi;                  /**< 3-2-1 euler angles */
 	float vN, vE, vD;                       /**< navigation velocity, m/s */
 	double lat, lon;                   	/**< lat, lon radians */
-	float alt;                   		/**< altitude, meters */
 	// parameters
+	float alt;                   		/**< altitude, meters */
+	double lat0, lon0;                   	/**< reference latitude and longitude */
+	float alt0;                   		/**<  refeerence altitude (ground height) */
 	control::BlockParamFloat _vGyro;      /**< gyro process noise */
 	control::BlockParamFloat _vAccel;     /**< accelerometer process noise  */
 	control::BlockParamFloat _rMag;       /**< magnetometer measurement noise  */
