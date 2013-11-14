@@ -167,7 +167,7 @@ void BlockMultiModeBacksideAutopilot::update()
 	// the setpoint should update to loitering around this position
 
 	// handle autopilot modes
-	if (_status.main_state != MAIN_STATE_AUTO) {
+	if (_status.main_state == MAIN_STATE_AUTO) {
 
 		// calculate velocity, XXX should be airspeed,
 		// but using ground speed for now for the purpose 
