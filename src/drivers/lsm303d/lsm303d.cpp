@@ -681,7 +681,8 @@ LSM303D::check_extremes(const accel_report *arb)
 
 	uint64_t now = hrt_absolute_time();
 	// log accels at 1Hz
-	if (now - _last_log_us > 1000*1000) {
+	if (_last_log_us == 0 ||
+	    now - _last_log_us > 1000*1000) {
 		_last_log_us = now;
 		::dprintf(_accel_log_fd, "ARB %llu %.3f %.3f %.3f %d %d %d\r\n",
 			  (unsigned long long)arb->timestamp, 
@@ -692,7 +693,8 @@ LSM303D::check_extremes(const accel_report *arb)
 	}
 
 	// log registers at 10Hz when we have extreme values, or 0.5 Hz without
-	if ((is_extreme && (now - _last_log_reg_us > 500*1000)) ||
+	if (_last_log_reg_us == 0 ||
+	    (is_extreme && (now - _last_log_reg_us > 500*1000)) ||
 	    (now - _last_log_reg_us > 10*1000*1000)) {
 		_last_log_reg_us = now;
 		const uint8_t reglist[] = { ADDR_WHO_AM_I, ADDR_STATUS_A, ADDR_STATUS_M, ADDR_CTRL_REG0, ADDR_CTRL_REG1, 
