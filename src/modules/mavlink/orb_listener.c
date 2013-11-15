@@ -75,6 +75,7 @@ struct actuator_armed_s armed;
 struct actuator_controls_effective_s actuators_effective_0;
 struct actuator_controls_s actuators_0;
 struct vehicle_attitude_s att;
+struct airspeed_s airspeed;
 
 struct mavlink_subscriptions mavlink_subs;
 
@@ -91,6 +92,8 @@ static unsigned int gps_counter;
  * with this "global" reference.
  */
 static uint64_t last_sensor_timestamp;
+
+static hrt_abstime last_sent_vfr = 0;
 
 static void	*uorb_receive_thread(void *arg);
 
@@ -229,7 +232,7 @@ l_vehicle_attitude(const struct listener *l)
 	/* copy attitude data into local buffer */
 	orb_copy(ORB_ID(vehicle_attitude), mavlink_subs.att_sub, &att);
 
-	if (gcs_link)
+	if (gcs_link) {
 		/* send sensor values */
 		mavlink_msg_attitude_send(MAVLINK_COMM_0,
 					  last_sensor_timestamp / 1000,
@@ -239,6 +242,17 @@ l_vehicle_attitude(const struct listener *l)
 					  att.rollspeed,
 					  att.pitchspeed,
 					  att.yawspeed);
+
+		/* limit VFR message rate to 10Hz */
+		hrt_abstime t = hrt_absolute_time();
+		if (t >= last_sent_vfr + 100000) {
+			last_sent_vfr = t;
+			float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
+			uint16_t heading = (att.yaw + M_PI_F) / M_PI_F * 180.0f;
+			float throttle = actuators_effective_0.control_effective[3] * (UINT16_MAX - 1);
+			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
+		}
+	}
 
 	attitude_counter++;
 }
@@ -681,17 +695,7 @@ l_home(const struct listener *l)
 void
 l_airspeed(const struct listener *l)
 {
-	struct airspeed_s airspeed;
-
 	orb_copy(ORB_ID(airspeed), mavlink_subs.airspeed_sub, &airspeed);
-
-	float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
-	uint16_t heading = (att.yaw + M_PI_F) / M_PI_F * 180.0f;
-	float throttle = actuators_effective_0.control_effective[3] * (UINT16_MAX - 1);
-	float alt = global_pos.relative_alt;
-	float climb = -global_pos.vz;
-
-	mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, alt, climb);
 }
 
 void
@@ -849,7 +853,7 @@ uorb_receive_start(void)
 	mavlink_subs.optical_flow = orb_subscribe(ORB_ID(optical_flow));
 	orb_set_interval(mavlink_subs.optical_flow, 200); 	/* 5Hz updates */
 
-	/* --- AIRSPEED / VFR / HUD --- */
+	/* --- AIRSPEED --- */
 	mavlink_subs.airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	orb_set_interval(mavlink_subs.airspeed_sub, 200); 	/* 5Hz updates */
 

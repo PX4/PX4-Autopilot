@@ -119,7 +119,7 @@ protected:
 	virtual int	collect() = 0;
 
 	work_s			_work;
-	uint16_t		_max_differential_pressure_pa;
+	float		_max_differential_pressure_pa;
 	bool			_sensor_ok;
 	int			_measure_ticks;
 	bool			_collect_phase;
