@@ -86,6 +86,7 @@
 
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <external_lgpl/tecs/tecs.h>
+#include <launchdetection/LaunchDetector.h>
 
 /**
  * L1 control app start / stop handling function
@@ -163,6 +164,9 @@ private:
 	bool land_noreturn;
 	/* heading hold */
 	float target_bearing;
+
+	/* Launch detection */
+	LaunchDetector launchDetector;
 
 	/* throttle and airspeed states */
 	float _airspeed_error;				///< airspeed error to setpoint in m/s
@@ -338,7 +342,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_airspeed_valid(false),
 	_groundspeed_undershoot(0.0f),
 	_global_pos_valid(false),
-	land_noreturn(false)
+	land_noreturn(false),
+	launchDetector()
 {
 	_nav_capabilities.turn_distance = 0.0f;
 
@@ -463,6 +468,8 @@ FixedwingPositionControl::parameters_update()
 		warnx("error: airspeed parameters invalid");
 		return 1;
 	}
+
+	launchDetector.updateParams();
 
 	return OK;
 }
@@ -818,30 +825,50 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 			} else if (global_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
 
+				/* Perform launch detection */
+				bool do_fly_takeoff = false;
+				warnx("Launch detection running");
+				if (launchDetector.launchDetectionEnabled()) {
+					launchDetector.update(_accel.x);
+					if (launchDetector.getLaunchDetected()) {
+						do_fly_takeoff = true;
+						warnx("Launch detected. Taking off!");
+					}
+				} else	{
+					/* no takeoff detection --> fly */
+					do_fly_takeoff = true;
+				}
+
+
 				_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
 
-				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
-				if (altitude_error > 10.0f) {
+				if (do_fly_takeoff) {
 
-					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
-								    _airspeed.indicated_airspeed_m_s, eas2tas,
-								    true, math::max(math::radians(global_triplet.current.param1), math::radians(10.0f)),
-								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+					/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
+					if (altitude_error > 10.0f) {
 
-					/* limit roll motion to ensure enough lift */
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
+						/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
+						_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
+									    _airspeed.indicated_airspeed_m_s, eas2tas,
+									    true, math::max(math::radians(global_triplet.current.param1), math::radians(10.0f)),
+									    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+									    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
 
+						/* limit roll motion to ensure enough lift */
+						_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
+
+					} else {
+
+						_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+									    _airspeed.indicated_airspeed_m_s, eas2tas,
+									    false, math::radians(_parameters.pitch_limit_min),
+									    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+									    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+					}
 				} else {
-
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
-								    _airspeed.indicated_airspeed_m_s, eas2tas,
-								    false, math::radians(_parameters.pitch_limit_min),
-								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+					throttle_max = 0.0f;
 				}
 			}
 
