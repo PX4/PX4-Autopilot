@@ -1378,18 +1378,29 @@ PX4IO::io_publish_mixed_controls()
 	actuator_controls_effective_s controls_effective;
 	controls_effective.timestamp = hrt_absolute_time();
 
-	/* get actuator controls from IO */
-	uint16_t act[_max_actuators];
-	int ret = io_reg_get(PX4IO_PAGE_ACTUATORS, 0, act, _max_actuators);
+	// XXX PX4IO_PAGE_ACTUATORS page contains actuator outputs, not inputs
+	// need to implement backward mixing in IO's mixed and add another page
+	// by now simply use control inputs here
+	/* get actuator outputs from IO */
+	//uint16_t act[_max_actuators];
+	//int ret = io_reg_get(PX4IO_PAGE_ACTUATORS, 0, act, _max_actuators);
 
-	if (ret != OK)
-		return ret;
+	//if (ret != OK)
+	//	return ret;
 
 	/* convert from register format to float */
-	for (unsigned i = 0; i < _max_actuators; i++)
-		controls_effective.control_effective[i] = REG_TO_FLOAT(act[i]);
+	//for (unsigned i = 0; i < _max_actuators; i++)
+	//	controls_effective.control_effective[i] = REG_TO_FLOAT(act[i]);
 
-	/* laxily advertise on first publication */
+	actuator_controls_s	controls;
+
+	orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+		 ORB_ID(actuator_controls_1), _t_actuators, &controls);
+
+	for (unsigned i = 0; i < _max_actuators; i++)
+		controls_effective.control_effective[i] = controls.control[i];
+
+	/* lazily advertise on first publication */
 	if (_to_actuators_effective == 0) {
 		_to_actuators_effective =
 			orb_advertise((_primary_pwm_device ?
