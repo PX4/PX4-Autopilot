@@ -703,7 +703,9 @@ LSM303D::check_extremes(const accel_report *arb)
 					    ADDR_FIFO_SRC, ADDR_IG_CFG1, ADDR_IG_SRC1, ADDR_IG_THS1, ADDR_IG_DUR1, ADDR_IG_CFG2, 
 					    ADDR_IG_SRC2, ADDR_IG_THS2, ADDR_IG_DUR2, ADDR_CLICK_CFG, ADDR_CLICK_SRC, 
 					    ADDR_CLICK_THS, ADDR_TIME_LIMIT, ADDR_TIME_LATENCY, ADDR_TIME_WINDOW, 
-					    ADDR_ACT_THS, ADDR_ACT_DUR };
+					    ADDR_ACT_THS, ADDR_ACT_DUR,
+                                            ADDR_OUT_X_L_M, ADDR_OUT_X_H_M, 
+					    ADDR_OUT_Y_L_M, ADDR_OUT_Y_H_M, ADDR_OUT_Z_L_M, ADDR_OUT_Z_H_M};
 		::dprintf(_accel_log_fd, "REG %llu", (unsigned long long)hrt_absolute_time());
 		for (uint8_t i=0; i<sizeof(reglist); i++) {
 			::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)read_reg(reglist[i]));
@@ -723,7 +725,7 @@ LSM303D::check_extremes(const accel_report *arb)
 		_last_log_alarm_us = now;
 		int tfd = ::open(TONEALARM_DEVICE_PATH, 0);
 		if (tfd != -1) {
-			::ioctl(tfd, TONE_SET_ALARM, 4);
+			::ioctl(tfd, TONE_SET_ALARM, is_extreme?4:3);
 			::close(tfd);
 		}		
 	}
