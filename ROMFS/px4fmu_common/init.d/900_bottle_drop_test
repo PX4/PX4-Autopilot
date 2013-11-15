@@ -28,12 +28,41 @@ set EXIT_ON_END no
 mavlink start
 usleep 5000
 
+#
+# Start the sensors and test them.
+#
+sh /etc/init.d/rc.sensors
+
+#
+# Start logging (depends on sensors)
+#
+#sh /etc/init.d/rc.logging
+sdlog2 start -r 200 -e -b 16
+
+
+#
+# Start GPS interface (depends on orb)
+#
+gps start
+
+#
+# Start the attitude estimator
+#
+attitude_estimator_ekf start
+ 
+#
+# Start position estimator
+#
+position_estimator_inav start
 
 sh /etc/init.d/rc.io
 
 fmu mode_pwm
 
 mixer load /dev/px4fmu /etc/mixers/FMU_pass.mix
+
+pwm min -d /dev/px4fmu -c 123 -p 900
+pwm max -d /dev/px4fmu -c 123 -p 2100
 
 pwm arm -d /dev/px4fmu
 

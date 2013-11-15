@@ -42,13 +42,16 @@
 #include <nuttx/sched.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <poll.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 #include <drivers/drv_rgbled.h>
+#include <drivers/drv_hrt.h>
 
 static bool thread_should_exit = false;		/**< daemon exit flag */
 static bool thread_running = false;		/**< daemon status flag */
@@ -101,7 +104,7 @@ int bottle_drop_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = task_spawn_cmd("daemon",
+		daemon_task = task_spawn_cmd("bottle_drop",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT,
 					 4096,
@@ -143,38 +146,71 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 
 	int rgbleds = open(RGBLED_DEVICE_PATH, 0);
 
+	struct vehicle_attitude_s att;
+	memset(&att, 0, sizeof(att));
+	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	orb_set_interval(vehicle_attitude_sub, 20);
+
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
-
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID(actuator_controls_1), &actuators);
+
+	struct pollfd fds[1] = {
+		{ .fd = vehicle_attitude_sub, .events = POLLIN },
+	};
+
+	uint64_t drop_start = 0;
+	bool open_now = false;
 
 	while (!thread_should_exit) {
 
 //		warnx("in while!\n");
 		// values from -1 to 1
 
-		if (drop) {
-			// drop here
-			drop = false;
+		int ret = poll(fds, 1, 500);
 
-			ioctl(rgbleds, RGBLED_SET_MODE, RGBLED_MODE_ON);
-			ioctl(rgbleds, RGBLED_SET_COLOR, RGBLED_COLOR_RED);
+		if (ret < 0) {
+			/* poll error, count it in perf */
+			warnx("poll error");
+
+		} else if (ret > 0) {
+			/* attitude */
+			orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
+			if (drop) {
+				// drop here
+				open_now = true;
+				drop = false;
+				drop_start = hrt_absolute_time();
+			}
+
+			if (open_now && (drop_start + 2e6 > hrt_absolute_time())) {		// open door
+
+				actuators.control[0] = -1.0f;
+				actuators.control[1] = 1.0f;
+
+			} else if (open_now) {							// unlock bottle
+
+				ioctl(rgbleds, RGBLED_SET_MODE, RGBLED_MODE_ON);
+				ioctl(rgbleds, RGBLED_SET_COLOR, RGBLED_COLOR_RED);
+				actuators.control[2] = 0.5f;
+
+			} else {
+
+				// leave closed
+				// warnx( "%4.4f", att.pitch);
+				actuators.control[0] = 0.5f;
+				actuators.control[1] = -0.5f;
+				actuators.control[2] = -0.5f;
+			}
+
+
+
+			actuators.timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(actuator_controls_1), actuator_pub, &actuators);
+
+			i++;
 		}
 
-
-		actuators.control[0] = 0.5f;
-		actuators.control[1] = 0.5f;
-		actuators.control[2] = 0.5f;
-		actuators.control[3] = 0.5f;
-
-
-
-		actuators.timestamp = hrt_absolute_time();
-		orb_publish(ORB_ID(actuator_controls_1), actuator_pub, &actuators);
-
-		usleep(50);
-
-		i++;
 	}
 
 	warnx("exiting.\n");
