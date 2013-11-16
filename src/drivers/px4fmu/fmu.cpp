@@ -542,7 +542,7 @@ PX4FMU::task_main()
 			if (fds[0].revents & POLLIN) {
 
 				/* get controls - must always do this to avoid spinning */
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
+				orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 				/* can we mix? */
 				if (_mixers != nullptr) {
@@ -589,8 +589,9 @@ PX4FMU::task_main()
 					pwm_limit_calc(_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
 
 					/* output actual limited values */
-					for (unsigned i = 0; i < num_outputs; i++) {
-						controls_effective.control_effective[i] = (float)pwm_limited[i];
+					// XXX copy control values as is, need to do backward mixing of actual limited values properly
+					for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
+						controls_effective.control_effective[i] = _controls.control[i];
 					}
 					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
 
