@@ -72,7 +72,6 @@
 #include <systemlib/param/param.h>
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/safety.h>
@@ -257,14 +256,12 @@ private:
 
 	/* advertised topics */
 	orb_advert_t 		_to_input_rc;		///< rc inputs from io
-	orb_advert_t 		_to_actuators_effective; ///< effective actuator controls topic
 	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
 	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
 
 	actuator_outputs_s	_outputs;		///<mixed outputs
-	actuator_controls_effective_s _controls_effective; ///<effective controls
 
 	bool			_primary_pwm_device;	///<true if we are the default PWM output
 
@@ -326,11 +323,6 @@ private:
 	 * Fetch and publish raw RC input data.
 	 */
 	int			io_publish_raw_rc();
-
-	/**
-	 * Fetch and publish the mixed control values.
-	 */
-	int			io_publish_mixed_controls();
 
 	/**
 	 * Fetch and publish the PWM servo outputs.
@@ -472,7 +464,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_param(-1),
 	_t_vehicle_command(-1),
 	_to_input_rc(0),
-	_to_actuators_effective(0),
 	_to_outputs(0),
 	_to_battery(0),
 	_to_servorail(0),
@@ -840,8 +831,7 @@ PX4IO::task_main()
 			/* get raw R/C input from IO */
 			io_publish_raw_rc();
 
-			/* fetch mixed servo controls and PWM outputs from IO */
-			io_publish_mixed_controls();
+			/* fetch PWM outputs from IO */
 			io_publish_pwm_outputs();
 		}
 
@@ -1358,61 +1348,6 @@ PX4IO::io_publish_raw_rc()
 
 	} else {
 		orb_publish(ORB_ID(input_rc), _to_input_rc, &rc_val);
-	}
-
-	return OK;
-}
-
-int
-PX4IO::io_publish_mixed_controls()
-{
-	/* if no FMU comms(!) just don't publish */
-	if (!(_status & PX4IO_P_STATUS_FLAGS_FMU_OK))
-		return OK;
-
-	/* if not taking raw PPM from us, must be mixing */
-	if (_status & PX4IO_P_STATUS_FLAGS_RAW_PWM)
-		return OK;
-
-	/* data we are going to fetch */
-	actuator_controls_effective_s controls_effective;
-	controls_effective.timestamp = hrt_absolute_time();
-
-	// XXX PX4IO_PAGE_ACTUATORS page contains actuator outputs, not inputs
-	// need to implement backward mixing in IO's mixed and add another page
-	// by now simply use control inputs here
-	/* get actuator outputs from IO */
-	//uint16_t act[_max_actuators];
-	//int ret = io_reg_get(PX4IO_PAGE_ACTUATORS, 0, act, _max_actuators);
-
-	//if (ret != OK)
-	//	return ret;
-
-	/* convert from register format to float */
-	//for (unsigned i = 0; i < _max_actuators; i++)
-	//	controls_effective.control_effective[i] = REG_TO_FLOAT(act[i]);
-
-	actuator_controls_s	controls;
-
-	orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-		 ORB_ID(actuator_controls_1), _t_actuators, &controls);
-
-	for (unsigned i = 0; i < _max_actuators; i++)
-		controls_effective.control_effective[i] = controls.control[i];
-
-	/* lazily advertise on first publication */
-	if (_to_actuators_effective == 0) {
-		_to_actuators_effective =
-			orb_advertise((_primary_pwm_device ?
-				       ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE :
-				       ORB_ID(actuator_controls_effective_1)),
-				      &controls_effective);
-
-	} else {
-		orb_publish((_primary_pwm_device ?
-			     ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE :
-			     ORB_ID(actuator_controls_effective_1)),
-			    _to_actuators_effective, &controls_effective);
 	}
 
 	return OK;
