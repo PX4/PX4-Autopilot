@@ -2530,7 +2530,7 @@ px4io_main(int argc, char *argv[])
 		}
 
 		PX4IO_Uploader *up;
-		const char *fn[3];
+		const char *fn[4];
 
 		/* work out what we're uploading... */
 		if (argc > 2) {
