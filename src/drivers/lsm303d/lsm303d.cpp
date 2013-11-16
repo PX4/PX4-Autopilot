@@ -1123,6 +1123,7 @@ LSM303D::read_reg(unsigned reg)
 	uint8_t cmd[2];
 
 	cmd[0] = reg | DIR_READ;
+	cmd[1] = 0;
 
 	transfer(cmd, cmd, sizeof(cmd));
 
