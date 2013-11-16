@@ -708,11 +708,20 @@ LSM303D::check_extremes(const accel_report *arb)
 					    ADDR_ACT_THS, ADDR_ACT_DUR,
                                             ADDR_OUT_X_L_M, ADDR_OUT_X_H_M, 
 					    ADDR_OUT_Y_L_M, ADDR_OUT_Y_H_M, ADDR_OUT_Z_L_M, ADDR_OUT_Z_H_M};
-		::dprintf(_accel_log_fd, "REG %llu", (unsigned long long)hrt_absolute_time());
+		::dprintf(_accel_log_fd, "FREG %llu", (unsigned long long)hrt_absolute_time());
 		for (uint8_t i=0; i<sizeof(reglist); i++) {
 			::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)read_reg(reglist[i]));
 		}
 		::dprintf(_accel_log_fd, "\n");
+		if (is_extreme) {
+			set_frequency(1000*1000);
+			::dprintf(_accel_log_fd, "SREG %llu", (unsigned long long)hrt_absolute_time());
+			for (uint8_t i=0; i<sizeof(reglist); i++) {
+				::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)read_reg(reglist[i]));
+			}
+			::dprintf(_accel_log_fd, "\n");
+			set_frequency(8*1000*1000);
+		}
 	}
 
 	// fsync at 0.1Hz
