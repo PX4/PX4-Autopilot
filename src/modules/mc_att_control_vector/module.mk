@@ -37,5 +37,4 @@
 
 MODULE_COMMAND	= mc_att_control_vector
 
-SRCS		= mc_att_control_vector_main.cpp \
-		  ecl_mc_att_control_vector.cpp
+SRCS		= mc_att_control_vector_main.cpp
