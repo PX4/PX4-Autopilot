@@ -31,7 +31,7 @@ position_estimator_inav start
 #
 # Start attitude control
 #
-multirotor_att_control start
+mc_att_control_vector start
 
 #
 # Start position control
