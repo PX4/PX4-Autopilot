@@ -54,6 +54,9 @@
 
 #define SBUS_FRAME_SIZE		25
 #define SBUS_INPUT_CHANNELS	16
+#define SBUS_FLAGS_BYTE		23
+#define SBUS_FAILSAFE_BIT	3
+#define SBUS_FRAMELOST_BIT	2
 
 /*
   Measured values with Futaba FX-30/R6108SB:
@@ -220,15 +223,6 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint
 		return false;
 	}
 
-	/* if the failsafe or connection lost bit is set, we consider the frame invalid */
-	if ((frame[23] & (1 << 2)) && /* signal lost */
-	    (frame[23] & (1 << 3))) { /* failsafe */
-
-		/* actively announce signal loss */
-		*values = 0;
-		return false;
-	}
-
 	/* we have received something we think is a frame */
 	last_frame_time = frame_time;
 
@@ -262,13 +256,28 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint
 		chancount = 18;
 
 		/* channel 17 (index 16) */
-		values[16] = (frame[23] & (1 << 0)) * 1000 + 998;
+		values[16] = (frame[SBUS_FLAGS_BYTE] & (1 << 0)) * 1000 + 998;
 		/* channel 18 (index 17) */
-		values[17] = (frame[23] & (1 << 1)) * 1000 + 998;
+		values[17] = (frame[SBUS_FLAGS_BYTE] & (1 << 1)) * 1000 + 998;
 	}
 
 	/* note the number of channels decoded */
 	*num_values = chancount;
+
+	/* decode and handle failsafe and frame-lost flags */
+	if (frame[SBUS_FLAGS_BYTE] & (1 << SBUS_FAILSAFE_BIT)) { /* failsafe */
+		/* emulate throttle failsafe for maximum compatibility and do not destroy any channel data */
+		values[2] = 900;
+	}
+	else if (frame[SBUS_FLAGS_BYTE] & (1 << SBUS_FRAMELOST_BIT)) { /* a frame was lost */
+		/* set a special warning flag or try to calculate some kind of RSSI information - to be implemented 
+		 * 
+		 * Attention! This flag indicates a skipped frame only, not a total link loss! Handling this 
+		 * condition as fail-safe greatly reduces the reliability and range of the radio link, 
+		 * e.g. by prematurely issueing return-to-launch!!! */
+
+		// values[2] = 888; // marker for debug purposes
+	}
 
 	return true;
 }
