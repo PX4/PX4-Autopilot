@@ -72,6 +72,7 @@
 #include <systemlib/airspeed.h>
 #include <mavlink/mavlink_log.h>
 #include <commander/px4_custom_mode.h>
+#include <geo/geo.h>
 
 __BEGIN_DECLS
 
@@ -99,11 +100,13 @@ static struct vehicle_command_s vcmd;
 static struct offboard_control_setpoint_s offboard_control_sp;
 
 struct vehicle_global_position_s hil_global_pos;
+struct vehicle_local_position_s hil_local_pos;
 struct vehicle_attitude_s hil_attitude;
 struct vehicle_gps_position_s hil_gps;
 struct sensor_combined_s hil_sensors;
 struct battery_status_s	hil_battery_status;
 static orb_advert_t pub_hil_global_pos = -1;
+static orb_advert_t pub_hil_local_pos = -1;
 static orb_advert_t pub_hil_attitude = -1;
 static orb_advert_t pub_hil_gps = -1;
 static orb_advert_t pub_hil_sensors = -1;
@@ -125,6 +128,11 @@ static orb_advert_t flow_pub = -1;
 static orb_advert_t offboard_control_sp_pub = -1;
 static orb_advert_t vicon_position_pub = -1;
 static orb_advert_t telemetry_status_pub = -1;
+
+// variables for HIL reference position
+static int32_t lat0 = 0;
+static int32_t lon0 = 0;
+static double alt0 = 0;
 
 static void
 handle_message(mavlink_message_t *msg)
@@ -621,22 +629,59 @@ handle_message(mavlink_message_t *msg)
 				orb_publish(ORB_ID(airspeed), pub_hil_airspeed, &airspeed);
 			}
 
-			hil_global_pos.valid = true;
-			hil_global_pos.lat = hil_state.lat;
-			hil_global_pos.lon = hil_state.lon;
-			hil_global_pos.alt = hil_state.alt / 1000.0f;
-			hil_global_pos.vx = hil_state.vx / 100.0f;
-			hil_global_pos.vy = hil_state.vy / 100.0f;
-			hil_global_pos.vz = hil_state.vz / 100.0f;
+			uint64_t timestamp = hrt_absolute_time();
 
-			/* set timestamp and notify processes (broadcast) */
-			hil_global_pos.timestamp = hrt_absolute_time();
-
+			// publish global position	
 			if (pub_hil_global_pos > 0) {
 				orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
+				// global position packet
+				hil_global_pos.timestamp = timestamp;
+				hil_global_pos.valid = true;
+				hil_global_pos.lat = hil_state.lat;
+				hil_global_pos.lon = hil_state.lon;
+				hil_global_pos.alt = hil_state.alt / 1000.0f;
+				hil_global_pos.vx = hil_state.vx / 100.0f;
+				hil_global_pos.vy = hil_state.vy / 100.0f;
+				hil_global_pos.vz = hil_state.vz / 100.0f;
 
 			} else {
 				pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
+			}
+
+			// publish local position
+			if (pub_hil_local_pos > 0) {
+				float x;
+				float y;
+				bool landed = hil_state.alt/1000.0f < (alt0 + 0.1); // XXX improve?
+				double lat = hil_state.lat*1e-7;
+				double lon = hil_state.lon*1e-7;
+				map_projection_project(lat, lon, &x, &y); 
+				hil_local_pos.timestamp = timestamp;
+				hil_local_pos.xy_valid = true;
+				hil_local_pos.z_valid = true;
+				hil_local_pos.v_xy_valid = true;
+				hil_local_pos.v_z_valid = true;
+				hil_local_pos.x = x;
+				hil_local_pos.y = y;
+				hil_local_pos.z = alt0 - hil_state.alt/1000.0f;
+				hil_local_pos.vx = hil_state.vx/100.0f;
+				hil_local_pos.vy = hil_state.vy/100.0f;
+				hil_local_pos.vz = hil_state.vz/100.0f;
+				hil_local_pos.yaw = hil_attitude.yaw;
+				hil_local_pos.xy_global = true;
+				hil_local_pos.z_global = true;
+				hil_local_pos.ref_timestamp = timestamp;
+				hil_local_pos.ref_lat = hil_state.lat;
+				hil_local_pos.ref_lon = hil_state.lon;
+				hil_local_pos.ref_alt = alt0;
+				hil_local_pos.landed = landed;
+				orb_publish(ORB_ID(vehicle_local_position), pub_hil_local_pos, &hil_local_pos);
+			} else {
+				pub_hil_local_pos = orb_advertise(ORB_ID(vehicle_local_position), &hil_local_pos);
+				lat0 = hil_state.lat;
+				lon0 = hil_state.lon;
+				alt0 = hil_state.alt / 1000.0f;
+				map_projection_init(hil_state.lat, hil_state.lon);
 			}
 
 			/* Calculate Rotation Matrix */
