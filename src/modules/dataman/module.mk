@@ -35,9 +35,8 @@
 # Main Navigation Controller
 #
 
-MODULE_COMMAND	= navigator
+MODULE_COMMAND	= dataman
 
-SRCS		= navigator_main.cpp \
-		  navigator_params.c
+SRCS		= dataman.c
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
