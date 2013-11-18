@@ -105,7 +105,7 @@ MODULES		+= modules/systemlib
 MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/controllib
 MODULES		+= modules/uORB
-MODULES         += modules/dataman
+MODULES		+= modules/dataman
 
 #
 # Libraries

@@ -2,7 +2,8 @@
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *   Author: 	Lorenz Meier
- *              Jean Cyr
+ *		Jean Cyr
+ *		Julian Oes
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -114,7 +115,7 @@ public:
 	/**
 	 * Specify fence vertex position.
 	 */
-        void		fence_point(int argc, char *argv[]);
+	void		fence_point(int argc, char *argv[]);
 
 private:
 
@@ -128,10 +129,10 @@ private:
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
-        int		_mission_sub;
+	int		_mission_sub;
 	int		_capabilities_sub;
-        int		_fence_sub;
-        int		_fence_pub;
+	int		_fence_sub;
+	int		_fence_pub;
 
 	orb_advert_t	_triplet_pub;			/**< position setpoint */
 
@@ -145,9 +146,9 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	unsigned        _mission_items_maxcount;                                /**< maximum number of mission items supported */
-	struct        mission_item_s                                 * _mission_items;        /**< storage for mission items */
-	bool                _mission_valid;                                                /**< flag if mission is valid */
+	unsigned	_mission_items_maxcount;	/**< maximum number of mission items supported */
+	struct		mission_item_s			* _mission_items;        /**< storage for mission items */
+	bool		_mission_valid;			/**< flag if mission is valid */
 
 
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
@@ -228,11 +229,11 @@ private:
 	 */
 	void		task_main() __attribute__((noreturn));
 
-        void		publish_fence(unsigned vertices);
+	void		publish_fence(unsigned vertices);
 
-        void		publish_mission(unsigned points);
+	void		publish_mission(unsigned points);
 
-        void		publish_safepoints(unsigned points);
+	void		publish_safepoints(unsigned points);
 
 	bool		fence_valid(const struct fence_s &fence);
 };
@@ -261,9 +262,9 @@ Navigator::Navigator() :
 	_vstatus_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
-        _fence_sub(-1),
-        _fence_pub(-1),
-        _mission_sub(-1),
+	_fence_sub(-1),
+	_fence_pub(-1),
+	_mission_sub(-1),
 	_capabilities_sub(-1),
 
 /* publications */
@@ -357,8 +358,8 @@ Navigator::mission_poll()
 void
 Navigator::mission_update()
 {
-        struct mission_s mission;
-        if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == OK) {
+	struct mission_s mission;
+	if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == OK) {
 		// XXX this is not optimal yet, but a first prototype /
 		// test implementation
 
@@ -398,7 +399,7 @@ Navigator::task_main()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
-        _fence_sub = orb_subscribe(ORB_ID(fence));
+	_fence_sub = orb_subscribe(ORB_ID(fence));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -435,10 +436,10 @@ Navigator::task_main()
 	fds[1].events = POLLIN;
 	fds[2].fd = _fence_sub;
 	fds[2].events = POLLIN;
-        fds[3].fd = _capabilities_sub;
-        fds[3].events = POLLIN;
-        fds[4].fd = _mission_sub;
-        fds[4].events = POLLIN;
+	fds[3].fd = _capabilities_sub;
+	fds[3].events = POLLIN;
+	fds[4].fd = _mission_sub;
+	fds[4].events = POLLIN;
 
 	while (!_task_should_exit) {
 
@@ -480,13 +481,13 @@ Navigator::task_main()
 		}
 
 		/* only update craft capabilities if they have changed */
-                if (fds[3].revents & POLLIN) {
-                        orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
-                }
+		if (fds[3].revents & POLLIN) {
+			orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
+		}
 
-                if (fds[4].revents & POLLIN) {
-                        mission_update();
-                }
+		if (fds[4].revents & POLLIN) {
+			mission_update();
+		}
 
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
@@ -659,22 +660,22 @@ Navigator::status()
 			(double)_global_pos.vx, (double)_global_pos.vy, (double)_global_pos.vz);
 		warnx("Compass heading in degrees %5.5f", (double)_global_pos.yaw * 57.2957795);
 	}
-        if (_fence_valid) {
-                warnx("Geofence is valid");
-                warnx("Vertex longitude latitude");
-                for (unsigned i = 0; i < _fence.count; i++)
-                        warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
-        } else
-                warnx("Geofence not set");
+	if (_fence_valid) {
+		warnx("Geofence is valid");
+		warnx("Vertex longitude latitude");
+		for (unsigned i = 0; i < _fence.count; i++)
+		warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
+	} else
+		warnx("Geofence not set");
 }
 
 void
 Navigator::publish_fence(unsigned vertices)
 {
-        if (_fence_pub == -1)
-                _fence_pub = orb_advertise(ORB_ID(fence), &vertices);
-        else
-                orb_publish(ORB_ID(fence), _fence_pub, &vertices);
+	if (_fence_pub == -1)
+		_fence_pub = orb_advertise(ORB_ID(fence), &vertices);
+	else
+		orb_publish(ORB_ID(fence), _fence_pub, &vertices);
 }
 
 bool
@@ -721,41 +722,41 @@ Navigator::load_fence(unsigned vertices)
 void
 Navigator::fence_point(int argc, char *argv[])
 {
-        int ix, last;
-        double lon, lat;
-        struct fence_vertex_s vertex;
-        char *end;
+	int ix, last;
+	double lon, lat;
+	struct fence_vertex_s vertex;
+	char *end;
 
-        if ((argc == 1) && (strcmp("-clear", argv[0]) == 0)) {
-                dm_clear(DM_KEY_FENCE_POINTS);
+	if ((argc == 1) && (strcmp("-clear", argv[0]) == 0)) {
+		dm_clear(DM_KEY_FENCE_POINTS);
 		publish_fence(0);
-                return;
-        }
+		return;
+	}
 
-        if (argc < 3)
-                errx(1, "Specify: -clear | sequence latitude longitude [-publish]");
+	if (argc < 3)
+		errx(1, "Specify: -clear | sequence latitude longitude [-publish]");
 
-        ix = atoi(argv[0]);
-        if (ix >= DM_KEY_FENCE_POINTS_MAX)
-                errx(1, "Sequence must be less than %d", DM_KEY_FENCE_POINTS_MAX);
+	ix = atoi(argv[0]);
+	if (ix >= DM_KEY_FENCE_POINTS_MAX)
+		errx(1, "Sequence must be less than %d", DM_KEY_FENCE_POINTS_MAX);
 
-        lat = strtod(argv[1], &end);
-        lon = strtod(argv[2], &end);
+	lat = strtod(argv[1], &end);
+	lon = strtod(argv[2], &end);
 
-        last = 0;
-        if ((argc > 3) && (strcmp(argv[3], "-publish") == 0))
-                last = 1;
+	last = 0;
+	if ((argc > 3) && (strcmp(argv[3], "-publish") == 0))
+		last = 1;
 
-        vertex.lat = (float)lat;
-        vertex.lon = (float)lon;
+	vertex.lat = (float)lat;
+	vertex.lon = (float)lon;
 
-        if (dm_write(DM_KEY_FENCE_POINTS, ix, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) == sizeof(vertex)) {
-                if (last)
-                        publish_fence((unsigned)ix + 1);
-                return;
-        }
+	if (dm_write(DM_KEY_FENCE_POINTS, ix, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) == sizeof(vertex)) {
+		if (last)
+			publish_fence((unsigned)ix + 1);
+		return;
+	}
 
-        errx(1, "can't store fence point");
+	errx(1, "can't store fence point");
 }
 
 static void usage()
@@ -800,8 +801,8 @@ int navigator_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "status")) {
 		navigator::g_navigator->status();
 
-        } else if (!strcmp(argv[1], "fence")) {
-                navigator::g_navigator->fence_point(argc - 2, argv + 2);
+	} else if (!strcmp(argv[1], "fence")) {
+		navigator::g_navigator->fence_point(argc - 2, argv + 2);
 
 	} else {
 		usage();
