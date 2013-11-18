@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
+ *   Author: Marco Bauer <marco@wtns.de>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +36,8 @@
  * @file mkblctrl.cpp
  *
  * Driver/configurator for the Mikrokopter BL-Ctrl.
- * Marco Bauer
+ *
+ * @author Marco Bauer <marco@wtns.de>
  *
  */
 
@@ -89,8 +91,8 @@
 #define BLCTRL_MIN_VALUE				-0.920F
 #define MOTOR_STATE_PRESENT_MASK		0x80
 #define MOTOR_STATE_ERROR_MASK		0x7F
-#define MOTOR_SPINUP_COUNTER			2500
-#define ESC_UORB_PUBLISH_DELAY			200
+#define MOTOR_SPINUP_COUNTER			30
+#define ESC_UORB_PUBLISH_DELAY		200
 
 class MK : public device::I2C
 {
@@ -112,7 +114,7 @@ public:
 		FRAME_X,
 	};
 
-	MK(int bus);
+	MK(int bus, const char *_device_path);
 	~MK();
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
@@ -141,6 +143,7 @@ private:
 	unsigned int		_motor;
 	int    _px4mode;
 	int    _frametype;
+	char				_device[20];					///< device
 
 	orb_advert_t	_t_outputs;
 	orb_advert_t	_t_actuators_effective;
@@ -244,7 +247,7 @@ MK	*g_mk;
 
 } // namespace
 
-MK::MK(int bus) :
+MK::MK(int bus, const char *_device_path) :
 	I2C("mkblctrl", "/dev/mkblctrl", bus, 0, I2C_BUS_SPEED),
 	_mode(MODE_NONE),
 	_update_rate(50),
@@ -265,6 +268,10 @@ MK::MK(int bus) :
 	_armed(false),
 	_mixers(nullptr)
 {
+	strncpy(_device, _device_path, sizeof(_device));
+	/* enforce null termination */
+	_device[sizeof(_device) - 1] = '\0';
+
 	_debug_enabled = true;
 }
 
@@ -291,7 +298,7 @@ MK::~MK()
 
 	/* clean up the alternate device node */
 	if (_primary_pwm_device)
-		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
+		unregister_driver(_device);
 
 	g_mk = nullptr;
 }
@@ -313,13 +320,15 @@ MK::init(unsigned motors)
 
 	usleep(500000);
 
-	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
+   if (sizeof(_device) > 0) {
+	   ret = register_driver(_device, &fops, 0666, (void *)this);
 
-	if (ret == OK) {
-		log("default PWM output device");
-		_primary_pwm_device = true;
-	}
+	   if (ret == OK) {
+			log("creating alternate output device");
+			_primary_pwm_device = true;
+		}
+
+   }
 
 	/* reset GPIOs */
 	gpio_reset();
@@ -633,10 +642,7 @@ MK::task_main()
 					}
 
 					/* output to BLCtrl's */
-					if (_motortest == true) {
-						mk_servo_test(i);
-
-					} else {
+					if (_motortest != true) {
 						//mk_servo_set_value(i, scaling(outputs.output[i], -1.0f, 1.0f, 0, 1024));	// scale the output to 0 - 1024 and sent to output routine
 						// 11 Bit
 						Motor[i].SetPoint_PX4 = outputs.output[i];
@@ -692,9 +698,16 @@ MK::task_main()
 				esc.esc[i].esc_temperature = (uint16_t) Motor[i].Temperature;
 				esc.esc[i].esc_state = (uint16_t) Motor[i].State;
 				esc.esc[i].esc_errorcount = (uint16_t) 0;
+
+   			// if motortest is requested - do it...
+   			if (_motortest == true) {
+	   		   mk_servo_test(i);
+			   }
+
 			}
 
 			orb_publish(ORB_ID(esc_status), _t_esc_status, &esc);
+
 		}
 
 	}
@@ -1390,13 +1403,13 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 }
 
 int
-mk_start(unsigned bus, unsigned motors)
+mk_start(unsigned bus, unsigned motors, char *device_path)
 {
 	int ret = OK;
 
 	if (g_mk == nullptr) {
 
-		g_mk = new MK(bus);
+		g_mk = new MK(bus, device_path);
 
 		if (g_mk == nullptr) {
 			ret = -ENOMEM;
@@ -1432,6 +1445,7 @@ mkblctrl_main(int argc, char *argv[])
 	bool overrideSecurityChecks = false;
 	bool showHelp = false;
 	bool newMode = false;
+	char *devicepath = "";
 
 	/*
 	 * optional parameters
@@ -1491,25 +1505,38 @@ mkblctrl_main(int argc, char *argv[])
 			newMode = true;
 		}
 
+		/* look for the optional device parameter */
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) {
+			if (argc > i + 1) {
+				devicepath = argv[i + 1];
+				newMode = true;
+
+			} else {
+				errx(1, "missing the devicename (-d)");
+				return 1;
+			}
+		}
+
 	}
 
 	if (showHelp) {
 		fprintf(stderr, "mkblctrl: help:\n");
-		fprintf(stderr, "  [-mkmode frame{+/x}] [-b i2c_bus_number] [-t motortest] [--override-security-checks] [-h / --help]\n\n");
+		fprintf(stderr, "  [-mkmode frame{+/x}] [-b i2c_bus_number] [-d devicename] [-t] [--override-security-checks] [-h / --help]\n\n");
 		fprintf(stderr, "\t -mkmode frame {+/x} \t\t Type of frame, if Mikrokopter motor order is used.\n");
 		fprintf(stderr, "\t -b i2c_bus_number \t\t Set the i2c bus where the ESCs are connected to (default 1).\n");
-		fprintf(stderr, "\t -t motortest \t\t\t Spin up once every motor in order of motoraddress. (DANGER !!!)\n");
+		fprintf(stderr, "\t -d {devicepath & name}\t\t Create alternate pwm device.\n");
+		fprintf(stderr, "\t -t \t\t\t Spin up once every motor in order of motoraddress. (DANGER !!!)\n");
 		fprintf(stderr, "\t --override-security-checks \t\t Disable all security checks (arming and number of ESCs). Used to test single Motors etc. (DANGER !!!)\n");
 		exit(1);
 	}
 
 
 	if (g_mk == nullptr) {
-		if (mk_start(bus, motorcount) != OK) {
+		if (mk_start(bus, motorcount, devicepath) != OK) {
 			errx(1, "failed to start the MK-BLCtrl driver");
 
 		} else {
-			newMode = true;
+			//////newMode = true;
 		}
 	}
 
@@ -1522,5 +1549,5 @@ mkblctrl_main(int argc, char *argv[])
 
 	/* test, etc. here g*/
 
-	exit(1);
+	exit(0);
 }
