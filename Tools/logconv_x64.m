@@ -1,6 +1,11 @@
 % This Matlab Script can be used to import the binary logged values of the
 % PX4FMU into data that can be plotted and analyzed.
 
+% This script is recommend for matlab newer than 2010, which supports 64 bit calculations.
+% Run "logconv_x64.m" and then "PX4Log_Plotscript" in matlab terminal. Be sure to match  
+% logfile name with variable filePath and remember to change matlab to the folder containing
+% both script and logfile. 
+
 %% ************************************************************************
 % PX4LOG_PLOTSCRIPT: Main function
 % ************************************************************************
@@ -258,7 +263,7 @@ function DrawRawData()
     title(h.axes(2),'Magnetometers [Gauss]');
     legend(h.axes(2),'x','y','z');
     plot(h.axes(3),time(imintime:imaxtime),[sysvector.IMU_AccX(imintime:imaxtime), sysvector.IMU_AccY(imintime:imaxtime), sysvector.IMU_AccZ(imintime:imaxtime)]);
-    title(h.axes(3),'Accelerometers [m/s²]');
+    title(h.axes(3),'Accelerometers [m/sï¿½]');
     legend(h.axes(3),'x','y','z');
     plot(h.axes(4),time(imintime:imaxtime),[sysvector.IMU_GyroX(imintime:imaxtime), sysvector.IMU_GyroY(imintime:imaxtime), sysvector.IMU_GyroZ(imintime:imaxtime)]);
     title(h.axes(4),'Gyroscopes [rad/s]');
@@ -288,7 +293,7 @@ function DrawRawData()
     legend(h.axes(7),'ATT CTRL Roll [-1..+1]','ATT CTRL Pitch [-1..+1]','ATT CTRL Yaw [-1..+1]','ATT CTRL Thrust [0..+1]');
     %Actuator Controls
     plot(h.axes(8),time(imintime:imaxtime), [sysvector.OUT0_Out0(imintime:imaxtime), sysvector.OUT0_Out1(imintime:imaxtime), sysvector.OUT0_Out2(imintime:imaxtime), sysvector.OUT0_Out3(imintime:imaxtime), sysvector.OUT0_Out4(imintime:imaxtime), sysvector.OUT0_Out5(imintime:imaxtime), sysvector.OUT0_Out6(imintime:imaxtime), sysvector.OUT0_Out7(imintime:imaxtime)]);
-    title(h.axes(8),'Actuator PWM (raw-)outputs [µs]');
+    title(h.axes(8),'Actuator PWM (raw-)outputs [ï¿½s]');
     legend(h.axes(8),'CH1','CH2','CH3','CH4','CH5','CH6','CH7','CH8');
     set(h.axes(8), 'YLim',[800 2200]);
     %Airspeeds
@@ -324,13 +329,13 @@ function DrawCurrentAircraftState()
     %**********************************************************************
     % Current aircraft state label update
     %**********************************************************************
-    acstate{1,:}=[sprintf('%s \t\t','GPS Pos:'),'[lat=',num2str(double(sysvector.GPS_Lat(i))*fconv_gpslatlong),'°, ',...
-                        'lon=',num2str(double(sysvector.GPS_Lon(i))*fconv_gpslatlong),'°, ',...
+    acstate{1,:}=[sprintf('%s \t\t','GPS Pos:'),'[lat=',num2str(double(sysvector.GPS_Lat(i))*fconv_gpslatlong),'ï¿½, ',...
+                        'lon=',num2str(double(sysvector.GPS_Lon(i))*fconv_gpslatlong),'ï¿½, ',...
                         'alt=',num2str(double(sysvector.GPS_Alt(i))*fconv_gpsalt),'m]'];
     acstate{2,:}=[sprintf('%s \t\t','Mags[gauss]'),'[x=',num2str(sysvector.IMU_MagX(i)),...
                                ', y=',num2str(sysvector.IMU_MagY(i)),...
                                ', z=',num2str(sysvector.IMU_MagZ(i)),']'];
-    acstate{3,:}=[sprintf('%s \t\t','Accels[m/s²]'),'[x=',num2str(sysvector.IMU_AccX(i)),...
+    acstate{3,:}=[sprintf('%s \t\t','Accels[m/sï¿½]'),'[x=',num2str(sysvector.IMU_AccX(i)),...
                                ', y=',num2str(sysvector.IMU_AccY(i)),...
                                ', z=',num2str(sysvector.IMU_AccZ(i)),']'];
     acstate{4,:}=[sprintf('%s \t\t','Gyros[rad/s]'),'[x=',num2str(sysvector.IMU_GyroX(i)),...
@@ -348,7 +353,7 @@ function DrawCurrentAircraftState()
     acstate{7,:}=[acstate{7,:},num2str(sysvector.ATTC_Thrust(i)),','];
     %end
     acstate{7,:}=[acstate{7,:},']'];
-    acstate{8,:}=sprintf('%s \t[','Actuator Outputs [PWM/µs]:');
+    acstate{8,:}=sprintf('%s \t[','Actuator Outputs [PWM/ï¿½s]:');
     %for j=1:8
     acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out0(i)),','];
     acstate{8,:}=[acstate{8,:},num2str(sysvector.OUT0_Out1(i)),','];
