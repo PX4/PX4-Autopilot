@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
  *   Author: @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  *           @author Lorenz Meier <lm@inf.ethz.ch>
  *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
@@ -49,6 +49,9 @@
 #include "missionlib.h"
 #include "waypoints.h"
 #include "util.h"
+#include <uORB/uORB.h>
+#include <uORB/topics/mission.h>
+
 
 #ifndef FM_PI
 #define FM_PI 3.1415926535897932384626433832795f
@@ -58,9 +61,38 @@ bool debug = false;
 bool verbose = false;
 
 
-#define MAVLINK_WPM_NO_PRINTF
+//#define MAVLINK_WPM_NO_PRINTF
+#define MAVLINK_WPM_VERBOSE 1
 
 uint8_t mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
+
+void map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item)
+{
+	mission_item->lat = (double)mavlink_mission_item->x;
+	mission_item->lon = (double)mavlink_mission_item->y;
+	mission_item->altitude = mavlink_mission_item->z;
+	mission_item->yaw = mavlink_mission_item->param4*M_DEG_TO_RAD_F;
+	mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
+	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
+	mission_item->nav_cmd = NAV_CMD_WAYPOINT; // TODO correct
+	mission_item->radius = mavlink_mission_item->param1;
+	mission_item->time_inside = mavlink_mission_item->param2;
+}
+
+void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, const uint16_t seq, mavlink_mission_item_t *mavlink_mission_item)
+{
+
+	mavlink_mission_item->x = (float)mission_item->lat;
+	mavlink_mission_item->y = (float)mission_item->lon;
+	mavlink_mission_item->z = mission_item->altitude;
+	mavlink_mission_item->param4 = mission_item->yaw*M_RAD_TO_DEG_F;
+	mavlink_mission_item->param3 = mission_item->loiter_radius*(float)mission_item->loiter_direction;
+	mavlink_mission_item->command = MAV_CMD_NAV_WAYPOINT; // TODO add
+	mavlink_mission_item->param1 = mission_item->radius;
+	mavlink_mission_item->param2 = mission_item->time_inside;
+
+	mavlink_mission_item->seq = seq;
+}
 
 void mavlink_wpm_init(mavlink_wpm_storage *state)
 {
@@ -185,11 +217,12 @@ void mavlink_wpm_send_waypoint_count(uint8_t sysid, uint8_t compid, uint16_t cou
 	// FIXME TIMING usleep(paramClient->getParamValue("PROTOCOLDELAY"));
 }
 
-void mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t seq)
+void mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, mavlink_mission_item_t *wp)
 {
-	if (seq < wpm->size) {
+
+	// if (seq < wpm->size) {
 		mavlink_message_t msg;
-		mavlink_mission_item_t *wp = &(wpm->waypoints[seq]);
+	// 	mavlink_mission_item_t *wp = &(wpm->waypoints[seq]);
 		wp->target_system = wpm->current_partner_sysid;
 		wp->target_component = wpm->current_partner_compid;
 		mavlink_msg_mission_item_encode(mavlink_system.sysid, mavlink_wpm_comp_id, &msg, wp);
@@ -199,9 +232,9 @@ void mavlink_wpm_send_waypoint(uint8_t sysid, uint8_t compid, uint16_t seq)
 
 		// FIXME TIMING usleep(paramClient->getParamValue("PROTOCOLDELAY"));
 
-	} else {
-		if (MAVLINK_WPM_TEXT_FEEDBACK) mavlink_missionlib_send_gcs_string("ERROR: Waypoint index out of bounds\n");
-	}
+	// } else {
+	// 	if (MAVLINK_WPM_TEXT_FEEDBACK) mavlink_missionlib_send_gcs_string("ERROR: Waypoint index out of bounds\n");
+	// }
 }
 
 void mavlink_wpm_send_waypoint_request(uint8_t sysid, uint8_t compid, uint16_t seq)
@@ -523,6 +556,9 @@ int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_positio
 
 void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos , struct vehicle_local_position_s *local_pos)
 {
+	static orb_advert_t mission_pub = -1;
+	static struct mission_s mission;
+
 	uint64_t now = mavlink_missionlib_get_system_timestamp();
 
 	switch (msg->msgid) {
@@ -671,7 +707,10 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 
 					wpm->current_state = MAVLINK_WPM_STATE_SENDLIST_SENDWPS;
 					wpm->current_wp_id = wpr.seq;
-					mavlink_wpm_send_waypoint(wpm->current_partner_sysid, wpm->current_partner_compid, wpr.seq);
+
+					mavlink_mission_item_t wp;
+					map_mission_item_to_mavlink_mission_item(&mission.items[wpr.seq], wpr.seq, &wp);
+					mavlink_wpm_send_waypoint(wpm->current_partner_sysid, wpm->current_partner_compid, &wp);
 
 				} else {
 					// if (verbose)
@@ -793,6 +832,16 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 						wpm->current_partner_sysid = msg->sysid;
 						wpm->current_partner_compid = msg->compid;
 						wpm->current_count = wpc.count;
+
+						/* prepare mission topic */
+						mission.count = wpc.count;
+						mission.items = (struct mission_item_s*)malloc(sizeof(struct mission_item_s) * mission.count);
+						
+						if (!mission.items) {
+							mission.count = 0;
+							/* XXX reject waypoints if this fails */
+							warnx("no free RAM to allocate mission, rejecting any waypoints");
+						}
 
 #ifdef MAVLINK_WPM_NO_PRINTF
 						mavlink_missionlib_send_gcs_string("CLR RCV BUF: READY");
@@ -933,7 +982,18 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 
 						for (i = 0; i < wpm->current_count; ++i) {
 							wpm->waypoints[i] = wpm->rcv_waypoints[i];
+							map_mavlink_mission_item_to_mission_item(&wpm->rcv_waypoints[i], &mission.items[i]);
 						}
+						// TODO: update count?
+
+						/* Initialize mission publication if necessary */
+						if (mission_pub < 0) {
+							mission_pub = orb_advertise(ORB_ID(mission), &mission);
+
+						} else {
+							orb_publish(ORB_ID(mission), mission_pub, &mission);
+						}
+
 
 						wpm->size = wpm->current_count;
 
