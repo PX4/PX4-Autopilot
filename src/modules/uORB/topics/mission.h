@@ -35,8 +35,8 @@
  ****************************************************************************/
 
 /**
- * @file mission_item.h
- * Definition of one mission item.
+ * @file mission.h
+ * Definition of a mission consisting of mission items.
  */
 
 #ifndef TOPIC_MISSION_H_
@@ -77,10 +77,8 @@ struct mission_item_s
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
 	uint8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
 	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
-	float param1;
-	float param2;
-	float param3;
-	float param4;
+	float radius;			/**< radius in which the mission is accepted as reached in meters */
+	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in milliseconds */
 };
 
 struct mission_s
