@@ -206,7 +206,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command)
 {
 	static orb_advert_t global_position_setpoint_pub = -1;
-	static orb_advert_t global_position_set_triplet_pub = -1;
+	// static orb_advert_t global_position_set_triplet_pub = -1;
 	static orb_advert_t local_position_setpoint_pub = -1;
 	static unsigned last_waypoint_index = -1;
 	char buf[50] = {0};
@@ -234,10 +234,10 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 
 
 		/* fill triplet: previous, current, next waypoint */
-		struct vehicle_global_position_set_triplet_s triplet;
+		// struct vehicle_global_position_set_triplet_s triplet;
 
 		/* current waypoint is same as sp */
-		memcpy(&(triplet.current), &sp, sizeof(sp));
+		// memcpy(&(triplet.current), &sp, sizeof(sp));
 
 		/*
 		 * Check if previous WP (in mission, not in execution order) 
@@ -291,48 +291,48 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 
 		/* populate last and next */
 
-		triplet.previous_valid = false;
-		triplet.next_valid = false;
+		// triplet.previous_valid = false;
+		// triplet.next_valid = false;
 
-		if (last_setpoint_valid) {
-			triplet.previous_valid = true;
-			struct vehicle_global_position_setpoint_s sp;
-			sp.lat = wpm->waypoints[last_setpoint_index].x * 1e7f;
-			sp.lon = wpm->waypoints[last_setpoint_index].y * 1e7f;
-			sp.altitude = wpm->waypoints[last_setpoint_index].z;
-			sp.altitude_is_relative = false;
-			sp.yaw = (wpm->waypoints[last_setpoint_index].param4 / 180.0f) * M_PI_F - M_PI_F;
-			set_special_fields(wpm->waypoints[last_setpoint_index].param1,
-				wpm->waypoints[last_setpoint_index].param2,
-				wpm->waypoints[last_setpoint_index].param3,
-				wpm->waypoints[last_setpoint_index].param4,
-				wpm->waypoints[last_setpoint_index].command, &sp);
-			memcpy(&(triplet.previous), &sp, sizeof(sp));
-		}
+		// if (last_setpoint_valid) {
+		// 	triplet.previous_valid = true;
+		// 	struct vehicle_global_position_setpoint_s sp;
+		// 	sp.lat = wpm->waypoints[last_setpoint_index].x * 1e7f;
+		// 	sp.lon = wpm->waypoints[last_setpoint_index].y * 1e7f;
+		// 	sp.altitude = wpm->waypoints[last_setpoint_index].z;
+		// 	sp.altitude_is_relative = false;
+		// 	sp.yaw = (wpm->waypoints[last_setpoint_index].param4 / 180.0f) * M_PI_F - M_PI_F;
+		// 	set_special_fields(wpm->waypoints[last_setpoint_index].param1,
+		// 		wpm->waypoints[last_setpoint_index].param2,
+		// 		wpm->waypoints[last_setpoint_index].param3,
+		// 		wpm->waypoints[last_setpoint_index].param4,
+		// 		wpm->waypoints[last_setpoint_index].command, &sp);
+		// 	memcpy(&(triplet.previous), &sp, sizeof(sp));
+		// }
 
-		if (next_setpoint_valid) {
-			triplet.next_valid = true;
-			struct vehicle_global_position_setpoint_s sp;
-			sp.lat = wpm->waypoints[next_setpoint_index].x * 1e7f;
-			sp.lon = wpm->waypoints[next_setpoint_index].y * 1e7f;
-			sp.altitude = wpm->waypoints[next_setpoint_index].z;
-			sp.altitude_is_relative = false;
-			sp.yaw = (wpm->waypoints[next_setpoint_index].param4 / 180.0f) * M_PI_F - M_PI_F;
-			set_special_fields(wpm->waypoints[next_setpoint_index].param1,
-				wpm->waypoints[next_setpoint_index].param2,
-				wpm->waypoints[next_setpoint_index].param3,
-				wpm->waypoints[next_setpoint_index].param4,
-				wpm->waypoints[next_setpoint_index].command, &sp);
-			memcpy(&(triplet.next), &sp, sizeof(sp));
-		}
+		// if (next_setpoint_valid) {
+		// 	triplet.next_valid = true;
+		// 	struct vehicle_global_position_setpoint_s sp;
+		// 	sp.lat = wpm->waypoints[next_setpoint_index].x * 1e7f;
+		// 	sp.lon = wpm->waypoints[next_setpoint_index].y * 1e7f;
+		// 	sp.altitude = wpm->waypoints[next_setpoint_index].z;
+		// 	sp.altitude_is_relative = false;
+		// 	sp.yaw = (wpm->waypoints[next_setpoint_index].param4 / 180.0f) * M_PI_F - M_PI_F;
+		// 	set_special_fields(wpm->waypoints[next_setpoint_index].param1,
+		// 		wpm->waypoints[next_setpoint_index].param2,
+		// 		wpm->waypoints[next_setpoint_index].param3,
+		// 		wpm->waypoints[next_setpoint_index].param4,
+		// 		wpm->waypoints[next_setpoint_index].command, &sp);
+		// 	memcpy(&(triplet.next), &sp, sizeof(sp));
+		// }
 
 		/* Initialize triplet publication if necessary */
-		if (global_position_set_triplet_pub < 0) {
-			global_position_set_triplet_pub = orb_advertise(ORB_ID(vehicle_global_position_set_triplet), &triplet);
+		// if (global_position_set_triplet_pub < 0) {
+		// 	global_position_set_triplet_pub = orb_advertise(ORB_ID(vehicle_global_position_set_triplet), &triplet);
 
-		} else {
-			orb_publish(ORB_ID(vehicle_global_position_set_triplet), global_position_set_triplet_pub, &triplet);
-		}
+		// } else {
+		// 	orb_publish(ORB_ID(vehicle_global_position_set_triplet), global_position_set_triplet_pub, &triplet);
+		// }
 
 		sprintf(buf, "[mp] WP#%i lat: % 3.6f/lon % 3.6f/alt % 4.6f/hdg %3.4f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
