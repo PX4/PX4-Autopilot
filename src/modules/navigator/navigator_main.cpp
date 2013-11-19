@@ -172,21 +172,6 @@ private:
 	void		control_update();
 
 	/**
-	 * Check for changes in vehicle status.
-	 */
-	void		vehicle_status_poll();
-
-	/**
-	 * Check for position updates.
-	 */
-	void		vehicle_attitude_poll();
-
-	/**
-	 * Check for set triplet updates.
-	 */
-	void		mission_poll();
-
-	/**
 	* Retrieve mission.
 	*/
 	void		mission_update();
