@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: 	Lorenz Meier
+ *   Authors:	Lorenz Meier
  *		Jean Cyr
  *		Julian Oes
  *
@@ -55,14 +55,8 @@
 #include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_global_position_set_triplet.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
@@ -74,6 +68,7 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <dataman/dataman.h>
+
 
 /**
  * navigator app start / stop handling function
@@ -120,26 +115,17 @@ public:
 private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
-	int		_navigator_task;			/**< task handle for sensor task */
+	int		_navigator_task;		/**< task handle for sensor task */
 
 	int		_global_pos_sub;
-	int		_att_sub;			/**< vehicle attitude subscription */
-	int		_attitude_sub;			/**< raw rc channels data subscription */
-	int		_airspeed_sub;			/**< airspeed subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
-	int 		_manual_control_sub;		/**< notification of manual control updates */
-	int		_mission_sub;
-	int		_capabilities_sub;
-	int		_fence_sub;
-	int		_fence_pub;
+	int		_mission_sub;			/**< notification of mission updates */
+	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 
-	orb_advert_t	_triplet_pub;			/**< position setpoint */
+	orb_advert_t	_triplet_pub;			/**< publish position setpoint triplet */
+	orb_advert_t	_fence_pub;			/**< publish fence topic */ 
 
-	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct airspeed_s				_airspeed;		/**< airspeed */
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
 	struct vehicle_global_position_set_triplet_s	_global_triplet;	/**< triplet of global setpoints */
@@ -215,10 +201,6 @@ private:
 	 */
 	float		control_pitch(float altitude_error);
 
-	void calculate_airspeed_errors();
-	void calculate_gndspeed_undershoot();
-	void calculate_altitude_error();
-
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
@@ -230,8 +212,6 @@ private:
 	void		task_main() __attribute__((noreturn));
 
 	void		publish_fence(unsigned vertices);
-
-	void		publish_mission(unsigned points);
 
 	void		publish_safepoints(unsigned points);
 
@@ -257,27 +237,23 @@ Navigator::Navigator() :
 
 /* subscriptions */
 	_global_pos_sub(-1),
-	_att_sub(-1),
-	_airspeed_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
-	_manual_control_sub(-1),
-	_fence_sub(-1),
-	_fence_pub(-1),
 	_mission_sub(-1),
 	_capabilities_sub(-1),
 
 /* publications */
 	_triplet_pub(-1),
+	_fence_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 /* states */
 	_mission_items_maxcount(20),
 	_mission_valid(false),
-	_loiter_hold(false),
 	_fence_valid(false),
-	_inside_fence(true)
+	_inside_fence(true),
+	_loiter_hold(false)
 {
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
@@ -319,40 +295,6 @@ Navigator::parameters_update()
 	//param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
 
 	return OK;
-}
-
-void
-Navigator::vehicle_status_poll()
-{
-	bool vstatus_updated;
-
-	/* Check HIL state if vehicle status has changed */
-	orb_check(_vstatus_sub, &vstatus_updated);
-
-	if (vstatus_updated)
-		orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
-}
-
-void
-Navigator::vehicle_attitude_poll()
-{
-	/* check if there is a new position */
-	bool att_updated;
-	orb_check(_att_sub, &att_updated);
-
-	if (att_updated)
-		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
-}
-
-void
-Navigator::mission_poll()
-{
-	/* check if there is a new setpoint */
-	bool mission_updated;
-	orb_check(_mission_sub, &mission_updated);
-
-	if (mission_updated)
-		mission_update();
 }
 
 void
@@ -399,19 +341,14 @@ Navigator::task_main()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
-	_fence_sub = orb_subscribe(ORB_ID(fence));
-	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	// Load initial states
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
 		_vstatus.arming_state = ARMING_STATE_STANDBY;    // for testing... commander may not be running
 	}
 
-	orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 	mission_update();
 
 	/* rate limit vehicle status updates to 5Hz */
@@ -434,11 +371,11 @@ Navigator::task_main()
 	fds[0].events = POLLIN;
 	fds[1].fd = _global_pos_sub;
 	fds[1].events = POLLIN;
-	fds[2].fd = _fence_sub;
+	fds[2].fd = _capabilities_sub;
 	fds[2].events = POLLIN;
-	fds[3].fd = _capabilities_sub;
+	fds[3].fd = _mission_sub;
 	fds[3].events = POLLIN;
-	fds[4].fd = _mission_sub;
+	fds[4].fd = _vstatus_sub;
 	fds[4].events = POLLIN;
 
 	while (!_task_should_exit) {
@@ -459,10 +396,13 @@ Navigator::task_main()
 
 		perf_begin(_loop_perf);
 
-		/* check vehicle status for changes to publication state */
-		vehicle_status_poll();
-
 		/* only update parameters if they changed */
+		if (fds[4].revents & POLLIN) {
+			/* read from param to clear updated flag */
+			orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
+		}
+
+		/* only update vehicle status if it changed */
 		if (fds[0].revents & POLLIN) {
 			/* read from param to clear updated flag */
 			struct parameter_update_s update;
@@ -472,25 +412,20 @@ Navigator::task_main()
 			parameters_update();
 		}
 
-		/* only update fence if it has changed */
-		if (fds[2].revents & POLLIN) {
-			/* read from fence to clear updated flag */
-			unsigned vertices;
-			orb_copy(ORB_ID(fence), _fence_sub, &vertices);
-			_fence_valid = load_fence(vertices);
-		}
-
 		/* only update craft capabilities if they have changed */
-		if (fds[3].revents & POLLIN) {
+		if (fds[2].revents & POLLIN) {
 			orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
 		}
 
-		if (fds[4].revents & POLLIN) {
+		if (fds[3].revents & POLLIN) {
 			mission_update();
 		}
 
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
+
+			/* load local copies */
+			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
 
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
@@ -500,13 +435,6 @@ Navigator::task_main()
 			if (deltaT > 1.0f) {
 				deltaT = 0.01f;
 			}
-
-			/* load local copies */
-			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-
-			vehicle_attitude_poll();
-
-			mission_poll();
 
 			if (_fence_valid && _global_pos.valid) {
 				_inside_fence = inside_geofence(&_global_pos, &_fence);
@@ -600,9 +528,9 @@ Navigator::task_main()
 			} else if (_global_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
 
 				/* apply minimum pitch if altitude has not yet been reached */
-				if (_global_pos.alt < _global_triplet.current.altitude) {
-					_att_sp.pitch_body = math::max(_att_sp.pitch_body, _global_triplet.current.param1);
-				}
+				// if (_global_pos.alt < _global_triplet.current.altitude) {
+				// 	_att_sp.pitch_body = math::max(_att_sp.pitch_body, _global_triplet.current.param1);
+				// }
 			}
 
 			/* lazily publish the setpoint only once available */
@@ -681,8 +609,6 @@ Navigator::publish_fence(unsigned vertices)
 bool
 Navigator::fence_valid(const struct fence_s &fence)
 {
-	struct vehicle_global_position_s pos;
-
 	// NULL fence is valid
 	if (fence.count == 0) {
 		return true;
