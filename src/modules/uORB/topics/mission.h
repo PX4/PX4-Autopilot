@@ -75,7 +75,7 @@ struct mission_item_s
 	float altitude;			/**< altitude in meters					*/
 	float yaw;			/**< in radians NED -PI..+PI 				*/
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	uint8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
+	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
 	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
 	float radius;			/**< radius in which the mission is accepted as reached in meters */
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in milliseconds */
