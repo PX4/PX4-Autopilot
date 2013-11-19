@@ -75,7 +75,6 @@
 #include <drivers/drv_mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/esc_status.h>
@@ -146,7 +145,6 @@ private:
 	char				_device[20];					///< device
 
 	orb_advert_t	_t_outputs;
-	orb_advert_t	_t_actuators_effective;
 	orb_advert_t	_t_esc_status;
 
 	unsigned int	_num_outputs;
@@ -255,7 +253,6 @@ MK::MK(int bus, const char *_device_path) :
 	_t_actuators(-1),
 	_t_actuator_armed(-1),
 	_t_outputs(0),
-	_t_actuators_effective(0),
 	_t_esc_status(0),
 	_num_outputs(0),
 	_motortest(false),
@@ -534,13 +531,6 @@ MK::task_main()
 	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
 				   &outputs);
 
-	/* advertise the effective control inputs */
-	actuator_controls_effective_s controls_effective;
-	memset(&controls_effective, 0, sizeof(controls_effective));
-	/* advertise the effective control inputs */
-	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
-				   &controls_effective);
-
 	/* advertise the blctrl status */
 	esc_status_s esc;
 	memset(&esc, 0, sizeof(esc));
@@ -603,9 +593,6 @@ MK::task_main()
 				/* do mixing */
 				outputs.noutputs = _mixers->mix(&outputs.output[0], _num_outputs);
 				outputs.timestamp = hrt_absolute_time();
-
-				// XXX output actual limited values
-				memcpy(&controls_effective, &_controls, sizeof(controls_effective));
 
 				/* iterate actuators */
 				for (unsigned int i = 0; i < _num_outputs; i++) {
@@ -712,9 +699,8 @@ MK::task_main()
 
 	}
 
-	//::close(_t_esc_status);
+	::close(_t_esc_status);
 	::close(_t_actuators);
-	::close(_t_actuators_effective);
 	::close(_t_actuator_armed);
 
 
