@@ -201,6 +201,8 @@ private:
 	void		publish_safepoints(unsigned points);
 
 	bool		fence_valid(const struct fence_s &fence);
+
+	void		current_waypoint_changed(unsigned next_setpoint_index);
 };
 
 namespace navigator
@@ -234,7 +236,7 @@ Navigator::Navigator() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 /* states */
-	_mission_items_maxcount(20),
+	_mission_item_count(0),
 	_mission_valid(false),
 	_fence_valid(false),
 	_inside_fence(true),
@@ -290,19 +292,28 @@ Navigator::mission_update()
 		// XXX this is not optimal yet, but a first prototype /
 		// test implementation
 
-		if (mission.count <= _mission_items_maxcount) {
-			/*
-				* Perform an atomic copy & state update
-				*/
-			irqstate_t flags = irqsave();
-
-			memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
-			_mission_valid = true;
-
-			irqrestore(flags);
-		} else {
-			warnx("mission larger than storage space");
+		if (mission.count > _mission_item_count) {
+			_mission_items = (mission_item_s*)malloc(sizeof(mission_item_s) * _mission_item_count);
+			if (!_mission_items) {
+				_mission_item_count = 0;
+				warnx("no free RAM to allocate mission, rejecting any waypoints");
+		        }
 		}
+
+		/*
+		 * Perform an atomic copy & state update
+		 */
+		irqstate_t flags = irqsave();
+
+		memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
+		_mission_valid = true;
+		_mission_item_count = mission.count;
+
+		irqrestore(flags);
+
+		/* Reset to 0 for now when a waypoint is changed */
+		/* TODO add checks if and how the mission has changed */
+		current_waypoint_changed(0);
 	}
 }
 
@@ -668,6 +679,80 @@ Navigator::fence_point(int argc, char *argv[])
 	}
 
 	errx(1, "can't store fence point");
+}
+
+void
+Navigator::current_waypoint_changed(unsigned new_setpoint_index)
+{
+	/* TODO: extend this to different frames, global for now */
+
+	_mission_item_triplet.current_valid = false;
+
+	if (_mission_item_count > 0 && new_setpoint_index < _mission_item_count) {
+		_mission_item_triplet.current_valid = true;
+		memcpy(&_mission_item_triplet.current, &_mission_items[new_setpoint_index], sizeof(mission_item_s)); 
+	}
+
+	int previous_setpoint_index = -1;
+	_mission_item_triplet.previous_valid = false;
+
+	if (new_setpoint_index > 0) {
+		previous_setpoint_index = new_setpoint_index - 1;
+	}
+
+	while (previous_setpoint_index >= 0) {
+
+		if ((_mission_items[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
+		     _mission_items[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
+		     _mission_items[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
+		     _mission_items[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
+
+			_mission_item_triplet.previous_valid = true;
+			memcpy(&_mission_item_triplet.previous, &_mission_items[previous_setpoint_index], sizeof(mission_item_s)); 
+			break;
+		}
+
+		previous_setpoint_index--;
+	}
+
+	/*
+	 * Check if next WP (in mission, not in execution order) 
+	 * is available and identify correct index
+	 */
+	int next_setpoint_index = -1;
+	_mission_item_triplet.next_valid = false;
+
+	/* next waypoint */
+	if (_mission_item_count > 1) {
+		next_setpoint_index = new_setpoint_index + 1;
+	}
+
+	while (next_setpoint_index < _mission_item_count - 1) {
+
+		if ((_mission_items[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
+		     _mission_items[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
+		     _mission_items[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
+		     _mission_items[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
+
+			_mission_item_triplet.next_valid = true;
+			memcpy(&_mission_item_triplet.next, &_mission_items[next_setpoint_index], sizeof(mission_item_s)); 
+			break;
+		}
+
+		next_setpoint_index++;
+	}
+
+
+	/* lazily publish the setpoint only once available */
+	if (_triplet_pub > 0) {
+		/* publish the attitude setpoint */
+		orb_publish(ORB_ID(mission_item_triplet), _triplet_pub, &_mission_item_triplet);
+
+	} else {
+		/* advertise and publish */
+		_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
+	}
+
 }
 
 static void usage()
