@@ -79,6 +79,7 @@ struct mission_item_s
 	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
 	float radius;			/**< radius in which the mission is accepted as reached in meters */
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
+	bool autocontinue;		/**< true if next waypoint should follow after this one */
 };
 
 struct mission_s
