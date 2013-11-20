@@ -240,7 +240,7 @@ void TECS::_update_height_demand(float demand, float state)
 		_hgt_rate_dem = -_maxSinkRate;
 	}
 
-	warnx("_hgt_rate_dem: %.4f, _hgt_dem_adj %.4f", _hgt_rate_dem, _hgt_dem_adj);
+	// warnx("_hgt_rate_dem: %.4f, _hgt_dem_adj %.4f", _hgt_rate_dem, _hgt_dem_adj);
 }
 
 void TECS::_detect_underspeed(void)
