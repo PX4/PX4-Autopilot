@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
  *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *           @author Julian Oes <joes@student.ethz.ch>
  *           @author Lorenz Meier <lm@inf.ethz.ch>
@@ -35,18 +35,18 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_global_position_setpoint.h
+ * @file mission_item_triplet.h
  * Definition of the global WGS84 position setpoint uORB topic.
  */
 
-#ifndef TOPIC_VEHICLE_GLOBAL_POSITION_SET_TRIPLET_H_
-#define TOPIC_VEHICLE_GLOBAL_POSITION_SET_TRIPLET_H_
+#ifndef TOPIC_MISSION_ITEM_TRIPLET_H_
+#define TOPIC_MISSION_ITEM_TRIPLET_H_
 
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
 
-#include "vehicle_global_position_setpoint.h"
+#include "mission.h"
 
 /**
  * @addtogroup topics
@@ -58,14 +58,15 @@
  *
  * This are the three next waypoints (or just the next two or one).
  */
-struct vehicle_global_position_set_triplet_s
+struct mission_item_triplet_s
 {
-	bool previous_valid;					/**< flag indicating previous position is valid */
-	bool next_valid;					/**< flag indicating next position is valid */
+	bool previous_valid;
+	bool current_valid;				/**< flag indicating previous mission item is valid */
+	bool next_valid;					/**< flag indicating next mission item is valid */
 
-	struct vehicle_global_position_setpoint_s previous;
-	struct vehicle_global_position_setpoint_s current;
-	struct vehicle_global_position_setpoint_s next;
+	struct mission_item_s previous;
+	struct mission_item_s current;
+	struct mission_item_s next;
 };
 
 /**
@@ -73,6 +74,6 @@ struct vehicle_global_position_set_triplet_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_global_position_set_triplet);
+ORB_DECLARE(mission_item_triplet);
 
 #endif

@@ -52,7 +52,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
-#include <uORB/topics/vehicle_global_position_set_triplet.h>
+#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>

@@ -120,8 +120,8 @@ ORB_DEFINE(vehicle_bodyframe_speed_setpoint, struct vehicle_bodyframe_speed_setp
 #include "topics/vehicle_global_position_setpoint.h"
 ORB_DEFINE(vehicle_global_position_setpoint, struct vehicle_global_position_setpoint_s);
 
-#include "topics/vehicle_global_position_set_triplet.h"
-ORB_DEFINE(vehicle_global_position_set_triplet, struct vehicle_global_position_set_triplet_s);
+#include "topics/mission_item_triplet.h"
+ORB_DEFINE(mission_item_triplet, struct mission_item_triplet_s);
 
 #include "topics/vehicle_global_velocity_setpoint.h"
 ORB_DEFINE(vehicle_global_velocity_setpoint, struct vehicle_global_velocity_setpoint_s);

@@ -56,7 +56,7 @@
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_global_position_set_triplet.h>
+#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
@@ -128,12 +128,12 @@ private:
 
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
-	struct vehicle_global_position_set_triplet_s	_global_triplet;	/**< triplet of global setpoints */
+	struct mission_item_triplet_s			_mission_item_triplet;	/**< triplet of mission items */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	unsigned	_mission_items_maxcount;	/**< maximum number of mission items supported */
-	struct		mission_item_s			* _mission_items;        /**< storage for mission items */
+	unsigned	_mission_item_count;		/**< maximum number of mission items supported */
+	struct mission_item_s				* _mission_items;		/**< storage for mission */
 	bool		_mission_valid;			/**< flag if mission is valid */
 
 
@@ -427,7 +427,7 @@ Navigator::task_main()
 
 			math::Vector2f ground_speed(_global_pos.vx, _global_pos.vy);
 			// Current waypoint
-			math::Vector2f next_wp(_global_triplet.current.lat / 1e7f, _global_triplet.current.lon / 1e7f);
+			math::Vector2f next_wp(_mission_item_triplet.current.lat / 1e7f, _mission_item_triplet.current.lon / 1e7f);
 			// Global position
 			math::Vector2f current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
 
@@ -441,17 +441,17 @@ Navigator::task_main()
 					// Next waypoint
 					math::Vector2f prev_wp;
 
-					if (_global_triplet.previous_valid) {
-						prev_wp.setX(_global_triplet.previous.lat / 1e7f);
-						prev_wp.setY(_global_triplet.previous.lon / 1e7f);
+					if (_mission_item_triplet.previous_valid) {
+						prev_wp.setX(_mission_item_triplet.previous.lat / 1e7f);
+						prev_wp.setY(_mission_item_triplet.previous.lon / 1e7f);
 
 					} else {
 						/*
 						 * No valid next waypoint, go for heading hold.
 						 * This is automatically handled by the L1 library.
 						 */
-						prev_wp.setX(_global_triplet.current.lat / 1e7f);
-						prev_wp.setY(_global_triplet.current.lon / 1e7f);
+						prev_wp.setX(_mission_item_triplet.current.lat / 1e7f);
+						prev_wp.setY(_mission_item_triplet.current.lon / 1e7f);
 
 					}
 
@@ -461,13 +461,13 @@ Navigator::task_main()
 
 					// XXX to be put in its own class
 
-					if (_global_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
+					if (_mission_item_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
 						/* waypoint is a plain navigation waypoint */
 
 
-					} else if (_global_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-						   _global_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-						   _global_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
+					} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+						   _mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+						   _mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
 
 						/* waypoint is a loiter waypoint */
 
@@ -504,28 +504,28 @@ Navigator::task_main()
 
 			/********   MAIN NAVIGATION STATE MACHINE   ********/
 
-			if (_global_triplet.current.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
+			if (_mission_item_triplet.current.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
 				// XXX define launch position and return
 
-			} else if (_global_triplet.current.nav_cmd == NAV_CMD_LAND) {
+			} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LAND) {
 				// XXX flared descent on final approach
 
-			} else if (_global_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
+			} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
 
 				/* apply minimum pitch if altitude has not yet been reached */
-				// if (_global_pos.alt < _global_triplet.current.altitude) {
-				// 	_att_sp.pitch_body = math::max(_att_sp.pitch_body, _global_triplet.current.param1);
+				// if (_global_pos.alt < _mission_item_triplet.current.altitude) {
+				// 	_att_sp.pitch_body = math::max(_att_sp.pitch_body, _mission_item_triplet.current.param1);
 				// }
 			}
 
 			/* lazily publish the setpoint only once available */
 			if (_triplet_pub > 0) {
 				/* publish the attitude setpoint */
-				orb_publish(ORB_ID(vehicle_global_position_set_triplet), _triplet_pub, &_global_triplet);
+				orb_publish(ORB_ID(mission_item_triplet), _triplet_pub, &_mission_item_triplet);
 
 			} else {
 				/* advertise and publish */
-				_triplet_pub = orb_advertise(ORB_ID(vehicle_global_position_set_triplet), &_global_triplet);
+				_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
 			}
 
 		}

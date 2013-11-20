@@ -67,7 +67,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_global_position_set_triplet.h>
+#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
@@ -120,7 +120,7 @@ private:
 	int		_control_task;			/**< task handle for sensor task */
 
 	int		_global_pos_sub;
-	int		_global_set_triplet_sub;
+	int		_mission_item_triplet_sub;
 	int		_att_sub;			/**< vehicle attitude subscription */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
@@ -139,7 +139,7 @@ private:
 	struct airspeed_s				_airspeed;		/**< airspeed */
 	struct vehicle_control_mode_s				_control_mode;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
-	struct vehicle_global_position_set_triplet_s	_global_triplet;	/**< triplet of global setpoints */
+	struct mission_item_triplet_s			_mission_item_triplet;		/**< triplet of mission items */
 	struct accel_report				_accel;			/**< body frame accelerations */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -283,7 +283,7 @@ private:
 	 * Control position.
 	 */
 	bool		control_position(const math::Vector2f &global_pos, const math::Vector2f &ground_speed,
-					 const struct vehicle_global_position_set_triplet_s &global_triplet);
+					 const struct mission_item_triplet_s &_mission_item_triplet);
 
 	float calculate_target_airspeed(float airspeed_demand);
 	void calculate_gndspeed_undershoot();
@@ -318,7 +318,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 
 /* subscriptions */
 	_global_pos_sub(-1),
-	_global_set_triplet_sub(-1),
+	_mission_item_triplet_sub(-1),
 	_att_sub(-1),
 	_airspeed_sub(-1),
 	_control_mode_sub(-1),
@@ -548,11 +548,11 @@ void
 FixedwingPositionControl::vehicle_setpoint_poll()
 {
 	/* check if there is a new setpoint */
-	bool global_sp_updated;
-	orb_check(_global_set_triplet_sub, &global_sp_updated);
+	bool mission_item_triplet_updated;
+	orb_check(_mission_item_triplet_sub, &mission_item_triplet_updated);
 
-	if (global_sp_updated) {
-		orb_copy(ORB_ID(vehicle_global_position_set_triplet), _global_set_triplet_sub, &_global_triplet);
+	if (mission_item_triplet_updated) {
+		orb_copy(ORB_ID(mission_item_triplet), _mission_item_triplet_sub, &_mission_item_triplet);
 		_setpoint_valid = true;
 	}
 }
@@ -625,7 +625,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot()
 
 bool
 FixedwingPositionControl::control_position(const math::Vector2f &current_position, const math::Vector2f &ground_speed,
-		const struct vehicle_global_position_set_triplet_s &global_triplet)
+		const struct mission_item_triplet_s &mission_item_triplet)
 {
 	bool setpoint = true;
 
@@ -641,7 +641,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 	math::Vector3 accel_earth = _R_nb.transpose() * accel_body;
 
 	_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
-	float altitude_error = _global_triplet.current.altitude - _global_pos.alt;
+	float altitude_error = _mission_item_triplet.current.altitude - _global_pos.alt;
 
 	/* no throttle limit as default */
 	float throttle_max = 1.0f;
@@ -662,27 +662,27 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		if (_setpoint_valid) {
 
 			/* current waypoint (the one currently heading for) */
-			math::Vector2f next_wp(global_triplet.current.lat / 1e7f, global_triplet.current.lon / 1e7f);
+			math::Vector2f next_wp(mission_item_triplet.current.lat, mission_item_triplet.current.lon);
 
 			/* previous waypoint */
 			math::Vector2f prev_wp;
 
-			if (global_triplet.previous_valid) {
-				prev_wp.setX(global_triplet.previous.lat / 1e7f);
-				prev_wp.setY(global_triplet.previous.lon / 1e7f);
+			if (mission_item_triplet.previous_valid) {
+				prev_wp.setX(mission_item_triplet.previous.lat);
+				prev_wp.setY(mission_item_triplet.previous.lon);
 
 			} else {
 				/*
 				 * No valid previous waypoint, go for the current wp.
 				 * This is automatically handled by the L1 library.
 				 */
-				prev_wp.setX(global_triplet.current.lat / 1e7f);
-				prev_wp.setY(global_triplet.current.lon / 1e7f);
+				prev_wp.setX(mission_item_triplet.current.lat);
+				prev_wp.setY(mission_item_triplet.current.lon);
 
 			}
 
 			// XXX add RTL switch
-			if (global_triplet.current.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH && _launch_valid) {
+			if (mission_item_triplet.current.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH && _launch_valid) {
 
 				math::Vector2f rtl_pos(_launch_lat, _launch_lon);
 
@@ -698,35 +698,35 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				// XXX handle case when having arrived at home (loiter)
 
-			} else if (global_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
+			} else if (mission_item_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
 				/* waypoint is a plain navigation waypoint */
 				_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
 
-				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
 							    _airspeed.indicated_airspeed_m_s, eas2tas,
 							    false, math::radians(_parameters.pitch_limit_min),
 							    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 							    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
 
-			} else if (global_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-				   global_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-				   global_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
+			} else if (mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+				   mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+				   mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
 
 				/* waypoint is a loiter waypoint */
-				_l1_control.navigate_loiter(next_wp, current_position, global_triplet.current.loiter_radius,
-							  global_triplet.current.loiter_direction, ground_speed);
+				_l1_control.navigate_loiter(next_wp, current_position, mission_item_triplet.current.loiter_radius,
+							  mission_item_triplet.current.loiter_direction, ground_speed);
 				_att_sp.roll_body = _l1_control.nav_roll();
 				_att_sp.yaw_body = _l1_control.nav_bearing();
 
-				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
 							    _airspeed.indicated_airspeed_m_s, eas2tas,
 							    false, math::radians(_parameters.pitch_limit_min),
 							    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 							    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
 
-			} else if (global_triplet.current.nav_cmd == NAV_CMD_LAND) {
+			} else if (mission_item_triplet.current.nav_cmd == NAV_CMD_LAND) {
 
 				/* switch to heading hold for the last meters, continue heading hold after */
 
@@ -737,7 +737,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					/* heading hold, along the line connecting this and the last waypoint */
 					
 
-					// if (global_triplet.previous_valid) {
+					// if (mission_item_triplet.previous_valid) {
 					// 	target_bearing = get_bearing_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), next_wp.getX(), next_wp.getY());
 					// } else {
 
@@ -760,7 +760,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				/* do not go down too early */
 				if (wp_distance > 50.0f) {
-					altitude_error = (_global_triplet.current.altitude + 25.0f) - _global_pos.alt;
+					altitude_error = (_mission_item_triplet.current.altitude + 25.0f) - _global_pos.alt;
 				}
 
 
@@ -770,7 +770,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 				// XXX this could make a great param
 
-				float flare_angle_rad = math::radians(10.0f);//math::radians(global_triplet.current.param1)
+				float flare_angle_rad = math::radians(10.0f);//math::radians(mission_item_triplet.current.param1)
 				float land_pitch_min = math::radians(5.0f);
 				float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 				float airspeed_land = _parameters.airspeed_min;
@@ -783,7 +783,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					/* force TECS to only control speed with pitch, altitude is only implicitely controlled now */
 					_tecs.set_speed_weight(2.0f);
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_land),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(airspeed_land),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, flare_angle_rad,
 								    0.0f, _parameters.throttle_max, throttle_land,
@@ -799,7 +799,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 					/* minimize speed to approach speed */
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(airspeed_approach),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(airspeed_approach),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, flare_angle_rad,
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
@@ -809,14 +809,14 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 					/* normal cruise speed */
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, math::radians(_parameters.pitch_limit_min),
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
 				}
 
-			} else if (global_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
+			} else if (mission_item_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
 
 				_l1_control.navigate_waypoints(prev_wp, next_wp, current_position, ground_speed);
 				_att_sp.roll_body = _l1_control.nav_roll();
@@ -826,9 +826,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				if (altitude_error > 10.0f) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
-								    true, math::max(math::radians(global_triplet.current.param1), math::radians(10.0f)),
+								    true, math::max(math::radians(mission_item_triplet.current.radius), math::radians(10.0f)),
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 								    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
 
@@ -837,7 +837,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				} else {
 
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    false, math::radians(_parameters.pitch_limit_min),
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
@@ -848,7 +848,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			// warnx("nav bearing: %8.4f bearing err: %8.4f target bearing: %8.4f", (double)_l1_control.nav_bearing(),
 			//       (double)_l1_control.bearing_error(), (double)_l1_control.target_bearing());
 			// warnx("prev wp: %8.4f/%8.4f, next wp: %8.4f/%8.4f prev:%s", (double)prev_wp.getX(), (double)prev_wp.getY(),
-			//       (double)next_wp.getX(), (double)next_wp.getY(), (global_triplet.previous_valid) ? "valid" : "invalid");
+			//       (double)next_wp.getX(), (double)next_wp.getY(), (mission_item_triplet.previous_valid) ? "valid" : "invalid");
 
 			// XXX at this point we always want no loiter hold if a
 			// mission is active
@@ -902,7 +902,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		}
 
 		/* reset land state */
-		if (global_triplet.current.nav_cmd != NAV_CMD_LAND) {
+		if (mission_item_triplet.current.nav_cmd != NAV_CMD_LAND) {
 			land_noreturn = false;
 		}
 
@@ -1018,7 +1018,7 @@ FixedwingPositionControl::task_main()
 	 * do subscriptions
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_global_set_triplet_sub = orb_subscribe(ORB_ID(vehicle_global_position_set_triplet));
+	_mission_item_triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -1108,7 +1108,7 @@ FixedwingPositionControl::task_main()
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
 			 * publish setpoint.
 			 */
-			if (control_position(current_position, ground_speed, _global_triplet)) {
+			if (control_position(current_position, ground_speed, _mission_item_triplet)) {
 				_att_sp.timestamp = hrt_absolute_time();
 
 				/* lazily publish the setpoint only once available */
@@ -1121,7 +1121,8 @@ FixedwingPositionControl::task_main()
 					_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 				}
 
-				float turn_distance = _l1_control.switch_distance(_global_triplet.current.turn_distance_xy);
+				/* XXX check if radius makes sense here */
+				float turn_distance = _l1_control.switch_distance(_mission_item_triplet.current.radius);
 
 				/* lazily publish navigation capabilities */
 				if (turn_distance != _nav_capabilities.turn_distance && turn_distance > 0) {
