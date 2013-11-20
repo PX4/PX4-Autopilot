@@ -137,11 +137,17 @@ private:
 	unsigned	_mission_item_count;		/** number of mission items copied */
 	struct mission_item_s				*_mission_item;	/**< storage for mission */
 
+	int		_current_mission_item_index;	/** current active mission item , -1 for none */
+
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
         bool						_inside_fence;		/**< vehicle is inside fence */
 
 	struct navigation_capabilities_s		_nav_caps;
+
+	bool		_waypoint_position_reached;
+	bool		_waypoint_yaw_reached;
+	uint64_t	_time_first_inside_orbit;
 
 	/** manual control states */
 	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
@@ -202,7 +208,9 @@ private:
 
 	bool		fence_valid(const struct fence_s &fence);
 
-	void		current_waypoint_changed(unsigned next_setpoint_index);
+	void		change_current_mission_item(int new_mission_item_index);
+
+	bool		mission_item_reached();
 };
 
 namespace navigator
@@ -239,6 +247,10 @@ Navigator::Navigator() :
 	_max_mission_item_count(10),
 	_fence_valid(false),
 	_inside_fence(true),
+	_current_mission_item_index(-1),
+	_waypoint_position_reached(false),
+	_waypoint_yaw_reached(false),
+	_time_first_inside_orbit(0),
 	_loiter_hold(false)
 {
 	_global_pos.valid = false;
@@ -304,7 +316,8 @@ Navigator::mission_update()
 
 			irqrestore(flags);
 
-			current_waypoint_changed(0);
+			/* start new mission at beginning */
+			change_current_mission_item(0);
 		} else {
 			warnx("ERROR: too many waypoints, not supported");
 		}
@@ -443,6 +456,11 @@ Navigator::task_main()
 			/* AUTONOMOUS FLIGHT */
 
 			if (1 /* autonomous flight */) {
+
+				/* proceed to next waypoint if we reach it */
+				if (mission_item_reached()) {
+					change_current_mission_item(_current_mission_item_index + 1);
+				}
 
 				/* execute navigation once we have a setpoint */
 				if (_mission_item_count > 0) {
@@ -680,23 +698,41 @@ Navigator::fence_point(int argc, char *argv[])
 }
 
 void
-Navigator::current_waypoint_changed(unsigned new_setpoint_index)
+Navigator::change_current_mission_item(int new_mission_item_index)
 {
+	/* no change */
+	if (new_mission_item_index == _current_mission_item_index) {
+		return;
+	}
+	/* or maybe there are no more missions */
+	if (new_mission_item_index >= _mission_item_count) {
+		/* XXX switch to loiter here */
+		return;
+	}
+	
+	/* accept new mission item */
+	_current_mission_item_index = new_mission_item_index;
+
+	/* reset all states */
+	_waypoint_position_reached = false;
+	_waypoint_yaw_reached = false;
+	_time_first_inside_orbit = 0;
+
 	/* TODO: extend this to different frames, global for now */
 
 	_mission_item_triplet.current_valid = false;
 
-	if (_mission_item_count > 0 && new_setpoint_index < _mission_item_count) {
+	if (_mission_item_count > 0 && new_mission_item_index < _mission_item_count) {
 		_mission_item_triplet.current_valid = true;
-		memcpy(&_mission_item_triplet.current, &_mission_item[new_setpoint_index], sizeof(mission_item_s));
+		memcpy(&_mission_item_triplet.current, &_mission_item[new_mission_item_index], sizeof(mission_item_s));
 		warnx("current is valid");
 	}
 
 	int previous_setpoint_index = -1;
 	_mission_item_triplet.previous_valid = false;
 
-	if (new_setpoint_index > 0) {
-		previous_setpoint_index = new_setpoint_index - 1;
+	if (new_mission_item_index > 0) {
+		previous_setpoint_index = new_mission_item_index - 1;
 	}
 
 	while (previous_setpoint_index >= 0) {
@@ -724,7 +760,7 @@ Navigator::current_waypoint_changed(unsigned new_setpoint_index)
 
 	/* next waypoint */
 	if (_mission_item_count > 1) {
-		next_setpoint_index = new_setpoint_index + 1;
+		next_setpoint_index = new_mission_item_index + 1;
 	}
 
 	while (next_setpoint_index < _mission_item_count - 1) {
@@ -753,6 +789,94 @@ Navigator::current_waypoint_changed(unsigned new_setpoint_index)
 		/* advertise and publish */
 		_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
 	}
+
+}
+
+
+bool
+Navigator::mission_item_reached()
+{
+	uint64_t now = hrt_absolute_time();
+	float orbit;
+
+	if (_mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_WAYPOINT) {
+
+		orbit = _mission_item_triplet.current.radius;
+
+	} else if (_mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
+			_mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
+			_mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM) {
+
+		orbit = _mission_item_triplet.current.loiter_radius;
+	} else {
+
+		// XXX set default orbit via param
+		orbit = 15.0f;
+	}
+
+	/* keep vertical orbit */
+	float vertical_switch_distance = orbit;
+
+	/* Take the larger turn distance - orbit or turn_distance */
+	if (orbit < _nav_caps.turn_distance)
+		orbit = _nav_caps.turn_distance;
+
+	// TODO add frame
+	// int coordinate_frame = wpm->waypoints[wpm->current_active_wp_id].frame;
+	
+	float dist = -1.0f;
+	float dist_xy = -1.0f;
+	float dist_z = -1.0f;
+
+	// if (coordinate_frame == (int)MAV_FRAME_GLOBAL) {
+	dist = get_distance_to_point_global_wgs84(_mission_item_triplet.current.lat, _mission_item_triplet.current.lon, _mission_item_triplet.current.altitude,
+		                              (double)_global_pos.lat / 1e7, (double)_global_pos.lon / 1e7, _global_pos.alt,
+		                              &dist_xy, &dist_z);
+
+	// warnx("1 lat: %2.2f, lon: %2.2f, alt: %2.2f", _mission_item_triplet.current.lat, _mission_item_triplet.current.lon, _mission_item_triplet.current.altitude);
+	// warnx("2 lat: %2.2f, lon: %2.2f, alt: %2.2f", (double)_global_pos.lat / 1e7, (double)_global_pos.lon / 1e7, _global_pos.alt);
+
+	// warnx("Dist: %4.4f", dist);
+
+	// } else if (coordinate_frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
+	// 	dist = mavlink_wpm_distance_to_point_global_wgs84(wpm->current_active_wp_id, (float)global_pos->lat * 1e-7f, (float)global_pos->lon * 1e-7f, global_pos->relative_alt, &dist_xy, &dist_z);
+
+	// } else if (coordinate_frame == (int)MAV_FRAME_LOCAL_ENU || coordinate_frame == (int)MAV_FRAME_LOCAL_NED) {
+	// 	dist = mavlink_wpm_distance_to_point_local(wpm->current_active_wp_id, local_pos->x, local_pos->y, local_pos->z, &dist_xy, &dist_z);
+
+	// } else if (coordinate_frame == (int)MAV_FRAME_MISSION) {
+	// 	/* Check if conditions of mission item are satisfied */
+	// 	// XXX TODO
+	// }
+
+	if (dist >= 0.0f && dist_xy <= orbit && dist_z >= 0.0f && dist_z <= vertical_switch_distance) {
+		_waypoint_position_reached = true;
+	}
+
+	/* check if required yaw reached */
+	float yaw_sp = _wrap_pi(_mission_item_triplet.current.yaw);
+	float yaw_err = _wrap_pi(yaw_sp - _global_pos.yaw);
+
+	if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
+		_waypoint_yaw_reached = true;
+	}
+
+	/* check if the current waypoint was reached */
+	if (_waypoint_position_reached /* && _waypoint_yaw_reached */) { /* XXX what about yaw? */
+		
+		if (_time_first_inside_orbit == 0) {
+			/* XXX announcment? */
+			_time_first_inside_orbit = now;
+		}
+				
+		/* check if the MAV was long enough inside the waypoint orbit */
+		if ((now - _time_first_inside_orbit >= (uint64_t)_mission_item_triplet.current.time_inside * 1e6)
+		     || _mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_TAKEOFF) {
+
+			return true;
+		}
+	}
+	return false;
 
 }
 
