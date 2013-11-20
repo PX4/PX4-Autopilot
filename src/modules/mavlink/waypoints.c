@@ -76,7 +76,7 @@ void map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavl
 	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
 	mission_item->nav_cmd = NAV_CMD_WAYPOINT; // TODO correct
 	mission_item->radius = mavlink_mission_item->param1;
-	mission_item->time_inside = mavlink_mission_item->param2;
+	mission_item->time_inside = mavlink_mission_item->param2 / 1e3f; /* from milliseconds to seconds */
 }
 
 void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, const uint16_t seq, mavlink_mission_item_t *mavlink_mission_item)
@@ -89,7 +89,7 @@ void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *missi
 	mavlink_mission_item->param3 = mission_item->loiter_radius*(float)mission_item->loiter_direction;
 	mavlink_mission_item->command = MAV_CMD_NAV_WAYPOINT; // TODO add
 	mavlink_mission_item->param1 = mission_item->radius;
-	mavlink_mission_item->param2 = mission_item->time_inside;
+	mavlink_mission_item->param2 = mission_item->time_inside * 1e3f; /* from seconds to milliseconds */
 
 	mavlink_mission_item->seq = seq;
 }

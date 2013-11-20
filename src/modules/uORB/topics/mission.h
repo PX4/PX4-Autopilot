@@ -78,7 +78,7 @@ struct mission_item_s
 	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
 	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
 	float radius;			/**< radius in which the mission is accepted as reached in meters */
-	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in milliseconds */
+	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 };
 
 struct mission_s
