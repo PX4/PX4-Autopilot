@@ -387,6 +387,30 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, d
 	return return_value;
 }
 
+__EXPORT float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float alt_now,
+	                                          double lat_next, double lon_next, float alt_next,
+	                                          float *dist_xy, float *dist_z)
+{
+	double current_x_rad = lat_next / 180.0 * M_PI;
+	double current_y_rad = lon_next / 180.0 * M_PI;
+	double x_rad = lat_now / 180.0 * M_PI;
+	double y_rad = lon_now / 180.0 * M_PI;
+
+	double d_lat = x_rad - current_x_rad;
+	double d_lon = y_rad - current_y_rad;
+
+	double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0f) * cos(current_x_rad) * cos(x_rad);
+	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+	float dxy = CONSTANTS_RADIUS_OF_EARTH * c;
+	float dz = alt_now - alt_next;
+
+	*dist_xy = fabsf(dxy);
+	*dist_z = fabsf(dz);
+
+	return sqrtf(dxy * dxy + dz * dz);
+}
+
 __EXPORT float _wrap_pi(float bearing)
 {
 	/* value is inf or NaN */
