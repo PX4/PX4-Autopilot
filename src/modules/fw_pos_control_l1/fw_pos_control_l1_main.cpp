@@ -318,7 +318,7 @@ private:
 					 const struct vehicle_global_position_set_triplet_s &global_triplet);
 
 	float calculate_target_airspeed(float airspeed_demand);
-	void calculate_gndspeed_undershoot();
+	void calculate_gndspeed_undershoot(const math::Vector2f &current_position, const math::Vector2f &ground_speed, const struct vehicle_global_position_set_triplet_s &global_triplet);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -665,17 +665,29 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 }
 
 void
-FixedwingPositionControl::calculate_gndspeed_undershoot()
+FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector2f &current_position, const math::Vector2f &ground_speed, const struct vehicle_global_position_set_triplet_s &global_triplet)
 {
 
 	if (_global_pos_valid) {
-		/* get ground speed vector */
-		math::Vector2f ground_speed_vector(_global_pos.vx, _global_pos.vy);
 
-		/* rotate with current attitude */
+		/* rotate ground speed vector with current attitude */
 		math::Vector2f yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
 		yaw_vector.normalize();
-		float ground_speed_body = yaw_vector * ground_speed_vector;
+		float ground_speed_body = yaw_vector * ground_speed;
+
+		/* The minimum desired ground speed is the minimum airspeed projected on to the ground using the altitude and horizontal difference between the waypoints if available*/
+		float distance = 0.0f;
+		float delta_altitude = 0.0f;
+		if (global_triplet.previous_valid) {
+			distance = get_distance_to_next_waypoint(global_triplet.previous.lat *  1e-7f, global_triplet.previous.lon *  1e-7f, global_triplet.current.lat *  1e-7f, global_triplet.current.lon *  1e-7f);
+			delta_altitude = global_triplet.current.altitude - global_triplet.previous.altitude;
+		} else {
+			distance = get_distance_to_next_waypoint(current_position.getX(), current_position.getY(), global_triplet.current.lat *  1e-7f, global_triplet.current.lon *  1e-7f);
+			delta_altitude = global_triplet.current.altitude -  _global_pos.alt;
+		}
+
+		float ground_speed_desired = _parameters.airspeed_min * cosf(atan2f(delta_altitude, distance));
+
 
 		/*
 		 * Ground speed undershoot is the amount of ground velocity not reached
@@ -686,7 +698,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot()
 		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
 		 * by wind). Not countering this would lead to a fly-away.
 		 */
-		_groundspeed_undershoot = math::max(_parameters.airspeed_min - ground_speed_body, 0.0f);
+		_groundspeed_undershoot = math::max(ground_speed_desired - ground_speed_body, 0.0f);
 
 	} else {
 		_groundspeed_undershoot = 0;
@@ -704,7 +716,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 {
 	bool setpoint = true;
 
-	calculate_gndspeed_undershoot();
+	calculate_gndspeed_undershoot(current_position, ground_speed, global_triplet);
 
 	float eas2tas = 1.0f; // XXX calculate actual number based on current measurements
 
