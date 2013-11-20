@@ -132,10 +132,10 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	unsigned	_mission_item_count;		/**< maximum number of mission items supported */
-	struct mission_item_s				* _mission_items;		/**< storage for mission */
-	bool		_mission_valid;			/**< flag if mission is valid */
-
+	unsigned	_max_mission_item_count;	/**< maximum number of mission items supported */
+	
+	unsigned	_mission_item_count;		/** number of mission items copied */
+	struct mission_item_s				*_mission_item;	/**< storage for mission */
 
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
@@ -236,8 +236,7 @@ Navigator::Navigator() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 /* states */
-	_mission_item_count(0),
-	_mission_valid(false),
+	_max_mission_item_count(10),
 	_fence_valid(false),
 	_inside_fence(true),
 	_loiter_hold(false)
@@ -245,6 +244,8 @@ Navigator::Navigator() :
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
 	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
+
+	_mission_item = (mission_item_s*)malloc(sizeof(mission_item_s) * _max_mission_item_count);
 
 	/* fetch initial values */
 	parameters_update();
@@ -292,28 +293,25 @@ Navigator::mission_update()
 		// XXX this is not optimal yet, but a first prototype /
 		// test implementation
 
-		if (mission.count > _mission_item_count) {
-			_mission_items = (mission_item_s*)malloc(sizeof(mission_item_s) * _mission_item_count);
-			if (!_mission_items) {
-				_mission_item_count = 0;
-				warnx("no free RAM to allocate mission, rejecting any waypoints");
-		        }
+		if (mission.count <= _max_mission_item_count) {
+			/*
+			 * Perform an atomic copy & state update
+			 */
+			irqstate_t flags = irqsave();
+
+			memcpy(_mission_item, mission.items, mission.count * sizeof(struct mission_item_s));
+			_mission_item_count = mission.count;
+
+			irqrestore(flags);
+
+			current_waypoint_changed(0);
+		} else {
+			warnx("ERROR: too many waypoints, not supported");
 		}
-
-		/*
-		 * Perform an atomic copy & state update
-		 */
-		irqstate_t flags = irqsave();
-
-		memcpy(_mission_items, mission.items, mission.count * sizeof(struct mission_item_s));
-		_mission_valid = true;
-		_mission_item_count = mission.count;
-
-		irqrestore(flags);
 
 		/* Reset to 0 for now when a waypoint is changed */
 		/* TODO add checks if and how the mission has changed */
-		current_waypoint_changed(0);
+		
 	}
 }
 
@@ -447,7 +445,7 @@ Navigator::task_main()
 			if (1 /* autonomous flight */) {
 
 				/* execute navigation once we have a setpoint */
-				if (_mission_valid) {
+				if (_mission_item_count > 0) {
 
 					// Next waypoint
 					math::Vector2f prev_wp;
@@ -690,7 +688,8 @@ Navigator::current_waypoint_changed(unsigned new_setpoint_index)
 
 	if (_mission_item_count > 0 && new_setpoint_index < _mission_item_count) {
 		_mission_item_triplet.current_valid = true;
-		memcpy(&_mission_item_triplet.current, &_mission_items[new_setpoint_index], sizeof(mission_item_s)); 
+		memcpy(&_mission_item_triplet.current, &_mission_item[new_setpoint_index], sizeof(mission_item_s));
+		warnx("current is valid");
 	}
 
 	int previous_setpoint_index = -1;
@@ -702,13 +701,14 @@ Navigator::current_waypoint_changed(unsigned new_setpoint_index)
 
 	while (previous_setpoint_index >= 0) {
 
-		if ((_mission_items[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
-		     _mission_items[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
-		     _mission_items[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
-		     _mission_items[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
+		if ((_mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
+		     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
+		     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
+		     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
 
 			_mission_item_triplet.previous_valid = true;
-			memcpy(&_mission_item_triplet.previous, &_mission_items[previous_setpoint_index], sizeof(mission_item_s)); 
+			memcpy(&_mission_item_triplet.previous, &_mission_item[previous_setpoint_index], sizeof(mission_item_s));
+			warnx("previous is valid");
 			break;
 		}
 
@@ -729,13 +729,14 @@ Navigator::current_waypoint_changed(unsigned new_setpoint_index)
 
 	while (next_setpoint_index < _mission_item_count - 1) {
 
-		if ((_mission_items[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
-		     _mission_items[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
-		     _mission_items[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
-		     _mission_items[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
+		if ((_mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
+		     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
+		     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
+		     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
 
 			_mission_item_triplet.next_valid = true;
-			memcpy(&_mission_item_triplet.next, &_mission_items[next_setpoint_index], sizeof(mission_item_s)); 
+			memcpy(&_mission_item_triplet.next, &_mission_item[next_setpoint_index], sizeof(mission_item_s));
+			warnx("next is valid");
 			break;
 		}
 
