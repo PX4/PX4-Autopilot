@@ -70,7 +70,7 @@ float ECL_L1_Pos_Controller::target_bearing()
 float ECL_L1_Pos_Controller::switch_distance(float wp_radius)
 {
 	/* following [2], switching on L1 distance */
-	return math::max(wp_radius, _L1_distance);
+	return math::min(wp_radius, _L1_distance);
 }
 
 bool ECL_L1_Pos_Controller::reached_loiter_target(void)

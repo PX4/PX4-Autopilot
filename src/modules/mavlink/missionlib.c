@@ -276,7 +276,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 			next_setpoint_index = index + 1;
 		}
 
-		while (next_setpoint_index < wpm->size - 1) {
+		while (next_setpoint_index < wpm->size) {
 
 			if (wpm->waypoints[next_setpoint_index].frame == (int)MAV_FRAME_GLOBAL && (wpm->waypoints[next_setpoint_index].command == (int)MAV_CMD_NAV_WAYPOINT ||
 					wpm->waypoints[next_setpoint_index].command == (int)MAV_CMD_NAV_LOITER_TURNS ||

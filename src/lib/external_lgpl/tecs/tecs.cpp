@@ -2,6 +2,7 @@
 
 #include "tecs.h"
 #include <ecl/ecl.h>
+#include <systemlib/err.h>
 
 using namespace math;
 
@@ -199,33 +200,47 @@ void TECS::_update_speed_demand(void)
 	_TAS_dem_last = _TAS_dem;
 }
 
-void TECS::_update_height_demand(float demand)
+void TECS::_update_height_demand(float demand, float state)
 {
-	// Apply 2 point moving average to demanded height
-	// This is required because height demand is only updated at 5Hz
-	_hgt_dem = 0.5f * (demand + _hgt_dem_in_old);
-	_hgt_dem_in_old = _hgt_dem;
+//	// Apply 2 point moving average to demanded height
+//	// This is required because height demand is only updated at 5Hz
+//	_hgt_dem = 0.5f * (demand + _hgt_dem_in_old);
+//	_hgt_dem_in_old = _hgt_dem;
+//
+//	// printf("hgt_dem: %6.2f hgt_dem_last: %6.2f max_climb_rate: %6.2f\n", _hgt_dem, _hgt_dem_prev,
+//	// 	_maxClimbRate);
+//
+//	// Limit height rate of change
+//	if ((_hgt_dem - _hgt_dem_prev) > (_maxClimbRate * 0.1f)) {
+//		_hgt_dem = _hgt_dem_prev + _maxClimbRate * 0.1f;
+//
+//	} else if ((_hgt_dem - _hgt_dem_prev) < (-_maxSinkRate * 0.1f)) {
+//		_hgt_dem = _hgt_dem_prev - _maxSinkRate * 0.1f;
+//	}
+//
+//	_hgt_dem_prev = _hgt_dem;
+//
+//	// Apply first order lag to height demand
+//	_hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
+//	_hgt_rate_dem = (_hgt_dem_adj - _hgt_dem_adj_last) / 0.1f;
+//	_hgt_dem_adj_last = _hgt_dem_adj;
+//
+//	// printf("hgt_dem: %6.2f hgt_dem_adj: %6.2f hgt_dem_last: %6.2f hgt_rate_dem: %6.2f\n", _hgt_dem, _hgt_dem_adj, _hgt_dem_adj_last,
+//	// 	_hgt_rate_dem);
 
-	// printf("hgt_dem: %6.2f hgt_dem_last: %6.2f max_climb_rate: %6.2f\n", _hgt_dem, _hgt_dem_prev,
-	// 	_maxClimbRate);
-
-	// Limit height rate of change
-	if ((_hgt_dem - _hgt_dem_prev) > (_maxClimbRate * 0.1f)) {
-		_hgt_dem = _hgt_dem_prev + _maxClimbRate * 0.1f;
-
-	} else if ((_hgt_dem - _hgt_dem_prev) < (-_maxSinkRate * 0.1f)) {
-		_hgt_dem = _hgt_dem_prev - _maxSinkRate * 0.1f;
-	}
-
-	_hgt_dem_prev = _hgt_dem;
-
-	// Apply first order lag to height demand
-	_hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
-	_hgt_rate_dem = (_hgt_dem_adj - _hgt_dem_adj_last) / 0.1f;
+	_hgt_dem_adj = demand;//0.025f * demand + 0.975f * _hgt_dem_adj_last;
 	_hgt_dem_adj_last = _hgt_dem_adj;
 
-	// printf("hgt_dem: %6.2f hgt_dem_adj: %6.2f hgt_dem_last: %6.2f hgt_rate_dem: %6.2f\n", _hgt_dem, _hgt_dem_adj, _hgt_dem_adj_last,
-	// 	_hgt_rate_dem);
+	_hgt_rate_dem = (_hgt_dem_adj-state)*_heightrate_p;
+	// Limit height rate of change
+	if (_hgt_rate_dem > _maxClimbRate) {
+		_hgt_rate_dem = _maxClimbRate;
+
+	} else if (_hgt_rate_dem < -_maxSinkRate) {
+		_hgt_rate_dem = -_maxSinkRate;
+	}
+
+	warnx("_hgt_rate_dem: %.4f, _hgt_dem_adj %.4f", _hgt_rate_dem, _hgt_dem_adj);
 }
 
 void TECS::_detect_underspeed(void)
@@ -299,7 +314,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Dcm &rotMat)
 
 		// Rate limit PD + FF throttle
 		// Calculate the throttle increment from the specified slew time
-		if (fabsf(_throttle_slewrate) < 0.01f) {
+		if (fabsf(_throttle_slewrate) > 0.01f) {
 			float thrRateIncr = _DT * (_THRmaxf - _THRminf) * _throttle_slewrate;
 
 			_throttle_dem = constrain(_throttle_dem,
@@ -500,7 +515,7 @@ void TECS::update_pitch_throttle(const math::Dcm &rotMat, float pitch, float bar
 	_update_speed_demand();
 
 	// Calculate the height demand
-	_update_height_demand(hgt_dem);
+	_update_height_demand(hgt_dem, baro_altitude);
 
 	// Detect underspeed condition
 	_detect_underspeed();
