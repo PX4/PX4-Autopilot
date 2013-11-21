@@ -127,7 +127,7 @@ public:
 	int		set_overrideSecurityChecks(bool overrideSecurityChecks);
 	int		set_px4mode(int px4mode);
 	int		set_frametype(int frametype);
-	unsigned int		mk_check_for_blctrl(unsigned int count, bool showOutput);
+	unsigned int		mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C);
 
 private:
 	static const unsigned _max_actuators = MAX_MOTORS;
@@ -726,8 +726,12 @@ MK::mk_servo_arm(bool status)
 
 
 unsigned int
-MK::mk_check_for_blctrl(unsigned int count, bool showOutput)
+MK::mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C)
 {
+	if(initI2C) {
+		I2C::init();
+	}
+
 	_retries = 50;
 	uint8_t foundMotorCount = 0;
 
@@ -1366,7 +1370,7 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 
 	/* count used motors */
 	do {
-		if (g_mk->mk_check_for_blctrl(8, false) != 0) {
+		if (g_mk->mk_check_for_blctrl(8, false, false) != 0) {
 			shouldStop = 4;
 
 		} else {
@@ -1376,7 +1380,7 @@ mk_new_mode(PortMode new_mode, int update_rate, int motorcount, bool motortest, 
 		sleep(1);
 	} while (shouldStop < 3);
 
-	g_mk->set_motor_count(g_mk->mk_check_for_blctrl(8, true));
+	g_mk->set_motor_count(g_mk->mk_check_for_blctrl(8, true, false));
 
 	/* (re)set the PWM output mode */
 	g_mk->set_mode(servo_mode);
@@ -1414,6 +1418,52 @@ mk_start(unsigned bus, unsigned motors, char *device_path)
 }
 
 
+int
+mk_check_for_i2c_esc_bus(char *device_path, int motors)
+{
+	int ret;
+
+	if (g_mk == nullptr) {
+
+		g_mk = new MK(3, device_path);
+
+		if (g_mk == nullptr) {
+			return -1;
+
+		} else {
+			ret = g_mk->mk_check_for_blctrl(8, false, true);
+			delete g_mk;
+			g_mk = nullptr;
+
+			if (ret > 0) {
+				return 3;
+			}
+
+		}
+
+
+		g_mk = new MK(1, device_path);
+
+		if (g_mk == nullptr) {
+			return -1;
+
+		} else {
+			ret = g_mk->mk_check_for_blctrl(8, false, true);
+			delete g_mk;
+			g_mk = nullptr;
+
+			if (ret > 0) {
+				return 1;
+			}
+
+		}
+	}
+
+	return -1;
+}
+
+
+
 } // namespace
 
 extern "C" __EXPORT int mkblctrl_main(int argc, char *argv[]);
@@ -1424,7 +1474,7 @@ mkblctrl_main(int argc, char *argv[])
 	PortMode port_mode = PORT_FULL_PWM;
 	int pwm_update_rate_in_hz = UPDATE_RATE;
 	int motorcount = 8;
-	int bus = 1;
+	int bus = -1;
 	int px4mode = MAPPING_PX4;
 	int frametype = FRAME_PLUS;	// + plus is default
 	bool motortest = false;
@@ -1517,15 +1567,23 @@ mkblctrl_main(int argc, char *argv[])
 	}
 
 
-	if (g_mk == nullptr) {
-		if (mk_start(bus, motorcount, devicepath) != OK) {
-			errx(1, "failed to start the MK-BLCtrl driver");
-
-		} else {
-			//////newMode = true;
-		}
+	if (bus != -1) {
+		bus = mk_check_for_i2c_esc_bus(devicepath, motorcount);
 	}
 
+	if (bus != -1) {
+		if (g_mk == nullptr) {
+			if (mk_start(bus, motorcount, devicepath) != OK) {
+				errx(1, "failed to start the MK-BLCtrl driver");
+
+			} else {
+				//////newMode = true;
+			}
+		}
+	} else {
+		errx(1, "failed to start the MK-BLCtrl driver (cannot find i2c esc's)");
+
+	}
 
 	/* parameter set ? */
 	if (newMode) {
