@@ -75,6 +75,7 @@
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
+#include <lib/geo/geo.h>
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -82,6 +83,9 @@
  * @ingroup apps
  */
 extern "C" __EXPORT int mc_att_control_vector_main(int argc, char *argv[]);
+
+#define MIN_TAKEOFF_THROTTLE	0.3f
+#define YAW_DEADZONE	0.01f
 
 class MulticopterAttitudeControl
 {
@@ -116,7 +120,8 @@ private:
 	int 		_manual_sub;			/**< notification of manual control updates */
 	int		_arming_sub;			/**< arming status of outputs */
 
-	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
+	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
+	orb_advert_t	_rates_sp_pub;			/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
@@ -125,7 +130,7 @@ private:
 	struct vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_armed_s				_arming;		/**< actuator arming status */
-	struct vehicle_rates_setpoint_s		_rates_setpoint;		/**< vehicle rates setpoint */
+	struct vehicle_rates_setpoint_s		_rates_sp;		/**< vehicle rates setpoint */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -208,7 +213,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_arming_sub(-1),
 
 /* publications */
-	_rate_sp_pub(-1),
+	_rates_sp_pub(-1),
 	_actuators_0_pub(-1),
 
 /* performance counters */
@@ -368,6 +373,8 @@ MulticopterAttitudeControl::task_main()
 	vehicle_manual_poll();
 	arming_status_poll();
 
+	bool reset_yaw_sp = true;
+
 	/* wakeup source(s) */
 	struct pollfd fds[2];
 
@@ -406,12 +413,12 @@ MulticopterAttitudeControl::task_main()
 		/* only run controller if attitude changed */
 		if (fds[1].revents & POLLIN) {
 			static uint64_t last_run = 0;
-			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
+			float dt = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
 
-			/* guard against too large deltaT's */
-			if (deltaT > 1.0f)
-				deltaT = 0.01f;
+			/* guard against too large dt's */
+			if (dt > 0.02f)
+				dt = 0.02f;
 
 			/* copy attitude topic */
 			orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
@@ -421,28 +428,93 @@ MulticopterAttitudeControl::task_main()
 			arming_status_poll();
 			vehicle_manual_poll();
 
-			float roll_sp = 0.0f;
-			float pitch_sp = 0.0f;
-			float throttle_sp = 0.0f;
-			float yaw_sp = 0.0f;
+			float yaw_sp_move_rate = 0.0f;
+			bool publish_att_sp = false;
 
-			/* decide if in auto or manual control */
+			/* define which input is the dominating control input */
 			if (_control_mode.flag_control_manual_enabled) {
-				roll_sp = _manual.roll;
-				pitch_sp = _manual.pitch;
-				yaw_sp = _manual.yaw;	// XXX move yaw setpoint
-				throttle_sp = _manual.throttle;
+				/* manual input */
+				if (!_control_mode.flag_control_climb_rate_enabled) {
+					/* pass throttle directly if not in altitude control mode */
+					_att_sp.thrust = _manual.throttle;
+				}
 
-			} else if (_control_mode.flag_control_auto_enabled) {
-				roll_sp = _att_sp.roll_body;
-				pitch_sp = _att_sp.pitch_body;
-				yaw_sp = _att_sp.yaw_body;
-				throttle_sp = _att_sp.thrust;
+				if (_control_mode.flag_control_attitude_enabled) {
+					/* control attitude, update attitude setpoint depending on mode */
+
+					if (_att_sp.thrust < 0.1f) {
+						// TODO
+						//if (_status.condition_landed) {
+							/* reset yaw setpoint if on ground */
+						//	reset_yaw_sp = true;
+						//}
+					} else {
+						if (_manual.yaw < -YAW_DEADZONE || YAW_DEADZONE < _manual.yaw) {
+							/* move yaw setpoint */
+							yaw_sp_move_rate = _manual.yaw;
+							_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + yaw_sp_move_rate * dt);
+							publish_att_sp = true;
+						}
+					}
+
+					/* reset yaw setpint to current position if needed */
+					if (reset_yaw_sp) {
+						reset_yaw_sp = false;
+						_att_sp.yaw_body = _att.yaw;
+						publish_att_sp = true;
+					}
+
+					if (!_control_mode.flag_control_velocity_enabled) {
+						/* update attitude setpoint if not in position control mode */
+						_att_sp.roll_body = _manual.roll;
+						_att_sp.pitch_body = _manual.pitch;
+						publish_att_sp = true;
+					}
+				} else {
+					/* manual rate inputs (ACRO) */
+					// TODO
+					/* reset yaw setpoint after ACRO */
+					reset_yaw_sp = true;
+				}
+
+			} else {
+				if (!_control_mode.flag_control_auto_enabled) {
+					/* no control, try to stay on place */
+					if (!_control_mode.flag_control_velocity_enabled) {
+						/* no velocity control, reset attitude setpoint */
+						_att_sp.roll_body = 0.0f;
+						_att_sp.pitch_body = 0.0f;
+						publish_att_sp = true;
+					}
+				}
+
+				/* reset yaw setpoint after non-manual control */
+				reset_yaw_sp = true;
 			}
 
-			/* construct rotation matrix from euler angles */
-			math::EulerAngles euler(roll_sp, pitch_sp, yaw_sp);
-			math::Dcm R_des(euler);
+			if (publish_att_sp || !_att_sp.R_valid) {
+				/* controller uses rotation matrix, not euler angles, convert if necessary */
+				math::EulerAngles euler_sp(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
+				math::Dcm R_sp(euler_sp);
+				for (int i = 0; i < 9; i++) {
+					_att_sp.R_body[i] = R_sp(i / 3, i % 3);
+				}
+				_att_sp.R_valid = true;
+			}
+
+			if (publish_att_sp) {
+				/* publish the attitude setpoint */
+				_att_sp.timestamp = hrt_absolute_time();
+				if (_att_sp_pub > 0) {
+					orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
+
+				} else {
+					_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+				}
+			}
+
+			/* desired rotation matrix */
+			math::Dcm R_des(&_att_sp.R_body[0]);
 
 			/* rotation matrix for current state */
 			math::Dcm R(_att.R);
@@ -454,28 +526,30 @@ MulticopterAttitudeControl::task_main()
 			math::Vector3 e_R(-e_R_m(1, 2), e_R_m(0, 2), -e_R_m(0, 1));
 
 			/* angular rates setpoint*/
-			math::Vector3 rates_sp = K_p * e_R;
-			math::Vector3 control = K_r_p * (rates_sp - rates);
+			math::Vector3 rates_sp = _K * e_R;
+			/* feed forward yaw setpoint rate */
+			rates_sp(2) += yaw_sp_move_rate;
+			math::Vector3 control = _K_rate * (rates_sp - rates);
 
 			/* publish the attitude rates setpoint */
-			_rates_setpoint.roll = rates_sp(0);
-			_rates_setpoint.pitch = rates_sp(1);
-			_rates_setpoint.yaw = rates_sp(2);
-			_rates_setpoint.thrust = throttle_sp;
-			_rates_setpoint.timestamp = hrt_absolute_time();
+			_rates_sp.roll = rates_sp(0);
+			_rates_sp.pitch = rates_sp(1);
+			_rates_sp.yaw = rates_sp(2);
+			_rates_sp.thrust = _att_sp.thrust;
+			_rates_sp.timestamp = hrt_absolute_time();
 
-			if (_rate_sp_pub > 0) {
-				orb_publish(ORB_ID(vehicle_rates_setpoint), _actuators_0_pub, &_rates_setpoint);
+			if (_rates_sp_pub > 0) {
+				orb_publish(ORB_ID(vehicle_rates_setpoint), _rates_sp_pub, &_rates_sp);
 
 			} else {
-				_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_setpoint);
+				_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
 			}
 
 			/* publish the attitude controls */
 			_actuators.control[0] = (isfinite(control(0))) ? control(0) : 0.0f;
 			_actuators.control[1] = (isfinite(control(1))) ? control(1) : 0.0f;
 			_actuators.control[2] = (isfinite(control(2))) ? control(2) : 0.0f;
-			_actuators.control[3] = (isfinite(throttle_sp)) ? throttle_sp : 0.0f;
+			_actuators.control[3] = (isfinite(_rates_sp.thrust)) ? _rates_sp.thrust : 0.0f;
 			_actuators.timestamp = hrt_absolute_time();
 
 			if (_actuators_0_pub > 0) {
