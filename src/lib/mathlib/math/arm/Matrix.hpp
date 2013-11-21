@@ -121,10 +121,10 @@ public:
 		for (size_t i = 0; i < getRows(); i++) {
 			for (size_t j = 0; j < getCols(); j++) {
 				float sig;
-				int exp;
+				int exponent;
 				float num = (*this)(i, j);
-				float2SigExp(num, sig, exp);
-				printf("%6.3fe%03.3d,", (double)sig, exp);
+				float2SigExp(num, sig, exponent);
+				printf("%6.3fe%03d ", (double)sig, exponent);
 			}
 
 			printf("\n");

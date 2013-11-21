@@ -54,7 +54,9 @@ public:
 		_SPE_est(0.0f),
 		_SKE_est(0.0f),
 		_SPEdot(0.0f),
-		_SKEdot(0.0f) {
+		_SKEdot(0.0f),
+		_vel_dot(0.0f),
+		_STEdotErrLast(0.0f) {
 
 	}
 

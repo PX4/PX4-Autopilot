@@ -471,7 +471,10 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							} else {
 								local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
 							}
-							att_sp.yaw_body = global_pos_sp.yaw;
+							/* update yaw setpoint only if value is valid */
+							if (isfinite(global_pos_sp.yaw) && fabsf(global_pos_sp.yaw) < M_TWOPI) {
+								att_sp.yaw_body = global_pos_sp.yaw;
+							}
 
 							mavlink_log_info(mavlink_fd, "[mpc] new sp: %.7f, %.7f (%.2f, %.2f)", (double)sp_lat, sp_lon, (double)local_pos_sp.x, (double)local_pos_sp.y);
 

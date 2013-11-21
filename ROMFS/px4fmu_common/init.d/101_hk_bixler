@@ -52,8 +52,6 @@ then
 	# Start MAVLink (depends on orb)
 	mavlink start
 
-	commander start
-
 	sh /etc/init.d/rc.io
 	# Limit to 100 Hz updates and (implicit) 50 Hz PWM
 	px4io limit 100
@@ -61,39 +59,27 @@ else
 	# Start MAVLink (on UART1 / ttyS0)
 	mavlink start -d /dev/ttyS0
 
-	commander start
-
 	fmu mode_pwm
 	param set BAT_V_SCALING 0.004593
 	set EXIT_ON_END yes
 fi
- 
-#
-# Start the sensors and test them.
-#
-sh /etc/init.d/rc.sensors
 
-#
-# Start logging (depends on sensors)
-#
-sh /etc/init.d/rc.logging
-
-#
-# Start GPS interface (depends on orb)
-#
-gps start
- 
-#
-# Start the attitude and position estimator
-#
-att_pos_estimator_ekf start
- 
 #
 # Load mixer and start controllers (depends on px4io)
 #
-mixer load /dev/pwm_output /etc/mixers/FMU_AERT.mix
-fw_att_control start
-fw_pos_control_l1 start
+if [ -f /fs/microsd/etc/mixers/FMU_AERT.mix ]
+then
+	echo "Using /fs/microsd/etc/mixers/FMU_AERT.mix"
+	mixer load /dev/pwm_output /fs/microsd/etc/mixers/FMU_AERT.mix
+else
+	echo "Using /etc/mixers/FMU_Q.mix"
+	mixer load /dev/pwm_output /etc/mixers/FMU_AERT.mix
+fi
+
+#
+# Start common fixedwing apps
+#
+sh /etc/init.d/rc.fixedwing
 
 if [ $EXIT_ON_END == yes ]
 then
