@@ -704,81 +704,112 @@ Navigator::change_current_mission_item(int new_mission_item_index)
 	if (new_mission_item_index == _current_mission_item_index) {
 		return;
 	}
-	/* or maybe there are no more missions */
+	/* or maybe there are no more mission items */
 	if (new_mission_item_index >= _mission_item_count) {
-		/* XXX switch to loiter here */
-		return;
-	}
-	
-	/* accept new mission item */
-	_current_mission_item_index = new_mission_item_index;
-
-	/* reset all states */
-	_waypoint_position_reached = false;
-	_waypoint_yaw_reached = false;
-	_time_first_inside_orbit = 0;
-
-	/* TODO: extend this to different frames, global for now */
-
-	_mission_item_triplet.current_valid = false;
-
-	if (_mission_item_count > 0 && new_mission_item_index < _mission_item_count) {
+		
+		/* just keep the last mission item and set it to loiter */
+		_mission_item_triplet.previous_valid = false;
 		_mission_item_triplet.current_valid = true;
-		memcpy(&_mission_item_triplet.current, &_mission_item[new_mission_item_index], sizeof(mission_item_s));
-		warnx("current is valid");
+		_mission_item_triplet.next_valid = false;
+
+		switch (_mission_item_triplet.current.nav_cmd) {
+
+			/* if the last mission is not a loiter item, set it to one */
+			case NAV_CMD_WAYPOINT:
+			case NAV_CMD_RETURN_TO_LAUNCH:
+			case NAV_CMD_TAKEOFF:
+
+				_mission_item_triplet.current.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+				_mission_item_triplet.current.loiter_radius = 100.0f;
+				//_mission_item_triplet.current.loiter_radius = _nav_caps.turn_distance; // TODO: publish capabilities somewhere
+				_mission_item_triplet.current.loiter_direction = 1;
+				break;
+
+			/* if the last mission item was to loiter, continue unlimited */
+			case NAV_CMD_LOITER_TURN_COUNT:
+			case NAV_CMD_LOITER_TIME_LIMIT:
+
+				_mission_item_triplet.current.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+				break;
+			/* if already in loiter, don't change anything */
+			case NAV_CMD_LOITER_UNLIMITED:
+				break;
+			/* if landed, stay in land mode */
+			case NAV_CMD_LAND:
+				break;
+
+			default:
+				warnx("Unsupported nav_cmd");
+				break;
+		}	
 	}
+	else {
+		/* accept new mission item */
+		_current_mission_item_index = new_mission_item_index;
 
-	int previous_setpoint_index = -1;
-	_mission_item_triplet.previous_valid = false;
+		/* reset all states */
+		_waypoint_position_reached = false;
+		_waypoint_yaw_reached = false;
+		_time_first_inside_orbit = 0;
 
-	if (new_mission_item_index > 0) {
-		previous_setpoint_index = new_mission_item_index - 1;
-	}
+		/* TODO: extend this to different frames, global for now */
 
-	while (previous_setpoint_index >= 0) {
+		_mission_item_triplet.current_valid = false;
 
-		if ((_mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
-		     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
-		     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
-		     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
-
-			_mission_item_triplet.previous_valid = true;
-			memcpy(&_mission_item_triplet.previous, &_mission_item[previous_setpoint_index], sizeof(mission_item_s));
-			warnx("previous is valid");
-			break;
+		if (_mission_item_count > 0 && new_mission_item_index < _mission_item_count) {
+			_mission_item_triplet.current_valid = true;
+			memcpy(&_mission_item_triplet.current, &_mission_item[new_mission_item_index], sizeof(mission_item_s));
 		}
 
-		previous_setpoint_index--;
-	}
+		int previous_setpoint_index = -1;
+		_mission_item_triplet.previous_valid = false;
 
-	/*
-	 * Check if next WP (in mission, not in execution order) 
-	 * is available and identify correct index
-	 */
-	int next_setpoint_index = -1;
-	_mission_item_triplet.next_valid = false;
-
-	/* next waypoint */
-	if (_mission_item_count > 1) {
-		next_setpoint_index = new_mission_item_index + 1;
-	}
-
-	while (next_setpoint_index < _mission_item_count - 1) {
-
-		if ((_mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
-		     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
-		     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
-		     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
-
-			_mission_item_triplet.next_valid = true;
-			memcpy(&_mission_item_triplet.next, &_mission_item[next_setpoint_index], sizeof(mission_item_s));
-			warnx("next is valid");
-			break;
+		if (new_mission_item_index > 0) {
+			previous_setpoint_index = new_mission_item_index - 1;
 		}
 
-		next_setpoint_index++;
-	}
+		while (previous_setpoint_index >= 0) {
 
+			if ((_mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
+			     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
+			     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
+			     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
+
+				_mission_item_triplet.previous_valid = true;
+				memcpy(&_mission_item_triplet.previous, &_mission_item[previous_setpoint_index], sizeof(mission_item_s));
+				break;
+			}
+
+			previous_setpoint_index--;
+		}
+
+		/*
+		 * Check if next WP (in mission, not in execution order) 
+		 * is available and identify correct index
+		 */
+		int next_setpoint_index = -1;
+		_mission_item_triplet.next_valid = false;
+
+		/* next waypoint */
+		if (_mission_item_count > 1) {
+			next_setpoint_index = new_mission_item_index + 1;
+		}
+
+		while (next_setpoint_index < _mission_item_count - 1) {
+
+			if ((_mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
+			     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
+			     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
+			     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
+
+				_mission_item_triplet.next_valid = true;
+				memcpy(&_mission_item_triplet.next, &_mission_item[next_setpoint_index], sizeof(mission_item_s));
+				break;
+			}
+
+			next_setpoint_index++;
+		}
+	}
 
 	/* lazily publish the setpoint only once available */
 	if (_triplet_pub > 0) {
@@ -789,7 +820,6 @@ Navigator::change_current_mission_item(int new_mission_item_index)
 		/* advertise and publish */
 		_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
 	}
-
 }
 
 
