@@ -280,7 +280,7 @@ void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector2f &vector_A, cons
 	 */
 
 	// XXX check switch over
-	if ((lateral_accel_sp_center < lateral_accel_sp_circle && loiter_direction > 0 && xtrack_err_circle > 0.0f) |
+	if ((lateral_accel_sp_center < lateral_accel_sp_circle && loiter_direction > 0 && xtrack_err_circle > 0.0f) ||
 		(lateral_accel_sp_center > lateral_accel_sp_circle && loiter_direction < 0 && xtrack_err_circle > 0.0f)) {
 		_lateral_accel = lateral_accel_sp_center;
 		_circle_mode = false;
