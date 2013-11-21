@@ -1,9 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Authors:	Lorenz Meier
- *		Jean Cyr
- *		Julian Oes
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *           @author Jean Cyr <jean.m.cyr@gmail.com>
+ *           @author Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,6 +69,11 @@
 #include <mathlib/mathlib.h>
 #include <dataman/dataman.h>
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
 
 /**
  * navigator app start / stop handling function
@@ -208,9 +213,17 @@ private:
 
 	bool		fence_valid(const struct fence_s &fence);
 
-	void		change_current_mission_item(int new_mission_item_index);
+	int		add_mission_item(unsigned mission_item, struct mission_item_s *new_mission_item);
 
-	bool		mission_item_reached();
+	void		add_last_mission_item(const struct mission_item_s *existing_mission_item, struct mission_item_s *new_mission_item);
+
+	void		advance_current_mission_item();
+
+	void		restart_mission();
+
+	void		reset_mission_item_reached();
+
+	bool		check_mission_item_reached();
 };
 
 namespace navigator
@@ -317,7 +330,7 @@ Navigator::mission_update()
 			irqrestore(flags);
 
 			/* start new mission at beginning */
-			change_current_mission_item(0);
+			restart_mission();
 		} else {
 			warnx("ERROR: too many waypoints, not supported");
 		}
@@ -448,101 +461,18 @@ Navigator::task_main()
 			}
 
 			math::Vector2f ground_speed(_global_pos.vx, _global_pos.vy);
-			// Current waypoint
+			/* Current waypoint */
 			math::Vector2f next_wp(_mission_item_triplet.current.lat / 1e7f, _mission_item_triplet.current.lon / 1e7f);
-			// Global position
+			/* Global position */
 			math::Vector2f current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
 
-			/* AUTONOMOUS FLIGHT */
-
+			/* Autonomous flight */
 			if (1 /* autonomous flight */) {
 
 				/* proceed to next waypoint if we reach it */
-				if (mission_item_reached()) {
-					change_current_mission_item(_current_mission_item_index + 1);
+				if (check_mission_item_reached()) {
+					advance_current_mission_item();
 				}
-
-				/* execute navigation once we have a setpoint */
-				if (_mission_item_count > 0) {
-
-					// Next waypoint
-					math::Vector2f prev_wp;
-
-					if (_mission_item_triplet.previous_valid) {
-						prev_wp.setX(_mission_item_triplet.previous.lat / 1e7f);
-						prev_wp.setY(_mission_item_triplet.previous.lon / 1e7f);
-
-					} else {
-						/*
-						 * No valid next waypoint, go for heading hold.
-						 * This is automatically handled by the L1 library.
-						 */
-						prev_wp.setX(_mission_item_triplet.current.lat / 1e7f);
-						prev_wp.setY(_mission_item_triplet.current.lon / 1e7f);
-
-					}
-
-
-
-					/********   MAIN NAVIGATION STATE MACHINE   ********/
-
-					// XXX to be put in its own class
-
-					if (_mission_item_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
-						/* waypoint is a plain navigation waypoint */
-
-
-					} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-						   _mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-						   _mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
-
-						/* waypoint is a loiter waypoint */
-
-					}
-
-					// XXX at this point we always want no loiter hold if a
-					// mission is active
-					_loiter_hold = false;
-
-				} else {
-
-					if (!_loiter_hold) {
-						_loiter_hold_lat = _global_pos.lat / 1e7f;
-						_loiter_hold_lon = _global_pos.lon / 1e7f;
-						_loiter_hold_alt = _global_pos.alt;
-						_loiter_hold = true;
-					}
-
-					//_parameters.loiter_hold_radius
-				}
-
-			} else if (0/* seatbelt mode enabled */) {
-
-				/** SEATBELT FLIGHT **/
-				continue;
-
-			} else {
-
-				/** MANUAL FLIGHT **/
-
-				/* no flight mode applies, do not publish an attitude setpoint */
-				continue;
-			}
-
-			/********   MAIN NAVIGATION STATE MACHINE   ********/
-
-			if (_mission_item_triplet.current.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
-				// XXX define launch position and return
-
-			} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LAND) {
-				// XXX flared descent on final approach
-
-			} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
-
-				/* apply minimum pitch if altitude has not yet been reached */
-				// if (_global_pos.alt < _mission_item_triplet.current.altitude) {
-				// 	_att_sp.pitch_body = math::max(_att_sp.pitch_body, _mission_item_triplet.current.param1);
-				// }
 			}
 
 			/* lazily publish the setpoint only once available */
@@ -554,7 +484,6 @@ Navigator::task_main()
 				/* advertise and publish */
 				_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
 			}
-
 		}
 
 		perf_end(_loop_perf);
@@ -697,39 +626,70 @@ Navigator::fence_point(int argc, char *argv[])
 	errx(1, "can't store fence point");
 }
 
-void
-Navigator::change_current_mission_item(int new_mission_item_index)
-{
-	/* no change */
-	if (new_mission_item_index == _current_mission_item_index) {
-		return;
-	}
-	/* or maybe there are no more mission items */
-	if (new_mission_item_index >= _mission_item_count) {
-		
-		/* just keep the last mission item and set it to loiter */
-		_mission_item_triplet.previous_valid = false;
-		_mission_item_triplet.current_valid = true;
-		_mission_item_triplet.next_valid = false;
+int
+Navigator::add_mission_item(unsigned mission_item_index, struct mission_item_s *new_mission_item) {
 
-		switch (_mission_item_triplet.current.nav_cmd) {
+	/* Check if there is a further mission as the new next item */
+	while (mission_item_index < _mission_item_count) {
+
+		if (1 /* TODO: check for correct frame */) {
+
+			warnx("copying item number %d", mission_item_index);
+			memcpy(new_mission_item, &_mission_item[mission_item_index], sizeof(mission_item_s));
+			return OK;
+		}
+		mission_item_index++;
+	}
+
+	return ERROR;
+}
+
+void
+Navigator::add_last_mission_item(const struct mission_item_s *existing_mission_item, struct mission_item_s *new_mission_item)
+{
+	/* if no existing mission item exists, take curent location */
+	if (existing_mission_item == nullptr) {
+		
+		new_mission_item->lat = (double)_global_pos.lat / 1e7;
+		new_mission_item->lon = (double)_global_pos.lon / 1e7;
+		new_mission_item->altitude = _global_pos.alt;
+		new_mission_item->yaw = _global_pos.yaw;
+		new_mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+		new_mission_item->loiter_direction = 1;
+		new_mission_item->loiter_radius = 100.0f; // TODO: get rid of magic number
+		new_mission_item->radius = 10.0f; // TODO: get rid of magic number
+		new_mission_item->autocontinue = false;
+
+	} else {
+
+		switch (existing_mission_item->nav_cmd) {
 
 			/* if the last mission is not a loiter item, set it to one */
 			case NAV_CMD_WAYPOINT:
 			case NAV_CMD_RETURN_TO_LAUNCH:
 			case NAV_CMD_TAKEOFF:
 
-				_mission_item_triplet.current.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-				_mission_item_triplet.current.loiter_radius = 100.0f;
+				/* copy current mission to next item */
+				memcpy(new_mission_item, existing_mission_item, sizeof(mission_item_s));
+
+				/* and set it to a loiter item */
+				new_mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+				/* also adapt the loiter_radius */
+				new_mission_item->loiter_radius = 100.0f;
 				//_mission_item_triplet.current.loiter_radius = _nav_caps.turn_distance; // TODO: publish capabilities somewhere
-				_mission_item_triplet.current.loiter_direction = 1;
+				new_mission_item->loiter_direction = 1;
+
 				break;
 
 			/* if the last mission item was to loiter, continue unlimited */
 			case NAV_CMD_LOITER_TURN_COUNT:
 			case NAV_CMD_LOITER_TIME_LIMIT:
 
-				_mission_item_triplet.current.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+				/* copy current mission to next item */
+				memcpy(new_mission_item, existing_mission_item, sizeof(mission_item_s));
+				/* and set it to loiter */
+				new_mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+
 				break;
 			/* if already in loiter, don't change anything */
 			case NAV_CMD_LOITER_UNLIMITED:
@@ -741,101 +701,86 @@ Navigator::change_current_mission_item(int new_mission_item_index)
 			default:
 				warnx("Unsupported nav_cmd");
 				break;
-		}	
-	}
-	else {
-		/* accept new mission item */
-		_current_mission_item_index = new_mission_item_index;
-
-		/* reset all states */
-		_waypoint_position_reached = false;
-		_waypoint_yaw_reached = false;
-		_time_first_inside_orbit = 0;
-
-		/* TODO: extend this to different frames, global for now */
-
-		_mission_item_triplet.current_valid = false;
-
-		if (_mission_item_count > 0 && new_mission_item_index < _mission_item_count) {
-			_mission_item_triplet.current_valid = true;
-			memcpy(&_mission_item_triplet.current, &_mission_item[new_mission_item_index], sizeof(mission_item_s));
 		}
-
-		int previous_setpoint_index = -1;
-		_mission_item_triplet.previous_valid = false;
-
-		if (new_mission_item_index > 0) {
-			previous_setpoint_index = new_mission_item_index - 1;
-		}
-
-		while (previous_setpoint_index >= 0) {
-
-			if ((_mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
-			     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
-			     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
-			     _mission_item[previous_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
-
-				_mission_item_triplet.previous_valid = true;
-				memcpy(&_mission_item_triplet.previous, &_mission_item[previous_setpoint_index], sizeof(mission_item_s));
-				break;
-			}
-
-			previous_setpoint_index--;
-		}
-
-		/*
-		 * Check if next WP (in mission, not in execution order) 
-		 * is available and identify correct index
-		 */
-		int next_setpoint_index = -1;
-		_mission_item_triplet.next_valid = false;
-
-		/* next waypoint */
-		if (_mission_item_count > 1) {
-			next_setpoint_index = new_mission_item_index + 1;
-		}
-
-		while (next_setpoint_index < _mission_item_count - 1) {
-
-			if ((_mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_WAYPOINT ||
-			     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
-			     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
-			     _mission_item[next_setpoint_index].nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM)) {
-
-				_mission_item_triplet.next_valid = true;
-				memcpy(&_mission_item_triplet.next, &_mission_item[next_setpoint_index], sizeof(mission_item_s));
-				break;
-			}
-
-			next_setpoint_index++;
-		}
-	}
-
-	/* lazily publish the setpoint only once available */
-	if (_triplet_pub > 0) {
-		/* publish the attitude setpoint */
-		orb_publish(ORB_ID(mission_item_triplet), _triplet_pub, &_mission_item_triplet);
-
-	} else {
-		/* advertise and publish */
-		_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
 	}
 }
 
+void
+Navigator::advance_current_mission_item()
+{
+	/* if there is one more mission available we can just advance by one, otherwise return */
+	if (_mission_item_triplet.next_valid) {
+
+		reset_mission_item_reached();
+
+		/* copy current mission to previous item */
+		memcpy(&_mission_item_triplet.previous, &_mission_item_triplet.current, sizeof(mission_item_s));
+		_mission_item_triplet.previous_valid = _mission_item_triplet.current_valid;
+
+		/* copy the next to current */
+		memcpy(&_mission_item_triplet.current, &_mission_item_triplet.next, sizeof(mission_item_s));
+		_mission_item_triplet.current_valid = _mission_item_triplet.next_valid;
+
+		_current_mission_item_index++;
+
+		
+		/* maybe there are no more mission item, in this case add a loiter mission item */
+		if (add_mission_item(_current_mission_item_index + 1, &_mission_item_triplet.next) != OK) {
+
+			add_last_mission_item(&_mission_item_triplet.current, &_mission_item_triplet.next);
+			_mission_item_triplet.next_valid = true;
+		}
+	}
+}
+
+void
+Navigator::restart_mission()
+{
+	reset_mission_item_reached();
+
+	_current_mission_item_index = 0;
+
+	_mission_item_triplet.previous_valid = false;
+
+	/* add a new current mission item */
+	if (add_mission_item(_current_mission_item_index, &_mission_item_triplet.current) != OK) {
+
+		add_last_mission_item(nullptr, &_mission_item_triplet.current);
+	} else {
+		/* if current succeeds, we can even add a next item */
+		if (add_mission_item(_current_mission_item_index + 1, &_mission_item_triplet.next) != OK) {
+			add_last_mission_item(&_mission_item_triplet.current, &_mission_item_triplet.next);
+		}
+		_mission_item_triplet.next_valid = true;
+	}
+	_mission_item_triplet.current_valid = true;
+}
+
+
+
+
+void
+Navigator::reset_mission_item_reached()
+{
+	/* reset all states */
+	_waypoint_position_reached = false;
+	_waypoint_yaw_reached = false;
+	_time_first_inside_orbit = 0;
+}
 
 bool
-Navigator::mission_item_reached()
+Navigator::check_mission_item_reached()
 {
 	uint64_t now = hrt_absolute_time();
 	float orbit;
 
-	if (_mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_WAYPOINT) {
+	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
 
 		orbit = _mission_item_triplet.current.radius;
 
-	} else if (_mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_LOITER_TURNS ||
-			_mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_LOITER_TIME ||
-			_mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_LOITER_UNLIM) {
+	} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
 
 		orbit = _mission_item_triplet.current.loiter_radius;
 	} else {
@@ -847,9 +792,6 @@ Navigator::mission_item_reached()
 	/* keep vertical orbit */
 	float vertical_switch_distance = orbit;
 
-	/* Take the larger turn distance - orbit or turn_distance */
-	if (orbit < _nav_caps.turn_distance)
-		orbit = _nav_caps.turn_distance;
 
 	// TODO add frame
 	// int coordinate_frame = wpm->waypoints[wpm->current_active_wp_id].frame;
