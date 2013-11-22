@@ -69,11 +69,6 @@
 #include <mathlib/mathlib.h>
 #include <dataman/dataman.h>
 
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-static const int ERROR = -1;
 
 /**
  * navigator app start / stop handling function
@@ -141,8 +136,6 @@ private:
 	
 	unsigned	_mission_item_count;		/** number of mission items copied */
 	struct mission_item_s				*_mission_item;	/**< storage for mission */
-
-	int		_current_mission_item_index;	/** current active mission item , -1 for none */
 
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
@@ -213,9 +206,11 @@ private:
 
 	bool		fence_valid(const struct fence_s &fence);
 
-	int		add_mission_item(unsigned mission_item, struct mission_item_s *new_mission_item);
+	void		add_mission_item(unsigned mission_item_index, 
+			                 const struct mission_item_s *existing_mission_item,
+			                 struct mission_item_s *new_mission_item);
 
-	void		add_last_mission_item(const struct mission_item_s *existing_mission_item, struct mission_item_s *new_mission_item);
+	void		update_mission_item_triplet();
 
 	void		advance_current_mission_item();
 
@@ -260,7 +255,6 @@ Navigator::Navigator() :
 	_max_mission_item_count(10),
 	_fence_valid(false),
 	_inside_fence(true),
-	_current_mission_item_index(-1),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
@@ -626,27 +620,20 @@ Navigator::fence_point(int argc, char *argv[])
 	errx(1, "can't store fence point");
 }
 
-int
-Navigator::add_mission_item(unsigned mission_item_index, struct mission_item_s *new_mission_item) {
+void
+Navigator::add_mission_item(unsigned mission_item_index, const struct mission_item_s *existing_mission_item, struct mission_item_s *new_mission_item) {
 
 	/* Check if there is a further mission as the new next item */
 	while (mission_item_index < _mission_item_count) {
 
 		if (1 /* TODO: check for correct frame */) {
 
-			warnx("copying item number %d", mission_item_index);
 			memcpy(new_mission_item, &_mission_item[mission_item_index], sizeof(mission_item_s));
-			return OK;
+			return;
 		}
 		mission_item_index++;
 	}
 
-	return ERROR;
-}
-
-void
-Navigator::add_last_mission_item(const struct mission_item_s *existing_mission_item, struct mission_item_s *new_mission_item)
-{
 	/* if no existing mission item exists, take curent location */
 	if (existing_mission_item == nullptr) {
 		
@@ -706,31 +693,58 @@ Navigator::add_last_mission_item(const struct mission_item_s *existing_mission_i
 }
 
 void
-Navigator::advance_current_mission_item()
+Navigator::update_mission_item_triplet()
 {
-	/* if there is one more mission available we can just advance by one, otherwise return */
-	if (_mission_item_triplet.next_valid) {
-
-		reset_mission_item_reached();
-
-		/* copy current mission to previous item */
-		memcpy(&_mission_item_triplet.previous, &_mission_item_triplet.current, sizeof(mission_item_s));
-		_mission_item_triplet.previous_valid = _mission_item_triplet.current_valid;
-
-		/* copy the next to current */
-		memcpy(&_mission_item_triplet.current, &_mission_item_triplet.next, sizeof(mission_item_s));
-		_mission_item_triplet.current_valid = _mission_item_triplet.next_valid;
-
-		_current_mission_item_index++;
-
+	if (!_mission_item_triplet.current_valid) {
 		
-		/* maybe there are no more mission item, in this case add a loiter mission item */
-		if (add_mission_item(_current_mission_item_index + 1, &_mission_item_triplet.next) != OK) {
+		/* the current mission item is missing, add one */
+		if (_mission_item_triplet.previous_valid) {
+			/* if we know the last one, proceed to succeeding one */
+			add_mission_item(_mission_item_triplet.previous.index + 1, &_mission_item_triplet.previous, &_mission_item_triplet.current);
+		}
+		else {
+			/* if we don't remember the last one, start new */
+			add_mission_item(0, nullptr, &_mission_item_triplet.current);
+		}
+		_mission_item_triplet.current_valid = true;
+	}
 
-			add_last_mission_item(&_mission_item_triplet.current, &_mission_item_triplet.next);
+	if (_mission_item_triplet.current_valid && !_mission_item_triplet.next_valid) {
+		
+		if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
+			/* if we are already loitering, don't bother about a next mission item */
+
+			_mission_item_triplet.next_valid = false;
+		} else {
+
+			add_mission_item(_mission_item_triplet.current.index + 1, &_mission_item_triplet.current, &_mission_item_triplet.next);
 			_mission_item_triplet.next_valid = true;
 		}
 	}
+}
+
+void
+Navigator::advance_current_mission_item()
+{
+	/* if there is no more mission available, don't advance and return */
+	if (!_mission_item_triplet.next_valid) {
+		return;
+	}
+
+	reset_mission_item_reached();
+
+	/* copy current mission to previous item */
+	memcpy(&_mission_item_triplet.previous, &_mission_item_triplet.current, sizeof(mission_item_s));
+	_mission_item_triplet.previous_valid = _mission_item_triplet.current_valid;
+
+	/* copy the next to current */
+	memcpy(&_mission_item_triplet.current, &_mission_item_triplet.next, sizeof(mission_item_s));
+	_mission_item_triplet.current_valid = _mission_item_triplet.next_valid;
+
+	/* flag the next mission as invalid */
+	_mission_item_triplet.next_valid = false;
+	
+	update_mission_item_triplet();
 }
 
 void
@@ -738,22 +752,12 @@ Navigator::restart_mission()
 {
 	reset_mission_item_reached();
 
-	_current_mission_item_index = 0;
-
+	/* forget about the all mission items */
 	_mission_item_triplet.previous_valid = false;
+	_mission_item_triplet.current_valid = false;
+	_mission_item_triplet.next_valid = false;
 
-	/* add a new current mission item */
-	if (add_mission_item(_current_mission_item_index, &_mission_item_triplet.current) != OK) {
-
-		add_last_mission_item(nullptr, &_mission_item_triplet.current);
-	} else {
-		/* if current succeeds, we can even add a next item */
-		if (add_mission_item(_current_mission_item_index + 1, &_mission_item_triplet.next) != OK) {
-			add_last_mission_item(&_mission_item_triplet.current, &_mission_item_triplet.next);
-		}
-		_mission_item_triplet.next_valid = true;
-	}
-	_mission_item_triplet.current_valid = true;
+	update_mission_item_triplet();
 }
 
 

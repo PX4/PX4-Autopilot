@@ -60,6 +60,10 @@
 bool debug = false;
 bool verbose = false;
 
+orb_advert_t mission_pub = -1;
+struct mission_s mission;
+
+#define NUM_MISSIONS_SUPPORTED 10
 
 //#define MAVLINK_WPM_NO_PRINTF
 #define MAVLINK_WPM_VERBOSE 1
@@ -78,9 +82,10 @@ void map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavl
 	mission_item->radius = mavlink_mission_item->param1;
 	mission_item->time_inside = mavlink_mission_item->param2 / 1e3f; /* from milliseconds to seconds */
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
+	mission_item->index = mavlink_mission_item->seq;
 }
 
-void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, const uint16_t seq, mavlink_mission_item_t *mavlink_mission_item)
+void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item)
 {
 
 	mavlink_mission_item->x = (float)mission_item->lat;
@@ -92,8 +97,7 @@ void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *missi
 	mavlink_mission_item->param1 = mission_item->radius;
 	mavlink_mission_item->param2 = mission_item->time_inside * 1e3f; /* from seconds to milliseconds */
 	mavlink_mission_item->autocontinue = mission_item->autocontinue;
-
-	mavlink_mission_item->seq = seq;
+	mavlink_mission_item->seq = mission_item->index;
 }
 
 void mavlink_wpm_init(mavlink_wpm_storage *state)
@@ -117,6 +121,13 @@ void mavlink_wpm_init(mavlink_wpm_storage *state)
 	state->timestamp_lastoutside_orbit = 0;///< timestamp when the MAV was last outside the orbit or had the wrong yaw value
 	state->timestamp_firstinside_orbit = 0;///< timestamp when the MAV was the first time after a waypoint change inside the orbit and had the correct yaw value
 
+	mission.count = 0;
+	mission.items = (struct mission_item_s*)malloc(sizeof(struct mission_item_s) * NUM_MISSIONS_SUPPORTED);
+	if (!mission.items) {
+		mission.count = 0;
+		/* XXX reject waypoints if this fails */
+		warnx("no free RAM to allocate mission, rejecting any waypoints");
+	}
 }
 
 /*
@@ -558,9 +569,6 @@ int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_positio
 
 void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehicle_global_position_s *global_pos , struct vehicle_local_position_s *local_pos)
 {
-	static orb_advert_t mission_pub = -1;
-	static struct mission_s mission;
-
 	uint64_t now = mavlink_missionlib_get_system_timestamp();
 
 	switch (msg->msgid) {
@@ -711,7 +719,7 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 					wpm->current_wp_id = wpr.seq;
 
 					mavlink_mission_item_t wp;
-					map_mission_item_to_mavlink_mission_item(&mission.items[wpr.seq], wpr.seq, &wp);
+					map_mission_item_to_mavlink_mission_item(&mission.items[wpr.seq], &wp);
 					mavlink_wpm_send_waypoint(wpm->current_partner_sysid, wpm->current_partner_compid, &wp);
 
 				} else {
@@ -835,14 +843,11 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 						wpm->current_partner_compid = msg->compid;
 						wpm->current_count = wpc.count;
 
-						/* prepare mission topic */
-						mission.count = wpc.count;
-						mission.items = (struct mission_item_s*)malloc(sizeof(struct mission_item_s) * mission.count);
-						
-						if (!mission.items) {
-							mission.count = 0;
-							/* XXX reject waypoints if this fails */
-							warnx("no free RAM to allocate mission, rejecting any waypoints");
+						if (wpc.count > NUM_MISSIONS_SUPPORTED) {
+							warnx("Too many waypoints: %d, supported: %d", wpc.count, NUM_MISSIONS_SUPPORTED);
+						} else {
+							/* prepare mission topic */
+							mission.count = wpc.count;
 						}
 
 #ifdef MAVLINK_WPM_NO_PRINTF
@@ -1087,8 +1092,26 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 				wpm->yaw_reached = false;
 				wpm->pos_reached = false;
 
+				/* prepare mission topic */
+				mission.count = 0;
+				memset(mission.items, 0, sizeof(struct mission_item_s)*NUM_MISSIONS_SUPPORTED);
+
+				/* Initialize mission publication if necessary */
+				if (mission_pub < 0) {
+					mission_pub = orb_advertise(ORB_ID(mission), &mission);
+
+				} else {
+					orb_publish(ORB_ID(mission), mission_pub, &mission);
+				}
+
+
+				warnx("Mission cleared");
+
+				mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
+
 			} else if (wpca.target_system == mavlink_system.sysid /*&& wpca.target_component == mavlink_wpm_comp_id */ && wpm->current_state != MAVLINK_WPM_STATE_IDLE) {
 				// if (verbose) // printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM_CLEAR_LIST from %u because i'm doing something else already (state=%i).\n", msg->sysid, wpm->current_state);
+				warnx("not cleared");
 			}
 
 			break;

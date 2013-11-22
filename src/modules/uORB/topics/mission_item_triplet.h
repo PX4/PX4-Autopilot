@@ -67,6 +67,10 @@ struct mission_item_triplet_s
 	struct mission_item_s previous;
 	struct mission_item_s current;
 	struct mission_item_s next;
+
+	int previous_index;
+	int current_index;
+	int next_index;
 };
 
 /**

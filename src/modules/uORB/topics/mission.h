@@ -80,6 +80,7 @@ struct mission_item_s
 	float radius;			/**< radius in which the mission is accepted as reached in meters */
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
+	int index;			/**< index matching the mavlink waypoint                */
 };
 
 struct mission_s
