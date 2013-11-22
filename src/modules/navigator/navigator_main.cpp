@@ -181,16 +181,6 @@ private:
 	void		mission_update();
 
 	/**
-	 * Control throttle.
-	 */
-	float		control_throttle(float energy_error);
-
-	/**
-	 * Control pitch.
-	 */
-	float		control_pitch(float altitude_error);
-
-	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
