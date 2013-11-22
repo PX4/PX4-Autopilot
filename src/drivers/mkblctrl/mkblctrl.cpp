@@ -1567,7 +1567,7 @@ mkblctrl_main(int argc, char *argv[])
 	}
 
 
-	if (bus != -1) {
+	if (bus == -1) {
 		bus = mk_check_for_i2c_esc_bus(devicepath, motorcount);
 	}
 
