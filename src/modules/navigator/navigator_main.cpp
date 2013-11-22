@@ -468,16 +468,6 @@ Navigator::task_main()
 					advance_current_mission_item();
 				}
 			}
-
-			/* lazily publish the setpoint only once available */
-			if (_triplet_pub > 0) {
-				/* publish the attitude setpoint */
-				orb_publish(ORB_ID(mission_item_triplet), _triplet_pub, &_mission_item_triplet);
-
-			} else {
-				/* advertise and publish */
-				_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
-			}
 		}
 
 		perf_end(_loop_perf);
@@ -720,6 +710,16 @@ Navigator::update_mission_item_triplet()
 			add_mission_item(_mission_item_triplet.current.index + 1, &_mission_item_triplet.current, &_mission_item_triplet.next);
 			_mission_item_triplet.next_valid = true;
 		}
+	}
+
+	/* lazily publish the mission triplet only once available */
+	if (_triplet_pub > 0) {
+		/* publish the mission triplet */
+		orb_publish(ORB_ID(mission_item_triplet), _triplet_pub, &_mission_item_triplet);
+
+	} else {
+		/* advertise and publish */
+		_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
 	}
 }
 
