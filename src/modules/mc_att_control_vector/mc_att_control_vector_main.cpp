@@ -109,15 +109,14 @@ public:
 
 private:
 
-	bool		_task_should_exit;		/**< if true, sensor task should exit */
+	bool	_task_should_exit;		/**< if true, sensor task should exit */
 	int		_control_task;			/**< task handle for sensor task */
 
-	int		_att_sub;			/**< vehicle attitude subscription */
+	int		_att_sub;				/**< vehicle attitude subscription */
 	int		_att_sp_sub;			/**< vehicle attitude setpoint */
-	int		_attitude_sub;			/**< raw rc channels data subscription */
-	int		_control_mode_sub;			/**< vehicle control mode subscription */
-	int 		_params_sub;			/**< notification of parameter updates */
-	int 		_manual_sub;			/**< notification of manual control updates */
+	int		_control_mode_sub;		/**< vehicle control mode subscription */
+	int 	_params_sub;			/**< notification of parameter updates */
+	int 	_manual_sub;			/**< notification of manual control updates */
 	int		_arming_sub;			/**< arming status of outputs */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
@@ -125,19 +124,19 @@ private:
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
-	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
-	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
-	struct vehicle_control_mode_s				_control_mode;		/**< vehicle control mode */
+	struct vehicle_attitude_setpoint_s	_att_sp;		/**< vehicle attitude setpoint */
+	struct manual_control_setpoint_s	_manual;		/**< r/c channel data */
+	struct vehicle_control_mode_s		_control_mode;	/**< vehicle control mode */
 	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
 	struct actuator_armed_s				_arming;		/**< actuator arming status */
 	struct vehicle_rates_setpoint_s		_rates_sp;		/**< vehicle rates setpoint */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	bool		_setpoint_valid;		/**< flag if the position control setpoint is valid */
+	bool	_att_sp_valid;				/**< flag if the attitude setpoint is valid */
 
 	math::Matrix _K;					/**< diagonal gain matrix for position error */
-	math::Matrix _K_rate;			/**< diagonal gain matrix for angular rate error */
+	math::Matrix _K_rate;				/**< diagonal gain matrix for angular rate error */
 
 	struct {
 		param_t att_p;
@@ -149,11 +148,10 @@ private:
 	/**
 	 * Update our local parameter cache.
 	 */
-	int		parameters_update();
+	int			parameters_update();
 
 	/**
 	 * Update control outputs
-	 *
 	 */
 	void		control_update();
 
@@ -207,27 +205,37 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 /* subscriptions */
 	_att_sub(-1),
+	_att_sp_sub(-1),
 	_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
 	_arming_sub(-1),
 
 /* publications */
+	_att_sp_pub(-1),
 	_rates_sp_pub(-1),
 	_actuators_0_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
+
 /* states */
-	_setpoint_valid(false),
+	_att_sp_valid(false),
+
 /* gain matrices */
 	_K(3, 3),
 	_K_rate(3, 3)
 
 {
-	_parameter_handles.att_p	= 	param_find("MC_ATT_P");
+	memset(&_att, 0, sizeof(_att));
+	memset(&_att_sp, 0, sizeof(_att_sp));
+	memset(&_manual, 0, sizeof(_manual));
+	memset(&_control_mode, 0, sizeof(_control_mode));
+	memset(&_arming, 0, sizeof(_arming));
+
+	_parameter_handles.att_p		= 	param_find("MC_ATT_P");
 	_parameter_handles.att_rate_p	= 	param_find("MC_ATTRATE_P");
-	_parameter_handles.yaw_p	=	param_find("MC_YAWPOS_P");
+	_parameter_handles.yaw_p		=	param_find("MC_YAWPOS_P");
 	_parameter_handles.yaw_rate_p	= 	param_find("MC_YAWRATE_P");
 
 	/* fetch initial parameter values */
@@ -237,7 +245,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 MulticopterAttitudeControl::~MulticopterAttitudeControl()
 {
 	if (_control_task != -1) {
-
 		/* task wakes up every 100ms or so at the longest */
 		_task_should_exit = true;
 
@@ -272,9 +279,11 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_parameter_handles.yaw_p, &yaw_p);
 	param_get(_parameter_handles.yaw_rate_p, &yaw_rate_p);
 
+	_K.setAll(0.0f);
 	_K(0, 0) = att_p;
 	_K(1, 1) = att_p;
 	_K(2, 2) = yaw_p;
+	_K_rate.setAll(0.0f);
 	_K_rate(0, 0) = att_rate_p;
 	_K_rate(1, 1) = att_rate_p;
 	_K_rate(2, 2) = yaw_rate_p;
@@ -319,7 +328,7 @@ MulticopterAttitudeControl::vehicle_setpoint_poll()
 
 	if (att_sp_updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
-		_setpoint_valid = true;
+		_att_sp_valid = true;
 	}
 }
 
@@ -439,6 +448,11 @@ MulticopterAttitudeControl::task_main()
 					_att_sp.thrust = _manual.throttle;
 				}
 
+				if (!_arming.armed) {
+					/* reset yaw setpoint when disarmed */
+					reset_yaw_sp = true;
+				}
+
 				if (_control_mode.flag_control_attitude_enabled) {
 					/* control attitude, update attitude setpoint depending on mode */
 
@@ -470,6 +484,8 @@ MulticopterAttitudeControl::task_main()
 						_att_sp.pitch_body = _manual.pitch;
 						publish_att_sp = true;
 					}
+
+					_att_sp_valid = true;
 				} else {
 					/* manual rate inputs (ACRO) */
 					// TODO
@@ -492,12 +508,14 @@ MulticopterAttitudeControl::task_main()
 				reset_yaw_sp = true;
 			}
 
-			if (publish_att_sp || !_att_sp.R_valid) {
+			if (publish_att_sp || (_att_sp_valid && !_att_sp.R_valid)) {
 				/* controller uses rotation matrix, not euler angles, convert if necessary */
 				math::EulerAngles euler_sp(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 				math::Dcm R_sp(euler_sp);
-				for (int i = 0; i < 9; i++) {
-					_att_sp.R_body[i] = R_sp(i / 3, i % 3);
+				for (int i = 0; i < 3; i++) {
+					for (int j = 0; j < 3; j++) {
+						_att_sp.R_body[i][j] = R_sp(i, j);
+					}
 				}
 				_att_sp.R_valid = true;
 			}
@@ -514,7 +532,7 @@ MulticopterAttitudeControl::task_main()
 			}
 
 			/* desired rotation matrix */
-			math::Dcm R_des(&_att_sp.R_body[0]);
+			math::Dcm R_des(_att_sp.R_body);
 
 			/* rotation matrix for current state */
 			math::Dcm R(_att.R);
