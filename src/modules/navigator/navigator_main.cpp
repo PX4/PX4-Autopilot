@@ -56,6 +56,7 @@
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -69,6 +70,12 @@
 #include <mathlib/mathlib.h>
 #include <dataman/dataman.h>
 
+typedef enum {
+	NAVIGATION_MODE_NONE,
+	NAVIGATION_MODE_LOITER,
+	NAVIGATION_MODE_WAYPOINT,
+	NAVIGATION_MODE_RTL
+} navigation_mode_t;
 
 /**
  * navigator app start / stop handling function
@@ -117,9 +124,10 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_navigator_task;		/**< task handle for sensor task */
 
-	int		_global_pos_sub;
+	int		_global_pos_sub;		/**< global position subscription */
+	int		_home_pos_sub;		/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
-	int 		_params_sub;			/**< notification of parameter updates */
+	int		_params_sub;			/**< notification of parameter updates */
 	int		_mission_sub;			/**< notification of mission updates */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 
@@ -128,6 +136,7 @@ private:
 
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
+	struct home_position_s				_home_pos;		/**< home position for RTL */
 	struct mission_item_triplet_s			_mission_item_triplet;	/**< triplet of mission items */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -147,12 +156,8 @@ private:
 	bool		_waypoint_yaw_reached;
 	uint64_t	_time_first_inside_orbit;
 
-	/** manual control states */
-	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
-	float		_loiter_hold_lat;
-	float		_loiter_hold_lon;
-	float		_loiter_hold_alt;
-	bool		_loiter_hold;
+	navigation_mode_t				_mode;
+	bool		_restart_mission_wanted;
 
 	struct {
 		float throttle_cruise;
@@ -168,12 +173,6 @@ private:
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
-
-	/**
-	 * Update control outputs
-	 *
-	 */
-	void		control_update();
 
 	/**
 	* Retrieve mission.
@@ -196,6 +195,8 @@ private:
 
 	bool		fence_valid(const struct fence_s &fence);
 
+	void		set_loiter_mission_item(struct mission_item_s *new_mission_item);
+
 	void		add_mission_item(unsigned mission_item_index, 
 			                 const struct mission_item_s *existing_mission_item,
 			                 struct mission_item_s *new_mission_item);
@@ -209,6 +210,10 @@ private:
 	void		reset_mission_item_reached();
 
 	bool		check_mission_item_reached();
+
+	void		start_loiter();
+
+	void		start_rtl();
 };
 
 namespace navigator
@@ -230,6 +235,7 @@ Navigator::Navigator() :
 
 /* subscriptions */
 	_global_pos_sub(-1),
+	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
 	_mission_sub(-1),
@@ -248,13 +254,21 @@ Navigator::Navigator() :
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
-	_loiter_hold(false)
+	_mode(NAVIGATION_MODE_NONE),
+	_restart_mission_wanted(true)
 {
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
 	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
 
 	_mission_item = (mission_item_s*)malloc(sizeof(mission_item_s) * _max_mission_item_count);
+
+	_mission_item_triplet.previous_valid = false;
+	_mission_item_triplet.current_valid = false;
+	_mission_item_triplet.next_valid = false;
+	memset(&_mission_item_triplet.previous, 0, sizeof(struct mission_item_s));
+	memset(&_mission_item_triplet.current, 0, sizeof(struct mission_item_s));
+	memset(&_mission_item_triplet.next, 0, sizeof(struct mission_item_s));
 
 	/* fetch initial values */
 	parameters_update();
@@ -313,8 +327,9 @@ Navigator::mission_update()
 
 			irqrestore(flags);
 
-			/* start new mission at beginning */
-			restart_mission();
+			/* set flag to restart mission next we're in auto */
+			_restart_mission_wanted = true;
+			
 		} else {
 			warnx("ERROR: too many waypoints, not supported");
 		}
@@ -347,6 +362,7 @@ Navigator::task_main()
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 	// Load initial states
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
@@ -368,19 +384,22 @@ Navigator::task_main()
 	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
 
 	/* wakeup source(s) */
-	struct pollfd fds[5];
+	struct pollfd fds[6];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
 	fds[0].events = POLLIN;
 	fds[1].fd = _global_pos_sub;
 	fds[1].events = POLLIN;
-	fds[2].fd = _capabilities_sub;
+	fds[2].fd = _home_pos_sub;
 	fds[2].events = POLLIN;
-	fds[3].fd = _mission_sub;
+	fds[3].fd = _capabilities_sub;
 	fds[3].events = POLLIN;
-	fds[4].fd = _vstatus_sub;
+	fds[4].fd = _mission_sub;
 	fds[4].events = POLLIN;
+	fds[5].fd = _vstatus_sub;
+	fds[5].events = POLLIN;
+
 
 	while (!_task_should_exit) {
 
@@ -400,13 +419,13 @@ Navigator::task_main()
 
 		perf_begin(_loop_perf);
 
-		/* only update parameters if they changed */
-		if (fds[4].revents & POLLIN) {
+		/* only update vehicle status if it changed */
+		if (fds[5].revents & POLLIN) {
 			/* read from param to clear updated flag */
 			orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
 		}
 
-		/* only update vehicle status if it changed */
+		/* only update parameters if it changed */
 		if (fds[0].revents & POLLIN) {
 			/* read from param to clear updated flag */
 			struct parameter_update_s update;
@@ -417,12 +436,16 @@ Navigator::task_main()
 		}
 
 		/* only update craft capabilities if they have changed */
-		if (fds[2].revents & POLLIN) {
+		if (fds[3].revents & POLLIN) {
 			orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
 		}
 
-		if (fds[3].revents & POLLIN) {
+		if (fds[4].revents & POLLIN) {
 			mission_update();
+		}
+
+		if (fds[2].revents & POLLIN) {
+			orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
 		}
 
 		/* only run controller if position changed */
@@ -451,12 +474,65 @@ Navigator::task_main()
 			math::Vector2f current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
 
 			/* Autonomous flight */
-			if (1 /* autonomous flight */) {
+			if (_vstatus.main_state == MAIN_STATE_AUTO) {
 
-				/* proceed to next waypoint if we reach it */
-				if (check_mission_item_reached()) {
-					advance_current_mission_item();
+				switch (_vstatus.navigation_state) {
+					case NAVIGATION_STATE_AUTO_MISSION:
+
+						if (_mission_item_count == 0) {
+
+							if (_mode != NAVIGATION_MODE_LOITER) {
+
+								start_loiter();
+								_mode = NAVIGATION_MODE_LOITER;
+							}
+						} else {
+
+							if (_restart_mission_wanted) {
+								restart_mission();
+								_restart_mission_wanted = false;
+							}
+
+							/* after RTL, start mission new */
+							if (_mode == NAVIGATION_MODE_RTL) {
+								restart_mission();
+							}
+
+							/* proceed to next waypoint if we reach it */
+							if (check_mission_item_reached()) {
+								advance_current_mission_item();
+							}
+							_mode = NAVIGATION_MODE_WAYPOINT;
+						}
+						
+						break;
+
+					case NAVIGATION_STATE_AUTO_LOITER:
+
+						if (_mode != NAVIGATION_MODE_LOITER) {
+
+							start_loiter();
+							_mode = NAVIGATION_MODE_LOITER;
+						}
+						break;
+
+					case NAVIGATION_STATE_AUTO_RTL:
+
+						if (_mode != NAVIGATION_MODE_RTL) {
+
+							start_rtl();
+							_mode = NAVIGATION_MODE_RTL;
+						}
+
+						if (check_mission_item_reached()) {
+							advance_current_mission_item();
+						}
+						break;
+
 				}
+
+			} else {
+				_mode = NAVIGATION_MODE_NONE;
 			}
 		}
 
@@ -601,14 +677,38 @@ Navigator::fence_point(int argc, char *argv[])
 }
 
 void
+Navigator::set_loiter_mission_item(struct mission_item_s *new_mission_item) {
+
+	new_mission_item->lat = (double)_global_pos.lat / 1e7;
+	new_mission_item->lon = (double)_global_pos.lon / 1e7;
+	new_mission_item->altitude = _global_pos.alt;
+	new_mission_item->yaw = _global_pos.yaw;
+	new_mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	new_mission_item->loiter_direction = 1;
+	new_mission_item->loiter_radius = 100.0f; // TODO: get rid of magic number
+	new_mission_item->radius = 50.0f; // TODO: get rid of magic number
+	new_mission_item->autocontinue = false;
+}
+
+void
 Navigator::add_mission_item(unsigned mission_item_index, const struct mission_item_s *existing_mission_item, struct mission_item_s *new_mission_item) {
 
-	/* Check if there is a further mission as the new next item */
+	/* Check if there is a further mission as the new item */
 	while (mission_item_index < _mission_item_count) {
 
 		if (1 /* TODO: check for correct frame */) {
 
 			memcpy(new_mission_item, &_mission_item[mission_item_index], sizeof(mission_item_s));
+
+			if (new_mission_item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
+				/* if it is a RTL waypoint, append the home position */
+					new_mission_item->lat = (double)_home_pos.lat / 1e7;
+					new_mission_item->lon = (double)_home_pos.lon / 1e7;
+					new_mission_item->altitude = (float)_home_pos.alt / 1e3 + 50.0f; // TODO: add parameter for RTL altitude
+					new_mission_item->loiter_radius = 100.0f; // TODO: get rid of magic number
+					new_mission_item->radius = 50.0f; // TODO: get rid of magic number
+			}
+
 			return;
 		}
 		mission_item_index++;
@@ -617,15 +717,7 @@ Navigator::add_mission_item(unsigned mission_item_index, const struct mission_it
 	/* if no existing mission item exists, take curent location */
 	if (existing_mission_item == nullptr) {
 		
-		new_mission_item->lat = (double)_global_pos.lat / 1e7;
-		new_mission_item->lon = (double)_global_pos.lon / 1e7;
-		new_mission_item->altitude = _global_pos.alt;
-		new_mission_item->yaw = _global_pos.yaw;
-		new_mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-		new_mission_item->loiter_direction = 1;
-		new_mission_item->loiter_radius = 100.0f; // TODO: get rid of magic number
-		new_mission_item->radius = 10.0f; // TODO: get rid of magic number
-		new_mission_item->autocontinue = false;
+		set_loiter_mission_item(new_mission_item);
 
 	} else {
 
@@ -636,7 +728,7 @@ Navigator::add_mission_item(unsigned mission_item_index, const struct mission_it
 			case NAV_CMD_RETURN_TO_LAUNCH:
 			case NAV_CMD_TAKEOFF:
 
-				/* copy current mission to next item */
+				/* copy current mission to new item */
 				memcpy(new_mission_item, existing_mission_item, sizeof(mission_item_s));
 
 				/* and set it to a loiter item */
@@ -751,8 +843,6 @@ Navigator::restart_mission()
 }
 
 
-
-
 void
 Navigator::reset_mission_item_reached()
 {
@@ -845,6 +935,62 @@ Navigator::check_mission_item_reached()
 	return false;
 
 }
+
+void
+Navigator::start_loiter()
+{
+	if (_mission_item_triplet.current_valid && _mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
+		/* already loitering, set again for latest lat/lon/alt */
+		set_loiter_mission_item(&_mission_item_triplet.current);
+		
+	} else if (_mission_item_triplet.current_valid && _mission_item_triplet.current.nav_cmd != NAV_CMD_LOITER_UNLIMITED) {
+		/* move current waypoint back to next and switch to loiter now */
+		memcpy(&_mission_item_triplet.next, &_mission_item_triplet.current, sizeof(mission_item_s));
+		_mission_item_triplet.next_valid = _mission_item_triplet.current_valid;
+
+		set_loiter_mission_item(&_mission_item_triplet.current);
+	} else {
+		/* if the current mission item is invalid, it will be added now */
+		set_loiter_mission_item(&_mission_item_triplet.current);
+		_mission_item_triplet.current_valid = true;
+	}
+
+	update_mission_item_triplet();
+}
+
+void
+Navigator::start_rtl()
+{
+	reset_mission_item_reached();
+
+	/* discard all mission item and insert RTL item */
+	_mission_item_triplet.previous_valid = false;
+
+	_mission_item_triplet.current.lat = (double)_home_pos.lat / 1e7;
+	_mission_item_triplet.current.lon = (double)_home_pos.lon / 1e7;
+	_mission_item_triplet.current.altitude = (float)_home_pos.alt / 1e3 + 50.0f; // TODO: add parameter for RTL altitude
+	_mission_item_triplet.current.yaw = 0.0f;
+	_mission_item_triplet.current.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
+	_mission_item_triplet.current.loiter_direction = 1;
+	_mission_item_triplet.current.loiter_radius = 100.0f; // TODO: get rid of magic number
+	_mission_item_triplet.current.radius = 50.0f; // TODO: get rid of magic number
+	_mission_item_triplet.current.autocontinue = false;
+	_mission_item_triplet.current_valid = true;
+
+	_mission_item_triplet.next.lat = (double)_home_pos.lat / 1e7;
+	_mission_item_triplet.next.lon = (double)_home_pos.lon / 1e7;
+	_mission_item_triplet.next.altitude = (float)_home_pos.alt / 1e3 + 50.0f; // TODO: add parameter for RTL altitude
+	_mission_item_triplet.next.yaw = _global_pos.yaw;
+	_mission_item_triplet.next.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	_mission_item_triplet.next.loiter_direction = 1;
+	_mission_item_triplet.next.loiter_radius = 100.0f; // TODO: get rid of magic number
+	_mission_item_triplet.next.radius = 50.0f; // TODO: get rid of magic number
+	_mission_item_triplet.next.autocontinue = false;
+	_mission_item_triplet.next_valid;
+
+	update_mission_item_triplet();
+}
+
 
 static void usage()
 {
