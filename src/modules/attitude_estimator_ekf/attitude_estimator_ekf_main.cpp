@@ -61,6 +61,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
+#include <lib/mathlib/mathlib.h>
+
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -433,10 +435,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					/* send out */
 					att.timestamp = raw.timestamp;
 
-					// XXX Apply the same transformation to the rotation matrix
-					att.roll = euler[0] - ekf_params.roll_off;
-					att.pitch = euler[1] - ekf_params.pitch_off;
-					att.yaw = euler[2] - ekf_params.yaw_off;
+					att.roll = euler[0];
+					att.pitch = euler[1];
+					att.yaw = euler[2] + ekf_params.mag_decl;
 
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
@@ -445,12 +446,21 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					att.pitchacc = x_aposteriori[4];
 					att.yawacc = x_aposteriori[5];
 
-					//att.yawspeed =z_k[2] ;
 					/* copy offsets */
 					memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
 
+					/* magnetic declination */
+					math::EulerAngles eulerMagDecl(0.0f, 0.0f, ekf_params.mag_decl);
+					math::Dcm R(eulerMagDecl);
+					math::Dcm R_body(&Rot_matrix[0]);
+					R = R * R_body;
+
 					/* copy rotation matrix */
-					memcpy(&att.R, Rot_matrix, sizeof(Rot_matrix));
+					for (int i = 0; i < 3; i++) {
+						for (int j = 0; j < 3; j++) {
+							att.R[i][j] = R(i, j);
+						}
+					}
 					att.R_valid = true;
 
 					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {

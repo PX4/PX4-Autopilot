@@ -63,6 +63,9 @@ PARAM_DEFINE_FLOAT(ATT_ROLL_OFF3, 0.0f);
 PARAM_DEFINE_FLOAT(ATT_PITCH_OFF3, 0.0f);
 PARAM_DEFINE_FLOAT(ATT_YAW_OFF3, 0.0f);
 
+/* magnetic declination, in degrees */
+PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
+
 int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 {
 	/* PID parameters */
@@ -80,6 +83,8 @@ int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 	h->roll_off  =	param_find("ATT_ROLL_OFF3");
 	h->pitch_off =	param_find("ATT_PITCH_OFF3");
 	h->yaw_off   =	param_find("ATT_YAW_OFF3");
+
+	h->mag_decl   =	param_find("ATT_MAG_DECL");
 
 	return OK;
 }
@@ -100,6 +105,8 @@ int parameters_update(const struct attitude_estimator_ekf_param_handles *h, stru
 	param_get(h->roll_off, &(p->roll_off));
 	param_get(h->pitch_off, &(p->pitch_off));
 	param_get(h->yaw_off, &(p->yaw_off));
+
+	param_get(h->mag_decl, &(p->mag_decl));
 
 	return OK;
 }
