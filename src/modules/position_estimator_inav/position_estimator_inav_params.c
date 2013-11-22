@@ -42,7 +42,6 @@
 
 PARAM_DEFINE_FLOAT(INAV_W_Z_BARO, 1.0f);
 PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_P, 0.5f);
-PARAM_DEFINE_FLOAT(INAV_W_Z_GPS_V, 1.0f);
 PARAM_DEFINE_FLOAT(INAV_W_Z_ACC, 20.0f);
 PARAM_DEFINE_FLOAT(INAV_W_Z_SONAR, 3.0f);
 PARAM_DEFINE_FLOAT(INAV_W_XY_GPS_P, 1.0f);
@@ -63,7 +62,6 @@ int parameters_init(struct position_estimator_inav_param_handles *h)
 {
 	h->w_z_baro = param_find("INAV_W_Z_BARO");
 	h->w_z_gps_p = param_find("INAV_W_Z_GPS_P");
-	h->w_z_gps_v = param_find("INAV_W_Z_GPS_V");
 	h->w_z_acc = param_find("INAV_W_Z_ACC");
 	h->w_z_sonar = param_find("INAV_W_Z_SONAR");
 	h->w_xy_gps_p = param_find("INAV_W_XY_GPS_P");
@@ -87,7 +85,6 @@ int parameters_update(const struct position_estimator_inav_param_handles *h, str
 {
 	param_get(h->w_z_baro, &(p->w_z_baro));
 	param_get(h->w_z_gps_p, &(p->w_z_gps_p));
-	param_get(h->w_z_gps_v, &(p->w_z_gps_v));
 	param_get(h->w_z_acc, &(p->w_z_acc));
 	param_get(h->w_z_sonar, &(p->w_z_sonar));
 	param_get(h->w_xy_gps_p, &(p->w_xy_gps_p));
