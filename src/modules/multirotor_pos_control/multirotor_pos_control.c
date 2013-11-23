@@ -70,10 +70,12 @@
 #include "multirotor_pos_control_params.h"
 #include "thrust_pid.h"
 
-
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
+
+static const float alt_ctl_dz = 0.2f;
+static const float pos_ctl_dz = 0.05f;
 
 __EXPORT int multirotor_pos_control_main(int argc, char *argv[]);
 
@@ -133,8 +135,14 @@ int multirotor_pos_control_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		warnx("stop");
-		thread_should_exit = true;
+		if (thread_running) {
+			warnx("stop");
+			thread_should_exit = true;
+
+		} else {
+			warnx("app not started");
+		}
+
 		exit(0);
 	}
 
@@ -223,14 +231,17 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	bool reset_auto_sp_xy = true;
 	bool reset_auto_sp_z = true;
 	bool reset_takeoff_sp = true;
-
-	hrt_abstime t_prev = 0;
-	const float alt_ctl_dz = 0.2f;
-	const float pos_ctl_dz = 0.05f;
+	bool reset_z_sp_dist = false;
+	float surface_offset = 0.0f;	// Z of ground level
+	float sp_z_dist = 0.0f;			// distance to ground setpoint (positive)
 
 	float ref_alt = 0.0f;
-	hrt_abstime ref_alt_t = 0;
+	hrt_abstime ref_timestamp = 0;
+
+	hrt_abstime t_prev = 0;
+
 	uint64_t local_ref_timestamp = 0;
+	uint64_t surface_bottom_timestamp = 0;
 
 	PID_t xy_pos_pids[2];
 	PID_t xy_vel_pids[2];
@@ -243,7 +254,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	struct multirotor_position_control_param_handles params_h;
 	parameters_init(&params_h);
 	parameters_update(&params_h, &params);
-
 
 	for (int i = 0; i < 2; i++) {
 		pid_init(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
@@ -325,36 +335,60 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 		t_prev = t;
 
+		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
+
 		if (control_mode.flag_control_altitude_enabled || control_mode.flag_control_velocity_enabled || control_mode.flag_control_position_enabled) {
 			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
-			orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
 
 			float z_sp_offs_max = params.z_vel_max / params.z_p * 2.0f;
 			float xy_sp_offs_max = params.xy_vel_max / params.xy_p * 2.0f;
 			float sp_move_rate[3] = { 0.0f, 0.0f, 0.0f };
 
+			float sp_z = local_pos_sp.z;
+			float z = local_pos.z;
+			float vz = local_pos.vz;
+
 			if (control_mode.flag_control_manual_enabled) {
 				/* manual control */
 				/* check for reference point updates and correct setpoint */
-				if (local_pos.ref_timestamp != ref_alt_t) {
-					if (ref_alt_t != 0) {
-						/* home alt changed, don't follow large ground level changes in manual flight */
-						local_pos_sp.z += local_pos.ref_alt - ref_alt;
-					}
-
-					ref_alt_t = local_pos.ref_timestamp;
-					ref_alt = local_pos.ref_alt;
+				if (local_pos.ref_timestamp != ref_timestamp) {
+					/* reference alt changed, don't follow large ground level changes in manual flight */
+					local_pos_sp.z += local_pos.ref_alt - ref_alt;
 					// TODO also correct XY setpoint
 				}
 
-				/* reset setpoints to current position if needed */
 				if (control_mode.flag_control_altitude_enabled) {
+					/* reset setpoints to current position if needed */
 					if (reset_man_sp_z) {
 						reset_man_sp_z = false;
 						local_pos_sp.z = local_pos.z;
+						reset_z_sp_dist = true;
 						mavlink_log_info(mavlink_fd, "[mpc] reset alt sp: %.2f", (double) - local_pos_sp.z);
+					}
+
+					/* if distance to surface is available, use it */
+					if (control_mode.flag_use_dist_bottom && local_pos.dist_bottom_valid) {
+						if (reset_z_sp_dist) {
+							reset_z_sp_dist = false;
+							surface_offset = local_pos.z + local_pos.dist_bottom;
+							sp_z_dist = -local_pos_sp.z + surface_offset;
+							mavlink_log_info(mavlink_fd, "[mpc] surface offset: %.2f", surface_offset);
+
+						} else {
+							if (local_pos.surface_bottom_timestamp != surface_bottom_timestamp) {
+								/* new surface level */
+								sp_z_dist += local_pos.z + local_pos.dist_bottom - surface_offset;
+							}
+
+							surface_offset = local_pos.z + local_pos.dist_bottom;
+						}
+
+						z = -local_pos.dist_bottom;
+						vz = -local_pos.dist_bottom_rate;
+						/* move altitude setpoint according to ground distance */
+						local_pos_sp.z = surface_offset - sp_z_dist;
 					}
 
 					/* move altitude setpoint with throttle stick */
@@ -363,13 +397,21 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					if (z_sp_ctl != 0.0f) {
 						sp_move_rate[2] = -z_sp_ctl * params.z_vel_max;
 						local_pos_sp.z += sp_move_rate[2] * dt;
+						sp_z_dist -= sp_move_rate[2] * dt;
 
+						// TODO add z_sp_dist correction here
 						if (local_pos_sp.z > local_pos.z + z_sp_offs_max) {
 							local_pos_sp.z = local_pos.z + z_sp_offs_max;
 
 						} else if (local_pos_sp.z < local_pos.z - z_sp_offs_max) {
 							local_pos_sp.z = local_pos.z - z_sp_offs_max;
 						}
+					}
+
+					if (control_mode.flag_use_dist_bottom && local_pos.dist_bottom_valid) {
+						sp_z = -sp_z_dist;
+					} else {
+						sp_z = local_pos_sp.z;
 					}
 				}
 
@@ -471,6 +513,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							} else {
 								local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
 							}
+
 							/* update yaw setpoint only if value is valid */
 							if (isfinite(global_pos_sp.yaw) && fabsf(global_pos_sp.yaw) < M_TWOPI) {
 								att_sp.yaw_body = global_pos_sp.yaw;
@@ -516,6 +559,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				reset_man_sp_xy = true;
 				reset_man_sp_z = true;
 
+				sp_z = local_pos_sp.z;
+
 			} else {
 				/* no control (failsafe), loiter or stay on ground */
 				if (local_pos.landed) {
@@ -553,6 +598,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 					reset_auto_sp_xy = false;
 				}
+
+				sp_z = local_pos_sp.z;
 			}
 
 			/* publish local position setpoint */
@@ -560,7 +607,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			/* run position & altitude controllers, calculate velocity setpoint */
 			if (control_mode.flag_control_altitude_enabled) {
-				global_vel_sp.vz = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz - sp_move_rate[2], dt) + sp_move_rate[2];
+				// TODO add feed-forward to PID library to allow limiting resulting value
+				global_vel_sp.vz = pid_calculate(&z_pos_pid, sp_z, z, vz - sp_move_rate[2], dt) + sp_move_rate[2];
 
 			} else {
 				reset_man_sp_z = true;
@@ -614,7 +662,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						mavlink_log_info(mavlink_fd, "[mpc] reset hovering thrust: %.2f", (double)i);
 					}
 
-					thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, local_pos.vz, dt, att.R[2][2]);
+					thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, vz, dt, att.R[2][2]);
 					att_sp.thrust = -thrust_sp[2];
 
 				} else {
@@ -675,8 +723,18 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
 		reset_int_z_manual = control_mode.flag_armed && control_mode.flag_control_manual_enabled && !control_mode.flag_control_climb_rate_enabled;
 
-		/* run at approximately 50 Hz */
-		usleep(20000);
+		/* reset distance setpoint if distance is not available */
+		if (!local_pos.dist_bottom_valid || !control_mode.flag_use_dist_bottom) {
+			reset_z_sp_dist = true;
+		}
+
+		surface_bottom_timestamp = local_pos.surface_bottom_timestamp;
+
+		ref_alt = local_pos.ref_alt;
+		ref_timestamp = local_pos.ref_timestamp;
+
+		/* run at approximately 100 Hz */
+		usleep(10000);
 	}
 
 	warnx("stopped");
