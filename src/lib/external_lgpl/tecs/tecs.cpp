@@ -300,7 +300,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Dcm &rotMat)
 		// additional component which scales with (1/cos(bank angle) - 1) to compensate for induced
 		// drag increase during turns.
 		float cosPhi = sqrtf((rotMat(0, 1) * rotMat(0, 1)) + (rotMat(1, 1) * rotMat(1, 1)));
-		STEdot_dem = STEdot_dem + _rollComp * (1.0f / constrain(cosPhi * cosPhi , 0.1f, 1.0f) - 1.0f);
+		STEdot_dem = STEdot_dem + _rollComp * (1.0f / constrain(cosPhi , 0.1f, 1.0f) - 1.0f);
 
 		if (STEdot_dem >= 0) {
 			ff_throttle = nomThr + STEdot_dem / _STEdot_max * (1.0f - nomThr);
