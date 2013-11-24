@@ -972,7 +972,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				if (altitude_error > 15.0f) {
 
 					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
-					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_min),
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _global_triplet.current.altitude, calculate_target_airspeed(1.3f*_parameters.airspeed_min),
 								    _airspeed.indicated_airspeed_m_s, eas2tas,
 								    true, math::max(math::radians(global_triplet.current.param1), math::radians(10.0f)),
 								    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
