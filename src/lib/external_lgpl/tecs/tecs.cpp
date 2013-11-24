@@ -169,35 +169,45 @@ void TECS::_update_speed_demand(void)
 	// calculate velocity rate limits based on physical performance limits
 	// provision to use a different rate limit if bad descent or underspeed condition exists
 	// Use 50% of maximum energy rate to allow margin for total energy contgroller
-	float velRateMax;
-	float velRateMin;
+//	float velRateMax;
+//	float velRateMin;
+//
+//	if ((_badDescent) || (_underspeed)) {
+//		velRateMax = 0.5f * _STEdot_max / _integ5_state;
+//		velRateMin = 0.5f * _STEdot_min / _integ5_state;
+//
+//	} else {
+//		velRateMax = 0.5f * _STEdot_max / _integ5_state;
+//		velRateMin = 0.5f * _STEdot_min / _integ5_state;
+//	}
+//
+//	// Apply rate limit
+//	if ((_TAS_dem - _TAS_dem_adj) > (velRateMax * 0.1f)) {
+//		_TAS_dem_adj = _TAS_dem_adj + velRateMax * 0.1f;
+//		_TAS_rate_dem = velRateMax;
+//
+//	} else if ((_TAS_dem - _TAS_dem_adj) < (velRateMin * 0.1f)) {
+//		_TAS_dem_adj = _TAS_dem_adj + velRateMin * 0.1f;
+//		_TAS_rate_dem = velRateMin;
+//
+//	} else {
+//		_TAS_dem_adj = _TAS_dem;
+//
+//
+//	_TAS_rate_dem = (_TAS_dem - _TAS_dem_last) / 0.1f;
+//	}
 
-	if ((_badDescent) || (_underspeed)) {
-		velRateMax = 0.5f * _STEdot_max / _integ5_state;
-		velRateMin = 0.5f * _STEdot_min / _integ5_state;
-
-	} else {
-		velRateMax = 0.5f * _STEdot_max / _integ5_state;
-		velRateMin = 0.5f * _STEdot_min / _integ5_state;
-	}
-
-	// Apply rate limit
-	if ((_TAS_dem - _TAS_dem_adj) > (velRateMax * 0.1f)) {
-		_TAS_dem_adj = _TAS_dem_adj + velRateMax * 0.1f;
-		_TAS_rate_dem = velRateMax;
-
-	} else if ((_TAS_dem - _TAS_dem_adj) < (velRateMin * 0.1f)) {
-		_TAS_dem_adj = _TAS_dem_adj + velRateMin * 0.1f;
-		_TAS_rate_dem = velRateMin;
-
-	} else {
-		_TAS_dem_adj = _TAS_dem;
-		_TAS_rate_dem = (_TAS_dem - _TAS_dem_last) / 0.1f;
-	}
+	_TAS_dem_adj = _TAS_dem;
+	_TAS_rate_dem = (_TAS_dem_adj-_integ5_state)*_speedrate_p; //xxx: using a p loop for now
 
 	// Constrain speed demand again to protect against bad values on initialisation.
 	_TAS_dem_adj = constrain(_TAS_dem_adj, _TASmin, _TASmax);
-	_TAS_dem_last = _TAS_dem;
+//	_TAS_dem_last = _TAS_dem;
+
+//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f, _badDescent %u , _underspeed %u, velRateMin %.1f",
+//			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_integ5_state, _badDescent, _underspeed, velRateMin);
+//	warnx("_TAS_rate_dem: %.1f, _TAS_dem_adj %.1f, _integ5_state %.1f,  _badDescent %u , _underspeed %u",
+//			(double)_TAS_rate_dem, (double)_TAS_dem_adj, (double)_integ5_state,  _badDescent , _underspeed);
 }
 
 void TECS::_update_height_demand(float demand, float state)

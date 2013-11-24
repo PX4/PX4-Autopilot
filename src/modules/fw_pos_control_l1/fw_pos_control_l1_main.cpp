@@ -217,6 +217,7 @@ private:
 		float loiter_hold_radius;
 
 		float heightrate_p;
+		float speedrate_p;
 
 		float land_slope_angle;
 		float land_slope_length;
@@ -260,6 +261,7 @@ private:
 		param_t loiter_hold_radius;
 
 		param_t heightrate_p;
+		param_t speedrate_p;
 
 		param_t land_slope_angle;
 		param_t land_slope_length;
@@ -431,6 +433,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.speed_weight = 			param_find("FW_T_SPDWEIGHT");
 	_parameter_handles.pitch_damping = 			param_find("FW_T_PTCH_DAMP");
 	_parameter_handles.heightrate_p =			param_find("FW_T_HRATE_P");
+	_parameter_handles.speedrate_p =			param_find("FW_T_SRATE_P");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -497,6 +500,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.max_climb_rate, &(_parameters.max_climb_rate));
 
 	param_get(_parameter_handles.heightrate_p, &(_parameters.heightrate_p));
+	param_get(_parameter_handles.speedrate_p, &(_parameters.speedrate_p));
 
 	param_get(_parameter_handles.land_slope_angle, &(_parameters.land_slope_angle));
 	param_get(_parameter_handles.land_slope_length, &(_parameters.land_slope_length));
@@ -523,6 +527,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
 	_tecs.set_max_climb_rate(_parameters.max_climb_rate);
 	_tecs.set_heightrate_p(_parameters.heightrate_p);
+	_tecs.set_speedrate_p(_parameters.speedrate_p);
 
 	/* sanity check parameters */
 	if (_parameters.airspeed_max < _parameters.airspeed_min ||
