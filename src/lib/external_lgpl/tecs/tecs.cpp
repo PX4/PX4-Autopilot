@@ -368,14 +368,18 @@ void TECS::_detect_bad_descent(void)
 	// 1) Underspeed protection not active
 	// 2) Specific total energy error > 0
 	// This mode will produce an undulating speed and height response as it cuts in and out but will prevent the aircraft from descending into the ground if an unachievable speed demand is set
-	float STEdot = _SPEdot + _SKEdot;
+//	float STEdot = _SPEdot + _SKEdot;
+//
+//	if ((!_underspeed && (_STE_error > 200.0f) && (STEdot < 0.0f) && (_throttle_dem >= _THRmaxf * 0.9f)) || (_badDescent && !_underspeed && (_STE_error > 0.0f))) {
+//
+//		warnx("bad descent detected: _STE_error %.1f, STEdot %.1f, _throttle_dem %.1f", _STE_error, STEdot, _throttle_dem);
+//		_badDescent = true;
+//
+//	} else {
+//		_badDescent = false;
+//	}
 
-	if ((!_underspeed && (_STE_error > 200.0f) && (STEdot < 0.0f) && (_throttle_dem >= _THRmaxf * 0.9f)) || (_badDescent && !_underspeed && (_STE_error > 0.0f))) {
-		_badDescent = true;
-
-	} else {
-		_badDescent = false;
-	}
+	_badDescent = false;
 }
 
 void TECS::_update_pitch(void)
