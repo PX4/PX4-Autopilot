@@ -837,6 +837,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 					_l1_control.navigate_heading(target_bearing, _att.yaw, ground_speed);
 
+					/* limit roll motion to prevent wings from touching the ground first */
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
+
 					land_noreturn_horizontal = true;
 
 				} else {
@@ -911,8 +914,6 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 													    0.0f, throttle_max, throttle_land,
 													    flare_angle_rad,  math::radians(15.0f));
 
-					/* limit roll motion to prevent wings from touching the ground first */
-					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-10.0f), math::radians(10.0f));
 					if (!land_noreturn_vertical) {
 						mavlink_log_info(mavlink_fd, "[POSCTRL] Landing, flare");
 						land_noreturn_vertical = true;
