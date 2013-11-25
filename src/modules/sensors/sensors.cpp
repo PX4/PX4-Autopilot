@@ -214,7 +214,7 @@ private:
 	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
 
-	unsigned long _battery_discharged;		/**< battery discharged current in mA*ms */
+	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
 	hrt_abstime _battery_current_timestamp;	/**< timestamp of last battery current reading */
 
 	struct {
