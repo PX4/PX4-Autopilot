@@ -161,9 +161,9 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		parameters_update(&h, &p);
 		initialized = true;
 
-		pid_init(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
-		pid_init(&roll_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1.0f, 1.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
-		pid_init(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, 1.0f, 1.0f, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
+		pid_init(&pitch_rate_controller, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
+		pid_init(&roll_rate_controller, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
+		pid_init(&yaw_rate_controller, PID_MODE_DERIVATIV_CALC_NO_SP, 0.003f);
 	}
 
 	/* load new parameters with lower rate */

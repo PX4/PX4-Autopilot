@@ -246,11 +246,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 
 	for (int i = 0; i < 2; i++) {
-		pid_init(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f, PID_MODE_DERIVATIV_SET, 0.02f);
-		pid_init(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, 1.0f, params.tilt_max, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
+		pid_init(&(xy_pos_pids[i]), PID_MODE_DERIVATIV_SET, 0.02f);
+		pid_init(&(xy_vel_pids[i]), PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 	}
 
-	pid_init(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max, PID_MODE_DERIVATIV_SET, 0.02f);
+	pid_init(&z_pos_pid, PID_MODE_DERIVATIV_SET, 0.02f);
 	thrust_pid_init(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 
 	while (!thread_should_exit) {
