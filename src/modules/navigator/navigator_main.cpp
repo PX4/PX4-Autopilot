@@ -986,8 +986,6 @@ Navigator::start_waypoint()
 	/* this means we should start fresh */
 	if (_current_mission_index == 0) {
 
-		/* Reset the index to start with the first mission item */
-		_current_mission_index = 0;
 		_mission_item_triplet.previous_valid = false;
 
 	} else {
