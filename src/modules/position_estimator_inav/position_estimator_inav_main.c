@@ -388,7 +388,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 				if (sensor.accelerometer_counter > accel_counter) {
 					if (att.R_valid) {
-						/* correct accel bias, now only for Z */
+						/* correct accel bias */
 						sensor.accelerometer_m_s2[0] -= acc_bias[0];
 						sensor.accelerometer_m_s2[1] -= acc_bias[1];
 						sensor.accelerometer_m_s2[2] -= acc_bias[2];
@@ -664,11 +664,11 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 		}
 
 		/* baro offset correction */
-        if (use_gps_z) {
-        	float offs_corr = corr_gps[2][0] * w_z_gps_p * dt;
-            baro_offset += offs_corr;
-            baro_counter += offs_corr;
-        }
+		if (use_gps_z) {
+			float offs_corr = corr_gps[2][0] * w_z_gps_p * dt;
+			baro_offset += offs_corr;
+			baro_counter += offs_corr;
+		}
 
 		/* accelerometer bias correction */
 		float accel_bias_corr[3] = { 0.0f, 0.0f, 0.0f };
@@ -679,6 +679,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			accel_bias_corr[1] -= corr_gps[1][0] * w_xy_gps_p * w_xy_gps_p;
 			accel_bias_corr[1] -= corr_gps[1][1] * w_xy_gps_v;
 		}
+
 		if (use_gps_z) {
 			accel_bias_corr[2] -= corr_gps[2][0] * w_z_gps_p * w_z_gps_p;
 		}
