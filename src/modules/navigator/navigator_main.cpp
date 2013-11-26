@@ -221,6 +221,14 @@ private:
 	void		start_loiter(mission_item_s *new_loiter_position);
 
 	void		start_rtl();
+
+	/**
+	 * Compare two mission items if they are equivalent
+	 * Two mission items can be considered equivalent for the purpose of the navigator even if some fields differ.
+	 *
+	 * @return true if equivalent, false otherwise
+	 */
+	bool		cmp_mission_item_equivalent(const struct mission_item_s a, const struct mission_item_s b);
 };
 
 namespace navigator
@@ -327,6 +335,27 @@ Navigator::mission_update()
 
 		if (mission.count <= _max_mission_item_count) {
 			
+			/* Check if first part of mission (up to _current_mission_index - 1) changed:
+			 * if the first part changed: start again at first waypoint
+			 * if the first part remained unchanged: continue with the (possibly changed second part)
+			 */
+			if (_current_mission_index  < _mission_item_count && _current_mission_index <  mission.count) { //check if not finished and if the new mission is not a shorter mission
+				for (int i = 0; i < (int)_current_mission_index; i++) {
+					if (!cmp_mission_item_equivalent(_mission_item[i], mission.items[i])) {
+						/* set flag to restart mission next we're in auto */
+						_current_mission_index = 0;
+						//warnx("First part of mission differs i=%d", i);
+						break;
+					}
+//					else {
+//						warnx("Mission item is equivalent i=%d", i);
+//					}
+				}
+			} else {
+				/* set flag to restart mission next we're in auto */
+				_current_mission_index = 0;
+			}
+
 			/*
 			 * Perform an atomic copy & state update
 			 */
@@ -343,9 +372,6 @@ Navigator::mission_update()
 			warnx("ERROR: too many waypoints, not supported");
 			_mission_item_count = 0;
 		}
-
-		/* set flag to restart mission next we're in auto */
-		_current_mission_index = 0;
 
 		if (_mode == NAVIGATION_MODE_WAYPOINT) {
 			start_waypoint();
@@ -1114,4 +1140,24 @@ int navigator_main(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+bool Navigator::cmp_mission_item_equivalent(const struct mission_item_s a, const struct mission_item_s b) {
+	if (a.altitude_is_relative == b.altitude_is_relative &&
+			a.lat == b.lat &&
+			a.lon == b.lon &&
+			a.altitude == b.altitude &&
+			a.yaw == b.yaw &&
+			a.loiter_radius == b.loiter_radius &&
+			a.loiter_direction == b.loiter_direction &&
+			a.nav_cmd == b.nav_cmd &&
+			a.radius == b.radius &&
+			a.time_inside == b.time_inside &&
+			a.autocontinue == b.autocontinue &&
+			a.index == b.index) {
+		return true;
+	} else {
+		warnx("a.index %d, b.index %d", a.index, b.index);
+		return false;
+	}
 }
