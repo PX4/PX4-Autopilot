@@ -349,7 +349,7 @@ Navigator::mission_update()
 			 * if the first part remained unchanged: continue with the (possibly changed second part)
 			 */
 			if (_current_mission_index  < _mission_item_count && _current_mission_index <  mission.count) { //check if not finished and if the new mission is not a shorter mission
-				for (int i = 0; i < (int)_current_mission_index; i++) {
+				for (unsigned i = 0; i < _current_mission_index; i++) {
 					if (!cmp_mission_item_equivalent(_mission_item[i], mission.items[i])) {
 						/* set flag to restart mission next we're in auto */
 						_current_mission_index = 0;
@@ -781,7 +781,7 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 					/* Use current altitude if above min altitude set by parameter */
 					if (_global_pos.alt < global_min_alt) {
 						global_position_mission_item.altitude = global_min_alt;
-						mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", global_min_alt - _global_pos.alt);
+						mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", (double)(global_min_alt - _global_pos.alt));
 					} else {
 						global_position_mission_item.altitude = _global_pos.alt;
 						mavlink_log_info(_mavlink_fd, "[navigator] loiter here");
@@ -956,7 +956,7 @@ Navigator::check_mission_item_reached()
 	}
 
 	/* don't try to reach the landing mission, just stay in that mode */
-	if (_mission_item_triplet.current.nav_cmd == MAV_CMD_NAV_LAND) {
+	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LAND) {
 		return;
 	}
 
@@ -967,9 +967,9 @@ Navigator::check_mission_item_reached()
 
 		orbit = _mission_item_triplet.current.radius;
 
-	} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+	} else if ((_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
 			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED &&
+			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
 			_mission_item_triplet.current.loiter_radius > 0.01f) {
 
 		orbit = _mission_item_triplet.current.loiter_radius;
@@ -1030,10 +1030,10 @@ Navigator::check_mission_item_reached()
 			/* XXX announcment? */
 			_time_first_inside_orbit = now;
 		}
-				
+		
 		/* check if the MAV was long enough inside the waypoint orbit */
 		if ((now - _time_first_inside_orbit >= (uint64_t)_mission_item_triplet.current.time_inside * 1e6)
-		     || _mission_item_triplet.current.nav_cmd == (int)MAV_CMD_NAV_TAKEOFF) {
+		     || _mission_item_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
 
 			_mission_item_reached = true;
 		}
@@ -1182,18 +1182,18 @@ int navigator_main(int argc, char *argv[])
 }
 
 bool Navigator::cmp_mission_item_equivalent(const struct mission_item_s a, const struct mission_item_s b) {
-	if (a.altitude_is_relative == b.altitude_is_relative &&
-			a.lat == b.lat &&
-			a.lon == b.lon &&
-			a.altitude == b.altitude &&
-			a.yaw == b.yaw &&
-			a.loiter_radius == b.loiter_radius &&
-			a.loiter_direction == b.loiter_direction &&
-			a.nav_cmd == b.nav_cmd &&
-			a.radius == b.radius &&
-			a.time_inside == b.time_inside &&
-			a.autocontinue == b.autocontinue &&
-			a.index == b.index) {
+	if (fabsf(a.altitude_is_relative - b.altitude_is_relative) < FLT_EPSILON &&
+	    fabsf(a.lat - b.lat) < FLT_EPSILON &&
+	    fabsf(a.lon - b.lon) < FLT_EPSILON &&
+	    fabsf(a.altitude - b.altitude) < FLT_EPSILON &&
+	    fabsf(a.yaw - b.yaw) < FLT_EPSILON &&
+	    fabsf(a.loiter_radius - b.loiter_radius) < FLT_EPSILON &&
+	    fabsf(a.loiter_direction - b.loiter_direction) < FLT_EPSILON &&
+	    fabsf(a.nav_cmd - b.nav_cmd) < FLT_EPSILON &&
+	    fabsf(a.radius - b.radius) < FLT_EPSILON &&
+	    fabsf(a.time_inside - b.time_inside) < FLT_EPSILON &&
+	    fabsf(a.autocontinue - b.autocontinue) < FLT_EPSILON &&
+	    fabsf(a.index - b.index) < FLT_EPSILON) {
 		return true;
 	} else {
 		warnx("a.index %d, b.index %d", a.index, b.index);
