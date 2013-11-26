@@ -251,7 +251,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	}
 
 	pid_init(&z_pos_pid, PID_MODE_DERIVATIV_SET, 0.02f);
-	thrust_pid_init(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min, PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
+	thrust_pid_init(&z_vel_pid, 0.02f);
 
 	while (!thread_should_exit) {
 
@@ -265,18 +265,18 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			/* update params */
 			parameters_update(&params_h, &params);
 
+			/* integral_limit * ki = tilt_max / 2 */
+			float i_limit;
+
+			if (params.xy_vel_i > 0.0f) {
+				i_limit = params.tilt_max / params.xy_vel_i / 2.0f;
+
+			} else {
+				i_limit = 0.0f;	// not used
+			}
+
 			for (int i = 0; i < 2; i++) {
-				pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 1.0f, 0.0f);
-				/* use integral_limit_out = tilt_max / 2 */
-				float i_limit;
-
-				if (params.xy_vel_i > 0.0f) {
-					i_limit = params.tilt_max / params.xy_vel_i / 2.0f;
-
-				} else {
-					i_limit = 0.0f;	// not used
-				}
-
+				pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 0.0f, 0.0f);
 				pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, i_limit, params.tilt_max);
 			}
 
@@ -471,6 +471,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							} else {
 								local_pos_sp.z = local_pos.ref_alt - global_pos_sp.altitude;
 							}
+
 							/* update yaw setpoint only if value is valid */
 							if (isfinite(global_pos_sp.yaw) && fabsf(global_pos_sp.yaw) < M_TWOPI) {
 								att_sp.yaw_body = global_pos_sp.yaw;
