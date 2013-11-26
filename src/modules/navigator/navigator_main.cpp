@@ -173,10 +173,12 @@ private:
 
 	struct {
 		float min_altitude;
+		float loiter_radius;
 	}		_parameters;			/**< local copies of parameters */
 
 	struct {
 		param_t min_altitude;
+		param_t loiter_radius;
 
 	}		_parameter_handles;		/**< handles for parameters */
 
@@ -282,6 +284,7 @@ Navigator::Navigator() :
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
+	_parameter_handles.loiter_radius = param_find("NAV_LOITER_RAD");
 
 	_mission_item = (mission_item_s*)malloc(sizeof(mission_item_s) * _max_mission_item_count);
 
@@ -326,6 +329,7 @@ Navigator::parameters_update()
 {
 
 	param_get(_parameter_handles.min_altitude, &(_parameters.min_altitude));
+	param_get(_parameter_handles.loiter_radius, &(_parameters.loiter_radius));
 
 	return OK;
 }
@@ -540,6 +544,8 @@ Navigator::task_main()
 
 			/* update parameters from storage */
 			parameters_update();
+
+			/* note that these new parameters won't be in effect until a mission triplet is published again */
 		}
 
 		/* only update craft capabilities if they have changed */
@@ -866,7 +872,7 @@ Navigator::set_waypoint_mission_item(unsigned mission_item_index, struct mission
 				new_mission_item->lat = (double)_home_pos.lat / 1e7;
 				new_mission_item->lon = (double)_home_pos.lon / 1e7;
 				new_mission_item->altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
-				new_mission_item->loiter_radius = 100.0f; // TODO: get rid of magic number
+				new_mission_item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
 				new_mission_item->radius = 50.0f; // TODO: get rid of magic number
 		}
 		// warnx("added mission item: %d", mission_item_index);
@@ -1085,7 +1091,7 @@ Navigator::start_loiter(mission_item_s *new_loiter_position)
 
 	_mission_item_triplet.current.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item_triplet.current.loiter_direction = 1;
-	_mission_item_triplet.current.loiter_radius = 100.0f; // TODO: get rid of magic number
+	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
 	_mission_item_triplet.current.radius = 50.0f; // TODO: get rid of magic number
 	_mission_item_triplet.current.autocontinue = false;
 
@@ -1113,7 +1119,7 @@ Navigator::start_rtl()
 	_mission_item_triplet.current.yaw = 0.0f;
 	_mission_item_triplet.current.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
 	_mission_item_triplet.current.loiter_direction = 1;
-	_mission_item_triplet.current.loiter_radius = 100.0f; // TODO: get rid of magic number
+	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
 	_mission_item_triplet.current.radius = 50.0f; // TODO: get rid of magic number
 	_mission_item_triplet.current.autocontinue = false;
 	_mission_item_triplet.current_valid = true;
