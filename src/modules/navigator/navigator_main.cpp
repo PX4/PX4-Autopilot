@@ -944,8 +944,13 @@ Navigator::reset_mission_item_reached()
 void
 Navigator::check_mission_item_reached()
 {
-	// warnx("checking mission item reached");
+	/* don't check if mission item is already reached */
 	if (_mission_item_reached) {
+		return;
+	}
+
+	/* don't try to reach the landing mission, just stay in that mode */
+	if (_mission_item_triplet.current.nav_cmd == MAV_CMD_NAV_LAND) {
 		return;
 	}
 
