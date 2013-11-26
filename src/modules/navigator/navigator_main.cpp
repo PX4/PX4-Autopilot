@@ -172,13 +172,13 @@ private:
 	unsigned		_current_mission_index;
 
 	struct {
-		float throttle_cruise;
-	}		_parameters;			/**< local copies of interesting parameters */
+		float min_altitude;
+	}		_parameters;			/**< local copies of parameters */
 
 	struct {
-		param_t throttle_cruise;
+		param_t min_altitude;
 
-	}		_parameter_handles;		/**< handles for interesting parameters */
+	}		_parameter_handles;		/**< handles for parameters */
 
 
 	/**
@@ -281,7 +281,7 @@ Navigator::Navigator() :
 {
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
-	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
+	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
 
 	_mission_item = (mission_item_s*)malloc(sizeof(mission_item_s) * _max_mission_item_count);
 
@@ -325,7 +325,7 @@ int
 Navigator::parameters_update()
 {
 
-	//param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+	param_get(_parameter_handles.min_altitude, &(_parameters.min_altitude));
 
 	return OK;
 }
@@ -491,7 +491,7 @@ Navigator::task_main()
 					case NAVIGATION_STATE_AUTO_READY:
 					case NAVIGATION_STATE_AUTO_TAKEOFF:
 
-						/* TODO add this */
+						/* TODO probably not needed since takeoff WPs will just be passed on */
 						//set_mode(NAVIGATION_MODE_TAKEOFF);
 						break;
 
@@ -762,18 +762,29 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 				case NAVIGATION_MODE_NONE:
 
 				case NAVIGATION_MODE_WAYPOINT:
-				case NAVIGATION_MODE_RTL:
+				case NAVIGATION_MODE_RTL: {
 
 					/* use current position and loiter around it */
 					mission_item_s global_position_mission_item;
 					global_position_mission_item.lat = (double)_global_pos.lat / 1e7;
 					global_position_mission_item.lon = (double)_global_pos.lon / 1e7;
-					global_position_mission_item.altitude = _global_pos.alt;
+
+					/* XXX get rid of ugly conversion for home position altitude */
+					float global_min_alt = _parameters.min_altitude + (float)_home_pos.alt/1e3f;
+
+					/* Use current altitude if above min altitude set by parameter */
+					if (_global_pos.alt < global_min_alt) {
+						global_position_mission_item.altitude = global_min_alt;
+						mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", global_min_alt - _global_pos.alt);
+					} else {
+						global_position_mission_item.altitude = _global_pos.alt;
+						mavlink_log_info(_mavlink_fd, "[navigator] loiter here");
+					}
 					start_loiter(&global_position_mission_item);
 					_mode = new_nav_mode;
-					mavlink_log_info(_mavlink_fd, "[navigator] loiter here");
+					
 					break;
-
+				}
 				case NAVIGATION_MODE_LOITER_WAYPOINT:
 				case NAVIGATION_MODE_LOITER_RTL:
 					/* already loitering, just continue */
@@ -836,7 +847,7 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 				mission_item_s home_position_mission_item;
 				home_position_mission_item.lat = (double)_home_pos.lat / 1e7;
 				home_position_mission_item.lon = (double)_home_pos.lon / 1e7;
-				home_position_mission_item.altitude = _home_pos.alt / 1e3f + 50.0f;
+				home_position_mission_item.altitude = _home_pos.alt / 1e3f + _parameters.min_altitude;
 				start_loiter(&home_position_mission_item);
 				mavlink_log_info(_mavlink_fd, "[navigator] loiter after RTL");
 				_mode = new_nav_mode;
@@ -854,7 +865,7 @@ Navigator::set_waypoint_mission_item(unsigned mission_item_index, struct mission
 			/* if it is a RTL waypoint, append the home position */
 				new_mission_item->lat = (double)_home_pos.lat / 1e7;
 				new_mission_item->lon = (double)_home_pos.lon / 1e7;
-				new_mission_item->altitude = (float)_home_pos.alt / 1e3f + 50.0f; // TODO: add parameter for RTL altitude
+				new_mission_item->altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
 				new_mission_item->loiter_radius = 100.0f; // TODO: get rid of magic number
 				new_mission_item->radius = 50.0f; // TODO: get rid of magic number
 		}
@@ -1093,7 +1104,7 @@ Navigator::start_rtl()
 
 	_mission_item_triplet.current.lat = (double)_home_pos.lat / 1e7;
 	_mission_item_triplet.current.lon = (double)_home_pos.lon / 1e7;
-	_mission_item_triplet.current.altitude = (float)_home_pos.alt / 1e3f + 50.0f; // TODO: add parameter for RTL altitude
+	_mission_item_triplet.current.altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
 	_mission_item_triplet.current.yaw = 0.0f;
 	_mission_item_triplet.current.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
 	_mission_item_triplet.current.loiter_direction = 1;
