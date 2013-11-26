@@ -1173,6 +1173,11 @@ FixedwingPositionControl::task_main()
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
 
+			/* XXX Hack to get mavlink output going */
+			if (mavlink_fd < 0) {
+				/* try to open the mavlink log device every once in a while */
+				mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+			}
 
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
