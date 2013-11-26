@@ -69,6 +69,7 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <dataman/dataman.h>
+#include <mavlink/mavlink_log.h>
 
 typedef enum {
 	NAVIGATION_MODE_NONE,
@@ -131,6 +132,8 @@ private:
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_navigator_task;		/**< task handle for sensor task */
+
+	int		_mavlink_fd;
 
 	int		_global_pos_sub;		/**< global position subscription */
 	int		_home_pos_sub;			/**< home position subscription */
@@ -248,6 +251,8 @@ Navigator::Navigator() :
 	_task_should_exit(false),
 	_navigator_task(-1),
 
+	_mavlink_fd(-1),
+
 /* subscriptions */
 	_global_pos_sub(-1),
 	_home_pos_sub(-1),
@@ -344,6 +349,7 @@ Navigator::mission_update()
 					if (!cmp_mission_item_equivalent(_mission_item[i], mission.items[i])) {
 						/* set flag to restart mission next we're in auto */
 						_current_mission_index = 0;
+						mavlink_log_info(_mavlink_fd, "[navigator] Reset to WP %d", _current_mission_index);
 						//warnx("First part of mission differs i=%d", i);
 						break;
 					}
@@ -354,6 +360,7 @@ Navigator::mission_update()
 			} else {
 				/* set flag to restart mission next we're in auto */
 				_current_mission_index = 0;
+				mavlink_log_info(_mavlink_fd, "[navigator] Reset to WP %d", _current_mission_index);
 			}
 
 			/*
@@ -370,6 +377,7 @@ Navigator::mission_update()
 			
 		} else {
 			warnx("ERROR: too many waypoints, not supported");
+			mavlink_log_critical(_mavlink_fd, "[navigator] too many waypoints, not supported");
 			_mission_item_count = 0;
 		}
 
@@ -550,6 +558,12 @@ Navigator::task_main()
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
 
+			/* XXX Hack to get mavlink output going */
+			if (_mavlink_fd < 0) {
+				/* try to open the mavlink log device every once in a while */
+				_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+			}
+
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
 	
@@ -566,7 +580,7 @@ Navigator::task_main()
 					check_mission_item_reached();
 
 					if (_mission_item_reached) {
-						// warnx("Mission already reached");
+						mavlink_log_info(_mavlink_fd, "[navigator] reached WP %d", _current_mission_index);
 						if (advance_current_mission_item() != OK) {
 							set_mode(NAVIGATION_MODE_LOITER_WAYPOINT);
 						}
@@ -578,6 +592,7 @@ Navigator::task_main()
 					check_mission_item_reached();
 
 					if (_mission_item_reached) {
+						mavlink_log_info(_mavlink_fd, "[navigator] reached RTL position");
 						set_mode(NAVIGATION_MODE_LOITER_RTL);
 					}
 					break;
@@ -756,7 +771,7 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 					global_position_mission_item.altitude = _global_pos.alt;
 					start_loiter(&global_position_mission_item);
 					_mode = new_nav_mode;
-					// warnx("start loiter here");
+					mavlink_log_info(_mavlink_fd, "[navigator] loiter here");
 					break;
 
 				case NAVIGATION_MODE_LOITER_WAYPOINT:
@@ -777,15 +792,15 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 
 			/* Start mission if there is one available */
 			start_waypoint();
-			// warnx("Set mode WAYPOINT");
 			_mode = new_nav_mode;
+			mavlink_log_info(_mavlink_fd, "[navigator] start waypoint mission");
 			break;
 
 		case NAVIGATION_MODE_LOITER_WAYPOINT:
 
 			start_loiter(&_mission_item_triplet.current);
-			// warnx("Set mode LOITER from current waypoint");
 			_mode = new_nav_mode;
+			mavlink_log_info(_mavlink_fd, "[navigator] loiter at WP %d", _current_mission_index-1);
 			break;
 
 		case NAVIGATION_MODE_RTL:
@@ -800,12 +815,11 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 					/* start RTL here */
 					start_rtl();
 					_mode = new_nav_mode;
-					// warnx("start RTL");
+					mavlink_log_info(_mavlink_fd, "[navigator] start RTL");
 					break;
 
 				case NAVIGATION_MODE_LOITER_RTL:
 					/* already loitering after RTL, just continue */
-					/* TODO: get rid of this conversion */
 					// warnx("stay in loiter after RTL");
 					break;
 
@@ -824,7 +838,7 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 				home_position_mission_item.lon = (double)_home_pos.lon / 1e7;
 				home_position_mission_item.altitude = _home_pos.alt / 1e3f + 50.0f;
 				start_loiter(&home_position_mission_item);
-				// warnx("Set mode LOITER from home position");
+				mavlink_log_info(_mavlink_fd, "[navigator] loiter after RTL");
 				_mode = new_nav_mode;
 			break;
 	}
@@ -1021,6 +1035,8 @@ Navigator::start_waypoint()
 	
 	set_waypoint_mission_item(_current_mission_index, &_mission_item_triplet.current);
 	_mission_item_triplet.current_valid = true;
+
+	mavlink_log_info(_mavlink_fd, "[navigator] heading to WP %d", _current_mission_index);
 
 	// if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
 			
