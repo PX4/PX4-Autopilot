@@ -95,8 +95,6 @@
  */
 extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
 
-static int mavlink_fd;
-
 class FixedwingPositionControl
 {
 public:
@@ -118,6 +116,7 @@ public:
 	int		start();
 
 private:
+	int		_mavlink_fd;
 
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_control_task;			/**< task handle for sensor task */
@@ -377,11 +376,9 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_stayonground(false),
 	land_motor_lim(false),
 	land_onslope(false),
-	flare_curve_alt_last(0.0f)
+	flare_curve_alt_last(0.0f),
+	_mavlink_fd(-1)
 {
-
-	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-
 	/* safely initialize structs */
 	vehicle_attitude_s			_att = {0};
 	vehicle_attitude_setpoint_s		_att_sp = {0};
@@ -884,7 +881,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
 					if (!land_motor_lim) {
 						land_motor_lim  = true;
-						mavlink_log_info(mavlink_fd, "[POSCTRL] Landing, limit throttle");
+						mavlink_log_info(_mavlink_fd, "[POSCTRL] Landing, limit throttle");
 					}
 
 				 }
@@ -905,7 +902,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 												    flare_angle_rad,  math::radians(15.0f));
 
 				if (!land_noreturn_vertical) {
-					mavlink_log_info(mavlink_fd, "[POSCTRL] Landing, flare");
+					mavlink_log_info(_mavlink_fd, "[POSCTRL] Landing, flare");
 					land_noreturn_vertical = true;
 				}
 				//warnx("Landing:  flare, _global_pos.alt  %.1f, flare_curve_alt %.1f, flare_curve_alt_last %.1f, flare_length %.1f, wp_distance %.1f", _global_pos.alt, flare_curve_alt, flare_curve_alt_last, flare_length, wp_distance);
@@ -924,7 +921,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				if (!land_onslope) {
 
-					mavlink_log_info(mavlink_fd, "[POSCTRL] Landing, on slope");
+					mavlink_log_info(_mavlink_fd, "[POSCTRL] Landing, on slope");
 					land_onslope = true;
 				}
 
@@ -1173,6 +1170,11 @@ FixedwingPositionControl::task_main()
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
 
+			/* XXX Hack to get mavlink output going */
+			if (_mavlink_fd < 0) {
+				/* try to open the mavlink log device every once in a while */
+				_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+			}
 
 			static uint64_t last_run = 0;
 			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;

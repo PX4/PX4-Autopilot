@@ -963,13 +963,14 @@ Navigator::check_mission_item_reached()
 	uint64_t now = hrt_absolute_time();
 	float orbit;
 
-	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_WAYPOINT) {
+	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_WAYPOINT && _mission_item_triplet.current.radius > 0.01f) {
 
 		orbit = _mission_item_triplet.current.radius;
 
 	} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
 			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
+			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED &&
+			_mission_item_triplet.current.loiter_radius > 0.01f) {
 
 		orbit = _mission_item_triplet.current.loiter_radius;
 	} else {
