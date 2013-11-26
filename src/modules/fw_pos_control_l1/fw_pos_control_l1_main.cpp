@@ -881,7 +881,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					throttle_max = math::min(throttle_max, _parameters.throttle_land_max);
 					if (!land_motor_lim) {
 						land_motor_lim  = true;
-						mavlink_log_info(_mavlink_fd, "[POSCTRL] Landing, limit throttle");
+						mavlink_log_info(_mavlink_fd, "#audio: Landing, limiting throttle");
 					}
 
 				 }
@@ -902,7 +902,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 												    flare_angle_rad,  math::radians(15.0f));
 
 				if (!land_noreturn_vertical) {
-					mavlink_log_info(_mavlink_fd, "[POSCTRL] Landing, flare");
+					mavlink_log_info(_mavlink_fd, "#audio: Landing, flaring");
 					land_noreturn_vertical = true;
 				}
 				//warnx("Landing:  flare, _global_pos.alt  %.1f, flare_curve_alt %.1f, flare_curve_alt_last %.1f, flare_length %.1f, wp_distance %.1f", _global_pos.alt, flare_curve_alt, flare_curve_alt_last, flare_length, wp_distance);
@@ -921,7 +921,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				if (!land_onslope) {
 
-					mavlink_log_info(_mavlink_fd, "[POSCTRL] Landing, on slope");
+					mavlink_log_info(_mavlink_fd, "#audio: Landing, on slope");
 					land_onslope = true;
 				}
 
