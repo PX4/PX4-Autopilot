@@ -91,7 +91,7 @@
 #define MOTOR_STATE_PRESENT_MASK		0x80
 #define MOTOR_STATE_ERROR_MASK		0x7F
 #define MOTOR_SPINUP_COUNTER			30
-#define ESC_UORB_PUBLISH_DELAY		200
+#define ESC_UORB_PUBLISH_DELAY		500000
 
 class MK : public device::I2C
 {
@@ -661,7 +661,7 @@ MK::task_main()
 		 * Only update esc topic every half second.
 		 */
 
-		if (hrt_absolute_time() - esc.timestamp > 500000) {
+		if (hrt_absolute_time() - esc.timestamp > ESC_UORB_PUBLISH_DELAY) {
 			esc.counter++;
 			esc.timestamp = hrt_absolute_time();
 			esc.esc_count = (uint8_t) _num_outputs;
@@ -955,6 +955,7 @@ MK::mk_servo_test(unsigned int chan)
 		if (_motor >= _num_outputs) {
 			_motor = -1;
 			_motortest = false;
+			fprintf(stderr, "[mkblctrl] Motortest finished...\n");
 		}
 	}
 
@@ -1557,41 +1558,53 @@ mkblctrl_main(int argc, char *argv[])
 
 	if (showHelp) {
 		fprintf(stderr, "mkblctrl: help:\n");
-		fprintf(stderr, "  [-mkmode frame{+/x}] [-b i2c_bus_number] [-d devicename] [-t] [--override-security-checks] [-h / --help]\n\n");
-		fprintf(stderr, "\t -mkmode frame {+/x} \t\t Type of frame, if Mikrokopter motor order is used.\n");
-		fprintf(stderr, "\t -b i2c_bus_number \t\t Set the i2c bus where the ESCs are connected to (default 1).\n");
+		fprintf(stderr, "  [-mkmode {+/x}] [-b i2c_bus_number] [-d devicename] [--override-security-checks] [-h / --help]\n\n");
+		fprintf(stderr, "\t -mkmode {+/x} \t\t Type of frame, if Mikrokopter motor order is used.\n");
+		fprintf(stderr, "\t -b {i2c_bus_number} \t\t Set the i2c bus where the ESCs are connected to (default autoscan).\n");
 		fprintf(stderr, "\t -d {devicepath & name}\t\t Create alternate pwm device.\n");
-		fprintf(stderr, "\t -t \t\t\t Spin up once every motor in order of motoraddress. (DANGER !!!)\n");
 		fprintf(stderr, "\t --override-security-checks \t\t Disable all security checks (arming and number of ESCs). Used to test single Motors etc. (DANGER !!!)\n");
+		fprintf(stderr, "\n");
+		fprintf(stderr, "Motortest:\n");
+		fprintf(stderr, "First you have to start mkblctrl, the you can enter Motortest Mode with:\n");
+		fprintf(stderr, "mkblctrl -t\n");
+      fprintf(stderr, "This will spin up once every motor in order of motoraddress. (DANGER !!!)\n");
 		exit(1);
 	}
 
 
-	if (bus == -1) {
-		bus = mk_check_for_i2c_esc_bus(devicepath, motorcount);
-	}
+	if (!motortest) {
+   	if (g_mk == nullptr) {
+      	if (bus == -1) {
+      		bus = mk_check_for_i2c_esc_bus(devicepath, motorcount);
+      	}
 
-	if (bus != -1) {
-		if (g_mk == nullptr) {
-			if (mk_start(bus, motorcount, devicepath) != OK) {
-				errx(1, "failed to start the MK-BLCtrl driver");
+      	if (bus != -1) {
+     			if (mk_start(bus, motorcount, devicepath) != OK) {
+     				errx(1, "failed to start the MK-BLCtrl driver");
+     			}
+      	} else {
+      		errx(1, "failed to start the MK-BLCtrl driver (cannot find i2c esc's)");
+      	}
 
-			} else {
-				//////newMode = true;
-			}
-		}
-	} else {
-		errx(1, "failed to start the MK-BLCtrl driver (cannot find i2c esc's)");
+      	/* parameter set ? */
+      	if (newMode) {
+      		/* switch parameter */
+      		return mk_new_mode(port_mode, pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
+      	}
 
-	}
+      	exit(0);
+      } else {
+         errx(1, "MK-BLCtrl driver already running");
+      }
 
-	/* parameter set ? */
-	if (newMode) {
-		/* switch parameter */
-		return mk_new_mode(port_mode, pwm_update_rate_in_hz, motorcount, motortest, px4mode, frametype, overrideSecurityChecks);
-	}
+   } else {
+      if (g_mk == nullptr) {
+         errx(1, "MK-BLCtrl driver not running. You have to start it first.");
 
-	/* test, etc. here g*/
+      } else {
+         g_mk->set_motor_test(motortest);
+         exit(0);
 
-	exit(0);
+      }
+   }
 }
