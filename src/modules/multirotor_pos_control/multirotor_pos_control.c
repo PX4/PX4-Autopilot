@@ -244,7 +244,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	parameters_init(&params_h);
 	parameters_update(&params_h, &params);
 
-
 	for (int i = 0; i < 2; i++) {
 		pid_init(&(xy_pos_pids[i]), PID_MODE_DERIVATIV_SET, 0.02f);
 		pid_init(&(xy_vel_pids[i]), PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
@@ -253,15 +252,18 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	pid_init(&z_pos_pid, PID_MODE_DERIVATIV_SET, 0.02f);
 	thrust_pid_init(&z_vel_pid, 0.02f);
 
+	bool param_updated = true;
+
 	while (!thread_should_exit) {
 
-		bool param_updated;
-		orb_check(param_sub, &param_updated);
+		if (!param_updated)
+			orb_check(param_sub, &param_updated);
 
 		if (param_updated) {
 			/* clear updated flag */
 			struct parameter_update_s ps;
 			orb_copy(ORB_ID(parameter_update), param_sub, &ps);
+
 			/* update params */
 			parameters_update(&params_h, &params);
 
