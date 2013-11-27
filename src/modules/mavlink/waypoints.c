@@ -70,11 +70,32 @@ struct mission_s mission;
 
 uint8_t mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 
-void map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item)
+int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item)
 {
-	mission_item->lat = (double)mavlink_mission_item->x;
-	mission_item->lon = (double)mavlink_mission_item->y;
-	mission_item->altitude = mavlink_mission_item->z;
+	/* only support global waypoints for now */
+	switch (mavlink_mission_item->frame) {
+		case MAV_FRAME_GLOBAL:
+			mission_item->lat = (double)mavlink_mission_item->x;
+			mission_item->lon = (double)mavlink_mission_item->y;
+			mission_item->altitude = mavlink_mission_item->z;
+			mission_item->altitude_is_relative = false;
+			break;
+
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+			mission_item->lat = (double)mavlink_mission_item->x;
+			mission_item->lon = (double)mavlink_mission_item->y;
+			mission_item->altitude = mavlink_mission_item->z;
+			mission_item->altitude_is_relative = true;
+			break;
+
+		case MAV_FRAME_LOCAL_NED:
+		case MAV_FRAME_LOCAL_ENU:
+			return MAV_MISSION_UNSUPPORTED_FRAME;
+		case MAV_FRAME_MISSION:
+		default:
+			return MAV_MISSION_ERROR;
+	}
+
 	mission_item->yaw = mavlink_mission_item->param4*M_DEG_TO_RAD_F;
 	mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
 	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
@@ -83,14 +104,22 @@ void map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavl
 	mission_item->time_inside = mavlink_mission_item->param2 / 1e3f; /* from milliseconds to seconds */
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	mission_item->index = mavlink_mission_item->seq;
+
+	return OK;
 }
 
-void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item)
+int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item)
 {
-
+	if (mission_item->altitude_is_relative) {
+		mavlink_mission_item->frame = MAV_FRAME_GLOBAL;
+	} else {
+		mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
+	}
+	
 	mavlink_mission_item->x = (float)mission_item->lat;
 	mavlink_mission_item->y = (float)mission_item->lon;
 	mavlink_mission_item->z = mission_item->altitude;
+
 	mavlink_mission_item->param4 = mission_item->yaw*M_RAD_TO_DEG_F;
 	mavlink_mission_item->param3 = mission_item->loiter_radius*(float)mission_item->loiter_direction;
 	mavlink_mission_item->command = mission_item->nav_cmd;
@@ -98,6 +127,8 @@ void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *missi
 	mavlink_mission_item->param2 = mission_item->time_inside * 1e3f; /* from seconds to milliseconds */
 	mavlink_mission_item->autocontinue = mission_item->autocontinue;
 	mavlink_mission_item->seq = mission_item->index;
+
+	return OK;
 }
 
 void mavlink_wpm_init(mavlink_wpm_storage *state)
@@ -147,15 +178,15 @@ void mavlink_wpm_send_waypoint_ack(uint8_t sysid, uint8_t compid, uint8_t type)
 
 	// FIXME TIMING usleep(paramClient->getParamValue("PROTOCOLDELAY"));
 
-	if (MAVLINK_WPM_TEXT_FEEDBACK) {
-#ifdef MAVLINK_WPM_NO_PRINTF
-		mavlink_missionlib_send_gcs_string("Sent waypoint ACK");
-#else
+// 	if (MAVLINK_WPM_TEXT_FEEDBACK) {
+// #ifdef MAVLINK_WPM_NO_PRINTF
+// 		mavlink_missionlib_send_gcs_string("Sent waypoint ACK");
+// #else
 
-		if (MAVLINK_WPM_VERBOSE) printf("Sent waypoint ack (%u) to ID %u\n", wpa.type, wpa.target_system);
+// 		if (MAVLINK_WPM_VERBOSE) printf("Sent waypoint ack (%u) to ID %u\n", wpa.type, wpa.target_system);
 
-#endif
-	}
+// #endif
+// 	}
 }
 
 /*
@@ -563,7 +594,20 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 
 						// wpm->yaw_reached = false;
 						// wpm->pos_reached = false;
-						mavlink_wpm_send_waypoint_current(wpc.seq);
+						
+						mission.current_index = wpc.seq;
+
+						/* Initialize mission publication if necessary */
+						if (mission_pub < 0) {
+							mission_pub = orb_advertise(ORB_ID(mission), &mission);
+
+						} else {
+							orb_publish(ORB_ID(mission), mission_pub, &mission);
+						}
+						
+						mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
+
+						//mavlink_wpm_send_waypoint_current(wpc.seq);
 						// mavlink_wpm_send_setpoint(wpm->current_active_wp_id);
 						// wpm->timestamp_firstinside_orbit = 0;
 
@@ -788,6 +832,8 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 						} else {
 							/* prepare mission topic */
 							mission.count = wpc.count;
+							/* reset current index */
+							mission.current_index = -1;
 						}
 
 #ifdef MAVLINK_WPM_NO_PRINTF
@@ -896,7 +942,9 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 //                wpm->current_state = MAVLINK_WPM_STATE_GETLIST;//removeme debug XXX TODO
 
 				//ensure that we are in the correct state and that the first waypoint has id 0 and the following waypoints have the correct ids
-				if ((wpm->current_state == MAVLINK_WPM_STATE_GETLIST && wp.seq == 0) || (wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS && wp.seq == wpm->current_wp_id && wp.seq < wpm->current_count)) {
+				if ((wpm->current_state == MAVLINK_WPM_STATE_GETLIST && wp.seq == 0) ||
+				    (wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS && wp.seq == wpm->current_wp_id &&
+				    wp.seq < wpm->current_count)) {
 					//mavlink_missionlib_send_gcs_string("DEBUG 2");
 
 //                    if (verbose && wpm->current_state == MAVLINK_WPM_STATE_GETLIST) // printf("Got MAVLINK_MSG_ID_MISSION_ITEM %u from %u changing state to MAVLINK_WPM_STATE_GETLIST_GETWPS\n", wp.seq, msg->sysid);
@@ -904,9 +952,25 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 //                    if (verbose && wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS && wp.seq-1 == wpm->current_wp_id) // printf("Got MAVLINK_MSG_ID_MISSION_ITEM %u (again) from %u\n", wp.seq, msg->sysid);
 //
 					wpm->current_state = MAVLINK_WPM_STATE_GETLIST_GETWPS;
-					mavlink_mission_item_t *newwp = &(wpm->rcv_waypoints[wp.seq]);
-					memcpy(newwp, &wp, sizeof(mavlink_mission_item_t));
-//                    printf("WP seq: %d\n",wp.seq);
+					// mavlink_mission_item_t *newwp = &(wpm->rcv_waypoints[wp.seq]);
+					// memcpy(newwp, &wp, sizeof(mavlink_mission_item_t));
+
+					int ret = map_mavlink_mission_item_to_mission_item(&wp, &mission.items[wp.seq]);
+					if (ret != OK) {
+
+
+						mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, ret);
+						wpm->current_state = MAVLINK_WPM_STATE_IDLE;
+						break;
+					}
+
+					if (wp.current) {
+						mission.current_index = wp.seq;
+						warnx("current is: %d", wp.seq);
+					} else {
+						warnx("not current");
+					}
+
 					wpm->current_wp_id = wp.seq + 1;
 
 					// if (verbose) // printf ("Added new waypoint to list. X= %f\t Y= %f\t Z= %f\t Yaw= %f\n", newwp->x, newwp->y, newwp->z, newwp->param4);
@@ -923,14 +987,19 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 						// 	wpm->current_active_wp_id = wpm->rcv_size - 1;
 						// }
 
-						// switch the waypoints list
-						// FIXME CHECK!!!
-						uint32_t i;
+						// bool copy_error = false;
 
-						for (i = 0; i < wpm->current_count; ++i) {
-							wpm->waypoints[i] = wpm->rcv_waypoints[i];
-							map_mavlink_mission_item_to_mission_item(&wpm->rcv_waypoints[i], &mission.items[i]);
-						}
+						// // switch the waypoints list
+						// // FIXME CHECK!!!
+						// uint32_t i;
+
+						// for (i = 0; i < wpm->current_count; ++i) {
+						// 	wpm->waypoints[i] = wpm->rcv_waypoints[i];
+						// 	if (map_mavlink_mission_item_to_mission_item(&wpm->rcv_waypoints[i], &mission.items[i]) != OK) {
+						// 		copy_error = true;
+						// 	}
+
+						// }
 						// TODO: update count?
 
 						/* Initialize mission publication if necessary */
@@ -973,38 +1042,41 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 					}
 
 				} else {
-					if (wpm->current_state == MAVLINK_WPM_STATE_IDLE) {
-						//we're done receiving waypoints, answer with ack.
-						mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, 0);
-						printf("Received MAVLINK_MSG_ID_MISSION_ITEM while state=MAVLINK_WPM_STATE_IDLE, answered with WAYPOINT_ACK.\n");
-					}
 
-					// if (verbose)
-					{
-						if (!(wpm->current_state == MAVLINK_WPM_STATE_GETLIST || wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS)) {
-//							 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM %u because i'm doing something else already (state=%i).\n", wp.seq, wpm->current_state);
-							break;
+					mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_INVALID_SEQUENCE);
 
-						} else if (wpm->current_state == MAVLINK_WPM_STATE_GETLIST) {
-							if (!(wp.seq == 0)) {
-//								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM because the first waypoint ID (%u) was not 0.\n", wp.seq);
-							} else {
-//								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM %u - FIXME: missed error description\n", wp.seq);
-							}
-						} else if (wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS) {
-							if (!(wp.seq == wpm->current_wp_id)) {
-//								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM because the waypoint ID (%u) was not the expected %u.\n", wp.seq, wpm->current_wp_id);
-								mavlink_wpm_send_waypoint_request(wpm->current_partner_sysid, wpm->current_partner_compid, wpm->current_wp_id);
+					// if (wpm->current_state == MAVLINK_WPM_STATE_IDLE) {
+					// 	//we're done receiving waypoints, answer with ack.
+					// 	mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, 0);
+					// 	printf("Received MAVLINK_MSG_ID_MISSION_ITEM while state=MAVLINK_WPM_STATE_IDLE, answered with WAYPOINT_ACK.\n");
+					// }
 
-							} else if (!(wp.seq < wpm->current_count)) {
-//								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM because the waypoint ID (%u) was out of bounds.\n", wp.seq);
-							} else {
-//								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM %u - FIXME: missed error description\n", wp.seq);
-							}
-						} else {
-//							 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM %u - FIXME: missed error description\n", wp.seq);
-						}
-					}
+// 					// if (verbose)
+// 					{
+// 						if (!(wpm->current_state == MAVLINK_WPM_STATE_GETLIST || wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS)) {
+// //							 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM %u because i'm doing something else already (state=%i).\n", wp.seq, wpm->current_state);
+// 							break;
+
+// 						} else if (wpm->current_state == MAVLINK_WPM_STATE_GETLIST) {
+// 							if (!(wp.seq == 0)) {
+// //								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM because the first waypoint ID (%u) was not 0.\n", wp.seq);
+// 							} else {
+// //								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM %u - FIXME: missed error description\n", wp.seq);
+// 							}
+// 						} else if (wpm->current_state == MAVLINK_WPM_STATE_GETLIST_GETWPS) {
+// 							if (!(wp.seq == wpm->current_wp_id)) {
+// //								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM because the waypoint ID (%u) was not the expected %u.\n", wp.seq, wpm->current_wp_id);
+// 								mavlink_wpm_send_waypoint_request(wpm->current_partner_sysid, wpm->current_partner_compid, wpm->current_wp_id);
+
+// 							} else if (!(wp.seq < wpm->current_count)) {
+// //								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM because the waypoint ID (%u) was out of bounds.\n", wp.seq);
+// 							} else {
+// //								 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM %u - FIXME: missed error description\n", wp.seq);
+// 							}
+// 						} else {
+// //							 printf("Ignored MAVLINK_MSG_ID_MISSION_ITEM %u - FIXME: missed error description\n", wp.seq);
+// 						}
+// 					}
 				}
 			} else {
 				//we we're target but already communicating with someone else

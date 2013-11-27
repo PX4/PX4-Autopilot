@@ -358,7 +358,7 @@ Navigator::mission_update()
 			 * if the first part changed: start again at first waypoint
 			 * if the first part remained unchanged: continue with the (possibly changed second part)
 			 */
-			if (_current_mission_index  < _mission_item_count && _current_mission_index <  mission.count) { //check if not finished and if the new mission is not a shorter mission
+			if (mission.current_index == -1 && _current_mission_index  < _mission_item_count && _current_mission_index <  mission.count) { //check if not finished and if the new mission is not a shorter mission
 				for (unsigned i = 0; i < _current_mission_index; i++) {
 					if (!cmp_mission_item_equivalent(_mission_item[i], mission.items[i])) {
 						/* set flag to restart mission next we're in auto */
@@ -371,8 +371,11 @@ Navigator::mission_update()
 //						warnx("Mission item is equivalent i=%d", i);
 //					}
 				}
-			} else {
+			} else if (mission.current_index >= 0 && mission.current_index < mission.count) {
 				/* set flag to restart mission next we're in auto */
+				_current_mission_index = mission.current_index;
+				mavlink_log_info(_mavlink_fd, "[navigator] Reset to WP %d", _current_mission_index);
+			} else {
 				_current_mission_index = 0;
 				mavlink_log_info(_mavlink_fd, "[navigator] Reset to WP %d", _current_mission_index);
 			}

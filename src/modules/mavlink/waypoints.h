@@ -82,7 +82,7 @@ enum MAVLINK_WPM_CODES {
 /* WAYPOINT MANAGER - MISSION LIB */
 
 #define MAVLINK_WPM_MAX_WP_COUNT 15
-#define MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE				  ///< Enable double buffer and in-flight updates
+// #define MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE				  ///< Enable double buffer and in-flight updates
 #ifndef MAVLINK_WPM_TEXT_FEEDBACK
 #define MAVLINK_WPM_TEXT_FEEDBACK 0						  ///< Report back status information as text
 #endif
@@ -93,9 +93,9 @@ enum MAVLINK_WPM_CODES {
 
 struct mavlink_wpm_storage {
 	mavlink_mission_item_t waypoints[MAVLINK_WPM_MAX_WP_COUNT];      ///< Currently active waypoints
-#ifdef MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE
-	mavlink_mission_item_t rcv_waypoints[MAVLINK_WPM_MAX_WP_COUNT];  ///< Receive buffer for next waypoints
-#endif
+// #ifdef MAVLINK_WPM_CONFIG_IN_FLIGHT_UPDATE
+	// mavlink_mission_item_t rcv_waypoints[MAVLINK_WPM_MAX_WP_COUNT];  ///< Receive buffer for next waypoints
+// #endif
 	uint16_t size;
 	uint16_t max_size;
 	uint16_t rcv_size;
@@ -120,8 +120,8 @@ struct mavlink_wpm_storage {
 
 typedef struct mavlink_wpm_storage mavlink_wpm_storage;
 
-void map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
-void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
+int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
+int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
 
 
 void mavlink_wpm_init(mavlink_wpm_storage *state);

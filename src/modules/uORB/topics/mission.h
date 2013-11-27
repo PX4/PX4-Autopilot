@@ -90,6 +90,7 @@ struct mission_s
 {
 	struct mission_item_s *items;
 	unsigned count;
+	int current_index;		/**< default -1, start at the one changed latest */
 };
 
 /**
