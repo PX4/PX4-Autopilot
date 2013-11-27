@@ -704,6 +704,13 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 
 					mavlink_mission_item_t wp;
 					map_mission_item_to_mavlink_mission_item(&mission.items[wpr.seq], &wp);
+
+					if (mission.current_index == wpr.seq) {
+						wp.current = true;
+					} else {
+						wp.current = false;
+					}
+
 					mavlink_wpm_send_waypoint(wpm->current_partner_sysid, wpm->current_partner_compid, &wp);
 
 				} else {
