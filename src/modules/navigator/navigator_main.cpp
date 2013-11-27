@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission_item_triplet.h>
+#include <uORB/topics/mission_result.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/mission.h>
@@ -144,11 +145,13 @@ private:
 
 	orb_advert_t	_triplet_pub;			/**< publish position setpoint triplet */
 	orb_advert_t	_fence_pub;			/**< publish fence topic */ 
+	orb_advert_t	_mission_result_pub;		/**< publish mission result topic */
 
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
 	struct home_position_s				_home_pos;		/**< home position for RTL */
 	struct mission_item_triplet_s			_mission_item_triplet;	/**< triplet of mission items */
+	struct mission_result_s				_mission_result;	/**< mission result for commander/mavlink */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -215,11 +218,15 @@ private:
 
 	void		publish_mission_item_triplet();
 
+	void		publish_mission_result();
+
 	int		advance_current_mission_item();
 
 	void		reset_mission_item_reached();
 
 	void		check_mission_item_reached();
+
+	void		report_mission_reached();
 
 	void		start_waypoint();
 
@@ -266,6 +273,7 @@ Navigator::Navigator() :
 /* publications */
 	_triplet_pub(-1),
 	_fence_pub(-1),
+	_mission_result_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
@@ -294,6 +302,8 @@ Navigator::Navigator() :
 	memset(&_mission_item_triplet.previous, 0, sizeof(struct mission_item_s));
 	memset(&_mission_item_triplet.current, 0, sizeof(struct mission_item_s));
 	memset(&_mission_item_triplet.next, 0, sizeof(struct mission_item_s));
+
+	memset(&_mission_result, 0, sizeof(struct mission_result_s));
 
 	/* fetch initial values */
 	parameters_update();
@@ -586,6 +596,9 @@ Navigator::task_main()
 					check_mission_item_reached();
 
 					if (_mission_item_reached) {
+
+						report_mission_reached();
+
 						mavlink_log_info(_mavlink_fd, "[navigator] reached WP %d", _current_mission_index);
 						if (advance_current_mission_item() != OK) {
 							set_mode(NAVIGATION_MODE_LOITER_WAYPOINT);
@@ -896,6 +909,20 @@ Navigator::publish_mission_item_triplet()
 	}
 }
 
+void
+Navigator::publish_mission_result()
+{
+	/* lazily publish the mission result only once available */
+	if (_mission_result_pub > 0) {
+		/* publish the mission result */
+		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
+
+	} else {
+		/* advertise and publish */
+		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
+	}
+}
+
 int
 Navigator::advance_current_mission_item()
 {
@@ -945,6 +972,9 @@ Navigator::reset_mission_item_reached()
 	_time_first_inside_orbit = 0;
 
 	_mission_item_reached = false;
+
+	_mission_result.mission_reached = false;
+	_mission_result.mission_index = 0;
 }
 
 void
@@ -1039,6 +1069,15 @@ Navigator::check_mission_item_reached()
 		}
 	}
 
+}
+
+void
+Navigator::report_mission_reached()
+{
+	_mission_result.mission_reached = true;
+	_mission_result.mission_index = _current_mission_index;
+
+	publish_mission_result();
 }
 
 void

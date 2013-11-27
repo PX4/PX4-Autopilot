@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/mission.h>
 
 // FIXME XXX - TO BE MOVED TO XML
 enum MAVLINK_WPM_STATES {
@@ -100,24 +101,28 @@ struct mavlink_wpm_storage {
 	uint16_t rcv_size;
 	enum MAVLINK_WPM_STATES current_state;
 	int16_t current_wp_id;							///< Waypoint in current transmission
-	int16_t current_active_wp_id;					///< Waypoint the system is currently heading towards
+	// int16_t current_active_wp_id;					///< Waypoint the system is currently heading towards
 	uint16_t current_count;
 	uint8_t current_partner_sysid;
 	uint8_t current_partner_compid;
 	uint64_t timestamp_lastaction;
-	uint64_t timestamp_last_send_setpoint;
-	uint64_t timestamp_firstinside_orbit;
-	uint64_t timestamp_lastoutside_orbit;
+	// uint64_t timestamp_last_send_setpoint;
+	// uint64_t timestamp_firstinside_orbit;
+	// uint64_t timestamp_lastoutside_orbit;
 	uint32_t timeout;
-	uint32_t delay_setpoint;
-	float accept_range_yaw;
-	float accept_range_distance;
-	bool yaw_reached;
-	bool pos_reached;
-	bool idle;
+	// uint32_t delay_setpoint;
+	// float accept_range_yaw;
+	// float accept_range_distance;
+	// bool yaw_reached;
+	// bool pos_reached;
+	// bool idle;
 };
 
 typedef struct mavlink_wpm_storage mavlink_wpm_storage;
+
+void map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
+void map_mission_item_to_mavlink_mission_item(const struct mission_item_s *mission_item, mavlink_mission_item_t *mavlink_mission_item);
+
 
 void mavlink_wpm_init(mavlink_wpm_storage *state);
 int mavlink_waypoint_eventloop(uint64_t now, const struct vehicle_global_position_s *global_position,
