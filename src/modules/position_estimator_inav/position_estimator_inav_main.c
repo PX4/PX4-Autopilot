@@ -236,13 +236,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (ret < 0) {
 			/* poll error */
-			errx(1, "subscriptions poll error on init.");
+			mavlink_log_info(mavlink_fd, "[inav] poll error on init");
 
 		} else if (ret > 0) {
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.baro_counter > baro_counter) {
+				if (wait_baro && sensor.baro_counter != baro_counter) {
 					baro_counter = sensor.baro_counter;
 
 					/* mean calculation over several measurements */
@@ -320,8 +320,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 
 		if (ret < 0) {
 			/* poll error */
-			warnx("subscriptions poll error.");
-			thread_should_exit = true;
+			mavlink_log_info(mavlink_fd, "[inav] poll error on init");
 			continue;
 
 		} else if (ret > 0) {
@@ -355,7 +354,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds[4].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (sensor.accelerometer_counter > accel_counter) {
+				if (sensor.accelerometer_counter != accel_counter) {
 					if (att.R_valid) {
 						/* correct accel bias, now only for Z */
 						sensor.accelerometer_m_s2[2] -= accel_bias[2];
@@ -381,7 +380,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					accel_updates++;
 				}
 
-				if (sensor.baro_counter > baro_counter) {
+				if (sensor.baro_counter != baro_counter) {
 					baro_corr = - sensor.baro_alt_meter - z_est[0];
 					baro_counter = sensor.baro_counter;
 					baro_updates++;
