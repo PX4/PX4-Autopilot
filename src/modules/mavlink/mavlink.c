@@ -74,6 +74,8 @@
 #include "waypoints.h"
 #include "mavlink_parameters.h"
 
+#include <uORB/topics/mission_result.h>
+
 /* define MAVLink specific parameters */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
@@ -644,6 +646,10 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 10000);
 	}
 
+	int mission_result_sub = orb_subscribe(ORB_ID(mission_result));
+	struct mission_result_s mission_result;
+	memset(&mission_result, 0, sizeof(mission_result));
+
 	thread_running = true;
 
 	/* arm counter to go off immediately */
@@ -689,6 +695,17 @@ int mavlink_thread_main(int argc, char *argv[])
 		}
 
 		lowspeed_counter++;
+
+		bool updated;
+		orb_check(mission_result_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(mission_result), mission_result_sub, &mission_result);
+
+			if (mission_result.mission_reached) {
+				mavlink_wpm_send_waypoint_reached((uint16_t)mission_result.mission_index);
+			}
+		}
 
 		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
 

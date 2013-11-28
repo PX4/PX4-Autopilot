@@ -35,62 +35,26 @@
  ****************************************************************************/
 
 /**
- * @file mission.h
- * Definition of a mission consisting of mission items.
+ * @file mission_result.h
+ * Mission results that navigator needs to pass on to commander and mavlink.
  */
 
-#ifndef TOPIC_MISSION_H_
-#define TOPIC_MISSION_H_
+#ifndef TOPIC_MISSION_RESULT_H
+#define TOPIC_MISSION_RESULT_H
 
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
-
-/* compatible to mavlink MAV_CMD */
-enum NAV_CMD {
-	NAV_CMD_WAYPOINT=16,
-	NAV_CMD_LOITER_UNLIMITED=17,
-	NAV_CMD_LOITER_TURN_COUNT=18,
-	NAV_CMD_LOITER_TIME_LIMIT=19,
-	NAV_CMD_RETURN_TO_LAUNCH=20,
-	NAV_CMD_LAND=21,
-	NAV_CMD_TAKEOFF=22,
-	NAV_CMD_ROI=80,
-	NAV_CMD_PATHPLANNING=81
-};
 
 /**
  * @addtogroup topics
  * @{
  */
 
-/**
- * Global position setpoint in WGS84 coordinates.
- *
- * This is the position the MAV is heading towards. If it of type loiter,
- * the MAV is circling around it with the given loiter radius in meters.
- */
-struct mission_item_s
+struct mission_result_s
 {
-	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	double lat;			/**< latitude in degrees * 1E7				*/
-	double lon;			/**< longitude in degrees * 1E7				*/
-	float altitude;			/**< altitude in meters					*/
-	float yaw;			/**< in radians NED -PI..+PI 				*/
-	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
-	enum NAV_CMD nav_cmd;		/**< navigation command					*/
-	float radius;			/**< radius in which the mission is accepted as reached in meters */
-	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
-	bool autocontinue;		/**< true if next waypoint should follow after this one */
-	int index;			/**< index matching the mavlink waypoint                */
-};
-
-struct mission_s
-{
-	struct mission_item_s *items;
-	unsigned count;
-	int current_index;		/**< default -1, start at the one changed latest */
+	bool mission_reached;		/**< true if mission has been reached			*/
+	unsigned mission_index;		/**< index of the mission which has been reached	*/
 };
 
 /**
@@ -98,6 +62,6 @@ struct mission_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(mission);
+ORB_DECLARE(mission_result);
 
 #endif

@@ -411,6 +411,21 @@ __EXPORT float get_distance_to_point_global_wgs84(double lat_now, double lon_now
 	return sqrtf(dxy * dxy + dz * dz);
 }
 
+
+__EXPORT float mavlink_wpm_distance_to_point_local(float x_now, float y_now, float z_now,
+	                                           float x_next, float y_next, float z_next,
+	                                           float *dist_xy, float *dist_z)
+{
+	float dx = x_now - x_next;
+	float dy = y_now - y_next;
+	float dz = z_now - z_next;
+
+	*dist_xy = sqrtf(dx * dx + dy * dy);
+	*dist_z = fabsf(dz);
+
+	return sqrtf(dx * dx + dy * dy + dz * dz);
+}
+
 __EXPORT float _wrap_pi(float bearing)
 {
 	/* value is inf or NaN */
