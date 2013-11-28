@@ -1,16 +1,49 @@
-/*
- * Author: Hyon Lim <limhyon@gmail.com, hyonlim@snu.ac.kr>
+/****************************************************************************
  *
- * @file attitude_estimator_so3_comp_main.c
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Hyon Lim <limhyon@gmail.com>
+ *           Anton Babushkin <anton.babushkin@me.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+ 
+ /*
+ * @file attitude_estimator_so3_main.cpp
  *
  * Implementation of nonlinear complementary filters on the SO(3).
  * This code performs attitude estimation by using accelerometer, gyroscopes and magnetometer.
  * Result is provided as quaternion, 1-2-3 Euler angle and rotation matrix.
- * 
+ *
  * Theory of nonlinear complementary filters on the SO(3) is based on [1].
  * Quaternion realization of [1] is based on [2].
  * Optmized quaternion update code is based on Sebastian Madgwick's implementation.
- * 
+ *
  * References
  *  [1] Mahony, R.; Hamel, T.; Pflimlin, Jean-Michel, "Nonlinear Complementary Filters on the Special Orthogonal Group," Automatic Control, IEEE Transactions on , vol.53, no.5, pp.1203,1218, June 2008
  *  [2] Euston, M.; Coote, P.; Mahony, R.; Jonghyuk Kim; Hamel, T., "A complementary filter for attitude estimation of a fixed-wing UAV," Intelligent Robots and Systems, 2008. IROS 2008. IEEE/RSJ International Conference on , vol., no., pp.340,345, 22-26 Sept. 2008
@@ -46,16 +79,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "attitude_estimator_so3_comp_params.h"
+#include "attitude_estimator_so3_params.h"
 #ifdef __cplusplus
 }
 #endif
 
-extern "C" __EXPORT int attitude_estimator_so3_comp_main(int argc, char *argv[]);
+extern "C" __EXPORT int attitude_estimator_so3_main(int argc, char *argv[]);
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
-static int attitude_estimator_so3_comp_task;				/**< Handle of deamon task / thread */
+static int attitude_estimator_so3_task;				/**< Handle of deamon task / thread */
 
 //! Auxiliary variables to reduce number of repeated operations
 static float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;	/** quaternion of sensor frame relative to auxiliary frame */
@@ -68,9 +101,9 @@ static float q3q3;
 static bool bFilterInit = false;
 
 /**
- * Mainloop of attitude_estimator_so3_comp.
+ * Mainloop of attitude_estimator_so3.
  */
-int attitude_estimator_so3_comp_thread_main(int argc, char *argv[]);
+int attitude_estimator_so3_thread_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.
@@ -88,19 +121,19 @@ usage(const char *reason)
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
 
-	fprintf(stderr, "usage: attitude_estimator_so3_comp {start|stop|status}\n");
+	fprintf(stderr, "usage: attitude_estimator_so3 {start|stop|status}\n");
 	exit(1);
 }
 
 /**
- * The attitude_estimator_so3_comp app only briefly exists to start
+ * The attitude_estimator_so3 app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
  *
  * The actual stack size should be set in the call
  * to task_create().
  */
-int attitude_estimator_so3_comp_main(int argc, char *argv[])
+int attitude_estimator_so3_main(int argc, char *argv[])
 {
 	if (argc < 1)
 		usage("missing command");
@@ -114,11 +147,11 @@ int attitude_estimator_so3_comp_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_so3_comp_task = task_spawn_cmd("attitude_estimator_so3_comp",
+		attitude_estimator_so3_task = task_spawn_cmd("attitude_estimator_so3",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_MAX - 5,
 					      14000,
-					      attitude_estimator_so3_comp_thread_main,
+					      attitude_estimator_so3_thread_main,
 					      (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
@@ -356,7 +389,7 @@ void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, fl
  * @param argc number of commandline arguments (plus command name)
  * @param argv strings containing the arguments
  */
-int attitude_estimator_so3_comp_thread_main(int argc, char *argv[])
+int attitude_estimator_so3_thread_main(int argc, char *argv[])
 {
 	const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
@@ -415,8 +448,8 @@ int attitude_estimator_so3_comp_thread_main(int argc, char *argv[])
 	uint32_t sensor_last_count[3] = {0, 0, 0};
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
 
-	struct attitude_estimator_so3_comp_params so3_comp_params;
-	struct attitude_estimator_so3_comp_param_handles so3_comp_param_handles;
+	struct attitude_estimator_so3_params so3_comp_params;
+	struct attitude_estimator_so3_param_handles so3_comp_param_handles;
 
 	/* initialize parameter handles */
 	parameters_init(&so3_comp_param_handles);
@@ -430,7 +463,7 @@ int attitude_estimator_so3_comp_thread_main(int argc, char *argv[])
 	unsigned offset_count = 0;
 
 	/* register the perf counter */
-	perf_counter_t so3_comp_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_so3_comp");
+	perf_counter_t so3_comp_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_so3");
 
 	/* Main loop*/
 	while (!thread_should_exit) {
