@@ -713,36 +713,32 @@ LSM303D::check_extremes(const accel_report *arb)
 			  (int)arb->z_raw);
 	}
 
+        const uint8_t reglist[] = { ADDR_WHO_AM_I, ADDR_STATUS_A, ADDR_STATUS_M, ADDR_CTRL_REG0, ADDR_CTRL_REG1, 
+                                    ADDR_CTRL_REG2, ADDR_CTRL_REG3, ADDR_CTRL_REG4, ADDR_CTRL_REG5, ADDR_CTRL_REG6, 
+                                    ADDR_CTRL_REG7, ADDR_OUT_TEMP_L, ADDR_OUT_TEMP_H, ADDR_INT_CTRL_M, ADDR_INT_SRC_M, 
+                                    ADDR_REFERENCE_X, ADDR_REFERENCE_Y, ADDR_REFERENCE_Z, ADDR_OUT_X_L_A, ADDR_OUT_X_H_A, 
+                                    ADDR_OUT_Y_L_A, ADDR_OUT_Y_H_A, ADDR_OUT_Z_L_A, ADDR_OUT_Z_H_A, ADDR_FIFO_CTRL, 
+                                    ADDR_FIFO_SRC, ADDR_IG_CFG1, ADDR_IG_SRC1, ADDR_IG_THS1, ADDR_IG_DUR1, ADDR_IG_CFG2, 
+                                    ADDR_IG_SRC2, ADDR_IG_THS2, ADDR_IG_DUR2, ADDR_CLICK_CFG, ADDR_CLICK_SRC, 
+                                    ADDR_CLICK_THS, ADDR_TIME_LIMIT, ADDR_TIME_LATENCY, ADDR_TIME_WINDOW, 
+                                    ADDR_ACT_THS, ADDR_ACT_DUR,
+                                    ADDR_OUT_X_L_M, ADDR_OUT_X_H_M, 
+                                    ADDR_OUT_Y_L_M, ADDR_OUT_Y_H_M, ADDR_OUT_Z_L_M, ADDR_OUT_Z_H_M};
+        uint8_t regval[sizeof(reglist)];
+        for (uint8_t i=0; i<sizeof(reglist); i++) {
+            regval[i] = read_reg(reglist[i]);
+        }
+
 	// log registers at 10Hz when we have extreme values, or 0.5 Hz without
 	if (_last_log_reg_us == 0 ||
-	    (is_extreme && (now - _last_log_reg_us > 500*1000)) ||
+	    (is_extreme && (now - _last_log_reg_us > 250*1000)) ||
 	    (now - _last_log_reg_us > 10*1000*1000)) {
 		_last_log_reg_us = now;
-		const uint8_t reglist[] = { ADDR_WHO_AM_I, ADDR_STATUS_A, ADDR_STATUS_M, ADDR_CTRL_REG0, ADDR_CTRL_REG1, 
-					    ADDR_CTRL_REG2, ADDR_CTRL_REG3, ADDR_CTRL_REG4, ADDR_CTRL_REG5, ADDR_CTRL_REG6, 
-					    ADDR_CTRL_REG7, ADDR_OUT_TEMP_L, ADDR_OUT_TEMP_H, ADDR_INT_CTRL_M, ADDR_INT_SRC_M, 
-					    ADDR_REFERENCE_X, ADDR_REFERENCE_Y, ADDR_REFERENCE_Z, ADDR_OUT_X_L_A, ADDR_OUT_X_H_A, 
-					    ADDR_OUT_Y_L_A, ADDR_OUT_Y_H_A, ADDR_OUT_Z_L_A, ADDR_OUT_Z_H_A, ADDR_FIFO_CTRL, 
-					    ADDR_FIFO_SRC, ADDR_IG_CFG1, ADDR_IG_SRC1, ADDR_IG_THS1, ADDR_IG_DUR1, ADDR_IG_CFG2, 
-					    ADDR_IG_SRC2, ADDR_IG_THS2, ADDR_IG_DUR2, ADDR_CLICK_CFG, ADDR_CLICK_SRC, 
-					    ADDR_CLICK_THS, ADDR_TIME_LIMIT, ADDR_TIME_LATENCY, ADDR_TIME_WINDOW, 
-					    ADDR_ACT_THS, ADDR_ACT_DUR,
-                                            ADDR_OUT_X_L_M, ADDR_OUT_X_H_M, 
-					    ADDR_OUT_Y_L_M, ADDR_OUT_Y_H_M, ADDR_OUT_Z_L_M, ADDR_OUT_Z_H_M};
-		::dprintf(_accel_log_fd, "FREG %llu", (unsigned long long)hrt_absolute_time());
+		::dprintf(_accel_log_fd, "REG %llu", (unsigned long long)hrt_absolute_time());
 		for (uint8_t i=0; i<sizeof(reglist); i++) {
-			::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)read_reg(reglist[i]));
+			::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)regval[i]);
 		}
 		::dprintf(_accel_log_fd, "\n");
-		if (is_extreme) {
-			set_frequency(1000*1000);
-			::dprintf(_accel_log_fd, "SREG %llu", (unsigned long long)hrt_absolute_time());
-			for (uint8_t i=0; i<sizeof(reglist); i++) {
-				::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)read_reg(reglist[i]));
-			}
-			::dprintf(_accel_log_fd, "\n");
-			set_frequency(8*1000*1000);
-		}
 	}
 
 	// fsync at 0.1Hz
