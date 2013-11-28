@@ -169,13 +169,6 @@ ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
 #include "topics/actuator_armed.h"
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);
 
-/* actuator controls, as set by actuators / mixers after limiting */
-#include "topics/actuator_controls_effective.h"
-ORB_DEFINE(actuator_controls_effective_0, struct actuator_controls_effective_s);
-ORB_DEFINE(actuator_controls_effective_1, struct actuator_controls_effective_s);
-ORB_DEFINE(actuator_controls_effective_2, struct actuator_controls_effective_s);
-ORB_DEFINE(actuator_controls_effective_3, struct actuator_controls_effective_s);
-
 #include "topics/actuator_outputs.h"
 ORB_DEFINE(actuator_outputs_0, struct actuator_outputs_s);
 ORB_DEFINE(actuator_outputs_1, struct actuator_outputs_s);
