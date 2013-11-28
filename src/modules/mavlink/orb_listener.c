@@ -242,7 +242,7 @@ l_vehicle_attitude(const struct listener *l)
 					  att.rollspeed,
 					  att.pitchspeed,
 					  att.yawspeed);
-
+					  	
 		/* limit VFR message rate to 10Hz */
 		hrt_abstime t = hrt_absolute_time();
 		if (t >= last_sent_vfr + 100000) {
@@ -251,6 +251,19 @@ l_vehicle_attitude(const struct listener *l)
 			uint16_t heading = (att.yaw + M_PI_F) / M_PI_F * 180.0f;
 			float throttle = actuators_effective_0.control_effective[3] * (UINT16_MAX - 1);
 			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
+		}
+		
+		/* send quaternion values if it exists */
+		if(att.q_valid) {
+			mavlink_msg_attitude_quaternion_send(MAVLINK_COMM_0,
+												last_sensor_timestamp / 1000,
+												att.q[0],
+												att.q[1],
+												att.q[2],
+												att.q[3],
+												att.rollspeed,
+												att.pitchspeed,
+												att.yawspeed);
 		}
 	}
 
