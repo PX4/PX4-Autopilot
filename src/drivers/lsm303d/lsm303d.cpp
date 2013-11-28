@@ -1437,6 +1437,7 @@ LSM303D::measure()
 	perf_begin(_accel_sample_perf);
 
 	/* fetch data from the sensor */
+	memset(&raw_accel_report, 0, sizeof(raw_accel_report));
 	raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
 
@@ -1514,6 +1515,7 @@ LSM303D::mag_measure()
 	perf_begin(_mag_sample_perf);
 
 	/* fetch data from the sensor */
+	memset(&raw_mag_report, 0, sizeof(raw_mag_report));
 	raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
 
