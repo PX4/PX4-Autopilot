@@ -446,8 +446,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					att.yawacc = x_aposteriori[5];
 
 					//att.yawspeed =z_k[2] ;
-					/* copy offsets */
-					memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
 
 					/* copy rotation matrix */
 					memcpy(&att.R, Rot_matrix, sizeof(Rot_matrix));

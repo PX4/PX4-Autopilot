@@ -363,10 +363,6 @@ void KalmanNav::updatePublications()
 	_att.rollspeed = _sensors.gyro_rad_s[0];
 	_att.pitchspeed = _sensors.gyro_rad_s[1];
 	_att.yawspeed = _sensors.gyro_rad_s[2];
-	// TODO, add gyro offsets to filter
-	_att.rate_offsets[0] = 0.0f;
-	_att.rate_offsets[1] = 0.0f;
-	_att.rate_offsets[2] = 0.0f;
 
 	for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
 			_att.R[i][j] = C_nb(i, j);
