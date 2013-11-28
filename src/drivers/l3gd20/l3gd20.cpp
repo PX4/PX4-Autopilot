@@ -219,6 +219,11 @@ private:
 	void			reset();
 
 	/**
+	 * disable I2C on the chip
+	 */
+	void			disable_i2c();
+
+	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
 	 * generic hrt wrapper yet.
 	 *
@@ -574,6 +579,7 @@ L3GD20::read_reg(unsigned reg)
 	uint8_t cmd[2];
 
 	cmd[0] = reg | DIR_READ;
+	cmd[1] = 0;
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -700,8 +706,18 @@ L3GD20::stop()
 }
 
 void
+L3GD20::disable_i2c(void)
+{
+	uint8_t a = read_reg(0x05);
+	write_reg(0x05, (0x20 | a));
+}
+
+void
 L3GD20::reset()
 {
+	// ensure the chip doesn't interpret any other bus traffic as I2C
+	disable_i2c();
+
 	/* set default configuration */
 	write_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
 	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
@@ -753,6 +769,7 @@ L3GD20::measure()
 	perf_begin(_sample_perf);
 
 	/* fetch data from the sensor */
+	memset(&raw_report, 0, sizeof(raw_report));
 	raw_report.cmd = ADDR_OUT_TEMP | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
