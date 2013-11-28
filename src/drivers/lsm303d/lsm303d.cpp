@@ -301,6 +301,11 @@ private:
 	void			reset();
 
 	/**
+	 * disable I2C on the chip
+	 */
+	void			disable_i2c();
+
+	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
 	 * generic hrt wrapper yet.
 	 *
@@ -564,8 +569,24 @@ out:
 }
 
 void
+LSM303D::disable_i2c(void)
+{
+	uint8_t a = read_reg(0x02);
+	write_reg(0x02, (0x10 | a));
+	a = read_reg(0x02);
+	write_reg(0x02, (0xF7 & a));
+	a = read_reg(0x15);
+	write_reg(0x15, (0x80 | a));
+	a = read_reg(0x02);
+	write_reg(0x02, (0xE7 & a));
+}
+
+void
 LSM303D::reset()
 {
+	// ensure the chip doesn't interpret any other bus traffic as I2C
+	disable_i2c();
+
 	/* enable accel*/
 	_reg1_expected = REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A;
 	write_reg(ADDR_CTRL_REG1, _reg1_expected);
