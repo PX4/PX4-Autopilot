@@ -252,6 +252,19 @@ l_vehicle_attitude(const struct listener *l)
 			float throttle = actuators_effective_0.control_effective[3] * (UINT16_MAX - 1);
 			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
 		}
+		
+		/* send quaternion values if it exists */
+		if(att.q_valid) {
+			mavlink_msg_attitude_quaternion_send(MAVLINK_COMM_0,
+							last_sensor_timestamp / 1000,
+							att.q[0],
+							att.q[1],
+							att.q[2],
+							att.q[3],
+							att.rollspeed,
+							att.pitchspeed,
+							att.yawspeed);
+		}
 	}
 
 	attitude_counter++;
