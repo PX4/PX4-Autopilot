@@ -227,6 +227,10 @@ private:
 
 	void		set_mode(navigation_mode_t new_nav_mode);
 
+	bool		mission_possible();
+
+	bool		onboard_mission_possible();
+
 	int		set_waypoint_mission_item(unsigned mission_item_index, struct mission_item_s *new_mission_item);
 
 	void		publish_mission_item_triplet();
@@ -609,8 +613,8 @@ Navigator::task_main()
 
 					case NAVIGATION_STATE_AUTO_MISSION:
 
-						if (_mission_item_count > 0 && !(_current_mission_index >= _mission_item_count)) {
-							/* Start mission if there is a mission available and the last waypoint has not been reached */
+						if (onboard_mission_possible() || mission_possible()) {
+							/* Start mission or onboard mission if available */
 							set_mode(NAVIGATION_MODE_WAYPOINT);
 						} else {
 							/* else fallback to loiter */
@@ -971,24 +975,60 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 	}
 }
 
-int
-Navigator::set_waypoint_mission_item(unsigned mission_item_index, struct mission_item_s *new_mission_item) 
+bool
+Navigator::mission_possible()
 {
-	if (mission_item_index < _mission_item_count) {
-		memcpy(new_mission_item, &_mission_item[mission_item_index], sizeof(mission_item_s));
+	return _mission_item_count > 0 &&
+	       !(_current_mission_index >= _mission_item_count);
+}
 
-		if (new_mission_item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
-			/* if it is a RTL waypoint, append the home position */
-				new_mission_item->lat = (double)_home_pos.lat / 1e7;
-				new_mission_item->lon = (double)_home_pos.lon / 1e7;
-				new_mission_item->altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
-				new_mission_item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
-				new_mission_item->radius = 50.0f; // TODO: get rid of magic number
+bool
+Navigator::onboard_mission_possible()
+{
+	return _onboard_mission_item_count > 0 &&
+	       !(_current_onboard_mission_index >= _onboard_mission_item_count) &&
+	       _parameters.onboard_mission_enabled;
+}
+
+int
+Navigator::set_waypoint_mission_item(unsigned index, struct mission_item_s *new_item) 
+{
+	if (onboard_mission_possible()) {
+
+		if (index < _onboard_mission_item_count) {
+			memcpy(new_item, &_onboard_mission_item[index], sizeof(mission_item_s));
+
+			if (new_item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
+				/* if it is a RTL waypoint, append the home position */
+				new_item->lat = (double)_home_pos.lat / 1e7;
+				new_item->lon = (double)_home_pos.lon / 1e7;
+				new_item->altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
+				new_item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+				new_item->radius = 50.0f; // TODO: get rid of magic number
+			}
+			// warnx("added mission item: %d", index);
+			return OK;
 		}
-		// warnx("added mission item: %d", mission_item_index);
-		return OK;
+
+	} else if (mission_possible()) {
+
+		if (index < _mission_item_count) {
+			memcpy(new_item, &_mission_item[index], sizeof(mission_item_s));
+
+			if (new_item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
+				/* if it is a RTL waypoint, append the home position */
+				new_item->lat = (double)_home_pos.lat / 1e7;
+				new_item->lon = (double)_home_pos.lon / 1e7;
+				new_item->altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
+				new_item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+				new_item->radius = 50.0f; // TODO: get rid of magic number
+			}
+			// warnx("added mission item: %d", index);
+			return OK;
+		}
 	}
-	// warnx("could not add mission item: %d", mission_item_index);
+	
+	// warnx("could not add mission item: %d", index);
 	return ERROR;
 }
 
