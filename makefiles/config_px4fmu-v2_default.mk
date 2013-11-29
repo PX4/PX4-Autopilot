@@ -116,6 +116,11 @@ MODULES		+= lib/geo
 MODULES		+= lib/conversion
 
 #
+# OBC challenge
+#
+MODULES		+= modules/bottle_drop
+
+#
 # Demo apps
 #
 #MODULES		+= examples/math_demo

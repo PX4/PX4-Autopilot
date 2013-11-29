@@ -542,7 +542,8 @@ PX4FMU::task_main()
 			if (fds[0].revents & POLLIN) {
 
 				/* get controls - must always do this to avoid spinning */
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
+				orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+					     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 				/* can we mix? */
 				if (_mixers != nullptr) {
@@ -585,6 +586,9 @@ PX4FMU::task_main()
 					}
 
 					uint16_t pwm_limited[num_outputs];
+
+					// XXX: hack: always armed
+					_armed = true;
 
 					pwm_limit_calc(_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
 

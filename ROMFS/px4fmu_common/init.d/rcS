@@ -319,6 +319,12 @@ then
 		set MODE custom
 	fi
 	
+	if param compare SYS_AUTOSTART 900
+	then
+		sh /etc/init.d/900_bottle_drop_test
+		set MODE custom
+	fi
+	
 	# Start any custom extensions that might be missing
 	if [ -f /fs/microsd/etc/rc.local ]
 	then
