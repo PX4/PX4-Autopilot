@@ -32,26 +32,46 @@
  ****************************************************************************/
 
 /**
- * @file px4_daemon_app.c
- * daemon application example for PX4 autopilot
+ * @file bottle_drop.c
+ * bottle_drop application
  * 
- * @author Example User <mail@example.com>
+ * @author Dominik Juchli <juchlid@ethz.ch>
  */
 
 #include <nuttx/config.h>
 #include <nuttx/sched.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <poll.h>
+#include <stdbool.h>
+#include <fcntl.h>
+#include <string.h>
+#include <math.h>
+
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
+#include <systemlib/param/param.h>
+
+#include <geo/geo.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/parameter_update.h>
 
-#include <drivers/drv_rgbled.h>
 #include <drivers/drv_hrt.h>
+
+PARAM_DEFINE_FLOAT(BD_HEIGHT, 60.0f);
+PARAM_DEFINE_FLOAT(BD_GPROPERTIES, 0.03f);
+PARAM_DEFINE_FLOAT(BD_TURNRADIUS, 70.0f);
+PARAM_DEFINE_FLOAT(BD_PRECISION, 1.0f);
+PARAM_DEFINE_INT32(BD_APPROVAL, 0);
+
+
+
 
 static bool thread_should_exit = false;		/**< daemon exit flag */
 static bool thread_running = false;		/**< daemon status flag */
@@ -140,27 +160,120 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 
 	warnx("starting\n");
 
-	unsigned i = 0;
+	bool updated = false;
+
+	float height;		// height at which the normal should be dropped NED
+	float z_0;		// ground properties
+	float turn_radius;	// turn radius of the UAV
+	float precision;	// Expected precision of the UAV
+	bool drop_approval;	// if approval is given = true, otherwise = false
 
 	thread_running = true;
 
-	int rgbleds = open(RGBLED_DEVICE_PATH, 0);
+	/* XXX TODO: create, publish and read in wind speed topic */
+	struct wind_speed_s {
+		float vx; // m/s
+		float vy; // m/s
+		float altitude; // m
+	} wind_speed;
+
+	wind_speed.vx = 4.2f;
+	wind_speed.vy = 0.0f;
+	wind_speed.altitude = 62.0f;
+
+
+	/* XXX TODO: create, publish and read in target position in NED*/
+	struct position_s {
+		double lat; //degrees 1E7
+		double lon; //degrees 1E7
+		float alt; //m
+	} target_position, drop_position, flight_vector_s, flight_vector_e;
+
+	target_position.lat =  47.385806;
+	target_position.lon =  8.589093;
+	target_position.alt = 0.0f;
+
+
+	// constant
+	float g = 9.81f;               		// constant of gravity [m/s^2]
+	float m = 0.5f;                		// mass of bottle [kg]
+	float rho = 1.2f;              		// air density [kg/m^3]
+	float A = (powf(0.063f, 2.0f)/4.0f*M_PI_F);     // Bottle cross section [m^2]
+	float dt = 0.01f;             		// step size [s]
+	float dt2 = 0.05f;			// step size 2 [s]
+
+	// Has to be estimated by experiment
+	float cd = 0.86f;              	// Drag coefficient for a cylinder with a d/l ratio of 1/3 []
+	float t_signal = 0.084f;	// Time span between sending the signal and the bottle top reaching level height with the bottom of the plane [s]
+	float t_door = 0.7f;		// The time the system needs to open the door + safety, is also the time the palyload needs to safely escape the shaft [s]
+
+
+	// Definition
+	float h_0;						// height over target
+	float az;                 				// acceleration in z direction[m/s^2]
+	float vz; 						// velocity in z direction [m/s]
+	float z; 						// fallen distance [m]
+	float h; 						// height over target [m]
+	float ax;						// acceleration in x direction [m/s^2]
+	float vx;						// ground speed in x direction [m/s]
+	float x;					        // traveled distance in x direction [m]
+	float vw;                 				// wind speed [m/s]
+	float vrx;						// relative velocity in x direction [m/s]
+	float v;						// relative speed vector [m/s]
+	float Fd;						// Drag force [N]
+	float Fdx;						// Drag force in x direction [N]
+	float Fdz;						// Drag force in z direction [N]
+	float vr; 						// absolute wind speed [m/s]
+	float x_drop, y_drop;					// coordinates of the drop point in reference to the target (projection of NED)
+	float x_t,y_t;						// coordinates of the target in reference to the target x_t = 0, y_t = 0 (projection of NED)
+	float x_l,y_l;						// local position in projected coordinates
+	float x_f,y_f;						// to-be position of the UAV after dt2 seconds in projected coordinates
+	double x_f_NED, y_f_NED;				// to-be position of the UAV after dt2 seconds in NED
+	float distance_open_door;				// The distance the UAV travels during its doors open [m]
+	float distance_real = 0;				// The distance between the UAVs position and the drop point [m]
+	float future_distance = 0;				// The distance between the UAVs to-be position and the drop point [m]
+
+	// states
+	bool state_door = false;				// Doors are closed = false, open = true
+	bool state_drop = false;				// Drop occurred = true, Drop din't occur = false
+	bool state_run = false;					// A drop was attempted = true, the drop is still in progress = false
+
+
+	param_t param_height = param_find("BD_HEIGHT");
+	param_t param_gproperties = param_find("BD_GPROPERTIES");
+	param_t param_turn_radius = param_find("BD_TURNRADIUS");
+	param_t param_precision = param_find("BD_PRECISION");
+	param_t param_approval = param_find("BD_APPROVAL");
+
+
+	param_get(param_approval, &drop_approval);
+	param_get(param_precision, &precision);
+	param_get(param_turn_radius, &turn_radius);
+	param_get(param_height, &height);
+	param_get(param_gproperties, &z_0);
+
 
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	orb_set_interval(vehicle_attitude_sub, 20);
+	orb_set_interval(vehicle_attitude_sub, 100);
+
+	struct vehicle_global_position_s globalpos;
+	memset(&globalpos, 0, sizeof(globalpos));
+	int vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+
+	struct parameter_update_s update;
+	memset(&update, 0, sizeof(update));
+	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID(actuator_controls_1), &actuators);
 
-	struct pollfd fds[1] = {
-		{ .fd = vehicle_attitude_sub, .events = POLLIN },
+	struct pollfd fds[] = {
+		{ .fd = vehicle_attitude_sub, .events = POLLIN }
 	};
 
-	uint64_t drop_start = 0;
-	bool open_now = false;
 
 	while (!thread_should_exit) {
 
@@ -174,51 +287,177 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 			warnx("poll error");
 
 		} else if (ret > 0) {
-			/* attitude */
+
 			orb_copy(ORB_ID(vehicle_attitude), vehicle_attitude_sub, &att);
-			if (drop) {
-				// drop here
-				open_now = true;
-				drop = false;
-				drop_start = hrt_absolute_time();
+
+			orb_check(vehicle_global_position_sub, &updated);
+			if (updated){
+				/* copy global position */
+				orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &globalpos);
+			}
+			//////////////////////////////////////////////////////////////////// DEBUGGING
+			globalpos.lat = 47.384486;
+			globalpos.lon =  8.588239;
+			globalpos.vx = 18.0f;
+			globalpos.vy = 0.0f;
+			globalpos.alt = 60.0f;
+			globalpos.yaw = M_PI_F/2.0f;
+
+
+			orb_check(parameter_update_sub, &updated);
+			if (updated){
+				/* copy global position */
+				orb_copy(ORB_ID(parameter_update), parameter_update_sub, &update);
+
+				/* update all parameters */
+			param_get(param_height, &height);
+			param_get(param_gproperties, &z_0);
+			param_get(param_turn_radius, &turn_radius);
+			param_get(param_approval, &drop_approval);
+			param_get(param_precision, &precision);
+
+
 			}
 
-			if (open_now && (drop_start + 2e6 > hrt_absolute_time())) {		// open door
+			// Initialization
+			 az = g;                 				// acceleration in z direction[m/s^2]
+			 vz = 0; 						// velocity in z direction [m/s]
+			 z = 0; 						// fallen distance [m]
+			 h_0 = globalpos.alt - target_position.alt; 		// height over target at start[m]
+			 h = h_0;						// height over target [m]
+			 ax = 0;						// acceleration in x direction [m/s^2]
+			 vx = globalpos.vx;					// ground speed in x direction [m/s]
+			 x = 0;							// traveled distance in x direction [m]
+			 vw = 0;                 				// wind speed [m/s]
+			 vrx = 0;						// relative velocity in x direction [m/s]
+			 v = globalpos.vx;					// relative speed vector [m/s]
+			 Fd = 0;						// Drag force [N]
+			 Fdx = 0;						// Drag force in x direction [N]
+			 Fdz = 0;						// Drag force in z direction [N]
+			 vr = sqrt(pow(wind_speed.vx,2) + pow(wind_speed.vy,2)); // absolute wind speed [m/s]
+			 distance_open_door = t_door * globalpos.vx;
 
-				actuators.control[0] = -1.0f;
+
+			 //warnx("absolut wind speed = %.4f", vr); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+
+			 //warnx("Initialization complete\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+
+			if (drop_approval && !state_drop)
+			{
+				//warnx("approval given\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
+				// drop here
+				//open_now = true;
+				//drop = false;
+				//drop_start = hrt_absolute_time();
+
+				unsigned counter = 0;
+
+				// Compute the distance the bottle will travel after it is dropped in body frame coordinates --> x
+				while( h > 0.05f)
+				{
+					// z-direction
+					vz = vz + az*dt;
+					z = z + vz*dt;
+					h = h_0 - z;
+
+					// x-direction
+					vw = vr*logf(h/z_0)/logf(wind_speed.altitude/z_0);
+					vx = vx + ax*dt;
+					x = x + vx*dt;
+					vrx = vx + vw;
+
+					//Drag force
+					v = sqrtf(powf(vz,2.0f) + powf(vrx,2.0f));
+					Fd = 0.5f*rho*A*cd*powf(v,2.0f);
+					Fdx = Fd*vrx/v;
+					Fdz = Fd*vz/v;
+
+					//acceleration
+					az = g - Fdz/m;
+					ax = -Fdx/m;
+
+				}
+				// Compute Drop point
+				x = globalpos.vx*t_signal + x;
+				map_projection_init(target_position.lat, target_position.lon);
+				//warnx("x = %.4f", x); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+
+
+				map_projection_project(target_position.lat, target_position.lon, &x_t, &y_t);
+				if( vr < 0.001f)		// if there is no wind, an arbitrarily direction is chosen
+				{
+					vr = 1;
+					wind_speed.vx = 1;
+					wind_speed.vy = 0;
+				}
+				x_drop = x_t + x*wind_speed.vx/vr;
+				y_drop = y_t + x*wind_speed.vy/vr;
+				map_projection_reproject(x_drop, y_drop, &drop_position.lat, &drop_position.lon);
+				drop_position.alt = height;
+				//warnx("drop point: lat = %.7f , lon = %.7f", drop_position.lat, drop_position.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+
+
+				// Compute flight vector
+				map_projection_reproject(x_drop + 2*turn_radius*wind_speed.vx/vr, y_drop + 2*turn_radius*wind_speed.vy/vr, &flight_vector_s.lat, &flight_vector_s.lon);
+				flight_vector_s.alt = height;
+				map_projection_reproject(x_drop - turn_radius*wind_speed.vx/vr, y_drop - turn_radius*wind_speed.vy/vr, &flight_vector_e.lat, &flight_vector_e.lon);
+				flight_vector_e.alt = height;
+				//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+
+				// Drop Cancellation if terms are not met
+				distance_real = get_distance_to_next_waypoint(globalpos.lat, globalpos.lon, drop_position.lat, drop_position.lon);
+				map_projection_project(globalpos.lat, globalpos.lon, &x_l, &y_l);
+				x_f = x_l + globalpos.vx*cosf(globalpos.yaw)*dt2 - globalpos.vy*sinf(globalpos.yaw)*dt2; // Attention to sign, has to be checked
+				y_f = y_l + globalpos.vy*cosf(globalpos.yaw)*dt2 - globalpos.vx*sinf(globalpos.yaw)*dt2;
+				map_projection_reproject(x_f, y_f, &x_f_NED, &y_f_NED);
+				future_distance = get_distance_to_next_waypoint(x_f_NED, y_f_NED, drop_position.lat, drop_position.lon);
+				//warnx("position to-be: = %.7f  %.7f" ,x_f_NED, y_f_NED ); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+			}
+
+			if(distance_real < distance_open_door && drop_approval)
+			{
+				actuators.control[0] = -1.0f;	// open door
 				actuators.control[1] = 1.0f;
-
-			} else if (open_now) {							// unlock bottle
-
-				ioctl(rgbleds, RGBLED_SET_MODE, RGBLED_MODE_ON);
-				ioctl(rgbleds, RGBLED_SET_COLOR, RGBLED_COLOR_RED);
-				actuators.control[2] = 0.5f;
-
-			} else {
-
-				// leave closed
-				// warnx( "%4.4f", att.pitch);
+				state_door = true;
+			}
+			else
+			{		// closed door and locked survival kit
 				actuators.control[0] = 0.5f;
 				actuators.control[1] = -0.5f;
 				actuators.control[2] = -0.5f;
+				state_door = false;
 			}
-
+			if(distance_real < precision && distance_real < future_distance && state_door)  // Drop only if the distance between drop point and actual position is getting larger again
+			{
+				if(fabsf(acosf(cosf(globalpos.yaw))+acosf(wind_speed.vx)) < 10.0f/180.0f*M_PI_F) // if flight trajectory deviates more than 10 degrees from calculated path, it will no drop
+				{
+					actuators.control[2] = 0.5f;
+					state_drop = true;
+					state_run = true;
+				}
+				else
+				{
+					state_run = true;
+				}
+			}
 
 
 			actuators.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(actuator_controls_1), actuator_pub, &actuators);
 
-			i++;
 		}
-
 	}
 
 	warnx("exiting.\n");
 
 	thread_running = false;
 
-	ioctl(rgbleds, RGBLED_SET_MODE, RGBLED_MODE_OFF);
-	close(rgbleds);
 
 	return 0;
 }
