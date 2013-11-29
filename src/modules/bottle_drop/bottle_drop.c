@@ -61,6 +61,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/mission.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -187,7 +188,7 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 		double lat; //degrees 1E7
 		double lon; //degrees 1E7
 		float alt; //m
-	} target_position, drop_position, flight_vector_s, flight_vector_e;
+	} target_position, drop_position;
 
 	target_position.lat =  47.385806;
 	target_position.lon =  8.589093;
@@ -238,6 +239,7 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 	bool state_drop = false;				// Drop occurred = true, Drop din't occur = false
 	bool state_run = false;					// A drop was attempted = true, the drop is still in progress = false
 
+	unsigned counter = 0;
 
 	param_t param_height = param_find("BD_HEIGHT");
 	param_t param_gproperties = param_find("BD_GPROPERTIES");
@@ -270,6 +272,22 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 	memset(&actuators, 0, sizeof(actuators));
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID(actuator_controls_1), &actuators);
 
+	struct mission_s onboard_mission;
+	memset(&onboard_mission, 0, sizeof(onboard_mission));
+	onboard_mission.items = (struct mission_item_s*)malloc(sizeof(struct mission_item_s) * 2);
+	
+	struct mission_item_s *flight_vector_s = &onboard_mission.items[0];
+	struct mission_item_s *flight_vector_e = &onboard_mission.items[1];
+
+	flight_vector_s->nav_cmd = NAV_CMD_WAYPOINT;
+	flight_vector_s->radius = 50; // TODO: make parameter
+	flight_vector_s->autocontinue = true;
+	flight_vector_e->nav_cmd = NAV_CMD_WAYPOINT;
+	flight_vector_e->radius = 50; // TODO: make parameter
+	flight_vector_e->autocontinue = true;
+
+	orb_advert_t onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
+
 	struct pollfd fds[] = {
 		{ .fd = vehicle_attitude_sub, .events = POLLIN }
 	};
@@ -295,14 +313,6 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 				/* copy global position */
 				orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &globalpos);
 			}
-			//////////////////////////////////////////////////////////////////// DEBUGGING
-			globalpos.lat = 47.384486;
-			globalpos.lon =  8.588239;
-			globalpos.vx = 18.0f;
-			globalpos.vy = 0.0f;
-			globalpos.alt = 60.0f;
-			globalpos.yaw = M_PI_F/2.0f;
-
 
 			orb_check(parameter_update_sub, &updated);
 			if (updated){
@@ -344,15 +354,13 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 			 //warnx("Initialization complete\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 
-			if (drop_approval && !state_drop)
+			if (drop_approval && !state_drop && counter % 10 == 0)
 			{
 				//warnx("approval given\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
 				// drop here
 				//open_now = true;
 				//drop = false;
 				//drop_start = hrt_absolute_time();
-
-				unsigned counter = 0;
 
 				// Compute the distance the bottle will travel after it is dropped in body frame coordinates --> x
 				while( h > 0.05f)
@@ -402,12 +410,11 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 
 
 				// Compute flight vector
-				map_projection_reproject(x_drop + 2*turn_radius*wind_speed.vx/vr, y_drop + 2*turn_radius*wind_speed.vy/vr, &flight_vector_s.lat, &flight_vector_s.lon);
-				flight_vector_s.alt = height;
-				map_projection_reproject(x_drop - turn_radius*wind_speed.vx/vr, y_drop - turn_radius*wind_speed.vy/vr, &flight_vector_e.lat, &flight_vector_e.lon);
-				flight_vector_e.alt = height;
+				map_projection_reproject(x_drop + 2*turn_radius*wind_speed.vx/vr, y_drop + 2*turn_radius*wind_speed.vy/vr, &(flight_vector_s->lat), &(flight_vector_s->lon));
+				flight_vector_s->altitude = height;
+				map_projection_reproject(x_drop - turn_radius*wind_speed.vx/vr, y_drop - turn_radius*wind_speed.vy/vr, &(flight_vector_e)->lat, &(flight_vector_e)->lon);
+				flight_vector_e->altitude = height;
 				//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
-
 
 				// Drop Cancellation if terms are not met
 				distance_real = get_distance_to_next_waypoint(globalpos.lat, globalpos.lon, drop_position.lat, drop_position.lon);
@@ -417,6 +424,18 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 				map_projection_reproject(x_f, y_f, &x_f_NED, &y_f_NED);
 				future_distance = get_distance_to_next_waypoint(x_f_NED, y_f_NED, drop_position.lat, drop_position.lon);
 				//warnx("position to-be: = %.7f  %.7f" ,x_f_NED, y_f_NED ); //////////////////////////////////////////////////////////////////// DEBUGGING
+
+
+				onboard_mission.count = 2;
+
+				if (state_run && !state_drop) {
+					onboard_mission.current_index = 0;
+				} else {
+					onboard_mission.current_index = -1;
+				}
+				
+
+				orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
 
 			}
 
@@ -447,10 +466,10 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 				}
 			}
 
-
 			actuators.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(actuator_controls_1), actuator_pub, &actuators);
 
+			counter++;
 		}
 	}
 
