@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file test_servo.c
- * Tests the servo outputs
+ * @file test_ppm_loopback.c
+ * Tests the PWM outputs and PPM input
  *
  */
 
@@ -47,50 +47,50 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
-#include <time.h>
 
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
-
-#include <nuttx/spi.h>
+#include <drivers/drv_rc_input.h>
+#include <systemlib/err.h>
 
 #include "tests.h"
 
-int test_servo(int argc, char *argv[])
+#include <math.h>
+#include <float.h>
+
+int test_ppm_loopback(int argc, char *argv[])
 {
-	int fd, result;
+
+	int servo_fd, result;
 	servo_position_t data[PWM_OUTPUT_MAX_CHANNELS];
 	servo_position_t pos;
 
-	fd = open(PWM_OUTPUT_DEVICE_PATH, O_RDWR);
+	servo_fd = open(PWM_OUTPUT_DEVICE_PATH, O_RDWR);
 
-	if (fd < 0) {
+	if (servo_fd < 0) {
 		printf("failed opening /dev/pwm_servo\n");
-		goto out;
 	}
 
-	result = read(fd, &data, sizeof(data));
+	result = read(servo_fd, &data, sizeof(data));
 
 	if (result != sizeof(data)) {
 		printf("failed bulk-reading channel values\n");
-		goto out;
 	}
 
 	printf("Servo readback, pairs of values should match defaults\n");
 
 	unsigned servo_count;
-	result = ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
+	result = ioctl(servo_fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
 	if (result != OK) {
 		warnx("PWM_SERVO_GET_COUNT");
 		return ERROR;
 	}
 
 	for (unsigned i = 0; i < servo_count; i++) {
-		result = ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&pos);
+		result = ioctl(servo_fd, PWM_SERVO_GET(i), (unsigned long)&pos);
 
 		if (result < 0) {
 			printf("failed reading channel %u\n", i);
-			goto out;
 		}
 
 		printf("%u: %u %u\n", i, pos, data[i]);
@@ -98,19 +98,57 @@ int test_servo(int argc, char *argv[])
 	}
 
 	/* tell safety that its ok to disable it with the switch */
-	result = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
+	result = ioctl(servo_fd, PWM_SERVO_SET_ARM_OK, 0);
 	if (result != OK)
 		warnx("FAIL: PWM_SERVO_SET_ARM_OK");
 	/* tell output device that the system is armed (it will output values if safety is off) */
-	result = ioctl(fd, PWM_SERVO_ARM, 0);
+	result = ioctl(servo_fd, PWM_SERVO_ARM, 0);
 	if (result != OK)
 		warnx("FAIL: PWM_SERVO_ARM");
 
-	usleep(5000000);
-	printf("Advancing channel 0 to 1500\n");
-	result = ioctl(fd, PWM_SERVO_SET(0), 1500);
-	printf("Advancing channel 1 to 1800\n");
-	result = ioctl(fd, PWM_SERVO_SET(1), 1800);
-out:
+	int pwm_values[] = {1200, 1300, 1900, 1700, 1500, 1250, 1800, 1400};
+
+
+	printf("Advancing channel 0 to 1100\n");
+	result = ioctl(servo_fd, PWM_SERVO_SET(0), 1100);
+	printf("Advancing channel 1 to 1900\n");
+	result = ioctl(servo_fd, PWM_SERVO_SET(1), 1900);
+	printf("Advancing channel 2 to 1200\n");
+	result = ioctl(servo_fd, PWM_SERVO_SET(2), 1200);
+
+	for (unsigned i = 0; (i < servo_count) && (i < sizeof(pwm_values) / sizeof(pwm_values[0])); i++) {
+		result = ioctl(servo_fd, PWM_SERVO_SET(i), pwm_values[i]);
+		if (result) {
+			(void)close(servo_fd);
+			return ERROR;
+		}
+	}
+
+	/* give driver 10 ms to propagate */
+	usleep(10000);
+
+	/* open PPM input and expect values close to the output values */
+
+	int ppm_fd = open(RC_INPUT_DEVICE_PATH, O_RDONLY);
+
+	struct rc_input_values rc;
+	result = read(ppm_fd, &rc, sizeof(rc));
+
+	if (result != sizeof(rc)) {
+		warnx("Error reading RC output");
+		(void)close(servo_fd);
+		(void)close(ppm_fd);
+		return ERROR;
+	}
+
+	/* go and check values */
+	for (unsigned i = 0; (i < servo_count) && (i < sizeof(pwm_values) / sizeof(pwm_values[0])); i++) {
+		result = ioctl(servo_fd, PWM_SERVO_GET(i), pwm_values[i]);
+		if (result) {
+			(void)close(servo_fd);
+			return ERROR;
+		}
+	}
+
 	return 0;
 }
