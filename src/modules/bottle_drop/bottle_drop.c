@@ -258,7 +258,7 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	orb_set_interval(vehicle_attitude_sub, 100);
+	orb_set_interval(vehicle_attitude_sub, 20);
 
 	struct vehicle_global_position_s globalpos;
 	memset(&globalpos, 0, sizeof(globalpos));
@@ -292,6 +292,9 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 		{ .fd = vehicle_attitude_sub, .events = POLLIN }
 	};
 
+	double latitude;
+	double longitude;
+
 
 	while (!thread_should_exit) {
 
@@ -312,6 +315,9 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 			if (updated){
 				/* copy global position */
 				orb_copy(ORB_ID(vehicle_global_position), vehicle_global_position_sub, &globalpos);
+
+				latitude = (double)globalpos.lat / 1e7;
+				longitude = (double)globalpos.lon / 1e7;
 			}
 
 			orb_check(parameter_update_sub, &updated);
@@ -330,22 +336,10 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 			}
 
 			// Initialization
-			 az = g;                 				// acceleration in z direction[m/s^2]
-			 vz = 0; 						// velocity in z direction [m/s]
-			 z = 0; 						// fallen distance [m]
-			 h_0 = globalpos.alt - target_position.alt; 		// height over target at start[m]
-			 h = h_0;						// height over target [m]
-			 ax = 0;						// acceleration in x direction [m/s^2]
-			 vx = globalpos.vx;					// ground speed in x direction [m/s]
-			 x = 0;							// traveled distance in x direction [m]
-			 vw = 0;                 				// wind speed [m/s]
-			 vrx = 0;						// relative velocity in x direction [m/s]
-			 v = globalpos.vx;					// relative speed vector [m/s]
-			 Fd = 0;						// Drag force [N]
-			 Fdx = 0;						// Drag force in x direction [N]
-			 Fdz = 0;						// Drag force in z direction [N]
-			 vr = sqrt(pow(wind_speed.vx,2) + pow(wind_speed.vy,2)); // absolute wind speed [m/s]
-			 distance_open_door = t_door * globalpos.vx;
+			
+			
+			vr = sqrtf(powf(wind_speed.vx,2) + powf(wind_speed.vy,2)); // absolute wind speed [m/s]
+			distance_open_door = fabsf(t_door * globalpos.vx);
 
 
 			 //warnx("absolut wind speed = %.4f", vr); //////////////////////////////////////////////////////////////////// DEBUGGING
@@ -354,7 +348,7 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 			 //warnx("Initialization complete\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 
-			if (drop_approval && !state_drop && counter % 10 == 0)
+			if (drop_approval && !state_drop)
 			{
 				//warnx("approval given\n"); //////////////////////////////////////////////////////////////////// DEBUGGING
 				// drop here
@@ -362,37 +356,53 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 				//drop = false;
 				//drop_start = hrt_absolute_time();
 
-				// Compute the distance the bottle will travel after it is dropped in body frame coordinates --> x
-				while( h > 0.05f)
-				{
-					// z-direction
-					vz = vz + az*dt;
-					z = z + vz*dt;
-					h = h_0 - z;
 
-					// x-direction
-					vw = vr*logf(h/z_0)/logf(wind_speed.altitude/z_0);
-					vx = vx + ax*dt;
-					x = x + vx*dt;
-					vrx = vx + vw;
+				if (counter % 50 == 0) {
 
-					//Drag force
-					v = sqrtf(powf(vz,2.0f) + powf(vrx,2.0f));
-					Fd = 0.5f*rho*A*cd*powf(v,2.0f);
-					Fdx = Fd*vrx/v;
-					Fdz = Fd*vz/v;
+					az = g;                 				// acceleration in z direction[m/s^2]
+					vz = 0; 						// velocity in z direction [m/s]
+					z = 0; 							// fallen distance [m]
+					h_0 = globalpos.alt - target_position.alt; 		// height over target at start[m]
+					h = h_0;						// height over target [m]
+					ax = 0;							// acceleration in x direction [m/s^2]
+					vx = sqrtf(powf(globalpos.vx,2.0f) + powf(globalpos.vy,2.0f));					// ground speed in x direction [m/s]
+					x = 0;							// traveled distance in x direction [m]
+					vw = 0;                 				// wind speed [m/s]
+					vrx = 0;						// relative velocity in x direction [m/s]
+					v = sqrtf(powf(globalpos.vx,2.0f) + powf(globalpos.vy,2.0f));					// relative speed vector [m/s]
+					Fd = 0;							// Drag force [N]
+					Fdx = 0;						// Drag force in x direction [N]
+					Fdz = 0;						// Drag force in z direction [N]
 
-					//acceleration
-					az = g - Fdz/m;
-					ax = -Fdx/m;
 
+					// Compute the distance the bottle will travel after it is dropped in body frame coordinates --> x
+					while( h > 0.05f)
+					{
+						// z-direction
+						vz = vz + az*dt;
+						z = z + vz*dt;
+						h = h_0 - z;
+
+						// x-direction
+						vw = vr*logf(h/z_0)/logf(wind_speed.altitude/z_0);
+						vx = vx + ax*dt;
+						x = x + vx*dt;
+						vrx = vx + vw;
+
+						//Drag force
+						v = sqrtf(powf(vz,2.0f) + powf(vrx,2.0f));
+						Fd = 0.5f*rho*A*cd*powf(v,2.0f);
+						Fdx = Fd*vrx/v;
+						Fdz = Fd*vz/v;
+
+						//acceleration
+						az = g - Fdz/m;
+						ax = -Fdx/m;
+					}
+					// Compute Drop point
+					x = sqrtf(powf(globalpos.vx,2.0f) + powf(globalpos.vy,2.0f))*t_signal + x;
+					map_projection_init(target_position.lat, target_position.lon);
 				}
-				// Compute Drop point
-				x = globalpos.vx*t_signal + x;
-				map_projection_init(target_position.lat, target_position.lon);
-				//warnx("x = %.4f", x); //////////////////////////////////////////////////////////////////// DEBUGGING
-
-
 
 				map_projection_project(target_position.lat, target_position.lon, &x_t, &y_t);
 				if( vr < 0.001f)		// if there is no wind, an arbitrarily direction is chosen
@@ -417,14 +427,26 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 				//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 				// Drop Cancellation if terms are not met
-				distance_real = get_distance_to_next_waypoint(globalpos.lat, globalpos.lon, drop_position.lat, drop_position.lon);
-				map_projection_project(globalpos.lat, globalpos.lon, &x_l, &y_l);
-				x_f = x_l + globalpos.vx*cosf(globalpos.yaw)*dt2 - globalpos.vy*sinf(globalpos.yaw)*dt2; // Attention to sign, has to be checked
-				y_f = y_l + globalpos.vy*cosf(globalpos.yaw)*dt2 - globalpos.vx*sinf(globalpos.yaw)*dt2;
+
+				// warnx("latitude:%.2f", latitude);
+				// warnx("longitude:%.2f", longitude);
+				// warnx("drop_position.lat:%.2f", drop_position.lat);
+				// warnx("drop_position.lon:%.2f", drop_position.lon);
+
+				distance_real = fabsf(get_distance_to_next_waypoint(latitude, longitude, drop_position.lat, drop_position.lon));
+				map_projection_project(latitude, longitude, &x_l, &y_l);
+				x_f = x_l + globalpos.vx*dt2;
+				y_f = y_l + globalpos.vy*dt2;
 				map_projection_reproject(x_f, y_f, &x_f_NED, &y_f_NED);
-				future_distance = get_distance_to_next_waypoint(x_f_NED, y_f_NED, drop_position.lat, drop_position.lon);
+				future_distance = fabsf(get_distance_to_next_waypoint(x_f_NED, y_f_NED, drop_position.lat, drop_position.lon));
 				//warnx("position to-be: = %.7f  %.7f" ,x_f_NED, y_f_NED ); //////////////////////////////////////////////////////////////////// DEBUGGING
 
+				// if (counter % 10 ==0) {
+				// 	warnx("x: %.4f", x);
+				// 	warnx("drop_position.lat: %.4f, drop_position.lon: %.4f", drop_position.lat, drop_position.lon);
+				// 	warnx("latitude %.4f, longitude: %.4f", latitude, longitude);
+				// 	warnx("future_distance: %.2f, precision: %.2f", future_distance, precision);
+				// }
 
 				onboard_mission.count = 2;
 
@@ -434,16 +456,19 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 					onboard_mission.current_index = -1;
 				}
 				
+				// if (counter % 10 ==0)
+				//	warnx("Distance real: %.2f, distance_open_door: %.2f, angle to wind: %.2f", distance_real, distance_open_door, fabsf(_wrap_pi(globalpos.yaw-atan2f(wind_speed.vy,wind_speed.vx)+M_PI_F)));
 
 				orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
 
 			}
 
-			if(distance_real < distance_open_door && drop_approval)
+			if(isfinite(distance_real) && distance_real < distance_open_door && drop_approval)
 			{
 				actuators.control[0] = -1.0f;	// open door
 				actuators.control[1] = 1.0f;
 				state_door = true;
+				warnx("open doors");
 			}
 			else
 			{		// closed door and locked survival kit
@@ -452,13 +477,14 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 				actuators.control[2] = -0.5f;
 				state_door = false;
 			}
-			if(distance_real < precision && distance_real < future_distance && state_door)  // Drop only if the distance between drop point and actual position is getting larger again
+			if(isfinite(distance_real) && distance_real < precision && distance_real < future_distance && state_door)  // Drop only if the distance between drop point and actual position is getting larger again
 			{
-				if(fabsf(acosf(cosf(globalpos.yaw))+acosf(wind_speed.vx)) < 10.0f/180.0f*M_PI_F) // if flight trajectory deviates more than 10 degrees from calculated path, it will no drop
+				if(fabsf(_wrap_pi(globalpos.yaw-atan2f(wind_speed.vy,wind_speed.vx)+M_PI_F)) < 10.0f/180.0f*M_PI_F) // if flight trajectory deviates more than 10 degrees from calculated path, it will no drop
 				{
 					actuators.control[2] = 0.5f;
 					state_drop = true;
 					state_run = true;
+					warnx("dropping now");
 				}
 				else
 				{
