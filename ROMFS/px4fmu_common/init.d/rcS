@@ -145,6 +145,12 @@ then
 		sh /etc/init.d/1004_rc_fw_Rascal110.hil
 		set MODE custom
 	fi
+
+	if param compare SYS_AUTOSTART 901
+	then
+		sh /etc/init.d/901_bottle_drop_test.hil
+		set MODE custom
+	fi
 	
 	if [ $MODE != custom ]
 	then
@@ -322,12 +328,6 @@ then
 	if param compare SYS_AUTOSTART 900
 	then
 		sh /etc/init.d/900_bottle_drop_test
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 901
-	then
-		sh /etc/init.d/901_bottle_drop_test.hil
 		set MODE custom
 	fi
 	
