@@ -41,7 +41,6 @@
 
 #include <uORB/topics/mission.h>
 #include <uORB/topics/fence.h>
-#include <mavlink/waypoints.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,7 +50,7 @@ extern "C" {
 	typedef enum {
 		DM_KEY_SAFE_POINTS = 0,		/* Safe points coordinates, safe point 0 is home point */
 		DM_KEY_FENCE_POINTS,		/* Fence vertex coordinates */
-		DM_KEY_WAY_POINTS,		/* Mission way point coordinates */
+		DM_KEY_WAYPOINTS,		/* Mission way point coordinates */
 		DM_KEY_NUM_KEYS			/* Total number of item types defined */
 	} dm_item_t;
 
@@ -59,7 +58,7 @@ extern "C" {
 	enum {
 		DM_KEY_SAFE_POINTS_MAX = 8,
 		DM_KEY_FENCE_POINTS_MAX = GEOFENCE_MAX_VERTICES,
-		DM_KEY_WAY_POINTS_MAX = MAVLINK_WPM_MAX_WP_COUNT,
+		DM_KEY_WAYPOINTS_MAX = NUM_MISSIONS_SUPPORTED
 	};
 
 	/* Data persistence levels */
