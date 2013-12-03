@@ -272,21 +272,21 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 	memset(&actuators, 0, sizeof(actuators));
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID(actuator_controls_1), &actuators);
 
-	struct mission_s onboard_mission;
-	memset(&onboard_mission, 0, sizeof(onboard_mission));
-	onboard_mission.items = (struct mission_item_s*)malloc(sizeof(struct mission_item_s) * 2);
+	// struct mission_s onboard_mission;
+	// memset(&onboard_mission, 0, sizeof(onboard_mission));
+	// onboard_mission.items = (struct mission_item_s*)malloc(sizeof(struct mission_item_s) * 2);
 	
-	struct mission_item_s *flight_vector_s = &onboard_mission.items[0];
-	struct mission_item_s *flight_vector_e = &onboard_mission.items[1];
+	struct mission_item_s *flight_vector_s = NULL;//&onboard_mission.items[0];
+	struct mission_item_s *flight_vector_e = NULL;//&onboard_mission.items[1];
 
-	flight_vector_s->nav_cmd = NAV_CMD_WAYPOINT;
-	flight_vector_s->radius = 50; // TODO: make parameter
-	flight_vector_s->autocontinue = true;
-	flight_vector_e->nav_cmd = NAV_CMD_WAYPOINT;
-	flight_vector_e->radius = 50; // TODO: make parameter
-	flight_vector_e->autocontinue = true;
+	// flight_vector_s->nav_cmd = NAV_CMD_WAYPOINT;
+	// flight_vector_s->radius = 50; // TODO: make parameter
+	// flight_vector_s->autocontinue = true;
+	// flight_vector_e->nav_cmd = NAV_CMD_WAYPOINT;
+	// flight_vector_e->radius = 50; // TODO: make parameter
+	// flight_vector_e->autocontinue = true;
 
-	orb_advert_t onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
+	// orb_advert_t onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
 
 	struct pollfd fds[] = {
 		{ .fd = vehicle_attitude_sub, .events = POLLIN }
@@ -448,18 +448,18 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 				// 	warnx("future_distance: %.2f, precision: %.2f", future_distance, precision);
 				// }
 
-				onboard_mission.count = 2;
+				// onboard_mission.count = 2;
 
-				if (state_run && !state_drop) {
-					onboard_mission.current_index = 0;
-				} else {
-					onboard_mission.current_index = -1;
-				}
+				// if (state_run && !state_drop) {
+				// 	onboard_mission.current_index = 0;
+				// } else {
+				// 	onboard_mission.current_index = -1;
+				// }
 				
 				// if (counter % 10 ==0)
 				//	warnx("Distance real: %.2f, distance_open_door: %.2f, angle to wind: %.2f", distance_real, distance_open_door, fabsf(_wrap_pi(globalpos.yaw-atan2f(wind_speed.vy,wind_speed.vx)+M_PI_F)));
 
-				orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+				// orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
 
 			}
 
