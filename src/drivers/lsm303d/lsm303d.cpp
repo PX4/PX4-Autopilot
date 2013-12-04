@@ -734,7 +734,7 @@ LSM303D::check_extremes(const accel_report *arb)
 	    (is_extreme && (now - _last_log_reg_us > 250*1000)) ||
 	    (now - _last_log_reg_us > 10*1000*1000)) {
 		_last_log_reg_us = now;
-		::dprintf(_accel_log_fd, "REG %llu", (unsigned long long)hrt_absolute_time());
+		::dprintf(_accel_log_fd, "XREG %llu", (unsigned long long)hrt_absolute_time());
 		for (uint8_t i=0; i<sizeof(reglist); i++) {
 			::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)regval[i]);
 		}
