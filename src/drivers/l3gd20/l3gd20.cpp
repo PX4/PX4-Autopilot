@@ -92,9 +92,12 @@ static const int ERROR = -1;
 #define REG1_RATE_LP_MASK			0xF0 /* Mask to guard partial register update */
 /* keep lowpass low to avoid noise issues */
 #define RATE_95HZ_LP_25HZ		((0<<7) | (0<<6) | (0<<5) | (1<<4))
-#define RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (1<<5) | (1<<4))
+#define RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (0<<5) | (1<<4))
+#define RATE_190HZ_LP_70HZ		((0<<7) | (1<<6) | (1<<5) | (1<<4))
 #define RATE_380HZ_LP_20HZ		((1<<7) | (0<<6) | (1<<5) | (0<<4))
+#define RATE_380HZ_LP_100HZ		((1<<7) | (0<<6) | (1<<5) | (1<<4))
 #define RATE_760HZ_LP_30HZ		((1<<7) | (1<<6) | (0<<5) | (0<<4))
+#define RATE_760HZ_LP_100HZ		((1<<7) | (1<<6) | (1<<5) | (1<<4))
 
 #define ADDR_CTRL_REG2			0x21
 #define ADDR_CTRL_REG3			0x22
@@ -659,16 +662,15 @@ L3GD20::set_samplerate(unsigned frequency)
 
 	} else if (frequency <= 200) {
 		_current_rate = 190;
-		bits |= RATE_190HZ_LP_25HZ;
+		bits |= RATE_190HZ_LP_70HZ;
 
 	} else if (frequency <= 400) {
 		_current_rate = 380;
-		bits |= RATE_380HZ_LP_20HZ;
+		bits |= RATE_380HZ_LP_100HZ;
 
 	} else if (frequency <= 800) {
 		_current_rate = 760;
-		bits |= RATE_760HZ_LP_30HZ;
-
+		bits |= RATE_760HZ_LP_100HZ;
 	} else {
 		return -EINVAL;
 	}
@@ -732,7 +734,7 @@ L3GD20::reset()
 	 * callback fast enough to not miss data. */
 	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);
 
-	set_samplerate(L3GD20_DEFAULT_RATE);
+	set_samplerate(0); // 760Hz
 	set_range(L3GD20_DEFAULT_RANGE_DPS);
 	set_driver_lowpass_filter(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ);
 
