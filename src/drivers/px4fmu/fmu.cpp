@@ -1053,6 +1053,71 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 }
 
 void
+PX4FMU::sensor_reset(int ms)
+{
+	if (ms < 1) {
+		ms = 1;
+	}
+
+	/* disable SPI bus */
+        stm32_configgpio(GPIO_SPI_CS_GYRO_OFF);
+        stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG_OFF);
+        stm32_configgpio(GPIO_SPI_CS_BARO_OFF);
+
+        stm32_gpiowrite(GPIO_SPI_CS_GYRO_OFF, 0);
+        stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG_OFF, 0);
+        stm32_gpiowrite(GPIO_SPI_CS_BARO_OFF, 0);
+
+        stm32_configgpio(GPIO_SPI1_SCK_OFF);
+        stm32_configgpio(GPIO_SPI1_MISO_OFF);
+        stm32_configgpio(GPIO_SPI1_MOSI_OFF);
+
+        stm32_gpiowrite(GPIO_SPI1_SCK_OFF, 0);
+        stm32_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
+        stm32_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
+
+        stm32_configgpio(GPIO_GYRO_DRDY_OFF);
+        stm32_configgpio(GPIO_MAG_DRDY_OFF);
+        stm32_configgpio(GPIO_ACCEL_DRDY_OFF);
+
+        stm32_gpiowrite(GPIO_GYRO_DRDY_OFF, 0);
+        stm32_gpiowrite(GPIO_MAG_DRDY_OFF, 0);
+        stm32_gpiowrite(GPIO_ACCEL_DRDY_OFF, 0);
+
+        /* set the sensor rail off */
+        stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+        stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
+
+        /* wait for the sensor rail to reach GND */
+        usleep(ms * 000);
+
+	/* re-enable power */
+
+	/* switch the sensor rail back on */
+        stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
+
+        /* wait a bit before starting SPI, different times didn't influence results */
+        usleep(100);
+
+	/* reconfigure the SPI pins */
+#ifdef CONFIG_STM32_SPI1
+	stm32_configgpio(GPIO_SPI_CS_GYRO);
+	stm32_configgpio(GPIO_SPI_CS_ACCEL_MAG);
+	stm32_configgpio(GPIO_SPI_CS_BARO);
+	stm32_configgpio(GPIO_SPI_CS_MPU);
+
+	/* De-activate all peripherals,
+	 * required for some peripheral
+	 * state machines
+	 */
+	stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+#endif
+}
+
+void
 PX4FMU::gpio_reset(void)
 {
 	/*
@@ -1152,6 +1217,10 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GPIO_RESET:
 		gpio_reset();
+		break;
+
+	case SENSOR_RESET:
+		sensor_reset();
 		break;
 
 	case GPIO_SET_OUTPUT:
@@ -1489,11 +1558,18 @@ fmu_main(int argc, char *argv[])
 	if (!strcmp(verb, "fake"))
 		fake(argc - 1, argv + 1);
 
+	if (!strcmp(verb, "sensor_reset"))
+		if (argc > 2) {
+			sensor_reset(strtol(argv[2], 0, 0));
+		} else {
+			sensor_reset(0);
+		}
+
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
 	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test\n");
 #elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2)
-	fprintf(stderr, "  mode_gpio, mode_pwm, test\n");
+	fprintf(stderr, "  mode_gpio, mode_pwm, test, sensor_reset [milliseconds]\n");
 #endif
 	exit(1);
 }
