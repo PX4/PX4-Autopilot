@@ -715,8 +715,16 @@ L3GD20::stop()
 void
 L3GD20::disable_i2c(void)
 {
-	uint8_t a = read_reg(0x05);
-	write_reg(0x05, (0x20 | a));
+	uint8_t retries = 10;
+	while (retries--) {
+		// add retries
+		uint8_t a = read_reg(0x05);
+		write_reg(0x05, (0x20 | a));
+		if (read_reg(0x05) == (a | 0x20)) {
+			return;
+		}
+	}
+	debug("FAILED TO DISABLE I2C");
 }
 
 void
