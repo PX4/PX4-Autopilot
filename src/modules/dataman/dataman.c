@@ -112,6 +112,7 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_SAFE_POINTS_MAX,
 	DM_KEY_FENCE_POINTS_MAX,
 	DM_KEY_WAYPOINTS_MAX,
+	DM_KEY_WAYPOINTS_ONBOARD_MAX
 };
 
 /* Table of offset for index 0 of each item type */
