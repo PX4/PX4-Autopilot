@@ -1151,7 +1151,8 @@ PX4FMU::sensor_reset(int ms)
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 
 	/* wait for the sensor rail to reach GND */
-	usleep(ms * 000);
+	usleep(ms * 1000);
+	warnx("reset done, %d ms", ms);
 
 	/* re-enable power */
 
@@ -1289,7 +1290,7 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 		break;
 
 	case GPIO_SENSOR_RAIL_RESET:
-		sensor_reset(20);
+		sensor_reset(arg);
 		break;
 
 	case GPIO_SET_OUTPUT:
@@ -1655,13 +1656,18 @@ fmu_main(int argc, char *argv[])
 	if (!strcmp(verb, "fake"))
 		fake(argc - 1, argv + 1);
 
-	if (!strcmp(verb, "sensor_reset"))
+	if (!strcmp(verb, "sensor_reset")) {
 		if (argc > 2) {
-			sensor_reset(strtol(argv[2], 0, 0));
+			int reset_time = strtol(argv[2], 0, 0);
+			sensor_reset(reset_time);
 
 		} else {
 			sensor_reset(0);
+			warnx("resettet default time");
 		}
+		exit(0);
+	}
+
 
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
 #if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
