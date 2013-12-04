@@ -142,6 +142,7 @@ private:
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_mission_sub;			/**< notification of mission updates */
+	int 		_onboard_mission_sub;		/**< notification of onboard mission updates */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 
 	orb_advert_t	_triplet_pub;			/**< publish position setpoint triplet */
@@ -155,11 +156,9 @@ private:
 	struct mission_result_s				_mission_result;	/**< mission result for commander/mavlink */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
-	unsigned	_max_mission_item_count;	/**< maximum number of mission items supported */
 	
 	unsigned	_mission_item_count;		/** number of mission items copied */
-
+	unsigned	_onboard_mission_item_count;	/** number of onboard mission items copied */
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
         bool						_inside_fence;		/**< vehicle is inside fence */
@@ -173,6 +172,7 @@ private:
 
 	navigation_mode_t				_mode;
 	unsigned		_current_mission_index;
+	unsigned		_current_onboard_mission_index;
 
 	struct {
 		float min_altitude;
@@ -199,6 +199,11 @@ private:
 	void		mission_update();
 
 	/**
+	* Retrieve onboard mission.
+	*/
+	void		onboard_mission_update();
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
@@ -216,7 +221,11 @@ private:
 
 	void		set_mode(navigation_mode_t new_nav_mode);
 
-	int		set_waypoint_mission_item(unsigned mission_item_index, struct mission_item_s *new_mission_item);
+	bool		mission_possible();
+
+	bool		onboard_mission_possible();
+
+	int		set_waypoint_mission_item(dm_item_t dm_item, unsigned mission_item_index, struct mission_item_s *new_mission_item);
 
 	void		publish_mission_item_triplet();
 
@@ -270,6 +279,7 @@ Navigator::Navigator() :
 	_vstatus_sub(-1),
 	_params_sub(-1),
 	_mission_sub(-1),
+	_onboard_mission_sub(-1),
 	_capabilities_sub(-1),
 
 /* publications */
@@ -280,8 +290,8 @@ Navigator::Navigator() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 /* states */
-	_max_mission_item_count(10),
 	_mission_item_count(0),
+	_onboard_mission_item_count(0),
 	_fence_valid(false),
 	_inside_fence(true),
 	_waypoint_position_reached(false),
@@ -289,7 +299,8 @@ Navigator::Navigator() :
 	_time_first_inside_orbit(0),
 	_mission_item_reached(false),
 	_mode(NAVIGATION_MODE_NONE),
-	_current_mission_index(0)
+	_current_mission_index(0),
+	_current_onboard_mission_index(0)
 {
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
@@ -352,32 +363,6 @@ Navigator::mission_update()
 	struct mission_s mission;
 	if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == OK) {
 
-// 		/* Check if first part of mission (up to _current_mission_index - 1) changed:
-// 		 * if the first part changed: start again at first waypoint
-// 		 * if the first part remained unchanged: continue with the (possibly changed second part)
-// 		 */
-// 		if (mission.current_index == -1 && _current_mission_index  < _mission_item_count && _current_mission_index <  mission.count) { //check if not finished and if the new mission is not a shorter mission
-// 			for (unsigned i = 0; i < _current_mission_index; i++) {
-// 				if (!cmp_mission_item_equivalent(_mission_item[i], mission.items[i])) {
-// 					/* set flag to restart mission next we're in auto */
-// 					_current_mission_index = 0;
-// 					mavlink_log_info(_mavlink_fd, "[navigator] Reset to WP %d", _current_mission_index);
-// 					//warnx("First part of mission differs i=%d", i);
-// 					break;
-// 				}
-// //					else {
-// //						warnx("Mission item is equivalent i=%d", i);
-// //					}
-// 			}
-// 		} else if (mission.current_index >= 0 && mission.current_index < mission.count) {
-// 			/* set flag to restart mission next we're in auto */
-// 			_current_mission_index = mission.current_index;
-// 			mavlink_log_info(_mavlink_fd, "[navigator] Reset to WP %d", _current_mission_index);
-// 		} else {
-// 			_current_mission_index = 0;
-// 			mavlink_log_info(_mavlink_fd, "[navigator] Reset to WP %d", _current_mission_index);
-// 		}
-
 		_mission_item_count = mission.count;
 		_current_mission_index = mission.current_index;
 
@@ -385,7 +370,7 @@ Navigator::mission_update()
 		_mission_item_count = 0;
 		_current_mission_index = 0;
 	}
-	if (_mission_item_count == 0 && _mode == NAVIGATION_MODE_WAYPOINT) {
+	if ((!mission_possible() || !onboard_mission_possible()) && _mode == NAVIGATION_MODE_WAYPOINT) {
 		set_mode(NAVIGATION_MODE_LOITER);
 	}
 	else if (_mode == NAVIGATION_MODE_WAYPOINT) {
@@ -393,7 +378,27 @@ Navigator::mission_update()
 	}
 }
 
+void
+Navigator::onboard_mission_update()
+{
+	struct mission_s onboard_mission;
+	if (orb_copy(ORB_ID(onboard_mission), _onboard_mission_sub, &onboard_mission) == OK) {
 
+		_onboard_mission_item_count = onboard_mission.count;
+		_current_onboard_mission_index = onboard_mission.current_index;
+
+	} else {
+		_onboard_mission_item_count = 0;
+		_current_onboard_mission_index = 0;
+	}
+
+	if ((!mission_possible() || !onboard_mission_possible()) && _mode == NAVIGATION_MODE_WAYPOINT) {
+		set_mode(NAVIGATION_MODE_LOITER);
+	}
+	else if (_mode == NAVIGATION_MODE_WAYPOINT) {
+		start_waypoint();
+	}
+}
 
 void
 Navigator::task_main_trampoline(int argc, char *argv[])
@@ -414,6 +419,7 @@ Navigator::task_main()
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
+	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -425,6 +431,7 @@ Navigator::task_main()
 	}
 
 	mission_update();
+	onboard_mission_update();
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -439,7 +446,7 @@ Navigator::task_main()
 	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
 
 	/* wakeup source(s) */
-	struct pollfd fds[6];
+	struct pollfd fds[7];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -452,8 +459,10 @@ Navigator::task_main()
 	fds[3].events = POLLIN;
 	fds[4].fd = _mission_sub;
 	fds[4].events = POLLIN;
-	fds[5].fd = _vstatus_sub;
+	fds[5].fd = _onboard_mission_sub;
 	fds[5].events = POLLIN;
+	fds[6].fd = _vstatus_sub;
+	fds[6].events = POLLIN;
 
 
 	while (!_task_should_exit) {
@@ -475,7 +484,7 @@ Navigator::task_main()
 		perf_begin(_loop_perf);
 
 		/* only update vehicle status if it changed */
-		if (fds[5].revents & POLLIN) {
+		if (fds[6].revents & POLLIN) {
 			/* read from param to clear updated flag */
 			orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
 
@@ -505,8 +514,8 @@ Navigator::task_main()
 
 					case NAVIGATION_STATE_AUTO_MISSION:
 
-						if (_mission_item_count > 0 && !(_current_mission_index >= _mission_item_count)) {
-							/* Start mission if there is a mission available and the last waypoint has not been reached */
+						if (mission_possible() || onboard_mission_possible()) {
+							/* Start mission or onboard mission if available */
 							set_mode(NAVIGATION_MODE_WAYPOINT);
 						} else {
 							/* else fallback to loiter */
@@ -556,6 +565,10 @@ Navigator::task_main()
 			mission_update();
 		}
 
+		if (fds[5].revents & POLLIN) {
+			onboard_mission_update();
+		}
+
 		if (fds[2].revents & POLLIN) {
 			orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
 		}
@@ -586,9 +599,15 @@ Navigator::task_main()
 
 					if (_mission_item_reached) {
 
-						report_mission_reached();
+						
 
-						mavlink_log_info(_mavlink_fd, "[navigator] reached WP %d", _current_mission_index);
+						if (onboard_mission_possible()) {
+							mavlink_log_info(_mavlink_fd, "[navigator] reached onboard WP %d", _current_onboard_mission_index);
+						} else {
+							mavlink_log_info(_mavlink_fd, "[navigator] reached WP %d", _current_mission_index);
+							report_mission_reached();
+						}
+
 						if (advance_current_mission_item() != OK) {
 							set_mode(NAVIGATION_MODE_LOITER_WAYPOINT);
 						}
@@ -863,16 +882,27 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 	}
 }
 
-int
-Navigator::set_waypoint_mission_item(unsigned mission_item_index, struct mission_item_s *new_mission_item) 
+bool
+Navigator::mission_possible()
 {
-	if (mission_item_index >= _mission_item_count) {
-		return ERROR;
-	}
-	
+	return _mission_item_count > 0 &&
+	       !(_current_mission_index >= _mission_item_count);
+}
+
+bool
+Navigator::onboard_mission_possible()
+{
+	return _onboard_mission_item_count > 0 &&
+	       !(_current_onboard_mission_index >= _onboard_mission_item_count) &&
+	       _parameters.onboard_mission_enabled;
+}
+
+int
+Navigator::set_waypoint_mission_item(dm_item_t dm_item, unsigned mission_item_index, struct mission_item_s *new_mission_item) 
+{
 	struct mission_item_s mission_item;
-	
-	if (dm_read(DM_KEY_WAYPOINTS, mission_item_index, &mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s)) {
+
+	if (dm_read(dm_item, mission_item_index, &mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s)) {
 		return ERROR;
 	}
 
@@ -926,8 +956,7 @@ Navigator::advance_current_mission_item()
 	// warnx("advancing from %d to %d", _current_mission_index, _current_mission_index+1);
 
 	/* ultimately this index will be == _mission_item_count and this flags the mission as completed */
-	_current_mission_index++;
-
+	
 	/* if there is no more mission available, don't advance and return */
 	if (!_mission_item_triplet.next_valid) {
 		// warnx("no next available");
@@ -941,9 +970,20 @@ Navigator::advance_current_mission_item()
 	/* copy the next to current */
 	memcpy(&_mission_item_triplet.current, &_mission_item_triplet.next, sizeof(mission_item_s));
 	_mission_item_triplet.current_valid = _mission_item_triplet.next_valid;
+
+	int ret = ERROR;
+
+	if (onboard_mission_possible()) {
+		_current_onboard_mission_index++;
+		ret = set_waypoint_mission_item(DM_KEY_WAYPOINTS_ONBOARD, _current_onboard_mission_index + 1, &_mission_item_triplet.next);
+	} else if (mission_possible()) {
+		_current_mission_index++;
+		ret = set_waypoint_mission_item(DM_KEY_WAYPOINTS, _current_mission_index + 1, &_mission_item_triplet.next);
+	} else {
+		warnx("Error: nothing to advance");
+	}
 	
-	
-	if(set_waypoint_mission_item(_current_mission_index + 1, &_mission_item_triplet.next) == OK) {
+	if(ret == OK) {
 		_mission_item_triplet.next_valid = true;
 	}
 	else {
@@ -1078,17 +1118,27 @@ Navigator::start_waypoint()
 {
 	reset_mission_item_reached();
 
-	if (_current_mission_index > 0) {
-		set_waypoint_mission_item(_current_mission_index - 1, &_mission_item_triplet.previous);
-		_mission_item_triplet.previous_valid = true;
-	} else {
-		_mission_item_triplet.previous_valid = false;
-	}
+	// if (_current_mission_index > 0) {
+	// 	set_waypoint_mission_item(_current_mission_index - 1, &_mission_item_triplet.previous);
+	// 	_mission_item_triplet.previous_valid = true;
+	// } else {
+	// 	_mission_item_triplet.previous_valid = false;
+	// }
+	_mission_item_triplet.previous_valid = false;
 	
-	set_waypoint_mission_item(_current_mission_index, &_mission_item_triplet.current);
-	_mission_item_triplet.current_valid = true;
+	int ret = ERROR;
 
-	mavlink_log_info(_mavlink_fd, "[navigator] heading to WP %d", _current_mission_index);
+	if (onboard_mission_possible()) {
+		set_waypoint_mission_item(DM_KEY_WAYPOINTS_ONBOARD, _current_onboard_mission_index, &_mission_item_triplet.current);
+		mavlink_log_info(_mavlink_fd, "[navigator] heading to onboard WP %d", _current_onboard_mission_index);
+		ret = set_waypoint_mission_item(DM_KEY_WAYPOINTS_ONBOARD, _current_onboard_mission_index + 1, &_mission_item_triplet.next);
+	} else if (mission_possible()) {
+		set_waypoint_mission_item(DM_KEY_WAYPOINTS, _current_mission_index, &_mission_item_triplet.current);
+		mavlink_log_info(_mavlink_fd, "[navigator] heading to WP %d", _current_mission_index);
+		ret = set_waypoint_mission_item(DM_KEY_WAYPOINTS, _current_mission_index + 1, &_mission_item_triplet.next);
+	}
+
+	_mission_item_triplet.current_valid = true;
 
 	// if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
 			
@@ -1100,7 +1150,7 @@ Navigator::start_waypoint()
 		// _mission_item_triplet.next_valid = true;
 	// }
 
-	if(set_waypoint_mission_item(_current_mission_index + 1, &_mission_item_triplet.next) == OK) {
+	if(ret == OK) {
 		_mission_item_triplet.next_valid = true;
 	}
 	else {

@@ -96,7 +96,7 @@ struct mission_item_s
 
 struct mission_s
 {
-	unsigned count;
+	unsigned count;			/**< count of the missions stored in the datamanager */
 	int current_index;		/**< default -1, start at the one changed latest */
 };
 
@@ -106,5 +106,6 @@ struct mission_s
 
 /* register this as object request broker structure */
 ORB_DECLARE(mission);
+ORB_DECLARE(onboard_mission);
 
 #endif
