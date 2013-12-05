@@ -161,6 +161,14 @@
 
 #define MPU6000_ONE_G					9.80665f
 
+/*
+  the MPU6000 can only handle high SPI bus speeds on the sensor and
+  interrupt status registers. All other registers have a maximum 1MHz
+  SPI speed
+ */
+#define MPU6000_LOW_BUS_SPEED				1000*1000
+#define MPU6000_HIGH_BUS_SPEED				10*1000*1000
+
 class MPU6000_gyro;
 
 class MPU6000 : public device::SPI
@@ -351,7 +359,7 @@ private:
 extern "C" { __EXPORT int mpu6000_main(int argc, char *argv[]); }
 
 MPU6000::MPU6000(int bus, spi_dev_e device) :
-	SPI("MPU6000", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, 10000000),
+	SPI("MPU6000", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, MPU6000_LOW_BUS_SPEED),
 	_gyro(new MPU6000_gyro(this)),
 	_product(0),
 	_call_interval(0),
@@ -991,6 +999,9 @@ MPU6000::read_reg(unsigned reg)
 
 	cmd[0] = reg | DIR_READ;
 
+        // general register transfer at low clock speed
+        set_frequency(MPU6000_LOW_BUS_SPEED);
+
 	transfer(cmd, cmd, sizeof(cmd));
 
 	return cmd[1];
@@ -1002,6 +1013,9 @@ MPU6000::read_reg16(unsigned reg)
 	uint8_t cmd[3];
 
 	cmd[0] = reg | DIR_READ;
+
+        // general register transfer at low clock speed
+        set_frequency(MPU6000_LOW_BUS_SPEED);
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -1015,6 +1029,9 @@ MPU6000::write_reg(unsigned reg, uint8_t value)
 
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
+
+        // general register transfer at low clock speed
+        set_frequency(MPU6000_LOW_BUS_SPEED);
 
 	transfer(cmd, nullptr, sizeof(cmd));
 }
@@ -1139,6 +1156,10 @@ MPU6000::measure()
 	 * Fetch the full set of measurements from the MPU6000 in one pass.
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
+
+        // sensor transfer at high clock speed
+        set_frequency(MPU6000_HIGH_BUS_SPEED);
+
 	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report)))
 		return;
 
