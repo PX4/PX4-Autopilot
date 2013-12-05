@@ -78,7 +78,7 @@ mixer load /dev/pwm_output /etc/mixers/FMU_hex_x.mix
 #
 # Set PWM output frequency to 400 Hz
 #
-pwm rate -c 123456 -r 400
+pwm rate -a -r 400
 
 #
 # Set disarmed, min and max PWM signals

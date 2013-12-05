@@ -27,6 +27,7 @@ SRCS			 = test_adc.c \
 			   test_dataman.c \
 			   tests_file.c \
 			   tests_main.c \
-			   tests_param.c
+			   tests_param.c \
+			   test_ppm_loopback.c
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
