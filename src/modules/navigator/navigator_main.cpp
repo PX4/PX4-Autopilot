@@ -141,6 +141,7 @@ private:
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_mission_sub;			/**< notification of mission updates */
+	int 		_onboard_mission_sub;		/**< notification of onboard mission updates */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 
 	orb_advert_t	_triplet_pub;			/**< publish position setpoint triplet */
@@ -156,9 +157,12 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	unsigned	_max_mission_item_count;	/**< maximum number of mission items supported */
+	unsigned	_max_onboard_mission_item_count;/**< maximum number of onboard mission items supported */
 	
 	unsigned	_mission_item_count;		/** number of mission items copied */
+	unsigned	_onboard_mission_item_count;	/** number of onboard mission items copied */
 	struct mission_item_s				*_mission_item;	/**< storage for mission */
+	struct mission_item_s 				*_onboard_mission_item; /**< storage for onboard mission */
 
 	struct	fence_s 				_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
@@ -170,18 +174,22 @@ private:
 	bool		_waypoint_yaw_reached;
 	uint64_t	_time_first_inside_orbit;
 	bool		_mission_item_reached;
+	bool		_onboard_mission_item_reached;
 
 	navigation_mode_t				_mode;
 	unsigned		_current_mission_index;
+	unsigned		_current_onboard_mission_index;
 
 	struct {
 		float min_altitude;
 		float loiter_radius;
+		int onboard_mission_enabled;
 	}		_parameters;			/**< local copies of parameters */
 
 	struct {
 		param_t min_altitude;
 		param_t loiter_radius;
+		param_t onboard_mission_enabled;
 
 	}		_parameter_handles;		/**< handles for parameters */
 
@@ -195,6 +203,11 @@ private:
 	* Retrieve mission.
 	*/
 	void		mission_update();
+
+	/**
+	* Retrieve onboard mission.
+	*/
+	void		onboard_mission_update();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -213,6 +226,10 @@ private:
 	bool		fence_valid(const struct fence_s &fence);
 
 	void		set_mode(navigation_mode_t new_nav_mode);
+
+	bool		mission_possible();
+
+	bool		onboard_mission_possible();
 
 	int		set_waypoint_mission_item(unsigned mission_item_index, struct mission_item_s *new_mission_item);
 
@@ -268,6 +285,7 @@ Navigator::Navigator() :
 	_vstatus_sub(-1),
 	_params_sub(-1),
 	_mission_sub(-1),
+	_onboard_mission_sub(-1),
 	_capabilities_sub(-1),
 
 /* publications */
@@ -279,22 +297,28 @@ Navigator::Navigator() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 /* states */
 	_max_mission_item_count(10),
+	_max_onboard_mission_item_count(10),
 	_mission_item_count(0),
+	_onboard_mission_item_count(0),
 	_fence_valid(false),
 	_inside_fence(true),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
 	_mission_item_reached(false),
+	_onboard_mission_item_reached(false),
 	_mode(NAVIGATION_MODE_NONE),
-	_current_mission_index(0)
+	_current_mission_index(0),
+	_current_onboard_mission_index(0)
 {
 	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
 	_parameter_handles.loiter_radius = param_find("NAV_LOITER_RAD");
+	_parameter_handles.onboard_mission_enabled = param_find("NAV_ONB_MIS_EN");
 
 	_mission_item = (mission_item_s*)malloc(sizeof(mission_item_s) * _max_mission_item_count);
+	_onboard_mission_item = (mission_item_s*)malloc(sizeof(mission_item_s) * _max_onboard_mission_item_count);
 
 	_mission_item_triplet.previous_valid = false;
 	_mission_item_triplet.current_valid = false;
@@ -340,6 +364,7 @@ Navigator::parameters_update()
 
 	param_get(_parameter_handles.min_altitude, &(_parameters.min_altitude));
 	param_get(_parameter_handles.loiter_radius, &(_parameters.loiter_radius));
+	param_get(_parameter_handles.onboard_mission_enabled, &(_parameters.onboard_mission_enabled));
 
 	return OK;
 }
@@ -410,6 +435,71 @@ Navigator::mission_update()
 }
 
 void
+Navigator::onboard_mission_update()
+{
+	struct mission_s onboard_mission;
+	if (orb_copy(ORB_ID(onboard_mission), _onboard_mission_sub, &onboard_mission) == OK) {
+		// XXX this is not optimal yet, but a first prototype /
+		// test implementation
+
+		if (onboard_mission.count <= _max_onboard_mission_item_count) {
+			
+			/* Check if first part of mission (up to _current_onboard_mission_index - 1) changed:
+			 * if the first part changed: start again at first waypoint
+			 * if the first part remained unchanged: continue with the (possibly changed second part)
+			 */
+			if (onboard_mission.current_index == -1 && _current_onboard_mission_index  < _onboard_mission_item_count && _current_onboard_mission_index <  onboard_mission.count) { //check if not finished and if the new mission is not a shorter mission
+				for (unsigned i = 0; i < _current_onboard_mission_index; i++) {
+					if (!cmp_mission_item_equivalent(_onboard_mission_item[i], onboard_mission.items[i])) {
+						/* set flag to restart mission next we're in auto */
+						_current_onboard_mission_index = 0;
+						mavlink_log_info(_mavlink_fd, "[navigator] Reset to onboard WP %d", _current_onboard_mission_index);
+						//warnx("First part of onboard mission differs i=%d", i);
+						break;
+					}
+//					else {
+//						warnx("Onboard mission item is equivalent i=%d", i);
+//					}
+				}
+			} else if (onboard_mission.current_index >= 0 && onboard_mission.current_index < onboard_mission.count) {
+				/* set flag to restart mission next we're in auto */
+				_current_onboard_mission_index = onboard_mission.current_index;
+				mavlink_log_info(_mavlink_fd, "[navigator] Reset to onboard WP %d", _current_onboard_mission_index);
+			} else {
+				_current_onboard_mission_index = 0;
+				mavlink_log_info(_mavlink_fd, "[navigator] Reset to onboard WP %d", _current_onboard_mission_index);
+			}
+
+			/*
+			 * Perform an atomic copy & state update
+			 */
+			irqstate_t flags = irqsave();
+
+			memcpy(_onboard_mission_item, onboard_mission.items, onboard_mission.count * sizeof(struct mission_item_s));
+			_onboard_mission_item_count = onboard_mission.count;
+
+			irqrestore(flags);
+
+			
+			
+		} else {
+			warnx("ERROR: too many waypoints, not supported");
+			mavlink_log_critical(_mavlink_fd, "[navigator] too many waypoints, not supported");
+			_onboard_mission_item_count = 0;
+		}
+
+		if (_mode == NAVIGATION_MODE_WAYPOINT) {
+			start_waypoint();
+		}
+
+		/* TODO add checks if and how the mission has changed */
+	} else {
+		_onboard_mission_item_count = 0;
+		_current_onboard_mission_index = 0;
+	}
+}
+
+void
 Navigator::task_main_trampoline(int argc, char *argv[])
 {
 	navigator::g_navigator->task_main();
@@ -428,6 +518,7 @@ Navigator::task_main()
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_mission_sub = orb_subscribe(ORB_ID(mission));
+	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -439,6 +530,7 @@ Navigator::task_main()
 	}
 
 	mission_update();
+	onboard_mission_update();
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -453,7 +545,7 @@ Navigator::task_main()
 	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
 
 	/* wakeup source(s) */
-	struct pollfd fds[6];
+	struct pollfd fds[7];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -466,8 +558,10 @@ Navigator::task_main()
 	fds[3].events = POLLIN;
 	fds[4].fd = _mission_sub;
 	fds[4].events = POLLIN;
-	fds[5].fd = _vstatus_sub;
+	fds[5].fd = _onboard_mission_sub;
 	fds[5].events = POLLIN;
+	fds[6].fd = _vstatus_sub;
+	fds[6].events = POLLIN;
 
 
 	while (!_task_should_exit) {
@@ -489,7 +583,7 @@ Navigator::task_main()
 		perf_begin(_loop_perf);
 
 		/* only update vehicle status if it changed */
-		if (fds[5].revents & POLLIN) {
+		if (fds[6].revents & POLLIN) {
 			/* read from param to clear updated flag */
 			orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
 
@@ -519,8 +613,8 @@ Navigator::task_main()
 
 					case NAVIGATION_STATE_AUTO_MISSION:
 
-						if (_mission_item_count > 0 && !(_current_mission_index >= _mission_item_count)) {
-							/* Start mission if there is a mission available and the last waypoint has not been reached */
+						if (onboard_mission_possible() || mission_possible()) {
+							/* Start mission or onboard mission if available */
 							set_mode(NAVIGATION_MODE_WAYPOINT);
 						} else {
 							/* else fallback to loiter */
@@ -568,6 +662,10 @@ Navigator::task_main()
 
 		if (fds[4].revents & POLLIN) {
 			mission_update();
+		}
+
+		if (fds[5].revents & POLLIN) {
+			onboard_mission_update();
 		}
 
 		if (fds[2].revents & POLLIN) {
@@ -877,24 +975,60 @@ Navigator::set_mode(navigation_mode_t new_nav_mode)
 	}
 }
 
-int
-Navigator::set_waypoint_mission_item(unsigned mission_item_index, struct mission_item_s *new_mission_item) 
+bool
+Navigator::mission_possible()
 {
-	if (mission_item_index < _mission_item_count) {
-		memcpy(new_mission_item, &_mission_item[mission_item_index], sizeof(mission_item_s));
+	return _mission_item_count > 0 &&
+	       !(_current_mission_index >= _mission_item_count);
+}
 
-		if (new_mission_item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
-			/* if it is a RTL waypoint, append the home position */
-				new_mission_item->lat = (double)_home_pos.lat / 1e7;
-				new_mission_item->lon = (double)_home_pos.lon / 1e7;
-				new_mission_item->altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
-				new_mission_item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
-				new_mission_item->radius = 50.0f; // TODO: get rid of magic number
+bool
+Navigator::onboard_mission_possible()
+{
+	return _onboard_mission_item_count > 0 &&
+	       !(_current_onboard_mission_index >= _onboard_mission_item_count) &&
+	       _parameters.onboard_mission_enabled;
+}
+
+int
+Navigator::set_waypoint_mission_item(unsigned index, struct mission_item_s *new_item) 
+{
+	if (onboard_mission_possible()) {
+
+		if (index < _onboard_mission_item_count) {
+			memcpy(new_item, &_onboard_mission_item[index], sizeof(mission_item_s));
+
+			if (new_item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
+				/* if it is a RTL waypoint, append the home position */
+				new_item->lat = (double)_home_pos.lat / 1e7;
+				new_item->lon = (double)_home_pos.lon / 1e7;
+				new_item->altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
+				new_item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+				new_item->radius = 50.0f; // TODO: get rid of magic number
+			}
+			// warnx("added mission item: %d", index);
+			return OK;
 		}
-		// warnx("added mission item: %d", mission_item_index);
-		return OK;
+
+	} else if (mission_possible()) {
+
+		if (index < _mission_item_count) {
+			memcpy(new_item, &_mission_item[index], sizeof(mission_item_s));
+
+			if (new_item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
+				/* if it is a RTL waypoint, append the home position */
+				new_item->lat = (double)_home_pos.lat / 1e7;
+				new_item->lon = (double)_home_pos.lon / 1e7;
+				new_item->altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
+				new_item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+				new_item->radius = 50.0f; // TODO: get rid of magic number
+			}
+			// warnx("added mission item: %d", index);
+			return OK;
+		}
 	}
-	// warnx("could not add mission item: %d", mission_item_index);
+	
+	// warnx("could not add mission item: %d", index);
 	return ERROR;
 }
 

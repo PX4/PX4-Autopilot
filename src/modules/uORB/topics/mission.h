@@ -99,5 +99,6 @@ struct mission_s
 
 /* register this as object request broker structure */
 ORB_DECLARE(mission);
+ORB_DECLARE(onboard_mission);
 
 #endif
