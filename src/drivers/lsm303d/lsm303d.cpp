@@ -286,6 +286,7 @@ private:
 	perf_counter_t		_reg7_resets;
 	perf_counter_t		_reg1_resets;
 	perf_counter_t		_extreme_values;
+	perf_counter_t		_accel_reschedules;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -501,6 +502,7 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_reg1_resets(perf_alloc(PC_COUNT, "lsm303d_reg1_resets")),
 	_reg7_resets(perf_alloc(PC_COUNT, "lsm303d_reg7_resets")),
 	_extreme_values(perf_alloc(PC_COUNT, "lsm303d_extremes")),
+	_accel_reschedules(perf_alloc(PC_COUNT, "lsm303d_accel_resched")),
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -627,6 +629,8 @@ LSM303D::reset()
 	_reg7_expected = REG7_CONT_MODE_M;
 	write_reg(ADDR_CTRL_REG7, _reg7_expected);
 	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
+	write_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
+	write_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
@@ -1430,6 +1434,14 @@ LSM303D::mag_measure_trampoline(void *arg)
 void
 LSM303D::measure()
 {
+	// if the accel doesn't have any data ready then re-schedule
+	// for 100 microseconds later. This ensures we don't double
+	// read a value and then miss the next value
+	if (stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
+		perf_count(_accel_reschedules);
+		hrt_call_delay(&_accel_call, 100);
+		return;
+	}
 	if (read_reg(ADDR_CTRL_REG1) != _reg1_expected) {
 		perf_count(_reg1_resets);
 		reset();
