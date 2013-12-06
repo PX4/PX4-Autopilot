@@ -166,10 +166,9 @@ MS5611_SPI::read(unsigned offset, void *data, unsigned count)
 		uint8_t	b[4];
 		uint32_t w;
 	} *cvt = (_cvt *)data;
-	uint8_t buf[4];
+	uint8_t buf[4] = { 0 | DIR_WRITE, 0, 0, 0 };
 
 	/* read the most recent measurement */
-	buf[0] = 0 | DIR_WRITE;
 	int ret = _transfer(&buf[0], &buf[0], sizeof(buf));
 
 	if (ret == OK) {
@@ -240,18 +239,21 @@ MS5611_SPI::_read_prom()
 	for (int i = 0; i < 8; i++) {
 		uint8_t cmd = (ADDR_PROM_SETUP + (i * 2));
 		_prom.c[i] = _reg16(cmd);
+                //debug("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
 	}
 
 	/* calculate CRC and return success/failure accordingly */
-	return ms5611::crc4(&_prom.c[0]) ? OK : -EIO;
+	int ret = ms5611::crc4(&_prom.c[0]) ? OK : -EIO;
+        if (ret != OK) {
+		debug("crc failed");
+        }
+        return ret;
 }
 
 uint16_t
 MS5611_SPI::_reg16(unsigned reg)
 {
-	uint8_t cmd[3];
-
-	cmd[0] = reg | DIR_READ;
+	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
 
 	_transfer(cmd, cmd, sizeof(cmd));
 
