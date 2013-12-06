@@ -134,7 +134,6 @@ int
 MS5611_SPI::init()
 {
 	int ret;
-	irqstate_t flags;
 
 	ret = SPI::init();
 	if (ret != OK) {
