@@ -720,6 +720,7 @@ hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, v
 void
 hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg)
 {
+	hrt_call_init(entry);
 	hrt_call_internal(entry,
 			  hrt_absolute_time() + delay,
 			  interval,
@@ -839,7 +840,12 @@ hrt_call_invoke(void)
 
 		/* if the callout has a non-zero period, it has to be re-entered */
 		if (call->period != 0) {
-			call->deadline = deadline + call->period;
+			// re-check call->deadline to allow for
+			// callouts to re-schedule themselves 
+			// using hrt_call_delay()
+			if (call->deadline <= now) {
+				call->deadline = deadline + call->period;
+			}
 			hrt_call_enter(call);
 		}
 	}
@@ -906,5 +912,16 @@ hrt_latency_update(void)
 	latency_counters[index]++;
 }
 
+void
+hrt_call_init(struct hrt_call *entry)
+{
+	memset(entry, 0, sizeof(*entry));
+}
+
+void
+hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
+{
+	entry->deadline = hrt_absolute_time() + delay;
+}
 
 #endif /* HRT_TIMER */
