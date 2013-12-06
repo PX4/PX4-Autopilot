@@ -142,6 +142,20 @@ __EXPORT extern bool	hrt_called(struct hrt_call *entry);
 __EXPORT extern void	hrt_cancel(struct hrt_call *entry);
 
 /*
+ * initialise a hrt_call structure
+ */
+__EXPORT extern void	hrt_call_init(struct hrt_call *entry);
+
+/*
+ * delay a hrt_call_every() periodic call by the given number of
+ * microseconds. This should be called from within the callout to
+ * cause the callout to be re-scheduled for a later time. The periodic
+ * callouts will then continue from that new base time at the
+ * previously specified period.
+ */
+__EXPORT extern void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay);
+
+/*
  * Initialise the HRT.
  */
 __EXPORT extern void	hrt_init(void);
