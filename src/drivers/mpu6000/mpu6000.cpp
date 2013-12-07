@@ -75,6 +75,9 @@
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
+#define MPU_DEVICE_PATH_ACCEL		"/dev/mpu6000_accel"
+#define MPU_DEVICE_PATH_GYRO		"/dev/mpu6000_gyro"
+
 // MPU 6000 registers
 #define MPUREG_WHOAMI			0x75
 #define MPUREG_SMPLRT_DIV		0x19
@@ -359,7 +362,7 @@ private:
 extern "C" { __EXPORT int mpu6000_main(int argc, char *argv[]); }
 
 MPU6000::MPU6000(int bus, spi_dev_e device) :
-	SPI("MPU6000", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, MPU6000_LOW_BUS_SPEED),
+	SPI("MPU6000", MPU_DEVICE_PATH_ACCEL, bus, device, SPIDEV_MODE3, MPU6000_LOW_BUS_SPEED),
 	_gyro(new MPU6000_gyro(this)),
 	_product(0),
 	_call_interval(0),
@@ -467,6 +470,20 @@ MPU6000::init()
 
 	/* fetch an initial set of measurements for advertisement */
 	measure();
+
+	/* try to claim the generic accel node as well - it's OK if we fail at this */
+	ret = register_driver(ACCEL_DEVICE_PATH, &fops, 0666, (void *)this);
+
+	if (ret == OK) {
+		log("default accel device");
+	}
+
+	/* try to claim the generic accel node as well - it's OK if we fail at this */
+	ret = register_driver(GYRO_DEVICE_PATH, &fops, 0666, (void *)this);
+
+	if (ret == OK) {
+		log("default gyro device");
+	}
 
 	if (gyro_ret != OK) {
 		_gyro_topic = -1;
@@ -1290,7 +1307,7 @@ MPU6000::print_info()
 }
 
 MPU6000_gyro::MPU6000_gyro(MPU6000 *parent) :
-	CDev("MPU6000_gyro", GYRO_DEVICE_PATH),
+	CDev("MPU6000_gyro", MPU_DEVICE_PATH_GYRO),
 	_parent(parent)
 {
 }
@@ -1352,7 +1369,7 @@ start()
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	fd = open(MPU_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
 		goto fail;
@@ -1384,17 +1401,17 @@ test()
 	ssize_t sz;
 
 	/* get the driver */
-	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	int fd = open(MPU_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "%s open failed (try 'mpu6000 start' if the driver is not running)",
-		    ACCEL_DEVICE_PATH);
+		    MPU_DEVICE_PATH_ACCEL);
 
 	/* get the driver */
-	int fd_gyro = open(GYRO_DEVICE_PATH, O_RDONLY);
+	int fd_gyro = open(MPU_DEVICE_PATH_GYRO, O_RDONLY);
 
 	if (fd_gyro < 0)
-		err(1, "%s open failed", GYRO_DEVICE_PATH);
+		err(1, "%s open failed", MPU_DEVICE_PATH_GYRO);
 
 	/* reset to manual polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
@@ -1452,7 +1469,7 @@ test()
 void
 reset()
 {
-	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	int fd = open(MPU_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");

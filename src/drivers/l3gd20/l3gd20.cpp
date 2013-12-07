@@ -365,6 +365,13 @@ L3GD20::init()
 	if (_reports == nullptr)
 		goto out;
 
+	/* try to claim the generic accel node as well - it's OK if we fail at this */
+	ret = register_driver(GYRO_DEVICE_PATH, &fops, 0666, (void *)this);
+
+	if (ret == OK) {
+		log("default gyro device");
+	}
+
 	/* advertise sensor topic */
 	struct gyro_report zero_report;
 	memset(&zero_report, 0, sizeof(zero_report));
