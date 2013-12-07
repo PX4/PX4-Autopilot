@@ -552,11 +552,21 @@ LSM303D::init()
 
 	reset();
 
-	/* try to claim the generic accel node as well - it's OK if we fail at this */
+	/* register the first instance as plain name, the 2nd as two and counting */
 	ret = register_driver(ACCEL_DEVICE_PATH, &fops, 0666, (void *)this);
 
 	if (ret == OK) {
 		log("default accel device");
+
+	} else {
+
+		unsigned instance = 1;
+		do {
+			char name[32];
+			sprintf(name, "%s%d", ACCEL_DEVICE_PATH, instance);
+			ret = register_driver(name, &fops, 0666, (void *)this);
+			instance++;
+		} while (ret);
 	}
 
 	/* try to claim the generic accel node as well - it's OK if we fail at this */
@@ -564,6 +574,16 @@ LSM303D::init()
 
 	if (mag_ret == OK) {
 		log("default mag device");
+
+	} else {
+
+		unsigned instance = 1;
+		do {
+			char name[32];
+			sprintf(name, "%s%d", MAG_DEVICE_PATH, instance);
+			ret = register_driver(name, &fops, 0666, (void *)this);
+			instance++;
+		} while (ret);
 	}
 
 	/* advertise mag topic */
