@@ -82,19 +82,24 @@ static const int ERROR = -1;
 
 /* register addresses: A: accel, M: mag, T: temp */
 #define ADDR_WHO_AM_I			0x0F
-#define WHO_I_AM				0x49
+#define WHO_I_AM			0x49
 
-#define ADDR_OUT_L_T         	0x05
-#define ADDR_OUT_H_T        	0x06
-#define ADDR_STATUS_M           0x07
-#define ADDR_OUT_X_L_M          0x08
-#define ADDR_OUT_X_H_M          0x09
-#define ADDR_OUT_Y_L_M          0x0A
-#define ADDR_OUT_Y_H_M          0x0B
-#define ADDR_OUT_Z_L_M          0x0C
-#define ADDR_OUT_Z_H_M          0x0D
+#define ADDR_OUT_TEMP_L			0x05
+#define ADDR_OUT_TEMP_H			0x06
+#define ADDR_STATUS_M			0x07
+#define ADDR_OUT_X_L_M          	0x08
+#define ADDR_OUT_X_H_M          	0x09
+#define ADDR_OUT_Y_L_M          	0x0A
+#define ADDR_OUT_Y_H_M			0x0B
+#define ADDR_OUT_Z_L_M			0x0C
+#define ADDR_OUT_Z_H_M			0x0D
 
-#define ADDR_OUT_TEMP_A			0x26
+#define ADDR_INT_CTRL_M			0x12
+#define ADDR_INT_SRC_M			0x13
+#define ADDR_REFERENCE_X		0x1c
+#define ADDR_REFERENCE_Y		0x1d
+#define ADDR_REFERENCE_Z		0x1e
+
 #define ADDR_STATUS_A			0x27
 #define ADDR_OUT_X_L_A			0x28
 #define ADDR_OUT_X_H_A			0x29
@@ -111,6 +116,26 @@ static const int ERROR = -1;
 #define ADDR_CTRL_REG5			0x24
 #define ADDR_CTRL_REG6			0x25
 #define ADDR_CTRL_REG7			0x26
+
+#define ADDR_FIFO_CTRL			0x2e
+#define ADDR_FIFO_SRC			0x2f
+
+#define ADDR_IG_CFG1			0x30
+#define ADDR_IG_SRC1			0x31
+#define ADDR_IG_THS1			0x32
+#define ADDR_IG_DUR1			0x33
+#define ADDR_IG_CFG2			0x34
+#define ADDR_IG_SRC2			0x35
+#define ADDR_IG_THS2			0x36
+#define ADDR_IG_DUR2			0x37
+#define ADDR_CLICK_CFG			0x38
+#define ADDR_CLICK_SRC			0x39
+#define ADDR_CLICK_THS			0x3a
+#define ADDR_TIME_LIMIT			0x3b
+#define ADDR_TIME_LATENCY		0x3c
+#define ADDR_TIME_WINDOW		0x3d
+#define ADDR_ACT_THS			0x3e
+#define ADDR_ACT_DUR			0x3f
 
 #define REG1_RATE_BITS_A		((1<<7) | (1<<6) | (1<<5) | (1<<4))
 #define REG1_POWERDOWN_A		((0<<7) | (0<<6) | (0<<5) | (0<<4))
@@ -201,6 +226,11 @@ public:
 	 */
 	void			print_info();
 
+	/**
+	 * dump register values
+	 */
+	void			print_registers();
+
 protected:
 	virtual int		probe();
 
@@ -269,6 +299,11 @@ private:
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
 	void			reset();
+
+	/**
+	 * disable I2C on the chip
+	 */
+	void			disable_i2c();
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -534,8 +569,24 @@ out:
 }
 
 void
+LSM303D::disable_i2c(void)
+{
+	uint8_t a = read_reg(0x02);
+	write_reg(0x02, (0x10 | a));
+	a = read_reg(0x02);
+	write_reg(0x02, (0xF7 & a));
+	a = read_reg(0x15);
+	write_reg(0x15, (0x80 | a));
+	a = read_reg(0x02);
+	write_reg(0x02, (0xE7 & a));
+}
+
+void
 LSM303D::reset()
 {
+	// ensure the chip doesn't interpret any other bus traffic as I2C
+	disable_i2c();
+
 	/* enable accel*/
 	_reg1_expected = REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A;
 	write_reg(ADDR_CTRL_REG1, _reg1_expected);
@@ -548,7 +599,7 @@ LSM303D::reset()
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
 	accel_set_driver_lowpass_filter((float)LSM303D_ACCEL_DEFAULT_RATE, (float)LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ);
-	accel_set_onchip_lowpass_filter_bandwidth(LSM303D_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ);
+	accel_set_onchip_lowpass_filter_bandwidth(0); // this gives 773Hz
 
 	mag_set_range(LSM303D_MAG_DEFAULT_RANGE_GA);
 	mag_set_samplerate(LSM303D_MAG_DEFAULT_RATE);
@@ -1248,6 +1299,7 @@ LSM303D::measure()
 	perf_begin(_accel_sample_perf);
 
 	/* fetch data from the sensor */
+	memset(&raw_accel_report, 0, sizeof(raw_accel_report));
 	raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
 
@@ -1325,6 +1377,7 @@ LSM303D::mag_measure()
 	perf_begin(_mag_sample_perf);
 
 	/* fetch data from the sensor */
+	memset(&raw_mag_report, 0, sizeof(raw_mag_report));
 	raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
 
@@ -1380,6 +1433,63 @@ LSM303D::print_info()
 	_mag_reports->print_info("mag reports");
 }
 
+void
+LSM303D::print_registers()
+{
+	const struct {
+		uint8_t reg;
+		const char *name;
+	} regmap[] = {
+		{ ADDR_WHO_AM_I,    "WHO_AM_I" },
+		{ ADDR_STATUS_A,    "STATUS_A" },
+		{ ADDR_STATUS_M,    "STATUS_M" },
+		{ ADDR_CTRL_REG0,   "CTRL_REG0" },
+		{ ADDR_CTRL_REG1,   "CTRL_REG1" },
+		{ ADDR_CTRL_REG2,   "CTRL_REG2" },
+		{ ADDR_CTRL_REG3,   "CTRL_REG3" },
+		{ ADDR_CTRL_REG4,   "CTRL_REG4" },
+		{ ADDR_CTRL_REG5,   "CTRL_REG5" },
+		{ ADDR_CTRL_REG6,   "CTRL_REG6" },
+		{ ADDR_CTRL_REG7,   "CTRL_REG7" },
+		{ ADDR_OUT_TEMP_L,  "TEMP_L" },
+		{ ADDR_OUT_TEMP_H,  "TEMP_H" },
+		{ ADDR_INT_CTRL_M,  "INT_CTRL_M" },
+		{ ADDR_INT_SRC_M,   "INT_SRC_M" },
+		{ ADDR_REFERENCE_X, "REFERENCE_X" },
+		{ ADDR_REFERENCE_Y, "REFERENCE_Y" },
+		{ ADDR_REFERENCE_Z, "REFERENCE_Z" },
+		{ ADDR_OUT_X_L_A,   "ACCEL_XL" },
+		{ ADDR_OUT_X_H_A,   "ACCEL_XH" },
+		{ ADDR_OUT_Y_L_A,   "ACCEL_YL" },
+		{ ADDR_OUT_Y_H_A,   "ACCEL_YH" },
+		{ ADDR_OUT_Z_L_A,   "ACCEL_ZL" },
+		{ ADDR_OUT_Z_H_A,   "ACCEL_ZH" },
+		{ ADDR_FIFO_CTRL,   "FIFO_CTRL" },
+		{ ADDR_FIFO_SRC,    "FIFO_SRC" },
+		{ ADDR_IG_CFG1,     "IG_CFG1" },
+		{ ADDR_IG_SRC1,     "IG_SRC1" },
+		{ ADDR_IG_THS1,     "IG_THS1" },
+		{ ADDR_IG_DUR1,     "IG_DUR1" },
+		{ ADDR_IG_CFG2,     "IG_CFG2" },
+		{ ADDR_IG_SRC2,     "IG_SRC2" },
+		{ ADDR_IG_THS2,     "IG_THS2" },
+		{ ADDR_IG_DUR2,     "IG_DUR2" },
+		{ ADDR_CLICK_CFG,   "CLICK_CFG" },
+		{ ADDR_CLICK_SRC,   "CLICK_SRC" },
+		{ ADDR_CLICK_THS,   "CLICK_THS" },
+		{ ADDR_TIME_LIMIT,  "TIME_LIMIT" },
+		{ ADDR_TIME_LATENCY,"TIME_LATENCY" },
+		{ ADDR_TIME_WINDOW, "TIME_WINDOW" },
+		{ ADDR_ACT_THS,     "ACT_THS" },
+		{ ADDR_ACT_DUR,     "ACT_DUR" }
+	};
+	for (uint8_t i=0; i<sizeof(regmap)/sizeof(regmap[0]); i++) {
+		printf("0x%02x %s\n", read_reg(regmap[i].reg), regmap[i].name);
+	}
+	printf("_reg1_expected=0x%02x\n", _reg1_expected);
+	printf("_reg7_expected=0x%02x\n", _reg7_expected);
+}
+
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
 	CDev("LSM303D_mag", MAG_DEVICE_PATH),
 	_parent(parent)
@@ -1432,6 +1542,7 @@ void	start();
 void	test();
 void	reset();
 void	info();
+void	regdump();
 
 /**
  * Start the driver.
@@ -1603,6 +1714,21 @@ info()
 	exit(0);
 }
 
+/**
+ * dump registers from device
+ */
+void
+regdump()
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running\n");
+
+	printf("regdump @ %p\n", g_dev);
+	g_dev->print_registers();
+
+	exit(0);
+}
+
 
 } // namespace
 
@@ -1634,5 +1760,11 @@ lsm303d_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "info"))
 		lsm303d::info();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	/*
+	 * dump device registers
+	 */
+	if (!strcmp(argv[1], "regdump"))
+		lsm303d::regdump();
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
 }

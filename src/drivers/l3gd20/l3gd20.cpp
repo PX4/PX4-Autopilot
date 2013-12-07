@@ -92,9 +92,12 @@ static const int ERROR = -1;
 #define REG1_RATE_LP_MASK			0xF0 /* Mask to guard partial register update */
 /* keep lowpass low to avoid noise issues */
 #define RATE_95HZ_LP_25HZ		((0<<7) | (0<<6) | (0<<5) | (1<<4))
-#define RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (1<<5) | (1<<4))
+#define RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (0<<5) | (1<<4))
+#define RATE_190HZ_LP_70HZ		((0<<7) | (1<<6) | (1<<5) | (1<<4))
 #define RATE_380HZ_LP_20HZ		((1<<7) | (0<<6) | (1<<5) | (0<<4))
+#define RATE_380HZ_LP_100HZ		((1<<7) | (0<<6) | (1<<5) | (1<<4))
 #define RATE_760HZ_LP_30HZ		((1<<7) | (1<<6) | (0<<5) | (0<<4))
+#define RATE_760HZ_LP_100HZ		((1<<7) | (1<<6) | (1<<5) | (1<<4))
 
 #define ADDR_CTRL_REG2			0x21
 #define ADDR_CTRL_REG3			0x22
@@ -217,6 +220,11 @@ private:
 	 * Reset the driver
 	 */
 	void			reset();
+
+	/**
+	 * disable I2C on the chip
+	 */
+	void			disable_i2c();
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -574,6 +582,7 @@ L3GD20::read_reg(unsigned reg)
 	uint8_t cmd[2];
 
 	cmd[0] = reg | DIR_READ;
+	cmd[1] = 0;
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -653,16 +662,15 @@ L3GD20::set_samplerate(unsigned frequency)
 
 	} else if (frequency <= 200) {
 		_current_rate = 190;
-		bits |= RATE_190HZ_LP_25HZ;
+		bits |= RATE_190HZ_LP_70HZ;
 
 	} else if (frequency <= 400) {
 		_current_rate = 380;
-		bits |= RATE_380HZ_LP_20HZ;
+		bits |= RATE_380HZ_LP_100HZ;
 
 	} else if (frequency <= 800) {
 		_current_rate = 760;
-		bits |= RATE_760HZ_LP_30HZ;
-
+		bits |= RATE_760HZ_LP_100HZ;
 	} else {
 		return -EINVAL;
 	}
@@ -700,8 +708,18 @@ L3GD20::stop()
 }
 
 void
+L3GD20::disable_i2c(void)
+{
+	uint8_t a = read_reg(0x05);
+	write_reg(0x05, (0x20 | a));
+}
+
+void
 L3GD20::reset()
 {
+	// ensure the chip doesn't interpret any other bus traffic as I2C
+	disable_i2c();
+
 	/* set default configuration */
 	write_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
 	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
@@ -716,7 +734,7 @@ L3GD20::reset()
 	 * callback fast enough to not miss data. */
 	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_BYPASS_MODE);
 
-	set_samplerate(L3GD20_DEFAULT_RATE);
+	set_samplerate(0); // 760Hz
 	set_range(L3GD20_DEFAULT_RANGE_DPS);
 	set_driver_lowpass_filter(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ);
 
@@ -753,6 +771,7 @@ L3GD20::measure()
 	perf_begin(_sample_perf);
 
 	/* fetch data from the sensor */
+	memset(&raw_report, 0, sizeof(raw_report));
 	raw_report.cmd = ADDR_OUT_TEMP | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 

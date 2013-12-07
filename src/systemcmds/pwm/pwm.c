@@ -210,7 +210,7 @@ pwm_main(int argc, char *argv[])
 		err(1, "PWM_SERVO_GET_COUNT");
 
 	if (!strcmp(argv[1], "arm")) {
-		/* tell IO that its ok to disable its safety with the switch */
+		/* tell safety that its ok to disable it with the switch */
 		ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
 		if (ret != OK)
 			err(1, "PWM_SERVO_SET_ARM_OK");
