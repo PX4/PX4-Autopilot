@@ -211,16 +211,17 @@ private:
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
+	int			_accel_class_instance;
 
 	RingBuffer		*_gyro_reports;
 
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
-	orb_advert_t		_gyro_topic;
 
-	unsigned		_reads;
 	unsigned		_sample_rate;
+	perf_counter_t		_accel_reads;
+	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
 
 	math::LowPassFilter2p	_accel_filter_x;
@@ -349,12 +350,17 @@ public:
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
+	virtual int		init();
+
 protected:
 	friend class MPU6000;
 
 	void			parent_poll_notify();
+
 private:
 	MPU6000			*_parent;
+	orb_advert_t		_gyro_topic;
+	int			_gyro_class_instance;
 
 };
 
@@ -370,12 +376,13 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_accel_range_scale(0.0f),
 	_accel_range_m_s2(0.0f),
 	_accel_topic(-1),
+	_accel_class_instance(-1),
 	_gyro_reports(nullptr),
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
-	_gyro_topic(-1),
-	_reads(0),
 	_sample_rate(1000),
+	_accel_reads(perf_alloc(PC_COUNT, "mpu6000_accel_read")),
+	_gyro_reads(perf_alloc(PC_COUNT, "mpu6000_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read")),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -420,8 +427,13 @@ MPU6000::~MPU6000()
 	if (_gyro_reports != nullptr)
 		delete _gyro_reports;
 
+	if (_accel_class_instance != -1)
+		unregister_class_devname(ACCEL_DEVICE_PATH, _accel_class_instance);
+
 	/* delete the perf counter */
 	perf_free(_sample_perf);
+	perf_free(_accel_reads);
+	perf_free(_gyro_reads);
 }
 
 int
@@ -466,38 +478,23 @@ MPU6000::init()
 	_gyro_scale.z_scale  = 1.0f;
 
 	/* do CDev init for the gyro device node, keep it optional */
-	gyro_ret = _gyro->init();
+	ret = _gyro->init();
+	/* if probe/setup failed, bail now */
+	if (ret != OK) {
+		debug("gyro init failed");
+		return ret;
+	}
 
 	/* fetch an initial set of measurements for advertisement */
 	measure();
 
-	/* try to claim the generic accel node as well - it's OK if we fail at this */
-	ret = register_driver(ACCEL_DEVICE_PATH, &fops, 0666, (void *)this);
-
-	if (ret == OK) {
-		log("default accel device");
-	}
-
-	/* try to claim the generic accel node as well - it's OK if we fail at this */
-	ret = register_driver(GYRO_DEVICE_PATH, &fops, 0666, (void *)this);
-
-	if (ret == OK) {
-		log("default gyro device");
-	}
-
-	if (gyro_ret != OK) {
-		_gyro_topic = -1;
-	} else {
-		gyro_report gr;
-		_gyro_reports->get(&gr);
-
-		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &gr);
-	}
-
-	/* advertise accel topic */
-	accel_report ar;
-	_accel_reports->get(&ar);
-	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &ar);
+	_accel_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
+	if (_accel_class_instance == CLASS_DEVICE_PRIMARY) {
+		/* advertise accel topic */
+		accel_report ar;
+		_accel_reports->get(&ar);
+		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &ar);
+	}		
 
 out:
 	return ret;
@@ -677,6 +674,8 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 	if (_accel_reports->empty())
 		return -EAGAIN;
 
+	perf_count(_accel_reads);
+
 	/* copy reports out of our buffer to the caller */
 	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
 	int transferred = 0;
@@ -694,12 +693,12 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 int
 MPU6000::self_test()
 {
-	if (_reads == 0) {
+	if (perf_event_count(_sample_perf) == 0) {
 		measure();
 	}
 
 	/* return 0 on success, 1 else */
-	return (_reads > 0) ? 0 : 1;
+	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
 }
 
 int
@@ -770,6 +769,8 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	/* if no data, error (we could block here) */
 	if (_gyro_reports->empty())
 		return -EAGAIN;
+
+	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
 	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
@@ -1180,9 +1181,6 @@ MPU6000::measure()
 	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report)))
 		return;
 
-	/* count measurement */
-	_reads++;
-
 	/*
 	 * Convert from big to little endian
 	 */
@@ -1287,10 +1285,11 @@ MPU6000::measure()
 	poll_notify(POLLIN);
 	_gyro->parent_poll_notify();
 
-	/* and publish for subscribers */
-	orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
-	if (_gyro_topic != -1) {
-		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &grb);
+	if (_accel_topic != -1) {
+		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+	}
+	if (_gyro->_gyro_topic != -1) {
+		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
 	}
 
 	/* stop measuring */
@@ -1301,19 +1300,48 @@ void
 MPU6000::print_info()
 {
 	perf_print_counter(_sample_perf);
-	printf("reads:          %u\n", _reads);
+	perf_print_counter(_accel_reads);
+	perf_print_counter(_gyro_reads);
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
 }
 
 MPU6000_gyro::MPU6000_gyro(MPU6000 *parent) :
 	CDev("MPU6000_gyro", MPU_DEVICE_PATH_GYRO),
-	_parent(parent)
+	_parent(parent),
+	_gyro_class_instance(-1)
 {
 }
 
 MPU6000_gyro::~MPU6000_gyro()
 {
+	if (_gyro_class_instance != -1)
+		unregister_class_devname(GYRO_DEVICE_PATH, _gyro_class_instance);
+}
+
+int
+MPU6000_gyro::init()
+{
+	int ret;
+
+	// do base class init
+	ret = CDev::init();
+
+	/* if probe/setup failed, bail now */
+	if (ret != OK) {
+		debug("gyro init failed");
+		return ret;
+	}
+
+	_gyro_class_instance = register_class_devname(GYRO_DEVICE_PATH);
+	if (_gyro_class_instance == CLASS_DEVICE_PRIMARY) {
+		gyro_report gr;
+		memset(&gr, 0, sizeof(gr));
+		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &gr);
+	}
+
+out:
+	return ret;
 }
 
 void
