@@ -1643,6 +1643,8 @@ LSM303D::print_registers()
 		const char *name;
 	} regmap[] = {
 		{ ADDR_WHO_AM_I,    "WHO_AM_I" },
+		{ 0x02,             "I2C_CONTROL1" },
+		{ 0x15,             "I2C_CONTROL2" },
 		{ ADDR_STATUS_A,    "STATUS_A" },
 		{ ADDR_STATUS_M,    "STATUS_M" },
 		{ ADDR_CTRL_REG0,   "CTRL_REG0" },
