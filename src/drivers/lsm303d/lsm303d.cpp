@@ -78,7 +78,8 @@ static const int ERROR = -1;
 #define DIR_WRITE				(0<<7)
 #define ADDR_INCREMENT			(1<<6)
 
-
+#define LSM303D_DEVICE_PATH_MAG		"/dev/lsm303d_mag"
+#define LSM303D_DEVICE_PATH_ACCEL	"/dev/lsm303d_accel"
 
 /* register addresses: A: accel, M: mag, T: temp */
 #define ADDR_WHO_AM_I			0x0F
@@ -550,6 +551,20 @@ LSM303D::init()
 		goto out;
 
 	reset();
+
+	/* try to claim the generic accel node as well - it's OK if we fail at this */
+	ret = register_driver(ACCEL_DEVICE_PATH, &fops, 0666, (void *)this);
+
+	if (ret == OK) {
+		log("default accel device");
+	}
+
+	/* try to claim the generic accel node as well - it's OK if we fail at this */
+	mag_ret = register_driver(MAG_DEVICE_PATH, &fops, 0666, (void *)this);
+
+	if (mag_ret == OK) {
+		log("default mag device");
+	}
 
 	/* advertise mag topic */
 	struct mag_report zero_mag_report;
@@ -1491,7 +1506,7 @@ LSM303D::print_registers()
 }
 
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
-	CDev("LSM303D_mag", MAG_DEVICE_PATH),
+	CDev("LSM303D_mag", "/dev/lsm303d_mag"),
 	_parent(parent)
 {
 }
@@ -1556,7 +1571,7 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new LSM303D(1 /* XXX magic number */, ACCEL_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
+	g_dev = new LSM303D(1 /* XXX magic number */, LSM303D_DEVICE_PATH_MAG, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
 
 	if (g_dev == nullptr) {
 		warnx("failed instantiating LSM303D obj");
@@ -1567,7 +1582,7 @@ start()
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	fd = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
 		goto fail;
@@ -1575,7 +1590,7 @@ start()
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
 
-	fd_mag = open(MAG_DEVICE_PATH, O_RDONLY);
+	fd_mag = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
 	/* don't fail if open cannot be opened */
 	if (0 <= fd_mag) {
@@ -1610,10 +1625,10 @@ test()
 	int ret;
 
 	/* get the driver */
-	fd_accel = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	fd_accel = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd_accel < 0)
-		err(1, "%s open failed", ACCEL_DEVICE_PATH);
+		err(1, "%s open failed", LSM303D_DEVICE_PATH_ACCEL);
 
 	/* do a simple demand read */
 	sz = read(fd_accel, &accel_report, sizeof(accel_report));
@@ -1639,10 +1654,10 @@ test()
 	struct mag_report m_report;
 
 	/* get the driver */
-	fd_mag = open(MAG_DEVICE_PATH, O_RDONLY);
+	fd_mag = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
 	if (fd_mag < 0)
-		err(1, "%s open failed", MAG_DEVICE_PATH);
+		err(1, "%s open failed", LSM303D_DEVICE_PATH_MAG);
 
 	/* check if mag is onboard or external */
 	if ((ret = ioctl(fd_mag, MAGIOCGEXTERNAL, 0)) < 0)
