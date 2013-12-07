@@ -66,6 +66,8 @@
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 
+#define L3GD20_DEVICE_PATH "/dev/l3gd20"
+
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
 # undef ERROR
@@ -199,6 +201,7 @@ private:
 	float			_gyro_range_scale;
 	float			_gyro_range_rad_s;
 	orb_advert_t		_gyro_topic;
+	int			_class_instance;
 
 	unsigned		_current_rate;
 	unsigned		_orientation;
@@ -317,6 +320,7 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
+	_class_instance(-1),
 	_current_rate(0),
 	_orientation(SENSOR_BOARD_ROTATION_270_DEG),
 	_read(0),
@@ -346,6 +350,9 @@ L3GD20::~L3GD20()
 	if (_reports != nullptr)
 		delete _reports;
 
+	if (_class_instance != -1)
+		unregister_class_devname(GYRO_DEVICE_PATH, _class_instance);
+
 	/* delete the perf counter */
 	perf_free(_sample_perf);
 }
@@ -365,17 +372,13 @@ L3GD20::init()
 	if (_reports == nullptr)
 		goto out;
 
-	/* try to claim the generic accel node as well - it's OK if we fail at this */
-	ret = register_driver(GYRO_DEVICE_PATH, &fops, 0666, (void *)this);
-
-	if (ret == OK) {
-		log("default gyro device");
-	}
-
-	/* advertise sensor topic */
-	struct gyro_report zero_report;
-	memset(&zero_report, 0, sizeof(zero_report));
-	_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &zero_report);
+	_class_instance = register_class_devname(GYRO_DEVICE_PATH);
+        if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		/* advertise sensor topic */
+		struct gyro_report zero_report;
+		memset(&zero_report, 0, sizeof(zero_report));
+		_gyro_topic = orb_advertise(ORB_ID(sensor_gyro), &zero_report);
+        }
 
 	reset();
 
@@ -743,7 +746,7 @@ L3GD20::reset()
 	/* set default configuration */
 	write_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
 	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
-	write_reg(ADDR_CTRL_REG3, 0);		/* no interrupts - we don't use them */
+	write_reg(ADDR_CTRL_REG3, 0);           /* no interrupts - we don't use them */
 	write_reg(ADDR_CTRL_REG4, REG4_BDU);
 	write_reg(ADDR_CTRL_REG5, 0);
 
@@ -922,7 +925,7 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new L3GD20(1 /* XXX magic number */, GYRO_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO);
+	g_dev = new L3GD20(1 /* SPI bus 1 */, L3GD20_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_GYRO);
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -931,7 +934,7 @@ start()
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(GYRO_DEVICE_PATH, O_RDONLY);
+	fd = open(L3GD20_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		goto fail;
@@ -963,10 +966,10 @@ test()
 	ssize_t sz;
 
 	/* get the driver */
-	fd_gyro = open(GYRO_DEVICE_PATH, O_RDONLY);
+	fd_gyro = open(L3GD20_DEVICE_PATH, O_RDONLY);
 
 	if (fd_gyro < 0)
-		err(1, "%s open failed", GYRO_DEVICE_PATH);
+		err(1, "%s open failed", L3GD20_DEVICE_PATH);
 
 	/* reset to manual polling */
 	if (ioctl(fd_gyro, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
@@ -999,7 +1002,7 @@ test()
 void
 reset()
 {
-	int fd = open(GYRO_DEVICE_PATH, O_RDONLY);
+	int fd = open(L3GD20_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");
