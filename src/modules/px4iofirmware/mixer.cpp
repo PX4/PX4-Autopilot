@@ -236,13 +236,13 @@ mixer_callback(uintptr_t handle,
 	       uint8_t control_index,
 	       float &control)
 {
-	if (control_group != 0)
+	if (control_group > 3)
 		return -1;
 
 	switch (source) {
 	case MIX_FMU:
 		if (control_index < PX4IO_CONTROL_CHANNELS) {
-			control = REG_TO_FLOAT(r_page_controls[control_index]);
+			control = REG_TO_FLOAT(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)]);
 			break;
 		}
 		return -1;
