@@ -950,9 +950,9 @@ PX4IO::io_set_control_groups()
 	bool attitude_ok = io_set_control_state(0);
 
 	/* send auxiliary control groups */
-	(void)io_set_control_state(0);
 	(void)io_set_control_state(1);
 	(void)io_set_control_state(2);
+	(void)io_set_control_state(3);
 
 	return attitude_ok;
 }
