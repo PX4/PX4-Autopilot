@@ -1405,6 +1405,8 @@ start()
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
 
+        close(fd);
+
 	exit(0);
 fail:
 
@@ -1507,6 +1509,8 @@ reset()
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		err(1, "driver poll restart failed");
+
+        close(fd);
 
 	exit(0);
 }
