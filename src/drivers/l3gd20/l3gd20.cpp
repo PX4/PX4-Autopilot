@@ -942,6 +942,8 @@ start()
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
 
+        close(fd);
+
 	exit(0);
 fail:
 
@@ -990,6 +992,8 @@ test()
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
+        close(fd_gyro);
+
 	/* XXX add poll-rate tests here too */
 
 	reset();
@@ -1012,6 +1016,8 @@ reset()
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		err(1, "accel pollrate reset failed");
+
+        close(fd);
 
 	exit(0);
 }
