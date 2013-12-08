@@ -95,6 +95,12 @@ typedef enum {
 	HIL_STATE_ON
 } hil_state_t;
 
+
+typedef enum {
+	FLIGHTTERMINATION_STATE_OFF = 0,
+	FLIGHTTERMINATION_STATE_ON
+} flighttermination_state_t;
+
 typedef enum {
 	MODE_SWITCH_MANUAL = 0,
 	MODE_SWITCH_ASSISTED,
@@ -229,6 +235,8 @@ struct vehicle_status_s
 	uint16_t errors_count2;
 	uint16_t errors_count3;
 	uint16_t errors_count4;
+
+	flighttermination_state_t flighttermination_state;
 };
 
 /**

@@ -70,7 +70,11 @@ bool check_main_state_changed();
 
 transition_result_t navigation_state_transition(struct vehicle_status_s *status, navigation_state_t new_navigation_state, struct vehicle_control_mode_s *control_mode);
 
+transition_result_t flighttermination_state_transition(struct vehicle_status_s *status, flighttermination_state_t new_flighttermination_state, struct vehicle_control_mode_s *control_mode);
+
 bool check_navigation_state_changed();
+
+bool check_flighttermination_state_changed();
 
 void set_navigation_state_changed();
 

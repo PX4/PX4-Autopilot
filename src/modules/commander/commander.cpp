@@ -509,6 +509,21 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 		break;
 
+	/* Flight termination */
+	case VEHICLE_CMD_DO_SET_SERVO: { //xxx: needs its own mavlink command
+
+			if (armed->armed && cmd->param3 > 0.5) { //xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
+				transition_result_t flighttermination_res = flighttermination_state_transition(status, FLIGHTTERMINATION_STATE_ON, control_mode);
+				result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				/* reject parachute depoyment not armed */
+				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			}
+
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -1199,6 +1214,7 @@ int commander_thread_main(int argc, char *argv[])
 		bool arming_state_changed = check_arming_state_changed();
 		bool main_state_changed = check_main_state_changed();
 		bool navigation_state_changed = check_navigation_state_changed();
+		bool flighttermination_state_changed = check_flighttermination_state_changed();
 
 		hrt_abstime t1 = hrt_absolute_time();
 
@@ -1725,7 +1741,8 @@ void *commander_low_prio_loop(void *arg)
 		/* ignore commands the high-prio loop handles */
 		if (cmd.command == VEHICLE_CMD_DO_SET_MODE ||
 		    cmd.command == VEHICLE_CMD_COMPONENT_ARM_DISARM ||
-		    cmd.command == VEHICLE_CMD_NAV_TAKEOFF)
+		    cmd.command == VEHICLE_CMD_NAV_TAKEOFF ||
+		    cmd.command == VEHICLE_CMD_DO_SET_SERVO)
 			continue;
 
 		/* only handle low-priority commands here */

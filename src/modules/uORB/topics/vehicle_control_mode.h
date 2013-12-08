@@ -78,6 +78,7 @@ struct vehicle_control_mode_s
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 	bool flag_control_altitude_enabled;		/**< true if altitude is controlled */
 	bool flag_control_climb_rate_enabled;		/**< true if climb rate is controlled */
+	bool flag_control_flighttermination_enabled;   /**< true if flighttermination is enabled */
 
 	bool flag_control_auto_enabled;		// TEMP
 	uint8_t auto_state;	// TEMP navigation state for AUTO modes
