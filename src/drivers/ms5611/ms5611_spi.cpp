@@ -236,9 +236,12 @@ MS5611_SPI::_read_prom()
 	usleep(3000);
 
 	/* read and convert PROM words */
+        bool all_zero = true;
 	for (int i = 0; i < 8; i++) {
 		uint8_t cmd = (ADDR_PROM_SETUP + (i * 2));
 		_prom.c[i] = _reg16(cmd);
+                if (_prom.c[i] != 0)
+			all_zero = false;
                 //debug("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
 	}
 
@@ -246,6 +249,10 @@ MS5611_SPI::_read_prom()
 	int ret = ms5611::crc4(&_prom.c[0]) ? OK : -EIO;
         if (ret != OK) {
 		debug("crc failed");
+        }
+        if (all_zero) {
+		debug("prom all zero");
+		ret = -EIO;
         }
         return ret;
 }
