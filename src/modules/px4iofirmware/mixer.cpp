@@ -248,7 +248,7 @@ mixer_callback(uintptr_t handle,
 		return -1;
 
 	case MIX_OVERRIDE:
-		if (r_page_rc_input[PX4IO_P_RC_VALID] & (1 << control_index)) {
+		if ((r_page_rc_input[PX4IO_P_RC_VALID] & (1 << control_index)) && CONTROL_PAGE_INDEX(control_group, control_index) < PX4IO_RC_INPUT_CHANNELS) {
 			control = REG_TO_FLOAT(r_page_rc_input[PX4IO_P_RC_BASE + control_index]);
 			break;
 		}
