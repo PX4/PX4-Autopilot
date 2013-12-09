@@ -223,6 +223,7 @@ private:
 	perf_counter_t		_accel_reads;
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_bad_transfers;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -384,6 +385,7 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_accel_reads(perf_alloc(PC_COUNT, "mpu6000_accel_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu6000_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read")),
+	_bad_transfers(perf_alloc(PC_COUNT, "mpu6000_bad_transfers")),
 	_accel_filter_x(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(MPU6000_ACCEL_DEFAULT_RATE, MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -434,6 +436,7 @@ MPU6000::~MPU6000()
 	perf_free(_sample_perf);
 	perf_free(_accel_reads);
 	perf_free(_gyro_reads);
+	perf_free(_bad_transfers);
 }
 
 int
@@ -1013,9 +1016,7 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 uint8_t
 MPU6000::read_reg(unsigned reg)
 {
-	uint8_t cmd[2];
-
-	cmd[0] = reg | DIR_READ;
+	uint8_t cmd[2] = { (uint8_t)(reg | DIR_READ), 0};
 
         // general register transfer at low clock speed
         set_frequency(MPU6000_LOW_BUS_SPEED);
@@ -1028,9 +1029,7 @@ MPU6000::read_reg(unsigned reg)
 uint16_t
 MPU6000::read_reg16(unsigned reg)
 {
-	uint8_t cmd[3];
-
-	cmd[0] = reg | DIR_READ;
+	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
 
         // general register transfer at low clock speed
         set_frequency(MPU6000_LOW_BUS_SPEED);
@@ -1194,6 +1193,20 @@ MPU6000::measure()
 	report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
 	report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
 	report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);
+
+	if (report.accel_x == 0 &&
+	    report.accel_y == 0 &&
+	    report.accel_z == 0 &&
+	    report.temp == 0 &&
+	    report.gyro_x == 0 &&
+	    report.gyro_y == 0 &&
+	    report.gyro_z == 0) {
+		// all zero data - probably a SPI bus error
+		perf_count(_bad_transfers);
+		perf_end(_sample_perf);
+		return;
+	}
+	    
 
 	/*
 	 * Swap axes and negate y
