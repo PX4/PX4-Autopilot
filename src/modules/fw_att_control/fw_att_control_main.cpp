@@ -633,7 +633,7 @@ FixedwingAttitudeControl::task_main()
 				_actuators_airframe.control[1] = 1.0f;
 //				warnx("_actuators_airframe.control[1] = 1.0f;");
 			} else {
-				_actuators_airframe.control[1] = -1.0f;
+				_actuators_airframe.control[1] = 0.0f;
 //				warnx("_actuators_airframe.control[1] = -1.0f;");
 			}
 
