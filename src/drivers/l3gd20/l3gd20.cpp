@@ -816,7 +816,7 @@ L3GD20::measure()
 	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
 #ifdef GPIO_EXTI_GYRO_DRDY
-        if (raw_report.status & 0xF != 0xF) {
+        if ((raw_report.status & 0xF) != 0xF) {
             /*
               we waited for DRDY, but did not see DRDY on all axes
               when we captured. That means a transfer error of some sort
