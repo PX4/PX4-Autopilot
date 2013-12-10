@@ -720,7 +720,6 @@ hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, v
 void
 hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg)
 {
-	hrt_call_init(entry);
 	hrt_call_internal(entry,
 			  hrt_absolute_time() + delay,
 			  interval,
@@ -734,6 +733,13 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 	irqstate_t flags = irqsave();
 
 	/* if the entry is currently queued, remove it */
+        /* note that we are using a potentially uninitialised
+           entry->link here, but it is safe as sq_rem() doesn't
+           dereference the passed node unless it is found in the
+           list. So we potentially waste a bit of time searching the
+           queue for the uninitialised entry->link but we don't do
+           anything actually unsafe.
+        */
 	if (entry->deadline != 0)
 		sq_rem(&entry->link, &callout_queue);
 
