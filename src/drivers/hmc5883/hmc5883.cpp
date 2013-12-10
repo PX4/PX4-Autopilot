@@ -77,6 +77,7 @@
  */
 
 #define HMC5883L_ADDRESS		PX4_I2C_OBDEV_HMC5883
+#define HMC5883L_DEVICE_PATH		"/dev/hmc5883"
 
 /* Max measurement rate is 160Hz, however with 160 it will be set to 166 Hz, therefore workaround using 150 */
 #define HMC5883_CONVERSION_INTERVAL	(1000000 / 150)	/* microseconds */
@@ -315,7 +316,7 @@ extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
 
 HMC5883::HMC5883(int bus) :
-	I2C("HMC5883", MAG_DEVICE_PATH, bus, HMC5883L_ADDRESS, 400000),
+	I2C("HMC5883", HMC5883L_DEVICE_PATH, bus, HMC5883L_ADDRESS, 400000),
 	_measure_ticks(0),
 	_reports(nullptr),
 	_range_scale(0), /* default range scale from counts to gauss */
@@ -1256,7 +1257,7 @@ start()
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	fd = open(HMC5883L_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		goto fail;
@@ -1288,7 +1289,7 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	int fd = open(HMC5883L_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
