@@ -209,6 +209,8 @@ private:
 	unsigned		_read;
 
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_reschedules;
+	perf_counter_t		_errors;
 
 	math::LowPassFilter2p	_gyro_filter_x;
 	math::LowPassFilter2p	_gyro_filter_y;
@@ -325,6 +327,8 @@ L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
 	_orientation(SENSOR_BOARD_ROTATION_270_DEG),
 	_read(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
+	_reschedules(perf_alloc(PC_COUNT, "l3gd20_reschedules")),
+	_errors(perf_alloc(PC_COUNT, "l3gd20_errors")),
 	_gyro_filter_x(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_y(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
 	_gyro_filter_z(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ)
@@ -355,6 +359,8 @@ L3GD20::~L3GD20()
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
+	perf_free(_reschedules);
+	perf_free(_errors);
 }
 
 int
@@ -746,7 +752,7 @@ L3GD20::reset()
 	/* set default configuration */
 	write_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
 	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
-	write_reg(ADDR_CTRL_REG3, 0);           /* no interrupts - we don't use them */
+	write_reg(ADDR_CTRL_REG3, 0x08);        /* DRDY enable */
 	write_reg(ADDR_CTRL_REG4, REG4_BDU);
 	write_reg(ADDR_CTRL_REG5, 0);
 
@@ -776,6 +782,17 @@ L3GD20::measure_trampoline(void *arg)
 void
 L3GD20::measure()
 {
+#ifdef GPIO_EXTI_GYRO_DRDY
+	// if the gyro doesn't have any data ready then re-schedule
+	// for 100 microseconds later. This ensures we don't double
+	// read a value and then miss the next value
+	if (stm32_gpioread(GPIO_EXTI_GYRO_DRDY) == 0) {
+		perf_count(_reschedules);
+		hrt_call_delay(&_call, 100);
+		return;
+	}
+#endif
+
 	/* status register and data as read back from the device */
 #pragma pack(push, 1)
 	struct {
@@ -798,6 +815,16 @@ L3GD20::measure()
 	raw_report.cmd = ADDR_OUT_TEMP | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
+#ifdef GPIO_EXTI_GYRO_DRDY
+        if (raw_report.status & 0xF != 0xF) {
+            /*
+              we waited for DRDY, but did not see DRDY on all axes
+              when we captured. That means a transfer error of some sort
+             */
+            perf_count(_errors);            
+            return;
+        }
+#endif
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
 	 * 2) Subtract static offset (in SI units)
