@@ -681,6 +681,7 @@ void
 LSM303D::check_extremes(const accel_report *arb)
 {
 	const float extreme_threshold = 30;
+        static bool boot_ok = false;
 	bool is_extreme = (fabsf(arb->x) > extreme_threshold && 
 			   fabsf(arb->y) > extreme_threshold && 
 			   fabsf(arb->z) > extreme_threshold);
@@ -688,7 +689,9 @@ LSM303D::check_extremes(const accel_report *arb)
 		perf_count(_extreme_values);
 		// force accel logging on if we see extreme values
 		_accel_logging_enabled = true;
-	}
+	} else {
+            boot_ok = true;
+        }
 
 	if (! _accel_logging_enabled) {
 		// logging has been disabled by user, close
@@ -719,32 +722,42 @@ LSM303D::check_extremes(const accel_report *arb)
 
 	uint64_t now = hrt_absolute_time();
 	// log accels at 1Hz
-	if (now - _last_log_us > 1000*1000) {
+	if (_last_log_us == 0 ||
+	    now - _last_log_us > 1000*1000) {
 		_last_log_us = now;
-		::dprintf(_accel_log_fd, "ARB %llu %.3f %.3f %.3f %d %d %d\r\n",
+		::dprintf(_accel_log_fd, "ARB %llu %.3f %.3f %.3f %d %d %d boot_ok=%u\r\n",
 			  (unsigned long long)arb->timestamp, 
 			  arb->x, arb->y, arb->z,
 			  (int)arb->x_raw,
 			  (int)arb->y_raw,
-			  (int)arb->z_raw);
+			  (int)arb->z_raw,
+			  (unsigned)boot_ok);
 	}
 
+        const uint8_t reglist[] = { ADDR_WHO_AM_I, 0x02, 0x15, ADDR_STATUS_A, ADDR_STATUS_M, ADDR_CTRL_REG0, ADDR_CTRL_REG1, 
+                                    ADDR_CTRL_REG2, ADDR_CTRL_REG3, ADDR_CTRL_REG4, ADDR_CTRL_REG5, ADDR_CTRL_REG6, 
+                                    ADDR_CTRL_REG7, ADDR_OUT_TEMP_L, ADDR_OUT_TEMP_H, ADDR_INT_CTRL_M, ADDR_INT_SRC_M, 
+                                    ADDR_REFERENCE_X, ADDR_REFERENCE_Y, ADDR_REFERENCE_Z, ADDR_OUT_X_L_A, ADDR_OUT_X_H_A, 
+                                    ADDR_OUT_Y_L_A, ADDR_OUT_Y_H_A, ADDR_OUT_Z_L_A, ADDR_OUT_Z_H_A, ADDR_FIFO_CTRL, 
+                                    ADDR_FIFO_SRC, ADDR_IG_CFG1, ADDR_IG_SRC1, ADDR_IG_THS1, ADDR_IG_DUR1, ADDR_IG_CFG2, 
+                                    ADDR_IG_SRC2, ADDR_IG_THS2, ADDR_IG_DUR2, ADDR_CLICK_CFG, ADDR_CLICK_SRC, 
+                                    ADDR_CLICK_THS, ADDR_TIME_LIMIT, ADDR_TIME_LATENCY, ADDR_TIME_WINDOW, 
+                                    ADDR_ACT_THS, ADDR_ACT_DUR,
+                                    ADDR_OUT_X_L_M, ADDR_OUT_X_H_M, 
+                                    ADDR_OUT_Y_L_M, ADDR_OUT_Y_H_M, ADDR_OUT_Z_L_M, ADDR_OUT_Z_H_M, 0x02, 0x15, ADDR_WHO_AM_I};
+        uint8_t regval[sizeof(reglist)];
+        for (uint8_t i=0; i<sizeof(reglist); i++) {
+            regval[i] = read_reg(reglist[i]);
+        }
+
 	// log registers at 10Hz when we have extreme values, or 0.5 Hz without
-	if ((is_extreme && (now - _last_log_reg_us > 500*1000)) ||
+	if (_last_log_reg_us == 0 ||
+	    (is_extreme && (now - _last_log_reg_us > 250*1000)) ||
 	    (now - _last_log_reg_us > 10*1000*1000)) {
 		_last_log_reg_us = now;
-		const uint8_t reglist[] = { ADDR_WHO_AM_I, ADDR_STATUS_A, ADDR_STATUS_M, ADDR_CTRL_REG0, ADDR_CTRL_REG1, 
-					    ADDR_CTRL_REG2, ADDR_CTRL_REG3, ADDR_CTRL_REG4, ADDR_CTRL_REG5, ADDR_CTRL_REG6, 
-					    ADDR_CTRL_REG7, ADDR_OUT_TEMP_L, ADDR_OUT_TEMP_H, ADDR_INT_CTRL_M, ADDR_INT_SRC_M, 
-					    ADDR_REFERENCE_X, ADDR_REFERENCE_Y, ADDR_REFERENCE_Z, ADDR_OUT_X_L_A, ADDR_OUT_X_H_A, 
-					    ADDR_OUT_Y_L_A, ADDR_OUT_Y_H_A, ADDR_OUT_Z_L_A, ADDR_OUT_Z_H_A, ADDR_FIFO_CTRL, 
-					    ADDR_FIFO_SRC, ADDR_IG_CFG1, ADDR_IG_SRC1, ADDR_IG_THS1, ADDR_IG_DUR1, ADDR_IG_CFG2, 
-					    ADDR_IG_SRC2, ADDR_IG_THS2, ADDR_IG_DUR2, ADDR_CLICK_CFG, ADDR_CLICK_SRC, 
-					    ADDR_CLICK_THS, ADDR_TIME_LIMIT, ADDR_TIME_LATENCY, ADDR_TIME_WINDOW, 
-					    ADDR_ACT_THS, ADDR_ACT_DUR };
-		::dprintf(_accel_log_fd, "REG %llu", (unsigned long long)hrt_absolute_time());
+		::dprintf(_accel_log_fd, "XREG %llu", (unsigned long long)hrt_absolute_time());
 		for (uint8_t i=0; i<sizeof(reglist); i++) {
-			::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)read_reg(reglist[i]));
+			::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)regval[i]);
 		}
 		::dprintf(_accel_log_fd, "\n");
 	}
@@ -761,7 +774,15 @@ LSM303D::check_extremes(const accel_report *arb)
 		_last_log_alarm_us = now;
 		int tfd = ::open(TONEALARM_DEVICE_PATH, 0);
 		if (tfd != -1) {
-			::ioctl(tfd, TONE_SET_ALARM, 4);
+			uint8_t tone = 3;
+			if (!is_extreme) {
+				tone = 3;
+			} else if (boot_ok) {
+				tone = 4;
+			} else {
+				tone = 5;
+			}
+			::ioctl(tfd, TONE_SET_ALARM, tone);
 			::close(tfd);
 		}		
 	}
@@ -1148,6 +1169,7 @@ LSM303D::read_reg(unsigned reg)
 	uint8_t cmd[2];
 
 	cmd[0] = reg | DIR_READ;
+	cmd[1] = 0;
 
 	transfer(cmd, cmd, sizeof(cmd));
 
