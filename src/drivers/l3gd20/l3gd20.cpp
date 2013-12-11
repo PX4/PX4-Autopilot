@@ -779,10 +779,16 @@ L3GD20::measure_trampoline(void *arg)
 	dev->measure();
 }
 
+#ifdef GPIO_EXTI_GYRO_DRDY
+# define L3GD20_USE_DRDY 1
+#else
+# define L3GD20_USE_DRDY 0
+#endif
+
 void
 L3GD20::measure()
 {
-#ifdef GPIO_EXTI_GYRO_DRDY
+#if L3GD20_USE_DRDY
 	// if the gyro doesn't have any data ready then re-schedule
 	// for 100 microseconds later. This ensures we don't double
 	// read a value and then miss the next value
@@ -815,7 +821,7 @@ L3GD20::measure()
 	raw_report.cmd = ADDR_OUT_TEMP | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
-#ifdef GPIO_EXTI_GYRO_DRDY
+#if L3GD20_USE_DRDY
         if ((raw_report.status & 0xF) != 0xF) {
             /*
               we waited for DRDY, but did not see DRDY on all axes
@@ -902,6 +908,8 @@ L3GD20::print_info()
 {
 	printf("gyro reads:          %u\n", _read);
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_reschedules);
+	perf_print_counter(_errors);
 	_reports->print_info("report queue");
 }
 
