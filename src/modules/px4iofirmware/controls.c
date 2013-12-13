@@ -94,6 +94,9 @@ controls_tick() {
 	 * other.  Don't do that.
 	 */
 
+	/* receive signal strenght indicator (RSSI). 0 = no connection, 1000: perfect connection */
+	uint16_t rssi = 0;
+
 	perf_begin(c_gather_dsm);
 	uint16_t temp_count = r_raw_rc_count;
 	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count);
@@ -104,14 +107,15 @@ controls_tick() {
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM11;
 		else
 			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RC_DSM11;
+
+		rssi = 1000;
 	}
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, PX4IO_CONTROL_CHANNELS /* XXX this should be INPUT channels, once untangled */);
+	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, PX4IO_CONTROL_CHANNELS /* XXX this should be INPUT channels, once untangled */);
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
-		r_raw_rc_count = 8;
 	}
 	perf_end(c_gather_sbus);
 
@@ -122,9 +126,18 @@ controls_tick() {
 	 */
 	perf_begin(c_gather_ppm);
 	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count);
-	if (ppm_updated)
+	if (ppm_updated) {
+
+		/* XXX sample RSSI properly here */
+		rssi = 1000;
+
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
+	}
 	perf_end(c_gather_ppm);
+
+	/* limit number of channels to allowable data size */
+	if (r_raw_rc_count > PX4IO_INPUT_CHANNELS)
+		r_raw_rc_count = PX4IO_INPUT_CHANNELS;
 
 	/*
 	 * In some cases we may have received a frame, but input has still
@@ -221,7 +234,7 @@ controls_tick() {
 		 * This might happen if a protocol-based receiver returns an update
 		 * that contains no channels that we have mapped.
 		 */
-		if (assigned_channels == 0) {
+		if (assigned_channels == 0 || rssi == 0) {
 			rc_input_lost = true;
 		} else {
 			/* set RC OK flag */
