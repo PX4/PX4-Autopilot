@@ -77,7 +77,6 @@ static unsigned blink_counter = 0;
 static bool safety_button_pressed;
 
 static void safety_check_button(void *arg);
-static void heartbeat_blink(void *arg);
 static void failsafe_blink(void *arg);
 
 void
@@ -85,9 +84,6 @@ safety_init(void)
 {
 	/* arrange for the button handler to be called at 10Hz */
 	hrt_call_every(&arming_call, 1000, 100000, safety_check_button, NULL);
-
-	/* arrange for the heartbeat handler to be called at 4Hz */
-	hrt_call_every(&heartbeat_call, 1000, 250000, heartbeat_blink, NULL);
 
 	/* arrange for the failsafe blinker to be called at 8Hz */
 	hrt_call_every(&failsafe_call, 1000, 125000, failsafe_blink, NULL);
@@ -161,16 +157,6 @@ safety_check_button(void *arg)
 	if (blink_counter > 15) {
 		blink_counter = 0;
 	}
-}
-
-static void
-heartbeat_blink(void *arg)
-{
-	static bool heartbeat = false;
-
-	/* XXX add flags here that need to be frobbed by various loops */
-
-	LED_BLUE(heartbeat = !heartbeat);
 }
 
 static void

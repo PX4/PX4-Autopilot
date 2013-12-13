@@ -313,6 +313,12 @@ then
 		sh /etc/init.d/101_hk_bixler
 		set MODE custom
 	fi
+
+	if param compare SYS_AUTOSTART 102
+	then
+		sh /etc/init.d/102_3dr_skywalker
+		set MODE custom
+	fi
 	
 	# Start any custom extensions that might be missing
 	if [ -f /fs/microsd/etc/rc.local ]

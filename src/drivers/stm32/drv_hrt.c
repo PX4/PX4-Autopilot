@@ -733,6 +733,13 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 	irqstate_t flags = irqsave();
 
 	/* if the entry is currently queued, remove it */
+        /* note that we are using a potentially uninitialised
+           entry->link here, but it is safe as sq_rem() doesn't
+           dereference the passed node unless it is found in the
+           list. So we potentially waste a bit of time searching the
+           queue for the uninitialised entry->link but we don't do
+           anything actually unsafe.
+        */
 	if (entry->deadline != 0)
 		sq_rem(&entry->link, &callout_queue);
 
@@ -839,7 +846,12 @@ hrt_call_invoke(void)
 
 		/* if the callout has a non-zero period, it has to be re-entered */
 		if (call->period != 0) {
-			call->deadline = deadline + call->period;
+			// re-check call->deadline to allow for
+			// callouts to re-schedule themselves 
+			// using hrt_call_delay()
+			if (call->deadline <= now) {
+				call->deadline = deadline + call->period;
+			}
 			hrt_call_enter(call);
 		}
 	}
@@ -906,5 +918,16 @@ hrt_latency_update(void)
 	latency_counters[index]++;
 }
 
+void
+hrt_call_init(struct hrt_call *entry)
+{
+	memset(entry, 0, sizeof(*entry));
+}
+
+void
+hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
+{
+	entry->deadline = hrt_absolute_time() + delay;
+}
 
 #endif /* HRT_TIMER */

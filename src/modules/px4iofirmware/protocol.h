@@ -186,6 +186,11 @@ enum {							/* DSM bind states */
  					     /*	8 */
 #define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
 
+#define PX4IO_P_SETUP_REBOOT_BL		       10	/* reboot IO into bootloader */
+#define PX4IO_REBOOT_BL_MAGIC               14662       /* required argument for reboot (random) */
+
+#define PX4IO_P_SETUP_CRC		       11	/* get CRC of IO firmware */
+
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS		51		/* 0..CONFIG_CONTROL_COUNT */
 

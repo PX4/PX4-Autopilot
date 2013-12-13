@@ -54,6 +54,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
+#include <crc32.h>
 
 #include <arch/board/board.h>
 
@@ -95,6 +96,8 @@ extern device::Device *PX4IO_serial_interface() weak_function;
 
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
+#define PX4IO_REBOOT_BOOTLOADER		_IOC(0xff00, 2)
+#define PX4IO_CHECK_CRC			_IOC(0xff00, 3)
 
 #define UPDATE_INTERVAL_MIN		2			// 2 ms	-> 500 Hz
 #define ORB_CHECK_INTERVAL		200000		// 200 ms -> 5 Hz
@@ -1659,11 +1662,13 @@ void
 PX4IO::print_status()
 {
 	/* basic configuration */
-	printf("protocol %u hardware %u bootloader %u buffer %uB\n",
+	printf("protocol %u hardware %u bootloader %u buffer %uB crc 0x%04x%04x\n",
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_BOOTLOADER_VERSION),
-	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER));
+	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER),
+	       io_reg_get(PX4IO_PAGE_SETUP,  PX4IO_P_SETUP_CRC),
+	       io_reg_get(PX4IO_PAGE_SETUP,  PX4IO_P_SETUP_CRC+1));
 	printf("%u controls %u actuators %u R/C inputs %u analog inputs %u relays\n",
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT),
@@ -2146,6 +2151,29 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG, arg);
 		break;
 
+	case PX4IO_REBOOT_BOOTLOADER:
+		if (system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+			return -EINVAL;
+
+		/* reboot into bootloader - arg must be PX4IO_REBOOT_BL_MAGIC */
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
+		// we don't expect a reply from this operation
+		ret = OK;
+		break;
+
+	case PX4IO_CHECK_CRC: {
+		/* check IO firmware CRC against passed value */		
+		uint32_t io_crc = 0;
+		ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_CRC, (uint16_t *)&io_crc, 2);
+		if (ret != OK)
+			return ret;
+		if (io_crc != arg) {
+			debug("crc mismatch 0x%08x 0x%08x", (unsigned)io_crc, arg);
+			return -EINVAL;
+		}
+		break;
+	}
+
 	case PX4IO_INAIR_RESTART_ENABLE:
 
 		/* set/clear the 'in-air restart' bit */
@@ -2530,7 +2558,7 @@ px4io_main(int argc, char *argv[])
 		}
 
 		PX4IO_Uploader *up;
-		const char *fn[3];
+		const char *fn[4];
 
 		/* work out what we're uploading... */
 		if (argc > 2) {
@@ -2673,6 +2701,82 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "forceupdate")) {
+		/*
+		  force update of the IO firmware without requiring
+		  the user to hold the safety switch down
+		 */
+		if (argc <= 3) {
+			printf("usage: px4io forceupdate MAGIC filename\n");
+			exit(1);
+		}
+		if (g_dev == nullptr) {
+			printf("px4io is not started\n");
+			exit(1);
+		}
+		uint16_t arg = atol(argv[2]);
+		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
+		if (ret != OK) {
+			printf("reboot failed - %d\n", ret);
+			exit(1);			
+		}
+
+		// tear down the px4io instance
+		delete g_dev;
+
+		// upload the specified firmware
+		const char *fn[2];
+		fn[0] = argv[3];
+		fn[1] = nullptr;
+		PX4IO_Uploader *up = new PX4IO_Uploader;
+		up->upload(&fn[0]);
+		delete up;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "checkcrc")) {
+		/*
+		  check IO CRC against CRC of a file
+		 */
+		if (argc <= 2) {
+			printf("usage: px4io checkcrc filename\n");
+			exit(1);
+		}
+		if (g_dev == nullptr) {
+			printf("px4io is not started\n");
+			exit(1);
+		}
+		int fd = open(argv[2], O_RDONLY);
+		if (fd == -1) {
+			printf("open of %s failed - %d\n", argv[2], errno);
+			exit(1);			
+		}
+		const uint32_t app_size_max = 0xf000;
+		uint32_t fw_crc = 0;
+		uint32_t nbytes = 0;
+		while (true) {
+			uint8_t buf[16];
+			int n = read(fd, buf, sizeof(buf));
+			if (n <= 0) break;
+			fw_crc = crc32part(buf, n, fw_crc);
+			nbytes += n;
+		}
+		close(fd);
+		while (nbytes < app_size_max) {
+			uint8_t b = 0xff;
+			fw_crc = crc32part(&b, 1, fw_crc);			
+			nbytes++;
+		}
+
+		int ret = g_dev->ioctl(nullptr, PX4IO_CHECK_CRC, fw_crc);
+		if (ret != OK) {
+			printf("check CRC failed - %d\n", ret);
+			exit(1);			
+		}
+		printf("CRCs match\n");
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "rx_dsm") ||
 	    !strcmp(argv[1], "rx_dsm_10bit") ||
 	    !strcmp(argv[1], "rx_dsm_11bit") ||
@@ -2690,5 +2794,5 @@ px4io_main(int argc, char *argv[])
 		bind(argc, argv);
 
 out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'bind' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'bind', 'checkcrc', 'forceupdate' or 'update'");
 }

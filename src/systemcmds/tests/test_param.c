@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file tests_param.c
+ * @file test_param.c
  *
  * Tests related to the parameter system.
  */
