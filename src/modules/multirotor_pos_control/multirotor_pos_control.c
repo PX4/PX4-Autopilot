@@ -171,6 +171,45 @@ static float norm(float x, float y)
 	return sqrtf(x * x + y * y);
 }
 
+static void cross3(float a[3], float b[3], float res[3]) {
+	res[0] = a[1] * b[2] - a[2] * b[1];
+	res[1] = a[2] * b[0] - a[0] * b[2];
+	res[2] = a[0] * b[1] - a[1] * b[0];
+}
+
+static float rt_atan2f_snf(float u0, float u1)
+{
+	float y;
+	int32_t b_u0;
+	int32_t b_u1;
+	if (isnanf(u0) || isnanf(u1)) {
+		y = NAN;
+	} else if (isinff(u0) && isinff(u1)) {
+		if (u0 > 0.0f) {
+			b_u0 = 1;
+		} else {
+			b_u0 = -1;
+		}
+		if (u1 > 0.0f) {
+			b_u1 = 1;
+		} else {
+			b_u1 = -1;
+		}
+		y = atan2f((float)b_u0, (float)b_u1);
+	} else if (u1 == 0.0f) {
+		if (u0 > 0.0f) {
+			y = M_PI_F / 2.0f;
+		} else if (u0 < 0.0f) {
+			y = -(M_PI_F / 2.0f);
+		} else {
+			y = 0.0F;
+		}
+	} else {
+		y = atan2f(u0, u1);
+	}
+	return y;
+}
+
 static int multirotor_pos_control_thread_main(int argc, char *argv[])
 {
 	/* welcome user */
@@ -236,6 +275,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	PID_t xy_vel_pids[2];
 	PID_t z_pos_pid;
 	thrust_pid_t z_vel_pid;
+	float thrust_int[3] = { 0.0f, 0.0f, 0.0f };
 
 	thread_running = true;
 
@@ -475,7 +515,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							}
 
 							/* update yaw setpoint only if value is valid */
-							if (isfinite(global_pos_sp.yaw) && fabsf(global_pos_sp.yaw) < M_TWOPI) {
+							if (isfinite(global_pos_sp.yaw) && fabsf(global_pos_sp.yaw) < M_TWOPI_F) {
 								att_sp.yaw_body = global_pos_sp.yaw;
 							}
 
@@ -575,12 +615,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				global_vel_sp.vx = pid_calculate(&xy_pos_pids[0], local_pos_sp.x, local_pos.x, local_pos.vx - sp_move_rate[0], dt) + sp_move_rate[0];
 				global_vel_sp.vy = pid_calculate(&xy_pos_pids[1], local_pos_sp.y, local_pos.y, local_pos.vy - sp_move_rate[1], dt) + sp_move_rate[1];
 
-				/* limit horizontal speed */
-				float xy_vel_sp_norm = norm(global_vel_sp.vx, global_vel_sp.vy) / params.xy_vel_max;
+				if (!control_mode.flag_control_manual_enabled) {
+					/* limit horizontal speed only in AUTO mode */
+					float xy_vel_sp_norm = norm(global_vel_sp.vx, global_vel_sp.vy) / params.xy_vel_max;
 
-				if (xy_vel_sp_norm > 1.0f) {
-					global_vel_sp.vx /= xy_vel_sp_norm;
-					global_vel_sp.vy /= xy_vel_sp_norm;
+					if (xy_vel_sp_norm > 1.0f) {
+						global_vel_sp.vx /= xy_vel_sp_norm;
+						global_vel_sp.vy /= xy_vel_sp_norm;
+					}
 				}
 
 			} else {
@@ -594,9 +636,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			// TODO subscribe to velocity setpoint if altitude/position control disabled
 
 			if (control_mode.flag_control_climb_rate_enabled || control_mode.flag_control_velocity_enabled) {
-				/* run velocity controllers, calculate thrust vector with attitude-thrust compensation */
+				/* calculate desired thrust vector in NED frame */
 				float thrust_sp[3] = { 0.0f, 0.0f, 0.0f };
-
 				if (control_mode.flag_control_climb_rate_enabled) {
 					if (reset_int_z) {
 						reset_int_z = false;
@@ -613,50 +654,111 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							}
 						}
 
-						thrust_pid_set_integral(&z_vel_pid, -i);
+						thrust_int[2] = -i;
 						mavlink_log_info(mavlink_fd, "[mpc] reset hovering thrust: %.2f", (double)i);
 					}
-
-					thrust_sp[2] = thrust_pid_calculate(&z_vel_pid, global_vel_sp.vz, local_pos.vz, dt, att.R[2][2]);
-					att_sp.thrust = -thrust_sp[2];
-
+					thrust_int[2] += (global_vel_sp.vz - local_pos.vz) * params.z_vel_i * dt;
+					thrust_sp[2] = (global_vel_sp.vz - local_pos.vz) * params.z_vel_p + thrust_int[2];
+					if (-thrust_sp[2] < params.thr_min)
+						thrust_sp[2] = -params.thr_min;
 				} else {
-					/* reset thrust integral when altitude control enabled */
 					reset_int_z = true;
 				}
-
 				if (control_mode.flag_control_velocity_enabled) {
-					/* calculate thrust set point in NED frame */
 					if (reset_int_xy) {
 						reset_int_xy = false;
-						pid_reset_integral(&xy_vel_pids[0]);
-						pid_reset_integral(&xy_vel_pids[1]);
+						thrust_int[0] = 0.0f;
+						thrust_int[1] = 0.0f;
 						mavlink_log_info(mavlink_fd, "[mpc] reset pos integral");
 					}
-
-					thrust_sp[0] = pid_calculate(&xy_vel_pids[0], global_vel_sp.vx, local_pos.vx, 0.0f, dt);
-					thrust_sp[1] = pid_calculate(&xy_vel_pids[1], global_vel_sp.vy, local_pos.vy, 0.0f, dt);
-
-					/* thrust_vector now contains desired acceleration (but not in m/s^2) in NED frame */
-					/* limit horizontal part of thrust */
-					float thrust_xy_dir = atan2f(thrust_sp[1], thrust_sp[0]);
-					/* assuming that vertical component of thrust is g,
-					 * horizontal component = g * tan(alpha) */
-					float tilt = atanf(norm(thrust_sp[0], thrust_sp[1]));
-
-					if (tilt > params.tilt_max) {
-						tilt = params.tilt_max;
-					}
-
-					/* convert direction to body frame */
-					thrust_xy_dir -= att.yaw;
-					/* calculate roll and pitch */
-					att_sp.roll_body = sinf(thrust_xy_dir) * tilt;
-					att_sp.pitch_body = -cosf(thrust_xy_dir) * tilt / cosf(att_sp.roll_body);
-
+					thrust_int[0] += (global_vel_sp.vx - local_pos.vx) * params.xy_vel_i * dt;
+					thrust_int[1] += (global_vel_sp.vy - local_pos.vy) * params.xy_vel_i * dt;
+					thrust_sp[0] = (global_vel_sp.vx - local_pos.vx) * params.xy_vel_p + thrust_int[0];
+					thrust_sp[1] = (global_vel_sp.vy - local_pos.vy) * params.xy_vel_p + thrust_int[1];
 				} else {
 					reset_int_xy = true;
 				}
+
+				float thrust_abs = sqrtf(thrust_sp[0] * thrust_sp[0] + thrust_sp[1] * thrust_sp[1] + thrust_sp[2] * thrust_sp[2]);
+				if (thrust_abs > params.thr_max) {
+					if (thrust_sp[2] < 0.0f) {
+						if (-thrust_sp[2] > params.thr_max) {
+							/* thrust Z component is too large, limit it */
+							thrust_sp[0] = 0.0f;
+							thrust_sp[1] = 0.0f;
+							thrust_sp[2] = -params.thr_max;
+						} else {
+							/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
+							float thrust_xy_max = sqrtf(params.thr_max * params.thr_max - thrust_sp[2] * thrust_sp[2]);
+							float thrust_xy_abs = sqrtf(thrust_sp[0] * thrust_sp[0] + thrust_sp[1] * thrust_sp[1]);
+							float k = thrust_xy_max / thrust_xy_abs;
+							thrust_sp[0] *= k;
+							thrust_sp[1] *= k;
+						}
+
+					} else {
+						/* Z component is negative, going down, simply limit thrust vector */
+						float k = params.thr_max / thrust_abs;
+						thrust_sp[0] *= k;
+						thrust_sp[1] *= k;
+						thrust_sp[2] *= k;
+					}
+					thrust_abs = params.thr_max;
+				}
+
+				/* calculate attitude and thrust from thrust vector */
+				if (control_mode.flag_control_velocity_enabled) {
+					/* vector of desired yaw direction in XY plane, rotated by PI/2 */
+					float y_C[3];
+					y_C[0] = -sinf(att_sp.yaw_body);
+					y_C[1] = cosf(att_sp.yaw_body);
+					y_C[2] = 0;
+
+					/* desired body_z axis = -normalize(thrust_vector) */
+					float body_x[3];
+					float body_y[3];
+					float body_z[3];
+					if (thrust_abs > 0.0f) {
+						body_z[0] = -thrust_sp[0] / thrust_abs;
+						body_z[1] = -thrust_sp[1] / thrust_abs;
+						body_z[2] = -thrust_sp[2] / thrust_abs;
+					} else {
+						body_z[0] = 0.0f;
+						body_z[1] = 0.0f;
+						body_z[2] = -1.0f;
+					}
+					/* desired body_x axis = cross(x_C, body_z) */
+					cross3(y_C, body_z, body_x);
+
+					/* desired body_y axis = cross(body_z, body_x) */
+					cross3(body_z, body_x, body_y);
+
+					/* fill rotation matrix */
+					for (int i = 0; i < 3; i++) {
+						att_sp.R_body[i][0] = body_x[i];
+						att_sp.R_body[i][1] = body_y[i];
+						att_sp.R_body[i][2] = body_z[i];
+					}
+					att_sp.R_valid = true;
+
+					/* calculate roll, pitch from rotation matrix, yaw already used to construct rot matrix */
+					att_sp.roll_body = rt_atan2f_snf(att_sp.R_body[2][1], att_sp.R_body[2][2]);
+					att_sp.pitch_body = -asinf(att_sp.R_body[2][0]);
+					//att_sp.yaw_body = rt_atan2f_snf(att_sp.R_body[1][0], att_sp.R_body[0][0]);
+
+				} else {
+					/* thrust compensation for altitude only control mode */
+					float att_comp;
+					if (att.R[2][2] > 0.8f)
+						att_comp = 1.0f / att.R[2][2];
+					else if (att.R[2][2] > 0.0f)
+						att_comp = ((1.0f / 0.8f - 1.0f) / 0.8f) * att.R[2][2] + 1.0f;
+					else
+						att_comp = 1.0f;
+					thrust_abs *= att_comp;
+				}
+
+				att_sp.thrust = thrust_abs;
 
 				att_sp.timestamp = hrt_absolute_time();
 
