@@ -355,7 +355,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 			continue;
 
 		/* ignore channels out of range */
-		if (channel >= PX4IO_INPUT_CHANNELS)
+		if (channel >= PX4IO_RC_INPUT_CHANNELS)
 			continue;
 
 		/* update the decoded channel count */
