@@ -68,7 +68,6 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -691,7 +690,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_rates_setpoint_s rates_sp;
 		struct actuator_outputs_s act_outputs;
 		struct actuator_controls_s act_controls;
-		struct actuator_controls_effective_s act_controls_effective;
 		struct vehicle_local_position_s local_pos;
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
@@ -717,7 +715,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int rates_sp_sub;
 		int act_outputs_sub;
 		int act_controls_sub;
-		int act_controls_effective_sub;
 		int local_pos_sub;
 		int local_pos_sp_sub;
 		int global_pos_sub;
@@ -763,9 +760,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 	memset(&log_msg.body, 0, sizeof(log_msg.body));
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
-	/* number of messages */
-	const ssize_t fdsc = 20;
-	/* Sanity check variable and index */
+	/* number of subscriptions */
+	const ssize_t fdsc = 19;
+	/* sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
 	struct pollfd fds[fdsc];
@@ -821,12 +818,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- ACTUATOR CONTROL --- */
 	subs.act_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	fds[fdsc_count].fd = subs.act_controls_sub;
-	fds[fdsc_count].events = POLLIN;
-	fdsc_count++;
-
-	/* --- ACTUATOR CONTROL EFFECTIVE --- */
-	subs.act_controls_effective_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
-	fds[fdsc_count].fd = subs.act_controls_effective_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1112,12 +1103,6 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_ATTC.yaw = buf.act_controls.control[2];
 				log_msg.body.log_ATTC.thrust = buf.act_controls.control[3];
 				LOGBUFFER_WRITE_AND_COUNT(ATTC);
-			}
-
-			/* --- ACTUATOR CONTROL EFFECTIVE --- */
-			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.act_controls_effective_sub, &buf.act_controls_effective);
-				// TODO not implemented yet
 			}
 
 			/* --- LOCAL POSITION --- */
