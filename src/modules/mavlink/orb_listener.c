@@ -54,6 +54,7 @@
 #include <sys/prctl.h>
 #include <stdlib.h>
 #include <poll.h>
+#include <lib/geo/geo.h>
 
 #include <mavlink/mavlink_log.h>
 
@@ -245,7 +246,7 @@ l_vehicle_attitude(const struct listener *l)
 		if (t >= last_sent_vfr + 100000) {
 			last_sent_vfr = t;
 			float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
-			uint16_t heading = (att.yaw + M_PI_F) / M_PI_F * 180.0f;
+			uint16_t heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			float throttle = armed.armed ? actuators_0.control[3] * 100.0f : 0.0f;
 			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
 		}
@@ -263,13 +264,7 @@ l_vehicle_gps_position(const struct listener *l)
 	orb_copy(ORB_ID(vehicle_gps_position), mavlink_subs.gps_sub, &gps);
 
 	/* GPS COG is 0..2PI in degrees * 1e2 */
-	float cog_deg = gps.cog_rad;
-
-	if (cog_deg > M_PI_F)
-		cog_deg -= 2.0f * M_PI_F;
-
-	cog_deg *= M_RAD_TO_DEG_F;
-
+	float cog_deg = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F;
 
 	/* GPS position */
 	mavlink_msg_gps_raw_int_send(MAVLINK_COMM_0,
@@ -362,28 +357,16 @@ l_global_position(const struct listener *l)
 	/* copy global position data into local buffer */
 	orb_copy(ORB_ID(vehicle_global_position), mavlink_subs.global_pos_sub, &global_pos);
 
-	uint64_t timestamp = global_pos.timestamp;
-	int32_t lat = global_pos.lat;
-	int32_t lon = global_pos.lon;
-	int32_t alt = (int32_t)(global_pos.alt * 1000);
-	int32_t relative_alt = (int32_t)(global_pos.relative_alt * 1000.0f);
-	int16_t vx = (int16_t)(global_pos.vx * 100.0f);
-	int16_t vy = (int16_t)(global_pos.vy * 100.0f);
-	int16_t vz = (int16_t)(global_pos.vz * 100.0f);
-
-	/* heading in degrees * 10, from 0 to 36.000) */
-	uint16_t hdg = (global_pos.yaw / M_PI_F) * (180.0f * 10.0f) + (180.0f * 10.0f);
-
 	mavlink_msg_global_position_int_send(MAVLINK_COMM_0,
-					     timestamp / 1000,
-					     lat,
-					     lon,
-					     alt,
-					     relative_alt,
-					     vx,
-					     vy,
-					     vz,
-					     hdg);
+						 global_pos.timestamp / 1000,
+					     global_pos.lat,
+					     global_pos.lon,
+					     global_pos.alt * 1000.0f,
+					     global_pos.relative_alt * 1000.0f,
+					     global_pos.vx * 100.0f,
+					     global_pos.vy * 100.0f,
+					     global_pos.vz * 100.0f,
+					     _wrap_2pi(global_pos.yaw) * M_RAD_TO_DEG_F * 100.0f);
 }
 
 void
@@ -421,8 +404,8 @@ l_global_position_setpoint(const struct listener *l)
 				coordinate_frame,
 				global_sp.lat,
 				global_sp.lon,
-				global_sp.altitude,
-				global_sp.yaw);
+				global_sp.altitude * 1000.0f,
+				global_sp.yaw * M_RAD_TO_DEG_F * 100.0f);
 }
 
 void
