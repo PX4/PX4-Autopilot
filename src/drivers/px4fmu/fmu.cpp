@@ -69,7 +69,6 @@
 #include <drivers/drv_rc_input.h>
 
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 
@@ -123,7 +122,6 @@ private:
 	int		_t_actuators;
 	int		_t_actuator_armed;
 	orb_advert_t	_t_outputs;
-	orb_advert_t	_t_actuators_effective;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
 
@@ -220,7 +218,6 @@ PX4FMU::PX4FMU() :
 	_t_actuators(-1),
 	_t_actuator_armed(-1),
 	_t_outputs(0),
-	_t_actuators_effective(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_task_should_exit(false),
@@ -471,13 +468,6 @@ PX4FMU::task_main()
 	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
 				   &outputs);
 
-	/* advertise the effective control inputs */
-	actuator_controls_effective_s controls_effective;
-	memset(&controls_effective, 0, sizeof(controls_effective));
-	/* advertise the effective control inputs */
-	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
-					       &controls_effective);
-
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
@@ -550,7 +540,7 @@ PX4FMU::task_main()
 			if (fds[0].revents & POLLIN) {
 
 				/* get controls - must always do this to avoid spinning */
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
+				orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS : ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 				/* can we mix? */
 				if (_mixers != nullptr) {
@@ -598,13 +588,6 @@ PX4FMU::task_main()
 					uint16_t pwm_limited[num_outputs];
 
 					pwm_limit_calc(_armed, num_outputs, _disarmed_pwm, _min_pwm, _max_pwm, outputs.output, pwm_limited, &_pwm_limit);
-
-					/* output actual limited values */
-					for (unsigned i = 0; i < num_outputs; i++) {
-						controls_effective.control_effective[i] = (float)pwm_limited[i];
-					}
-
-					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
 
 					/* output to the servos */
 					for (unsigned i = 0; i < num_outputs; i++) {
@@ -670,7 +653,6 @@ PX4FMU::task_main()
 	}
 
 	::close(_t_actuators);
-	::close(_t_actuators_effective);
 	::close(_t_actuator_armed);
 
 	/* make sure servos are off */

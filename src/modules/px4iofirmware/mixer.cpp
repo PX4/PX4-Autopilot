@@ -195,7 +195,7 @@ mixer_tick(void)
 			r_page_servos[i] = r_page_servo_failsafe[i];
 
 			/* safe actuators for FMU feedback */
-			r_page_actuators[i] = (r_page_servos[i] - 1500) / 600.0f;
+			r_page_actuators[i] = FLOAT_TO_REG((r_page_servos[i] - 1500) / 600.0f);
 		}
 
 
@@ -211,6 +211,10 @@ mixer_tick(void)
 
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
 			r_page_servos[i] = 0;
+
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
+		}
 	}
 
 	if ((should_arm || should_always_enable_pwm) && !mixer_servos_armed) {
