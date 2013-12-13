@@ -157,6 +157,7 @@ volatile uint16_t	r_page_setup[] =
 #endif
 	[PX4IO_P_SETUP_SET_DEBUG]		= 0,
 	[PX4IO_P_SETUP_REBOOT_BL]		= 0,
+	[PX4IO_P_SETUP_CRC ... (PX4IO_P_SETUP_CRC+1)] = 0,
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(0)
