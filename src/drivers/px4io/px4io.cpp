@@ -95,6 +95,7 @@ extern device::Device *PX4IO_serial_interface() weak_function;
 
 #define PX4IO_SET_DEBUG			_IOC(0xff00, 0)
 #define PX4IO_INAIR_RESTART_ENABLE	_IOC(0xff00, 1)
+#define PX4IO_REBOOT_BOOTLOADER		_IOC(0xff00, 2)
 
 #define UPDATE_INTERVAL_MIN		2			// 2 ms	-> 500 Hz
 #define ORB_CHECK_INTERVAL		200000		// 200 ms -> 5 Hz
@@ -2146,6 +2147,16 @@ PX4IO::ioctl(file * /*filep*/, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG, arg);
 		break;
 
+	case PX4IO_REBOOT_BOOTLOADER:
+		if (system_status() & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+			return -EINVAL;
+
+		/* reboot into bootloader - arg must be PX4IO_REBOOT_BL_MAGIC */
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
+		// we don't expect a reply from this operation
+		ret = OK;
+		break;
+
 	case PX4IO_INAIR_RESTART_ENABLE:
 
 		/* set/clear the 'in-air restart' bit */
@@ -2673,6 +2684,39 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "forceupdate")) {
+		/*
+		  force update of the IO firmware without requiring
+		  the user to hold the safety switch down
+		 */
+		if (argc <= 3) {
+			printf("usage: px4io forceupdate MAGIC filename\n");
+			exit(1);
+		}
+		if (g_dev == nullptr) {
+			printf("px4io is not started\n");
+			exit(1);
+		}
+		uint16_t arg = atol(argv[2]);
+		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
+		if (ret != OK) {
+			printf("reboot failed - %d\n", ret);
+			exit(1);			
+		}
+
+		// tear down the px4io instance
+		delete g_dev;
+
+		// upload the specified firmware
+		const char *fn[2];
+		fn[0] = argv[3];
+		fn[1] = nullptr;
+		PX4IO_Uploader *up = new PX4IO_Uploader;
+		up->upload(&fn[0]);
+		delete up;
+		exit(0);
+	}
+
 	if (!strcmp(argv[1], "rx_dsm") ||
 	    !strcmp(argv[1], "rx_dsm_10bit") ||
 	    !strcmp(argv[1], "rx_dsm_11bit") ||
@@ -2690,5 +2734,5 @@ px4io_main(int argc, char *argv[])
 		bind(argc, argv);
 
 out:
-	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'bind' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug',\n 'recovery', 'limit', 'current', 'bind', 'checkcrc', 'forceupdate' or 'update'");
 }
