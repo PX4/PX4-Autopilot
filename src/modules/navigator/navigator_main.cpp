@@ -38,6 +38,7 @@
  * Implementation of the main navigation state machine.
  *
  * Handles missions, geo fencing and failsafe navigation behavior.
+ * Published the mission item triplet for the position controller.
  */
 
 #include <nuttx/config.h>
@@ -66,21 +67,15 @@
 #include <uORB/topics/navigation_capabilities.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
-#include <geo/geo.h>
+#include <systemlib/state_table.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
+#include <geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <dataman/dataman.h>
 #include <mavlink/mavlink_log.h>
 
-typedef enum {
-	NAVIGATION_MODE_NONE,
-	NAVIGATION_MODE_LOITER,
-	NAVIGATION_MODE_WAYPOINT,
-	NAVIGATION_MODE_LOITER_WAYPOINT,
-	NAVIGATION_MODE_RTL,
-	NAVIGATION_MODE_LOITER_RTL
-} navigation_mode_t;
+
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -95,7 +90,7 @@ static const int ERROR = -1;
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
-class Navigator
+class Navigator : public StateTable
 {
 public:
 	/**
@@ -141,7 +136,7 @@ private:
 	int		_home_pos_sub;			/**< home position subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int		_params_sub;			/**< notification of parameter updates */
-	int		_mission_sub;			/**< notification of mission updates */
+	int		_offboard_mission_sub;		/**< notification of offboard mission updates */
 	int 		_onboard_mission_sub;		/**< notification of onboard mission updates */
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 
@@ -157,22 +152,26 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	
-	unsigned	_mission_item_count;		/** number of mission items copied */
-	unsigned	_onboard_mission_item_count;	/** number of onboard mission items copied */
-	struct	fence_s 				_fence;			/**< storage for fence vertices */
+	struct fence_s 					_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
         bool						_inside_fence;		/**< vehicle is inside fence */
 
 	struct navigation_capabilities_s		_nav_caps;
 
+	unsigned	_current_offboard_mission_index;
+	unsigned	_current_onboard_mission_index;
+	unsigned	_offboard_mission_item_count;	/** number of offboard mission items copied */
+	unsigned	_onboard_mission_item_count;	/** number of onboard mission items copied */
+
+	enum {
+		MISSION_TYPE_NONE,
+		MISSION_TYPE_ONBOARD,
+		MISSION_TYPE_OFFBOARD,
+	} _mission_type;
+
 	bool		_waypoint_position_reached;
 	bool		_waypoint_yaw_reached;
 	uint64_t	_time_first_inside_orbit;
-	bool		_mission_item_reached;
-
-	navigation_mode_t				_mode;
-	unsigned		_current_mission_index;
-	unsigned		_current_onboard_mission_index;
 
 	struct {
 		float min_altitude;
@@ -187,21 +186,68 @@ private:
 
 	}		_parameter_handles;		/**< handles for parameters */
 
+	enum Event {
+		EVENT_NONE_REQUESTED,
+		EVENT_LOITER_REQUESTED,
+		EVENT_MISSION_REQUESTED,
+		EVENT_RTL_REQUESTED,
+		EVENT_MISSION_FINISHED,
+		EVENT_MISSION_CHANGED,
+		EVENT_HOME_POSITION_CHANGED,
+		MAX_EVENT
+	};
+
+	enum State {
+		STATE_INIT,
+		STATE_NONE,
+		STATE_LOITER,
+		STATE_MISSION,
+		STATE_MISSION_LOITER,
+		STATE_RTL,
+		STATE_RTL_LOITER,
+		MAX_STATE
+	};
+
+	/**
+	 * State machine transition table
+	 */
+	static StateTable::Tran const myTable[MAX_STATE][MAX_EVENT];
 
 	/**
 	 * Update our local parameter cache.
 	 */
-	int		parameters_update();
+	void		parameters_update();
 
 	/**
-	* Retrieve mission.
-	*/
-	void		mission_update();
+	 * Retrieve global position
+	 */
+	void		global_position_update();
 
 	/**
-	* Retrieve onboard mission.
-	*/
+	 * Retrieve home position
+	 */
+	void		home_position_update();
+
+	/**
+	 * Retreive navigation capabilities
+	 */
+	void		navigation_capabilities_update();
+
+	/**
+	 * Retrieve offboard mission.
+	 */
+	void		offboard_mission_update();
+
+	/**
+	 * Retrieve onboard mission.
+	 */
 	void		onboard_mission_update();
+
+	/**
+	 * Retrieve vehicle status
+	 */
+	void		vehicle_status_update();
+
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -219,31 +265,52 @@ private:
 
 	bool		fence_valid(const struct fence_s &fence);
 
-	void		set_mode(navigation_mode_t new_nav_mode);
+	/**
+	 * Functions that are triggered when a new state is entered.
+	 */
+	void		start_none();
+	void		start_loiter();
+	void		start_mission();
+	void		start_mission_loiter();
+	void		start_rtl();
+	void		start_rtl_loiter();
 
-	bool		mission_possible();
+	/**
+	 * Guards offboard mission
+	 */
+	bool		offboard_mission_available(unsigned relative_index);
 
-	bool		onboard_mission_possible();
+	/**
+	 * Guards onboard mission
+	 */
+	bool		onboard_mission_available(unsigned relative_index);
 
-	int		set_waypoint_mission_item(dm_item_t dm_item, unsigned mission_item_index, struct mission_item_s *new_mission_item);
+	/**
+	 * Check if current mission item has been reached.
+	 */
+	bool		mission_item_reached();
 
+	/**
+	 * Move to next waypoint
+	 */
+	int		advance_mission();
+
+	/**
+	 * Helper function to set a mission item
+	 */
+	int		set_mission_item(unsigned relative_index, struct mission_item_s *mission_item) ;
+
+	/**
+	 * Helper function to set a loiter item
+	 */
+	void		set_loiter_item(mission_item_s *new_loiter_position);
+
+	/**
+	 * Publish a new mission item triplet for position controller
+	 */
 	void		publish_mission_item_triplet();
 
-	void		publish_mission_result();
 
-	int		advance_current_mission_item();
-
-	void		reset_mission_item_reached();
-
-	void		check_mission_item_reached();
-
-	void		report_mission_reached();
-
-	void		start_waypoint();
-
-	void		start_loiter(mission_item_s *new_loiter_position);
-
-	void		start_rtl();
 
 	/**
 	 * Compare two mission items if they are equivalent
@@ -266,11 +333,13 @@ static const int ERROR = -1;
 Navigator	*g_navigator;
 }
 
-Navigator::Navigator() :
+Navigator::Navigator() : 
+
+/* state machine transition table */
+	StateTable(&myTable[0][0], MAX_STATE, MAX_EVENT),
 
 	_task_should_exit(false),
 	_navigator_task(-1),
-
 	_mavlink_fd(-1),
 
 /* subscriptions */
@@ -278,7 +347,7 @@ Navigator::Navigator() :
 	_home_pos_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
-	_mission_sub(-1),
+	_offboard_mission_sub(-1),
 	_onboard_mission_sub(-1),
 	_capabilities_sub(-1),
 
@@ -289,21 +358,20 @@ Navigator::Navigator() :
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
+
 /* states */
-	_mission_item_count(0),
-	_onboard_mission_item_count(0),
 	_fence_valid(false),
 	_inside_fence(true),
+	_current_offboard_mission_index(0),
+	_current_onboard_mission_index(0),
+	_offboard_mission_item_count(0),
+	_onboard_mission_item_count(0),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
-	_time_first_inside_orbit(0),
-	_mission_item_reached(false),
-	_mode(NAVIGATION_MODE_NONE),
-	_current_mission_index(0),
-	_current_onboard_mission_index(0)
+	_time_first_inside_orbit(0)
 {
-	_global_pos.valid = false;
 	memset(&_fence, 0, sizeof(_fence));
+
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
 	_parameter_handles.loiter_radius = param_find("NAV_LOITER_RAD");
 	_parameter_handles.onboard_mission_enabled = param_find("NAV_ONB_MIS_EN");
@@ -317,8 +385,8 @@ Navigator::Navigator() :
 
 	memset(&_mission_result, 0, sizeof(struct mission_result_s));
 
-	/* fetch initial values */
-	parameters_update();
+	/* Initialize state machine */
+	myState = STATE_INIT;
 }
 
 Navigator::~Navigator()
@@ -346,35 +414,53 @@ Navigator::~Navigator()
 	navigator::g_navigator = nullptr;
 }
 
-int
+void
 Navigator::parameters_update()
 {
+	/* read from param to clear updated flag */
+	struct parameter_update_s update;
+	orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 	param_get(_parameter_handles.min_altitude, &(_parameters.min_altitude));
 	param_get(_parameter_handles.loiter_radius, &(_parameters.loiter_radius));
 	param_get(_parameter_handles.onboard_mission_enabled, &(_parameters.onboard_mission_enabled));
-
-	return OK;
 }
 
 void
-Navigator::mission_update()
+Navigator::global_position_update()
 {
-	struct mission_s mission;
-	if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == OK) {
+	/* load local copies */
+	orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+}
 
-		_mission_item_count = mission.count;
-		_current_mission_index = mission.current_index;
+void
+Navigator::home_position_update()
+{
+	orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+}
+
+void
+Navigator::navigation_capabilities_update()
+{
+	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
+}
+
+
+void
+Navigator::offboard_mission_update()
+{
+	struct mission_s offboard_mission;
+	if (orb_copy(ORB_ID(mission), _offboard_mission_sub, &offboard_mission) == OK) {
+
+		_offboard_mission_item_count = offboard_mission.count;
+		
+		if (offboard_mission.current_index != -1) {
+			_current_offboard_mission_index = offboard_mission.current_index;
+		}
 
 	} else {
-		_mission_item_count = 0;
-		_current_mission_index = 0;
-	}
-	if ((!mission_possible() || !onboard_mission_possible()) && _mode == NAVIGATION_MODE_WAYPOINT) {
-		set_mode(NAVIGATION_MODE_LOITER);
-	}
-	else if (_mode == NAVIGATION_MODE_WAYPOINT) {
-		start_waypoint();
+		_offboard_mission_item_count = 0;
+		_current_offboard_mission_index = 0;
 	}
 }
 
@@ -385,18 +471,23 @@ Navigator::onboard_mission_update()
 	if (orb_copy(ORB_ID(onboard_mission), _onboard_mission_sub, &onboard_mission) == OK) {
 
 		_onboard_mission_item_count = onboard_mission.count;
-		_current_onboard_mission_index = onboard_mission.current_index;
+
+		if (onboard_mission.current_index != -1) {
+			_current_onboard_mission_index = onboard_mission.current_index;
+		}
 
 	} else {
 		_onboard_mission_item_count = 0;
 		_current_onboard_mission_index = 0;
 	}
+}
 
-	if ((!mission_possible() || !onboard_mission_possible()) && _mode == NAVIGATION_MODE_WAYPOINT) {
-		set_mode(NAVIGATION_MODE_LOITER);
-	}
-	else if (_mode == NAVIGATION_MODE_WAYPOINT) {
-		start_waypoint();
+void
+Navigator::vehicle_status_update()
+{
+	/* try to load initial states */
+	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
+		_vstatus.arming_state = ARMING_STATE_STANDBY; /* in case the commander is not be running */
 	}
 }
 
@@ -414,36 +505,33 @@ Navigator::task_main()
 	warnx("Initializing..");
 	fflush(stdout);
 
+	_fence_valid = load_fence(GEOFENCE_MAX_VERTICES);
+
 	/*
 	 * do subscriptions
 	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_mission_sub = orb_subscribe(ORB_ID(mission));
+	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
 	_onboard_mission_sub = orb_subscribe(ORB_ID(onboard_mission));
 	_capabilities_sub = orb_subscribe(ORB_ID(navigation_capabilities));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
-	// Load initial states
-	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
-		_vstatus.arming_state = ARMING_STATE_STANDBY;    // for testing... commander may not be running
-	}
-
-	mission_update();
+	
+	/* copy all topics first time */
+	parameters_update();
+	global_position_update();
+	home_position_update();
+	navigation_capabilities_update();
+	offboard_mission_update();
 	onboard_mission_update();
+	vehicle_status_update();
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
-
-	parameters_update();
-
-	_fence_valid = load_fence(GEOFENCE_MAX_VERTICES);
-
-	/* load the craft capabilities */
-	orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
 
 	/* wakeup source(s) */
 	struct pollfd fds[7];
@@ -457,7 +545,7 @@ Navigator::task_main()
 	fds[2].events = POLLIN;
 	fds[3].fd = _capabilities_sub;
 	fds[3].events = POLLIN;
-	fds[4].fd = _mission_sub;
+	fds[4].fd = _offboard_mission_sub;
 	fds[4].events = POLLIN;
 	fds[5].fd = _onboard_mission_sub;
 	fds[5].events = POLLIN;
@@ -485,8 +573,8 @@ Navigator::task_main()
 
 		/* only update vehicle status if it changed */
 		if (fds[6].revents & POLLIN) {
-			/* read from param to clear updated flag */
-			orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus);
+			
+			vehicle_status_update();
 
 			/* Evaluate state machine from commander and set the navigator mode accordingly */
 			if (_vstatus.main_state == MAIN_STATE_AUTO) {
@@ -497,135 +585,96 @@ Navigator::task_main()
 					case NAVIGATION_STATE_ALTHOLD:
 					case NAVIGATION_STATE_VECTOR:
 						
-						set_mode(NAVIGATION_MODE_NONE);
+						/* don't publish a mission item triplet */
+						dispatch(EVENT_NONE_REQUESTED);
 						break;
 
 					case NAVIGATION_STATE_AUTO_READY:
 					case NAVIGATION_STATE_AUTO_TAKEOFF:
+					case NAVIGATION_STATE_AUTO_MISSION:
 
-						/* TODO probably not needed since takeoff WPs will just be passed on */
-						//set_mode(NAVIGATION_MODE_TAKEOFF);
+						/* try mission if none is available, fallback to loiter instead */
+						if (onboard_mission_available(0) || offboard_mission_available(0)) {
+							dispatch(EVENT_MISSION_REQUESTED);
+						} else {
+							dispatch(EVENT_LOITER_REQUESTED);
+						}
 						break;
 
 					case NAVIGATION_STATE_AUTO_LOITER:
 
-						set_mode(NAVIGATION_MODE_LOITER);
+						dispatch(EVENT_LOITER_REQUESTED);
 						break;
 
-					case NAVIGATION_STATE_AUTO_MISSION:
-
-						if (mission_possible() || onboard_mission_possible()) {
-							/* Start mission or onboard mission if available */
-							set_mode(NAVIGATION_MODE_WAYPOINT);
-						} else {
-							/* else fallback to loiter */
-							set_mode(NAVIGATION_MODE_LOITER);
-						}
-						break;
 
 					case NAVIGATION_STATE_AUTO_RTL:
 						
-						set_mode(NAVIGATION_MODE_RTL);
+						dispatch(EVENT_RTL_REQUESTED);
 						break;
 
 					case NAVIGATION_STATE_AUTO_LAND:
 
 						/* TODO add this */
-						//set_mode(NAVIGATION_MODE_LAND);
+						
 						break;
 
 					default:
-						warnx("Navigation state not supported");
+						warnx("ERROR: Navigation state not supported");
 						break;
 				}
 
 			} else {
-				set_mode(NAVIGATION_MODE_NONE);
+				/* not in AUTO */
+				dispatch(EVENT_NONE_REQUESTED);
+			}
+
+			/* XXX Hack to get mavlink output going, try opening the fd with 5Hz */
+			if (_mavlink_fd < 0) {
+				/* try to open the mavlink log device every once in a while */
+				_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 			}
 		}
 
+
 		/* only update parameters if it changed */
 		if (fds[0].revents & POLLIN) {
-			/* read from param to clear updated flag */
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
-			/* update parameters from storage */
 			parameters_update();
-
 			/* note that these new parameters won't be in effect until a mission triplet is published again */
 		}
 
 		/* only update craft capabilities if they have changed */
 		if (fds[3].revents & POLLIN) {
-			orb_copy(ORB_ID(navigation_capabilities), _capabilities_sub, &_nav_caps);
+			navigation_capabilities_update();
 		}
 
 		if (fds[4].revents & POLLIN) {
-			mission_update();
+			offboard_mission_update();
+			// XXX check if mission really changed 
+			dispatch(EVENT_MISSION_CHANGED);
 		}
 
 		if (fds[5].revents & POLLIN) {
 			onboard_mission_update();
+			// XXX check if mission really changed
+			dispatch(EVENT_MISSION_CHANGED);
 		}
 
 		if (fds[2].revents & POLLIN) {
-			orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
+			home_position_update();
+			// XXX check if home position really changed
+			dispatch(EVENT_HOME_POSITION_CHANGED);
 		}
 
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
-
-			/* XXX Hack to get mavlink output going */
-			if (_mavlink_fd < 0) {
-				/* try to open the mavlink log device every once in a while */
-				_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-			}
-
-			/* load local copies */
-			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-	
-			/* do stuff according to mode */
-			switch (_mode) {
-				case NAVIGATION_MODE_NONE:
-				case NAVIGATION_MODE_LOITER:
-				case NAVIGATION_MODE_LOITER_WAYPOINT:
-				case NAVIGATION_MODE_LOITER_RTL:
-					break;
-
-				case NAVIGATION_MODE_WAYPOINT:
-
-					check_mission_item_reached();
-
-					if (_mission_item_reached) {
-
-						
-
-						if (onboard_mission_possible()) {
-							mavlink_log_info(_mavlink_fd, "[navigator] reached onboard WP %d", _current_onboard_mission_index);
-						} else {
-							mavlink_log_info(_mavlink_fd, "[navigator] reached WP %d", _current_mission_index);
-							report_mission_reached();
-						}
-
-						if (advance_current_mission_item() != OK) {
-							set_mode(NAVIGATION_MODE_LOITER_WAYPOINT);
-						}
-					}
-					break;
-
-				case NAVIGATION_MODE_RTL:
-
-					check_mission_item_reached();
-
-					if (_mission_item_reached) {
-						mavlink_log_info(_mavlink_fd, "[navigator] reached RTL position");
-						set_mode(NAVIGATION_MODE_LOITER_RTL);
-					}
-					break;
-				default:
-					warnx("navigation mode not supported");
-					break;
+			global_position_update();
+			/* only check if waypoint has been reached in Mission or RTL mode */
+			if (mission_item_reached()) {
+				/* try to advance mission */
+				if (advance_mission() != OK) {
+					dispatch(EVENT_MISSION_FINISHED);
+				}
 			}
 		}
 		perf_end(_loop_perf);
@@ -668,15 +717,57 @@ Navigator::status()
 			(double)_global_pos.alt, (double)_global_pos.relative_alt);
 		warnx("Ground velocity in m/s, x %5.5f, y %5.5f, z %5.5f",
 			(double)_global_pos.vx, (double)_global_pos.vy, (double)_global_pos.vz);
-		warnx("Compass heading in degrees %5.5f", (double)_global_pos.yaw * 57.2957795);
+		warnx("Compass heading in degrees %5.5f", (double)(_global_pos.yaw * M_RAD_TO_DEG_F));
 	}
 	if (_fence_valid) {
 		warnx("Geofence is valid");
 		warnx("Vertex longitude latitude");
 		for (unsigned i = 0; i < _fence.count; i++)
 		warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
-	} else
+	} else {
 		warnx("Geofence not set");
+	}
+
+	switch (myState) {
+		case STATE_INIT:
+			warnx("State: Init");
+			break;
+		case STATE_NONE:
+			warnx("State: None");
+			break;
+		case STATE_LOITER:
+			warnx("State: Loiter");
+			break;
+		case STATE_MISSION:
+			warnx("State: Mission");
+			switch (_mission_type) {
+				case MISSION_TYPE_ONBOARD:
+					warnx("Mission type: Onboard");
+					break;
+				case MISSION_TYPE_OFFBOARD:
+					warnx("Mission type: Offboard");
+					break;
+				case MISSION_TYPE_NONE:
+				default:
+					warnx("ERROR: Mission type unsupported");
+					break;
+			}
+			warnx("Onboard mission: %d of %d", _current_onboard_mission_index, _onboard_mission_item_count);
+			warnx("Offboard mission: %d of %d", _current_offboard_mission_index, _offboard_mission_item_count);
+			break;
+		case STATE_MISSION_LOITER:
+			warnx("State: Loiter after Mission");
+			break;
+		case STATE_RTL:
+			warnx("State: RTL");
+			break;
+		case STATE_RTL_LOITER:
+			warnx("State: Loiter after RTL");
+			break;
+		default:
+			warnx("State: Unknown");
+			break;
+	}
 }
 
 void
@@ -767,199 +858,177 @@ Navigator::fence_point(int argc, char *argv[])
 	errx(1, "can't store fence point");
 }
 
+
+
+StateTable::Tran const Navigator::myTable[MAX_STATE][MAX_EVENT] = {
+	{	
+							/* STATE_INIT */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
+		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
+		/* EVENT_MISSION_FINISHED */		{NO_ACTION, STATE_INIT},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_INIT},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_INIT},
+	},
+	{	
+							/* STATE_NONE */
+		/* EVENT_NONE_REQUESTED */		{NO_ACTION, STATE_NONE},
+		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
+		/* EVENT_MISSION_FINISHED */		{NO_ACTION, STATE_NONE},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_NONE},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_NONE},
+	},
+	{	
+							/* STATE_LOITER */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
+		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
+		/* EVENT_MISSION_FINISHED */		{NO_ACTION, STATE_LOITER},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_LOITER},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_LOITER},
+	},
+	{	
+							/* STATE_MISSION */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
+		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{NO_ACTION, STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
+		/* EVENT_MISSION_FINISHED */		{ACTION(&Navigator::start_mission_loiter), STATE_MISSION_LOITER},
+		/* EVENT_MISSION_CHANGED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_MISSION},
+	},
+	{	
+							/* STATE_MISSION_LOITER */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
+		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, STATE_MISSION_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{NO_ACTION, STATE_MISSION_LOITER},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), STATE_RTL},
+		/* EVENT_MISSION_FINISHED */		{NO_ACTION, STATE_MISSION_LOITER},
+		/* EVENT_MISSION_CHANGED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, STATE_MISSION_LOITER},
+	},
+	{	
+							/* STATE_RTL */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
+		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), STATE_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{NO_ACTION, STATE_RTL},
+		/* EVENT_MISSION_FINISHED */		{ACTION(&Navigator::start_rtl_loiter), STATE_RTL_LOITER},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_RTL},
+		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_loiter), STATE_RTL},
+	},
+	{	
+							/* STATE_RTL_LOITER */
+		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), STATE_NONE},
+		/* EVENT_LOITER_REQUESTED */		{NO_ACTION,  STATE_RTL_LOITER},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{NO_ACTION, STATE_RTL_LOITER},
+		/* EVENT_MISSION_FINISHED */		{NO_ACTION, STATE_RTL_LOITER},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, STATE_RTL_LOITER},
+		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_loiter), STATE_LOITER},
+	},
+};
+
 void
-Navigator::set_mode(navigation_mode_t new_nav_mode)
+Navigator::start_none()
 {
-	if (new_nav_mode == _mode) {
-		/* no change, return */
-		return;
+	_mission_item_triplet.previous_valid = false;
+	_mission_item_triplet.current_valid = false;
+	_mission_item_triplet.next_valid = false;
+
+	publish_mission_item_triplet();
+}
+
+void
+Navigator::start_loiter()
+{
+	struct mission_item_s loiter_item;
+
+	loiter_item.lat = (double)_global_pos.lat / 1e7;
+	loiter_item.lon = (double)_global_pos.lon / 1e7;
+	loiter_item.yaw = 0.0f;
+
+	/* XXX get rid of ugly conversion for home position altitude */
+	float global_min_alt = _parameters.min_altitude + (float)_home_pos.alt/1e3f;
+
+	/* Use current altitude if above min altitude set by parameter */
+	if (_global_pos.alt < global_min_alt) {
+		loiter_item.altitude = global_min_alt;
+		mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", (double)(global_min_alt - _global_pos.alt));
+	} else {
+		loiter_item.altitude = _global_pos.alt;
+		mavlink_log_info(_mavlink_fd, "[navigator] loiter here");
 	}
 
-	switch (new_nav_mode) {
-		case NAVIGATION_MODE_NONE:
+	set_loiter_item(&loiter_item);
 
-			// warnx("Set mode NONE");
-			_mode = new_nav_mode;
+	publish_mission_item_triplet();
+}
+
+
+void
+Navigator::start_mission()
+{
+	/* leave previous mission item as isas is */
+
+	if(set_mission_item(0, &_mission_item_triplet.current) == OK) {
+		_mission_item_triplet.current_valid = true;
+	} else {
+		_mission_item_triplet.current_valid = false;
+		warnx("ERROR: current WP can't be set");
+	}
+
+	if(set_mission_item(1, &_mission_item_triplet.next) == OK) {
+		_mission_item_triplet.next_valid = true;
+	} else {
+		_mission_item_triplet.next_valid = false;
+	}
+
+	switch (_mission_type) {
+		case MISSION_TYPE_ONBOARD:
+			mavlink_log_info(_mavlink_fd, "[navigator] heading to onboard WP %d", _current_onboard_mission_index);
 			break;
-
-		case NAVIGATION_MODE_LOITER:
-
-			/* decide depending on previous navigation mode */
-			switch (_mode) {
-				case NAVIGATION_MODE_NONE:
-
-				case NAVIGATION_MODE_WAYPOINT:
-				case NAVIGATION_MODE_RTL: {
-
-					/* use current position and loiter around it */
-					mission_item_s global_position_mission_item;
-					global_position_mission_item.lat = (double)_global_pos.lat / 1e7;
-					global_position_mission_item.lon = (double)_global_pos.lon / 1e7;
-
-					/* XXX get rid of ugly conversion for home position altitude */
-					float global_min_alt = _parameters.min_altitude + (float)_home_pos.alt/1e3f;
-
-					/* Use current altitude if above min altitude set by parameter */
-					if (_global_pos.alt < global_min_alt) {
-						global_position_mission_item.altitude = global_min_alt;
-						mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", (double)(global_min_alt - _global_pos.alt));
-					} else {
-						global_position_mission_item.altitude = _global_pos.alt;
-						mavlink_log_info(_mavlink_fd, "[navigator] loiter here");
-					}
-					start_loiter(&global_position_mission_item);
-					_mode = new_nav_mode;
-					
-					break;
-				}
-				case NAVIGATION_MODE_LOITER_WAYPOINT:
-				case NAVIGATION_MODE_LOITER_RTL:
-					/* already loitering, just continue */
-					_mode = new_nav_mode;
-					// warnx("continue loiter");
-					break;
-
-				case NAVIGATION_MODE_LOITER:
-				default:
-					// warnx("previous navigation mode not supported");
-					break;
-			}
+		case MISSION_TYPE_OFFBOARD:
+			mavlink_log_info(_mavlink_fd, "[navigator] heading to offboard WP %d", _current_offboard_mission_index);
 			break;
-
-		case NAVIGATION_MODE_WAYPOINT:
-
-			/* Start mission if there is one available */
-			start_waypoint();
-			_mode = new_nav_mode;
-			mavlink_log_info(_mavlink_fd, "[navigator] start waypoint mission");
-			break;
-
-		case NAVIGATION_MODE_LOITER_WAYPOINT:
-
-			start_loiter(&_mission_item_triplet.current);
-			_mode = new_nav_mode;
-			mavlink_log_info(_mavlink_fd, "[navigator] loiter at WP %d", _current_mission_index-1);
-			break;
-
-		case NAVIGATION_MODE_RTL:
-
-			/* decide depending on previous navigation mode */
-			switch (_mode) {
-				case NAVIGATION_MODE_NONE:
-				case NAVIGATION_MODE_LOITER:
-				case NAVIGATION_MODE_WAYPOINT:
-				case NAVIGATION_MODE_LOITER_WAYPOINT:
-
-					/* start RTL here */
-					start_rtl();
-					_mode = new_nav_mode;
-					mavlink_log_info(_mavlink_fd, "[navigator] start RTL");
-					break;
-
-				case NAVIGATION_MODE_LOITER_RTL:
-					/* already loitering after RTL, just continue */
-					// warnx("stay in loiter after RTL");
-					break;
-
-				case NAVIGATION_MODE_RTL:
-				default:
-					warnx("previous navigation mode not supported");
-					break;
-			}
-			break;
-
-		case NAVIGATION_MODE_LOITER_RTL:
-
-				/* TODO: get rid of this conversion */
-				mission_item_s home_position_mission_item;
-				home_position_mission_item.lat = (double)_home_pos.lat / 1e7;
-				home_position_mission_item.lon = (double)_home_pos.lon / 1e7;
-				home_position_mission_item.altitude = _home_pos.alt / 1e3f + _parameters.min_altitude;
-				start_loiter(&home_position_mission_item);
-				mavlink_log_info(_mavlink_fd, "[navigator] loiter after RTL");
-				_mode = new_nav_mode;
+		case MISSION_TYPE_NONE:
+		default:
+			warnx("ERROR: Mission type unsupported");
 			break;
 	}
+
+	publish_mission_item_triplet();
 }
 
-bool
-Navigator::mission_possible()
-{
-	return _mission_item_count > 0 &&
-	       !(_current_mission_index >= _mission_item_count);
-}
 
-bool
-Navigator::onboard_mission_possible()
-{
-	return _onboard_mission_item_count > 0 &&
-	       !(_current_onboard_mission_index >= _onboard_mission_item_count) &&
-	       _parameters.onboard_mission_enabled;
-}
 
 int
-Navigator::set_waypoint_mission_item(dm_item_t dm_item, unsigned mission_item_index, struct mission_item_s *new_mission_item) 
+Navigator::advance_mission()
 {
-	struct mission_item_s mission_item;
-
-	if (dm_read(dm_item, mission_item_index, &mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s)) {
-		return ERROR;
+	switch (_mission_type) {
+		case MISSION_TYPE_ONBOARD:
+			warnx("advance onboard before: %d", _current_onboard_mission_index);
+			_current_onboard_mission_index++;
+			warnx("advance onboard after: %d", _current_onboard_mission_index);
+			break;
+		case MISSION_TYPE_OFFBOARD:
+			warnx("advance offboard before: %d", _current_offboard_mission_index);
+			_current_offboard_mission_index++;
+			warnx("advance offboard after: %d", _current_offboard_mission_index);
+			break;
+		case MISSION_TYPE_NONE:
+		default:
+			warnx("ERROR: Mission type unsupported");
+			return ERROR;
 	}
 
-	memcpy(new_mission_item, &mission_item, sizeof(struct mission_item_s));
-
-	if (new_mission_item->nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
-		/* if it is a RTL waypoint, append the home position */
-		new_mission_item->lat = (double)_home_pos.lat / 1e7;
-		new_mission_item->lon = (double)_home_pos.lon / 1e7;
-		new_mission_item->altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
-		new_mission_item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
-		new_mission_item->radius = 50.0f; // TODO: get rid of magic number
-	}
-
-	return OK;
-}
-
-void
-Navigator::publish_mission_item_triplet()
-{
-	/* lazily publish the mission triplet only once available */
-	if (_triplet_pub > 0) {
-		/* publish the mission triplet */
-		orb_publish(ORB_ID(mission_item_triplet), _triplet_pub, &_mission_item_triplet);
-
-	} else {
-		/* advertise and publish */
-		_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
-	}
-}
-
-void
-Navigator::publish_mission_result()
-{
-	/* lazily publish the mission result only once available */
-	if (_mission_result_pub > 0) {
-		/* publish the mission result */
-		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
-
-	} else {
-		/* advertise and publish */
-		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
-	}
-}
-
-int
-Navigator::advance_current_mission_item()
-{
-	reset_mission_item_reached();
-
-	// warnx("advancing from %d to %d", _current_mission_index, _current_mission_index+1);
-
-	/* ultimately this index will be == _mission_item_count and this flags the mission as completed */
-	
-	/* if there is no more mission available, don't advance and return */
+	/* if there is no more mission available, don't advance and switch to loiter at current WP */
 	if (!_mission_item_triplet.next_valid) {
-		// warnx("no next available");
+		warnx("no next valid");
 		return ERROR;
 	}
 
@@ -967,61 +1036,181 @@ Navigator::advance_current_mission_item()
 	memcpy(&_mission_item_triplet.previous, &_mission_item_triplet.current, sizeof(mission_item_s));
 	_mission_item_triplet.previous_valid = _mission_item_triplet.current_valid;
 
-	/* copy the next to current */
-	memcpy(&_mission_item_triplet.current, &_mission_item_triplet.next, sizeof(mission_item_s));
-	_mission_item_triplet.current_valid = _mission_item_triplet.next_valid;
-
-	int ret = ERROR;
-
-	if (onboard_mission_possible()) {
-		_current_onboard_mission_index++;
-		ret = set_waypoint_mission_item(DM_KEY_WAYPOINTS_ONBOARD, _current_onboard_mission_index + 1, &_mission_item_triplet.next);
-	} else if (mission_possible()) {
-		_current_mission_index++;
-		ret = set_waypoint_mission_item(DM_KEY_WAYPOINTS, _current_mission_index + 1, &_mission_item_triplet.next);
+	if(set_mission_item(0, &_mission_item_triplet.current) == OK) {
+		_mission_item_triplet.current_valid = true;
+		
 	} else {
-		warnx("Error: nothing to advance");
+		/* should never ever happen */
+		_mission_item_triplet.current_valid = false;
+		warnx("no current available");
+		return ERROR;
 	}
 	
-	if(ret == OK) {
+	if(set_mission_item(1, &_mission_item_triplet.next) == OK) {
 		_mission_item_triplet.next_valid = true;
-	}
-	else {
+		
+	} else {
 		_mission_item_triplet.next_valid = false;
 	}
 
 	publish_mission_item_triplet();
-
 	return OK;
 }
 
-
 void
-Navigator::reset_mission_item_reached()
+Navigator::start_mission_loiter()
 {
-	/* reset all states */
-	_waypoint_position_reached = false;
-	_waypoint_yaw_reached = false;
-	_time_first_inside_orbit = 0;
+	/* make sure the current WP is valid */
+	if (!_mission_item_triplet.current_valid) {
+		warnx("ERROR: cannot switch to offboard mission loiter");
+		return;
+	}
 
-	_mission_item_reached = false;
+	set_loiter_item(&_mission_item_triplet.current);
 
-	_mission_result.mission_reached = false;
-	_mission_result.mission_index = 0;
+	switch (_mission_type) {
+		case MISSION_TYPE_ONBOARD:
+			mavlink_log_info(_mavlink_fd, "[navigator] loiter at onboard WP %d", _current_onboard_mission_index-1);
+			break;
+		case MISSION_TYPE_OFFBOARD:
+			mavlink_log_info(_mavlink_fd, "[navigator] loiter at offboard WP %d", _current_offboard_mission_index-1);
+			break;
+		case MISSION_TYPE_NONE:
+		default:
+			warnx("ERROR: Mission type unsupported");
+			break;
+	}
 }
 
 void
-Navigator::check_mission_item_reached()
+Navigator::start_rtl()
 {
-	/* don't check if mission item is already reached */
-	if (_mission_item_reached) {
-		return;
+
+	/* discard all mission item and insert RTL item */
+	_mission_item_triplet.previous_valid = false;
+	_mission_item_triplet.current_valid = true;
+	_mission_item_triplet.next_valid = false;
+
+	_mission_item_triplet.current.lat = (double)_home_pos.lat / 1e7;
+	_mission_item_triplet.current.lon = (double)_home_pos.lon / 1e7;
+	_mission_item_triplet.current.altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
+	_mission_item_triplet.current.yaw = 0.0f;
+	_mission_item_triplet.current.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
+	_mission_item_triplet.current.loiter_direction = 1;
+	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+	_mission_item_triplet.current.radius = 50.0f; // TODO: get rid of magic number
+	_mission_item_triplet.current.autocontinue = false;
+	_mission_item_triplet.current_valid = true;
+
+	publish_mission_item_triplet();
+
+	mavlink_log_info(_mavlink_fd, "[navigator] return to launch");
+}	
+
+
+void
+Navigator::start_rtl_loiter()
+{
+	mission_item_s home_position_mission_item;
+	home_position_mission_item.lat = (double)_home_pos.lat / 1e7;
+	home_position_mission_item.lon = (double)_home_pos.lon / 1e7;
+	home_position_mission_item.altitude = _home_pos.alt / 1e3f + _parameters.min_altitude;
+	
+	set_loiter_item(&home_position_mission_item);
+
+	mavlink_log_info(_mavlink_fd, "[navigator] loiter after RTL");
+}
+
+bool
+Navigator::offboard_mission_available(unsigned relative_index)
+{
+	return _offboard_mission_item_count > _current_offboard_mission_index + relative_index;
+}
+
+bool
+Navigator::onboard_mission_available(unsigned relative_index)
+{
+	return _onboard_mission_item_count > _current_onboard_mission_index + relative_index && _parameters.onboard_mission_enabled;
+}
+
+int
+Navigator::set_mission_item(unsigned relative_index, struct mission_item_s *mission_item)
+{
+	struct mission_item_s new_mission_item;
+
+	/* try onboard mission first */
+	if (onboard_mission_available(relative_index)) {
+		if (_mission_type != MISSION_TYPE_ONBOARD && relative_index == 1) {
+			relative_index--;
+		}
+		if (dm_read(DM_KEY_WAYPOINTS_ONBOARD, _current_onboard_mission_index + relative_index, &new_mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s)) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			_mission_type = MISSION_TYPE_NONE;
+			return ERROR;
+		}
+		/* base the mission type on the current mission item, not on future ones */
+		if (relative_index == 0) {
+			_mission_type = MISSION_TYPE_ONBOARD;
+		}
+	/* otherwise fallback to offboard */
+	} else if (offboard_mission_available(relative_index)) {
+
+		warnx("fallback try offboard: %d / %d", _current_offboard_mission_index + relative_index, _offboard_mission_item_count);
+
+		if (_mission_type != MISSION_TYPE_OFFBOARD && relative_index == 1) {
+			relative_index--;
+		}
+
+		if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD, _current_offboard_mission_index + relative_index, &new_mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s)) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			_mission_type = MISSION_TYPE_NONE;
+			warnx("failed");
+			return ERROR;
+		}
+		/* base the mission type on the current mission item, not on future ones */
+		if (relative_index == 0) {
+			_mission_type = MISSION_TYPE_OFFBOARD;
+		}
+	} else {
+		/* happens when no more mission items can be added as a next item */
+		return ERROR;
 	}
 
-	/* don't try to reach the landing mission, just stay in that mode */
-	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LAND) {
-		return;
+	if (new_mission_item.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
+		/* if it is a RTL waypoint, append the home position */
+		new_mission_item.lat = (double)_home_pos.lat / 1e7;
+		new_mission_item.lon = (double)_home_pos.lon / 1e7;
+		new_mission_item.altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
+		new_mission_item.loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+		new_mission_item.radius = 50.0f; // TODO: get rid of magic number
 	}
+
+	memcpy(mission_item, &new_mission_item, sizeof(struct mission_item_s));
+	
+	return OK;
+}
+
+bool
+Navigator::mission_item_reached()
+{
+	/* only check if there is actually a mission item to check */
+	if (!_mission_item_triplet.current_valid) {
+		return false;
+	}
+
+	/* don't try to reach the landing mission, just stay in that mode, XXX maybe add another state for this */
+	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LAND) {
+		return false;
+	}
+
+	/* XXX TODO count turns */
+	if ((_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
+	     _mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+	     _mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
+	    _mission_item_triplet.current.loiter_radius > 0.01f) {
+
+		return false;
+	}	
 
 	uint64_t now = hrt_absolute_time();
 	float orbit;
@@ -1030,12 +1219,6 @@ Navigator::check_mission_item_reached()
 
 		orbit = _mission_item_triplet.current.radius;
 
-	} else if ((_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TURN_COUNT ||
-			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-			_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) &&
-			_mission_item_triplet.current.loiter_radius > 0.01f) {
-
-		orbit = _mission_item_triplet.current.loiter_radius;
 	} else {
 
 		// XXX set default orbit via param
@@ -1098,73 +1281,19 @@ Navigator::check_mission_item_reached()
 		if ((now - _time_first_inside_orbit >= (uint64_t)_mission_item_triplet.current.time_inside * 1e6)
 		     || _mission_item_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
 
-			_mission_item_reached = true;
+			_time_first_inside_orbit = 0;
+			_waypoint_yaw_reached = false;
+			_waypoint_position_reached = false;
+			return true;
 		}
 	}
+	return false;
 
 }
 
 void
-Navigator::report_mission_reached()
+Navigator::set_loiter_item(struct mission_item_s *new_loiter_position)
 {
-	_mission_result.mission_reached = true;
-	_mission_result.mission_index = _current_mission_index;
-
-	publish_mission_result();
-}
-
-void
-Navigator::start_waypoint()
-{
-	reset_mission_item_reached();
-
-	// if (_current_mission_index > 0) {
-	// 	set_waypoint_mission_item(_current_mission_index - 1, &_mission_item_triplet.previous);
-	// 	_mission_item_triplet.previous_valid = true;
-	// } else {
-	// 	_mission_item_triplet.previous_valid = false;
-	// }
-	_mission_item_triplet.previous_valid = false;
-	
-	int ret = ERROR;
-
-	if (onboard_mission_possible()) {
-		set_waypoint_mission_item(DM_KEY_WAYPOINTS_ONBOARD, _current_onboard_mission_index, &_mission_item_triplet.current);
-		mavlink_log_info(_mavlink_fd, "[navigator] heading to onboard WP %d", _current_onboard_mission_index);
-		ret = set_waypoint_mission_item(DM_KEY_WAYPOINTS_ONBOARD, _current_onboard_mission_index + 1, &_mission_item_triplet.next);
-	} else if (mission_possible()) {
-		set_waypoint_mission_item(DM_KEY_WAYPOINTS, _current_mission_index, &_mission_item_triplet.current);
-		mavlink_log_info(_mavlink_fd, "[navigator] heading to WP %d", _current_mission_index);
-		ret = set_waypoint_mission_item(DM_KEY_WAYPOINTS, _current_mission_index + 1, &_mission_item_triplet.next);
-	}
-
-	_mission_item_triplet.current_valid = true;
-
-	// if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LOITER_UNLIMITED) {
-			
-	// 	 if the current mission is to loiter unlimited, don't bother about a next mission item 
-	// 	_mission_item_triplet.next_valid = false;
-	// } else {
-		/* if we are not loitering yet, try to add the next mission item */
-		// set_waypoint_mission_item(_current_mission_index + 1,  &_mission_item_triplet.next);
-		// _mission_item_triplet.next_valid = true;
-	// }
-
-	if(ret == OK) {
-		_mission_item_triplet.next_valid = true;
-	}
-	else {
-		_mission_item_triplet.next_valid = false;
-	}
-
-	publish_mission_item_triplet();
-}
-
-void
-Navigator::start_loiter(mission_item_s *new_loiter_position)
-{
-	//reset_mission_item_reached();
-
 	_mission_item_triplet.previous_valid = false;
 	_mission_item_triplet.current_valid = true;
 	_mission_item_triplet.next_valid = false;
@@ -1184,27 +1313,38 @@ Navigator::start_loiter(mission_item_s *new_loiter_position)
 }
 
 void
-Navigator::start_rtl()
+Navigator::publish_mission_item_triplet()
 {
-	reset_mission_item_reached();
+	/* lazily publish the mission triplet only once available */
+	if (_triplet_pub > 0) {
+		/* publish the mission triplet */
+		orb_publish(ORB_ID(mission_item_triplet), _triplet_pub, &_mission_item_triplet);
 
-	/* discard all mission item and insert RTL item */
-	_mission_item_triplet.previous_valid = false;
-	_mission_item_triplet.current_valid = true;
-	_mission_item_triplet.next_valid = false;
+	} else {
+		/* advertise and publish */
+		_triplet_pub = orb_advertise(ORB_ID(mission_item_triplet), &_mission_item_triplet);
+	}
+}
 
-	_mission_item_triplet.current.lat = (double)_home_pos.lat / 1e7;
-	_mission_item_triplet.current.lon = (double)_home_pos.lon / 1e7;
-	_mission_item_triplet.current.altitude = (float)_home_pos.alt / 1e3f + _parameters.min_altitude;
-	_mission_item_triplet.current.yaw = 0.0f;
-	_mission_item_triplet.current.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
-	_mission_item_triplet.current.loiter_direction = 1;
-	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
-	_mission_item_triplet.current.radius = 50.0f; // TODO: get rid of magic number
-	_mission_item_triplet.current.autocontinue = false;
-	_mission_item_triplet.current_valid = true;
 
-	publish_mission_item_triplet();
+bool Navigator::cmp_mission_item_equivalent(const struct mission_item_s a, const struct mission_item_s b) {
+	if (fabsf(a.altitude_is_relative - b.altitude_is_relative) < FLT_EPSILON &&
+	    fabsf(a.lat - b.lat) < FLT_EPSILON &&
+	    fabsf(a.lon - b.lon) < FLT_EPSILON &&
+	    fabsf(a.altitude - b.altitude) < FLT_EPSILON &&
+	    fabsf(a.yaw - b.yaw) < FLT_EPSILON &&
+	    fabsf(a.loiter_radius - b.loiter_radius) < FLT_EPSILON &&
+	    fabsf(a.loiter_direction - b.loiter_direction) < FLT_EPSILON &&
+	    fabsf(a.nav_cmd - b.nav_cmd) < FLT_EPSILON &&
+	    fabsf(a.radius - b.radius) < FLT_EPSILON &&
+	    fabsf(a.time_inside - b.time_inside) < FLT_EPSILON &&
+	    fabsf(a.autocontinue - b.autocontinue) < FLT_EPSILON &&
+	    fabsf(a.index - b.index) < FLT_EPSILON) {
+		return true;
+	} else {
+		warnx("a.index %d, b.index %d", a.index, b.index);
+		return false;
+	}
 }
 
 
@@ -1260,22 +1400,3 @@ int navigator_main(int argc, char *argv[])
 	return 0;
 }
 
-bool Navigator::cmp_mission_item_equivalent(const struct mission_item_s a, const struct mission_item_s b) {
-	if (fabsf(a.altitude_is_relative - b.altitude_is_relative) < FLT_EPSILON &&
-	    fabsf(a.lat - b.lat) < FLT_EPSILON &&
-	    fabsf(a.lon - b.lon) < FLT_EPSILON &&
-	    fabsf(a.altitude - b.altitude) < FLT_EPSILON &&
-	    fabsf(a.yaw - b.yaw) < FLT_EPSILON &&
-	    fabsf(a.loiter_radius - b.loiter_radius) < FLT_EPSILON &&
-	    fabsf(a.loiter_direction - b.loiter_direction) < FLT_EPSILON &&
-	    fabsf(a.nav_cmd - b.nav_cmd) < FLT_EPSILON &&
-	    fabsf(a.radius - b.radius) < FLT_EPSILON &&
-	    fabsf(a.time_inside - b.time_inside) < FLT_EPSILON &&
-	    fabsf(a.autocontinue - b.autocontinue) < FLT_EPSILON &&
-	    fabsf(a.index - b.index) < FLT_EPSILON) {
-		return true;
-	} else {
-		warnx("a.index %d, b.index %d", a.index, b.index);
-		return false;
-	}
-}
