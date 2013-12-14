@@ -153,63 +153,42 @@ then
 	#
 	# Upgrade PX4IO firmware
 	#
-	if px4io detect
-	then
-		echo "PX4IO running, not upgrading"
-	else
-		echo "Attempting to upgrade PX4IO"
-		if px4io update
-		then
-			if [ -d /fs/microsd ]
-			then
-				echo "Flashed PX4IO Firmware OK" > /fs/microsd/px4io.log
-			fi
 
-			# Allow IO to safely kick back to app
-			usleep 200000
-		else
-			echo "No PX4IO to upgrade here"
-		fi
+	if [ -f /etc/extras/px4io-v2_default.bin ]
+	then
+		set io_file /etc/extras/px4io-v2_default.bin
+	else
+		set io_file /etc/extras/px4io-v1_default.bin
 	fi
 
-	echo "PX4IO board OK"
-    echo "PX4IO board OK" >> $logfile
-
-    if [ -f /etc/extras/px4io-v2_default.bin ]
-    then
-        set io_file /etc/extras/px4io-v2_default.bin
-    else
-        set io_file /etc/extras/px4io-v1_default.bin
-    fi
-
-    if px4io checkcrc $io_file
-    then
-        echo "PX4IO CRC OK"
-        echo "PX4IO CRC OK" >> $logfile    
-    else
-        echo "PX4IO CRC failure"
-        echo "PX4IO CRC failure" >> $logfile    
-        tone_alarm MBABGP
-        if px4io forceupdate 14662 $io_file
-        then
-               sleep 1
-               if px4io start
-               then
-                  echo "PX4IO restart OK"
-                  echo "PX4IO restart OK" >> $logfile    
-                  tone_alarm MSPAA
-               else
-                  echo "PX4IO restart failed"
-                  echo "PX4IO restart failed" >> $logfile    
-                  tone_alarm MNGGG
-                  sh /etc/init.d/rc.error
-               fi
-        else
-               echo "PX4IO update failed"
-               echo "PX4IO update failed" >> $logfile    
-               tone_alarm MNGGG
-        fi
-    fi
+	if px4io checkcrc $io_file
+	then
+		echo "PX4IO CRC OK"
+		echo "PX4IO CRC OK" >> $logfile
+	else
+		echo "PX4IO CRC failure"
+		echo "PX4IO CRC failure" >> $logfile
+		tone_alarm MBABGP
+		if px4io forceupdate 14662 $io_file
+		then
+			usleep 200000
+			if px4io start
+			then
+				echo "PX4IO restart OK"
+				echo "PX4IO restart OK" >> $logfile
+				tone_alarm MSPAA
+			else
+				echo "PX4IO restart failed"
+				echo "PX4IO restart failed" >> $logfile
+				tone_alarm MNGGG
+				sh /etc/init.d/rc.error
+			fi
+		else
+			echo "PX4IO update failed"
+			echo "PX4IO update failed" >> $logfile
+			tone_alarm MNGGG
+		fi
+	fi
 	
 	#
 	# Check if auto-setup from one of the standard scripts is wanted
