@@ -2653,22 +2653,22 @@ px4io_main(int argc, char *argv[])
 		  the user to hold the safety switch down
 		 */
 		if (argc <= 3) {
-			printf("usage: px4io forceupdate MAGIC filename\n");
+			warnx("usage: px4io forceupdate MAGIC filename");
 			exit(1);
 		}
 		if (g_dev == nullptr) {
-			printf("px4io is not started\n");
-			exit(1);
-		}
-		uint16_t arg = atol(argv[2]);
-		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
-		if (ret != OK) {
-			printf("reboot failed - %d\n", ret);
-			exit(1);			
-		}
+			warnx("px4io is not started, still attempting upgrade");
+		} else {
+			uint16_t arg = atol(argv[2]);
+			int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
+			if (ret != OK) {
+				printf("reboot failed - %d\n", ret);
+				exit(1);
+			}
 
-		// tear down the px4io instance
-		delete g_dev;
+			// tear down the px4io instance
+			delete g_dev;
+		}
 
 		// upload the specified firmware
 		const char *fn[2];
