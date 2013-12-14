@@ -1189,6 +1189,16 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+		/*  Flight termination in manual mode if assisted switch is on easy position //xxx hack! */
+		if (armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
+			transition_result_t flighttermination_res = flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_ON, &control_mode);
+			if (flighttermination_res == TRANSITION_CHANGED) {
+				tune_positive();
+			}
+		} else {
+			flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_OFF, &control_mode);
+		}
+
 
 		/* handle commands last, as the system needs to be updated to handle them */
 		orb_check(cmd_sub, &updated);
