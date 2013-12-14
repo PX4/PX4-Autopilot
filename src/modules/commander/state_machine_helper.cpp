@@ -544,7 +544,7 @@ transition_result_t flighttermination_state_transition(struct vehicle_status_s *
 	transition_result_t ret = TRANSITION_DENIED;
 
 		/* only check transition if the new state is actually different from the current one */
-		if (new_flighttermination_state == status->navigation_state) {
+		if (new_flighttermination_state == status->flighttermination_state) {
 			ret = TRANSITION_NOT_CHANGED;
 
 		} else {
