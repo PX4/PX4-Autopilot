@@ -701,7 +701,7 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 					struct mission_item_s mission_item;
 					ssize_t len = sizeof(struct mission_item_s);
 					
-					if (dm_read(DM_KEY_WAYPOINTS, wpr.seq, &mission_item, len) == len) {
+					if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD, wpr.seq, &mission_item, len) == len) {
 					
 						if (mission.current_index == wpr.seq) {
 							wp.current = true;
@@ -975,7 +975,7 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 
 					size_t len = sizeof(struct mission_item_s);
 
-					if (dm_write(DM_KEY_WAYPOINTS, wp.seq, DM_PERSIST_IN_FLIGHT_RESET, &mission_item, len) != len) {
+					if (dm_write(DM_KEY_WAYPOINTS_OFFBOARD, wp.seq, DM_PERSIST_IN_FLIGHT_RESET, &mission_item, len) != len) {
 						mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ERROR);
 						wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 						break;
@@ -1117,7 +1117,7 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 				/* prepare mission topic */
 				mission.count = 0;
 
-				if (dm_clear(DM_KEY_WAYPOINTS) == OK) {
+				if (dm_clear(DM_KEY_WAYPOINTS_OFFBOARD) == OK) {
 					mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
 				} else {
 					mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ERROR);
