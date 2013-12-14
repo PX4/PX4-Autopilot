@@ -55,6 +55,7 @@
 #include <systemlib/param/param.h>
 
 #include <geo/geo.h>
+#include <dataman/dataman.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
@@ -271,22 +272,21 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 	struct actuator_controls_s actuators;
 	memset(&actuators, 0, sizeof(actuators));
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID(actuator_controls_1), &actuators);
-
-	// struct mission_s onboard_mission;
-	// memset(&onboard_mission, 0, sizeof(onboard_mission));
-	// onboard_mission.items = (struct mission_item_s*)malloc(sizeof(struct mission_item_s) * 2);
 	
-	struct mission_item_s *flight_vector_s = NULL;//&onboard_mission.items[0];
-	struct mission_item_s *flight_vector_e = NULL;//&onboard_mission.items[1];
+	struct mission_item_s flight_vector_s;
+	struct mission_item_s flight_vector_e;
 
-	// flight_vector_s->nav_cmd = NAV_CMD_WAYPOINT;
-	// flight_vector_s->radius = 50; // TODO: make parameter
-	// flight_vector_s->autocontinue = true;
-	// flight_vector_e->nav_cmd = NAV_CMD_WAYPOINT;
-	// flight_vector_e->radius = 50; // TODO: make parameter
-	// flight_vector_e->autocontinue = true;
+	flight_vector_s.nav_cmd = NAV_CMD_WAYPOINT;
+	flight_vector_s.radius = 50; // TODO: make parameter
+	flight_vector_s.autocontinue = true;
+	flight_vector_e.nav_cmd = NAV_CMD_WAYPOINT;
+	flight_vector_e.radius = 50; // TODO: make parameter
+	flight_vector_e.autocontinue = true;
 
-	// orb_advert_t onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
+	struct mission_s onboard_mission;
+	memset(&onboard_mission, 0, sizeof(onboard_mission));
+
+	orb_advert_t onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &onboard_mission);
 
 	struct pollfd fds[] = {
 		{ .fd = vehicle_attitude_sub, .events = POLLIN }
@@ -420,10 +420,10 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 
 
 				// Compute flight vector
-				map_projection_reproject(x_drop + 2*turn_radius*wind_speed.vx/vr, y_drop + 2*turn_radius*wind_speed.vy/vr, &(flight_vector_s->lat), &(flight_vector_s->lon));
-				flight_vector_s->altitude = height;
-				map_projection_reproject(x_drop - turn_radius*wind_speed.vx/vr, y_drop - turn_radius*wind_speed.vy/vr, &(flight_vector_e)->lat, &(flight_vector_e)->lon);
-				flight_vector_e->altitude = height;
+				map_projection_reproject(x_drop + 2*turn_radius*wind_speed.vx/vr, y_drop + 2*turn_radius*wind_speed.vy/vr, &(flight_vector_s.lat), &(flight_vector_s.lon));
+				flight_vector_s.altitude = height;
+				map_projection_reproject(x_drop - turn_radius*wind_speed.vx/vr, y_drop - turn_radius*wind_speed.vy/vr, &flight_vector_e.lat, &flight_vector_e.lon);
+				flight_vector_e.altitude = height;
 				//warnx("Flight vector: starting point = %.7f  %.7f , end point = %.7f  %.7f", flight_vector_s.lat,flight_vector_s.lon,flight_vector_e.lat,flight_vector_e.lon); //////////////////////////////////////////////////////////////////// DEBUGGING
 
 				// Drop Cancellation if terms are not met
@@ -448,18 +448,29 @@ int bottle_drop_thread_main(int argc, char *argv[]) {
 				// 	warnx("future_distance: %.2f, precision: %.2f", future_distance, precision);
 				// }
 
-				// onboard_mission.count = 2;
+				/* Save WPs in datamanager */
+				const size_t len = sizeof(struct mission_item_s);
 
-				// if (state_run && !state_drop) {
-				// 	onboard_mission.current_index = 0;
-				// } else {
-				// 	onboard_mission.current_index = -1;
-				// }
+				if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 0, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_s, len) != len) {
+					warnx("ERROR: could not save onboard WP");
+				}
+
+				if (dm_write(DM_KEY_WAYPOINTS_ONBOARD, 1, DM_PERSIST_IN_FLIGHT_RESET, &flight_vector_e, len) != len) {
+					warnx("ERROR: could not save onboard WP");
+				}
+
+				onboard_mission.count = 2;
+
+				if (state_run && !state_drop) {
+					onboard_mission.current_index = 0;
+				} else {
+					onboard_mission.current_index = -1;
+				}
 				
-				// if (counter % 10 ==0)
-				//	warnx("Distance real: %.2f, distance_open_door: %.2f, angle to wind: %.2f", distance_real, distance_open_door, fabsf(_wrap_pi(globalpos.yaw-atan2f(wind_speed.vy,wind_speed.vx)+M_PI_F)));
+				if (counter % 10 ==0)
+					warnx("Distance real: %.2f, distance_open_door: %.2f, angle to wind: %.2f", distance_real, distance_open_door, fabsf(_wrap_pi(globalpos.yaw-atan2f(wind_speed.vy,wind_speed.vx)+M_PI_F)));
 
-				// orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
+				orb_publish(ORB_ID(onboard_mission), onboard_mission_pub, &onboard_mission);
 
 			}
 
