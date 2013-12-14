@@ -2229,7 +2229,7 @@ void
 start(int argc, char *argv[])
 {
 	if (g_dev != nullptr)
-		errx(1, "already loaded");
+		errx(0, "already loaded");
 
 	/* allocate the interface */
 	device::Device *interface = get_interface();
