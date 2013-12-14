@@ -66,8 +66,8 @@
 */
 
 /* define range mapping here, -+100% -> 1000..2000 */
-#define SBUS_RANGE_MIN 350.0f
-#define SBUS_RANGE_MAX 1700.0f
+#define SBUS_RANGE_MIN 215.0f
+#define SBUS_RANGE_MAX 1790.0f
 
 #define SBUS_TARGET_MIN 1000.0f
 #define SBUS_TARGET_MAX 2000.0f
