@@ -459,7 +459,7 @@ MulticopterAttitudeControl::task_main()
 					if (_att_sp.thrust < 0.1f) {
 						// TODO
 						//if (_status.condition_landed) {
-							/* reset yaw setpoint if on ground */
+						/* reset yaw setpoint if on ground */
 						//	reset_yaw_sp = true;
 						//}
 					} else {
@@ -486,6 +486,7 @@ MulticopterAttitudeControl::task_main()
 					}
 
 					_att_sp_valid = true;
+
 				} else {
 					/* manual rate inputs (ACRO) */
 					// TODO
@@ -512,17 +513,20 @@ MulticopterAttitudeControl::task_main()
 				/* controller uses rotation matrix, not euler angles, convert if necessary */
 				math::EulerAngles euler_sp(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 				math::Dcm R_sp(euler_sp);
+
 				for (int i = 0; i < 3; i++) {
 					for (int j = 0; j < 3; j++) {
 						_att_sp.R_body[i][j] = R_sp(i, j);
 					}
 				}
+
 				_att_sp.R_valid = true;
 			}
 
 			if (publish_att_sp) {
 				/* publish the attitude setpoint */
 				_att_sp.timestamp = hrt_absolute_time();
+
 				if (_att_sp_pub > 0) {
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &_att_sp);
 
@@ -575,6 +579,7 @@ MulticopterAttitudeControl::task_main()
 				I(1, 1) = 1.0f;
 				I(2, 2) = 1.0f;
 				R_rp = R * (I + e_R_cp * e_R_sin + e_R_cp * e_R_cp * (1.0f - e_R_cos));
+
 			} else {
 				/* zero roll/pitch rotation */
 				R_rp = R;
