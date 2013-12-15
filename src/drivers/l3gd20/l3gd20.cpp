@@ -316,7 +316,7 @@ private:
 };
 
 L3GD20::L3GD20(int bus, const char* path, spi_dev_e device) :
-	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 8000000),
+	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within margins for L3GD20 */),
 	_call_interval(0),
 	_reports(nullptr),
 	_gyro_range_scale(0.0f),
