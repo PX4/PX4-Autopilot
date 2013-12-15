@@ -143,17 +143,22 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	/* calculate PD output */
 	float output = (error * pid->kp) + (d * pid->kd);
 
-	/* check for saturation */
-	if (isfinite(i)) {
-		if ((pid->output_limit < SIGMA || (fabsf(output + (i * pid->ki)) <= pid->output_limit)) &&
-		    fabsf(i) <= pid->integral_limit) {
-			/* not saturated, use new integral value */
-			pid->integral = i;
-		}
-	}
+	if (pid->ki > SIGMA) {
+		// Calculate the error integral and check for saturation
+		i = pid->integral + (error * dt);
 
-	/* add I component to output */
-	output += pid->integral * pid-> ki;
+		/* check for saturation */
+		if (isfinite(i)) {
+			if ((pid->output_limit < SIGMA || (fabsf(output + (i * pid->ki)) <= pid->output_limit)) &&
+			    fabsf(i) <= pid->integral_limit) {
+				/* not saturated, use new integral value */
+				pid->integral = i;
+			}
+		}
+
+		/* add I component to output */
+		output += pid->integral * pid->ki;
+	}
 
 	/* limit output */
 	if (isfinite(output)) {
