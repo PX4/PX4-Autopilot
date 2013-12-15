@@ -136,13 +136,18 @@ private:
 	bool	_att_sp_valid;				/**< flag if the attitude setpoint is valid */
 
 	math::Matrix _K;					/**< diagonal gain matrix for position error */
-	math::Matrix _K_rate;				/**< diagonal gain matrix for angular rate error */
+	math::Matrix _K_rate_p;				/**< diagonal gain matrix for angular rate error */
+	math::Matrix _K_rate_d;				/**< diagonal gain matrix for angular rate derivative */
+
+	math::Vector3 _rates_prev;			/**< angular rates on previous step */
 
 	struct {
 		param_t att_p;
 		param_t att_rate_p;
+		param_t att_rate_d;
 		param_t yaw_p;
 		param_t yaw_rate_p;
+		param_t yaw_rate_d;
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
 	/**
@@ -224,7 +229,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 /* gain matrices */
 	_K(3, 3),
-	_K_rate(3, 3)
+	_K_rate_p(3, 3),
+	_K_rate_d(3, 3),
+
+	_rates_prev(0.0f, 0.0f, 0.0f)
 
 {
 	memset(&_att, 0, sizeof(_att));
@@ -235,8 +243,10 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 
 	_parameter_handles.att_p		= 	param_find("MC_ATT_P");
 	_parameter_handles.att_rate_p	= 	param_find("MC_ATTRATE_P");
+	_parameter_handles.att_rate_d	= 	param_find("MC_ATTRATE_D");
 	_parameter_handles.yaw_p		=	param_find("MC_YAWPOS_P");
 	_parameter_handles.yaw_rate_p	= 	param_find("MC_YAWRATE_P");
+	_parameter_handles.yaw_rate_d	= 	param_find("MC_YAWRATE_D");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -271,22 +281,32 @@ MulticopterAttitudeControl::parameters_update()
 {
 	float att_p;
 	float att_rate_p;
+	float att_rate_d;
 	float yaw_p;
 	float yaw_rate_p;
+	float yaw_rate_d;
 
 	param_get(_parameter_handles.att_p, &att_p);
 	param_get(_parameter_handles.att_rate_p, &att_rate_p);
+	param_get(_parameter_handles.att_rate_d, &att_rate_d);
 	param_get(_parameter_handles.yaw_p, &yaw_p);
 	param_get(_parameter_handles.yaw_rate_p, &yaw_rate_p);
+	param_get(_parameter_handles.yaw_rate_d, &yaw_rate_d);
 
 	_K.setAll(0.0f);
 	_K(0, 0) = att_p;
 	_K(1, 1) = att_p;
 	_K(2, 2) = yaw_p;
-	_K_rate.setAll(0.0f);
-	_K_rate(0, 0) = att_rate_p;
-	_K_rate(1, 1) = att_rate_p;
-	_K_rate(2, 2) = yaw_rate_p;
+
+	_K_rate_p.setAll(0.0f);
+	_K_rate_p(0, 0) = att_rate_p;
+	_K_rate_p(1, 1) = att_rate_p;
+	_K_rate_p(2, 2) = yaw_rate_p;
+
+	_K_rate_d.setAll(0.0f);
+	_K_rate_d(0, 0) = att_rate_d;
+	_K_rate_d(1, 1) = att_rate_d;
+	_K_rate_d(2, 2) = yaw_rate_d;
 
 	return OK;
 }
@@ -596,9 +616,11 @@ MulticopterAttitudeControl::task_main()
 
 			/* angular rates setpoint*/
 			math::Vector3 rates_sp = _K * e_R;
+
 			/* feed forward yaw setpoint rate */
 			rates_sp(2) += yaw_sp_move_rate;
-			math::Vector3 control = _K_rate * (rates_sp - rates);
+			math::Vector3 control = _K_rate_p * (rates_sp - rates) + _K_rate_d * (_rates_prev - rates) / fmaxf(dt, 0.003f);
+			_rates_prev = rates;
 
 			/* publish the attitude rates setpoint */
 			_rates_sp.roll = rates_sp(0);
