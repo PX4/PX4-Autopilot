@@ -171,10 +171,24 @@ static float norm(float x, float y)
 	return sqrtf(x * x + y * y);
 }
 
-static void cross3(float a[3], float b[3], float res[3]) {
+static void cross3(float a[3], float b[3], float res[3])
+{
 	res[0] = a[1] * b[2] - a[2] * b[1];
 	res[1] = a[2] * b[0] - a[0] * b[2];
 	res[2] = a[0] * b[1] - a[1] * b[0];
+}
+
+static float normalize3(float x[3])
+{
+	float n = sqrtf(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
+
+	if (n > 0.0f) {
+		x[0] /= n;
+		x[1] /= n;
+		x[2] /= n;
+	}
+
+	return n;
 }
 
 static float rt_atan2f_snf(float u0, float u1)
@@ -182,31 +196,42 @@ static float rt_atan2f_snf(float u0, float u1)
 	float y;
 	int32_t b_u0;
 	int32_t b_u1;
+
 	if (isnanf(u0) || isnanf(u1)) {
 		y = NAN;
+
 	} else if (isinff(u0) && isinff(u1)) {
 		if (u0 > 0.0f) {
 			b_u0 = 1;
+
 		} else {
 			b_u0 = -1;
 		}
+
 		if (u1 > 0.0f) {
 			b_u1 = 1;
+
 		} else {
 			b_u1 = -1;
 		}
+
 		y = atan2f((float)b_u0, (float)b_u1);
+
 	} else if (u1 == 0.0f) {
 		if (u0 > 0.0f) {
 			y = M_PI_F / 2.0f;
+
 		} else if (u0 < 0.0f) {
 			y = -(M_PI_F / 2.0f);
+
 		} else {
 			y = 0.0F;
 		}
+
 	} else {
 		y = atan2f(u0, u1);
 	}
+
 	return y;
 }
 
@@ -272,9 +297,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	uint64_t local_ref_timestamp = 0;
 
 	PID_t xy_pos_pids[2];
-	PID_t xy_vel_pids[2];
 	PID_t z_pos_pid;
-	thrust_pid_t z_vel_pid;
 	float thrust_int[3] = { 0.0f, 0.0f, 0.0f };
 
 	thread_running = true;
@@ -286,11 +309,9 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 	for (int i = 0; i < 2; i++) {
 		pid_init(&(xy_pos_pids[i]), PID_MODE_DERIVATIV_SET, 0.02f);
-		pid_init(&(xy_vel_pids[i]), PID_MODE_DERIVATIV_CALC_NO_SP, 0.02f);
 	}
 
 	pid_init(&z_pos_pid, PID_MODE_DERIVATIV_SET, 0.02f);
-	thrust_pid_init(&z_vel_pid, 0.02f);
 
 	bool param_updated = true;
 
@@ -307,23 +328,11 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			/* update params */
 			parameters_update(&params_h, &params);
 
-			/* integral_limit * ki = tilt_max / 2 */
-			float i_limit;
-
-			if (params.xy_vel_i > 0.0f) {
-				i_limit = params.tilt_max / params.xy_vel_i / 2.0f;
-
-			} else {
-				i_limit = 0.0f;	// not used
-			}
-
 			for (int i = 0; i < 2; i++) {
 				pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 0.0f, 0.0f);
-				pid_set_parameters(&(xy_vel_pids[i]), params.xy_vel_p, params.xy_vel_i, params.xy_vel_d, i_limit, params.tilt_max);
 			}
 
 			pid_set_parameters(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max);
-			thrust_pid_set_parameters(&z_vel_pid, params.z_vel_p, params.z_vel_i, params.z_vel_d, -params.thr_max, -params.thr_min);
 		}
 
 		bool updated;
@@ -367,7 +376,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 		t_prev = t;
 
-		if (control_mode.flag_control_altitude_enabled || control_mode.flag_control_velocity_enabled || control_mode.flag_control_position_enabled) {
+		if (control_mode.flag_control_altitude_enabled || control_mode.flag_control_position_enabled || control_mode.flag_control_climb_rate_enabled || control_mode.flag_control_velocity_enabled) {
 			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
@@ -420,8 +429,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						reset_man_sp_xy = false;
 						local_pos_sp.x = local_pos.x;
 						local_pos_sp.y = local_pos.y;
-						pid_reset_integral(&xy_vel_pids[0]);
-						pid_reset_integral(&xy_vel_pids[1]);
 						mavlink_log_info(mavlink_fd, "[mpc] reset pos sp: %.2f, %.2f", (double)local_pos_sp.x, (double)local_pos_sp.y);
 					}
 
@@ -638,48 +645,67 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 			if (control_mode.flag_control_climb_rate_enabled || control_mode.flag_control_velocity_enabled) {
 				/* calculate desired thrust vector in NED frame */
 				float thrust_sp[3] = { 0.0f, 0.0f, 0.0f };
-				if (control_mode.flag_control_climb_rate_enabled) {
-					if (reset_int_z) {
-						reset_int_z = false;
-						float i = params.thr_min;
 
-						if (reset_int_z_manual) {
-							i = manual.throttle;
+				if (reset_int_z) {
+					reset_int_z = false;
+					float i = params.thr_min;
 
-							if (i < params.thr_min) {
-								i = params.thr_min;
+					if (reset_int_z_manual) {
+						i = manual.throttle;
 
-							} else if (i > params.thr_max) {
-								i = params.thr_max;
-							}
+						if (i < params.thr_min) {
+							i = params.thr_min;
+
+						} else if (i > params.thr_max) {
+							i = params.thr_max;
 						}
-
-						thrust_int[2] = -i;
-						mavlink_log_info(mavlink_fd, "[mpc] reset hovering thrust: %.2f", (double)i);
 					}
-					thrust_int[2] += (global_vel_sp.vz - local_pos.vz) * params.z_vel_i * dt;
-					thrust_sp[2] = (global_vel_sp.vz - local_pos.vz) * params.z_vel_p + thrust_int[2];
-					if (-thrust_sp[2] < params.thr_min)
-						thrust_sp[2] = -params.thr_min;
-				} else {
-					reset_int_z = true;
+
+					thrust_int[2] = -i;
+					mavlink_log_info(mavlink_fd, "[mpc] reset hovering thrust: %.2f", (double)i);
 				}
+
+				thrust_sp[2] = (global_vel_sp.vz - local_pos.vz) * params.z_vel_p + thrust_int[2];
+
 				if (control_mode.flag_control_velocity_enabled) {
 					if (reset_int_xy) {
 						reset_int_xy = false;
 						thrust_int[0] = 0.0f;
 						thrust_int[1] = 0.0f;
-						mavlink_log_info(mavlink_fd, "[mpc] reset pos integral");
+						mavlink_log_info(mavlink_fd, "[mpc] reset xy vel integral");
 					}
-					thrust_int[0] += (global_vel_sp.vx - local_pos.vx) * params.xy_vel_i * dt;
-					thrust_int[1] += (global_vel_sp.vy - local_pos.vy) * params.xy_vel_i * dt;
+
 					thrust_sp[0] = (global_vel_sp.vx - local_pos.vx) * params.xy_vel_p + thrust_int[0];
 					thrust_sp[1] = (global_vel_sp.vy - local_pos.vy) * params.xy_vel_p + thrust_int[1];
+
 				} else {
 					reset_int_xy = true;
 				}
 
+				/* limit thrust vector and check for saturation */
+				bool saturation_xy = false;
+				bool saturation_z = false;
+
+				/* limit min lift */
+				if (-thrust_sp[2] < params.thr_min) {
+					thrust_sp[2] = -params.thr_min;
+					saturation_z = true;
+				}
+
+				/* limit max tilt */
+				float tilt = atan2f(norm(thrust_sp[0], thrust_sp[1]), -thrust_sp[2]);
+
+				if (tilt > params.tilt_max && params.thr_min > 0.0f) {
+					/* crop horizontal component */
+					float k = tanf(params.tilt_max) / tanf(tilt);
+					thrust_sp[0] *= k;
+					thrust_sp[1] *= k;
+					saturation_xy = true;
+				}
+
+				/* limit max thrust */
 				float thrust_abs = sqrtf(thrust_sp[0] * thrust_sp[0] + thrust_sp[1] * thrust_sp[1] + thrust_sp[2] * thrust_sp[2]);
+
 				if (thrust_abs > params.thr_max) {
 					if (thrust_sp[2] < 0.0f) {
 						if (-thrust_sp[2] > params.thr_max) {
@@ -687,13 +713,17 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							thrust_sp[0] = 0.0f;
 							thrust_sp[1] = 0.0f;
 							thrust_sp[2] = -params.thr_max;
+							saturation_xy = true;
+							saturation_z = true;
+
 						} else {
 							/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
 							float thrust_xy_max = sqrtf(params.thr_max * params.thr_max - thrust_sp[2] * thrust_sp[2]);
-							float thrust_xy_abs = sqrtf(thrust_sp[0] * thrust_sp[0] + thrust_sp[1] * thrust_sp[1]);
+							float thrust_xy_abs = norm(thrust_sp[0], thrust_sp[1]);
 							float k = thrust_xy_max / thrust_xy_abs;
 							thrust_sp[0] *= k;
 							thrust_sp[1] *= k;
+							saturation_xy = true;
 						}
 
 					} else {
@@ -702,36 +732,79 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						thrust_sp[0] *= k;
 						thrust_sp[1] *= k;
 						thrust_sp[2] *= k;
+						saturation_xy = true;
+						saturation_z = true;
 					}
+
 					thrust_abs = params.thr_max;
+				}
+
+				/* update integrals */
+				if (control_mode.flag_control_velocity_enabled && !saturation_xy) {
+					thrust_int[0] += (global_vel_sp.vx - local_pos.vx) * params.xy_vel_i * dt;
+					thrust_int[1] += (global_vel_sp.vy - local_pos.vy) * params.xy_vel_i * dt;
+				}
+
+				if (control_mode.flag_control_climb_rate_enabled && !saturation_z) {
+					thrust_int[2] += (global_vel_sp.vz - local_pos.vz) * params.z_vel_i * dt;
 				}
 
 				/* calculate attitude and thrust from thrust vector */
 				if (control_mode.flag_control_velocity_enabled) {
+					/* desired body_z axis = -normalize(thrust_vector) */
+					float body_x[3];
+					float body_y[3];
+					float body_z[3];
+
+					if (thrust_abs > 0.0f) {
+						body_z[0] = -thrust_sp[0] / thrust_abs;
+						body_z[1] = -thrust_sp[1] / thrust_abs;
+						body_z[2] = -thrust_sp[2] / thrust_abs;
+
+					} else {
+						body_z[0] = 0.0f;
+						body_z[1] = 0.0f;
+						body_z[2] = -1.0f;
+					}
+
 					/* vector of desired yaw direction in XY plane, rotated by PI/2 */
 					float y_C[3];
 					y_C[0] = -sinf(att_sp.yaw_body);
 					y_C[1] = cosf(att_sp.yaw_body);
 					y_C[2] = 0;
 
-					/* desired body_z axis = -normalize(thrust_vector) */
-					float body_x[3];
-					float body_y[3];
-					float body_z[3];
-					if (thrust_abs > 0.0f) {
-						body_z[0] = -thrust_sp[0] / thrust_abs;
-						body_z[1] = -thrust_sp[1] / thrust_abs;
-						body_z[2] = -thrust_sp[2] / thrust_abs;
-					} else {
-						body_z[0] = 0.0f;
-						body_z[1] = 0.0f;
-						body_z[2] = -1.0f;
-					}
-					/* desired body_x axis = cross(x_C, body_z) */
+					/* desired body_x axis = cross(y_C, body_z) */
 					cross3(y_C, body_z, body_x);
+					float body_x_norm = normalize3(body_x);
+					static const float body_x_norm_max = 0.5f;
 
 					/* desired body_y axis = cross(body_z, body_x) */
 					cross3(body_z, body_x, body_y);
+
+					if (body_x_norm < body_x_norm_max) {
+						/* roll is close to +/- PI/2, don't try to hold yaw exactly */
+						float x_C[3];
+						x_C[0] = cos(att_sp.yaw_body);
+						x_C[1] = sinf(att_sp.yaw_body);
+						x_C[2] = 0;
+
+						float body_y_1[3];
+						/* desired body_y axis for approximate yaw = cross(body_z, x_C) */
+						cross3(body_z, x_C, body_y_1);
+
+						float w = body_x_norm / body_x_norm_max;
+						float w1 = 1.0f - w;
+
+						/* mix two body_y axes */
+						body_y[0] = body_y[0] * w + body_y_1[0] * w1;
+						body_y[1] = body_y[1] * w + body_y_1[1] * w1;
+						body_y[2] = body_y[2] * w + body_y_1[2] * w1;
+
+						normalize3(body_y);
+
+						/* desired body_x axis = cross(body_y, body_z) */
+						cross3(body_y, body_z, body_x);
+					}
 
 					/* fill rotation matrix */
 					for (int i = 0; i < 3; i++) {
@@ -739,22 +812,26 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 						att_sp.R_body[i][1] = body_y[i];
 						att_sp.R_body[i][2] = body_z[i];
 					}
+
 					att_sp.R_valid = true;
 
-					/* calculate roll, pitch from rotation matrix, yaw already used to construct rot matrix */
+					/* calculate roll, pitch from rotation matrix */
 					att_sp.roll_body = rt_atan2f_snf(att_sp.R_body[2][1], att_sp.R_body[2][2]);
 					att_sp.pitch_body = -asinf(att_sp.R_body[2][0]);
+					/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
 					//att_sp.yaw_body = rt_atan2f_snf(att_sp.R_body[1][0], att_sp.R_body[0][0]);
 
 				} else {
 					/* thrust compensation for altitude only control mode */
 					float att_comp;
+
 					if (att.R[2][2] > 0.8f)
 						att_comp = 1.0f / att.R[2][2];
 					else if (att.R[2][2] > 0.0f)
 						att_comp = ((1.0f / 0.8f - 1.0f) / 0.8f) * att.R[2][2] + 1.0f;
 					else
 						att_comp = 1.0f;
+
 					thrust_abs *= att_comp;
 				}
 
@@ -764,6 +841,9 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 				/* publish new attitude setpoint */
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+
+			} else {
+				reset_int_z = true;
 			}
 
 		} else {
