@@ -60,16 +60,8 @@ hil mode_pwm
 #
 param set MAV_TYPE 2
 
-#
-# Check if we got an IO
-#
-if px4io start
-then
-	echo "IO started"
-else
-	fmu mode_serial
-	echo "FMU started"
-fi
+fmu mode_serial
+echo "FMU started"
 
 #
 # Start the sensors (depends on orb, px4io)
@@ -79,7 +71,7 @@ sh /etc/init.d/rc.sensors
 #
 # Start the attitude estimator (depends on orb)
 #
-att_pos_estimator_ekf start
+attitude_estimator_ekf start
  
 #
 # Load mixer and start controllers (depends on px4io)
@@ -94,7 +86,7 @@ position_estimator_inav start
 #
 # Start attitude control
 #
-multirotor_att_control start
+mc_att_control_vector start
 
 #
 # Start position control
