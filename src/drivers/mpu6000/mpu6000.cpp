@@ -170,7 +170,7 @@
   SPI speed
  */
 #define MPU6000_LOW_BUS_SPEED				1000*1000
-#define MPU6000_HIGH_BUS_SPEED				10*1000*1000
+#define MPU6000_HIGH_BUS_SPEED				11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU6K */
 
 class MPU6000_gyro;
 

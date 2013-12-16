@@ -486,7 +486,7 @@ private:
 
 
 LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
-	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 8000000),
+	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within safety margins for LSM303D */),
 	_mag(new LSM303D_mag(this)),
 	_call_accel_interval(0),
 	_call_mag_interval(0),

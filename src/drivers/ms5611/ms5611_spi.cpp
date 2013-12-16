@@ -121,7 +121,7 @@ MS5611_spi_interface(ms5611::prom_u &prom_buf)
 }
 
 MS5611_SPI::MS5611_SPI(int bus, spi_dev_e device, ms5611::prom_u &prom_buf) :
-	SPI("MS5611_SPI", nullptr, bus, device, SPIDEV_MODE3, 6*1000*1000),
+	SPI("MS5611_SPI", nullptr, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz */),
 	_prom(prom_buf)
 {
 }
