@@ -49,7 +49,7 @@ namespace math
 {
 
 template <unsigned int N>
-class Vector {
+class VectorBase {
 public:
 	float data[N];
 	arm_matrix_instance_f32 arm_col;
@@ -57,15 +57,22 @@ public:
 	/**
 	 * trivial ctor
 	 */
-	Vector<N>() {
+	VectorBase<N>() {
 		arm_col = {N, 1, &data[0]};
 	}
 
 	/**
 	 * setting ctor
 	 */
-	Vector<N>(const float *d) {
-		memcpy(data, d, sizeof(data));
+//	VectorBase<N>(const float *d) {
+	//	memcpy(data, d, sizeof(data));
+		//arm_col = {N, 1, &data[0]};
+	//}
+
+	/**
+	 * setting ctor
+	 */
+	VectorBase<N>(const float d[]) : data(d) {
 		arm_col = {N, 1, &data[0]};
 	}
 
@@ -86,7 +93,7 @@ public:
 	/**
 	 * test for equality
 	 */
-	bool operator ==(const Vector<N> &v) {
+	bool operator ==(const VectorBase<N> &v) {
  		for (unsigned int i = 0; i < N; i++)
  			if (data[i] != v(i))
  				return false;
@@ -96,7 +103,7 @@ public:
 	/**
 	 * test for inequality
 	 */
-	bool operator !=(const Vector<N> &v) {
+	bool operator !=(const VectorBase<N> &v) {
  		for (unsigned int i = 0; i < N; i++)
  			if (data[i] != v(i))
  				return true;
@@ -106,7 +113,7 @@ public:
 	/**
 	 * set to value
 	 */
-	const Vector<N> &operator =(const Vector<N> &v) {
+	const VectorBase<N> &operator =(const VectorBase<N> &v) {
 		memcpy(data, v.data, sizeof(data));
 		return *this;
 	}
@@ -114,8 +121,8 @@ public:
 	/**
 	 * negation
 	 */
-	const Vector<N> operator -(void) const {
-		Vector<N> res;
+	const VectorBase<N> operator -(void) const {
+		VectorBase<N> res;
  		for (unsigned int i = 0; i < N; i++)
  			res[i] = -data[i];
  		return res;
@@ -124,8 +131,8 @@ public:
 	/**
 	 * addition
 	 */
-	const Vector<N> operator +(const Vector<N> &v) const {
-		Vector<N> res;
+	const VectorBase<N> operator +(const VectorBase<N> &v) const {
+		VectorBase<N> res;
  		for (unsigned int i = 0; i < N; i++)
  			res[i] = data[i] + v(i);
  		return res;
@@ -134,8 +141,8 @@ public:
 	/**
 	 * subtraction
 	 */
-	const Vector<N> operator -(const Vector<N> &v) const {
-		Vector<N> res;
+	const VectorBase<N> operator -(const VectorBase<N> &v) const {
+		VectorBase<N> res;
  		for (unsigned int i = 0; i < N; i++)
  			res[i] = data[i] - v(i);
  		return res;
@@ -144,23 +151,23 @@ public:
 	/**
 	 * uniform scaling
 	 */
-	const Vector<N> operator *(const float num) const {
-		Vector<N> temp(*this);
+	const VectorBase<N> operator *(const float num) const {
+		VectorBase<N> temp(*this);
 		return temp *= num;
 	}
 
 	/**
 	 * uniform scaling
 	 */
-	const Vector<N> operator /(const float num) const {
-		Vector<N> temp(*this);
+	const VectorBase<N> operator /(const float num) const {
+		VectorBase<N> temp(*this);
 		return temp /= num;
 	}
 
 	/**
 	 * addition
 	 */
-	const Vector<N> &operator +=(const Vector<N> &v) {
+	const VectorBase<N> &operator +=(const VectorBase<N> &v) {
  		for (unsigned int i = 0; i < N; i++)
  			data[i] += v(i);
 		return *this;
@@ -169,7 +176,7 @@ public:
 	/**
 	 * subtraction
 	 */
-	const Vector<N> &operator -=(const Vector<N> &v) {
+	const VectorBase<N> &operator -=(const VectorBase<N> &v) {
  		for (unsigned int i = 0; i < N; i++)
  			data[i] -= v(i);
 		return *this;
@@ -178,7 +185,7 @@ public:
 	/**
 	 * uniform scaling
 	 */
-	const Vector<N> &operator *=(const float num) {
+	const VectorBase<N> &operator *=(const float num) {
  		for (unsigned int i = 0; i < N; i++)
  			data[i] *= num;
 		return *this;
@@ -187,7 +194,7 @@ public:
 	/**
 	 * uniform scaling
 	 */
-	const Vector<N> &operator /=(const float num) {
+	const VectorBase<N> &operator /=(const float num) {
  		for (unsigned int i = 0; i < N; i++)
  			data[i] /= num;
 		return *this;
@@ -196,7 +203,7 @@ public:
 	/**
 	 * dot product
 	 */
-	float operator *(const Vector<N> &v) const {
+	float operator *(const VectorBase<N> &v) const {
 		float res;
  		for (unsigned int i = 0; i < N; i++)
  			res += data[i] * v(i);
@@ -227,8 +234,45 @@ public:
 	/**
 	 * returns the normalized version of this vector
 	 */
-	Vector<N> normalized() const {
+	VectorBase<N> normalized() const {
 		return *this / length();
+	}
+};
+
+template <unsigned int N>
+class Vector : public VectorBase<N> {
+public:
+	/**
+	 * set to value
+	 */
+	const Vector<N> &operator =(const Vector<N> &v) {
+		memcpy(this->data, v.data, sizeof(this->data));
+		return *this;
+	}
+};
+
+template <>
+class Vector<3> : public VectorBase<3> {
+public:
+	Vector<3>() {
+		arm_col = {3, 1, &this->data[0]};
+	}
+
+	Vector<3>(const float x, const float y, const float z) {
+		data[0] = x;
+		data[1] = y;
+		data[2] = z;
+		arm_col = {3, 1, &this->data[0]};
+	}
+
+	/**
+	 * set to value
+	 */
+	const Vector<3> &operator =(const Vector<3> &v) {
+		data[0] = v.data[0];
+		data[1] = v.data[1];
+		data[2] = v.data[2];
+		return *this;
 	}
 };
 

@@ -34,9 +34,9 @@
  ****************************************************************************/
 
 /**
- * @file Matrix3.hpp
+ * @file Matrix.hpp
  *
- * 3x3 Matrix
+ * Generic Matrix
  */
 
 #ifndef MATRIX_HPP
@@ -204,6 +204,24 @@ public:
 	}
 
 	/**
+	 * transpose the matrix
+	 */
+	Matrix<N, M> transposed(void) const {
+        Matrix<N, M> res;
+        arm_mat_trans_f32(&this->arm_mat, &res.arm_mat);
+        return res;
+	}
+
+	/**
+	 * invert the matrix
+	 */
+	Matrix<M, N> inversed(void) const {
+        Matrix<M, N> res;
+        arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
+        return res;
+	}
+
+	/**
 	 * setup the identity matrix
 	 */
 	void identity(void) {
@@ -224,6 +242,8 @@ public:
 template <unsigned int M, unsigned int N>
 class Matrix : public MatrixBase<M, N> {
 public:
+	using MatrixBase<M, N>::operator *;
+
 	/**
 	 * set to value
 	 */
@@ -235,18 +255,18 @@ public:
 	/**
 	 * multiplication by a vector
 	 */
-	/*
 	Vector<N> operator *(const Vector<N> &v) const {
 	    Vector<M> res;
 	    arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
 	    return res;
 	}
-	*/
 };
 
 template <>
 class Matrix<3, 3> : public MatrixBase<3, 3> {
 public:
+	using MatrixBase<3, 3>::operator *;
+
 	/**
 	 * set to value
 	 */
@@ -258,15 +278,11 @@ public:
 	/**
 	 * multiplication by a vector
 	 */
-	/*
 	Vector<3> operator *(const Vector<3> &v) const {
-	    Vector<3> res;
-	    res(0) = data[0][0] * v(0) + data[0][1] * v(1) + data[0][2] * v(2);
-	    res(1) = data[1][0] * v(0) + data[1][1] * v(1) + data[1][2] * v(2);
-	    res(2) = data[2][0] * v(0) + data[2][1] * v(1) + data[2][2] * v(2);
-	    return res;
+	    return Vector<3>(data[0][0] * v.data[0] + data[0][1] * v.data[1] + data[0][2] * v.data[2],
+	    				 data[1][0] * v.data[0] + data[1][1] * v.data[1] + data[1][2] * v.data[2],
+	    				 data[2][0] * v.data[0] + data[2][1] * v.data[1] + data[2][2] * v.data[2]);
 	}
-	*/
 };
 
 }

@@ -74,14 +74,15 @@ public:
 	 * setting ctor
 	 */
 	Matrix3<T>(const T d[3][3]) {
-		memcpy(data, d, sizeof(data));
 		arm_mat = {3, 3, &data[0][0]};
+		memcpy(data, d, sizeof(data));
 	}
 
 	/**
 	 * setting ctor
 	 */
 	Matrix3<T>(const T ax, const T ay, const T az, const T bx, const T by, const T bz, const T cx, const T cy, const T cz) {
+		arm_mat = {3, 3, &data[0][0]};
 		data[0][0] = ax;
 		data[0][1] = ay;
 		data[0][2] = az;
@@ -91,7 +92,6 @@ public:
 		data[2][0] = cx;
 		data[2][1] = cy;
 		data[2][2] = cz;
-		arm_mat = {3, 3, &data[0][0]};
 	}
 
 	/**
@@ -122,6 +122,14 @@ public:
 	 */
 	inline const T &operator ()(unsigned int row, unsigned int col) const {
 		return data[row][col];
+	}
+
+	/**
+	 * set to value
+	 */
+	const Matrix3<T> &operator =(const Matrix3<T> &m) {
+		memcpy(data, m.data, sizeof(data));
+		return *this;
 	}
 
 	/**

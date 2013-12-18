@@ -58,15 +58,31 @@ int test_mathlib(int argc, char *argv[])
 {
 	warnx("testing mathlib");
 
-	Matrix3f m;
-	m.identity();
-	Matrix3f m1;
-	Matrix<3,3> mq;
-	mq.identity();
-	Matrix<3,3> mq1;
-	m1(0, 0) = 5.0;
-	Vector3f v = Vector3f(1.0f, 2.0f, 3.0f);
-	Vector3f v1;
+	Matrix<3,3> m3;
+	m3.identity();
+	Matrix<4,4> m4;
+	m4.identity();
+	Vector<3> v3;
+	v3(0) = 1.0f;
+	v3(1) = 2.0f;
+	v3(2) = 3.0f;
+	Vector<4> v4;
+	v4(0) = 1.0f;
+	v4(1) = 2.0f;
+	v4(2) = 3.0f;
+	v4(3) = 4.0f;
+	Vector<3> vres3;
+	Matrix<3,3> mres3;
+	Matrix<4,4> mres4;
+
+	Matrix3f m3old;
+	m3old.identity();
+	Vector3f v3old;
+	v3old.x = 1.0f;
+	v3old.y = 2.0f;
+	v3old.z = 3.0f;
+	Vector3f vres3old;
+	Matrix3f mres3old;
 
 	unsigned int n = 60000;
 
@@ -74,41 +90,51 @@ int test_mathlib(int argc, char *argv[])
 
 	t0 = hrt_absolute_time();
 	for (unsigned int j = 0; j < n; j++) {
-		v1 = m * v;
+		vres3 = m3 * v3;
 	}
 	t1 = hrt_absolute_time();
-	warnx("Matrix * Vector: %s %.6fus", formatResult(v1 == v), (double)(t1 - t0) / n);
+	warnx("Matrix3 * Vector3: %s %.6fus", formatResult(vres3 == v3), (double)(t1 - t0) / n);
 
 	t0 = hrt_absolute_time();
 	for (unsigned int j = 0; j < n; j++) {
-		mq1 = mq * mq;
+		vres3old = m3old * v3old;
 	}
 	t1 = hrt_absolute_time();
-	warnx("Matrix * Matrix: %s %.6fus", formatResult(mq1 == mq), (double)(t1 - t0) / n);
-	mq1.dump();
+	warnx("Matrix3 * Vector3 OLD: %s %.6fus", formatResult(vres3old == v3old), (double)(t1 - t0) / n);
 
 	t0 = hrt_absolute_time();
 	for (unsigned int j = 0; j < n; j++) {
-		m1 = m.transposed();
+		mres3 = m3 * m3;
 	}
 	t1 = hrt_absolute_time();
-	warnx("Matrix Transpose: %s %.6fus", formatResult(m1 == m), (double)(t1 - t0) / n);
+	warnx("Matrix3 * Matrix3: %s %.6fus", formatResult(mres3 == m3), (double)(t1 - t0) / n);
 
 	t0 = hrt_absolute_time();
 	for (unsigned int j = 0; j < n; j++) {
-		m1 = m.inversed();
+		mres3old = m3old * m3old;
 	}
 	t1 = hrt_absolute_time();
-	warnx("Matrix Invert: %s %.6fus", formatResult(m1 == m), (double)(t1 - t0) / n);
+	warnx("Matrix3 * Matrix3 OLD: %s %.6fus", formatResult(mres3old == m3old), (double)(t1 - t0) / n);
 
-	Matrix<4,4> mn;
-	mn(0, 0) = 2.0f;
-	mn(1, 0) = 3.0f;
-	for (int i = 0; i < mn.getRows(); i++) {
-		for (int j = 0; j < mn.getCols(); j++) {
-			printf("%.3f ", mn(i, j));
-		}
-		printf("\n");
+	t0 = hrt_absolute_time();
+	for (unsigned int j = 0; j < n; j++) {
+		mres4 = m4 * m4;
 	}
+	t1 = hrt_absolute_time();
+	warnx("Matrix4 * Matrix4: %s %.6fus", formatResult(mres4 == m4), (double)(t1 - t0) / n);
+
+	t0 = hrt_absolute_time();
+	for (unsigned int j = 0; j < n; j++) {
+		mres3 = m3.transposed();
+	}
+	t1 = hrt_absolute_time();
+	warnx("Matrix3 Transpose: %s %.6fus", formatResult(mres3 == m3), (double)(t1 - t0) / n);
+
+	t0 = hrt_absolute_time();
+	for (unsigned int j = 0; j < n; j++) {
+		mres3 = m3.inversed();
+	}
+	t1 = hrt_absolute_time();
+	warnx("Matrix3 Invert: %s %.6fus", formatResult(mres3 == m3), (double)(t1 - t0) / n);
 	return 0;
 }
