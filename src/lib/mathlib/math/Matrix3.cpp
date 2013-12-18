@@ -1,6 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Will Perone <will.perone@gmail.com>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +34,13 @@
  ****************************************************************************/
 
 /**
- * @file Matrix.cpp
+ * @file Matrix3.cpp
  *
- * matrix code
+ * 3x3 Matrix
  */
 
-#include "Matrix.hpp"
+#include "Matrix3.hpp"
+
+namespace math
+{
+}

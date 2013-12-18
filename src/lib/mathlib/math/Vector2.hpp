@@ -34,54 +34,42 @@
  ****************************************************************************/
 
 /**
- * @file Vector3.hpp
+ * @file Vector2.hpp
  *
- * 3D Vector
+ * 2D Vector
  */
 
-#ifndef VECTOR3_HPP
-#define VECTOR3_HPP
+#ifndef VECTOR2_HPP
+#define VECTOR2_HPP
 
 #include <math.h>
-#include "../CMSIS/Include/arm_math.h"
 
 namespace math
 {
 
 template <typename T>
-class Vector3 {
+class Vector2 {
 public:
-	T x, y, z;
-	arm_matrix_instance_f32 arm_col;
+	T x, y;
 
 	/**
 	 * trivial ctor
 	 */
-	Vector3<T>() {
-		arm_col = {3, 1, &x};
+	Vector2<T>() {
 	}
 
 	/**
 	 * setting ctor
 	 */
-	Vector3<T>(const T x0, const T y0,  const T z0): x(x0), y(y0), z(z0) {
-		arm_col = {3, 1, &x};
-	}
-
-	/**
-	 * setting ctor
-	 */
-	Vector3<T>(const T data[3]): x(data[0]), y(data[1]), z(data[2]) {
-		arm_col = {3, 1, &x};
+	Vector2<T>(const T x0, const T y0): x(x0), y(y0) {
 	}
 
 	/**
 	 * setter
 	 */
-	void set(const T x0, const T y0, const T z0) {
+	void set(const T x0, const T y0) {
 		x = x0;
 		y = y0;
-		z = z0;
 	}
 
 	/**
@@ -101,117 +89,111 @@ public:
 	/**
 	 * test for equality
 	 */
-	bool operator ==(const Vector3<T> &v) {
-		return (x == v.x && y == v.y && z == v.z);
+	bool operator ==(const Vector2<T> &v) {
+		return (x == v.x && y == v.y);
 	}
 
 	/**
 	 * test for inequality
 	 */
-	bool operator !=(const Vector3<T> &v) {
-		return (x != v.x || y != v.y || z != v.z);
+	bool operator !=(const Vector2<T> &v) {
+		return (x != v.x || y != v.y);
 	}
 
 	/**
 	 * set to value
 	 */
-	const Vector3<T> &operator =(const Vector3<T> &v) {
+	const Vector2<T> &operator =(const Vector2<T> &v) {
 		x = v.x;
 		y = v.y;
-		z = v.z;
 		return *this;
 	}
 
 	/**
 	 * negation
 	 */
-	const Vector3<T> operator -(void) const {
-		return Vector3<T>(-x, -y, -z);
+	const Vector2<T> operator -(void) const {
+		return Vector2<T>(-x, -y);
 	}
 
 	/**
 	 * addition
 	 */
-	const Vector3<T> operator +(const Vector3<T> &v) const {
-		return Vector3<T>(x + v.x, y + v.y, z + v.z);
+	const Vector2<T> operator +(const Vector2<T> &v) const {
+		return Vector2<T>(x + v.x, y + v.y);
 	}
 
 	/**
 	 * subtraction
 	 */
-	const Vector3<T> operator -(const Vector3<T> &v) const {
-		return Vector3<T>(x - v.x, y - v.y, z - v.z);
+	const Vector2<T> operator -(const Vector2<T> &v) const {
+		return Vector2<T>(x - v.x, y - v.y);
 	}
 
 	/**
 	 * uniform scaling
 	 */
-	const Vector3<T> operator *(const T num) const {
-		Vector3<T> temp(*this);
+	const Vector2<T> operator *(const T num) const {
+		Vector2<T> temp(*this);
 		return temp *= num;
 	}
 
 	/**
 	 * uniform scaling
 	 */
-	const Vector3<T> operator /(const T num) const {
-		Vector3<T> temp(*this);
+	const Vector2<T> operator /(const T num) const {
+		Vector2<T> temp(*this);
 		return temp /= num;
 	}
 
 	/**
 	 * addition
 	 */
-	const Vector3<T> &operator +=(const Vector3<T> &v) {
+	const Vector2<T> &operator +=(const Vector2<T> &v) {
 		x += v.x;
 		y += v.y;
-		z += v.z;
 		return *this;
 	}
 
 	/**
 	 * subtraction
 	 */
-	const Vector3<T> &operator -=(const Vector3<T> &v) {
+	const Vector2<T> &operator -=(const Vector2<T> &v) {
 		x -= v.x;
 		y -= v.y;
-		z -= v.z;
 		return *this;
 	}
 
 	/**
 	 * uniform scaling
 	 */
-	const Vector3<T> &operator *=(const T num) {
+	const Vector2<T> &operator *=(const T num) {
 		x *= num;
 		y *= num;
-		z *= num;
 		return *this;
 	}
 
 	/**
 	 * uniform scaling
 	 */
-	const Vector3<T> &operator /=(const T num) {
+	const Vector2<T> &operator /=(const T num) {
 		x /= num;
 		y /= num;
-		z /= num;
 		return *this;
 	}
 
 	/**
 	 * dot product
 	 */
-	T operator *(const Vector3<T> &v) const {
-		return x * v.x + y * v.y + z * v.z;
+	T operator *(const Vector2<T> &v) const {
+		return x * v.x + y * v.y;
 	}
 
 	/**
 	 * cross product
 	 */
-	const Vector3<T> operator %(const Vector3<T> &v) const {
-		Vector3<T> temp(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
-		return temp;
+	const float operator %(const Vector2<T> &v) const {
+		return x * v.y - y * v.x;
 	}
 
 	/**
@@ -238,16 +220,16 @@ public:
 	/**
 	 * returns the normalized version of this vector
 	 */
-	Vector3<T> normalized() const {
+	Vector2<T> normalized() const {
 		return *this / length();
 	}
 
 	/**
 	 * reflects this vector about n
 	 */
-	void reflect(const Vector3<T> &n)
+	void reflect(const Vector2<T> &n)
 	{
-		Vector3<T> orig(*this);
+		Vector2<T> orig(*this);
 		project(n);
 		*this = *this * 2 - orig;
 	}
@@ -255,33 +237,33 @@ public:
 	/**
 	 * projects this vector onto v
 	 */
-	void project(const Vector3<T> &v) {
+	void project(const Vector2<T> &v) {
 		*this = v * (*this * v) / (v * v);
 	}
 
 	/**
 	 * returns this vector projected onto v
 	 */
-	Vector3<T> projected(const Vector3<T> &v) {
+	Vector2<T> projected(const Vector2<T> &v) {
 		return v * (*this * v) / (v * v);
 	}
 
 	/**
 	 * computes the angle between 2 arbitrary vectors
 	 */
-	static inline float angle(const Vector3<T> &v1, const Vector3<T> &v2) {
+	static inline float angle(const Vector2<T> &v1, const Vector2<T> &v2) {
 		return acosf((v1 * v2) / (v1.length() * v2.length()));
 	}
 
 	/**
 	 * computes the angle between 2 arbitrary normalized vectors
 	 */
-	static inline float angle_normalized(const Vector3<T> &v1, const Vector3<T> &v2) {
+	static inline float angle_normalized(const Vector2<T> &v1, const Vector2<T> &v2) {
 		return acosf(v1 * v2);
 	}
 };
 
-typedef Vector3<float> Vector3f;
+typedef Vector2<float> Vector2f;
 }
 
-#endif // VECTOR3_HPP
+#endif // VECTOR2_HPP

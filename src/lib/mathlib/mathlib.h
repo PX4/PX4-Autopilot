@@ -41,13 +41,12 @@
 
 #pragma once
 
-#include "math/Dcm.hpp"
-#include "math/EulerAngles.hpp"
-#include "math/Matrix.hpp"
-#include "math/Quaternion.hpp"
 #include "math/Vector.hpp"
+#include "math/Vector2.hpp"
 #include "math/Vector3.hpp"
-#include "math/Vector2f.hpp"
+#include "math/Matrix.hpp"
+#include "math/Matrix3.hpp"
+#include "math/Quaternion.hpp"
 #include "math/Limits.hpp"
 
 #endif

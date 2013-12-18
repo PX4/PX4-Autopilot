@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,69 +32,83 @@
  ****************************************************************************/
 
 /**
- * @file Vector.cpp
+ * @file test_mathlib.cpp
  *
- * math vector
+ * Mathlib test
  */
 
-#include "test/test.hpp"
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <time.h>
+#include <mathlib/mathlib.h>
+#include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
-#include "Vector.hpp"
+#include "tests.h"
 
-namespace math
-{
+using namespace math;
 
-static const float data_testA[] = {1, 3};
-static const float data_testB[] = {4, 1};
-
-static Vector testA(2, data_testA);
-static Vector testB(2, data_testB);
-
-int __EXPORT vectorTest()
-{
-	vectorAddTest();
-	vectorSubTest();
-	return 0;
+const char* formatResult(bool res) {
+	return res ? "OK" : "ERROR";
 }
 
-int vectorAddTest()
+int test_mathlib(int argc, char *argv[])
 {
-	printf("Test Vector Add\t\t: ");
-	Vector r = testA + testB;
-	float data_test[] = {5.0f, 4.0f};
-	ASSERT(vectorEqual(Vector(2, data_test), r));
-	printf("PASS\n");
-	return 0;
-}
+	warnx("testing mathlib");
 
-int vectorSubTest()
-{
-	printf("Test Vector Sub\t\t: ");
-	Vector r(2);
-	r = testA - testB;
-	float data_test[] = { -3.0f, 2.0f};
-	ASSERT(vectorEqual(Vector(2, data_test), r));
-	printf("PASS\n");
-	return 0;
-}
+	Matrix3f m;
+	m.identity();
+	Matrix3f m1;
+	Matrix<3,3> mq;
+	mq.identity();
+	Matrix<3,3> mq1;
+	m1(0, 0) = 5.0;
+	Vector3f v = Vector3f(1.0f, 2.0f, 3.0f);
+	Vector3f v1;
 
-bool vectorEqual(const Vector &a, const Vector &b, float eps)
-{
-	if (a.getRows() != b.getRows()) {
-		printf("row number not equal a: %d, b:%d\n", a.getRows(), b.getRows());
-		return false;
+	unsigned int n = 60000;
+
+	hrt_abstime t0, t1;
+
+	t0 = hrt_absolute_time();
+	for (unsigned int j = 0; j < n; j++) {
+		v1 = m * v;
 	}
+	t1 = hrt_absolute_time();
+	warnx("Matrix * Vector: %s %.6fus", formatResult(v1 == v), (double)(t1 - t0) / n);
 
-	bool ret = true;
+	t0 = hrt_absolute_time();
+	for (unsigned int j = 0; j < n; j++) {
+		mq1 = mq * mq;
+	}
+	t1 = hrt_absolute_time();
+	warnx("Matrix * Matrix: %s %.6fus", formatResult(mq1 == mq), (double)(t1 - t0) / n);
+	mq1.dump();
 
-	for (size_t i = 0; i < a.getRows(); i++) {
-		if (!equal(a(i), b(i), eps)) {
-			printf("element mismatch (%d)\n", i);
-			ret = false;
+	t0 = hrt_absolute_time();
+	for (unsigned int j = 0; j < n; j++) {
+		m1 = m.transposed();
+	}
+	t1 = hrt_absolute_time();
+	warnx("Matrix Transpose: %s %.6fus", formatResult(m1 == m), (double)(t1 - t0) / n);
+
+	t0 = hrt_absolute_time();
+	for (unsigned int j = 0; j < n; j++) {
+		m1 = m.inversed();
+	}
+	t1 = hrt_absolute_time();
+	warnx("Matrix Invert: %s %.6fus", formatResult(m1 == m), (double)(t1 - t0) / n);
+
+	Matrix<4,4> mn;
+	mn(0, 0) = 2.0f;
+	mn(1, 0) = 3.0f;
+	for (int i = 0; i < mn.getRows(); i++) {
+		for (int j = 0; j < mn.getCols(); j++) {
+			printf("%.3f ", mn(i, j));
 		}
+		printf("\n");
 	}
-
-	return ret;
+	return 0;
 }
-
-} // namespace math
