@@ -75,15 +75,6 @@ int test_mathlib(int argc, char *argv[])
 	Matrix<3,3> mres3;
 	Matrix<4,4> mres4;
 
-	Matrix3f m3old;
-	m3old.identity();
-	Vector3f v3old;
-	v3old.x = 1.0f;
-	v3old.y = 2.0f;
-	v3old.z = 3.0f;
-	Vector3f vres3old;
-	Matrix3f mres3old;
-
 	unsigned int n = 60000;
 
 	hrt_abstime t0, t1;
@@ -97,24 +88,10 @@ int test_mathlib(int argc, char *argv[])
 
 	t0 = hrt_absolute_time();
 	for (unsigned int j = 0; j < n; j++) {
-		vres3old = m3old * v3old;
-	}
-	t1 = hrt_absolute_time();
-	warnx("Matrix3 * Vector3 OLD: %s %.6fus", formatResult(vres3old == v3old), (double)(t1 - t0) / n);
-
-	t0 = hrt_absolute_time();
-	for (unsigned int j = 0; j < n; j++) {
 		mres3 = m3 * m3;
 	}
 	t1 = hrt_absolute_time();
 	warnx("Matrix3 * Matrix3: %s %.6fus", formatResult(mres3 == m3), (double)(t1 - t0) / n);
-
-	t0 = hrt_absolute_time();
-	for (unsigned int j = 0; j < n; j++) {
-		mres3old = m3old * m3old;
-	}
-	t1 = hrt_absolute_time();
-	warnx("Matrix3 * Matrix3 OLD: %s %.6fus", formatResult(mres3old == m3old), (double)(t1 - t0) / n);
 
 	t0 = hrt_absolute_time();
 	for (unsigned int j = 0; j < n; j++) {

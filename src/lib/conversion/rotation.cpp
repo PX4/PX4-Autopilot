@@ -41,7 +41,7 @@
 #include "rotation.h"
 
 __EXPORT void
-get_rot_matrix(enum Rotation rot, math::Matrix3f *rot_matrix)
+get_rot_matrix(enum Rotation rot, math::Matrix<3,3> *rot_matrix)
 {
 	float roll  = M_DEG_TO_RAD_F * (float)rot_lookup[rot].roll;
 	float pitch = M_DEG_TO_RAD_F * (float)rot_lookup[rot].pitch;

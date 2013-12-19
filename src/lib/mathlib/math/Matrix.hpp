@@ -42,16 +42,19 @@
 #ifndef MATRIX_HPP
 #define MATRIX_HPP
 
+#include <stdio.h>
 #include "../CMSIS/Include/arm_math.h"
 
 namespace math
 {
 
-template <unsigned int N, unsigned int M>
+template <unsigned int M, unsigned int N>
 class Matrix;
 
+class Quaternion;
+
 // MxN matrix with float elements
-template <unsigned int N, unsigned int M>
+template <unsigned int M, unsigned int N>
 class MatrixBase {
 public:
 	/**
@@ -69,8 +72,12 @@ public:
 	 * note that this ctor will not initialize elements
 	 */
 	MatrixBase() {
-		//arm_mat_init_f32(&arm_mat, M, N, data);
 		arm_mat = {M, N, &data[0][0]};
+	}
+
+	MatrixBase(const float *d) {
+		arm_mat = {M, N, &data[0][0]};
+		memcpy(data, d, sizeof(data));
 	}
 
 	/**
@@ -98,10 +105,10 @@ public:
 	/**
 	 * test for equality
 	 */
-	bool operator ==(const MatrixBase<M, N> &m) {
+	bool operator ==(const Matrix<M, N> &m) {
  		for (unsigned int i = 0; i < M; i++)
  			for (unsigned int j = 0; j < N; j++)
- 				if (data[i][j] != m(i, j))
+ 				if (data[i][j] != m.data[i][j])
  					return false;
 		return true;
 	}
@@ -109,10 +116,10 @@ public:
 	/**
 	 * test for inequality
 	 */
-	bool operator !=(const MatrixBase<M, N> &m) {
+	bool operator !=(const Matrix<M, N> &m) {
  		for (unsigned int i = 0; i < M; i++)
  			for (unsigned int j = 0; j < N; j++)
- 				if (data[i][j] != m(i, j))
+ 				if (data[i][j] != m.data[i][j])
  					return true;
 		return false;
 	}
@@ -120,85 +127,97 @@ public:
 	/**
 	 * set to value
 	 */
-	const MatrixBase<M, N> &operator =(const MatrixBase<M, N> &m) {
+	const Matrix<M, N> &operator =(const Matrix<M, N> &m) {
 		memcpy(data, m.data, sizeof(data));
-		return *this;
+		return *reinterpret_cast<Matrix<M, N>*>(this);
 	}
 
 	/**
 	 * negation
 	 */
-	MatrixBase<M, N> operator -(void) const {
-		MatrixBase<M, N> res;
+	Matrix<M, N> operator -(void) const {
+		Matrix<M, N> res;
  		for (unsigned int i = 0; i < N; i++)
  			for (unsigned int j = 0; j < M; j++)
- 				res[i][j] = -data[i][j];
+ 				res.data[i][j] = -data[i][j];
 		return res;
 	}
 
 	/**
 	 * addition
 	 */
-	MatrixBase<M, N> operator +(const MatrixBase<M, N> &m) const {
-		MatrixBase<M, N> res;
+	Matrix<M, N> operator +(const Matrix<M, N> &m) const {
+		Matrix<M, N> res;
  		for (unsigned int i = 0; i < N; i++)
  			for (unsigned int j = 0; j < M; j++)
- 				res[i][j] = data[i][j] + m(i, j);
+ 				res.data[i][j] = data[i][j] + m.data[i][j];
 		return res;
 	}
 
-	MatrixBase<M, N> &operator +=(const MatrixBase<M, N> &m) {
-		return *this = *this + m;
+	Matrix<M, N> &operator +=(const Matrix<M, N> &m) {
+ 		for (unsigned int i = 0; i < N; i++)
+ 			for (unsigned int j = 0; j < M; j++)
+ 				data[i][j] += m.data[i][j];
+		return *reinterpret_cast<Matrix<M, N>*>(this);
 	}
 
 	/**
 	 * subtraction
 	 */
-	MatrixBase<M, N> operator -(const MatrixBase<M, N> &m) const {
-		MatrixBase<M, N> res;
+	Matrix<M, N> operator -(const Matrix<M, N> &m) const {
+		Matrix<M, N> res;
  		for (unsigned int i = 0; i < M; i++)
  			for (unsigned int j = 0; j < N; j++)
- 				res[i][j] = data[i][j] - m(i, j);
+ 				res.data[i][j] = data[i][j] - m.data[i][j];
 		return res;
 	}
 
-	MatrixBase<M, N> &operator -=(const MatrixBase<M, N> &m) {
-		return *this = *this - m;
+	Matrix<M, N> &operator -=(const Matrix<M, N> &m) {
+ 		for (unsigned int i = 0; i < N; i++)
+ 			for (unsigned int j = 0; j < M; j++)
+ 				data[i][j] -= m.data[i][j];
+		return *reinterpret_cast<Matrix<M, N>*>(this);
 	}
 
 	/**
 	 * uniform scaling
 	 */
-	MatrixBase<M, N> operator *(const float num) const {
-		MatrixBase<M, N> res;
+	Matrix<M, N> operator *(const float num) const {
+		Matrix<M, N> res;
  		for (unsigned int i = 0; i < M; i++)
  			for (unsigned int j = 0; j < N; j++)
- 				res[i][j] = data[i][j] * num;
+ 				res.data[i][j] = data[i][j] * num;
 		return res;
 	}
 
-	MatrixBase<M, N> &operator *=(const float num) {
-		return *this = *this * num;
+	Matrix<M, N> &operator *=(const float num) {
+ 		for (unsigned int i = 0; i < M; i++)
+ 			for (unsigned int j = 0; j < N; j++)
+ 				data[i][j] *= num;
+		return *reinterpret_cast<Matrix<M, N>*>(this);
 	}
 
-	MatrixBase<M, N> operator /(const float num) const {
-		MatrixBase<M, N> res;
+	Matrix<M, N> operator /(const float num) const {
+		Matrix<M, N> res;
  		for (unsigned int i = 0; i < M; i++)
  			for (unsigned int j = 0; j < N; j++)
  				res[i][j] = data[i][j] / num;
 		return res;
 	}
 
-	MatrixBase<M, N> &operator /=(const float num) {
-		return *this = *this / num;
+	Matrix<M, N> &operator /=(const float num) {
+ 		for (unsigned int i = 0; i < M; i++)
+ 			for (unsigned int j = 0; j < N; j++)
+ 				data[i][j] /= num;
+		return *this;
 	}
 
 	/**
 	 * multiplication by another matrix
 	 */
 	template <unsigned int P>
-	Matrix<N, P> operator *(const Matrix<M, P> &m) const {
-		Matrix<N, P> res;
+	Matrix<M, P> operator *(const Matrix<N, P> &m) const {
+		Matrix<M, P> res;
 		arm_mat_mult_f32(&arm_mat, &m.arm_mat, &res.arm_mat);
 		return res;
 	}
@@ -230,7 +249,7 @@ public:
 			data[i][i] = 1;
 	}
 
-	void dump(void) {
+	void print(void) {
  		for (unsigned int i = 0; i < M; i++) {
  			for (unsigned int j = 0; j < N; j++)
 				printf("%.3f\t", data[i][j]);
@@ -244,6 +263,12 @@ class Matrix : public MatrixBase<M, N> {
 public:
 	using MatrixBase<M, N>::operator *;
 
+	Matrix() : MatrixBase<M, N>() {
+	}
+
+	Matrix(const float *d) : MatrixBase<M, N>(d) {
+	}
+
 	/**
 	 * set to value
 	 */
@@ -255,17 +280,27 @@ public:
 	/**
 	 * multiplication by a vector
 	 */
-	Vector<N> operator *(const Vector<N> &v) const {
+	Vector<M> operator *(const Vector<N> &v) const {
 	    Vector<M> res;
 	    arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
 	    return res;
 	}
 };
+}
 
+#include "Quaternion.hpp"
+
+namespace math {
 template <>
 class Matrix<3, 3> : public MatrixBase<3, 3> {
 public:
 	using MatrixBase<3, 3>::operator *;
+
+	Matrix() : MatrixBase<3, 3>() {
+	}
+
+	Matrix(const float *d) : MatrixBase<3, 3>(d) {
+	}
 
 	/**
 	 * set to value
@@ -279,9 +314,70 @@ public:
 	 * multiplication by a vector
 	 */
 	Vector<3> operator *(const Vector<3> &v) const {
-	    return Vector<3>(data[0][0] * v.data[0] + data[0][1] * v.data[1] + data[0][2] * v.data[2],
-	    				 data[1][0] * v.data[0] + data[1][1] * v.data[1] + data[1][2] * v.data[2],
-	    				 data[2][0] * v.data[0] + data[2][1] * v.data[1] + data[2][2] * v.data[2]);
+	    Vector<3> res(data[0][0] * v.data[0] + data[0][1] * v.data[1] + data[0][2] * v.data[2],
+	    			  data[1][0] * v.data[0] + data[1][1] * v.data[1] + data[1][2] * v.data[2],
+	    			  data[2][0] * v.data[0] + data[2][1] * v.data[1] + data[2][2] * v.data[2]);
+	    return res;
+	}
+
+	/**
+	 * create a rotation matrix from given quaternion
+	 */
+	void from_quaternion(const Quaternion &q) {
+		float aSq = q.data[0] * q.data[0];
+		float bSq = q.data[1] * q.data[1];
+		float cSq = q.data[2] * q.data[2];
+		float dSq = q.data[3] * q.data[3];
+		data[0][0] = aSq + bSq - cSq - dSq;
+		data[0][1] = 2.0f * (q.data[1] * q.data[2] - q.data[0] * q.data[3]);
+		data[0][2] = 2.0f * (q.data[0] * q.data[2] + q.data[1] * q.data[3]);
+		data[1][0] = 2.0f * (q.data[1] * q.data[2] + q.data[0] * q.data[3]);
+		data[1][1] = aSq - bSq + cSq - dSq;
+		data[1][2] = 2.0f * (q.data[2] * q.data[3] - q.data[0] * q.data[1]);
+		data[2][0] = 2.0f * (q.data[1] * q.data[3] - q.data[0] * q.data[2]);
+		data[2][1] = 2.0f * (q.data[0] * q.data[1] + q.data[2] * q.data[3]);
+		data[2][2] = aSq - bSq - cSq + dSq;
+	}
+
+	/**
+	 * create a rotation matrix from given euler angles
+	 * based on http://gentlenav.googlecode.com/files/EulerAngles.pdf
+	 */
+	void from_euler(float roll, float pitch, float yaw) {
+		float cp = cosf(pitch);
+		float sp = sinf(pitch);
+		float sr = sinf(roll);
+		float cr = cosf(roll);
+		float sy = sinf(yaw);
+		float cy = cosf(yaw);
+
+		data[0][0] = cp * cy;
+		data[0][1] = (sr * sp * cy) - (cr * sy);
+		data[0][2] = (cr * sp * cy) + (sr * sy);
+		data[1][0] = cp * sy;
+		data[1][1] = (sr * sp * sy) + (cr * cy);
+		data[1][2] = (cr * sp * sy) - (sr * cy);
+		data[2][0] = -sp;
+		data[2][1] = sr * cp;
+		data[2][2] = cr * cp;
+	}
+
+	Vector<3> to_euler(void) const {
+		Vector<3> euler;
+		euler.data[1] = asinf(-data[2][0]);
+
+		if (fabsf(euler.data[1] - M_PI_2_F) < 1.0e-3f) {
+			euler.data[0] = 0.0f;
+			euler.data[2] = atan2f(data[1][2] - data[0][1], data[0][2] + data[1][1]) + euler.data[0];
+
+		} else if (fabsf(euler.data[1] + M_PI_2_F) < 1.0e-3f) {
+			euler.data[0] = 0.0f;
+			euler.data[2] = atan2f(data[1][2] - data[0][1], data[0][2] + data[1][1]) - euler.data[0];
+
+		} else {
+			euler.data[0] = atan2f(data[2][1], data[2][2]);
+			euler.data[2] = atan2f(data[1][0], data[0][0]);
+		}
 	}
 };
 

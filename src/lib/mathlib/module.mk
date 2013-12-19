@@ -35,7 +35,6 @@
 # Math library
 #
 SRCS		 = math/test/test.cpp \
-		   math/Matrix3.cpp \
 		   math/Limits.cpp
 
 #

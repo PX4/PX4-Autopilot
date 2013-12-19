@@ -683,8 +683,9 @@ handle_message(mavlink_message_t *msg)
 
 			/* Calculate Rotation Matrix */
 			math::Quaternion q(hil_state.attitude_quaternion);
-			math::Dcm C_nb(q);
-			math::EulerAngles euler(C_nb);
+			math::Matrix<3,3> C_nb;
+			C_nb.from_quaternion(q);
+			math::Vector<3> euler = C_nb.to_euler();
 
 			/* set rotation matrix */
 			for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
@@ -699,9 +700,9 @@ handle_message(mavlink_message_t *msg)
 			hil_attitude.q[3] = q(3);
 			hil_attitude.q_valid = true;
 
-			hil_attitude.roll = euler.getPhi();
-			hil_attitude.pitch = euler.getTheta();
-			hil_attitude.yaw = euler.getPsi();
+			hil_attitude.roll = euler(0);
+			hil_attitude.pitch = euler(1);
+			hil_attitude.yaw = euler(2);
 			hil_attitude.rollspeed = hil_state.rollspeed;
 			hil_attitude.pitchspeed = hil_state.pitchspeed;
 			hil_attitude.yawspeed = hil_state.yawspeed;
