@@ -170,7 +170,7 @@ private:
 	uint64_t _airspeed_last_valid;			///< last time airspeed was valid. Used to detect sensor failures
 	float _groundspeed_undershoot;			///< ground speed error to min. speed in m/s
 	bool _global_pos_valid;				///< global position is valid
-	math::Dcm _R_nb;				///< current attitude
+	math::Matrix<3, 3> _R_nb;				///< current attitude
 
 	ECL_L1_Pos_Controller				_l1_control;
 	TECS						_tecs;
@@ -282,7 +282,7 @@ private:
 	/**
 	 * Control position.
 	 */
-	bool		control_position(const math::Vector2f &global_pos, const math::Vector2f &ground_speed,
+	bool		control_position(const math::Vector<2> &global_pos, const math::Vector<2> &ground_speed,
 					 const struct vehicle_global_position_set_triplet_s &global_triplet);
 
 	float calculate_target_airspeed(float airspeed_demand);
@@ -600,10 +600,10 @@ FixedwingPositionControl::calculate_gndspeed_undershoot()
 
 	if (_global_pos_valid) {
 		/* get ground speed vector */
-		math::Vector2f ground_speed_vector(_global_pos.vx, _global_pos.vy);
+		math::Vector<2> ground_speed_vector(_global_pos.vx, _global_pos.vy);
 
 		/* rotate with current attitude */
-		math::Vector2f yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
+		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
 		yaw_vector.normalize();
 		float ground_speed_body = yaw_vector * ground_speed_vector;
 
@@ -624,7 +624,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot()
 }
 
 bool
-FixedwingPositionControl::control_position(const math::Vector2f &current_position, const math::Vector2f &ground_speed,
+FixedwingPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed,
 		const struct vehicle_global_position_set_triplet_s &global_triplet)
 {
 	bool setpoint = true;
@@ -637,8 +637,8 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 	float baro_altitude = _global_pos.alt;
 
 	/* filter speed and altitude for controller */
-	math::Vector3 accel_body(_accel.x, _accel.y, _accel.z);
-	math::Vector3 accel_earth = _R_nb.transpose() * accel_body;
+	math::Vector<3> accel_body(_accel.x, _accel.y, _accel.z);
+	math::Vector<3> accel_earth = _R_nb.transposed() * accel_body;
 
 	_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
 	float altitude_error = _global_triplet.current.altitude - _global_pos.alt;
@@ -662,29 +662,29 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		if (_setpoint_valid) {
 
 			/* current waypoint (the one currently heading for) */
-			math::Vector2f next_wp(global_triplet.current.lat / 1e7f, global_triplet.current.lon / 1e7f);
+			math::Vector<2> next_wp(global_triplet.current.lat / 1e7f, global_triplet.current.lon / 1e7f);
 
 			/* previous waypoint */
-			math::Vector2f prev_wp;
+			math::Vector<2> prev_wp;
 
 			if (global_triplet.previous_valid) {
-				prev_wp.setX(global_triplet.previous.lat / 1e7f);
-				prev_wp.setY(global_triplet.previous.lon / 1e7f);
+				prev_wp(0) = global_triplet.previous.lat / 1e7f;
+				prev_wp(1) = global_triplet.previous.lon / 1e7f;
 
 			} else {
 				/*
 				 * No valid previous waypoint, go for the current wp.
 				 * This is automatically handled by the L1 library.
 				 */
-				prev_wp.setX(global_triplet.current.lat / 1e7f);
-				prev_wp.setY(global_triplet.current.lon / 1e7f);
+				prev_wp(0) = global_triplet.current.lat / 1e7f;
+				prev_wp(1) = global_triplet.current.lon / 1e7f;
 
 			}
 
 			// XXX add RTL switch
 			if (global_triplet.current.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH && _launch_valid) {
 
-				math::Vector2f rtl_pos(_launch_lat, _launch_lon);
+				math::Vector<2> rtl_pos(_launch_lat, _launch_lon);
 
 				_l1_control.navigate_waypoints(rtl_pos, rtl_pos, current_position, ground_speed);
 				_att_sp.roll_body = _l1_control.nav_roll();
@@ -730,7 +730,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				/* switch to heading hold for the last meters, continue heading hold after */
 
-				float wp_distance = get_distance_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), current_position.getX(), current_position.getY());
+				float wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), current_position(0), current_position(1));
 				//warnx("wp dist: %d, alt err: %d, noret: %s", (int)wp_distance, (int)altitude_error, (land_noreturn) ? "YES" : "NO");
 				if (wp_distance < 15.0f || land_noreturn) {
 
@@ -869,7 +869,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 			altitude_error = _loiter_hold_alt - _global_pos.alt;
 
-			math::Vector2f loiter_hold_pos(_loiter_hold_lat, _loiter_hold_lon);
+			math::Vector<2> loiter_hold_pos(_loiter_hold_lat, _loiter_hold_lon);
 
 			/* loiter around current position */
 			_l1_control.navigate_loiter(loiter_hold_pos, current_position, _parameters.loiter_hold_radius,
@@ -1101,8 +1101,8 @@ FixedwingPositionControl::task_main()
 			vehicle_airspeed_poll();
 			// vehicle_baro_poll();
 
-			math::Vector2f ground_speed(_global_pos.vx, _global_pos.vy);
-			math::Vector2f current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
+			math::Vector<2> ground_speed(_global_pos.vx, _global_pos.vy);
+			math::Vector<2> current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
 
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
