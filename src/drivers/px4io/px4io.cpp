@@ -1024,7 +1024,12 @@ PX4IO::io_set_rc_config()
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
 		input_map[ichan - 1] = 3;
 
-	ichan = 4;
+	param_get(param_find("RC_MAP_MODE_SW"), &ichan);
+
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
+		input_map[ichan - 1] = 4;
+
+	ichan = 5;
 
 	for (unsigned i = 0; i < _max_rc_input; i++)
 		if (input_map[i] == -1)
