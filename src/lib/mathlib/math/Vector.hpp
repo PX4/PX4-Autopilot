@@ -135,7 +135,7 @@ public:
 	 */
 	const Vector<N> &operator =(const Vector<N> &v) {
 		memcpy(data, v.data, sizeof(data));
-		return *reinterpret_cast<const Vector<N>*>(this);
+		return *static_cast<const Vector<N>*>(this);
 	}
 
 	/**
@@ -180,7 +180,7 @@ public:
 	 * uniform scaling
 	 */
 	const Vector<N> operator /(const float num) const {
-		Vector<N> temp(*reinterpret_cast<const Vector<N>*>(this));
+		Vector<N> temp(*static_cast<const Vector<N>*>(this));
 		return temp /= num;
 	}
 
@@ -190,7 +190,7 @@ public:
 	const Vector<N> &operator +=(const Vector<N> &v) {
  		for (unsigned int i = 0; i < N; i++)
  			data[i] += v(i);
-		return *reinterpret_cast<const Vector<N>*>(this);
+		return *static_cast<const Vector<N>*>(this);
 	}
 
 	/**
@@ -199,7 +199,7 @@ public:
 	const Vector<N> &operator -=(const Vector<N> &v) {
  		for (unsigned int i = 0; i < N; i++)
  			data[i] -= v(i);
-		return *reinterpret_cast<const Vector<N>*>(this);
+		return *static_cast<const Vector<N>*>(this);
 	}
 
 	/**
@@ -208,7 +208,7 @@ public:
 	const Vector<N> &operator *=(const float num) {
  		for (unsigned int i = 0; i < N; i++)
  			data[i] *= num;
-		return *reinterpret_cast<const Vector<N>*>(this);
+		return *static_cast<const Vector<N>*>(this);
 	}
 
 	/**
@@ -217,7 +217,7 @@ public:
 	const Vector<N> &operator /=(const float num) {
  		for (unsigned int i = 0; i < N; i++)
  			data[i] /= num;
-		return *reinterpret_cast<const Vector<N>*>(this);
+		return *static_cast<const Vector<N>*>(this);
 	}
 
 	/**
@@ -241,7 +241,7 @@ public:
 	 * gets the length of this vector
 	 */
 	float length() const {
-		return sqrtf(*this * *reinterpret_cast<const Vector<N>*>(this));
+		return sqrtf(*this * *static_cast<const Vector<N>*>(this));
 	}
 
 	/**

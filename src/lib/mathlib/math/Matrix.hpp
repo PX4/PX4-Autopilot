@@ -129,7 +129,7 @@ public:
 	 */
 	const Matrix<M, N> &operator =(const Matrix<M, N> &m) {
 		memcpy(data, m.data, sizeof(data));
-		return *reinterpret_cast<Matrix<M, N>*>(this);
+		return *static_cast<Matrix<M, N>*>(this);
 	}
 
 	/**
@@ -158,7 +158,7 @@ public:
  		for (unsigned int i = 0; i < N; i++)
  			for (unsigned int j = 0; j < M; j++)
  				data[i][j] += m.data[i][j];
-		return *reinterpret_cast<Matrix<M, N>*>(this);
+		return *static_cast<Matrix<M, N>*>(this);
 	}
 
 	/**
@@ -176,7 +176,7 @@ public:
  		for (unsigned int i = 0; i < N; i++)
  			for (unsigned int j = 0; j < M; j++)
  				data[i][j] -= m.data[i][j];
-		return *reinterpret_cast<Matrix<M, N>*>(this);
+		return *static_cast<Matrix<M, N>*>(this);
 	}
 
 	/**
@@ -194,7 +194,7 @@ public:
  		for (unsigned int i = 0; i < M; i++)
  			for (unsigned int j = 0; j < N; j++)
  				data[i][j] *= num;
-		return *reinterpret_cast<Matrix<M, N>*>(this);
+		return *static_cast<Matrix<M, N>*>(this);
 	}
 
 	Matrix<M, N> operator /(const float num) const {

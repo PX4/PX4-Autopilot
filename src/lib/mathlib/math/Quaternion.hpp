@@ -73,42 +73,6 @@ public:
 	Quaternion(const float *v) : Vector(v) {
 	}
 
-	/**
-	 * access to elements by index
-	 */
-	/*
-	inline float &operator ()(unsigned int i) {
-		return *(&a + i);
-	}
-	*/
-
-	/**
-	 * access to elements by index
-	 */
-	/*
-	inline const float &operator ()(unsigned int i) const {
-		return *(&a + i);
-	}
-	*/
-
-	/**
-	 * addition
-	 */
-	/*
-	const Quaternion operator +(const Quaternion &q) const {
-		return Quaternion(a + q.a, b + q.b, c + q.c, d + q.d);
-	}
-	*/
-
-	/**
-	 * subtraction
-	 */
-	/*
-	const Quaternion operator -(const Quaternion &q) const {
-		return Quaternion(a - q.a, b - q.b, c - q.c, d - q.d);
-	}
-	*/
-
 	Quaternion derivative(const Vector<3> &w) {
 	        float dataQ[] = {
 	                data[0], -data[1], -data[2], -data[3],

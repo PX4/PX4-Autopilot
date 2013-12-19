@@ -53,21 +53,6 @@ static const int8_t ret_error = -1; 	// error occurred
 
 KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	SuperBlock(parent, name),
-	// ekf matrices
-	F(),
-	G(),
-	P(),
-	P0(),
-	V(),
-	// attitude measurement ekf matrices
-	HAtt(),
-	RAtt(),
-	// position measurement ekf matrices
-	HPos(),
-	RPos(),
-	// attitude representations
-	C_nb(),
-	q(),
 	// subscriptions
 	_sensors(&getSubscriptions(), ORB_ID(sensor_combined), 5), // limit to 200 Hz
 	_gps(&getSubscriptions(), ORB_ID(vehicle_gps_position), 100), // limit to 10 Hz
