@@ -226,3 +226,7 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);	/**< default function: camera azimuth / yaw 
 PARAM_DEFINE_FLOAT(RC_SCALE_ROLL, 0.6f);
 PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);
 PARAM_DEFINE_FLOAT(RC_SCALE_YAW, 2.0f);
+
+PARAM_DEFINE_INT32(RC_FS_CH, 0);	/**< RC failsafe channel, 0 = disable */
+PARAM_DEFINE_INT32(RC_FS_MODE, 0);	/**< RC failsafe mode: 0 = too low means signal loss, 1 = too high means signal loss */
+PARAM_DEFINE_FLOAT(RC_FS_THR, 800);	/**< RC failsafe PWM threshold */

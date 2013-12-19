@@ -2562,6 +2562,39 @@ px4io_main(int argc, char *argv[])
 		if_test((argc > 2) ? strtol(argv[2], NULL, 0) : 0);
 	}
 
+	if (!strcmp(argv[1], "forceupdate")) {
+		/*
+		  force update of the IO firmware without requiring
+		  the user to hold the safety switch down
+		 */
+		if (argc <= 3) {
+			warnx("usage: px4io forceupdate MAGIC filename");
+			exit(1);
+		}
+		if (g_dev == nullptr) {
+			warnx("px4io is not started, still attempting upgrade");
+		} else {
+			uint16_t arg = atol(argv[2]);
+			int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
+			if (ret != OK) {
+				printf("reboot failed - %d\n", ret);
+				exit(1);
+			}
+
+			// tear down the px4io instance
+			delete g_dev;
+		}
+
+		// upload the specified firmware
+		const char *fn[2];
+		fn[0] = argv[3];
+		fn[1] = nullptr;
+		PX4IO_Uploader *up = new PX4IO_Uploader;
+		up->upload(&fn[0]);
+		delete up;
+		exit(0);
+	}
+
 	/* commands below here require a started driver */
 
 	if (g_dev == nullptr)
@@ -2644,39 +2677,6 @@ px4io_main(int argc, char *argv[])
 		}
 
 		printf("SET_DEBUG %u OK\n", (unsigned)level);
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "forceupdate")) {
-		/*
-		  force update of the IO firmware without requiring
-		  the user to hold the safety switch down
-		 */
-		if (argc <= 3) {
-			warnx("usage: px4io forceupdate MAGIC filename");
-			exit(1);
-		}
-		if (g_dev == nullptr) {
-			warnx("px4io is not started, still attempting upgrade");
-		} else {
-			uint16_t arg = atol(argv[2]);
-			int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
-			if (ret != OK) {
-				printf("reboot failed - %d\n", ret);
-				exit(1);
-			}
-
-			// tear down the px4io instance
-			delete g_dev;
-		}
-
-		// upload the specified firmware
-		const char *fn[2];
-		fn[0] = argv[3];
-		fn[1] = nullptr;
-		PX4IO_Uploader *up = new PX4IO_Uploader;
-		up->upload(&fn[0]);
-		delete up;
 		exit(0);
 	}
 

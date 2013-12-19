@@ -23,7 +23,7 @@ fi
 
 if l3gd20 start
 then
-	echo "using L3GD20(H)"		
+	echo "using L3GD20(H)"
 fi
 
 if lsm303d start
