@@ -244,7 +244,8 @@ private:
 	int			_mavlink_fd;		///<mavlink file descriptor. This is opened by class instantiation and Doesn't appear to be usable in main thread.
 	int			_thread_mavlink_fd;	///<mavlink file descriptor for thread.
 
-	perf_counter_t		_perf_update;		///<local performance counter
+	perf_counter_t		_perf_update;		///<local performance counter for status updates
+	perf_counter_t		_perf_write;		///<local performance counter for PWM control writes
 
 	/* cached IO state */
 	uint16_t		_status;		///<Various IO status flags
@@ -459,6 +460,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_mavlink_fd(-1),
 	_thread_mavlink_fd(-1),
 	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
+	_perf_write(perf_alloc(PC_ELAPSED, "px4io write")),
 	_status(0),
 	_alarms(0),
 	_t_actuators(-1),
@@ -2155,7 +2157,10 @@ PX4IO::write(file * /*filp*/, const char *buffer, size_t len)
 		count = _max_actuators;
 
 	if (count > 0) {
+
+		perf_begin(_perf_write);
 		int ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)buffer, count);
+		perf_end(_perf_write);
 
 		if (ret != OK)
 			return ret;
