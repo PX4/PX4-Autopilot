@@ -70,6 +70,7 @@
 #include "multirotor_pos_control_params.h"
 #include "thrust_pid.h"
 
+#define TILT_COS_MAX	0.7f
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
@@ -687,8 +688,14 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 				bool saturation_z = false;
 
 				/* limit min lift */
-				if (-thrust_sp[2] < params.thr_min) {
-					thrust_sp[2] = -params.thr_min;
+				float thr_min = params.thr_min;
+				if (!control_mode.flag_control_velocity_enabled && thr_min < 0.0f) {
+					/* don't allow downside thrust direction in manual attitude mode */
+					thr_min = 0.0f;
+				}
+
+				if (-thrust_sp[2] < thr_min) {
+					thrust_sp[2] = -thr_min;
 					saturation_z = true;
 				}
 
@@ -825,10 +832,10 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					/* thrust compensation for altitude only control mode */
 					float att_comp;
 
-					if (att.R[2][2] > 0.8f)
+					if (att.R[2][2] > TILT_COS_MAX)
 						att_comp = 1.0f / att.R[2][2];
 					else if (att.R[2][2] > 0.0f)
-						att_comp = ((1.0f / 0.8f - 1.0f) / 0.8f) * att.R[2][2] + 1.0f;
+						att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * att.R[2][2] + 1.0f;
 					else
 						att_comp = 1.0f;
 
