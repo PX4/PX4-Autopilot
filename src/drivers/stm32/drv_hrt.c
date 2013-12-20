@@ -338,7 +338,12 @@ static void		hrt_call_invoke(void);
 # define PPM_MIN_START		2500		/* shortest valid start gap */
 
 /* decoded PPM buffer */
-#define PPM_MAX_CHANNELS	12
+#define PPM_MIN_CHANNELS	5
+#define PPM_MAX_CHANNELS	20
+
+/* Number of same-sized frames required to 'lock' */
+#define PPM_CHANNEL_LOCK	2		/* should be less than the input timeout */
+
 __EXPORT uint16_t ppm_buffer[PPM_MAX_CHANNELS];
 __EXPORT unsigned ppm_decoded_channels = 0;
 __EXPORT uint64_t ppm_last_valid_decode = 0;
@@ -440,7 +445,7 @@ hrt_ppm_decode(uint32_t status)
 	if (status & SR_OVF_PPM)
 		goto error;
 
-	/* how long since the last edge? */
+	/* how long since the last edge? - this handles counter wrapping implicitely. */
 	width = count - ppm.last_edge;
 	ppm.last_edge = count;
 
@@ -455,14 +460,38 @@ hrt_ppm_decode(uint32_t status)
 	 */
 	if (width >= PPM_MIN_START) {
 
-		/* export the last set of samples if we got something sensible */
-		if (ppm.next_channel > 4) {
-			for (i = 0; i < ppm.next_channel && i < PPM_MAX_CHANNELS; i++)
-				ppm_buffer[i] = ppm_temp_buffer[i];
+		/*
+		 * If the number of channels changes unexpectedly, we don't want
+		 * to just immediately jump on the new count as it may be a result
+		 * of noise or dropped edges.  Instead, take a few frames to settle.
+		 */
+		if (ppm.next_channel != ppm_decoded_channels) {
+			static unsigned new_channel_count;
+			static unsigned new_channel_holdoff;
 
-			ppm_decoded_channels = i;
-			ppm_last_valid_decode = hrt_absolute_time();
+			if (new_channel_count != ppm.next_channel) {
+				/* start the lock counter for the new channel count */
+				new_channel_count = ppm.next_channel;
+				new_channel_holdoff = PPM_CHANNEL_LOCK;
 
+			} else if (new_channel_holdoff > 0) {
+				/* this frame matched the last one, decrement the lock counter */
+				new_channel_holdoff--;
+
+			} else {
+				/* we have seen PPM_CHANNEL_LOCK frames with the new count, accept it */
+				ppm_decoded_channels = new_channel_count;
+				new_channel_count = 0;
+			}
+
+		} else {
+			/* frame channel count matches expected, let's use it */
+			if (ppm.next_channel > PPM_MIN_CHANNELS) {
+				for (i = 0; i < ppm.next_channel; i++)
+					ppm_buffer[i] = ppm_temp_buffer[i];
+
+				ppm_last_valid_decode = hrt_absolute_time();
+			}
 		}
 
 		/* reset for the next frame */
