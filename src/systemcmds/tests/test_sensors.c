@@ -78,7 +78,8 @@ static int accel(int argc, char *argv[]);
 static int gyro(int argc, char *argv[]);
 static int mag(int argc, char *argv[]);
 static int baro(int argc, char *argv[]);
-static int mpu6k(int argc, char *argv[]);
+static int accel1(int argc, char *argv[]);
+static int gyro1(int argc, char *argv[]);
 
 /****************************************************************************
  * Private Data
@@ -93,7 +94,8 @@ struct {
 	{"gyro",	"/dev/gyro",	gyro},
 	{"mag",		"/dev/mag",	mag},
 	{"baro",	"/dev/baro",	baro},
-	{"mpu6k",	"/dev/mpu6k",	mpu6k},
+	{"accel1",	"/dev/accel1",	accel1},
+	{"gyro1",	"/dev/gyro1",	gyro1},
 	{NULL, NULL, NULL}
 };
 
@@ -137,7 +139,7 @@ accel(int argc, char *argv[])
 	}
 
 	if (fabsf(buf.x) > 30.0f || fabsf(buf.y) > 30.0f || fabsf(buf.z) > 30.0f) {
-		warnx("MPU6K acceleration values out of range!");
+		warnx("ACCEL1 acceleration values out of range!");
 		return ERROR;
 	}
 
@@ -149,20 +151,19 @@ accel(int argc, char *argv[])
 }
 
 static int
-mpu6k(int argc, char *argv[])
+accel1(int argc, char *argv[])
 {
-	printf("\tMPU6K: test start\n");
+	printf("\tACCEL1: test start\n");
 	fflush(stdout);
 
 	int		fd;
 	struct accel_report buf;
-	struct gyro_report gyro_buf;
 	int		ret;
 
-	fd = open("/dev/accel_mpu6k", O_RDONLY);
+	fd = open("/dev/accel1", O_RDONLY);
 
 	if (fd < 0) {
-		printf("\tMPU6K: open fail, run <mpu6000 start> first.\n");
+		printf("\tACCEL1: open fail, run <mpu6000 start> or <lsm303d start> first.\n");
 		return ERROR;
 	}
 
@@ -173,45 +174,21 @@ mpu6k(int argc, char *argv[])
 	ret = read(fd, &buf, sizeof(buf));
 
 	if (ret != sizeof(buf)) {
-		printf("\tMPU6K: read1 fail (%d)\n", ret);
+		printf("\tACCEL1: read1 fail (%d)\n", ret);
 		return ERROR;
 
 	} else {
-		printf("\tMPU6K accel: x:%8.4f\ty:%8.4f\tz:%8.4f m/s^2\n", (double)buf.x, (double)buf.y, (double)buf.z);
+		printf("\tACCEL1 accel: x:%8.4f\ty:%8.4f\tz:%8.4f m/s^2\n", (double)buf.x, (double)buf.y, (double)buf.z);
 	}
 
 	if (fabsf(buf.x) > 30.0f || fabsf(buf.y) > 30.0f || fabsf(buf.z) > 30.0f) {
-		warnx("MPU6K acceleration values out of range!");
+		warnx("ACCEL1 acceleration values out of range!");
 		return ERROR;
 	}
 
 	/* Let user know everything is ok */
-	printf("\tOK: MPU6K ACCEL passed all tests successfully\n");
+	printf("\tOK: ACCEL1 passed all tests successfully\n");
 
-	close(fd);
-	fd = open("/dev/gyro_mpu6k", O_RDONLY);
-
-	if (fd < 0) {
-		printf("\tMPU6K GYRO: open fail, run <l3gd20 start> or <mpu6000 start> first.\n");
-		return ERROR;
-	}
-
-	/* wait at least 5 ms, sensor should have data after that */
-	usleep(5000);
-
-	/* read data - expect samples */
-	ret = read(fd, &gyro_buf, sizeof(gyro_buf));
-
-	if (ret != sizeof(gyro_buf)) {
-		printf("\tMPU6K GYRO: read fail (%d)\n", ret);
-		return ERROR;
-
-	} else {
-		printf("\tMPU6K GYRO rates: x:%8.4f\ty:%8.4f\tz:%8.4f rad/s\n", (double)gyro_buf.x, (double)gyro_buf.y, (double)gyro_buf.z);
-	}
-
-	/* Let user know everything is ok */
-	printf("\tOK: MPU6K GYRO passed all tests successfully\n");
 	close(fd);
 
 	return OK;
@@ -250,6 +227,44 @@ gyro(int argc, char *argv[])
 
 	/* Let user know everything is ok */
 	printf("\tOK: GYRO passed all tests successfully\n");
+	close(fd);
+
+	return OK;
+}
+
+static int
+gyro1(int argc, char *argv[])
+{
+	printf("\tGYRO1: test start\n");
+	fflush(stdout);
+
+	int		fd;
+	struct gyro_report buf;
+	int		ret;
+
+	fd = open("/dev/gyro1", O_RDONLY);
+
+	if (fd < 0) {
+		printf("\tGYRO1: open fail, run <l3gd20 start> or <mpu6000 start> first.\n");
+		return ERROR;
+	}
+
+	/* wait at least 5 ms, sensor should have data after that */
+	usleep(5000);
+
+	/* read data - expect samples */
+	ret = read(fd, &buf, sizeof(buf));
+
+	if (ret != sizeof(buf)) {
+		printf("\tGYRO1: read fail (%d)\n", ret);
+		return ERROR;
+
+	} else {
+		printf("\tGYRO1 rates: x:%8.4f\ty:%8.4f\tz:%8.4f rad/s\n", (double)buf.x, (double)buf.y, (double)buf.z);
+	}
+
+	/* Let user know everything is ok */
+	printf("\tOK: GYRO1 passed all tests successfully\n");
 	close(fd);
 
 	return OK;
