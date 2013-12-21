@@ -71,6 +71,7 @@
 #include "thrust_pid.h"
 
 #define TILT_COS_MAX	0.7f
+#define SIGMA			0.000001f
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
@@ -439,7 +440,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 					if (pos_pitch_sp_ctl != 0.0f || pos_roll_sp_ctl != 0.0f) {
 						/* calculate direction and increment of control in NED frame */
-						float xy_sp_ctl_dir = att.yaw + atan2f(pos_roll_sp_ctl, pos_pitch_sp_ctl);
+						float xy_sp_ctl_dir = att_sp.yaw_body + atan2f(pos_roll_sp_ctl, pos_pitch_sp_ctl);
 						float xy_sp_ctl_speed = norm(pos_pitch_sp_ctl, pos_roll_sp_ctl) * params.xy_vel_max;
 						sp_move_rate[0] = cosf(xy_sp_ctl_dir) * xy_sp_ctl_speed;
 						sp_move_rate[1] = sinf(xy_sp_ctl_dir) * xy_sp_ctl_speed;
@@ -771,7 +772,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					} else {
 						body_z[0] = 0.0f;
 						body_z[1] = 0.0f;
-						body_z[2] = -1.0f;
+						body_z[2] = 1.0f;
 					}
 
 					/* vector of desired yaw direction in XY plane, rotated by PI/2 */
@@ -780,38 +781,27 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					y_C[1] = cosf(att_sp.yaw_body);
 					y_C[2] = 0;
 
-					/* desired body_x axis = cross(y_C, body_z) */
-					cross3(y_C, body_z, body_x);
-					float body_x_norm = normalize3(body_x);
-					static const float body_x_norm_max = 0.5f;
+					if (fabsf(body_z[2]) < SIGMA) {
+						/* desired thrust is in XY plane, set X downside to construct correct matrix,
+						 * but yaw component will not be used actually */
+						body_x[0] = -body_x[0];
+						body_x[1] = -body_x[1];
+						body_x[2] = -body_x[2];
+					} else {
+						/* desired body_x axis = cross(y_C, body_z) */
+						cross3(y_C, body_z, body_x);
+
+						/* keep nose to front while inverted upside down */
+						if (body_z[2] < 0.0f) {
+							body_x[0] = -body_x[0];
+							body_x[1] = -body_x[1];
+							body_x[2] = -body_x[2];
+						}
+						normalize3(body_x);
+					}
 
 					/* desired body_y axis = cross(body_z, body_x) */
 					cross3(body_z, body_x, body_y);
-
-					if (body_x_norm < body_x_norm_max) {
-						/* roll is close to +/- PI/2, don't try to hold yaw exactly */
-						float x_C[3];
-						x_C[0] = cos(att_sp.yaw_body);
-						x_C[1] = sinf(att_sp.yaw_body);
-						x_C[2] = 0;
-
-						float body_y_1[3];
-						/* desired body_y axis for approximate yaw = cross(body_z, x_C) */
-						cross3(body_z, x_C, body_y_1);
-
-						float w = body_x_norm / body_x_norm_max;
-						float w1 = 1.0f - w;
-
-						/* mix two body_y axes */
-						body_y[0] = body_y[0] * w + body_y_1[0] * w1;
-						body_y[1] = body_y[1] * w + body_y_1[1] * w1;
-						body_y[2] = body_y[2] * w + body_y_1[2] * w1;
-
-						normalize3(body_y);
-
-						/* desired body_x axis = cross(body_y, body_z) */
-						cross3(body_y, body_z, body_x);
-					}
 
 					/* fill rotation matrix */
 					for (int i = 0; i < 3; i++) {

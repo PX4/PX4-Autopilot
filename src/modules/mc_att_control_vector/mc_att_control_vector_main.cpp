@@ -564,33 +564,39 @@ MulticopterAttitudeControl::task_main()
 			math::Vector3 rates(_att.rollspeed, _att.pitchspeed, _att.yawspeed);
 
 			/* try to move thrust vector shortest way, because yaw response is slower than roll/pitch */
-			/* sin(angle error) between current and desired thrust vectors (Z axes) */
 			math::Vector3 R_z(R(0, 2), R(1, 2), R(2, 2));
-			math::Vector3 R_z_des(R_des(0, 2), R_des(1, 2), R_des(2, 2));
-			math::Vector3 e_R = R.transpose() * R_z.cross(R_z_des);
+			math::Vector3 R_des_z(R_des(0, 2), R_des(1, 2), R_des(2, 2));
+
+			/* axis and sin(angle) of desired rotation */
+			math::Vector3 e_R = R.transpose() * R_z.cross(R_des_z);
 
 			/* calculate angle error */
-			float e_R_sin = e_R.norm();
-			float e_R_cos = R_z * R_z_des;
-			float angle = atan2f(e_R_sin, e_R_cos);
+			float e_R_z_sin = e_R.norm();
+			float e_R_z_cos = R_z * R_des_z;
+			float e_R_z_angle = atan2f(e_R_z_sin, e_R_z_cos);
 
-			/* e_R has zero Z component, set it according to yaw */
+			/* calculate weight for yaw control */
+			float cos_z = cosf(R_z(2));
+			float yaw_w = cos_z * cos_z;
+
 			/* calculate rotation matrix after roll/pitch only rotation */
 			math::Matrix R_rp(3, 3);
 
-			if (e_R_sin > 0.0f) {
+			if (e_R_z_sin > 0.0f) {
 				/* get axis-angle representation */
-				math::Vector3 e_R_axis = e_R / e_R_sin;
+				math::Vector3 e_R_z_axis = e_R / e_R_z_sin;
+
+				e_R = e_R_z_axis * e_R_z_angle;
 
 				/* cross product matrix for e_R_axis */
 				math::Matrix e_R_cp(3, 3);
 				e_R_cp.setAll(0.0f);
-				e_R_cp(0, 1) = -e_R_axis(2);
-				e_R_cp(0, 2) = e_R_axis(1);
-				e_R_cp(1, 0) = e_R_axis(2);
-				e_R_cp(1, 2) = -e_R_axis(0);
-				e_R_cp(2, 0) = -e_R_axis(1);
-				e_R_cp(2, 1) = e_R_axis(0);
+				e_R_cp(0, 1) = -e_R_z_axis(2);
+				e_R_cp(0, 2) = e_R_z_axis(1);
+				e_R_cp(1, 0) = e_R_z_axis(2);
+				e_R_cp(1, 2) = -e_R_z_axis(0);
+				e_R_cp(2, 0) = -e_R_z_axis(1);
+				e_R_cp(2, 1) = e_R_z_axis(0);
 
 				/* rotation matrix for roll/pitch only rotation */
 				math::Matrix I(3, 3);
@@ -598,7 +604,7 @@ MulticopterAttitudeControl::task_main()
 				I(0, 0) = 1.0f;
 				I(1, 1) = 1.0f;
 				I(2, 2) = 1.0f;
-				R_rp = R * (I + e_R_cp * e_R_sin + e_R_cp * e_R_cp * (1.0f - e_R_cos));
+				R_rp = R * (I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
 
 			} else {
 				/* zero roll/pitch rotation */
@@ -606,13 +612,21 @@ MulticopterAttitudeControl::task_main()
 			}
 
 			/* R_rp and R_des has the same Z axis, calculate yaw error */
-			math::Vector3 R_des_z(R_des(0, 2), R_des(1, 2), R_des(2, 2));
 			math::Vector3 R_des_x(R_des(0, 0), R_des(1, 0), R_des(2, 0));
 			math::Vector3 R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
-			e_R(2) = R_rp_x.cross(R_des_x) * R_des_z;
+			e_R(2) = atan2f(R_rp_x.cross(R_des_x) * R_des_z, R_rp_x * R_des_x) * yaw_w;
 
-			/* don't try to control yaw when thrust vector has opposite direction to desired */
-			e_R(2) *= (e_R_cos > 0.0f ? 1.0f : e_R_sin);
+			if (e_R_z_cos < 0.0) {
+				/* for large thrust vector rotations use another rotation method:
+				 * calculate angle and axis for R -> R_des rotation directly */
+				math::Quaternion q(R.transpose() * R_des);
+				float angle_d = 2.0f * atan2f(sqrtf(q.getB() * q.getB() + q.getC() * q.getC() + q.getD() * q.getD()), q.getA());
+				math::Vector3 e_R_d(q.getB(), q.getC(), q.getD());
+
+				/* use fusion of Z axis based rotation and direct rotation */
+				float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;
+				e_R = e_R * (1.0f - direct_w) + e_R_d * direct_w;
+			}
 
 			/* angular rates setpoint*/
 			math::Vector3 rates_sp = _K * e_R;

@@ -56,6 +56,7 @@ public:
 	Vector3 cross(const Vector3 &b) const;
 	Vector3 operator %(const Vector3 &v) const;
 	float operator *(const Vector3 &v) const;
+	using Vector::operator *;
 
 	/**
 	 * accessors
