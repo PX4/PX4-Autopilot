@@ -896,7 +896,23 @@ PX4IO::task_main()
 
 				/* re-upload RC input config as it may have changed */
 				io_set_rc_config();
+
+				/* re-set the battery scaling */
+				int32_t voltage_scaling_val;
+				param_t voltage_scaling_param;
+
+				/* set battery voltage scaling */
+				param_get(voltage_scaling_param = param_find("BAT_V_SCALE_IO"), &voltage_scaling_val);
+
+				/* send scaling voltage to IO */
+				uint16_t scaling = voltage_scaling_val;
+				int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE, &scaling, 1);
+
+				if (pret != OK) {
+					log("voltage scaling upload failed");
+				}
 			}
+
 		}
 
 		perf_end(_perf_update);
