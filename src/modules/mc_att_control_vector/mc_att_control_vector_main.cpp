@@ -373,9 +373,8 @@ MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterAttitudeControl::task_main()
 {
-
 	/* inform about start */
-	warnx("Initializing..");
+	warnx("started");
 	fflush(stdout);
 
 	/*
@@ -573,17 +572,16 @@ MulticopterAttitudeControl::task_main()
 			/* calculate angle error */
 			float e_R_z_sin = e_R.norm();
 			float e_R_z_cos = R_z * R_des_z;
-			float e_R_z_angle = atan2f(e_R_z_sin, e_R_z_cos);
 
 			/* calculate weight for yaw control */
-			float cos_z = cosf(R_z(2));
-			float yaw_w = cos_z * cos_z;
+			float yaw_w = R_des(2, 2) * R_des(2, 2);
 
 			/* calculate rotation matrix after roll/pitch only rotation */
 			math::Matrix R_rp(3, 3);
 
 			if (e_R_z_sin > 0.0f) {
 				/* get axis-angle representation */
+				float e_R_z_angle = atan2f(e_R_z_sin, e_R_z_cos);
 				math::Vector3 e_R_z_axis = e_R / e_R_z_sin;
 
 				e_R = e_R_z_axis * e_R_z_angle;
