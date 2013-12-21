@@ -46,34 +46,34 @@
 #ifndef TOPIC_ACTUATOR_CONTROLS_EFFECTIVE_H
 #define TOPIC_ACTUATOR_CONTROLS_EFFECTIVE_H
 
-#include <stdint.h>
-#include "../uORB.h"
-#include "actuator_controls.h"
-
-#define NUM_ACTUATOR_CONTROLS_EFFECTIVE		NUM_ACTUATOR_CONTROLS
-#define NUM_ACTUATOR_CONTROL_GROUPS_EFFECTIVE	NUM_ACTUATOR_CONTROL_GROUPS	/**< for sanity checking */
-
-/**
- * @addtogroup topics
- * @{
- */
-
-struct actuator_controls_effective_s {
-	uint64_t timestamp;
-	float	control_effective[NUM_ACTUATOR_CONTROLS_EFFECTIVE];
-};
-
-/**
- * @}
- */
-
-/* actuator control sets; this list can be expanded as more controllers emerge */
-ORB_DECLARE(actuator_controls_effective_0);
-ORB_DECLARE(actuator_controls_effective_1);
-ORB_DECLARE(actuator_controls_effective_2);
-ORB_DECLARE(actuator_controls_effective_3);
-
-/* control sets with pre-defined applications */
-#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE	ORB_ID(actuator_controls_effective_0)
+//#include <stdint.h>
+//#include "../uORB.h"
+//#include "actuator_controls.h"
+//
+//#define NUM_ACTUATOR_CONTROLS_EFFECTIVE		NUM_ACTUATOR_CONTROLS
+//#define NUM_ACTUATOR_CONTROL_GROUPS_EFFECTIVE	NUM_ACTUATOR_CONTROL_GROUPS	/**< for sanity checking */
+//
+///**
+// * @addtogroup topics
+// * @{
+// */
+//
+//struct actuator_controls_effective_s {
+//	uint64_t timestamp;
+//	float	control_effective[NUM_ACTUATOR_CONTROLS_EFFECTIVE];
+//};
+//
+///**
+// * @}
+// */
+//
+///* actuator control sets; this list can be expanded as more controllers emerge */
+//ORB_DECLARE(actuator_controls_effective_0);
+//ORB_DECLARE(actuator_controls_effective_1);
+//ORB_DECLARE(actuator_controls_effective_2);
+//ORB_DECLARE(actuator_controls_effective_3);
+//
+///* control sets with pre-defined applications */
+//#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE	ORB_ID(actuator_controls_effective_0)
 
 #endif /* TOPIC_ACTUATOR_CONTROLS_EFFECTIVE_H */

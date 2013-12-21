@@ -83,6 +83,11 @@ __EXPORT void weak_function stm32_spiinitialize(void)
 	stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_BARO, 1);
 	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+
+	stm32_configgpio(GPIO_EXTI_GYRO_DRDY);
+	stm32_configgpio(GPIO_EXTI_MAG_DRDY);
+	stm32_configgpio(GPIO_EXTI_ACCEL_DRDY);
+	stm32_configgpio(GPIO_EXTI_MPU_DRDY);
 #endif
 
 #ifdef CONFIG_STM32_SPI2

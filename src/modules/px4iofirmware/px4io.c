@@ -45,6 +45,7 @@
 #include <string.h>
 #include <poll.h>
 #include <signal.h>
+#include <crc32.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
@@ -124,6 +125,22 @@ heartbeat_blink(void)
 	LED_BLUE(heartbeat = !heartbeat);
 }
 
+
+static void
+calculate_fw_crc(void)
+{
+#define APP_SIZE_MAX 0xf000
+#define APP_LOAD_ADDRESS 0x08001000
+	// compute CRC of the current firmware
+	uint32_t sum = 0;
+	for (unsigned p = 0; p < APP_SIZE_MAX; p += 4) {
+		uint32_t bytes = *(uint32_t *)(p + APP_LOAD_ADDRESS);
+		sum = crc32part((uint8_t *)&bytes, sizeof(bytes), sum);
+	}
+	r_page_setup[PX4IO_P_SETUP_CRC]   = sum & 0xFFFF;
+	r_page_setup[PX4IO_P_SETUP_CRC+1] = sum >> 16;
+}
+
 int
 user_start(int argc, char *argv[])
 {
@@ -135,6 +152,9 @@ user_start(int argc, char *argv[])
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
+
+	/* calculate our fw CRC so FMU can decide if we need to update */
+	calculate_fw_crc();
 
 	/*
 	 * Poll at 1ms intervals for received bytes that have not triggered

@@ -128,6 +128,7 @@
 #define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
 #define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
 #define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
+#define PX4IO_P_STATUS_NRSSI			9	/* [2] Normalized RSSI value, 0: no reception, 1000: perfect reception */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -189,6 +190,11 @@ enum {							/* DSM bind states */
 };
  					     /*	8 */
 #define PX4IO_P_SETUP_SET_DEBUG			9		/* debug level for IO board */
+
+#define PX4IO_P_SETUP_REBOOT_BL		       10	/* reboot IO into bootloader */
+#define PX4IO_REBOOT_BL_MAGIC               14662       /* required argument for reboot (random) */
+
+#define PX4IO_P_SETUP_CRC		       11	/* get CRC of IO firmware */
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51		/**< actuator control groups, one after the other, 8 wide */

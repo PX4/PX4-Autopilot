@@ -105,6 +105,7 @@ const struct {
 	{"bson",		test_bson,	0},
 	{"file",		test_file,	0},
 	{"mixer",		test_mixer,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"rc",			test_rc,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
 	{NULL,			NULL, 		0}
 };
