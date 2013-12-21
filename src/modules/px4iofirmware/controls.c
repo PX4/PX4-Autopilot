@@ -136,8 +136,8 @@ controls_tick() {
 	perf_end(c_gather_ppm);
 
 	/* limit number of channels to allowable data size */
-	if (r_raw_rc_count > PX4IO_INPUT_CHANNELS)
-		r_raw_rc_count = PX4IO_INPUT_CHANNELS;
+	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS)
+		r_raw_rc_count = PX4IO_RC_INPUT_CHANNELS;
 
 	/*
 	 * In some cases we may have received a frame, but input has still
