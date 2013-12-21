@@ -237,6 +237,7 @@ private:
 
 	unsigned 		_update_interval;	///< Subscription interval limiting send rate
 	bool			_rc_handling_disabled;	///< If set, IO does not evaluate, but only forward the RC values
+	unsigned		_rc_chan_count;		///< Internal copy of the last seen number of RC channels
 
 	volatile int		_task;			///<worker task id
 	volatile bool		_task_should_exit;	///<worker terminate flag
@@ -246,6 +247,7 @@ private:
 
 	perf_counter_t		_perf_update;		///<local performance counter for status updates
 	perf_counter_t		_perf_write;		///<local performance counter for PWM control writes
+	perf_counter_t		_perf_chan_count;	///<local performance counter for channel number changes
 
 	/* cached IO state */
 	uint16_t		_status;		///<Various IO status flags
@@ -455,12 +457,14 @@ PX4IO::PX4IO(device::Device *interface) :
 	_max_transfer(16),	/* sensible default */
 	_update_interval(0),
 	_rc_handling_disabled(false),
+	_rc_chan_count(0),
 	_task(-1),
 	_task_should_exit(false),
 	_mavlink_fd(-1),
 	_thread_mavlink_fd(-1),
-	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
-	_perf_write(perf_alloc(PC_ELAPSED, "px4io write")),
+	_perf_update(perf_alloc(PC_ELAPSED, "io update")),
+	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
+	_perf_chan_count(perf_alloc(PC_COUNT, "io rc #")),
 	_status(0),
 	_alarms(0),
 	_t_actuators(-1),
@@ -1324,6 +1328,11 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	 * channel count once.
 	 */
 	channel_count = regs[0];
+
+	if (channel_count != _rc_chan_count)
+		perf_count(_perf_chan_count);
+
+	_rc_chan_count = channel_count;
 
 	if (channel_count > 9) {
 		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + 9, &regs[prolog + 9], channel_count - 9);
