@@ -49,12 +49,14 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.2f);
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.1f);
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX, 3.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
 PARAM_DEFINE_FLOAT(MPC_XY_P, 0.5f);
 PARAM_DEFINE_FLOAT(MPC_XY_D, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.1f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.05f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
 PARAM_DEFINE_FLOAT(MPC_TILT_MAX, 0.5f);
 
 int parameters_init(struct multirotor_position_control_param_handles *h)
@@ -69,12 +71,14 @@ int parameters_init(struct multirotor_position_control_param_handles *h)
 	h->z_vel_i 	=	param_find("MPC_Z_VEL_I");
 	h->z_vel_d 	=	param_find("MPC_Z_VEL_D");
 	h->z_vel_max 	=	param_find("MPC_Z_VEL_MAX");
+	h->z_ff 	=	param_find("MPC_Z_FF");
 	h->xy_p 	=	param_find("MPC_XY_P");
 	h->xy_d 	=	param_find("MPC_XY_D");
 	h->xy_vel_p 	=	param_find("MPC_XY_VEL_P");
 	h->xy_vel_i 	=	param_find("MPC_XY_VEL_I");
 	h->xy_vel_d 	=	param_find("MPC_XY_VEL_D");
 	h->xy_vel_max 	=	param_find("MPC_XY_VEL_MAX");
+	h->xy_ff 	=	param_find("MPC_XY_FF");
 	h->tilt_max 	=	param_find("MPC_TILT_MAX");
 
 	h->rc_scale_pitch    =   param_find("RC_SCALE_PITCH");
@@ -96,12 +100,14 @@ int parameters_update(const struct multirotor_position_control_param_handles *h,
 	param_get(h->z_vel_i, &(p->z_vel_i));
 	param_get(h->z_vel_d, &(p->z_vel_d));
 	param_get(h->z_vel_max, &(p->z_vel_max));
+	param_get(h->z_ff, &(p->z_ff));
 	param_get(h->xy_p, &(p->xy_p));
 	param_get(h->xy_d, &(p->xy_d));
 	param_get(h->xy_vel_p, &(p->xy_vel_p));
 	param_get(h->xy_vel_i, &(p->xy_vel_i));
 	param_get(h->xy_vel_d, &(p->xy_vel_d));
 	param_get(h->xy_vel_max, &(p->xy_vel_max));
+	param_get(h->xy_ff, &(p->xy_ff));
 	param_get(h->tilt_max, &(p->tilt_max));
 
 	param_get(h->rc_scale_pitch, &(p->rc_scale_pitch));

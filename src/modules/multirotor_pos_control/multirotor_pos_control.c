@@ -612,7 +612,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			/* run position & altitude controllers, calculate velocity setpoint */
 			if (control_mode.flag_control_altitude_enabled) {
-				global_vel_sp.vz = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz - sp_move_rate[2], dt) + sp_move_rate[2];
+				global_vel_sp.vz = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz - sp_move_rate[2], dt) + sp_move_rate[2] * params.z_ff;
 
 			} else {
 				reset_man_sp_z = true;
@@ -621,8 +621,8 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			if (control_mode.flag_control_position_enabled) {
 				/* calculate velocity set point in NED frame */
-				global_vel_sp.vx = pid_calculate(&xy_pos_pids[0], local_pos_sp.x, local_pos.x, local_pos.vx - sp_move_rate[0], dt) + sp_move_rate[0];
-				global_vel_sp.vy = pid_calculate(&xy_pos_pids[1], local_pos_sp.y, local_pos.y, local_pos.vy - sp_move_rate[1], dt) + sp_move_rate[1];
+				global_vel_sp.vx = pid_calculate(&xy_pos_pids[0], local_pos_sp.x, local_pos.x, local_pos.vx - sp_move_rate[0], dt) + sp_move_rate[0] * params.xy_ff;
+				global_vel_sp.vy = pid_calculate(&xy_pos_pids[1], local_pos_sp.y, local_pos.y, local_pos.vy - sp_move_rate[1], dt) + sp_move_rate[1] * params.xy_ff;
 
 				if (!control_mode.flag_control_manual_enabled) {
 					/* limit horizontal speed only in AUTO mode */

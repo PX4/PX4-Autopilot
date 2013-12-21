@@ -51,12 +51,14 @@ struct multirotor_position_control_params {
 	float z_vel_i;
 	float z_vel_d;
 	float z_vel_max;
+	float z_ff;
 	float xy_p;
 	float xy_d;
 	float xy_vel_p;
 	float xy_vel_i;
 	float xy_vel_d;
 	float xy_vel_max;
+	float xy_ff;
 	float tilt_max;
 
 	float rc_scale_pitch;
@@ -75,12 +77,14 @@ struct multirotor_position_control_param_handles {
 	param_t z_vel_i;
 	param_t z_vel_d;
 	param_t z_vel_max;
+	param_t z_ff;
 	param_t xy_p;
 	param_t xy_d;
 	param_t xy_vel_p;
 	param_t xy_vel_i;
 	param_t xy_vel_d;
 	param_t xy_vel_max;
+	param_t xy_ff;
 	param_t tilt_max;
 
 	param_t rc_scale_pitch;
