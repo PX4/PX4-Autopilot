@@ -764,12 +764,13 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					float body_y[3];
 					float body_z[3];
 
-					if (thrust_abs > 0.0f) {
+					if (thrust_abs > SIGMA) {
 						body_z[0] = -thrust_sp[0] / thrust_abs;
 						body_z[1] = -thrust_sp[1] / thrust_abs;
 						body_z[2] = -thrust_sp[2] / thrust_abs;
 
 					} else {
+						/* no thrust, set Z axis to safe value */
 						body_z[0] = 0.0f;
 						body_z[1] = 0.0f;
 						body_z[2] = 1.0f;
@@ -781,13 +782,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 					y_C[1] = cosf(att_sp.yaw_body);
 					y_C[2] = 0;
 
-					if (fabsf(body_z[2]) < SIGMA) {
-						/* desired thrust is in XY plane, set X downside to construct correct matrix,
-						 * but yaw component will not be used actually */
-						body_x[0] = -body_x[0];
-						body_x[1] = -body_x[1];
-						body_x[2] = -body_x[2];
-					} else {
+					if (fabsf(body_z[2]) > SIGMA) {
 						/* desired body_x axis = cross(y_C, body_z) */
 						cross3(y_C, body_z, body_x);
 
@@ -798,6 +793,12 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 							body_x[2] = -body_x[2];
 						}
 						normalize3(body_x);
+					} else {
+						/* desired thrust is in XY plane, set X downside to construct correct matrix,
+						 * but yaw component will not be used actually */
+						body_x[0] = 0.0f;
+						body_x[1] = 0.0f;
+						body_x[2] = 1.0f;
 					}
 
 					/* desired body_y axis = cross(body_z, body_x) */

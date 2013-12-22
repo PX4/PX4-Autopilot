@@ -630,7 +630,7 @@ MulticopterAttitudeControl::task_main()
 			math::Vector3 rates_sp = _K * e_R;
 
 			/* feed forward yaw setpoint rate */
-			rates_sp(2) += yaw_sp_move_rate;
+			rates_sp(2) += yaw_sp_move_rate * yaw_w;
 			math::Vector3 control = _K_rate_p * (rates_sp - rates) + _K_rate_d * (_rates_prev - rates) / fmaxf(dt, 0.003f);
 			_rates_prev = rates;
 
