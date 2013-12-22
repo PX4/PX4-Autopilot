@@ -54,7 +54,7 @@
 #define PX4IO_SERVO_COUNT		8
 #define PX4IO_CONTROL_CHANNELS		8
 #define PX4IO_CONTROL_GROUPS		2
-#define PX4IO_RC_INPUT_CHANNELS		8 // XXX this should be 18 channels
+#define PX4IO_RC_INPUT_CHANNELS		18
 #define PX4IO_RC_MAPPED_CONTROL_CHANNELS		8 /**< This is the maximum number of channels mapped/used */
 
 /*
