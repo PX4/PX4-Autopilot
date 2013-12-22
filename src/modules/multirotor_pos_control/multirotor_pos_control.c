@@ -173,6 +173,11 @@ static float norm(float x, float y)
 	return sqrtf(x * x + y * y);
 }
 
+static float norm3(float x, float y, float z)
+{
+	return sqrtf(x * x + y * y + z * z);
+}
+
 static void cross3(float a[3], float b[3], float res[3])
 {
 	res[0] = a[1] * b[2] - a[2] * b[1];
@@ -298,8 +303,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	hrt_abstime ref_alt_t = 0;
 	uint64_t local_ref_timestamp = 0;
 
-	PID_t xy_pos_pids[2];
-	PID_t z_pos_pid;
 	float thrust_int[3] = { 0.0f, 0.0f, 0.0f };
 
 	thread_running = true;
@@ -308,12 +311,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 	struct multirotor_position_control_param_handles params_h;
 	parameters_init(&params_h);
 	parameters_update(&params_h, &params);
-
-	for (int i = 0; i < 2; i++) {
-		pid_init(&(xy_pos_pids[i]), PID_MODE_DERIVATIV_SET, 0.02f);
-	}
-
-	pid_init(&z_pos_pid, PID_MODE_DERIVATIV_SET, 0.02f);
 
 	bool param_updated = true;
 
@@ -329,12 +326,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			/* update params */
 			parameters_update(&params_h, &params);
-
-			for (int i = 0; i < 2; i++) {
-				pid_set_parameters(&(xy_pos_pids[i]), params.xy_p, 0.0f, params.xy_d, 0.0f, 0.0f);
-			}
-
-			pid_set_parameters(&z_pos_pid, params.z_p, 0.0f, params.z_d, 1.0f, params.z_vel_max);
 		}
 
 		bool updated;
@@ -362,6 +353,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		} else {
 			dt = 0.0f;
 		}
+		t_prev = t;
 
 		if (control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
@@ -375,8 +367,6 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 		}
 
 		was_armed = control_mode.flag_armed;
-
-		t_prev = t;
 
 		if (control_mode.flag_control_altitude_enabled || control_mode.flag_control_position_enabled || control_mode.flag_control_climb_rate_enabled || control_mode.flag_control_velocity_enabled) {
 			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
@@ -612,7 +602,7 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			/* run position & altitude controllers, calculate velocity setpoint */
 			if (control_mode.flag_control_altitude_enabled) {
-				global_vel_sp.vz = pid_calculate(&z_pos_pid, local_pos_sp.z, local_pos.z, local_pos.vz - sp_move_rate[2], dt) + sp_move_rate[2] * params.z_ff;
+				global_vel_sp.vz = (local_pos_sp.z - local_pos.z) * params.z_p + sp_move_rate[2] * params.z_ff;
 
 			} else {
 				reset_man_sp_z = true;
@@ -621,23 +611,24 @@ static int multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			if (control_mode.flag_control_position_enabled) {
 				/* calculate velocity set point in NED frame */
-				global_vel_sp.vx = pid_calculate(&xy_pos_pids[0], local_pos_sp.x, local_pos.x, local_pos.vx - sp_move_rate[0], dt) + sp_move_rate[0] * params.xy_ff;
-				global_vel_sp.vy = pid_calculate(&xy_pos_pids[1], local_pos_sp.y, local_pos.y, local_pos.vy - sp_move_rate[1], dt) + sp_move_rate[1] * params.xy_ff;
-
-				if (!control_mode.flag_control_manual_enabled) {
-					/* limit horizontal speed only in AUTO mode */
-					float xy_vel_sp_norm = norm(global_vel_sp.vx, global_vel_sp.vy) / params.xy_vel_max;
-
-					if (xy_vel_sp_norm > 1.0f) {
-						global_vel_sp.vx /= xy_vel_sp_norm;
-						global_vel_sp.vy /= xy_vel_sp_norm;
-					}
-				}
+				global_vel_sp.vx = (local_pos_sp.x - local_pos.x) * params.xy_p + sp_move_rate[0] * params.xy_ff;
+				global_vel_sp.vy = (local_pos_sp.y - local_pos.y) * params.xy_p + sp_move_rate[1] * params.xy_ff;
 
 			} else {
 				reset_man_sp_xy = true;
 				global_vel_sp.vx = 0.0f;
 				global_vel_sp.vy = 0.0f;
+			}
+
+			if (!control_mode.flag_control_manual_enabled) {
+				/* limit 3D speed only in AUTO mode */
+				float vel_sp_norm = norm3(global_vel_sp.vx / params.xy_vel_max, global_vel_sp.vy / params.xy_vel_max, global_vel_sp.vz / params.z_vel_max);
+
+				if (vel_sp_norm > 1.0f) {
+					global_vel_sp.vx /= vel_sp_norm;
+					global_vel_sp.vy /= vel_sp_norm;
+					global_vel_sp.vz /= vel_sp_norm;
+				}
 			}
 
 			/* publish new velocity setpoint */
