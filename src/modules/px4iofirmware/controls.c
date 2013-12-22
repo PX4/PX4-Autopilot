@@ -66,7 +66,7 @@ controls_init(void)
 	sbus_init("/dev/ttyS2");
 
 	/* default to a 1:1 input map, all enabled */
-	for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
+	for (unsigned i = 0; i < PX4IO_RC_INPUT_CHANNELS; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
 
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_OPTIONS]    = 0;
@@ -113,7 +113,7 @@ controls_tick() {
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, PX4IO_CONTROL_CHANNELS /* XXX this should be INPUT channels, once untangled */);
+	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, PX4IO_RC_INPUT_CHANNELS);
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
 	}
@@ -210,14 +210,16 @@ controls_tick() {
 
 				/* and update the scaled/mapped version */
 				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
-				ASSERT(mapped < PX4IO_CONTROL_CHANNELS);
+				if (mapped < PX4IO_CONTROL_CHANNELS) {
 
-				/* invert channel if pitch - pulling the lever down means pitching up by convention */
-				if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
-					scaled = -scaled;
+					/* invert channel if pitch - pulling the lever down means pitching up by convention */
+					if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
+						scaled = -scaled;
 
-				r_rc_values[mapped] = SIGNED_TO_REG(scaled);
-				assigned_channels |= (1 << mapped);
+					r_rc_values[mapped] = SIGNED_TO_REG(scaled);
+					assigned_channels |= (1 << mapped);
+
+				}
 			}
 		}
 
@@ -334,8 +336,8 @@ ppm_input(uint16_t *values, uint16_t *num_values)
 
 		/* PPM data exists, copy it */
 		*num_values = ppm_decoded_channels;
-		if (*num_values > PX4IO_CONTROL_CHANNELS)
-			*num_values = PX4IO_CONTROL_CHANNELS;
+		if (*num_values > PX4IO_RC_INPUT_CHANNELS)
+			*num_values = PX4IO_RC_INPUT_CHANNELS;
 
 		for (unsigned i = 0; i < *num_values; i++)
 			values[i] = ppm_buffer[i];
