@@ -103,11 +103,20 @@ int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavli
 			return MAV_MISSION_ERROR;
 	}
 
+	switch (mavlink_mission_item->command) {
+		case MAV_CMD_NAV_TAKEOFF:
+			mission_item->pitch_min = mavlink_mission_item->param1;
+			break;
+		default:
+			mission_item->radius = mavlink_mission_item->param1;
+			break;
+	}
+
 	mission_item->yaw = _wrap_pi(mavlink_mission_item->param4*M_DEG_TO_RAD_F);
 	mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
 	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
 	mission_item->nav_cmd = mavlink_mission_item->command;
-	mission_item->radius = mavlink_mission_item->param1;
+
 	mission_item->time_inside = mavlink_mission_item->param2 / 1e3f; /* from milliseconds to seconds */
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	mission_item->index = mavlink_mission_item->seq;
