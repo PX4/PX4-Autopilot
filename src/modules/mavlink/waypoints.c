@@ -133,6 +133,15 @@ int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *missio
 		mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 	}
 	
+	switch (mission_item->nav_cmd) {
+		case NAV_CMD_TAKEOFF:
+			mavlink_mission_item->param1 = mission_item->pitch_min;
+			break;
+		default:
+			mavlink_mission_item->param1 = mission_item->radius;
+			break;
+	}
+
 	mavlink_mission_item->x = (float)mission_item->lat;
 	mavlink_mission_item->y = (float)mission_item->lon;
 	mavlink_mission_item->z = mission_item->altitude;
@@ -140,7 +149,6 @@ int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *missio
 	mavlink_mission_item->param4 = mission_item->yaw*M_RAD_TO_DEG_F;
 	mavlink_mission_item->param3 = mission_item->loiter_radius*(float)mission_item->loiter_direction;
 	mavlink_mission_item->command = mission_item->nav_cmd;
-	mavlink_mission_item->param1 = mission_item->radius;
 	mavlink_mission_item->param2 = mission_item->time_inside * 1e3f; /* from seconds to milliseconds */
 	mavlink_mission_item->autocontinue = mission_item->autocontinue;
 	mavlink_mission_item->seq = mission_item->index;
