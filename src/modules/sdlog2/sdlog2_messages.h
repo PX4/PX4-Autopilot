@@ -247,6 +247,16 @@ struct log_GVSP_s {
 	float vz;
 };
 
+/* --- DIST - DISTANCE TO SURFACE --- */
+#define LOG_DIST_MSG 20
+struct log_DIST_s {
+	float bottom;
+	float bottom_rate;
+	uint8_t flags;
+};
+
+/********** SYSTEM MESSAGES, ID > 0x80 **********/
+
 /* --- TIME - TIME STAMP --- */
 #define LOG_TIME_MSG 129
 struct log_TIME_s {
@@ -290,6 +300,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
+	LOG_FORMAT(DIST, "ffB", "Bottom,BottomRate,Flags"),
 	/* system-level messages, ID >= 0x80 */
 	// FMT: don't write format of format message, it's useless
 	LOG_FORMAT(TIME, "Q", "StartTime"),
