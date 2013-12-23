@@ -114,6 +114,11 @@ then
 	commander start
 
 	#
+	# Start the datamanager
+	#
+	dataman start
+
+	#
 	# Start the Navigator
 	#
 	navigator start

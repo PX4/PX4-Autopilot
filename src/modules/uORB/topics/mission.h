@@ -46,6 +46,8 @@
 #include <stdbool.h>
 #include "../uORB.h"
 
+#define NUM_MISSIONS_SUPPORTED 256
+
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
 	NAV_CMD_WAYPOINT=16,
@@ -57,6 +59,11 @@ enum NAV_CMD {
 	NAV_CMD_TAKEOFF=22,
 	NAV_CMD_ROI=80,
 	NAV_CMD_PATHPLANNING=81
+};
+
+enum ORIGIN {
+	ORIGIN_MAVLINK = 0,
+	ORIGIN_ONBOARD
 };
 
 /**
@@ -84,12 +91,12 @@ struct mission_item_s
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
 	int index;			/**< index matching the mavlink waypoint                */
+	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
 };
 
 struct mission_s
 {
-	struct mission_item_s *items;
-	unsigned count;
+	unsigned count;			/**< count of the missions stored in the datamanager */
 	int current_index;		/**< default -1, start at the one changed latest */
 };
 

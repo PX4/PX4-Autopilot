@@ -83,12 +83,15 @@ task_main(int argc, char *argv[])
 	srand(hrt_absolute_time() ^ my_id);
 	unsigned hit = 0, miss = 0;
 	wstart = hrt_absolute_time();
-	for (unsigned i = 0; i < 256; i++) {
+	for (unsigned i = 0; i < NUM_MISSIONS_SUPPORTED; i++) {
 		memset(buffer, my_id, sizeof(buffer));
 		buffer[1] = i;
 		unsigned hash = i ^ my_id;
 		unsigned len = (hash & 63) + 2;
-		if (dm_write(DM_KEY_WAY_POINTS, hash, DM_PERSIST_IN_FLIGHT_RESET, buffer, len) != len) {
+
+		int ret = dm_write(DM_KEY_WAYPOINTS_OFFBOARD, hash, DM_PERSIST_IN_FLIGHT_RESET, buffer, len);
+		warnx("ret: %d", ret);
+		if (ret != len) {
 			warnx("%d write failed, index %d, length %d", my_id, hash, len);
 			goto fail;
 		}
@@ -97,10 +100,10 @@ task_main(int argc, char *argv[])
 	rstart = hrt_absolute_time();
 	wend = rstart;
 
-	for (unsigned i = 0; i < 256; i++) {
+	for (unsigned i = 0; i < NUM_MISSIONS_SUPPORTED; i++) {
 		unsigned hash = i ^ my_id;
 		unsigned len2, len = (hash & 63) + 2;
-		if ((len2 = dm_read(DM_KEY_WAY_POINTS, hash, buffer, sizeof(buffer))) < 2) {
+		if ((len2 = dm_read(DM_KEY_WAYPOINTS_OFFBOARD, hash, buffer, sizeof(buffer))) < 2) {
 			warnx("%d read failed length test, index %d", my_id, hash);
 			goto fail;
 		}
@@ -120,7 +123,7 @@ task_main(int argc, char *argv[])
 	}
 	rend = hrt_absolute_time();
 	warnx("Test %d pass, hit %d, miss %d, io time read %llums. write %llums.",
-		my_id, hit, miss, (rend - rstart) / 256000, (wend - wstart) / 256000);
+		my_id, hit, miss, (rend - rstart) / NUM_MISSIONS_SUPPORTED / 1000, (wend - wstart) / NUM_MISSIONS_SUPPORTED / 1000);
 	sem_post(sems + my_id);
 	return 0;
 fail:
@@ -159,18 +162,18 @@ int test_dataman(int argc, char *argv[])
 	}
 	free(sems);
 	dm_restart(DM_INIT_REASON_IN_FLIGHT);
-	for (i = 0; i < 256; i++) {
-		if (dm_read(DM_KEY_WAY_POINTS, i, buffer, sizeof(buffer)) != 0)
+	for (i = 0; i < NUM_MISSIONS_SUPPORTED; i++) {
+		if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD, i, buffer, sizeof(buffer)) != 0)
 			break;
 	}
-	if (i >= 256) {
+	if (i >= NUM_MISSIONS_SUPPORTED) {
 		warnx("Restart in-flight failed");
 		return -1;
 
 	}
 	dm_restart(DM_INIT_REASON_POWER_ON);
-	for (i = 0; i < 256; i++) {
-		if (dm_read(DM_KEY_WAY_POINTS, i, buffer, sizeof(buffer)) != 0) {
+	for (i = 0; i < NUM_MISSIONS_SUPPORTED; i++) {
+		if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD, i, buffer, sizeof(buffer)) != 0) {
 			warnx("Restart power-on failed");
 			return -1;
 		}

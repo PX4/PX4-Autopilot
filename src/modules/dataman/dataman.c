@@ -33,10 +33,8 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_main.c
- * Implementation of the main navigation state machine.
- *
- * Handles missions, geo fencing and failsafe navigation behavior.
+ * @file dataman.c
+ * DATAMANAGER driver.
  */
 
 #include <nuttx/config.h>
@@ -113,7 +111,8 @@ static unsigned g_func_counts[dm_number_of_funcs];
 static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_SAFE_POINTS_MAX,
 	DM_KEY_FENCE_POINTS_MAX,
-	DM_KEY_WAY_POINTS_MAX,
+	DM_KEY_WAYPOINTS_OFFBOARD_MAX,
+	DM_KEY_WAYPOINTS_ONBOARD_MAX
 };
 
 /* Table of offset for index 0 of each item type */
@@ -138,7 +137,7 @@ static work_q_t g_work_q;
 sem_t g_work_queued_sema;
 sem_t g_init_sema;
 
-static bool g_task_should_exit;		/**< if true, sensor task should exit */
+static bool g_task_should_exit;		/**< if true, dataman task should exit */
 
 #define DM_SECTOR_HDR_SIZE 4
 static const unsigned k_sector_size = DM_MAX_DATA_SIZE + DM_SECTOR_HDR_SIZE;
@@ -266,11 +265,11 @@ _write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const v
 	/* Get the offset for this item */
 	offset = calculate_offset(item, index);
 
-	if (offset < 0)
+	if (offset < 0) 
 		return -1;
 
 	/* Make sure caller has not given us more data than we can handle */
-	if (count > DM_MAX_DATA_SIZE)
+	if (count > DM_MAX_DATA_SIZE) 
 		return -1;
 
 	/* Write out the data, prefixed with length and persistence level */
@@ -456,7 +455,7 @@ dm_write(dm_item_t item, unsigned char index, dm_persitence_t persistence, const
 		return -1;
 
 	/* Will return with queues locked */
-	if ((work = create_work_item()) == NULL)
+	if ((work = create_work_item()) == NULL) 
 		return -1; /* queues unlocked on failure */
 
 	work->func = dm_write_func;
