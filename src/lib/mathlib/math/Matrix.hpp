@@ -49,13 +49,13 @@ namespace math
 {
 
 template <unsigned int M, unsigned int N>
-class Matrix;
+class __EXPORT Matrix;
 
-class Quaternion;
+class __EXPORT Quaternion;
 
 // MxN matrix with float elements
 template <unsigned int M, unsigned int N>
-class MatrixBase {
+class __EXPORT MatrixBase {
 public:
 	/**
 	 * matrix data[row][col]
@@ -259,7 +259,7 @@ public:
 };
 
 template <unsigned int M, unsigned int N>
-class Matrix : public MatrixBase<M, N> {
+class __EXPORT Matrix : public MatrixBase<M, N> {
 public:
 	using MatrixBase<M, N>::operator *;
 
@@ -292,7 +292,7 @@ public:
 
 namespace math {
 template <>
-class Matrix<3, 3> : public MatrixBase<3, 3> {
+class __EXPORT Matrix<3, 3> : public MatrixBase<3, 3> {
 public:
 	using MatrixBase<3, 3>::operator *;
 

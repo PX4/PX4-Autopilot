@@ -42,6 +42,7 @@
 #ifndef VECTOR_HPP
 #define VECTOR_HPP
 
+#include <visibility.h>
 #include <stdio.h>
 #include <math.h>
 #include "../CMSIS/Include/arm_math.h"
@@ -50,10 +51,10 @@ namespace math
 {
 
 template <unsigned int N>
-class Vector;
+class __EXPORT Vector;
 
 template <unsigned int N>
-class VectorBase {
+class __EXPORT VectorBase {
 public:
 	/**
 	 * vector data
@@ -267,7 +268,7 @@ public:
 };
 
 template <unsigned int N>
-class Vector : public VectorBase<N> {
+class __EXPORT Vector : public VectorBase<N> {
 public:
 	using VectorBase<N>::operator *;
 
@@ -294,7 +295,7 @@ public:
 };
 
 template <>
-class Vector<2> : public VectorBase<2> {
+class __EXPORT Vector<2> : public VectorBase<2> {
 public:
 	Vector() : VectorBase<2>() {
 	}
@@ -334,7 +335,7 @@ public:
 };
 
 template <>
-class Vector<3> : public VectorBase<3> {
+class __EXPORT Vector<3> : public VectorBase<3> {
 public:
 	Vector() {
 		arm_col = {3, 1, &this->data[0]};
@@ -375,7 +376,7 @@ public:
 };
 
 template <>
-class Vector<4> : public VectorBase<4> {
+class __EXPORT Vector<4> : public VectorBase<4> {
 public:
 	Vector() : VectorBase() {}
 
