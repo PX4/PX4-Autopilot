@@ -1,7 +1,24 @@
 #!nsh
 #
-# Standard startup script for PX4FMU onboard sensor drivers.
+# PX4FMU startup script for logging purposes
 #
+
+#
+# Try to mount the microSD card.
+#
+echo "[init] looking for microSD..."
+if mount -t vfat /dev/mmcsd0 /fs/microsd
+then
+	echo "[init] card mounted at /fs/microsd"
+	# Start playing the startup tune
+	tone_alarm start
+else
+	echo "[init] no microSD card found"
+	# Play SOS
+	tone_alarm error
+fi
+
+uorb start
 
 #
 # Start sensor drivers here.
@@ -57,5 +74,15 @@ fi
 #
 if sensors start
 then
-	preflight_check &
+	echo "SENSORS STARTED"
+fi
+
+sdlog2 start -r 250 -e -b 16
+
+if sercon
+then
+	echo "[init] USB interface connected"
+
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
 fi

@@ -1598,8 +1598,8 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			/* switch to failsafe mode */
 			bool manual_control_old = control_mode->flag_control_manual_enabled;
 
-			if (!status->condition_landed) {
-				/* in air: try to hold position */
+			if (!status->condition_landed && status->condition_local_position_valid) {
+				/* in air: try to hold position if possible */
 				res = navigation_state_transition(status, NAVIGATION_STATE_VECTOR, control_mode);
 
 			} else {
