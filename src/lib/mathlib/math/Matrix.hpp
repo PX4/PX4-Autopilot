@@ -241,19 +241,28 @@ public:
 	}
 
 	/**
-	 * setup the identity matrix
+	 * set zero matrix
+	 */
+	void zero(void) {
+		memset(data, 0, sizeof(data));
+	}
+
+	/**
+	 * set identity matrix
 	 */
 	void identity(void) {
 		memset(data, 0, sizeof(data));
-		for (unsigned int i = 0; i < M; i++)
+		unsigned int n = (M < N) ? M : N;
+		for (unsigned int i = 0; i < n; i++)
 			data[i][i] = 1;
 	}
 
 	void print(void) {
  		for (unsigned int i = 0; i < M; i++) {
+			printf("[ ");
  			for (unsigned int j = 0; j < N; j++)
 				printf("%.3f\t", data[i][j]);
-			printf("\n");
+			printf(" ]\n");
 		}
 	}
 };

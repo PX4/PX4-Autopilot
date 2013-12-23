@@ -97,6 +97,14 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 {
 	using namespace math;
 
+	F.zero();
+	G.zero();
+	V.zero();
+	HAtt.zero();
+	RAtt.zero();
+	HPos.zero();
+	RPos.zero();
+
 	// initial state covariance matrix
 	P0.identity();
 	P0 *= 0.01f;
@@ -214,8 +222,8 @@ void KalmanNav::update()
 		if (correctAtt() == ret_ok) _attitudeInitCounter++;
 
 		if (_attitudeInitCounter > 100) {
-			warnx("initialized EKF attitude\n");
-			warnx("phi: %8.4f, theta: %8.4f, psi: %8.4f\n",
+			warnx("initialized EKF attitude");
+			warnx("phi: %8.4f, theta: %8.4f, psi: %8.4f",
 			       double(phi), double(theta), double(psi));
 			_attitudeInitialized = true;
 		}
@@ -245,8 +253,8 @@ void KalmanNav::update()
 		// lat/lon and not have init
 		map_projection_init(lat0, lon0);
 		_positionInitialized = true;
-		warnx("initialized EKF state with GPS\n");
-		warnx("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
+		warnx("initialized EKF state with GPS");
+		warnx("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f",
 		       double(vN), double(vE), double(vD),
 		       lat, lon, double(alt));
 	}
@@ -625,7 +633,7 @@ int KalmanNav::correctAtt()
 
 		if (isnan(val) || isinf(val)) {
 			// abort correction and return
-			warnx("numerical failure in att correction\n");
+			warnx("numerical failure in att correction");
 			// reset P matrix to P0
 			P = P0;
 			return ret_error;
@@ -691,7 +699,7 @@ int KalmanNav::correctPos()
 
 		if (!isfinite(val)) {
 			// abort correction and return
-			warnx("numerical failure in gps correction\n");
+			warnx("numerical failure in gps correction");
 			// fallback to GPS
 			vN = _gps.vel_n_m_s;
 			vE = _gps.vel_e_m_s;

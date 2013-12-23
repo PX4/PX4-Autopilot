@@ -259,6 +259,13 @@ public:
 		return *this / length();
 	}
 
+	/**
+	 * set zero vector
+	 */
+	void zero(void) {
+		memset(data, 0, sizeof(data));
+	}
+
 	void print(void) {
 		printf("[ ");
  		for (unsigned int i = 0; i < N; i++)
