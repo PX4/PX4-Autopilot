@@ -170,7 +170,7 @@
   SPI speed
  */
 #define MPU6000_LOW_BUS_SPEED				1000*1000
-#define MPU6000_HIGH_BUS_SPEED				10*1000*1000
+#define MPU6000_HIGH_BUS_SPEED				11*1000*1000 /* will be rounded to 10.4 MHz, within margins for MPU6K */
 
 class MPU6000_gyro;
 
@@ -505,17 +505,26 @@ out:
 
 void MPU6000::reset()
 {
+	// if the mpu6000 is initialised after the l3gd20 and lsm303d
+	// then if we don't do an irqsave/irqrestore here the mpu6000
+	// frequenctly comes up in a bad state where all transfers
+	// come as zero
+	irqstate_t state;
+	state = irqsave();
 
-	// Chip reset
 	write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 	up_udelay(10000);
 
-	// Wake up device and select GyroZ clock (better performance)
+	// Wake up device and select GyroZ clock. Note that the
+	// MPU6000 starts up in sleep mode, and it can take some time
+	// for it to come out of sleep
 	write_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_PLLGYROZ);
 	up_udelay(1000);
 
 	// Disable I2C bus (recommended on datasheet)
 	write_reg(MPUREG_USER_CTRL, BIT_I2C_IF_DIS);
+        irqrestore(state);
+
 	up_udelay(1000);
 
 	// SAMPLE RATE

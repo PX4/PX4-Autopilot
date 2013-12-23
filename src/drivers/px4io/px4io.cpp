@@ -237,6 +237,7 @@ private:
 
 	unsigned 		_update_interval;	///< Subscription interval limiting send rate
 	bool			_rc_handling_disabled;	///< If set, IO does not evaluate, but only forward the RC values
+	unsigned		_rc_chan_count;		///< Internal copy of the last seen number of RC channels
 
 	volatile int		_task;			///< worker task id
 	volatile bool		_task_should_exit;	///< worker terminate flag
@@ -244,7 +245,9 @@ private:
 	int			_mavlink_fd;		///< mavlink file descriptor. This is opened by class instantiation and Doesn't appear to be usable in main thread.
 	int			_thread_mavlink_fd;	///< mavlink file descriptor for thread.
 
-	perf_counter_t		_perf_update;		///< local performance counter
+	perf_counter_t		_perf_update;		///<local performance counter for status updates
+	perf_counter_t		_perf_write;		///<local performance counter for PWM control writes
+	perf_counter_t		_perf_chan_count;	///<local performance counter for channel number changes
 
 	/* cached IO state */
 	uint16_t		_status;		///< Various IO status flags
@@ -462,11 +465,14 @@ PX4IO::PX4IO(device::Device *interface) :
 	_max_transfer(16),	/* sensible default */
 	_update_interval(0),
 	_rc_handling_disabled(false),
+	_rc_chan_count(0),
 	_task(-1),
 	_task_should_exit(false),
 	_mavlink_fd(-1),
 	_thread_mavlink_fd(-1),
-	_perf_update(perf_alloc(PC_ELAPSED, "px4io update")),
+	_perf_update(perf_alloc(PC_ELAPSED, "io update")),
+	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
+	_perf_chan_count(perf_alloc(PC_COUNT, "io rc #")),
 	_status(0),
 	_alarms(0),
 	_t_actuator_controls_0(-1),
@@ -917,7 +923,23 @@ PX4IO::task_main()
 
 				/* re-upload RC input config as it may have changed */
 				io_set_rc_config();
+
+				/* re-set the battery scaling */
+				int32_t voltage_scaling_val;
+				param_t voltage_scaling_param;
+
+				/* set battery voltage scaling */
+				param_get(voltage_scaling_param = param_find("BAT_V_SCALE_IO"), &voltage_scaling_val);
+
+				/* send scaling voltage to IO */
+				uint16_t scaling = voltage_scaling_val;
+				int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE, &scaling, 1);
+
+				if (pret != OK) {
+					log("voltage scaling upload failed");
+				}
 			}
+
 		}
 
 		perf_end(_perf_update);
@@ -1101,7 +1123,12 @@ PX4IO::io_set_rc_config()
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
 		input_map[ichan - 1] = 3;
 
-	ichan = 4;
+	param_get(param_find("RC_MAP_MODE_SW"), &ichan);
+
+	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
+		input_map[ichan - 1] = 4;
+
+	ichan = 5;
 
 	for (unsigned i = 0; i < _max_rc_input; i++)
 		if (input_map[i] == -1)
@@ -1378,6 +1405,11 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 	 * channel count once.
 	 */
 	channel_count = regs[0];
+
+	if (channel_count != _rc_chan_count)
+		perf_count(_perf_chan_count);
+
+	_rc_chan_count = channel_count;
 
 	if (channel_count > 9) {
 		ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + 9, &regs[prolog + 9], channel_count - 9);
@@ -2227,7 +2259,10 @@ PX4IO::write(file * /*filp*/, const char *buffer, size_t len)
 		count = _max_actuators;
 
 	if (count > 0) {
+
+		perf_begin(_perf_write);
 		int ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)buffer, count);
+		perf_end(_perf_write);
 
 		if (ret != OK)
 			return ret;
@@ -2306,7 +2341,7 @@ void
 start(int argc, char *argv[])
 {
 	if (g_dev != nullptr)
-		errx(1, "already loaded");
+		errx(0, "already loaded");
 
 	/* allocate the interface */
 	device::Device *interface = get_interface();
@@ -2639,6 +2674,39 @@ px4io_main(int argc, char *argv[])
 		if_test((argc > 2) ? strtol(argv[2], NULL, 0) : 0);
 	}
 
+	if (!strcmp(argv[1], "forceupdate")) {
+		/*
+		  force update of the IO firmware without requiring
+		  the user to hold the safety switch down
+		 */
+		if (argc <= 3) {
+			warnx("usage: px4io forceupdate MAGIC filename");
+			exit(1);
+		}
+		if (g_dev == nullptr) {
+			warnx("px4io is not started, still attempting upgrade");
+		} else {
+			uint16_t arg = atol(argv[2]);
+			int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
+			if (ret != OK) {
+				printf("reboot failed - %d\n", ret);
+				exit(1);
+			}
+
+			// tear down the px4io instance
+			delete g_dev;
+		}
+
+		// upload the specified firmware
+		const char *fn[2];
+		fn[0] = argv[3];
+		fn[1] = nullptr;
+		PX4IO_Uploader *up = new PX4IO_Uploader;
+		up->upload(&fn[0]);
+		delete up;
+		exit(0);
+	}
+
 	/* commands below here require a started driver */
 
 	if (g_dev == nullptr)
@@ -2721,39 +2789,6 @@ px4io_main(int argc, char *argv[])
 		}
 
 		printf("SET_DEBUG %u OK\n", (unsigned)level);
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "forceupdate")) {
-		/*
-		  force update of the IO firmware without requiring
-		  the user to hold the safety switch down
-		 */
-		if (argc <= 3) {
-			printf("usage: px4io forceupdate MAGIC filename\n");
-			exit(1);
-		}
-		if (g_dev == nullptr) {
-			printf("px4io is not started\n");
-			exit(1);
-		}
-		uint16_t arg = atol(argv[2]);
-		int ret = g_dev->ioctl(nullptr, PX4IO_REBOOT_BOOTLOADER, arg);
-		if (ret != OK) {
-			printf("reboot failed - %d\n", ret);
-			exit(1);			
-		}
-
-		// tear down the px4io instance
-		delete g_dev;
-
-		// upload the specified firmware
-		const char *fn[2];
-		fn[0] = argv[3];
-		fn[1] = nullptr;
-		PX4IO_Uploader *up = new PX4IO_Uploader;
-		up->upload(&fn[0]);
-		delete up;
 		exit(0);
 	}
 

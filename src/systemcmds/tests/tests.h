@@ -108,7 +108,7 @@ extern int	test_param(int argc, char *argv[]);
 extern int	test_bson(int argc, char *argv[]);
 extern int	test_file(int argc, char *argv[]);
 extern int	test_mixer(int argc, char *argv[]);
-extern int	test_dataman(int argc, char *argv[]);
+extern int	test_rc(int argc, char *argv[]);
 
 __END_DECLS
 
