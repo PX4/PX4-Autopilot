@@ -572,11 +572,13 @@ task_main(int argc, char *argv[])
 	g_task_fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY);
 	if (g_task_fd < 0) {
 		warnx("Could not open data manager file %s", k_data_manager_device_path);
+		sem_post(&g_init_sema);
 		return -1;
 	}
 	if (lseek(g_task_fd, max_offset, SEEK_SET) != max_offset) {
 		close(g_task_fd);
 		warnx("Could not seek data manager file %s", k_data_manager_device_path);
+		sem_post(&g_init_sema);
 		return -1;
 	}
 	fsync(g_task_fd);
@@ -720,7 +722,7 @@ dataman_main(int argc, char *argv[])
 		if (g_fd < 0)
 			errx(1, "start failed");
 
-		return 0;
+		exit(0);
 	}
 
 	if (g_fd < 0)
@@ -733,6 +735,6 @@ dataman_main(int argc, char *argv[])
 	else
 		usage();
 
-	return 0;
+	exit(1);
 }
 
