@@ -288,6 +288,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_rate_sp_pub(-1),
 	_actuators_0_pub(-1),
 	_attitude_sp_pub(-1),
+	_actuators_1_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
