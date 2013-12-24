@@ -465,8 +465,6 @@ Sensors::Sensors() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
-	_board_rotation(),
-	_external_mag_rotation(),
 	_mag_is_external(false)
 {
 
@@ -920,7 +918,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
-		math::Vector<3> vect = {accel_report.x, accel_report.y, accel_report.z};
+		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
 
 		raw.accelerometer_m_s2[0] = vect(0);
@@ -946,7 +944,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
-		math::Vector<3> vect = {gyro_report.x, gyro_report.y, gyro_report.z};
+		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
 
 		raw.gyro_rad_s[0] = vect(0);

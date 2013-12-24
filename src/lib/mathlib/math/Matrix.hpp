@@ -94,11 +94,11 @@ public:
 		return data[row][col];
 	}
 
-	unsigned int getRows() {
+	unsigned int get_rows() {
 		return M;
 	}
 
-	unsigned int getCols() {
+	unsigned int get_cols() {
 		return N;
 	}
 
@@ -295,11 +295,7 @@ public:
 	    return res;
 	}
 };
-}
 
-#include "Quaternion.hpp"
-
-namespace math {
 template <>
 class __EXPORT Matrix<3, 3> : public MatrixBase<3, 3> {
 public:
@@ -327,25 +323,6 @@ public:
 	    			  data[1][0] * v.data[0] + data[1][1] * v.data[1] + data[1][2] * v.data[2],
 	    			  data[2][0] * v.data[0] + data[2][1] * v.data[1] + data[2][2] * v.data[2]);
 	    return res;
-	}
-
-	/**
-	 * create a rotation matrix from given quaternion
-	 */
-	void from_quaternion(const Quaternion &q) {
-		float aSq = q.data[0] * q.data[0];
-		float bSq = q.data[1] * q.data[1];
-		float cSq = q.data[2] * q.data[2];
-		float dSq = q.data[3] * q.data[3];
-		data[0][0] = aSq + bSq - cSq - dSq;
-		data[0][1] = 2.0f * (q.data[1] * q.data[2] - q.data[0] * q.data[3]);
-		data[0][2] = 2.0f * (q.data[0] * q.data[2] + q.data[1] * q.data[3]);
-		data[1][0] = 2.0f * (q.data[1] * q.data[2] + q.data[0] * q.data[3]);
-		data[1][1] = aSq - bSq + cSq - dSq;
-		data[1][2] = 2.0f * (q.data[2] * q.data[3] - q.data[0] * q.data[1]);
-		data[2][0] = 2.0f * (q.data[1] * q.data[3] - q.data[0] * q.data[2]);
-		data[2][1] = 2.0f * (q.data[0] * q.data[1] + q.data[2] * q.data[3]);
-		data[2][2] = aSq - bSq - cSq + dSq;
 	}
 
 	/**

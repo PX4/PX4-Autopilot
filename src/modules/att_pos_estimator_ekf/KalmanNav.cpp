@@ -132,7 +132,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 		_sensors.magnetometer_ga[2]);
 
 	// initialize dcm
-	C_nb.from_quaternion(q);
+	C_nb = q.to_dcm();
 
 	// HPos is constant
 	HPos(0, 3) = 1.0f;
@@ -409,7 +409,7 @@ int KalmanNav::predictState(float dt)
 		}
 
 		// C_nb update
-		C_nb.from_quaternion(q);
+		C_nb = q.to_dcm();
 
 		// euler update
 		Vector<3> euler = C_nb.to_euler();
@@ -628,7 +628,7 @@ int KalmanNav::correctAtt()
 	Vector<9> xCorrect = K * y;
 
 	// check correciton is sane
-	for (size_t i = 0; i < xCorrect.getRows(); i++) {
+	for (size_t i = 0; i < xCorrect.get_size(); i++) {
 		float val = xCorrect(i);
 
 		if (isnan(val) || isinf(val)) {
@@ -694,7 +694,7 @@ int KalmanNav::correctPos()
 	Vector<9> xCorrect = K * y;
 
 	// check correction is sane
-	for (size_t i = 0; i < xCorrect.getRows(); i++) {
+	for (size_t i = 0; i < xCorrect.get_size(); i++) {
 		float val = xCorrect(i);
 
 		if (!isfinite(val)) {

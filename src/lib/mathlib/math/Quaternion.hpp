@@ -58,7 +58,7 @@ public:
 	/**
 	 * trivial ctor
 	 */
-	Quaternion() {
+	Quaternion() : Vector() {
 	}
 
 	/**
@@ -70,10 +70,29 @@ public:
 	Quaternion(const Vector<4> &v) : Vector(v) {
 	}
 
-	Quaternion(const float *v) : Vector(v) {
+	Quaternion(const Quaternion &q) : Vector(q) {
 	}
 
-	Quaternion derivative(const Vector<3> &w) {
+	Quaternion(const float v[4]) : Vector(v) {
+	}
+
+	using Vector<4>::operator *;
+
+	/**
+	 * multiplication
+	 */
+	const Quaternion operator *(const Quaternion &q) const {
+		return Quaternion(
+				data[0] * q.data[0] - data[1] * q.data[1] - data[2] * q.data[2] - data[3] * q.data[3],
+				data[0] * q.data[1] + data[1] * q.data[0] + data[2] * q.data[3] - data[3] * q.data[2],
+				data[0] * q.data[2] - data[1] * q.data[3] + data[2] * q.data[0] + data[3] * q.data[1],
+				data[0] * q.data[3] + data[1] * q.data[2] - data[2] * q.data[1] + data[3] * q.data[0]);
+	}
+
+	/**
+	 * derivative
+	 */
+	const Quaternion derivative(const Vector<3> &w) {
 	        float dataQ[] = {
 	                data[0], -data[1], -data[2], -data[3],
 	                data[1],  data[0], -data[3],  data[2],
@@ -85,6 +104,9 @@ public:
 	        return Q * v * 0.5f;
 	}
 
+	/**
+	 * set quaternion to rotation defined by euler angles
+	 */
 	void from_euler(float roll, float pitch, float yaw) {
 		double cosPhi_2 = cos(double(roll) / 2.0);
 		double sinPhi_2 = sin(double(roll) / 2.0);
@@ -96,6 +118,26 @@ public:
 		data[1] = sinPhi_2 * cosTheta_2 * cosPsi_2 - cosPhi_2 * sinTheta_2 * sinPsi_2;
 		data[2] = cosPhi_2 * sinTheta_2 * cosPsi_2 + sinPhi_2 * cosTheta_2 * sinPsi_2;
 		data[3] = cosPhi_2 * cosTheta_2 * sinPsi_2 - sinPhi_2 * sinTheta_2 * cosPsi_2;
+	}
+
+	/**
+	 * create rotation matrix for the quaternion
+	 */
+	Matrix<3, 3> to_dcm(void) const {
+		Matrix<3, 3> R;
+		float aSq = data[0] * data[0];
+		float bSq = data[1] * data[1];
+		float cSq = data[2] * data[2];
+		float dSq = data[3] * data[3];
+		R.data[0][0] = aSq + bSq - cSq - dSq;
+		R.data[0][1] = 2.0f * (data[1] * data[2] - data[0] * data[3]);
+		R.data[0][2] = 2.0f * (data[0] * data[2] + data[1] * data[3]);
+		R.data[1][0] = 2.0f * (data[1] * data[2] + data[0] * data[3]);
+		R.data[1][1] = aSq - bSq + cSq - dSq;
+		R.data[1][2] = 2.0f * (data[2] * data[3] - data[0] * data[1]);
+		R.data[2][0] = 2.0f * (data[1] * data[3] - data[0] * data[2]);
+		R.data[2][1] = 2.0f * (data[0] * data[1] + data[2] * data[3]);
+		R.data[2][2] = aSq - bSq - cSq + dSq;
 	}
 };
 }

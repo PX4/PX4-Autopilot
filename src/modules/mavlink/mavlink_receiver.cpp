@@ -683,8 +683,7 @@ handle_message(mavlink_message_t *msg)
 
 			/* Calculate Rotation Matrix */
 			math::Quaternion q(hil_state.attitude_quaternion);
-			math::Matrix<3,3> C_nb;
-			C_nb.from_quaternion(q);
+			math::Matrix<3,3> C_nb = q.to_dcm();
 			math::Vector<3> euler = C_nb.to_euler();
 
 			/* set rotation matrix */

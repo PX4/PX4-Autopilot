@@ -48,6 +48,8 @@
 
 #include "tests.h"
 
+#define TEST_OP(_title, _op) { unsigned int n = 60000; hrt_abstime t0, t1; t0 = hrt_absolute_time(); for (unsigned int j = 0; j < n; j++) { _op; }; t1 = hrt_absolute_time(); warnx(_title ": %.6fus", (double)(t1 - t0) / n); }
+
 using namespace math;
 
 const char* formatResult(bool res) {
@@ -58,60 +60,82 @@ int test_mathlib(int argc, char *argv[])
 {
 	warnx("testing mathlib");
 
-	Matrix<3,3> m3;
-	m3.identity();
-	Matrix<4,4> m4;
-	m4.identity();
-	Vector<3> v3;
-	v3(0) = 1.0f;
-	v3(1) = 2.0f;
-	v3(2) = 3.0f;
-	Vector<4> v4;
-	v4(0) = 1.0f;
-	v4(1) = 2.0f;
-	v4(2) = 3.0f;
-	v4(3) = 4.0f;
-	Vector<3> vres3;
-	Matrix<3,3> mres3;
-	Matrix<4,4> mres4;
+	Vector<2> v2(1.0f, 2.0f);
+	Vector<3> v3(1.0f, 2.0f, 3.0f);
+	Vector<4> v4(1.0f, 2.0f, 3.0f, 4.0f);
+	Vector<10> v10;
+	v10.zero();
 
-	unsigned int n = 60000;
+	float data2[2] = {1.0f, 2.0f};
+	float data3[3] = {1.0f, 2.0f, 3.0f};
+	float data4[4] = {1.0f, 2.0f, 3.0f, 4.0f};
+	float data10[10];
 
-	hrt_abstime t0, t1;
-
-	t0 = hrt_absolute_time();
-	for (unsigned int j = 0; j < n; j++) {
-		vres3 = m3 * v3;
+	{
+		Vector<2> v;
+		Vector<2> v1(1.0f, 2.0f);
+		Vector<2> v2(1.0f, -1.0f);
+		TEST_OP("Constructor Vector<2>()", Vector<2> v);
+		TEST_OP("Constructor Vector<2>(Vector<2>)", Vector<2> v(v2));
+		TEST_OP("Constructor Vector<2>(float[])", Vector<2> v(data2));
+		TEST_OP("Constructor Vector<2>(float, float)", Vector<2> v(1.0f, 2.0f));
+		TEST_OP("Vector<2> = Vector<2>", v = v1);
+		TEST_OP("Vector<2> + Vector<2>", v + v1);
+		TEST_OP("Vector<2> - Vector<2>", v - v1);
+		TEST_OP("Vector<2> += Vector<2>", v += v1);
+		TEST_OP("Vector<2> -= Vector<2>", v -= v1);
+		TEST_OP("Vector<2> * Vector<2>", v * v1);
+		TEST_OP("Vector<2> %% Vector<2>", v1 % v2);
 	}
-	t1 = hrt_absolute_time();
-	warnx("Matrix3 * Vector3: %s %.6fus", formatResult(vres3 == v3), (double)(t1 - t0) / n);
 
-	t0 = hrt_absolute_time();
-	for (unsigned int j = 0; j < n; j++) {
-		mres3 = m3 * m3;
+	{
+		Vector<3> v;
+		Vector<3> v1(1.0f, 2.0f, 0.0f);
+		Vector<3> v2(1.0f, -1.0f, 2.0f);
+		TEST_OP("Constructor Vector<3>()", Vector<3> v);
+		TEST_OP("Constructor Vector<3>(Vector<3>)", Vector<3> v(v3));
+		TEST_OP("Constructor Vector<3>(float[])", Vector<3> v(data3));
+		TEST_OP("Constructor Vector<3>(float, float, float)", Vector<3> v(1.0f, 2.0f, 3.0f));
+		TEST_OP("Vector<3> = Vector<3>", v = v1);
+		TEST_OP("Vector<3> + Vector<3>", v + v1);
+		TEST_OP("Vector<3> - Vector<3>", v - v1);
+		TEST_OP("Vector<3> += Vector<3>", v += v1);
+		TEST_OP("Vector<3> -= Vector<3>", v -= v1);
+		TEST_OP("Vector<3> * float", v1 * 2.0f);
+		TEST_OP("Vector<3> / float", v1 / 2.0f);
+		TEST_OP("Vector<3> *= float", v1 *= 2.0f);
+		TEST_OP("Vector<3> /= float", v1 /= 2.0f);
+		TEST_OP("Vector<3> * Vector<3>", v * v1);
+		TEST_OP("Vector<3> %% Vector<3>", v1 % v2);
+		TEST_OP("Vector<3> length", v1.length());
+		TEST_OP("Vector<3> length squared", v1.length_squared());
+		TEST_OP("Vector<3> element read", volatile float a = v1(0));
+		TEST_OP("Vector<3> element read direct", volatile float a = v1.data[0]);
+		TEST_OP("Vector<3> element write", v1(0) = 1.0f);
+		TEST_OP("Vector<3> element write direct", v1.data[0] = 1.0f);
 	}
-	t1 = hrt_absolute_time();
-	warnx("Matrix3 * Matrix3: %s %.6fus", formatResult(mres3 == m3), (double)(t1 - t0) / n);
 
-	t0 = hrt_absolute_time();
-	for (unsigned int j = 0; j < n; j++) {
-		mres4 = m4 * m4;
+	{
+		Vector<4> v;
+		Vector<4> v1(1.0f, 2.0f, 0.0f, -1.0f);
+		Vector<4> v2(1.0f, -1.0f, 2.0f, 0.0f);
+		TEST_OP("Constructor Vector<4>()", Vector<4> v);
+		TEST_OP("Constructor Vector<4>(Vector<4>)", Vector<4> v(v4));
+		TEST_OP("Constructor Vector<4>(float[])", Vector<4> v(data4));
+		TEST_OP("Constructor Vector<4>(float, float, float, float)", Vector<4> v(1.0f, 2.0f, 3.0f, 4.0f));
+		TEST_OP("Vector<4> = Vector<4>", v = v1);
+		TEST_OP("Vector<4> + Vector<4>", v + v1);
+		TEST_OP("Vector<4> - Vector<4>", v - v1);
+		TEST_OP("Vector<4> += Vector<4>", v += v1);
+		TEST_OP("Vector<4> -= Vector<4>", v -= v1);
+		TEST_OP("Vector<4> * Vector<4>", v * v1);
 	}
-	t1 = hrt_absolute_time();
-	warnx("Matrix4 * Matrix4: %s %.6fus", formatResult(mres4 == m4), (double)(t1 - t0) / n);
 
-	t0 = hrt_absolute_time();
-	for (unsigned int j = 0; j < n; j++) {
-		mres3 = m3.transposed();
+	{
+		TEST_OP("Constructor Vector<10>()", Vector<10> v);
+		TEST_OP("Constructor Vector<10>(Vector<10>)", Vector<10> v(v10));
+		TEST_OP("Constructor Vector<10>(float[])", Vector<10> v(data10));
 	}
-	t1 = hrt_absolute_time();
-	warnx("Matrix3 Transpose: %s %.6fus", formatResult(mres3 == m3), (double)(t1 - t0) / n);
 
-	t0 = hrt_absolute_time();
-	for (unsigned int j = 0; j < n; j++) {
-		mres3 = m3.inversed();
-	}
-	t1 = hrt_absolute_time();
-	warnx("Matrix3 Invert: %s %.6fus", formatResult(mres3 == m3), (double)(t1 - t0) / n);
 	return 0;
 }
