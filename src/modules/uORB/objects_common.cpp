@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,7 +61,8 @@ ORB_DEFINE(sensor_baro, struct baro_report);
 ORB_DEFINE(sensor_range_finder, struct range_finder_report);
 
 #include <drivers/drv_pwm_output.h>
-ORB_DEFINE(output_pwm, struct pwm_output_values);
+ORB_DEFINE(output_pwm_0, struct pwm_output_values);
+ORB_DEFINE(output_pwm_1, struct pwm_output_values);
 
 #include <drivers/drv_rc_input.h>
 ORB_DEFINE(input_rc, struct rc_input_values);

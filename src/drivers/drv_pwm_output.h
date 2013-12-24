@@ -115,7 +115,8 @@ struct pwm_output_values {
 /*
  * ORB tag for PWM outputs.
  */
-ORB_DECLARE(output_pwm);
+ORB_DECLARE(output_pwm_0);
+ORB_DECLARE(output_pwm_1);
 
 /*
  * ioctl() definitions

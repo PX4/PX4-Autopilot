@@ -259,6 +259,7 @@ private:
 	int 			_t_vehicle_control_mode;///< vehicle control mode topic
 	int			_t_param;		///< parameter update topic
 	int			_t_vehicle_command;	///< vehicle command topic
+	int			_t_pwm_outputs;		///< PWM outputs topic
 
 	/* advertised topics */
 	orb_advert_t 		_to_input_rc;		///< rc inputs from io
@@ -294,6 +295,11 @@ private:
 	 * Send controls to IO
 	 */
 	int			io_set_control_state();
+
+	/**
+	 * Send direct PWM values to IO
+	 */
+	int			io_set_pwm_state();
 
 	/**
 	 * Update IO's arming-related state
@@ -472,6 +478,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_vehicle_control_mode(-1),
 	_t_param(-1),
 	_t_vehicle_command(-1),
+	_t_pwm_outputs(-1),
 	_to_input_rc(0),
 	_to_outputs(0),
 	_to_battery(0),
@@ -776,6 +783,8 @@ PX4IO::task_main()
 	_t_vehicle_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_t_param = orb_subscribe(ORB_ID(parameter_update));
 	_t_vehicle_command = orb_subscribe(ORB_ID(vehicle_command));
+	_t_pwm_outputs = orb_subscribe(_primary_pwm_device ? ORB_ID(output_pwm_0) :
+					ORB_ID(output_pwm_1));
 
 	if ((_t_actuators < 0) ||
 	    (_t_actuator_armed < 0) ||
@@ -787,9 +796,11 @@ PX4IO::task_main()
 	}
 
 	/* poll descriptor */
-	pollfd fds[1];
+	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
+	fds[1].fd = _t_pwm_outputs;
+	fds[1].events = POLLIN;
 
 	log("ready");
 
@@ -828,6 +839,16 @@ PX4IO::task_main()
 		/* if we have new control data from the ORB, handle it */
 		if (fds[0].revents & POLLIN) {
 			io_set_control_state();
+
+			if (now >= poll_last + IO_POLL_INTERVAL) {
+				/* fetch PWM outputs from IO */
+				io_publish_pwm_outputs();
+			}
+		}
+
+		/* if we have new PWM control data from the ORB, handle it */
+		if (fds[1].revents & POLLIN) {
+			io_set_pwm_state();
 		}
 
 		if (now >= poll_last + IO_POLL_INTERVAL) {
@@ -840,8 +861,6 @@ PX4IO::task_main()
 			/* get raw R/C input from IO */
 			io_publish_raw_rc();
 
-			/* fetch PWM outputs from IO */
-			io_publish_pwm_outputs();
 		}
 
 		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
@@ -870,7 +889,7 @@ PX4IO::task_main()
 				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
 
 				// Check for a DSM pairing command
-				if ((cmd.command == VEHICLE_CMD_START_RX_PAIR) && (cmd.param1 == 0.0f)) {
+				if (((int)cmd.command == VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
 					dsm_bind_ioctl((int)cmd.param2);
 				}
 			}
@@ -953,6 +972,28 @@ PX4IO::io_set_control_state()
 	return io_reg_set(PX4IO_PAGE_CONTROLS, 0, regs, _max_controls);
 }
 
+int
+PX4IO::io_set_pwm_state()
+{
+	pwm_output_values	pwm;	///< actuator outputs
+	uint16_t 		regs[PWM_OUTPUT_MAX_CHANNELS];
+
+	/* get controls */
+	orb_copy(_primary_pwm_device ? ORB_ID(output_pwm_0) :
+		 ORB_ID(output_pwm_1), _t_pwm_outputs, &pwm);
+
+	unsigned max_pwm_count = (pwm.channel_count > _max_actuators) ?
+				_max_actuators : pwm.channel_count;
+
+	for (unsigned i = 0; i < max_pwm_count; i++)
+		regs[i] = pwm.values[i];
+
+	perf_begin(_perf_write);
+		int ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, (uint16_t *)regs, max_pwm_count);
+	perf_end(_perf_write);
+
+	return ret;
+}
 
 int
 PX4IO::io_set_arming_state()
