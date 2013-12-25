@@ -110,6 +110,7 @@ struct mavlink_wpm_storage {
 	// uint64_t timestamp_firstinside_orbit;
 	// uint64_t timestamp_lastoutside_orbit;
 	uint32_t timeout;
+	int current_dataman_id;
 	// uint32_t delay_setpoint;
 	// float accept_range_yaw;
 	// float accept_range_distance;

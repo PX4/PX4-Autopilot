@@ -53,7 +53,8 @@ static const int ERROR = -1;
 
 
 Mission::Mission() : 
-
+	
+	_offboard_dataman_id(-1),
 	_current_offboard_mission_index(0),
 	_current_onboard_mission_index(0),
 	_offboard_mission_item_count(0),
@@ -65,6 +66,12 @@ Mission::Mission() :
 Mission::~Mission()
 {
 	
+}
+
+void
+Mission::set_offboard_dataman_id(int new_id)
+{
+	_offboard_dataman_id = new_id;
 }
 
 void
@@ -132,8 +139,16 @@ Mission::get_current_mission_item(struct mission_item_s *new_mission_item, bool 
 	/* otherwise fallback to offboard */
 	} else if (current_offboard_mission_available()) {
 
+		dm_item_t dm_current;
+
+		if (_offboard_dataman_id == 0) {
+			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		} else {
+			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
+		}
+
 		const ssize_t len = sizeof(struct mission_item_s);
-		if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD, _current_offboard_mission_index, new_mission_item, len) != len) {
+		if (dm_read(dm_current, _current_offboard_mission_index, new_mission_item, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			_current_mission_type = MISSION_TYPE_NONE;
 			return ERROR;
@@ -166,8 +181,16 @@ Mission::get_next_mission_item(struct mission_item_s *new_mission_item)
 	/* otherwise fallback to offboard */
 	} else if (next_offboard_mission_available()) {
 
+		dm_item_t dm_current;
+
+		if (_offboard_dataman_id == 0) {
+			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		} else {
+			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
+		}
+
 		const ssize_t len = sizeof(struct mission_item_s);
-		if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD, _current_offboard_mission_index + 1, new_mission_item, len) != len) {
+		if (dm_read(dm_current, _current_offboard_mission_index + 1, new_mission_item, len) != len) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return ERROR;
 		}
