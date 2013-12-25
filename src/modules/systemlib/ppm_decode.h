@@ -57,6 +57,7 @@ __BEGIN_DECLS
  * PPM decoder state
  */
 __EXPORT extern uint16_t	ppm_buffer[PPM_MAX_CHANNELS];	/**< decoded PPM channel values */
+__EXPORT extern uint16_t	ppm_frame_length;				/**< length of the decoded PPM frame (includes gap) */
 __EXPORT extern unsigned	ppm_decoded_channels;	/**< count of decoded channels */
 __EXPORT extern hrt_abstime	ppm_last_valid_decode;	/**< timestamp of the last valid decode */
 
