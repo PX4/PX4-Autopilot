@@ -342,7 +342,7 @@ static void		hrt_call_invoke(void);
 #define PPM_MAX_CHANNELS	20
 
 /* Number of same-sized frames required to 'lock' */
-#define PPM_CHANNEL_LOCK	2		/* should be less than the input timeout */
+#define PPM_CHANNEL_LOCK	4		/* should be less than the input timeout */
 
 __EXPORT uint16_t ppm_buffer[PPM_MAX_CHANNELS];
 __EXPORT unsigned ppm_decoded_channels = 0;
