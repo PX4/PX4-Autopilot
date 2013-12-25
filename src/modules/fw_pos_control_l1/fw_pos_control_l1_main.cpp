@@ -312,6 +312,11 @@ private:
 	void		vehicle_setpoint_poll();
 
 	/**
+	 * Publish navigation capabilities
+	 */
+	void navigation_capabilities_publish();
+
+	/**
 	 * Control position.
 	 */
 	bool		control_position(const math::Vector2f &global_pos, const math::Vector2f &ground_speed,
@@ -538,6 +543,12 @@ FixedwingPositionControl::parameters_update()
 	/* Update the landing slope */
 	landingslope.update(math::radians(_parameters.land_slope_angle), _parameters.land_flare_alt_relative, _parameters.land_thrust_lim_horizontal_distance, _parameters.land_H1_virt);
 
+	/* Update and publish the navigation capabilities */
+	_nav_capabilities.landing_slope_angle_rad = landingslope.landing_slope_angle_rad();
+	_nav_capabilities.landing_horizontal_slope_displacement = landingslope.horizontal_slope_displacement();
+	_nav_capabilities.landing_flare_length = landingslope.flare_length();
+	navigation_capabilities_publish();
+
 	return OK;
 }
 
@@ -709,6 +720,15 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector2f &cu
 	}
 }
 
+void FixedwingPositionControl::navigation_capabilities_publish()
+{
+	if (_nav_capabilities_pub > 0) {
+		orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
+	} else {
+		_nav_capabilities_pub = orb_advertise(ORB_ID(navigation_capabilities), &_nav_capabilities);
+	}
+}
+
 bool
 FixedwingPositionControl::control_position(const math::Vector2f &current_position, const math::Vector2f &ground_speed,
 		const struct mission_item_triplet_s &mission_item_triplet)
@@ -875,7 +895,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				 }
 
-				float flare_curve_alt = landingslope.getFlarceCurveAltitude(wp_distance, _mission_item_triplet.current.altitude);
+				float flare_curve_alt = landingslope.getFlareCurveAltitude(wp_distance, _mission_item_triplet.current.altitude);
 
 				/* avoid climbout */
 				if (flare_curve_alt_last < flare_curve_alt && land_noreturn_vertical || land_stayonground)
@@ -1214,11 +1234,8 @@ FixedwingPositionControl::task_main()
 					/* set new turn distance */
 					_nav_capabilities.turn_distance = turn_distance;
 
-					if (_nav_capabilities_pub > 0) {
-						orb_publish(ORB_ID(navigation_capabilities), _nav_capabilities_pub, &_nav_capabilities);
-					} else {
-						_nav_capabilities_pub = orb_advertise(ORB_ID(navigation_capabilities), &_nav_capabilities);
-					}
+					navigation_capabilities_publish();
+
 				}
 
 			}

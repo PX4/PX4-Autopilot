@@ -1,9 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +35,6 @@
 /*
  * @file: landingslope.cpp
  *
- * @author: Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include "landingslope.h"
@@ -74,11 +71,12 @@ void Landingslope::calculateSlopeValues()
 
 float Landingslope::getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude)
 {
-	return (wp_distance - _horizontal_slope_displacement) * tanf(_landing_slope_angle_rad) + wp_altitude; //flare_relative_alt is negative
+	return Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, wp_altitude, _horizontal_slope_displacement, _landing_slope_angle_rad);
 }
 
-float Landingslope::getFlarceCurveAltitude(float wp_distance, float wp_altitude)
+float Landingslope::getFlareCurveAltitude(float wp_landing_distance, float wp_landing_altitude)
 {
-	return wp_altitude + _H0 * expf(-math::max(0.0f, _flare_length - wp_distance)/_flare_constant) - _H1_virt;
+	return wp_landing_altitude + _H0 * expf(-math::max(0.0f, _flare_length - wp_landing_distance)/_flare_constant) - _H1_virt;
+
 }
 

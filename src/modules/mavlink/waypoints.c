@@ -62,7 +62,7 @@ orb_advert_t mission_pub = -1;
 struct mission_s mission;
 
 //#define MAVLINK_WPM_NO_PRINTF
-#define MAVLINK_WPM_VERBOSE 1
+#define MAVLINK_WPM_VERBOSE 0
 
 uint8_t mavlink_wpm_comp_id = MAV_COMP_ID_MISSIONPLANNER;
 

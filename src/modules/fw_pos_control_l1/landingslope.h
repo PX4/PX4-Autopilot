@@ -1,9 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,15 +35,18 @@
 /*
  * @file: landingslope.h
  *
- * @author: Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #ifndef LANDINGSLOPE_H_
 #define LANDINGSLOPE_H_
 
+#include <math.h>
+#include <systemlib/err.h>
+
 class Landingslope
 {
 private:
+	//xxx: documentation of landing pending
 	float _landing_slope_angle_rad;
 	float _flare_relative_alt;
 	float _motor_lim_horizontal_distance;
@@ -62,8 +63,29 @@ public:
 	Landingslope() {}
 	~Landingslope() {}
 
-	float getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude);
-	float getFlarceCurveAltitude(float wp_distance, float wp_altitude);
+	float getLandingSlopeAbsoluteAltitude(float wp_landing_distance, float wp_landing_altitude);
+
+	/**
+	 *
+	 * @return Absolute altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
+	 */
+	__EXPORT static float getLandingSlopeAbsoluteAltitude(float wp_landing_distance, float wp_landing_altitude, float horizontal_slope_displacement, float landing_slope_angle_rad)
+	{
+		return (wp_landing_distance - horizontal_slope_displacement) * tanf(landing_slope_angle_rad) + wp_landing_altitude; //flare_relative_alt is negative
+	}
+
+	/**
+	 *
+	 * @return distance to landing waypoint of point on landing slope at altitude=slope_altitude
+	 */
+	__EXPORT static float getLandingSlopeWPDistance(float slope_altitude, float wp_landing_altitude, float horizontal_slope_displacement, float landing_slope_angle_rad)
+	{
+		return (slope_altitude - wp_landing_altitude)/tanf(landing_slope_angle_rad) + horizontal_slope_displacement;
+
+	}
+
+
+	float getFlareCurveAltitude(float wp_distance, float wp_altitude);
 
 	void update(float landing_slope_angle_rad,
 			float flare_relative_alt,

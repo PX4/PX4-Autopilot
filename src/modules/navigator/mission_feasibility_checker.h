@@ -1,6 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,41 +32,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file navigation_capabilities.h
- *
- * Definition of navigation capabilities uORB topic.
+ * @file mission_feasibility_checker.h
+ * Provides checks if mission is feasible given the navigation capabilities
  */
+#ifndef MISSION_FEASIBILITY_CHECKER_H_
+#define MISSION_FEASIBILITY_CHECKER_H_
 
-#ifndef TOPIC_NAVIGATION_CAPABILITIES_H_
-#define TOPIC_NAVIGATION_CAPABILITIES_H_
+#include <unistd.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/navigation_capabilities.h>
+#include <dataman/dataman.h>
 
-#include "../uORB.h"
-#include <stdint.h>
 
-/**
- * @addtogroup topics
- * @{
- */
+class MissionFeasibilityChecker
+{
+private:
+	int		_mavlink_fd;
 
-/**
- * Airspeed
- */
-struct navigation_capabilities_s {
-    float turn_distance;    /**< the optimal distance to a waypoint to switch to the next */
+	int _capabilities_sub;
+	struct navigation_capabilities_s _nav_caps;
 
-    /* Landing parameters: see fw_pos_control_l1/landingslope.h */
-    float landing_horizontal_slope_displacement;
-    float landing_slope_angle_rad;
-    float landing_flare_length;
+	bool _initDone;
+	void init();
+
+	/* Checks for all airframes */
+	bool checkGeofence(dm_item_t dm_current, size_t nItems);
+
+	/* Checks specific to fixedwing airframes */
+	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nItems);
+	bool checkFixedWingLanding(dm_item_t dm_current, size_t nItems);
+	void updateNavigationCapabilities();
+
+	/* Checks specific to rotarywing airframes */
+	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nItems);
+public:
+
+	MissionFeasibilityChecker();
+	~MissionFeasibilityChecker() {}
+
+	/*
+	 * Returns true if mission is feasible and false otherwise
+	 */
+	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nItems);
+
 };
 
-/**
- * @}
- */
 
-/* register this as object request broker structure */
-ORB_DECLARE(navigation_capabilities);
-
-#endif
+#endif /* MISSION_FEASIBILITY_CHECKER_H_ */
