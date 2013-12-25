@@ -94,7 +94,7 @@ controls_tick() {
 	 * other.  Don't do that.
 	 */
 
-	/* receive signal strenght indicator (RSSI). 0 = no connection, 1000: perfect connection */
+	/* receive signal strenght indicator (RSSI). 0 = no connection, 255: perfect connection */
 	uint16_t rssi = 0;
 
 	perf_begin(c_gather_dsm);
@@ -108,7 +108,7 @@ controls_tick() {
 		else
 			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RC_DSM11;
 
-		rssi = 1000;
+		rssi = 255;
 	}
 	perf_end(c_gather_dsm);
 
@@ -129,7 +129,7 @@ controls_tick() {
 	if (ppm_updated) {
 
 		/* XXX sample RSSI properly here */
-		rssi = 1000;
+		rssi = 255;
 
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
 	}
