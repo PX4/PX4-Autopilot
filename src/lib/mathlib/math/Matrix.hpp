@@ -1,8 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Will Perone <will.perone@gmail.com>
- *           Anton Babushkin <anton.babushkin@me.com>
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *           Pavel Kirienko <pavel.kirienko@gmail.com>
+ *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +37,7 @@
 /**
  * @file Matrix.hpp
  *
- * Generic Matrix
+ * Matrix class
  */
 
 #ifndef MATRIX_HPP
@@ -50,8 +51,6 @@ namespace math
 
 template <unsigned int M, unsigned int N>
 class __EXPORT Matrix;
-
-class __EXPORT Quaternion;
 
 // MxN matrix with float elements
 template <unsigned int M, unsigned int N>
@@ -75,6 +74,14 @@ public:
 		arm_mat = {M, N, &data[0][0]};
 	}
 
+	/**
+	 * copyt ctor
+	 */
+	MatrixBase(const MatrixBase<M, N> &m) {
+		arm_mat = {M, N, &data[0][0]};
+		memcpy(data, m.data, sizeof(data));
+	}
+
 	MatrixBase(const float *d) {
 		arm_mat = {M, N, &data[0][0]};
 		memcpy(data, d, sizeof(data));
@@ -83,29 +90,35 @@ public:
 	/**
 	 * access by index
 	 */
-	inline float &operator ()(unsigned int row, unsigned int col) {
+	float &operator ()(const unsigned int row, const unsigned int col) {
 		return data[row][col];
 	}
 
 	/**
 	 * access by index
 	 */
-	inline const float &operator ()(unsigned int row, unsigned int col) const {
+	float operator ()(const unsigned int row, const unsigned int col) const {
 		return data[row][col];
 	}
 
-	unsigned int get_rows() {
+	/**
+	 * get rows number
+	 */
+	unsigned int get_rows() const {
 		return M;
 	}
 
-	unsigned int get_cols() {
+	/**
+	 * get columns number
+	 */
+	unsigned int get_cols() const {
 		return N;
 	}
 
 	/**
 	 * test for equality
 	 */
-	bool operator ==(const Matrix<M, N> &m) {
+	bool operator ==(const Matrix<M, N> &m) const {
  		for (unsigned int i = 0; i < M; i++)
  			for (unsigned int j = 0; j < N; j++)
  				if (data[i][j] != m.data[i][j])
@@ -116,7 +129,7 @@ public:
 	/**
 	 * test for inequality
 	 */
-	bool operator !=(const Matrix<M, N> &m) {
+	bool operator !=(const Matrix<M, N> &m) const {
  		for (unsigned int i = 0; i < M; i++)
  			for (unsigned int j = 0; j < N; j++)
  				if (data[i][j] != m.data[i][j])
@@ -209,7 +222,7 @@ public:
  		for (unsigned int i = 0; i < M; i++)
  			for (unsigned int j = 0; j < N; j++)
  				data[i][j] /= num;
-		return *this;
+		return *static_cast<Matrix<M, N>*>(this);
 	}
 
 	/**
@@ -272,11 +285,11 @@ class __EXPORT Matrix : public MatrixBase<M, N> {
 public:
 	using MatrixBase<M, N>::operator *;
 
-	Matrix() : MatrixBase<M, N>() {
-	}
+	Matrix() : MatrixBase<M, N>() {}
 
-	Matrix(const float *d) : MatrixBase<M, N>(d) {
-	}
+	Matrix(const Matrix<M, N> &m) : MatrixBase<M, N>(m) {}
+
+	Matrix(const float *d) : MatrixBase<M, N>(d) {}
 
 	/**
 	 * set to value
@@ -301,11 +314,11 @@ class __EXPORT Matrix<3, 3> : public MatrixBase<3, 3> {
 public:
 	using MatrixBase<3, 3>::operator *;
 
-	Matrix() : MatrixBase<3, 3>() {
-	}
+	Matrix() : MatrixBase<3, 3>() {}
 
-	Matrix(const float *d) : MatrixBase<3, 3>(d) {
-	}
+	Matrix(const Matrix<3, 3> &m) : MatrixBase<3, 3>(m) {}
+
+	Matrix(const float *d) : MatrixBase<3, 3>(d) {}
 
 	/**
 	 * set to value
@@ -348,6 +361,9 @@ public:
 		data[2][2] = cr * cp;
 	}
 
+	/**
+	 * get euler angles from rotation matrix
+	 */
 	Vector<3> to_euler(void) const {
 		Vector<3> euler;
 		euler.data[1] = asinf(-data[2][0]);
@@ -364,6 +380,7 @@ public:
 			euler.data[0] = atan2f(data[2][1], data[2][2]);
 			euler.data[2] = atan2f(data[1][0], data[0][0]);
 		}
+		return euler;
 	}
 };
 

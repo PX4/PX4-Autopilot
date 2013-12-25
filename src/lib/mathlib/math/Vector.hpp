@@ -68,6 +68,7 @@ public:
 
 	/**
 	 * trivial ctor
+	 * note that this ctor will not initialize elements
 	 */
 	VectorBase() {
 		arm_col = {N, 1, &data[0]};
@@ -104,7 +105,7 @@ public:
 	}
 
 	/**
-	 * get rows number
+	 * get vector size
 	 */
 	unsigned int get_size() const {
 		return N;
@@ -113,7 +114,7 @@ public:
 	/**
 	 * test for equality
 	 */
-	bool operator ==(const Vector<N> &v) {
+	bool operator ==(const Vector<N> &v) const {
  		for (unsigned int i = 0; i < N; i++)
  			if (data[i] != v.data[i])
  				return false;
@@ -123,7 +124,7 @@ public:
 	/**
 	 * test for inequality
 	 */
-	bool operator !=(const Vector<N> &v) {
+	bool operator !=(const Vector<N> &v) const {
  		for (unsigned int i = 0; i < N; i++)
  			if (data[i] != v.data[i])
  				return true;
@@ -286,10 +287,9 @@ public:
 template <unsigned int N>
 class __EXPORT Vector : public VectorBase<N> {
 public:
-	//using VectorBase<N>::operator *;
 	Vector() : VectorBase<N>() {}
 
-	Vector(const Vector &v) : VectorBase<N>(v) {}
+	Vector(const Vector<N> &v) : VectorBase<N>(v) {}
 
 	Vector(const float d[N]) : VectorBase<N>(d) {}
 
@@ -307,8 +307,8 @@ class __EXPORT Vector<2> : public VectorBase<2> {
 public:
 	Vector() : VectorBase<2>() {}
 
-	/* simple copy is 1.6 times faster than memcpy */
-	Vector(const Vector &v) : VectorBase<2>() {
+	// simple copy is 1.6 times faster than memcpy
+	Vector(const Vector<2> &v) : VectorBase<2>() {
 		data[0] = v.data[0];
 		data[1] = v.data[1];
 	}
@@ -342,8 +342,8 @@ class __EXPORT Vector<3> : public VectorBase<3> {
 public:
 	Vector() : VectorBase<3>() {}
 
-	/* simple copy is 1.6 times faster than memcpy */
-	Vector(const Vector &v) : VectorBase<3>() {
+	// simple copy is 1.6 times faster than memcpy
+	Vector(const Vector<3> &v) : VectorBase<3>() {
 		for (unsigned int i = 0; i < 3; i++)
 			data[i] = v.data[i];
 	}
@@ -382,7 +382,7 @@ class __EXPORT Vector<4> : public VectorBase<4> {
 public:
 	Vector() : VectorBase() {}
 
-	Vector(const Vector &v) : VectorBase<4>() {
+	Vector(const Vector<4> &v) : VectorBase<4>() {
 		for (unsigned int i = 0; i < 4; i++)
 			data[i] = v.data[i];
 	}

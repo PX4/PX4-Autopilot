@@ -60,25 +60,15 @@ int test_mathlib(int argc, char *argv[])
 {
 	warnx("testing mathlib");
 
-	Vector<2> v2(1.0f, 2.0f);
-	Vector<3> v3(1.0f, 2.0f, 3.0f);
-	Vector<4> v4(1.0f, 2.0f, 3.0f, 4.0f);
-	Vector<10> v10;
-	v10.zero();
-
-	float data2[2] = {1.0f, 2.0f};
-	float data3[3] = {1.0f, 2.0f, 3.0f};
-	float data4[4] = {1.0f, 2.0f, 3.0f, 4.0f};
-	float data10[10];
-
 	{
 		Vector<2> v;
 		Vector<2> v1(1.0f, 2.0f);
 		Vector<2> v2(1.0f, -1.0f);
-		TEST_OP("Constructor Vector<2>()", Vector<2> v);
-		TEST_OP("Constructor Vector<2>(Vector<2>)", Vector<2> v(v2));
-		TEST_OP("Constructor Vector<2>(float[])", Vector<2> v(data2));
-		TEST_OP("Constructor Vector<2>(float, float)", Vector<2> v(1.0f, 2.0f));
+		float data[2] = {1.0f, 2.0f};
+		TEST_OP("Constructor Vector<2>()", Vector<2> v3);
+		TEST_OP("Constructor Vector<2>(Vector<2>)", Vector<2> v3(v1));
+		TEST_OP("Constructor Vector<2>(float[])", Vector<2> v3(data));
+		TEST_OP("Constructor Vector<2>(float, float)", Vector<2> v3(1.0f, 2.0f));
 		TEST_OP("Vector<2> = Vector<2>", v = v1);
 		TEST_OP("Vector<2> + Vector<2>", v + v1);
 		TEST_OP("Vector<2> - Vector<2>", v - v1);
@@ -92,10 +82,11 @@ int test_mathlib(int argc, char *argv[])
 		Vector<3> v;
 		Vector<3> v1(1.0f, 2.0f, 0.0f);
 		Vector<3> v2(1.0f, -1.0f, 2.0f);
-		TEST_OP("Constructor Vector<3>()", Vector<3> v);
-		TEST_OP("Constructor Vector<3>(Vector<3>)", Vector<3> v(v3));
-		TEST_OP("Constructor Vector<3>(float[])", Vector<3> v(data3));
-		TEST_OP("Constructor Vector<3>(float, float, float)", Vector<3> v(1.0f, 2.0f, 3.0f));
+		float data[3] = {1.0f, 2.0f, 3.0f};
+		TEST_OP("Constructor Vector<3>()", Vector<3> v3);
+		TEST_OP("Constructor Vector<3>(Vector<3>)", Vector<3> v3(v1));
+		TEST_OP("Constructor Vector<3>(float[])", Vector<3> v3(data));
+		TEST_OP("Constructor Vector<3>(float, float, float)", Vector<3> v3(1.0f, 2.0f, 3.0f));
 		TEST_OP("Vector<3> = Vector<3>", v = v1);
 		TEST_OP("Vector<3> + Vector<3>", v + v1);
 		TEST_OP("Vector<3> - Vector<3>", v - v1);
@@ -119,10 +110,11 @@ int test_mathlib(int argc, char *argv[])
 		Vector<4> v;
 		Vector<4> v1(1.0f, 2.0f, 0.0f, -1.0f);
 		Vector<4> v2(1.0f, -1.0f, 2.0f, 0.0f);
-		TEST_OP("Constructor Vector<4>()", Vector<4> v);
-		TEST_OP("Constructor Vector<4>(Vector<4>)", Vector<4> v(v4));
-		TEST_OP("Constructor Vector<4>(float[])", Vector<4> v(data4));
-		TEST_OP("Constructor Vector<4>(float, float, float, float)", Vector<4> v(1.0f, 2.0f, 3.0f, 4.0f));
+		float data[4] = {1.0f, 2.0f, 3.0f, 4.0f};
+		TEST_OP("Constructor Vector<4>()", Vector<4> v3);
+		TEST_OP("Constructor Vector<4>(Vector<4>)", Vector<4> v3(v1));
+		TEST_OP("Constructor Vector<4>(float[])", Vector<4> v3(data));
+		TEST_OP("Constructor Vector<4>(float, float, float, float)", Vector<4> v3(1.0f, 2.0f, 3.0f, 4.0f));
 		TEST_OP("Vector<4> = Vector<4>", v = v1);
 		TEST_OP("Vector<4> + Vector<4>", v + v1);
 		TEST_OP("Vector<4> - Vector<4>", v - v1);
@@ -132,9 +124,35 @@ int test_mathlib(int argc, char *argv[])
 	}
 
 	{
-		TEST_OP("Constructor Vector<10>()", Vector<10> v);
-		TEST_OP("Constructor Vector<10>(Vector<10>)", Vector<10> v(v10));
-		TEST_OP("Constructor Vector<10>(float[])", Vector<10> v(data10));
+		Vector<10> v1;
+		v1.zero();
+		float data[10];
+		TEST_OP("Constructor Vector<10>()", Vector<10> v3);
+		TEST_OP("Constructor Vector<10>(Vector<10>)", Vector<10> v3(v1));
+		TEST_OP("Constructor Vector<10>(float[])", Vector<10> v3(data));
+	}
+
+	{
+		Matrix<3, 3> m1;
+		m1.identity();
+		Matrix<3, 3> m2;
+		m2.identity();
+		Vector<3> v1(1.0f, 2.0f, 0.0f);
+		TEST_OP("Matrix<3, 3> * Vector<3>", m1 * v1);
+		TEST_OP("Matrix<3, 3> + Matrix<3, 3>", m1 + m2);
+		TEST_OP("Matrix<3, 3> * Matrix<3, 3>", m1 * m2);
+	}
+
+	{
+		Matrix<10, 10> m1;
+		m1.identity();
+		Matrix<10, 10> m2;
+		m2.identity();
+		Vector<10> v1;
+		v1.zero();
+		TEST_OP("Matrix<10, 10> * Vector<10>", m1 * v1);
+		TEST_OP("Matrix<10, 10> + Matrix<10, 10>", m1 + m2);
+		TEST_OP("Matrix<10, 10> * Matrix<10, 10>", m1 * m2);
 	}
 
 	return 0;

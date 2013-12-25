@@ -1,8 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Will Perone <will.perone@gmail.com>
- *           Anton Babushkin <anton.babushkin@me.com>
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *           Pavel Kirienko <pavel.kirienko@gmail.com>
+ *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +37,7 @@
 /**
  * @file Quaternion.hpp
  *
- * Quaternion
+ * Quaternion class
  */
 
 #ifndef QUATERNION_HPP
@@ -50,31 +51,32 @@
 namespace math
 {
 
-template <unsigned int N, unsigned int M>
-class Matrix;
-
-class Quaternion : public Vector<4> {
+class __EXPORT Quaternion : public Vector<4> {
 public:
 	/**
 	 * trivial ctor
 	 */
-	Quaternion() : Vector() {
-	}
+	Quaternion() : Vector<4>() {}
+
+	/**
+	 * copy ctor
+	 */
+	Quaternion(const Quaternion &q) : Vector<4>(q) {}
+
+	/**
+	 * casting from vector
+	 */
+	Quaternion(const Vector<4> &v) : Vector<4>(v) {}
 
 	/**
 	 * setting ctor
 	 */
-	Quaternion(const float a0, const float b0, const float c0, const float d0): Vector(a0, b0, c0, d0) {
-	}
+	Quaternion(const float d[4]) : Vector<4>(d) {}
 
-	Quaternion(const Vector<4> &v) : Vector(v) {
-	}
-
-	Quaternion(const Quaternion &q) : Vector(q) {
-	}
-
-	Quaternion(const float v[4]) : Vector(v) {
-	}
+	/**
+	 * setting ctor
+	 */
+	Quaternion(const float a0, const float b0, const float c0, const float d0): Vector<4>(a0, b0, c0, d0) {}
 
 	using Vector<4>::operator *;
 
@@ -138,8 +140,10 @@ public:
 		R.data[2][0] = 2.0f * (data[1] * data[3] - data[0] * data[2]);
 		R.data[2][1] = 2.0f * (data[0] * data[1] + data[2] * data[3]);
 		R.data[2][2] = aSq - bSq - cSq + dSq;
+		return R;
 	}
 };
+
 }
 
 #endif // QUATERNION_HPP
