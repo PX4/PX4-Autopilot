@@ -211,8 +211,8 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 
-	math::Matrix	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
+	math::Matrix<3,3>	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
+	math::Matrix<3,3>	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
 
 	struct {
@@ -465,8 +465,6 @@ Sensors::Sensors() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
-	_board_rotation(3, 3),
-	_external_mag_rotation(3, 3),
 	_mag_is_external(false)
 {
 
@@ -920,7 +918,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
-		math::Vector3 vect = {accel_report.x, accel_report.y, accel_report.z};
+		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
 
 		raw.accelerometer_m_s2[0] = vect(0);
@@ -946,7 +944,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
-		math::Vector3 vect = {gyro_report.x, gyro_report.y, gyro_report.z};
+		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
 
 		raw.gyro_rad_s[0] = vect(0);
@@ -972,7 +970,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
-		math::Vector3 vect = {mag_report.x, mag_report.y, mag_report.z};
+		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
 		if (_mag_is_external)
 			vect = _external_mag_rotation * vect;

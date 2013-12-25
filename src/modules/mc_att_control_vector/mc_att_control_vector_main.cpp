@@ -133,13 +133,11 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	bool	_att_sp_valid;				/**< flag if the attitude setpoint is valid */
+	math::Matrix<3, 3> _K;					/**< diagonal gain matrix for position error */
+	math::Matrix<3, 3> _K_rate_p;				/**< diagonal gain matrix for angular rate error */
+	math::Matrix<3, 3> _K_rate_d;				/**< diagonal gain matrix for angular rate derivative */
 
-	math::Matrix _K;					/**< diagonal gain matrix for position error */
-	math::Matrix _K_rate_p;				/**< diagonal gain matrix for angular rate error */
-	math::Matrix _K_rate_d;				/**< diagonal gain matrix for angular rate derivative */
-
-	math::Vector3 _rates_prev;			/**< angular rates on previous step */
+	math::Vector<3> _rates_prev;			/**< angular rates on previous step */
 
 	struct {
 		param_t att_p;
@@ -222,17 +220,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_actuators_0_pub(-1),
 
 /* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
-
-/* states */
-	_att_sp_valid(false),
-
-/* gain matrices */
-	_K(3, 3),
-	_K_rate_p(3, 3),
-	_K_rate_d(3, 3),
-
-	_rates_prev(0.0f, 0.0f, 0.0f)
+	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control"))
 
 {
 	memset(&_att, 0, sizeof(_att));
@@ -240,6 +228,12 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	memset(&_manual, 0, sizeof(_manual));
 	memset(&_control_mode, 0, sizeof(_control_mode));
 	memset(&_arming, 0, sizeof(_arming));
+
+	_K.zero();
+	_K_rate_p.zero();
+	_K_rate_d.zero();
+
+	_rates_prev.zero();
 
 	_parameter_handles.att_p		= 	param_find("MC_ATT_P");
 	_parameter_handles.att_rate_p	= 	param_find("MC_ATTRATE_P");
@@ -293,17 +287,14 @@ MulticopterAttitudeControl::parameters_update()
 	param_get(_parameter_handles.yaw_rate_p, &yaw_rate_p);
 	param_get(_parameter_handles.yaw_rate_d, &yaw_rate_d);
 
-	_K.setAll(0.0f);
 	_K(0, 0) = att_p;
 	_K(1, 1) = att_p;
 	_K(2, 2) = yaw_p;
 
-	_K_rate_p.setAll(0.0f);
 	_K_rate_p(0, 0) = att_rate_p;
 	_K_rate_p(1, 1) = att_rate_p;
 	_K_rate_p(2, 2) = yaw_rate_p;
 
-	_K_rate_d.setAll(0.0f);
 	_K_rate_d(0, 0) = att_rate_d;
 	_K_rate_d(1, 1) = att_rate_d;
 	_K_rate_d(2, 2) = yaw_rate_d;
@@ -348,7 +339,6 @@ MulticopterAttitudeControl::vehicle_setpoint_poll()
 
 	if (att_sp_updated) {
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
-		_att_sp_valid = true;
 	}
 }
 
@@ -400,6 +390,24 @@ MulticopterAttitudeControl::task_main()
 	vehicle_control_mode_poll();
 	vehicle_manual_poll();
 	arming_status_poll();
+
+	/* setpoint rotation matrix */
+	math::Matrix<3, 3> R_sp;
+	R_sp.identity();
+
+	/* rotation matrix for current state */
+	math::Matrix<3, 3> R;
+	R.identity();
+
+	/* current angular rates */
+	math::Vector<3> rates;
+	rates.zero();
+
+	/* identity matrix */
+	math::Matrix<3, 3> I;
+	I.identity();
+
+	math::Quaternion q;
 
 	bool reset_yaw_sp = true;
 
@@ -486,6 +494,7 @@ MulticopterAttitudeControl::task_main()
 							/* move yaw setpoint */
 							yaw_sp_move_rate = _manual.yaw;
 							_att_sp.yaw_body = _wrap_pi(_att_sp.yaw_body + yaw_sp_move_rate * dt);
+							_att_sp.R_valid = false;
 							publish_att_sp = true;
 						}
 					}
@@ -494,6 +503,7 @@ MulticopterAttitudeControl::task_main()
 					if (reset_yaw_sp) {
 						reset_yaw_sp = false;
 						_att_sp.yaw_body = _att.yaw;
+						_att_sp.R_valid = false;
 						publish_att_sp = true;
 					}
 
@@ -501,10 +511,9 @@ MulticopterAttitudeControl::task_main()
 						/* update attitude setpoint if not in position control mode */
 						_att_sp.roll_body = _manual.roll;
 						_att_sp.pitch_body = _manual.pitch;
+						_att_sp.R_valid = false;
 						publish_att_sp = true;
 					}
-
-					_att_sp_valid = true;
 
 				} else {
 					/* manual rate inputs (ACRO) */
@@ -528,17 +537,15 @@ MulticopterAttitudeControl::task_main()
 				reset_yaw_sp = true;
 			}
 
-			if (publish_att_sp || (_att_sp_valid && !_att_sp.R_valid)) {
-				/* controller uses rotation matrix, not euler angles, convert if necessary */
-				math::EulerAngles euler_sp(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
-				math::Dcm R_sp(euler_sp);
+			if (_att_sp.R_valid) {
+				/* rotation matrix in _att_sp is valid, use it */
+				R_sp.set(&_att_sp.R_body[0][0]);
+			} else {
+				/* rotation matrix in _att_sp is not valid, use euler angles instead */
+				R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 
-				for (int i = 0; i < 3; i++) {
-					for (int j = 0; j < 3; j++) {
-						_att_sp.R_body[i][j] = R_sp(i, j);
-					}
-				}
-
+				/* copy rotation matrix back to setpoint struct */
+				memcpy(&_att_sp.R_body[0][0], &R_sp.data[0][0], sizeof(_att_sp.R_body));
 				_att_sp.R_valid = true;
 			}
 
@@ -554,41 +561,41 @@ MulticopterAttitudeControl::task_main()
 				}
 			}
 
-			/* desired rotation matrix */
-			math::Dcm R_des(_att_sp.R_body);
-
 			/* rotation matrix for current state */
-			math::Dcm R(_att.R);
+			R.set(_att.R);
+
 			/* current body angular rates */
-			math::Vector3 rates(_att.rollspeed, _att.pitchspeed, _att.yawspeed);
+			rates(0) = _att.rollspeed;
+			rates(1) = _att.pitchspeed;
+			rates(2) = _att.yawspeed;
 
 			/* try to move thrust vector shortest way, because yaw response is slower than roll/pitch */
-			math::Vector3 R_z(R(0, 2), R(1, 2), R(2, 2));
-			math::Vector3 R_des_z(R_des(0, 2), R_des(1, 2), R_des(2, 2));
+			math::Vector<3> R_z(R(0, 2), R(1, 2), R(2, 2));
+			math::Vector<3> R_sp_z(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
 
 			/* axis and sin(angle) of desired rotation */
-			math::Vector3 e_R = R.transpose() * R_z.cross(R_des_z);
+			math::Vector<3> e_R = R.transposed() * (R_z % R_sp_z);
 
 			/* calculate angle error */
-			float e_R_z_sin = e_R.norm();
-			float e_R_z_cos = R_z * R_des_z;
+			float e_R_z_sin = e_R.length();
+			float e_R_z_cos = R_z * R_sp_z;
 
 			/* calculate weight for yaw control */
-			float yaw_w = R_des(2, 2) * R_des(2, 2);
+			float yaw_w = R_sp(2, 2) * R_sp(2, 2);
 
 			/* calculate rotation matrix after roll/pitch only rotation */
-			math::Matrix R_rp(3, 3);
+			math::Matrix<3, 3> R_rp;
 
 			if (e_R_z_sin > 0.0f) {
 				/* get axis-angle representation */
 				float e_R_z_angle = atan2f(e_R_z_sin, e_R_z_cos);
-				math::Vector3 e_R_z_axis = e_R / e_R_z_sin;
+				math::Vector<3> e_R_z_axis = e_R / e_R_z_sin;
 
 				e_R = e_R_z_axis * e_R_z_angle;
 
 				/* cross product matrix for e_R_axis */
-				math::Matrix e_R_cp(3, 3);
-				e_R_cp.setAll(0.0f);
+				math::Matrix<3, 3> e_R_cp;
+				e_R_cp.zero();
 				e_R_cp(0, 1) = -e_R_z_axis(2);
 				e_R_cp(0, 2) = e_R_z_axis(1);
 				e_R_cp(1, 0) = e_R_z_axis(2);
@@ -597,11 +604,6 @@ MulticopterAttitudeControl::task_main()
 				e_R_cp(2, 1) = e_R_z_axis(0);
 
 				/* rotation matrix for roll/pitch only rotation */
-				math::Matrix I(3, 3);
-				I.setAll(0.0f);
-				I(0, 0) = 1.0f;
-				I(1, 1) = 1.0f;
-				I(2, 2) = 1.0f;
 				R_rp = R * (I + e_R_cp * e_R_z_sin + e_R_cp * e_R_cp * (1.0f - e_R_z_cos));
 
 			} else {
@@ -609,17 +611,17 @@ MulticopterAttitudeControl::task_main()
 				R_rp = R;
 			}
 
-			/* R_rp and R_des has the same Z axis, calculate yaw error */
-			math::Vector3 R_des_x(R_des(0, 0), R_des(1, 0), R_des(2, 0));
-			math::Vector3 R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
-			e_R(2) = atan2f(R_rp_x.cross(R_des_x) * R_des_z, R_rp_x * R_des_x) * yaw_w;
+			/* R_rp and R_sp has the same Z axis, calculate yaw error */
+			math::Vector<3> R_sp_x(R_sp(0, 0), R_sp(1, 0), R_sp(2, 0));
+			math::Vector<3> R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
+			e_R(2) = atan2f((R_rp_x % R_sp_x) * R_sp_z, R_rp_x * R_sp_x) * yaw_w;
 
 			if (e_R_z_cos < 0.0) {
 				/* for large thrust vector rotations use another rotation method:
-				 * calculate angle and axis for R -> R_des rotation directly */
-				math::Quaternion q(R.transpose() * R_des);
-				float angle_d = 2.0f * atan2f(sqrtf(q.getB() * q.getB() + q.getC() * q.getC() + q.getD() * q.getD()), q.getA());
-				math::Vector3 e_R_d(q.getB(), q.getC(), q.getD());
+				 * calculate angle and axis for R -> R_sp rotation directly */
+				q.from_dcm(R.transposed() * R_sp);
+				math::Vector<3> e_R_d = q.imag();
+				float angle_d = 2.0f * atan2f(e_R_d.length(), q(0));
 
 				/* use fusion of Z axis based rotation and direct rotation */
 				float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;
@@ -627,11 +629,11 @@ MulticopterAttitudeControl::task_main()
 			}
 
 			/* angular rates setpoint*/
-			math::Vector3 rates_sp = _K * e_R;
+			math::Vector<3> rates_sp = _K * e_R;
 
 			/* feed forward yaw setpoint rate */
 			rates_sp(2) += yaw_sp_move_rate * yaw_w;
-			math::Vector3 control = _K_rate_p * (rates_sp - rates) + _K_rate_d * (_rates_prev - rates) / fmaxf(dt, 0.003f);
+			math::Vector<3> control = _K_rate_p * (rates_sp - rates) + _K_rate_d * (_rates_prev - rates) / fmaxf(dt, 0.003f);
 			_rates_prev = rates;
 
 			/* publish the attitude rates setpoint */

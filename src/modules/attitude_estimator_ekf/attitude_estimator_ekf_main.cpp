@@ -267,6 +267,10 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
 	unsigned offset_count = 0;
 
+	/* rotation matrix for magnetic declination */
+	math::Matrix<3, 3> R_decl;
+	R_decl.identity();
+
 	/* register the perf counter */
 	perf_counter_t ekf_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_ekf");
 
@@ -301,6 +305,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 				/* update parameters */
 				parameters_update(&ekf_param_handles, &ekf_params);
+
+				/* update mag declination rotation matrix */
+				R_decl.from_euler(0.0f, 0.0f, ekf_params.mag_decl);
 			}
 
 			/* only run filter if sensor values changed */
@@ -450,17 +457,12 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
 
 					/* magnetic declination */
-					math::EulerAngles eulerMagDecl(0.0f, 0.0f, ekf_params.mag_decl);
-					math::Dcm R(eulerMagDecl);
-					math::Dcm R_body(&Rot_matrix[0]);
-					R = R * R_body;
+
+					math::Matrix<3, 3> R_body = (&Rot_matrix[0]);
+					math::Matrix<3, 3> R = R_decl * R_body;
 
 					/* copy rotation matrix */
-					for (int i = 0; i < 3; i++) {
-						for (int j = 0; j < 3; j++) {
-							att.R[i][j] = R(i, j);
-						}
-					}
+					memcpy(&att.R[0][0], &R.data[0][0], sizeof(att.R));
 					att.R_valid = true;
 
 					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
