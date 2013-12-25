@@ -1,5 +1,0 @@
-Synopsis
-
- nsh> attitude_estimator_so3_comp start -d /dev/ttyS1 -b 115200
-
-Option -d is for debugging packet. See code for detailed packet structure.

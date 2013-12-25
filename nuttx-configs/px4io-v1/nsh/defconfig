@@ -201,28 +201,6 @@ CONFIG_USART2_RXDMA=n
 CONFIG_USART3_RXDMA=y
 
 #
-# PX4IO specific driver settings
-#
-# CONFIG_HRT_TIMER
-#   Enables the high-resolution timer.  The board definition must
-#   set HRT_TIMER and HRT_TIMER_CHANNEL to the timer and capture/
-#   compare channels to be used.
-# CONFIG_HRT_PPM
-#   Enables R/C PPM input using the HRT.  The board definition must
-#   set HRT_PPM_CHANNEL to the timer capture/compare channel to be
-#   used, and define GPIO_PPM_IN to configure the appropriate timer
-#   GPIO.
-# CONFIG_PWM_SERVO
-#   Enables the PWM servo driver.  The driver configuration must be
-#   supplied by the board support at initialisation time.
-#   Note that USART2 must be disabled on the PX4 board for this to
-#   be available.
-#
-#
-CONFIG_HRT_TIMER=y
-CONFIG_HRT_PPM=y
-
-#
 # General build options
 #
 # CONFIG_RRLOAD_BINARY - make the rrload binary format used with

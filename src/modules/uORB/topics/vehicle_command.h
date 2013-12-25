@@ -46,11 +46,6 @@
 #include "../uORB.h"
 
 /**
- * @addtogroup topics
- * @{
- */
-
-/**
  * Commands for commander app.
  *
  * Should contain all commands from MAVLink's VEHICLE_CMD ENUM,
@@ -91,7 +86,8 @@ enum VEHICLE_CMD
 	VEHICLE_CMD_OVERRIDE_GOTO=252, /* Hold / continue the current action |MAV_GOTO_DO_HOLD: hold MAV_GOTO_DO_CONTINUE: continue with next item in mission plan| MAV_GOTO_HOLD_AT_CURRENT_POSITION: Hold at current position MAV_GOTO_HOLD_AT_SPECIFIED_POSITION: hold at specified position| MAV_FRAME coordinate frame of hold point| Desired yaw angle in degrees| Latitude / X position| Longitude / Y position| Altitude / Z position|  */
 	VEHICLE_CMD_MISSION_START=300, /* start running a mission |first_item: the first mission item to run| last_item:  the last mission item to run (after this item is run, the mission ends)|  */
 	VEHICLE_CMD_COMPONENT_ARM_DISARM=400, /* Arms / Disarms a component |1 to arm, 0 to disarm|  */
-	VEHICLE_CMD_ENUM_END=401, /*  | */
+	VEHICLE_CMD_START_RX_PAIR=500, /* Starts receiver pairing |0:Spektrum| 0:Spektrum DSM2, 1:Spektrum DSMX|  */
+	VEHICLE_CMD_ENUM_END=501, /*  | */
 };
 
 /**
@@ -110,6 +106,10 @@ enum VEHICLE_CMD_RESULT
 	VEHICLE_CMD_RESULT_ENUM_END=5, /*  | */
 };
 
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 struct vehicle_command_s
 {
@@ -120,7 +120,7 @@ struct vehicle_command_s
 	float param5;			/**< Parameter 5, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param6;			/**< Parameter 6, as defined by MAVLink VEHICLE_CMD enum.   */
 	float param7;			/**< Parameter 7, as defined by MAVLink VEHICLE_CMD enum.   */
-	uint16_t command;		/**< Command ID, as defined MAVLink by VEHICLE_CMD enum.   */
+	enum VEHICLE_CMD command;		/**< Command ID, as defined MAVLink by VEHICLE_CMD enum.   */
 	uint8_t target_system;		/**< System which should execute the command  */
 	uint8_t target_component;	/**< Component which should execute the command, 0 for all components  */
 	uint8_t source_system;		/**< System sending the command  */

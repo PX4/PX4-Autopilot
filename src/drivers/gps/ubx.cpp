@@ -42,13 +42,14 @@
  *
  * @see http://www.u-blox.com/images/downloads/Product_Docs/u-blox6_ReceiverDescriptionProtocolSpec_%28GPS.G6-SW-10018%29.pdf
  */
-
-#include <unistd.h>
-#include <stdio.h>
-#include <poll.h>
-#include <math.h>
-#include <string.h>
 #include <assert.h>
+#include <math.h>
+#include <poll.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -59,13 +60,14 @@
 #define UBX_CONFIG_TIMEOUT		200		// ms, timeout for waiting ACK
 #define UBX_PACKET_TIMEOUT		2		// ms, if now data during this delay assume that full update received
 #define UBX_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
+#define DISABLE_MSG_INTERVAL	1000000	// us, try to disable message with this interval
 
 UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position) :
 	_fd(fd),
 	_gps_position(gps_position),
 	_configured(false),
 	_waiting_for_ack(false),
-	_disable_cmd_counter(0)
+	_disable_cmd_last(0)
 {
 	decode_init();
 }
@@ -190,35 +192,35 @@ UBX::configure(unsigned &baudrate)
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_POSLLH, 1);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV POSLLH\n");
+		warnx("ubx: msg rate configuration failed: NAV POSLLH");
 		return 1;
 	}
 
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_TIMEUTC, 1);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV TIMEUTC\n");
+		warnx("ubx: msg rate configuration failed: NAV TIMEUTC");
 		return 1;
 	}
 
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SOL, 1);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV SOL\n");
+		warnx("ubx: msg rate configuration failed: NAV SOL");
 		return 1;
 	}
 
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_VELNED, 1);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV VELNED\n");
+		warnx("ubx: msg rate configuration failed: NAV VELNED");
 		return 1;
 	}
 
 	configure_message_rate(UBX_CLASS_NAV, UBX_MESSAGE_NAV_SVINFO, 5);
 
 	if (wait_for_ack(UBX_CONFIG_TIMEOUT) < 0) {
-		warnx("ubx: msg rate configuration failed: NAV SVINFO\n");
+		warnx("ubx: msg rate configuration failed: NAV SVINFO");
 		return 1;
 	}
 
@@ -270,11 +272,17 @@ UBX::receive(unsigned timeout)
 
 		if (ret < 0) {
 			/* something went wrong when polling */
+			warnx("ubx: poll error");
 			return -1;
 
 		} else if (ret == 0) {
 			/* return success after short delay after receiving a packet or timeout after long delay */
-			return handled ? 1 : -1;
+			if (handled) {
+				return 1;
+
+			} else {
+				return -1;
+			}
 
 		} else if (ret > 0) {
 			/* if we have new data from GPS, go handle it */
@@ -291,8 +299,6 @@ UBX::receive(unsigned timeout)
 				/* pass received bytes to the packet decoder */
 				for (int i = 0; i < count; i++) {
 					if (parse_char(buf[i]) > 0) {
-						/* return to configure during configuration or to the gps driver during normal work
-						 * if a packet has arrived */
 						if (handle_message() > 0)
 							handled = true;
 					}
@@ -302,6 +308,7 @@ UBX::receive(unsigned timeout)
 
 		/* abort after timeout if no useful packets received */
 		if (time_started + timeout * 1000 < hrt_absolute_time()) {
+			warnx("ubx: timeout - no useful messages");
 			return -1;
 		}
 	}
@@ -453,6 +460,15 @@ UBX::handle_message()
 					timeinfo.tm_sec = packet->sec;
 					time_t epoch = mktime(&timeinfo);
 
+#ifndef CONFIG_RTC
+					//Since we lack a hardware RTC, set the system time clock based on GPS UTC
+					//TODO generalize this by moving into gps.cpp?
+					timespec ts;
+					ts.tv_sec = epoch;
+					ts.tv_nsec = packet->time_nanoseconds;
+					clock_settime(CLOCK_REALTIME, &ts);
+#endif
+
 					_gps_position->time_gps_usec = (uint64_t)epoch * 1000000; //TODO: test this
 					_gps_position->time_gps_usec += (uint64_t)(packet->time_nanoseconds * 1e-3f);
 					_gps_position->timestamp_time = hrt_absolute_time();
@@ -554,10 +570,13 @@ UBX::handle_message()
 
 		if (ret == 0) {
 			/* message not handled */
-			warnx("ubx: unknown message received: 0x%02x-0x%02x\n", (unsigned)_message_class, (unsigned)_message_id);
+			warnx("ubx: unknown message received: 0x%02x-0x%02x", (unsigned)_message_class, (unsigned)_message_id);
 
-			if ((_disable_cmd_counter = _disable_cmd_counter++ % 10) == 0) {
+			hrt_abstime t = hrt_absolute_time();
+
+			if (t > _disable_cmd_last + DISABLE_MSG_INTERVAL) {
 				/* don't attempt for every message to disable, some might not be disabled */
+				_disable_cmd_last = t;
 				warnx("ubx: disabling message 0x%02x-0x%02x", (unsigned)_message_class, (unsigned)_message_id);
 				configure_message_rate(_message_class, _message_id, 0);
 			}
@@ -630,7 +649,7 @@ UBX::add_checksum_to_message(uint8_t *message, const unsigned length)
 		ck_b = ck_b + ck_a;
 	}
 
-	/* The checksum is written to the last to bytes of a message */
+	/* the checksum is written to the last to bytes of a message */
 	message[length - 2] = ck_a;
 	message[length - 1] = ck_b;
 }
@@ -659,17 +678,17 @@ UBX::send_config_packet(const int &fd, uint8_t *packet, const unsigned length)
 {
 	ssize_t ret = 0;
 
-	/* Calculate the checksum now */
+	/* calculate the checksum now */
 	add_checksum_to_message(packet, length);
 
 	const uint8_t sync_bytes[] = {UBX_SYNC1, UBX_SYNC2};
 
-	/* Start with the two sync bytes */
+	/* start with the two sync bytes */
 	ret += write(fd, sync_bytes, sizeof(sync_bytes));
 	ret += write(fd, packet, length);
 
 	if (ret != (int)length + (int)sizeof(sync_bytes)) // XXX is there a neater way to get rid of the unsigned signed warning?
-		warnx("ubx: config write fail");
+		warnx("ubx: configuration write fail");
 }
 
 void
@@ -686,7 +705,7 @@ UBX::send_message(uint8_t msg_class, uint8_t msg_id, void *msg, uint8_t size)
 	add_checksum((uint8_t *)&header.msg_class, sizeof(header) - 2, ck_a, ck_b);
 	add_checksum((uint8_t *)msg, size, ck_a, ck_b);
 
-	// Configure receive check
+	/* configure ACK check */
 	_message_class_needed = msg_class;
 	_message_id_needed = msg_id;
 

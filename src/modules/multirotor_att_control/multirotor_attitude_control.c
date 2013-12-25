@@ -62,15 +62,15 @@
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 
-PARAM_DEFINE_FLOAT(MC_YAWPOS_P, 0.3f);
+PARAM_DEFINE_FLOAT(MC_YAWPOS_P, 2.0f);
 PARAM_DEFINE_FLOAT(MC_YAWPOS_I, 0.15f);
 PARAM_DEFINE_FLOAT(MC_YAWPOS_D, 0.0f);
 //PARAM_DEFINE_FLOAT(MC_YAWPOS_AWU, 1.0f);
 //PARAM_DEFINE_FLOAT(MC_YAWPOS_LIM, 3.0f);
 
-PARAM_DEFINE_FLOAT(MC_ATT_P, 0.2f);
+PARAM_DEFINE_FLOAT(MC_ATT_P, 6.8f);
 PARAM_DEFINE_FLOAT(MC_ATT_I, 0.0f);
-PARAM_DEFINE_FLOAT(MC_ATT_D, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ATT_D, 0.0f);
 //PARAM_DEFINE_FLOAT(MC_ATT_AWU, 0.05f);
 //PARAM_DEFINE_FLOAT(MC_ATT_LIM, 0.4f);
 
@@ -166,7 +166,7 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 }
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-				 const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position)
+				 const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position, bool reset_integral)
 {
 	static uint64_t last_run = 0;
 	static uint64_t last_input = 0;
@@ -210,12 +210,12 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
 	}
 
-	/* reset integral if on ground */
-	if (att_sp->thrust < 0.1f) {
+	/* reset integrals if needed */
+	if (reset_integral) {
 		pid_reset_integral(&pitch_controller);
 		pid_reset_integral(&roll_controller);
+		//TODO pid_reset_integral(&yaw_controller);
 	}
-
 
 	/* calculate current control outputs */
 
@@ -229,6 +229,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	if (control_yaw_position) {
 		/* control yaw rate */
+		// TODO use pid lib
 
 		/* positive error: rotate to right, negative error, rotate to left (NED frame) */
 		// yaw_error = _wrap_pi(att_sp->yaw_body - att->yaw);
@@ -246,6 +247,8 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	}
 
 	rates_sp->thrust = att_sp->thrust;
+    //need to update the timestamp now that we've touched rates_sp
+    rates_sp->timestamp = hrt_absolute_time();
 
 	motor_skip_counter++;
 }

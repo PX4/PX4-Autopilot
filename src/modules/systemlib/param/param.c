@@ -48,6 +48,7 @@
 #include <unistd.h>
 #include <systemlib/err.h>
 #include <errno.h>
+#include <semaphore.h>
 
 #include <sys/stat.h>
 
@@ -95,18 +96,20 @@ ORB_DEFINE(parameter_update, struct parameter_update_s);
 /** parameter update topic handle */
 static orb_advert_t param_topic = -1;
 
+static sem_t param_sem = { .semcount = 1 };
+
 /** lock the parameter store */
 static void
 param_lock(void)
 {
-	/* XXX */
+	//do {} while (sem_wait(&param_sem) != 0);
 }
 
 /** unlock the parameter store */
 static void
 param_unlock(void)
 {
-	/* XXX */
+	//sem_post(&param_sem);
 }
 
 /** assert that the parameter store is locked */
@@ -505,27 +508,63 @@ param_get_default_file(void)
 int
 param_save_default(void)
 {
-	/* delete the file in case it exists */
-	unlink(param_get_default_file());
+	int res;
+	int fd;
 
-	/* create the file */
-	int fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
+	const char *filename = param_get_default_file();
+	const char *filename_tmp = malloc(strlen(filename) + 5);
+	sprintf(filename_tmp, "%s.tmp", filename);
 
-	if (fd < 0) {
-		warn("opening '%s' for writing failed", param_get_default_file());
-		return -1;
+	/* delete temp file if exist */
+	res = unlink(filename_tmp);
+
+	if (res != OK && errno == ENOENT)
+		res = OK;
+
+	if (res != OK)
+		warn("failed to delete temp file: %s", filename_tmp);
+
+	if (res == OK) {
+		/* write parameters to temp file */
+		fd = open(filename_tmp, O_WRONLY | O_CREAT | O_EXCL);
+
+		if (fd < 0) {
+			warn("failed to open temp file: %s", filename_tmp);
+			res = ERROR;
+		}
+
+		if (res == OK) {
+			res = param_export(fd, false);
+
+			if (res != OK)
+				warnx("failed to write parameters to file: %s", filename_tmp);
+		}
+
+		close(fd);
 	}
 
-	int result = param_export(fd, false);
-	close(fd);
+	if (res == OK) {
+		/* delete parameters file */
+		res = unlink(filename);
 
-	if (result != 0) {
-		warn("error exporting parameters to '%s'", param_get_default_file());
-		unlink(param_get_default_file());
-		return -2;
+		if (res != OK && errno == ENOENT)
+			res = OK;
+
+		if (res != OK)
+			warn("failed to delete parameters file: %s", filename);
 	}
 
-	return 0;
+	if (res == OK) {
+		/* rename temp file to parameters */
+		res = rename(filename_tmp, filename);
+
+		if (res != OK)
+			warn("failed to rename %s to %s", filename_tmp, filename);
+	}
+
+	free(filename_tmp);
+
+	return res;
 }
 
 /**

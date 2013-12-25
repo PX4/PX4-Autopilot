@@ -497,7 +497,12 @@ int position_estimator_mc_thread_main(int argc, char *argv[])
 				local_pos_est.vz = x_z_aposteriori_k[1];
 				local_pos_est.timestamp = hrt_absolute_time();
 				if ((isfinite(x_x_aposteriori_k[0])) && (isfinite(x_x_aposteriori_k[1])) && (isfinite(x_y_aposteriori_k[0])) && (isfinite(x_y_aposteriori_k[1])) && (isfinite(x_z_aposteriori_k[0])) && (isfinite(x_z_aposteriori_k[1]))){
-					orb_publish(ORB_ID(vehicle_local_position), local_pos_est_pub, &local_pos_est);
+					if(local_pos_est_pub > 0)
+						orb_publish(ORB_ID(vehicle_local_position), local_pos_est_pub, &local_pos_est);
+					else
+						local_pos_est_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos_est);
+					//char buf[0xff]; sprintf(buf,"[pos_est_mc] x:%f, y:%f, z:%f",x_x_aposteriori_k[0],x_y_aposteriori_k[0],x_z_aposteriori_k[0]);
+					//mavlink_log_info(mavlink_fd, buf);
 				}
 			}
 		} /* end of poll return value check */

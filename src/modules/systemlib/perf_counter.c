@@ -295,10 +295,11 @@ perf_print_counter(perf_counter_t handle)
 	case PC_ELAPSED: {
 		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
-		printf("%s: %llu events, %lluus elapsed, min %lluus max %lluus\n",
+		printf("%s: %llu events, %lluus elapsed, %llu avg, min %lluus max %lluus\n",
 		       handle->name,
 		       pce->event_count,
 		       pce->time_total,
+		       pce->time_total / pce->event_count,
 		       pce->time_least,
 		       pce->time_most);
 		break;
@@ -319,6 +320,32 @@ perf_print_counter(perf_counter_t handle)
 	default:
 		break;
 	}
+}
+
+uint64_t
+perf_event_count(perf_counter_t handle)
+{
+	if (handle == NULL)
+		return 0;
+
+	switch (handle->type) {
+	case PC_COUNT:
+		return ((struct perf_ctr_count *)handle)->event_count;
+
+	case PC_ELAPSED: {
+		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+		return pce->event_count;
+	}
+
+	case PC_INTERVAL: {
+		struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+		return pci->event_count;
+	}
+
+	default:
+		break;
+	}
+	return 0;
 }
 
 void

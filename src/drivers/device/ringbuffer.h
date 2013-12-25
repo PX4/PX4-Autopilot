@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,15 +34,14 @@
 /**
  * @file ringbuffer.h
  *
- * A simple ringbuffer template.
+ * A flexible ringbuffer class.
  */
 
 #pragma once
 
-template<typename T>
 class RingBuffer {
 public:
-	RingBuffer(unsigned size);
+	RingBuffer(unsigned ring_size, size_t entry_size);
 	virtual ~RingBuffer();
 
 	/**
@@ -52,15 +50,37 @@ public:
 	 * @param val		Item to put
 	 * @return		true if the item was put, false if the buffer is full
 	 */
-	bool			put(T &val);
+	bool			put(const void *val, size_t val_size = 0);
+
+	bool			put(int8_t val);
+	bool			put(uint8_t val);
+	bool			put(int16_t val);
+	bool			put(uint16_t val);
+	bool			put(int32_t val);
+	bool			put(uint32_t val);
+	bool			put(int64_t val);
+	bool			put(uint64_t val);
+	bool			put(float val);
+	bool			put(double val);
 
 	/**
-	 * Put an item into the buffer.
+	 * Force an item into the buffer, discarding an older item if there is not space.
 	 *
 	 * @param val		Item to put
-	 * @return		true if the item was put, false if the buffer is full
+	 * @return		true if an item was discarded to make space
 	 */
-	bool			put(const T &val);
+	bool			force(const void *val, size_t val_size = 0);
+
+	bool			force(int8_t val);
+	bool			force(uint8_t val);
+	bool			force(int16_t val);
+	bool			force(uint16_t val);
+	bool			force(int32_t val);
+	bool			force(uint32_t val);
+	bool			force(int64_t val);
+	bool			force(uint64_t val);
+	bool			force(float val);
+	bool			force(double val);
 
 	/**
 	 * Get an item from the buffer.
@@ -68,15 +88,18 @@ public:
 	 * @param val		Item that was gotten
 	 * @return		true if an item was got, false if the buffer was empty.
 	 */
-	bool			get(T &val);
+	bool			get(void *val, size_t val_size = 0);
 
-	/**
-	 * Get an item from the buffer (scalars only).
-	 *
-	 * @return		The value that was fetched, or zero if the buffer was
-	 *			empty.
-	 */
-	T			get(void);
+	bool			get(int8_t &val);
+	bool			get(uint8_t &val);
+	bool			get(int16_t &val);
+	bool			get(uint16_t &val);
+	bool			get(int32_t &val);
+	bool			get(uint32_t &val);
+	bool			get(int64_t &val);
+	bool			get(uint64_t &val);
+	bool			get(float &val);
+	bool			get(double &val);
 
 	/*
 	 * Get the number of slots free in the buffer.
@@ -97,54 +120,103 @@ public:
 	/*
 	 * Returns true if the buffer is empty.
 	 */
-	bool			empty() { return _tail == _head; }
+	bool			empty();
 
 	/*
 	 * Returns true if the buffer is full.
 	 */
-	bool			full() { return _next(_head) == _tail; }
+	bool			full();
 
 	/*
 	 * Returns the capacity of the buffer, or zero if the buffer could
 	 * not be allocated.
 	 */
-	unsigned		size() { return (_buf != nullptr) ? _size : 0; }
+	unsigned		size();
 
 	/*
 	 * Empties the buffer.
 	 */
-	void			flush() { _head = _tail = _size; }
+	void			flush();
+
+	/*
+	 * resize the buffer. This is unsafe to be called while
+	 * a producer or consuming is running. Caller is responsible
+	 * for any locking needed
+	 *
+	 * @param new_size	new size for buffer
+	 * @return		true if the resize succeeds, false if
+	 * 			not (allocation error)
+	 */
+	bool			resize(unsigned new_size);
+
+	/*
+	 * printf() some info on the buffer
+	 */
+	void			print_info(const char *name);
 
 private:
-	T			*const _buf;	
-	const unsigned		_size;
-	volatile unsigned	_head;	/**< insertion point */
-	volatile unsigned	_tail;	/**< removal point */
+	unsigned		_num_items;
+	const size_t		_item_size;
+	char			*_buf;	
+	volatile unsigned	_head;	/**< insertion point in _item_size units */
+	volatile unsigned	_tail;	/**< removal point in _item_size units */
 
 	unsigned		_next(unsigned index);
 };
 
-template <typename T>
-RingBuffer<T>::RingBuffer(unsigned with_size) :
-	_buf(new T[with_size + 1]),
-	_size(with_size),
- 	_head(with_size),
- 	_tail(with_size)
+RingBuffer::RingBuffer(unsigned num_items, size_t item_size) :
+	_num_items(num_items),
+	_item_size(item_size),
+	_buf(new char[(_num_items+1) * item_size]),
+ 	_head(_num_items),
+ 	_tail(_num_items)
 {}
 
-template <typename T>
-RingBuffer<T>::~RingBuffer()
+RingBuffer::~RingBuffer()
 {
 	if (_buf != nullptr)
 		delete[] _buf;
 }
 
-template <typename T>
-bool RingBuffer<T>::put(T &val) 
+unsigned
+RingBuffer::_next(unsigned index)
+{
+	return (0 == index) ? _num_items : (index - 1); 
+}
+
+bool
+RingBuffer::empty()
+{
+	return _tail == _head; 
+}
+
+bool
+RingBuffer::full()
+{
+	return _next(_head) == _tail; 
+}
+
+unsigned
+RingBuffer::size()
+{
+	return (_buf != nullptr) ? _num_items : 0; 
+}
+
+void
+RingBuffer::flush()
+{
+	while (!empty())
+		get(NULL);
+}
+
+bool
+RingBuffer::put(const void *val, size_t val_size) 
 {
 	unsigned next = _next(_head);
 	if (next != _tail) {
-		_buf[_head] = val;
+		if ((val_size == 0) || (val_size > _item_size))
+			val_size = _item_size;
+		memcpy(&_buf[_head * _item_size], val, val_size);
 		_head = next;
 		return true;
 	} else {
@@ -152,52 +224,286 @@ bool RingBuffer<T>::put(T &val)
 	}
 }
 
-template <typename T>
-bool RingBuffer<T>::put(const T &val) 
+bool
+RingBuffer::put(int8_t val)
 {
-	unsigned next = _next(_head);
-	if (next != _tail) {
-		_buf[_head] = val;
-		_head = next;
-		return true;
-	} else {
-		return false;
-	}
+	return put(&val, sizeof(val));
 }
 
-template <typename T>
-bool RingBuffer<T>::get(T &val) 
+bool
+RingBuffer::put(uint8_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(int16_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(uint16_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(int32_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(uint32_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(int64_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(uint64_t val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(float val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::put(double val)
+{
+	return put(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(const void *val, size_t val_size)
+{
+	bool overwrote = false;
+
+	for (;;) {
+		if (put(val, val_size))
+			break;
+		get(NULL);
+		overwrote = true;
+	}
+	return overwrote;
+}
+
+bool
+RingBuffer::force(int8_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(uint8_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(int16_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(uint16_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(int32_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(uint32_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(int64_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(uint64_t val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(float val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::force(double val)
+{
+	return force(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(void *val, size_t val_size) 
 {
 	if (_tail != _head) {
-		val = _buf[_tail];
-		_tail = _next(_tail);
+		unsigned candidate;
+		unsigned next;
+
+		if ((val_size == 0) || (val_size > _item_size))
+			val_size = _item_size;
+
+		do {
+			/* decide which element we think we're going to read */
+			candidate = _tail;
+
+			/* and what the corresponding next index will be */
+			next = _next(candidate);
+
+			/* go ahead and read from this index */
+			if (val != NULL)
+				memcpy(val, &_buf[candidate * _item_size], val_size);
+
+			/* if the tail pointer didn't change, we got our item */
+		} while (!__sync_bool_compare_and_swap(&_tail, candidate, next));
+
 		return true;
 	} else {
 		return false;
 	}
 }
 
-template <typename T>
-T RingBuffer<T>::get(void) 
+bool
+RingBuffer::get(int8_t &val)
 {
-	T val;
-	return get(val) ? val : 0;
+	return get(&val, sizeof(val));
 }
 
-template <typename T>
-unsigned RingBuffer<T>::space(void) 
+bool
+RingBuffer::get(uint8_t &val)
 {
-	return (_tail >= _head) ? (_size - (_tail - _head)) : (_head - _tail - 1);
+	return get(&val, sizeof(val));
 }
 
-template <typename T>
-unsigned RingBuffer<T>::count(void) 
+bool
+RingBuffer::get(int16_t &val)
 {
-	return _size - space();
+	return get(&val, sizeof(val));
 }
 
-template <typename T>
-unsigned RingBuffer<T>::_next(unsigned index) 
+bool
+RingBuffer::get(uint16_t &val)
 {
-	return (0 == index) ? _size : (index - 1);
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(int32_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(uint32_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(int64_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(uint64_t &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(float &val)
+{
+	return get(&val, sizeof(val));
+}
+
+bool
+RingBuffer::get(double &val)
+{
+	return get(&val, sizeof(val));
+}
+
+unsigned
+RingBuffer::space(void) 
+{
+	unsigned tail, head;
+
+	/*
+	 * Make a copy of the head/tail pointers in a fashion that
+	 * may err on the side of under-estimating the free space
+	 * in the buffer in the case that the buffer is being updated
+	 * asynchronously with our check.
+	 * If the head pointer changes (reducing space) while copying,
+	 * re-try the copy.
+	 */
+	do {
+		head = _head;
+		tail = _tail;
+	} while (head != _head);
+
+	return (tail >= head) ? (_num_items - (tail - head)) : (head - tail - 1);
+}
+
+unsigned
+RingBuffer::count(void) 
+{
+	/*
+	 * Note that due to the conservative nature of space(), this may
+	 * over-estimate the number of items in the buffer.
+	 */
+	return _num_items - space();
+}
+
+bool
+RingBuffer::resize(unsigned new_size) 
+{
+	char *old_buffer;
+	char *new_buffer = new char [(new_size+1) * _item_size];
+	if (new_buffer == nullptr) {
+		return false;
+	}
+	old_buffer = _buf;
+	_buf = new_buffer;
+	_num_items = new_size;
+	_head = new_size;
+	_tail = new_size;
+	delete[] old_buffer;
+	return true;
+}
+
+void
+RingBuffer::print_info(const char *name) 
+{
+	printf("%s	%u/%u (%u/%u @ %p)\n",
+	       name, 
+	       _num_items, 
+	       _num_items * _item_size, 
+	       _head, 
+	       _tail, 
+	       _buf);
 }

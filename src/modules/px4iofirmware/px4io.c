@@ -45,11 +45,13 @@
 #include <string.h>
 #include <poll.h>
 #include <signal.h>
+#include <crc32.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/perf_counter.h>
+#include <systemlib/pwm_limit/pwm_limit.h>
 
 #include <stm32_uart.h>
 
@@ -64,10 +66,7 @@ struct sys_state_s 	system_state;
 
 static struct hrt_call serial_dma_call;
 
-#ifdef CONFIG_STM32_I2C1
-/* store i2c reset count XXX this should be a register, together with other error counters */
-volatile uint32_t i2c_loop_resets = 0;
-#endif
+pwm_limit_t pwm_limit;
 
 /*
  * a set of debug buffers to allow us to send debug information from ISRs
@@ -119,6 +118,29 @@ show_debug_messages(void)
 	}
 }
 
+static void
+heartbeat_blink(void)
+{
+	static bool heartbeat = false;
+	LED_BLUE(heartbeat = !heartbeat);
+}
+
+
+static void
+calculate_fw_crc(void)
+{
+#define APP_SIZE_MAX 0xf000
+#define APP_LOAD_ADDRESS 0x08001000
+	// compute CRC of the current firmware
+	uint32_t sum = 0;
+	for (unsigned p = 0; p < APP_SIZE_MAX; p += 4) {
+		uint32_t bytes = *(uint32_t *)(p + APP_LOAD_ADDRESS);
+		sum = crc32part((uint8_t *)&bytes, sizeof(bytes), sum);
+	}
+	r_page_setup[PX4IO_P_SETUP_CRC]   = sum & 0xFFFF;
+	r_page_setup[PX4IO_P_SETUP_CRC+1] = sum >> 16;
+}
+
 int
 user_start(int argc, char *argv[])
 {
@@ -130,6 +152,9 @@ user_start(int argc, char *argv[])
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
+
+	/* calculate our fw CRC so FMU can decide if we need to update */
+	calculate_fw_crc();
 
 	/*
 	 * Poll at 1ms intervals for received bytes that have not triggered
@@ -147,8 +172,10 @@ user_start(int argc, char *argv[])
 	LED_BLUE(false);
 	LED_SAFETY(false);
 
-	/* turn on servo power */
+	/* turn on servo power (if supported) */
+#ifdef POWER_SERVO
 	POWER_SERVO(true);
+#endif
 
 	/* start the safety switch handler */
 	safety_init();
@@ -159,10 +186,8 @@ user_start(int argc, char *argv[])
 	/* initialise the control inputs */
 	controls_init();
 
-#ifdef CONFIG_STM32_I2C1
-	/* start the i2c handler */
-	i2c_init();
-#endif
+	/* start the FMU interface */
+	interface_init();
 
 	/* add a performance counter for mixing */
 	perf_counter_t mixer_perf = perf_alloc(PC_ELAPSED, "mix");
@@ -175,6 +200,9 @@ user_start(int argc, char *argv[])
 
 	struct mallinfo minfo = mallinfo();
 	lowsyslog("MEM: free %u, largest %u\n", minfo.mxordblk, minfo.fordblks);
+
+	/* initialize PWM limit lib */
+	pwm_limit_init(&pwm_limit);
 
 #if 0
 	/* not enough memory, lock down */
@@ -200,6 +228,7 @@ user_start(int argc, char *argv[])
 	 */
 
 	uint64_t last_debug_time = 0;
+        uint64_t last_heartbeat_time = 0;
 	for (;;) {
 
 		/* track the rate at which the loop is running */
@@ -215,6 +244,12 @@ user_start(int argc, char *argv[])
 		controls_tick();
 		perf_end(controls_perf);
 
+                if ((hrt_absolute_time() - last_heartbeat_time) > 250*1000) {
+                    last_heartbeat_time = hrt_absolute_time();
+                    heartbeat_blink();
+                }
+
+#if 0
 		/* check for debug activity */
 		show_debug_messages();
 
@@ -223,15 +258,15 @@ user_start(int argc, char *argv[])
 
 			struct mallinfo minfo = mallinfo();
 
-			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x r=%u m=%u", 
+			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u", 
 				  (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG],
 				  (unsigned)r_status_flags,
 				  (unsigned)r_setup_arming,
 				  (unsigned)r_setup_features,
-				  (unsigned)i2c_loop_resets,
 				  (unsigned)minfo.mxordblk);
 			last_debug_time = hrt_absolute_time();
 		}
+#endif
 	}
 }
 

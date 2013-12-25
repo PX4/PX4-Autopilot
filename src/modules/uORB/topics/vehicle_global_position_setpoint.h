@@ -72,6 +72,8 @@ struct vehicle_global_position_setpoint_s
 	float param2;
 	float param3;
 	float param4;
+	float turn_distance_xy;		/**< The distance on the plane which will mark this as reached */
+	float turn_distance_z;		/**< The distance in Z direction which will mark this as reached */
 };
 
 /**

@@ -4,13 +4,13 @@
 
 typedef struct __mavlink_mission_item_t
 {
- float param1; ///< PARAM1 / For NAV command MISSIONs: Radius in which the MISSION is accepted as reached, in meters
- float param2; ///< PARAM2 / For NAV command MISSIONs: Time that the MAV should stay inside the PARAM1 radius before advancing, in milliseconds
- float param3; ///< PARAM3 / For LOITER command MISSIONs: Orbit to circle around the MISSION, in meters. If positive the orbit direction should be clockwise, if negative the orbit direction should be counter-clockwise.
- float param4; ///< PARAM4 / For NAV and LOITER command MISSIONs: Yaw orientation in degrees, [0..360] 0 = NORTH
+ float param1; ///< PARAM1, see MAV_CMD enum
+ float param2; ///< PARAM2, see MAV_CMD enum
+ float param3; ///< PARAM3, see MAV_CMD enum
+ float param4; ///< PARAM4, see MAV_CMD enum
  float x; ///< PARAM5 / local: x position, global: latitude
  float y; ///< PARAM6 / y position: global: longitude
- float z; ///< PARAM7 / z position: global: altitude
+ float z; ///< PARAM7 / z position: global: altitude (relative or absolute, depending on frame.
  uint16_t seq; ///< Sequence
  uint16_t command; ///< The scheduled action for the MISSION. see MAV_CMD in common.xml MAVLink specs
  uint8_t target_system; ///< System ID
@@ -62,13 +62,13 @@ typedef struct __mavlink_mission_item_t
  * @param command The scheduled action for the MISSION. see MAV_CMD in common.xml MAVLink specs
  * @param current false:0, true:1
  * @param autocontinue autocontinue to next wp
- * @param param1 PARAM1 / For NAV command MISSIONs: Radius in which the MISSION is accepted as reached, in meters
- * @param param2 PARAM2 / For NAV command MISSIONs: Time that the MAV should stay inside the PARAM1 radius before advancing, in milliseconds
- * @param param3 PARAM3 / For LOITER command MISSIONs: Orbit to circle around the MISSION, in meters. If positive the orbit direction should be clockwise, if negative the orbit direction should be counter-clockwise.
- * @param param4 PARAM4 / For NAV and LOITER command MISSIONs: Yaw orientation in degrees, [0..360] 0 = NORTH
+ * @param param1 PARAM1, see MAV_CMD enum
+ * @param param2 PARAM2, see MAV_CMD enum
+ * @param param3 PARAM3, see MAV_CMD enum
+ * @param param4 PARAM4, see MAV_CMD enum
  * @param x PARAM5 / local: x position, global: latitude
  * @param y PARAM6 / y position: global: longitude
- * @param z PARAM7 / z position: global: altitude
+ * @param z PARAM7 / z position: global: altitude (relative or absolute, depending on frame.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_mission_item_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -124,7 +124,7 @@ static inline uint16_t mavlink_msg_mission_item_pack(uint8_t system_id, uint8_t 
  * @brief Pack a mission_item message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param target_system System ID
  * @param target_component Component ID
@@ -133,13 +133,13 @@ static inline uint16_t mavlink_msg_mission_item_pack(uint8_t system_id, uint8_t 
  * @param command The scheduled action for the MISSION. see MAV_CMD in common.xml MAVLink specs
  * @param current false:0, true:1
  * @param autocontinue autocontinue to next wp
- * @param param1 PARAM1 / For NAV command MISSIONs: Radius in which the MISSION is accepted as reached, in meters
- * @param param2 PARAM2 / For NAV command MISSIONs: Time that the MAV should stay inside the PARAM1 radius before advancing, in milliseconds
- * @param param3 PARAM3 / For LOITER command MISSIONs: Orbit to circle around the MISSION, in meters. If positive the orbit direction should be clockwise, if negative the orbit direction should be counter-clockwise.
- * @param param4 PARAM4 / For NAV and LOITER command MISSIONs: Yaw orientation in degrees, [0..360] 0 = NORTH
+ * @param param1 PARAM1, see MAV_CMD enum
+ * @param param2 PARAM2, see MAV_CMD enum
+ * @param param3 PARAM3, see MAV_CMD enum
+ * @param param4 PARAM4, see MAV_CMD enum
  * @param x PARAM5 / local: x position, global: latitude
  * @param y PARAM6 / y position: global: longitude
- * @param z PARAM7 / z position: global: altitude
+ * @param z PARAM7 / z position: global: altitude (relative or absolute, depending on frame.
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_mission_item_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -193,7 +193,7 @@ static inline uint16_t mavlink_msg_mission_item_pack_chan(uint8_t system_id, uin
 }
 
 /**
- * @brief Encode a mission_item struct into a message
+ * @brief Encode a mission_item struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -203,6 +203,20 @@ static inline uint16_t mavlink_msg_mission_item_pack_chan(uint8_t system_id, uin
 static inline uint16_t mavlink_msg_mission_item_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_mission_item_t* mission_item)
 {
 	return mavlink_msg_mission_item_pack(system_id, component_id, msg, mission_item->target_system, mission_item->target_component, mission_item->seq, mission_item->frame, mission_item->command, mission_item->current, mission_item->autocontinue, mission_item->param1, mission_item->param2, mission_item->param3, mission_item->param4, mission_item->x, mission_item->y, mission_item->z);
+}
+
+/**
+ * @brief Encode a mission_item struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param mission_item C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_mission_item_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_mission_item_t* mission_item)
+{
+	return mavlink_msg_mission_item_pack_chan(system_id, component_id, chan, msg, mission_item->target_system, mission_item->target_component, mission_item->seq, mission_item->frame, mission_item->command, mission_item->current, mission_item->autocontinue, mission_item->param1, mission_item->param2, mission_item->param3, mission_item->param4, mission_item->x, mission_item->y, mission_item->z);
 }
 
 /**
@@ -216,13 +230,13 @@ static inline uint16_t mavlink_msg_mission_item_encode(uint8_t system_id, uint8_
  * @param command The scheduled action for the MISSION. see MAV_CMD in common.xml MAVLink specs
  * @param current false:0, true:1
  * @param autocontinue autocontinue to next wp
- * @param param1 PARAM1 / For NAV command MISSIONs: Radius in which the MISSION is accepted as reached, in meters
- * @param param2 PARAM2 / For NAV command MISSIONs: Time that the MAV should stay inside the PARAM1 radius before advancing, in milliseconds
- * @param param3 PARAM3 / For LOITER command MISSIONs: Orbit to circle around the MISSION, in meters. If positive the orbit direction should be clockwise, if negative the orbit direction should be counter-clockwise.
- * @param param4 PARAM4 / For NAV and LOITER command MISSIONs: Yaw orientation in degrees, [0..360] 0 = NORTH
+ * @param param1 PARAM1, see MAV_CMD enum
+ * @param param2 PARAM2, see MAV_CMD enum
+ * @param param3 PARAM3, see MAV_CMD enum
+ * @param param4 PARAM4, see MAV_CMD enum
  * @param x PARAM5 / local: x position, global: latitude
  * @param y PARAM6 / y position: global: longitude
- * @param z PARAM7 / z position: global: altitude
+ * @param z PARAM7 / z position: global: altitude (relative or absolute, depending on frame.
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -353,7 +367,7 @@ static inline uint8_t mavlink_msg_mission_item_get_autocontinue(const mavlink_me
 /**
  * @brief Get field param1 from mission_item message
  *
- * @return PARAM1 / For NAV command MISSIONs: Radius in which the MISSION is accepted as reached, in meters
+ * @return PARAM1, see MAV_CMD enum
  */
 static inline float mavlink_msg_mission_item_get_param1(const mavlink_message_t* msg)
 {
@@ -363,7 +377,7 @@ static inline float mavlink_msg_mission_item_get_param1(const mavlink_message_t*
 /**
  * @brief Get field param2 from mission_item message
  *
- * @return PARAM2 / For NAV command MISSIONs: Time that the MAV should stay inside the PARAM1 radius before advancing, in milliseconds
+ * @return PARAM2, see MAV_CMD enum
  */
 static inline float mavlink_msg_mission_item_get_param2(const mavlink_message_t* msg)
 {
@@ -373,7 +387,7 @@ static inline float mavlink_msg_mission_item_get_param2(const mavlink_message_t*
 /**
  * @brief Get field param3 from mission_item message
  *
- * @return PARAM3 / For LOITER command MISSIONs: Orbit to circle around the MISSION, in meters. If positive the orbit direction should be clockwise, if negative the orbit direction should be counter-clockwise.
+ * @return PARAM3, see MAV_CMD enum
  */
 static inline float mavlink_msg_mission_item_get_param3(const mavlink_message_t* msg)
 {
@@ -383,7 +397,7 @@ static inline float mavlink_msg_mission_item_get_param3(const mavlink_message_t*
 /**
  * @brief Get field param4 from mission_item message
  *
- * @return PARAM4 / For NAV and LOITER command MISSIONs: Yaw orientation in degrees, [0..360] 0 = NORTH
+ * @return PARAM4, see MAV_CMD enum
  */
 static inline float mavlink_msg_mission_item_get_param4(const mavlink_message_t* msg)
 {
@@ -413,7 +427,7 @@ static inline float mavlink_msg_mission_item_get_y(const mavlink_message_t* msg)
 /**
  * @brief Get field z from mission_item message
  *
- * @return PARAM7 / z position: global: altitude
+ * @return PARAM7 / z position: global: altitude (relative or absolute, depending on frame.
  */
 static inline float mavlink_msg_mission_item_get_z(const mavlink_message_t* msg)
 {

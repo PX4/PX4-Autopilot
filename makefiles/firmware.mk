@@ -110,6 +110,8 @@ ifneq ($(words $(PX4_BASE)),1)
 $(error Cannot build when the PX4_BASE path contains one or more space characters.)
 endif
 
+$(info %  GIT_DESC            = $(GIT_DESC))
+
 #
 # Set a default target so that included makefiles or errors here don't 
 # cause confusion.
@@ -153,6 +155,7 @@ ifeq ($(BOARD_FILE),)
 $(error Config $(CONFIG) references board $(BOARD), but no board definition file found)
 endif
 export BOARD
+export BOARD_FILE
 include $(BOARD_FILE)
 $(info %  BOARD               = $(BOARD))
 
@@ -175,6 +178,17 @@ GLOBAL_DEPS		+= $(MAKEFILE_LIST)
 # Extra things we should clean
 #
 EXTRA_CLEANS		 = 
+
+
+#
+# Extra defines for compilation
+#
+export EXTRADEFINES := -DGIT_VERSION=$(GIT_DESC)
+
+#
+# Append the per-board driver directory to the header search path.
+#
+INCLUDE_DIRS		+= $(PX4_MODULE_SRC)drivers/boards/$(BOARD)
 
 ################################################################################
 # NuttX libraries and paths
@@ -316,7 +330,7 @@ endif
 # a root from several templates. That would be a nice feature.
 #
 
-# Add dependencies on anything in the ROMFS root
+# Add dependencies on anything in the ROMFS root directory
 ROMFS_FILES		+= $(wildcard \
 			     $(ROMFS_ROOT)/* \
 			     $(ROMFS_ROOT)/*/* \
@@ -328,7 +342,14 @@ ifeq ($(ROMFS_FILES),)
 $(error ROMFS_ROOT $(ROMFS_ROOT) specifies a directory containing no files)
 endif
 ROMFS_DEPS		+= $(ROMFS_FILES)
+
+# Extra files that may be copied into the ROMFS /extras directory
+# ROMFS_EXTRA_FILES are required, ROMFS_OPTIONAL_FILES are optional
+ROMFS_EXTRA_FILES	+= $(wildcard $(ROMFS_OPTIONAL_FILES))
+ROMFS_DEPS		+= $(ROMFS_EXTRA_FILES)
+
 ROMFS_IMG		 = romfs.img
+ROMFS_SCRATCH		 = romfs_scratch
 ROMFS_CSRC		 = $(ROMFS_IMG:.img=.c)
 ROMFS_OBJ		 = $(ROMFS_CSRC:.c=.o)
 LIBS			+= $(ROMFS_OBJ)
@@ -339,9 +360,18 @@ $(ROMFS_OBJ): $(ROMFS_IMG) $(GLOBAL_DEPS)
 	$(call BIN_TO_OBJ,$<,$@,romfs_img)
 
 # Generate the ROMFS image from the root
-$(ROMFS_IMG): $(ROMFS_DEPS) $(GLOBAL_DEPS)
+$(ROMFS_IMG): $(ROMFS_SCRATCH) $(ROMFS_DEPS) $(GLOBAL_DEPS)
 	@$(ECHO) "ROMFS:   $@"
-	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_ROOT) -V "NSHInitVol"
+	$(Q) $(GENROMFS) -f $@ -d $(ROMFS_SCRATCH) -V "NSHInitVol"
+
+# Construct the ROMFS scratch root from the canonical root
+$(ROMFS_SCRATCH): $(ROMFS_DEPS) $(GLOBAL_DEPS)
+	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)
+	$(Q) $(COPYDIR) $(ROMFS_ROOT)/* $(ROMFS_SCRATCH)
+ifneq ($(ROMFS_EXTRA_FILES),)
+	$(Q) $(MKDIR) -p $(ROMFS_SCRATCH)/extras
+	$(Q) $(COPY) $(ROMFS_EXTRA_FILES) $(ROMFS_SCRATCH)/extras
+endif
 
 EXTRA_CLEANS		+= $(ROMGS_OBJ) $(ROMFS_IMG)
 

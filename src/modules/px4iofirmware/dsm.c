@@ -48,156 +48,44 @@
 
 #include <drivers/drv_hrt.h>
 
-#define DEBUG
-
 #include "px4io.h"
 
-#define DSM_FRAME_SIZE		16
-#define DSM_FRAME_CHANNELS	7
+#define DSM_FRAME_SIZE		16		/**<DSM frame size in bytes*/
+#define DSM_FRAME_CHANNELS	7		/**<Max supported DSM channels*/
 
-static int dsm_fd = -1;
+static int dsm_fd = -1;						/**< File handle to the DSM UART */
+static hrt_abstime dsm_last_rx_time;		/**< Timestamp when we last received */
+static hrt_abstime dsm_last_frame_time;		/**< Timestamp for start of last dsm frame */
+static uint8_t dsm_frame[DSM_FRAME_SIZE];	/**< DSM dsm frame receive buffer */
+static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
+static unsigned dsm_channel_shift;			/**< Channel resolution, 0=unknown, 1=10 bit, 2=11 bit */
+static unsigned dsm_frame_drops;			/**< Count of incomplete DSM frames */
 
-static hrt_abstime last_rx_time;
-static hrt_abstime last_frame_time;
-
-static uint8_t	frame[DSM_FRAME_SIZE];
-
-static unsigned partial_frame_count;
-static unsigned	channel_shift;
-
-unsigned dsm_frame_drops;
-
-static bool dsm_decode_channel(uint16_t raw, unsigned shift, unsigned *channel, unsigned *value);
-static void dsm_guess_format(bool reset);
-static bool dsm_decode(hrt_abstime now, uint16_t *values, uint16_t *num_values);
-
-int
-dsm_init(const char *device)
-{
-	if (dsm_fd < 0)
-		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
-
-	if (dsm_fd >= 0) {
-		struct termios t;
-
-		/* 115200bps, no parity, one stop bit */
-		tcgetattr(dsm_fd, &t);
-		cfsetspeed(&t, 115200);
-		t.c_cflag &= ~(CSTOPB | PARENB);
-		tcsetattr(dsm_fd, TCSANOW, &t);
-
-		/* initialise the decoder */
-		partial_frame_count = 0;
-		last_rx_time = hrt_absolute_time();
-
-		/* reset the format detector */
-		dsm_guess_format(true);
-
-		debug("DSM: ready");
-
-	} else {
-		debug("DSM: open failed");
-	}
-
-	return dsm_fd;
-}
-
-void
-dsm_bind(uint16_t cmd, int pulses)
-{
-	const uint32_t usart1RxAsOutp = GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN10;
-
-	if (dsm_fd < 0)
-		return;
-
-	switch (cmd) {
-	case dsm_bind_power_down:
-		// power down DSM satellite
-		POWER_RELAY1(0);
-		break;
-	case dsm_bind_power_up:
-		POWER_RELAY1(1);
-		dsm_guess_format(true);
-		break;
-	case dsm_bind_set_rx_out:
-		stm32_configgpio(usart1RxAsOutp); 
-		break;
-	case dsm_bind_send_pulses:
-		for (int i = 0; i < pulses; i++) {
-			stm32_gpiowrite(usart1RxAsOutp, false);
-			up_udelay(50);
-			stm32_gpiowrite(usart1RxAsOutp, true);
-			up_udelay(50);
-		}
-		break;
-	case dsm_bind_reinit_uart:
-		// Restore USART rx pin
-		stm32_configgpio(GPIO_USART1_RX);
-		break;
-	}
-}
-
-bool
-dsm_input(uint16_t *values, uint16_t *num_values)
-{
-	ssize_t		ret;
-	hrt_abstime	now;
-
-	/*
-	 * The DSM* protocol doesn't provide any explicit framing,
-	 * so we detect frame boundaries by the inter-frame delay.
-	 *
-	 * The minimum frame spacing is 11ms; with 16 bytes at 115200bps
-	 * frame transmission time is ~1.4ms.
-	 *
-	 * We expect to only be called when bytes arrive for processing,
-	 * and if an interval of more than 5ms passes between calls,
-	 * the first byte we read will be the first byte of a frame.
-	 *
-	 * In the case where byte(s) are dropped from a frame, this also
-	 * provides a degree of protection. Of course, it would be better
-	 * if we didn't drop bytes...
-	 */
-	now = hrt_absolute_time();
-
-	if ((now - last_rx_time) > 5000) {
-		if (partial_frame_count > 0) {
-			dsm_frame_drops++;
-			partial_frame_count = 0;
-		}
-	}
-
-	/*
-	 * Fetch bytes, but no more than we would need to complete
-	 * the current frame.
-	 */
-	ret = read(dsm_fd, &frame[partial_frame_count], DSM_FRAME_SIZE - partial_frame_count);
-
-	/* if the read failed for any reason, just give up here */
-	if (ret < 1)
-		return false;
-
-	last_rx_time = now;
-
-	/*
-	 * Add bytes to the current frame
-	 */
-	partial_frame_count += ret;
-
-	/*
-	 * If we don't have a full frame, return
-	 */
-	if (partial_frame_count < DSM_FRAME_SIZE)
-		return false;
-
-	/*
-	 * Great, it looks like we might have a frame.  Go ahead and
-	 * decode it.
-	 */
-	partial_frame_count = 0;
-	return dsm_decode(now, values, num_values);
-}
-
+/**
+ * Attempt to decode a single channel raw channel datum
+ *
+ * The DSM* protocol doesn't provide any explicit framing,
+ * so we detect dsm frame boundaries by the inter-dsm frame delay.
+ *
+ * The minimum dsm frame spacing is 11ms; with 16 bytes at 115200bps
+ * dsm frame transmission time is ~1.4ms.
+ *
+ * We expect to only be called when bytes arrive for processing,
+ * and if an interval of more than 5ms passes between calls,
+ * the first byte we read will be the first byte of a dsm frame.
+ *
+ * In the case where byte(s) are dropped from a dsm frame, this also
+ * provides a degree of protection. Of course, it would be better
+ * if we didn't drop bytes...
+ *
+ * Upon receiving a full dsm frame we attempt to decode it
+ *
+ * @param[in] raw 16 bit raw channel value from dsm frame
+ * @param[in] shift position of channel number in raw data
+ * @param[out] channel pointer to returned channel number
+ * @param[out] value pointer to returned channel value
+ * @return true=raw value successfully decoded
+ */
 static bool
 dsm_decode_channel(uint16_t raw, unsigned shift, unsigned *channel, unsigned *value)
 {
@@ -215,6 +103,11 @@ dsm_decode_channel(uint16_t raw, unsigned shift, unsigned *channel, unsigned *va
 	return true;
 }
 
+/**
+ * Attempt to guess if receiving 10 or 11 bit channel values
+ *
+ * @param[in] reset true=reset the 10/11 bit state to unknown
+ */
 static void
 dsm_guess_format(bool reset)
 {
@@ -227,14 +120,14 @@ dsm_guess_format(bool reset)
 		cs10 = 0;
 		cs11 = 0;
 		samples = 0;
-		channel_shift = 0;
+		dsm_channel_shift = 0;
 		return;
 	}
 
-	/* scan the channels in the current frame in both 10- and 11-bit mode */
+	/* scan the channels in the current dsm_frame in both 10- and 11-bit mode */
 	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
 
-		uint8_t *dp = &frame[2 + (2 * i)];
+		uint8_t *dp = &dsm_frame[2 + (2 * i)];
 		uint16_t raw = (dp[0] << 8) | dp[1];
 		unsigned channel, value;
 
@@ -245,10 +138,10 @@ dsm_guess_format(bool reset)
 		if (dsm_decode_channel(raw, 11, &channel, &value) && (channel < 31))
 			cs11 |= (1 << channel);
 
-		/* XXX if we cared, we could look for the phase bit here to decide 1 vs. 2-frame format */
+		/* XXX if we cared, we could look for the phase bit here to decide 1 vs. 2-dsm_frame format */
 	}
 
-	/* wait until we have seen plenty of frames - 2 should normally be enough */
+	/* wait until we have seen plenty of frames - 5 should normally be enough */
 	if (samples++ < 5)
 		return;
 
@@ -284,13 +177,13 @@ dsm_guess_format(bool reset)
 	}
 
 	if ((votes11 == 1) && (votes10 == 0)) {
-		channel_shift = 11;
+		dsm_channel_shift = 11;
 		debug("DSM: 11-bit format");
 		return;
 	}
 
 	if ((votes10 == 1) && (votes11 == 0)) {
-		channel_shift = 10;
+		dsm_channel_shift = 10;
 		debug("DSM: 10-bit format");
 		return;
 	}
@@ -300,27 +193,143 @@ dsm_guess_format(bool reset)
 	dsm_guess_format(true);
 }
 
+/**
+ * Initialize the DSM receive functionality
+ *
+ * Open the UART for receiving DSM frames and configure it appropriately
+ *
+ * @param[in] device Device name of DSM UART
+ */
+int
+dsm_init(const char *device)
+{
+	if (dsm_fd < 0)
+		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
+
+	if (dsm_fd >= 0) {
+
+		struct termios t;
+
+		/* 115200bps, no parity, one stop bit */
+		tcgetattr(dsm_fd, &t);
+		cfsetspeed(&t, 115200);
+		t.c_cflag &= ~(CSTOPB | PARENB);
+		tcsetattr(dsm_fd, TCSANOW, &t);
+
+		/* initialise the decoder */
+		dsm_partial_frame_count = 0;
+		dsm_last_rx_time = hrt_absolute_time();
+
+		/* reset the format detector */
+		dsm_guess_format(true);
+
+		debug("DSM: ready");
+
+	} else {
+
+		debug("DSM: open failed");
+
+	}
+
+	return dsm_fd;
+}
+
+/**
+ * Handle DSM satellite receiver bind mode handler
+ *
+ * @param[in] cmd commands - dsm_bind_power_down, dsm_bind_power_up, dsm_bind_set_rx_out, dsm_bind_send_pulses, dsm_bind_reinit_uart
+ * @param[in] pulses Number of pulses for dsm_bind_send_pulses command
+ */
+void
+dsm_bind(uint16_t cmd, int pulses)
+{
+#if !defined(CONFIG_ARCH_BOARD_PX4IO_V1) && !defined(CONFIG_ARCH_BOARD_PX4IO_V2)
+	#warning DSM BIND NOT IMPLEMENTED ON UNKNOWN PLATFORM
+#else
+	const uint32_t usart1RxAsOutp =
+		GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN10;
+
+	if (dsm_fd < 0)
+		return;
+
+	switch (cmd) {
+
+	case dsm_bind_power_down:
+
+		/*power down DSM satellite*/
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
+		POWER_RELAY1(0);
+#else /* CONFIG_ARCH_BOARD_PX4IO_V2 */
+		POWER_SPEKTRUM(0);
+#endif
+		break;
+
+	case dsm_bind_power_up:
+
+		/*power up DSM satellite*/
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
+		POWER_RELAY1(1);
+#else /* CONFIG_ARCH_BOARD_PX4IO_V2 */
+		POWER_SPEKTRUM(1);
+#endif
+		dsm_guess_format(true);
+		break;
+
+	case dsm_bind_set_rx_out:
+
+		/*Set UART RX pin to active output mode*/
+		stm32_configgpio(usart1RxAsOutp);
+		break;
+
+	case dsm_bind_send_pulses:
+
+		/*Pulse RX pin a number of times*/
+		for (int i = 0; i < pulses; i++) {
+			up_udelay(25);
+			stm32_gpiowrite(usart1RxAsOutp, false);
+			up_udelay(25);
+			stm32_gpiowrite(usart1RxAsOutp, true);
+		}
+		break;
+
+	case dsm_bind_reinit_uart:
+
+		/*Restore USART RX pin to RS232 receive mode*/
+		stm32_configgpio(GPIO_USART1_RX);
+		break;
+
+	}
+#endif
+}
+
+/**
+ * Decode the entire dsm frame (all contained channels)
+ *
+ * @param[in] frame_time timestamp when this dsm frame was received. Used to detect RX loss in order to reset 10/11 bit guess.
+ * @param[out] values pointer to per channel array of decoded values
+ * @param[out] num_values pointer to number of raw channel values returned
+ * @return true=DSM frame successfully decoded, false=no update
+ */
 static bool
 dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 {
-
 	/*
-		debug("DSM frame %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x",
-		      frame[0], frame[1], frame[2], frame[3], frame[4], frame[5], frame[6], frame[7],
-		      frame[8], frame[9], frame[10], frame[11], frame[12], frame[13], frame[14], frame[15]);
+	debug("DSM dsm_frame %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x",
+		dsm_frame[0], dsm_frame[1], dsm_frame[2], dsm_frame[3], dsm_frame[4], dsm_frame[5], dsm_frame[6], dsm_frame[7],
+		dsm_frame[8], dsm_frame[9], dsm_frame[10], dsm_frame[11], dsm_frame[12], dsm_frame[13], dsm_frame[14], dsm_frame[15]);
 	*/
 	/*
 	 * If we have lost signal for at least a second, reset the
 	 * format guessing heuristic.
 	 */
-	if (((frame_time - last_frame_time) > 1000000) && (channel_shift != 0))
+	if (((frame_time - dsm_last_frame_time) > 1000000) && (dsm_channel_shift != 0))
 		dsm_guess_format(true);
 
-	/* we have received something we think is a frame */
-	last_frame_time = frame_time;
+	/* we have received something we think is a dsm_frame */
+	dsm_last_frame_time = frame_time;
 
-	/* if we don't know the frame format, update the guessing state machine */
-	if (channel_shift == 0) {
+	/* if we don't know the dsm_frame format, update the guessing state machine */
+	if (dsm_channel_shift == 0) {
 		dsm_guess_format(false);
 		return false;
 	}
@@ -332,17 +341,17 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 	 * Each channel is a 16-bit unsigned value containing either a 10-
 	 * or 11-bit channel value and a 4-bit channel number, shifted
 	 * either 10 or 11 bits. The MSB may also be set to indicate the
-	 * second frame in variants of the protocol where more than
+	 * second dsm_frame in variants of the protocol where more than
 	 * seven channels are being transmitted.
 	 */
 
 	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
 
-		uint8_t *dp = &frame[2 + (2 * i)];
+		uint8_t *dp = &dsm_frame[2 + (2 * i)];
 		uint16_t raw = (dp[0] << 8) | dp[1];
 		unsigned channel, value;
 
-		if (!dsm_decode_channel(raw, channel_shift, &channel, &value))
+		if (!dsm_decode_channel(raw, dsm_channel_shift, &channel, &value))
 			continue;
 
 		/* ignore channels out of range */
@@ -354,7 +363,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 			*num_values = channel + 1;
 
 		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
-		if (channel_shift == 11)
+		if (dsm_channel_shift == 11)
 			value /= 2;
 
 		value += 998;
@@ -385,11 +394,80 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values)
 		values[channel] = value;
 	}
 
-	if (channel_shift == 11)
+	if (dsm_channel_shift == 11) {
+		/* Set the 11-bit data indicator */
 		*num_values |= 0x8000;
+	}
 
 	/*
 	 * XXX Note that we may be in failsafe here; we need to work out how to detect that.
 	 */
 	return true;
+}
+
+/**
+ * Called periodically to check for input data from the DSM UART
+ *
+ * The DSM* protocol doesn't provide any explicit framing,
+ * so we detect dsm frame boundaries by the inter-dsm frame delay.
+ * The minimum dsm frame spacing is 11ms; with 16 bytes at 115200bps
+ * dsm frame transmission time is ~1.4ms.
+ * We expect to only be called when bytes arrive for processing,
+ * and if an interval of more than 5ms passes between calls,
+ * the first byte we read will be the first byte of a dsm frame.
+ * In the case where byte(s) are dropped from a dsm frame, this also
+ * provides a degree of protection. Of course, it would be better
+ * if we didn't drop bytes...
+ * Upon receiving a full dsm frame we attempt to decode it.
+ *
+ * @param[out] values pointer to per channel array of decoded values
+ * @param[out] num_values pointer to number of raw channel values returned, high order bit 0:10 bit data, 1:11 bit data
+ * @return true=decoded raw channel values updated, false=no update
+ */
+bool
+dsm_input(uint16_t *values, uint16_t *num_values)
+{
+	ssize_t		ret;
+	hrt_abstime	now;
+
+	/*
+	 */
+	now = hrt_absolute_time();
+
+	if ((now - dsm_last_rx_time) > 5000) {
+		if (dsm_partial_frame_count > 0) {
+			dsm_frame_drops++;
+			dsm_partial_frame_count = 0;
+		}
+	}
+
+	/*
+	 * Fetch bytes, but no more than we would need to complete
+	 * the current dsm frame.
+	 */
+	ret = read(dsm_fd, &dsm_frame[dsm_partial_frame_count], DSM_FRAME_SIZE - dsm_partial_frame_count);
+
+	/* if the read failed for any reason, just give up here */
+	if (ret < 1)
+		return false;
+
+	dsm_last_rx_time = now;
+
+	/*
+	 * Add bytes to the current dsm frame
+	 */
+	dsm_partial_frame_count += ret;
+
+	/*
+	 * If we don't have a full dsm frame, return
+	 */
+	if (dsm_partial_frame_count < DSM_FRAME_SIZE)
+		return false;
+
+	/*
+	 * Great, it looks like we might have a dsm frame.  Go ahead and
+	 * decode it.
+	 */
+	dsm_partial_frame_count = 0;
+	return dsm_decode(now, values, num_values);
 }

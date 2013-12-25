@@ -53,8 +53,9 @@
  */
 struct differential_pressure_s {
 	uint64_t	timestamp;			/**< microseconds since system boot, needed to integrate */
-	uint16_t	differential_pressure_pa;	/**< Differential pressure reading */
-	uint16_t	max_differential_pressure_pa;	/**< Maximum differential pressure reading */
+	uint64_t	error_count;
+	float	differential_pressure_pa;	/**< Differential pressure reading */
+	float	max_differential_pressure_pa;	/**< Maximum differential pressure reading */
 	float		voltage;			/**< Voltage from analog airspeed sensors (voltage divider already compensated) */
 	float		temperature;			/**< Temperature provided by sensor */
 

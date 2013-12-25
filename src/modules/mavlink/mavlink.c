@@ -64,6 +64,7 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <mavlink/mavlink_log.h>
+#include <commander/px4_custom_mode.h>
 
 #include "waypoints.h"
 #include "orb_topics.h"
@@ -181,102 +182,80 @@ set_hil_on_off(bool hil_enabled)
 }
 
 void
-get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
+get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
 {
 	/* reset MAVLink mode bitfield */
-	*mavlink_mode = 0;
+	*mavlink_base_mode = 0;
+	*mavlink_custom_mode = 0;
 
-	/* set mode flags independent of system state */
+	/**
+	 * Set mode flags
+	 **/
 
 	/* HIL */
-	if (v_status.flag_hil_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+	if (v_status.hil_state == HIL_STATE_ON) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
 
-	/* manual input */
-	if (v_status.flag_control_manual_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+	/* arming state */
+	if (v_status.arming_state == ARMING_STATE_ARMED
+			|| v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
-	/* attitude or rate control */
-	if (v_status.flag_control_attitude_enabled ||
-	    v_status.flag_control_rates_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
-	}
-
-	/* vector control */
-	if (v_status.flag_control_velocity_enabled ||
-	    v_status.flag_control_position_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
-	}
-
-	/* autonomous mode */
-	if (v_status.state_machine == SYSTEM_STATE_AUTO) {
-		*mavlink_mode |= MAV_MODE_FLAG_AUTO_ENABLED;
-	}
-
-	/* set arming state */
-	if (armed.armed) {
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
-
-	} else {
-		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
-	}
-
-	switch (v_status.state_machine) {
-	case SYSTEM_STATE_PREFLIGHT:
-		if (v_status.flag_preflight_gyro_calibration ||
-		    v_status.flag_preflight_mag_calibration ||
-		    v_status.flag_preflight_accel_calibration) {
-			*mavlink_state = MAV_STATE_CALIBRATING;
-
-		} else {
-			*mavlink_state = MAV_STATE_UNINIT;
+	/* main state */
+	*mavlink_base_mode |= MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+	union px4_custom_mode custom_mode;
+	custom_mode.data = 0;
+	if (v_status.main_state == MAIN_STATE_MANUAL) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | (v_status.is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
+	} else if (v_status.main_state == MAIN_STATE_SEATBELT) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_SEATBELT;
+	} else if (v_status.main_state == MAIN_STATE_EASY) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_EASY;
+	} else if (v_status.main_state == MAIN_STATE_AUTO) {
+		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		if (v_status.navigation_state == NAVIGATION_STATE_AUTO_READY) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LOITER) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_MISSION) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_MISSION;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_RTL) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LAND) {
+			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		}
-
-		break;
-
-	case SYSTEM_STATE_STANDBY:
-		*mavlink_state = MAV_STATE_STANDBY;
-		break;
-
-	case SYSTEM_STATE_GROUND_READY:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_MANUAL:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_STABILIZED:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_AUTO:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_MISSION_ABORT:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_LANDING:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_CUTOFF:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_GROUND_ERROR:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_REBOOT:
-		*mavlink_state = MAV_STATE_POWEROFF;
-		break;
 	}
+	*mavlink_custom_mode = custom_mode.data;
 
+	/**
+	 * Set mavlink state
+	 **/
+
+	/* set calibration state */
+	if (v_status.arming_state == ARMING_STATE_INIT
+			|| v_status.arming_state == ARMING_STATE_IN_AIR_RESTORE
+			|| v_status.arming_state == ARMING_STATE_STANDBY_ERROR) {	// TODO review
+		*mavlink_state = MAV_STATE_UNINIT;
+	} else if (v_status.arming_state == ARMING_STATE_ARMED) {
+		*mavlink_state = MAV_STATE_ACTIVE;
+	} else if (v_status.arming_state == ARMING_STATE_ARMED_ERROR) {
+		*mavlink_state = MAV_STATE_CRITICAL;
+	} else if (v_status.arming_state == ARMING_STATE_STANDBY) {
+		*mavlink_state = MAV_STATE_STANDBY;
+	} else if (v_status.arming_state == ARMING_STATE_REBOOT) {
+		*mavlink_state = MAV_STATE_POWEROFF;
+	} else {
+		warnx("Unknown mavlink state");
+		*mavlink_state = MAV_STATE_CRITICAL;
+	}
 }
 
 
@@ -312,6 +291,9 @@ int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_m
 		orb_set_interval(subs->act_2_sub, min_interval);
 		orb_set_interval(subs->act_3_sub, min_interval);
 		orb_set_interval(subs->actuators_sub, min_interval);
+		orb_set_interval(subs->actuators_effective_sub, min_interval);
+		orb_set_interval(subs->spa_sub, min_interval);
+		orb_set_interval(mavlink_subs.rates_setpoint_sub, min_interval);
 		break;
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:
@@ -534,7 +516,7 @@ void mavlink_update_system(void)
 int mavlink_thread_main(int argc, char *argv[])
 {
 	/* initialize mavlink text message buffering */
-	mavlink_logbuffer_init(&lb, 5);
+	mavlink_logbuffer_init(&lb, 10);
 
 	int ch;
 	char *device_name = "/dev/ttyS1";
@@ -549,7 +531,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		case 'b':
 			baudrate = strtoul(optarg, NULL, 10);
 
-			if (baudrate == 0)
+			if (baudrate < 9600 || baudrate > 921600)
 				errx(1, "invalid baud rate '%s'", optarg);
 
 			break;
@@ -568,6 +550,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		default:
 			usage();
+			break;
 		}
 	}
 
@@ -674,23 +657,27 @@ int mavlink_thread_main(int argc, char *argv[])
 
 			/* translate the current system state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
-			uint8_t mavlink_mode = 0;
-			get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
+			uint8_t mavlink_base_mode = 0;
+			uint32_t mavlink_custom_mode = 0;
+			get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
+			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_base_mode, mavlink_custom_mode, mavlink_state);
 
 			/* switch HIL mode if required */
-			set_hil_on_off(v_status.flag_hil_enabled);
+			if (v_status.hil_state == HIL_STATE_ON)
+				set_hil_on_off(true);
+			else if (v_status.hil_state == HIL_STATE_OFF)
+				set_hil_on_off(false);
 
 			/* send status (values already copied in the section above) */
 			mavlink_msg_sys_status_send(chan,
 						    v_status.onboard_control_sensors_present,
 						    v_status.onboard_control_sensors_enabled,
 						    v_status.onboard_control_sensors_health,
-						    v_status.load,
-						    v_status.voltage_battery * 1000.0f,
-						    v_status.current_battery * 1000.0f,
+						    v_status.load * 1000.0f,
+						    v_status.battery_voltage * 1000.0f,
+						    v_status.battery_current * 1000.0f,
 						    v_status.battery_remaining,
 						    v_status.drop_rate_comm,
 						    v_status.errors_comm,
@@ -703,25 +690,25 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		lowspeed_counter++;
 
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
 
 		/* sleep quarter the time */
 		usleep(25000);
 
 		/* check if waypoint has been reached against the last positions */
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
 
 		/* sleep quarter the time */
 		usleep(25000);
 
 		/* send parameters at 20 Hz (if queued for sending) */
 		mavlink_pm_queued_send();
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
 
 		/* sleep quarter the time */
 		usleep(25000);
 
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
 
 		if (baudrate > 57600) {
 			mavlink_pm_queued_send();
@@ -751,9 +738,12 @@ int mavlink_thread_main(int argc, char *argv[])
 	/* Reset the UART flags to original state */
 	tcsetattr(uart, TCSANOW, &uart_config_original);
 
+	/* destroy log buffer */
+	//mavlink_logbuffer_destroy(&lb);
+
 	thread_running = false;
 
-	exit(0);
+	return 0;
 }
 
 static void
@@ -777,7 +767,7 @@ int mavlink_main(int argc, char *argv[])
 
 		/* this is not an error */
 		if (thread_running)
-			errx(0, "mavlink already running\n");
+			errx(0, "mavlink already running");
 
 		thread_should_exit = false;
 		mavlink_task = task_spawn_cmd("mavlink",
@@ -786,15 +776,25 @@ int mavlink_main(int argc, char *argv[])
 					  2048,
 					  mavlink_thread_main,
 					  (const char **)argv);
+
+		while (!thread_running) {
+			usleep(200);
+		}
+
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
+
+		/* this is not an error */
+		if (!thread_running)
+			errx(0, "mavlink already stopped");
+
 		thread_should_exit = true;
 
 		while (thread_running) {
 			usleep(200000);
-			printf(".");
+			warnx(".");
 		}
 
 		warnx("terminated.");

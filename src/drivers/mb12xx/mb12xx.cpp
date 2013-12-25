@@ -59,16 +59,17 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/board.h>
-
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/subsystem_info.h>
+
+#include <board_config.h>
 
 /* Configuration Constants */
 #define MB12XX_BUS 			PX4_I2C_BUS_EXPANSION
@@ -119,10 +120,7 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	unsigned			_num_reports;
-	volatile unsigned	_next_report;
-	volatile unsigned	_oldest_report;
-	range_finder_report	*_reports;
+	RingBuffer		*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
 	bool				_collect_phase;
@@ -183,9 +181,6 @@ private:
 	
 };
 
-/* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
-
 /*
  * Driver 'main' command.
  */
@@ -195,9 +190,6 @@ MB12XX::MB12XX(int bus, int address) :
 	I2C("MB12xx", RANGE_FINDER_DEVICE_PATH, bus, address, 100000),
 	_min_distance(MB12XX_MIN_DISTANCE),
 	_max_distance(MB12XX_MAX_DISTANCE),
-	_num_reports(0),
-	_next_report(0),
-	_oldest_report(0),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -221,7 +213,7 @@ MB12XX::~MB12XX()
 
 	/* free any existing reports */
 	if (_reports != nullptr)
-		delete[] _reports;
+		delete _reports;
 }
 
 int
@@ -234,17 +226,15 @@ MB12XX::init()
 		goto out;
 
 	/* allocate basic report buffers */
-	_num_reports = 2;
-	_reports = new struct range_finder_report[_num_reports];
+	_reports = new RingBuffer(2, sizeof(range_finder_report));
 
 	if (_reports == nullptr)
 		goto out;
 
-	_oldest_report = _next_report = 0;
-
 	/* get a publish handle on the range finder topic */
-	memset(&_reports[0], 0, sizeof(_reports[0]));
-	_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &_reports[0]);
+	struct range_finder_report zero_report;
+	memset(&zero_report, 0, sizeof(zero_report));
+	_range_finder_topic = orb_advertise(ORB_ID(sensor_range_finder), &zero_report);
 
 	if (_range_finder_topic < 0)
 		debug("failed to create sensor_range_finder object. Did you start uOrb?");
@@ -354,31 +344,22 @@ MB12XX::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
-			/* add one to account for the sentinel in the ring */
-			arg++;
-
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 2) || (arg > 100))
-				return -EINVAL;
-
-			/* allocate new buffer */
-			struct range_finder_report *buf = new struct range_finder_report[arg];
-
-			if (nullptr == buf)
-				return -ENOMEM;
-
-			/* reset the measurement state machine with the new buffer, free the old */
-			stop();
-			delete[] _reports;
-			_num_reports = arg;
-			_reports = buf;
-			start();
-
-			return OK;
+		/* lower bound is mandatory, upper bound is a sanity check */
+		if ((arg < 1) || (arg > 100))
+			return -EINVAL;
+		
+		irqstate_t flags = irqsave();
+		if (!_reports->resize(arg)) {
+			irqrestore(flags);
+			return -ENOMEM;
 		}
+		irqrestore(flags);
+		
+		return OK;
+	}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports - 1;
+		return _reports->size();
 		
 	case SENSORIOCRESET:
 		/* XXX implement this */
@@ -406,6 +387,7 @@ ssize_t
 MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct range_finder_report);
+	struct range_finder_report *rbuf = reinterpret_cast<struct range_finder_report *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -421,10 +403,9 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 		 * we are careful to avoid racing with them.
 		 */
 		while (count--) {
-			if (_oldest_report != _next_report) {
-				memcpy(buffer, _reports + _oldest_report, sizeof(*_reports));
-				ret += sizeof(_reports[0]);
-				INCREMENT(_oldest_report, _num_reports);
+			if (_reports->get(rbuf)) {
+				ret += sizeof(*rbuf);
+				rbuf++;
 			}
 		}
 
@@ -433,9 +414,8 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* manual measurement - run one conversion */
-	/* XXX really it'd be nice to lock against other readers here */
 	do {
-		_oldest_report = _next_report = 0;
+		_reports->flush();
 
 		/* trigger a measurement */
 		if (OK != measure()) {
@@ -453,8 +433,9 @@ MB12XX::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* state machine will have generated a report, copy it out */
-		memcpy(buffer, _reports, sizeof(*_reports));
-		ret = sizeof(*_reports);
+		if (_reports->get(rbuf)) {
+			ret = sizeof(*rbuf);
+		}
 
 	} while (0);
 
@@ -498,26 +479,26 @@ MB12XX::collect()
 	if (ret < 0)
 	{
 		log("error reading from sensor: %d", ret);
+		perf_count(_comms_errors);
+		perf_end(_sample_perf);
 		return ret;
 	}
 	
 	uint16_t distance = val[0] << 8 | val[1];
 	float si_units = (distance * 1.0f)/ 100.0f; /* cm to m */
+	struct range_finder_report report;
+
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
-	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].distance = si_units;
-	_reports[_next_report].valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
+	report.timestamp = hrt_absolute_time();
+        report.error_count = perf_event_count(_comms_errors);
+	report.distance = si_units;
+	report.valid = si_units > get_minimum_distance() && si_units < get_maximum_distance() ? 1 : 0;
 	
 	/* publish it */
-	orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &_reports[_next_report]);
+	orb_publish(ORB_ID(sensor_range_finder), _range_finder_topic, &report);
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_report, _num_reports);
-
-	/* if we are running up against the oldest report, toss it */
-	if (_next_report == _oldest_report) {
+	if (_reports->force(&report)) {
 		perf_count(_buffer_overflows);
-		INCREMENT(_oldest_report, _num_reports);
 	}
 
 	/* notify anyone waiting for data */
@@ -525,10 +506,7 @@ MB12XX::collect()
 
 	ret = OK;
 
-out:
 	perf_end(_sample_perf);
-	return ret;
-	
 	return ret;
 }
 
@@ -537,7 +515,7 @@ MB12XX::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
-	_oldest_report = _next_report = 0;
+	_reports->flush();
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&MB12XX::cycle_trampoline, this, 1);
@@ -626,8 +604,7 @@ MB12XX::print_info()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
-	printf("report queue:   %u (%u/%u @ %p)\n",
-	       _num_reports, _oldest_report, _next_report, _reports);
+	_reports->print_info("report queue");
 }
 
 /**

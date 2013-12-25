@@ -50,7 +50,7 @@
 #define RC_CHANNEL_HIGH_THRESH		5000
 #define RC_CHANNEL_LOW_THRESH		-5000
 
-static bool	ppm_input(uint16_t *values, uint16_t *num_values);
+static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
 
 static perf_counter_t c_gather_dsm;
 static perf_counter_t c_gather_sbus;
@@ -59,14 +59,14 @@ static perf_counter_t c_gather_ppm;
 void
 controls_init(void)
 {
-	/* DSM input */
+	/* DSM input (USART1) */
 	dsm_init("/dev/ttyS0");
 
-	/* S.bus input */
+	/* S.bus input (USART3) */
 	sbus_init("/dev/ttyS2");
 
 	/* default to a 1:1 input map, all enabled */
-	for (unsigned i = 0; i < MAX_CONTROL_CHANNELS; i++) {
+	for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
 
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_OPTIONS]    = 0;
@@ -94,6 +94,9 @@ controls_tick() {
 	 * other.  Don't do that.
 	 */
 
+	/* receive signal strenght indicator (RSSI). 0 = no connection, 255: perfect connection */
+	uint16_t rssi = 0;
+
 	perf_begin(c_gather_dsm);
 	uint16_t temp_count = r_raw_rc_count;
 	bool dsm_updated = dsm_input(r_raw_rc_values, &temp_count);
@@ -104,13 +107,16 @@ controls_tick() {
 			r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM11;
 		else
 			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RC_DSM11;
+
+		rssi = 255;
 	}
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count);
-	if (sbus_updated)
+	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, PX4IO_CONTROL_CHANNELS /* XXX this should be INPUT channels, once untangled */);
+	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
+	}
 	perf_end(c_gather_sbus);
 
 	/*
@@ -119,12 +125,19 @@ controls_tick() {
 	 * disable the PPM decoder completely if we have S.bus signal.
 	 */
 	perf_begin(c_gather_ppm);
-	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count);
-	if (ppm_updated)
+	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count, &r_page_status[PX4IO_P_STATUS_RC_DATA]);
+	if (ppm_updated) {
+
+		/* XXX sample RSSI properly here */
+		rssi = 255;
+
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
+	}
 	perf_end(c_gather_ppm);
 
-	ASSERT(r_raw_rc_count <= MAX_CONTROL_CHANNELS);
+	/* limit number of channels to allowable data size */
+	if (r_raw_rc_count > PX4IO_INPUT_CHANNELS)
+		r_raw_rc_count = PX4IO_INPUT_CHANNELS;
 
 	/*
 	 * In some cases we may have received a frame, but input has still
@@ -197,7 +210,7 @@ controls_tick() {
 
 				/* and update the scaled/mapped version */
 				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
-				ASSERT(mapped < MAX_CONTROL_CHANNELS);
+				ASSERT(mapped < PX4IO_CONTROL_CHANNELS);
 
 				/* invert channel if pitch - pulling the lever down means pitching up by convention */
 				if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
@@ -209,7 +222,7 @@ controls_tick() {
 		}
 
 		/* set un-assigned controls to zero */
-		for (unsigned i = 0; i < MAX_CONTROL_CHANNELS; i++) {
+		for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
 			if (!(assigned_channels & (1 << i)))
 				r_rc_values[i] = 0;
 		}
@@ -221,7 +234,7 @@ controls_tick() {
 		 * This might happen if a protocol-based receiver returns an update
 		 * that contains no channels that we have mapped.
 		 */
-		if (assigned_channels == 0) {
+		if (assigned_channels == 0 || rssi == 0) {
 			rc_input_lost = true;
 		} else {
 			/* set RC OK flag */
@@ -286,7 +299,7 @@ controls_tick() {
 		 * requested override.
 		 *
 		 */
-		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(r_rc_values[4]) > RC_CHANNEL_HIGH_THRESH))
+		if ((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) && (REG_TO_SIGNED(r_rc_values[4]) < RC_CHANNEL_LOW_THRESH))
 			override = true;
 
 		if (override) {
@@ -300,11 +313,13 @@ controls_tick() {
 		} else {
 			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
 		}
+	} else {
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_OVERRIDE;
 	}
 }
 
 static bool
-ppm_input(uint16_t *values, uint16_t *num_values)
+ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 {
 	bool result = false;
 
@@ -319,14 +334,18 @@ ppm_input(uint16_t *values, uint16_t *num_values)
 
 		/* PPM data exists, copy it */
 		*num_values = ppm_decoded_channels;
-		if (*num_values > MAX_CONTROL_CHANNELS)
-			*num_values = MAX_CONTROL_CHANNELS;
+		if (*num_values > PX4IO_CONTROL_CHANNELS)
+			*num_values = PX4IO_CONTROL_CHANNELS;
 
 		for (unsigned i = 0; i < *num_values; i++)
 			values[i] = ppm_buffer[i];
 
 		/* clear validity */
 		ppm_last_valid_decode = 0;
+
+		/* store PPM frame length */
+		if (num_values)
+			*frame_len = ppm_frame_length;
 
 		/* good if we got any channels */
 		result = (*num_values > 0);

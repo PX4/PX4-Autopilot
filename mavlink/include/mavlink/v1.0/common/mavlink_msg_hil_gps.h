@@ -9,7 +9,7 @@ typedef struct __mavlink_hil_gps_t
  int32_t lon; ///< Longitude (WGS84), in degrees * 1E7
  int32_t alt; ///< Altitude (WGS84), in meters * 1000 (positive for up)
  uint16_t eph; ///< GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
- uint16_t epv; ///< GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
+ uint16_t epv; ///< GPS VDOP vertical dilution of position in cm (m*100). If unknown, set to: 65535
  uint16_t vel; ///< GPS ground speed (m/s * 100). If unknown, set to: 65535
  int16_t vn; ///< GPS velocity in cm/s in NORTH direction in earth-fixed NED frame
  int16_t ve; ///< GPS velocity in cm/s in EAST direction in earth-fixed NED frame
@@ -59,7 +59,7 @@ typedef struct __mavlink_hil_gps_t
  * @param lon Longitude (WGS84), in degrees * 1E7
  * @param alt Altitude (WGS84), in meters * 1000 (positive for up)
  * @param eph GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
- * @param epv GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
+ * @param epv GPS VDOP vertical dilution of position in cm (m*100). If unknown, set to: 65535
  * @param vel GPS ground speed (m/s * 100). If unknown, set to: 65535
  * @param vn GPS velocity in cm/s in NORTH direction in earth-fixed NED frame
  * @param ve GPS velocity in cm/s in EAST direction in earth-fixed NED frame
@@ -119,7 +119,7 @@ static inline uint16_t mavlink_msg_hil_gps_pack(uint8_t system_id, uint8_t compo
  * @brief Pack a hil_gps message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
  * @param fix_type 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.
@@ -127,7 +127,7 @@ static inline uint16_t mavlink_msg_hil_gps_pack(uint8_t system_id, uint8_t compo
  * @param lon Longitude (WGS84), in degrees * 1E7
  * @param alt Altitude (WGS84), in meters * 1000 (positive for up)
  * @param eph GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
- * @param epv GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
+ * @param epv GPS VDOP vertical dilution of position in cm (m*100). If unknown, set to: 65535
  * @param vel GPS ground speed (m/s * 100). If unknown, set to: 65535
  * @param vn GPS velocity in cm/s in NORTH direction in earth-fixed NED frame
  * @param ve GPS velocity in cm/s in EAST direction in earth-fixed NED frame
@@ -185,7 +185,7 @@ static inline uint16_t mavlink_msg_hil_gps_pack_chan(uint8_t system_id, uint8_t 
 }
 
 /**
- * @brief Encode a hil_gps struct into a message
+ * @brief Encode a hil_gps struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -198,6 +198,20 @@ static inline uint16_t mavlink_msg_hil_gps_encode(uint8_t system_id, uint8_t com
 }
 
 /**
+ * @brief Encode a hil_gps struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param hil_gps C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_hil_gps_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_hil_gps_t* hil_gps)
+{
+	return mavlink_msg_hil_gps_pack_chan(system_id, component_id, chan, msg, hil_gps->time_usec, hil_gps->fix_type, hil_gps->lat, hil_gps->lon, hil_gps->alt, hil_gps->eph, hil_gps->epv, hil_gps->vel, hil_gps->vn, hil_gps->ve, hil_gps->vd, hil_gps->cog, hil_gps->satellites_visible);
+}
+
+/**
  * @brief Send a hil_gps message
  * @param chan MAVLink channel to send the message
  *
@@ -207,7 +221,7 @@ static inline uint16_t mavlink_msg_hil_gps_encode(uint8_t system_id, uint8_t com
  * @param lon Longitude (WGS84), in degrees * 1E7
  * @param alt Altitude (WGS84), in meters * 1000 (positive for up)
  * @param eph GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
- * @param epv GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
+ * @param epv GPS VDOP vertical dilution of position in cm (m*100). If unknown, set to: 65535
  * @param vel GPS ground speed (m/s * 100). If unknown, set to: 65535
  * @param vn GPS velocity in cm/s in NORTH direction in earth-fixed NED frame
  * @param ve GPS velocity in cm/s in EAST direction in earth-fixed NED frame
@@ -332,7 +346,7 @@ static inline uint16_t mavlink_msg_hil_gps_get_eph(const mavlink_message_t* msg)
 /**
  * @brief Get field epv from hil_gps message
  *
- * @return GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
+ * @return GPS VDOP vertical dilution of position in cm (m*100). If unknown, set to: 65535
  */
 static inline uint16_t mavlink_msg_hil_gps_get_epv(const mavlink_message_t* msg)
 {

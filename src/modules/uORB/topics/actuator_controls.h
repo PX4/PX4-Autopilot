@@ -52,27 +52,27 @@
 #define NUM_ACTUATOR_CONTROLS		8
 #define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
 
+/* control sets with pre-defined applications */
+#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
+
+/**
+ * @addtogroup topics
+ * @{
+ */
+
 struct actuator_controls_s {
 	uint64_t timestamp;
 	float	control[NUM_ACTUATOR_CONTROLS];
 };
+
+/**
+ * @}
+ */
 
 /* actuator control sets; this list can be expanded as more controllers emerge */
 ORB_DECLARE(actuator_controls_0);
 ORB_DECLARE(actuator_controls_1);
 ORB_DECLARE(actuator_controls_2);
 ORB_DECLARE(actuator_controls_3);
-
-/* control sets with pre-defined applications */
-#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
-
-/** global 'actuator output is live' control. */
-struct actuator_armed_s {
-	bool	armed;		/**< Set to true if system is armed */
-	bool	ready_to_arm;	/**< Set to true if system is ready to be armed */
-	bool	lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
-};
-
-ORB_DECLARE(actuator_armed);
 
 #endif

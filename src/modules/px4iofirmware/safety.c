@@ -77,7 +77,6 @@ static unsigned blink_counter = 0;
 static bool safety_button_pressed;
 
 static void safety_check_button(void *arg);
-static void heartbeat_blink(void *arg);
 static void failsafe_blink(void *arg);
 
 void
@@ -85,9 +84,6 @@ safety_init(void)
 {
 	/* arrange for the button handler to be called at 10Hz */
 	hrt_call_every(&arming_call, 1000, 100000, safety_check_button, NULL);
-
-	/* arrange for the heartbeat handler to be called at 4Hz */
-	hrt_call_every(&heartbeat_call, 1000, 250000, heartbeat_blink, NULL);
 
 	/* arrange for the failsafe blinker to be called at 8Hz */
 	hrt_call_every(&failsafe_call, 1000, 125000, failsafe_blink, NULL);
@@ -110,7 +106,7 @@ safety_check_button(void *arg)
 	 * state machine, keep ARM_COUNTER_THRESHOLD the same
 	 * length in all cases of the if/else struct below.
 	 */
-	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) &&
+	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) &&
 		(r_setup_arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)) {
 
 		if (counter < ARM_COUNTER_THRESHOLD) {
@@ -118,18 +114,18 @@ safety_check_button(void *arg)
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* switch to armed state */
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_ARMED;
+			r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 			counter++;
 		}
 
-	} else if (safety_button_pressed && (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED)) {
+	} else if (safety_button_pressed && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)) {
 
 		if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
 
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* change to disarmed state and notify the FMU */
-			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_ARMED;
+			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 			counter++;
 		}
 
@@ -140,7 +136,7 @@ safety_check_button(void *arg)
 	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
 	uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
 
-	if (r_status_flags & PX4IO_P_STATUS_FLAGS_ARMED) {
+	if (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
 		if (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED) {
 			pattern = LED_PATTERN_IO_FMU_ARMED;
 
@@ -161,16 +157,6 @@ safety_check_button(void *arg)
 	if (blink_counter > 15) {
 		blink_counter = 0;
 	}
-}
-
-static void
-heartbeat_blink(void *arg)
-{
-	static bool heartbeat = false;
-
-	/* XXX add flags here that need to be frobbed by various loops */
-
-	LED_BLUE(heartbeat = !heartbeat);
 }
 
 static void

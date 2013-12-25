@@ -167,12 +167,12 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	case 921600: speed = B921600; break;
 
 	default:
-		fprintf(stderr, "[mavlink] ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baud);
+		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600", baud);
 		return -EINVAL;
 	}
 
 	/* open uart */
-	printf("[mavlink] UART is %s, baudrate is %d\n", uart_name, baud);
+	warnx("UART is %s, baudrate is %d", uart_name, baud);
 	uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
@@ -183,7 +183,7 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	if (strcmp(uart_name, "/dev/ttyACM0") != OK) {
 		/* Back up the original uart configuration to restore it after exit */
 		if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-			fprintf(stderr, "[mavlink] ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
+			warnx("ERROR getting baudrate / termios config for %s: %d", uart_name, termios_state);
 			close(uart);
 			return -1;
 		}
@@ -196,14 +196,14 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-			fprintf(stderr, "[mavlink] ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+			warnx("ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)", uart_name, termios_state);
 			close(uart);
 			return -1;
 		}
 
 
 		if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-			fprintf(stderr, "[mavlink] ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+			warnx("ERROR setting baudrate / termios config for %s (tcsetattr)", uart_name);
 			close(uart);
 			return -1;
 		}
@@ -273,18 +273,18 @@ void mavlink_update_system(void)
 }
 
 void
-get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct actuator_armed_s *armed,
+get_mavlink_mode_and_state(const struct vehicle_control_mode_s *control_mode, const struct actuator_armed_s *armed,
 	uint8_t *mavlink_state, uint8_t *mavlink_mode)
 {
 	/* reset MAVLink mode bitfield */
 	*mavlink_mode = 0;
 
 	/* set mode flags independent of system state */
-	if (v_status->flag_control_manual_enabled) {
+	if (control_mode->flag_control_manual_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 	}
 
-	if (v_status->flag_hil_enabled) {
+	if (control_mode->flag_system_hil_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
 
@@ -295,60 +295,66 @@ get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct
 		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
-	switch (v_status->state_machine) {
-	case SYSTEM_STATE_PREFLIGHT:
-		if (v_status->flag_preflight_gyro_calibration ||
-		    v_status->flag_preflight_mag_calibration ||
-		    v_status->flag_preflight_accel_calibration) {
-			*mavlink_state = MAV_STATE_CALIBRATING;
-		} else {
-			*mavlink_state = MAV_STATE_UNINIT;
-		}
-		break;
-
-	case SYSTEM_STATE_STANDBY:
-		*mavlink_state = MAV_STATE_STANDBY;
-		break;
-
-	case SYSTEM_STATE_GROUND_READY:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		break;
-
-	case SYSTEM_STATE_MANUAL:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-		break;
-
-	case SYSTEM_STATE_STABILIZED:
-		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
-		break;
-
-	case SYSTEM_STATE_AUTO:
-		*mavlink_state = MAV_STATE_ACTIVE;
+	if (control_mode->flag_control_velocity_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
-		break;
-
-	case SYSTEM_STATE_MISSION_ABORT:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_LANDING:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_EMCY_CUTOFF:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_GROUND_ERROR:
-		*mavlink_state = MAV_STATE_EMERGENCY;
-		break;
-
-	case SYSTEM_STATE_REBOOT:
-		*mavlink_state = MAV_STATE_POWEROFF;
-		break;
+	} else {
+		*mavlink_mode &= ~MAV_MODE_FLAG_GUIDED_ENABLED;
 	}
+
+//	switch (v_status->state_machine) {
+//	case SYSTEM_STATE_PREFLIGHT:
+//		if (v_status->flag_preflight_gyro_calibration ||
+//		    v_status->flag_preflight_mag_calibration ||
+//		    v_status->flag_preflight_accel_calibration) {
+//			*mavlink_state = MAV_STATE_CALIBRATING;
+//		} else {
+//			*mavlink_state = MAV_STATE_UNINIT;
+//		}
+//		break;
+//
+//	case SYSTEM_STATE_STANDBY:
+//		*mavlink_state = MAV_STATE_STANDBY;
+//		break;
+//
+//	case SYSTEM_STATE_GROUND_READY:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		break;
+//
+//	case SYSTEM_STATE_MANUAL:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+//		break;
+//
+//	case SYSTEM_STATE_STABILIZED:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+//		break;
+//
+//	case SYSTEM_STATE_AUTO:
+//		*mavlink_state = MAV_STATE_ACTIVE;
+//		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+//		break;
+//
+//	case SYSTEM_STATE_MISSION_ABORT:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_EMCY_LANDING:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_EMCY_CUTOFF:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_GROUND_ERROR:
+//		*mavlink_state = MAV_STATE_EMERGENCY;
+//		break;
+//
+//	case SYSTEM_STATE_REBOOT:
+//		*mavlink_state = MAV_STATE_POWEROFF;
+//		break;
+//	}
 
 }
 
@@ -361,7 +367,9 @@ int mavlink_thread_main(int argc, char *argv[])
 	char *device_name = "/dev/ttyS1";
 	baudrate = 57600;
 
+	/* XXX this is never written? */
 	struct vehicle_status_s v_status;
+	struct vehicle_control_mode_s control_mode;
 	struct actuator_armed_s armed;
 
 	/* work around some stupidity in task_create's argv handling */
@@ -430,19 +438,19 @@ int mavlink_thread_main(int argc, char *argv[])
 			/* translate the current system state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
 			uint8_t mavlink_mode = 0;
-			get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
+			get_mavlink_mode_and_state(&control_mode, &armed, &mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
+			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.navigation_state, mavlink_state);
 
 			/* send status (values already copied in the section above) */
 			mavlink_msg_sys_status_send(chan,
 						    v_status.onboard_control_sensors_present,
 						    v_status.onboard_control_sensors_enabled,
 						    v_status.onboard_control_sensors_health,
-						    v_status.load,
-						    v_status.voltage_battery * 1000.0f,
-						    v_status.current_battery * 1000.0f,
+						    v_status.load * 1000.0f,
+						    v_status.battery_voltage * 1000.0f,
+						    v_status.battery_current * 1000.0f,
 						    v_status.battery_remaining,
 						    v_status.drop_rate_comm,
 						    v_status.errors_comm,
@@ -473,9 +481,9 @@ int mavlink_thread_main(int argc, char *argv[])
 static void
 usage()
 {
-	fprintf(stderr, "usage: mavlink start [-d <devicename>] [-b <baud rate>]\n"
-			"       mavlink stop\n"
-			"       mavlink status\n");
+	fprintf(stderr, "usage: mavlink_onboard start [-d <devicename>] [-b <baud rate>]\n"
+			"       mavlink_onboard stop\n"
+			"       mavlink_onboard status\n");
 	exit(1);
 }
 
@@ -491,7 +499,7 @@ int mavlink_onboard_main(int argc, char *argv[])
 
 		/* this is not an error */
 		if (thread_running)
-			errx(0, "mavlink already running\n");
+			errx(0, "already running");
 
 		thread_should_exit = false;
 		mavlink_task = task_spawn_cmd("mavlink_onboard",
@@ -508,7 +516,7 @@ int mavlink_onboard_main(int argc, char *argv[])
 		while (thread_running) {
 			usleep(200000);
 		}
-		warnx("terminated.");
+		warnx("terminated");
 		exit(0);
 	}
 

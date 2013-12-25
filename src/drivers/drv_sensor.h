@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Common sensor API and ioctl definitions.
+ * @file drv_sensor.h
+ *
+ * Common sensor API and ioctl definitions.
  */
 
 #ifndef _DRV_SENSOR_H

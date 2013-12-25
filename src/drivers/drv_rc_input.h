@@ -32,8 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file R/C input interface.
+ * @file drv_rc_input.h
  *
+ * R/C input interface.
  */
 
 #ifndef _DRV_RC_INPUT_H
@@ -59,7 +60,7 @@
 /**
  * Maximum number of R/C input channels in the system. S.Bus has up to 18 channels.
  */
-#define RC_INPUT_MAX_CHANNELS	18
+#define RC_INPUT_MAX_CHANNELS	20
 
 /**
  * Input signal type, value is a control position from zero to 100
@@ -87,6 +88,9 @@ struct rc_input_values {
 
 	/** number of channels actually being seen */
 	uint32_t		channel_count;
+
+	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 255: full reception */
+	int32_t			rssi;
 
 	/** Input source */
 	enum RC_INPUT_SOURCE 	input_source;

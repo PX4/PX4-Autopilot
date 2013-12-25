@@ -71,44 +71,30 @@ SimpleMixer::~SimpleMixer()
 		free(_info);
 }
 
-static const char *
-findtag(const char *buf, unsigned &buflen, char tag)
-{
-	while (buflen >= 2) {
-		if ((buf[0] == tag) && (buf[1] == ':'))
-			return buf;
-		buf++;
-		buflen--;
-	}
-	return nullptr;
-}
-
-static void
-skipline(const char *buf, unsigned &buflen)
-{
-	const char *p;
-
-	/* if we can find a CR or NL in the buffer, skip up to it */
-	if ((p = (const char *)memchr(buf, '\r', buflen)) || (p = (const char *)memchr(buf, '\n', buflen)))
-		buflen -= (p - buf);
-}
-
 int
 SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler)
 {
 	int ret;
 	int s[5];
+	int n = -1;
 	
 	buf = findtag(buf, buflen, 'O');
-	if ((buf == nullptr) || (buflen < 12))
-		return -1;
-
-	if ((ret = sscanf(buf, "O: %d %d %d %d %d",
-			  &s[0], &s[1], &s[2], &s[3], &s[4])) != 5) {
-		debug("scaler parse failed on '%s' (got %d)", buf, ret);
+	if ((buf == nullptr) || (buflen < 12)) {
+		debug("output parser failed finding tag, ret: '%s'", buf);
 		return -1;
 	}
-	skipline(buf, buflen);
+
+	if ((ret = sscanf(buf, "O: %d %d %d %d %d %n",
+			  &s[0], &s[1], &s[2], &s[3], &s[4], &n)) != 5) {
+		debug("out scaler parse failed on '%s' (got %d, consumed %d)", buf, ret, n);
+		return -1;
+	}
+
+	buf = skipline(buf, buflen);
+	if (buf == nullptr) {
+		debug("no line ending, line is incomplete");
+		return -1;
+	}
 
 	scaler.negative_scale	= s[0] / 10000.0f;
 	scaler.positive_scale	= s[1] / 10000.0f;
@@ -126,15 +112,22 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 	int s[5];
 
 	buf = findtag(buf, buflen, 'S');
-	if ((buf == nullptr) || (buflen < 16))
+	if ((buf == nullptr) || (buflen < 16)) {
+		debug("control parser failed finding tag, ret: '%s'", buf);
 		return -1;
+	}
 
 	if (sscanf(buf, "S: %u %u %d %d %d %d %d",
 		   &u[0], &u[1], &s[0], &s[1], &s[2], &s[3], &s[4]) != 7) {
 		debug("control parse failed on '%s'", buf);
 		return -1;
 	}
-	skipline(buf, buflen);
+
+	buf = skipline(buf, buflen);
+	if (buf == nullptr) {
+		debug("no line ending, line is incomplete");
+		return -1;
+	}
 
 	control_group		= u[0];
 	control_index		= u[1];
@@ -162,7 +155,11 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 		goto out;
 	}
 
-	buflen -= used;
+	buf = skipline(buf, buflen);
+	if (buf == nullptr) {
+		debug("no line ending, line is incomplete");
+		goto out;
+	}
 
 	mixinfo = (mixer_simple_s *)malloc(MIXER_SIMPLE_SIZE(inputs));
 
@@ -173,22 +170,27 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 
 	mixinfo->control_count = inputs;
 
-	if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler))
+	if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler)) {
+		debug("simple mixer parser failed parsing out scaler tag, ret: '%s'", buf);
 		goto out;
+	}
 
 	for (unsigned i = 0; i < inputs; i++) {
 		if (parse_control_scaler(end - buflen, buflen,
 					 mixinfo->controls[i].scaler,
 					 mixinfo->controls[i].control_group,
-					 mixinfo->controls[i].control_index))
+					 mixinfo->controls[i].control_index)) {
+			debug("simple mixer parser failed parsing ctrl scaler tag, ret: '%s'", buf);
 			goto out;
+		}
+
 	}
 
 	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);
 
 	if (sm != nullptr) {
 		mixinfo = nullptr;
-		debug("loaded mixer with %d inputs", inputs);
+		debug("loaded mixer with %d input(s)", inputs);
 
 	} else {
 		debug("could not allocate memory for mixer");

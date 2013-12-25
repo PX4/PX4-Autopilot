@@ -84,7 +84,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f5_pack(uint8_t system_id, u
  * @brief Pack a serial_udb_extra_f5 message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
- * @param chan The MAVLink channel this message was sent over
+ * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param sue_YAWKP_AILERON Serial UDB YAWKP_AILERON Gain for Proporional control of navigation
  * @param sue_YAWKD_AILERON Serial UDB YAWKD_AILERON Gain for Rate control of navigation
@@ -129,7 +129,7 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f5_pack_chan(uint8_t system_
 }
 
 /**
- * @brief Encode a serial_udb_extra_f5 struct into a message
+ * @brief Encode a serial_udb_extra_f5 struct
  *
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -139,6 +139,20 @@ static inline uint16_t mavlink_msg_serial_udb_extra_f5_pack_chan(uint8_t system_
 static inline uint16_t mavlink_msg_serial_udb_extra_f5_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_serial_udb_extra_f5_t* serial_udb_extra_f5)
 {
 	return mavlink_msg_serial_udb_extra_f5_pack(system_id, component_id, msg, serial_udb_extra_f5->sue_YAWKP_AILERON, serial_udb_extra_f5->sue_YAWKD_AILERON, serial_udb_extra_f5->sue_ROLLKP, serial_udb_extra_f5->sue_ROLLKD, serial_udb_extra_f5->sue_YAW_STABILIZATION_AILERON, serial_udb_extra_f5->sue_AILERON_BOOST);
+}
+
+/**
+ * @brief Encode a serial_udb_extra_f5 struct on a channel
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param chan The MAVLink channel this message will be sent over
+ * @param msg The MAVLink message to compress the data into
+ * @param serial_udb_extra_f5 C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_serial_udb_extra_f5_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_serial_udb_extra_f5_t* serial_udb_extra_f5)
+{
+	return mavlink_msg_serial_udb_extra_f5_pack_chan(system_id, component_id, chan, msg, serial_udb_extra_f5->sue_YAWKP_AILERON, serial_udb_extra_f5->sue_YAWKD_AILERON, serial_udb_extra_f5->sue_ROLLKP, serial_udb_extra_f5->sue_ROLLKD, serial_udb_extra_f5->sue_YAW_STABILIZATION_AILERON, serial_udb_extra_f5->sue_AILERON_BOOST);
 }
 
 /**

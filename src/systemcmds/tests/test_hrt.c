@@ -92,7 +92,7 @@ extern uint16_t ppm_pulse_history[];
 
 int test_ppm(int argc, char *argv[])
 {
-#ifdef CONFIG_HRT_PPM
+#ifdef HRT_PPM_CHANNEL
 	unsigned i;
 
 	printf("channels: %u\n", ppm_decoded_channels);
@@ -122,10 +122,10 @@ int test_tone(int argc, char *argv[])
 	int fd, result;
 	unsigned long tone;
 
-	fd = open("/dev/tone_alarm", O_WRONLY);
+	fd = open(TONEALARM_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0) {
-		printf("failed opening /dev/tone_alarm\n");
+		printf("failed opening " TONEALARM_DEVICE_PATH "\n");
 		goto out;
 	}
 
@@ -135,7 +135,7 @@ int test_tone(int argc, char *argv[])
 		tone = atoi(argv[1]);
 
 	if (tone  == 0) {
-		result = ioctl(fd, TONE_SET_ALARM, 0);
+		result = ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
 
 		if (result < 0) {
 			printf("failed clearing alarms\n");
@@ -146,7 +146,7 @@ int test_tone(int argc, char *argv[])
 		}
 
 	} else {
-		result = ioctl(fd, TONE_SET_ALARM, 0);
+		result = ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
 
 		if (result < 0) {
 			printf("failed clearing alarms\n");

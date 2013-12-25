@@ -36,6 +36,7 @@
  * @author Lorenz Meier
  * @author Sarthak Kaingade
  * @author Simon Wilks
+ * @author Thomas Gubler
  *
  * Driver for the MEAS Spec series connected via I2C.
  *
@@ -70,12 +71,13 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/board.h>
+#include <board_config.h>
 
 #include <systemlib/airspeed.h>
 #include <systemlib/err.h>
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
+#include <mathlib/mathlib.h>
 
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
@@ -138,11 +140,7 @@ MEASAirspeed::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		log("i2c::transfer returned %d", ret);
-		return ret;
 	}
-
-	ret = OK;
 
 	return ret;
 }
@@ -161,7 +159,8 @@ MEASAirspeed::collect()
 	ret = transfer(nullptr, 0, &val[0], 4);
 
 	if (ret < 0) {
-		log("error reading from sensor: %d", ret);
+                perf_count(_comms_errors);
+                perf_end(_sample_perf);
 		return ret;
 	}
 
@@ -169,9 +168,14 @@ MEASAirspeed::collect()
 
 	if (status == 2) {
 		log("err: stale data");
-
+                perf_count(_comms_errors);
+                perf_end(_sample_perf);
+		return ret;
 	} else if (status == 3) {
 		log("err: fault");
+                perf_count(_comms_errors);
+                perf_end(_sample_perf);
+		return ret;                
 	}
 
 	//uint16_t diff_pres_pa = (val[1]) | ((val[0] & ~(0xC0)) << 8);
@@ -182,7 +186,7 @@ MEASAirspeed::collect()
 	//diff_pres_pa -= _diff_pres_offset;
 	int16_t dp_raw = 0, dT_raw = 0;
 	dp_raw = (val[0] << 8) + val[1];
-	dp_raw = 0x3FFF & dp_raw;
+	dp_raw = 0x3FFF & dp_raw; //mask the used bits
 	dT_raw = (val[2] << 8) + val[3];
 	dT_raw = (0xFFE0 & dT_raw) >> 5;
 	float temperature = ((200 * dT_raw) / 2047) - 50;
@@ -191,28 +195,29 @@ MEASAirspeed::collect()
 
 	// Calculate differential pressure. As its centered around 8000
 	// and can go positive or negative, enforce absolute value
-	uint16_t diff_press_pa = abs(dp_raw - (16384 / 2.0f));
+//	uint16_t diff_press_pa = abs(dp_raw - (16384 / 2.0f));
+	const float P_min = -1.0f;
+	const float P_max = 1.0f;
+	float diff_press_pa = math::max(0.0f, fabsf( ( ((float)dp_raw - 0.1f*16383.0f) * (P_max-P_min)/(0.8f*16383.0f) + P_min) * 6894.8f)   - _diff_pres_offset);
 
-	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].temperature = temperature;
-	_reports[_next_report].differential_pressure_pa = diff_press_pa;
+	struct differential_pressure_s report;
 
 	// Track maximum differential pressure measured (so we can work out top speed).
-	if (diff_press_pa > _reports[_next_report].max_differential_pressure_pa) {
-		_reports[_next_report].max_differential_pressure_pa = diff_press_pa;
+	if (diff_press_pa > _max_differential_pressure_pa) {
+	    _max_differential_pressure_pa = diff_press_pa;
 	}
+
+	report.timestamp = hrt_absolute_time();
+        report.error_count = perf_event_count(_comms_errors);
+	report.temperature = temperature;
+	report.differential_pressure_pa = diff_press_pa;
+	report.voltage = 0;
+	report.max_differential_pressure_pa = _max_differential_pressure_pa;
 
 	/* announce the airspeed if needed, just publish else */
-	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &_reports[_next_report]);
+	orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 
-	/* post a report to the ring - note, not locked */
-	INCREMENT(_next_report, _num_reports);
-
-	/* if we are running up against the oldest report, toss it */
-	if (_next_report == _oldest_report) {
-		perf_count(_buffer_overflows);
-		INCREMENT(_oldest_report, _num_reports);
-	}
+	new_report(report);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -232,7 +237,6 @@ MEASAirspeed::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;

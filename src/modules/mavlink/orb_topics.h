@@ -55,15 +55,19 @@
 #include <uORB/topics/vehicle_global_position_set_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/battery_status.h>
 #include <drivers/drv_rc_input.h>
+#include <uORB/topics/navigation_capabilities.h>
 
 struct mavlink_subscriptions {
 	int sensor_sub;
@@ -75,8 +79,10 @@ struct mavlink_subscriptions {
 	int act_3_sub;
 	int gps_sub;
 	int man_control_sp_sub;
-	int armed_sub;
+	int safety_sub;
 	int actuators_sub;
+	int armed_sub;
+	int actuators_effective_sub;
 	int local_pos_sub;
 	int spa_sub;
 	int spl_sub;
@@ -87,6 +93,7 @@ struct mavlink_subscriptions {
 	int rates_setpoint_sub;
 	int home_sub;
 	int airspeed_sub;
+	int navigation_capabilities_sub;
 };
 
 extern struct mavlink_subscriptions mavlink_subs;
@@ -96,6 +103,9 @@ extern struct vehicle_global_position_s global_pos;
 
 /** Local position */
 extern struct vehicle_local_position_s local_pos;
+
+/** navigation capabilities */
+extern struct navigation_capabilities_s nav_cap;
 
 /** Vehicle status */
 extern struct vehicle_status_s v_status;
