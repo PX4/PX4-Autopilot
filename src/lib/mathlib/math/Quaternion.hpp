@@ -51,7 +51,8 @@
 namespace math
 {
 
-class __EXPORT Quaternion : public Vector<4> {
+class __EXPORT Quaternion : public Vector<4>
+{
 public:
 	/**
 	 * trivial ctor
@@ -85,25 +86,25 @@ public:
 	 */
 	const Quaternion operator *(const Quaternion &q) const {
 		return Quaternion(
-				data[0] * q.data[0] - data[1] * q.data[1] - data[2] * q.data[2] - data[3] * q.data[3],
-				data[0] * q.data[1] + data[1] * q.data[0] + data[2] * q.data[3] - data[3] * q.data[2],
-				data[0] * q.data[2] - data[1] * q.data[3] + data[2] * q.data[0] + data[3] * q.data[1],
-				data[0] * q.data[3] + data[1] * q.data[2] - data[2] * q.data[1] + data[3] * q.data[0]);
+			       data[0] * q.data[0] - data[1] * q.data[1] - data[2] * q.data[2] - data[3] * q.data[3],
+			       data[0] * q.data[1] + data[1] * q.data[0] + data[2] * q.data[3] - data[3] * q.data[2],
+			       data[0] * q.data[2] - data[1] * q.data[3] + data[2] * q.data[0] + data[3] * q.data[1],
+			       data[0] * q.data[3] + data[1] * q.data[2] - data[2] * q.data[1] + data[3] * q.data[0]);
 	}
 
 	/**
 	 * derivative
 	 */
 	const Quaternion derivative(const Vector<3> &w) {
-	        float dataQ[] = {
-	                data[0], -data[1], -data[2], -data[3],
-	                data[1],  data[0], -data[3],  data[2],
-	                data[2],  data[3],  data[0], -data[1],
-	                data[3], -data[2],  data[1],  data[0]
-	        };
-	        Matrix<4,4> Q(dataQ);
-	        Vector<4> v(0.0f, w.data[0], w.data[1], w.data[2]);
-	        return Q * v * 0.5f;
+		float dataQ[] = {
+			data[0], -data[1], -data[2], -data[3],
+			data[1],  data[0], -data[3],  data[2],
+			data[2],  data[3],  data[0], -data[1],
+			data[3], -data[2],  data[1],  data[0]
+		};
+		Matrix<4, 4> Q(dataQ);
+		Vector<4> v(0.0f, w.data[0], w.data[1], w.data[2]);
+		return Q * v * 0.5f;
 	}
 
 	/**

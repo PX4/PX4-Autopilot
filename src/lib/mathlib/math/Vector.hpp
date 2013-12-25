@@ -54,7 +54,8 @@ template <unsigned int N>
 class __EXPORT Vector;
 
 template <unsigned int N>
-class __EXPORT VectorBase {
+class __EXPORT VectorBase
+{
 public:
 	/**
 	 * vector data
@@ -93,14 +94,14 @@ public:
 	/**
 	 * access to elements by index
 	 */
-	float &operator ()(const unsigned int i) {
+	float &operator()(const unsigned int i) {
 		return data[i];
 	}
 
 	/**
 	 * access to elements by index
 	 */
-	float operator ()(const unsigned int i) const {
+	float operator()(const unsigned int i) const {
 		return data[i];
 	}
 
@@ -115,20 +116,22 @@ public:
 	 * test for equality
 	 */
 	bool operator ==(const Vector<N> &v) const {
- 		for (unsigned int i = 0; i < N; i++)
- 			if (data[i] != v.data[i])
- 				return false;
- 		return true;
+		for (unsigned int i = 0; i < N; i++)
+			if (data[i] != v.data[i])
+				return false;
+
+		return true;
 	}
 
 	/**
 	 * test for inequality
 	 */
 	bool operator !=(const Vector<N> &v) const {
- 		for (unsigned int i = 0; i < N; i++)
- 			if (data[i] != v.data[i])
- 				return true;
- 		return false;
+		for (unsigned int i = 0; i < N; i++)
+			if (data[i] != v.data[i])
+				return true;
+
+		return false;
 	}
 
 	/**
@@ -144,9 +147,11 @@ public:
 	 */
 	const Vector<N> operator -(void) const {
 		Vector<N> res;
- 		for (unsigned int i = 0; i < N; i++)
- 			res.data[i] = -data[i];
- 		return res;
+
+		for (unsigned int i = 0; i < N; i++)
+			res.data[i] = -data[i];
+
+		return res;
 	}
 
 	/**
@@ -154,9 +159,11 @@ public:
 	 */
 	const Vector<N> operator +(const Vector<N> &v) const {
 		Vector<N> res;
- 		for (unsigned int i = 0; i < N; i++)
- 			res.data[i] = data[i] + v.data[i];
- 		return res;
+
+		for (unsigned int i = 0; i < N; i++)
+			res.data[i] = data[i] + v.data[i];
+
+		return res;
 	}
 
 	/**
@@ -164,9 +171,11 @@ public:
 	 */
 	const Vector<N> operator -(const Vector<N> &v) const {
 		Vector<N> res;
- 		for (unsigned int i = 0; i < N; i++)
- 			res.data[i] = data[i] - v.data[i];
- 		return res;
+
+		for (unsigned int i = 0; i < N; i++)
+			res.data[i] = data[i] - v.data[i];
+
+		return res;
 	}
 
 	/**
@@ -174,8 +183,10 @@ public:
 	 */
 	const Vector<N> operator *(const float num) const {
 		Vector<N> res;
- 		for (unsigned int i = 0; i < N; i++)
- 			res.data[i] = data[i] * num;
+
+		for (unsigned int i = 0; i < N; i++)
+			res.data[i] = data[i] * num;
+
 		return res;
 	}
 
@@ -184,8 +195,10 @@ public:
 	 */
 	const Vector<N> operator /(const float num) const {
 		Vector<N> res;
- 		for (unsigned int i = 0; i < N; i++)
- 			res.data[i] = data[i] / num;
+
+		for (unsigned int i = 0; i < N; i++)
+			res.data[i] = data[i] / num;
+
 		return res;
 	}
 
@@ -193,8 +206,9 @@ public:
 	 * addition
 	 */
 	const Vector<N> &operator +=(const Vector<N> &v) {
- 		for (unsigned int i = 0; i < N; i++)
- 			data[i] += v.data[i];
+		for (unsigned int i = 0; i < N; i++)
+			data[i] += v.data[i];
+
 		return *static_cast<const Vector<N>*>(this);
 	}
 
@@ -202,8 +216,9 @@ public:
 	 * subtraction
 	 */
 	const Vector<N> &operator -=(const Vector<N> &v) {
- 		for (unsigned int i = 0; i < N; i++)
- 			data[i] -= v.data[i];
+		for (unsigned int i = 0; i < N; i++)
+			data[i] -= v.data[i];
+
 		return *static_cast<const Vector<N>*>(this);
 	}
 
@@ -211,8 +226,9 @@ public:
 	 * uniform scaling
 	 */
 	const Vector<N> &operator *=(const float num) {
- 		for (unsigned int i = 0; i < N; i++)
- 			data[i] *= num;
+		for (unsigned int i = 0; i < N; i++)
+			data[i] *= num;
+
 		return *static_cast<const Vector<N>*>(this);
 	}
 
@@ -220,8 +236,9 @@ public:
 	 * uniform scaling
 	 */
 	const Vector<N> &operator /=(const float num) {
- 		for (unsigned int i = 0; i < N; i++)
- 			data[i] /= num;
+		for (unsigned int i = 0; i < N; i++)
+			data[i] /= num;
+
 		return *static_cast<const Vector<N>*>(this);
 	}
 
@@ -230,9 +247,11 @@ public:
 	 */
 	float operator *(const Vector<N> &v) const {
 		float res = 0.0f;
- 		for (unsigned int i = 0; i < N; i++)
- 			res += data[i] * v.data[i];
- 		return res;
+
+		for (unsigned int i = 0; i < N; i++)
+			res += data[i] * v.data[i];
+
+		return res;
 	}
 
 	/**
@@ -240,9 +259,11 @@ public:
 	 */
 	float length_squared() const {
 		float res = 0.0f;
- 		for (unsigned int i = 0; i < N; i++)
- 			res += data[i] * data[i];
- 		return res;
+
+		for (unsigned int i = 0; i < N; i++)
+			res += data[i] * data[i];
+
+		return res;
 	}
 
 	/**
@@ -250,9 +271,11 @@ public:
 	 */
 	float length() const {
 		float res = 0.0f;
- 		for (unsigned int i = 0; i < N; i++)
- 			res += data[i] * data[i];
- 		return sqrtf(res);
+
+		for (unsigned int i = 0; i < N; i++)
+			res += data[i] * data[i];
+
+		return sqrtf(res);
 	}
 
 	/**
@@ -278,14 +301,17 @@ public:
 
 	void print(void) {
 		printf("[ ");
- 		for (unsigned int i = 0; i < N; i++)
+
+		for (unsigned int i = 0; i < N; i++)
 			printf("%.3f\t", data[i]);
+
 		printf("]\n");
 	}
 };
 
 template <unsigned int N>
-class __EXPORT Vector : public VectorBase<N> {
+class __EXPORT Vector : public VectorBase<N>
+{
 public:
 	Vector() : VectorBase<N>() {}
 
@@ -303,7 +329,8 @@ public:
 };
 
 template <>
-class __EXPORT Vector<2> : public VectorBase<2> {
+class __EXPORT Vector<2> : public VectorBase<2>
+{
 public:
 	Vector() : VectorBase<2>() {}
 
@@ -333,12 +360,13 @@ public:
 	}
 
 	float operator %(const Vector<2> &v) const {
-        return data[0] * v.data[1] - data[1] * v.data[0];
+		return data[0] * v.data[1] - data[1] * v.data[0];
 	}
 };
 
 template <>
-class __EXPORT Vector<3> : public VectorBase<3> {
+class __EXPORT Vector<3> : public VectorBase<3>
+{
 public:
 	Vector() : VectorBase<3>() {}
 
@@ -365,20 +393,22 @@ public:
 	const Vector<3> &operator =(const Vector<3> &v) {
 		for (unsigned int i = 0; i < 3; i++)
 			data[i] = v.data[i];
+
 		return *this;
 	}
 
 	Vector<3> operator %(const Vector<3> &v) const {
 		return Vector<3>(
-				data[1] * v.data[2] - data[2] * v.data[1],
-				data[2] * v.data[0] - data[0] * v.data[2],
-				data[0] * v.data[1] - data[1] * v.data[0]
-		);
+			       data[1] * v.data[2] - data[2] * v.data[1],
+			       data[2] * v.data[0] - data[0] * v.data[2],
+			       data[0] * v.data[1] - data[1] * v.data[0]
+		       );
 	}
 };
 
 template <>
-class __EXPORT Vector<4> : public VectorBase<4> {
+class __EXPORT Vector<4> : public VectorBase<4>
+{
 public:
 	Vector() : VectorBase() {}
 
@@ -405,6 +435,7 @@ public:
 	const Vector<4> &operator =(const Vector<4> &v) {
 		for (unsigned int i = 0; i < 4; i++)
 			data[i] = v.data[i];
+
 		return *this;
 	}
 };

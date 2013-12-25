@@ -54,7 +54,8 @@ class __EXPORT Matrix;
 
 // MxN matrix with float elements
 template <unsigned int M, unsigned int N>
-class __EXPORT MatrixBase {
+class __EXPORT MatrixBase
+{
 public:
 	/**
 	 * matrix data[row][col]
@@ -90,14 +91,14 @@ public:
 	/**
 	 * access by index
 	 */
-	float &operator ()(const unsigned int row, const unsigned int col) {
+	float &operator()(const unsigned int row, const unsigned int col) {
 		return data[row][col];
 	}
 
 	/**
 	 * access by index
 	 */
-	float operator ()(const unsigned int row, const unsigned int col) const {
+	float operator()(const unsigned int row, const unsigned int col) const {
 		return data[row][col];
 	}
 
@@ -119,10 +120,11 @@ public:
 	 * test for equality
 	 */
 	bool operator ==(const Matrix<M, N> &m) const {
- 		for (unsigned int i = 0; i < M; i++)
- 			for (unsigned int j = 0; j < N; j++)
- 				if (data[i][j] != m.data[i][j])
- 					return false;
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
+				if (data[i][j] != m.data[i][j])
+					return false;
+
 		return true;
 	}
 
@@ -130,10 +132,11 @@ public:
 	 * test for inequality
 	 */
 	bool operator !=(const Matrix<M, N> &m) const {
- 		for (unsigned int i = 0; i < M; i++)
- 			for (unsigned int j = 0; j < N; j++)
- 				if (data[i][j] != m.data[i][j])
- 					return true;
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
+				if (data[i][j] != m.data[i][j])
+					return true;
+
 		return false;
 	}
 
@@ -150,9 +153,11 @@ public:
 	 */
 	Matrix<M, N> operator -(void) const {
 		Matrix<M, N> res;
- 		for (unsigned int i = 0; i < N; i++)
- 			for (unsigned int j = 0; j < M; j++)
- 				res.data[i][j] = -data[i][j];
+
+		for (unsigned int i = 0; i < N; i++)
+			for (unsigned int j = 0; j < M; j++)
+				res.data[i][j] = -data[i][j];
+
 		return res;
 	}
 
@@ -161,16 +166,19 @@ public:
 	 */
 	Matrix<M, N> operator +(const Matrix<M, N> &m) const {
 		Matrix<M, N> res;
- 		for (unsigned int i = 0; i < N; i++)
- 			for (unsigned int j = 0; j < M; j++)
- 				res.data[i][j] = data[i][j] + m.data[i][j];
+
+		for (unsigned int i = 0; i < N; i++)
+			for (unsigned int j = 0; j < M; j++)
+				res.data[i][j] = data[i][j] + m.data[i][j];
+
 		return res;
 	}
 
 	Matrix<M, N> &operator +=(const Matrix<M, N> &m) {
- 		for (unsigned int i = 0; i < N; i++)
- 			for (unsigned int j = 0; j < M; j++)
- 				data[i][j] += m.data[i][j];
+		for (unsigned int i = 0; i < N; i++)
+			for (unsigned int j = 0; j < M; j++)
+				data[i][j] += m.data[i][j];
+
 		return *static_cast<Matrix<M, N>*>(this);
 	}
 
@@ -179,16 +187,19 @@ public:
 	 */
 	Matrix<M, N> operator -(const Matrix<M, N> &m) const {
 		Matrix<M, N> res;
- 		for (unsigned int i = 0; i < M; i++)
- 			for (unsigned int j = 0; j < N; j++)
- 				res.data[i][j] = data[i][j] - m.data[i][j];
+
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
+				res.data[i][j] = data[i][j] - m.data[i][j];
+
 		return res;
 	}
 
 	Matrix<M, N> &operator -=(const Matrix<M, N> &m) {
- 		for (unsigned int i = 0; i < N; i++)
- 			for (unsigned int j = 0; j < M; j++)
- 				data[i][j] -= m.data[i][j];
+		for (unsigned int i = 0; i < N; i++)
+			for (unsigned int j = 0; j < M; j++)
+				data[i][j] -= m.data[i][j];
+
 		return *static_cast<Matrix<M, N>*>(this);
 	}
 
@@ -197,31 +208,37 @@ public:
 	 */
 	Matrix<M, N> operator *(const float num) const {
 		Matrix<M, N> res;
- 		for (unsigned int i = 0; i < M; i++)
- 			for (unsigned int j = 0; j < N; j++)
- 				res.data[i][j] = data[i][j] * num;
+
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
+				res.data[i][j] = data[i][j] * num;
+
 		return res;
 	}
 
 	Matrix<M, N> &operator *=(const float num) {
- 		for (unsigned int i = 0; i < M; i++)
- 			for (unsigned int j = 0; j < N; j++)
- 				data[i][j] *= num;
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
+				data[i][j] *= num;
+
 		return *static_cast<Matrix<M, N>*>(this);
 	}
 
 	Matrix<M, N> operator /(const float num) const {
 		Matrix<M, N> res;
- 		for (unsigned int i = 0; i < M; i++)
- 			for (unsigned int j = 0; j < N; j++)
- 				res[i][j] = data[i][j] / num;
+
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
+				res[i][j] = data[i][j] / num;
+
 		return res;
 	}
 
 	Matrix<M, N> &operator /=(const float num) {
- 		for (unsigned int i = 0; i < M; i++)
- 			for (unsigned int j = 0; j < N; j++)
- 				data[i][j] /= num;
+		for (unsigned int i = 0; i < M; i++)
+			for (unsigned int j = 0; j < N; j++)
+				data[i][j] /= num;
+
 		return *static_cast<Matrix<M, N>*>(this);
 	}
 
@@ -239,18 +256,18 @@ public:
 	 * transpose the matrix
 	 */
 	Matrix<N, M> transposed(void) const {
-        Matrix<N, M> res;
-        arm_mat_trans_f32(&this->arm_mat, &res.arm_mat);
-        return res;
+		Matrix<N, M> res;
+		arm_mat_trans_f32(&this->arm_mat, &res.arm_mat);
+		return res;
 	}
 
 	/**
 	 * invert the matrix
 	 */
 	Matrix<M, N> inversed(void) const {
-        Matrix<M, N> res;
-        arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
-        return res;
+		Matrix<M, N> res;
+		arm_mat_inverse_f32(&this->arm_mat, &res.arm_mat);
+		return res;
 	}
 
 	/**
@@ -266,22 +283,26 @@ public:
 	void identity(void) {
 		memset(data, 0, sizeof(data));
 		unsigned int n = (M < N) ? M : N;
+
 		for (unsigned int i = 0; i < n; i++)
 			data[i][i] = 1;
 	}
 
 	void print(void) {
- 		for (unsigned int i = 0; i < M; i++) {
+		for (unsigned int i = 0; i < M; i++) {
 			printf("[ ");
- 			for (unsigned int j = 0; j < N; j++)
+
+			for (unsigned int j = 0; j < N; j++)
 				printf("%.3f\t", data[i][j]);
+
 			printf(" ]\n");
 		}
 	}
 };
 
 template <unsigned int M, unsigned int N>
-class __EXPORT Matrix : public MatrixBase<M, N> {
+class __EXPORT Matrix : public MatrixBase<M, N>
+{
 public:
 	using MatrixBase<M, N>::operator *;
 
@@ -303,14 +324,15 @@ public:
 	 * multiplication by a vector
 	 */
 	Vector<M> operator *(const Vector<N> &v) const {
-	    Vector<M> res;
-	    arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
-	    return res;
+		Vector<M> res;
+		arm_mat_mult_f32(&this->arm_mat, &v.arm_col, &res.arm_col);
+		return res;
 	}
 };
 
 template <>
-class __EXPORT Matrix<3, 3> : public MatrixBase<3, 3> {
+class __EXPORT Matrix<3, 3> : public MatrixBase<3, 3>
+{
 public:
 	using MatrixBase<3, 3>::operator *;
 
@@ -332,10 +354,10 @@ public:
 	 * multiplication by a vector
 	 */
 	Vector<3> operator *(const Vector<3> &v) const {
-	    Vector<3> res(data[0][0] * v.data[0] + data[0][1] * v.data[1] + data[0][2] * v.data[2],
-	    			  data[1][0] * v.data[0] + data[1][1] * v.data[1] + data[1][2] * v.data[2],
-	    			  data[2][0] * v.data[0] + data[2][1] * v.data[1] + data[2][2] * v.data[2]);
-	    return res;
+		Vector<3> res(data[0][0] * v.data[0] + data[0][1] * v.data[1] + data[0][2] * v.data[2],
+			      data[1][0] * v.data[0] + data[1][1] * v.data[1] + data[1][2] * v.data[2],
+			      data[2][0] * v.data[0] + data[2][1] * v.data[1] + data[2][2] * v.data[2]);
+		return res;
 	}
 
 	/**
@@ -380,6 +402,7 @@ public:
 			euler.data[0] = atan2f(data[2][1], data[2][2]);
 			euler.data[2] = atan2f(data[1][0], data[0][0]);
 		}
+
 		return euler;
 	}
 };
