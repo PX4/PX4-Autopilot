@@ -440,6 +440,7 @@ Navigator::offboard_mission_update()
 	struct mission_s offboard_mission;
 	if (orb_copy(ORB_ID(mission), _offboard_mission_sub, &offboard_mission) == OK) {
 
+		_mission.set_offboard_dataman_id(offboard_mission.dataman_id);
 		_mission.set_current_offboard_mission_index(offboard_mission.current_index);
 		_mission.set_offboard_mission_count(offboard_mission.count);
 

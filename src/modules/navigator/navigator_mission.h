@@ -55,6 +55,7 @@ public:
 	 */
 	~Mission();
 
+	void		set_offboard_dataman_id(int new_id);
 	void		set_current_offboard_mission_index(int new_index);
 	void		set_current_onboard_mission_index(int new_index);
 	void		set_offboard_mission_count(unsigned new_count);
@@ -78,6 +79,7 @@ private:
 	bool		next_onboard_mission_available();
 	bool		next_offboard_mission_available();
 
+	int 		_offboard_dataman_id;
 	unsigned	_current_offboard_mission_index;
 	unsigned	_current_onboard_mission_index;
 	unsigned	_offboard_mission_item_count;		/** number of offboard mission items available */
