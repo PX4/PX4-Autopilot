@@ -280,7 +280,7 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint
 		*rssi = 100; // XXX magic number indicating bad signal, but not a signal loss (yet)
 	}
 
-	*rssi = 1000;
+	*rssi = 255;
 
 	return true;
 }
