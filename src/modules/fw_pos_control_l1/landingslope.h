@@ -63,6 +63,7 @@ public:
 	~Landingslope() {}
 
 	float getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude);
+	float getFlarceCurveAltitude(float wp_distance, float wp_altitude);
 
 	void update(float landing_slope_angle_rad,
 			float flare_relative_alt,

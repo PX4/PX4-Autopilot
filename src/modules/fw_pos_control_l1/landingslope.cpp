@@ -47,6 +47,7 @@
 #include <errno.h>
 #include <math.h>
 #include <unistd.h>
+#include <mathlib/mathlib.h>
 
 void Landingslope::update(float landing_slope_angle_rad,
 		float flare_relative_alt,
@@ -74,5 +75,10 @@ void Landingslope::calculateSlopeValues()
 float Landingslope::getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude)
 {
 	return (wp_distance - _horizontal_slope_displacement) * tanf(_landing_slope_angle_rad) + wp_altitude; //flare_relative_alt is negative
+}
+
+float Landingslope::getFlarceCurveAltitude(float wp_distance, float wp_altitude)
+{
+	return wp_altitude + _H0 * expf(-math::max(0.0f, _flare_length - wp_distance)/_flare_constant) - _H1_virt;
 }
 

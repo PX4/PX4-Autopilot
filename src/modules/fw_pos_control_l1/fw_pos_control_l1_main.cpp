@@ -845,8 +845,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
 			// XXX this could make a great param
 
-			float flare_angle_rad = -math::radians(5.0f);//math::radians(mission_item_triplet.current.param1)
-			float land_pitch_min = math::radians(5.0f);
+			float flare_pitch_angle_rad = -math::radians(5.0f);//math::radians(mission_item_triplet.current.param1)
 			float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
@@ -876,7 +875,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				 }
 
-				float flare_curve_alt =   _mission_item_triplet.current.altitude + landingslope.H0() * expf(-math::max(0.0f, landingslope.flare_length() - wp_distance)/landingslope.flare_constant()) - landingslope.H1_virt();
+				float flare_curve_alt = landingslope.getFlarceCurveAltitude(wp_distance, _mission_item_triplet.current.altitude);
 
 				/* avoid climbout */
 				if (flare_curve_alt_last < flare_curve_alt && land_noreturn_vertical || land_stayonground)
@@ -887,9 +886,9 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, flare_curve_alt, calculate_target_airspeed(airspeed_land),
 												    _airspeed.indicated_airspeed_m_s, eas2tas,
-												    false, flare_angle_rad,
+												    false, flare_pitch_angle_rad,
 												    0.0f, throttle_max, throttle_land,
-												    flare_angle_rad,  math::radians(15.0f));
+												    flare_pitch_angle_rad,  math::radians(15.0f));
 
 				if (!land_noreturn_vertical) {
 					mavlink_log_info(_mavlink_fd, "#audio: Landing, flaring");
@@ -904,7 +903,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				/* minimize speed to approach speed, stay on landing slope */
 				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, landing_slope_alt_desired, calculate_target_airspeed(airspeed_approach),
 							    _airspeed.indicated_airspeed_m_s, eas2tas,
-							    false, flare_angle_rad,
+							    false, flare_pitch_angle_rad,
 							    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
 							    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
 				//warnx("Landing: stay on slope, alt_desired: %.1f (wp_distance: %.1f), calculate_target_airspeed(airspeed_land) %.1f, horizontal_slope_displacement %.1f, d1 %.1f, flare_length %.1f", landing_slope_alt_desired, wp_distance, calculate_target_airspeed(airspeed_land), horizontal_slope_displacement, d1, flare_length);
