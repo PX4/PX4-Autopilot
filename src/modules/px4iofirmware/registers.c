@@ -89,7 +89,9 @@ uint16_t		r_page_status[] = {
 	[PX4IO_P_STATUS_IBATT]			= 0,
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
-	[PX4IO_P_STATUS_PRSSI]			= 0
+	[PX4IO_P_STATUS_PRSSI]			= 0,
+	[PX4IO_P_STATUS_NRSSI]			= 0,
+	[PX4IO_P_STATUS_RC_DATA]		= 0
 };
 
 /**
@@ -114,7 +116,7 @@ uint16_t		r_page_servos[PX4IO_SERVO_COUNT];
 uint16_t		r_page_raw_rc_input[] =
 {
 	[PX4IO_P_RAW_RC_COUNT]			= 0,
-	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + 24)] = 0 // XXX ensure we have enough space to decode beefy RX, will be replaced by patch soon
+	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + PX4IO_CONTROL_CHANNELS)] = 0 // XXX ensure we have enough space to decode beefy RX, will be replaced by patch soon
 };
 
 /**

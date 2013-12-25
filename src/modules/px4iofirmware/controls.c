@@ -50,7 +50,7 @@
 #define RC_CHANNEL_HIGH_THRESH		5000
 #define RC_CHANNEL_LOW_THRESH		-5000
 
-static bool	ppm_input(uint16_t *values, uint16_t *num_values);
+static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
 
 static perf_counter_t c_gather_dsm;
 static perf_counter_t c_gather_sbus;
@@ -125,7 +125,7 @@ controls_tick() {
 	 * disable the PPM decoder completely if we have S.bus signal.
 	 */
 	perf_begin(c_gather_ppm);
-	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count);
+	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count, &r_page_status[PX4IO_P_STATUS_RC_DATA]);
 	if (ppm_updated) {
 
 		/* XXX sample RSSI properly here */
@@ -319,7 +319,7 @@ controls_tick() {
 }
 
 static bool
-ppm_input(uint16_t *values, uint16_t *num_values)
+ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 {
 	bool result = false;
 
@@ -342,6 +342,10 @@ ppm_input(uint16_t *values, uint16_t *num_values)
 
 		/* clear validity */
 		ppm_last_valid_decode = 0;
+
+		/* store PPM frame length */
+		if (num_values)
+			*frame_len = ppm_frame_length;
 
 		/* good if we got any channels */
 		result = (*num_values > 0);
