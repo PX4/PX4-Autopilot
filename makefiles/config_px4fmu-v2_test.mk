@@ -16,6 +16,8 @@ MODULES		+= drivers/led
 MODULES		+= drivers/boards/px4fmu-v2
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
+MODULES		+= systemcmds/usbser
+MODULES		+= systemcmds/nshterm
 
 #
 # Library modules
@@ -37,5 +39,4 @@ endef
 
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
-	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                )
+	$(call _B, sysinfo,                 ,                          2048,  sysinfo_main                )

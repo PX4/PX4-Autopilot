@@ -1,5 +1,5 @@
 ############################################################################
-# configs/px4fmu-v2/nsh/Make.defs
+# configs/px4fmu-v1/nsh/Make.defs
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -40,7 +40,7 @@ include ${TOPDIR}/tools/Config.mk
 # We only support building with the ARM bare-metal toolchain from
 # https://launchpad.net/gcc-arm-embedded on Windows, Linux or Mac OS.
 #
-CONFIG_ARMV7M_TOOLCHAIN	:= GNU_EABI
+CONFIG_ARMV7M_TOOLCHAIN	:= GNU_EABIL
 
 include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
@@ -139,8 +139,7 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wold-style-declaration \
 			   -Wmissing-parameter-type \
 			   -Wmissing-prototypes \
-			   -Wnested-externs \
-			   -Wunsuffixed-float-constants
+			   -Wnested-externs
 ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
 			   -Wno-psabi
 ARCHDEFINES		 =

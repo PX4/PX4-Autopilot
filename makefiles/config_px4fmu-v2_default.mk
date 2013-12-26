@@ -59,6 +59,7 @@ MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/usbser
 
 #
 # General system control
@@ -153,5 +154,4 @@ endef
 
 #                  command                 priority                   stack  entrypoint
 BUILTIN_COMMANDS := \
-	$(call _B, sercon,                 ,                          2048,  sercon_main                ) \
-	$(call _B, serdis,                 ,                          2048,  serdis_main                )
+	$(call _B, sysinfo,                 ,                          2048,  sysinfo_main                )

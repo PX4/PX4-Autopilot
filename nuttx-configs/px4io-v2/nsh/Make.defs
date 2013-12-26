@@ -40,7 +40,7 @@ include ${TOPDIR}/tools/Config.mk
 # We only support building with the ARM bare-metal toolchain from
 # https://launchpad.net/gcc-arm-embedded on Windows, Linux or Mac OS.
 #
-CONFIG_ARMV7M_TOOLCHAIN	:= GNU_EABI
+CONFIG_ARMV7M_TOOLCHAIN	:= GNU_EABIL
 
 include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
@@ -57,10 +57,6 @@ MAXOPTIMIZATION		 = -O3
 ARCHCPUFLAGS		 = -mcpu=cortex-m3 \
 			   -mthumb \
 			   -march=armv7-m
-
-# enable precise stack overflow tracking
-#INSTRUMENTATIONDEFINES	 = -finstrument-functions \
-#			   -ffixed-r10
 
 # use our linker script
 LDSCRIPT		 = ld.script
@@ -132,8 +128,7 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wold-style-declaration \
 			   -Wmissing-parameter-type \
 			   -Wmissing-prototypes \
-			   -Wnested-externs \
-			   -Wunsuffixed-float-constants
+			   -Wnested-externs
 ARCHWARNINGSXX		 = $(ARCHWARNINGS)
 ARCHDEFINES		 = 
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
