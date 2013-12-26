@@ -58,6 +58,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -216,6 +217,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
+	struct vehicle_gps_position_s gps;
+	memset(&gps, 0, sizeof(gps));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_control_mode_s control_mode;
@@ -223,11 +226,17 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
+	uint64_t last_gps = 0;
+
+	float vel_prev[3] = { 0.0f, 0.0f, 0.0f };
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
 	/* rate-limit raw data updates to 333 Hz (sensors app publishes at 200, so this is just paranoid) */
 	orb_set_interval(sub_raw, 3);
+
+	/* subscribe to GPS */
+	int sub_gps = orb_subscribe(ORB_ID(vehicle_gps_position));
 
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));
@@ -315,6 +324,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 				/* get latest measurements */
 				orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
+				orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
 
 				if (!initialized) {
 					// XXX disabling init for now
@@ -361,9 +371,46 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						sensor_last_timestamp[1] = raw.timestamp;
 					}
 
-					z_k[3] = raw.accelerometer_m_s2[0];
-					z_k[4] = raw.accelerometer_m_s2[1];
-					z_k[5] = raw.accelerometer_m_s2[2];
+					float acc[3];
+					if (gps.fix_type >= 3 && gps.eph_m < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
+						if (last_gps != 0 && gps.timestamp_velocity != last_gps) {
+							float gps_dt = (gps.timestamp_velocity - last_gps) / 1000000.0f;
+							/* calculate acceleration in NED frame */
+							float acc_NED[3];
+							acc_NED[0] = (gps.vel_n_m_s - vel_prev[0]) / gps_dt;
+							acc_NED[1] = (gps.vel_e_m_s - vel_prev[1]) / gps_dt;
+							acc_NED[2] = (gps.vel_d_m_s - vel_prev[2]) / gps_dt;
+
+							/* project acceleration to body frame */
+							for (int i = 0; i < 3; i++) {
+								acc[i] = 0.0f;
+								for (int j = 0; j < 3; j++) {
+									acc[i] += att.R[j][i] * acc_NED[j];
+								}
+							}
+						}
+
+					} else {
+						acc[0] = 0.0f;
+						acc[1] = 0.0f;
+						acc[2] = 0.0f;
+					}
+
+					if (gps.vel_ned_valid) {
+						vel_prev[0] = gps.vel_n_m_s;
+						vel_prev[1] = gps.vel_e_m_s;
+						vel_prev[2] = gps.vel_d_m_s;
+						last_gps = gps.timestamp_velocity;
+					} else {
+						vel_prev[0] = 0.0f;
+						vel_prev[1] = 0.0f;
+						vel_prev[2] = 0.0f;
+						last_gps = 0;
+					}
+
+					z_k[3] = raw.accelerometer_m_s2[0] - acc[0];
+					z_k[4] = raw.accelerometer_m_s2[1] - acc[1];
+					z_k[5] = raw.accelerometer_m_s2[2] - acc[2];
 
 					/* update magnetometer measurements */
 					if (sensor_last_count[2] != raw.magnetometer_counter) {
