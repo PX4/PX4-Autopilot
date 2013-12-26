@@ -51,7 +51,7 @@
 #include <sys/stat.h>
 
 #include <nuttx/i2c.h>
-#include <nuttx/mtd.h>
+#include <nuttx/mtd/mtd.h>
 #include <nuttx/fs/nxffs.h>
 #include <nuttx/fs/ioctl.h>
 
