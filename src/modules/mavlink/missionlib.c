@@ -73,11 +73,15 @@
 #include "waypoints.h"
 #include "mavlink_parameters.h"
 
+
+
 static uint8_t missionlib_msg_buf[MAVLINK_MAX_PACKET_LEN];
 static uint64_t loiter_start_time;
 
+#if 0
 static bool set_special_fields(float param1, float param2, float param3, float param4, uint16_t command,
 	struct vehicle_global_position_setpoint_s *sp);
+#endif
 
 int
 mavlink_missionlib_send_message(mavlink_message_t *msg)
@@ -87,6 +91,8 @@ mavlink_missionlib_send_message(mavlink_message_t *msg)
 	mavlink_send_uart_bytes(chan, missionlib_msg_buf, len);
 	return 0;
 }
+
+
 
 int
 mavlink_missionlib_send_gcs_string(const char *string)
@@ -127,6 +133,7 @@ uint64_t mavlink_missionlib_get_system_timestamp()
 	return hrt_absolute_time();
 }
 
+#if 0
 /**
  * Set special vehicle setpoint fields based on current mission item.
  *
@@ -388,3 +395,5 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 	printf("%s\n", buf);
 	//printf("[mavlink mp] new setpoint\n");//: frame: %d, lat: %d, lon: %d, alt: %d, yaw: %d\n", frame, param5_lat_x*1000, param6_lon_y*1000, param7_alt_z*1000, param4*1000);
 }
+
+#endif
