@@ -80,8 +80,8 @@ enum ORIGIN {
 struct mission_item_s
 {
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	double lat;			/**< latitude in degrees * 1E7				*/
-	double lon;			/**< longitude in degrees * 1E7				*/
+	double lat;			/**< latitude in degrees				*/
+	double lon;			/**< longitude in degrees				*/
 	float altitude;			/**< altitude in meters					*/
 	float yaw;			/**< in radians NED -PI..+PI 				*/
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
