@@ -91,7 +91,7 @@ mc_att_control_vector start
 #
 # Start position control
 #
-multirotor_pos_control start
+mc_pos_control start
 
 echo "[HIL] setup done, running"
 
