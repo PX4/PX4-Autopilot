@@ -39,6 +39,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -63,6 +64,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/drv_tone_alarm.h>
 
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
@@ -78,23 +80,29 @@ static const int ERROR = -1;
 #define DIR_WRITE				(0<<7)
 #define ADDR_INCREMENT			(1<<6)
 
-
+#define LSM303D_DEVICE_PATH_ACCEL	"/dev/lsm303d_accel"
+#define LSM303D_DEVICE_PATH_MAG		"/dev/lsm303d_mag"
 
 /* register addresses: A: accel, M: mag, T: temp */
 #define ADDR_WHO_AM_I			0x0F
-#define WHO_I_AM				0x49
+#define WHO_I_AM			0x49
 
-#define ADDR_OUT_L_T         	0x05
-#define ADDR_OUT_H_T        	0x06
-#define ADDR_STATUS_M           0x07
-#define ADDR_OUT_X_L_M          0x08
-#define ADDR_OUT_X_H_M          0x09
-#define ADDR_OUT_Y_L_M          0x0A
-#define ADDR_OUT_Y_H_M          0x0B
-#define ADDR_OUT_Z_L_M          0x0C
-#define ADDR_OUT_Z_H_M          0x0D
+#define ADDR_OUT_TEMP_L			0x05
+#define ADDR_OUT_TEMP_H			0x06
+#define ADDR_STATUS_M			0x07
+#define ADDR_OUT_X_L_M          	0x08
+#define ADDR_OUT_X_H_M          	0x09
+#define ADDR_OUT_Y_L_M          	0x0A
+#define ADDR_OUT_Y_H_M			0x0B
+#define ADDR_OUT_Z_L_M			0x0C
+#define ADDR_OUT_Z_H_M			0x0D
 
-#define ADDR_OUT_TEMP_A			0x26
+#define ADDR_INT_CTRL_M			0x12
+#define ADDR_INT_SRC_M			0x13
+#define ADDR_REFERENCE_X		0x1c
+#define ADDR_REFERENCE_Y		0x1d
+#define ADDR_REFERENCE_Z		0x1e
+
 #define ADDR_STATUS_A			0x27
 #define ADDR_OUT_X_L_A			0x28
 #define ADDR_OUT_X_H_A			0x29
@@ -111,6 +119,26 @@ static const int ERROR = -1;
 #define ADDR_CTRL_REG5			0x24
 #define ADDR_CTRL_REG6			0x25
 #define ADDR_CTRL_REG7			0x26
+
+#define ADDR_FIFO_CTRL			0x2e
+#define ADDR_FIFO_SRC			0x2f
+
+#define ADDR_IG_CFG1			0x30
+#define ADDR_IG_SRC1			0x31
+#define ADDR_IG_THS1			0x32
+#define ADDR_IG_DUR1			0x33
+#define ADDR_IG_CFG2			0x34
+#define ADDR_IG_SRC2			0x35
+#define ADDR_IG_THS2			0x36
+#define ADDR_IG_DUR2			0x37
+#define ADDR_CLICK_CFG			0x38
+#define ADDR_CLICK_SRC			0x39
+#define ADDR_CLICK_THS			0x3a
+#define ADDR_TIME_LIMIT			0x3b
+#define ADDR_TIME_LATENCY		0x3c
+#define ADDR_TIME_WINDOW		0x3d
+#define ADDR_ACT_THS			0x3e
+#define ADDR_ACT_DUR			0x3f
 
 #define REG1_RATE_BITS_A		((1<<7) | (1<<6) | (1<<5) | (1<<4))
 #define REG1_POWERDOWN_A		((0<<7) | (0<<6) | (0<<5) | (0<<4))
@@ -201,6 +229,21 @@ public:
 	 */
 	void			print_info();
 
+	/**
+	 * dump register values
+	 */
+	void			print_registers();
+
+	/**
+	 * toggle logging
+	 */
+	void			toggle_logging();
+
+	/**
+	 * check for extreme accel values
+	 */
+	void			check_extremes(const accel_report *arb);
+
 protected:
 	virtual int		probe();
 
@@ -234,7 +277,7 @@ private:
 	unsigned		_mag_samplerate;
 
 	orb_advert_t		_accel_topic;
-	orb_advert_t		_mag_topic;
+	int			_class_instance;
 
 	unsigned		_accel_read;
 	unsigned		_mag_read;
@@ -243,6 +286,8 @@ private:
 	perf_counter_t		_mag_sample_perf;
 	perf_counter_t		_reg7_resets;
 	perf_counter_t		_reg1_resets;
+	perf_counter_t		_extreme_values;
+	perf_counter_t		_accel_reschedules;
 
 	math::LowPassFilter2p	_accel_filter_x;
 	math::LowPassFilter2p	_accel_filter_y;
@@ -252,6 +297,15 @@ private:
 	// brownouts of the sensor
 	uint8_t			_reg7_expected;
 	uint8_t			_reg1_expected;
+
+	// accel logging
+	int			_accel_log_fd;
+	bool			_accel_logging_enabled;
+	uint64_t		_last_extreme_us;	
+	uint64_t		_last_log_us;	
+	uint64_t		_last_log_sync_us;	
+	uint64_t		_last_log_reg_us;	
+	uint64_t		_last_log_alarm_us;	
 
 	/**
 	 * Start automatic measurement.
@@ -269,6 +323,11 @@ private:
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
 	void			reset();
+
+	/**
+	 * disable I2C on the chip
+	 */
+	void			disable_i2c();
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -408,12 +467,17 @@ public:
 	virtual ssize_t			read(struct file *filp, char *buffer, size_t buflen);
 	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 
+	virtual int		init();
+
 protected:
 	friend class LSM303D;
 
 	void				parent_poll_notify();
 private:
 	LSM303D				*_parent;
+
+	orb_advert_t			_mag_topic;
+	int				_mag_class_instance;
 
 	void				measure();
 
@@ -422,7 +486,7 @@ private:
 
 
 LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
-	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 8000000),
+	SPI("LSM303D", path, bus, device, SPIDEV_MODE3, 11*1000*1000 /* will be rounded to 10.4 MHz, within safety margins for LSM303D */),
 	_mag(new LSM303D_mag(this)),
 	_call_accel_interval(0),
 	_call_mag_interval(0),
@@ -436,18 +500,26 @@ LSM303D::LSM303D(int bus, const char* path, spi_dev_e device) :
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
 	_accel_topic(-1),
-	_mag_topic(-1),
+	_class_instance(-1),
 	_accel_read(0),
 	_mag_read(0),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_accel_read")),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "lsm303d_mag_read")),
 	_reg1_resets(perf_alloc(PC_COUNT, "lsm303d_reg1_resets")),
 	_reg7_resets(perf_alloc(PC_COUNT, "lsm303d_reg7_resets")),
+	_extreme_values(perf_alloc(PC_COUNT, "lsm303d_extremes")),
+	_accel_reschedules(perf_alloc(PC_COUNT, "lsm303d_accel_resched")),
 	_accel_filter_x(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(LSM303D_ACCEL_DEFAULT_RATE, LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_reg1_expected(0),
-	_reg7_expected(0)
+	_reg7_expected(0),
+	_accel_log_fd(-1),
+	_accel_logging_enabled(false),
+	_last_log_us(0),
+	_last_log_sync_us(0),
+	_last_log_reg_us(0),
+	_last_log_alarm_us(0)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -479,11 +551,17 @@ LSM303D::~LSM303D()
 	if (_mag_reports != nullptr)
 		delete _mag_reports;
 
+	if (_class_instance != -1)
+		unregister_class_devname(ACCEL_DEVICE_PATH, _class_instance);
+
 	delete _mag;
 
 	/* delete the perf counter */
 	perf_free(_accel_sample_perf);
 	perf_free(_mag_sample_perf);
+	perf_free(_reg1_resets);
+	perf_free(_reg7_resets);
+	perf_free(_extreme_values);
 }
 
 int
@@ -505,10 +583,6 @@ LSM303D::init()
 		goto out;
 
 	/* advertise accel topic */
-	struct accel_report zero_report;
-	memset(&zero_report, 0, sizeof(zero_report));
-	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &zero_report);
-
 	_mag_reports = new RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr)
@@ -516,26 +590,45 @@ LSM303D::init()
 
 	reset();
 
-	/* advertise mag topic */
-	struct mag_report zero_mag_report;
-	memset(&zero_mag_report, 0, sizeof(zero_mag_report));
-	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &zero_mag_report);
-
-	/* do CDev init for the mag device node, keep it optional */
-	mag_ret = _mag->init();
-
-	if (mag_ret != OK) {
-		_mag_topic = -1;
+	/* do CDev init for the mag device node */
+	ret = _mag->init();
+	if (ret != OK) {
+		warnx("MAG init failed");
+		goto out;
 	}
 
-	ret = OK;
+	_class_instance = register_class_devname(ACCEL_DEVICE_PATH);
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		// we are the primary accel device, so advertise to
+		// the ORB
+		struct accel_report zero_report;
+		memset(&zero_report, 0, sizeof(zero_report));
+		_accel_topic = orb_advertise(ORB_ID(sensor_accel), &zero_report);
+	}
+
 out:
 	return ret;
 }
 
 void
+LSM303D::disable_i2c(void)
+{
+	uint8_t a = read_reg(0x02);
+	write_reg(0x02, (0x10 | a));
+	a = read_reg(0x02);
+	write_reg(0x02, (0xF7 & a));
+	a = read_reg(0x15);
+	write_reg(0x15, (0x80 | a));
+	a = read_reg(0x02);
+	write_reg(0x02, (0xE7 & a));
+}
+
+void
 LSM303D::reset()
 {
+	// ensure the chip doesn't interpret any other bus traffic as I2C
+	disable_i2c();
+
 	/* enable accel*/
 	_reg1_expected = REG1_X_ENABLE_A | REG1_Y_ENABLE_A | REG1_Z_ENABLE_A | REG1_BDU_UPDATE | REG1_RATE_800HZ_A;
 	write_reg(ADDR_CTRL_REG1, _reg1_expected);
@@ -544,10 +637,17 @@ LSM303D::reset()
 	_reg7_expected = REG7_CONT_MODE_M;
 	write_reg(ADDR_CTRL_REG7, _reg7_expected);
 	write_reg(ADDR_CTRL_REG5, REG5_RES_HIGH_M);
+	write_reg(ADDR_CTRL_REG3, 0x04); // DRDY on ACCEL on INT1
+	write_reg(ADDR_CTRL_REG4, 0x04); // DRDY on MAG on INT2
 
 	accel_set_range(LSM303D_ACCEL_DEFAULT_RANGE_G);
 	accel_set_samplerate(LSM303D_ACCEL_DEFAULT_RATE);
 	accel_set_driver_lowpass_filter((float)LSM303D_ACCEL_DEFAULT_RATE, (float)LSM303D_ACCEL_DEFAULT_DRIVER_FILTER_FREQ);
+
+	// we setup the anti-alias on-chip filter as 50Hz. We believe
+	// this operates in the analog domain, and is critical for
+	// anti-aliasing. The 2 pole software filter is designed to
+	// operate in conjunction with this on-chip filter
 	accel_set_onchip_lowpass_filter_bandwidth(LSM303D_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ);
 
 	mag_set_range(LSM303D_MAG_DEFAULT_RANGE_GA);
@@ -572,6 +672,122 @@ LSM303D::probe()
 	return -EIO;
 }
 
+#define ACCEL_LOGFILE "/fs/microsd/lsm303d.log"
+
+/**
+   check for extreme accelerometer values and log to a file on the SD card
+ */
+void
+LSM303D::check_extremes(const accel_report *arb)
+{
+	const float extreme_threshold = 30;
+        static bool boot_ok = false;
+	bool is_extreme = (fabsf(arb->x) > extreme_threshold && 
+			   fabsf(arb->y) > extreme_threshold && 
+			   fabsf(arb->z) > extreme_threshold);
+	if (is_extreme) {
+		perf_count(_extreme_values);
+		// force accel logging on if we see extreme values
+		_accel_logging_enabled = true;
+	} else {
+            boot_ok = true;
+        }
+
+	if (! _accel_logging_enabled) {
+		// logging has been disabled by user, close
+		if (_accel_log_fd != -1) {
+			::close(_accel_log_fd);
+			_accel_log_fd = -1;
+		}
+		return;
+	}
+	if (_accel_log_fd == -1) {
+		// keep last 10 logs
+		::unlink(ACCEL_LOGFILE ".9");
+		for (uint8_t i=8; i>0; i--) {
+			uint8_t len = strlen(ACCEL_LOGFILE)+3;
+			char log1[len], log2[len];
+			snprintf(log1, sizeof(log1), "%s.%u", ACCEL_LOGFILE, (unsigned)i);
+			snprintf(log2, sizeof(log2), "%s.%u", ACCEL_LOGFILE, (unsigned)(i+1));
+			::rename(log1, log2);
+		}
+		::rename(ACCEL_LOGFILE, ACCEL_LOGFILE ".1");
+
+		// open the new logfile
+		_accel_log_fd = ::open(ACCEL_LOGFILE, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+		if (_accel_log_fd == -1) {
+			return;
+		}
+	}
+
+	uint64_t now = hrt_absolute_time();
+	// log accels at 1Hz
+	if (_last_log_us == 0 ||
+	    now - _last_log_us > 1000*1000) {
+		_last_log_us = now;
+		::dprintf(_accel_log_fd, "ARB %llu %.3f %.3f %.3f %d %d %d boot_ok=%u\r\n",
+			  (unsigned long long)arb->timestamp, 
+			  arb->x, arb->y, arb->z,
+			  (int)arb->x_raw,
+			  (int)arb->y_raw,
+			  (int)arb->z_raw,
+			  (unsigned)boot_ok);
+	}
+
+        const uint8_t reglist[] = { ADDR_WHO_AM_I, 0x02, 0x15, ADDR_STATUS_A, ADDR_STATUS_M, ADDR_CTRL_REG0, ADDR_CTRL_REG1, 
+                                    ADDR_CTRL_REG2, ADDR_CTRL_REG3, ADDR_CTRL_REG4, ADDR_CTRL_REG5, ADDR_CTRL_REG6, 
+                                    ADDR_CTRL_REG7, ADDR_OUT_TEMP_L, ADDR_OUT_TEMP_H, ADDR_INT_CTRL_M, ADDR_INT_SRC_M, 
+                                    ADDR_REFERENCE_X, ADDR_REFERENCE_Y, ADDR_REFERENCE_Z, ADDR_OUT_X_L_A, ADDR_OUT_X_H_A, 
+                                    ADDR_OUT_Y_L_A, ADDR_OUT_Y_H_A, ADDR_OUT_Z_L_A, ADDR_OUT_Z_H_A, ADDR_FIFO_CTRL, 
+                                    ADDR_FIFO_SRC, ADDR_IG_CFG1, ADDR_IG_SRC1, ADDR_IG_THS1, ADDR_IG_DUR1, ADDR_IG_CFG2, 
+                                    ADDR_IG_SRC2, ADDR_IG_THS2, ADDR_IG_DUR2, ADDR_CLICK_CFG, ADDR_CLICK_SRC, 
+                                    ADDR_CLICK_THS, ADDR_TIME_LIMIT, ADDR_TIME_LATENCY, ADDR_TIME_WINDOW, 
+                                    ADDR_ACT_THS, ADDR_ACT_DUR,
+                                    ADDR_OUT_X_L_M, ADDR_OUT_X_H_M, 
+                                    ADDR_OUT_Y_L_M, ADDR_OUT_Y_H_M, ADDR_OUT_Z_L_M, ADDR_OUT_Z_H_M, 0x02, 0x15, ADDR_WHO_AM_I};
+        uint8_t regval[sizeof(reglist)];
+        for (uint8_t i=0; i<sizeof(reglist); i++) {
+            regval[i] = read_reg(reglist[i]);
+        }
+
+	// log registers at 10Hz when we have extreme values, or 0.5 Hz without
+	if (_last_log_reg_us == 0 ||
+	    (is_extreme && (now - _last_log_reg_us > 250*1000)) ||
+	    (now - _last_log_reg_us > 10*1000*1000)) {
+		_last_log_reg_us = now;
+		::dprintf(_accel_log_fd, "XREG %llu", (unsigned long long)hrt_absolute_time());
+		for (uint8_t i=0; i<sizeof(reglist); i++) {
+			::dprintf(_accel_log_fd, " %02x:%02x", (unsigned)reglist[i], (unsigned)regval[i]);
+		}
+		::dprintf(_accel_log_fd, "\n");
+	}
+
+	// fsync at 0.1Hz
+	if (now - _last_log_sync_us > 10*1000*1000) {
+		_last_log_sync_us = now;
+		::fsync(_accel_log_fd);
+	}
+
+	// play alarm every 10s if we have had an extreme value
+	if (perf_event_count(_extreme_values) != 0 && 
+	    (now - _last_log_alarm_us > 10*1000*1000)) {
+		_last_log_alarm_us = now;
+		int tfd = ::open(TONEALARM_DEVICE_PATH, 0);
+		if (tfd != -1) {
+			uint8_t tone = 3;
+			if (!is_extreme) {
+				tone = 3;
+			} else if (boot_ok) {
+				tone = 4;
+			} else {
+				tone = 5;
+			}
+			::ioctl(tfd, TONE_SET_ALARM, tone);
+			::close(tfd);
+		}		
+	}
+}
+
 ssize_t
 LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 {
@@ -590,6 +806,7 @@ LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 		 */
 		while (count--) {
 			if (_accel_reports->get(arb)) {
+				check_extremes(arb);
 				ret += sizeof(*arb);
 				arb++;
 			}
@@ -952,6 +1169,7 @@ LSM303D::read_reg(unsigned reg)
 	uint8_t cmd[2];
 
 	cmd[0] = reg | DIR_READ;
+	cmd[1] = 0;
 
 	transfer(cmd, cmd, sizeof(cmd));
 
@@ -1224,6 +1442,14 @@ LSM303D::mag_measure_trampoline(void *arg)
 void
 LSM303D::measure()
 {
+	// if the accel doesn't have any data ready then re-schedule
+	// for 100 microseconds later. This ensures we don't double
+	// read a value and then miss the next value
+	if (stm32_gpioread(GPIO_EXTI_ACCEL_DRDY) == 0) {
+		perf_count(_accel_reschedules);
+		hrt_call_delay(&_accel_call, 100);
+		return;
+	}
 	if (read_reg(ADDR_CTRL_REG1) != _reg1_expected) {
 		perf_count(_reg1_resets);
 		reset();
@@ -1248,6 +1474,7 @@ LSM303D::measure()
 	perf_begin(_accel_sample_perf);
 
 	/* fetch data from the sensor */
+	memset(&raw_accel_report, 0, sizeof(raw_accel_report));
 	raw_accel_report.cmd = ADDR_STATUS_A | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_accel_report, (uint8_t *)&raw_accel_report, sizeof(raw_accel_report));
 
@@ -1290,8 +1517,10 @@ LSM303D::measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+	if (_accel_topic != -1) {
+		/* publish for subscribers */
+		orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+	}
 
 	_accel_read++;
 
@@ -1325,6 +1554,7 @@ LSM303D::mag_measure()
 	perf_begin(_mag_sample_perf);
 
 	/* fetch data from the sensor */
+	memset(&raw_mag_report, 0, sizeof(raw_mag_report));
 	raw_mag_report.cmd = ADDR_STATUS_M | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_mag_report, (uint8_t *)&raw_mag_report, sizeof(raw_mag_report));
 
@@ -1361,8 +1591,10 @@ LSM303D::mag_measure()
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
 
-	/* publish for subscribers */
-	orb_publish(ORB_ID(sensor_mag), _mag_topic, &mag_report);
+	if (_mag->_mag_topic != -1) {
+		/* publish for subscribers */
+		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
+	}
 
 	_mag_read++;
 
@@ -1380,14 +1612,111 @@ LSM303D::print_info()
 	_mag_reports->print_info("mag reports");
 }
 
+void
+LSM303D::print_registers()
+{
+	const struct {
+		uint8_t reg;
+		const char *name;
+	} regmap[] = {
+		{ ADDR_WHO_AM_I,    "WHO_AM_I" },
+		{ 0x02,             "I2C_CONTROL1" },
+		{ 0x15,             "I2C_CONTROL2" },
+		{ ADDR_STATUS_A,    "STATUS_A" },
+		{ ADDR_STATUS_M,    "STATUS_M" },
+		{ ADDR_CTRL_REG0,   "CTRL_REG0" },
+		{ ADDR_CTRL_REG1,   "CTRL_REG1" },
+		{ ADDR_CTRL_REG2,   "CTRL_REG2" },
+		{ ADDR_CTRL_REG3,   "CTRL_REG3" },
+		{ ADDR_CTRL_REG4,   "CTRL_REG4" },
+		{ ADDR_CTRL_REG5,   "CTRL_REG5" },
+		{ ADDR_CTRL_REG6,   "CTRL_REG6" },
+		{ ADDR_CTRL_REG7,   "CTRL_REG7" },
+		{ ADDR_OUT_TEMP_L,  "TEMP_L" },
+		{ ADDR_OUT_TEMP_H,  "TEMP_H" },
+		{ ADDR_INT_CTRL_M,  "INT_CTRL_M" },
+		{ ADDR_INT_SRC_M,   "INT_SRC_M" },
+		{ ADDR_REFERENCE_X, "REFERENCE_X" },
+		{ ADDR_REFERENCE_Y, "REFERENCE_Y" },
+		{ ADDR_REFERENCE_Z, "REFERENCE_Z" },
+		{ ADDR_OUT_X_L_A,   "ACCEL_XL" },
+		{ ADDR_OUT_X_H_A,   "ACCEL_XH" },
+		{ ADDR_OUT_Y_L_A,   "ACCEL_YL" },
+		{ ADDR_OUT_Y_H_A,   "ACCEL_YH" },
+		{ ADDR_OUT_Z_L_A,   "ACCEL_ZL" },
+		{ ADDR_OUT_Z_H_A,   "ACCEL_ZH" },
+		{ ADDR_FIFO_CTRL,   "FIFO_CTRL" },
+		{ ADDR_FIFO_SRC,    "FIFO_SRC" },
+		{ ADDR_IG_CFG1,     "IG_CFG1" },
+		{ ADDR_IG_SRC1,     "IG_SRC1" },
+		{ ADDR_IG_THS1,     "IG_THS1" },
+		{ ADDR_IG_DUR1,     "IG_DUR1" },
+		{ ADDR_IG_CFG2,     "IG_CFG2" },
+		{ ADDR_IG_SRC2,     "IG_SRC2" },
+		{ ADDR_IG_THS2,     "IG_THS2" },
+		{ ADDR_IG_DUR2,     "IG_DUR2" },
+		{ ADDR_CLICK_CFG,   "CLICK_CFG" },
+		{ ADDR_CLICK_SRC,   "CLICK_SRC" },
+		{ ADDR_CLICK_THS,   "CLICK_THS" },
+		{ ADDR_TIME_LIMIT,  "TIME_LIMIT" },
+		{ ADDR_TIME_LATENCY,"TIME_LATENCY" },
+		{ ADDR_TIME_WINDOW, "TIME_WINDOW" },
+		{ ADDR_ACT_THS,     "ACT_THS" },
+		{ ADDR_ACT_DUR,     "ACT_DUR" }
+	};
+	for (uint8_t i=0; i<sizeof(regmap)/sizeof(regmap[0]); i++) {
+		printf("0x%02x %s\n", read_reg(regmap[i].reg), regmap[i].name);
+	}
+	printf("_reg1_expected=0x%02x\n", _reg1_expected);
+	printf("_reg7_expected=0x%02x\n", _reg7_expected);
+}
+
+void
+LSM303D::toggle_logging()
+{
+	if (! _accel_logging_enabled) {
+		_accel_logging_enabled = true;
+		printf("Started logging to %s\n", ACCEL_LOGFILE);
+	} else {
+		_accel_logging_enabled = false;
+		printf("Stopped logging\n");
+	}
+}
+
 LSM303D_mag::LSM303D_mag(LSM303D *parent) :
-	CDev("LSM303D_mag", MAG_DEVICE_PATH),
-	_parent(parent)
+	CDev("LSM303D_mag", LSM303D_DEVICE_PATH_MAG),
+	_parent(parent),
+	_mag_topic(-1),
+	_mag_class_instance(-1)
 {
 }
 
 LSM303D_mag::~LSM303D_mag()
 {
+	if (_mag_class_instance != -1)
+		unregister_class_devname(MAG_DEVICE_PATH, _mag_class_instance);
+}
+
+int
+LSM303D_mag::init()
+{
+	int ret;
+
+	ret = CDev::init();
+	if (ret != OK)
+		goto out;
+
+	_mag_class_instance = register_class_devname(MAG_DEVICE_PATH);
+	if (_mag_class_instance == CLASS_DEVICE_PRIMARY) {
+		// we are the primary mag device, so advertise to
+		// the ORB
+		struct mag_report zero_report;
+		memset(&zero_report, 0, sizeof(zero_report));
+		_mag_topic = orb_advertise(ORB_ID(sensor_mag), &zero_report);
+	}
+
+out:
+	return ret;
 }
 
 void
@@ -1432,6 +1761,8 @@ void	start();
 void	test();
 void	reset();
 void	info();
+void	regdump();
+void	logging();
 
 /**
  * Start the driver.
@@ -1445,7 +1776,7 @@ start()
 		errx(0, "already started");
 
 	/* create the driver */
-	g_dev = new LSM303D(1 /* XXX magic number */, ACCEL_DEVICE_PATH, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
+	g_dev = new LSM303D(1 /* SPI dev 1 */, LSM303D_DEVICE_PATH_ACCEL, (spi_dev_e)PX4_SPIDEV_ACCEL_MAG);
 
 	if (g_dev == nullptr) {
 		warnx("failed instantiating LSM303D obj");
@@ -1456,7 +1787,7 @@ start()
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	fd = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
 		goto fail;
@@ -1464,7 +1795,7 @@ start()
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
 
-	fd_mag = open(MAG_DEVICE_PATH, O_RDONLY);
+	fd_mag = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
 	/* don't fail if open cannot be opened */
 	if (0 <= fd_mag) {
@@ -1473,6 +1804,8 @@ start()
 		}
 	}
 
+        close(fd);
+        close(fd_mag);
 
 	exit(0);
 fail:
@@ -1499,10 +1832,10 @@ test()
 	int ret;
 
 	/* get the driver */
-	fd_accel = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	fd_accel = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd_accel < 0)
-		err(1, "%s open failed", ACCEL_DEVICE_PATH);
+		err(1, "%s open failed", LSM303D_DEVICE_PATH_ACCEL);
 
 	/* do a simple demand read */
 	sz = read(fd_accel, &accel_report, sizeof(accel_report));
@@ -1528,10 +1861,10 @@ test()
 	struct mag_report m_report;
 
 	/* get the driver */
-	fd_mag = open(MAG_DEVICE_PATH, O_RDONLY);
+	fd_mag = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
 	if (fd_mag < 0)
-		err(1, "%s open failed", MAG_DEVICE_PATH);
+		err(1, "%s open failed", LSM303D_DEVICE_PATH_MAG);
 
 	/* check if mag is onboard or external */
 	if ((ret = ioctl(fd_mag, MAGIOCGEXTERNAL, 0)) < 0)
@@ -1554,6 +1887,9 @@ test()
 
 	/* XXX add poll-rate tests here too */
 
+        close(fd_accel);
+        close(fd_mag);
+
 	reset();
 	errx(0, "PASS");
 }
@@ -1564,7 +1900,7 @@ test()
 void
 reset()
 {
-	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	int fd = open(LSM303D_DEVICE_PATH_ACCEL, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");
@@ -1575,7 +1911,9 @@ reset()
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		err(1, "accel pollrate reset failed");
 
-	fd = open(MAG_DEVICE_PATH, O_RDONLY);
+        close(fd);
+
+	fd = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
 	if (fd < 0) {
 		warnx("mag could not be opened, external mag might be used");
@@ -1584,6 +1922,8 @@ reset()
 		if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 			err(1, "mag pollrate reset failed");
 	}
+
+        close(fd);
 
 	exit(0);
 }
@@ -1599,6 +1939,35 @@ info()
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
+
+	exit(0);
+}
+
+/**
+ * dump registers from device
+ */
+void
+regdump()
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running\n");
+
+	printf("regdump @ %p\n", g_dev);
+	g_dev->print_registers();
+
+	exit(0);
+}
+
+/**
+ * toggle logging
+ */
+void
+logging()
+{
+	if (g_dev == nullptr)
+		errx(1, "driver not running\n");
+
+	g_dev->toggle_logging();
 
 	exit(0);
 }
@@ -1634,5 +2003,17 @@ lsm303d_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "info"))
 		lsm303d::info();
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	/*
+	 * dump device registers
+	 */
+	if (!strcmp(argv[1], "regdump"))
+		lsm303d::regdump();
+
+	/*
+	 * dump device registers
+	 */
+	if (!strcmp(argv[1], "logging"))
+		lsm303d::logging();
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'logging' or 'regdump'");
 }

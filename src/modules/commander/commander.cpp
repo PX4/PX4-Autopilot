@@ -509,6 +509,21 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 		break;
 
+	/* Flight termination */
+	case VEHICLE_CMD_DO_SET_SERVO: { //xxx: needs its own mavlink command
+
+			if (armed->armed && cmd->param3 > 0.5) { //xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
+				transition_result_t flighttermination_res = flighttermination_state_transition(status, FLIGHTTERMINATION_STATE_ON, control_mode);
+				result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				/* reject parachute depoyment not armed */
+				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			}
+
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -1174,6 +1189,16 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+		/*  Flight termination in manual mode if assisted switch is on easy position //xxx hack! */
+		if (armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
+			transition_result_t flighttermination_res = flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_ON, &control_mode);
+			if (flighttermination_res == TRANSITION_CHANGED) {
+				tune_positive();
+			}
+		} else {
+			flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_OFF, &control_mode);
+		}
+
 
 		/* handle commands last, as the system needs to be updated to handle them */
 		orb_check(cmd_sub, &updated);
@@ -1199,6 +1224,7 @@ int commander_thread_main(int argc, char *argv[])
 		bool arming_state_changed = check_arming_state_changed();
 		bool main_state_changed = check_main_state_changed();
 		bool navigation_state_changed = check_navigation_state_changed();
+		bool flighttermination_state_changed = check_flighttermination_state_changed();
 
 		hrt_abstime t1 = hrt_absolute_time();
 
@@ -1598,8 +1624,8 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			/* switch to failsafe mode */
 			bool manual_control_old = control_mode->flag_control_manual_enabled;
 
-			if (!status->condition_landed) {
-				/* in air: try to hold position */
+			if (!status->condition_landed && status->condition_local_position_valid) {
+				/* in air: try to hold position if possible */
 				res = navigation_state_transition(status, NAVIGATION_STATE_VECTOR, control_mode);
 
 			} else {
@@ -1725,7 +1751,8 @@ void *commander_low_prio_loop(void *arg)
 		/* ignore commands the high-prio loop handles */
 		if (cmd.command == VEHICLE_CMD_DO_SET_MODE ||
 		    cmd.command == VEHICLE_CMD_COMPONENT_ARM_DISARM ||
-		    cmd.command == VEHICLE_CMD_NAV_TAKEOFF)
+		    cmd.command == VEHICLE_CMD_NAV_TAKEOFF ||
+		    cmd.command == VEHICLE_CMD_DO_SET_SERVO)
 			continue;
 
 		/* only handle low-priority commands here */

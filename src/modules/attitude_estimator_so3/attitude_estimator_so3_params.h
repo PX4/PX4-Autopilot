@@ -1,9 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Hyon Lim <limhyon@gmail.com>
+ *           Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,53 +33,35 @@
  *
  ****************************************************************************/
 
-/**
- * @file vehicle_global_position_setpoint.h
- * Definition of the global WGS84 position setpoint uORB topic.
- */
-
-#ifndef TOPIC_VEHICLE_GLOBAL_POSITION_SETPOINT_H_
-#define TOPIC_VEHICLE_GLOBAL_POSITION_SETPOINT_H_
-
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
-#include "mission.h"
-
-/**
- * @addtogroup topics
- * @{
- */
-
-/**
- * Global position setpoint in WGS84 coordinates.
+/*
+ * @file attitude_estimator_so3_params.h
  *
- * This is the position the MAV is heading towards. If it of type loiter,
- * the MAV is circling around it with the given loiter radius in meters.
+ * Parameters for nonlinear complementary filters on the SO(3).
  */
-struct vehicle_global_position_setpoint_s
-{
-	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	int32_t lat;			/**< latitude in degrees * 1E7				*/
-	int32_t lon;			/**< longitude in degrees * 1E7				*/
-	float altitude;			/**< altitude in meters					*/
-	float yaw;			/**< in radians NED -PI..+PI 				*/
-	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
-	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
-	enum NAV_CMD nav_cmd;		/**< true if loitering is enabled			*/
-	float param1;
-	float param2;
-	float param3;
-	float param4;
-	float turn_distance_xy;		/**< The distance on the plane which will mark this as reached */
-	float turn_distance_z;		/**< The distance in Z direction which will mark this as reached */
+
+#include <systemlib/param/param.h>
+
+struct attitude_estimator_so3_params {
+	float Kp;
+	float Ki;
+	float roll_off;
+	float pitch_off;
+	float yaw_off;
+};
+
+struct attitude_estimator_so3_param_handles {
+	param_t Kp, Ki;
+	param_t roll_off, pitch_off, yaw_off;
 };
 
 /**
- * @}
+ * Initialize all parameter handles and values
+ *
  */
+int parameters_init(struct attitude_estimator_so3_param_handles *h);
 
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_global_position_setpoint);
-
-#endif
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct attitude_estimator_so3_param_handles *h, struct attitude_estimator_so3_params *p);

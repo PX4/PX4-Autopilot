@@ -103,12 +103,21 @@ int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavli
 			return MAV_MISSION_ERROR;
 	}
 
+	switch (mavlink_mission_item->command) {
+		case MAV_CMD_NAV_TAKEOFF:
+			mission_item->pitch_min = mavlink_mission_item->param2;
+			break;
+		default:
+			mission_item->radius = mavlink_mission_item->param2;
+			break;
+	}
+
 	mission_item->yaw = _wrap_pi(mavlink_mission_item->param4*M_DEG_TO_RAD_F);
 	mission_item->loiter_radius = fabsf(mavlink_mission_item->param3);
 	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
 	mission_item->nav_cmd = mavlink_mission_item->command;
-	mission_item->radius = mavlink_mission_item->param1;
-	mission_item->time_inside = mavlink_mission_item->param2 / 1e3f; /* from milliseconds to seconds */
+
+	mission_item->time_inside = mavlink_mission_item->param1 / 1e3f; /* from milliseconds to seconds */
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	mission_item->index = mavlink_mission_item->seq;
 	mission_item->origin = ORIGIN_MAVLINK;
@@ -124,6 +133,15 @@ int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *missio
 		mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 	}
 	
+	switch (mission_item->nav_cmd) {
+		case NAV_CMD_TAKEOFF:
+			mavlink_mission_item->param2 = mission_item->pitch_min;
+			break;
+		default:
+			mavlink_mission_item->param2 = mission_item->radius;
+			break;
+	}
+
 	mavlink_mission_item->x = (float)mission_item->lat;
 	mavlink_mission_item->y = (float)mission_item->lon;
 	mavlink_mission_item->z = mission_item->altitude;
@@ -131,8 +149,7 @@ int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *missio
 	mavlink_mission_item->param4 = mission_item->yaw*M_RAD_TO_DEG_F;
 	mavlink_mission_item->param3 = mission_item->loiter_radius*(float)mission_item->loiter_direction;
 	mavlink_mission_item->command = mission_item->nav_cmd;
-	mavlink_mission_item->param1 = mission_item->radius;
-	mavlink_mission_item->param2 = mission_item->time_inside * 1e3f; /* from seconds to milliseconds */
+	mavlink_mission_item->param1 = mission_item->time_inside * 1e3f; /* from seconds to milliseconds */
 	mavlink_mission_item->autocontinue = mission_item->autocontinue;
 	mavlink_mission_item->seq = mission_item->index;
 
@@ -152,6 +169,8 @@ void mavlink_wpm_init(mavlink_wpm_storage *state)
 	state->timestamp_lastaction = 0;
 	// state->timestamp_last_send_setpoint = 0;
 	state->timeout = MAVLINK_WPM_PROTOCOL_TIMEOUT_DEFAULT;
+
+	state->current_dataman_id = 0;
 	// state->delay_setpoint = MAVLINK_WPM_SETPOINT_DELAY_DEFAULT;
 	// state->idle = false;      				///< indicates if the system is following the waypoints or is waiting
 	// state->current_active_wp_id = -1;		///< id of current waypoint
@@ -595,6 +614,7 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 						// wpm->yaw_reached = false;
 						// wpm->pos_reached = false;
 						
+
 						mission.current_index = wpc.seq;
 
 						publish_mission();
@@ -701,7 +721,15 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 					struct mission_item_s mission_item;
 					ssize_t len = sizeof(struct mission_item_s);
 					
-					if (dm_read(DM_KEY_WAYPOINTS_OFFBOARD, wpr.seq, &mission_item, len) == len) {
+					dm_item_t dm_current;
+
+					if (wpm->current_dataman_id == 0) {
+						dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
+					} else {
+						dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
+					}
+
+					if (dm_read(dm_current, wpr.seq, &mission_item, len) == len) {
 					
 						if (mission.current_index == wpr.seq) {
 							wp.current = true;
@@ -838,10 +866,6 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 
 						if (wpc.count > NUM_MISSIONS_SUPPORTED) {
 							warnx("Too many waypoints: %d, supported: %d", wpc.count, NUM_MISSIONS_SUPPORTED);
-						} else {
-							/* set count to 0 while copying */
-							mission.count = 0;
-							publish_mission();
 						}
 
 #ifdef MAVLINK_WPM_NO_PRINTF
@@ -975,7 +999,17 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 
 					size_t len = sizeof(struct mission_item_s);
 
-					if (dm_write(DM_KEY_WAYPOINTS_OFFBOARD, wp.seq, DM_PERSIST_IN_FLIGHT_RESET, &mission_item, len) != len) {
+					dm_item_t dm_next;
+
+					if (wpm->current_dataman_id == 0) {
+						dm_next = DM_KEY_WAYPOINTS_OFFBOARD_1;
+						mission.dataman_id = 1;
+					} else {
+						dm_next = DM_KEY_WAYPOINTS_OFFBOARD_0;
+						mission.dataman_id = 0;
+					}
+
+					if (dm_write(dm_next, wp.seq, DM_PERSIST_IN_FLIGHT_RESET, &mission_item, len) != len) {
 						mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ERROR);
 						wpm->current_state = MAVLINK_WPM_STATE_IDLE;
 						break;
@@ -1021,6 +1055,7 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 						
 						publish_mission();
 
+						wpm->current_dataman_id = mission.dataman_id;
 						wpm->size = wpm->current_count;
 
 						//get the new current waypoint
@@ -1115,9 +1150,11 @@ void mavlink_wpm_message_handler(const mavlink_message_t *msg, const struct vehi
 				// wpm->pos_reached = false;
 
 				/* prepare mission topic */
+				mission.dataman_id = -1;
 				mission.count = 0;
+				mission.current_index = -1;
 
-				if (dm_clear(DM_KEY_WAYPOINTS_OFFBOARD) == OK) {
+				if (dm_clear(DM_KEY_WAYPOINTS_OFFBOARD_0) == OK && dm_clear(DM_KEY_WAYPOINTS_OFFBOARD_1) == OK) {
 					mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ACCEPTED);
 				} else {
 					mavlink_wpm_send_waypoint_ack(wpm->current_partner_sysid, wpm->current_partner_compid, MAV_MISSION_ERROR);

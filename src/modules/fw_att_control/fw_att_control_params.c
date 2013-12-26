@@ -33,9 +33,9 @@ f *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  ****************************************************************************/
 
 /**
- * @file fw_pos_control_l1_params.c
+ * @file fw_att_control_params.c
  *
- * Parameters defined by the L1 position control task
+ * Parameters defined by the fixed-wing attitude control task
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */

@@ -80,8 +80,8 @@ enum ORIGIN {
 struct mission_item_s
 {
 	bool altitude_is_relative;	/**< true if altitude is relative from start point	*/
-	double lat;			/**< latitude in degrees * 1E7				*/
-	double lon;			/**< longitude in degrees * 1E7				*/
+	double lat;			/**< latitude in degrees				*/
+	double lon;			/**< longitude in degrees				*/
 	float altitude;			/**< altitude in meters					*/
 	float yaw;			/**< in radians NED -PI..+PI 				*/
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
@@ -89,6 +89,7 @@ struct mission_item_s
 	enum NAV_CMD nav_cmd;		/**< navigation command					*/
 	float radius;			/**< radius in which the mission is accepted as reached in meters */
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
+	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
 	int index;			/**< index matching the mavlink waypoint                */
 	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
@@ -96,6 +97,7 @@ struct mission_item_s
 
 struct mission_s
 {
+	int dataman_id;			/**< default -1, there are two offboard storage places in the dataman: 0 or 1 */
 	unsigned count;			/**< count of the missions stored in the datamanager */
 	int current_index;		/**< default -1, start at the one changed latest */
 };

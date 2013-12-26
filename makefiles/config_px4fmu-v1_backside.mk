@@ -69,12 +69,13 @@ MODULES		+= modules/mavlink_onboard
 MODULES		+= modules/gpio_led
 
 #
-# Estimation modules (EKF / other filters)
+# Estimation modules (EKF/ SO3 / other filters)
 #
 #MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/att_pos_estimator_ekf
 #MODULES		+= modules/position_estimator_inav
 MODULES		+= examples/flow_position_estimator
+MODULES		+= modules/attitude_estimator_so3
 
 #
 # Vehicle Control

@@ -117,9 +117,6 @@ ORB_DEFINE(vehicle_local_position_setpoint, struct vehicle_local_position_setpoi
 #include "topics/vehicle_bodyframe_speed_setpoint.h"
 ORB_DEFINE(vehicle_bodyframe_speed_setpoint, struct vehicle_bodyframe_speed_setpoint_s);
 
-#include "topics/vehicle_global_position_setpoint.h"
-ORB_DEFINE(vehicle_global_position_setpoint, struct vehicle_global_position_setpoint_s);
-
 #include "topics/mission_item_triplet.h"
 ORB_DEFINE(mission_item_triplet, struct mission_item_triplet_s);
 
@@ -175,13 +172,6 @@ ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
 
 #include "topics/actuator_armed.h"
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);
-
-/* actuator controls, as set by actuators / mixers after limiting */
-#include "topics/actuator_controls_effective.h"
-ORB_DEFINE(actuator_controls_effective_0, struct actuator_controls_effective_s);
-ORB_DEFINE(actuator_controls_effective_1, struct actuator_controls_effective_s);
-ORB_DEFINE(actuator_controls_effective_2, struct actuator_controls_effective_s);
-ORB_DEFINE(actuator_controls_effective_3, struct actuator_controls_effective_s);
 
 #include "topics/actuator_outputs.h"
 ORB_DEFINE(actuator_outputs_0, struct actuator_outputs_s);

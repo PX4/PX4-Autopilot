@@ -121,6 +121,7 @@ private:
 	orb_advert_t	_rate_sp_pub;			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint point */
 	orb_advert_t	_actuators_0_pub;		/**< actuator control group 0 setpoint */
+	orb_advert_t	_actuators_1_pub;		/**< actuator control group 1 setpoint (Airframe) */
 
 	struct vehicle_attitude_s				_att;			/**< vehicle attitude */
 	struct accel_report						_accel;			/**< body frame accelerations */
@@ -128,7 +129,8 @@ private:
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct airspeed_s						_airspeed;		/**< airspeed */
 	struct vehicle_control_mode_s			_vcontrol_mode;	/**< vehicle control mode */
-	struct actuator_controls_s				_actuators;		/**< actuator control inputs */
+	struct actuator_controls_s			_actuators;		/**< actuator control inputs */
+	struct actuator_controls_s			_actuators_airframe;		/**< actuator control inputs */
 	struct vehicle_global_position_s		_global_pos;	/**< global position */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -286,6 +288,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_rate_sp_pub(-1),
 	_actuators_0_pub(-1),
 	_attitude_sp_pub(-1),
+	_actuators_1_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw att control")),
@@ -294,14 +297,15 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_airspeed_valid(false)
 {
 	/* safely initialize structs */
-	vehicle_attitude_s			_att = {0};
-	accel_report				_accel = {0};
-	vehicle_attitude_setpoint_s		_att_sp = {0};
-	manual_control_setpoint_s		_manual = {0};
-	airspeed_s				_airspeed = {0};
-	vehicle_control_mode_s			_vcontrol_mode = {0};
-	actuator_controls_s			_actuators = {0};
-	vehicle_global_position_s		_global_pos = {0};
+	_att = {0};
+	_accel = {0};
+	_att_sp = {0};
+	_manual = {0};
+	_airspeed = {0};
+	_vcontrol_mode = {0};
+	_actuators = {0};
+	_actuators_airframe = {0};
+	_global_pos = {0};
 
 
 	_parameter_handles.tconst = param_find("FW_ATT_TC");
@@ -625,6 +629,15 @@ FixedwingAttitudeControl::task_main()
 				lock_integrator = true;
 			}
 
+			/* Simple handling of failsafe: deploy parachute if failsafe is on */
+			if (_vcontrol_mode.flag_control_flighttermination_enabled) {
+				_actuators_airframe.control[1] = 1.0f;
+//				warnx("_actuators_airframe.control[1] = 1.0f;");
+			} else {
+				_actuators_airframe.control[1] = 0.0f;
+//				warnx("_actuators_airframe.control[1] = -1.0f;");
+			}
+
 			/* decide if in stabilized or full manual control */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
@@ -794,6 +807,7 @@ FixedwingAttitudeControl::task_main()
 
 			/* lazily publish the setpoint only once available */
 			_actuators.timestamp = hrt_absolute_time();
+			_actuators_airframe.timestamp = hrt_absolute_time();
 
 			if (_actuators_0_pub > 0) {
 				/* publish the attitude setpoint */
@@ -802,6 +816,19 @@ FixedwingAttitudeControl::task_main()
 			} else {
 				/* advertise and publish */
 				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
+			}
+
+			if (_actuators_1_pub > 0) {
+				/* publish the attitude setpoint */
+				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_airframe);
+//				warnx("%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
+//						(double)_actuators_airframe.control[0], (double)_actuators_airframe.control[1], (double)_actuators_airframe.control[2],
+//						(double)_actuators_airframe.control[3], (double)_actuators_airframe.control[4], (double)_actuators_airframe.control[5],
+//						(double)_actuators_airframe.control[6], (double)_actuators_airframe.control[7]);
+
+			} else {
+				/* advertise and publish */
+				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_airframe);
 			}
 
 		}

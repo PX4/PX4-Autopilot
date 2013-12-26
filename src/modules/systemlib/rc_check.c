@@ -45,7 +45,7 @@
 #include <systemlib/rc_check.h>
 #include <systemlib/param/param.h>
 #include <mavlink/mavlink_log.h>
-#include <uORB/topics/rc_channels.h>
+#include <drivers/drv_rc_input.h>
 
 int rc_calibration_check(int mavlink_fd) {
 
@@ -66,7 +66,7 @@ int rc_calibration_check(int mavlink_fd) {
 
 	int channel_fail_count = 0;
 
-	for (int i = 0; i < RC_CHANNELS_MAX; i++) {
+	for (int i = 0; i < RC_INPUT_MAX_CHANNELS; i++) {
 		/* should the channel be enabled? */
 		uint8_t count = 0;
 

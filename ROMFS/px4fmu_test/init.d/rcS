@@ -2,3 +2,11 @@
 #
 # PX4FMU startup script for test hackery.
 #
+
+if sercon
+then
+	echo "[init] USB interface connected"
+
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
+fi

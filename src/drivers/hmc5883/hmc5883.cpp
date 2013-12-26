@@ -77,6 +77,7 @@
  */
 
 #define HMC5883L_ADDRESS		PX4_I2C_OBDEV_HMC5883
+#define HMC5883L_DEVICE_PATH		"/dev/hmc5883"
 
 /* Max measurement rate is 160Hz, however with 160 it will be set to 166 Hz, therefore workaround using 150 */
 #define HMC5883_CONVERSION_INTERVAL	(1000000 / 150)	/* microseconds */
@@ -154,6 +155,7 @@ private:
 	float 			_range_scale;
 	float 			_range_ga;
 	bool			_collect_phase;
+	int			_class_instance;
 
 	orb_advert_t		_mag_topic;
 
@@ -315,12 +317,13 @@ extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
 
 HMC5883::HMC5883(int bus) :
-	I2C("HMC5883", MAG_DEVICE_PATH, bus, HMC5883L_ADDRESS, 400000),
+	I2C("HMC5883", HMC5883L_DEVICE_PATH, bus, HMC5883L_ADDRESS, 400000),
 	_measure_ticks(0),
 	_reports(nullptr),
 	_range_scale(0), /* default range scale from counts to gauss */
 	_range_ga(1.3f),
 	_mag_topic(-1),
+	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
@@ -351,6 +354,9 @@ HMC5883::~HMC5883()
 	if (_reports != nullptr)
 		delete _reports;
 
+	if (_class_instance != -1)
+		unregister_class_devname(MAG_DEVICE_PATH, _class_instance);
+
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -374,13 +380,17 @@ HMC5883::init()
 	/* reset the device configuration */
 	reset();
 
-	/* get a publish handle on the mag topic */
-	struct mag_report zero_report;
-	memset(&zero_report, 0, sizeof(zero_report));
-	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &zero_report);
+	_class_instance = register_class_devname(MAG_DEVICE_PATH);
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		/* get a publish handle on the mag topic if we are
+		 * the primary mag */
+		struct mag_report zero_report;
+		memset(&zero_report, 0, sizeof(zero_report));
+		_mag_topic = orb_advertise(ORB_ID(sensor_mag), &zero_report);
 
-	if (_mag_topic < 0)
-		debug("failed to create sensor_mag object");
+		if (_mag_topic < 0)
+			debug("failed to create sensor_mag object");
+	}
 
 	ret = OK;
 	/* sensor is ok, but not calibrated */
@@ -875,8 +885,10 @@ HMC5883::collect()
 	}
 #endif
 
-	/* publish it */
-	orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
+	if (_mag_topic != -1) {
+		/* publish it */
+		orb_publish(ORB_ID(sensor_mag), _mag_topic, &new_report);
+	}
 
 	/* post a report to the ring */
 	if (_reports->force(&new_report)) {
@@ -1256,7 +1268,7 @@ start()
 		goto fail;
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	fd = open(HMC5883L_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		goto fail;
@@ -1288,10 +1300,10 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	int fd = open(HMC5883L_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
+		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", HMC5883L_DEVICE_PATH);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
@@ -1388,10 +1400,10 @@ int calibrate()
 {
 	int ret;
 
-	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	int fd = open(HMC5883L_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
-		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
+		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", HMC5883L_DEVICE_PATH);
 
 	if (OK != (ret = ioctl(fd, MAGIOCCALIBRATE, fd))) {
 		warnx("failed to enable sensor calibration mode");
@@ -1413,7 +1425,7 @@ int calibrate()
 void
 reset()
 {
-	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	int fd = open(HMC5883L_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0)
 		err(1, "failed ");

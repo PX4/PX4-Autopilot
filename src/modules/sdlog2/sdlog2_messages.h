@@ -159,6 +159,7 @@ struct log_STAT_s {
 #define LOG_RC_MSG 11
 struct log_RC_s {
 	float channel[8];
+	uint8_t channel_count;
 };
 
 /* --- OUT0 - ACTUATOR_0 OUTPUT --- */
@@ -213,13 +214,12 @@ struct log_GPSP_s {
 	int32_t lon;
 	float altitude;
 	float yaw;
+	uint8_t nav_cmd;
 	float loiter_radius;
 	int8_t loiter_direction;
-	uint8_t nav_cmd;
-	float param1;
-	float param2;
-	float param3;
-	float param4;
+	float radius;
+	float time_inside;
+	float pitch_min;
 };
 
 /* --- ESC - ESC STATE --- */
@@ -281,13 +281,13 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(GPS, "QBffLLfffff", "GPSTime,FixType,EPH,EPV,Lat,Lon,Alt,VelN,VelE,VelD,Cog"),
 	LOG_FORMAT(ATTC, "ffff", "Roll,Pitch,Yaw,Thrust"),
 	LOG_FORMAT(STAT, "BBBfffBB", "MainState,NavState,ArmState,BatV,BatC,BatRem,BatWarn,Landed"),
-	LOG_FORMAT(RC, "ffffffff", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7"),
+	LOG_FORMAT(RC, "ffffffffB", "Ch0,Ch1,Ch2,Ch3,Ch4,Ch5,Ch6,Ch7,Count"),
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
-	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
+	LOG_FORMAT(GPSP, "BLLffBfbfff", "AltRel,Lat,Lon,Alt,Yaw,NavCmd,LoitRad,LoitDir,Rad,TimeIn,pitMin"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 	/* system-level messages, ID >= 0x80 */
