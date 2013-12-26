@@ -616,12 +616,13 @@ MulticopterAttitudeControl::task_main()
 			math::Vector<3> R_rp_x(R_rp(0, 0), R_rp(1, 0), R_rp(2, 0));
 			e_R(2) = atan2f((R_rp_x % R_sp_x) * R_sp_z, R_rp_x * R_sp_x) * yaw_w;
 
-			if (e_R_z_cos < 0.0) {
+			if (e_R_z_cos < 0.0f) {
 				/* for large thrust vector rotations use another rotation method:
 				 * calculate angle and axis for R -> R_sp rotation directly */
 				q.from_dcm(R.transposed() * R_sp);
 				math::Vector<3> e_R_d = q.imag();
-				float angle_d = 2.0f * atan2f(e_R_d.length(), q(0));
+				e_R_d.normalize();
+				e_R_d *= 2.0f * atan2f(e_R_d.length(), q(0));
 
 				/* use fusion of Z axis based rotation and direct rotation */
 				float direct_w = e_R_z_cos * e_R_z_cos * yaw_w;
