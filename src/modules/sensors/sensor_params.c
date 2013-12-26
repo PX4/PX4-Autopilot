@@ -195,6 +195,7 @@ PARAM_DEFINE_INT32(RC_RL1_DSM_VCC, 0); /* Relay 1 controls DSM VCC */
 #endif
 PARAM_DEFINE_INT32(RC_DSM_BIND, -1); /* -1 = Idle, 0 = Start DSM2 bind, 1 = Start DSMX bind */
 
+PARAM_DEFINE_INT32(BAT_V_SCALE_IO, 10000);
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 PARAM_DEFINE_FLOAT(BAT_V_SCALING, 0.0082f);
 #else
@@ -226,3 +227,7 @@ PARAM_DEFINE_INT32(RC_MAP_AUX3, 0);	/**< default function: camera azimuth / yaw 
 PARAM_DEFINE_FLOAT(RC_SCALE_ROLL, 0.6f);
 PARAM_DEFINE_FLOAT(RC_SCALE_PITCH, 0.6f);
 PARAM_DEFINE_FLOAT(RC_SCALE_YAW, 2.0f);
+
+PARAM_DEFINE_INT32(RC_FS_CH, 0);	/**< RC failsafe channel, 0 = disable */
+PARAM_DEFINE_INT32(RC_FS_MODE, 0);	/**< RC failsafe mode: 0 = too low means signal loss, 1 = too high means signal loss */
+PARAM_DEFINE_FLOAT(RC_FS_THR, 800);	/**< RC failsafe PWM threshold */

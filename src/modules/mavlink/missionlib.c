@@ -64,6 +64,7 @@
 #include <systemlib/systemlib.h>
 #include <mavlink/mavlink_log.h>
 
+#include "geo/geo.h"
 #include "waypoints.h"
 #include "orb_topics.h"
 #include "missionlib.h"
@@ -275,7 +276,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 			next_setpoint_index = index + 1;
 		}
 
-		while (next_setpoint_index < wpm->size - 1) {
+		while (next_setpoint_index < wpm->size) {
 
 			if (wpm->waypoints[next_setpoint_index].frame == (int)MAV_FRAME_GLOBAL && (wpm->waypoints[next_setpoint_index].command == (int)MAV_CMD_NAV_WAYPOINT ||
 					wpm->waypoints[next_setpoint_index].command == (int)MAV_CMD_NAV_LOITER_TURNS ||
@@ -300,7 +301,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 			sp.lon = wpm->waypoints[last_setpoint_index].y * 1e7f;
 			sp.altitude = wpm->waypoints[last_setpoint_index].z;
 			sp.altitude_is_relative = false;
-			sp.yaw = (wpm->waypoints[last_setpoint_index].param4 / 180.0f) * M_PI_F - M_PI_F;
+			sp.yaw = _wrap_pi(wpm->waypoints[last_setpoint_index].param4 / 180.0f * M_PI_F);
 			set_special_fields(wpm->waypoints[last_setpoint_index].param1,
 				wpm->waypoints[last_setpoint_index].param2,
 				wpm->waypoints[last_setpoint_index].param3,
@@ -316,7 +317,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 			sp.lon = wpm->waypoints[next_setpoint_index].y * 1e7f;
 			sp.altitude = wpm->waypoints[next_setpoint_index].z;
 			sp.altitude_is_relative = false;
-			sp.yaw = (wpm->waypoints[next_setpoint_index].param4 / 180.0f) * M_PI_F - M_PI_F;
+			sp.yaw = _wrap_pi(wpm->waypoints[next_setpoint_index].param4 / 180.0f * M_PI_F);
 			set_special_fields(wpm->waypoints[next_setpoint_index].param1,
 				wpm->waypoints[next_setpoint_index].param2,
 				wpm->waypoints[next_setpoint_index].param3,
@@ -342,7 +343,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.lon = param6_lon_y * 1e7f;
 		sp.altitude = param7_alt_z;
 		sp.altitude_is_relative = true;
-		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		sp.yaw = _wrap_pi(param4 / 180.0f * M_PI_F);
 		set_special_fields(param1, param2, param3, param4, command, &sp);
 
 		/* Initialize publication if necessary */
@@ -363,7 +364,7 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.x = param5_lat_x;
 		sp.y = param6_lon_y;
 		sp.z = param7_alt_z;
-		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+		sp.yaw = _wrap_pi(param4 / 180.0f * M_PI_F);
 
 		/* Initialize publication if necessary */
 		if (local_position_setpoint_pub < 0) {

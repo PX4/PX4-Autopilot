@@ -21,6 +21,7 @@ MODULES		+= drivers/px4fmu
 MODULES		+= drivers/px4io
 MODULES		+= drivers/boards/px4fmu-v2
 MODULES		+= drivers/rgbled
+MODULES		+= drivers/mpu6000
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
 MODULES		+= drivers/hmc5883
@@ -68,9 +69,10 @@ MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
 
 #
-# Estimation modules (EKF / other filters)
+# Estimation modules (EKF/ SO3 / other filters)
 #
 MODULES		+= modules/attitude_estimator_ekf
+MODULES		+= modules/attitude_estimator_so3
 MODULES		+= modules/att_pos_estimator_ekf
 MODULES		+= modules/position_estimator_inav
 MODULES		+= examples/flow_position_estimator

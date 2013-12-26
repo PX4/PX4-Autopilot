@@ -45,6 +45,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
+#include <systemlib/systemlib.h>
+#include <stm32_pwr.h>
 
 #include "px4io.h"
 #include "protocol.h"
@@ -87,7 +89,9 @@ uint16_t		r_page_status[] = {
 	[PX4IO_P_STATUS_IBATT]			= 0,
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
-	[PX4IO_P_STATUS_PRSSI]			= 0
+	[PX4IO_P_STATUS_PRSSI]			= 0,
+	[PX4IO_P_STATUS_NRSSI]			= 0,
+	[PX4IO_P_STATUS_RC_DATA]		= 0
 };
 
 /**
@@ -112,7 +116,7 @@ uint16_t		r_page_servos[PX4IO_SERVO_COUNT];
 uint16_t		r_page_raw_rc_input[] =
 {
 	[PX4IO_P_RAW_RC_COUNT]			= 0,
-	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + PX4IO_CONTROL_CHANNELS)] = 0
+	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + PX4IO_CONTROL_CHANNELS)] = 0 // XXX ensure we have enough space to decode beefy RX, will be replaced by patch soon
 };
 
 /**
@@ -154,6 +158,8 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_VBATT_SCALE]		= 10000,
 #endif
 	[PX4IO_P_SETUP_SET_DEBUG]		= 0,
+	[PX4IO_P_SETUP_REBOOT_BL]		= 0,
+	[PX4IO_P_SETUP_CRC ... (PX4IO_P_SETUP_CRC+1)] = 0,
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(0)
@@ -499,6 +505,29 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		case PX4IO_P_SETUP_SET_DEBUG:
 			r_page_setup[PX4IO_P_SETUP_SET_DEBUG] = value;
 			isr_debug(0, "set debug %u\n", (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG]);
+			break;
+
+		case PX4IO_P_SETUP_REBOOT_BL:
+			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
+			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ||
+			    (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+				// don't allow reboot while armed
+				break;
+			}
+
+			// check the magic value
+			if (value != PX4IO_REBOOT_BL_MAGIC)
+				break;
+                        
+                        // note that we don't set BL_WAIT_MAGIC in
+                        // BKP_DR1 as that is not necessary given the
+                        // timing of the forceupdate command. The
+                        // bootloader on px4io waits for enough time
+                        // anyway, and this method works with older
+                        // bootloader versions (tested with both
+                        // revision 3 and revision 4).
+
+			up_systemreset();
 			break;
 
 		case PX4IO_P_SETUP_DSM:

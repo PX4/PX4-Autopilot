@@ -1,6 +1,6 @@
 #!nsh
 
-echo "[init] 666_fmu_q_x550: PX4FMU Quad X550 with PWM outputs"
+echo "[init] 666_fmu_q_x550: PX4FMU Quad X550 with or without IO"
 
 #
 # Load default params for this platform
@@ -33,17 +33,27 @@ fi
 # MAV_TYPE     2 = quadrotor
 #
 param set MAV_TYPE 2
- 
-#
-# Start MAVLink
-#
-mavlink start -d /dev/ttyS0 -b 57600
-usleep 5000
+
+set EXIT_ON_END no
 
 #
-# Start PWM output
+# Start and configure PX4IO or FMU interface
 #
-fmu mode_pwm
+if px4io detect
+then
+	# Start MAVLink (depends on orb)
+	mavlink start
+	usleep 5000
+
+	sh /etc/init.d/rc.io
+else
+	# Start MAVLink (on UART1 / ttyS0)
+	mavlink start -d /dev/ttyS0
+	usleep 5000
+	fmu mode_pwm
+	param set BAT_V_SCALING 0.004593
+	set EXIT_ON_END yes
+fi
 
 #
 # Load mixer
@@ -56,9 +66,18 @@ mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
 pwm rate -c 1234 -r 400
 
 #
+# Set disarmed, min and max PWM signals
+#
+pwm disarmed -c 1234 -p 900
+pwm min -c 1234 -p 1100
+pwm max -c 1234 -p 1900
+
+#
 # Start common for all multirotors apps
 #
 sh /etc/init.d/rc.multirotor
- 
-# Exit, because /dev/ttyS0 is needed for MAVLink
-exit
+
+if [ $EXIT_ON_END == yes ]
+then
+	exit
+fi

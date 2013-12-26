@@ -31,11 +31,11 @@ static void mavlink_test_set_cam_shutter(uint8_t system_id, uint8_t component_id
         uint16_t i;
 	mavlink_set_cam_shutter_t packet_in = {
 		17.0,
-	17443,
-	17547,
-	29,
-	96,
-	163,
+	}17443,
+	}17547,
+	}29,
+	}96,
+	}163,
 	};
 	mavlink_set_cam_shutter_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -84,17 +84,17 @@ static void mavlink_test_image_triggered(uint8_t system_id, uint8_t component_id
         uint16_t i;
 	mavlink_image_triggered_t packet_in = {
 		93372036854775807ULL,
-	963497880,
-	101.0,
-	129.0,
-	157.0,
-	185.0,
-	213.0,
-	241.0,
-	269.0,
-	297.0,
-	325.0,
-	353.0,
+	}963497880,
+	}101.0,
+	}129.0,
+	}157.0,
+	}185.0,
+	}213.0,
+	}241.0,
+	}269.0,
+	}297.0,
+	}325.0,
+	}353.0,
 	};
 	mavlink_image_triggered_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -192,28 +192,28 @@ static void mavlink_test_image_available(uint8_t system_id, uint8_t component_id
         uint16_t i;
 	mavlink_image_available_t packet_in = {
 		93372036854775807ULL,
-	93372036854776311ULL,
-	93372036854776815ULL,
-	963498712,
-	963498920,
-	963499128,
-	963499336,
-	297.0,
-	325.0,
-	353.0,
-	381.0,
-	409.0,
-	437.0,
-	465.0,
-	493.0,
-	521.0,
-	549.0,
-	577.0,
-	21603,
-	21707,
-	21811,
-	147,
-	214,
+	}93372036854776311ULL,
+	}93372036854776815ULL,
+	}963498712,
+	}963498920,
+	}963499128,
+	}963499336,
+	}297.0,
+	}325.0,
+	}353.0,
+	}381.0,
+	}409.0,
+	}437.0,
+	}465.0,
+	}493.0,
+	}521.0,
+	}549.0,
+	}577.0,
+	}21603,
+	}21707,
+	}21811,
+	}147,
+	}214,
 	};
 	mavlink_image_available_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -279,11 +279,11 @@ static void mavlink_test_set_position_control_offset(uint8_t system_id, uint8_t 
         uint16_t i;
 	mavlink_set_position_control_offset_t packet_in = {
 		17.0,
-	45.0,
-	73.0,
-	101.0,
-	53,
-	120,
+	}45.0,
+	}73.0,
+	}101.0,
+	}53,
+	}120,
 	};
 	mavlink_set_position_control_offset_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -332,10 +332,10 @@ static void mavlink_test_position_control_setpoint(uint8_t system_id, uint8_t co
         uint16_t i;
 	mavlink_position_control_setpoint_t packet_in = {
 		17.0,
-	45.0,
-	73.0,
-	101.0,
-	18067,
+	}45.0,
+	}73.0,
+	}101.0,
+	}18067,
 	};
 	mavlink_position_control_setpoint_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -383,12 +383,12 @@ static void mavlink_test_marker(uint8_t system_id, uint8_t component_id, mavlink
         uint16_t i;
 	mavlink_marker_t packet_in = {
 		17.0,
-	45.0,
-	73.0,
-	101.0,
-	129.0,
-	157.0,
-	18483,
+	}45.0,
+	}73.0,
+	}101.0,
+	}129.0,
+	}157.0,
+	}18483,
 	};
 	mavlink_marker_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -438,12 +438,12 @@ static void mavlink_test_raw_aux(uint8_t system_id, uint8_t component_id, mavlin
         uint16_t i;
 	mavlink_raw_aux_t packet_in = {
 		963497464,
-	17443,
-	17547,
-	17651,
-	17755,
-	17859,
-	17963,
+	}17443,
+	}17547,
+	}17651,
+	}17755,
+	}17859,
+	}17963,
 	};
 	mavlink_raw_aux_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -493,7 +493,7 @@ static void mavlink_test_watchdog_heartbeat(uint8_t system_id, uint8_t component
         uint16_t i;
 	mavlink_watchdog_heartbeat_t packet_in = {
 		17235,
-	17339,
+	}17339,
 	};
 	mavlink_watchdog_heartbeat_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -538,10 +538,10 @@ static void mavlink_test_watchdog_process_info(uint8_t system_id, uint8_t compon
         uint16_t i;
 	mavlink_watchdog_process_info_t packet_in = {
 		963497464,
-	17443,
-	17547,
-	"IJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABC",
-	"EFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRST",
+	}17443,
+	}17547,
+	}"IJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABC",
+	}"EFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRST",
 	};
 	mavlink_watchdog_process_info_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -589,11 +589,11 @@ static void mavlink_test_watchdog_process_status(uint8_t system_id, uint8_t comp
         uint16_t i;
 	mavlink_watchdog_process_status_t packet_in = {
 		963497464,
-	17443,
-	17547,
-	17651,
-	163,
-	230,
+	}17443,
+	}17547,
+	}17651,
+	}163,
+	}230,
 	};
 	mavlink_watchdog_process_status_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -642,9 +642,9 @@ static void mavlink_test_watchdog_command(uint8_t system_id, uint8_t component_i
         uint16_t i;
 	mavlink_watchdog_command_t packet_in = {
 		17235,
-	17339,
-	17,
-	84,
+	}17339,
+	}17,
+	}84,
 	};
 	mavlink_watchdog_command_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -691,9 +691,9 @@ static void mavlink_test_pattern_detected(uint8_t system_id, uint8_t component_i
         uint16_t i;
 	mavlink_pattern_detected_t packet_in = {
 		17.0,
-	17,
-	"FGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ",
-	128,
+	}17,
+	}"FGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ",
+	}128,
 	};
 	mavlink_pattern_detected_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -740,13 +740,13 @@ static void mavlink_test_point_of_interest(uint8_t system_id, uint8_t component_
         uint16_t i;
 	mavlink_point_of_interest_t packet_in = {
 		17.0,
-	45.0,
-	73.0,
-	17859,
-	175,
-	242,
-	53,
-	"RSTUVWXYZABCDEFGHIJKLMNOP",
+	}45.0,
+	}73.0,
+	}17859,
+	}175,
+	}242,
+	}53,
+	}"RSTUVWXYZABCDEFGHIJKLMNOP",
 	};
 	mavlink_point_of_interest_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -797,16 +797,16 @@ static void mavlink_test_point_of_interest_connection(uint8_t system_id, uint8_t
         uint16_t i;
 	mavlink_point_of_interest_connection_t packet_in = {
 		17.0,
-	45.0,
-	73.0,
-	101.0,
-	129.0,
-	157.0,
-	18483,
-	211,
-	22,
-	89,
-	"DEFGHIJKLMNOPQRSTUVWXYZAB",
+	}45.0,
+	}73.0,
+	}101.0,
+	}129.0,
+	}157.0,
+	}18483,
+	}211,
+	}22,
+	}89,
+	}"DEFGHIJKLMNOPQRSTUVWXYZAB",
 	};
 	mavlink_point_of_interest_connection_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -860,12 +860,12 @@ static void mavlink_test_data_transmission_handshake(uint8_t system_id, uint8_t 
         uint16_t i;
 	mavlink_data_transmission_handshake_t packet_in = {
 		963497464,
-	17443,
-	17547,
-	29,
-	96,
-	163,
-	230,
+	}17443,
+	}17547,
+	}29,
+	}96,
+	}163,
+	}230,
 	};
 	mavlink_data_transmission_handshake_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -915,7 +915,7 @@ static void mavlink_test_encapsulated_data(uint8_t system_id, uint8_t component_
         uint16_t i;
 	mavlink_encapsulated_data_t packet_in = {
 		17235,
-	{ 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135 },
+	}{ 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135 },
 	};
 	mavlink_encapsulated_data_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -960,13 +960,13 @@ static void mavlink_test_brief_feature(uint8_t system_id, uint8_t component_id, 
         uint16_t i;
 	mavlink_brief_feature_t packet_in = {
 		17.0,
-	45.0,
-	73.0,
-	101.0,
-	18067,
-	18171,
-	65,
-	{ 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163 },
+	}45.0,
+	}73.0,
+	}101.0,
+	}18067,
+	}18171,
+	}65,
+	}{ 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163 },
 	};
 	mavlink_brief_feature_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -1017,14 +1017,14 @@ static void mavlink_test_attitude_control(uint8_t system_id, uint8_t component_i
         uint16_t i;
 	mavlink_attitude_control_t packet_in = {
 		17.0,
-	45.0,
-	73.0,
-	101.0,
-	53,
-	120,
-	187,
-	254,
-	65,
+	}45.0,
+	}73.0,
+	}101.0,
+	}53,
+	}120,
+	}187,
+	}254,
+	}65,
 	};
 	mavlink_attitude_control_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));

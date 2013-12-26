@@ -116,6 +116,8 @@ extern struct system_load_s system_load;
 #define LOW_VOLTAGE_BATTERY_COUNTER_LIMIT (LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 #define CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT (CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
+#define MAVLINK_OPEN_INTERVAL 50000
+
 #define STICK_ON_OFF_LIMIT 0.75f
 #define STICK_THRUST_RANGE 1.0f
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
@@ -582,16 +584,6 @@ int commander_thread_main(int argc, char *argv[])
 
 	mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
-	if (mavlink_fd < 0) {
-		/* try again later */
-		usleep(20000);
-		mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-
-		if (mavlink_fd < 0) {
-			warnx("ERROR: Failed to open MAVLink log stream again, start mavlink app first.");
-		}
-	}
-
 	/* Main state machine */
 	/* make sure we are in preflight state */
 	memset(&status, 0, sizeof(status));
@@ -770,6 +762,11 @@ int commander_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit) {
 
+		if (mavlink_fd < 0 && counter % (1000000 / MAVLINK_OPEN_INTERVAL) == 0) {
+			/* try to open the mavlink log device every once in a while */
+			mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+		}
+
 		/* update parameters */
 		orb_check(param_changed_sub, &updated);
 
@@ -874,7 +871,7 @@ int commander_thread_main(int argc, char *argv[])
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
-		if (status.condition_local_altitude_valid) {
+		if (status.is_rotary_wing && status.condition_local_altitude_valid) {
 			if (status.condition_landed != local_position.landed) {
 				status.condition_landed = local_position.landed;
 				status_changed = true;
@@ -1542,7 +1539,8 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			// TODO AUTO_LAND handling
 			if (status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 				/* don't switch to other states until takeoff not completed */
-				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+				// XXX: only respect the condition_landed when the local position is actually valid
+				if (status->is_rotary_wing && status->condition_local_altitude_valid && (local_pos->z > -takeoff_alt || status->condition_landed)) {
 					return TRANSITION_NOT_CHANGED;
 				}
 			}
@@ -1552,7 +1550,7 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			    status->navigation_state != NAVIGATION_STATE_AUTO_MISSION &&
 			    status->navigation_state != NAVIGATION_STATE_AUTO_RTL) {
 				/* possibly on ground, switch to TAKEOFF if needed */
-				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+				if (status->is_rotary_wing && status->condition_local_altitude_valid && (local_pos->z > -takeoff_alt || status->condition_landed)) {
 					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_TAKEOFF, control_mode);
 					return res;
 				}
@@ -1600,8 +1598,8 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			/* switch to failsafe mode */
 			bool manual_control_old = control_mode->flag_control_manual_enabled;
 
-			if (!status->condition_landed) {
-				/* in air: try to hold position */
+			if (!status->condition_landed && status->condition_local_position_valid) {
+				/* in air: try to hold position if possible */
 				res = navigation_state_transition(status, NAVIGATION_STATE_VECTOR, control_mode);
 
 			} else {

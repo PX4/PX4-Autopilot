@@ -109,12 +109,35 @@ int preflight_check_main(int argc, char *argv[])
 	/* ---- ACCEL ---- */
 
 	close(fd);
-	fd = open(ACCEL_DEVICE_PATH, 0);
+	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 	ret = ioctl(fd, ACCELIOCSELFTEST, 0);
 	
 	if (ret != OK) {
 		warnx("accel self test failed");
 		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACCEL CHECK/CAL");
+		system_ok = false;
+		goto system_eval;
+	}
+
+	/* check measurement result range */
+	struct accel_report acc;
+	ret = read(fd, &acc, sizeof(acc));
+
+	if (ret == sizeof(acc)) {
+		/* evaluate values */
+		if (sqrtf(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z) > 30.0f /* m/s^2 */) {
+			warnx("accel with spurious values");
+			mavlink_log_critical(mavlink_fd, "SENSOR FAIL: |ACCEL| > 30 m/s^2");
+			/* this is frickin' fatal */
+			fail_on_error = true;
+			system_ok = false;
+			goto system_eval;
+		}
+	} else {
+		warnx("accel read failed");
+		mavlink_log_critical(mavlink_fd, "SENSOR FAIL: ACCEL READ");
+		/* this is frickin' fatal */
+		fail_on_error = true;
 		system_ok = false;
 		goto system_eval;
 	}
@@ -177,7 +200,7 @@ system_eval:
 		led_toggle(leds, LED_BLUE);
 
 		/* display and sound error */
-		for (int i = 0; i < 50; i++)
+		for (int i = 0; i < 14; i++)
 		{
 			led_toggle(leds, LED_BLUE);
 			led_toggle(leds, LED_AMBER);
@@ -193,9 +216,10 @@ system_eval:
 		/* stop alarm */
 		ioctl(buzzer, TONE_SET_ALARM, TONE_STOP_TUNE);
 
-		/* switch on leds */
+		/* switch off leds */
 		led_on(leds, LED_BLUE);
 		led_on(leds, LED_AMBER);
+		close(leds);
 
 		if (fail_on_error) {
 			/* exit with error message */

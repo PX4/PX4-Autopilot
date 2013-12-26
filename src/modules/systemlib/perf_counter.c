@@ -295,10 +295,11 @@ perf_print_counter(perf_counter_t handle)
 	case PC_ELAPSED: {
 		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
-		printf("%s: %llu events, %lluus elapsed, min %lluus max %lluus\n",
+		printf("%s: %llu events, %lluus elapsed, %llu avg, min %lluus max %lluus\n",
 		       handle->name,
 		       pce->event_count,
 		       pce->time_total,
+		       pce->time_total / pce->event_count,
 		       pce->time_least,
 		       pce->time_most);
 		break;

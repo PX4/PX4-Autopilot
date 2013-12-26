@@ -19,12 +19,18 @@ fi
 if mpu6000 start
 then
 	echo "using MPU6000"
-	set BOARD fmuv1
-else
-	echo "using L3GD20 and LSM303D"
-	l3gd20 start
-	lsm303d start
+fi
+
+if l3gd20 start
+then
+	echo "using L3GD20(H)"
+fi
+
+if lsm303d start
+then
 	set BOARD fmuv2
+else
+	set BOARD fmuv1
 fi
 
 # Start airspeed sensors

@@ -34,13 +34,14 @@
 /**
  * @file KalmanNav.cpp
  *
- * kalman filter navigation code
+ * Kalman filter navigation code
  */
 
 #include <poll.h>
 
 #include "KalmanNav.hpp"
 #include <systemlib/err.h>
+#include <geo/geo.h>
 
 // constants
 // Titterton pg. 52
@@ -67,15 +68,13 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// attitude representations
 	C_nb(),
 	q(),
-	_accel_sub(-1),
-	_gyro_sub(-1),
-	_mag_sub(-1),
 	// subscriptions
 	_sensors(&getSubscriptions(), ORB_ID(sensor_combined), 5), // limit to 200 Hz
 	_gps(&getSubscriptions(), ORB_ID(vehicle_gps_position), 100), // limit to 10 Hz
 	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
 	// publications
 	_pos(&getPublications(), ORB_ID(vehicle_global_position)),
+	_localPos(&getPublications(), ORB_ID(vehicle_local_position)),
 	_att(&getPublications(), ORB_ID(vehicle_attitude)),
 	// timestamps
 	_pubTimeStamp(hrt_absolute_time()),
@@ -92,6 +91,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	phi(0), theta(0), psi(0),
 	vN(0), vE(0), vD(0),
 	lat(0), lon(0), alt(0),
+	lat0(0), lon0(0), alt0(0),
 	// parameters for ground station
 	_vGyro(this, "V_GYRO"),
 	_vAccel(this, "V_ACCEL"),
@@ -127,19 +127,15 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	lon = 0.0f;
 	alt = 0.0f;
 
-	// gyro, accel and mag subscriptions
-	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
-	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
-
-	struct accel_report accel;
-	orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel);
-
-	struct mag_report mag;
-	orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag);
-
 	// initialize rotation quaternion with a single raw sensor measurement
-	q = init(accel.x, accel.y, accel.z, mag.x, mag.y, mag.z);
+	_sensors.update();
+	q = init(
+		_sensors.accelerometer_m_s2[0],
+		_sensors.accelerometer_m_s2[1],
+		_sensors.accelerometer_m_s2[2],
+		_sensors.magnetometer_ga[0],
+		_sensors.magnetometer_ga[1],
+		_sensors.magnetometer_ga[2]);
 
 	// initialize dcm
 	C_nb = Dcm(q);
@@ -228,10 +224,7 @@ void KalmanNav::update()
 	updateSubscriptions();
 
 	// initialize attitude when sensors online
-	if (!_attitudeInitialized && sensorsUpdate &&
-	    _sensors.accelerometer_counter > 10 &&
-	    _sensors.gyro_counter > 10 &&
-	    _sensors.magnetometer_counter > 10) {
+	if (!_attitudeInitialized && sensorsUpdate) {
 		if (correctAtt() == ret_ok) _attitudeInitCounter++;
 
 		if (_attitudeInitCounter > 100) {
@@ -255,11 +248,21 @@ void KalmanNav::update()
 		setLatDegE7(_gps.lat);
 		setLonDegE7(_gps.lon);
 		setAltE3(_gps.alt);
+		// set reference position for
+		// local position
+		lat0 = lat;
+		lon0 = lon;
+		alt0 = alt;
+		// XXX map_projection has internal global
+		// states that multiple things could change, 
+		// should make map_projection take reference
+		// lat/lon and not have init
+		map_projection_init(lat0, lon0);
 		_positionInitialized = true;
 		warnx("initialized EKF state with GPS\n");
 		warnx("vN: %8.4f, vE: %8.4f, vD: %8.4f, lat: %8.4f, lon: %8.4f, alt: %8.4f\n",
 		       double(vN), double(vE), double(vD),
-		       lat, lon, alt);
+		       lat, lon, double(alt));
 	}
 
 	// prediction step
@@ -314,7 +317,7 @@ void KalmanNav::updatePublications()
 {
 	using namespace math;
 
-	// position publication
+	// global position publication
 	_pos.timestamp = _pubTimeStamp;
 	_pos.time_gps_usec = _gps.timestamp_position;
 	_pos.valid = true;
@@ -326,6 +329,31 @@ void KalmanNav::updatePublications()
 	_pos.vy = vE;
 	_pos.vz = vD;
 	_pos.yaw = psi;
+
+	// local position publication
+	float x;
+	float y;
+	bool landed = alt < (alt0 + 0.1); // XXX improve?
+	map_projection_project(lat, lon, &x, &y); 
+	_localPos.timestamp = _pubTimeStamp;
+	_localPos.xy_valid = true;
+	_localPos.z_valid = true;
+	_localPos.v_xy_valid = true;
+	_localPos.v_z_valid = true;
+	_localPos.x = x;
+	_localPos.y = y;
+	_localPos.z = alt0 - alt;
+	_localPos.vx = vN;
+	_localPos.vy = vE;
+	_localPos.vz = vD;
+	_localPos.yaw = psi;
+	_localPos.xy_global = true;
+	_localPos.z_global = true;
+	_localPos.ref_timestamp = _pubTimeStamp;
+	_localPos.ref_lat = getLatDegE7();
+	_localPos.ref_lon = getLonDegE7();
+	_localPos.ref_alt = 0;
+	_localPos.landed = landed;
 
 	// attitude publication
 	_att.timestamp = _pubTimeStamp;
@@ -350,8 +378,10 @@ void KalmanNav::updatePublications()
 
 	// selectively update publications,
 	// do NOT call superblock do-all method
-	if (_positionInitialized)
+	if (_positionInitialized) {
 		_pos.update();
+		_localPos.update();
+	}
 
 	if (_attitudeInitialized)
 		_att.update();
@@ -643,7 +673,7 @@ int KalmanNav::correctAtt()
 
 	if (beta > _faultAtt.get()) {
 		warnx("fault in attitude: beta = %8.4f", (double)beta);
-		warnx("y:\n"); y.print();
+		warnx("y:"); y.print();
 	}
 
 	// update quaternions from euler
