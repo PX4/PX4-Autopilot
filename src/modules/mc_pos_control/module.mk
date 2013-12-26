@@ -32,11 +32,10 @@
 ############################################################################
 
 #
-# Build multirotor position control
+# Build multicopter position controller
 #
 
-MODULE_COMMAND	= multirotor_pos_control
+MODULE_COMMAND	= mc_pos_control
 
-SRCS		= multirotor_pos_control.c \
-		  multirotor_pos_control_params.c \
-		  thrust_pid.c
+SRCS		= mc_pos_control_main.cpp \
+			  mc_pos_control_params.c

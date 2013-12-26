@@ -262,6 +262,30 @@ public:
 	}
 
 	/**
+	 * element by element multiplication
+	 */
+	const Vector<N> emult(const Vector<N> &v) const {
+		Vector<N> res;
+
+		for (unsigned int i = 0; i < N; i++)
+			res.data[i] = data[i] * v.data[i];
+
+		return res;
+	}
+
+	/**
+	 * element by element division
+	 */
+	const Vector<N> edivide(const Vector<N> &v) const {
+		Vector<N> res;
+
+		for (unsigned int i = 0; i < N; i++)
+			res.data[i] = data[i] / v.data[i];
+
+		return res;
+	}
+
+	/**
 	 * gets the length of this vector squared
 	 */
 	float length_squared() const {
