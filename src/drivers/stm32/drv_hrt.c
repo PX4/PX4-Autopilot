@@ -282,6 +282,10 @@ static void		hrt_call_invoke(void);
  * Note that we assume that M3 means STM32F1 (since we don't really care about the F2).
  */
 # ifdef CONFIG_ARCH_CORTEXM3
+#  undef GTIM_CCER_CC1NP
+#  undef GTIM_CCER_CC2NP
+#  undef GTIM_CCER_CC3NP
+#  undef GTIM_CCER_CC4NP
 #  define GTIM_CCER_CC1NP 0
 #  define GTIM_CCER_CC2NP 0
 #  define GTIM_CCER_CC3NP 0
@@ -332,10 +336,10 @@ static void		hrt_call_invoke(void);
 /*
  * PPM decoder tuning parameters
  */
-# define PPM_MAX_PULSE_WIDTH	550		/* maximum width of a valid pulse */
+# define PPM_MAX_PULSE_WIDTH	700		/* maximum width of a valid pulse */
 # define PPM_MIN_CHANNEL_VALUE	800		/* shortest valid channel signal */
 # define PPM_MAX_CHANNEL_VALUE	2200		/* longest valid channel signal */
-# define PPM_MIN_START		2500		/* shortest valid start gap */
+# define PPM_MIN_START		2400		/* shortest valid start gap (only 2nd part of pulse) */
 
 /* decoded PPM buffer */
 #define PPM_MIN_CHANNELS	5
@@ -345,6 +349,7 @@ static void		hrt_call_invoke(void);
 #define PPM_CHANNEL_LOCK	4		/* should be less than the input timeout */
 
 __EXPORT uint16_t ppm_buffer[PPM_MAX_CHANNELS];
+__EXPORT uint16_t ppm_frame_length = 0;
 __EXPORT unsigned ppm_decoded_channels = 0;
 __EXPORT uint64_t ppm_last_valid_decode = 0;
 
@@ -362,7 +367,8 @@ static uint16_t ppm_temp_buffer[PPM_MAX_CHANNELS];
 struct {
 	uint16_t	last_edge;	/* last capture time */
 	uint16_t	last_mark;	/* last significant edge */
-	unsigned	next_channel;
+	uint16_t	frame_start;	/* the frame width */
+	unsigned	next_channel;	/* next channel index */
 	enum {
 		UNSYNCH = 0,
 		ARM,
@@ -447,7 +453,6 @@ hrt_ppm_decode(uint32_t status)
 
 	/* how long since the last edge? - this handles counter wrapping implicitely. */
 	width = count - ppm.last_edge;
-	ppm.last_edge = count;
 
 	ppm_edge_history[ppm_edge_next++] = width;
 
@@ -491,6 +496,7 @@ hrt_ppm_decode(uint32_t status)
 					ppm_buffer[i] = ppm_temp_buffer[i];
 
 				ppm_last_valid_decode = hrt_absolute_time();
+
 			}
 		}
 
@@ -500,13 +506,14 @@ hrt_ppm_decode(uint32_t status)
 		/* next edge is the reference for the first channel */
 		ppm.phase = ARM;
 
+		ppm.last_edge = count;
 		return;
 	}
 
 	switch (ppm.phase) {
 	case UNSYNCH:
 		/* we are waiting for a start pulse - nothing useful to do here */
-		return;
+		break;
 
 	case ARM:
 
@@ -515,14 +522,23 @@ hrt_ppm_decode(uint32_t status)
 			goto error;		/* pulse was too long */
 
 		/* record the mark timing, expect an inactive edge */
-		ppm.last_mark = count;
-		ppm.phase = INACTIVE;
-		return;
+		ppm.last_mark = ppm.last_edge;
+
+		/* frame length is everything including the start gap */
+		ppm_frame_length = (uint16_t)(ppm.last_edge - ppm.frame_start);
+		ppm.frame_start = ppm.last_edge;
+		ppm.phase = ACTIVE;
+		break;
 
 	case INACTIVE:
+
+		/* we expect a short pulse */
+		if (width > PPM_MAX_PULSE_WIDTH)
+			goto error;		/* pulse was too long */
+
 		/* this edge is not interesting, but now we are ready for the next mark */
 		ppm.phase = ACTIVE;
-		return;
+		break;
 
 	case ACTIVE:
 		/* determine the interval from the last mark */
@@ -543,9 +559,12 @@ hrt_ppm_decode(uint32_t status)
 			ppm_temp_buffer[ppm.next_channel++] = interval;
 
 		ppm.phase = INACTIVE;
-		return;
+		break;
 
 	}
+
+	ppm.last_edge = count;
+	return;
 
 	/* the state machine is corrupted; reset it */
 
