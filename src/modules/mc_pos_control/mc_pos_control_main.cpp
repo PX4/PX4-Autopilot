@@ -177,7 +177,7 @@ private:
 	math::Vector<3> _vel;
 	math::Vector<3> _pos_sp;
 	math::Vector<3> _vel_sp;
-	math::Vector<3> _vel_err_prev;			/**< velocity on previous step */
+	math::Vector<3> _vel_prev;			/**< velocity on previous step */
 
 	/**
 	 * Update our local parameter cache.
@@ -261,7 +261,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel.zero();
 	_pos_sp.zero();
 	_vel_sp.zero();
-	_vel_err_prev.zero();
+	_vel_prev.zero();
 
 	_params_handles.takeoff_alt	= param_find("NAV_TAKEOFF_ALT");
 	_params_handles.takeoff_gap	= param_find("NAV_TAKEOFF_GAP");
@@ -693,11 +693,15 @@ MulticopterPositionControl::task_main()
 					reset_int_xy = true;
 				}
 
-				/* calculate desired thrust vector in NED frame */
+				/* velocity error */
 				math::Vector<3> vel_err = _vel_sp - _vel;
-				math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + (vel_err - _vel_err_prev).emult(_params.vel_d) / dt + thrust_int;
 
-				_vel_err_prev = vel_err;
+				/* derivative of velocity error, not includes setpoint acceleration */
+				math::Vector<3> vel_err_d = (sp_move_rate - _vel).emult(_params.pos_p) - (_vel - _vel_prev) / dt;
+				_vel_prev = _vel;
+
+				/* thrust vector in NED frame */
+				math::Vector<3> thrust_sp = vel_err.emult(_params.vel_p) + vel_err_d.emult(_params.vel_d) + thrust_int;
 
 				if (!_control_mode.flag_control_velocity_enabled) {
 					thrust_sp(0) = 0.0f;
