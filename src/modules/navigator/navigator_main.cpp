@@ -76,6 +76,7 @@
 #include <mavlink/mavlink_log.h>
 
 #include "navigator_mission.h"
+#include "mission_feasibility_checker.h"
 
 
 /* oddly, ERROR is not defined for c++ */
@@ -165,6 +166,8 @@ private:
 	bool		_waypoint_yaw_reached;
 	uint64_t	_time_first_inside_orbit;
 
+	MissionFeasibilityChecker missionFeasiblityChecker;
+
 	struct {
 		float min_altitude;
 		float loiter_radius;
@@ -228,7 +231,7 @@ private:
 	/**
 	 * Retrieve offboard mission.
 	 */
-	void		offboard_mission_update();
+	void		offboard_mission_update(bool isrotaryWing);
 
 	/**
 	 * Retrieve onboard mission.
@@ -435,10 +438,20 @@ Navigator::navigation_capabilities_update()
 
 
 void
-Navigator::offboard_mission_update()
+Navigator::offboard_mission_update(bool isrotaryWing)
 {
 	struct mission_s offboard_mission;
 	if (orb_copy(ORB_ID(mission), _offboard_mission_sub, &offboard_mission) == OK) {
+
+		/* Check mission feasibility, for now do not handle the return value,
+		 * however warnings are issued to the gcs via mavlink from inside the MissionFeasiblityChecker */
+		dm_item_t dm_current;
+		if (offboard_mission.dataman_id == 0) {
+			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		} else {
+			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
+		}
+		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count);
 
 		_mission.set_offboard_dataman_id(offboard_mission.dataman_id);
 		_mission.set_current_offboard_mission_index(offboard_mission.current_index);
@@ -503,13 +516,14 @@ Navigator::task_main()
 
 	
 	/* copy all topics first time */
+	vehicle_status_update();
 	parameters_update();
 	global_position_update();
 	home_position_update();
 	navigation_capabilities_update();
-	offboard_mission_update();
+	offboard_mission_update(_vstatus.is_rotary_wing);
 	onboard_mission_update();
-	vehicle_status_update();
+
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -632,7 +646,7 @@ Navigator::task_main()
 		}
 
 		if (fds[4].revents & POLLIN) {
-			offboard_mission_update();
+			offboard_mission_update(_vstatus.is_rotary_wing);
 			// XXX check if mission really changed 
 			dispatch(EVENT_MISSION_CHANGED);
 		}
