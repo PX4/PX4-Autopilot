@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -336,17 +336,18 @@ static void		hrt_call_invoke(void);
 /*
  * PPM decoder tuning parameters
  */
-# define PPM_MAX_PULSE_WIDTH	700		/* maximum width of a valid pulse */
+# define PPM_MIN_PULSE_WIDTH	200		/* minimum width of a valid first pulse */
+# define PPM_MAX_PULSE_WIDTH	600		/* maximum width of a valid first pulse */
 # define PPM_MIN_CHANNEL_VALUE	800		/* shortest valid channel signal */
-# define PPM_MAX_CHANNEL_VALUE	2200		/* longest valid channel signal */
-# define PPM_MIN_START		2400		/* shortest valid start gap (only 2nd part of pulse) */
+# define PPM_MAX_CHANNEL_VALUE	2200	/* longest valid channel signal */
+# define PPM_MIN_START			2300	/* shortest valid start gap (only 2nd part of pulse) */
 
 /* decoded PPM buffer */
 #define PPM_MIN_CHANNELS	5
 #define PPM_MAX_CHANNELS	20
 
 /* Number of same-sized frames required to 'lock' */
-#define PPM_CHANNEL_LOCK	4		/* should be less than the input timeout */
+#define PPM_CHANNEL_LOCK	4			/* should be less than the input timeout */
 
 __EXPORT uint16_t ppm_buffer[PPM_MAX_CHANNELS];
 __EXPORT uint16_t ppm_frame_length = 0;
@@ -518,8 +519,8 @@ hrt_ppm_decode(uint32_t status)
 	case ARM:
 
 		/* we expect a pulse giving us the first mark */
-		if (width > PPM_MAX_PULSE_WIDTH)
-			goto error;		/* pulse was too long */
+		if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH)
+			goto error;		/* pulse was too short or too long */
 
 		/* record the mark timing, expect an inactive edge */
 		ppm.last_mark = ppm.last_edge;
@@ -533,8 +534,8 @@ hrt_ppm_decode(uint32_t status)
 	case INACTIVE:
 
 		/* we expect a short pulse */
-		if (width > PPM_MAX_PULSE_WIDTH)
-			goto error;		/* pulse was too long */
+		if (width < PPM_MIN_PULSE_WIDTH || width > PPM_MAX_PULSE_WIDTH)
+			goto error;		/* pulse was too short or too long */
 
 		/* this edge is not interesting, but now we are ready for the next mark */
 		ppm.phase = ACTIVE;
