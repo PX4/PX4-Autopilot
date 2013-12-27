@@ -1055,7 +1055,7 @@ int commander_thread_main(int argc, char *argv[])
 
 				home.lat = (double)global_position.lat / 1e7d;
 				home.lon = (double)global_position.lon / 1e7d;
-				home.altitude = (float)global_position.alt / 1e3f;
+				home.altitude = (float)global_position.alt;
 
 				warnx("home: lat = %.7f, lon = %.7f, alt = %.4f ", home.lat, home.lon, (double)home.altitude);
 				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.4f", home.lat, home.lon, (double)home.altitude);
