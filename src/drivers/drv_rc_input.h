@@ -89,7 +89,7 @@ struct rc_input_values {
 	/** number of channels actually being seen */
 	uint32_t		channel_count;
 
-	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 1000: full reception */
+	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 255: full reception */
 	int32_t			rssi;
 
 	/** Input source */
