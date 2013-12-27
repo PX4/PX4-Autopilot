@@ -579,6 +579,7 @@ handle_message(mavlink_message_t *msg)
 			hil_gps.alt = gps.alt;
 			hil_gps.eph_m = (float)gps.eph * 1e-2f; // from cm to m
 			hil_gps.epv_m = (float)gps.epv * 1e-2f; // from cm to m
+			hil_gps.timestamp_variance = gps.time_usec;
 			hil_gps.s_variance_m_s = 5.0f;
 			hil_gps.p_variance_m = hil_gps.eph_m * hil_gps.eph_m;
 			hil_gps.vel_m_s = (float)gps.vel * 1e-2f; // from cm/s to m/s
@@ -590,6 +591,7 @@ handle_message(mavlink_message_t *msg)
 			if (heading_rad > M_PI_F)
 				heading_rad -= 2.0f * M_PI_F;
 
+			hil_gps.timestamp_velocity = gps.time_usec;
 			hil_gps.vel_n_m_s = gps.vn * 1e-2f; // from cm to m
 			hil_gps.vel_e_m_s = gps.ve * 1e-2f; // from cm to m
 			hil_gps.vel_d_m_s = gps.vd * 1e-2f; // from cm to m
