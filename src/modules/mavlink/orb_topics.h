@@ -50,8 +50,8 @@
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_vicon_position.h>
-#include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -86,7 +86,7 @@ struct mavlink_subscriptions {
 	int local_pos_sub;
 	int spa_sub;
 	int spl_sub;
-	int spg_sub;
+	int triplet_sub;
 	int debug_key_value;
 	int input_rc_sub;
 	int optical_flow;

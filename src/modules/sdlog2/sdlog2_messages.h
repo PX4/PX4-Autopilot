@@ -214,13 +214,12 @@ struct log_GPSP_s {
 	int32_t lon;
 	float altitude;
 	float yaw;
+	uint8_t nav_cmd;
 	float loiter_radius;
 	int8_t loiter_direction;
-	uint8_t nav_cmd;
-	float param1;
-	float param2;
-	float param3;
-	float param4;
+	float radius;
+	float time_inside;
+	float pitch_min;
 };
 
 /* --- ESC - ESC STATE --- */
@@ -288,7 +287,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
 	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
 	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
-	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
+	LOG_FORMAT(GPSP, "BLLffBfbfff", "AltRel,Lat,Lon,Alt,Yaw,NavCmd,LoitRad,LoitDir,Rad,TimeIn,pitMin"),
 	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,N,Ver,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
 	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 	/* system-level messages, ID >= 0x80 */
