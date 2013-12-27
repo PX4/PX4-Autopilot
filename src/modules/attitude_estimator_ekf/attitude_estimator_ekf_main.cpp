@@ -276,6 +276,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
 	unsigned offset_count = 0;
 
+	/* actual acceleration (by GPS velocity) in body frame */
+	float acc[3] = { 0.0f, 0.0f, 0.0f };
+
 	/* rotation matrix for magnetic declination */
 	math::Matrix<3, 3> R_decl;
 	R_decl.identity();
@@ -371,7 +374,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						sensor_last_timestamp[1] = raw.timestamp;
 					}
 
-					float acc[3];
 					if (gps.fix_type >= 3 && gps.eph_m < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
 						if (last_gps != 0 && gps.timestamp_velocity != last_gps) {
 							float gps_dt = (gps.timestamp_velocity - last_gps) / 1000000.0f;
@@ -388,20 +390,18 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 									acc[i] += att.R[j][i] * acc_NED[j];
 								}
 							}
+
+							vel_prev[0] = gps.vel_n_m_s;
+							vel_prev[1] = gps.vel_e_m_s;
+							vel_prev[2] = gps.vel_d_m_s;
 						}
+						last_gps = gps.timestamp_velocity;
 
 					} else {
 						acc[0] = 0.0f;
 						acc[1] = 0.0f;
 						acc[2] = 0.0f;
-					}
 
-					if (gps.vel_ned_valid) {
-						vel_prev[0] = gps.vel_n_m_s;
-						vel_prev[1] = gps.vel_e_m_s;
-						vel_prev[2] = gps.vel_d_m_s;
-						last_gps = gps.timestamp_velocity;
-					} else {
 						vel_prev[0] = 0.0f;
 						vel_prev[1] = 0.0f;
 						vel_prev[2] = 0.0f;
@@ -481,7 +481,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						continue;
 					}
 
-					if (last_data > 0 && raw.timestamp - last_data > 12000)
+					if (last_data > 0 && raw.timestamp - last_data > 30000)
 						printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
 
 					last_data = raw.timestamp;
