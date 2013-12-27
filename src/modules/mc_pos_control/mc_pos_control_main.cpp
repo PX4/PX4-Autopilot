@@ -179,10 +179,6 @@ private:
 	math::Vector<3> _vel_sp;
 	math::Vector<3> _vel_err_prev;			/**< velocity on previous step */
 
-	hrt_abstime _time_prev;
-
-	bool _was_armed;
-
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -241,10 +237,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 /* publications */
 	_local_pos_sp_pub(-1),
 	_att_sp_pub(-1),
-	_global_vel_sp_pub(-1),
-
-	_time_prev(0),
-	_was_armed(false)
+	_global_vel_sp_pub(-1)
 {
 	memset(&_att, 0, sizeof(_att));
 	memset(&_att_sp, 0, sizeof(_att_sp));
@@ -469,6 +462,7 @@ MulticopterPositionControl::task_main()
 	bool reset_takeoff_sp = true;
 
 	hrt_abstime t_prev = 0;
+
 	const float alt_ctl_dz = 0.2f;
 	const float pos_ctl_dz = 0.05f;
 
@@ -510,10 +504,10 @@ MulticopterPositionControl::task_main()
 		parameters_update(false);
 
 		hrt_abstime t = hrt_absolute_time();
-		float dt = _time_prev != 0 ? (t - _time_prev) * 0.000001f : 0.0f;
-		_time_prev = t;
+		float dt = t_prev != 0 ? (t - t_prev) * 0.000001f : 0.0f;
+		t_prev = t;
 
-		if (_control_mode.flag_armed && !_was_armed) {
+		if (_control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
 			reset_man_sp_z = true;
 			reset_man_sp_xy = true;
@@ -523,7 +517,7 @@ MulticopterPositionControl::task_main()
 			reset_int_z = true;
 			reset_int_xy = true;
 		}
-		_was_armed = _control_mode.flag_armed;
+		was_armed = _control_mode.flag_armed;
 
 		if (_control_mode.flag_control_altitude_enabled ||
 				_control_mode.flag_control_position_enabled ||
@@ -781,6 +775,10 @@ MulticopterPositionControl::task_main()
 				m(2) = (_control_mode.flag_control_climb_rate_enabled && !saturation_z) ? 1.0f : 0.0f;
 
 				thrust_int += vel_err.emult(_params.vel_i) * dt;
+
+				/* protection against flipping on ground when landing */
+				if (thrust_int(2) > 0.0f)
+					thrust_int(2) = 0.0f;
 
 				/* calculate attitude and thrust from thrust vector */
 				if (_control_mode.flag_control_velocity_enabled) {
