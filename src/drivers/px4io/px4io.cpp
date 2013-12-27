@@ -962,7 +962,7 @@ out:
 int
 PX4IO::io_set_control_groups()
 {
-	ret = io_set_control_state(0);
+	int ret = io_set_control_state(0);
 
 	/* send auxiliary control groups */
 	(void)io_set_control_state(1);
