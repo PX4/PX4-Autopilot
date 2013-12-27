@@ -74,10 +74,10 @@ int parameters_init(struct attitude_estimator_ekf_param_handles *h)
 	h->q3 	=	param_find("EKF_ATT_V3_Q3");
 	h->q4 	=	param_find("EKF_ATT_V3_Q4");
 
-	h->r0 	=	param_find("EKF_ATT_V3_R0");
-	h->r1 	=	param_find("EKF_ATT_V3_R1");
-	h->r2 	=	param_find("EKF_ATT_V3_R2");
-	h->r3 	=	param_find("EKF_ATT_V3_R3");
+	h->r0 	=	param_find("EKF_ATT_V4_R0");
+	h->r1 	=	param_find("EKF_ATT_V4_R1");
+	h->r2 	=	param_find("EKF_ATT_V4_R2");
+	h->r3 	=	param_find("EKF_ATT_V4_R3");
 
 	h->roll_off  =	param_find("ATT_ROLL_OFF3");
 	h->pitch_off =	param_find("ATT_PITCH_OFF3");
