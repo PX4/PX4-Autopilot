@@ -1048,23 +1048,17 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (!home_position_set && gps_position.fix_type >= 3 &&
 			    (gps_position.eph_m < hdop_threshold_m) && (gps_position.epv_m < vdop_threshold_m) &&	// XXX note that vdop is 0 for mtk
-			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed) {
+			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed
+			    && global_position.valid) {
 				/* copy position data to uORB home message, store it locally as well */
-				// TODO use global position estimate
-				home.lat = gps_position.lat;
-				home.lon = gps_position.lon;
-				home.alt = gps_position.alt;
 
-				home.eph_m = gps_position.eph_m;
-				home.epv_m = gps_position.epv_m;
 
-				home.s_variance_m_s = gps_position.s_variance_m_s;
-				home.p_variance_m = gps_position.p_variance_m;
+				home.lat = (double)global_position.lat / 1e7d;
+				home.lon = (double)global_position.lon / 1e7d;
+				home.altitude = (float)global_position.alt / 1e3f;
 
-				double home_lat_d = home.lat * 1e-7;
-				double home_lon_d = home.lon * 1e-7;
-				warnx("home: lat = %.7f, lon = %.7f", home_lat_d, home_lon_d);
-				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f", home_lat_d, home_lon_d);
+				warnx("home: lat = %.7f, lon = %.7f, alt = %.4f ", home.lat, home.lon, (double)home.altitude);
+				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.4f", home.lat, home.lon, (double)home.altitude);
 
 				/* announce new home position */
 				if (home_pub > 0) {
