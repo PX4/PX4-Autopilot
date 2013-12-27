@@ -1098,7 +1098,7 @@ PX4IO::io_set_rc_config()
 
 	/* fill the mapping with an error condition triggering value */
 	for (unsigned i = 0; i < _max_rc_input; i++)
-		input_map[i] = UINT16_MAX;
+		input_map[i] = UINT8_MAX;
 
 	/*
 	 * NOTE: The indices for mapped channels are 1-based
