@@ -850,7 +850,7 @@ PX4IO::task_main()
 
 			/* we're not nice to the lower-priority control groups and only check them
 			   when the primary group updated (which is now). */
-			io_set_control_groups();
+			(void)io_set_control_groups();
 		}
 
 		if (now >= poll_last + IO_POLL_INTERVAL) {
@@ -962,14 +962,14 @@ out:
 int
 PX4IO::io_set_control_groups()
 {
-	bool attitude_ok = io_set_control_state(0);
+	ret = io_set_control_state(0);
 
 	/* send auxiliary control groups */
 	(void)io_set_control_state(1);
 	(void)io_set_control_state(2);
 	(void)io_set_control_state(3);
 
-	return attitude_ok;
+	return ret;
 }
 
 int
