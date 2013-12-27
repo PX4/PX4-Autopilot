@@ -416,8 +416,8 @@ l_global_position_setpoint(const struct listener *l)
 	if (gcs_link)
 		mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0,
 				coordinate_frame,
-				(int32_t)(triplet.current.lat * 1e7f),
-				(int32_t)(triplet.current.lon * 1e7f),
+				(int32_t)(triplet.current.lat * 1e7d),
+				(int32_t)(triplet.current.lon * 1e7d),
 				(int32_t)(triplet.current.altitude * 1e3f),
 				(int16_t)(triplet.current.yaw * M_RAD_TO_DEG_F * 1e2f));
 }

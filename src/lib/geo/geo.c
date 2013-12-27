@@ -513,8 +513,8 @@ __EXPORT bool inside_geofence(const struct vehicle_global_position_s *vehicle, c
 
 	unsigned int i, j, vertices = fence->count;
 	bool c = false;
-	double lat = vehicle->lat / 1e7;
-	double lon = vehicle->lon / 1e7;
+	double lat = vehicle->lat / 1e7d;
+	double lon = vehicle->lon / 1e7d;
 
 	// skip vertex 0 (return point)
 	for (i = 0, j = vertices - 1; i < vertices; j = i++)

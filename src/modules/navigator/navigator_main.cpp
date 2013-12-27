@@ -723,7 +723,7 @@ Navigator::status()
 {
 	warnx("Global position is %svalid", _global_pos.valid ? "" : "in");
 	if (_global_pos.valid) {
-		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon / 1e7, _global_pos.lat / 1e7);
+		warnx("Longitude %5.5f degrees, latitude %5.5f degrees", _global_pos.lon / 1e7d, _global_pos.lat / 1e7d);
 		warnx("Altitude %5.5f meters, altitude above home %5.5f meters",
 			(double)_global_pos.alt, (double)_global_pos.relative_alt);
 		warnx("Ground velocity in m/s, x %5.5f, y %5.5f, z %5.5f",
@@ -947,8 +947,8 @@ Navigator::start_loiter()
 	_mission_item_triplet.current_valid = true;
 	_mission_item_triplet.next_valid = false;
 
-	_mission_item_triplet.current.lat = (double)_global_pos.lat / 1e7;
-	_mission_item_triplet.current.lon = (double)_global_pos.lon / 1e7;
+	_mission_item_triplet.current.lat = (double)_global_pos.lat / 1e7d;
+	_mission_item_triplet.current.lon = (double)_global_pos.lon / 1e7d;
 	_mission_item_triplet.current.yaw = 0.0f;
 
 	get_loiter_item(&_mission_item_triplet.current);
@@ -1162,11 +1162,11 @@ Navigator::mission_item_reached()
 
 	// if (coordinate_frame == (int)MAV_FRAME_GLOBAL) {
 	dist = get_distance_to_point_global_wgs84(_mission_item_triplet.current.lat, _mission_item_triplet.current.lon, _mission_item_triplet.current.altitude,
-		                              (double)_global_pos.lat / 1e7, (double)_global_pos.lon / 1e7, _global_pos.alt,
+		                              (double)_global_pos.lat / 1e7d, (double)_global_pos.lon / 1e7d, _global_pos.alt,
 		                              &dist_xy, &dist_z);
 
 	// warnx("1 lat: %2.2f, lon: %2.2f, alt: %2.2f", _mission_item_triplet.current.lat, _mission_item_triplet.current.lon, _mission_item_triplet.current.altitude);
-	// warnx("2 lat: %2.2f, lon: %2.2f, alt: %2.2f", (double)_global_pos.lat / 1e7, (double)_global_pos.lon / 1e7, _global_pos.alt);
+	// warnx("2 lat: %2.2f, lon: %2.2f, alt: %2.2f", (double)_global_pos.lat / 1e7d, (double)_global_pos.lon / 1e7d, _global_pos.alt);
 
 	// warnx("Dist: %4.4f", dist);
 

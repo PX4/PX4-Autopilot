@@ -1153,8 +1153,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(mission_item_triplet), subs.triplet_sub, &buf.triplet);
 				log_msg.msg_type = LOG_GPSP_MSG;
 				log_msg.body.log_GPSP.altitude_is_relative = buf.triplet.current.altitude_is_relative;
-				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7);
-				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7);
+				log_msg.body.log_GPSP.lat = (int32_t)(buf.triplet.current.lat * 1e7d);
+				log_msg.body.log_GPSP.lon = (int32_t)(buf.triplet.current.lon * 1e7d);
 				log_msg.body.log_GPSP.altitude = buf.triplet.current.altitude;
 				log_msg.body.log_GPSP.yaw = buf.triplet.current.yaw;
 				log_msg.body.log_GPSP.nav_cmd = buf.triplet.current.nav_cmd;				
