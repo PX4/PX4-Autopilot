@@ -1095,8 +1095,10 @@ PX4IO::io_set_rc_config()
 	 * assign RC_MAP_ROLL/PITCH/YAW/THROTTLE to the canonical
 	 * controls.
 	 */
+
+	/* fill the mapping with an error condition triggering value */
 	for (unsigned i = 0; i < _max_rc_input; i++)
-		input_map[i] = -1;
+		input_map[i] = UINT16_MAX;
 
 	/*
 	 * NOTE: The indices for mapped channels are 1-based
@@ -1127,12 +1129,6 @@ PX4IO::io_set_rc_config()
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
 		input_map[ichan - 1] = 4;
-
-	ichan = 5;
-
-	for (unsigned i = 0; i < _max_rc_input; i++)
-		if (input_map[i] == -1)
-			input_map[i] = ichan++;
 
 	/*
 	 * Iterate all possible RC inputs.
