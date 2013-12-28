@@ -323,7 +323,7 @@ then
 
 	if param compare SYS_AUTOSTART 33
 	then
-		sh /etc/init.d/32_io_wingwing
+		sh /etc/init.d/33_io_wingwing
 		set MODE custom
 	fi
 
