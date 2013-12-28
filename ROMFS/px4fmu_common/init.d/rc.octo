@@ -73,7 +73,7 @@ fi
 #
 # Load mixer
 #
-mixer load /dev/pwm_output /etc/mixers/FMU_hex_x.mix
+mixer load /dev/pwm_output $MIXER
 
 #
 # Set PWM output frequency to 400 Hz
@@ -83,9 +83,9 @@ pwm rate -a -r 400
 #
 # Set disarmed, min and max PWM signals
 #
-pwm disarmed -c 123456 -p 900
-pwm min -c 123456 -p 1100
-pwm max -c 123456 -p 1900
+pwm disarmed -c 12345678 -p 900
+pwm min -c 12345678 -p 1100
+pwm max -c 12345678 -p 1900
 
 #
 # Start common for all multirotors apps

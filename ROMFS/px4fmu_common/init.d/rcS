@@ -243,17 +243,37 @@ then
 		set MODE custom
 	fi
 
+	if param compare SYS_AUTOSTART 4012
+	then
+		sh /etc/init.d/666_fmu_q_x550
+		set MODE custom
+	fi
+
 	if param compare SYS_AUTOSTART 6012 12
 	then
 		set MIXER /etc/mixers/FMU_hex_x.mix
-		sh /etc/init.d/12-13_hex
+		sh /etc/init.d/rc.hexa
 		set MODE custom
 	fi
 
 	if param compare SYS_AUTOSTART 7013 13
 	then
 		set MIXER /etc/mixers/FMU_hex_+.mix
-		sh /etc/init.d/12-13_hex
+		sh /etc/init.d/rc.hexa
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 8001
+	then
+		set MIXER /etc/mixers/FMU_octo_x.mix
+		sh /etc/init.d/rc.octo
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 9001
+	then
+		set MIXER /etc/mixers/FMU_octo_+.mix
+		sh /etc/init.d/rc.octo
 		set MODE custom
 	fi
 	
