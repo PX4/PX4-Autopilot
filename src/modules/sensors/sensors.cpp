@@ -165,7 +165,7 @@ public:
 	int		start();
 
 private:
-	static const unsigned _rc_max_chan_count = RC_CHANNELS_MAX;	/**< maximum number of r/c channels we handle */
+	static const unsigned _rc_max_chan_count = RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
 
 	hrt_abstime	_rc_last_valid;		/**< last time we got a valid RC signal */
 
@@ -602,7 +602,7 @@ Sensors::parameters_update()
 	float tmpRevFactor = 0.0f;
 
 	/* rc values */
-	for (unsigned int i = 0; i < RC_CHANNELS_MAX; i++) {
+	for (unsigned int i = 0; i < _rc_max_chan_count; i++) {
 
 		param_get(_parameter_handles.min[i], &(_parameters.min[i]));
 		param_get(_parameter_handles.trim[i], &(_parameters.trim[i]));

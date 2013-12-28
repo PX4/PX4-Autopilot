@@ -1,9 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Nils Wenzler <wenzlern@student.ethz.ch>
- *           @author Ivan Ovinnikov <oivan@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,13 +44,13 @@
 
 /**
  * The number of RC channel inputs supported.
- * Current (Q1/2013) radios support up to 18 channels,
+ * Current (Q4/2013) radios support up to 18 channels,
  * leaving at a sane value of 15.
  * This number can be greater then number of RC channels,
  * because single RC channel can be mapped to multiple
  * functions, e.g. for various mode switches.
  */
-#define RC_CHANNELS_MAX   15
+#define RC_CHANNELS_MAPPED_MAX   15
 
 /** 
  * This defines the mapping of the RC functions.
@@ -91,7 +88,7 @@ struct rc_channels_s {
   uint64_t timestamp_last_valid;      /**< timestamp of last valid RC signal. */
   struct {
     float scaled;                     /**< Scaled to -1..1 (throttle: 0..1) */
-  } chan[RC_CHANNELS_MAX];
+  } chan[RC_CHANNELS_MAPPED_MAX];
   uint8_t chan_count;                 /**< number of valid channels */
 
   /*String array to store the names of the functions*/
