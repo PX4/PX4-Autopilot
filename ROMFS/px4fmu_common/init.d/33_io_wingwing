@@ -11,9 +11,10 @@ then
    param set FW_AIRSPD_MIN 7
    param set FW_AIRSPD_TRIM 9
    param set FW_AIRSPD_MAX 14
+   param set FW_L1_PERIOD 10
    param set FW_P_D 0
    param set FW_P_I 0
-   param set FW_P_IMAX 15
+   param set FW_P_IMAX 20
    param set FW_P_LIM_MAX 30
    param set FW_P_LIM_MIN -20
    param set FW_P_P 30
@@ -28,11 +29,10 @@ then
    param set FW_THR_CRUISE 0.65
    param set FW_THR_MAX 0.7
    param set FW_THR_MIN 0
-   param set FW_T_SINK_MAX 5.0
-   param set FW_T_SINK_MIN 2.0
-   param set FW_T_TIME_CONST 4
+   param set FW_T_SINK_MAX 5
+   param set FW_T_SINK_MIN 2
+   param set FW_T_TIME_CONST 9
    param set FW_Y_ROLLFF 2.0
-   param set FW_L1_PERIOD 25.0
    param set RC_SCALE_ROLL 1.0
    param set RC_SCALE_PITCH 1.0
 
