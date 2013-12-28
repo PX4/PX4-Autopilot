@@ -70,7 +70,7 @@ float ECL_L1_Pos_Controller::target_bearing()
 float ECL_L1_Pos_Controller::switch_distance(float wp_radius)
 {
 	/* following [2], switching on L1 distance */
-	return math::max(wp_radius, _L1_distance);
+	return math::min(wp_radius, _L1_distance);
 }
 
 bool ECL_L1_Pos_Controller::reached_loiter_target(void)
@@ -280,7 +280,7 @@ void ECL_L1_Pos_Controller::navigate_loiter(const math::Vector<2> &vector_A, con
 	 */
 
 	// XXX check switch over
-	if ((lateral_accel_sp_center < lateral_accel_sp_circle && loiter_direction > 0 && xtrack_err_circle > 0.0f) |
+	if ((lateral_accel_sp_center < lateral_accel_sp_circle && loiter_direction > 0 && xtrack_err_circle > 0.0f) ||
 		(lateral_accel_sp_center > lateral_accel_sp_circle && loiter_direction < 0 && xtrack_err_circle > 0.0f)) {
 		_lateral_accel = lateral_accel_sp_center;
 		_circle_mode = false;

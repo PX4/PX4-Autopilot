@@ -136,7 +136,7 @@ static const struct listener listeners[] = {
 	{l_input_rc,			&mavlink_subs.input_rc_sub,	0},
 	{l_global_position,		&mavlink_subs.global_pos_sub,	0},
 	{l_local_position,		&mavlink_subs.local_pos_sub,	0},
-	{l_global_position_setpoint,	&mavlink_subs.spg_sub,		0},
+	{l_global_position_setpoint,	&mavlink_subs.triplet_sub,	0},
 	{l_local_position_setpoint,	&mavlink_subs.spl_sub,		0},
 	{l_attitude_setpoint,		&mavlink_subs.spa_sub,		0},
 	{l_actuator_outputs,		&mavlink_subs.act_0_sub,	0},
@@ -402,23 +402,24 @@ l_local_position(const struct listener *l)
 void
 l_global_position_setpoint(const struct listener *l)
 {
-	struct vehicle_global_position_setpoint_s global_sp;
-
-	/* copy local position data into local buffer */
-	orb_copy(ORB_ID(vehicle_global_position_setpoint), mavlink_subs.spg_sub, &global_sp);
+	struct mission_item_triplet_s triplet;
+	orb_copy(ORB_ID(mission_item_triplet), mavlink_subs.triplet_sub, &triplet);
 
 	uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
+	
+	if (!triplet.current_valid)
+		return;
 
-	if (global_sp.altitude_is_relative)
+	if (triplet.current.altitude_is_relative)
 		coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	if (gcs_link)
 		mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0,
 				coordinate_frame,
-				global_sp.lat,
-				global_sp.lon,
-				global_sp.altitude * 1000.0f,
-				global_sp.yaw * M_RAD_TO_DEG_F * 100.0f);
+				(int32_t)(triplet.current.lat * 1e7d),
+				(int32_t)(triplet.current.lon * 1e7d),
+				(int32_t)(triplet.current.altitude * 1e3f),
+				(int16_t)(triplet.current.yaw * M_RAD_TO_DEG_F * 1e2f));
 }
 
 void
@@ -499,8 +500,8 @@ l_actuator_outputs(const struct listener *l)
 						  act_outputs.output[6],
 						  act_outputs.output[7]);
 
-		/* only send in HIL mode */
-		if (mavlink_hil_enabled && armed.armed) {
+		/* only send in HIL mode and only send first group for HIL */
+		if (mavlink_hil_enabled && armed.armed && ids[l->arg] == ORB_ID(actuator_outputs_0)) {
 
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
@@ -656,7 +657,7 @@ l_home(const struct listener *l)
 
 	orb_copy(ORB_ID(home_position), mavlink_subs.home_sub, &home);
 
-	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, home.lat, home.lon, home.alt);
+	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.altitude)*1e3f);
 }
 
 void
@@ -770,9 +771,9 @@ uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.local_pos_sub, 1000);	/* 1Hz active updates */
 
 	/* --- GLOBAL SETPOINT VALUE --- */
-	mavlink_subs.spg_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
-	orb_set_interval(mavlink_subs.spg_sub, 2000);	/* 0.5 Hz updates */
-
+	mavlink_subs.triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
+	orb_set_interval(mavlink_subs.triplet_sub, 2000);	/* 0.5 Hz updates */
+	
 	/* --- LOCAL SETPOINT VALUE --- */
 	mavlink_subs.spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	orb_set_interval(mavlink_subs.spl_sub, 2000);	/* 0.5 Hz updates */

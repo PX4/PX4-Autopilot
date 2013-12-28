@@ -509,6 +509,21 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 		}
 		break;
 
+	/* Flight termination */
+	case VEHICLE_CMD_DO_SET_SERVO: { //xxx: needs its own mavlink command
+
+			if (armed->armed && cmd->param3 > 0.5) { //xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
+				transition_result_t flighttermination_res = flighttermination_state_transition(status, FLIGHTTERMINATION_STATE_ON, control_mode);
+				result = VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				/* reject parachute depoyment not armed */
+				result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			}
+
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -1033,23 +1048,17 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (!home_position_set && gps_position.fix_type >= 3 &&
 			    (gps_position.eph_m < hdop_threshold_m) && (gps_position.epv_m < vdop_threshold_m) &&	// XXX note that vdop is 0 for mtk
-			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed) {
+			    (hrt_absolute_time() < gps_position.timestamp_position + POSITION_TIMEOUT) && !armed.armed
+			    && global_position.valid) {
 				/* copy position data to uORB home message, store it locally as well */
-				// TODO use global position estimate
-				home.lat = gps_position.lat;
-				home.lon = gps_position.lon;
-				home.alt = gps_position.alt;
 
-				home.eph_m = gps_position.eph_m;
-				home.epv_m = gps_position.epv_m;
 
-				home.s_variance_m_s = gps_position.s_variance_m_s;
-				home.p_variance_m = gps_position.p_variance_m;
+				home.lat = (double)global_position.lat / 1e7d;
+				home.lon = (double)global_position.lon / 1e7d;
+				home.altitude = (float)global_position.alt;
 
-				double home_lat_d = home.lat * 1e-7;
-				double home_lon_d = home.lon * 1e-7;
-				warnx("home: lat = %.7f, lon = %.7f", home_lat_d, home_lon_d);
-				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f", home_lat_d, home_lon_d);
+				warnx("home: lat = %.7f, lon = %.7f, alt = %.4f ", home.lat, home.lon, (double)home.altitude);
+				mavlink_log_info(mavlink_fd, "[cmd] home: %.7f, %.7f, %.4f", home.lat, home.lon, (double)home.altitude);
 
 				/* announce new home position */
 				if (home_pub > 0) {
@@ -1174,6 +1183,16 @@ int commander_thread_main(int argc, char *argv[])
 			}
 		}
 
+		/*  Flight termination in manual mode if assisted switch is on easy position //xxx hack! */
+		if (armed.armed && status.main_state == MAIN_STATE_MANUAL && sp_man.assisted_switch > STICK_ON_OFF_LIMIT) {
+			transition_result_t flighttermination_res = flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_ON, &control_mode);
+			if (flighttermination_res == TRANSITION_CHANGED) {
+				tune_positive();
+			}
+		} else {
+			flighttermination_state_transition(&status, FLIGHTTERMINATION_STATE_OFF, &control_mode);
+		}
+
 
 		/* handle commands last, as the system needs to be updated to handle them */
 		orb_check(cmd_sub, &updated);
@@ -1199,6 +1218,7 @@ int commander_thread_main(int argc, char *argv[])
 		bool arming_state_changed = check_arming_state_changed();
 		bool main_state_changed = check_main_state_changed();
 		bool navigation_state_changed = check_navigation_state_changed();
+		bool flighttermination_state_changed = check_flighttermination_state_changed();
 
 		hrt_abstime t1 = hrt_absolute_time();
 
@@ -1725,7 +1745,8 @@ void *commander_low_prio_loop(void *arg)
 		/* ignore commands the high-prio loop handles */
 		if (cmd.command == VEHICLE_CMD_DO_SET_MODE ||
 		    cmd.command == VEHICLE_CMD_COMPONENT_ARM_DISARM ||
-		    cmd.command == VEHICLE_CMD_NAV_TAKEOFF)
+		    cmd.command == VEHICLE_CMD_NAV_TAKEOFF ||
+		    cmd.command == VEHICLE_CMD_DO_SET_SERVO)
 			continue;
 
 		/* only handle low-priority commands here */

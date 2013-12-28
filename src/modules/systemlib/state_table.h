@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,90 +32,44 @@
  ****************************************************************************/
 
 /**
- * @file fw_pos_control_l1_params.c
- *
- * Parameters defined by the L1 position control task
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @file state_table.h
+ * 
+ * Finite-State-Machine helper class for state table
  */
 
-#include <nuttx/config.h>
+#ifndef __SYSTEMLIB_STATE_TABLE_H
+#define __SYSTEMLIB_STATE_TABLE_H
 
-#include <systemlib/param/param.h>
+class StateTable
+{
+public:
+	typedef void (StateTable::*Action)();
+	struct Tran {
+		Action action;
+		unsigned nextState;
+	};
+	
+	StateTable(Tran const *table, unsigned nStates, unsigned nSignals)
+	: myTable(table), myNsignals(nSignals), myNstates(nStates) {}
+	
+	#define NO_ACTION &StateTable::doNothing
+	#define ACTION(_target) static_cast<StateTable::Action>(_target)
 
-/*
- * Controller parameters, accessible via MAVLink
- *
- */
+	virtual ~StateTable() {}
+	
+	void dispatch(unsigned const sig) {
+		register Tran const *t = myTable + myState*myNsignals + sig;
+		(this->*(t->action))();
 
-PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 25.0f);
+		myState = t->nextState;
+	}
+	void doNothing() {}
+protected:
+	unsigned myState;
+private:
+	Tran const *myTable;
+	unsigned myNsignals;
+	unsigned myNstates;
+};
 
-
-PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
-
-
-PARAM_DEFINE_FLOAT(FW_LOITER_R, 50.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.7f);
-
-
-PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_R_LIM, 45.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
-
-PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
-
-PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
-
-PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
-PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
-
-PARAM_DEFINE_FLOAT(FW_LND_ANG, 10.0f);
-PARAM_DEFINE_FLOAT(FW_LND_SLLR, 0.9f);
-PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
-PARAM_DEFINE_FLOAT(FW_LND_FLALT, 15.0f);
-PARAM_DEFINE_FLOAT(FW_LND_TLDIST, 30.0f);
+#endif

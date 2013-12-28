@@ -113,6 +113,16 @@ then
 	#
 	commander start
 
+	#
+	# Start the datamanager
+	#
+	dataman start
+
+	#
+	# Start the Navigator
+	#
+	navigator start
+
 	if param compare SYS_AUTOSTART 1000
 	then
 		sh /etc/init.d/1000_rc_fw_easystar.hil		

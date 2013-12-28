@@ -47,6 +47,9 @@
 
 #pragma once
 
+#include "uORB/topics/fence.h"
+#include "uORB/topics/vehicle_global_position.h"
+
 __BEGIN_DECLS
 
 #include <stdbool.h>
@@ -121,9 +124,34 @@ __EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, 
 __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
 		float radius, float arc_start_bearing, float arc_sweep);
 
+/*
+ * Calculate distance in global frame
+ */
+__EXPORT float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float alt_now,
+	                                          double lat_next, double lon_next, float alt_next,
+	                                          float *dist_xy, float *dist_z);
+
+/*
+ * Calculate distance in local frame (NED)
+ */
+__EXPORT float mavlink_wpm_distance_to_point_local(float x_now, float y_now, float z_now,
+	                                           float x_next, float y_next, float z_next,
+	                                           float *dist_xy, float *dist_z);
+
 __EXPORT float _wrap_180(float bearing);
 __EXPORT float _wrap_360(float bearing);
 __EXPORT float _wrap_pi(float bearing);
 __EXPORT float _wrap_2pi(float bearing);
+
+/**
+ * Return whether craft is inside geofence.
+ *
+ * Calculate whether point is inside arbitrary polygon
+ * @param craft pointer craft coordinates
+ * @param fence pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
+ * @return true: craft is inside fence, false:craft is outside fence
+ */
+__EXPORT bool inside_geofence(const struct vehicle_global_position_s *craft, const struct fence_s *fence);
+
 
 __END_DECLS

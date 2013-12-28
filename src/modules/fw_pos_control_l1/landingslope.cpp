@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,91 +32,51 @@
  *
  ****************************************************************************/
 
-/**
- * @file fw_pos_control_l1_params.c
+/*
+ * @file: landingslope.cpp
  *
- * Parameters defined by the L1 position control task
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
  */
+
+#include "landingslope.h"
 
 #include <nuttx/config.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <math.h>
+#include <unistd.h>
+#include <mathlib/mathlib.h>
 
-#include <systemlib/param/param.h>
+void Landingslope::update(float landing_slope_angle_rad,
+		float flare_relative_alt,
+		float motor_lim_horizontal_distance,
+		float H1_virt)
+{
 
-/*
- * Controller parameters, accessible via MAVLink
- *
- */
+	_landing_slope_angle_rad = landing_slope_angle_rad;
+	_flare_relative_alt = flare_relative_alt;
+	_motor_lim_horizontal_distance = motor_lim_horizontal_distance;
+	_H1_virt = H1_virt;
 
-PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 25.0f);
+	calculateSlopeValues();
+}
 
+void Landingslope::calculateSlopeValues()
+{
+	_H0 =  _flare_relative_alt + _H1_virt;
+	_d1 = _flare_relative_alt/tanf(_landing_slope_angle_rad);
+	_flare_constant = (_H0 * _d1)/_flare_relative_alt;
+	_flare_length = - logf(_H1_virt/_H0) * _flare_constant;
+	_horizontal_slope_displacement = (_flare_length - _d1);
+}
 
-PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
+float Landingslope::getLandingSlopeAbsoluteAltitude(float wp_distance, float wp_altitude)
+{
+	return Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, wp_altitude, _horizontal_slope_displacement, _landing_slope_angle_rad);
+}
 
+float Landingslope::getFlareCurveAltitude(float wp_landing_distance, float wp_landing_altitude)
+{
+	return wp_landing_altitude + _H0 * expf(-math::max(0.0f, _flare_length - wp_landing_distance)/_flare_constant) - _H1_virt;
 
-PARAM_DEFINE_FLOAT(FW_LOITER_R, 50.0f);
+}
 
-
-PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.7f);
-
-
-PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_R_LIM, 45.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
-
-PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
-
-PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
-
-PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
-PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
-
-PARAM_DEFINE_FLOAT(FW_LND_ANG, 10.0f);
-PARAM_DEFINE_FLOAT(FW_LND_SLLR, 0.9f);
-PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
-PARAM_DEFINE_FLOAT(FW_LND_FLALT, 15.0f);
-PARAM_DEFINE_FLOAT(FW_LND_TLDIST, 30.0f);

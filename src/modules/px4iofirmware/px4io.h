@@ -53,7 +53,9 @@
  */
 #define PX4IO_SERVO_COUNT		8
 #define PX4IO_CONTROL_CHANNELS		8
-#define PX4IO_INPUT_CHANNELS		8 // XXX this should be 18 channels
+#define PX4IO_CONTROL_GROUPS		2
+#define PX4IO_RC_INPUT_CHANNELS		18
+#define PX4IO_RC_MAPPED_CONTROL_CHANNELS		8 /**< This is the maximum number of channels mapped/used */
 
 /*
  * Debug logging
@@ -168,6 +170,8 @@ extern pwm_limit_t pwm_limit;
 #endif
 
 #define BUTTON_SAFETY		stm32_gpioread(GPIO_BTN_SAFETY)
+
+#define CONTROL_PAGE_INDEX(_group, _channel) (_group * PX4IO_CONTROL_CHANNELS + _channel)
 
 /*
  * Mixer

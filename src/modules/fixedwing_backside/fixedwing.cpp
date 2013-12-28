@@ -117,7 +117,7 @@ BlockMultiModeBacksideAutopilot::BlockMultiModeBacksideAutopilot(SuperBlock *par
 	_vCmd(this, "V_CMD"),
 	_crMax(this, "CR_MAX"),
 	_attPoll(),
-	_lastPosCmd(),
+	_lastMissionCmd(),
 	_timeStamp(0)
 {
 	_attPoll.fd = _att.getHandle();
@@ -141,8 +141,8 @@ void BlockMultiModeBacksideAutopilot::update()
 	setDt(dt);
 
 	// store old position command before update if new command sent
-	if (_posCmd.updated()) {
-		_lastPosCmd = _posCmd.getData();
+	if (_missionCmd.updated()) {
+		_lastMissionCmd = _missionCmd.getData();
 	}
 
 	// check for new updates
@@ -159,7 +159,7 @@ void BlockMultiModeBacksideAutopilot::update()
 	if (_status.main_state == MAIN_STATE_AUTO) {
 		// TODO use vehicle_control_mode here?
 		// update guidance
-		_guide.update(_pos, _att, _posCmd.current, _lastPosCmd.current);
+		_guide.update(_pos, _att, _missionCmd.current, _lastMissionCmd.current);
 	}
 
 	// XXX handle STABILIZED (loiter on spot) as well
@@ -182,7 +182,7 @@ void BlockMultiModeBacksideAutopilot::update()
 		float vCmd = _vLimit.update(_vCmd.get());
 
 		// altitude hold
-		float dThrottle = _h2Thr.update(_posCmd.current.altitude - _pos.alt);
+		float dThrottle = _h2Thr.update(_missionCmd.current.altitude - _pos.alt);
 
 		// heading hold
 		float psiError = _wrap_pi(_guide.getPsiCmd() - _att.yaw);

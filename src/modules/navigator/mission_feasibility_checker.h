@@ -1,7 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,92 +32,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file fw_pos_control_l1_params.c
- *
- * Parameters defined by the L1 position control task
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @file mission_feasibility_checker.h
+ * Provides checks if mission is feasible given the navigation capabilities
  */
+#ifndef MISSION_FEASIBILITY_CHECKER_H_
+#define MISSION_FEASIBILITY_CHECKER_H_
 
-#include <nuttx/config.h>
-
-#include <systemlib/param/param.h>
-
-/*
- * Controller parameters, accessible via MAVLink
- *
- */
-
-PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 25.0f);
+#include <unistd.h>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/navigation_capabilities.h>
+#include <dataman/dataman.h>
 
 
-PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
+class MissionFeasibilityChecker
+{
+private:
+	int		_mavlink_fd;
+
+	int _capabilities_sub;
+	struct navigation_capabilities_s _nav_caps;
+
+	bool _initDone;
+	void init();
+
+	/* Checks for all airframes */
+	bool checkGeofence(dm_item_t dm_current, size_t nItems);
+
+	/* Checks specific to fixedwing airframes */
+	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nItems);
+	bool checkFixedWingLanding(dm_item_t dm_current, size_t nItems);
+	void updateNavigationCapabilities();
+
+	/* Checks specific to rotarywing airframes */
+	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nItems);
+public:
+
+	MissionFeasibilityChecker();
+	~MissionFeasibilityChecker() {}
+
+	/*
+	 * Returns true if mission is feasible and false otherwise
+	 */
+	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nItems);
+
+};
 
 
-PARAM_DEFINE_FLOAT(FW_LOITER_R, 50.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.7f);
-
-
-PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_R_LIM, 45.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
-
-PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
-
-PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_TIME_CONST, 5.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_INTEG_GAIN, 0.1f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_HGT_OMEGA, 3.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 10.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
-
-
-PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
-
-PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
-PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.05f);
-
-PARAM_DEFINE_FLOAT(FW_LND_ANG, 10.0f);
-PARAM_DEFINE_FLOAT(FW_LND_SLLR, 0.9f);
-PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
-PARAM_DEFINE_FLOAT(FW_LND_FLALT, 15.0f);
-PARAM_DEFINE_FLOAT(FW_LND_TLDIST, 30.0f);
+#endif /* MISSION_FEASIBILITY_CHECKER_H_ */

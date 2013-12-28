@@ -1,7 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @autho Lorenz Meier <lm@inf.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +39,7 @@
  * Parameters defined by the navigator task.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -49,5 +51,6 @@
  *
  */
 
-PARAM_DEFINE_FLOAT(NAV_DUMMY, 0.0f);
-
+PARAM_DEFINE_FLOAT(NAV_MIN_ALT, 50.0f);
+PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 100.0f);
+PARAM_DEFINE_INT32(NAV_ONB_MIS_EN, 0);
