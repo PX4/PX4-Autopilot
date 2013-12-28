@@ -319,11 +319,11 @@ private:
 	/**
 	 * Control position.
 	 */
-	bool		control_position(const math::Vector2f &global_pos, const math::Vector2f &ground_speed,
+	bool		control_position(const math::Vector<2> &global_pos, const math::Vector<2> &ground_speed,
 					 const struct mission_item_triplet_s &_mission_item_triplet);
 
 	float calculate_target_airspeed(float airspeed_demand);
-	void calculate_gndspeed_undershoot(const math::Vector2f &current_position, const math::Vector2f &ground_speed, const struct mission_item_triplet_s &mission_item_triplet);
+	void calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed, const struct mission_item_triplet_s &mission_item_triplet);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -680,13 +680,13 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 }
 
 void
-FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector2f &current_position, const math::Vector2f &ground_speed, const struct mission_item_triplet_s &mission_item_triplet)
+FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed, const struct mission_item_triplet_s &mission_item_triplet)
 {
 
 	if (_global_pos_valid) {
 
 		/* rotate ground speed vector with current attitude */
-		math::Vector2f yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
+		math::Vector<2> yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
 		yaw_vector.normalize();
 		float ground_speed_body = yaw_vector * ground_speed;
 
@@ -697,7 +697,7 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const math::Vector2f &cu
 			distance = get_distance_to_next_waypoint(mission_item_triplet.previous.lat, mission_item_triplet.previous.lon, mission_item_triplet.current.lat, mission_item_triplet.current.lon);
 			delta_altitude = mission_item_triplet.current.altitude - mission_item_triplet.previous.altitude;
 		} else {
-			distance = get_distance_to_next_waypoint(current_position.getX(), current_position.getY(), mission_item_triplet.current.lat, mission_item_triplet.current.lon);
+			distance = get_distance_to_next_waypoint(current_position(0), current_position(1), mission_item_triplet.current.lat, mission_item_triplet.current.lon);
 			delta_altitude = mission_item_triplet.current.altitude -  _global_pos.alt;
 		}
 
@@ -730,7 +730,7 @@ void FixedwingPositionControl::navigation_capabilities_publish()
 }
 
 bool
-FixedwingPositionControl::control_position(const math::Vector2f &current_position, const math::Vector2f &ground_speed,
+FixedwingPositionControl::control_position(const math::Vector<2> &current_position, const math::Vector<2> &ground_speed,
 		const struct mission_item_triplet_s &mission_item_triplet)
 {
 	bool setpoint = true;
@@ -765,26 +765,26 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		_tecs.set_speed_weight(_parameters.speed_weight);
 
 		/* current waypoint (the one currently heading for) */
-		math::Vector2f next_wp(mission_item_triplet.current.lat, mission_item_triplet.current.lon);
+		math::Vector<2> next_wp(mission_item_triplet.current.lat, mission_item_triplet.current.lon);
 
 		/* current waypoint (the one currently heading for) */
-		math::Vector2f curr_wp(mission_item_triplet.current.lat, mission_item_triplet.current.lon);
+		math::Vector<2> curr_wp(mission_item_triplet.current.lat, mission_item_triplet.current.lon);
 
 
 		/* previous waypoint */
-		math::Vector2f prev_wp;
+		math::Vector<2> prev_wp;
 
 		if (mission_item_triplet.previous_valid) {
-			prev_wp.setX(mission_item_triplet.previous.lat);
-			prev_wp.setY(mission_item_triplet.previous.lon);
+			prev_wp(0) = mission_item_triplet.previous.lat;
+			prev_wp(1) = mission_item_triplet.previous.lon;
 
 		} else {
 			/*
 			 * No valid previous waypoint, go for the current wp.
 			 * This is automatically handled by the L1 library.
 			 */
-			prev_wp.setX(mission_item_triplet.current.lat);
-			prev_wp.setY(mission_item_triplet.current.lon);
+			prev_wp(0) = mission_item_triplet.current.lat;
+			prev_wp(1) = mission_item_triplet.current.lon;
 
 		}
 
@@ -820,7 +820,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 			/* Horizontal landing control */
 			/* switch to heading hold for the last meters, continue heading hold after */
-			float wp_distance = get_distance_to_next_waypoint(current_position.getX(), current_position.getY(), curr_wp.getX(), curr_wp.getY());
+			float wp_distance = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			//warnx("wp dist: %d, alt err: %d, noret: %s", (int)wp_distance, (int)altitude_error, (land_noreturn) ? "YES" : "NO");
 			const float heading_hold_distance = 15.0f;
 			if (wp_distance < heading_hold_distance || land_noreturn_horizontal) {
@@ -829,7 +829,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				
 
 				// if (mission_item_triplet.previous_valid) {
-				// 	target_bearing = get_bearing_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), next_wp.getX(), next_wp.getY());
+				// 	target_bearing = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), next_wp(0), next_wp(1));
 				// } else {
 
 				if (!land_noreturn_horizontal) //set target_bearing in first occurrence
@@ -870,7 +870,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			float airspeed_land = 1.3f * _parameters.airspeed_min;
 			float airspeed_approach = 1.3f * _parameters.airspeed_min;
 
-			float L_wp_distance = get_distance_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), curr_wp.getX(), curr_wp.getY()) * _parameters.land_slope_length;
+			float L_wp_distance = get_distance_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1)) * _parameters.land_slope_length;
 			float L_altitude = landingslope.getLandingSlopeAbsoluteAltitude(L_wp_distance, _mission_item_triplet.current.altitude);//getLandingSlopeAbsoluteAltitude(L_wp_distance, _mission_item_triplet.current.altitude, landing_slope_angle_rad, horizontal_slope_displacement);
 			float landing_slope_alt_desired = landingslope.getLandingSlopeAbsoluteAltitude(wp_distance, _mission_item_triplet.current.altitude);//getLandingSlopeAbsoluteAltitude(wp_distance, _mission_item_triplet.current.altitude, landing_slope_angle_rad, horizontal_slope_displacement);
 
@@ -989,8 +989,8 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 		// warnx("nav bearing: %8.4f bearing err: %8.4f target bearing: %8.4f", (double)_l1_control.nav_bearing(),
 		//       (double)_l1_control.bearing_error(), (double)_l1_control.target_bearing());
-		// warnx("prev wp: %8.4f/%8.4f, next wp: %8.4f/%8.4f prev:%s", (double)prev_wp.getX(), (double)prev_wp.getY(),
-		//       (double)next_wp.getX(), (double)next_wp.getY(), (mission_item_triplet.previous_valid) ? "valid" : "invalid");
+		// warnx("prev wp: %8.4f/%8.4f, next wp: %8.4f/%8.4f prev:%s", (double)prev_wp(0), (double)prev_wp(1),
+		//       (double)next_wp(0), (double)next_wp(1), (mission_item_triplet.previous_valid) ? "valid" : "invalid");
 
 		// XXX at this point we always want no loiter hold if a
 		// mission is active

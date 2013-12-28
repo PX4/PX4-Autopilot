@@ -61,7 +61,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_global_position_setpoint.h>
+#include <uORB/topics/mission_item_triplet.h>
 #include <uORB/topics/vehicle_global_velocity_setpoint.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -113,7 +113,7 @@ private:
 	int 	_manual_sub;			/**< notification of manual control updates */
 	int		_arming_sub;			/**< arming status of outputs */
 	int		_local_pos_sub;			/**< vehicle local position */
-	int		_global_pos_sp_sub;		/**< vehicle global position setpoint */
+	int		_mission_items_sub;		/**< mission item triplet */
 
 	orb_advert_t	_local_pos_sp_pub;		/**< local position setpoint publication */
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
@@ -126,7 +126,7 @@ private:
 	struct actuator_armed_s				_arming;		/**< actuator arming status */
 	struct vehicle_local_position_s		_local_pos;		/**< vehicle local position */
 	struct vehicle_local_position_setpoint_s		_local_pos_sp;		/**< vehicle local position */
-	struct vehicle_global_position_setpoint_s	_global_pos_sp;	/**< vehicle global position setpoint */
+	struct mission_item_triplet_s		_mission_items;	/**< vehicle global position setpoint */
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;	/**< vehicle global velocity setpoint */
 
 	struct {
@@ -232,7 +232,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_manual_sub(-1),
 	_arming_sub(-1),
 	_local_pos_sub(-1),
-	_global_pos_sp_sub(-1),
+	_mission_items_sub(-1),
 
 /* publications */
 	_local_pos_sp_pub(-1),
@@ -246,7 +246,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	memset(&_arming, 0, sizeof(_arming));
 	memset(&_local_pos, 0, sizeof(_local_pos));
 	memset(&_local_pos_sp, 0, sizeof(_local_pos_sp));
-	memset(&_global_pos_sp, 0, sizeof(_global_pos_sp));
+	memset(&_mission_items, 0, sizeof(_mission_items));
 	memset(&_global_vel_sp, 0, sizeof(_global_vel_sp));
 
 	_params.pos_p.zero();
@@ -395,9 +395,9 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated)
 		orb_copy(ORB_ID(actuator_armed), _arming_sub, &_arming);
 
-	orb_check(_global_pos_sp_sub, &updated);
+	orb_check(_mission_items_sub, &updated);
 	if (updated)
-		orb_copy(ORB_ID(vehicle_global_position_setpoint), _global_pos_sp_sub, &_global_pos_sp);
+		orb_copy(ORB_ID(mission_item_triplet), _mission_items_sub, &_mission_items);
 }
 
 float
@@ -439,7 +439,7 @@ MulticopterPositionControl::task_main()
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	_mission_items_sub = orb_subscribe(ORB_ID(mission_item_triplet));
 
 	parameters_update(true);
 
@@ -449,8 +449,6 @@ MulticopterPositionControl::task_main()
 	/* get an initial update for all sensor and status data */
 	poll_subscriptions();
 
-	bool reset_mission_sp = false;
-	bool global_pos_sp_valid = false;
 	bool reset_man_sp_z = true;
 	bool reset_man_sp_xy = true;
 	bool reset_int_z = true;
@@ -466,9 +464,10 @@ MulticopterPositionControl::task_main()
 	const float alt_ctl_dz = 0.2f;
 	const float pos_ctl_dz = 0.05f;
 
+	hrt_abstime ref_timestamp = 0;
+	int32_t ref_lat = 0.0f;
+	int32_t ref_lon = 0.0f;
 	float ref_alt = 0.0f;
-	hrt_abstime ref_alt_t = 0;
-	hrt_abstime local_ref_timestamp = 0;
 
 	math::Vector<3> sp_move_rate;
 	sp_move_rate.zero();
@@ -533,22 +532,32 @@ MulticopterPositionControl::task_main()
 
 			sp_move_rate.zero();
 
+			if (_local_pos.ref_timestamp != ref_timestamp) {
+				/* initialize local projection with new reference */
+				double lat_home = _local_pos.ref_lat * 1e-7;
+				double lon_home = _local_pos.ref_lon * 1e-7;
+				map_projection_init(lat_home, lon_home);
+				mavlink_log_info(mavlink_fd, "[mpc] local pos ref: %.7f, %.7f", (double)lat_home, (double)lon_home);
+
+				if (_control_mode.flag_control_manual_enabled && ref_timestamp != 0) {
+					/* correct setpoint in manual mode to stay in the same point */
+					float ref_change_x = 0.0f;
+					float ref_change_y = 0.0f;
+					map_projection_project(ref_lat, ref_lon, &ref_change_x, &ref_change_y);
+					_pos_sp(0) += ref_change_x;
+					_pos_sp(1) += ref_change_y;
+					_pos_sp(2) += _local_pos.ref_alt - ref_alt;
+				}
+				ref_timestamp = _local_pos.ref_timestamp;
+				ref_lat = _local_pos.ref_lat;
+				ref_lon = _local_pos.ref_lon;
+				ref_alt = _local_pos.ref_alt;
+			}
+
 			if (_control_mode.flag_control_manual_enabled) {
 				/* manual control */
-				/* check for reference point updates and correct setpoint */
-				if (_local_pos.ref_timestamp != ref_alt_t) {
-					if (ref_alt_t != 0) {
-						/* home alt changed, don't follow large ground level changes in manual flight */
-						_pos_sp(2) += _local_pos.ref_alt - ref_alt;
-					}
-
-					ref_alt_t = _local_pos.ref_timestamp;
-					ref_alt = _local_pos.ref_alt;
-					// TODO also correct XY setpoint
-				}
-
-				/* reset setpoints to current position if needed */
 				if (_control_mode.flag_control_altitude_enabled) {
+					/* reset setpoint Z to current altitude if needed */
 					if (reset_man_sp_z) {
 						reset_man_sp_z = false;
 						_pos_sp(2) = _pos(2);
@@ -560,6 +569,7 @@ MulticopterPositionControl::task_main()
 				}
 
 				if (_control_mode.flag_control_position_enabled) {
+					/* reset setpoint XY to current position if needed */
 					if (reset_man_sp_xy) {
 						reset_man_sp_xy = false;
 						_pos_sp(0) = _pos(0);
@@ -594,21 +604,39 @@ MulticopterPositionControl::task_main()
 					_pos_sp = _pos + pos_sp_offs.emult(_params.vel_max);
 				}
 
-				/* copy yaw setpoint to vehicle_local_position_setpoint topic */
-				_local_pos_sp.yaw = _att_sp.yaw_body;
-
 				/* local position setpoint is valid and can be used for auto loiter after position controlled mode */
 				reset_auto_sp_xy = !_control_mode.flag_control_position_enabled;
 				reset_auto_sp_z = !_control_mode.flag_control_altitude_enabled;
 				reset_takeoff_sp = true;
-
-				/* force reprojection of global setpoint after manual mode */
-				reset_mission_sp = true;
 			} else {
-				// TODO AUTO
-				_pos_sp = _pos;
+				/* AUTO */
+				if (_mission_items.current_valid) {
+					struct mission_item_s item = _mission_items.current;
+					map_projection_project(item.lat, item.lon, &_pos_sp(0), &_pos_sp(1));
+
+					// TODO home altitude can be != ref_alt, check home_position topic
+					_pos_sp(2) = -(item.altitude_is_relative ? item.altitude : item.altitude - ref_alt);
+
+					/* in case of interrupted mission don't go to waypoint but stop */
+					reset_auto_sp_xy = true;
+					reset_auto_sp_z = true;
+
+				} else {
+					/* no waypoint, loiter, reset position setpoint if needed */
+					if (reset_auto_sp_xy) {
+						reset_auto_sp_xy = false;
+						_pos_sp(0) = _pos(0);
+						_pos_sp(1) = _pos(1);
+					}
+					if (reset_auto_sp_z) {
+						reset_auto_sp_z = false;
+						_pos_sp(2) = _pos(2);
+					}
+				}
 			}
 
+			/* copy resulting setpoint to vehicle_local_position_setpoint topic for logging */
+			_local_pos_sp.yaw = _att_sp.yaw_body;
 			_local_pos_sp.x = _pos_sp(0);
 			_local_pos_sp.y = _pos_sp(1);
 			_local_pos_sp.z = _pos_sp(2);
@@ -874,7 +902,6 @@ MulticopterPositionControl::task_main()
 			reset_man_sp_xy = true;
 			reset_int_z = true;
 			reset_int_xy = true;
-			reset_mission_sp = true;
 			reset_auto_sp_xy = true;
 			reset_auto_sp_z = true;
 		}
