@@ -102,6 +102,17 @@ protected:
 	int		transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
 	/**
+	 * Set the SPI bus frequency
+	 * This is used to change frequency on the fly. Some sensors
+	 * (such as the MPU6000) need a lower frequency for setup
+	 * registers and can handle higher frequency for sensor 
+	 * value registers
+	 *
+	 * @param frequency	Frequency to set (Hz)
+	 */
+        void		set_frequency(uint32_t frequency);
+
+	/**
 	 * Locking modes supported by the driver.
 	 */
 	enum LockMode {

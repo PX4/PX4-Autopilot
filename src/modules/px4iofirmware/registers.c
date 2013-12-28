@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
+#include <systemlib/systemlib.h>
+#include <stm32_pwr.h>
 
 #include "px4io.h"
 #include "protocol.h"
@@ -68,7 +70,7 @@ static const uint16_t	r_page_config[] = {
 	[PX4IO_P_CONFIG_MAX_TRANSFER]		= 64,	/* XXX hardcoded magic number */
 	[PX4IO_P_CONFIG_CONTROL_COUNT]		= PX4IO_CONTROL_CHANNELS,
 	[PX4IO_P_CONFIG_ACTUATOR_COUNT]		= PX4IO_SERVO_COUNT,
-	[PX4IO_P_CONFIG_RC_INPUT_COUNT]		= PX4IO_CONTROL_CHANNELS,
+	[PX4IO_P_CONFIG_RC_INPUT_COUNT]		= PX4IO_RC_INPUT_CHANNELS,
 	[PX4IO_P_CONFIG_ADC_INPUT_COUNT]	= PX4IO_ADC_CHANNEL_COUNT,
 	[PX4IO_P_CONFIG_RELAY_COUNT]		= PX4IO_RELAY_CHANNELS,
 };
@@ -87,7 +89,9 @@ uint16_t		r_page_status[] = {
 	[PX4IO_P_STATUS_IBATT]			= 0,
 	[PX4IO_P_STATUS_VSERVO]			= 0,
 	[PX4IO_P_STATUS_VRSSI]			= 0,
-	[PX4IO_P_STATUS_PRSSI]			= 0
+	[PX4IO_P_STATUS_PRSSI]			= 0,
+	[PX4IO_P_STATUS_NRSSI]			= 0,
+	[PX4IO_P_STATUS_RC_DATA]		= 0
 };
 
 /**
@@ -112,7 +116,7 @@ uint16_t		r_page_servos[PX4IO_SERVO_COUNT];
 uint16_t		r_page_raw_rc_input[] =
 {
 	[PX4IO_P_RAW_RC_COUNT]			= 0,
-	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + PX4IO_CONTROL_CHANNELS)] = 0
+	[PX4IO_P_RAW_RC_BASE ... (PX4IO_P_RAW_RC_BASE + PX4IO_RC_INPUT_CHANNELS)] = 0
 };
 
 /**
@@ -122,7 +126,7 @@ uint16_t		r_page_raw_rc_input[] =
  */
 uint16_t		r_page_rc_input[] = {
 	[PX4IO_P_RC_VALID]			= 0,
-	[PX4IO_P_RC_BASE ... (PX4IO_P_RC_BASE + PX4IO_CONTROL_CHANNELS)] = 0
+	[PX4IO_P_RC_BASE ... (PX4IO_P_RC_BASE + PX4IO_RC_MAPPED_CONTROL_CHANNELS)] = 0
 };
 
 /**
@@ -154,6 +158,8 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_VBATT_SCALE]		= 10000,
 #endif
 	[PX4IO_P_SETUP_SET_DEBUG]		= 0,
+	[PX4IO_P_SETUP_REBOOT_BL]		= 0,
+	[PX4IO_P_SETUP_CRC ... (PX4IO_P_SETUP_CRC+1)] = 0,
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(0)
@@ -172,7 +178,7 @@ volatile uint16_t	r_page_setup[] =
  *
  * Control values from the FMU.
  */
-volatile uint16_t	r_page_controls[PX4IO_CONTROL_CHANNELS];
+volatile uint16_t	r_page_controls[PX4IO_CONTROL_GROUPS * PX4IO_CONTROL_CHANNELS];
 
 /*
  * PAGE 102 does not have a buffer.
@@ -183,7 +189,7 @@ volatile uint16_t	r_page_controls[PX4IO_CONTROL_CHANNELS];
  *
  * R/C channel input configuration.
  */
-uint16_t		r_page_rc_input_config[PX4IO_CONTROL_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE];
+uint16_t		r_page_rc_input_config[PX4IO_RC_INPUT_CHANNELS * PX4IO_P_RC_CONFIG_STRIDE];
 
 /* valid options */
 #define PX4IO_P_RC_CONFIG_OPTIONS_VALID	(PX4IO_P_RC_CONFIG_OPTIONS_REVERSE | PX4IO_P_RC_CONFIG_OPTIONS_ENABLED)
@@ -235,7 +241,7 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 	case PX4IO_PAGE_CONTROLS:
 
 		/* copy channel data */
-		while ((offset < PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
+		while ((offset < PX4IO_CONTROL_GROUPS * PX4IO_CONTROL_CHANNELS) && (num_values > 0)) {
 
 			/* XXX range-check value? */
 			r_page_controls[offset] = *values;
@@ -501,6 +507,29 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			isr_debug(0, "set debug %u\n", (unsigned)r_page_setup[PX4IO_P_SETUP_SET_DEBUG]);
 			break;
 
+		case PX4IO_P_SETUP_REBOOT_BL:
+			if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ||
+			    (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) ||
+			    (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+				// don't allow reboot while armed
+				break;
+			}
+
+			// check the magic value
+			if (value != PX4IO_REBOOT_BL_MAGIC)
+				break;
+                        
+                        // note that we don't set BL_WAIT_MAGIC in
+                        // BKP_DR1 as that is not necessary given the
+                        // timing of the forceupdate command. The
+                        // bootloader on px4io waits for enough time
+                        // anyway, and this method works with older
+                        // bootloader versions (tested with both
+                        // revision 3 and revision 4).
+
+			up_systemreset();
+			break;
+
 		case PX4IO_P_SETUP_DSM:
 			dsm_bind(value & 0x0f, (value >> 4) & 7);
 			break;
@@ -525,7 +554,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 		unsigned index = offset - channel * PX4IO_P_RC_CONFIG_STRIDE;
 		uint16_t *conf = &r_page_rc_input_config[channel * PX4IO_P_RC_CONFIG_STRIDE];
 
-		if (channel >= PX4IO_CONTROL_CHANNELS)
+		if (channel >= PX4IO_RC_INPUT_CHANNELS)
 			return -1;
 
 		/* disable the channel until we have a chance to sanity-check it */
@@ -555,6 +584,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			/* this option is normally set last */
 			if (value & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
 				uint8_t count = 0;
+				bool disabled = false;
 
 				/* assert min..center..max ordering */
 				if (conf[PX4IO_P_RC_CONFIG_MIN] < 500) {
@@ -573,7 +603,10 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500) {
 					count++;
 				}
-				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_CONTROL_CHANNELS) {
+
+				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] == UINT8_MAX) {
+					disabled = true;
+				} else if ((int)(conf[PX4IO_P_RC_CONFIG_ASSIGNMENT]) < 0 || conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
 					count++;
 				}
 
@@ -581,7 +614,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				if (count) {
 					isr_debug(0, "ERROR: %d config error(s) for RC%d.\n", count, (channel + 1));
 					r_status_flags &= ~PX4IO_P_STATUS_FLAGS_INIT_OK;
-				} else {
+				} else if (!disabled) {
 					conf[index] |= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
 				}
 			}

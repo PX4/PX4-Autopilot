@@ -420,8 +420,11 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return _reports->size();
 
 	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
+		/*
+		 * Since we are initialized, we do not need to do anything, since the
+		 * PROM is correctly read and the part does not need to be configured.
+		 */
+		return OK;
 
 	case BAROIOCSMSLPRESSURE:
 

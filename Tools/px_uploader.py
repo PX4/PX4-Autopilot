@@ -370,14 +370,17 @@ class uploader(object):
                 self.port.close()
                 
         def send_reboot(self):
-                # try reboot via NSH first
-                self.__send(uploader.NSH_INIT)
-                self.__send(uploader.NSH_REBOOT_BL)
-                self.__send(uploader.NSH_INIT)
-                self.__send(uploader.NSH_REBOOT)
-                # then try MAVLINK command
-                self.__send(uploader.MAVLINK_REBOOT_ID1)
-                self.__send(uploader.MAVLINK_REBOOT_ID0)
+                try:
+                    # try reboot via NSH first
+                    self.__send(uploader.NSH_INIT)
+                    self.__send(uploader.NSH_REBOOT_BL)
+                    self.__send(uploader.NSH_INIT)
+                    self.__send(uploader.NSH_REBOOT)
+                    # then try MAVLINK command
+                    self.__send(uploader.MAVLINK_REBOOT_ID1)
+                    self.__send(uploader.MAVLINK_REBOOT_ID0)
+                except:
+                    return
                 
                 
 

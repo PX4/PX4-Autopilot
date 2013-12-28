@@ -97,9 +97,9 @@ fi
 #
 if [ $MKBLCTRL_FRAME == x ]
 then
-    mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
+    mixer load /dev/mkblctrl /etc/mixers/FMU_quad_x.mix
 else
-    mixer load /dev/pwm_output /etc/mixers/FMU_quad_+.mix
+    mixer load /dev/mkblctrl /etc/mixers/FMU_quad_+.mix
 fi
 
 #

@@ -1,0 +1,88 @@
+#!nsh
+#
+# PX4FMU startup script for logging purposes
+#
+
+#
+# Try to mount the microSD card.
+#
+echo "[init] looking for microSD..."
+if mount -t vfat /dev/mmcsd0 /fs/microsd
+then
+	echo "[init] card mounted at /fs/microsd"
+	# Start playing the startup tune
+	tone_alarm start
+else
+	echo "[init] no microSD card found"
+	# Play SOS
+	tone_alarm error
+fi
+
+uorb start
+
+#
+# Start sensor drivers here.
+#
+
+ms5611 start
+adc start
+
+# mag might be external
+if hmc5883 start
+then
+	echo "using HMC5883"
+fi
+
+if mpu6000 start
+then
+	echo "using MPU6000"
+fi
+
+if l3gd20 start
+then
+	echo "using L3GD20(H)"
+fi
+
+if lsm303d start
+then
+	set BOARD fmuv2
+else
+	set BOARD fmuv1
+fi
+
+# Start airspeed sensors
+if meas_airspeed start
+then
+	echo "using MEAS airspeed sensor"
+else
+	if ets_airspeed start
+	then
+		echo "using ETS airspeed sensor (bus 3)"
+	else
+		if ets_airspeed start -b 1
+		then
+			echo "Using ETS airspeed sensor (bus 1)"
+		fi
+	fi
+fi
+
+#
+# Start the sensor collection task.
+# IMPORTANT: this also loads param offsets
+# ALWAYS start this task before the
+# preflight_check.
+#
+if sensors start
+then
+	echo "SENSORS STARTED"
+fi
+
+sdlog2 start -r 250 -e -b 16
+
+if sercon
+then
+	echo "[init] USB interface connected"
+
+	# Try to get an USB console
+	nshterm /dev/ttyACM0 &
+fi

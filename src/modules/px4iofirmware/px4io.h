@@ -53,7 +53,9 @@
  */
 #define PX4IO_SERVO_COUNT		8
 #define PX4IO_CONTROL_CHANNELS		8
-#define PX4IO_INPUT_CHANNELS		8 // XXX this should be 18 channels
+#define PX4IO_CONTROL_GROUPS		2
+#define PX4IO_RC_INPUT_CHANNELS		18
+#define PX4IO_RC_MAPPED_CONTROL_CHANNELS		8 /**< This is the maximum number of channels mapped/used */
 
 /*
  * Debug logging
@@ -169,6 +171,8 @@ extern pwm_limit_t pwm_limit;
 
 #define BUTTON_SAFETY		stm32_gpioread(GPIO_BTN_SAFETY)
 
+#define CONTROL_PAGE_INDEX(_group, _channel) (_group * PX4IO_CONTROL_CHANNELS + _channel)
+
 /*
  * Mixer
  */
@@ -209,7 +213,7 @@ extern int	dsm_init(const char *device);
 extern bool	dsm_input(uint16_t *values, uint16_t *num_values);
 extern void	dsm_bind(uint16_t cmd, int pulses);
 extern int	sbus_init(const char *device);
-extern bool	sbus_input(uint16_t *values, uint16_t *num_values, uint16_t max_channels);
+extern bool	sbus_input(uint16_t *values, uint16_t *num_values, uint16_t *rssi, uint16_t max_channels);
 
 /** global debug level for isr_debug() */
 extern volatile uint8_t debug_level;

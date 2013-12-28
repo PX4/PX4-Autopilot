@@ -181,4 +181,10 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	return OK;
 }
 
+void 
+SPI::set_frequency(uint32_t frequency)
+{
+	_frequency = frequency;
+}
+
 } // namespace device

@@ -299,7 +299,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Dcm &rotMat)
 
 		// Rate limit PD + FF throttle
 		// Calculate the throttle increment from the specified slew time
-		if (fabsf(_throttle_slewrate) < 0.01f) {
+		if (fabsf(_throttle_slewrate) > 0.01f) {
 			float thrRateIncr = _DT * (_THRmaxf - _THRminf) * _throttle_slewrate;
 
 			_throttle_dem = constrain(_throttle_dem,
