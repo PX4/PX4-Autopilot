@@ -250,7 +250,7 @@ then
 		set MODE custom
 	fi
 
-	if param compare SYS_AUTOSTART 6013 13
+	if param compare SYS_AUTOSTART 7013 13
 	then
 		set MIXER /etc/mixers/FMU_hex_+.mix
 		sh /etc/init.d/12-13_hex
