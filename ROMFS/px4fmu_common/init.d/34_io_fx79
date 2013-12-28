@@ -31,8 +31,8 @@ then
 	param set FW_THR_MIN 0
 	param set FW_T_SINK_MAX 5.0
 	param set FW_T_SINK_MIN 4.0
-    param set FW_T_TIME_CONST 9
-	param set FW_Y_ROLLFF 1.1
+	param set FW_T_TIME_CONST 9
+	param set FW_Y_ROLLFF 1.1	
 	param set RC_SCALE_ROLL 1.0
 	param set RC_SCALE_PITCH 1.0
 	
