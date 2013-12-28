@@ -321,6 +321,12 @@ then
 		set MODE custom
 	fi
 
+	if param compare SYS_AUTOSTART 33
+	then
+		sh /etc/init.d/32_io_wingwing
+		set MODE custom
+	fi
+
 	if param compare SYS_AUTOSTART 40
 	then
 		sh /etc/init.d/40_io_segway
