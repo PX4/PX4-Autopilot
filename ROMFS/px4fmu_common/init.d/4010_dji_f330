@@ -41,14 +41,6 @@ then
 
 	param save
 fi
- 
-#
-# Force some key parameters to sane values
-# MAV_TYPE     2 = quadrotor
-#
-param set MAV_TYPE 2
-
-set EXIT_ON_END no
 
 #
 # Start and configure PX4IO or FMU interface
@@ -69,29 +61,9 @@ else
 	set EXIT_ON_END yes
 fi
 
-#
-# Load mixer
-#
-mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
-
-#
-# Set PWM output frequency
-#
-pwm rate -c 1234 -r 400
-
-#
-# Set disarmed, min and max PWM signals (for DJI ESCs)
-#
-pwm disarmed -c 1234 -p 900
-pwm min -c 1234 -p 1200
-pwm max -c 1234 -p 1800
+sh /etc/init.d/rc.mc_interface
 
 #
 # Start common for all multirotors apps
 #
 sh /etc/init.d/rc.multirotor
-
-if [ $EXIT_ON_END == yes ]
-then
-	exit
-fi

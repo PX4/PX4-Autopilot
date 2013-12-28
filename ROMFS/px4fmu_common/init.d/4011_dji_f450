@@ -1,6 +1,6 @@
 #!nsh
 
-echo "[init] Team Blacksheep Discovery Quad"
+echo "[init] PX4FMU v1, v2 with or without IO on DJI F450"
 
 #
 # Load default params for this platform
@@ -10,29 +10,27 @@ then
 	# Set all params here, then disable autoconfig
 	param set SYS_AUTOCONFIG 0
 
-	param set MC_ATTRATE_D 0.006
+	param set MC_ATTRATE_D 0.004
 	param set MC_ATTRATE_I 0.0
-	param set MC_ATTRATE_P 0.17
+	param set MC_ATTRATE_P 0.12
 	param set MC_ATT_D 0.0
 	param set MC_ATT_I 0.0
-	param set MC_ATT_P 5.0
+	param set MC_ATT_P 7.0
 	param set MC_YAWPOS_D 0.0
-	param set MC_YAWPOS_I 0.15
-	param set MC_YAWPOS_P 0.5
-	param set MC_YAWRATE_D 0.0
-	param set MC_YAWRATE_I 0.0
-	param set MC_YAWRATE_P 0.2
+	param set MC_YAWPOS_I 0.0
+	param set MC_YAWPOS_P 2.0
+	param set MC_YAWRATE_D 0.005
+	param set MC_YAWRATE_I 0.2
+	param set MC_YAWRATE_P 0.3
 
 	param save
 fi
-
+ 
 #
 # Force some key parameters to sane values
 # MAV_TYPE     2 = quadrotor
 #
 param set MAV_TYPE 2
-
-set EXIT_ON_END no
 
 #
 # Start and configure PX4IO or FMU interface
@@ -42,6 +40,8 @@ then
 	# Start MAVLink (depends on orb)
 	mavlink start
 	usleep 5000
+
+	commander start
 
 	sh /etc/init.d/rc.io
 else
@@ -54,9 +54,9 @@ else
 fi
 
 #
-# Load the mixer for a quad with wide arms
+# Load mixer
 #
-mixer load /dev/pwm_output /etc/mixers/FMU_quad_w.mix
+mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
 
 #
 # Set PWM output frequency
@@ -64,18 +64,13 @@ mixer load /dev/pwm_output /etc/mixers/FMU_quad_w.mix
 pwm rate -c 1234 -r 400
 
 #
-# Set disarmed, min and max PWM signals
+# Set disarmed, min and max PWM signals (for DJI ESCs)
 #
 pwm disarmed -c 1234 -p 900
-pwm min -c 1234 -p 1100
-pwm max -c 1234 -p 1900
+pwm min -c 1234 -p 1200
+pwm max -c 1234 -p 1800
 
 #
-# Start common for all multirotors apps
+# Start common multirotor apps
 #
 sh /etc/init.d/rc.multirotor
-
-if [ $EXIT_ON_END == yes ]
-then
-	exit
-fi
