@@ -1,6 +1,6 @@
 #!nsh
 
-echo "[init] PX4FMU v1, v2 with or without IO on Hex"
+echo "[init] Octorotor startup"
 
 #
 # Load default params for this platform
@@ -45,9 +45,9 @@ fi
 #
 # Force some key parameters to sane values
 # MAV_TYPE list: https://pixhawk.ethz.ch/mavlink/
-# 13 = hexarotor
+# 14 = octorotor
 #
-param set MAV_TYPE 13
+param set MAV_TYPE 14
 
 set EXIT_ON_END no
 
