@@ -60,11 +60,6 @@ PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.5f);
 // @Range		10 to 200, 1 increments
 PARAM_DEFINE_FLOAT(FW_PR_P, 0.05f);
 
-// @DisplayName		Damping gain.
-// @Description		This gain damps the airframe pitch rate. In particular relevant for flying wings.
-// @Range		0.0 to 10.0, 0.1 increments
-PARAM_DEFINE_FLOAT(FW_PR_D, 0.0f); //xxx: remove
-
 // @DisplayName		Pitch rate integrator gain.
 // @Description		This gain defines how much control response will result out of a steady state error. It trims any constant error.
 // @Range		0 to 50.0
@@ -99,13 +94,6 @@ PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f);
 // @Increment		10.0
 // @User		User
 PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
-
-// @DisplayName		Damping Gain
-// @Description		Controls the roll rate to roll actuator output. It helps to reduce motions in turbulence.
-// @Range		0.0 10.0
-// @Increment		1.0
-// @User		User
-PARAM_DEFINE_FLOAT(FW_RR_D, 0.0f); //xxx: remove
 
 // @DisplayName		Roll rate integrator Gain
 // @Description		This gain defines how much control response will result out of a steady state error. It trims any constant error.
@@ -142,7 +130,6 @@ PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
 // @Increment		0.1
 PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
 
-PARAM_DEFINE_FLOAT(FW_YR_D, 0); //xxx: remove
 PARAM_DEFINE_FLOAT(FW_Y_ROLLFF, 0); //xxx: remove
 
 // @DisplayName		Maximum Yaw Rate

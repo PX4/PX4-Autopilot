@@ -75,10 +75,6 @@ public:
 		_k_i = k_i;
 	}
 
-	void set_k_d(float k_d) {
-		_k_d = k_d;
-	}
-
 	void set_k_ff(float k_ff) {
 		_k_ff = k_ff;
 	}
@@ -116,7 +112,6 @@ private:
 	uint64_t _last_run;
 	float _k_p;
 	float _k_i;
-	float _k_d;
 	float _k_ff;
 	float _integrator_max;
 	float _max_rate;

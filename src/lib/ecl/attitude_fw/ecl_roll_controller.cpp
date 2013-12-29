@@ -52,7 +52,6 @@ ECL_RollController::ECL_RollController() :
 	_tc(0.1f),
 	_k_p(0.0f),
 	_k_i(0.0f),
-	_k_d(0.0f),
 	_k_ff(0.0f),
 	_integrator_max(0.0f),
 	_max_rate(0.0f),

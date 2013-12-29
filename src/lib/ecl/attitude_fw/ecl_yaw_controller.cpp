@@ -50,7 +50,6 @@ ECL_YawController::ECL_YawController() :
 	_last_run(0),
 	_k_p(0.0f),
 	_k_i(0.0f),
-	_k_d(0.0f),
 	_k_ff(0.0f),
 	_integrator_max(0.0f),
 	_max_rate(0.0f),
