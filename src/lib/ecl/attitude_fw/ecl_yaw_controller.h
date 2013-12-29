@@ -87,10 +87,6 @@ public:
 		_max_rate = max_rate;
 	}
 
-	void set_k_roll_ff(float roll_ff) {
-		_roll_ff = roll_ff;
-	}
-
 	void set_coordinated_min_speed(float coordinated_min_speed) {
 		_coordinated_min_speed = coordinated_min_speed;
 	}

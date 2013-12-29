@@ -90,6 +90,7 @@ float ECL_PitchController::control_attitude(float pitch_setpoint, float roll, fl
 	}
 
 	/* calculate the offset in the rate resulting from rolling  */
+	//xxx needs explanation and conversion to body angular rates or should be removed
 	float turn_offset = fabsf((CONSTANTS_ONE_G / airspeed) *
 				tanf(roll) * sinf(roll)) * _roll_ff;
 	if (inverted)

@@ -86,7 +86,7 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.2f);
 // @Range		0.5 2.0
 // @Increment		0.05
 // @User		User
-PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f); //xxx: set to 0 as default, see comment in ECL_PitchController::control_attitude (float turn_offset = ...)
 
 // @DisplayName		Roll rate proportional Gain.
 // @Description		This defines how much the aileron input will be commanded depending on the current body angular rate error.
@@ -129,8 +129,6 @@ PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
 // @Range		0.0 to 1
 // @Increment		0.1
 PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
-
-PARAM_DEFINE_FLOAT(FW_Y_ROLLFF, 0); //xxx: remove
 
 // @DisplayName		Maximum Yaw Rate
 // @Description		This limits the maximum yaw rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
