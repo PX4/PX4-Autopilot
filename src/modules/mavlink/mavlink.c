@@ -221,6 +221,8 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 	} else if (v_status.main_state == MAIN_STATE_AUTO) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		// TODO use control_mode topic
+		/*
 		if (v_status.navigation_state == NAVIGATION_STATE_AUTO_READY) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
 		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
@@ -234,6 +236,7 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LAND) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		}
+		*/
 	}
 	*mavlink_custom_mode = custom_mode.data;
 
