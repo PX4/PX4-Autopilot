@@ -52,7 +52,7 @@ param set MAV_TYPE 13
 set EXIT_ON_END no
 
 #
-# Start and configure PX4IO or FMU interface
+# Start and configure PX4IO interface
 #
 if px4io detect
 then
@@ -62,12 +62,8 @@ then
 
 	sh /etc/init.d/rc.io
 else
-	# Start MAVLink (on UART1 / ttyS0)
-	mavlink start -d /dev/ttyS0
-	usleep 5000
-	fmu mode_pwm
-	param set BAT_V_SCALING 0.004593
-	set EXIT_ON_END yes
+	# This is not possible on a hexa
+	tone_alarm error
 fi
 
 #

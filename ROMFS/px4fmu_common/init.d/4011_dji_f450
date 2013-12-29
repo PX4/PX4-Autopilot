@@ -41,8 +41,6 @@ then
 	mavlink start
 	usleep 5000
 
-	commander start
-
 	sh /etc/init.d/rc.io
 else
 	# Start MAVLink (on UART1 / ttyS0)
