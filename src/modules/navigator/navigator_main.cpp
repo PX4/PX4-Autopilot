@@ -977,9 +977,8 @@ Navigator::start_mission()
 			mavlink_log_info(_mavlink_fd, "[navigator] heading to offboard WP %d", index);
 		}
 	} else {
-		/* since a mission is not started without WPs available, this is not supposed to happen */
+		/* since a mission is started without knowledge if there are more mission items available, this can fail */
 		_mission_item_triplet.current_valid = false;
-		warnx("ERROR: current WP can't be set");
 	}
 
 	ret = _mission.get_next_mission_item(&_mission_item_triplet.next);
@@ -1308,11 +1307,9 @@ bool Navigator::cmp_mission_item_equivalent(const struct mission_item_s a, const
 	    fabsf(a.nav_cmd - b.nav_cmd) < FLT_EPSILON &&
 	    fabsf(a.radius - b.radius) < FLT_EPSILON &&
 	    fabsf(a.time_inside - b.time_inside) < FLT_EPSILON &&
-	    fabsf(a.autocontinue - b.autocontinue) < FLT_EPSILON &&
-	    fabsf(a.index - b.index) < FLT_EPSILON) {
+	    fabsf(a.autocontinue - b.autocontinue) < FLT_EPSILON) {
 		return true;
 	} else {
-		warnx("a.index %d, b.index %d", a.index, b.index);
 		return false;
 	}
 }

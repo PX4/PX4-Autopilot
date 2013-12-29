@@ -91,7 +91,6 @@ struct mission_item_s
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */
-	int index;			/**< index matching the mavlink waypoint                */
 	enum ORIGIN origin;		/**< where the waypoint has been generated		*/
 };
 
