@@ -66,20 +66,6 @@ typedef enum {
 	MAIN_STATE_AUTO,
 } main_state_t;
 
-/* navigation state machine */
-typedef enum {
-	NAVIGATION_STATE_DIRECT = 0,		// true manual control, no any stabilization
-	NAVIGATION_STATE_STABILIZE,		// attitude stabilization
-	NAVIGATION_STATE_ALTHOLD,		// attitude + altitude stabilization
-	NAVIGATION_STATE_VECTOR,		// attitude + altitude + position stabilization
-	NAVIGATION_STATE_AUTO_READY,	// AUTO, landed, reeady for takeoff
-	NAVIGATION_STATE_AUTO_TAKEOFF,	// detect takeoff using land detector and switch to desired AUTO mode
-	NAVIGATION_STATE_AUTO_LOITER,	// pause mission
-	NAVIGATION_STATE_AUTO_MISSION,	// fly mission
-	NAVIGATION_STATE_AUTO_RTL,		// Return To Launch, when home position switch to LAND
-	NAVIGATION_STATE_AUTO_LAND		// land and switch to AUTO_READY when landed (detect using land detector)
-} navigation_state_t;
-
 typedef enum {
 	ARMING_STATE_INIT = 0,
 	ARMING_STATE_STANDBY,
@@ -94,7 +80,6 @@ typedef enum {
 	HIL_STATE_OFF = 0,
 	HIL_STATE_ON
 } hil_state_t;
-
 
 typedef enum {
 	FLIGHTTERMINATION_STATE_OFF = 0,
@@ -182,7 +167,8 @@ struct vehicle_status_s
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
 	main_state_t main_state;				/**< main state machine */
-	navigation_state_t navigation_state;	/**< navigation state machine */
+	unsigned int set_nav_state;	/**< set navigation state machine to specified value */
+	uint64_t set_nav_state_timestamp;	/**< timestamp of latest change of set_nav_state */
 	arming_state_t arming_state;			/**< current arming state */
 	hil_state_t hil_state;					/**< current hil state */
 

@@ -969,7 +969,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 				// Don't orb_copy, it's already done few lines above
 				log_msg.msg_type = LOG_STAT_MSG;
 				log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
-				log_msg.body.log_STAT.navigation_state = (uint8_t) buf_status.navigation_state;
+				// TODO use control_mode topic
+				//log_msg.body.log_STAT.navigation_state = (uint8_t) buf_status.navigation_state;
 				log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
 				log_msg.body.log_STAT.battery_voltage = buf_status.battery_voltage;
 				log_msg.body.log_STAT.battery_current = buf_status.battery_current;

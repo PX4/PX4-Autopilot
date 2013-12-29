@@ -316,7 +316,7 @@ mc_thread_main(int argc, char *argv[])
 				}
 
 			} else {
-				if (!control_mode.flag_control_auto_enabled) {
+				if (!control_mode.flag_control_attitude_enabled) {
 					/* no control, try to stay on place */
 					if (!control_mode.flag_control_velocity_enabled) {
 						/* no velocity control, reset attitude setpoint */
