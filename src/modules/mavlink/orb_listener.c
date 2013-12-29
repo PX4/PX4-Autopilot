@@ -348,20 +348,26 @@ l_input_rc(const struct listener *l)
 	/* copy rc channels into local buffer */
 	orb_copy(ORB_ID(input_rc), mavlink_subs.input_rc_sub, &rc_raw);
 
-	if (gcs_link)
-		/* Channels are sent in MAVLink main loop at a fixed interval */
-		mavlink_msg_rc_channels_raw_send(chan,
-						 rc_raw.timestamp / 1000,
-						 0,
-						 (rc_raw.channel_count > 0) ? rc_raw.values[0] : UINT16_MAX,
-						 (rc_raw.channel_count > 1) ? rc_raw.values[1] : UINT16_MAX,
-						 (rc_raw.channel_count > 2) ? rc_raw.values[2] : UINT16_MAX,
-						 (rc_raw.channel_count > 3) ? rc_raw.values[3] : UINT16_MAX,
-						 (rc_raw.channel_count > 4) ? rc_raw.values[4] : UINT16_MAX,
-						 (rc_raw.channel_count > 5) ? rc_raw.values[5] : UINT16_MAX,
-						 (rc_raw.channel_count > 6) ? rc_raw.values[6] : UINT16_MAX,
-						 (rc_raw.channel_count > 7) ? rc_raw.values[7] : UINT16_MAX,
-						 255);
+	if (gcs_link) {
+
+		const unsigned port_width = 8;
+
+		for (unsigned i = 0; (i * port_width) < (rc_raw.channel_count + port_width); i++) {
+			/* Channels are sent in MAVLink main loop at a fixed interval */
+			mavlink_msg_rc_channels_raw_send(chan,
+							 rc_raw.timestamp / 1000,
+							 i,
+							 (rc_raw.channel_count > (i * port_width) + 0) ? rc_raw.values[(i * port_width) + 0] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 1) ? rc_raw.values[(i * port_width) + 1] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 2) ? rc_raw.values[(i * port_width) + 2] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 3) ? rc_raw.values[(i * port_width) + 3] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 4) ? rc_raw.values[(i * port_width) + 4] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 5) ? rc_raw.values[(i * port_width) + 5] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 6) ? rc_raw.values[(i * port_width) + 6] : UINT16_MAX,
+							 (rc_raw.channel_count > (i * port_width) + 7) ? rc_raw.values[(i * port_width) + 7] : UINT16_MAX,
+							 rc_raw.rssi);
+		}
+	}
 }
 
 void
