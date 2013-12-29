@@ -32,13 +32,11 @@
 ############################################################################
 
 #
-# Math library
+# Multirotor attitude controller (vector based, no Euler singularities)
 #
-SRCS		 = math/test/test.cpp \
-		   math/Limits.cpp
 
-#
-# In order to include .config we first have to save off the
-# current makefile name, since app.mk needs it.
-#
-APP_MAKEFILE	:= $(lastword $(MAKEFILE_LIST))
+MODULE_COMMAND	= fw_att_control_vector
+
+SRCS		= fw_att_control_vector_main.cpp \
+		  ecl_fw_att_control_vector.cpp \
+		  fw_att_control_vector_params.c

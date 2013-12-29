@@ -32,11 +32,10 @@
 ############################################################################
 
 #
-# Build multirotor position control
+# Multirotor attitude controller (vector based, no Euler singularities)
 #
 
-MODULE_COMMAND	= multirotor_pos_control
+MODULE_COMMAND	= mc_att_control_vector
 
-SRCS		= multirotor_pos_control.c \
-		  multirotor_pos_control_params.c \
-		  thrust_pid.c
+SRCS		= mc_att_control_vector_main.cpp \
+			  mc_att_control_vector_params.c

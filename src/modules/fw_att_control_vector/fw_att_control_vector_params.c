@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +18,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,9 +33,35 @@
  ****************************************************************************/
 
 /**
- * @file Matrix.cpp
+ * @file fw_pos_control_l1_params.c
  *
- * matrix code
+ * Parameters defined by the L1 position control task
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include "Matrix.hpp"
+#include <nuttx/config.h>
+
+#include <systemlib/param/param.h>
+
+/*
+ * Controller parameters, accessible via MAVLink
+ *
+ */
+
+PARAM_DEFINE_FLOAT(FW_TCONST, 0.5f);
+PARAM_DEFINE_FLOAT(FW_P_P, 40.0f);
+PARAM_DEFINE_FLOAT(FW_P_D, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_UP, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_DN, 0.0f);
+PARAM_DEFINE_FLOAT(FW_P_IMAX, 15.0f);
+PARAM_DEFINE_FLOAT(FW_P_RLL, 1.0f);
+PARAM_DEFINE_FLOAT(FW_R_P, 40.0f);
+PARAM_DEFINE_FLOAT(FW_R_D, 0.0f);
+PARAM_DEFINE_FLOAT(FW_R_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_R_IMAX, 15.0f);
+PARAM_DEFINE_FLOAT(FW_R_RMAX, 60);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 9.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 12.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 18.0f);

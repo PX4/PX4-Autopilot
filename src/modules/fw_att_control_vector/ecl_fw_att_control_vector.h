@@ -32,48 +32,84 @@
  ****************************************************************************/
 
 /**
- * @file Vector2f.hpp
+ * @file ecl_fw_att_control_vector.cpp
  *
- * math 3 vector
+ * Fixed wing attitude controller
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ *
  */
 
-#pragma once
+#include <mathlib/mathlib.h>
 
-#include "Vector.hpp"
+class ECL_FWAttControlVector {
 
-namespace math
-{
-
-class __EXPORT Vector2f :
-	public Vector
-{
 public:
-	Vector2f();
-	Vector2f(const Vector &right);
-	Vector2f(float x, float y);
-	Vector2f(const float *data);
-	virtual ~Vector2f();
-	float cross(const Vector2f &b) const;
-	float operator %(const Vector2f &v) const;
-    float operator *(const Vector2f &v) const;
-    inline Vector2f operator*(const float &right) const {
-		return Vector::operator*(right);
+	ECL_FWAttControlVector();
+	void control(float dt, float airspeed, float airspeed_scaling, const math::Dcm &R_nb, float roll, float pitch, float yaw, const math::Vector &F_des_in,
+                                const math::Vector &angular_rates,
+                                math::Vector &moment_des, float &thrust);
+
+	void set_imax(float integral_max) {
+		_integral_max(0) = integral_max;
+		_integral_max(1) = integral_max;
 	}
 
-	/**
-	 * accessors
-	 */
-	void setX(float x) { (*this)(0) = x; }
-	void setY(float y) { (*this)(1) = y; }
-	const float &getX() const { return (*this)(0); }
-	const float &getY() const { return (*this)(1); }
-};
-    
-class __EXPORT Vector2 :
-	public Vector2f
-{
-};
+	void set_tconst(float tconst) {
+		_p_tconst = tconst;
+	}
 
-int __EXPORT vector2fTest();
-} // math
+	void set_k_p(float roll, float pitch, float yaw) {
+		_k_p(0) = roll;
+		_k_p(1) = pitch;
+		_k_p(2) = yaw;
+	}
 
+	void set_k_d(float roll, float pitch, float yaw) {
+		_k_d(0) = roll;
+		_k_d(1) = pitch;
+		_k_d(2) = yaw;
+	}
+
+	void set_k_i(float roll, float pitch, float yaw) {
+		_k_i(0) = roll;
+		_k_i(1) = pitch;
+		_k_i(2) = yaw;
+	}
+
+	void reset_integral() {
+		_integral_error(0) = 0.0f;
+		_integral_error(1) = 0.0f;
+	}
+
+	void lock_integral(bool lock) {
+		_integral_lock = lock;
+	}
+
+	bool airspeed_enabled() {
+		return _airspeed_enabled;
+	}
+
+	void enable_airspeed(bool airspeed) {
+		_airspeed_enabled = airspeed;
+	}
+
+	math::Vector3 get_rates_des() {
+		return _rates_demanded;
+	}
+
+protected:
+    math::Vector2f _integral_error;
+    math::Vector2f _integral_max;
+    math::Vector3 _rates_demanded;
+    math::Vector3 _k_p;
+    math::Vector3 _k_d;
+    math::Vector3 _k_i;
+    bool _integral_lock;
+    float _p_airspeed_min;
+    float _p_airspeed_max;
+    float _p_tconst;
+    float _p_roll_ffd;
+    bool _airspeed_enabled;
+};

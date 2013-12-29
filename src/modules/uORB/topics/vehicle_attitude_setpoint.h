@@ -61,7 +61,7 @@ struct vehicle_attitude_setpoint_s
 	float yaw_body;					/**< body angle in NED frame		*/
 	//float body_valid;				/**< Set to true if body angles are valid */
 
-	float R_body[9];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */
+	float R_body[3][3];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */
 	bool R_valid;					/**< Set to true if rotation matrix is valid */
 
 	//! For quaternion-based attitude control
