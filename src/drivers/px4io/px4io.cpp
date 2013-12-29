@@ -228,33 +228,36 @@ private:
 	device::Device		*_interface;
 
 	// XXX
-	unsigned		_hardware;			///< Hardware revision
-	unsigned		_max_actuators;		///<Maximum # of actuators supported by PX4IO
-	unsigned		_max_controls;		///<Maximum # of controls supported by PX4IO
-	unsigned		_max_rc_input;		///<Maximum receiver channels supported by PX4IO
-	unsigned		_max_relays;		///<Maximum relays supported by PX4IO
-	unsigned		_max_transfer;		///<Maximum number of I2C transfers supported by PX4IO
+	unsigned		_hardware;		///< Hardware revision
+	unsigned		_max_actuators;		///< Maximum # of actuators supported by PX4IO
+	unsigned		_max_controls;		///< Maximum # of controls supported by PX4IO
+	unsigned		_max_rc_input;		///< Maximum receiver channels supported by PX4IO
+	unsigned		_max_relays;		///< Maximum relays supported by PX4IO
+	unsigned		_max_transfer;		///< Maximum number of I2C transfers supported by PX4IO
 
 	unsigned 		_update_interval;	///< Subscription interval limiting send rate
 	bool			_rc_handling_disabled;	///< If set, IO does not evaluate, but only forward the RC values
 	unsigned		_rc_chan_count;		///< Internal copy of the last seen number of RC channels
 
-	volatile int		_task;			///<worker task id
-	volatile bool		_task_should_exit;	///<worker terminate flag
+	volatile int		_task;			///< worker task id
+	volatile bool		_task_should_exit;	///< worker terminate flag
 
-	int			_mavlink_fd;		///<mavlink file descriptor. This is opened by class instantiation and Doesn't appear to be usable in main thread.
-	int			_thread_mavlink_fd;	///<mavlink file descriptor for thread.
+	int			_mavlink_fd;		///< mavlink file descriptor. This is opened by class instantiation and Doesn't appear to be usable in main thread.
+	int			_thread_mavlink_fd;	///< mavlink file descriptor for thread.
 
 	perf_counter_t		_perf_update;		///<local performance counter for status updates
 	perf_counter_t		_perf_write;		///<local performance counter for PWM control writes
 	perf_counter_t		_perf_chan_count;	///<local performance counter for channel number changes
 
 	/* cached IO state */
-	uint16_t		_status;		///<Various IO status flags
-	uint16_t		_alarms;		///<Various IO alarms
+	uint16_t		_status;		///< Various IO status flags
+	uint16_t		_alarms;		///< Various IO alarms
 
 	/* subscribed topics */
-	int			_t_actuators;		///< actuator controls topic
+	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
+	int			_t_actuator_controls_1;	///< actuator controls group 1 topic
+	int			_t_actuator_controls_2;	///< actuator controls group 2 topic
+	int			_t_actuator_controls_3;	///< actuator controls group 3 topic
 	int			_t_actuator_armed;	///< system armed control topic
 	int 			_t_vehicle_control_mode;///< vehicle control mode topic
 	int			_t_param;		///< parameter update topic
@@ -269,15 +272,15 @@ private:
 
 	actuator_outputs_s	_outputs;		///<mixed outputs
 
-	bool			_primary_pwm_device;	///<true if we are the default PWM output
+	bool			_primary_pwm_device;	///< true if we are the default PWM output
 
-	float			_battery_amp_per_volt;	///<current sensor amps/volt
-	float			_battery_amp_bias;	///<current sensor bias
-	float			_battery_mamphour_total;///<amp hours consumed so far
-	uint64_t		_battery_last_timestamp;///<last amp hour calculation timestamp
+	float			_battery_amp_per_volt;	///< current sensor amps/volt
+	float			_battery_amp_bias;	///< current sensor bias
+	float			_battery_mamphour_total;///< amp hours consumed so far
+	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
 
 #ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-	bool			_dsm_vcc_ctl;		///<true if relay 1 controls DSM satellite RX power
+	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
 #endif
 
 	/**
@@ -291,9 +294,14 @@ private:
 	void			task_main();
 
 	/**
-	 * Send controls to IO
+	 * Send controls for one group to IO
 	 */
-	int			io_set_control_state();
+	int			io_set_control_state(unsigned group);
+
+	/**
+	 * Send all controls to IO
+	 */
+	int			io_set_control_groups();
 
 	/**
 	 * Update IO's arming-related state
@@ -467,7 +475,10 @@ PX4IO::PX4IO(device::Device *interface) :
 	_perf_chan_count(perf_alloc(PC_COUNT, "io rc #")),
 	_status(0),
 	_alarms(0),
-	_t_actuators(-1),
+	_t_actuator_controls_0(-1),
+	_t_actuator_controls_1(-1),
+	_t_actuator_controls_2(-1),
+	_t_actuator_controls_3(-1),
 	_t_actuator_armed(-1),
 	_t_vehicle_control_mode(-1),
 	_t_param(-1),
@@ -769,15 +780,20 @@ PX4IO::task_main()
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
-	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-				     ORB_ID(actuator_controls_1));
-	orb_set_interval(_t_actuators, 20);		/* default to 50Hz */
+	_t_actuator_controls_0 = orb_subscribe(ORB_ID(actuator_controls_0));
+	orb_set_interval(_t_actuator_controls_0, 20);		/* default to 50Hz */
+	_t_actuator_controls_1 = orb_subscribe(ORB_ID(actuator_controls_1));
+	orb_set_interval(_t_actuator_controls_1, 33);		/* default to 30Hz */
+	_t_actuator_controls_2 = orb_subscribe(ORB_ID(actuator_controls_2));
+	orb_set_interval(_t_actuator_controls_2, 33);		/* default to 30Hz */
+	_t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
+	orb_set_interval(_t_actuator_controls_3, 33);		/* default to 30Hz */
 	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
 	_t_vehicle_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_t_param = orb_subscribe(ORB_ID(parameter_update));
 	_t_vehicle_command = orb_subscribe(ORB_ID(vehicle_command));
 
-	if ((_t_actuators < 0) ||
+	if ((_t_actuator_controls_0 < 0) ||
 	    (_t_actuator_armed < 0) ||
 	    (_t_vehicle_control_mode < 0) ||
 	    (_t_param < 0) ||
@@ -788,7 +804,7 @@ PX4IO::task_main()
 
 	/* poll descriptor */
 	pollfd fds[1];
-	fds[0].fd = _t_actuators;
+	fds[0].fd = _t_actuator_controls_0;
 	fds[0].events = POLLIN;
 
 	log("ready");
@@ -807,7 +823,11 @@ PX4IO::task_main()
 			if (_update_interval > 100)
 				_update_interval = 100;
 
-			orb_set_interval(_t_actuators, _update_interval);
+			orb_set_interval(_t_actuator_controls_0, _update_interval);
+			/*
+			 * NOT changing the rate of groups 1-3 here, because only attitude
+			 * really needs to run fast.
+			 */
 			_update_interval = 0;
 		}
 
@@ -827,7 +847,10 @@ PX4IO::task_main()
 
 		/* if we have new control data from the ORB, handle it */
 		if (fds[0].revents & POLLIN) {
-			io_set_control_state();
+
+			/* we're not nice to the lower-priority control groups and only check them
+			   when the primary group updated (which is now). */
+			(void)io_set_control_groups();
 		}
 
 		if (now >= poll_last + IO_POLL_INTERVAL) {
@@ -870,7 +893,7 @@ PX4IO::task_main()
 				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
 
 				// Check for a DSM pairing command
-				if ((cmd.command == VEHICLE_CMD_START_RX_PAIR) && (cmd.param1 == 0.0f)) {
+				if (((int)cmd.command == VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
 					dsm_bind_ioctl((int)cmd.param2);
 				}
 			}
@@ -937,20 +960,74 @@ out:
 }
 
 int
-PX4IO::io_set_control_state()
+PX4IO::io_set_control_groups()
+{
+	int ret = io_set_control_state(0);
+
+	/* send auxiliary control groups */
+	(void)io_set_control_state(1);
+	(void)io_set_control_state(2);
+	(void)io_set_control_state(3);
+
+	return ret;
+}
+
+int
+PX4IO::io_set_control_state(unsigned group)
 {
 	actuator_controls_s	controls;	///< actuator outputs
 	uint16_t 		regs[_max_actuators];
 
 	/* get controls */
-	orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
-		 ORB_ID(actuator_controls_1), _t_actuators, &controls);
+	bool changed;
+
+	switch (group) {
+		case 0:
+		{
+			orb_check(_t_actuator_controls_0, &changed);
+
+			if (changed) {
+				orb_copy(ORB_ID(actuator_controls_0), _t_actuator_controls_0, &controls);
+			}
+		}
+		break;
+		case 1:
+		{
+			orb_check(_t_actuator_controls_1, &changed);
+
+			if (changed) {
+				orb_copy(ORB_ID(actuator_controls_1), _t_actuator_controls_1, &controls);
+			}
+		}
+		break;
+		case 2:
+		{
+			orb_check(_t_actuator_controls_2, &changed);
+
+			if (changed) {
+				orb_copy(ORB_ID(actuator_controls_2), _t_actuator_controls_2, &controls);
+			}
+		}
+		break;
+		case 3:
+		{
+			orb_check(_t_actuator_controls_3, &changed);
+
+			if (changed) {
+				orb_copy(ORB_ID(actuator_controls_3), _t_actuator_controls_3, &controls);
+			}
+		}
+		break;
+	}
+
+	if (!changed)
+		return -1;
 
 	for (unsigned i = 0; i < _max_controls; i++)
 		regs[i] = FLOAT_TO_REG(controls.control[i]);
 
 	/* copy values to registers in IO */
-	return io_reg_set(PX4IO_PAGE_CONTROLS, 0, regs, _max_controls);
+	return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
 }
 
 
@@ -1018,8 +1095,10 @@ PX4IO::io_set_rc_config()
 	 * assign RC_MAP_ROLL/PITCH/YAW/THROTTLE to the canonical
 	 * controls.
 	 */
+
+	/* fill the mapping with an error condition triggering value */
 	for (unsigned i = 0; i < _max_rc_input; i++)
-		input_map[i] = -1;
+		input_map[i] = UINT8_MAX;
 
 	/*
 	 * NOTE: The indices for mapped channels are 1-based
@@ -1050,12 +1129,6 @@ PX4IO::io_set_rc_config()
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
 		input_map[ichan - 1] = 4;
-
-	ichan = 5;
-
-	for (unsigned i = 0; i < _max_rc_input; i++)
-		if (input_map[i] == -1)
-			input_map[i] = ichan++;
 
 	/*
 	 * Iterate all possible RC inputs.
