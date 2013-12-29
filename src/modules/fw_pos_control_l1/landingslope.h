@@ -46,16 +46,16 @@
 class Landingslope
 {
 private:
-	//xxx: documentation of landing pending
-	float _landing_slope_angle_rad;
-	float _flare_relative_alt;
+	/* see Documentation/fw_landing.png for a plot of the landing slope */
+	float _landing_slope_angle_rad;			/**< phi in the plot */
+	float _flare_relative_alt;				/**< h_flare,rel in the plot */
 	float _motor_lim_horizontal_distance;
-	float _H1_virt;
-	float _H0;
-	float _d1;
+	float _H1_virt;							/**< H1 in the plot */
+	float _H0;								/**< h_flare,rel + H1 in the plot */
+	float _d1;								/**< d1 in the plot */
 	float _flare_constant;
-	float _flare_length;
-	float _horizontal_slope_displacement;
+	float _flare_length;					/**< d1 + delta d in the plot */
+	float _horizontal_slope_displacement;  /**< delta d in the plot */
 
 	void calculateSlopeValues();
 
