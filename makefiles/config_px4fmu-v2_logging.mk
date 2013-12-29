@@ -116,6 +116,7 @@ MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
 MODULES		+= lib/conversion
 MODULES		+= modules/dataman
+MODULES		+= lib/launchdetection
 
 #
 # Demo apps
