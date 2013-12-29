@@ -495,7 +495,8 @@ l_actuator_outputs(const struct listener *l)
 
 	if (gcs_link) {
 		mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000,
-						  l->arg /* port number */,
+						  l->arg /* port number - needs GCS support */,
+							 /* QGC has port number support already */
 						  act_outputs.output[0],
 						  act_outputs.output[1],
 						  act_outputs.output[2],
