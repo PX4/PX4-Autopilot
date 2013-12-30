@@ -833,7 +833,7 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 
 				if (!land_noreturn_horizontal) {//set target_bearing in first occurrence
 					if (mission_item_triplet.previous_valid) {
-						target_bearing = get_bearing_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), curr_wp.getX(), curr_wp.getY());
+						target_bearing = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), curr_wp(0), curr_wp(1));
 					} else {
 						target_bearing = _att.yaw;
 					}
