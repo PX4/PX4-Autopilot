@@ -69,6 +69,7 @@ struct vehicle_global_position_s global_pos;
 struct vehicle_local_position_s local_pos;
 struct navigation_capabilities_s nav_cap;
 struct vehicle_status_s v_status;
+struct vehicle_control_mode_s control_mode;
 struct rc_channels_s rc;
 struct rc_input_values rc_raw;
 struct actuator_armed_s armed;
@@ -125,6 +126,7 @@ static void	l_vehicle_rates_setpoint(const struct listener *l);
 static void	l_home(const struct listener *l);
 static void	l_airspeed(const struct listener *l);
 static void	l_nav_cap(const struct listener *l);
+static void	l_control_mode(const struct listener *l);
 
 static const struct listener listeners[] = {
 	{l_sensor_combined,		&mavlink_subs.sensor_sub,	0},
@@ -151,6 +153,7 @@ static const struct listener listeners[] = {
 	{l_home,			&mavlink_subs.home_sub,		0},
 	{l_airspeed,			&mavlink_subs.airspeed_sub,		0},
 	{l_nav_cap,			&mavlink_subs.navigation_capabilities_sub,		0},
+	{l_control_mode,			&mavlink_subs.control_mode_sub,		0},
 };
 
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
@@ -678,6 +681,26 @@ l_nav_cap(const struct listener *l)
 
 }
 
+void
+l_control_mode(const struct listener *l)
+{
+	orb_copy(ORB_ID(vehicle_control_mode), mavlink_subs.control_mode_sub, &control_mode);
+
+	/* translate the current syste state to mavlink state and mode */
+	uint8_t mavlink_state = 0;
+	uint8_t mavlink_base_mode = 0;
+	uint32_t mavlink_custom_mode = 0;
+	get_mavlink_mode_and_state(&mavlink_state, &mavlink_base_mode, &mavlink_custom_mode);
+
+	/* send heartbeat */
+	mavlink_msg_heartbeat_send(chan,
+				   mavlink_system.type,
+				   MAV_AUTOPILOT_PX4,
+				   mavlink_base_mode,
+				   mavlink_custom_mode,
+				   mavlink_state);
+}
+
 static void *
 uorb_receive_thread(void *arg)
 {
@@ -752,6 +775,10 @@ uorb_receive_start(void)
 	/* --- SYSTEM STATE --- */
 	status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	orb_set_interval(status_sub, 300);		/* max 3.33 Hz updates */
+
+	/* --- CONTROL MODE --- */
+	mavlink_subs.control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	orb_set_interval(mavlink_subs.control_mode_sub, 300);		/* max 3.33 Hz updates */
 
 	/* --- RC CHANNELS VALUE --- */
 	rc_sub = orb_subscribe(ORB_ID(rc_channels));

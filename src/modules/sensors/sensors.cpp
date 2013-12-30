@@ -1370,18 +1370,6 @@ Sensors::rc_poll()
 			manual_control.yaw *= _parameters.rc_scale_yaw;
 		}
 
-		/* mode switch input */
-		manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
-
-		/* land switch input */
-		manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
-
-		/* assisted switch input */
-		manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
-
-		/* mission switch input */
-		manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
-
 		/* flaps */
 		if (_rc.function[FLAPS] >= 0) {
 
@@ -1392,12 +1380,24 @@ Sensors::rc_poll()
 			}
 		}
 
+		/* mode switch input */
 		if (_rc.function[MODE] >= 0) {
 			manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
 		}
 
+		/* assisted switch input */
+		if (_rc.function[ASSISTED] >= 0) {
+			manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
+		}
+
+		/* mission switch input */
 		if (_rc.function[MISSION] >= 0) {
 			manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
+		}
+
+		/* return switch input */
+		if (_rc.function[RETURN] >= 0) {
+			manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
 		}
 
 //		if (_rc.function[OFFBOARD_MODE] >= 0) {
