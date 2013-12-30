@@ -193,7 +193,7 @@ void usage(const char *reason);
 /**
  * React to commands that are sent e.g. from the mavlink module.
  */
-void handle_command(struct vehicle_status_s *status, struct vehicle_command_s *cmd, struct actuator_armed_s *armed);
+bool handle_command(struct vehicle_status_s *status, struct vehicle_command_s *cmd, struct actuator_armed_s *armed);
 
 /**
  * Mainloop of commander.
@@ -345,10 +345,11 @@ void print_status()
 
 static orb_advert_t status_pub;
 
-void handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd, struct actuator_armed_s *armed)
+bool handle_command(struct vehicle_status_s *status, const struct safety_s *safety, struct vehicle_command_s *cmd, struct actuator_armed_s *armed)
 {
 	/* result of the command */
 	enum VEHICLE_CMD_RESULT result = VEHICLE_CMD_RESULT_UNSUPPORTED;
+	bool ret = false;
 
 	/* only handle high-priority commands here */
 
@@ -375,6 +376,8 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					mavlink_log_info(mavlink_fd, "[cmd] HIL: FAILED resetting armed state");
 				}
 			}
+			if (hil_ret == OK)
+				ret = true;
 
 			// TODO remove debug code
 			//mavlink_log_critical(mavlink_fd, "#audio: command setmode: %d %d", base_mode, custom_main_mode);
@@ -407,6 +410,8 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					arming_res = TRANSITION_NOT_CHANGED;
 				}
 			}
+			if (arming_res == TRANSITION_CHANGED)
+				ret = true;
 
 			/* set main state */
 			transition_result_t main_res = TRANSITION_DENIED;
@@ -447,6 +452,8 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 					}
 				}
 			}
+			if (main_res == TRANSITION_CHANGED)
+				ret = true;
 
 			if (arming_res != TRANSITION_DENIED && main_res != TRANSITION_DENIED) {
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
@@ -473,11 +480,35 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 				if (arming_res == TRANSITION_CHANGED) {
 					mavlink_log_critical(mavlink_fd, "#audio: ARMED by component arm cmd");
 					result = VEHICLE_CMD_RESULT_ACCEPTED;
+					ret = true;
 
 				} else {
 					mavlink_log_critical(mavlink_fd, "#audio: REJECTING component arm cmd");
 					result = VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
+			}
+		}
+		break;
+
+	case VEHICLE_CMD_OVERRIDE_GOTO: {
+		// TODO listen vehicle_command topic directly from navigator (?)
+			unsigned int mav_goto = cmd->param1;
+			if (mav_goto == 0) {	// MAV_GOTO_DO_HOLD
+				status->set_nav_state = NAV_STATE_LOITER;
+				status->set_nav_state_timestamp = hrt_absolute_time();
+				mavlink_log_critical(mavlink_fd, "#audio: pause mission cmd");
+				result = VEHICLE_CMD_RESULT_ACCEPTED;
+				ret = true;
+
+			} else if (mav_goto == 1) {	// MAV_GOTO_DO_CONTINUE
+				status->set_nav_state = NAV_STATE_MISSION;
+				status->set_nav_state_timestamp = hrt_absolute_time();
+				mavlink_log_critical(mavlink_fd, "#audio: continue mission cmd");
+				result = VEHICLE_CMD_RESULT_ACCEPTED;
+				ret = true;
+
+			} else {
+				mavlink_log_info(mavlink_fd, "Unsupported OVERRIDE_GOTO: %f %f %f %f %f %f %f %f", cmd->param1, cmd->param2, cmd->param3, cmd->param4, cmd->param5, cmd->param6, cmd->param7);
 			}
 		}
 		break;
@@ -488,6 +519,7 @@ void handle_command(struct vehicle_status_s *status, const struct safety_s *safe
 			if (armed->armed && cmd->param3 > 0.5) { //xxx: for safety only for now, param3 is unused by VEHICLE_CMD_DO_SET_SERVO
 				transition_result_t flighttermination_res = flighttermination_state_transition(status, FLIGHTTERMINATION_STATE_ON);
 				result = VEHICLE_CMD_RESULT_ACCEPTED;
+				ret = true;
 
 			} else {
 				/* reject parachute depoyment not armed */
@@ -1151,7 +1183,8 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
 			/* handle it */
-			handle_command(&status, &safety, &cmd, &armed);
+			if (handle_command(&status, &safety, &cmd, &armed))
+				status_changed = true;
 		}
 
 		/* check which state machines for changes, clear "changed" flag */
@@ -1359,7 +1392,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 		current_status->mode_switch = MODE_SWITCH_ASSISTED;
 	}
 
-	/* land switch */
+	/* return switch */
 	if (!isfinite(sp_man->return_switch)) {
 		current_status->return_switch = RETURN_SWITCH_NONE;
 
@@ -1367,7 +1400,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 		current_status->return_switch = RETURN_SWITCH_RETURN;
 
 	} else {
-		current_status->return_switch = RETURN_SWITCH_NONE;
+		current_status->return_switch = RETURN_SWITCH_NORMAL;
 	}
 
 	/* assisted switch */
@@ -1383,10 +1416,10 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 
 	/* mission switch  */
 	if (!isfinite(sp_man->mission_switch)) {
-		current_status->mission_switch = MISSION_SWITCH_MISSION;
+		current_status->mission_switch = MISSION_SWITCH_NONE;
 
 	} else if (sp_man->mission_switch > STICK_ON_OFF_LIMIT) {
-		current_status->mission_switch = MISSION_SWITCH_NONE;
+		current_status->mission_switch = MISSION_SWITCH_LOITER;
 
 	} else {
 		current_status->mission_switch = MISSION_SWITCH_MISSION;

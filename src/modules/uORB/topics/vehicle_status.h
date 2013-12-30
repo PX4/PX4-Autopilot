@@ -99,11 +99,13 @@ typedef enum {
 
 typedef enum {
 	RETURN_SWITCH_NONE = 0,
+	RETURN_SWITCH_NORMAL,
 	RETURN_SWITCH_RETURN
 } return_switch_pos_t;
 
 typedef enum {
 	MISSION_SWITCH_NONE = 0,
+	MISSION_SWITCH_LOITER,
 	MISSION_SWITCH_MISSION
 } mission_switch_pos_t;
 
