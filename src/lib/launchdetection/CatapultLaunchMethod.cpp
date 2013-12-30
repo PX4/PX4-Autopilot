@@ -39,6 +39,7 @@
  */
 
 #include "CatapultLaunchMethod.h"
+#include <systemlib/err.h>
 
 CatapultLaunchMethod::CatapultLaunchMethod() :
 	last_timestamp(0),
@@ -61,11 +62,15 @@ void CatapultLaunchMethod::update(float accel_x)
 
 	if (accel_x > threshold_accel.get()) {
 		integrator += accel_x * dt;
+//		warnx("*** integrator %.3f, threshold_accel %.3f, threshold_time %.3f, accel_x %.3f, dt %.3f",
+//				(double)integrator, (double)threshold_accel.get(),  (double)threshold_time.get(), (double)accel_x, (double)dt);
 		if (integrator > threshold_accel.get() * threshold_time.get()) {
 			launchDetected = true;
 		}
 
 	} else {
+//		warnx("integrator %.3f, threshold_accel %.3f, threshold_time %.3f, accel_x %.3f, dt %.3f",
+//				(double)integrator, (double)threshold_accel.get(),  (double)threshold_time.get(), (double)accel_x, (double)dt);
 		/* reset integrator */
 		integrator = 0.0f;
 		launchDetected = false;
