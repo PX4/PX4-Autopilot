@@ -991,7 +991,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 					launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
 					if (launchDetector.getLaunchDetected()) {
 						launch_detected = true;
-						warnx("Launch detected. Taking off!");
+						mavlink_log_info(_mavlink_fd, "#audio: Takeoff");
 					}
 				} else	{
 					/* no takeoff detection --> fly */
