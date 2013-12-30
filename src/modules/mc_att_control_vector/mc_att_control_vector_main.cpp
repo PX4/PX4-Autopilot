@@ -523,16 +523,6 @@ MulticopterAttitudeControl::task_main()
 				}
 
 			} else {
-				if (!_control_mode.flag_control_auto_enabled) {
-					/* no control, try to stay on place */
-					if (!_control_mode.flag_control_velocity_enabled) {
-						/* no velocity control, reset attitude setpoint */
-						_att_sp.roll_body = 0.0f;
-						_att_sp.pitch_body = 0.0f;
-						publish_att_sp = true;
-					}
-				}
-
 				/* reset yaw setpoint after non-manual control */
 				reset_yaw_sp = true;
 			}
