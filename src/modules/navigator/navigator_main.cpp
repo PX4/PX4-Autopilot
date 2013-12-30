@@ -526,6 +526,8 @@ Navigator::task_main()
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
 
+	unsigned prevState = 0;
+
 	/* wakeup source(s) */
 	struct pollfd fds[7];
 
@@ -544,7 +546,6 @@ Navigator::task_main()
 	fds[5].events = POLLIN;
 	fds[6].fd = _vstatus_sub;
 	fds[6].events = POLLIN;
-
 
 	while (!_task_should_exit) {
 
@@ -571,41 +572,75 @@ Navigator::task_main()
 
 			/* Evaluate state machine from commander and set the navigator mode accordingly */
 			if (_vstatus.main_state == MAIN_STATE_AUTO) {
-				if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
-					/* commander requested new navigation mode, try to set it */
-					_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
-
-					switch (_vstatus.set_nav_state) {
-					case NAV_STATE_INIT:
-					case NAV_STATE_NONE:
-						/* nothing to do */
-						break;
-
-					case NAV_STATE_LOITER:
-						dispatch(EVENT_LOITER_REQUESTED);
-						break;
-
-					case NAV_STATE_MISSION:
-						dispatch(EVENT_MISSION_REQUESTED);
-						break;
-
-					case NAV_STATE_RTL:
+				bool stick_mode = false;
+				if (!_vstatus.rc_signal_lost) {
+					/* RC signal available, use control switches to set mode */
+					/* RETURN switch, overrides MISSION switch */
+					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
 						dispatch(EVENT_RTL_REQUESTED);
-						break;
-
-					default:
-						warnx("ERROR: Requested navigation state not supported");
-						break;
-					}
-
-				} else {
-					/* try mission, if none is available fallback to loiter instead */
-					if (_mission.current_mission_available()) {
-						dispatch(EVENT_MISSION_REQUESTED);
+						stick_mode = true;
 					} else {
-						dispatch(EVENT_LOITER_REQUESTED);
+						/* MISSION switch */
+						if (!stick_mode) {
+							if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
+								dispatch(EVENT_LOITER_REQUESTED);
+								stick_mode = true;
+							} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
+								/* switch to mission only if available */
+								if (_mission.current_mission_available()) {
+									dispatch(EVENT_MISSION_REQUESTED);
+								} else {
+									dispatch(EVENT_LOITER_REQUESTED);
+								}
+								stick_mode = true;
+							}
+						}
+						if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == NAV_STATE_RTL) {
+							/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
+							dispatch(EVENT_LOITER_REQUESTED);
+							stick_mode = true;
+						}
 					}
-					break;
+				}
+
+				if (!stick_mode) {
+					if (_vstatus.set_nav_state_timestamp != _set_nav_state_timestamp) {
+						/* commander requested new navigation mode, try to set it */
+						_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
+
+						switch (_vstatus.set_nav_state) {
+						case NAV_STATE_INIT:
+						case NAV_STATE_NONE:
+							/* nothing to do */
+							break;
+
+						case NAV_STATE_LOITER:
+							dispatch(EVENT_LOITER_REQUESTED);
+							break;
+
+						case NAV_STATE_MISSION:
+							dispatch(EVENT_MISSION_REQUESTED);
+							break;
+
+						case NAV_STATE_RTL:
+							dispatch(EVENT_RTL_REQUESTED);
+							break;
+
+						default:
+							warnx("ERROR: Requested navigation state not supported");
+							break;
+						}
+
+					} else {
+						/* on first switch to AUTO try mission, if none is available fallback to loiter instead */
+						if (myState == NAV_STATE_INIT || myState == NAV_STATE_NONE) {
+							if (_mission.current_mission_available()) {
+								dispatch(EVENT_MISSION_REQUESTED);
+							} else {
+								dispatch(EVENT_LOITER_REQUESTED);
+							}
+						}
+					}
 				}
 
 			} else {
@@ -671,6 +706,11 @@ Navigator::task_main()
 					dispatch(EVENT_MISSION_FINISHED);
 				}
 			}
+		}
+
+		if (myState != prevState) {
+			mavlink_log_info(_mavlink_fd, "[navigator] nav state %d -> %d", prevState, myState);
+			prevState = myState;
 		}
 
 		publish_control_mode();
