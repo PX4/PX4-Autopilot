@@ -1392,7 +1392,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 		current_status->mode_switch = MODE_SWITCH_ASSISTED;
 	}
 
-	/* land switch */
+	/* return switch */
 	if (!isfinite(sp_man->return_switch)) {
 		current_status->return_switch = RETURN_SWITCH_NONE;
 
@@ -1400,7 +1400,7 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 		current_status->return_switch = RETURN_SWITCH_RETURN;
 
 	} else {
-		current_status->return_switch = RETURN_SWITCH_NONE;
+		current_status->return_switch = RETURN_SWITCH_NORMAL;
 	}
 
 	/* assisted switch */
@@ -1416,10 +1416,10 @@ check_mode_switches(struct manual_control_setpoint_s *sp_man, struct vehicle_sta
 
 	/* mission switch  */
 	if (!isfinite(sp_man->mission_switch)) {
-		current_status->mission_switch = MISSION_SWITCH_MISSION;
+		current_status->mission_switch = MISSION_SWITCH_NONE;
 
 	} else if (sp_man->mission_switch > STICK_ON_OFF_LIMIT) {
-		current_status->mission_switch = MISSION_SWITCH_NONE;
+		current_status->mission_switch = MISSION_SWITCH_LOITER;
 
 	} else {
 		current_status->mission_switch = MISSION_SWITCH_MISSION;
