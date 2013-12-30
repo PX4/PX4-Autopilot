@@ -850,7 +850,7 @@ PX4IO::task_main()
 
 			/* we're not nice to the lower-priority control groups and only check them
 			   when the primary group updated (which is now). */
-			io_set_control_groups();
+			(void)io_set_control_groups();
 		}
 
 		if (now >= poll_last + IO_POLL_INTERVAL) {
@@ -962,14 +962,14 @@ out:
 int
 PX4IO::io_set_control_groups()
 {
-	bool attitude_ok = io_set_control_state(0);
+	int ret = io_set_control_state(0);
 
 	/* send auxiliary control groups */
 	(void)io_set_control_state(1);
 	(void)io_set_control_state(2);
 	(void)io_set_control_state(3);
 
-	return attitude_ok;
+	return ret;
 }
 
 int
@@ -1095,8 +1095,10 @@ PX4IO::io_set_rc_config()
 	 * assign RC_MAP_ROLL/PITCH/YAW/THROTTLE to the canonical
 	 * controls.
 	 */
+
+	/* fill the mapping with an error condition triggering value */
 	for (unsigned i = 0; i < _max_rc_input; i++)
-		input_map[i] = -1;
+		input_map[i] = UINT8_MAX;
 
 	/*
 	 * NOTE: The indices for mapped channels are 1-based
@@ -1127,12 +1129,6 @@ PX4IO::io_set_rc_config()
 
 	if ((ichan >= 0) && (ichan < (int)_max_rc_input))
 		input_map[ichan - 1] = 4;
-
-	ichan = 5;
-
-	for (unsigned i = 0; i < _max_rc_input; i++)
-		if (input_map[i] == -1)
-			input_map[i] = ichan++;
 
 	/*
 	 * Iterate all possible RC inputs.

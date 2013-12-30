@@ -582,6 +582,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			/* this option is normally set last */
 			if (value & PX4IO_P_RC_CONFIG_OPTIONS_ENABLED) {
 				uint8_t count = 0;
+				bool disabled = false;
 
 				/* assert min..center..max ordering */
 				if (conf[PX4IO_P_RC_CONFIG_MIN] < 500) {
@@ -600,7 +601,10 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				if (conf[PX4IO_P_RC_CONFIG_DEADZONE] > 500) {
 					count++;
 				}
-				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
+
+				if (conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] == UINT8_MAX) {
+					disabled = true;
+				} else if ((int)(conf[PX4IO_P_RC_CONFIG_ASSIGNMENT]) < 0 || conf[PX4IO_P_RC_CONFIG_ASSIGNMENT] >= PX4IO_RC_MAPPED_CONTROL_CHANNELS) {
 					count++;
 				}
 
@@ -608,7 +612,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 				if (count) {
 					isr_debug(0, "ERROR: %d config error(s) for RC%d.\n", count, (channel + 1));
 					r_status_flags &= ~PX4IO_P_STATUS_FLAGS_INIT_OK;
-				} else {
+				} else if (!disabled) {
 					conf[index] |= PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
 				}
 			}

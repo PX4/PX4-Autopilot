@@ -68,7 +68,6 @@
 
 #include "waypoints.h"
 #include "orb_topics.h"
-#include "missionlib.h"
 #include "mavlink_hil.h"
 #include "util.h"
 #include "waypoints.h"
@@ -221,6 +220,8 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 	} else if (v_status.main_state == MAIN_STATE_AUTO) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		// TODO use control_mode topic
+		/*
 		if (v_status.navigation_state == NAVIGATION_STATE_AUTO_READY) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_READY;
 		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
@@ -234,6 +235,7 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_base_mode, u
 		} else if (v_status.navigation_state == NAVIGATION_STATE_AUTO_LAND) {
 			custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		}
+		*/
 	}
 	*mavlink_custom_mode = custom_mode.data;
 
@@ -707,25 +709,25 @@ int mavlink_thread_main(int argc, char *argv[])
 			}
 		}
 
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(hrt_absolute_time());
 
 		/* sleep quarter the time */
 		usleep(25000);
 
 		/* check if waypoint has been reached against the last positions */
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(hrt_absolute_time());
 
 		/* sleep quarter the time */
 		usleep(25000);
 
 		/* send parameters at 20 Hz (if queued for sending) */
 		mavlink_pm_queued_send();
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(hrt_absolute_time());
 
 		/* sleep quarter the time */
 		usleep(25000);
 
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos, &nav_cap);
+		mavlink_waypoint_eventloop(hrt_absolute_time());
 
 		if (baudrate > 57600) {
 			mavlink_pm_queued_send();

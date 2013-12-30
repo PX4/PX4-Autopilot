@@ -38,107 +38,141 @@ f *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  * Parameters defined by the fixed-wing attitude control task
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
 
 #include <systemlib/param/param.h>
 
-//XXX resolve unclear naming of paramters: FW_P_P --> FW_PR_P
 
 /*
  * Controller parameters, accessible via MAVLink
  *
  */
-//xxx: update descriptions
 // @DisplayName		Attitude Time Constant
-// @Description		This defines the latency between a step input and the achieved setpoint. Half a second is a good start value and fits for most average systems. Smaller systems may require smaller values, but as this will wear out servos faster, the value should only be decreased as needed.
+// @Description		This defines the latency between a step input and the achieved setpoint (inverse to a P gain). Half a second is a good start value and fits for most average systems. Smaller systems may require smaller values, but as this will wear out servos faster, the value should only be decreased as needed.
 // @Range		0.4 to 1.0 seconds, in tens of seconds
 PARAM_DEFINE_FLOAT(FW_ATT_TC, 0.5f);
 
-// @DisplayName		Proportional gain.
-// @Description		This defines how much the elevator input will be commanded dependend on the current pitch error.
+// @DisplayName		Pitch rate proportional gain.
+// @Description		This defines how much the elevator input will be commanded depending on the current body angular rate error.
 // @Range		10 to 200, 1 increments
-PARAM_DEFINE_FLOAT(FW_PR_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_PR_P, 0.05f);
 
-// @DisplayName		Damping gain.
-// @Description		This gain damps the airframe pitch rate. In particular relevant for flying wings.
-// @Range		0.0 to 10.0, 0.1 increments
-PARAM_DEFINE_FLOAT(FW_PR_D, 0.0f); //xxx: remove
-
-// @DisplayName		Integrator gain.
+// @DisplayName		Pitch rate integrator gain.
 // @Description		This gain defines how much control response will result out of a steady state error. It trims any constant error.
 // @Range		0 to 50.0
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.05f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.0f);
 
 // @DisplayName		Maximum positive / up pitch rate.
 // @Description		This limits the maximum pitch up angular rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
 // @Range		0 to 90.0 degrees per seconds, in 1 increments
-PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 0.0f);
 
 // @DisplayName		Maximum negative / down pitch rate.
 // @Description		This limits the maximum pitch down up angular rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
 // @Range		0 to 90.0 degrees per seconds, in 1 increments
-PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
+PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 0.0f);
 
-// @DisplayName		Pitch Integrator Anti-Windup
-// @Description		This limits the range in degrees the integrator can wind up to.
-// @Range		0.0 to 45.0
-// @Increment		1.0
+// @DisplayName		Pitch rate integrator limit
+// @Description		The portion of the integrator part in the control surface deflection is limited to this value
+// @Range		0.0 to 1
+// @Increment		0.1
 PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.2f);
 
-// @DisplayName		Roll feedforward gain.
+// @DisplayName		Roll to Pitch feedforward gain.
 // @Description		This compensates during turns and ensures the nose stays level.
 // @Range		0.5 2.0
 // @Increment		0.05
 // @User		User
-PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 1.0f);
+PARAM_DEFINE_FLOAT(FW_P_ROLLFF, 0.0f); //xxx: set to 0 as default, see comment in ECL_PitchController::control_attitude (float turn_offset = ...)
 
-// @DisplayName		Proportional Gain.
-// @Description		This gain controls the roll angle to roll actuator output.
+// @DisplayName		Roll rate proportional Gain.
+// @Description		This defines how much the aileron input will be commanded depending on the current body angular rate error.
 // @Range		10.0 200.0
 // @Increment		10.0
 // @User		User
-PARAM_DEFINE_FLOAT(FW_RR_P, 0.5f);
+PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
 
-// @DisplayName		Damping Gain
-// @Description		Controls the roll rate to roll actuator output. It helps to reduce motions in turbulence.
-// @Range		0.0 10.0
-// @Increment		1.0
-// @User		User
-PARAM_DEFINE_FLOAT(FW_RR_D, 0.0f); //xxx: remove
-
-// @DisplayName		Integrator Gain
-// @Description		This gain controls the contribution of the integral to roll actuator outputs. It trims out steady state errors.
+// @DisplayName		Roll rate integrator Gain
+// @Description		This gain defines how much control response will result out of a steady state error. It trims any constant error.
 // @Range		0.0 100.0
 // @Increment		5.0
 // @User		User
-PARAM_DEFINE_FLOAT(FW_RR_I, 0.05f);
+PARAM_DEFINE_FLOAT(FW_RR_I, 0.0f);
 
 // @DisplayName		Roll Integrator Anti-Windup
-// @Description		This limits the range in degrees the integrator can wind up to.
-// @Range		0.0 to 45.0
-// @Increment		1.0
+// @Description		The portion of the integrator part in the control surface deflection is limited to this value.
+// @Range		0.0 to 1.0
+// @Increment		0.1
 PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
 
 // @DisplayName		Maximum Roll Rate
 // @Description		This limits the maximum roll rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
 // @Range		0 to 90.0 degrees per seconds
 // @Increment		1.0
-PARAM_DEFINE_FLOAT(FW_R_RMAX, 60);
+PARAM_DEFINE_FLOAT(FW_R_RMAX, 0);
 
+// @DisplayName		Yaw rate proportional gain.
+// @Description		This defines how much the rudder input will be commanded depending on the current body angular rate error.
+// @Range		10 to 200, 1 increments
+PARAM_DEFINE_FLOAT(FW_YR_P, 0.05);
 
-PARAM_DEFINE_FLOAT(FW_YR_P, 0.5);
-PARAM_DEFINE_FLOAT(FW_YR_I, 0.05);
+// @DisplayName		Yaw rate integrator gain.
+// @Description		This gain defines how much control response will result out of a steady state error. It trims any constant error.
+// @Range		0 to 50.0
+PARAM_DEFINE_FLOAT(FW_YR_I, 0.0f);
+
+// @DisplayName		Yaw rate integrator limit
+// @Description		The portion of the integrator part in the control surface deflection is limited to this value
+// @Range		0.0 to 1
+// @Increment		0.1
 PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
-PARAM_DEFINE_FLOAT(FW_YR_D, 0); //xxx: remove
-PARAM_DEFINE_FLOAT(FW_Y_ROLLFF, 0);
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 9.0f);
-PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 12.0f);
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 18.0f);
-PARAM_DEFINE_FLOAT(FW_Y_RMAX, 60);
-PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1.0f);
 
-PARAM_DEFINE_FLOAT(FW_RR_FF, 0.0f);
-PARAM_DEFINE_FLOAT(FW_PR_FF, 0.0f);
-PARAM_DEFINE_FLOAT(FW_YR_FF, 0.0f);
+// @DisplayName		Maximum Yaw Rate
+// @Description		This limits the maximum yaw rate the controller will output (in degrees per second). Setting a value of zero disables the limit.
+// @Range		0 to 90.0 degrees per seconds
+// @Increment		1.0
+PARAM_DEFINE_FLOAT(FW_Y_RMAX, 0);
+
+// @DisplayName		Roll rate feed forward
+// @Description		Direct feed forward from rate setpoint to control surface output
+// @Range		0 to 10
+// @Increment		0.1
+PARAM_DEFINE_FLOAT(FW_RR_FF, 0.3f);
+
+// @DisplayName		Pitch rate feed forward
+// @Description		Direct feed forward from rate setpoint to control surface output
+// @Range		0 to 10
+// @Increment		0.1
+PARAM_DEFINE_FLOAT(FW_PR_FF, 0.4f);
+
+// @DisplayName		Yaw rate feed forward
+// @Description		Direct feed forward from rate setpoint to control surface output
+// @Range		0 to 10
+// @Increment		0.1
+PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
+
+// @DisplayName		Minimal speed for yaw coordination
+// @Description		For airspeeds above this value the yaw rate is calculated for a coordinated turn. Set to a very high value to disable.
+// @Range		0 to 90.0 degrees per seconds
+// @Increment		1.0
+PARAM_DEFINE_FLOAT(FW_YCO_VMIN, 1000.0f);
+
+/* Airspeed parameters: the following parameters about airspeed are used by the attitude and the positon controller */
+
+// @DisplayName		Minimum Airspeed
+// @Description		If the airspeed falls below this value the TECS controller will try to increase airspeed more aggressively
+// @Range		0.0 to 30
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 13.0f);
+
+// @DisplayName		Trim Airspeed
+// @Description		The TECS controller tries to fly at this airspeed
+// @Range		0.0 to 30
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 20.0f);
+
+// @DisplayName		Maximum Airspeed
+// @Description		If the airspeed is above this value the TECS controller will try to decrease airspeed more aggressively
+// @Range		0.0 to 30
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 50.0f);

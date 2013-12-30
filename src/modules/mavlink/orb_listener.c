@@ -60,7 +60,6 @@
 
 #include "waypoints.h"
 #include "orb_topics.h"
-#include "missionlib.h"
 #include "mavlink_hil.h"
 #include "util.h"
 

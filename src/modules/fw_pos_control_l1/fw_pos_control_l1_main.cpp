@@ -49,6 +49,7 @@
  * More details and acknowledgements in the referenced library headers.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -227,6 +228,7 @@ private:
 		float land_H1_virt;
 		float land_flare_alt_relative;
 		float land_thrust_lim_horizontal_distance;
+		float land_heading_hold_horizontal_distance;
 
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -271,6 +273,7 @@ private:
 		param_t land_H1_virt;
 		param_t land_flare_alt_relative;
 		param_t land_thrust_lim_horizontal_distance;
+		param_t land_heading_hold_horizontal_distance;
 
 	}		_parameter_handles;		/**< handles for interesting parameters */
 
@@ -420,6 +423,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_H1_virt = param_find("FW_LND_HVIRT");
 	_parameter_handles.land_flare_alt_relative = param_find("FW_LND_FLALT");
 	_parameter_handles.land_thrust_lim_horizontal_distance = param_find("FW_LND_TLDIST");
+	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
 
 	_parameter_handles.time_const = 			param_find("FW_T_TIME_CONST");
 	_parameter_handles.min_sink_rate = 			param_find("FW_T_SINK_MIN");
@@ -508,6 +512,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_H1_virt, &(_parameters.land_H1_virt));
 	param_get(_parameter_handles.land_flare_alt_relative, &(_parameters.land_flare_alt_relative));
 	param_get(_parameter_handles.land_thrust_lim_horizontal_distance, &(_parameters.land_thrust_lim_horizontal_distance));
+	param_get(_parameter_handles.land_heading_hold_horizontal_distance, &(_parameters.land_heading_hold_horizontal_distance));
 
 	_l1_control.set_l1_damping(_parameters.l1_damping);
 	_l1_control.set_l1_period(_parameters.l1_period);
@@ -822,19 +827,18 @@ FixedwingPositionControl::control_position(const math::Vector<2> &current_positi
 			/* switch to heading hold for the last meters, continue heading hold after */
 			float wp_distance = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0), curr_wp(1));
 			//warnx("wp dist: %d, alt err: %d, noret: %s", (int)wp_distance, (int)altitude_error, (land_noreturn) ? "YES" : "NO");
-			const float heading_hold_distance = 15.0f;
-			if (wp_distance < heading_hold_distance || land_noreturn_horizontal) {
+			if (wp_distance < _parameters.land_heading_hold_horizontal_distance || land_noreturn_horizontal) {
 
 				/* heading hold, along the line connecting this and the last waypoint */
-				
 
-				// if (mission_item_triplet.previous_valid) {
-				// 	target_bearing = get_bearing_to_next_waypoint(prev_wp(0), prev_wp(1), next_wp(0), next_wp(1));
-				// } else {
-
-				if (!land_noreturn_horizontal) //set target_bearing in first occurrence
-					target_bearing = _att.yaw;
-				//}
+				if (!land_noreturn_horizontal) {//set target_bearing in first occurrence
+					if (mission_item_triplet.previous_valid) {
+						target_bearing = get_bearing_to_next_waypoint(prev_wp.getX(), prev_wp.getY(), curr_wp.getX(), curr_wp.getY());
+					} else {
+						target_bearing = _att.yaw;
+					}
+					mavlink_log_info(_mavlink_fd, "#audio: Landing, heading hold");
+				}
 
 //					warnx("NORET: %d, target_bearing: %d, yaw: %d", (int)land_noreturn_horizontal, (int)math::degrees(target_bearing), (int)math::degrees(_att.yaw));
 
