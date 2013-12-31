@@ -594,19 +594,17 @@ Navigator::task_main()
 						stick_mode = true;
 					} else {
 						/* MISSION switch */
-						if (!stick_mode) {
-							if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
+						if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
+							dispatch(EVENT_LOITER_REQUESTED);
+							stick_mode = true;
+						} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
+							/* switch to mission only if available */
+							if (_mission.current_mission_available()) {
+								dispatch(EVENT_MISSION_REQUESTED);
+							} else {
 								dispatch(EVENT_LOITER_REQUESTED);
-								stick_mode = true;
-							} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
-								/* switch to mission only if available */
-								if (_mission.current_mission_available()) {
-									dispatch(EVENT_MISSION_REQUESTED);
-								} else {
-									dispatch(EVENT_LOITER_REQUESTED);
-								}
-								stick_mode = true;
 							}
+							stick_mode = true;
 						}
 						if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == NAV_STATE_RTL) {
 							/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
@@ -631,7 +629,11 @@ Navigator::task_main()
 							break;
 
 						case NAV_STATE_MISSION:
-							dispatch(EVENT_MISSION_REQUESTED);
+							if (_mission.current_mission_available()) {
+								dispatch(EVENT_MISSION_REQUESTED);
+							} else {
+								dispatch(EVENT_LOITER_REQUESTED);
+							}
 							break;
 
 						case NAV_STATE_RTL:
@@ -997,8 +999,7 @@ Navigator::start_loiter()
 void
 Navigator::start_mission()
 {
-	/* leave previous mission item as is as is */
-
+	/* leave previous mission item as is */
 	int ret;
 	bool onboard;
 	unsigned index;
@@ -1110,7 +1111,7 @@ Navigator::start_rtl()
 	_mission_item_triplet.current.yaw = 0.0f;	// TODO use heading to waypoint?
 	_mission_item_triplet.current.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
 	_mission_item_triplet.current.loiter_direction = 1;
-	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius;
 	_mission_item_triplet.current.radius = 50.0f; // TODO: get rid of magic number
 	_mission_item_triplet.current.autocontinue = false;
 	_mission_item_triplet.current_valid = true;
