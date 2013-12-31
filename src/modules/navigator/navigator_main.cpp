@@ -497,10 +497,13 @@ Navigator::task_main_trampoline(int argc, char *argv[])
 void
 Navigator::task_main()
 {
-
 	/* inform about start */
 	warnx("Initializing..");
 	fflush(stdout);
+
+	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
+	mavlink_log_info(_mavlink_fd, "[navigator] started");
 
 	_fence_valid = load_fence(GEOFENCE_MAX_VERTICES);
 
@@ -530,7 +533,7 @@ Navigator::task_main()
 	unsigned prevState = NAV_STATE_NONE;
 	bool pub_control_mode = true;
 	hrt_abstime mavlink_open_time = 0;
-	const hrt_abstime mavlink_open_period = 500000000;
+	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
 	struct pollfd fds[7];
@@ -569,9 +572,9 @@ Navigator::task_main()
 
 		perf_begin(_loop_perf);
 
-		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time + mavlink_open_period) {
-			/* try to open the mavlink log device every once in a while */
-			mavlink_open_time = hrt_abstime();
+		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
+			/* try to reopen the mavlink log device with specified interval */
+			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
 			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 		}
 
