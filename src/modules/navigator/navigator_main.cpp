@@ -375,7 +375,8 @@ Navigator::Navigator() :
 	memset(&_mission_result, 0, sizeof(struct mission_result_s));
 
 	/* Initialize state machine */
-	myState = NAV_STATE_INIT;
+	myState = NAV_STATE_NONE;
+	start_none();
 }
 
 Navigator::~Navigator()
@@ -526,7 +527,10 @@ Navigator::task_main()
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
 
-	unsigned prevState = 0;
+	unsigned prevState = NAV_STATE_NONE;
+	bool pub_control_mode = true;
+	hrt_abstime mavlink_open_time = 0;
+	const hrt_abstime mavlink_open_period = 500000000;
 
 	/* wakeup source(s) */
 	struct pollfd fds[7];
@@ -565,10 +569,16 @@ Navigator::task_main()
 
 		perf_begin(_loop_perf);
 
-		/* only update vehicle status if it changed */
+		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time + mavlink_open_period) {
+			/* try to open the mavlink log device every once in a while */
+			mavlink_open_time = hrt_abstime();
+			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+		}
+
+		/* vehicle status updated */
 		if (fds[6].revents & POLLIN) {
-			
 			vehicle_status_update();
+			pub_control_mode = true;
 
 			/* Evaluate state machine from commander and set the navigator mode accordingly */
 			if (_vstatus.main_state == MAIN_STATE_AUTO) {
@@ -609,7 +619,6 @@ Navigator::task_main()
 						_set_nav_state_timestamp = _vstatus.set_nav_state_timestamp;
 
 						switch (_vstatus.set_nav_state) {
-						case NAV_STATE_INIT:
 						case NAV_STATE_NONE:
 							/* nothing to do */
 							break;
@@ -632,8 +641,8 @@ Navigator::task_main()
 						}
 
 					} else {
-						/* on first switch to AUTO try mission, if none is available fallback to loiter instead */
-						if (myState == NAV_STATE_INIT || myState == NAV_STATE_NONE) {
+						/* on first switch to AUTO try mission by default, if none is available fallback to loiter */
+						if (myState == NAV_STATE_NONE) {
 							if (_mission.current_mission_available()) {
 								dispatch(EVENT_MISSION_REQUESTED);
 							} else {
@@ -647,52 +656,46 @@ Navigator::task_main()
 				/* not in AUTO */
 				dispatch(EVENT_NONE_REQUESTED);
 			}
-
-			/* XXX Hack to get mavlink output going, try opening the fd with 5Hz */
-			if (_mavlink_fd < 0) {
-				/* try to open the mavlink log device every once in a while */
-				_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
-			}
 		}
 
-		/* only update parameters if it changed */
+		/* parameters updated */
 		if (fds[0].revents & POLLIN) {
 			parameters_update();
 			/* note that these new parameters won't be in effect until a mission triplet is published again */
 		}
 
-		/* only update craft capabilities if they have changed */
+		/* navigation capabilities updated */
 		if (fds[3].revents & POLLIN) {
 			navigation_capabilities_update();
 		}
 
+		/* offboard mission updated */
 		if (fds[4].revents & POLLIN) {
 			offboard_mission_update(_vstatus.is_rotary_wing);
 			// XXX check if mission really changed 
 			dispatch(EVENT_MISSION_CHANGED);
 		}
 
+		/* onboard mission updated */
 		if (fds[5].revents & POLLIN) {
 			onboard_mission_update();
 			// XXX check if mission really changed
 			dispatch(EVENT_MISSION_CHANGED);
 		}
 
+		/* home position updated */
 		if (fds[2].revents & POLLIN) {
 			home_position_update();
 			// XXX check if home position really changed
 			dispatch(EVENT_HOME_POSITION_CHANGED);
 		}
 
-		/* only run controller if position changed */
+		/* global position updated */
 		if (fds[1].revents & POLLIN) {
 			global_position_update();
 			/* only check if waypoint has been reached in Mission or RTL mode */
-			if (mission_item_reached()) {
-
-				if (_vstatus.main_state == MAIN_STATE_AUTO &&
-				    (myState == NAV_STATE_MISSION)) {
-
+			if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL) {
+				if (mission_item_reached()) {
 					/* advance by one mission item */
 					_mission.move_to_next();
 
@@ -702,18 +705,22 @@ Navigator::task_main()
 					} else {
 						dispatch(EVENT_MISSION_FINISHED);
 					}
-				} else {
-					dispatch(EVENT_MISSION_FINISHED);
 				}
 			}
 		}
 
+
+		/* notify user about state changes */
 		if (myState != prevState) {
 			mavlink_log_info(_mavlink_fd, "[navigator] nav state %d -> %d", prevState, myState);
 			prevState = myState;
+			pub_control_mode = true;
 		}
 
-		publish_control_mode();
+		/* publish control mode if updated */
+		if (pub_control_mode) {
+			publish_control_mode();
+		}
 
 		perf_end(_loop_perf);
 	}
@@ -767,9 +774,6 @@ Navigator::status()
 	}
 
 	switch (myState) {
-		case NAV_STATE_INIT:
-			warnx("State: Init");
-			break;
 		case NAV_STATE_NONE:
 			warnx("State: None");
 			break;
@@ -886,16 +890,6 @@ Navigator::fence_point(int argc, char *argv[])
 
 StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 	{	
-							/* STATE_INIT */
-		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
-		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
-		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
-		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
-		/* EVENT_MISSION_FINISHED */		{NO_ACTION, NAV_STATE_INIT},
-		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_INIT},
-		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_INIT},
-	},
-	{	
 							/* STATE_NONE */
 		/* EVENT_NONE_REQUESTED */		{NO_ACTION, NAV_STATE_NONE},
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
@@ -976,19 +970,21 @@ Navigator::start_loiter()
 
 	_mission_item_triplet.current.lat = (double)_global_pos.lat / 1e7d;
 	_mission_item_triplet.current.lon = (double)_global_pos.lon / 1e7d;
-	_mission_item_triplet.current.yaw = 0.0f;	// TODO use current yaw sp here or set to undefined?
+	_mission_item_triplet.current.yaw = NAN;	// NAN means to use current yaw
 
 	get_loiter_item(&_mission_item_triplet.current);
 
-	float global_min_alt = _parameters.min_altitude + _home_pos.altitude;
+	// TODO use relative altitude to allow flying without global reference (?)
+	_mission_item_triplet.current.altitude_is_relative = false;
+	float min_alt_amsl = _parameters.min_altitude + _home_pos.altitude;
 
 	/* Use current altitude if above min altitude set by parameter */
-	if (_global_pos.alt < global_min_alt) {
-		_mission_item_triplet.current.altitude = global_min_alt;
-		mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", (double)(global_min_alt - _global_pos.alt));
+	if (_global_pos.alt < min_alt_amsl) {
+		_mission_item_triplet.current.altitude = min_alt_amsl;
+		mavlink_log_info(_mavlink_fd, "[navigator] loiter %.1fm higher", (double)(min_alt_amsl - _global_pos.alt));
 	} else {
 		_mission_item_triplet.current.altitude = _global_pos.alt;
-		mavlink_log_info(_mavlink_fd, "[navigator] loiter here");
+		mavlink_log_info(_mavlink_fd, "[navigator] loiter at current altitude");
 	}
 
 	publish_mission_item_triplet();
@@ -998,7 +994,7 @@ Navigator::start_loiter()
 void
 Navigator::start_mission()
 {
-	/* leave previous mission item as isas is */
+	/* leave previous mission item as is as is */
 
 	int ret;
 	bool onboard;
@@ -1108,7 +1104,7 @@ Navigator::start_rtl()
 	_mission_item_triplet.current.lat = _home_pos.lat;
 	_mission_item_triplet.current.lon = _home_pos.lon;
 	_mission_item_triplet.current.altitude = _home_pos.altitude + _parameters.min_altitude;
-	_mission_item_triplet.current.yaw = 0.0f;
+	_mission_item_triplet.current.yaw = 0.0f;	// TODO use heading to waypoint?
 	_mission_item_triplet.current.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
 	_mission_item_triplet.current.loiter_direction = 1;
 	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
@@ -1212,8 +1208,7 @@ Navigator::mission_item_reached()
 	}
 
 	/* check if required yaw reached */
-	float yaw_sp = _wrap_pi(_mission_item_triplet.current.yaw);
-	float yaw_err = _wrap_pi(yaw_sp - _global_pos.yaw);
+	float yaw_err = _wrap_pi(_mission_item_triplet.current.yaw - _global_pos.yaw);
 
 	if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
 		_waypoint_yaw_reached = true;
@@ -1223,7 +1218,7 @@ Navigator::mission_item_reached()
 	if (_waypoint_position_reached /* && _waypoint_yaw_reached */) { /* XXX what about yaw? */
 		
 		if (_time_first_inside_orbit == 0) {
-			/* XXX announcment? */
+			/* XXX announcement? */
 			_time_first_inside_orbit = now;
 		}
 		
@@ -1337,17 +1332,17 @@ Navigator::publish_control_mode()
 }
 
 bool Navigator::cmp_mission_item_equivalent(const struct mission_item_s a, const struct mission_item_s b) {
-	if (fabsf(a.altitude_is_relative - b.altitude_is_relative) < FLT_EPSILON &&
-	    fabsf(a.lat - b.lat) < FLT_EPSILON &&
-	    fabsf(a.lon - b.lon) < FLT_EPSILON &&
+	if (a.altitude_is_relative == b.altitude_is_relative &&
+	    fabs(a.lat - b.lat) < FLT_EPSILON &&
+	    fabs(a.lon - b.lon) < FLT_EPSILON &&
 	    fabsf(a.altitude - b.altitude) < FLT_EPSILON &&
 	    fabsf(a.yaw - b.yaw) < FLT_EPSILON &&
 	    fabsf(a.loiter_radius - b.loiter_radius) < FLT_EPSILON &&
-	    fabsf(a.loiter_direction - b.loiter_direction) < FLT_EPSILON &&
-	    fabsf(a.nav_cmd - b.nav_cmd) < FLT_EPSILON &&
+	    a.loiter_direction == b.loiter_direction &&
+	    a.nav_cmd == b.nav_cmd &&
 	    fabsf(a.radius - b.radius) < FLT_EPSILON &&
 	    fabsf(a.time_inside - b.time_inside) < FLT_EPSILON &&
-	    fabsf(a.autocontinue - b.autocontinue) < FLT_EPSILON) {
+	    a.autocontinue == b.autocontinue) {
 		return true;
 	} else {
 		return false;

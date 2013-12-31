@@ -59,7 +59,7 @@ struct home_position_s
 {
 	uint64_t timestamp;			/**< Timestamp (microseconds since system boot)	*/
 
-	bool altitude_is_relative;
+	//bool altitude_is_relative;	// TODO what means home relative altitude? we need clear definition of reference altitude then
 	double lat;				/**< Latitude in degrees 			*/
 	double lon;				/**< Longitude in degrees			*/
 	float altitude;				/**< Altitude in meters				*/
