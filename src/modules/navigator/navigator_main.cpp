@@ -497,10 +497,13 @@ Navigator::task_main_trampoline(int argc, char *argv[])
 void
 Navigator::task_main()
 {
-
 	/* inform about start */
 	warnx("Initializing..");
 	fflush(stdout);
+
+	_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
+
+	mavlink_log_info(_mavlink_fd, "[navigator] started");
 
 	_fence_valid = load_fence(GEOFENCE_MAX_VERTICES);
 
@@ -530,7 +533,7 @@ Navigator::task_main()
 	unsigned prevState = NAV_STATE_NONE;
 	bool pub_control_mode = true;
 	hrt_abstime mavlink_open_time = 0;
-	const hrt_abstime mavlink_open_period = 500000000;
+	const hrt_abstime mavlink_open_interval = 500000;
 
 	/* wakeup source(s) */
 	struct pollfd fds[7];
@@ -569,9 +572,9 @@ Navigator::task_main()
 
 		perf_begin(_loop_perf);
 
-		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time + mavlink_open_period) {
-			/* try to open the mavlink log device every once in a while */
-			mavlink_open_time = hrt_abstime();
+		if (_mavlink_fd < 0 && hrt_absolute_time() > mavlink_open_time) {
+			/* try to reopen the mavlink log device with specified interval */
+			mavlink_open_time = hrt_abstime() + mavlink_open_interval;
 			_mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 		}
 
@@ -591,19 +594,17 @@ Navigator::task_main()
 						stick_mode = true;
 					} else {
 						/* MISSION switch */
-						if (!stick_mode) {
-							if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
+						if (_vstatus.mission_switch == MISSION_SWITCH_LOITER) {
+							dispatch(EVENT_LOITER_REQUESTED);
+							stick_mode = true;
+						} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
+							/* switch to mission only if available */
+							if (_mission.current_mission_available()) {
+								dispatch(EVENT_MISSION_REQUESTED);
+							} else {
 								dispatch(EVENT_LOITER_REQUESTED);
-								stick_mode = true;
-							} else if (_vstatus.mission_switch == MISSION_SWITCH_MISSION) {
-								/* switch to mission only if available */
-								if (_mission.current_mission_available()) {
-									dispatch(EVENT_MISSION_REQUESTED);
-								} else {
-									dispatch(EVENT_LOITER_REQUESTED);
-								}
-								stick_mode = true;
 							}
+							stick_mode = true;
 						}
 						if (!stick_mode && _vstatus.return_switch == RETURN_SWITCH_NORMAL && myState == NAV_STATE_RTL) {
 							/* RETURN switch is in normal mode, no MISSION switch mapped, interrupt if in RTL state */
@@ -628,7 +629,11 @@ Navigator::task_main()
 							break;
 
 						case NAV_STATE_MISSION:
-							dispatch(EVENT_MISSION_REQUESTED);
+							if (_mission.current_mission_available()) {
+								dispatch(EVENT_MISSION_REQUESTED);
+							} else {
+								dispatch(EVENT_LOITER_REQUESTED);
+							}
 							break;
 
 						case NAV_STATE_RTL:
@@ -994,8 +999,7 @@ Navigator::start_loiter()
 void
 Navigator::start_mission()
 {
-	/* leave previous mission item as is as is */
-
+	/* leave previous mission item as is */
 	int ret;
 	bool onboard;
 	unsigned index;
@@ -1107,7 +1111,7 @@ Navigator::start_rtl()
 	_mission_item_triplet.current.yaw = 0.0f;	// TODO use heading to waypoint?
 	_mission_item_triplet.current.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
 	_mission_item_triplet.current.loiter_direction = 1;
-	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius;
 	_mission_item_triplet.current.radius = 50.0f; // TODO: get rid of magic number
 	_mission_item_triplet.current.autocontinue = false;
 	_mission_item_triplet.current_valid = true;
