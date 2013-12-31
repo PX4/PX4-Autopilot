@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,7 +63,7 @@
  * readable pages to be densely packed. Page numbers do not need to be
  * packed.
  *
- * Definitions marked 1 are only valid on PX4IOv1 boards. Likewise, 
+ * Definitions marked [1] are only valid on PX4IOv1 boards. Likewise, 
  * [2] denotes definitions specific to the PX4IOv2 board.
  */
 
@@ -76,6 +76,9 @@
 
 #define PX4IO_PROTOCOL_VERSION		4
 
+/* maximum allowable sizes on this protocol version */
+#define PX4IO_PROTOCOL_MAX_CONTROL_COUNT	8	/**< The protocol does not support more than set here, individual units might support less - see PX4IO_P_CONFIG_CONTROL_COUNT */
+
 /* static configuration page */
 #define PX4IO_PAGE_CONFIG		0
 #define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* PX4IO_PROTOCOL_VERSION */
@@ -87,6 +90,7 @@
 #define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
 #define PX4IO_P_CONFIG_ADC_INPUT_COUNT		7	/* hardcoded max ADC inputs */
 #define PX4IO_P_CONFIG_RELAY_COUNT		8	/* hardcoded # of relay outputs */
+#define PX4IO_P_CONFIG_CONTROL_GROUP_COUNT	8	/**< hardcoded # of control groups*/
 
 /* dynamic status page */
 #define PX4IO_PAGE_STATUS		1
@@ -124,7 +128,8 @@
 #define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
 #define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
 #define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
-#define PX4IO_P_STATUS_NRSSI			9	/* [2] Normalized RSSI value, 0: no reception, 1000: perfect reception */
+#define PX4IO_P_STATUS_NRSSI			9	/* [2] Normalized RSSI value, 0: no reception, 255: perfect reception */
+#define PX4IO_P_STATUS_RC_DATA			10	/* [1] + [2] Details about the RC source (PPM frame length, Spektrum protocol type) */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -185,7 +190,7 @@ enum {							/* DSM bind states */
 	dsm_bind_reinit_uart
 };
  					     /*	8 */
-#define PX4IO_P_SETUP_SET_DEBUG			9	/* debug level for IO board */
+#define PX4IO_P_SETUP_SET_DEBUG			9		/* debug level for IO board */
 
 #define PX4IO_P_SETUP_REBOOT_BL		       10	/* reboot IO into bootloader */
 #define PX4IO_REBOOT_BL_MAGIC               14662       /* required argument for reboot (random) */
@@ -193,41 +198,51 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_CRC		       11	/* get CRC of IO firmware */
 
 /* autopilot control values, -10000..10000 */
-#define PX4IO_PAGE_CONTROLS		51		/* 0..CONFIG_CONTROL_COUNT */
+#define PX4IO_PAGE_CONTROLS			51		/**< actuator control groups, one after the other, 8 wide */
+#define PX4IO_P_CONTROLS_GROUP_0		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 0)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
+#define PX4IO_P_CONTROLS_GROUP_1		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 1)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
+#define PX4IO_P_CONTROLS_GROUP_2		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 2)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
+#define PX4IO_P_CONTROLS_GROUP_3		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 3)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
+
+#define PX4IO_P_CONTROLS_GROUP_VALID		64
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP0	(1 << 0) /* group 0 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP1	(1 << 1) /* group 1 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP2	(1 << 2) /* group 2 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP3	(1 << 3) /* group 3 is valid / received */
 
 /* raw text load to the mixer parser - ignores offset */
-#define PX4IO_PAGE_MIXERLOAD		52
+#define PX4IO_PAGE_MIXERLOAD			52
 
 /* R/C channel config */
-#define PX4IO_PAGE_RC_CONFIG		53		/* R/C input configuration */
-#define PX4IO_P_RC_CONFIG_MIN			0	/* lowest input value */
-#define PX4IO_P_RC_CONFIG_CENTER		1	/* center input value */
-#define PX4IO_P_RC_CONFIG_MAX			2	/* highest input value */
-#define PX4IO_P_RC_CONFIG_DEADZONE		3	/* band around center that is ignored */
-#define PX4IO_P_RC_CONFIG_ASSIGNMENT		4	/* mapped input value */
-#define PX4IO_P_RC_CONFIG_OPTIONS		5	/* channel options bitmask */
+#define PX4IO_PAGE_RC_CONFIG			53		/**< R/C input configuration */
+#define PX4IO_P_RC_CONFIG_MIN			0		/**< lowest input value */
+#define PX4IO_P_RC_CONFIG_CENTER		1		/**< center input value */
+#define PX4IO_P_RC_CONFIG_MAX			2		/**< highest input value */
+#define PX4IO_P_RC_CONFIG_DEADZONE		3		/**< band around center that is ignored */
+#define PX4IO_P_RC_CONFIG_ASSIGNMENT		4		/**< mapped input value */
+#define PX4IO_P_RC_CONFIG_OPTIONS		5		/**< channel options bitmask */
 #define PX4IO_P_RC_CONFIG_OPTIONS_ENABLED	(1 << 0)
 #define PX4IO_P_RC_CONFIG_OPTIONS_REVERSE	(1 << 1)
-#define PX4IO_P_RC_CONFIG_STRIDE		6	/* spacing between channel config data */
+#define PX4IO_P_RC_CONFIG_STRIDE		6		/**< spacing between channel config data */
 
 /* PWM output - overrides mixer */
-#define PX4IO_PAGE_DIRECT_PWM		54		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_DIRECT_PWM			54		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* PWM failsafe values - zero disables the output */
-#define PX4IO_PAGE_FAILSAFE_PWM		55		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_FAILSAFE_PWM			55		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* Debug and test page - not used in normal operation */
-#define PX4IO_PAGE_TEST			127
-#define PX4IO_P_TEST_LED			0	/* set the amber LED on/off */
+#define PX4IO_PAGE_TEST				127
+#define PX4IO_P_TEST_LED			0		/**< set the amber LED on/off */
 
 /* PWM minimum values for certain ESCs */
-#define PX4IO_PAGE_CONTROL_MIN_PWM		106	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_CONTROL_MIN_PWM		106		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* PWM maximum values for certain ESCs */
-#define PX4IO_PAGE_CONTROL_MAX_PWM		107	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_CONTROL_MAX_PWM		107		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /* PWM disarmed values that are active, even when SAFETY_SAFE */
-#define PX4IO_PAGE_DISARMED_PWM		108	/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_DISARMED_PWM		108			/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.

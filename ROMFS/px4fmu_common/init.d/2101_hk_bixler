@@ -1,6 +1,6 @@
 #!nsh
 
-echo "[init] PX4FMU v1, v2 with or without IO on 3DR SkyWalker"
+echo "[init] PX4FMU v1, v2 with or without IO on HK Bixler"
 
 #
 # Load default params for this platform
@@ -42,8 +42,6 @@ fi
 #
 param set MAV_TYPE 1
 
-set EXIT_ON_END no
-
 #
 # Start and configure PX4IO or FMU interface
 #
@@ -64,26 +62,19 @@ else
 	set EXIT_ON_END yes
 fi
 
-pwm disarmed -c 3 -p 1056
-
 #
 # Load mixer and start controllers (depends on px4io)
 #
 if [ -f /fs/microsd/etc/mixers/FMU_AERT.mix ]
 then
 	echo "Using /fs/microsd/etc/mixers/FMU_AERT.mix"
-	mixer load /dev/pwm_output /fs/microsd/etc/mixers/FMU_AETR.mix
+	mixer load /dev/pwm_output /fs/microsd/etc/mixers/FMU_AERT.mix
 else
 	echo "Using /etc/mixers/FMU_Q.mix"
-	mixer load /dev/pwm_output /etc/mixers/FMU_AETR.mix
+	mixer load /dev/pwm_output /etc/mixers/FMU_AERT.mix
 fi
 
 #
 # Start common fixedwing apps
 #
 sh /etc/init.d/rc.fixedwing
-
-if [ $EXIT_ON_END == yes ]
-then
-	exit
-fi

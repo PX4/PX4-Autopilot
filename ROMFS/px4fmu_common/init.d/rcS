@@ -194,64 +194,103 @@ then
 			tone_alarm MNGGG
 		fi
 	fi
+
+	set EXIT_ON_END no
 	
 	#
 	# Check if auto-setup from one of the standard scripts is wanted
 	# SYS_AUTOSTART = 0 means no autostart (default)
 	#
+	# AUTOSTART PARTITION:
+	#  0   	..	 999		Reserved (historical)
+	#  1000	..	 1999		Simulation setups
+	#  2000	..	 2999		Standard planes
+	#  3000	..	 3999		Flying wing
+	#  4000	..	 4999		Quad X
+	#  5000	..	 5999		Quad +
+	#  6000	..	 6999		Hexa X
+	#  7000	..	 7999		Hexa +
+	#  8000	..	 8999		Octo X
+	#  9000	..	 9999		Octo +
+	# 10000	..	19999		Wide arm / H frame
 	
-	if param compare SYS_AUTOSTART 8
+	if param compare SYS_AUTOSTART 4008 8
 	then
-		sh /etc/init.d/08_ardrone
+		sh /etc/init.d/4008_ardrone
 		set MODE custom
 	fi
 	
-	if param compare SYS_AUTOSTART 9
+	if param compare SYS_AUTOSTART 4009 9
 	then
-		sh /etc/init.d/09_ardrone_flow
+		sh /etc/init.d/4009_ardrone_flow
 		set MODE custom
 	fi
 	
-	if param compare SYS_AUTOSTART 10
+	if param compare SYS_AUTOSTART 4010 10
 	then
-		sh /etc/init.d/10_dji_f330
+		set FRAME_GEOMETRY x
+		set FRAME_COUNT 4
+		set PWM_MIN 1200
+		set PWM_MAX 1900
+		set PWM_DISARMED 900
+		sh /etc/init.d/4010_dji_f330
 		set MODE custom
 	fi
 
-	if param compare SYS_AUTOSTART 11
+	if param compare SYS_AUTOSTART 4011 11
 	then
-		sh /etc/init.d/11_dji_f450
+		sh /etc/init.d/4011_dji_f450
 		set MODE custom
 	fi
 
-	if param compare SYS_AUTOSTART 12
+	if param compare SYS_AUTOSTART 4012
+	then
+		sh /etc/init.d/666_fmu_q_x550
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 6012 12
 	then
 		set MIXER /etc/mixers/FMU_hex_x.mix
-		sh /etc/init.d/12-13_hex
+		sh /etc/init.d/rc.hexa
 		set MODE custom
 	fi
 
-	if param compare SYS_AUTOSTART 13
+	if param compare SYS_AUTOSTART 7013 13
 	then
 		set MIXER /etc/mixers/FMU_hex_+.mix
-		sh /etc/init.d/12-13_hex
+		sh /etc/init.d/rc.hexa
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 8001
+	then
+		set MIXER /etc/mixers/FMU_octo_x.mix
+		sh /etc/init.d/rc.octo
+		set MODE custom
+	fi
+
+	if param compare SYS_AUTOSTART 9001
+	then
+		set MIXER /etc/mixers/FMU_octo_+.mix
+		sh /etc/init.d/rc.octo
 		set MODE custom
 	fi
 	
-	if param compare SYS_AUTOSTART 15
+	if param compare SYS_AUTOSTART 10015 15
 	then
-		sh /etc/init.d/15_tbs_discovery
+		sh /etc/init.d/10015_tbs_discovery
 		set MODE custom
 	fi
 
-	if param compare SYS_AUTOSTART 16
+	if param compare SYS_AUTOSTART 10016 16
 	then
-		sh /etc/init.d/16_3dr_iris
+		sh /etc/init.d/10016_3dr_iris
 		set MODE custom
 	fi
 
 	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame
-	if param compare SYS_AUTOSTART 17
+	if param compare SYS_AUTOSTART 4017 17
 	then
 		set MKBLCTRL_MODE no
 		set MKBLCTRL_FRAME x
@@ -260,7 +299,7 @@ then
 	fi
 
 	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame
-	if param compare SYS_AUTOSTART 18
+	if param compare SYS_AUTOSTART 5018 18
 	then
 		set MKBLCTRL_MODE no
 		set MKBLCTRL_FRAME +
@@ -269,7 +308,7 @@ then
 	fi
 
 	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame Mikrokopter-Addressing
-	if param compare SYS_AUTOSTART 19
+	if param compare SYS_AUTOSTART 4019 19
 	then
 		set MKBLCTRL_MODE yes
 		set MKBLCTRL_FRAME x
@@ -278,7 +317,7 @@ then
 	fi
 
 	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame Mikrokopter-Addressing
-	if param compare SYS_AUTOSTART 20
+	if param compare SYS_AUTOSTART 5020 20
 	then
 		set MKBLCTRL_MODE yes
 		set MKBLCTRL_FRAME +
@@ -287,7 +326,7 @@ then
 	fi
 
 	# PX4FMU v1 with IO + PPM-based ESCs on Quad X-shape frame
-	if param compare SYS_AUTOSTART 21
+	if param compare SYS_AUTOSTART 4021 21
 	then
 		set FRAME_GEOMETRY x
 		set ESC_MAKER afro
@@ -296,30 +335,42 @@ then
 	fi
 
 	# PX4FMU v1 with IO + PPM-based ESCs on Quad X-shape frame
-	if param compare SYS_AUTOSTART 22
+	if param compare SYS_AUTOSTART 10022 22
 	then
 		set FRAME_GEOMETRY w
 		sh /etc/init.d/rc.custom_io_esc
 		set MODE custom
 	fi
 	
-	if param compare SYS_AUTOSTART 30
+	if param compare SYS_AUTOSTART 3030 30
 	then
-		sh /etc/init.d/30_io_camflyer
+		sh /etc/init.d/3030_io_camflyer
 		set MODE custom
 	fi
 
-	if param compare SYS_AUTOSTART 31
+	if param compare SYS_AUTOSTART 3031 31
 	then
-		sh /etc/init.d/31_io_phantom
+		sh /etc/init.d/3031_io_phantom
 		set MODE custom
 	fi
 	
-	if param compare SYS_AUTOSTART 32
+	if param compare SYS_AUTOSTART 3032 32
 	then
-		sh /etc/init.d/32_skywalker_x5
+		sh /etc/init.d/3032_skywalker_x5
 		set MODE custom
 	fi
+
+	if param compare SYS_AUTOSTART 3033 33
+	then
+		sh /etc/init.d/3033_io_wingwing
+		set MODE custom
+	fi
+
+        if param compare SYS_AUTOSTART 3034 34
+        then
+                sh /etc/init.d/3034_io_fx79
+                set MODE custom
+        fi
 
 	if param compare SYS_AUTOSTART 40
 	then
@@ -327,21 +378,27 @@ then
 		set MODE custom
 	fi
 	
-	if param compare SYS_AUTOSTART 100
+	if param compare SYS_AUTOSTART 2100 100
 	then
-		sh /etc/init.d/100_mpx_easystar
+		sh /etc/init.d/2100_mpx_easystar
 		set MODE custom
 	fi
 
-	if param compare SYS_AUTOSTART 101
+	if param compare SYS_AUTOSTART 2101 101
 	then
-		sh /etc/init.d/101_hk_bixler
+		sh /etc/init.d/2101_hk_bixler
 		set MODE custom
 	fi
 
-	if param compare SYS_AUTOSTART 102
+	if param compare SYS_AUTOSTART 2102 102
 	then
-		sh /etc/init.d/102_3dr_skywalker
+		sh /etc/init.d/2102_3dr_skywalker
+		set MODE custom
+	fi
+	
+	if param compare SYS_AUTOSTART 800
+	then
+		sh /etc/init.d/800_sdlogger
 		set MODE custom
 	fi
 	
@@ -382,6 +439,11 @@ then
 		# Start GPS
 		gps start
 	
+	fi
+
+	if [ $EXIT_ON_END == yes ]
+	then
+		exit
 	fi
 
 # End of autostart

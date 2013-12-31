@@ -252,7 +252,7 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint
 	}
 
 	/* decode switch channels if data fields are wide enough */
-	if (PX4IO_INPUT_CHANNELS > 17 && chancount > 15) {
+	if (PX4IO_RC_INPUT_CHANNELS > 17 && chancount > 15) {
 		chancount = 18;
 
 		/* channel 17 (index 16) */
@@ -280,7 +280,7 @@ sbus_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, uint
 		*rssi = 100; // XXX magic number indicating bad signal, but not a signal loss (yet)
 	}
 
-	*rssi = 1000;
+	*rssi = 255;
 
 	return true;
 }

@@ -50,7 +50,7 @@
 #define RC_CHANNEL_HIGH_THRESH		5000
 #define RC_CHANNEL_LOW_THRESH		-5000
 
-static bool	ppm_input(uint16_t *values, uint16_t *num_values);
+static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
 
 static perf_counter_t c_gather_dsm;
 static perf_counter_t c_gather_sbus;
@@ -66,7 +66,7 @@ controls_init(void)
 	sbus_init("/dev/ttyS2");
 
 	/* default to a 1:1 input map, all enabled */
-	for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++) {
+	for (unsigned i = 0; i < PX4IO_RC_INPUT_CHANNELS; i++) {
 		unsigned base = PX4IO_P_RC_CONFIG_STRIDE * i;
 
 		r_page_rc_input_config[base + PX4IO_P_RC_CONFIG_OPTIONS]    = 0;
@@ -94,7 +94,7 @@ controls_tick() {
 	 * other.  Don't do that.
 	 */
 
-	/* receive signal strenght indicator (RSSI). 0 = no connection, 1000: perfect connection */
+	/* receive signal strenght indicator (RSSI). 0 = no connection, 255: perfect connection */
 	uint16_t rssi = 0;
 
 	perf_begin(c_gather_dsm);
@@ -108,12 +108,12 @@ controls_tick() {
 		else
 			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RC_DSM11;
 
-		rssi = 1000;
+		rssi = 255;
 	}
 	perf_end(c_gather_dsm);
 
 	perf_begin(c_gather_sbus);
-	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, PX4IO_CONTROL_CHANNELS /* XXX this should be INPUT channels, once untangled */);
+	bool sbus_updated = sbus_input(r_raw_rc_values, &r_raw_rc_count, &rssi, PX4IO_RC_INPUT_CHANNELS);
 	if (sbus_updated) {
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
 	}
@@ -125,19 +125,19 @@ controls_tick() {
 	 * disable the PPM decoder completely if we have S.bus signal.
 	 */
 	perf_begin(c_gather_ppm);
-	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count);
+	bool ppm_updated = ppm_input(r_raw_rc_values, &r_raw_rc_count, &r_page_status[PX4IO_P_STATUS_RC_DATA]);
 	if (ppm_updated) {
 
 		/* XXX sample RSSI properly here */
-		rssi = 1000;
+		rssi = 255;
 
 		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
 	}
 	perf_end(c_gather_ppm);
 
 	/* limit number of channels to allowable data size */
-	if (r_raw_rc_count > PX4IO_INPUT_CHANNELS)
-		r_raw_rc_count = PX4IO_INPUT_CHANNELS;
+	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS)
+		r_raw_rc_count = PX4IO_RC_INPUT_CHANNELS;
 
 	/*
 	 * In some cases we may have received a frame, but input has still
@@ -210,14 +210,16 @@ controls_tick() {
 
 				/* and update the scaled/mapped version */
 				unsigned mapped = conf[PX4IO_P_RC_CONFIG_ASSIGNMENT];
-				ASSERT(mapped < PX4IO_CONTROL_CHANNELS);
+				if (mapped < PX4IO_CONTROL_CHANNELS) {
 
-				/* invert channel if pitch - pulling the lever down means pitching up by convention */
-				if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
-					scaled = -scaled;
+					/* invert channel if pitch - pulling the lever down means pitching up by convention */
+					if (mapped == 1) /* roll, pitch, yaw, throttle, override is the standard order */
+						scaled = -scaled;
 
-				r_rc_values[mapped] = SIGNED_TO_REG(scaled);
-				assigned_channels |= (1 << mapped);
+					r_rc_values[mapped] = SIGNED_TO_REG(scaled);
+					assigned_channels |= (1 << mapped);
+
+				}
 			}
 		}
 
@@ -319,7 +321,7 @@ controls_tick() {
 }
 
 static bool
-ppm_input(uint16_t *values, uint16_t *num_values)
+ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len)
 {
 	bool result = false;
 
@@ -334,14 +336,18 @@ ppm_input(uint16_t *values, uint16_t *num_values)
 
 		/* PPM data exists, copy it */
 		*num_values = ppm_decoded_channels;
-		if (*num_values > PX4IO_CONTROL_CHANNELS)
-			*num_values = PX4IO_CONTROL_CHANNELS;
+		if (*num_values > PX4IO_RC_INPUT_CHANNELS)
+			*num_values = PX4IO_RC_INPUT_CHANNELS;
 
 		for (unsigned i = 0; i < *num_values; i++)
 			values[i] = ppm_buffer[i];
 
 		/* clear validity */
 		ppm_last_valid_decode = 0;
+
+		/* store PPM frame length */
+		if (num_values)
+			*frame_len = ppm_frame_length;
 
 		/* good if we got any channels */
 		result = (*num_values > 0);
