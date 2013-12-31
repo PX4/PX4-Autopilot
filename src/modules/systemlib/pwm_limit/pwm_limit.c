@@ -47,7 +47,7 @@
 
 void pwm_limit_init(pwm_limit_t *limit)
 {
-	limit->state = LIMIT_STATE_OFF;
+	limit->state = PWM_LIMIT_STATE_OFF;
 	limit->time_armed = 0;
 	return;
 }
@@ -56,26 +56,26 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 {
 	/* first evaluate state changes */
 	switch (limit->state) {
-		case LIMIT_STATE_OFF:
+		case PWM_LIMIT_STATE_OFF:
 			if (armed)
-				limit->state = LIMIT_STATE_RAMP;
+				limit->state = PWM_LIMIT_STATE_RAMP;
 			limit->time_armed = hrt_absolute_time();
 			break;
-		case LIMIT_STATE_INIT:
+		case PWM_LIMIT_STATE_INIT:
 			if (!armed)
-				limit->state = LIMIT_STATE_OFF;
+				limit->state = PWM_LIMIT_STATE_OFF;
 			else if (hrt_absolute_time() - limit->time_armed >= INIT_TIME_US)
-				limit->state = LIMIT_STATE_RAMP;
+				limit->state = PWM_LIMIT_STATE_RAMP;
 			break;
-		case LIMIT_STATE_RAMP:
+		case PWM_LIMIT_STATE_RAMP:
 			if (!armed)
-				limit->state = LIMIT_STATE_OFF;
+				limit->state = PWM_LIMIT_STATE_OFF;
 			else if (hrt_absolute_time() - limit->time_armed >= INIT_TIME_US + RAMP_TIME_US)
-				limit->state = LIMIT_STATE_ON;
+				limit->state = PWM_LIMIT_STATE_ON;
 			break;
-		case LIMIT_STATE_ON:
+		case PWM_LIMIT_STATE_ON:
 			if (!armed)
-				limit->state = LIMIT_STATE_OFF;
+				limit->state = PWM_LIMIT_STATE_OFF;
 			break;
 		default:
 			break;
@@ -86,14 +86,14 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 
 	/* then set effective_pwm based on state */
 	switch (limit->state) {
-		case LIMIT_STATE_OFF:
-		case LIMIT_STATE_INIT:
+		case PWM_LIMIT_STATE_OFF:
+		case PWM_LIMIT_STATE_INIT:
 			for (unsigned i=0; i<num_channels; i++) {
 				effective_pwm[i] = disarmed_pwm[i];
 				output[i] = 0.0f;
 			}
 			break;
-		case LIMIT_STATE_RAMP:
+		case PWM_LIMIT_STATE_RAMP:
 
 			progress = (hrt_absolute_time() - INIT_TIME_US - limit->time_armed)*10000 / RAMP_TIME_US;
 			for (unsigned i=0; i<num_channels; i++) {
@@ -120,7 +120,7 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 				output[i] = (float)progress/10000.0f * output[i];
 			}
 			break;
-		case LIMIT_STATE_ON:
+		case PWM_LIMIT_STATE_ON:
 			for (unsigned i=0; i<num_channels; i++) {
 				effective_pwm[i] = output[i] * (max_pwm[i] - min_pwm[i])/2 + (max_pwm[i] + min_pwm[i])/2;
 				/* effective_output stays the same */

@@ -51,6 +51,7 @@
 
 #include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
+#include <systemlib/pwm_limit/pwm_limit.h>
 
 #include "tests.h"
 
@@ -58,6 +59,18 @@ static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
 			       uint8_t control_index,
 			       float &control);
+
+const unsigned output_max = 8;
+static float actuator_controls[output_max];
+static bool should_arm = false;
+uint16_t r_page_servo_disarmed[output_max];
+uint16_t r_page_servo_control_min[output_max];
+uint16_t r_page_servo_control_max[output_max];
+uint16_t r_page_servos[output_max];
+/*
+ * PWM limit structure
+ */
+pwm_limit_t pwm_limit;
 
 int test_mixer(int argc, char *argv[])
 {
@@ -164,6 +177,40 @@ int test_mixer(int argc, char *argv[])
 	if (mixer_group.count() != 8)
 		return 1;
 
+	/* execute the mixer */
+	
+	float	outputs_unlimited[output_max];
+	float	outputs[output_max];
+	unsigned mixed;
+	const int jmax = 50;
+
+	pwm_limit_init(&pwm_limit);
+	pwm_limit.state = PWM_LIMIT_STATE_ON;
+	should_arm = true;
+
+	for (int j = -jmax; j <= jmax; j++) {
+
+		for (int i = 0; i < output_max; i++) {
+			actuator_controls[i] = j/100.0f + 0.1f * i;
+			r_page_servo_disarmed[i] = 900;
+			r_page_servo_control_min[i] = 1000;
+			r_page_servo_control_max[i] = 2000;
+		}
+
+		/* mix */
+		mixed = mixer_group.mix(&outputs_unlimited[0], output_max);
+
+		memcpy(outputs, outputs_unlimited, sizeof(outputs));
+
+		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+
+		warnx("mixed %d outputs (max %d), values:", mixed, output_max);
+		for (int i = 0; i < mixed; i++)
+		{
+			printf("\t %d: %8.4f limited: %8.4f, servo: %d\n", i, outputs_unlimited[i], outputs[i], (int)r_page_servos[i]);
+		}
+	}
+
 	/* load multirotor at once test */
 	mixer_group.reset();
 
@@ -193,7 +240,10 @@ mixer_callback(uintptr_t handle,
 	if (control_group != 0)
 		return -1;
 
-	control = 0.0f;
+	if (control_index > (sizeof(actuator_controls) / sizeof(actuator_controls[0])))
+		return -1;
+
+	control = actuator_controls[control_index];
 
 	return 0;
 }
