@@ -170,6 +170,7 @@ private:
 	bool		_waypoint_position_reached;
 	bool		_waypoint_yaw_reached;
 	uint64_t	_time_first_inside_orbit;
+	bool		_force_takeoff;
 
 	MissionFeasibilityChecker missionFeasiblityChecker;
 
@@ -179,13 +180,16 @@ private:
 		float min_altitude;
 		float loiter_radius;
 		int onboard_mission_enabled;
+		float land_alt;
+		float rtl_alt;
 	}		_parameters;			/**< local copies of parameters */
 
 	struct {
 		param_t min_altitude;
 		param_t loiter_radius;
 		param_t onboard_mission_enabled;
-
+		param_t land_alt;
+		param_t rtl_alt;
 	}		_parameter_handles;		/**< handles for parameters */
 
 	enum Event {
@@ -203,6 +207,14 @@ private:
 	 * State machine transition table
 	 */
 	static StateTable::Tran const myTable[NAV_STATE_MAX][MAX_EVENT];
+
+	enum RTLState {
+		RTL_STATE_CLIMB,
+		RTL_STATE_RETURN,
+		RTL_STATE_LAND
+	};
+
+	enum RTLState _rtl_state;
 
 	/**
 	 * Update our local parameter cache.
@@ -289,7 +301,12 @@ private:
 	/**
 	 * Helper function to get a loiter item
 	 */
-	void		get_loiter_item(mission_item_s *new_loiter_position);
+	void		get_loiter_item(mission_item_s *item);
+
+	/**
+	 * Helper function to get a takeoff item
+	 */
+	void		get_takeoff_item(mission_item_s *item);
 
 	/**
 	 * Publish a new mission item triplet for position controller
@@ -361,13 +378,16 @@ Navigator::Navigator() :
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
-	_set_nav_state_timestamp(0)
+	_set_nav_state_timestamp(0),
+	_force_takeoff(false)
 {
 	memset(&_fence, 0, sizeof(_fence));
 
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
 	_parameter_handles.loiter_radius = param_find("NAV_LOITER_RAD");
 	_parameter_handles.onboard_mission_enabled = param_find("NAV_ONB_MIS_EN");
+	_parameter_handles.land_alt = param_find("NAV_LAND_ALT");
+	_parameter_handles.rtl_alt = param_find("NAV_RTL_ALT");
 
 	_mission_item_triplet.previous_valid = false;
 	_mission_item_triplet.current_valid = false;
@@ -418,6 +438,8 @@ Navigator::parameters_update()
 	param_get(_parameter_handles.min_altitude, &(_parameters.min_altitude));
 	param_get(_parameter_handles.loiter_radius, &(_parameters.loiter_radius));
 	param_get(_parameter_handles.onboard_mission_enabled, &(_parameters.onboard_mission_enabled));
+	param_get(_parameter_handles.land_alt, &(_parameters.land_alt));
+	param_get(_parameter_handles.rtl_alt, &(_parameters.rtl_alt));
 
 	_mission.set_onboard_mission_allowed((bool)_parameter_handles.onboard_mission_enabled);
 }
@@ -706,8 +728,14 @@ Navigator::task_main()
 			if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL) {
 				if (mission_item_reached()) {
 					if (myState == NAV_STATE_MISSION) {
-						/* advance by one mission item */
-						_mission.move_to_next();
+						if (_force_takeoff) {
+							/* forced takeoff completed */
+							_force_takeoff = false;
+							mavlink_log_info(_mavlink_fd, "[navigator] forced takeoff completed");
+						} else {
+							/* advance by one mission item */
+							_mission.move_to_next();
+						}
 
 						/* if no more mission items available send this to state machine and start loiter at the last WP */
 						if (_mission.current_mission_available()) {
@@ -948,6 +976,7 @@ Navigator::start_none()
 
 	_reset_loiter_pos = true;
 	_rtl_done = false;
+	_force_takeoff = false;
 
 	publish_mission_item_triplet();
 }
@@ -955,6 +984,8 @@ Navigator::start_none()
 void
 Navigator::start_loiter()
 {
+	_force_takeoff = false;
+
 	/* set loiter position if needed */
 	if (_reset_loiter_pos || !_mission_item_triplet.current_valid) {
 		_reset_loiter_pos = false;
@@ -985,50 +1016,76 @@ Navigator::start_loiter()
 	publish_mission_item_triplet();
 }
 
-
 void
 Navigator::start_mission()
 {
-	// TODO set prev item to current position?
-	_reset_loiter_pos = true;
-	_rtl_done = false;
-
 	int ret;
 	bool onboard;
 	unsigned index;
 
+	// TODO set prev item to current position?
+	_reset_loiter_pos = true;
+	_rtl_done = false;
+	_force_takeoff = false;
+
+	_mission_item_triplet.previous_valid = false;
+
 	ret = _mission.get_current_mission_item(&_mission_item_triplet.current, &onboard, &index);
 
 	if (ret == OK) {
-
-		add_home_pos_to_rtl(&_mission_item_triplet.current);
 		_mission_item_triplet.current_valid = true;
+		add_home_pos_to_rtl(&_mission_item_triplet.current);
 
-		if (onboard) {
-			mavlink_log_info(_mavlink_fd, "[navigator] mission started, onboard WP %d", index);
+		if (_mission_item_triplet.current.nav_cmd != NAV_CMD_TAKEOFF && _vstatus.condition_landed) {
+			/* if landed, takeoff first, if this not defined in mission */
+			_force_takeoff = true;
+
+			/* move current mission item to next */
+			memcpy(&_mission_item_triplet.next, &_mission_item_triplet.current, sizeof(mission_item_s));
+			_mission_item_triplet.next_valid = true;
+
+			/* fill takeoff item */
+			get_takeoff_item(&_mission_item_triplet.current);
+			if (_vstatus.is_rotary_wing) {
+				/* for VTOL use current position */
+				_mission_item_triplet.current.lat = (double)_global_pos.lat / 1e7d;
+				_mission_item_triplet.current.lon = (double)_global_pos.lon / 1e7d;
+			} else {
+				/* for fixed wing use first waypoint position */
+				// TODO what if first mission item has no lat/lon?
+				_mission_item_triplet.current.lat = _mission_item_triplet.next.lat;
+				_mission_item_triplet.current.lon = _mission_item_triplet.next.lon;
+			}
+			_mission_item_triplet.current.altitude = _global_pos.alt + _parameters.land_alt;
+			_mission_item_triplet.current.altitude_is_relative = false;
+			mavlink_log_info(_mavlink_fd, "[navigator] mission started, force takeoff to %.1fm", _mission_item_triplet.current.altitude);
 		} else {
-			mavlink_log_info(_mavlink_fd, "[navigator] mission started, offboard WP %d", index);
+			/* normal mission start: mission starts with takeoff item or vehicle is already in air */
+			ret = _mission.get_next_mission_item(&_mission_item_triplet.next);
+
+			if (ret == OK) {
+				add_home_pos_to_rtl(&_mission_item_triplet.next);
+				_mission_item_triplet.next_valid = true;
+			} else {
+				/* this will fail for the last WP */
+				_mission_item_triplet.next_valid = false;
+			}
+
+			if (onboard) {
+				mavlink_log_info(_mavlink_fd, "[navigator] mission started, onboard WP %d", index);
+			} else {
+				mavlink_log_info(_mavlink_fd, "[navigator] mission started, offboard WP %d", index);
+			}
 		}
 	} else {
-		/* since a mission is started without knowledge if there are more mission items available, this can fail */
+		/* mission is started without knowledge if there are more mission, indicates bug in navigator */
 		_mission_item_triplet.current_valid = false;
-	}
-
-	ret = _mission.get_next_mission_item(&_mission_item_triplet.next);
-
-	if (ret == OK) {
-
-		add_home_pos_to_rtl(&_mission_item_triplet.next);
-		_mission_item_triplet.next_valid = true;
-	} else {
-		/* this will fail for the last WP */
 		_mission_item_triplet.next_valid = false;
+		mavlink_log_critical(_mavlink_fd, "[navigator] error: MISSION mode without mission defined");
 	}
 
 	publish_mission_item_triplet();
 }
-
-
 
 void
 Navigator::advance_mission()
@@ -1174,7 +1231,7 @@ Navigator::mission_item_reached()
 
 	// if (coordinate_frame == (int)MAV_FRAME_GLOBAL) {
 
-	// current relative or AMSL altitude depending on _mission_item_triplet.current.altitude_is_relative
+	/* current relative or AMSL altitude depending on mission item altitude_is_relative flag */
 	float current_alt = _mission_item_triplet.current.altitude_is_relative ? _global_pos.relative_alt : _global_pos.alt;
 
 	dist = get_distance_to_point_global_wgs84(_mission_item_triplet.current.lat, _mission_item_triplet.current.lon, _mission_item_triplet.current.altitude,
@@ -1199,7 +1256,7 @@ Navigator::mission_item_reached()
 
 	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
 		/* require only altitude for takeoff */
-		if (current_alt > _mission_item_triplet.current.altitude)
+		if (current_alt >= _mission_item_triplet.current.altitude)
 			_waypoint_position_reached = true;
 	} else {
 		if (dist >= 0.0f && dist_xy <= orbit && dist_z >= 0.0f && dist_z <= vertical_switch_distance) {
@@ -1237,13 +1294,40 @@ Navigator::mission_item_reached()
 }
 
 void
-Navigator::get_loiter_item(struct mission_item_s *new_loiter_position)
+Navigator::get_loiter_item(struct mission_item_s *item)
 {
-	new_loiter_position->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-	new_loiter_position->loiter_direction = 1;
-	new_loiter_position->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
-	new_loiter_position->radius = 50.0f; // TODO: get rid of magic number
-	new_loiter_position->autocontinue = false;
+	//item->altitude_is_relative
+	//item->lat
+	//item->lon
+	//item->altitude
+	item->yaw = NAN;
+	item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+	item->loiter_direction = 1;
+	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	item->radius = 50.0f; // TODO: get rid of magic number
+	//item->time_inside
+	//item->pitch_min
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
+
+}
+
+void
+Navigator::get_takeoff_item(mission_item_s *item)
+{
+	//item->altitude_is_relative
+	//item->lat
+	//item->lon
+	//item->altitude
+	item->yaw = NAN;
+	item->loiter_radius = _parameters.loiter_radius; // TODO: get rid of magic number
+	item->loiter_direction = 1;
+	item->nav_cmd = NAV_CMD_TAKEOFF;
+	item->radius = 50.0f; // TODO: get rid of magic number
+	item->time_inside = 0.0f;
+	item->pitch_min = 0.3; // TODO: get rid of magic number
+	item->autocontinue = true;
+	item->origin = ORIGIN_ONBOARD;
 }
 
 void
