@@ -520,7 +520,7 @@ FixedwingEstimator::start()
 	_estimator_task = task_spawn_cmd("fw_att_pos_estimator",
 				       SCHED_DEFAULT,
 				       SCHED_PRIORITY_MAX - 5,
-				       2048,
+				       12048,
 				       (main_t)&FixedwingEstimator::task_main_trampoline,
 				       nullptr);
 
