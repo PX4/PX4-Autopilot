@@ -130,8 +130,6 @@ private:
 	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;	/**< vehicle global velocity setpoint */
 
 	struct {
-		param_t takeoff_alt;
-		param_t takeoff_gap;
 		param_t thr_min;
 		param_t thr_max;
 		param_t z_p;
@@ -155,8 +153,6 @@ private:
 	}		_params_handles;		/**< handles for interesting parameters */
 
 	struct {
-		float takeoff_alt;
-		float takeoff_gap;
 		float thr_min;
 		float thr_max;
 		float tilt_max;
@@ -265,8 +261,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_sp.zero();
 	_vel_prev.zero();
 
-	_params_handles.takeoff_alt	= param_find("NAV_TAKEOFF_ALT");
-	_params_handles.takeoff_gap	= param_find("NAV_TAKEOFF_GAP");
 	_params_handles.thr_min		= param_find("MPC_THR_MIN");
 	_params_handles.thr_max		= param_find("MPC_THR_MAX");
 	_params_handles.z_p			= param_find("MPC_Z_P");
@@ -327,8 +321,6 @@ MulticopterPositionControl::parameters_update(bool force)
 		orb_copy(ORB_ID(parameter_update), _params_sub, &param_upd);
 
 	if (updated || force) {
-		param_get(_params_handles.takeoff_alt, &_params.takeoff_alt);
-		param_get(_params_handles.takeoff_gap, &_params.takeoff_gap);
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.tilt_max, &_params.tilt_max);
@@ -622,6 +614,9 @@ MulticopterPositionControl::task_main()
 				if (_mission_items.current_valid) {
 					struct mission_item_s item = _mission_items.current;
 
+					// TODO home altitude can be != ref_alt, check home_position topic
+					_pos_sp(2) = -(item.altitude_is_relative ? item.altitude : item.altitude - ref_alt);
+
 					if (item.nav_cmd == NAV_CMD_TAKEOFF) {
 						/* use current position setpoint or current position */
 						if (reset_sp_xy) {
@@ -637,10 +632,9 @@ MulticopterPositionControl::task_main()
 					} else {
 						map_projection_project(item.lat, item.lon, &_pos_sp(0), &_pos_sp(1));
 
-						// TODO home altitude can be != ref_alt, check home_position topic
-						_pos_sp(2) = -(item.altitude_is_relative ? item.altitude : item.altitude - ref_alt);
-
-						_att_sp.yaw_body = _mission_items.current.yaw;
+						if (isfinite(_mission_items.current.yaw)) {
+							_att_sp.yaw_body = _mission_items.current.yaw;
+						}
 
 						/* in case of interrupted mission don't go to waypoint but stay at current position */
 						reset_sp_xy = true;
