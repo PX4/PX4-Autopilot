@@ -764,7 +764,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 	/* filter speed and altitude for controller */
 	math::Vector3 accel_body(_sensor_combined.accelerometer_m_s2[0], _sensor_combined.accelerometer_m_s2[1], _sensor_combined.accelerometer_m_s2[2]);
-	math::Vector3 accel_earth = _R_nb.transpose() * accel_body;
+	math::Vector3 accel_earth = _R_nb * accel_body;
 
 	_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
 	float altitude_error = _mission_item_triplet.current.altitude - _global_pos.alt;
