@@ -57,15 +57,15 @@ private:
 	void init();
 
 	/* Checks for all airframes */
-	bool checkGeofence(dm_item_t dm_current, size_t nItems);
+	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence);
 
 	/* Checks specific to fixedwing airframes */
-	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nItems);
-	bool checkFixedWingLanding(dm_item_t dm_current, size_t nItems);
+	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence);
+	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems);
 	void updateNavigationCapabilities();
 
 	/* Checks specific to rotarywing airframes */
-	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nItems);
+	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence);
 public:
 
 	MissionFeasibilityChecker();
@@ -74,7 +74,7 @@ public:
 	/*
 	 * Returns true if mission is feasible and false otherwise
 	 */
-	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nItems);
+	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence);
 
 };
 
