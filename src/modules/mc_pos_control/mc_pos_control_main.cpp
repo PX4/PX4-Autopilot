@@ -147,6 +147,7 @@ private:
 		param_t xy_vel_max;
 		param_t xy_ff;
 		param_t tilt_max;
+		param_t land_speed;
 
 		param_t rc_scale_pitch;
 		param_t rc_scale_roll;
@@ -159,6 +160,7 @@ private:
 		float thr_min;
 		float thr_max;
 		float tilt_max;
+		float land_speed;
 
 		float rc_scale_pitch;
 		float rc_scale_roll;
@@ -280,6 +282,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
 	_params_handles.xy_ff		= param_find("MPC_XY_FF");
 	_params_handles.tilt_max	= param_find("MPC_TILT_MAX");
+	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
 	_params_handles.rc_scale_pitch	= param_find("RC_SCALE_PITCH");
 	_params_handles.rc_scale_roll	= param_find("RC_SCALE_ROLL");
 	_params_handles.rc_scale_yaw	= param_find("RC_SCALE_YAW");
@@ -328,6 +331,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		param_get(_params_handles.thr_min, &_params.thr_min);
 		param_get(_params_handles.thr_max, &_params.thr_max);
 		param_get(_params_handles.tilt_max, &_params.tilt_max);
+		param_get(_params_handles.land_speed, &_params.land_speed);
 		param_get(_params_handles.rc_scale_pitch, &_params.rc_scale_pitch);
 		param_get(_params_handles.rc_scale_roll, &_params.rc_scale_roll);
 		param_get(_params_handles.rc_scale_yaw, &_params.rc_scale_yaw);
@@ -449,14 +453,12 @@ MulticopterPositionControl::task_main()
 	/* get an initial update for all sensor and status data */
 	poll_subscriptions();
 
-	bool reset_man_sp_z = true;
-	bool reset_man_sp_xy = true;
+	bool reset_sp_z = true;
+	bool reset_sp_xy = true;
 	bool reset_int_z = true;
 	bool reset_int_z_manual = false;
 	bool reset_int_xy = true;
 	bool was_armed = false;
-	bool reset_auto_sp_xy = true;
-	bool reset_auto_sp_z = true;
 	bool reset_takeoff_sp = true;
 
 	hrt_abstime t_prev = 0;
@@ -508,10 +510,8 @@ MulticopterPositionControl::task_main()
 
 		if (_control_mode.flag_armed && !was_armed) {
 			/* reset setpoints and integrals on arming */
-			reset_man_sp_z = true;
-			reset_man_sp_xy = true;
-			reset_auto_sp_z = true;
-			reset_auto_sp_xy = true;
+			reset_sp_z = true;
+			reset_sp_xy = true;
 			reset_takeoff_sp = true;
 			reset_int_z = true;
 			reset_int_xy = true;
@@ -558,8 +558,8 @@ MulticopterPositionControl::task_main()
 				/* manual control */
 				if (_control_mode.flag_control_altitude_enabled) {
 					/* reset setpoint Z to current altitude if needed */
-					if (reset_man_sp_z) {
-						reset_man_sp_z = false;
+					if (reset_sp_z) {
+						reset_sp_z = false;
 						_pos_sp(2) = _pos(2);
 						mavlink_log_info(mavlink_fd, "[mpc] reset alt sp: %.2f", (double) - _pos_sp(2));
 					}
@@ -570,8 +570,8 @@ MulticopterPositionControl::task_main()
 
 				if (_control_mode.flag_control_position_enabled) {
 					/* reset setpoint XY to current position if needed */
-					if (reset_man_sp_xy) {
-						reset_man_sp_xy = false;
+					if (reset_sp_xy) {
+						reset_sp_xy = false;
 						_pos_sp(0) = _pos(0);
 						_pos_sp(1) = _pos(1);
 						mavlink_log_info(mavlink_fd, "[mpc] reset pos sp: %.2f, %.2f", (double)_pos_sp(0), (double)_pos_sp(1));
@@ -604,9 +604,6 @@ MulticopterPositionControl::task_main()
 					_pos_sp = _pos + pos_sp_offs.emult(_params.vel_max);
 				}
 
-				/* local position setpoint is valid and can be used for auto loiter after position controlled mode */
-				reset_auto_sp_xy = !_control_mode.flag_control_position_enabled;
-				reset_auto_sp_z = !_control_mode.flag_control_altitude_enabled;
 				reset_takeoff_sp = true;
 			} else {
 				/* AUTO */
@@ -617,19 +614,22 @@ MulticopterPositionControl::task_main()
 					// TODO home altitude can be != ref_alt, check home_position topic
 					_pos_sp(2) = -(item.altitude_is_relative ? item.altitude : item.altitude - ref_alt);
 
-					/* in case of interrupted mission don't go to waypoint but stop */
-					reset_auto_sp_xy = true;
-					reset_auto_sp_z = true;
+					if (_mission_items.current.nav_cmd == NAV_CMD_TAKEOFF) {
+						/* add gap for takeoff setpoint */
+						_pos_sp(2) -= 0.5f * _params.vel_max(2) / _params.pos_p(2);
+					}
+
+					/* in case of interrupted mission don't go to waypoint but stay at current position */
+					reset_sp_xy = true;
+					reset_sp_z = true;
 
 				} else {
 					/* no waypoint, loiter, reset position setpoint if needed */
-					if (reset_auto_sp_xy) {
-						reset_auto_sp_xy = false;
+					if (reset_sp_xy) {
 						_pos_sp(0) = _pos(0);
 						_pos_sp(1) = _pos(1);
 					}
-					if (reset_auto_sp_z) {
-						reset_auto_sp_z = false;
+					if (reset_sp_z) {
 						_pos_sp(2) = _pos(2);
 					}
 				}
@@ -654,17 +654,22 @@ MulticopterPositionControl::task_main()
 			_vel_sp = pos_err.emult(_params.pos_p) + sp_move_rate.emult(_params.vel_ff);
 
 			if (!_control_mode.flag_control_altitude_enabled) {
-				reset_man_sp_z = true;
+				reset_sp_z = true;
 				_vel_sp(2) = 0.0f;
 			}
 
 			if (!_control_mode.flag_control_position_enabled) {
-				reset_man_sp_xy = true;
+				reset_sp_xy = true;
 				_vel_sp(0) = 0.0f;
 				_vel_sp(1) = 0.0f;
 			}
 
 			if (!_control_mode.flag_control_manual_enabled) {
+				/* use constant descend rate when landing, ignore altitude setpoint */
+				if (_mission_items.current_valid && _mission_items.current.nav_cmd == NAV_CMD_LAND) {
+					_vel_sp(2) = _params.land_speed;
+				}
+
 				/* limit 3D speed only in AUTO mode */
 				float vel_sp_norm = _vel_sp.edivide(_params.vel_max).length();
 
@@ -898,12 +903,10 @@ MulticopterPositionControl::task_main()
 			}
 		} else {
 			/* position controller disabled, reset setpoints */
-			reset_man_sp_z = true;
-			reset_man_sp_xy = true;
+			reset_sp_z = true;
+			reset_sp_xy = true;
 			reset_int_z = true;
 			reset_int_xy = true;
-			reset_auto_sp_xy = true;
-			reset_auto_sp_z = true;
 		}
 
 		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
