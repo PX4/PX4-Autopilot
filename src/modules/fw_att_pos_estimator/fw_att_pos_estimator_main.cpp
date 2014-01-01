@@ -55,6 +55,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -71,12 +72,22 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 
+#include "../../../InertialNav/code/estimator.h"
+
 /**
  * estimator app start / stop handling function
  *
  * @ingroup apps
  */
 extern "C" __EXPORT int fw_att_pos_estimator_main(int argc, char *argv[]);
+
+__EXPORT uint32_t millis();
+
+static uint64_t last_run = 0;
+
+uint32_t millis() {
+	return last_run / 1e3;
+}
 
 class FixedwingEstimator
 {
@@ -103,18 +114,19 @@ private:
 	bool		_task_should_exit;		/**< if true, sensor task should exit */
 	int		_estimator_task;			/**< task handle for sensor task */
 
-	int		_global_pos_sub;
 	int		_gyro_sub;			/**< gyro sensor subscription */
 	int		_accel_sub;			/**< accel sensor subscription */
 	int		_mag_sub;			/**< mag sensor subscription */
 	int		_attitude_sub;			/**< raw rc channels data subscription */
 	int		_airspeed_sub;			/**< airspeed subscription */
+	int		_gps_sub;			/**< GPS subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
 	int		_mission_sub;
 
-	orb_advert_t	_att_pub;			/**< position setpoint */
+	orb_advert_t	_att_pub;			/**< vehicle attitude */
+	orb_advert_t	_global_pos_pub;		/**< global position */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
@@ -125,22 +137,19 @@ private:
 	struct airspeed_s				_airspeed;		/**< airspeed */
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
+	struct vehicle_gps_position_s			_gps;			/**< GPS position */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	unsigned	_mission_items_maxcount;				/**< maximum number of mission items supported */
-	struct	mission_item_s 				* _mission_items;	/**< storage for mission items */
-	bool		_mission_valid;						/**< flag if mission is valid */
-
-	/** manual control states */
-	float		_seatbelt_hold_heading;		/**< heading the system should hold in seatbelt mode */
-	float		_loiter_hold_lat;
-	float		_loiter_hold_lon;
-	float		_loiter_hold_alt;
-	bool		_loiter_hold;
+	bool						_initialized;
 
 	struct {
-		float throttle_cruise;
+		float		throttle_cruise;
+		uint32_t	vel_delay_ms;
+		uint32_t	pos_delay_ms;
+		uint32_t	height_delay_ms;
+		uint32_t	mag_delay_ms;
+		uint32_t	tas_delay_ms;
 	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
@@ -194,24 +203,23 @@ FixedwingEstimator::FixedwingEstimator() :
 	_estimator_task(-1),
 
 /* subscriptions */
-	_global_pos_sub(-1),
 	_gyro_sub(-1),
 	_accel_sub(-1),
 	_mag_sub(-1),
 	_airspeed_sub(-1),
+	_gps_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
 	_manual_control_sub(-1),
 
 /* publications */
 	_att_pub(-1),
+	_global_pos_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_pos_estimator")),
 /* states */
-	_mission_items_maxcount(20),
-	_mission_valid(false),
-	_loiter_hold(false)
+	_initialized(false)
 {
 
 	_parameter_handles.throttle_cruise = param_find("NAV_DUMMY");
@@ -249,7 +257,14 @@ int
 FixedwingEstimator::parameters_update()
 {
 
+	// XXX NEED TO GET HANDLES FIRST! NEEDS PARAM INIT
 	//param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+
+	_parameters.vel_delay_ms = 230;
+	_parameters.pos_delay_ms = 210;
+	_parameters.height_delay_ms = 350;
+	_parameters.mag_delay_ms = 30;
+	_parameters.tas_delay_ms = 210;
 
 	return OK;
 }
@@ -295,8 +310,10 @@ FixedwingEstimator::task_main()
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
-	/* rate limit position updates to 50 Hz */
-	orb_set_interval(_global_pos_sub, 20);
+	/* rate limit gyro updates to 50 Hz */
+
+	/* XXX remove this!, BUT increase the data buffer size! */
+	orb_set_interval(_gyro_sub, 17);
 
 	parameters_update();
 
@@ -342,30 +359,126 @@ FixedwingEstimator::task_main()
 		/* only run estimator if gyro updated */
 		if (fds[1].revents & POLLIN) {
 
-			static uint64_t last_run = 0;
-			float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
-			last_run = hrt_absolute_time();
+			
+
+			/* load local copies */
+			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
+			orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
+
+			float IMUmsec = _gyro.timestamp / 1e6;
+
+			float deltaT = (_gyro.timestamp - last_run) / 1000000.0f;
+			last_run = _gyro.timestamp / 1e6 ;
 
 			/* guard against too large deltaT's */
 			if (deltaT > 1.0f)
 				deltaT = 0.01f;
 
-			/* load local copies */
-			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
+			dt = deltaT;
 
-			bool updated;
+			if (_initialized) {
 
-			orb_check(_accel_sub, &updated);
-			if (updated)
-				orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
+				/* predict states and covariances */
 
-			orb_check(_mag_sub, &updated);
-			if (updated)
+				/* run the strapdown INS every sensor update */
+				UpdateStrapdownEquationsNED();
+
+				/* store the predictions */
+				StoreStates();
+
+				/* evaluate if on ground */
+				OnGroundCheck();
+
+				/* prepare the delta angles and time used by the covariance prediction */
+				summedDelAng = summedDelAng + correctedDelAng;
+				summedDelVel = summedDelVel + correctedDelVel;
+				dt += dtIMU;
+
+				/* predict the covairance if the total delta angle has exceeded the threshold
+				 * or the time limit will be exceeded on the next measurement update
+				 */
+				if ((dt >= (covTimeStepMax - dtIMU)) || (summedDelAng.length() > covDelAngMax)) {
+					CovariancePrediction();
+					summedDelAng = summedDelAng.zero();
+					summedDelVel = summedDelVel.zero();
+					dt = 0.0f;
+				}
+			}
+
+			bool gps_updated;
+			orb_check(_gps_sub, &gps_updated);
+			if (gps_updated) {
+				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
+
+				if (_gps.fix_type > 2 && !_initialized) {
+
+					/* initialize */
+					InitialiseFilter();
+
+				} else if (_gps.fix_type > 2) {
+					/* fuse GPS updates */
+
+					/* convert GPS measurements to horizontal NE, altitude and 3D velocity NED */
+					calcvelNED(velNED, gpsCourse, gpsGndSpd, gpsVelD);
+					calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
+
+					posNE[0] = posNED[0];
+					posNE[1] = posNED[1];
+					hgtMea =  -posNED[2];
+
+					/* set flags for further processing */
+					fuseVelData = true;
+					fusePosData = true;
+					fuseHgtData = true;
+
+					/* recall states after adjusting for delays */
+					RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
+					RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
+					RecallStates(statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+
+					/* run the actual fusion */
+					FuseVelposNED();
+
+				} else {
+
+					/* do not fuse anything, we got no position / vel update */
+					fuseVelData = false;
+					fusePosData = false;
+					fuseHgtData = false;
+				}
+			}
+
+			bool mag_updated;
+
+			orb_check(_mag_sub, &mag_updated);
+			if (mag_updated) {
 				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
 
-			orb_check(_airspeed_sub, &updated);
-			if (updated)
+				if (_initialized) {
+					fuseMagData = true;
+					RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms));
+					FuseMagnetometer();
+				}
+
+			} else {
+				fuseMagData = false;
+			}
+
+			bool airspeed_updated;
+			orb_check(_airspeed_sub, &airspeed_updated);
+			if (airspeed_updated) {
 				orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+
+				if (_initialized && _airspeed.true_airspeed_m_s > 8.0f /* XXX magic number */) {
+
+					fuseVtasData = true;
+					RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
+					FuseAirspeed();
+				}
+
+			} else {
+				fuseVtasData = false;
+			}
 
 			/* lazily publish the attitude only once available */
 			if (_att_pub > 0) {
@@ -375,6 +488,16 @@ FixedwingEstimator::task_main()
 			} else {
 				/* advertise and publish */
 				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
+			}
+
+			/* lazily publish the position only once available */
+			if (_global_pos_pub > 0) {
+				/* publish the attitude setpoint */
+				orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
+
+			} else {
+				/* advertise and publish */
+				_global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &_global_pos);
 			}
 
 		}
