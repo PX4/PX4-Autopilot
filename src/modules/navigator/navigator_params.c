@@ -54,3 +54,5 @@
 PARAM_DEFINE_FLOAT(NAV_MIN_ALT, 50.0f);
 PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 100.0f);
 PARAM_DEFINE_INT32(NAV_ONB_MIS_EN, 0);
+PARAM_DEFINE_FLOAT(NAV_LAND_ALT, 10.0f);	// default TAKEOFF altitude, slow descend from this altitude when landing in RTL mode
+PARAM_DEFINE_FLOAT(NAV_RTL_ALT, 10.0f);		// min altitude for going home in RTL mode
