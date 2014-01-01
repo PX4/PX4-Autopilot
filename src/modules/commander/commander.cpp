@@ -605,7 +605,7 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&armed, 0, sizeof(armed));
 
 	status.main_state = MAIN_STATE_MANUAL;
-	status.set_nav_state = NAV_STATE_INIT;
+	status.set_nav_state = NAV_STATE_NONE;
 	status.set_nav_state_timestamp = 0;
 	status.arming_state = ARMING_STATE_INIT;
 	status.hil_state = HIL_STATE_OFF;
