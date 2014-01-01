@@ -1173,8 +1173,12 @@ Navigator::mission_item_reached()
 	float dist_z = -1.0f;
 
 	// if (coordinate_frame == (int)MAV_FRAME_GLOBAL) {
+
+	// current relative or AMSL altitude depending on _mission_item_triplet.current.altitude_is_relative
+	float current_alt = _mission_item_triplet.current.altitude_is_relative ? _global_pos.relative_alt : _global_pos.alt;
+
 	dist = get_distance_to_point_global_wgs84(_mission_item_triplet.current.lat, _mission_item_triplet.current.lon, _mission_item_triplet.current.altitude,
-		                              (double)_global_pos.lat / 1e7d, (double)_global_pos.lon / 1e7d, _global_pos.alt,
+		                              (double)_global_pos.lat / 1e7d, (double)_global_pos.lon / 1e7d, current_alt,
 		                              &dist_xy, &dist_z);
 
 	// warnx("1 lat: %2.2f, lon: %2.2f, alt: %2.2f", _mission_item_triplet.current.lat, _mission_item_triplet.current.lon, _mission_item_triplet.current.altitude);
@@ -1193,8 +1197,14 @@ Navigator::mission_item_reached()
 	// 	// XXX TODO
 	// }
 
-	if (dist >= 0.0f && dist_xy <= orbit && dist_z >= 0.0f && dist_z <= vertical_switch_distance) {
-		_waypoint_position_reached = true;
+	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
+		/* require only altitude for takeoff */
+		if (current_alt > _mission_item_triplet.current.altitude)
+			_waypoint_position_reached = true;
+	} else {
+		if (dist >= 0.0f && dist_xy <= orbit && dist_z >= 0.0f && dist_z <= vertical_switch_distance) {
+			_waypoint_position_reached = true;
+		}
 	}
 
 	/* check if required yaw reached */
