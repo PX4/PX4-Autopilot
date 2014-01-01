@@ -322,6 +322,7 @@ MulticopterPositionControl::parameters_update(bool force)
 	struct parameter_update_s param_upd;
 
 	orb_check(_params_sub, &updated);
+
 	if (updated)
 		orb_copy(ORB_ID(parameter_update), _params_sub, &param_upd);
 
@@ -380,26 +381,32 @@ MulticopterPositionControl::poll_subscriptions()
 	bool updated;
 
 	orb_check(_att_sub, &updated);
+
 	if (updated)
 		orb_copy(ORB_ID(vehicle_attitude), _att_sub, &_att);
 
 	orb_check(_att_sp_sub, &updated);
+
 	if (updated)
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
 
 	orb_check(_control_mode_sub, &updated);
+
 	if (updated)
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 
 	orb_check(_manual_sub, &updated);
+
 	if (updated)
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 
 	orb_check(_arming_sub, &updated);
+
 	if (updated)
 		orb_copy(ORB_ID(actuator_armed), _arming_sub, &_arming);
 
 	orb_check(_mission_items_sub, &updated);
+
 	if (updated)
 		orb_copy(ORB_ID(mission_item_triplet), _mission_items_sub, &_mission_items);
 }
@@ -516,12 +523,13 @@ MulticopterPositionControl::task_main()
 			reset_int_z = true;
 			reset_int_xy = true;
 		}
+
 		was_armed = _control_mode.flag_armed;
 
 		if (_control_mode.flag_control_altitude_enabled ||
-				_control_mode.flag_control_position_enabled ||
-				_control_mode.flag_control_climb_rate_enabled ||
-				_control_mode.flag_control_velocity_enabled) {
+		    _control_mode.flag_control_position_enabled ||
+		    _control_mode.flag_control_climb_rate_enabled ||
+		    _control_mode.flag_control_velocity_enabled) {
 
 			_pos(0) = _local_pos.x;
 			_pos(1) = _local_pos.y;
@@ -548,6 +556,7 @@ MulticopterPositionControl::task_main()
 					_pos_sp(1) += ref_change_y;
 					_pos_sp(2) += _local_pos.ref_alt - ref_alt;
 				}
+
 				ref_timestamp = _local_pos.ref_timestamp;
 				ref_lat = _local_pos.ref_lat;
 				ref_lon = _local_pos.ref_lon;
@@ -584,6 +593,7 @@ MulticopterPositionControl::task_main()
 
 				/* limit setpoint move rate */
 				float sp_move_norm = sp_move_rate.length();
+
 				if (sp_move_norm > 1.0f) {
 					sp_move_rate /= sp_move_norm;
 				}
@@ -599,12 +609,14 @@ MulticopterPositionControl::task_main()
 				/* check if position setpoint is too far from actual position */
 				math::Vector<3> pos_sp_offs = (_pos_sp - _pos).edivide(_params.vel_max);
 				float pos_sp_offs_norm = pos_sp_offs.length();
+
 				if (pos_sp_offs_norm > 1.0f) {
 					pos_sp_offs /= pos_sp_offs_norm;
 					_pos_sp = _pos + pos_sp_offs.emult(_params.vel_max);
 				}
 
 				reset_takeoff_sp = true;
+
 			} else {
 				/* AUTO */
 				if (_mission_items.current_valid) {
@@ -621,6 +633,7 @@ MulticopterPositionControl::task_main()
 						/* add gap for takeoff setpoint */
 						_pos_sp(2) -= 0.5f * _params.vel_max(2) / _params.pos_p(2);
 						reset_sp_z = true;
+
 					} else {
 						map_projection_project(item.lat, item.lon, &_pos_sp(0), &_pos_sp(1));
 
@@ -633,6 +646,7 @@ MulticopterPositionControl::task_main()
 						reset_sp_xy = true;
 						reset_sp_z = true;
 					}
+
 				} else {
 					/* no waypoint, loiter, reset position setpoint if needed */
 					if (reset_sp_xy) {
@@ -640,6 +654,7 @@ MulticopterPositionControl::task_main()
 						_pos_sp(0) = _pos(0);
 						_pos_sp(1) = _pos(1);
 					}
+
 					if (reset_sp_z) {
 						reset_sp_z = false;
 						_pos_sp(2) = _pos(2);
@@ -723,6 +738,7 @@ MulticopterPositionControl::task_main()
 						thrust_int(2) = -i;
 						mavlink_log_info(mavlink_fd, "[mpc] reset hovering thrust: %.2f", (double)i);
 					}
+
 				} else {
 					reset_int_z = true;
 				}
@@ -734,6 +750,7 @@ MulticopterPositionControl::task_main()
 						thrust_int(1) = 0.0f;
 						mavlink_log_info(mavlink_fd, "[mpc] reset xy vel integral");
 					}
+
 				} else {
 					reset_int_xy = true;
 				}
@@ -752,6 +769,7 @@ MulticopterPositionControl::task_main()
 					thrust_sp(0) = 0.0f;
 					thrust_sp(1) = 0.0f;
 				}
+
 				if (!_control_mode.flag_control_climb_rate_enabled) {
 					thrust_sp(2) = 0.0f;
 				}
@@ -762,6 +780,7 @@ MulticopterPositionControl::task_main()
 
 				/* limit min lift */
 				float thr_min = _params.thr_min;
+
 				if (!_control_mode.flag_control_velocity_enabled && thr_min < 0.0f) {
 					/* don't allow downside thrust direction in manual attitude mode */
 					thr_min = 0.0f;
@@ -856,7 +875,9 @@ MulticopterPositionControl::task_main()
 						if (body_z(2) < 0.0f) {
 							body_x = -body_x;
 						}
+
 						body_x.normalize();
+
 					} else {
 						/* desired thrust is in XY plane, set X downside to construct correct matrix,
 						 * but yaw component will not be used actually */
@@ -913,6 +934,7 @@ MulticopterPositionControl::task_main()
 			} else {
 				reset_int_z = true;
 			}
+
 		} else {
 			/* position controller disabled, reset setpoints */
 			reset_sp_z = true;

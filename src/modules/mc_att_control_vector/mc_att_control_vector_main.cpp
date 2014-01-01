@@ -530,6 +530,7 @@ MulticopterAttitudeControl::task_main()
 			if (_att_sp.R_valid) {
 				/* rotation matrix in _att_sp is valid, use it */
 				R_sp.set(&_att_sp.R_body[0][0]);
+
 			} else {
 				/* rotation matrix in _att_sp is not valid, use euler angles instead */
 				R_sp.from_euler(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
