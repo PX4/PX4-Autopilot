@@ -176,7 +176,7 @@ then
 		tone_alarm MBABGP
 		if px4io forceupdate 14662 $io_file
 		then
-			usleep 200000
+			usleep 500000
 			if px4io start
 			then
 				echo "PX4IO restart OK"
@@ -186,7 +186,8 @@ then
 				echo "PX4IO restart failed"
 				echo "PX4IO restart failed" >> $logfile
 				tone_alarm MNGGG
-				sh /etc/init.d/rc.error
+				sleep 10
+				reboot
 			fi
 		else
 			echo "PX4IO update failed"
