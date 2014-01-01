@@ -619,6 +619,8 @@ MulticopterPositionControl::task_main()
 						_pos_sp(2) -= 0.5f * _params.vel_max(2) / _params.pos_p(2);
 					}
 
+					_att_sp.yaw_body = _mission_items.current.yaw;
+
 					/* in case of interrupted mission don't go to waypoint but stay at current position */
 					reset_sp_xy = true;
 					reset_sp_z = true;
