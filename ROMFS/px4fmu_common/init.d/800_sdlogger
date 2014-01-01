@@ -13,8 +13,6 @@ then
 	param save
 fi
 
-set EXIT_ON_END no
-
 #
 # Start and configure PX4IO or FMU interface
 #
@@ -23,8 +21,6 @@ then
 	# Start MAVLink (depends on orb)
 	mavlink start
 	usleep 5000
-
-	commander start
 
 	sh /etc/init.d/rc.io
 	# Set PWM values for DJI ESCs
@@ -52,9 +48,4 @@ then
 	else
 		sdlog2 start -r 200 -e -b 16
 	fi
-fi
-
-if [ $EXIT_ON_END == yes ]
-then
-	exit
 fi
