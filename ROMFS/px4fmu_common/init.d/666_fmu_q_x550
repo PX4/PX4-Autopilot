@@ -34,8 +34,6 @@ fi
 #
 param set MAV_TYPE 2
 
-set EXIT_ON_END no
-
 #
 # Start and configure PX4IO or FMU interface
 #
@@ -76,8 +74,3 @@ pwm max -c 1234 -p 1900
 # Start common for all multirotors apps
 #
 sh /etc/init.d/rc.multirotor
-
-if [ $EXIT_ON_END == yes ]
-then
-	exit
-fi
