@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,7 +62,7 @@ static void	do_import(const char* param_file_name);
 static void	do_show(const char* search_string);
 static void	do_show_print(void *arg, param_t param);
 static void	do_set(const char* name, const char* val);
-static void	do_compare(const char* name, const char* val);
+static void	do_compare(const char* name, const char* vals[], unsigned comparisons);
 
 int
 param_main(int argc, char *argv[])
@@ -121,7 +120,7 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "compare")) {
 			if (argc >= 4) {
-				do_compare(argv[2], argv[3]);
+				do_compare(argv[2], &argv[3], argc - 3);
 			} else {
 				errx(1, "not enough arguments.\nTry 'param compare PARAM_NAME 3'");
 			}
@@ -306,7 +305,7 @@ do_set(const char* name, const char* val)
 }
 
 static void
-do_compare(const char* name, const char* val)
+do_compare(const char* name, const char* vals[], unsigned comparisons)
 {
 	int32_t i;
 	float f;
@@ -330,12 +329,16 @@ do_compare(const char* name, const char* val)
 
 			/* convert string */
 			char* end;
-			int j = strtol(val,&end,10);
-			if (i == j) {
-				printf(" %d: ", i);
-				ret = 0;
-			}
 
+			for (unsigned k = 0; k < comparisons; k++) {
+
+				int j = strtol(vals[k],&end,10);
+
+				if (i == j) {
+					printf(" %d: ", i);
+					ret = 0;
+				}
+			}
 		}
 
 		break;
@@ -345,10 +348,14 @@ do_compare(const char* name, const char* val)
 
 			/* convert string */
 			char* end;
-			float g = strtod(val, &end);
-			if (fabsf(f - g) < 1e-7f) {
-				printf(" %4.4f: ", (double)f);
-				ret = 0;	
+
+			for (unsigned k = 0; k < comparisons; k++) {
+
+				float g = strtod(vals[k], &end);
+				if (fabsf(f - g) < 1e-7f) {
+					printf(" %4.4f: ", (double)f);
+					ret = 0;	
+				}
 			}
 		}
 
@@ -359,7 +366,7 @@ do_compare(const char* name, const char* val)
 	}
 
 	if (ret == 0) {
-		printf("%c %s: equal\n",
+		printf("%c %s: match\n",
 		param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
 		param_name(param));
 	}

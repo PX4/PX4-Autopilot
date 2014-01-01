@@ -28,11 +28,6 @@ usleep 5000
 # Start and configure PX4IO interface
 #
 sh /etc/init.d/rc.io
- 
-#
-# Start the commander (depends on orb, mavlink)
-#
-commander start
 
 #
 # Start the sensors (depends on orb, px4io)
