@@ -152,7 +152,7 @@ int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavli
 	mission_item->loiter_direction = (mavlink_mission_item->param3 > 0) ? 1 : -1; /* 1 if positive CW, -1 if negative CCW */
 	mission_item->nav_cmd = mavlink_mission_item->command;
 
-	mission_item->time_inside = mavlink_mission_item->param1 / 1e3f; /* from milliseconds to seconds */
+	mission_item->time_inside = mavlink_mission_item->param1;
 	mission_item->autocontinue = mavlink_mission_item->autocontinue;
 	// mission_item->index = mavlink_mission_item->seq;
 	mission_item->origin = ORIGIN_MAVLINK;
@@ -184,7 +184,7 @@ int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *missio
 	mavlink_mission_item->param4 = mission_item->yaw*M_RAD_TO_DEG_F;
 	mavlink_mission_item->param3 = mission_item->loiter_radius*(float)mission_item->loiter_direction;
 	mavlink_mission_item->command = mission_item->nav_cmd;
-	mavlink_mission_item->param1 = mission_item->time_inside * 1e3f; /* from seconds to milliseconds */
+	mavlink_mission_item->param1 = mission_item->time_inside;
 	mavlink_mission_item->autocontinue = mission_item->autocontinue;
 	// mavlink_mission_item->seq = mission_item->index;
 
