@@ -45,6 +45,7 @@
 class Geofence {
 private:
 	struct fence_s _fence;
+	orb_advert_t	_fence_pub;			/**< publish fence topic */
 public:
 	Geofence();
 	~Geofence();
@@ -58,6 +59,21 @@ public:
 	 * @return true: craft is inside fence, false:craft is outside fence
 	 */
 	bool inside(const struct vehicle_global_position_s *craft);
+
+
+	/**
+	 * Load fence parameters.
+	 */
+	bool load(unsigned vertices);
+
+	bool valid();
+
+	/**
+	 * Specify fence vertex position.
+	 */
+	void addPoint(int argc, char *argv[]);
+
+	void publishFence(unsigned vertices);
 };
 
 

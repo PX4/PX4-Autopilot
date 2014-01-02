@@ -39,10 +39,14 @@
 #include "geofence.h"
 
 #include <uORB/topics/vehicle_global_position.h>
+#include <string.h>
+#include <dataman/dataman.h>
+#include <systemlib/err.h>
+#include <stdlib.h>
 
-Geofence::Geofence()
+Geofence::Geofence() : _fence_pub(-1)
 {
-
+	memset(&_fence, 0, sizeof(_fence));
 }
 
 Geofence::~Geofence()
@@ -71,3 +75,92 @@ bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
 			c = !c;
 	return c;
 }
+
+bool
+Geofence::load(unsigned vertices)
+{
+	struct fence_s temp_fence;
+
+	unsigned i;
+	for (i = 0; i < vertices; i++) {
+		if (dm_read(DM_KEY_FENCE_POINTS, i, temp_fence.vertices + i, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
+			break;
+		}
+	}
+
+	temp_fence.count = i;
+
+	if (valid())
+		memcpy(&_fence, &temp_fence, sizeof(_fence));
+	else
+		warnx("Invalid fence file, ignored!");
+
+	return _fence.count != 0;
+}
+
+bool
+Geofence::valid()
+{
+	// NULL fence is valid
+	if (_fence.count == 0) {
+		return true;
+	}
+
+	// Otherwise
+	if ((_fence.count < 4) || (_fence.count > GEOFENCE_MAX_VERTICES)) {
+		warnx("Fence must have at least 3 sides and not more than %d", GEOFENCE_MAX_VERTICES - 1);
+		return false;
+	}
+
+	return true;
+}
+
+void
+Geofence::addPoint(int argc, char *argv[])
+{
+	int ix, last;
+	double lon, lat;
+	struct fence_vertex_s vertex;
+	char *end;
+
+	if ((argc == 1) && (strcmp("-clear", argv[0]) == 0)) {
+		dm_clear(DM_KEY_FENCE_POINTS);
+		publishFence(0);
+		return;
+	}
+
+	if (argc < 3)
+		errx(1, "Specify: -clear | sequence latitude longitude [-publish]");
+
+	ix = atoi(argv[0]);
+	if (ix >= DM_KEY_FENCE_POINTS_MAX)
+		errx(1, "Sequence must be less than %d", DM_KEY_FENCE_POINTS_MAX);
+
+	lat = strtod(argv[1], &end);
+	lon = strtod(argv[2], &end);
+
+	last = 0;
+	if ((argc > 3) && (strcmp(argv[3], "-publish") == 0))
+		last = 1;
+
+	vertex.lat = (float)lat;
+	vertex.lon = (float)lon;
+
+	if (dm_write(DM_KEY_FENCE_POINTS, ix, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) == sizeof(vertex)) {
+		if (last)
+			publishFence((unsigned)ix + 1);
+		return;
+	}
+
+	errx(1, "can't store fence point");
+}
+
+void
+Geofence::publishFence(unsigned vertices)
+{
+	if (_fence_pub == -1)
+		_fence_pub = orb_advertise(ORB_ID(fence), &vertices);
+	else
+		orb_publish(ORB_ID(fence), _fence_pub, &vertices);
+}
+

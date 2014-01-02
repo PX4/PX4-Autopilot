@@ -43,6 +43,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/navigation_capabilities.h>
 #include <dataman/dataman.h>
+#include "geofence.h"
 
 
 class MissionFeasibilityChecker
@@ -57,15 +58,15 @@ private:
 	void init();
 
 	/* Checks for all airframes */
-	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence);
+	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
 
 	/* Checks specific to fixedwing airframes */
-	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence);
+	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
 	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems);
 	void updateNavigationCapabilities();
 
 	/* Checks specific to rotarywing airframes */
-	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence);
+	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
 public:
 
 	MissionFeasibilityChecker();
@@ -74,7 +75,7 @@ public:
 	/*
 	 * Returns true if mission is feasible and false otherwise
 	 */
-	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence);
+	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
 
 };
 

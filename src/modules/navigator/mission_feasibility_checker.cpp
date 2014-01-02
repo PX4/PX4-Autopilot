@@ -62,7 +62,7 @@ MissionFeasibilityChecker::MissionFeasibilityChecker() : _mavlink_fd(-1), _capab
 }
 
 
-bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence)
+bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
 {
 	/* Init if not done yet */
 	init();
@@ -75,27 +75,27 @@ bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_
 
 
 	if (isRotarywing)
-		return checkMissionFeasibleRotarywing(dm_current, nMissionItems, fence);
+		return checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence);
 	else
-		return checkMissionFeasibleFixedwing(dm_current, nMissionItems, fence);
+		return checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence);
 }
 
-bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence)
+bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
 {
 
-	return checkGeofence(dm_current, nMissionItems, fence);
+	return checkGeofence(dm_current, nMissionItems, geofence);
 }
 
-bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence)
+bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
 {
 	/* Update fixed wing navigation capabilites */
 	updateNavigationCapabilities();
 //	warnx("_nav_caps.landing_slope_angle_rad %.4f, _nav_caps.landing_horizontal_slope_displacement %.4f", _nav_caps.landing_slope_angle_rad, _nav_caps.landing_horizontal_slope_displacement);
 
-	return (checkFixedWingLanding(dm_current, nMissionItems) && checkGeofence(dm_current, nMissionItems, fence));
+	return (checkFixedWingLanding(dm_current, nMissionItems) && checkGeofence(dm_current, nMissionItems, geofence));
 }
 
-bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionItems, const struct fence_s &fence)
+bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
 {
 	//xxx: check geofence
 	return true;
