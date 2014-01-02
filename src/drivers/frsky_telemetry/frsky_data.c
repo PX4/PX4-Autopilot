@@ -186,14 +186,9 @@ void frsky_send_frame1(int uart)
 	frsky_send_data(uart, FRSKY_ID_BARO_ALT_AP, frac(raw.baro_alt_meter) * 1000.0f);
 
 	frsky_send_data(uart, FRSKY_ID_TEMP1, raw.baro_temp_celcius * 10.0f);
-	frsky_send_data(uart, FRSKY_ID_TEMP2, 0);
-
-	frsky_send_data(uart, FRSKY_ID_VOLTS, 0); /* cell voltage. 4 bits cell number, 12 bits voltage in 0.2V steps, scale 0-4.2V */
-	frsky_send_data(uart, FRSKY_ID_CURRENT, battery.current_a);
 
 	frsky_send_data(uart, FRSKY_ID_VFAS, battery.voltage_v * 10.0f);
-
-	frsky_send_data(uart, FRSKY_ID_RPM, 0);
+	frsky_send_data(uart, FRSKY_ID_CURRENT, battery.current_a);
 
 	frsky_send_startstop(uart);
 }
