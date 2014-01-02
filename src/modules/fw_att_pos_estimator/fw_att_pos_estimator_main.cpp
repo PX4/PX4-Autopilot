@@ -85,7 +85,8 @@ __EXPORT uint32_t millis();
 
 static uint64_t last_run = 0;
 
-uint32_t millis() {
+uint32_t millis()
+{
 	return last_run / 1e3;
 }
 
@@ -138,6 +139,10 @@ private:
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
 	struct vehicle_gps_position_s			_gps;			/**< GPS position */
+
+	struct gyro_scale				_gyro_offsets;
+	struct accel_scale				_accel_offsets;
+	struct mag_scale				_mag_offsets;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -226,6 +231,31 @@ FixedwingEstimator::FixedwingEstimator() :
 
 	/* fetch initial parameter values */
 	parameters_update();
+
+	/* get offsets */
+
+	int fd, res;
+
+	fd = open(GYRO_DEVICE_PATH, O_RDONLY);
+
+	if (fd > 0) {
+		res = ioctl(fd, GYROIOCGSCALE, (long unsigned int)&_gyro_offsets);
+		close(fd);
+	}
+
+	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+
+	if (fd > 0) {
+		res = ioctl(fd, ACCELIOCGSCALE, (long unsigned int)&_accel_offsets);
+		close(fd);
+	}
+
+	fd = open(MAG_DEVICE_PATH, O_RDONLY);
+
+	if (fd > 0) {
+		res = ioctl(fd, MAGIOCGSCALE, (long unsigned int)&_mag_offsets);
+		close(fd);
+	}
 }
 
 FixedwingEstimator::~FixedwingEstimator()
@@ -317,6 +347,9 @@ FixedwingEstimator::task_main()
 
 	parameters_update();
 
+	Vector3f lastAngRate;
+	Vector3f lastAccel;
+
 	/* wakeup source(s) */
 	struct pollfd fds[2];
 
@@ -359,13 +392,13 @@ FixedwingEstimator::task_main()
 		/* only run estimator if gyro updated */
 		if (fds[1].revents & POLLIN) {
 
-			
+
 
 			/* load local copies */
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
 			orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
 
-			float IMUmsec = _gyro.timestamp / 1e6;
+			float IMUmsec = _gyro.timestamp / 1e3;
 
 			float deltaT = (_gyro.timestamp - last_run) / 1000000.0f;
 			last_run = _gyro.timestamp / 1e6 ;
@@ -377,6 +410,22 @@ FixedwingEstimator::task_main()
 			dt = deltaT;
 
 			if (_initialized) {
+
+				/* fill in last data set */
+				dtIMU = dt;
+
+				angRate.x = _gyro.x;
+				angRate.y = _gyro.y;
+				angRate.z = _gyro.z;
+
+				accel.x = _accel.x;
+				accel.y = _accel.y;
+				accel.z = _accel.z;
+
+				dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
+				lastAngRate = angRate;
+				dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
+				lastAccel = accel;
 
 				/* predict states and covariances */
 
@@ -407,16 +456,28 @@ FixedwingEstimator::task_main()
 
 			bool gps_updated;
 			orb_check(_gps_sub, &gps_updated);
+
 			if (gps_updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
 
-				if (_gps.fix_type > 2 && !_initialized) {
-
-					/* initialize */
-					InitialiseFilter();
-
-				} else if (_gps.fix_type > 2) {
+				if (_gps.fix_type > 2) {
 					/* fuse GPS updates */
+
+					//_gps.timestamp / 1e3;
+					GPSstatus = _gps.fix_type;
+					gpsCourse = _gps.cog_rad;
+					gpsGndSpd = sqrtf(_gps.vel_n_m_s * _gps.vel_n_m_s + _gps.vel_e_m_s * _gps.vel_e_m_s);
+					gpsVelD = _gps.vel_d_m_s;
+					gpsLat = math::radians(_gps.lat / (double)1e7);
+					gpsLon = math::radians(_gps.lon / (double)1e7);
+					gpsHgt = _gps.alt / 1e3f;
+
+					newDataGps = true;
+
+					if (!_initialized) {
+						InitialiseFilter();
+						continue;
+					}
 
 					/* convert GPS measurements to horizontal NE, altitude and 3D velocity NED */
 					calcvelNED(velNED, gpsCourse, gpsGndSpd, gpsVelD);
@@ -445,16 +506,32 @@ FixedwingEstimator::task_main()
 					fuseVelData = false;
 					fusePosData = false;
 					fuseHgtData = false;
+
+					newDataGps = true;
 				}
+
+			} else {
+				newDataGps = false;
 			}
 
 			bool mag_updated;
 
 			orb_check(_mag_sub, &mag_updated);
+
 			if (mag_updated) {
 				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
 
 				if (_initialized) {
+
+					magData.x = _mag.x;
+					magBias.x = -_mag_offsets.x_offset;
+
+					magData.y = _mag.y;
+					magBias.y = -_mag_offsets.y_offset;
+
+					magData.z = _mag.z;
+					magBias.z = -_mag_offsets.z_offset;
+
 					fuseMagData = true;
 					RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms));
 					FuseMagnetometer();
@@ -466,10 +543,13 @@ FixedwingEstimator::task_main()
 
 			bool airspeed_updated;
 			orb_check(_airspeed_sub, &airspeed_updated);
+
 			if (airspeed_updated) {
 				orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
 
 				if (_initialized && _airspeed.true_airspeed_m_s > 8.0f /* XXX magic number */) {
+
+					VtasMeas = _airspeed.true_airspeed_m_s;
 
 					fuseVtasData = true;
 					RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
@@ -518,11 +598,11 @@ FixedwingEstimator::start()
 
 	/* start the task */
 	_estimator_task = task_spawn_cmd("fw_att_pos_estimator",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_MAX - 5,
-				       12048,
-				       (main_t)&FixedwingEstimator::task_main_trampoline,
-				       nullptr);
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 5,
+					 12048,
+					 (main_t)&FixedwingEstimator::task_main_trampoline,
+					 nullptr);
 
 	if (_estimator_task < 0) {
 		warn("task start failed");
