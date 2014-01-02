@@ -643,11 +643,20 @@ MulticopterAttitudeControl::task_main()
 			}
 
 			/* publish the attitude controls */
-			_actuators.control[0] = (isfinite(control(0))) ? control(0) : 0.0f;
-			_actuators.control[1] = (isfinite(control(1))) ? control(1) : 0.0f;
-			_actuators.control[2] = (isfinite(control(2))) ? control(2) : 0.0f;
-			_actuators.control[3] = (isfinite(_rates_sp.thrust)) ? _rates_sp.thrust : 0.0f;
-			_actuators.timestamp = hrt_absolute_time();
+			if (_control_mode.flag_control_rates_enabled) {
+				_actuators.control[0] = (isfinite(control(0))) ? control(0) : 0.0f;
+				_actuators.control[1] = (isfinite(control(1))) ? control(1) : 0.0f;
+				_actuators.control[2] = (isfinite(control(2))) ? control(2) : 0.0f;
+				_actuators.control[3] = (isfinite(_rates_sp.thrust)) ? _rates_sp.thrust : 0.0f;
+				_actuators.timestamp = hrt_absolute_time();
+			} else {
+				/* controller disabled, publish zero attitude controls */
+				_actuators.control[0] = 0.0f;
+				_actuators.control[1] = 0.0f;
+				_actuators.control[2] = 0.0f;
+				_actuators.control[3] = 0.0f;
+				_actuators.timestamp = hrt_absolute_time();
+			}
 
 			if (_actuators_0_pub > 0) {
 				/* publish the attitude setpoint */
@@ -657,7 +666,6 @@ MulticopterAttitudeControl::task_main()
 				/* advertise and publish */
 				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators);
 			}
-
 		}
 
 		perf_end(_loop_perf);
