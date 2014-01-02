@@ -414,23 +414,25 @@ FixedwingEstimator::task_main()
 			if (deltaT > 1.0f)
 				deltaT = 0.01f;
 
+
+			// Always store data, independent of init status
+			/* fill in last data set */
+			dtIMU = deltaT;
+
+			angRate.x = _gyro.x;
+			angRate.y = _gyro.y;
+			angRate.z = _gyro.z;
+
+			accel.x = _accel.x;
+			accel.y = _accel.y;
+			accel.z = _accel.z;
+
+			dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
+			lastAngRate = angRate;
+			dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
+			lastAccel = accel;
+
 			if (_initialized) {
-
-				/* fill in last data set */
-				dtIMU = deltaT;
-
-				angRate.x = _gyro.x;
-				angRate.y = _gyro.y;
-				angRate.z = _gyro.z;
-
-				accel.x = _accel.x;
-				accel.y = _accel.y;
-				accel.z = _accel.z;
-
-				dAngIMU = 0.5f * (angRate + lastAngRate) * dtIMU;
-				lastAngRate = angRate;
-				dVelIMU = 0.5f * (accel + lastAccel) * dtIMU;
-				lastAccel = accel;
 
 				/* predict states and covariances */
 
@@ -485,26 +487,29 @@ FixedwingEstimator::task_main()
 						continue;
 					}
 
-					/* convert GPS measurements to horizontal NE, altitude and 3D velocity NED */
-					calcvelNED(velNED, gpsCourse, gpsGndSpd, gpsVelD);
-					calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
+					if (_initialized) {
 
-					posNE[0] = posNED[0];
-					posNE[1] = posNED[1];
-					hgtMea =  -posNED[2];
+						/* convert GPS measurements to horizontal NE, altitude and 3D velocity NED */
+						calcvelNED(velNED, gpsCourse, gpsGndSpd, gpsVelD);
+						calcposNED(posNED, gpsLat, gpsLon, gpsHgt, latRef, lonRef, hgtRef);
 
-					// set flags for further processing 
-					fuseVelData = true;
-					fusePosData = true;
-					fuseHgtData = true;
+						posNE[0] = posNED[0];
+						posNE[1] = posNED[1];
+						hgtMea =  -posNED[2];
 
-					/* recall states after adjusting for delays */
-					RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
-					RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
-					RecallStates(statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+						// set flags for further processing 
+						fuseVelData = true;
+						fusePosData = true;
+						fuseHgtData = true;
 
-					/* run the actual fusion */
-					FuseVelposNED();
+						/* recall states after adjusting for delays */
+						RecallStates(statesAtVelTime, (IMUmsec - _parameters.vel_delay_ms));
+						RecallStates(statesAtPosTime, (IMUmsec - _parameters.pos_delay_ms));
+						RecallStates(statesAtHgtTime, (IMUmsec - _parameters.height_delay_ms));
+
+						/* run the actual fusion */
+						FuseVelposNED();
+					}
 
 				} else {
 
@@ -521,22 +526,21 @@ FixedwingEstimator::task_main()
 			}
 
 			bool mag_updated;
-
 			orb_check(_mag_sub, &mag_updated);
-			if (mag_updated && _initialized) {
+			if (mag_updated) {
 				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
 
+				// XXX we compensate the offsets upfront - should be close to zero.
+				magData.x = _mag.x;
+				magBias.x = 0.0f; // _mag_offsets.x_offset
+
+				magData.y = _mag.y;
+				magBias.y = 0.0f; // _mag_offsets.y_offset
+
+				magData.z = _mag.z;
+				magBias.z = 0.0f; // _mag_offsets.y_offset
+
 				if (_initialized) {
-
-					// XXX we compensate the offsets upfront - should be close to zero.
-					magData.x = _mag.x;
-					magBias.x = 0.0f; // _mag_offsets.x_offset
-
-					magData.y = _mag.y;
-					magBias.y = 0.0f; // _mag_offsets.y_offset
-
-					magData.z = _mag.z;
-					magBias.z = 0.0f; // _mag_offsets.y_offset
 
 					fuseMagData = true;
 					RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms));
@@ -556,9 +560,12 @@ FixedwingEstimator::task_main()
 
 					VtasMeas = _airspeed.true_airspeed_m_s;
 
-					fuseVtasData = true;
-					RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
-					FuseAirspeed();
+					if (_initialized) {
+
+						fuseVtasData = true;
+						RecallStates(statesAtVtasMeasTime, (IMUmsec - _parameters.tas_delay_ms)); // assume 100 msec avg delay for airspeed data
+						FuseAirspeed();
+					}
 				} else {
 					fuseVtasData = false;
 				}
@@ -569,8 +576,11 @@ FixedwingEstimator::task_main()
 
 			if (_initialized) {
 
-				math::EulerAngles euler(eulerEst[0], eulerEst[1], eulerEst[2]);
-				//warnx("est: %8.4f, %8.4f, %8.4f", eulerEst[0], eulerEst[1], eulerEst[2]);
+				math::Quaternion q(states[0], states[1], states[2], states[3]);
+
+				_att.q = q;
+				_att.q_valid = true;
+				_att.R_valid = false;
 
 				// /* lazily publish the attitude only once available */
 				// if (_att_pub > 0) {
@@ -661,10 +671,16 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (estimator::g_estimator) {
 			warnx("running");
-			warnx("attitude: %8.4f, %8.4f, %8.4f", eulerEst[0], eulerEst[1], eulerEst[2]);
-			warnx("states [1-3]: %8.4f, %8.4f, %8.4f", states[0], states[1], states[2]);
-			warnx("states [4-6]: %8.4f, %8.4f, %8.4f", states[3], states[4], states[5]);
-			warnx("states [7-9]: %8.4f, %8.4f, %8.4f", states[6], states[7], states[8]);
+
+			math::Quaternion q(states[0], states[1], states[2], states[3]);
+			math::EulerAngles euler(q);
+
+			printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees",
+				math::degrees(euler.getPhi()), math::degrees(euler.getTheta()), math::degrees(euler.getPsi()));
+
+			printf("states [1-3]: %8.4f, %8.4f, %8.4f\n", states[0], states[1], states[2]);
+			printf("states [4-6]: %8.4f, %8.4f, %8.4f\n", states[3], states[4], states[5]);
+			printf("states [7-9]: %8.4f, %8.4f, %8.4f\n", states[6], states[7], states[8]);
 			exit(0);
 
 		} else {
