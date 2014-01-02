@@ -528,14 +528,15 @@ FixedwingEstimator::task_main()
 
 				if (_initialized) {
 
+					// XXX we compensate the offsets upfront - should be close to zero.
 					magData.x = _mag.x;
-					magBias.x = -_mag_offsets.x_offset;
+					magBias.x = 0.0f; // _mag_offsets.x_offset
 
 					magData.y = _mag.y;
-					magBias.y = -_mag_offsets.y_offset;
+					magBias.y = 0.0f; // _mag_offsets.y_offset
 
 					magData.z = _mag.z;
-					magBias.z = -_mag_offsets.z_offset;
+					magBias.z = 0.0f; // _mag_offsets.y_offset
 
 					fuseMagData = true;
 					RecallStates(statesAtMagMeasTime, (IMUmsec - _parameters.mag_delay_ms));
