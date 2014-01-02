@@ -60,7 +60,7 @@
 /**
  * Maximum number of R/C input channels in the system. S.Bus has up to 18 channels.
  */
-#define RC_INPUT_MAX_CHANNELS	20
+#define RC_INPUT_MAX_CHANNELS	18
 
 /**
  * Input signal type, value is a control position from zero to 100
