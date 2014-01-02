@@ -21,7 +21,7 @@ gps start
 #
 # Start the attitude and position estimator
 #
-att_pos_estimator_ekf start
+fw_att_pos_estimator start
 
 #
 # Start attitude controller

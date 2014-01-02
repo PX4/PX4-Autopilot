@@ -74,7 +74,7 @@ sh /etc/init.d/rc.sensors
 #
 # Start the attitude estimator (depends on orb)
 #
-att_pos_estimator_ekf start
+fw_att_pos_estimator start
  
 #
 # Load mixer and start controllers (depends on px4io)
