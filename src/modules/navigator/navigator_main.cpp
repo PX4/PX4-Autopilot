@@ -1053,13 +1053,19 @@ Navigator::advance_mission()
 				/* do special TAKEOFF handling for VTOL */
 				_need_takeoff = false;
 
-				/* check if we really need takeoff */
-				float wp_alt_amsl = _mission_item_triplet.current.altitude;
+				/* calculate desired takeoff altitude AMSL */
+				float takeoff_alt_amsl = _mission_item_triplet.current.altitude;
 				if (_mission_item_triplet.current.altitude_is_relative)
-					wp_alt_amsl += _home_pos.altitude;
-				if (_vstatus.condition_landed || _global_pos.alt - _home_pos.altitude < _parameters.takeoff_alt ||
-						(_mission_item_triplet.next.nav_cmd != NAV_CMD_RETURN_TO_LAUNCH && _global_pos.alt > wp_alt_amsl)) {
-					/* force TAKEOFF if (landed or near ground) and waypoint altitude is more than current */
+					takeoff_alt_amsl += _home_pos.altitude;
+
+				if (_vstatus.condition_landed) {
+					/* takeoff to at least NAV_TAKEOFF_ALT from ground if landed */
+					takeoff_alt_amsl = fmaxf(takeoff_alt_amsl, _global_pos.alt + _parameters.takeoff_alt);
+				}
+
+				/* check if we really need takeoff */
+				if (_vstatus.condition_landed || _global_pos.alt < takeoff_alt_amsl - _mission_item_triplet.current.acceptance_radius) {
+					/* force TAKEOFF if landed or waypoint altitude is more than current */
 					_do_takeoff = true;
 
 					/* move current mission item to next */
@@ -1071,6 +1077,8 @@ Navigator::advance_mission()
 
 					_mission_item_triplet.current.lat = (double)_global_pos.lat / 1e7d;
 					_mission_item_triplet.current.lon = (double)_global_pos.lon / 1e7d;
+					_mission_item_triplet.current.altitude = takeoff_alt_amsl;
+					_mission_item_triplet.current.altitude_is_relative = false;
 				}
 			} else if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LAND) {
 				/* will need takeoff after landing */
