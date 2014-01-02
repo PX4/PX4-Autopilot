@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4iov2_internal.h
+ * @file board_config.h
  *
  * PX4IOV2 internal definitions
  */
