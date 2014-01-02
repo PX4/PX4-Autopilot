@@ -166,7 +166,6 @@ private:
 	class 		Mission				_mission;
 
 	bool		_reset_loiter_pos;				/**< if true then loiter position should be set to current position */
-	bool		_rtl_done;
 	bool		_waypoint_position_reached;
 	bool		_waypoint_yaw_reached;
 	uint64_t	_time_first_inside_orbit;
@@ -199,10 +198,10 @@ private:
 
 	enum Event {
 		EVENT_NONE_REQUESTED,
+		EVENT_READY_REQUESTED,
 		EVENT_LOITER_REQUESTED,
 		EVENT_MISSION_REQUESTED,
 		EVENT_RTL_REQUESTED,
-		EVENT_MISSION_FINISHED,
 		EVENT_MISSION_CHANGED,
 		EVENT_HOME_POSITION_CHANGED,
 		MAX_EVENT
@@ -214,8 +213,10 @@ private:
 	static StateTable::Tran const myTable[NAV_STATE_MAX][MAX_EVENT];
 
 	enum RTLState {
+		RTL_STATE_NONE = 0,
 		RTL_STATE_CLIMB,
 		RTL_STATE_RETURN,
+		RTL_STATE_DESCEND,
 		RTL_STATE_LAND
 	};
 
@@ -277,9 +278,9 @@ private:
 	 * Functions that are triggered when a new state is entered.
 	 */
 	void		start_none();
+	void		start_ready();
 	void		start_loiter();
 	void		start_mission();
-	void		finish_mission();
 	void		start_rtl();
 	void		finish_rtl();
 
@@ -307,6 +308,11 @@ private:
 	 * Move to next waypoint
 	 */
 	void		advance_mission();
+
+	/**
+	 * Switch to next RTL state
+	 */
+	void		set_rtl_item();
 
 	/**
 	 * Helper function to get a loiter item
@@ -380,11 +386,11 @@ Navigator::Navigator() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 
 /* states */
+	_rtl_state(RTL_STATE_NONE),
 	_fence_valid(false),
 	_inside_fence(true),
 	_mission(),
 	_reset_loiter_pos(true),
-	_rtl_done(false),
 	_waypoint_position_reached(false),
 	_waypoint_yaw_reached(false),
 	_time_first_inside_orbit(0),
@@ -625,13 +631,16 @@ Navigator::task_main()
 			pub_control_mode = true;
 
 			/* Evaluate state machine from commander and set the navigator mode accordingly */
-			if (_vstatus.main_state == MAIN_STATE_AUTO) {
+			if (_vstatus.main_state == MAIN_STATE_AUTO &&
+					(_vstatus.arming_state == ARMING_STATE_ARMED || _vstatus.arming_state == ARMING_STATE_ARMED_ERROR)) {
 				bool stick_mode = false;
 				if (!_vstatus.rc_signal_lost) {
 					/* RC signal available, use control switches to set mode */
 					/* RETURN switch, overrides MISSION switch */
 					if (_vstatus.return_switch == RETURN_SWITCH_RETURN) {
-						dispatch(_rtl_done ? EVENT_LOITER_REQUESTED : EVENT_RTL_REQUESTED);
+						if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
+							dispatch(EVENT_RTL_REQUESTED);
+						}
 						stick_mode = true;
 					} else {
 						/* MISSION switch */
@@ -678,7 +687,9 @@ Navigator::task_main()
 							break;
 
 						case NAV_STATE_RTL:
-							dispatch(_rtl_done ? EVENT_LOITER_REQUESTED : EVENT_RTL_REQUESTED);
+							if (myState != NAV_STATE_READY || _rtl_state != RTL_STATE_LAND) {
+								dispatch(EVENT_RTL_REQUESTED);
+							}
 							break;
 
 						default:
@@ -739,14 +750,13 @@ Navigator::task_main()
 		/* global position updated */
 		if (fds[1].revents & POLLIN) {
 			global_position_update();
-			/* only check if waypoint has been reached in MISSION */
+			/* only check if waypoint has been reached in MISSION and RTL modes */
 			if (myState == NAV_STATE_MISSION || myState == NAV_STATE_RTL) {
 				if (check_mission_item_reached()) {
 					on_mission_item_reached();
 				}
 			}
 		}
-
 
 		/* notify user about state changes */
 		if (myState != prevState) {
@@ -924,40 +934,50 @@ StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 	{	
 							/* STATE_NONE */
 		/* EVENT_NONE_REQUESTED */		{NO_ACTION, NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
-		/* EVENT_MISSION_FINISHED */		{NO_ACTION, NAV_STATE_NONE},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_NONE},
 		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_NONE},
 	},
 	{	
+							/* STATE_READY */
+		/* EVENT_NONE_REQUESTED */		{NO_ACTION, NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
+		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, NAV_STATE_READY},
+		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
+		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
+		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_READY},
+		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_READY},
+	},
+	{
 							/* STATE_LOITER */
 		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{NO_ACTION, NAV_STATE_LOITER},
 		/* EVENT_LOITER_REQUESTED */		{NO_ACTION, NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
-		/* EVENT_MISSION_FINISHED */		{NO_ACTION, NAV_STATE_LOITER},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_LOITER},
 		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_LOITER},
 	},
 	{	
 							/* STATE_MISSION */
 		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{NO_ACTION, NAV_STATE_MISSION},
 		/* EVENT_RTL_REQUESTED */		{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
-		/* EVENT_MISSION_FINISHED */		{ACTION(&Navigator::finish_mission), NAV_STATE_LOITER},
 		/* EVENT_MISSION_CHANGED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
 		/* EVENT_HOME_POSITION_CHANGED */	{NO_ACTION, NAV_STATE_MISSION},
 	},
 	{	
 							/* STATE_RTL */
 		/* EVENT_NONE_REQUESTED */		{ACTION(&Navigator::start_none), NAV_STATE_NONE},
+		/* EVENT_READY_REQUESTED */		{ACTION(&Navigator::start_ready), NAV_STATE_READY},
 		/* EVENT_LOITER_REQUESTED */		{ACTION(&Navigator::start_loiter), NAV_STATE_LOITER},
 		/* EVENT_MISSION_REQUESTED */		{ACTION(&Navigator::start_mission), NAV_STATE_MISSION},
 		/* EVENT_RTL_REQUESTED */		{NO_ACTION, NAV_STATE_RTL},
-		/* EVENT_MISSION_FINISHED */		{ACTION(&Navigator::finish_rtl), NAV_STATE_LOITER},
 		/* EVENT_MISSION_CHANGED */		{NO_ACTION, NAV_STATE_RTL},
 		/* EVENT_HOME_POSITION_CHANGED */	{ACTION(&Navigator::start_rtl), NAV_STATE_RTL},
 	},
@@ -971,8 +991,26 @@ Navigator::start_none()
 	_mission_item_triplet.next_valid = false;
 
 	_reset_loiter_pos = true;
-	_rtl_done = false;
 	_do_takeoff = false;
+	_rtl_state = RTL_STATE_NONE;
+
+	publish_mission_item_triplet();
+}
+
+void
+Navigator::start_ready()
+{
+	_mission_item_triplet.previous_valid = false;
+	_mission_item_triplet.current_valid = false;
+	_mission_item_triplet.next_valid = false;
+
+	_reset_loiter_pos = true;
+	_do_takeoff = false;
+
+	// TODO check
+	if (_rtl_state != RTL_STATE_LAND) {
+		_rtl_state = RTL_STATE_NONE;
+	}
 
 	publish_mission_item_triplet();
 }
@@ -1015,9 +1053,9 @@ Navigator::start_loiter()
 void
 Navigator::start_mission()
 {
-	_rtl_done = false;
 	_need_takeoff = true;
 
+	mavlink_log_info(_mavlink_fd, "[navigator] mission started");
 	advance_mission();
 }
 
@@ -1040,6 +1078,14 @@ Navigator::advance_mission()
 	if (ret == OK) {
 		_mission_item_triplet.current_valid = true;
 		add_home_pos_to_rtl(&_mission_item_triplet.current);
+
+		if (_mission_item_triplet.current.nav_cmd != NAV_CMD_RETURN_TO_LAUNCH &&
+			_mission_item_triplet.current.nav_cmd != NAV_CMD_LOITER_TIME_LIMIT &&
+			_mission_item_triplet.current.nav_cmd != NAV_CMD_LOITER_TURN_COUNT &&
+			_mission_item_triplet.current.nav_cmd != NAV_CMD_LOITER_UNLIMITED) {
+			/* don't reset RTL state on RTL or LOITER items */
+			_rtl_state = RTL_STATE_NONE;
+		}
 
 		if (_vstatus.is_rotary_wing) {
 			if (_need_takeoff && (
@@ -1117,55 +1163,127 @@ Navigator::advance_mission()
 }
 
 void
-Navigator::finish_mission()
-{
-	/* loiter at last waypoint */
-	_reset_loiter_pos = false;
-
-	mavlink_log_info(_mavlink_fd, "[navigator] mission completed");
-
-	start_loiter();
-}
-
-void
 Navigator::start_rtl()
 {
 	_reset_loiter_pos = true;
-	_rtl_done = false;
 	_do_takeoff = false;
-
-	/* discard all mission item and insert RTL item */
-	_mission_item_triplet.previous_valid = false;
-	_mission_item_triplet.current_valid = true;
-	_mission_item_triplet.next_valid = false;
-
-	_mission_item_triplet.current.lat = _home_pos.lat;
-	_mission_item_triplet.current.lon = _home_pos.lon;
-	_mission_item_triplet.current.altitude = _home_pos.altitude + _parameters.rtl_alt;
-	_mission_item_triplet.current.altitude_is_relative = false;
-	_mission_item_triplet.current.yaw = 0.0f;	// TODO use heading to waypoint?
-	_mission_item_triplet.current.nav_cmd = NAV_CMD_RETURN_TO_LAUNCH;
-	_mission_item_triplet.current.loiter_direction = 1;
-	_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius;
-	_mission_item_triplet.current.acceptance_radius = _parameters.acceptance_radius;
-	_mission_item_triplet.current.autocontinue = false;
-	_mission_item_triplet.current_valid = true;
-
-	publish_mission_item_triplet();
+	if (_rtl_state == RTL_STATE_NONE)
+		_rtl_state = RTL_STATE_CLIMB;
 
 	mavlink_log_info(_mavlink_fd, "[navigator] RTL started");
-}	
+	set_rtl_item();
+}
 
 void
-Navigator::finish_rtl()
+Navigator::set_rtl_item()
 {
-	/* loiter at home position */
-	_reset_loiter_pos = false;
-	_rtl_done = true;
+	switch (_rtl_state) {
+	case RTL_STATE_CLIMB: {
+		memcpy(&_mission_item_triplet.previous, &_mission_item_triplet.current, sizeof(mission_item_s));
+		_mission_item_triplet.previous_valid = _mission_item_triplet.current_valid;
 
-	mavlink_log_info(_mavlink_fd, "[navigator] RTL completed");
+		_mission_item_triplet.current_valid = true;
+		_mission_item_triplet.next_valid = false;
 
-	start_loiter();
+		float climb_alt = _home_pos.altitude + _parameters.rtl_alt;
+		if (_vstatus.condition_landed)
+			climb_alt = fmaxf(climb_alt, _global_pos.alt + _parameters.rtl_alt);
+
+		_mission_item_triplet.current.altitude_is_relative = false;
+		_mission_item_triplet.current.lat = (double)_global_pos.lat / 1e7d;
+		_mission_item_triplet.current.lon = (double)_global_pos.lon / 1e7d;
+		_mission_item_triplet.current.altitude = climb_alt;
+		_mission_item_triplet.current.yaw = NAN;
+		_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius;
+		_mission_item_triplet.current.loiter_direction = 1;
+		_mission_item_triplet.current.nav_cmd = NAV_CMD_TAKEOFF;
+		_mission_item_triplet.current.acceptance_radius = _parameters.acceptance_radius;
+		_mission_item_triplet.current.time_inside = 0.0f;
+		_mission_item_triplet.current.pitch_min = 0.0f;
+		_mission_item_triplet.current.autocontinue = true;
+		_mission_item_triplet.current.origin = ORIGIN_ONBOARD;
+		mavlink_log_info(_mavlink_fd, "[navigator] RTL: climb to %.1fm", climb_alt - _home_pos.altitude);
+		break;
+	}
+	case RTL_STATE_RETURN: {
+		memcpy(&_mission_item_triplet.previous, &_mission_item_triplet.current, sizeof(mission_item_s));
+		_mission_item_triplet.previous_valid = _mission_item_triplet.current_valid;
+
+		_mission_item_triplet.current_valid = true;
+		_mission_item_triplet.next_valid = false;
+
+		_mission_item_triplet.current.altitude_is_relative = false;
+		_mission_item_triplet.current.lat = _home_pos.lat;
+		_mission_item_triplet.current.lon = _home_pos.lon;
+		// don't change altitude setpoint
+		_mission_item_triplet.current.yaw = NAN;
+		_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius;
+		_mission_item_triplet.current.loiter_direction = 1;
+		_mission_item_triplet.current.nav_cmd = NAV_CMD_WAYPOINT;
+		_mission_item_triplet.current.acceptance_radius = _parameters.acceptance_radius;
+		_mission_item_triplet.current.time_inside = 0.0f;
+		_mission_item_triplet.current.pitch_min = 0.0f;
+		_mission_item_triplet.current.autocontinue = true;
+		_mission_item_triplet.current.origin = ORIGIN_ONBOARD;
+		mavlink_log_info(_mavlink_fd, "[navigator] RTL: return");
+		break;
+	}
+	case RTL_STATE_DESCEND: {
+		memcpy(&_mission_item_triplet.previous, &_mission_item_triplet.current, sizeof(mission_item_s));
+		_mission_item_triplet.previous_valid = _mission_item_triplet.current_valid;
+
+		_mission_item_triplet.current_valid = true;
+		_mission_item_triplet.next_valid = false;
+
+		float descend_alt = _home_pos.altitude + _parameters.land_alt;
+
+		_mission_item_triplet.current.altitude_is_relative = false;
+		_mission_item_triplet.current.lat = _home_pos.lat;
+		_mission_item_triplet.current.lon = _home_pos.lon;
+		_mission_item_triplet.current.altitude = descend_alt;
+		_mission_item_triplet.current.yaw = NAN;
+		_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius;
+		_mission_item_triplet.current.loiter_direction = 1;
+		_mission_item_triplet.current.nav_cmd = NAV_CMD_WAYPOINT;
+		_mission_item_triplet.current.acceptance_radius = _parameters.acceptance_radius;
+		_mission_item_triplet.current.time_inside = 0.0f;
+		_mission_item_triplet.current.pitch_min = 0.0f;
+		_mission_item_triplet.current.autocontinue = true;
+		_mission_item_triplet.current.origin = ORIGIN_ONBOARD;
+		mavlink_log_info(_mavlink_fd, "[navigator] RTL: descend to %.1fm", descend_alt - _home_pos.altitude);
+		break;
+	}
+	case RTL_STATE_LAND: {
+		memcpy(&_mission_item_triplet.previous, &_mission_item_triplet.current, sizeof(mission_item_s));
+		_mission_item_triplet.previous_valid = _mission_item_triplet.current_valid;
+
+		_mission_item_triplet.current_valid = true;
+		_mission_item_triplet.next_valid = false;
+
+		_mission_item_triplet.current.altitude_is_relative = false;
+		_mission_item_triplet.current.lat = _home_pos.lat;
+		_mission_item_triplet.current.lon = _home_pos.lon;
+		_mission_item_triplet.current.altitude = _home_pos.altitude;
+		_mission_item_triplet.current.yaw = NAN;
+		_mission_item_triplet.current.loiter_radius = _parameters.loiter_radius;
+		_mission_item_triplet.current.loiter_direction = 1;
+		_mission_item_triplet.current.nav_cmd = NAV_CMD_LAND;
+		_mission_item_triplet.current.acceptance_radius = _parameters.acceptance_radius;
+		_mission_item_triplet.current.time_inside = 0.0f;
+		_mission_item_triplet.current.pitch_min = 0.0f;
+		_mission_item_triplet.current.autocontinue = true;
+		_mission_item_triplet.current.origin = ORIGIN_ONBOARD;
+		mavlink_log_info(_mavlink_fd, "[navigator] RTL: land");
+		break;
+	}
+	default: {
+		mavlink_log_critical(_mavlink_fd, "[navigator] error: unknown RTL state: %d", _rtl_state);
+		start_loiter();
+		break;
+	}
+	}
+
+	publish_mission_item_triplet();
 }
 
 bool
@@ -1176,9 +1294,8 @@ Navigator::check_mission_item_reached()
 		return false;
 	}
 
-	/* don't try to reach the landing mission, just stay in that mode, XXX maybe add another state for this */
 	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_LAND) {
-		return false;
+		return _vstatus.condition_landed;
 	}
 
 	/* XXX TODO count turns */
@@ -1191,82 +1308,66 @@ Navigator::check_mission_item_reached()
 	}	
 
 	uint64_t now = hrt_absolute_time();
-	float acceptance_radius;
 
-	if (_mission_item_triplet.current.nav_cmd == NAV_CMD_WAYPOINT && _mission_item_triplet.current.acceptance_radius > 0.01f) {
-		acceptance_radius = _mission_item_triplet.current.acceptance_radius;
+	if (!_waypoint_position_reached) {
+		float acceptance_radius;
 
-	} else {
-		acceptance_radius = _parameters.acceptance_radius;
-	}
+		if (_mission_item_triplet.current.nav_cmd == NAV_CMD_WAYPOINT && _mission_item_triplet.current.acceptance_radius > 0.01f) {
+			acceptance_radius = _mission_item_triplet.current.acceptance_radius;
 
-	// TODO add frame
-	// int coordinate_frame = wpm->waypoints[wpm->current_active_wp_id].frame;
-	
-	float dist = -1.0f;
-	float dist_xy = -1.0f;
-	float dist_z = -1.0f;
-
-	// if (coordinate_frame == (int)MAV_FRAME_GLOBAL) {
-
-	/* current relative or AMSL altitude depending on mission item altitude_is_relative flag */
-	float wp_alt_amsl = _mission_item_triplet.current.altitude;
-	if (_mission_item_triplet.current.altitude_is_relative)
-		_mission_item_triplet.current.altitude += _home_pos.altitude;
-
-	dist = get_distance_to_point_global_wgs84(_mission_item_triplet.current.lat, _mission_item_triplet.current.lon, wp_alt_amsl,
-		                              (double)_global_pos.lat / 1e7d, (double)_global_pos.lon / 1e7d, _global_pos.alt,
-		                              &dist_xy, &dist_z);
-
-	// warnx("1 lat: %2.2f, lon: %2.2f, alt: %2.2f", _mission_item_triplet.current.lat, _mission_item_triplet.current.lon, _mission_item_triplet.current.altitude);
-	// warnx("2 lat: %2.2f, lon: %2.2f, alt: %2.2f", (double)_global_pos.lat / 1e7d, (double)_global_pos.lon / 1e7d, _global_pos.alt);
-
-	// warnx("Dist: %4.4f", dist);
-
-	// } else if (coordinate_frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
-	// 	dist = mavlink_wpm_distance_to_point_global_wgs84(wpm->current_active_wp_id, (float)global_pos->lat * 1e-7f, (float)global_pos->lon * 1e-7f, global_pos->relative_alt, &dist_xy, &dist_z);
-
-	// } else if (coordinate_frame == (int)MAV_FRAME_LOCAL_ENU || coordinate_frame == (int)MAV_FRAME_LOCAL_NED) {
-	// 	dist = mavlink_wpm_distance_to_point_local(wpm->current_active_wp_id, local_pos->x, local_pos->y, local_pos->z, &dist_xy, &dist_z);
-
-	// } else if (coordinate_frame == (int)MAV_FRAME_MISSION) {
-	// 	/* Check if conditions of mission item are satisfied */
-	// 	// XXX TODO
-	// }
-
-	if (_do_takeoff) {
-		if (_global_pos.alt > wp_alt_amsl - acceptance_radius) {
-			/* require only altitude for takeoff */
-			_waypoint_position_reached = true;
+		} else {
+			acceptance_radius = _parameters.acceptance_radius;
 		}
-	} else {
-		if (dist >= 0.0f && dist <= acceptance_radius) {
-			_waypoint_position_reached = true;
+
+		float dist = -1.0f;
+		float dist_xy = -1.0f;
+		float dist_z = -1.0f;
+
+		/* current relative or AMSL altitude depending on mission item altitude_is_relative flag */
+		float wp_alt_amsl = _mission_item_triplet.current.altitude;
+		if (_mission_item_triplet.current.altitude_is_relative)
+			_mission_item_triplet.current.altitude += _home_pos.altitude;
+
+		dist = get_distance_to_point_global_wgs84(_mission_item_triplet.current.lat, _mission_item_triplet.current.lon, wp_alt_amsl,
+										  (double)_global_pos.lat / 1e7d, (double)_global_pos.lon / 1e7d, _global_pos.alt,
+										  &dist_xy, &dist_z);
+
+		if (_do_takeoff) {
+			if (_global_pos.alt > wp_alt_amsl - acceptance_radius) {
+				/* require only altitude for takeoff */
+				_waypoint_position_reached = true;
+			}
+		} else {
+			if (dist >= 0.0f && dist <= acceptance_radius) {
+				_waypoint_position_reached = true;
+			}
 		}
 	}
 
-	if (_vstatus.is_rotary_wing && !_do_takeoff) {
-		/* check yow only for rotary wing except takeoff */
-		float yaw_err = _wrap_pi(_mission_item_triplet.current.yaw - _global_pos.yaw);
-		if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
+	if (!_waypoint_yaw_reached) {
+		if (_vstatus.is_rotary_wing && !_do_takeoff && isfinite(_mission_item_triplet.current.yaw)) {
+			/* check yaw if defined only for rotary wing except takeoff */
+			float yaw_err = _wrap_pi(_mission_item_triplet.current.yaw - _global_pos.yaw);
+			if (fabsf(yaw_err) < 0.05f) { /* XXX get rid of magic number */
+				_waypoint_yaw_reached = true;
+			}
+		} else {
 			_waypoint_yaw_reached = true;
 		}
-	} else {
-		_waypoint_yaw_reached = true;
 	}
 
 	/* check if the current waypoint was reached */
 	if (_waypoint_position_reached && _waypoint_yaw_reached) {
-		
 		if (_time_first_inside_orbit == 0) {
-			/* XXX announcement? */
 			_time_first_inside_orbit = now;
+			if (_mission_item_triplet.current.time_inside > 0.01f) {
+				mavlink_log_info(_mavlink_fd, "[navigator] waypoint reached, wait for %.1fs", _mission_item_triplet.current.time_inside);
+			}
 		}
 		
 		/* check if the MAV was long enough inside the waypoint orbit */
 		if ((now - _time_first_inside_orbit >= (uint64_t)_mission_item_triplet.current.time_inside * 1e6)
 		     || _mission_item_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
-
 			_time_first_inside_orbit = 0;
 			_waypoint_yaw_reached = false;
 			_waypoint_position_reached = false;
@@ -1294,11 +1395,26 @@ Navigator::on_mission_item_reached()
 			advance_mission();
 		} else {
 			/* if no more mission items available then finish mission */
-			dispatch(EVENT_MISSION_FINISHED);
+			/* loiter at last waypoint */
+			_reset_loiter_pos = false;
+			mavlink_log_info(_mavlink_fd, "[navigator] mission completed");
+			if (_vstatus.condition_landed) {
+				dispatch(EVENT_READY_REQUESTED);
+			} else {
+				dispatch(EVENT_LOITER_REQUESTED);
+			}
 		}
 	} else {
 		/* RTL finished */
-		dispatch(EVENT_MISSION_FINISHED);
+		if (_rtl_state == RTL_STATE_LAND) {
+			/* landed at home position */
+			mavlink_log_info(_mavlink_fd, "[navigator] RTL completed, landed");
+			dispatch(EVENT_READY_REQUESTED);
+		} else {
+			/* next RTL step */
+			_rtl_state = (RTLState)(_rtl_state + 1);
+			set_rtl_item();
+		}
 	}
 }
 
@@ -1413,12 +1529,22 @@ Navigator::publish_control_mode()
 
 	case MAIN_STATE_AUTO:
 		_control_mode.flag_control_manual_enabled = false;
-		_control_mode.flag_control_rates_enabled = true;
-		_control_mode.flag_control_attitude_enabled = true;
-		_control_mode.flag_control_position_enabled = true;
-		_control_mode.flag_control_velocity_enabled = true;
-		_control_mode.flag_control_altitude_enabled = true;
-		_control_mode.flag_control_climb_rate_enabled = true;
+		if (myState == NAV_STATE_READY) {
+			/* disable all controllers, armed but idle */
+			_control_mode.flag_control_rates_enabled = false;
+			_control_mode.flag_control_attitude_enabled = false;
+			_control_mode.flag_control_position_enabled = false;
+			_control_mode.flag_control_velocity_enabled = false;
+			_control_mode.flag_control_altitude_enabled = false;
+			_control_mode.flag_control_climb_rate_enabled = false;
+		} else {
+			_control_mode.flag_control_rates_enabled = true;
+			_control_mode.flag_control_attitude_enabled = true;
+			_control_mode.flag_control_position_enabled = true;
+			_control_mode.flag_control_velocity_enabled = true;
+			_control_mode.flag_control_altitude_enabled = true;
+			_control_mode.flag_control_climb_rate_enabled = true;
+		}
 		break;
 
 	default:
