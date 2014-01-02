@@ -72,8 +72,7 @@ __EXPORT int frsky_telemetry_main(int argc, char *argv[]);
 /**
  * Opens the UART device and sets all required serial parameters.
  */
-static int
-frsky_open_uart(const char *uart_name, struct termios *uart_config_original)
+static int frsky_open_uart(const char *uart_name, struct termios *uart_config_original)
 {
 	/* Open UART */
 	const int uart = open(uart_name, O_WRONLY | O_NOCTTY);
@@ -118,20 +117,19 @@ frsky_open_uart(const char *uart_name, struct termios *uart_config_original)
 /**
  * Print command usage information
  */
-static void
-usage()
+static void usage()
 {
-	fprintf(stderr, "usage: frsky_telemetry start [-d <devicename>]\n"
-		"       frsky_telemetry stop\n"
-		"       frsky_telemetry status\n");
+	fprintf(stderr,
+			"usage: frsky_telemetry start [-d <devicename>]\n"
+			"       frsky_telemetry stop\n"
+			"       frsky_telemetry status\n");
 	exit(1);
 }
 
 /**
  * The daemon thread.
  */
-static int
-frsky_telemetry_thread_main(int argc, char *argv[])
+static int frsky_telemetry_thread_main(int argc, char *argv[])
 {
 	/* Default values for arguments */
 	char *device_name = "/dev/ttyS1"; /* USART2 */
@@ -207,8 +205,7 @@ frsky_telemetry_thread_main(int argc, char *argv[])
  * The main command function.
  * Processes command line arguments and starts the daemon.
  */
-int
-frsky_telemetry_main(int argc, char *argv[])
+int frsky_telemetry_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		warnx("missing command");
