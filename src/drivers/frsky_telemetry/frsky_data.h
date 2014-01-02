@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
- *   Author: Simon Wilks <sjwilks@gmail.com>
+ *   Copyright (c) 2013-2014 PX4 Development Team. All rights reserved.
+ *   Author: Stefan Rado <px4@sradonia.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
