@@ -577,20 +577,44 @@ FixedwingEstimator::task_main()
 			if (_initialized) {
 
 				math::Quaternion q(states[0], states[1], states[2], states[3]);
+				math::Dcm R(q);
+				math::EulerAngles euler(R);
 
-				_att.q = q;
+				for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+					_att.R[i][j] = R(i, j);
+
+				_att.timestamp = _gyro.timestamp;
+				_att.q[0] = states[0];
+				_att.q[1] = states[1];
+				_att.q[2] = states[2];
+				_att.q[3] = states[3];
 				_att.q_valid = true;
-				_att.R_valid = false;
+				_att.R_valid = true;
 
-				// /* lazily publish the attitude only once available */
-				// if (_att_pub > 0) {
-				// 	/* publish the attitude setpoint */
-				// 	orb_publish(ORB_ID(vehicle_attitude), _att_pub, &_att);
+				_att.timestamp = _gyro.timestamp;
+				_att.roll = euler.getPhi();
+				_att.pitch = euler.getTheta();
+				_att.yaw = euler.getPsi();
+				// XXX find the right state
+				_att.rollspeed = _gyro.x - states[11];
+				_att.pitchspeed = _gyro.y - states[12];
+				_att.yawspeed = _gyro.z - states[13];
+				// gyro offsets
+				_att.rate_offsets[0] = states[11];
+				_att.rate_offsets[1] = states[12];
+				_att.rate_offsets[2] = states[13];
 
-				// } else {
-				// 	/* advertise and publish */
-				// 	_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
-				// }
+				/* lazily publish the attitude only once available */
+				if (_att_pub > 0) {
+					/* publish the attitude setpoint */
+					orb_publish(ORB_ID(vehicle_attitude), _att_pub, &_att);
+
+				} else {
+					/* advertise and publish */
+					_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
+				}
+
+				_global_pos.timestamp = _gyro.timestamp;
 
 				// /* lazily publish the position only once available */
 				// if (_global_pos_pub > 0) {
