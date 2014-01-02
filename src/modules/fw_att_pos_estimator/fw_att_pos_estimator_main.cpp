@@ -145,6 +145,12 @@ private:
 	struct mag_scale				_mag_offsets;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t	_perf_gyro;			///<local performance counter for gyro updates
+	perf_counter_t	_perf_accel;			///<local performance counter for accel updates
+	perf_counter_t	_perf_mag;			///<local performance counter for mag updates
+	perf_counter_t	_perf_gps;			///<local performance counter for gps updates
+	perf_counter_t	_perf_baro;			///<local performance counter for baro updates
+	perf_counter_t	_perf_airspeed;			///<local performance counter for airspeed updates
 
 	bool						_initialized;
 
@@ -223,6 +229,13 @@ FixedwingEstimator::FixedwingEstimator() :
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_pos_estimator")),
+	_perf_gyro(perf_alloc(PC_ELAPSED, "fw_ekf_gyro_upd")),
+	_perf_accel(perf_alloc(PC_ELAPSED, "fw_ekf_accel_upd")),
+	_perf_mag(perf_alloc(PC_ELAPSED, "fw_ekf_mag_upd")),
+	_perf_gps(perf_alloc(PC_ELAPSED, "fw_ekf_gps_upd")),
+	_perf_baro(perf_alloc(PC_ELAPSED, "fw_ekf_baro_upd")),
+	_perf_airspeed(perf_alloc(PC_ELAPSED, "fw_ekf_aspd_upd")),
+
 /* states */
 	_initialized(false)
 {
@@ -333,6 +346,7 @@ FixedwingEstimator::task_main()
 	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
 	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
 	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
+	//_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -403,7 +417,15 @@ FixedwingEstimator::task_main()
 
 			/* load local copies */
 			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &_gyro);
-			orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
+			perf_count(_perf_gyro);
+
+			bool accel_updated;
+			orb_check(_accel_sub, &accel_updated);
+
+			if (accel_updated) {
+				perf_count(_perf_accel);
+				orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
+			}
 
 			float IMUmsec = _gyro.timestamp / 1e3;
 
@@ -465,6 +487,7 @@ FixedwingEstimator::task_main()
 			orb_check(_gps_sub, &gps_updated);
 			if (gps_updated) {
 				orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &_gps);
+				perf_count(_perf_gps);
 
 				if (_gps.fix_type > 2) {
 					/* fuse GPS updates */
@@ -529,6 +552,7 @@ FixedwingEstimator::task_main()
 			orb_check(_mag_sub, &mag_updated);
 			if (mag_updated) {
 				orb_copy(ORB_ID(sensor_mag), _mag_sub, &_mag);
+				perf_count(_perf_mag);
 
 				// XXX we compensate the offsets upfront - should be close to zero.
 				magData.x = _mag.x;
@@ -555,6 +579,7 @@ FixedwingEstimator::task_main()
 			orb_check(_airspeed_sub, &airspeed_updated);
 			if (airspeed_updated && _initialized) {
 				orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
+				perf_count(_perf_airspeed);
 
 				if (_airspeed.true_airspeed_m_s > 8.0f /* XXX magic number */) {
 
