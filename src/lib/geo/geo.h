@@ -143,15 +143,4 @@ __EXPORT float _wrap_360(float bearing);
 __EXPORT float _wrap_pi(float bearing);
 __EXPORT float _wrap_2pi(float bearing);
 
-/**
- * Return whether craft is inside geofence.
- *
- * Calculate whether point is inside arbitrary polygon
- * @param craft pointer craft coordinates
- * @param fence pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
- * @return true: craft is inside fence, false:craft is outside fence
- */
-__EXPORT bool inside_geofence(const struct vehicle_global_position_s *craft, const struct fence_s *fence);
-
-
 __END_DECLS

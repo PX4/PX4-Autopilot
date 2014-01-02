@@ -78,6 +78,7 @@
 
 #include "navigator_mission.h"
 #include "mission_feasibility_checker.h"
+#include "geofence.h"
 
 
 /* oddly, ERROR is not defined for c++ */
@@ -157,6 +158,7 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	
+	Geofence					geofence;
 	struct fence_s 					_fence;			/**< storage for fence vertices */
 	bool						_fence_valid;		/**< flag if fence is valid */
         bool						_inside_fence;		/**< vehicle is inside fence */

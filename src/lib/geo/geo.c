@@ -503,27 +503,3 @@ __EXPORT float _wrap_360(float bearing)
 
 	return bearing;
 }
-
-__EXPORT bool inside_geofence(const struct vehicle_global_position_s *vehicle, const struct fence_s *fence)
-{
-
-	/* Adaptation of algorithm originally presented as
-	 * PNPOLY - Point Inclusion in Polygon Test
-	 * W. Randolph Franklin (WRF) */
-
-	unsigned int i, j, vertices = fence->count;
-	bool c = false;
-	double lat = vehicle->lat / 1e7d;
-	double lon = vehicle->lon / 1e7d;
-
-	// skip vertex 0 (return point)
-	for (i = 0, j = vertices - 1; i < vertices; j = i++)
-		if (((fence->vertices[i].lon) >= lon != (fence->vertices[j].lon >= lon)) &&
-		    (lat <= (fence->vertices[j].lat - fence->vertices[i].lat) * (lon - fence->vertices[i].lon) /
-		     (fence->vertices[j].lon - fence->vertices[i].lon) + fence->vertices[i].lat))
-			c = !c;
-	return c;
-}
-
-
-

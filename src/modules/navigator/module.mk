@@ -40,6 +40,7 @@ MODULE_COMMAND	= navigator
 SRCS		= navigator_main.cpp \
 		  navigator_params.c \
 		  navigator_mission.cpp \
-		  mission_feasibility_checker.cpp
+		  mission_feasibility_checker.cpp \
+		  geofence.cpp
 
 INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
