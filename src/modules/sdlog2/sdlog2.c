@@ -1161,9 +1161,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_GPSP.nav_cmd = buf.triplet.current.nav_cmd;				
 				log_msg.body.log_GPSP.loiter_radius = buf.triplet.current.loiter_radius;
 				log_msg.body.log_GPSP.loiter_direction = buf.triplet.current.loiter_direction;
-				log_msg.body.log_GPSP.loiter_radius = buf.triplet.current.loiter_radius;
-				log_msg.body.log_GPSP.loiter_direction = buf.triplet.current.loiter_direction;
-				log_msg.body.log_GPSP.radius = buf.triplet.current.radius;
+				log_msg.body.log_GPSP.acceptance_radius = buf.triplet.current.acceptance_radius;
 				log_msg.body.log_GPSP.time_inside = buf.triplet.current.time_inside;
 				log_msg.body.log_GPSP.pitch_min = buf.triplet.current.pitch_min;
 				LOGBUFFER_WRITE_AND_COUNT(GPSP);

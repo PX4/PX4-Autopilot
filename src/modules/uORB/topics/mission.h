@@ -87,7 +87,7 @@ struct mission_item_s
 	float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover     */
 	int8_t loiter_direction;	/**< 1: positive / clockwise, -1, negative.		*/
 	enum NAV_CMD nav_cmd;		/**< navigation command					*/
-	float radius;			/**< radius in which the mission is accepted as reached in meters */
+	float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
 	float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 	float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 	bool autocontinue;		/**< true if next waypoint should follow after this one */

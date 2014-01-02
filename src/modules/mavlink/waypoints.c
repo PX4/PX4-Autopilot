@@ -143,7 +143,7 @@ int map_mavlink_mission_item_to_mission_item(const mavlink_mission_item_t *mavli
 			mission_item->pitch_min = mavlink_mission_item->param2;
 			break;
 		default:
-			mission_item->radius = mavlink_mission_item->param2;
+			mission_item->acceptance_radius = mavlink_mission_item->param2;
 			break;
 	}
 
@@ -173,7 +173,7 @@ int map_mission_item_to_mavlink_mission_item(const struct mission_item_s *missio
 			mavlink_mission_item->param2 = mission_item->pitch_min;
 			break;
 		default:
-			mavlink_mission_item->param2 = mission_item->radius;
+			mavlink_mission_item->param2 = mission_item->acceptance_radius;
 			break;
 	}
 

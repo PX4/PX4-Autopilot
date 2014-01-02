@@ -1230,7 +1230,7 @@ FixedwingPositionControl::task_main()
 				}
 
 				/* XXX check if radius makes sense here */
-				float turn_distance = _l1_control.switch_distance(_mission_item_triplet.current.radius);
+				float turn_distance = _l1_control.switch_distance(_mission_item_triplet.current.acceptance_radius);
 
 				/* lazily publish navigation capabilities */
 				if (turn_distance != _nav_capabilities.turn_distance && turn_distance > 0) {
