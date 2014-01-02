@@ -407,8 +407,8 @@ FixedwingEstimator::task_main()
 
 			float IMUmsec = _gyro.timestamp / 1e3;
 
-			float deltaT = (_gyro.timestamp - last_run) / 1000000.0f;
-			last_run = _gyro.timestamp / 1e6 ;
+			float deltaT = (_gyro.timestamp - last_run) / 1e6f;
+			last_run = _gyro.timestamp;
 
 			/* guard against too large deltaT's */
 			if (deltaT > 1.0f)
@@ -659,7 +659,12 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (estimator::g_estimator) {
-			errx(0, "running");
+			warnx("running");
+			warnx("attitude: %8.4f, %8.4f, %8.4f", eulerEst[0], eulerEst[1], eulerEst[2]);
+			warnx("states [1-3]: %8.4f, %8.4f, %8.4f", states[0], states[1], states[2]);
+			warnx("states [4-6]: %8.4f, %8.4f, %8.4f", states[3], states[4], states[5]);
+			warnx("states [7-9]: %8.4f, %8.4f, %8.4f", states[6], states[7], states[8]);
+			exit(0);
 
 		} else {
 			errx(1, "not running");
