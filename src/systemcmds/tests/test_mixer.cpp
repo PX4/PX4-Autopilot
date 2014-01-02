@@ -54,6 +54,7 @@
 #include <systemlib/mixer/mixer.h>
 #include <systemlib/pwm_limit/pwm_limit.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 
 #include "tests.h"
 
@@ -193,9 +194,9 @@ int test_mixer(int argc, char *argv[])
 	/* run through arming phase */
 	for (int i = 0; i < output_max; i++) {
 		actuator_controls[i] = 0.1f;
-		r_page_servo_disarmed[i] = 900;
-		r_page_servo_control_min[i] = 1000;
-		r_page_servo_control_max[i] = 2000;
+		r_page_servo_disarmed[i] = PWM_LOWEST_MIN;
+		r_page_servo_control_min[i] = PWM_DEFAULT_MIN;
+		r_page_servo_control_max[i] = PWM_DEFAULT_MAX;
 	}
 
 	warnx("ARMING TEST: STARTING RAMP");
@@ -245,9 +246,9 @@ int test_mixer(int argc, char *argv[])
 
 		for (int i = 0; i < output_max; i++) {
 			actuator_controls[i] = j/10.0f + 0.1f * i;
-			r_page_servo_disarmed[i] = 900;
-			r_page_servo_control_min[i] = 1000;
-			r_page_servo_control_max[i] = 2000;
+			r_page_servo_disarmed[i] = PWM_LOWEST_MIN;
+			r_page_servo_control_min[i] = PWM_DEFAULT_MIN;
+			r_page_servo_control_max[i] = PWM_DEFAULT_MAX;
 		}
 
 		/* mix */
@@ -266,6 +267,88 @@ int test_mixer(int argc, char *argv[])
 			}
 		}
 	}
+
+	warnx("ARMING TEST: DISARMING");
+
+	starttime = hrt_absolute_time();
+	sleepcount = 0;
+	should_arm = false;
+
+	while (hrt_elapsed_time(&starttime) < 600000) {
+		
+		/* mix */
+		mixed = mixer_group.mix(&outputs[0], output_max);
+
+		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+
+		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
+		for (int i = 0; i < mixed; i++)
+		{
+			/* check mixed outputs to be zero during init phase */
+			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
+				warnx("disarmed servo value mismatch");
+				return 1;
+			}
+
+			//printf("\t %d: %8.4f limited: %8.4f, servo: %d\n", i, outputs_unlimited[i], outputs[i], (int)r_page_servos[i]);
+		}
+		usleep(sleep_quantum_us);
+		sleepcount++;
+
+		if (sleepcount % 10 == 0) {
+			printf(".");
+			fflush(stdout);
+		}
+	}
+	printf("\n");
+
+	warnx("ARMING TEST: REARMING: STARTING RAMP");
+
+	starttime = hrt_absolute_time();
+	sleepcount = 0;
+	should_arm = true;
+
+	while (hrt_elapsed_time(&starttime) < 600000 + RAMP_TIME_US) {
+		
+		/* mix */
+		mixed = mixer_group.mix(&outputs[0], output_max);
+
+		pwm_limit_calc(should_arm, mixed, r_page_servo_disarmed, r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+
+		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
+		for (int i = 0; i < mixed; i++)
+		{
+			/* predict value */
+			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
+
+			/* check ramp */
+
+			if (hrt_elapsed_time(&starttime) < RAMP_TIME_US &&
+				(r_page_servos[i] + 1 <= r_page_servo_disarmed[i] ||
+					r_page_servos[i] > servo_predicted[i])) {
+				warnx("ramp servo value mismatch");
+				return 1;
+			}
+
+			/* check post ramp phase */
+			if (hrt_elapsed_time(&starttime) > RAMP_TIME_US &&
+				fabsf(servo_predicted[i] - r_page_servos[i]) > 2) {
+				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, outputs[i], servo_predicted[i], (int)r_page_servos[i]);
+				warnx("mixer violated predicted value");
+				return 1;
+			}
+
+			//printf("\t %d: %8.4f limited: %8.4f, servo: %d\n", i, outputs_unlimited[i], outputs[i], (int)r_page_servos[i]);
+		}
+		usleep(sleep_quantum_us);
+		sleepcount++;
+
+		if (sleepcount % 10 == 0) {
+			printf(".");
+			fflush(stdout);
+		}
+	}
+	printf("\n");
 
 	/* load multirotor at once test */
 	mixer_group.reset();
