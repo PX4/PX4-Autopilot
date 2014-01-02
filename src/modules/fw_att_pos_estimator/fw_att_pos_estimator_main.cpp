@@ -578,9 +578,9 @@ FixedwingEstimator::task_main()
 
 				math::Quaternion q(states[0], states[1], states[2], states[3]);
 
-				_att.q = q;
-				_att.q_valid = true;
-				_att.R_valid = false;
+				// _att.q[0] = q.r;
+				// _att.q_valid = true;
+				// _att.R_valid = false;
 
 				// /* lazily publish the attitude only once available */
 				// if (_att_pub > 0) {
@@ -623,7 +623,7 @@ FixedwingEstimator::start()
 	_estimator_task = task_spawn_cmd("fw_att_pos_estimator",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
-					 12048,
+					 6000,
 					 (main_t)&FixedwingEstimator::task_main_trampoline,
 					 nullptr);
 
@@ -676,11 +676,11 @@ int fw_att_pos_estimator_main(int argc, char *argv[])
 			math::EulerAngles euler(q);
 
 			printf("attitude: roll: %8.4f, pitch %8.4f, yaw: %8.4f degrees",
-				math::degrees(euler.getPhi()), math::degrees(euler.getTheta()), math::degrees(euler.getPsi()));
+				(double)math::degrees(euler.getPhi()), (double)math::degrees(euler.getTheta()), (double)math::degrees(euler.getPsi()));
 
-			printf("states [1-3]: %8.4f, %8.4f, %8.4f\n", states[0], states[1], states[2]);
-			printf("states [4-6]: %8.4f, %8.4f, %8.4f\n", states[3], states[4], states[5]);
-			printf("states [7-9]: %8.4f, %8.4f, %8.4f\n", states[6], states[7], states[8]);
+			printf("states [1-3]: %8.4f, %8.4f, %8.4f\n", (double)states[0], (double)states[1], (double)states[2]);
+			printf("states [4-6]: %8.4f, %8.4f, %8.4f\n", (double)states[3], (double)states[4], (double)states[5]);
+			printf("states [7-9]: %8.4f, %8.4f, %8.4f\n", (double)states[6], (double)states[7], (double)states[8]);
 			exit(0);
 
 		} else {
