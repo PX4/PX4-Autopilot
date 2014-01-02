@@ -191,9 +191,7 @@ void frsky_send_frame1(int uart)
 	frsky_send_data(uart, FRSKY_ID_VOLTS, 0); /* cell voltage. 4 bits cell number, 12 bits voltage in 0.2V steps, scale 0-4.2V */
 	frsky_send_data(uart, FRSKY_ID_CURRENT, battery.current_a);
 
-	float voltage = battery.voltage_v * 11.0f / 21.0f;
-	frsky_send_data(uart, FRSKY_ID_VOLTS_BP, voltage);
-	frsky_send_data(uart, FRSKY_ID_VOLTS_AP, frac(voltage) * 10.0f);
+	frsky_send_data(uart, FRSKY_ID_VFAS, battery.voltage_v * 10.0f);
 
 	frsky_send_data(uart, FRSKY_ID_RPM, 0);
 
