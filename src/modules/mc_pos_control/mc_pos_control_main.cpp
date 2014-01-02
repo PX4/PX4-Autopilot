@@ -458,7 +458,6 @@ MulticopterPositionControl::task_main()
 	bool reset_int_z_manual = false;
 	bool reset_int_xy = true;
 	bool was_armed = false;
-	bool reset_takeoff_sp = true;
 
 	hrt_abstime t_prev = 0;
 
@@ -511,7 +510,6 @@ MulticopterPositionControl::task_main()
 			/* reset setpoints and integrals on arming */
 			reset_sp_z = true;
 			reset_sp_xy = true;
-			reset_takeoff_sp = true;
 			reset_int_z = true;
 			reset_int_xy = true;
 		}
@@ -607,8 +605,6 @@ MulticopterPositionControl::task_main()
 					_pos_sp = _pos + pos_sp_offs.emult(_params.vel_max);
 				}
 
-				reset_takeoff_sp = true;
-
 			} else {
 				/* AUTO */
 				if (_mission_items.current_valid) {
@@ -617,29 +613,15 @@ MulticopterPositionControl::task_main()
 					// TODO home altitude can be != ref_alt, check home_position topic
 					_pos_sp(2) = -(item.altitude_is_relative ? item.altitude : item.altitude - ref_alt);
 
-					if (item.nav_cmd == NAV_CMD_TAKEOFF) {
-						/* use current position setpoint or current position */
-						if (reset_sp_xy) {
-							reset_sp_xy = false;
-							_pos_sp(0) = _pos(0);
-							_pos_sp(1) = _pos(1);
-						}
+					map_projection_project(item.lat, item.lon, &_pos_sp(0), &_pos_sp(1));
 
-						/* add gap for takeoff setpoint */
-						_pos_sp(2) -= 0.5f * _params.vel_max(2) / _params.pos_p(2);
-						reset_sp_z = true;
-
-					} else {
-						map_projection_project(item.lat, item.lon, &_pos_sp(0), &_pos_sp(1));
-
-						if (isfinite(_mission_items.current.yaw)) {
-							_att_sp.yaw_body = _mission_items.current.yaw;
-						}
-
-						/* in case of interrupted mission don't go to waypoint but stay at current position */
-						reset_sp_xy = true;
-						reset_sp_z = true;
+					if (isfinite(_mission_items.current.yaw)) {
+						_att_sp.yaw_body = _mission_items.current.yaw;
 					}
+
+					/* in case of interrupted mission don't go to waypoint but stay at current position */
+					reset_sp_xy = true;
+					reset_sp_z = true;
 
 				} else {
 					/* no waypoint, loiter, reset position setpoint if needed */
