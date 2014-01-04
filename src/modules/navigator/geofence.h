@@ -46,11 +46,12 @@
 
 class Geofence {
 private:
-	struct fence_s	_fence;
 	orb_advert_t	_fence_pub;			/**< publish fence topic */
 
 	float			_altitude_min;
 	float			_altitude_max;
+
+	int 			_verticesCount;
 public:
 	Geofence();
 	~Geofence();
@@ -65,12 +66,6 @@ public:
 	 */
 	bool inside(const struct vehicle_global_position_s *craft);
 	bool inside(double lat, double lon, float altitude);
-
-
-	/**
-	 * Load fence parameters.
-	 */
-	bool loadFromDm(unsigned vertices);
 
 	int clearDm();
 

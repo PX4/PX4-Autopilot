@@ -547,8 +547,6 @@ Navigator::task_main()
 
 	mavlink_log_info(_mavlink_fd, "[navigator] started");
 
-	_fence_valid = _geofence.loadFromDm(GEOFENCE_MAX_VERTICES);
-
 	/* Try to load the geofence:
 	 * if /fs/microsd/etc/geofence.txt load from this file
 	 * else clear geofence data in datamanager

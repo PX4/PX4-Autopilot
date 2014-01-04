@@ -57,9 +57,10 @@ static const int ERROR = -1;
 
 Geofence::Geofence() : _fence_pub(-1),
 		_altitude_min(0),
-		_altitude_max(0)
+		_altitude_max(0),
+		_verticesCount(0)
 {
-	memset(&_fence, 0, sizeof(_fence));
+
 }
 
 Geofence::~Geofence()
@@ -79,59 +80,56 @@ bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
 
 bool Geofence::inside(double lat, double lon, float altitude)
 {
-	/* Vertical check */
-	if (altitude > _altitude_max || altitude < _altitude_min)
-		return false;
+	if (valid()) {
+		/* Vertical check */
+		if (altitude > _altitude_max || altitude < _altitude_min)
+			return false;
 
-	/*Horizontal check */
-	/* Adaptation of algorithm originally presented as
-	 * PNPOLY - Point Inclusion in Polygon Test
-	 * W. Randolph Franklin (WRF) */
+		/*Horizontal check */
+		/* Adaptation of algorithm originally presented as
+		 * PNPOLY - Point Inclusion in Polygon Test
+		 * W. Randolph Franklin (WRF) */
 
-	unsigned int i, j, vertices = _fence.count;
-	bool c = false;
+		bool c = false;
 
-	// skip vertex 0 (return point)
-	for (i = 0, j = vertices - 1; i < vertices; j = i++)
-		if (((_fence.vertices[i].lon) >= lon != (_fence.vertices[j].lon >= lon)) &&
-		    (lat <= (_fence.vertices[j].lat - _fence.vertices[i].lat) * (lon - _fence.vertices[i].lon) /
-		     (_fence.vertices[j].lon - _fence.vertices[i].lon) + _fence.vertices[i].lat))
-			c = !c;
-	return c;
-}
+		struct fence_vertex_s temp_vertex_i;
+		struct fence_vertex_s temp_vertex_j;
 
-bool
-Geofence::loadFromDm(unsigned vertices)
-{
-	struct fence_s temp_fence;
+		/* Red until fence is finished */
+		for (int i = 0, j = _verticesCount - 1; i < _verticesCount; j = i++) {
+			if (dm_read(DM_KEY_FENCE_POINTS, i, &temp_vertex_i, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
+				break;
+			}
+			if (dm_read(DM_KEY_FENCE_POINTS, j, &temp_vertex_j, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
+				break;
+			}
 
-	unsigned i;
-	for (i = 0; i < vertices; i++) {
-		if (dm_read(DM_KEY_FENCE_POINTS, i, temp_fence.vertices + i, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
-			break;
+			// skip vertex 0 (return point)
+			if (((temp_vertex_i.lon) >= lon != (temp_vertex_j.lon >= lon)) &&
+						(lat <= (temp_vertex_j.lat - temp_vertex_i.lat) * (lon - temp_vertex_i.lon) /
+						 (temp_vertex_j.lon - temp_vertex_i.lon) + temp_vertex_i.lat)) {
+						c = !c;
+			}
+
 		}
+
+		return c;
+
+	} else {
+		return true;
 	}
-
-	temp_fence.count = i;
-
-	if (valid())
-		memcpy(&_fence, &temp_fence, sizeof(_fence));
-	else
-		warnx("Invalid fence file, ignored!");
-
-	return _fence.count != 0;
 }
 
 bool
 Geofence::valid()
 {
 	// NULL fence is valid
-	if (_fence.count == 0) {
+	if (_verticesCount == 0) {
 		return true;
 	}
 
 	// Otherwise
-	if ((_fence.count < 4) || (_fence.count > GEOFENCE_MAX_VERTICES)) {
+	if ((_verticesCount < 4) || (_verticesCount > GEOFENCE_MAX_VERTICES)) {
 		warnx("Fence must have at least 3 sides and not more than %d", GEOFENCE_MAX_VERTICES - 1);
 		return false;
 	}
@@ -266,17 +264,11 @@ Geofence::loadFromFile(const char *filename)
 
 	fclose(fp);
 
-	/* Re-Load imported geofence from DM */
+	/* Check if import was successful */
 	if(gotVertical && pointCounter > 0)
 	{
-		bool fence_valid = loadFromDm(GEOFENCE_MAX_VERTICES);
-		if (fence_valid) {
-			warnx("Geofence: imported and loaded successfully");
-			return OK;
-		} else {
-			warnx("Geofence: datamanager read error");
-			return ERROR;
-		}
+		_verticesCount = pointCounter;
+		warnx("Geofence: imported successfully");
 	} else {
 		warnx("Geofence: import error");
 	}
