@@ -225,12 +225,28 @@ Geofence::loadFromFile(const char *filename)
 			/* Parse the line as a geofence point */
 			struct fence_vertex_s vertex;
 
-			if (sscanf(line, "%f %f", &(vertex.lat), &(vertex.lon)) != 2)
-				return ERROR;
+			/* if the line starts with DMS, this means that the coordinate is given as degree minute second instead of decimal degrees */
+			if (line[textStart] == 'D' && line[textStart + 1] == 'M' && line[textStart + 2] == 'S') {
+				/* Handle degree minute second format */
+				float lat_d, lat_m, lat_s, lon_d, lon_m, lon_s;
 
+				if (sscanf(line, "DMS %f %f %f %f %f %f", &lat_d, &lat_m, &lat_s, &lon_d, &lon_m, &lon_s) != 6)
+					return ERROR;
+
+//				warnx("Geofence DMS: %.5f %.5f %.5f ; %.5f %.5f %.5f", (double)lat_d, (double)lat_m, (double)lat_s, (double)lon_d, (double)lon_m, (double)lon_s);
+
+				vertex.lat = lat_d + lat_m/60.0f + lat_s/3600.0f;
+				vertex.lon = lon_d + lon_m/60.0f + lon_s/3600.0f;
+
+			} else {
+				/* Handle decimal degree format */
+
+				if (sscanf(line, "%f %f", &(vertex.lat), &(vertex.lon)) != 2)
+					return ERROR;
+			}
 
 			if (dm_write(DM_KEY_FENCE_POINTS, pointCounter, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) != sizeof(vertex))
-				return ERROR;
+								return ERROR;
 
 			warnx("Geofence: point: %d, lat %.5f: lon: %.5f", pointCounter,  (double)vertex.lat, (double)vertex.lon);
 

@@ -1515,7 +1515,7 @@ void Navigator::load_fence_from_file(const char *filename)
 
 static void usage()
 {
-	errx(1, "usage: navigator {start|stop|status|fence}");
+	errx(1, "usage: navigator {start|stop|status|fence|fencefile}");
 }
 
 int navigator_main(int argc, char *argv[])
