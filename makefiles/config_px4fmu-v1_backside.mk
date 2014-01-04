@@ -25,14 +25,10 @@ MODULES		+= drivers/bma180
 MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
-MODULES		+= drivers/mb12xx
 MODULES		+= drivers/gps
 MODULES		+= drivers/hil
-MODULES		+= drivers/hott/hott_telemetry
-MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
 MODULES		+= drivers/rgbled
-MODULES		+= drivers/mkblctrl
 MODULES		+= drivers/roboclaw
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
@@ -71,22 +67,11 @@ MODULES		+= modules/gpio_led
 #
 # Estimation modules (EKF/ SO3 / other filters)
 #
-#MODULES		+= modules/attitude_estimator_ekf
 MODULES		+= modules/att_pos_estimator_ekf
-#MODULES		+= modules/position_estimator_inav
-MODULES		+= examples/flow_position_estimator
-MODULES		+= modules/attitude_estimator_so3
 
 #
 # Vehicle Control
 #
-#MODULES		+= modules/segway # XXX Needs GCC 4.7 fix
-#MODULES		+= modules/fw_pos_control_l1
-#MODULES		+= modules/fw_att_control
-#MODULES		+= modules/multirotor_att_control
-#MODULES		+= modules/multirotor_pos_control
-#MODULES		+= examples/flow_position_control
-#MODULES		+= examples/flow_speed_control
 MODULES 		+= modules/fixedwing_backside
 
 #
