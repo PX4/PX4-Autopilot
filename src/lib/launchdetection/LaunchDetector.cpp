@@ -1,8 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -14,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name ECL nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,52 +30,65 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file mission_feasibility_checker.h
- * Provides checks if mission is feasible given the navigation capabilities
+ * @file launchDetection.cpp
+ * Auto Detection for different launch methods (e.g. catapult)
+ *
+ * Authors and acknowledgements in header.
  */
-#ifndef MISSION_FEASIBILITY_CHECKER_H_
-#define MISSION_FEASIBILITY_CHECKER_H_
 
-#include <unistd.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/navigation_capabilities.h>
-#include <dataman/dataman.h>
-#include "geofence.h"
+#include "LaunchDetector.h"
+#include "CatapultLaunchMethod.h"
+#include <systemlib/err.h>
 
-
-class MissionFeasibilityChecker
+LaunchDetector::LaunchDetector() :
+	launchdetection_on(NULL, "LAUN_ALL_ON", false)
 {
-private:
-	int		_mavlink_fd;
-
-	int _capabilities_sub;
-	struct navigation_capabilities_s _nav_caps;
-
-	bool _initDone;
-	void init();
-
-	/* Checks for all airframes */
-	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-
-	/* Checks specific to fixedwing airframes */
-	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems);
-	void updateNavigationCapabilities();
-
-	/* Checks specific to rotarywing airframes */
-	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-public:
-
-	MissionFeasibilityChecker();
-	~MissionFeasibilityChecker() {}
-
-	/*
-	 * Returns true if mission is feasible and false otherwise
-	 */
-	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-
-};
+	/* init all detectors */
+	launchMethods[0] = new CatapultLaunchMethod();
 
 
-#endif /* MISSION_FEASIBILITY_CHECKER_H_ */
+	/* update all parameters of all detectors */
+	updateParams();
+}
+
+LaunchDetector::~LaunchDetector()
+{
+
+}
+
+void LaunchDetector::update(float accel_x)
+{
+	if (launchdetection_on.get() == 1) {
+		for (uint8_t i = 0; i < sizeof(launchMethods)/sizeof(LaunchMethod); i++) {
+			launchMethods[i]->update(accel_x);
+		}
+	}
+}
+
+bool LaunchDetector::getLaunchDetected()
+{
+	if (launchdetection_on.get() == 1) {
+		for (uint8_t i = 0; i < sizeof(launchMethods)/sizeof(LaunchMethod); i++) {
+			if(launchMethods[i]->getLaunchDetected()) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void LaunchDetector::updateParams() {
+
+	warnx(" LaunchDetector::updateParams()");
+	//launchdetection_on.update();
+
+	for (uint8_t i = 0; i < sizeof(launchMethods)/sizeof(LaunchMethod); i++) {
+		//launchMethods[i]->updateParams();
+		warnx("updating component %d", i);
+	}
+
+	warnx(" LaunchDetector::updateParams() ended");
+}

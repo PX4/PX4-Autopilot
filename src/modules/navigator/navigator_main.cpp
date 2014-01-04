@@ -75,9 +75,12 @@
 #include <mathlib/mathlib.h>
 #include <dataman/dataman.h>
 #include <mavlink/mavlink_log.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "navigator_mission.h"
 #include "mission_feasibility_checker.h"
+#include "geofence.h"
 
 
 /* oddly, ERROR is not defined for c++ */
@@ -119,14 +122,14 @@ public:
 	void		status();
 
 	/**
-	 * Load fence parameters.
+	 * Add point to geofence
 	 */
-	bool		load_fence(unsigned vertices);
+	void add_fence_point(int argc, char *argv[]);
 
 	/**
-	 * Specify fence vertex position.
+	 * Load fence from file
 	 */
-	void		fence_point(int argc, char *argv[]);
+	void load_fence_from_file(const char *filename);
 
 private:
 
@@ -144,7 +147,6 @@ private:
 	int		_capabilities_sub;		/**< notification of vehicle capabilities updates */
 
 	orb_advert_t	_triplet_pub;			/**< publish position setpoint triplet */
-	orb_advert_t	_fence_pub;			/**< publish fence topic */ 
 	orb_advert_t	_mission_result_pub;		/**< publish mission result topic */
 	orb_advert_t	_control_mode_pub;			/**< publish vehicle control mode topic */
 
@@ -157,7 +159,7 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	
-	struct fence_s 					_fence;			/**< storage for fence vertices */
+	Geofence					_geofence;
 	bool						_fence_valid;		/**< flag if fence is valid */
         bool						_inside_fence;		/**< vehicle is inside fence */
 
@@ -268,11 +270,7 @@ private:
 	 */
 	void		task_main() __attribute__((noreturn));
 
-	void		publish_fence(unsigned vertices);
-
 	void		publish_safepoints(unsigned points);
-
-	bool		fence_valid(const struct fence_s &fence);
 
 	/**
 	 * Functions that are triggered when a new state is entered.
@@ -378,7 +376,6 @@ Navigator::Navigator() :
 
 /* publications */
 	_triplet_pub(-1),
-	_fence_pub(-1),
 	_mission_result_pub(-1),
 	_control_mode_pub(-1),
 
@@ -398,8 +395,6 @@ Navigator::Navigator() :
 	_need_takeoff(true),
 	_do_takeoff(false)
 {
-	memset(&_fence, 0, sizeof(_fence));
-
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
 	_parameter_handles.acceptance_radius = param_find("NAV_ACCEPT_RAD");
 	_parameter_handles.loiter_radius = param_find("NAV_LOITER_RAD");
@@ -499,7 +494,7 @@ Navigator::offboard_mission_update(bool isrotaryWing)
 		} else {
 			dm_current = DM_KEY_WAYPOINTS_OFFBOARD_1;
 		}
-		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count);
+		missionFeasiblityChecker.checkMissionFeasible(isrotaryWing, dm_current, (size_t)offboard_mission.count, _geofence);
 
 		_mission.set_offboard_dataman_id(offboard_mission.dataman_id);
 		_mission.set_current_offboard_mission_index(offboard_mission.current_index);
@@ -552,7 +547,22 @@ Navigator::task_main()
 
 	mavlink_log_info(_mavlink_fd, "[navigator] started");
 
-	_fence_valid = load_fence(GEOFENCE_MAX_VERTICES);
+	_fence_valid = _geofence.loadFromDm(GEOFENCE_MAX_VERTICES);
+
+	/* Try to load the geofence:
+	 * if /fs/microsd/etc/geofence.txt load from this file
+	 * else clear geofence data in datamanager
+	 */
+	struct stat buffer;
+	if( stat (GEOFENCE_FILENAME, &buffer) == 0 ) {
+		warnx("Try to load geofence.txt");
+		_geofence.loadFromFile(GEOFENCE_FILENAME);
+	} else {
+		if (_geofence.clearDm() > 0 )
+			warnx("Geofence cleared");
+		else
+			warnx("Could not clear geofence");
+	}
 
 	/*
 	 * do subscriptions
@@ -814,9 +824,9 @@ Navigator::status()
 	}
 	if (_fence_valid) {
 		warnx("Geofence is valid");
-		warnx("Vertex longitude latitude");
-		for (unsigned i = 0; i < _fence.count; i++)
-		warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
+//		warnx("Vertex longitude latitude");
+//		for (unsigned i = 0; i < _fence.count; i++)
+//		warnx("%6u %9.5f %8.5f", i, (double)_fence.vertices[i].lon, (double)_fence.vertices[i].lat);
 	} else {
 		warnx("Geofence not set");
 	}
@@ -839,96 +849,6 @@ Navigator::status()
 			break;
 	}
 }
-
-void
-Navigator::publish_fence(unsigned vertices)
-{
-	if (_fence_pub == -1)
-		_fence_pub = orb_advertise(ORB_ID(fence), &vertices);
-	else
-		orb_publish(ORB_ID(fence), _fence_pub, &vertices);
-}
-
-bool
-Navigator::fence_valid(const struct fence_s &fence)
-{
-	// NULL fence is valid
-	if (fence.count == 0) {
-		return true;
-	}
-
-	// Otherwise
-	if ((fence.count < 4) || (fence.count > GEOFENCE_MAX_VERTICES)) {
-		warnx("Fence must have at least 3 sides and not more than %d", GEOFENCE_MAX_VERTICES - 1);
-		return false;
-	}
-
-	return true;
-}
-
-bool
-Navigator::load_fence(unsigned vertices)
-{
-	struct fence_s temp_fence;
-
-	unsigned i;
-	for (i = 0; i < vertices; i++) {
-		if (dm_read(DM_KEY_FENCE_POINTS, i, temp_fence.vertices + i, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
-			break;
-		}
-	}
-
-	temp_fence.count = i;
-
-	if (fence_valid(temp_fence))
-		memcpy(&_fence, &temp_fence, sizeof(_fence));
-	else
-		warnx("Invalid fence file, ignored!");
-
-	return _fence.count != 0;
-}
-
-void
-Navigator::fence_point(int argc, char *argv[])
-{
-	int ix, last;
-	double lon, lat;
-	struct fence_vertex_s vertex;
-	char *end;
-
-	if ((argc == 1) && (strcmp("-clear", argv[0]) == 0)) {
-		dm_clear(DM_KEY_FENCE_POINTS);
-		publish_fence(0);
-		return;
-	}
-
-	if (argc < 3)
-		errx(1, "Specify: -clear | sequence latitude longitude [-publish]");
-
-	ix = atoi(argv[0]);
-	if (ix >= DM_KEY_FENCE_POINTS_MAX)
-		errx(1, "Sequence must be less than %d", DM_KEY_FENCE_POINTS_MAX);
-
-	lat = strtod(argv[1], &end);
-	lon = strtod(argv[2], &end);
-
-	last = 0;
-	if ((argc > 3) && (strcmp(argv[3], "-publish") == 0))
-		last = 1;
-
-	vertex.lat = (float)lat;
-	vertex.lon = (float)lon;
-
-	if (dm_write(DM_KEY_FENCE_POINTS, ix, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) == sizeof(vertex)) {
-		if (last)
-			publish_fence((unsigned)ix + 1);
-		return;
-	}
-
-	errx(1, "can't store fence point");
-}
-
-
 
 StateTable::Tran const Navigator::myTable[NAV_STATE_MAX][MAX_EVENT] = {
 	{	
@@ -1582,6 +1502,16 @@ bool Navigator::cmp_mission_item_equivalent(const struct mission_item_s a, const
 	}
 }
 
+void Navigator::add_fence_point(int argc, char *argv[])
+{
+	_geofence.addPoint(argc, argv);
+}
+
+void Navigator::load_fence_from_file(const char *filename)
+{
+	_geofence.loadFromFile(filename);
+}
+
 
 static void usage()
 {
@@ -1626,7 +1556,9 @@ int navigator_main(int argc, char *argv[])
 		navigator::g_navigator->status();
 
 	} else if (!strcmp(argv[1], "fence")) {
-		navigator::g_navigator->fence_point(argc - 2, argv + 2);
+		navigator::g_navigator->add_fence_point(argc - 2, argv + 2);
+	} else if (!strcmp(argv[1], "fencefile")) {
+			navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);
 
 	} else {
 		usage();

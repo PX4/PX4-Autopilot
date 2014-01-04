@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,15 +32,9 @@
 ############################################################################
 
 #
-# Main Navigation Controller
+# Launchdetection Library
 #
 
-MODULE_COMMAND	= navigator
-
-SRCS		= navigator_main.cpp \
-		  navigator_params.c \
-		  navigator_mission.cpp \
-		  mission_feasibility_checker.cpp \
-		  geofence.cpp
-
-INCLUDE_DIRS	 += $(MAVLINK_SRC)/include/mavlink
+SRCS		 = 	LaunchDetector.cpp \
+			CatapultLaunchMethod.cpp \
+			launchdetection_params.c

@@ -76,6 +76,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/navigation_capabilities.h>
+#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/parameter_update.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
@@ -85,10 +86,11 @@
 #include <systemlib/systemlib.h>
 #include <mathlib/mathlib.h>
 #include <mavlink/mavlink_log.h>
-
+#include <launchdetection/LaunchDetector.h>
 #include <ecl/l1/ecl_l1_pos_controller.h>
 #include <external_lgpl/tecs/tecs.h>
 #include "landingslope.h"
+
 
 /**
  * L1 control app start / stop handling function
@@ -131,7 +133,7 @@ private:
 	int		_control_mode_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
 	int 		_manual_control_sub;		/**< notification of manual control updates */
-	int		_accel_sub;			/**< body frame accelerations */
+	int		_sensor_combined_sub;			/**< for body frame accelerations */
 
 	orb_advert_t	_attitude_sp_pub;		/**< attitude setpoint */
 	orb_advert_t	_nav_capabilities_pub;		/**< navigation capabilities publication */
@@ -144,7 +146,7 @@ private:
 	struct vehicle_control_mode_s				_control_mode;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
 	struct mission_item_triplet_s			_mission_item_triplet;		/**< triplet of mission items */
-	struct accel_report				_accel;			/**< body frame accelerations */
+	struct sensor_combined_s				_sensor_combined;			/**< for body frame accelerations */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -170,12 +172,19 @@ private:
 	bool land_motor_lim;
 	bool land_onslope;
 
+	/* takeoff/launch states */
+	bool launch_detected;
+	bool launch_detection_message_sent;
+
 	/* Landingslope object */
 	Landingslope landingslope;
 
 	float flare_curve_alt_last;
 	/* heading hold */
 	float target_bearing;
+
+	/* Launch detection */
+	LaunchDetector launchDetector;
 
 	/* throttle and airspeed states */
 	float _airspeed_error;				///< airspeed error to setpoint in m/s
@@ -307,7 +316,7 @@ private:
 	/**
 	 * Check for accel updates.
 	 */
-	void		vehicle_accel_poll();
+	void		vehicle_sensor_combined_poll();
 
 	/**
 	 * Check for set triplet updates.
@@ -384,7 +393,10 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	land_motor_lim(false),
 	land_onslope(false),
 	flare_curve_alt_last(0.0f),
-	_mavlink_fd(-1)
+	_mavlink_fd(-1),
+	launchDetector(),
+	launch_detected(false),
+	launch_detection_message_sent(false)
 {
 	/* safely initialize structs */
 	vehicle_attitude_s			_att = {0};
@@ -395,7 +407,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	vehicle_control_mode_s			_control_mode = {0};
 	vehicle_global_position_s		_global_pos = {0};
 	mission_item_triplet_s			_mission_item_triplet = {0};
-	accel_report				_accel = {0};
+	sensor_combined_s				_sensor_combined = {0};
 
 
 
@@ -554,6 +566,9 @@ FixedwingPositionControl::parameters_update()
 	_nav_capabilities.landing_flare_length = landingslope.flare_length();
 	navigation_capabilities_publish();
 
+	/* Update Launch Detector Parameters */
+	launchDetector.updateParams();
+
 	return OK;
 }
 
@@ -623,14 +638,14 @@ FixedwingPositionControl::vehicle_attitude_poll()
 }
 
 void
-FixedwingPositionControl::vehicle_accel_poll()
+FixedwingPositionControl::vehicle_sensor_combined_poll()
 {
 	/* check if there is a new position */
-	bool accel_updated;
-	orb_check(_accel_sub, &accel_updated);
+	bool sensors_updated;
+	orb_check(_sensor_combined_sub, &sensors_updated);
 
-	if (accel_updated) {
-		orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
+	if (sensors_updated) {
+		orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 	}
 }
 
@@ -748,8 +763,8 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 	float baro_altitude = _global_pos.alt;
 
 	/* filter speed and altitude for controller */
-	math::Vector3 accel_body(_accel.x, _accel.y, _accel.z);
-	math::Vector3 accel_earth = _R_nb.transpose() * accel_body;
+	math::Vector3 accel_body(_sensor_combined.accelerometer_m_s2[0], _sensor_combined.accelerometer_m_s2[1], _sensor_combined.accelerometer_m_s2[2]);
+	math::Vector3 accel_earth = _R_nb * accel_body;
 
 	_tecs.update_50hz(baro_altitude, _airspeed.indicated_airspeed_m_s, _R_nb, accel_body, accel_earth);
 	float altitude_error = _mission_item_triplet.current.altitude - _global_pos.alt;
@@ -964,30 +979,56 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 
 		} else if (mission_item_triplet.current.nav_cmd == NAV_CMD_TAKEOFF) {
 
+			/* Perform launch detection */
+//			warnx("Launch detection running");
+			if(!launch_detected) { //do not do further checks once a launch was detected
+				if (launchDetector.launchDetectionEnabled()) {
+//					warnx("Launch detection enabled");
+					if(!launch_detection_message_sent) {
+						mavlink_log_info(_mavlink_fd, "#audio: Launchdetection running");
+						launch_detection_message_sent = true;
+					}
+					launchDetector.update(_sensor_combined.accelerometer_m_s2[0]);
+					if (launchDetector.getLaunchDetected()) {
+						launch_detected = true;
+						mavlink_log_info(_mavlink_fd, "#audio: Takeoff");
+					}
+				} else	{
+					/* no takeoff detection --> fly */
+					launch_detected = true;
+				}
+			}
+
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed);
 			_att_sp.roll_body = _l1_control.nav_roll();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
-			/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
-			if (altitude_error > 15.0f) {
+			if (launch_detected) {
 
-				/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
-				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(1.3f * _parameters.airspeed_min),
-							    _airspeed.indicated_airspeed_m_s, eas2tas,
-							    true, math::max(math::radians(mission_item_triplet.current.pitch_min), math::radians(10.0f)),
-							    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-							    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
+				if (altitude_error > 15.0f) {
 
-				/* limit roll motion to ensure enough lift */
-				_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
+					/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(1.3f * _parameters.airspeed_min),
+									_airspeed.indicated_airspeed_m_s, eas2tas,
+									true, math::max(math::radians(mission_item_triplet.current.pitch_min), math::radians(10.0f)),
+									_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+									math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+
+					/* limit roll motion to ensure enough lift */
+					_att_sp.roll_body = math::constrain(_att_sp.roll_body, math::radians(-15.0f), math::radians(15.0f));
+
+				} else {
+
+					_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
+									_airspeed.indicated_airspeed_m_s, eas2tas,
+									false, math::radians(_parameters.pitch_limit_min),
+									_parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
+									math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+				}
 
 			} else {
-
-				_tecs.update_pitch_throttle(_R_nb, _att.pitch, _global_pos.alt, _mission_item_triplet.current.altitude, calculate_target_airspeed(_parameters.airspeed_trim),
-							    _airspeed.indicated_airspeed_m_s, eas2tas,
-							    false, math::radians(_parameters.pitch_limit_min),
-							    _parameters.throttle_min, _parameters.throttle_max, _parameters.throttle_cruise,
-							    math::radians(_parameters.pitch_limit_min), math::radians(_parameters.pitch_limit_max));
+				throttle_max = 0.0f;
 			}
 		}
 
@@ -1007,6 +1048,12 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			land_stayonground = false;
 			land_motor_lim = false;
 			land_onslope = false;
+		}
+
+		/* reset takeoff/launch state */
+		if (mission_item_triplet.current.nav_cmd != NAV_CMD_TAKEOFF) {
+			launch_detected = false;
+			launch_detection_message_sent = false;
 		}
 
 		if (was_circle_mode && !_l1_control.circle_mode()) {
@@ -1123,7 +1170,7 @@ FixedwingPositionControl::task_main()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_mission_item_triplet_sub = orb_subscribe(ORB_ID(mission_item_triplet));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
+	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -1205,7 +1252,7 @@ FixedwingPositionControl::task_main()
 
 			vehicle_attitude_poll();
 			vehicle_setpoint_poll();
-			vehicle_accel_poll();
+			vehicle_sensor_combined_poll();
 			vehicle_airspeed_poll();
 			// vehicle_baro_poll();
 
