@@ -64,6 +64,7 @@ public:
 	 * @return true: craft is inside fence, false:craft is outside fence
 	 */
 	bool inside(const struct vehicle_global_position_s *craft);
+	bool inside(double lat, double lon);
 
 
 	/**

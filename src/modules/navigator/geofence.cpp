@@ -70,15 +70,20 @@ Geofence::~Geofence()
 
 bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
 {
+	double lat = vehicle->lat / 1e7d;
+	double lon = vehicle->lon / 1e7d;
 
+	return inside(lat, lon);
+}
+
+bool Geofence::inside(double lat, double lon)
+{
 	/* Adaptation of algorithm originally presented as
 	 * PNPOLY - Point Inclusion in Polygon Test
 	 * W. Randolph Franklin (WRF) */
 
 	unsigned int i, j, vertices = _fence.count;
 	bool c = false;
-	double lat = vehicle->lat / 1e7d;
-	double lon = vehicle->lon / 1e7d;
 
 	// skip vertex 0 (return point)
 	for (i = 0, j = vertices - 1; i < vertices; j = i++)
