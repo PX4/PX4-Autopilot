@@ -46,6 +46,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <systemlib/err.h>
+#include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
 #include <string.h>
 
@@ -53,11 +54,17 @@
 
 #include "tests.h"
 
+const int fsync_tries = 50;
+const int abort_tries = 200;
+
 int
 test_mount(int argc, char *argv[])
 {
-	const unsigned iterations = 100;
-	const unsigned alignments = 65;
+	const unsigned iterations = 10;
+	const unsigned alignments = 4;
+
+	const char* cmd_filename = "/fs/microsd/mount_test_cmds.txt";
+
 
 	/* check if microSD card is mounted */
 	struct stat buffer;
@@ -66,56 +73,114 @@ test_mount(int argc, char *argv[])
 		return 1;
 	}
 
+	/* list directory */
+	DIR		*d;
+	struct dirent	*dir;
+	d = opendir("/fs/microsd");
+	if (d) {
+
+		while ((dir = readdir(d)) != NULL) {
+			//printf("%s\n", dir->d_name);
+		}
+
+		closedir(d);
+
+		warnx("directory listing ok (FS mounted and readable)");
+
+	} else {
+		/* failed opening dir */
+		warnx("FAILED LISTING MICROSD ROOT DIRECTORY");
+
+		if (stat(cmd_filename, &buffer) == OK) {
+			(void)unlink(cmd_filename);
+		}
+
+		return 1;
+	}
+
 	/* read current test status from file, write test instructions for next round */
-	const char* cmd_filename = "/fs/microsd/mount_test_cmds";
 
 	/* initial values */
-	int it_left_fsync = 100;
-	int it_left_abort = 100;
+	int it_left_fsync = fsync_tries;
+	int it_left_abort = abort_tries;
 
 	int cmd_fd;
-	if (stat(cmd_filename, &buffer)) {
+	if (stat(cmd_filename, &buffer) == OK) {
 
 		/* command file exists, read off state */
-		cmd_fd = open(cmd_filename, O_RDWR);
+		cmd_fd = open(cmd_filename, O_RDWR | O_NONBLOCK);
 		char buf[64];
 		int ret = read(cmd_fd, buf, sizeof(buf));
-		if (ret > 0)
-			ret = sscanf("%d %d", &it_left_fsync, &it_left_abort);
 
-		warnx("Iterations left: #%d / #%d\n(%s)", it_left_fsync, it_left_abort, buf);
+		if (ret > 0) {
+			int count = 0;
+			ret = sscanf(buf, "TEST: %u %u %n", &it_left_fsync, &it_left_abort, &count);
+		} else {
+			buf[0] = '\0';
+		}
+
+		if (it_left_fsync > fsync_tries)
+			it_left_fsync = fsync_tries;
+
+		if (it_left_abort > abort_tries)
+			it_left_abort = abort_tries;
+
+		warnx("Iterations left: #%d / #%d of %d / %d\n(%s)", it_left_fsync, it_left_abort,
+			fsync_tries, abort_tries, buf);
+
+		int it_left_fsync_prev = it_left_fsync;
 
 		/* now write again what to do next */
 		if (it_left_fsync > 0)
 			it_left_fsync--;
-		if (it_left_fsync == 0 && it_left_abort > 0)
+
+		if (it_left_fsync == 0 && it_left_abort > 0) {
+
 			it_left_abort--;
 
-		if (it_left_abort == 0)
+			/* announce mode switch */
+			if (it_left_fsync_prev != it_left_fsync && it_left_fsync == 0) {
+				warnx("\n SUCCESSFULLY PASSED FSYNC'ED WRITES, CONTINUTING WITHOUT FSYNC");
+				fsync(stdout);
+				fsync(stderr);
+				usleep(20000);
+			}
+
+		}
+
+		if (it_left_abort == 0) {
 			(void)unlink(cmd_filename);
 			return 0;
+		}
 
 	} else {
 
 		/* this must be the first iteration, do something */
 		cmd_fd = open(cmd_filename, O_TRUNC | O_WRONLY | O_CREAT);
+
+		warnx("First iteration of file test\n");
 	}
 
 	char buf[64];
-	sprintf(buf, "%d %d", it_left_fsync, it_left_abort);
-	write(cmd_fd, buf, strlen(buf) + 1);	
+	int wret = sprintf(buf, "TEST: %d %d ", it_left_fsync, it_left_abort);
+	lseek(cmd_fd, 0, SEEK_SET);
+	write(cmd_fd, buf, strlen(buf) + 1);
+	fsync(cmd_fd);
 
 	/* perform tests for a range of chunk sizes */
-	unsigned chunk_sizes[] = {1, 5, 8, 13, 16, 32};
+	unsigned chunk_sizes[] = {32, 64, 128, 256, 512, 600, 1200};
 
 	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
 
-		printf("\n====== FILE TEST: %u bytes chunks ======\n", chunk_sizes[c]);
+		printf("\n\n====== FILE TEST: %u bytes chunks (%s) ======\n", chunk_sizes[c], (it_left_fsync > 0) ? "FSYNC" : "NO FSYNC");
+		fsync(stdout);
+		fsync(stderr);
+		usleep(50000);
 
 		for (unsigned a = 0; a < alignments; a++) {
 
-			printf("\n");
-			warnx("----- alignment test: %u bytes -----", a);
+			// warnx("----- alignment test: %u bytes -----", a);
+			printf(".");
 
 			uint8_t write_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 
@@ -127,15 +192,12 @@ test_mount(int argc, char *argv[])
 
 			uint8_t read_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 			hrt_abstime start, end;
-			//perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes (aligned)");
 
 			int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
-			warnx("testing unaligned writes - please wait..");
-
 			start = hrt_absolute_time();
 			for (unsigned i = 0; i < iterations; i++) {
-				//perf_begin(wperf);
+
 				int wret = write(fd, write_buf + a, chunk_sizes[c]);
 
 				if (wret != chunk_sizes[c]) {
@@ -144,24 +206,22 @@ test_mount(int argc, char *argv[])
 					if ((0x3 & (uintptr_t)(write_buf + a)))
 						errx(1, "memory is unaligned, align shift: %d", a);
 
+					return 1;
+
 				}
 
 				if (it_left_fsync > 0) {
 					fsync(fd);
 				} else {
-					if (it_left_abort % chunk_sizes[c] == 0) {
-						systemreset();
+					if (it_left_abort % 5 == 0) {
+						systemreset(false);
+					} else {
+						fsync(stdout);
+						fsync(stderr);
 					}
 				}
-				//perf_end(wperf);
-
 			}
 			end = hrt_absolute_time();
-
-			//warnx("%dKiB in %llu microseconds", iterations / 2, end - start);
-
-			//perf_print_counter(wperf);
-			//perf_free(wperf);
 
 			close(fd);
 			fd = open("/fs/microsd/testfile", O_RDONLY);
@@ -204,28 +264,18 @@ test_mount(int argc, char *argv[])
 		}
 	}
 
-	/* list directory */
-	DIR		*d;
-	struct dirent	*dir;
-	d = opendir("/fs/microsd");
-	if (d) {
+	fsync(stdout);
+	fsync(stderr);
+	usleep(20000);
 
-		while ((dir = readdir(d)) != NULL) {
-			//printf("%s\n", dir->d_name);
-		}
 
-		closedir(d);
-
-		warnx("directory listing ok (FS mounted and readable)");
-
-	} else {
-		/* failed opening dir */
-		warnx("FAILED LISTING MICROSD ROOT DIRECTORY");
-		return 1;
-	}
 
 	/* we always reboot for the next test if we get here */
-	systemreset();
+	warnx("Iteration done, rebooting..");
+	fsync(stdout);
+	fsync(stderr);
+	usleep(50000);
+	systemreset(false);
 
 	/* never going to get here */
 	return 0;

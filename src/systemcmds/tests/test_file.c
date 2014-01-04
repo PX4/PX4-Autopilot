@@ -103,6 +103,7 @@ test_file(int argc, char *argv[])
 					if ((0x3 & (uintptr_t)(write_buf + a)))
 						errx(1, "memory is unaligned, align shift: %d", a);
 
+					return 1;
 				}
 
 				fsync(fd);
@@ -139,7 +140,8 @@ test_file(int argc, char *argv[])
 				}
 
 				if (!compare_ok) {
-					errx(1, "ABORTING FURTHER COMPARISON DUE TO ERROR");
+					warnx("ABORTING FURTHER COMPARISON DUE TO ERROR");
+					return 1;
 				}
 
 			}
@@ -266,70 +268,3 @@ test_file(int argc, char *argv[])
 
 	return 0;
 }
-#if 0
-int
-test_file(int argc, char *argv[])
-{
-	const iterations = 1024;
-
-	/* check if microSD card is mounted */
-	struct stat buffer;
-	if (stat("/fs/microsd/", &buffer)) {
-		warnx("no microSD card mounted, aborting file test");
-		return 1;
-	}
-
-	uint8_t buf[512];
-	hrt_abstime start, end;
-	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes");
-
-	int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
-	memset(buf, 0, sizeof(buf));
-
-	start = hrt_absolute_time();
-	for (unsigned i = 0; i < iterations; i++) {
-		perf_begin(wperf);
-		write(fd, buf, sizeof(buf));
-		perf_end(wperf);
-	}
-	end = hrt_absolute_time();
-
-	close(fd);
-
-	unlink("/fs/microsd/testfile");
-
-	warnx("%dKiB in %llu microseconds", iterations / 2, end - start);
-	perf_print_counter(wperf);
-	perf_free(wperf);
-
-	warnx("running unlink test");
-
-	/* ensure that common commands do not run against file count limits */
-	for (unsigned i = 0; i < 64; i++) {
-
-		warnx("unlink iteration #%u", i);
-
-		int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
-		if (fd < 0)
-			errx(1, "failed opening test file before unlink()");
-		int ret = write(fd, buf, sizeof(buf));
-		if (ret < 0)
-			errx(1, "failed writing test file before unlink()");
-		close(fd);
-
-		ret = unlink("/fs/microsd/testfile");
-		if (ret != OK)
-			errx(1, "failed unlinking test file");
-
-		fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
-		if (fd < 0)
-			errx(1, "failed opening test file after unlink()");
-		ret = write(fd, buf, sizeof(buf));
-		if (ret < 0)
-			errx(1, "failed writing test file after unlink()");
-		close(fd);
-	}
-
-	return 0;
-}
-#endif
