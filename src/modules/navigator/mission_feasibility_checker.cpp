@@ -108,7 +108,7 @@ bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMiss
 				return false;
 			}
 
-			if (!geofence.inside(missionitem.lat, missionitem.lon)) {
+			if (!geofence.inside(missionitem.lat, missionitem.lon, missionitem.altitude)) { //xxx: handle relative altitude
 				mavlink_log_info(_mavlink_fd, "#audio: Geofence violation waypoint %d", i);
 				return false;
 			}

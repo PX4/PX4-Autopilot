@@ -72,12 +72,18 @@ bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
 {
 	double lat = vehicle->lat / 1e7d;
 	double lon = vehicle->lon / 1e7d;
+	float	alt = vehicle->alt;
 
-	return inside(lat, lon);
+	return inside(lat, lon, vehicle->alt);
 }
 
-bool Geofence::inside(double lat, double lon)
+bool Geofence::inside(double lat, double lon, float altitude)
 {
+	/* Vertical check */
+	if (altitude > _altitude_max || altitude < _altitude_min)
+		return false;
+
+	/*Horizontal check */
 	/* Adaptation of algorithm originally presented as
 	 * PNPOLY - Point Inclusion in Polygon Test
 	 * W. Randolph Franklin (WRF) */
