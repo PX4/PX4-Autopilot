@@ -16,11 +16,14 @@ MODULES		+= drivers/led
 MODULES		+= drivers/boards/px4fmu-v2
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
+MODULES		+= systemcmds/tests
+MODULES		+= systemcmds/nshterm
 
 #
 # Library modules
 #
 MODULES		+= modules/systemlib
+MODULES		+= modules/systemlib/mixer
 MODULES		+= modules/uORB
 
 #
