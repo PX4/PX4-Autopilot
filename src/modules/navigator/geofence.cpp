@@ -81,41 +81,48 @@ bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
 bool Geofence::inside(double lat, double lon, float altitude)
 {
 	if (valid()) {
-		/* Vertical check */
-		if (altitude > _altitude_max || altitude < _altitude_min)
-			return false;
 
-		/*Horizontal check */
-		/* Adaptation of algorithm originally presented as
-		 * PNPOLY - Point Inclusion in Polygon Test
-		 * W. Randolph Franklin (WRF) */
+		if (!isEmpty()) {
+			/* Vertical check */
+			if (altitude > _altitude_max || altitude < _altitude_min)
+				return false;
 
-		bool c = false;
+			/*Horizontal check */
+			/* Adaptation of algorithm originally presented as
+			 * PNPOLY - Point Inclusion in Polygon Test
+			 * W. Randolph Franklin (WRF) */
 
-		struct fence_vertex_s temp_vertex_i;
-		struct fence_vertex_s temp_vertex_j;
+			bool c = false;
 
-		/* Red until fence is finished */
-		for (int i = 0, j = _verticesCount - 1; i < _verticesCount; j = i++) {
-			if (dm_read(DM_KEY_FENCE_POINTS, i, &temp_vertex_i, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
-				break;
+			struct fence_vertex_s temp_vertex_i;
+			struct fence_vertex_s temp_vertex_j;
+
+			/* Red until fence is finished */
+			for (unsigned i = 0, j = _verticesCount - 1; i < _verticesCount; j = i++) {
+				if (dm_read(DM_KEY_FENCE_POINTS, i, &temp_vertex_i, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
+					break;
+				}
+				if (dm_read(DM_KEY_FENCE_POINTS, j, &temp_vertex_j, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
+					break;
+				}
+
+				// skip vertex 0 (return point)
+				if (((temp_vertex_i.lon) >= lon != (temp_vertex_j.lon >= lon)) &&
+							(lat <= (temp_vertex_j.lat - temp_vertex_i.lat) * (lon - temp_vertex_i.lon) /
+							 (temp_vertex_j.lon - temp_vertex_i.lon) + temp_vertex_i.lat)) {
+							c = !c;
+				}
+
 			}
-			if (dm_read(DM_KEY_FENCE_POINTS, j, &temp_vertex_j, sizeof(struct fence_vertex_s)) != sizeof(struct fence_vertex_s)) {
-				break;
-			}
 
-			// skip vertex 0 (return point)
-			if (((temp_vertex_i.lon) >= lon != (temp_vertex_j.lon >= lon)) &&
-						(lat <= (temp_vertex_j.lat - temp_vertex_i.lat) * (lon - temp_vertex_i.lon) /
-						 (temp_vertex_j.lon - temp_vertex_i.lon) + temp_vertex_i.lat)) {
-						c = !c;
-			}
-
+			return c;
+		} else {
+			/* Empty fence --> accept all points */
+			return true;
 		}
 
-		return c;
-
 	} else {
+		/* Invalid fence --> accept all points */
 		return true;
 	}
 }
@@ -124,9 +131,8 @@ bool
 Geofence::valid()
 {
 	// NULL fence is valid
-	if (_verticesCount == 0) {
+	if (isEmpty())
 		return true;
-	}
 
 	// Otherwise
 	if ((_verticesCount < 4) || (_verticesCount > GEOFENCE_MAX_VERTICES)) {

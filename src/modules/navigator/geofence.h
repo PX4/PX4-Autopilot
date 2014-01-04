@@ -51,7 +51,7 @@ private:
 	float			_altitude_min;
 	float			_altitude_max;
 
-	int 			_verticesCount;
+	unsigned 			_verticesCount;
 public:
 	Geofence();
 	~Geofence();
@@ -79,6 +79,8 @@ public:
 	void publishFence(unsigned vertices);
 
 	int loadFromFile(const char *filename);
+
+	bool isEmpty() {return _verticesCount == 0;}
 };
 
 
