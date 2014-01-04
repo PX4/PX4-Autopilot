@@ -42,10 +42,15 @@
 
 #include <uORB/topics/fence.h>
 
+#define GEOFENCE_FILENAME "/fs/microsd/etc/geofence.txt"
+
 class Geofence {
 private:
-	struct fence_s _fence;
+	struct fence_s	_fence;
 	orb_advert_t	_fence_pub;			/**< publish fence topic */
+
+	float			_altitude_min;
+	float			_altitude_max;
 public:
 	Geofence();
 	~Geofence();
@@ -64,7 +69,9 @@ public:
 	/**
 	 * Load fence parameters.
 	 */
-	bool load(unsigned vertices);
+	bool loadFromDm(unsigned vertices);
+
+	int clearDm();
 
 	bool valid();
 
@@ -74,6 +81,8 @@ public:
 	void addPoint(int argc, char *argv[]);
 
 	void publishFence(unsigned vertices);
+
+	int loadFromFile(const char *filename);
 };
 
 

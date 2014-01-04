@@ -75,6 +75,8 @@
 #include <mathlib/mathlib.h>
 #include <dataman/dataman.h>
 #include <mavlink/mavlink_log.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "navigator_mission.h"
 #include "mission_feasibility_checker.h"
@@ -123,6 +125,11 @@ public:
 	 * Add point to geofence
 	 */
 	void add_fence_point(int argc, char *argv[]);
+
+	/**
+	 * Load fence from file
+	 */
+	void load_fence_from_file(const char *filename);
 
 private:
 
@@ -497,7 +504,22 @@ Navigator::task_main()
 
 	mavlink_log_info(_mavlink_fd, "[navigator] started");
 
-	_fence_valid = _geofence.load(GEOFENCE_MAX_VERTICES);
+	_fence_valid = _geofence.loadFromDm(GEOFENCE_MAX_VERTICES);
+
+	/* Try to load the geofence:
+	 * if /fs/microsd/etc/geofence.txt load from this file
+	 * else clear geofence data in datamanager
+	 */
+	struct stat buffer;
+	if( stat (GEOFENCE_FILENAME, &buffer) == 0 ) {
+		warnx("Try to load geofence.txt");
+		_geofence.loadFromFile(GEOFENCE_FILENAME);
+	} else {
+		if (_geofence.clearDm() > 0 )
+			warnx("Geofence cleared");
+		else
+			warnx("Could not clear geofence");
+	}
 
 	/*
 	 * do subscriptions
@@ -1252,6 +1274,11 @@ void Navigator::add_fence_point(int argc, char *argv[])
 	_geofence.addPoint(argc, argv);
 }
 
+void Navigator::load_fence_from_file(const char *filename)
+{
+	_geofence.loadFromFile(filename);
+}
+
 
 static void usage()
 {
@@ -1297,6 +1324,8 @@ int navigator_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "fence")) {
 		navigator::g_navigator->add_fence_point(argc - 2, argv + 2);
+	} else if (!strcmp(argv[1], "fencefile")) {
+			navigator::g_navigator->load_fence_from_file(GEOFENCE_FILENAME);
 
 	} else {
 		usage();

@@ -43,8 +43,21 @@
 #include <dataman/dataman.h>
 #include <systemlib/err.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <nuttx/config.h>
+#include <unistd.h>
 
-Geofence::Geofence() : _fence_pub(-1)
+
+/* Oddly, ERROR is not defined for C++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
+Geofence::Geofence() : _fence_pub(-1),
+		_altitude_min(0),
+		_altitude_max(0)
 {
 	memset(&_fence, 0, sizeof(_fence));
 }
@@ -77,7 +90,7 @@ bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
 }
 
 bool
-Geofence::load(unsigned vertices)
+Geofence::loadFromDm(unsigned vertices)
 {
 	struct fence_s temp_fence;
 
@@ -164,3 +177,87 @@ Geofence::publishFence(unsigned vertices)
 		orb_publish(ORB_ID(fence), _fence_pub, &vertices);
 }
 
+int
+Geofence::loadFromFile(const char *filename)
+{
+	FILE		*fp;
+	char		line[120];
+	int			pointCounter = 0;
+	bool		gotVertical = false;
+	const char commentChar = '#';
+
+	/* Make sure no data is left in the datamanager */
+	clearDm();
+
+	/* open the mixer definition file */
+	fp = fopen(GEOFENCE_FILENAME, "r");
+	if (fp == NULL) {
+		return ERROR;
+	}
+
+	/* create geofence points from valid lines and store in DM */
+	for (;;) {
+
+		/* get a line, bail on error/EOF */
+		if (fgets(line, sizeof(line), fp) == NULL)
+			break;
+
+		/* Trim leading whitespace */
+		size_t textStart = 0;
+		while((textStart < sizeof(line)/sizeof(char)) && isspace(line[textStart])) textStart++;
+
+		/* if the line starts with #, skip */
+		if (line[textStart] == commentChar)
+			continue;
+
+		if (gotVertical) {
+			/* Parse the line as a geofence point */
+			struct fence_vertex_s vertex;
+
+			if (sscanf(line, "%f %f", &(vertex.lat), &(vertex.lon)) != 2)
+				return ERROR;
+
+
+			if (dm_write(DM_KEY_FENCE_POINTS, pointCounter, DM_PERSIST_POWER_ON_RESET, &vertex, sizeof(vertex)) != sizeof(vertex))
+				return ERROR;
+
+			warnx("Geofence: point: %d, lat %.5f: lon: %.5f", pointCounter,  (double)vertex.lat, (double)vertex.lon);
+
+			pointCounter++;
+		} else {
+			/* Parse the line as the vertical limits */
+			if (sscanf(line, "%f %f", &_altitude_min, &_altitude_max) != 2)
+				return ERROR;
+
+
+			warnx("Geofence: alt min: %.4f, alt_max: %.4f", (double)_altitude_min, (double)_altitude_max);
+			gotVertical = true;
+		}
+
+
+	}
+
+	fclose(fp);
+
+	/* Re-Load imported geofence from DM */
+	if(gotVertical && pointCounter > 0)
+	{
+		bool fence_valid = loadFromDm(GEOFENCE_MAX_VERTICES);
+		if (fence_valid) {
+			warnx("Geofence: imported and loaded successfully");
+			return OK;
+		} else {
+			warnx("Geofence: datamanager read error");
+			return ERROR;
+		}
+	} else {
+		warnx("Geofence: import error");
+	}
+
+	return ERROR;
+}
+
+int Geofence::clearDm()
+{
+	dm_clear(DM_KEY_FENCE_POINTS);
+}
