@@ -84,10 +84,11 @@ extern "C" __EXPORT int fw_att_pos_estimator_main(int argc, char *argv[]);
 __EXPORT uint32_t millis();
 
 static uint64_t last_run = 0;
+static uint32_t IMUmsec = 0;
 
 uint32_t millis()
 {
-	return last_run / 1e3;
+	return IMUmsec;
 }
 
 class FixedwingEstimator
@@ -427,7 +428,7 @@ FixedwingEstimator::task_main()
 				orb_copy(ORB_ID(sensor_accel), _accel_sub, &_accel);
 			}
 
-			float IMUmsec = _gyro.timestamp / 1e3;
+			IMUmsec = _gyro.timestamp / 1e3f;
 
 			float deltaT = (_gyro.timestamp - last_run) / 1e6f;
 			last_run = _gyro.timestamp;
@@ -501,8 +502,6 @@ FixedwingEstimator::task_main()
 					gpsLon = math::radians(_gps.lon / (double)1e7);
 					gpsHgt = _gps.alt / 1e3f;
 
-					newDataGps = true;
-
 					if (hrt_elapsed_time(&start_time) > 500000 && !_initialized) {
 						InitialiseFilter();
 						_initialized = true;
@@ -540,12 +539,13 @@ FixedwingEstimator::task_main()
 					fuseVelData = false;
 					fusePosData = false;
 					fuseHgtData = false;
-
-					newDataGps = false;
 				}
 
 			} else {
-				newDataGps = false;
+				/* do not fuse anything, we got no position / vel update */
+				fuseVelData = false;
+				fusePosData = false;
+				fuseHgtData = false;
 			}
 
 			bool mag_updated;
@@ -555,13 +555,15 @@ FixedwingEstimator::task_main()
 				perf_count(_perf_mag);
 
 				// XXX we compensate the offsets upfront - should be close to zero.
-				magData.x = _mag.x;
+				// XXX the purpose of the 0.001 factor is unclear
+				// 0.001f
+				magData.x = 0.001f * _mag.x;
 				magBias.x = 0.0f; // _mag_offsets.x_offset
 
-				magData.y = _mag.y;
+				magData.y = 0.001f * _mag.y;
 				magBias.y = 0.0f; // _mag_offsets.y_offset
 
-				magData.z = _mag.z;
+				magData.z = 0.001f * _mag.z;
 				magBias.z = 0.0f; // _mag_offsets.y_offset
 
 				if (_initialized) {
