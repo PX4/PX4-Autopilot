@@ -44,7 +44,7 @@
 
 LaunchDetector::LaunchDetector() :
 	launchdetection_on(NULL, "LAUN_ALL_ON", false),
-	throttle_min(NULL, "LAUN_THR_MIN", false)
+	throttlePreTakeoff(NULL, "LAUN_THR_PRE", false)
 {
 	/* init all detectors */
 	launchMethods[0] = new CatapultLaunchMethod();
@@ -85,7 +85,7 @@ void LaunchDetector::updateParams() {
 
 	warnx(" LaunchDetector::updateParams()");
 	launchdetection_on.update();
-	throttle_min.update();
+	throttlePreTakeoff.update();
 
 	for (uint8_t i = 0; i < sizeof(launchMethods)/sizeof(LaunchMethod); i++) {
 		launchMethods[i]->updateParams();

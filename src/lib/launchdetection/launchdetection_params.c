@@ -69,4 +69,4 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
 // @DisplayName		Throttle setting while detecting the launch
 // @Description		The throttle is set to this value while the system is waiting for the takeoff
 // @Range		0 to 1
-PARAM_DEFINE_FLOAT(LAUN_THR_MIN, 0.0f);
+PARAM_DEFINE_FLOAT(LAUN_THR_PRE, 0.0f);

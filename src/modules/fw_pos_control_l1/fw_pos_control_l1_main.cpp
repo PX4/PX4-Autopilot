@@ -174,6 +174,7 @@ private:
 
 	/* takeoff/launch states */
 	bool launch_detected;
+	bool usePreTakeoffThrust;
 	bool launch_detection_message_sent;
 
 	/* Landingslope object */
@@ -396,6 +397,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_mavlink_fd(-1),
 	launchDetector(),
 	launch_detected(false),
+	usePreTakeoffThrust(false),
 	launch_detection_message_sent(false)
 {
 	/* safely initialize structs */
@@ -1004,6 +1006,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
 			if (launch_detected) {
+				usePreTakeoffThrust = false;
 
 				/* apply minimum pitch and limit roll if target altitude is not within 10 meters */
 				if (altitude_error > 15.0f) {
@@ -1028,7 +1031,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				}
 
 			} else {
-				throttle_max = launchDetector.getMinThrottle();
+				usePreTakeoffThrust = true;
 			}
 		}
 
@@ -1053,6 +1056,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		/* reset takeoff/launch state */
 		if (mission_item_triplet.current.nav_cmd != NAV_CMD_TAKEOFF) {
 			launch_detected = false;
+			usePreTakeoffThrust = false;
 			launch_detection_message_sent = false;
 		}
 
@@ -1150,8 +1154,14 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 		setpoint = false;
 	}
 
+	if (usePreTakeoffThrust) {
+		_att_sp.thrust = launchDetector.getThrottlePreTakeoff();
+	}
+	else {
+		_att_sp.thrust = math::min(_tecs.get_throttle_demand(), throttle_max);
+	}
 	_att_sp.pitch_body = _tecs.get_pitch_demand();
-	_att_sp.thrust = math::min(_tecs.get_throttle_demand(), throttle_max);
+
 
 	return setpoint;
 }
