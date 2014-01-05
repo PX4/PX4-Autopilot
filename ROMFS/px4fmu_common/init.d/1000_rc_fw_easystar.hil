@@ -83,5 +83,7 @@ mixer load /dev/pwm_output /etc/mixers/FMU_AET.mix
 fw_pos_control_l1 start
 fw_att_control start
 
+sdlog2 start -r 50 -a -b 16
+
 echo "[HIL] setup done, running"
 
