@@ -458,6 +458,8 @@ Navigator::parameters_update()
 	param_get(_parameter_handles.rtl_alt, &(_parameters.rtl_alt));
 
 	_mission.set_onboard_mission_allowed((bool)_parameter_handles.onboard_mission_enabled);
+
+	_geofence.updateParams();
 }
 
 void

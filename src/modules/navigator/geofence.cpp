@@ -58,9 +58,11 @@ static const int ERROR = -1;
 Geofence::Geofence() : _fence_pub(-1),
 		_altitude_min(0),
 		_altitude_max(0),
-		_verticesCount(0)
+		_verticesCount(0),
+		param_geofence_on(NULL, "GF_ON", false)
 {
-
+	/* Load initial params */
+	updateParams();
 }
 
 Geofence::~Geofence()
@@ -80,6 +82,10 @@ bool Geofence::inside(const struct vehicle_global_position_s *vehicle)
 
 bool Geofence::inside(double lat, double lon, float altitude)
 {
+	/* Return true if geofence is disabled */
+	if (param_geofence_on.get() != 1)
+		return true;
+
 	if (valid()) {
 
 		if (!isEmpty()) {
@@ -285,4 +291,9 @@ Geofence::loadFromFile(const char *filename)
 int Geofence::clearDm()
 {
 	dm_clear(DM_KEY_FENCE_POINTS);
+}
+
+void Geofence::updateParams()
+{
+	param_geofence_on.update();
 }
