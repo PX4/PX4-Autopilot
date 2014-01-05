@@ -1,8 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Jean Cyr <jean.m.cyr@gmail.com>
- *           @author Thomas Gubler <thomasgubler@gmail.com>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -19,7 +18,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,62 +31,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file geofence.h
- * Provides functions for handling the geofence
+ * @file geofence_params.c
+ *
+ * Parameters for geofence
+ *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef GEOFENCE_H_
-#define GEOFENCE_H_
+#include <nuttx/config.h>
 
-#include <uORB/topics/fence.h>
-#include <controllib/block/BlockParam.hpp>
+#include <systemlib/param/param.h>
 
-#define GEOFENCE_FILENAME "/fs/microsd/etc/geofence.txt"
+/*
+ * geofence parameters, accessible via MAVLink
+ *
+ */
 
-class Geofence {
-private:
-	orb_advert_t	_fence_pub;			/**< publish fence topic */
-
-	float			_altitude_min;
-	float			_altitude_max;
-
-	unsigned 			_verticesCount;
-
-	/* Params */
-	control::BlockParamInt param_geofence_on;
-public:
-	Geofence();
-	~Geofence();
-
-	/**
-	 * Return whether craft is inside geofence.
-	 *
-	 * Calculate whether point is inside arbitrary polygon
-	 * @param craft pointer craft coordinates
-	 * @param fence pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
-	 * @return true: craft is inside fence, false:craft is outside fence
-	 */
-	bool inside(const struct vehicle_global_position_s *craft);
-	bool inside(double lat, double lon, float altitude);
-
-	int clearDm();
-
-	bool valid();
-
-	/**
-	 * Specify fence vertex position.
-	 */
-	void addPoint(int argc, char *argv[]);
-
-	void publishFence(unsigned vertices);
-
-	int loadFromFile(const char *filename);
-
-	bool isEmpty() {return _verticesCount == 0;}
-
-	void updateParams();
-};
-
-
-#endif /* GEOFENCE_H_ */
+// @DisplayName		Switch to enable geofence
+// @Description		if set to 1 geofence is enabled, defaults to 1 because geofence is only enabled when the geofence.txt file is present
+// @Range		0 or 1
+PARAM_DEFINE_INT32(GF_ON, 1);
