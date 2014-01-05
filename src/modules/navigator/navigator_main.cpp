@@ -160,6 +160,8 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	
 	Geofence					_geofence;
+	bool						_geofence_violation_warning_sent;
+
 	bool						_fence_valid;		/**< flag if fence is valid */
         bool						_inside_fence;		/**< vehicle is inside fence */
 
@@ -393,7 +395,8 @@ Navigator::Navigator() :
 	_time_first_inside_orbit(0),
 	_set_nav_state_timestamp(0),
 	_need_takeoff(true),
-	_do_takeoff(false)
+	_do_takeoff(false),
+	_geofence_violation_warning_sent(false)
 {
 	_parameter_handles.min_altitude = param_find("NAV_MIN_ALT");
 	_parameter_handles.acceptance_radius = param_find("NAV_ACCEPT_RAD");
@@ -765,6 +768,21 @@ Navigator::task_main()
 				if (check_mission_item_reached()) {
 					on_mission_item_reached();
 				}
+			}
+
+			/* Check geofence violation */
+			if(!_geofence.inside(&_global_pos)) {
+				//xxx: publish geofence violation here (or change local flag depending on which app handles the flight termination)
+
+				/* Issue a warning about the geofence violation once */
+				if (!_geofence_violation_warning_sent)
+				{
+					mavlink_log_critical(_mavlink_fd, "#audio: Geofence violation");
+					_geofence_violation_warning_sent = true;
+				}
+			} else {
+				/* Reset the _geofence_violation_warning_sent field */
+				_geofence_violation_warning_sent = false;
 			}
 		}
 
