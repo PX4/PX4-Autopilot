@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4iov2_internal.h
+ * @file board_config.h
  *
  * PX4IOV2 internal definitions
  */
@@ -122,7 +122,7 @@
 #define HRT_TIMER		1	/* use timer1 for the HRT */
 #define HRT_TIMER_CHANNEL	2	/* use capture/compare channel 2 */
 #define HRT_PPM_CHANNEL		1	/* use capture/compare channel 1 */
-#define GPIO_PPM_IN		GPIO_TIM1_CH1IN
+#define GPIO_PPM_IN		(GPIO_ALT|GPIO_CNF_INPULLUP|GPIO_PORTE|GPIO_PIN9)
 
 /* LED definitions ******************************************************************/
 /* PX4 has two LEDs that we will encode as: */
