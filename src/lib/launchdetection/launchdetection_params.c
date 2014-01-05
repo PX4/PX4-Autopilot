@@ -33,11 +33,11 @@
  ****************************************************************************/
 
 /**
- * @file fw_pos_control_l1_params.c
+ * @file launchdetection_params.c
  *
- * Parameters defined by the L1 position control task
+ * Parameters for launchdetection
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
 #include <nuttx/config.h>
@@ -65,3 +65,8 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
 // @Description		LAUN_CAT_A * LAUN_CAT_T serves as threshold to trigger launch detection
 // @Range		> 0, in seconds
 PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
+
+// @DisplayName		Throttle setting while detecting the launch
+// @Description		The throttle is set to this value while the system is waiting for the takeoff
+// @Range		0 to 1
+PARAM_DEFINE_FLOAT(LAUN_THR_MIN, 0.0f);

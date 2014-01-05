@@ -43,7 +43,8 @@
 #include <systemlib/err.h>
 
 LaunchDetector::LaunchDetector() :
-	launchdetection_on(NULL, "LAUN_ALL_ON", false)
+	launchdetection_on(NULL, "LAUN_ALL_ON", false),
+	throttle_min(NULL, "LAUN_THR_MIN", false)
 {
 	/* init all detectors */
 	launchMethods[0] = new CatapultLaunchMethod();
@@ -83,10 +84,11 @@ bool LaunchDetector::getLaunchDetected()
 void LaunchDetector::updateParams() {
 
 	warnx(" LaunchDetector::updateParams()");
-	//launchdetection_on.update();
+	launchdetection_on.update();
+	throttle_min.update();
 
 	for (uint8_t i = 0; i < sizeof(launchMethods)/sizeof(LaunchMethod); i++) {
-		//launchMethods[i]->updateParams();
+		launchMethods[i]->updateParams();
 		warnx("updating component %d", i);
 	}
 

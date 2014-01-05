@@ -1028,7 +1028,7 @@ FixedwingPositionControl::control_position(const math::Vector2f &current_positio
 				}
 
 			} else {
-				throttle_max = 0.0f;
+				throttle_max = launchDetector.getMinThrottle();
 			}
 		}
 

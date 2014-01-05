@@ -59,11 +59,14 @@ public:
 	void updateParams();
 	bool launchDetectionEnabled() { return (bool)launchdetection_on.get(); };
 
+	float getMinThrottle() {return throttle_min.get(); }
+
 //	virtual bool getLaunchDetected();
 protected:
 private:
 	LaunchMethod* launchMethods[1];
 	control::BlockParamInt launchdetection_on;
+	control::BlockParamFloat throttle_min;
 
 
 };
