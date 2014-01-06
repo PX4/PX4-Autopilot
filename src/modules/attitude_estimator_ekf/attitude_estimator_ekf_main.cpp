@@ -59,6 +59,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -219,6 +220,8 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 	memset(&raw, 0, sizeof(raw));
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
+	struct vehicle_global_position_s global_pos;
+	memset(&global_pos, 0, sizeof(global_pos));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_control_mode_s control_mode;
@@ -226,9 +229,20 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
-	uint64_t last_gps = 0;
+	uint64_t last_vel_t = 0;
 
-	float vel_prev[3] = { 0.0f, 0.0f, 0.0f };
+	/* current velocity */
+	math::Vector<3> vel;
+	vel.zero();
+	/* previous velocity */
+	math::Vector<3> vel_prev;
+	vel_prev.zero();
+	/* actual acceleration (by GPS velocity) in body frame */
+	math::Vector<3> acc;
+	acc.zero();
+	/* rotation matrix */
+	math::Matrix<3, 3> R;
+	R.identity();
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
@@ -237,6 +251,9 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	/* subscribe to GPS */
 	int sub_gps = orb_subscribe(ORB_ID(vehicle_gps_position));
+
+	/* subscribe to GPS */
+	int sub_global_pos = orb_subscribe(ORB_ID(vehicle_global_position));
 
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));
@@ -275,9 +292,6 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
 	unsigned offset_count = 0;
-
-	/* actual acceleration (by GPS velocity) in body frame */
-	float acc[3] = { 0.0f, 0.0f, 0.0f };
 
 	/* rotation matrix for magnetic declination */
 	math::Matrix<3, 3> R_decl;
@@ -327,7 +341,18 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 				/* get latest measurements */
 				orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
-				orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
+
+				bool gps_updated;
+				orb_check(sub_gps, &gps_updated);
+				if (gps_updated) {
+					orb_copy(ORB_ID(vehicle_gps_position), sub_gps, &gps);
+				}
+
+				bool global_pos_updated;
+				orb_check(sub_global_pos, &global_pos_updated);
+				if (global_pos_updated) {
+					orb_copy(ORB_ID(vehicle_global_position), sub_global_pos, &global_pos);
+				}
 
 				if (!initialized) {
 					// XXX disabling init for now
@@ -374,43 +399,50 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 						sensor_last_timestamp[1] = raw.timestamp;
 					}
 
-					if (gps.fix_type >= 3 && gps.eph_m < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
-						if (last_gps != 0 && gps.timestamp_velocity != last_gps) {
-							float gps_dt = (gps.timestamp_velocity - last_gps) / 1000000.0f;
-							/* calculate acceleration in NED frame */
-							float acc_NED[3];
-							acc_NED[0] = (gps.vel_n_m_s - vel_prev[0]) / gps_dt;
-							acc_NED[1] = (gps.vel_e_m_s - vel_prev[1]) / gps_dt;
-							acc_NED[2] = (gps.vel_d_m_s - vel_prev[2]) / gps_dt;
-
-							/* project acceleration to body frame */
-							for (int i = 0; i < 3; i++) {
-								acc[i] = 0.0f;
-								for (int j = 0; j < 3; j++) {
-									acc[i] += att.R[j][i] * acc_NED[j];
-								}
-							}
-
-							vel_prev[0] = gps.vel_n_m_s;
-							vel_prev[1] = gps.vel_e_m_s;
-							vel_prev[2] = gps.vel_d_m_s;
+					hrt_abstime vel_t = 0;
+					bool vel_valid = false;
+					if (ekf_params.acc_comp == 1 && gps.fix_type >= 3 && gps.eph_m < 10.0f && gps.vel_ned_valid && hrt_absolute_time() < gps.timestamp_velocity + 500000) {
+						vel_valid = true;
+						if (gps_updated) {
+							vel_t = gps.timestamp_velocity;
+							vel(0) = gps.vel_n_m_s;
+							vel(1) = gps.vel_e_m_s;
+							vel(2) = gps.vel_d_m_s;
 						}
-						last_gps = gps.timestamp_velocity;
 
-					} else {
-						acc[0] = 0.0f;
-						acc[1] = 0.0f;
-						acc[2] = 0.0f;
-
-						vel_prev[0] = 0.0f;
-						vel_prev[1] = 0.0f;
-						vel_prev[2] = 0.0f;
-						last_gps = 0;
+					} else if (ekf_params.acc_comp == 2 && global_pos_updated && global_pos.valid && hrt_absolute_time() < global_pos.timestamp + 500000) {
+						vel_valid = true;
+						if (global_pos_updated) {
+							vel_t = global_pos.timestamp;
+							vel(0) = global_pos.vx;
+							vel(1) = global_pos.vy;
+							vel(2) = global_pos.vz;
+						}
 					}
 
-					z_k[3] = raw.accelerometer_m_s2[0] - acc[0];
-					z_k[4] = raw.accelerometer_m_s2[1] - acc[1];
-					z_k[5] = raw.accelerometer_m_s2[2] - acc[2];
+					if (vel_valid) {
+						/* velocity is valid */
+						if (vel_t != 0) {
+							/* velocity updated */
+							if (last_vel_t != 0 && vel_t != last_vel_t) {
+								float vel_dt = (vel_t - last_vel_t) / 1000000.0f;
+								/* calculate acceleration in body frame */
+								acc = R.transposed() * ((vel - vel_prev) / vel_dt);
+							}
+							last_vel_t = vel_t;
+							vel_prev = vel;
+						}
+
+					} else {
+						/* velocity is valid, reset acceleration */
+						acc.zero();
+						vel_prev.zero();
+						last_vel_t = 0;
+					}
+
+					z_k[3] = raw.accelerometer_m_s2[0] - acc(0);
+					z_k[4] = raw.accelerometer_m_s2[1] - acc(1);
+					z_k[5] = raw.accelerometer_m_s2[2] - acc(2);
 
 					/* update magnetometer measurements */
 					if (sensor_last_count[2] != raw.magnetometer_counter) {
@@ -506,7 +538,7 @@ const unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 					/* magnetic declination */
 
 					math::Matrix<3, 3> R_body = (&Rot_matrix[0]);
-					math::Matrix<3, 3> R = R_decl * R_body;
+					R = R_decl * R_body;
 
 					/* copy rotation matrix */
 					memcpy(&att.R[0][0], &R.data[0][0], sizeof(att.R));
