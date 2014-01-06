@@ -45,7 +45,6 @@
 #include "px4io.h"
 
 static struct hrt_call arming_call;
-static struct hrt_call heartbeat_call;
 static struct hrt_call failsafe_call;
 
 /*

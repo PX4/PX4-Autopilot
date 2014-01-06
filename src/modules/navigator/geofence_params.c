@@ -1,8 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -19,7 +18,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,52 +31,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file mission_feasibility_checker.h
- * Provides checks if mission is feasible given the navigation capabilities
+ * @file geofence_params.c
+ *
+ * Parameters for geofence
+ *
+ * @author Thomas Gubler <thomasgubler@gmail.com>
  */
-#ifndef MISSION_FEASIBILITY_CHECKER_H_
-#define MISSION_FEASIBILITY_CHECKER_H_
 
-#include <unistd.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/navigation_capabilities.h>
-#include <dataman/dataman.h>
-#include "geofence.h"
+#include <nuttx/config.h>
 
+#include <systemlib/param/param.h>
 
-class MissionFeasibilityChecker
-{
-private:
-	int		_mavlink_fd;
+/*
+ * geofence parameters, accessible via MAVLink
+ *
+ */
 
-	int _capabilities_sub;
-	struct navigation_capabilities_s _nav_caps;
-
-	bool _initDone;
-	void init();
-
-	/* Checks for all airframes */
-	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-
-	/* Checks specific to fixedwing airframes */
-	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems);
-	void updateNavigationCapabilities();
-
-	/* Checks specific to rotarywing airframes */
-	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-public:
-
-	MissionFeasibilityChecker();
-	~MissionFeasibilityChecker() {}
-
-	/*
-	 * Returns true if mission is feasible and false otherwise
-	 */
-	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-
-};
-
-
-#endif /* MISSION_FEASIBILITY_CHECKER_H_ */
+// @DisplayName		Switch to enable geofence
+// @Description		if set to 1 geofence is enabled, defaults to 1 because geofence is only enabled when the geofence.txt file is present
+// @Range		0 or 1
+PARAM_DEFINE_INT32(GF_ON, 1);

@@ -1,8 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *   Author: @author Jean Cyr <jean.m.cyr@gmail.com>
+ *           @author Thomas Gubler <thomasgubler@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,51 +33,61 @@
  *
  ****************************************************************************/
 /**
- * @file mission_feasibility_checker.h
- * Provides checks if mission is feasible given the navigation capabilities
+ * @file geofence.h
+ * Provides functions for handling the geofence
  */
-#ifndef MISSION_FEASIBILITY_CHECKER_H_
-#define MISSION_FEASIBILITY_CHECKER_H_
 
-#include <unistd.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/navigation_capabilities.h>
-#include <dataman/dataman.h>
-#include "geofence.h"
+#ifndef GEOFENCE_H_
+#define GEOFENCE_H_
 
+#include <uORB/topics/fence.h>
+#include <controllib/block/BlockParam.hpp>
 
-class MissionFeasibilityChecker
-{
+#define GEOFENCE_FILENAME "/fs/microsd/etc/geofence.txt"
+
+class Geofence {
 private:
-	int		_mavlink_fd;
+	orb_advert_t	_fence_pub;			/**< publish fence topic */
 
-	int _capabilities_sub;
-	struct navigation_capabilities_s _nav_caps;
+	float			_altitude_min;
+	float			_altitude_max;
 
-	bool _initDone;
-	void init();
+	unsigned 			_verticesCount;
 
-	/* Checks for all airframes */
-	bool checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-
-	/* Checks specific to fixedwing airframes */
-	bool checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
-	bool checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems);
-	void updateNavigationCapabilities();
-
-	/* Checks specific to rotarywing airframes */
-	bool checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
+	/* Params */
+	control::BlockParamInt param_geofence_on;
 public:
+	Geofence();
+	~Geofence();
 
-	MissionFeasibilityChecker();
-	~MissionFeasibilityChecker() {}
-
-	/*
-	 * Returns true if mission is feasible and false otherwise
+	/**
+	 * Return whether craft is inside geofence.
+	 *
+	 * Calculate whether point is inside arbitrary polygon
+	 * @param craft pointer craft coordinates
+	 * @param fence pointer to array of coordinates, one per vertex. First and last vertex are assumed connected
+	 * @return true: craft is inside fence, false:craft is outside fence
 	 */
-	bool checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence);
+	bool inside(const struct vehicle_global_position_s *craft);
+	bool inside(double lat, double lon, float altitude);
 
+	int clearDm();
+
+	bool valid();
+
+	/**
+	 * Specify fence vertex position.
+	 */
+	void addPoint(int argc, char *argv[]);
+
+	void publishFence(unsigned vertices);
+
+	int loadFromFile(const char *filename);
+
+	bool isEmpty() {return _verticesCount == 0;}
+
+	void updateParams();
 };
 
 
-#endif /* MISSION_FEASIBILITY_CHECKER_H_ */
+#endif /* GEOFENCE_H_ */

@@ -48,6 +48,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <uORB/topics/fence.h>
 
 /* oddly, ERROR is not defined for c++ */
 #ifdef ERROR
@@ -61,7 +62,7 @@ MissionFeasibilityChecker::MissionFeasibilityChecker() : _mavlink_fd(-1), _capab
 }
 
 
-bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nItems)
+bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
 {
 	/* Init if not done yet */
 	init();
@@ -74,39 +75,56 @@ bool MissionFeasibilityChecker::checkMissionFeasible(bool isRotarywing, dm_item_
 
 
 	if (isRotarywing)
-		return checkMissionFeasibleRotarywing(dm_current, nItems);
+		return checkMissionFeasibleRotarywing(dm_current, nMissionItems, geofence);
 	else
-		return checkMissionFeasibleFixedwing(dm_current, nItems);
+		return checkMissionFeasibleFixedwing(dm_current, nMissionItems, geofence);
 }
 
-bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nItems)
+bool MissionFeasibilityChecker::checkMissionFeasibleRotarywing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
 {
 
-	return checkGeofence(dm_current, nItems);
+	return checkGeofence(dm_current, nMissionItems, geofence);
 }
 
-bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nItems)
+bool MissionFeasibilityChecker::checkMissionFeasibleFixedwing(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
 {
 	/* Update fixed wing navigation capabilites */
 	updateNavigationCapabilities();
 //	warnx("_nav_caps.landing_slope_angle_rad %.4f, _nav_caps.landing_horizontal_slope_displacement %.4f", _nav_caps.landing_slope_angle_rad, _nav_caps.landing_horizontal_slope_displacement);
 
-	return (checkFixedWingLanding(dm_current, nItems) && checkGeofence(dm_current, nItems));
+	return (checkFixedWingLanding(dm_current, nMissionItems) && checkGeofence(dm_current, nMissionItems, geofence));
 }
 
-bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nItems)
+bool MissionFeasibilityChecker::checkGeofence(dm_item_t dm_current, size_t nMissionItems, Geofence &geofence)
 {
-	//xxx: check geofence
+	/* Check if all mission items are inside the geofence (if we have a valid geofence) */
+	if (geofence.valid()) {
+		for (size_t i = 0; i < nMissionItems; i++) {
+			static struct mission_item_s missionitem;
+			const ssize_t len = sizeof(struct mission_item_s);
+
+			if (dm_read(dm_current, i, &missionitem, len) != len) {
+				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+				return false;
+			}
+
+			if (!geofence.inside(missionitem.lat, missionitem.lon, missionitem.altitude)) { //xxx: handle relative altitude
+				mavlink_log_info(_mavlink_fd, "#audio: Geofence violation waypoint %d", i);
+				return false;
+			}
+		}
+	}
+
 	return true;
 }
 
-bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nItems)
+bool MissionFeasibilityChecker::checkFixedWingLanding(dm_item_t dm_current, size_t nMissionItems)
 {
 	/* Go through all mission items and search for a landing waypoint
 	 * if landing waypoint is found: the previous waypoint is checked to be at a feasible distance and altitude given the landing slope */
 
 
-	for (size_t i = 0; i < nItems; i++) {
+	for (size_t i = 0; i < nMissionItems; i++) {
 		static struct mission_item_s missionitem;
 		const ssize_t len = sizeof(struct mission_item_s);
 		if (dm_read(dm_current, i, &missionitem, len) != len) {
