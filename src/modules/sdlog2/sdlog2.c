@@ -62,6 +62,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -684,6 +685,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* warning! using union here to save memory, elements should be used separately! */
 	union {
 		struct vehicle_command_s cmd;
+		struct vehicle_control_mode_s control_mode;
 		struct sensor_combined_s sensor;
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
@@ -709,6 +711,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	struct {
 		int cmd_sub;
 		int status_sub;
+		int control_mode_sub;
 		int sensor_sub;
 		int att_sub;
 		int att_sp_sub;
@@ -762,7 +765,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of subscriptions */
-	const ssize_t fdsc = 19;
+	const ssize_t fdsc = 20;
 	/* sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -777,6 +780,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	/* --- VEHICLE STATUS --- */
 	subs.status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	fds[fdsc_count].fd = subs.status_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- VEHICLE CONTROL MODE --- */
+	subs.control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	fds[fdsc_count].fd = subs.control_mode_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -970,11 +979,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 			/* --- VEHICLE STATUS --- */
 			if (fds[ifds++].revents & POLLIN) {
-				// Don't orb_copy, it's already done few lines above
+				/* don't orb_copy, it's already done few lines above */
+				/* copy control mode here to construct STAT message */
+				orb_copy(ORB_ID(vehicle_control_mode), subs.control_mode_sub, &buf.control_mode);
 				log_msg.msg_type = LOG_STAT_MSG;
-				log_msg.body.log_STAT.main_state = (uint8_t) buf_status.main_state;
-				// TODO use control_mode topic
-				//log_msg.body.log_STAT.navigation_state = (uint8_t) buf_status.navigation_state;
+				log_msg.body.log_STAT.main_state = (uint8_t) buf.control_mode.main_state;
+				log_msg.body.log_STAT.navigation_state = (uint8_t) buf.control_mode.nav_state;
 				log_msg.body.log_STAT.arming_state = (uint8_t) buf_status.arming_state;
 				log_msg.body.log_STAT.battery_voltage = buf_status.battery_voltage;
 				log_msg.body.log_STAT.battery_current = buf_status.battery_current;
@@ -983,6 +993,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 				log_msg.body.log_STAT.landed = (uint8_t) buf_status.condition_landed;
 				LOGBUFFER_WRITE_AND_COUNT(STAT);
 			}
+			ifds++;	// skip CONTROL MODE, already copied
 
 			/* --- GPS POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
