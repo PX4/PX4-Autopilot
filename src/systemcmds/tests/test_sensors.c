@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +48,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
+#include <math.h>
+#include <systemlib/err.h>
 
 #include <arch/board/board.h>
 
@@ -77,6 +78,8 @@ static int accel(int argc, char *argv[]);
 static int gyro(int argc, char *argv[]);
 static int mag(int argc, char *argv[]);
 static int baro(int argc, char *argv[]);
+static int accel1(int argc, char *argv[]);
+static int gyro1(int argc, char *argv[]);
 
 /****************************************************************************
  * Private Data
@@ -91,6 +94,8 @@ struct {
 	{"gyro",	"/dev/gyro",	gyro},
 	{"mag",		"/dev/mag",	mag},
 	{"baro",	"/dev/baro",	baro},
+	{"accel1",	"/dev/accel1",	accel1},
+	{"gyro1",	"/dev/gyro1",	gyro1},
 	{NULL, NULL, NULL}
 };
 
@@ -133,23 +138,58 @@ accel(int argc, char *argv[])
 		printf("\tACCEL accel: x:%8.4f\ty:%8.4f\tz:%8.4f m/s^2\n", (double)buf.x, (double)buf.y, (double)buf.z);
 	}
 
-	// /* wait at least 10ms, sensor should have data after no more than 2ms */
-	// usleep(100000);
-
-	// ret = read(fd, buf, sizeof(buf));
-
-	// if (ret != sizeof(buf)) {
-	// 	printf("\tMPU-6000: read2 fail (%d)\n", ret);
-	// 	return ERROR;
-
-	// } else {
-	// 	printf("\tMPU-6000 values: acc: x:%d\ty:%d\tz:%d\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-	// }
-
-	/* XXX more tests here */
+	if (fabsf(buf.x) > 30.0f || fabsf(buf.y) > 30.0f || fabsf(buf.z) > 30.0f) {
+		warnx("ACCEL1 acceleration values out of range!");
+		return ERROR;
+	}
 
 	/* Let user know everything is ok */
 	printf("\tOK: ACCEL passed all tests successfully\n");
+	close(fd);
+
+	return OK;
+}
+
+static int
+accel1(int argc, char *argv[])
+{
+	printf("\tACCEL1: test start\n");
+	fflush(stdout);
+
+	int		fd;
+	struct accel_report buf;
+	int		ret;
+
+	fd = open("/dev/accel1", O_RDONLY);
+
+	if (fd < 0) {
+		printf("\tACCEL1: open fail, run <mpu6000 start> or <lsm303d start> first.\n");
+		return ERROR;
+	}
+
+	/* wait at least 100ms, sensor should have data after no more than 20ms */
+	usleep(100000);
+
+	/* read data - expect samples */
+	ret = read(fd, &buf, sizeof(buf));
+
+	if (ret != sizeof(buf)) {
+		printf("\tACCEL1: read1 fail (%d)\n", ret);
+		return ERROR;
+
+	} else {
+		printf("\tACCEL1 accel: x:%8.4f\ty:%8.4f\tz:%8.4f m/s^2\n", (double)buf.x, (double)buf.y, (double)buf.z);
+	}
+
+	if (fabsf(buf.x) > 30.0f || fabsf(buf.y) > 30.0f || fabsf(buf.z) > 30.0f) {
+		warnx("ACCEL1 acceleration values out of range!");
+		return ERROR;
+	}
+
+	/* Let user know everything is ok */
+	printf("\tOK: ACCEL1 passed all tests successfully\n");
+
+	close(fd);
 
 	return OK;
 }
@@ -187,6 +227,45 @@ gyro(int argc, char *argv[])
 
 	/* Let user know everything is ok */
 	printf("\tOK: GYRO passed all tests successfully\n");
+	close(fd);
+
+	return OK;
+}
+
+static int
+gyro1(int argc, char *argv[])
+{
+	printf("\tGYRO1: test start\n");
+	fflush(stdout);
+
+	int		fd;
+	struct gyro_report buf;
+	int		ret;
+
+	fd = open("/dev/gyro1", O_RDONLY);
+
+	if (fd < 0) {
+		printf("\tGYRO1: open fail, run <l3gd20 start> or <mpu6000 start> first.\n");
+		return ERROR;
+	}
+
+	/* wait at least 5 ms, sensor should have data after that */
+	usleep(5000);
+
+	/* read data - expect samples */
+	ret = read(fd, &buf, sizeof(buf));
+
+	if (ret != sizeof(buf)) {
+		printf("\tGYRO1: read fail (%d)\n", ret);
+		return ERROR;
+
+	} else {
+		printf("\tGYRO1 rates: x:%8.4f\ty:%8.4f\tz:%8.4f rad/s\n", (double)buf.x, (double)buf.y, (double)buf.z);
+	}
+
+	/* Let user know everything is ok */
+	printf("\tOK: GYRO1 passed all tests successfully\n");
+	close(fd);
 
 	return OK;
 }
@@ -224,6 +303,7 @@ mag(int argc, char *argv[])
 
 	/* Let user know everything is ok */
 	printf("\tOK: MAG passed all tests successfully\n");
+	close(fd);
 
 	return OK;
 }
@@ -261,6 +341,7 @@ baro(int argc, char *argv[])
 
 	/* Let user know everything is ok */
 	printf("\tOK: BARO passed all tests successfully\n");
+	close(fd);
 
 	return OK;
 }

@@ -46,7 +46,6 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/actuator_controls_effective.h>
 #include <systemlib/err.h>
 
 #include "ardrone_motor_control.h"
@@ -384,9 +383,6 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	const float startpoint_full_control = 0.25f;	/**< start full control at 25% thrust */
 
 	static bool initialized = false;
-	/* publish effective outputs */
-	static struct actuator_controls_effective_s actuator_controls_effective;
-	static orb_advert_t actuator_controls_effective_pub;
 
 	/* linearly scale the control inputs from 0 to startpoint_full_control */
 	if (motor_thrust < startpoint_full_control) {
@@ -428,25 +424,6 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 		motor_calc[2] = motor_thrust + (-roll_control / 2 - pitch_control / 2 - yaw_control);
 		// LEFT (MOTOR 4)
 		motor_calc[3] = motor_thrust + (roll_control / 2 - pitch_control / 2 + yaw_control);
-	}
-
-
-
-	/* publish effective outputs */
-	actuator_controls_effective.control_effective[0] = roll_control;
-	actuator_controls_effective.control_effective[1] = pitch_control;
-	/* yaw output after limiting */
-	actuator_controls_effective.control_effective[2] = yaw_control;
-	/* possible motor thrust limiting */
-	actuator_controls_effective.control_effective[3] = (motor_calc[0] + motor_calc[1] + motor_calc[2] + motor_calc[3]) / 4.0f;
-
-	if (!initialized) {
-		/* advertise and publish */
-		actuator_controls_effective_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, &actuator_controls_effective);
-		initialized = true;
-	} else {
-		/* already initialized, just publishing */
-		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, actuator_controls_effective_pub, &actuator_controls_effective);
 	}
 
 	/* set the motor values */

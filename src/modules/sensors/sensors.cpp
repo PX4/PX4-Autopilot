@@ -164,7 +164,7 @@ public:
 	int		start();
 
 private:
-	static const unsigned _rc_max_chan_count = RC_CHANNELS_MAX;	/**< maximum number of r/c channels we handle */
+	static const unsigned _rc_max_chan_count = RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
 
 	hrt_abstime	_rc_last_valid;		/**< last time we got a valid RC signal */
 
@@ -262,6 +262,10 @@ private:
 		float rc_scale_yaw;
 		float rc_scale_flaps;
 
+		int rc_fs_ch;
+		int rc_fs_mode;
+		float rc_fs_thr;
+
 		float battery_voltage_scaling;
 		float battery_current_scaling;
 
@@ -307,6 +311,10 @@ private:
 		param_t rc_scale_pitch;
 		param_t rc_scale_yaw;
 		param_t rc_scale_flaps;
+
+		param_t rc_fs_ch;
+		param_t rc_fs_mode;
+		param_t rc_fs_thr;
 
 		param_t battery_voltage_scaling;
 		param_t battery_current_scaling;
@@ -523,6 +531,11 @@ Sensors::Sensors() :
 	_parameter_handles.rc_scale_yaw = param_find("RC_SCALE_YAW");
 	_parameter_handles.rc_scale_flaps = param_find("RC_SCALE_FLAPS");
 
+	/* RC failsafe */
+	_parameter_handles.rc_fs_ch = param_find("RC_FS_CH");
+	_parameter_handles.rc_fs_mode = param_find("RC_FS_MODE");
+	_parameter_handles.rc_fs_thr = param_find("RC_FS_THR");
+
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
 	_parameter_handles.gyro_offset[1] = param_find("SENS_GYRO_YOFF");
@@ -596,7 +609,7 @@ Sensors::parameters_update()
 	float tmpRevFactor = 0.0f;
 
 	/* rc values */
-	for (unsigned int i = 0; i < RC_CHANNELS_MAX; i++) {
+	for (unsigned int i = 0; i < _rc_max_chan_count; i++) {
 
 		param_get(_parameter_handles.min[i], &(_parameters.min[i]));
 		param_get(_parameter_handles.trim[i], &(_parameters.trim[i]));
@@ -675,6 +688,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch));
 	param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw));
 	param_get(_parameter_handles.rc_scale_flaps, &(_parameters.rc_scale_flaps));
+	param_get(_parameter_handles.rc_fs_ch, &(_parameters.rc_fs_ch));
+	param_get(_parameter_handles.rc_fs_mode, &(_parameters.rc_fs_mode));
+	param_get(_parameter_handles.rc_fs_thr, &(_parameters.rc_fs_thr));
 
 	/* update RC function mappings */
 	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -1287,6 +1303,18 @@ Sensors::rc_poll()
 		/* require at least four channels to consider the signal valid */
 		if (rc_input.channel_count < 4)
 			return;
+
+		/* failsafe check */
+		if (_parameters.rc_fs_ch != 0) {
+			if (_parameters.rc_fs_mode == 0) {
+				if (rc_input.values[_parameters.rc_fs_ch - 1] < _parameters.rc_fs_thr)
+					return;
+
+			} else if (_parameters.rc_fs_mode == 1) {
+				if (rc_input.values[_parameters.rc_fs_ch - 1] > _parameters.rc_fs_thr)
+					return;
+			}
+		}
 
 		unsigned channel_limit = rc_input.channel_count;
 

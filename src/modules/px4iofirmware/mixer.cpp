@@ -77,7 +77,8 @@ enum mixer_source {
 	MIX_NONE,
 	MIX_FMU,
 	MIX_OVERRIDE,
-	MIX_FAILSAFE
+	MIX_FAILSAFE,
+	MIX_OVERRIDE_FMU_OK
 };
 static mixer_source source;
 
@@ -135,10 +136,19 @@ mixer_tick(void)
 		if ( (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
 		     (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
 		     (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) &&
-		     !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED)) {
+		     !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) &&
+		     !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
 
 		 	/* if allowed, mix from RC inputs directly */
 			source = MIX_OVERRIDE;
+		} else 	if ( (r_status_flags & PX4IO_P_STATUS_FLAGS_OVERRIDE) &&
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) &&
+		     !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) &&
+		     (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)) {
+
+			/* if allowed, mix from RC inputs directly up to available rc channels */
+			source = MIX_OVERRIDE_FMU_OK;
 		}
 	}
 
@@ -185,7 +195,7 @@ mixer_tick(void)
 			r_page_servos[i] = r_page_servo_failsafe[i];
 
 			/* safe actuators for FMU feedback */
-			r_page_actuators[i] = (r_page_servos[i] - 1500) / 600.0f;
+			r_page_actuators[i] = FLOAT_TO_REG((r_page_servos[i] - 1500) / 600.0f);
 		}
 
 
@@ -201,6 +211,10 @@ mixer_tick(void)
 
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++)
 			r_page_servos[i] = 0;
+
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+			r_page_actuators[i] = FLOAT_TO_REG(outputs[i]);
+		}
 	}
 
 	if ((should_arm || should_always_enable_pwm) && !mixer_servos_armed) {
@@ -236,20 +250,31 @@ mixer_callback(uintptr_t handle,
 	       uint8_t control_index,
 	       float &control)
 {
-	if (control_group != 0)
+	if (control_group > 3)
 		return -1;
 
 	switch (source) {
 	case MIX_FMU:
-		if (control_index < PX4IO_CONTROL_CHANNELS) {
-			control = REG_TO_FLOAT(r_page_controls[control_index]);
+		if (control_index < PX4IO_CONTROL_CHANNELS && control_group < PX4IO_CONTROL_GROUPS ) {
+			control = REG_TO_FLOAT(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)]);
 			break;
 		}
 		return -1;
 
 	case MIX_OVERRIDE:
-		if (r_page_rc_input[PX4IO_P_RC_VALID] & (1 << control_index)) {
+		if (r_page_rc_input[PX4IO_P_RC_VALID] & (1 << CONTROL_PAGE_INDEX(control_group, control_index))) {
 			control = REG_TO_FLOAT(r_page_rc_input[PX4IO_P_RC_BASE + control_index]);
+			break;
+		}
+		return -1;
+
+	case MIX_OVERRIDE_FMU_OK:
+		/* FMU is ok but we are in override mode, use direct rc control for the available rc channels. The remaining channels are still controlled by the fmu */
+		if (r_page_rc_input[PX4IO_P_RC_VALID] & (1 << CONTROL_PAGE_INDEX(control_group, control_index))) {
+			control = REG_TO_FLOAT(r_page_rc_input[PX4IO_P_RC_BASE + control_index]);
+			break;
+		} else if (control_index < PX4IO_CONTROL_CHANNELS && control_group < PX4IO_CONTROL_GROUPS) {
+			control = REG_TO_FLOAT(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)]);
 			break;
 		}
 		return -1;

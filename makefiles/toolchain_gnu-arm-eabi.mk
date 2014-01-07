@@ -138,8 +138,7 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wold-style-declaration \
 			   -Wmissing-parameter-type \
 			   -Wmissing-prototypes \
-			   -Wnested-externs \
-			   -Wunsuffixed-float-constants
+			   -Wnested-externs
 
 # C++-specific warnings
 #

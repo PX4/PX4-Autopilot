@@ -274,7 +274,10 @@ PX4IO_Uploader::drain()
 	int ret;
 
 	do {
-		ret = recv(c, 1000);
+		// the small recv timeout here is to allow for fast
+		// drain when rebooting the io board for a forced
+		// update of the fw without using the safety switch
+		ret = recv(c, 40);
 
 #ifdef UDEBUG
 		if (ret == OK) {

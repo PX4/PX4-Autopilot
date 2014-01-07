@@ -215,9 +215,9 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN2);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN3);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	stm32_configgpio(GPIO_ADC1_IN10);	/* unrouted */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* unrouted */
-	stm32_configgpio(GPIO_ADC1_IN12);	/* unrouted */
+	// stm32_configgpio(GPIO_ADC1_IN10);	/* used by VBUS valid */
+	// stm32_configgpio(GPIO_ADC1_IN11);	/* unused */
+	// stm32_configgpio(GPIO_ADC1_IN12);	/* used by MPU6000 CS */
 	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
 	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
 	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
@@ -279,6 +279,7 @@ __EXPORT int nsh_archinitialize(void)
 	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL_MAG, false);
 	SPI_SELECT(spi1, PX4_SPIDEV_BARO, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
 	up_udelay(20);
 
 	message("[boot] Successfully initialized SPI port 1\n");

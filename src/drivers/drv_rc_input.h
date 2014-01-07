@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -88,6 +88,9 @@ struct rc_input_values {
 
 	/** number of channels actually being seen */
 	uint32_t		channel_count;
+
+	/** receive signal strength indicator (RSSI): < 0: Undefined, 0: no signal, 255: full reception */
+	int32_t			rssi;
 
 	/** Input source */
 	enum RC_INPUT_SOURCE 	input_source;

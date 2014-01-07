@@ -1,0 +1,49 @@
+#!nsh
+#
+# Script to set PWM min / max limits and mixer
+#
+
+#
+# Load mixer
+#
+if [ $FRAME_GEOMETRY == x ]
+then
+    echo "Frame geometry X"
+    mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
+else
+    if [ $FRAME_GEOMETRY == w ]
+    then
+	echo "Frame geometry W"
+	mixer load /dev/pwm_output /etc/mixers/FMU_quad_w.mix
+    else
+	echo "Frame geometry +"
+    	mixer load /dev/pwm_output /etc/mixers/FMU_quad_+.mix
+    fi
+fi
+
+if [ $FRAME_COUNT == 4 ]
+then
+    set OUTPUTS 1234
+    param set MAV_TYPE 2
+else
+    if [ $FRAME_COUNT == 6 ]
+    then
+	set OUTPUTS 123456
+	param set MAV_TYPE 13
+    else
+	set OUTPUTS 12345678
+    fi
+fi
+
+
+#
+# Set PWM output frequency
+#
+pwm rate -c $OUTPUTS -r $PWM_RATE
+
+#
+# Set disarmed, min and max PWM signals (for DJI ESCs)
+#
+pwm disarmed -c $OUTPUTS -p $PWM_DISARMED
+pwm min -c $OUTPUTS -p $PWM_MIN
+pwm max -c $OUTPUTS -p $PWM_MAX

@@ -299,7 +299,7 @@ void TECS::_update_throttle(float throttle_cruise, const math::Dcm &rotMat)
 
 		// Rate limit PD + FF throttle
 		// Calculate the throttle increment from the specified slew time
-		if (fabsf(_throttle_slewrate) < 0.01f) {
+		if (fabsf(_throttle_slewrate) > 0.01f) {
 			float thrRateIncr = _DT * (_THRmaxf - _THRminf) * _throttle_slewrate;
 
 			_throttle_dem = constrain(_throttle_dem,
@@ -404,9 +404,17 @@ void TECS::_update_pitch(void)
 	// Apply max and min values for integrator state that will allow for no more than
 	// 5deg of saturation. This allows for some pitch variation due to gusts before the
 	// integrator is clipped. Otherwise the effectiveness of the integrator will be reduced in turbulence
+	// During climbout/takeoff, bias the demanded pitch angle so that zero speed error produces a pitch angle
+	// demand equal to the minimum value (which is )set by the mission plan during this mode). Otherwise the
+	// integrator has to catch up before the nose can be raised to reduce speed during climbout.
 	float gainInv = (_integ5_state * _timeConst * CONSTANTS_ONE_G);
 	float temp = SEB_error + SEBdot_error * _ptchDamp + SEBdot_dem * _timeConst;
+	if (_climbOutDem)
+	{
+		temp += _PITCHminf * gainInv;
+	}
 	_integ7_state = constrain(_integ7_state, (gainInv * (_PITCHminf - 0.0783f)) - temp, (gainInv * (_PITCHmaxf + 0.0783f)) - temp);
+
 
 	// Calculate pitch demand from specific energy balance signals
 	_pitch_dem_unc = (temp + _integ7_state) / gainInv;

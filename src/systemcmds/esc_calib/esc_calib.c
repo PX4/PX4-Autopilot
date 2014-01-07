@@ -148,6 +148,7 @@ esc_calib_main(int argc, char *argv[])
 
 		case 'l':
 			/* Read in custom low value */
+			pwm_low = strtoul(optarg, &ep, 0);
 			if (*ep != '\0' || pwm_low < PWM_LOWEST_MIN || pwm_low > PWM_HIGHEST_MIN)
 				usage("low PWM invalid");
 			break;

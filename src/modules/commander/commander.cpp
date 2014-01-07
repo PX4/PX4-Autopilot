@@ -863,7 +863,7 @@ int commander_thread_main(int argc, char *argv[])
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.xy_valid, &(status.condition_local_position_valid), &status_changed);
 		check_valid(local_position.timestamp, POSITION_TIMEOUT, local_position.z_valid, &(status.condition_local_altitude_valid), &status_changed);
 
-		if (status.condition_local_altitude_valid) {
+		if (status.is_rotary_wing && status.condition_local_altitude_valid) {
 			if (status.condition_landed != local_position.landed) {
 				status.condition_landed = local_position.landed;
 				status_changed = true;
@@ -1512,7 +1512,8 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			// TODO AUTO_LAND handling
 			if (status->navigation_state == NAVIGATION_STATE_AUTO_TAKEOFF) {
 				/* don't switch to other states until takeoff not completed */
-				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+				// XXX: only respect the condition_landed when the local position is actually valid
+				if (status->is_rotary_wing && status->condition_local_altitude_valid && (local_pos->z > -takeoff_alt || status->condition_landed)) {
 					return TRANSITION_NOT_CHANGED;
 				}
 			}
@@ -1522,7 +1523,7 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			    status->navigation_state != NAVIGATION_STATE_AUTO_MISSION &&
 			    status->navigation_state != NAVIGATION_STATE_AUTO_RTL) {
 				/* possibly on ground, switch to TAKEOFF if needed */
-				if (local_pos->z > -takeoff_alt || status->condition_landed) {
+				if (status->is_rotary_wing && status->condition_local_altitude_valid && (local_pos->z > -takeoff_alt || status->condition_landed)) {
 					res = navigation_state_transition(status, NAVIGATION_STATE_AUTO_TAKEOFF, control_mode);
 					return res;
 				}
@@ -1570,8 +1571,8 @@ check_navigation_state_machine(struct vehicle_status_s *status, struct vehicle_c
 			/* switch to failsafe mode */
 			bool manual_control_old = control_mode->flag_control_manual_enabled;
 
-			if (!status->condition_landed) {
-				/* in air: try to hold position */
+			if (!status->condition_landed && status->condition_local_position_valid) {
+				/* in air: try to hold position if possible */
 				res = navigation_state_transition(status, NAVIGATION_STATE_VECTOR, control_mode);
 
 			} else {
