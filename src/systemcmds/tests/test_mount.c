@@ -54,14 +54,14 @@
 
 #include "tests.h"
 
-const int fsync_tries = 50;
-const int abort_tries = 200;
+const int fsync_tries = 1;
+const int abort_tries = 10;
 
 int
 test_mount(int argc, char *argv[])
 {
-	const unsigned iterations = 10;
-	const unsigned alignments = 4;
+	const unsigned iterations = 2000;
+	const unsigned alignments = 10;
 
 	const char* cmd_filename = "/fs/microsd/mount_test_cmds.txt";
 
@@ -173,13 +173,13 @@ test_mount(int argc, char *argv[])
 	for (unsigned c = 0; c < (sizeof(chunk_sizes) / sizeof(chunk_sizes[0])); c++) {
 
 		printf("\n\n====== FILE TEST: %u bytes chunks (%s) ======\n", chunk_sizes[c], (it_left_fsync > 0) ? "FSYNC" : "NO FSYNC");
+		printf("unpower the system immediately (within 0.5s) when the hash (#) sign appears\n");
 		fsync(stdout);
 		fsync(stderr);
 		usleep(50000);
 
 		for (unsigned a = 0; a < alignments; a++) {
 
-			// warnx("----- alignment test: %u bytes -----", a);
 			printf(".");
 
 			uint8_t write_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
@@ -204,7 +204,7 @@ test_mount(int argc, char *argv[])
 					warn("WRITE ERROR!");
 
 					if ((0x3 & (uintptr_t)(write_buf + a)))
-						errx(1, "memory is unaligned, align shift: %d", a);
+						warnx("memory is unaligned, align shift: %d", a);
 
 					return 1;
 
@@ -213,14 +213,21 @@ test_mount(int argc, char *argv[])
 				if (it_left_fsync > 0) {
 					fsync(fd);
 				} else {
-					if (it_left_abort % 5 == 0) {
-						systemreset(false);
-					} else {
-						fsync(stdout);
-						fsync(stderr);
-					}
+					printf("#");
+					fsync(stdout);
+					fsync(stderr);
 				}
 			}
+
+			if (it_left_fsync > 0) {
+				printf("#");
+			}
+
+			printf("\n");
+			fsync(stdout);
+			fsync(stderr);
+			usleep(1000000);
+
 			end = hrt_absolute_time();
 
 			close(fd);
