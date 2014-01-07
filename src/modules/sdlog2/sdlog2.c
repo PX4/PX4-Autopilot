@@ -85,13 +85,13 @@
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
+#include <version/version.h>
 
 #include <mavlink/mavlink_log.h>
 
 #include "logbuffer.h"
 #include "sdlog2_format.h"
 #include "sdlog2_messages.h"
-#include "sdlog2_version.h"
 
 #define LOGBUFFER_WRITE_AND_COUNT(_msg) if (logbuffer_write(&lb, &log_msg, LOG_PACKET_SIZE(_msg))) { \
 		log_msgs_written++; \

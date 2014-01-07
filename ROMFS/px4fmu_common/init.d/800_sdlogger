@@ -42,10 +42,12 @@ position_estimator_inav start
 
 if [ -d /fs/microsd ]
 then
-	if [ $BOARD == fmuv1 ]
+	if hw_ver compare PX4FMU_V1
 	then
+		echo "Start sdlog2 at 50Hz"
 		sdlog2 start -r 50 -e -b 16
 	else
+		echo "Start sdlog2 at 200Hz"
 		sdlog2 start -r 200 -e -b 16
 	fi
 fi
