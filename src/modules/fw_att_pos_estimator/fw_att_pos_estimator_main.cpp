@@ -35,6 +35,8 @@
  * @file fw_att_pos_estimator_main.cpp
  * Implementation of the attitude and position estimator.
  *
+ * @author Paul Riseborough <p_riseborough@live.com.au>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -55,6 +57,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -129,6 +132,7 @@ private:
 
 	orb_advert_t	_att_pub;			/**< vehicle attitude */
 	orb_advert_t	_global_pos_pub;		/**< global position */
+	orb_advert_t	_local_pos_pub;			/**< position in local frame */
 
 	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
@@ -139,6 +143,7 @@ private:
 	struct airspeed_s				_airspeed;		/**< airspeed */
 	struct vehicle_status_s				_vstatus;		/**< vehicle status */
 	struct vehicle_global_position_s		_global_pos;		/**< global vehicle position */
+	struct vehicle_local_position_s			_local_pos;		/**< local vehicle position */
 	struct vehicle_gps_position_s			_gps;			/**< GPS position */
 
 	struct gyro_scale				_gyro_offsets;
@@ -227,6 +232,7 @@ FixedwingEstimator::FixedwingEstimator() :
 /* publications */
 	_att_pub(-1),
 	_global_pos_pub(-1),
+	_local_pos_pub(-1),
 
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_pos_estimator")),
@@ -603,6 +609,15 @@ FixedwingEstimator::task_main()
 
 			if (_initialized) {
 
+				// State vector:
+				// 0-3: quaternions (q0, q1, q2, q3)
+				// 4-6: Velocity - m/sec (North, East, Down)
+				// 7-9: Position - m (North, East, Down)
+				// 10-12: Delta Angle bias - rad (X,Y,Z)
+				// 13-14: Wind Vector  - m/sec (North,East)
+				// 15-17: Earth Magnetic Field Vector - milligauss (North, East, Down)
+				// 18-20: Body Magnetic Field Vector - milligauss (X,Y,Z)
+
 				math::Quaternion q(states[0], states[1], states[2], states[3]);
 				math::Dcm R(q);
 				math::EulerAngles euler(R);
@@ -641,9 +656,33 @@ FixedwingEstimator::task_main()
 					_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &_att);
 				}
 
+				_local_pos.timestamp = _gyro.timestamp;
+				_local_pos.x = states[7];
+				_local_pos.y = states[8];
+				_local_pos.z = states[9];
+
+				_local_pos.vx = states[4];
+				_local_pos.vy = states[5];
+				_local_pos.vz = states[6];
+
+				_local_pos.xy_valid = true;
+				_local_pos.z_valid = true;
+				_local_pos.v_xy_valid = true;
+				_local_pos.v_z_valid = true;
+
+				/* lazily publish the local position only once available */
+				if (_local_pos_pub > 0) {
+					/* publish the attitude setpoint */
+					orb_publish(ORB_ID(vehicle_local_position), _local_pos_pub, &_local_pos);
+
+				} else {
+					/* advertise and publish */
+					_local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &_local_pos);
+				}
+
 				_global_pos.timestamp = _gyro.timestamp;
 
-				// /* lazily publish the position only once available */
+				// /* lazily publish the global position only once available */
 				// if (_global_pos_pub > 0) {
 				// 	/* publish the attitude setpoint */
 				// 	orb_publish(ORB_ID(vehicle_global_position), _global_pos_pub, &_global_pos);
