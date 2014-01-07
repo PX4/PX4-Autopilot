@@ -203,6 +203,12 @@ dsm_guess_format(bool reset)
 int
 dsm_init(const char *device)
 {
+
+#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
+	// enable power on DSM connector
+	POWER_SPEKTRUM(true);
+#endif
+
 	if (dsm_fd < 0)
 		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
 
