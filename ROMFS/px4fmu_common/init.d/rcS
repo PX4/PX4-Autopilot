@@ -226,8 +226,6 @@ then
 	fi
 
 	set EXIT_ON_END no
-	set USE_LOGGING yes
-	set USE_GPS yes
 	
 	#
 	# Set parameters and env variables for selected AUTOSTART
@@ -276,16 +274,10 @@ then
 		sh /etc/init.d/rc.sensors
 		
 		# Logging
-		if [ $USE_LOGGING == yes ]
-		then
-			sh /etc/init.d/rc.logging
-		fi
+		sh /etc/init.d/rc.logging
 		
 		# GPS interface
-		if [ $USE_GPS == yes ]
-		then
-			gps start
-		fi
+		gps start
 		
 		#
 		# Fixed wing setup
