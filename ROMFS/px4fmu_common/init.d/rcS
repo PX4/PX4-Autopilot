@@ -60,12 +60,9 @@ fi
 if [ $MODE == autostart ]
 then
 	#
-	# Start terminal
+	# Start CDC/ACM serial driver
 	#
-	if sercon
-	then
-		echo "USB connected"
-	fi
+	sercon
 	
 	#
 	# Start the ORB (first app to start)
@@ -107,52 +104,79 @@ then
 			blinkm systemstate
 		fi
 	fi
+
+	set USE_IO no
+	set FRAME_TYPE none
+	set PWM_RATE none
+	set PWM_DISARMED none
+	set PWM_MIN none
+	set PWM_MAX none
+	
+	if param compare SYS_AUTOCONFIG 1
+	then
+		set DO_AUTOCONFIG yes
+	else
+		set DO_AUTOCONFIG no
+	fi
 	
 	#
 	# Start the Commander (needs to be this early for in-air-restarts)
 	#
 	commander start
+	
+	#
+	# Set parameters and env variables for selected AUTOSTART (HIL setups)
+	#
+	sh /etc/init.d/rc.autostart_hil
+	
+	if [ $MODE == hil ]
+	then
+		#
+		# Do common HIL setup depending on env variables
+		#
+		# Allow USB some time to come up
+		sleep 1
 
-	if param compare SYS_AUTOSTART 1000
-	then
-		sh /etc/init.d/1000_rc_fw_easystar.hil		
-		set MODE custom
-	fi
+		# Start MAVLink on USB port
+		mavlink start -b 230400 -d /dev/ttyACM0
+		usleep 5000
+		
+		# Create a fake HIL /dev/pwm_output interface
+		hil mode_pwm
+		
+		# Sensors
+		echo "Start sensors"
+		sh /etc/init.d/rc.sensors
+		
+		#
+		# Fixed wing setup
+		#
+		if [ $FRAME_TYPE == fw ]
+		then
+			echo "Setup FIXED WING"
+		fi
 	
-	if param compare SYS_AUTOSTART 1001
-	then
-		sh /etc/init.d/1001_rc_quad.hil
-		set MODE custom
-	fi
-	
-	if param compare SYS_AUTOSTART 1002
-	then
-		sh /etc/init.d/1002_rc_fw_state.hil
-		set MODE custom
-	fi
-	
-	if param compare SYS_AUTOSTART 1003
-	then
-		sh /etc/init.d/1003_rc_quad_+.hil
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 1004
-	then
-		sh /etc/init.d/1004_rc_fw_Rascal110.hil
-		set MODE custom
-	fi
-	
-	if [ $MODE != custom ]
-	then
-		# Try to get an USB console
+		#
+		# Multicopters setup
+		#
+		if [ $FRAME_TYPE == mc ]
+		then
+			echo "Setup MULTICOPTER"
+			
+			# Load mixer and configure outputs
+			sh /etc/init.d/rc.mc_interface
+			
+			# Start common multicopter apps
+			sh /etc/init.d/rc.mc_apps
+		fi
+	else
+		# Try to get an USB console if not in HIL mode
 		nshterm /dev/ttyACM0 &
 	fi
-
+		
 	#
 	# Upgrade PX4IO firmware
 	#
-
 	if [ -f /etc/extras/px4io-v2_default.bin ]
 	then
 		set io_file /etc/extras/px4io-v2_default.bin
@@ -170,6 +194,7 @@ then
 	then
 		echo "PX4IO CRC OK"
 		echo "PX4IO CRC OK" >> $logfile
+		set USE_IO yes
 	else
 		echo "PX4IO CRC failure"
 		echo "PX4IO CRC failure" >> $logfile
@@ -182,6 +207,7 @@ then
 				echo "PX4IO restart OK"
 				echo "PX4IO restart OK" >> $logfile
 				tone_alarm MSPAA
+				set USE_IO yes
 			else
 				echo "PX4IO restart failed"
 				echo "PX4IO restart failed" >> $logfile
@@ -200,222 +226,91 @@ then
 	fi
 
 	set EXIT_ON_END no
+	set USE_LOGGING yes
+	set USE_GPS yes
 	
 	#
-	# Check if auto-setup from one of the standard scripts is wanted
-	# SYS_AUTOSTART = 0 means no autostart (default)
+	# Set parameters and env variables for selected AUTOSTART
 	#
-	# AUTOSTART PARTITION:
-	#  0   	..	 999		Reserved (historical)
-	#  1000	..	 1999		Simulation setups
-	#  2000	..	 2999		Standard planes
-	#  3000	..	 3999		Flying wing
-	#  4000	..	 4999		Quad X
-	#  5000	..	 5999		Quad +
-	#  6000	..	 6999		Hexa X
-	#  7000	..	 7999		Hexa +
-	#  8000	..	 8999		Octo X
-	#  9000	..	 9999		Octo +
-	# 10000	..	10999		Wide arm / H frame
-	# 11000	..	11999		Hexa Cox
-	# 12000	..	12999		Octo Cox
+	sh /etc/init.d/rc.autostart
 	
-	if param compare SYS_AUTOSTART 4008 8
+	#
+	# If autoconfig parameter was set, reset it and save parameters
+	#
+	if [ $DO_AUTOCONFIG == yes ]
 	then
-		sh /etc/init.d/4008_ardrone
-		set MODE custom
+		param set SYS_AUTOCONFIG 0
+		param save
 	fi
 	
-	if param compare SYS_AUTOSTART 4009 9
-	then
-		sh /etc/init.d/4009_ardrone_flow
-		set MODE custom
-	fi
+	if [ $MODE == autostart ]
+	then	
+		#
+		# Do common setup depending on env variables
+		#
+		if [ $USE_IO == yes ]
+		then
+			echo "Use IO"
+			
+			# Start MAVLink on default port: ttyS1
+			mavlink start
+			usleep 5000	
+			
+			sh /etc/init.d/rc.io
+		else
+			echo "Don't use IO"
+			
+			# Start MAVLink on ttyS0
+			mavlink start -d /dev/ttyS0
+			usleep 5000
+			
+			# Configure FMU for PWM outputs
+			fmu mode_pwm
+			
+			# Exit from nsh to free port for mavlink
+			set EXIT_ON_END yes
+		fi
+		
+		# Sensors
+		echo "Start sensors"
+		sh /etc/init.d/rc.sensors
+		
+		# Logging
+		if [ $USE_LOGGING == yes ]
+		then
+			sh /etc/init.d/rc.logging
+		fi
+		
+		# GPS interface
+		if [ $USE_GPS == yes ]
+		then
+			gps start
+		fi
+		
+		#
+		# Fixed wing setup
+		#
+		if [ $FRAME_TYPE == fw ]
+		then
+			echo "Setup FIXED WING"
+		fi
 	
-	if param compare SYS_AUTOSTART 4010 10
-	then
-		set FRAME_GEOMETRY x
-		set FRAME_COUNT 4
-		set PWM_MIN 1200
-		set PWM_MAX 1900
-		set PWM_DISARMED 900
-		sh /etc/init.d/4010_dji_f330
-		set MODE custom
+		#
+		# Multicopters setup
+		#
+		if [ $FRAME_TYPE == mc ]
+		then
+			echo "Setup MULTICOPTER"
+			
+			# Load mixer and configure outputs
+			sh /etc/init.d/rc.mc_interface
+			
+			# Start common multicopter apps
+			sh /etc/init.d/rc.mc_apps
+		fi
 	fi
 
-	if param compare SYS_AUTOSTART 4011 11
-	then
-		sh /etc/init.d/4011_dji_f450
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 4012
-	then
-		sh /etc/init.d/666_fmu_q_x550
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 6012 12
-	then
-		set MIXER /etc/mixers/FMU_hex_x.mix
-		sh /etc/init.d/rc.hexa
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 7013 13
-	then
-		set MIXER /etc/mixers/FMU_hex_+.mix
-		sh /etc/init.d/rc.hexa
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 8001
-	then
-		set MIXER /etc/mixers/FMU_octo_x.mix
-		sh /etc/init.d/rc.octo
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 9001
-	then
-		set MIXER /etc/mixers/FMU_octo_+.mix
-		sh /etc/init.d/rc.octo
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 12001
-	then
-		set MIXER /etc/mixers/FMU_octo_cox.mix
-		sh /etc/init.d/rc.octo
-		set MODE custom
-	fi
-	
-	if param compare SYS_AUTOSTART 10015 15
-	then
-		sh /etc/init.d/10015_tbs_discovery
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 10016 16
-	then
-		sh /etc/init.d/10016_3dr_iris
-		set MODE custom
-	fi
-
-	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame
-	if param compare SYS_AUTOSTART 4017 17
-	then
-		set MKBLCTRL_MODE no
-		set MKBLCTRL_FRAME x
-		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
-		set MODE custom
-	fi
-
-	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame
-	if param compare SYS_AUTOSTART 5018 18
-	then
-		set MKBLCTRL_MODE no
-		set MKBLCTRL_FRAME +
-		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
-		set MODE custom
-	fi
-
-	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 X Frame Mikrokopter-Addressing
-	if param compare SYS_AUTOSTART 4019 19
-	then
-		set MKBLCTRL_MODE yes
-		set MKBLCTRL_FRAME x
-		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
-		set MODE custom
-	fi
-
-	# PX4FMU v1, v2 with or without IO and Mikrokopter I2C ESCs on DJI F330 + Frame Mikrokopter-Addressing
-	if param compare SYS_AUTOSTART 5020 20
-	then
-		set MKBLCTRL_MODE yes
-		set MKBLCTRL_FRAME +
-		sh /etc/init.d/rc.custom_dji_f330_mkblctrl
-		set MODE custom
-	fi
-
-	# PX4FMU v1 with IO + PPM-based ESCs on Quad X-shape frame
-	if param compare SYS_AUTOSTART 4021 21
-	then
-		set FRAME_GEOMETRY x
-		set ESC_MAKER afro
-		sh /etc/init.d/rc.custom_io_esc
-		set MODE custom
-	fi
-
-	# PX4FMU v1 with IO + PPM-based ESCs on Quad X-shape frame
-	if param compare SYS_AUTOSTART 10022 22
-	then
-		set FRAME_GEOMETRY w
-		sh /etc/init.d/rc.custom_io_esc
-		set MODE custom
-	fi
-	
-	if param compare SYS_AUTOSTART 3030 30
-	then
-		sh /etc/init.d/3030_io_camflyer
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 3031 31
-	then
-		sh /etc/init.d/3031_io_phantom
-		set MODE custom
-	fi
-	
-	if param compare SYS_AUTOSTART 3032 32
-	then
-		sh /etc/init.d/3032_skywalker_x5
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 3033 33
-	then
-		sh /etc/init.d/3033_io_wingwing
-		set MODE custom
-	fi
-
-        if param compare SYS_AUTOSTART 3034 34
-        then
-                sh /etc/init.d/3034_io_fx79
-                set MODE custom
-        fi
-
-	if param compare SYS_AUTOSTART 40
-	then
-		sh /etc/init.d/40_io_segway
-		set MODE custom
-	fi
-	
-	if param compare SYS_AUTOSTART 2100 100
-	then
-		sh /etc/init.d/2100_mpx_easystar
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 2101 101
-	then
-		sh /etc/init.d/2101_hk_bixler
-		set MODE custom
-	fi
-
-	if param compare SYS_AUTOSTART 2102 102
-	then
-		sh /etc/init.d/2102_3dr_skywalker
-		set MODE custom
-	fi
-	
-	if param compare SYS_AUTOSTART 800
-	then
-		sh /etc/init.d/800_sdlogger
-		set MODE custom
-	fi
-	
-	# Start any custom extensions that might be missing
+	# Start any custom extensions
 	if [ -f /fs/microsd/etc/rc.local ]
 	then
 		sh /fs/microsd/etc/rc.local

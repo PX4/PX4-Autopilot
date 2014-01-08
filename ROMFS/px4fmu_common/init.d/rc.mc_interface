@@ -35,15 +35,26 @@ else
     fi
 fi
 
-
 #
 # Set PWM output frequency
 #
-pwm rate -c $OUTPUTS -r $PWM_RATE
+if [ $PWM_RATE != none ]
+then
+	pwm rate -c $OUTPUTS -r $PWM_RATE
+fi
 
 #
-# Set disarmed, min and max PWM signals (for DJI ESCs)
+# Set disarmed, min and max PWM values
 #
-pwm disarmed -c $OUTPUTS -p $PWM_DISARMED
-pwm min -c $OUTPUTS -p $PWM_MIN
-pwm max -c $OUTPUTS -p $PWM_MAX
+if [ $PWM_DISARMED != none ]
+then
+	pwm disarmed -c $OUTPUTS -p $PWM_DISARMED
+fi
+if [ $PWM_MIN != none ]
+then
+	pwm min -c $OUTPUTS -p $PWM_MIN
+fi
+if [ $PWM_MAX != none ]
+then
+	pwm max -c $OUTPUTS -p $PWM_MAX
+fi

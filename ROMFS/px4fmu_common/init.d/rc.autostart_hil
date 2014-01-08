@@ -1,0 +1,34 @@
+#
+# Check if auto-setup from one of the standard scripts for HIL is wanted
+#
+
+if param compare SYS_AUTOSTART 1000
+then
+	#sh /etc/init.d/1000_rc_fw_easystar.hil		
+	set MODE hil
+fi
+
+if param compare SYS_AUTOSTART 1001
+then
+	sh /etc/init.d/1001_rc_quad.hil
+	set MODE hil
+fi
+
+if param compare SYS_AUTOSTART 1002
+then
+	#sh /etc/init.d/1002_rc_fw_state.hil
+	set MODE hil
+fi
+
+if param compare SYS_AUTOSTART 1003
+then
+	#sh /etc/init.d/1003_rc_quad_+.hil
+	set MODE hil
+fi
+
+if param compare SYS_AUTOSTART 1004
+then
+	#sh /etc/init.d/1004_rc_fw_Rascal110.hil
+	set MODE hil
+fi
+

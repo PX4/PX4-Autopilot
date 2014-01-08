@@ -1,0 +1,180 @@
+#
+# Check if auto-setup from one of the standard scripts is wanted
+# SYS_AUTOSTART = 0 means no autostart (default)
+#
+# AUTOSTART PARTITION:
+#  0   	..	 999		Reserved (historical)
+#  1000	..	 1999		Simulation setups
+#  2000	..	 2999		Standard planes
+#  3000	..	 3999		Flying wing
+#  4000	..	 4999		Quad X
+#  5000	..	 5999		Quad +
+#  6000	..	 6999		Hexa X
+#  7000	..	 7999		Hexa +
+#  8000	..	 8999		Octo X
+#  9000	..	 9999		Octo +
+# 10000	..	10999		Wide arm / H frame
+# 11000	..	11999		Hexa Cox
+# 12000	..	12999		Octo Cox
+
+if param compare SYS_AUTOSTART 4008 8
+then
+	#sh /etc/init.d/4008_ardrone
+fi
+
+if param compare SYS_AUTOSTART 4009 9
+then
+	#sh /etc/init.d/4009_ardrone_flow
+fi
+
+if param compare SYS_AUTOSTART 4010 10
+then
+	sh /etc/init.d/4010_dji_f330
+fi
+
+if param compare SYS_AUTOSTART 4011 11
+then
+	sh /etc/init.d/4011_dji_f450
+fi
+
+if param compare SYS_AUTOSTART 4012
+then
+	#sh /etc/init.d/666_fmu_q_x550
+fi
+
+if param compare SYS_AUTOSTART 6012 12
+then
+	#set MIXER /etc/mixers/FMU_hex_x.mix
+	#sh /etc/init.d/rc.hexa
+fi
+
+if param compare SYS_AUTOSTART 7013 13
+then
+	#set MIXER /etc/mixers/FMU_hex_+.mix
+	#sh /etc/init.d/rc.hexa
+fi
+
+if param compare SYS_AUTOSTART 8001
+then
+	#set MIXER /etc/mixers/FMU_octo_x.mix
+	#sh /etc/init.d/rc.octo
+fi
+
+if param compare SYS_AUTOSTART 9001
+then
+	#set MIXER /etc/mixers/FMU_octo_+.mix
+	#sh /etc/init.d/rc.octo
+fi
+
+if param compare SYS_AUTOSTART 12001
+then
+	#set MIXER /etc/mixers/FMU_octo_cox.mix
+	#sh /etc/init.d/rc.octo
+fi
+
+if param compare SYS_AUTOSTART 10015 15
+then
+	#sh /etc/init.d/10015_tbs_discovery
+fi
+
+if param compare SYS_AUTOSTART 10016 16
+then
+	#sh /etc/init.d/10016_3dr_iris
+fi
+
+if param compare SYS_AUTOSTART 4017 17
+then
+	#set MKBLCTRL_MODE no
+	#set MKBLCTRL_FRAME x
+	#sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+fi
+
+if param compare SYS_AUTOSTART 5018 18
+then
+	#set MKBLCTRL_MODE no
+	#set MKBLCTRL_FRAME +
+	#sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+fi
+
+if param compare SYS_AUTOSTART 4019 19
+then
+	#set MKBLCTRL_MODE yes
+	#set MKBLCTRL_FRAME x
+	#sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+fi
+
+if param compare SYS_AUTOSTART 5020 20
+then
+	#set MKBLCTRL_MODE yes
+	#set MKBLCTRL_FRAME +
+	#sh /etc/init.d/rc.custom_dji_f330_mkblctrl
+fi
+
+if param compare SYS_AUTOSTART 4021 21
+then
+	#set FRAME_GEOMETRY x
+	#set ESC_MAKER afro
+	#sh /etc/init.d/rc.custom_io_esc
+fi
+
+if param compare SYS_AUTOSTART 10022 22
+then
+	#set FRAME_GEOMETRY w
+	#sh /etc/init.d/rc.custom_io_esc
+fi
+
+if param compare SYS_AUTOSTART 3030 30
+then
+	#sh /etc/init.d/3030_io_camflyer
+fi
+
+if param compare SYS_AUTOSTART 3031 31
+then
+	#sh /etc/init.d/3031_io_phantom
+fi
+
+if param compare SYS_AUTOSTART 3032 32
+then
+	#sh /etc/init.d/3032_skywalker_x5
+fi
+
+if param compare SYS_AUTOSTART 3033 33
+then
+	#sh /etc/init.d/3033_io_wingwing
+fi
+
+if param compare SYS_AUTOSTART 3034 34
+then
+	#sh /etc/init.d/3034_io_fx79
+	#set MODE custom
+fi
+
+if param compare SYS_AUTOSTART 40
+then
+	#sh /etc/init.d/40_io_segway
+	#set MODE custom
+fi
+
+if param compare SYS_AUTOSTART 2100 100
+then
+	#sh /etc/init.d/2100_mpx_easystar
+	#set MODE custom
+fi
+
+if param compare SYS_AUTOSTART 2101 101
+then
+	#sh /etc/init.d/2101_hk_bixler
+	#set MODE custom
+fi
+
+if param compare SYS_AUTOSTART 2102 102
+then
+	#sh /etc/init.d/2102_3dr_skywalker
+	#set MODE custom
+fi
+
+if param compare SYS_AUTOSTART 800
+then
+	#sh /etc/init.d/800_sdlogger
+	#set MODE custom
+fi
