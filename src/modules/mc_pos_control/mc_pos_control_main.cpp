@@ -597,12 +597,23 @@ MulticopterPositionControl::task_main()
 				_pos_sp += sp_move_rate * dt;
 
 				/* check if position setpoint is too far from actual position */
-				math::Vector<3> pos_sp_offs = (_pos_sp - _pos).edivide(_params.vel_max);
+				math::Vector<3> pos_sp_offs;
+				pos_sp_offs.zero();
+
+				if (_control_mode.flag_control_position_enabled) {
+					pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
+					pos_sp_offs(1) = (_pos_sp(1) - _pos(1)) / _params.sp_offs_max(1);
+				}
+
+				if (!_control_mode.flag_control_altitude_enabled) {
+					pos_sp_offs(2) = (_pos_sp(2) - _pos(2)) / _params.sp_offs_max(2);
+				}
+
 				float pos_sp_offs_norm = pos_sp_offs.length();
 
 				if (pos_sp_offs_norm > 1.0f) {
 					pos_sp_offs /= pos_sp_offs_norm;
-					_pos_sp = _pos + pos_sp_offs.emult(_params.vel_max);
+					_pos_sp = _pos + pos_sp_offs.emult(_params.sp_offs_max);
 				}
 
 			} else {
