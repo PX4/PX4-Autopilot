@@ -40,6 +40,7 @@
  */
 
 #include <sys/stat.h>
+#include <poll.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -52,6 +53,38 @@
 #include <drivers/drv_hrt.h>
 
 #include "tests.h"
+
+int check_user_abort();
+
+int check_user_abort() {
+	/* check if user wants to abort */
+	char c;
+
+	struct pollfd fds;
+	int ret;
+	fds.fd = 0; /* stdin */
+	fds.events = POLLIN;
+	ret = poll(&fds, 1, 0);
+
+	if (ret > 0) {
+
+		read(0, &c, 1);
+
+		switch (c) {
+		case 0x03: // ctrl-c
+		case 0x1b: // esc
+		case 'c':
+		case 'q':
+		{
+			warnx("Test aborted.");
+			return OK;
+			/* not reached */
+			}
+		}
+	}
+
+	return 1;
+}
 
 int
 test_file(int argc, char *argv[])
@@ -108,6 +141,9 @@ test_file(int argc, char *argv[])
 
 				fsync(fd);
 
+				if (!check_user_abort())
+					return OK;
+
 			}
 			end = hrt_absolute_time();
 
@@ -139,6 +175,9 @@ test_file(int argc, char *argv[])
 					return 1;
 				}
 
+				if (!check_user_abort())
+					return OK;
+
 			}
 
 			/*
@@ -149,7 +188,7 @@ test_file(int argc, char *argv[])
 			int ret = unlink("/fs/microsd/testfile");
 			fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
-			warnx("testing aligned writes - please wait..");
+			warnx("testing aligned writes - please wait.. (CTRL^C to abort)");
 
 			start = hrt_absolute_time();
 			for (unsigned i = 0; i < iterations; i++) {
@@ -159,6 +198,9 @@ test_file(int argc, char *argv[])
 					warnx("WRITE ERROR!");
 					return 1;
 				}
+
+				if (!check_user_abort())
+					return OK;
 
 			}
 
@@ -189,6 +231,9 @@ test_file(int argc, char *argv[])
 						align_read_ok = false;
 						break;
 					}
+
+					if (!check_user_abort())
+						return OK;
 				}
 
 				if (!align_read_ok) {
@@ -229,6 +274,9 @@ test_file(int argc, char *argv[])
 						if (unalign_read_err_count > 10)
 							break;
 					}
+
+					if (!check_user_abort())
+						return OK;
 				}
 
 				if (!unalign_read_ok) {
