@@ -422,11 +422,11 @@ Navigator::task_main()
 
 			mission_poll();
 
-			math::Vector2f ground_speed(_global_pos.vx, _global_pos.vy);
+			math::Vector<2> ground_speed(_global_pos.vx, _global_pos.vy);
 			// Current waypoint
-			math::Vector2f next_wp(_global_triplet.current.lat / 1e7f, _global_triplet.current.lon / 1e7f);
+			math::Vector<2> next_wp(_global_triplet.current.lat / 1e7f, _global_triplet.current.lon / 1e7f);
 			// Global position
-			math::Vector2f current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
+			math::Vector<2> current_position(_global_pos.lat / 1e7f, _global_pos.lon / 1e7f);
 
 			/* AUTONOMOUS FLIGHT */
 
@@ -436,19 +436,19 @@ Navigator::task_main()
 				if (_mission_valid) {
 
 					// Next waypoint
-					math::Vector2f prev_wp;
+					math::Vector<2> prev_wp;
 
 					if (_global_triplet.previous_valid) {
-						prev_wp.setX(_global_triplet.previous.lat / 1e7f);
-						prev_wp.setY(_global_triplet.previous.lon / 1e7f);
+						prev_wp(0) = _global_triplet.previous.lat / 1e7f;
+						prev_wp(1) = _global_triplet.previous.lon / 1e7f;
 
 					} else {
 						/*
 						 * No valid next waypoint, go for heading hold.
 						 * This is automatically handled by the L1 library.
 						 */
-						prev_wp.setX(_global_triplet.current.lat / 1e7f);
-						prev_wp.setY(_global_triplet.current.lon / 1e7f);
+						prev_wp(0) = _global_triplet.current.lat / 1e7f;
+						prev_wp(1) = _global_triplet.current.lon / 1e7f;
 
 					}
 
