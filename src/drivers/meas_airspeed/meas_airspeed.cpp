@@ -198,7 +198,9 @@ MEASAirspeed::collect()
 //	uint16_t diff_press_pa = abs(dp_raw - (16384 / 2.0f));
 	const float P_min = -1.0f;
 	const float P_max = 1.0f;
-	float diff_press_pa = math::max(0.0f, fabsf( ( ((float)dp_raw - 0.1f*16383.0f) * (P_max-P_min)/(0.8f*16383.0f) + P_min) * 6894.8f)   - _diff_pres_offset);
+	float diff_press_pa = fabsf( ( ((float)dp_raw - 0.1f*16383.0f) * (P_max-P_min)/(0.8f*16383.0f) + P_min) * 6894.8f) - _diff_pres_offset;
+        if (diff_press_pa < 0.0f)
+            diff_press_pa = 0.0f;
 
 	struct differential_pressure_s report;
 
