@@ -1,0 +1,17 @@
+#!nsh
+
+# Maintainers: Anton Babushkin <anton.babushkin@me.com>, Lorenz Meier <lm@inf.ethz.ch>
+
+echo "[init] PX4FMU v1, v2 with or without IO on generic hexacopter + with PWM ESCs"
+
+if [ $DO_AUTOCONFIG == yes ]
+then
+	#
+	# Default parameters for this platform
+	#
+fi
+ 
+set FRAME_TYPE mc
+set FRAME_GEOMETRY +
+set FRAME_COUNT 4
+set PWM_RATE 400

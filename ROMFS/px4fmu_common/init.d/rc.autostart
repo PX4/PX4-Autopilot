@@ -17,53 +17,54 @@
 # 11000	..	11999		Hexa Cox
 # 12000	..	12999		Octo Cox
 
-if param compare SYS_AUTOSTART 4008 8
+if param compare SYS_AUTOSTART 4001
+then
+	sh /etc/init.d/4001_quad_x_pwm
+fi
+
+if param compare SYS_AUTOSTART 4008
 then
 	#sh /etc/init.d/4008_ardrone
 fi
 
-if param compare SYS_AUTOSTART 4009 9
+if param compare SYS_AUTOSTART 4009
 then
 	#sh /etc/init.d/4009_ardrone_flow
 fi
 
-if param compare SYS_AUTOSTART 4010 10
+if param compare SYS_AUTOSTART 4010
 then
 	sh /etc/init.d/4010_dji_f330
 fi
 
-if param compare SYS_AUTOSTART 4011 11
+if param compare SYS_AUTOSTART 4011
 then
 	sh /etc/init.d/4011_dji_f450
 fi
 
 if param compare SYS_AUTOSTART 4012
 then
-	#sh /etc/init.d/666_fmu_q_x550
+	sh /etc/init.d/4012_hk_x550
 fi
 
-if param compare SYS_AUTOSTART 6012 12
+if param compare SYS_AUTOSTART 6001
 then
-	#set MIXER /etc/mixers/FMU_hex_x.mix
-	#sh /etc/init.d/rc.hexa
+	sh /etc/init.d/6001_hexa_x_pwm
 fi
 
-if param compare SYS_AUTOSTART 7013 13
+if param compare SYS_AUTOSTART 7001
 then
-	#set MIXER /etc/mixers/FMU_hex_+.mix
-	#sh /etc/init.d/rc.hexa
+	sh /etc/init.d/7001_hexa_+_pwm
 fi
 
 if param compare SYS_AUTOSTART 8001
 then
-	#set MIXER /etc/mixers/FMU_octo_x.mix
-	#sh /etc/init.d/rc.octo
+	sh /etc/init.d/8001_octo_x_pwm
 fi
 
 if param compare SYS_AUTOSTART 9001
 then
-	#set MIXER /etc/mixers/FMU_octo_+.mix
-	#sh /etc/init.d/rc.octo
+	sh /etc/init.d/9001_octo_+_pwm
 fi
 
 if param compare SYS_AUTOSTART 12001

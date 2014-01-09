@@ -1,0 +1,27 @@
+#!nsh
+
+# Maintainers: Todd Stellanova <tstellanova@gmail.com>
+
+echo "[init] PX4FMU v1, v2 with or without IO on HobbyKing X550"
+
+# Use generic quad X PWM as base
+sh /etc/init.d/4001_quad_x_pwm
+
+if [ $DO_AUTOCONFIG == yes ]
+then
+	#
+	# Default parameters for this platform
+	#
+	param set MC_ATT_P 5.5
+	param set MC_ATT_I 0
+	param set MC_ATT_D 0
+	param set MC_ATTRATE_P 0.14
+	param set MC_ATTRATE_I 0
+	param set MC_ATTRATE_D 0.006
+	param set MC_YAWPOS_P 0.6
+	param set MC_YAWPOS_I 0
+	param set MC_YAWPOS_D 0
+	param set MC_YAWRATE_P 0.08
+	param set MC_YAWRATE_I 0
+	param set MC_YAWRATE_D 0
+fi

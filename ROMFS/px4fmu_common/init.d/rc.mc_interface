@@ -3,37 +3,33 @@
 # Script to set PWM min / max limits and mixer
 #
 
+echo "Rotors count: $FRAME_COUNT"
+if [ $FRAME_COUNT == 4 ]
+then
+	set FRAME_COUNT_STR quad
+    set OUTPUTS 1234
+    param set MAV_TYPE 2
+fi
+if [ $FRAME_COUNT == 6 ]
+then
+	set FRAME_COUNT_STR hex
+	set OUTPUTS 123456
+	param set MAV_TYPE 13
+fi
+if [ $FRAME_COUNT == 8 ]
+then
+	set FRAME_COUNT_STR octo
+	set OUTPUTS 12345678
+	param set MAV_TYPE 14
+fi
+
 #
 # Load mixer
 #
-if [ $FRAME_GEOMETRY == x ]
-then
-    echo "Frame geometry X"
-    mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
-else
-    if [ $FRAME_GEOMETRY == w ]
-    then
-	echo "Frame geometry W"
-	mixer load /dev/pwm_output /etc/mixers/FMU_quad_w.mix
-    else
-	echo "Frame geometry +"
-    	mixer load /dev/pwm_output /etc/mixers/FMU_quad_+.mix
-    fi
-fi
-
-if [ $FRAME_COUNT == 4 ]
-then
-    set OUTPUTS 1234
-    param set MAV_TYPE 2
-else
-    if [ $FRAME_COUNT == 6 ]
-    then
-	set OUTPUTS 123456
-	param set MAV_TYPE 13
-    else
-	set OUTPUTS 12345678
-    fi
-fi
+echo "Frame geometry: ${FRAME_GEOMETRY}"
+set MIXER /etc/mixers/FMU_${FRAME_GEOMETRY_STR}_${FRAME_GEOMETRY}.mix
+echo "Loading mixer: ${MIXER}"
+mixer load /dev/pwm_output ${MIXER}
 
 #
 # Set PWM output frequency
