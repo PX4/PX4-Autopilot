@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_receiver.c
+ * @file mavlink_receiver.cpp
  * MAVLink protocol message receive and dispatch
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
@@ -79,11 +78,8 @@ __BEGIN_DECLS
 #include "mavlink_bridge_header.h"
 #include "waypoints.h"
 #include "orb_topics.h"
-#include "mavlink_hil.h"
 #include "mavlink_parameters.h"
 #include "util.h"
-
-extern bool gcs_link;
 
 __END_DECLS
 
@@ -272,7 +268,7 @@ handle_message(mavlink_message_t *msg)
 		if (mavlink_system.sysid < 4) {
 
 			/* switch to a receiving link mode */
-			gcs_link = false;
+			_mavlink->set_mode(Mavlink::MODE_TX_HEARTBEAT_ONLY);
 
 			/*
 			 * rate control mode - defined by MAVLink
@@ -367,7 +363,7 @@ handle_message(mavlink_message_t *msg)
 	 * COMMAND_LONG message or a SET_MODE message
 	 */
 
-	if (mavlink_hil_enabled) {
+	if (_mavlink->hil_enabled()) {
 
 		uint64_t timestamp = hrt_absolute_time();
 

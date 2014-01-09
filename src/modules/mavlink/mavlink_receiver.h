@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,20 +32,57 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_hil.h
- * Hardware-in-the-loop simulation support.
+ * @file mavlink_orb_listener.h
+ * MAVLink 1.0 uORB listener definition
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #pragma once
 
-extern bool mavlink_hil_enabled;
+class Mavlink;
 
-/**
- * Enable / disable Hardware in the Loop simulation mode.
- *
- * @param hil_enabled	The new HIL enable/disable state.
- * @return		OK if the HIL state changed, ERROR if the
- *			requested change could not be made or was
- *			redundant.
- */
-extern int set_hil_on_off(bool hil_enabled);
+class MavlinkReceiver
+{
+public:
+	/**
+	 * Constructor
+	 */
+	MavlinkReceiver(Mavlink *parent);
+
+	/**
+	 * Destructor, also kills the mavlinks task.
+	 */
+	~MavlinkReceiver();
+
+	/**
+	* Start the mavlink task.
+	 *
+	 * @return		OK on success.
+	 */
+	int		start();
+
+	/**
+	 * Display the mavlink status.
+	 */
+	void		status();
+
+private:
+
+	bool		_task_should_exit;		/**< if true, sensor task should exit */
+
+	perf_counter_t	_loop_perf;			/**< loop performance counter */
+
+	Mavlink*	_mavlink;
+
+	/**
+	 * Shim for calling task_main from task_create.
+	 */
+	void		task_main_trampoline(int argc, char *argv[]);
+
+	/**
+	 * Main sensor collection task.
+	 */
+	void		task_main() __attribute__((noreturn));
+
+};

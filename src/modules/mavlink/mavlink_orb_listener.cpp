@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file orb_listener.c
+ * @file orb_listener.cpp
  * Monitors ORB topics and sends update messages as appropriate.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
@@ -58,44 +57,11 @@
 
 #include <mavlink/mavlink_log.h>
 
-#include "waypoints.h"
-#include "orb_topics.h"
-#include "mavlink_hil.h"
-#include "util.h"
+#include "mavlink_orb_listener.h"
+#include "mavlink_main.h"
+//#include "util.h"
 
-extern bool gcs_link;
-
-struct vehicle_global_position_s global_pos;
-struct vehicle_local_position_s local_pos;
-struct navigation_capabilities_s nav_cap;
-struct vehicle_status_s v_status;
-struct vehicle_control_mode_s control_mode;
-struct rc_channels_s rc;
-struct rc_input_values rc_raw;
-struct actuator_armed_s armed;
-struct actuator_controls_s actuators_0;
-struct vehicle_attitude_s att;
-struct airspeed_s airspeed;
-
-struct mavlink_subscriptions mavlink_subs;
-
-static int status_sub;
-static int rc_sub;
-
-static unsigned int sensors_raw_counter;
-static unsigned int attitude_counter;
-static unsigned int gps_counter;
-
-/*
- * Last sensor loop time
- * some outputs are better timestamped
- * with this "global" reference.
- */
-static uint64_t last_sensor_timestamp;
-
-static hrt_abstime last_sent_vfr = 0;
-
-static void	*uorb_receive_thread(void *arg);
+	void		*uorb_receive_thread(void *arg);
 
 struct listener {
 	void	(*callback)(const struct listener *l);
@@ -105,30 +71,28 @@ struct listener {
 
 uint16_t cm_uint16_from_m_float(float m);
 
-static void	l_sensor_combined(const struct listener *l);
-static void	l_vehicle_attitude(const struct listener *l);
-static void	l_vehicle_gps_position(const struct listener *l);
-static void	l_vehicle_status(const struct listener *l);
-static void	l_rc_channels(const struct listener *l);
-static void	l_input_rc(const struct listener *l);
-static void	l_global_position(const struct listener *l);
-static void	l_local_position(const struct listener *l);
-static void	l_global_position_setpoint(const struct listener *l);
-static void	l_local_position_setpoint(const struct listener *l);
-static void	l_attitude_setpoint(const struct listener *l);
-static void	l_actuator_outputs(const struct listener *l);
-static void	l_actuator_armed(const struct listener *l);
-static void	l_manual_control_setpoint(const struct listener *l);
-static void	l_vehicle_attitude_controls(const struct listener *l);
-static void	l_debug_key_value(const struct listener *l);
-static void	l_optical_flow(const struct listener *l);
-static void	l_vehicle_rates_setpoint(const struct listener *l);
-static void	l_home(const struct listener *l);
-static void	l_airspeed(const struct listener *l);
-static void	l_nav_cap(const struct listener *l);
-static void	l_control_mode(const struct listener *l);
 
-static const struct listener listeners[] = {
+uint16_t
+cm_uint16_from_m_float(float m)
+{
+	if (m < 0.0f) {
+		return 0;
+
+	} else if (m > 655.35f) {
+		return 65535;
+	}
+
+	return (uint16_t)(m * 100.0f);
+}
+
+MavlinkOrbListener::MavlinkOrbListener(Mavlink* parent) : 
+
+	_task_should_exit(false),
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink orb")),
+	_mavlink(parent),
+	_n_listeners(0)
+{
+	static const struct listener listeners[] = {
 	{l_sensor_combined,		&mavlink_subs.sensor_sub,	0},
 	{l_vehicle_attitude,		&mavlink_subs.att_sub,		0},
 	{l_vehicle_gps_position,	&mavlink_subs.gps_sub,		0},
@@ -156,23 +120,12 @@ static const struct listener listeners[] = {
 	{l_control_mode,			&mavlink_subs.control_mode_sub,		0},
 };
 
-static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
+	_n_listeners = sizeof(listeners) / sizeof(listeners[0]);
 
-uint16_t
-cm_uint16_from_m_float(float m)
-{
-	if (m < 0.0f) {
-		return 0;
-
-	} else if (m > 655.35f) {
-		return 65535;
-	}
-
-	return (uint16_t)(m * 100.0f);
 }
 
 void
-l_sensor_combined(const struct listener *l)
+MavlinkOrbListener::l_sensor_combined(const struct listener *l)
 {
 	struct sensor_combined_s raw;
 
@@ -213,7 +166,7 @@ l_sensor_combined(const struct listener *l)
 	}
 
 	if (gcs_link)
-		mavlink_msg_highres_imu_send(MAVLINK_COMM_0, last_sensor_timestamp,
+		mavlink_msg_highres_imu_send(_mavlink->get_mavlink_chan(), last_sensor_timestamp,
 					     raw.accelerometer_m_s2[0], raw.accelerometer_m_s2[1],
 					     raw.accelerometer_m_s2[2], raw.gyro_rad_s[0],
 					     raw.gyro_rad_s[1], raw.gyro_rad_s[2],
@@ -227,14 +180,14 @@ l_sensor_combined(const struct listener *l)
 }
 
 void
-l_vehicle_attitude(const struct listener *l)
+MavlinkOrbListener::l_vehicle_attitude(const struct listener *l)
 {
 	/* copy attitude data into local buffer */
 	orb_copy(ORB_ID(vehicle_attitude), mavlink_subs.att_sub, &att);
 
 	if (gcs_link) {
 		/* send sensor values */
-		mavlink_msg_attitude_send(MAVLINK_COMM_0,
+		mavlink_msg_attitude_send(_mavlink->get_mavlink_chan(),
 					  last_sensor_timestamp / 1000,
 					  att.roll,
 					  att.pitch,
@@ -250,12 +203,12 @@ l_vehicle_attitude(const struct listener *l)
 			float groundspeed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
 			uint16_t heading = _wrap_2pi(att.yaw) * M_RAD_TO_DEG_F;
 			float throttle = armed.armed ? actuators_0.control[3] * 100.0f : 0.0f;
-			mavlink_msg_vfr_hud_send(MAVLINK_COMM_0, airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
+			mavlink_msg_vfr_hud_send(_mavlink->get_mavlink_chan(), airspeed.true_airspeed_m_s, groundspeed, heading, throttle, global_pos.alt, -global_pos.vz);
 		}
 		
 		/* send quaternion values if it exists */
 		if(att.q_valid) {
-			mavlink_msg_attitude_quaternion_send(MAVLINK_COMM_0,
+			mavlink_msg_attitude_quaternion_send(_mavlink->get_mavlink_chan(),
 												last_sensor_timestamp / 1000,
 												att.q[0],
 												att.q[1],
@@ -271,7 +224,7 @@ l_vehicle_attitude(const struct listener *l)
 }
 
 void
-l_vehicle_gps_position(const struct listener *l)
+MavlinkOrbListener::l_vehicle_gps_position(const struct listener *l)
 {
 	struct vehicle_gps_position_s gps;
 
@@ -282,7 +235,7 @@ l_vehicle_gps_position(const struct listener *l)
 	float cog_deg = _wrap_2pi(gps.cog_rad) * M_RAD_TO_DEG_F;
 
 	/* GPS position */
-	mavlink_msg_gps_raw_int_send(MAVLINK_COMM_0,
+	mavlink_msg_gps_raw_int_send(_mavlink->get_mavlink_chan(),
 				     gps.timestamp_position,
 				     gps.fix_type,
 				     gps.lat,
@@ -296,7 +249,7 @@ l_vehicle_gps_position(const struct listener *l)
 
 	/* update SAT info every 10 seconds */
 	if (gps.satellite_info_available && (gps_counter % 50 == 0)) {
-		mavlink_msg_gps_status_send(MAVLINK_COMM_0,
+		mavlink_msg_gps_status_send(_mavlink->get_mavlink_chan(),
 					    gps.satellites_visible,
 					    gps.satellite_prn,
 					    gps.satellite_used,
@@ -309,7 +262,7 @@ l_vehicle_gps_position(const struct listener *l)
 }
 
 void
-l_vehicle_status(const struct listener *l)
+MavlinkOrbListener::l_vehicle_status(const struct listener *l)
 {
 	/* immediately communicate state changes back to user */
 	orb_copy(ORB_ID(vehicle_status), status_sub, &v_status);
@@ -337,7 +290,7 @@ l_vehicle_status(const struct listener *l)
 }
 
 void
-l_rc_channels(const struct listener *l)
+MavlinkOrbListener::l_rc_channels(const struct listener *l)
 {
 	/* copy rc channels into local buffer */
 	orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
@@ -345,7 +298,7 @@ l_rc_channels(const struct listener *l)
 }
 
 void
-l_input_rc(const struct listener *l)
+MavlinkOrbListener::l_input_rc(const struct listener *l)
 {
 	/* copy rc channels into local buffer */
 	orb_copy(ORB_ID(input_rc), mavlink_subs.input_rc_sub, &rc_raw);
@@ -373,12 +326,12 @@ l_input_rc(const struct listener *l)
 }
 
 void
-l_global_position(const struct listener *l)
+MavlinkOrbListener::l_global_position(const struct listener *l)
 {
 	/* copy global position data into local buffer */
 	orb_copy(ORB_ID(vehicle_global_position), mavlink_subs.global_pos_sub, &global_pos);
 
-	mavlink_msg_global_position_int_send(MAVLINK_COMM_0,
+	mavlink_msg_global_position_int_send(_mavlink->get_mavlink_chan(),
 						 global_pos.timestamp / 1000,
 					     global_pos.lat,
 					     global_pos.lon,
@@ -391,13 +344,13 @@ l_global_position(const struct listener *l)
 }
 
 void
-l_local_position(const struct listener *l)
+MavlinkOrbListener::l_local_position(const struct listener *l)
 {
 	/* copy local position data into local buffer */
 	orb_copy(ORB_ID(vehicle_local_position), mavlink_subs.local_pos_sub, &local_pos);
 
 	if (gcs_link)
-		mavlink_msg_local_position_ned_send(MAVLINK_COMM_0,
+		mavlink_msg_local_position_ned_send(_mavlink->get_mavlink_chan(),
 						    local_pos.timestamp / 1000,
 						    local_pos.x,
 						    local_pos.y,
@@ -408,7 +361,7 @@ l_local_position(const struct listener *l)
 }
 
 void
-l_global_position_setpoint(const struct listener *l)
+MavlinkOrbListener::l_global_position_setpoint(const struct listener *l)
 {
 	struct mission_item_triplet_s triplet;
 	orb_copy(ORB_ID(mission_item_triplet), mavlink_subs.triplet_sub, &triplet);
@@ -422,7 +375,7 @@ l_global_position_setpoint(const struct listener *l)
 		coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	if (gcs_link)
-		mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0,
+		mavlink_msg_global_position_setpoint_int_send(_mavlink->get_mavlink_chan(),
 				coordinate_frame,
 				(int32_t)(triplet.current.lat * 1e7d),
 				(int32_t)(triplet.current.lon * 1e7d),
@@ -431,7 +384,7 @@ l_global_position_setpoint(const struct listener *l)
 }
 
 void
-l_local_position_setpoint(const struct listener *l)
+MavlinkOrbListener::l_local_position_setpoint(const struct listener *l)
 {
 	struct vehicle_local_position_setpoint_s local_sp;
 
@@ -439,7 +392,7 @@ l_local_position_setpoint(const struct listener *l)
 	orb_copy(ORB_ID(vehicle_local_position_setpoint), mavlink_subs.spl_sub, &local_sp);
 
 	if (gcs_link)
-		mavlink_msg_local_position_setpoint_send(MAVLINK_COMM_0,
+		mavlink_msg_local_position_setpoint_send(_mavlink->get_mavlink_chan(),
 				MAV_FRAME_LOCAL_NED,
 				local_sp.x,
 				local_sp.y,
@@ -448,7 +401,7 @@ l_local_position_setpoint(const struct listener *l)
 }
 
 void
-l_attitude_setpoint(const struct listener *l)
+MavlinkOrbListener::l_attitude_setpoint(const struct listener *l)
 {
 	struct vehicle_attitude_setpoint_s att_sp;
 
@@ -456,7 +409,7 @@ l_attitude_setpoint(const struct listener *l)
 	orb_copy(ORB_ID(vehicle_attitude_setpoint), mavlink_subs.spa_sub, &att_sp);
 
 	if (gcs_link)
-		mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0,
+		mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(_mavlink->get_mavlink_chan(),
 				att_sp.timestamp / 1000,
 				att_sp.roll_body,
 				att_sp.pitch_body,
@@ -465,7 +418,7 @@ l_attitude_setpoint(const struct listener *l)
 }
 
 void
-l_vehicle_rates_setpoint(const struct listener *l)
+MavlinkOrbListener::l_vehicle_rates_setpoint(const struct listener *l)
 {
 	struct vehicle_rates_setpoint_s rates_sp;
 
@@ -473,7 +426,7 @@ l_vehicle_rates_setpoint(const struct listener *l)
 	orb_copy(ORB_ID(vehicle_rates_setpoint), mavlink_subs.rates_setpoint_sub, &rates_sp);
 
 	if (gcs_link)
-		mavlink_msg_roll_pitch_yaw_rates_thrust_setpoint_send(MAVLINK_COMM_0,
+		mavlink_msg_roll_pitch_yaw_rates_thrust_setpoint_send(_mavlink->get_mavlink_chan(),
 				rates_sp.timestamp / 1000,
 				rates_sp.roll,
 				rates_sp.pitch,
@@ -482,7 +435,7 @@ l_vehicle_rates_setpoint(const struct listener *l)
 }
 
 void
-l_actuator_outputs(const struct listener *l)
+MavlinkOrbListener::l_actuator_outputs(const struct listener *l)
 {
 	struct actuator_outputs_s act_outputs;
 
@@ -497,7 +450,7 @@ l_actuator_outputs(const struct listener *l)
 	orb_copy(ids[l->arg], *l->subp, &act_outputs);
 
 	if (gcs_link) {
-		mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000,
+		mavlink_msg_servo_output_raw_send(_mavlink->get_mavlink_chan(), last_sensor_timestamp / 1000,
 						  l->arg /* port number - needs GCS support */,
 							 /* QGC has port number support already */
 						  act_outputs.output[0],
@@ -583,13 +536,13 @@ l_actuator_outputs(const struct listener *l)
 }
 
 void
-l_actuator_armed(const struct listener *l)
+MavlinkOrbListener::l_actuator_armed(const struct listener *l)
 {
 	orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
 }
 
 void
-l_manual_control_setpoint(const struct listener *l)
+MavlinkOrbListener::l_manual_control_setpoint(const struct listener *l)
 {
 	struct manual_control_setpoint_s man_control;
 
@@ -597,7 +550,7 @@ l_manual_control_setpoint(const struct listener *l)
 	orb_copy(ORB_ID(manual_control_setpoint), mavlink_subs.man_control_sp_sub, &man_control);
 
 	if (gcs_link)
-		mavlink_msg_manual_control_send(MAVLINK_COMM_0,
+		mavlink_msg_manual_control_send(_mavlink->get_mavlink_chan(),
 						mavlink_system.sysid,
 						man_control.roll * 1000,
 						man_control.pitch * 1000,
@@ -607,25 +560,25 @@ l_manual_control_setpoint(const struct listener *l)
 }
 
 void
-l_vehicle_attitude_controls(const struct listener *l)
+MavlinkOrbListener::l_vehicle_attitude_controls(const struct listener *l)
 {
 	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, mavlink_subs.actuators_sub, &actuators_0);
 
 	if (gcs_link) {
 		/* send, add spaces so that string buffer is at least 10 chars long */
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+		mavlink_msg_named_value_float_send(_mavlink->get_mavlink_chan(),
 						   last_sensor_timestamp / 1000,
 						   "ctrl0    ",
 						   actuators_0.control[0]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+		mavlink_msg_named_value_float_send(_mavlink->get_mavlink_chan(),
 						   last_sensor_timestamp / 1000,
 						   "ctrl1    ",
 						   actuators_0.control[1]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+		mavlink_msg_named_value_float_send(_mavlink->get_mavlink_chan(),
 						   last_sensor_timestamp / 1000,
 						   "ctrl2     ",
 						   actuators_0.control[2]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+		mavlink_msg_named_value_float_send(_mavlink->get_mavlink_chan(),
 						   last_sensor_timestamp / 1000,
 						   "ctrl3     ",
 						   actuators_0.control[3]);
@@ -633,7 +586,7 @@ l_vehicle_attitude_controls(const struct listener *l)
 }
 
 void
-l_debug_key_value(const struct listener *l)
+MavlinkOrbListener::l_debug_key_value(const struct listener *l)
 {
 	struct debug_key_value_s debug;
 
@@ -642,46 +595,46 @@ l_debug_key_value(const struct listener *l)
 	/* Enforce null termination */
 	debug.key[sizeof(debug.key) - 1] = '\0';
 
-	mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+	mavlink_msg_named_value_float_send(_mavlink->get_mavlink_chan(),
 					   last_sensor_timestamp / 1000,
 					   debug.key,
 					   debug.value);
 }
 
 void
-l_optical_flow(const struct listener *l)
+MavlinkOrbListener::l_optical_flow(const struct listener *l)
 {
 	struct optical_flow_s flow;
 
 	orb_copy(ORB_ID(optical_flow), mavlink_subs.optical_flow, &flow);
 
-	mavlink_msg_optical_flow_send(MAVLINK_COMM_0, flow.timestamp, flow.sensor_id, flow.flow_raw_x, flow.flow_raw_y,
+	mavlink_msg_optical_flow_send(_mavlink->get_mavlink_chan(), flow.timestamp, flow.sensor_id, flow.flow_raw_x, flow.flow_raw_y,
 				      flow.flow_comp_x_m, flow.flow_comp_y_m, flow.quality, flow.ground_distance_m);
 }
 
 void
-l_home(const struct listener *l)
+MavlinkOrbListener::l_home(const struct listener *l)
 {
 	struct home_position_s home;
 
 	orb_copy(ORB_ID(home_position), mavlink_subs.home_sub, &home);
 
-	mavlink_msg_gps_global_origin_send(MAVLINK_COMM_0, (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.altitude)*1e3f);
+	mavlink_msg_gps_global_origin_send(_mavlink->get_mavlink_chan(), (int32_t)(home.lat*1e7d), (int32_t)(home.lon*1e7d), (int32_t)(home.altitude)*1e3f);
 }
 
 void
-l_airspeed(const struct listener *l)
+MavlinkOrbListener::l_airspeed(const struct listener *l)
 {
 	orb_copy(ORB_ID(airspeed), mavlink_subs.airspeed_sub, &airspeed);
 }
 
 void
-l_nav_cap(const struct listener *l)
+MavlinkOrbListener::l_nav_cap(const struct listener *l)
 {
 
 	orb_copy(ORB_ID(navigation_capabilities), mavlink_subs.navigation_capabilities_sub, &nav_cap);
 
-	mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+	mavlink_msg_named_value_float_send(_mavlink->get_mavlink_chan(),
 				   hrt_absolute_time() / 1000,
 				   "turn dist",
 				   nav_cap.turn_distance);
@@ -689,7 +642,7 @@ l_nav_cap(const struct listener *l)
 }
 
 void
-l_control_mode(const struct listener *l)
+MavlinkOrbListener::l_control_mode(const struct listener *l)
 {
 	orb_copy(ORB_ID(vehicle_control_mode), mavlink_subs.control_mode_sub, &control_mode);
 
@@ -725,9 +678,9 @@ uorb_receive_thread(void *arg)
 	 *
 	 * Might want to invoke each listener once to set initial state.
 	 */
-	struct pollfd fds[n_listeners];
+	struct pollfd fds[_n_listeners];
 
-	for (unsigned i = 0; i < n_listeners; i++) {
+	for (unsigned i = 0; i < _n_listeners; i++) {
 		fds[i].fd = *listeners[i].subp;
 		fds[i].events = POLLIN;
 
@@ -737,7 +690,7 @@ uorb_receive_thread(void *arg)
 
 	while (!thread_should_exit) {
 
-		int poll_ret = poll(fds, n_listeners, timeout);
+		int poll_ret = poll(fds, _n_listeners, timeout);
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
@@ -748,7 +701,7 @@ uorb_receive_thread(void *arg)
 
 		} else {
 
-			for (unsigned i = 0; i < n_listeners; i++) {
+			for (unsigned i = 0; i < _n_listeners; i++) {
 				if (fds[i].revents & POLLIN)
 					listeners[i].callback(&listeners[i]);
 			}
