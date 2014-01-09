@@ -185,9 +185,12 @@ then
 			else
 				echo "PX4IO restart failed"
 				echo "PX4IO restart failed" >> $logfile
-				tone_alarm MNGGG
-				sleep 10
-				reboot
+				if hw_ver compare PX4FMU_V2
+				then
+					tone_alarm MNGGG
+					sleep 10
+					reboot
+				fi
 			fi
 		else
 			echo "PX4IO update failed"

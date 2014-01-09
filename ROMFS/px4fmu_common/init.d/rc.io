@@ -11,7 +11,7 @@ then
 	#
 	# Disable px4io topic limiting
 	#
-	if [ $BOARD == fmuv1 ]
+	if hw_ver compare PX4FMU_V1
 	then
 		px4io limit 200
 	else

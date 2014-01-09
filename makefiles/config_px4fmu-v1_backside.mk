@@ -54,6 +54,7 @@ MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/config
 MODULES		+= systemcmds/nshterm
+MODULES		+= systemcmds/hw_ver
 
 #
 # General system control

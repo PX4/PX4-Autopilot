@@ -16,6 +16,7 @@ MODULES		+= drivers/led
 MODULES		+= drivers/boards/px4fmu-v2
 MODULES		+= systemcmds/perf
 MODULES		+= systemcmds/reboot
+MODULES		+= systemcmds/hw_ver
 
 #
 # Library modules

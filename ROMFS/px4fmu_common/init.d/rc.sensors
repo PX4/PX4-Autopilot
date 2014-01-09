@@ -28,9 +28,7 @@ fi
 
 if lsm303d start
 then
-	set BOARD fmuv2
-else
-	set BOARD fmuv1
+	echo "using LSM303D"
 fi
 
 # Start airspeed sensors
