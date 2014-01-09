@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
  *   Author: Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,38 +44,53 @@
 #include <math.h>
 #include <stdbool.h>
 #include <drivers/drv_hrt.h>
+#include <stdio.h>
 
 void pwm_limit_init(pwm_limit_t *limit)
 {
-	limit->state = LIMIT_STATE_OFF;
+	limit->state = PWM_LIMIT_STATE_INIT;
 	limit->time_armed = 0;
 	return;
 }
 
-void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, float *output, uint16_t *effective_pwm, pwm_limit_t *limit)
+void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm, const float *output, uint16_t *effective_pwm, pwm_limit_t *limit)
 {
+
 	/* first evaluate state changes */
 	switch (limit->state) {
-		case LIMIT_STATE_OFF:
-			if (armed)
-				limit->state = LIMIT_STATE_RAMP;
-			limit->time_armed = hrt_absolute_time();
+		case PWM_LIMIT_STATE_INIT:
+
+			if (armed) {
+
+				/* set arming time for the first call */
+				if (limit->time_armed == 0) {
+					limit->time_armed = hrt_absolute_time();
+				}
+
+				if (hrt_elapsed_time(&limit->time_armed) >= INIT_TIME_US) {
+					limit->state = PWM_LIMIT_STATE_OFF;
+				}
+			}
 			break;
-		case LIMIT_STATE_INIT:
-			if (!armed)
-				limit->state = LIMIT_STATE_OFF;
-			else if (hrt_absolute_time() - limit->time_armed >= INIT_TIME_US)
-				limit->state = LIMIT_STATE_RAMP;
+		case PWM_LIMIT_STATE_OFF:
+			if (armed) {
+				limit->state = PWM_LIMIT_STATE_RAMP;
+
+				/* reset arming time, used for ramp timing */
+				limit->time_armed = hrt_absolute_time();
+			}
 			break;
-		case LIMIT_STATE_RAMP:
-			if (!armed)
-				limit->state = LIMIT_STATE_OFF;
-			else if (hrt_absolute_time() - limit->time_armed >= INIT_TIME_US + RAMP_TIME_US)
-				limit->state = LIMIT_STATE_ON;
+		case PWM_LIMIT_STATE_RAMP:
+			if (!armed) {
+				limit->state = PWM_LIMIT_STATE_OFF;
+			} else if (hrt_elapsed_time(&limit->time_armed) >= RAMP_TIME_US) {
+				limit->state = PWM_LIMIT_STATE_ON;
+			}
 			break;
-		case LIMIT_STATE_ON:
-			if (!armed)
-				limit->state = LIMIT_STATE_OFF;
+		case PWM_LIMIT_STATE_ON:
+			if (!armed) {
+				limit->state = PWM_LIMIT_STATE_OFF;
+			}
 			break;
 		default:
 			break;
@@ -86,44 +101,47 @@ void pwm_limit_calc(const bool armed, const unsigned num_channels, const uint16_
 
 	/* then set effective_pwm based on state */
 	switch (limit->state) {
-		case LIMIT_STATE_OFF:
-		case LIMIT_STATE_INIT:
+		case PWM_LIMIT_STATE_OFF:
+		case PWM_LIMIT_STATE_INIT:
 			for (unsigned i=0; i<num_channels; i++) {
 				effective_pwm[i] = disarmed_pwm[i];
-				output[i] = 0.0f;
 			}
 			break;
-		case LIMIT_STATE_RAMP:
+		case PWM_LIMIT_STATE_RAMP:
+			{
+				hrt_abstime diff = hrt_elapsed_time(&limit->time_armed);
 
-			progress = (hrt_absolute_time() - INIT_TIME_US - limit->time_armed)*10000 / RAMP_TIME_US;
-			for (unsigned i=0; i<num_channels; i++) {
-                
-				uint16_t ramp_min_pwm;
-                
-				/* if a disarmed pwm value was set, blend between disarmed and min */
-				if (disarmed_pwm[i] > 0) {
+				progress = diff * 10000 / RAMP_TIME_US;
 
-					/* safeguard against overflows */
-					uint16_t disarmed = disarmed_pwm[i];
-					if (disarmed > min_pwm[i])
-						disarmed = min_pwm[i];
+				for (unsigned i=0; i<num_channels; i++) {
+	                
+					uint16_t ramp_min_pwm;
+	                
+					/* if a disarmed pwm value was set, blend between disarmed and min */
+					if (disarmed_pwm[i] > 0) {
 
-					uint16_t disarmed_min_diff = min_pwm[i] - disarmed;
-					ramp_min_pwm = disarmed + (disarmed_min_diff * progress) / 10000;
-				} else {
-                    
-					/* no disarmed pwm value set, choose min pwm */
-					ramp_min_pwm = min_pwm[i];
+						/* safeguard against overflows */
+						unsigned disarmed = disarmed_pwm[i];
+						if (disarmed > min_pwm[i]) {
+							disarmed = min_pwm[i];
+						}
+
+						unsigned disarmed_min_diff = min_pwm[i] - disarmed;
+						ramp_min_pwm = disarmed + (disarmed_min_diff * progress) / 10000;
+
+					} else {
+	                    
+						/* no disarmed pwm value set, choose min pwm */
+						ramp_min_pwm = min_pwm[i];
+					}
+
+					effective_pwm[i] = output[i] * (max_pwm[i] - ramp_min_pwm)/2 + (max_pwm[i] + ramp_min_pwm)/2;
 				}
-
-				effective_pwm[i] = output[i] * (max_pwm[i] - ramp_min_pwm)/2 + (max_pwm[i] + ramp_min_pwm)/2;
-				output[i] = (float)progress/10000.0f * output[i];
 			}
 			break;
-		case LIMIT_STATE_ON:
+		case PWM_LIMIT_STATE_ON:
 			for (unsigned i=0; i<num_channels; i++) {
 				effective_pwm[i] = output[i] * (max_pwm[i] - min_pwm[i])/2 + (max_pwm[i] + min_pwm[i])/2;
-				/* effective_output stays the same */
 			}
 			break;
 		default:

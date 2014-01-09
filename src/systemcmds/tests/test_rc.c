@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file test_ppm_loopback.c
- * Tests the PWM outputs and PPM input
+ * @file test_rc.c
+ * Tests RC input.
  *
  */
 
