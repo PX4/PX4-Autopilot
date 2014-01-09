@@ -223,10 +223,10 @@ test_mount(int argc, char *argv[])
 				printf("#");
 			}
 
-			printf("\n");
+			printf(".");
 			fsync(stdout);
 			fsync(stderr);
-			usleep(1000000);
+			usleep(200000);
 
 			end = hrt_absolute_time();
 
