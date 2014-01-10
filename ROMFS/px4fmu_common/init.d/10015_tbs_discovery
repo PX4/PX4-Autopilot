@@ -24,9 +24,7 @@ then
 	param set MC_YAWRATE_D 0.0
 fi
 
-set FRAME_TYPE mc
+set VEHICLE_TYPE mc
 set FRAME_GEOMETRY quad_w
+
 set PWM_RATE 400
-set PWM_DISARMED 900
-set PWM_MIN 1100
-set PWM_MAX 1900

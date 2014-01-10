@@ -77,24 +77,24 @@ then
 	#sh /etc/init.d/3030_io_camflyer
 fi
 
-if param compare SYS_AUTOSTART 3031 31
+if param compare SYS_AUTOSTART 3031
 then
-	#sh /etc/init.d/3031_io_phantom
+	sh /etc/init.d/3031_phantom
 fi
 
-if param compare SYS_AUTOSTART 3032 32
+if param compare SYS_AUTOSTART 3032
 then
 	#sh /etc/init.d/3032_skywalker_x5
 fi
 
-if param compare SYS_AUTOSTART 3033 33
+if param compare SYS_AUTOSTART 3033
 then
-	#sh /etc/init.d/3033_io_wingwing
+	sh /etc/init.d/3033_wingwing
 fi
 
-if param compare SYS_AUTOSTART 3034 34
+if param compare SYS_AUTOSTART 3034
 then
-	#sh /etc/init.d/3034_io_fx79
+	sh /etc/init.d/3034_fx79
 fi
 
 #
