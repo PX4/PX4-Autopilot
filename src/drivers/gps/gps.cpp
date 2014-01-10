@@ -264,6 +264,39 @@ GPS::task_main()
 	/* loop handling received serial bytes and also configuring in between */
 	while (!_task_should_exit) {
 
+//#define FAKEGPS
+#ifdef FAKEGPS
+		_report.timestamp_position = hrt_absolute_time();
+		_report.lat = (int32_t)47.378301e7f;
+		_report.lon = (int32_t)8.538777e7f;
+		_report.alt = (int32_t)400e3f;
+		_report.timestamp_variance = hrt_absolute_time();
+		_report.s_variance_m_s = 10.0f;
+		_report.p_variance_m = 10.0f;
+		_report.c_variance_rad = 0.1f;
+		_report.fix_type = 3;
+		_report.eph_m = 10.0f;
+		_report.epv_m = 10.0f;
+		_report.timestamp_velocity = hrt_absolute_time();
+		_report.vel_n_m_s = 20.0f;
+		_report.vel_e_m_s = 0.0f;
+		_report.vel_d_m_s = 0.0f;
+		_report.vel_m_s = sqrtf(_report.vel_n_m_s * _report.vel_n_m_s + _report.vel_e_m_s * _report.vel_e_m_s + _report.vel_d_m_s * _report.vel_d_m_s);
+		_report.cog_rad = 0.0f;
+		_report.vel_ned_valid = true;
+
+		//no time and satellite information simulated
+
+		if (_report_pub > 0) {
+			orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
+
+		} else {
+			_report_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report);
+		}
+
+		usleep(2e5);
+#else
+
 		if (_Helper != nullptr) {
 			delete(_Helper);
 			/* set to zero to ensure parser is not used while not instantiated */
@@ -294,29 +327,6 @@ GPS::task_main()
 			while (_Helper->receive(TIMEOUT_5HZ) > 0 && !_task_should_exit) {
 //				lock();
 				/* opportunistic publishing - else invalid data would end up on the bus */
-//#define FAKEGPS
-#ifdef FAKEGPS
-				_report.timestamp_position = hrt_absolute_time();
-				_report.lat = (int32_t)47.378301e7f;
-				_report.lon = (int32_t)8.538777e7f;
-				_report.alt = (int32_t)400e3f;
-				_report.timestamp_variance = hrt_absolute_time();
-				_report.s_variance_m_s = 10.0f;
-				_report.p_variance_m = 10.0f;
-				_report.c_variance_rad = 0.1f;
-				_report.fix_type = 3;
-				_report.eph_m = 10.0f;
-				_report.epv_m = 10.0f;
-				_report.timestamp_velocity = hrt_absolute_time();
-				_report.vel_n_m_s = 20.0f;
-				_report.vel_e_m_s = 0.0f;
-				_report.vel_d_m_s = 0.0f;
-				_report.vel_m_s = sqrtf(_report.vel_n_m_s * _report.vel_n_m_s + _report.vel_e_m_s * _report.vel_e_m_s + _report.vel_d_m_s * _report.vel_d_m_s);
-				_report.cog_rad = 0.0f;
-				_report.vel_ned_valid = true;
-
-				//no time and satellite information simulated
-#endif
 				if (_report_pub > 0) {
 					orb_publish(ORB_ID(vehicle_gps_position), _report_pub, &_report);
 
@@ -380,6 +390,7 @@ GPS::task_main()
 		default:
 			break;
 		}
+#endif
 
 	}
 
