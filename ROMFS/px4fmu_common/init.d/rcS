@@ -186,7 +186,12 @@ then
 	#
 	# Set parameters and env variables for selected AUTOSTART
 	#
-	sh /etc/init.d/rc.autostart
+	if param compare SYS_AUTOSTART 0
+	then
+		echo "[init] Don't try to find autostart script"
+	else
+		sh /etc/init.d/rc.autostart
+	fi
 
 	#
 	# Override parameters from user configuration file
