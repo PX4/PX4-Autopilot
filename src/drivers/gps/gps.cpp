@@ -264,7 +264,7 @@ GPS::task_main()
 	/* loop handling received serial bytes and also configuring in between */
 	while (!_task_should_exit) {
 
-//#define FAKEGPS
+#define FAKEGPS
 #ifdef FAKEGPS
 		_report.timestamp_position = hrt_absolute_time();
 		_report.lat = (int32_t)47.378301e7f;
@@ -278,7 +278,7 @@ GPS::task_main()
 		_report.eph_m = 10.0f;
 		_report.epv_m = 10.0f;
 		_report.timestamp_velocity = hrt_absolute_time();
-		_report.vel_n_m_s = 20.0f;
+		_report.vel_n_m_s = 0.0f;
 		_report.vel_e_m_s = 0.0f;
 		_report.vel_d_m_s = 0.0f;
 		_report.vel_m_s = sqrtf(_report.vel_n_m_s * _report.vel_n_m_s + _report.vel_e_m_s * _report.vel_e_m_s + _report.vel_d_m_s * _report.vel_d_m_s);
