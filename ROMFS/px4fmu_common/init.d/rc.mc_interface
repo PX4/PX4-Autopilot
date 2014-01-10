@@ -1,24 +1,25 @@
 #!nsh
 #
-# Script to set PWM min / max limits and mixer
+# Script to load multicopter mixer and set rate/disarmed/min/max values for PWM output
 #
 
-echo "Rotors count: $FRAME_COUNT"
-if [ $FRAME_COUNT == 4 ]
+if [ $FRAME_GEOMETRY == quad_x -o $FRAME_GEOMETRY == quad_+ ]
 then
-	set FRAME_COUNT_STR quad
     set OUTPUTS 1234
     param set MAV_TYPE 2
 fi
-if [ $FRAME_COUNT == 6 ]
+if [ $FRAME_GEOMETRY == quad_w -o $FRAME_GEOMETRY == quad_v ]
 then
-	set FRAME_COUNT_STR hex
+    set OUTPUTS 1234
+    param set MAV_TYPE 2
+fi
+if [ $FRAME_GEOMETRY == hex_x -o $FRAME_GEOMETRY == hex_+ ]
+then
 	set OUTPUTS 123456
 	param set MAV_TYPE 13
 fi
-if [ $FRAME_COUNT == 8 ]
+if [ $FRAME_GEOMETRY == octo_x -o $FRAME_GEOMETRY == octo_+ ]
 then
-	set FRAME_COUNT_STR octo
 	set OUTPUTS 12345678
 	param set MAV_TYPE 14
 fi
@@ -26,31 +27,34 @@ fi
 #
 # Load mixer
 #
-echo "Frame geometry: ${FRAME_GEOMETRY}"
-set MIXER /etc/mixers/FMU_${FRAME_GEOMETRY_STR}_${FRAME_GEOMETRY}.mix
-echo "Loading mixer: ${MIXER}"
-mixer load /dev/pwm_output ${MIXER}
+echo "Frame geometry: $FRAME_GEOMETRY"
+set MIXER /etc/mixers/FMU_${FRAME_GEOMETRY}.mix
+echo "Loading mixer: $MIXER"
+mixer load /dev/pwm_output $MIXER
 
-#
-# Set PWM output frequency
-#
-if [ $PWM_RATE != none ]
+if [ $OUTPUT_MODE == fmu_pwm -o $OUTPUT_MODE == io_pwm ]
 then
-	pwm rate -c $OUTPUTS -r $PWM_RATE
-fi
-
-#
-# Set disarmed, min and max PWM values
-#
-if [ $PWM_DISARMED != none ]
-then
-	pwm disarmed -c $OUTPUTS -p $PWM_DISARMED
-fi
-if [ $PWM_MIN != none ]
-then
-	pwm min -c $OUTPUTS -p $PWM_MIN
-fi
-if [ $PWM_MAX != none ]
-then
-	pwm max -c $OUTPUTS -p $PWM_MAX
+	#
+	# Set PWM output frequency
+	#
+	if [ $PWM_RATE != none ]
+	then
+		pwm rate -c $OUTPUTS -r $PWM_RATE
+	fi
+	
+	#
+	# Set disarmed, min and max PWM values
+	#
+	if [ $PWM_DISARMED != none ]
+	then
+		pwm disarmed -c $OUTPUTS -p $PWM_DISARMED
+	fi
+	if [ $PWM_MIN != none ]
+	then
+		pwm min -c $OUTPUTS -p $PWM_MIN
+	fi
+	if [ $PWM_MAX != none ]
+	then
+		pwm max -c $OUTPUTS -p $PWM_MAX
+	fi
 fi

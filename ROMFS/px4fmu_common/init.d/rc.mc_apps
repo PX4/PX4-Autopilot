@@ -1,6 +1,6 @@
 #!nsh
 #
-# Standard everything needed for multirotors except mixer, actuator output and mavlink
+# Standard apps for multirotors
 #
 
 #

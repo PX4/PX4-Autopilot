@@ -2,10 +2,7 @@
 
 # Maintainers: Lorenz Meier <lm@inf.ethz.ch>
 
-echo "[init] PX4FMU v1, v2 with or without IO on DJI F450"
-
-# Use generic quad X PWM as base
-sh /etc/init.d/4001_quad_x_pwm
+echo "[init] DJI F450"
 
 if [ $DO_AUTOCONFIG == yes ]
 then
@@ -27,7 +24,12 @@ then
 	
 	# TODO add default MPC parameters
 fi
- 
+
+set VEHICLE_TYPE mc
+set FRAME_GEOMETRY quad_x
+
+set PWM_RATE 400
+
 # DJI ESC range
 set PWM_DISARMED 900
 set PWM_MIN 1200

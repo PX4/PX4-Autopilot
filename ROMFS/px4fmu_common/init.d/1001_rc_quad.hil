@@ -37,6 +37,7 @@ then
 	param set MPC_Z_VEL_P 0.20
 fi
 
-set FRAME_TYPE mc
-set FRAME_GEOMETRY x
-set FRAME_COUNT 4
+set HIL yes
+
+set VEHICLE_TYPE mc
+set FRAME_GEOMETRY quad_x

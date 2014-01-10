@@ -52,7 +52,7 @@ then
 		echo "[init] USB interface connected"
 	fi
 
-	echo "Running rc.APM"
+	echo "[init] Running rc.APM"
 	# if APM startup is successful then nsh will exit
 	sh /etc/init.d/rc.APM
 fi
@@ -85,9 +85,9 @@ then
 		then
 			if param load /fs/microsd/params
 			then
-				echo "Parameters loaded"
+				echo "[init] Parameters loaded"
 			else
-				echo "Parameter file corrupt - ignoring"
+				echo "[init] Parameter file corrupt - ignoring"
 			fi
 		fi
 	#fi
@@ -97,7 +97,7 @@ then
 	#
 	if rgbled start
 	then
-		echo "Using external RGB Led"
+		echo "[init] Using external RGB Led"
 	else
 		if blinkm start
 		then
@@ -105,12 +105,74 @@ then
 		fi
 	fi
 
-	set USE_IO no
+	# Use FMU PWM output by default
+	set OUTPUT_MODE fmu_pwm
+	set IO_PRESENT no
+	
+	#
+	# Upgrade PX4IO firmware
+	#
+	if [ -f /etc/extras/px4io-v2_default.bin ]
+	then
+		set io_file /etc/extras/px4io-v2_default.bin
+	else
+		set io_file /etc/extras/px4io-v1_default.bin
+	fi
+
+	if px4io checkcrc $io_file
+	then
+		echo "[init] PX4IO CRC OK"
+		echo "PX4IO CRC OK" >> $logfile
+
+		set IO_PRESENT yes
+		
+		# If PX4IO present, use it as primary PWM output by default
+		set OUTPUT_MODE io_pwm
+	else
+		echo "[init] PX4IO CRC failure"
+		echo "PX4IO CRC failure" >> $logfile
+		tone_alarm MBABGP
+		if px4io forceupdate 14662 $io_file
+		then
+			usleep 500000
+			if px4io start
+			then
+				echo "[init] PX4IO restart OK"
+				echo "PX4IO restart OK" >> $logfile
+				tone_alarm MSPAA
+
+				set IO_PRESENT yes
+
+				# If PX4IO present, use it as primary PWM output by default
+				set OUTPUT_MODE io_pwm
+			else
+				echo "[init] PX4IO restart failed"
+				echo "PX4IO restart failed" >> $logfile
+				if hw_ver compare PX4FMU_V2
+				then
+					tone_alarm MNGGG
+					sleep 10
+					reboot
+				fi
+			fi
+		else
+			echo "[init] PX4IO update failed"
+			echo "PX4IO update failed" >> $logfile
+			if hw_ver compare PX4FMU_V2
+			then
+				tone_alarm MNGGG
+			fi
+		fi
+	fi
+	
+	set HIL no
 	set FRAME_TYPE none
 	set PWM_RATE none
 	set PWM_DISARMED none
 	set PWM_MIN none
 	set PWM_MAX none
+	
+	set EXIT_ON_END no
 	
 	if param compare SYS_AUTOCONFIG 1
 	then
@@ -125,112 +187,23 @@ then
 	commander start
 	
 	#
-	# Set parameters and env variables for selected AUTOSTART (HIL setups)
+	# Set parameters and env variables for selected AUTOSTART
 	#
-	sh /etc/init.d/rc.autostart_hil
-	
-	if [ $MODE == hil ]
-	then
-		#
-		# Do common HIL setup depending on env variables
-		#
-		# Allow USB some time to come up
-		sleep 1
+	sh /etc/init.d/rc.autostart
 
-		# Start MAVLink on USB port
-		mavlink start -b 230400 -d /dev/ttyACM0
-		usleep 5000
-		
-		# Create a fake HIL /dev/pwm_output interface
-		hil mode_pwm
-		
-		# Sensors
-		echo "Start sensors"
-		sh /etc/init.d/rc.sensors
-		
-		#
-		# Fixed wing setup
-		#
-		if [ $FRAME_TYPE == fw ]
-		then
-			echo "Setup FIXED WING"
-		fi
-	
-		#
-		# Multicopters setup
-		#
-		if [ $FRAME_TYPE == mc ]
-		then
-			echo "Setup MULTICOPTER"
-			
-			# Load mixer and configure outputs
-			sh /etc/init.d/rc.mc_interface
-			
-			# Start common multicopter apps
-			sh /etc/init.d/rc.mc_apps
-		fi
+	# Custom configuration
+	if [ -f /fs/microsd/etc/rc.conf ]
+	then
+		sh /fs/microsd/etc/rc.conf
+	fi
+
+	if [ $HIL == yes ]
+	then
+		set OUTPUT_MODE hil
 	else
 		# Try to get an USB console if not in HIL mode
 		nshterm /dev/ttyACM0 &
 	fi
-		
-	#
-	# Upgrade PX4IO firmware
-	#
-	if [ -f /etc/extras/px4io-v2_default.bin ]
-	then
-		set io_file /etc/extras/px4io-v2_default.bin
-	else
-		set io_file /etc/extras/px4io-v1_default.bin
-	fi
-
-	if px4io start
-	then
-		echo "PX4IO OK"
-		echo "PX4IO OK" >> $logfile
-	fi
-	
-	if px4io checkcrc $io_file
-	then
-		echo "PX4IO CRC OK"
-		echo "PX4IO CRC OK" >> $logfile
-		set USE_IO yes
-	else
-		echo "PX4IO CRC failure"
-		echo "PX4IO CRC failure" >> $logfile
-		tone_alarm MBABGP
-		if px4io forceupdate 14662 $io_file
-		then
-			usleep 500000
-			if px4io start
-			then
-				echo "PX4IO restart OK"
-				echo "PX4IO restart OK" >> $logfile
-				tone_alarm MSPAA
-				set USE_IO yes
-			else
-				echo "PX4IO restart failed"
-				echo "PX4IO restart failed" >> $logfile
-				if hw_ver compare PX4FMU_V2
-				then
-					tone_alarm MNGGG
-					sleep 10
-					reboot
-				fi
-			fi
-		else
-			echo "PX4IO update failed"
-			echo "PX4IO update failed" >> $logfile
-			tone_alarm MNGGG
-		fi
-	fi
-
-	set EXIT_ON_END no
-	
-	#
-	# Set parameters and env variables for selected AUTOSTART
-	#
-	sh /etc/init.d/rc.autostart
 	
 	#
 	# If autoconfig parameter was set, reset it and save parameters
@@ -240,65 +213,131 @@ then
 		param set SYS_AUTOCONFIG 0
 		param save
 	fi
-	
+
 	if [ $MODE == autostart ]
 	then	
 		#
-		# Do common setup depending on env variables
+		# Start primary output
 		#
-		if [ $USE_IO == yes ]
+		if [ $OUTPUT_MODE == io_pwm ]
 		then
-			echo "Use IO"
-			
-			# Start MAVLink on default port: ttyS1
-			mavlink start
-			usleep 5000	
-			
-			sh /etc/init.d/rc.io
-		else
-			echo "Don't use IO"
-			
-			# Start MAVLink on ttyS0
+			echo "[init] Use PX4IO PWM as primary output"
+			if px4io start
+			then
+				echo "[init] PX4IO OK"
+				echo "PX4IO OK" >> $logfile
+				sh /etc/init.d/rc.io
+			else
+				echo "[init] PX4IO start error"
+				echo "PX4IO start error" >> $logfile
+				tone_alarm MNGGG
+			fi
+		fi
+		if [ $OUTPUT_MODE == fmu_pwm ]
+		then
+			echo "[init] Use PX4FMU PWM as primary output"
+			fmu mode_pwm
+		fi
+		if [ $OUTPUT_MODE == mkblctrl ]
+		then
+			echo "[init] Use MKBLCTRL as primary output"
+		    mkblctrl
+		fi		
+		if [ $OUTPUT_MODE == hil ]
+		then
+			echo "[init] Use HIL as primary output"
+			hil mode_pwm
+		fi
+		
+		#
+		# Start PX4IO as secondary output if needed
+		#
+		if [ $IO_PRESENT == yes -a $OUTPUT_MODE != io_pwm ]
+		then
+			echo "[init] Use PX4IO PWM as secondary output"
+			if px4io start
+			then
+				echo "[init] PX4IO OK"
+				echo "PX4IO OK" >> $logfile
+				sh /etc/init.d/rc.io
+			else
+				echo "[init] PX4IO start error"
+				echo "PX4IO start error" >> $logfile
+				tone_alarm MNGGG
+			fi
+		fi
+
+		#
+		# MAVLink
+		#
+		if [ $OUTPUT_MODE == fmu_pwm -a hw_ver compare PX4FMU_V1 ]
+		then
+			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as PWM output
 			mavlink start -d /dev/ttyS0
 			usleep 5000
 			
-			# Configure FMU for PWM outputs
-			fmu mode_pwm
-			
 			# Exit from nsh to free port for mavlink
 			set EXIT_ON_END yes
+		else
+			# Start MAVLink on default port: ttyS1
+			mavlink start
+			usleep 5000
 		fi
 		
-		# Sensors
-		echo "Start sensors"
+		#
+		# Sensors, Logging, GPS
+		#
+		echo "[init] Start sensors"
 		sh /etc/init.d/rc.sensors
-		
-		# Logging
-		sh /etc/init.d/rc.logging
-		
-		# GPS interface
-		gps start
+
+		if [ $HIL == no ]
+		then
+			echo "[init] Start logging"
+			sh /etc/init.d/rc.logging
+		fi
+
+		if [ $HIL == no ]
+		then
+			echo "[init] Start GPS"
+			gps start
+		fi
 		
 		#
 		# Fixed wing setup
 		#
-		if [ $FRAME_TYPE == fw ]
+		if [ $VEHICLE_TYPE == fw ]
 		then
-			echo "Setup FIXED WING"
+			echo "[init] Vehicle type: FIXED WING"
+			
+			# Load mixer and configure outputs
+			sh /etc/init.d/rc.fw_interface
+			
+			# Start standard fixedwing apps
+			sh /etc/init.d/rc.mc_apps
 		fi
 	
 		#
 		# Multicopters setup
 		#
-		if [ $FRAME_TYPE == mc ]
+		if [ $VEHICLE_TYPE == mc ]
 		then
-			echo "Setup MULTICOPTER"
+			echo "[init] Vehicle type: MULTICOPTER"
 			
 			# Load mixer and configure outputs
 			sh /etc/init.d/rc.mc_interface
 			
-			# Start common multicopter apps
+			# Start standard multicopter apps
 			sh /etc/init.d/rc.mc_apps
+		fi
+
+		#
+		# Generic setup (autostart ID not found)
+		#
+		if [ $VEHICLE_TYPE == none ]
+		then
+			echo "[init] Vehicle type: GENERIC"
+			attitude_estimator_ekf start
+			position_estimator_inav start
 		fi
 	fi
 
@@ -306,39 +345,6 @@ then
 	if [ -f /fs/microsd/etc/rc.local ]
 	then
 		sh /fs/microsd/etc/rc.local
-	fi
-	
-	# If none of the autostart scripts triggered, get a minimal setup
-	if [ $MODE == autostart ]
-	then
-		# Telemetry port is on both FMU boards ttyS1
-		# but the AR.Drone motors can be get 'flashed'
-		# if starting MAVLink on them - so do not
-		# start it as default (default link: USB)
-	
-		# Start commander
-		commander start
-	
-		# Start px4io if present
-		if px4io detect
-		then
-			px4io start
-		else
-			if fmu mode_serial
-			then
-				echo "FMU driver (no PWM) started"
-			fi
-		fi
-	
-		# Start sensors
-		sh /etc/init.d/rc.sensors
-	
-		# Start one of the estimators
-		attitude_estimator_ekf start
-	
-		# Start GPS
-		gps start
-	
 	fi
 
 	if [ $EXIT_ON_END == yes ]
