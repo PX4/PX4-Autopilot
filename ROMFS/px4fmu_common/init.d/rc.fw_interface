@@ -1,6 +1,6 @@
 #!nsh
 #
-# Script to load fixedwing mixer and set rate/disarmed/min/max values for PWM output
+# Script to configure fixedwing control interface
 #
 
 #
@@ -12,7 +12,7 @@ param set MAV_TYPE 1
 #
 # Load mixer
 #
-echo "Frame geometry: ${FRAME_GEOMETRY}"
-set MIXER /etc/mixers/FMU_${FRAME_GEOMETRY}.mix
-echo "Loading mixer: ${MIXER}"
-mixer load /dev/pwm_output ${MIXER}
+echo "[init] Frame geometry: $FRAME_GEOMETRY"
+set MIXER /etc/mixers/FMU_$FRAME_GEOMETRY.mix
+echo "[init] Loading mixer: $MIXER"
+mixer load /dev/pwm_output $MIXER

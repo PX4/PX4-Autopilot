@@ -1,6 +1,6 @@
 #!nsh
 #
-# Script to load multicopter mixer and set rate/disarmed/min/max values for PWM output
+# Script to configure multicopter control interface
 #
 
 if [ $FRAME_GEOMETRY == quad_x -o $FRAME_GEOMETRY == quad_+ ]
@@ -27,9 +27,9 @@ fi
 #
 # Load mixer
 #
-echo "Frame geometry: $FRAME_GEOMETRY"
-set MIXER /etc/mixers/FMU_${FRAME_GEOMETRY}.mix
-echo "Loading mixer: $MIXER"
+echo "[init] Frame geometry: $FRAME_GEOMETRY"
+set MIXER /etc/mixers/FMU_$FRAME_GEOMETRY.mix
+echo "[init] Loading mixer: $MIXER"
 mixer load /dev/pwm_output $MIXER
 
 if [ $OUTPUT_MODE == fmu_pwm -o $OUTPUT_MODE == io_pwm ]
@@ -39,6 +39,7 @@ then
 	#
 	if [ $PWM_RATE != none ]
 	then
+		echo "[init] Set PWM rate: $PWM_RATE"
 		pwm rate -c $OUTPUTS -r $PWM_RATE
 	fi
 	
@@ -47,14 +48,17 @@ then
 	#
 	if [ $PWM_DISARMED != none ]
 	then
+		echo "[init] Set PWM disarmed: $PWM_DISARMED"
 		pwm disarmed -c $OUTPUTS -p $PWM_DISARMED
 	fi
 	if [ $PWM_MIN != none ]
 	then
+		echo "[init] Set PWM min: $PWM_MIN"
 		pwm min -c $OUTPUTS -p $PWM_MIN
 	fi
 	if [ $PWM_MAX != none ]
 	then
+		echo "[init] Set PWM max: $PWM_MAX"
 		pwm max -c $OUTPUTS -p $PWM_MAX
 	fi
 fi
